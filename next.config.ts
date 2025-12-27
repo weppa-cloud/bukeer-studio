@@ -16,6 +16,14 @@ const nextConfig: NextConfig = {
         hostname: 'colombiatours.travel',
       },
       {
+        protocol: 'https',
+        hostname: 'randomuser.me',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.unsplash.com',
+      },
+      {
         protocol: 'http',
         hostname: 'localhost',
       },
