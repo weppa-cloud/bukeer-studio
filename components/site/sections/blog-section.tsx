@@ -12,6 +12,7 @@ interface BlogSectionProps {
 
 export function BlogSection({ section, website }: BlogSectionProps) {
   const { subdomain } = website;
+  // Content is normalized to camelCase by render-section.tsx
   const sectionContent = section.content as {
     title?: string;
     subtitle?: string;
@@ -20,8 +21,8 @@ export function BlogSection({ section, website }: BlogSectionProps) {
       title: string;
       slug: string;
       excerpt?: string;
-      featured_image?: string;
-      published_at?: string;
+      featuredImage?: string;
+      publishedAt?: string;
     }>;
   };
 
@@ -69,9 +70,9 @@ export function BlogSection({ section, website }: BlogSectionProps) {
               >
                 <Link href={`/site/${subdomain}/blog/${post.slug}`}>
                   <div className="relative aspect-[16/10] rounded-xl overflow-hidden mb-4">
-                    {post.featured_image ? (
+                    {post.featuredImage ? (
                       <Image
-                        src={post.featured_image}
+                        src={post.featuredImage}
                         alt={post.title}
                         fill
                         className="object-cover group-hover:scale-105 transition-transform duration-300"
@@ -92,9 +93,9 @@ export function BlogSection({ section, website }: BlogSectionProps) {
                       {post.excerpt}
                     </p>
                   )}
-                  {post.published_at && (
+                  {post.publishedAt && (
                     <p className="mt-3 text-xs text-muted-foreground">
-                      {new Date(post.published_at).toLocaleDateString('es-ES', {
+                      {new Date(post.publishedAt).toLocaleDateString('es-ES', {
                         day: 'numeric',
                         month: 'long',
                         year: 'numeric',
