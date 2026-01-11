@@ -11,6 +11,7 @@ interface HeroSectionProps {
 export function HeroSection({ section, website }: HeroSectionProps) {
   const { content } = website;
   const variant = section.variant || 'full';
+  // Content is normalized to camelCase by render-section.tsx
   const sectionContent = section.content as {
     title?: string;
     subtitle?: string;

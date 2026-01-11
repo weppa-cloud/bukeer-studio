@@ -8,52 +8,84 @@ const MAIN_DOMAIN = process.env.NEXT_PUBLIC_MAIN_DOMAIN || 'bukeer.com';
 
 export function middleware(request: NextRequest) {
   const url = request.nextUrl;
-  const hostname = request.headers.get('host') || '';
+  const hostHeader = request.headers.get('host') || '';
 
-  // Extract subdomain
-  // In development: localhost:3000 or subdomain.localhost:3000
-  // In production: subdomain.bukeer.com
-  let subdomain: string | null = null;
+  // Normalize: remove port for consistent matching
+  const host = hostHeader.split(':')[0];
+  const pathname = url.pathname;
 
-  if (hostname.includes('localhost') || hostname.includes('127.0.0.1')) {
-    // Development: Check for subdomain in query param or custom header
-    subdomain = url.searchParams.get('subdomain') ||
-                request.headers.get('x-subdomain') ||
-                null;
-  } else {
-    // Production: Extract subdomain from hostname
-    const parts = hostname.replace(`.${MAIN_DOMAIN}`, '').split('.');
-    if (parts.length > 0 && parts[0] !== hostname && !RESERVED_SUBDOMAINS.includes(parts[0])) {
-      subdomain = parts[0];
+  // Skip static files and API routes
+  if (
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/api') ||
+    pathname.match(/\.(ico|png|jpg|jpeg|svg|css|js|woff2?)$/)
+  ) {
+    return NextResponse.next();
+  }
+
+  // Check if it's a Bukeer domain (main or subdomain)
+  const isBukeerDomain =
+    host.endsWith(`.${MAIN_DOMAIN}`) ||
+    host === MAIN_DOMAIN ||
+    host.includes('localhost') ||
+    host.includes('127.0.0.1');
+
+  if (isBukeerDomain) {
+    // Handle development environment
+    if (host.includes('localhost') || host.includes('127.0.0.1')) {
+      // Development: Check for subdomain in query param or custom header
+      const subdomain =
+        url.searchParams.get('subdomain') ||
+        request.headers.get('x-subdomain') ||
+        null;
+
+      if (!subdomain) {
+        return NextResponse.next();
+      }
+
+      // Rewrite to tenant route
+      const newUrl = new URL(url);
+      if (!pathname.startsWith('/site/')) {
+        newUrl.pathname = `/site/${subdomain}${pathname}`;
+      }
+      const response = NextResponse.rewrite(newUrl);
+      response.headers.set('x-subdomain', subdomain);
+      return response;
     }
+
+    // Production Bukeer domain handling
+    let subdomain: string;
+
+    if (host === MAIN_DOMAIN) {
+      // bukeer.com → treat as 'bukeer' subdomain (corporate site)
+      subdomain = 'bukeer';
+    } else {
+      // miagencia.bukeer.com → extract 'miagencia'
+      subdomain = host.replace(`.${MAIN_DOMAIN}`, '').split('.')[0];
+    }
+
+    // Check if subdomain is reserved
+    if (RESERVED_SUBDOMAINS.includes(subdomain.toLowerCase())) {
+      return NextResponse.next();
+    }
+
+    // Rewrite to tenant route
+    const newUrl = new URL(url);
+    if (!pathname.startsWith('/site/')) {
+      newUrl.pathname = `/site/${subdomain}${pathname}`;
+    }
+    const response = NextResponse.rewrite(newUrl);
+    response.headers.set('x-subdomain', subdomain);
+    return response;
+  } else {
+    // Custom domain (e.g., miagencia.com)
+    // Rewrite to /domain/[host]/... route (NO DB query in middleware)
+    const newUrl = new URL(url);
+    newUrl.pathname = `/domain/${encodeURIComponent(host)}${pathname}`;
+    const response = NextResponse.rewrite(newUrl);
+    response.headers.set('x-custom-domain', host);
+    return response;
   }
-
-  // If no subdomain or it's the main site, continue normally
-  if (!subdomain) {
-    return NextResponse.next();
-  }
-
-  // Check if subdomain is reserved
-  if (RESERVED_SUBDOMAINS.includes(subdomain.toLowerCase())) {
-    return NextResponse.next();
-  }
-
-  // Rewrite to the dynamic tenant route
-  // /site/[subdomain]/... handles all tenant pages
-  const newUrl = new URL(url);
-
-  // Preserve the original path
-  const pathWithoutSite = url.pathname.startsWith('/site/')
-    ? url.pathname
-    : `/site/${subdomain}${url.pathname}`;
-
-  newUrl.pathname = pathWithoutSite;
-
-  // Pass subdomain to the page via header
-  const response = NextResponse.rewrite(newUrl);
-  response.headers.set('x-subdomain', subdomain);
-
-  return response;
 }
 
 export const config = {

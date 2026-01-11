@@ -5,9 +5,9 @@ import { notFound } from 'next/navigation';
 import {
   getWebsiteBySubdomain,
   getBlogPostBySlug,
-  getAllBlogSlugs,
 } from '@/lib/supabase/get-website';
 import { JsonLd, generateBlogPostSchemas } from '@/lib/schema';
+import { SafeHtml } from '@/lib/sanitize';
 
 interface BlogPostPageProps {
   params: Promise<{ subdomain: string; slug: string }>;
@@ -139,15 +139,15 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
           </div>
         )}
 
-        {/* Content */}
-        <div
+        {/* Content - Sanitized to prevent XSS */}
+        <SafeHtml
+          content={post.content}
           className="prose prose-lg max-w-none dark:prose-invert
             prose-headings:font-bold
             prose-a:text-primary prose-a:no-underline hover:prose-a:underline
             prose-img:rounded-lg
             prose-blockquote:border-l-primary
           "
-          dangerouslySetInnerHTML={{ __html: post.content }}
         />
 
         {/* Share / Navigation */}
@@ -209,7 +209,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 }
 
 // Generate static paths for all blog posts
-export async function generateStaticParams({ params }: { params: { subdomain: string } }) {
+export async function generateStaticParams() {
   const { getAllWebsiteSubdomains, getAllBlogSlugs, getWebsiteBySubdomain } = await import('@/lib/supabase/get-website');
   const subdomains = await getAllWebsiteSubdomains();
 

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
+import { supabase } from '@/lib/supabase/client';
 
 interface ContactSectionProps {
   section: WebsiteSection;
@@ -10,9 +11,10 @@ interface ContactSectionProps {
 }
 
 export function ContactSection({ section, website }: ContactSectionProps) {
-  const { content, subdomain } = website;
+  const { content } = website;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const sectionContent = section.content as {
     title?: string;
@@ -24,13 +26,39 @@ export function ContactSection({ section, website }: ContactSectionProps) {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setError(null);
 
     const formData = new FormData(e.currentTarget);
-    // TODO: Submit to Supabase website_form_submissions
 
-    await new Promise(r => setTimeout(r, 1000));
-    setIsSubmitting(false);
-    setSubmitted(true);
+    try {
+      const { error: rpcError } = await supabase.rpc('submit_website_form', {
+        p_website_id: website.id,
+        p_form_type: 'contact',
+        p_name: formData.get('name') as string,
+        p_email: formData.get('email') as string,
+        p_phone: (formData.get('phone') as string) || null,
+        p_message: formData.get('message') as string,
+        p_honeypot: (formData.get('website_url') as string) || null, // Honeypot field
+      });
+
+      if (rpcError) {
+        if (rpcError.message === 'Too many requests') {
+          setError('Has enviado demasiados mensajes. Intenta de nuevo más tarde.');
+        } else {
+          setError('Error al enviar el mensaje. Intenta de nuevo.');
+          console.error('Form submission error:', rpcError);
+        }
+        setIsSubmitting(false);
+        return;
+      }
+
+      setSubmitted(true);
+    } catch (err) {
+      setError('Error al enviar el mensaje. Intenta de nuevo.');
+      console.error('Form submission error:', err);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -112,6 +140,15 @@ export function ContactSection({ section, website }: ContactSectionProps) {
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="bg-card rounded-xl p-8 space-y-6 shadow-sm">
+                {/* Honeypot field - hidden from users, catches bots */}
+                <input
+                  type="text"
+                  name="website_url"
+                  autoComplete="off"
+                  tabIndex={-1}
+                  className="absolute -left-[9999px] opacity-0 h-0 w-0"
+                  aria-hidden="true"
+                />
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium mb-2">Nombre</label>
@@ -149,6 +186,12 @@ export function ContactSection({ section, website }: ContactSectionProps) {
                     className="w-full px-4 py-3 rounded-lg border bg-background focus:ring-2 focus:ring-primary focus:border-transparent outline-none resize-none"
                   />
                 </div>
+                {/* Error message */}
+                {error && (
+                  <div className="p-4 bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400 rounded-lg text-sm">
+                    {error}
+                  </div>
+                )}
                 <button
                   type="submit"
                   disabled={isSubmitting}

@@ -4,30 +4,33 @@ import Link from 'next/link';
 import { useTheme } from 'next-themes';
 import { useState } from 'react';
 import { WebsiteData } from '@/lib/supabase/get-website';
+import { getBasePath } from '@/lib/utils/base-path';
 
 interface SiteHeaderProps {
   website: WebsiteData;
+  isCustomDomain?: boolean;
 }
 
-export function SiteHeader({ website }: SiteHeaderProps) {
+export function SiteHeader({ website, isCustomDomain = false }: SiteHeaderProps) {
   const { theme, setTheme } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const { content, theme: siteTheme, subdomain } = website;
   const navStyle = siteTheme.layout?.navStyle || 'sticky';
+  const basePath = getBasePath(subdomain, isCustomDomain);
 
   // Usar datos de account si están disponibles (fallback a content)
   const siteName = content.account?.name || content.siteName;
   const siteLogo = content.account?.logo || content.logo;
-  const contactPhone = content.account?.phone || content.contact?.phone;
+  // contactPhone available for future use: content.account?.phone || content.contact?.phone
 
   // Navigation links based on enabled sections
   const navLinks = [
-    { label: 'Inicio', href: `/site/${subdomain}` },
-    { label: 'Destinos', href: `/site/${subdomain}#destinations` },
-    { label: 'Hoteles', href: `/site/${subdomain}#hotels` },
-    { label: 'Blog', href: `/site/${subdomain}/blog` },
-    { label: 'Contacto', href: `/site/${subdomain}#contact` },
+    { label: 'Inicio', href: `${basePath}/` },
+    { label: 'Destinos', href: `${basePath}/#destinations` },
+    { label: 'Hoteles', href: `${basePath}/#hotels` },
+    { label: 'Blog', href: `${basePath}/blog` },
+    { label: 'Contacto', href: `${basePath}/#contact` },
   ];
 
   const headerClasses = {
@@ -40,7 +43,7 @@ export function SiteHeader({ website }: SiteHeaderProps) {
     <header className={headerClasses[navStyle]}>
       <nav className="container flex items-center justify-between h-16 lg:h-20">
         {/* Logo / Site Name */}
-        <Link href={`/site/${subdomain}`} className="flex items-center gap-3">
+        <Link href={`${basePath}/`} className="flex items-center gap-3">
           {siteLogo ? (
             <img src={siteLogo} alt={siteName} className="h-10 w-auto object-contain" />
           ) : (

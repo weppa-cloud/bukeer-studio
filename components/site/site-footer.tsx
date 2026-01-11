@@ -1,13 +1,16 @@
 import Link from 'next/link';
 import { WebsiteData } from '@/lib/supabase/get-website';
+import { getBasePath } from '@/lib/utils/base-path';
 
 interface SiteFooterProps {
   website: WebsiteData;
+  isCustomDomain?: boolean;
 }
 
-export function SiteFooter({ website }: SiteFooterProps) {
+export function SiteFooter({ website, isCustomDomain = false }: SiteFooterProps) {
   const { content, subdomain } = website;
   const currentYear = new Date().getFullYear();
+  const basePath = getBasePath(subdomain, isCustomDomain);
 
   // Usar datos de account si están disponibles (fallback a content)
   const siteName = content.account?.name || content.siteName;
@@ -31,7 +34,7 @@ export function SiteFooter({ website }: SiteFooterProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
           {/* Brand */}
           <div className="lg:col-span-2">
-            <Link href={`/site/${subdomain}`} className="inline-block">
+            <Link href={`${basePath}/`} className="inline-block">
               {siteLogo ? (
                 <img src={siteLogo} alt={siteName} className="h-12 w-auto object-contain" />
               ) : (
@@ -67,19 +70,19 @@ export function SiteFooter({ website }: SiteFooterProps) {
           <div>
             <h3 className="font-semibold mb-4">Navegación</h3>
             <nav className="flex flex-col gap-2">
-              <Link href={`/site/${subdomain}`} className="text-muted-foreground hover:text-foreground transition-colors">
+              <Link href={`${basePath}/`} className="text-muted-foreground hover:text-foreground transition-colors">
                 Inicio
               </Link>
-              <Link href={`/site/${subdomain}#destinations`} className="text-muted-foreground hover:text-foreground transition-colors">
+              <Link href={`${basePath}/#destinations`} className="text-muted-foreground hover:text-foreground transition-colors">
                 Destinos
               </Link>
-              <Link href={`/site/${subdomain}#hotels`} className="text-muted-foreground hover:text-foreground transition-colors">
+              <Link href={`${basePath}/#hotels`} className="text-muted-foreground hover:text-foreground transition-colors">
                 Hoteles
               </Link>
-              <Link href={`/site/${subdomain}/blog`} className="text-muted-foreground hover:text-foreground transition-colors">
+              <Link href={`${basePath}/blog`} className="text-muted-foreground hover:text-foreground transition-colors">
                 Blog
               </Link>
-              <Link href={`/site/${subdomain}#contact`} className="text-muted-foreground hover:text-foreground transition-colors">
+              <Link href={`${basePath}/#contact`} className="text-muted-foreground hover:text-foreground transition-colors">
                 Contacto
               </Link>
             </nav>
