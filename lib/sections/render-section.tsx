@@ -17,7 +17,6 @@ import { validateSectionComplete } from './schema';
 import {
   getSectionComponent,
   isValidSectionType,
-  type SectionComponentProps,
 } from './section-registry';
 import type { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 
