@@ -103,7 +103,7 @@ export default function Testimonials() {
 
                 {/* Content */}
                 <p className="text-neutral-medium text-sm leading-relaxed mb-6">
-                  "{testimonial.content}"
+                  &ldquo;{testimonial.content}&rdquo;
                 </p>
 
                 {/* Trip Info */}
@@ -165,7 +165,7 @@ export default function Testimonials() {
                 <div className="w-16 h-16 bg-neutral-medium/20 rounded-lg flex items-center justify-center mb-2">
                   <span className="text-xs font-bold">TripAdvisor</span>
                 </div>
-                <div className="text-xs text-neutral-medium">Travelers' Choice</div>
+                <div className="text-xs text-neutral-medium">Travelers&apos; Choice</div>
               </div>
               <div className="text-center">
                 <div className="w-16 h-16 bg-neutral-medium/20 rounded-lg flex items-center justify-center mb-2">

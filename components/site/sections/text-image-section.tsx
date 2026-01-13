@@ -8,7 +8,7 @@ interface TextImageSectionProps {
   website: WebsiteData;
 }
 
-export function TextImageSection({ section, website }: TextImageSectionProps) {
+export function TextImageSection({ section }: TextImageSectionProps) {
   const content = section.content || {};
   const title = content.title || 'Nuestra Historia';
   const text = content.text || '';

@@ -3,12 +3,11 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { 
-  Menu, 
-  X, 
-  Phone, 
+import {
+  Menu,
+  X,
+  Phone,
   Mail,
-  MapPin,
   Clock,
   ChevronDown,
   Globe,
@@ -16,7 +15,6 @@ import {
   Search
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
-import Image from "next/image"
 import { cn } from "@/lib/utils"
 
 const navigation = [

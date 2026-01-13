@@ -9,7 +9,7 @@ interface HotelsSectionProps {
   website: WebsiteData;
 }
 
-export function HotelsSection({ section, website }: HotelsSectionProps) {
+export function HotelsSection({ section }: HotelsSectionProps) {
   const sectionContent = section.content as {
     title?: string;
     subtitle?: string;
@@ -49,7 +49,7 @@ export function HotelsSection({ section, website }: HotelsSectionProps) {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: index * 0.1 }}
-              className="group bg-card rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow"
+              className="group variant-card bg-card overflow-hidden hover:shadow-lg transition-shadow"
             >
               <div className="relative aspect-[16/10] overflow-hidden">
                 {hotel.image ? (

@@ -1,8 +1,27 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Playfair_Display, Montserrat } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"] });
+// Optimized font loading with next/font (automatic swap, self-hosted)
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-sans",
+  display: "swap",
+});
+
+const playfair = Playfair_Display({
+  subsets: ["latin"],
+  variable: "--font-display",
+  display: "swap",
+  weight: ["400", "700"],
+});
+
+const montserrat = Montserrat({
+  subsets: ["latin"],
+  variable: "--font-special",
+  display: "swap",
+  weight: ["500", "600"],
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_URL || 'https://colombiatours.com'),
@@ -22,8 +41,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es" suppressHydrationWarning>
-      <body className={`${inter.className} antialiased`}>
+    <html lang="es" suppressHydrationWarning className={`${inter.variable} ${playfair.variable} ${montserrat.variable}`}>
+      <head>
+        {/* Preconnect to external services for faster loading */}
+        <link rel="preconnect" href="https://wzlxbpicdcdvxvdcvgas.supabase.co" />
+        <link rel="dns-prefetch" href="https://wzlxbpicdcdvxvdcvgas.supabase.co" />
+      </head>
+      <body className="font-sans antialiased">
         {children}
       </body>
     </html>

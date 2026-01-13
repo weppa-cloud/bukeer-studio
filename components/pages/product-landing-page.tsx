@@ -142,16 +142,16 @@ export function ProductLandingPage({
 
             {/* Product Type Specific Sections */}
             {productType === 'destination' && (
-              <DestinationSections product={product} />
+              <DestinationSections />
             )}
             {productType === 'hotel' && (
-              <HotelSections product={product} />
+              <HotelSections />
             )}
             {productType === 'activity' && (
-              <ActivitySections product={product} />
+              <ActivitySections />
             )}
             {productType === 'package' && (
-              <PackageSections product={product} />
+              <PackageSections />
             )}
           </div>
 
@@ -202,7 +202,7 @@ export function ProductLandingPage({
 
 // Helper Components
 
-function DestinationSections({ product }: { product: ProductData }) {
+function DestinationSections() {
   return (
     <>
       {/* Highlights Section - Placeholder */}
@@ -230,7 +230,7 @@ function DestinationSections({ product }: { product: ProductData }) {
   );
 }
 
-function HotelSections({ product }: { product: ProductData }) {
+function HotelSections() {
   return (
     <>
       {/* Amenities Section - Placeholder */}
@@ -256,7 +256,7 @@ function HotelSections({ product }: { product: ProductData }) {
   );
 }
 
-function ActivitySections({ product }: { product: ProductData }) {
+function ActivitySections() {
   return (
     <>
       {/* What's Included Section - Placeholder */}
@@ -295,7 +295,7 @@ function ActivitySections({ product }: { product: ProductData }) {
   );
 }
 
-function PackageSections({ product }: { product: ProductData }) {
+function PackageSections() {
   return (
     <>
       {/* Itinerary Section - Placeholder */}
@@ -378,7 +378,7 @@ function QuoteForm({
       } else {
         setError(data.error || 'Error al enviar la solicitud');
       }
-    } catch (err) {
+    } catch {
       setError('Error de conexión. Intenta nuevamente.');
     } finally {
       setIsSubmitting(false);

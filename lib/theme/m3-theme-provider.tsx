@@ -182,9 +182,9 @@ function hexToHsl(hex: string): string {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   if (!result) return '0 0% 0%';
 
-  let r = parseInt(result[1], 16) / 255;
-  let g = parseInt(result[2], 16) / 255;
-  let b = parseInt(result[3], 16) / 255;
+  const r = parseInt(result[1], 16) / 255;
+  const g = parseInt(result[2], 16) / 255;
+  const b = parseInt(result[3], 16) / 255;
 
   const max = Math.max(r, g, b);
   const min = Math.min(r, g, b);
@@ -217,10 +217,27 @@ function getRadiusValue(radius: string): string {
   }
 }
 
+// Layout variant configuration
+const layoutVariantConfig: Record<M3Theme['layout']['variant'], { elevation: string; borderStyle: string }> = {
+  modern: { elevation: '0 4px 6px -1px rgba(0,0,0,0.1)', borderStyle: 'none' },
+  classic: { elevation: 'none', borderStyle: '2px solid hsl(var(--border))' },
+  minimal: { elevation: 'none', borderStyle: 'none' },
+  bold: { elevation: '0 20px 25px -5px rgba(0,0,0,0.15)', borderStyle: '4px solid hsl(var(--primary))' },
+};
+
 // Apply theme to CSS variables
 function applyThemeToDOM(theme: M3Theme, isDark: boolean) {
   const colors = isDark ? theme.dark : theme.light;
   const root = document.documentElement;
+
+  // Layout variant as data attribute
+  const variant = theme.layout.variant || 'modern';
+  root.setAttribute('data-layout-variant', variant);
+
+  // Layout variant CSS variables
+  const variantConfig = layoutVariantConfig[variant] || layoutVariantConfig.modern;
+  root.style.setProperty('--layout-elevation', variantConfig.elevation);
+  root.style.setProperty('--layout-border', variantConfig.borderStyle);
 
   // M3 colors to shadcn/ui mapping
   root.style.setProperty('--background', hexToHsl(colors.background));
@@ -284,7 +301,7 @@ function normalizeTheme(input: SimpleTheme | M3Theme | undefined): M3Theme {
   const surface = colors.surface || '#FEF7FF';
   const onPrimary = colors.onPrimary || '#FFFFFF';
   const onSecondary = colors.onSecondary || '#FFFFFF';
-  const onBackground = colors.onBackground || '#1D1B20';
+  // onBackground reserved for future dark mode implementation
   const onSurface = colors.onSurface || '#1D1B20';
 
   // Create light color scheme

@@ -14,7 +14,7 @@ interface GallerySectionProps {
   website: WebsiteData;
 }
 
-export function GallerySection({ section, website }: GallerySectionProps) {
+export function GallerySection({ section }: GallerySectionProps) {
   const content = section.content || {};
   const title = content.title || 'Galería';
   const images: GalleryImage[] = content.images || [];
@@ -49,6 +49,8 @@ function GalleryGrid({ title, images }: { title: string; images: GalleryImage[] 
                   src={image.url}
                   alt={image.alt || `Imagen ${index + 1}`}
                   fill
+                  loading="lazy"
+                  sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
                   className="object-cover group-hover:scale-105 transition-transform duration-300"
                 />
                 {image.caption && (
@@ -108,6 +110,7 @@ function GalleryCarousel({ title, images }: { title: string; images: GalleryImag
                       alt={image.alt || `Imagen ${index + 1}`}
                       width={350}
                       height={467}
+                      loading="lazy"
                       className="object-cover w-full h-full"
                     />
                   ) : (
@@ -154,6 +157,7 @@ function GalleryMasonry({ title, images }: { title: string; images: GalleryImage
                 { url: '', h: 220 },
                 { url: '', h: 320 },
               ]
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           ).map((image: any, index) => (
             <div
               key={index}
@@ -166,6 +170,8 @@ function GalleryMasonry({ title, images }: { title: string; images: GalleryImage
                   alt={image.alt || `Imagen ${index + 1}`}
                   width={400}
                   height={image.h || 300}
+                  loading="lazy"
+                  sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
                   className="object-cover w-full h-full"
                 />
               ) : (

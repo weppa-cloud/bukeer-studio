@@ -1,4 +1,9 @@
 import type { NextConfig } from "next";
+import bundleAnalyzer from "@next/bundle-analyzer";
+
+const withBundleAnalyzer = bundleAnalyzer({
+  enabled: process.env.ANALYZE === "true",
+});
 
 const nextConfig: NextConfig = {
   images: {
@@ -30,15 +35,23 @@ const nextConfig: NextConfig = {
     ],
     formats: ['image/avif', 'image/webp'],
   },
-  
-  // Enable experimental features
+
+  // Optimize package imports for smaller bundles
   experimental: {
-    // serverActions: true, // Already stable in Next.js 14
+    optimizePackageImports: [
+      'lucide-react',
+      '@radix-ui/react-dialog',
+      '@radix-ui/react-select',
+      '@radix-ui/react-tabs',
+      '@radix-ui/react-navigation-menu',
+      'framer-motion',
+    ],
   },
-  
-  // Headers for security
+
+  // Headers for security and caching
   async headers() {
     return [
+      // Security headers for all routes
       {
         source: '/:path*',
         headers: [
@@ -56,8 +69,37 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      // Long cache for static assets (fonts, images, CSS, JS)
+      {
+        source: '/fonts/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        source: '/_next/static/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      // Cache for images
+      {
+        source: '/_next/image/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=86400, stale-while-revalidate=604800',
+          },
+        ],
+      },
     ];
   },
 };
 
-export default nextConfig;
+export default withBundleAnalyzer(nextConfig);

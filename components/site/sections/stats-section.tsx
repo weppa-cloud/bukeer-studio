@@ -9,7 +9,7 @@ interface StatsSectionProps {
   website: WebsiteData;
 }
 
-export function StatsSection({ section, website }: StatsSectionProps) {
+export function StatsSection({ section }: StatsSectionProps) {
   const sectionContent = section.content as {
     title?: string;
     stats?: Array<{

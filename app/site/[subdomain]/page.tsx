@@ -3,6 +3,9 @@ import { SectionRenderer } from '@/components/site/section-renderer';
 import { notFound } from 'next/navigation';
 import { JsonLd, generateHomepageSchemas } from '@/lib/schema';
 
+// ISR: Revalidate every 5 minutes for fresh content with edge caching
+export const revalidate = 300;
+
 interface SitePageProps {
   params: Promise<{ subdomain: string }>;
 }

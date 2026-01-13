@@ -9,7 +9,7 @@ interface FaqSectionProps {
   website: WebsiteData;
 }
 
-export function FaqSection({ section, website }: FaqSectionProps) {
+export function FaqSection({ section }: FaqSectionProps) {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
   const sectionContent = section.content as {
     title?: string;

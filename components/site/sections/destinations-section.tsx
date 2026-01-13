@@ -1,7 +1,8 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
 import Image from 'next/image';
+import { useRef, MouseEvent } from 'react';
 import { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 
 interface DestinationsSectionProps {
@@ -9,18 +10,99 @@ interface DestinationsSectionProps {
   website: WebsiteData;
 }
 
-export function DestinationsSection({ section, website }: DestinationsSectionProps) {
+interface Destination {
+  id: string;
+  name: string;
+  image: string;
+  description?: string;
+  price?: string;
+}
+
+// Tilt Card Component with 3D effect
+function TiltCard({ destination }: { destination: Destination }) {
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+
+  const mouseXSpring = useSpring(x);
+  const mouseYSpring = useSpring(y);
+
+  const rotateX = useTransform(mouseYSpring, [-0.5, 0.5], ["17.5deg", "-17.5deg"]);
+  const rotateY = useTransform(mouseXSpring, [-0.5, 0.5], ["-17.5deg", "17.5deg"]);
+
+  const handleMouseMove = (e: MouseEvent<HTMLDivElement>) => {
+    if (!cardRef.current) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    const width = rect.width;
+    const height = rect.height;
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    const xPct = mouseX / width - 0.5;
+    const yPct = mouseY / height - 0.5;
+    x.set(xPct);
+    y.set(yPct);
+  };
+
+  const handleMouseLeave = () => {
+    x.set(0);
+    y.set(0);
+  };
+
+  return (
+    <motion.div
+      ref={cardRef}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      style={{
+        rotateY,
+        rotateX,
+        transformStyle: "preserve-3d",
+      }}
+      className="relative aspect-[4/5] rounded-xl cursor-pointer"
+    >
+      <div
+        style={{ transform: "translateZ(75px)", transformStyle: "preserve-3d" }}
+        className="absolute inset-2 rounded-xl overflow-hidden shadow-xl"
+      >
+        {destination.image ? (
+          <Image
+            src={destination.image}
+            alt={destination.name}
+            fill
+            className="object-cover"
+          />
+        ) : (
+          <div className="w-full h-full bg-muted" />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+        <div
+          style={{ transform: "translateZ(50px)" }}
+          className="absolute bottom-0 left-0 right-0 p-6"
+        >
+          <h3 className="text-xl font-bold text-white drop-shadow-lg">{destination.name}</h3>
+          {destination.description && (
+            <p className="mt-2 text-white/90 text-sm line-clamp-2 drop-shadow">
+              {destination.description}
+            </p>
+          )}
+          {destination.price && (
+            <p className="mt-3 text-white font-semibold drop-shadow">
+              Desde <span className="text-lg">{destination.price}</span>
+            </p>
+          )}
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+export function DestinationsSection({ section }: DestinationsSectionProps) {
   const variant = section.variant || 'grid';
   const sectionContent = section.content as {
     title?: string;
     subtitle?: string;
-    destinations?: Array<{
-      id: string;
-      name: string;
-      image: string;
-      description?: string;
-      price?: string;
-    }>;
+    destinations?: Destination[];
   };
 
   const title = sectionContent.title || 'Destinos Destacados';
@@ -69,7 +151,7 @@ export function DestinationsSection({ section, website }: DestinationsSectionPro
             viewport={{ once: true }}
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
           >
-            {destinations.map((destination, index) => (
+            {destinations.map((destination) => (
               <motion.div
                 key={destination.id}
                 variants={itemVariants}
@@ -175,6 +257,26 @@ export function DestinationsSection({ section, website }: DestinationsSectionPro
                     )}
                   </div>
                 </div>
+              </motion.div>
+            ))}
+          </div>
+        )}
+
+        {/* Tilt variant - 3D effect on hover */}
+        {variant === 'tilt' && (
+          <div
+            style={{ perspective: "1500px" }}
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+          >
+            {destinations.map((destination, index) => (
+              <motion.div
+                key={destination.id}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+              >
+                <TiltCard destination={destination} />
               </motion.div>
             ))}
           </div>

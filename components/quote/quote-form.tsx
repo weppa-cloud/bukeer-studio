@@ -113,7 +113,7 @@ export function QuoteForm({
         setSubmitStatus('error');
         setErrorMessage(data.error || 'Error al enviar la solicitud');
       }
-    } catch (error) {
+    } catch {
       setSubmitStatus('error');
       setErrorMessage('Error de conexión. Por favor intenta de nuevo.');
     } finally {

@@ -1,8 +1,166 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@400;500;600;700&family=Montserrat:wght@500;600&display=swap');
+/* Fonts are loaded via next/font in layout.tsx for optimal performance */
+@import "tailwindcss";
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* ============================================
+   THEME CONFIGURATION (Tailwind v4 CSS-first)
+   ============================================ */
+
+@theme {
+  /* Colors - Colombia */
+  --color-colombia-yellow: #FCD116;
+  --color-colombia-blue: #003893;
+  --color-colombia-red: #CE1126;
+
+  /* Colors - Brand */
+  --color-brand-emerald: #50C878;
+  --color-brand-coffee: #6B4423;
+  --color-brand-caribbean: #40E0D0;
+  --color-brand-sand: #FDF6E3;
+
+  /* Colors - Neutral */
+  --color-neutral-charcoal: #1A1A1A;
+  --color-neutral-medium: #6B7280;
+  --color-neutral-light: #F3F4F6;
+
+  /* Colors - Semantic (shadcn-style using CSS vars) */
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+
+  /* Font Families - Using CSS variables from next/font */
+  --font-family-display: var(--font-display), serif;
+  --font-family-sans: var(--font-sans), sans-serif;
+  --font-family-special: var(--font-special), sans-serif;
+
+  /* Spacing */
+  --spacing-18: 4.5rem;
+  --spacing-88: 22rem;
+  --spacing-120: 30rem;
+
+  /* Border Radius */
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+
+  /* Animations */
+  --animate-spotlight: spotlight 2s ease 0.75s 1 forwards;
+  --animate-fade-in: fade-in 0.5s ease-out forwards;
+  --animate-slide-up: slide-up 0.5s ease-out;
+  --animate-zoom-in: zoom-in 0.3s ease-out;
+  --animate-gradient: gradient 15s ease infinite;
+
+  /* Layout variant tokens (set by m3-theme-provider) */
+  --shadow-layout: var(--layout-elevation, 0 4px 6px -1px rgba(0,0,0,0.1));
+
+  /* Theme typography (mapped from M3Theme) */
+  --font-heading: var(--font-display), var(--font-sans), sans-serif;
+  --font-body: var(--font-sans), sans-serif;
+}
+
+/* ============================================
+   LAYOUT VARIANT STYLES
+   ============================================ */
+
+/* Card styles per variant - uses --radius for border-radius (NEVER hardcode rounded-*) */
+[data-layout-variant="modern"] .variant-card {
+  box-shadow: var(--layout-elevation);
+  border-radius: var(--radius);
+}
+
+[data-layout-variant="classic"] .variant-card {
+  box-shadow: none;
+  border: var(--layout-border);
+  border-radius: var(--radius);
+}
+
+[data-layout-variant="minimal"] .variant-card {
+  box-shadow: none;
+  border: none;
+  border-radius: var(--radius);
+}
+
+[data-layout-variant="bold"] .variant-card {
+  box-shadow: var(--layout-elevation);
+  border: var(--layout-border);
+  border-radius: var(--radius);
+}
+
+/* Typography helpers */
+.font-heading {
+  font-family: var(--font-heading);
+}
+
+.font-body {
+  font-family: var(--font-body);
+}
+
+/* ============================================
+   KEYFRAMES
+   ============================================ */
+
+@keyframes spotlight {
+  0% {
+    opacity: 0;
+    transform: translate(-72%, -62%) scale(0.5);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -40%) scale(1);
+  }
+}
+
+@keyframes fade-in {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes slide-up {
+  0% { transform: translateY(20px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes zoom-in {
+  0% { transform: scale(0.95); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes gradient {
+  0%, 100% {
+    background-size: 200% 200%;
+    background-position: left center;
+  }
+  50% {
+    background-size: 200% 200%;
+    background-position: right center;
+  }
+}
+
+/* ============================================
+   CSS VARIABLES (shadcn-style theming)
+   ============================================ */
 
 @layer base {
   :root {
@@ -26,11 +184,6 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
     --radius: 0.5rem;
-    
-    /* Custom font variables */
-    --font-playfair: 'Playfair Display', serif;
-    --font-inter: 'Inter', sans-serif;
-    --font-montserrat: 'Montserrat', sans-serif;
   }
 
   .dark {
@@ -58,40 +211,90 @@
 
 @layer base {
   * {
-    @apply border-border;
+    border-color: hsl(var(--border));
   }
   html {
-    @apply scroll-smooth;
+    scroll-behavior: smooth;
   }
   body {
-    @apply bg-background text-foreground;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
 
+/* ============================================
+   CUSTOM COMPONENTS
+   ============================================ */
+
 @layer components {
   .container {
-    @apply mx-auto max-w-7xl px-4 sm:px-6 lg:px-8;
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 80rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
   }
-  
+
+  @media (min-width: 640px) {
+    .container {
+      padding-left: 1.5rem;
+      padding-right: 1.5rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .container {
+      padding-left: 2rem;
+      padding-right: 2rem;
+    }
+  }
+
   .section-padding {
-    @apply py-20 md:py-24 lg:py-32;
+    padding-top: 5rem;
+    padding-bottom: 5rem;
   }
-  
+
+  @media (min-width: 768px) {
+    .section-padding {
+      padding-top: 6rem;
+      padding-bottom: 6rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .section-padding {
+      padding-top: 8rem;
+      padding-bottom: 8rem;
+    }
+  }
+
   .gradient-text {
-    @apply bg-gradient-to-r from-colombia-blue to-brand-caribbean bg-clip-text text-transparent;
+    background-image: linear-gradient(to right, var(--color-colombia-blue), var(--color-brand-caribbean));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
   }
-  
+
   .card-hover {
-    @apply transition-all duration-300 hover:shadow-xl hover:-translate-y-1;
+    transition-property: all;
+    transition-duration: 300ms;
   }
-  
+
+  .card-hover:hover {
+    box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+    transform: translateY(-0.25rem);
+  }
+
   .luxury-shadow {
     box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.1);
   }
 }
 
-/* Custom scrollbar */
+/* ============================================
+   CUSTOM SCROLLBAR
+   ============================================ */
+
 ::-webkit-scrollbar {
   width: 10px;
 }

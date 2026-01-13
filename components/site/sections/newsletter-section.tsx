@@ -8,7 +8,7 @@ interface NewsletterSectionProps {
   website: WebsiteData;
 }
 
-export function NewsletterSection({ section, website }: NewsletterSectionProps) {
+export function NewsletterSection({ section }: NewsletterSectionProps) {
   const content = section.content || {};
   const title = content.title || 'Suscríbete a nuestro newsletter';
   const subtitle = content.subtitle || 'Recibe ofertas exclusivas y novedades';

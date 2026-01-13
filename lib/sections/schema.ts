@@ -12,34 +12,53 @@ export const SectionType = z.enum([
   // Hero sections
   'hero',
   'hero_image',
+  'hero_video',
+  'hero_minimal',
 
   // Content sections
   'text',
   'rich_text',
+  'text_image',
+  'about',
 
   // Feature sections
   'features',
   'features_grid',
 
+  // Travel-specific sections
+  'destinations',
+  'hotels',
+  'activities',
+
   // Social proof
   'testimonials',
   'testimonials_carousel',
   'logo_cloud',
+  'logos_partners',
+  'partners',
 
   // Data display
   'stats',
+  'stats_counters',
   'gallery',
+  'gallery_grid',
+  'gallery_carousel',
+  'gallery_masonry',
 
   // Conversion
   'pricing',
   'cta',
+  'cta_banner',
+  'newsletter',
 
   // Interactive
   'faq',
   'faq_accordion',
+  'contact',
   'contact_form',
 
   // Blog
+  'blog',
   'blog_grid',
 ]);
 
@@ -91,6 +110,7 @@ export const FeaturesContentSchema = z.object({
 });
 
 // Stats section content
+// Accepts both 'items' (schema standard) and 'stats' (DB field name)
 export const StatsContentSchema = z.object({
   title: SafeTitle.optional(),
   items: z.array(z.object({
@@ -98,20 +118,40 @@ export const StatsContentSchema = z.object({
     label: SafeTitle,
     prefix: z.string().max(5).optional(),
     suffix: z.string().max(10).optional(),
-  })).max(8),
-});
+  })).max(8).optional(),
+  stats: z.array(z.object({
+    value: z.string().max(20),
+    label: SafeTitle,
+    prefix: z.string().max(5).optional(),
+    suffix: z.string().max(10).optional(),
+  })).max(8).optional(),
+}).refine(
+  (data) => data.items || data.stats,
+  { message: 'Either items or stats must be provided' }
+);
 
 // Testimonials section content
+// Accepts both 'items' (schema standard) and 'testimonials' (DB field name)
+const TestimonialItemSchema = z.object({
+  quote: SafeString.optional(),
+  text: SafeString.optional(), // Alternative field name
+  content: SafeString.optional(), // Another alternative
+  author: SafeTitle.optional(),
+  name: SafeTitle.optional(), // Alternative field name
+  company: z.string().max(100).optional(),
+  location: z.string().max(100).optional(),
+  avatar: z.string().url().optional(),
+  rating: z.number().int().min(1).max(5).optional(),
+});
+
 export const TestimonialsContentSchema = z.object({
   title: SafeTitle.optional(),
-  items: z.array(z.object({
-    quote: SafeString,
-    author: SafeTitle,
-    company: z.string().max(100).optional(),
-    avatar: z.string().url().optional(),
-    rating: z.number().int().min(1).max(5).optional(),
-  })).max(20),
-});
+  items: z.array(TestimonialItemSchema).max(20).optional(),
+  testimonials: z.array(TestimonialItemSchema).max(20).optional(),
+}).refine(
+  (data) => data.items || data.testimonials,
+  { message: 'Either items or testimonials must be provided' }
+);
 
 // Pricing section content
 export const PricingContentSchema = z.object({
@@ -130,20 +170,41 @@ export const PricingContentSchema = z.object({
 });
 
 // FAQ section content
-export const FaqContentSchema = z.object({
-  title: SafeTitle.optional(),
-  items: z.array(z.object({
-    question: SafeTitle,
-    answer: SafeString,
-  })).max(30),
+// Accepts both 'items' (schema standard) and 'faqs'/'questions' (DB field names)
+const FaqItemSchema = z.object({
+  question: SafeTitle,
+  answer: SafeString,
 });
 
+export const FaqContentSchema = z.object({
+  title: SafeTitle.optional(),
+  items: z.array(FaqItemSchema).max(30).optional(),
+  faqs: z.array(FaqItemSchema).max(30).optional(),
+  questions: z.array(FaqItemSchema).max(30).optional(),
+}).refine(
+  (data) => data.items || data.faqs || data.questions,
+  { message: 'Either items, faqs, or questions must be provided' }
+);
+
 // CTA section content
+// More flexible schema to handle various DB field names
 export const CtaContentSchema = z.object({
-  title: SafeTitle,
+  title: SafeTitle.optional(),
   subtitle: SafeString.optional(),
-  buttonText: z.string().max(50),
-  buttonUrl: z.string().url(),
+  text: SafeString.optional(), // Alternative
+  description: SafeString.optional(), // Alternative
+  // Primary button (various field names)
+  buttonText: z.string().max(50).optional(),
+  button_text: z.string().max(50).optional(),
+  ctaText: z.string().max(50).optional(),
+  cta_text: z.string().max(50).optional(),
+  // Primary button URL
+  buttonUrl: z.string().url().optional(),
+  button_url: z.string().url().optional(),
+  ctaUrl: z.string().url().optional(),
+  cta_url: z.string().url().optional(),
+  href: z.string().url().optional(),
+  // Secondary button
   secondaryButtonText: z.string().max(50).optional(),
   secondaryButtonUrl: z.string().url().optional(),
 });
@@ -188,6 +249,80 @@ export const BlogGridContentSchema = z.object({
   showCategories: z.boolean().optional(),
   postsPerPage: z.number().int().min(1).max(24).optional(),
 });
+
+// Destinations section content
+export const DestinationsContentSchema = z.object({
+  title: SafeTitle.optional(),
+  subtitle: SafeString.optional(),
+  destinations: z.array(z.object({
+    id: z.string(),
+    name: SafeTitle,
+    image: z.string().url().optional(),
+    description: SafeString.optional(),
+    price: z.string().max(50).optional(),
+  })).optional(),
+});
+
+// Hotels section content
+export const HotelsContentSchema = z.object({
+  title: SafeTitle.optional(),
+  subtitle: SafeString.optional(),
+  hotels: z.array(z.object({
+    id: z.string(),
+    name: SafeTitle,
+    image: z.string().url().optional(),
+    description: SafeString.optional(),
+    stars: z.number().int().min(1).max(5).optional(),
+    price: z.string().max(50).optional(),
+  })).optional(),
+});
+
+// Activities section content
+export const ActivitiesContentSchema = z.object({
+  title: SafeTitle.optional(),
+  subtitle: SafeString.optional(),
+  activities: z.array(z.object({
+    id: z.string(),
+    name: SafeTitle,
+    image: z.string().url().optional(),
+    description: SafeString.optional(),
+    duration: z.string().max(50).optional(),
+    price: z.string().max(50).optional(),
+  })).optional(),
+});
+
+// About section content
+export const AboutContentSchema = z.object({
+  title: SafeTitle.optional(),
+  subtitle: SafeString.optional(),
+  text: SafeString.optional(),
+  image: z.string().url().optional(),
+  stats: z.array(z.object({
+    value: z.string().max(20),
+    label: SafeTitle,
+  })).optional(),
+});
+
+// Partners section content
+export const PartnersContentSchema = z.object({
+  title: SafeTitle.optional(),
+  partners: z.array(z.object({
+    name: SafeTitle,
+    logo: z.string().url().optional(),
+    href: z.string().url().optional(),
+  })).optional(),
+});
+
+// Newsletter section content
+export const NewsletterContentSchema = z.object({
+  title: SafeTitle.optional(),
+  subtitle: SafeString.optional(),
+  buttonText: z.string().max(50).optional(),
+  placeholder: z.string().max(100).optional(),
+});
+
+// Generic section content (fallback)
+export const GenericContentSchema = z.record(z.string(), z.unknown());
 
 // ============================================================================
 // Section Config Schema
@@ -248,11 +383,14 @@ export function validateSectionContent(sectionType: SectionTypeValue, content: u
   switch (sectionType) {
     case 'hero':
     case 'hero_image':
+    case 'hero_video':
+    case 'hero_minimal':
       return HeroContentSchema.safeParse(content);
     case 'features':
     case 'features_grid':
       return FeaturesContentSchema.safeParse(content);
     case 'stats':
+    case 'stats_counters':
       return StatsContentSchema.safeParse(content);
     case 'testimonials':
     case 'testimonials_carousel':
@@ -263,21 +401,42 @@ export function validateSectionContent(sectionType: SectionTypeValue, content: u
     case 'faq_accordion':
       return FaqContentSchema.safeParse(content);
     case 'cta':
+    case 'cta_banner':
       return CtaContentSchema.safeParse(content);
     case 'text':
     case 'rich_text':
+    case 'text_image':
       return RichTextContentSchema.safeParse(content);
     case 'gallery':
+    case 'gallery_grid':
+    case 'gallery_carousel':
+    case 'gallery_masonry':
       return GalleryContentSchema.safeParse(content);
+    case 'contact':
     case 'contact_form':
       return ContactFormContentSchema.safeParse(content);
     case 'logo_cloud':
+    case 'logos_partners':
       return LogoCloudContentSchema.safeParse(content);
+    case 'blog':
     case 'blog_grid':
       return BlogGridContentSchema.safeParse(content);
+    // Travel-specific sections
+    case 'destinations':
+      return DestinationsContentSchema.safeParse(content);
+    case 'hotels':
+      return HotelsContentSchema.safeParse(content);
+    case 'activities':
+      return ActivitiesContentSchema.safeParse(content);
+    case 'about':
+      return AboutContentSchema.safeParse(content);
+    case 'partners':
+      return PartnersContentSchema.safeParse(content);
+    case 'newsletter':
+      return NewsletterContentSchema.safeParse(content);
     default:
       // For unknown types, just validate as generic record
-      return z.record(z.string(), z.unknown()).safeParse(content);
+      return GenericContentSchema.safeParse(content);
   }
 }
 

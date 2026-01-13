@@ -38,7 +38,7 @@ const iconMap: Record<string, React.ReactNode> = {
   ),
 };
 
-export function FeaturesGridSection({ section, website }: FeaturesGridSectionProps) {
+export function FeaturesGridSection({ section }: FeaturesGridSectionProps) {
   const content = section.content || {};
   const title = content.title || 'Nuestras Características';
   const items: FeatureItem[] = content.items || [];

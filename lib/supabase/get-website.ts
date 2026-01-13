@@ -76,7 +76,8 @@ export interface WebsiteSection {
   display_order: number;
   is_enabled: boolean;
   config: Record<string, unknown>;
-  content: Record<string, unknown>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  content: Record<string, any>;
 }
 
 export interface BlogPost {

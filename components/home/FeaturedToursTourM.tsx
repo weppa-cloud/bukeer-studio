@@ -3,12 +3,11 @@
 import Image from "next/image"
 import Link from "next/link"
 import { motion } from "framer-motion"
-import { 
-  Clock, 
-  Users, 
-  Star, 
-  MapPin, 
-  Calendar,
+import {
+  Clock,
+  Users,
+  Star,
+  MapPin,
   Heart,
   TrendingUp,
   Shield,

@@ -1,8 +1,8 @@
 import { AcademyHero } from "@/components/site/academy-hero";
+import { AcademyForm } from "@/components/site/academy-form";
 import { ModuleCard } from "@/components/site/module-card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input"; // This might fail if Input is missing, I'll check or use standard input
-import { CheckCircle2, Download } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 
 // Mock Data for Syllabus
@@ -116,30 +116,8 @@ export default function AcademyPage() {
                                 <h3 className="text-xl font-bold mb-2">Obtén acceso inmediato</h3>
                                 <p className="text-slate-500 mb-6 text-sm">Ingresa tus datos para recibir el material en tu correo.</p>
 
-                                <form className="space-y-4" action="#" onSubmit={(e) => e.preventDefault()}>
-                                    {/* Fallback to standard input if UI component is missing, but trying to use standard classes */}
-                                    <div className="space-y-2">
-                                        <label htmlFor="name" className="text-sm font-medium">Nombre</label>
-                                        <input
-                                            id="name"
-                                            type="text"
-                                            placeholder="Tu nombre"
-                                            className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm ring-offset-white file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label htmlFor="email" className="text-sm font-medium">Correo Electrónico</label>
-                                        <input
-                                            id="email"
-                                            type="email"
-                                            placeholder="tu@agencia.com"
-                                            className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm ring-offset-white file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                        />
-                                    </div>
-                                    <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-11">
-                                        <Download className="w-4 h-4 mr-2" /> Descargar Ahora
-                                    </Button>
-                                </form>
+                                <AcademyForm />
+
                                 <p className="text-xs text-center text-slate-400 mt-4">
                                     Al registrarte aceptas recibir correos de Bukeer Academy.
                                 </p>

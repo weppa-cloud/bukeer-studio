@@ -9,7 +9,7 @@ interface PartnersSectionProps {
   website: WebsiteData;
 }
 
-export function PartnersSection({ section, website }: PartnersSectionProps) {
+export function PartnersSection({ section }: PartnersSectionProps) {
   const variant = section.variant || 'marquee';
   const sectionContent = section.content as {
     title?: string;

@@ -3,15 +3,13 @@
 import React, { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import { 
-  Search, 
-  MapPin, 
-  Calendar, 
-  Users, 
-  ChevronLeft, 
+import {
+  Search,
+  MapPin,
+  Calendar,
+  Users,
+  ChevronLeft,
   ChevronRight,
-  Star,
   Play
 } from "lucide-react"
 import Image from "next/image"

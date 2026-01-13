@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Clock, Users, Star, Heart, Calendar } from "lucide-react";
+import { Users, Star, Heart, Calendar } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -93,6 +93,7 @@ export default function FeaturedTours() {
                 
                 {/* Badges */}
                 <div className="absolute top-4 left-4 flex flex-col gap-2">
+                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                   <Badge variant={getHighlightColor(tour.highlight) as any} className="font-special">
                     {tour.highlight}
                   </Badge>

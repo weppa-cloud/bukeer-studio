@@ -12,6 +12,7 @@ import { HeroModern } from './blocks/hero-modern';
 // This ensures 100% deterministic rendering.
 // -----------------------------------------------------------------------------
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const BLOCK_REGISTRY: Record<string, React.ComponentType<any>> = {
   'hero-modern': HeroModern,
   // 'bento-grid': BentoGrid,

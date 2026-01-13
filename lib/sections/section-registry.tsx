@@ -24,71 +24,102 @@ export type SectionComponentProps = {
 export type SectionComponent = React.ComponentType<SectionComponentProps>;
 
 // ============================================================================
-// Dynamic Imports - Lazy load section components
+// Above-fold Components - Eager load for LCP optimization
 // ============================================================================
 
-const HeroSection = dynamic(() =>
-  import('@/components/site/sections/hero-section').then((mod) => mod.HeroSection)
+import { HeroSection } from '@/components/site/sections/hero-section';
+
+// ============================================================================
+// Below-fold Components - Lazy load with loading skeletons
+// ============================================================================
+
+// Loading skeleton for below-fold sections
+const SectionSkeleton = () => (
+  <div className="section-padding animate-pulse">
+    <div className="container">
+      <div className="h-8 bg-muted rounded w-1/3 mx-auto mb-8" />
+      <div className="grid md:grid-cols-3 gap-6">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="h-64 bg-muted rounded-xl" />
+        ))}
+      </div>
+    </div>
+  </div>
 );
 
-const DestinationsSection = dynamic(() =>
-  import('@/components/site/sections/destinations-section').then((mod) => mod.DestinationsSection)
+const DestinationsSection = dynamic(
+  () => import('@/components/site/sections/destinations-section').then((mod) => mod.DestinationsSection),
+  { loading: SectionSkeleton }
 );
 
-const HotelsSection = dynamic(() =>
-  import('@/components/site/sections/hotels-section').then((mod) => mod.HotelsSection)
+const HotelsSection = dynamic(
+  () => import('@/components/site/sections/hotels-section').then((mod) => mod.HotelsSection),
+  { loading: SectionSkeleton }
 );
 
-const ActivitiesSection = dynamic(() =>
-  import('@/components/site/sections/activities-section').then((mod) => mod.ActivitiesSection)
+const ActivitiesSection = dynamic(
+  () => import('@/components/site/sections/activities-section').then((mod) => mod.ActivitiesSection),
+  { loading: SectionSkeleton }
 );
 
-const TestimonialsSection = dynamic(() =>
-  import('@/components/site/sections/testimonials-section').then((mod) => mod.TestimonialsSection)
+const TestimonialsSection = dynamic(
+  () => import('@/components/site/sections/testimonials-section').then((mod) => mod.TestimonialsSection),
+  { loading: SectionSkeleton }
 );
 
-const AboutSection = dynamic(() =>
-  import('@/components/site/sections/about-section').then((mod) => mod.AboutSection)
+const AboutSection = dynamic(
+  () => import('@/components/site/sections/about-section').then((mod) => mod.AboutSection),
+  { loading: SectionSkeleton }
 );
 
-const ContactSection = dynamic(() =>
-  import('@/components/site/sections/contact-section').then((mod) => mod.ContactSection)
+const ContactSection = dynamic(
+  () => import('@/components/site/sections/contact-section').then((mod) => mod.ContactSection),
+  { loading: SectionSkeleton }
 );
 
-const CtaSection = dynamic(() =>
-  import('@/components/site/sections/cta-section').then((mod) => mod.CtaSection)
+const CtaSection = dynamic(
+  () => import('@/components/site/sections/cta-section').then((mod) => mod.CtaSection),
+  { loading: SectionSkeleton }
 );
 
-const StatsSection = dynamic(() =>
-  import('@/components/site/sections/stats-section').then((mod) => mod.StatsSection)
+const StatsSection = dynamic(
+  () => import('@/components/site/sections/stats-section').then((mod) => mod.StatsSection),
+  { loading: SectionSkeleton }
 );
 
-const PartnersSection = dynamic(() =>
-  import('@/components/site/sections/partners-section').then((mod) => mod.PartnersSection)
+const PartnersSection = dynamic(
+  () => import('@/components/site/sections/partners-section').then((mod) => mod.PartnersSection),
+  { loading: SectionSkeleton }
 );
 
-const FaqSection = dynamic(() =>
-  import('@/components/site/sections/faq-section').then((mod) => mod.FaqSection)
+const FaqSection = dynamic(
+  () => import('@/components/site/sections/faq-section').then((mod) => mod.FaqSection),
+  { loading: SectionSkeleton }
 );
 
-const BlogSection = dynamic(() =>
-  import('@/components/site/sections/blog-section').then((mod) => mod.BlogSection)
+const BlogSection = dynamic(
+  () => import('@/components/site/sections/blog-section').then((mod) => mod.BlogSection),
+  { loading: SectionSkeleton }
 );
 
-const TextImageSection = dynamic(() =>
-  import('@/components/site/sections/text-image-section').then((mod) => mod.TextImageSection)
+const TextImageSection = dynamic(
+  () => import('@/components/site/sections/text-image-section').then((mod) => mod.TextImageSection),
+  { loading: SectionSkeleton }
 );
 
-const FeaturesGridSection = dynamic(() =>
-  import('@/components/site/sections/features-grid-section').then((mod) => mod.FeaturesGridSection)
+const FeaturesGridSection = dynamic(
+  () => import('@/components/site/sections/features-grid-section').then((mod) => mod.FeaturesGridSection),
+  { loading: SectionSkeleton }
 );
 
-const GallerySection = dynamic(() =>
-  import('@/components/site/sections/gallery-section').then((mod) => mod.GallerySection)
+const GallerySection = dynamic(
+  () => import('@/components/site/sections/gallery-section').then((mod) => mod.GallerySection),
+  { loading: SectionSkeleton }
 );
 
-const NewsletterSection = dynamic(() =>
-  import('@/components/site/sections/newsletter-section').then((mod) => mod.NewsletterSection)
+const NewsletterSection = dynamic(
+  () => import('@/components/site/sections/newsletter-section').then((mod) => mod.NewsletterSection),
+  { loading: SectionSkeleton }
 );
 
 // ============================================================================

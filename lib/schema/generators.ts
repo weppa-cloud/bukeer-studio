@@ -7,14 +7,12 @@
 
 import type {
   TravelAgency,
-  Article,
   BlogPosting,
   BreadcrumbList,
   BreadcrumbItem,
   FAQPage,
   Question,
   WebSite,
-  Organization,
   CollectionPage,
   ListItem,
 } from './types';

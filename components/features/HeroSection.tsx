@@ -42,7 +42,6 @@ export function HeroSection() {
   
   // Parallax transforms
   const y1 = useTransform(scrollY, [0, 300], [0, 50]);
-  const y2 = useTransform(scrollY, [0, 300], [0, -50]);
   const opacity = useTransform(scrollY, [0, 300], [1, 0]);
   const scale = useTransform(scrollY, [0, 300], [1, 0.8]);
 

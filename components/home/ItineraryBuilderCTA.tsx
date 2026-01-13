@@ -81,8 +81,8 @@ export default function ItineraryBuilderCTA() {
                   />
                   <div className="flex-1">
                     <p className="text-sm text-neutral-charcoal mb-2">
-                      "En menos de 5 minutos tenía un itinerario increíble para Cartagena. 
-                      La IA capturó perfectamente lo que buscábamos para nuestros hijos."
+                      &ldquo;En menos de 5 minutos tenía un itinerario increíble para Cartagena.
+                      La IA capturó perfectamente lo que buscábamos para nuestros hijos.&rdquo;
                     </p>
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-medium text-neutral-charcoal">

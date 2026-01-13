@@ -107,6 +107,7 @@ export default function FeaturedDestinations() {
                 
                 {/* Category Badge */}
                 <div className="absolute top-4 left-4">
+                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                   <Badge variant={getCategoryColor(destination.category) as any} className="font-special">
                     {destination.category}
                   </Badge>

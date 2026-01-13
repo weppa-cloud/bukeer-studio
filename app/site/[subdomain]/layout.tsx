@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { getWebsiteBySubdomain, WebsiteData } from '@/lib/supabase/get-website';
+import { getWebsiteBySubdomain } from '@/lib/supabase/get-website';
 import { M3ThemeProvider } from '@/lib/theme/m3-theme-provider';
 import { SiteHeader } from '@/components/site/site-header';
 import { SiteFooter } from '@/components/site/site-footer';
