@@ -51,9 +51,30 @@ const nextConfig: NextConfig = {
   // Headers for security and caching
   async headers() {
     return [
-      // Security headers for all routes
+      // Editor route - permite iframe desde app.bukeer.com (CSP reemplaza X-Frame-Options)
       {
-        source: '/:path*',
+        source: '/editor/:path*',
+        headers: [
+          {
+            key: 'Content-Security-Policy',
+            value:
+              "frame-ancestors 'self' https://app.bukeer.com http://localhost:3000 http://localhost:62047",
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'strict-origin-when-cross-origin',
+          },
+        ],
+      },
+      // Security headers for all other routes
+      {
+        // Exclude `/editor/*` so it can be embedded cross-origin via CSP.
+        // If `/editor/*` also receives X-Frame-Options: SAMEORIGIN, the iframe will be blocked.
+        source: '/:path((?!editor).*)',
         headers: [
           {
             key: 'X-Frame-Options',

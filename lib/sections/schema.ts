@@ -94,7 +94,22 @@ export const HeroContentSchema = z.object({
   title: SafeTitle,
   subtitle: SafeString.optional(),
   ctaText: z.string().max(50).optional(),
-  ctaUrl: z.string().url().optional(),
+  ctaUrl: z
+    .string()
+    .max(2048)
+    .optional()
+    .refine((val) => {
+      if (!val) return true;
+      if (/^javascript:/i.test(val)) return false;
+      if (val.startsWith('/')) return true;
+      try {
+        // Accept only absolute http(s) URLs
+        const parsed = new URL(val);
+        return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+      } catch {
+        return false;
+      }
+    }, { message: 'Invalid CTA URL' }),
   backgroundImage: z.string().url().optional(),
 });
 

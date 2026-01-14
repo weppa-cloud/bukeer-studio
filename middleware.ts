@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 // Subdomains that should NOT be treated as tenant sites
-const RESERVED_SUBDOMAINS = ['www', 'app', 'api', 'admin', 'staging', 'dev'];
+const RESERVED_SUBDOMAINS = [
+  'www',
+  'app',
+  'api',
+  'admin',
+  'canvas',
+  'staging',
+  'dev',
+];
 
 // Main domain - update for production
 const MAIN_DOMAIN = process.env.NEXT_PUBLIC_MAIN_DOMAIN || 'bukeer.com';
@@ -13,6 +21,11 @@ export function middleware(request: NextRequest) {
   // Normalize: remove port for consistent matching
   const host = hostHeader.split(':')[0];
   const pathname = url.pathname;
+
+  // Skip editor routes (no rewrite needed - accessed directly)
+  if (pathname.startsWith('/editor')) {
+    return NextResponse.next();
+  }
 
   // Skip static files and API routes
   if (
