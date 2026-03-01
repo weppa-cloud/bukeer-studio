@@ -18,8 +18,8 @@ export function middleware(request: NextRequest) {
   const url = request.nextUrl;
   const hostHeader = request.headers.get('host') || '';
 
-  // Normalize: remove port for consistent matching
-  const host = hostHeader.split(':')[0];
+  // Normalize: remove port, lowercase, strip trailing dot for consistent matching
+  const host = hostHeader.split(':')[0].toLowerCase().replace(/\.$/, '');
   const pathname = url.pathname;
 
   // Skip editor routes (no rewrite needed - accessed directly)

@@ -12,12 +12,9 @@ interface CustomDomainPageProps {
   params: Promise<{ host: string; slug?: string[] }>;
 }
 
-// Extended type for custom domain websites
-interface CustomDomainWebsite extends WebsiteData {
-  custom_domain_verified: boolean;
-}
-
-async function getWebsiteByCustomDomain(customDomain: string): Promise<CustomDomainWebsite | null> {
+async function getWebsiteByCustomDomain(customDomain: string): Promise<WebsiteData | null> {
+  // Normalize: lowercase + strip trailing dot (defense-in-depth, middleware also normalizes)
+  const normalizedHost = customDomain.toLowerCase().replace(/\.$/, '');
 
   const { data: website, error } = await supabase
     .from('websites')
@@ -25,7 +22,6 @@ async function getWebsiteByCustomDomain(customDomain: string): Promise<CustomDom
       id,
       subdomain,
       custom_domain,
-      custom_domain_verified,
       status,
       theme,
       content,
@@ -36,31 +32,34 @@ async function getWebsiteByCustomDomain(customDomain: string): Promise<CustomDom
         available_sections
       )
     `)
-    .eq('custom_domain', customDomain)
+    .eq('custom_domain', normalizedHost)
     .eq('status', 'published')
+    .is('deleted_at', null)
     .single();
 
   if (error || !website) {
     return null;
   }
 
-  return website as unknown as CustomDomainWebsite;
+  return website as unknown as WebsiteData;
 }
 
 export default async function CustomDomainPage({ params }: CustomDomainPageProps) {
   const { host, slug } = await params;
   const decodedHost = decodeURIComponent(host);
+  const normalizedHost = decodedHost.toLowerCase().replace(/\.$/, '');
 
   // Look up website by custom domain
-  const website = await getWebsiteByCustomDomain(decodedHost);
+  const website = await getWebsiteByCustomDomain(normalizedHost);
 
   // Website not found for this custom domain
   if (!website) {
     redirect('https://bukeer.com/domain-not-found');
   }
 
-  // Custom domain not verified
-  if (!website.custom_domain_verified) {
+  // Verify custom domain matches (gate: reject if DB domain doesn't match request)
+  const websiteDomain = (website.custom_domain || '').toLowerCase().replace(/\.$/, '');
+  if (!websiteDomain || websiteDomain !== normalizedHost) {
     redirect('https://bukeer.com/domain-not-verified');
   }
 
@@ -80,7 +79,7 @@ export default async function CustomDomainPage({ params }: CustomDomainPageProps
   }
 
   // Get the page content
-  const page = await getPageBySlug(website.id, slugPath || 'home');
+  const page = await getPageBySlug(website.subdomain, slugPath || 'home');
 
   if (!page && slugPath) {
     notFound();
@@ -112,8 +111,9 @@ export const revalidate = 300;
 export async function generateMetadata({ params }: CustomDomainPageProps) {
   const { host } = await params;
   const decodedHost = decodeURIComponent(host);
+  const normalizedHost = decodedHost.toLowerCase().replace(/\.$/, '');
 
-  const website = await getWebsiteByCustomDomain(decodedHost);
+  const website = await getWebsiteByCustomDomain(normalizedHost);
 
   if (!website) {
     return { title: 'Sitio no encontrado' };
