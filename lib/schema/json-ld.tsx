@@ -39,7 +39,7 @@ export interface JsonLdWebPage {
 
 export interface JsonLdProduct {
   '@context': 'https://schema.org';
-  '@type': 'Product' | 'TouristDestination' | 'LodgingBusiness' | 'TouristAttraction';
+  '@type': 'Product' | 'TouristDestination' | 'LodgingBusiness' | 'TouristAttraction' | 'Service';
   name: string;
   description?: string;
   image?: string[];
@@ -100,6 +100,12 @@ export function generateOrganizationSchema(website: WebsiteData): JsonLdOrganiza
   const social = content.social || {};
   const baseUrl = `https://${website.subdomain}.bukeer.com`;
 
+  // Prefer account data over content data
+  const orgName = content.account?.name || content.siteName || website.subdomain;
+  const orgLogo = content.account?.logo || content.logo;
+  const orgPhone = content.account?.phone || contact.phone;
+  const orgEmail = content.account?.email || contact.email;
+
   const sameAs: string[] = [];
   if (social.facebook) sameAs.push(social.facebook);
   if (social.instagram) sameAs.push(social.instagram);
@@ -110,13 +116,13 @@ export function generateOrganizationSchema(website: WebsiteData): JsonLdOrganiza
   return {
     '@context': 'https://schema.org',
     '@type': 'TravelAgency',
-    name: content.siteName || website.subdomain,
+    name: orgName,
     description: content.tagline || undefined,
     url: baseUrl,
-    logo: content.logo || undefined,
-    image: content.logo || undefined,
-    telephone: contact.phone || undefined,
-    email: contact.email || undefined,
+    logo: orgLogo || undefined,
+    image: orgLogo || undefined,
+    telephone: orgPhone || undefined,
+    email: orgEmail || undefined,
     address: contact.address
       ? {
           '@type': 'PostalAddress',
@@ -139,6 +145,8 @@ export function generateWebPageSchema(
   const content = website.content || {};
   const baseUrl = `https://${website.subdomain}.bukeer.com`;
 
+  const webSiteName = content.account?.name || content.siteName || website.subdomain;
+
   return {
     '@context': 'https://schema.org',
     '@type': 'WebPage',
@@ -147,7 +155,7 @@ export function generateWebPageSchema(
     url: pageUrl,
     isPartOf: {
       '@type': 'WebSite',
-      name: content.siteName || website.subdomain,
+      name: webSiteName,
       url: baseUrl,
     },
   };
@@ -157,7 +165,7 @@ export function generateWebPageSchema(
  * Generate Product JSON-LD for destinations, hotels, activities
  */
 export function generateProductSchema(
-  productType: 'destination' | 'hotel' | 'activity' | 'package',
+  productType: 'destination' | 'hotel' | 'activity' | 'transfer' | 'package',
   product: {
     name: string;
     description?: string;
@@ -171,6 +179,7 @@ export function generateProductSchema(
     destination: 'TouristDestination',
     hotel: 'LodgingBusiness',
     activity: 'TouristAttraction',
+    transfer: 'Service',
     package: 'Product',
   } as const;
 
@@ -208,6 +217,8 @@ export function generateBlogPostSchema(
   url: string
 ): JsonLdBlogPost {
   const content = website.content || {};
+  const publisherName = content.account?.name || content.siteName || website.subdomain;
+  const publisherLogo = content.account?.logo || content.logo;
 
   return {
     '@context': 'https://schema.org',
@@ -219,15 +230,15 @@ export function generateBlogPostSchema(
     dateModified: post.updatedAt,
     author: {
       '@type': 'Person',
-      name: post.author || content.siteName || website.subdomain,
+      name: post.author || publisherName,
     },
     publisher: {
       '@type': 'Organization',
-      name: content.siteName || website.subdomain,
-      logo: content.logo
+      name: publisherName,
+      logo: publisherLogo
         ? {
             '@type': 'ImageObject',
-            url: content.logo,
+            url: publisherLogo,
           }
         : undefined,
     },

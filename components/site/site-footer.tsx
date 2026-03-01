@@ -88,6 +88,30 @@ export function SiteFooter({ website, isCustomDomain = false }: SiteFooterProps)
             </nav>
           </div>
 
+          {/* Legal Links - only show if at least one legal doc exists */}
+          {(content.account?.legal?.terms_conditions || content.account?.legal?.privacy_policy || content.account?.legal?.cancellation_policy) && (
+            <div>
+              <h3 className="font-semibold mb-4">Legal</h3>
+              <nav className="flex flex-col gap-2">
+                {content.account?.legal?.terms_conditions && (
+                  <Link href={`${basePath}/terms`} className="text-muted-foreground hover:text-foreground transition-colors">
+                    Terminos y Condiciones
+                  </Link>
+                )}
+                {content.account?.legal?.privacy_policy && (
+                  <Link href={`${basePath}/privacy`} className="text-muted-foreground hover:text-foreground transition-colors">
+                    Politica de Privacidad
+                  </Link>
+                )}
+                {content.account?.legal?.cancellation_policy && (
+                  <Link href={`${basePath}/cancellation`} className="text-muted-foreground hover:text-foreground transition-colors">
+                    Politica de Cancelacion
+                  </Link>
+                )}
+              </nav>
+            </div>
+          )}
+
           {/* Contact */}
           <div>
             <h3 className="font-semibold mb-4">Contacto</h3>

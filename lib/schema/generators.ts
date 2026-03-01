@@ -36,15 +36,20 @@ export function generateOrganizationSchema(
   if (content.social?.linkedin) sameAs.push(content.social.linkedin);
   if (content.social?.tiktok) sameAs.push(content.social.tiktok);
 
+  // Prefer account data over content data
+  const orgName = content.account?.name || content.siteName;
+  const orgEmail = content.account?.email || content.contact?.email;
+  const orgPhone = content.account?.phone || content.contact?.phone;
+
   return {
     '@context': 'https://schema.org',
     '@type': 'TravelAgency',
-    name: content.siteName,
+    name: orgName,
     url: baseUrl,
     description: content.seo?.description || content.tagline,
     slogan: content.tagline,
-    ...(content.contact?.email && { email: content.contact.email }),
-    ...(content.contact?.phone && { telephone: content.contact.phone }),
+    ...(orgEmail && { email: orgEmail }),
+    ...(orgPhone && { telephone: orgPhone }),
     ...(content.contact?.address && {
       address: {
         '@type': 'PostalAddress',
@@ -53,8 +58,8 @@ export function generateOrganizationSchema(
     }),
     contactPoint: {
       '@type': 'ContactPoint',
-      ...(content.contact?.phone && { telephone: content.contact.phone }),
-      ...(content.contact?.email && { email: content.contact.email }),
+      ...(orgPhone && { telephone: orgPhone }),
+      ...(orgEmail && { email: orgEmail }),
       contactType: 'customer service',
       availableLanguage: ['Spanish', 'English'],
     },
@@ -69,16 +74,18 @@ export function generateWebSiteSchema(
   website: WebsiteData,
   baseUrl: string
 ): WebSite {
+  const siteName = website.content.account?.name || website.content.siteName;
+
   return {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
-    name: website.content.siteName,
+    name: siteName,
     url: baseUrl,
     description: website.content.seo?.description || website.content.tagline,
     publisher: {
       '@context': 'https://schema.org',
       '@type': 'Organization',
-      name: website.content.siteName,
+      name: siteName,
       url: baseUrl,
     },
   };
@@ -104,6 +111,8 @@ export function generateArticleSchema(
     ? post.content.replace(/<[^>]*>/g, '').split(/\s+/).length
     : undefined;
 
+  const authorName = website.content.account?.name || website.content.siteName;
+
   return {
     '@context': 'https://schema.org',
     '@type': 'BlogPosting',
@@ -119,13 +128,13 @@ export function generateArticleSchema(
     dateModified: post.published_at || new Date().toISOString(),
     author: {
       '@type': 'Organization',
-      name: website.content.siteName,
+      name: authorName,
       url: baseUrl,
     },
     publisher: {
       '@context': 'https://schema.org',
       '@type': 'Organization',
-      name: website.content.siteName,
+      name: authorName,
       url: baseUrl,
     },
     mainEntityOfPage: {
@@ -215,11 +224,13 @@ export function generateCollectionPageSchema(
     name: post.title,
   }));
 
+  const collectionSiteName = website.content.account?.name || website.content.siteName;
+
   return {
     '@context': 'https://schema.org',
     '@type': 'CollectionPage',
-    name: `Blog - ${website.content.siteName}`,
-    description: `Artículos y noticias de ${website.content.siteName}`,
+    name: `Blog - ${collectionSiteName}`,
+    description: `Artículos y noticias de ${collectionSiteName}`,
     url: blogUrl,
     mainEntity: {
       '@type': 'ItemList',

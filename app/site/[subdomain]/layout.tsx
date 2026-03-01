@@ -24,25 +24,26 @@ export async function generateMetadata({ params }: SiteLayoutProps): Promise<Met
   }
 
   const { content } = website;
+  const siteName = content.account?.name || content.siteName;
 
   return {
     title: {
-      default: content.seo?.title || content.siteName,
-      template: `%s | ${content.siteName}`,
+      default: content.seo?.title || siteName,
+      template: `%s | ${siteName}`,
     },
     description: content.seo?.description || content.tagline,
     keywords: Array.isArray(content.seo?.keywords)
       ? content.seo.keywords
       : content.seo?.keywords?.split(',').map((k: string) => k.trim()),
     openGraph: {
-      title: content.seo?.title || content.siteName,
+      title: content.seo?.title || siteName,
       description: content.seo?.description || content.tagline,
-      siteName: content.siteName,
+      siteName: siteName,
       type: 'website',
     },
     twitter: {
       card: 'summary_large_image',
-      title: content.seo?.title || content.siteName,
+      title: content.seo?.title || siteName,
       description: content.seo?.description || content.tagline,
     },
     robots: {
