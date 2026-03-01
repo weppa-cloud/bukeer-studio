@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import type { WebsiteData } from '@/lib/supabase/get-website';
 import type { ProductData, ProductPageCustomization } from '@/lib/supabase/get-pages';
+import { getBasePath } from '@/lib/utils/base-path';
 
 interface ProductLandingPageProps {
   website: WebsiteData;
@@ -22,6 +23,7 @@ export function ProductLandingPage({
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const images = product.images || (product.image ? [product.image] : []);
   const customHero = pageCustomization?.custom_hero;
+  const basePath = getBasePath(website.subdomain);
 
   return (
     <div className="min-h-screen">
@@ -44,12 +46,12 @@ export function ProductLandingPage({
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
         <div className="relative z-10 w-full max-w-7xl mx-auto px-4 pb-8">
           <div className="flex items-center gap-2 text-white/80 mb-2">
-            <Link href="/" className="hover:text-white">
+            <Link href={`${basePath}/`} className="hover:text-white">
               Inicio
             </Link>
             <span>/</span>
             <Link
-              href={`/${getCategorySlug(productType)}`}
+              href={`${basePath}/${getCategorySlug(productType)}`}
               className="hover:text-white"
             >
               {getCategoryLabel(productType)}
@@ -81,7 +83,7 @@ export function ProductLandingPage({
                   d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
                 />
               </svg>
-              {customHero?.subtitle || product.location || `${product.city}, ${product.country}`}
+              {customHero?.subtitle || product.location || [product.city, product.country].filter(Boolean).join(', ') || ''}
             </p>
           )}
         </div>
@@ -153,6 +155,9 @@ export function ProductLandingPage({
             {productType === 'package' && (
               <PackageSections />
             )}
+            {productType === 'transfer' && (
+              <TransferSections />
+            )}
           </div>
 
           {/* Sidebar - Quote Form */}
@@ -188,7 +193,7 @@ export function ProductLandingPage({
               </a>
             )}
             <Link
-              href="/contacto"
+              href={`${basePath}/contacto`}
               className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-primary text-on-primary rounded-full font-medium hover:bg-primary/90 transition-colors"
             >
               Solicitar cotización
@@ -290,6 +295,66 @@ function ActivitySections() {
             </ul>
           </div>
         </div>
+      </section>
+    </>
+  );
+}
+
+function TransferSections() {
+  return (
+    <>
+      {/* Transfer Details Section */}
+      <section className="bg-surface-container rounded-2xl p-6">
+        <h2 className="text-xl font-semibold text-on-surface mb-4">
+          Detalles del Traslado
+        </h2>
+        <div className="grid sm:grid-cols-2 gap-4">
+          <div>
+            <h3 className="font-medium text-on-surface mb-2">Incluye:</h3>
+            <ul className="space-y-2 text-on-surface-variant">
+              {['Vehículo privado', 'Conductor bilingüe', 'Asistencia en aeropuerto'].map(
+                (item, index) => (
+                  <li key={index} className="flex items-center gap-2">
+                    <span className="text-green-600">✓</span>
+                    {item}
+                  </li>
+                )
+              )}
+            </ul>
+          </div>
+          <div>
+            <h3 className="font-medium text-on-surface mb-2">No incluye:</h3>
+            <ul className="space-y-2 text-on-surface-variant">
+              {['Propinas', 'Peajes adicionales', 'Paradas no programadas'].map(
+                (item, index) => (
+                  <li key={index} className="flex items-center gap-2">
+                    <span className="text-red-600">✗</span>
+                    {item}
+                  </li>
+                )
+              )}
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      {/* Recommendations Section */}
+      <section className="bg-surface-container rounded-2xl p-6">
+        <h2 className="text-xl font-semibold text-on-surface mb-4">
+          Recomendaciones
+        </h2>
+        <ul className="space-y-3 text-on-surface-variant">
+          {[
+            'Confirma tu vuelo con anticipación para coordinar el horario de recogida',
+            'Ten a la mano tu confirmación de reserva',
+            'Indica el número de maletas al momento de reservar',
+          ].map((tip, index) => (
+            <li key={index} className="flex items-start gap-3">
+              <span className="text-primary mt-0.5">💡</span>
+              {tip}
+            </li>
+          ))}
+        </ul>
       </section>
     </>
   );
@@ -438,6 +503,7 @@ function QuoteForm({
           <input
             type="text"
             id="dates"
+            name="dates"
             placeholder="Selecciona fechas"
             className="w-full px-4 py-3 rounded-lg border border-outline-variant bg-surface focus:outline-none focus:ring-2 focus:ring-primary"
           />
@@ -453,6 +519,7 @@ function QuoteForm({
             </label>
             <select
               id="adults"
+              name="adults"
               className="w-full px-4 py-3 rounded-lg border border-outline-variant bg-surface focus:outline-none focus:ring-2 focus:ring-primary"
             >
               {[1, 2, 3, 4, 5, 6].map((n) => (
@@ -471,6 +538,7 @@ function QuoteForm({
             </label>
             <select
               id="children"
+              name="children"
               className="w-full px-4 py-3 rounded-lg border border-outline-variant bg-surface focus:outline-none focus:ring-2 focus:ring-primary"
             >
               {[0, 1, 2, 3, 4].map((n) => (
@@ -492,6 +560,7 @@ function QuoteForm({
           <input
             type="text"
             id="name"
+            name="name"
             className="w-full px-4 py-3 rounded-lg border border-outline-variant bg-surface focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
@@ -506,6 +575,7 @@ function QuoteForm({
           <input
             type="email"
             id="email"
+            name="email"
             className="w-full px-4 py-3 rounded-lg border border-outline-variant bg-surface focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
@@ -520,6 +590,7 @@ function QuoteForm({
           <input
             type="tel"
             id="phone"
+            name="phone"
             className="w-full px-4 py-3 rounded-lg border border-outline-variant bg-surface focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
@@ -533,6 +604,7 @@ function QuoteForm({
           </label>
           <textarea
             id="notes"
+            name="notes"
             rows={3}
             className="w-full px-4 py-3 rounded-lg border border-outline-variant bg-surface focus:outline-none focus:ring-2 focus:ring-primary resize-none"
           />
@@ -570,6 +642,7 @@ function getCategorySlug(type: string): string {
     destination: 'destinos',
     hotel: 'hoteles',
     activity: 'actividades',
+    transfer: 'traslados',
     package: 'paquetes',
   };
   return mapping[type] || type;
@@ -580,6 +653,7 @@ function getCategoryLabel(type: string): string {
     destination: 'Destinos',
     hotel: 'Hoteles',
     activity: 'Actividades',
+    transfer: 'Traslados',
     package: 'Paquetes',
   };
   return mapping[type] || type;

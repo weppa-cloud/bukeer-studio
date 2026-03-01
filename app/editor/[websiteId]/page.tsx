@@ -311,6 +311,7 @@ export default function EditorPage({ params }: EditorPageProps) {
       destinations: [],
       hotels: [],
       activities: [],
+      transfers: [],
     },
     sections: sectionsForWebsite,
   };

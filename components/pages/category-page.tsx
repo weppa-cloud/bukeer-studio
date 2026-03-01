@@ -6,6 +6,7 @@ import Link from 'next/link';
 import type { WebsiteData } from '@/lib/supabase/get-website';
 import type { WebsitePage, ProductData } from '@/lib/supabase/get-pages';
 import { getCategoryProducts } from '@/lib/supabase/get-pages';
+import { getBasePath } from '@/lib/utils/base-path';
 
 interface CategoryPageProps {
   website: WebsiteData;
@@ -25,6 +26,7 @@ export function CategoryPage({ website, page, categoryType }: CategoryPageProps)
   const heroConfig = page.hero_config || {};
   const introContent = page.intro_content || {};
   const ctaConfig = page.cta_config || {};
+  const basePath = getBasePath(website.subdomain);
 
   // Fetch products
   useEffect(() => {
@@ -55,6 +57,7 @@ export function CategoryPage({ website, page, categoryType }: CategoryPageProps)
       destination: 'destinos',
       hotel: 'hoteles',
       activity: 'actividades',
+      transfer: 'traslados',
       package: 'paquetes',
     };
     return mapping[type] || type;
@@ -177,7 +180,7 @@ export function CategoryPage({ website, page, categoryType }: CategoryPageProps)
               {products.map((product) => (
                 <Link
                   key={product.id}
-                  href={`/${getCategorySlug(product.type)}/${product.slug}`}
+                  href={`${basePath}/${getCategorySlug(product.type)}/${product.slug}`}
                   className="group bg-surface-container rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow"
                 >
                   <div className="relative h-48">
@@ -290,7 +293,7 @@ export function CategoryPage({ website, page, categoryType }: CategoryPageProps)
             )}
             {ctaConfig.buttonText && (
               <Link
-                href={ctaConfig.buttonLink || '/contacto'}
+                href={ctaConfig.buttonLink ? (ctaConfig.buttonLink.startsWith('http') ? ctaConfig.buttonLink : `${basePath}${ctaConfig.buttonLink}`) : `${basePath}/contacto`}
                 className="inline-flex items-center gap-2 px-8 py-4 bg-primary text-on-primary rounded-full font-medium hover:bg-primary/90 transition-colors"
               >
                 {ctaConfig.buttonText}
@@ -308,6 +311,7 @@ function getProductIcon(type: string): string {
     destination: '🌍',
     hotel: '🏨',
     activity: '🎯',
+    transfer: '🚐',
     package: '📦',
   };
   return icons[type] || '📍';

@@ -153,6 +153,7 @@ const SLUG_TRANSLATIONS: Record<string, Record<string, string>> = {
   destinos: { en: 'destinations', pt: 'destinos', fr: 'destinations' },
   hoteles: { en: 'hotels', pt: 'hoteis', fr: 'hotels' },
   actividades: { en: 'activities', pt: 'atividades', fr: 'activites' },
+  traslados: { en: 'transfers', pt: 'transferencias', fr: 'transferts' },
   paquetes: { en: 'packages', pt: 'pacotes', fr: 'forfaits' },
   contacto: { en: 'contact', pt: 'contato', fr: 'contact' },
   nosotros: { en: 'about-us', pt: 'sobre-nos', fr: 'a-propos' },

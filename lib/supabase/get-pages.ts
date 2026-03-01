@@ -12,7 +12,7 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 export interface WebsitePage {
   id: string;
   page_type: 'category' | 'static' | 'custom';
-  category_type?: 'destinations' | 'hotels' | 'activities' | 'packages';
+  category_type?: 'destinations' | 'hotels' | 'activities' | 'transfers' | 'packages';
   slug: string;
   title: string;
   hero_config: {
@@ -57,7 +57,7 @@ export interface ProductData {
   location?: string;
   country?: string;
   city?: string;
-  type: 'destination' | 'hotel' | 'activity' | 'package';
+  type: 'destination' | 'hotel' | 'activity' | 'transfer' | 'package';
 }
 
 /**
@@ -230,158 +230,37 @@ export async function getCategoryProducts(
   } = {}
 ): Promise<CategoryProducts> {
   try {
-    // Get website and account
-    const { data: websiteData, error: websiteError } = await supabase
-      .from('websites')
-      .select('id, account_id')
-      .eq('subdomain', subdomain)
-      .eq('status', 'published')
-      .is('deleted_at', null)
-      .single();
+    const { data, error } = await supabase.rpc('get_website_category_products', {
+      p_subdomain: subdomain,
+      p_category: categoryType,
+      p_search: options.search || null,
+      p_limit: options.limit || 12,
+      p_offset: options.offset || 0,
+    });
 
-    if (websiteError || !websiteData) {
+    if (error) {
+      console.error('[getCategoryProducts] Error:', error);
       return { items: [], total: 0 };
     }
 
-    const accountId = websiteData.account_id;
-    const limit = options.limit || 12;
-    const offset = options.offset || 0;
-
-    let items: ProductData[] = [];
-    let total = 0;
-
-    // Fetch products based on category type
-    switch (categoryType) {
-      case 'destinations': {
-        let query = supabase
-          .from('destinations')
-          .select('id, name, description, image, country, city', { count: 'exact' })
-          .eq('id_account', accountId);
-
-        if (options.search) {
-          query = query.ilike('name', `%${options.search}%`);
-        }
-
-        const { data, count, error } = await query
-          .order('name')
-          .range(offset, offset + limit - 1);
-
-        if (!error && data) {
-          items = data.map((d) => ({
-            id: d.id,
-            name: d.name,
-            slug: slugify(d.name),
-            description: d.description,
-            image: d.image,
-            country: d.country,
-            city: d.city,
-            type: 'destination' as const,
-          }));
-          total = count || 0;
-        }
-        break;
-      }
-
-      case 'hotels': {
-        let query = supabase
-          .from('products')
-          .select('id, name, description, main_image, location', { count: 'exact' })
-          .eq('id_account', accountId)
-          .eq('type_product', 'Hotels');
-
-        if (options.search) {
-          query = query.ilike('name', `%${options.search}%`);
-        }
-
-        const { data, count, error } = await query
-          .order('name')
-          .range(offset, offset + limit - 1);
-
-        if (!error && data) {
-          items = data.map((h) => ({
-            id: h.id,
-            name: h.name,
-            slug: slugify(h.name),
-            description: h.description,
-            image: h.main_image,
-            location: h.location,
-            type: 'hotel' as const,
-          }));
-          total = count || 0;
-        }
-        break;
-      }
-
-      case 'activities': {
-        let query = supabase
-          .from('products')
-          .select('id, name, description, main_image, location', { count: 'exact' })
-          .eq('id_account', accountId)
-          .eq('type_product', 'Activities');
-
-        if (options.search) {
-          query = query.ilike('name', `%${options.search}%`);
-        }
-
-        const { data, count, error } = await query
-          .order('name')
-          .range(offset, offset + limit - 1);
-
-        if (!error && data) {
-          items = data.map((a) => ({
-            id: a.id,
-            name: a.name,
-            slug: slugify(a.name),
-            description: a.description,
-            image: a.main_image,
-            location: a.location,
-            type: 'activity' as const,
-          }));
-          total = count || 0;
-        }
-        break;
-      }
-
-      case 'packages': {
-        let query = supabase
-          .from('itineraries')
-          .select('id, name', { count: 'exact' })
-          .eq('id_account', accountId)
-          .eq('is_template', true);
-
-        if (options.search) {
-          query = query.ilike('name', `%${options.search}%`);
-        }
-
-        const { data, count, error } = await query
-          .order('name')
-          .range(offset, offset + limit - 1);
-
-        if (!error && data) {
-          items = data.map((p) => ({
-            id: p.id,
-            name: p.name,
-            slug: slugify(p.name),
-            type: 'package' as const,
-          }));
-          total = count || 0;
-        }
-        break;
-      }
+    if (!data) {
+      return { items: [], total: 0 };
     }
+
+    // Backward compatibility: tolerate array payloads during RPC cutover.
+    if (Array.isArray(data)) {
+      return { items: data as ProductData[], total: data.length };
+    }
+
+    const payload = data as { items?: unknown; total?: unknown };
+    const items = Array.isArray(payload.items)
+      ? (payload.items as ProductData[])
+      : [];
+    const total = typeof payload.total === 'number' ? payload.total : 0;
 
     return { items, total };
   } catch (e) {
     console.error('[getCategoryProducts] Exception:', e);
     return { items: [], total: 0 };
   }
-}
-
-// Helper to create URL-friendly slugs
-function slugify(text: string): string {
-  return text
-    .toLowerCase()
-    .trim()
-    .replace(/[^\w\s-]/g, '')
-    .replace(/\s+/g, '-');
 }

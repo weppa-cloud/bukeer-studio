@@ -144,6 +144,8 @@ function getCategoryProductType(categorySlug: string): string | null {
     'hotels': 'hotel',
     'actividades': 'activity',
     'activities': 'activity',
+    'traslados': 'transfer',
+    'transfers': 'transfer',
     'paquetes': 'package',
     'packages': 'package',
   };

@@ -58,6 +58,11 @@ export interface WebsiteData {
       phone2: string | null;
       website: string | null;
       location: string | null;
+      legal?: {
+        terms_conditions: string | null;
+        privacy_policy: string | null;
+        cancellation_policy: string | null;
+      };
     };
   };
   analytics?: AnalyticsConfig;
@@ -65,6 +70,7 @@ export interface WebsiteData {
     destinations: string[];
     hotels: string[];
     activities: string[];
+    transfers: string[];
   };
   sections: WebsiteSection[];
 }
@@ -121,7 +127,23 @@ export async function getWebsiteBySubdomain(subdomain: string): Promise<WebsiteD
 
     if (!data) return null;
 
-    return data as WebsiteData;
+    const website = data as WebsiteData;
+    const featuredProducts = website.featured_products || {
+      destinations: [],
+      hotels: [],
+      activities: [],
+      transfers: [],
+    };
+
+    return {
+      ...website,
+      featured_products: {
+        destinations: featuredProducts.destinations || [],
+        hotels: featuredProducts.hotels || [],
+        activities: featuredProducts.activities || [],
+        transfers: featuredProducts.transfers || [],
+      },
+    };
   } catch (e) {
     console.error('[getWebsiteBySubdomain] Exception:', e);
     return null;
