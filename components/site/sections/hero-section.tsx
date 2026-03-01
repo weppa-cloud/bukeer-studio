@@ -125,6 +125,20 @@ function Globe({ destinations }: { destinations?: Array<{ name: string; lat?: nu
   );
 }
 
+// Deterministic pseudo-random from seed (avoids SSR/client hydration mismatch)
+function seededRandom(seed: number): number {
+  const x = Math.sin(seed * 9301 + 49297) * 233280;
+  return x - Math.floor(x);
+}
+
+// Pre-computed particle positions (deterministic, same on server and client)
+const PARTICLES = [...Array(20)].map((_, i) => ({
+  left: seededRandom(i * 2 + 1) * 100,
+  top: seededRandom(i * 2 + 2) * 100,
+  duration: 3 + seededRandom(i * 3) * 2,
+  delay: seededRandom(i * 3 + 1) * 2,
+}));
+
 // Wavy Background Component
 function WavyBackground() {
   return (
@@ -158,14 +172,14 @@ function WavyBackground() {
         />
       </svg>
 
-      {/* Floating particles */}
-      {[...Array(20)].map((_, i) => (
+      {/* Floating particles (deterministic positions to avoid hydration mismatch) */}
+      {PARTICLES.map((p, i) => (
         <motion.div
           key={i}
           className="absolute w-1 h-1 bg-white/30 rounded-full"
           style={{
-            left: `${Math.random() * 100}%`,
-            top: `${Math.random() * 100}%`,
+            left: `${p.left}%`,
+            top: `${p.top}%`,
           }}
           animate={{
             y: [0, -30, 0],
@@ -173,8 +187,8 @@ function WavyBackground() {
           }}
           transition={{
             repeat: Infinity,
-            duration: 3 + Math.random() * 2,
-            delay: Math.random() * 2,
+            duration: p.duration,
+            delay: p.delay,
           }}
         />
       ))}
