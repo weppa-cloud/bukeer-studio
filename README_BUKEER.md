@@ -65,4 +65,7 @@ Se despliega automáticamente a Vercel cuando se hace push a `main`.
 
 ---
 
-Para más información, ver `/docs/06-projects/COLOMBIA_TOURS_WEB_IMPLEMENTATION_PLAN.md`
+Para más información, ver:
+- [Website Builder](../docs/07-modules/WEBSITE_BUILDER.md) — Full technical documentation
+- [Website CMS](../docs/07-modules/WEBSITE_CMS.md) — Database schema and routing
+- [ADR-033](../docs/02-architecture/decisions/ADR-033-website-platform-evolution.md) — Platform evolution strategy
