@@ -123,6 +123,23 @@ export async function checkRateLimit(
 }
 
 /**
+ * Cleanup old rate limit entries (older than 48h).
+ * Call periodically or before heavy operations.
+ */
+export async function cleanupStaleEntries(): Promise<number> {
+  const supabase = getServiceClient();
+  const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000); // 48h ago
+
+  const { data } = await supabase
+    .from('ai_rate_limits')
+    .delete()
+    .lt('window_start', cutoff.toISOString())
+    .select('id');
+
+  return data?.length ?? 0;
+}
+
+/**
  * Record cost for a completed AI request.
  */
 export async function recordCost(key: string, costUsd: number): Promise<void> {

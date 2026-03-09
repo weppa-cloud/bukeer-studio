@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { anthropic } from '@ai-sdk/anthropic';
 import { generateObject } from 'ai';
 import { z } from 'zod';
-import { getEditorAuth } from '@/lib/ai/auth-helpers';
+import { getEditorAuth, hasEditorRole } from '@/lib/ai/auth-helpers';
 import { checkRateLimit, recordCost } from '@/lib/ai/rate-limit';
 import { SECTION_TYPES } from '@bukeer/website-contract';
 
@@ -22,6 +22,10 @@ export async function POST(request: NextRequest) {
   const auth = await getEditorAuth(request);
   if (!auth) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  if (!hasEditorRole(auth)) {
+    return NextResponse.json({ error: 'Forbidden: insufficient role' }, { status: 403 });
   }
 
   const rateCheck = await checkRateLimit(auth.accountId, 'editor');

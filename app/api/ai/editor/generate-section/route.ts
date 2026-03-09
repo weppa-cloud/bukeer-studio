@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { anthropic } from '@ai-sdk/anthropic';
 import { generateObject } from 'ai';
 import { z } from 'zod';
-import { getEditorAuth } from '@/lib/ai/auth-helpers';
+import { getEditorAuth, hasEditorRole } from '@/lib/ai/auth-helpers';
 import { checkRateLimit, recordCost } from '@/lib/ai/rate-limit';
 import { SECTION_TYPES } from '@bukeer/website-contract';
 
@@ -35,6 +35,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  if (!hasEditorRole(auth)) {
+    return NextResponse.json({ error: 'Forbidden: insufficient role' }, { status: 403 });
+  }
+
   const rateCheck = await checkRateLimit(auth.accountId, 'editor');
   if (!rateCheck.allowed) {
     return NextResponse.json(
@@ -49,6 +53,12 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { sectionType, prompt, locale = 'es', websiteContext } = body;
+
+    // Input length guard
+    const promptText = prompt ?? '';
+    if (typeof promptText === 'string' && promptText.length > 2000) {
+      return NextResponse.json({ error: 'Prompt too long (max 2000 chars)' }, { status: 400 });
+    }
 
     if (!sectionType || !SECTION_TYPES.includes(sectionType)) {
       return NextResponse.json(

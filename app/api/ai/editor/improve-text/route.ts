@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { anthropic } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
-import { getEditorAuth } from '@/lib/ai/auth-helpers';
+import { getEditorAuth, hasEditorRole } from '@/lib/ai/auth-helpers';
 import { checkRateLimit, recordCost } from '@/lib/ai/rate-limit';
 
 type ImprovementAction = 'rewrite' | 'shorten' | 'expand' | 'formal' | 'casual' | 'translate';
@@ -30,6 +30,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  if (!hasEditorRole(auth)) {
+    return NextResponse.json({ error: 'Forbidden: insufficient role' }, { status: 403 });
+  }
+
   const rateCheck = await checkRateLimit(auth.accountId, 'editor');
   if (!rateCheck.allowed) {
     return NextResponse.json(
@@ -44,6 +48,10 @@ export async function POST(request: NextRequest) {
 
     if (!text || typeof text !== 'string') {
       return NextResponse.json({ error: 'text is required' }, { status: 400 });
+    }
+
+    if (text.length > 10000) {
+      return NextResponse.json({ error: 'Text too long (max 10000 chars)' }, { status: 400 });
     }
 
     if (!action || !VALID_ACTIONS.includes(action)) {

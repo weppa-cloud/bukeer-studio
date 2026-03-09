@@ -55,6 +55,16 @@ export async function getEditorAuth(
   };
 }
 
+/** Roles allowed to use editor AI features. */
+const EDITOR_ROLES = new Set(['super_admin', 'owner', 'admin', 'agent']);
+
+/**
+ * Check if auth context has editor-level permissions.
+ */
+export function hasEditorRole(auth: AuthContext): boolean {
+  return EDITOR_ROLES.has(auth.role);
+}
+
 /**
  * Get client IP for public-chat rate limiting.
  */

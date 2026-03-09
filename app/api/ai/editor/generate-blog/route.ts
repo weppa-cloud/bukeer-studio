@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { anthropic } from '@ai-sdk/anthropic';
 import { generateObject } from 'ai';
 import { z } from 'zod';
-import { getEditorAuth } from '@/lib/ai/auth-helpers';
+import { getEditorAuth, hasEditorRole } from '@/lib/ai/auth-helpers';
 import { checkRateLimit, recordCost } from '@/lib/ai/rate-limit';
 
 const blogPostSchema = z.object({
@@ -25,6 +25,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  if (!hasEditorRole(auth)) {
+    return NextResponse.json({ error: 'Forbidden: insufficient role' }, { status: 403 });
+  }
+
   const rateCheck = await checkRateLimit(auth.accountId, 'editor');
   if (!rateCheck.allowed) {
     return NextResponse.json(
@@ -39,6 +43,10 @@ export async function POST(request: NextRequest) {
 
     if (!topic || typeof topic !== 'string') {
       return NextResponse.json({ error: 'topic is required' }, { status: 400 });
+    }
+
+    if (topic.length > 2000) {
+      return NextResponse.json({ error: 'Topic too long (max 2000 chars)' }, { status: 400 });
     }
 
     const result = await generateObject({
