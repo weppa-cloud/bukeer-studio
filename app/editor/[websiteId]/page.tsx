@@ -1,10 +1,12 @@
 'use client';
 
 import { useEffect, useState, useRef, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
 import { M3ThemeProvider } from '@/lib/theme/m3-theme-provider';
 import { renderSectionWithResult } from '@/lib/sections/render-section';
 import { EditableSection } from '@/components/editor/editable-section';
+import { EditorShell } from '@/components/editor/editor-shell';
 import type { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 
 const ALLOWED_ORIGINS = [
@@ -51,6 +53,8 @@ interface WebsiteSnapshot {
 }
 
 export default function EditorPage({ params }: EditorPageProps) {
+  const searchParams = useSearchParams();
+  const mode = searchParams.get('mode');
   const [websiteId, setWebsiteId] = useState<string | null>(null);
   const [state, setState] = useState<'waiting' | 'loading' | 'ready' | 'error'>('waiting');
   const [error, setError] = useState<string | null>(null);
@@ -215,7 +219,12 @@ export default function EditorPage({ params }: EditorPageProps) {
     });
   }, [sendToParent]);
 
-  // Render states
+  // Standalone mode: use EditorShell V2 with drag-and-drop
+  if (mode === 'standalone' && websiteId) {
+    return <EditorShell websiteId={websiteId} />;
+  }
+
+  // Embedded mode render states
   if (!websiteId || state === 'waiting') {
     return (
       <div className="flex items-center justify-center h-screen bg-background">

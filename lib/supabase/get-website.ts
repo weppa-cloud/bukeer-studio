@@ -1,115 +1,32 @@
 import { createClient } from '@supabase/supabase-js';
-import type { M3Theme } from '../theme/m3-theme-provider';
+import type {
+  WebsiteData,
+  AnalyticsConfig,
+  WebsiteContent,
+  FeaturedProducts,
+  WebsiteSection,
+  BlogPost,
+  BlogCategory,
+  M3Theme,
+} from '@bukeer/website-contract';
+
+// Re-export types from contract (Strangler migration)
+export type {
+  WebsiteData,
+  AnalyticsConfig,
+  WebsiteContent,
+  FeaturedProducts,
+  WebsiteSection,
+  BlogPost,
+  BlogCategory,
+  M3Theme,
+};
 
 // Create a Supabase client for server-side data fetching
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-/**
- * Analytics configuration for tracking integrations
- */
-export interface AnalyticsConfig {
-  gtm_id?: string;             // Google Tag Manager ID (GTM-XXXXXX)
-  ga4_id?: string;             // Google Analytics 4 ID (G-XXXXXXXXXX)
-  facebook_pixel_id?: string;  // Facebook Pixel ID
-  custom_head_scripts?: string; // Custom scripts for <head>
-  custom_body_scripts?: string; // Custom scripts for <body>
-}
-
-export interface WebsiteData {
-  id: string;
-  account_id: string | null;
-  subdomain: string;
-  custom_domain: string | null;
-  status: 'draft' | 'published';
-  template_id: string;
-  theme: M3Theme;
-  content: {
-    siteName: string;
-    tagline: string;
-    logo?: string;
-    seo: {
-      title: string;
-      description: string;
-      keywords: string;
-    };
-    contact: {
-      email: string;
-      phone: string;
-      address: string;
-    };
-    social: {
-      facebook?: string;
-      instagram?: string;
-      twitter?: string;
-      youtube?: string;
-      linkedin?: string;
-      tiktok?: string;
-      whatsapp?: string;
-    };
-    // Datos reales de la cuenta (inyectados por RPC)
-    account?: {
-      name: string;
-      logo: string | null;
-      email: string | null;
-      phone: string | null;
-      phone2: string | null;
-      website: string | null;
-      location: string | null;
-      legal?: {
-        terms_conditions: string | null;
-        privacy_policy: string | null;
-        cancellation_policy: string | null;
-      };
-    };
-  };
-  analytics?: AnalyticsConfig;
-  featured_products: {
-    destinations: string[];
-    hotels: string[];
-    activities: string[];
-    transfers: string[];
-  };
-  sections: WebsiteSection[];
-}
-
-export interface WebsiteSection {
-  id: string;
-  section_type: string;
-  variant: string;
-  display_order: number;
-  is_enabled: boolean;
-  config: Record<string, unknown>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  content: Record<string, any>;
-}
-
-export interface BlogPost {
-  id: string;
-  website_id: string;
-  title: string;
-  slug: string;
-  excerpt: string;
-  content: string;
-  featured_image: string | null;
-  category_id: string | null;
-  status: 'draft' | 'published' | 'scheduled';
-  published_at: string | null;
-  seo_title: string | null;
-  seo_description: string | null;
-  seo_keywords: string | null;
-  category?: BlogCategory;
-}
-
-export interface BlogCategory {
-  id: string;
-  name: string;
-  slug: string;
-  description: string | null;
-  color: string | null;
-}
 
 /**
  * Get website data by subdomain

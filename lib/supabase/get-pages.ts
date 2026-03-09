@@ -1,90 +1,30 @@
 import { createClient } from '@supabase/supabase-js';
+import type {
+  WebsitePage,
+  NavigationItem,
+  PageSection,
+  ProductData,
+  ProductPageCustomization,
+  ProductPageData,
+  CategoryProducts,
+} from '@bukeer/website-contract';
+
+// Re-export types from contract (Strangler migration)
+export type {
+  WebsitePage,
+  NavigationItem,
+  PageSection,
+  ProductData,
+  ProductPageCustomization,
+  ProductPageData,
+  CategoryProducts,
+};
 
 // Create a Supabase client for server-side data fetching
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-/**
- * Website page data
- */
-export interface WebsitePage {
-  id: string;
-  page_type: 'category' | 'static' | 'custom';
-  category_type?: 'destinations' | 'hotels' | 'activities' | 'transfers' | 'packages';
-  slug: string;
-  title: string;
-  hero_config: {
-    title?: string;
-    subtitle?: string;
-    backgroundImage?: string;
-  };
-  intro_content: {
-    text?: string;
-    highlights?: string[];
-  };
-  sections: PageSection[];
-  cta_config: {
-    title?: string;
-    subtitle?: string;
-    buttonText?: string;
-    buttonLink?: string;
-  };
-  seo_title?: string;
-  seo_description?: string;
-  is_published: boolean;
-}
-
-export interface PageSection {
-  id: string;
-  type: string;
-  variant?: string;
-  content: Record<string, unknown>;
-  config: Record<string, unknown>;
-}
-
-/**
- * Product data for landing pages
- */
-export interface ProductData {
-  id: string;
-  name: string;
-  slug: string;
-  description?: string;
-  image?: string;
-  images?: string[];
-  location?: string;
-  country?: string;
-  city?: string;
-  type: 'destination' | 'hotel' | 'activity' | 'transfer' | 'package';
-}
-
-/**
- * Product page customization
- */
-export interface ProductPageCustomization {
-  id: string;
-  custom_hero?: {
-    title?: string;
-    subtitle?: string;
-    backgroundImage?: string;
-  };
-  custom_sections: PageSection[];
-  sections_order: string[];
-  hidden_sections: string[];
-  custom_seo_title?: string;
-  custom_seo_description?: string;
-  is_published: boolean;
-}
-
-/**
- * Product page data (product + customization)
- */
-export interface ProductPageData {
-  product: ProductData;
-  page?: ProductPageCustomization;
-}
 
 /**
  * Get a page by slug
@@ -148,13 +88,6 @@ export async function getProductPage(
 /**
  * Get navigation items for a website
  */
-export interface NavigationItem {
-  slug: string;
-  label: string;
-  page_type: string;
-  category_type?: string;
-}
-
 export async function getWebsiteNavigation(
   subdomain: string
 ): Promise<NavigationItem[]> {
@@ -215,11 +148,6 @@ export async function getAllPageSlugs(subdomain: string): Promise<string[]> {
 /**
  * Get products for a category page (with pagination)
  */
-export interface CategoryProducts {
-  items: ProductData[];
-  total: number;
-}
-
 export async function getCategoryProducts(
   subdomain: string,
   categoryType: string,
