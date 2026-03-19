@@ -91,40 +91,54 @@ export function renderSectionWithResult({
   const validationResult = validateSectionComplete(section);
 
   if (!validationResult.success) {
-    const error = {
-      type: 'validation_failed' as const,
-      message: `Invalid section ${section.id || section.section_type}`,
-      details: validationResult.error,
-    };
+    const contentObj = section.content as Record<string, unknown> | null;
+    const isEmptyContent = !contentObj || Object.keys(contentObj).length === 0;
 
-    console.error(`[renderSection] ${error.message}:`, validationResult.error);
-
-    // Show error UI in development
-    if (process.env.NODE_ENV === 'development') {
-      return {
-        element: (
-          <div className="section-padding bg-red-50 border border-red-300 rounded-lg mx-4 my-2">
-            <div className="container py-8">
-              <p className="text-red-700 font-medium mb-2">
-                Error en sección: <code className="bg-red-100 px-2 py-1 rounded">{section.section_type}</code>
-              </p>
-              <details className="text-sm">
-                <summary className="text-red-600 cursor-pointer hover:text-red-800">
-                  Ver detalles del error
-                </summary>
-                <pre className="mt-2 p-3 bg-red-100 rounded text-xs overflow-auto max-h-48">
-                  {JSON.stringify(validationResult.error, null, 2)}
-                </pre>
-              </details>
-            </div>
-          </div>
-        ),
-        error,
+    // If content is empty/minimal, render with component fallbacks instead of blocking.
+    // This happens when websites are created via "Crear sin IA" — sections are seeded
+    // with empty content. Components have their own fallbacks (e.g., hero uses
+    // website.content.siteName). Let them render gracefully. (#483)
+    if (!isEmptyContent) {
+      const error = {
+        type: 'validation_failed' as const,
+        message: `Invalid section ${section.id || section.section_type}`,
+        details: validationResult.error,
       };
+
+      console.error(`[renderSection] ${error.message}:`, validationResult.error);
+
+      // Show error UI in development
+      if (process.env.NODE_ENV === 'development') {
+        return {
+          element: (
+            <div className="section-padding bg-red-50 border border-red-300 rounded-lg mx-4 my-2">
+              <div className="container py-8">
+                <p className="text-red-700 font-medium mb-2">
+                  Error en sección: <code className="bg-red-100 px-2 py-1 rounded">{section.section_type}</code>
+                </p>
+                <details className="text-sm">
+                  <summary className="text-red-600 cursor-pointer hover:text-red-800">
+                    Ver detalles del error
+                  </summary>
+                  <pre className="mt-2 p-3 bg-red-100 rounded text-xs overflow-auto max-h-48">
+                    {JSON.stringify(validationResult.error, null, 2)}
+                  </pre>
+                </details>
+              </div>
+            </div>
+          ),
+          error,
+        };
+      }
+
+      // Silent in production - skip invalid section
+      return { element: null, error };
     }
 
-    // Silent in production - skip invalid section
-    return { element: null, error };
+    // Empty content — log warning and fall through to render with defaults
+    console.warn(
+      `[renderSection] Empty content for ${section.section_type} — rendering with component fallbacks`
+    );
   }
 
   // 3. Normalize content for components (snake_case -> camelCase)
