@@ -544,12 +544,29 @@ export async function generateMetadata({ params, searchParams }: CustomDomainPag
     }
   }
 
-  // Default metadata
+  // Default metadata with og:image
+  const title = website.content.seo?.title || website.content.siteName;
+  const description = website.content.seo?.description || website.content.tagline;
+  const siteName = website.content.siteName;
+  const ogImage = website.content.seo?.image || website.content.account?.logo;
   return {
     title: {
-      default: website.content.seo?.title || website.content.siteName,
-      template: `%s | ${website.content.siteName}`,
+      default: title,
+      template: `%s | ${siteName}`,
     },
-    description: website.content.seo?.description || website.content.tagline,
+    description,
+    openGraph: {
+      title,
+      description,
+      siteName,
+      type: 'website',
+      images: ogImage ? [{ url: ogImage }] : undefined,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: ogImage ? [ogImage] : undefined,
+    },
   };
 }
