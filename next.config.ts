@@ -61,7 +61,7 @@ const nextConfig: NextConfig = {
           {
             key: 'Content-Security-Policy',
             value:
-              "frame-ancestors 'self' https://app.bukeer.com http://localhost:3000 http://localhost:62047",
+              "frame-ancestors 'self' https://app.bukeer.com http://localhost:3000 http://localhost:8080 http://localhost:62047",
           },
           {
             key: 'X-Content-Type-Options',
