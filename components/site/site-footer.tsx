@@ -95,17 +95,17 @@ export function SiteFooter({ website, isCustomDomain = false }: SiteFooterProps)
               <nav className="flex flex-col gap-2">
                 {content.account?.legal?.terms_conditions && (
                   <Link href={`${basePath}/terms`} className="text-muted-foreground hover:text-foreground transition-colors">
-                    Terminos y Condiciones
+                    Términos y Condiciones
                   </Link>
                 )}
                 {content.account?.legal?.privacy_policy && (
                   <Link href={`${basePath}/privacy`} className="text-muted-foreground hover:text-foreground transition-colors">
-                    Politica de Privacidad
+                    Política de Privacidad
                   </Link>
                 )}
                 {content.account?.legal?.cancellation_policy && (
                   <Link href={`${basePath}/cancellation`} className="text-muted-foreground hover:text-foreground transition-colors">
-                    Politica de Cancelacion
+                    Política de Cancelación
                   </Link>
                 )}
               </nav>

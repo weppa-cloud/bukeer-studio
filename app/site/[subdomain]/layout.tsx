@@ -26,6 +26,15 @@ export async function generateMetadata({ params }: SiteLayoutProps): Promise<Met
   const { content } = website;
   const siteName = content.account?.name || content.siteName;
 
+  // Resolve og:image from: seo.image > hero backgroundImage > account logo
+  const heroSection = website.sections?.find(
+    (s: { section_type: string; is_enabled: boolean }) => s.section_type === 'hero' && s.is_enabled
+  );
+  const ogImage =
+    content.seo?.image ||
+    (heroSection?.content as Record<string, unknown>)?.backgroundImage ||
+    content.account?.logo;
+
   return {
     title: {
       default: content.seo?.title || siteName,
@@ -40,11 +49,13 @@ export async function generateMetadata({ params }: SiteLayoutProps): Promise<Met
       description: content.seo?.description || content.tagline,
       siteName: siteName,
       type: 'website',
+      ...(ogImage ? { images: [{ url: ogImage as string }] } : {}),
     },
     twitter: {
       card: 'summary_large_image',
       title: content.seo?.title || siteName,
       description: content.seo?.description || content.tagline,
+      ...(ogImage ? { images: [ogImage as string] } : {}),
     },
     robots: {
       index: website.status === 'published',

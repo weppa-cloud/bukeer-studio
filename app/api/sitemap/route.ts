@@ -82,14 +82,20 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // Product pages
-  const productTypes = ['destinations', 'hotels', 'activities'];
-  for (const type of productTypes) {
-    urls.push({
-      loc: `${baseUrl}/${type}`,
-      changefreq: 'weekly',
-      priority: '0.7',
-    });
+  // Product category pages — only include if the website has pages with matching slugs
+  // (category page routes like /destinations, /hotels, /activities are not static routes;
+  // they must be created as website_pages to be accessible)
+  if (pages && Array.isArray(pages)) {
+    const pageSlugs = new Set(pages.map((p: { slug: string }) => p.slug));
+    for (const type of ['destinations', 'hotels', 'activities']) {
+      if (pageSlugs.has(type)) {
+        urls.push({
+          loc: `${baseUrl}/${type}`,
+          changefreq: 'weekly',
+          priority: '0.7',
+        });
+      }
+    }
   }
 
   // Generate XML
