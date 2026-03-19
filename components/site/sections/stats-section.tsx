@@ -13,7 +13,7 @@ export function StatsSection({ section }: StatsSectionProps) {
   const sectionContent = section.content as {
     title?: string;
     stats?: Array<{
-      value: number;
+      value: number | string;
       suffix?: string;
       label: string;
     }>;
@@ -41,7 +41,9 @@ export function StatsSection({ section }: StatsSectionProps) {
         )}
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
-          {stats.map((stat, index) => (
+          {stats.map((stat, index) => {
+            const numericValue = typeof stat.value === 'string' ? parseInt(stat.value, 10) || 0 : stat.value;
+            return (
             <motion.div
               key={index}
               initial={{ opacity: 0, y: 20 }}
@@ -51,13 +53,14 @@ export function StatsSection({ section }: StatsSectionProps) {
               className="text-center"
             >
               <CountUp
-                end={stat.value}
+                end={numericValue}
                 suffix={stat.suffix}
                 className="text-4xl md:text-5xl font-bold text-primary"
               />
               <p className="mt-2 text-muted-foreground">{stat.label}</p>
             </motion.div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>
