@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { SiteHeader } from '@/components/site/site-header';
@@ -10,7 +11,6 @@ import { getPageBySlug } from '@/lib/supabase/get-pages';
 import { getBlogPosts, getBlogPostBySlug, getBlogCategories } from '@/lib/supabase/get-website';
 import { JsonLd, generateBlogListingSchemas, generateBlogPostSchemas } from '@/lib/schema';
 import { SafeHtml } from '@/lib/sanitize';
-import Link from 'next/link';
 import Image from 'next/image';
 
 interface CustomDomainPageProps {
@@ -375,6 +375,82 @@ export default async function CustomDomainPage({ params, searchParams }: CustomD
     );
   }
 
+  // Handle legal pages (terms, privacy, cancellation)
+  const legalSlugs: Record<string, { field: 'terms_conditions' | 'privacy_policy' | 'cancellation_policy'; title: string }> = {
+    'terms': { field: 'terms_conditions', title: 'Terminos y Condiciones' },
+    'privacy': { field: 'privacy_policy', title: 'Politica de Privacidad' },
+    'cancellation': { field: 'cancellation_policy', title: 'Politica de Cancelacion' },
+  };
+
+  const legalMatch = legalSlugs[slugPath];
+  if (legalMatch) {
+    const legalContent = website.content.account?.legal?.[legalMatch.field];
+
+    if (!legalContent) {
+      notFound();
+    }
+
+    // If content is a URL, redirect to it
+    if (legalContent.startsWith('http://') || legalContent.startsWith('https://')) {
+      redirect(legalContent);
+    }
+
+    const siteName = website.content.account?.name || website.content.siteName;
+
+    return (
+      <M3ThemeProvider initialTheme={website.theme}>
+        <GoogleTagManager analytics={website.analytics} />
+        <div className="min-h-screen flex flex-col">
+          <GoogleTagManagerBody analytics={website.analytics} />
+          <SiteHeader website={website} isCustomDomain={true} />
+          <main className="flex-1">
+            <article className="section-padding">
+              <div className="container max-w-4xl">
+                <nav className="mb-8">
+                  <ol className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <li>
+                      <Link href="/" className="hover:text-foreground transition-colors">
+                        Inicio
+                      </Link>
+                    </li>
+                    <li>/</li>
+                    <li className="text-foreground">{legalMatch.title}</li>
+                  </ol>
+                </nav>
+
+                <header className="mb-8">
+                  <h1 className="text-3xl md:text-4xl font-bold">{legalMatch.title}</h1>
+                  <p className="mt-2 text-muted-foreground">{siteName}</p>
+                </header>
+
+                <SafeHtml
+                  content={legalContent}
+                  className="prose prose-lg max-w-none dark:prose-invert
+                    prose-headings:font-bold
+                    prose-a:text-primary prose-a:no-underline hover:prose-a:underline
+                  "
+                />
+
+                <div className="mt-12 pt-8 border-t">
+                  <Link
+                    href="/"
+                    className="inline-flex items-center gap-2 text-primary hover:underline"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                    Volver al inicio
+                  </Link>
+                </div>
+              </div>
+            </article>
+          </main>
+          <SiteFooter website={website} isCustomDomain={true} />
+        </div>
+      </M3ThemeProvider>
+    );
+  }
+
   // Get the page content (non-blog routes)
   const page = await getPageBySlug(website.subdomain, slugPath || 'home');
 
@@ -417,6 +493,21 @@ export async function generateMetadata({ params, searchParams }: CustomDomainPag
   }
 
   const slugPath = slug?.join('/') || '';
+
+  // Legal page metadata
+  const legalMeta: Record<string, { title: string; description: string }> = {
+    'terms': { title: 'Terminos y Condiciones', description: `Terminos y condiciones de ${website.content.account?.name || website.content.siteName}` },
+    'privacy': { title: 'Politica de Privacidad', description: `Politica de privacidad de ${website.content.account?.name || website.content.siteName}` },
+    'cancellation': { title: 'Politica de Cancelacion', description: `Politica de cancelacion de ${website.content.account?.name || website.content.siteName}` },
+  };
+
+  if (legalMeta[slugPath]) {
+    return {
+      title: legalMeta[slugPath].title,
+      description: legalMeta[slugPath].description,
+      robots: { index: false, follow: false },
+    };
+  }
 
   // Blog listing metadata
   if (slugPath === 'blog') {
