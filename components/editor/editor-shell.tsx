@@ -24,6 +24,7 @@ import { EditableSection } from './editable-section';
 import { Toolbar, type ViewportSize } from './toolbar';
 import { SectionPalette } from './section-palette';
 import { CanvasFrame } from './canvas-frame';
+import { CopilotBar, type CopilotPlan } from './copilot-bar';
 import { detectAuthMode, createAuthClient, getAuthUser } from '@/lib/auth/require-auth';
 import type { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 
@@ -110,6 +111,7 @@ export function EditorShell({ websiteId, initialToken }: EditorShellProps) {
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading');
   const [error, setError] = useState<string | null>(null);
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
+  const [selectedSectionType, setSelectedSectionType] = useState<string | null>(null);
   const [viewport, setViewport] = useState<ViewportSize>('desktop');
   const [paletteOpen, setPaletteOpen] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -316,7 +318,31 @@ export function EditorShell({ websiteId, initialToken }: EditorShellProps) {
     id: string, type: string, enabled: boolean, content: Record<string, unknown>
   ) => {
     setSelectedSectionId(id);
+    setSelectedSectionType(type);
   }, []);
+
+  // Copilot handlers
+  const handleCopilotPlanReady = useCallback((plan: CopilotPlan, sessionId: string) => {
+    // Send plan to Flutter parent via postMessage
+    window.parent.postMessage({
+      source: 'bukeer-sites-editor',
+      version: 1,
+      websiteId,
+      type: 'copilot:plan',
+      payload: { plan, sessionId },
+    }, '*');
+  }, [websiteId]);
+
+  const handleCopilotError = useCallback((message: string) => {
+    // Notify Flutter parent of copilot error
+    window.parent.postMessage({
+      source: 'bukeer-sites-editor',
+      version: 1,
+      websiteId,
+      type: 'copilot:error',
+      payload: { message },
+    }, '*');
+  }, [websiteId]);
 
   // Build transformed website for render
   const buildWebsiteForRender = useCallback((): WebsiteData | null => {
@@ -446,6 +472,17 @@ export function EditorShell({ websiteId, initialToken }: EditorShellProps) {
           </CanvasFrame>
         </DndContext>
       </div>
+
+      {tokenRef.current && (
+        <CopilotBar
+          websiteId={websiteId}
+          token={tokenRef.current}
+          focusedSectionId={selectedSectionId ?? undefined}
+          focusedSectionType={selectedSectionType ?? undefined}
+          onPlanReady={handleCopilotPlanReady}
+          onError={handleCopilotError}
+        />
+      )}
     </div>
   );
 }

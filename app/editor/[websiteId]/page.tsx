@@ -189,6 +189,19 @@ export default function EditorPage({ params }: EditorPageProps) {
         case 'section:focus':
           scrollToSection(payload.sectionId);
           break;
+        case 'copilot:applied':
+          // Flutter finished applying copilot actions — refresh canvas
+          loadData(true);
+          break;
+        case 'copilot:focus': {
+          // Flutter wants to focus copilot on a specific section
+          const focusSectionId = payload.sectionId as string | undefined;
+          if (focusSectionId) {
+            setSelectedSectionId(focusSectionId);
+            scrollToSection(focusSectionId);
+          }
+          break;
+        }
       }
     };
 

@@ -25,6 +25,7 @@ interface RateLimitResult {
 const LIMITS = {
   editor: { requestsPerMinute: 20, costPerDayUsd: 5.0 },
   public: { requestsPerMinute: 5, costPerDayUsd: 1.0 },
+  copilot: { requestsPerMinute: 10, costPerDayUsd: 10.0 },
 } as const;
 
 type LimitTier = keyof typeof LIMITS;
