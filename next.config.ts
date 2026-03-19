@@ -6,6 +6,9 @@ const withBundleAnalyzer = bundleAnalyzer({
 });
 
 const nextConfig: NextConfig = {
+  // Transpile workspace packages that use .js extension imports (ESM convention)
+  transpilePackages: ['@bukeer/website-contract'],
+
   images: {
     remotePatterns: [
       {
