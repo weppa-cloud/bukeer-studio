@@ -14,6 +14,51 @@ interface ProductLandingPageProps {
   productType: string;
 }
 
+// ============================================================================
+// Helpers: parse newline-separated text into arrays, with custom_sections override
+// ============================================================================
+
+/** Split a newline/semicolon-separated string into a trimmed, non-empty array. */
+function parseTextList(text: string | undefined | null): string[] {
+  if (!text || text.trim() === '') return [];
+  return text
+    .split(/[\n;]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+/**
+ * Look up a key inside `custom_sections` (an array of PageSection objects).
+ * Returns the content value for `key` if found, otherwise undefined.
+ */
+function getCustomSectionContent(
+  pageCustomization: ProductPageCustomization | undefined,
+  sectionType: string,
+  contentKey: string
+): unknown | undefined {
+  if (!pageCustomization?.custom_sections?.length) return undefined;
+  const section = pageCustomization.custom_sections.find(
+    (s) => s.type === sectionType
+  );
+  if (!section?.content) return undefined;
+  return section.content[contentKey];
+}
+
+/** Convenience: get a string[] from custom_sections content. */
+function getCustomStringList(
+  pageCustomization: ProductPageCustomization | undefined,
+  sectionType: string,
+  contentKey: string
+): string[] | undefined {
+  const val = getCustomSectionContent(pageCustomization, sectionType, contentKey);
+  if (Array.isArray(val) && val.length > 0) return val as string[];
+  return undefined;
+}
+
+// ============================================================================
+// Main Component
+// ============================================================================
+
 export function ProductLandingPage({
   website,
   product,
@@ -97,7 +142,7 @@ export function ProductLandingPage({
             {images.length > 1 && (
               <section className="bg-surface-container rounded-2xl p-6">
                 <h2 className="text-xl font-semibold text-on-surface mb-4">
-                  Galería
+                  Galeria
                 </h2>
                 <div className="relative aspect-video rounded-lg overflow-hidden mb-4">
                   <Image
@@ -134,7 +179,7 @@ export function ProductLandingPage({
             {product.description && (
               <section className="bg-surface-container rounded-2xl p-6">
                 <h2 className="text-xl font-semibold text-on-surface mb-4">
-                  Descripción
+                  Descripcion
                 </h2>
                 <div className="prose prose-lg max-w-none text-on-surface-variant">
                   <p>{product.description}</p>
@@ -144,19 +189,19 @@ export function ProductLandingPage({
 
             {/* Product Type Specific Sections */}
             {productType === 'destination' && (
-              <DestinationSections />
+              <DestinationSections product={product} pageCustomization={pageCustomization} />
             )}
             {productType === 'hotel' && (
-              <HotelSections />
+              <HotelSections product={product} pageCustomization={pageCustomization} />
             )}
             {productType === 'activity' && (
-              <ActivitySections />
+              <ActivitySections product={product} pageCustomization={pageCustomization} />
             )}
             {productType === 'package' && (
-              <PackageSections />
+              <PackageSections product={product} pageCustomization={pageCustomization} />
             )}
             {productType === 'transfer' && (
-              <TransferSections />
+              <TransferSections product={product} pageCustomization={pageCustomization} />
             )}
           </div>
 
@@ -173,10 +218,10 @@ export function ProductLandingPage({
       <section className="py-16 px-4 bg-primary-container">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-2xl md:text-3xl font-bold text-on-primary-container mb-4">
-            ¿Listo para vivir esta experiencia?
+            Listo para vivir esta experiencia?
           </h2>
           <p className="text-on-primary-container/80 mb-8">
-            Contáctanos y te ayudamos a planificar tu viaje ideal
+            Contactanos y te ayudamos a planificar tu viaje ideal
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             {website.content.social?.whatsapp && (
@@ -196,7 +241,7 @@ export function ProductLandingPage({
               href={`${basePath}/contacto`}
               className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-primary text-on-primary rounded-full font-medium hover:bg-primary/90 transition-colors"
             >
-              Solicitar cotización
+              Solicitar cotizacion
             </Link>
           </div>
         </div>
@@ -205,152 +250,310 @@ export function ProductLandingPage({
   );
 }
 
-// Helper Components
+// ============================================================================
+// Section Props (shared by all product-type section components)
+// ============================================================================
 
-function DestinationSections() {
-  return (
-    <>
-      {/* Highlights Section - Placeholder */}
-      <section className="bg-surface-container rounded-2xl p-6">
-        <h2 className="text-xl font-semibold text-on-surface mb-4">
-          Puntos Destacados
-        </h2>
-        <div className="grid sm:grid-cols-2 gap-4">
-          {['Cultura local', 'Gastronomía', 'Paisajes', 'Aventura'].map(
-            (highlight, index) => (
-              <div
-                key={index}
-                className="flex items-center gap-3 p-3 bg-surface rounded-lg"
-              >
-                <div className="w-10 h-10 bg-primary-container rounded-full flex items-center justify-center">
-                  <span>✨</span>
-                </div>
-                <span className="text-on-surface">{highlight}</span>
-              </div>
-            )
-          )}
-        </div>
-      </section>
-    </>
-  );
+interface SectionProps {
+  product: ProductData;
+  pageCustomization?: ProductPageCustomization;
 }
 
-function HotelSections() {
-  return (
-    <>
-      {/* Amenities Section - Placeholder */}
-      <section className="bg-surface-container rounded-2xl p-6">
-        <h2 className="text-xl font-semibold text-on-surface mb-4">
-          Servicios y Amenidades
-        </h2>
-        <div className="grid sm:grid-cols-3 gap-4">
-          {['WiFi', 'Piscina', 'Restaurante', 'Spa', 'Gimnasio', 'Bar'].map(
-            (amenity, index) => (
-              <div
-                key={index}
-                className="flex items-center gap-2 p-2 bg-surface rounded-lg"
-              >
-                <span className="text-primary">✓</span>
-                <span className="text-on-surface-variant">{amenity}</span>
-              </div>
-            )
-          )}
-        </div>
-      </section>
-    </>
-  );
-}
+// ============================================================================
+// Shared Section: Includes/Excludes list
+// ============================================================================
 
-function ActivitySections() {
+function IncludesExcludesSection({
+  title,
+  includes,
+  excludes,
+  defaultIncludes,
+  defaultExcludes,
+}: {
+  title: string;
+  includes: string[];
+  excludes: string[];
+  defaultIncludes: string[];
+  defaultExcludes: string[];
+}) {
+  const finalIncludes = includes.length > 0 ? includes : defaultIncludes;
+  const finalExcludes = excludes.length > 0 ? excludes : defaultExcludes;
+
+  if (finalIncludes.length === 0 && finalExcludes.length === 0) return null;
+
   return (
-    <>
-      {/* What's Included Section - Placeholder */}
-      <section className="bg-surface-container rounded-2xl p-6">
-        <h2 className="text-xl font-semibold text-on-surface mb-4">
-          ¿Qué incluye?
-        </h2>
-        <div className="grid sm:grid-cols-2 gap-4">
+    <section className="bg-surface-container rounded-2xl p-6">
+      <h2 className="text-xl font-semibold text-on-surface mb-4">{title}</h2>
+      <div className="grid sm:grid-cols-2 gap-4">
+        {finalIncludes.length > 0 && (
           <div>
             <h3 className="font-medium text-on-surface mb-2">Incluye:</h3>
             <ul className="space-y-2 text-on-surface-variant">
-              {['Guía experto', 'Transporte', 'Equipo necesario'].map(
-                (item, index) => (
-                  <li key={index} className="flex items-center gap-2">
-                    <span className="text-green-600">✓</span>
-                    {item}
-                  </li>
-                )
-              )}
-            </ul>
-          </div>
-          <div>
-            <h3 className="font-medium text-on-surface mb-2">No incluye:</h3>
-            <ul className="space-y-2 text-on-surface-variant">
-              {['Comidas', 'Propinas', 'Seguro de viaje'].map((item, index) => (
+              {finalIncludes.map((item, index) => (
                 <li key={index} className="flex items-center gap-2">
-                  <span className="text-red-600">✗</span>
+                  <span className="text-green-600">&#10003;</span>
                   {item}
                 </li>
               ))}
             </ul>
           </div>
+        )}
+        {finalExcludes.length > 0 && (
+          <div>
+            <h3 className="font-medium text-on-surface mb-2">No incluye:</h3>
+            <ul className="space-y-2 text-on-surface-variant">
+              {finalExcludes.map((item, index) => (
+                <li key={index} className="flex items-center gap-2">
+                  <span className="text-red-600">&#10007;</span>
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+// ============================================================================
+// Destination Sections
+// ============================================================================
+
+function DestinationSections({ product, pageCustomization }: SectionProps) {
+  // Priority: custom_sections override > product data > hardcoded defaults
+  const customHighlights = getCustomStringList(pageCustomization, 'destination_highlights', 'items');
+  const highlights = customHighlights || [
+    'Cultura local',
+    'Gastronomia',
+    'Paisajes',
+    'Aventura',
+  ];
+
+  return (
+    <>
+      <section className="bg-surface-container rounded-2xl p-6">
+        <h2 className="text-xl font-semibold text-on-surface mb-4">
+          Puntos Destacados
+        </h2>
+        <div className="grid sm:grid-cols-2 gap-4">
+          {highlights.map((highlight, index) => (
+            <div
+              key={index}
+              className="flex items-center gap-3 p-3 bg-surface rounded-lg"
+            >
+              <div className="w-10 h-10 bg-primary-container rounded-full flex items-center justify-center">
+                <span>&#10024;</span>
+              </div>
+              <span className="text-on-surface">{highlight}</span>
+            </div>
+          ))}
         </div>
       </section>
     </>
   );
 }
 
-function TransferSections() {
+// ============================================================================
+// Hotel Sections
+// ============================================================================
+
+function HotelSections({ product, pageCustomization }: SectionProps) {
+  const DEFAULT_AMENITIES = ['WiFi', 'Piscina', 'Restaurante', 'Spa', 'Gimnasio', 'Bar'];
+
+  // Priority: custom_sections override > product.amenities from RPC > defaults
+  const customAmenities = getCustomStringList(pageCustomization, 'hotel_amenities', 'items');
+  const productAmenities =
+    product.amenities && product.amenities.length > 0
+      ? product.amenities.map(String)
+      : [];
+  const amenities =
+    customAmenities || (productAmenities.length > 0 ? productAmenities : DEFAULT_AMENITIES);
+
+  // Inclusions/exclusions from product data
+  const productIncludes = parseTextList(product.inclusions);
+  const productExcludes = parseTextList(product.exclusions);
+  const customIncludes = getCustomStringList(pageCustomization, 'hotel_includes', 'includes');
+  const customExcludes = getCustomStringList(pageCustomization, 'hotel_includes', 'excludes');
+
   return (
     <>
-      {/* Transfer Details Section */}
+      {/* Amenities */}
       <section className="bg-surface-container rounded-2xl p-6">
         <h2 className="text-xl font-semibold text-on-surface mb-4">
-          Detalles del Traslado
+          Servicios y Amenidades
         </h2>
-        <div className="grid sm:grid-cols-2 gap-4">
-          <div>
-            <h3 className="font-medium text-on-surface mb-2">Incluye:</h3>
-            <ul className="space-y-2 text-on-surface-variant">
-              {['Vehículo privado', 'Conductor bilingüe', 'Asistencia en aeropuerto'].map(
-                (item, index) => (
-                  <li key={index} className="flex items-center gap-2">
-                    <span className="text-green-600">✓</span>
-                    {item}
-                  </li>
-                )
-              )}
-            </ul>
-          </div>
-          <div>
-            <h3 className="font-medium text-on-surface mb-2">No incluye:</h3>
-            <ul className="space-y-2 text-on-surface-variant">
-              {['Propinas', 'Peajes adicionales', 'Paradas no programadas'].map(
-                (item, index) => (
-                  <li key={index} className="flex items-center gap-2">
-                    <span className="text-red-600">✗</span>
-                    {item}
-                  </li>
-                )
-              )}
-            </ul>
-          </div>
+        <div className="grid sm:grid-cols-3 gap-4">
+          {amenities.map((amenity, index) => (
+            <div
+              key={index}
+              className="flex items-center gap-2 p-2 bg-surface rounded-lg"
+            >
+              <span className="text-primary">&#10003;</span>
+              <span className="text-on-surface-variant">{amenity}</span>
+            </div>
+          ))}
         </div>
       </section>
 
-      {/* Recommendations Section */}
+      {/* Inclusions/Exclusions (only if there is data) */}
+      {(customIncludes || customExcludes || productIncludes.length > 0 || productExcludes.length > 0) && (
+        <IncludesExcludesSection
+          title="Que incluye?"
+          includes={customIncludes || productIncludes}
+          excludes={customExcludes || productExcludes}
+          defaultIncludes={[]}
+          defaultExcludes={[]}
+        />
+      )}
+    </>
+  );
+}
+
+// ============================================================================
+// Activity Sections
+// ============================================================================
+
+function ActivitySections({ product, pageCustomization }: SectionProps) {
+  const DEFAULT_INCLUDES = ['Guia experto', 'Transporte', 'Equipo necesario'];
+  const DEFAULT_EXCLUDES = ['Comidas', 'Propinas', 'Seguro de viaje'];
+
+  const customIncludes = getCustomStringList(pageCustomization, 'activity_includes', 'includes');
+  const customExcludes = getCustomStringList(pageCustomization, 'activity_includes', 'excludes');
+  const productIncludes = parseTextList(product.inclusions);
+  const productExcludes = parseTextList(product.exclusions);
+
+  const includes = customIncludes || (productIncludes.length > 0 ? productIncludes : DEFAULT_INCLUDES);
+  const excludes = customExcludes || (productExcludes.length > 0 ? productExcludes : DEFAULT_EXCLUDES);
+
+  // Recommendations
+  const customRecommendations = getCustomStringList(pageCustomization, 'activity_recommendations', 'items');
+  const productRecommendations = parseTextList(product.recommendations);
+  const recommendations = customRecommendations || (productRecommendations.length > 0 ? productRecommendations : []);
+
+  return (
+    <>
+      <IncludesExcludesSection
+        title="Que incluye?"
+        includes={includes}
+        excludes={excludes}
+        defaultIncludes={DEFAULT_INCLUDES}
+        defaultExcludes={DEFAULT_EXCLUDES}
+      />
+
+      {/* Duration info */}
+      {product.duration_minutes != null && product.duration_minutes > 0 && (
+        <section className="bg-surface-container rounded-2xl p-6">
+          <h2 className="text-xl font-semibold text-on-surface mb-4">
+            Duracion
+          </h2>
+          <p className="text-on-surface-variant">
+            {product.duration_minutes >= 60
+              ? `${Math.floor(product.duration_minutes / 60)} hora${Math.floor(product.duration_minutes / 60) !== 1 ? 's' : ''}${product.duration_minutes % 60 > 0 ? ` ${product.duration_minutes % 60} min` : ''}`
+              : `${product.duration_minutes} minutos`}
+          </p>
+        </section>
+      )}
+
+      {/* Recommendations (only if data exists) */}
+      {recommendations.length > 0 && (
+        <section className="bg-surface-container rounded-2xl p-6">
+          <h2 className="text-xl font-semibold text-on-surface mb-4">
+            Recomendaciones
+          </h2>
+          <ul className="space-y-3 text-on-surface-variant">
+            {recommendations.map((tip, index) => (
+              <li key={index} className="flex items-start gap-3">
+                <span className="text-primary mt-0.5">&#128161;</span>
+                {tip}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </>
+  );
+}
+
+// ============================================================================
+// Transfer Sections
+// ============================================================================
+
+function TransferSections({ product, pageCustomization }: SectionProps) {
+  const DEFAULT_INCLUDES = ['Vehiculo privado', 'Conductor bilingue', 'Asistencia en aeropuerto'];
+  const DEFAULT_EXCLUDES = ['Propinas', 'Peajes adicionales', 'Paradas no programadas'];
+  const DEFAULT_RECOMMENDATIONS = [
+    'Confirma tu vuelo con anticipacion para coordinar el horario de recogida',
+    'Ten a la mano tu confirmacion de reserva',
+    'Indica el numero de maletas al momento de reservar',
+  ];
+
+  const customIncludes = getCustomStringList(pageCustomization, 'transfer_includes', 'includes');
+  const customExcludes = getCustomStringList(pageCustomization, 'transfer_includes', 'excludes');
+  const productIncludes = parseTextList(product.inclusions);
+  const productExcludes = parseTextList(product.exclusions);
+
+  const includes = customIncludes || (productIncludes.length > 0 ? productIncludes : DEFAULT_INCLUDES);
+  const excludes = customExcludes || (productExcludes.length > 0 ? productExcludes : DEFAULT_EXCLUDES);
+
+  const customRecommendations = getCustomStringList(pageCustomization, 'transfer_recommendations', 'items');
+  const productRecommendations = parseTextList(product.recommendations);
+  const recommendations =
+    customRecommendations ||
+    (productRecommendations.length > 0 ? productRecommendations : DEFAULT_RECOMMENDATIONS);
+
+  // Route info
+  const fromLocation = product.from_location;
+  const toLocation = product.to_location;
+
+  return (
+    <>
+      {/* Route info */}
+      {(fromLocation || toLocation) && (
+        <section className="bg-surface-container rounded-2xl p-6">
+          <h2 className="text-xl font-semibold text-on-surface mb-4">
+            Ruta del Traslado
+          </h2>
+          <div className="flex items-center gap-4">
+            {fromLocation && (
+              <div className="flex-1 p-3 bg-surface rounded-lg text-center">
+                <p className="text-xs text-on-surface-variant mb-1">Origen</p>
+                <p className="font-medium text-on-surface">{fromLocation}</p>
+              </div>
+            )}
+            {fromLocation && toLocation && (
+              <svg className="w-6 h-6 text-primary shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+              </svg>
+            )}
+            {toLocation && (
+              <div className="flex-1 p-3 bg-surface rounded-lg text-center">
+                <p className="text-xs text-on-surface-variant mb-1">Destino</p>
+                <p className="font-medium text-on-surface">{toLocation}</p>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* Includes/Excludes */}
+      <IncludesExcludesSection
+        title="Detalles del Traslado"
+        includes={includes}
+        excludes={excludes}
+        defaultIncludes={DEFAULT_INCLUDES}
+        defaultExcludes={DEFAULT_EXCLUDES}
+      />
+
+      {/* Recommendations */}
       <section className="bg-surface-container rounded-2xl p-6">
         <h2 className="text-xl font-semibold text-on-surface mb-4">
           Recomendaciones
         </h2>
         <ul className="space-y-3 text-on-surface-variant">
-          {[
-            'Confirma tu vuelo con anticipación para coordinar el horario de recogida',
-            'Ten a la mano tu confirmación de reserva',
-            'Indica el número de maletas al momento de reservar',
-          ].map((tip, index) => (
+          {recommendations.map((tip, index) => (
             <li key={index} className="flex items-start gap-3">
-              <span className="text-primary mt-0.5">💡</span>
+              <span className="text-primary mt-0.5">&#128161;</span>
               {tip}
             </li>
           ))}
@@ -360,38 +563,68 @@ function TransferSections() {
   );
 }
 
-function PackageSections() {
+// ============================================================================
+// Package Sections
+// ============================================================================
+
+function PackageSections({ product, pageCustomization }: SectionProps) {
+  const DEFAULT_ITINERARY = [
+    { title: 'Dia 1: Llegada', description: 'Descripcion de las actividades del dia...' },
+    { title: 'Dia 2: Exploracion', description: 'Descripcion de las actividades del dia...' },
+    { title: 'Dia 3: Aventura', description: 'Descripcion de las actividades del dia...' },
+    { title: 'Dia 4: Regreso', description: 'Descripcion de las actividades del dia...' },
+  ];
+
+  // Priority: custom_sections override > product.itinerary_items > defaults
+  const customItinerary = getCustomSectionContent(
+    pageCustomization,
+    'package_itinerary',
+    'items'
+  ) as Array<{ day?: number; title: string; description?: string }> | undefined;
+
+  const productItinerary = product.itinerary_items;
+
+  const itinerary =
+    (customItinerary && customItinerary.length > 0)
+      ? customItinerary
+      : (productItinerary && productItinerary.length > 0)
+        ? productItinerary
+        : DEFAULT_ITINERARY;
+
   return (
     <>
-      {/* Itinerary Section - Placeholder */}
       <section className="bg-surface-container rounded-2xl p-6">
         <h2 className="text-xl font-semibold text-on-surface mb-4">
           Itinerario
         </h2>
         <div className="space-y-4">
-          {['Día 1: Llegada', 'Día 2: Exploración', 'Día 3: Aventura', 'Día 4: Regreso'].map(
-            (day, index) => (
-              <div
-                key={index}
-                className="flex items-start gap-4 p-4 bg-surface rounded-lg"
-              >
-                <div className="w-10 h-10 bg-primary text-on-primary rounded-full flex items-center justify-center font-bold shrink-0">
-                  {index + 1}
-                </div>
-                <div>
-                  <h3 className="font-medium text-on-surface">{day}</h3>
-                  <p className="text-on-surface-variant mt-1">
-                    Descripción de las actividades del día...
-                  </p>
-                </div>
+          {itinerary.map((item, index) => (
+            <div
+              key={index}
+              className="flex items-start gap-4 p-4 bg-surface rounded-lg"
+            >
+              <div className="w-10 h-10 bg-primary text-on-primary rounded-full flex items-center justify-center font-bold shrink-0">
+                {item.day ?? index + 1}
               </div>
-            )
-          )}
+              <div>
+                <h3 className="font-medium text-on-surface">{item.title}</h3>
+                {item.description && (
+                  <p className="text-on-surface-variant mt-1">
+                    {item.description}
+                  </p>
+                )}
+              </div>
+            </div>
+          ))}
         </div>
       </section>
     </>
   );
 }
+
+// ============================================================================
+// Quote Form (unchanged)
+// ============================================================================
 
 function QuoteForm({
   website,
@@ -444,7 +677,7 @@ function QuoteForm({
         setError(data.error || 'Error al enviar la solicitud');
       }
     } catch {
-      setError('Error de conexión. Intenta nuevamente.');
+      setError('Error de conexion. Intenta nuevamente.');
     } finally {
       setIsSubmitting(false);
     }
@@ -462,11 +695,11 @@ function QuoteForm({
           Solicitud Enviada
         </h3>
         <p className="text-on-surface-variant mb-4">
-          Nos pondremos en contacto contigo pronto para darte más información sobre {product.name}.
+          Nos pondremos en contacto contigo pronto para darte mas informacion sobre {product.name}.
         </p>
         {website.content.social?.whatsapp && (
           <a
-            href={`https://wa.me/${website.content.social.whatsapp}?text=Hola! Acabo de enviar una solicitud de cotización para ${product.name}`}
+            href={`https://wa.me/${website.content.social.whatsapp}?text=Hola! Acabo de enviar una solicitud de cotizacion para ${product.name}`}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-full font-medium hover:bg-green-700 transition-colors"
@@ -484,7 +717,7 @@ function QuoteForm({
   return (
     <div className="bg-surface-container rounded-2xl p-6 shadow-lg">
       <h3 className="text-xl font-semibold text-on-surface mb-4">
-        Solicitar Cotización
+        Solicitar Cotizacion
       </h3>
       {error && (
         <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm">
@@ -534,7 +767,7 @@ function QuoteForm({
               htmlFor="children"
               className="block text-sm text-on-surface-variant mb-1"
             >
-              Niños
+              Ninos
             </label>
             <select
               id="children"
@@ -585,7 +818,7 @@ function QuoteForm({
             htmlFor="phone"
             className="block text-sm text-on-surface-variant mb-1"
           >
-            Teléfono / WhatsApp
+            Telefono / WhatsApp
           </label>
           <input
             type="tel"
@@ -615,7 +848,7 @@ function QuoteForm({
           disabled={isSubmitting}
           className="w-full px-6 py-4 bg-primary text-on-primary rounded-full font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isSubmitting ? 'Enviando...' : 'Solicitar cotización'}
+          {isSubmitting ? 'Enviando...' : 'Solicitar cotizacion'}
         </button>
 
         {website.content.social?.whatsapp && (
@@ -636,7 +869,10 @@ function QuoteForm({
   );
 }
 
+// ============================================================================
 // Helper functions
+// ============================================================================
+
 function getCategorySlug(type: string): string {
   const mapping: Record<string, string> = {
     destination: 'destinos',
