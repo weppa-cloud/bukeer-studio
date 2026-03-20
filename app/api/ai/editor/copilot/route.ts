@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { anthropic } from '@ai-sdk/anthropic';
+import { getEditorModel } from '@/lib/ai/llm-provider';
 import { generateObject } from 'ai';
 import { z } from 'zod';
 import { createClient } from '@supabase/supabase-js';
@@ -259,7 +259,7 @@ export async function POST(request: NextRequest) {
 
     // 6. Call Claude
     const result = await generateObject({
-      model: anthropic('claude-sonnet-4-5-20250514'),
+      model: getEditorModel(),
       schema: CopilotPlanSchema,
       system: systemPrompt,
       prompt: userPrompt,

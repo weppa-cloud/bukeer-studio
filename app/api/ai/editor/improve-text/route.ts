@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { anthropic } from '@ai-sdk/anthropic';
+import { getEditorModel } from '@/lib/ai/llm-provider';
 import { generateText } from 'ai';
 import { getEditorAuth, hasEditorRole } from '@/lib/ai/auth-helpers';
 import { checkRateLimit, recordCost } from '@/lib/ai/rate-limit';
@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await generateText({
-      model: anthropic('claude-sonnet-4-5-20250514'),
+      model: getEditorModel(),
       system: systemPrompt,
       prompt: text,
     });

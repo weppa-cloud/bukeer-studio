@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { anthropic } from '@ai-sdk/anthropic';
+import { getEditorModel } from '@/lib/ai/llm-provider';
 import { generateObject } from 'ai';
 import { z } from 'zod';
 import { getEditorAuth, hasEditorRole } from '@/lib/ai/auth-helpers';
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await generateObject({
-      model: anthropic('claude-sonnet-4-5-20250514'),
+      model: getEditorModel(),
       schema: suggestionsSchema,
       prompt: `Analyze a travel agency website and suggest sections to add or improve.
 
