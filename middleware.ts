@@ -242,6 +242,11 @@ export async function middleware(request: NextRequest) {
       subdomain = host.replace(`.${MAIN_DOMAIN}`, '').split('.')[0];
     }
 
+    // Staging alias: web-public.bukeer.com → corporate site
+    if (subdomain === 'web-public') {
+      subdomain = 'bukeer';
+    }
+
     // Check if subdomain is reserved
     if (RESERVED_SUBDOMAINS.includes(subdomain.toLowerCase())) {
       return NextResponse.next();
