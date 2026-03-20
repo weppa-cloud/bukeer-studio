@@ -11,6 +11,7 @@ import { getPageBySlug } from '@/lib/supabase/get-pages';
 import { getBlogPosts, getBlogPostBySlug, getBlogCategories } from '@/lib/supabase/get-website';
 import { JsonLd, generateBlogListingSchemas, generateBlogPostSchemas } from '@/lib/schema';
 import { SafeHtml } from '@/lib/sanitize';
+import { getDefaultLegalContent } from '@/lib/legal-defaults';
 import Image from 'next/image';
 
 interface CustomDomainPageProps {
@@ -384,18 +385,17 @@ export default async function CustomDomainPage({ params, searchParams }: CustomD
 
   const legalMatch = legalSlugs[slugPath];
   if (legalMatch) {
-    const legalContent = website.content.account?.legal?.[legalMatch.field];
-
-    if (!legalContent) {
-      notFound();
-    }
+    const siteName = website.content.account?.name || website.content.siteName;
+    const customContent = website.content.account?.legal?.[legalMatch.field];
 
     // If content is a URL, redirect to it
-    if (legalContent.startsWith('http://') || legalContent.startsWith('https://')) {
-      redirect(legalContent);
+    if (customContent?.startsWith('http://') || customContent?.startsWith('https://')) {
+      redirect(customContent);
     }
 
-    const siteName = website.content.account?.name || website.content.siteName;
+    // Use custom content if available, otherwise show default placeholder
+    const legalType = slugPath as 'terms' | 'privacy' | 'cancellation';
+    const legalContent = customContent || getDefaultLegalContent(legalType, siteName);
 
     return (
       <M3ThemeProvider initialTheme={website.theme}>
