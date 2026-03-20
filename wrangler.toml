@@ -57,3 +57,4 @@ new_sqlite_classes = ["DOQueueHandler"]
 
 [env.staging.vars]
 NEXT_PUBLIC_MAIN_DOMAIN = "bukeer.com"
+
