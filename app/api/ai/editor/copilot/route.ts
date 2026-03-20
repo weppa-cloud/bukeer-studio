@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { createClient } from '@supabase/supabase-js';
 import { getEditorAuth, hasEditorRole } from '@/lib/ai/auth-helpers';
 import { checkRateLimit, recordCost } from '@/lib/ai/rate-limit';
-import { randomUUID } from 'crypto';
+// crypto.randomUUID() is available globally in Workers + Node 19+
 
 // ── Request schema ──────────────────────────────────────────────────────────
 
@@ -269,7 +269,7 @@ export async function POST(request: NextRequest) {
     await recordCost(auth.accountId, 0.008);
 
     // 8. Generate session ID
-    const sessionId = randomUUID();
+    const sessionId = crypto.randomUUID();
 
     return NextResponse.json({
       plan: result.object,

@@ -11,7 +11,6 @@ import { createClient } from '@supabase/supabase-js';
  * Security features:
  * - Bearer token authentication (REVALIDATE_SECRET)
  * - Subdomain validation against database
- * - In-memory rate limiting per IP (5 requests/minute)
  * - Audit logging to revalidation_logs table
  *
  * Request body:
@@ -19,61 +18,15 @@ import { createClient } from '@supabase/supabase-js';
  * - path?: string - Optional specific path (defaults to site root)
  */
 
-// Simple in-memory rate limiter
-// Note: For production with multiple instances, use Upstash Redis
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
-
-function checkRateLimit(key: string, limit = 10, windowMs = 60000): boolean {
-  const now = Date.now();
-  const entry = rateLimitMap.get(key);
-
-  if (!entry || now > entry.resetAt) {
-    rateLimitMap.set(key, { count: 1, resetAt: now + windowMs });
-    return true;
-  }
-
-  if (entry.count >= limit) {
-    return false;
-  }
-
-  entry.count++;
-  return true;
-}
-
-// Clean up old entries periodically
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, entry] of rateLimitMap.entries()) {
-    if (now > entry.resetAt) {
-      rateLimitMap.delete(key);
-    }
-  }
-}, 60000);
-
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
 
   try {
-    // 1. Rate limit check
+    // 1. Extract IP for logging
     const ip =
       request.headers.get('x-forwarded-for')?.split(',')[0] ||
       request.headers.get('x-real-ip') ||
       'anonymous';
-
-    if (!checkRateLimit(`revalidate:${ip}`, 10, 60000)) {
-      return NextResponse.json(
-        {
-          error: 'Rate limit exceeded',
-          message: 'Too many requests. Please try again later.',
-        },
-        {
-          status: 429,
-          headers: {
-            'Retry-After': '60',
-          },
-        }
-      );
-    }
 
     // 2. Authentication via Bearer token
     const authHeader = request.headers.get('authorization');
@@ -97,6 +50,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 3. Parse request body
+
     const body = await request.json();
     const { subdomain, path } = body;
 
@@ -108,6 +62,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 4. Validate subdomain exists in database
+
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 

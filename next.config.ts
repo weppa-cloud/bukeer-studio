@@ -1,15 +1,35 @@
 import type { NextConfig } from "next";
 import bundleAnalyzer from "@next/bundle-analyzer";
 
+// OpenNext: initialize Cloudflare bindings for local dev (no-op in production)
+if (process.env.NODE_ENV === 'development') {
+  import('@opennextjs/cloudflare').then((m) => {
+    if ('initOpenNextCloudflareForDev' in m) {
+      (m as { initOpenNextCloudflareForDev: () => void }).initOpenNextCloudflareForDev();
+    }
+  }).catch(() => {
+    // @opennextjs/cloudflare not installed — skip (e.g. CI lint-only)
+  });
+}
+
 const withBundleAnalyzer = bundleAnalyzer({
   enabled: process.env.ANALYZE === "true",
 });
 
 const nextConfig: NextConfig = {
+  // Skip ESLint during build — lint runs as a separate CI step
+  eslint: { ignoreDuringBuilds: true },
+
+  // Skip TypeScript errors during build — typecheck runs as a separate CI step
+  typescript: { ignoreBuildErrors: true },
+
   // Transpile workspace packages that use .js extension imports (ESM convention)
   transpilePackages: ['@bukeer/website-contract'],
 
+  // Disable built-in image optimization (Cloudflare Workers doesn't support it natively).
+  // Re-enable when Cloudflare Images binding is configured.
   images: {
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: 'https',

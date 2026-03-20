@@ -1,0 +1,59 @@
+#:schema ./node_modules/wrangler/config-schema.json
+
+name = "bukeer-web-public"
+main = ".open-next/worker.js"
+compatibility_date = "2026-03-20"
+compatibility_flags = ["nodejs_compat"]
+
+[assets]
+directory = ".open-next/assets"
+binding = "ASSETS"
+
+[observability]
+enabled = true
+
+# OpenNext self-reference (required for ISR revalidation)
+[[services]]
+binding = "WORKER_SELF_REFERENCE"
+service = "bukeer-web-public"
+
+# ISR incremental cache
+[[r2_buckets]]
+binding = "NEXT_INC_CACHE_R2_BUCKET"
+bucket_name = "bukeer-web-public-cache"
+
+# Queue for time-based revalidation
+[[durable_objects.bindings]]
+name = "NEXT_CACHE_DO_QUEUE"
+class_name = "DOQueueHandler"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["DOQueueHandler"]
+
+[vars]
+NEXT_PUBLIC_MAIN_DOMAIN = "bukeer.com"
+
+# ── Staging environment ──────────────────────────────────────────────────────
+
+[env.staging]
+name = "bukeer-web-public-staging"
+
+[[env.staging.services]]
+binding = "WORKER_SELF_REFERENCE"
+service = "bukeer-web-public-staging"
+
+[[env.staging.r2_buckets]]
+binding = "NEXT_INC_CACHE_R2_BUCKET"
+bucket_name = "bukeer-web-public-cache-staging"
+
+[[env.staging.durable_objects.bindings]]
+name = "NEXT_CACHE_DO_QUEUE"
+class_name = "DOQueueHandler"
+
+[[env.staging.migrations]]
+tag = "v1"
+new_sqlite_classes = ["DOQueueHandler"]
+
+[env.staging.vars]
+NEXT_PUBLIC_MAIN_DOMAIN = "bukeer.com"
