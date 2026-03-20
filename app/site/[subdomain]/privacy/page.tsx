@@ -4,6 +4,7 @@ import { notFound, redirect } from 'next/navigation';
 import { getWebsiteBySubdomain } from '@/lib/supabase/get-website';
 import { SafeHtml } from '@/lib/sanitize';
 import { getBasePath } from '@/lib/utils/base-path';
+import { getDefaultLegalContent } from '@/lib/legal-defaults';
 
 interface PrivacyPageProps {
   params: Promise<{ subdomain: string }>;
@@ -34,19 +35,17 @@ export default async function PrivacyPage({ params }: PrivacyPageProps) {
     notFound();
   }
 
-  const legalContent = website.content.account?.legal?.privacy_policy;
-
-  if (!legalContent) {
-    notFound();
-  }
-
-  // If content is a URL, redirect to it
-  if (legalContent.startsWith('http://') || legalContent.startsWith('https://')) {
-    redirect(legalContent);
-  }
-
   const basePath = getBasePath(subdomain);
   const siteName = website.content.account?.name || website.content.siteName;
+  const customContent = website.content.account?.legal?.privacy_policy;
+
+  // If content is a URL, redirect to it
+  if (customContent?.startsWith('http://') || customContent?.startsWith('https://')) {
+    redirect(customContent);
+  }
+
+  // Use custom content if available, otherwise show default placeholder
+  const legalContent = customContent || getDefaultLegalContent('privacy', siteName);
 
   return (
     <article className="section-padding">

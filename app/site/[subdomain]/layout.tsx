@@ -25,6 +25,9 @@ export async function generateMetadata({ params }: SiteLayoutProps): Promise<Met
 
   const { content } = website;
   const siteName = content.account?.name || content.siteName;
+  const description = content?.seo?.description
+    || content?.tagline
+    || `${content?.siteName || subdomain} - Tu agencia de viajes de confianza`;
 
   // Resolve og:image from: seo.image > hero backgroundImage > account logo
   const heroSection = website.sections?.find(
@@ -40,13 +43,13 @@ export async function generateMetadata({ params }: SiteLayoutProps): Promise<Met
       default: content.seo?.title || siteName,
       template: `%s | ${siteName}`,
     },
-    description: content.seo?.description || content.tagline,
+    description,
     keywords: Array.isArray(content.seo?.keywords)
       ? content.seo.keywords
       : content.seo?.keywords?.split(',').map((k: string) => k.trim()),
     openGraph: {
       title: content.seo?.title || siteName,
-      description: content.seo?.description || content.tagline,
+      description,
       siteName: siteName,
       type: 'website',
       ...(ogImage ? { images: [{ url: ogImage as string }] } : {}),
@@ -54,7 +57,7 @@ export async function generateMetadata({ params }: SiteLayoutProps): Promise<Met
     twitter: {
       card: 'summary_large_image',
       title: content.seo?.title || siteName,
-      description: content.seo?.description || content.tagline,
+      description,
       ...(ogImage ? { images: [ogImage as string] } : {}),
     },
     robots: {
