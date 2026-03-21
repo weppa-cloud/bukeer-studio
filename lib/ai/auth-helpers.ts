@@ -55,8 +55,10 @@ export async function getEditorAuth(
   };
 }
 
-/** Roles allowed to use editor AI features. */
-const EDITOR_ROLES = new Set(['super_admin', 'owner', 'admin', 'agent']);
+/** Roles allowed to use editor AI features.
+ * NOTE: 'owner' intentionally excluded — owners have account-level access
+ * but editor AI features require explicit editor role assignment. */
+const EDITOR_ROLES = new Set(['super_admin', 'admin', 'agent']);
 
 /**
  * Check if auth context has editor-level permissions.

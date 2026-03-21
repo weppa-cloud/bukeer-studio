@@ -24,8 +24,8 @@ describe('hasEditorRole', () => {
     expect(hasEditorRole(makeAuth('super_admin'))).toBe(true);
   });
 
-  it('allows owner', () => {
-    expect(hasEditorRole(makeAuth('owner'))).toBe(true);
+  it('rejects owner — role does not exist in DB (F1 fix)', () => {
+    expect(hasEditorRole(makeAuth('owner'))).toBe(false);
   });
 
   it('allows admin', () => {

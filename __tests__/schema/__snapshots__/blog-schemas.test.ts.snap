@@ -1,0 +1,22 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`generateBlogPostSchemas snapshot: schema shape is stable 1`] = `
+[
+  {
+    "context": "https://schema.org",
+    "type": "BlogPosting",
+  },
+  {
+    "context": "https://schema.org",
+    "type": "FAQPage",
+  },
+  {
+    "context": "https://schema.org",
+    "type": "BreadcrumbList",
+  },
+  {
+    "context": "https://schema.org",
+    "type": "TravelAgency",
+  },
+]
+`;

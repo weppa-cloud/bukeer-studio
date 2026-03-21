@@ -43,13 +43,9 @@ describe('hasEditorRole', () => {
     });
   });
 
-  describe('current behavior: owner is included', () => {
-    it('currently accepts owner (EDITOR_ROLES includes owner)', () => {
-      // NOTE: The spec for Issue #526 says EDITOR_ROLES should NOT contain 'owner'.
-      // Current implementation DOES include it.
-      // When this is fixed (F1 auth fix), change this test to:
-      //   expect(hasEditorRole(makeAuth('owner'))).toBe(false);
-      expect(hasEditorRole(makeAuth('owner'))).toBe(true);
+  describe('owner is excluded (F1 auth fix applied)', () => {
+    it('rejects owner — owners need explicit editor role', () => {
+      expect(hasEditorRole(makeAuth('owner'))).toBe(false);
     });
   });
 
