@@ -2,34 +2,129 @@
  * Puck Editor — Bukeer Theme Overrides
  *
  * IMPORT STRATEGY: Only in the /editor route, NOT global.
- * This CSS is imported in the editor page:
+ * Imported in: app/editor/[websiteId]/page.tsx
  *
- *   import '@measured/puck/puck.css';
- *   import '@/styles/puck-bukeer-theme.css';
- *
- * This avoids Puck CSS vars affecting the public site.
+ * Maps all 103 Puck CSS custom properties to Bukeer design tokens.
+ * Reference: Puck v0.20.2 puck.css, Bukeer M3 Design System.
  */
 
-/* 1. Accent color: azure → Bukeer purple */
-:root {
-  --puck-color-azure-01: #2e1065;
-  --puck-color-azure-02: #3b0764;
-  --puck-color-azure-03: #6d28d9;
-  --puck-color-azure-04: #7c3aed;
-  --puck-color-azure-05: #8b5cf6;
-  --puck-color-azure-06: #a78bfa;
-  --puck-color-azure-07: #c4b5fd;
-  --puck-color-azure-08: #ddd6fe;
-  --puck-color-azure-09: #ede9fe;
-  --puck-color-azure-10: #f5f3ff;
-  --puck-color-azure-11: #faf5ff;
-  --puck-color-azure-12: #fefcff;
+/* Font — Outfit for headings, Inter for body */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap');
 
-  /* 2. Font — Inter (matches Bukeer admin) */
-  --puck-font-family: 'Inter', system-ui, sans-serif;
+:root {
+  /* ================================================================
+   * 1. AZURE → BUKEER PURPLE (#7c57b3 primary)
+   * Used by: buttons, links, focus rings, selected states, drag overlays
+   * ================================================================ */
+  --puck-color-azure-01: #2e1065;   /* darkest */
+  --puck-color-azure-02: #3b0764;
+  --puck-color-azure-03: #5b21b6;   /* dark actions */
+  --puck-color-azure-04: #7c57b3;   /* PRIMARY — buttons, links */
+  --puck-color-azure-05: #8b5cf6;   /* hover / focus */
+  --puck-color-azure-06: #a78bfa;   /* light accent */
+  --puck-color-azure-07: #c4b5fd;   /* lighter */
+  --puck-color-azure-08: #ddd6fe;   /* drag overlays */
+  --puck-color-azure-09: #ede9fe;   /* subtle bg */
+  --puck-color-azure-10: #f5f3ff;   /* light bg */
+  --puck-color-azure-11: #faf5ff;   /* sidebar bg, action bar */
+  --puck-color-azure-12: #fefcff;   /* near white */
+
+  /* ================================================================
+   * 2. GREY → BUKEER NEUTRALS (soft greys, NO pure black)
+   * Bukeer uses warm greys — never #000 or #111.
+   * ================================================================ */
+  --puck-color-grey-01: #374151;    /* darkest text (NOT black) */
+  --puck-color-grey-02: #4B5563;    /* heavy text */
+  --puck-color-grey-03: #606A85;    /* dark text, icons — Bukeer secondary */
+  --puck-color-grey-04: #6B7280;    /* primary text */
+  --puck-color-grey-05: #94A3B8;    /* secondary text */
+  --puck-color-grey-06: #a9adc6;    /* tertiary, placeholders */
+  --puck-color-grey-07: #D1D5DB;    /* disabled states */
+  --puck-color-grey-08: #E5E7EB;    /* borders */
+  --puck-color-grey-09: #F3F4F6;    /* dividers, subtle borders */
+  --puck-color-grey-10: #F9FAFB;    /* light backgrounds */
+  --puck-color-grey-11: #FFFFFF;    /* sidebar bg, card bg */
+  --puck-color-grey-12: #FFFFFF;    /* white base */
+
+  /* ================================================================
+   * 3. ROSE → BUKEER ERROR/DESTRUCTIVE
+   * ================================================================ */
+  --puck-color-rose-03: #be123c;
+  --puck-color-rose-04: #e11d48;
+  --puck-color-rose-05: #f43f5e;
+  --puck-color-rose-09: #ffe4e6;
+  --puck-color-rose-11: #fff1f2;
+
+  /* ================================================================
+   * 4. GREEN → BUKEER SUCCESS
+   * ================================================================ */
+  --puck-color-green-03: #047857;
+  --puck-color-green-04: #059669;
+  --puck-color-green-05: #10b981;
+  --puck-color-green-09: #d1fae5;
+  --puck-color-green-11: #ecfdf5;
+
+  /* ================================================================
+   * 5. YELLOW → BUKEER WARNING
+   * ================================================================ */
+  --puck-color-yellow-03: #a16207;
+  --puck-color-yellow-04: #ca8a04;
+  --puck-color-yellow-05: #eab308;
+  --puck-color-yellow-09: #fef9c3;
+  --puck-color-yellow-11: #fefce8;
+
+  /* ================================================================
+   * 6. RED → BUKEER DANGER
+   * ================================================================ */
+  --puck-color-red-03: #b91c1c;
+  --puck-color-red-04: #dc2626;
+  --puck-color-red-05: #ef4444;
+  --puck-color-red-09: #fee2e2;
+  --puck-color-red-11: #fef2f2;
+
+  /* ================================================================
+   * 7. TYPOGRAPHY — Outfit headings + Inter body
+   * ================================================================ */
+  --puck-font-family: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif;
+
+  /* Font sizes — keep Puck defaults, they align with M3 */
+  --puck-font-size-xxxs-unitless: 11;
+  --puck-font-size-xxs-unitless: 13;
+  --puck-font-size-xs-unitless: 14;
+  --puck-font-size-s-unitless: 16;
+  --puck-font-size-m-unitless: 18;
+  --puck-font-size-l-unitless: 20;
+  --puck-font-size-xl-unitless: 24;
+  --puck-font-size-xxl-unitless: 28;
+  --puck-font-size-xxxl-unitless: 36;
+  --puck-font-size-xxxxl-unitless: 48;
+
+  /* ================================================================
+   * 8. LAYOUT — Sidebar widths
+   * Responsive-safe: only override on large screens
+   * ================================================================ */
+  --puck-space-px: 16px;
 }
 
-/* 3. Editor status indicator */
+/* Sidebar widths only on desktop (avoid breaking tablet) */
+@media (min-width: 1200px) {
+  :root {
+    --puck-user-left-side-bar-width: 280px;
+    --puck-user-right-side-bar-width: 300px;
+  }
+}
+
+/* ================================================================
+ * 9. EDITOR HEADER — Custom Bukeer actions
+ * ================================================================ */
+
+.editor-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Status indicator pill */
 .editor-status {
   display: inline-flex;
   align-items: center;
@@ -38,17 +133,19 @@
   border-radius: 16px;
   font-size: 13px;
   font-weight: 500;
+  font-family: 'Outfit', 'Inter', system-ui, sans-serif;
   color: var(--puck-color-grey-05);
 }
 
 .editor-status--dirty {
-  color: #b45309;
+  color: #92400e;
   background-color: #fef3c7;
 }
 
 .editor-status--saved {
-  color: #15803d;
-  background-color: #dcfce7;
+  color: #048178;
+  background-color: #ecfdf5;
+  border: 1px solid #d1fae5;
 }
 
 .editor-status--saving {
@@ -56,40 +153,44 @@
   background-color: var(--puck-color-azure-10);
 }
 
-/* 4. Header action buttons */
-.editor-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
+/* Action buttons */
 .editor-btn {
   padding: 6px 16px;
   border-radius: 8px;
   font-size: 13px;
   font-weight: 500;
+  font-family: 'Outfit', 'Inter', system-ui, sans-serif;
   cursor: pointer;
-  border: 1px solid var(--puck-color-grey-05);
+  border: 1px solid var(--puck-color-grey-08);
   background: transparent;
-  color: var(--puck-color-grey-03);
+  color: var(--puck-color-grey-04);
   transition: all 150ms ease;
 }
 
 .editor-btn:hover:not(:disabled) {
-  background: var(--puck-color-grey-11);
+  background: var(--puck-color-grey-09);
+  border-color: var(--puck-color-grey-07);
 }
 
 .editor-btn:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
 }
 
 .editor-btn--primary {
-  background: var(--puck-color-azure-03);
+  background: #7c57b3;
   color: white;
-  border-color: var(--puck-color-azure-03);
+  border-color: #7c57b3;
+  box-shadow: 0 1px 3px rgba(124, 87, 179, 0.3);
 }
 
 .editor-btn--primary:hover:not(:disabled) {
-  background: var(--puck-color-azure-04);
+  background: #6d28d9;
+  border-color: #6d28d9;
+  box-shadow: 0 2px 6px rgba(124, 87, 179, 0.4);
+}
+
+.editor-btn--primary:active:not(:disabled) {
+  background: #5b21b6;
+  border-color: #5b21b6;
 }
