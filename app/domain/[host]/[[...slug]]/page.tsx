@@ -526,7 +526,7 @@ export async function generateMetadata({ params, searchParams }: CustomDomainPag
       return {
         title: post.seo_title || post.title,
         description: post.seo_description || post.excerpt,
-        keywords: post.seo_keywords?.split(',').map((k: string) => k.trim()),
+        keywords: post.seo_keywords ?? undefined,
         openGraph: {
           title: post.seo_title || post.title,
           description: post.seo_description || post.excerpt,

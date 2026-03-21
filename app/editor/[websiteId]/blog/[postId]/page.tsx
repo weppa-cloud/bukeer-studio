@@ -34,6 +34,37 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
   const [seoTitle, setSeoTitle] = useState('');
   const [seoDescription, setSeoDescription] = useState('');
   const [tokenRef, setTokenRef] = useState<string | null>(null);
+  const [scoreResult, setScoreResult] = useState<any>(null);
+  const [isScoring, setIsScoring] = useState(false);
+
+  // Auto-score content after save
+  const scoreContent = useCallback(async () => {
+    if (!tokenRef || !content || content.length < 100) return;
+    setIsScoring(true);
+    try {
+      const res = await fetch('/api/ai/editor/score-content', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${tokenRef}`,
+        },
+        body: JSON.stringify({
+          content,
+          title,
+          metaDescription: seoDescription || undefined,
+          locale: 'es',
+        }),
+      });
+      if (res.ok) {
+        const result = await res.json();
+        setScoreResult(result);
+      }
+    } catch {
+      // Score failure is non-blocking
+    } finally {
+      setIsScoring(false);
+    }
+  }, [tokenRef, content, title, seoDescription]);
 
   useEffect(() => {
     params.then((p) => {
@@ -182,13 +213,16 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
 
           if (updateError) throw updateError;
         }
+
+        // Auto-score after successful save
+        scoreContent();
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error saving post');
       } finally {
         setSaving(false);
       }
     },
-    [getSupabase, websiteId, postId, title, content, seoTitle, seoDescription, post]
+    [getSupabase, websiteId, postId, title, content, seoTitle, seoDescription, post, scoreContent]
   );
 
   if (loading) {
@@ -246,8 +280,12 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
             initialContent={content}
             websiteId={websiteId ?? ''}
             postId={postId ?? undefined}
+            authToken={tokenRef ?? undefined}
             onTitleChange={setTitle}
             onChange={setContent}
+            scoreResult={scoreResult}
+            isScoring={isScoring}
+            onScoreRefresh={scoreContent}
           />
         </div>
 

@@ -1,0 +1,30 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`generateHomepageSchemas snapshot matches expected shape 1`] = `
+[
+  {
+    "context": "https://schema.org",
+    "hasName": true,
+    "hasUrl": true,
+    "type": "TravelAgency",
+  },
+  {
+    "context": "https://schema.org",
+    "hasName": true,
+    "hasUrl": true,
+    "type": "WebSite",
+  },
+  {
+    "context": "https://schema.org",
+    "hasName": false,
+    "hasUrl": false,
+    "type": "BreadcrumbList",
+  },
+  {
+    "context": "https://schema.org",
+    "hasName": false,
+    "hasUrl": false,
+    "type": "FAQPage",
+  },
+]
+`;

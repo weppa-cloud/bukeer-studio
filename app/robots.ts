@@ -6,6 +6,7 @@
  * Supported AI Crawlers:
  * - GPTBot (OpenAI) - ChatGPT, GPT-4
  * - ChatGPT-User (OpenAI) - ChatGPT browsing
+ * - OAI-SearchBot (OpenAI) - OpenAI Search (SearchGPT)
  * - anthropic-ai / Claude-Web (Anthropic) - Claude AI
  * - PerplexityBot (Perplexity AI) - Perplexity search
  * - Google-Extended (Google) - Google SGE/Gemini
@@ -44,7 +45,13 @@ export default function robots(): MetadataRoute.Robots {
         allow: '/',
         disallow: ['/api/', '/_next/'],
       },
-      // 4. Anthropic Claude - Allow for AI search optimization
+      // 4. OpenAI Search (SearchGPT) - distinct from ChatGPT-User
+      {
+        userAgent: 'OAI-SearchBot',
+        allow: '/',
+        disallow: ['/api/', '/_next/'],
+      },
+      // 5. Anthropic Claude - Allow for AI search optimization
       {
         userAgent: 'anthropic-ai',
         allow: '/',

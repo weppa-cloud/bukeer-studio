@@ -8,6 +8,7 @@ import {
 } from '@/lib/supabase/get-website';
 import { JsonLd, generateBlogPostSchemas } from '@/lib/schema';
 import { SafeHtml } from '@/lib/sanitize';
+import { generateHreflangLinks } from '@/lib/seo/hreflang';
 
 interface BlogPostPageProps {
   params: Promise<{ subdomain: string; slug: string }>;
@@ -27,10 +28,22 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
     return { title: 'Post no encontrado' };
   }
 
+  const baseUrl = `https://${subdomain}.bukeer.com`;
+  const blogPath = `/blog/${post.slug}`;
+  const hreflangLinks = generateHreflangLinks(baseUrl, blogPath);
+  const languages: Record<string, string> = {};
+  for (const link of hreflangLinks) {
+    languages[link.hreflang] = link.href;
+  }
+
   return {
     title: post.seo_title || post.title,
     description: post.seo_description || post.excerpt,
-    keywords: post.seo_keywords?.split(',').map(k => k.trim()),
+    keywords: post.seo_keywords ?? undefined,
+    alternates: {
+      canonical: `${baseUrl}${blogPath}`,
+      languages,
+    },
     openGraph: {
       title: post.seo_title || post.title,
       description: post.seo_description || post.excerpt,

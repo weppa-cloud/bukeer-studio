@@ -101,9 +101,9 @@ export function generateArticleSchema(
 ): BlogPosting {
   const articleUrl = `${baseUrl}/blog/${post.slug}`;
 
-  // Parse keywords
-  const keywords = post.seo_keywords
-    ? post.seo_keywords.split(',').map(k => k.trim())
+  // seo_keywords is TEXT[] in DB — use directly, no split needed
+  const keywords = post.seo_keywords && post.seo_keywords.length > 0
+    ? post.seo_keywords
     : undefined;
 
   // Estimate word count from content (rough estimate)
@@ -125,7 +125,7 @@ export function generateArticleSchema(
       },
     }),
     ...(post.published_at && { datePublished: post.published_at }),
-    dateModified: post.published_at || new Date().toISOString(),
+    dateModified: post.updated_at || post.published_at || new Date().toISOString(),
     author: {
       '@type': 'Organization',
       name: authorName,
@@ -144,7 +144,7 @@ export function generateArticleSchema(
     ...(wordCount && { wordCount }),
     ...(keywords && { keywords }),
     ...(post.category && { articleSection: post.category.name }),
-    inLanguage: 'es',
+    inLanguage: post.locale || 'es',
   };
 }
 
@@ -282,14 +282,30 @@ export function generateBlogPostSchemas(
   // 1. Article/BlogPosting schema
   schemas.push(generateArticleSchema(post, website, baseUrl));
 
-  // 2. Breadcrumb schema
+  // 2. FAQPage schema (when post has faq_items from v2 generator)
+  if (post.faq_items && post.faq_items.length > 0) {
+    schemas.push({
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: post.faq_items.map(item => ({
+        '@type': 'Question',
+        name: item.question,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: item.answer,
+        },
+      })),
+    });
+  }
+
+  // 3. Breadcrumb schema
   schemas.push(generateBreadcrumbSchema([
     { name: 'Inicio', url: baseUrl },
     { name: 'Blog', url: `${baseUrl}/blog` },
     { name: post.title },
   ]));
 
-  // 3. Organization schema (for publisher context)
+  // 4. Organization schema (for publisher context)
   schemas.push(generateOrganizationSchema(website, baseUrl));
 
   return schemas;

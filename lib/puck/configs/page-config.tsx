@@ -124,6 +124,12 @@ export const pageConfig: Config = {
         title: textField('Titulo'),
         subtitle: textareaField('Subtitulo'),
       },
+      resolveData: async (data: Record<string, unknown>, { metadata }: { metadata: Record<string, unknown> }) => {
+        const website = metadata?.website as Record<string, unknown> | undefined;
+        const fp = website?.featured_products as Record<string, unknown[]> | undefined;
+        const hotels = fp?.hotels || [];
+        return { props: { ...data.props as Record<string, unknown>, hotels } };
+      },
     },
 
     Activities: {
@@ -139,6 +145,12 @@ export const pageConfig: Config = {
         title: textField('Titulo'),
         subtitle: textareaField('Subtitulo'),
       },
+      resolveData: async (data: Record<string, unknown>, { metadata }: { metadata: Record<string, unknown> }) => {
+        const website = metadata?.website as Record<string, unknown> | undefined;
+        const fp = website?.featured_products as Record<string, unknown[]> | undefined;
+        const activities = fp?.activities || [];
+        return { props: { ...data.props as Record<string, unknown>, activities } };
+      },
     },
 
     Destinations: {
@@ -153,6 +165,12 @@ export const pageConfig: Config = {
       fields: {
         title: textField('Titulo'),
         subtitle: textareaField('Subtitulo'),
+      },
+      resolveData: async (data: Record<string, unknown>, { metadata }: { metadata: Record<string, unknown> }) => {
+        const website = metadata?.website as Record<string, unknown> | undefined;
+        const fp = website?.featured_products as Record<string, unknown[]> | undefined;
+        const destinations = fp?.destinations || [];
+        return { props: { ...data.props as Record<string, unknown>, destinations } };
       },
     },
 

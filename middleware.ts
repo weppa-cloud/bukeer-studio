@@ -193,6 +193,16 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // === BLOG SEO PIPELINE — AI crawler headers ===
+  const userAgent = request.headers.get('user-agent') || '';
+  const AI_CRAWLERS = ['GPTBot', 'ChatGPT-User', 'OAI-SearchBot', 'ClaudeBot', 'anthropic-ai', 'PerplexityBot'];
+  if (AI_CRAWLERS.some(bot => userAgent.includes(bot))) {
+    const response = NextResponse.next();
+    response.headers.set('X-Robots-Tag', 'index, follow');
+    return response;
+  }
+  // === END BLOG SEO PIPELINE ===
+
   // Check if it's a Bukeer domain (main or subdomain)
   const isBukeerDomain =
     host.endsWith(`.${MAIN_DOMAIN}`) ||

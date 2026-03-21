@@ -256,6 +256,23 @@ export default function EditorPage({ params }: EditorPageProps) {
         setPageTitle('Inicio');
       }
 
+      // Fetch featured products for Puck preview (resolveData uses these)
+      if (PUCK_ENABLED && typedSnapshot.website.account_id) {
+        try {
+          const accountId = typedSnapshot.website.account_id;
+          const [hotelsRes, activitiesRes] = await Promise.all([
+            supabase.from('hotels').select('id, name, main_image, location, star_rating').eq('account_id', accountId).is('deleted_at', null).limit(6),
+            supabase.from('activities').select('id, name, main_image, location').eq('account_id', accountId).is('deleted_at', null).limit(6),
+          ]);
+          (typedSnapshot as unknown as Record<string, unknown>).featured_products = {
+            hotels: (hotelsRes.data || []).map((h: Record<string, unknown>) => ({ id: h.id, name: h.name, image: h.main_image, location: h.location, rating: h.star_rating })),
+            activities: (activitiesRes.data || []).map((a: Record<string, unknown>) => ({ id: a.id, name: a.name, image: a.main_image, location: a.location })),
+            destinations: [],
+            transfers: [],
+          };
+        } catch { /* Non-blocking — preview shows empty if fetch fails */ }
+      }
+
       setData(typedSnapshot);
       setIsDirty(false);
       setState('ready');
@@ -448,6 +465,12 @@ export default function EditorPage({ params }: EditorPageProps) {
         }
       }
 
+      // Create draft version for history (non-blocking, after sections saved)
+      if (!currentPageId) {
+        supabase.rpc('create_website_draft', { p_website_id: websiteId })
+          .then(() => { console.log('[Editor] Draft version created'); });
+      }
+
       setIsDirty(false);
       sendToParent('canvas:state', {
         state: 'ready',
@@ -613,7 +636,7 @@ export default function EditorPage({ params }: EditorPageProps) {
     account_id: data.website.account_id,
     custom_domain: null,
     template_id: '',
-    featured_products: {
+    featured_products: (data as unknown as Record<string, unknown>).featured_products as WebsiteData['featured_products'] || {
       destinations: [],
       hotels: [],
       activities: [],
