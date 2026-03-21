@@ -1,0 +1,95 @@
+/**
+ * Puck Editor — Bukeer Theme Overrides
+ *
+ * IMPORT STRATEGY: Only in the /editor route, NOT global.
+ * This CSS is imported in the editor page:
+ *
+ *   import '@measured/puck/puck.css';
+ *   import '@/styles/puck-bukeer-theme.css';
+ *
+ * This avoids Puck CSS vars affecting the public site.
+ */
+
+/* 1. Accent color: azure → Bukeer purple */
+:root {
+  --puck-color-azure-01: #2e1065;
+  --puck-color-azure-02: #3b0764;
+  --puck-color-azure-03: #6d28d9;
+  --puck-color-azure-04: #7c3aed;
+  --puck-color-azure-05: #8b5cf6;
+  --puck-color-azure-06: #a78bfa;
+  --puck-color-azure-07: #c4b5fd;
+  --puck-color-azure-08: #ddd6fe;
+  --puck-color-azure-09: #ede9fe;
+  --puck-color-azure-10: #f5f3ff;
+  --puck-color-azure-11: #faf5ff;
+  --puck-color-azure-12: #fefcff;
+
+  /* 2. Font — Inter (matches Bukeer admin) */
+  --puck-font-family: 'Inter', system-ui, sans-serif;
+}
+
+/* 3. Editor status indicator */
+.editor-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--puck-color-grey-05);
+}
+
+.editor-status--dirty {
+  color: #b45309;
+  background-color: #fef3c7;
+}
+
+.editor-status--saved {
+  color: #15803d;
+  background-color: #dcfce7;
+}
+
+.editor-status--saving {
+  color: var(--puck-color-azure-03);
+  background-color: var(--puck-color-azure-10);
+}
+
+/* 4. Header action buttons */
+.editor-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.editor-btn {
+  padding: 6px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid var(--puck-color-grey-05);
+  background: transparent;
+  color: var(--puck-color-grey-03);
+  transition: all 150ms ease;
+}
+
+.editor-btn:hover:not(:disabled) {
+  background: var(--puck-color-grey-11);
+}
+
+.editor-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.editor-btn--primary {
+  background: var(--puck-color-azure-03);
+  color: white;
+  border-color: var(--puck-color-azure-03);
+}
+
+.editor-btn--primary:hover:not(:disabled) {
+  background: var(--puck-color-azure-04);
+}
