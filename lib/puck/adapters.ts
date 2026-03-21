@@ -129,3 +129,49 @@ export function puckDataToSections(
     content: omitPuckProps(item.props),
   }));
 }
+
+// ============================================================================
+// Page Section Adapters (Phase 2 — Multi-page)
+// ============================================================================
+
+/**
+ * Convert website_pages.sections (JSONB array) → Puck Data.
+ * Page sections are stored as a plain JSON array with a simpler schema
+ * than website_sections (no display_order column, etc.).
+ */
+export function pageSectionsToPuckData(sections: unknown[]): PuckData {
+  const normalized: WebsiteSection[] = (sections || []).map(
+    (s: unknown, i: number) => {
+      const section = s as Record<string, unknown>;
+      return {
+        id: (section.id as string) || crypto.randomUUID(),
+        section_type: (section.section_type as string) ||
+          (section.type as string) ||
+          'text_image',
+        variant: (section.variant as string) || 'default',
+        display_order: i,
+        is_enabled: true,
+        config: (section.config as Record<string, unknown>) || {},
+        content: (section.content as Record<string, unknown>) || {},
+      };
+    }
+  );
+  return sectionsToPuckData(normalized);
+}
+
+/**
+ * Convert Puck Data → page sections array for website_pages.sections JSONB.
+ * Same as puckDataToSections but returns a simpler format without
+ * config field (pages store content inline).
+ */
+export function puckDataToPageSections(
+  data: PuckData
+): Array<Record<string, unknown>> {
+  return data.content.map((item, index) => ({
+    id: item.props.id,
+    section_type: componentNameToSectionType(item.type),
+    variant: (item.props.variant as string) || 'default',
+    display_order: index,
+    content: omitPuckProps(item.props),
+  }));
+}

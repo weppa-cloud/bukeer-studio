@@ -12,9 +12,10 @@ import { SiteFooter } from '@/components/site/site-footer';
 import type { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 
 // Puck imports (feature-flagged)
-import { sectionsToPuckData, puckDataToSections } from '@/lib/puck/adapters';
+import { sectionsToPuckData, puckDataToSections, pageSectionsToPuckData, puckDataToPageSections } from '@/lib/puck/adapters';
 import type { PuckData } from '@/lib/puck/adapters';
 import { pageConfig } from '@/lib/puck/configs/page-config';
+import { PageSelector } from '@/components/editor/page-selector';
 import '@/styles/puck-bukeer-theme.css';
 
 // ============================================================================
@@ -150,6 +151,11 @@ export default function EditorPage({ params }: EditorPageProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [showFullPreview, setShowFullPreview] = useState(false);
 
+  // Phase 2: Multi-page support
+  const initialPageId = searchParams.get('page');
+  const [currentPageId, setCurrentPageId] = useState<string | null>(initialPageId);
+  const [pageTitle, setPageTitle] = useState<string>('Inicio');
+
   const tokenRef = useRef<string | null>(null);
   const parentOriginRef = useRef<string | null>(null);
   const puckDataRef = useRef<PuckData | null>(null);
@@ -213,15 +219,43 @@ export default function EditorPage({ params }: EditorPageProps) {
         }
       );
 
-      // Call RPC with websiteId (not subdomain)
-      const { data: snapshot, error: rpcError } = await supabase.rpc(
-        'get_website_editor_snapshot',
-        { p_website_id: websiteId }
-      );
+      // Phase 2: Load homepage sections or page-specific sections
+      let typedSnapshot: WebsiteSnapshot;
 
-      if (rpcError) throw rpcError;
+      if (currentPageId) {
+        // Load page snapshot
+        const { data: pageSnapshot, error: pageError } = await supabase.rpc(
+          'get_page_editor_snapshot',
+          { p_website_id: websiteId, p_page_id: currentPageId }
+        );
+        if (pageError) throw pageError;
+        const ps = pageSnapshot as { website: WebsiteSnapshot['website']; page: Record<string, unknown>; sections: unknown[] };
+        // Normalize page sections to match WebsiteSnapshot.sections shape
+        const pageSections = (ps.sections || []).map((s: unknown, i: number) => {
+          const sec = s as Record<string, unknown>;
+          return {
+            id: (sec.id as string) || crypto.randomUUID(),
+            sectionType: (sec.section_type as string) || (sec.sectionType as string) || 'text_image',
+            variant: (sec.variant as string) || null,
+            displayOrder: i,
+            isEnabled: true,
+            config: (sec.config as Record<string, unknown>) || {},
+            content: (sec.content as Record<string, unknown>) || {},
+          };
+        });
+        typedSnapshot = { website: ps.website, sections: pageSections };
+        setPageTitle((ps.page?.title as string) || 'Pagina');
+      } else {
+        // Load homepage snapshot (existing behavior)
+        const { data: snapshot, error: rpcError } = await supabase.rpc(
+          'get_website_editor_snapshot',
+          { p_website_id: websiteId }
+        );
+        if (rpcError) throw rpcError;
+        typedSnapshot = snapshot as WebsiteSnapshot;
+        setPageTitle('Inicio');
+      }
 
-      const typedSnapshot = snapshot as WebsiteSnapshot;
       setData(typedSnapshot);
       setIsDirty(false);
       setState('ready');
@@ -231,6 +265,7 @@ export default function EditorPage({ params }: EditorPageProps) {
         state: 'ready',
         editorMode: PUCK_ENABLED && puckReady ? 'puck' : 'legacy',
         hasUnsavedChanges: false,
+        currentPageId: currentPageId,
       });
 
       // Keep inspector selection in sync after refreshes.
@@ -258,7 +293,7 @@ export default function EditorPage({ params }: EditorPageProps) {
         error: { code: 'rpc', message: errorMessage }
       });
     }
-  }, [websiteId, sendToParent, selectedSectionId, puckReady]);
+  }, [websiteId, sendToParent, selectedSectionId, puckReady, currentPageId]);
 
   const scrollToSection = useCallback((sectionId: string) => {
     document.querySelector(`[data-section-id="${sectionId}"]`)?.scrollIntoView({
@@ -385,24 +420,32 @@ export default function EditorPage({ params }: EditorPageProps) {
         }
       );
 
-      // Convert Puck data back to sections format
-      const sections = puckDataToSections(puckData);
-
-      // Upsert each section
-      for (const section of sections) {
-        if (!section.id) continue;
+      if (currentPageId) {
+        // Phase 2: Save page sections → website_pages.sections JSONB
+        const pageSections = puckDataToPageSections(puckData);
         await supabase
-          .from('website_sections')
-          .update({
-            section_type: section.section_type,
-            variant: section.variant,
-            display_order: section.display_order,
-            is_enabled: section.is_enabled,
-            content: section.content,
-            config: section.config,
-          })
-          .eq('id', section.id)
+          .from('website_pages')
+          .update({ sections: pageSections })
+          .eq('id', currentPageId)
           .eq('website_id', websiteId);
+      } else {
+        // Homepage: Save to website_sections table (row per section)
+        const sections = puckDataToSections(puckData);
+        for (const section of sections) {
+          if (!section.id) continue;
+          await supabase
+            .from('website_sections')
+            .update({
+              section_type: section.section_type,
+              variant: section.variant,
+              display_order: section.display_order,
+              is_enabled: section.is_enabled,
+              content: section.content,
+              config: section.config,
+            })
+            .eq('id', section.id)
+            .eq('website_id', websiteId);
+        }
       }
 
       setIsDirty(false);
@@ -455,6 +498,14 @@ export default function EditorPage({ params }: EditorPageProps) {
       console.error('[Editor] Publish failed:', err);
     }
   }, [websiteId, handlePuckSave, sendToParent]);
+
+  // Phase 2: Reload data when page changes (via PageSelector)
+  useEffect(() => {
+    if (tokenRef.current && websiteId && state === 'ready') {
+      loadData();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPageId]);
 
   // Warn before closing with unsaved changes
   useEffect(() => {
@@ -575,7 +626,10 @@ export default function EditorPage({ params }: EditorPageProps) {
   // Puck Editor Mode
   // ============================================================================
   if (PUCK_ENABLED && puckReady && PuckEditor) {
-    const puckData = sectionsToPuckData(sectionsForWebsite);
+    // Phase 2: Use page adapters when editing a specific page
+    const puckData = currentPageId
+      ? pageSectionsToPuckData(data.sections as unknown[])
+      : sectionsToPuckData(sectionsForWebsite);
 
     return (
       <PuckErrorBoundary>
@@ -584,10 +638,22 @@ export default function EditorPage({ params }: EditorPageProps) {
           data={puckData}
           onPublish={handlePuckPublish}
           onChange={handlePuckChange}
-          headerTitle="Inicio"
+          headerTitle={pageTitle}
           metadata={{ website: transformedWebsite }}
           renderHeaderActions={({ state: puckState }: { state: { data: PuckData } }) => (
             <div className="editor-actions">
+              {/* Page selector */}
+              <PageSelector
+                websiteId={websiteId!}
+                currentPageId={currentPageId}
+                onPageChange={(newPageId) => {
+                  setCurrentPageId(newPageId);
+                  // loadData will be called via useEffect on currentPageId change
+                }}
+                token={tokenRef.current}
+                isDirty={isDirty}
+              />
+
               {/* Preview toggle */}
               <button
                 className={`editor-btn ${showFullPreview ? 'editor-btn--primary' : ''}`}
