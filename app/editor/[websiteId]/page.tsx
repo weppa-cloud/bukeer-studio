@@ -16,6 +16,7 @@ import { sectionsToPuckData, puckDataToSections, pageSectionsToPuckData, puckDat
 import type { PuckData } from '@/lib/puck/adapters';
 import { pageConfig } from '@/lib/puck/configs/page-config';
 import { PageSelector } from '@/components/editor/page-selector';
+import { CopilotPanel } from '@/lib/puck/plugins/copilot-panel';
 import '@/styles/puck-bukeer-theme.css';
 
 // ============================================================================
@@ -721,6 +722,15 @@ export default function EditorPage({ params }: EditorPageProps) {
             </div>
           )}
           overrides={{
+            fields: ({ children }: { children: React.ReactNode }) => (
+              <>
+                {children}
+                <CopilotPanel
+                  websiteId={websiteId!}
+                  token={tokenRef.current}
+                />
+              </>
+            ),
             preview: ({ children }: { children: React.ReactNode }) => (
               <M3ThemeProvider initialTheme={data.website.theme}>
                 {showFullPreview && <SiteHeader website={transformedWebsite} />}
