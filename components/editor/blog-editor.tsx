@@ -1,7 +1,10 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { GradeBadge, ScoreDetailPanel, ScoreWarningBanner } from './score-display';
+import { TiptapEditor } from './tiptap-editor';
+import type { Editor } from '@tiptap/react';
+import '../../styles/tiptap-bukeer.css';
 
 interface ScoringResult {
   overall: number;
@@ -28,7 +31,7 @@ interface BlogEditorProps {
 }
 
 /**
- * Blog post editor with AI generation (v1 + v2) and SEO scoring.
+ * Blog post editor with TipTap WYSIWYG, AI generation (v1 + v2), and SEO scoring.
  *
  * v1: 800-1200 word basic draft
  * v2: 2100-2400 word answer-first structure with FAQs, multi-language
@@ -50,10 +53,13 @@ export function BlogEditor({
   const [content, setContent] = useState(initialContent);
   const [isGenerating, setIsGenerating] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
+  const editorRef = useRef<Editor | null>(null);
 
-  const authHeaders = authToken
-    ? { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` }
+  const authHeaders: Record<string, string> = authToken
+    ? { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` }
     : { 'Content-Type': 'application/json' };
+
+  const wordCount = content.split(/\s+/).filter(Boolean).length;
 
   const handleTitleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -64,9 +70,22 @@ export function BlogEditor({
   );
 
   const handleContentChange = useCallback(
-    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-      setContent(e.target.value);
-      onChange?.(e.target.value);
+    (markdown: string) => {
+      setContent(markdown);
+      onChange?.(markdown);
+    },
+    [onChange]
+  );
+
+  const handleEditorReady = useCallback((editor: Editor | null) => {
+    if (editor) editorRef.current = editor;
+  }, []);
+
+  const setEditorContent = useCallback(
+    (markdown: string) => {
+      setContent(markdown);
+      onChange?.(markdown);
+      // TipTap syncs via the content prop effect in TiptapEditor
     },
     [onChange]
   );
@@ -91,10 +110,8 @@ export function BlogEditor({
           if (!res.ok) throw new Error(`Failed to generate (${res.status})`);
           const data = await res.json();
           setTitle(data.post.title);
-          setContent(data.post.content);
+          setEditorContent(data.post.content);
           onTitleChange?.(data.post.title);
-          onChange?.(data.post.content);
-          // Pass v2 SEO data to parent
           if (isV2 && data.post.faq_items) {
             onSeoDataChange?.({
               faqItems: data.post.faq_items,
@@ -110,8 +127,7 @@ export function BlogEditor({
           });
           if (!res.ok) throw new Error('Failed to improve');
           const data = await res.json();
-          setContent(data.improved);
-          onChange?.(data.improved);
+          setEditorContent(data.improved);
         } else if (action === 'translate') {
           const res = await fetch('/api/ai/editor/improve-text', {
             method: 'POST',
@@ -124,8 +140,7 @@ export function BlogEditor({
           });
           if (!res.ok) throw new Error('Failed to translate');
           const data = await res.json();
-          setContent(data.improved);
-          onChange?.(data.improved);
+          setEditorContent(data.improved);
         }
       } catch (err) {
         setAiError(err instanceof Error ? err.message : 'AI generation failed');
@@ -133,7 +148,7 @@ export function BlogEditor({
         setIsGenerating(false);
       }
     },
-    [title, content, onChange, onTitleChange, onSeoDataChange, authHeaders]
+    [title, content, setEditorContent, onTitleChange, onSeoDataChange, authHeaders]
   );
 
   return (
@@ -148,6 +163,7 @@ export function BlogEditor({
         onChange={handleTitleChange}
         placeholder="Título del post..."
         className="text-3xl font-bold border-none outline-none px-6 py-4 bg-transparent placeholder:text-muted-foreground/50"
+        data-testid="blog-title-input"
       />
 
       {/* AI toolbar */}
@@ -157,6 +173,7 @@ export function BlogEditor({
           onClick={() => handleAiGenerate('draft')}
           disabled={isGenerating}
           className="text-xs px-2 py-1 rounded bg-primary/10 hover:bg-primary/20 text-primary disabled:opacity-50"
+          data-testid="ai-draft"
         >
           /draft
         </button>
@@ -165,6 +182,7 @@ export function BlogEditor({
           disabled={isGenerating}
           className="text-xs px-2 py-1 rounded bg-primary/20 hover:bg-primary/30 text-primary font-medium disabled:opacity-50 border border-primary/30"
           title="Genera post SEO-optimizado: 2100+ palabras, answer-first, FAQs"
+          data-testid="ai-draft-v2"
         >
           /draft-v2 SEO
         </button>
@@ -172,6 +190,7 @@ export function BlogEditor({
           onClick={() => handleAiGenerate('improve')}
           disabled={isGenerating || !content}
           className="text-xs px-2 py-1 rounded bg-primary/10 hover:bg-primary/20 text-primary disabled:opacity-50"
+          data-testid="ai-improve"
         >
           /improve
         </button>
@@ -179,6 +198,7 @@ export function BlogEditor({
           onClick={() => handleAiGenerate('seo')}
           disabled={isGenerating || !content}
           className="text-xs px-2 py-1 rounded bg-primary/10 hover:bg-primary/20 text-primary disabled:opacity-50"
+          data-testid="ai-seo"
         >
           /seo
         </button>
@@ -186,6 +206,7 @@ export function BlogEditor({
           onClick={() => handleAiGenerate('translate', 'en')}
           disabled={isGenerating || !content}
           className="text-xs px-2 py-1 rounded bg-primary/10 hover:bg-primary/20 text-primary disabled:opacity-50"
+          data-testid="ai-translate-en"
         >
           /translate EN
         </button>
@@ -193,6 +214,7 @@ export function BlogEditor({
           onClick={() => handleAiGenerate('translate', 'pt')}
           disabled={isGenerating || !content}
           className="text-xs px-2 py-1 rounded bg-primary/10 hover:bg-primary/20 text-primary disabled:opacity-50"
+          data-testid="ai-translate-pt"
         >
           /translate PT
         </button>
@@ -204,30 +226,28 @@ export function BlogEditor({
         <GradeBadge grade={scoreResult?.grade} score={scoreResult?.overall} isLoading={isScoring} />
 
         {isGenerating && (
-          <span className="text-xs text-muted-foreground animate-pulse">
-            Generando...
-          </span>
+          <span className="text-xs text-muted-foreground animate-pulse">Generando...</span>
         )}
-        {aiError && (
-          <span className="text-xs text-destructive">{aiError}</span>
-        )}
+        {aiError && <span className="text-xs text-destructive">{aiError}</span>}
       </div>
 
       {/* Score detail panel (collapsible) */}
       <ScoreDetailPanel score={scoreResult ?? null} isLoading={isScoring} onRefresh={onScoreRefresh} />
 
-      {/* Editor area (Markdown) */}
-      <textarea
-        value={content}
+      {/* TipTap WYSIWYG Editor */}
+      <TiptapEditor
+        content={content}
         onChange={handleContentChange}
-        placeholder="Escribe tu post en Markdown..."
-        className="flex-1 px-6 py-4 resize-none outline-none bg-transparent font-mono text-sm leading-relaxed placeholder:text-muted-foreground/50"
+        onEditorReady={handleEditorReady}
+        placeholder="Escribe tu post aquí..."
+        authToken={authToken}
+        websiteId={websiteId}
       />
 
       {/* Status bar */}
-      <div className="flex items-center justify-between px-6 py-2 border-t text-xs text-muted-foreground">
-        <span>{content.split(/\s+/).filter(Boolean).length} palabras</span>
-        <span>Markdown</span>
+      <div className="tiptap-status-bar">
+        <span className="word-count">{wordCount} palabras</span>
+        <span>WYSIWYG · Markdown</span>
       </div>
     </div>
   );

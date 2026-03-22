@@ -1,22 +1,21 @@
+/**
+ * sitemap.xml Route — GET /site/[subdomain]/sitemap.xml
+ *
+ * Serves per-tenant XML sitemap with pages, blog posts, and product pages.
+ * Middleware rewrites {subdomain}.bukeer.com/sitemap.xml → /site/{subdomain}/sitemap.xml
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getWebsiteBySubdomain } from '@/lib/supabase/get-website';
 import { buildSitemapUrls, generateSitemapXml } from '@/lib/seo/sitemap';
 
-/**
- * Legacy sitemap API route — GET /api/sitemap?subdomain=my-agency
- *
- * Kept for backward compatibility (robots.txt files may still reference this URL).
- * New routes: /site/[subdomain]/sitemap.xml and /domain/[host]/sitemap.xml
- */
-export async function GET(request: NextRequest) {
-  const subdomain = request.nextUrl.searchParams.get('subdomain');
-  if (!subdomain) {
-    return NextResponse.json(
-      { error: 'subdomain parameter is required' },
-      { status: 400 }
-    );
-  }
+export const revalidate = 3600; // 1 hour
 
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: Promise<{ subdomain: string }> }
+) {
+  const { subdomain } = await params;
   const website = await getWebsiteBySubdomain(subdomain);
 
   if (!website) {
