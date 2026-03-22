@@ -160,6 +160,7 @@ export default function EditorPage({ params }: EditorPageProps) {
   const tokenRef = useRef<string | null>(null);
   const parentOriginRef = useRef<string | null>(null);
   const puckDataRef = useRef<PuckData | null>(null);
+  const isInitialLoadRef = useRef(true);
 
   // Load Puck module dynamically
   useEffect(() => {
@@ -276,6 +277,7 @@ export default function EditorPage({ params }: EditorPageProps) {
 
       setData(typedSnapshot);
       setIsDirty(false);
+      isInitialLoadRef.current = true; // Reset so next Puck mount skips first onChange
       setState('ready');
 
       // Send editorMode in canvas:state so Flutter knows which mode is active
@@ -406,6 +408,11 @@ export default function EditorPage({ params }: EditorPageProps) {
 
   const handlePuckChange = useCallback((puckData: PuckData) => {
     puckDataRef.current = puckData;
+    // Skip the first onChange — Puck fires it during initial mount/resolveData
+    if (isInitialLoadRef.current) {
+      isInitialLoadRef.current = false;
+      return;
+    }
     if (!isDirty) {
       setIsDirty(true);
       sendToParent('canvas:state', {

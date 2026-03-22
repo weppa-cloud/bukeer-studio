@@ -11,6 +11,7 @@ import { getPageBySlug } from '@/lib/supabase/get-pages';
 import { getBlogPosts, getBlogPostBySlug, getBlogCategories } from '@/lib/supabase/get-website';
 import { JsonLd, generateBlogListingSchemas, generateBlogPostSchemas } from '@/lib/schema';
 import { SafeHtml } from '@/lib/sanitize';
+import { generateHreflangLinks } from '@/lib/seo/hreflang';
 import { getDefaultLegalContent } from '@/lib/legal-defaults';
 import Image from 'next/image';
 
@@ -523,10 +524,22 @@ export async function generateMetadata({ params, searchParams }: CustomDomainPag
     const post = await getBlogPostBySlug(website.id, postSlug);
 
     if (post) {
+      const blogBaseUrl = `https://${host}`;
+      const blogPath = `/blog/${post.slug}`;
+      const hreflangLinks = generateHreflangLinks(blogBaseUrl, blogPath);
+      const languages: Record<string, string> = {};
+      for (const link of hreflangLinks) {
+        languages[link.hreflang] = link.href;
+      }
+
       return {
         title: post.seo_title || post.title,
         description: post.seo_description || post.excerpt,
         keywords: post.seo_keywords ?? undefined,
+        alternates: {
+          canonical: `${blogBaseUrl}${blogPath}`,
+          languages,
+        },
         openGraph: {
           title: post.seo_title || post.title,
           description: post.seo_description || post.excerpt,
