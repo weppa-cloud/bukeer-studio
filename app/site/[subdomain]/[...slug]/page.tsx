@@ -55,6 +55,22 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
   const page = await getPageBySlug(subdomain, slugPath);
 
   if (!page) {
+    // Homepage fallback: use website SEO metadata from layout
+    if (slugPath === '') {
+      const { content } = website;
+      const siteName = content?.account?.name || content?.siteName;
+      const description = content?.seo?.description
+        || content?.tagline
+        || `${siteName || subdomain} - Tu agencia de viajes de confianza`;
+      return {
+        title: content?.seo?.title || siteName,
+        description,
+        openGraph: {
+          title: content?.seo?.title || siteName,
+          description,
+        },
+      };
+    }
     return { title: 'Página no encontrada' };
   }
 
