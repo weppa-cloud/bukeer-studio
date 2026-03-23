@@ -108,8 +108,13 @@ export const CopilotPanel = memo(function CopilotPanel({
     }
   }, [token, websiteId, selectedSection, appState.data]);
 
-  const handleApplyAction = useCallback((action: CopilotAction) => {
+  const handleApplyAction = useCallback(async (action: CopilotAction) => {
     try {
+      // Theme updates go through Supabase REST, not Puck data
+      if (action.type === 'update_theme') {
+        await handleApplyThemeAction(action);
+        return;
+      }
       const currentData = appState.data as PuckData;
       const newData = applyAction(currentData, action);
       dispatch({ type: 'setData', data: newData } as never);
@@ -121,6 +126,77 @@ export const CopilotPanel = memo(function CopilotPanel({
       ]);
     }
   }, [appState.data, dispatch]);
+
+  const handleApplyThemeAction = useCallback(async (action: CopilotAction) => {
+    if (!token) {
+      setResults((prev) => [...prev, { actionId: action.id, result: 'failed', error: 'No auth token' }]);
+      return;
+    }
+
+    const after = action.preview.after as Record<string, unknown>;
+
+    // If preset_slug provided, apply preset via theme data
+    // If tokens/profile provided, apply custom theme
+    const themePayload = after.preset_slug
+      ? null // Preset application handled below
+      : after.tokens && after.profile
+        ? { tokens: after.tokens, profile: after.profile }
+        : null;
+
+    if (!themePayload && !after.preset_slug) {
+      setResults((prev) => [...prev, { actionId: action.id, result: 'failed', error: 'Invalid theme payload — need preset_slug or { tokens, profile }' }]);
+      return;
+    }
+
+    try {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+      if (!supabaseUrl || !supabaseKey) {
+        throw new Error('Missing Supabase config');
+      }
+
+      // Build update body
+      let updateBody: Record<string, unknown>;
+      if (after.preset_slug) {
+        // Fetch preset from DB
+        const presetRes = await fetch(
+          `${supabaseUrl}/rest/v1/website_theme_presets?slug=eq.${after.preset_slug}&is_system=eq.true&is_active=eq.true&limit=1`,
+          { headers: { apikey: supabaseKey, Authorization: `Bearer ${token}` } }
+        );
+        const presets = await presetRes.json() as Array<Record<string, unknown>>;
+        if (!presets.length) throw new Error(`Preset "${after.preset_slug}" not found`);
+        updateBody = { theme: presets[0].theme_config, theme_preset_id: presets[0].id };
+      } else {
+        updateBody = { theme: themePayload, theme_preset_id: null };
+      }
+
+      // PATCH website
+      const patchRes = await fetch(
+        `${supabaseUrl}/rest/v1/websites?id=eq.${websiteId}`,
+        {
+          method: 'PATCH',
+          headers: {
+            apikey: supabaseKey,
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            Prefer: 'return=minimal',
+          },
+          body: JSON.stringify(updateBody),
+        }
+      );
+
+      if (!patchRes.ok) throw new Error(`Failed to apply theme: ${patchRes.status}`);
+
+      // Reload the page to pick up new theme
+      window.location.reload();
+    } catch (err) {
+      setResults((prev) => [
+        ...prev,
+        { actionId: action.id, result: 'failed', error: err instanceof Error ? err.message : 'Theme update failed' },
+      ]);
+    }
+  }, [token, websiteId]);
 
   const handleApplyAll = useCallback(() => {
     if (!plan) return;
@@ -267,6 +343,31 @@ export const CopilotPanel = memo(function CopilotPanel({
                   </span>
                 </div>
                 <p style={styles.actionDesc}>{action.description}</p>
+
+                {/* Theme preview swatches */}
+                {action.type === 'update_theme' && action.preview.after && (
+                  <div style={styles.themePreview}>
+                    {(action.preview.after as Record<string, unknown>).preset_slug ? (
+                      <span style={styles.presetBadge}>
+                        Preset: {(action.preview.after as Record<string, unknown>).preset_slug as string}
+                      </span>
+                    ) : (
+                      (() => {
+                        const tokens = (action.preview.after as Record<string, unknown>).tokens as Record<string, unknown> | undefined;
+                        const colors = (tokens?.colors as Record<string, unknown>) || {};
+                        const light = (colors.light as Record<string, string>) || {};
+                        const swatchColors = [light.primary, light.secondary, light.tertiary, light.surface].filter(Boolean);
+                        return (
+                          <div style={styles.swatchRow}>
+                            {swatchColors.map((c, i) => (
+                              <div key={i} style={{ ...styles.swatch, background: c }} title={c} />
+                            ))}
+                          </div>
+                        );
+                      })()
+                    )}
+                  </div>
+                )}
 
                 {isProcessed ? (
                   <span style={{
@@ -540,6 +641,27 @@ const styles: Record<string, React.CSSProperties> = {
     border: '1px solid #E5E7EB',
     borderRadius: 6,
     cursor: 'pointer',
+  },
+  themePreview: {
+    padding: '6px 0',
+  },
+  presetBadge: {
+    fontSize: 11,
+    padding: '3px 8px',
+    background: '#f5f3ff',
+    color: '#7c57b3',
+    borderRadius: 6,
+    fontWeight: 500,
+  },
+  swatchRow: {
+    display: 'flex',
+    gap: 4,
+  },
+  swatch: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    border: '1px solid #E5E7EB',
   },
   undoBtn: {
     padding: '6px 12px',

@@ -7,10 +7,10 @@ import type {
   WebsiteSection,
   BlogPost,
   BlogCategory,
-  M3Theme,
+  ThemeV3,
 } from '@bukeer/website-contract';
 
-// Re-export types from contract (Strangler migration)
+// Re-export types from contract
 export type {
   WebsiteData,
   AnalyticsConfig,
@@ -19,7 +19,7 @@ export type {
   WebsiteSection,
   BlogPost,
   BlogCategory,
-  M3Theme,
+  ThemeV3,
 };
 
 // Create a Supabase client for server-side data fetching

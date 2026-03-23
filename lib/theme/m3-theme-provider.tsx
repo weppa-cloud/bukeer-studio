@@ -95,6 +95,25 @@ function applyCompiledThemeToDOM(
 
   // Apply invariant variables (typography, shape, spacing, motion, layout)
   applyCssVariables(compiled.web.invariant, root);
+
+  // Inject Google Fonts dynamically
+  injectFontLinks(compiled.web.fontImports);
+}
+
+/**
+ * Inject Google Fonts link elements into <head>.
+ * Idempotent — skips already-loaded fonts.
+ */
+function injectFontLinks(urls: string[]) {
+  for (const url of urls) {
+    const id = `gfont-${url.replace(/[^a-zA-Z0-9]/g, '').slice(-40)}`;
+    if (document.getElementById(id)) continue;
+    const link = document.createElement('link');
+    link.id = id;
+    link.rel = 'stylesheet';
+    link.href = url;
+    document.head.appendChild(link);
+  }
 }
 
 // ---------------------------------------------------------------------------
