@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { WebsiteData } from '@/lib/supabase/get-website';
 import { getBasePath } from '@/lib/utils/base-path';
 import { resolveNavHref } from '@/lib/utils/navigation';
-import type { NavigationItem } from '@bukeer/website-contract';
+import type { NavigationItem, FooterVariant } from '@bukeer/website-contract';
 
 interface SiteFooterProps {
   website: WebsiteData;
@@ -11,8 +11,9 @@ interface SiteFooterProps {
 }
 
 export function SiteFooter({ website, isCustomDomain = false, navigation }: SiteFooterProps) {
-  const { content, subdomain } = website;
+  const { content, subdomain, site_parts: siteParts } = website;
   const currentYear = new Date().getFullYear();
+  const footerVariant: FooterVariant = siteParts?.footer?.variant || '4-column';
   const basePath = getBasePath(subdomain, isCustomDomain);
 
   // Usar datos de account si están disponibles (fallback a content)
@@ -31,130 +32,155 @@ export function SiteFooter({ website, isCustomDomain = false, navigation }: Site
     { name: 'LinkedIn', url: content.social?.linkedin, icon: LinkedInIcon },
   ].filter(link => link.url);
 
+  const navItems = navigation || [
+    { slug: '', label: 'Inicio', page_type: 'custom' as const, href: `${basePath}/` },
+    { slug: 'destinations', label: 'Destinos', page_type: 'anchor' as const, href: `${basePath}/#destinations` },
+    { slug: 'hotels', label: 'Hoteles', page_type: 'anchor' as const, href: `${basePath}/#hotels` },
+    { slug: 'blog', label: 'Blog', page_type: 'custom' as const, href: `${basePath}/blog` },
+    { slug: 'contact', label: 'Contacto', page_type: 'anchor' as const, href: `${basePath}/#contact` },
+  ];
+
+  // Shared sub-components
+  const LogoBlock = (
+    <Link href={`${basePath}/`} className="inline-block">
+      {siteLogo ? (
+        <img src={siteLogo} alt={siteName} className="h-12 w-auto object-contain" />
+      ) : (
+        <span className="text-2xl font-bold">{siteName}</span>
+      )}
+    </Link>
+  );
+
+  const SocialBlock = socialLinks.length > 0 ? (
+    <div className="flex gap-4">
+      {socialLinks.map((link) => (
+        <a key={link.name} href={link.url!} target="_blank" rel="noopener noreferrer" className="p-2 rounded-full bg-background hover:bg-primary hover:text-primary-foreground transition-colors" aria-label={link.name}>
+          <link.icon className="w-5 h-5" />
+        </a>
+      ))}
+    </div>
+  ) : null;
+
+  const CopyrightBlock = (
+    <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+      <p className="text-sm text-muted-foreground">&copy; {currentYear} {siteName}. Todos los derechos reservados.</p>
+      <p className="text-sm text-muted-foreground">Creado con{' '}<a href="https://bukeer.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Bukeer</a></p>
+    </div>
+  );
+
+  const NavBlock = (
+    <nav className="flex flex-col gap-2">
+      {navItems.map((link) => (
+        <Link key={link.slug} href={resolveNavHref(link, basePath)} target={link.target === '_blank' ? '_blank' : undefined} rel={link.target === '_blank' ? 'noopener noreferrer' : undefined} className="text-muted-foreground hover:text-foreground transition-colors">{link.label}</Link>
+      ))}
+    </nav>
+  );
+
+  const LegalBlock = (content.account?.legal?.terms_conditions || content.account?.legal?.privacy_policy || content.account?.legal?.cancellation_policy) ? (
+    <nav className="flex flex-col gap-2">
+      {content.account?.legal?.terms_conditions && <Link href={`${basePath}/terms`} className="text-muted-foreground hover:text-foreground transition-colors">Términos y Condiciones</Link>}
+      {content.account?.legal?.privacy_policy && <Link href={`${basePath}/privacy`} className="text-muted-foreground hover:text-foreground transition-colors">Política de Privacidad</Link>}
+      {content.account?.legal?.cancellation_policy && <Link href={`${basePath}/cancellation`} className="text-muted-foreground hover:text-foreground transition-colors">Política de Cancelación</Link>}
+    </nav>
+  ) : null;
+
+  const ContactBlock = (
+    <div className="flex flex-col gap-3 text-muted-foreground">
+      {contactEmail && <a href={`mailto:${contactEmail}`} className="hover:text-foreground transition-colors">{contactEmail}</a>}
+      {contactPhone && <a href={`tel:${contactPhone}`} className="hover:text-foreground transition-colors">{contactPhone}</a>}
+      {content.contact?.address && <p>{content.contact.address}</p>}
+    </div>
+  );
+
+  // --- MINIMAL VARIANT ---
+  if (footerVariant === 'minimal') {
+    return (
+      <footer className="bg-muted/50 border-t">
+        <div className="container py-8">
+          <div className="flex flex-col items-center gap-4">
+            {SocialBlock}
+            {CopyrightBlock}
+          </div>
+        </div>
+      </footer>
+    );
+  }
+
+  // --- CENTERED VARIANT ---
+  if (footerVariant === 'centered') {
+    return (
+      <footer className="bg-muted/50 border-t">
+        <div className="container section-padding text-center">
+          <div className="flex flex-col items-center gap-6">
+            {LogoBlock}
+            {content.tagline && <p className="text-muted-foreground max-w-md">{content.tagline}</p>}
+            <nav className="flex flex-wrap justify-center gap-6">
+              {navItems.map((link) => (
+                <Link key={link.slug} href={resolveNavHref(link, basePath)} className="text-muted-foreground hover:text-foreground transition-colors">{link.label}</Link>
+              ))}
+            </nav>
+            {SocialBlock}
+            {ContactBlock}
+          </div>
+          <div className="mt-12 pt-8 border-t">{CopyrightBlock}</div>
+        </div>
+      </footer>
+    );
+  }
+
+  // --- 3-COLUMN VARIANT ---
+  if (footerVariant === '3-column') {
+    return (
+      <footer className="bg-muted/50 border-t">
+        <div className="container section-padding">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+            <div>
+              {LogoBlock}
+              {content.tagline && <p className="mt-4 text-muted-foreground max-w-md">{content.tagline}</p>}
+              <div className="mt-6">{SocialBlock}</div>
+            </div>
+            <div>
+              <h3 className="font-semibold mb-4">Navegación</h3>
+              {NavBlock}
+            </div>
+            <div>
+              <h3 className="font-semibold mb-4">Contacto</h3>
+              {ContactBlock}
+            </div>
+          </div>
+          <div className="mt-12 pt-8 border-t">{CopyrightBlock}</div>
+        </div>
+      </footer>
+    );
+  }
+
+  // --- 4-COLUMN VARIANT (default) ---
   return (
     <footer className="bg-muted/50 border-t">
       <div className="container section-padding">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
           {/* Brand */}
           <div className="lg:col-span-2">
-            <Link href={`${basePath}/`} className="inline-block">
-              {siteLogo ? (
-                <img src={siteLogo} alt={siteName} className="h-12 w-auto object-contain" />
-              ) : (
-                <span className="text-2xl font-bold">{siteName}</span>
-              )}
-            </Link>
-            {content.tagline && (
-              <p className="mt-4 text-muted-foreground max-w-md">
-                {content.tagline}
-              </p>
-            )}
-
-            {/* Social Links */}
-            {socialLinks.length > 0 && (
-              <div className="flex gap-4 mt-6">
-                {socialLinks.map((link) => (
-                  <a
-                    key={link.name}
-                    href={link.url!}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-2 rounded-full bg-background hover:bg-primary hover:text-primary-foreground transition-colors"
-                    aria-label={link.name}
-                  >
-                    <link.icon className="w-5 h-5" />
-                  </a>
-                ))}
-              </div>
-            )}
+            {LogoBlock}
+            {content.tagline && <p className="mt-4 text-muted-foreground max-w-md">{content.tagline}</p>}
+            <div className="mt-6">{SocialBlock}</div>
           </div>
-
-          {/* Quick Links — dynamic navigation (flat, no dropdowns in footer) */}
           <div>
             <h3 className="font-semibold mb-4">Navegación</h3>
-            <nav className="flex flex-col gap-2">
-              {(navigation || [
-                { slug: '', label: 'Inicio', page_type: 'custom' as const, href: `${basePath}/` },
-                { slug: 'destinations', label: 'Destinos', page_type: 'anchor' as const, href: `${basePath}/#destinations` },
-                { slug: 'hotels', label: 'Hoteles', page_type: 'anchor' as const, href: `${basePath}/#hotels` },
-                { slug: 'blog', label: 'Blog', page_type: 'custom' as const, href: `${basePath}/blog` },
-                { slug: 'contact', label: 'Contacto', page_type: 'anchor' as const, href: `${basePath}/#contact` },
-              ]).map((link) => (
-                <Link
-                  key={link.slug}
-                  href={resolveNavHref(link, basePath)}
-                  target={link.target === '_blank' ? '_blank' : undefined}
-                  rel={link.target === '_blank' ? 'noopener noreferrer' : undefined}
-                  className="text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  {link.label}
-                </Link>
-              ))}
-            </nav>
+            {NavBlock}
           </div>
-
-          {/* Legal Links - only show if at least one legal doc exists */}
-          {(content.account?.legal?.terms_conditions || content.account?.legal?.privacy_policy || content.account?.legal?.cancellation_policy) && (
+          {LegalBlock && (
             <div>
               <h3 className="font-semibold mb-4">Legal</h3>
-              <nav className="flex flex-col gap-2">
-                {content.account?.legal?.terms_conditions && (
-                  <Link href={`${basePath}/terms`} className="text-muted-foreground hover:text-foreground transition-colors">
-                    Términos y Condiciones
-                  </Link>
-                )}
-                {content.account?.legal?.privacy_policy && (
-                  <Link href={`${basePath}/privacy`} className="text-muted-foreground hover:text-foreground transition-colors">
-                    Política de Privacidad
-                  </Link>
-                )}
-                {content.account?.legal?.cancellation_policy && (
-                  <Link href={`${basePath}/cancellation`} className="text-muted-foreground hover:text-foreground transition-colors">
-                    Política de Cancelación
-                  </Link>
-                )}
-              </nav>
+              {LegalBlock}
             </div>
           )}
-
-          {/* Contact */}
           <div>
             <h3 className="font-semibold mb-4">Contacto</h3>
-            <div className="flex flex-col gap-3 text-muted-foreground">
-              {contactEmail && (
-                <a href={`mailto:${contactEmail}`} className="hover:text-foreground transition-colors">
-                  {contactEmail}
-                </a>
-              )}
-              {contactPhone && (
-                <a href={`tel:${contactPhone}`} className="hover:text-foreground transition-colors">
-                  {contactPhone}
-                </a>
-              )}
-              {content.contact?.address && (
-                <p>{content.contact.address}</p>
-              )}
-            </div>
+            {ContactBlock}
           </div>
         </div>
-
-        {/* Bottom Bar */}
-        <div className="mt-12 pt-8 border-t flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-sm text-muted-foreground">
-            &copy; {currentYear} {siteName}. Todos los derechos reservados.
-          </p>
-          <p className="text-sm text-muted-foreground">
-            Creado con{' '}
-            <a
-              href="https://bukeer.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary hover:underline"
-            >
-              Bukeer
-            </a>
-          </p>
-        </div>
+        <div className="mt-12 pt-8 border-t">{CopyrightBlock}</div>
       </div>
     </footer>
   );
