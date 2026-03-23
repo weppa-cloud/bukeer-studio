@@ -5,6 +5,7 @@ import { getWebsiteNavigation } from '@/lib/supabase/get-pages';
 import { M3ThemeProvider } from '@/lib/theme/m3-theme-provider';
 import { SiteHeader } from '@/components/site/site-header';
 import { SiteFooter } from '@/components/site/site-footer';
+import { MobileStickyBar } from '@/components/site/mobile-sticky-bar';
 import { GoogleTagManager, GoogleTagManagerBody } from '@/components/analytics/google-tag-manager';
 import { buildNavTree, getDefaultNavigation } from '@/lib/utils/navigation';
 import { getBasePath } from '@/lib/utils/base-path';
@@ -100,6 +101,7 @@ export default async function SiteLayout({ children, params }: SiteLayoutProps) 
           {children}
         </main>
         <SiteFooter website={website} navigation={navigation} />
+        <MobileStickyBar website={website} />
       </div>
     </M3ThemeProvider>
   );

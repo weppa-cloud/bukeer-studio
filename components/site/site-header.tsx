@@ -21,7 +21,9 @@ export function SiteHeader({ website, isCustomDomain = false, navigation }: Site
   const [scrolled, setScrolled] = useState(false);
 
   const { content, theme: siteTheme, subdomain, site_parts: siteParts } = website;
-  const navStyle = siteTheme.layout?.navStyle || 'sticky';
+  const profile = siteTheme?.profile as Record<string, unknown> | undefined;
+  const layout = profile?.layout as Record<string, string> | undefined;
+  const navStyle = layout?.navStyle || 'sticky';
   const basePath = getBasePath(subdomain, isCustomDomain);
 
   const siteName = content.account?.name || content.siteName;
