@@ -436,7 +436,7 @@ export function EditorShell({ websiteId, initialToken }: EditorShellProps) {
           <SectionPalette isOpen={paletteOpen} onToggle={() => setPaletteOpen(!paletteOpen)} />
 
           <CanvasFrame websiteId={websiteId} viewport={viewport}>
-            <M3ThemeProvider initialTheme={data.website.theme}>
+            <M3ThemeProvider initialTheme={data.website.theme?.tokens ? { tokens: data.website.theme.tokens, profile: data.website.theme.profile } : undefined}>
               <SortableContext
                 items={data.sections.map((s) => s.id)}
                 strategy={verticalListSortingStrategy}

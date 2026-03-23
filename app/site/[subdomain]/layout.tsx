@@ -1,10 +1,13 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getWebsiteBySubdomain } from '@/lib/supabase/get-website';
+import { getWebsiteNavigation } from '@/lib/supabase/get-pages';
 import { M3ThemeProvider } from '@/lib/theme/m3-theme-provider';
 import { SiteHeader } from '@/components/site/site-header';
 import { SiteFooter } from '@/components/site/site-footer';
 import { GoogleTagManager, GoogleTagManagerBody } from '@/components/analytics/google-tag-manager';
+import { buildNavTree, getDefaultNavigation } from '@/lib/utils/navigation';
+import { getBasePath } from '@/lib/utils/base-path';
 import '@/app/globals.css';
 
 interface SiteLayoutProps {
@@ -76,8 +79,15 @@ export default async function SiteLayout({ children, params }: SiteLayoutProps) 
     notFound();
   }
 
+  // Fetch dynamic navigation (RPC), fallback to section-based defaults
+  const navItems = await getWebsiteNavigation(subdomain);
+  const basePath = getBasePath(subdomain, false);
+  const navigation = navItems.length > 0
+    ? buildNavTree(navItems)
+    : getDefaultNavigation(website.sections, basePath);
+
   return (
-    <M3ThemeProvider initialTheme={website.theme}>
+    <M3ThemeProvider initialTheme={website.theme?.tokens ? { tokens: website.theme.tokens, profile: website.theme.profile } : undefined}>
       {/* Google Tag Manager and Analytics Scripts */}
       <GoogleTagManager analytics={website.analytics} />
 
@@ -85,11 +95,11 @@ export default async function SiteLayout({ children, params }: SiteLayoutProps) 
         {/* GTM NoScript fallback */}
         <GoogleTagManagerBody analytics={website.analytics} />
 
-        <SiteHeader website={website} />
+        <SiteHeader website={website} navigation={navigation} />
         <main className="flex-1">
           {children}
         </main>
-        <SiteFooter website={website} />
+        <SiteFooter website={website} navigation={navigation} />
       </div>
     </M3ThemeProvider>
   );

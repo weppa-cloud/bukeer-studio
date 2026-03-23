@@ -739,7 +739,7 @@ export default function EditorPage({ params }: EditorPageProps) {
               </>
             ),
             preview: ({ children }: { children: React.ReactNode }) => (
-              <M3ThemeProvider initialTheme={data.website.theme}>
+              <M3ThemeProvider initialTheme={data.website.theme?.tokens ? { tokens: data.website.theme.tokens, profile: data.website.theme.profile } : undefined}>
                 {showFullPreview && <SiteHeader website={transformedWebsite} />}
                 {children}
                 {showFullPreview && <SiteFooter website={transformedWebsite} />}
@@ -755,7 +755,7 @@ export default function EditorPage({ params }: EditorPageProps) {
   // Legacy Canvas Mode (default)
   // ============================================================================
   return (
-    <M3ThemeProvider initialTheme={data.website.theme}>
+    <M3ThemeProvider initialTheme={data.website.theme?.tokens ? { tokens: data.website.theme.tokens, profile: data.website.theme.profile } : undefined}>
       <div className="min-h-screen">
         {data.sections.map((section) => {
           // Transform to snake_case for renderSectionWithResult compatibility

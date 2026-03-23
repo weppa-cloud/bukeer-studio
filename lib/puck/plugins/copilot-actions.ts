@@ -15,7 +15,7 @@ import { sectionTypeToComponentName } from '../adapters';
 
 export interface CopilotAction {
   id: string;
-  type: 'rewrite_text' | 'create_section' | 'remove_section' | 'reorder_sections' | 'update_seo' | 'suggest_images' | 'translate';
+  type: 'rewrite_text' | 'create_section' | 'remove_section' | 'reorder_sections' | 'update_seo' | 'suggest_images' | 'translate' | 'update_theme';
   targetSectionId?: string;
   targetSectionType?: string;
   description: string;
@@ -62,8 +62,17 @@ export function applyAction(
       return applyRemoveSection(currentData, action);
     case 'reorder_sections':
       return applyReorderSections(currentData, action);
+    case 'update_seo':
+      return applyUpdateSeo(currentData, action);
+    case 'suggest_images':
+      return applySuggestImages(currentData, action);
+    case 'translate':
+      return applyTranslate(currentData, action);
+    case 'update_theme':
+      // Theme updates are handled externally (not in Puck data)
+      // Return data unchanged — the copilot panel applies theme via API
+      return currentData;
     default:
-      // Unknown action type — return unchanged
       console.warn(`[Copilot] Unknown action type: ${action.type}`);
       return currentData;
   }
@@ -200,6 +209,93 @@ function applyReorderSections(
   for (const item of contentMap.values()) {
     content.push(item);
   }
+
+  return { ...data, content };
+}
+
+/**
+ * update_seo — Update SEO-related props on a target section.
+ * Applies preview.after fields (e.g., seo_title, seo_description, meta_keywords).
+ */
+function applyUpdateSeo(
+  data: PuckData,
+  action: CopilotAction
+): PuckData {
+  if (!action.targetSectionId) {
+    throw new Error('update_seo requires targetSectionId');
+  }
+
+  const content = data.content.map((item) => {
+    if (item.props.id === action.targetSectionId) {
+      return {
+        ...item,
+        props: {
+          ...item.props,
+          ...(action.preview.after as Record<string, unknown>),
+          id: item.props.id,
+        },
+      };
+    }
+    return item;
+  });
+
+  return { ...data, content };
+}
+
+/**
+ * suggest_images — Update image URLs/alt text on a target section.
+ * Applies preview.after fields (e.g., image, imageUrl, images, alt).
+ */
+function applySuggestImages(
+  data: PuckData,
+  action: CopilotAction
+): PuckData {
+  if (!action.targetSectionId) {
+    throw new Error('suggest_images requires targetSectionId');
+  }
+
+  const content = data.content.map((item) => {
+    if (item.props.id === action.targetSectionId) {
+      return {
+        ...item,
+        props: {
+          ...item.props,
+          ...(action.preview.after as Record<string, unknown>),
+          id: item.props.id,
+        },
+      };
+    }
+    return item;
+  });
+
+  return { ...data, content };
+}
+
+/**
+ * translate — Replace text content of a section with translated version.
+ * Applies preview.after which contains the full translated props.
+ */
+function applyTranslate(
+  data: PuckData,
+  action: CopilotAction
+): PuckData {
+  if (!action.targetSectionId) {
+    throw new Error('translate requires targetSectionId');
+  }
+
+  const content = data.content.map((item) => {
+    if (item.props.id === action.targetSectionId) {
+      return {
+        ...item,
+        props: {
+          ...item.props,
+          ...(action.preview.after as Record<string, unknown>),
+          id: item.props.id,
+        },
+      };
+    }
+    return item;
+  });
 
   return { ...data, content };
 }

@@ -21,7 +21,9 @@
     "paths": {
       "@/*": ["./*"],
       "@bukeer/website-contract": ["../packages/website-contract/src"],
-      "@bukeer/website-contract/*": ["../packages/website-contract/src/*"]
+      "@bukeer/website-contract/*": ["../packages/website-contract/src/*"],
+      "@bukeer/theme-sdk": ["../packages/theme-sdk/src"],
+      "@bukeer/theme-sdk/*": ["../packages/theme-sdk/src/*"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],

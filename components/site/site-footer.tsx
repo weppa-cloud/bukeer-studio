@@ -1,13 +1,16 @@
 import Link from 'next/link';
 import { WebsiteData } from '@/lib/supabase/get-website';
 import { getBasePath } from '@/lib/utils/base-path';
+import { resolveNavHref } from '@/lib/utils/navigation';
+import type { NavigationItem } from '@bukeer/website-contract';
 
 interface SiteFooterProps {
   website: WebsiteData;
   isCustomDomain?: boolean;
+  navigation?: NavigationItem[];
 }
 
-export function SiteFooter({ website, isCustomDomain = false }: SiteFooterProps) {
+export function SiteFooter({ website, isCustomDomain = false, navigation }: SiteFooterProps) {
   const { content, subdomain } = website;
   const currentYear = new Date().getFullYear();
   const basePath = getBasePath(subdomain, isCustomDomain);
@@ -66,25 +69,27 @@ export function SiteFooter({ website, isCustomDomain = false }: SiteFooterProps)
             )}
           </div>
 
-          {/* Quick Links */}
+          {/* Quick Links — dynamic navigation (flat, no dropdowns in footer) */}
           <div>
             <h3 className="font-semibold mb-4">Navegación</h3>
             <nav className="flex flex-col gap-2">
-              <Link href={`${basePath}/`} className="text-muted-foreground hover:text-foreground transition-colors">
-                Inicio
-              </Link>
-              <Link href={`${basePath}/#destinations`} className="text-muted-foreground hover:text-foreground transition-colors">
-                Destinos
-              </Link>
-              <Link href={`${basePath}/#hotels`} className="text-muted-foreground hover:text-foreground transition-colors">
-                Hoteles
-              </Link>
-              <Link href={`${basePath}/blog`} className="text-muted-foreground hover:text-foreground transition-colors">
-                Blog
-              </Link>
-              <Link href={`${basePath}/#contact`} className="text-muted-foreground hover:text-foreground transition-colors">
-                Contacto
-              </Link>
+              {(navigation || [
+                { slug: '', label: 'Inicio', page_type: 'custom' as const, href: `${basePath}/` },
+                { slug: 'destinations', label: 'Destinos', page_type: 'anchor' as const, href: `${basePath}/#destinations` },
+                { slug: 'hotels', label: 'Hoteles', page_type: 'anchor' as const, href: `${basePath}/#hotels` },
+                { slug: 'blog', label: 'Blog', page_type: 'custom' as const, href: `${basePath}/blog` },
+                { slug: 'contact', label: 'Contacto', page_type: 'anchor' as const, href: `${basePath}/#contact` },
+              ]).map((link) => (
+                <Link
+                  key={link.slug}
+                  href={resolveNavHref(link, basePath)}
+                  target={link.target === '_blank' ? '_blank' : undefined}
+                  rel={link.target === '_blank' ? 'noopener noreferrer' : undefined}
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {link.label}
+                </Link>
+              ))}
             </nav>
           </div>
 

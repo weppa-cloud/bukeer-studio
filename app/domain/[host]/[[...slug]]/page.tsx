@@ -95,7 +95,7 @@ export default async function CustomDomainPage({ params, searchParams }: CustomD
     const schemas = generateBlogListingSchemas(posts, website, baseUrl);
 
     return (
-      <M3ThemeProvider initialTheme={website.theme}>
+      <M3ThemeProvider initialTheme={website.theme?.tokens ? { tokens: website.theme.tokens, profile: website.theme.profile } : undefined}>
         <GoogleTagManager analytics={website.analytics} />
         <div className="min-h-screen flex flex-col">
           <GoogleTagManagerBody analytics={website.analytics} />
@@ -248,7 +248,7 @@ export default async function CustomDomainPage({ params, searchParams }: CustomD
     const schemas = generateBlogPostSchemas(post, website, baseUrl);
 
     return (
-      <M3ThemeProvider initialTheme={website.theme}>
+      <M3ThemeProvider initialTheme={website.theme?.tokens ? { tokens: website.theme.tokens, profile: website.theme.profile } : undefined}>
         <GoogleTagManager analytics={website.analytics} />
         <div className="min-h-screen flex flex-col">
           <GoogleTagManagerBody analytics={website.analytics} />
@@ -399,7 +399,7 @@ export default async function CustomDomainPage({ params, searchParams }: CustomD
     const legalContent = customContent || getDefaultLegalContent(legalType, siteName);
 
     return (
-      <M3ThemeProvider initialTheme={website.theme}>
+      <M3ThemeProvider initialTheme={website.theme?.tokens ? { tokens: website.theme.tokens, profile: website.theme.profile } : undefined}>
         <GoogleTagManager analytics={website.analytics} />
         <div className="min-h-screen flex flex-col">
           <GoogleTagManagerBody analytics={website.analytics} />
@@ -460,7 +460,7 @@ export default async function CustomDomainPage({ params, searchParams }: CustomD
   }
 
   return (
-    <M3ThemeProvider initialTheme={website.theme}>
+    <M3ThemeProvider initialTheme={website.theme?.tokens ? { tokens: website.theme.tokens, profile: website.theme.profile } : undefined}>
       {/* Google Tag Manager and Analytics Scripts */}
       <GoogleTagManager analytics={website.analytics} />
 

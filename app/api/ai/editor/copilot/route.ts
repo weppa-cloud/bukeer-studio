@@ -29,6 +29,7 @@ const CopilotActionSchema = z.object({
     'update_seo',
     'suggest_images',
     'translate',
+    'update_theme',
   ]),
   targetSectionId: z.string().optional(),
   targetSectionType: z.string().optional(),
@@ -115,9 +116,10 @@ AVAILABLE ACTION TYPES:
 - create_section: Add a new section (types: hero, about, features, testimonials, stats, faq, cta, contact, destinations, hotels, activities, gallery)
 - remove_section: Hide/disable an existing section
 - reorder_sections: Change section display order
-- update_seo: Update meta title/description
-- suggest_images: Suggest Unsplash images for a section
-- translate: Translate section content to another language
+- update_seo: Update meta title/description of a section (preview.after: { seo_title, seo_description, meta_keywords })
+- suggest_images: Suggest Unsplash images for a section (preview.after: { image, imageAlt } or { images: [...] })
+- translate: Translate section content to another language (preview.after: full translated props)
+- update_theme: Suggest theme changes (preview.after: { preset_slug } for preset, or { tokens, profile } for custom). Available presets: adventure, luxury, tropical, corporate, boutique, cultural, eco, romantic
 
 CONSTRAINTS:
 - Maximum 10 actions per plan
@@ -126,6 +128,7 @@ CONSTRAINTS:
 - Set confidence based on how certain you are the change improves the site
 - For rewrite_text, include both before (current) and after (proposed) in preview
 - For create_section, include the full proposed content in preview.after
+- For update_theme, prefer preset_slug when a tourism preset matches the brand mood
 - Respond in the same language as the user's prompt
 - Generate a unique id for each action (use short descriptive slugs like "rewrite-hero-title")`;
 }

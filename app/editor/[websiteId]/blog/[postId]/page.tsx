@@ -37,8 +37,8 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
   const [scoreResult, setScoreResult] = useState<any>(null);
   const [isScoring, setIsScoring] = useState(false);
 
-  // Auto-score content after save
-  const scoreContent = useCallback(async () => {
+  // Auto-score content after save, persist to blog_content_scores on publish
+  const scoreContent = useCallback(async (savedStatus?: string) => {
     if (!tokenRef || !content || content.length < 100) return;
     setIsScoring(true);
     try {
@@ -58,13 +58,43 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
       if (res.ok) {
         const result = await res.json();
         setScoreResult(result);
+
+        // Persist scores only for published posts
+        if (savedStatus === 'published' && websiteId && postId) {
+          const supabase = getSupabase();
+          if (supabase) {
+            // Compute content hash (SHA-256, truncated to 16 hex chars)
+            const encoder = new TextEncoder();
+            const data = encoder.encode(content);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            const contentHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 16);
+
+            const wordCount = content.split(/\s+/).filter(Boolean).length;
+
+            await supabase.from('blog_content_scores').upsert({
+              post_id: postId,
+              website_id: websiteId,
+              overall_score: Math.round(result.overall),
+              seo_score: Math.round(result.seo),
+              readability_score: Math.round(result.readability),
+              structure_score: Math.round(result.structure),
+              geo_score: Math.round(result.geo),
+              grade: result.grade,
+              checks: result.checks || [],
+              content_hash: contentHash,
+              word_count: wordCount,
+              scored_at: new Date().toISOString(),
+            }, { onConflict: 'post_id,content_hash' });
+          }
+        }
       }
     } catch {
       // Score failure is non-blocking
     } finally {
       setIsScoring(false);
     }
-  }, [tokenRef, content, title, seoDescription]);
+  }, [tokenRef, content, title, seoDescription, websiteId, postId, getSupabase]);
 
   useEffect(() => {
     params.then((p) => {
@@ -214,8 +244,8 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
           if (updateError) throw updateError;
         }
 
-        // Auto-score after successful save
-        scoreContent();
+        // Auto-score after successful save (persist only for published posts)
+        scoreContent(status);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error saving post');
       } finally {
