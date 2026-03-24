@@ -15,7 +15,7 @@
 'use client';
 
 import React, { useState, useCallback, useRef, memo } from 'react';
-import { usePuck } from '@measured/puck';
+import { usePuck } from '@puckeditor/core';
 import { applyAction, applyAllActions } from './copilot-actions';
 import type { CopilotAction, CopilotPlan, ActionResult } from './copilot-actions';
 import type { PuckData } from '../adapters';

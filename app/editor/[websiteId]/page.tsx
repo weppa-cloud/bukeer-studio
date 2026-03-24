@@ -165,13 +165,13 @@ export default function EditorPage({ params }: EditorPageProps) {
   // Load Puck module dynamically
   useEffect(() => {
     if (!PUCK_ENABLED) return;
-    import('@measured/puck').then((mod) => {
+    import('@puckeditor/core').then((mod) => {
       PuckEditor = mod.Puck as unknown as typeof PuckEditor;
       setPuckReady(true);
     });
     // Also load CSS — dynamic import for side-effect
     // @ts-expect-error — CSS module import has no type declarations
-    import('@measured/puck/puck.css');
+    import('@puckeditor/core/puck.css');
   }, []);
 
   // Resolve params
@@ -224,29 +224,41 @@ export default function EditorPage({ params }: EditorPageProps) {
       // Phase 2: Load homepage sections or page-specific sections
       let typedSnapshot: WebsiteSnapshot;
 
-      if (currentPageId) {
-        // Load page snapshot
+      if (currentPageId && currentPageId !== websiteId) {
+        // Load page snapshot (guard: skip if pageId is actually the websiteId — homepage)
         const { data: pageSnapshot, error: pageError } = await supabase.rpc(
           'get_page_editor_snapshot',
           { p_website_id: websiteId, p_page_id: currentPageId }
         );
         if (pageError) throw pageError;
-        const ps = pageSnapshot as { website: WebsiteSnapshot['website']; page: Record<string, unknown>; sections: unknown[] };
-        // Normalize page sections to match WebsiteSnapshot.sections shape
-        const pageSections = (ps.sections || []).map((s: unknown, i: number) => {
-          const sec = s as Record<string, unknown>;
-          return {
-            id: (sec.id as string) || crypto.randomUUID(),
-            sectionType: (sec.section_type as string) || (sec.sectionType as string) || 'text_image',
-            variant: (sec.variant as string) || null,
-            displayOrder: i,
-            isEnabled: true,
-            config: (sec.config as Record<string, unknown>) || {},
-            content: (sec.content as Record<string, unknown>) || {},
-          };
-        });
-        typedSnapshot = { website: ps.website, sections: pageSections };
-        setPageTitle((ps.page?.title as string) || 'Pagina');
+        if (!pageSnapshot) {
+          // Page not found — fallback to homepage
+          setCurrentPageId(null);
+          setPageTitle('Inicio');
+          const { data: snapshot, error: rpcError } = await supabase.rpc(
+            'get_website_editor_snapshot',
+            { p_website_id: websiteId }
+          );
+          if (rpcError) throw rpcError;
+          typedSnapshot = snapshot as WebsiteSnapshot;
+        } else {
+          const ps = pageSnapshot as { website: WebsiteSnapshot['website']; page: Record<string, unknown>; sections: unknown[] };
+          // Normalize page sections to match WebsiteSnapshot.sections shape
+          const pageSections = (ps.sections || []).map((s: unknown, i: number) => {
+            const sec = s as Record<string, unknown>;
+            return {
+              id: (sec.id as string) || crypto.randomUUID(),
+              sectionType: (sec.section_type as string) || (sec.sectionType as string) || 'text_image',
+              variant: (sec.variant as string) || null,
+              displayOrder: i,
+              isEnabled: true,
+              config: (sec.config as Record<string, unknown>) || {},
+              content: (sec.content as Record<string, unknown>) || {},
+            };
+          });
+          typedSnapshot = { website: ps.website, sections: pageSections };
+          setPageTitle((ps.page?.title as string) || 'Pagina');
+        }
       } else {
         // Load homepage snapshot (existing behavior)
         const { data: snapshot, error: rpcError } = await supabase.rpc(
@@ -586,7 +598,7 @@ export default function EditorPage({ params }: EditorPageProps) {
   }
 
   // Transform sections for renderSectionWithResult (camelCase to snake_case for compatibility)
-  const rawContent = data.website.content || {};
+  const rawContent = data.website?.content || {};
   const getString = (val: unknown, fallback = '') =>
     typeof val === 'string' ? val : fallback;
 
@@ -607,7 +619,7 @@ export default function EditorPage({ params }: EditorPageProps) {
   });
   const social = getRecord(rawContent.social, {});
 
-  const sectionsForWebsite: WebsiteSection[] = data.sections.map((section) => ({
+  const sectionsForWebsite: WebsiteSection[] = (data.sections || []).map((section) => ({
     id: section.id,
     section_type: section.sectionType,
     variant: section.variant ?? '',
@@ -659,7 +671,7 @@ export default function EditorPage({ params }: EditorPageProps) {
   if (PUCK_ENABLED && puckReady && PuckEditor) {
     // Phase 2: Use page adapters when editing a specific page
     const puckData = currentPageId
-      ? pageSectionsToPuckData(data.sections as unknown[])
+      ? pageSectionsToPuckData((data.sections || []) as unknown[])
       : sectionsToPuckData(sectionsForWebsite);
 
     return (
@@ -757,7 +769,7 @@ export default function EditorPage({ params }: EditorPageProps) {
   return (
     <M3ThemeProvider initialTheme={data.website.theme?.tokens ? { tokens: data.website.theme.tokens, profile: data.website.theme.profile } : undefined}>
       <div className="min-h-screen">
-        {data.sections.map((section) => {
+        {(data.sections || []).map((section) => {
           // Transform to snake_case for renderSectionWithResult compatibility
           const sectionForRender = {
             id: section.id,

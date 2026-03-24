@@ -8,7 +8,7 @@
  * createSectionAdapter(), so the preview matches the public site exactly.
  */
 
-import type { Config } from '@measured/puck';
+import type { Config } from '@puckeditor/core';
 import { createSectionAdapter } from '../section-adapter';
 import { createImagePickerField } from '../fields/image-picker-field';
 

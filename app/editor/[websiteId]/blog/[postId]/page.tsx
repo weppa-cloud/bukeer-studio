@@ -37,6 +37,18 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
   const [scoreResult, setScoreResult] = useState<any>(null);
   const [isScoring, setIsScoring] = useState(false);
 
+  const getSupabase = useCallback(() => {
+    if (!tokenRef) return null;
+    return createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        global: { headers: { Authorization: `Bearer ${tokenRef}` } },
+        auth: { persistSession: false },
+      }
+    );
+  }, [tokenRef]);
+
   // Auto-score content after save, persist to blog_content_scores on publish
   const scoreContent = useCallback(async (savedStatus?: string) => {
     if (!tokenRef || !content || content.length < 100) return;
@@ -103,19 +115,7 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
     });
   }, [params]);
 
-  const getSupabase = useCallback(() => {
-    if (!tokenRef) return null;
-    return createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        global: { headers: { Authorization: `Bearer ${tokenRef}` } },
-        auth: { persistSession: false },
-      }
-    );
-  }, [tokenRef]);
-
-  // Load post data
+  // Auth: handle both embedded (iframe postMessage) and standalone modes
   useEffect(() => {
     async function load() {
       if (!websiteId || !postId) return;
@@ -134,8 +134,38 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
           return;
         }
       }
+      // Embedded mode: token comes via postMessage from Flutter
     }
     load();
+  }, [websiteId, postId]);
+
+  // Listen for auth token from Flutter parent (embedded iframe mode)
+  // Uses same protocol as Puck editor: source='bukeer-sites-editor', type='editor:init'
+  useEffect(() => {
+    const authMode = detectAuthMode();
+    if (authMode !== 'embedded') return;
+
+    function handleMessage(event: MessageEvent) {
+      const msg = event.data;
+      if (!msg || typeof msg !== 'object') return;
+
+      // Accept editor:init from Flutter (same protocol as Puck editor)
+      if (msg.source === 'bukeer-sites-editor' && msg.type === 'editor:init' && msg.payload?.accessToken) {
+        setTokenRef(msg.payload.accessToken as string);
+      }
+    }
+
+    window.addEventListener('message', handleMessage);
+
+    // Signal readiness to parent so Flutter knows to send token
+    try {
+      window.parent.postMessage(
+        { source: 'bukeer-blog-editor', type: 'blog:ready', websiteId, postId },
+        '*'
+      );
+    } catch { /* cross-origin — ignore */ }
+
+    return () => window.removeEventListener('message', handleMessage);
   }, [websiteId, postId]);
 
   // Load post once we have token

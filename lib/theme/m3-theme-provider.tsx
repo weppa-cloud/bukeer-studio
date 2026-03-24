@@ -9,7 +9,7 @@
  * No local type definitions — all types from @bukeer/theme-sdk.
  */
 
-import { ThemeProvider as NextThemesProvider } from 'next-themes';
+import { ThemeProvider as NextThemesProvider, useTheme as useNextTheme } from 'next-themes';
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 
 import type {
