@@ -22,7 +22,7 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -33,6 +33,11 @@ export default function LoginPage() {
       setTimeout(() => setShake(false), 600);
       setLoading(false);
       return;
+    }
+
+    // Set auth cookie so middleware allows /dashboard access
+    if (data.session) {
+      document.cookie = `sb-auth-token=${data.session.access_token}; path=/; max-age=3600; SameSite=Lax`;
     }
 
     router.push(redirect);

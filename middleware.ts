@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
 
 // Subdomains that should NOT be treated as tenant sites
 const RESERVED_SUBDOMAINS = [
@@ -190,34 +189,31 @@ export async function middleware(request: NextRequest) {
     const response = NextResponse.next();
 
     if (SUPABASE_URL && SUPABASE_ANON_KEY) {
-      const supabase = createServerClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-        cookies: {
-          getAll() { return request.cookies.getAll(); },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-            cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
-          },
-        },
-      });
-
       // Handle one-time JWT token from Flutter
       const token = url.searchParams.get('token');
       if (token) {
-        await supabase.auth.setSession({ access_token: token, refresh_token: '' });
+        // Set token as cookie for client-side auth
         const cleanUrl = new URL(url);
         cleanUrl.searchParams.delete('token');
-        return NextResponse.redirect(cleanUrl);
+        const redirectResponse = NextResponse.redirect(cleanUrl);
+        redirectResponse.cookies.set('sb-auth-token', token, {
+          path: '/',
+          httpOnly: false,
+          maxAge: 3600,
+        });
+        return redirectResponse;
       }
 
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
+      // Check for auth cookie or Supabase session cookie
+      const hasAuthCookie = request.cookies.getAll().some(c =>
+        c.name.startsWith('sb-') && c.name.endsWith('-auth-token')
+      );
+
+      if (!hasAuthCookie) {
         const loginUrl = new URL('/login', request.url);
         loginUrl.searchParams.set('redirect', pathname);
         return NextResponse.redirect(loginUrl);
       }
-
-      // Refresh session
-      await supabase.auth.getUser();
     }
 
     return response;

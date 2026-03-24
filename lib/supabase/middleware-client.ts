@@ -1,27 +1,11 @@
-import { createServerClient } from '@supabase/ssr';
-import { NextRequest, NextResponse } from 'next/server';
+/**
+ * Middleware Supabase client — simplified version without @supabase/ssr.
+ * Uses cookie-based auth checking in middleware.ts directly.
+ *
+ * The middleware checks for sb-*-auth-token cookies to determine auth state.
+ * Actual Supabase client operations happen in server/browser clients.
+ */
 
-export function createSupabaseMiddlewareClient(
-  request: NextRequest,
-  response: NextResponse
-) {
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          );
-          cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
-          );
-        },
-      },
-    }
-  );
-}
+// This file is kept as a placeholder. Auth checking in middleware is done
+// via cookie inspection (no Supabase client needed in middleware).
+// See middleware.ts for the implementation.
