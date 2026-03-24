@@ -186,13 +186,11 @@ export async function middleware(request: NextRequest) {
 
   // Auth guard for dashboard routes
   if (pathname.startsWith('/dashboard')) {
-    const response = NextResponse.next();
-
     if (SUPABASE_URL && SUPABASE_ANON_KEY) {
       // Handle one-time JWT token from Flutter
       const token = url.searchParams.get('token');
       if (token) {
-        // Set token as cookie for client-side auth
+        // Set token as cookie for client-side auth, then redirect to clean URL
         const cleanUrl = new URL(url);
         cleanUrl.searchParams.delete('token');
         const redirectResponse = NextResponse.redirect(cleanUrl);
@@ -204,8 +202,9 @@ export async function middleware(request: NextRequest) {
         return redirectResponse;
       }
 
-      // Check for auth cookie or Supabase session cookie
-      const hasAuthCookie = request.cookies.getAll().some(c =>
+      // Check for any Supabase auth cookie
+      const allCookies = request.cookies.getAll();
+      const hasAuthCookie = allCookies.some(c =>
         c.name.startsWith('sb-') && c.name.endsWith('-auth-token')
       );
 
@@ -216,7 +215,7 @@ export async function middleware(request: NextRequest) {
       }
     }
 
-    return response;
+    return NextResponse.next();
   }
 
   // Auth pages — no rewrite needed

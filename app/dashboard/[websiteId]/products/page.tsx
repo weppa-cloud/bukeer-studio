@@ -5,14 +5,15 @@ import { useParams } from 'next/navigation';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser-client';
 import { useWebsite } from '@/lib/admin/website-context';
 import { EmptyState } from '@/components/admin/empty-state';
+import { getDashboardUserContext } from '@/lib/admin/user-context';
 
 type ProductType = 'hotels' | 'activities' | 'transfers';
 
 interface ProductRow {
   id: string;
   name: string;
-  images?: string[];
-  city?: string;
+  main_image?: string;
+  location?: string;
 }
 
 export default function ProductsTab() {
@@ -24,36 +25,48 @@ export default function ProductsTab() {
   const [products, setProducts] = useState<ProductRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [accessError, setAccessError] = useState<string | null>(null);
 
   const featured = website?.featured_products || { hotels: [], activities: [], transfers: [], destinations: [] };
 
   const fetchProducts = useCallback(async () => {
     setLoading(true);
-    const { data: user } = await supabase.auth.getUser();
-    if (!user.user) return;
+    setAccessError(null);
+    try {
+      const context = await getDashboardUserContext(supabase);
+      if (context.status === 'unauthenticated') {
+        setAccessError('Tu sesión expiró. Inicia sesión nuevamente.');
+        setProducts([]);
+        return;
+      }
+      if (context.status === 'missing_role') {
+        setAccessError('No tienes un rol activo para ver productos.');
+        setProducts([]);
+        return;
+      }
 
-    const { data: profile } = await supabase
-      .from('users')
-      .select('account_id')
-      .eq('auth_user_id', user.user.id)
-      .single();
+      let query = supabase
+        .from(activeType)
+        .select('id, name, main_image, location')
+        .eq('account_id', context.accountId)
+        .order('name')
+        .limit(50);
 
-    if (!profile?.account_id) return;
+      if (search) {
+        query = query.ilike('name', `%${search}%`);
+      }
 
-    let query = supabase
-      .from(activeType)
-      .select('id, name, images, city')
-      .eq('account_id', profile.account_id)
-      .order('name')
-      .limit(50);
+      const { data, error } = await query;
+      if (error) {
+        setAccessError('No se pudieron cargar los productos.');
+        setProducts([]);
+        return;
+      }
 
-    if (search) {
-      query = query.ilike('name', `%${search}%`);
+      setProducts((data || []) as ProductRow[]);
+    } finally {
+      setLoading(false);
     }
-
-    const { data } = await query;
-    setProducts((data || []) as ProductRow[]);
-    setLoading(false);
   }, [activeType, search, supabase]);
 
   useEffect(() => {
@@ -119,6 +132,8 @@ export default function ProductsTab() {
             <div key={i} className="h-16 bg-slate-100 dark:bg-slate-800 rounded-xl animate-pulse" />
           ))}
         </div>
+      ) : accessError ? (
+        <EmptyState title="Access unavailable" description={accessError} />
       ) : products.length === 0 ? (
         <EmptyState title="No products found" description="Add products in your CRM to feature them here." />
       ) : (
@@ -128,8 +143,8 @@ export default function ProductsTab() {
               key={product.id}
               className="flex items-center gap-4 p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700"
             >
-              {product.images?.[0] ? (
-                <img src={product.images[0]} alt="" className="w-12 h-12 rounded-lg object-cover" />
+              {product.main_image ? (
+                <img src={product.main_image} alt="" className="w-12 h-12 rounded-lg object-cover" />
               ) : (
                 <div className="w-12 h-12 rounded-lg bg-slate-100 dark:bg-slate-700" />
               )}
@@ -137,8 +152,8 @@ export default function ProductsTab() {
                 <div className="font-medium text-sm text-slate-900 dark:text-white truncate">
                   {product.name}
                 </div>
-                {product.city && (
-                  <div className="text-xs text-slate-500">{product.city}</div>
+                {product.location && (
+                  <div className="text-xs text-slate-500">{product.location}</div>
                 )}
               </div>
               <button

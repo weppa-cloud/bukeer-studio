@@ -148,12 +148,12 @@ export default function PagesTab() {
       const newIndex = pages.findIndex((p) => p.id === over.id);
       const reordered = arrayMove(pages, oldIndex, newIndex);
 
-      // Update sort_order in DB
+      // Update nav_order in DB
       await Promise.all(
         reordered.map((page, i) =>
           supabase
             .from('website_pages')
-            .update({ sort_order: i })
+            .update({ nav_order: i })
             .eq('id', page.id)
         )
       );
@@ -172,7 +172,7 @@ export default function PagesTab() {
       slug,
       page_type: newType,
       is_published: false,
-      sort_order: pages.length,
+      nav_order: pages.length,
       hero_config: {},
       intro_content: {},
       cta_config: {},

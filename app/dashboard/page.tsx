@@ -7,6 +7,7 @@ import { EmptyState } from '@/components/admin/empty-state';
 import { SkeletonList } from '@/components/admin/skeleton-card';
 import { ConfirmDialog } from '@/components/admin/confirm-dialog';
 import Link from 'next/link';
+import { getDashboardUserContext } from '@/lib/admin/user-context';
 
 interface WebsiteRow {
   id: string;
@@ -19,6 +20,7 @@ interface WebsiteRow {
 export default function DashboardPage() {
   const [websites, setWebsites] = useState<WebsiteRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [accessError, setAccessError] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const supabase = createSupabaseBrowserClient();
 
@@ -28,27 +30,39 @@ export default function DashboardPage() {
 
   async function loadWebsites() {
     setLoading(true);
-    const { data: user } = await supabase.auth.getUser();
-    if (!user.user) return;
+    setAccessError(null);
+    try {
+      const context = await getDashboardUserContext(supabase);
 
-    // Get user's account
-    const { data: profile } = await supabase
-      .from('users')
-      .select('account_id')
-      .eq('auth_user_id', user.user.id)
-      .single();
+      if (context.status === 'unauthenticated') {
+        setAccessError('Tu sesión expiró. Inicia sesión nuevamente.');
+        setWebsites([]);
+        return;
+      }
 
-    if (!profile?.account_id) return;
+      if (context.status === 'missing_role') {
+        setAccessError('No tienes un rol activo en ninguna cuenta.');
+        setWebsites([]);
+        return;
+      }
 
-    const { data } = await supabase
-      .from('websites')
-      .select('id, subdomain, status, content, updated_at')
-      .eq('account_id', profile.account_id)
-      .is('deleted_at', null)
-      .order('updated_at', { ascending: false });
+      const { data, error } = await supabase
+        .from('websites')
+        .select('id, subdomain, status, content, updated_at')
+        .eq('account_id', context.accountId)
+        .is('deleted_at', null)
+        .order('updated_at', { ascending: false });
 
-    setWebsites((data as WebsiteRow[]) || []);
-    setLoading(false);
+      if (error) {
+        setAccessError('No se pudieron cargar los sitios web.');
+        setWebsites([]);
+        return;
+      }
+
+      setWebsites((data as WebsiteRow[]) || []);
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleDelete(id: string) {
@@ -85,6 +99,19 @@ export default function DashboardPage() {
 
       {loading ? (
         <SkeletonList count={6} />
+      ) : accessError ? (
+        <EmptyState
+          title="Access unavailable"
+          description={accessError}
+          action={
+            <button
+              onClick={() => loadWebsites()}
+              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-colors"
+            >
+              Retry
+            </button>
+          }
+        />
       ) : websites.length === 0 ? (
         <EmptyState
           title="Create your first website"

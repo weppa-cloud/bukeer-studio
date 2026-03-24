@@ -71,13 +71,18 @@ export async function getUserRole(
   supabase: { from: (table: string) => any }
 ): Promise<AdminRole> {
   const { data } = await supabase
-    .from('users')
-    .select('role')
-    .eq('auth_user_id', userId)
+    .from('user_roles')
+    .select('roles(role_name)')
+    .eq('user_id', userId)
     .eq('account_id', accountId)
-    .single();
+    .eq('is_active', true)
+    .limit(1)
+    .maybeSingle();
 
   if (!data) return 'viewer';
+
+  const roleName = extractRoleName((data as { roles?: unknown }).roles);
+  if (!roleName) return 'viewer';
 
   // Map internal roles to admin roles
   const roleMap: Record<string, AdminRole> = {
@@ -88,5 +93,15 @@ export async function getUserRole(
     accounting: 'viewer',
   };
 
-  return roleMap[data.role] || 'viewer';
+  return roleMap[roleName] || 'viewer';
+}
+
+function extractRoleName(value: unknown): string | null {
+  if (!value) return null;
+  if (Array.isArray(value)) {
+    const role = value[0] as { role_name?: unknown } | undefined;
+    return typeof role?.role_name === 'string' ? role.role_name : null;
+  }
+  const role = value as { role_name?: unknown };
+  return typeof role.role_name === 'string' ? role.role_name : null;
 }

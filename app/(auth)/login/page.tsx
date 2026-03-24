@@ -35,12 +35,9 @@ export default function LoginPage() {
       return;
     }
 
-    // Set auth cookie so middleware allows /dashboard access
-    if (data.session) {
-      document.cookie = `sb-auth-token=${data.session.access_token}; path=/; max-age=3600; SameSite=Lax`;
-    }
-
-    router.push(redirect);
+    // @supabase/ssr browser client automatically syncs session to cookies
+    // Force a hard navigation so middleware sees the new cookies
+    window.location.href = redirect;
   }
 
   async function handleGoogleLogin() {

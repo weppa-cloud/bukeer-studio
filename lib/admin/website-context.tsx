@@ -51,7 +51,7 @@ export function WebsiteProvider({ websiteId, children }: WebsiteProviderProps) {
       .from('website_pages')
       .select('*')
       .eq('website_id', websiteId)
-      .order('sort_order', { ascending: true });
+      .order('nav_order', { ascending: true });
 
     setPages((pagesData || []) as unknown as WebsitePage[]);
     setLoading(false);
