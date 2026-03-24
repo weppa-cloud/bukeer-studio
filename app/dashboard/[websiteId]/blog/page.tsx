@@ -37,8 +37,8 @@ export default function BlogTab() {
   const fetchPosts = useCallback(async () => {
     setLoading(true);
     let query = supabase
-      .from('blog_posts')
-      .select('id, title, slug, excerpt, status, featured_image, published_at, created_at, category:blog_categories(name, color)')
+      .from('website_blog_posts')
+      .select('id, title, slug, excerpt, status, featured_image, published_at, created_at, category:website_blog_categories(name, color)')
       .eq('website_id', websiteId)
       .order('created_at', { ascending: false })
       .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
@@ -61,7 +61,7 @@ export default function BlogTab() {
 
   async function handleCreate() {
     const { data } = await supabase
-      .from('blog_posts')
+      .from('website_blog_posts')
       .insert({
         website_id: websiteId,
         title: 'Untitled Post',
@@ -86,7 +86,7 @@ export default function BlogTab() {
 
     const status = action === 'publish' ? 'published' : 'draft';
     await supabase
-      .from('blog_posts')
+      .from('website_blog_posts')
       .update({ status, ...(action === 'publish' ? { published_at: new Date().toISOString() } : {}) })
       .in('id', ids);
 
@@ -95,7 +95,7 @@ export default function BlogTab() {
   }
 
   async function handleDelete(ids: string[]) {
-    await supabase.from('blog_posts').delete().in('id', ids);
+    await supabase.from('website_blog_posts').delete().in('id', ids);
     setDeleteIds([]);
     setSelected(new Set());
     fetchPosts();

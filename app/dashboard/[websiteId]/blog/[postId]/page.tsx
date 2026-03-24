@@ -34,7 +34,7 @@ export default function BlogEditorPage() {
   useEffect(() => {
     async function load() {
       const { data } = await supabase
-        .from('blog_posts')
+        .from('website_blog_posts')
         .select('*')
         .eq('id', postId)
         .single();
@@ -50,7 +50,7 @@ export default function BlogEditorPage() {
     // Calculate word count
     const wordCount = (updates.content || '').replace(/<[^>]*>/g, '').split(/\s+/).filter(Boolean).length;
     await supabase
-      .from('blog_posts')
+      .from('website_blog_posts')
       .update({ ...updates, word_count: wordCount })
       .eq('id', id);
   }, [supabase]);
