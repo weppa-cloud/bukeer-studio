@@ -1,6 +1,15 @@
 /* Fonts are loaded via next/font in layout.tsx for optimal performance */
 @import "tailwindcss";
 
+/* Utility: hide scrollbar but keep scroll functionality */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 /* ============================================
    THEME CONFIGURATION (Tailwind v4 CSS-first)
    ============================================ */
