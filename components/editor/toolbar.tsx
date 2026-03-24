@@ -13,8 +13,13 @@ interface ToolbarProps {
   onPublish: () => void;
   onPreview: () => void;
   onSaveAsTemplate?: () => void;
+  onUndo?: () => void;
+  onRedo?: () => void;
+  canUndo?: boolean;
+  canRedo?: boolean;
   isSaving: boolean;
   isPublishing: boolean;
+  saveStatus?: 'idle' | 'saving' | 'saved' | 'error';
 }
 
 const VIEWPORT_ICONS: Record<ViewportSize, string> = {
@@ -38,8 +43,13 @@ export function Toolbar({
   onPublish,
   onPreview,
   onSaveAsTemplate,
+  onUndo,
+  onRedo,
+  canUndo = false,
+  canRedo = false,
   isSaving,
   isPublishing,
+  saveStatus = 'idle',
 }: ToolbarProps) {
   const viewports: ViewportSize[] = ['desktop', 'tablet', 'mobile'];
 
@@ -82,7 +92,41 @@ export function Toolbar({
       </div>
 
       {/* Right: Actions */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
+        {/* Undo / Redo */}
+        {(onUndo || onRedo) && (
+          <div className="flex items-center gap-1 mr-2">
+            <button
+              onClick={onUndo}
+              disabled={!canUndo}
+              className="p-1.5 text-sm rounded-md hover:bg-muted transition-colors disabled:opacity-30"
+              title="Undo (⌘Z)"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M3 10h10a5 5 0 015 5v2M3 10l4-4M3 10l4 4" />
+              </svg>
+            </button>
+            <button
+              onClick={onRedo}
+              disabled={!canRedo}
+              className="p-1.5 text-sm rounded-md hover:bg-muted transition-colors disabled:opacity-30"
+              title="Redo (⌘⇧Z)"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M21 10H11a5 5 0 00-5 5v2M21 10l-4-4M21 10l-4 4" />
+              </svg>
+            </button>
+          </div>
+        )}
+
+        {/* Save status indicator */}
+        {saveStatus === 'saved' && (
+          <span className="text-xs text-green-600 mr-2">&#10003; Saved</span>
+        )}
+        {saveStatus === 'error' && (
+          <span className="text-xs text-red-500 mr-2">Save failed</span>
+        )}
+
         {onSaveAsTemplate && (
           <button
             onClick={onSaveAsTemplate}

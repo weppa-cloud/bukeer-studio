@@ -2,6 +2,25 @@
 
 import { useEditor, EditorContent, BubbleMenu } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
+
+/**
+ * Workaround for React 18 + ProseMirror DOM reconciliation conflict.
+ * See: https://github.com/ueberdosis/tiptap/issues/3764
+ *
+ * When React re-renders while ProseMirror has modified the DOM,
+ * `insertBefore` throws because the reference node was moved.
+ * This patch silently handles the case instead of crashing.
+ */
+if (typeof window !== 'undefined') {
+  const origInsertBefore = Node.prototype.insertBefore;
+  Node.prototype.insertBefore = function <T extends globalThis.Node>(newNode: T, refNode: globalThis.Node | null): T {
+    if (refNode && refNode.parentNode !== this) {
+      // ProseMirror moved this node — skip the insert (React will retry)
+      return newNode;
+    }
+    return origInsertBefore.call(this, newNode, refNode) as T;
+  };
+}
 import { Markdown } from 'tiptap-markdown';
 import Image from '@tiptap/extension-image';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -23,7 +42,7 @@ export function TiptapEditor({
   content,
   onChange,
   onEditorReady,
-  placeholder = 'Escribe tu post aquí...',
+  placeholder = 'Escribe aqui o presiona "/" para insertar bloques...',
   authToken,
   websiteId,
 }: TiptapEditorProps) {
@@ -45,13 +64,26 @@ export function TiptapEditor({
         transformPastedText: true,
         transformCopiedText: true,
       }),
-      Placeholder.configure({ placeholder }),
+      Placeholder.configure({
+        placeholder: ({ node }) => {
+          if (node.type.name === 'heading') return 'Titulo...';
+          return placeholder;
+        },
+      }),
     ],
     content,
     immediatelyRender: false,
+    // Prevent React re-renders on every ProseMirror transaction.
+    // Without this, typing triggers: onUpdate → onChange → setContent (parent)
+    // → React re-render → DOM reconciliation conflicts with ProseMirror.
+    shouldRerenderOnTransaction: false,
     onUpdate: ({ editor }) => {
-      const md = editor.storage.markdown.getMarkdown();
-      onChange(md);
+      requestAnimationFrame(() => {
+        if (!editor.isDestroyed) {
+          const md = editor.storage.markdown.getMarkdown();
+          onChange(md);
+        }
+      });
     },
     editorProps: {
       attributes: {
@@ -63,7 +95,7 @@ export function TiptapEditor({
         const file = event.dataTransfer.files[0];
         if (!file.type.startsWith('image/')) return false;
         event.preventDefault();
-        handleImageUpload(file, view.state.selection.from);
+        handleImageUpload(file);
         return true;
       },
       handlePaste: (view, event) => {
@@ -73,7 +105,7 @@ export function TiptapEditor({
           if (item.type.startsWith('image/')) {
             event.preventDefault();
             const file = item.getAsFile();
-            if (file) handleImageUpload(file, view.state.selection.from);
+            if (file) handleImageUpload(file);
             return true;
           }
         }
@@ -82,11 +114,11 @@ export function TiptapEditor({
     },
   });
 
+  // ── Image upload ──────────────────────────────────────────────────
   const handleImageUpload = useCallback(
-    async (file: File, pos?: number) => {
+    async (file: File) => {
       if (!editor) return;
 
-      // Show placeholder while uploading
       const placeholderUrl = URL.createObjectURL(file);
       editor.chain().focus().setImage({ src: placeholderUrl, alt: file.name }).run();
 
@@ -108,13 +140,11 @@ export function TiptapEditor({
 
         const { data: urlData } = supabase.storage.from('images').getPublicUrl(data.path);
 
-        // Replace placeholder with real URL
         const html = editor.getHTML();
         const updated = html.replace(placeholderUrl, urlData.publicUrl);
         editor.commands.setContent(updated);
       } catch (err) {
         console.error('Image upload failed:', err);
-        // Remove the placeholder image on failure
         editor.commands.undo();
       } finally {
         URL.revokeObjectURL(placeholderUrl);
@@ -122,6 +152,16 @@ export function TiptapEditor({
     },
     [editor, authToken, websiteId]
   );
+
+  // Listen for custom image upload events (from slash commands)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const file = (e as CustomEvent).detail?.file;
+      if (file) handleImageUpload(file);
+    };
+    document.addEventListener('tiptap:image-upload', handler);
+    return () => document.removeEventListener('tiptap:image-upload', handler);
+  }, [handleImageUpload]);
 
   // Notify parent when editor is ready
   useEffect(() => {
@@ -139,6 +179,9 @@ export function TiptapEditor({
 
   if (!editor) return null;
 
+  // IMPORTANT: Only EditorContent + BubbleMenu inside the wrapper div.
+  // The fixed toolbar lives in BlogEditor to avoid React/ProseMirror DOM conflicts.
+  // SlashMenu is a pure React component (no ProseMirror plugin) rendered via portal.
   return (
     <div className="tiptap-wrapper" data-testid="tiptap-wrapper">
       <BubbleMenu

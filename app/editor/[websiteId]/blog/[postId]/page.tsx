@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { BlogEditor } from '@/components/editor/blog-editor';
 import { detectAuthMode, createAuthClient } from '@/lib/auth/require-auth';
@@ -31,6 +31,9 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
   const [error, setError] = useState<string | null>(null);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+  // Live content ref — avoids re-rendering the entire page on every keystroke.
+  // State is used for initial load; ref tracks edits without triggering re-renders.
+  const contentRef = useRef('');
   const [seoTitle, setSeoTitle] = useState('');
   const [seoDescription, setSeoDescription] = useState('');
   const [tokenRef, setTokenRef] = useState<string | null>(null);
@@ -51,7 +54,8 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
 
   // Auto-score content after save, persist to blog_content_scores on publish
   const scoreContent = useCallback(async (savedStatus?: string) => {
-    if (!tokenRef || !content || content.length < 100) return;
+    const liveContent = contentRef.current || content;
+    if (!tokenRef || !liveContent || liveContent.length < 100) return;
     setIsScoring(true);
     try {
       const res = await fetch('/api/ai/editor/score-content', {
@@ -61,7 +65,7 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
           'Authorization': `Bearer ${tokenRef}`,
         },
         body: JSON.stringify({
-          content,
+          content: liveContent,
           title,
           metaDescription: seoDescription || undefined,
           locale: 'es',
@@ -198,6 +202,7 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
         setPost(postData);
         setTitle(postData.title ?? '');
         setContent(postData.content ?? '');
+        contentRef.current = postData.content ?? '';
         setSeoTitle(postData.seo_title ?? '');
         setSeoDescription(postData.seo_description ?? '');
       } catch (err) {
@@ -223,8 +228,9 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
             .replace(/\s+/g, '-')
             .slice(0, 100) || 'untitled';
 
-        const wordCount = content.split(/\s+/).filter(Boolean).length;
-        const excerpt = content.replace(/[#*_\[\]()]/g, '').slice(0, 200);
+        const liveContent = contentRef.current || content;
+        const wordCount = liveContent.split(/\s+/).filter(Boolean).length;
+        const excerpt = liveContent.replace(/[#*_\[\]()]/g, '').slice(0, 200);
 
         if (postId === 'new') {
           const { data, error: insertError } = await supabase
@@ -233,7 +239,7 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
               website_id: websiteId,
               title,
               slug,
-              content,
+              content: liveContent,
               excerpt,
               status,
               seo_title: seoTitle || title,
@@ -252,7 +258,7 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
           const updateData: Record<string, unknown> = {
             title,
             slug,
-            content,
+            content: liveContent,
             excerpt,
             status,
             seo_title: seoTitle || title,
@@ -342,7 +348,7 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
             postId={postId ?? undefined}
             authToken={tokenRef ?? undefined}
             onTitleChange={setTitle}
-            onChange={setContent}
+            onChange={(md) => { contentRef.current = md; }}
             scoreResult={scoreResult}
             isScoring={isScoring}
             onScoreRefresh={scoreContent}

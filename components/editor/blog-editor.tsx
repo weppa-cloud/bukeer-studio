@@ -1,8 +1,10 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { GradeBadge, ScoreDetailPanel, ScoreWarningBanner } from './score-display';
 import { TiptapEditor } from './tiptap-editor';
+import { TiptapToolbar } from './tiptap-toolbar';
+import { SlashMenu } from './slash-command';
 import type { Editor } from '@tiptap/react';
 import '../../styles/tiptap-bukeer.css';
 
@@ -33,8 +35,9 @@ interface BlogEditorProps {
 /**
  * Blog post editor with TipTap WYSIWYG, AI generation (v1 + v2), and SEO scoring.
  *
- * v1: 800-1200 word basic draft
- * v2: 2100-2400 word answer-first structure with FAQs, multi-language
+ * Architecture: BlogEditor owns the toolbar; TiptapEditor owns only the
+ * ProseMirror EditorContent + BubbleMenu. This prevents React/ProseMirror
+ * DOM reconciliation conflicts.
  */
 export function BlogEditor({
   initialContent = '',
@@ -51,15 +54,17 @@ export function BlogEditor({
 }: BlogEditorProps) {
   const [title, setTitle] = useState(initialTitle);
   const [content, setContent] = useState(initialContent);
+  const [wordCount, setWordCount] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
-  const editorRef = useRef<Editor | null>(null);
+  const [editorInstance, setEditorInstance] = useState<Editor | null>(null);
+  // Live content ref — avoids re-rendering the entire tree on every keystroke.
+  const contentRef = useRef(initialContent);
+  const wordCountTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
   const authHeaders: Record<string, string> = authToken
     ? { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` }
     : { 'Content-Type': 'application/json' };
-
-  const wordCount = content.split(/\s+/).filter(Boolean).length;
 
   const handleTitleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -71,21 +76,36 @@ export function BlogEditor({
 
   const handleContentChange = useCallback(
     (markdown: string) => {
-      setContent(markdown);
+      // Store in ref — NO setState to avoid re-renders during typing
+      contentRef.current = markdown;
       onChange?.(markdown);
+      // Debounced word count update (every 500ms)
+      clearTimeout(wordCountTimerRef.current);
+      wordCountTimerRef.current = setTimeout(() => {
+        setWordCount(markdown.split(/\s+/).filter(Boolean).length);
+      }, 500);
     },
     [onChange]
   );
 
   const handleEditorReady = useCallback((editor: Editor | null) => {
-    if (editor) editorRef.current = editor;
+    if (editor) setEditorInstance(editor);
   }, []);
+
+  const handleImageUpload = useCallback(
+    (file: File) => {
+      // Dispatch event that TiptapEditor listens for
+      const event = new CustomEvent('tiptap:image-upload', { detail: { file } });
+      document.dispatchEvent(event);
+    },
+    []
+  );
 
   const setEditorContent = useCallback(
     (markdown: string) => {
-      setContent(markdown);
+      contentRef.current = markdown;
+      setContent(markdown); // State update OK here — only on AI generation, not typing
       onChange?.(markdown);
-      // TipTap syncs via the content prop effect in TiptapEditor
     },
     [onChange]
   );
@@ -123,7 +143,7 @@ export function BlogEditor({
           const res = await fetch('/api/ai/editor/improve-text', {
             method: 'POST',
             headers: authHeaders,
-            body: JSON.stringify({ text: content, action: 'rewrite' }),
+            body: JSON.stringify({ text: contentRef.current, action: 'rewrite' }),
           });
           if (!res.ok) throw new Error('Failed to improve');
           const data = await res.json();
@@ -133,7 +153,7 @@ export function BlogEditor({
             method: 'POST',
             headers: authHeaders,
             body: JSON.stringify({
-              text: content,
+              text: contentRef.current,
               action: 'translate',
               targetLocale: targetLocale ?? 'en',
             }),
@@ -148,7 +168,7 @@ export function BlogEditor({
         setIsGenerating(false);
       }
     },
-    [title, content, setEditorContent, onTitleChange, onSeoDataChange, authHeaders]
+    [title, setEditorContent, onTitleChange, onSeoDataChange, authHeaders]
   );
 
   return (
@@ -161,7 +181,7 @@ export function BlogEditor({
         type="text"
         value={title}
         onChange={handleTitleChange}
-        placeholder="Título del post..."
+        placeholder="Titulo del post..."
         className="text-3xl font-bold border-none outline-none px-6 py-4 bg-transparent placeholder:text-muted-foreground/50"
         data-testid="blog-title-input"
       />
@@ -219,10 +239,8 @@ export function BlogEditor({
           /translate PT
         </button>
 
-        {/* Spacer */}
         <div className="flex-1" />
 
-        {/* Score badge */}
         <GradeBadge grade={scoreResult?.grade} score={scoreResult?.overall} isLoading={isScoring} />
 
         {isGenerating && (
@@ -234,12 +252,17 @@ export function BlogEditor({
       {/* Score detail panel (collapsible) */}
       <ScoreDetailPanel score={scoreResult ?? null} isLoading={isScoring} onRefresh={onScoreRefresh} />
 
-      {/* TipTap WYSIWYG Editor */}
+      {/* Fixed formatting toolbar — lives here, NOT inside TiptapEditor, to avoid DOM conflicts */}
+      {editorInstance && (
+        <TiptapToolbar editor={editorInstance} variant="fixed" onImageUpload={handleImageUpload} />
+      )}
+
+      {/* TipTap WYSIWYG Editor (only ProseMirror content + bubble menu inside) */}
       <TiptapEditor
         content={content}
         onChange={handleContentChange}
         onEditorReady={handleEditorReady}
-        placeholder="Escribe tu post aquí..."
+        placeholder="Escribe tu post aqui..."
         authToken={authToken}
         websiteId={websiteId}
       />
@@ -247,8 +270,11 @@ export function BlogEditor({
       {/* Status bar */}
       <div className="tiptap-status-bar">
         <span className="word-count">{wordCount} palabras</span>
-        <span>WYSIWYG · Markdown</span>
+        <span>Escribe "/" para insertar bloques · WYSIWYG · Markdown</span>
       </div>
+
+      {/* Slash command menu — rendered via portal, outside TiptapEditor tree */}
+      {editorInstance && <SlashMenu editor={editorInstance} />}
     </div>
   );
 }
