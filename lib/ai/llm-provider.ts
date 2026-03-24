@@ -24,7 +24,7 @@ const openrouter = createOpenAI({
 
 /** Default model for editor AI routes */
 export const DEFAULT_MODEL =
-  process.env.OPENROUTER_MODEL || 'anthropic/claude-sonnet-4-5-20250514';
+  process.env.OPENROUTER_MODEL || 'anthropic/claude-sonnet-4.6';
 
 /** Get the configured LLM model for editor routes */
 export function getEditorModel() {
