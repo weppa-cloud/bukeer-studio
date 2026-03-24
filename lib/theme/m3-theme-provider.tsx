@@ -74,12 +74,39 @@ function applyCssVariables(
   }
 }
 
+/** Deep merge partial tokens with defaults so compileTheme never hits undefined */
+function mergeWithDefaults(partial: DesignTokens): DesignTokens {
+  // Deep merge helper
+  function deepMerge<T extends Record<string, unknown>>(target: T, source: Record<string, unknown>): T {
+    const result = { ...target } as Record<string, unknown>;
+    for (const key of Object.keys(source)) {
+      if (result[key] === undefined || result[key] === null) {
+        result[key] = source[key];
+      } else if (
+        typeof result[key] === 'object' && !Array.isArray(result[key]) &&
+        typeof source[key] === 'object' && !Array.isArray(source[key])
+      ) {
+        result[key] = deepMerge(result[key] as Record<string, unknown>, source[key] as Record<string, unknown>);
+      }
+    }
+    return result as T;
+  }
+  return deepMerge(partial, defaultTokens);
+}
+
 function applyCompiledThemeToDOM(
   tokens: DesignTokens,
   profile: ThemeProfile,
   isDark: boolean,
 ) {
-  const compiled = compileTheme(tokens, profile, { target: 'web' });
+  const safeTokens = mergeWithDefaults(tokens);
+  let compiled;
+  try {
+    compiled = compileTheme(safeTokens, profile, { target: 'web' });
+  } catch (e) {
+    console.warn('[M3ThemeProvider] compileTheme failed, using defaults:', e);
+    compiled = compileTheme(defaultTokens, defaultProfile, { target: 'web' });
+  }
   if (!compiled.web) return;
 
   const root = document.documentElement;
@@ -127,7 +154,7 @@ interface M3ThemeProviderProps {
 
 export function M3ThemeProvider({ children, initialTheme }: M3ThemeProviderProps) {
   const [tokens, setTokens] = useState<DesignTokens>(
-    initialTheme?.tokens ?? defaultTokens,
+    mergeWithDefaults(initialTheme?.tokens ?? defaultTokens),
   );
   const [profile, setProfile] = useState<ThemeProfile>(
     initialTheme?.profile ?? defaultProfile,
@@ -170,7 +197,8 @@ export function M3ThemeProvider({ children, initialTheme }: M3ThemeProviderProps
     return () => mediaQuery.removeEventListener('change', handleChange);
   }, [tokens, profile, mounted]);
 
-  const resolvedColorScheme = isDark ? tokens.colors.dark : tokens.colors.light;
+  const resolvedColorScheme = (isDark ? tokens.colors?.dark : tokens.colors?.light)
+    ?? defaultTokens.colors.light;
 
   const nextThemeDefault = profile.colorMode === 'system' ? 'system' : profile.colorMode;
 

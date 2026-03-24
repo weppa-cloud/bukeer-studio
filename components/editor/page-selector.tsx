@@ -184,7 +184,7 @@ const styles: Record<string, React.CSSProperties> = {
   dropdown: {
     position: 'absolute',
     top: '100%',
-    left: 0,
+    right: 0,
     marginTop: 4,
     minWidth: 220,
     maxHeight: 320,
@@ -192,8 +192,8 @@ const styles: Record<string, React.CSSProperties> = {
     background: 'white',
     border: '1px solid #E5E7EB',
     borderRadius: 8,
-    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-    zIndex: 100,
+    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+    zIndex: 99999,
   },
   option: {
     display: 'flex',

@@ -122,6 +122,8 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: nowrap;
+  white-space: nowrap;
 }
 
 /* Status indicator pill */
@@ -135,6 +137,8 @@
   font-weight: 500;
   font-family: 'Outfit', 'Inter', system-ui, sans-serif;
   color: var(--puck-color-grey-05);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .editor-status--dirty {

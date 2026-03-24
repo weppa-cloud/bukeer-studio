@@ -31,6 +31,7 @@ const LIMITS = {
 type LimitTier = keyof typeof LIMITS;
 
 function getServiceClient() {
+  if (!supabaseServiceKey) return null;
   return createClient(supabaseUrl, supabaseServiceKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
@@ -47,6 +48,11 @@ export async function checkRateLimit(
   const limit = LIMITS[tier];
   const supabase = getServiceClient();
   const now = new Date();
+
+  // Skip rate limiting if no service key (local dev)
+  if (!supabase) {
+    return { allowed: true, remaining: limit.requestsPerMinute, resetAt: new Date(now.getTime() + 60_000) };
+  }
   const windowStart = new Date(now.getTime() - 60_000); // 1 minute ago
 
   // Get current count in window
@@ -129,6 +135,7 @@ export async function checkRateLimit(
  */
 export async function cleanupStaleEntries(): Promise<number> {
   const supabase = getServiceClient();
+  if (!supabase) return 0;
   const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000); // 48h ago
 
   const { data } = await supabase
@@ -145,6 +152,7 @@ export async function cleanupStaleEntries(): Promise<number> {
  */
 export async function recordCost(key: string, costUsd: number): Promise<void> {
   const supabase = getServiceClient();
+  if (!supabase) return;
   const now = new Date();
 
   // Find the most recent rate limit entry for this key

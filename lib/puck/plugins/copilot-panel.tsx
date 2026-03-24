@@ -430,7 +430,7 @@ const styles: Record<string, React.CSSProperties> = {
   container: {
     borderTop: '1px solid #E5E7EB',
     marginTop: 16,
-    paddingTop: 12,
+    padding: '12px 16px',
     display: 'flex',
     flexDirection: 'column',
     gap: 8,
