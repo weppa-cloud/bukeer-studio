@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser-client';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getDashboardUserContext } from '@/lib/admin/user-context';
 
 const PRESETS = [
   { id: 'blank', name: 'Blank', mood: 'corporate', color: '#1976D2', desc: 'Start from scratch' },
@@ -26,6 +27,7 @@ export default function NewWebsitePage() {
   const [subdomainChecking, setSubdomainChecking] = useState(false);
   const [creating, setCreating] = useState(false);
   const [created, setCreated] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
   const router = useRouter();
   const supabase = createSupabaseBrowserClient();
 
@@ -57,23 +59,25 @@ export default function NewWebsitePage() {
 
   async function handleCreate() {
     setCreating(true);
+    setCreateError(null);
     const preset = PRESETS.find((p) => p.id === selectedPreset) || PRESETS[0];
 
-    const { data: user } = await supabase.auth.getUser();
-    if (!user.user) return;
-
-    const { data: profile } = await supabase
-      .from('users')
-      .select('account_id')
-      .eq('auth_user_id', user.user.id)
-      .single();
-
-    if (!profile?.account_id) return;
+    const context = await getDashboardUserContext(supabase);
+    if (context.status === 'unauthenticated') {
+      setCreateError('Tu sesión expiró. Inicia sesión nuevamente.');
+      setCreating(false);
+      return;
+    }
+    if (context.status === 'missing_role') {
+      setCreateError('No tienes un rol activo para crear sitios web.');
+      setCreating(false);
+      return;
+    }
 
     const { data: website, error } = await supabase
       .from('websites')
       .insert({
-        account_id: profile.account_id,
+        account_id: context.accountId,
         subdomain,
         status: 'draft',
         template_id: preset.id,
@@ -95,6 +99,7 @@ export default function NewWebsitePage() {
       .single();
 
     if (error) {
+      setCreateError(error.message || 'No se pudo crear el sitio web.');
       setCreating(false);
       return;
     }
@@ -277,6 +282,11 @@ export default function NewWebsitePage() {
                   <span className="font-medium text-blue-600">{subdomain}.bukeer.com</span>
                 </div>
               </div>
+              {createError && (
+                <div className="mt-4 rounded-lg border border-red-300 bg-red-50 text-red-800 px-3 py-2 text-sm dark:border-red-700 dark:bg-red-950/30 dark:text-red-300">
+                  {createError}
+                </div>
+              )}
               <div className="flex justify-between mt-8">
                 <button
                   onClick={() => setStep(1)}

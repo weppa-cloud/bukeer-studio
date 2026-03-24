@@ -25,6 +25,7 @@ export function DashboardShell({
   websiteName,
 }: DashboardShellProps) {
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const { isOnline } = useNetworkStatus();
 
   useCommonShortcuts({
@@ -45,10 +46,33 @@ export function DashboardShell({
         accountName={accountName}
         avatarUrl={avatarUrl}
         onCommandPalette={() => setPaletteOpen(true)}
+        onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
       />
 
       <div className="flex-1 flex overflow-hidden">
-        <AdminSidebar websiteId={websiteId} websiteName={websiteName} />
+        {/* Mobile sidebar backdrop */}
+        {sidebarOpen && (
+          <div
+            className="fixed inset-0 bg-black/50 z-30 md:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+
+        {/* Sidebar - hidden on mobile, shown as drawer when toggled */}
+        <div
+          className={`
+            fixed inset-y-0 left-0 z-40 md:relative md:z-0
+            transform transition-transform duration-200 ease-in-out
+            ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+          `}
+        >
+          <AdminSidebar
+            websiteId={websiteId}
+            websiteName={websiteName}
+            onNavigate={() => setSidebarOpen(false)}
+          />
+        </div>
+
         <main className="flex-1 overflow-y-auto">
           {children}
         </main>

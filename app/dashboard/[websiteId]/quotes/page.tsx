@@ -36,7 +36,7 @@ export default function QuotesTab() {
   const fetchLeads = useCallback(async () => {
     setLoading(true);
     let query = supabase
-      .from('quote_requests')
+      .from('website_quote_requests')
       .select('*')
       .eq('website_id', websiteId)
       .order('created_at', { ascending: false })
@@ -59,12 +59,12 @@ export default function QuotesTab() {
   }, [fetchLeads]);
 
   async function updateStatus(id: string, status: LeadRow['status']) {
-    await supabase.from('quote_requests').update({ status }).eq('id', id);
+    await supabase.from('website_quote_requests').update({ status }).eq('id', id);
     setLeads((prev) => prev.map((l) => l.id === id ? { ...l, status } : l));
   }
 
   async function handleDelete(ids: string[]) {
-    await supabase.from('quote_requests').delete().in('id', ids);
+    await supabase.from('website_quote_requests').delete().in('id', ids);
     setDeleteIds([]);
     setSelected(new Set());
     fetchLeads();

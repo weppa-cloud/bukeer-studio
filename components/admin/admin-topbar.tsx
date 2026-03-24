@@ -9,6 +9,7 @@ interface AdminTopbarProps {
   accountName?: string;
   avatarUrl?: string;
   onCommandPalette?: () => void;
+  onToggleSidebar?: () => void;
 }
 
 export function AdminTopbar({
@@ -16,6 +17,7 @@ export function AdminTopbar({
   accountName,
   avatarUrl,
   onCommandPalette,
+  onToggleSidebar,
 }: AdminTopbarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const router = useRouter();
@@ -23,17 +25,30 @@ export function AdminTopbar({
 
   async function handleLogout() {
     await supabase.auth.signOut();
+    // Clear auth cookie
+    document.cookie = 'sb-auth-token=; path=/; max-age=0';
     router.push('/login');
   }
 
   return (
-    <header className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-6">
-      <div className="flex items-center gap-4">
-        <h1 className="text-lg font-semibold text-slate-900 dark:text-white">
+    <header className="h-14 md:h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-4 md:px-6 shrink-0">
+      <div className="flex items-center gap-3 md:gap-4">
+        {/* Mobile hamburger */}
+        <button
+          onClick={onToggleSidebar}
+          className="md:hidden p-2 -ml-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 rounded-lg"
+          aria-label="Toggle sidebar"
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeWidth="2" strokeLinecap="round" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+
+        <h1 className="text-base md:text-lg font-semibold text-slate-900 dark:text-white">
           Website Studio
         </h1>
 
-        {/* Command palette trigger */}
+        {/* Command palette trigger — hidden on mobile */}
         <button
           onClick={onCommandPalette}
           className="hidden md:flex items-center gap-2 px-3 py-1.5 text-sm text-slate-400 bg-slate-100 dark:bg-slate-800 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
@@ -47,11 +62,23 @@ export function AdminTopbar({
             ⌘K
           </kbd>
         </button>
+
+        {/* Mobile search icon */}
+        <button
+          onClick={onCommandPalette}
+          className="md:hidden p-2 text-slate-400 hover:text-slate-600"
+          aria-label="Search"
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <circle cx="11" cy="11" r="8" strokeWidth="1.5" />
+            <path strokeWidth="1.5" d="M21 21l-4.35-4.35" />
+          </svg>
+        </button>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 md:gap-4">
         {accountName && (
-          <span className="hidden sm:block text-sm text-slate-500 dark:text-slate-400">
+          <span className="hidden lg:block text-sm text-slate-500 dark:text-slate-400">
             {accountName}
           </span>
         )}

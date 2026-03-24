@@ -40,9 +40,10 @@ function IconComponent({ name, className }: { name: string; className?: string }
 interface AdminSidebarProps {
   websiteId?: string;
   websiteName?: string;
+  onNavigate?: () => void;
 }
 
-export function AdminSidebar({ websiteId, websiteName }: AdminSidebarProps) {
+export function AdminSidebar({ websiteId, websiteName, onNavigate }: AdminSidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
 
@@ -56,7 +57,7 @@ export function AdminSidebar({ websiteId, websiteName }: AdminSidebarProps) {
 
   return (
     <motion.aside
-      className="h-full bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-700 flex flex-col"
+      className="h-full w-[240px] md:w-auto bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-700 flex flex-col"
       animate={{ width: collapsed ? 64 : 240 }}
       transition={{ duration: 0.2 }}
     >
@@ -92,6 +93,7 @@ export function AdminSidebar({ websiteId, websiteName }: AdminSidebarProps) {
             <Link
               key={item.href}
               href={item.href}
+              onClick={onNavigate}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors text-sm font-medium ${
                 isActive
                   ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'

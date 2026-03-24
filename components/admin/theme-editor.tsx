@@ -66,7 +66,7 @@ export function ThemeEditor({ website, onSave }: ThemeEditorProps) {
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8">
       {/* Controls */}
       <div className="space-y-8">
         {/* Save status */}
@@ -79,7 +79,7 @@ export function ThemeEditor({ website, onSave }: ThemeEditorProps) {
         {/* Presets */}
         <div>
           <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-3">Presets</h3>
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {PRESETS.map((p) => (
               <button
                 key={p.id}
@@ -164,7 +164,7 @@ export function ThemeEditor({ website, onSave }: ThemeEditorProps) {
         {/* Layout Variant */}
         <div>
           <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-3">Layout</h3>
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {LAYOUT_VARIANTS.map((v) => (
               <button
                 key={v}

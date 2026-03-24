@@ -23,26 +23,26 @@ function WebsiteHeader({ websiteId, websiteName }: { websiteId: string; websiteN
   return (
     <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700">
       {/* Top bar with name and actions */}
-      <div className="flex items-center justify-between px-6 py-3">
-        <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between px-3 md:px-6 py-2 md:py-3">
+        <div className="flex items-center gap-2 md:gap-3 min-w-0">
           <Link
             href="/dashboard"
-            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors shrink-0"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
           </Link>
-          <h2 className="font-semibold text-slate-900 dark:text-white">{websiteName}</h2>
+          <h2 className="font-semibold text-slate-900 dark:text-white text-sm md:text-base truncate">{websiteName}</h2>
           <DirtyDot />
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 md:gap-2 shrink-0">
           <a
             href={`/?subdomain=${websiteName.toLowerCase().replace(/\s+/g, '-')}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="px-3 py-1.5 text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+            className="hidden sm:block px-3 py-1.5 text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
           >
             Preview
           </a>
@@ -50,15 +50,15 @@ function WebsiteHeader({ websiteId, websiteName }: { websiteId: string; websiteN
         </div>
       </div>
 
-      {/* Tab navigation */}
-      <nav className="flex px-6 gap-1 overflow-x-auto">
+      {/* Tab navigation — scrollable on mobile */}
+      <nav className="flex px-3 md:px-6 gap-0.5 md:gap-1 overflow-x-auto scrollbar-hide">
         {TABS.map((tab) => {
           const isActive = tab.slug === activeTab;
           return (
             <Link
               key={tab.slug}
               href={`/dashboard/${websiteId}/${tab.slug}`}
-              className={`relative px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors ${
+              className={`relative px-3 md:px-4 py-2.5 md:py-3 text-xs md:text-sm font-medium whitespace-nowrap transition-colors min-h-[44px] flex items-center ${
                 isActive
                   ? 'text-blue-600 dark:text-blue-400'
                   : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'
