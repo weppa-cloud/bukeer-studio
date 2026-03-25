@@ -1,0 +1,2 @@
+website-20260322-020723	website-render	svg-path-undefined	website	/editor	console_error	low	Open Puck editor, check console	No SVG errors	Error: path d attribute undefined	Check section components for missing icon SVG data	0.5	open	qa-website	2026-03-22T02:41:55Z
+website-20260322-020723	website-render	css-nan-height	website	/editor	console_error	low	Open Puck editor, check console	No CSS errors	NaN is invalid for height css property	Investigate Puck component returning NaN for height	0.3	open	qa-website	2026-03-22T02:41:55Z

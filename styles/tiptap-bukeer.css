@@ -1,0 +1,468 @@
+/**
+ * TipTap Editor — Bukeer Theme v3 (Notion-style)
+ *
+ * IMPORT STRATEGY: Only in the blog editor route.
+ * Uses CSS variables from @bukeer/theme-sdk compiler output.
+ * No hardcoded colors — all values resolve via theme tokens.
+ */
+
+/* ================================================================
+ * 1. EDITOR CONTENT — WYSIWYG rendering
+ * ================================================================ */
+
+.tiptap-wrapper {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  position: relative;
+}
+
+.tiptap-content {
+  padding: 1.5rem 1.5rem 1.5rem 3rem;
+  outline: none;
+  min-height: 400px;
+  font-family: var(--font-body, 'Inter'), system-ui, -apple-system, sans-serif;
+  font-size: 1rem;
+  line-height: var(--body-line-height, 1.75);
+  color: hsl(var(--foreground));
+}
+
+.tiptap-content:focus {
+  outline: none;
+}
+
+/* Headings */
+.tiptap-content h2 {
+  font-family: var(--font-heading, 'Inter'), system-ui, sans-serif;
+  font-size: 1.5rem;
+  font-weight: var(--font-heading-weight, 700);
+  color: hsl(var(--foreground));
+  margin-top: 2rem;
+  margin-bottom: 0.75rem;
+  line-height: 1.3;
+}
+
+.tiptap-content h3 {
+  font-family: var(--font-heading, 'Inter'), system-ui, sans-serif;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+  line-height: 1.4;
+}
+
+/* Paragraphs */
+.tiptap-content p {
+  margin-bottom: 1rem;
+}
+
+.tiptap-content p:last-child {
+  margin-bottom: 0;
+}
+
+/* Bold & Italic & Strike */
+.tiptap-content strong {
+  font-weight: 700;
+  color: hsl(var(--foreground));
+}
+
+.tiptap-content em {
+  font-style: italic;
+}
+
+.tiptap-content s {
+  text-decoration: line-through;
+  opacity: 0.7;
+}
+
+/* Links */
+.tiptap-content a,
+.tiptap-content .tiptap-link {
+  color: hsl(var(--primary));
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.tiptap-content a:hover {
+  color: hsl(var(--primary) / 0.8);
+}
+
+/* Lists */
+.tiptap-content ul {
+  list-style: disc;
+  padding-left: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.tiptap-content ol {
+  list-style: decimal;
+  padding-left: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.tiptap-content li {
+  margin-bottom: 0.25rem;
+}
+
+.tiptap-content li p {
+  margin-bottom: 0.25rem;
+}
+
+/* Blockquote */
+.tiptap-content blockquote {
+  border-left: 3px solid hsl(var(--primary));
+  padding-left: 1rem;
+  margin: 1rem 0;
+  color: hsl(var(--muted-foreground));
+  font-style: italic;
+}
+
+/* Code */
+.tiptap-content code {
+  background: hsl(var(--muted));
+  border-radius: var(--radius-sm, 4px);
+  padding: 0.15rem 0.4rem;
+  font-size: 0.875em;
+  font-family: 'Fira Code', 'Cascadia Code', monospace;
+  color: hsl(var(--primary));
+}
+
+.tiptap-content pre {
+  background: hsl(var(--inverse-surface, 0 0% 13%));
+  color: hsl(var(--on-inverse-surface, 0 0% 90%));
+  border-radius: var(--radius, 8px);
+  padding: 1rem;
+  margin: 1rem 0;
+  overflow-x: auto;
+}
+
+.tiptap-content pre code {
+  background: none;
+  color: inherit;
+  padding: 0;
+  border-radius: 0;
+  font-size: 0.875rem;
+}
+
+/* Images */
+.tiptap-content img,
+.tiptap-content .tiptap-image {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius, 8px);
+  margin: 1rem 0;
+  cursor: pointer;
+  transition: box-shadow 150ms ease;
+}
+
+.tiptap-content img:hover {
+  box-shadow: 0 0 0 3px hsl(var(--primary) / 0.3);
+}
+
+.tiptap-content img.ProseMirror-selectednode {
+  box-shadow: 0 0 0 3px hsl(var(--primary));
+}
+
+/* Horizontal rule */
+.tiptap-content hr {
+  border: none;
+  border-top: 1px solid hsl(var(--border));
+  margin: 2rem 0;
+}
+
+/* ================================================================
+ * 2. PLACEHOLDER
+ * ================================================================ */
+
+.tiptap-content p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: hsl(var(--muted-foreground) / 0.5);
+  pointer-events: none;
+  height: 0;
+}
+
+.tiptap-content .is-empty::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: hsl(var(--muted-foreground) / 0.4);
+  pointer-events: none;
+  height: 0;
+}
+
+/* ================================================================
+ * 3. BUBBLE MENU
+ * ================================================================ */
+
+.tiptap-bubble-menu {
+  display: flex;
+  align-items: center;
+  background: hsl(var(--inverse-surface, 0 0% 13%));
+  border-radius: var(--radius, 8px);
+  padding: 4px;
+  box-shadow: var(--elevation-nav, 0 4px 16px rgba(0, 0, 0, 0.2));
+  gap: 2px;
+}
+
+/* ================================================================
+ * 4. TOOLBAR — Shared styles (bubble + fixed)
+ * ================================================================ */
+
+.tiptap-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  flex-wrap: wrap;
+}
+
+.tiptap-toolbar--fixed {
+  padding: 6px 1.5rem;
+  border-bottom: 1px solid hsl(var(--border));
+  background: hsl(var(--card));
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.tiptap-toolbar--bubble {
+  gap: 1px;
+}
+
+.tiptap-toolbar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 6px;
+  border: none;
+  border-radius: var(--radius-sm, 4px);
+  background: transparent;
+  cursor: pointer;
+  transition: all 100ms ease;
+  color: inherit;
+}
+
+.tiptap-toolbar-btn svg {
+  flex-shrink: 0;
+}
+
+/* Bubble variant: light text on dark bg */
+.tiptap-toolbar--bubble .tiptap-toolbar-btn {
+  color: hsl(var(--on-inverse-surface, 0 0% 83%));
+  min-width: 28px;
+  height: 28px;
+}
+
+.tiptap-toolbar--bubble .tiptap-toolbar-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+
+.tiptap-toolbar--bubble .tiptap-toolbar-btn.is-active {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+
+/* Fixed variant: dark text on light bg */
+.tiptap-toolbar--fixed .tiptap-toolbar-btn {
+  color: hsl(var(--muted-foreground));
+}
+
+.tiptap-toolbar--fixed .tiptap-toolbar-btn:hover {
+  background: hsl(var(--muted));
+  color: hsl(var(--foreground));
+}
+
+.tiptap-toolbar--fixed .tiptap-toolbar-btn.is-active {
+  background: hsl(var(--primary) / 0.12);
+  color: hsl(var(--primary));
+}
+
+.tiptap-toolbar-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* Separator between toolbar groups */
+.tiptap-toolbar-separator {
+  width: 1px;
+  height: 20px;
+  background: hsl(var(--border));
+  margin: 0 4px;
+  flex-shrink: 0;
+}
+
+.tiptap-toolbar--bubble .tiptap-toolbar-separator {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* ================================================================
+ * 5. FLOATING ADD BLOCK BUTTON (+)  — Notion-style
+ * ================================================================ */
+
+.tiptap-add-block-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--radius-sm, 4px);
+  background: transparent;
+  color: hsl(var(--muted-foreground) / 0.5);
+  cursor: pointer;
+  transition: all 150ms ease;
+  z-index: 5;
+}
+
+.tiptap-add-block-btn:hover {
+  background: hsl(var(--muted));
+  color: hsl(var(--foreground));
+}
+
+/* ================================================================
+ * 6. SLASH COMMAND MENU  — Notion-style dropdown
+ * ================================================================ */
+
+.tippy-box[data-theme~='slash-command'] {
+  background: transparent;
+  padding: 0;
+  border: none;
+  box-shadow: none;
+}
+
+.tippy-box[data-theme~='slash-command'] > .tippy-content {
+  padding: 0;
+}
+
+.slash-command-menu {
+  background: hsl(var(--card, 0 0% 100%));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius, 8px);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12), 0 1px 4px rgba(0, 0, 0, 0.08);
+  max-height: 360px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 6px;
+  min-width: 280px;
+}
+
+.slash-command-category {
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: hsl(var(--muted-foreground) / 0.6);
+  padding: 8px 10px 4px;
+  user-select: none;
+}
+
+.slash-command-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: var(--radius-sm, 4px);
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: background 80ms ease;
+  color: hsl(var(--foreground));
+}
+
+.slash-command-item:hover,
+.slash-command-item.is-selected {
+  background: hsl(var(--muted));
+}
+
+.slash-command-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm, 4px);
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--card, 0 0% 100%));
+  color: hsl(var(--foreground));
+  flex-shrink: 0;
+}
+
+.slash-command-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.slash-command-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: hsl(var(--foreground));
+  line-height: 1.3;
+}
+
+.slash-command-description {
+  font-size: 0.75rem;
+  color: hsl(var(--muted-foreground));
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.slash-command-empty {
+  padding: 16px;
+  text-align: center;
+  font-size: 0.8rem;
+  color: hsl(var(--muted-foreground));
+}
+
+/* ================================================================
+ * 7. WORD COUNT BAR
+ * ================================================================ */
+
+.tiptap-status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 1.5rem;
+  border-top: 1px solid hsl(var(--border));
+  font-size: 0.75rem;
+  color: hsl(var(--muted-foreground));
+}
+
+.tiptap-status-bar .word-count {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ================================================================
+ * 8. RESPONSIVE
+ * ================================================================ */
+
+@media (max-width: 1023px) {
+  .tiptap-content {
+    padding: 1rem 1rem 1rem 2.5rem;
+  }
+
+  .tiptap-toolbar--fixed {
+    padding: 6px 1rem;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+  }
+
+  .tiptap-add-block-btn {
+    left: 2px;
+  }
+
+  .slash-command-menu {
+    min-width: 240px;
+  }
+}

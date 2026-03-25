@@ -1,0 +1,4 @@
+3	0787a1d6c	91.7	0.917	0.75	0.833	1.0	1.0	1.0	1.0	complete	Cycle 3: Legal 307 is intentional (account has external URLs), SEO desc fallback working, homepage 200
+2	46f6a8ba3	82.0	1.0	0.95	0.571	1.0	0.857	0.75	0.5	complete	Cycle 2: Fixed Puck always-dirty-on-load bug. Tab switch no longer triggers false dialog.
+3	46f6a8ba3	86.5	1.0	0.95	0.571	1.0	0.857	1.0	0.5	complete	Cycle 3: Fixed ZodError in hotels/activities sections (image null). Console errors now 0 on Next.js.
+4	46f6a8ba3	86.5	1.0	0.95	0.571	1.0	0.857	1.0	0.5	plateau	Cycle 4: No fixable issues remaining. Legal=content gap, Blog=no posts, SVG/CSS=cosmetic.

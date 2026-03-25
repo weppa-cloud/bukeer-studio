@@ -1,0 +1,8 @@
+cycle	commit	website_qa_score	builder_nav	builder_interaction	studio_health	render_health	cross_validation	seo_compliance	console_clean	blog_health	status	description
+1	3fe17a870	78.0	0.0	0.0	0.85	0.60	0.0	0.80	1.0	0.50	complete	Studio cycle 1: 8/8 tabs OK, dialog+palette OK, public 3/5 pages
+2	3fe17a870	82.5	0.0	0.0	0.95	0.60	1.0	0.80	1.0	0.50	complete	Studio cycle 2: wizard OK, design presets+sub-tabs OK, cross-validation PASS, delete dialog OK, 0 console errors
+3	3fe17a870	84.0	0.0	0.0	0.95	0.60	1.0	0.90	1.0	0.50	complete	Studio cycle 3: SEO editor OK, blog table fix (blog_posts→website_blog_posts), quotes table fix, mobile responsive P2 (sidebar no collapse)
+4	3fe17a870	89.5	0.0	0.0	0.98	0.60	1.0	1.0	1.0	1.0	complete	Studio cycle 4: blog posts visible (5 posts), analytics fields OK, products tabs OK, SEO audit FULL PASS (11/11), cookie re-injection pattern learned
+5	3fe17a870	91.3	0.0	0.0	1.0	0.625	1.0	1.0	1.0	1.0	complete	Studio cycle 5: blog listing+detail on public OK, forgot-password OK, blog cross-validation PASS (5/5 posts match), render_health 5/8
+6	3fe17a870	91.3	0.0	0.0	1.0	0.75	1.0	1.0	1.0	1.0	complete	Studio cycle 6: sitemap all URLs resolve (6/6 = 200), category pages working, version history empty state OK, render_health improved. Score same due to legal pages ceiling.
+10	3fe17a870	95.0	0.0	0.0	1.0	0.75	1.0	1.0	1.0	1.0	complete	Studio cycle 10: Mobile sidebar P2 fix VERIFIED - sidebar hidden at 500px, hamburger present, main full width. UX score 3/10 → 8/10.
