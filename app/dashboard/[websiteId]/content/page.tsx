@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useWebsite } from '@/lib/admin/website-context';
 import { ContentEditor } from '@/components/admin/content-editor';
 import { SeoEditor } from '@/components/admin/seo-editor';
+import { StudioPage, StudioSectionHeader, StudioTabs } from '@/components/studio/ui/primitives';
 
 export default function ContentTab() {
   const { website, save } = useWebsite();
@@ -12,33 +13,27 @@ export default function ContentTab() {
   if (!website) return null;
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-6">Content & SEO</h2>
+    <StudioPage className="max-w-4xl">
+      <StudioSectionHeader
+        title="Content & SEO"
+        subtitle="Edita contenido base, contacto, redes y metadata."
+      />
 
-      <div className="flex gap-1 mb-6 bg-slate-100 dark:bg-slate-800 rounded-xl p-1 w-fit">
-        <button
-          onClick={() => setSection('content')}
-          className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-            section === 'content' ? 'bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white' : 'text-slate-500'
-          }`}
-        >
-          Content
-        </button>
-        <button
-          onClick={() => setSection('seo')}
-          className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-            section === 'seo' ? 'bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white' : 'text-slate-500'
-          }`}
-        >
-          SEO & Scripts
-        </button>
-      </div>
+      <StudioTabs
+        value={section}
+        onChange={(value) => setSection(value as 'content' | 'seo')}
+        options={[
+          { id: 'content', label: 'Content' },
+          { id: 'seo', label: 'SEO & Scripts' },
+        ]}
+        className="mb-6"
+      />
 
       {section === 'content' ? (
         <ContentEditor website={website} onSave={save} />
       ) : (
         <SeoEditor website={website} onSave={save} />
       )}
-    </div>
+    </StudioPage>
   );
 }

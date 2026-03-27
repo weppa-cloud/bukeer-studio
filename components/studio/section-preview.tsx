@@ -68,7 +68,7 @@ export function SectionPreview({
       data-section-id={section.id}
       data-section-type={section.sectionType}
       className={cn(
-        'relative group transition-all',
+        'relative group',
         isDragging && 'opacity-50 z-50',
         !section.isEnabled && 'opacity-40'
       )}
@@ -76,29 +76,33 @@ export function SectionPreview({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {/* Selection / hover border overlay */}
+      {/* Selection / hover overlay — subtle highlight, no harsh borders */}
       <div
         className={cn(
-          'absolute inset-0 pointer-events-none z-40 border-2 transition-colors',
+          'absolute inset-0 pointer-events-none z-40 transition-all duration-150',
           isSelected
-            ? 'border-primary bg-primary/5'
+            ? 'ring-2 ring-primary/60 ring-inset bg-primary/[0.03]'
             : isHovered
-              ? 'border-primary/30'
-              : 'border-transparent'
+              ? 'ring-1 ring-primary/20 ring-inset bg-primary/[0.02]'
+              : ''
         )}
       />
 
-      {/* Section type label */}
-      {(isSelected || isHovered) && (
-        <div className="absolute -top-7 left-4 z-50 px-2 py-0.5 text-xs font-medium bg-primary text-primary-foreground rounded-t">
-          {getSectionLabel(section.sectionType)}
-          {!section.isEnabled && ' (hidden)'}
-        </div>
-      )}
-
-      {/* Floating toolbar */}
+      {/* Top bar: label + toolbar — centered, floating above section */}
       {showToolbar && (
-        <div className="absolute -top-7 right-4 z-50">
+        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2">
+          {/* Section type pill */}
+          <div className={cn(
+            'px-3 py-1 text-[11px] font-semibold uppercase tracking-wider rounded-full shadow-lg backdrop-blur-sm',
+            isSelected
+              ? 'bg-primary text-primary-foreground'
+              : 'bg-background/90 text-foreground border border-border/50'
+          )}>
+            {getSectionLabel(section.sectionType)}
+            {!section.isEnabled && ' (hidden)'}
+          </div>
+
+          {/* Toolbar actions */}
           <SectionToolbar
             sectionId={section.id}
             isEnabled={section.isEnabled}

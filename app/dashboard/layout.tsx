@@ -58,7 +58,7 @@ export default async function DashboardLayout({
     >
       {!accountId ? (
         <div className="p-6 lg:p-8 max-w-3xl mx-auto">
-          <div className="rounded-xl border border-amber-300 bg-amber-50 text-amber-900 p-4 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-200">
+          <div className="studio-card rounded-xl border-[color-mix(in_srgb,#f59e0b_35%,transparent)] bg-[color-mix(in_srgb,#f59e0b_12%,transparent)] text-[var(--studio-text)] p-4">
             No tienes un rol activo en ninguna cuenta. Contacta a un administrador.
           </div>
         </div>

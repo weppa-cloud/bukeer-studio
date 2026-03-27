@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback } from 'react';
+import { StudioBadgeStatus, StudioButton, StudioTopbar } from '@/components/studio/ui/primitives';
 
 export type ViewportSize = 'desktop' | 'tablet' | 'mobile';
 
@@ -54,108 +54,62 @@ export function Toolbar({
   const viewports: ViewportSize[] = ['desktop', 'tablet', 'mobile'];
 
   return (
-    <div className="h-14 border-b bg-background flex items-center justify-between px-4 shrink-0">
-      {/* Left: Site info */}
-      <div className="flex items-center gap-3">
-        <span className="font-medium text-sm">
-          {websiteSubdomain ?? 'Editor'}
-        </span>
-        {websiteStatus && (
-          <span
-            className={`text-xs px-2 py-0.5 rounded-full ${
-              websiteStatus === 'published'
-                ? 'bg-green-100 text-green-700'
-                : 'bg-yellow-100 text-yellow-700'
-            }`}
-          >
-            {websiteStatus === 'published' ? 'Publicado' : 'Borrador'}
-          </span>
-        )}
-      </div>
-
-      {/* Center: Viewport switcher */}
-      <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
-        {viewports.map((vp) => (
-          <button
-            key={vp}
-            onClick={() => onViewportChange(vp)}
-            className={`px-3 py-1 text-sm rounded-md transition-colors ${
-              currentViewport === vp
-                ? 'bg-background shadow-sm'
-                : 'hover:bg-background/50'
-            }`}
-            title={VIEWPORT_LABELS[vp]}
-          >
-            {VIEWPORT_ICONS[vp]}
-          </button>
-        ))}
-      </div>
-
-      {/* Right: Actions */}
-      <div className="flex items-center gap-2 flex-wrap">
-        {/* Undo / Redo */}
-        {(onUndo || onRedo) && (
-          <div className="flex items-center gap-1 mr-2">
+    <StudioTopbar
+      left={(
+        <>
+          <span className="font-semibold text-sm text-[var(--studio-text)]">{websiteSubdomain ?? 'Editor'}</span>
+          {websiteStatus ? <StudioBadgeStatus status={websiteStatus === 'published' ? 'published' : 'draft'} /> : null}
+          {saveStatus === 'saved' ? <StudioBadgeStatus status="saved" /> : null}
+          {saveStatus === 'error' ? <StudioBadgeStatus status="error" /> : null}
+        </>
+      )}
+      center={(
+        <div className="flex items-center gap-1 bg-[var(--studio-panel)] rounded-lg p-1 border border-[var(--studio-border)]">
+          {viewports.map((vp) => (
             <button
-              onClick={onUndo}
-              disabled={!canUndo}
-              className="p-1.5 text-sm rounded-md hover:bg-muted transition-colors disabled:opacity-30"
-              title="Undo (⌘Z)"
+              key={vp}
+              onClick={() => onViewportChange(vp)}
+              className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                currentViewport === vp
+                  ? 'bg-[var(--studio-bg-elevated)] border border-[var(--studio-border)] text-[var(--studio-text)]'
+                  : 'text-[var(--studio-text-muted)]'
+              }`}
+              title={VIEWPORT_LABELS[vp]}
+              type="button"
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M3 10h10a5 5 0 015 5v2M3 10l4-4M3 10l4 4" />
-              </svg>
+              {VIEWPORT_ICONS[vp]}
             </button>
-            <button
-              onClick={onRedo}
-              disabled={!canRedo}
-              className="p-1.5 text-sm rounded-md hover:bg-muted transition-colors disabled:opacity-30"
-              title="Redo (⌘⇧Z)"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M21 10H11a5 5 0 00-5 5v2M21 10l-4-4M21 10l-4 4" />
-              </svg>
-            </button>
-          </div>
-        )}
-
-        {/* Save status indicator */}
-        {saveStatus === 'saved' && (
-          <span className="text-xs text-green-600 mr-2">&#10003; Saved</span>
-        )}
-        {saveStatus === 'error' && (
-          <span className="text-xs text-red-500 mr-2">Save failed</span>
-        )}
-
-        {onSaveAsTemplate && (
-          <button
-            onClick={onSaveAsTemplate}
-            className="px-3 py-1.5 text-sm border rounded-md hover:bg-muted transition-colors"
-          >
-            Guardar como plantilla
-          </button>
-        )}
-        <button
-          onClick={onPreview}
-          className="px-3 py-1.5 text-sm border rounded-md hover:bg-muted transition-colors"
-        >
-          Vista previa
-        </button>
-        <button
-          onClick={onSaveDraft}
-          disabled={isSaving}
-          className="px-3 py-1.5 text-sm border rounded-md hover:bg-muted transition-colors disabled:opacity-50"
-        >
-          {isSaving ? 'Guardando...' : 'Guardar borrador'}
-        </button>
-        <button
-          onClick={onPublish}
-          disabled={isPublishing}
-          className="px-3 py-1.5 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50"
-        >
-          {isPublishing ? 'Publicando...' : 'Publicar'}
-        </button>
-      </div>
-    </div>
+          ))}
+        </div>
+      )}
+      right={(
+        <>
+          {(onUndo || onRedo) && (
+            <>
+              <StudioButton onClick={onUndo} disabled={!canUndo} size="sm" variant="ghost">
+                Undo
+              </StudioButton>
+              <StudioButton onClick={onRedo} disabled={!canRedo} size="sm" variant="ghost">
+                Redo
+              </StudioButton>
+            </>
+          )}
+          {onSaveAsTemplate ? (
+            <StudioButton onClick={onSaveAsTemplate} variant="outline" size="sm">
+              Guardar plantilla
+            </StudioButton>
+          ) : null}
+          <StudioButton onClick={onPreview} variant="outline" size="sm">
+            Vista previa
+          </StudioButton>
+          <StudioButton onClick={onSaveDraft} disabled={isSaving} variant="outline" size="sm">
+            {isSaving ? 'Guardando...' : 'Guardar borrador'}
+          </StudioButton>
+          <StudioButton onClick={onPublish} disabled={isPublishing} size="sm">
+            {isPublishing ? 'Publicando...' : 'Publicar'}
+          </StudioButton>
+        </>
+      )}
+    />
   );
 }

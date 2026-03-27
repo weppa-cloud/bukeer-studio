@@ -93,3 +93,31 @@ npx wrangler versions deploy <version-id>      # Deploy specific version
 - **Deployment spec**: `docs/specs/SPEC_DEPLOY_WEB_PUBLIC_CLOUDFLARE_WORKERS.md`
 - **Architecture**: `docs/02-architecture/decisions/ADR-033-website-platform-evolution.md`
 - **AI Copilot spec**: `docs/specs/SPEC_WEBSITE_COPILOT.md`
+
+## Studio Theme System V1 (Admin/Editor)
+
+### Scope
+
+- Applies only to Studio surfaces (`/dashboard/*` and editor workspaces).
+- Public website render theme (`ThemeV3`, `website_theme_vN`) is intentionally out of scope in V1.
+
+### Single Source Of Truth
+
+- Tokens: `lib/studio/theme.ts`
+- Base primitives: `components/studio/ui/primitives.tsx`
+- Runtime CSS variables/classes: `app/globals.css` (`--studio-*` and `.studio-*`)
+
+### Rules
+
+- Use `studio-*` tokens/classes or Studio primitives for all base controls.
+- Do not introduce new raw HEX values in Studio components.
+- Do not use ad-hoc control styling (`<button className="...">`, `<input className="...">`) when `StudioButton`, `StudioInput`, `StudioSelect`, `StudioTabs`, `StudioListRow`, or `StudioBadgeStatus` fit.
+- Keep light/dark parity by relying on semantic variables (`--studio-*`) only.
+
+### PR Checklist (Studio)
+
+- [ ] New/updated Studio views use `components/studio/ui/primitives.tsx`.
+- [ ] No raw classes for critical controls (buttons, inputs, tabs, select, textarea, list rows, status badges).
+- [ ] Focus-visible state is preserved for keyboard navigation.
+- [ ] Text and status contrast meet WCAG AA in light and dark modes.
+- [ ] Editor topbar + panel tabs (Edit/AI/SEO) remain visually consistent with dashboard tabs.

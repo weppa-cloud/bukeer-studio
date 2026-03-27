@@ -8,6 +8,7 @@ import { useAutosave } from '@/lib/hooks/use-autosave';
 import { ConfirmDialog } from '@/components/admin/confirm-dialog';
 import { DomainWizard } from '@/components/admin/domain-wizard';
 import { VersionTimeline } from '@/components/admin/version-timeline';
+import { StudioPage, StudioSectionHeader, StudioInput, StudioTabs } from '@/components/studio/ui/primitives';
 
 export default function SettingsTab() {
   const { websiteId } = useParams<{ websiteId: string }>();
@@ -68,78 +69,77 @@ export default function SettingsTab() {
   if (!website) return null;
 
   return (
-    <div className="p-6 max-w-3xl mx-auto">
-      <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-6">Settings</h2>
+    <StudioPage className="max-w-3xl">
+      <StudioSectionHeader
+        title="Settings"
+        subtitle="Configura subdominio, dominio y versionado."
+      />
 
-      {/* Section tabs */}
-      <div className="flex gap-1 mb-6 bg-slate-100 dark:bg-slate-800 rounded-xl p-1 w-fit">
-        {(['general', 'domain', 'versions'] as const).map((s) => (
-          <button
-            key={s}
-            onClick={() => setSection(s)}
-            className={`px-4 py-2 text-sm font-medium rounded-lg capitalize transition-colors ${
-              section === s ? 'bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white' : 'text-slate-500'
-            }`}
-          >
-            {s === 'versions' ? 'Version History' : s}
-          </button>
-        ))}
-      </div>
+      <StudioTabs
+        value={section}
+        onChange={(value) => setSection(value as 'general' | 'domain' | 'versions')}
+        options={[
+          { id: 'general', label: 'General' },
+          { id: 'domain', label: 'Domain' },
+          { id: 'versions', label: 'Version History' },
+        ]}
+        className="mb-6"
+      />
 
       {section === 'general' && (
         <div className="space-y-8">
           {/* Subdomain */}
           <div>
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-3">Subdomain</h3>
+            <h3 className="text-sm font-semibold text-[var(--studio-text)] mb-3">Subdomain</h3>
             <div className="flex items-center gap-2">
-              <input
+              <StudioInput
                 value={subdomain}
                 onChange={(e) => {
                   const v = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
                   setSubdomain(v);
                   checkSubdomain(v);
                 }}
-                className="flex-1 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm"
+                className="flex-1"
               />
-              <span className="text-sm text-slate-400">.bukeer.com</span>
+              <span className="text-sm text-[var(--studio-text-muted)]">.bukeer.com</span>
               {subdomain !== website.subdomain && !subdomainError && (
                 <button
                   onClick={saveSubdomain}
-                  className="px-3 py-2 text-sm bg-blue-600 text-white rounded-lg"
+                  className="studio-btn studio-btn-primary studio-btn-md"
                 >
                   Save
                 </button>
               )}
             </div>
-            {subdomainError && <p className="text-xs text-red-500 mt-1">{subdomainError}</p>}
+            {subdomainError && <p className="text-xs text-[var(--studio-danger)] mt-1">{subdomainError}</p>}
           </div>
 
           {/* Danger Zone */}
-          <div className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/30 rounded-xl p-6 space-y-4">
-            <h3 className="text-sm font-semibold text-red-700 dark:text-red-400">Danger Zone</h3>
+          <div className="bg-[color-mix(in_srgb,var(--studio-danger)_10%,transparent)] border border-[color-mix(in_srgb,var(--studio-danger)_24%,transparent)] rounded-xl p-6 space-y-4">
+            <h3 className="text-sm font-semibold text-[var(--studio-danger)]">Danger Zone</h3>
 
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-sm font-medium text-slate-900 dark:text-white">Unpublish website</div>
-                <div className="text-xs text-slate-500">Take your site offline</div>
+                <div className="text-sm font-medium text-[var(--studio-text)]">Unpublish website</div>
+                <div className="text-xs text-[var(--studio-text-muted)]">Take your site offline</div>
               </div>
               <button
                 onClick={() => setShowUnpublish(true)}
                 disabled={website.status !== 'published'}
-                className="px-4 py-2 text-sm border border-red-300 text-red-600 rounded-lg hover:bg-red-50 disabled:opacity-50"
+                className="studio-btn studio-btn-outline studio-btn-md !border-[color-mix(in_srgb,var(--studio-danger)_45%,transparent)] !text-[var(--studio-danger)] disabled:opacity-50"
               >
                 Unpublish
               </button>
             </div>
 
-            <div className="border-t border-red-200 dark:border-red-900/30 pt-4 flex items-center justify-between">
+            <div className="border-t border-[color-mix(in_srgb,var(--studio-danger)_24%,transparent)] pt-4 flex items-center justify-between">
               <div>
-                <div className="text-sm font-medium text-slate-900 dark:text-white">Delete website</div>
-                <div className="text-xs text-slate-500">Permanently delete this website and all its data</div>
+                <div className="text-sm font-medium text-[var(--studio-text)]">Delete website</div>
+                <div className="text-xs text-[var(--studio-text-muted)]">Permanently delete this website and all its data</div>
               </div>
               <button
                 onClick={() => setShowDelete(true)}
-                className="px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700"
+                className="studio-btn studio-btn-danger studio-btn-md"
               >
                 Delete
               </button>
@@ -171,6 +171,6 @@ export default function SettingsTab() {
         onConfirm={handleDelete}
         onCancel={() => setShowDelete(false)}
       />
-    </div>
+    </StudioPage>
   );
 }

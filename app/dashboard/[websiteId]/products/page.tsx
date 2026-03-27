@@ -6,6 +6,7 @@ import { createSupabaseBrowserClient } from '@/lib/supabase/browser-client';
 import { useWebsite } from '@/lib/admin/website-context';
 import { EmptyState } from '@/components/admin/empty-state';
 import { getDashboardUserContext } from '@/lib/admin/user-context';
+import { StudioPage, StudioSectionHeader, StudioInput, StudioTabs } from '@/components/studio/ui/primitives';
 
 type ProductType = 'hotels' | 'activities' | 'transfers';
 
@@ -95,32 +96,28 @@ export default function ProductsTab() {
   ];
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-6">Featured Products</h2>
+    <StudioPage className="max-w-4xl">
+      <StudioSectionHeader
+        title="Featured Products"
+        subtitle="Selecciona productos para destacar en la web publica."
+      />
 
-      {/* Type tabs */}
-      <div className="flex gap-1 mb-6 bg-slate-100 dark:bg-slate-800 rounded-xl p-1 w-fit">
-        {TYPES.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => { setActiveType(t.id); setSearch(''); }}
-            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-              activeType === t.id
-                ? 'bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white'
-                : 'text-slate-500'
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
+      <StudioTabs
+        value={activeType}
+        options={TYPES.map((t) => ({ id: t.id, label: t.label }))}
+        onChange={(value) => {
+          setActiveType(value as ProductType);
+          setSearch('');
+        }}
+        className="mb-6"
+      />
 
       {/* Search */}
       <div className="mb-4">
-        <input
+        <StudioInput
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full max-w-xs px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700"
+          className="max-w-xs"
           placeholder="Search products..."
         />
       </div>
@@ -129,7 +126,7 @@ export default function ProductsTab() {
       {loading ? (
         <div className="space-y-2">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="h-16 bg-slate-100 dark:bg-slate-800 rounded-xl animate-pulse" />
+            <div key={i} className="h-16 bg-[var(--studio-panel)] rounded-xl animate-pulse border border-[var(--studio-border)]" />
           ))}
         </div>
       ) : accessError ? (
@@ -141,27 +138,27 @@ export default function ProductsTab() {
           {products.map((product) => (
             <div
               key={product.id}
-              className="flex items-center gap-4 p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700"
+              className="studio-card flex items-center gap-4 p-3"
             >
               {product.main_image ? (
                 <img src={product.main_image} alt="" className="w-12 h-12 rounded-lg object-cover" />
               ) : (
-                <div className="w-12 h-12 rounded-lg bg-slate-100 dark:bg-slate-700" />
+                <div className="w-12 h-12 rounded-lg bg-[var(--studio-panel)] border border-[var(--studio-border)]" />
               )}
               <div className="flex-1 min-w-0">
-                <div className="font-medium text-sm text-slate-900 dark:text-white truncate">
+                <div className="font-medium text-sm text-[var(--studio-text)] truncate">
                   {product.name}
                 </div>
                 {product.location && (
-                  <div className="text-xs text-slate-500">{product.location}</div>
+                  <div className="text-xs text-[var(--studio-text-muted)]">{product.location}</div>
                 )}
               </div>
               <button
                 onClick={() => toggleFeatured(product.id)}
                 className={`p-2 rounded-lg transition-all ${
                   isFeatured(product.id)
-                    ? 'text-amber-500 hover:text-amber-600'
-                    : 'text-slate-300 hover:text-amber-400'
+                    ? 'text-[#f59e0b] hover:text-[#d97706]'
+                    : 'text-[var(--studio-text-muted)] hover:text-[#f59e0b]'
                 }`}
                 title={isFeatured(product.id) ? 'Remove from featured' : 'Add to featured'}
               >
@@ -173,6 +170,6 @@ export default function ProductsTab() {
           ))}
         </div>
       )}
-    </div>
+    </StudioPage>
   );
 }

@@ -115,12 +115,12 @@ export default function NewWebsitePage() {
   const progress = ((step + 1) / 3) * 100;
 
   return (
-    <div className="min-h-full flex items-center justify-center p-6">
+    <div className="studio-page min-h-full flex items-center justify-center">
       <div className="w-full max-w-2xl">
         {/* Progress bar */}
-        <div className="h-1 bg-slate-200 dark:bg-slate-700 rounded-full mb-8 overflow-hidden">
+        <div className="h-1 bg-[var(--studio-panel)] rounded-full mb-8 overflow-hidden border border-[var(--studio-border)]">
           <motion.div
-            className="h-full bg-blue-600 rounded-full"
+            className="h-full bg-[var(--studio-primary)] rounded-full"
             animate={{ width: `${progress}%` }}
             transition={{ duration: 0.3 }}
           />
@@ -135,10 +135,10 @@ export default function NewWebsitePage() {
               className="text-center py-16"
             >
               <div className="text-6xl mb-4">🎉</div>
-              <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+              <h2 className="text-2xl font-bold text-[var(--studio-text)]">
                 Website created!
               </h2>
-              <p className="text-slate-500 mt-2">Redirecting to editor...</p>
+              <p className="text-[var(--studio-text-muted)] mt-2">Redirecting to editor...</p>
             </motion.div>
           ) : step === 0 ? (
             <motion.div
@@ -147,10 +147,10 @@ export default function NewWebsitePage() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
             >
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+              <h2 className="text-xl font-bold text-[var(--studio-text)] mb-2">
                 Choose a template
               </h2>
-              <p className="text-slate-500 dark:text-slate-400 mb-6">
+              <p className="text-[var(--studio-text-muted)] mb-6">
                 Pick a style that matches your brand
               </p>
               <div className="grid grid-cols-3 gap-3">
@@ -161,20 +161,20 @@ export default function NewWebsitePage() {
                       setSelectedPreset(preset.id);
                       setStep(1);
                     }}
-                    className={`p-4 rounded-xl border-2 text-left transition-all hover:shadow-lg ${
+                    className={`p-4 rounded-xl border text-left transition-all hover:shadow-lg ${
                       selectedPreset === preset.id
-                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                        : 'border-slate-200 dark:border-slate-700 hover:border-slate-300'
+                        ? 'border-[var(--studio-primary)] bg-[color-mix(in_srgb,var(--studio-primary)_10%,transparent)]'
+                        : 'border-[var(--studio-border)] bg-[var(--studio-bg-elevated)] hover:border-[var(--studio-border-strong)]'
                     }`}
                   >
                     <div
                       className="w-8 h-8 rounded-lg mb-3"
                       style={{ backgroundColor: preset.color }}
                     />
-                    <div className="font-medium text-slate-900 dark:text-white text-sm">
+                    <div className="font-medium text-[var(--studio-text)] text-sm">
                       {preset.name}
                     </div>
-                    <div className="text-xs text-slate-500 mt-1">{preset.desc}</div>
+                    <div className="text-xs text-[var(--studio-text-muted)] mt-1">{preset.desc}</div>
                   </button>
                 ))}
               </div>
@@ -186,15 +186,15 @@ export default function NewWebsitePage() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
             >
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+              <h2 className="text-xl font-bold text-[var(--studio-text)] mb-2">
                 Name your website
               </h2>
-              <p className="text-slate-500 dark:text-slate-400 mb-6">
+              <p className="text-[var(--studio-text-muted)] mb-6">
                 Choose a name and subdomain for your site
               </p>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block text-sm font-medium text-[var(--studio-text)] mb-1">
                     Website name
                   </label>
                   <input
@@ -208,13 +208,13 @@ export default function NewWebsitePage() {
                       setSubdomain(slug);
                       checkSubdomain(slug);
                     }}
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="studio-input"
                     placeholder="My Travel Agency"
                     autoFocus
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block text-sm font-medium text-[var(--studio-text)] mb-1">
                     Subdomain
                   </label>
                   <div className="flex items-center">
@@ -225,10 +225,10 @@ export default function NewWebsitePage() {
                         setSubdomain(v);
                         checkSubdomain(v);
                       }}
-                      className="flex-1 px-4 py-3 rounded-l-xl border border-r-0 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="studio-input rounded-r-none"
                       placeholder="my-agency"
                     />
-                    <span className="px-4 py-3 bg-slate-100 dark:bg-slate-600 border border-slate-200 dark:border-slate-600 rounded-r-xl text-slate-500 dark:text-slate-400 text-sm">
+                    <span className="px-4 py-2.5 bg-[var(--studio-panel)] border border-l-0 border-[var(--studio-border)] rounded-r-xl text-[var(--studio-text-muted)] text-sm">
                       .bukeer.com
                     </span>
                   </div>
@@ -236,21 +236,21 @@ export default function NewWebsitePage() {
                     <p className="text-red-500 text-sm mt-1">{subdomainError}</p>
                   )}
                   {subdomainChecking && (
-                    <p className="text-slate-400 text-sm mt-1">Checking availability...</p>
+                    <p className="text-[var(--studio-text-muted)] text-sm mt-1">Checking availability...</p>
                   )}
                 </div>
               </div>
               <div className="flex justify-between mt-8">
                 <button
                   onClick={() => setStep(0)}
-                  className="px-4 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                  className="studio-btn studio-btn-ghost studio-btn-md"
                 >
                   Back
                 </button>
                 <button
                   onClick={() => setStep(2)}
                   disabled={!name || !subdomain || !!subdomainError}
-                  className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white font-medium rounded-xl transition-colors"
+                  className="studio-btn studio-btn-primary studio-btn-md disabled:opacity-60"
                 >
                   Next
                 </button>
@@ -263,23 +263,23 @@ export default function NewWebsitePage() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
             >
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+              <h2 className="text-xl font-bold text-[var(--studio-text)] mb-2">
                 Review & Create
               </h2>
-              <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 space-y-4 mt-6">
+              <div className="studio-card p-6 space-y-4 mt-6">
                 <div className="flex justify-between">
-                  <span className="text-slate-500">Template</span>
-                  <span className="font-medium text-slate-900 dark:text-white capitalize">
+                  <span className="text-[var(--studio-text-muted)]">Template</span>
+                  <span className="font-medium text-[var(--studio-text)] capitalize">
                     {selectedPreset}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-500">Name</span>
-                  <span className="font-medium text-slate-900 dark:text-white">{name}</span>
+                  <span className="text-[var(--studio-text-muted)]">Name</span>
+                  <span className="font-medium text-[var(--studio-text)]">{name}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-500">URL</span>
-                  <span className="font-medium text-blue-600">{subdomain}.bukeer.com</span>
+                  <span className="text-[var(--studio-text-muted)]">URL</span>
+                  <span className="font-medium text-[var(--studio-primary)]">{subdomain}.bukeer.com</span>
                 </div>
               </div>
               {createError && (
@@ -290,14 +290,14 @@ export default function NewWebsitePage() {
               <div className="flex justify-between mt-8">
                 <button
                   onClick={() => setStep(1)}
-                  className="px-4 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                  className="studio-btn studio-btn-ghost studio-btn-md"
                 >
                   Back
                 </button>
                 <button
                   onClick={handleCreate}
                   disabled={creating}
-                  className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium rounded-xl transition-colors flex items-center gap-2"
+                  className="studio-btn studio-btn-primary studio-btn-md disabled:opacity-60"
                 >
                   {creating && (
                     <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">

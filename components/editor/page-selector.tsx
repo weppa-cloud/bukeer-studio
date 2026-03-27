@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
+import { StudioBadge, StudioButton } from '@/components/studio/ui/primitives';
 
 interface PageItem {
   id: string;
@@ -29,6 +30,7 @@ export function PageSelector({
   const [pages, setPages] = useState<PageItem[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const containerRef = useRef<HTMLDivElement | null>(null);
 
   const loadPages = useCallback(async () => {
     if (!token) return;
@@ -43,20 +45,17 @@ export function PageSelector({
         }
       );
 
-      const { data } = await supabase.rpc('get_website_pages', {
-        p_website_id: websiteId,
-      });
-
+      const { data } = await supabase.rpc('get_website_pages', { p_website_id: websiteId });
       const result = data as { pages?: Array<Record<string, unknown>> } | null;
-      const pageList = (result?.pages || []) as unknown as Array<Record<string, unknown>>;
+      const pageList = (result?.pages || []) as Array<Record<string, unknown>>;
 
       setPages(
-        pageList.map((p) => ({
-          id: p.id as string,
-          title: p.title as string,
-          slug: p.slug as string,
-          pageType: (p.page_type || p.pageType) as string,
-          isPublished: (p.is_published ?? p.isPublished ?? true) as boolean,
+        pageList.map((page) => ({
+          id: page.id as string,
+          title: page.title as string,
+          slug: page.slug as string,
+          pageType: (page.page_type || page.pageType || 'custom') as string,
+          isPublished: (page.is_published ?? page.isPublished ?? true) as boolean,
         }))
       );
     } catch (err) {
@@ -70,8 +69,24 @@ export function PageSelector({
     loadPages();
   }, [loadPages]);
 
+  useEffect(() => {
+    function onClickOutside(event: MouseEvent) {
+      if (!containerRef.current) return;
+      if (event.target instanceof Node && !containerRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    }
+
+    if (isOpen) {
+      document.addEventListener('mousedown', onClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', onClickOutside);
+    };
+  }, [isOpen]);
+
   const currentLabel = currentPageId
-    ? pages.find((p) => p.id === currentPageId)?.title || 'Pagina'
+    ? pages.find((page) => page.id === currentPageId)?.title || 'Pagina'
     : 'Inicio';
 
   const handleSelect = (pageId: string | null) => {
@@ -95,146 +110,64 @@ export function PageSelector({
   };
 
   return (
-    <div style={styles.container}>
-      <button
-        style={styles.trigger}
-        onClick={() => setIsOpen(!isOpen)}
-        type="button"
+    <div ref={containerRef} className="relative">
+      <StudioButton
+        variant="outline"
+        size="sm"
+        onClick={() => setIsOpen((prev) => !prev)}
+        className="max-w-[220px]"
       >
-        <span style={styles.label}>{currentLabel}</span>
-        <span style={styles.chevron}>{isOpen ? '\u25B2' : '\u25BC'}</span>
-      </button>
+        <span className="truncate">{currentLabel}</span>
+        <span className="text-[10px] text-[var(--studio-text-muted)]">{isOpen ? '▲' : '▼'}</span>
+      </StudioButton>
 
-      {isOpen && (
-        <div style={styles.dropdown}>
-          {/* Homepage option */}
+      {isOpen ? (
+        <div className="studio-panel absolute right-0 top-[calc(100%+6px)] min-w-[260px] max-h-[360px] overflow-y-auto z-[99999] p-1">
           <button
-            style={{
-              ...styles.option,
-              ...(currentPageId === null ? styles.optionActive : {}),
-            }}
+            className={`w-full text-left p-2 rounded-lg transition-colors ${
+              currentPageId === null
+                ? 'bg-[color-mix(in_srgb,var(--studio-primary)_12%,transparent)]'
+                : 'hover:bg-[var(--studio-panel)]'
+            }`}
             onClick={() => handleSelect(null)}
             type="button"
           >
-            <span style={styles.optionTitle}>Inicio</span>
-            <span style={styles.optionBadge}>homepage</span>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-sm font-medium text-[var(--studio-text)]">Inicio</span>
+              <StudioBadge tone="info">homepage</StudioBadge>
+            </div>
           </button>
 
-          {/* Divider */}
-          <div style={styles.divider} />
+          <div className="border-t border-[var(--studio-border)] my-1" />
 
-          {/* Pages */}
           {isLoading ? (
-            <div style={styles.loading}>Cargando...</div>
+            <p className="text-xs text-[var(--studio-text-muted)] py-4 text-center">Cargando...</p>
           ) : pages.length === 0 ? (
-            <div style={styles.loading}>Sin paginas</div>
+            <p className="text-xs text-[var(--studio-text-muted)] py-4 text-center">Sin paginas</p>
           ) : (
             pages.map((page) => (
               <button
                 key={page.id}
-                style={{
-                  ...styles.option,
-                  ...(currentPageId === page.id ? styles.optionActive : {}),
-                }}
+                className={`w-full text-left p-2 rounded-lg transition-colors ${
+                  currentPageId === page.id
+                    ? 'bg-[color-mix(in_srgb,var(--studio-primary)_12%,transparent)]'
+                    : 'hover:bg-[var(--studio-panel)]'
+                }`}
                 onClick={() => handleSelect(page.id)}
                 type="button"
               >
-                <span style={styles.optionTitle}>{page.title}</span>
-                <span style={styles.optionBadge}>
-                  {page.pageType}
-                  {!page.isPublished && ' (borrador)'}
-                </span>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-medium text-[var(--studio-text)] truncate">{page.title}</span>
+                  <StudioBadge tone={page.isPublished ? 'success' : 'warning'}>
+                    {page.pageType}
+                  </StudioBadge>
+                </div>
+                <p className="text-xs text-[var(--studio-text-muted)] mt-1 truncate">/{page.slug}</p>
               </button>
             ))
           )}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
-
-const styles: Record<string, React.CSSProperties> = {
-  container: {
-    position: 'relative',
-  },
-  trigger: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 6,
-    padding: '6px 12px',
-    borderRadius: 8,
-    border: '1px solid #E5E7EB',
-    background: 'white',
-    cursor: 'pointer',
-    fontSize: 13,
-    fontWeight: 500,
-    fontFamily: "'Outfit', 'Inter', system-ui, sans-serif",
-    color: '#4B5563',
-  },
-  label: {
-    maxWidth: 150,
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-  },
-  chevron: {
-    fontSize: 10,
-    color: '#9CA3AF',
-  },
-  dropdown: {
-    position: 'absolute',
-    top: '100%',
-    right: 0,
-    marginTop: 4,
-    minWidth: 220,
-    maxHeight: 320,
-    overflowY: 'auto',
-    background: 'white',
-    border: '1px solid #E5E7EB',
-    borderRadius: 8,
-    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-    zIndex: 99999,
-  },
-  option: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    width: '100%',
-    padding: '8px 12px',
-    border: 'none',
-    background: 'transparent',
-    cursor: 'pointer',
-    fontSize: 13,
-    fontFamily: "'Outfit', 'Inter', system-ui, sans-serif",
-    color: '#4B5563',
-    textAlign: 'left',
-  },
-  optionActive: {
-    background: '#f5f3ff',
-    color: '#7c57b3',
-    fontWeight: 500,
-  },
-  optionTitle: {
-    flex: 1,
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-  },
-  optionBadge: {
-    fontSize: 11,
-    color: '#9CA3AF',
-    marginLeft: 8,
-    flexShrink: 0,
-  },
-  divider: {
-    height: 1,
-    background: '#F3F4F6',
-    margin: '4px 0',
-  },
-  loading: {
-    padding: '12px 16px',
-    fontSize: 13,
-    color: '#9CA3AF',
-    textAlign: 'center',
-  },
-};

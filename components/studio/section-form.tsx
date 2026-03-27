@@ -1,17 +1,7 @@
 'use client';
 
 import { useCallback } from 'react';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
+import { StudioInput, StudioSelect, StudioTextarea } from '@/components/studio/ui/primitives';
 import { getSectionFieldConfig } from '@/lib/studio/section-fields';
 import type { FieldDefinition } from '@/lib/studio/section-fields';
 
@@ -26,22 +16,24 @@ export function SectionForm({ sectionType, content, onChange }: SectionFormProps
 
   if (!fieldConfig) {
     return (
-      <div className="p-4 text-sm text-muted-foreground">
+      <div className="p-4 text-sm text-[var(--studio-text-muted)]">
         No editable fields for section type: <code>{sectionType}</code>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      <div className="px-4 pt-4">
-        <h3 className="text-sm font-semibold">{fieldConfig.label}</h3>
-        <p className="text-xs text-muted-foreground mt-0.5">
-          Edit the section content below. Changes are reflected in real time.
+    <div className="space-y-0">
+      <div className="px-4 py-3 bg-[var(--studio-panel)] border-b border-[var(--studio-border)]">
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 rounded-full bg-[var(--studio-primary)]" />
+          <h3 className="text-sm font-semibold text-[var(--studio-text)]">{fieldConfig.label}</h3>
+        </div>
+        <p className="text-[11px] text-[var(--studio-text-muted)] mt-0.5 ml-4">
+          Changes update the preview in real time
         </p>
       </div>
-      <Separator />
-      <div className="px-4 pb-4 space-y-4">
+      <div className="px-4 py-4 space-y-4">
         {fieldConfig.fields.map((field) => (
           <FieldRenderer
             key={field.name}
@@ -80,10 +72,10 @@ function FieldRenderer({ field, value, onChange }: FieldRendererProps) {
     case 'url':
       return (
         <div className="space-y-1.5">
-          <Label htmlFor={field.name} className="text-xs">
+          <label htmlFor={field.name} className="text-xs font-semibold text-[var(--studio-text-muted)]">
             {field.label}
-          </Label>
-          <Input
+          </label>
+          <StudioInput
             id={field.name}
             type={field.type === 'url' ? 'url' : 'text'}
             value={stringValue}
@@ -96,10 +88,10 @@ function FieldRenderer({ field, value, onChange }: FieldRendererProps) {
     case 'textarea':
       return (
         <div className="space-y-1.5">
-          <Label htmlFor={field.name} className="text-xs">
+          <label htmlFor={field.name} className="text-xs font-semibold text-[var(--studio-text-muted)]">
             {field.label}
-          </Label>
-          <Textarea
+          </label>
+          <StudioTextarea
             id={field.name}
             value={stringValue}
             placeholder={field.placeholder}
@@ -112,10 +104,10 @@ function FieldRenderer({ field, value, onChange }: FieldRendererProps) {
     case 'image':
       return (
         <div className="space-y-1.5">
-          <Label htmlFor={field.name} className="text-xs">
+          <label htmlFor={field.name} className="text-xs font-semibold text-[var(--studio-text-muted)]">
             {field.label}
-          </Label>
-          <Input
+          </label>
+          <StudioInput
             id={field.name}
             type="url"
             value={stringValue}
@@ -123,7 +115,7 @@ function FieldRenderer({ field, value, onChange }: FieldRendererProps) {
             onChange={(e) => handleChange(e.target.value)}
           />
           {stringValue && (
-            <div className="mt-1 rounded-md overflow-hidden border bg-muted">
+            <div className="mt-1 rounded-md overflow-hidden border border-[var(--studio-border)] bg-[var(--studio-panel)]">
               <img
                 src={stringValue}
                 alt={field.label}
@@ -140,37 +132,32 @@ function FieldRenderer({ field, value, onChange }: FieldRendererProps) {
     case 'select':
       return (
         <div className="space-y-1.5">
-          <Label className="text-xs">{field.label}</Label>
-          <Select value={stringValue} onValueChange={handleChange}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select..." />
-            </SelectTrigger>
-            <SelectContent>
-              {field.options?.map((opt) => (
-                <SelectItem key={opt.value} value={opt.value}>
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <label className="text-xs font-semibold text-[var(--studio-text-muted)]">{field.label}</label>
+          <StudioSelect
+            value={stringValue}
+            onChange={(e) => handleChange(e.target.value)}
+            options={(field.options || []).map((opt) => ({ value: opt.value, label: opt.label }))}
+          />
         </div>
       );
 
     case 'toggle':
       return (
         <div className="flex items-center justify-between">
-          <Label className="text-xs">{field.label}</Label>
+          <label className="text-xs font-semibold text-[var(--studio-text-muted)]">{field.label}</label>
           <button
             type="button"
             role="switch"
             aria-checked={!!value}
             onClick={() => handleChange(!value)}
-            className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
-              value ? 'bg-primary' : 'bg-muted'
+            className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border transition-colors ${
+              value
+                ? 'bg-[var(--studio-primary)] border-[var(--studio-primary)]'
+                : 'bg-[var(--studio-panel)] border-[var(--studio-border)]'
             }`}
           >
             <span
-              className={`pointer-events-none block h-4 w-4 rounded-full bg-background shadow-lg ring-0 transition-transform ${
+              className={`pointer-events-none block h-4 w-4 rounded-full bg-[var(--studio-bg-elevated)] shadow ring-0 transition-transform ${
                 value ? 'translate-x-4' : 'translate-x-0'
               }`}
             />

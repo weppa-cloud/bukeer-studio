@@ -7,12 +7,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import type { SectionTypeValue } from '@bukeer/website-contract';
 import { Search } from 'lucide-react';
+import { StudioInput, StudioTabs } from '@/components/studio/ui/primitives';
 
 // ============================================================================
 // Section categories (from section-palette.tsx, expanded)
@@ -165,54 +164,47 @@ export function SectionPicker({ open, onClose, onSelect }: SectionPickerProps) {
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <DialogContent className="max-w-2xl max-h-[80vh]">
+      <DialogContent className="studio-panel max-w-3xl max-h-[82vh] p-0 overflow-hidden bg-[var(--studio-bg-elevated)] border-[var(--studio-border)]">
         <DialogHeader>
-          <DialogTitle>Add Section</DialogTitle>
+          <div className="px-5 pt-5 pb-3 border-b border-[var(--studio-border)]">
+            <DialogTitle className="text-[var(--studio-text)] text-lg font-semibold">Add Section</DialogTitle>
+          </div>
         </DialogHeader>
 
-        {/* Search */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search sections..."
-            className="pl-9"
-            autoFocus
-          />
+        <div className="px-5 pt-4 pb-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--studio-text-muted)]" />
+            <StudioInput
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search sections..."
+              className="pl-9"
+              autoFocus
+            />
+          </div>
         </div>
 
-        {/* Category filter tabs */}
         {!search && (
-          <div className="flex flex-wrap gap-1.5">
-            <Badge
-              variant={activeCategory === null ? 'default' : 'outline'}
-              className="cursor-pointer"
-              onClick={() => setActiveCategory(null)}
-            >
-              All
-            </Badge>
-            {SECTION_CATEGORIES.map((cat) => (
-              <Badge
-                key={cat.key}
-                variant={activeCategory === cat.key ? 'default' : 'outline'}
-                className="cursor-pointer"
-                onClick={() => setActiveCategory(activeCategory === cat.key ? null : cat.key)}
-              >
-                {cat.label}
-              </Badge>
-            ))}
+          <div className="px-5 pb-2">
+            <StudioTabs
+              value={activeCategory ?? 'all'}
+              onChange={(value) => setActiveCategory(value === 'all' ? null : value)}
+              options={[
+                { id: 'all', label: 'All' },
+                ...SECTION_CATEGORIES.map((cat) => ({ id: cat.key, label: cat.label })),
+              ]}
+              className="w-full overflow-x-auto flex-nowrap"
+            />
           </div>
         )}
 
-        {/* Section grid */}
-        <ScrollArea className="max-h-[50vh]">
-          <div className="space-y-6 pr-4">
+        <ScrollArea className="max-h-[56vh]">
+          <div className="space-y-6 px-5 pb-5">
             {filteredCategories
               .filter((cat) => !activeCategory || cat.key === activeCategory)
               .map((cat) => (
                 <div key={cat.key}>
-                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                  <h4 className="text-xs font-semibold text-[var(--studio-text-muted)] uppercase tracking-wider mb-2">
                     {cat.label}
                   </h4>
                   <div className="grid grid-cols-2 gap-2">
@@ -220,16 +212,17 @@ export function SectionPicker({ open, onClose, onSelect }: SectionPickerProps) {
                       <button
                         key={type}
                         onClick={() => handleSelect(type)}
+                        type="button"
                         className={cn(
-                          'text-left p-3 rounded-lg border transition-colors',
-                          'hover:border-primary hover:bg-primary/5',
-                          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary'
+                          'text-left p-3 rounded-xl border border-[var(--studio-border)] bg-[var(--studio-bg-elevated)] transition-all duration-150',
+                          'hover:border-[color-mix(in_srgb,var(--studio-primary)_40%,transparent)] hover:bg-[color-mix(in_srgb,var(--studio-primary)_8%,transparent)] hover:shadow-sm hover:-translate-y-0.5',
+                          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--studio-focus)]'
                         )}
                       >
-                        <p className="text-sm font-medium">
+                        <p className="text-sm font-medium text-[var(--studio-text)]">
                           {SECTION_LABELS[type] ?? type}
                         </p>
-                        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+                        <p className="text-[11px] text-[var(--studio-text-muted)] mt-0.5 line-clamp-1">
                           {SECTION_DESCRIPTIONS[type] ?? ''}
                         </p>
                       </button>
@@ -239,7 +232,7 @@ export function SectionPicker({ open, onClose, onSelect }: SectionPickerProps) {
               ))}
 
             {filteredCategories.length === 0 && (
-              <p className="text-sm text-muted-foreground text-center py-8">
+              <p className="text-sm text-[var(--studio-text-muted)] text-center py-8">
                 No sections match &ldquo;{search}&rdquo;
               </p>
             )}

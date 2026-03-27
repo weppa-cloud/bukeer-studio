@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useWebsite } from '@/lib/admin/website-context';
 import { useAutosave } from '@/lib/hooks/use-autosave';
+import { StudioPage, StudioSectionHeader, StudioInput } from '@/components/studio/ui/primitives';
 
 export default function AnalyticsTab() {
   const { website, save } = useWebsite();
@@ -55,35 +56,38 @@ export default function AnalyticsTab() {
   ];
 
   return (
-    <div className="p-6 max-w-2xl mx-auto">
-      <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-6">Analytics & Tracking</h2>
-      {status === 'saved' && <span className="text-xs text-green-500">Saved</span>}
+    <StudioPage className="max-w-2xl">
+      <StudioSectionHeader
+        title="Analytics & Tracking"
+        subtitle="Conecta GTM, GA4 y Pixel sin tocar codigo."
+      />
+      {status === 'saved' && <span className="text-xs text-[var(--studio-success)]">Saved</span>}
 
       <div className="space-y-6">
         {trackers.map((tracker) => {
           const isValid = !tracker.value || tracker.pattern.test(tracker.value);
           return (
             <div key={tracker.label}>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+              <label className="block text-sm font-medium text-[var(--studio-text)] mb-1">
                 {tracker.label}
               </label>
-              <input
+              <StudioInput
                 value={tracker.value}
                 onChange={(e) => tracker.onChange(e.target.value)}
-                className={`w-full px-3 py-2 rounded-lg border bg-white dark:bg-slate-700 text-sm ${
+                className={`${
                   isValid
-                    ? 'border-slate-200 dark:border-slate-600'
-                    : 'border-red-300 dark:border-red-600'
+                    ? ''
+                    : 'border-[var(--studio-danger)]'
                 }`}
                 placeholder={tracker.placeholder}
               />
               {!isValid && (
-                <p className="text-xs text-red-500 mt-1">Invalid format. Expected: {tracker.placeholder}</p>
+                <p className="text-xs text-[var(--studio-danger)] mt-1">Invalid format. Expected: {tracker.placeholder}</p>
               )}
             </div>
           );
         })}
       </div>
-    </div>
+    </StudioPage>
   );
 }

@@ -2,15 +2,15 @@
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser-client';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
+import {
+  StudioBadge,
+  StudioButton,
+  StudioInput,
+  StudioPanel,
+  StudioTextarea,
+} from '@/components/studio/ui/primitives';
 import {
   scorePageContent,
   type PageScoringResult,
@@ -18,13 +18,11 @@ import {
 } from '@/lib/studio/score-page-content';
 import type { EditorSection } from '@/lib/studio/section-actions';
 import {
-  Search,
   Plus,
   X,
   CheckCircle2,
   XCircle,
   AlertTriangle,
-  TrendingUp,
 } from 'lucide-react';
 
 // ============================================================================
@@ -47,11 +45,11 @@ interface SeoPanelProps {
 
 function ScoreGauge({ score, grade }: { score: number; grade: string }) {
   const gradeColors: Record<string, string> = {
-    A: 'text-green-600 bg-green-50 border-green-200',
-    B: 'text-blue-600 bg-blue-50 border-blue-200',
-    C: 'text-yellow-600 bg-yellow-50 border-yellow-200',
-    D: 'text-orange-600 bg-orange-50 border-orange-200',
-    F: 'text-red-600 bg-red-50 border-red-200',
+    A: 'text-[var(--studio-success)] bg-[color-mix(in_srgb,var(--studio-success)_14%,transparent)] border-[color-mix(in_srgb,var(--studio-success)_32%,transparent)]',
+    B: 'text-[var(--studio-primary)] bg-[color-mix(in_srgb,var(--studio-primary)_14%,transparent)] border-[color-mix(in_srgb,var(--studio-primary)_32%,transparent)]',
+    C: 'text-[#d97706] bg-[color-mix(in_srgb,#f59e0b_14%,transparent)] border-[color-mix(in_srgb,#f59e0b_32%,transparent)]',
+    D: 'text-[#b45309] bg-[color-mix(in_srgb,#f97316_14%,transparent)] border-[color-mix(in_srgb,#f97316_32%,transparent)]',
+    F: 'text-[var(--studio-danger)] bg-[color-mix(in_srgb,var(--studio-danger)_14%,transparent)] border-[color-mix(in_srgb,var(--studio-danger)_32%,transparent)]',
   };
 
   return (
@@ -60,8 +58,8 @@ function ScoreGauge({ score, grade }: { score: number; grade: string }) {
         <span className="text-2xl font-bold">{grade}</span>
       </div>
       <div>
-        <p className="text-2xl font-bold">{score}/100</p>
-        <p className="text-xs text-muted-foreground">Overall score</p>
+        <p className="text-2xl font-bold text-[var(--studio-text)]">{score}/100</p>
+        <p className="text-xs text-[var(--studio-text-muted)]">Overall score</p>
       </div>
     </div>
   );
@@ -72,15 +70,16 @@ function ScoreGauge({ score, grade }: { score: number; grade: string }) {
 // ============================================================================
 
 function DimensionBar({ label, score }: { label: string; score: number }) {
-  const color = score >= 70 ? 'bg-green-500' : score >= 50 ? 'bg-yellow-500' : 'bg-red-500';
+  const color =
+    score >= 70 ? 'bg-[var(--studio-success)]' : score >= 50 ? 'bg-[#f59e0b]' : 'bg-[var(--studio-danger)]';
 
   return (
     <div>
       <div className="flex items-center justify-between text-xs mb-1">
-        <span className="text-muted-foreground">{label}</span>
-        <span className="font-medium">{score}%</span>
+        <span className="text-[var(--studio-text-muted)]">{label}</span>
+        <span className="font-medium text-[var(--studio-text)]">{score}%</span>
       </div>
-      <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+      <div className="h-1.5 bg-[var(--studio-panel)] rounded-full overflow-hidden">
         <div className={cn('h-full rounded-full transition-all', color)} style={{ width: `${score}%` }} />
       </div>
     </div>
@@ -95,13 +94,13 @@ function CheckItem({ check }: { check: PageScoreCheck }) {
   return (
     <div className="flex items-start gap-2 py-1.5">
       {check.pass ? (
-        <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
+        <CheckCircle2 className="w-4 h-4 text-[var(--studio-success)] shrink-0 mt-0.5" />
       ) : check.score >= 50 ? (
-        <AlertTriangle className="w-4 h-4 text-yellow-500 shrink-0 mt-0.5" />
+        <AlertTriangle className="w-4 h-4 text-[#f59e0b] shrink-0 mt-0.5" />
       ) : (
-        <XCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+        <XCircle className="w-4 h-4 text-[var(--studio-danger)] shrink-0 mt-0.5" />
       )}
-      <p className="text-xs text-muted-foreground">{check.message}</p>
+      <p className="text-xs text-[var(--studio-text-muted)]">{check.message}</p>
     </div>
   );
 }
@@ -121,8 +120,6 @@ function KeywordsManager({
 }) {
   const [keywords, setKeywords] = useState<string[]>(initialKeywords);
   const [newKeyword, setNewKeyword] = useState('');
-  const [saving, setSaving] = useState(false);
-  const supabase = createSupabaseBrowserClient();
 
   const handleAdd = useCallback(() => {
     const kw = newKeyword.trim().toLowerCase();
@@ -156,28 +153,30 @@ function KeywordsManager({
 
   return (
     <div className="space-y-2">
-      <Label className="text-xs">SEO Keywords ({keywords.length}/50)</Label>
+      <label className="text-xs font-semibold text-[var(--studio-text-muted)]">
+        SEO Keywords ({keywords.length}/50)
+      </label>
       <div className="flex gap-2">
-        <Input
+        <StudioInput
           value={newKeyword}
           onChange={(e) => setNewKeyword(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Add keyword..."
           className="text-sm"
         />
-        <Button variant="outline" size="sm" onClick={handleAdd} disabled={!newKeyword.trim()}>
+        <StudioButton variant="outline" size="sm" onClick={handleAdd} disabled={!newKeyword.trim()}>
           <Plus className="w-3 h-3" />
-        </Button>
+        </StudioButton>
       </div>
       {keywords.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {keywords.map((kw) => (
-            <Badge key={kw} variant="secondary" className="text-xs gap-1 pr-1">
+            <StudioBadge key={kw} tone="neutral" className="text-xs gap-1 pr-1 inline-flex items-center">
               {kw}
               <button onClick={() => handleRemove(kw)} className="hover:text-destructive">
                 <X className="w-3 h-3" />
               </button>
-            </Badge>
+            </StudioBadge>
           ))}
         </div>
       )}
@@ -269,30 +268,25 @@ export function SeoPanel({
   return (
     <ScrollArea className="h-full">
       <div className="p-4 space-y-5">
-        {/* Score overview */}
-        <div className="flex items-center justify-between">
+        <StudioPanel className="p-4">
           <ScoreGauge score={scoringResult.overall} grade={scoringResult.grade} />
-        </div>
+        </StudioPanel>
 
-        {/* Dimension bars */}
-        <div className="space-y-2">
+        <StudioPanel className="space-y-2 p-4">
           <DimensionBar label="SEO" score={scoringResult.seo} />
           <DimensionBar label="Structure" score={scoringResult.structure} />
           <DimensionBar label="Content Quality" score={scoringResult.quality} />
-        </div>
+        </StudioPanel>
 
-        <Separator />
-
-        {/* SEO Meta fields */}
-        <div className="space-y-3">
-          <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        <StudioPanel className="space-y-3 p-4">
+          <h4 className="text-xs font-semibold uppercase tracking-wider text-[var(--studio-text-muted)]">
             Meta Tags
           </h4>
           <div className="space-y-1.5">
-            <Label htmlFor="seoTitle" className="text-xs">
+            <label htmlFor="seoTitle" className="text-xs font-semibold text-[var(--studio-text-muted)]">
               SEO Title ({seoTitle.length}/70)
-            </Label>
-            <Input
+            </label>
+            <StudioInput
               id="seoTitle"
               value={seoTitle}
               onChange={(e) => onSeoChange('seoTitle', e.target.value)}
@@ -301,10 +295,10 @@ export function SeoPanel({
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="seoDescription" className="text-xs">
+            <label htmlFor="seoDescription" className="text-xs font-semibold text-[var(--studio-text-muted)]">
               Meta Description ({seoDescription.length}/160)
-            </Label>
-            <Textarea
+            </label>
+            <StudioTextarea
               id="seoDescription"
               value={seoDescription}
               onChange={(e) => onSeoChange('seoDescription', e.target.value)}
@@ -313,25 +307,21 @@ export function SeoPanel({
               className="text-sm"
             />
           </div>
-        </div>
+        </StudioPanel>
 
-        <Separator />
-
-        {/* Keywords */}
         {!loadingKeywords && (
-          <KeywordsManager
-            websiteId={websiteId}
-            initialKeywords={keywords}
-            onKeywordsChange={handleKeywordsChange}
-          />
+          <StudioPanel className="p-4">
+            <KeywordsManager
+              websiteId={websiteId}
+              initialKeywords={keywords}
+              onKeywordsChange={handleKeywordsChange}
+            />
+          </StudioPanel>
         )}
 
-        <Separator />
-
-        {/* Issues */}
         {failingChecks.length > 0 && (
-          <div>
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+          <StudioPanel className="p-4">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-[var(--studio-text-muted)] mb-2">
               Issues ({failingChecks.length})
             </h4>
             <div className="space-y-0.5">
@@ -339,13 +329,12 @@ export function SeoPanel({
                 <CheckItem key={check.id} check={check} />
               ))}
             </div>
-          </div>
+          </StudioPanel>
         )}
 
-        {/* Passing */}
         {passingChecks.length > 0 && (
-          <div>
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+          <StudioPanel className="p-4">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-[var(--studio-text-muted)] mb-2">
               Passing ({passingChecks.length})
             </h4>
             <div className="space-y-0.5">
@@ -353,7 +342,7 @@ export function SeoPanel({
                 <CheckItem key={check.id} check={check} />
               ))}
             </div>
-          </div>
+          </StudioPanel>
         )}
       </div>
     </ScrollArea>

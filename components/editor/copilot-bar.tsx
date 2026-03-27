@@ -214,7 +214,7 @@ export function CopilotBar({
   }, [prompt, submit]);
 
   return (
-    <div className="border-t border-border bg-background">
+    <div className="border-t border-[var(--studio-border)] bg-[var(--studio-bg-elevated)]">
       {/* Prompt template chips */}
       {!isLoading && templates && (
         <div className="flex gap-2 px-4 pt-3 pb-1 overflow-x-auto scrollbar-thin">
@@ -223,7 +223,7 @@ export function CopilotBar({
               key={key}
               type="button"
               onClick={() => handleTemplateClick(template.prompt)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap shrink-0"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-[var(--studio-panel)] hover:bg-[color-mix(in_srgb,var(--studio-primary)_9%,var(--studio-panel))] text-[var(--studio-text-muted)] hover:text-[var(--studio-text)] transition-colors whitespace-nowrap shrink-0 border border-[var(--studio-border)]"
             >
               <TemplateIcon icon={template.icon} />
               {template.label}
@@ -235,8 +235,8 @@ export function CopilotBar({
       {/* Reasoning display */}
       {reasoning && isLoading && (
         <div className="px-4 py-2">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <div className="animate-spin w-4 h-4 border-2 border-primary border-t-transparent rounded-full shrink-0" />
+          <div className="flex items-center gap-2 text-sm text-[var(--studio-text-muted)]">
+            <div className="animate-spin w-4 h-4 border-2 border-[var(--studio-primary)] border-t-transparent rounded-full shrink-0" />
             <span className="truncate">{reasoning}</span>
           </div>
         </div>
@@ -245,7 +245,7 @@ export function CopilotBar({
       {/* Error display */}
       {errorMessage && !isLoading && (
         <div className="px-4 py-2">
-          <div className="flex items-center justify-between gap-2 text-sm text-destructive bg-destructive/10 rounded-md px-3 py-2">
+          <div className="flex items-center justify-between gap-2 text-sm text-[var(--studio-danger)] bg-[color-mix(in_srgb,var(--studio-danger)_12%,transparent)] rounded-md px-3 py-2 border border-[color-mix(in_srgb,var(--studio-danger)_24%,transparent)]">
             <span className="truncate">{errorMessage}</span>
             <button
               type="button"
@@ -262,8 +262,8 @@ export function CopilotBar({
       <form onSubmit={handleSubmit} className="flex items-end gap-2 px-4 py-3">
         {/* Focus indicator */}
         {focusedSectionId && focusedSectionType && (
-          <div className="flex items-center gap-1 px-2 py-1 rounded bg-primary/10 text-xs text-primary shrink-0 self-center">
-            <span className="w-2 h-2 rounded-full bg-primary" />
+          <div className="flex items-center gap-1 px-2 py-1 rounded bg-[color-mix(in_srgb,var(--studio-primary)_12%,transparent)] text-xs text-[var(--studio-primary)] shrink-0 self-center">
+            <span className="w-2 h-2 rounded-full bg-[var(--studio-primary)]" />
             {focusedSectionType}
           </div>
         )}
@@ -280,14 +280,14 @@ export function CopilotBar({
           }
           disabled={isLoading}
           rows={1}
-          className="flex-1 resize-none rounded-lg border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50 max-h-24"
+          className="studio-input flex-1 resize-none max-h-24"
         />
 
         {isLoading ? (
           <button
             type="button"
             onClick={handleCancel}
-            className="shrink-0 rounded-lg px-4 py-2 text-sm font-medium bg-muted hover:bg-muted/80 text-muted-foreground transition-colors"
+            className="studio-btn studio-btn-outline studio-btn-md shrink-0"
           >
             Cancelar
           </button>
@@ -295,7 +295,7 @@ export function CopilotBar({
           <button
             type="submit"
             disabled={!prompt.trim()}
-            className="shrink-0 rounded-lg px-4 py-2 text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="studio-btn studio-btn-primary studio-btn-md shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Enviar
           </button>

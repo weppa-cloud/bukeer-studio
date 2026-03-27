@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback } from 'react';
-import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import {
   GripVertical,
   ChevronUp,
@@ -26,6 +26,36 @@ interface SectionToolbarProps {
   dragAttributes?: Record<string, unknown>;
 }
 
+function ToolbarButton({
+  onClick,
+  disabled,
+  title,
+  destructive,
+  children,
+}: {
+  onClick?: (e: React.MouseEvent) => void;
+  disabled?: boolean;
+  title: string;
+  destructive?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      className={cn(
+        'p-1.5 rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed',
+        destructive
+          ? 'text-muted-foreground hover:text-destructive hover:bg-destructive/10'
+          : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
 export function SectionToolbar({
   sectionId,
   isEnabled,
@@ -39,99 +69,48 @@ export function SectionToolbar({
   dragListeners,
   dragAttributes,
 }: SectionToolbarProps) {
-  const handleMoveUp = useCallback((e: React.MouseEvent) => {
+  const stop = (fn: (id: string) => void) => (e: React.MouseEvent) => {
     e.stopPropagation();
-    onMoveUp(sectionId);
-  }, [sectionId, onMoveUp]);
-
-  const handleMoveDown = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    onMoveDown(sectionId);
-  }, [sectionId, onMoveDown]);
-
-  const handleDuplicate = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    onDuplicate(sectionId);
-  }, [sectionId, onDuplicate]);
-
-  const handleToggle = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    onToggleVisibility(sectionId);
-  }, [sectionId, onToggleVisibility]);
-
-  const handleDelete = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    onDelete(sectionId);
-  }, [sectionId, onDelete]);
+    fn(sectionId);
+  };
 
   return (
-    <div className="flex items-center gap-0.5 bg-background border rounded-lg shadow-md p-0.5">
+    <div className="flex items-center gap-0.5 bg-background/95 backdrop-blur-sm border border-border/50 rounded-full shadow-lg px-1 py-0.5">
       {/* Drag handle */}
       <button
-        className="p-1.5 rounded-md hover:bg-muted cursor-grab active:cursor-grabbing text-muted-foreground"
+        className="p-1.5 rounded-md text-muted-foreground hover:text-foreground cursor-grab active:cursor-grabbing"
         title="Drag to reorder"
         {...dragListeners}
         {...dragAttributes}
       >
-        <GripVertical className="w-4 h-4" />
+        <GripVertical className="w-3.5 h-3.5" />
       </button>
 
-      {/* Move up */}
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-7 w-7"
-        disabled={isFirst}
-        onClick={handleMoveUp}
-        title="Move up"
-      >
-        <ChevronUp className="w-4 h-4" />
-      </Button>
+      <div className="w-px h-4 bg-border/50" />
 
-      {/* Move down */}
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-7 w-7"
-        disabled={isLast}
-        onClick={handleMoveDown}
-        title="Move down"
-      >
-        <ChevronDown className="w-4 h-4" />
-      </Button>
+      <ToolbarButton onClick={stop(onMoveUp)} disabled={isFirst} title="Move up">
+        <ChevronUp className="w-3.5 h-3.5" />
+      </ToolbarButton>
 
-      {/* Duplicate */}
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-7 w-7"
-        onClick={handleDuplicate}
-        title="Duplicate"
-      >
-        <Copy className="w-4 h-4" />
-      </Button>
+      <ToolbarButton onClick={stop(onMoveDown)} disabled={isLast} title="Move down">
+        <ChevronDown className="w-3.5 h-3.5" />
+      </ToolbarButton>
 
-      {/* Toggle visibility */}
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-7 w-7"
-        onClick={handleToggle}
-        title={isEnabled ? 'Hide section' : 'Show section'}
-      >
-        {isEnabled ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-      </Button>
+      <div className="w-px h-4 bg-border/50" />
 
-      {/* Delete */}
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-7 w-7 text-destructive hover:text-destructive"
-        onClick={handleDelete}
-        title="Delete section"
-      >
-        <Trash2 className="w-4 h-4" />
-      </Button>
+      <ToolbarButton onClick={stop(onDuplicate)} title="Duplicate">
+        <Copy className="w-3.5 h-3.5" />
+      </ToolbarButton>
+
+      <ToolbarButton onClick={stop(onToggleVisibility)} title={isEnabled ? 'Hide section' : 'Show section'}>
+        {isEnabled ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+      </ToolbarButton>
+
+      <div className="w-px h-4 bg-border/50" />
+
+      <ToolbarButton onClick={stop(onDelete)} title="Delete section" destructive>
+        <Trash2 className="w-3.5 h-3.5" />
+      </ToolbarButton>
     </div>
   );
 }

@@ -76,19 +76,19 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="p-6 lg:p-8 max-w-7xl mx-auto">
+    <div className="studio-page max-w-7xl mx-auto">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+          <h1 className="text-2xl font-bold text-[var(--studio-text)]">
             My Websites
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-1">
+          <p className="text-[var(--studio-text-muted)] mt-1">
             Manage and publish your web presence
           </p>
         </div>
         <Link
           href="/dashboard/new"
-          className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-colors flex items-center gap-2"
+          className="studio-btn studio-btn-primary studio-btn-md"
         >
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeWidth="2" d="M12 5v14M5 12h14" />
@@ -106,7 +106,7 @@ export default function DashboardPage() {
           action={
             <button
               onClick={() => loadWebsites()}
-              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-colors"
+              className="studio-btn studio-btn-primary studio-btn-md"
             >
               Retry
             </button>
@@ -125,7 +125,7 @@ export default function DashboardPage() {
           action={
             <Link
               href="/dashboard/new"
-              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-colors"
+              className="studio-btn studio-btn-primary studio-btn-md"
             >
               Create website
             </Link>

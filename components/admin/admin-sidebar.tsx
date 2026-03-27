@@ -57,12 +57,12 @@ export function AdminSidebar({ websiteId, websiteName, onNavigate }: AdminSideba
 
   return (
     <motion.aside
-      className="h-full w-[240px] md:w-auto bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-700 flex flex-col"
+      className="h-full w-[240px] md:w-auto bg-[var(--studio-bg-elevated)] border-r border-[var(--studio-border)] flex flex-col"
       animate={{ width: collapsed ? 64 : 240 }}
       transition={{ duration: 0.2 }}
     >
       {/* Header */}
-      <div className="h-16 flex items-center px-4 border-b border-slate-200 dark:border-slate-700">
+      <div className="h-16 flex items-center px-4 border-b border-[var(--studio-border)]">
         <AnimatePresence mode="wait">
           {!collapsed && (
             <motion.div
@@ -72,11 +72,11 @@ export function AdminSidebar({ websiteId, websiteName, onNavigate }: AdminSideba
               className="flex items-center gap-2"
             >
               {websiteId ? (
-                <Link href="/dashboard" className="text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400">
+                <Link href="/dashboard" className="text-sm text-[var(--studio-text-muted)] hover:text-[var(--studio-text)]">
                   &larr; {websiteName || 'Back'}
                 </Link>
               ) : (
-                <span className="font-semibold text-slate-900 dark:text-white">
+                <span className="font-semibold text-[var(--studio-text)]">
                   Studio
                 </span>
               )}
@@ -96,8 +96,8 @@ export function AdminSidebar({ websiteId, websiteName, onNavigate }: AdminSideba
               onClick={onNavigate}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors text-sm font-medium ${
                 isActive
-                  ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
-                  : 'text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800'
+                  ? 'bg-[color-mix(in_srgb,var(--studio-primary)_14%,transparent)] text-[var(--studio-primary)] border border-[color-mix(in_srgb,var(--studio-primary)_30%,transparent)]'
+                  : 'text-[var(--studio-text-muted)] hover:bg-[var(--studio-panel)] hover:text-[var(--studio-text)]'
               }`}
             >
               <IconComponent name={item.icon} className="w-5 h-5 flex-shrink-0" />
@@ -120,7 +120,7 @@ export function AdminSidebar({ websiteId, websiteName, onNavigate }: AdminSideba
       {/* Collapse toggle */}
       <button
         onClick={() => setCollapsed(!collapsed)}
-        className="h-12 flex items-center justify-center border-t border-slate-200 dark:border-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+        className="h-12 flex items-center justify-center border-t border-[var(--studio-border)] text-[var(--studio-text-muted)] hover:text-[var(--studio-text)] transition-colors"
         aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
       >
         <IconComponent

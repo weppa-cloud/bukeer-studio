@@ -2,7 +2,6 @@
 
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
 import { WebsiteProvider, useWebsite } from '@/lib/admin/website-context';
 
 const TABS = [
@@ -21,19 +20,19 @@ function WebsiteHeader({ websiteId, websiteName }: { websiteId: string; websiteN
   const activeTab = TABS.find((t) => pathname.includes(`/${t.slug}`))?.slug || 'pages';
 
   return (
-    <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700">
+    <div className="bg-[var(--studio-bg-elevated)] border-b border-[var(--studio-border)]">
       {/* Top bar with name and actions */}
       <div className="flex items-center justify-between px-3 md:px-6 py-2 md:py-3">
         <div className="flex items-center gap-2 md:gap-3 min-w-0">
           <Link
             href="/dashboard"
-            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors shrink-0"
+            className="text-[var(--studio-text-muted)] hover:text-[var(--studio-text)] transition-colors shrink-0"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
           </Link>
-          <h2 className="font-semibold text-slate-900 dark:text-white text-sm md:text-base truncate">{websiteName}</h2>
+          <h2 className="font-semibold text-[var(--studio-text)] text-sm md:text-base truncate">{websiteName}</h2>
           <DirtyDot />
         </div>
 
@@ -42,7 +41,7 @@ function WebsiteHeader({ websiteId, websiteName }: { websiteId: string; websiteN
             href={`/?subdomain=${websiteName.toLowerCase().replace(/\s+/g, '-')}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="hidden sm:block px-3 py-1.5 text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+            className="hidden sm:inline-flex studio-btn studio-btn-ghost studio-btn-md"
           >
             Preview
           </a>
@@ -51,26 +50,20 @@ function WebsiteHeader({ websiteId, websiteName }: { websiteId: string; websiteN
       </div>
 
       {/* Tab navigation — scrollable on mobile */}
-      <nav className="flex px-3 md:px-6 gap-0.5 md:gap-1 overflow-x-auto scrollbar-hide">
+      <nav className="flex items-center px-3 md:px-6 gap-1 overflow-x-auto scrollbar-hide py-2 border-t border-[var(--studio-border)]">
         {TABS.map((tab) => {
           const isActive = tab.slug === activeTab;
           return (
             <Link
               key={tab.slug}
               href={`/dashboard/${websiteId}/${tab.slug}`}
-              className={`relative px-3 md:px-4 py-2.5 md:py-3 text-xs md:text-sm font-medium whitespace-nowrap transition-colors min-h-[44px] flex items-center ${
+              className={`studio-tab inline-flex items-center justify-center px-3 md:px-4 text-xs md:text-sm whitespace-nowrap min-h-[36px] md:min-h-[38px] border ${
                 isActive
-                  ? 'text-blue-600 dark:text-blue-400'
-                  : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'
+                  ? 'studio-tab-active border-[var(--studio-border)] text-[var(--studio-text)]'
+                  : 'text-[var(--studio-text-muted)] border-transparent hover:border-[var(--studio-border)] hover:text-[var(--studio-text)]'
               }`}
             >
               {tab.label}
-              {isActive && (
-                <motion.div
-                  layoutId="tab-underline"
-                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-full"
-                />
-              )}
             </Link>
           );
         })}
@@ -95,7 +88,7 @@ function PublishButton() {
     return (
       <button
         onClick={() => publish()}
-        className="px-4 py-1.5 text-sm bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+        className="studio-btn studio-btn-primary studio-btn-md"
       >
         {website?.status === 'published' ? 'Update' : 'Publish'}
       </button>

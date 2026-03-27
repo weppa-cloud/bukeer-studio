@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
-import { Inter, Playfair_Display, Montserrat, Geist } from "next/font/google";
+import { Playfair_Display, Montserrat, Geist, Manrope, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 
 // Optimized font loading with next/font (automatic swap, self-hosted)
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
+const manrope = Manrope({ subsets: ["latin"], variable: "--font-studio-ui", display: "swap" });
+const jetBrainsMono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-studio-mono", display: "swap" });
 
 const playfair = Playfair_Display({
   subsets: ["latin"],
@@ -38,7 +40,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es" suppressHydrationWarning className={cn(playfair.variable, montserrat.variable, "font-sans", geist.variable)}>
+    <html lang="es" suppressHydrationWarning className={cn(playfair.variable, montserrat.variable, geist.variable, manrope.variable, jetBrainsMono.variable, "font-sans")}>
       <head>
         {/* Preconnect to external services for faster loading */}
         <link rel="preconnect" href="https://wzlxbpicdcdvxvdcvgas.supabase.co" />

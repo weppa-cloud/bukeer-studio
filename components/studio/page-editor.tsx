@@ -22,9 +22,8 @@ import { SectionForm } from './section-form';
 import { SectionPicker } from './section-picker';
 import { StudioChat } from './studio-chat';
 import { SeoPanel } from './seo-panel';
-import { Toolbar, type ViewportSize } from '@/components/editor/toolbar';
 import { CanvasFrame } from '@/components/editor/canvas-frame';
-import { useAutosave, type AutosaveStatus } from '@/lib/hooks/use-autosave';
+import { useAutosave } from '@/lib/hooks/use-autosave';
 import { useDirtyState } from '@/lib/hooks/use-dirty-state';
 import { useCommonShortcuts } from '@/lib/hooks/use-keyboard-shortcuts';
 import { useLocalBackup } from '@/lib/hooks/use-local-backup';
@@ -39,13 +38,58 @@ import {
   type EditorSection,
 } from '@/lib/studio/section-actions';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Badge } from '@/components/ui/badge';
+import { StudioButton, StudioTopbar, StudioTabs, StudioBadge, StudioBadgeStatus } from '@/components/studio/ui/primitives';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { Plus, ArrowLeft, WifiOff } from 'lucide-react';
+import {
+  Plus,
+  ArrowLeft,
+  WifiOff,
+  Monitor,
+  Tablet,
+  Smartphone,
+  Eye,
+  Save,
+  Upload,
+  Pencil,
+} from 'lucide-react';
 import type { WebsiteData, WebsiteSection } from '@bukeer/website-contract';
 import type { SectionTypeValue } from '@bukeer/website-contract';
+
+// ============================================================================
+// Content normalization for page sections (DB shape → schema shape)
+// ============================================================================
+
+function normalizePageSectionContent(
+  sectionType: string,
+  content: Record<string, unknown>
+): Record<string, unknown> {
+  const c = { ...content };
+
+  // rich_text / text / text_image: DB has `body`, schema expects `text`
+  if (['rich_text', 'text', 'text_image'].includes(sectionType)) {
+    if (c.body && !c.text) {
+      c.text = c.body;
+      delete c.body;
+    }
+  }
+
+  // features_grid: ensure `items` is an array
+  if (['features', 'features_grid'].includes(sectionType)) {
+    if (!Array.isArray(c.items)) {
+      c.items = c.items ? [c.items] : [];
+    }
+  }
+
+  // gallery: ensure `images` is an array
+  if (['gallery', 'gallery_grid'].includes(sectionType)) {
+    if (!Array.isArray(c.images)) {
+      c.images = c.images ? [c.images] : [];
+    }
+  }
+
+  return c;
+}
 
 // ============================================================================
 // Types
@@ -83,6 +127,8 @@ interface PageEditorProps {
   pageId: string; // 'home' for homepage, UUID for custom pages
   onBack: () => void;
 }
+
+type ViewportSize = 'desktop' | 'tablet' | 'mobile';
 
 // ============================================================================
 // Component
@@ -184,15 +230,19 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
 
         // Normalize page sections (PageSection has `type` not `section_type`)
         const rawSections = (page.sections as Array<Record<string, unknown>>) ?? [];
-        const normalized: EditorSection[] = rawSections.map((s, i) => ({
-          id: (s.id as string) ?? crypto.randomUUID(),
-          sectionType: (s.type as string) ?? (s.section_type as string) ?? 'text',
-          variant: (s.variant as string) ?? null,
-          displayOrder: i,
-          isEnabled: s.is_enabled !== false,
-          config: (s.config as Record<string, unknown>) ?? {},
-          content: (s.content as Record<string, unknown>) ?? {},
-        }));
+        const normalized: EditorSection[] = rawSections.map((s, i) => {
+          const sectionType = (s.type as string) ?? (s.section_type as string) ?? 'text';
+          const rawContent = (s.content as Record<string, unknown>) ?? {};
+          return {
+            id: (s.id as string) ?? crypto.randomUUID(),
+            sectionType,
+            variant: (s.variant as string) ?? null,
+            displayOrder: i,
+            isEnabled: s.is_enabled !== false,
+            config: (s.config as Record<string, unknown>) ?? {},
+            content: normalizePageSectionContent(sectionType, rawContent),
+          };
+        });
         setSections(normalized);
       }
 
@@ -525,6 +575,14 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
     onSave: saveNow,
   });
 
+  // Full-screen: hide parent dashboard layout (sidebar, nav tabs, header)
+  useEffect(() => {
+    document.body.classList.add('studio-editor-fullscreen');
+    return () => {
+      document.body.classList.remove('studio-editor-fullscreen');
+    };
+  }, []);
+
   // ============================================================================
   // Build website data for render pipeline
   // ============================================================================
@@ -606,76 +664,84 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
     ? 'Homepage'
     : pageData?.title ?? 'Page';
 
+  const viewportIcons: Record<ViewportSize, React.ReactNode> = {
+    desktop: <Monitor className="w-4 h-4" />,
+    tablet: <Tablet className="w-4 h-4" />,
+    mobile: <Smartphone className="w-4 h-4" />,
+  };
+
   return (
     <TooltipProvider>
-      <div className="h-screen flex flex-col bg-background">
-        {/* Top toolbar */}
-        <div className="h-14 border-b flex items-center justify-between px-4 shrink-0">
-          {/* Left: back + page title */}
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onBack}>
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
-            <span className="font-medium text-sm">{pageTitle}</span>
-            <Badge variant={websiteData?.status === 'published' ? 'default' : 'secondary'}>
-              {websiteData?.status === 'published' ? 'Published' : 'Draft'}
-            </Badge>
-            {!isOnline && (
-              <Badge variant="destructive" className="gap-1">
-                <WifiOff className="w-3 h-3" />
-                Offline
-              </Badge>
-            )}
-            {autosaveStatus === 'saved' && (
-              <span className="text-xs text-green-600">&#10003; Saved</span>
-            )}
-            {autosaveStatus === 'saving' && (
-              <span className="text-xs text-muted-foreground">Saving...</span>
-            )}
-            {autosaveStatus === 'error' && (
-              <span className="text-xs text-destructive">Save failed</span>
-            )}
-          </div>
-
-          {/* Center: viewport switcher */}
-          <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
-            {(['desktop', 'tablet', 'mobile'] as ViewportSize[]).map((vp) => (
-              <button
-                key={vp}
-                onClick={() => setViewport(vp)}
-                className={`px-3 py-1 text-sm rounded-md transition-colors ${
-                  viewport === vp
-                    ? 'bg-background shadow-sm'
-                    : 'hover:bg-background/50'
-                }`}
+      <div className="fixed inset-0 z-[100] flex flex-col studio-shell">
+        <StudioTopbar
+          left={(
+            <>
+              <StudioButton variant="ghost" size="sm" onClick={onBack}>
+                <ArrowLeft className="w-4 h-4" />
+              </StudioButton>
+              <span className="font-semibold text-sm text-[var(--studio-text)]">{pageTitle}</span>
+              <StudioBadgeStatus status={websiteData?.status === 'published' ? 'published' : 'draft'} />
+              {!isOnline ? (
+                <StudioBadge tone="danger" className="inline-flex items-center gap-1 uppercase tracking-wide text-[10px]">
+                  <WifiOff className="w-3 h-3" />
+                  Offline
+                </StudioBadge>
+              ) : null}
+              {autosaveStatus === 'saved' ? (
+                <StudioBadge tone="success" className="inline-flex items-center gap-1">
+                  <Save className="w-3 h-3" />
+                  Saved
+                </StudioBadge>
+              ) : null}
+              {autosaveStatus === 'saving' ? (
+                <StudioBadge tone="info">Saving...</StudioBadge>
+              ) : null}
+              {autosaveStatus === 'error' ? (
+                <StudioBadge tone="danger">Save failed</StudioBadge>
+              ) : null}
+            </>
+          )}
+          center={(
+            <div className="flex items-center gap-1 bg-[var(--studio-panel)] rounded-full p-1 border border-[var(--studio-border)]">
+              {(['desktop', 'tablet', 'mobile'] as ViewportSize[]).map((vp) => (
+                <button
+                  key={vp}
+                  onClick={() => setViewport(vp)}
+                  className={`p-1.5 rounded-full transition-all ${
+                    viewport === vp
+                      ? 'bg-[var(--studio-bg-elevated)] text-[var(--studio-text)] shadow-sm border border-[var(--studio-border)]'
+                      : 'text-[var(--studio-text-muted)]'
+                  }`}
+                  title={vp.charAt(0).toUpperCase() + vp.slice(1)}
+                  type="button"
+                >
+                  {viewportIcons[vp]}
+                </button>
+              ))}
+            </div>
+          )}
+          right={(
+            <>
+              <StudioButton variant="ghost" size="sm" onClick={handlePreview}>
+                <Eye className="w-3.5 h-3.5" />
+                Preview
+              </StudioButton>
+              <StudioButton
+                variant="outline"
+                size="sm"
+                disabled={isSaving || !isDirty}
+                onClick={handleSaveDraft}
               >
-                {vp === 'desktop' ? '🖥️' : vp === 'tablet' ? '📱' : '📲'}
-              </button>
-            ))}
-          </div>
-
-          {/* Right: actions */}
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={handlePreview}>
-              Preview
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={isSaving || !isDirty}
-              onClick={handleSaveDraft}
-            >
-              {isSaving ? 'Saving...' : 'Save Draft'}
-            </Button>
-            <Button
-              size="sm"
-              disabled={isPublishing}
-              onClick={handlePublish}
-            >
-              {isPublishing ? 'Publishing...' : 'Publish'}
-            </Button>
-          </div>
-        </div>
+                <Save className="w-3.5 h-3.5" />
+                {isSaving ? 'Saving...' : 'Save'}
+              </StudioButton>
+              <StudioButton size="sm" disabled={isPublishing} onClick={handlePublish}>
+                <Upload className="w-3.5 h-3.5" />
+                {isPublishing ? 'Publishing...' : 'Publish'}
+              </StudioButton>
+            </>
+          )}
+        />
 
         {/* Main content: preview (65%) + panel (35%) */}
         <div className="flex-1 flex overflow-hidden">
@@ -685,7 +751,7 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
             collisionDetection={closestCenter}
             onDragEnd={handleDragEnd}
           >
-            <div className="flex-[65] min-w-0 bg-muted/30 overflow-auto flex flex-col">
+            <div className="flex-[65] min-w-0 bg-[color-mix(in_srgb,var(--studio-panel)_46%,transparent)] overflow-auto flex flex-col">
               <CanvasFrame websiteId={websiteId} viewport={viewport}>
                 <M3ThemeProvider
                   initialTheme={
@@ -735,82 +801,71 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
                   </SortableContext>
                 </M3ThemeProvider>
 
-                {/* Add section button at bottom */}
-                <div className="flex justify-center py-8">
-                  <Button
+                {/* Add section divider — modern dashed line with button */}
+                <div className="flex items-center justify-center py-10 px-8">
+                  <div className="flex-1 border-t border-dashed border-[var(--studio-border)]" />
+                  <StudioButton
                     variant="outline"
-                    size="lg"
-                    className="gap-2"
+                    size="sm"
+                    className="mx-4 gap-2 rounded-full border-dashed"
                     onClick={() => setPickerOpen(true)}
                   >
-                    <Plus className="w-4 h-4" />
+                    <Plus className="w-3.5 h-3.5" />
                     Add Section
-                  </Button>
+                  </StudioButton>
+                  <div className="flex-1 border-t border-dashed border-[var(--studio-border)]" />
                 </div>
               </CanvasFrame>
             </div>
           </DndContext>
 
           {/* Right panel */}
-          <div className="flex-[35] min-w-[320px] max-w-[480px] border-l bg-background flex flex-col">
-            <Tabs value={panelTab} onValueChange={(v) => setPanelTab(v as 'edit' | 'ai' | 'seo')}>
-              <div className="border-b px-4">
-                <TabsList className="w-full justify-start bg-transparent h-11 gap-4">
-                  <TabsTrigger
-                    value="edit"
-                    className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-1 pb-3"
-                  >
-                    Edit
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="ai"
-                    className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-1 pb-3"
-                  >
-                    AI
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="seo"
-                    className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-1 pb-3"
-                  >
-                    SEO
-                  </TabsTrigger>
-                </TabsList>
-              </div>
+          <div className="flex-[35] min-w-[320px] max-w-[480px] border-l border-[var(--studio-border)] bg-[var(--studio-bg-elevated)] flex flex-col">
+            <div className="p-2 border-b border-[var(--studio-border)]">
+              <StudioTabs
+                value={panelTab}
+                onChange={(value) => setPanelTab(value as 'edit' | 'ai' | 'seo')}
+                options={[
+                  { id: 'edit', label: 'Edit' },
+                  { id: 'ai', label: 'AI' },
+                  { id: 'seo', label: 'SEO' },
+                ]}
+              />
+            </div>
 
-              <TabsContent value="edit" className="flex-1 mt-0 overflow-hidden">
-                <ScrollArea className="h-full">
-                  {selectedSection ? (
-                    <SectionForm
-                      sectionType={selectedSection.sectionType}
-                      content={selectedSection.content}
-                      onChange={handleFieldChange}
-                    />
-                  ) : (
-                    <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
-                      <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
-                        <svg className="w-6 h-6 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeWidth="1.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                        </svg>
-                      </div>
-                      <p className="text-sm font-medium">No section selected</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Click on a section in the preview to edit it.
-                      </p>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="mt-4 gap-2"
-                        onClick={() => setPickerOpen(true)}
-                      >
-                        <Plus className="w-3 h-3" />
-                        Add Section
-                      </Button>
+            {panelTab === 'edit' ? (
+              <ScrollArea className="h-full">
+                {selectedSection ? (
+                  <SectionForm
+                    sectionType={selectedSection.sectionType}
+                    content={selectedSection.content}
+                    onChange={handleFieldChange}
+                  />
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
+                    <div className="w-14 h-14 rounded-2xl bg-[color-mix(in_srgb,var(--studio-primary)_14%,transparent)] flex items-center justify-center mb-5">
+                      <Pencil className="w-6 h-6 text-[var(--studio-primary)]" />
                     </div>
-                  )}
-                </ScrollArea>
-              </TabsContent>
+                    <p className="text-sm font-semibold text-[var(--studio-text)]">No section selected</p>
+                    <p className="text-xs text-[var(--studio-text-muted)] mt-1.5 max-w-[220px]">
+                      Click on a section in the preview to start editing its content.
+                    </p>
+                    <StudioButton
+                      variant="outline"
+                      size="sm"
+                      className="mt-5 gap-2 rounded-full"
+                      onClick={() => setPickerOpen(true)}
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      Add Section
+                    </StudioButton>
+                  </div>
+                )}
+              </ScrollArea>
+            ) : null}
 
-              <TabsContent value="ai" className="flex-1 mt-0 overflow-hidden">
+            {panelTab === 'ai' ? (
+              <div className="flex-1 overflow-hidden">
                 <StudioChat
                   websiteId={websiteId}
                   pageId={pageId}
@@ -818,9 +873,11 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
                   selectedSectionId={selectedSectionId}
                   onToolAction={handleToolAction}
                 />
-              </TabsContent>
+              </div>
+            ) : null}
 
-              <TabsContent value="seo" className="flex-1 mt-0 overflow-hidden">
+            {panelTab === 'seo' ? (
+              <div className="flex-1 overflow-hidden">
                 <SeoPanel
                   websiteId={websiteId}
                   pageId={pageId}
@@ -830,8 +887,8 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
                   seoDescription={seoDescription}
                   onSeoChange={handleSeoChange}
                 />
-              </TabsContent>
-            </Tabs>
+              </div>
+            ) : null}
           </div>
         </div>
 

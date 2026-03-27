@@ -119,9 +119,9 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
           >
-            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl overflow-hidden">
-              <div className="flex items-center px-4 border-b border-slate-200 dark:border-slate-700">
-                <svg className="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="studio-card overflow-hidden">
+              <div className="flex items-center px-4 border-b border-[var(--studio-border)]">
+                <svg className="w-5 h-5 text-[var(--studio-text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <circle cx="11" cy="11" r="8" strokeWidth="1.5" />
                   <path strokeWidth="1.5" d="M21 21l-4.35-4.35" />
                 </svg>
@@ -129,11 +129,11 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
                   ref={inputRef}
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  className="flex-1 px-3 py-4 bg-transparent outline-none text-slate-900 dark:text-white placeholder:text-slate-400"
+                  className="flex-1 px-3 py-4 bg-transparent outline-none text-[var(--studio-text)] placeholder:text-[var(--studio-text-muted)]"
                   placeholder="Search websites or actions..."
                 />
                 {loading && (
-                  <svg className="w-5 h-5 animate-spin text-slate-400" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 animate-spin text-[var(--studio-text-muted)]" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
@@ -147,11 +147,11 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
                     onClick={() => handleSelect(result)}
                     className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${
                       i === selected
-                        ? 'bg-blue-50 dark:bg-blue-900/30'
-                        : 'hover:bg-slate-50 dark:hover:bg-slate-700/50'
+                        ? 'bg-[color-mix(in_srgb,var(--studio-primary)_16%,transparent)]'
+                        : 'hover:bg-[color-mix(in_srgb,var(--studio-primary)_8%,transparent)]'
                     }`}
                   >
-                    <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-500">
+                    <div className="w-8 h-8 rounded-lg bg-[var(--studio-panel)] border border-[var(--studio-border)] flex items-center justify-center text-[var(--studio-text-muted)]">
                       {result.type === 'website' ? (
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <circle cx="12" cy="12" r="10" strokeWidth="1.5" />
@@ -163,21 +163,21 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
                       )}
                     </div>
                     <div>
-                      <div className="text-sm font-medium text-slate-900 dark:text-white">
+                      <div className="text-sm font-medium text-[var(--studio-text)]">
                         {result.title}
                       </div>
                       {result.subtitle && (
-                        <div className="text-xs text-slate-500">{result.subtitle}</div>
+                        <div className="text-xs text-[var(--studio-text-muted)]">{result.subtitle}</div>
                       )}
                     </div>
                   </button>
                 ))}
               </div>
 
-              <div className="px-4 py-2 border-t border-slate-200 dark:border-slate-700 flex items-center gap-4 text-xs text-slate-400">
-                <span><kbd className="bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded">↑↓</kbd> Navigate</span>
-                <span><kbd className="bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded">↵</kbd> Select</span>
-                <span><kbd className="bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded">esc</kbd> Close</span>
+              <div className="px-4 py-2 border-t border-[var(--studio-border)] flex items-center gap-4 text-xs text-[var(--studio-text-muted)]">
+                <span><kbd className="bg-[var(--studio-panel)] border border-[var(--studio-border)] px-1.5 py-0.5 rounded">↑↓</kbd> Navigate</span>
+                <span><kbd className="bg-[var(--studio-panel)] border border-[var(--studio-border)] px-1.5 py-0.5 rounded">↵</kbd> Select</span>
+                <span><kbd className="bg-[var(--studio-panel)] border border-[var(--studio-border)] px-1.5 py-0.5 rounded">esc</kbd> Close</span>
               </div>
             </div>
           </motion.div>

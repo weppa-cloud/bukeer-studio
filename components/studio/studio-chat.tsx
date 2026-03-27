@@ -3,13 +3,9 @@
 import { useRef, useEffect, useCallback, useState } from 'react';
 import { useChat } from '@ai-sdk/react';
 import type { UIMessage } from 'ai';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
+import { StudioBadge, StudioButton, StudioTextarea } from '@/components/studio/ui/primitives';
 import {
   Send,
   Bot,
@@ -65,31 +61,29 @@ function ToolActionCard({
   const isPending = state === 'call' || state === 'partial-call';
 
   return (
-    <Card className="my-2 border-primary/20">
-      <CardContent className="p-3">
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <Badge variant="outline" className="text-xs">
-                {toolLabels[toolName] ?? toolName}
-              </Badge>
-              {isPending && <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />}
-              {state === 'result' && <CheckCircle2 className="w-3 h-3 text-green-500" />}
-            </div>
-            <p className="text-xs text-muted-foreground">{description}</p>
+    <div className="studio-panel my-2 p-3">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <StudioBadge tone="info" className="text-xs">
+              {toolLabels[toolName] ?? toolName}
+            </StudioBadge>
+            {isPending && <Loader2 className="w-3 h-3 animate-spin text-[var(--studio-text-muted)]" />}
+            {state === 'result' && <CheckCircle2 className="w-3 h-3 text-[var(--studio-success)]" />}
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="shrink-0 text-xs h-7"
-            onClick={onApply}
-            disabled={isPending}
-          >
-            Apply
-          </Button>
+          <p className="text-xs text-[var(--studio-text-muted)]">{description}</p>
         </div>
-      </CardContent>
-    </Card>
+        <StudioButton
+          variant="outline"
+          size="sm"
+          className="shrink-0 text-xs h-7"
+          onClick={onApply}
+          disabled={isPending}
+        >
+          Apply
+        </StudioButton>
+      </div>
+    </div>
   );
 }
 
@@ -122,7 +116,9 @@ function ChatMessage({
       <div
         className={cn(
           'w-7 h-7 rounded-full flex items-center justify-center shrink-0',
-          isUser ? 'bg-primary text-primary-foreground' : 'bg-muted'
+          isUser
+            ? 'bg-[var(--studio-primary)] text-white'
+            : 'bg-[var(--studio-panel)] text-[var(--studio-text-muted)] border border-[var(--studio-border)]'
         )}
       >
         {isUser ? <User className="w-3.5 h-3.5" /> : <Bot className="w-3.5 h-3.5" />}
@@ -134,8 +130,8 @@ function ChatMessage({
             className={cn(
               'inline-block px-3 py-2 rounded-lg text-sm max-w-[90%]',
               isUser
-                ? 'bg-primary text-primary-foreground rounded-tr-none'
-                : 'bg-muted rounded-tl-none'
+                ? 'bg-[var(--studio-primary)] text-white rounded-tr-none'
+                : 'bg-[var(--studio-panel)] text-[var(--studio-text)] rounded-tl-none border border-[var(--studio-border)]'
             )}
           >
             <p className="whitespace-pre-wrap">{textContent}</p>
@@ -258,18 +254,18 @@ export function StudioChat({
         <div className="py-4">
           {messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 text-center">
-              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                <Sparkles className="w-6 h-6 text-primary" />
+              <div className="w-12 h-12 rounded-full bg-[color-mix(in_srgb,var(--studio-primary)_12%,transparent)] flex items-center justify-center mb-4">
+                <Sparkles className="w-6 h-6 text-[var(--studio-primary)]" />
               </div>
-              <p className="text-sm font-medium mb-1">AI Assistant</p>
-              <p className="text-xs text-muted-foreground mb-6 max-w-[250px]">
+              <p className="text-sm font-medium mb-1 text-[var(--studio-text)]">AI Assistant</p>
+              <p className="text-xs text-[var(--studio-text-muted)] mb-6 max-w-[250px]">
                 Ask me to edit sections, add content, translate, or improve your page.
               </p>
 
               {/* Quick actions */}
               <div className="flex flex-wrap gap-2 justify-center">
                 {QUICK_ACTIONS.map((action) => (
-                  <Button
+                  <StudioButton
                     key={action.label}
                     variant="outline"
                     size="sm"
@@ -277,7 +273,7 @@ export function StudioChat({
                     onClick={() => handleQuickAction(action.prompt)}
                   >
                     {action.label}
-                  </Button>
+                  </StudioButton>
                 ))}
               </div>
             </div>
@@ -292,40 +288,40 @@ export function StudioChat({
           )}
 
           {isLoading && (
-            <div className="flex items-center gap-2 text-muted-foreground mb-4">
+            <div className="flex items-center gap-2 text-[var(--studio-text-muted)] mb-4">
               <Loader2 className="w-4 h-4 animate-spin" />
               <span className="text-xs">Thinking...</span>
-              <Button variant="ghost" size="sm" className="text-xs h-6" onClick={stop}>
+              <StudioButton variant="ghost" size="sm" className="text-xs h-6" onClick={stop}>
                 Stop
-              </Button>
+              </StudioButton>
             </div>
           )}
 
           {error && (
-            <div className="flex items-center gap-2 text-destructive mb-4 p-2 bg-destructive/10 rounded-md">
+            <div className="flex items-center gap-2 text-[var(--studio-danger)] mb-4 p-2 rounded-md border border-[color-mix(in_srgb,var(--studio-danger)_24%,transparent)] bg-[color-mix(in_srgb,var(--studio-danger)_12%,transparent)]">
               <AlertCircle className="w-4 h-4" />
               <span className="text-xs flex-1">{error.message}</span>
-              <Button variant="ghost" size="sm" className="text-xs h-6" onClick={() => clearError()}>
+              <StudioButton variant="ghost" size="sm" className="text-xs h-6" onClick={() => clearError()}>
                 Dismiss
-              </Button>
+              </StudioButton>
             </div>
           )}
         </div>
       </ScrollArea>
 
-      <Separator />
+      <div className="border-t border-[var(--studio-border)]" />
 
       {/* Input area */}
       <form onSubmit={handleSubmit} className="p-3">
         {selectedSectionId && (
           <div className="mb-2">
-            <Badge variant="secondary" className="text-xs">
+            <StudioBadge tone="info" className="text-xs">
               Focused: {selectedSectionId.slice(0, 8)}...
-            </Badge>
+            </StudioBadge>
           </div>
         )}
         <div className="flex gap-2">
-          <Textarea
+          <StudioTextarea
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -333,14 +329,14 @@ export function StudioChat({
             className="min-h-[40px] max-h-[120px] resize-none text-sm"
             rows={1}
           />
-          <Button
+          <StudioButton
             type="submit"
-            size="icon"
-            className="shrink-0 h-10 w-10"
+            size="md"
+            className="shrink-0 h-10 w-10 px-0"
             disabled={!inputValue.trim() || isLoading}
           >
             <Send className="w-4 h-4" />
-          </Button>
+          </StudioButton>
         </div>
       </form>
     </div>

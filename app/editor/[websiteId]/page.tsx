@@ -71,7 +71,7 @@ class PuckErrorBoundary extends React.Component<
             onClick={() => window.location.reload()}
             style={{
               padding: '8px 20px',
-              background: '#6d28d9',
+              background: 'var(--studio-primary)',
               color: 'white',
               border: 'none',
               borderRadius: 8,
