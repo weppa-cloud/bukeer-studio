@@ -179,8 +179,6 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
 
     try {
       localStorage.setItem('studio-ui-mode', mode);
-      // Keep compatibility with next-themes defaults used by parts of the app.
-      localStorage.setItem('theme', mode);
     } catch {
       // Ignore storage write failures.
     }
@@ -286,11 +284,8 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
     let mode: 'light' | 'dark' = 'light';
     try {
       const savedMode = localStorage.getItem('studio-ui-mode');
-      const nextThemeMode = localStorage.getItem('theme');
       if (savedMode === 'light' || savedMode === 'dark') {
         mode = savedMode;
-      } else if (nextThemeMode === 'light' || nextThemeMode === 'dark') {
-        mode = nextThemeMode;
       }
     } catch {
       // Keep light mode fallback.

@@ -42,6 +42,14 @@ function safeSerialize(value: unknown): string {
   }
 }
 
+function reportSectionIssue(message: string): void {
+  // In development we already render an inline diagnostic block in-canvas.
+  // Avoid duplicating noise in Next.js issues overlay.
+  if (process.env.NODE_ENV !== 'development') {
+    console.warn(message);
+  }
+}
+
 /**
  * Renders a section with validation and normalization.
  *
@@ -71,7 +79,7 @@ export function renderSectionWithResult({
       message: `Unknown section type: ${section.section_type}`,
     };
 
-    console.warn(`[renderSection] ${error.message}`);
+    reportSectionIssue(`[renderSection] ${error.message}`);
 
     // Show placeholder in development
     if (process.env.NODE_ENV === 'development') {
@@ -107,7 +115,7 @@ export function renderSectionWithResult({
     };
 
     // Keep renderer resilient: surface inline error block without breaking editor.
-    console.warn(
+    reportSectionIssue(
       `[renderSection] ${error.message}: ${err instanceof Error ? err.message : String(err)}`
     );
 
@@ -152,7 +160,7 @@ export function renderSectionWithResult({
         details: validationResult.error,
       };
 
-      console.warn(
+      reportSectionIssue(
         `[renderSection] ${error.message}: ${safeSerialize(validationResult.error)}`
       );
 
@@ -185,7 +193,7 @@ export function renderSectionWithResult({
     }
 
     // Empty content — log warning and fall through to render with defaults
-    console.warn(
+    reportSectionIssue(
       `[renderSection] Empty content for ${section.section_type} — rendering with component fallbacks`
     );
   }
