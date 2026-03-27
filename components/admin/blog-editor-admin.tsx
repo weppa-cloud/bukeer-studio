@@ -1,7 +1,14 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback, useRef, lazy, Suspense } from 'react';
 import type { AutosaveStatus } from '@/lib/hooks/use-autosave';
+
+// Lazy-load TipTap BlogEditor to avoid SSR issues with ProseMirror
+const BlogEditorRich = lazy(() =>
+  import('@/components/editor/blog-editor').then((mod) => ({
+    default: mod.BlogEditor,
+  }))
+);
 
 interface PostData {
   id: string;
@@ -98,23 +105,23 @@ export function BlogEditorComponent({
 
       {/* Editor area */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Main editor */}
-        <div className="flex-1 overflow-y-auto p-6 lg:p-12 max-w-3xl mx-auto w-full">
-          {/* Title */}
-          <input
-            value={post.title}
-            onChange={(e) => onChange({ ...post, title: e.target.value })}
-            className="w-full text-3xl font-bold text-slate-900 dark:text-white bg-transparent outline-none placeholder:text-slate-300 mb-4"
-            placeholder="Post title"
-          />
-
-          {/* Content area — simple textarea for now, TipTap integration available */}
-          <textarea
-            value={post.content}
-            onChange={(e) => onChange({ ...post, content: e.target.value })}
-            className="w-full min-h-[400px] text-slate-700 dark:text-slate-300 bg-transparent outline-none resize-none leading-relaxed"
-            placeholder="Start writing your post..."
-          />
+        {/* Main editor — TipTap rich text */}
+        <div className="flex-1 overflow-y-auto">
+          <Suspense
+            fallback={
+              <div className="flex items-center justify-center h-64">
+                <div className="animate-spin w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full" />
+              </div>
+            }
+          >
+            <BlogEditorRich
+              initialContent={post.content}
+              initialTitle={post.title}
+              onChange={(content) => onChange({ ...post, content })}
+              onTitleChange={(title) => onChange({ ...post, title })}
+              websiteId={websiteId}
+            />
+          </Suspense>
         </div>
 
         {/* Sidebar */}

@@ -162,6 +162,11 @@ export default function EditorPage({ params }: EditorPageProps) {
   const puckDataRef = useRef<PuckData | null>(null);
   const isInitialLoadRef = useRef(true);
 
+  // Detect if running standalone (not inside an iframe)
+  const isStandaloneRef = useRef(
+    typeof window !== 'undefined' && window.parent === window
+  );
+
   // Load Puck module dynamically
   useEffect(() => {
     if (!PUCK_ENABLED) return;
@@ -392,6 +397,22 @@ export default function EditorPage({ params }: EditorPageProps) {
     // Notify that we're ready (only message with '*')
     sendToParent('canvas:ready', { canvasOrigin: window.location.origin });
 
+    // Standalone mode: no iframe parent, get token from Supabase session cookie
+    if (isStandaloneRef.current) {
+      import('@/lib/supabase/browser-client').then(({ createSupabaseBrowserClient }) => {
+        const supabase = createSupabaseBrowserClient();
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          if (session?.access_token) {
+            tokenRef.current = session.access_token;
+            loadData();
+          } else {
+            setState('error');
+            setError('No session found. Please log in at /login first.');
+          }
+        });
+      });
+    }
+
     return () => {
       window.removeEventListener('message', handleMessage);
       tokenRef.current = null;
@@ -436,6 +457,13 @@ export default function EditorPage({ params }: EditorPageProps) {
   }, [isDirty, sendToParent]);
 
   const handlePuckSave = useCallback(async (puckData: PuckData) => {
+    // In standalone mode, refresh token from session before saving
+    if (isStandaloneRef.current) {
+      const { createSupabaseBrowserClient } = await import('@/lib/supabase/browser-client');
+      const supabase = createSupabaseBrowserClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token) tokenRef.current = session.access_token;
+    }
     if (!tokenRef.current || !websiteId) return;
 
     setIsSaving(true);
@@ -566,8 +594,8 @@ export default function EditorPage({ params }: EditorPageProps) {
     return <EditorShell websiteId={websiteId} />;
   }
 
-  // Embedded mode render states
-  if (!websiteId || state === 'waiting') {
+  // Render states
+  if (!websiteId || (state === 'waiting' && !isStandaloneRef.current)) {
     return (
       <div className="flex items-center justify-center h-screen bg-background">
         <div className="text-center">
