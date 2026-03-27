@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser-client';
 import { useRouter } from 'next/navigation';
+import { Moon, Sun } from 'lucide-react';
 
 interface AdminTopbarProps {
   userName?: string;
@@ -20,8 +21,45 @@ export function AdminTopbar({
   onToggleSidebar,
 }: AdminTopbarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [studioMode, setStudioMode] = useState<'light' | 'dark'>('light');
   const router = useRouter();
   const supabase = createSupabaseBrowserClient();
+
+  const applyStudioMode = useCallback((mode: 'light' | 'dark') => {
+    const root = document.documentElement;
+    root.classList.toggle('dark', mode === 'dark');
+    root.style.colorScheme = mode;
+
+    try {
+      localStorage.setItem('studio-ui-mode', mode);
+      localStorage.setItem('theme', mode);
+    } catch {
+      // Ignore storage write failures.
+    }
+
+    setStudioMode(mode);
+  }, []);
+
+  const toggleStudioMode = useCallback(() => {
+    applyStudioMode(studioMode === 'dark' ? 'light' : 'dark');
+  }, [applyStudioMode, studioMode]);
+
+  useEffect(() => {
+    let mode: 'light' | 'dark' = 'light';
+    try {
+      const savedMode = localStorage.getItem('studio-ui-mode');
+      const nextThemeMode = localStorage.getItem('theme');
+      if (savedMode === 'light' || savedMode === 'dark') {
+        mode = savedMode;
+      } else if (nextThemeMode === 'light' || nextThemeMode === 'dark') {
+        mode = nextThemeMode;
+      }
+    } catch {
+      // Keep light mode fallback.
+    }
+
+    applyStudioMode(mode);
+  }, [applyStudioMode]);
 
   async function handleLogout() {
     await supabase.auth.signOut();
@@ -77,6 +115,16 @@ export function AdminTopbar({
       </div>
 
       <div className="flex items-center gap-2 md:gap-4">
+        <button
+          onClick={toggleStudioMode}
+          className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-[var(--studio-border)] text-xs text-[var(--studio-text-muted)] hover:text-[var(--studio-text)] hover:border-[var(--studio-border-strong)]"
+          type="button"
+          title={`Switch to ${studioMode === 'dark' ? 'light' : 'dark'} mode`}
+        >
+          {studioMode === 'dark' ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+          {studioMode === 'dark' ? 'Light' : 'Dark'}
+        </button>
+
         {accountName && (
           <span className="hidden lg:block text-sm text-[var(--studio-text-muted)]">
             {accountName}

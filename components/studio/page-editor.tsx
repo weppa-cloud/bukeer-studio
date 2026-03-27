@@ -52,6 +52,8 @@ import {
   Save,
   Upload,
   Pencil,
+  Moon,
+  Sun,
 } from 'lucide-react';
 import type { WebsiteData, WebsiteSection } from '@bukeer/website-contract';
 import type { SectionTypeValue } from '@bukeer/website-contract';
@@ -150,6 +152,7 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
   const [isPublishing, setIsPublishing] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [panelTab, setPanelTab] = useState<'edit' | 'ai' | 'seo'>('edit');
+  const [studioMode, setStudioMode] = useState<'light' | 'dark'>('light');
   const [seoTitle, setSeoTitle] = useState('');
   const [seoDescription, setSeoDescription] = useState('');
 
@@ -167,6 +170,26 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
     () => sections.find((s) => s.id === selectedSectionId) ?? null,
     [sections, selectedSectionId]
   );
+
+  const applyStudioMode = useCallback((mode: 'light' | 'dark') => {
+    const root = document.documentElement;
+    root.classList.toggle('dark', mode === 'dark');
+    root.style.colorScheme = mode;
+
+    try {
+      localStorage.setItem('studio-ui-mode', mode);
+      // Keep compatibility with next-themes defaults used by parts of the app.
+      localStorage.setItem('theme', mode);
+    } catch {
+      // Ignore storage write failures.
+    }
+
+    setStudioMode(mode);
+  }, []);
+
+  const toggleStudioMode = useCallback(() => {
+    applyStudioMode(studioMode === 'dark' ? 'light' : 'dark');
+  }, [applyStudioMode, studioMode]);
 
   // ============================================================================
   // Data Loading
@@ -256,6 +279,24 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Studio admin/editor color mode: explicit preference, default to light.
+  useEffect(() => {
+    let mode: 'light' | 'dark' = 'light';
+    try {
+      const savedMode = localStorage.getItem('studio-ui-mode');
+      const nextThemeMode = localStorage.getItem('theme');
+      if (savedMode === 'light' || savedMode === 'dark') {
+        mode = savedMode;
+      } else if (nextThemeMode === 'light' || nextThemeMode === 'dark') {
+        mode = nextThemeMode;
+      }
+    } catch {
+      // Keep light mode fallback.
+    }
+
+    applyStudioMode(mode);
+  }, [applyStudioMode]);
 
   // Check for local backup on mount
   useEffect(() => {
@@ -725,6 +766,14 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
               <StudioButton variant="ghost" size="sm" onClick={handlePreview}>
                 <Eye className="w-3.5 h-3.5" />
                 Preview
+              </StudioButton>
+              <StudioButton variant="ghost" size="sm" onClick={toggleStudioMode}>
+                {studioMode === 'dark' ? (
+                  <Sun className="w-3.5 h-3.5" />
+                ) : (
+                  <Moon className="w-3.5 h-3.5" />
+                )}
+                {studioMode === 'dark' ? 'Light' : 'Dark'}
               </StudioButton>
               <StudioButton
                 variant="outline"

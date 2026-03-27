@@ -2,7 +2,7 @@
 
 import { useRef, useEffect, useCallback, useState } from 'react';
 import { useChat } from '@ai-sdk/react';
-import type { UIMessage } from 'ai';
+import { DefaultChatTransport, type UIMessage } from 'ai';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { StudioBadge, StudioButton, StudioTextarea } from '@/components/studio/ui/primitives';
@@ -185,30 +185,48 @@ export function StudioChat({
   selectedSectionId,
   onToolAction,
 }: StudioChatProps) {
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
   const [inputValue, setInputValue] = useState('');
+  const contextRef = useRef({
+    websiteId,
+    pageId,
+    selectedSectionId,
+    sectionCount: sections.length,
+  });
+
+  useEffect(() => {
+    contextRef.current = {
+      websiteId,
+      pageId,
+      selectedSectionId,
+      sectionCount: sections.length,
+    };
+  }, [websiteId, pageId, selectedSectionId, sections.length]);
+
+  const scrollToBottom = useCallback(() => {
+    bottomRef.current?.scrollIntoView({ block: 'end' });
+  }, []);
+
+  const transportRef = useRef(
+    new DefaultChatTransport({
+      api: '/api/ai/studio-chat',
+      body: () => ({
+        websiteId: contextRef.current.websiteId,
+        pageId: contextRef.current.pageId,
+        focusedSectionId: contextRef.current.selectedSectionId,
+        sectionCount: contextRef.current.sectionCount,
+      }),
+    })
+  );
 
   const { messages, status, sendMessage, stop, error, clearError } = useChat({
-    transport: {
-      api: '/api/ai/studio-chat',
-      body: {
-        websiteId,
-        pageId,
-        focusedSectionId: selectedSectionId,
-      },
-    } as any, // DefaultChatTransport accepts these via HttpChatTransportInitOptions
+    transport: transportRef.current,
     onFinish: () => {
       scrollToBottom();
     },
   });
 
   const isLoading = status === 'streaming' || status === 'submitted';
-
-  const scrollToBottom = useCallback(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, []);
 
   useEffect(() => {
     scrollToBottom();
@@ -250,7 +268,7 @@ export function StudioChat({
   return (
     <div className="flex flex-col h-full">
       {/* Messages area */}
-      <ScrollArea className="flex-1 px-4" ref={scrollRef as any}>
+      <ScrollArea className="flex-1 px-4">
         <div className="py-4">
           {messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 text-center">
@@ -306,6 +324,8 @@ export function StudioChat({
               </StudioButton>
             </div>
           )}
+
+          <div ref={bottomRef} />
         </div>
       </ScrollArea>
 

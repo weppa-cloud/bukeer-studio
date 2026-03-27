@@ -28,10 +28,18 @@ interface RenderSectionProps {
 interface RenderSectionResult {
   element: React.ReactNode;
   error?: {
-    type: 'unknown_type' | 'validation_failed';
+    type: 'unknown_type' | 'validation_failed' | 'validation_exception';
     message: string;
     details?: unknown;
   };
+}
+
+function safeSerialize(value: unknown): string {
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return String(value);
+  }
 }
 
 /**
@@ -88,7 +96,46 @@ export function renderSectionWithResult({
   }
 
   // 2. Validate with schema (uses snake_case from DB)
-  const validationResult = validateSectionComplete(section);
+  let validationResult: ReturnType<typeof validateSectionComplete>;
+  try {
+    validationResult = validateSectionComplete(section);
+  } catch (err) {
+    const error = {
+      type: 'validation_exception' as const,
+      message: `Validation threw for section ${section.id || section.section_type}`,
+      details: err,
+    };
+
+    // Keep renderer resilient: surface inline error block without breaking editor.
+    console.warn(
+      `[renderSection] ${error.message}: ${err instanceof Error ? err.message : String(err)}`
+    );
+
+    if (process.env.NODE_ENV === 'development') {
+      return {
+        element: (
+          <div className="section-padding bg-red-50 border border-red-300 rounded-lg mx-4 my-2">
+            <div className="container py-8">
+              <p className="text-red-700 font-medium mb-2">
+                Error en sección: <code className="bg-red-100 px-2 py-1 rounded">{section.section_type}</code>
+              </p>
+              <details className="text-sm">
+                <summary className="text-red-600 cursor-pointer hover:text-red-800">
+                  Ver detalles del error
+                </summary>
+                <pre className="mt-2 p-3 bg-red-100 rounded text-xs overflow-auto max-h-48">
+                  {safeSerialize(err)}
+                </pre>
+              </details>
+            </div>
+          </div>
+        ),
+        error,
+      };
+    }
+
+    return { element: null, error };
+  }
 
   if (!validationResult.success) {
     const contentObj = section.content as Record<string, unknown> | null;
@@ -105,7 +152,9 @@ export function renderSectionWithResult({
         details: validationResult.error,
       };
 
-      console.error(`[renderSection] ${error.message}:`, validationResult.error);
+      console.warn(
+        `[renderSection] ${error.message}: ${safeSerialize(validationResult.error)}`
+      );
 
       // Show error UI in development
       if (process.env.NODE_ENV === 'development') {
@@ -121,7 +170,7 @@ export function renderSectionWithResult({
                     Ver detalles del error
                   </summary>
                   <pre className="mt-2 p-3 bg-red-100 rounded text-xs overflow-auto max-h-48">
-                    {JSON.stringify(validationResult.error, null, 2)}
+                    {safeSerialize(validationResult.error)}
                   </pre>
                 </details>
               </div>
