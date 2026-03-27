@@ -16,6 +16,7 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable';
 import { M3ThemeProvider } from '@/lib/theme/m3-theme-provider';
+import type { ThemeInput } from '@/lib/theme/m3-theme-provider';
 import { renderSectionWithResult } from '@/lib/sections/render-section';
 import { SectionPreview } from './section-preview';
 import { SectionForm } from './section-form';
@@ -805,7 +806,7 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
                 <M3ThemeProvider
                   initialTheme={
                     websiteData?.theme?.tokens
-                      ? { tokens: websiteData.theme.tokens, profile: websiteData.theme.profile } as any
+                      ? { tokens: websiteData.theme.tokens, profile: websiteData.theme.profile } as ThemeInput
                       : undefined
                   }
                 >
@@ -824,10 +825,30 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
                         content: section.content,
                       };
 
-                      const result = renderSectionWithResult({
-                        section: sectionForRender,
-                        website: websiteForRender,
-                      });
+                      let result: ReturnType<typeof renderSectionWithResult>;
+                      try {
+                        result = renderSectionWithResult({
+                          section: sectionForRender,
+                          website: websiteForRender,
+                        });
+                      } catch (err) {
+                        const message = err instanceof Error ? err.message : String(err);
+                        console.warn(
+                          `[PageEditor] Failed to render section ${section.sectionType} (${section.id}): ${message}`
+                        );
+                        result = {
+                          element: (
+                            <div className="section-padding bg-red-50 border border-red-300 rounded-lg mx-4 my-2">
+                              <div className="container py-8">
+                                <p className="text-red-700 font-medium mb-2">
+                                  Error en sección: <code className="bg-red-100 px-2 py-1 rounded">{section.sectionType}</code>
+                                </p>
+                                <p className="text-red-600 text-sm">{message}</p>
+                              </div>
+                            </div>
+                          ),
+                        };
+                      }
 
                       return (
                         <SectionPreview

@@ -22,6 +22,7 @@ export function AdminTopbar({
 }: AdminTopbarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [studioMode, setStudioMode] = useState<'light' | 'dark'>('light');
+  const [mounted, setMounted] = useState(false);
   const router = useRouter();
   const supabase = createSupabaseBrowserClient();
 
@@ -45,6 +46,8 @@ export function AdminTopbar({
   }, [applyStudioMode, studioMode]);
 
   useEffect(() => {
+    setMounted(true);
+
     let mode: 'light' | 'dark' = 'light';
     try {
       const savedMode = localStorage.getItem('studio-ui-mode');
@@ -115,15 +118,17 @@ export function AdminTopbar({
       </div>
 
       <div className="flex items-center gap-2 md:gap-4">
-        <button
-          onClick={toggleStudioMode}
-          className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-[var(--studio-border)] text-xs text-[var(--studio-text-muted)] hover:text-[var(--studio-text)] hover:border-[var(--studio-border-strong)]"
-          type="button"
-          title={`Switch to ${studioMode === 'dark' ? 'light' : 'dark'} mode`}
-        >
-          {studioMode === 'dark' ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
-          {studioMode === 'dark' ? 'Light' : 'Dark'}
-        </button>
+        {mounted ? (
+          <button
+            onClick={toggleStudioMode}
+            className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-[var(--studio-border)] text-xs text-[var(--studio-text-muted)] hover:text-[var(--studio-text)] hover:border-[var(--studio-border-strong)]"
+            type="button"
+            title={`Switch to ${studioMode === 'dark' ? 'light' : 'dark'} mode`}
+          >
+            {studioMode === 'dark' ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+            {studioMode === 'dark' ? 'Light' : 'Dark'}
+          </button>
+        ) : null}
 
         {accountName && (
           <span className="hidden lg:block text-sm text-[var(--studio-text-muted)]">
