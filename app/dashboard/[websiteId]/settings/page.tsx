@@ -8,6 +8,7 @@ import { useAutosave } from '@/lib/hooks/use-autosave';
 import { ConfirmDialog } from '@/components/admin/confirm-dialog';
 import { DomainWizard } from '@/components/admin/domain-wizard';
 import { VersionTimeline } from '@/components/admin/version-timeline';
+import { TemplateSection } from '@/components/admin/template-section';
 import { StudioPage, StudioSectionHeader, StudioInput, StudioTabs } from '@/components/studio/ui/primitives';
 
 export default function SettingsTab() {
@@ -20,7 +21,7 @@ export default function SettingsTab() {
   const [subdomainError, setSubdomainError] = useState('');
   const [showUnpublish, setShowUnpublish] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
-  const [section, setSection] = useState<'general' | 'domain' | 'versions'>('general');
+  const [section, setSection] = useState<'general' | 'domain' | 'template' | 'versions'>('general');
 
   useEffect(() => {
     if (website) setSubdomain(website.subdomain);
@@ -77,10 +78,11 @@ export default function SettingsTab() {
 
       <StudioTabs
         value={section}
-        onChange={(value) => setSection(value as 'general' | 'domain' | 'versions')}
+        onChange={(value) => setSection(value as 'general' | 'domain' | 'template' | 'versions')}
         options={[
           { id: 'general', label: 'General' },
           { id: 'domain', label: 'Domain' },
+          { id: 'template', label: 'Template' },
           { id: 'versions', label: 'Version History' },
         ]}
         className="mb-6"
@@ -149,6 +151,7 @@ export default function SettingsTab() {
       )}
 
       {section === 'domain' && <DomainWizard websiteId={websiteId} currentDomain={website.custom_domain} />}
+      {section === 'template' && <TemplateSection websiteId={websiteId} />}
       {section === 'versions' && <VersionTimeline websiteId={websiteId} />}
 
       <ConfirmDialog
