@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getEditorModel } from '@/lib/ai/llm-provider';
+import { DEFAULT_MODEL, getEditorModel } from '@/lib/ai/llm-provider';
 import { generateObject } from 'ai';
 import { z } from 'zod';
 import { getEditorAuth, hasEditorRole } from '@/lib/ai/auth-helpers';
@@ -193,7 +193,7 @@ export async function POST(request: NextRequest) {
         version: isV2 ? 2 : 1,
         locale,
         ai_generated: true,
-        ai_model: 'claude-sonnet-4-5',
+        ai_model: DEFAULT_MODEL,
       },
     });
   } catch (err) {

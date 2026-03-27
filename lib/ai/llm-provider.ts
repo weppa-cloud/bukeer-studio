@@ -9,7 +9,7 @@ import { createOpenAI } from '@ai-sdk/openai';
  * Environment variables:
  * - OPENROUTER_AUTH_TOKEN: API key for OpenRouter
  * - OPENROUTER_BASE_URL: Base URL (default: https://openrouter.ai/api/v1)
- * - OPENROUTER_MODEL: Model ID (default: anthropic/claude-sonnet-4-5-20250514)
+ * - OPENROUTER_MODEL: Model ID (default: mistralai/mistral-large)
  */
 
 const openrouter = createOpenAI({
@@ -24,7 +24,7 @@ const openrouter = createOpenAI({
 
 /** Default model for editor AI routes */
 export const DEFAULT_MODEL =
-  process.env.OPENROUTER_MODEL || 'anthropic/claude-sonnet-4.6';
+  process.env.OPENROUTER_MODEL || 'mistralai/mistral-large';
 
 /** Get the configured LLM model for editor routes */
 export function getEditorModel() {
