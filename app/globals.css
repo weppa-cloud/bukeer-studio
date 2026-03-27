@@ -1,5 +1,9 @@
 /* Fonts are loaded via next/font in layout.tsx for optimal performance */
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
 
 /* Utility: hide scrollbar but keep scroll functionality */
 .scrollbar-hide {
@@ -173,48 +177,59 @@
 
 @layer base {
   :root {
+    /* Bukeer Brand — matches Flutter M3 theme (m3_color_scheme.dart) */
     --background: 0 0% 100%;
-    --foreground: 0 0% 10%;
+    --foreground: 264 20% 12%;
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 10%;
+    --card-foreground: 264 20% 12%;
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 10%;
-    --primary: 220 90% 56%;
+    --popover-foreground: 264 20% 12%;
+    --primary: 264 37% 52%;           /* #7C57B3 Bukeer Purple */
     --primary-foreground: 0 0% 100%;
-    --secondary: 25 95% 53%;
+    --secondary: 170 60% 52%;         /* #39D2C0 Bukeer Teal */
     --secondary-foreground: 0 0% 100%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-    --radius: 0.5rem;
+    --muted: 264 15% 95%;
+    --muted-foreground: 264 10% 45%;
+    --accent: 18 82% 66%;             /* #EE8B60 Bukeer Orange */
+    --accent-foreground: 0 0% 100%;
+    --destructive: 356 100% 67%;      /* #FF5963 Bukeer Red */
+    --destructive-foreground: 0 0% 100%;
+    --border: 264 10% 90%;
+    --input: 264 10% 90%;
+    --ring: 264 37% 52%;              /* Focus ring = primary */
+    --radius: 0.75rem;                /* Slightly more rounded like Flutter */
   }
 
   .dark {
-    --background: 0 0% 10%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 10%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 10%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    /* Bukeer Brand Dark — matches Flutter M3 dark theme */
+    --background: 264 15% 8%;
+    --foreground: 264 5% 95%;
+    --card: 264 15% 12%;
+    --card-foreground: 264 5% 95%;
+    --popover: 264 15% 12%;
+    --popover-foreground: 264 5% 95%;
+    --primary: 264 45% 65%;           /* Lighter purple for dark mode */
+    --primary-foreground: 264 15% 8%;
+    --secondary: 170 55% 45%;         /* Teal adjusted for dark */
+    --secondary-foreground: 0 0% 100%;
+    --muted: 264 15% 18%;
+    --muted-foreground: 264 10% 60%;
+    --accent: 18 75% 60%;             /* Orange adjusted for dark */
+    --accent-foreground: 0 0% 100%;
+    --destructive: 356 80% 55%;       /* Red adjusted for dark */
+    --destructive-foreground: 0 0% 100%;
+    --border: 264 15% 20%;
+    --input: 264 15% 20%;
+    --ring: 264 45% 65%;
+  }
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
   }
 }
 
@@ -319,4 +334,122 @@
 
 ::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--foreground));
+}
+
+@theme inline {
+  --font-heading: var(--font-sans);
+  --font-sans: var(--font-sans);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/* ============================================
+   BUKEER BRAND TOKENS (oklch for shadcn v4)
+   Matches Flutter M3 theme (m3_color_scheme.dart)
+   Primary: #7C57B3 (purple), Secondary: #39D2C0 (teal),
+   Accent: #EE8B60 (orange), Error: #FF5963 (red)
+   ============================================ */
+:root {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.2 0.03 285);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.2 0.03 285);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.2 0.03 285);
+  --primary: oklch(0.5 0.14 285);              /* #7C57B3 Bukeer Purple */
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.75 0.12 175);            /* #39D2C0 Bukeer Teal */
+  --secondary-foreground: oklch(1 0 0);
+  --muted: oklch(0.95 0.01 285);
+  --muted-foreground: oklch(0.5 0.02 285);
+  --accent: oklch(0.72 0.15 50);                /* #EE8B60 Bukeer Orange */
+  --accent-foreground: oklch(1 0 0);
+  --destructive: oklch(0.6 0.22 25);            /* #FF5963 Bukeer Red */
+  --border: oklch(0.92 0.01 285);
+  --input: oklch(0.92 0.01 285);
+  --ring: oklch(0.5 0.14 285);                  /* Focus = primary */
+  --chart-1: oklch(0.5 0.14 285);               /* Purple */
+  --chart-2: oklch(0.75 0.12 175);              /* Teal */
+  --chart-3: oklch(0.72 0.15 50);               /* Orange */
+  --chart-4: oklch(0.6 0.22 25);                /* Red */
+  --chart-5: oklch(0.65 0.1 140);               /* Green */
+  --radius: 0.75rem;
+  --sidebar: oklch(0.98 0.005 285);
+  --sidebar-foreground: oklch(0.2 0.03 285);
+  --sidebar-primary: oklch(0.5 0.14 285);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.95 0.01 285);
+  --sidebar-accent-foreground: oklch(0.2 0.03 285);
+  --sidebar-border: oklch(0.92 0.01 285);
+  --sidebar-ring: oklch(0.5 0.14 285);
+}
+
+.dark {
+  --background: oklch(0.15 0.02 285);
+  --foreground: oklch(0.95 0.005 285);
+  --card: oklch(0.2 0.02 285);
+  --card-foreground: oklch(0.95 0.005 285);
+  --popover: oklch(0.2 0.02 285);
+  --popover-foreground: oklch(0.95 0.005 285);
+  --primary: oklch(0.65 0.14 285);              /* Lighter purple for dark */
+  --primary-foreground: oklch(0.15 0.02 285);
+  --secondary: oklch(0.65 0.1 175);             /* Teal adjusted */
+  --secondary-foreground: oklch(1 0 0);
+  --muted: oklch(0.25 0.02 285);
+  --muted-foreground: oklch(0.6 0.02 285);
+  --accent: oklch(0.65 0.12 50);                /* Orange adjusted */
+  --accent-foreground: oklch(1 0 0);
+  --destructive: oklch(0.55 0.18 25);           /* Red adjusted */
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.65 0.14 285);
+  --chart-1: oklch(0.65 0.14 285);
+  --chart-2: oklch(0.65 0.1 175);
+  --chart-3: oklch(0.65 0.12 50);
+  --chart-4: oklch(0.55 0.18 25);
+  --chart-5: oklch(0.6 0.08 140);
+  --sidebar: oklch(0.2 0.02 285);
+  --sidebar-foreground: oklch(0.95 0.005 285);
+  --sidebar-primary: oklch(0.65 0.14 285);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.25 0.02 285);
+  --sidebar-accent-foreground: oklch(0.95 0.005 285);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.65 0.14 285);
 }
