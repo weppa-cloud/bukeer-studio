@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser-client';
 import { useWebsite } from '@/lib/admin/website-context';
 import { ConfirmDialog } from './confirm-dialog';
-import { TemplateSelector } from './template-selector';
+import { TemplateSelector, CATEGORY_LABELS } from './template-selector';
 import { SaveAsTemplateModal } from './save-as-template-modal';
 
 interface TemplateInfo {
@@ -123,7 +123,7 @@ export function TemplateSection({ websiteId }: { websiteId: string }) {
             </div>
             <div className="text-xs text-[var(--studio-text-muted)] mt-0.5">
               {currentTemplate
-                ? `${currentTemplate.description || currentTemplate.category || 'Custom'} · ${pageCount} pages`
+                ? `${currentTemplate.description || (currentTemplate.category && CATEGORY_LABELS[currentTemplate.category]) || 'Custom'} · ${pageCount} pages`
                 : 'This website was created without a template'}
             </div>
             {currentTemplate?.is_system && (

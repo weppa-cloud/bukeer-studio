@@ -23,7 +23,7 @@ interface TemplateSelectorProps {
   onClose: () => void;
 }
 
-const CATEGORY_LABELS: Record<string, string> = {
+export const CATEGORY_LABELS: Record<string, string> = {
   adventure: 'Adventure',
   luxury: 'Luxury',
   tropical: 'Tropical',
@@ -34,6 +34,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   romantic: 'Romantic',
   custom: 'Custom',
   'travel-agency': 'Travel Agency',
+  travel: 'Travel',
 };
 
 export function TemplateSelector({ open, currentTemplateId, onSelect, onClose }: TemplateSelectorProps) {
