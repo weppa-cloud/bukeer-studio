@@ -42,6 +42,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { StudioButton, StudioTopbar, StudioTabs, StudioBadge, StudioBadgeStatus } from '@/components/studio/ui/primitives';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { ConfirmDialog } from '@/components/admin/confirm-dialog';
 import {
   Plus,
   ArrowLeft,
@@ -154,8 +155,17 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [panelTab, setPanelTab] = useState<'edit' | 'ai' | 'seo'>('edit');
   const [studioMode, setStudioMode] = useState<'light' | 'dark'>('light');
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [actionToast, setActionToast] = useState<string | null>(null);
   const [seoTitle, setSeoTitle] = useState('');
   const [seoDescription, setSeoDescription] = useState('');
+
+  // Auto-dismiss toast
+  useEffect(() => {
+    if (!actionToast) return;
+    const t = setTimeout(() => setActionToast(null), 2000);
+    return () => clearTimeout(t);
+  }, [actionToast]);
 
   // Hooks
   const { isOnline } = useNetworkStatus();
@@ -383,17 +393,33 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
   );
 
   const handleMoveUp = useCallback(
-    (id: string) => updateSections(moveSection(sections, id, 'up')),
+    (id: string) => {
+      updateSections(moveSection(sections, id, 'up'));
+      setActionToast('Section moved up');
+    },
     [sections, updateSections]
   );
 
   const handleMoveDown = useCallback(
-    (id: string) => updateSections(moveSection(sections, id, 'down')),
+    (id: string) => {
+      updateSections(moveSection(sections, id, 'down'));
+      setActionToast('Section moved down');
+    },
     [sections, updateSections]
   );
 
   const handleDuplicate = useCallback(
-    (id: string) => updateSections(duplicateSection(sections, id)),
+    (id: string) => {
+      const newSections = duplicateSection(sections, id);
+      updateSections(newSections);
+      // Auto-select the duplicated section (inserted right after the original)
+      const idx = newSections.findIndex((s) => s.id === id);
+      if (idx !== -1 && idx + 1 < newSections.length) {
+        setSelectedSectionId(newSections[idx + 1].id);
+        setPanelTab('edit');
+      }
+      setActionToast('Section duplicated');
+    },
     [sections, updateSections]
   );
 
@@ -402,15 +428,20 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
     [sections, updateSections]
   );
 
-  const handleDelete = useCallback(
-    (id: string) => {
-      updateSections(removeSectionAction(sections, id));
-      if (selectedSectionId === id) {
-        setSelectedSectionId(null);
-      }
-    },
-    [sections, selectedSectionId, updateSections]
+  const handleDeleteRequest = useCallback(
+    (id: string) => setDeleteTarget(id),
+    []
   );
+
+  const handleDeleteConfirm = useCallback(() => {
+    if (!deleteTarget) return;
+    updateSections(removeSectionAction(sections, deleteTarget));
+    if (selectedSectionId === deleteTarget) {
+      setSelectedSectionId(null);
+    }
+    setDeleteTarget(null);
+    setActionToast('Section deleted');
+  }, [deleteTarget, sections, selectedSectionId, updateSections]);
 
   const handleAddSection = useCallback(
     (sectionType: SectionTypeValue) => {
@@ -857,7 +888,7 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
                           onMoveDown={handleMoveDown}
                           onDuplicate={handleDuplicate}
                           onToggleVisibility={handleToggleVisibility}
-                          onDelete={handleDelete}
+                          onDelete={handleDeleteRequest}
                         >
                           {result.element}
                         </SectionPreview>
@@ -963,6 +994,24 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
           onClose={() => setPickerOpen(false)}
           onSelect={handleAddSection}
         />
+
+        {/* Delete confirmation */}
+        <ConfirmDialog
+          open={!!deleteTarget}
+          title="Delete Section"
+          description="This section and its content will be permanently removed. This cannot be undone."
+          confirmLabel="Delete"
+          variant="danger"
+          onConfirm={handleDeleteConfirm}
+          onCancel={() => setDeleteTarget(null)}
+        />
+
+        {/* Action toast */}
+        {actionToast && (
+          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[200] px-4 py-2 rounded-full bg-[var(--studio-surface-elevated)] border border-[var(--studio-border)] shadow-lg text-sm text-[var(--studio-text)] animate-in fade-in slide-in-from-bottom-2 duration-200">
+            {actionToast}
+          </div>
+        )}
       </div>
     </TooltipProvider>
   );

@@ -44,8 +44,18 @@ export function PartnersSection({ section }: PartnersSectionProps) {
                   key={`${partner.name}-${index}`}
                   className="flex-none grayscale hover:grayscale-0 transition-all opacity-60 hover:opacity-100"
                 >
-                  {partner.url ? (
-                    <a href={partner.url} target="_blank" rel="noopener noreferrer">
+                  {partner.logo ? (
+                    partner.url ? (
+                      <a href={partner.url} target="_blank" rel="noopener noreferrer">
+                        <Image
+                          src={partner.logo}
+                          alt={partner.name}
+                          width={120}
+                          height={60}
+                          className="h-12 w-auto object-contain"
+                        />
+                      </a>
+                    ) : (
                       <Image
                         src={partner.logo}
                         alt={partner.name}
@@ -53,15 +63,11 @@ export function PartnersSection({ section }: PartnersSectionProps) {
                         height={60}
                         className="h-12 w-auto object-contain"
                       />
-                    </a>
+                    )
                   ) : (
-                    <Image
-                      src={partner.logo}
-                      alt={partner.name}
-                      width={120}
-                      height={60}
-                      className="h-12 w-auto object-contain"
-                    />
+                    <div className="h-12 w-[120px] bg-muted rounded flex items-center justify-center text-xs text-muted-foreground">
+                      {partner.name}
+                    </div>
                   )}
                 </div>
               ))}
@@ -81,8 +87,18 @@ export function PartnersSection({ section }: PartnersSectionProps) {
                 transition={{ delay: index * 0.05 }}
                 className="flex justify-center grayscale hover:grayscale-0 transition-all opacity-60 hover:opacity-100"
               >
-                {partner.url ? (
-                  <a href={partner.url} target="_blank" rel="noopener noreferrer">
+                {partner.logo ? (
+                  partner.url ? (
+                    <a href={partner.url} target="_blank" rel="noopener noreferrer">
+                      <Image
+                        src={partner.logo}
+                        alt={partner.name}
+                        width={120}
+                        height={60}
+                        className="h-10 w-auto object-contain"
+                      />
+                    </a>
+                  ) : (
                     <Image
                       src={partner.logo}
                       alt={partner.name}
@@ -90,15 +106,11 @@ export function PartnersSection({ section }: PartnersSectionProps) {
                       height={60}
                       className="h-10 w-auto object-contain"
                     />
-                  </a>
+                  )
                 ) : (
-                  <Image
-                    src={partner.logo}
-                    alt={partner.name}
-                    width={120}
-                    height={60}
-                    className="h-10 w-auto object-contain"
-                  />
+                  <div className="h-10 w-[120px] bg-muted rounded flex items-center justify-center text-xs text-muted-foreground">
+                    {partner.name}
+                  </div>
                 )}
               </motion.div>
             ))}

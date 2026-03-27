@@ -44,8 +44,9 @@ function ToolbarButton({
       onClick={onClick}
       disabled={disabled}
       title={title}
+      aria-label={title}
       className={cn(
-        'p-1.5 rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed',
+        'p-1.5 rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-1',
         destructive
           ? 'text-muted-foreground hover:text-destructive hover:bg-destructive/10'
           : 'text-muted-foreground hover:text-foreground hover:bg-muted'
@@ -75,11 +76,13 @@ export function SectionToolbar({
   };
 
   return (
-    <div className="flex items-center gap-0.5 bg-background/95 backdrop-blur-sm border border-border/50 rounded-full shadow-lg px-1 py-0.5">
+    <div className="flex items-center gap-0.5 bg-background/95 backdrop-blur-sm border border-border/50 rounded-full shadow-lg px-1 py-0.5" role="toolbar" aria-label="Section actions">
       {/* Drag handle */}
       <button
-        className="p-1.5 rounded-md text-muted-foreground hover:text-foreground cursor-grab active:cursor-grabbing"
+        className="p-1.5 rounded-md text-muted-foreground hover:text-foreground cursor-grab active:cursor-grabbing focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-1 rounded-md"
         title="Drag to reorder"
+        aria-label="Drag to reorder section"
+        aria-roledescription="draggable"
         {...dragListeners}
         {...dragAttributes}
       >

@@ -44,6 +44,8 @@ function ToolActionCard({
   state: string;
   onApply: () => void;
 }) {
+  const [applied, setApplied] = useState(false);
+
   const toolLabels: Record<string, string> = {
     rewrite_section: 'Rewrite Section',
     create_section: 'Add Section',
@@ -60,8 +62,13 @@ function ToolActionCard({
   const description = (args.description as string) ?? toolName;
   const isPending = state === 'call' || state === 'partial-call';
 
+  const handleApply = () => {
+    onApply();
+    setApplied(true);
+  };
+
   return (
-    <div className="studio-panel my-2 p-3">
+    <div className="studio-panel my-2 p-3" role="status" aria-label={`Tool action: ${toolLabels[toolName] ?? toolName}`}>
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
@@ -69,19 +76,25 @@ function ToolActionCard({
               {toolLabels[toolName] ?? toolName}
             </StudioBadge>
             {isPending && <Loader2 className="w-3 h-3 animate-spin text-[var(--studio-text-muted)]" />}
-            {state === 'result' && <CheckCircle2 className="w-3 h-3 text-[var(--studio-success)]" />}
+            {(state === 'result' || applied) && <CheckCircle2 className="w-3 h-3 text-[var(--studio-success)]" />}
           </div>
           <p className="text-xs text-[var(--studio-text-muted)]">{description}</p>
         </div>
-        <StudioButton
-          variant="outline"
-          size="sm"
-          className="shrink-0 text-xs h-7"
-          onClick={onApply}
-          disabled={isPending}
-        >
-          Apply
-        </StudioButton>
+        {applied ? (
+          <span className="shrink-0 text-xs h-7 flex items-center text-[var(--studio-success)] font-medium">
+            Applied
+          </span>
+        ) : (
+          <StudioButton
+            variant="outline"
+            size="sm"
+            className="shrink-0 text-xs h-7"
+            onClick={handleApply}
+            disabled={isPending}
+          >
+            Apply
+          </StudioButton>
+        )}
       </div>
     </div>
   );
@@ -120,6 +133,8 @@ function ChatMessage({
             ? 'bg-[var(--studio-primary)] text-white'
             : 'bg-[var(--studio-panel)] text-[var(--studio-text-muted)] border border-[var(--studio-border)]'
         )}
+        role="img"
+        aria-label={isUser ? 'You' : 'AI Assistant'}
       >
         {isUser ? <User className="w-3.5 h-3.5" /> : <Bot className="w-3.5 h-3.5" />}
       </div>
@@ -219,6 +234,8 @@ export function StudioChat({
     })
   );
 
+  const [lastPrompt, setLastPrompt] = useState('');
+
   const { messages, status, sendMessage, stop, error, clearError } = useChat({
     transport: transportRef.current,
     onFinish: () => {
@@ -237,7 +254,9 @@ export function StudioChat({
       e.preventDefault();
       if (!inputValue.trim() || isLoading) return;
 
-      sendMessage({ text: inputValue.trim() });
+      const text = inputValue.trim();
+      setLastPrompt(text);
+      sendMessage({ text });
       setInputValue('');
     },
     [inputValue, isLoading, sendMessage]
@@ -317,9 +336,22 @@ export function StudioChat({
 
           {error && (
             <div className="flex items-center gap-2 text-[var(--studio-danger)] mb-4 p-2 rounded-md border border-[color-mix(in_srgb,var(--studio-danger)_24%,transparent)] bg-[color-mix(in_srgb,var(--studio-danger)_12%,transparent)]">
-              <AlertCircle className="w-4 h-4" />
+              <AlertCircle className="w-4 h-4 shrink-0" />
               <span className="text-xs flex-1">{error.message}</span>
-              <StudioButton variant="ghost" size="sm" className="text-xs h-6" onClick={() => clearError()}>
+              {lastPrompt && (
+                <StudioButton
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs h-6 shrink-0"
+                  onClick={() => {
+                    clearError();
+                    sendMessage({ text: lastPrompt });
+                  }}
+                >
+                  Retry
+                </StudioButton>
+              )}
+              <StudioButton variant="ghost" size="sm" className="text-xs h-6 shrink-0" onClick={() => clearError()}>
                 Dismiss
               </StudioButton>
             </div>
@@ -336,7 +368,7 @@ export function StudioChat({
         {selectedSectionId && (
           <div className="mb-2">
             <StudioBadge tone="info" className="text-xs">
-              Focused: {selectedSectionId.slice(0, 8)}...
+              Focused: {sections.find(s => s.id === selectedSectionId)?.sectionType?.replace(/_/g, ' ') || selectedSectionId.slice(0, 8)}
             </StudioBadge>
           </div>
         )}
@@ -346,7 +378,7 @@ export function StudioChat({
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Ask AI to edit your page..."
-            className="min-h-[40px] max-h-[120px] resize-none text-sm"
+            className="min-h-[40px] max-h-[120px] resize-none text-sm overflow-y-auto"
             rows={1}
           />
           <StudioButton

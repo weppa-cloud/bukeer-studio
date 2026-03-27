@@ -68,8 +68,8 @@ export function SectionPreview({
       data-section-id={section.id}
       data-section-type={section.sectionType}
       className={cn(
-        'relative group',
-        isDragging && 'opacity-50 z-50',
+        'relative group transition-all duration-200',
+        isDragging && 'opacity-60 z-50 scale-[1.02] shadow-2xl ring-2 ring-primary/40 rounded-lg',
         !section.isEnabled && 'opacity-40'
       )}
       onClick={handleClick}
