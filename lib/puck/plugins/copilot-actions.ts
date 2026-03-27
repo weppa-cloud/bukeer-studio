@@ -1,4 +1,8 @@
 /**
+ * @deprecated Use lib/studio/section-actions.ts instead.
+ * This file is kept for the legacy Puck editor (app/editor/[websiteId]/page.tsx).
+ * Will be removed when Flutter SSO redirect replaces the iframe editor.
+ *
  * Copilot Actions — Convert AI response actions to Puck Data mutations.
  *
  * Each action from the copilot API (rewrite_text, create_section, etc.)

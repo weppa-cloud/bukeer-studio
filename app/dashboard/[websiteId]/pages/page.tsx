@@ -101,9 +101,9 @@ function SortablePageRow({
       {/* Actions */}
       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
         <a
-          href={`/editor/${websiteId}?page=${page.id}`}
+          href={`/dashboard/${websiteId}/pages/${page.id}/edit`}
           className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-          title="Edit in Canvas"
+          title="Edit in Studio"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeWidth="1.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
@@ -196,15 +196,26 @@ export default function PagesTab() {
     <div className="p-6 max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Pages</h2>
-        <button
-          onClick={() => setShowCreate(true)}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl transition-colors flex items-center gap-2"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeWidth="2" d="M12 5v14M5 12h14" />
-          </svg>
-          Add page
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => router.push(`/dashboard/${websiteId}/pages/home/edit`)}
+            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-xl transition-colors flex items-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeWidth="1.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+            </svg>
+            Edit Homepage
+          </button>
+          <button
+            onClick={() => setShowCreate(true)}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl transition-colors flex items-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeWidth="2" d="M12 5v14M5 12h14" />
+            </svg>
+            Add page
+          </button>
+        </div>
       </div>
 
       {pages.length === 0 ? (
@@ -229,7 +240,7 @@ export default function PagesTab() {
                   key={page.id}
                   page={page as any}
                   websiteId={websiteId}
-                  onEdit={() => router.push(`/editor/${websiteId}?page=${page.id}`)}
+                  onEdit={() => router.push(`/dashboard/${websiteId}/pages/${page.id}/edit`)}
                   onDelete={(id) => setDeleteId(id)}
                 />
               ))}

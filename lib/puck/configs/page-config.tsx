@@ -1,4 +1,8 @@
 /**
+ * @deprecated Use lib/studio/section-fields.ts instead.
+ * This file is kept for the legacy Puck editor (app/editor/[websiteId]/page.tsx).
+ * Will be removed when Flutter SSO redirect replaces the iframe editor.
+ *
  * Puck Config — Homepage Page Config
  *
  * Defines 16 components (15 existing section adapters + RichText)
