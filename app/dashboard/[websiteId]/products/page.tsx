@@ -65,7 +65,6 @@ export default function ProductsTab() {
           .select('id, name, cover_image_url, destination, status, duration_days, duration_nights')
           .eq('account_id', context.accountId)
           .eq('status', 'active')
-          .is('deleted_at', null)
           .order('name')
           .limit(50);
 
