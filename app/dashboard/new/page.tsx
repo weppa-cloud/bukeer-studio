@@ -92,7 +92,7 @@ export default function NewWebsitePage() {
           contact: { email: '', phone: '', address: '' },
           social: {},
         },
-        featured_products: { destinations: [], hotels: [], activities: [], transfers: [] },
+        featured_products: { destinations: [], hotels: [], activities: [], transfers: [], packages: [] },
         sections: [],
       })
       .select()

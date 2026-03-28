@@ -384,7 +384,7 @@ export function EditorShell({ websiteId, initialToken }: EditorShellProps) {
       account_id: data.website.account_id,
       custom_domain: null,
       template_id: '',
-      featured_products: { destinations: [], hotels: [], activities: [], transfers: [] },
+      featured_products: { destinations: [], hotels: [], activities: [], transfers: [], packages: [] },
       sections,
     };
   }, [data]);

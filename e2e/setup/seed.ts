@@ -36,7 +36,7 @@ export async function seedTestData() {
         contact: { email: 'test@test.com', phone: '', address: '' },
         social: {},
       },
-      featured_products: { destinations: [], hotels: [], activities: [], transfers: [] },
+      featured_products: { destinations: [], hotels: [], activities: [], transfers: [], packages: [] },
       sections: [],
     }, { onConflict: 'id' })
     .select()

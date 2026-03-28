@@ -8,13 +8,23 @@ import { EmptyState } from '@/components/admin/empty-state';
 import { getDashboardUserContext } from '@/lib/admin/user-context';
 import { StudioPage, StudioSectionHeader, StudioInput, StudioTabs } from '@/components/studio/ui/primitives';
 
-type ProductType = 'hotels' | 'activities' | 'transfers';
+type ProductType = 'hotels' | 'activities' | 'transfers' | 'packages';
 
 interface ProductRow {
   id: string;
   name: string;
   main_image?: string;
   location?: string;
+}
+
+interface PackageRow {
+  id: string;
+  name: string;
+  cover_image_url?: string;
+  destination?: string;
+  status: string;
+  duration_days?: number;
+  duration_nights?: number;
 }
 
 export default function ProductsTab() {
@@ -28,7 +38,8 @@ export default function ProductsTab() {
   const [search, setSearch] = useState('');
   const [accessError, setAccessError] = useState<string | null>(null);
 
-  const featured = website?.featured_products || { hotels: [], activities: [], transfers: [], destinations: [] };
+  const featured = website?.featured_products || { hotels: [], activities: [], transfers: [], destinations: [], packages: [] };
+  const [packageRows, setPackageRows] = useState<PackageRow[]>([]);
 
   const fetchProducts = useCallback(async () => {
     setLoading(true);
@@ -38,33 +49,61 @@ export default function ProductsTab() {
       if (context.status === 'unauthenticated') {
         setAccessError('Tu sesión expiró. Inicia sesión nuevamente.');
         setProducts([]);
+        setPackageRows([]);
         return;
       }
       if (context.status === 'missing_role') {
         setAccessError('No tienes un rol activo para ver productos.');
         setProducts([]);
+        setPackageRows([]);
         return;
       }
 
-      let query = supabase
-        .from(activeType)
-        .select('id, name, main_image, location')
-        .eq('account_id', context.accountId)
-        .order('name')
-        .limit(50);
+      if (activeType === 'packages') {
+        let query = supabase
+          .from('package_kits')
+          .select('id, name, cover_image_url, destination, status, duration_days, duration_nights')
+          .eq('account_id', context.accountId)
+          .eq('status', 'active')
+          .is('deleted_at', null)
+          .order('name')
+          .limit(50);
 
-      if (search) {
-        query = query.ilike('name', `%${search}%`);
-      }
+        if (search) {
+          query = query.ilike('name', `%${search}%`);
+        }
 
-      const { data, error } = await query;
-      if (error) {
-        setAccessError('No se pudieron cargar los productos.');
+        const { data, error } = await query;
+        if (error) {
+          setAccessError('No se pudieron cargar los paquetes.');
+          setPackageRows([]);
+          return;
+        }
+
+        setPackageRows((data || []) as PackageRow[]);
         setProducts([]);
-        return;
-      }
+      } else {
+        let query = supabase
+          .from(activeType)
+          .select('id, name, main_image, location')
+          .eq('account_id', context.accountId)
+          .order('name')
+          .limit(50);
 
-      setProducts((data || []) as ProductRow[]);
+        if (search) {
+          query = query.ilike('name', `%${search}%`);
+        }
+
+        const { data, error } = await query;
+        if (error) {
+          setAccessError('No se pudieron cargar los productos.');
+          setProducts([]);
+          return;
+        }
+
+        setProducts((data || []) as ProductRow[]);
+        setPackageRows([]);
+      }
     } finally {
       setLoading(false);
     }
@@ -93,6 +132,7 @@ export default function ProductsTab() {
     { id: 'hotels', label: 'Hotels' },
     { id: 'activities', label: 'Activities' },
     { id: 'transfers', label: 'Transfers' },
+    { id: 'packages', label: 'Packages' },
   ];
 
   return (
@@ -131,6 +171,54 @@ export default function ProductsTab() {
         </div>
       ) : accessError ? (
         <EmptyState title="Access unavailable" description={accessError} />
+      ) : activeType === 'packages' ? (
+        packageRows.length === 0 ? (
+          <EmptyState title="No packages found" description="Create active packages in your CRM to feature them here." />
+        ) : (
+          <div className="space-y-2">
+            {packageRows.map((pkg) => (
+              <div
+                key={pkg.id}
+                className="studio-card flex items-center gap-4 p-3"
+              >
+                {pkg.cover_image_url ? (
+                  <img src={pkg.cover_image_url} alt="" className="w-12 h-12 rounded-lg object-cover" />
+                ) : (
+                  <div className="w-12 h-12 rounded-lg bg-[var(--studio-panel)] border border-[var(--studio-border)] flex items-center justify-center">
+                    <svg className="w-6 h-6 text-[var(--studio-text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                    </svg>
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-sm text-[var(--studio-text)] truncate">
+                    {pkg.name}
+                  </div>
+                  <div className="text-xs text-[var(--studio-text-muted)]">
+                    {pkg.destination && <span>{pkg.destination}</span>}
+                    {pkg.destination && pkg.duration_days && <span> · </span>}
+                    {pkg.duration_days && (
+                      <span>{pkg.duration_days}d / {pkg.duration_nights ?? pkg.duration_days - 1}n</span>
+                    )}
+                  </div>
+                </div>
+                <button
+                  onClick={() => toggleFeatured(pkg.id)}
+                  className={`p-2 rounded-lg transition-all ${
+                    isFeatured(pkg.id)
+                      ? 'text-[#f59e0b] hover:text-[#d97706]'
+                      : 'text-[var(--studio-text-muted)] hover:text-[#f59e0b]'
+                  }`}
+                  title={isFeatured(pkg.id) ? 'Remove from featured' : 'Add to featured'}
+                >
+                  <svg className="w-5 h-5" fill={isFeatured(pkg.id) ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeWidth="1.5" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                  </svg>
+                </button>
+              </div>
+            ))}
+          </div>
+        )
       ) : products.length === 0 ? (
         <EmptyState title="No products found" description="Add products in your CRM to feature them here." />
       ) : (

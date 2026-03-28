@@ -26,7 +26,7 @@ const mockWebsite: WebsiteData = {
   account_id: 'test-account-001',
   custom_domain: null,
   template_id: '',
-  featured_products: { destinations: [], hotels: [], activities: [], transfers: [] },
+  featured_products: { destinations: [], hotels: [], activities: [], transfers: [], packages: [] },
   sections: [],
 };
 

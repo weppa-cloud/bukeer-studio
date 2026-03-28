@@ -62,6 +62,11 @@ const ActivitiesSection = dynamic(
   { loading: SectionSkeleton }
 );
 
+const PackagesSection = dynamic(
+  () => import('@/components/site/sections/packages-section').then((mod) => mod.PackagesSection),
+  { loading: SectionSkeleton }
+);
+
 const TestimonialsSection = dynamic(
   () => import('@/components/site/sections/testimonials-section').then((mod) => mod.TestimonialsSection),
   { loading: SectionSkeleton }
@@ -141,6 +146,7 @@ export const sectionComponents: Record<string, SectionComponent> = {
   destinations: DestinationsSection,
   hotels: HotelsSection,
   activities: ActivitiesSection,
+  packages: PackagesSection,
   testimonials: TestimonialsSection,
   about: AboutSection,
   contact: ContactSection,
@@ -231,7 +237,7 @@ export function getSectionComponent(type: string): SectionComponent | undefined 
  * Useful for UI selection menus.
  */
 export const sectionTypesByCategory = {
-  homepage: ['hero', 'destinations', 'hotels', 'activities', 'testimonials', 'about', 'contact', 'cta', 'stats', 'partners', 'faq', 'blog'],
+  homepage: ['hero', 'destinations', 'hotels', 'activities', 'packages', 'testimonials', 'about', 'contact', 'cta', 'stats', 'partners', 'faq', 'blog'],
   heroVariants: ['hero_image', 'hero_video', 'hero_minimal'],
   content: ['text_image', 'features_grid', 'faq_accordion'],
   gallery: ['gallery_grid', 'gallery_carousel', 'gallery_masonry'],

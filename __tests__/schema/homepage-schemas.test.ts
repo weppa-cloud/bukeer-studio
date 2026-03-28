@@ -45,6 +45,7 @@ const mockWebsite: WebsiteData = {
     hotels: [],
     activities: [],
     transfers: [],
+    packages: [],
   },
   sections: [
     {

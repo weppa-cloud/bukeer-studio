@@ -50,6 +50,7 @@ export async function getWebsiteBySubdomain(subdomain: string): Promise<WebsiteD
       hotels: [],
       activities: [],
       transfers: [],
+      packages: [],
     };
 
     return {
@@ -59,6 +60,7 @@ export async function getWebsiteBySubdomain(subdomain: string): Promise<WebsiteD
         hotels: featuredProducts.hotels || [],
         activities: featuredProducts.activities || [],
         transfers: featuredProducts.transfers || [],
+        packages: featuredProducts.packages || [],
       },
     };
   } catch (e) {

@@ -21,6 +21,7 @@ import { HeroSection } from '@/components/site/sections/hero-section';
 import { DestinationsSection } from '@/components/site/sections/destinations-section';
 import { HotelsSection } from '@/components/site/sections/hotels-section';
 import { ActivitiesSection } from '@/components/site/sections/activities-section';
+import { PackagesSection } from '@/components/site/sections/packages-section';
 import { TestimonialsSection } from '@/components/site/sections/testimonials-section';
 import { AboutSection } from '@/components/site/sections/about-section';
 import { ContactSection } from '@/components/site/sections/contact-section';
@@ -59,7 +60,7 @@ export const pageConfig: Config = {
     },
     products: {
       title: 'Productos',
-      components: ['Hotels', 'Activities', 'Destinations'],
+      components: ['Hotels', 'Activities', 'Packages', 'Destinations'],
     },
     content: {
       title: 'Contenido',
@@ -154,6 +155,27 @@ export const pageConfig: Config = {
         const fp = website?.featured_products as Record<string, unknown[]> | undefined;
         const activities = fp?.activities || [];
         return { props: { ...data.props as Record<string, unknown>, activities } };
+      },
+    },
+
+    Packages: {
+      label: 'Paquetes',
+      render: createSectionAdapter(PackagesSection, 'packages'),
+      defaultProps: {
+        id: '',
+        title: 'Paquetes Destacados',
+        subtitle: 'Viajes completos listos para reservar',
+        variant: 'default',
+      },
+      fields: {
+        title: textField('Titulo'),
+        subtitle: textareaField('Subtitulo'),
+      },
+      resolveData: async (data: Record<string, unknown>, { metadata }: { metadata: Record<string, unknown> }) => {
+        const website = metadata?.website as Record<string, unknown> | undefined;
+        const fp = website?.featured_products as Record<string, unknown[]> | undefined;
+        const packages = fp?.packages || [];
+        return { props: { ...data.props as Record<string, unknown>, packages } };
       },
     },
 

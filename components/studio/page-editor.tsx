@@ -694,7 +694,7 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
       account_id: websiteData.account_id,
       custom_domain: null,
       template_id: '',
-      featured_products: { destinations: [], hotels: [], activities: [], transfers: [] },
+      featured_products: { destinations: [], hotels: [], activities: [], transfers: [], packages: [] },
       sections: sectionsList,
     };
   }, [websiteData, sections]);

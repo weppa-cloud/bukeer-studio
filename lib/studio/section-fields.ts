@@ -205,6 +205,15 @@ const SECTION_FIELDS: Partial<Record<SectionTypeValue, SectionFieldConfig>> = {
     defaultProps: { title: 'Activities', subtitle: 'Unique experiences', variant: 'default' },
   },
 
+  packages: {
+    label: 'Packages',
+    fields: [
+      { name: 'title', label: 'Title', type: 'text', placeholder: 'Featured Packages' },
+      { name: 'subtitle', label: 'Subtitle', type: 'textarea', placeholder: 'Complete trips ready for you' },
+    ],
+    defaultProps: { title: 'Featured Packages', subtitle: 'Complete trips ready for you', variant: 'default' },
+  },
+
   testimonials: {
     label: 'Testimonials',
     fields: [
