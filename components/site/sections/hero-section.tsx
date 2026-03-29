@@ -232,11 +232,155 @@ export function HeroSection({ section, website }: HeroSectionProps) {
     parallax: 'min-h-screen flex items-center',
     wavy: 'min-h-[90vh] flex items-center',
     globe: 'min-h-screen flex items-center',
+    immersive: 'h-screen min-h-[700px]',
   };
 
   const isParallax = variant === 'parallax';
   const isWavy = variant === 'wavy';
   const isGlobe = variant === 'globe';
+  const isImmersive = variant === 'immersive';
+
+  // Extended content for immersive variant
+  const immersiveContent = section.content as {
+    title?: string;
+    subtitle?: string;
+    backgroundImage?: string;
+    ctaText?: string;
+    ctaUrl?: string;
+    secondaryCtaText?: string;
+    secondaryCtaUrl?: string;
+    eyebrow?: string;
+    heroStats?: Array<{ num: string; label: string }>;
+  };
+
+  // Immersive variant — full-screen with spotlight, grain, parallax+scale, bottom-left content
+  if (isImmersive) {
+    return (
+      <div ref={containerRef} className="relative h-screen min-h-[700px] overflow-hidden">
+        {/* Background with parallax + scale */}
+        <motion.div
+          style={{ y, opacity, scale: useTransform(scrollYProgress, [0, 1], [1, 1.08]) }}
+          className="absolute inset-0 w-full h-[115%]"
+        >
+          {sectionContent.backgroundImage && (
+            <Image
+              src={sectionContent.backgroundImage}
+              alt={title || 'Hero background'}
+              fill
+              priority
+              fetchPriority="high"
+              sizes="100vw"
+              className="object-cover object-center"
+              quality={85}
+            />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/40 to-[var(--bg,#1a1714)]" />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/30 to-transparent" />
+        </motion.div>
+
+        {/* Grain texture */}
+        <div className="absolute inset-0 pointer-events-none z-[1] opacity-[0.04] overflow-hidden">
+          <div
+            className="absolute w-[200%] h-[200%] -inset-1/2"
+            style={{
+              backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.4'/%3E%3C/svg%3E\")",
+            }}
+          />
+        </div>
+
+        {/* Content — bottom-left positioned */}
+        <motion.div
+          style={{ opacity }}
+          className="relative z-20 h-full flex flex-col justify-end pb-20 px-6 md:px-16 max-w-7xl mx-auto"
+        >
+          {immersiveContent.eyebrow && (
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+              className="font-mono text-xs tracking-[0.15em] uppercase text-primary mb-5"
+            >
+              {immersiveContent.eyebrow}
+            </motion.p>
+          )}
+
+          <motion.h1
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35, duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+            className="font-display text-4xl md:text-5xl lg:text-6xl xl:text-7xl text-white max-w-3xl leading-[1.05] mb-8"
+          >
+            {title}
+          </motion.h1>
+
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.55, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+            className="flex flex-col sm:flex-row items-start sm:items-center gap-6"
+          >
+            {subtitle && (
+              <p className="text-white/70 text-base max-w-md leading-relaxed">{subtitle}</p>
+            )}
+            <div className="flex gap-3 shrink-0">
+              {sectionContent.ctaText && sectionContent.ctaUrl && (
+                <a
+                  href={sectionContent.ctaUrl}
+                  className="px-6 py-3 rounded-full font-medium text-sm bg-primary text-primary-foreground transition-all duration-250 hover:opacity-90 hover:scale-[1.03] active:scale-[0.97]"
+                >
+                  {sectionContent.ctaText}
+                </a>
+              )}
+              {immersiveContent.secondaryCtaText && immersiveContent.secondaryCtaUrl && (
+                <a
+                  href={immersiveContent.secondaryCtaUrl}
+                  className="px-6 py-3 rounded-full font-medium text-sm border border-white/20 text-white backdrop-blur-sm hover:border-white/40 hover:bg-white/10 transition-all duration-250"
+                >
+                  {immersiveContent.secondaryCtaText}
+                </a>
+              )}
+            </div>
+          </motion.div>
+
+          {/* Floating stats badges */}
+          {immersiveContent.heroStats && immersiveContent.heroStats.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.9, duration: 0.6 }}
+              className="flex gap-3 mt-8 md:absolute md:bottom-8 md:right-8 md:mt-0 md:gap-4"
+            >
+              {immersiveContent.heroStats.map((stat, i) => (
+                <div
+                  key={stat.label}
+                  className="px-3 py-2 md:px-4 md:py-3 rounded-xl text-right flex-1 md:flex-none bg-black/40 backdrop-blur-md border border-white/10"
+                  style={{ animationDelay: `${i * 0.3}s` }}
+                >
+                  <p className="font-display text-base md:text-xl text-white">{stat.num}</p>
+                  <p className="font-mono text-[9px] md:text-[10px] text-white/50 uppercase tracking-wide mt-0.5">{stat.label}</p>
+                </div>
+              ))}
+            </motion.div>
+          )}
+        </motion.div>
+
+        {/* Scroll indicator */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.2 }}
+          className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 hidden md:flex flex-col items-center gap-2"
+        >
+          <span className="font-mono text-[10px] text-white/30 tracking-widest uppercase">scroll</span>
+          <motion.div
+            animate={{ opacity: [0.3, 1, 0.3], y: [0, 6, 0] }}
+            transition={{ repeat: Infinity, duration: 1.5, ease: 'easeInOut' }}
+            className="w-px h-10 bg-gradient-to-b from-white/40 to-transparent"
+          />
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div

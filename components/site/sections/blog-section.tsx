@@ -10,24 +10,31 @@ interface BlogSectionProps {
   website: WebsiteData;
 }
 
+interface BlogPost {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt?: string;
+  featuredImage?: string;
+  publishedAt?: string;
+  category?: string | { name: string; slug: string };
+}
+
 export function BlogSection({ section, website }: BlogSectionProps) {
   const { subdomain } = website;
-  // Content is normalized to camelCase by render-section.tsx
   const sectionContent = section.content as {
     title?: string;
     subtitle?: string;
-    posts?: Array<{
-      id: string;
-      title: string;
-      slug: string;
-      excerpt?: string;
-      featuredImage?: string;
-      publishedAt?: string;
-    }>;
+    posts?: BlogPost[];
   };
 
+  const variant = section.variant || 'default';
   const title = sectionContent.title || 'Últimas del Blog';
   const posts = sectionContent.posts || [];
+
+  if (variant === 'showcase') {
+    return <ShowcaseBlog title={title} subtitle={sectionContent.subtitle} posts={posts} subdomain={subdomain} />;
+  }
 
   return (
     <div className="section-padding bg-muted/30">
@@ -102,6 +109,127 @@ export function BlogSection({ section, website }: BlogSectionProps) {
                       })}
                     </p>
                   )}
+                </Link>
+              </motion.article>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12 text-muted-foreground">
+            <p>No hay publicaciones disponibles</p>
+          </div>
+        )}
+
+        <div className="mt-8 text-center md:hidden">
+          <Link
+            href={`/site/${subdomain}/blog`}
+            className="inline-flex items-center gap-2 text-primary font-medium"
+          >
+            Ver todos los posts
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+            </svg>
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function getCategoryName(category?: string | { name: string; slug: string }): string | undefined {
+  if (!category) return undefined;
+  if (typeof category === 'string') return category;
+  return category.name;
+}
+
+// Showcase variant — themed blog cards with category badge, date, hover title color
+function ShowcaseBlog({ title, subtitle, posts, subdomain }: { title: string; subtitle?: string; posts: BlogPost[]; subdomain: string }) {
+  return (
+    <div className="section-padding bg-muted/30">
+      <div className="container">
+        <div className="flex items-end justify-between mb-12">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <h2 className="text-3xl md:text-4xl font-bold">{title}</h2>
+            {subtitle && (
+              <p className="mt-2 text-muted-foreground">{subtitle}</p>
+            )}
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+          >
+            <Link
+              href={`/site/${subdomain}/blog`}
+              className="text-primary font-medium hover:underline hidden md:block"
+            >
+              Ver todos →
+            </Link>
+          </motion.div>
+        </div>
+
+        {posts.length > 0 ? (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {posts.slice(0, 3).map((post, index) => (
+              <motion.article
+                key={post.id}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-60px' }}
+                transition={{ delay: index * 0.1, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                whileHover={{ y: -4 }}
+                className="group"
+              >
+                <Link
+                  href={`/site/${subdomain}/blog/${post.slug}`}
+                  className="block rounded-2xl overflow-hidden bg-card border border-border"
+                >
+                  <div className="relative aspect-[16/10] overflow-hidden">
+                    {post.featuredImage ? (
+                      <Image
+                        src={post.featuredImage}
+                        alt={post.title}
+                        fill
+                        className="object-cover transition-transform duration-700 group-hover:scale-105"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-muted flex items-center justify-center">
+                        <svg className="w-10 h-10 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9.5a2 2 0 00-2-2h-2" />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-5">
+                    {/* Category + Date */}
+                    <div className="flex items-center gap-3 mb-3">
+                      {getCategoryName(post.category) && (
+                        <span className="text-[10px] tracking-widest uppercase px-2.5 py-1 rounded-full bg-primary/10 text-primary font-mono">
+                          {getCategoryName(post.category)}
+                        </span>
+                      )}
+                      {post.publishedAt && (
+                        <span className="text-[10px] text-muted-foreground font-mono">
+                          {new Date(post.publishedAt).toLocaleDateString('es-ES', {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric',
+                          })}
+                        </span>
+                      )}
+                    </div>
+                    <h3 className="font-semibold text-lg leading-tight mb-2 line-clamp-2 group-hover:text-primary transition-colors">
+                      {post.title}
+                    </h3>
+                    {post.excerpt && (
+                      <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
+                        {post.excerpt}
+                      </p>
+                    )}
+                  </div>
                 </Link>
               </motion.article>
             ))}

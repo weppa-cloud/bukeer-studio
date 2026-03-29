@@ -149,7 +149,15 @@ body.studio-editor-fullscreen [data-slot="dialog-content"] {
   border-radius: var(--radius);
 }
 
-/* Typography helpers */
+/* Typography — apply theme fonts to headings and body automatically */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+}
+
+body {
+  font-family: var(--font-body);
+}
+
 .font-heading {
   font-family: var(--font-heading);
 }

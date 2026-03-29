@@ -42,7 +42,28 @@ export function StatsSection({ section }: StatsSectionProps) {
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
           {stats.map((stat, index) => {
-            const numericValue = typeof stat.value === 'string' ? parseInt(stat.value, 10) || 0 : stat.value;
+            // Parse value: extract numeric part and suffix from strings like "15,000+", "4.9★", "50+"
+            let numericValue: number;
+            let effectiveSuffix = stat.suffix || '';
+
+            if (typeof stat.value === 'number') {
+              numericValue = stat.value;
+            } else {
+              const str = String(stat.value);
+              // Extract numeric part (digits, commas, dots) and trailing suffix
+              const match = str.match(/^([0-9,.]+)\s*(.*)$/);
+              if (match) {
+                numericValue = parseFloat(match[1].replace(/,/g, '')) || 0;
+                if (!effectiveSuffix && match[2]) effectiveSuffix = match[2];
+              } else {
+                numericValue = 0;
+                effectiveSuffix = str; // Show entire string as-is if no number
+              }
+            }
+
+            // For decimal values like 4.9, use the decimal display
+            const isDecimal = numericValue % 1 !== 0;
+
             return (
             <motion.div
               key={index}
@@ -54,7 +75,8 @@ export function StatsSection({ section }: StatsSectionProps) {
             >
               <CountUp
                 end={numericValue}
-                suffix={stat.suffix}
+                suffix={effectiveSuffix}
+                decimals={isDecimal ? 1 : 0}
                 className="text-4xl md:text-5xl font-bold text-primary"
               />
               <p className="mt-2 text-muted-foreground">{stat.label}</p>
@@ -71,10 +93,12 @@ export function StatsSection({ section }: StatsSectionProps) {
 function CountUp({
   end,
   suffix = '',
+  decimals = 0,
   className,
 }: {
   end: number;
   suffix?: string;
+  decimals?: number;
   className?: string;
 }) {
   const ref = useRef(null);
@@ -94,17 +118,21 @@ function CountUp({
           setCount(end);
           clearInterval(timer);
         } else {
-          setCount(Math.floor(current));
+          setCount(decimals > 0 ? parseFloat(current.toFixed(decimals)) : Math.floor(current));
         }
       }, duration / steps);
 
       return () => clearInterval(timer);
     }
-  }, [isInView, end]);
+  }, [isInView, end, decimals]);
+
+  const display = decimals > 0
+    ? count.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
+    : count.toLocaleString();
 
   return (
     <span ref={ref} className={className}>
-      {count.toLocaleString()}{suffix}
+      {display}{suffix}
     </span>
   );
 }

@@ -199,7 +199,124 @@ export function TestimonialsSection({ section }: TestimonialsSectionProps) {
 
         {/* Stack variant - 3D stacked cards */}
         {variant === 'stack' && <StackedTestimonials testimonials={testimonials} />}
+
+        {/* Crossfade variant — single testimonial with auto-advance + progress bar */}
+        {variant === 'crossfade' && testimonials.length > 0 && (
+          <CrossfadeTestimonials testimonials={testimonials} />
+        )}
       </div>
+    </div>
+  );
+}
+
+// Crossfade Testimonials Component — single card with auto-rotate + progress bar
+function CrossfadeTestimonials({ testimonials }: { testimonials: Array<{
+  id?: string;
+  name: string;
+  avatar?: string;
+  text?: string;
+  content?: string;
+  rating?: number;
+  location?: string;
+  tour?: string;
+}> }) {
+  const [active, setActive] = useState(0);
+  const [paused, setPaused] = useState(false);
+
+  useEffect(() => {
+    if (paused || testimonials.length <= 1) return;
+    const interval = setInterval(() => {
+      setActive((p) => (p + 1) % testimonials.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [paused, testimonials.length]);
+
+  const current = testimonials[active];
+
+  return (
+    <div
+      className="max-w-2xl mx-auto"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+    >
+      <div className="relative min-h-[280px]" role="region" aria-live="polite">
+        <AnimatePresence mode="wait">
+          <motion.blockquote
+            key={active}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+            className="text-center"
+          >
+            {/* Stars */}
+            {current.rating && (
+              <div className="flex justify-center gap-1 mb-6">
+                {Array.from({ length: current.rating }).map((_, i) => (
+                  <span key={i} className="text-primary text-lg" aria-hidden="true">★</span>
+                ))}
+                <span className="sr-only">{current.rating} de 5 estrellas</span>
+              </div>
+            )}
+
+            {/* Quote */}
+            <p className="font-display text-xl md:text-2xl leading-relaxed mb-8 italic">
+              &ldquo;{current.text || current.content}&rdquo;
+            </p>
+
+            {/* Author */}
+            <div className="flex flex-col items-center gap-1">
+              <p className="font-medium text-sm">{current.name}</p>
+              {current.location && (
+                <p className="text-xs text-muted-foreground">{current.location}</p>
+              )}
+              {current.tour && (
+                <p className="font-mono text-xs tracking-wide uppercase text-muted-foreground mt-1">
+                  Tour: {current.tour}
+                </p>
+              )}
+            </div>
+          </motion.blockquote>
+        </AnimatePresence>
+      </div>
+
+      {/* Dot navigation */}
+      <div className="flex justify-center gap-3 mt-10" role="tablist" aria-label="Testimonios">
+        {testimonials.map((t, i) => (
+          <button
+            key={i}
+            onClick={() => setActive(i)}
+            role="tab"
+            aria-selected={i === active}
+            aria-label={`Testimonio de ${t.name}`}
+            className="w-8 h-8 flex items-center justify-center rounded-full transition-all duration-200"
+          >
+            <span
+              className="block rounded-full transition-all duration-200"
+              style={{
+                width: i === active ? '12px' : '8px',
+                height: i === active ? '12px' : '8px',
+                backgroundColor: i === active ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
+              }}
+            />
+          </button>
+        ))}
+      </div>
+
+      {/* Progress bar */}
+      {!paused && (
+        <div className="flex justify-center mt-3">
+          <div className="w-16 h-0.5 rounded-full overflow-hidden bg-muted">
+            <motion.div
+              key={active}
+              initial={{ width: '0%' }}
+              animate={{ width: '100%' }}
+              transition={{ duration: 5, ease: 'linear' }}
+              className="h-full rounded-full bg-primary"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

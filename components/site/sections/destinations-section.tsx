@@ -282,6 +282,65 @@ export function DestinationsSection({ section }: DestinationsSectionProps) {
           </div>
         )}
 
+        {/* Marquee variant — dual-row auto-scrolling */}
+        {variant === 'marquee' && destinations.length > 0 && (
+          <div className="relative overflow-hidden -mx-[calc((100vw-100%)/2)]">
+            {/* Fade edges */}
+            <div className="pointer-events-none absolute inset-y-0 left-0 w-20 z-10 bg-gradient-to-r from-[var(--bg,hsl(var(--background)))] to-transparent" />
+            <div className="pointer-events-none absolute inset-y-0 right-0 w-20 z-10 bg-gradient-to-l from-[var(--bg,hsl(var(--background)))] to-transparent" />
+
+            {/* Row 1 — scrolls left */}
+            <div className="flex mb-4">
+              <div className="flex min-w-full shrink-0 gap-4 animate-[marquee-left_40s_linear_infinite] hover:[animation-play-state:paused]">
+                {[...destinations, ...destinations].map((d, i) => (
+                  <div
+                    key={`r1-${d.id}-${i}`}
+                    className="relative shrink-0 w-52 h-72 rounded-2xl overflow-hidden group cursor-pointer border border-[var(--border-subtle,hsl(var(--border)/0.3))]"
+                  >
+                    {d.image ? (
+                      <Image src={d.image} alt={d.name} fill className="object-cover transition-transform duration-700 group-hover:scale-110" />
+                    ) : (
+                      <div className="w-full h-full bg-muted" />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                    <div className="absolute bottom-0 left-0 right-0 p-4">
+                      <h3 className="font-display text-lg text-white leading-tight">{d.name}</h3>
+                      {d.description && (
+                        <p className="text-xs text-white/70 mt-0.5">{d.description}</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Row 2 — scrolls right */}
+            <div className="flex">
+              <div className="flex min-w-full shrink-0 gap-4 animate-[marquee-right_55s_linear_infinite] hover:[animation-play-state:paused]">
+                {[...destinations, ...destinations].reverse().map((d, i) => (
+                  <div
+                    key={`r2-${d.id}-${i}`}
+                    className="relative shrink-0 w-52 h-72 rounded-2xl overflow-hidden group cursor-pointer border border-[var(--border-subtle,hsl(var(--border)/0.3))]"
+                  >
+                    {d.image ? (
+                      <Image src={d.image} alt={d.name} fill className="object-cover transition-transform duration-700 group-hover:scale-110" />
+                    ) : (
+                      <div className="w-full h-full bg-muted" />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                    <div className="absolute bottom-0 left-0 right-0 p-4">
+                      <h3 className="font-display text-lg text-white leading-tight">{d.name}</h3>
+                      {d.description && (
+                        <p className="text-xs text-white/70 mt-0.5">{d.description}</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Empty state */}
         {destinations.length === 0 && (
           <div className="text-center py-16 text-muted-foreground">
