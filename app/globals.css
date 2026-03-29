@@ -166,6 +166,33 @@ body {
   font-family: var(--font-body);
 }
 
+/* Mono font for labels, badges, tracking text */
+.font-mono {
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace);
+}
+
+/* Selection color — themed accent */
+::selection {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+
+/* Footer gradient transition — smooth fade from page bg */
+footer {
+  position: relative;
+  border-top: 1px solid hsl(var(--border) / 0.15);
+}
+footer::before {
+  content: '';
+  position: absolute;
+  top: -40px;
+  left: 0;
+  right: 0;
+  height: 40px;
+  background: linear-gradient(to bottom, transparent, hsl(var(--muted) / 0.3));
+  pointer-events: none;
+}
+
 /* ============================================
    KEYFRAMES
    ============================================ */

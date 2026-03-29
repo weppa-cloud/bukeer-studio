@@ -185,6 +185,20 @@ function applyBridgeVariables(root: HTMLElement) {
   root.style.setProperty('--text-display-xl', 'clamp(3rem, 6vw, 6rem)');
   root.style.setProperty('--text-display-lg', 'clamp(2.25rem, 4vw, 4rem)');
   root.style.setProperty('--text-display-md', 'clamp(1.75rem, 3vw, 3rem)');
+
+  // Mono font for labels/badges — inject DM Mono alongside system monospace
+  root.style.setProperty('--font-mono', '"DM Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace');
+
+  // Inject DM Mono font if not already loaded
+  const monoFontUrl = 'https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&display=swap';
+  const monoId = 'gfont-dm-mono';
+  if (!document.getElementById(monoId)) {
+    const link = document.createElement('link');
+    link.id = monoId;
+    link.rel = 'stylesheet';
+    link.href = monoFontUrl;
+    document.head.appendChild(link);
+  }
 }
 
 /**
