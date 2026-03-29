@@ -155,10 +155,10 @@ export function PackagesSection({ section }: PackagesSectionProps) {
   );
 }
 
-// Showcase variant — themed package cards with gradient overlay, category badge, hover lift
+// Showcase variant — pixel-perfect match with theme reference using bridge CSS variables
 function ShowcasePackages({ title, subtitle, packages }: { title: string; subtitle?: string; packages: PackageItem[] }) {
   return (
-    <div className="section-padding bg-muted/30">
+    <div className="section-padding">
       <div className="container">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -166,9 +166,9 @@ function ShowcasePackages({ title, subtitle, packages }: { title: string; subtit
           viewport={{ once: true }}
           className="text-center mb-12"
         >
-          <h2 className="text-3xl md:text-4xl font-bold">{title}</h2>
+          <h2 style={{ fontSize: 'var(--text-display-md)', color: 'var(--text-heading)' }}>{title}</h2>
           {subtitle && (
-            <p className="mt-4 text-muted-foreground max-w-2xl mx-auto">{subtitle}</p>
+            <p className="mt-4 max-w-2xl mx-auto" style={{ color: 'var(--text-secondary)' }}>{subtitle}</p>
           )}
         </motion.div>
 
@@ -181,7 +181,8 @@ function ShowcasePackages({ title, subtitle, packages }: { title: string; subtit
               viewport={{ once: true, margin: '-60px' }}
               transition={{ delay: index * 0.1, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
               whileHover={{ y: -4 }}
-              className="group block rounded-2xl overflow-hidden bg-card border border-border flex flex-col"
+              className="group block rounded-2xl overflow-hidden flex flex-col"
+              style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-subtle)' }}
             >
               {/* Image with gradient overlay */}
               <div className="relative h-48 overflow-hidden">
@@ -199,11 +200,14 @@ function ShowcasePackages({ title, subtitle, packages }: { title: string; subtit
                     </svg>
                   </div>
                 )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, var(--card-gradient), transparent)' }} />
                 {/* Category badge */}
                 {pkg.category && (
                   <div className="absolute top-3 left-3">
-                    <span className="text-[10px] tracking-widest uppercase px-2.5 py-1 rounded-full backdrop-blur-sm bg-background/60 border border-border/50 text-muted-foreground font-mono">
+                    <span
+                      className="font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 rounded-full backdrop-blur-sm"
+                      style={{ backgroundColor: 'var(--card-badge-bg)', border: '1px solid var(--card-badge-border)', color: 'var(--card-badge-text)' }}
+                    >
                       {pkg.category}
                     </span>
                   </div>
@@ -212,10 +216,10 @@ function ShowcasePackages({ title, subtitle, packages }: { title: string; subtit
 
               {/* Content */}
               <div className="p-5 flex flex-col flex-1">
-                <h3 className="font-semibold text-xl leading-tight mb-2">{pkg.name}</h3>
+                <h3 className="text-xl leading-tight mb-2" style={{ color: 'var(--text-heading)' }}>{pkg.name}</h3>
 
                 {/* Meta: destination + duration */}
-                <div className="flex items-center gap-3 mb-3 text-xs text-muted-foreground">
+                <div className="flex items-center gap-3 mb-3 text-xs" style={{ color: 'var(--text-muted)' }}>
                   {pkg.destination && (
                     <span className="flex items-center gap-1">
                       <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -238,7 +242,7 @@ function ShowcasePackages({ title, subtitle, packages }: { title: string; subtit
                 {pkg.highlights && pkg.highlights.length > 0 && (
                   <ul className="space-y-1.5 mb-4">
                     {pkg.highlights.slice(0, 3).map((h, i) => (
-                      <li key={i} className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <li key={i} className="flex items-center gap-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
                         <svg className="w-3 h-3 text-green-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
@@ -248,17 +252,16 @@ function ShowcasePackages({ title, subtitle, packages }: { title: string; subtit
                   </ul>
                 )}
 
-                {/* Spacer */}
                 <div className="flex-1" />
 
                 {/* Footer */}
-                <div className="pt-3 flex items-center justify-between border-t border-border">
+                <div className="pt-3 flex items-center justify-between" style={{ borderTop: '1px solid var(--border-subtle)' }}>
                   {pkg.price ? (
-                    <span className="font-semibold text-xl text-primary">{pkg.price}</span>
+                    <span className="text-xl" style={{ color: 'var(--accent)' }}>{pkg.price}</span>
                   ) : (
-                    <span className="text-sm text-muted-foreground">Consultar</span>
+                    <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Consultar</span>
                   )}
-                  <span className="text-[10px] uppercase tracking-wider text-primary font-mono">
+                  <span className="font-mono text-[10px] uppercase tracking-wider" style={{ color: 'var(--accent)' }}>
                     Ver Paquete →
                   </span>
                 </div>

@@ -295,13 +295,22 @@ export function SiteHeader({ website, isCustomDomain = false, navigation }: Site
 
 /** Header CTA button — configurable or fallback to WhatsApp */
 function HeaderCtaButton({ cta, content }: { cta?: HeaderCTA; content: WebsiteData['content'] }) {
+  const pillStyle = {
+    backgroundColor: 'var(--accent)',
+    color: 'var(--accent-text)',
+  };
+
   if (cta?.enabled && cta.label && cta.href) {
     const isExternal = cta.variant === 'whatsapp' || cta.href.startsWith('http');
-    const ctaClasses = cta.variant === 'outline'
-      ? 'inline-flex items-center gap-2 px-4 py-2 border border-primary text-primary rounded-lg font-medium hover:bg-primary/10 transition-colors'
-      : 'inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors';
+    const isOutline = cta.variant === 'outline';
     return (
-      <a href={cta.href} target={isExternal ? '_blank' : undefined} rel={isExternal ? 'noopener noreferrer' : undefined} className={ctaClasses}>
+      <a
+        href={cta.href}
+        target={isExternal ? '_blank' : undefined}
+        rel={isExternal ? 'noopener noreferrer' : undefined}
+        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full font-sans text-sm font-medium tracking-wide transition-colors"
+        style={isOutline ? { border: '1px solid var(--accent)', color: 'var(--accent)' } : pillStyle}
+      >
         {cta.icon === 'whatsapp' && <WhatsAppIcon className="w-4 h-4" />}
         {cta.icon === 'phone' && <PhoneIcon className="w-4 h-4" />}
         {cta.icon === 'mail' && <MailIcon className="w-4 h-4" />}
@@ -312,7 +321,13 @@ function HeaderCtaButton({ cta, content }: { cta?: HeaderCTA; content: WebsiteDa
   }
   if (content.social?.whatsapp) {
     return (
-      <a href={`https://wa.me/${content.social.whatsapp.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors">
+      <a
+        href={`https://wa.me/${content.social.whatsapp.replace(/[^0-9]/g, '')}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full font-sans text-sm font-medium tracking-wide transition-colors"
+        style={pillStyle}
+      >
         <WhatsAppIcon className="w-4 h-4" />Contactanos
       </a>
     );

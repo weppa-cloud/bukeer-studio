@@ -639,25 +639,38 @@ function QuoteForm({
       whileInView="visible"
       viewport={{ once: true }}
       variants={fadeUp}
-      className="rounded-2xl p-6 bg-card border border-border space-y-5"
+      className="rounded-2xl p-6 space-y-5"
+      style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-subtle)' }}
     >
       {/* Price header */}
       {product.price && (
         <>
           <div>
-            <span className="text-xs uppercase tracking-wider text-muted-foreground font-mono">Desde</span>
-            <div className="text-3xl font-bold text-primary mt-1">
+            <span className="font-mono text-xs uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Desde</span>
+            <div className="text-3xl mt-1" style={{ color: 'var(--accent)' }}>
               {product.price}
               {productType === 'hotel' && (
-                <span className="text-base font-normal text-muted-foreground">/noche</span>
+                <span className="text-base" style={{ color: 'var(--text-muted)' }}>/noche</span>
               )}
             </div>
           </div>
-          <div className="h-px bg-border" />
+
+          {/* Rating for hotels */}
+          {productType === 'hotel' && product.rating && product.rating > 0 && (
+            <div className="flex items-center gap-1">
+              {Array.from({ length: product.rating }).map((_, i) => (
+                <svg key={i} className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                </svg>
+              ))}
+            </div>
+          )}
+
+          <div className="h-px" style={{ backgroundColor: 'var(--border-subtle)' }} />
         </>
       )}
 
-      <h3 className="text-lg font-semibold">Solicitar Cotizacion</h3>
+      <h3 className="text-lg font-semibold" style={{ color: 'var(--text-heading)' }}>Solicitar Cotizacion</h3>
 
       {error && (
         <div className="p-3 bg-red-100 text-red-700 rounded-lg text-sm">{error}</div>
@@ -759,12 +772,13 @@ function QuoteForm({
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full py-3.5 rounded-xl bg-primary text-primary-foreground font-medium text-sm tracking-wide hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full py-3.5 rounded-xl font-medium text-sm tracking-wide transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+          style={{ backgroundColor: 'var(--accent)', color: 'var(--accent-text)' }}
         >
           {isSubmitting ? 'Enviando...' : 'Solicitar cotizacion'}
         </button>
 
-        <div className="h-px bg-border" />
+        <div className="h-px" style={{ backgroundColor: 'var(--border-subtle)' }} />
 
         {/* Trust badges */}
         <ul className="space-y-3">

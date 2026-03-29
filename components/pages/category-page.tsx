@@ -17,88 +17,54 @@ interface CategoryPageProps {
 
 const ITEMS_PER_PAGE = 12;
 
+// Category pills for activity listings
+const ACTIVITY_CATEGORIES = ['Todos', 'City Tours', 'Naturaleza', 'Aventura', 'Nautico', 'Gastronomia'];
+const STAR_RATINGS = ['Todos', '3\u2605', '4\u2605', '5\u2605'];
+
 export function CategoryPage({ website, page, categoryType }: CategoryPageProps) {
   const [products, setProducts] = useState<ProductData[]>([]);
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [activeFilter, setActiveFilter] = useState('Todos');
 
   const heroConfig = page.hero_config || {};
   const introContent = page.intro_content || {};
   const ctaConfig = page.cta_config || {};
   const basePath = getBasePath(website.subdomain);
+  const isHotel = categoryType === 'hotel' || categoryType === 'hotels';
+  const isActivity = categoryType === 'activity' || categoryType === 'activities';
 
-  // Fetch products
   useEffect(() => {
     async function fetchProducts() {
       if (!categoryType) return;
-
       setIsLoading(true);
       const offset = (currentPage - 1) * ITEMS_PER_PAGE;
-
       const result = await getCategoryProducts(website.subdomain, categoryType, {
         limit: ITEMS_PER_PAGE,
         offset,
         search: searchQuery || undefined,
       });
-
       setProducts(result.items);
       setTotal(result.total);
       setIsLoading(false);
     }
-
     fetchProducts();
   }, [website.subdomain, categoryType, currentPage, searchQuery]);
 
   const totalPages = Math.ceil(total / ITEMS_PER_PAGE);
 
-  const getCategorySlug = (type: string) => {
-    const mapping: Record<string, string> = {
-      destination: 'destinos',
-      hotel: 'hoteles',
-      activity: 'actividades',
-      transfer: 'traslados',
-      package: 'paquetes',
-    };
-    return mapping[type] || type;
-  };
-
-  const getCategoryLabel = (type?: string) => {
-    const labels: Record<string, string> = {
-      destination: 'Destinos',
-      hotel: 'Alojamiento',
-      activity: 'Experiencias',
-      transfer: 'Traslados',
-      package: 'Paquetes',
-    };
-    return labels[type || ''] || '';
-  };
-
   return (
     <div className="min-h-screen">
-      {/* Hero Section — Themed Listing Hero */}
+      {/* Hero — Themed Listing Hero with eyebrow */}
       {heroConfig.backgroundImage ? (
-        <section
-          className="relative h-[40vh] min-h-[300px] flex items-center justify-center"
-        >
-          <Image
-            src={heroConfig.backgroundImage}
-            alt={heroConfig.title || page.title}
-            fill
-            className="object-cover"
-            priority
-          />
+        <section className="relative h-[40vh] min-h-[300px] flex items-center justify-center">
+          <Image src={heroConfig.backgroundImage} alt={heroConfig.title || page.title} fill className="object-cover" priority />
           <div className="absolute inset-0 bg-black/40" />
           <div className="relative z-10 text-center text-white px-4">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">
-              {heroConfig.title || page.title}
-            </h1>
-            {heroConfig.subtitle && (
-              <p className="text-lg md:text-xl max-w-2xl mx-auto opacity-90">
-                {heroConfig.subtitle}
-              </p>
-            )}
+            <h1 className="text-4xl md:text-5xl font-bold mb-4">{heroConfig.title || page.title}</h1>
+            {heroConfig.subtitle && <p className="text-lg md:text-xl max-w-2xl mx-auto opacity-90">{heroConfig.subtitle}</p>}
           </div>
         </section>
       ) : (
@@ -108,7 +74,8 @@ export function CategoryPage({ website, page, categoryType }: CategoryPageProps)
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-              className="text-xs tracking-[0.15em] uppercase mb-3 text-primary font-mono"
+              className="font-mono text-xs tracking-[0.15em] uppercase mb-3"
+              style={{ color: 'var(--accent)' }}
             >
               {getCategoryLabel(categoryType)}
             </motion.p>
@@ -116,7 +83,7 @@ export function CategoryPage({ website, page, categoryType }: CategoryPageProps)
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-              className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4"
+              style={{ fontSize: 'var(--text-display-lg)', color: 'var(--text-heading)' }}
             >
               {heroConfig.title || page.title}
             </motion.h1>
@@ -125,7 +92,8 @@ export function CategoryPage({ website, page, categoryType }: CategoryPageProps)
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2, duration: 0.5 }}
-                className="text-base text-muted-foreground max-w-xl mx-auto"
+                className="text-base max-w-xl mx-auto mt-4"
+                style={{ color: 'var(--text-secondary)' }}
               >
                 {heroConfig.subtitle}
               </motion.p>
@@ -134,75 +102,146 @@ export function CategoryPage({ website, page, categoryType }: CategoryPageProps)
         </section>
       )}
 
-      {/* Intro Section */}
+      {/* Intro */}
       {introContent.text && (
         <section className="py-12 px-4">
           <div className="max-w-4xl mx-auto text-center">
-            <p className="text-lg text-muted-foreground">{introContent.text}</p>
-            {introContent.highlights && introContent.highlights.length > 0 && (
-              <div className="mt-8 flex flex-wrap justify-center gap-3">
-                {introContent.highlights.map((highlight: string, index: number) => (
-                  <span
-                    key={index}
-                    className="px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium"
-                  >
-                    {highlight}
-                  </span>
-                ))}
-              </div>
-            )}
+            <p className="text-lg" style={{ color: 'var(--text-secondary)' }}>{introContent.text}</p>
           </div>
         </section>
       )}
 
-      {/* Search and Filters */}
-      <section className="pb-10">
-        <div className="max-w-7xl mx-auto px-6">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.5 }}
-            className="rounded-xl p-5 flex flex-col md:flex-row items-start md:items-center gap-4 bg-card border border-border"
-          >
-            {/* Search */}
-            <div className="relative flex-1 w-full md:w-auto">
-              <label className="text-xs tracking-wider uppercase block mb-1.5 text-muted-foreground font-mono">
-                Buscar
-              </label>
-              <div className="relative">
-                <svg
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                  />
-                </svg>
-                <input
-                  type="text"
-                  placeholder="Nombre..."
-                  value={searchQuery}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value);
-                    setCurrentPage(1);
+      {/* Activity category pills */}
+      {isActivity && (
+        <section className="pb-10">
+          <div className="max-w-7xl mx-auto px-6">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3, duration: 0.5 }}
+              className="flex flex-wrap gap-3 justify-center"
+            >
+              {ACTIVITY_CATEGORIES.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setActiveFilter(cat)}
+                  className="px-5 py-2 rounded-full font-mono text-xs tracking-wider uppercase transition-colors cursor-pointer"
+                  style={{
+                    backgroundColor: activeFilter === cat ? 'var(--accent)' : 'var(--nav-link-hover-bg)',
+                    color: activeFilter === cat ? 'var(--accent-text)' : 'var(--text-secondary)',
+                    border: `1px solid ${activeFilter === cat ? 'var(--accent)' : 'var(--border-medium)'}`,
                   }}
-                  className="w-full pl-9 pr-4 py-2 rounded-lg text-sm outline-none bg-background border border-border focus:ring-2 focus:ring-primary"
-                />
-              </div>
-            </div>
+                >
+                  {cat}
+                </button>
+              ))}
+            </motion.div>
+          </div>
+        </section>
+      )}
 
-            {/* Results count */}
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <span>{total} {total === 1 ? 'resultado' : 'resultados'}</span>
-            </div>
-          </motion.div>
-        </div>
-      </section>
+      {/* Hotel filter bar — search + destination + star pills */}
+      {isHotel && (
+        <section className="pb-10">
+          <div className="max-w-7xl mx-auto px-6">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3, duration: 0.5 }}
+              className="rounded-xl p-5 flex flex-col md:flex-row items-start md:items-center gap-4"
+              style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-subtle)' }}
+            >
+              {/* Search */}
+              <div className="relative flex-1 w-full md:w-auto">
+                <label className="font-mono text-xs tracking-wider uppercase block mb-1.5" style={{ color: 'var(--text-muted)' }}>Buscar</label>
+                <div className="relative">
+                  <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  <input
+                    type="text"
+                    placeholder="Nombre del hotel..."
+                    aria-label="Buscar hotel"
+                    value={searchQuery}
+                    onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+                    className="w-full pl-9 pr-4 py-2 rounded-lg font-sans text-sm outline-none"
+                    style={{ backgroundColor: 'var(--bg)', border: '1px solid var(--border-subtle)', color: 'var(--text-heading)' }}
+                  />
+                </div>
+              </div>
+
+              {/* Destination dropdown */}
+              <div className="flex-1 w-full md:w-auto">
+                <label className="font-mono text-xs tracking-wider uppercase block mb-1.5" style={{ color: 'var(--text-muted)' }}>Destino</label>
+                <select
+                  className="w-full px-4 py-2 rounded-lg font-sans text-sm outline-none appearance-none cursor-pointer"
+                  style={{ backgroundColor: 'var(--bg)', border: '1px solid var(--border-subtle)', color: 'var(--text-heading)' }}
+                >
+                  {['Todos', 'Cartagena', 'Santa Marta', 'Medellin', 'Eje Cafetero', 'San Andres', 'Bogota', 'Cali'].map((d) => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Star rating pills */}
+              <div>
+                <label className="font-mono text-xs tracking-wider uppercase block mb-1.5" style={{ color: 'var(--text-muted)' }}>Estrellas</label>
+                <div className="flex gap-2">
+                  {STAR_RATINGS.map((r) => (
+                    <button
+                      key={r}
+                      onClick={() => setActiveFilter(r)}
+                      className="px-3 py-1.5 rounded-lg font-mono text-xs transition-colors cursor-pointer"
+                      style={{
+                        backgroundColor: activeFilter === r ? 'var(--accent)' : 'var(--nav-link-hover-bg)',
+                        color: activeFilter === r ? 'var(--accent-text)' : 'var(--text-secondary)',
+                        border: `1px solid ${activeFilter === r ? 'var(--accent)' : 'var(--border-medium)'}`,
+                      }}
+                    >
+                      {r}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        </section>
+      )}
+
+      {/* Generic filter bar for other types */}
+      {!isHotel && !isActivity && (
+        <section className="pb-10">
+          <div className="max-w-7xl mx-auto px-6">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3, duration: 0.5 }}
+              className="rounded-xl p-5 flex flex-col md:flex-row items-start md:items-center gap-4"
+              style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-subtle)' }}
+            >
+              <div className="relative flex-1 w-full md:w-auto">
+                <label className="font-mono text-xs tracking-wider uppercase block mb-1.5" style={{ color: 'var(--text-muted)' }}>Buscar</label>
+                <div className="relative">
+                  <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  <input
+                    type="text"
+                    placeholder="Nombre..."
+                    value={searchQuery}
+                    onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+                    className="w-full pl-9 pr-4 py-2 rounded-lg font-sans text-sm outline-none"
+                    style={{ backgroundColor: 'var(--bg)', border: '1px solid var(--border-subtle)', color: 'var(--text-heading)' }}
+                  />
+                </div>
+              </div>
+              <div className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                {total} {total === 1 ? 'resultado' : 'resultados'}
+              </div>
+            </motion.div>
+          </div>
+        </section>
+      )}
 
       {/* Products Grid */}
       <section className="pb-24 px-6">
@@ -210,10 +249,7 @@ export function CategoryPage({ website, page, categoryType }: CategoryPageProps)
           {isLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {Array.from({ length: 6 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="rounded-2xl overflow-hidden animate-pulse bg-card border border-border"
-                >
+                <div key={i} className="rounded-2xl overflow-hidden animate-pulse" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-subtle)' }}>
                   <div className="h-48 bg-muted" />
                   <div className="p-4 space-y-3">
                     <div className="h-4 bg-muted rounded w-3/4" />
@@ -224,164 +260,51 @@ export function CategoryPage({ website, page, categoryType }: CategoryPageProps)
             </div>
           ) : products.length === 0 ? (
             <div className="text-center py-16">
-              <p className="text-lg text-muted-foreground">
-                No se encontraron resultados
-              </p>
+              <p className="text-lg" style={{ color: 'var(--text-muted)' }}>No se encontraron resultados</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {products.map((product, index) => (
-                <motion.div
-                  key={product.id}
-                  initial={{ opacity: 0, y: 30 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, margin: '-60px' }}
-                  transition={{ delay: index * 0.05, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-                  whileHover={{ y: -4 }}
-                >
-                  <Link
-                    href={`${basePath}/${getCategorySlug(product.type)}/${product.slug}`}
-                    className="group block rounded-2xl overflow-hidden bg-card border border-border"
-                  >
-                    <div className="relative aspect-[16/10] overflow-hidden">
-                      {product.image ? (
-                        <Image
-                          src={product.image}
-                          alt={product.name}
-                          fill
-                          className="object-cover transition-transform duration-700 group-hover:scale-105"
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-muted flex items-center justify-center">
-                          <span className="text-4xl">
-                            {getProductIcon(product.type)}
-                          </span>
-                        </div>
-                      )}
-                      {/* Rating badge for hotels */}
-                      {product.rating && product.rating > 0 && (
-                        <div className="absolute top-3 right-3 flex items-center gap-0.5 px-2 py-1 rounded-full backdrop-blur-sm bg-background/60 border border-border/50">
-                          {Array.from({ length: product.rating }).map((_, i) => (
-                            <svg key={i} className="w-2.5 h-2.5 text-yellow-400 fill-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                            </svg>
-                          ))}
-                        </div>
-                      )}
-                      {/* Duration badge for activities */}
-                      {product.duration && (
-                        <div className="absolute top-3 right-3 flex items-center gap-1 px-2.5 py-1 rounded-full backdrop-blur-sm bg-background/60 border border-border/50">
-                          <svg className="w-2.5 h-2.5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          <span className="text-[10px] tracking-wider text-muted-foreground font-mono">
-                            {product.duration}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                    <div className="p-4">
-                      <h3 className="font-semibold text-lg leading-tight mb-1 group-hover:text-primary transition-colors">
-                        {product.name}
-                      </h3>
-                      {product.location && (
-                        <div className="flex items-center gap-1 mb-2">
-                          <svg className="w-3 h-3 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                          </svg>
-                          <span className="text-xs text-muted-foreground">{product.location}</span>
-                        </div>
-                      )}
-                      {product.country && !product.location && (
-                        <p className="text-xs text-muted-foreground mb-2">
-                          {product.city ? `${product.city}, ` : ''}
-                          {product.country}
-                        </p>
-                      )}
-                      {product.description && (
-                        <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
-                          {product.description}
-                        </p>
-                      )}
-                      <div className="flex items-center justify-between">
-                        {product.price && (
-                          <span className="font-semibold text-lg text-primary">{product.price}</span>
-                        )}
-                        <span className="text-[10px] uppercase tracking-wider text-primary font-mono">
-                          Ver {getCategoryLabel(product.type) === 'Alojamiento' ? 'Hotel' : 'Detalle'} →
-                        </span>
-                      </div>
-                    </div>
-                  </Link>
-                </motion.div>
+                isActivity
+                  ? <ActivityCard key={product.id} product={product} index={index} basePath={basePath} />
+                  : <StandardCard key={product.id} product={product} index={index} basePath={basePath} categoryType={categoryType} />
               ))}
             </div>
           )}
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="mt-12 flex justify-center gap-2">
-              <button
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                className="px-4 py-2 rounded-lg bg-card border border-border text-foreground disabled:opacity-50 hover:bg-muted transition-colors"
-              >
-                Anterior
-              </button>
-              {Array.from({ length: Math.min(totalPages, 7) }).map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setCurrentPage(i + 1)}
-                  className={`px-4 py-2 rounded-lg transition-colors ${
-                    currentPage === i + 1
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-card border border-border text-foreground hover:bg-muted'
-                  }`}
-                >
-                  {i + 1}
-                </button>
-              ))}
-              <button
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages}
-                className="px-4 py-2 rounded-lg bg-card border border-border text-foreground disabled:opacity-50 hover:bg-muted transition-colors"
-              >
-                Siguiente
-              </button>
-            </div>
-          )}
-
-          {/* Load more button */}
-          {totalPages > 1 && currentPage < totalPages && (
-            <div className="text-center mt-8">
+            <div className="text-center mt-12">
               <button
                 onClick={() => setCurrentPage((p) => p + 1)}
-                className="px-6 py-3 rounded-full text-sm font-medium border border-border text-muted-foreground hover:bg-muted transition-all"
+                disabled={currentPage >= totalPages}
+                className="px-6 py-3 rounded-full font-sans text-sm font-medium transition-all disabled:opacity-50"
+                style={{ border: '1px solid var(--border-medium)', color: 'var(--text-secondary)' }}
               >
                 Cargar mas resultados
               </button>
             </div>
           )}
+
+          <div className="text-center mt-6">
+            <Link href={`${basePath}/`} className="font-mono text-xs tracking-wider uppercase" style={{ color: 'var(--accent)' }}>
+              ← Volver al inicio
+            </Link>
+          </div>
         </div>
       </section>
 
-      {/* CTA Section */}
+      {/* CTA */}
       {ctaConfig.title && (
-        <section className="py-16 px-4 bg-primary/5">
+        <section className="py-16 px-4" style={{ backgroundColor: 'var(--spotlight-color)' }}>
           <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-2xl md:text-3xl font-bold mb-4">
-              {ctaConfig.title}
-            </h2>
-            {ctaConfig.subtitle && (
-              <p className="text-muted-foreground mb-8">
-                {ctaConfig.subtitle}
-              </p>
-            )}
+            <h2 className="text-2xl md:text-3xl font-bold mb-4" style={{ color: 'var(--text-heading)' }}>{ctaConfig.title}</h2>
+            {ctaConfig.subtitle && <p className="mb-8" style={{ color: 'var(--text-secondary)' }}>{ctaConfig.subtitle}</p>}
             {ctaConfig.buttonText && (
               <Link
                 href={ctaConfig.buttonLink ? (ctaConfig.buttonLink.startsWith('http') ? ctaConfig.buttonLink : `${basePath}${ctaConfig.buttonLink}`) : `${basePath}/contacto`}
-                className="inline-flex items-center gap-2 px-8 py-4 bg-primary text-primary-foreground rounded-full font-medium hover:bg-primary/90 transition-colors"
+                className="inline-flex items-center gap-2 px-8 py-4 rounded-full font-medium transition-colors"
+                style={{ backgroundColor: 'var(--accent)', color: 'var(--accent-text)' }}
               >
                 {ctaConfig.buttonText}
               </Link>
@@ -393,13 +316,132 @@ export function CategoryPage({ website, page, categoryType }: CategoryPageProps)
   );
 }
 
+// Activity overlay card — 1:1 aspect ratio, image as background, name + price overlaid
+function ActivityCard({ product, index, basePath }: { product: ProductData; index: number; basePath: string }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 30 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-60px' }}
+      transition={{ delay: index * 0.05, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+      whileHover={{ y: -4 }}
+    >
+      <Link
+        href={`${basePath}/actividades/${product.slug}`}
+        className="group relative block rounded-2xl overflow-hidden"
+        style={{ aspectRatio: '1/1' }}
+      >
+        {product.image ? (
+          <Image
+            src={product.image}
+            alt={product.name}
+            fill
+            className="object-cover transition-transform duration-700 group-hover:scale-110"
+          />
+        ) : (
+          <div className="absolute inset-0 bg-muted flex items-center justify-center">
+            <span className="text-4xl">🎯</span>
+          </div>
+        )}
+        {/* Gradient overlay */}
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.1) 50%, rgba(0,0,0,0.2) 100%)' }} />
+        {/* Duration badge */}
+        {product.duration && (
+          <div
+            className="absolute top-3 right-3 flex items-center gap-1 px-2.5 py-1 rounded-full backdrop-blur-sm font-mono text-[10px] tracking-wider"
+            style={{ backgroundColor: 'var(--card-badge-bg)', border: '1px solid var(--card-badge-border)', color: 'var(--card-badge-text)' }}
+          >
+            <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            {product.duration}
+          </div>
+        )}
+        {/* Bottom info */}
+        <div className="absolute bottom-0 left-0 right-0 p-5">
+          <h3 className="text-xl leading-tight mb-1" style={{ color: '#fff' }}>{product.name}</h3>
+          {product.price && <span className="text-lg" style={{ color: 'var(--accent)' }}>{product.price}</span>}
+        </div>
+      </Link>
+    </motion.div>
+  );
+}
+
+// Standard card — hotels, packages, destinations, transfers
+function StandardCard({ product, index, basePath, categoryType }: { product: ProductData; index: number; basePath: string; categoryType?: string }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 30 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-60px' }}
+      transition={{ delay: index * 0.05, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+      whileHover={{ y: -4 }}
+    >
+      <Link
+        href={`${basePath}/${getCategorySlug(product.type)}/${product.slug}`}
+        className="group block rounded-2xl overflow-hidden"
+        style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-subtle)' }}
+      >
+        <div className="relative overflow-hidden" style={{ aspectRatio: '16/10' }}>
+          {product.image ? (
+            <Image src={product.image} alt={product.name} fill className="object-cover transition-transform duration-700 group-hover:scale-105" />
+          ) : (
+            <div className="w-full h-full bg-muted flex items-center justify-center">
+              <span className="text-4xl">{getProductIcon(product.type)}</span>
+            </div>
+          )}
+          {/* Star badge for hotels */}
+          {product.rating && product.rating > 0 && (
+            <div
+              className="absolute top-3 right-3 flex items-center gap-0.5 px-2 py-1 rounded-full backdrop-blur-sm"
+              style={{ backgroundColor: 'var(--card-badge-bg)', border: '1px solid var(--card-badge-border)' }}
+            >
+              {Array.from({ length: product.rating }).map((_, i) => (
+                <svg key={i} className="w-2.5 h-2.5 text-yellow-400 fill-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                </svg>
+              ))}
+            </div>
+          )}
+        </div>
+        <div className="p-4">
+          <h3 className="text-lg leading-tight mb-1" style={{ color: 'var(--text-heading)' }}>{product.name}</h3>
+          {product.location && (
+            <div className="flex items-center gap-1 mb-3">
+              <svg className="w-3 h-3" style={{ color: 'var(--text-muted)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <span className="font-sans text-xs" style={{ color: 'var(--text-muted)' }}>{product.location}</span>
+            </div>
+          )}
+          {product.description && (
+            <p className="text-sm line-clamp-2 mb-3" style={{ color: 'var(--text-secondary)' }}>{product.description}</p>
+          )}
+          <div className="flex items-center justify-between">
+            {product.price && <span className="text-lg" style={{ color: 'var(--accent)' }}>{product.price}</span>}
+            <span className="font-mono text-[10px] uppercase tracking-wider" style={{ color: 'var(--accent)' }}>
+              Ver {categoryType === 'hotel' ? 'Hotel' : 'Detalle'} →
+            </span>
+          </div>
+        </div>
+      </Link>
+    </motion.div>
+  );
+}
+
+// Helpers
+function getCategorySlug(type: string): string {
+  const m: Record<string, string> = { destination: 'destinos', hotel: 'hoteles', activity: 'actividades', transfer: 'traslados', package: 'paquetes' };
+  return m[type] || type;
+}
+
+function getCategoryLabel(type?: string): string {
+  const m: Record<string, string> = { destination: 'Destinos', hotel: 'Alojamiento', activity: 'Experiencias', transfer: 'Traslados', package: 'Paquetes' };
+  return m[type || ''] || '';
+}
+
 function getProductIcon(type: string): string {
-  const icons: Record<string, string> = {
-    destination: '🌍',
-    hotel: '🏨',
-    activity: '🎯',
-    transfer: '🚐',
-    package: '📦',
-  };
-  return icons[type] || '📍';
+  const m: Record<string, string> = { destination: '🌍', hotel: '🏨', activity: '🎯', transfer: '🚐', package: '📦' };
+  return m[type] || '📍';
 }

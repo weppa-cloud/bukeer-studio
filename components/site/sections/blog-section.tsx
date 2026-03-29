@@ -141,10 +141,10 @@ function getCategoryName(category?: string | { name: string; slug: string }): st
   return category.name;
 }
 
-// Showcase variant — themed blog cards with category badge, date, hover title color
+// Showcase variant — pixel-perfect match with theme reference using bridge CSS variables
 function ShowcaseBlog({ title, subtitle, posts, subdomain }: { title: string; subtitle?: string; posts: BlogPost[]; subdomain: string }) {
   return (
-    <div className="section-padding bg-muted/30">
+    <div className="section-padding">
       <div className="container">
         <div className="flex items-end justify-between mb-12">
           <motion.div
@@ -152,9 +152,9 @@ function ShowcaseBlog({ title, subtitle, posts, subdomain }: { title: string; su
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            <h2 className="text-3xl md:text-4xl font-bold">{title}</h2>
+            <h2 style={{ fontSize: 'var(--text-display-md)', color: 'var(--text-heading)' }}>{title}</h2>
             {subtitle && (
-              <p className="mt-2 text-muted-foreground">{subtitle}</p>
+              <p className="mt-2" style={{ color: 'var(--text-secondary)' }}>{subtitle}</p>
             )}
           </motion.div>
           <motion.div
@@ -164,7 +164,8 @@ function ShowcaseBlog({ title, subtitle, posts, subdomain }: { title: string; su
           >
             <Link
               href={`/site/${subdomain}/blog`}
-              className="text-primary font-medium hover:underline hidden md:block"
+              className="font-medium hover:underline hidden md:block"
+              style={{ color: 'var(--accent)' }}
             >
               Ver todos →
             </Link>
@@ -185,9 +186,10 @@ function ShowcaseBlog({ title, subtitle, posts, subdomain }: { title: string; su
               >
                 <Link
                   href={`/site/${subdomain}/blog/${post.slug}`}
-                  className="block rounded-2xl overflow-hidden bg-card border border-border"
+                  className="block rounded-2xl overflow-hidden"
+                  style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-subtle)' }}
                 >
-                  <div className="relative aspect-[16/10] overflow-hidden">
+                  <div className="relative overflow-hidden" style={{ aspectRatio: '16/10' }}>
                     {post.featuredImage ? (
                       <Image
                         src={post.featuredImage}
@@ -204,15 +206,17 @@ function ShowcaseBlog({ title, subtitle, posts, subdomain }: { title: string; su
                     )}
                   </div>
                   <div className="p-5">
-                    {/* Category + Date */}
                     <div className="flex items-center gap-3 mb-3">
                       {getCategoryName(post.category) && (
-                        <span className="text-[10px] tracking-widest uppercase px-2.5 py-1 rounded-full bg-primary/10 text-primary font-mono">
+                        <span
+                          className="font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 rounded-full"
+                          style={{ backgroundColor: 'var(--nav-link-hover-bg)', color: 'var(--accent)' }}
+                        >
                           {getCategoryName(post.category)}
                         </span>
                       )}
                       {post.publishedAt && (
-                        <span className="text-[10px] text-muted-foreground font-mono">
+                        <span className="font-mono text-[10px]" style={{ color: 'var(--text-muted)' }}>
                           {new Date(post.publishedAt).toLocaleDateString('es-ES', {
                             day: 'numeric',
                             month: 'short',
@@ -221,11 +225,14 @@ function ShowcaseBlog({ title, subtitle, posts, subdomain }: { title: string; su
                         </span>
                       )}
                     </div>
-                    <h3 className="font-semibold text-lg leading-tight mb-2 line-clamp-2 group-hover:text-primary transition-colors">
+                    <h3
+                      className="text-lg leading-tight mb-2 line-clamp-2 transition-colors"
+                      style={{ color: 'var(--text-heading)' }}
+                    >
                       {post.title}
                     </h3>
                     {post.excerpt && (
-                      <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
+                      <p className="text-sm line-clamp-2 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
                         {post.excerpt}
                       </p>
                     )}
@@ -235,7 +242,7 @@ function ShowcaseBlog({ title, subtitle, posts, subdomain }: { title: string; su
             ))}
           </div>
         ) : (
-          <div className="text-center py-12 text-muted-foreground">
+          <div className="text-center py-12" style={{ color: 'var(--text-muted)' }}>
             <p>No hay publicaciones disponibles</p>
           </div>
         )}
@@ -243,7 +250,8 @@ function ShowcaseBlog({ title, subtitle, posts, subdomain }: { title: string; su
         <div className="mt-8 text-center md:hidden">
           <Link
             href={`/site/${subdomain}/blog`}
-            className="inline-flex items-center gap-2 text-primary font-medium"
+            className="inline-flex items-center gap-2 font-medium"
+            style={{ color: 'var(--accent)' }}
           >
             Ver todos los posts
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
