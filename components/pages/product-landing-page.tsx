@@ -8,6 +8,7 @@ import type { WebsiteData } from '@/lib/supabase/get-website';
 import type { ProductData, ProductPageCustomization } from '@/lib/supabase/get-pages';
 import { getCategoryProducts } from '@/lib/supabase/get-pages';
 import { getBasePath } from '@/lib/utils/base-path';
+import { RouteMap, RouteTimeline, parseRouteFromName } from '@/components/ui/route-map';
 import { ProductSchema } from '../seo/product-schema';
 
 interface ProductLandingPageProps {
@@ -230,7 +231,7 @@ export function ProductLandingPage({
             {productType === 'destination' && <DestinationSections />}
             {productType === 'hotel' && <HotelSections product={product} />}
             {productType === 'activity' && <ActivitySections product={product} />}
-            {productType === 'package' && <PackageSections />}
+            {productType === 'package' && <PackageSections product={product} />}
             {productType === 'transfer' && <TransferSections />}
 
             {/* Reviews Section */}
@@ -639,36 +640,86 @@ function TransferSections() {
   );
 }
 
-function PackageSections() {
+function PackageSections({ product }: { product: ProductData }) {
+  const routePoints = parseRouteFromName(product.name);
+
   return (
-    <motion.section
-      initial="hidden"
-      whileInView="visible"
-      viewport={{ once: true, margin: '-60px' }}
-      variants={fadeUp}
-    >
-      <h2 className="text-2xl font-bold mb-6">Itinerario</h2>
-      <div className="space-y-4">
-        {['Dia 1: Llegada', 'Dia 2: Exploracion', 'Dia 3: Aventura', 'Dia 4: Regreso'].map(
-          (day, index) => (
-            <div
-              key={index}
-              className="flex items-start gap-4 p-4 bg-card border border-border rounded-xl"
-            >
-              <div className="w-10 h-10 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-bold shrink-0">
-                {index + 1}
-              </div>
-              <div>
-                <h3 className="font-medium">{day}</h3>
-                <p className="text-muted-foreground mt-1 text-sm">
-                  Descripcion de las actividades del dia...
-                </p>
-              </div>
-            </div>
-          )
-        )}
-      </div>
-    </motion.section>
+    <>
+      {/* Route Map */}
+      {routePoints.length >= 2 && (
+        <motion.section
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: '-60px' }}
+          variants={fadeUp}
+        >
+          <h2 className="text-2xl font-bold mb-4">Ruta del viaje</h2>
+          <RouteTimeline points={routePoints} className="mb-6" />
+          <RouteMap points={routePoints} height={350} />
+        </motion.section>
+      )}
+
+      {/* Itinerary timeline */}
+      <motion.section
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, margin: '-60px' }}
+        variants={fadeUp}
+      >
+        <h2 className="text-2xl font-bold mb-6">Itinerario</h2>
+        <div className="space-y-4">
+          {routePoints.length > 0 ? (
+            routePoints.map((point, index) => (
+              <motion.div
+                key={point.city}
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+                className="flex items-start gap-4 p-4 rounded-xl"
+                style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-subtle)' }}
+              >
+                <div
+                  className="w-10 h-10 rounded-full flex items-center justify-center font-bold shrink-0 text-sm"
+                  style={{ backgroundColor: 'var(--accent)', color: 'var(--accent-text)' }}
+                >
+                  {index + 1}
+                </div>
+                <div>
+                  <h3 className="font-medium" style={{ color: 'var(--text-heading)' }}>{point.city}</h3>
+                  <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
+                    Dia {index + 1}: Explora lo mejor de {point.city}
+                  </p>
+                </div>
+              </motion.div>
+            ))
+          ) : (
+            ['Dia 1: Llegada', 'Dia 2: Exploracion', 'Dia 3: Aventura', 'Dia 4: Regreso'].map(
+              (day, index) => (
+                <div
+                  key={index}
+                  className="flex items-start gap-4 p-4 rounded-xl"
+                  style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-subtle)' }}
+                >
+                  <div
+                    className="w-10 h-10 rounded-full flex items-center justify-center font-bold shrink-0"
+                    style={{ backgroundColor: 'var(--accent)', color: 'var(--accent-text)' }}
+                  >
+                    {index + 1}
+                  </div>
+                  <div>
+                    <h3 className="font-medium" style={{ color: 'var(--text-heading)' }}>{day}</h3>
+                    <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
+                      Descripcion de las actividades del dia...
+                    </p>
+                  </div>
+                </div>
+              )
+            )
+          )}
+        </div>
+      </motion.section>
+    </>
   );
 }
 

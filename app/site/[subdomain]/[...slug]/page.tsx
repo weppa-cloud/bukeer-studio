@@ -1,10 +1,12 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getWebsiteBySubdomain } from '@/lib/supabase/get-website';
-import { getPageBySlug, getProductPage } from '@/lib/supabase/get-pages';
+import { getPageBySlug, getProductPage, getDestinations, getDestinationProducts } from '@/lib/supabase/get-pages';
 import { CategoryPage } from '@/components/pages/category-page';
 import { StaticPage } from '@/components/pages/static-page';
 import { ProductLandingPage } from '@/components/pages/product-landing-page';
+import { DestinationListingPage } from '@/components/pages/destination-listing-page';
+import { DestinationDetailPage } from '@/components/pages/destination-detail-page';
 
 interface DynamicPageProps {
   params: Promise<{
@@ -97,7 +99,23 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
 
   const slugPath = slug.join('/');
 
-  // Handle product pages (2+ segments like /destinos/cartagena)
+  // Handle destination listing (/destinos)
+  if (slug.length === 1 && (slug[0] === 'destinos' || slug[0] === 'destinations')) {
+    const destinations = await getDestinations(subdomain);
+    return <DestinationListingPage website={website} destinations={destinations} />;
+  }
+
+  // Handle destination detail (/destinos/[slug])
+  if (slug.length === 2 && (slug[0] === 'destinos' || slug[0] === 'destinations')) {
+    const destinations = await getDestinations(subdomain);
+    const dest = destinations.find(d => d.slug === slug[1]);
+    if (dest) {
+      const products = await getDestinationProducts(subdomain, dest.name);
+      return <DestinationDetailPage website={website} destination={dest} products={products} />;
+    }
+  }
+
+  // Handle product pages (2+ segments like /hoteles/hotel-name)
   if (slug.length >= 2) {
     const categorySlug = slug[0];
     const productSlug = slug.slice(1).join('/');

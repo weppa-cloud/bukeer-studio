@@ -192,3 +192,66 @@ export async function getCategoryProducts(
     return { items: [], total: 0 };
   }
 }
+
+/**
+ * Get dynamic destinations from inventory (hotels + activities locations)
+ */
+export interface DestinationData {
+  name: string;
+  slug: string;
+  state: string;
+  lat: number;
+  lng: number;
+  hotel_count: number;
+  activity_count: number;
+  total: number;
+  min_price: string | null;
+  image: string | null;
+}
+
+export async function getDestinations(
+  subdomain: string
+): Promise<DestinationData[]> {
+  try {
+    const { data, error } = await supabase.rpc('get_website_destinations', {
+      p_subdomain: subdomain,
+    });
+
+    if (error) {
+      console.error('[getDestinations] Error:', error);
+      return [];
+    }
+
+    const payload = data as { destinations?: DestinationData[] };
+    return payload?.destinations || [];
+  } catch (e) {
+    console.error('[getDestinations] Exception:', e);
+    return [];
+  }
+}
+
+/**
+ * Get products (hotels + activities) for a specific destination city
+ */
+export async function getDestinationProducts(
+  subdomain: string,
+  cityName: string
+): Promise<ProductData[]> {
+  try {
+    const { data, error } = await supabase.rpc('get_website_destination_products', {
+      p_subdomain: subdomain,
+      p_city_name: cityName,
+    });
+
+    if (error) {
+      console.error('[getDestinationProducts] Error:', error);
+      return [];
+    }
+
+    const payload = data as { items?: ProductData[] };
+    return payload?.items || [];
+  } catch (e) {
+    console.error('[getDestinationProducts] Exception:', e);
+    return [];
+  }
+}
