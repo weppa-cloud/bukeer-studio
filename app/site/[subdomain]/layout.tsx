@@ -94,12 +94,12 @@ export default async function SiteLayout({ children, params }: SiteLayoutProps) 
       <GoogleTagManager analytics={website.analytics} />
 
       <SmoothScroll>
-        <div className="min-h-screen flex flex-col">
+        <div className="min-h-screen flex flex-col overflow-x-hidden">
           {/* GTM NoScript fallback */}
           <GoogleTagManagerBody analytics={website.analytics} />
 
           <SiteHeader website={website} navigation={navigation} />
-          <main className="flex-1">
+          <main className="flex-1 overflow-x-hidden">
             {children}
           </main>
           <SiteFooter website={website} navigation={navigation} />
