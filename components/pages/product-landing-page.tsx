@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import Link from 'next/link';
 import type { WebsiteData } from '@/lib/supabase/get-website';
 import type { ProductData, ProductPageCustomization } from '@/lib/supabase/get-pages';
+import { getCategoryProducts } from '@/lib/supabase/get-pages';
 import { getBasePath } from '@/lib/utils/base-path';
 import { ProductSchema } from '../seo/product-schema';
 
@@ -1019,7 +1020,7 @@ function ReviewsSection({ product }: { product: ProductData }) {
               <div className="flex items-center gap-3">
                 <div
                   className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium"
-                  style={{ backgroundColor: 'var(--accent)', color: 'var(--accent-text)' }}
+                  style={{ background: 'linear-gradient(135deg, var(--accent), var(--accent-hover))', color: 'var(--accent-text)' }}
                 >
                   {review.name.split(' ').map(w => w[0]).join('')}
                 </div>
@@ -1047,11 +1048,19 @@ function ReviewsSection({ product }: { product: ProductData }) {
 // --- Similar Products ---
 
 function SimilarProducts({ website, product, productType, basePath }: { website: WebsiteData; product: ProductData; productType: string; basePath: string }) {
-  // Show placeholder similar items based on product type
+  const [similar, setSimilar] = useState<ProductData[]>([]);
   const similarLabel = productType === 'hotel' ? 'Hoteles similares' : productType === 'activity' ? 'Experiencias similares' : 'Tambien te puede interesar';
   const categorySlug = getCategorySlug(productType);
 
-  // We show a teaser that links to the full listing — no extra API calls needed
+  useEffect(() => {
+    getCategoryProducts(website.subdomain, productType, { limit: 4 }).then(({ items }) => {
+      // Exclude current product, take 3
+      setSimilar(items.filter(p => p.id !== product.id).slice(0, 3));
+    });
+  }, [website.subdomain, productType, product.id]);
+
+  if (similar.length === 0) return null;
+
   return (
     <section className="py-16 px-6">
       <div className="max-w-7xl mx-auto">
@@ -1071,34 +1080,40 @@ function SimilarProducts({ website, product, productType, basePath }: { website:
           </Link>
         </motion.div>
 
-        {/* Placeholder cards — encourage exploration */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {[1, 2, 3].map((i) => (
+          {similar.map((item, i) => (
             <motion.div
-              key={i}
+              key={item.id}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.1 }}
+              whileHover={{ y: -4 }}
             >
               <Link
-                href={`${basePath}/${categorySlug}`}
+                href={`${basePath}/${categorySlug}/${item.slug}`}
                 className="group block rounded-2xl overflow-hidden"
                 style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-subtle)' }}
               >
                 <div className="relative overflow-hidden" style={{ aspectRatio: '16/10' }}>
-                  <div className="w-full h-full bg-muted flex items-center justify-center group-hover:bg-muted/80 transition-colors">
-                    <div className="text-center">
-                      <span className="text-3xl block mb-2">{productType === 'hotel' ? '🏨' : productType === 'activity' ? '🎯' : '📦'}</span>
-                      <span className="text-xs font-mono uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
-                        Descubre mas
-                      </span>
+                  {item.image ? (
+                    <Image src={item.image} alt={item.name} fill className="object-cover transition-transform duration-700 group-hover:scale-105" />
+                  ) : (
+                    <div className="w-full h-full bg-muted flex items-center justify-center">
+                      <span className="text-3xl">{productType === 'hotel' ? '🏨' : '🎯'}</span>
                     </div>
-                  </div>
+                  )}
                 </div>
                 <div className="p-4">
-                  <div className="h-4 rounded w-3/4 mb-2" style={{ backgroundColor: 'var(--border-subtle)' }} />
-                  <div className="h-3 rounded w-1/2" style={{ backgroundColor: 'var(--border-subtle)' }} />
+                  <h3 className="text-sm font-semibold line-clamp-1 mb-1" style={{ color: 'var(--text-heading)' }}>{item.name}</h3>
+                  <div className="flex items-center justify-between">
+                    {item.location && (
+                      <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{item.location}</span>
+                    )}
+                    {item.price && (
+                      <span className="text-sm font-semibold" style={{ color: 'var(--accent)' }}>{item.price}</span>
+                    )}
+                  </div>
                 </div>
               </Link>
             </motion.div>

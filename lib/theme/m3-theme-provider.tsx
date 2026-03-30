@@ -166,11 +166,12 @@ function applyBridgeVariables(root: HTMLElement) {
   root.style.setProperty('--text-secondary', `hsl(${mutedFg})`);
   root.style.setProperty('--text-muted', `hsl(${mutedFg} / 0.7)`);
 
-  // Derived with opacity
-  root.style.setProperty('--border-subtle', `hsl(${border} / 0.5)`);
+  // Derived with opacity — boost in dark mode for visibility
+  const isDark = root.classList.contains('dark');
+  root.style.setProperty('--border-subtle', `hsl(${border} / ${isDark ? 0.8 : 0.5})`);
   root.style.setProperty('--border-medium', `hsl(${border})`);
-  root.style.setProperty('--card-badge-bg', `hsl(${bg} / 0.7)`);
-  root.style.setProperty('--card-badge-border', `hsl(${border} / 0.5)`);
+  root.style.setProperty('--card-badge-bg', `hsl(${bg} / ${isDark ? 0.5 : 0.7})`);
+  root.style.setProperty('--card-badge-border', `hsl(${border} / ${isDark ? 0.7 : 0.5})`);
   root.style.setProperty('--card-badge-text', `hsl(${mutedFg})`);
   root.style.setProperty('--card-gradient', `hsl(${card} / 0.6)`);
   root.style.setProperty('--card-meta', `hsl(${mutedFg} / 0.7)`);

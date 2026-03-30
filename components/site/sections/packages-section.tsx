@@ -159,6 +159,22 @@ export function PackagesSection({ section }: PackagesSectionProps) {
   );
 }
 
+// Category badge color-coding — Popular=gold, Premium=silver, Exclusivo=gradient
+function getCategoryBadgeStyle(category: string): React.CSSProperties {
+  const lower = category.toLowerCase();
+  if (lower === 'popular' || lower === 'bestseller') {
+    return { backgroundColor: '#B8860B', color: '#FFFFFF', border: '1px solid #DAA520' };
+  }
+  if (lower === 'premium') {
+    return { backgroundColor: 'rgba(192,192,192,0.9)', color: '#1a1a1a', border: '1px solid #C0C0C0' };
+  }
+  if (lower === 'exclusivo' || lower === 'exclusive') {
+    return { background: 'linear-gradient(135deg, #B8860B, #DAA520, #FFD700)', color: '#1a1a1a', border: 'none' };
+  }
+  // Default: glassmorphism
+  return { backgroundColor: 'var(--card-badge-bg)', border: '1px solid var(--card-badge-border)', color: 'var(--card-badge-text)' };
+}
+
 // Showcase variant — pixel-perfect match with theme reference using bridge CSS variables
 function ShowcasePackages({ title, subtitle, packages }: { title: string; subtitle?: string; packages: PackageItem[] }) {
   return (
@@ -210,7 +226,7 @@ function ShowcasePackages({ title, subtitle, packages }: { title: string; subtit
                   <div className="absolute top-3 left-3">
                     <span
                       className="font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 rounded-full backdrop-blur-sm"
-                      style={{ backgroundColor: 'var(--card-badge-bg)', border: '1px solid var(--card-badge-border)', color: 'var(--card-badge-text)' }}
+                      style={getCategoryBadgeStyle(pkg.category)}
                     >
                       {pkg.category}
                     </span>

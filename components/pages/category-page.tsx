@@ -293,7 +293,7 @@ export function CategoryPage({ website, page, categoryType }: CategoryPageProps)
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="px-3 py-1.5 rounded-lg font-sans text-sm outline-none appearance-none cursor-pointer"
+              className="px-3 py-1.5 rounded-lg font-sans text-sm outline-none appearance-none cursor-pointer sort-select"
               style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-subtle)', color: 'var(--text-heading)' }}
             >
               <option value="popular">Popular</option>
@@ -480,7 +480,7 @@ function StandardCard({ product, index, basePath, categoryType }: { product: Pro
           <div className="flex items-center justify-between">
             {product.price && <span className="text-lg" style={{ color: 'var(--accent)' }}>{product.price}</span>}
             <span className="font-mono text-[10px] uppercase tracking-wider" style={{ color: 'var(--accent)' }}>
-              Ver {categoryType === 'hotel' ? 'Hotel' : 'Detalle'} →
+              Ver {categoryType === 'hotel' || categoryType === 'hotels' ? 'Hotel' : categoryType === 'package' || categoryType === 'packages' ? 'Paquete' : 'Detalle'} →
             </span>
           </div>
         </div>
