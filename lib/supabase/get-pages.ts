@@ -197,6 +197,7 @@ export async function getCategoryProducts(
  * Get dynamic destinations from inventory (hotels + activities locations)
  */
 export interface DestinationData {
+  id: string;
   name: string;
   slug: string;
   state: string;
@@ -222,8 +223,15 @@ export async function getDestinations(
       return [];
     }
 
-    const payload = data as { destinations?: DestinationData[] };
-    return payload?.destinations || [];
+    const payload = data as { destinations?: Omit<DestinationData, 'id'>[] };
+    const destinations = payload?.destinations || [];
+
+    return destinations.map((destination, index) => ({
+      ...destination,
+      id:
+        (typeof destination.slug === 'string' && destination.slug) ||
+        `${destination.name}-${index}`,
+    }));
   } catch (e) {
     console.error('[getDestinations] Exception:', e);
     return [];

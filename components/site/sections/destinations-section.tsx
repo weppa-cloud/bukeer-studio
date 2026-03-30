@@ -16,6 +16,41 @@ interface Destination {
   image: string;
   description?: string;
   price?: string;
+  slug?: string;
+  state?: string;
+  hotel_count?: number;
+  activity_count?: number;
+  min_price?: string;
+}
+
+function normalizeDestination(raw: Record<string, unknown>, index: number): Destination {
+  const hotelCount = typeof raw.hotel_count === 'number' ? raw.hotel_count : undefined;
+  const activityCount = typeof raw.activity_count === 'number' ? raw.activity_count : undefined;
+  const derivedDescription =
+    hotelCount !== undefined && activityCount !== undefined
+      ? `${hotelCount} hoteles · ${activityCount} actividades`
+      : undefined;
+
+  return {
+    id:
+      (typeof raw.id === 'string' && raw.id) ||
+      (typeof raw.slug === 'string' && raw.slug) ||
+      `destination-${index}`,
+    name: (typeof raw.name === 'string' && raw.name) || 'Destino',
+    image: (typeof raw.image === 'string' && raw.image) || '',
+    description:
+      (typeof raw.description === 'string' && raw.description) ||
+      derivedDescription,
+    price:
+      (typeof raw.price === 'string' && raw.price) ||
+      (typeof raw.min_price === 'string' && raw.min_price) ||
+      undefined,
+    slug: typeof raw.slug === 'string' ? raw.slug : undefined,
+    state: typeof raw.state === 'string' ? raw.state : undefined,
+    hotel_count: hotelCount,
+    activity_count: activityCount,
+    min_price: typeof raw.min_price === 'string' ? raw.min_price : undefined,
+  };
 }
 
 // Tilt Card Component with 3D effect
@@ -102,12 +137,17 @@ export function DestinationsSection({ section }: DestinationsSectionProps) {
   const sectionContent = section.content as {
     title?: string;
     subtitle?: string;
-    destinations?: Destination[];
+    destinations?: Array<Destination | Record<string, unknown>>;
   };
 
   const title = sectionContent.title || 'Destinos Destacados';
   const subtitle = sectionContent.subtitle || 'Descubre los lugares más increíbles';
-  const destinations = sectionContent.destinations || [];
+  const rawDestinations = Array.isArray(sectionContent.destinations)
+    ? sectionContent.destinations
+    : [];
+  const destinations = rawDestinations
+    .map((item, index) => normalizeDestination(item as Record<string, unknown>, index))
+    .filter((d) => d.name.trim().length > 0);
 
   const containerVariants = {
     hidden: { opacity: 0 },

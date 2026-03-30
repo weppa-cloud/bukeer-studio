@@ -3,12 +3,13 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import type { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
-import type { WebsitePage, PageSection } from '@/lib/supabase/get-pages';
+import type { WebsitePage, PageSection, DestinationData } from '@/lib/supabase/get-pages';
 import { renderSection } from '@/lib/sections/render-section';
 
 interface StaticPageProps {
   website: WebsiteData;
   page: WebsitePage;
+  dynamicDestinations?: DestinationData[];
 }
 
 /**
@@ -30,10 +31,15 @@ function adaptPageSectionToWebsiteSection(
   };
 }
 
-export function StaticPage({ website, page }: StaticPageProps) {
+export function StaticPage({ website, page, dynamicDestinations = [] }: StaticPageProps) {
   const heroConfig = page.hero_config || {};
   const sections = page.sections || [];
   const ctaConfig = page.cta_config || {};
+  const curatedDynamicDestinations = dynamicDestinations.filter((d) => d.total > 1);
+  const sectionDynamicDestinations = (
+    curatedDynamicDestinations.length > 0 ? curatedDynamicDestinations : dynamicDestinations
+  ).slice(0, 8);
+  const hasDynamicDestinations = sectionDynamicDestinations.length > 0;
 
   return (
     <div className="min-h-screen">
@@ -69,9 +75,26 @@ export function StaticPage({ website, page }: StaticPageProps) {
       {/* Dynamic Sections - Using unified renderer */}
       {sections.map((section, index) => {
         const adaptedSection = adaptPageSectionToWebsiteSection(section, index);
+        const content = (adaptedSection.content as Record<string, unknown>) || {};
+        const source = content.source === 'manual' ? 'manual' : 'dynamic';
+        const shouldUseDynamic =
+          adaptedSection.section_type === 'destinations' &&
+          hasDynamicDestinations &&
+          source !== 'manual';
+
+        const hydratedSection = shouldUseDynamic
+            ? ({
+                ...adaptedSection,
+                content: {
+                  ...content,
+                  destinations: sectionDynamicDestinations,
+                },
+              } as WebsiteSection)
+            : adaptedSection;
+
         return (
           <div key={section.id || index}>
-            {renderSection({ section: adaptedSection, website })}
+            {renderSection({ section: hydratedSection, website })}
           </div>
         );
       })}

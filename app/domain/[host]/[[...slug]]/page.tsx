@@ -7,7 +7,7 @@ import { StaticPage } from '@/components/pages/static-page';
 import { M3ThemeProvider } from '@/lib/theme/m3-theme-provider';
 import { GoogleTagManager, GoogleTagManagerBody } from '@/components/analytics/google-tag-manager';
 import { WebsiteData } from '@/lib/supabase/get-website';
-import { getPageBySlug } from '@/lib/supabase/get-pages';
+import { getDestinations, getPageBySlug } from '@/lib/supabase/get-pages';
 import { getBlogPosts, getBlogPostBySlug, getBlogCategories } from '@/lib/supabase/get-website';
 import { JsonLd, generateBlogListingSchemas, generateBlogPostSchemas } from '@/lib/schema';
 import { SafeHtml } from '@/lib/sanitize';
@@ -454,6 +454,7 @@ export default async function CustomDomainPage({ params, searchParams }: CustomD
 
   // Get the page content (non-blog routes)
   const page = await getPageBySlug(website.subdomain, slugPath || 'home');
+  const dynamicDestinations = await getDestinations(website.subdomain);
 
   if (!page && slugPath) {
     notFound();
@@ -470,7 +471,7 @@ export default async function CustomDomainPage({ params, searchParams }: CustomD
 
         <SiteHeader website={website} isCustomDomain={true} />
         <main className="flex-1">
-          {page && <StaticPage website={website} page={page} />}
+          {page && <StaticPage website={website} page={page} dynamicDestinations={dynamicDestinations} />}
         </main>
         <SiteFooter website={website} isCustomDomain={true} />
       </div>

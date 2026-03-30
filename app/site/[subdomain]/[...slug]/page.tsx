@@ -166,13 +166,16 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
       );
 
     case 'static':
-    case 'custom':
+    case 'custom': {
+      const dynamicDestinations = await getDestinations(subdomain);
       return (
         <StaticPage
           website={website}
           page={page}
+          dynamicDestinations={dynamicDestinations}
         />
       );
+    }
 
     default:
       notFound();

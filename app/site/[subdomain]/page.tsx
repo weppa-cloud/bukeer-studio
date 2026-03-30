@@ -1,9 +1,11 @@
 import { Metadata } from 'next';
 import { getWebsiteBySubdomain } from '@/lib/supabase/get-website';
+import { getDestinations } from '@/lib/supabase/get-pages';
 import { SectionRenderer } from '@/components/site/section-renderer';
 import { notFound } from 'next/navigation';
 import { JsonLd, generateHomepageSchemas } from '@/lib/schema';
 import { generateHreflangLinks } from '@/lib/seo/hreflang';
+import type { WebsiteSection } from '@bukeer/website-contract';
 
 // ISR: Revalidate every 5 minutes for fresh content with edge caching
 export const revalidate = 300;
@@ -54,12 +56,36 @@ export default async function SitePage({ params }: SitePageProps) {
   const enabledSections = (website.sections || [])
     .sort((a, b) => a.display_order - b.display_order);
 
+  // Dynamic destinations for homepage destination section.
+  // Uses dynamic source by default and only keeps manual list when `content.source === 'manual'`.
+  const dynamicDestinations = await getDestinations(subdomain);
+  const curatedDynamicDestinations = dynamicDestinations.filter((d) => d.total > 1);
+  const sectionDynamicDestinations = (
+    curatedDynamicDestinations.length > 0 ? curatedDynamicDestinations : dynamicDestinations
+  ).slice(0, 8);
+  const hydratedSections: WebsiteSection[] = enabledSections.map((section) => {
+    if (section.section_type !== 'destinations') return section;
+
+    const content = (section.content as Record<string, unknown>) || {};
+    const source = content.source === 'manual' ? 'manual' : 'dynamic';
+    const shouldUseDynamic = source !== 'manual' && sectionDynamicDestinations.length > 0;
+    if (!shouldUseDynamic) return section;
+
+    return {
+      ...section,
+      content: {
+        ...content,
+        destinations: sectionDynamicDestinations,
+      },
+    } as WebsiteSection;
+  });
+
   return (
     <>
       {/* JSON-LD Structured Data for SEO and AI crawlers */}
       <JsonLd data={schemas} />
 
-      {enabledSections.map((section) => (
+      {hydratedSections.map((section) => (
         <SectionRenderer
           key={section.id}
           section={section}
