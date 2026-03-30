@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo, SyntheticEvent } from 'react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser-client';
 import {
   DndContext,
@@ -56,6 +56,7 @@ import {
   Pencil,
   Moon,
   Sun,
+  RefreshCw,
 } from 'lucide-react';
 import type { WebsiteData, WebsiteSection } from '@bukeer/website-contract';
 import type { SectionTypeValue } from '@bukeer/website-contract';
@@ -133,6 +134,13 @@ interface PageEditorProps {
 }
 
 type ViewportSize = 'desktop' | 'tablet' | 'mobile';
+type PreviewMode = 'edit' | 'exact';
+
+const EXACT_PREVIEW_WIDTHS: Partial<Record<ViewportSize, string>> = {
+  desktop: '1440px',
+  tablet: '768px',
+  mobile: '375px',
+};
 
 // ============================================================================
 // Component
@@ -150,6 +158,9 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
   const [error, setError] = useState<string | null>(null);
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
   const [viewport, setViewport] = useState<ViewportSize>('desktop');
+  const [previewMode, setPreviewMode] = useState<PreviewMode>('edit');
+  const [exactPreviewRefreshKey, setExactPreviewRefreshKey] = useState(0);
+  const [isSyncingExactPreview, setIsSyncingExactPreview] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -183,6 +194,45 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
     () => sections.find((s) => s.id === selectedSectionId) ?? null,
     [sections, selectedSectionId]
   );
+
+  const exactPreviewUrl = useMemo(() => {
+    if (!websiteData?.subdomain) return null;
+
+    const slugPath = !isHomepage && pageData?.slug
+      ? `/${pageData.slug.replace(/^\/+/, '')}`
+      : '';
+
+    const query = `studio_preview=1&mode=exact&r=${exactPreviewRefreshKey}`;
+    if (typeof window !== 'undefined') {
+      return `${window.location.origin}/site/${websiteData.subdomain}${slugPath}?${query}`;
+    }
+
+    return `/site/${websiteData.subdomain}${slugPath}?${query}`;
+  }, [websiteData?.subdomain, isHomepage, pageData?.slug, exactPreviewRefreshKey]);
+
+  const handleExactPreviewLoad = useCallback((event: SyntheticEvent<HTMLIFrameElement>) => {
+    try {
+      const iframe = event.currentTarget;
+      const doc = iframe.contentDocument;
+      if (!doc?.head || doc.getElementById('studio-exact-preview-scrollbar-reset')) return;
+
+      const style = doc.createElement('style');
+      style.id = 'studio-exact-preview-scrollbar-reset';
+      style.textContent = `
+        html, body {
+          scrollbar-width: none;
+        }
+        html::-webkit-scrollbar,
+        body::-webkit-scrollbar {
+          width: 0;
+          height: 0;
+        }
+      `;
+      doc.head.appendChild(style);
+    } catch {
+      // Ignore cross-origin or iframe lifecycle errors.
+    }
+  }, []);
 
   const applyStudioMode = useCallback((mode: 'light' | 'dark') => {
     const root = document.documentElement;
@@ -680,6 +730,31 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
     }
   }, [websiteData, pageData, isHomepage]);
 
+  const refreshExactPreview = useCallback(() => {
+    setExactPreviewRefreshKey((k) => k + 1);
+  }, []);
+
+  const handleTogglePreviewMode = useCallback(() => {
+    setPreviewMode((current) => {
+      const next = current === 'edit' ? 'exact' : 'edit';
+      if (next === 'exact' && isEditorDirty) {
+        setActionToast('Exact preview muestra contenido guardado. Guarda para sincronizar cambios.');
+      }
+      return next;
+    });
+  }, [isEditorDirty]);
+
+  const handleSyncExactPreview = useCallback(async () => {
+    setIsSyncingExactPreview(true);
+    try {
+      await saveNow();
+      setActionToast('Cambios sincronizados en exact preview');
+      refreshExactPreview();
+    } finally {
+      setIsSyncingExactPreview(false);
+    }
+  }, [saveNow, refreshExactPreview]);
+
   // Keyboard shortcuts
   useCommonShortcuts({
     onSave: saveNow,
@@ -836,6 +911,30 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
                 <Eye className="w-3.5 h-3.5" />
                 Preview
               </StudioButton>
+              <StudioButton
+                variant={previewMode === 'exact' ? 'outline' : 'ghost'}
+                size="sm"
+                onClick={handleTogglePreviewMode}
+              >
+                {previewMode === 'exact' ? 'Edit' : 'Exact'}
+              </StudioButton>
+              {previewMode === 'exact' ? (
+                <>
+                  <StudioButton variant="ghost" size="sm" onClick={refreshExactPreview}>
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    Refresh
+                  </StudioButton>
+                  <StudioButton
+                    variant="outline"
+                    size="sm"
+                    disabled={isSyncingExactPreview || !isEditorDirty}
+                    onClick={handleSyncExactPreview}
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    {isSyncingExactPreview ? 'Syncing...' : 'Sync + Refresh'}
+                  </StudioButton>
+                </>
+              ) : null}
               <StudioButton variant="ghost" size="sm" onClick={toggleStudioMode}>
                 {studioMode === 'dark' ? (
                   <Sun className="w-3.5 h-3.5" />
@@ -870,89 +969,108 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
             onDragEnd={handleDragEnd}
           >
             <div className="flex-[65] min-w-0 bg-[color-mix(in_srgb,var(--studio-panel)_46%,transparent)] overflow-auto flex flex-col">
-              <CanvasFrame websiteId={websiteId} viewport={viewport}>
-                <M3ThemeProvider
-                  initialTheme={
-                    websiteData?.theme?.tokens
-                      ? { tokens: websiteData.theme.tokens, profile: websiteData.theme.profile } as ThemeInput
-                      : undefined
-                  }
-                >
-                  <SortableContext
-                    items={sections.map((s) => s.id)}
-                    strategy={verticalListSortingStrategy}
-                  >
-                    {sections.map((section, index) => {
-                      const sectionForRender: WebsiteSection = {
-                        id: section.id,
-                        section_type: section.sectionType,
-                        variant: section.variant ?? '',
-                        display_order: section.displayOrder,
-                        is_enabled: section.isEnabled,
-                        config: section.config,
-                        content: section.content,
-                      };
-
-                      let result: ReturnType<typeof renderSectionWithResult>;
-                      try {
-                        result = renderSectionWithResult({
-                          section: sectionForRender,
-                          website: websiteForRender,
-                        });
-                      } catch (err) {
-                        const message = err instanceof Error ? err.message : String(err);
-                        console.warn(
-                          `[PageEditor] Failed to render section ${section.sectionType} (${section.id}): ${message}`
-                        );
-                        result = {
-                          element: (
-                            <div className="section-padding bg-red-50 border border-red-300 rounded-lg mx-4 my-2">
-                              <div className="container py-8">
-                                <p className="text-red-700 font-medium mb-2">
-                                  Error en sección: <code className="bg-red-100 px-2 py-1 rounded">{section.sectionType}</code>
-                                </p>
-                                <p className="text-red-600 text-sm">{message}</p>
-                              </div>
-                            </div>
-                          ),
-                        };
+              <CanvasFrame
+                websiteId={websiteId}
+                viewport={viewport}
+                widths={previewMode === 'exact' ? EXACT_PREVIEW_WIDTHS : undefined}
+                fitToContainer={previewMode !== 'exact'}
+              >
+                {previewMode === 'exact' ? (
+                  <div className="h-full min-h-[calc(100vh-170px)] bg-background">
+                    <iframe
+                      key={exactPreviewUrl ?? 'empty-preview'}
+                      src={exactPreviewUrl ?? 'about:blank'}
+                      title="Exact site preview"
+                      onLoad={handleExactPreviewLoad}
+                      className="block w-full h-full min-h-[calc(100vh-170px)] border-0"
+                    />
+                  </div>
+                ) : (
+                  <>
+                    <M3ThemeProvider
+                      initialTheme={
+                        websiteData?.theme?.tokens
+                          ? { tokens: websiteData.theme.tokens, profile: websiteData.theme.profile } as ThemeInput
+                          : undefined
                       }
+                    >
+                      <SortableContext
+                        items={sections.map((s) => s.id)}
+                        strategy={verticalListSortingStrategy}
+                      >
+                        {sections.map((section, index) => {
+                          const sectionForRender: WebsiteSection = {
+                            id: section.id,
+                            section_type: section.sectionType,
+                            variant: section.variant ?? '',
+                            display_order: section.displayOrder,
+                            is_enabled: section.isEnabled,
+                            config: section.config,
+                            content: section.content,
+                          };
 
-                      return (
-                        <SectionPreview
-                          key={section.id}
-                          section={section}
-                          isSelected={selectedSectionId === section.id}
-                          isFirst={index === 0}
-                          isLast={index === sections.length - 1}
-                          onSelect={handleSelect}
-                          onMoveUp={handleMoveUp}
-                          onMoveDown={handleMoveDown}
-                          onDuplicate={handleDuplicate}
-                          onToggleVisibility={handleToggleVisibility}
-                          onDelete={handleDeleteRequest}
-                        >
-                          {result.element}
-                        </SectionPreview>
-                      );
-                    })}
-                  </SortableContext>
-                </M3ThemeProvider>
+                          let result: ReturnType<typeof renderSectionWithResult>;
+                          try {
+                            result = renderSectionWithResult({
+                              section: sectionForRender,
+                              website: websiteForRender,
+                            });
+                          } catch (err) {
+                            const message = err instanceof Error ? err.message : String(err);
+                            console.warn(
+                              `[PageEditor] Failed to render section ${section.sectionType} (${section.id}): ${message}`
+                            );
+                            result = {
+                              element: (
+                                <div className="section-padding bg-red-50 border border-red-300 rounded-lg mx-4 my-2">
+                                  <div className="container py-8">
+                                    <p className="text-red-700 font-medium mb-2">
+                                      Error en sección: <code className="bg-red-100 px-2 py-1 rounded">{section.sectionType}</code>
+                                    </p>
+                                    <p className="text-red-600 text-sm">{message}</p>
+                                  </div>
+                                </div>
+                              ),
+                            };
+                          }
 
-                {/* Add section divider — modern dashed line with button */}
-                <div className="flex items-center justify-center py-10 px-8">
-                  <div className="flex-1 border-t border-dashed border-[var(--studio-border)]" />
-                  <StudioButton
-                    variant="outline"
-                    size="sm"
-                    className="mx-4 gap-2 rounded-full border-dashed"
-                    onClick={() => setPickerOpen(true)}
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    Add Section
-                  </StudioButton>
-                  <div className="flex-1 border-t border-dashed border-[var(--studio-border)]" />
-                </div>
+                          return (
+                            <SectionPreview
+                              key={section.id}
+                              section={section}
+                              isSelected={selectedSectionId === section.id}
+                              isFirst={index === 0}
+                              isLast={index === sections.length - 1}
+                              onSelect={handleSelect}
+                              onMoveUp={handleMoveUp}
+                              onMoveDown={handleMoveDown}
+                              onDuplicate={handleDuplicate}
+                              onToggleVisibility={handleToggleVisibility}
+                              onDelete={handleDeleteRequest}
+                            >
+                              {result.element}
+                            </SectionPreview>
+                          );
+                        })}
+                      </SortableContext>
+                    </M3ThemeProvider>
+
+                    {/* Add section divider — modern dashed line with button */}
+                    <div className="flex items-center justify-center py-10 px-8">
+                      <div className="flex-1 border-t border-dashed border-[var(--studio-border)]" />
+                      <StudioButton
+                        variant="outline"
+                        size="sm"
+                        className="mx-4 gap-2 rounded-full border-dashed"
+                        onClick={() => setPickerOpen(true)}
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        Add Section
+                      </StudioButton>
+                      <div className="flex-1 border-t border-dashed border-[var(--studio-border)]" />
+                    </div>
+                  </>
+                )}
               </CanvasFrame>
             </div>
           </DndContext>

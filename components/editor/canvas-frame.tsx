@@ -12,6 +12,8 @@ const VIEWPORT_WIDTHS: Record<ViewportSize, string> = {
 interface CanvasFrameProps {
   websiteId: string;
   viewport: ViewportSize;
+  widths?: Partial<Record<ViewportSize, string>>;
+  fitToContainer?: boolean;
   children: React.ReactNode;
 }
 
@@ -21,8 +23,15 @@ interface CanvasFrameProps {
  * In embedded mode, this wraps the section list directly (no iframe-in-iframe).
  * In standalone mode, this could use an iframe for true isolation.
  */
-export function CanvasFrame({ websiteId, viewport, children }: CanvasFrameProps) {
+export function CanvasFrame({
+  websiteId,
+  viewport,
+  widths,
+  fitToContainer = true,
+  children,
+}: CanvasFrameProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const frameWidth = widths?.[viewport] ?? VIEWPORT_WIDTHS[viewport];
 
   return (
     <div className="flex-1 bg-muted/30 overflow-auto flex justify-center p-4">
@@ -30,8 +39,9 @@ export function CanvasFrame({ websiteId, viewport, children }: CanvasFrameProps)
         ref={containerRef}
         className={`bg-background shadow-lg transition-all duration-300 overflow-auto studio-preview--${viewport}`}
         style={{
-          width: VIEWPORT_WIDTHS[viewport],
-          maxWidth: '100%',
+          width: frameWidth,
+          maxWidth: fitToContainer ? '100%' : 'none',
+          flexShrink: fitToContainer ? 1 : 0,
           minHeight: '100%',
         }}
         data-viewport={viewport}
