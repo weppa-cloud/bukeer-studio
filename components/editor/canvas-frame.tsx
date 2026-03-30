@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useEffect, useCallback } from 'react';
+import { useRef } from 'react';
 import type { ViewportSize } from './toolbar';
 
 const VIEWPORT_WIDTHS: Record<ViewportSize, string> = {
