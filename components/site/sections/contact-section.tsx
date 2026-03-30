@@ -151,8 +151,9 @@ export function ContactSection({ section, website }: ContactSectionProps) {
                 />
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-2">Nombre</label>
+                    <label htmlFor="contact-name" className="block text-sm font-medium mb-2">Nombre</label>
                     <input
+                      id="contact-name"
                       type="text"
                       name="name"
                       required
@@ -160,8 +161,9 @@ export function ContactSection({ section, website }: ContactSectionProps) {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2">Email</label>
+                    <label htmlFor="contact-email" className="block text-sm font-medium mb-2">Email</label>
                     <input
+                      id="contact-email"
                       type="email"
                       name="email"
                       required
@@ -170,16 +172,18 @@ export function ContactSection({ section, website }: ContactSectionProps) {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Teléfono</label>
+                  <label htmlFor="contact-phone" className="block text-sm font-medium mb-2">Teléfono</label>
                   <input
+                    id="contact-phone"
                     type="tel"
                     name="phone"
                     className="w-full px-4 py-3 rounded-lg border bg-background focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Mensaje</label>
+                  <label htmlFor="contact-message" className="block text-sm font-medium mb-2">Mensaje</label>
                   <textarea
+                    id="contact-message"
                     name="message"
                     rows={4}
                     required
