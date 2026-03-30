@@ -159,6 +159,7 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
   const [actionToast, setActionToast] = useState<string | null>(null);
   const [seoTitle, setSeoTitle] = useState('');
   const [seoDescription, setSeoDescription] = useState('');
+  const [seoDirty, setSeoDirty] = useState(false);
 
   // Auto-dismiss toast
   useEffect(() => {
@@ -170,6 +171,7 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
   // Hooks
   const { isOnline } = useNetworkStatus();
   const { isDirty, checkDirty, markClean } = useDirtyState(sections);
+  const isEditorDirty = isDirty || seoDirty;
   const backup = useLocalBackup<EditorSection[]>(`editor_${websiteId}_${pageId}`);
 
   const sensors = useSensors(
@@ -208,15 +210,31 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
     setState('loading');
     try {
       if (isHomepage) {
-        const { data: snapshot, error: rpcError } = await supabase.rpc(
-          'get_website_editor_snapshot',
-          { p_website_id: websiteId }
-        );
+        const [{ data: snapshot, error: rpcError }, { data: websiteRow }] = await Promise.all([
+          supabase.rpc('get_website_editor_snapshot', { p_website_id: websiteId }),
+          supabase
+            .from('websites')
+            .select('content')
+            .eq('id', websiteId)
+            .single(),
+        ]);
         if (rpcError) throw rpcError;
 
         const snap = snapshot as WebsiteSnapshot;
         setWebsiteData(snap.website);
         setSections(snap.sections);
+
+        const homepageContent =
+          (websiteRow?.content as Record<string, unknown> | null) ??
+          (snap.website.content as Record<string, unknown>) ??
+          {};
+        const homepageSeo =
+          homepageContent.seo && typeof homepageContent.seo === 'object'
+            ? (homepageContent.seo as Record<string, unknown>)
+            : {};
+        setSeoTitle(typeof homepageSeo.title === 'string' ? homepageSeo.title : '');
+        setSeoDescription(typeof homepageSeo.description === 'string' ? homepageSeo.description : '');
+        setSeoDirty(false);
       } else {
         // Custom page — load from website_pages + website for theme
         const [pageResult, websiteResult] = await Promise.all([
@@ -259,6 +277,7 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
         });
         setSeoTitle(page.seo_title ?? '');
         setSeoDescription(page.seo_description ?? '');
+        setSeoDirty(false);
 
         // Normalize page sections (PageSection has `type` not `section_type`)
         const rawSections = (page.sections as Array<Record<string, unknown>>) ?? [];
@@ -339,6 +358,28 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
             .eq('website_id', websiteId)
         );
         await Promise.all(updates);
+
+        // Persist homepage SEO values into websites.content.seo.
+        const currentContent = (websiteData?.content as Record<string, unknown>) ?? {};
+        const currentSeo =
+          currentContent.seo && typeof currentContent.seo === 'object'
+            ? (currentContent.seo as Record<string, unknown>)
+            : {};
+
+        const { error: websiteUpdateError } = await supabase
+          .from('websites')
+          .update({
+            content: {
+              ...currentContent,
+              seo: {
+                ...currentSeo,
+                title: seoTitle,
+                description: seoDescription,
+              },
+            },
+          })
+          .eq('id', websiteId);
+        if (websiteUpdateError) throw websiteUpdateError;
       } else {
         // Update page sections as JSONB array
         const pageSections = sectionsToSave.map((s) => ({
@@ -360,17 +401,18 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
       }
 
       markClean(sectionsToSave);
+      setSeoDirty(false);
       backup.clear();
     },
-    [isHomepage, websiteId, pageId, supabase, markClean, backup]
+    [isHomepage, websiteId, pageId, supabase, markClean, backup, websiteData, seoTitle, seoDescription]
   );
 
   // Autosave
   const { status: autosaveStatus, saveNow } = useAutosave({
-    data: sections,
-    onSave: saveSections,
+    data: { sections, seoTitle, seoDescription },
+    onSave: async (payload) => saveSections(payload.sections),
     debounceMs: 2000,
-    enabled: state === 'ready' && isDirty && isOnline,
+    enabled: state === 'ready' && isEditorDirty && isOnline,
   });
 
   // Local backup on changes
@@ -469,9 +511,9 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
     (field: 'seoTitle' | 'seoDescription', value: string) => {
       if (field === 'seoTitle') setSeoTitle(value);
       else setSeoDescription(value);
-      checkDirty(sections); // Mark dirty
+      setSeoDirty(true);
     },
-    [sections, checkDirty]
+    []
   );
 
   const handleSelect = useCallback((id: string) => {
@@ -805,7 +847,7 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
               <StudioButton
                 variant="outline"
                 size="sm"
-                disabled={isSaving || !isDirty}
+                disabled={isSaving || !isEditorDirty}
                 onClick={handleSaveDraft}
               >
                 <Save className="w-3.5 h-3.5" />
