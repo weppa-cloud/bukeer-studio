@@ -1,7 +1,7 @@
 'use client';
 
-import { motion } from 'framer-motion';
 import { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
+import { BlurFade } from '@/components/ui/blur-fade';
 
 interface CtaSectionProps {
   section: WebsiteSection;
@@ -18,59 +18,93 @@ export function CtaSection({ section, website }: CtaSectionProps) {
     backgroundImage?: string;
   };
 
-  const title = sectionContent.title || '¿Listo para tu próxima aventura?';
+  const title = sectionContent.title || '¿Listo para tu proxima aventura?';
 
   return (
     <div className="relative py-24 overflow-hidden">
-      {/* Background */}
+      {/* Animated background beams effect */}
       {sectionContent.backgroundImage ? (
         <>
           <div
             className="absolute inset-0 bg-cover bg-center"
             style={{ backgroundImage: `url(${sectionContent.backgroundImage})` }}
           />
-          <div className="absolute inset-0 bg-primary/80" />
+          <div className="absolute inset-0" style={{ backgroundColor: 'var(--accent)', opacity: 0.85 }} />
         </>
       ) : (
-        <div className="absolute inset-0 bg-gradient-to-r from-primary to-secondary" />
+        <div className="absolute inset-0" style={{ background: `linear-gradient(135deg, var(--accent) 0%, hsl(var(--primary) / 0.7) 100%)` }} />
       )}
 
+      {/* Animated beam lines */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {[...Array(5)].map((_, i) => (
+          <div
+            key={i}
+            className="absolute h-px opacity-20"
+            style={{
+              width: '120%',
+              left: '-10%',
+              top: `${20 + i * 15}%`,
+              background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)',
+              animation: `beam-sweep ${3 + i * 0.5}s ease-in-out infinite`,
+              animationDelay: `${i * 0.8}s`,
+            }}
+          />
+        ))}
+        <style>{`
+          @keyframes beam-sweep {
+            0%, 100% { transform: translateX(-30%); opacity: 0; }
+            50% { transform: translateX(30%); opacity: 0.3; }
+          }
+        `}</style>
+      </div>
+
       <div className="container relative z-10">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="text-center max-w-3xl mx-auto"
-        >
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white">
-            {title}
-          </h2>
+        <div className="text-center max-w-3xl mx-auto">
+          <BlurFade delay={0} blur="8px">
+            <h2
+              className="text-3xl md:text-4xl lg:text-5xl font-bold"
+              style={{ color: 'var(--accent-text)' }}
+            >
+              {title}
+            </h2>
+          </BlurFade>
+
           {sectionContent.subtitle && (
-            <p className="mt-6 text-lg text-white/90">
-              {sectionContent.subtitle}
-            </p>
+            <BlurFade delay={0.15}>
+              <p className="mt-6 text-lg" style={{ color: 'var(--accent-text)', opacity: 0.9 }}>
+                {sectionContent.subtitle}
+              </p>
+            </BlurFade>
           )}
-          <div className="mt-8 flex flex-wrap gap-4 justify-center">
-            {sectionContent.ctaText && sectionContent.ctaUrl && (
-              <a
-                href={sectionContent.ctaUrl}
-                className="px-8 py-4 bg-white text-primary font-semibold rounded-lg hover:bg-white/90 transition-colors"
-              >
-                {sectionContent.ctaText}
-              </a>
-            )}
-            {content.social?.whatsapp && (
-              <a
-                href={`https://wa.me/${content.social.whatsapp.replace(/[^0-9]/g, '')}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-8 py-4 border-2 border-white text-white font-semibold rounded-lg hover:bg-white/10 transition-colors"
-              >
-                WhatsApp
-              </a>
-            )}
-          </div>
-        </motion.div>
+
+          <BlurFade delay={0.3}>
+            <div className="mt-8 flex flex-wrap gap-4 justify-center">
+              {sectionContent.ctaText && sectionContent.ctaUrl && (
+                <a
+                  href={sectionContent.ctaUrl}
+                  className="group relative px-8 py-4 font-semibold rounded-full transition-all duration-300 hover:scale-[1.03] active:scale-[0.97]"
+                  style={{ backgroundColor: 'var(--bg)', color: 'var(--accent)' }}
+                >
+                  {/* Pulsing ring */}
+                  <span className="absolute inset-0 rounded-full animate-ping opacity-20" style={{ backgroundColor: 'var(--bg)' }} />
+                  <span className="relative">{sectionContent.ctaText}</span>
+                </a>
+              )}
+              {content.social?.whatsapp && (
+                <a
+                  href={`https://wa.me/${content.social.whatsapp.replace(/[^0-9]/g, '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-8 py-4 border-2 font-semibold rounded-full hover:bg-white/10 transition-all duration-300"
+                  style={{ borderColor: 'var(--accent-text)', color: 'var(--accent-text)' }}
+                >
+                  WhatsApp
+                </a>
+              )}
+            </div>
+          </BlurFade>
+        </div>
       </div>
     </div>
   );

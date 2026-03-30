@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
+import { BlurFade } from '@/components/ui/blur-fade';
 
 interface FaqSectionProps {
   section: WebsiteSection;
@@ -36,14 +37,12 @@ export function FaqSection({ section }: FaqSectionProps) {
 
         <div className="space-y-4">
           {faqs.map((faq, index) => (
-            <motion.div
+            <BlurFade
               key={index}
-              initial={{ opacity: 0, y: 10 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.05 }}
-              className="border rounded-lg overflow-hidden"
+              delay={index * 0.05}
+              direction="up"
             >
+              <div className="border rounded-lg overflow-hidden">
               <button
                 onClick={() => setOpenIndex(openIndex === index ? null : index)}
                 className="w-full flex items-center justify-between p-5 text-left bg-card hover:bg-muted/50 transition-colors"
@@ -74,7 +73,8 @@ export function FaqSection({ section }: FaqSectionProps) {
                   </motion.div>
                 )}
               </AnimatePresence>
-            </motion.div>
+              </div>
+            </BlurFade>
           ))}
         </div>
       </div>

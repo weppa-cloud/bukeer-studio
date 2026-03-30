@@ -127,6 +127,11 @@ const NewsletterSection = dynamic(
   { loading: SectionSkeleton }
 );
 
+const PlannersSection = dynamic(
+  () => import('@/components/site/sections/planners-section').then((mod) => mod.PlannersSection),
+  { loading: SectionSkeleton }
+);
+
 // ============================================================================
 // Section Components Registry
 // ============================================================================
@@ -185,6 +190,11 @@ export const sectionComponents: Record<string, SectionComponent> = {
   cta_banner: CtaSection,
   contact_form: ContactSection,
   newsletter: NewsletterSection,
+
+  // Travel Planners / Team
+  planners: PlannersSection,
+  team: PlannersSection,
+  travel_planners: PlannersSection,
 
   // Pricing (schema supports it)
   pricing: CtaSection,              // Use CTA for now, create PricingSection later

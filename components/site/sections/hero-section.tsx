@@ -4,6 +4,8 @@ import Image from 'next/image';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { useRef, useEffect, useState, MouseEvent } from 'react';
 import { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
+import { TextGenerateEffect } from '@/components/ui/text-generate-effect';
+import { NumberTicker } from '@/components/ui/number-ticker';
 
 interface HeroSectionProps {
   section: WebsiteSection;
@@ -304,14 +306,12 @@ export function HeroSection({ section, website }: HeroSectionProps) {
             </motion.p>
           )}
 
-          <motion.h1
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.35, duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+          <TextGenerateEffect
+            words={title || ''}
+            delay={0.3}
+            duration={0.6}
             className="font-display text-4xl md:text-5xl lg:text-6xl xl:text-7xl text-white max-w-3xl leading-[1.05] mb-8"
-          >
-            {title}
-          </motion.h1>
+          />
 
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -350,16 +350,33 @@ export function HeroSection({ section, website }: HeroSectionProps) {
               transition={{ delay: 0.9, duration: 0.6 }}
               className="flex gap-3 mt-8 md:absolute md:bottom-8 md:right-8 md:mt-0 md:gap-4"
             >
-              {immersiveContent.heroStats.map((stat, i) => (
-                <div
-                  key={stat.label}
-                  className="px-3 py-2 md:px-4 md:py-3 rounded-xl text-right flex-1 md:flex-none bg-black/40 backdrop-blur-md border border-white/10"
-                  style={{ animationDelay: `${i * 0.3}s` }}
-                >
-                  <p className="font-display text-base md:text-xl text-white">{stat.num}</p>
-                  <p className="font-mono text-[9px] md:text-[10px] text-white/50 uppercase tracking-wide mt-0.5">{stat.label}</p>
-                </div>
-              ))}
+              {immersiveContent.heroStats.map((stat, i) => {
+                // Parse stat.num to extract number and suffix
+                const numStr = String(stat.num || '0');
+                const numMatch = numStr.match(/^([0-9,.]+)\s*(.*)$/);
+                const numValue = numMatch ? parseFloat(numMatch[1].replace(/,/g, '')) : 0;
+                const numSuffix = numMatch?.[2] || '';
+                const isDecimal = numValue % 1 !== 0;
+
+                return (
+                  <motion.div
+                    key={stat.label}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 1 + i * 0.15, duration: 0.5 }}
+                    className="px-3 py-2 md:px-4 md:py-3 rounded-xl text-right flex-1 md:flex-none bg-black/40 backdrop-blur-md border border-white/10"
+                  >
+                    <NumberTicker
+                      value={numValue}
+                      suffix={numSuffix}
+                      decimalPlaces={isDecimal ? 1 : 0}
+                      delay={1.2 + i * 0.2}
+                      className="font-display text-base md:text-xl text-white"
+                    />
+                    <p className="font-mono text-[9px] md:text-[10px] text-white/50 uppercase tracking-wide mt-0.5">{stat.label}</p>
+                  </motion.div>
+                );
+              })}
             </motion.div>
           )}
         </motion.div>
