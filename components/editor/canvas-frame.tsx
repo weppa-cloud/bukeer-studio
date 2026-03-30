@@ -28,7 +28,7 @@ export function CanvasFrame({ websiteId, viewport, children }: CanvasFrameProps)
     <div className="flex-1 bg-muted/30 overflow-auto flex justify-center p-4">
       <div
         ref={containerRef}
-        className="bg-background shadow-lg transition-all duration-300 overflow-auto"
+        className={`bg-background shadow-lg transition-all duration-300 overflow-auto studio-preview--${viewport}`}
         style={{
           width: VIEWPORT_WIDTHS[viewport],
           maxWidth: '100%',

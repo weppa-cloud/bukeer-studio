@@ -618,6 +618,35 @@ select.sort-select {
   outline-offset: 2px;
 }
 
+/* Studio responsive preview fidelity
+   The editor renders sections inline (not in iframe), so Tailwind md/lg
+   utilities still evaluate against the browser window width.
+   These scoped overrides align card/grid behavior with selected preview size. */
+.studio-preview--tablet .lg\:grid-cols-3 {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+}
+
+.studio-preview--tablet .lg\:grid-cols-4 {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+}
+
+.studio-preview--mobile .grid-cols-2,
+.studio-preview--mobile .grid-cols-3,
+.studio-preview--mobile .grid-cols-4,
+.studio-preview--mobile .md\:grid-cols-2,
+.studio-preview--mobile .md\:grid-cols-3,
+.studio-preview--mobile .md\:grid-cols-4,
+.studio-preview--mobile .lg\:grid-cols-3,
+.studio-preview--mobile .lg\:grid-cols-4 {
+  grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
+}
+
+.studio-preview--mobile .w-72,
+.studio-preview--mobile .md\:w-80 {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
 .studio-page {
   width: min(1240px, 100%);
   margin: 0 auto;
