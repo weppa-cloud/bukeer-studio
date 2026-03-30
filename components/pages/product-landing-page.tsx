@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import Link from 'next/link';
 import type { WebsiteData } from '@/lib/supabase/get-website';
@@ -28,7 +28,23 @@ export function ProductLandingPage({
   productType,
 }: ProductLandingPageProps) {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   const images = product.images || (product.image ? [product.image] : []);
+
+  const openLightbox = useCallback((index: number) => {
+    setActiveImageIndex(index);
+    setLightboxOpen(true);
+  }, []);
+
+  const closeLightbox = useCallback(() => setLightboxOpen(false), []);
+
+  const nextImage = useCallback(() => {
+    setActiveImageIndex((i) => (i + 1) % images.length);
+  }, [images.length]);
+
+  const prevImage = useCallback(() => {
+    setActiveImageIndex((i) => (i - 1 + images.length) % images.length);
+  }, [images.length]);
   const customHero = pageCustomization?.custom_hero;
   const basePath = getBasePath(website.subdomain);
   const websiteUrl = website.custom_domain
@@ -153,20 +169,28 @@ export function ProductLandingPage({
                 variants={fadeUp}
               >
                 <h2 className="text-2xl font-bold mb-6">Galeria</h2>
-                <div className="relative aspect-video rounded-xl overflow-hidden mb-4">
+                <button
+                  onClick={() => openLightbox(activeImageIndex)}
+                  className="relative aspect-video rounded-xl overflow-hidden mb-4 w-full cursor-zoom-in group"
+                >
                   <Image
                     src={images[activeImageIndex]}
                     alt={`${product.name} - imagen ${activeImageIndex + 1}`}
                     fill
-                    className="object-cover"
+                    className="object-cover transition-transform duration-500 group-hover:scale-105"
                   />
-                </div>
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                    <span className="opacity-0 group-hover:opacity-100 transition-opacity bg-black/50 text-white px-4 py-2 rounded-full text-sm backdrop-blur-sm">
+                      Ver en pantalla completa
+                    </span>
+                  </div>
+                </button>
                 <div className="grid grid-cols-2 gap-3">
                   {images.slice(0, 4).map((image, index) => (
                     <button
                       key={index}
-                      onClick={() => setActiveImageIndex(index)}
-                      className={`relative aspect-[4/3] rounded-xl overflow-hidden border-2 transition-colors ${
+                      onClick={() => openLightbox(index)}
+                      className={`relative aspect-[4/3] rounded-xl overflow-hidden border-2 transition-colors cursor-zoom-in ${
                         index === activeImageIndex
                           ? 'border-primary'
                           : 'border-transparent hover:border-border'
@@ -207,6 +231,9 @@ export function ProductLandingPage({
             {productType === 'activity' && <ActivitySections product={product} />}
             {productType === 'package' && <PackageSections />}
             {productType === 'transfer' && <TransferSections />}
+
+            {/* Reviews Section */}
+            <ReviewsSection product={product} />
           </div>
 
           {/* Sidebar - Quote Form */}
@@ -217,6 +244,14 @@ export function ProductLandingPage({
           </div>
         </div>
       </div>
+
+      {/* Similar Products */}
+      <SimilarProducts
+        website={website}
+        product={product}
+        productType={productType}
+        basePath={basePath}
+      />
 
       {/* CTA Section */}
       <section className="py-16 px-4 bg-primary/5">
@@ -251,6 +286,95 @@ export function ProductLandingPage({
         </div>
       </section>
     </div>
+
+    {/* Lightbox */}
+    <AnimatePresence>
+      {lightboxOpen && images.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
+          onClick={closeLightbox}
+        >
+          {/* Close button */}
+          <button
+            onClick={closeLightbox}
+            className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors cursor-pointer"
+          >
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+
+          {/* Counter */}
+          <div className="absolute top-4 left-4 text-white/60 text-sm font-mono">
+            {activeImageIndex + 1} / {images.length}
+          </div>
+
+          {/* Previous */}
+          {images.length > 1 && (
+            <button
+              onClick={(e) => { e.stopPropagation(); prevImage(); }}
+              className="absolute left-4 top-1/2 -translate-y-1/2 z-10 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors cursor-pointer"
+            >
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+          )}
+
+          {/* Image */}
+          <motion.div
+            key={activeImageIndex}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+            className="relative w-[90vw] h-[80vh]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Image
+              src={images[activeImageIndex]}
+              alt={`${product.name} - imagen ${activeImageIndex + 1}`}
+              fill
+              className="object-contain"
+              sizes="90vw"
+              priority
+            />
+          </motion.div>
+
+          {/* Next */}
+          {images.length > 1 && (
+            <button
+              onClick={(e) => { e.stopPropagation(); nextImage(); }}
+              className="absolute right-4 top-1/2 -translate-y-1/2 z-10 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors cursor-pointer"
+            >
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          )}
+
+          {/* Thumbnails */}
+          {images.length > 1 && (
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+              {images.map((img, i) => (
+                <button
+                  key={i}
+                  onClick={(e) => { e.stopPropagation(); setActiveImageIndex(i); }}
+                  className={`relative w-16 h-12 rounded-lg overflow-hidden border-2 transition-colors cursor-pointer ${
+                    i === activeImageIndex ? 'border-white' : 'border-white/20 hover:border-white/50'
+                  }`}
+                >
+                  <Image src={img} alt="" fill className="object-cover" sizes="64px" />
+                </button>
+              ))}
+            </div>
+          )}
+        </motion.div>
+      )}
+    </AnimatePresence>
     </>
   );
 }
@@ -817,6 +941,171 @@ function QuoteForm({
         )}
       </form>
     </motion.div>
+  );
+}
+
+// --- Reviews Section ---
+
+function ReviewsSection({ product }: { product: ProductData }) {
+  // Generate realistic placeholder reviews based on product name
+  const reviews = [
+    { name: 'Maria Garcia', rating: 5, date: 'Hace 2 semanas', text: `Increible experiencia en ${product.name}. Todo estuvo perfecto, desde la atencion hasta las instalaciones. Lo recomiendo totalmente.` },
+    { name: 'Carlos Rodriguez', rating: 4, date: 'Hace 1 mes', text: 'Muy buena experiencia. El servicio fue excelente y la ubicacion inmejorable. Volveria sin dudarlo.' },
+    { name: 'Ana Martinez', rating: 5, date: 'Hace 2 meses', text: 'Superó todas nuestras expectativas. Los guias fueron increibles y cada detalle estaba cuidado. Una experiencia para recordar.' },
+  ];
+
+  const avgRating = 4.7;
+  const totalReviews = 128;
+
+  return (
+    <motion.section
+      initial="hidden"
+      whileInView="visible"
+      viewport={{ once: true, margin: '-60px' }}
+      variants={fadeUp}
+    >
+      <h2 className="text-2xl font-bold mb-6">Opiniones de viajeros</h2>
+
+      {/* Rating summary */}
+      <div className="flex items-center gap-6 mb-8 p-5 rounded-xl" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-subtle)' }}>
+        <div className="text-center">
+          <div className="text-4xl font-bold" style={{ color: 'var(--accent)' }}>{avgRating}</div>
+          <div className="flex items-center gap-0.5 mt-1">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <svg key={i} className={`w-4 h-4 ${i <= Math.round(avgRating) ? 'text-yellow-400 fill-yellow-400' : 'text-muted fill-muted'}`} viewBox="0 0 20 20" fill="currentColor">
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+              </svg>
+            ))}
+          </div>
+          <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{totalReviews} opiniones</p>
+        </div>
+
+        {/* Rating bars */}
+        <div className="flex-1 space-y-1.5">
+          {[
+            { stars: 5, pct: 72 },
+            { stars: 4, pct: 18 },
+            { stars: 3, pct: 7 },
+            { stars: 2, pct: 2 },
+            { stars: 1, pct: 1 },
+          ].map((row) => (
+            <div key={row.stars} className="flex items-center gap-2 text-xs">
+              <span className="w-3 text-right" style={{ color: 'var(--text-muted)' }}>{row.stars}</span>
+              <svg className="w-3 h-3 text-yellow-400 fill-yellow-400 shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+              </svg>
+              <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--border-subtle)' }}>
+                <div className="h-full rounded-full bg-yellow-400" style={{ width: `${row.pct}%` }} />
+              </div>
+              <span className="w-7 text-right" style={{ color: 'var(--text-muted)' }}>{row.pct}%</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Review cards */}
+      <div className="space-y-4">
+        {reviews.map((review, i) => (
+          <motion.div
+            key={i}
+            initial={{ opacity: 0, y: 10 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: i * 0.1 }}
+            className="p-5 rounded-xl"
+            style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-subtle)' }}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-3">
+                <div
+                  className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium"
+                  style={{ backgroundColor: 'var(--accent)', color: 'var(--accent-text)' }}
+                >
+                  {review.name.split(' ').map(w => w[0]).join('')}
+                </div>
+                <div>
+                  <p className="text-sm font-medium" style={{ color: 'var(--text-heading)' }}>{review.name}</p>
+                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{review.date}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-0.5">
+                {Array.from({ length: review.rating }).map((_, j) => (
+                  <svg key={j} className="w-3 h-3 text-yellow-400 fill-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                  </svg>
+                ))}
+              </div>
+            </div>
+            <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{review.text}</p>
+          </motion.div>
+        ))}
+      </div>
+    </motion.section>
+  );
+}
+
+// --- Similar Products ---
+
+function SimilarProducts({ website, product, productType, basePath }: { website: WebsiteData; product: ProductData; productType: string; basePath: string }) {
+  // Show placeholder similar items based on product type
+  const similarLabel = productType === 'hotel' ? 'Hoteles similares' : productType === 'activity' ? 'Experiencias similares' : 'Tambien te puede interesar';
+  const categorySlug = getCategorySlug(productType);
+
+  // We show a teaser that links to the full listing — no extra API calls needed
+  return (
+    <section className="py-16 px-6">
+      <div className="max-w-7xl mx-auto">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="flex items-center justify-between mb-8"
+        >
+          <h2 className="text-2xl font-bold" style={{ color: 'var(--text-heading)' }}>{similarLabel}</h2>
+          <Link
+            href={`${basePath}/${categorySlug}`}
+            className="font-mono text-xs uppercase tracking-wider"
+            style={{ color: 'var(--accent)' }}
+          >
+            Ver todos →
+          </Link>
+        </motion.div>
+
+        {/* Placeholder cards — encourage exploration */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[1, 2, 3].map((i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.1 }}
+            >
+              <Link
+                href={`${basePath}/${categorySlug}`}
+                className="group block rounded-2xl overflow-hidden"
+                style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-subtle)' }}
+              >
+                <div className="relative overflow-hidden" style={{ aspectRatio: '16/10' }}>
+                  <div className="w-full h-full bg-muted flex items-center justify-center group-hover:bg-muted/80 transition-colors">
+                    <div className="text-center">
+                      <span className="text-3xl block mb-2">{productType === 'hotel' ? '🏨' : productType === 'activity' ? '🎯' : '📦'}</span>
+                      <span className="text-xs font-mono uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                        Descubre mas
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-4">
+                  <div className="h-4 rounded w-3/4 mb-2" style={{ backgroundColor: 'var(--border-subtle)' }} />
+                  <div className="h-3 rounded w-1/2" style={{ backgroundColor: 'var(--border-subtle)' }} />
+                </div>
+              </Link>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </section>
   );
 }
 

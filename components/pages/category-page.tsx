@@ -28,6 +28,9 @@ export function CategoryPage({ website, page, categoryType }: CategoryPageProps)
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [activeFilter, setActiveFilter] = useState('Todos');
+  const [sortBy, setSortBy] = useState('popular');
+  const [destinationFilter, setDestinationFilter] = useState('Todos');
+  const [starFilter, setStarFilter] = useState('Todos');
 
   const heroConfig = page.hero_config || {};
   const introContent = page.intro_content || {};
@@ -54,6 +57,40 @@ export function CategoryPage({ website, page, categoryType }: CategoryPageProps)
   }, [website.subdomain, categoryType, currentPage, searchQuery]);
 
   const totalPages = Math.ceil(total / ITEMS_PER_PAGE);
+
+  // Client-side filter + sort
+  const filteredProducts = products.filter((p) => {
+    // Hotel: destination filter
+    if (isHotel && destinationFilter !== 'Todos') {
+      if (!p.location || !p.location.toLowerCase().includes(destinationFilter.toLowerCase())) return false;
+    }
+    // Hotel: star filter
+    if (isHotel && starFilter !== 'Todos') {
+      const stars = parseInt(starFilter);
+      if (!p.rating || p.rating < stars) return false;
+    }
+    // Activity: category filter
+    if (isActivity && activeFilter !== 'Todos') {
+      if (!p.name?.toLowerCase().includes(activeFilter.toLowerCase()) &&
+          !p.description?.toLowerCase().includes(activeFilter.toLowerCase())) return false;
+    }
+    return true;
+  });
+
+  const sortedProducts = [...filteredProducts].sort((a, b) => {
+    if (sortBy === 'price_asc') {
+      const pa = parseFloat((a.price || '0').replace(/[^0-9.]/g, '')) || 0;
+      const pb = parseFloat((b.price || '0').replace(/[^0-9.]/g, '')) || 0;
+      return pa - pb;
+    }
+    if (sortBy === 'price_desc') {
+      const pa = parseFloat((a.price || '0').replace(/[^0-9.]/g, '')) || 0;
+      const pb = parseFloat((b.price || '0').replace(/[^0-9.]/g, '')) || 0;
+      return pb - pa;
+    }
+    if (sortBy === 'name_asc') return a.name.localeCompare(b.name);
+    return 0; // 'popular' keeps server order
+  });
 
   return (
     <div className="min-h-screen">
@@ -174,6 +211,8 @@ export function CategoryPage({ website, page, categoryType }: CategoryPageProps)
               <div className="flex-1 w-full md:w-auto">
                 <label className="font-mono text-xs tracking-wider uppercase block mb-1.5" style={{ color: 'var(--text-muted)' }}>Destino</label>
                 <select
+                  value={destinationFilter}
+                  onChange={(e) => setDestinationFilter(e.target.value)}
                   className="w-full px-4 py-2 rounded-lg font-sans text-sm outline-none appearance-none cursor-pointer"
                   style={{ backgroundColor: 'var(--bg)', border: '1px solid var(--border-subtle)', color: 'var(--text-heading)' }}
                 >
@@ -190,12 +229,12 @@ export function CategoryPage({ website, page, categoryType }: CategoryPageProps)
                   {STAR_RATINGS.map((r) => (
                     <button
                       key={r}
-                      onClick={() => setActiveFilter(r)}
+                      onClick={() => setStarFilter(r)}
                       className="px-3 py-1.5 rounded-lg font-mono text-xs transition-colors cursor-pointer"
                       style={{
-                        backgroundColor: activeFilter === r ? 'var(--accent)' : 'var(--nav-link-hover-bg)',
-                        color: activeFilter === r ? 'var(--accent-text)' : 'var(--text-secondary)',
-                        border: `1px solid ${activeFilter === r ? 'var(--accent)' : 'var(--border-medium)'}`,
+                        backgroundColor: starFilter === r ? 'var(--accent)' : 'var(--nav-link-hover-bg)',
+                        color: starFilter === r ? 'var(--accent-text)' : 'var(--text-secondary)',
+                        border: `1px solid ${starFilter === r ? 'var(--accent)' : 'var(--border-medium)'}`,
                       }}
                     >
                       {r}
@@ -235,13 +274,34 @@ export function CategoryPage({ website, page, categoryType }: CategoryPageProps)
                   />
                 </div>
               </div>
-              <div className="text-sm" style={{ color: 'var(--text-muted)' }}>
-                {total} {total === 1 ? 'resultado' : 'resultados'}
-              </div>
+              {/* Results count now shown in sort bar above */}
             </motion.div>
           </div>
         </section>
       )}
+
+      {/* Sort + Results count bar */}
+      <section className="pb-4 px-6">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <span className="text-sm" style={{ color: 'var(--text-muted)' }}>
+            {sortedProducts.length} {sortedProducts.length === 1 ? 'resultado' : 'resultados'}
+          </span>
+          <div className="flex items-center gap-2">
+            <label className="font-mono text-[10px] tracking-wider uppercase" style={{ color: 'var(--text-muted)' }}>Ordenar:</label>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="px-3 py-1.5 rounded-lg font-sans text-sm outline-none appearance-none cursor-pointer"
+              style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-subtle)', color: 'var(--text-heading)' }}
+            >
+              <option value="popular">Popular</option>
+              <option value="price_asc">Precio ↑</option>
+              <option value="price_desc">Precio ↓</option>
+              <option value="name_asc">A — Z</option>
+            </select>
+          </div>
+        </div>
+      </section>
 
       {/* Products Grid */}
       <section className="pb-24 px-6">
@@ -264,7 +324,7 @@ export function CategoryPage({ website, page, categoryType }: CategoryPageProps)
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {products.map((product, index) => (
+              {sortedProducts.map((product, index) => (
                 isActivity
                   ? <ActivityCard key={product.id} product={product} index={index} basePath={basePath} />
                   : <StandardCard key={product.id} product={product} index={index} basePath={basePath} categoryType={categoryType} />
