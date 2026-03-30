@@ -1098,24 +1098,45 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
                     onChange={handleFieldChange}
                   />
                 ) : (
-                  <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
-                    <div className="w-14 h-14 rounded-2xl bg-[color-mix(in_srgb,var(--studio-primary)_14%,transparent)] flex items-center justify-center mb-5">
-                      <Pencil className="w-6 h-6 text-[var(--studio-primary)]" />
+                  previewMode === 'exact' ? (
+                    <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
+                      <div className="w-14 h-14 rounded-2xl bg-[color-mix(in_srgb,var(--studio-primary)_14%,transparent)] flex items-center justify-center mb-5">
+                        <Eye className="w-6 h-6 text-[var(--studio-primary)]" />
+                      </div>
+                      <p className="text-sm font-semibold text-[var(--studio-text)]">Exact preview mode</p>
+                      <p className="text-xs text-[var(--studio-text-muted)] mt-1.5 max-w-[260px]">
+                        Section selection and drag-reorder are disabled in Exact mode. Switch to Edit mode to modify sections.
+                      </p>
+                      <StudioButton
+                        variant="outline"
+                        size="sm"
+                        className="mt-5 gap-2 rounded-full"
+                        onClick={() => setPreviewMode('edit')}
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                        Switch to Edit mode
+                      </StudioButton>
                     </div>
-                    <p className="text-sm font-semibold text-[var(--studio-text)]">No section selected</p>
-                    <p className="text-xs text-[var(--studio-text-muted)] mt-1.5 max-w-[220px]">
-                      Click on a section in the preview to start editing its content.
-                    </p>
-                    <StudioButton
-                      variant="outline"
-                      size="sm"
-                      className="mt-5 gap-2 rounded-full"
-                      onClick={() => setPickerOpen(true)}
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      Add Section
-                    </StudioButton>
-                  </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
+                      <div className="w-14 h-14 rounded-2xl bg-[color-mix(in_srgb,var(--studio-primary)_14%,transparent)] flex items-center justify-center mb-5">
+                        <Pencil className="w-6 h-6 text-[var(--studio-primary)]" />
+                      </div>
+                      <p className="text-sm font-semibold text-[var(--studio-text)]">No section selected</p>
+                      <p className="text-xs text-[var(--studio-text-muted)] mt-1.5 max-w-[220px]">
+                        Click on a section in the preview to start editing its content.
+                      </p>
+                      <StudioButton
+                        variant="outline"
+                        size="sm"
+                        className="mt-5 gap-2 rounded-full"
+                        onClick={() => setPickerOpen(true)}
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        Add Section
+                      </StudioButton>
+                    </div>
+                  )
                 )}
               </ScrollArea>
             ) : null}
