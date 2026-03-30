@@ -7,19 +7,7 @@ import { motion } from 'framer-motion';
 import { getBasePath } from '@/lib/utils/base-path';
 import { RouteMap } from '@/components/ui/route-map';
 import type { WebsiteData } from '@/lib/supabase/get-website';
-
-export interface DestinationData {
-  name: string;
-  slug: string;
-  state: string;
-  lat: number;
-  lng: number;
-  hotel_count: number;
-  activity_count: number;
-  total: number;
-  min_price: string | null;
-  image: string | null;
-}
+import type { DestinationData } from '@/lib/supabase/get-pages';
 
 interface DestinationListingPageProps {
   website: WebsiteData;
@@ -30,7 +18,7 @@ export function DestinationListingPage({
   website,
   destinations,
 }: DestinationListingPageProps) {
-  const basePath = getBasePath(website);
+  const basePath = getBasePath(website.subdomain);
 
   // Filter out destinations with fewer than 2 products
   const visibleDestinations = destinations.filter((d) => d.total >= 2);

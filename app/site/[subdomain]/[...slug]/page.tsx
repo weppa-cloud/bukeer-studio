@@ -2,11 +2,18 @@ import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getWebsiteBySubdomain } from '@/lib/supabase/get-website';
 import { getPageBySlug, getProductPage, getDestinations, getDestinationProducts } from '@/lib/supabase/get-pages';
+import { enrichDestinationFromSerpAPI } from '@/lib/services/serpapi-enrichment';
 import { CategoryPage } from '@/components/pages/category-page';
 import { StaticPage } from '@/components/pages/static-page';
 import { ProductLandingPage } from '@/components/pages/product-landing-page';
-import { DestinationListingPage } from '@/components/pages/destination-listing-page';
-import { DestinationDetailPage } from '@/components/pages/destination-detail-page';
+import dynamic from 'next/dynamic';
+
+const DestinationListingPage = dynamic(
+  () => import('@/components/pages/destination-listing-page').then(m => m.DestinationListingPage)
+);
+const DestinationDetailPage = dynamic(
+  () => import('@/components/pages/destination-detail-page').then(m => m.DestinationDetailPage)
+);
 
 interface DynamicPageProps {
   params: Promise<{
@@ -110,8 +117,11 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
     const destinations = await getDestinations(subdomain);
     const dest = destinations.find(d => d.slug === slug[1]);
     if (dest) {
-      const products = await getDestinationProducts(subdomain, dest.name);
-      return <DestinationDetailPage website={website} destination={dest} products={products} />;
+      const [products, serpData] = await Promise.all([
+        getDestinationProducts(subdomain, dest.name),
+        enrichDestinationFromSerpAPI(dest.name),
+      ]);
+      return <DestinationDetailPage website={website} destination={dest} products={products} serpEnrichment={serpData} />;
     }
   }
 

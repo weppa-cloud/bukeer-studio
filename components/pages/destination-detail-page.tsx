@@ -10,7 +10,7 @@ import { RouteMap } from '@/components/ui/route-map';
 import { BlurFade } from '@/components/ui/blur-fade';
 import { NumberTicker } from '@/components/ui/number-ticker';
 import type { WebsiteData } from '@/lib/supabase/get-website';
-import type { DestinationData } from './destination-listing-page';
+import type { DestinationData } from '@/lib/supabase/get-pages';
 
 export interface ProductData {
   id: string;
@@ -25,25 +25,54 @@ export interface ProductData {
   duration?: string;
 }
 
+interface SerpEnrichmentData {
+  description: string | null;
+  photos: string[];
+  rating: number | null;
+  reviewCount: number | null;
+  reviews: Array<{ author: string; rating: number; text: string; date: string }>;
+  source: 'serpapi';
+}
+
 interface DestinationDetailPageProps {
   website: WebsiteData;
   destination: DestinationData;
   products: ProductData[];
+  serpEnrichment?: SerpEnrichmentData | null;
 }
 
 export function DestinationDetailPage({
   website,
   destination,
   products,
+  serpEnrichment,
 }: DestinationDetailPageProps) {
-  const basePath = getBasePath(website);
-  const enrichment = getDestinationContent(destination.name);
+  const basePath = getBasePath(website.subdomain);
+  const staticContent = getDestinationContent(destination.name);
+
+  // Merge: SerpAPI data (server-fetched) > static content > defaults
+  const serpData = serpEnrichment || null;
+  const enrichment = {
+    description: serpData?.description || staticContent?.description || null,
+    photos: serpData?.photos?.length ? serpData.photos : [],
+    rating: serpData?.rating || null,
+    reviewCount: serpData?.reviewCount || null,
+    reviews: serpData?.reviews || [],
+    highlights: staticContent?.highlights || [],
+    bestTimeToVisit: staticContent?.bestTimeToVisit || null,
+    weather: staticContent?.weather || null,
+    heroImage: staticContent?.heroImage || null,
+    facts: staticContent?.facts || [],
+  };
 
   const hotels = products.filter((p) => p.type === 'hotel');
   const activities = products.filter((p) => p.type === 'activity');
 
   const heroImage =
-    enrichment?.heroImage || destination.image || '/placeholder-destination.jpg';
+    (enrichment.photos.length > 0 ? enrichment.photos[0] : null) ||
+    enrichment.heroImage ||
+    destination.image ||
+    '/placeholder-destination.jpg';
 
   const whatsappNumber = (website as any)?.social?.whatsapp || '';
   const whatsappUrl = whatsappNumber
@@ -207,6 +236,109 @@ export function DestinationDetailPage({
                 </div>
               ))}
             </div>
+          </section>
+        </BlurFade>
+      )}
+
+      {/* Google Photos Gallery (from SerpAPI) */}
+      {enrichment.photos.length > 1 && (
+        <BlurFade delay={0.25}>
+          <section className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto py-12">
+            <h2 className="text-2xl font-bold mb-6" style={{ color: 'var(--text-heading)' }}>
+              Fotos de {destination.name}
+            </h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {enrichment.photos.slice(0, 8).map((photo, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.05 }}
+                  className={`relative rounded-xl overflow-hidden group cursor-pointer ${
+                    i === 0 ? 'col-span-2 row-span-2' : ''
+                  }`}
+                  style={{ aspectRatio: i === 0 ? '1/1' : '4/3' }}
+                >
+                  <Image
+                    src={photo}
+                    alt={`${destination.name} - foto ${i + 1}`}
+                    fill
+                    className="object-cover transition-transform duration-500 group-hover:scale-105"
+                    sizes={i === 0 ? '50vw' : '25vw'}
+                  />
+                </motion.div>
+              ))}
+            </div>
+            {serpData?.source === 'serpapi' && (
+              <p className="text-xs mt-3 font-mono" style={{ color: 'var(--text-muted)' }}>
+                Fotos de Google Maps
+              </p>
+            )}
+          </section>
+        </BlurFade>
+      )}
+
+      {/* Google Reviews (from SerpAPI) */}
+      {enrichment.reviews.length > 0 && (
+        <BlurFade delay={0.3}>
+          <section className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto py-12">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold" style={{ color: 'var(--text-heading)' }}>
+                Opiniones sobre {destination.name}
+              </h2>
+              {enrichment.rating && (
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl font-bold" style={{ color: 'var(--accent)' }}>{enrichment.rating}</span>
+                  <div className="flex gap-0.5">
+                    {[1,2,3,4,5].map(i => (
+                      <svg key={i} className={`w-4 h-4 ${i <= Math.round(enrichment.rating!) ? 'text-yellow-400 fill-yellow-400' : 'text-muted fill-muted'}`} viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                      </svg>
+                    ))}
+                  </div>
+                  {enrichment.reviewCount && (
+                    <span className="text-sm" style={{ color: 'var(--text-muted)' }}>({enrichment.reviewCount})</span>
+                  )}
+                </div>
+              )}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {enrichment.reviews.slice(0, 6).map((review, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 10 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.08 }}
+                  className="p-5 rounded-xl"
+                  style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-subtle)' }}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold" style={{ background: 'linear-gradient(135deg, var(--accent), var(--accent-hover))', color: 'var(--accent-text)' }}>
+                        {review.author.charAt(0)}
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium" style={{ color: 'var(--text-heading)' }}>{review.author}</p>
+                        {review.date && <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{review.date}</p>}
+                      </div>
+                    </div>
+                    <div className="flex gap-0.5">
+                      {Array.from({ length: review.rating }).map((_, j) => (
+                        <svg key={j} className="w-3 h-3 text-yellow-400 fill-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                        </svg>
+                      ))}
+                    </div>
+                  </div>
+                  <p className="text-sm leading-relaxed line-clamp-4" style={{ color: 'var(--text-secondary)' }}>{review.text}</p>
+                </motion.div>
+              ))}
+            </div>
+            <p className="text-xs mt-4 font-mono" style={{ color: 'var(--text-muted)' }}>
+              Opiniones de Google Maps
+            </p>
           </section>
         </BlurFade>
       )}
