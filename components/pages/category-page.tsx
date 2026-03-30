@@ -8,6 +8,8 @@ import type { WebsiteData } from '@/lib/supabase/get-website';
 import type { WebsitePage, ProductData } from '@/lib/supabase/get-pages';
 import { getCategoryProducts } from '@/lib/supabase/get-pages';
 import { getBasePath } from '@/lib/utils/base-path';
+import { CardCarousel } from '@/components/ui/card-carousel';
+import { SkeletonGrid } from '@/components/ui/skeleton-card';
 
 interface CategoryPageProps {
   website: WebsiteData;
@@ -307,17 +309,10 @@ export function CategoryPage({ website, page, categoryType }: CategoryPageProps)
       <section className="pb-24 px-6">
         <div className="max-w-7xl mx-auto">
           {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="rounded-2xl overflow-hidden animate-pulse" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-subtle)' }}>
-                  <div className="h-48 bg-muted" />
-                  <div className="p-4 space-y-3">
-                    <div className="h-4 bg-muted rounded w-3/4" />
-                    <div className="h-3 bg-muted rounded w-1/2" />
-                  </div>
-                </div>
-              ))}
-            </div>
+            <SkeletonGrid
+              count={6}
+              type={isHotel ? 'hotel' : isActivity ? 'activity' : 'default'}
+            />
           ) : products.length === 0 ? (
             <div className="text-center py-16">
               <p className="text-lg" style={{ color: 'var(--text-muted)' }}>No se encontraron resultados</p>
@@ -442,11 +437,15 @@ function StandardCard({ product, index, basePath, categoryType }: { product: Pro
         className="group block rounded-2xl overflow-hidden"
         style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-subtle)' }}
       >
-        <div className="relative overflow-hidden" style={{ aspectRatio: '16/10' }}>
-          {product.image ? (
-            <Image src={product.image} alt={product.name} fill className="object-cover transition-transform duration-700 group-hover:scale-105" />
+        <div className="relative overflow-hidden">
+          {product.images && product.images.length > 1 ? (
+            <CardCarousel images={product.images as string[]} alt={product.name} />
+          ) : product.image ? (
+            <div className="relative overflow-hidden" style={{ aspectRatio: '16/10' }}>
+              <Image src={product.image} alt={product.name} fill className="object-cover transition-transform duration-700 group-hover:scale-105" />
+            </div>
           ) : (
-            <div className="w-full h-full bg-muted flex items-center justify-center">
+            <div className="flex items-center justify-center bg-muted" style={{ aspectRatio: '16/10' }}>
               <span className="text-4xl">{getProductIcon(product.type)}</span>
             </div>
           )}

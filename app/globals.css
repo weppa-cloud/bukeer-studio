@@ -223,6 +223,43 @@ footer::before {
   100% { transform: scale(1); opacity: 1; }
 }
 
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* Premium shimmer effect for skeleton loaders */
+.shimmer-bar {
+  background: linear-gradient(
+    90deg,
+    var(--border-subtle, hsl(var(--muted))) 0%,
+    var(--bg-card, hsl(var(--card))) 40%,
+    var(--border-subtle, hsl(var(--muted))) 80%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.8s ease-in-out infinite;
+}
+
+.shimmer-bg {
+  background: linear-gradient(
+    90deg,
+    var(--border-subtle, hsl(var(--muted))) 0%,
+    var(--bg-card, hsl(var(--card))) 50%,
+    var(--border-subtle, hsl(var(--muted))) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s ease-in-out infinite;
+}
+
+/* Custom cursor for image hover — magnifying glass */
+.cursor-zoom-in {
+  cursor: zoom-in;
+}
+
+.cursor-explore {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.3-4.3'/%3E%3C/svg%3E") 16 16, zoom-in;
+}
+
 @keyframes gradient {
   0%, 100% {
     background-size: 200% 200%;

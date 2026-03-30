@@ -81,10 +81,10 @@ export function PartnersSection({ section }: PartnersSectionProps) {
             {partners.map((partner, index) => (
               <motion.div
                 key={partner.name}
-                initial={{ opacity: 0 }}
-                whileInView={{ opacity: 1 }}
+                initial={{ opacity: 0, scale: 0.8 }}
+                whileInView={{ opacity: 1, scale: 1 }}
                 viewport={{ once: true }}
-                transition={{ delay: index * 0.05 }}
+                transition={{ delay: index * 0.05, type: 'spring', stiffness: 200, damping: 20 }}
                 className="flex justify-center grayscale hover:grayscale-0 transition-all opacity-60 hover:opacity-100"
               >
                 {partner.logo ? (

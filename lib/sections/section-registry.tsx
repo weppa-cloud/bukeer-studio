@@ -33,19 +33,11 @@ import { HeroSection } from '@/components/site/sections/hero-section';
 // Below-fold Components - Lazy load with loading skeletons
 // ============================================================================
 
-// Loading skeleton for below-fold sections
-const SectionSkeleton = () => (
-  <div className="section-padding animate-pulse">
-    <div className="container">
-      <div className="h-8 bg-muted rounded w-1/3 mx-auto mb-8" />
-      <div className="grid md:grid-cols-3 gap-6">
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="h-64 bg-muted rounded-xl" />
-        ))}
-      </div>
-    </div>
-  </div>
-);
+// Loading skeleton for below-fold sections — branded compass loader
+const SectionSkeleton = () => {
+  const { SectionLoader } = require('@/components/ui/branded-loader');
+  return <SectionLoader />;
+};
 
 const DestinationsSection = dynamic(
   () => import('@/components/site/sections/destinations-section').then((mod) => mod.DestinationsSection),

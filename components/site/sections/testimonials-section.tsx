@@ -91,9 +91,10 @@ export function TestimonialsSection({ section }: TestimonialsSectionProps) {
     <div className="section-padding bg-muted/30">
       <div className={variant === 'infinite' ? '' : 'container'}>
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0, x: 40 }}
+          whileInView={{ opacity: 1, x: 0 }}
           viewport={{ once: true }}
+          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
           className="text-center mb-12 container"
         >
           <h2 className="text-3xl md:text-4xl font-bold">{title}</h2>

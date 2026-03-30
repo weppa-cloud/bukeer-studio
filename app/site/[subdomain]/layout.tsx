@@ -6,6 +6,7 @@ import { M3ThemeProvider } from '@/lib/theme/m3-theme-provider';
 import { SiteHeader } from '@/components/site/site-header';
 import { SiteFooter } from '@/components/site/site-footer';
 import { MobileStickyBar } from '@/components/site/mobile-sticky-bar';
+import { SmoothScroll } from '@/components/ui/smooth-scroll';
 import { GoogleTagManager, GoogleTagManagerBody } from '@/components/analytics/google-tag-manager';
 import { buildNavTree, getDefaultNavigation } from '@/lib/utils/navigation';
 import { getBasePath } from '@/lib/utils/base-path';
@@ -92,17 +93,19 @@ export default async function SiteLayout({ children, params }: SiteLayoutProps) 
       {/* Google Tag Manager and Analytics Scripts */}
       <GoogleTagManager analytics={website.analytics} />
 
-      <div className="min-h-screen flex flex-col">
-        {/* GTM NoScript fallback */}
-        <GoogleTagManagerBody analytics={website.analytics} />
+      <SmoothScroll>
+        <div className="min-h-screen flex flex-col">
+          {/* GTM NoScript fallback */}
+          <GoogleTagManagerBody analytics={website.analytics} />
 
-        <SiteHeader website={website} navigation={navigation} />
-        <main className="flex-1">
-          {children}
-        </main>
-        <SiteFooter website={website} navigation={navigation} />
-        <MobileStickyBar website={website} />
-      </div>
+          <SiteHeader website={website} navigation={navigation} />
+          <main className="flex-1">
+            {children}
+          </main>
+          <SiteFooter website={website} navigation={navigation} />
+          <MobileStickyBar website={website} />
+        </div>
+      </SmoothScroll>
     </M3ThemeProvider>
   );
 }

@@ -218,6 +218,7 @@ export function HeroSection({ section, website }: HeroSectionProps) {
     title?: string;
     subtitle?: string;
     backgroundImage?: string;
+    backgroundVideo?: string;
     ctaText?: string;
     ctaUrl?: string;
   };
@@ -264,7 +265,18 @@ export function HeroSection({ section, website }: HeroSectionProps) {
           style={{ y, opacity, scale: useTransform(scrollYProgress, [0, 1], [1, 1.08]) }}
           className="absolute inset-0 w-full h-[115%]"
         >
-          {sectionContent.backgroundImage && (
+          {sectionContent.backgroundVideo ? (
+            <video
+              autoPlay
+              muted
+              loop
+              playsInline
+              className="absolute inset-0 w-full h-full object-cover"
+              poster={sectionContent.backgroundImage}
+            >
+              <source src={sectionContent.backgroundVideo} type="video/mp4" />
+            </video>
+          ) : sectionContent.backgroundImage ? (
             <Image
               src={sectionContent.backgroundImage}
               alt={title || 'Hero background'}
@@ -275,7 +287,7 @@ export function HeroSection({ section, website }: HeroSectionProps) {
               className="object-cover object-center"
               quality={85}
             />
-          )}
+          ) : null}
           <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/40 to-[var(--bg,#1a1714)]" />
           <div className="absolute inset-0 bg-gradient-to-r from-black/30 to-transparent" />
         </motion.div>
