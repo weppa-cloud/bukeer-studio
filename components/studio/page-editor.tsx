@@ -236,6 +236,8 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
   const [leftPanelMode, setLeftPanelMode] = useState<LeftPanelMode>('sections');
   const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false);
   const [iframeLoadCount, setIframeLoadCount] = useState(0);
+  // Track original section IDs from DB (for homepage INSERT/DELETE detection)
+  const dbSectionIdsRef = useRef<Set<string>>(new Set());
   // Undo/redo history
   const [history, setHistory] = useState<EditorSection[][]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
@@ -420,6 +422,8 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
         const snap = snapshot as WebsiteSnapshot;
         setWebsiteData(snap.website);
         setSections(snap.sections);
+        // Track original DB IDs for INSERT/DELETE detection
+        dbSectionIdsRef.current = new Set(snap.sections.map((s) => s.id));
 
         const homepageContent =
           (websiteRow?.content as Record<string, unknown> | null) ??
@@ -540,21 +544,71 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
   const saveSections = useCallback(
     async (sectionsToSave: EditorSection[]) => {
       if (isHomepage) {
-        // Update each section individually in website_sections
-        const updates = sectionsToSave.map((s, i) =>
-          supabase
-            .from('website_sections')
-            .update({
-              display_order: i,
-              is_enabled: s.isEnabled,
-              content: s.content,
-              config: s.config,
-              variant: s.variant,
-            })
-            .eq('id', s.id)
-            .eq('website_id', websiteId)
-        );
-        await Promise.all(updates);
+        // Diff against original DB state to detect INSERTs/UPDATEs/DELETEs
+        const currentIds = new Set(sectionsToSave.map((s) => s.id));
+        const dbIds = dbSectionIdsRef.current;
+
+        const toInsert = sectionsToSave.filter((s) => !dbIds.has(s.id));
+        const toUpdate = sectionsToSave.filter((s) => dbIds.has(s.id));
+        const toDelete = [...dbIds].filter((id) => !currentIds.has(id));
+
+        const ops: PromiseLike<unknown>[] = [];
+
+        // UPDATE existing sections
+        for (const s of toUpdate) {
+          const idx = sectionsToSave.indexOf(s);
+          ops.push(
+            supabase
+              .from('website_sections')
+              .update({
+                display_order: idx,
+                is_enabled: s.isEnabled,
+                content: s.content,
+                config: s.config,
+                variant: s.variant,
+              })
+              .eq('id', s.id)
+              .eq('website_id', websiteId)
+              .then()
+          );
+        }
+
+        // INSERT new sections
+        for (const s of toInsert) {
+          const idx = sectionsToSave.indexOf(s);
+          ops.push(
+            supabase
+              .from('website_sections')
+              .insert({
+                id: s.id,
+                website_id: websiteId,
+                section_type: s.sectionType,
+                variant: s.variant ?? '',
+                display_order: idx,
+                is_enabled: s.isEnabled,
+                config: s.config,
+                content: s.content,
+              })
+              .then()
+          );
+        }
+
+        // DELETE removed sections
+        for (const id of toDelete) {
+          ops.push(
+            supabase
+              .from('website_sections')
+              .delete()
+              .eq('id', id)
+              .eq('website_id', websiteId)
+              .then()
+          );
+        }
+
+        await Promise.all(ops);
+
+        // Update the DB tracking ref so next save diffs correctly
+        dbSectionIdsRef.current = new Set(sectionsToSave.map((s) => s.id));
 
         // Persist homepage SEO values into websites.content.seo.
         const currentContent = (websiteData?.content as Record<string, unknown>) ?? {};
@@ -635,6 +689,8 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
     (id: string) => {
       updateSections(moveSection(sections, id, 'up'));
       setActionToast('Section moved up');
+      // Refresh preview after autosave persists the new order
+      setTimeout(() => setExactPreviewRefreshKey((k) => k + 1), 3000);
     },
     [sections, updateSections]
   );
@@ -643,6 +699,7 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
     (id: string) => {
       updateSections(moveSection(sections, id, 'down'));
       setActionToast('Section moved down');
+      setTimeout(() => setExactPreviewRefreshKey((k) => k + 1), 3000);
     },
     [sections, updateSections]
   );
@@ -1227,25 +1284,37 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
                   title="Site preview"
                   onLoad={(e) => {
                     handleExactPreviewLoad(e);
-                    // Auto-resize iframe to match content height
+                    // Auto-resize iframe to match content height — measure ONCE after load settles
                     try {
                       const iframe = e.currentTarget;
-                      const resizeIframe = () => {
-                        const doc = iframe.contentDocument;
-                        if (doc?.body) {
-                          const contentHeight = doc.body.scrollHeight;
-                          iframe.style.height = `${contentHeight}px`;
-                        }
-                      };
-                      resizeIframe();
-                      // Re-measure after images load
-                      setTimeout(resizeIframe, 1000);
-                      setTimeout(resizeIframe, 3000);
-                      // Observe content changes
-                      const observer = new MutationObserver(resizeIframe);
-                      if (iframe.contentDocument?.body) {
-                        observer.observe(iframe.contentDocument.body, { childList: true, subtree: true, attributes: true });
+                      const doc = iframe.contentDocument;
+
+                      // Inject CSS to fix viewport-height units inside the full-height iframe.
+                      // Since the iframe is stretched to match content, 100vh = full page height
+                      // instead of the visible viewport. Override h-screen/min-h-screen to 800px.
+                      if (doc?.head) {
+                        const style = doc.createElement('style');
+                        style.textContent = `
+                          .h-screen, .min-h-screen { --studio-vh: 800px; }
+                          .h-screen { height: var(--studio-vh) !important; }
+                          .min-h-screen { min-height: var(--studio-vh) !important; }
+                        `;
+                        doc.head.appendChild(style);
                       }
+
+                      const measureAndResize = () => {
+                        const d = iframe.contentDocument;
+                        if (!d?.body) return;
+                        // Temporarily shrink iframe to measure true content height
+                        const prevHeight = iframe.style.height;
+                        iframe.style.height = '1px';
+                        const h = d.documentElement.scrollHeight;
+                        iframe.style.height = h > 100 ? `${h}px` : prevHeight;
+                      };
+                      // Measure at increasing delays as images/fonts load
+                      setTimeout(measureAndResize, 300);
+                      setTimeout(measureAndResize, 1500);
+                      setTimeout(measureAndResize, 4000);
                     } catch { /* cross-origin */ }
                   }}
                   className="block w-full border-0"
@@ -1297,7 +1366,7 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
                     </div>
                     <p className="text-sm font-semibold text-[var(--studio-text)]">No section selected</p>
                     <p className="text-xs text-[var(--studio-text-muted)] mt-1.5 max-w-[220px]">
-                      Click on a section in the preview or drag an element from the left panel.
+                      Click a section in the preview, or pick one from the Elements panel.
                     </p>
                     <StudioButton
                       variant="outline"
