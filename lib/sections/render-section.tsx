@@ -220,7 +220,12 @@ export function renderSectionWithResult({
 
   return {
     element: (
-      <section id={section.section_type} key={section.id || section.section_type}>
+      <section
+        id={section.section_type}
+        key={section.id || section.section_type}
+        data-section-id={section.id || section.section_type}
+        data-section-type={section.section_type}
+      >
         <Component section={normalizedSection} website={website} />
       </section>
     ),

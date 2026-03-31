@@ -647,6 +647,50 @@ select.sort-select {
   max-width: 100% !important;
 }
 
+/* Typography responsive overrides for studio preview */
+.studio-preview--tablet .text-5xl,
+.studio-preview--tablet .text-6xl,
+.studio-preview--tablet .lg\:text-5xl,
+.studio-preview--tablet .lg\:text-6xl {
+  font-size: 2.25rem !important;
+  line-height: 2.5rem !important;
+}
+
+.studio-preview--mobile .text-3xl,
+.studio-preview--mobile .text-4xl,
+.studio-preview--mobile .text-5xl,
+.studio-preview--mobile .text-6xl,
+.studio-preview--mobile .md\:text-3xl,
+.studio-preview--mobile .md\:text-4xl,
+.studio-preview--mobile .lg\:text-5xl,
+.studio-preview--mobile .lg\:text-6xl {
+  font-size: 1.5rem !important;
+  line-height: 2rem !important;
+}
+
+/* Hero height overrides */
+.studio-preview--mobile .min-h-screen {
+  min-height: 60vh !important;
+}
+
+/* Horizontal padding reduction for mobile preview */
+.studio-preview--mobile .px-6,
+.studio-preview--mobile .px-8,
+.studio-preview--mobile .md\:px-8,
+.studio-preview--mobile .lg\:px-8 {
+  padding-left: 1rem !important;
+  padding-right: 1rem !important;
+}
+
+/* Flex direction overrides for mobile */
+.studio-preview--mobile .md\:flex-row {
+  flex-direction: column !important;
+}
+
+.studio-preview--tablet .lg\:flex-row {
+  flex-direction: column !important;
+}
+
 .studio-page {
   width: min(1240px, 100%);
   margin: 0 auto;
