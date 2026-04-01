@@ -1,21 +1,21 @@
 'use client';
 
 import { useState, useCallback, useEffect, useMemo, useRef, SyntheticEvent } from 'react';
+import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, type DragEndEvent, type DragStartEvent } from '@dnd-kit/core';
+import { arrayMove } from '@dnd-kit/sortable';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser-client';
 import { SectionForm } from './section-form';
 import { SectionPicker } from './section-picker';
-import { SectionOverlay } from './section-overlay';
+import { SectionCanvas } from './section-canvas';
 import { StudioChat } from './studio-chat';
 import { SeoPanel } from './seo-panel';
 import { LeftPanelShell, type LeftPanelMode } from './left-panel/panel-shell';
-import { CanvasFrame } from '@/components/editor/canvas-frame';
 import { useAutosave } from '@/lib/hooks/use-autosave';
 import { useDirtyState } from '@/lib/hooks/use-dirty-state';
 import { useCommonShortcuts } from '@/lib/hooks/use-keyboard-shortcuts';
 import { useLocalBackup } from '@/lib/hooks/use-local-backup';
 import { useNetworkStatus } from '@/lib/hooks/use-network-status';
-// Note: dnd-kit drag-to-iframe is not possible (React DnD can't cross iframe boundary).
-// Elements panel uses click-to-add. Navigator uses move up/down buttons.
+// Sections render directly in React (no iframe) via SectionCanvas.
 import {
   moveSection,
   duplicateSection,
@@ -59,72 +59,8 @@ import type { SectionTypeValue } from '@bukeer/website-contract';
 // Hot Update: Patch iframe DOM for instant visual feedback
 // ============================================================================
 
-/**
- * Hot-update a single field in the iframe DOM for instant visual feedback.
- * Uses semantic HTML structure to locate the target element.
- * Returns true if patched successfully, false if iframe refresh needed.
- */
-function patchIframeSectionField(
-  doc: Document,
-  sectionId: string,
-  field: string,
-  value: string
-): boolean {
-  const section = doc.querySelector(`section[data-section-id="${sectionId}"]`);
-  if (!section) return false;
-
-  // Image fields
-  if (field === 'backgroundImage') {
-    const img = section.querySelector('img') as HTMLImageElement | null;
-    if (img) { img.src = value; return true; }
-    const bgEl = section.querySelector('[style*="background-image"]') as HTMLElement | null;
-    if (bgEl) { bgEl.style.backgroundImage = `url(${value})`; return true; }
-    return false;
-  }
-
-  // Title/heading fields — try multiple strategies
-  if (['title', 'heading'].includes(field)) {
-    // Strategy 1: h1 or h2 tag
-    const heading = section.querySelector('h1, h2');
-    if (heading) { heading.textContent = value; return true; }
-    // Strategy 2: Large text container (hero with TextGenerateEffect)
-    const largeText = section.querySelector('[class*="text-4xl"], [class*="text-5xl"], [class*="text-6xl"], [class*="text-7xl"]');
-    if (largeText) { largeText.textContent = value; return true; }
-    return false;
-  }
-
-  // Subtitle/description — the paragraph after the heading
-  if (['subtitle', 'description'].includes(field)) {
-    // Strategy 1: p tag after heading
-    const heading = section.querySelector('h1, h2');
-    if (heading) {
-      const next = heading.nextElementSibling;
-      if (next?.tagName === 'P') { next.textContent = value; return true; }
-    }
-    // Strategy 2: any p with medium text class
-    const p = section.querySelector('p[class*="text-lg"], p[class*="text-xl"], p[class*="text-base"], p[class*="opacity"]');
-    if (p) { p.textContent = value; return true; }
-    // Strategy 3: first p in the section
-    const firstP = section.querySelector('p');
-    if (firstP) { firstP.textContent = value; return true; }
-    return false;
-  }
-
-  // CTA button text
-  if (['ctaText', 'buttonText'].includes(field)) {
-    const link = section.querySelector('a[href]');
-    if (link) {
-      // If link has a span child, update the span
-      const span = link.querySelector('span');
-      if (span) { span.textContent = value; return true; }
-      link.textContent = value;
-      return true;
-    }
-    return false;
-  }
-
-  return false;
-}
+// patchIframeSectionField removed — sections now render directly in React,
+// so field changes trigger immediate re-render via updateSectionContent().
 
 // ============================================================================
 // Content normalization for page sections (DB shape → schema shape)
@@ -199,7 +135,7 @@ interface PageEditorProps {
 }
 
 type ViewportSize = 'desktop' | 'tablet' | 'mobile';
-const EXACT_PREVIEW_WIDTHS: Partial<Record<ViewportSize, string>> = {
+const VIEWPORT_LABELS: Record<ViewportSize, string> = {
   desktop: '1440px',
   tablet: '768px',
   mobile: '375px',
@@ -221,7 +157,6 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
   const [error, setError] = useState<string | null>(null);
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
   const [viewport, setViewport] = useState<ViewportSize>('desktop');
-  const [exactPreviewRefreshKey, setExactPreviewRefreshKey] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -235,13 +170,15 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
   const [panelCollapsed, setPanelCollapsed] = useState(false);
   const [leftPanelMode, setLeftPanelMode] = useState<LeftPanelMode>('sections');
   const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false);
-  const [iframeLoadCount, setIframeLoadCount] = useState(0);
+  // Drag & drop state
+  const [draggingSectionType, setDraggingSectionType] = useState<string | null>(null);
+  const dndSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
   // Track original section IDs from DB (for homepage INSERT/DELETE detection)
   const dbSectionIdsRef = useRef<Set<string>>(new Set());
   // Undo/redo history
   const [history, setHistory] = useState<EditorSection[][]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
-  const exactPreviewRef = useRef<HTMLIFrameElement | null>(null);
+  // exactPreviewRef removed — no more iframe
 
   // Auto-dismiss toast
   useEffect(() => {
@@ -262,126 +199,9 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
     [sections, selectedSectionId]
   );
 
-  const exactPreviewUrl = useMemo(() => {
-    if (!websiteData?.subdomain) return null;
+  // iframe preview removed — sections render directly in SectionCanvas
 
-    const slugPath = !isHomepage && pageData?.slug
-      ? `/${pageData.slug.replace(/^\/+/, '')}`
-      : '';
-
-    const query = `studio_preview=1&mode=exact&r=${exactPreviewRefreshKey}`;
-    if (typeof window !== 'undefined') {
-      return `${window.location.origin}/site/${websiteData.subdomain}${slugPath}?${query}`;
-    }
-
-    return `/site/${websiteData.subdomain}${slugPath}?${query}`;
-  }, [websiteData?.subdomain, isHomepage, pageData?.slug, exactPreviewRefreshKey]);
-
-  const handleExactPreviewLoad = useCallback((event: SyntheticEvent<HTMLIFrameElement>) => {
-    try {
-      const iframe = event.currentTarget;
-      exactPreviewRef.current = iframe;
-      setIframeLoadCount((c) => c + 1);
-      const doc = iframe.contentDocument;
-      if (!doc?.head) return;
-
-      if (!doc.getElementById('studio-exact-preview-scrollbar-reset')) {
-        const style = doc.createElement('style');
-        style.id = 'studio-exact-preview-scrollbar-reset';
-        style.textContent = `
-          html, body {
-            scrollbar-width: none;
-          }
-          html::-webkit-scrollbar,
-          body::-webkit-scrollbar {
-            width: 0;
-            height: 0;
-          }
-          section[data-section-id] {
-            cursor: pointer;
-          }
-          section[data-studio-selected="true"] {
-            outline: 2px solid hsl(var(--primary));
-            outline-offset: 2px;
-            border-radius: 8px;
-          }
-        `;
-        doc.head.appendChild(style);
-      }
-
-      const previousHandler = (doc as unknown as { __studioExactClickHandler?: EventListener })
-        .__studioExactClickHandler;
-      if (previousHandler) {
-        doc.removeEventListener('click', previousHandler, true);
-      }
-
-      const clickHandler: EventListener = (rawEvent) => {
-        const target = rawEvent.target as Node | null;
-        // Use nodeType === 1 (ELEMENT_NODE) instead of instanceof Element
-        // because iframe elements belong to a different JS realm where
-        // `target instanceof Element` always returns false.
-        if (!target || target.nodeType !== 1) return;
-        const el = target as Element;
-
-        if (el.closest('a[href]')) {
-          rawEvent.preventDefault();
-        }
-
-        const sectionEl = el.closest('section[data-section-id], section[data-section-type], section[id]');
-        if (!sectionEl) return;
-
-        const directId = sectionEl.getAttribute('data-section-id');
-        if (directId && sections.some((s) => s.id === directId)) {
-          setSelectedSectionId(directId);
-          setPanelTab('edit');
-          return;
-        }
-
-        const type =
-          sectionEl.getAttribute('data-section-type') ||
-          sectionEl.getAttribute('id');
-        if (!type) return;
-
-        const match = sections.find((s) => s.sectionType === type);
-        if (match) {
-          setSelectedSectionId(match.id);
-          setPanelTab('edit');
-        }
-      };
-
-      (doc as unknown as { __studioExactClickHandler?: EventListener }).__studioExactClickHandler =
-        clickHandler;
-      doc.addEventListener('click', clickHandler, true);
-    } catch {
-      // Ignore cross-origin or iframe lifecycle errors.
-    }
-  }, [sections]);
-
-  useEffect(() => {
-    const doc = exactPreviewRef.current?.contentDocument;
-    if (!doc) return;
-
-    doc.querySelectorAll('section[data-studio-selected="true"]').forEach((el) => {
-      el.removeAttribute('data-studio-selected');
-    });
-
-    if (!selectedSectionId) return;
-
-    const exactSection = doc.querySelector(
-      `section[data-section-id="${selectedSectionId}"]`
-    );
-    if (exactSection) {
-      exactSection.setAttribute('data-studio-selected', 'true');
-      return;
-    }
-
-    const selected = sections.find((s) => s.id === selectedSectionId);
-    if (!selected) return;
-    const fallbackSection = doc.querySelector(
-      `section[data-section-type="${selected.sectionType}"]`
-    );
-    fallbackSection?.setAttribute('data-studio-selected', 'true');
-  }, [selectedSectionId, sections]);
+  // Selection effect removed — SectionWrapper handles selection state directly
 
   const applyStudioMode = useCallback((mode: 'light' | 'dark') => {
     const root = document.documentElement;
@@ -666,6 +486,8 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
     enabled: state === 'ready' && isEditorDirty && isOnline,
   });
 
+  // No iframe refresh needed — sections re-render reactively via React state
+
   // Local backup on changes
   useEffect(() => {
     if (isDirty && sections.length > 0) {
@@ -689,8 +511,6 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
     (id: string) => {
       updateSections(moveSection(sections, id, 'up'));
       setActionToast('Section moved up');
-      // Refresh preview after autosave persists the new order
-      setTimeout(() => setExactPreviewRefreshKey((k) => k + 1), 3000);
     },
     [sections, updateSections]
   );
@@ -699,7 +519,6 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
     (id: string) => {
       updateSections(moveSection(sections, id, 'down'));
       setActionToast('Section moved down');
-      setTimeout(() => setExactPreviewRefreshKey((k) => k + 1), 3000);
     },
     [sections, updateSections]
   );
@@ -753,22 +572,72 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
     [sections, updateSections]
   );
 
+  // Drag & drop handlers
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    const sectionType = event.active.data.current?.sectionType as string | undefined;
+    if (sectionType) setDraggingSectionType(sectionType);
+  }, []);
+
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event;
+      setDraggingSectionType(null);
+      if (!over || active.id === over.id) return;
+
+      const sectionType = active.data.current?.sectionType as string | undefined;
+
+      // Case 1: Dragging a new section from Elements panel
+      if (sectionType) {
+        const dropId = String(over.id);
+        const match = dropId.match(/^drop-at-(\d+)$/);
+        if (!match) {
+          handleAddSection(sectionType as SectionTypeValue);
+          return;
+        }
+
+        const dropIndex = parseInt(match[1], 10);
+        let position: { relativeTo?: string; placement?: 'before' | 'after' } | undefined;
+        if (dropIndex < sections.length) {
+          position = { relativeTo: sections[dropIndex].id, placement: 'before' };
+        } else if (sections.length > 0) {
+          position = { relativeTo: sections[sections.length - 1].id, placement: 'after' };
+        }
+
+        const newSections = addSection(sections, sectionType as SectionTypeValue, position);
+        updateSections(newSections);
+        setActionToast(`${sectionType.replace(/_/g, ' ')} added`);
+        const newSection = newSections[dropIndex] ?? newSections[newSections.length - 1];
+        if (newSection) {
+          setSelectedSectionId(newSection.id);
+          setPanelTab('edit');
+        }
+        return;
+      }
+
+      // Case 2: Reordering sections in Layers (sortable)
+      const oldIndex = sections.findIndex((s) => s.id === active.id);
+      const newIndex = sections.findIndex((s) => s.id === over.id);
+      if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
+        const reordered = arrayMove(sections, oldIndex, newIndex).map((s, i) => ({
+          ...s,
+          displayOrder: i,
+        }));
+        updateSections(reordered);
+        setActionToast('Section reordered');
+      }
+    },
+    [sections, updateSections, handleAddSection]
+  );
+
+  const handleDragCancel = useCallback(() => {
+    setDraggingSectionType(null);
+  }, []);
+
   const handleFieldChange = useCallback(
     (field: string, value: unknown) => {
       if (!selectedSectionId) return;
       updateSections(updateSectionContent(sections, selectedSectionId, { [field]: value }));
-
-      // Hot update: patch iframe DOM directly for instant visual feedback
-      if (typeof value === 'string') {
-        try {
-          const doc = exactPreviewRef.current?.contentDocument;
-          if (doc) {
-            patchIframeSectionField(doc, selectedSectionId, field, value);
-          }
-        } catch {
-          // Ignore — iframe will refresh on save anyway
-        }
-      }
+      // No hot-patching needed — SectionCanvas re-renders reactively
     },
     [sections, selectedSectionId, updateSections]
   );
@@ -984,16 +853,15 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
 
   const handlePreview = useCallback(() => {
     if (!websiteData?.subdomain) return;
-    if (isHomepage) {
-      window.open(`https://${websiteData.subdomain}.bukeer.com`, '_blank');
-    } else if (pageData?.slug) {
-      window.open(`https://${websiteData.subdomain}.bukeer.com/${pageData.slug}`, '_blank');
-    }
+    // Use local dev server for preview during development, production URL otherwise
+    const baseUrl = typeof window !== 'undefined' && window.location.hostname === 'localhost'
+      ? `${window.location.origin}/site/${websiteData.subdomain}`
+      : `https://${websiteData.subdomain}.bukeer.com`;
+    const slugPath = !isHomepage && pageData?.slug ? `/${pageData.slug}` : '';
+    window.open(`${baseUrl}${slugPath}`, '_blank');
   }, [websiteData, pageData, isHomepage]);
 
-  const refreshExactPreview = useCallback(() => {
-    setExactPreviewRefreshKey((k) => k + 1);
-  }, []);
+  // refreshExactPreview removed — no iframe to refresh
 
   // Keyboard shortcuts
   useCommonShortcuts({
@@ -1110,6 +978,12 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
   };
 
   return (
+    <DndContext
+      sensors={dndSensors}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      onDragCancel={handleDragCancel}
+    >
     <TooltipProvider>
       <div className="fixed inset-0 z-[100] flex flex-col studio-shell">
         <StudioTopbar
@@ -1195,7 +1069,7 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
                         ? 'bg-[var(--studio-bg-elevated)] text-[var(--studio-text)] shadow-sm border border-[var(--studio-border)]'
                         : 'text-[var(--studio-text-muted)]'
                     }`}
-                    title={`${vp.charAt(0).toUpperCase() + vp.slice(1)} (${EXACT_PREVIEW_WIDTHS[vp] ?? 'auto'})`}
+                    title={`${vp.charAt(0).toUpperCase() + vp.slice(1)} (${VIEWPORT_LABELS[vp] ?? 'auto'})`}
                     type="button"
                   >
                     {viewportIcons[vp]}
@@ -1203,7 +1077,7 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
                 ))}
               </div>
               <span className="text-[10px] text-[var(--studio-text-muted)] tabular-nums">
-                {EXACT_PREVIEW_WIDTHS[viewport] ?? 'auto'}
+                {VIEWPORT_LABELS[viewport] ?? 'auto'}
               </span>
             </div>
           )}
@@ -1261,81 +1135,25 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
             sections={sections}
             selectedSectionId={selectedSectionId}
             onSelectSection={handleSelect}
-            onMoveUp={handleMoveUp}
-            onMoveDown={handleMoveDown}
             onToggleVisibility={handleToggleVisibility}
             onDuplicate={handleDuplicate}
             onDelete={handleDeleteRequest}
           />
 
-          {/* Canvas (preview pane with overlay) */}
-          <div className="flex-1 min-w-0 bg-[color-mix(in_srgb,var(--studio-panel)_46%,transparent)] overflow-auto flex flex-col">
-            <CanvasFrame
-              websiteId={websiteId}
-              viewport={viewport}
-              widths={EXACT_PREVIEW_WIDTHS}
-              fitToContainer
-            >
-              <div className="relative bg-background" style={{ minHeight: 'calc(100vh - 120px)' }}>
-                <iframe
-                  ref={exactPreviewRef}
-                  key={exactPreviewUrl ?? 'empty-preview'}
-                  src={exactPreviewUrl ?? 'about:blank'}
-                  title="Site preview"
-                  onLoad={(e) => {
-                    handleExactPreviewLoad(e);
-                    // Auto-resize iframe to match content height — measure ONCE after load settles
-                    try {
-                      const iframe = e.currentTarget;
-                      const doc = iframe.contentDocument;
-
-                      // Inject CSS to fix viewport-height units inside the full-height iframe.
-                      // Since the iframe is stretched to match content, 100vh = full page height
-                      // instead of the visible viewport. Override h-screen/min-h-screen to 800px.
-                      if (doc?.head) {
-                        const style = doc.createElement('style');
-                        style.textContent = `
-                          .h-screen, .min-h-screen { --studio-vh: 800px; }
-                          .h-screen { height: var(--studio-vh) !important; }
-                          .min-h-screen { min-height: var(--studio-vh) !important; }
-                        `;
-                        doc.head.appendChild(style);
-                      }
-
-                      const measureAndResize = () => {
-                        const d = iframe.contentDocument;
-                        if (!d?.body) return;
-                        // Temporarily shrink iframe to measure true content height
-                        const prevHeight = iframe.style.height;
-                        iframe.style.height = '1px';
-                        const h = d.documentElement.scrollHeight;
-                        iframe.style.height = h > 100 ? `${h}px` : prevHeight;
-                      };
-                      // Measure at increasing delays as images/fonts load
-                      setTimeout(measureAndResize, 300);
-                      setTimeout(measureAndResize, 1500);
-                      setTimeout(measureAndResize, 4000);
-                    } catch { /* cross-origin */ }
-                  }}
-                  className="block w-full border-0"
-                  style={{ minHeight: 'calc(100vh - 120px)' }}
-                />
-                <SectionOverlay
-                  iframeRef={exactPreviewRef}
-                  sections={sections}
-                  selectedSectionId={selectedSectionId}
-                  onSelect={handleSelect}
-                  onMoveUp={handleMoveUp}
-                  onMoveDown={handleMoveDown}
-                  onDuplicate={handleDuplicate}
-                  onToggleVisibility={handleToggleVisibility}
-                  onDelete={handleDeleteRequest}
-                  onAddSection={() => setPickerOpen(true)}
-                  iframeLoadKey={iframeLoadCount}
-                />
-              </div>
-            </CanvasFrame>
-          </div>
+          {/* Canvas — sections rendered directly (no iframe) */}
+          <SectionCanvas
+            sections={sections}
+            website={websiteData as WebsiteData | null}
+            viewport={viewport}
+            selectedSectionId={selectedSectionId}
+            onSelect={handleSelect}
+            onMoveUp={handleMoveUp}
+            onMoveDown={handleMoveDown}
+            onDuplicate={handleDuplicate}
+            onToggleVisibility={handleToggleVisibility}
+            onDelete={handleDeleteRequest}
+            isDraggingNewSection={!!draggingSectionType}
+          />
 
           {/* Right panel — Edit / AI / SEO */}
           <div className={`border-l border-[var(--studio-border)] bg-[var(--studio-bg-elevated)] flex flex-col transition-all duration-300 ${panelCollapsed ? 'w-0 min-w-0 max-w-0 overflow-hidden opacity-0 border-l-0' : 'w-[320px] min-w-[320px] max-w-[420px]'}`}>
@@ -1436,5 +1254,14 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
         )}
       </div>
     </TooltipProvider>
+    {/* Drag overlay — visual ghost while dragging */}
+    <DragOverlay>
+      {draggingSectionType && (
+        <div className="px-3 py-2 bg-blue-600 text-white text-xs font-semibold rounded-lg shadow-xl opacity-90 pointer-events-none">
+          + {draggingSectionType.replace(/_/g, ' ')}
+        </div>
+      )}
+    </DragOverlay>
+    </DndContext>
   );
 }

@@ -38,6 +38,34 @@ interface SectionOverlayProps {
   onAddSection: () => void;
   /** Increment this when iframe content changes (e.g. after load/save) */
   iframeLoadKey?: number;
+  /** True when a section card is being dragged from the Elements panel */
+  isDraggingNewSection?: boolean;
+}
+
+/** Drop zone rendered between sections during drag */
+function DropZone({ id, top }: { id: string; top: number }) {
+  const { isOver, setNodeRef } = useDroppable({ id });
+  return (
+    <div
+      ref={setNodeRef}
+      className="absolute left-4 right-4 flex items-center justify-center z-40 pointer-events-auto"
+      style={{ top: `${top - 16}px`, height: '32px' }}
+    >
+      <div
+        className={cn(
+          'w-full h-0.5 rounded-full transition-all duration-150',
+          isOver
+            ? 'h-1 bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]'
+            : 'bg-blue-400/40'
+        )}
+      />
+      {isOver && (
+        <span className="absolute px-2 py-0.5 text-[9px] font-semibold bg-blue-500 text-white rounded-full shadow-md whitespace-nowrap">
+          Drop here
+        </span>
+      )}
+    </div>
+  );
 }
 
 function getSectionLabel(type: string): string {
@@ -56,6 +84,7 @@ export function SectionOverlay({
   onDelete,
   onAddSection,
   iframeLoadKey = 0,
+  isDraggingNewSection = false,
 }: SectionOverlayProps) {
   const [rects, setRects] = useState<SectionRect[]>([]);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
@@ -71,20 +100,20 @@ export function SectionOverlay({
     const sectionEls = doc.querySelectorAll('section[data-section-id]');
     if (sectionEls.length === 0) return;
 
+    // Use getBoundingClientRect for viewport-relative positions (accounts for scroll)
     const newRects: SectionRect[] = [];
 
     sectionEls.forEach((el) => {
       const id = el.getAttribute('data-section-id')!;
       const type = el.getAttribute('data-section-type') || el.getAttribute('id') || 'unknown';
-      // offsetTop gives position relative to the document, not viewport
-      const htmlEl = el as HTMLElement;
+      const rect = el.getBoundingClientRect();
       const editorSection = sections.find((s) => s.id === id || s.sectionType === type);
 
       newRects.push({
         id,
         type,
-        top: htmlEl.offsetTop,
-        height: htmlEl.offsetHeight,
+        top: rect.top,
+        height: rect.height,
         enabled: editorSection?.isEnabled ?? true,
         isFirst: false,
         isLast: false,
@@ -112,7 +141,12 @@ export function SectionOverlay({
         const doc = iframe.contentDocument;
         if (!doc?.body) return;
 
-        doc.addEventListener('scroll', recalcRects, { passive: true });
+        // Recalc on scroll (rAF-throttled for smooth overlay tracking)
+        const handleScroll = () => {
+          cancelAnimationFrame(rafRef.current);
+          rafRef.current = requestAnimationFrame(recalcRects);
+        };
+        doc.addEventListener('scroll', handleScroll, { passive: true });
 
         observer = new MutationObserver(() => {
           cancelAnimationFrame(rafRef.current);
@@ -263,21 +297,18 @@ export function SectionOverlay({
         );
       })}
 
-      {/* Add section button at bottom */}
-      <div
-        className="absolute left-0 right-0 pointer-events-auto flex items-center justify-center py-6 px-8"
-        style={{ top: `${rects.length > 0 ? rects[rects.length - 1].top + rects[rects.length - 1].height + 16 : 0}px` }}
-      >
-        <div className="flex-1 border-t border-dashed border-blue-300/50" />
-        <button
-          onClick={onAddSection}
-          className="mx-4 flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-600 bg-white/90 dark:bg-slate-900/90 border border-dashed border-blue-300 rounded-full shadow-sm hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
-        >
-          <Plus className="w-3 h-3" />
-          Add Section
-        </button>
-        <div className="flex-1 border-t border-dashed border-blue-300/50" />
-      </div>
+      {/* Drop zones between sections — visible only during drag */}
+      {isDraggingNewSection && rects.map((rect, i) => (
+        <DropZone key={`drop-${i}`} id={`drop-at-${i}`} top={rect.top} />
+      ))}
+      {isDraggingNewSection && rects.length > 0 && (
+        <DropZone
+          id={`drop-at-${rects.length}`}
+          top={rects[rects.length - 1].top + rects[rects.length - 1].height}
+        />
+      )}
+
+      {/* Add section button removed — use Elements panel or Layers to add sections */}
     </div>
   );
 }

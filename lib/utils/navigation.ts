@@ -40,8 +40,8 @@ export function getDefaultNavigation(
 
   const sectionMap: Array<{ type: string; label: string; anchor: string }> = [
     { type: 'destinations', label: 'Destinos', anchor: 'destinations' },
-    { type: 'hotels', label: 'Hoteles', anchor: 'hotels' },
-    { type: 'activities', label: 'Actividades', anchor: 'activities' },
+    { type: 'packages', label: 'Paquetes', anchor: 'packages' },
+    { type: 'activities', label: 'Experiencias', anchor: 'activities' },
   ];
 
   for (const s of sectionMap) {

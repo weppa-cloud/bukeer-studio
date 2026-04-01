@@ -30,8 +30,6 @@ interface LeftPanelShellProps {
   sections: EditorSection[];
   selectedSectionId: string | null;
   onSelectSection: (id: string) => void;
-  onMoveUp: (id: string) => void;
-  onMoveDown: (id: string) => void;
   onToggleVisibility: (id: string) => void;
   onDuplicate: (id: string) => void;
   onDelete: (id: string) => void;
@@ -66,8 +64,6 @@ export function LeftPanelShell({
   sections,
   selectedSectionId,
   onSelectSection,
-  onMoveUp,
-  onMoveDown,
   onToggleVisibility,
   onDuplicate,
   onDelete,
@@ -118,8 +114,6 @@ export function LeftPanelShell({
             sections={sections}
             selectedSectionId={selectedSectionId}
             onSelect={onSelectSection}
-            onMoveUp={onMoveUp}
-            onMoveDown={onMoveDown}
             onToggleVisibility={onToggleVisibility}
             onDuplicate={onDuplicate}
             onDelete={onDelete}

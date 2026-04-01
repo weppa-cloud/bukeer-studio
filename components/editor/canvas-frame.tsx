@@ -35,9 +35,9 @@ export function CanvasFrame({
   const frameWidth = widths?.[viewport] ?? VIEWPORT_WIDTHS[viewport];
 
   return (
-    <div className="flex-1 bg-muted/30 overflow-auto flex justify-center p-4">
+    <div className="flex-1 bg-muted/30 overflow-hidden flex justify-center p-4">
       <div
-        className={`bg-background shadow-lg transition-[width] duration-300 studio-preview--${viewport}`}
+        className={`bg-background shadow-lg transition-[width] duration-300 h-full studio-preview--${viewport}`}
         style={{
           width: frameWidth,
           minWidth: frameWidth,

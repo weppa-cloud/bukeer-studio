@@ -872,7 +872,8 @@ select.sort-select {
   border-radius: 12px;
   color: var(--studio-text);
   min-height: 38px;
-  padding: 0.55rem 0.8rem;
+  padding-block: 0.55rem;
+  padding-inline: 0.8rem;
   font-size: 0.85rem;
   transition: border-color 140ms ease, box-shadow 140ms ease, background-color 140ms ease;
 }

@@ -77,18 +77,15 @@ const SECTION_ICONS: Partial<Record<SectionTypeValue, LucideIcon>> = {
 // Categories & labels (reused from section-picker)
 // ============================================================================
 
-// Only show section types that have implemented React components.
-// Each type maps to a real component in section-registry.tsx.
-// Aliases (gallery_carousel, stats_counters, etc.) are excluded to avoid confusion.
+// Show only theme-specific sections — these pull data from the website's content
+// and are designed for the site template. Generic content blocks (text, rich_text,
+// features_grid, etc.) are excluded since they don't have site-specific data.
 const SECTION_CATEGORIES: { key: string; label: string; types: SectionTypeValue[] }[] = [
-  { key: 'hero', label: 'Hero', types: ['hero', 'hero_image', 'hero_video', 'hero_minimal'] },
-  { key: 'content', label: 'Content', types: ['text', 'rich_text', 'text_image', 'about'] },
-  { key: 'features', label: 'Features', types: ['features', 'features_grid'] },
-  { key: 'travel', label: 'Travel', types: ['destinations', 'hotels', 'activities', 'packages'] },
-  { key: 'social', label: 'Social', types: ['testimonials', 'partners', 'planners'] },
-  { key: 'data', label: 'Media', types: ['stats', 'gallery'] },
-  { key: 'conversion', label: 'CTA', types: ['cta', 'cta_banner', 'newsletter', 'contact_form'] },
-  { key: 'interactive', label: 'Interactive', types: ['faq', 'blog_grid'] },
+  { key: 'hero', label: 'Hero', types: ['hero'] },
+  { key: 'travel', label: 'Travel & Products', types: ['destinations', 'hotels', 'activities', 'packages'] },
+  { key: 'social', label: 'Social Proof', types: ['testimonials', 'partners', 'planners', 'stats'] },
+  { key: 'content', label: 'Content', types: ['about', 'gallery', 'blog_grid'] },
+  { key: 'conversion', label: 'Conversion', types: ['cta', 'contact_form', 'faq', 'newsletter'] },
 ];
 
 const SECTION_LABELS: Partial<Record<SectionTypeValue, string>> = {
