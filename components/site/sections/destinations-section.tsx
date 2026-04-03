@@ -2,7 +2,7 @@
 
 import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
 import Image from 'next/image';
-import { useRef, MouseEvent } from 'react';
+import { useRef, useEffect, useCallback, MouseEvent } from 'react';
 import { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 
 interface DestinationsSectionProps {
@@ -24,13 +24,11 @@ interface Destination {
 }
 
 function normalizeDestination(raw: Record<string, unknown>, index: number): Destination {
-  const hotelCount = typeof raw.hotel_count === 'number' ? raw.hotel_count : undefined;
-  const activityCount = typeof raw.activity_count === 'number' ? raw.activity_count : undefined;
-  const derivedDescription =
-    hotelCount !== undefined && activityCount !== undefined
-      ? `${hotelCount} hoteles · ${activityCount} actividades`
-      : undefined;
-
+  // Accept both snake_case (DB) and camelCase (normalized) field names
+  const hotelCount = typeof raw.hotel_count === 'number' ? raw.hotel_count
+    : typeof raw.hotelCount === 'number' ? raw.hotelCount : undefined;
+  const activityCount = typeof raw.activity_count === 'number' ? raw.activity_count
+    : typeof raw.activityCount === 'number' ? raw.activityCount : undefined;
   return {
     id:
       (typeof raw.id === 'string' && raw.id) ||
@@ -38,9 +36,7 @@ function normalizeDestination(raw: Record<string, unknown>, index: number): Dest
       `destination-${index}`,
     name: (typeof raw.name === 'string' && raw.name) || 'Destino',
     image: (typeof raw.image === 'string' && raw.image) || '',
-    description:
-      (typeof raw.description === 'string' && raw.description) ||
-      derivedDescription,
+    description: (typeof raw.description === 'string' && raw.description) || undefined,
     price:
       (typeof raw.price === 'string' && raw.price) ||
       (typeof raw.min_price === 'string' && raw.min_price) ||
@@ -129,6 +125,131 @@ function TiltCard({ destination }: { destination: Destination }) {
         </div>
       </div>
     </motion.div>
+  );
+}
+
+/** Auto-scroll row with manual drag support */
+function ScrollRow({ children, direction = 'left', speed = 0.5 }: { children: React.ReactNode; direction?: 'left' | 'right'; speed?: number }) {
+  const rowRef = useRef<HTMLDivElement>(null);
+  const isDragging = useRef(false);
+  const startX = useRef(0);
+  const startScroll = useRef(0);
+  const pauseUntil = useRef(0);
+  const rafId = useRef(0);
+
+  // Auto-scroll loop
+  useEffect(() => {
+    const el = rowRef.current;
+    if (!el) return;
+
+    // Start at middle for infinite feel
+    const half = el.scrollWidth / 2;
+    if (direction === 'right') el.scrollLeft = half;
+
+    const tick = () => {
+      if (!isDragging.current && Date.now() > pauseUntil.current) {
+        const dir = direction === 'left' ? speed : -speed;
+        el.scrollLeft += dir;
+        // Loop: when reaching end/start, jump to the duplicate set
+        if (direction === 'left' && el.scrollLeft >= half) el.scrollLeft -= half;
+        if (direction === 'right' && el.scrollLeft <= 0) el.scrollLeft += half;
+      }
+      rafId.current = requestAnimationFrame(tick);
+    };
+    rafId.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafId.current);
+  }, [direction, speed]);
+
+  const onMouseDown = useCallback((e: React.MouseEvent) => {
+    isDragging.current = true;
+    startX.current = e.pageX;
+    startScroll.current = rowRef.current?.scrollLeft ?? 0;
+  }, []);
+
+  const onMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!isDragging.current || !rowRef.current) return;
+    e.preventDefault();
+    rowRef.current.scrollLeft = startScroll.current - (e.pageX - startX.current) * 1.5;
+  }, []);
+
+  const onMouseUp = useCallback(() => {
+    isDragging.current = false;
+    pauseUntil.current = Date.now() + 3000; // pause auto-scroll 3s after drag
+  }, []);
+
+  const onMouseEnter = useCallback(() => {
+    pauseUntil.current = Date.now() + 60000; // pause on hover
+  }, []);
+
+  const onMouseLeave = useCallback(() => {
+    isDragging.current = false;
+    pauseUntil.current = Date.now() + 1000; // resume 1s after leave
+  }, []);
+
+  return (
+    <div
+      ref={rowRef}
+      className="flex gap-5 overflow-x-hidden cursor-grab active:cursor-grabbing select-none"
+      onMouseDown={onMouseDown}
+      onMouseMove={onMouseMove}
+      onMouseUp={onMouseUp}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+      onTouchStart={(e) => {
+        isDragging.current = true;
+        startX.current = e.touches[0].pageX;
+        startScroll.current = rowRef.current?.scrollLeft ?? 0;
+      }}
+      onTouchMove={(e) => {
+        if (!isDragging.current || !rowRef.current) return;
+        rowRef.current.scrollLeft = startScroll.current - (e.touches[0].pageX - startX.current) * 1.5;
+      }}
+      onTouchEnd={() => {
+        isDragging.current = false;
+        pauseUntil.current = Date.now() + 3000;
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+/** Card for marquee rows — image with overlay info */
+function MarqueeCard({ d }: { d: Destination }) {
+  return (
+    <div
+      className="relative shrink-0 w-56 md:w-64 lg:w-72 aspect-[3/4] rounded-2xl overflow-hidden group cursor-pointer select-none"
+      style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}
+    >
+      {d.image ? (
+        <Image src={d.image} alt={d.name} fill draggable={false} className="object-cover transition-transform duration-700 group-hover:scale-110 pointer-events-none" />
+      ) : (
+        <div className="w-full h-full bg-muted" />
+      )}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+      <div
+        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+        style={{ background: 'linear-gradient(to top, color-mix(in srgb, var(--accent, #1A5FAF) 40%, black) 0%, transparent 50%)' }}
+      />
+      <div className="absolute bottom-0 left-0 right-0 p-4 md:p-5">
+        <h3 className="text-lg md:text-xl font-bold text-white drop-shadow-lg">{d.name}</h3>
+        {d.description && <p className="text-xs text-white/70 mt-1 drop-shadow line-clamp-1">{d.description}</p>}
+        {(d.activity_count || d.hotel_count) ? (
+          <div className="flex items-center gap-2 mt-2">
+            {d.activity_count !== undefined && d.activity_count > 0 && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-white/15 backdrop-blur-sm text-white border border-white/10">
+                {d.activity_count} actividades
+              </span>
+            )}
+            {d.hotel_count !== undefined && d.hotel_count > 0 && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-white/15 backdrop-blur-sm text-white border border-white/10">
+                {d.hotel_count} paquetes
+              </span>
+            )}
+          </div>
+        ) : null}
+      </div>
+    </div>
   );
 }
 
@@ -322,62 +443,28 @@ export function DestinationsSection({ section }: DestinationsSectionProps) {
           </div>
         )}
 
-        {/* Marquee variant — dual-row auto-scrolling */}
+        {/* Marquee variant — dual-row auto-scroll + mouse/touch drag */}
         {variant === 'marquee' && destinations.length > 0 && (
           <div className="relative overflow-hidden -mx-[calc((100vw-100%)/2)]">
             {/* Fade edges */}
-            <div className="pointer-events-none absolute inset-y-0 left-0 w-20 z-10 bg-gradient-to-r from-[var(--bg,hsl(var(--background)))] to-transparent" />
-            <div className="pointer-events-none absolute inset-y-0 right-0 w-20 z-10 bg-gradient-to-l from-[var(--bg,hsl(var(--background)))] to-transparent" />
+            <div className="pointer-events-none absolute inset-y-0 left-0 w-16 md:w-28 z-10 bg-gradient-to-r from-[var(--bg,hsl(var(--background)))] to-transparent" />
+            <div className="pointer-events-none absolute inset-y-0 right-0 w-16 md:w-28 z-10 bg-gradient-to-l from-[var(--bg,hsl(var(--background)))] to-transparent" />
 
-            {/* Row 1 — scrolls left */}
-            <div className="flex mb-4">
-              <div className="flex min-w-full shrink-0 gap-4 animate-[marquee-left_40s_linear_infinite] hover:[animation-play-state:paused]">
+            {/* Row 1 — auto-scrolls left, draggable */}
+            <div className="mb-5">
+              <ScrollRow direction="left" speed={0.6}>
                 {[...destinations, ...destinations].map((d, i) => (
-                  <div
-                    key={`r1-${d.id}-${i}`}
-                    className="relative shrink-0 w-52 h-72 rounded-2xl overflow-hidden group cursor-pointer border border-[var(--border-subtle,hsl(var(--border)/0.3))]"
-                  >
-                    {d.image ? (
-                      <Image src={d.image} alt={d.name} fill className="object-cover transition-transform duration-700 group-hover:scale-110" />
-                    ) : (
-                      <div className="w-full h-full bg-muted" />
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                    <div className="absolute bottom-0 left-0 right-0 p-4">
-                      <h3 className="font-display text-lg text-white leading-tight">{d.name}</h3>
-                      {d.description && (
-                        <p className="text-xs text-white/70 mt-0.5">{d.description}</p>
-                      )}
-                    </div>
-                  </div>
+                  <MarqueeCard key={`r1-${d.id}-${i}`} d={d} />
                 ))}
-              </div>
+              </ScrollRow>
             </div>
 
-            {/* Row 2 — scrolls right */}
-            <div className="flex">
-              <div className="flex min-w-full shrink-0 gap-4 animate-[marquee-right_55s_linear_infinite] hover:[animation-play-state:paused]">
-                {[...destinations, ...destinations].reverse().map((d, i) => (
-                  <div
-                    key={`r2-${d.id}-${i}`}
-                    className="relative shrink-0 w-52 h-72 rounded-2xl overflow-hidden group cursor-pointer border border-[var(--border-subtle,hsl(var(--border)/0.3))]"
-                  >
-                    {d.image ? (
-                      <Image src={d.image} alt={d.name} fill className="object-cover transition-transform duration-700 group-hover:scale-110" />
-                    ) : (
-                      <div className="w-full h-full bg-muted" />
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                    <div className="absolute bottom-0 left-0 right-0 p-4">
-                      <h3 className="font-display text-lg text-white leading-tight">{d.name}</h3>
-                      {d.description && (
-                        <p className="text-xs text-white/70 mt-0.5">{d.description}</p>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            {/* Row 2 — auto-scrolls right, draggable */}
+            <ScrollRow direction="right" speed={0.4}>
+              {[...destinations, ...destinations].reverse().map((d, i) => (
+                <MarqueeCard key={`r2-${d.id}-${i}`} d={d} />
+              ))}
+            </ScrollRow>
           </div>
         )}
 
