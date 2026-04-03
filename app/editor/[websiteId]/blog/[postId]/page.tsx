@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { BlogEditor } from '@/components/editor/blog-editor';
-import { detectAuthMode, createAuthClient } from '@/lib/auth/require-auth';
+import { createAuthClient } from '@/lib/auth/require-auth';
 
 interface BlogPostData {
   id: string;
@@ -119,57 +119,23 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
     });
   }, [params]);
 
-  // Auth: handle both embedded (iframe postMessage) and standalone modes
+  // Auth: get session token from Supabase (SSO cookie set by middleware)
   useEffect(() => {
     async function load() {
       if (!websiteId || !postId) return;
 
-      const authMode = detectAuthMode();
-      if (authMode === 'standalone') {
-        const client = createAuthClient();
-        const {
-          data: { session },
-        } = await client.auth.getSession();
-        if (session?.access_token) {
-          setTokenRef(session.access_token);
-        } else {
-          setError('No estás autenticado');
-          setLoading(false);
-          return;
-        }
+      const client = createAuthClient();
+      const {
+        data: { session },
+      } = await client.auth.getSession();
+      if (session?.access_token) {
+        setTokenRef(session.access_token);
+      } else {
+        setError('No estás autenticado');
+        setLoading(false);
       }
-      // Embedded mode: token comes via postMessage from Flutter
     }
     load();
-  }, [websiteId, postId]);
-
-  // Listen for auth token from Flutter parent (embedded iframe mode)
-  // Uses same protocol as Puck editor: source='bukeer-sites-editor', type='editor:init'
-  useEffect(() => {
-    const authMode = detectAuthMode();
-    if (authMode !== 'embedded') return;
-
-    function handleMessage(event: MessageEvent) {
-      const msg = event.data;
-      if (!msg || typeof msg !== 'object') return;
-
-      // Accept editor:init from Flutter (same protocol as Puck editor)
-      if (msg.source === 'bukeer-sites-editor' && msg.type === 'editor:init' && msg.payload?.accessToken) {
-        setTokenRef(msg.payload.accessToken as string);
-      }
-    }
-
-    window.addEventListener('message', handleMessage);
-
-    // Signal readiness to parent so Flutter knows to send token
-    try {
-      window.parent.postMessage(
-        { source: 'bukeer-blog-editor', type: 'blog:ready', websiteId, postId },
-        '*'
-      );
-    } catch { /* cross-origin — ignore */ }
-
-    return () => window.removeEventListener('message', handleMessage);
   }, [websiteId, postId]);
 
   // Load post once we have token

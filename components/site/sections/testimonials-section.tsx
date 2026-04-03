@@ -308,17 +308,17 @@ function CrossfadeTestimonials({ testimonials }: { testimonials: Array<{
               &ldquo;{current.text || current.content}&rdquo;
             </p>
 
-            {/* Review images (if available) */}
+            {/* Review images (if available) — use native img for external Google URLs */}
             {current.images && current.images.length > 0 && (
               <div className="flex justify-center gap-2 mb-6">
                 {current.images.slice(0, 4).map((img, imgIdx) => (
                   <div key={imgIdx} className="relative w-14 h-14 md:w-16 md:h-16 rounded-lg overflow-hidden">
-                    <Image
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
                       src={img.url}
                       alt={`Foto de ${current.name}`}
-                      fill
-                      className="object-cover"
-                      sizes="64px"
+                      className="w-full h-full object-cover"
+                      loading="lazy"
                     />
                   </div>
                 ))}
@@ -330,15 +330,17 @@ function CrossfadeTestimonials({ testimonials }: { testimonials: Array<{
               </div>
             )}
 
-            {/* Author with avatar */}
+            {/* Author with avatar — native img for Google profile photos */}
             <div className="flex items-center justify-center gap-3">
               {current.avatar ? (
-                <Image
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
                   src={current.avatar}
                   alt={current.name}
                   width={40}
                   height={40}
-                  className="rounded-full object-cover"
+                  className="w-10 h-10 rounded-full object-cover"
+                  loading="lazy"
                 />
               ) : (
                 <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">

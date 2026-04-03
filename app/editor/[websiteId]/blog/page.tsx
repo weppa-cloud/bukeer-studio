@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@supabase/supabase-js';
-import { detectAuthMode, createAuthClient } from '@/lib/auth/require-auth';
+import { createAuthClient } from '@/lib/auth/require-auth';
 
 interface BlogPost {
   id: string;
@@ -33,16 +33,11 @@ export default function BlogListPage({ params }: BlogListPageProps) {
     setLoading(true);
 
     try {
-      let token: string | null = null;
-
-      const authMode = detectAuthMode();
-      if (authMode === 'standalone') {
-        const client = createAuthClient();
-        const {
-          data: { session },
-        } = await client.auth.getSession();
-        token = session?.access_token ?? null;
-      }
+      const client = createAuthClient();
+      const {
+        data: { session },
+      } = await client.auth.getSession();
+      const token = session?.access_token ?? null;
 
       if (!token) {
         setError('No estás autenticado');
