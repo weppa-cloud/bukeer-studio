@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getWebsiteBySubdomain } from '@/lib/supabase/get-website';
-import { getPageBySlug, getProductPage, getDestinations, getDestinationProducts } from '@/lib/supabase/get-pages';
+import { getPageBySlug, getProductPage, getDestinations, getDestinationProducts, getReviewsForProduct } from '@/lib/supabase/get-pages';
 import { enrichDestinationFromSerpAPI } from '@/lib/services/serpapi-enrichment';
 import { CategoryPage } from '@/components/pages/category-page';
 import { StaticPage } from '@/components/pages/static-page';
@@ -135,12 +135,23 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
       const productPage = await getProductPage(subdomain, productType, productSlug);
 
       if (productPage?.product) {
+        // Fetch relevant Google Reviews for this product's location
+        const accountContent = (website.content as Record<string, unknown>)?.account as Record<string, unknown> | undefined;
+        const googleEnabled = accountContent?.google_reviews_enabled === true;
+        const productLocation = (productPage.product as Record<string, unknown>).location as string
+          || (productPage.product as Record<string, unknown>).destination as string
+          || '';
+        const productReviews = googleEnabled && productLocation && website.account_id
+          ? await getReviewsForProduct(website.account_id, productLocation, 3)
+          : [];
+
         return (
           <ProductLandingPage
             website={website}
             product={productPage.product}
             pageCustomization={productPage.page}
             productType={productType}
+            googleReviews={productReviews}
           />
         );
       }
