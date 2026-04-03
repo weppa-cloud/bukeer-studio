@@ -34,6 +34,39 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
   // Handle different page types based on slug
   const slugPath = slug.join('/');
 
+  // Destination listing (/destinos or /destinations)
+  if (slug.length === 1 && (slug[0] === 'destinos' || slug[0] === 'destinations')) {
+    const siteName = website.content?.account?.name || website.content?.siteName || subdomain;
+    return {
+      title: `Destinos | ${siteName}`,
+      description: `Descubre los mejores destinos de viaje con ${siteName}. Hoteles, actividades y experiencias seleccionadas.`,
+      openGraph: {
+        title: `Destinos | ${siteName}`,
+        description: `Descubre los mejores destinos de viaje con ${siteName}.`,
+      },
+    };
+  }
+
+  // Destination detail (/destinos/[slug])
+  if (slug.length === 2 && (slug[0] === 'destinos' || slug[0] === 'destinations')) {
+    const destinations = await getDestinations(subdomain);
+    const dest = destinations.find(d => d.slug === slug[1]);
+    if (dest) {
+      const siteName = website.content?.account?.name || website.content?.siteName || subdomain;
+      const title = `${dest.name} | ${siteName}`;
+      const description = `Explora ${dest.name}: ${dest.hotel_count} hoteles y ${dest.activity_count} actividades${dest.min_price ? ` desde ${dest.min_price}` : ''}. Reserva con ${siteName}.`;
+      return {
+        title,
+        description,
+        openGraph: {
+          title,
+          description,
+          images: dest.image ? [dest.image] : undefined,
+        },
+      };
+    }
+  }
+
   // Check if this is a product page (has 2+ segments like /destinos/cartagena)
   if (slug.length >= 2) {
     const categorySlug = slug[0];
