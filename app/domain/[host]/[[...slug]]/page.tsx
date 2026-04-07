@@ -558,6 +558,41 @@ export async function generateMetadata({ params, searchParams }: CustomDomainPag
     }
   }
 
+  // Destination listing
+  if (slugPath === 'destinos' || slugPath === 'destinations') {
+    const siteName = website.content.account?.name || website.content.siteName;
+    return {
+      title: `Destinos | ${siteName}`,
+      description: `Descubre los mejores destinos de viaje con ${siteName}. Hoteles, actividades y experiencias seleccionadas.`,
+      openGraph: {
+        title: `Destinos | ${siteName}`,
+        description: `Descubre los mejores destinos de viaje con ${siteName}.`,
+      },
+    };
+  }
+
+  // Destination detail
+  if (slugPath.startsWith('destinos/') || slugPath.startsWith('destinations/')) {
+    const destSlug = slugPath.split('/')[1];
+    const { getDestinations } = await import('@/lib/supabase/get-pages');
+    const destinations = await getDestinations(website.subdomain);
+    const dest = destinations.find((d: { slug: string }) => d.slug === destSlug);
+    if (dest) {
+      const siteName = website.content.account?.name || website.content.siteName;
+      const title = `${dest.name} | ${siteName}`;
+      const description = `Explora ${dest.name}: ${dest.hotel_count} hoteles y ${dest.activity_count} actividades${dest.min_price ? ` desde ${dest.min_price}` : ''}. Reserva con ${siteName}.`;
+      return {
+        title,
+        description,
+        openGraph: {
+          title,
+          description,
+          images: dest.image ? [dest.image] : undefined,
+        },
+      };
+    }
+  }
+
   // Default metadata with og:image
   const title = website.content.seo?.title || website.content.siteName;
   const description = website.content.seo?.description || website.content.tagline;

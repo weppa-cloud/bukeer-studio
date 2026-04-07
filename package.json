@@ -27,7 +27,6 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@opennextjs/cloudflare": "^1.17.1",
     "@playwright/test": "^1.58.2",
-    "@puckeditor/core": "^0.21.1",
     "@radix-ui/react-avatar": "^1.1.10",
     "@radix-ui/react-dialog": "^1.1.14",
     "@radix-ui/react-navigation-menu": "^1.2.13",

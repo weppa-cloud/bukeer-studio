@@ -1,11 +1,9 @@
 /**
- * Standalone auth guard for editor routes.
+ * Auth guard for editor routes.
  *
- * Two modes:
- * 1. Embedded: Token received via postMessage from Flutter (existing)
- * 2. Standalone: Direct Supabase Auth session
- *
- * This module handles mode 2 — direct browser session via Supabase Auth.
+ * All editor routes now use standalone Supabase Auth sessions.
+ * Flutter passes JWT via URL query param (?token=JWT), middleware sets
+ * it as a cookie, and @supabase/ssr picks it up automatically.
  */
 
 import { createClient } from '@supabase/supabase-js';
@@ -15,7 +13,6 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 /**
  * Creates an authenticated Supabase client from the browser session.
- * Returns null if no session exists.
  */
 export function createAuthClient() {
   return createClient(supabaseUrl, supabaseAnonKey, {
@@ -35,7 +32,6 @@ export interface AuthUser {
 
 /**
  * Gets the current authenticated user, or null if not authenticated.
- * For standalone editor mode (not embedded iframe).
  */
 export async function getAuthUser(): Promise<AuthUser | null> {
   const supabase = createAuthClient();
@@ -84,21 +80,4 @@ export async function canEditWebsite(
     .single();
 
   return !error && !!data;
-}
-
-export type AuthMode = 'embedded' | 'standalone';
-
-/**
- * Detects the auth mode based on context.
- * - If loaded in an iframe (window.parent !== window), it's embedded mode.
- * - Otherwise, it's standalone mode.
- */
-export function detectAuthMode(): AuthMode {
-  if (typeof window === 'undefined') return 'standalone';
-  try {
-    return window.parent !== window ? 'embedded' : 'standalone';
-  } catch {
-    // Cross-origin access to window.parent throws — means we're embedded
-    return 'embedded';
-  }
 }

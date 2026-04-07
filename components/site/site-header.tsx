@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useTheme } from 'next-themes';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { WebsiteData } from '@/lib/supabase/get-website';
 import { getBasePath } from '@/lib/utils/base-path';
 import { resolveNavHref } from '@/lib/utils/navigation';
@@ -19,316 +19,295 @@ export function SiteHeader({ website, isCustomDomain = false, navigation }: Site
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [scrolled, setScrolled] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   const { content, theme: siteTheme, subdomain, site_parts: siteParts } = website;
   const profile = siteTheme?.profile as Record<string, unknown> | undefined;
   const layout = profile?.layout as Record<string, string> | undefined;
-  const navStyle = layout?.navStyle || 'sticky';
   const basePath = getBasePath(subdomain, isCustomDomain);
 
   const siteName = content.account?.name || content.siteName;
   const siteLogo = content.account?.logo || content.logo;
+  const headerCta: HeaderCTA | undefined = content.headerCta;
+  const phone = content.account?.phone || content.social?.whatsapp;
 
-  const headerVariant: HeaderVariant = siteParts?.header?.variant || 'left-logo';
-  const shrinkOnScroll = siteParts?.header?.shrinkOnScroll ?? false;
-
-  // Fallback to hardcoded links if no navigation prop
+  // Fallback navigation
   const navLinks: NavigationItem[] = navigation || [
-    { slug: '', label: 'Inicio', page_type: 'custom', href: `${basePath}/`, target: '_self' },
     { slug: 'destinations', label: 'Destinos', page_type: 'anchor', href: `${basePath}/#destinations`, target: '_self' },
-    { slug: 'hotels', label: 'Hoteles', page_type: 'anchor', href: `${basePath}/#hotels`, target: '_self' },
-    { slug: 'blog', label: 'Blog', page_type: 'custom', href: `${basePath}/blog`, target: '_self' },
+    { slug: 'packages', label: 'Paquetes', page_type: 'anchor', href: `${basePath}/#packages`, target: '_self' },
+    { slug: 'activities', label: 'Experiencias', page_type: 'anchor', href: `${basePath}/#activities`, target: '_self' },
+    { slug: 'about', label: 'Nosotros', page_type: 'anchor', href: `${basePath}/#about`, target: '_self' },
     { slug: 'contact', label: 'Contacto', page_type: 'anchor', href: `${basePath}/#contact`, target: '_self' },
   ];
 
-  const headerCta: HeaderCTA | undefined = content.headerCta;
-
-  // Shrink-on-scroll
-  useEffect(() => {
-    if (!shrinkOnScroll || navStyle !== 'sticky') return;
-    const onScroll = () => setScrolled(window.scrollY > 50);
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, [shrinkOnScroll, navStyle]);
-
-  // Nav style → CSS classes
-  const headerBaseClasses: Record<string, string> = {
-    sticky: 'sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b',
-    static: 'bg-background border-b',
-    transparent: 'absolute top-0 left-0 right-0 z-50 bg-transparent',
-    hidden: 'hidden',
-  };
-
-  // Transparent-hero variant forces transparent nav style
-  const effectiveNavStyle = headerVariant === 'transparent-hero' ? 'transparent' : navStyle;
-  const headerClass = `${headerBaseClasses[effectiveNavStyle] || headerBaseClasses.sticky} transition-all duration-300`;
-  const navHeight = scrolled ? 'h-14' : 'h-16 lg:h-20';
-
-  // Shared components
-  const Logo = (
-    <Link href={`${basePath}/`} className="flex items-center gap-3 shrink-0">
-      {siteLogo ? (
-        <img src={siteLogo} alt={siteName} className={`${scrolled ? 'h-8' : 'h-10'} w-auto object-contain transition-all duration-300`} />
-      ) : (
-        <span className={`${scrolled ? 'text-lg' : 'text-xl'} font-bold transition-all duration-300`}>{siteName}</span>
-      )}
-    </Link>
-  );
-
-  // Use mounted state to avoid hydration mismatch on theme icon
-  const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
-  const ThemeToggle = (
-    <button
-      onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-      className="p-2 rounded-lg hover:bg-muted transition-colors"
-      aria-label="Cambiar tema"
-    >
-      {/* Always render moon on SSR to avoid hydration mismatch */}
-      {mounted && theme === 'dark' ? (
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-        </svg>
-      ) : (
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-        </svg>
-      )}
-    </button>
-  );
+  // Scroll detection — always active for immersive header
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 80);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
-  const BurgerButton = (
-    <button
-      onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-      className={`${headerVariant === 'minimal-burger' ? '' : 'lg:hidden'} p-2 rounded-lg hover:bg-muted transition-colors`}
-      aria-label="Menu"
-    >
-      {mobileMenuOpen ? (
-        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-        </svg>
-      ) : (
-        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-        </svg>
-      )}
-    </button>
-  );
+  // Close mobile menu on route change / resize
+  const closeMobile = useCallback(() => setMobileMenuOpen(false), []);
 
-  // Desktop nav links renderer
-  const DesktopNav = (
-    <div className="hidden lg:flex items-center gap-8">
-      {navLinks.map((link) => {
-        const href = resolveNavHref(link, basePath);
-        const hasChildren = link.children && link.children.length > 0;
+  // WhatsApp URL
+  const whatsappUrl = content.social?.whatsapp
+    ? `https://wa.me/${content.social.whatsapp.replace(/[^0-9]/g, '')}`
+    : phone ? `https://wa.me/${phone.replace(/[^0-9]/g, '')}` : null;
 
-        if (hasChildren) {
-          return (
-            <div
-              key={link.slug}
-              className="relative group"
-              onMouseEnter={() => setOpenDropdown(link.slug)}
-              onMouseLeave={() => setOpenDropdown(null)}
-            >
-              <button className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1">
-                {link.label}
-                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-              {openDropdown === link.slug && (
-                <div className="absolute top-full left-0 pt-2 min-w-48 z-50">
-                  <div className="bg-background border rounded-lg shadow-lg py-1">
-                    <Link href={href} className="block px-4 py-2 text-sm font-medium hover:bg-muted transition-colors">{link.label}</Link>
-                    <div className="border-t mx-2 my-1" />
-                    {link.children!.map((child) => (
-                      <Link key={child.slug} href={resolveNavHref(child, basePath)} target={child.target === '_blank' ? '_blank' : undefined} rel={child.target === '_blank' ? 'noopener noreferrer' : undefined} className="block px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">{child.label}</Link>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        }
-
-        return (
-          <Link key={link.slug} href={href} target={link.target === '_blank' ? '_blank' : undefined} rel={link.target === '_blank' ? 'noopener noreferrer' : undefined} className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">{link.label}</Link>
-        );
-      })}
-    </div>
-  );
-
-  // Mobile menu (shared across all variants)
-  const MobileMenu = mobileMenuOpen && (
-    <div className={`${headerVariant === 'minimal-burger' ? '' : 'lg:hidden'} border-t bg-background`}>
-      <nav className="container py-4 flex flex-col gap-2">
-        {navLinks.map((link) => {
-          const href = resolveNavHref(link, basePath);
-          const hasChildren = link.children && link.children.length > 0;
-          return (
-            <div key={link.slug}>
-              <Link href={href} onClick={() => !hasChildren && setMobileMenuOpen(false)} className="py-3 px-4 rounded-lg text-sm font-medium hover:bg-muted transition-colors block">{link.label}</Link>
-              {hasChildren && (
-                <div className="pl-6">
-                  {link.children!.map((child) => (
-                    <Link key={child.slug} href={resolveNavHref(child, basePath)} onClick={() => setMobileMenuOpen(false)} target={child.target === '_blank' ? '_blank' : undefined} className="py-2 px-4 rounded-lg text-sm text-muted-foreground hover:bg-muted transition-colors block">{child.label}</Link>
-                  ))}
-                </div>
-              )}
-            </div>
-          );
-        })}
-        <div className="flex items-center gap-4 pt-4 border-t mt-2">
-          <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="p-3 rounded-lg hover:bg-muted transition-colors">{theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}</button>
-        </div>
-        <div className="pt-2"><HeaderCtaButton cta={headerCta} content={content} /></div>
-      </nav>
-    </div>
-  );
-
-  // --- VARIANT LAYOUTS ---
-
-  // left-logo (default) + transparent-hero: [Logo] — [Nav] — [ThemeToggle + CTA]
-  if (headerVariant === 'left-logo' || headerVariant === 'transparent-hero') {
-    return (
-      <header className={headerClass}>
-        <nav className={`container flex items-center justify-between ${navHeight} transition-all duration-300`}>
-          {Logo}
-          <div className="hidden lg:flex items-center gap-8">
-            {DesktopNav}
-            {ThemeToggle}
-            <HeaderCtaButton cta={headerCta} content={content} />
-          </div>
-          {BurgerButton}
-        </nav>
-        {MobileMenu}
-      </header>
-    );
-  }
-
-  // centered-logo: [Nav left] — [Logo] — [Nav right + ThemeToggle + CTA]
-  if (headerVariant === 'centered-logo') {
-    const mid = Math.ceil(navLinks.length / 2);
-    const leftNav = navLinks.slice(0, mid);
-    const rightNav = navLinks.slice(mid);
-
-    return (
-      <header className={headerClass}>
-        <nav className={`container flex items-center justify-between ${navHeight} transition-all duration-300`}>
-          {/* Left nav */}
-          <div className="hidden lg:flex items-center gap-6 flex-1">
-            {leftNav.map((link) => (
-              <Link key={link.slug} href={resolveNavHref(link, basePath)} className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">{link.label}</Link>
-            ))}
-          </div>
-          {/* Center logo */}
-          <div className="flex-shrink-0">{Logo}</div>
-          {/* Right nav + actions */}
-          <div className="hidden lg:flex items-center gap-6 flex-1 justify-end">
-            {rightNav.map((link) => (
-              <Link key={link.slug} href={resolveNavHref(link, basePath)} className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">{link.label}</Link>
-            ))}
-            {ThemeToggle}
-            <HeaderCtaButton cta={headerCta} content={content} />
-          </div>
-          {BurgerButton}
-        </nav>
-        {MobileMenu}
-      </header>
-    );
-  }
-
-  // split: [Logo + Nav] — [CTA + Social + ThemeToggle]
-  if (headerVariant === 'split') {
-    return (
-      <header className={headerClass}>
-        <nav className={`container flex items-center justify-between ${navHeight} transition-all duration-300`}>
-          <div className="flex items-center gap-8">
-            {Logo}
-            {DesktopNav}
-          </div>
-          <div className="hidden lg:flex items-center gap-4">
-            {ThemeToggle}
-            <HeaderCtaButton cta={headerCta} content={content} />
-          </div>
-          {BurgerButton}
-        </nav>
-        {MobileMenu}
-      </header>
-    );
-  }
-
-  // minimal-burger: [Logo] — [Burger] (always, even on desktop)
-  if (headerVariant === 'minimal-burger') {
-    return (
-      <header className={headerClass}>
-        <nav className={`container flex items-center justify-between ${navHeight} transition-all duration-300`}>
-          {Logo}
-          <div className="flex items-center gap-4">
-            {ThemeToggle}
-            <HeaderCtaButton cta={headerCta} content={content} />
-            {BurgerButton}
-          </div>
-        </nav>
-        {MobileMenu}
-      </header>
-    );
-  }
-
-  // Fallback: left-logo
   return (
-    <header className={headerClass}>
-      <nav className={`container flex items-center justify-between ${navHeight} transition-all duration-300`}>
-        {Logo}
-        <div className="hidden lg:flex items-center gap-8">
-          {DesktopNav}
-          {ThemeToggle}
-          <HeaderCtaButton cta={headerCta} content={content} />
-        </div>
-        {BurgerButton}
-      </nav>
-      {MobileMenu}
-    </header>
+    <>
+      <header
+        className="fixed top-0 left-0 right-0 z-50 transition-all duration-500 ease-out"
+        data-scrolled={scrolled}
+        style={{
+          background: scrolled
+            ? 'color-mix(in srgb, var(--bg, hsl(var(--background))) 88%, transparent)'
+            : 'linear-gradient(to bottom, rgba(0,0,0,0.35) 0%, transparent 100%)',
+          backdropFilter: scrolled ? 'blur(16px) saturate(180%)' : 'none',
+          WebkitBackdropFilter: scrolled ? 'blur(16px) saturate(180%)' : 'none',
+          borderBottom: scrolled ? '1px solid var(--border-subtle, hsl(var(--border)))' : 'none',
+          boxShadow: scrolled ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+        }}
+      >
+        <nav className={`container flex items-center justify-between transition-all duration-500 ${scrolled ? 'h-14' : 'h-20'}`}>
+          {/* Logo */}
+          <Link href={`${basePath}/`} className="flex items-center gap-2 shrink-0 group">
+            {siteLogo ? (
+              <img
+                src={siteLogo}
+                alt={siteName}
+                className={`w-auto object-contain transition-all duration-500 ${scrolled ? 'h-8' : 'h-11'}`}
+              />
+            ) : (
+              <span
+                className={`font-bold tracking-tight transition-all duration-500 ${scrolled ? 'text-lg' : 'text-xl'}`}
+                style={{ color: scrolled ? 'var(--text-heading, hsl(var(--foreground)))' : 'white', textShadow: scrolled ? 'none' : '0 1px 3px rgba(0,0,0,0.3)' }}
+              >
+                {siteName}
+              </span>
+            )}
+          </Link>
+
+          {/* Desktop Nav */}
+          <div className="hidden lg:flex items-center gap-1">
+            {navLinks.map((link) => {
+              const href = resolveNavHref(link, basePath);
+              const hasChildren = link.children && link.children.length > 0;
+
+              if (hasChildren) {
+                return (
+                  <div
+                    key={link.slug}
+                    className="relative"
+                    onMouseEnter={() => setOpenDropdown(link.slug)}
+                    onMouseLeave={() => setOpenDropdown(null)}
+                  >
+                    <button
+                      className="px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 inline-flex items-center gap-1"
+                      style={{
+                        color: scrolled ? 'var(--text-secondary, hsl(var(--muted-foreground)))' : 'rgba(255,255,255,0.9)',
+                        textShadow: scrolled ? 'none' : '0 1px 2px rgba(0,0,0,0.2)',
+                      }}
+                    >
+                      {link.label}
+                      <svg className="w-3 h-3 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                    {openDropdown === link.slug && (
+                      <div className="absolute top-full left-0 pt-2 min-w-48 z-50">
+                        <div className="bg-background/95 backdrop-blur-lg border rounded-xl shadow-xl py-2">
+                          <Link href={href} className="block px-4 py-2.5 text-sm font-medium hover:bg-muted transition-colors rounded-lg mx-1">{link.label}</Link>
+                          <div className="border-t mx-3 my-1" />
+                          {link.children!.map((child) => (
+                            <Link key={child.slug} href={resolveNavHref(child, basePath)} target={child.target === '_blank' ? '_blank' : undefined} rel={child.target === '_blank' ? 'noopener noreferrer' : undefined} className="block px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors rounded-lg mx-1">{child.label}</Link>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              }
+
+              return (
+                <Link
+                  key={link.slug}
+                  href={href}
+                  target={link.target === '_blank' ? '_blank' : undefined}
+                  className="px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:bg-white/10"
+                  style={{
+                    color: scrolled ? 'var(--text-secondary, hsl(var(--muted-foreground)))' : 'rgba(255,255,255,0.9)',
+                    textShadow: scrolled ? 'none' : '0 1px 2px rgba(0,0,0,0.2)',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (scrolled) e.currentTarget.style.color = 'var(--accent, hsl(var(--primary)))';
+                    else e.currentTarget.style.background = 'rgba(255,255,255,0.12)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = scrolled ? 'var(--text-secondary, hsl(var(--muted-foreground)))' : 'rgba(255,255,255,0.9)';
+                    if (!scrolled) e.currentTarget.style.background = 'transparent';
+                  }}
+                >
+                  {link.label}
+                </Link>
+              );
+            })}
+
+            {/* Divider */}
+            <div className="w-px h-5 mx-2" style={{ background: scrolled ? 'var(--border-subtle, hsl(var(--border)))' : 'rgba(255,255,255,0.25)' }} />
+
+            {/* WhatsApp CTA */}
+            {whatsappUrl ? (
+              <a
+                href={whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-sm font-semibold tracking-wide transition-all duration-300 hover:-translate-y-0.5"
+                style={{
+                  background: 'var(--accent, hsl(var(--primary)))',
+                  color: 'var(--accent-text, white)',
+                  boxShadow: '0 2px 8px color-mix(in srgb, var(--accent, hsl(var(--primary))) 35%, transparent)',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.boxShadow = '0 4px 16px color-mix(in srgb, var(--accent, hsl(var(--primary))) 50%, transparent)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.boxShadow = '0 2px 8px color-mix(in srgb, var(--accent, hsl(var(--primary))) 35%, transparent)'; }}
+              >
+                <WhatsAppIcon className="w-4 h-4" />
+                <span>Planear mi viaje</span>
+              </a>
+            ) : (
+              <HeaderCtaButton cta={headerCta} content={content} />
+            )}
+          </div>
+
+          {/* Mobile: WhatsApp + Burger */}
+          <div className="flex items-center gap-2 lg:hidden">
+            {whatsappUrl && (
+              <a
+                href={whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center w-10 h-10 rounded-full transition-transform hover:scale-105"
+                style={{ background: '#25D366' }}
+                aria-label="WhatsApp"
+              >
+                <WhatsAppIcon className="w-5 h-5 text-white" />
+              </a>
+            )}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="p-2 rounded-lg transition-colors"
+              style={{
+                color: scrolled ? 'var(--text-heading, hsl(var(--foreground)))' : 'white',
+              }}
+              aria-label="Menu"
+            >
+              {mobileMenuOpen ? (
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              ) : (
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+              )}
+            </button>
+          </div>
+        </nav>
+
+        {/* Mobile Menu — fullscreen overlay */}
+        {mobileMenuOpen && (
+          <div
+            className="lg:hidden fixed inset-0 top-14 z-40"
+            style={{
+              background: 'color-mix(in srgb, var(--bg, hsl(var(--background))) 95%, transparent)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+            }}
+          >
+            <nav className="container py-6 flex flex-col gap-1">
+              {navLinks.map((link, i) => {
+                const href = resolveNavHref(link, basePath);
+                return (
+                  <Link
+                    key={link.slug}
+                    href={href}
+                    onClick={closeMobile}
+                    className="py-4 px-4 rounded-xl text-base font-medium transition-all hover:bg-muted/50 flex items-center justify-between"
+                    style={{
+                      color: 'var(--text-heading, hsl(var(--foreground)))',
+                      animationDelay: `${i * 50}ms`,
+                    }}
+                  >
+                    {link.label}
+                    <svg className="w-4 h-4 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </Link>
+                );
+              })}
+
+              {/* Mobile CTA */}
+              {whatsappUrl && (
+                <a
+                  href={whatsappUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-4 flex items-center justify-center gap-3 py-4 rounded-2xl text-base font-semibold transition-all"
+                  style={{
+                    background: 'var(--accent, hsl(var(--primary)))',
+                    color: 'var(--accent-text, white)',
+                  }}
+                >
+                  <WhatsAppIcon className="w-5 h-5" />
+                  Planear mi viaje por WhatsApp
+                </a>
+              )}
+
+              {/* Phone */}
+              {phone && (
+                <a
+                  href={`tel:${phone}`}
+                  className="mt-2 flex items-center justify-center gap-3 py-4 rounded-2xl text-base font-medium border transition-all"
+                  style={{
+                    borderColor: 'var(--border-subtle, hsl(var(--border)))',
+                    color: 'var(--text-heading, hsl(var(--foreground)))',
+                  }}
+                >
+                  <PhoneIcon className="w-5 h-5" />
+                  Llamar ahora
+                </a>
+              )}
+            </nav>
+          </div>
+        )}
+      </header>
+
+      {/* Spacer for non-transparent headers — not needed since we're always fixed+transparent over hero */}
+    </>
   );
 }
 
-/** Header CTA button — configurable or fallback to WhatsApp */
+/** Header CTA button — configurable or fallback */
 function HeaderCtaButton({ cta, content }: { cta?: HeaderCTA; content: WebsiteData['content'] }) {
-  const pillStyle = {
-    backgroundColor: 'var(--accent)',
-    color: 'var(--accent-text)',
-  };
-
   if (cta?.enabled && cta.label && cta.href) {
     const isExternal = cta.variant === 'whatsapp' || cta.href.startsWith('http');
-    const isOutline = cta.variant === 'outline';
     return (
       <a
         href={cta.href}
         target={isExternal ? '_blank' : undefined}
         rel={isExternal ? 'noopener noreferrer' : undefined}
-        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full font-sans text-sm font-medium tracking-wide transition-colors"
-        style={isOutline ? { border: '1px solid var(--accent)', color: 'var(--accent)' } : pillStyle}
+        className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-sm font-semibold tracking-wide transition-all duration-300 hover:-translate-y-0.5"
+        style={{
+          background: 'var(--accent, hsl(var(--primary)))',
+          color: 'var(--accent-text, white)',
+          boxShadow: '0 2px 8px color-mix(in srgb, var(--accent, hsl(var(--primary))) 35%, transparent)',
+        }}
       >
         {cta.icon === 'whatsapp' && <WhatsAppIcon className="w-4 h-4" />}
         {cta.icon === 'phone' && <PhoneIcon className="w-4 h-4" />}
         {cta.icon === 'mail' && <MailIcon className="w-4 h-4" />}
         {cta.icon === 'calendar' && <CalendarIcon className="w-4 h-4" />}
         {cta.label}
-      </a>
-    );
-  }
-  if (content.social?.whatsapp) {
-    return (
-      <a
-        href={`https://wa.me/${content.social.whatsapp.replace(/[^0-9]/g, '')}`}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full font-sans text-sm font-medium tracking-wide transition-colors"
-        style={pillStyle}
-      >
-        <WhatsAppIcon className="w-4 h-4" />Contactanos
       </a>
     );
   }

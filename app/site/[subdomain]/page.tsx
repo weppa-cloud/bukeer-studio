@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import { getWebsiteBySubdomain } from '@/lib/supabase/get-website';
-import { getDestinations } from '@/lib/supabase/get-pages';
+import { getDestinations, getCachedGoogleReviews } from '@/lib/supabase/get-pages';
 import { SectionRenderer } from '@/components/site/section-renderer';
 import { notFound } from 'next/navigation';
 import { JsonLd, generateHomepageSchemas } from '@/lib/schema';
@@ -79,6 +79,41 @@ export default async function SitePage({ params }: SitePageProps) {
       },
     } as WebsiteSection;
   });
+
+  // Dynamic Google Reviews for testimonials section.
+  // Uses cached reviews when google_reviews_enabled is true on the account.
+  const accountContent = (website.content as Record<string, unknown>)?.account as Record<string, unknown> | undefined;
+  const googleReviewsEnabled = accountContent?.google_reviews_enabled === true;
+
+  if (googleReviewsEnabled && website.account_id) {
+    const cached = await getCachedGoogleReviews(website.account_id);
+    if (cached && cached.reviews.length > 0) {
+      const visibleReviews = cached.reviews.filter((r) => r.is_visible !== false);
+      for (let i = 0; i < hydratedSections.length; i++) {
+        if (hydratedSections[i].section_type !== 'testimonials') continue;
+        hydratedSections[i] = {
+          ...hydratedSections[i],
+          content: {
+            ...(hydratedSections[i].content as Record<string, unknown>),
+            testimonials: visibleReviews.map((r) => ({
+              name: r.author_name,
+              avatar: r.author_photo,
+              text: r.text,
+              rating: r.rating,
+              location: r.relative_time,
+              images: r.images,
+              response: r.response,
+            })),
+            source: 'google_reviews',
+            averageRating: cached.average_rating,
+            totalReviews: cached.total_reviews,
+            googleMapsUrl: cached.google_maps_url,
+            businessName: cached.business_name,
+          },
+        } as WebsiteSection;
+      }
+    }
+  }
 
   return (
     <>

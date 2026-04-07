@@ -18,3 +18,8 @@ timestamp	template	score	renders	interactive	data	ux	issues	cycle	mode
 2026-03-27T22:30:00	typecheck_packages	100	100	100	100	100	0	1	typecheck
 2026-03-27T22:31:00	contract_packages	100	100	100	100	100	0	1	scan
 2026-03-27T22:32:00	products_packages_tab	90	90	90	90	90	1	1	scan
+2026-03-31T02:00:00	studio_3panel_layout	90	90	90	90	90	1	1	studio-qa
+2026-03-31T02:05:00	studio_layers_panel	92	92	92	92	92	0	1	studio-qa
+2026-03-31T02:10:00	studio_viewport_switch	93	93	93	93	93	0	1	studio-qa
+2026-03-31T02:15:00	studio_section_edit	90	90	90	90	90	0	2	studio-qa
+2026-03-31T02:20:00	studio_iframe_autoresize	80	80	80	80	80	1	1	studio-qa-fix

@@ -32,7 +32,7 @@ export function useAutosave<T>({
       lastSavedRef.current = serialized;
       retryCountRef.current = 0;
       setStatus('saved');
-      setTimeout(() => setStatus('idle'), 2000);
+      setTimeout(() => setStatus('idle'), 5000);
     } catch {
       retryCountRef.current += 1;
       if (retryCountRef.current <= 3) {

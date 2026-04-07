@@ -263,3 +263,96 @@ export async function getDestinationProducts(
     return [];
   }
 }
+
+/**
+ * Get cached Google Reviews for a website's account
+ */
+export interface GoogleReviewData {
+  review_id: string;
+  author_name: string;
+  author_photo: string | null;
+  author_link: string | null;
+  rating: number;
+  text: string;
+  date: string;
+  iso_date: string | null;
+  relative_time: string | null;
+  likes: number;
+  images: Array<{ url: string; thumbnail?: string }>;
+  response: { text: string; date: string } | null;
+  is_visible: boolean;
+  tags: string[];
+}
+
+export interface GoogleReviewsCache {
+  reviews: GoogleReviewData[];
+  business_name: string | null;
+  average_rating: number | null;
+  total_reviews: number | null;
+  google_maps_url: string | null;
+  fetched_at: string;
+}
+
+export async function getCachedGoogleReviews(
+  accountId: string
+): Promise<GoogleReviewsCache | null> {
+  try {
+    const { data, error } = await supabase
+      .from('account_google_reviews')
+      .select('reviews, business_name, average_rating, total_reviews, google_maps_url, fetched_at')
+      .eq('account_id', accountId)
+      .single();
+
+    if (error || !data) {
+      return null;
+    }
+
+    return {
+      reviews: (data.reviews as GoogleReviewData[]) || [],
+      business_name: data.business_name,
+      average_rating: data.average_rating,
+      total_reviews: data.total_reviews,
+      google_maps_url: data.google_maps_url,
+      fetched_at: data.fetched_at,
+    };
+  } catch (e) {
+    console.error('[getCachedGoogleReviews] Exception:', e);
+    return null;
+  }
+}
+
+/**
+ * Get reviews matching a product's location/city for product detail pages.
+ * Returns visible reviews whose tags match the product's city slug.
+ * Falls back to general reviews (no tags) if no specific match.
+ */
+export async function getReviewsForProduct(
+  accountId: string,
+  cityOrDestination: string,
+  limit: number = 3
+): Promise<GoogleReviewData[]> {
+  const cached = await getCachedGoogleReviews(accountId);
+  if (!cached || cached.reviews.length === 0) return [];
+
+  const visible = cached.reviews.filter((r) => r.is_visible !== false);
+  const slug = cityOrDestination.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // remove accents
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
+
+  // Match reviews by tag
+  const matched = visible.filter((r) =>
+    (r.tags || []).some((t) => slug.includes(t) || t.includes(slug))
+  );
+
+  // If we have enough matched reviews, return them
+  if (matched.length >= limit) {
+    return matched.slice(0, limit);
+  }
+
+  // Fill remaining slots with general reviews (no tags) or other reviews not already matched
+  const matchedIds = new Set(matched.map((r) => r.review_id));
+  const others = visible.filter((r) => !matchedIds.has(r.review_id));
+  const combined = [...matched, ...others];
+  return combined.slice(0, limit);
+}

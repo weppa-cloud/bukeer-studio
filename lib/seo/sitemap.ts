@@ -8,7 +8,7 @@
  */
 
 import { getBlogPosts } from '@/lib/supabase/get-website';
-import { getAllPageSlugs, getCategoryProducts } from '@/lib/supabase/get-pages';
+import { getAllPageSlugs, getCategoryProducts, getDestinations } from '@/lib/supabase/get-pages';
 
 export interface SitemapUrl {
   loc: string;
@@ -122,6 +122,34 @@ export async function buildSitemapUrls(
         });
       }
     }
+  }
+
+  // 5. Destination pages
+  try {
+    const destinations = await getDestinations(subdomain);
+    if (destinations.length > 0) {
+      // Destination listing page
+      const destSlug = pageSlugSet.has('destinos') ? 'destinos' : 'destinations';
+      urls.push({
+        loc: `${baseUrl}/${destSlug}`,
+        lastmod: new Date().toISOString().split('T')[0],
+        changefreq: 'weekly',
+        priority: '0.7',
+      });
+
+      // Individual destination pages
+      for (const dest of destinations) {
+        if (dest.slug) {
+          urls.push({
+            loc: `${baseUrl}/${destSlug}/${dest.slug}`,
+            changefreq: 'weekly',
+            priority: '0.6',
+          });
+        }
+      }
+    }
+  } catch (e) {
+    console.error('[buildSitemapUrls] Error fetching destinations:', e);
   }
 
   return urls;

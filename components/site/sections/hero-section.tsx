@@ -201,7 +201,8 @@ function WavyBackground() {
 export function HeroSection({ section, website }: HeroSectionProps) {
   const { content, theme } = website;
   // Precedence: section.variant > theme.layout.heroStyle > 'full'
-  const variant = section.variant || theme?.layout?.heroStyle || 'full';
+  const themeLayout = (theme as unknown as Record<string, Record<string, string>> | null)?.layout;
+  const variant = section.variant || themeLayout?.heroStyle || 'full';
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Parallax scroll effect
@@ -288,8 +289,10 @@ export function HeroSection({ section, website }: HeroSectionProps) {
               quality={85}
             />
           ) : null}
-          <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/40 to-[var(--bg,#1a1714)]" />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/30 to-transparent" />
+          {/* Immersive multi-layer gradient using theme colors */}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/50 to-[var(--bg,#0a2920)]" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[color-mix(in_srgb,var(--accent,#006B60)_45%,black)] via-transparent to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[color-mix(in_srgb,var(--accent,#006B60)_30%,black)] via-transparent to-transparent opacity-80" />
         </motion.div>
 
         {/* Grain texture */}
@@ -312,7 +315,8 @@ export function HeroSection({ section, website }: HeroSectionProps) {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-              className="font-mono text-xs tracking-[0.15em] uppercase text-primary mb-5"
+              className="font-mono text-xs tracking-[0.2em] uppercase mb-5 drop-shadow-[0_1px_3px_rgba(0,0,0,0.4)]"
+              style={{ color: 'color-mix(in srgb, var(--accent, hsl(var(--primary))) 70%, white)' }}
             >
               {immersiveContent.eyebrow}
             </motion.p>
@@ -322,7 +326,7 @@ export function HeroSection({ section, website }: HeroSectionProps) {
             words={title || ''}
             delay={0.3}
             duration={0.6}
-            className="font-display text-4xl md:text-5xl lg:text-6xl xl:text-7xl text-white max-w-3xl leading-[1.05] mb-8"
+            className="font-display text-4xl md:text-5xl lg:text-6xl xl:text-7xl text-white max-w-3xl leading-[1.05] mb-8 drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)]"
           />
 
           <motion.div
@@ -332,13 +336,18 @@ export function HeroSection({ section, website }: HeroSectionProps) {
             className="flex flex-col sm:flex-row items-start sm:items-center gap-6"
           >
             {subtitle && (
-              <p className="text-white/70 text-base max-w-md leading-relaxed">{subtitle}</p>
+              <p className="text-white/90 text-base md:text-lg max-w-md leading-relaxed drop-shadow-[0_1px_4px_rgba(0,0,0,0.4)]">{subtitle}</p>
             )}
             <div className="flex gap-3 shrink-0">
               {sectionContent.ctaText && sectionContent.ctaUrl && (
                 <a
                   href={sectionContent.ctaUrl}
-                  className="px-6 py-3 rounded-full font-medium text-sm bg-primary text-primary-foreground transition-all duration-250 hover:opacity-90 hover:scale-[1.03] active:scale-[0.97]"
+                  className="px-7 py-3.5 rounded-full font-semibold text-sm tracking-wide transition-all duration-300 hover:scale-[1.04] active:scale-[0.97] shadow-lg"
+                  style={{
+                    background: 'var(--accent, hsl(var(--primary)))',
+                    color: 'var(--accent-text, white)',
+                    boxShadow: '0 4px 20px color-mix(in srgb, var(--accent, hsl(var(--primary))) 40%, transparent)',
+                  }}
                 >
                   {sectionContent.ctaText}
                 </a>
@@ -346,7 +355,7 @@ export function HeroSection({ section, website }: HeroSectionProps) {
               {immersiveContent.secondaryCtaText && immersiveContent.secondaryCtaUrl && (
                 <a
                   href={immersiveContent.secondaryCtaUrl}
-                  className="px-6 py-3 rounded-full font-medium text-sm border border-white/20 text-white backdrop-blur-sm hover:border-white/40 hover:bg-white/10 transition-all duration-250"
+                  className="px-7 py-3.5 rounded-full font-semibold text-sm tracking-wide border-2 border-white/30 text-white backdrop-blur-md hover:border-white/60 hover:bg-white/15 transition-all duration-300"
                 >
                   {immersiveContent.secondaryCtaText}
                 </a>
@@ -376,16 +385,20 @@ export function HeroSection({ section, website }: HeroSectionProps) {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 1 + i * 0.15, duration: 0.5 }}
-                    className="px-3 py-2 md:px-4 md:py-3 rounded-xl text-right flex-1 md:flex-none bg-black/40 backdrop-blur-md border border-white/10"
+                    className="px-4 py-3 md:px-5 md:py-4 rounded-2xl text-right flex-1 md:flex-none backdrop-blur-xl border border-white/15"
+                    style={{
+                      background: 'color-mix(in srgb, var(--accent, #006B60) 25%, rgba(0,0,0,0.4))',
+                      boxShadow: '0 4px 24px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.1)',
+                    }}
                   >
                     <NumberTicker
                       value={numValue}
                       suffix={numSuffix}
                       decimalPlaces={isDecimal ? 1 : 0}
                       delay={1.2 + i * 0.2}
-                      className="font-display text-base md:text-xl text-white"
+                      className="font-display text-lg md:text-2xl text-white font-bold"
                     />
-                    <p className="font-mono text-[9px] md:text-[10px] text-white/50 uppercase tracking-wide mt-0.5">{stat.label}</p>
+                    <p className="font-mono text-[9px] md:text-[10px] text-white/70 uppercase tracking-wider mt-1">{stat.label}</p>
                   </motion.div>
                 );
               })}

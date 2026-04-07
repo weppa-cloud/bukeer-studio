@@ -1,34 +1,21 @@
 'use client';
 
-import { useState, useCallback, useEffect, useMemo, SyntheticEvent } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef, SyntheticEvent } from 'react';
+import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, type DragEndEvent, type DragStartEvent } from '@dnd-kit/core';
+import { arrayMove } from '@dnd-kit/sortable';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser-client';
-import {
-  DndContext,
-  DragEndEvent,
-  closestCenter,
-  PointerSensor,
-  useSensor,
-  useSensors,
-} from '@dnd-kit/core';
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-  arrayMove,
-} from '@dnd-kit/sortable';
-import { M3ThemeProvider } from '@/lib/theme/m3-theme-provider';
-import type { ThemeInput } from '@/lib/theme/m3-theme-provider';
-import { renderSectionWithResult } from '@/lib/sections/render-section';
-import { SectionPreview } from './section-preview';
 import { SectionForm } from './section-form';
 import { SectionPicker } from './section-picker';
+import { SectionCanvas } from './section-canvas';
 import { StudioChat } from './studio-chat';
 import { SeoPanel } from './seo-panel';
-import { CanvasFrame } from '@/components/editor/canvas-frame';
+import { LeftPanelShell, type LeftPanelMode } from './left-panel/panel-shell';
 import { useAutosave } from '@/lib/hooks/use-autosave';
 import { useDirtyState } from '@/lib/hooks/use-dirty-state';
 import { useCommonShortcuts } from '@/lib/hooks/use-keyboard-shortcuts';
 import { useLocalBackup } from '@/lib/hooks/use-local-backup';
 import { useNetworkStatus } from '@/lib/hooks/use-network-status';
+// Sections render directly in React (no iframe) via SectionCanvas.
 import {
   moveSection,
   duplicateSection,
@@ -57,9 +44,23 @@ import {
   Moon,
   Sun,
   RefreshCw,
+  PanelRightClose,
+  PanelRightOpen,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Undo2,
+  Redo2,
+  LayoutGrid,
 } from 'lucide-react';
 import type { WebsiteData, WebsiteSection } from '@bukeer/website-contract';
 import type { SectionTypeValue } from '@bukeer/website-contract';
+
+// ============================================================================
+// Hot Update: Patch iframe DOM for instant visual feedback
+// ============================================================================
+
+// patchIframeSectionField removed — sections now render directly in React,
+// so field changes trigger immediate re-render via updateSectionContent().
 
 // ============================================================================
 // Content normalization for page sections (DB shape → schema shape)
@@ -134,9 +135,7 @@ interface PageEditorProps {
 }
 
 type ViewportSize = 'desktop' | 'tablet' | 'mobile';
-type PreviewMode = 'edit' | 'exact';
-
-const EXACT_PREVIEW_WIDTHS: Partial<Record<ViewportSize, string>> = {
+const VIEWPORT_LABELS: Record<ViewportSize, string> = {
   desktop: '1440px',
   tablet: '768px',
   mobile: '375px',
@@ -158,9 +157,6 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
   const [error, setError] = useState<string | null>(null);
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
   const [viewport, setViewport] = useState<ViewportSize>('desktop');
-  const [previewMode, setPreviewMode] = useState<PreviewMode>('edit');
-  const [exactPreviewRefreshKey, setExactPreviewRefreshKey] = useState(0);
-  const [isSyncingExactPreview, setIsSyncingExactPreview] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -171,6 +167,18 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
   const [seoTitle, setSeoTitle] = useState('');
   const [seoDescription, setSeoDescription] = useState('');
   const [seoDirty, setSeoDirty] = useState(false);
+  const [panelCollapsed, setPanelCollapsed] = useState(false);
+  const [leftPanelMode, setLeftPanelMode] = useState<LeftPanelMode>('sections');
+  const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false);
+  // Drag & drop state
+  const [draggingSectionType, setDraggingSectionType] = useState<string | null>(null);
+  const dndSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
+  // Track original section IDs from DB (for homepage INSERT/DELETE detection)
+  const dbSectionIdsRef = useRef<Set<string>>(new Set());
+  // Undo/redo history
+  const [history, setHistory] = useState<EditorSection[][]>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+  // exactPreviewRef removed — no more iframe
 
   // Auto-dismiss toast
   useEffect(() => {
@@ -185,54 +193,15 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
   const isEditorDirty = isDirty || seoDirty;
   const backup = useLocalBackup<EditorSection[]>(`editor_${websiteId}_${pageId}`);
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
-  );
-
   // Selected section
   const selectedSection = useMemo(
     () => sections.find((s) => s.id === selectedSectionId) ?? null,
     [sections, selectedSectionId]
   );
 
-  const exactPreviewUrl = useMemo(() => {
-    if (!websiteData?.subdomain) return null;
+  // iframe preview removed — sections render directly in SectionCanvas
 
-    const slugPath = !isHomepage && pageData?.slug
-      ? `/${pageData.slug.replace(/^\/+/, '')}`
-      : '';
-
-    const query = `studio_preview=1&mode=exact&r=${exactPreviewRefreshKey}`;
-    if (typeof window !== 'undefined') {
-      return `${window.location.origin}/site/${websiteData.subdomain}${slugPath}?${query}`;
-    }
-
-    return `/site/${websiteData.subdomain}${slugPath}?${query}`;
-  }, [websiteData?.subdomain, isHomepage, pageData?.slug, exactPreviewRefreshKey]);
-
-  const handleExactPreviewLoad = useCallback((event: SyntheticEvent<HTMLIFrameElement>) => {
-    try {
-      const iframe = event.currentTarget;
-      const doc = iframe.contentDocument;
-      if (!doc?.head || doc.getElementById('studio-exact-preview-scrollbar-reset')) return;
-
-      const style = doc.createElement('style');
-      style.id = 'studio-exact-preview-scrollbar-reset';
-      style.textContent = `
-        html, body {
-          scrollbar-width: none;
-        }
-        html::-webkit-scrollbar,
-        body::-webkit-scrollbar {
-          width: 0;
-          height: 0;
-        }
-      `;
-      doc.head.appendChild(style);
-    } catch {
-      // Ignore cross-origin or iframe lifecycle errors.
-    }
-  }, []);
+  // Selection effect removed — SectionWrapper handles selection state directly
 
   const applyStudioMode = useCallback((mode: 'light' | 'dark') => {
     const root = document.documentElement;
@@ -273,6 +242,8 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
         const snap = snapshot as WebsiteSnapshot;
         setWebsiteData(snap.website);
         setSections(snap.sections);
+        // Track original DB IDs for INSERT/DELETE detection
+        dbSectionIdsRef.current = new Set(snap.sections.map((s) => s.id));
 
         const homepageContent =
           (websiteRow?.content as Record<string, unknown> | null) ??
@@ -393,21 +364,71 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
   const saveSections = useCallback(
     async (sectionsToSave: EditorSection[]) => {
       if (isHomepage) {
-        // Update each section individually in website_sections
-        const updates = sectionsToSave.map((s, i) =>
-          supabase
-            .from('website_sections')
-            .update({
-              display_order: i,
-              is_enabled: s.isEnabled,
-              content: s.content,
-              config: s.config,
-              variant: s.variant,
-            })
-            .eq('id', s.id)
-            .eq('website_id', websiteId)
-        );
-        await Promise.all(updates);
+        // Diff against original DB state to detect INSERTs/UPDATEs/DELETEs
+        const currentIds = new Set(sectionsToSave.map((s) => s.id));
+        const dbIds = dbSectionIdsRef.current;
+
+        const toInsert = sectionsToSave.filter((s) => !dbIds.has(s.id));
+        const toUpdate = sectionsToSave.filter((s) => dbIds.has(s.id));
+        const toDelete = [...dbIds].filter((id) => !currentIds.has(id));
+
+        const ops: PromiseLike<unknown>[] = [];
+
+        // UPDATE existing sections
+        for (const s of toUpdate) {
+          const idx = sectionsToSave.indexOf(s);
+          ops.push(
+            supabase
+              .from('website_sections')
+              .update({
+                display_order: idx,
+                is_enabled: s.isEnabled,
+                content: s.content,
+                config: s.config,
+                variant: s.variant,
+              })
+              .eq('id', s.id)
+              .eq('website_id', websiteId)
+              .then()
+          );
+        }
+
+        // INSERT new sections
+        for (const s of toInsert) {
+          const idx = sectionsToSave.indexOf(s);
+          ops.push(
+            supabase
+              .from('website_sections')
+              .insert({
+                id: s.id,
+                website_id: websiteId,
+                section_type: s.sectionType,
+                variant: s.variant ?? '',
+                display_order: idx,
+                is_enabled: s.isEnabled,
+                config: s.config,
+                content: s.content,
+              })
+              .then()
+          );
+        }
+
+        // DELETE removed sections
+        for (const id of toDelete) {
+          ops.push(
+            supabase
+              .from('website_sections')
+              .delete()
+              .eq('id', id)
+              .eq('website_id', websiteId)
+              .then()
+          );
+        }
+
+        await Promise.all(ops);
+
+        // Update the DB tracking ref so next save diffs correctly
+        dbSectionIdsRef.current = new Set(sectionsToSave.map((s) => s.id));
 
         // Persist homepage SEO values into websites.content.seo.
         const currentContent = (websiteData?.content as Record<string, unknown>) ?? {};
@@ -464,6 +485,8 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
     debounceMs: 2000,
     enabled: state === 'ready' && isEditorDirty && isOnline,
   });
+
+  // No iframe refresh needed — sections re-render reactively via React state
 
   // Local backup on changes
   useEffect(() => {
@@ -549,10 +572,72 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
     [sections, updateSections]
   );
 
+  // Drag & drop handlers
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    const sectionType = event.active.data.current?.sectionType as string | undefined;
+    if (sectionType) setDraggingSectionType(sectionType);
+  }, []);
+
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event;
+      setDraggingSectionType(null);
+      if (!over || active.id === over.id) return;
+
+      const sectionType = active.data.current?.sectionType as string | undefined;
+
+      // Case 1: Dragging a new section from Elements panel
+      if (sectionType) {
+        const dropId = String(over.id);
+        const match = dropId.match(/^drop-at-(\d+)$/);
+        if (!match) {
+          handleAddSection(sectionType as SectionTypeValue);
+          return;
+        }
+
+        const dropIndex = parseInt(match[1], 10);
+        let position: { relativeTo?: string; placement?: 'before' | 'after' } | undefined;
+        if (dropIndex < sections.length) {
+          position = { relativeTo: sections[dropIndex].id, placement: 'before' };
+        } else if (sections.length > 0) {
+          position = { relativeTo: sections[sections.length - 1].id, placement: 'after' };
+        }
+
+        const newSections = addSection(sections, sectionType as SectionTypeValue, position);
+        updateSections(newSections);
+        setActionToast(`${sectionType.replace(/_/g, ' ')} added`);
+        const newSection = newSections[dropIndex] ?? newSections[newSections.length - 1];
+        if (newSection) {
+          setSelectedSectionId(newSection.id);
+          setPanelTab('edit');
+        }
+        return;
+      }
+
+      // Case 2: Reordering sections in Layers (sortable)
+      const oldIndex = sections.findIndex((s) => s.id === active.id);
+      const newIndex = sections.findIndex((s) => s.id === over.id);
+      if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
+        const reordered = arrayMove(sections, oldIndex, newIndex).map((s, i) => ({
+          ...s,
+          displayOrder: i,
+        }));
+        updateSections(reordered);
+        setActionToast('Section reordered');
+      }
+    },
+    [sections, updateSections, handleAddSection]
+  );
+
+  const handleDragCancel = useCallback(() => {
+    setDraggingSectionType(null);
+  }, []);
+
   const handleFieldChange = useCallback(
     (field: string, value: unknown) => {
       if (!selectedSectionId) return;
       updateSections(updateSectionContent(sections, selectedSectionId, { [field]: value }));
+      // No hot-patching needed — SectionCanvas re-renders reactively
     },
     [sections, selectedSectionId, updateSections]
   );
@@ -651,26 +736,71 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
   );
 
   // ============================================================================
-  // DnD
+  // Undo / Redo
   // ============================================================================
 
-  const handleDragEnd = useCallback(
-    (event: DragEndEvent) => {
-      const { active, over } = event;
-      if (!over || active.id === over.id) return;
-
-      const oldIndex = sections.findIndex((s) => s.id === active.id);
-      const newIndex = sections.findIndex((s) => s.id === over.id);
-      if (oldIndex === -1 || newIndex === -1) return;
-
-      const newSections = arrayMove(sections, oldIndex, newIndex).map((s, i) => ({
-        ...s,
-        displayOrder: i,
-      }));
-      updateSections(newSections);
+  const pushHistory = useCallback(
+    (prev: EditorSection[]) => {
+      setHistory((h) => {
+        const newHistory = h.slice(0, historyIndex + 1);
+        newHistory.push(prev);
+        // Keep max 30 entries
+        if (newHistory.length > 30) newHistory.shift();
+        return newHistory;
+      });
+      setHistoryIndex((i) => Math.min(i + 1, 29));
     },
-    [sections, updateSections]
+    [historyIndex]
   );
+
+  // Wrap updateSections to track history
+  const originalUpdateSections = updateSections;
+  const updateSectionsWithHistory = useCallback(
+    (newSections: EditorSection[]) => {
+      pushHistory(sections);
+      originalUpdateSections(newSections);
+    },
+    [sections, pushHistory, originalUpdateSections]
+  );
+
+  const handleUndo = useCallback(() => {
+    if (historyIndex < 0 || history.length === 0) return;
+    const prev = history[historyIndex];
+    if (prev) {
+      setHistoryIndex((i) => i - 1);
+      originalUpdateSections(prev);
+      setActionToast('Undo');
+    }
+  }, [history, historyIndex, originalUpdateSections]);
+
+  const handleRedo = useCallback(() => {
+    if (historyIndex >= history.length - 1) return;
+    const next = history[historyIndex + 1];
+    if (next) {
+      setHistoryIndex((i) => i + 1);
+      originalUpdateSections(next);
+      setActionToast('Redo');
+    }
+  }, [history, historyIndex, originalUpdateSections]);
+
+  // Undo/redo keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
+      if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        handleUndo();
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'z' && e.shiftKey) {
+        e.preventDefault();
+        handleRedo();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [handleUndo, handleRedo]);
 
   // ============================================================================
   // Save / Publish
@@ -723,42 +853,34 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
 
   const handlePreview = useCallback(() => {
     if (!websiteData?.subdomain) return;
-    if (isHomepage) {
-      window.open(`https://${websiteData.subdomain}.bukeer.com`, '_blank');
-    } else if (pageData?.slug) {
-      window.open(`https://${websiteData.subdomain}.bukeer.com/${pageData.slug}`, '_blank');
-    }
+    // Use local dev server for preview during development, production URL otherwise
+    const baseUrl = typeof window !== 'undefined' && window.location.hostname === 'localhost'
+      ? `${window.location.origin}/site/${websiteData.subdomain}`
+      : `https://${websiteData.subdomain}.bukeer.com`;
+    const slugPath = !isHomepage && pageData?.slug ? `/${pageData.slug}` : '';
+    window.open(`${baseUrl}${slugPath}`, '_blank');
   }, [websiteData, pageData, isHomepage]);
 
-  const refreshExactPreview = useCallback(() => {
-    setExactPreviewRefreshKey((k) => k + 1);
-  }, []);
-
-  const handleTogglePreviewMode = useCallback(() => {
-    setPreviewMode((current) => {
-      const next = current === 'edit' ? 'exact' : 'edit';
-      if (next === 'exact' && isEditorDirty) {
-        setActionToast('Exact preview muestra contenido guardado. Guarda para sincronizar cambios.');
-      }
-      return next;
-    });
-  }, [isEditorDirty]);
-
-  const handleSyncExactPreview = useCallback(async () => {
-    setIsSyncingExactPreview(true);
-    try {
-      await saveNow();
-      setActionToast('Cambios sincronizados en exact preview');
-      refreshExactPreview();
-    } finally {
-      setIsSyncingExactPreview(false);
-    }
-  }, [saveNow, refreshExactPreview]);
+  // refreshExactPreview removed — no iframe to refresh
 
   // Keyboard shortcuts
   useCommonShortcuts({
     onSave: saveNow,
   });
+
+  // Panel toggle shortcut: backslash (\)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === '\\' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        const tag = (e.target as HTMLElement)?.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+        e.preventDefault();
+        setPanelCollapsed((c) => !c);
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Full-screen: hide parent dashboard layout (sidebar, nav tabs, header)
   useEffect(() => {
@@ -856,13 +978,39 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
   };
 
   return (
+    <DndContext
+      sensors={dndSensors}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      onDragCancel={handleDragCancel}
+    >
     <TooltipProvider>
       <div className="fixed inset-0 z-[100] flex flex-col studio-shell">
         <StudioTopbar
           left={(
             <>
-              <StudioButton variant="ghost" size="sm" onClick={onBack}>
+              <StudioButton
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  document.body.classList.remove('studio-editor-fullscreen');
+                  onBack();
+                }}
+                title="Back to pages"
+              >
                 <ArrowLeft className="w-4 h-4" />
+              </StudioButton>
+              <StudioButton
+                variant="ghost"
+                size="sm"
+                onClick={() => setLeftPanelCollapsed((c) => !c)}
+                title="Toggle elements panel"
+              >
+                {leftPanelCollapsed ? (
+                  <PanelLeftOpen className="w-3.5 h-3.5" />
+                ) : (
+                  <PanelLeftClose className="w-3.5 h-3.5" />
+                )}
               </StudioButton>
               <span className="font-semibold text-sm text-[var(--studio-text)]">{pageTitle}</span>
               <StudioBadgeStatus status={websiteData?.status === 'published' ? 'published' : 'draft'} />
@@ -887,22 +1035,50 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
             </>
           )}
           center={(
-            <div className="flex items-center gap-1 bg-[var(--studio-panel)] rounded-full p-1 border border-[var(--studio-border)]">
-              {(['desktop', 'tablet', 'mobile'] as ViewportSize[]).map((vp) => (
-                <button
-                  key={vp}
-                  onClick={() => setViewport(vp)}
-                  className={`p-1.5 rounded-full transition-all ${
-                    viewport === vp
-                      ? 'bg-[var(--studio-bg-elevated)] text-[var(--studio-text)] shadow-sm border border-[var(--studio-border)]'
-                      : 'text-[var(--studio-text-muted)]'
-                  }`}
-                  title={vp.charAt(0).toUpperCase() + vp.slice(1)}
-                  type="button"
+            <div className="flex items-center gap-3">
+              {/* Undo / Redo */}
+              <div className="flex items-center gap-0.5">
+                <StudioButton
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleUndo}
+                  disabled={historyIndex < 0}
+                  title="Undo (Ctrl+Z)"
                 >
-                  {viewportIcons[vp]}
-                </button>
-              ))}
+                  <Undo2 className="w-3.5 h-3.5" />
+                </StudioButton>
+                <StudioButton
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleRedo}
+                  disabled={historyIndex >= history.length - 1}
+                  title="Redo (Ctrl+Shift+Z)"
+                >
+                  <Redo2 className="w-3.5 h-3.5" />
+                </StudioButton>
+              </div>
+
+              {/* Viewport switcher */}
+              <div className="flex items-center gap-1 bg-[var(--studio-panel)] rounded-full p-1 border border-[var(--studio-border)]">
+                {(['desktop', 'tablet', 'mobile'] as ViewportSize[]).map((vp) => (
+                  <button
+                    key={vp}
+                    onClick={() => setViewport(vp)}
+                    className={`p-1.5 rounded-full transition-all ${
+                      viewport === vp
+                        ? 'bg-[var(--studio-bg-elevated)] text-[var(--studio-text)] shadow-sm border border-[var(--studio-border)]'
+                        : 'text-[var(--studio-text-muted)]'
+                    }`}
+                    title={`${vp.charAt(0).toUpperCase() + vp.slice(1)} (${VIEWPORT_LABELS[vp] ?? 'auto'})`}
+                    type="button"
+                  >
+                    {viewportIcons[vp]}
+                  </button>
+                ))}
+              </div>
+              <span className="text-[10px] text-[var(--studio-text-muted)] tabular-nums">
+                {VIEWPORT_LABELS[viewport] ?? 'auto'}
+              </span>
             </div>
           )}
           right={(
@@ -912,29 +1088,17 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
                 Preview
               </StudioButton>
               <StudioButton
-                variant={previewMode === 'exact' ? 'outline' : 'ghost'}
+                variant="ghost"
                 size="sm"
-                onClick={handleTogglePreviewMode}
+                onClick={() => setPanelCollapsed((c) => !c)}
+                title="Toggle panel (\\)"
               >
-                {previewMode === 'exact' ? 'Edit' : 'Exact'}
+                {panelCollapsed ? (
+                  <PanelRightOpen className="w-3.5 h-3.5" />
+                ) : (
+                  <PanelRightClose className="w-3.5 h-3.5" />
+                )}
               </StudioButton>
-              {previewMode === 'exact' ? (
-                <>
-                  <StudioButton variant="ghost" size="sm" onClick={refreshExactPreview}>
-                    <RefreshCw className="w-3.5 h-3.5" />
-                    Refresh
-                  </StudioButton>
-                  <StudioButton
-                    variant="outline"
-                    size="sm"
-                    disabled={isSyncingExactPreview || !isEditorDirty}
-                    onClick={handleSyncExactPreview}
-                  >
-                    <Save className="w-3.5 h-3.5" />
-                    {isSyncingExactPreview ? 'Syncing...' : 'Sync + Refresh'}
-                  </StudioButton>
-                </>
-              ) : null}
               <StudioButton variant="ghost" size="sm" onClick={toggleStudioMode}>
                 {studioMode === 'dark' ? (
                   <Sun className="w-3.5 h-3.5" />
@@ -960,123 +1124,39 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
           )}
         />
 
-        {/* Main content: preview (65%) + panel (35%) */}
+        {/* Main content: left panel + canvas + right panel */}
         <div className="flex-1 flex overflow-hidden">
-          {/* Preview pane */}
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleDragEnd}
-          >
-            <div className="flex-[65] min-w-0 bg-[color-mix(in_srgb,var(--studio-panel)_46%,transparent)] overflow-auto flex flex-col">
-              <CanvasFrame
-                websiteId={websiteId}
-                viewport={viewport}
-                widths={previewMode === 'exact' ? EXACT_PREVIEW_WIDTHS : undefined}
-                fitToContainer={previewMode !== 'exact'}
-              >
-                {previewMode === 'exact' ? (
-                  <div className="h-full min-h-[calc(100vh-170px)] bg-background">
-                    <iframe
-                      key={exactPreviewUrl ?? 'empty-preview'}
-                      src={exactPreviewUrl ?? 'about:blank'}
-                      title="Exact site preview"
-                      onLoad={handleExactPreviewLoad}
-                      className="block w-full h-full min-h-[calc(100vh-170px)] border-0"
-                    />
-                  </div>
-                ) : (
-                  <>
-                    <M3ThemeProvider
-                      initialTheme={
-                        websiteData?.theme?.tokens
-                          ? { tokens: websiteData.theme.tokens, profile: websiteData.theme.profile } as ThemeInput
-                          : undefined
-                      }
-                    >
-                      <SortableContext
-                        items={sections.map((s) => s.id)}
-                        strategy={verticalListSortingStrategy}
-                      >
-                        {sections.map((section, index) => {
-                          const sectionForRender: WebsiteSection = {
-                            id: section.id,
-                            section_type: section.sectionType,
-                            variant: section.variant ?? '',
-                            display_order: section.displayOrder,
-                            is_enabled: section.isEnabled,
-                            config: section.config,
-                            content: section.content,
-                          };
+          {/* Left panel — Elements / Layers / Theme / AI */}
+          <LeftPanelShell
+            mode={leftPanelMode}
+            onModeChange={setLeftPanelMode}
+            collapsed={leftPanelCollapsed}
+            onAddSection={handleAddSection}
+            sections={sections}
+            selectedSectionId={selectedSectionId}
+            onSelectSection={handleSelect}
+            onToggleVisibility={handleToggleVisibility}
+            onDuplicate={handleDuplicate}
+            onDelete={handleDeleteRequest}
+          />
 
-                          let result: ReturnType<typeof renderSectionWithResult>;
-                          try {
-                            result = renderSectionWithResult({
-                              section: sectionForRender,
-                              website: websiteForRender,
-                            });
-                          } catch (err) {
-                            const message = err instanceof Error ? err.message : String(err);
-                            console.warn(
-                              `[PageEditor] Failed to render section ${section.sectionType} (${section.id}): ${message}`
-                            );
-                            result = {
-                              element: (
-                                <div className="section-padding bg-red-50 border border-red-300 rounded-lg mx-4 my-2">
-                                  <div className="container py-8">
-                                    <p className="text-red-700 font-medium mb-2">
-                                      Error en sección: <code className="bg-red-100 px-2 py-1 rounded">{section.sectionType}</code>
-                                    </p>
-                                    <p className="text-red-600 text-sm">{message}</p>
-                                  </div>
-                                </div>
-                              ),
-                            };
-                          }
+          {/* Canvas — sections rendered directly (no iframe) */}
+          <SectionCanvas
+            sections={sections}
+            website={websiteData as WebsiteData | null}
+            viewport={viewport}
+            selectedSectionId={selectedSectionId}
+            onSelect={handleSelect}
+            onMoveUp={handleMoveUp}
+            onMoveDown={handleMoveDown}
+            onDuplicate={handleDuplicate}
+            onToggleVisibility={handleToggleVisibility}
+            onDelete={handleDeleteRequest}
+            isDraggingNewSection={!!draggingSectionType}
+          />
 
-                          return (
-                            <SectionPreview
-                              key={section.id}
-                              section={section}
-                              isSelected={selectedSectionId === section.id}
-                              isFirst={index === 0}
-                              isLast={index === sections.length - 1}
-                              onSelect={handleSelect}
-                              onMoveUp={handleMoveUp}
-                              onMoveDown={handleMoveDown}
-                              onDuplicate={handleDuplicate}
-                              onToggleVisibility={handleToggleVisibility}
-                              onDelete={handleDeleteRequest}
-                            >
-                              {result.element}
-                            </SectionPreview>
-                          );
-                        })}
-                      </SortableContext>
-                    </M3ThemeProvider>
-
-                    {/* Add section divider — modern dashed line with button */}
-                    <div className="flex items-center justify-center py-10 px-8">
-                      <div className="flex-1 border-t border-dashed border-[var(--studio-border)]" />
-                      <StudioButton
-                        variant="outline"
-                        size="sm"
-                        className="mx-4 gap-2 rounded-full border-dashed"
-                        onClick={() => setPickerOpen(true)}
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        Add Section
-                      </StudioButton>
-                      <div className="flex-1 border-t border-dashed border-[var(--studio-border)]" />
-                    </div>
-                  </>
-                )}
-              </CanvasFrame>
-            </div>
-          </DndContext>
-
-          {/* Right panel */}
-          <div className="flex-[35] min-w-[320px] max-w-[480px] border-l border-[var(--studio-border)] bg-[var(--studio-bg-elevated)] flex flex-col">
+          {/* Right panel — Edit / AI / SEO */}
+          <div className={`border-l border-[var(--studio-border)] bg-[var(--studio-bg-elevated)] flex flex-col transition-all duration-300 ${panelCollapsed ? 'w-0 min-w-0 max-w-0 overflow-hidden opacity-0 border-l-0' : 'w-[320px] min-w-[320px] max-w-[420px]'}`}>
             <div className="p-2 border-b border-[var(--studio-border)]">
               <StudioTabs
                 value={panelTab}
@@ -1098,45 +1178,24 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
                     onChange={handleFieldChange}
                   />
                 ) : (
-                  previewMode === 'exact' ? (
-                    <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
-                      <div className="w-14 h-14 rounded-2xl bg-[color-mix(in_srgb,var(--studio-primary)_14%,transparent)] flex items-center justify-center mb-5">
-                        <Eye className="w-6 h-6 text-[var(--studio-primary)]" />
-                      </div>
-                      <p className="text-sm font-semibold text-[var(--studio-text)]">Exact preview mode</p>
-                      <p className="text-xs text-[var(--studio-text-muted)] mt-1.5 max-w-[260px]">
-                        Section selection and drag-reorder are disabled in Exact mode. Switch to Edit mode to modify sections.
-                      </p>
-                      <StudioButton
-                        variant="outline"
-                        size="sm"
-                        className="mt-5 gap-2 rounded-full"
-                        onClick={() => setPreviewMode('edit')}
-                      >
-                        <Pencil className="w-3.5 h-3.5" />
-                        Switch to Edit mode
-                      </StudioButton>
+                  <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
+                    <div className="w-14 h-14 rounded-2xl bg-[color-mix(in_srgb,var(--studio-primary)_14%,transparent)] flex items-center justify-center mb-5">
+                      <Pencil className="w-6 h-6 text-[var(--studio-primary)]" />
                     </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
-                      <div className="w-14 h-14 rounded-2xl bg-[color-mix(in_srgb,var(--studio-primary)_14%,transparent)] flex items-center justify-center mb-5">
-                        <Pencil className="w-6 h-6 text-[var(--studio-primary)]" />
-                      </div>
-                      <p className="text-sm font-semibold text-[var(--studio-text)]">No section selected</p>
-                      <p className="text-xs text-[var(--studio-text-muted)] mt-1.5 max-w-[220px]">
-                        Click on a section in the preview to start editing its content.
-                      </p>
-                      <StudioButton
-                        variant="outline"
-                        size="sm"
-                        className="mt-5 gap-2 rounded-full"
-                        onClick={() => setPickerOpen(true)}
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        Add Section
-                      </StudioButton>
-                    </div>
-                  )
+                    <p className="text-sm font-semibold text-[var(--studio-text)]">No section selected</p>
+                    <p className="text-xs text-[var(--studio-text-muted)] mt-1.5 max-w-[220px]">
+                      Click a section in the preview, or pick one from the Elements panel.
+                    </p>
+                    <StudioButton
+                      variant="outline"
+                      size="sm"
+                      className="mt-5 gap-2 rounded-full"
+                      onClick={() => setPickerOpen(true)}
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      Add Section
+                    </StudioButton>
+                  </div>
                 )}
               </ScrollArea>
             ) : null}
@@ -1169,7 +1228,7 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
           </div>
         </div>
 
-        {/* Section picker modal */}
+        {/* Section picker modal (fallback for "Add Section" button) */}
         <SectionPicker
           open={pickerOpen}
           onClose={() => setPickerOpen(false)}
@@ -1195,5 +1254,14 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
         )}
       </div>
     </TooltipProvider>
+    {/* Drag overlay — visual ghost while dragging */}
+    <DragOverlay>
+      {draggingSectionType && (
+        <div className="px-3 py-2 bg-blue-600 text-white text-xs font-semibold rounded-lg shadow-xl opacity-90 pointer-events-none">
+          + {draggingSectionType.replace(/_/g, ' ')}
+        </div>
+      )}
+    </DragOverlay>
+    </DndContext>
   );
 }

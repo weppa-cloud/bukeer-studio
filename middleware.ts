@@ -179,8 +179,21 @@ export async function middleware(request: NextRequest) {
   const pathname = url.pathname;
   const potentialProductRoute = getPotentialProductRoute(pathname);
 
-  // Skip editor routes (no rewrite needed - accessed directly)
+  // Editor routes — handle SSO token if present, otherwise pass through
   if (pathname.startsWith('/editor')) {
+    const token = url.searchParams.get('token');
+    if (token && SUPABASE_URL && SUPABASE_ANON_KEY) {
+      // Set token as cookie for client-side auth, then redirect to clean URL
+      const cleanUrl = new URL(url);
+      cleanUrl.searchParams.delete('token');
+      const redirectResponse = NextResponse.redirect(cleanUrl);
+      redirectResponse.cookies.set('sb-auth-token', token, {
+        path: '/',
+        httpOnly: false,
+        maxAge: 3600,
+      });
+      return redirectResponse;
+    }
     return NextResponse.next();
   }
 

@@ -1,10 +1,9 @@
 'use client';
 
-import { useRef } from 'react';
 import type { ViewportSize } from './toolbar';
 
 const VIEWPORT_WIDTHS: Record<ViewportSize, string> = {
-  desktop: '100%',
+  desktop: '1280px',
   tablet: '768px',
   mobile: '375px',
 };
@@ -19,30 +18,30 @@ interface CanvasFrameProps {
 
 /**
  * Canvas frame with responsive preview.
- * Wraps editor content in a viewport-simulating container.
- * In embedded mode, this wraps the section list directly (no iframe-in-iframe).
- * In standalone mode, this could use an iframe for true isolation.
+ *
+ * NO scaling — the iframe renders at 100% zoom.
+ * - Desktop (1440px): may overflow horizontally → parent scrolls
+ * - Tablet (768px): fits most screens without scroll
+ * - Mobile (375px): centered with space around
+ *
+ * The parent div scrolls both horizontally and vertically.
  */
 export function CanvasFrame({
   websiteId,
   viewport,
   widths,
-  fitToContainer = true,
   children,
 }: CanvasFrameProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
   const frameWidth = widths?.[viewport] ?? VIEWPORT_WIDTHS[viewport];
 
   return (
-    <div className="flex-1 bg-muted/30 overflow-auto flex justify-center p-4">
+    <div className="flex-1 bg-muted/30 overflow-hidden flex justify-center p-4">
       <div
-        ref={containerRef}
-        className={`bg-background shadow-lg transition-all duration-300 overflow-auto studio-preview--${viewport}`}
+        className={`bg-background shadow-lg transition-[width] duration-300 h-full studio-preview--${viewport}`}
         style={{
           width: frameWidth,
-          maxWidth: fitToContainer ? '100%' : 'none',
-          flexShrink: fitToContainer ? 1 : 0,
-          minHeight: '100%',
+          minWidth: frameWidth,
+          flexShrink: 0,
         }}
         data-viewport={viewport}
         data-website-id={websiteId}

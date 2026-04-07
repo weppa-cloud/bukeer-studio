@@ -25,7 +25,7 @@ import { Toolbar, type ViewportSize } from './toolbar';
 import { SectionPalette } from './section-palette';
 import { CanvasFrame } from './canvas-frame';
 import { CopilotBar, type CopilotPlan } from './copilot-bar';
-import { detectAuthMode, createAuthClient, getAuthUser } from '@/lib/auth/require-auth';
+import { createAuthClient, getAuthUser } from '@/lib/auth/require-auth';
 import type { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 
 interface EditorSection {
@@ -93,7 +93,7 @@ function SortableSection({
 
 interface EditorShellProps {
   websiteId: string;
-  /** In embedded mode, token comes from postMessage. In standalone, from Supabase session. */
+  /** Auth token from Supabase session (SSO cookie set by middleware). */
   initialToken?: string;
 }
 
@@ -104,7 +104,7 @@ interface EditorShellProps {
  * - Drag-and-drop section reordering (@dnd-kit)
  * - Responsive preview (3 viewports)
  * - Save Draft / Publish via existing RPCs
- * - Works in both embedded (iframe) and standalone modes
+ * - Works with Supabase Auth session (SSO token from Flutter)
  */
 export function EditorShell({ websiteId, initialToken }: EditorShellProps) {
   const [data, setData] = useState<WebsiteSnapshot | null>(null);
@@ -163,7 +163,7 @@ export function EditorShell({ websiteId, initialToken }: EditorShellProps) {
     }
   }, [websiteId, getSupabase]);
 
-  // Standalone auth: get session token
+  // Auth: get session token from Supabase (SSO cookie set by middleware)
   useEffect(() => {
     async function initAuth() {
       if (tokenRef.current) {
@@ -171,20 +171,15 @@ export function EditorShell({ websiteId, initialToken }: EditorShellProps) {
         return;
       }
 
-      // Standalone mode: get token from Supabase session
-      const authMode = detectAuthMode();
-      if (authMode === 'standalone') {
-        const client = createAuthClient();
-        const { data: { session } } = await client.auth.getSession();
-        if (session?.access_token) {
-          tokenRef.current = session.access_token;
-          loadData();
-        } else {
-          setState('error');
-          setError('No estás autenticado. Inicia sesión primero.');
-        }
+      const client = createAuthClient();
+      const { data: { session } } = await client.auth.getSession();
+      if (session?.access_token) {
+        tokenRef.current = session.access_token;
+        loadData();
+      } else {
+        setState('error');
+        setError('No estás autenticado. Inicia sesión primero.');
       }
-      // In embedded mode, token comes via postMessage (handled by parent page.tsx)
     }
     initAuth();
   }, [loadData]);
