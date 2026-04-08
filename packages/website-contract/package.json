@@ -1,0 +1,25 @@
+{
+  "name": "@bukeer/website-contract",
+  "version": "0.1.0",
+  "description": "Shared types and Zod schemas for Bukeer website platform",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./types/*": "./src/types/*",
+    "./schemas/*": "./src/schemas/*",
+    "./validation/*": "./src/validation/*"
+  },
+  "dependencies": {
+    "zod": "^4.3.5"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.2"
+  },
+  "files": ["src"]
+}

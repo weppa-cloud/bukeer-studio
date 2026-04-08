@@ -46,3 +46,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 web-public/.wrangler/
+
+# Packages build artifacts
+packages/*/dist/
+packages/*/node_modules/
+packages/*/tsconfig.tsbuildinfo
