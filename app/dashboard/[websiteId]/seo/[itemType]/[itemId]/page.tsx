@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser-client';
 import { SeoItemDetail } from '@/components/admin/seo-item-detail';
-import type { ItemType } from '@/lib/seo/unified-scorer';
+import type { SeoItemType } from '@/lib/seo/unified-scorer';
 
 // ============================================================================
 // Types
@@ -12,7 +12,7 @@ import type { ItemType } from '@/lib/seo/unified-scorer';
 
 interface ItemData {
   id: string;
-  type: ItemType;
+  type: SeoItemType;
   name: string;
   slug: string;
   image?: string;
@@ -63,7 +63,7 @@ export default function SeoItemDetailPage() {
         }
 
         // Fetch item based on type
-        const itemData = await fetchItemByType(supabase, itemType as ItemType, itemId);
+        const itemData = await fetchItemByType(supabase, itemType as SeoItemType, itemId);
         if (itemData) {
           setItem(itemData);
         } else {
@@ -171,7 +171,7 @@ export default function SeoItemDetailPage() {
 // Data fetching helpers
 // ============================================================================
 
-function getTableForType(type: ItemType): string | null {
+function getTableForType(type: SeoItemType): string | null {
   switch (type) {
     case 'hotel':
       return 'products';
@@ -193,7 +193,7 @@ function getTableForType(type: ItemType): string | null {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function fetchItemByType(supabase: any, type: ItemType, id: string): Promise<ItemData | null> {
+async function fetchItemByType(supabase: any, type: SeoItemType, id: string): Promise<ItemData | null> {
   switch (type) {
     case 'hotel':
     case 'activity':

@@ -15,10 +15,10 @@ import {
   type SeoScoringInput,
   type SeoScoringResult,
   type SeoItemType,
-  type SeoGrade,
 } from '@/lib/seo/unified-scorer';
 
-type FilterTab = 'all' | 'hotel' | 'activity' | 'transfer' | 'package' | 'destination' | 'page' | 'blog';
+type SeoGrade = 'A' | 'B' | 'C' | 'D' | 'F';
+type FilterTab = 'all' | SeoItemType;
 
 const TAB_OPTIONS: ReadonlyArray<{ id: FilterTab; label: string }> = [
   { id: 'all', label: 'Todos' },
@@ -30,6 +30,17 @@ const TAB_OPTIONS: ReadonlyArray<{ id: FilterTab; label: string }> = [
   { id: 'page', label: 'Páginas' },
   { id: 'blog', label: 'Blog' },
 ];
+
+export interface ScoredItem {
+  id: string;
+  name: string;
+  type: SeoItemType;
+  image?: string;
+  slug: string;
+  input: SeoScoringInput;
+  result: SeoScoringResult;
+  issues: string[];
+}
 
 interface RawProduct {
   id: string;
@@ -46,7 +57,7 @@ function mapProductType(dbType: string): SeoItemType {
   if (lower === 'hoteles' || lower === 'hotels') return 'hotel';
   if (lower === 'servicios' || lower === 'activities' || lower === 'actividades') return 'activity';
   if (lower === 'transporte' || lower === 'transfers' || lower === 'traslados') return 'transfer';
-  if (lower === 'vuelos') return 'transfer'; // flights mapped to transfer
+  if (lower === 'vuelos') return 'transfer';
   if (lower === 'packages' || lower === 'paquetes') return 'package';
   return 'activity';
 }
@@ -56,10 +67,24 @@ function countWords(text?: string | null): number {
   return text.trim().split(/\s+/).filter(Boolean).length;
 }
 
+function slugify(name: string): string {
+  return name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+
+function buildIssues(input: SeoScoringInput, result: SeoScoringResult): string[] {
+  const issues: string[] = [];
+  if (!input.seoTitle) issues.push('Sin título');
+  if (!input.seoDescription) issues.push('Sin descripción');
+  if (!input.image) issues.push('Sin imagen');
+  if (input.wordCount != null && input.wordCount < 100) issues.push('Thin content');
+  if (!input.hasJsonLd) issues.push('Sin schema');
+  return issues;
+}
+
 export default function SeoDashboardPage() {
   const { websiteId } = useParams<{ websiteId: string }>();
   const [loading, setLoading] = useState(true);
-  const [scoringInputs, setScoringInputs] = useState<SeoScoringInput[]>([]);
+  const [rawItems, setRawItems] = useState<Array<{ id: string; name: string; type: SeoItemType; image?: string; slug: string; input: SeoScoringInput }>>([]);
   const [activeTab, setActiveTab] = useState<FilterTab>('all');
   const supabase = createSupabaseBrowserClient();
 
@@ -68,23 +93,19 @@ export default function SeoDashboardPage() {
 
     async function fetchData() {
       setLoading(true);
-      const inputs: SeoScoringInput[] = [];
+      const items: typeof rawItems = [];
 
-      // Get the website's account_id first
       const { data: website } = await supabase
         .from('websites')
         .select('id, account_id, subdomain')
         .eq('id', websiteId)
         .single();
 
-      if (!website || !active) {
-        setLoading(false);
-        return;
-      }
+      if (!website || !active) { setLoading(false); return; }
 
       const accountId = website.account_id;
 
-      // Fetch products (hotels, activities, transfers, packages)
+      // Products
       const { data: products } = await supabase
         .from('products')
         .select('id, name, product_type, main_image, description, seo_title, seo_description')
@@ -93,21 +114,34 @@ export default function SeoDashboardPage() {
 
       if (products) {
         for (const p of products as RawProduct[]) {
-          inputs.push({
+          const type = mapProductType(p.product_type || '');
+          const slug = slugify(p.name || '');
+          items.push({
             id: p.id,
             name: p.name || 'Sin nombre',
-            type: mapProductType(p.product_type || ''),
-            seoTitle: p.seo_title || null,
-            seoDescription: p.seo_description || null,
-            image: p.main_image || null,
-            wordCount: countWords(p.description),
-            hasSchema: false, // products don't have schema by default
-            slug: null,
+            type,
+            image: p.main_image || undefined,
+            slug,
+            input: {
+              type,
+              name: p.name || 'Sin nombre',
+              slug,
+              seoTitle: p.seo_title || undefined,
+              seoDescription: p.seo_description || undefined,
+              description: p.description || undefined,
+              image: p.main_image || undefined,
+              hasJsonLd: false,
+              hasCanonical: true,
+              hasHreflang: true,
+              hasOgTags: true,
+              hasTwitterCard: true,
+              wordCount: countWords(p.description),
+            },
           });
         }
       }
 
-      // Fetch destinations
+      // Destinations
       const { data: destinations } = await supabase
         .from('destinations')
         .select('id, name, main_image, description, seo_title, seo_description')
@@ -116,21 +150,33 @@ export default function SeoDashboardPage() {
 
       if (destinations) {
         for (const d of destinations as any[]) {
-          inputs.push({
+          const slug = slugify(d.name || '');
+          items.push({
             id: d.id,
             name: d.name || 'Sin nombre',
             type: 'destination',
-            seoTitle: d.seo_title || null,
-            seoDescription: d.seo_description || null,
-            image: d.main_image || null,
-            wordCount: countWords(d.description),
-            hasSchema: false,
-            slug: null,
+            image: d.main_image || undefined,
+            slug,
+            input: {
+              type: 'destination',
+              name: d.name || 'Sin nombre',
+              slug,
+              seoTitle: d.seo_title || undefined,
+              seoDescription: d.seo_description || undefined,
+              description: d.description || undefined,
+              image: d.main_image || undefined,
+              hasJsonLd: true,
+              hasCanonical: true,
+              hasHreflang: true,
+              hasOgTags: true,
+              hasTwitterCard: true,
+              wordCount: countWords(d.description),
+            },
           });
         }
       }
 
-      // Fetch blog posts
+      // Blog posts
       const { data: posts } = await supabase
         .from('website_blog_posts')
         .select('id, title, featured_image, excerpt, content, seo_title, seo_description, slug')
@@ -138,21 +184,32 @@ export default function SeoDashboardPage() {
 
       if (posts) {
         for (const p of posts as any[]) {
-          inputs.push({
+          items.push({
             id: p.id,
             name: p.title || 'Sin título',
             type: 'blog',
-            seoTitle: p.seo_title || p.title || null,
-            seoDescription: p.seo_description || p.excerpt || null,
-            image: p.featured_image || null,
-            wordCount: countWords(p.content),
-            hasSchema: true, // blog posts get Article schema
-            slug: p.slug,
+            image: p.featured_image || undefined,
+            slug: p.slug || slugify(p.title || ''),
+            input: {
+              type: 'blog',
+              name: p.title || 'Sin título',
+              slug: p.slug || slugify(p.title || ''),
+              seoTitle: p.seo_title || p.title || undefined,
+              seoDescription: p.seo_description || p.excerpt || undefined,
+              description: p.content || undefined,
+              image: p.featured_image || undefined,
+              hasJsonLd: true,
+              hasCanonical: true,
+              hasHreflang: true,
+              hasOgTags: true,
+              hasTwitterCard: true,
+              wordCount: countWords(p.content),
+            },
           });
         }
       }
 
-      // Fetch pages
+      // Pages
       const { data: pages } = await supabase
         .from('website_pages')
         .select('id, title, slug, seo_title, seo_description')
@@ -160,48 +217,58 @@ export default function SeoDashboardPage() {
 
       if (pages) {
         for (const pg of pages as any[]) {
-          inputs.push({
+          items.push({
             id: pg.id,
             name: pg.title || 'Sin título',
             type: 'page',
-            seoTitle: pg.seo_title || pg.title || null,
-            seoDescription: pg.seo_description || null,
-            image: null,
-            wordCount: undefined,
-            hasSchema: false,
-            slug: pg.slug,
+            image: undefined,
+            slug: pg.slug || slugify(pg.title || ''),
+            input: {
+              type: 'page',
+              name: pg.title || 'Sin título',
+              slug: pg.slug || slugify(pg.title || ''),
+              seoTitle: pg.seo_title || pg.title || undefined,
+              seoDescription: pg.seo_description || undefined,
+              hasJsonLd: false,
+              hasCanonical: true,
+              hasHreflang: true,
+              hasOgTags: true,
+              hasTwitterCard: true,
+            },
           });
         }
       }
 
-      if (active) {
-        setScoringInputs(inputs);
-        setLoading(false);
-      }
+      if (active) { setRawItems(items); setLoading(false); }
     }
 
     fetchData();
     return () => { active = false; };
   }, [websiteId, supabase]);
 
-  // Score all items
-  const scoredItems = useMemo(() => {
-    const results = scoringInputs.map(scoreItemSeo);
+  // Score and detect duplicates
+  const scoredItems: ScoredItem[] = useMemo(() => {
+    const duplicateGroups = detectDuplicates(
+      rawItems.map(i => ({ id: i.id, type: i.type, seoTitle: i.input.seoTitle, seoDescription: i.input.seoDescription }))
+    );
 
-    // Detect duplicates and add "Duplicado" issue
-    const duplicateIds = detectDuplicates(scoringInputs);
-    return results.map((r) => {
-      if (duplicateIds.has(r.id) && !r.issues.includes('Duplicado')) {
-        return { ...r, issues: [...r.issues, 'Duplicado'] };
-      }
-      return r;
+    const duplicateIds = new Set<string>();
+    for (const ids of duplicateGroups.values()) {
+      for (const id of ids) duplicateIds.add(id);
+    }
+
+    return rawItems.map(item => {
+      const result = scoreItemSeo(item.input);
+      const issues = buildIssues(item.input, result);
+      if (duplicateIds.has(item.id)) issues.push('Duplicado');
+      return { ...item, result, issues };
     });
-  }, [scoringInputs]);
+  }, [rawItems]);
 
   // Filter by active tab
   const filteredItems = useMemo(() => {
     if (activeTab === 'all') return scoredItems;
-    return scoredItems.filter((item) => item.type === activeTab);
+    return scoredItems.filter(item => item.type === activeTab);
   }, [scoredItems, activeTab]);
 
   // Summary stats
@@ -210,25 +277,22 @@ export default function SeoDashboardPage() {
       return { avgScore: 0, avgGrade: 'F' as SeoGrade, okCount: 0, issueCount: 0, noSchemaCount: 0 };
     }
 
-    const totalScore = scoredItems.reduce((sum, i) => sum + i.score, 0);
+    const totalScore = scoredItems.reduce((sum, i) => sum + i.result.overall, 0);
     const avgScore = Math.round(totalScore / scoredItems.length);
     const avgGrade: SeoGrade =
-      avgScore >= 90 ? 'A' : avgScore >= 75 ? 'B' : avgScore >= 55 ? 'C' : avgScore >= 35 ? 'D' : 'F';
+      avgScore >= 90 ? 'A' : avgScore >= 75 ? 'B' : avgScore >= 60 ? 'C' : avgScore >= 40 ? 'D' : 'F';
 
-    const okCount = scoredItems.filter((i) => i.grade === 'A' || i.grade === 'B').length;
-    const issueCount = scoredItems.filter((i) => i.grade === 'C' || i.grade === 'D' || i.grade === 'F').length;
-    const noSchemaCount = scoringInputs.filter((i) => !i.hasSchema).length;
+    const okCount = scoredItems.filter(i => i.result.grade === 'A' || i.result.grade === 'B').length;
+    const issueCount = scoredItems.filter(i => i.result.grade === 'C' || i.result.grade === 'D' || i.result.grade === 'F').length;
+    const noSchemaCount = scoredItems.filter(i => !i.input.hasJsonLd).length;
 
     return { avgScore, avgGrade, okCount, issueCount, noSchemaCount };
-  }, [scoredItems, scoringInputs]);
+  }, [scoredItems]);
 
   if (loading) {
     return (
       <StudioPage className="max-w-6xl">
-        <StudioSectionHeader
-          title="SEO Audit"
-          subtitle="Evalúa y optimiza el SEO de todo tu sitio"
-        />
+        <StudioSectionHeader title="SEO Audit" subtitle="Evalúa y optimiza el SEO de todo tu sitio" />
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
           {[...Array(4)].map((_, i) => (
             <div key={i} className="studio-card p-4 animate-pulse">
@@ -248,10 +312,7 @@ export default function SeoDashboardPage() {
 
   return (
     <StudioPage className="max-w-6xl">
-      <StudioSectionHeader
-        title="SEO Audit"
-        subtitle="Evalúa y optimiza el SEO de todo tu sitio"
-      />
+      <StudioSectionHeader title="SEO Audit" subtitle="Evalúa y optimiza el SEO de todo tu sitio" />
 
       {/* Summary cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
@@ -260,30 +321,14 @@ export default function SeoDashboardPage() {
           value={`${stats.avgGrade} / ${stats.avgScore}`}
           tone={stats.avgGrade === 'A' || stats.avgGrade === 'B' ? 'success' : stats.avgGrade === 'C' ? 'warning' : 'danger'}
         />
-        <SummaryCard
-          label="Items OK"
-          value={`${stats.okCount} / ${scoredItems.length}`}
-          tone="success"
-        />
-        <SummaryCard
-          label="Con issues"
-          value={`${stats.issueCount}`}
-          tone={stats.issueCount > 0 ? 'warning' : 'success'}
-        />
-        <SummaryCard
-          label="Sin schema"
-          value={`${stats.noSchemaCount}`}
-          tone={stats.noSchemaCount > 0 ? 'warning' : 'success'}
-        />
+        <SummaryCard label="Items OK" value={`${stats.okCount} / ${scoredItems.length}`} tone="success" />
+        <SummaryCard label="Con issues" value={`${stats.issueCount}`} tone={stats.issueCount > 0 ? 'warning' : 'success'} />
+        <SummaryCard label="Sin schema" value={`${stats.noSchemaCount}`} tone={stats.noSchemaCount > 0 ? 'warning' : 'success'} />
       </div>
 
       {/* Type filter tabs */}
       <div className="mt-8">
-        <StudioTabs
-          value={activeTab}
-          options={TAB_OPTIONS}
-          onChange={setActiveTab}
-        />
+        <StudioTabs value={activeTab} options={TAB_OPTIONS} onChange={setActiveTab} />
       </div>
 
       {/* Table */}
@@ -294,21 +339,11 @@ export default function SeoDashboardPage() {
   );
 }
 
-function SummaryCard({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: string;
-  tone: 'success' | 'warning' | 'danger';
-}) {
+function SummaryCard({ label, value, tone }: { label: string; value: string; tone: 'success' | 'warning' | 'danger' }) {
   const borderColor =
-    tone === 'success'
-      ? 'border-green-200 dark:border-green-800'
-      : tone === 'warning'
-        ? 'border-yellow-200 dark:border-yellow-800'
-        : 'border-red-200 dark:border-red-800';
+    tone === 'success' ? 'border-green-200 dark:border-green-800'
+    : tone === 'warning' ? 'border-yellow-200 dark:border-yellow-800'
+    : 'border-red-200 dark:border-red-800';
 
   return (
     <div className={`studio-card p-4 border-l-4 ${borderColor}`}>

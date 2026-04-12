@@ -3,11 +3,10 @@
 import { useState, useMemo } from 'react';
 import {
   scoreItemSeo,
-  generateItemJsonLd,
-  type SeoItemInput,
+  type SeoScoringInput,
   type SeoScoringResult,
   type SeoCheck,
-  type ItemType,
+  type SeoItemType,
 } from '@/lib/seo/unified-scorer';
 
 // ============================================================================
@@ -17,7 +16,7 @@ import {
 interface SeoItemDetailProps {
   item: {
     id: string;
-    type: ItemType;
+    type: SeoItemType;
     name: string;
     slug: string;
     image?: string;
@@ -84,12 +83,30 @@ export function SeoItemDetail({
   const [showSuggestions, setShowSuggestions] = useState(false);
 
   // Build the scoring input with live editable values
-  const scoringInput: SeoItemInput = useMemo(
+  const scoringInput: SeoScoringInput = useMemo(
     () => ({
-      ...item,
+      type: item.type,
+      name: item.name,
+      slug: item.slug,
+      description: item.description,
+      image: item.image,
+      images: item.images,
+      wordCount: item.wordCount,
+      amenities: item.amenities,
+      starRating: item.starRating,
+      duration: item.duration,
+      inclusions: item.inclusions,
+      itineraryItems: item.itineraryItems,
+      latitude: item.latitude,
+      longitude: item.longitude,
       seoTitle: seoTitle || undefined,
       seoDescription: seoDescription || undefined,
       targetKeyword: targetKeyword || undefined,
+      hasJsonLd: true,
+      hasCanonical: true,
+      hasHreflang: true,
+      hasOgTags: true,
+      hasTwitterCard: true,
     }),
     [item, seoTitle, seoDescription, targetKeyword]
   );
@@ -100,8 +117,15 @@ export function SeoItemDetail({
   );
 
   const jsonLd = useMemo(
-    () => generateItemJsonLd(scoringInput, baseUrl),
-    [scoringInput, baseUrl]
+    () => ({
+      '@context': 'https://schema.org',
+      '@type': item.type === 'hotel' ? 'Hotel' : item.type === 'destination' ? 'TouristDestination' : item.type === 'blog' ? 'Article' : 'Product',
+      name: seoTitle || item.name,
+      description: seoDescription || item.description,
+      image: item.image,
+      url: `${baseUrl}/${item.slug}`,
+    }),
+    [item, seoTitle, seoDescription, baseUrl]
   );
 
   const handleSave = async () => {
@@ -311,9 +335,9 @@ export function SeoItemDetail({
         <div className="space-y-4">
           {/* Score bars */}
           <div className="grid grid-cols-3 gap-4">
-            <ScoreBar label="Meta" score={result.meta} grade={result.grade} />
-            <ScoreBar label="Content" score={result.content} grade={result.grade} />
-            <ScoreBar label="Technical" score={result.technical} grade={result.grade} />
+            <ScoreBar label="Meta" score={result.dimensions.meta} grade={result.grade} />
+            <ScoreBar label="Content" score={result.dimensions.content} grade={result.grade} />
+            <ScoreBar label="Technical" score={result.dimensions.technical} grade={result.grade} />
           </div>
 
           {/* Checks grouped by dimension */}
@@ -501,8 +525,8 @@ function CheckRow({ check }: { check: SeoCheck }) {
       }`}>
         {check.pass ? '\u2713' : '\u2717'}
       </span>
-      <span className="text-sm text-slate-700 dark:text-slate-300 flex-1">{check.label}</span>
-      <span className="text-xs text-slate-500">{check.description}</span>
+      <span className="text-sm text-slate-700 dark:text-slate-300 flex-1">{check.message}</span>
+      <span className="text-xs text-slate-500">{check.dimension}</span>
     </div>
   );
 }
