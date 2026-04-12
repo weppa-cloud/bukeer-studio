@@ -21,6 +21,7 @@ interface ItemData {
   seoDescription?: string;
   targetKeyword?: string;
   wordCount?: number;
+  robotsNoindex?: boolean;
   amenities?: string[];
   starRating?: number;
   duration?: number;
@@ -63,7 +64,7 @@ export default function SeoItemDetailPage() {
         }
 
         // Fetch item based on type
-        const itemData = await fetchItemByType(supabase, itemType as SeoItemType, itemId);
+        const itemData = await fetchItemByType(supabase, itemType as SeoItemType, itemId, websiteId);
         if (itemData) {
           setItem(itemData);
         } else {
@@ -89,6 +90,7 @@ export default function SeoItemDetailPage() {
     seoTitle?: string;
     seoDescription?: string;
     targetKeyword?: string;
+    robotsNoindex?: boolean;
   }) => {
     if (!item) return;
 
@@ -100,6 +102,14 @@ export default function SeoItemDetailPage() {
     if (fields.seoDescription !== undefined) updateData.seo_description = fields.seoDescription;
     if (fields.targetKeyword !== undefined) updateData.target_keyword = fields.targetKeyword;
 
+    // For types that store noindex directly in their table
+    if (fields.robotsNoindex !== undefined) {
+      const directNoindexTypes: SeoItemType[] = ['page', 'blog', 'package'];
+      if (directNoindexTypes.includes(item.type)) {
+        updateData.robots_noindex = fields.robotsNoindex;
+      }
+    }
+
     const { error: updateError } = await supabase
       .from(table)
       .update(updateData)
@@ -110,6 +120,32 @@ export default function SeoItemDetailPage() {
       throw new Error('Failed to save');
     }
 
+    // For products: upsert to website_product_pages
+    if (fields.robotsNoindex !== undefined && ['hotel', 'activity', 'transfer'].includes(item.type)) {
+      const { error: noindexError } = await supabase
+        .from('website_product_pages')
+        .upsert(
+          { website_id: websiteId, slug: item.slug, robots_noindex: fields.robotsNoindex },
+          { onConflict: 'website_id,slug' }
+        );
+      if (noindexError) {
+        console.error('[SeoItemDetail] Noindex save error (product):', noindexError);
+      }
+    }
+
+    // For destinations: upsert to destination_seo_overrides
+    if (fields.robotsNoindex !== undefined && item.type === 'destination') {
+      const { error: noindexError } = await supabase
+        .from('destination_seo_overrides')
+        .upsert(
+          { website_id: websiteId, destination_slug: item.slug, robots_noindex: fields.robotsNoindex },
+          { onConflict: 'website_id,destination_slug' }
+        );
+      if (noindexError) {
+        console.error('[SeoItemDetail] Noindex save error (destination):', noindexError);
+      }
+    }
+
     // Update local state
     setItem((prev) =>
       prev
@@ -118,6 +154,7 @@ export default function SeoItemDetailPage() {
             seoTitle: fields.seoTitle ?? prev.seoTitle,
             seoDescription: fields.seoDescription ?? prev.seoDescription,
             targetKeyword: fields.targetKeyword ?? prev.targetKeyword,
+            robotsNoindex: fields.robotsNoindex ?? prev.robotsNoindex,
           }
         : null
     );
@@ -193,7 +230,7 @@ function getTableForType(type: SeoItemType): string | null {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function fetchItemByType(supabase: any, type: SeoItemType, id: string): Promise<ItemData | null> {
+async function fetchItemByType(supabase: any, type: SeoItemType, id: string, websiteId?: string): Promise<ItemData | null> {
   switch (type) {
     case 'hotel':
     case 'activity':
@@ -205,6 +242,19 @@ async function fetchItemByType(supabase: any, type: SeoItemType, id: string): Pr
         .single();
 
       if (!data) return null;
+
+      // Check robots_noindex from website_product_pages
+      let robotsNoindex = false;
+      if (websiteId && data.slug) {
+        const { data: pp } = await supabase
+          .from('website_product_pages')
+          .select('robots_noindex')
+          .eq('website_id', websiteId)
+          .eq('slug', data.slug)
+          .maybeSingle();
+        if (pp?.robots_noindex) robotsNoindex = true;
+      }
+
       return {
         id: data.id,
         type,
@@ -216,6 +266,7 @@ async function fetchItemByType(supabase: any, type: SeoItemType, id: string): Pr
         seoDescription: data.seo_description,
         targetKeyword: data.target_keyword,
         wordCount: data.description ? data.description.split(/\s+/).filter(Boolean).length : 0,
+        robotsNoindex,
         amenities: data.amenities,
         starRating: data.star_rating,
         duration: data.duration,
@@ -228,7 +279,7 @@ async function fetchItemByType(supabase: any, type: SeoItemType, id: string): Pr
     case 'package': {
       const { data } = await supabase
         .from('package_kits')
-        .select('id, name, slug, cover_image, description, seo_title, seo_description, target_keyword, images')
+        .select('id, name, slug, cover_image, description, seo_title, seo_description, target_keyword, images, robots_noindex')
         .eq('id', id)
         .single();
 
@@ -251,6 +302,7 @@ async function fetchItemByType(supabase: any, type: SeoItemType, id: string): Pr
         seoDescription: data.seo_description,
         targetKeyword: data.target_keyword,
         wordCount: data.description ? data.description.split(/\s+/).filter(Boolean).length : 0,
+        robotsNoindex: data.robots_noindex ?? false,
         itineraryItems: count ?? 0,
         images: data.images,
       };
