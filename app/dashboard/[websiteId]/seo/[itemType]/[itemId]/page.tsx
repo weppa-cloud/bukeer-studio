@@ -315,6 +315,19 @@ async function fetchItemByType(supabase: any, type: SeoItemType, id: string, web
         .single();
 
       if (!data) return null;
+
+      // Check robots_noindex from destination_seo_overrides
+      let robotsNoindex = false;
+      if (websiteId && data.slug) {
+        const { data: override } = await supabase
+          .from('destination_seo_overrides')
+          .select('robots_noindex')
+          .eq('website_id', websiteId)
+          .eq('destination_slug', data.slug)
+          .maybeSingle();
+        if (override?.robots_noindex) robotsNoindex = true;
+      }
+
       return {
         id: data.id,
         type: 'destination',
@@ -326,6 +339,7 @@ async function fetchItemByType(supabase: any, type: SeoItemType, id: string, web
         seoDescription: data.seo_description,
         targetKeyword: data.target_keyword,
         wordCount: data.description ? data.description.split(/\s+/).filter(Boolean).length : 0,
+        robotsNoindex,
         latitude: data.latitude,
         longitude: data.longitude,
         images: data.images,

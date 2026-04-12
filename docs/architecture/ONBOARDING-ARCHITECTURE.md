@@ -20,7 +20,7 @@
 8. [Errores: la filosofía de "nunca pantalla blanca"](#8-errores-la-filosofia-de-nunca-pantalla-blanca)
 9. [Seguridad: las 3 puertas](#9-seguridad-las-3-puertas)
 10. [Los paquetes internos: el contrato entre equipos](#10-los-paquetes-internos-el-contrato-entre-equipos)
-11. [Validación con Zod: la única fuente de verdad](#11-validacion-con-zod-la-unica-fuente-de-verdad)
+11. [Validación con Zod: la única fuente de verdad](#11-validación-con-zod-la-unica-fuente-de-verdad)
 12. [AI/LLM: cómo integramos inteligencia artificial](#12-aillm-como-integramos-inteligencia-artificial)
 13. [Performance: por qué estamos en el edge](#13-performance-por-que-estamos-en-el-edge)
 14. [Principios para escalar: cómo piensa un senior](#14-principios-para-escalar-como-piensa-un-senior)
@@ -270,7 +270,7 @@ export function createSupabaseBrowserClient() {
 }
 ```
 
-**Por qué es singleton:** En el navegador, queremos UNA sola conexion. Si creáramos una nueva cada vez que un componente la necesita, tendríamos cientos de conexiones abiertas.
+**Por qué es singleton:** En el navegador, queremos UNA sola conexión. Si creáramos una nueva cada vez que un componente la necesita, tendríamos cientos de conexiones abiertas.
 
 ### Patrón: las funciones de data
 
@@ -428,17 +428,17 @@ Request llega  ──→  middleware.ts
 
 ## 7. Estado: dónde vive cada tipo de dato
 
-Este es un tema que confunde a muchos juniors. "¿Dónde guardo este dato?" La respuesta depende de QUE tipo de dato es.
+Este es un tema que confunde a muchos juniors. "¿Dónde guardo este dato?" La respuesta depende de QUÉ tipo de dato es.
 
 ### La tabla definitiva
 
-| Tipo de dato | Donde vive | Ejemplo | Por qué ahí |
+| Tipo de dato | Dónde vive | Ejemplo | Por qué ahí |
 |---|---|---|---|
 | Contenido del sitio | Servidor (RSC fetch) | Textos, imágenes, secciones | No cambia entre renders |
-| Website en edición | React Context (WebsiteProvider) | El website que el admin está editando | Multiples componentes lo necesitan |
+| Website en edición | React Context (WebsiteProvider) | El website que el admin está editando | Múltiples componentes lo necesitan |
 | Input de formulario | useState local | El texto que el admin escribe | Efímero, solo ese componente |
 | Filtros/paginación | URL searchParams | `?page=2&status=published` | Debe ser compartible y sobrevivir refresh |
-| Tema visual | React Context (M3ThemeProvider) | Colores, fuentes de la agencia | Todo el arbol de componentes lo necesita |
+| Tema visual | React Context (M3ThemeProvider) | Colores, fuentes de la agencia | Todo el árbol de componentes lo necesita |
 | Draft sin guardar | localStorage (useLocalBackup) | Borrador del editor | Debe sobrevivir si el navegador se cierra |
 
 ### Por qué NO usamos Redux/Zustand
