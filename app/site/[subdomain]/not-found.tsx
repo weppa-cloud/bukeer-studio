@@ -2,8 +2,12 @@
 
 import { motion } from 'framer-motion';
 import Link from 'next/link';
+import { useParams } from 'next/navigation';
 
 export default function SiteNotFound() {
+  const params = useParams<{ subdomain: string }>();
+  const basePath = `/site/${params.subdomain}`;
+
   return (
     <div className="min-h-[70vh] flex items-center justify-center px-6">
       <motion.div
@@ -23,17 +27,17 @@ export default function SiteNotFound() {
         </motion.p>
 
         <h1 className="text-2xl md:text-3xl font-bold mb-3">
-          Pagina no encontrada
+          Página no encontrada
         </h1>
 
         <p className="text-muted-foreground mb-8 leading-relaxed">
-          Lo sentimos, la pagina que buscas no existe o fue movida.
-          Pero hay muchos destinos increibles esperandote.
+          Lo sentimos, la página que buscas no existe o fue movida.
+          Pero hay muchos destinos increíbles esperándote.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Link
-            href="./"
+            href={basePath}
             className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-full font-medium hover:bg-primary/90 transition-colors"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -42,10 +46,10 @@ export default function SiteNotFound() {
             Volver al inicio
           </Link>
           <Link
-            href="./contacto"
+            href={`${basePath}/contacto`}
             className="inline-flex items-center justify-center gap-2 px-6 py-3 border border-border rounded-full font-medium text-muted-foreground hover:bg-muted transition-colors"
           >
-            Contactanos
+            Contáctanos
           </Link>
         </div>
 

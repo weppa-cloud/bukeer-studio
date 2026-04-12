@@ -179,15 +179,14 @@ export function DestinationListingPage({
                       <p className="text-sm text-white/70 mt-1">{dest.state}</p>
                     )}
                     <p className="text-sm text-white/80 mt-2">
-                      {dest.hotel_count} hoteles &middot; {dest.activity_count}{' '}
-                      actividades
+                      {dest.hotel_count} hoteles &middot; {dest.activity_count} actividades
                     </p>
                     {dest.min_price && (
                       <p
                         className="text-sm font-semibold mt-2"
                         style={{ color: 'var(--accent)' }}
                       >
-                        Desde {dest.min_price}
+                        Desde ${new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(Number(dest.min_price))}
                       </p>
                     )}
                   </div>

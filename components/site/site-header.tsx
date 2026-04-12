@@ -53,6 +53,18 @@ export function SiteHeader({ website, isCustomDomain = false, navigation }: Site
   // Close mobile menu on route change / resize
   const closeMobile = useCallback(() => setMobileMenuOpen(false), []);
 
+  // Lock body scroll when mobile menu is open
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [mobileMenuOpen]);
+
   // WhatsApp URL
   const whatsappUrl = content.social?.whatsapp
     ? `https://wa.me/${content.social.whatsapp.replace(/[^0-9]/g, '')}`
@@ -216,15 +228,22 @@ export function SiteHeader({ website, isCustomDomain = false, navigation }: Site
 
         {/* Mobile Menu — fullscreen overlay */}
         {mobileMenuOpen && (
-          <div
-            className="lg:hidden fixed inset-0 top-14 z-40"
-            style={{
-              background: 'color-mix(in srgb, var(--bg, hsl(var(--background))) 95%, transparent)',
-              backdropFilter: 'blur(20px)',
-              WebkitBackdropFilter: 'blur(20px)',
-            }}
-          >
-            <nav className="container py-6 flex flex-col gap-1">
+          <>
+            {/* Dark backdrop */}
+            <div
+              className="lg:hidden fixed inset-0 z-40"
+              style={{ background: 'rgba(0, 0, 0, 0.5)' }}
+              onClick={closeMobile}
+              aria-hidden="true"
+            />
+            {/* Menu panel */}
+            <div
+              className="lg:hidden fixed inset-0 top-14 z-50 overflow-y-auto"
+              style={{
+                background: 'var(--bg, hsl(var(--background)))',
+              }}
+            >
+              <nav className="container py-6 flex flex-col gap-1">
               {navLinks.map((link, i) => {
                 const href = resolveNavHref(link, basePath);
                 return (
@@ -279,6 +298,7 @@ export function SiteHeader({ website, isCustomDomain = false, navigation }: Site
               )}
             </nav>
           </div>
+          </>
         )}
       </header>
 

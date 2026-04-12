@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
         const rawSections = page.sections as Array<Record<string, unknown>>;
         sections = rawSections.map((s, i) => ({
           id: (s.id as string) ?? `section-${i}`,
-          section_type: (s.type as string) ?? (s.section_type as string) ?? 'text',
+          section_type: (s.type as string) ?? (s.sectionType as string) ?? (s.section_type as string) ?? 'text',
           content: (s.content as Record<string, unknown>) ?? {},
         }));
       }

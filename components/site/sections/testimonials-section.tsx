@@ -163,7 +163,7 @@ export function TestimonialsSection({ section }: TestimonialsSectionProps) {
               >
                 {/* Duplicate testimonials for seamless loop */}
                 {[...testimonials, ...testimonials, ...testimonials].map((testimonial, index) => (
-                  <div key={`row1-${index}`} className="flex-none w-80 md:w-96">
+                  <div key={`row1-${index}`} className="flex-none w-72 md:w-96">
                     <TestimonialCard testimonial={testimonial} />
                   </div>
                 ))}
@@ -185,7 +185,7 @@ export function TestimonialsSection({ section }: TestimonialsSectionProps) {
                   }}
                 >
                   {[...testimonials, ...testimonials, ...testimonials].reverse().map((testimonial, index) => (
-                    <div key={`row2-${index}`} className="flex-none w-80 md:w-96">
+                    <div key={`row2-${index}`} className="flex-none w-72 md:w-96">
                       <TestimonialCard testimonial={testimonial} />
                     </div>
                   ))}
@@ -197,7 +197,7 @@ export function TestimonialsSection({ section }: TestimonialsSectionProps) {
 
         {/* Carousel / Marquee variant (original) */}
         {(variant === 'carousel' || variant === 'marquee') && (
-          <div className="flex gap-6 overflow-x-auto pb-4 snap-x snap-mandatory hide-scrollbar">
+          <div className="flex gap-6 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide">
             {testimonials.map((testimonial, index) => (
               <motion.div
                 key={testimonial.id || `testimonial-${index}`}
@@ -205,7 +205,7 @@ export function TestimonialsSection({ section }: TestimonialsSectionProps) {
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
-                className="flex-none w-80 md:w-96 snap-center"
+                className="flex-none w-[85vw] max-w-96 snap-center"
               >
                 <TestimonialCard testimonial={testimonial} />
               </motion.div>
@@ -421,6 +421,15 @@ function StackedTestimonials({ testimonials }: { testimonials: Array<{
   location?: string;
 }> }) {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detect mobile viewport
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 640);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Auto-advance every 5 seconds
   useEffect(() => {
@@ -431,7 +440,7 @@ function StackedTestimonials({ testimonials }: { testimonials: Array<{
     return () => clearInterval(interval);
   }, [testimonials.length]);
 
-  const getCardStyle = (index: number) => {
+  const getCardStyle = (index: number, isMobile: boolean) => {
     const diff = index - currentIndex;
     const normalizedDiff = ((diff % testimonials.length) + testimonials.length) % testimonials.length;
 
@@ -439,10 +448,23 @@ function StackedTestimonials({ testimonials }: { testimonials: Array<{
       return { zIndex: 30, scale: 1, y: 0, opacity: 1, rotateZ: 0 };
     } else if (normalizedDiff === 1 || normalizedDiff === testimonials.length - 1) {
       const direction = normalizedDiff === 1 ? 1 : -1;
-      return { zIndex: 20, scale: 0.95, y: 20, opacity: 0.7, rotateZ: direction * 3 };
+      // On mobile, hide background cards more aggressively to prevent text overlap
+      return {
+        zIndex: 20,
+        scale: isMobile ? 0.92 : 0.95,
+        y: isMobile ? 30 : 20,
+        opacity: isMobile ? 0.3 : 0.7,
+        rotateZ: direction * 3,
+      };
     } else if (normalizedDiff === 2 || normalizedDiff === testimonials.length - 2) {
       const direction = normalizedDiff === 2 ? 1 : -1;
-      return { zIndex: 10, scale: 0.9, y: 40, opacity: 0.4, rotateZ: direction * 6 };
+      return {
+        zIndex: 10,
+        scale: isMobile ? 0.85 : 0.9,
+        y: isMobile ? 50 : 40,
+        opacity: isMobile ? 0 : 0.4,
+        rotateZ: direction * 6,
+      };
     }
     return { zIndex: 0, scale: 0.85, y: 60, opacity: 0, rotateZ: 0 };
   };
@@ -450,10 +472,10 @@ function StackedTestimonials({ testimonials }: { testimonials: Array<{
   return (
     <div className="flex flex-col items-center">
       {/* Stack container */}
-      <div className="relative w-full max-w-lg h-[300px] md:h-[350px]" style={{ perspective: '1000px' }}>
+      <div className="relative w-full max-w-lg h-[340px] md:h-[350px] overflow-hidden" style={{ perspective: '1000px' }}>
         <AnimatePresence>
           {testimonials.map((testimonial, index) => {
-            const style = getCardStyle(index);
+            const style = getCardStyle(index, isMobile);
             return (
               <motion.div
                 key={testimonial.id || `stack-${index}`}

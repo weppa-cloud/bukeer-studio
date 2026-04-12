@@ -34,6 +34,14 @@ const fadeUp = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.6 } },
 };
 
+/** Format a numeric price with currency symbol (e.g. "$156,250 COP") */
+function formatPrice(price: number, currency?: string): string {
+  const formatted = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(price);
+  const symbol = currency === 'EUR' ? '€' : '$';
+  const suffix = currency && currency !== 'USD' && currency !== 'EUR' ? ` ${currency}` : '';
+  return `${symbol}${formatted}${suffix}`;
+}
+
 export function ProductLandingPage({
   website,
   product,
@@ -602,7 +610,7 @@ function ActivitySections({ product }: { product: ProductData }) {
           <div className="rounded-xl overflow-hidden border border-border">
             <div className="flex items-center justify-between px-6 py-4 bg-card">
               <span className="text-sm text-muted-foreground">Precio por persona</span>
-              <span className="text-xl font-bold text-primary">{product.price}</span>
+              <span className="text-xl font-bold text-primary">{formatPrice(product.price, product.currency)}</span>
             </div>
           </div>
         </motion.section>
@@ -859,7 +867,7 @@ function QuoteForm({
           <div>
             <span className="font-mono text-xs uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Desde</span>
             <div className="text-3xl mt-1" style={{ color: 'var(--accent)' }}>
-              {product.price}
+              {formatPrice(product.price, product.currency)}
               {productType === 'hotel' && (
                 <span className="text-base" style={{ color: 'var(--text-muted)' }}>/noche</span>
               )}
@@ -1416,7 +1424,7 @@ function SimilarProducts({ website, product, productType, basePath }: { website:
                       <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{item.location}</span>
                     )}
                     {item.price && (
-                      <span className="text-sm font-semibold" style={{ color: 'var(--accent)' }}>{item.price}</span>
+                      <span className="text-sm font-semibold" style={{ color: 'var(--accent)' }}>{formatPrice(item.price, item.currency)}</span>
                     )}
                   </div>
                 </div>

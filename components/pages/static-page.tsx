@@ -14,19 +14,32 @@ interface StaticPageProps {
 
 /**
  * Adapts PageSection to WebsiteSection format.
- * PageSection uses 'type' while WebsiteSection uses 'section_type'.
+ *
+ * DB sections may use different key names depending on how they were created:
+ * - `type`         — PageSection interface (contract types)
+ * - `sectionType`  — Template contract blueprints (camelCase, stored by apply_template RPC)
+ * - `section_type` — Flutter page builder (snake_case)
+ *
+ * We normalise all three to `section_type` for the unified renderer.
  */
 function adaptPageSectionToWebsiteSection(
   section: PageSection,
   index: number
 ): WebsiteSection {
+  const raw = section as unknown as Record<string, unknown>;
+  const sectionType =
+    section.type ||
+    (raw.sectionType as string) ||
+    (raw.section_type as string) ||
+    'text'; // safe fallback — text renders gracefully with any content
+
   return {
     id: section.id,
-    section_type: section.type, // Map 'type' to 'section_type'
-    variant: section.variant || '',
+    section_type: sectionType,
+    variant: section.variant || (raw.variant as string) || '',
     display_order: index,
     is_enabled: true,
-    config: section.config || {},
+    config: section.config || (raw.config as Record<string, unknown>) || {},
     content: section.content || {},
   };
 }
