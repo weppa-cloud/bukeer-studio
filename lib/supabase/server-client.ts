@@ -27,11 +27,10 @@ export async function createSupabaseServerClient() {
   );
 }
 
-export async function getSession() {
-  const supabase = await createSupabaseServerClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  return session;
-}
+// getSession() intentionally not exported — see ADR-005.
+// Use getUser() instead: it revalidates the JWT with Supabase,
+// preventing token replay attacks. Client components may call
+// supabase.auth.getSession() directly on the browser client.
 
 export async function getUser() {
   const supabase = await createSupabaseServerClient();
