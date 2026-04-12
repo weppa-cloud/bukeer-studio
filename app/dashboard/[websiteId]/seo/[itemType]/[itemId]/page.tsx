@@ -100,7 +100,14 @@ export default function SeoItemDetailPage() {
     const updateData: Record<string, unknown> = {};
     if (fields.seoTitle !== undefined) updateData.seo_title = fields.seoTitle;
     if (fields.seoDescription !== undefined) updateData.seo_description = fields.seoDescription;
-    if (fields.targetKeyword !== undefined) updateData.target_keyword = fields.targetKeyword;
+    if (fields.targetKeyword !== undefined) {
+      // website_blog_posts uses seo_keywords (text[]) instead of target_keyword (text)
+      if (item.type === 'blog') {
+        updateData.seo_keywords = fields.targetKeyword ? [fields.targetKeyword] : [];
+      } else {
+        updateData.target_keyword = fields.targetKeyword;
+      }
+    }
 
     // For types that store noindex directly in their table
     if (fields.robotsNoindex !== undefined) {
@@ -110,10 +117,14 @@ export default function SeoItemDetailPage() {
       }
     }
 
-    const { error: updateError } = await supabase
+    console.log('[SeoItemDetail] Saving to', table, 'id=', itemId, 'data=', updateData);
+    const { data: updateResult, error: updateError } = await supabase
       .from(table)
       .update(updateData)
-      .eq('id', itemId);
+      .eq('id', itemId)
+      .select();
+
+    console.log('[SeoItemDetail] Save result:', { updateResult, updateError });
 
     if (updateError) {
       console.error('[SeoItemDetail] Save error:', updateError);
@@ -348,13 +359,13 @@ async function fetchItemByType(supabase: any, type: SeoItemType, id: string, web
     case 'page': {
       let query = supabase
         .from('website_pages')
-        .select('id, title, slug, seo_title, seo_description, target_keyword, content, robots_noindex')
+        .select('id, title, slug, seo_title, seo_description, target_keyword, intro_content, robots_noindex')
         .eq('id', id);
       if (websiteId) query = query.eq('website_id', websiteId);
       const { data } = await query.single();
 
       if (!data) return null;
-      const content = typeof data.content === 'string' ? data.content : JSON.stringify(data.content ?? '');
+      const content = typeof data.intro_content === 'string' ? data.intro_content : JSON.stringify(data.intro_content ?? '');
       return {
         id: data.id,
         type: 'page',
