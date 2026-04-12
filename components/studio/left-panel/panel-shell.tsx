@@ -8,17 +8,15 @@ import {
   LayoutGrid,
   Layers,
   Palette,
-  Sparkles,
 } from 'lucide-react';
 import type { EditorSection } from '@/lib/studio/section-actions';
 import type { SectionTypeValue } from '@bukeer/website-contract';
-import type { ReactNode } from 'react';
 
 // ============================================================================
 // Types
 // ============================================================================
 
-export type LeftPanelMode = 'sections' | 'layers' | 'theme' | 'ai';
+export type LeftPanelMode = 'sections' | 'layers' | 'theme';
 
 interface LeftPanelShellProps {
   mode: LeftPanelMode;
@@ -36,8 +34,6 @@ interface LeftPanelShellProps {
   // Theme
   currentSeedColor?: string;
   onPresetSelect?: (presetId: string, seedColor: string) => void;
-  // AI slot
-  aiContent?: ReactNode;
   className?: string;
 }
 
@@ -49,8 +45,9 @@ const TABS: { id: LeftPanelMode; icon: typeof LayoutGrid; label: string }[] = [
   { id: 'sections', icon: LayoutGrid, label: 'Elements' },
   { id: 'layers', icon: Layers, label: 'Layers' },
   { id: 'theme', icon: Palette, label: 'Theme' },
-  { id: 'ai', icon: Sparkles, label: 'AI' },
 ];
+
+// AI lives in the right panel (Edit/AI/SEO tabs) — not duplicated here.
 
 // ============================================================================
 // Component
@@ -69,9 +66,11 @@ export function LeftPanelShell({
   onDelete,
   currentSeedColor,
   onPresetSelect,
-  aiContent,
   className,
 }: LeftPanelShellProps) {
+  // DEBUG — remove after confirming
+  console.log('[panel-shell] render, TABS.length=', TABS.length);
+
   return (
     <div
       className={cn(
@@ -127,14 +126,6 @@ export function LeftPanelShell({
           />
         )}
 
-        {mode === 'ai' && (
-          aiContent ?? (
-            <div className="flex flex-col items-center justify-center h-full px-4 text-center">
-              <Sparkles className="w-8 h-8 text-[var(--studio-text-muted)] mb-3" />
-              <p className="text-xs text-[var(--studio-text-muted)]">AI assistant available in the right panel</p>
-            </div>
-          )
-        )}
       </div>
     </div>
   );

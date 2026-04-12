@@ -170,7 +170,7 @@ export function Navigator({
 
           {sections.length === 0 && (
             <p className="text-xs text-[var(--studio-text-muted)] text-center py-8">
-              No sections yet. Drag an element from the panel.
+              No sections yet. Click an element from the left panel to add it.
             </p>
           )}
         </div>

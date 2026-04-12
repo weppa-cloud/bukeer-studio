@@ -199,6 +199,18 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
     [sections, selectedSectionId]
   );
 
+  // Current seed color extracted from website theme for the Theme panel active indicator
+  const currentSeedColor = useMemo(() => {
+    try {
+      const theme = websiteData?.theme as unknown as Record<string, unknown> | undefined;
+      const tokens = theme?.tokens as Record<string, unknown> | undefined;
+      const colors = tokens?.colors as Record<string, unknown> | undefined;
+      return typeof colors?.seedColor === 'string' ? colors.seedColor : undefined;
+    } catch {
+      return undefined;
+    }
+  }, [websiteData]);
+
   // iframe preview removed — sections render directly in SectionCanvas
 
   // Selection effect removed — SectionWrapper handles selection state directly
@@ -986,6 +998,21 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
     >
     <TooltipProvider>
       <div className="fixed inset-0 z-[100] flex flex-col studio-shell">
+        {/* Mobile guard — editor requires a wide screen */}
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-background p-8 text-center lg:hidden">
+          <div className="max-w-sm">
+            <Monitor className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+            <h2 className="text-lg font-semibold mb-2">Desktop required</h2>
+            <p className="text-sm text-muted-foreground mb-4">
+              Website Studio works best on screens wider than 1024px. Please open it on a desktop or laptop.
+            </p>
+            <Button variant="outline" onClick={onBack}>
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Go back
+            </Button>
+          </div>
+        </div>
+
         <StudioTopbar
           left={(
             <>
@@ -1138,6 +1165,7 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
             onToggleVisibility={handleToggleVisibility}
             onDuplicate={handleDuplicate}
             onDelete={handleDeleteRequest}
+            currentSeedColor={currentSeedColor}
           />
 
           {/* Canvas — sections rendered directly (no iframe) */}
