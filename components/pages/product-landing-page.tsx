@@ -83,8 +83,9 @@ export function ProductLandingPage({
         {(customHero?.backgroundImage || images[0]) && (
           <Image
             src={customHero?.backgroundImage || images[0]}
-            alt={product.name}
+            alt={`${productType === 'hotel' ? 'Hotel' : productType === 'activity' ? 'Actividad' : productType === 'transport' ? 'Transporte' : 'Producto'} ${product.name}${product.location ? ` en ${product.location}` : ''}`}
             fill
+            sizes="100vw"
             className="object-cover"
             priority
           />
@@ -94,11 +95,7 @@ export function ProductLandingPage({
           style={{ background: 'linear-gradient(to top, hsl(var(--background)) 0%, transparent 60%)' }}
         />
         <div className="relative z-10 w-full max-w-7xl mx-auto px-6 pb-10">
-          <motion.div
-            initial="hidden"
-            animate="visible"
-            variants={fadeUp}
-          >
+          <div>
             {/* Rating stars for hotels */}
             {productType === 'hotel' && product.rating && product.rating > 0 && (
               <div className="flex items-center gap-1 mb-3">
@@ -142,13 +139,13 @@ export function ProductLandingPage({
                 {customHero?.subtitle || product.location || [product.city, product.country].filter(Boolean).join(', ') || ''}
               </p>
             )}
-          </motion.div>
+          </div>
         </div>
       </section>
 
       {/* Breadcrumb */}
       <div className="max-w-7xl mx-auto px-6 py-4">
-        <nav className="text-xs text-muted-foreground font-mono">
+        <nav aria-label="Breadcrumb" className="text-xs text-muted-foreground font-mono">
           <Link href={`${basePath}/`} className="hover:underline">
             Inicio
           </Link>
