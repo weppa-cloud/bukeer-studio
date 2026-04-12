@@ -443,6 +443,42 @@ export async function upsertDestinationSeoOverride(
   return data;
 }
 
+/**
+ * Get noindex product slugs for a website (from website_product_pages)
+ */
+export async function getNoindexProductSlugs(websiteId: string): Promise<Set<string>> {
+  try {
+    const { data, error } = await supabase
+      .from('website_product_pages')
+      .select('slug, robots_noindex')
+      .eq('website_id', websiteId)
+      .eq('robots_noindex', true);
+
+    if (error || !data) return new Set();
+    return new Set(data.map(p => p.slug).filter(Boolean));
+  } catch {
+    return new Set();
+  }
+}
+
+/**
+ * Get noindex destination slugs for a website (from destination_seo_overrides)
+ */
+export async function getNoindexDestinationSlugs(websiteId: string): Promise<Set<string>> {
+  try {
+    const { data, error } = await supabase
+      .from('destination_seo_overrides')
+      .select('destination_slug, robots_noindex')
+      .eq('website_id', websiteId)
+      .eq('robots_noindex', true);
+
+    if (error || !data) return new Set();
+    return new Set(data.map(d => d.destination_slug).filter(Boolean));
+  } catch {
+    return new Set();
+  }
+}
+
 export async function getReviewsForProduct(
   accountId: string,
   cityOrDestination: string,

@@ -8,7 +8,7 @@
  */
 
 import { getBlogPosts } from '@/lib/supabase/get-website';
-import { getAllPageSlugs, getIndexablePageSlugs, getCategoryProducts, getDestinations } from '@/lib/supabase/get-pages';
+import { getAllPageSlugs, getIndexablePageSlugs, getCategoryProducts, getDestinations, getNoindexProductSlugs, getNoindexDestinationSlugs } from '@/lib/supabase/get-pages';
 
 export interface SitemapUrl {
   loc: string;
@@ -103,6 +103,8 @@ export async function buildSitemapUrls(
   }
 
   // 4. Product category pages + individual products
+  const noindexProducts = await getNoindexProductSlugs(websiteId);
+
   for (const category of PRODUCT_CATEGORIES) {
     const spanishSlug = CATEGORY_SLUG_MAP[category] ?? category;
 
@@ -115,11 +117,10 @@ export async function buildSitemapUrls(
     const categorySlug = allPageSlugSet.has(spanishSlug) ? spanishSlug : category;
 
     // Fetch product items for this category
-    // TODO: Filter out products with robots_noindex in product_page_customizations
     const { items } = await getCategoryProducts(subdomain, category, { limit: 100 });
 
     for (const item of items) {
-      if (item.slug) {
+      if (item.slug && !noindexProducts.has(item.slug)) {
         urls.push({
           loc: `${baseUrl}/${categorySlug}/${item.slug}`,
           changefreq: 'weekly',
@@ -132,6 +133,8 @@ export async function buildSitemapUrls(
   // 5. Destination pages
   try {
     const destinations = await getDestinations(subdomain);
+    const noindexDestinations = await getNoindexDestinationSlugs(websiteId);
+
     if (destinations.length > 0) {
       // Destination listing page
       const destSlug = allPageSlugSet.has('destinos') ? 'destinos' : 'destinations';
@@ -142,10 +145,9 @@ export async function buildSitemapUrls(
         priority: '0.7',
       });
 
-      // Individual destination pages
-      // TODO: Filter out destinations with robots_noindex in destination_seo_overrides
+      // Individual destination pages (excluding noindex)
       for (const dest of destinations) {
-        if (dest.slug) {
+        if (dest.slug && !noindexDestinations.has(dest.slug)) {
           urls.push({
             loc: `${baseUrl}/${destSlug}/${dest.slug}`,
             changefreq: 'weekly',
