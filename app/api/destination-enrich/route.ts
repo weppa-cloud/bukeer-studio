@@ -1,4 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+
+const EnrichQuerySchema = z.object({
+  city: z.string().min(1, 'Missing city parameter'),
+});
 
 /**
  * API Route: /api/destination-enrich?city=Cartagena+de+Indias
@@ -35,10 +40,13 @@ interface EnrichmentData {
 }
 
 export async function GET(request: NextRequest) {
-  const city = request.nextUrl.searchParams.get('city');
-  if (!city) {
-    return NextResponse.json({ error: 'Missing city parameter' }, { status: 400 });
+  const parsed = EnrichQuerySchema.safeParse({
+    city: request.nextUrl.searchParams.get('city'),
+  });
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
+  const { city } = parsed.data;
 
   const SERPAPI_KEY = process.env.SERPAPI_KEY;
   if (!SERPAPI_KEY) {

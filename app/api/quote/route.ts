@@ -1,6 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('quote');
 
 // Create Supabase client with service role for API routes
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -61,8 +64,8 @@ export async function POST(request: NextRequest) {
             checkOut: body.travelDates.checkOut,
           }
         : null,
-      p_adults: body.adults || 2,
-      p_children: body.children || 0,
+      p_adults: body.adults,
+      p_children: body.children,
       p_notes: body.notes || null,
       p_utm_source: body.utmSource || null,
       p_utm_medium: body.utmMedium || null,
@@ -70,7 +73,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (error) {
-      console.error('[Quote API] Supabase error:', error);
+      log.error('Supabase error', { message: error.message });
       return NextResponse.json(
         { success: false, error: 'Failed to submit quote request' },
         { status: 500 }
@@ -90,7 +93,7 @@ export async function POST(request: NextRequest) {
       message: 'Quote request submitted successfully',
     });
   } catch (error) {
-    console.error('[Quote API] Error:', error);
+    log.error('Unexpected error', { message: String(error) });
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }

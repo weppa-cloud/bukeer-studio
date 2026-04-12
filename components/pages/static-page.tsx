@@ -5,6 +5,9 @@ import Link from 'next/link';
 import type { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 import type { WebsitePage, PageSection, DestinationData } from '@/lib/supabase/get-pages';
 import { renderSection } from '@/lib/sections/render-section';
+import { SECTION_TYPES } from '@bukeer/website-contract';
+
+const HERO_SECTION_TYPES = SECTION_TYPES.filter((t) => t.startsWith('hero'));
 
 interface StaticPageProps {
   website: WebsiteData;
@@ -55,11 +58,10 @@ export function StaticPage({ website, page, dynamicDestinations = [] }: StaticPa
   const hasDynamicDestinations = sectionDynamicDestinations.length > 0;
 
   // Skip the hardcoded fallback hero when sections already include a hero-type section
-  const HERO_TYPES = ['hero', 'hero_image', 'hero_video', 'hero_minimal'];
   const sectionsHaveHero = sections.some((s) => {
     const raw = s as unknown as Record<string, unknown>;
     const t = s.type || (raw.sectionType as string) || (raw.section_type as string) || '';
-    return HERO_TYPES.includes(t);
+    return HERO_SECTION_TYPES.includes(t as typeof HERO_SECTION_TYPES[number]);
   });
 
   return (

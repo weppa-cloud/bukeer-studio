@@ -1,28 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getEditorModel } from '@/lib/ai/llm-provider';
 import { generateText } from 'ai';
+import { z } from 'zod';
 import { getEditorAuth, hasEditorRole } from '@/lib/ai/auth-helpers';
 import { checkRateLimit, recordCost } from '@/lib/ai/rate-limit';
 
-type ImprovementAction = 'rewrite' | 'shorten' | 'expand' | 'formal' | 'casual' | 'translate';
+import {
+  IMPROVEMENT_ACTIONS,
+  buildImproveTextPrompt,
+} from '@/lib/ai/prompts';
 
-const VALID_ACTIONS: ImprovementAction[] = [
-  'rewrite',
-  'shorten',
-  'expand',
-  'formal',
-  'casual',
-  'translate',
-];
-
-const ACTION_PROMPTS: Record<ImprovementAction, string> = {
-  rewrite: 'Rewrite this text to be more engaging and professional, keeping the same meaning.',
-  shorten: 'Shorten this text significantly while preserving the key message. Be concise.',
-  expand: 'Expand this text with more detail and engaging language. Add supporting points.',
-  formal: 'Rewrite this text in a more formal, professional tone.',
-  casual: 'Rewrite this text in a friendly, conversational tone.',
-  translate: 'Translate this text to the target language while preserving tone and meaning.',
-};
+const ImproveTextRequestSchema = z.object({
+  text: z.string().min(1).max(10000),
+  action: z.enum(IMPROVEMENT_ACTIONS),
+  targetLocale: z.string().optional(),
+});
 
 export async function POST(request: NextRequest) {
   const auth = await getEditorAuth(request);
@@ -43,28 +35,16 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const body = await request.json();
-    const { text, action, targetLocale } = body;
+    const raw = await request.json();
+    const parsed = ImproveTextRequestSchema.safeParse(raw);
 
-    if (!text || typeof text !== 'string') {
-      return NextResponse.json({ error: 'text is required' }, { status: 400 });
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
     }
 
-    if (text.length > 10000) {
-      return NextResponse.json({ error: 'Text too long (max 10000 chars)' }, { status: 400 });
-    }
+    const { text, action, targetLocale } = parsed.data;
 
-    if (!action || !VALID_ACTIONS.includes(action)) {
-      return NextResponse.json(
-        { error: `Invalid action. Valid: ${VALID_ACTIONS.join(', ')}` },
-        { status: 400 }
-      );
-    }
-
-    let systemPrompt = ACTION_PROMPTS[action as ImprovementAction];
-    if (action === 'translate' && targetLocale) {
-      systemPrompt += ` Target language: ${targetLocale}`;
-    }
+    const systemPrompt = buildImproveTextPrompt(action, targetLocale);
 
     const result = await generateText({
       model: getEditorModel(),

@@ -191,6 +191,8 @@ Content-Security-Policy: frame-ancestors 'self' https://app.bukeer.com (/editor/
 | [ADR-006](./ADR-006-ai-streaming-architecture.md) | Streaming-First AI Integration | Accepted |
 | [ADR-007](./ADR-007-edge-first-delivery.md) | Edge-First Delivery on Cloudflare Workers | Accepted |
 | [ADR-008](./ADR-008-monorepo-packages.md) | Internal Package Architecture | Accepted |
+| [ADR-009](./ADR-009-multi-tenant-subdomain-routing.md) | Multi-Tenant Subdomain Routing | Accepted |
+| [ADR-010](./ADR-010-observability-strategy.md) | Observability Strategy | Accepted |
 
 ---
 

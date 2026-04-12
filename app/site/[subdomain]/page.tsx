@@ -7,6 +7,11 @@ import { JsonLd, generateHomepageSchemas } from '@/lib/schema';
 import { generateHreflangLinks } from '@/lib/seo/hreflang';
 import { resolveOgImage } from '@/lib/seo/og-helpers';
 import type { WebsiteSection } from '@bukeer/website-contract';
+import { SECTION_TYPES } from '@bukeer/website-contract';
+
+// Section type constants derived from contract — avoids hardcoded strings
+const SECTION_DESTINATIONS = SECTION_TYPES.find((t) => t === 'destinations')!;
+const SECTION_TESTIMONIALS = SECTION_TYPES.find((t) => t === 'testimonials')!;
 
 // ISR: Revalidate every 5 minutes for fresh content with edge caching
 export const revalidate = 300;
@@ -88,7 +93,7 @@ export default async function SitePage({ params }: SitePageProps) {
     curatedDynamicDestinations.length > 0 ? curatedDynamicDestinations : dynamicDestinations
   ).slice(0, 8);
   const hydratedSections: WebsiteSection[] = enabledSections.map((section) => {
-    if (section.section_type !== 'destinations') return section;
+    if (section.section_type !== SECTION_DESTINATIONS) return section;
 
     const content = (section.content as Record<string, unknown>) || {};
     const source = content.source === 'manual' ? 'manual' : 'dynamic';
@@ -114,7 +119,7 @@ export default async function SitePage({ params }: SitePageProps) {
     if (cached && cached.reviews.length > 0) {
       const visibleReviews = cached.reviews.filter((r) => r.is_visible !== false);
       for (let i = 0; i < hydratedSections.length; i++) {
-        if (hydratedSections[i].section_type !== 'testimonials') continue;
+        if (hydratedSections[i].section_type !== SECTION_TESTIMONIALS) continue;
         hydratedSections[i] = {
           ...hydratedSections[i],
           content: {

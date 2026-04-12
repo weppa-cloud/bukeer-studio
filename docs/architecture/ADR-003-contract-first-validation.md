@@ -1,7 +1,7 @@
 # ADR-003: Contract-First Validation with Zod
 
 **Status:** Accepted
-**Implementation Status:** In Progress — 8/18 API routes use Zod; remaining use manual validation
+**Implementation Status:** Complete — 18/20 API routes use Zod validation; remaining 2 (sitemap, reviews) are GET-only with no user input
 **Date:** 2026-04-12
 **Principles:** P2, P5
 

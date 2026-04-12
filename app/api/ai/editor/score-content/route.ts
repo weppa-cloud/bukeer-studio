@@ -6,8 +6,19 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { getEditorAuth, hasEditorRole } from '@/lib/ai/auth-helpers';
 import { scoreContent } from '@/lib/blog/content-scorer';
+
+const ScoreContentRequestSchema = z.object({
+  content: z.string().min(1).max(50000),
+  title: z.string().min(1),
+  metaDescription: z.string().optional(),
+  keywords: z.array(z.string()).optional(),
+  faqItems: z.array(z.object({ question: z.string(), answer: z.string() })).optional(),
+  locale: z.string().default('es'),
+  featuredImage: z.string().optional(),
+});
 
 export async function POST(request: NextRequest) {
   const auth = await getEditorAuth(request);
@@ -20,30 +31,14 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const body = await request.json();
-    const { content, title, metaDescription, keywords, faqItems, locale, featuredImage } = body;
+    const raw = await request.json();
+    const parsed = ScoreContentRequestSchema.safeParse(raw);
 
-    if (!content || typeof content !== 'string') {
-      return NextResponse.json({ error: 'content is required' }, { status: 400 });
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
     }
 
-    if (!title || typeof title !== 'string') {
-      return NextResponse.json({ error: 'title is required' }, { status: 400 });
-    }
-
-    if (content.length > 50000) {
-      return NextResponse.json({ error: 'Content too long (max 50,000 chars)' }, { status: 400 });
-    }
-
-    const result = scoreContent({
-      content,
-      title,
-      metaDescription,
-      keywords,
-      faqItems,
-      locale: locale || 'es',
-      featuredImage,
-    });
+    const result = scoreContent(parsed.data);
 
     return NextResponse.json(result);
   } catch (err) {

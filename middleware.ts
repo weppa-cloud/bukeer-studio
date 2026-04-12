@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { refreshAuthSession } from '@/lib/supabase/middleware-client';
 
 // Subdomains that should NOT be treated as tenant sites
 const RESERVED_SUBDOMAINS = [
@@ -225,6 +226,16 @@ export async function middleware(request: NextRequest) {
         const loginUrl = new URL('/login', request.url);
         loginUrl.searchParams.set('redirect', pathname);
         return NextResponse.redirect(loginUrl);
+      }
+
+      // Refresh auth session — revalidates JWT and updates cookies
+      // so Server Components receive fresh tokens.
+      const response = NextResponse.next();
+      try {
+        return await refreshAuthSession(request, response);
+      } catch {
+        // If refresh fails, continue — the dashboard will handle auth errors
+        return response;
       }
     }
 

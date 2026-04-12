@@ -1,7 +1,7 @@
 # ADR-007: Edge-First Delivery on Cloudflare Workers
 
 **Status:** Accepted
-**Implementation Status:** Complete — bundle size CI gate pending
+**Implementation Status:** Complete
 **Date:** 2026-04-12
 **Principles:** P4, P10
 

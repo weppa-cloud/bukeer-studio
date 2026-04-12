@@ -28,6 +28,8 @@ Bukeer Website Studio — the Next.js 15 public website renderer and design toke
 │   └── ui/                ← shadcn/ui base components
 ├── lib/                   ← Business logic & utilities
 │   ├── ai/                ← LLM integration (OpenRouter)
+│   │   └── prompts/       ← Centralized AI prompt templates
+│   ├── env.ts             ← Zod-validated environment variables
 │   ├── sections/          ← Section type definitions & schema
 │   ├── studio/            ← Studio-specific utilities
 │   ├── supabase/          ← DB queries & client setup

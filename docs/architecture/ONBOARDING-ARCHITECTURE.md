@@ -16,11 +16,11 @@
 4. [Supabase: cómo hablamos con la base de datos](#4-supabase-como-hablamos-con-la-base-de-datos)
 5. [El sistema de temas: design tokens](#5-el-sistema-de-temas-design-tokens)
 6. [Cómo fluyen los datos: de la BD al píxel](#6-como-fluyen-los-datos-de-la-bd-al-pixel)
-7. [Estado: donde vive cada tipo de dato](#7-estado-donde-vive-cada-tipo-de-dato)
+7. [Estado: dónde vive cada tipo de dato](#7-estado-donde-vive-cada-tipo-de-dato)
 8. [Errores: la filosofía de "nunca pantalla blanca"](#8-errores-la-filosofia-de-nunca-pantalla-blanca)
 9. [Seguridad: las 3 puertas](#9-seguridad-las-3-puertas)
 10. [Los paquetes internos: el contrato entre equipos](#10-los-paquetes-internos-el-contrato-entre-equipos)
-11. [Validación con Zod: la única fuente de verdad](#11-validación-con-zod-la-unica-fuente-de-verdad)
+11. [Validación con Zod: la única fuente de verdad](#11-validacion-con-zod-la-unica-fuente-de-verdad)
 12. [AI/LLM: cómo integramos inteligencia artificial](#12-aillm-como-integramos-inteligencia-artificial)
 13. [Performance: por qué estamos en el edge](#13-performance-por-que-estamos-en-el-edge)
 14. [Principios para escalar: cómo piensa un senior](#14-principios-para-escalar-como-piensa-un-senior)
@@ -304,7 +304,7 @@ export async function getWebsiteBySubdomain(
 
 2. **Retorna null, nunca throw** — Si la BD falla, no queremos que toda la página explote. Retornamos `null` y el componente muestra un fallback.
 
-3. **Logs con namespace** — `[getWebsiteBySubdomain]` nos dice exactamente donde falló cuando leemos los logs.
+3. **Logs con namespace** — `[getWebsiteBySubdomain]` nos dice exactamente dónde falló cuando leemos los logs.
 
 ---
 
@@ -898,9 +898,9 @@ Cloudflare Workers (edge):
   Turista en Madrid → Worker en Madrid → 10ms latencia
 ```
 
-### Los limites que debes conocer
+### Los límites que debes conocer
 
-| Limite | Valor | Qué significa para ti |
+| Límite | Valor | Qué significa para ti |
 |---|---|---|
 | Bundle size | 10 MiB | No importes librerías enormes. Usa tree-shaking |
 | Memoria | 128 MB | No cargues todo en memoria. Usa streams |
@@ -970,7 +970,7 @@ const { data } = await supabase
 
 ### 2. "Los errores no son excepciones, son el caso normal"
 
-En internet, todo falla: la BD, la red, la API de AI, la imagen, el DNS. Escribe código que ESPERE el falló:
+En internet, todo falla: la BD, la red, la API de AI, la imagen, el DNS. Escribe código que ESPERE el fallo:
 
 ```typescript
 // Esto NO es pesimismo. Es realismo de produccion.
@@ -1004,7 +1004,7 @@ Server Components resuelven esto:
 
 ### 4. "La complejidad no se elimina, se mueve al lugar correcto"
 
-La complejidad del multi-tenancy, los temas, la AI — todo eso existe. La pregunta es DONDE vive:
+La complejidad del multi-tenancy, los temas, la AI — todo eso existe. La pregunta es DÓNDE vive:
 
 ```
 Complejidad del routing multi-tenant → middleware.ts (un solo lugar)
@@ -1034,8 +1034,8 @@ const enabledSections = (website.sections || [])
 Antes de hacer `npm install cool-library`, pregúntate:
 
 - Puedo hacer esto con lo que ya tenemos? (React, Next.js, Tailwind)
-- Cuanto pesa? (Estamos en un Worker de 10 MiB)
-- Quien lo mantiene? (Un dev solo vs un equipo activo)
+- Cuánto pesa? (Estamos en un Worker de 10 MiB)
+- Quién lo mantiene? (Un dev solo vs un equipo activo)
 - Qué pasa si lo abandonan?
 
 ```
@@ -1053,25 +1053,25 @@ Usa esta lista antes de abrir un Pull Request. Si alguno falla, tu PR será rech
 
 ### Arquitectura
 - [ ] Mi componente es Server Component? Si no, por qué necesita `'use client'`?
-- [ ] Si use `'use client'`, está en la hoja más pequeña posible?
-- [ ] Las dependencias fluyen hacia abajo? (no importo de `app/` en `lib/`)
-- [ ] Use tipos de `@bukeer/website-contract`, no tipos inventados?
+- [ ] Si usé `'use client'`, está en la hoja más pequeña posible?
+- [ ] Las dependencias fluyen hacia abajo? (no importé de `app/` en `lib/`)
+- [ ] Usé tipos de `@bukeer/website-contract`, no tipos inventados?
 
 ### Datos
-- [ ] Use el cliente Supabase correcto? (server en RSC, browser en client)
+- [ ] Usé el cliente Supabase correcto? (server en RSC, browser en client)
 - [ ] Mi data fetch retorna null en error, no throw?
 - [ ] Los logs tienen namespace? (`[módulo.función]`)
-- [ ] Valide input del usuario con Zod en la frontera?
+- [ ] Validé input del usuario con Zod en la frontera?
 
 ### Seguridad
-- [ ] Use `getUser()` en servidor, no `getSession()`?
+- [ ] Usé `getUser()` en servidor, no `getSession()`?
 - [ ] No expuse secrets en variables `NEXT_PUBLIC_`?
-- [ ] Valide URLs de usuario antes de hacer fetch server-side?
+- [ ] Validé URLs de usuario antes de hacer fetch server-side?
 - [ ] No tengo XSS (uso `SafeString` de website-contract)?
 
 ### Performance
-- [ ] No aumento el bundle innecesariamente?
-- [ ] Use dynamic import para componentes pesados?
+- [ ] No aumenté el bundle innecesariamente?
+- [ ] Usé dynamic import para componentes pesados?
 - [ ] Mi página pública puede ser ISR (no force-dynamic)?
 - [ ] No cargo todos los registros en memoria?
 

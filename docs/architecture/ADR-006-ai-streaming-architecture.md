@@ -1,7 +1,7 @@
 # ADR-006: Streaming-First AI Integration
 
 **Status:** Accepted
-**Implementation Status:** Complete — prompt extraction to lib/ai/prompts/ is planned
+**Implementation Status:** Complete
 **Date:** 2026-04-12
 **Principles:** P9, P2, P10
 
@@ -86,16 +86,22 @@ const result = await generateObject({
 
 ### Prompt management
 
-Prompts are currently defined inline in their respective route handlers. The AI module structure:
+Prompts are centralized in `lib/ai/prompts/`, exported via barrel:
 
 ```
 lib/ai/
+  prompts/
+    studio-chat.ts        ← system prompt for studio chat assistant
+    public-chat.ts        ← system prompt for visitor-facing chat
+    section-generator.ts  ← prompt for AI section content generation
+    improve-text.ts       ← action prompts (rewrite, shorten, translate, etc.)
+    index.ts              ← barrel export
   llm-provider.ts         ← provider abstraction (OpenRouter)
   rate-limit.ts           ← per-account rate limiting (Supabase-based)
   auth-helpers.ts         ← JWT extraction, role checks
 ```
 
-Prompt extraction to a dedicated `lib/ai/prompts/` directory is planned for when prompt complexity warrants centralized management.
+Each prompt is a function that accepts context and returns a string, making prompts testable and version-controllable.
 
 ### Rate limiting
 

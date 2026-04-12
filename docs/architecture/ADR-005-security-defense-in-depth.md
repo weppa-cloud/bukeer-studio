@@ -21,6 +21,7 @@ bukeer-studio handles multi-tenant website data, user authentication, AI-powered
 
 ```
 Layer 1: Middleware (edge)
+├── Refresh Supabase auth tokens via getUser() (dashboard routes)
 ├── Check auth cookie existence, redirect to /login if missing
 ├── One-time JWT handoff from Flutter (editor/dashboard bridge)
 ├── Subdomain → website ID resolution
@@ -99,7 +100,6 @@ No user-supplied URLs are fetched server-side. If this changes (e.g., user-confi
 
 - **Nonce-based CSP** — Not implemented. Inline scripts are minimal. When inline script usage grows, add nonce-based CSP via middleware.
 - **SSRF domain allowlist** — Not needed while all external URLs are hardcoded. Implement if user-supplied URLs are accepted.
-- **Auth token refresh in middleware** — Middleware checks cookie existence but does not call `refreshSession()`. Supabase SDK handles refresh client-side. Server-side refresh would reduce latency for expired-but-refreshable tokens.
 
 ## Consequences
 

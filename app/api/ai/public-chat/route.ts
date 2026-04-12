@@ -1,8 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { anthropic } from '@ai-sdk/anthropic';
 import { streamText } from 'ai';
+import { z } from 'zod';
 import { getClientIp } from '@/lib/ai/auth-helpers';
 import { checkRateLimit } from '@/lib/ai/rate-limit';
+import { buildPublicChatPrompt } from '@/lib/ai/prompts';
+
+const ChatMessageSchema = z.object({
+  role: z.enum(['user', 'assistant']),
+  content: z.string().max(2000),
+});
+
+const PublicChatRequestSchema = z.object({
+  message: z.string().min(1).max(2000),
+  subdomain: z.string().min(1),
+  history: z.array(ChatMessageSchema).max(10).default([]),
+  websiteInfo: z
+    .object({
+      siteName: z.string().optional(),
+      tagline: z.string().optional(),
+    })
+    .optional(),
+});
 
 /**
  * Public chat endpoint for website visitors.
@@ -28,48 +47,25 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const body = await request.json();
-    const { message, subdomain, history = [], websiteInfo } = body;
+    const raw = await request.json();
+    const parsed = PublicChatRequestSchema.safeParse(raw);
 
-    if (!message || typeof message !== 'string') {
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: 'message is required' },
+        { error: parsed.error.flatten() },
         { status: 400 }
       );
     }
 
-    if (!subdomain || typeof subdomain !== 'string') {
-      return NextResponse.json(
-        { error: 'subdomain is required' },
-        { status: 400 }
-      );
-    }
-
-    // Validate history length (prevent context abuse)
-    const safeHistory = (history as Array<{ role: string; content: string }>)
-      .slice(-10)
-      .filter(
-        (m) =>
-          (m.role === 'user' || m.role === 'assistant') &&
-          typeof m.content === 'string' &&
-          m.content.length <= 2000
-      );
+    const { message, subdomain, history: safeHistory, websiteInfo } = parsed.data;
 
     const result = streamText({
       model: anthropic('claude-haiku-4-5-20251001'),
-      system: `You are a helpful travel assistant for ${websiteInfo?.siteName ?? 'a travel agency'}.
-Your job is to help website visitors with travel-related questions.
-Be friendly, concise, and helpful. Answer in the same language the user writes in.
-
-Website info:
-- Name: ${websiteInfo?.siteName ?? subdomain}
-- Tagline: ${websiteInfo?.tagline ?? ''}
-
-Guidelines:
-- Keep responses under 300 words
-- If asked about booking, direct them to the contact form or quote request
-- Don't make up specific prices or availability
-- Be enthusiastic about travel destinations`,
+      system: buildPublicChatPrompt({
+        siteName: websiteInfo?.siteName ?? subdomain,
+        tagline: websiteInfo?.tagline,
+        subdomain,
+      }),
       messages: [
         ...safeHistory.map((m) => ({
           role: m.role as 'user' | 'assistant',

@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { getEditorAuth, hasEditorRole } from '@/lib/ai/auth-helpers';
 import { checkRateLimit, recordCost } from '@/lib/ai/rate-limit';
 import { SECTION_TYPES } from '@bukeer/website-contract';
+import { buildSectionGeneratorPrompt } from '@/lib/ai/prompts';
 
 const sectionContentSchema = z.object({
   title: z.string().optional(),
@@ -70,14 +71,12 @@ export async function POST(request: NextRequest) {
     const result = await generateObject({
       model: getEditorModel(),
       schema: sectionContentSchema,
-      prompt: `Generate content for a "${sectionType}" website section.
-Website context: ${JSON.stringify(websiteContext ?? {})}
-User instructions: ${prompt ?? 'Generate engaging content for a travel agency website.'}
-Language: ${locale}
-
-Generate professional, engaging content appropriate for the section type.
-For items arrays, generate 3-6 items with descriptive titles and descriptions.
-Keep text concise and action-oriented.`,
+      prompt: buildSectionGeneratorPrompt({
+        sectionType,
+        websiteContext,
+        prompt,
+        locale,
+      }),
     });
 
     // Estimate cost (~$0.003 per call for Sonnet)

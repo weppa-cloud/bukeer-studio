@@ -1,6 +1,16 @@
 import { revalidatePath } from 'next/cache';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { z } from 'zod';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('revalidate');
+
+const RevalidateBodySchema = z.object({
+  subdomain: z.string().min(1).transform((s) => s.toLowerCase().trim()),
+  path: z.string().optional(),
+  secret: z.string().optional(), // Legacy body-based auth
+});
 
 /**
  * API Route: /api/revalidate
@@ -33,32 +43,32 @@ export async function POST(request: NextRequest) {
     const expectedSecret = process.env.REVALIDATE_SECRET;
 
     if (!expectedSecret) {
-      console.error('[Revalidate] REVALIDATE_SECRET not configured');
+      log.error('REVALIDATE_SECRET not configured');
       return NextResponse.json(
         { error: 'Revalidation not configured' },
         { status: 500 }
       );
     }
 
-    if (authHeader !== `Bearer ${expectedSecret}`) {
-      // Also check legacy body secret for backwards compatibility
-      const body = await request.clone().json();
-      if (body.secret !== expectedSecret) {
-        console.error('[Revalidate] Invalid or missing authorization');
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-      }
-    }
+    // 3. Parse and validate request body
+    const raw = await request.json();
+    const parsed = RevalidateBodySchema.safeParse(raw);
 
-    // 3. Parse request body
-
-    const body = await request.json();
-    const { subdomain, path } = body;
-
-    if (!subdomain || typeof subdomain !== 'string') {
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: 'subdomain is required' },
+        { error: parsed.error.flatten() },
         { status: 400 }
       );
+    }
+
+    const { subdomain, path } = parsed.data;
+
+    // Check auth: Bearer token or legacy body secret
+    if (authHeader !== `Bearer ${expectedSecret}`) {
+      if (parsed.data.secret !== expectedSecret) {
+        log.error('Invalid or missing authorization');
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
     }
 
     // 4. Validate subdomain exists in database
@@ -67,7 +77,7 @@ export async function POST(request: NextRequest) {
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     if (!supabaseUrl || !supabaseServiceKey) {
-      console.error('[Revalidate] Missing Supabase configuration');
+      log.error('Missing Supabase configuration');
       return NextResponse.json(
         { error: 'Server configuration error' },
         { status: 500 }
@@ -79,12 +89,12 @@ export async function POST(request: NextRequest) {
     const { data: website, error: websiteError } = await supabase
       .from('websites')
       .select('id, subdomain, status')
-      .eq('subdomain', subdomain.toLowerCase().trim())
+      .eq('subdomain', subdomain)
       .is('deleted_at', null)
       .maybeSingle();
 
     if (websiteError) {
-      console.error('[Revalidate] Database error:', websiteError.message);
+      log.error('Database error', { message: websiteError.message });
       return NextResponse.json(
         { error: 'Database error' },
         { status: 500 }
@@ -112,9 +122,7 @@ export async function POST(request: NextRequest) {
     revalidatePath(`/site/${subdomain}/blog`);
 
     const duration = Date.now() - startTime;
-    console.log(
-      `[Revalidate] Success: ${subdomain} in ${duration}ms (IP: ${ip})`
-    );
+    log.info(`Success: ${subdomain} in ${duration}ms`, { ip });
 
     // 6. Log revalidation (fire and forget)
     supabase
@@ -128,7 +136,7 @@ export async function POST(request: NextRequest) {
       })
       .then(({ error }) => {
         if (error) {
-          console.warn('[Revalidate] Failed to log:', error.message);
+          log.warn('Failed to write audit log', { message: error.message });
         }
       });
 
@@ -140,7 +148,7 @@ export async function POST(request: NextRequest) {
       duration_ms: duration,
     });
   } catch (error) {
-    console.error('[Revalidate] Error:', error);
+    log.error('Unexpected error', { message: String(error) });
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

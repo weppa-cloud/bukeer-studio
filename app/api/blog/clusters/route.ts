@@ -5,7 +5,16 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { z } from 'zod';
 import { getEditorAuth, hasEditorRole } from '@/lib/ai/auth-helpers';
+
+const CreateClusterSchema = z.object({
+  websiteId: z.string().uuid(),
+  name: z.string().min(1).max(200),
+  description: z.string().optional(),
+  targetKeyword: z.string().optional(),
+  targetPostCount: z.number().int().positive().default(10),
+});
 
 function getAuthClient(token: string) {
   return createClient(
@@ -20,7 +29,9 @@ export async function GET(request: NextRequest) {
   if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const websiteId = request.nextUrl.searchParams.get('websiteId');
-  if (!websiteId) return NextResponse.json({ error: 'websiteId required' }, { status: 400 });
+  if (!websiteId || !z.string().uuid().safeParse(websiteId).success) {
+    return NextResponse.json({ error: 'Valid websiteId required' }, { status: 400 });
+  }
 
   const supabase = getAuthClient(auth.token);
 
@@ -49,12 +60,12 @@ export async function POST(request: NextRequest) {
   if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   if (!hasEditorRole(auth)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
-  const body = await request.json();
-  const { websiteId, name, description, targetKeyword, targetPostCount } = body;
-
-  if (!websiteId || !name) {
-    return NextResponse.json({ error: 'websiteId and name required' }, { status: 400 });
+  const raw = await request.json();
+  const parsed = CreateClusterSchema.safeParse(raw);
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
+  const { websiteId, name, description, targetKeyword, targetPostCount } = parsed.data;
 
   const slug = name
     .toLowerCase()
@@ -74,7 +85,7 @@ export async function POST(request: NextRequest) {
       slug,
       description: description || null,
       target_keyword: targetKeyword || null,
-      target_post_count: targetPostCount || 10,
+      target_post_count: targetPostCount,
       created_by: auth.userId,
     })
     .select()

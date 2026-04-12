@@ -8,7 +8,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-and-deploy:
+  # ── Quality gates — run on every push and PR ──────────────────────
+  quality:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -30,18 +31,73 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build and deploy to Cloudflare Workers
-        run: npm run deploy:worker
+      - name: Lint
+        run: npm run lint
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm test -- --ci --passWithNoTests
+
+  # ── Deploy — only on push to main ────────────────────────────────
+  deploy-staging:
+    needs: quality
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Build theme-sdk
+        working-directory: packages/theme-sdk
+        run: npm ci && npm run build
+
+      - name: Build website-contract
+        working-directory: packages/website-contract
+        run: npm ci && npm run build
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Worker
+        run: npx opennextjs-cloudflare build
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           NEXT_PUBLIC_URL: https://bukeer.com
           NEXT_PUBLIC_MAIN_DOMAIN: bukeer.com
 
+      - name: Check Worker bundle size
+        run: |
+          # Find the worker entry point
+          WORKER_FILE=$(find .open-next -name "*.js" -path "*/worker/*" | head -1)
+          if [ -z "$WORKER_FILE" ]; then
+            echo "Warning: Could not find worker bundle to check size"
+            exit 0
+          fi
+          WORKER_SIZE=$(stat -c%s "$WORKER_FILE" 2>/dev/null || stat -f%z "$WORKER_FILE")
+          MAX_SIZE=$((8 * 1024 * 1024))
+          SIZE_KB=$((WORKER_SIZE / 1024))
+          echo "Worker bundle size: ${SIZE_KB} KiB"
+          if [ "$WORKER_SIZE" -gt "$MAX_SIZE" ]; then
+            echo "::error::Worker bundle exceeds 8 MiB limit (${SIZE_KB} KiB). Cloudflare limit is 10 MiB."
+            exit 1
+          fi
+          echo "✓ Bundle size OK (${SIZE_KB} KiB < 8192 KiB)"
+
+      - name: Deploy to Cloudflare Workers
+        run: npx opennextjs-cloudflare deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
       - name: Verify deployment
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
           echo "Waiting for deployment to propagate..."
           sleep 15

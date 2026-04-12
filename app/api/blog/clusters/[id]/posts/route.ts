@@ -4,7 +4,14 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { z } from 'zod';
 import { getEditorAuth, hasEditorRole } from '@/lib/ai/auth-helpers';
+
+const LinkPostSchema = z.object({
+  postId: z.string().uuid(),
+  role: z.enum(['pillar', 'supporting', 'related']).default('supporting'),
+  displayOrder: z.number().int().min(0).default(0),
+});
 
 function getAuthClient(token: string) {
   return createClient(
@@ -23,12 +30,12 @@ export async function POST(
   if (!hasEditorRole(auth)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const { id: clusterId } = await params;
-  const body = await request.json();
-  const { postId, role = 'supporting', displayOrder = 0 } = body;
-
-  if (!postId) {
-    return NextResponse.json({ error: 'postId required' }, { status: 400 });
+  const raw = await request.json();
+  const parsed = LinkPostSchema.safeParse(raw);
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
+  const { postId, role, displayOrder } = parsed.data;
 
   const supabase = getAuthClient(auth.token);
 
