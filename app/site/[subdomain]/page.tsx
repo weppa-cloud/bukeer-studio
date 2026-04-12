@@ -19,19 +19,42 @@ export async function generateMetadata({ params }: SitePageProps): Promise<Metad
   const website = await getWebsiteBySubdomain(subdomain);
   if (!website) return { title: 'Sitio no encontrado' };
 
-  const baseUrl = `https://${subdomain}.bukeer.com`;
+  const baseUrl = website.custom_domain
+    ? `https://${website.custom_domain}`
+    : `https://${subdomain}.bukeer.com`;
   const hreflangLinks = generateHreflangLinks(baseUrl, '/');
   const languages: Record<string, string> = {};
   for (const link of hreflangLinks) {
     languages[link.hreflang] = link.href;
   }
 
+  const title = website.content.seo?.title || website.content.siteName || subdomain;
+  const description = website.content.seo?.description || website.content.tagline || '';
+  const siteName = website.content?.account?.name || website.content?.siteName || subdomain;
+  const ogImage = website.content?.hero?.backgroundImage || undefined;
+
   return {
-    title: website.content.seo?.title || website.content.siteName,
-    description: website.content.seo?.description || website.content.tagline,
+    title,
+    description,
+    robots: { index: true, follow: true },
     alternates: {
       canonical: baseUrl,
       languages,
+    },
+    openGraph: {
+      title,
+      description,
+      url: baseUrl,
+      siteName,
+      locale: 'es_ES',
+      type: 'website',
+      ...(ogImage && { images: [{ url: ogImage }] }),
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      ...(ogImage && { images: [ogImage] }),
     },
   };
 }

@@ -18,9 +18,34 @@ export async function generateMetadata({ params }: BlogPageProps): Promise<Metad
     return { title: 'Blog' };
   }
 
+  const siteName = website.content?.account?.name || website.content?.siteName || subdomain;
+  const baseUrl = website.custom_domain
+    ? `https://${website.custom_domain}`
+    : `https://${subdomain}.bukeer.com`;
+  const description = `Lee las últimas publicaciones y guías de viaje de ${siteName}`;
+  const ogImage = website.content?.hero?.backgroundImage || undefined;
+
   return {
     title: 'Blog',
-    description: `Lee las últimas publicaciones de ${website.content.siteName}`,
+    description,
+    alternates: {
+      canonical: `${baseUrl}/blog`,
+    },
+    openGraph: {
+      title: `Blog — ${siteName}`,
+      description,
+      url: `${baseUrl}/blog`,
+      siteName,
+      locale: 'es_ES',
+      type: 'website',
+      ...(ogImage && { images: [{ url: ogImage }] }),
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `Blog — ${siteName}`,
+      description,
+      ...(ogImage && { images: [ogImage] }),
+    },
   };
 }
 

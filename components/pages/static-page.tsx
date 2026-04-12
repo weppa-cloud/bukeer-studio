@@ -54,36 +54,46 @@ export function StaticPage({ website, page, dynamicDestinations = [] }: StaticPa
   ).slice(0, 8);
   const hasDynamicDestinations = sectionDynamicDestinations.length > 0;
 
+  // Skip the hardcoded fallback hero when sections already include a hero-type section
+  const HERO_TYPES = ['hero', 'hero_image', 'hero_video', 'hero_minimal'];
+  const sectionsHaveHero = sections.some((s) => {
+    const raw = s as unknown as Record<string, unknown>;
+    const t = s.type || (raw.sectionType as string) || (raw.section_type as string) || '';
+    return HERO_TYPES.includes(t);
+  });
+
   return (
     <div className="min-h-screen">
-      {/* Hero Section */}
-      <section
-        className="relative h-[40vh] min-h-[300px] flex items-center justify-center"
-        style={{
-          backgroundColor: 'var(--md-sys-color-primary-container)',
-        }}
-      >
-        {heroConfig.backgroundImage && (
-          <Image
-            src={heroConfig.backgroundImage}
-            alt={heroConfig.title || page.title}
-            fill
-            className="object-cover"
-            priority
-          />
-        )}
-        <div className="absolute inset-0 bg-black/40" />
-        <div className="relative z-10 text-center text-white px-4">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">
-            {heroConfig.title || page.title}
-          </h1>
-          {heroConfig.subtitle && (
-            <p className="text-lg md:text-xl max-w-2xl mx-auto opacity-90">
-              {heroConfig.subtitle}
-            </p>
+      {/* Fallback Hero — only when sections don't include their own hero */}
+      {!sectionsHaveHero && (
+        <section
+          className="relative h-[40vh] min-h-[300px] flex items-center justify-center"
+          style={{
+            backgroundColor: 'var(--md-sys-color-primary-container)',
+          }}
+        >
+          {heroConfig.backgroundImage && (
+            <Image
+              src={heroConfig.backgroundImage}
+              alt={heroConfig.title || page.title}
+              fill
+              className="object-cover"
+              priority
+            />
           )}
-        </div>
-      </section>
+          <div className="absolute inset-0 bg-black/40" />
+          <div className="relative z-10 text-center text-white px-4">
+            <h1 className="text-4xl md:text-5xl font-bold mb-4">
+              {heroConfig.title || page.title}
+            </h1>
+            {heroConfig.subtitle && (
+              <p className="text-lg md:text-xl max-w-2xl mx-auto opacity-90">
+                {heroConfig.subtitle}
+              </p>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* Dynamic Sections - Using unified renderer */}
       {sections.map((section, index) => {

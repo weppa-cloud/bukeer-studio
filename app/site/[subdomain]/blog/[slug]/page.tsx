@@ -28,33 +28,41 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
     return { title: 'Post no encontrado' };
   }
 
-  const baseUrl = `https://${subdomain}.bukeer.com`;
+  const baseUrl = website.custom_domain
+    ? `https://${website.custom_domain}`
+    : `https://${subdomain}.bukeer.com`;
   const blogPath = `/blog/${post.slug}`;
   const hreflangLinks = generateHreflangLinks(baseUrl, blogPath);
   const languages: Record<string, string> = {};
   for (const link of hreflangLinks) {
     languages[link.hreflang] = link.href;
   }
+  const siteName = website.content?.account?.name || website.content?.siteName || subdomain;
+  const title = post.seo_title || post.title;
+  const description = post.seo_description || post.excerpt;
 
   return {
-    title: post.seo_title || post.title,
-    description: post.seo_description || post.excerpt,
+    title,
+    description,
     keywords: post.seo_keywords ?? undefined,
     alternates: {
       canonical: `${baseUrl}${blogPath}`,
       languages,
     },
     openGraph: {
-      title: post.seo_title || post.title,
-      description: post.seo_description || post.excerpt,
+      title,
+      description,
       type: 'article',
+      locale: 'es_ES',
+      siteName,
+      url: `${baseUrl}${blogPath}`,
       publishedTime: post.published_at || undefined,
       images: post.featured_image ? [{ url: post.featured_image }] : undefined,
     },
     twitter: {
       card: 'summary_large_image',
-      title: post.seo_title || post.title,
-      description: post.seo_description || post.excerpt,
+      title,
+      description,
       images: post.featured_image ? [post.featured_image] : undefined,
     },
   };
