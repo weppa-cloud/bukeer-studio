@@ -223,7 +223,7 @@ function getTableForType(type: SeoItemType): string | null {
     case 'page':
       return 'website_pages';
     case 'blog':
-      return 'blog_posts';
+      return 'website_blog_posts';
     default:
       return null;
   }
@@ -346,11 +346,12 @@ async function fetchItemByType(supabase: any, type: SeoItemType, id: string, web
       };
     }
     case 'page': {
-      const { data } = await supabase
+      let query = supabase
         .from('website_pages')
         .select('id, title, slug, seo_title, seo_description, target_keyword, content, robots_noindex')
-        .eq('id', id)
-        .single();
+        .eq('id', id);
+      if (websiteId) query = query.eq('website_id', websiteId);
+      const { data } = await query.single();
 
       if (!data) return null;
       const content = typeof data.content === 'string' ? data.content : JSON.stringify(data.content ?? '');
@@ -368,11 +369,12 @@ async function fetchItemByType(supabase: any, type: SeoItemType, id: string, web
       };
     }
     case 'blog': {
-      const { data } = await supabase
-        .from('blog_posts')
-        .select('id, title, slug, cover_image, content, seo_title, seo_description, target_keyword, images, robots_noindex')
-        .eq('id', id)
-        .single();
+      let query = supabase
+        .from('website_blog_posts')
+        .select('id, title, slug, featured_image, content, seo_title, seo_description, robots_noindex')
+        .eq('id', id);
+      if (websiteId) query = query.eq('website_id', websiteId);
+      const { data } = await query.single();
 
       if (!data) return null;
       const content = data.content ?? '';
@@ -381,14 +383,12 @@ async function fetchItemByType(supabase: any, type: SeoItemType, id: string, web
         type: 'blog',
         name: data.title ?? '',
         slug: data.slug ?? '',
-        image: data.cover_image,
+        image: data.featured_image,
         description: content,
         seoTitle: data.seo_title,
         seoDescription: data.seo_description,
-        targetKeyword: data.target_keyword,
         wordCount: content.split(/\s+/).filter(Boolean).length,
         robotsNoindex: data.robots_noindex ?? false,
-        images: data.images,
       };
     }
     default:
