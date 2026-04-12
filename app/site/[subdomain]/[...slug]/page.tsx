@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { getWebsiteBySubdomain } from '@/lib/supabase/get-website';
 import { getPageBySlug, getProductPage, getDestinations, getDestinationProducts, getReviewsForProduct } from '@/lib/supabase/get-pages';
 import { enrichDestinationFromSerpAPI } from '@/lib/services/serpapi-enrichment';
-import { generateHreflangLinks } from '@/lib/seo/hreflang';
+import { generateHreflangLinks, generateOgLocale } from '@/lib/seo/hreflang';
 import { CategoryPage } from '@/components/pages/category-page';
 import { StaticPage } from '@/components/pages/static-page';
 import { ProductLandingPage } from '@/components/pages/product-landing-page';
@@ -44,10 +44,19 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
     return { title: 'Sitio no encontrado' };
   }
 
+  // Canonical base URL: prefer custom_domain when available
+  const baseUrl = website.custom_domain
+    ? `https://${website.custom_domain}`
+    : `https://${subdomain}.bukeer.com`;
+
+  // OG locale from website language (default: es)
+  const websiteLang = (website as unknown as Record<string, unknown>).language as string
+    || (website as unknown as Record<string, unknown>).locale as string
+    || 'es';
+  const { locale: ogLocale } = generateOgLocale(websiteLang);
+
   // Handle different page types based on slug
   const slugPath = slug.join('/');
-
-  const baseUrl = `https://${subdomain}.bukeer.com`;
 
   // Destination listing (/destinos or /destinations)
   if (slug.length === 1 && (slug[0] === 'destinos' || slug[0] === 'destinations')) {
@@ -57,6 +66,13 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
       title: `Destinos | ${siteName}`,
       description: `Descubre los mejores destinos de viaje con ${siteName}. Hoteles, actividades y experiencias seleccionadas.`,
       openGraph: {
+        title: `Destinos | ${siteName}`,
+        description: `Descubre los mejores destinos de viaje con ${siteName}.`,
+        type: 'website',
+        locale: ogLocale,
+      },
+      twitter: {
+        card: 'summary_large_image',
         title: `Destinos | ${siteName}`,
         description: `Descubre los mejores destinos de viaje con ${siteName}.`,
       },
@@ -80,6 +96,14 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
         title,
         description,
         openGraph: {
+          title,
+          description,
+          type: 'website',
+          locale: ogLocale,
+          images: dest.image ? [dest.image] : undefined,
+        },
+        twitter: {
+          card: 'summary_large_image',
           title,
           description,
           images: dest.image ? [dest.image] : undefined,
@@ -112,6 +136,14 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
           openGraph: {
             title,
             description,
+            type: 'website',
+            locale: ogLocale,
+            images: productPage.product.image ? [productPage.product.image] : undefined,
+          },
+          twitter: {
+            card: 'summary_large_image',
+            title,
+            description,
             images: productPage.product.image ? [productPage.product.image] : undefined,
           },
           alternates: {
@@ -140,6 +172,16 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
         openGraph: {
           title: content?.seo?.title || siteName,
           description,
+          type: 'website',
+          locale: ogLocale,
+        },
+        twitter: {
+          card: 'summary_large_image',
+          title: content?.seo?.title || siteName || undefined,
+          description,
+        },
+        alternates: {
+          canonical: baseUrl,
         },
       };
     }
@@ -148,6 +190,7 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
 
   const title = page.seo_title || page.title;
   const description = page.seo_description || '';
+  const canonicalUrl = `${baseUrl}/${slugPath}`;
 
   return {
     title,
@@ -155,6 +198,16 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
     openGraph: {
       title,
       description,
+      type: 'website',
+      locale: ogLocale,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+    },
+    alternates: {
+      canonical: canonicalUrl,
     },
   };
 }
