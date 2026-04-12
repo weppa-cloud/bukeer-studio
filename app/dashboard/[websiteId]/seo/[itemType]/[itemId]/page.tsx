@@ -348,7 +348,7 @@ async function fetchItemByType(supabase: any, type: SeoItemType, id: string, web
     case 'page': {
       const { data } = await supabase
         .from('website_pages')
-        .select('id, title, slug, seo_title, seo_description, target_keyword, content')
+        .select('id, title, slug, seo_title, seo_description, target_keyword, content, robots_noindex')
         .eq('id', id)
         .single();
 
@@ -364,12 +364,13 @@ async function fetchItemByType(supabase: any, type: SeoItemType, id: string, web
         seoDescription: data.seo_description,
         targetKeyword: data.target_keyword,
         wordCount: content.split(/\s+/).filter(Boolean).length,
+        robotsNoindex: data.robots_noindex ?? false,
       };
     }
     case 'blog': {
       const { data } = await supabase
         .from('blog_posts')
-        .select('id, title, slug, cover_image, content, seo_title, seo_description, target_keyword, images')
+        .select('id, title, slug, cover_image, content, seo_title, seo_description, target_keyword, images, robots_noindex')
         .eq('id', id)
         .single();
 
@@ -386,6 +387,7 @@ async function fetchItemByType(supabase: any, type: SeoItemType, id: string, web
         seoDescription: data.seo_description,
         targetKeyword: data.target_keyword,
         wordCount: content.split(/\s+/).filter(Boolean).length,
+        robotsNoindex: data.robots_noindex ?? false,
         images: data.images,
       };
     }
