@@ -149,14 +149,17 @@ export function BulkSeoModal({ isOpen, onClose, websiteId, items, onApplied }: B
 
     for (const item of accepted) {
       const table = getTableForType(item.type);
-      await supabase
-        .from(table)
-        .update({
-          seo_title: item.after.seoTitle,
-          seo_description: item.after.seoDescription,
-          target_keyword: item.after.targetKeyword,
-        })
-        .eq('id', item.id);
+      const updateData: Record<string, string> = {
+        seo_title: item.after.seoTitle,
+        seo_description: item.after.seoDescription,
+      };
+      // website_blog_posts uses seo_keywords (text[]), others use target_keyword (text)
+      if (item.type === 'blog') {
+        updateData.seo_keywords = item.after.targetKeyword ? [item.after.targetKeyword] : [];
+      } else {
+        updateData.target_keyword = item.after.targetKeyword;
+      }
+      await supabase.from(table).update(updateData).eq('id', item.id);
     }
 
     setApplying(false);

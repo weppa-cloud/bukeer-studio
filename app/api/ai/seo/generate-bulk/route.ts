@@ -155,8 +155,19 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Filter items based on criteria
+  // Filter items based on criteria, always skip items already scoring A or B
   const filtered = items.filter((item) => {
+    // AC-9: Skip items with score A/B
+    const quickInput: SeoScoringInput = {
+      type: item.type, name: item.name, slug: item.slug,
+      description: item.description, image: item.image,
+      seoTitle: item.seoTitle, seoDescription: item.seoDescription,
+      targetKeyword: item.targetKeyword,
+      hasJsonLd: true, hasCanonical: true, hasHreflang: true, hasOgTags: true, hasTwitterCard: true,
+    };
+    const quickScore = scoreItemSeo(quickInput);
+    if (quickScore.grade === 'A' || quickScore.grade === 'B') return false;
+
     if (filter === 'missing_title') return !item.seoTitle;
     if (filter === 'missing_description') return !item.seoDescription;
     if (filter === 'low_score') {
