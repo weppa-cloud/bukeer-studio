@@ -93,7 +93,7 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
       const title = override?.custom_seo_title || `${dest.name} | ${siteName}`;
       const description = override?.custom_seo_description || `Explora ${dest.name}: ${dest.hotel_count} hoteles y ${dest.activity_count} actividades${dest.min_price ? ` desde ${dest.min_price}` : ''}. Reserva con ${siteName}.`;
       const pathname = `/destinos/${dest.slug}`;
-      return {
+      const metadata: Metadata = {
         title,
         description,
         openGraph: {
@@ -114,6 +114,13 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
           languages: buildAlternateLanguages(baseUrl, pathname),
         },
       };
+
+      // TODO: Query destination_seo_overrides for robots_noindex once RPC is available
+      if ((dest as unknown as { robots_noindex?: boolean }).robots_noindex) {
+        metadata.robots = { index: false, follow: true };
+      }
+
+      return metadata;
     }
   }
 
@@ -131,7 +138,7 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
           productPage.product.description?.substring(0, 160);
         const pathname = `/${slugPath}`;
 
-        return {
+        const metadata: Metadata = {
           title,
           description,
           openGraph: {
@@ -152,6 +159,12 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
             languages: buildAlternateLanguages(baseUrl, pathname),
           },
         };
+
+        if (productPage.page?.robots_noindex) {
+          metadata.robots = { index: false, follow: true };
+        }
+
+        return metadata;
       }
     }
   }
@@ -193,7 +206,7 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
   const description = page.seo_description || '';
   const canonicalUrl = `${baseUrl}/${slugPath}`;
 
-  return {
+  const metadata: Metadata = {
     title,
     description,
     openGraph: {
@@ -211,6 +224,12 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
       canonical: canonicalUrl,
     },
   };
+
+  if (page.robots_noindex) {
+    metadata.robots = { index: false, follow: true };
+  }
+
+  return metadata;
 }
 
 export default async function DynamicPage({ params }: DynamicPageProps) {

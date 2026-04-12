@@ -8,7 +8,7 @@
  */
 
 import { getBlogPosts } from '@/lib/supabase/get-website';
-import { getAllPageSlugs, getCategoryProducts, getDestinations } from '@/lib/supabase/get-pages';
+import { getAllPageSlugs, getIndexablePageSlugs, getCategoryProducts, getDestinations } from '@/lib/supabase/get-pages';
 
 export interface SitemapUrl {
   loc: string;
@@ -50,9 +50,13 @@ export async function buildSitemapUrls(
     priority: '1.0',
   });
 
-  // 2. Static pages (from website_pages)
-  const pageSlugs = await getAllPageSlugs(subdomain);
+  // 2. Static pages (from website_pages, excluding noindex)
+  const pageSlugs = await getIndexablePageSlugs(subdomain);
   const pageSlugSet = new Set(pageSlugs);
+
+  // Keep all slugs (including noindex) for category detection
+  const allPageSlugs = await getAllPageSlugs(subdomain);
+  const allPageSlugSet = new Set(allPageSlugs);
 
   for (const slug of pageSlugs) {
     urls.push({
@@ -103,14 +107,15 @@ export async function buildSitemapUrls(
     const spanishSlug = CATEGORY_SLUG_MAP[category] ?? category;
 
     // Only include if a page exists for this category
-    if (!pageSlugSet.has(category) && !pageSlugSet.has(spanishSlug)) {
+    if (!allPageSlugSet.has(category) && !allPageSlugSet.has(spanishSlug)) {
       continue;
     }
 
     // Use whichever slug exists as a page
-    const categorySlug = pageSlugSet.has(spanishSlug) ? spanishSlug : category;
+    const categorySlug = allPageSlugSet.has(spanishSlug) ? spanishSlug : category;
 
     // Fetch product items for this category
+    // TODO: Filter out products with robots_noindex in product_page_customizations
     const { items } = await getCategoryProducts(subdomain, category, { limit: 100 });
 
     for (const item of items) {
@@ -129,7 +134,7 @@ export async function buildSitemapUrls(
     const destinations = await getDestinations(subdomain);
     if (destinations.length > 0) {
       // Destination listing page
-      const destSlug = pageSlugSet.has('destinos') ? 'destinos' : 'destinations';
+      const destSlug = allPageSlugSet.has('destinos') ? 'destinos' : 'destinations';
       urls.push({
         loc: `${baseUrl}/${destSlug}`,
         lastmod: new Date().toISOString().split('T')[0],
@@ -138,6 +143,7 @@ export async function buildSitemapUrls(
       });
 
       // Individual destination pages
+      // TODO: Filter out destinations with robots_noindex in destination_seo_overrides
       for (const dest of destinations) {
         if (dest.slug) {
           urls.push({

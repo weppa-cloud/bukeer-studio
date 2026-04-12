@@ -146,6 +146,44 @@ export async function getAllPageSlugs(subdomain: string): Promise<string[]> {
 }
 
 /**
+ * Get all published page slugs excluding those marked as noindex.
+ * Used by the sitemap generator to avoid listing noindex pages.
+ */
+export async function getIndexablePageSlugs(subdomain: string): Promise<string[]> {
+  try {
+    const { data: websiteData, error: websiteError } = await supabase
+      .from('websites')
+      .select('id')
+      .eq('subdomain', subdomain)
+      .eq('status', 'published')
+      .is('deleted_at', null)
+      .single();
+
+    if (websiteError || !websiteData) {
+      return [];
+    }
+
+    const { data, error } = await supabase
+      .from('website_pages')
+      .select('slug, robots_noindex')
+      .eq('website_id', websiteData.id)
+      .eq('is_published', true);
+
+    if (error) {
+      console.error('[getIndexablePageSlugs] Error:', error);
+      return [];
+    }
+
+    return data
+      .filter((p) => !p.robots_noindex)
+      .map((p) => p.slug);
+  } catch (e) {
+    console.error('[getIndexablePageSlugs] Exception:', e);
+    return [];
+  }
+}
+
+/**
  * Get products for a category page (with pagination)
  */
 export async function getCategoryProducts(

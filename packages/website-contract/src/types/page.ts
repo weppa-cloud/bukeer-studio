@@ -31,6 +31,7 @@ export interface WebsitePage {
   };
   seo_title?: string;
   seo_description?: string;
+  robots_noindex?: boolean;
   parent_page_id?: string;
   header_mode?: HeaderMode;
   is_published: boolean;

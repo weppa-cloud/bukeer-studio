@@ -65,6 +65,7 @@ export interface ProductPageCustomization {
   hidden_sections: string[];
   custom_seo_title?: string;
   custom_seo_description?: string;
+  robots_noindex?: boolean;
   is_published: boolean;
 }
 
