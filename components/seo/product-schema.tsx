@@ -206,28 +206,51 @@ function buildBreadcrumbSchema(
   const typeSlug = PRODUCT_TYPE_SLUGS[productType];
   if (!typeName || !typeSlug) return null;
 
+  const hasDestination = product.location && productType !== 'destination';
+
+  const items: Array<{ '@type': string; position: number; name: string; item?: string }> = [
+    {
+      '@type': 'ListItem',
+      position: 1,
+      name: 'Inicio',
+      item: websiteUrl,
+    },
+  ];
+
+  let pos = 2;
+
+  if (hasDestination) {
+    items.push({
+      '@type': 'ListItem',
+      position: pos++,
+      name: 'Destinos',
+      item: `${websiteUrl}/destinos`,
+    });
+    items.push({
+      '@type': 'ListItem',
+      position: pos++,
+      name: product.location!,
+      item: `${websiteUrl}/destinos/${slugify(product.location!)}`,
+    });
+  }
+
+  items.push({
+    '@type': 'ListItem',
+    position: pos++,
+    name: typeName,
+    item: `${websiteUrl}/${typeSlug}`,
+  });
+
+  items.push({
+    '@type': 'ListItem',
+    position: pos,
+    name: product.name,
+  });
+
   return clean({
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
-    itemListElement: [
-      {
-        '@type': 'ListItem',
-        position: 1,
-        name: 'Inicio',
-        item: websiteUrl,
-      },
-      {
-        '@type': 'ListItem',
-        position: 2,
-        name: typeName,
-        item: `${websiteUrl}/${typeSlug}`,
-      },
-      {
-        '@type': 'ListItem',
-        position: 3,
-        name: product.name,
-      },
-    ],
+    itemListElement: items,
   });
 }
 
@@ -243,6 +266,16 @@ function buildAddress(product: ProductData) {
     addressLocality: locality,
     addressCountry: product.country,
   };
+}
+
+/** Converts a destination name to a URL-safe slug (lowercase, no accents, hyphens). */
+function slugify(text: string): string {
+  return text
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
 }
 
 /**

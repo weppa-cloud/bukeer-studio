@@ -149,6 +149,24 @@ export function ProductLandingPage({
           <Link href={`${basePath}/`} className="hover:underline">
             Inicio
           </Link>
+          {product.location && productType !== 'destination' && (
+            <>
+              <span className="mx-2">/</span>
+              <Link
+                href={`${basePath}/destinos`}
+                className="hover:underline"
+              >
+                Destinos
+              </Link>
+              <span className="mx-2">/</span>
+              <Link
+                href={`${basePath}/destinos/${slugify(product.location)}`}
+                className="hover:underline"
+              >
+                {product.location}
+              </Link>
+            </>
+          )}
           <span className="mx-2">/</span>
           <Link
             href={`${basePath}/${getCategorySlug(productType)}`}
@@ -1430,4 +1448,14 @@ function getCategoryLabel(type: string): string {
     package: 'Paquetes',
   };
   return mapping[type] || type;
+}
+
+/** Converts a destination name to a URL-safe slug (lowercase, no accents, hyphens). */
+function slugify(text: string): string {
+  return text
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
 }
