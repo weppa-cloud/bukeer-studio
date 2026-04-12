@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getWebsiteBySubdomain } from '@/lib/supabase/get-website';
-import { getPageBySlug, getProductPage, getDestinations, getDestinationProducts, getReviewsForProduct } from '@/lib/supabase/get-pages';
+import { getPageBySlug, getProductPage, getDestinations, getDestinationProducts, getReviewsForProduct, getDestinationSeoOverride } from '@/lib/supabase/get-pages';
 import { enrichDestinationFromSerpAPI } from '@/lib/services/serpapi-enrichment';
 import { generateHreflangLinks, generateOgLocale } from '@/lib/seo/hreflang';
 import { CategoryPage } from '@/components/pages/category-page';
@@ -89,8 +89,9 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
     const dest = destinations.find(d => d.slug === slug[1]);
     if (dest) {
       const siteName = website.content?.account?.name || website.content?.siteName || subdomain;
-      const title = `${dest.name} | ${siteName}`;
-      const description = `Explora ${dest.name}: ${dest.hotel_count} hoteles y ${dest.activity_count} actividades${dest.min_price ? ` desde ${dest.min_price}` : ''}. Reserva con ${siteName}.`;
+      const override = await getDestinationSeoOverride(website.id, dest.slug);
+      const title = override?.custom_seo_title || `${dest.name} | ${siteName}`;
+      const description = override?.custom_seo_description || `Explora ${dest.name}: ${dest.hotel_count} hoteles y ${dest.activity_count} actividades${dest.min_price ? ` desde ${dest.min_price}` : ''}. Reserva con ${siteName}.`;
       const pathname = `/destinos/${dest.slug}`;
       return {
         title,

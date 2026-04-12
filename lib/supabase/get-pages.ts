@@ -326,6 +326,85 @@ export async function getCachedGoogleReviews(
  * Returns visible reviews whose tags match the product's city slug.
  * Falls back to general reviews (no tags) if no specific match.
  */
+/**
+ * Get all destination SEO overrides for a website
+ */
+export async function getDestinationSeoOverrides(websiteId: string) {
+  try {
+    const { data, error } = await supabase
+      .from('destination_seo_overrides')
+      .select('*')
+      .eq('website_id', websiteId);
+
+    if (error) {
+      console.error('[getDestinationSeoOverrides] Error:', error);
+      return [];
+    }
+
+    return data || [];
+  } catch (e) {
+    console.error('[getDestinationSeoOverrides] Exception:', e);
+    return [];
+  }
+}
+
+/**
+ * Get a single destination SEO override by slug
+ */
+export async function getDestinationSeoOverride(websiteId: string, destinationSlug: string) {
+  try {
+    const { data, error } = await supabase
+      .from('destination_seo_overrides')
+      .select('*')
+      .eq('website_id', websiteId)
+      .eq('destination_slug', destinationSlug)
+      .single();
+
+    if (error) {
+      // PGRST116 = no rows found — not a real error for .single()
+      if (error.code === 'PGRST116') return null;
+      console.error('[getDestinationSeoOverride] Error:', error);
+      return null;
+    }
+
+    return data;
+  } catch (e) {
+    console.error('[getDestinationSeoOverride] Exception:', e);
+    return null;
+  }
+}
+
+/**
+ * Upsert a destination SEO override (insert or update on conflict)
+ */
+export async function upsertDestinationSeoOverride(
+  websiteId: string,
+  destinationSlug: string,
+  fields: {
+    custom_seo_title?: string;
+    custom_seo_description?: string;
+    custom_description?: string;
+    target_keyword?: string;
+  }
+) {
+  const { data, error } = await supabase
+    .from('destination_seo_overrides')
+    .upsert(
+      {
+        website_id: websiteId,
+        destination_slug: destinationSlug,
+        ...fields,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'website_id,destination_slug' }
+    )
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
 export async function getReviewsForProduct(
   accountId: string,
   cityOrDestination: string,
