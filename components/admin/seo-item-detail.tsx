@@ -1,0 +1,508 @@
+'use client';
+
+import { useState, useMemo } from 'react';
+import {
+  scoreItemSeo,
+  generateItemJsonLd,
+  type SeoItemInput,
+  type SeoScoringResult,
+  type SeoCheck,
+  type ItemType,
+} from '@/lib/seo/unified-scorer';
+
+// ============================================================================
+// Types
+// ============================================================================
+
+interface SeoItemDetailProps {
+  item: {
+    id: string;
+    type: ItemType;
+    name: string;
+    slug: string;
+    image?: string;
+    description?: string;
+    seoTitle?: string;
+    seoDescription?: string;
+    targetKeyword?: string;
+    wordCount?: number;
+    // type-specific
+    amenities?: string[];
+    starRating?: number;
+    duration?: number;
+    inclusions?: string;
+    itineraryItems?: number;
+    latitude?: number;
+    longitude?: number;
+    images?: string[];
+  };
+  websiteId: string;
+  baseUrl: string;
+  onBack: () => void;
+  onSave: (fields: {
+    seoTitle?: string;
+    seoDescription?: string;
+    targetKeyword?: string;
+  }) => Promise<void>;
+}
+
+// ============================================================================
+// Grade color utilities
+// ============================================================================
+
+const GRADE_COLORS: Record<string, string> = {
+  A: 'text-emerald-600 bg-emerald-50 border-emerald-200',
+  B: 'text-blue-600 bg-blue-50 border-blue-200',
+  C: 'text-amber-600 bg-amber-50 border-amber-200',
+  D: 'text-orange-600 bg-orange-50 border-orange-200',
+  F: 'text-red-600 bg-red-50 border-red-200',
+};
+
+const GRADE_BG: Record<string, string> = {
+  A: 'bg-emerald-500',
+  B: 'bg-blue-500',
+  C: 'bg-amber-500',
+  D: 'bg-orange-500',
+  F: 'bg-red-500',
+};
+
+// ============================================================================
+// Component
+// ============================================================================
+
+export function SeoItemDetail({
+  item,
+  websiteId,
+  baseUrl,
+  onBack,
+  onSave,
+}: SeoItemDetailProps) {
+  const [seoTitle, setSeoTitle] = useState(item.seoTitle ?? '');
+  const [seoDescription, setSeoDescription] = useState(item.seoDescription ?? '');
+  const [targetKeyword, setTargetKeyword] = useState(item.targetKeyword ?? '');
+  const [saving, setSaving] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  // Build the scoring input with live editable values
+  const scoringInput: SeoItemInput = useMemo(
+    () => ({
+      ...item,
+      seoTitle: seoTitle || undefined,
+      seoDescription: seoDescription || undefined,
+      targetKeyword: targetKeyword || undefined,
+    }),
+    [item, seoTitle, seoDescription, targetKeyword]
+  );
+
+  const result: SeoScoringResult = useMemo(
+    () => scoreItemSeo(scoringInput),
+    [scoringInput]
+  );
+
+  const jsonLd = useMemo(
+    () => generateItemJsonLd(scoringInput, baseUrl),
+    [scoringInput, baseUrl]
+  );
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await onSave({
+        seoTitle: seoTitle || undefined,
+        seoDescription: seoDescription || undefined,
+        targetKeyword: targetKeyword || undefined,
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Keyword density calculation
+  const keywordDensity = useMemo(() => {
+    if (!targetKeyword || !item.description) return 0;
+    const words = item.description.toLowerCase().split(/\s+/).filter(Boolean);
+    const kw = targetKeyword.toLowerCase();
+    const occurrences = words.filter((w) => w.includes(kw)).length;
+    return words.length > 0 ? (occurrences / words.length) * 100 : 0;
+  }, [targetKeyword, item.description]);
+
+  return (
+    <div className="max-w-4xl mx-auto space-y-8">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={onBack}
+            className="text-sm text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 flex items-center gap-1"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+            </svg>
+            Volver
+          </button>
+          <div>
+            <h1 className="text-xl font-semibold text-slate-900 dark:text-white">
+              {item.name}
+            </h1>
+            <p className="text-sm text-slate-500 capitalize">{item.type}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          {/* Score badge */}
+          <div className={`px-3 py-1 rounded-full border font-semibold text-sm ${GRADE_COLORS[result.grade]}`}>
+            {result.grade} — {result.overall}/100
+          </div>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {saving ? 'Guardando...' : 'Guardar'}
+          </button>
+        </div>
+      </div>
+
+      {/* Section 1: Content Available */}
+      <Section title="1. Contenido Disponible">
+        <ContentAvailableGrid item={item} />
+      </Section>
+
+      {/* Section 2: Keyword Target */}
+      <Section title="2. Keyword Objetivo">
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+              Target Keyword
+            </label>
+            <input
+              value={targetKeyword}
+              onChange={(e) => setTargetKeyword(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+              placeholder="e.g. hotel boutique cancun"
+            />
+          </div>
+          {targetKeyword && (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <MetricCard
+                label="Densidad en descripcion"
+                value={`${keywordDensity.toFixed(1)}%`}
+                pass={keywordDensity >= 1 && keywordDensity <= 3}
+                ideal="1-3%"
+              />
+              <MetricCard
+                label="En titulo SEO"
+                value={seoTitle.toLowerCase().includes(targetKeyword.toLowerCase()) ? 'Si' : 'No'}
+                pass={seoTitle.toLowerCase().includes(targetKeyword.toLowerCase())}
+              />
+              <MetricCard
+                label="En meta descripcion"
+                value={seoDescription.toLowerCase().includes(targetKeyword.toLowerCase()) ? 'Si' : 'No'}
+                pass={seoDescription.toLowerCase().includes(targetKeyword.toLowerCase())}
+              />
+            </div>
+          )}
+        </div>
+      </Section>
+
+      {/* Section 3: Meta Editors */}
+      <Section title="3. Meta Tags">
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+              SEO Title{' '}
+              <span className={`text-xs ${seoTitle.length > 60 ? 'text-amber-500' : 'text-slate-400'}`}>
+                {seoTitle.length}/70
+              </span>
+            </label>
+            <input
+              value={seoTitle}
+              onChange={(e) => setSeoTitle(e.target.value)}
+              className={`w-full px-3 py-2 rounded-lg border bg-white dark:bg-slate-700 text-slate-900 dark:text-white ${
+                seoTitle.length > 70
+                  ? 'border-red-300'
+                  : seoTitle.length > 60
+                    ? 'border-amber-300'
+                    : 'border-slate-200 dark:border-slate-600'
+              }`}
+              maxLength={80}
+              placeholder={item.name}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+              Meta Description{' '}
+              <span className={`text-xs ${seoDescription.length > 150 ? 'text-amber-500' : 'text-slate-400'}`}>
+                {seoDescription.length}/160
+              </span>
+            </label>
+            <textarea
+              value={seoDescription}
+              onChange={(e) => setSeoDescription(e.target.value)}
+              className={`w-full px-3 py-2 rounded-lg border bg-white dark:bg-slate-700 text-slate-900 dark:text-white resize-none ${
+                seoDescription.length > 160
+                  ? 'border-red-300'
+                  : seoDescription.length > 150
+                    ? 'border-amber-300'
+                    : 'border-slate-200 dark:border-slate-600'
+              }`}
+              rows={3}
+              maxLength={170}
+              placeholder="Describe this item for search engines..."
+            />
+          </div>
+        </div>
+      </Section>
+
+      {/* Section 4: Google Preview */}
+      <Section title="4. Google Preview">
+        <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-4">
+          <div className="text-blue-700 dark:text-blue-400 text-lg hover:underline cursor-pointer truncate font-medium">
+            {seoTitle || item.name}
+          </div>
+          <div className="text-green-700 dark:text-green-400 text-sm truncate">
+            {baseUrl}/{item.type === 'blog' ? 'blog' : item.type === 'page' ? '' : item.type + 's'}/{item.slug}
+          </div>
+          <div className="text-sm text-slate-600 dark:text-slate-400 line-clamp-2 mt-1">
+            {seoDescription || item.description || 'No description available.'}
+          </div>
+        </div>
+      </Section>
+
+      {/* Section 5: Social Preview */}
+      <Section title="5. Social Preview (Open Graph)">
+        <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden max-w-md">
+          {item.image ? (
+            <div className="w-full h-48 bg-slate-100 dark:bg-slate-700 relative">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={item.image}
+                alt={item.name}
+                className="w-full h-full object-cover"
+              />
+            </div>
+          ) : (
+            <div className="w-full h-48 bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-400 text-sm">
+              Sin imagen
+            </div>
+          )}
+          <div className="p-3">
+            <p className="text-xs text-slate-500 uppercase tracking-wide">
+              {baseUrl.replace(/https?:\/\//, '')}
+            </p>
+            <p className="font-semibold text-slate-900 dark:text-white text-sm mt-1 line-clamp-2">
+              {seoTitle || item.name}
+            </p>
+            <p className="text-xs text-slate-500 mt-1 line-clamp-2">
+              {seoDescription || item.description || ''}
+            </p>
+          </div>
+        </div>
+      </Section>
+
+      {/* Section 6: JSON-LD Preview */}
+      <Section title="6. JSON-LD Schema Preview">
+        <pre className="bg-slate-900 text-slate-100 p-4 rounded-lg text-xs overflow-x-auto max-h-64 overflow-y-auto">
+          <code>{JSON.stringify(jsonLd, null, 2)}</code>
+        </pre>
+      </Section>
+
+      {/* Section 7: Checklist */}
+      <Section title="7. SEO Checklist">
+        <div className="space-y-4">
+          {/* Score bars */}
+          <div className="grid grid-cols-3 gap-4">
+            <ScoreBar label="Meta" score={result.meta} grade={result.grade} />
+            <ScoreBar label="Content" score={result.content} grade={result.grade} />
+            <ScoreBar label="Technical" score={result.technical} grade={result.grade} />
+          </div>
+
+          {/* Checks grouped by dimension */}
+          {(['meta', 'content', 'technical'] as const).map((dim) => {
+            const dimChecks = result.checks.filter((c) => c.dimension === dim);
+            return (
+              <div key={dim} className="space-y-2">
+                <h4 className="text-sm font-medium text-slate-700 dark:text-slate-300 capitalize">
+                  {dim}
+                </h4>
+                <div className="space-y-1">
+                  {dimChecks.map((check) => (
+                    <CheckRow key={check.id} check={check} />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </Section>
+
+      {/* Section 8: AI Suggestions */}
+      <Section title="8. Sugerencias">
+        {!showSuggestions ? (
+          <button
+            onClick={() => setShowSuggestions(true)}
+            className="px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-sm font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600"
+          >
+            Generar sugerencias
+          </button>
+        ) : result.recommendations.length > 0 ? (
+          <ul className="space-y-2">
+            {result.recommendations.map((rec, i) => (
+              <li key={i} className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300">
+                <span className="text-amber-500 mt-0.5 flex-shrink-0">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.168 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 6a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 6zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                  </svg>
+                </span>
+                {rec}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-emerald-600 dark:text-emerald-400">
+            No hay sugerencias pendientes. El SEO de este item esta optimizado.
+          </p>
+        )}
+      </Section>
+    </div>
+  );
+}
+
+// ============================================================================
+// Sub-components
+// ============================================================================
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
+      <h2 className="text-base font-semibold text-slate-900 dark:text-white mb-4">{title}</h2>
+      {children}
+    </div>
+  );
+}
+
+function ContentAvailableGrid({ item }: { item: SeoItemDetailProps['item'] }) {
+  const baseFields = [
+    { label: 'Nombre', has: !!item.name },
+    { label: 'Slug', has: !!item.slug },
+    { label: 'Descripcion', has: !!item.description },
+    { label: 'Imagen principal', has: !!item.image },
+    { label: 'Galeria (3+)', has: (item.images?.length ?? 0) >= 3 },
+    { label: 'SEO Title', has: !!item.seoTitle },
+    { label: 'Meta Description', has: !!item.seoDescription },
+    { label: 'Target Keyword', has: !!item.targetKeyword },
+  ];
+
+  const typeFields = getTypeFields(item);
+
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+      {[...baseFields, ...typeFields].map((f) => (
+        <div
+          key={f.label}
+          className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${
+            f.has
+              ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400'
+              : 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'
+          }`}
+        >
+          <span>{f.has ? '\u2705' : '\u274C'}</span>
+          {f.label}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function getTypeFields(item: SeoItemDetailProps['item']) {
+  switch (item.type) {
+    case 'hotel':
+      return [
+        { label: 'Amenidades (3+)', has: (item.amenities?.length ?? 0) >= 3 },
+        { label: 'Estrellas', has: !!item.starRating },
+        { label: 'Coordenadas', has: !!(item.latitude && item.longitude) },
+      ];
+    case 'activity':
+      return [
+        { label: 'Duracion', has: !!item.duration },
+        { label: 'Inclusiones', has: !!item.inclusions },
+        { label: 'Coordenadas', has: !!(item.latitude && item.longitude) },
+      ];
+    case 'transfer':
+      return [
+        { label: 'Duracion', has: !!item.duration },
+      ];
+    case 'package':
+      return [
+        { label: 'Items itinerario (2+)', has: (item.itineraryItems ?? 0) >= 2 },
+      ];
+    case 'destination':
+      return [
+        { label: 'Coordenadas', has: !!(item.latitude && item.longitude) },
+      ];
+    default:
+      return [
+        { label: 'Word Count (100+)', has: (item.wordCount ?? 0) >= 100 },
+      ];
+  }
+}
+
+function MetricCard({
+  label,
+  value,
+  pass,
+  ideal,
+}: {
+  label: string;
+  value: string;
+  pass: boolean;
+  ideal?: string;
+}) {
+  return (
+    <div
+      className={`p-3 rounded-lg border text-center ${
+        pass
+          ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-700'
+          : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-700'
+      }`}
+    >
+      <p className="text-xs text-slate-500 dark:text-slate-400">{label}</p>
+      <p className={`text-lg font-semibold ${pass ? 'text-emerald-600' : 'text-red-600'}`}>
+        {value}
+      </p>
+      {ideal && <p className="text-xs text-slate-400">Ideal: {ideal}</p>}
+    </div>
+  );
+}
+
+function ScoreBar({ label, score, grade }: { label: string; score: number; grade: string }) {
+  return (
+    <div>
+      <div className="flex items-center justify-between text-sm mb-1">
+        <span className="text-slate-600 dark:text-slate-400">{label}</span>
+        <span className="font-medium text-slate-900 dark:text-white">{score}</span>
+      </div>
+      <div className="h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all ${GRADE_BG[grade]}`}
+          style={{ width: `${score}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function CheckRow({ check }: { check: SeoCheck }) {
+  return (
+    <div className="flex items-center gap-2 py-1.5 px-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50">
+      <span className={`flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-xs ${
+        check.pass
+          ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600'
+          : 'bg-red-100 dark:bg-red-900/30 text-red-600'
+      }`}>
+        {check.pass ? '\u2713' : '\u2717'}
+      </span>
+      <span className="text-sm text-slate-700 dark:text-slate-300 flex-1">{check.label}</span>
+      <span className="text-xs text-slate-500">{check.description}</span>
+    </div>
+  );
+}
