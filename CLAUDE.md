@@ -126,6 +126,13 @@ npx wrangler versions list      # see version history
 
 ---
 
+## Architecture
+
+Full architecture docs, principles (P1-P10), and ADRs: [`docs/architecture/ARCHITECTURE.md`](docs/architecture/ARCHITECTURE.md)
+Onboarding guide for new developers: [`docs/architecture/ONBOARDING-ARCHITECTURE.md`](docs/architecture/ONBOARDING-ARCHITECTURE.md)
+
+---
+
 ## Available Skills (auto-activate)
 
 **Website-specific:**
@@ -147,12 +154,9 @@ npx wrangler versions list      # see version history
 
 ## Available Commands
 
-- `/qa-website` — Triple-context QA (builder + dashboard + public site)
 - `/qa-nextjs` — Next.js Studio QA with UX analysis
 - `/deploy` — Deploy to production
 - `/doc-explorer` — Autonomous documentation explorer
-- `/error-review` — Review errors from Edge Functions
-- `/qa-agent-e2e` — Multi-turn AI agent E2E journey
 
 ---
 
@@ -196,3 +200,51 @@ import { SECTION_TYPES } from '@bukeer/website-contract'
 | `OPENROUTER_MODEL` | Yes | e.g. `anthropic/claude-sonnet-4-5` |
 | `REVALIDATE_SECRET` | Yes | ISR revalidation endpoint |
 | `NEXT_PUBLIC_GA_ID` | Optional | Google Analytics |
+
+---
+
+## Cross-Repo Context: bukeer-flutter
+
+**Related repo path**: `/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer_flutter`
+**GitHub**: `weppa-cloud/bukeer-flutter`
+**Purpose**: Flutter Web app (PWA) + Supabase backend. Admin panel, CRM, itinerary management. Shares the same Supabase project as this repo.
+
+### Shared DB tables (same Supabase project)
+- `websites` — written by Flutter admin, read here for rendering
+- `package_kits` + `package_kit_versions` — Flutter manages catalog; studio displays on public site
+- `itineraries`, `itinerary_items`, `contacts`, `products` — shared data model
+
+### Key decisions taken in bukeer-flutter (2026-04-10)
+
+#### Package Kits
+- **Currency rule**: Packages are ALWAYS displayed in the account's primary (base) currency. `resolveDisplayCurrency()` uses `fallbackBaseCurrency` (from `appServices.account.primaryCurrency`) as the only source. The `base_currency` field on the package itself is ignored for display.
+- **Item editability**: Items applied to an itinerary from a package are freely editable. The package catalog stays immutable; the itinerary copy is a template. `is_from_package=true` is a badge/origin marker, NOT a lock.
+- **product_type values in DB**: `itinerary_items.product_type` uses Spanish capitalized values: `'Hoteles'`, `'Servicios'`, `'Transporte'`, `'Vuelos'`. The `services_snapshot` JSONB inside `package_kit_versions` stores lowercase (`hotels`, `activities`, etc.) — normalized at insert time by the RPC.
+
+#### Theme v3
+- DB shape: `websites.theme = { tokens: DesignTokens, profile: ThemeProfile }` — CHECK constraint enforces v3. **NEVER** write flat shape (`seedColor` at root).
+- Flutter reads via `WebsiteThemeModel.fromJson()`. Studio reads via `@bukeer/theme-sdk` `compileTheme()`.
+- 8 system presets: adventure, luxury, tropical, corporate, boutique, cultural, eco, romantic.
+
+#### Auth
+- Auth token boundary (ADR-022): UI must not access JWT tokens directly. API calls go through service methods.
+- Same Supabase auth project — SSR cookies flow through Next.js middleware for studio.
+
+### SEO gaps to fix in this repo (2026-04-10)
+1. **`inLanguage`** hardcoded to `'es'` in JSON-LD generators — should read `website.locale` or `website.language` from DB
+2. **`/packages/[slug]` page** missing — no public detail page for Package Kits
+3. **`slug` field** missing in `package_kits` DB table (needs migration in bukeer-flutter)
+
+### Flutter ↔ Studio data flow
+```
+Flutter admin creates/edits website content
+        ↓  (Supabase DB, shared project)
+Studio reads via createClient() SSR
+        ↓  (ISR revalidation via REVALIDATE_SECRET)
+Public website serves cached pages
+```
+
+### Issue cross-references
+- Package Kit distribution: `weppa-cloud/bukeer-flutter#544` (audit), `#545` (epic)
+- Website UX redesign: `weppa-cloud/bukeer-flutter#548`
+- Theme Platform v3: `weppa-cloud/bukeer-flutter#550`
