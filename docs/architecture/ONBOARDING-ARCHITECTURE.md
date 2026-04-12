@@ -771,7 +771,7 @@ export const SafeString = z.string().max(10000).refine(
 );
 ```
 
-### Donde validar (y donde NO)
+### Dónde validar (y dónde NO)
 
 ```
 API endpoint recibe request  →  VALIDAR con Zod (frontera del sistema)
@@ -805,7 +805,7 @@ async function insertQuote(data: QuoteRequest): Promise<void> {
 }
 ```
 
-**Por qué no validar internamente:** Cada validación tiene un costo (CPU, complejidad). Si ya validamos en la frontera, validar de nuevo dentro es trabajo desperdiciado. Confia en tu propio código.
+**Por qué no validar internamente:** Cada validación tiene un costo (CPU, complejidad). Si ya validamos en la frontera, validar de nuevo dentro es trabajo desperdiciado. Confía en tu propio código.
 
 ---
 

@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 
 // Create Supabase client with service role for API routes
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -7,60 +8,43 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-export interface QuoteRequestBody {
-  subdomain: string;
-  productType: string;
-  productId: string;
-  productName: string;
-  customerName: string;
-  customerEmail: string;
-  customerPhone?: string;
-  travelDates?: {
-    checkIn?: string;
-    checkOut?: string;
-  };
-  adults?: number;
-  children?: number;
-  notes?: string;
-  utmSource?: string;
-  utmMedium?: string;
-  utmCampaign?: string;
-}
+const QuoteRequestSchema = z.object({
+  subdomain: z.string().min(1),
+  productType: z.string().min(1),
+  productId: z.string().min(1),
+  productName: z.string().min(1),
+  customerName: z.string().min(1),
+  customerEmail: z.string().email(),
+  customerPhone: z.string().optional(),
+  travelDates: z
+    .object({
+      checkIn: z.string().optional(),
+      checkOut: z.string().optional(),
+    })
+    .optional(),
+  adults: z.number().int().positive().default(2),
+  children: z.number().int().min(0).default(0),
+  notes: z.string().optional(),
+  utmSource: z.string().optional(),
+  utmMedium: z.string().optional(),
+  utmCampaign: z.string().optional(),
+});
+
+export type QuoteRequestBody = z.infer<typeof QuoteRequestSchema>;
 
 export async function POST(request: NextRequest) {
   try {
-    const body: QuoteRequestBody = await request.json();
+    const raw = await request.json();
+    const result = QuoteRequestSchema.safeParse(raw);
 
-    // Validate required fields
-    if (!body.subdomain) {
+    if (!result.success) {
       return NextResponse.json(
-        { success: false, error: 'subdomain is required' },
+        { success: false, error: result.error.flatten() },
         { status: 400 }
       );
     }
 
-    if (!body.productType || !body.productId || !body.productName) {
-      return NextResponse.json(
-        { success: false, error: 'Product information is required' },
-        { status: 400 }
-      );
-    }
-
-    if (!body.customerName || !body.customerEmail) {
-      return NextResponse.json(
-        { success: false, error: 'Customer name and email are required' },
-        { status: 400 }
-      );
-    }
-
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(body.customerEmail)) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid email format' },
-        { status: 400 }
-      );
-    }
+    const body = result.data;
 
     // Submit quote request via RPC
     const { data, error } = await supabase.rpc('submit_quote_request', {
