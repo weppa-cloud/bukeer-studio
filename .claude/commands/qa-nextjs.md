@@ -1,15 +1,20 @@
 ---
-description: "Next.js Studio QA — Organic user-flow testing with UX/UI analysis, screenshots, and iterative improvement"
-argument-hint: "[max_cycles=8] [budget_minutes=45] | scan | fix | typecheck | build"
-allowed-tools: mcp__chrome-devtools__navigate_page, mcp__chrome-devtools__evaluate_script,
-  mcp__chrome-devtools__take_screenshot, mcp__chrome-devtools__list_console_messages,
-  mcp__chrome-devtools__get_console_message, mcp__chrome-devtools__take_snapshot,
-  mcp__chrome-devtools__list_pages, mcp__chrome-devtools__select_page,
-  mcp__chrome-devtools__click, mcp__chrome-devtools__fill,
-  mcp__chrome-devtools__type_text, mcp__chrome-devtools__press_key,
-  mcp__chrome-devtools__wait_for, mcp__chrome-devtools__hover,
-  mcp__chrome-devtools__new_page, mcp__chrome-devtools__close_page,
-  mcp__chrome-devtools__fill_form,
+description: "Next.js Studio QA — Organic user-flow testing with Playwright MCP + UX analysis, error simulation, screenshots, and iterative improvement"
+argument-hint: "[max_cycles=8] [budget_minutes=45] | scan | fix | typecheck | build | errors"
+allowed-tools: mcp__playwright__browser_navigate, mcp__playwright__browser_click,
+  mcp__playwright__browser_fill, mcp__playwright__browser_type,
+  mcp__playwright__browser_press_key, mcp__playwright__browser_hover,
+  mcp__playwright__browser_wait_for, mcp__playwright__browser_screenshot,
+  mcp__playwright__browser_evaluate, mcp__playwright__browser_new_tab,
+  mcp__playwright__browser_close_tab, mcp__playwright__browser_tab_list,
+  mcp__playwright__browser_tab_select, mcp__playwright__browser_snapshot,
+  mcp__playwright__browser_resize, mcp__playwright__browser_handle_dialog,
+  mcp__playwright__browser_route, mcp__playwright__browser_unroute,
+  mcp__playwright__browser_network_requests, mcp__playwright__browser_console_messages,
+  mcp__playwright__browser_select_option, mcp__playwright__browser_drag,
+  mcp__playwright__browser_go_back, mcp__playwright__browser_go_forward,
+  mcp__chrome-devtools__list_console_messages, mcp__chrome-devtools__get_console_message,
+  mcp__chrome-devtools__list_network_requests, mcp__chrome-devtools__lighthouse_audit,
   mcp__supabase__execute_sql,
   Bash(npm:*), Bash(npx:*), Bash(node:*), Bash(curl:*),
   Bash(git:*), Bash(lsof:*), Bash(kill:*), Bash(grep:*),
@@ -24,11 +29,15 @@ allowed-tools: mcp__chrome-devtools__navigate_page, mcp__chrome-devtools__evalua
 You are a **senior UX tester** who just switched from WordPress Elementor to Bukeer Studio.
 Your job: explore the editor like a real user would — organically, systematically, deeply.
 
+**Browser driver**: Playwright MCP (human-flow simulation, error states, network interception)
+**Audit layer**: Chrome DevTools MCP (console errors, Lighthouse, network requests)
+
 ```
 /qa-nextjs                                → Full organic QA loop (8 cycles, 45min)
 /qa-nextjs max_cycles=5 budget_minutes=30 → Custom parameters
 /qa-nextjs scan                           → Read-only screenshot audit (no fixes)
 /qa-nextjs fix                            → Fix issues from previous run
+/qa-nextjs errors                         → Error-state simulation only (network faults)
 /qa-nextjs typecheck                      → TypeScript + lint only
 /qa-nextjs build                          → Production build test
 ```
@@ -56,7 +65,7 @@ You expect:
 
 ### 1.1 TypeScript check
 ```bash
-cd web-public && npx tsc --noEmit 2>&1
+npx tsc --noEmit 2>&1
 ```
 - Count errors in NEW files (`components/studio/`, `lib/studio/`, `left-panel/`) vs pre-existing
 - **New file errors > 0** → STOP and fix
@@ -68,15 +77,16 @@ lsof -i :3000 | grep LISTEN
 ```
 If not running, start it:
 ```bash
-cd web-public && npm run dev &
+npm run dev &
 # Poll until ready (max 30s)
+timeout 30 bash -c 'until curl -s http://localhost:3000 > /dev/null; do sleep 1; done'
 ```
 
-### 1.3 Chrome DevTools connection
+### 1.3 Playwright browser connection
 ```
-mcp__chrome-devtools__list_pages
+mcp__playwright__browser_tab_list
 ```
-If no usable page → `mcp__chrome-devtools__new_page`
+If no usable tab → `mcp__playwright__browser_new_tab` then navigate to `http://localhost:3000`
 
 ### 1.4 Get test website
 ```sql
@@ -86,7 +96,7 @@ Store `$WEBSITE_ID`, `$SUBDOMAIN`.
 
 ### 1.5 Screenshot directory
 ```bash
-mkdir -p web-public/qa-screenshots
+mkdir -p qa-screenshots
 ```
 
 ---
@@ -160,8 +170,11 @@ For each cycle:
 - Announce: "Cycle N: Testing [story IDs] — [human description of what Diana is trying to do]"
 
 ### 3.2 NAVIGATE — Go where Diana would go
-- Use `navigate_page` to reach the right URL
-- Wait for key elements with `wait_for`
+Use Playwright for navigation (reliable auto-waiting):
+```
+mcp__playwright__browser_navigate { "url": "http://localhost:3000/dashboard/..." }
+mcp__playwright__browser_wait_for { "selector": "[data-testid='page-editor']", "timeout": 10000 }
+```
 
 ### 3.3 SCREENSHOT — Capture the current state
 Take a screenshot at EACH of these moments:
@@ -169,20 +182,38 @@ Take a screenshot at EACH of these moments:
 - **During action**: The intermediate state (modal open, hover effect, form filling)
 - **After action**: The result of the action
 
-Save to: `web-public/qa-screenshots/cycle{N}_{storyId}_{moment}.png`
+```
+mcp__playwright__browser_screenshot { "filename": "qa-screenshots/cycle{N}_{storyId}_{moment}.png" }
+```
 
-If screenshots timeout, use `take_snapshot` (text) instead and note "screenshot unavailable".
+If screenshots fail, use `browser_snapshot` (accessibility tree text) instead and note "screenshot unavailable".
 
 ### 3.4 ACT — Do what Diana would do
-- Click elements, fill forms, hover, press keys
-- Use `evaluate_script` to check DOM state when needed
-- Be patient — wait for transitions, animations, recompilation
+Use Playwright for all user interactions:
+```
+mcp__playwright__browser_click { "selector": "..." }
+mcp__playwright__browser_fill  { "selector": "input[name='title']", "value": "New text" }
+mcp__playwright__browser_hover { "selector": ".section-card" }
+mcp__playwright__browser_press_key { "key": "Meta+s" }
+mcp__playwright__browser_resize { "width": 375, "height": 667 }  // mobile
+mcp__playwright__browser_handle_dialog { "action": "accept" }
+```
 
 ### 3.5 OBSERVE — What happened?
-After each action, capture:
-- **Visual state**: snapshot or screenshot
-- **Console errors**: `list_console_messages` with `types: ["error"]`
-- **DOM state**: evaluate_script for specific checks (heights, classes, values)
+After each action, capture with BOTH layers:
+
+**Playwright** (interaction state):
+```
+mcp__playwright__browser_console_messages   // JS errors from this session
+mcp__playwright__browser_network_requests   // API calls triggered
+mcp__playwright__browser_evaluate { "script": "document.querySelector('.save-badge')?.textContent" }
+```
+
+**Chrome DevTools** (deeper diagnostics if needed):
+```
+mcp__chrome-devtools__list_console_messages { "types": ["error"] }
+mcp__chrome-devtools__list_network_requests  // failed requests
+```
 
 ### 3.6 JUDGE — Score each story
 
@@ -265,7 +296,63 @@ Stop when ANY of:
 
 ---
 
-## 5. FINAL REPORT
+## 5. ERROR STATE SIMULATION (`errors` mode + optional in full loop)
+
+Use Playwright's route interception to simulate real failure scenarios. Run as a dedicated pass or weave into full loop at L4.
+
+### E1 — Supabase save failure
+```
+mcp__playwright__browser_route {
+  "url": "**/api/websites/*/sections",
+  "method": "PATCH",
+  "response": { "status": 500, "body": "{\"error\":\"Internal Server Error\"}" }
+}
+```
+Expected: Error toast appears, unsaved changes preserved, no data loss.
+
+### E2 — AI generation timeout
+```
+mcp__playwright__browser_route {
+  "url": "**/api/ai/**",
+  "response": { "status": 504, "body": "{\"error\":\"Gateway Timeout\"}" }
+}
+```
+Expected: AI chat shows friendly error, retry option visible, editor not locked.
+
+### E3 — Slow network (image loading)
+```
+mcp__playwright__browser_route {
+  "url": "**/*.{jpg,jpeg,png,webp}",
+  "delay": 3000
+}
+```
+Expected: Skeleton loaders or placeholders shown, no layout shift.
+
+### E4 — Auth token expired (401)
+```
+mcp__playwright__browser_route {
+  "url": "**/rest/v1/**",
+  "response": { "status": 401, "body": "{\"message\":\"JWT expired\"}" }
+}
+```
+Expected: Redirect to login or session refresh, no white screen.
+
+### E5 — Theme publish failure
+```
+mcp__playwright__browser_route {
+  "url": "**/api/websites/*/publish",
+  "response": { "status": 503, "body": "{\"error\":\"Service unavailable\"}" }
+}
+```
+Expected: Publish button shows error state, user can retry.
+
+After each error test → `mcp__playwright__browser_unroute` to reset routes.
+
+Score each error state on: **Graceful degradation** (0-100) + **User feedback clarity** (0-100).
+
+---
+
+## 6. FINAL REPORT
 
 After all cycles, output:
 
@@ -289,6 +376,12 @@ After all cycles, output:
 - L2 (Basic Editing): X/7 tested, avg score XX
 - L3 (Section Management): X/7 tested, avg score XX
 - L4 (Advanced Flows): X/13 tested, avg score XX
+
+## Error State Coverage
+| Scenario | Graceful | Feedback | Status |
+|----------|----------|----------|--------|
+| E1 Save failure | 90 | 80 | PASS |
+| E2 AI timeout | 0 | - | FAIL |
 
 ## Critical Issues (must fix before release)
 1. [issue + file:line]
@@ -317,7 +410,7 @@ After all cycles, output:
 
 ---
 
-## 6. SCAN MODE (read-only)
+## 7. SCAN MODE (read-only)
 
 Navigate through ALL pages without interacting:
 1. Dashboard pages list → screenshot
@@ -326,16 +419,16 @@ Navigate through ALL pages without interacting:
 4. Theme panel → screenshot
 5. AI panel → screenshot
 6. SEO panel → screenshot
-7. Mobile viewport → screenshot
+7. Mobile viewport (`browser_resize { width: 375, height: 667 }`) → screenshot
 8. Custom page editor → screenshot
 
 For each screenshot: UX analysis (section 3.7). No fixes.
 
 ---
 
-## 7. FIX MODE
+## 8. FIX MODE
 
-1. Read `web-public/qa-nextjs-results.tsv` for issues with status=open
+1. Read `qa-nextjs-results.tsv` for issues with status=open
 2. For each issue (severity order: critical → major → minor):
    - Read source file
    - Apply minimal fix
@@ -346,28 +439,28 @@ For each screenshot: UX analysis (section 3.7). No fixes.
 
 ---
 
-## 8. TYPECHECK / BUILD MODE
+## 9. TYPECHECK / BUILD MODE
 
-**typecheck**: `cd web-public && npx tsc --noEmit 2>&1`
+**typecheck**: `npx tsc --noEmit 2>&1`
 - Categorize: new files vs pre-existing vs tests
 - Output error count per category
 
-**build**: `cd web-public && npm run build 2>&1`
+**build**: `npm run build 2>&1`
 - Check success/failure, bundle size, missing env vars
 
 ---
 
-## 9. RESULTS FILE
+## 10. RESULTS FILE
 
-Append to `web-public/qa-nextjs-results.tsv`:
+Append to `qa-nextjs-results.tsv`:
 ```tsv
 timestamp	story_id	description	func	visual	resp	ux	score	issues	cycle	status
-2026-03-31T01:00:00	L2-01	Click section to edit	90	85	80	75	82	0	1	pass
+2026-04-12T01:00:00	L2-01	Click section to edit	90	85	80	75	82	0	1	pass
 ```
 
 ---
 
-## 10. KEY FILES TO MONITOR
+## 11. KEY FILES TO MONITOR
 
 **Editor (new Elementor-like layout)**:
 - `components/studio/page-editor.tsx` — Main 3-panel editor
@@ -394,7 +487,7 @@ timestamp	story_id	description	func	visual	resp	ux	score	issues	cycle	status
 
 ---
 
-## 11. INTERACTION PATTERNS (how things work)
+## 12. INTERACTION PATTERNS (how things work)
 
 Understanding these prevents false negatives:
 
@@ -413,7 +506,7 @@ Understanding these prevents false negatives:
 
 ---
 
-## 12. COMMON FALSE POSITIVES (ignore these)
+## 13. COMMON FALSE POSITIVES (ignore these)
 
 - Hydration mismatch in WavyBackground (Math.random in SSR) — pre-existing
 - M3ThemeProvider type warnings — pre-existing
