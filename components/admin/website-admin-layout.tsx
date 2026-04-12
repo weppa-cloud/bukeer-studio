@@ -10,6 +10,7 @@ const TABS = [
   { slug: 'design', label: 'Design' },
   { slug: 'content', label: 'Content & SEO' },
   { slug: 'products', label: 'Products' },
+  { slug: 'seo', label: 'SEO Audit' },
   { slug: 'analytics', label: 'Analytics' },
   { slug: 'quotes', label: 'Leads' },
   { slug: 'settings', label: 'Settings' },
