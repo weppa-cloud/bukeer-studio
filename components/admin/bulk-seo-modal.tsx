@@ -149,7 +149,7 @@ export function BulkSeoModal({ isOpen, onClose, websiteId, items, onApplied }: B
 
     for (const item of accepted) {
       const table = getTableForType(item.type);
-      const updateData: Record<string, string> = {
+      const updateData: Record<string, unknown> = {
         seo_title: item.after.seoTitle,
         seo_description: item.after.seoDescription,
       };

@@ -117,14 +117,10 @@ export default function SeoItemDetailPage() {
       }
     }
 
-    console.log('[SeoItemDetail] Saving to', table, 'id=', itemId, 'data=', updateData);
-    const { data: updateResult, error: updateError } = await supabase
+    const { error: updateError } = await supabase
       .from(table)
       .update(updateData)
-      .eq('id', itemId)
-      .select();
-
-    console.log('[SeoItemDetail] Save result:', { updateResult, updateError });
+      .eq('id', itemId);
 
     if (updateError) {
       console.error('[SeoItemDetail] Save error:', updateError);
@@ -382,13 +378,15 @@ async function fetchItemByType(supabase: any, type: SeoItemType, id: string, web
     case 'blog': {
       let query = supabase
         .from('website_blog_posts')
-        .select('id, title, slug, featured_image, content, seo_title, seo_description, robots_noindex')
+        .select('id, title, slug, featured_image, content, seo_title, seo_description, seo_keywords, robots_noindex')
         .eq('id', id);
       if (websiteId) query = query.eq('website_id', websiteId);
       const { data } = await query.single();
 
       if (!data) return null;
       const content = data.content ?? '';
+      // seo_keywords is text[] — use first element as targetKeyword
+      const keywords = Array.isArray(data.seo_keywords) ? data.seo_keywords : [];
       return {
         id: data.id,
         type: 'blog',
@@ -398,6 +396,7 @@ async function fetchItemByType(supabase: any, type: SeoItemType, id: string, web
         description: content,
         seoTitle: data.seo_title,
         seoDescription: data.seo_description,
+        targetKeyword: keywords[0] ?? undefined,
         wordCount: content.split(/\s+/).filter(Boolean).length,
         robotsNoindex: data.robots_noindex ?? false,
       };
