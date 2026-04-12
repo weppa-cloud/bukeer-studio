@@ -177,7 +177,7 @@ export function SeoItemDetail({
           itemType: item.type,
           name: item.name,
           slug: item.slug,
-          description: item.description,
+          description: item.description?.substring(0, 4000),
           existingTitle: seoTitle || undefined,
           existingDescription: seoDescription || undefined,
           targetKeyword: targetKeyword || undefined,

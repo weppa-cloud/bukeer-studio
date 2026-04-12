@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getEditorModel } from '@/lib/ai/llm-provider';
-import { generateObject } from 'ai';
+import { generateText } from 'ai';
 import { getEditorAuth, hasEditorRole } from '@/lib/ai/auth-helpers';
 import { checkRateLimit, recordCost } from '@/lib/ai/rate-limit';
 import {
   seoGenerateRequestSchema,
-  seoGenerateResponseSchema,
   getSeoSystemPrompt,
   buildSeoUserPrompt,
 } from '@/lib/ai/seo-prompts';
@@ -48,19 +47,34 @@ export async function POST(request: NextRequest) {
 
     const data = parsed.data;
     const systemPrompt = getSeoSystemPrompt(data.itemType, data.locale ?? 'es');
-    const userPrompt = buildSeoUserPrompt(data);
+    const userPrompt = buildSeoUserPrompt(data) +
+      '\n\nResponde SOLO con un JSON valido con esta estructura exacta:\n{"seoTitle":"...","seoDescription":"...","targetKeyword":"...","reasoning":"..."}';
 
-    const result = await generateObject({
+    const result = await generateText({
       model: getEditorModel(),
-      schema: seoGenerateResponseSchema,
       system: systemPrompt,
       prompt: userPrompt,
     });
 
     await recordCost(auth.accountId, 0.003);
 
+    // Parse JSON from LLM response
+    const text = result.text.trim();
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      return NextResponse.json(
+        { error: 'AI did not return valid JSON' },
+        { status: 502 }
+      );
+    }
+
+    const parsed_response = JSON.parse(jsonMatch[0]);
+
     return NextResponse.json({
-      ...result.object,
+      seoTitle: parsed_response.seoTitle || '',
+      seoDescription: parsed_response.seoDescription || '',
+      targetKeyword: parsed_response.targetKeyword || '',
+      reasoning: parsed_response.reasoning || '',
       usage: result.usage,
     });
   } catch (err) {

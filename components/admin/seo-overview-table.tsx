@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import type { ScoredItem } from '@/app/dashboard/[websiteId]/seo/page';
 
 type SeoGrade = 'A' | 'B' | 'C' | 'D' | 'F';
@@ -23,6 +24,8 @@ type SortField = 'score' | 'name';
 type SortDir = 'asc' | 'desc';
 
 export function SeoOverviewTable({ items }: SeoOverviewTableProps) {
+  const { websiteId } = useParams<{ websiteId: string }>();
+  const router = useRouter();
   const [search, setSearch] = useState('');
   const [gradeFilter, setGradeFilter] = useState<SeoGrade | 'all'>('all');
   const [sortField, setSortField] = useState<SortField>('score');
@@ -115,7 +118,11 @@ export function SeoOverviewTable({ items }: SeoOverviewTableProps) {
               </tr>
             ) : (
               paginated.map((item) => (
-                <tr key={item.id} className="border-b border-[var(--studio-border)] hover:bg-[var(--studio-bg-elevated)] transition-colors">
+                <tr
+                  key={item.id}
+                  onClick={() => router.push(`/dashboard/${websiteId}/seo/${item.type}/${item.id}`)}
+                  className="border-b border-[var(--studio-border)] hover:bg-[var(--studio-bg-elevated)] transition-colors cursor-pointer"
+                >
                   <td className="px-3 py-2">
                     {item.image ? (
                       <img src={item.image} alt="" className="w-8 h-8 rounded object-cover" />

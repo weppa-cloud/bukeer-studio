@@ -15,7 +15,8 @@ import { createOpenAI } from '@ai-sdk/openai';
 const openrouter = createOpenAI({
   baseURL: process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1',
   apiKey: process.env.OPENROUTER_AUTH_TOKEN || '',
-  // OpenRouter-specific headers
+  // Force chat completions API (NVIDIA NIM doesn't support /responses)
+  compatibility: 'compatible',
   headers: {
     'HTTP-Referer': 'https://app.bukeer.com',
     'X-Title': 'Bukeer Website Editor',
@@ -26,12 +27,12 @@ const openrouter = createOpenAI({
 export const DEFAULT_MODEL =
   process.env.OPENROUTER_MODEL || 'mistralai/mistral-large';
 
-/** Get the configured LLM model for editor routes */
+/** Get the configured LLM model for editor routes (uses Chat Completions API) */
 export function getEditorModel() {
-  return openrouter(DEFAULT_MODEL);
+  return openrouter.chat(DEFAULT_MODEL);
 }
 
 /** Get a specific model (e.g., cheaper model for simpler tasks) */
 export function getModel(modelId: string) {
-  return openrouter(modelId);
+  return openrouter.chat(modelId);
 }

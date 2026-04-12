@@ -39,7 +39,7 @@ function getTableForType(type: SeoItemType): string {
     case 'package': return 'package_kits';
     case 'destination': return 'destinations';
     case 'page': return 'website_pages';
-    case 'blog': return 'blog_posts';
+    case 'blog': return 'website_blog_posts';
     default: return 'products';
   }
 }

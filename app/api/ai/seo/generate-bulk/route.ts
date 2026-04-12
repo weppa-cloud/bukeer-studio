@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getEditorModel } from '@/lib/ai/llm-provider';
-import { generateObject } from 'ai';
+import { generateText } from 'ai';
 import { z } from 'zod';
 import { getEditorAuth, hasEditorRole } from '@/lib/ai/auth-helpers';
 import { checkRateLimit, recordCost } from '@/lib/ai/rate-limit';
 import {
-  seoGenerateResponseSchema,
   getSeoSystemPrompt,
   buildSeoUserPrompt,
   type GenerateSeoRequest,
@@ -223,12 +222,15 @@ export async function POST(request: NextRequest) {
             locale: 'es',
           };
 
-          const result = await generateObject({
+          const aiResult = await generateText({
             model: getEditorModel(),
-            schema: seoGenerateResponseSchema,
             system: getSeoSystemPrompt(item.type, 'es'),
-            prompt: buildSeoUserPrompt(reqData),
+            prompt: buildSeoUserPrompt(reqData) +
+              '\n\nResponde SOLO con un JSON valido: {"seoTitle":"...","seoDescription":"...","targetKeyword":"...","reasoning":"..."}',
           });
+
+          const jsonMatch = aiResult.text.trim().match(/\{[\s\S]*\}/);
+          const result = { object: jsonMatch ? JSON.parse(jsonMatch[0]) : { seoTitle: '', seoDescription: '', targetKeyword: '', reasoning: '' } };
 
           await recordCost(auth.accountId, 0.003);
           totalCost += 0.003;
