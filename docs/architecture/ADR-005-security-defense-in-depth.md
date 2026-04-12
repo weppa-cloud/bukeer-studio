@@ -1,6 +1,7 @@
 # ADR-005: Defense-in-Depth Security
 
 **Status:** Accepted
+**Implementation Status:** Complete — see Known Gaps section for deferred items
 **Date:** 2026-04-12
 **Principles:** P8
 
@@ -20,10 +21,10 @@ bukeer-studio handles multi-tenant website data, user authentication, AI-powered
 
 ```
 Layer 1: Middleware (edge)
-├── Refresh Supabase auth tokens
-├── Redirect unauthenticated users from /dashboard
+├── Check auth cookie existence, redirect to /login if missing
+├── One-time JWT handoff from Flutter (editor/dashboard bridge)
 ├── Subdomain → website ID resolution
-└── Reserved subdomain blocking (www, app, api, admin)
+└── Reserved subdomain blocking (www, app, api, admin, staging, dev)
 
 Layer 2: Server Actions / Route Handlers (origin)
 ├── Verify user identity with supabase.auth.getUser()
@@ -51,30 +52,31 @@ Layer 3: Database (Supabase RLS)
 
 ### Security headers
 
-All responses include:
+All responses include these headers (configured in `next.config.ts`):
 
 ```typescript
-// next.config.ts headers
+// All routes (except /editor/*)
 {
-  'Strict-Transport-Security': 'max-age=63072000; includeSubDomains; preload',
-  'X-Content-Type-Options': 'nosniff',
   'X-Frame-Options': 'SAMEORIGIN',
+  'X-Content-Type-Options': 'nosniff',
   'Referrer-Policy': 'strict-origin-when-cross-origin',
+  'Strict-Transport-Security': 'max-age=63072000; includeSubDomains; preload',
   'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
 }
 
-// Editor route override — allow iframe embedding from app.bukeer.com
-// /editor/** gets: X-Frame-Options: ALLOW-FROM https://app.bukeer.com
-// (or uses frame-ancestors in CSP)
+// Editor route — CSP allows iframe embedding from Flutter admin
+// /editor/** gets: Content-Security-Policy: frame-ancestors 'self' https://app.bukeer.com
+// (replaces X-Frame-Options for this route)
 ```
 
-### SSRF prevention
+### External API calls
 
-Server-side fetch calls (to OpenRouter, SerpAPI, etc.) validate URLs:
+Server-side fetch calls target hardcoded, trusted endpoints only:
 
-- Block link-local addresses (`169.254.x.x`, `10.x.x.x`, `127.0.0.1`)
-- Block cloud metadata endpoints (`169.254.169.254`)
-- Allow only explicitly configured domains (`openrouter.ai`, `serpapi.com`)
+- `openrouter.ai` — LLM provider (via `lib/ai/llm-provider.ts`)
+- `serpapi.com` — Google Reviews and destination enrichment
+
+No user-supplied URLs are fetched server-side. If this changes (e.g., user-configurable webhooks), implement a domain allowlist and block link-local/metadata addresses before accepting dynamic URLs.
 
 ### Input sanitization
 
@@ -92,6 +94,12 @@ Server-side fetch calls (to OpenRouter, SerpAPI, etc.) validate URLs:
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `.env.local` + CI | Client + Server (public) |
 
 **Rule:** `SUPABASE_SERVICE_ROLE_KEY` is never imported in Client Components or exposed via `NEXT_PUBLIC_` prefix.
+
+### Known gaps (deferred)
+
+- **Nonce-based CSP** — Not implemented. Inline scripts are minimal. When inline script usage grows, add nonce-based CSP via middleware.
+- **SSRF domain allowlist** — Not needed while all external URLs are hardcoded. Implement if user-supplied URLs are accepted.
+- **Auth token refresh in middleware** — Middleware checks cookie existence but does not call `refreshSession()`. Supabase SDK handles refresh client-side. Server-side refresh would reduce latency for expired-but-refreshable tokens.
 
 ## Consequences
 

@@ -1,6 +1,7 @@
 # ADR-004: State Management without Global Store
 
 **Status:** Accepted
+**Implementation Status:** Complete
 **Date:** 2026-04-12
 **Principles:** P1, P7
 

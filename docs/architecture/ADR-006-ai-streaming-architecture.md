@@ -1,6 +1,7 @@
 # ADR-006: Streaming-First AI Integration
 
 **Status:** Accepted
+**Implementation Status:** Complete — prompt extraction to lib/ai/prompts/ is planned
 **Date:** 2026-04-12
 **Principles:** P9, P2, P10
 
@@ -85,28 +86,28 @@ const result = await generateObject({
 
 ### Prompt management
 
-Prompts are code. They live alongside the feature they serve:
+Prompts are currently defined inline in their respective route handlers. The AI module structure:
 
 ```
 lib/ai/
-  prompts/
-    studio-chat.ts        ← system prompt for studio chat
-    section-generator.ts  ← prompt templates for section generation
-    seo-suggestions.ts    ← SEO content improvement prompts
   llm-provider.ts         ← provider abstraction (OpenRouter)
-  rate-limiter.ts         ← per-account rate limiting
+  rate-limit.ts           ← per-account rate limiting (Supabase-based)
   auth-helpers.ts         ← JWT extraction, role checks
 ```
 
+Prompt extraction to a dedicated `lib/ai/prompts/` directory is planned for when prompt complexity warrants centralized management.
+
 ### Rate limiting
 
-Per-account rate limits stored in Supabase (no Redis):
+Per-endpoint rate limits stored in Supabase (no Redis). Two dimensions: per-minute request throttling + daily cost cap.
 
-| Tier | Requests/hour | Tokens/hour |
+| Tier | Requests/min | Daily cost cap |
 |---|---|---|
-| Free | 20 | 50,000 |
-| Pro | 100 | 500,000 |
-| Enterprise | Unlimited | 2,000,000 |
+| editor | 20 | $5.00 |
+| public | 5 | $1.00 |
+| copilot | 10 | $10.00 |
+
+Rate limit windows use a 60-second sliding window for request counts and per-calendar-day aggregation for cost tracking.
 
 ### Tool use
 

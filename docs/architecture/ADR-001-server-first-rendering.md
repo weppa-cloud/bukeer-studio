@@ -1,6 +1,7 @@
 # ADR-001: Server-First Rendering with ISR and PPR
 
 **Status:** Accepted
+**Implementation Status:** Complete
 **Date:** 2026-04-12
 **Principles:** P1, P4, P6, P10
 
@@ -22,13 +23,13 @@ All components are Server Components unless they require interactivity (`onClick
 
 ```typescript
 // app/site/[subdomain]/page.tsx
-export const revalidate = 3600 // fallback: 1 hour
+export const revalidate = 300 // fallback: 5 minutes
 
 // On-demand revalidation when admin publishes
-// POST /api/revalidate?secret=REVALIDATE_SECRET&path=/site/subdomain
+// POST /api/revalidate (Bearer token auth, subdomain in body)
 ```
 
-Content is served from edge cache. On-demand revalidation fires when the Flutter admin publishes changes. Time-based revalidation (1 hour) acts as a safety net.
+Content is served from edge cache. On-demand revalidation fires when the Flutter admin publishes changes. Time-based revalidation (5 minutes) acts as a safety net.
 
 ### PPR for mixed pages (future)
 
@@ -36,14 +37,17 @@ When Next.js PPR stabilizes on Cloudflare Workers, enable it for public pages:
 - **Static shell:** Header, footer, navigation, above-the-fold hero
 - **Dynamic holes:** Pricing, availability, user-specific content (wrapped in `<Suspense>`)
 
-### Dynamic for authenticated routes
+### Client Components for authenticated routes
+
+Dashboard and editor pages use `'use client'` — they are Client Components that render in the browser. This is intentional: the dashboard relies on `WebsiteProvider` context for real-time editing state, and the editor is inherently interactive.
 
 ```typescript
-// app/dashboard/layout.tsx
-export const dynamic = 'force-dynamic'
-```
+// app/dashboard/[websiteId]/page.tsx
+'use client'
 
-Dashboard and editor routes are always dynamic — they depend on user auth state and real-time data.
+// Dashboard pages use WebsiteProvider context for state management.
+// No `force-dynamic` needed — Client Components are inherently dynamic.
+```
 
 ### Collocated data fetching
 
@@ -62,7 +66,7 @@ async function HeroSection({ websiteId }: { websiteId: string }) {
 - **TTFB drops** from 350-550ms (origin) to 40-90ms (edge cache hit)
 - **Client JS reduced** — Server Components ship zero JavaScript
 - **SEO improved** — full HTML available on first response
-- **Trade-off:** Content updates are not instant (up to 1 hour delay without on-demand revalidation)
+- **Trade-off:** Content updates are not instant (up to 5 minutes delay without on-demand revalidation)
 - **Trade-off:** PPR requires Suspense boundaries, adding complexity to section components
 
 ## References

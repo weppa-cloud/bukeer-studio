@@ -1,36 +1,36 @@
-# Guia de Arquitectura para Desarrolladores — bukeer-studio
+# Guía de Arquitectura para Desarrolladores — bukeer-studio
 
-> Escrita como si un mentor senior te explicara la arquitectura en una sesion 1:1.
-> Cada concepto usa codigo real del proyecto. Nada inventado.
+> Escrita como si un mentor senior te explicara la arquitectura en una sesión 1:1.
+> Cada concepto usa código real del proyecto. Nada inventado.
 
 **Audiencia:** Desarrollador junior/mid que va a trabajar en bukeer-studio.
-**Objetivo:** Que entiendas el *por que* de cada decision, no solo el *como*.
+**Objetivo:** Que entiendas el *por qué* de cada decisión, no solo el *cómo*.
 
 ---
 
-## Indice
+## Índice
 
-1. [Que es esto y por que existe](#1-que-es-esto-y-por-que-existe)
+1. [Qué es esto y por qué existe](#1-que-es-esto-y-por-que-existe)
 2. [El mapa mental: las 4 capas](#2-el-mapa-mental-las-4-capas)
-3. [Server Components: la decision mas importante](#3-server-components-la-decision-mas-importante)
-4. [Supabase: como hablamos con la base de datos](#4-supabase-como-hablamos-con-la-base-de-datos)
+3. [Server Components: la decisión más importante](#3-server-components-la-decision-mas-importante)
+4. [Supabase: cómo hablamos con la base de datos](#4-supabase-como-hablamos-con-la-base-de-datos)
 5. [El sistema de temas: design tokens](#5-el-sistema-de-temas-design-tokens)
-6. [Como fluyen los datos: de la BD al pixel](#6-como-fluyen-los-datos-de-la-bd-al-pixel)
+6. [Cómo fluyen los datos: de la BD al píxel](#6-como-fluyen-los-datos-de-la-bd-al-pixel)
 7. [Estado: donde vive cada tipo de dato](#7-estado-donde-vive-cada-tipo-de-dato)
-8. [Errores: la filosofia de "nunca pantalla blanca"](#8-errores-la-filosofia-de-nunca-pantalla-blanca)
+8. [Errores: la filosofía de "nunca pantalla blanca"](#8-errores-la-filosofia-de-nunca-pantalla-blanca)
 9. [Seguridad: las 3 puertas](#9-seguridad-las-3-puertas)
 10. [Los paquetes internos: el contrato entre equipos](#10-los-paquetes-internos-el-contrato-entre-equipos)
-11. [Validacion con Zod: la unica fuente de verdad](#11-validacion-con-zod-la-unica-fuente-de-verdad)
-12. [AI/LLM: como integramos inteligencia artificial](#12-aillm-como-integramos-inteligencia-artificial)
-13. [Performance: por que estamos en el edge](#13-performance-por-que-estamos-en-el-edge)
-14. [Principios para escalar: como piensa un senior](#14-principios-para-escalar-como-piensa-un-senior)
+11. [Validación con Zod: la única fuente de verdad](#11-validacion-con-zod-la-unica-fuente-de-verdad)
+12. [AI/LLM: cómo integramos inteligencia artificial](#12-aillm-como-integramos-inteligencia-artificial)
+13. [Performance: por qué estamos en el edge](#13-performance-por-que-estamos-en-el-edge)
+14. [Principios para escalar: cómo piensa un senior](#14-principios-para-escalar-como-piensa-un-senior)
 15. [Checklist antes de hacer un PR](#15-checklist-antes-de-hacer-un-pr)
 
 ---
 
-## 1. Que es esto y por que existe
+## 1. Qué es esto y por qué existe
 
-bukeer-studio es el **renderer publico** de sitios web para agencias de turismo. Imagina que una agencia de viajes en Colombia quiere su propia pagina web — ellos la configuran desde una app Flutter (otro repo), y nosotros la mostramos al mundo.
+bukeer-studio es el **renderer público** de sitios web para agencias de turismo. Imagina que una agencia de viajes en Colombia quiere su propia página web — ellos la configuran desde una app Flutter (otro repo), y nosotros la mostramos al mundo.
 
 ```
 Agencia configura su sitio en Flutter (admin)
@@ -47,13 +47,13 @@ Turista ve: colombiatours.bukeer.com
 
 **Dato clave:** No somos un CMS tradicional. Somos un *renderer multi-tenant* — un solo deploy sirve TODOS los sitios de TODAS las agencias. Cuando alguien visita `colombiatours.bukeer.com`, nuestro middleware detecta el subdominio, busca la data de esa agencia, y renderiza su sitio personalizado.
 
-Esto significa que cada decision de arquitectura tiene que funcionar para 1 agencia y para 1,000.
+Esto significa que cada decisión de arquitectura tiene que funcionar para 1 agencia y para 1,000.
 
 ---
 
 ## 2. El mapa mental: las 4 capas
 
-Piensa en la aplicacion como un edificio de 4 pisos. Cada piso tiene una responsabilidad clara:
+Piensa en la aplicación como un edificio de 4 pisos. Cada piso tiene una responsabilidad clara:
 
 ```
 Piso 4: App Router (app/)
@@ -75,7 +75,7 @@ Piso 1: Dominio e infraestructura (packages/ + lib/supabase)
 
 **Regla de oro:** Las dependencias solo fluyen HACIA ABAJO. El piso 4 puede usar el piso 3, pero el piso 1 NUNCA importa del piso 4. Si rompes esta regla, el edificio se vuelve un espagueti imposible de mantener.
 
-### Donde vive cada cosa
+### Dónde vive cada cosa
 
 ```
 app/
@@ -104,21 +104,21 @@ packages/
   website-contract/    ← schemas Zod, tipos TypeScript, constantes
 ```
 
-**Por que importa:** Cuando necesites agregar algo nuevo, ya sabes donde va. Un nuevo componente visual? `components/`. Una nueva query a Supabase? `lib/supabase/`. Un nuevo tipo de dato? `packages/website-contract/`.
+**Por qué importa:** Cuando necesites agregar algo nuevo, ya sabes donde va. Un nuevo componente visual? `components/`. Una nueva query a Supabase? `lib/supabase/`. Un nuevo tipo de dato? `packages/website-contract/`.
 
 ---
 
-## 3. Server Components: la decision mas importante
+## 3. Server Components: la decisión más importante
 
-Esta es probablemente la decision arquitectonica mas importante del proyecto. Necesitas entenderla a fondo.
+Esta es probablemente la decisión arquitectónica más importante del proyecto. Necesitas entenderla a fondo.
 
 ### La idea simple
 
-En React tradicional, todo el codigo se ejecuta en el navegador del usuario. El servidor manda un paquete JavaScript y el navegador lo ejecuta para pintar la pagina.
+En React tradicional, todo el código se ejecuta en el navegador del usuario. El servidor manda un paquete JavaScript y el navegador lo ejecuta para pintar la página.
 
-Con **Server Components** (React 19 / Next.js 15), la mayoria del codigo se ejecuta en el servidor. El servidor genera HTML listo y se lo manda al navegador. El navegador solo ejecuta JavaScript para las partes interactivas (botones, formularios, animaciones).
+Con **Server Components** (React 19 / Next.js 15), la mayoría del código se ejecuta en el servidor. El servidor genera HTML listo y se lo manda al navegador. El navegador solo ejecuta JavaScript para las partes interactivas (botones, formularios, animaciones).
 
-### Ejemplo real: la pagina publica del sitio
+### Ejemplo real: la página pública del sitio
 
 Mira `app/site/[subdomain]/page.tsx`:
 
@@ -150,21 +150,21 @@ export default async function SitePage({ params }: SitePageProps) {
 }
 ```
 
-**Que pasa aqui:**
+**Qué pasa aquí:**
 1. Un turista visita `colombiatours.bukeer.com`
-2. El servidor ejecuta esta funcion
+2. El servidor ejecuta esta función
 3. Llama a Supabase para traer los datos del sitio
 4. Renderiza todas las secciones como HTML
 5. Manda HTML completo al navegador
-6. El navegador NO necesita ejecutar JavaScript para ver la pagina
+6. El navegador NO necesita ejecutar JavaScript para ver la página
 
-**Por que es top mundial:**
-- **SEO perfecto** — Google recibe HTML completo, no una pagina en blanco que carga con JS
+**Por qué es top mundial:**
+- **SEO perfecto** — Google recibe HTML completo, no una página en blanco que carga con JS
 - **Velocidad** — el usuario ve contenido inmediatamente
 - **Seguridad** — la clave de Supabase nunca llega al navegador
-- **Menos JavaScript** — el bundle del navegador es mas pequeno
+- **Menos JavaScript** — el bundle del navegador es más pequeño
 
-### Cuando SI necesitas 'use client'
+### Cuando SÍ necesitas 'use client'
 
 Solo cuando hay **interactividad**: clicks, inputs, animaciones, estado local.
 
@@ -188,7 +188,7 @@ export function MobileStickyBar({ website }: { website: WebsiteData }) {
 
 > **Si el componente no tiene `onClick`, `onChange`, `useState`, o `useEffect`, es un Server Component. No le pongas `'use client'`.**
 
-Cuando sientas la tentacion de poner `'use client'` en un componente grande, preguntate: "puedo extraer la parte interactiva a un componente hijo mas pequeno?" Casi siempre la respuesta es si.
+Cuando sientas la tentación de poner `'use client'` en un componente grande, pregúntate: "puedo extraer la parte interactiva a un componente hijo más pequeño?" Casi siempre la respuesta es sí.
 
 ```
 MALO:
@@ -210,13 +210,13 @@ function PaginaEntera() {          // Server Component
 
 ---
 
-## 4. Supabase: como hablamos con la base de datos
+## 4. Supabase: cómo hablamos con la base de datos
 
-Supabase es nuestra base de datos (PostgreSQL) y nuestro sistema de autenticacion. Es el mismo proyecto que usa la app Flutter — compartimos tablas.
+Supabase es nuestra base de datos (PostgreSQL) y nuestro sistema de autenticación. Es el mismo proyecto que usa la app Flutter — compartimos tablas.
 
 ### Tres clientes, tres contextos
 
-El error mas comun de un junior es usar el cliente equivocado. Tenemos tres:
+El error más común de un junior es usar el cliente equivocado. Tenemos tres:
 
 ```
 1. Server Client    → para Server Components y Server Actions
@@ -251,7 +251,7 @@ export async function createSupabaseServerClient() {
 }
 ```
 
-**Por que existe:** En el servidor, no hay `localStorage` ni `document.cookie`. Este cliente usa la cookie store de Next.js para manejar sesiones.
+**Por qué existe:** En el servidor, no hay `localStorage` ni `document.cookie`. Este cliente usa la cookie store de Next.js para manejar sesiones.
 
 **Browser Client** (`lib/supabase/browser-client.ts`):
 
@@ -270,9 +270,9 @@ export function createSupabaseBrowserClient() {
 }
 ```
 
-**Por que es singleton:** En el navegador, queremos UNA sola conexion. Si crearamos una nueva cada vez que un componente la necesita, tendriamos cientos de conexiones abiertas.
+**Por qué es singleton:** En el navegador, queremos UNA sola conexion. Si creáramos una nueva cada vez que un componente la necesita, tendríamos cientos de conexiones abiertas.
 
-### Patron: las funciones de data
+### Patrón: las funciones de data
 
 No hacemos queries directamente en los componentes. Tenemos funciones dedicadas en `lib/supabase/`:
 
@@ -298,19 +298,19 @@ export async function getWebsiteBySubdomain(
 }
 ```
 
-**Tres cosas importantes aqui:**
+**Tres cosas importantes aquí:**
 
-1. **RPC en vez de queries directas** — `supabase.rpc()` llama una funcion de PostgreSQL. Es mas eficiente que hacer multiples queries y joins.
+1. **RPC en vez de queries directas** — `supabase.rpc()` llama una función de PostgreSQL. Es más eficiente que hacer múltiples queries y joins.
 
-2. **Retorna null, nunca throw** — Si la BD falla, no queremos que toda la pagina explote. Retornamos `null` y el componente muestra un fallback.
+2. **Retorna null, nunca throw** — Si la BD falla, no queremos que toda la página explote. Retornamos `null` y el componente muestra un fallback.
 
-3. **Logs con namespace** — `[getWebsiteBySubdomain]` nos dice exactamente donde fallo cuando leemos los logs.
+3. **Logs con namespace** — `[getWebsiteBySubdomain]` nos dice exactamente donde falló cuando leemos los logs.
 
 ---
 
 ## 5. El sistema de temas: design tokens
 
-Cada agencia tiene su propia identidad visual: colores, fuentes, estilos. El sistema de temas convierte esa configuracion en CSS que el navegador entiende.
+Cada agencia tiene su propia identidad visual: colores, fuentes, estilos. El sistema de temas convierte esa configuración en CSS que el navegador entiende.
 
 ### El flujo completo
 
@@ -345,9 +345,9 @@ function applyCssVariables(vars: CssVariable[], root: HTMLElement) {
 }
 ```
 
-**Analogia:** Imagina que los design tokens son una receta de cocina ("usa color rojo #E53935, fuente Playfair Display, esquinas redondeadas de 8px"). El `compileTheme()` es el chef que traduce la receta a platos servidos (CSS variables). El `M3ThemeProvider` es el mesero que lleva los platos a la mesa (el DOM).
+**Analogía:** Imagina que los design tokens son una receta de cocina ("usa color rojo #E53935, fuente Playfair Display, esquinas redondeadas de 8px"). El `compileTheme()` es el chef que traduce la receta a platos servidos (CSS variables). El `M3ThemeProvider` es el mesero que lleva los platos a la mesa (el DOM).
 
-### Presets turisticos
+### Presets turísticos
 
 Tenemos 8 presets predefinidos:
 
@@ -355,20 +355,20 @@ Tenemos 8 presets predefinidos:
 |---|---|---|
 | `corporate` | Profesional, confiable | Agencia corporativa |
 | `luxury` | Elegante, exclusivo | Tours de lujo |
-| `adventure` | Energico, audaz | Ecoturismo, deportes |
-| `tropical` | Calido, vibrante | Caribe, playa |
-| `boutique` | Artesanal, intimo | Experiencias locales |
-| `cultural` | Sofisticado, educativo | Tours historicos |
-| `eco` | Natural, sostenible | Turismo ecologico |
+| `adventure` | Enérgico, audaz | Ecoturismo, deportes |
+| `tropical` | Cálido, vibrante | Caribe, playa |
+| `boutique` | Artesanal, íntimo | Experiencias locales |
+| `cultural` | Sofisticado, educativo | Tours históricos |
+| `eco` | Natural, sostenible | Turismo ecológico |
 | `romantic` | Suave, elegante | Luna de miel |
 
-Si la compilacion del tema falla por alguna razon, caemos al preset `corporate` — nunca a un sitio sin estilos.
+Si la compilación del tema falla por alguna razón, caemos al preset `corporate` — nunca a un sitio sin estilos.
 
 ---
 
-## 6. Como fluyen los datos: de la BD al pixel
+## 6. Cómo fluyen los datos: de la BD al píxel
 
-Sigamos el viaje completo de un dato, desde que esta en la base de datos hasta que el turista lo ve en pantalla.
+Sigamos el viaje completo de un dato, desde que está en la base de datos hasta que el turista lo ve en pantalla.
 
 ### Ejemplo: renderizar el hero de un sitio
 
@@ -426,26 +426,26 @@ Request llega  ──→  middleware.ts
 
 ---
 
-## 7. Estado: donde vive cada tipo de dato
+## 7. Estado: dónde vive cada tipo de dato
 
-Este es un tema que confunde a muchos juniors. "Donde guardo este dato?" La respuesta depende de QUE tipo de dato es.
+Este es un tema que confunde a muchos juniors. "¿Dónde guardo este dato?" La respuesta depende de QUE tipo de dato es.
 
 ### La tabla definitiva
 
-| Tipo de dato | Donde vive | Ejemplo | Por que ahi |
+| Tipo de dato | Donde vive | Ejemplo | Por qué ahí |
 |---|---|---|---|
-| Contenido del sitio | Servidor (RSC fetch) | Textos, imagenes, secciones | No cambia entre renders |
-| Website en edicion | React Context (WebsiteProvider) | El website que el admin esta editando | Multiples componentes lo necesitan |
-| Input de formulario | useState local | El texto que el admin escribe | Efimero, solo ese componente |
-| Filtros/paginacion | URL searchParams | `?page=2&status=published` | Debe ser compartible y sobrevivir refresh |
+| Contenido del sitio | Servidor (RSC fetch) | Textos, imágenes, secciones | No cambia entre renders |
+| Website en edición | React Context (WebsiteProvider) | El website que el admin está editando | Multiples componentes lo necesitan |
+| Input de formulario | useState local | El texto que el admin escribe | Efímero, solo ese componente |
+| Filtros/paginación | URL searchParams | `?page=2&status=published` | Debe ser compartible y sobrevivir refresh |
 | Tema visual | React Context (M3ThemeProvider) | Colores, fuentes de la agencia | Todo el arbol de componentes lo necesita |
 | Draft sin guardar | localStorage (useLocalBackup) | Borrador del editor | Debe sobrevivir si el navegador se cierra |
 
-### Por que NO usamos Redux/Zustand
+### Por qué NO usamos Redux/Zustand
 
-Podrias preguntar: "pero en mi curso de React me ensenaron Redux, por que no lo usan?"
+Podrías preguntar: "pero en mi curso de React me enseñaron Redux, por qué no lo usan?"
 
-La respuesta corta: **porque la mayoria de nuestros datos viven en el servidor**.
+La respuesta corta: **porque la mayoría de nuestros datos viven en el servidor**.
 
 ```
 Sitio publico:
@@ -461,11 +461,11 @@ Editor:
   El estado del editor es de una sola pagina, no global
 ```
 
-Agregar Redux/Zustand significaria mas JavaScript en el bundle (violamos P10), mas complejidad, y cero beneficio real. Si algun dia necesitamos estado compartido entre rutas (ej: colaboracion en tiempo real), Zustand seria la primera opcion — pero ese dia no es hoy.
+Agregar Redux/Zustand significaría más JavaScript en el bundle (violamos P10), más complejidad, y cero beneficio real. Si algún día necesitamos estado compartido entre rutas (ej: colaboración en tiempo real), Zustand sería la primera opción — pero ese día no es hoy.
 
 ### useAutosave: un hook que debes entender
 
-Este hook es un buen ejemplo de como manejamos estado complejo sin librerias externas:
+Este hook es un buen ejemplo de cómo manejamos estado complejo sin librerías externas:
 
 ```typescript
 export function useAutosave<T>({
@@ -506,18 +506,18 @@ export function useAutosave<T>({
 }
 ```
 
-**Como funciona:**
+**Cómo funciona:**
 1. El admin edita algo → `data` cambia
 2. El hook espera 2 segundos (debounce) — si el admin sigue escribiendo, reinicia el timer
-3. Pasados 2 segundos sin cambios, guarda automaticamente
+3. Pasados 2 segundos sin cambios, guarda automáticamente
 4. Si falla, marca `status: 'error'` (el UI puede mostrar un aviso)
-5. Si `data` no cambio realmente (serialized === lastSaved), no hace nada
+5. Si `data` no cambió realmente (serialized === lastSaved), no hace nada
 
 ---
 
-## 8. Errores: la filosofia de "nunca pantalla blanca"
+## 8. Errores: la filosofía de "nunca pantalla blanca"
 
-Un sitio de turismo es la cara de una agencia. Si un turista ve una pantalla blanca, se va. Nunca regresa. Esa primera impresion se pierde para siempre.
+Un sitio de turismo es la cara de una agencia. Si un turista ve una pantalla blanca, se va. Nunca regresa. Esa primera impresión se pierde para siempre.
 
 ### Los 3 niveles de defensa
 
@@ -588,7 +588,7 @@ export default function SiteError({
 }
 ```
 
-### El patron del fallback
+### El patrón del fallback
 
 Siempre ten un plan B para todo:
 
@@ -607,7 +607,7 @@ if (!sections || sections.length === 0) return null;
 
 ## 9. Seguridad: las 3 puertas
 
-Piensa en la seguridad como tres puertas que un atacante tendria que cruzar:
+Piensa en la seguridad como tres puertas que un atacante tendría que cruzar:
 
 ```
 Puerta 1: Middleware (la puerta del edificio)
@@ -628,7 +628,7 @@ Puerta 3: Base de datos RLS (la caja fuerte)
 
 ### La regla de getUser() vs getSession()
 
-Esto es CRITICO y lo vas a ver en code reviews:
+Esto es CRÍTICO y lo vas a ver en code reviews:
 
 ```typescript
 // CORRECTO — valida el token con el servidor de auth
@@ -639,7 +639,7 @@ const { data: { session } } = await supabase.auth.getSession();
 // Un atacante podria modificar el JWT y getSession() no lo detectaria
 ```
 
-**Regla absoluta:** En codigo del servidor, SIEMPRE `getUser()`. `getSession()` solo en el navegador para checks rapidos de UI.
+**Regla absoluta:** En código del servidor, SIEMPRE `getUser()`. `getSession()` solo en el navegador para checks rápidos de UI.
 
 ### RBAC: los 4 roles
 
@@ -650,7 +650,7 @@ publisher  → Puede publicar/despublicar paginas
 owner      → Puede todo: usuarios, configuracion, dominios
 ```
 
-Ejemplo real de verificacion:
+Ejemplo real de verificación:
 
 ```typescript
 export async function getAuthUser(): Promise<AuthUser | null> {
@@ -682,7 +682,7 @@ export async function getAuthUser(): Promise<AuthUser | null> {
 
 ## 10. Los paquetes internos: el contrato entre equipos
 
-Tenemos dos paquetes dentro del proyecto que actuan como "contratos":
+Tenemos dos paquetes dentro del proyecto que actúan como "contratos":
 
 ```
 packages/
@@ -690,13 +690,13 @@ packages/
   website-contract/    ← "Las reglas de los datos"
 ```
 
-### Por que existen
+### Por qué existen
 
 Imagina que tu y otro desarrollador trabajan en partes diferentes del proyecto. Sin un contrato compartido:
 
 - Tu defines un tipo `Section` con campos A, B, C
 - El otro define `Section` con campos A, B, D
-- Todo compila, pero en produccion explota porque los campos no coinciden
+- Todo compila, pero en producción explota porque los campos no coinciden
 
 Los paquetes son ese contrato. Ambos importan del mismo lugar:
 
@@ -720,9 +720,9 @@ website-contract ← importa SOLO de theme-sdk
 Next.js app      ← importa de ambos
 ```
 
-**Regla:** Las flechas solo van hacia abajo. Si `theme-sdk` necesitara algo de `website-contract`, tendriamos un ciclo y todo se rompe. Esto aplica a tu codigo tambien — nunca importes de `app/` en `lib/` o `packages/`.
+**Regla:** Las flechas solo van hacia abajo. Si `theme-sdk` necesitara algo de `website-contract`, tendríamos un ciclo y todo se rompe. Esto aplica a tu código también — nunca importes de `app/` en `lib/` o `packages/`.
 
-### Como se usan en desarrollo
+### Cómo se usan en desarrollo
 
 No necesitas compilar los paquetes para desarrollar. Next.js los transpila directamente desde `src/`:
 
@@ -739,11 +739,11 @@ Esto significa: cambias un tipo en `website-contract/src/` → el hot reload lo 
 
 ---
 
-## 11. Validacion con Zod: la unica fuente de verdad
+## 11. Validación con Zod: la única fuente de verdad
 
-Zod es la libreria que usamos para validar datos en tiempo de ejecucion. La regla clave:
+Zod es la librería que usamos para validar datos en tiempo de ejecución. La regla clave:
 
-> **Definir el schema UNA vez. Inferir el tipo TypeScript de ahi. Nunca al reves.**
+> **Definir el schema UNA vez. Inferir el tipo TypeScript de ahí. Nunca al revés.**
 
 ### Ejemplo real
 
@@ -805,11 +805,11 @@ async function insertQuote(data: QuoteRequest): Promise<void> {
 }
 ```
 
-**Por que no validar internamente:** Cada validacion tiene un costo (CPU, complejidad). Si ya validamos en la frontera, validar de nuevo dentro es trabajo desperdiciado. Confia en tu propio codigo.
+**Por qué no validar internamente:** Cada validación tiene un costo (CPU, complejidad). Si ya validamos en la frontera, validar de nuevo dentro es trabajo desperdiciado. Confia en tu propio código.
 
 ---
 
-## 12. AI/LLM: como integramos inteligencia artificial
+## 12. AI/LLM: cómo integramos inteligencia artificial
 
 El studio tiene un asistente de AI que ayuda a las agencias a generar contenido. Estos son los principios:
 
@@ -856,7 +856,7 @@ function StudioChat({ websiteId }) {
 
 ### Rate limiting: proteger costos
 
-Cada llamada a la AI cuesta dinero. Sin rate limiting, un usuario podria hacer 1,000 requests y generar una factura enorme:
+Cada llamada a la AI cuesta dinero. Sin rate limiting, un usuario podría hacer 1,000 requests y generar una factura enorme:
 
 ```
 Free:       20 requests/hora
@@ -866,7 +866,7 @@ Enterprise: ilimitado (con budget mensual)
 
 ### Validar output de la AI
 
-La AI puede inventar cosas (hallucinar). Si le pedimos que genere una seccion JSON, necesitamos validar que el JSON sea correcto ANTES de usarlo:
+La AI puede inventar cosas (hallucinar). Si le pedimos que genere una sección JSON, necesitamos validar que el JSON sea correcto ANTES de usarlo:
 
 ```typescript
 // Pedir output estructurado + validar con Zod
@@ -882,11 +882,11 @@ const result = await generateObject({
 
 ---
 
-## 13. Performance: por que estamos en el edge
+## 13. Performance: por qué estamos en el edge
 
-bukeer-studio se despliega como un **Cloudflare Worker**. Esto significa que nuestro codigo se ejecuta en 300+ data centers alrededor del mundo, no en un solo servidor.
+bukeer-studio se despliega como un **Cloudflare Worker**. Esto significa que nuestro código se ejecuta en 300+ data centers alrededor del mundo, no en un solo servidor.
 
-### Que significa para ti
+### Qué significa para ti
 
 ```
 Servidor tradicional:
@@ -900,14 +900,14 @@ Cloudflare Workers (edge):
 
 ### Los limites que debes conocer
 
-| Limite | Valor | Que significa para ti |
+| Limite | Valor | Qué significa para ti |
 |---|---|---|
-| Bundle size | 10 MiB | No importes librerias enormes. Usa tree-shaking |
+| Bundle size | 10 MiB | No importes librerías enormes. Usa tree-shaking |
 | Memoria | 128 MB | No cargues todo en memoria. Usa streams |
 | CPU time | 30 seg | No hagas operaciones pesadas sin streaming |
 | Filesystem | No existe | No uses `fs.readFile()`. Usa Supabase Storage |
 
-### Caching: la piramide
+### Caching: la pirámide
 
 ```
 Nivel 1: CDN de Cloudflare (mas rapido)
@@ -927,7 +927,7 @@ Nivel 4: Router Cache (navegador)
   Navegacion instantanea
 ```
 
-### Optimizacion de bundle
+### Optimización de bundle
 
 ```typescript
 // next.config.ts — tree-shake librerias grandes
@@ -947,13 +947,13 @@ const HeavyEditor = dynamic(() => import('./heavy-editor'), {
 
 ---
 
-## 14. Principios para escalar: como piensa un senior
+## 14. Principios para escalar: cómo piensa un senior
 
-Estos son los patrones mentales que diferencian a un desarrollador que escribe codigo que funciona de uno que escribe codigo que funciona *a escala mundial*.
+Estos son los patrones mentales que diferencian a un desarrollador que escribe código que funciona de uno que escribe código que funciona *a escala mundial*.
 
 ### 1. "Si funciona para 1, tiene que funcionar para 10,000"
 
-Cada vez que escribas algo, preguntate: "que pasa si hay 10,000 agencias usando esto?"
+Cada vez que escribas algo, pregúntate: "qué pasa si hay 10,000 agencias usando esto?"
 
 ```typescript
 // MALO — carga TODOS los websites en memoria
@@ -970,7 +970,7 @@ const { data } = await supabase
 
 ### 2. "Los errores no son excepciones, son el caso normal"
 
-En internet, todo falla: la BD, la red, la API de AI, la imagen, el DNS. Escribe codigo que ESPERE el fallo:
+En internet, todo falla: la BD, la red, la API de AI, la imagen, el DNS. Escribe código que ESPERE el falló:
 
 ```typescript
 // Esto NO es pesimismo. Es realismo de produccion.
@@ -987,9 +987,9 @@ if (sections.length === 0) return <EmptyState />;     // sitio vacio
 ### 3. "Cuanto menos JavaScript mandes al navegador, mejor"
 
 Cada KB de JavaScript tiene un costo triple:
-- **Descarga** — mas tiempo para descargar
-- **Parseo** — el navegador tiene que interpretar el codigo
-- **Ejecucion** — el CPU del movil del turista lo ejecuta
+- **Descarga** — más tiempo para descargar
+- **Parseo** — el navegador tiene que interpretar el código
+- **Ejecución** — el CPU del móvil del turista lo ejecuta
 
 ```
 Un turista en un pueblo rural de Colombia
@@ -1017,7 +1017,7 @@ NO esparcida por 50 componentes diferentes.
 
 ### 5. "Optimiza para leer, no para escribir"
 
-El codigo se escribe una vez y se lee cien veces. Prefiere claridad sobre brevedad:
+El código se escribe una vez y se lee cien veces. Prefiere claridad sobre brevedad:
 
 ```typescript
 // INTELIGENTE pero ilegible
@@ -1031,12 +1031,12 @@ const enabledSections = (website.sections || [])
 
 ### 6. "Cada dependencia es una deuda"
 
-Antes de hacer `npm install cool-library`, preguntate:
+Antes de hacer `npm install cool-library`, pregúntate:
 
 - Puedo hacer esto con lo que ya tenemos? (React, Next.js, Tailwind)
 - Cuanto pesa? (Estamos en un Worker de 10 MiB)
 - Quien lo mantiene? (Un dev solo vs un equipo activo)
-- Que pasa si lo abandonan?
+- Qué pasa si lo abandonan?
 
 ```
 Necesitas formatear una fecha? → Intl.DateTimeFormat (nativo, 0 KB)
@@ -1049,18 +1049,18 @@ Necesitas una libreria de graficas de 200KB? → ...piensalo bien
 
 ## 15. Checklist antes de hacer un PR
 
-Usa esta lista antes de abrir un Pull Request. Si alguno falla, tu PR sera rechazado en code review.
+Usa esta lista antes de abrir un Pull Request. Si alguno falla, tu PR será rechazado en code review.
 
 ### Arquitectura
-- [ ] Mi componente es Server Component? Si no, por que necesita `'use client'`?
-- [ ] Si use `'use client'`, esta en la hoja mas pequena posible?
+- [ ] Mi componente es Server Component? Si no, por qué necesita `'use client'`?
+- [ ] Si use `'use client'`, está en la hoja más pequeña posible?
 - [ ] Las dependencias fluyen hacia abajo? (no importo de `app/` en `lib/`)
 - [ ] Use tipos de `@bukeer/website-contract`, no tipos inventados?
 
 ### Datos
 - [ ] Use el cliente Supabase correcto? (server en RSC, browser en client)
 - [ ] Mi data fetch retorna null en error, no throw?
-- [ ] Los logs tienen namespace? (`[modulo.funcion]`)
+- [ ] Los logs tienen namespace? (`[módulo.función]`)
 - [ ] Valide input del usuario con Zod en la frontera?
 
 ### Seguridad
@@ -1072,13 +1072,13 @@ Usa esta lista antes de abrir un Pull Request. Si alguno falla, tu PR sera recha
 ### Performance
 - [ ] No aumento el bundle innecesariamente?
 - [ ] Use dynamic import para componentes pesados?
-- [ ] Mi pagina publica puede ser ISR (no force-dynamic)?
+- [ ] Mi página pública puede ser ISR (no force-dynamic)?
 - [ ] No cargo todos los registros en memoria?
 
 ### UX
 - [ ] Si algo falla, el usuario ve un fallback, no pantalla blanca?
 - [ ] Los estados de carga tienen skeleton/spinner?
-- [ ] Funciona en movil? (muchos turistas navegan desde el telefono)
+- [ ] Funciona en móvil? (muchos turistas navegan desde el teléfono)
 
 ---
 
@@ -1095,5 +1095,5 @@ Usa esta lista antes de abrir un Pull Request. Si alguno falla, tu PR sera recha
 
 ---
 
-> "El mejor codigo no es el mas inteligente. Es el que cualquier dev nuevo entiende en 5 minutos."
+> "El mejor código no es el más inteligente. Es el que cualquier dev nuevo entiende en 5 minutos."
 > — Tu mentor imaginario de Bukeer

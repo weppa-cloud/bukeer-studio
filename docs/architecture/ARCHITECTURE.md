@@ -104,8 +104,8 @@ The Cloudflare Workers 10 MiB limit and 128 MB memory cap demand aggressive bund
 | Route | Strategy | Rationale |
 |---|---|---|
 | `site/[subdomain]/**` | ISR + PPR | Content changes via Flutter admin; revalidate on-demand |
-| `dashboard/**` | Dynamic | Per-user auth state, real-time editing |
-| `editor/**` | Dynamic | Interactive section editing, embedded iframe |
+| `dashboard/**` | Client Components | Per-user auth via WebsiteProvider context |
+| `editor/**` | Client Components | Interactive section editing, embedded iframe |
 | `api/**` | Dynamic | Mutations, AI streaming, webhooks |
 | `(auth)/**` | Dynamic | Login/signup flows |
 
@@ -160,7 +160,7 @@ The Cloudflare Workers 10 MiB limit and 128 MB memory cap demand aggressive bund
 | Layer | Control | Implementation |
 |---|---|---|
 | Edge (Cloudflare) | DDoS, WAF, TLS termination | Cloudflare default |
-| Middleware | Auth refresh, redirects, CORS | `middleware.ts` |
+| Middleware | Auth cookie check, redirects, subdomain routing | `middleware.ts` |
 | Headers | CSP, HSTS, X-Frame-Options | `next.config.ts` |
 | Server Actions | Auth verification, RBAC | `lib/admin/permissions.ts` |
 | Database | Row-Level Security | Supabase RLS policies |
@@ -171,10 +171,10 @@ The Cloudflare Workers 10 MiB limit and 128 MB memory cap demand aggressive bund
 ```
 Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
 X-Content-Type-Options: nosniff
-X-Frame-Options: SAMEORIGIN
+X-Frame-Options: SAMEORIGIN (non-editor routes)
 Referrer-Policy: strict-origin-when-cross-origin
 Permissions-Policy: camera=(), microphone=(), geolocation=()
-Content-Security-Policy: [nonce-based for inline scripts]
+Content-Security-Policy: frame-ancestors 'self' https://app.bukeer.com (/editor/* only)
 ```
 
 ---

@@ -1,6 +1,7 @@
 # ADR-003: Contract-First Validation with Zod
 
 **Status:** Accepted
+**Implementation Status:** In Progress — 8/18 API routes use Zod; remaining use manual validation
 **Date:** 2026-04-12
 **Principles:** P2, P5
 
@@ -110,5 +111,5 @@ export type QuoteRequest = z.infer<typeof QuoteRequestSchema>
 
 ## References
 
-- [Zod v3 Documentation](https://v3.zod.dev/)
+- [Zod Documentation](https://zod.dev/)
 - [Type-Safe APIs with Next.js and Zod](https://thegdsks.com/blog/building-type-safe-apis)

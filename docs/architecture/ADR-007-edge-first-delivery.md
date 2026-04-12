@@ -1,6 +1,7 @@
 # ADR-007: Edge-First Delivery on Cloudflare Workers
 
 **Status:** Accepted
+**Implementation Status:** Complete — bundle size CI gate pending
 **Date:** 2026-04-12
 **Principles:** P4, P10
 
@@ -88,7 +89,7 @@ for (const chunk of chunks) {
 
 ```toml
 # wrangler.toml
-compatibility_date = "2026-04-01"
+compatibility_date = "2026-03-20"
 compatibility_flags = ["nodejs_compat"]
 ```
 

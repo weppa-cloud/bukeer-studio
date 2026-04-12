@@ -1,14 +1,15 @@
 # ADR-002: Three-Tier Error Handling
 
 **Status:** Accepted
+**Implementation Status:** Complete
 **Date:** 2026-04-12
 **Principles:** P3
 
 ## Context
 
-The project currently has zero `error.tsx` files, no React Error Boundaries, and no error tracking service. Errors are logged to `console.error` with namespaced prefixes. Data-fetching functions return `null` on failure (graceful degradation), which is correct but incomplete.
+The project uses `console.error` with namespaced prefixes for logging. Data-fetching functions return `null` on failure (graceful degradation). Error boundaries (`error.tsx`) exist at each major route segment to catch uncaught exceptions. No error tracking service (Sentry) is integrated yet — this is the planned next step.
 
-An uncaught exception anywhere in the public site renders a white screen with no recovery path. For a tourism website that directly drives bookings, this is unacceptable.
+For a tourism website that directly drives bookings, a white screen is unacceptable. The three-tier strategy below ensures graceful recovery.
 
 ## Decision
 
