@@ -9,6 +9,8 @@ import { getDestinationContent } from '@/lib/data/colombia-destinations';
 import { RouteMap } from '@/components/ui/route-map';
 import { BlurFade } from '@/components/ui/blur-fade';
 import { NumberTicker } from '@/components/ui/number-ticker';
+import { ProductSchema } from '@/components/seo/product-schema';
+import type { ProductData as ContractProductData } from '@bukeer/website-contract';
 import type { WebsiteData } from '@/lib/supabase/get-website';
 import type { DestinationData } from '@/lib/supabase/get-pages';
 
@@ -65,6 +67,15 @@ export function DestinationDetailPage({
     facts: staticContent?.facts || [],
   };
 
+  // Issue #48: fallback content when serpEnrichment fails
+  if (!enrichment.description) {
+    enrichment.description =
+      `Descubre ${destination.name}${destination.state ? `, ${destination.state}` : ''}.` +
+      ` Encuentra ${destination.hotel_count} hoteles y ${destination.activity_count} actividades` +
+      ` seleccionadas para tu viaje.` +
+      (destination.min_price ? ` Precios desde ${destination.min_price}.` : '');
+  }
+
   const hotels = products.filter((p) => p.type === 'hotel');
   const activities = products.filter((p) => p.type === 'activity');
 
@@ -74,6 +85,24 @@ export function DestinationDetailPage({
     destination.image ||
     '/placeholder-destination.jpg';
 
+  // Issue #34: JSON-LD TouristDestination schema
+  const websiteUrl = website.subdomain
+    ? `https://${website.subdomain}.bukeer.com`
+    : undefined;
+  const schemaProduct: ContractProductData = {
+    id: destination.id,
+    name: destination.name,
+    slug: destination.slug,
+    type: 'destination',
+    description: enrichment.description || undefined,
+    image: heroImage || destination.image || undefined,
+    location: destination.state || undefined,
+    latitude: destination.lat,
+    longitude: destination.lng,
+    rating: enrichment.rating || undefined,
+    review_count: enrichment.reviewCount || undefined,
+  };
+
   const whatsappNumber = (website as any)?.social?.whatsapp || '';
   const whatsappUrl = whatsappNumber
     ? `https://wa.me/${whatsappNumber.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hola! Me interesa viajar a ${destination.name}`)}`
@@ -81,11 +110,18 @@ export function DestinationDetailPage({
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg-primary)' }}>
+      {/* Issue #34: JSON-LD TouristDestination + BreadcrumbList */}
+      <ProductSchema
+        product={schemaProduct}
+        productType="destination"
+        websiteUrl={websiteUrl}
+      />
+
       {/* Hero Section */}
       <section className="relative h-[60vh] min-h-[400px] max-h-[600px]">
         <Image
           src={heroImage}
-          alt={destination.name}
+          alt={`Vista de ${destination.name}${destination.state ? `, ${destination.state}` : ''}`}
           fill
           className="object-cover"
           priority
@@ -99,11 +135,7 @@ export function DestinationDetailPage({
           }}
         />
         <div className="absolute inset-0 flex flex-col justify-end p-6 sm:p-10 lg:p-16 max-w-7xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7 }}
-          >
+          <div>
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white">
               {destination.name}
             </h1>
@@ -119,12 +151,12 @@ export function DestinationDetailPage({
                 {destination.activity_count} actividades
               </span>
             </div>
-          </motion.div>
+          </div>
         </div>
       </section>
 
       {/* Breadcrumb */}
-      <nav className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto py-4">
+      <nav aria-label="Breadcrumb" className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto py-4">
         <ol className="flex items-center gap-2 text-sm" style={{ color: 'var(--text-body)' }}>
           <li>
             <Link href={basePath || '/'} className="hover:underline">

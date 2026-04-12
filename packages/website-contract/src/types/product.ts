@@ -40,6 +40,14 @@ export interface ProductData {
     description?: string;
   }>;
 
+  // Geo coordinates
+  latitude?: number;
+  longitude?: number;
+
+  // Rating / reviews
+  rating?: number;
+  review_count?: number;
+
   // Pricing (from RPC — hotel_rates / activities_rates / itineraries.total)
   price?: number;
   currency?: string;

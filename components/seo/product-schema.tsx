@@ -136,6 +136,22 @@ function buildDestinationSchema(product: ProductData, websiteUrl?: string) {
     image: product.image,
     url: websiteUrl,
     address: buildAddress(product),
+    geo:
+      product.latitude != null && product.longitude != null
+        ? {
+            '@type': 'GeoCoordinates',
+            latitude: product.latitude,
+            longitude: product.longitude,
+          }
+        : undefined,
+    aggregateRating:
+      product.rating != null
+        ? {
+            '@type': 'AggregateRating',
+            ratingValue: product.rating,
+            reviewCount: product.review_count,
+          }
+        : undefined,
   };
 }
 
