@@ -521,13 +521,16 @@ function HotelSections({ product }: { product: ProductData }) {
 }
 
 function ActivitySections({ product }: { product: ProductData }) {
-  const includes = product.includes || ['Guia experto', 'Transporte', 'Equipo necesario'];
-  const excludes = product.excludes || ['Comidas', 'Propinas', 'Seguro de viaje'];
-  const recommendations = product.recommendations || [
-    'Ropa comoda y calzado para caminar',
-    'Protector solar y gorra',
-    'Llegar 15 minutos antes del horario',
-  ];
+  const rawInc = product.includes;
+  const includes: string[] = Array.isArray(rawInc) ? rawInc : typeof rawInc === 'string' ? rawInc.split('\n').map(s => s.trim()).filter(Boolean) : ['Guia experto', 'Transporte', 'Equipo necesario'];
+  const rawExc = product.excludes;
+  const excludes: string[] = Array.isArray(rawExc) ? rawExc : typeof rawExc === 'string' ? rawExc.split('\n').map(s => s.trim()).filter(Boolean) : ['Comidas', 'Propinas', 'Seguro de viaje'];
+  const rawRec = product.recommendations;
+  const recommendations: string[] = Array.isArray(rawRec)
+    ? rawRec
+    : typeof rawRec === 'string'
+      ? rawRec.split('\n').map(s => s.trim()).filter(Boolean)
+      : ['Ropa comoda y calzado para caminar', 'Protector solar y gorra', 'Llegar 15 minutos antes del horario'];
 
   return (
     <>
