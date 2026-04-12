@@ -42,7 +42,8 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
   const title = post.seo_title || post.title;
   const description = post.seo_description || post.excerpt;
 
-  return {
+  const ogImage = resolveOgImage(website, post.featured_image);
+  const metadata: Metadata = {
     title,
     description,
     keywords: post.seo_keywords ?? undefined,
@@ -58,15 +59,22 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
       siteName,
       url: `${baseUrl}${blogPath}`,
       publishedTime: post.published_at || undefined,
-      images: resolveOgImage(website, post.featured_image) ? [{ url: resolveOgImage(website, post.featured_image)! }] : undefined,
+      ...(ogImage && { images: [{ url: ogImage }] }),
     },
     twitter: {
       card: 'summary_large_image',
       title,
       description,
-      images: resolveOgImage(website, post.featured_image) ? [resolveOgImage(website, post.featured_image)!] : undefined,
+      ...(ogImage && { images: [ogImage] }),
     },
   };
+
+  // F2: Blog post noindex support
+  if ((post as unknown as { robots_noindex?: boolean }).robots_noindex) {
+    metadata.robots = { index: false, follow: true };
+  }
+
+  return metadata;
 }
 
 export default async function BlogPostPage({ params }: BlogPostPageProps) {

@@ -9,6 +9,7 @@ import {
   StudioTabs,
 } from '@/components/studio/ui/primitives';
 import { SeoOverviewTable } from '@/components/admin/seo-overview-table';
+import { BulkSeoModal } from '@/components/admin/bulk-seo-modal';
 import {
   scoreItemSeo,
   detectDuplicates,
@@ -86,6 +87,8 @@ export default function SeoDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [rawItems, setRawItems] = useState<Array<{ id: string; name: string; type: SeoItemType; image?: string; slug: string; input: SeoScoringInput }>>([]);
   const [activeTab, setActiveTab] = useState<FilterTab>('all');
+  const [showBulkModal, setShowBulkModal] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
   const supabase = createSupabaseBrowserClient();
 
   useEffect(() => {
@@ -244,7 +247,8 @@ export default function SeoDashboardPage() {
 
     fetchData();
     return () => { active = false; };
-  }, [websiteId, supabase]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [websiteId, supabase, refreshKey]);
 
   // Score and detect duplicates
   const scoredItems: ScoredItem[] = useMemo(() => {
@@ -312,7 +316,19 @@ export default function SeoDashboardPage() {
 
   return (
     <StudioPage className="max-w-6xl">
-      <StudioSectionHeader title="SEO Audit" subtitle="Evalúa y optimiza el SEO de todo tu sitio" />
+      <div className="flex items-center justify-between">
+        <StudioSectionHeader title="SEO Audit" subtitle="Evalúa y optimiza el SEO de todo tu sitio" />
+        <button
+          onClick={() => setShowBulkModal(true)}
+          disabled={scoredItems.length === 0}
+          className="px-4 py-2 bg-violet-600 text-white text-sm font-medium rounded-lg hover:bg-violet-700 disabled:opacity-50 flex items-center gap-2 flex-shrink-0"
+        >
+          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M10 2a1 1 0 011 1v1.323l3.954 1.582 1.599-.8a1 1 0 01.894 1.79l-1.233.616 1.738 5.42a1 1 0 01-.285 1.05A3.989 3.989 0 0115 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.715-5.349L11 6.477V16h2a1 1 0 110 2H7a1 1 0 110-2h2V6.477L6.237 7.582l1.715 5.349a1 1 0 01-.285 1.05A3.989 3.989 0 015 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.738-5.42-1.233-.617a1 1 0 01.894-1.789l1.599.799L9 4.323V3a1 1 0 011-1z" />
+          </svg>
+          Optimizar con IA
+        </button>
+      </div>
 
       {/* Summary cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
@@ -335,6 +351,20 @@ export default function SeoDashboardPage() {
       <div className="mt-6">
         <SeoOverviewTable items={filteredItems} />
       </div>
+
+      {/* Bulk AI Modal */}
+      {showBulkModal && (
+        <BulkSeoModal
+          isOpen={showBulkModal}
+          onClose={() => setShowBulkModal(false)}
+          websiteId={websiteId}
+          items={scoredItems}
+          onApplied={() => {
+            setShowBulkModal(false);
+            setRefreshKey((k) => k + 1);
+          }}
+        />
+      )}
     </StudioPage>
   );
 }

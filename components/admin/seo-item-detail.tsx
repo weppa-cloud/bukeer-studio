@@ -8,7 +8,7 @@ import {
   type SeoCheck,
   type SeoItemType,
 } from '@/lib/seo/unified-scorer';
-import { createClient } from '@/lib/supabase/client';
+import { createSupabaseBrowserClient } from '@/lib/supabase/browser-client';
 
 // ============================================================================
 // Types
@@ -165,7 +165,7 @@ export function SeoItemDetail({
     setAiState('generating');
     setAiError(null);
     try {
-      const supabase = createClient();
+      const supabase = createSupabaseBrowserClient();
       const { data: { session } } = await supabase.auth.getSession();
       const res = await fetch('/api/ai/seo/generate', {
         method: 'POST',

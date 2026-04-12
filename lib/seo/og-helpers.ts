@@ -1,26 +1,36 @@
-import type { WebsiteData } from '@bukeer/website-contract';
+import type { WebsiteData, WebsiteSection } from '@bukeer/website-contract';
 
 /**
  * og:image fallback cascade for public site pages.
  *
- * Priority: item-specific image → hero background → website logo → undefined
- *
- * Note: `website.content` in the DB often contains dynamic fields (hero, header)
- * not declared in the WebsiteContent interface, so we cast through unknown.
+ * Priority:
+ *   1. Item-specific image (product, blog post, destination)
+ *   2. Hero section backgroundImage (from website_sections)
+ *   3. Website SEO image (content.seo.image — if ever set)
+ *   4. Website logo (content.logo)
+ *   5. Account logo (content.account.logo)
+ *   6. undefined (omit tag entirely)
  */
 export function resolveOgImage(
   website: WebsiteData,
   itemImage?: string | null
 ): string | undefined {
-  const content = website.content as unknown as {
-    hero?: { backgroundImage?: string };
-    header?: { logo?: string };
-  } | undefined;
+  if (itemImage) return itemImage;
 
-  return (
-    itemImage ||
-    content?.hero?.backgroundImage ||
-    content?.header?.logo ||
-    undefined
-  ) ?? undefined;
+  // Find hero section backgroundImage from sections array
+  const heroSection = website.sections?.find((s) => s.section_type === 'hero');
+  const heroContent = heroSection?.content as { backgroundImage?: string } | undefined;
+  if (heroContent?.backgroundImage) return heroContent.backgroundImage;
+
+  // Fallback to SEO image if configured
+  const seo = website.content?.seo as { image?: string } | undefined;
+  if (seo?.image) return seo.image;
+
+  // Fallback to website logo
+  if (website.content?.logo) return website.content.logo;
+
+  // Fallback to account logo
+  if (website.content?.account?.logo) return website.content.account.logo;
+
+  return undefined;
 }
