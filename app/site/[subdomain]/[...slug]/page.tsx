@@ -4,6 +4,7 @@ import { getWebsiteBySubdomain } from '@/lib/supabase/get-website';
 import { getPageBySlug, getProductPage, getDestinations, getDestinationProducts, getReviewsForProduct, getDestinationSeoOverride } from '@/lib/supabase/get-pages';
 import { enrichDestinationFromSerpAPI } from '@/lib/services/serpapi-enrichment';
 import { generateHreflangLinks, generateOgLocale } from '@/lib/seo/hreflang';
+import { resolveOgImage } from '@/lib/seo/og-helpers';
 import { CategoryPage } from '@/components/pages/category-page';
 import { StaticPage } from '@/components/pages/static-page';
 import { ProductLandingPage } from '@/components/pages/product-landing-page';
@@ -62,6 +63,7 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
   if (slug.length === 1 && (slug[0] === 'destinos' || slug[0] === 'destinations')) {
     const siteName = website.content?.account?.name || website.content?.siteName || subdomain;
     const pathname = '/destinos';
+    const ogImage = resolveOgImage(website);
     return {
       title: `Destinos | ${siteName}`,
       description: `Descubre los mejores destinos de viaje con ${siteName}. Hoteles, actividades y experiencias seleccionadas.`,
@@ -70,11 +72,13 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
         description: `Descubre los mejores destinos de viaje con ${siteName}.`,
         type: 'website',
         locale: ogLocale,
+        ...(ogImage && { images: [{ url: ogImage }] }),
       },
       twitter: {
         card: 'summary_large_image',
         title: `Destinos | ${siteName}`,
         description: `Descubre los mejores destinos de viaje con ${siteName}.`,
+        ...(ogImage && { images: [ogImage] }),
       },
       alternates: {
         canonical: `${baseUrl}${pathname}`,
@@ -101,13 +105,13 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
           description,
           type: 'website',
           locale: ogLocale,
-          images: dest.image ? [dest.image] : undefined,
+          ...(resolveOgImage(website, dest.image) && { images: [{ url: resolveOgImage(website, dest.image)! }] }),
         },
         twitter: {
           card: 'summary_large_image',
           title,
           description,
-          images: dest.image ? [dest.image] : undefined,
+          ...(resolveOgImage(website, dest.image) && { images: [resolveOgImage(website, dest.image)!] }),
         },
         alternates: {
           canonical: `${baseUrl}${pathname}`,
@@ -146,13 +150,13 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
             description,
             type: 'website',
             locale: ogLocale,
-            images: productPage.product.image ? [productPage.product.image] : undefined,
+            ...(resolveOgImage(website, productPage.product.image) && { images: [{ url: resolveOgImage(website, productPage.product.image)! }] }),
           },
           twitter: {
             card: 'summary_large_image',
             title,
             description,
-            images: productPage.product.image ? [productPage.product.image] : undefined,
+            ...(resolveOgImage(website, productPage.product.image) && { images: [resolveOgImage(website, productPage.product.image)!] }),
           },
           alternates: {
             canonical: `${baseUrl}${pathname}`,
@@ -180,6 +184,7 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
       const description = content?.seo?.description
         || content?.tagline
         || `${siteName || subdomain} - Tu agencia de viajes de confianza`;
+      const ogImage = resolveOgImage(website);
       return {
         title: content?.seo?.title || siteName,
         description,
@@ -188,11 +193,13 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
           description,
           type: 'website',
           locale: ogLocale,
+          ...(ogImage && { images: [{ url: ogImage }] }),
         },
         twitter: {
           card: 'summary_large_image',
           title: content?.seo?.title || siteName || undefined,
           description,
+          ...(ogImage && { images: [ogImage] }),
         },
         alternates: {
           canonical: baseUrl,
@@ -206,6 +213,7 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
   const description = page.seo_description || '';
   const canonicalUrl = `${baseUrl}/${slugPath}`;
 
+  const ogImage = resolveOgImage(website);
   const metadata: Metadata = {
     title,
     description,
@@ -214,11 +222,13 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
       description,
       type: 'website',
       locale: ogLocale,
+      ...(ogImage && { images: [{ url: ogImage }] }),
     },
     twitter: {
       card: 'summary_large_image',
       title,
       description,
+      ...(ogImage && { images: [ogImage] }),
     },
     alternates: {
       canonical: canonicalUrl,

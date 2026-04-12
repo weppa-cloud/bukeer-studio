@@ -5,6 +5,7 @@ import { SectionRenderer } from '@/components/site/section-renderer';
 import { notFound } from 'next/navigation';
 import { JsonLd, generateHomepageSchemas } from '@/lib/schema';
 import { generateHreflangLinks } from '@/lib/seo/hreflang';
+import { resolveOgImage } from '@/lib/seo/og-helpers';
 import type { WebsiteSection } from '@bukeer/website-contract';
 
 // ISR: Revalidate every 5 minutes for fresh content with edge caching
@@ -31,7 +32,7 @@ export async function generateMetadata({ params }: SitePageProps): Promise<Metad
   const title = website.content.seo?.title || website.content.siteName || subdomain;
   const description = website.content.seo?.description || website.content.tagline || '';
   const siteName = website.content?.account?.name || website.content?.siteName || subdomain;
-  const ogImage = website.content?.hero?.backgroundImage || undefined;
+  const ogImage = resolveOgImage(website);
 
   return {
     title,

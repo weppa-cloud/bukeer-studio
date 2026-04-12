@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { getWebsiteBySubdomain, getBlogPosts, getBlogCategories } from '@/lib/supabase/get-website';
 import { notFound } from 'next/navigation';
 import { JsonLd, generateBlogListingSchemas } from '@/lib/schema';
+import { resolveOgImage } from '@/lib/seo/og-helpers';
 
 interface BlogPageProps {
   params: Promise<{ subdomain: string }>;
@@ -23,7 +24,7 @@ export async function generateMetadata({ params }: BlogPageProps): Promise<Metad
     ? `https://${website.custom_domain}`
     : `https://${subdomain}.bukeer.com`;
   const description = `Lee las últimas publicaciones y guías de viaje de ${siteName}`;
-  const ogImage = website.content?.hero?.backgroundImage || undefined;
+  const ogImage = resolveOgImage(website);
 
   return {
     title: 'Blog',

@@ -9,6 +9,7 @@ import {
 import { JsonLd, generateBlogPostSchemas } from '@/lib/schema';
 import { SafeHtml } from '@/lib/sanitize';
 import { generateHreflangLinks } from '@/lib/seo/hreflang';
+import { resolveOgImage } from '@/lib/seo/og-helpers';
 
 interface BlogPostPageProps {
   params: Promise<{ subdomain: string; slug: string }>;
@@ -57,13 +58,13 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
       siteName,
       url: `${baseUrl}${blogPath}`,
       publishedTime: post.published_at || undefined,
-      images: post.featured_image ? [{ url: post.featured_image }] : undefined,
+      images: resolveOgImage(website, post.featured_image) ? [{ url: resolveOgImage(website, post.featured_image)! }] : undefined,
     },
     twitter: {
       card: 'summary_large_image',
       title,
       description,
-      images: post.featured_image ? [post.featured_image] : undefined,
+      images: resolveOgImage(website, post.featured_image) ? [resolveOgImage(website, post.featured_image)!] : undefined,
     },
   };
 }
