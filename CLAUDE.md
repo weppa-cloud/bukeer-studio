@@ -135,33 +135,6 @@ Onboarding guide for new developers: [`docs/architecture/ONBOARDING-ARCHITECTURE
 
 ---
 
-## Available Skills (auto-activate)
-
-**Website-specific:**
-- `nextjs-developer` — Pages, components, API routes, hooks
-- `website-section-generator` — Next.js tourism website sections (shadcn, Aceternity, Magic UI)
-- `website-designer` — Brand briefs → design specifications
-- `website-quality-gate` — Performance, accessibility, design compliance
-- `qa-deep-tester` — Deep QA for website flows
-
-**Universal:**
-- `backend-dev` — Supabase DB, RLS, Edge Functions
-- `architecture-analyzer` — Architecture reviews, pattern validation
-- `tech-validator` — Plan/task/code validation
-- `triaging` — Bug root cause analysis
-- `specifying` — Convert requests → specs
-- `docs-keeper` — Documentation organization
-- `minion-patcher` — Automated GitHub issue patching
-- `prompt-optimiser` — Optimize prompts before execution
-
-## Available Commands
-
-- `/qa-nextjs` — Next.js Studio QA with UX analysis
-- `/deploy` — Deploy to production
-- `/doc-explorer` — Autonomous documentation explorer
-
----
-
 ## Key patterns
 
 ### Supabase client
