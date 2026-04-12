@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
@@ -30,8 +30,59 @@ export function DestinationListingPage({
     lng: d.lng,
   }));
 
+  // Build JSON-LD structured data for CollectionPage + BreadcrumbList
+  const jsonLdSchemas = useMemo(() => {
+    const siteName =
+      website.content?.account?.name ||
+      website.content?.siteName ||
+      website.subdomain;
+    const baseUrl = website.custom_domain
+      ? `https://${website.custom_domain}`
+      : `https://${website.subdomain}.bukeer.com`;
+
+    const collectionSchema = {
+      '@context': 'https://schema.org',
+      '@type': 'CollectionPage',
+      name: `Destinos | ${siteName}`,
+      description: `Descubre los mejores destinos de viaje con ${siteName}.`,
+      url: `${baseUrl}/destinos`,
+      mainEntity: {
+        '@type': 'ItemList',
+        numberOfItems: visibleDestinations.length,
+        itemListElement: visibleDestinations.slice(0, 10).map((dest, i) => ({
+          '@type': 'ListItem',
+          position: i + 1,
+          name: dest.name,
+          url: `${baseUrl}/destinos/${dest.slug}`,
+        })),
+      },
+    };
+
+    const breadcrumbSchema = {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Inicio', item: baseUrl },
+        { '@type': 'ListItem', position: 2, name: 'Destinos' },
+      ],
+    };
+
+    return [collectionSchema, breadcrumbSchema];
+  }, [website, visibleDestinations]);
+
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg-primary)' }}>
+      {/* JSON-LD Structured Data */}
+      {visibleDestinations.length > 0 &&
+        jsonLdSchemas.map((schema, index) => (
+          <script
+            key={index}
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify(schema),
+            }}
+          />
+        ))}
       {/* Header Section */}
       <section className="pt-24 pb-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         <motion.div

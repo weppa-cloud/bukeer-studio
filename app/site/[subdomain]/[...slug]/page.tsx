@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { getWebsiteBySubdomain } from '@/lib/supabase/get-website';
 import { getPageBySlug, getProductPage, getDestinations, getDestinationProducts, getReviewsForProduct } from '@/lib/supabase/get-pages';
 import { enrichDestinationFromSerpAPI } from '@/lib/services/serpapi-enrichment';
+import { generateHreflangLinks } from '@/lib/seo/hreflang';
 import { CategoryPage } from '@/components/pages/category-page';
 import { StaticPage } from '@/components/pages/static-page';
 import { ProductLandingPage } from '@/components/pages/product-landing-page';
@@ -22,6 +23,18 @@ interface DynamicPageProps {
   }>;
 }
 
+/**
+ * Build alternate language links for Next.js metadata `alternates.languages`
+ */
+function buildAlternateLanguages(baseUrl: string, pathname: string): Record<string, string> {
+  const links = generateHreflangLinks(baseUrl, pathname);
+  const languages: Record<string, string> = {};
+  for (const link of links) {
+    languages[link.hreflang] = link.href;
+  }
+  return languages;
+}
+
 // Generate metadata for SEO
 export async function generateMetadata({ params }: DynamicPageProps): Promise<Metadata> {
   const { subdomain, slug } = await params;
@@ -34,15 +47,22 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
   // Handle different page types based on slug
   const slugPath = slug.join('/');
 
+  const baseUrl = `https://${subdomain}.bukeer.com`;
+
   // Destination listing (/destinos or /destinations)
   if (slug.length === 1 && (slug[0] === 'destinos' || slug[0] === 'destinations')) {
     const siteName = website.content?.account?.name || website.content?.siteName || subdomain;
+    const pathname = '/destinos';
     return {
       title: `Destinos | ${siteName}`,
       description: `Descubre los mejores destinos de viaje con ${siteName}. Hoteles, actividades y experiencias seleccionadas.`,
       openGraph: {
         title: `Destinos | ${siteName}`,
         description: `Descubre los mejores destinos de viaje con ${siteName}.`,
+      },
+      alternates: {
+        canonical: `${baseUrl}${pathname}`,
+        languages: buildAlternateLanguages(baseUrl, pathname),
       },
     };
   }
@@ -55,6 +75,7 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
       const siteName = website.content?.account?.name || website.content?.siteName || subdomain;
       const title = `${dest.name} | ${siteName}`;
       const description = `Explora ${dest.name}: ${dest.hotel_count} hoteles y ${dest.activity_count} actividades${dest.min_price ? ` desde ${dest.min_price}` : ''}. Reserva con ${siteName}.`;
+      const pathname = `/destinos/${dest.slug}`;
       return {
         title,
         description,
@@ -63,11 +84,15 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
           description,
           images: dest.image ? [dest.image] : undefined,
         },
+        alternates: {
+          canonical: `${baseUrl}${pathname}`,
+          languages: buildAlternateLanguages(baseUrl, pathname),
+        },
       };
     }
   }
 
-  // Check if this is a product page (has 2+ segments like /destinos/cartagena)
+  // Check if this is a product page (has 2+ segments like /hoteles/hotel-name)
   if (slug.length >= 2) {
     const categorySlug = slug[0];
     const productSlug = slug.slice(1).join('/');
@@ -79,6 +104,7 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
         const title = productPage.page?.custom_seo_title || productPage.product.name;
         const description = productPage.page?.custom_seo_description ||
           productPage.product.description?.substring(0, 160);
+        const pathname = `/${slugPath}`;
 
         return {
           title,
@@ -87,6 +113,10 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
             title,
             description,
             images: productPage.product.image ? [productPage.product.image] : undefined,
+          },
+          alternates: {
+            canonical: `${baseUrl}${pathname}`,
+            languages: buildAlternateLanguages(baseUrl, pathname),
           },
         };
       }
