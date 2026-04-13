@@ -36,6 +36,35 @@ interface SeoItemDetailProps {
     latitude?: number;
     longitude?: number;
     images?: string[];
+    // Extended legacy content (Surfer mode)
+    descriptionShort?: string;
+    exclusions?: string;
+    recommendations?: string;
+    instructions?: string;
+    experienceType?: string;
+    checkInTime?: string;
+    checkOutTime?: string;
+    userRating?: number;
+    vehicleType?: string;
+    maxPassengers?: number;
+    fromLocation?: string;
+    toLocation?: string;
+    policies?: string;
+    destination?: string;
+    durationDays?: number;
+    durationNights?: number;
+    programHighlights?: unknown[];
+    programInclusions?: unknown[];
+    programExclusions?: unknown[];
+    // V2 enrichment
+    v2?: {
+      city?: string;
+      country?: string;
+      latitude?: number;
+      longitude?: number;
+      userRating?: number;
+      reviewsCount?: number;
+    } | null;
   };
   websiteId: string;
   baseUrl: string;
@@ -183,9 +212,26 @@ export function SeoItemDetail({
           targetKeyword: targetKeyword || undefined,
           locale: 'es',
           context: {
+            // Legacy
             amenities: item.amenities,
             starRating: item.starRating,
             duration: item.duration,
+            inclusions: item.inclusions?.substring(0, 500),
+            exclusions: item.exclusions?.substring(0, 300),
+            recommendations: item.recommendations?.substring(0, 300),
+            experienceType: item.experienceType,
+            vehicleType: item.vehicleType,
+            fromLocation: item.fromLocation,
+            toLocation: item.toLocation,
+            destination: item.destination,
+            durationDays: item.durationDays,
+            durationNights: item.durationNights,
+            galleryCount: item.images?.length,
+            // V2 enrichment (when bridge exists)
+            city: item.v2?.city,
+            country: item.v2?.country,
+            userRating: item.v2?.userRating,
+            reviewsCount: item.v2?.reviewsCount,
           },
         }),
       });
@@ -264,13 +310,30 @@ export function SeoItemDetail({
         </div>
       </div>
 
-      {/* Section 1: Content Available */}
-      <Section title="1. Contenido Disponible">
+      {/* Section 1: Product Content (read-only — Surfer mode) */}
+      <Section title="1. Contenido del Producto">
+        <ProductContentZone item={item} />
+      </Section>
+
+      {/* Section 2: Gallery */}
+      <Section title={`2. Galeria${item.images?.length ? ` (${item.images.length} fotos)` : ''}`}>
+        <GalleryZone item={item} />
+      </Section>
+
+      {/* Section 3: V2 Enrichment (optional) */}
+      {item.v2 && (
+        <Section title="3. Datos Enriquecidos (Catalogo V2)">
+          <V2EnrichmentZone v2={item.v2} />
+        </Section>
+      )}
+
+      {/* Content Available Grid */}
+      <Section title="Contenido Disponible">
         <ContentAvailableGrid item={item} />
       </Section>
 
-      {/* Section 2: Keyword Target */}
-      <Section title="2. Keyword Objetivo">
+      {/* Keyword Target */}
+      <Section title="Keyword Objetivo">
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
@@ -306,8 +369,8 @@ export function SeoItemDetail({
         </div>
       </Section>
 
-      {/* Section 3: Indexation Toggle (F2) */}
-      <Section title="3. Indexacion">
+      {/* Indexation Toggle */}
+      <Section title="Indexacion">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
@@ -374,8 +437,8 @@ export function SeoItemDetail({
         )}
       </Section>
 
-      {/* Section 4: Meta Editors */}
-      <Section title="4. Meta Tags">
+      {/* Meta Editors */}
+      <Section title="Meta Tags SEO">
         {/* AI Generate button */}
         <div className="flex justify-end mb-4">
           <button
@@ -490,8 +553,8 @@ export function SeoItemDetail({
         </div>
       </Section>
 
-      {/* Section 5: Google Preview */}
-      <Section title="5. Google Preview">
+      {/* Google Preview */}
+      <Section title="Google Preview">
         <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-4">
           <div className="text-blue-700 dark:text-blue-400 text-lg hover:underline cursor-pointer truncate font-medium">
             {seoTitle || item.name}
@@ -505,8 +568,8 @@ export function SeoItemDetail({
         </div>
       </Section>
 
-      {/* Section 6: Social Preview */}
-      <Section title="6. Social Preview (Open Graph)">
+      {/* Social Preview */}
+      <Section title="Social Preview (Open Graph)">
         <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden max-w-md">
           {item.image ? (
             <div className="w-full h-48 bg-slate-100 dark:bg-slate-700 relative">
@@ -536,15 +599,15 @@ export function SeoItemDetail({
         </div>
       </Section>
 
-      {/* Section 7: JSON-LD Preview */}
-      <Section title="7. JSON-LD Schema Preview">
+      {/* JSON-LD Preview */}
+      <Section title="JSON-LD Schema Preview">
         <pre className="bg-slate-900 text-slate-100 p-4 rounded-lg text-xs overflow-x-auto max-h-64 overflow-y-auto">
           <code>{JSON.stringify(jsonLd, null, 2)}</code>
         </pre>
       </Section>
 
-      {/* Section 8: Checklist */}
-      <Section title="8. SEO Checklist">
+      {/* SEO Checklist */}
+      <Section title="SEO Checklist">
         <div className="space-y-4">
           {/* Score bars */}
           <div className="grid grid-cols-3 gap-4">
@@ -572,8 +635,15 @@ export function SeoItemDetail({
         </div>
       </Section>
 
-      {/* Section 9: AI Suggestions */}
-      <Section title="9. Sugerencias">
+      {/* Live Preview Iframe (#57) */}
+      {item.slug && ['hotel', 'activity', 'transfer', 'package', 'destination'].includes(item.type) && (
+        <Section title="Vista Previa del Sitio">
+          <PreviewIframe item={item} baseUrl={baseUrl} />
+        </Section>
+      )}
+
+      {/* AI Suggestions */}
+      <Section title="Sugerencias">
         {!showSuggestions ? (
           <button
             onClick={() => setShowSuggestions(true)}
@@ -656,20 +726,36 @@ function getTypeFields(item: SeoItemDetailProps['item']) {
       return [
         { label: 'Amenidades (3+)', has: (item.amenities?.length ?? 0) >= 3 },
         { label: 'Estrellas', has: !!item.starRating },
-        { label: 'Coordenadas', has: !!(item.latitude && item.longitude) },
+        { label: 'Incluye', has: !!item.inclusions },
+        { label: 'No incluye', has: !!item.exclusions },
+        { label: 'Recomendaciones', has: !!item.recommendations },
+        { label: 'Instrucciones', has: !!item.instructions },
+        { label: 'Check-in/out', has: !!(item.checkInTime || item.checkOutTime) },
+        { label: 'Coordenadas', has: !!(item.latitude && item.longitude) || !!(item.v2?.latitude) },
       ];
     case 'activity':
       return [
         { label: 'Duracion', has: !!item.duration },
-        { label: 'Inclusiones', has: !!item.inclusions },
-        { label: 'Coordenadas', has: !!(item.latitude && item.longitude) },
+        { label: 'Tipo experiencia', has: !!item.experienceType },
+        { label: 'Incluye', has: !!item.inclusions },
+        { label: 'No incluye', has: !!item.exclusions },
+        { label: 'Recomendaciones', has: !!item.recommendations },
+        { label: 'Instrucciones', has: !!item.instructions },
       ];
     case 'transfer':
       return [
-        { label: 'Duracion', has: !!item.duration },
+        { label: 'Tipo vehiculo', has: !!item.vehicleType },
+        { label: 'Max pasajeros', has: !!item.maxPassengers },
+        { label: 'Origen/Destino', has: !!(item.fromLocation || item.toLocation) },
+        { label: 'Incluye', has: !!item.inclusions },
+        { label: 'Politicas', has: !!item.policies },
       ];
     case 'package':
       return [
+        { label: 'Destino', has: !!item.destination },
+        { label: 'Duracion', has: !!(item.durationDays || item.durationNights) },
+        { label: 'Highlights', has: (item.programHighlights?.length ?? 0) > 0 },
+        { label: 'Inclusiones', has: (item.programInclusions?.length ?? 0) > 0 },
         { label: 'Items itinerario (2+)', has: (item.itineraryItems ?? 0) >= 2 },
       ];
     case 'destination':
@@ -757,6 +843,258 @@ function DiffRow({ label, current, suggested }: { label: string; current: string
       ) : (
         <span className="text-slate-500 text-xs ml-2">Sin cambios</span>
       )}
+    </div>
+  );
+}
+
+// ============================================================================
+// Surfer mode zones (#56, #57)
+// ============================================================================
+
+function ContentFieldRow({ label, value, charCount }: { label: string; value?: string | null; charCount?: boolean }) {
+  if (!value) {
+    return (
+      <div className="flex items-start gap-3 py-2">
+        <span className="text-xs font-medium text-slate-500 dark:text-slate-400 w-36 flex-shrink-0">{label}</span>
+        <span className="text-xs text-slate-400 italic">No disponible</span>
+      </div>
+    );
+  }
+  return (
+    <div className="flex items-start gap-3 py-2 border-b border-slate-100 dark:border-slate-700/50 last:border-0">
+      <span className="text-xs font-medium text-slate-500 dark:text-slate-400 w-36 flex-shrink-0">
+        {label}
+        {charCount && <span className="text-slate-400 ml-1">({value.length} chars)</span>}
+      </span>
+      <p className="text-sm text-slate-700 dark:text-slate-300 line-clamp-4 whitespace-pre-line">{value}</p>
+    </div>
+  );
+}
+
+function ProductContentZone({ item }: { item: SeoItemDetailProps['item'] }) {
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center gap-2 mb-3 px-3 py-1.5 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+        <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+        </svg>
+        <span className="text-xs text-slate-500 dark:text-slate-400">Solo lectura — editar en Bukeer Admin</span>
+      </div>
+
+      <ContentFieldRow label="Descripcion" value={item.description} charCount />
+      {item.descriptionShort && <ContentFieldRow label="Descripcion corta" value={item.descriptionShort} charCount />}
+      <ContentFieldRow label="Incluye" value={item.inclusions} charCount />
+      <ContentFieldRow label="No incluye" value={item.exclusions} charCount />
+      {item.recommendations && <ContentFieldRow label="Recomendaciones" value={item.recommendations} charCount />}
+      {item.instructions && <ContentFieldRow label="Instrucciones" value={item.instructions} charCount />}
+
+      {/* Type-specific fields */}
+      {item.type === 'hotel' && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3 pt-3 border-t border-slate-100 dark:border-slate-700/50">
+          {item.starRating && (
+            <div className="text-center p-2 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+              <p className="text-xs text-slate-500">Estrellas</p>
+              <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">{'*'.repeat(item.starRating)}</p>
+            </div>
+          )}
+          {item.amenities && item.amenities.length > 0 && (
+            <div className="col-span-2 p-2 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+              <p className="text-xs text-slate-500 mb-1">Amenidades ({item.amenities.length})</p>
+              <div className="flex flex-wrap gap-1">
+                {item.amenities.slice(0, 8).map((a, i) => (
+                  <span key={i} className="text-xs bg-white dark:bg-slate-600 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-500">{a}</span>
+                ))}
+                {item.amenities.length > 8 && <span className="text-xs text-slate-400">+{item.amenities.length - 8}</span>}
+              </div>
+            </div>
+          )}
+          {(item.checkInTime || item.checkOutTime) && (
+            <div className="text-center p-2 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+              <p className="text-xs text-slate-500">Check-in / out</p>
+              <p className="text-xs font-medium text-slate-700 dark:text-slate-300">{item.checkInTime ?? '—'} / {item.checkOutTime ?? '—'}</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {item.type === 'activity' && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-3 pt-3 border-t border-slate-100 dark:border-slate-700/50">
+          {item.experienceType && (
+            <div className="text-center p-2 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+              <p className="text-xs text-slate-500">Tipo</p>
+              <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{item.experienceType}</p>
+            </div>
+          )}
+          {item.duration && (
+            <div className="text-center p-2 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+              <p className="text-xs text-slate-500">Duracion</p>
+              <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{item.duration} min</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {item.type === 'transfer' && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-3 pt-3 border-t border-slate-100 dark:border-slate-700/50">
+          {item.vehicleType && (
+            <div className="text-center p-2 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+              <p className="text-xs text-slate-500">Vehiculo</p>
+              <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{item.vehicleType}</p>
+            </div>
+          )}
+          {item.maxPassengers && (
+            <div className="text-center p-2 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+              <p className="text-xs text-slate-500">Max pasajeros</p>
+              <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{item.maxPassengers}</p>
+            </div>
+          )}
+          {(item.fromLocation || item.toLocation) && (
+            <div className="text-center p-2 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+              <p className="text-xs text-slate-500">Ruta</p>
+              <p className="text-xs font-medium text-slate-700 dark:text-slate-300">{item.fromLocation ?? '—'} → {item.toLocation ?? '—'}</p>
+            </div>
+          )}
+          <ContentFieldRow label="Politicas" value={item.policies} />
+        </div>
+      )}
+
+      {item.type === 'package' && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-3 pt-3 border-t border-slate-100 dark:border-slate-700/50">
+          {item.destination && (
+            <div className="text-center p-2 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+              <p className="text-xs text-slate-500">Destino</p>
+              <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{item.destination}</p>
+            </div>
+          )}
+          {(item.durationDays || item.durationNights) && (
+            <div className="text-center p-2 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+              <p className="text-xs text-slate-500">Duracion</p>
+              <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{item.durationDays ?? 0}D / {item.durationNights ?? 0}N</p>
+            </div>
+          )}
+          {item.itineraryItems != null && item.itineraryItems > 0 && (
+            <div className="text-center p-2 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+              <p className="text-xs text-slate-500">Items itinerario</p>
+              <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{item.itineraryItems}</p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function GalleryZone({ item }: { item: SeoItemDetailProps['item'] }) {
+  const allImages = [
+    ...(item.image ? [item.image] : []),
+    ...(item.images ?? []).filter((img) => img && img !== item.image),
+  ];
+
+  if (allImages.length === 0) {
+    return (
+      <div className="flex items-center gap-2 text-sm text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-4 py-3 rounded-lg">
+        <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+          <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.168 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 6a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 6zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+        </svg>
+        Sin galeria — impacta score de contenido
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2">
+      {allImages.slice(0, 16).map((url, i) => (
+        <div key={i} className="aspect-square rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-700 relative">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={url} alt={`Gallery ${i + 1}`} className="w-full h-full object-cover" loading="lazy" />
+          {i === 0 && item.image && (
+            <span className="absolute bottom-0.5 left-0.5 text-[9px] bg-black/60 text-white px-1 rounded">main</span>
+          )}
+        </div>
+      ))}
+      {allImages.length > 16 && (
+        <div className="aspect-square rounded-lg bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-xs text-slate-500">
+          +{allImages.length - 16}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function V2EnrichmentZone({ v2 }: { v2: NonNullable<SeoItemDetailProps['item']['v2']> }) {
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+        <svg className="w-4 h-4 text-blue-500" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+        </svg>
+        <span className="text-xs text-blue-600 dark:text-blue-400">Datos del catalogo maestro — no editables aqui</span>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {v2.city && (
+          <div className="text-center p-2 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+            <p className="text-xs text-slate-500">Ciudad</p>
+            <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{v2.city}</p>
+          </div>
+        )}
+        {v2.country && (
+          <div className="text-center p-2 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+            <p className="text-xs text-slate-500">Pais</p>
+            <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{v2.country}</p>
+          </div>
+        )}
+        {v2.latitude != null && v2.longitude != null && (
+          <div className="text-center p-2 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+            <p className="text-xs text-slate-500">Geo</p>
+            <p className="text-xs font-medium text-slate-700 dark:text-slate-300">{v2.latitude.toFixed(4)}, {v2.longitude.toFixed(4)}</p>
+          </div>
+        )}
+        {v2.userRating != null && (
+          <div className="text-center p-2 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+            <p className="text-xs text-slate-500">Rating</p>
+            <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
+              {v2.userRating.toFixed(1)}/5
+              {v2.reviewsCount != null && <span className="text-xs text-slate-400 ml-1">({v2.reviewsCount})</span>}
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PreviewIframe({ item, baseUrl }: { item: SeoItemDetailProps['item']; baseUrl: string }) {
+  const categorySlug: Record<string, string> = {
+    hotel: 'hoteles',
+    activity: 'actividades',
+    transfer: 'traslados',
+    package: 'paquetes',
+    destination: 'destinos',
+  };
+  const cat = categorySlug[item.type] ?? item.type;
+  const publicUrl = `${baseUrl}/${cat}/${item.slug}`;
+
+  return (
+    <div>
+      <div className="flex justify-end mb-2">
+        <a
+          href={publicUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+        >
+          Abrir en nueva pestana
+          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+          </svg>
+        </a>
+      </div>
+      <iframe
+        src={publicUrl}
+        className="w-full h-96 rounded-lg border border-slate-200 dark:border-slate-700"
+        sandbox="allow-same-origin"
+        title={`Preview: ${item.name}`}
+      />
     </div>
   );
 }

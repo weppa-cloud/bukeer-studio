@@ -33,14 +33,19 @@ interface BulkSeoModalProps {
 // Helpers
 // ============================================================================
 
+/** Products (hotel/activity/transfer/package) save SEO to website_product_pages via upsert. */
+const PRODUCT_TYPES: SeoItemType[] = ['hotel', 'activity', 'transfer', 'package'];
+
 function getTableForType(type: SeoItemType): string {
   switch (type) {
-    case 'hotel': case 'activity': case 'transfer': return 'products';
+    case 'hotel': return 'hotels';
+    case 'activity': return 'activities';
+    case 'transfer': return 'transfers';
     case 'package': return 'package_kits';
     case 'destination': return 'destinations';
     case 'page': return 'website_pages';
     case 'blog': return 'website_blog_posts';
-    default: return 'products';
+    default: return 'hotels';
   }
 }
 
@@ -148,18 +153,32 @@ export function BulkSeoModal({ isOpen, onClose, websiteId, items, onApplied }: B
     const supabase = createSupabaseBrowserClient();
 
     for (const item of accepted) {
-      const table = getTableForType(item.type);
-      const updateData: Record<string, unknown> = {
-        seo_title: item.after.seoTitle,
-        seo_description: item.after.seoDescription,
-      };
-      // website_blog_posts uses seo_keywords (text[]), others use target_keyword (text)
-      if (item.type === 'blog') {
-        updateData.seo_keywords = item.after.targetKeyword ? [item.after.targetKeyword] : [];
+      if (PRODUCT_TYPES.includes(item.type)) {
+        // Products: upsert SEO to website_product_pages with legacy ID
+        await supabase
+          .from('website_product_pages')
+          .upsert({
+            website_id: websiteId,
+            product_id: item.id,
+            product_type: item.type,
+            custom_seo_title: item.after.seoTitle,
+            custom_seo_description: item.after.seoDescription,
+            target_keyword: item.after.targetKeyword,
+          }, { onConflict: 'website_id,product_id' });
       } else {
-        updateData.target_keyword = item.after.targetKeyword;
+        // Pages, blogs, destinations: update source table directly
+        const table = getTableForType(item.type);
+        const updateData: Record<string, unknown> = {
+          seo_title: item.after.seoTitle,
+          seo_description: item.after.seoDescription,
+        };
+        if (item.type === 'blog') {
+          updateData.seo_keywords = item.after.targetKeyword ? [item.after.targetKeyword] : [];
+        } else {
+          updateData.target_keyword = item.after.targetKeyword;
+        }
+        await supabase.from(table).update(updateData).eq('id', item.id);
       }
-      await supabase.from(table).update(updateData).eq('id', item.id);
     }
 
     setApplying(false);

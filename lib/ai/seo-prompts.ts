@@ -16,11 +16,27 @@ export const seoGenerateRequestSchema = z.object({
   locale: z.string().default('es'),
   context: z.object({
     city: z.string().optional(),
+    country: z.string().optional(),
     state: z.string().optional(),
     amenities: z.array(z.string()).optional(),
     starRating: z.number().optional(),
     duration: z.number().optional(),
     category: z.string().optional(),
+    // V2 enrichment
+    userRating: z.number().optional(),
+    reviewsCount: z.number().optional(),
+    // Extended legacy content
+    inclusions: z.string().optional(),
+    exclusions: z.string().optional(),
+    recommendations: z.string().optional(),
+    experienceType: z.string().optional(),
+    vehicleType: z.string().optional(),
+    fromLocation: z.string().optional(),
+    toLocation: z.string().optional(),
+    destination: z.string().optional(),
+    durationDays: z.number().optional(),
+    durationNights: z.number().optional(),
+    galleryCount: z.number().optional(),
   }).optional(),
 });
 
@@ -121,11 +137,26 @@ export function buildSeoUserPrompt(data: GenerateSeoRequest): string {
   if (data.context) {
     const ctx = data.context;
     if (ctx.city) parts.push(`Ciudad: ${ctx.city}`);
+    if (ctx.country) parts.push(`Pais: ${ctx.country}`);
     if (ctx.state) parts.push(`Region: ${ctx.state}`);
     if (ctx.amenities?.length) parts.push(`Amenidades: ${ctx.amenities.join(', ')}`);
     if (ctx.starRating) parts.push(`Estrellas: ${ctx.starRating}`);
+    if (ctx.userRating) {
+      let ratingStr = `Rating: ${ctx.userRating}/5`;
+      if (ctx.reviewsCount) ratingStr += ` (${ctx.reviewsCount} reviews)`;
+      parts.push(ratingStr);
+    }
     if (ctx.duration) parts.push(`Duracion: ${ctx.duration} minutos`);
+    if (ctx.durationDays || ctx.durationNights) parts.push(`Duracion: ${ctx.durationDays ?? 0} dias / ${ctx.durationNights ?? 0} noches`);
     if (ctx.category) parts.push(`Categoria: ${ctx.category}`);
+    if (ctx.experienceType) parts.push(`Tipo de experiencia: ${ctx.experienceType}`);
+    if (ctx.vehicleType) parts.push(`Tipo de vehiculo: ${ctx.vehicleType}`);
+    if (ctx.fromLocation || ctx.toLocation) parts.push(`Ruta: ${ctx.fromLocation ?? '—'} → ${ctx.toLocation ?? '—'}`);
+    if (ctx.destination) parts.push(`Destino: ${ctx.destination}`);
+    if (ctx.inclusions) parts.push(`Incluye: ${ctx.inclusions.substring(0, 500)}`);
+    if (ctx.exclusions) parts.push(`No incluye: ${ctx.exclusions.substring(0, 300)}`);
+    if (ctx.recommendations) parts.push(`Recomendaciones: ${ctx.recommendations.substring(0, 300)}`);
+    if (ctx.galleryCount) parts.push(`Galeria: ${ctx.galleryCount} fotos`);
   }
 
   parts.push('\nGenera titulo SEO, meta description y keyword objetivo optimizados.');

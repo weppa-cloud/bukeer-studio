@@ -43,24 +43,13 @@ export interface ScoredItem {
   issues: string[];
 }
 
-interface RawProduct {
-  id: string;
-  name: string;
+interface SeoOverride {
+  product_id: string;
   product_type: string;
-  main_image?: string | null;
-  description?: string | null;
-  seo_title?: string | null;
-  seo_description?: string | null;
-}
-
-function mapProductType(dbType: string): SeoItemType {
-  const lower = dbType.toLowerCase();
-  if (lower === 'hoteles' || lower === 'hotels') return 'hotel';
-  if (lower === 'servicios' || lower === 'activities' || lower === 'actividades') return 'activity';
-  if (lower === 'transporte' || lower === 'transfers' || lower === 'traslados') return 'transfer';
-  if (lower === 'vuelos') return 'transfer';
-  if (lower === 'packages' || lower === 'paquetes') return 'package';
-  return 'activity';
+  custom_seo_title?: string | null;
+  custom_seo_description?: string | null;
+  target_keyword?: string | null;
+  robots_noindex?: boolean | null;
 }
 
 function countWords(text?: string | null): number {
@@ -108,41 +97,216 @@ export default function SeoDashboardPage() {
 
       const accountId = website.account_id;
 
-      // Products
-      const { data: products } = await supabase
-        .from('products')
-        .select('id, name, product_type, main_image, description, seo_title, seo_description')
-        .eq('account_id', accountId)
-        .is('deleted_at', null);
+      // ── Legacy product queries (parallel) ──────────────────────────
+      const [hotelsRes, activitiesRes, transfersRes, packagesRes, overridesRes, galleryRes, hotelBridgesRes] = await Promise.all([
+        supabase
+          .from('hotels')
+          .select('id, name, slug, main_image, description, description_short, star_rating, amenities, user_rating, inclutions, exclutions, recomendations, instructions')
+          .eq('account_id', accountId)
+          .is('deleted_at', null),
+        supabase
+          .from('activities')
+          .select('id, name, slug, main_image, description, description_short, duration_minutes, experience_type, inclutions, exclutions, recomendations, instructions')
+          .eq('account_id', accountId)
+          .is('deleted_at', null),
+        supabase
+          .from('transfers')
+          .select('id, name, slug, main_image, description, vehicle_type, max_passengers, from_location, to_location, inclutions, exclutions, policies')
+          .eq('account_id', accountId)
+          .is('deleted_at', null),
+        supabase
+          .from('package_kits')
+          .select('id, name, description, cover_image_url, destination, duration_days, duration_nights, program_highlights, program_inclusions, program_exclusions, program_gallery')
+          .eq('account_id', accountId),
+        // SEO overrides
+        supabase
+          .from('website_product_pages')
+          .select('product_id, product_type, custom_seo_title, custom_seo_description, target_keyword, robots_noindex')
+          .eq('website_id', websiteId),
+        // Gallery counts
+        supabase
+          .from('images')
+          .select('entity_id')
+          .eq('account_id', accountId),
+        // V2 bridge for hotels
+        supabase
+          .from('account_hotels')
+          .select('legacy_hotel_id, master_hotels!inner(city, country, star_rating, user_rating, reviews_count, latitude, longitude)')
+          .eq('account_id', accountId)
+          .eq('is_active', true)
+          .not('legacy_hotel_id', 'is', null),
+      ]);
 
-      if (products) {
-        for (const p of products as RawProduct[]) {
-          const type = mapProductType(p.product_type || '');
-          const slug = slugify(p.name || '');
-          items.push({
-            id: p.id,
-            name: p.name || 'Sin nombre',
-            type,
-            image: p.main_image || undefined,
-            slug,
-            input: {
-              type,
-              name: p.name || 'Sin nombre',
-              slug,
-              seoTitle: p.seo_title || undefined,
-              seoDescription: p.seo_description || undefined,
-              description: p.description || undefined,
-              image: p.main_image || undefined,
-              hasJsonLd: false,
-              hasCanonical: true,
-              hasHreflang: true,
-              hasOgTags: true,
-              hasTwitterCard: true,
-              wordCount: countWords(p.description),
-            },
-          });
-        }
+      // Handle errors gracefully (ADR-002)
+      if (hotelsRes.error) console.error('[seo.dashboard.hotels]', hotelsRes.error);
+      if (activitiesRes.error) console.error('[seo.dashboard.activities]', activitiesRes.error);
+      if (transfersRes.error) console.error('[seo.dashboard.transfers]', transfersRes.error);
+      if (packagesRes.error) console.error('[seo.dashboard.packages]', packagesRes.error);
+      if (overridesRes.error) console.error('[seo.dashboard.overrides]', overridesRes.error);
+      if (galleryRes.error) console.error('[seo.dashboard.gallery]', galleryRes.error);
+      if (hotelBridgesRes.error) console.error('[seo.dashboard.v2bridge]', hotelBridgesRes.error);
+
+      const hotels = hotelsRes.data ?? [];
+      const activitiesData = activitiesRes.data ?? [];
+      const transfersData = transfersRes.data ?? [];
+      const packagesData = packagesRes.data ?? [];
+
+      // Build override map: "type:legacyId" → override
+      const overrideMap = new Map<string, SeoOverride>(
+        (overridesRes.data ?? []).map((o: SeoOverride) => [`${o.product_type}:${o.product_id}`, o])
+      );
+
+      // Build gallery count map: entityId → count
+      const galleryMap = new Map<string, number>();
+      for (const img of galleryRes.data ?? []) {
+        galleryMap.set(img.entity_id, (galleryMap.get(img.entity_id) ?? 0) + 1);
       }
+
+      // Build V2 hotel bridge map: legacyHotelId → master data
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const hotelV2Map = new Map<string, any>(
+        (hotelBridgesRes.data ?? []).map((b: { legacy_hotel_id: string; master_hotels: unknown }) => [b.legacy_hotel_id, b.master_hotels])
+      );
+
+      // ── Merge hotels ─────────────────────────────────────────────────
+      for (const h of hotels) {
+        const override = overrideMap.get(`hotel:${h.id}`);
+        const v2 = hotelV2Map.get(h.id);
+        const slug = h.slug || slugify(h.name || '');
+        const galleryCount = galleryMap.get(h.id) ?? 0;
+        items.push({
+          id: h.id,
+          name: h.name || 'Sin nombre',
+          type: 'hotel',
+          image: h.main_image || undefined,
+          slug,
+          input: {
+            type: 'hotel',
+            name: h.name || 'Sin nombre',
+            slug,
+            seoTitle: override?.custom_seo_title || undefined,
+            seoDescription: override?.custom_seo_description || undefined,
+            targetKeyword: override?.target_keyword || undefined,
+            description: h.description || undefined,
+            image: h.main_image || undefined,
+            images: galleryCount > 0 ? Array(galleryCount).fill('') : undefined,
+            amenities: h.amenities,
+            starRating: v2?.star_rating ?? h.star_rating,
+            latitude: v2?.latitude ?? undefined,
+            longitude: v2?.longitude ?? undefined,
+            enrichmentRating: v2?.user_rating ?? undefined,
+            hasJsonLd: true,
+            hasCanonical: true,
+            hasHreflang: true,
+            hasOgTags: true,
+            hasTwitterCard: true,
+            wordCount: countWords(h.description),
+          },
+        });
+      }
+
+      // ── Merge activities ──────────────────────────────────────────────
+      for (const a of activitiesData) {
+        const override = overrideMap.get(`activity:${a.id}`);
+        const slug = a.slug || slugify(a.name || '');
+        const galleryCount = galleryMap.get(a.id) ?? 0;
+        items.push({
+          id: a.id,
+          name: a.name || 'Sin nombre',
+          type: 'activity',
+          image: a.main_image || undefined,
+          slug,
+          input: {
+            type: 'activity',
+            name: a.name || 'Sin nombre',
+            slug,
+            seoTitle: override?.custom_seo_title || undefined,
+            seoDescription: override?.custom_seo_description || undefined,
+            targetKeyword: override?.target_keyword || undefined,
+            description: a.description || undefined,
+            image: a.main_image || undefined,
+            images: galleryCount > 0 ? Array(galleryCount).fill('') : undefined,
+            duration: a.duration_minutes,
+            inclusions: a.inclutions || undefined,
+            hasJsonLd: true,
+            hasCanonical: true,
+            hasHreflang: true,
+            hasOgTags: true,
+            hasTwitterCard: true,
+            wordCount: countWords(a.description),
+          },
+        });
+      }
+
+      // ── Merge transfers ───────────────────────────────────────────────
+      for (const t of transfersData) {
+        const override = overrideMap.get(`transfer:${t.id}`);
+        const slug = t.slug || slugify(t.name || '');
+        const galleryCount = galleryMap.get(t.id) ?? 0;
+        items.push({
+          id: t.id,
+          name: t.name || 'Sin nombre',
+          type: 'transfer',
+          image: t.main_image || undefined,
+          slug,
+          input: {
+            type: 'transfer',
+            name: t.name || 'Sin nombre',
+            slug,
+            seoTitle: override?.custom_seo_title || undefined,
+            seoDescription: override?.custom_seo_description || undefined,
+            targetKeyword: override?.target_keyword || undefined,
+            description: t.description || undefined,
+            image: t.main_image || undefined,
+            images: galleryCount > 0 ? Array(galleryCount).fill('') : undefined,
+            inclusions: t.inclutions || undefined,
+            hasJsonLd: true,
+            hasCanonical: true,
+            hasHreflang: true,
+            hasOgTags: true,
+            hasTwitterCard: true,
+            wordCount: countWords(t.description),
+          },
+        });
+      }
+
+      // ── Merge packages ────────────────────────────────────────────────
+      for (const pk of packagesData) {
+        const override = overrideMap.get(`package:${pk.id}`);
+        const slug = slugify(pk.name || '');
+        const programGallery = Array.isArray(pk.program_gallery) ? pk.program_gallery : [];
+        items.push({
+          id: pk.id,
+          name: pk.name || 'Sin nombre',
+          type: 'package',
+          image: pk.cover_image_url || undefined,
+          slug,
+          input: {
+            type: 'package',
+            name: pk.name || 'Sin nombre',
+            slug,
+            seoTitle: override?.custom_seo_title || undefined,
+            seoDescription: override?.custom_seo_description || undefined,
+            targetKeyword: override?.target_keyword || undefined,
+            description: pk.description || undefined,
+            image: pk.cover_image_url || undefined,
+            images: programGallery.length > 0 ? programGallery : undefined,
+            hasJsonLd: true,
+            hasCanonical: true,
+            hasHreflang: true,
+            hasOgTags: true,
+            hasTwitterCard: true,
+            wordCount: countWords(pk.description),
+          },
+        });
+      }
+
+      console.log('[seo.dashboard.load]', {
+        websiteId,
+        counts: { hotels: hotels.length, activities: activitiesData.length, transfers: transfersData.length, packages: packagesData.length },
+        v2Enriched: { hotels: hotelBridgesRes.data?.length ?? 0 },
+        overrides: overridesRes.data?.length ?? 0,
+      });
 
       // Destinations
       const { data: destinations } = await supabase

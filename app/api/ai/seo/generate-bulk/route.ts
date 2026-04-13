@@ -31,15 +31,6 @@ interface BulkItem {
   image?: string;
 }
 
-function mapProductType(pt: string): SeoItemType {
-  const lower = pt?.toLowerCase() || '';
-  if (lower.includes('hotel')) return 'hotel';
-  if (lower.includes('servicio') || lower.includes('actividad')) return 'activity';
-  if (lower.includes('transporte') || lower.includes('traslado')) return 'transfer';
-  if (lower.includes('paquete')) return 'package';
-  return 'activity';
-}
-
 export async function POST(request: NextRequest) {
   const auth = await getEditorAuth(request);
   if (!auth) {
@@ -78,14 +69,33 @@ export async function POST(request: NextRequest) {
     }
   );
 
-  // Fetch items from all tables
+  // Fetch items from legacy tables (parallel)
   const items: BulkItem[] = [];
 
-  const [productsRes, destinationsRes, blogRes, pagesRes] = await Promise.all([
+  const [hotelsRes, activitiesRes, transfersRes, packagesRes, overridesRes, destinationsRes, blogRes, pagesRes] = await Promise.all([
     supabase
-      .from('products')
-      .select('id, name, slug, main_image, description, seo_title, seo_description, target_keyword, product_type')
+      .from('hotels')
+      .select('id, name, slug, main_image, description')
+      .eq('account_id', auth.accountId)
+      .is('deleted_at', null),
+    supabase
+      .from('activities')
+      .select('id, name, slug, main_image, description')
+      .eq('account_id', auth.accountId)
+      .is('deleted_at', null),
+    supabase
+      .from('transfers')
+      .select('id, name, slug, main_image, description')
+      .eq('account_id', auth.accountId)
+      .is('deleted_at', null),
+    supabase
+      .from('package_kits')
+      .select('id, name, description, cover_image_url')
       .eq('account_id', auth.accountId),
+    supabase
+      .from('website_product_pages')
+      .select('product_id, product_type, custom_seo_title, custom_seo_description, target_keyword')
+      .eq('website_id', websiteId),
     supabase
       .from('destinations')
       .select('id, name, slug, image, description, seo_title, seo_description, target_keyword'),
@@ -99,34 +109,75 @@ export async function POST(request: NextRequest) {
       .eq('website_id', websiteId),
   ]);
 
-  if (productsRes.data) {
-    for (const p of productsRes.data) {
-      items.push({
-        id: p.id,
-        type: mapProductType(p.product_type),
-        name: p.name ?? '',
-        slug: p.slug ?? '',
-        description: p.description ?? undefined,
-        seoTitle: p.seo_title ?? undefined,
-        seoDescription: p.seo_description ?? undefined,
-        targetKeyword: p.target_keyword ?? undefined,
-        image: p.main_image ?? undefined,
-      });
-    }
+  if (hotelsRes.error) console.error('[seo.bulk.hotels]', hotelsRes.error);
+  if (activitiesRes.error) console.error('[seo.bulk.activities]', activitiesRes.error);
+  if (transfersRes.error) console.error('[seo.bulk.transfers]', transfersRes.error);
+  if (packagesRes.error) console.error('[seo.bulk.packages]', packagesRes.error);
+  if (overridesRes.error) console.error('[seo.bulk.overrides]', overridesRes.error);
+
+  // Build override map: "type:legacyId" → override
+  const overrideMap = new Map(
+    (overridesRes.data ?? []).map((o: { product_id: string; product_type: string; custom_seo_title?: string | null; custom_seo_description?: string | null; target_keyword?: string | null }) =>
+      [`${o.product_type}:${o.product_id}`, o]
+    )
+  );
+
+  function slugify(name: string): string {
+    return name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
   }
 
+  // Hotels
+  for (const h of hotelsRes.data ?? []) {
+    const ov = overrideMap.get(`hotel:${h.id}`);
+    items.push({
+      id: h.id, type: 'hotel', name: h.name ?? '', slug: h.slug || slugify(h.name ?? ''),
+      description: h.description ?? undefined, image: h.main_image ?? undefined,
+      seoTitle: ov?.custom_seo_title ?? undefined, seoDescription: ov?.custom_seo_description ?? undefined,
+      targetKeyword: ov?.target_keyword ?? undefined,
+    });
+  }
+
+  // Activities
+  for (const a of activitiesRes.data ?? []) {
+    const ov = overrideMap.get(`activity:${a.id}`);
+    items.push({
+      id: a.id, type: 'activity', name: a.name ?? '', slug: a.slug || slugify(a.name ?? ''),
+      description: a.description ?? undefined, image: a.main_image ?? undefined,
+      seoTitle: ov?.custom_seo_title ?? undefined, seoDescription: ov?.custom_seo_description ?? undefined,
+      targetKeyword: ov?.target_keyword ?? undefined,
+    });
+  }
+
+  // Transfers
+  for (const t of transfersRes.data ?? []) {
+    const ov = overrideMap.get(`transfer:${t.id}`);
+    items.push({
+      id: t.id, type: 'transfer', name: t.name ?? '', slug: t.slug || slugify(t.name ?? ''),
+      description: t.description ?? undefined, image: t.main_image ?? undefined,
+      seoTitle: ov?.custom_seo_title ?? undefined, seoDescription: ov?.custom_seo_description ?? undefined,
+      targetKeyword: ov?.target_keyword ?? undefined,
+    });
+  }
+
+  // Packages
+  for (const pk of packagesRes.data ?? []) {
+    const ov = overrideMap.get(`package:${pk.id}`);
+    items.push({
+      id: pk.id, type: 'package', name: pk.name ?? '', slug: slugify(pk.name ?? ''),
+      description: pk.description ?? undefined, image: pk.cover_image_url ?? undefined,
+      seoTitle: ov?.custom_seo_title ?? undefined, seoDescription: ov?.custom_seo_description ?? undefined,
+      targetKeyword: ov?.target_keyword ?? undefined,
+    });
+  }
+
+  // Destinations
   if (destinationsRes.data) {
     for (const d of destinationsRes.data) {
       items.push({
-        id: d.id,
-        type: 'destination',
-        name: d.name ?? '',
-        slug: d.slug ?? '',
-        description: d.description ?? undefined,
-        seoTitle: d.seo_title ?? undefined,
-        seoDescription: d.seo_description ?? undefined,
+        id: d.id, type: 'destination', name: d.name ?? '', slug: d.slug ?? '',
+        description: d.description ?? undefined, image: d.image ?? undefined,
+        seoTitle: d.seo_title ?? undefined, seoDescription: d.seo_description ?? undefined,
         targetKeyword: d.target_keyword ?? undefined,
-        image: d.image ?? undefined,
       });
     }
   }
@@ -134,12 +185,8 @@ export async function POST(request: NextRequest) {
   if (blogRes.data) {
     for (const b of blogRes.data) {
       items.push({
-        id: b.id,
-        type: 'blog',
-        name: b.title ?? '',
-        slug: b.slug ?? '',
-        description: b.excerpt ?? undefined,
-        seoTitle: b.seo_title ?? undefined,
+        id: b.id, type: 'blog', name: b.title ?? '', slug: b.slug ?? '',
+        description: b.excerpt ?? undefined, seoTitle: b.seo_title ?? undefined,
         seoDescription: b.seo_description ?? undefined,
       });
     }
@@ -148,12 +195,8 @@ export async function POST(request: NextRequest) {
   if (pagesRes.data) {
     for (const pg of pagesRes.data) {
       items.push({
-        id: pg.id,
-        type: 'page',
-        name: pg.title ?? '',
-        slug: pg.slug ?? '',
-        seoTitle: pg.seo_title ?? undefined,
-        seoDescription: pg.seo_description ?? undefined,
+        id: pg.id, type: 'page', name: pg.title ?? '', slug: pg.slug ?? '',
+        seoTitle: pg.seo_title ?? undefined, seoDescription: pg.seo_description ?? undefined,
         targetKeyword: pg.target_keyword ?? undefined,
       });
     }
