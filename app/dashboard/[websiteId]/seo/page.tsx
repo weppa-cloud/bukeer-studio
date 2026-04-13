@@ -61,6 +61,51 @@ function slugify(name: string): string {
   return name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 }
 
+function escapeCsvValue(value: string | number | boolean | undefined | null): string {
+  if (value == null) return '';
+  const str = String(value);
+  if (str.includes('"') || str.includes(',') || str.includes('\n') || str.includes('\r')) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+}
+
+function exportToCsv(items: ScoredItem[], filename: string): void {
+  const headers = [
+    'name', 'type', 'slug', 'seoTitle', 'seoDescription', 'targetKeyword',
+    'score', 'grade', 'metaScore', 'contentScore', 'technicalScore',
+    'issues', 'wordCount', 'hasImage',
+  ];
+
+  const rows = items.map(item => [
+    escapeCsvValue(item.name),
+    escapeCsvValue(item.type),
+    escapeCsvValue(item.slug),
+    escapeCsvValue(item.input.seoTitle),
+    escapeCsvValue(item.input.seoDescription),
+    escapeCsvValue(item.input.targetKeyword),
+    escapeCsvValue(item.result.overall),
+    escapeCsvValue(item.result.grade),
+    escapeCsvValue(item.result.dimensions.meta),
+    escapeCsvValue(item.result.dimensions.content),
+    escapeCsvValue(item.result.dimensions.technical),
+    escapeCsvValue(item.issues.join('; ')),
+    escapeCsvValue(item.input.wordCount ?? 0),
+    escapeCsvValue(!!item.input.image),
+  ]);
+
+  const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\r\n');
+  // UTF-8 BOM for Excel compatibility
+  const bom = '\uFEFF';
+  const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
 function buildIssues(input: SeoScoringInput, result: SeoScoringResult): string[] {
   const issues: string[] = [];
   if (!input.seoTitle) issues.push('Sin título');
@@ -482,16 +527,28 @@ export default function SeoDashboardPage() {
     <StudioPage className="max-w-6xl">
       <div className="flex items-center justify-between">
         <StudioSectionHeader title="SEO Audit" subtitle="Evalúa y optimiza el SEO de todo tu sitio" />
-        <button
-          onClick={() => setShowBulkModal(true)}
-          disabled={scoredItems.length === 0}
-          className="px-4 py-2 bg-violet-600 text-white text-sm font-medium rounded-lg hover:bg-violet-700 disabled:opacity-50 flex items-center gap-2 flex-shrink-0"
-        >
-          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-            <path d="M10 2a1 1 0 011 1v1.323l3.954 1.582 1.599-.8a1 1 0 01.894 1.79l-1.233.616 1.738 5.42a1 1 0 01-.285 1.05A3.989 3.989 0 0115 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.715-5.349L11 6.477V16h2a1 1 0 110 2H7a1 1 0 110-2h2V6.477L6.237 7.582l1.715 5.349a1 1 0 01-.285 1.05A3.989 3.989 0 015 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.738-5.42-1.233-.617a1 1 0 01.894-1.789l1.599.799L9 4.323V3a1 1 0 011-1z" />
-          </svg>
-          Optimizar con IA
-        </button>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <button
+            onClick={() => exportToCsv(filteredItems, `seo-audit-${activeTab}.csv`)}
+            disabled={filteredItems.length === 0}
+            className="px-4 py-2 bg-[var(--studio-bg-secondary)] text-[var(--studio-text)] text-sm font-medium rounded-lg border border-[var(--studio-border)] hover:bg-[var(--studio-bg-tertiary)] disabled:opacity-50 flex items-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Exportar CSV
+          </button>
+          <button
+            onClick={() => setShowBulkModal(true)}
+            disabled={scoredItems.length === 0}
+            className="px-4 py-2 bg-violet-600 text-white text-sm font-medium rounded-lg hover:bg-violet-700 disabled:opacity-50 flex items-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M10 2a1 1 0 011 1v1.323l3.954 1.582 1.599-.8a1 1 0 01.894 1.79l-1.233.616 1.738 5.42a1 1 0 01-.285 1.05A3.989 3.989 0 0115 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.715-5.349L11 6.477V16h2a1 1 0 110 2H7a1 1 0 110-2h2V6.477L6.237 7.582l1.715 5.349a1 1 0 01-.285 1.05A3.989 3.989 0 015 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.738-5.42-1.233-.617a1 1 0 01.894-1.789l1.599.799L9 4.323V3a1 1 0 011-1z" />
+            </svg>
+            Optimizar con IA
+          </button>
+        </div>
       </div>
 
       {/* Summary cards */}

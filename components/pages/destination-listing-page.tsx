@@ -149,7 +149,7 @@ export function DestinationListingPage({
                   {dest.image ? (
                     <Image
                       src={dest.image}
-                      alt={dest.name}
+                      alt={`Destino ${dest.name}${dest.state ? `, ${dest.state}` : ''} — ${dest.hotel_count} hoteles y ${dest.activity_count} actividades`}
                       fill
                       className="object-cover transition-transform duration-500 group-hover:scale-105"
                       sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"

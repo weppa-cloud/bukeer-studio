@@ -442,7 +442,7 @@ export function DestinationDetailPage({
                       {hotel.image ? (
                         <Image
                           src={hotel.image}
-                          alt={hotel.name}
+                          alt={`Hotel ${hotel.name} en ${destination.name}`}
                           fill
                           className="object-cover transition-transform duration-500 group-hover:scale-105"
                           sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
@@ -510,7 +510,7 @@ export function DestinationDetailPage({
                     {activity.image ? (
                       <Image
                         src={activity.image}
-                        alt={activity.name}
+                        alt={`Actividad ${activity.name} en ${destination.name}`}
                         fill
                         className="object-cover transition-transform duration-500 group-hover:scale-105"
                         sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
