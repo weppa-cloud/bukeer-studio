@@ -68,6 +68,7 @@ interface SeoItemDetailProps {
   };
   websiteId: string;
   baseUrl: string;
+  subdomain?: string;
   onBack: () => void;
   onSave: (fields: {
     seoTitle?: string;
@@ -105,6 +106,7 @@ export function SeoItemDetail({
   item,
   websiteId,
   baseUrl,
+  subdomain,
   onBack,
   onSave,
 }: SeoItemDetailProps) {
@@ -638,7 +640,7 @@ export function SeoItemDetail({
       {/* Live Preview Iframe (#57) */}
       {item.slug && ['hotel', 'activity', 'transfer', 'package', 'destination'].includes(item.type) && (
         <Section title="Vista Previa del Sitio">
-          <PreviewIframe item={item} baseUrl={baseUrl} />
+          <PreviewIframe item={item} baseUrl={baseUrl} subdomain={subdomain} />
         </Section>
       )}
 
@@ -1063,7 +1065,7 @@ function V2EnrichmentZone({ v2 }: { v2: NonNullable<SeoItemDetailProps['item']['
   );
 }
 
-function PreviewIframe({ item, baseUrl }: { item: SeoItemDetailProps['item']; baseUrl: string }) {
+function PreviewIframe({ item, baseUrl, subdomain }: { item: SeoItemDetailProps['item']; baseUrl: string; subdomain?: string }) {
   const categorySlug: Record<string, string> = {
     hotel: 'hoteles',
     activity: 'actividades',
@@ -1073,26 +1075,30 @@ function PreviewIframe({ item, baseUrl }: { item: SeoItemDetailProps['item']; ba
   };
   const cat = categorySlug[item.type] ?? item.type;
   const publicUrl = `${baseUrl}/${cat}/${item.slug}`;
+  // Use Studio's own rendering route for the iframe preview (avoids loading external/WordPress domain)
+  const previewUrl = subdomain
+    ? `/site/${subdomain}/${cat}/${item.slug}`
+    : publicUrl;
 
   return (
     <div>
-      <div className="flex justify-end mb-2">
+      <div className="flex justify-end gap-3 mb-2">
         <a
           href={publicUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
         >
-          Abrir en nueva pestana
+          Abrir sitio publico
           <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
           </svg>
         </a>
       </div>
       <iframe
-        src={publicUrl}
+        src={previewUrl}
         className="w-full h-96 rounded-lg border border-slate-200 dark:border-slate-700"
-        sandbox="allow-same-origin"
+        sandbox="allow-same-origin allow-scripts"
         title={`Preview: ${item.name}`}
       />
     </div>

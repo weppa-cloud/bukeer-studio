@@ -73,6 +73,7 @@ export default function SeoItemDetailPage() {
 
   const [item, setItem] = useState<ItemData | null>(null);
   const [baseUrl, setBaseUrl] = useState('');
+  const [subdomain, setSubdomain] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -91,6 +92,7 @@ export default function SeoItemDetailPage() {
         if (website) {
           const domain = website.custom_domain || `${website.subdomain}.bukeer.com`;
           setBaseUrl(`https://${domain}`);
+          setSubdomain(website.subdomain ?? '');
         }
 
         // Fetch item based on type
@@ -244,6 +246,7 @@ export default function SeoItemDetailPage() {
         item={item}
         websiteId={websiteId}
         baseUrl={baseUrl}
+        subdomain={subdomain}
         onBack={handleBack}
         onSave={handleSave}
       />
