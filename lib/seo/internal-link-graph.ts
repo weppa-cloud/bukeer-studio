@@ -1,94 +1,98 @@
 /**
  * Internal Link Graph — Orphan page detection
  *
- * Builds an inbound-link map for all known pages and identifies orphans
- * (pages with zero internal links pointing to them).
+ * Builds an inbound-link map for all known items and identifies orphans
+ * (items with zero internal links pointing to them).
+ *
+ * Works with item IDs to match the SEO dashboard's ScoredItem model.
  */
 
 export interface LinkGraphResult {
-  /** slug → number of pages/sources linking to it */
+  /** itemId → number of sources linking to it */
   inboundCount: Map<string, number>;
-  /** slugs with 0 inbound links */
+  /** itemIds with 0 inbound links */
   orphans: string[];
+}
+
+export interface LinkGraphItem {
+  id: string;
+  slug: string;
+  type: string;
+  name: string;
 }
 
 /**
  * Build an internal link graph and detect orphan pages.
  *
- * @param pages - All known pages (products, destinations, blog posts, etc.)
- * @param destinations - Destination pages with their associated product slugs
- * @param featuredProducts - Product slugs featured on the homepage
- * @param navLinks - Page slugs referenced from the navigation menu
- * @param blogInternalLinks - Blog posts with their internal link targets
+ * Sources of inbound links:
+ * 1. Featured products on the homepage (from websites.featured_products)
+ * 2. Products associated with a destination (destination → product mapping)
+ * 3. Navigation menu links (page slugs in the nav)
+ * 4. Blog posts referencing items (future — currently not extracted)
+ *
+ * @param items - All scored items in the dashboard
+ * @param featuredProductIds - Product IDs featured on homepage sections
+ * @param destinationProductMap - destinationId → productIds visible on that destination page
+ * @param navSlugs - Slugs referenced from the navigation menu
  */
 export function buildInternalLinkGraph(
-  pages: Array<{ slug: string; type: string }>,
-  destinations: Array<{ slug: string; products: string[] }>,
-  featuredProducts: string[],
-  navLinks: string[],
-  blogInternalLinks: Array<{ slug: string; links: string[] }>,
+  items: LinkGraphItem[],
+  featuredProductIds: string[],
+  destinationProductMap: Map<string, string[]>,
+  navSlugs: string[],
 ): LinkGraphResult {
-  // Initialize all pages with 0 inbound links
+  // Initialize all items with 0 inbound links
   const inboundCount = new Map<string, number>();
-  for (const page of pages) {
-    inboundCount.set(page.slug, 0);
+  for (const item of items) {
+    inboundCount.set(item.id, 0);
   }
 
-  const increment = (slug: string) => {
-    if (inboundCount.has(slug)) {
-      inboundCount.set(slug, inboundCount.get(slug)! + 1);
+  // Build a slug → id lookup for nav matching
+  const slugToId = new Map<string, string>();
+  for (const item of items) {
+    if (item.slug) {
+      slugToId.set(item.slug, item.id);
+    }
+  }
+
+  const increment = (id: string) => {
+    if (inboundCount.has(id)) {
+      inboundCount.set(id, inboundCount.get(id)! + 1);
     }
   };
 
-  // 1. Homepage featured products → those product slugs get a link
-  for (const slug of featuredProducts) {
-    increment(slug);
+  // 1. Homepage featured products → direct link from homepage
+  const featuredSet = new Set(featuredProductIds);
+  for (const id of featuredSet) {
+    increment(id);
   }
 
-  // 2. Destination detail pages → each destination's product slugs
-  for (const dest of destinations) {
-    for (const productSlug of dest.products) {
-      increment(productSlug);
+  // 2. Destination pages → products associated with that destination
+  for (const [destId, productIds] of destinationProductMap) {
+    // The destination page itself gets a link if it's featured or in nav
+    // (handled by steps 1 and 3). Here we count products linked FROM destinations.
+    for (const productId of productIds) {
+      increment(productId);
+    }
+    // Products on a destination page also provide a breadcrumb back to the destination
+    if (productIds.length > 0) {
+      increment(destId);
     }
   }
 
-  // 3. Navigation menu → page slugs
-  for (const slug of navLinks) {
-    increment(slug);
-  }
-
-  // 4. Blog posts → their internal_links array
-  for (const post of blogInternalLinks) {
-    for (const targetSlug of post.links) {
-      increment(targetSlug);
+  // 3. Navigation menu → match slugs to item IDs
+  for (const slug of navSlugs) {
+    const id = slugToId.get(slug);
+    if (id) {
+      increment(id);
     }
   }
 
-  // 5. Breadcrumbs: products link up to their category (destination)
-  //    Each product page has a breadcrumb to its parent destination
-  const productSlugs = new Set(
-    pages.filter((p) => p.type === 'product').map((p) => p.slug),
-  );
-  for (const dest of destinations) {
-    for (const productSlug of dest.products) {
-      if (productSlugs.has(productSlug)) {
-        // Product breadcrumb links to its destination category
-        increment(dest.slug);
-      }
-    }
-  }
-
-  // 6. Category (destination) pages link to all their products
-  //    (already covered by step 2, but destinations also link to home via breadcrumbs)
-  //    Breadcrumb: product → category → home
-  //    Home is typically "/" which may not be in the pages list — skip home increment
-  //    Category breadcrumb to home is implicit (always present), not counted separately
-
-  // Collect orphans
+  // Collect orphans (items with 0 inbound links)
   const orphans: string[] = [];
-  for (const [slug, count] of inboundCount) {
+  for (const [id, count] of inboundCount) {
     if (count === 0) {
-      orphans.push(slug);
+      orphans.push(id);
     }
   }
 

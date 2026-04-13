@@ -1,78 +1,82 @@
 /**
  * Click Depth Calculator
  *
- * Uses BFS from homepage to determine how many clicks each page is from root.
+ * Uses BFS from homepage to determine how many clicks each item is from root.
  * Depth 0: Homepage
- * Depth 1: Pages linked directly from homepage (nav + sections)
- * Depth 2: Pages linked from depth-1 pages (e.g., /destinos/cartagena)
- * Depth 3: Pages reached via destination → product
- * Depth 4+: Deep chains (similar products, nested links)
+ * Depth 1: Items in nav + homepage featured products/destinations
+ * Depth 2: Items on destination pages (products associated with a destination)
+ * Depth 3+: Items only reachable via deeper navigation chains
+ *
+ * Works with item IDs to match the SEO dashboard's ScoredItem model.
  */
 
 export interface ClickDepthResult {
-  depths: Map<string, number>; // slug → clicks from homepage
-  deep: string[]; // slugs with depth >= 4
+  /** itemId → clicks from homepage */
+  depths: Map<string, number>;
+  /** itemIds with depth >= 4 */
+  deep: string[];
+  /** itemIds not reachable from homepage at all */
+  unreachable: string[];
 }
 
 /**
- * Calculate click depth for all reachable pages using BFS from homepage.
+ * Calculate click depth for all items using BFS from homepage.
  *
- * @param homepageLinks - Slugs directly linked from homepage (nav items + featured sections)
- * @param destinationProducts - Map of destination slug → product slugs it links to
- * @param categoryProducts - Map of category slug → product slugs it links to
+ * @param allItemIds - All item IDs in the dashboard
+ * @param homepageLinkedIds - IDs directly linked from homepage (featured products + featured destinations)
+ * @param navLinkedIds - IDs reachable from navigation menu
+ * @param destinationProductMap - destinationId → productIds visible on that destination page
  */
 export function calculateClickDepth(
-  homepageLinks: string[],
-  destinationProducts: Map<string, string[]>,
-  categoryProducts: Map<string, string[]>,
+  allItemIds: string[],
+  homepageLinkedIds: string[],
+  navLinkedIds: string[],
+  destinationProductMap: Map<string, string[]>,
 ): ClickDepthResult {
   const depths = new Map<string, number>();
-  const queue: Array<{ slug: string; depth: number }> = [];
+  const queue: Array<{ id: string; depth: number }> = [];
 
-  // Homepage is depth 0 (not stored as a slug, but it's the origin)
-  // All homepage links are depth 1
-  for (const slug of homepageLinks) {
-    if (!depths.has(slug)) {
-      depths.set(slug, 1);
-      queue.push({ slug, depth: 1 });
+  // Depth 1: Everything directly linked from homepage or nav
+  const depth1Ids = new Set([...homepageLinkedIds, ...navLinkedIds]);
+  for (const id of depth1Ids) {
+    if (!depths.has(id)) {
+      depths.set(id, 1);
+      queue.push({ id, depth: 1 });
     }
   }
 
   // BFS traversal
   while (queue.length > 0) {
-    const { slug, depth } = queue.shift()!;
+    const { id, depth } = queue.shift()!;
 
-    // Get children: pages linked from this slug
-    const children: string[] = [];
-
-    // If this slug is a destination, it links to its products
-    const destProducts = destinationProducts.get(slug);
-    if (destProducts) {
-      children.push(...destProducts);
-    }
-
-    // If this slug is a category, it links to its products
-    const catProducts = categoryProducts.get(slug);
-    if (catProducts) {
-      children.push(...catProducts);
-    }
-
-    // Enqueue unvisited children at depth + 1
-    for (const child of children) {
-      if (!depths.has(child)) {
-        depths.set(child, depth + 1);
-        queue.push({ slug: child, depth: depth + 1 });
+    // If this is a destination, it links to its products (depth + 1)
+    const products = destinationProductMap.get(id);
+    if (products) {
+      for (const productId of products) {
+        if (!depths.has(productId)) {
+          depths.set(productId, depth + 1);
+          queue.push({ id: productId, depth: depth + 1 });
+        }
       }
     }
   }
 
-  // Collect deep pages (depth >= 4)
+  // Collect deep items (depth >= 4) and unreachable items
   const deep: string[] = [];
-  for (const [slug, depth] of depths) {
+  const unreachable: string[] = [];
+  const allSet = new Set(allItemIds);
+
+  for (const [id, depth] of depths) {
     if (depth >= 4) {
-      deep.push(slug);
+      deep.push(id);
     }
   }
 
-  return { depths, deep };
+  for (const id of allSet) {
+    if (!depths.has(id)) {
+      unreachable.push(id);
+    }
+  }
+
+  return { depths, deep, unreachable };
 }

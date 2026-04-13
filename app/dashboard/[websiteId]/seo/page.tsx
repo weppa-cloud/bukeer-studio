@@ -17,6 +17,8 @@ import {
   type SeoScoringResult,
   type SeoItemType,
 } from '@/lib/seo/unified-scorer';
+import { buildInternalLinkGraph, type LinkGraphResult } from '@/lib/seo/internal-link-graph';
+import { calculateClickDepth, type ClickDepthResult } from '@/lib/seo/click-depth';
 
 type SeoGrade = 'A' | 'B' | 'C' | 'D' | 'F';
 type FilterTab = 'all' | SeoItemType;
@@ -120,6 +122,8 @@ export default function SeoDashboardPage() {
   const { websiteId } = useParams<{ websiteId: string }>();
   const [loading, setLoading] = useState(true);
   const [rawItems, setRawItems] = useState<Array<{ id: string; name: string; type: SeoItemType; image?: string; slug: string; input: SeoScoringInput }>>([]);
+  const [linkGraph, setLinkGraph] = useState<LinkGraphResult | null>(null);
+  const [clickDepth, setClickDepth] = useState<ClickDepthResult | null>(null);
   const [activeTab, setActiveTab] = useState<FilterTab>('all');
   const [showBulkModal, setShowBulkModal] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -134,7 +138,7 @@ export default function SeoDashboardPage() {
 
       const { data: website } = await supabase
         .from('websites')
-        .select('id, account_id, subdomain')
+        .select('id, account_id, subdomain, featured_products')
         .eq('id', websiteId)
         .single();
 
@@ -421,10 +425,10 @@ export default function SeoDashboardPage() {
         }
       }
 
-      // Pages
+      // Pages (include page_type for nav link detection)
       const { data: pages } = await supabase
         .from('website_pages')
-        .select('id, title, slug, seo_title, seo_description')
+        .select('id, title, slug, seo_title, seo_description, page_type, is_published')
         .eq('website_id', websiteId);
 
       if (pages) {
@@ -451,7 +455,54 @@ export default function SeoDashboardPage() {
         }
       }
 
-      if (active) { setRawItems(items); setLoading(false); }
+      // ── Internal link analysis ────────────────────────────────────
+      // Build featured product IDs from website.featured_products
+      const fp = (website as any).featured_products as Record<string, string[]> | null;
+      const featuredProductIds: string[] = [];
+      if (fp) {
+        for (const ids of Object.values(fp)) {
+          if (Array.isArray(ids)) featuredProductIds.push(...ids);
+        }
+      }
+
+      // Nav slugs: published pages that appear in navigation (category + static pages)
+      const navSlugs: string[] = [];
+      if (pages) {
+        for (const pg of pages as any[]) {
+          if (pg.is_published !== false && pg.slug) {
+            navSlugs.push(pg.slug);
+          }
+        }
+      }
+
+      // Destination → product mapping (approximate: no direct join available,
+      // so we leave this empty for now — featured_products + nav are the main signals)
+      const destinationProductMap = new Map<string, string[]>();
+
+      // Build link graph items from all collected items
+      const linkGraphItems = items.map(i => ({ id: i.id, slug: i.slug, type: i.type, name: i.name }));
+      const graphResult = buildInternalLinkGraph(linkGraphItems, featuredProductIds, destinationProductMap, navSlugs);
+
+      // Click depth: homepage links = featured + nav-linked IDs
+      const navLinkedIds: string[] = [];
+      const slugToIdMap = new Map(items.map(i => [i.slug, i.id]));
+      for (const slug of navSlugs) {
+        const id = slugToIdMap.get(slug);
+        if (id) navLinkedIds.push(id);
+      }
+      const depthResult = calculateClickDepth(
+        items.map(i => i.id),
+        featuredProductIds,
+        navLinkedIds,
+        destinationProductMap,
+      );
+
+      if (active) {
+        setRawItems(items);
+        setLinkGraph(graphResult);
+        setClickDepth(depthResult);
+        setLoading(false);
+      }
     }
 
     fetchData();
@@ -459,7 +510,7 @@ export default function SeoDashboardPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [websiteId, supabase, refreshKey]);
 
-  // Score and detect duplicates
+  // Score, detect duplicates, and add link analysis issues
   const scoredItems: ScoredItem[] = useMemo(() => {
     const duplicateGroups = detectDuplicates(
       rawItems.map(i => ({ id: i.id, type: i.type, seoTitle: i.input.seoTitle, seoDescription: i.input.seoDescription }))
@@ -470,13 +521,21 @@ export default function SeoDashboardPage() {
       for (const id of ids) duplicateIds.add(id);
     }
 
+    // Pre-compute orphan and deep sets for O(1) lookup
+    const orphanSet = new Set(linkGraph?.orphans ?? []);
+    const deepSet = new Set(clickDepth?.deep ?? []);
+    const unreachableSet = new Set(clickDepth?.unreachable ?? []);
+
     return rawItems.map(item => {
       const result = scoreItemSeo(item.input);
       const issues = buildIssues(item.input, result);
       if (duplicateIds.has(item.id)) issues.push('Duplicado');
+      if (orphanSet.has(item.id)) issues.push('Huérfano');
+      if (deepSet.has(item.id)) issues.push('Profundo (4+ clicks)');
+      if (unreachableSet.has(item.id) && !orphanSet.has(item.id)) issues.push('No alcanzable');
       return { ...item, result, issues };
     });
-  }, [rawItems]);
+  }, [rawItems, linkGraph, clickDepth]);
 
   // Filter by active tab
   const filteredItems = useMemo(() => {
@@ -487,7 +546,7 @@ export default function SeoDashboardPage() {
   // Summary stats
   const stats = useMemo(() => {
     if (scoredItems.length === 0) {
-      return { avgScore: 0, avgGrade: 'F' as SeoGrade, okCount: 0, issueCount: 0, noSchemaCount: 0 };
+      return { avgScore: 0, avgGrade: 'F' as SeoGrade, okCount: 0, issueCount: 0, noSchemaCount: 0, orphanCount: 0 };
     }
 
     const totalScore = scoredItems.reduce((sum, i) => sum + i.result.overall, 0);
@@ -498,8 +557,9 @@ export default function SeoDashboardPage() {
     const okCount = scoredItems.filter(i => i.result.grade === 'A' || i.result.grade === 'B').length;
     const issueCount = scoredItems.filter(i => i.result.grade === 'C' || i.result.grade === 'D' || i.result.grade === 'F').length;
     const noSchemaCount = scoredItems.filter(i => !i.input.hasJsonLd).length;
+    const orphanCount = scoredItems.filter(i => i.issues.includes('Huérfano')).length;
 
-    return { avgScore, avgGrade, okCount, issueCount, noSchemaCount };
+    return { avgScore, avgGrade, okCount, issueCount, noSchemaCount, orphanCount };
   }, [scoredItems]);
 
   if (loading) {
@@ -552,7 +612,7 @@ export default function SeoDashboardPage() {
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-6">
         <SummaryCard
           label="Score promedio"
           value={`${stats.avgGrade} / ${stats.avgScore}`}
@@ -561,6 +621,7 @@ export default function SeoDashboardPage() {
         <SummaryCard label="Items OK" value={`${stats.okCount} / ${scoredItems.length}`} tone="success" />
         <SummaryCard label="Con issues" value={`${stats.issueCount}`} tone={stats.issueCount > 0 ? 'warning' : 'success'} />
         <SummaryCard label="Sin schema" value={`${stats.noSchemaCount}`} tone={stats.noSchemaCount > 0 ? 'warning' : 'success'} />
+        <SummaryCard label="Huérfanos" value={`${stats.orphanCount}`} tone={stats.orphanCount > 0 ? 'warning' : 'success'} />
       </div>
 
       {/* Type filter tabs */}
