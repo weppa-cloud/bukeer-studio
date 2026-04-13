@@ -172,6 +172,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         {/* Content - Sanitized to prevent XSS */}
         <SafeHtml
           content={post.content}
+          fallbackAlt={post.title}
           className="prose prose-lg max-w-none dark:prose-invert
             prose-headings:font-bold
             prose-a:text-primary prose-a:no-underline hover:prose-a:underline

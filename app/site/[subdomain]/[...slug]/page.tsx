@@ -119,8 +119,7 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
         },
       };
 
-      // TODO: Query destination_seo_overrides for robots_noindex once RPC is available
-      if ((dest as unknown as { robots_noindex?: boolean }).robots_noindex) {
+      if (override?.robots_noindex) {
         metadata.robots = { index: false, follow: true };
       }
 

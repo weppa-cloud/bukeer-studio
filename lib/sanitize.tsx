@@ -11,7 +11,7 @@ const PURIFY_CONFIG = {
     'table', 'thead', 'tbody', 'tr', 'th', 'td',
     'div', 'span',
   ],
-  ALLOWED_ATTR: ['href', 'src', 'alt', 'title', 'class', 'id'],
+  ALLOWED_ATTR: ['href', 'src', 'alt', 'title', 'class', 'id', 'loading', 'decoding'],
   ALLOW_DATA_ATTR: false,
   FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed', 'form', 'input'],
   FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover'],
@@ -44,20 +44,50 @@ export function renderMarkdown(content: string): string {
   return sanitizeHtml(rawHtml as string);
 }
 
+/**
+ * Add loading="lazy" and decoding="async" to inline images (skip first for LCP).
+ */
+function addLazyLoading(html: string): string {
+  let count = 0;
+  return html.replace(/<img([^>]*)>/g, (match, attrs: string) => {
+    count++;
+    if (count === 1) return match; // Keep first image eager for LCP
+    if (attrs.includes('loading=')) return match;
+    return `<img${attrs} loading="lazy" decoding="async">`;
+  });
+}
+
+/**
+ * Add fallback alt text to images missing the alt attribute.
+ */
+function addAltFallback(html: string, fallback: string): string {
+  const safe = fallback.replace(/"/g, '&quot;');
+  return html.replace(/<img([^>]*)>/g, (match, attrs: string) => {
+    if (attrs.includes('alt=')) return match;
+    return `<img${attrs} alt="${safe}">`;
+  });
+}
+
 interface SafeHtmlProps {
   content: string;
   className?: string;
+  /** Fallback alt text for images missing alt attribute */
+  fallbackAlt?: string;
 }
 
 /**
  * React component for safely rendering HTML/Markdown content.
  * Sanitizes content on the server to prevent XSS attacks.
+ * Adds lazy loading to inline images and fallback alt text.
  */
-export function SafeHtml({ content, className }: SafeHtmlProps) {
+export function SafeHtml({ content, className, fallbackAlt }: SafeHtmlProps) {
+  let html = renderMarkdown(content);
+  html = addLazyLoading(html);
+  if (fallbackAlt) html = addAltFallback(html, fallbackAlt);
   return (
     <div
       className={className}
-      dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }}
+      dangerouslySetInnerHTML={{ __html: html }}
     />
   );
 }
