@@ -68,9 +68,6 @@ export function LeftPanelShell({
   onPresetSelect,
   className,
 }: LeftPanelShellProps) {
-  // DEBUG — remove after confirming
-  console.log('[panel-shell] render, TABS.length=', TABS.length);
-
   return (
     <div
       className={cn(
