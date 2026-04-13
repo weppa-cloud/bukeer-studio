@@ -357,39 +357,45 @@ export default function SeoDashboardPage() {
         overrides: overridesRes.data?.length ?? 0,
       });
 
-      // Destinations
-      const { data: destinations } = await supabase
-        .from('destinations')
-        .select('id, name, main_image, description, seo_title, seo_description')
-        .eq('account_id', accountId)
-        .is('deleted_at', null);
+      // Destinations (table may not exist in all environments)
+      try {
+        const { data: destinations, error: destError } = await supabase
+          .from('destinations')
+          .select('id, name, main_image, description, seo_title, seo_description')
+          .eq('account_id', accountId)
+          .is('deleted_at', null);
 
-      if (destinations) {
-        for (const d of destinations as any[]) {
-          const slug = slugify(d.name || '');
-          items.push({
-            id: d.id,
-            name: d.name || 'Sin nombre',
-            type: 'destination',
-            image: d.main_image || undefined,
-            slug,
-            input: {
-              type: 'destination',
+        if (destError) {
+          console.warn('[seo.dashboard.destinations]', destError.message);
+        } else if (destinations) {
+          for (const d of destinations as any[]) {
+            const slug = slugify(d.name || '');
+            items.push({
+              id: d.id,
               name: d.name || 'Sin nombre',
-              slug,
-              seoTitle: d.seo_title || undefined,
-              seoDescription: d.seo_description || undefined,
-              description: d.description || undefined,
+              type: 'destination',
               image: d.main_image || undefined,
-              hasJsonLd: true,
-              hasCanonical: true,
-              hasHreflang: true,
-              hasOgTags: true,
-              hasTwitterCard: true,
-              wordCount: countWords(d.description),
-            },
-          });
+              slug,
+              input: {
+                type: 'destination',
+                name: d.name || 'Sin nombre',
+                slug,
+                seoTitle: d.seo_title || undefined,
+                seoDescription: d.seo_description || undefined,
+                description: d.description || undefined,
+                image: d.main_image || undefined,
+                hasJsonLd: true,
+                hasCanonical: true,
+                hasHreflang: true,
+                hasOgTags: true,
+                hasTwitterCard: true,
+                wordCount: countWords(d.description),
+              },
+            });
+          }
         }
+      } catch (e) {
+        console.warn('[seo.dashboard.destinations] Table may not exist:', e);
       }
 
       // Blog posts

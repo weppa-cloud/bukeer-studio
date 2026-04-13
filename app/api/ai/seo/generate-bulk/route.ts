@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
   // Fetch items from legacy tables (parallel)
   const items: BulkItem[] = [];
 
-  const [hotelsRes, activitiesRes, transfersRes, packagesRes, overridesRes, destinationsRes, blogRes, pagesRes] = await Promise.all([
+  const [hotelsRes, activitiesRes, transfersRes, packagesRes, overridesRes, blogRes, pagesRes] = await Promise.all([
     supabase
       .from('hotels')
       .select('id, name, slug, main_image, description')
@@ -97,9 +97,6 @@ export async function POST(request: NextRequest) {
       .select('product_id, product_type, custom_seo_title, custom_seo_description, target_keyword')
       .eq('website_id', websiteId),
     supabase
-      .from('destinations')
-      .select('id, name, slug, image, description, seo_title, seo_description, target_keyword'),
-    supabase
       .from('website_blog_posts')
       .select('id, title, slug, featured_image, excerpt, seo_title, seo_description')
       .eq('website_id', websiteId),
@@ -109,11 +106,22 @@ export async function POST(request: NextRequest) {
       .eq('website_id', websiteId),
   ]);
 
+  // Destinations (table may not exist in all environments)
+  let destinationsRes: { data: any[] | null; error: any } = { data: null, error: null };
+  try {
+    destinationsRes = await supabase
+      .from('destinations')
+      .select('id, name, slug, image, description, seo_title, seo_description, target_keyword');
+  } catch (e) {
+    console.warn('[seo.bulk.destinations] Table may not exist:', e);
+  }
+
   if (hotelsRes.error) console.error('[seo.bulk.hotels]', hotelsRes.error);
   if (activitiesRes.error) console.error('[seo.bulk.activities]', activitiesRes.error);
   if (transfersRes.error) console.error('[seo.bulk.transfers]', transfersRes.error);
   if (packagesRes.error) console.error('[seo.bulk.packages]', packagesRes.error);
   if (overridesRes.error) console.error('[seo.bulk.overrides]', overridesRes.error);
+  if (destinationsRes.error) console.warn('[seo.bulk.destinations]', destinationsRes.error.message);
 
   // Build override map: "type:legacyId" → override
   const overrideMap = new Map(
