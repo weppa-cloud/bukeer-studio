@@ -60,6 +60,8 @@ interface ItemData {
     userRating?: number;
     reviewsCount?: number;
   } | null;
+  // Whether product has a website_product_pages record (public page exists)
+  hasPublicPage?: boolean;
 }
 
 // ============================================================================
@@ -358,6 +360,7 @@ async function fetchItemByType(supabase: any, type: SeoItemType, id: string, web
         longitude: v2Data?.longitude,
         images: gallery.length > 0 ? gallery : undefined,
         v2: v2Data,
+        hasPublicPage: !!override,
       };
     }
     case 'activity': {
@@ -393,6 +396,7 @@ async function fetchItemByType(supabase: any, type: SeoItemType, id: string, web
         recommendations: activity.recomendations ?? undefined,
         instructions: activity.instructions ?? undefined,
         images: gallery.length > 0 ? gallery : undefined,
+        hasPublicPage: !!override,
       };
     }
     case 'transfer': {
@@ -428,6 +432,7 @@ async function fetchItemByType(supabase: any, type: SeoItemType, id: string, web
         exclusions: transfer.exclutions ?? undefined,
         policies: transfer.policies ?? undefined,
         images: gallery.length > 0 ? gallery : undefined,
+        hasPublicPage: !!override,
       };
     }
     case 'package': {
@@ -472,6 +477,7 @@ async function fetchItemByType(supabase: any, type: SeoItemType, id: string, web
         programExclusions: Array.isArray(pkg.program_exclusions) ? pkg.program_exclusions : undefined,
         itineraryItems: count ?? 0,
         images: programGallery.length > 0 ? programGallery : undefined,
+        hasPublicPage: !!override,
       };
     }
     case 'destination': {

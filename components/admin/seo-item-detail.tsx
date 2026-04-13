@@ -65,6 +65,7 @@ interface SeoItemDetailProps {
       userRating?: number;
       reviewsCount?: number;
     } | null;
+    hasPublicPage?: boolean;
   };
   websiteId: string;
   baseUrl: string;
@@ -1075,10 +1076,28 @@ function PreviewIframe({ item, baseUrl, subdomain }: { item: SeoItemDetailProps[
   };
   const cat = categorySlug[item.type] ?? item.type;
   const publicUrl = `${baseUrl}/${cat}/${item.slug}`;
-  // Use Studio's own rendering route for the iframe preview (avoids loading external/WordPress domain)
   const previewUrl = subdomain
     ? `/site/${subdomain}/${cat}/${item.slug}`
     : publicUrl;
+
+  // Product doesn't have a public page yet
+  if (item.hasPublicPage === false) {
+    return (
+      <div className="flex flex-col items-center gap-3 py-8 text-center bg-slate-50 dark:bg-slate-700/30 rounded-lg border border-dashed border-slate-300 dark:border-slate-600">
+        <svg className="w-10 h-10 text-slate-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+        </svg>
+        <div>
+          <p className="text-sm font-medium text-slate-600 dark:text-slate-300">
+            Este producto no tiene pagina publica aun
+          </p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            Se creara automaticamente cuando se incluya en los productos destacados del sitio web, o puedes guardar los campos SEO para crear el registro.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
