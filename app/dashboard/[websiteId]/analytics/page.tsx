@@ -20,6 +20,19 @@ import {
   StudioBadge,
   StudioSelect,
 } from '@/components/studio/ui/primitives';
+import { IntegrationHealth } from '@/components/admin/integration-health';
+import { SeoBaseline28D } from '@/components/admin/seo-baseline-28d';
+import { SeoTechnicalAudit } from '@/components/admin/seo-technical-audit';
+import { SeoKeywordResearch } from '@/components/admin/seo-keyword-research';
+import { SeoSerpAnalysis } from '@/components/admin/seo-serp-analysis';
+import { SeoCompetitiveAnalysis } from '@/components/admin/seo-competitive-analysis';
+import { SeoBacklinksDashboard } from '@/components/admin/seo-backlinks-dashboard';
+import { SeoAiVisibility } from '@/components/admin/seo-ai-visibility';
+import { SeoOkrCycle } from '@/components/admin/seo-okr-cycle';
+import { SeoRevenueAttribution } from '@/components/admin/seo-revenue-attribution';
+import { SeoSchemaManager } from '@/components/admin/seo-schema-manager';
+import { SeoSetupBanner } from '@/components/admin/seo-setup-banner';
+import { SeoLocaleSettings } from '@/components/admin/seo-locale-settings';
 
 type AnalyticsTab =
   | 'overview'
@@ -364,6 +377,8 @@ export default function AnalyticsPage() {
         )}
       />
 
+      <SeoSetupBanner websiteId={websiteId} />
+
       <StudioTabs value={activeTab} onChange={setActiveTab} options={TAB_OPTIONS} className="mb-6" />
 
       {error && (
@@ -436,36 +451,56 @@ export default function AnalyticsPage() {
               <p className="text-sm text-[var(--studio-text-muted)] py-3">No data yet. Run Sync in Config.</p>
             )}
           </div>
+
+          <SeoBaseline28D overview={overview} websiteId={websiteId} />
+
+          <SeoOkrCycle websiteId={websiteId} overview={overview} />
+
+          <hr className="border-[var(--studio-border)]" />
+
+          <SeoRevenueAttribution websiteId={websiteId} />
         </div>
       )}
 
       {activeTab === 'keywords' && (
-        <div className="studio-card p-4 overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left border-b border-[var(--studio-border)]">
-                <th className="py-2">Keyword</th>
-                <th className="py-2">Locale</th>
-                <th className="py-2">Latest position</th>
-                <th className="py-2">Search volume</th>
-                <th className="py-2">Snapshot</th>
-              </tr>
-            </thead>
-            <tbody>
-              {keywords.map((row) => (
-                <tr key={row.id} className="border-b border-[var(--studio-border)]/50">
-                  <td className="py-2">{row.keyword}</td>
-                  <td className="py-2">{row.locale}</td>
-                  <td className="py-2">{row.latestPosition ?? '-'}</td>
-                  <td className="py-2">{row.latestSearchVolume ?? '-'}</td>
-                  <td className="py-2">{row.latestSnapshotDate ?? '-'}</td>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-[var(--studio-text-muted)]">
+              Palabras clave rastreadas desde Google Search Console
+            </p>
+            <a href={`/dashboard/${websiteId}/seo/architecture`}>
+              <StudioButton variant="outline" size="sm">
+                Ver Arquitectura →
+              </StudioButton>
+            </a>
+          </div>
+          <div className="studio-card p-4 overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left border-b border-[var(--studio-border)]">
+                  <th className="py-2">Keyword</th>
+                  <th className="py-2">Locale</th>
+                  <th className="py-2">Latest position</th>
+                  <th className="py-2">Search volume</th>
+                  <th className="py-2">Snapshot</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-          {!loading && keywords.length === 0 && (
-            <p className="text-sm text-[var(--studio-text-muted)] py-3">No keyword snapshots yet.</p>
-          )}
+              </thead>
+              <tbody>
+                {keywords.map((row) => (
+                  <tr key={row.id} className="border-b border-[var(--studio-border)]/50">
+                    <td className="py-2">{row.keyword}</td>
+                    <td className="py-2">{row.locale}</td>
+                    <td className="py-2">{row.latestPosition ?? '-'}</td>
+                    <td className="py-2">{row.latestSearchVolume ?? '-'}</td>
+                    <td className="py-2">{row.latestSnapshotDate ?? '-'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {!loading && keywords.length === 0 && (
+              <p className="text-sm text-[var(--studio-text-muted)] py-3">No keyword snapshots yet.</p>
+            )}
+          </div>
         </div>
       )}
 
@@ -500,58 +535,23 @@ export default function AnalyticsPage() {
       )}
 
       {activeTab === 'health' && (
-        <div className="studio-card p-4 overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left border-b border-[var(--studio-border)]">
-                <th className="py-2">URL</th>
-                <th className="py-2">Type</th>
-                <th className="py-2">Audit date</th>
-                <th className="py-2">Perf.</th>
-                <th className="py-2">LCP</th>
-                <th className="py-2">CLS</th>
-                <th className="py-2">Issues</th>
-              </tr>
-            </thead>
-            <tbody>
-              {health.map((row) => (
-                <tr key={row.id} className="border-b border-[var(--studio-border)]/50">
-                  <td className="py-2 max-w-[260px] truncate">{row.pageUrl}</td>
-                  <td className="py-2">{row.pageType}</td>
-                  <td className="py-2">{row.auditDate}</td>
-                  <td className="py-2">{row.performanceScore ?? '-'}</td>
-                  <td className="py-2">{row.lcpMs ?? '-'}</td>
-                  <td className="py-2">{row.clsScore ?? '-'}</td>
-                  <td className="py-2">C:{row.issueCountCritical} · W:{row.issueCountWarning} · I:{row.issueCountInfo}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {!loading && health.length === 0 && (
-            <p className="text-sm text-[var(--studio-text-muted)] py-3">No health audits yet.</p>
-          )}
+        <div className="space-y-4">
+          <SeoTechnicalAudit
+            health={health}
+            websiteId={websiteId}
+            integrationStatus={integrationStatus}
+            onHealthRefresh={() => loadTabData('health')}
+          />
+          <SeoSchemaManager websiteId={websiteId} />
         </div>
       )}
 
       {activeTab === 'ai-visibility' && (
-        <div className="studio-card p-4">
-          <h3 className="text-sm font-semibold text-[var(--studio-text)] mb-1">AI Visibility</h3>
-          <p className="text-sm text-[var(--studio-text-muted)]">
-            DataForSEO runs behind feature flag. Enable sync with DataForSEO in Config when credentials are ready.
-          </p>
-          <p className="text-xs text-[var(--studio-text-muted)] mt-2">
-            Current status: {integrationStatus?.dataforseo.enabled ? 'enabled' : 'disabled'} · credentials {integrationStatus?.dataforseo.connected ? 'present' : 'missing'}.
-          </p>
-        </div>
+        <SeoAiVisibility websiteId={websiteId} />
       )}
 
       {activeTab === 'backlinks' && (
-        <div className="studio-card p-4">
-          <h3 className="text-sm font-semibold text-[var(--studio-text)] mb-1">Backlinks</h3>
-          <p className="text-sm text-[var(--studio-text-muted)]">
-            Backlinks ingestion is optional in MVP. This tab is ready for DataForSEO-backed snapshots once enabled.
-          </p>
-        </div>
+        <SeoBacklinksDashboard websiteId={websiteId} />
       )}
 
       {activeTab === 'config' && (
@@ -701,6 +701,8 @@ export default function AnalyticsPage() {
               <p>GA4 average bounce rate: {pct(overview?.avgBounceRate)}</p>
             </div>
           </div>
+
+          <SeoLocaleSettings websiteId={websiteId} />
         </div>
       )}
     </StudioPage>

@@ -1,8 +1,13 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser-client';
+import { SeoHotelWorkflow } from '@/components/admin/seo-hotel-workflow';
+import { SeoActivityWorkflow } from '@/components/admin/seo-activity-workflow';
+import { SeoPackageWorkflow } from '@/components/admin/seo-package-workflow';
+import { SeoDestinationWorkflow } from '@/components/admin/seo-destination-workflow';
+import { SeoBlogWorkflow } from '@/components/admin/seo-blog-workflow';
 import {
   scoreItemSeo,
   type SeoItemType,
@@ -80,6 +85,10 @@ export default function ContenidoPage() {
   const [statusFilter, setStatusFilter] = useState<'all' | PublishStatus>('all');
   const [completenessFilter, setCompletenessFilter] = useState<'all' | Completeness>('all');
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [workflowItem, setWorkflowItem] = useState<UnifiedContentRow | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 50;
+  const destinationsUnavailableRef = useRef(false);
 
   async function loadRows() {
     setLoading(true);
@@ -357,12 +366,17 @@ export default function ContenidoPage() {
       }
 
       // Destinations table is optional in some environments.
+      if (!destinationsUnavailableRef.current) {
       try {
-        const { data: destinations } = await supabase
+        const { data: destinations, error: destError } = await supabase
           .from('destinations')
           .select('id, name, slug, main_image, description, seo_title, seo_description, target_keyword, is_published')
           .eq('account_id', accountId)
           .is('deleted_at', null);
+
+        if (destError) {
+          destinationsUnavailableRef.current = true;
+        }
 
         for (const destination of destinations || []) {
           const slug = destination.slug || slugify(destination.name || '');
@@ -394,7 +408,8 @@ export default function ContenidoPage() {
           );
         }
       } catch {
-        // Optional table; ignore.
+        destinationsUnavailableRef.current = true;
+      }
       }
 
       setRows(builtRows);
@@ -494,6 +509,13 @@ export default function ContenidoPage() {
     });
   }, [rows, search, gradeFilter, statusFilter, completenessFilter]);
 
+  useEffect(() => { setCurrentPage(1); }, [search, gradeFilter, statusFilter, completenessFilter]);
+
+  const paginatedRows = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return filteredRows.slice(start, start + PAGE_SIZE);
+  }, [filteredRows, currentPage, PAGE_SIZE]);
+
   return (
     <StudioPage className="max-w-6xl">
       <StudioSectionHeader
@@ -592,7 +614,7 @@ export default function ContenidoPage() {
                 <td className="px-3 py-6 text-[var(--studio-text-muted)]" colSpan={8}>No items match the filters.</td>
               </tr>
             ) : (
-              filteredRows.map((row) => {
+              paginatedRows.map((row) => {
                 const selectedKey = `${row.type}:${row.id}`;
                 return (
                   <tr key={selectedKey} className="border-b border-[var(--studio-border)]/50">
@@ -659,13 +681,24 @@ export default function ContenidoPage() {
                       </label>
                     </td>
                     <td className="px-3 py-2 text-right">
-                      <StudioButton
-                        size="sm"
-                        variant="outline"
-                        onClick={() => router.push(row.seoPath)}
-                      >
-                        Open SEO
-                      </StudioButton>
+                      <div className="inline-flex items-center gap-1">
+                        <StudioButton
+                          size="sm"
+                          variant="outline"
+                          onClick={() => router.push(row.seoPath)}
+                        >
+                          Open SEO
+                        </StudioButton>
+                        {(row.type === 'hotel' || row.type === 'activity' || row.type === 'package' || row.type === 'destination' || row.type === 'blog') && (
+                          <StudioButton
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setWorkflowItem(row)}
+                          >
+                            Flujo SEO →
+                          </StudioButton>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );
@@ -673,7 +706,60 @@ export default function ContenidoPage() {
             )}
           </tbody>
         </table>
+        {filteredRows.length > PAGE_SIZE && (
+          <div className="flex items-center justify-between px-3 py-3 border-t border-[var(--studio-border)]">
+            <p className="text-xs text-[var(--studio-text-muted)]">
+              {(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, filteredRows.length)} de {filteredRows.length}
+            </p>
+            <div className="flex items-center gap-2">
+              <StudioButton size="sm" variant="outline" disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)}>←</StudioButton>
+              <span className="text-xs text-[var(--studio-text-muted)]">{currentPage} / {Math.ceil(filteredRows.length / PAGE_SIZE)}</span>
+              <StudioButton size="sm" variant="outline" disabled={currentPage * PAGE_SIZE >= filteredRows.length} onClick={() => setCurrentPage(p => p + 1)}>→</StudioButton>
+            </div>
+          </div>
+        )}
       </div>
+
+      {workflowItem?.type === 'hotel' && (
+        <SeoHotelWorkflow
+          itemName={workflowItem.name}
+          websiteId={websiteId}
+          seoPath={workflowItem.seoPath}
+          onClose={() => setWorkflowItem(null)}
+        />
+      )}
+      {workflowItem?.type === 'activity' && (
+        <SeoActivityWorkflow
+          itemName={workflowItem.name}
+          websiteId={websiteId}
+          seoPath={workflowItem.seoPath}
+          onClose={() => setWorkflowItem(null)}
+        />
+      )}
+      {workflowItem?.type === 'package' && (
+        <SeoPackageWorkflow
+          itemName={workflowItem.name}
+          websiteId={websiteId}
+          seoPath={workflowItem.seoPath}
+          onClose={() => setWorkflowItem(null)}
+        />
+      )}
+      {workflowItem?.type === 'destination' && (
+        <SeoDestinationWorkflow
+          itemName={workflowItem.name}
+          websiteId={websiteId}
+          seoPath={workflowItem.seoPath}
+          onClose={() => setWorkflowItem(null)}
+        />
+      )}
+      {workflowItem?.type === 'blog' && (
+        <SeoBlogWorkflow
+          itemName={workflowItem.name}
+          websiteId={websiteId}
+          seoPath={workflowItem.seoPath}
+          onClose={() => setWorkflowItem(null)}
+        />
+      )}
     </StudioPage>
   );
 }

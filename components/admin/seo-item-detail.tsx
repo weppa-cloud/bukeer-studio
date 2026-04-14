@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { cn } from '@/lib/utils';
 import { StudioTabs, StudioButton, StudioBadge, StudioInput, StudioTextarea } from '@/components/studio/ui/primitives';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser-client';
 import {
@@ -11,8 +12,9 @@ import {
   type SeoScoringResult,
 } from '@/lib/seo/unified-scorer';
 import type { KeywordResearchDTO } from '@/lib/seo/dto';
+import { SeoContentScore } from '@/components/admin/seo-content-score';
 
-type DetailTab = 'meta' | 'research' | 'audit' | 'technical' | 'preview';
+type DetailTab = 'meta' | 'research' | 'audit' | 'technical' | 'preview' | 'score';
 
 const TAB_OPTIONS: ReadonlyArray<{ id: DetailTab; label: string }> = [
   { id: 'meta', label: 'Meta & Keywords' },
@@ -20,6 +22,7 @@ const TAB_OPTIONS: ReadonlyArray<{ id: DetailTab; label: string }> = [
   { id: 'audit', label: 'Content Audit' },
   { id: 'technical', label: 'Technical' },
   { id: 'preview', label: 'Preview' },
+  { id: 'score', label: 'Content Score' },
 ];
 
 const GRADE_TONE: Record<string, 'success' | 'info' | 'warning' | 'danger'> = {
@@ -119,6 +122,7 @@ export function SeoItemDetail({
   onSave,
 }: SeoItemDetailProps) {
   const [activeTab, setActiveTab] = useState<DetailTab>('meta');
+  const [locale, setLocale] = useState('es-CO');
   const [seoTitle, setSeoTitle] = useState(item.seoTitle ?? '');
   const [seoDescription, setSeoDescription] = useState(item.seoDescription ?? '');
   const [targetKeyword, setTargetKeyword] = useState(item.targetKeyword ?? '');
@@ -157,9 +161,11 @@ export function SeoItemDetail({
       seoTitle: seoTitle || undefined,
       seoDescription: seoDescription || undefined,
       targetKeyword: targetKeyword || undefined,
-      hasJsonLd: true,
-      hasCanonical: true,
-      hasHreflang: true,
+      // B7: hasJsonLd computed from real content signals — true when item has name + at least one enriching field
+      hasJsonLd: Boolean(item.name) && (Boolean(item.description) || Boolean(seoTitle) || Boolean(item.image)),
+      // B7: hasCanonical/hasHreflang set to false — cannot verify without live page fetch
+      hasCanonical: false,
+      hasHreflang: false,
       hasOgTags: true,
       hasTwitterCard: true,
     }),
@@ -337,6 +343,23 @@ export function SeoItemDetail({
           <div>
             <h1 className="text-xl font-semibold text-[var(--studio-text)]">{item.name}</h1>
             <p className="text-sm text-[var(--studio-text-muted)] capitalize">{item.type}</p>
+            <div className="flex items-center gap-1.5 mt-1.5">
+              {['es-CO', 'es-MX', 'en-US'].map((loc) => (
+                <button
+                  key={loc}
+                  type="button"
+                  onClick={() => setLocale(loc)}
+                  className={cn(
+                    'px-2 py-0.5 text-xs rounded border',
+                    locale === loc
+                      ? 'bg-[var(--studio-accent)] text-white border-[var(--studio-accent)]'
+                      : 'border-[var(--studio-border)] text-[var(--studio-text-muted)]'
+                  )}
+                >
+                  {loc}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -578,6 +601,10 @@ export function SeoItemDetail({
             </div>
           )}
         </div>
+      )}
+
+      {activeTab === 'score' && (
+        <SeoContentScore item={{ id: item.id, type: item.type, websiteId }} />
       )}
     </div>
   );
