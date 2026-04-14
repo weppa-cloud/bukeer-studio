@@ -377,7 +377,7 @@ export default function AnalyticsPage() {
         )}
       />
 
-      <SeoSetupBanner websiteId={websiteId} />
+      <SeoSetupBanner websiteId={websiteId} gscConnected={integrationStatus?.gsc.connected ?? false} />
 
       <StudioTabs value={activeTab} onChange={setActiveTab} options={TAB_OPTIONS} className="mb-6" />
 
@@ -501,6 +501,7 @@ export default function AnalyticsPage() {
               <p className="text-sm text-[var(--studio-text-muted)] py-3">No keyword snapshots yet.</p>
             )}
           </div>
+          <SeoKeywordResearch websiteId={websiteId} />
         </div>
       )}
 

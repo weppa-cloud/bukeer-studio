@@ -8,6 +8,7 @@ import { SeoActivityWorkflow } from '@/components/admin/seo-activity-workflow';
 import { SeoPackageWorkflow } from '@/components/admin/seo-package-workflow';
 import { SeoDestinationWorkflow } from '@/components/admin/seo-destination-workflow';
 import { SeoBlogWorkflow } from '@/components/admin/seo-blog-workflow';
+import { SeoBacklog } from '@/components/admin/seo-backlog';
 import {
   scoreItemSeo,
   type SeoItemType,
@@ -760,6 +761,7 @@ export default function ContenidoPage() {
           onClose={() => setWorkflowItem(null)}
         />
       )}
+      <SeoBacklog websiteId={websiteId} />
     </StudioPage>
   );
 }

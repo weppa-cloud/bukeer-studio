@@ -24,6 +24,13 @@ interface DynamicPageProps {
   }>;
 }
 
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, fallback: T): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((resolve) => setTimeout(() => resolve(fallback), timeoutMs)),
+  ]);
+}
+
 /**
  * Build alternate language links for Next.js metadata `alternates.languages`
  */
@@ -264,7 +271,8 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
     if (dest) {
       const [products, serpData] = await Promise.all([
         getDestinationProducts(subdomain, dest.name),
-        enrichDestinationFromSerpAPI(dest.name),
+        // Prevent slow external enrichment from blocking destination detail navigation.
+        withTimeout(enrichDestinationFromSerpAPI(dest.name), 1200, null),
       ]);
       return <DestinationDetailPage website={website} destination={dest} products={products} serpEnrichment={serpData} />;
     }
