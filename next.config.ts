@@ -2,15 +2,19 @@ import type { NextConfig } from "next";
 import bundleAnalyzer from "@next/bundle-analyzer";
 
 // OpenNext: initialize Cloudflare bindings for local dev (no-op in production)
-if (process.env.NODE_ENV === 'development') {
-  import('@opennextjs/cloudflare').then((m) => {
-    if ('initOpenNextCloudflareForDev' in m) {
-      (m as { initOpenNextCloudflareForDev: () => void }).initOpenNextCloudflareForDev();
-    }
-  }).catch(() => {
-    // @opennextjs/cloudflare not installed — skip (e.g. CI lint-only)
-  });
-}
+// TEMPORARILY DISABLED — initOpenNextCloudflareForDev() breaks Next.js App Router
+// client-side navigation (Link clicks, router.push don't work). The Cloudflare
+// bindings (R2, DO, KV) are only needed for ISR cache and queue features which
+// are not critical in local development. Re-enable when OpenNext fixes this.
+// See: https://github.com/opennextjs/opennextjs-cloudflare/issues
+//
+// if (process.env.NODE_ENV === 'development') {
+//   import('@opennextjs/cloudflare').then((m) => {
+//     if ('initOpenNextCloudflareForDev' in m) {
+//       (m as { initOpenNextCloudflareForDev: () => void }).initOpenNextCloudflareForDev();
+//     }
+//   }).catch(() => {});
+// }
 
 const withBundleAnalyzer = bundleAnalyzer({
   enabled: process.env.ANALYZE === "true",
