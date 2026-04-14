@@ -509,16 +509,26 @@ export async function getKeywords(websiteId: string): Promise<KeywordRowDTO[]> {
   const keywords = keywordsData ?? [];
   if (!keywords.length) return [];
 
+  // Fetch snapshots in batches of 100 to avoid URL length limits with large .in() clauses
   const keywordIds = keywords.map((k) => k.id);
-  const { data: snapshotsData, error: snapshotsError } = await supabase
-    .from('seo_keyword_snapshots')
-    .select('keyword_id, snapshot_date, position, search_volume')
-    .in('keyword_id', keywordIds)
-    .order('snapshot_date', { ascending: false });
+  const BATCH_SIZE = 100;
+  const allSnapshots: Array<{ keyword_id: string; snapshot_date: string; position: number | null; search_volume: number | null }> = [];
 
-  if (snapshotsError) {
-    throw new SeoApiError('INTERNAL_ERROR', 'Failed to load keyword snapshots', 500, snapshotsError.message);
+  for (let i = 0; i < keywordIds.length; i += BATCH_SIZE) {
+    const batch = keywordIds.slice(i, i + BATCH_SIZE);
+    const { data: batchData, error: snapshotsError } = await supabase
+      .from('seo_keyword_snapshots')
+      .select('keyword_id, snapshot_date, position, search_volume')
+      .in('keyword_id', batch)
+      .order('snapshot_date', { ascending: false });
+
+    if (snapshotsError) {
+      throw new SeoApiError('INTERNAL_ERROR', 'Failed to load keyword snapshots', 500, snapshotsError.message);
+    }
+    allSnapshots.push(...(batchData ?? []));
   }
+
+  const snapshotsData = allSnapshots;
 
   const snapshotsByKeyword = new Map<string, Array<{ snapshot_date: string; position: number | null; search_volume: number | null }>>();
   for (const row of snapshotsData ?? []) {

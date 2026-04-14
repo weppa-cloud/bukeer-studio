@@ -9,6 +9,7 @@ interface SeoQuickStartWizardProps {
   websiteId: string;
   onComplete: () => void;
   onNavigateToConfig?: () => void;
+  gscConnected?: boolean;
 }
 
 interface WizardData {
@@ -119,6 +120,7 @@ export function SeoQuickStartWizard({
   websiteId,
   onComplete,
   onNavigateToConfig,
+  gscConnected = false,
 }: SeoQuickStartWizardProps) {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
@@ -366,15 +368,20 @@ export function SeoQuickStartWizard({
                 <p className="text-sm font-medium text-[var(--studio-text)]">
                   Google Search Console
                 </p>
-                <StudioBadge tone="warning">No conectado</StudioBadge>
+                <StudioBadge tone={gscConnected ? 'success' : 'warning'}>
+                  {gscConnected ? 'Conectado' : 'No conectado'}
+                </StudioBadge>
               </div>
               <p className="text-xs text-[var(--studio-text-muted)]">
-                Conecta tu cuenta de Google para importar datos de búsqueda reales directamente a tu
-                panel de Analytics.
+                {gscConnected
+                  ? 'GSC está conectado. Los datos de búsqueda ya se importan automáticamente.'
+                  : 'Conecta tu cuenta de Google para importar datos de búsqueda reales directamente a tu panel de Analytics.'}
               </p>
-              <StudioButton size="sm" onClick={handleNavigateToConfig}>
-                Conectar GSC →
-              </StudioButton>
+              {!gscConnected && (
+                <StudioButton size="sm" onClick={handleNavigateToConfig}>
+                  Conectar GSC →
+                </StudioButton>
+              )}
             </div>
             <button
               type="button"

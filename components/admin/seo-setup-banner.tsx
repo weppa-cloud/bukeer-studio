@@ -7,11 +7,12 @@ import { SeoQuickStartWizard } from './seo-quick-start-wizard';
 
 interface SeoSetupBannerProps {
   websiteId: string;
+  gscConnected?: boolean;
 }
 
 type BannerState = 'loading' | 'visible' | 'hidden';
 
-export function SeoSetupBanner({ websiteId }: SeoSetupBannerProps) {
+export function SeoSetupBanner({ websiteId, gscConnected }: SeoSetupBannerProps) {
   const [bannerState, setBannerState] = useState<BannerState>('loading');
   const [showWizard, setShowWizard] = useState(false);
 
@@ -80,7 +81,7 @@ export function SeoSetupBanner({ websiteId }: SeoSetupBannerProps) {
       </div>
 
       {showWizard && (
-        <SeoQuickStartWizard websiteId={websiteId} onComplete={handleComplete} />
+        <SeoQuickStartWizard websiteId={websiteId} onComplete={handleComplete} gscConnected={gscConnected} />
       )}
     </>
   );
