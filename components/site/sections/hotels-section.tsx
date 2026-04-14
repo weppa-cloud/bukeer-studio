@@ -63,6 +63,20 @@ export function HotelsSection({ section, website }: HotelsSectionProps) {
             <HotelCard key={hotel.id} hotel={hotel} index={index} subdomain={website.subdomain} />
           ))}
         </div>
+
+        <div className="mt-8 flex justify-center">
+          <Link
+            href={`/site/${website.subdomain}/hoteles`}
+            className="inline-flex items-center justify-center rounded-full px-6 py-2.5 text-sm font-medium"
+            style={{
+              backgroundColor: 'var(--bg-card)',
+              border: '1px solid var(--border-medium)',
+              color: 'var(--text-heading)',
+            }}
+          >
+            Ver todos los hoteles
+          </Link>
+        </div>
       </div>
     </section>
   );
@@ -92,11 +106,17 @@ function SectionHeading({ title, subtitle }: { title: string; subtitle?: string 
 }
 
 function HotelCard({ hotel, index, subdomain }: { hotel: HotelItem; index: number; subdomain: string }) {
-  const detailTarget = (hotel.slug || hotel.id || '').trim();
-  const detailHref = detailTarget ? `/site/${subdomain}/hoteles/${encodeURIComponent(detailTarget)}` : '#cta';
+  const detailSlug = (hotel.slug || '').trim();
+  const detailHref = detailSlug
+    ? `/site/${subdomain}/hoteles/${encodeURIComponent(detailSlug)}`
+    : `/site/${subdomain}/hoteles`;
 
   return (
-    <Link href={detailHref} className="block" aria-label={`Ver detalle de ${hotel.name}`}>
+    <Link
+      href={detailHref}
+      className="block"
+      aria-label={`Ver detalle de ${hotel.name}`}
+    >
       <motion.article
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -107,7 +127,7 @@ function HotelCard({ hotel, index, subdomain }: { hotel: HotelItem; index: numbe
       >
         <div className="relative h-52 overflow-hidden">
           {hotel.image ? (
-            <Image src={hotel.image} alt={hotel.name} fill className="object-cover" />
+            <Image src={hotel.image} alt={hotel.name} fill draggable={false} className="object-cover" />
           ) : (
             <div className="w-full h-full" style={{ backgroundColor: 'var(--bg-card)' }} />
           )}

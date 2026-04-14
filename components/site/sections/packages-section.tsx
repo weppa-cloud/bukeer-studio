@@ -58,6 +58,20 @@ export function PackagesSection({ section, website }: PackagesSectionProps) {
               <PackageCard key={pkg.id} pkg={pkg} index={index} subdomain={website.subdomain} />
             ))}
           </div>
+
+          <div className="mt-8 flex justify-center">
+            <Link
+              href={`/site/${website.subdomain}/paquetes`}
+              className="inline-flex items-center justify-center rounded-full px-6 py-2.5 text-sm font-medium"
+              style={{
+                backgroundColor: 'var(--bg-card)',
+                border: '1px solid var(--border-medium)',
+                color: 'var(--text-heading)',
+              }}
+            >
+              Ver todos los paquetes
+            </Link>
+          </div>
         </div>
       </section>
     );
@@ -71,6 +85,20 @@ export function PackagesSection({ section, website }: PackagesSectionProps) {
           {packages.map((pkg, index) => (
             <PackageCard key={pkg.id} pkg={pkg} index={index} subdomain={website.subdomain} />
           ))}
+        </div>
+
+        <div className="mt-8 flex justify-center">
+          <Link
+            href={`/site/${website.subdomain}/paquetes`}
+            className="inline-flex items-center justify-center rounded-full px-6 py-2.5 text-sm font-medium"
+            style={{
+              backgroundColor: 'var(--bg-card)',
+              border: '1px solid var(--border-medium)',
+              color: 'var(--text-heading)',
+            }}
+          >
+            Ver todos los paquetes
+          </Link>
         </div>
       </div>
     </section>
@@ -101,8 +129,10 @@ function SectionHeading({ eyebrow, title, subtitle }: { eyebrow: string; title: 
 }
 
 function PackageCard({ pkg, index, subdomain }: { pkg: PackageItem; index: number; subdomain: string }) {
-  const detailTarget = (pkg.slug || pkg.id || '').trim();
-  const detailHref = detailTarget ? `/site/${subdomain}/paquetes/${encodeURIComponent(detailTarget)}` : '#cta';
+  const detailSlug = (pkg.slug || '').trim();
+  const detailHref = detailSlug
+    ? `/site/${subdomain}/paquetes/${encodeURIComponent(detailSlug)}`
+    : `/site/${subdomain}/paquetes`;
 
   return (
     <Link
@@ -121,7 +151,13 @@ function PackageCard({ pkg, index, subdomain }: { pkg: PackageItem; index: numbe
       >
         <div className="relative h-52 overflow-hidden">
           {pkg.image ? (
-            <Image src={pkg.image} alt={pkg.name} fill className="object-cover transition-transform duration-700 group-hover:scale-105" />
+            <Image
+              src={pkg.image}
+              alt={pkg.name}
+              fill
+              draggable={false}
+              className="object-cover transition-transform duration-700 group-hover:scale-105"
+            />
           ) : (
             <div className="w-full h-full" style={{ backgroundColor: 'var(--bg-card)' }} />
           )}

@@ -3,7 +3,7 @@
 import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRef, useEffect, useCallback, MouseEvent } from 'react';
+import { useRef, MouseEvent } from 'react';
 import { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 
 interface DestinationsSectionProps {
@@ -111,6 +111,7 @@ function TiltCard({ destination, href }: { destination: Destination; href: strin
               src={destination.image}
               alt={destination.name}
               fill
+              draggable={false}
               className="object-cover"
             />
           ) : (
@@ -136,92 +137,6 @@ function TiltCard({ destination, href }: { destination: Destination; href: strin
         </div>
       </motion.div>
     </Link>
-  );
-}
-
-/** Auto-scroll row with manual drag support */
-function ScrollRow({ children, direction = 'left', speed = 0.5 }: { children: React.ReactNode; direction?: 'left' | 'right'; speed?: number }) {
-  const rowRef = useRef<HTMLDivElement>(null);
-  const isDragging = useRef(false);
-  const startX = useRef(0);
-  const startScroll = useRef(0);
-  const pauseUntil = useRef(0);
-  const rafId = useRef(0);
-
-  // Auto-scroll loop
-  useEffect(() => {
-    const el = rowRef.current;
-    if (!el) return;
-
-    // Start at middle for infinite feel
-    const half = el.scrollWidth / 2;
-    if (direction === 'right') el.scrollLeft = half;
-
-    const tick = () => {
-      if (!isDragging.current && Date.now() > pauseUntil.current) {
-        const dir = direction === 'left' ? speed : -speed;
-        el.scrollLeft += dir;
-        // Loop: when reaching end/start, jump to the duplicate set
-        if (direction === 'left' && el.scrollLeft >= half) el.scrollLeft -= half;
-        if (direction === 'right' && el.scrollLeft <= 0) el.scrollLeft += half;
-      }
-      rafId.current = requestAnimationFrame(tick);
-    };
-    rafId.current = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(rafId.current);
-  }, [direction, speed]);
-
-  const onMouseDown = useCallback((e: React.MouseEvent) => {
-    isDragging.current = true;
-    startX.current = e.pageX;
-    startScroll.current = rowRef.current?.scrollLeft ?? 0;
-  }, []);
-
-  const onMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!isDragging.current || !rowRef.current) return;
-    e.preventDefault();
-    rowRef.current.scrollLeft = startScroll.current - (e.pageX - startX.current) * 1.5;
-  }, []);
-
-  const onMouseUp = useCallback(() => {
-    isDragging.current = false;
-    pauseUntil.current = Date.now() + 3000; // pause auto-scroll 3s after drag
-  }, []);
-
-  const onMouseEnter = useCallback(() => {
-    pauseUntil.current = Date.now() + 60000; // pause on hover
-  }, []);
-
-  const onMouseLeave = useCallback(() => {
-    isDragging.current = false;
-    pauseUntil.current = Date.now() + 1000; // resume 1s after leave
-  }, []);
-
-  return (
-    <div
-      ref={rowRef}
-      className="flex gap-5 overflow-x-hidden cursor-grab active:cursor-grabbing select-none"
-      onMouseDown={onMouseDown}
-      onMouseMove={onMouseMove}
-      onMouseUp={onMouseUp}
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
-      onTouchStart={(e) => {
-        isDragging.current = true;
-        startX.current = e.touches[0].pageX;
-        startScroll.current = rowRef.current?.scrollLeft ?? 0;
-      }}
-      onTouchMove={(e) => {
-        if (!isDragging.current || !rowRef.current) return;
-        rowRef.current.scrollLeft = startScroll.current - (e.touches[0].pageX - startX.current) * 1.5;
-      }}
-      onTouchEnd={() => {
-        isDragging.current = false;
-        pauseUntil.current = Date.now() + 3000;
-      }}
-    >
-      {children}
-    </div>
   );
 }
 
@@ -340,6 +255,7 @@ export function DestinationsSection({ section, website }: DestinationsSectionPro
                       src={destination.image}
                       alt={destination.name}
                       fill
+                      draggable={false}
                       className="object-cover group-hover:scale-110 transition-transform duration-500"
                     />
                   ) : (
@@ -391,6 +307,7 @@ export function DestinationsSection({ section, website }: DestinationsSectionPro
                       src={destination.image}
                       alt={destination.name}
                       fill
+                      draggable={false}
                       className="object-cover group-hover:scale-110 transition-transform duration-500"
                     />
                   ) : (
@@ -432,6 +349,7 @@ export function DestinationsSection({ section, website }: DestinationsSectionPro
                       src={destination.image}
                       alt={destination.name}
                       fill
+                      draggable={false}
                       className="object-cover group-hover:scale-110 transition-transform duration-500"
                     />
                   ) : (
@@ -473,36 +391,19 @@ export function DestinationsSection({ section, website }: DestinationsSectionPro
           </div>
         )}
 
-        {/* Marquee variant — dual-row auto-scroll + mouse/touch drag */}
+        {/* Marquee variant — stable horizontal scroll (click-first, no auto-loop) */}
         {variant === 'marquee' && destinations.length > 0 && (
-          <div className="relative overflow-hidden -mx-[calc((100vw-100%)/2)]">
-            {/* Fade edges */}
-            <div className="pointer-events-none absolute inset-y-0 left-0 w-16 md:w-28 z-10 bg-gradient-to-r from-[var(--bg,hsl(var(--background)))] to-transparent" />
-            <div className="pointer-events-none absolute inset-y-0 right-0 w-16 md:w-28 z-10 bg-gradient-to-l from-[var(--bg,hsl(var(--background)))] to-transparent" />
-
-            {/* Row 1 — auto-scrolls left, draggable */}
-            <div className="mb-5">
-              <ScrollRow direction="left" speed={0.6}>
-                {[...destinations, ...destinations].map((d, i) => (
+          <div className="overflow-x-auto pb-3 snap-x snap-mandatory">
+            <div className="flex gap-5 w-max pr-2">
+              {destinations.map((d) => (
+                <div key={`marquee-${d.id}`} className="snap-start">
                   <MarqueeCard
-                    key={`r1-${d.id}-${i}`}
                     d={d}
                     href={getDestinationHref(d, website.subdomain)}
                   />
-                ))}
-              </ScrollRow>
-            </div>
-
-            {/* Row 2 — auto-scrolls right, draggable */}
-            <ScrollRow direction="right" speed={0.4}>
-              {[...destinations, ...destinations].reverse().map((d, i) => (
-                <MarqueeCard
-                  key={`r2-${d.id}-${i}`}
-                  d={d}
-                  href={getDestinationHref(d, website.subdomain)}
-                />
+                </div>
               ))}
-            </ScrollRow>
+            </div>
           </div>
         )}
 
@@ -510,6 +411,23 @@ export function DestinationsSection({ section, website }: DestinationsSectionPro
         {destinations.length === 0 && (
           <div className="text-center py-16 text-muted-foreground">
             <p>No hay destinos configurados</p>
+          </div>
+        )}
+
+        {destinations.length > 0 && (
+          <div className="mt-8 flex justify-center">
+            <Link
+              href={`/site/${website.subdomain}/destinos`}
+              prefetch={false}
+              className="inline-flex items-center justify-center rounded-full px-6 py-2.5 text-sm font-medium"
+              style={{
+                backgroundColor: 'var(--bg-card)',
+                border: '1px solid var(--border-medium)',
+                color: 'var(--text-heading)',
+              }}
+            >
+              Ver todos los destinos
+            </Link>
           </div>
         )}
       </div>

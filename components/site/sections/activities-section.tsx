@@ -65,6 +65,20 @@ export function ActivitiesSection({ section, website }: ActivitiesSectionProps) 
             <ActivityCard key={activity.id} activity={activity} index={index} subdomain={website.subdomain} />
           ))}
         </div>
+
+        <div className="mt-8 flex justify-center">
+          <Link
+            href={`/site/${website.subdomain}/actividades`}
+            className="inline-flex items-center justify-center rounded-full px-6 py-2.5 text-sm font-medium"
+            style={{
+              backgroundColor: 'var(--bg-card)',
+              border: '1px solid var(--border-medium)',
+              color: 'var(--text-heading)',
+            }}
+          >
+            Ver todas las actividades
+          </Link>
+        </div>
       </div>
     </section>
   );
@@ -94,11 +108,17 @@ function SectionHeading({ title, subtitle }: { title: string; subtitle?: string 
 }
 
 function ActivityCard({ activity, index, subdomain }: { activity: ActivityItem; index: number; subdomain: string }) {
-  const detailTarget = (activity.slug || activity.id || '').trim();
-  const detailHref = detailTarget ? `/site/${subdomain}/actividades/${encodeURIComponent(detailTarget)}` : '#cta';
+  const detailSlug = (activity.slug || '').trim();
+  const detailHref = detailSlug
+    ? `/site/${subdomain}/actividades/${encodeURIComponent(detailSlug)}`
+    : `/site/${subdomain}/actividades`;
 
   return (
-    <Link href={detailHref} className="block" aria-label={`Ver detalle de ${activity.name}`}>
+    <Link
+      href={detailHref}
+      className="block"
+      aria-label={`Ver detalle de ${activity.name}`}
+    >
       <motion.article
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -109,7 +129,7 @@ function ActivityCard({ activity, index, subdomain }: { activity: ActivityItem; 
       >
         <div className="relative h-52 overflow-hidden">
           {activity.image ? (
-            <Image src={activity.image} alt={activity.name} fill className="object-cover" />
+            <Image src={activity.image} alt={activity.name} fill draggable={false} className="object-cover" />
           ) : (
             <div className="w-full h-full" style={{ backgroundColor: 'var(--bg-card)' }} />
           )}

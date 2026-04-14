@@ -93,8 +93,12 @@ export function SiteHeader({ website, isCustomDomain = false, navigation }: Site
           {/* Mobile: 3 fixed zones (menu left, centered logo, CTA right) */}
           <div className="lg:hidden h-full relative flex items-center justify-between">
             <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="flex items-center justify-center w-10 h-10 rounded-lg transition-colors"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setMobileMenuOpen((open) => !open);
+              }}
+              className="relative z-30 flex items-center justify-center w-10 h-10 rounded-lg transition-colors"
               style={{ color: scrolled ? 'var(--text-heading, hsl(var(--foreground)))' : 'white' }}
               aria-label="Menu"
             >
@@ -105,12 +109,15 @@ export function SiteHeader({ website, isCustomDomain = false, navigation }: Site
               )}
             </button>
 
-            <Link href={`${basePath}/`} className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2 shrink-0 group">
+            <Link
+              href={`${basePath}/`}
+              className="absolute left-1/2 -translate-x-1/2 z-20 flex items-center justify-center max-w-[56vw] px-2 shrink-0 group"
+            >
               {siteLogo ? (
                 <img
                   src={siteLogo}
                   alt={siteName}
-                  className={`w-auto object-contain transition-all duration-500 ${scrolled ? 'h-8' : 'h-10'}`}
+                  className={`w-auto max-w-full object-contain transition-all duration-500 ${scrolled ? 'h-8' : 'h-10'}`}
                 />
               ) : (
                 <span
@@ -122,7 +129,7 @@ export function SiteHeader({ website, isCustomDomain = false, navigation }: Site
               )}
             </Link>
 
-            <div className="flex items-center justify-end min-w-10">
+            <div className="relative z-30 flex items-center justify-end min-w-10">
               {whatsappUrl ? (
                 <a
                   href={whatsappUrl}
@@ -263,8 +270,11 @@ export function SiteHeader({ website, isCustomDomain = false, navigation }: Site
           <>
             {/* Dark backdrop */}
             <div
-              className="lg:hidden fixed inset-0 z-40"
-              style={{ background: 'rgba(0, 0, 0, 0.5)' }}
+              className="lg:hidden fixed left-0 right-0 bottom-0 z-40"
+              style={{
+                background: 'rgba(0, 0, 0, 0.5)',
+                top: scrolled ? '56px' : '80px',
+              }}
               onClick={closeMobile}
               aria-hidden="true"
             />
