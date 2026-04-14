@@ -1,32 +1,31 @@
 import { test, expect } from '@playwright/test';
+import { gotoWebsiteSection } from './helpers';
 
 test.describe('Design Tab', () => {
   test.use({ storageState: 'e2e/.auth/user.json' });
 
   test('change theme preset', async ({ page }) => {
-    await page.goto('/dashboard/e2e-test-website/design');
+    await gotoWebsiteSection(page, 'design');
+    await expect(page.getByRole('heading', { name: 'Design & Brand' })).toBeVisible();
 
-    // Click tropical preset
-    await page.getByText('Tropical').click();
+    await page.getByRole('button', { name: /^Tropical$/ }).click();
 
-    // Verify color picker updated
-    await expect(page.locator('input[type="color"]')).toHaveValue('#00897B');
+    await expect(page.locator('input[type="color"]')).toHaveValue('#00897b');
   });
 
   test('change primary color', async ({ page }) => {
-    await page.goto('/dashboard/e2e-test-website/design');
+    await gotoWebsiteSection(page, 'design');
 
     const hexInput = page.locator('input[maxlength="7"]');
     await hexInput.clear();
-    await hexInput.fill('#FF5722');
+    await hexInput.fill('#ff5722');
 
-    // Verify live preview updates
-    await expect(page.locator('[style*="FF5722"]')).toBeTruthy();
+    await expect(page.locator('input[type="color"]')).toHaveValue('#ff5722');
   });
 
   test('switch to brand kit section', async ({ page }) => {
-    await page.goto('/dashboard/e2e-test-website/design');
+    await gotoWebsiteSection(page, 'design');
     await page.getByRole('button', { name: 'Brand Kit' }).click();
-    await expect(page.getByText('Logo')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Logo' })).toBeVisible();
   });
 });

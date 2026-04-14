@@ -1,21 +1,24 @@
 import { test, expect } from '@playwright/test';
+import { gotoWebsiteSection } from './helpers';
 
 test.describe('Leads Tab', () => {
   test.use({ storageState: 'e2e/.auth/user.json' });
 
   test('shows leads table', async ({ page }) => {
-    await page.goto('/dashboard/e2e-test-website/quotes');
-    await expect(page.getByText('Leads & Quotes')).toBeVisible();
+    await gotoWebsiteSection(page, 'quotes');
+    await expect(page.getByRole('heading', { name: 'Leads & Quotes' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Export CSV' })).toBeVisible();
   });
 
   test('filter by status', async ({ page }) => {
-    await page.goto('/dashboard/e2e-test-website/quotes');
-    await page.getByRole('button', { name: 'new' }).click();
-    await expect(page.getByRole('button', { name: 'new' })).toHaveClass(/bg-blue/);
+    await gotoWebsiteSection(page, 'quotes');
+    const newTab = page.getByRole('button', { name: 'New' });
+    await newTab.click();
+    await expect(newTab).toHaveClass(/studio-tab-active/);
   });
 
   test('export CSV', async ({ page }) => {
-    await page.goto('/dashboard/e2e-test-website/quotes');
+    await gotoWebsiteSection(page, 'quotes');
     const [download] = await Promise.all([
       page.waitForEvent('download'),
       page.getByRole('button', { name: /export csv/i }).click(),

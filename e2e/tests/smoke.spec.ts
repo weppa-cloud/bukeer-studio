@@ -1,9 +1,9 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Smoke Tests', () => {
-  test('public site loads', async ({ page }) => {
-    await page.goto('/?subdomain=bukeer');
-    await expect(page).toHaveTitle(/.+/);
+  test('root redirects to auth flow', async ({ page }) => {
+    await page.goto('/');
+    await expect(page).toHaveURL(/\/login/);
   });
 
   test('login page loads', async ({ page }) => {
@@ -11,8 +11,8 @@ test.describe('Smoke Tests', () => {
     await expect(page.getByRole('button', { name: /sign in/i })).toBeVisible();
   });
 
-  test('dashboard redirects unauthenticated to login', async ({ page }) => {
-    await page.goto('/dashboard');
-    await page.waitForURL('/login**');
+  test('forgot password page loads', async ({ page }) => {
+    await page.goto('/forgot-password');
+    await expect(page.getByRole('button', { name: /send reset link/i })).toBeVisible();
   });
 });

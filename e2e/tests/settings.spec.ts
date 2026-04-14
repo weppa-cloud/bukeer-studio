@@ -1,29 +1,37 @@
 import { test, expect } from '@playwright/test';
+import { gotoWebsiteSection } from './helpers';
 
 test.describe('Settings Tab', () => {
   test.use({ storageState: 'e2e/.auth/user.json' });
 
   test('shows subdomain editor', async ({ page }) => {
-    await page.goto('/dashboard/e2e-test-website/settings');
-    await expect(page.getByText('Subdomain')).toBeVisible();
+    await gotoWebsiteSection(page, 'settings');
+    await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Subdomain' })).toBeVisible();
     await expect(page.getByText('.bukeer.com')).toBeVisible();
   });
 
   test('domain wizard step-by-step', async ({ page }) => {
-    await page.goto('/dashboard/e2e-test-website/settings');
-    await page.getByRole('button', { name: /domain/i }).click();
+    await gotoWebsiteSection(page, 'settings');
+    await page.getByRole('button', { name: 'Domain' }).click();
+
+    const connectedBanner = page.getByText('Domain connected');
+    if (await connectedBanner.isVisible().catch(() => false)) {
+      await page.getByRole('button', { name: 'Remove custom domain' }).click();
+    }
 
     await page.getByPlaceholder('www.myagency.com').fill('test.example.com');
-    await page.getByRole('button', { name: /continue/i }).click();
+    await page.getByRole('button', { name: 'Continue' }).click();
 
-    await expect(page.getByText('CNAME')).toBeVisible();
-    await expect(page.getByText('cname.bukeer.com')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Step 1: Add CNAME record' })).toBeVisible();
+    await expect(page.getByText('cname.bukeer.com', { exact: true })).toBeVisible();
   });
 
   test('danger zone requires confirmation', async ({ page }) => {
-    await page.goto('/dashboard/e2e-test-website/settings');
+    await gotoWebsiteSection(page, 'settings');
 
-    await page.getByRole('button', { name: /delete/i }).last().click();
+    await page.getByRole('button', { name: 'Delete' }).click();
+    await expect(page.getByRole('heading', { name: 'Delete website' })).toBeVisible();
     await expect(page.getByText('Type')).toBeVisible();
   });
 });

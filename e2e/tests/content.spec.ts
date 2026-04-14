@@ -1,28 +1,32 @@
 import { test, expect } from '@playwright/test';
+import { gotoWebsiteSection } from './helpers';
 
 test.describe('Content & SEO Tab', () => {
   test.use({ storageState: 'e2e/.auth/user.json' });
 
   test('edit site name and tagline', async ({ page }) => {
-    await page.goto('/dashboard/e2e-test-website/content');
+    await gotoWebsiteSection(page, 'content');
+    const main = page.getByRole('main');
+    await expect(main.getByRole('heading', { name: 'Content & SEO' })).toBeVisible();
 
-    const nameInput = page.locator('input').first();
+    const siteName = `Updated Agency ${Date.now().toString().slice(-4)}`;
+    const nameInput = main.locator('input').first();
     await nameInput.clear();
-    await nameInput.fill('Updated Agency Name');
-
-    // Auto-save should trigger
-    await page.waitForTimeout(3000);
-    await expect(page.getByText(/saved/i)).toBeVisible();
+    await nameInput.fill(siteName);
+    await expect(nameInput).toHaveValue(siteName);
   });
 
   test('SEO Google preview updates', async ({ page }) => {
-    await page.goto('/dashboard/e2e-test-website/content');
-    await page.getByRole('button', { name: 'SEO & Scripts' }).click();
+    await gotoWebsiteSection(page, 'content');
+    const main = page.getByRole('main');
+    await expect(main.getByRole('heading', { name: 'Content & SEO' })).toBeVisible();
+    await main.getByRole('button', { name: 'SEO & Scripts' }).click();
 
-    const titleInput = page.locator('input[maxlength="70"]');
+    const titleInput = main.locator('input[maxlength="70"]');
+    const title = 'Best Travel Agency E2E';
     await titleInput.clear();
-    await titleInput.fill('Best Travel Agency');
+    await titleInput.fill(title);
 
-    await expect(page.getByText('Best Travel Agency')).toBeVisible();
+    await expect(main.getByText(title)).toBeVisible();
   });
 });

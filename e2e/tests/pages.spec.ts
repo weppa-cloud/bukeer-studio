@@ -1,24 +1,25 @@
 import { test, expect } from '@playwright/test';
+import { gotoWebsiteSection } from './helpers';
 
 test.describe('Pages Tab', () => {
   test.use({ storageState: 'e2e/.auth/user.json' });
 
   test('create a new page', async ({ page }) => {
-    await page.goto('/dashboard/e2e-test-website/pages');
-    await page.getByRole('button', { name: /add page/i }).click();
+    await gotoWebsiteSection(page, 'pages');
+    await expect(page.getByRole('heading', { name: 'Pages' })).toBeVisible();
+    await page.getByRole('button', { name: /add page/i }).first().click();
 
-    await page.getByPlaceholder('About Us').fill('Contact');
-    await expect(page.getByPlaceholder('about-us')).toHaveValue('contact');
+    const title = `Contact ${Date.now().toString().slice(-4)}`;
+    await page.getByPlaceholder('About Us').fill(title);
+    await expect(page.getByPlaceholder('about-us')).toHaveValue(/contact-/);
 
     await page.getByRole('button', { name: 'Create' }).click();
-
-    await expect(page.getByText('Contact')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Create page' })).not.toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('button', { name: 'Drag to reorder' }).first()).toBeVisible();
   });
 
   test('page list shows drag handles on hover', async ({ page }) => {
-    await page.goto('/dashboard/e2e-test-website/pages');
-    const firstPage = page.locator('[class*="group"]').first();
-    await firstPage.hover();
-    await expect(firstPage.getByLabel(/drag/i)).toBeVisible();
+    await gotoWebsiteSection(page, 'pages');
+    await expect(page.getByRole('button', { name: 'Drag to reorder' }).first()).toBeVisible();
   });
 });

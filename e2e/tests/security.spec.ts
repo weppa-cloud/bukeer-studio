@@ -14,12 +14,13 @@ test.describe('Security', () => {
     expect([401, 405]).toContain(response.status());
   });
 
-  test('direct access to other account website is blocked', async ({ page }) => {
+  test.describe('authenticated', () => {
     test.use({ storageState: 'e2e/.auth/user.json' });
-
+    test('direct access to other account website is blocked', async ({ page }) => {
     // Try accessing a website that doesn't belong to the test account
     await page.goto('/dashboard/non-existent-website-id/pages');
     // Should redirect to dashboard
     await page.waitForURL('/dashboard');
+  });
   });
 });

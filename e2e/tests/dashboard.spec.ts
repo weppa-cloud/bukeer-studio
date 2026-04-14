@@ -12,21 +12,23 @@ test.describe('Dashboard', () => {
     await page.goto('/dashboard/new');
 
     // Step 1: Select template
-    await page.getByText('Corporate').click();
+    await page.getByRole('button', { name: /^Corporate\b/i }).click();
+    await expect(page.getByRole('heading', { name: 'Name your website' })).toBeVisible();
 
     // Step 2: Name & subdomain
-    await page.getByPlaceholder('My Travel Agency').fill('Test Agency');
-    await expect(page.getByPlaceholder('my-agency')).toHaveValue(/test-agency/);
-    await page.getByRole('button', { name: 'Next' }).click();
+    const name = `Test Agency ${Date.now().toString().slice(-4)}`;
+    await page.getByPlaceholder('My Travel Agency').fill(name);
+    await expect(page.getByPlaceholder('my-agency')).toHaveValue(/test-agency-/);
+    await page.getByRole('button', { name: 'Next', exact: true }).click();
 
     // Step 3: Review
-    await expect(page.getByText('Test Agency')).toBeVisible();
-    await expect(page.getByText('test-agency.bukeer.com')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Review & Create' })).toBeVisible();
+    await expect(page.getByText(name)).toBeVisible();
   });
 
-  test('command palette opens with Cmd+K', async ({ page }) => {
+  test('command palette opens from topbar search trigger', async ({ page }) => {
     await page.goto('/dashboard');
-    await page.keyboard.press('Meta+k');
+    await page.getByRole('button', { name: /search/i }).first().click();
     await expect(page.getByPlaceholder(/search/i)).toBeVisible();
   });
 });

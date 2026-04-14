@@ -1,28 +1,27 @@
 import { test, expect } from '@playwright/test';
+import { gotoWebsiteSection } from './helpers';
 
 test.describe('Blog Tab', () => {
   test.use({ storageState: 'e2e/.auth/user.json' });
 
-  test('create new blog post', async ({ page }) => {
-    await page.goto('/dashboard/e2e-test-website/blog');
-    await page.getByRole('button', { name: /new post/i }).click();
-
-    // Should redirect to editor
-    await page.waitForURL(/\/blog\/[^/]+$/);
-    await expect(page.getByPlaceholder(/post title/i)).toBeVisible();
+  test('blog route redirects to contenido', async ({ page }) => {
+    await gotoWebsiteSection(page, 'blog');
+    await page.waitForURL(/\/dashboard\/[^/]+\/contenido/);
+    await expect(page.getByRole('heading', { name: 'Contenido' })).toBeVisible();
   });
 
-  test('filter posts by status', async ({ page }) => {
-    await page.goto('/dashboard/e2e-test-website/blog');
-    await page.getByRole('button', { name: 'draft' }).click();
-    // Verify filter is active
-    await expect(page.getByRole('button', { name: 'draft' })).toHaveClass(/bg-blue/);
+  test('contenido exposes blog entries in unified table', async ({ page }) => {
+    await gotoWebsiteSection(page, 'blog');
+    await page.waitForURL(/\/dashboard\/[^/]+\/contenido/);
+
+    await expect(page.getByPlaceholder('Buscar por nombre, slug o tipo...')).toBeVisible();
+    await page.getByRole('combobox').nth(1).selectOption('published');
+    await expect(page.getByRole('columnheader', { name: 'Type' })).toBeVisible();
   });
 
-  test('toggle grid/list view', async ({ page }) => {
-    await page.goto('/dashboard/e2e-test-website/blog');
-    // Default is grid, switch to list
-    await page.locator('button[class*="rounded"]').last().click();
-    // Verify list layout
+  test('contenido keeps SEO action available', async ({ page }) => {
+    await gotoWebsiteSection(page, 'blog');
+    await page.waitForURL(/\/dashboard\/[^/]+\/contenido/);
+    await expect(page.getByRole('columnheader', { name: 'Actions' })).toBeVisible();
   });
 });
