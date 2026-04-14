@@ -20,8 +20,22 @@ export function DestinationListingPage({
 }: DestinationListingPageProps) {
   const basePath = getBasePath(website.subdomain);
 
-  // Filter out destinations with fewer than 2 products
-  const visibleDestinations = destinations.filter((d) => d.total >= 2);
+  // Filter and dedupe by slug to avoid duplicated cards with unstable React keys
+  const visibleDestinations = useMemo(() => {
+    const bySlug = new Map<string, DestinationData>();
+
+    for (const destination of destinations) {
+      if (destination.total < 2) continue;
+      const slugKey = destination.slug?.trim() || destination.id;
+      const current = bySlug.get(slugKey);
+
+      if (!current || destination.total > current.total) {
+        bySlug.set(slugKey, destination);
+      }
+    }
+
+    return Array.from(bySlug.values());
+  }, [destinations]);
 
   // Convert to route points for the map
   const routePoints = visibleDestinations.map((d) => ({
@@ -133,7 +147,7 @@ export function DestinationListingPage({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {visibleDestinations.map((dest, index) => (
             <motion.div
-              key={dest.slug}
+              key={`${dest.id}-${index}`}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.1 * index }}

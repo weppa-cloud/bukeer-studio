@@ -76,8 +76,11 @@ export function DestinationDetailPage({
       (destination.min_price ? ` Precios desde ${destination.min_price}.` : '');
   }
 
-  const hotels = products.filter((p) => p.type === 'hotel');
+  const packages = products.filter(
+    (p) => p.type === 'package' || p.type === 'package_kit'
+  );
   const activities = products.filter((p) => p.type === 'activity');
+  const hotels = products.filter((p) => p.type === 'hotel');
 
   const heroImage =
     (enrichment.photos.length > 0 ? enrichment.photos[0] : null) ||
@@ -103,7 +106,8 @@ export function DestinationDetailPage({
     review_count: enrichment.reviewCount || undefined,
   };
 
-  const whatsappNumber = (website as any)?.social?.whatsapp || '';
+  const websiteSocial = (website as unknown as { social?: { whatsapp?: string } }).social;
+  const whatsappNumber = websiteSocial?.whatsapp || '';
   const whatsappUrl = whatsappNumber
     ? `https://wa.me/${whatsappNumber.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hola! Me interesa viajar a ${destination.name}`)}`
     : null;
@@ -416,21 +420,21 @@ export function DestinationDetailPage({
         </BlurFade>
       )}
 
-      {/* Hotels Grid */}
-      {hotels.length > 0 && (
+      {/* Packages Grid */}
+      {packages.length > 0 && (
         <BlurFade delay={0.4}>
           <section className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto py-12">
             <h2
               className="text-3xl font-bold mb-8"
               style={{ color: 'var(--text-heading)' }}
             >
-              Hoteles en {destination.name}
+              Paquetes en {destination.name}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {hotels.map((hotel) => (
+              {packages.map((pkg) => (
                 <Link
-                  key={hotel.id}
-                  href={`${basePath}/hoteles/${hotel.slug}`}
+                  key={pkg.id}
+                  href={`${basePath}/paquetes/${pkg.slug}`}
                 >
                   <motion.div
                     className="rounded-2xl overflow-hidden shadow-md group cursor-pointer"
@@ -439,10 +443,10 @@ export function DestinationDetailPage({
                     transition={{ duration: 0.3 }}
                   >
                     <div className="relative" style={{ aspectRatio: '16/10' }}>
-                      {hotel.image ? (
+                      {pkg.image ? (
                         <Image
-                          src={hotel.image}
-                          alt={`Hotel ${hotel.name} en ${destination.name}`}
+                          src={pkg.image}
+                          alt={`Paquete ${pkg.name} en ${destination.name}`}
                           fill
                           className="object-cover transition-transform duration-500 group-hover:scale-105"
                           sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
@@ -459,21 +463,29 @@ export function DestinationDetailPage({
                         className="text-lg font-bold"
                         style={{ color: 'var(--text-heading)' }}
                       >
-                        {hotel.name}
+                        {pkg.name}
                       </h3>
-                      {hotel.price && (
+                      {pkg.duration && (
+                        <p
+                          className="text-sm mt-1"
+                          style={{ color: 'var(--text-muted)' }}
+                        >
+                          {pkg.duration}
+                        </p>
+                      )}
+                      {pkg.price && (
                         <p
                           className="text-sm mt-1"
                           style={{ color: 'var(--accent)' }}
                         >
-                          Desde {hotel.price}
+                          Desde {pkg.price}
                         </p>
                       )}
                       <p
                         className="text-sm font-medium mt-3 inline-flex items-center gap-1"
                         style={{ color: 'var(--accent)' }}
                       >
-                        Ver Hotel
+                        Ver Paquete
                         <span aria-hidden="true">&rarr;</span>
                       </p>
                     </div>
@@ -547,6 +559,75 @@ export function DestinationDetailPage({
                       )}
                       <p className="text-sm font-medium mt-2 text-white/90 inline-flex items-center gap-1">
                         Ver Actividad
+                        <span aria-hidden="true">&rarr;</span>
+                      </p>
+                    </div>
+                  </motion.div>
+                </Link>
+              ))}
+            </div>
+          </section>
+        </BlurFade>
+      )}
+
+      {/* Hotels Grid */}
+      {hotels.length > 0 && (
+        <BlurFade delay={0.55}>
+          <section className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto py-12">
+            <h2
+              className="text-3xl font-bold mb-8"
+              style={{ color: 'var(--text-heading)' }}
+            >
+              Hoteles en {destination.name}
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {hotels.map((hotel) => (
+                <Link
+                  key={hotel.id}
+                  href={`${basePath}/hoteles/${hotel.slug}`}
+                >
+                  <motion.div
+                    className="rounded-2xl overflow-hidden shadow-md group cursor-pointer"
+                    style={{ background: 'var(--surface-primary)' }}
+                    whileHover={{ y: -4 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <div className="relative" style={{ aspectRatio: '16/10' }}>
+                      {hotel.image ? (
+                        <Image
+                          src={hotel.image}
+                          alt={`Hotel ${hotel.name} en ${destination.name}`}
+                          fill
+                          className="object-cover transition-transform duration-500 group-hover:scale-105"
+                          sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                        />
+                      ) : (
+                        <div
+                          className="absolute inset-0"
+                          style={{ background: 'var(--surface-secondary)' }}
+                        />
+                      )}
+                    </div>
+                    <div className="p-5">
+                      <h3
+                        className="text-lg font-bold"
+                        style={{ color: 'var(--text-heading)' }}
+                      >
+                        {hotel.name}
+                      </h3>
+                      {hotel.price && (
+                        <p
+                          className="text-sm mt-1"
+                          style={{ color: 'var(--accent)' }}
+                        >
+                          Desde {hotel.price}
+                        </p>
+                      )}
+                      <p
+                        className="text-sm font-medium mt-3 inline-flex items-center gap-1"
+                        style={{ color: 'var(--accent)' }}
+                      >
+                        Ver Hotel
                         <span aria-hidden="true">&rarr;</span>
                       </p>
                     </div>
