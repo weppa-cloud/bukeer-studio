@@ -1,3 +1,27 @@
+import { z } from 'zod';
+
+// ─── Score 5D ────────────────────────────────────────────────────────────────
+
+const GradeSchema = z.enum(['A', 'B', 'C', 'D', 'F']);
+
+const Score5DDimensionSchema = z.object({
+  score: z.number().min(0).max(100),
+  grade: GradeSchema,
+  details: z.array(z.string()),
+});
+
+/** Score across 5 SEO dimensions (d1-d5). */
+export const Score5DResultSchema = z.object({
+  d1: Score5DDimensionSchema,
+  d2: Score5DDimensionSchema,
+  d3: Score5DDimensionSchema,
+  d4: Score5DDimensionSchema,
+  d5: Score5DDimensionSchema,
+});
+export type Score5DResult = z.infer<typeof Score5DResultSchema>;
+
+// ─── DTOs ─────────────────────────────────────────────────────────────────────
+
 export interface IntegrationStatusDTO {
   websiteId: string;
   gsc: {

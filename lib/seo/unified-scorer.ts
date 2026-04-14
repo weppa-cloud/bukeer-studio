@@ -159,7 +159,7 @@ export function scoreItemSeo(input: SeoScoringInput): SeoScoringResult {
   checks.push({
     id: 'keyword_in_description', dimension: 'meta', maxPoints: 3,
     pass: kwInDesc || !keyword, score: kwDescScore,
-    message: !keyword ? 'Sin keyword objetivo definida' : kwInDesc ? 'Keyword en meta descripción' : 'Keyword ausente de meta descripción',
+    message: !keyword ? 'Sin keyword en meta descripción' : kwInDesc ? 'Keyword en meta descripción' : 'Keyword ausente de meta descripción',
   });
 
   // #5: OG tags complete — 5pts
