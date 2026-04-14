@@ -37,6 +37,7 @@ export const seoGenerateRequestSchema = z.object({
     durationDays: z.number().optional(),
     durationNights: z.number().optional(),
     galleryCount: z.number().optional(),
+    packageContextJson: z.record(z.string(), z.unknown()).optional(),
   }).optional(),
 });
 
@@ -157,6 +158,9 @@ export function buildSeoUserPrompt(data: GenerateSeoRequest): string {
     if (ctx.exclusions) parts.push(`No incluye: ${ctx.exclusions.substring(0, 300)}`);
     if (ctx.recommendations) parts.push(`Recomendaciones: ${ctx.recommendations.substring(0, 300)}`);
     if (ctx.galleryCount) parts.push(`Galeria: ${ctx.galleryCount} fotos`);
+    if (ctx.packageContextJson) {
+      parts.push(`Contexto JSON del paquete: ${JSON.stringify(ctx.packageContextJson).substring(0, 1800)}`);
+    }
   }
 
   parts.push('\nGenera titulo SEO, meta description y keyword objetivo optimizados.');

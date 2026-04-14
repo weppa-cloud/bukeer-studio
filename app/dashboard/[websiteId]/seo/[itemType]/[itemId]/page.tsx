@@ -117,7 +117,7 @@ export default function SeoItemDetailPage() {
   }, [websiteId, itemType, itemId]);
 
   const handleBack = () => {
-    router.push(`/dashboard/${websiteId}/seo`);
+    router.push(`/dashboard/${websiteId}/contenido`);
   };
 
   const handleSave = async (fields: {
@@ -235,7 +235,7 @@ export default function SeoItemDetailPage() {
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
           </svg>
-          Volver a SEO
+          Volver a Contenido
         </button>
         <p className="text-red-500">{error || 'Item no encontrado'}</p>
       </div>

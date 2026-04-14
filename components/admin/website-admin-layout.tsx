@@ -6,19 +6,21 @@ import { WebsiteProvider, useWebsite } from '@/lib/admin/website-context';
 
 const TABS = [
   { slug: 'pages', label: 'Pages' },
-  { slug: 'blog', label: 'Blog' },
+  { slug: 'contenido', label: 'Contenido' },
   { slug: 'design', label: 'Design' },
-  { slug: 'content', label: 'Content & SEO' },
-  { slug: 'products', label: 'Products' },
-  { slug: 'seo', label: 'SEO Audit' },
   { slug: 'analytics', label: 'Analytics' },
-  { slug: 'quotes', label: 'Leads' },
   { slug: 'settings', label: 'Settings' },
 ];
 
 function WebsiteHeader({ websiteId, websiteName }: { websiteId: string; websiteName: string }) {
   const pathname = usePathname();
-  const activeTab = TABS.find((t) => pathname.includes(`/${t.slug}`))?.slug || 'pages';
+  const inferredTab =
+    pathname.includes('/seo/')
+    || pathname.includes('/blog/')
+    || pathname.includes('/products/')
+      ? 'contenido'
+      : TABS.find((t) => pathname.includes(`/${t.slug}`))?.slug;
+  const activeTab = inferredTab || 'pages';
 
   return (
     <div className="bg-[var(--studio-bg-elevated)] border-b border-[var(--studio-border)]">
@@ -74,29 +76,21 @@ function WebsiteHeader({ websiteId, websiteName }: { websiteId: string; websiteN
 }
 
 function DirtyDot() {
-  try {
-    const { isDirty } = useWebsite();
-    if (!isDirty) return null;
-    return <span className="w-2 h-2 rounded-full bg-amber-400" title="Unsaved changes" />;
-  } catch {
-    return null;
-  }
+  const { isDirty } = useWebsite();
+  if (!isDirty) return null;
+  return <span className="w-2 h-2 rounded-full bg-amber-400" title="Unsaved changes" />;
 }
 
 function PublishButton() {
-  try {
-    const { publish, website } = useWebsite();
-    return (
-      <button
-        onClick={() => publish()}
-        className="studio-btn studio-btn-primary studio-btn-md"
-      >
-        {website?.status === 'published' ? 'Update' : 'Publish'}
-      </button>
-    );
-  } catch {
-    return null;
-  }
+  const { publish, website } = useWebsite();
+  return (
+    <button
+      onClick={() => publish()}
+      className="studio-btn studio-btn-primary studio-btn-md"
+    >
+      {website?.status === 'published' ? 'Update' : 'Publish'}
+    </button>
+  );
 }
 
 interface WebsiteAdminLayoutProps {
