@@ -61,10 +61,10 @@ export function PlannersSection({ section, website }: PlannersSectionProps) {
             <p className="font-mono text-xs tracking-[0.15em] uppercase mb-3" style={{ color: 'var(--accent)' }}>
               {eyebrow}
             </p>
-            <h2 style={{ fontSize: 'var(--text-display-md)', color: 'var(--text-heading)' }}>
+            <h2 className="section-title" style={{ color: 'var(--text-heading)' }}>
               {title}
             </h2>
-            <p className="mt-4 max-w-xl mx-auto" style={{ color: 'var(--text-secondary)' }}>
+            <p className="section-subtitle mt-4 max-w-xl mx-auto" style={{ color: 'var(--text-secondary)' }}>
               {subtitle}
             </p>
           </div>

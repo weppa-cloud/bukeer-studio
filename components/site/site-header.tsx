@@ -1,12 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { useTheme } from 'next-themes';
 import { useState, useEffect, useCallback } from 'react';
 import { WebsiteData } from '@/lib/supabase/get-website';
 import { getBasePath } from '@/lib/utils/base-path';
 import { resolveNavHref } from '@/lib/utils/navigation';
-import type { NavigationItem, HeaderCTA, HeaderVariant, SiteParts } from '@bukeer/website-contract';
+import type { NavigationItem, HeaderCTA } from '@bukeer/website-contract';
 
 interface SiteHeaderProps {
   website: WebsiteData;
@@ -15,15 +14,11 @@ interface SiteHeaderProps {
 }
 
 export function SiteHeader({ website, isCustomDomain = false, navigation }: SiteHeaderProps) {
-  const { theme, setTheme } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [scrolled, setScrolled] = useState(false);
-  const [mounted, setMounted] = useState(false);
 
-  const { content, theme: siteTheme, subdomain, site_parts: siteParts } = website;
-  const profile = siteTheme?.profile as Record<string, unknown> | undefined;
-  const layout = profile?.layout as Record<string, string> | undefined;
+  const { content, subdomain } = website;
   const basePath = getBasePath(subdomain, isCustomDomain);
 
   const siteName = content.account?.name || content.siteName;
@@ -32,15 +27,24 @@ export function SiteHeader({ website, isCustomDomain = false, navigation }: Site
   const phone = content.account?.phone || content.social?.whatsapp;
 
   // Fallback navigation
-  const navLinks: NavigationItem[] = navigation || [
+  const navFallback: NavigationItem[] = [
     { slug: 'destinations', label: 'Destinos', page_type: 'anchor', href: `${basePath}/#destinations`, target: '_self' },
     { slug: 'packages', label: 'Paquetes', page_type: 'anchor', href: `${basePath}/#packages`, target: '_self' },
     { slug: 'activities', label: 'Experiencias', page_type: 'anchor', href: `${basePath}/#activities`, target: '_self' },
     { slug: 'about', label: 'Nosotros', page_type: 'anchor', href: `${basePath}/#about`, target: '_self' },
-    { slug: 'contact', label: 'Contacto', page_type: 'anchor', href: `${basePath}/#contact`, target: '_self' },
+    { slug: 'cta', label: 'Asesoría', page_type: 'anchor', href: `${basePath}/#cta`, target: '_self' },
   ];
-
-  useEffect(() => setMounted(true), []);
+  const navLinks: NavigationItem[] = (navigation || navFallback)
+    .filter((link) => !(link.slug?.toLowerCase() === 'contact' && link.page_type === 'anchor'))
+    .map((link) => {
+      if (link.slug?.toLowerCase() !== 'contact') return link;
+      return {
+        ...link,
+        slug: 'cta',
+        label: 'Asesoría',
+        href: `${basePath}/#cta`,
+      };
+    });
 
   // Scroll detection — always active for immersive header
   useEffect(() => {
@@ -85,27 +89,84 @@ export function SiteHeader({ website, isCustomDomain = false, navigation }: Site
           boxShadow: scrolled ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
         }}
       >
-        <nav className={`container flex items-center justify-between transition-all duration-500 ${scrolled ? 'h-14' : 'h-20'}`}>
-          {/* Logo */}
-          <Link href={`${basePath}/`} className="flex items-center gap-2 shrink-0 group">
-            {siteLogo ? (
-              <img
-                src={siteLogo}
-                alt={siteName}
-                className={`w-auto object-contain transition-all duration-500 ${scrolled ? 'h-8' : 'h-11'}`}
-              />
-            ) : (
-              <span
-                className={`font-bold tracking-tight transition-all duration-500 ${scrolled ? 'text-lg' : 'text-xl'}`}
-                style={{ color: scrolled ? 'var(--text-heading, hsl(var(--foreground)))' : 'white', textShadow: scrolled ? 'none' : '0 1px 3px rgba(0,0,0,0.3)' }}
-              >
-                {siteName}
-              </span>
-            )}
-          </Link>
+        <nav className={`container relative transition-all duration-500 ${scrolled ? 'h-14' : 'h-20'}`}>
+          {/* Mobile: 3 fixed zones (menu left, centered logo, CTA right) */}
+          <div className="lg:hidden h-full relative flex items-center justify-between">
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="flex items-center justify-center w-10 h-10 rounded-lg transition-colors"
+              style={{ color: scrolled ? 'var(--text-heading, hsl(var(--foreground)))' : 'white' }}
+              aria-label="Menu"
+            >
+              {mobileMenuOpen ? (
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              ) : (
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+              )}
+            </button>
+
+            <Link href={`${basePath}/`} className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2 shrink-0 group">
+              {siteLogo ? (
+                <img
+                  src={siteLogo}
+                  alt={siteName}
+                  className={`w-auto object-contain transition-all duration-500 ${scrolled ? 'h-8' : 'h-10'}`}
+                />
+              ) : (
+                <span
+                  className={`font-bold tracking-tight transition-all duration-500 ${scrolled ? 'text-base' : 'text-lg'}`}
+                  style={{ color: scrolled ? 'var(--text-heading, hsl(var(--foreground)))' : 'white', textShadow: scrolled ? 'none' : '0 1px 3px rgba(0,0,0,0.3)' }}
+                >
+                  {siteName}
+                </span>
+              )}
+            </Link>
+
+            <div className="flex items-center justify-end min-w-10">
+              {whatsappUrl ? (
+                <a
+                  href={whatsappUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center w-10 h-10 rounded-full transition-transform hover:scale-105"
+                  style={{ backgroundColor: 'var(--accent)', color: 'var(--accent-text)' }}
+                  aria-label="WhatsApp"
+                >
+                  <WhatsAppIcon className="w-5 h-5" />
+                </a>
+              ) : (
+                <Link
+                  href={`${basePath}/#cta`}
+                  className="flex items-center justify-center w-10 h-10 rounded-full transition-transform hover:scale-105"
+                  style={{ backgroundColor: 'var(--accent)', color: 'var(--accent-text)' }}
+                  aria-label="Asesoría"
+                >
+                  <CalendarIcon className="w-4 h-4" />
+                </Link>
+              )}
+            </div>
+          </div>
 
           {/* Desktop Nav */}
-          <div className="hidden lg:flex items-center gap-1">
+          <div className="hidden lg:flex h-full items-center justify-between">
+            <Link href={`${basePath}/`} className="flex items-center gap-2 shrink-0 group">
+              {siteLogo ? (
+                <img
+                  src={siteLogo}
+                  alt={siteName}
+                  className={`w-auto object-contain transition-all duration-500 ${scrolled ? 'h-8' : 'h-11'}`}
+                />
+              ) : (
+                <span
+                  className={`font-bold tracking-tight transition-all duration-500 ${scrolled ? 'text-lg' : 'text-xl'}`}
+                  style={{ color: scrolled ? 'var(--text-heading, hsl(var(--foreground)))' : 'white', textShadow: scrolled ? 'none' : '0 1px 3px rgba(0,0,0,0.3)' }}
+                >
+                  {siteName}
+                </span>
+              )}
+            </Link>
+
+            <div className="flex items-center gap-1">
             {navLinks.map((link) => {
               const href = resolveNavHref(link, basePath);
               const hasChildren = link.children && link.children.length > 0;
@@ -191,38 +252,9 @@ export function SiteHeader({ website, isCustomDomain = false, navigation }: Site
                 <span>Planear mi viaje</span>
               </a>
             ) : (
-              <HeaderCtaButton cta={headerCta} content={content} />
+              <HeaderCtaButton cta={headerCta} />
             )}
           </div>
-
-          {/* Mobile: WhatsApp + Burger */}
-          <div className="flex items-center gap-2 lg:hidden">
-            {whatsappUrl && (
-              <a
-                href={whatsappUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center w-10 h-10 rounded-full transition-transform hover:scale-105"
-                style={{ background: '#25D366' }}
-                aria-label="WhatsApp"
-              >
-                <WhatsAppIcon className="w-5 h-5 text-white" />
-              </a>
-            )}
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 rounded-lg transition-colors"
-              style={{
-                color: scrolled ? 'var(--text-heading, hsl(var(--foreground)))' : 'white',
-              }}
-              aria-label="Menu"
-            >
-              {mobileMenuOpen ? (
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-              ) : (
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
-              )}
-            </button>
           </div>
         </nav>
 
@@ -241,6 +273,7 @@ export function SiteHeader({ website, isCustomDomain = false, navigation }: Site
               className="lg:hidden fixed inset-0 top-14 z-50 overflow-y-auto"
               style={{
                 background: 'var(--bg, hsl(var(--background)))',
+                top: scrolled ? '56px' : '80px',
               }}
             >
               <nav className="container py-6 flex flex-col gap-1">
@@ -308,7 +341,7 @@ export function SiteHeader({ website, isCustomDomain = false, navigation }: Site
 }
 
 /** Header CTA button — configurable or fallback */
-function HeaderCtaButton({ cta, content }: { cta?: HeaderCTA; content: WebsiteData['content'] }) {
+function HeaderCtaButton({ cta }: { cta?: HeaderCTA }) {
   if (cta?.enabled && cta.label && cta.href) {
     const isExternal = cta.variant === 'whatsapp' || cta.href.startsWith('http');
     return (

@@ -63,7 +63,7 @@ export function CtaSection({ section, website }: CtaSectionProps) {
         <div className="text-center max-w-3xl mx-auto">
           <BlurFade delay={0} blur="8px">
             <h2
-              className="text-3xl md:text-4xl lg:text-5xl font-bold"
+              className="section-title"
               style={{ color: 'var(--accent-text)' }}
             >
               {title}
@@ -72,7 +72,7 @@ export function CtaSection({ section, website }: CtaSectionProps) {
 
           {sectionContent.subtitle && (
             <BlurFade delay={0.15}>
-              <p className="mt-6 text-lg" style={{ color: 'var(--accent-text)', opacity: 0.9 }}>
+              <p className="section-subtitle mt-6" style={{ color: 'var(--accent-text)', opacity: 0.9 }}>
                 {sectionContent.subtitle}
               </p>
             </BlurFade>

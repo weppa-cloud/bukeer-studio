@@ -1,14 +1,23 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, useMotionValue, useTransform, PanInfo } from 'framer-motion';
 import Image from 'next/image';
+import type { ReactNode } from 'react';
 
 interface CardCarouselProps {
   images: string[];
   alt: string;
   aspectRatio?: string;
   className?: string;
+}
+
+interface MobileCardCarouselProps<T> {
+  items: T[];
+  renderItem: (item: T, index: number) => ReactNode;
+  getItemKey?: (item: T, index: number) => string;
+  ariaLabel?: string;
+  itemWidthClassName?: string;
 }
 
 /**
@@ -120,6 +129,147 @@ export function CardCarousel({ images, alt, aspectRatio = '16/10', className = '
           <span className="w-1.5 h-1.5 rounded-full bg-white/40" />
         )}
       </motion.div>
+    </div>
+  );
+}
+
+/**
+ * Mobile-first card rail with prev/next controls and active indicator.
+ * Desktop layouts should be handled by each section (grid/snap strategy).
+ */
+export function MobileCardCarousel<T>({
+  items,
+  renderItem,
+  getItemKey,
+  ariaLabel = 'Carrusel',
+  itemWidthClassName = 'w-[86%] sm:w-[72%]',
+}: MobileCardCarouselProps<T>) {
+  const railRef = useRef<HTMLDivElement>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  const updateActiveByScroll = useCallback(() => {
+    const rail = railRef.current;
+    if (!rail) return;
+
+    const firstCard = rail.querySelector<HTMLElement>('[data-carousel-card="true"]');
+    if (!firstCard) return;
+
+    const cardWidth = firstCard.offsetWidth;
+    if (cardWidth === 0) return;
+
+    const computed = window.getComputedStyle(rail);
+    const gap = parseFloat(computed.columnGap || computed.gap || '0') || 0;
+    const step = cardWidth + gap;
+    const nextIndex = Math.round(rail.scrollLeft / step);
+    const bounded = Math.max(0, Math.min(nextIndex, items.length - 1));
+    setActiveIndex(bounded);
+  }, [items.length]);
+
+  useEffect(() => {
+    const rail = railRef.current;
+    if (!rail) return;
+
+    const onScroll = () => updateActiveByScroll();
+    rail.addEventListener('scroll', onScroll, { passive: true });
+    updateActiveByScroll();
+
+    return () => {
+      rail.removeEventListener('scroll', onScroll);
+    };
+  }, [updateActiveByScroll]);
+
+  const scrollToIndex = useCallback((index: number) => {
+    const rail = railRef.current;
+    if (!rail) return;
+
+    const firstCard = rail.querySelector<HTMLElement>('[data-carousel-card="true"]');
+    if (!firstCard) return;
+
+    const cardWidth = firstCard.offsetWidth;
+    const computed = window.getComputedStyle(rail);
+    const gap = parseFloat(computed.columnGap || computed.gap || '0') || 0;
+    const step = cardWidth + gap;
+
+    const bounded = Math.max(0, Math.min(index, items.length - 1));
+    rail.scrollTo({ left: bounded * step, behavior: 'smooth' });
+    setActiveIndex(bounded);
+  }, [items.length]);
+
+  if (items.length === 0) return null;
+
+  return (
+    <div className="md:hidden">
+      <div
+        ref={railRef}
+        className="flex gap-4 overflow-x-auto snap-x snap-mandatory scroll-smooth pb-2"
+        style={{ scrollbarWidth: 'none' }}
+        aria-label={ariaLabel}
+      >
+        {items.map((item, index) => (
+          <div
+            key={getItemKey ? getItemKey(item, index) : String(index)}
+            data-carousel-card="true"
+            className={`snap-start shrink-0 ${itemWidthClassName}`}
+          >
+            {renderItem(item, index)}
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-6 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => scrollToIndex(activeIndex - 1)}
+            disabled={activeIndex <= 0}
+            className="w-10 h-10 rounded-full flex items-center justify-center disabled:opacity-50"
+            style={{
+              backgroundColor: 'var(--bg-card)',
+              border: '1px solid var(--border-medium)',
+              color: 'var(--text-heading)',
+            }}
+            aria-label="Anterior"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => scrollToIndex(activeIndex + 1)}
+            disabled={activeIndex >= items.length - 1}
+            className="w-10 h-10 rounded-full flex items-center justify-center disabled:opacity-50"
+            style={{
+              backgroundColor: 'var(--bg-card)',
+              border: '1px solid var(--border-medium)',
+              color: 'var(--text-heading)',
+            }}
+            aria-label="Siguiente"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          {items.map((_, index) => (
+            <button
+              key={`dot-${index}`}
+              type="button"
+              onClick={() => scrollToIndex(index)}
+              className="rounded-full"
+              style={{
+                width: index === activeIndex ? 18 : 8,
+                height: 8,
+                backgroundColor: index === activeIndex ? 'var(--accent)' : 'var(--border-medium)',
+              }}
+              aria-label={`Ir al elemento ${index + 1}`}
+            />
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

@@ -3,8 +3,6 @@
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 import { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
-import { BlurFade } from '@/components/ui/blur-fade';
-import { NumberTicker } from '@/components/ui/number-ticker';
 
 interface AboutSectionProps {
   section: WebsiteSection;
@@ -48,7 +46,7 @@ export function AboutSection({ section, website }: AboutSectionProps) {
                   {sectionContent.eyebrow}
                 </p>
               )}
-              <h2 className="text-3xl md:text-4xl font-bold">{title}</h2>
+              <h2 className="section-title" style={{ color: 'var(--text-heading)' }}>{title}</h2>
               {text && (
                 <p className="mt-6 text-base text-muted-foreground leading-relaxed">{text}</p>
               )}
@@ -102,7 +100,7 @@ export function AboutSection({ section, website }: AboutSectionProps) {
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
           >
-            <h2 className="text-3xl md:text-4xl font-bold">{title}</h2>
+            <h2 className="section-title" style={{ color: 'var(--text-heading)' }}>{title}</h2>
             <p className="mt-6 text-lg text-muted-foreground leading-relaxed">
               {text}
             </p>

@@ -105,7 +105,7 @@ export function TestimonialsSection({ section }: TestimonialsSectionProps) {
           transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
           className="text-center mb-12 container"
         >
-          <h2 className="text-3xl md:text-4xl font-bold">{title}</h2>
+          <h2 className="section-title" style={{ color: 'var(--text-heading)' }}>{title}</h2>
           {isGoogle && sectionContent.averageRating && (
             <div className="flex items-center justify-center gap-3 mt-4">
               <div className="flex gap-0.5">

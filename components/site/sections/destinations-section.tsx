@@ -2,6 +2,7 @@
 
 import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useRef, useEffect, useCallback, MouseEvent } from 'react';
 import { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 
@@ -21,6 +22,14 @@ interface Destination {
   hotel_count?: number;
   activity_count?: number;
   min_price?: string;
+}
+
+function getDestinationHref(destination: Destination, subdomain: string): string {
+  const slug = (destination.slug || '').trim();
+  if (slug) {
+    return `/site/${subdomain}/destinos/${encodeURIComponent(slug)}`;
+  }
+  return `/site/${subdomain}/destinos`;
 }
 
 function normalizeDestination(raw: Record<string, unknown>, index: number): Destination {
@@ -50,7 +59,7 @@ function normalizeDestination(raw: Record<string, unknown>, index: number): Dest
 }
 
 // Tilt Card Component with 3D effect
-function TiltCard({ destination }: { destination: Destination }) {
+function TiltCard({ destination, href }: { destination: Destination; href: string }) {
   const cardRef = useRef<HTMLDivElement>(null);
 
   const x = useMotionValue(0);
@@ -81,50 +90,52 @@ function TiltCard({ destination }: { destination: Destination }) {
   };
 
   return (
-    <motion.div
-      ref={cardRef}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
-      style={{
-        rotateY,
-        rotateX,
-        transformStyle: "preserve-3d",
-      }}
-      className="relative aspect-[4/5] rounded-xl cursor-pointer"
-    >
-      <div
-        style={{ transform: "translateZ(75px)", transformStyle: "preserve-3d" }}
-        className="absolute inset-2 rounded-xl overflow-hidden shadow-xl"
+    <Link href={href} className="block" aria-label={`Ver detalle de ${destination.name}`}>
+      <motion.div
+        ref={cardRef}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+        style={{
+          rotateY,
+          rotateX,
+          transformStyle: "preserve-3d",
+        }}
+        className="relative aspect-[4/5] rounded-xl cursor-pointer"
       >
-        {destination.image ? (
-          <Image
-            src={destination.image}
-            alt={destination.name}
-            fill
-            className="object-cover"
-          />
-        ) : (
-          <div className="w-full h-full bg-muted" />
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
         <div
-          style={{ transform: "translateZ(50px)" }}
-          className="absolute bottom-0 left-0 right-0 p-6"
+          style={{ transform: "translateZ(75px)", transformStyle: "preserve-3d" }}
+          className="absolute inset-2 rounded-xl overflow-hidden shadow-xl"
         >
-          <h3 className="text-xl font-bold text-white drop-shadow-lg">{destination.name}</h3>
-          {destination.description && (
-            <p className="mt-2 text-white/90 text-sm line-clamp-2 drop-shadow">
-              {destination.description}
-            </p>
+          {destination.image ? (
+            <Image
+              src={destination.image}
+              alt={destination.name}
+              fill
+              className="object-cover"
+            />
+          ) : (
+            <div className="w-full h-full bg-muted" />
           )}
-          {destination.price && (
-            <p className="mt-3 text-white font-semibold drop-shadow">
-              Desde <span className="text-lg">{destination.price}</span>
-            </p>
-          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+          <div
+            style={{ transform: "translateZ(50px)" }}
+            className="absolute bottom-0 left-0 right-0 p-6"
+          >
+            <h3 className="text-xl font-bold text-white drop-shadow-lg">{destination.name}</h3>
+            {destination.description && (
+              <p className="mt-2 text-white/90 text-sm line-clamp-2 drop-shadow">
+                {destination.description}
+              </p>
+            )}
+            {destination.price && (
+              <p className="mt-3 text-white font-semibold drop-shadow">
+                Desde <span className="text-lg">{destination.price}</span>
+              </p>
+            )}
+          </div>
         </div>
-      </div>
-    </motion.div>
+      </motion.div>
+    </Link>
   );
 }
 
@@ -215,45 +226,47 @@ function ScrollRow({ children, direction = 'left', speed = 0.5 }: { children: Re
 }
 
 /** Card for marquee rows — image with overlay info */
-function MarqueeCard({ d }: { d: Destination }) {
+function MarqueeCard({ d, href }: { d: Destination; href: string }) {
   return (
-    <div
-      className="relative shrink-0 w-56 md:w-64 lg:w-72 aspect-[3/4] rounded-2xl overflow-hidden group cursor-pointer select-none"
-      style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}
-    >
-      {d.image ? (
-        <Image src={d.image} alt={d.name} fill draggable={false} className="object-cover transition-transform duration-700 group-hover:scale-110 pointer-events-none" />
-      ) : (
-        <div className="w-full h-full bg-muted" />
-      )}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+    <Link href={href} className="block" aria-label={`Ver detalle de ${d.name}`}>
       <div
-        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-        style={{ background: 'linear-gradient(to top, color-mix(in srgb, var(--accent, #1A5FAF) 40%, black) 0%, transparent 50%)' }}
-      />
-      <div className="absolute bottom-0 left-0 right-0 p-4 md:p-5">
-        <h3 className="text-lg md:text-xl font-bold text-white drop-shadow-lg">{d.name}</h3>
-        {d.description && <p className="text-xs text-white/70 mt-1 drop-shadow line-clamp-1">{d.description}</p>}
-        {(d.activity_count || d.hotel_count) ? (
-          <div className="flex items-center gap-2 mt-2">
-            {d.activity_count !== undefined && d.activity_count > 0 && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-white/15 backdrop-blur-sm text-white border border-white/10">
-                {d.activity_count} actividades
-              </span>
-            )}
-            {d.hotel_count !== undefined && d.hotel_count > 0 && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-white/15 backdrop-blur-sm text-white border border-white/10">
-                {d.hotel_count} paquetes
-              </span>
-            )}
-          </div>
-        ) : null}
+        className="relative shrink-0 w-56 md:w-64 lg:w-72 aspect-[3/4] rounded-2xl overflow-hidden group cursor-pointer select-none"
+        style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}
+      >
+        {d.image ? (
+          <Image src={d.image} alt={d.name} fill draggable={false} className="object-cover transition-transform duration-700 group-hover:scale-110 pointer-events-none" />
+        ) : (
+          <div className="w-full h-full bg-muted" />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+        <div
+          className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+          style={{ background: 'linear-gradient(to top, color-mix(in srgb, var(--accent, #1A5FAF) 40%, black) 0%, transparent 50%)' }}
+        />
+        <div className="absolute bottom-0 left-0 right-0 p-4 md:p-5">
+          <h3 className="text-lg md:text-xl font-bold text-white drop-shadow-lg">{d.name}</h3>
+          {d.description && <p className="text-xs text-white/70 mt-1 drop-shadow line-clamp-1">{d.description}</p>}
+          {(d.activity_count || d.hotel_count) ? (
+            <div className="flex items-center gap-2 mt-2">
+              {d.activity_count !== undefined && d.activity_count > 0 && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-white/15 backdrop-blur-sm text-white border border-white/10">
+                  {d.activity_count} actividades
+                </span>
+              )}
+              {d.hotel_count !== undefined && d.hotel_count > 0 && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-white/15 backdrop-blur-sm text-white border border-white/10">
+                  {d.hotel_count} paquetes
+                </span>
+              )}
+            </div>
+          ) : null}
+        </div>
       </div>
-    </div>
+    </Link>
   );
 }
 
-export function DestinationsSection({ section }: DestinationsSectionProps) {
+export function DestinationsSection({ section, website }: DestinationsSectionProps) {
   const variant = section.variant || 'grid';
   const sectionContent = section.content as {
     title?: string;
@@ -295,9 +308,9 @@ export function DestinationsSection({ section }: DestinationsSectionProps) {
           viewport={{ once: true }}
           className="text-center mb-12"
         >
-          <h2 className="text-3xl md:text-4xl font-bold">{title}</h2>
+          <h2 className="section-title" style={{ color: 'var(--text-heading)' }}>{title}</h2>
           {subtitle && (
-            <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
+            <p className="section-subtitle mt-4 text-muted-foreground max-w-2xl mx-auto">
               {subtitle}
             </p>
           )}
@@ -313,36 +326,41 @@ export function DestinationsSection({ section }: DestinationsSectionProps) {
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
           >
             {destinations.map((destination) => (
-              <motion.div
+              <Link
                 key={destination.id}
-                variants={itemVariants}
-                className="group relative aspect-[4/5] rounded-xl overflow-hidden cursor-pointer"
+                href={getDestinationHref(destination, website.subdomain)}
+                aria-label={`Ver detalle de ${destination.name}`}
               >
-                {destination.image ? (
-                  <Image
-                    src={destination.image}
-                    alt={destination.name}
-                    fill
-                    className="object-cover group-hover:scale-110 transition-transform duration-500"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-muted" />
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                <div className="absolute bottom-0 left-0 right-0 p-6">
-                  <h3 className="text-xl font-bold text-white">{destination.name}</h3>
-                  {destination.description && (
-                    <p className="mt-2 text-white/80 text-sm line-clamp-2">
-                      {destination.description}
-                    </p>
+                <motion.div
+                  variants={itemVariants}
+                  className="group relative aspect-[4/5] rounded-xl overflow-hidden cursor-pointer"
+                >
+                  {destination.image ? (
+                    <Image
+                      src={destination.image}
+                      alt={destination.name}
+                      fill
+                      className="object-cover group-hover:scale-110 transition-transform duration-500"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-muted" />
                   )}
-                  {destination.price && (
-                    <p className="mt-3 text-white font-semibold">
-                      Desde <span className="text-lg">{destination.price}</span>
-                    </p>
-                  )}
-                </div>
-              </motion.div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                  <div className="absolute bottom-0 left-0 right-0 p-6">
+                    <h3 className="text-xl font-bold text-white">{destination.name}</h3>
+                    {destination.description && (
+                      <p className="mt-2 text-white/80 text-sm line-clamp-2">
+                        {destination.description}
+                      </p>
+                    )}
+                    {destination.price && (
+                      <p className="mt-3 text-white font-semibold">
+                        Desde <span className="text-lg">{destination.price}</span>
+                      </p>
+                    )}
+                  </div>
+                </motion.div>
+              </Link>
             ))}
           </motion.div>
         )}
@@ -357,33 +375,38 @@ export function DestinationsSection({ section }: DestinationsSectionProps) {
             className="grid grid-cols-2 lg:grid-cols-4 gap-4 auto-rows-[200px]"
           >
             {destinations.slice(0, 5).map((destination, index) => (
-              <motion.div
+              <Link
                 key={destination.id}
-                variants={itemVariants}
-                className={`group relative rounded-xl overflow-hidden cursor-pointer ${
-                  index === 0 ? 'col-span-2 row-span-2' : ''
-                }`}
+                href={getDestinationHref(destination, website.subdomain)}
+                aria-label={`Ver detalle de ${destination.name}`}
               >
-                {destination.image ? (
-                  <Image
-                    src={destination.image}
-                    alt={destination.name}
-                    fill
-                    className="object-cover group-hover:scale-110 transition-transform duration-500"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-muted" />
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                <div className="absolute bottom-0 left-0 right-0 p-4">
-                  <h3 className={`font-bold text-white ${index === 0 ? 'text-2xl' : 'text-lg'}`}>
-                    {destination.name}
-                  </h3>
-                  {destination.price && index === 0 && (
-                    <p className="mt-2 text-white/90">Desde {destination.price}</p>
+                <motion.div
+                  variants={itemVariants}
+                  className={`group relative rounded-xl overflow-hidden cursor-pointer ${
+                    index === 0 ? 'col-span-2 row-span-2' : ''
+                  }`}
+                >
+                  {destination.image ? (
+                    <Image
+                      src={destination.image}
+                      alt={destination.name}
+                      fill
+                      className="object-cover group-hover:scale-110 transition-transform duration-500"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-muted" />
                   )}
-                </div>
-              </motion.div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                  <div className="absolute bottom-0 left-0 right-0 p-4">
+                    <h3 className={`font-bold text-white ${index === 0 ? 'text-2xl' : 'text-lg'}`}>
+                      {destination.name}
+                    </h3>
+                    {destination.price && index === 0 && (
+                      <p className="mt-2 text-white/90">Desde {destination.price}</p>
+                    )}
+                  </div>
+                </motion.div>
+              </Link>
             ))}
           </motion.div>
         )}
@@ -399,7 +422,11 @@ export function DestinationsSection({ section }: DestinationsSectionProps) {
                 viewport={{ once: true }}
                 className="flex-none w-72 md:w-80 snap-center"
               >
-                <div className="group relative aspect-[3/4] rounded-xl overflow-hidden">
+                <Link
+                  href={getDestinationHref(destination, website.subdomain)}
+                  className="block group relative aspect-[3/4] rounded-xl overflow-hidden"
+                  aria-label={`Ver detalle de ${destination.name}`}
+                >
                   {destination.image ? (
                     <Image
                       src={destination.image}
@@ -417,7 +444,7 @@ export function DestinationsSection({ section }: DestinationsSectionProps) {
                       <p className="mt-1 text-white/80">Desde {destination.price}</p>
                     )}
                   </div>
-                </div>
+                </Link>
               </motion.div>
             ))}
           </div>
@@ -437,7 +464,10 @@ export function DestinationsSection({ section }: DestinationsSectionProps) {
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
               >
-                <TiltCard destination={destination} />
+                <TiltCard
+                  destination={destination}
+                  href={getDestinationHref(destination, website.subdomain)}
+                />
               </motion.div>
             ))}
           </div>
@@ -454,7 +484,11 @@ export function DestinationsSection({ section }: DestinationsSectionProps) {
             <div className="mb-5">
               <ScrollRow direction="left" speed={0.6}>
                 {[...destinations, ...destinations].map((d, i) => (
-                  <MarqueeCard key={`r1-${d.id}-${i}`} d={d} />
+                  <MarqueeCard
+                    key={`r1-${d.id}-${i}`}
+                    d={d}
+                    href={getDestinationHref(d, website.subdomain)}
+                  />
                 ))}
               </ScrollRow>
             </div>
@@ -462,7 +496,11 @@ export function DestinationsSection({ section }: DestinationsSectionProps) {
             {/* Row 2 — auto-scrolls right, draggable */}
             <ScrollRow direction="right" speed={0.4}>
               {[...destinations, ...destinations].reverse().map((d, i) => (
-                <MarqueeCard key={`r2-${d.id}-${i}`} d={d} />
+                <MarqueeCard
+                  key={`r2-${d.id}-${i}`}
+                  d={d}
+                  href={getDestinationHref(d, website.subdomain)}
+                />
               ))}
             </ScrollRow>
           </div>

@@ -45,9 +45,9 @@ export function BlogSection({ section, website }: BlogSectionProps) {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            <h2 className="text-3xl md:text-4xl font-bold">{title}</h2>
+            <h2 className="section-title" style={{ color: 'var(--text-heading)' }}>{title}</h2>
             {sectionContent.subtitle && (
-              <p className="mt-2 text-muted-foreground">{sectionContent.subtitle}</p>
+              <p className="section-subtitle mt-2 text-muted-foreground">{sectionContent.subtitle}</p>
             )}
           </motion.div>
           <motion.div
@@ -152,9 +152,9 @@ function ShowcaseBlog({ title, subtitle, posts, subdomain }: { title: string; su
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            <h2 style={{ fontSize: 'var(--text-display-md)', color: 'var(--text-heading)' }}>{title}</h2>
+            <h2 className="section-title" style={{ color: 'var(--text-heading)' }}>{title}</h2>
             {subtitle && (
-              <p className="mt-2" style={{ color: 'var(--text-secondary)' }}>{subtitle}</p>
+              <p className="section-subtitle mt-2" style={{ color: 'var(--text-secondary)' }}>{subtitle}</p>
             )}
           </motion.div>
           <motion.div

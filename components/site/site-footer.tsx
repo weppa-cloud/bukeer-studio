@@ -32,13 +32,24 @@ export function SiteFooter({ website, isCustomDomain = false, navigation }: Site
     { name: 'LinkedIn', url: content.social?.linkedin, icon: LinkedInIcon },
   ].filter(link => link.url);
 
-  const navItems = navigation || [
+  const navFallback = [
     { slug: '', label: 'Inicio', page_type: 'custom' as const, href: `${basePath}/` },
     { slug: 'destinations', label: 'Destinos', page_type: 'anchor' as const, href: `${basePath}/#destinations` },
     { slug: 'hotels', label: 'Hoteles', page_type: 'anchor' as const, href: `${basePath}/#hotels` },
     { slug: 'blog', label: 'Blog', page_type: 'custom' as const, href: `${basePath}/blog` },
-    { slug: 'contact', label: 'Contacto', page_type: 'anchor' as const, href: `${basePath}/#contact` },
+    { slug: 'cta', label: 'Asesoría', page_type: 'anchor' as const, href: `${basePath}/#cta` },
   ];
+  const navItems = (navigation || navFallback)
+    .filter((link) => !(link.slug?.toLowerCase() === 'contact' && link.page_type === 'anchor'))
+    .map((link) => {
+      if (link.slug?.toLowerCase() !== 'contact') return link;
+      return {
+        ...link,
+        slug: 'cta',
+        label: 'Asesoría',
+        href: `${basePath}/#cta`,
+      };
+    });
 
   // Shared sub-components
   const LogoBlock = (
@@ -76,14 +87,6 @@ export function SiteFooter({ website, isCustomDomain = false, navigation }: Site
     </nav>
   );
 
-  const LegalBlock = (content.account?.legal?.terms_conditions || content.account?.legal?.privacy_policy || content.account?.legal?.cancellation_policy) ? (
-    <nav className="flex flex-col gap-2">
-      {content.account?.legal?.terms_conditions && <Link href={`${basePath}/terms`} className="text-muted-foreground hover:text-foreground transition-colors">Términos y Condiciones</Link>}
-      {content.account?.legal?.privacy_policy && <Link href={`${basePath}/privacy`} className="text-muted-foreground hover:text-foreground transition-colors">Política de Privacidad</Link>}
-      {content.account?.legal?.cancellation_policy && <Link href={`${basePath}/cancellation`} className="text-muted-foreground hover:text-foreground transition-colors">Política de Cancelación</Link>}
-    </nav>
-  ) : null;
-
   const ContactBlock = (
     <div className="flex flex-col gap-3 text-muted-foreground">
       {contactEmail && <a href={`mailto:${contactEmail}`} className="hover:text-foreground transition-colors">{contactEmail}</a>}
@@ -91,6 +94,56 @@ export function SiteFooter({ website, isCustomDomain = false, navigation }: Site
       {content.contact?.address && <p>{content.contact.address}</p>}
     </div>
   );
+
+  const whatsappLink = content.social?.whatsapp
+    ? `https://wa.me/${content.social.whatsapp.replace(/[^0-9]/g, '')}`
+    : null;
+  const primaryCtaHref = whatsappLink || `${basePath}/#cta`;
+  const primaryCtaLabel = whatsappLink ? 'Hablar por WhatsApp' : 'Solicitar asesoría';
+  const footerPalette = {
+    surface: 'color-mix(in srgb, var(--text-heading) 84%, var(--bg) 16%)',
+    border: 'color-mix(in srgb, var(--bg) 16%, transparent)',
+    text: 'color-mix(in srgb, var(--bg) 96%, transparent)',
+    muted: 'color-mix(in srgb, var(--bg) 74%, transparent)',
+  };
+
+  const taxonomyColumns = [
+    {
+      title: 'Explora',
+      links: [
+        { label: 'Destinos', href: `${basePath}/#destinations` },
+        { label: 'Paquetes', href: `${basePath}/#packages` },
+        { label: 'Actividades', href: `${basePath}/#activities` },
+        { label: 'Hoteles', href: `${basePath}/#hotels` },
+      ],
+    },
+    {
+      title: 'Compañía',
+      links: [
+        { label: 'Nosotros', href: `${basePath}/#about` },
+        { label: 'Reseñas', href: `${basePath}/#testimonials` },
+        { label: 'Blog', href: `${basePath}/blog` },
+        { label: 'Preguntas frecuentes', href: `${basePath}/#faq` },
+      ],
+    },
+    {
+      title: 'Ayuda',
+      links: [
+        { label: primaryCtaLabel, href: primaryCtaHref, external: Boolean(whatsappLink) },
+        { label: 'Planear viaje', href: `${basePath}/#cta` },
+        ...(contactEmail ? [{ label: contactEmail, href: `mailto:${contactEmail}`, external: true }] : []),
+        ...(contactPhone ? [{ label: contactPhone, href: `tel:${contactPhone}`, external: true }] : []),
+      ],
+    },
+    {
+      title: 'Legal',
+      links: [
+        { label: 'Términos y Condiciones', href: `${basePath}/terms` },
+        { label: 'Política de Privacidad', href: `${basePath}/privacy` },
+        { label: 'Política de Cancelación', href: `${basePath}/cancellation` },
+      ],
+    },
+  ];
 
   // --- MINIMAL VARIANT ---
   if (footerVariant === 'minimal') {
@@ -156,31 +209,90 @@ export function SiteFooter({ website, isCustomDomain = false, navigation }: Site
 
   // --- 4-COLUMN VARIANT (default) ---
   return (
-    <footer className="bg-muted/50 border-t">
-      <div className="container section-padding">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
-          {/* Brand */}
-          <div className="lg:col-span-2">
-            {LogoBlock}
-            {content.tagline && <p className="mt-4 text-muted-foreground max-w-md">{content.tagline}</p>}
-            <div className="mt-6">{SocialBlock}</div>
-          </div>
+    <footer style={{ backgroundColor: footerPalette.surface, color: footerPalette.text }}>
+      <div className="border-t" style={{ borderColor: footerPalette.border }}>
+        <div className="container py-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <h3 className="font-semibold mb-4">Navegación</h3>
-            {NavBlock}
+            <p className="font-heading text-xl leading-tight">Planifiquemos tu viaje por Colombia</p>
+            <p className="text-sm mt-1" style={{ color: footerPalette.muted }}>
+              Itinerarios, hoteles y actividades en una sola asesoría.
+            </p>
           </div>
-          {LegalBlock && (
-            <div>
-              <h3 className="font-semibold mb-4">Legal</h3>
-              {LegalBlock}
+          <a
+            href={primaryCtaHref}
+            target={whatsappLink ? '_blank' : undefined}
+            rel={whatsappLink ? 'noopener noreferrer' : undefined}
+            className="inline-flex items-center justify-center rounded-full px-5 py-2.5 text-sm font-semibold transition-opacity"
+            style={{ backgroundColor: 'var(--accent)', color: 'var(--accent-text)' }}
+          >
+            {primaryCtaLabel}
+          </a>
+        </div>
+      </div>
+
+      <div className="border-t" style={{ borderColor: footerPalette.border }}>
+        <div className="container py-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <p className="text-sm" style={{ color: footerPalette.muted }}>
+            Síguenos para descubrir nuevas rutas y experiencias.
+          </p>
+          {socialLinks.length > 0 && (
+            <div className="flex items-center gap-2">
+              {socialLinks.map((link) => (
+                <a
+                  key={link.name}
+                  href={link.url!}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-9 h-9 rounded-full flex items-center justify-center transition-opacity hover:opacity-80"
+                  style={{ border: `1px solid ${footerPalette.border}`, color: footerPalette.text }}
+                  aria-label={link.name}
+                >
+                  <link.icon className="w-4 h-4" />
+                </a>
+              ))}
             </div>
           )}
-          <div>
-            <h3 className="font-semibold mb-4">Contacto</h3>
-            {ContactBlock}
+        </div>
+      </div>
+
+      <div className="border-t" style={{ borderColor: footerPalette.border }}>
+        <div className="container py-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          {taxonomyColumns.map((column) => (
+            <div key={column.title}>
+              <h3 className="font-heading text-sm uppercase tracking-[0.16em] mb-4" style={{ color: footerPalette.text }}>
+                {column.title}
+              </h3>
+              <nav className="flex flex-col gap-2.5">
+                {column.links.map((link) => (
+                  <Link
+                    key={`${column.title}-${link.label}`}
+                    href={link.href}
+                    target={link.external ? '_blank' : undefined}
+                    rel={link.external ? 'noopener noreferrer' : undefined}
+                    className="text-sm transition-opacity hover:opacity-90"
+                    style={{ color: footerPalette.muted }}
+                  >
+                    {link.label}
+                  </Link>
+                ))}
+              </nav>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="border-t" style={{ borderColor: footerPalette.border }}>
+        <div className="container py-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <p className="text-sm" style={{ color: footerPalette.muted }}>
+            © {currentYear} {siteName}. Todos los derechos reservados.
+          </p>
+          <div className="flex items-center gap-4 text-sm" style={{ color: footerPalette.muted }}>
+            <span>Idioma: ES</span>
+            <a href="https://bukeer.com" target="_blank" rel="noopener noreferrer" className="hover:underline">
+              Creado con Bukeer
+            </a>
           </div>
         </div>
-        <div className="mt-12 pt-8 border-t">{CopyrightBlock}</div>
       </div>
     </footer>
   );
