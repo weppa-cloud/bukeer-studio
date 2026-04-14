@@ -13,6 +13,9 @@ Next.js 15 application serving agency websites, visual editor, and AI copilot. D
 ## Getting Started
 
 ```bash
+# 0. Use the project Node version
+nvm use
+
 # 1. Install dependencies
 npm ci
 
@@ -24,7 +27,7 @@ cp .dev.vars.example .dev.vars
 npm run dev
 
 # 4. Or run with Cloudflare Workers runtime (matches production)
-npm run preview:worker
+npm run dev:worker
 ```
 
 Open [http://localhost:3000/?subdomain=demo-travel](http://localhost:3000/?subdomain=demo-travel) to preview a tenant site.
@@ -62,10 +65,12 @@ npx wrangler versions deploy <version-id>      # Deploy specific version
 
 | Script | Description |
 |--------|-------------|
-| `npm run dev` | Next.js dev server (standard Node.js runtime) |
+| `npm run dev` | Checks Node version + runs `dev:node` |
+| `npm run dev:node` | Next.js dev server (standard Node.js runtime) |
+| `npm run dev:worker` | OpenNext build + local Cloudflare Worker preview |
+| `npm run clean` | Removes local build/test artifacts |
 | `npm run build` | Standard Next.js build |
 | `npm run build:worker` | OpenNext build for Cloudflare Workers |
-| `npm run preview:worker` | Build + preview in local Workers runtime |
 | `npm run deploy:worker` | Build + deploy to production |
 | `npm run cf-typegen` | Generate TypeScript types from `wrangler.toml` bindings |
 
