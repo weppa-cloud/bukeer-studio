@@ -59,8 +59,8 @@ export function getDefaultNavigation(
   // Blog is always available
   nav.push({ slug: 'blog', label: 'Blog', page_type: 'custom', href: `${basePath}/blog`, target: '_self' });
 
-  if (sections?.some((sec) => sec.section_type === 'contact' && sec.is_enabled)) {
-    nav.push({ slug: 'contact', label: 'Contacto', page_type: 'anchor', href: `${basePath}/#contact`, target: '_self' });
+  if (sections?.some((sec) => sec.section_type === 'cta' && sec.is_enabled)) {
+    nav.push({ slug: 'cta', label: 'Asesoría', page_type: 'anchor', href: `${basePath}/#cta`, target: '_self' });
   }
 
   return nav;
@@ -70,8 +70,11 @@ export function getDefaultNavigation(
  * Resolve href for a navigation item relative to basePath.
  */
 export function resolveNavHref(item: NavigationItem, basePath: string): string {
-  if (item.href) return item.href;
-  if (item.page_type === 'anchor') return `${basePath}/#${item.slug}`;
+  if (item.href) return item.href.replace(/#contact$/i, '#cta');
+  if (item.page_type === 'anchor') {
+    const slug = item.slug.toLowerCase() === 'contact' ? 'cta' : item.slug;
+    return `${basePath}/#${slug}`;
+  }
   if (item.page_type === 'external') return item.slug;
   return `${basePath}/${item.slug}`;
 }
