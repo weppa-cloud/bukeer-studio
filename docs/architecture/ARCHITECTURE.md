@@ -193,9 +193,34 @@ Content-Security-Policy: frame-ancestors 'self' https://app.bukeer.com (/editor/
 | [ADR-008](./ADR-008-monorepo-packages.md) | Internal Package Architecture | Accepted |
 | [ADR-009](./ADR-009-multi-tenant-subdomain-routing.md) | Multi-Tenant Subdomain Routing | Accepted |
 | [ADR-010](./ADR-010-observability-strategy.md) | Observability Strategy | Accepted |
+| [ADR-011](./ADR-011-middleware-cache.md) | Middleware In-Memory Cache | Accepted |
+| [ADR-012](./ADR-012-api-response-envelope.md) | Standard API Response Envelope | Accepted |
 
 ---
 
 ## Onboarding
 
 New to the project? Start with the [Architecture Onboarding Guide](./ONBOARDING-ARCHITECTURE.md) — a mentor-style walkthrough of every concept above with real code examples.
+
+---
+
+## Architecture Health
+
+> Last audit: 2026-04-15
+
+| Area | Score | Key Findings |
+|------|-------|-------------|
+| Tokenization & Theme System | 8.5/10 | M3 compliant, 29 semantic roles, 8 presets. Gap: compile not memoized (fixed), DTCG alignment TBD |
+| Layer Architecture | 8.5/10 | Server-first, ISR, contract-first. Gap: no error tracking in prod (Sentry planned), middleware now cached |
+| Section Rendering Pipeline | 8/10 | 38 section types, registry pattern, lazy loading. Gap: hydration logic extracted to utility |
+| Testing Infrastructure | 6.5/10 | Playwright + theme-sdk tests + contract tests. Gap: limited unit coverage, no POM |
+| Error Handling | 7.5/10 | Three-tier (ADR-002), structured logger exists. Gap: logger adoption at 6%, no Sentry yet |
+| Security | 8/10 | XSS prevention, security headers, auth boundary. Gap: no per-IP rate limiting, RLS audit TBD |
+
+### Known Gaps (prioritized)
+
+1. 🔴 **No production error tracking** — Sentry integration planned
+2. 🟠 **API response envelope inconsistent** — standardized via ADR-012, migration in progress
+3. 🟠 **Structured logger underutilized** — createLogger() used in 2/37+ routes
+4. 🟡 **WCAG guardrails not in compile pipeline** — validateTheme() exists separately
+5. 🟡 **W3C DTCG alignment** — documented for future migration

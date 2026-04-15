@@ -10,6 +10,7 @@
 
 ## Índice
 
+0. [Quick-Start: primeros 30 minutos](#0-quick-start-primeros-30-minutos)
 1. [Qué es esto y por qué existe](#1-que-es-esto-y-por-que-existe)
 2. [El mapa mental: las 4 capas](#2-el-mapa-mental-las-4-capas)
 3. [Server Components: la decisión más importante](#3-server-components-la-decision-mas-importante)
@@ -25,6 +26,81 @@
 13. [Performance: por qué estamos en el edge](#13-performance-por-que-estamos-en-el-edge)
 14. [Principios para escalar: cómo piensa un senior](#14-principios-para-escalar-como-piensa-un-senior)
 15. [Checklist antes de hacer un PR](#15-checklist-antes-de-hacer-un-pr)
+16. [Gotchas comunes](#16-gotchas-comunes)
+17. [Árbol de decisión: estrategia de rendering](#17-arbol-de-decision-estrategia-de-rendering)
+
+---
+
+## 0. Quick-Start: primeros 30 minutos
+
+> Sigue estos pasos en orden. Al final tendrás el proyecto corriendo y habrás visto un sitio público renderizado.
+
+### Requisitos previos
+- **Node ≥ 22** (22.x o 24.x — el check de versión bloquea si es menor)
+- **npm ≥ 10**
+- Acceso al repo `weppa-cloud/bukeer-studio`
+- Credenciales de Supabase (pídelas al lead)
+
+### Paso 1 — Clonar y preparar (5 min)
+
+```bash
+git clone git@github.com:weppa-cloud/bukeer-studio.git
+cd bukeer-studio
+
+# Build de paquetes internos (requerido antes de dev)
+cd packages/theme-sdk && npm ci && npm run build && cd ../..
+cd packages/website-contract && npm ci && npm run build && cd ../..
+
+# Instalar dependencias de la app
+npm ci
+```
+
+### Paso 2 — Configurar environment (3 min)
+
+```bash
+cp .env.local.example .env.local
+# Edita .env.local con las credenciales que te dieron:
+# - NEXT_PUBLIC_SUPABASE_URL
+# - NEXT_PUBLIC_SUPABASE_ANON_KEY
+# - SUPABASE_SERVICE_ROLE_KEY
+# - OPENROUTER_AUTH_TOKEN (para AI features)
+```
+
+### Paso 3 — Levantar el servidor (2 min)
+
+```bash
+npm run dev    # Turbopack en :3000
+```
+
+### Paso 4 — Ver un sitio público (5 min)
+
+Abre el navegador y visita:
+```
+http://localhost:3000/site/bukeer
+```
+
+Esto renderiza el sitio corporativo. Si ves secciones (hero, destinos, paquetes), todo funciona.
+
+Para probar otro subdomain:
+```
+http://localhost:3000?subdomain=tuagencia
+```
+
+### Paso 5 — Entender la estructura (15 min)
+
+Lee estos archivos en este orden:
+1. **`CLAUDE.md`** — overview completo del repo (5 min)
+2. **`docs/architecture/ARCHITECTURE.md`** — principios P1-P10 + diagrama de capas (5 min)
+3. **Esta guía** — secciones 1-6 (5 min de escaneo)
+
+### Paso 6 — Verificar que AI agents funcionan
+
+```bash
+npm run ai:sync    # Verifica que AGENTS.md está sincronizado
+npm run ai:audit   # Verifica que skill docs coinciden con el codebase
+```
+
+> **Listo.** Ya puedes leer el resto de esta guía con contexto. Las secciones 1-15 explican el *por qué* de cada decisión.
 
 ---
 
@@ -1097,3 +1173,130 @@ Usa esta lista antes de abrir un Pull Request. Si alguno falla, tu PR será rech
 
 > "El mejor código no es el más inteligente. Es el que cualquier dev nuevo entiende en 5 minutos."
 > — Tu mentor imaginario de Bukeer
+
+---
+
+## 16. Gotchas comunes
+
+Errores que TODO dev nuevo comete al menos una vez. Léelos ahora y ahórrate horas de debugging.
+
+### 🔥 "Mi componente no renderiza / muestra datos vacíos"
+
+**Causa probable:** Estás usando `createClient` de browser en un Server Component.
+
+```typescript
+// ❌ MAL — esto en un Server Component retorna null
+import { createClient } from '@/lib/supabase/client'
+
+// ✅ BIEN — usa el cliente de servidor
+import { createClient } from '@/lib/supabase/server'
+const supabase = await createClient()
+```
+
+**Regla:** Server Component → `@/lib/supabase/server`. Client Component → `@/lib/supabase/client`.
+
+### 🔥 "ISR no se actualiza después de editar en el admin"
+
+**Causa:** ISR tiene un window de 5 minutos (`revalidate = 300`). Los cambios NO son instantáneos.
+
+**Solución:** Para forzar refresh, llama al endpoint de revalidación:
+```bash
+curl -X POST http://localhost:3000/api/revalidate \
+  -H "Authorization: Bearer $REVALIDATE_SECRET" \
+  -H "Content-Type: application/json" \
+  -d '{"subdomain": "tuagencia"}'
+```
+
+**En producción:** El admin de Flutter llama este endpoint automáticamente al guardar.
+
+### 🔥 "Build falla con 'Module not found: @bukeer/theme-sdk'"
+
+**Causa:** No hiciste build de los paquetes internos antes del primer `npm run dev`.
+
+```bash
+cd packages/theme-sdk && npm ci && npm run build && cd ../..
+cd packages/website-contract && npm ci && npm run build && cd ../..
+```
+
+**Nota:** Solo necesitas hacer esto una vez (o cuando cambies código en los paquetes). Next.js transpila desde `src/` para desarrollo normal.
+
+### 🔥 "El middleware hace queries lentas"
+
+**Contexto:** El middleware tiene un cache TTL de 5 minutos (ADR-011). Si ves queries lentas en los logs:
+
+1. **Primer request** después de cold start → cache miss, es normal
+2. **Requests subsiguientes** al mismo subdomain → deben ser cache hits (0ms)
+3. **Si siempre es lento** → verifica que `_middlewareCache` no se resetea (puede pasar si el Worker se recicla)
+
+### 🔥 "El tema se ve diferente en dev vs production"
+
+**Causa:** `compileTheme()` usa un cache module-level. En dev, hot reload puede resetear el cache. En production, el cache persiste por isolate.
+
+**Solución:** Si el tema se ve raro en dev, haz hard refresh (Cmd+Shift+R).
+
+### 🔥 "No sé si usar ISR, dynamic, o static"
+
+Lee la sección 17 (Árbol de decisión) justo debajo.
+
+### 🔥 "El bundle de Cloudflare Workers excede 10 MiB"
+
+El CI tiene un check automático (8 MiB warning, 10 MiB hard fail). Si lo excedes:
+
+1. Revisa `npm run analyze` para ver qué pesa
+2. Usa `dynamic(() => import(...))` para componentes pesados
+3. Mueve lógica pesada a API routes (se ejecutan separado del Worker)
+4. Revisa si importaste una librería completa en vez de un subpath
+
+---
+
+## 17. Árbol de decisión: estrategia de rendering
+
+Usa este árbol para decidir cómo renderizar cada página.
+
+```
+¿La página es PÚBLICA (visitante anónimo)?
+│
+├─ SÍ → ¿Cambia frecuentemente?
+│   │
+│   ├─ NO (landing, about) → Static Generation
+│   │   export const dynamic = 'force-static'
+│   │
+│   ├─ CADA POCOS MINUTOS (homepage, catálogo) → ISR
+│   │   export const revalidate = 300  // 5 min
+│   │
+│   └─ EN TIEMPO REAL (precios, disponibilidad) → Dynamic
+│       export const dynamic = 'force-dynamic'
+│
+└─ NO (requiere auth) → ¿Es dashboard o editor?
+    │
+    ├─ DASHBOARD → Dynamic + Auth check
+    │   export const dynamic = 'force-dynamic'
+    │   // middleware.ts valida auth cookie
+    │
+    └─ EDITOR (iframe desde Flutter) → Dynamic + Token SSO
+        // middleware.ts extrae token de query param
+```
+
+### Tabla resumen
+
+| Ruta | Estrategia | `revalidate` | Por qué |
+|------|-----------|-------------|---------|
+| `/site/[subdomain]` (homepage) | ISR | 300s | Contenido cambia poco, edge cache = rápido |
+| `/site/[subdomain]/[...slug]` (producto) | ISR | 300s | Mismo razonamiento |
+| `/site/[subdomain]/blog/[slug]` | ISR | 300s | Blog posts publicados = semi-estáticos |
+| `/dashboard/**` | Dynamic | — | Requiere auth, datos en tiempo real |
+| `/editor/**` | Dynamic | — | Iframe interactivo, cambios en vivo |
+| `/api/**` | Dynamic | — | API routes siempre dinámicas |
+
+### Errores comunes de rendering
+
+| Error | Síntoma | Fix |
+|-------|---------|-----|
+| Usar `force-dynamic` en página pública | Lento, no cachea en edge | Cambiar a ISR con `revalidate = 300` |
+| Usar ISR en dashboard | Datos stale, confusión | Cambiar a `force-dynamic` |
+| No poner `revalidate` en página pública | Defaults a static (nunca actualiza) | Agregar `export const revalidate = 300` |
+| Mezclar server/client data fetching | Hydration mismatch, flicker | Decidir: o Server Component o client-side fetch, no ambos |
+
+---
+
+> **Siguiente paso:** Revisa los [ADRs](./ARCHITECTURE.md) para entender las decisiones históricas y sus trade-offs.
