@@ -20,6 +20,9 @@ jobs:
           cache: 'npm'
           cache-dependency-path: package-lock.json
 
+      - name: Verify AI sync artifacts
+        run: npm run ai:check
+
       - name: Build theme-sdk
         working-directory: packages/theme-sdk
         run: npm ci && npm run build

@@ -1,3 +1,5 @@
+<!-- AUTO-GENERATED FROM CLAUDE.md. Run `npm run ai:sync` to update. -->
+
 # AGENTS.md — bukeer-studio
 
 This file provides guidance to Codex when working in this repository.
@@ -56,6 +58,10 @@ Bukeer Website Studio — the Next.js 15 public website renderer and design toke
 
 ## Local development
 
+### Requisitos
+- **Node ≥ 22** (22.x y 24.x validados). El check de versión bloquea si es < 22.
+- **Turbopack** activo por defecto en `dev:node` (`next dev --turbo`).
+
 ```bash
 # 1. Build packages first (required before npm run dev)
 cd packages/theme-sdk && npm ci && npm run build && cd ../..
@@ -67,9 +73,38 @@ npm ci
 # 3. Copy env template and fill values
 cp .env.local.example .env.local
 
-# 4. Run dev server
+# 4. Run dev server (Turbopack, puerto 3000)
 npm run dev        # → http://localhost:3000
 ```
+
+### Sesiones paralelas (testing / agentes en paralelo)
+
+Cada sesión tiene su propio puerto, caché de Next y reportes de Playwright.
+Ver doc completa: [`docs/development/local-sessions.md`](docs/development/local-sessions.md)
+
+```bash
+# Sesión A
+PORT=3001 NEXT_DIST_DIR=.next-s1 npm run dev:session
+
+# Sesión B
+PORT=3002 NEXT_DIST_DIR=.next-s2 npm run dev:session
+
+# E2E aislado por sesión
+SESSION_NAME=s1 PORT=3001 npm run test:e2e:session
+SESSION_NAME=s2 PORT=3002 npm run test:e2e:session
+```
+
+Los scripts `scripts/start-dev-node.sh` y `scripts/run-e2e-session.sh` usan `command -v node` — funcionan con cualquier Node ≥ 22 del PATH, sin depender de rutas Homebrew hardcodeadas.
+
+### Scripts disponibles
+
+| Script | Descripción |
+|--------|-------------|
+| `npm run dev` | Dev con Turbopack en :3000 |
+| `npm run dev:session` | Dev aislado (PORT + NEXT_DIST_DIR configurables) |
+| `npm run test:e2e` | Playwright completo |
+| `npm run test:e2e:session` | Playwright aislado por SESSION_NAME + PORT |
+| `npm run start:prod:clean` | Limpia cache, build producción y arranca |
 
 ## Building for Cloudflare Workers
 
@@ -190,7 +225,7 @@ import { SECTION_TYPES } from '@bukeer/website-contract'
 | `SUPABASE_SERVICE_ROLE_KEY` | Yes (server only) | Edge API calls |
 | `OPENROUTER_AUTH_TOKEN` | Yes | AI section generation |
 | `OPENROUTER_BASE_URL` | Yes | e.g. `https://openrouter.ai/api/v1` |
-| `OPENROUTER_MODEL` | Yes | e.g. `anthropic/Codex-sonnet-4-5` |
+| `OPENROUTER_MODEL` | Yes | e.g. `openai/gpt-5` |
 | `REVALIDATE_SECRET` | Yes | ISR revalidation endpoint |
 | `NEXT_PUBLIC_GA_ID` | Optional | Google Analytics |
 

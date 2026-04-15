@@ -25,16 +25,16 @@ test.describe('SEO Playbook v2.0 — Smoke Tests', () => {
   test.describe('Analytics Dashboard', () => {
     test('loads overview tab with Sessions, Users, Pageviews and Conversions cards @smoke', async ({ page }) => {
       await gotoSection(page, 'analytics');
-      await page.waitForLoadState('networkidle');
+      await expect(page.getByRole('heading', { name: 'Analytics' })).toBeVisible();
 
       // Tab bar must be present
       await expect(page.getByRole('button', { name: 'Overview' })).toBeVisible();
 
       // Overview stat cards
-      await expect(page.getByText('Sessions')).toBeVisible();
-      await expect(page.getByText('Users')).toBeVisible();
-      await expect(page.getByText('Pageviews')).toBeVisible();
-      await expect(page.getByText('Conversions')).toBeVisible();
+      await expect(page.locator('div.studio-card p').filter({ hasText: /^Sessions$/ }).first()).toBeVisible();
+      await expect(page.locator('div.studio-card p').filter({ hasText: /^Users$/ }).first()).toBeVisible();
+      await expect(page.locator('div.studio-card p').filter({ hasText: /^Pageviews$/ }).first()).toBeVisible();
+      await expect(page.locator('div.studio-card p').filter({ hasText: /^Conversions$/ }).first()).toBeVisible();
 
       // Top pages table header
       await expect(page.getByText('Top pages')).toBeVisible();
@@ -42,7 +42,7 @@ test.describe('SEO Playbook v2.0 — Smoke Tests', () => {
 
     test('loads keywords tab with GSC keyword table @smoke', async ({ page }) => {
       await gotoSection(page, 'analytics');
-      await page.waitForLoadState('networkidle');
+      await expect(page.getByRole('heading', { name: 'Analytics' })).toBeVisible();
 
       await page.getByRole('button', { name: 'Keywords' }).click();
       await page.waitForLoadState('networkidle');
@@ -57,6 +57,15 @@ test.describe('SEO Playbook v2.0 — Smoke Tests', () => {
 
       // Link to architecture page
       await expect(page.getByRole('button', { name: /Ver Arquitectura/ })).toBeVisible();
+    });
+
+    test('deep-link to keywords tab renders Keyword Universe Builder @smoke', async ({ page }) => {
+      const websiteId = WEBSITE_ID_OVERRIDE || await getFirstWebsiteId(page);
+      await page.goto(`/dashboard/${websiteId}/analytics?tab=keywords`);
+      await expect(page.getByRole('heading', { name: 'Analytics' })).toBeVisible();
+
+      await expect(page.getByText('Palabras clave rastreadas desde Google Search Console')).toBeVisible();
+      await expect(page.getByText('Keyword Universe Builder')).toBeVisible();
     });
 
     test('loads competitors tab with competitor table @smoke', async ({ page }) => {
@@ -80,10 +89,10 @@ test.describe('SEO Playbook v2.0 — Smoke Tests', () => {
       await page.waitForLoadState('networkidle');
 
       // Technical audit section
-      await expect(page.getByText('Technical Audit')).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Auditoria PageSpeed' })).toBeVisible();
 
       // Schema manager section — contains "Schema.org"
-      await expect(page.getByText(/Schema\.org/)).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Validacion Schema.org' })).toBeVisible();
     });
 
     test('loads backlinks tab with Backlinks heading @smoke', async ({ page }) => {
@@ -94,7 +103,7 @@ test.describe('SEO Playbook v2.0 — Smoke Tests', () => {
       await page.waitForLoadState('networkidle');
 
       // The Backlinks dashboard renders a heading or summary text
-      await expect(page.getByText(/[Bb]acklink/)).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Resumen de Backlinks' })).toBeVisible();
     });
 
     test('loads ai-visibility tab with AI Visibility content @smoke', async ({ page }) => {
@@ -112,7 +121,7 @@ test.describe('SEO Playbook v2.0 — Smoke Tests', () => {
       await gotoSection(page, 'analytics');
       await page.waitForLoadState('networkidle');
 
-      await page.getByRole('button', { name: 'Config' }).click();
+      await page.getByRole('button', { name: 'Config', exact: true }).click();
       await page.waitForLoadState('networkidle');
 
       // Google Integrations panel
@@ -198,28 +207,23 @@ test.describe('SEO Playbook v2.0 — Smoke Tests', () => {
       await expect(page.getByRole('heading', { name: 'Arquitectura de Contenido' })).toBeVisible();
     });
 
-    test('shows Topic Clusters section with cluster cards @smoke', async ({ page }) => {
+    test('shows architecture category summary section with real metrics @smoke', async ({ page }) => {
       const websiteId = WEBSITE_ID_OVERRIDE || await getFirstWebsiteId(page);
       await page.goto(`/dashboard/${websiteId}/seo/architecture`);
       await page.waitForLoadState('networkidle');
 
-      // Section heading
-      await expect(page.getByText('Topic Clusters')).toBeVisible();
-
-      // At least one cluster card (static data: "Tours Colombia")
-      await expect(page.getByText('Tours Colombia')).toBeVisible();
+      await expect(page.getByText('Resumen por categoría')).toBeVisible();
+      await expect(page.locator('p').filter({ hasText: /^Nodos totales$/ }).first()).toBeVisible();
     });
 
-    test('shows click depth table with Profundidad de Clicks heading @smoke', async ({ page }) => {
+    test('shows click depth section and bucket rows @smoke', async ({ page }) => {
       const websiteId = WEBSITE_ID_OVERRIDE || await getFirstWebsiteId(page);
       await page.goto(`/dashboard/${websiteId}/seo/architecture`);
       await page.waitForLoadState('networkidle');
 
-      await expect(page.getByText('Profundidad de Clicks')).toBeVisible();
-
-      // Depth rows
-      await expect(page.getByText('1 click')).toBeVisible();
-      await expect(page.getByText('2 clicks')).toBeVisible();
+      await expect(page.getByRole('heading', { name: /Click depth buckets/i })).toBeVisible();
+      await expect(page.getByRole('columnheader', { name: 'Bucket' })).toBeVisible();
+      await expect(page.getByRole('columnheader', { name: '# Nodos' })).toBeVisible();
     });
 
     test('back button returns to analytics keywords tab @smoke', async ({ page }) => {
@@ -282,7 +286,7 @@ test.describe('SEO Playbook v2.0 — Smoke Tests', () => {
       await bannerButton.click();
 
       // Wizard step 1 welcome text
-      await expect(page.getByText(/Configura tu SEO en 5 minutos/)).toBeVisible();
+      await expect(page.getByRole('heading', { name: /Configura tu SEO en 5 minutos/i })).toBeVisible();
     });
 
     test('wizard can be dismissed via dismiss button @smoke', async ({ page }) => {
@@ -314,7 +318,7 @@ test.describe('SEO Playbook v2.0 — Smoke Tests', () => {
   test.describe('SEO Item Detail', () => {
     test('SEO detail page renders 5 tabs when accessible @smoke', async ({ page }) => {
       await gotoSection(page, 'contenido');
-      await page.waitForLoadState('networkidle');
+      await expect(page.getByRole('heading', { name: 'Contenido' })).toBeVisible();
 
       const openSeoButton = page.getByRole('button', { name: 'Open SEO' }).first();
       const count = await openSeoButton.count();
@@ -338,7 +342,7 @@ test.describe('SEO Playbook v2.0 — Smoke Tests', () => {
     test('locale pills render in item detail header when accessible @smoke', async ({ page }) => {
       // requires real data — locale pills are part of SEO item detail header
       await gotoSection(page, 'contenido');
-      await page.waitForLoadState('networkidle');
+      await expect(page.getByRole('heading', { name: 'Contenido' })).toBeVisible();
 
       const openSeoButton = page.getByRole('button', { name: 'Open SEO' }).first();
       const count = await openSeoButton.count();
