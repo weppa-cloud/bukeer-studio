@@ -123,7 +123,8 @@ function SortablePageRow({
 }
 
 export default function PagesTab() {
-  const { websiteId } = useParams<{ websiteId: string }>();
+  const routeParams = useParams<{ websiteId: string }>();
+  const websiteId = routeParams?.websiteId ?? '';
   const { pages, refetch } = useWebsite();
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);

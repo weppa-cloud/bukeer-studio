@@ -24,7 +24,9 @@ interface PostData {
 }
 
 export default function BlogEditorPage() {
-  const { websiteId, postId } = useParams<{ websiteId: string; postId: string }>();
+  const routeParams = useParams<{ websiteId: string; postId: string }>();
+  const websiteId = routeParams?.websiteId ?? '';
+  const postId = routeParams?.postId ?? '';
   const router = useRouter();
   const supabase = createSupabaseBrowserClient();
 

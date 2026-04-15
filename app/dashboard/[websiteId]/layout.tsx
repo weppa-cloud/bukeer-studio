@@ -10,8 +10,9 @@ export default function WebsiteLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { websiteId } = useParams<{ websiteId: string }>();
-  const pathname = usePathname();
+  const routeParams = useParams<{ websiteId: string }>();
+  const websiteId = routeParams?.websiteId ?? '';
+  const pathname = usePathname() ?? '';
   const [websiteName, setWebsiteName] = useState('');
   const router = useRouter();
   const supabase = createSupabaseBrowserClient();

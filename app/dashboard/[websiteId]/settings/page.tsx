@@ -12,7 +12,8 @@ import { TemplateSection } from '@/components/admin/template-section';
 import { StudioPage, StudioSectionHeader, StudioInput, StudioTabs } from '@/components/studio/ui/primitives';
 
 export default function SettingsTab() {
-  const { websiteId } = useParams<{ websiteId: string }>();
+  const routeParams = useParams<{ websiteId: string }>();
+  const websiteId = routeParams?.websiteId ?? '';
   const { website, save, refetch } = useWebsite();
   const router = useRouter();
   const supabase = createSupabaseBrowserClient();
