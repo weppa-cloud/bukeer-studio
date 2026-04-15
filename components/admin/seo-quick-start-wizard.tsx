@@ -120,7 +120,7 @@ export function SeoQuickStartWizard({
   websiteId,
   onComplete,
   onNavigateToConfig,
-  gscConnected = false,
+  gscConnected,
 }: SeoQuickStartWizardProps) {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
@@ -139,6 +139,12 @@ export function SeoQuickStartWizard({
     targetPosition: 15,
     targetTechScore: 75,
   });
+  const gscConnectionState: 'checking' | 'connected' | 'disconnected' =
+    typeof gscConnected === 'boolean'
+      ? gscConnected
+        ? 'connected'
+        : 'disconnected'
+      : 'checking';
 
   // Save to localStorage when reaching final step
   useEffect(() => {
@@ -368,16 +374,30 @@ export function SeoQuickStartWizard({
                 <p className="text-sm font-medium text-[var(--studio-text)]">
                   Google Search Console
                 </p>
-                <StudioBadge tone={gscConnected ? 'success' : 'warning'}>
-                  {gscConnected ? 'Conectado' : 'No conectado'}
+                <StudioBadge
+                  tone={
+                    gscConnectionState === 'connected'
+                      ? 'success'
+                      : gscConnectionState === 'disconnected'
+                      ? 'warning'
+                      : 'info'
+                  }
+                >
+                  {gscConnectionState === 'connected'
+                    ? 'Conectado'
+                    : gscConnectionState === 'disconnected'
+                    ? 'No conectado'
+                    : 'Verificando...'}
                 </StudioBadge>
               </div>
               <p className="text-xs text-[var(--studio-text-muted)]">
-                {gscConnected
+                {gscConnectionState === 'connected'
                   ? 'GSC está conectado. Los datos de búsqueda ya se importan automáticamente.'
-                  : 'Conecta tu cuenta de Google para importar datos de búsqueda reales directamente a tu panel de Analytics.'}
+                  : gscConnectionState === 'disconnected'
+                  ? 'Conecta tu cuenta de Google para importar datos de búsqueda reales directamente a tu panel de Analytics.'
+                  : 'Estamos validando el estado de integración de GSC para este sitio.'}
               </p>
-              {!gscConnected && (
+              {gscConnectionState === 'disconnected' && (
                 <StudioButton size="sm" onClick={handleNavigateToConfig}>
                   Conectar GSC →
                 </StudioButton>

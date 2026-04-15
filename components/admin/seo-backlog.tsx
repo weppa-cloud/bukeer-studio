@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import {
   StudioButton,
   StudioBadge,
+  StudioEmptyState,
 } from '@/components/studio/ui/primitives';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -15,6 +16,8 @@ interface StrikingDistanceRow {
   position: number;
   volume: number;
   priority: 'P1' | 'P2' | 'P3';
+  source?: string;
+  latestSnapshotDate?: string;
 }
 
 interface LowCtrRow {
@@ -56,6 +59,12 @@ const STRIKING_DISTANCE_EXAMPLE: StrikingDistanceRow[] = [
   { url: '/destinos/medellin', keyword: 'qué hacer en medellín 3 días', position: 17, volume: 670, priority: 'P2' },
   { url: '/blog/temporada-alta', keyword: 'temporada alta colombia viajes', position: 19, volume: 450, priority: 'P2' },
 ];
+
+type StrikingDistanceResponse = {
+  rows?: StrikingDistanceRow[];
+  source?: string;
+  fetchedAt?: string;
+};
 
 const LOW_CTR_EXAMPLE: LowCtrRow[] = [
   { url: '/hoteles/bogota', impressions: 4500, ctrActual: '0.8%', ctrBenchmark: '3-5%', action: 'Reescribir título', slug: 'hoteles/bogota' },
@@ -165,22 +174,25 @@ function TypeBadge({ type }: { type: KanbanCard['type'] }) {
 function StrikingDistanceSection({ websiteId }: { websiteId: string }) {
   const [loading, setLoading] = useState(false);
   const [rows, setRows] = useState<StrikingDistanceRow[]>(STRIKING_DISTANCE_EXAMPLE);
-  const [detected, setDetected] = useState(false);
+  const [state, setState] = useState<'mock' | 'endpoint' | 'empty'>('mock');
+  const [meta, setMeta] = useState<{ source?: string; fetchedAt?: string } | null>(null);
 
   async function detect() {
     setLoading(true);
     try {
       const res = await fetch(`/api/seo/analytics/striking-distance?websiteId=${websiteId}`);
       if (res.ok) {
-        const json = await res.json() as { data?: StrikingDistanceRow[] };
-        setRows(json.data ?? STRIKING_DISTANCE_EXAMPLE);
-        setDetected(true);
+        const json = (await res.json()) as StrikingDistanceResponse;
+        const nextRows = json.rows ?? [];
+        setRows(nextRows);
+        setState(nextRows.length ? 'endpoint' : 'empty');
+        setMeta({ source: json.source, fetchedAt: json.fetchedAt });
       } else {
         // Endpoint not available — keep example data
-        setDetected(true);
+        setState('mock');
       }
     } catch {
-      setDetected(true);
+      setState('mock');
     } finally {
       setLoading(false);
     }
@@ -205,46 +217,60 @@ function StrikingDistanceSection({ websiteId }: { websiteId: string }) {
         </StudioButton>
       </div>
 
-      {!detected && (
+      {state === 'mock' && (
         <p className="text-xs text-[var(--studio-text-muted)]">
-          Datos de ejemplo — conecta GSC y pulsa "Detectar oportunidades" para datos reales.
+          Datos de ejemplo — conecta GSC y pulsa &quot;Detectar oportunidades&quot; para datos reales.
         </p>
       )}
 
-      <TableWrapper>
-        <thead>
-          <tr>
-            <Th>URL</Th>
-            <Th>Keyword</Th>
-            <Th className="text-center">Posición actual</Th>
-            <Th className="text-center">Volumen</Th>
-            <Th className="text-center">Prioridad</Th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row, i) => (
-            <tr key={i} className="hover:bg-[color-mix(in_srgb,var(--studio-primary)_3%,transparent)]">
-              <Td>
-                <code className="rounded bg-[var(--studio-border)]/40 px-1.5 py-0.5 text-xs text-[var(--studio-text)]">
-                  {row.url}
-                </code>
-              </Td>
-              <Td className="max-w-[220px]">
-                <span className="line-clamp-2">{row.keyword}</span>
-              </Td>
-              <Td className="text-center">
-                <span className="font-semibold text-amber-600">{row.position}</span>
-              </Td>
-              <Td className="text-center">
-                {row.volume.toLocaleString('es-CO')}
-              </Td>
-              <Td className="text-center">
-                <PriorityBadge priority={row.priority} />
-              </Td>
+      {state === 'empty' ? (
+        <StudioEmptyState
+          title="Sin striking distance detectado"
+          description="No hay keywords en posiciones 8-20 con volumen suficiente en la base actual."
+        />
+      ) : (
+        <TableWrapper>
+          <thead>
+            <tr>
+              <Th>URL</Th>
+              <Th>Keyword</Th>
+              <Th className="text-center">Posición actual</Th>
+              <Th className="text-center">Volumen</Th>
+              <Th className="text-center">Prioridad</Th>
             </tr>
-          ))}
-        </tbody>
-      </TableWrapper>
+          </thead>
+          <tbody>
+            {rows.map((row, i) => (
+              <tr key={i} className="hover:bg-[color-mix(in_srgb,var(--studio-primary)_3%,transparent)]">
+                <Td>
+                  <code className="rounded bg-[var(--studio-border)]/40 px-1.5 py-0.5 text-xs text-[var(--studio-text)]">
+                    {row.url}
+                  </code>
+                </Td>
+                <Td className="max-w-[220px]">
+                  <span className="line-clamp-2">{row.keyword}</span>
+                </Td>
+                <Td className="text-center">
+                  <span className="font-semibold text-amber-600">{row.position}</span>
+                </Td>
+                <Td className="text-center">
+                  {row.volume.toLocaleString('es-CO')}
+                </Td>
+                <Td className="text-center">
+                  <PriorityBadge priority={row.priority} />
+                </Td>
+              </tr>
+            ))}
+          </tbody>
+        </TableWrapper>
+      )}
+
+      {meta && (
+        <p className="text-xs text-[var(--studio-text-muted)]">
+          Fuente: {meta.source ?? 'desconocida'}
+          {meta.fetchedAt ? ` · ${new Date(meta.fetchedAt).toLocaleString()}` : ''}
+        </p>
+      )}
     </SectionCard>
   );
 }
@@ -363,7 +389,7 @@ function ScorecardSection() {
           description="KPIs del plan 90D vs benchmarks Travel LATAM"
         />
         <p className="text-xs text-[var(--studio-text-muted)]">
-          Los valores "—" requieren conexión a Google Search Console para calcular el baseline real.
+          Los valores &quot;—&quot; requieren conexión a Google Search Console para calcular el baseline real.
         </p>
       </div>
 

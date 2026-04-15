@@ -66,14 +66,20 @@ const ACTIVITY_CHECKLIST: ChecklistItem[] = [
 ];
 
 interface SeoActivityWorkflowProps {
+  itemId: string;
   itemName: string;
+  itemUrl: string;
+  locale: string;
   websiteId: string;
   seoPath: string;
   onClose: () => void;
 }
 
 export function SeoActivityWorkflow({
+  itemId,
   itemName,
+  itemUrl,
+  locale,
   websiteId,
   seoPath,
   onClose,
@@ -81,7 +87,10 @@ export function SeoActivityWorkflow({
   return (
     <SeoWorkflowPanel
       itemType="activity"
+      itemId={itemId}
       itemName={itemName}
+      itemUrl={itemUrl}
+      locale={locale}
       websiteId={websiteId}
       seoPath={seoPath}
       onClose={onClose}

@@ -15,7 +15,7 @@ interface SeoTechnicalAuditProps {
   health: HealthAuditDTO[];
   websiteId: string;
   integrationStatus: IntegrationStatusDTO | null;
-  onHealthRefresh?: () => Promise<void>;
+  onHealthRefresh?: (result?: { source?: string; fetchedAt?: string; rows?: HealthAuditDTO[] }) => Promise<void>;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -92,7 +92,7 @@ function PageSpeedTrigger({
   onSuccess,
 }: {
   websiteId: string;
-  onSuccess: () => Promise<void>;
+  onSuccess: (result?: { source?: string; fetchedAt?: string; rows?: HealthAuditDTO[] }) => Promise<void>;
 }) {
   const [isAuditing, setIsAuditing] = useState(false);
   const [toast, setToast] = useState<{ type: 'success' | 'info' | 'error'; message: string } | null>(null);
@@ -115,8 +115,12 @@ function PageSpeedTrigger({
         throw new Error(body.error || 'Audit failed');
       }
 
-      setToast({ type: 'success', message: 'Auditoria completada. Resultados actualizados.' });
-      await onSuccess();
+      const body = (await response.json().catch(() => ({}))) as { source?: string; fetchedAt?: string; rows?: HealthAuditDTO[] };
+      setToast({
+        type: 'success',
+        message: `Auditoria completada${body.source ? ` · ${body.source}` : ''}${body.fetchedAt ? ` · ${new Date(body.fetchedAt).toLocaleString()}` : ''}.`,
+      });
+      await onSuccess(body);
     } catch (err) {
       // If the endpoint doesn't exist (network error / 404 variant), show friendly message
       const message = err instanceof Error ? err.message : 'Unknown error';
@@ -372,13 +376,26 @@ export function SeoTechnicalAudit({
   integrationStatus,
   onHealthRefresh,
 }: SeoTechnicalAuditProps) {
+  const [lastAuditMeta, setLastAuditMeta] = useState<{ source?: string; fetchedAt?: string } | null>(null);
+
   return (
     <div className="space-y-4">
       {/* A) PageSpeed trigger */}
       <PageSpeedTrigger
         websiteId={websiteId}
-        onSuccess={onHealthRefresh ?? (() => Promise.resolve())}
+        onSuccess={async (result) => {
+          setLastAuditMeta(result ? { source: result.source, fetchedAt: result.fetchedAt } : null);
+          await (onHealthRefresh ?? (() => Promise.resolve()))(result);
+        }}
       />
+
+      {lastAuditMeta && (
+        <div className="studio-panel border p-3 text-xs text-[var(--studio-text-muted)]">
+          <span className="font-medium text-[var(--studio-text)]">Ultima auditoria:</span>{' '}
+          {lastAuditMeta.source ?? 'source desconocido'}
+          {lastAuditMeta.fetchedAt ? ` · ${new Date(lastAuditMeta.fetchedAt).toLocaleString()}` : ''}
+        </div>
+      )}
 
       {/* B) CWV by template */}
       <CwvByTemplate health={health} />

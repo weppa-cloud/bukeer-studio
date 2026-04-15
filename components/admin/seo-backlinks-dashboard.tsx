@@ -16,6 +16,9 @@ interface BacklinksSummary {
   drEstimated: number | null;
   newLast30d: number | null;
   lostLast30d: number | null;
+  source?: string;
+  fetchedAt?: string;
+  note?: string;
 }
 
 interface ReferringDomainRow {
@@ -71,6 +74,13 @@ const VELOCITY_MONTHS: VelocityRow[] = [
   { month: 'Abr 2026', gained: '—', lost: '—', net: '—' },
 ];
 
+type BacklinksSummaryResponse = BacklinksSummary;
+type IntersectionResponse = {
+  rows?: IntersectionRow[];
+  source?: string;
+  fetchedAt?: string;
+};
+
 // ─── Tooltip ──────────────────────────────────────────────────────────────────
 
 function Tooltip({ text, children }: { text: string; children: React.ReactNode }) {
@@ -113,10 +123,12 @@ export function SeoBacklinksDashboard({ websiteId }: SeoBacklinksDashboardProps)
   const [summary, setSummary] = useState<BacklinksSummary | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [summaryMeta, setSummaryMeta] = useState<{ source?: string; fetchedAt?: string } | null>(null);
 
   const [intersectionRows, setIntersectionRows] = useState<IntersectionRow[]>(EXAMPLE_INTERSECTION);
   const [intersectionLoading, setIntersectionLoading] = useState(false);
   const [intersectionFetched, setIntersectionFetched] = useState(false);
+  const [intersectionMeta, setIntersectionMeta] = useState<{ source?: string; fetchedAt?: string } | null>(null);
 
   async function handleAnalyzeBacklinks() {
     setSummaryLoading(true);
@@ -129,8 +141,9 @@ export function SeoBacklinksDashboard({ websiteId }: SeoBacklinksDashboardProps)
         setSummaryError('DataForSEO backlinks API no configurada');
         return;
       }
-      const data = (await response.json()) as BacklinksSummary;
+      const data = (await response.json()) as BacklinksSummaryResponse;
       setSummary(data);
+      setSummaryMeta({ source: data.source, fetchedAt: data.fetchedAt });
     } catch {
       setSummaryError('DataForSEO backlinks API no configurada');
     } finally {
@@ -149,8 +162,9 @@ export function SeoBacklinksDashboard({ websiteId }: SeoBacklinksDashboardProps)
       if (!response.ok) {
         setIntersectionRows(EXAMPLE_INTERSECTION);
       } else {
-        const data = (await response.json()) as { rows: IntersectionRow[] };
-        setIntersectionRows(data.rows ?? EXAMPLE_INTERSECTION);
+        const data = (await response.json()) as IntersectionResponse;
+        setIntersectionRows(data.rows ?? []);
+        setIntersectionMeta({ source: data.source, fetchedAt: data.fetchedAt });
       }
     } catch {
       setIntersectionRows(EXAMPLE_INTERSECTION);
@@ -205,6 +219,16 @@ export function SeoBacklinksDashboard({ websiteId }: SeoBacklinksDashboardProps)
             tooltip="Links ganados y perdidos en los últimos 30 días. Requiere DataForSEO backlinks_summary."
           />
         </div>
+
+        {summaryMeta && (
+          <p className="mt-2 text-xs text-[var(--studio-text-muted)]">
+            Fuente: {summaryMeta.source ?? 'desconocida'}
+            {summaryMeta.fetchedAt ? ` · ${new Date(summaryMeta.fetchedAt).toLocaleString()}` : ''}
+          </p>
+        )}
+        {summary?.note && (
+          <p className="mt-1 text-xs text-[var(--studio-text-muted)]">{summary.note}</p>
+        )}
       </div>
 
       {/* ── B) Anchor Distribution ── */}
@@ -295,38 +319,51 @@ export function SeoBacklinksDashboard({ websiteId }: SeoBacklinksDashboardProps)
           </StudioButton>
         </div>
 
-        {intersectionFetched && intersectionRows === EXAMPLE_INTERSECTION && (
+        {intersectionFetched && intersectionRows.length === 0 && (
           <div className="rounded-lg p-3 mb-3 bg-yellow-50 border border-yellow-200 text-yellow-800 text-xs">
-            DataForSEO backlinks intersection no configurada. Mostrando datos de ejemplo.
+            No hay intersecciones persistidas todavía. El endpoint respondió correctamente con un payload vacío.
           </div>
         )}
 
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-left border-b border-[var(--studio-border)]">
-              <th className="py-2 font-medium text-[var(--studio-text-muted)]">Dominio</th>
-              <th className="py-2 font-medium text-[var(--studio-text-muted)]">DR</th>
-              <th className="py-2 font-medium text-[var(--studio-text-muted)]">Enlaza a comp.</th>
-              <th className="py-2 font-medium text-[var(--studio-text-muted)]">Acción</th>
-            </tr>
-          </thead>
-          <tbody>
-            {intersectionRows.map((row) => (
-              <tr key={row.domain} className="border-b border-[var(--studio-border)]/50">
-                <td className="py-2 text-[var(--studio-text)]">{row.domain}</td>
-                <td className="py-2 text-[var(--studio-text)]">{row.dr}</td>
-                <td className="py-2 text-[var(--studio-text-muted)] max-w-[200px] truncate">
-                  {row.linksTo}
-                </td>
-                <td className="py-2">
-                  <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs bg-green-50 text-green-700 border border-green-200">
-                    {row.action}
-                  </span>
-                </td>
+        {intersectionRows.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-[var(--studio-border)] p-4 text-sm text-[var(--studio-text-muted)]">
+            Sin oportunidades de intersección por ahora.
+          </div>
+        ) : (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left border-b border-[var(--studio-border)]">
+                <th className="py-2 font-medium text-[var(--studio-text-muted)]">Dominio</th>
+                <th className="py-2 font-medium text-[var(--studio-text-muted)]">DR</th>
+                <th className="py-2 font-medium text-[var(--studio-text-muted)]">Enlaza a comp.</th>
+                <th className="py-2 font-medium text-[var(--studio-text-muted)]">Acción</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {intersectionRows.map((row) => (
+                <tr key={row.domain} className="border-b border-[var(--studio-border)]/50">
+                  <td className="py-2 text-[var(--studio-text)]">{row.domain}</td>
+                  <td className="py-2 text-[var(--studio-text)]">{row.dr}</td>
+                  <td className="py-2 text-[var(--studio-text-muted)] max-w-[200px] truncate">
+                    {row.linksTo}
+                  </td>
+                  <td className="py-2">
+                    <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs bg-green-50 text-green-700 border border-green-200">
+                      {row.action}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+
+        {intersectionMeta && (
+          <p className="mt-2 text-xs text-[var(--studio-text-muted)]">
+            Fuente: {intersectionMeta.source ?? 'desconocida'}
+            {intersectionMeta.fetchedAt ? ` · ${new Date(intersectionMeta.fetchedAt).toLocaleString()}` : ''}
+          </p>
+        )}
       </div>
 
       {/* ── E) Link Velocity ── */}

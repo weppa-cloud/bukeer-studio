@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { X, CheckCircle2, AlertTriangle, XCircle, Circle, ExternalLink, Pencil } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { StudioButton } from '@/components/studio/ui/primitives';
+import { StudioBadge, StudioButton, StudioInput } from '@/components/studio/ui/primitives';
 
 export interface ChecklistItem {
   id: string;
@@ -14,13 +14,16 @@ export interface ChecklistItem {
 
 export interface SeoWorkflowPanelProps {
   itemType: 'hotel' | 'activity' | 'package' | 'destination' | 'blog';
+  itemId: string;
   itemName: string;
+  itemUrl: string;
+  locale: string;
   websiteId: string;
   seoPath: string;
   onClose: () => void;
   checklist: ChecklistItem[];
   /** Optional slot rendered below the item name in the header (e.g. blog status badge) */
-  headerExtra?: React.ReactNode;
+  headerExtra?: ReactNode;
 }
 
 type StepStatus = 'completed' | 'active' | 'pending';
@@ -28,6 +31,16 @@ type StepStatus = 'completed' | 'active' | 'pending';
 interface Step {
   label: string;
   status: StepStatus;
+}
+
+interface WorkflowBaseline {
+  websiteId: string;
+  itemType: SeoWorkflowPanelProps['itemType'];
+  itemId: string;
+  url: string;
+  locale: string;
+  position: number;
+  recordedAt: string;
 }
 
 const INITIAL_STEPS: Step[] = [
@@ -65,7 +78,10 @@ function connectorColor(leftStatus: StepStatus) {
 
 export function SeoWorkflowPanel({
   itemType,
+  itemId,
   itemName,
+  itemUrl,
+  locale,
   websiteId,
   seoPath,
   onClose,
@@ -74,6 +90,11 @@ export function SeoWorkflowPanel({
 }: SeoWorkflowPanelProps) {
   const router = useRouter();
   const [items, setItems] = useState<ChecklistItem[]>(checklist);
+  const [baseline, setBaseline] = useState<WorkflowBaseline | null>(null);
+  const [baselinePosition, setBaselinePosition] = useState('');
+  const [baselineLoading, setBaselineLoading] = useState(false);
+  const [baselineSaving, setBaselineSaving] = useState(false);
+  const [baselineError, setBaselineError] = useState<string | null>(null);
 
   const passedCount = items.filter((i) => i.status === 'pass').length;
   const total = items.length;
@@ -84,6 +105,38 @@ export function SeoWorkflowPanel({
     if (idx === 3 && allDone) return { ...step, status: 'active' };
     return step;
   });
+
+  const loadBaseline = useCallback(async () => {
+    setBaselineLoading(true);
+    setBaselineError(null);
+    try {
+      const params = new URLSearchParams({
+        websiteId,
+        itemType,
+        itemId,
+        locale,
+      });
+      const response = await fetch(`/api/seo/workflow/baseline?${params.toString()}`, {
+        cache: 'no-store',
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(body.error || 'Failed to load baseline');
+      }
+
+      const nextBaseline = (body.baseline ?? null) as WorkflowBaseline | null;
+      setBaseline(nextBaseline);
+      setBaselinePosition(nextBaseline ? String(nextBaseline.position) : '');
+    } catch (error) {
+      setBaselineError(error instanceof Error ? error.message : 'Failed to load baseline');
+    } finally {
+      setBaselineLoading(false);
+    }
+  }, [websiteId, itemType, itemId, locale]);
+
+  useEffect(() => {
+    void loadBaseline();
+  }, [loadBaseline]);
 
   function toggleStatus(id: string) {
     setItems((prev) =>
@@ -106,6 +159,37 @@ export function SeoWorkflowPanel({
     onClose();
   }
 
+  async function handleRegisterBaseline() {
+    setBaselineError(null);
+    setBaselineSaving(true);
+    try {
+      const response = await fetch('/api/seo/workflow/baseline', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          websiteId,
+          itemType,
+          itemId,
+          url: itemUrl,
+          locale,
+          position: baselinePosition,
+        }),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(body.error || 'Failed to save baseline');
+      }
+
+      const nextBaseline = body.baseline as WorkflowBaseline;
+      setBaseline(nextBaseline);
+      setBaselinePosition(String(nextBaseline.position));
+    } catch (error) {
+      setBaselineError(error instanceof Error ? error.message : 'Failed to save baseline');
+    } finally {
+      setBaselineSaving(false);
+    }
+  }
+
   return (
     <>
       {/* Overlay */}
@@ -126,7 +210,7 @@ export function SeoWorkflowPanel({
         <div className="flex items-start justify-between gap-3 border-b border-[var(--studio-border)] px-4 py-3">
           <div className="min-w-0">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--studio-text-muted)]">
-              Flujo SEO — {itemType}
+              Flujo SEO - {itemType}
             </p>
             <h2 className="mt-0.5 truncate text-sm font-semibold text-[var(--studio-text)]">
               {itemName}
@@ -168,6 +252,73 @@ export function SeoWorkflowPanel({
           </div>
         </div>
 
+        {/* Measure */}
+        <div className="border-b border-[var(--studio-border)] px-4 py-3">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <span className="text-xs font-medium text-[var(--studio-text)]">Medir</span>
+            <StudioBadge tone={baseline ? 'success' : 'neutral'}>
+              {baseline ? 'Baseline guardada' : 'Pendiente'}
+            </StudioBadge>
+          </div>
+
+          <div className="space-y-3 rounded-lg border border-[var(--studio-border)] bg-[color-mix(in_srgb,var(--studio-surface)_92%,var(--studio-border)_8%)] p-3">
+            <div className="grid gap-1.5">
+              <label
+                htmlFor={`${itemType}-${itemId}-baseline-position`}
+                className="text-[10px] font-semibold uppercase tracking-widest text-[var(--studio-text-muted)]"
+              >
+                Posición base
+              </label>
+              <StudioInput
+                id={`${itemType}-${itemId}-baseline-position`}
+                type="number"
+                min="0.1"
+                step="0.1"
+                placeholder="Ej. 12.4"
+                value={baselinePosition}
+                onChange={(event) => setBaselinePosition(event.target.value)}
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <StudioButton
+                size="sm"
+                onClick={handleRegisterBaseline}
+                disabled={baselineSaving || baselineLoading || baselinePosition.trim().length === 0}
+                className="flex-1"
+              >
+                {baselineSaving ? 'Guardando...' : 'Registrar línea base'}
+              </StudioButton>
+              <StudioButton
+                size="sm"
+                variant="outline"
+                onClick={() => void loadBaseline()}
+                disabled={baselineLoading || baselineSaving}
+              >
+                {baselineLoading ? 'Cargando...' : 'Refrescar'}
+              </StudioButton>
+            </div>
+
+            {baselineError ? (
+              <p className="text-xs text-rose-600">{baselineError}</p>
+            ) : baseline ? (
+              <div className="rounded-md border border-[var(--studio-border)] bg-[var(--studio-surface)] p-2 text-xs text-[var(--studio-text)]">
+                <p className="font-medium text-[var(--studio-text)]">Línea base guardada</p>
+                <p className="mt-1 text-[var(--studio-text-muted)]">URL: {baseline.url}</p>
+                <p className="text-[var(--studio-text-muted)]">Locale: {baseline.locale}</p>
+                <p className="text-[var(--studio-text-muted)]">Posición: {baseline.position}</p>
+                <p className="text-[var(--studio-text-muted)]">
+                  Fecha: {new Date(baseline.recordedAt).toLocaleString()}
+                </p>
+              </div>
+            ) : (
+              <p className="text-xs text-[var(--studio-text-muted)]">
+                Sin baseline guardada. Registra la primera posición para fijar el punto de partida.
+              </p>
+            )}
+          </div>
+        </div>
+
         {/* Progress */}
         <div className="border-b border-[var(--studio-border)] px-4 py-3">
           <div className="mb-1.5 flex items-center justify-between">
@@ -186,7 +337,7 @@ export function SeoWorkflowPanel({
           </div>
           {allDone && (
             <p className="mt-1.5 text-xs font-medium text-emerald-600">
-              Checklist completo — paso Medir activo
+              Checklist completo - paso Medir activo
             </p>
           )}
         </div>

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { StudioButton } from '@/components/studio/ui/primitives';
+import { StudioButton, StudioEmptyState } from '@/components/studio/ui/primitives';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -21,6 +21,7 @@ interface LlmReferralCard {
   name: string;
   domains: string[];
   sessions: number | null;
+  source?: string;
 }
 
 interface GeoStrategy {
@@ -45,6 +46,18 @@ const LLM_REFERRAL_CARDS: LlmReferralCard[] = [
   { name: 'Claude', domains: ['claude.ai'], sessions: null },
 ];
 
+type OverviewResponse = {
+  rows?: AiOverviewRow[];
+  source?: string;
+  fetchedAt?: string;
+};
+
+type ReferralsResponse = {
+  cards?: LlmReferralCard[];
+  source?: string;
+  fetchedAt?: string;
+};
+
 const GEO_STRATEGIES: GeoStrategy[] = [
   { id: 'json-ld', status: 'ok', label: 'JSON-LD con author y publisher definidos' },
   { id: 'llms-txt', status: 'error', label: 'llms.txt configurado', note: 'Botón para configurar en settings' },
@@ -68,10 +81,13 @@ export function SeoAiVisibility({ websiteId }: SeoAiVisibilityProps) {
 
   const [overviewRows, setOverviewRows] = useState<AiOverviewRow[]>(EXAMPLE_AI_OVERVIEW_ROWS);
   const [overviewLoading, setOverviewLoading] = useState(false);
-  const [overviewIsExample, setOverviewIsExample] = useState(true);
+  const [overviewState, setOverviewState] = useState<'mock' | 'endpoint' | 'empty'>('mock');
+  const [overviewMeta, setOverviewMeta] = useState<{ source?: string; fetchedAt?: string } | null>(null);
 
   const [referralCards, setReferralCards] = useState<LlmReferralCard[]>(LLM_REFERRAL_CARDS);
   const [referralsLoading, setReferralsLoading] = useState(false);
+  const [referralsState, setReferralsState] = useState<'mock' | 'endpoint' | 'empty'>('mock');
+  const [referralsMeta, setReferralsMeta] = useState<{ source?: string; fetchedAt?: string } | null>(null);
 
   async function handleAnalyzeOverview() {
     setOverviewLoading(true);
@@ -81,18 +97,16 @@ export function SeoAiVisibility({ websiteId }: SeoAiVisibilityProps) {
         { cache: 'no-store' }
       );
       if (!response.ok) {
-        setOverviewIsExample(true);
+        setOverviewState('mock');
         return;
       }
-      const data = (await response.json()) as { rows: AiOverviewRow[] };
-      if (data.rows?.length) {
-        setOverviewRows(data.rows);
-        setOverviewIsExample(false);
-      } else {
-        setOverviewIsExample(true);
-      }
+      const data = (await response.json()) as OverviewResponse;
+      const nextRows = data.rows ?? [];
+      setOverviewRows(nextRows);
+      setOverviewState(nextRows.length ? 'endpoint' : 'empty');
+      setOverviewMeta({ source: data.source, fetchedAt: data.fetchedAt });
     } catch {
-      setOverviewIsExample(true);
+      setOverviewState('mock');
     } finally {
       setOverviewLoading(false);
     }
@@ -106,10 +120,11 @@ export function SeoAiVisibility({ websiteId }: SeoAiVisibilityProps) {
         { cache: 'no-store' }
       );
       if (!response.ok) return;
-      const data = (await response.json()) as { cards: LlmReferralCard[] };
-      if (data.cards?.length) {
-        setReferralCards(data.cards);
-      }
+      const data = (await response.json()) as ReferralsResponse;
+      const nextCards = data.cards ?? [];
+      setReferralCards(nextCards);
+      setReferralsState(nextCards.length ? 'endpoint' : 'empty');
+      setReferralsMeta({ source: data.source, fetchedAt: data.fetchedAt });
     } catch {
       // keep defaults — graceful degradation
     } finally {
@@ -139,48 +154,62 @@ export function SeoAiVisibility({ websiteId }: SeoAiVisibilityProps) {
           </StudioButton>
         </div>
 
-        {overviewIsExample && (
+        {overviewState === 'mock' && (
           <div className="rounded-lg p-3 mb-3 bg-blue-50 border border-blue-200 text-blue-800 text-xs">
             Datos de ejemplo. Conecta DataForSEO para análisis real de AI Overviews.
           </div>
         )}
 
-        <div className="overflow-x-auto mt-3">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left border-b border-[var(--studio-border)]">
-                <th className="py-2 font-medium text-[var(--studio-text-muted)]">Keyword</th>
-                <th className="py-2 font-medium text-[var(--studio-text-muted)]">AI Overview</th>
-                <th className="py-2 font-medium text-[var(--studio-text-muted)]">Tu dominio citado</th>
-                <th className="py-2 font-medium text-[var(--studio-text-muted)]">Fuente SERP</th>
-              </tr>
-            </thead>
-            <tbody>
-              {overviewRows.map((row) => (
-                <tr key={row.keyword} className="border-b border-[var(--studio-border)]/50">
-                  <td className="py-2 text-[var(--studio-text)]">{row.keyword}</td>
-                  <td className="py-2">
-                    {row.aiOverview === 'detected' ? (
-                      <span className="text-green-600 text-xs font-medium">✅ Detectado</span>
-                    ) : (
-                      <span className="text-gray-400 text-xs">❌ No detectado</span>
-                    )}
-                  </td>
-                  <td className="py-2">
-                    {row.domainCited === null ? (
-                      <span className="text-[var(--studio-text-muted)] text-xs">—</span>
-                    ) : row.domainCited ? (
-                      <span className="text-green-600 text-xs font-medium">✅ Citado</span>
-                    ) : (
-                      <span className="text-red-500 text-xs">❌ No citado</span>
-                    )}
-                  </td>
-                  <td className="py-2 text-[var(--studio-text-muted)] text-xs">{row.source}</td>
+        {overviewState === 'empty' ? (
+          <StudioEmptyState
+            title="Sin señales de AI Overviews"
+            description="El endpoint respondió correctamente, pero no hay keywords o snapshots persistidos todavía."
+          />
+        ) : (
+          <div className="overflow-x-auto mt-3">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left border-b border-[var(--studio-border)]">
+                  <th className="py-2 font-medium text-[var(--studio-text-muted)]">Keyword</th>
+                  <th className="py-2 font-medium text-[var(--studio-text-muted)]">AI Overview</th>
+                  <th className="py-2 font-medium text-[var(--studio-text-muted)]">Tu dominio citado</th>
+                  <th className="py-2 font-medium text-[var(--studio-text-muted)]">Fuente SERP</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {overviewRows.map((row) => (
+                  <tr key={row.keyword} className="border-b border-[var(--studio-border)]/50">
+                    <td className="py-2 text-[var(--studio-text)]">{row.keyword}</td>
+                    <td className="py-2">
+                      {row.aiOverview === 'detected' ? (
+                        <span className="text-green-600 text-xs font-medium">✅ Detectado</span>
+                      ) : (
+                        <span className="text-gray-400 text-xs">❌ No detectado</span>
+                      )}
+                    </td>
+                    <td className="py-2">
+                      {row.domainCited === null ? (
+                        <span className="text-[var(--studio-text-muted)] text-xs">—</span>
+                      ) : row.domainCited ? (
+                        <span className="text-green-600 text-xs font-medium">✅ Citado</span>
+                      ) : (
+                        <span className="text-red-500 text-xs">❌ No citado</span>
+                      )}
+                    </td>
+                    <td className="py-2 text-[var(--studio-text-muted)] text-xs">{row.source}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {overviewMeta && (
+          <p className="mt-2 text-xs text-[var(--studio-text-muted)]">
+            Fuente: {overviewMeta.source ?? 'desconocida'}
+            {overviewMeta.fetchedAt ? ` · ${new Date(overviewMeta.fetchedAt).toLocaleString()}` : ''}
+          </p>
+        )}
       </div>
 
       {/* ── B) LLM Referral Segments ── */}
@@ -199,28 +228,42 @@ export function SeoAiVisibility({ websiteId }: SeoAiVisibilityProps) {
           </StudioButton>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {referralCards.map((card) => (
-            <div key={card.name} className="studio-panel p-3 rounded-lg">
-              <p className="text-xs font-semibold text-[var(--studio-text)]">{card.name}</p>
-              <p className="text-xs text-[var(--studio-text-muted)] mt-0.5 truncate">
-                {card.domains.join(', ')}
-              </p>
-              <p className="text-lg font-bold text-[var(--studio-text)] mt-2">
-                {card.sessions != null ? card.sessions : '—'}
-              </p>
-              {card.sessions == null ? (
-                <span className="inline-flex items-center mt-1 rounded-full px-2 py-0.5 text-xs bg-gray-100 text-gray-500 border border-gray-200">
-                  Sin tráfico detectado
-                </span>
-              ) : (
-                <span className="inline-flex items-center mt-1 rounded-full px-2 py-0.5 text-xs bg-green-50 text-green-700 border border-green-200">
-                  sessions
-                </span>
-              )}
-            </div>
-          ))}
-        </div>
+        {referralsState === 'empty' ? (
+          <StudioEmptyState
+            title="Sin referrals de IA todavía"
+            description="No hay snapshots persistidos para convertir en sesiones por modelo."
+          />
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {referralCards.map((card) => (
+              <div key={card.name} className="studio-panel p-3 rounded-lg">
+                <p className="text-xs font-semibold text-[var(--studio-text)]">{card.name}</p>
+                <p className="text-xs text-[var(--studio-text-muted)] mt-0.5 truncate">
+                  {card.domains.join(', ')}
+                </p>
+                <p className="text-lg font-bold text-[var(--studio-text)] mt-2">
+                  {card.sessions != null ? card.sessions : '—'}
+                </p>
+                {card.sessions == null ? (
+                  <span className="inline-flex items-center mt-1 rounded-full px-2 py-0.5 text-xs bg-gray-100 text-gray-500 border border-gray-200">
+                    Sin tráfico detectado
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center mt-1 rounded-full px-2 py-0.5 text-xs bg-green-50 text-green-700 border border-green-200">
+                    sessions
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {referralsMeta && (
+          <p className="mt-2 text-xs text-[var(--studio-text-muted)]">
+            Fuente: {referralsMeta.source ?? 'desconocida'}
+            {referralsMeta.fetchedAt ? ` · ${new Date(referralsMeta.fetchedAt).toLocaleString()}` : ''}
+          </p>
+        )}
       </div>
 
       {/* ── C) GEO Strategies ── */}

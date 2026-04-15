@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
 import { SeoWorkflowPanel, type ChecklistItem } from './seo-workflow-panel';
+import { resolveBlogStatus } from '@/lib/seo/blog-status';
 
 const BLOG_CHECKLIST: ChecklistItem[] = [
   {
@@ -66,62 +66,64 @@ const BLOG_CHECKLIST: ChecklistItem[] = [
   },
 ];
 
-function computeScore(checklist: ChecklistItem[]): number {
-  if (checklist.length === 0) return 0;
-  const points = checklist.reduce((acc, item) => {
-    if (item.status === 'pass') return acc + 1;
-    if (item.status === 'warning') return acc + 0.5;
-    return acc;
-  }, 0);
-  return Math.round((points / checklist.length) * 100);
-}
-
 function BlogStatusBadge({ score }: { score: number }) {
-  if (score >= 70) {
+  const status = resolveBlogStatus(score);
+
+  if (status === 'keeper') {
     return (
       <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">
-        🏆 Keeper — mantener y crecer
+        Keeper — mantener y crecer
       </span>
     );
   }
-  if (score >= 40) {
+
+  if (status === 'optimize') {
     return (
       <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">
-        🔧 Optimize — actualizar contenido
+        Optimize — actualizar contenido
       </span>
     );
   }
+
   return (
     <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold text-rose-800">
-      ✂️ Prune — evaluar eliminar o redirigir
+      Prune — evaluar eliminar o redirigir
     </span>
   );
 }
 
 interface SeoBlogWorkflowProps {
+  itemId: string;
   itemName: string;
+  itemUrl: string;
+  locale: string;
   websiteId: string;
   seoPath: string;
+  score: number;
   onClose: () => void;
 }
 
 export function SeoBlogWorkflow({
+  itemId,
   itemName,
+  itemUrl,
+  locale,
   websiteId,
   seoPath,
+  score,
   onClose,
 }: SeoBlogWorkflowProps) {
-  const [checklist] = useState<ChecklistItem[]>(BLOG_CHECKLIST);
-  const score = computeScore(checklist);
-
   return (
     <SeoWorkflowPanel
       itemType="blog"
+      itemId={itemId}
       itemName={itemName}
+      itemUrl={itemUrl}
+      locale={locale}
       websiteId={websiteId}
       seoPath={seoPath}
       onClose={onClose}
-      checklist={checklist}
+      checklist={BLOG_CHECKLIST}
       headerExtra={<BlogStatusBadge score={score} />}
     />
   );

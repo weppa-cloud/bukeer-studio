@@ -66,14 +66,20 @@ const DESTINATION_CHECKLIST: ChecklistItem[] = [
 ];
 
 interface SeoDestinationWorkflowProps {
+  itemId: string;
   itemName: string;
+  itemUrl: string;
+  locale: string;
   websiteId: string;
   seoPath: string;
   onClose: () => void;
 }
 
 export function SeoDestinationWorkflow({
+  itemId,
   itemName,
+  itemUrl,
+  locale,
   websiteId,
   seoPath,
   onClose,
@@ -81,7 +87,10 @@ export function SeoDestinationWorkflow({
   return (
     <SeoWorkflowPanel
       itemType="destination"
+      itemId={itemId}
       itemName={itemName}
+      itemUrl={itemUrl}
+      locale={locale}
       websiteId={websiteId}
       seoPath={seoPath}
       onClose={onClose}

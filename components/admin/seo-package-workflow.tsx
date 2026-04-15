@@ -72,14 +72,20 @@ const PACKAGE_CHECKLIST: ChecklistItem[] = [
 ];
 
 interface SeoPackageWorkflowProps {
+  itemId: string;
   itemName: string;
+  itemUrl: string;
+  locale: string;
   websiteId: string;
   seoPath: string;
   onClose: () => void;
 }
 
 export function SeoPackageWorkflow({
+  itemId,
   itemName,
+  itemUrl,
+  locale,
   websiteId,
   seoPath,
   onClose,
@@ -87,7 +93,10 @@ export function SeoPackageWorkflow({
   return (
     <SeoWorkflowPanel
       itemType="package"
+      itemId={itemId}
       itemName={itemName}
+      itemUrl={itemUrl}
+      locale={locale}
       websiteId={websiteId}
       seoPath={seoPath}
       onClose={onClose}

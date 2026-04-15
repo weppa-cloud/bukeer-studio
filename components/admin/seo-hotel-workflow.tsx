@@ -78,17 +78,31 @@ const HOTEL_CHECKLIST: ChecklistItem[] = [
 ];
 
 interface SeoHotelWorkflowProps {
+  itemId: string;
   itemName: string;
+  itemUrl: string;
+  locale: string;
   websiteId: string;
   seoPath: string;
   onClose: () => void;
 }
 
-export function SeoHotelWorkflow({ itemName, websiteId, seoPath, onClose }: SeoHotelWorkflowProps) {
+export function SeoHotelWorkflow({
+  itemId,
+  itemName,
+  itemUrl,
+  locale,
+  websiteId,
+  seoPath,
+  onClose,
+}: SeoHotelWorkflowProps) {
   return (
     <SeoWorkflowPanel
       itemType="hotel"
+      itemId={itemId}
       itemName={itemName}
+      itemUrl={itemUrl}
+      locale={locale}
       websiteId={websiteId}
       seoPath={seoPath}
       onClose={onClose}
