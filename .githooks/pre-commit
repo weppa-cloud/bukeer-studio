@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if ! command -v npm >/dev/null 2>&1; then
+  echo "[ai-sync] npm is required for pre-commit hook." >&2
+  exit 1
+fi
+
+echo "[ai-sync] Running npm run ai:sync"
+npm run --silent ai:sync
+
+declare -a add_paths=()
+for path in AGENTS.md .agents/skills .agents/commands ai scripts/ai; do
+  if [ -e "$path" ]; then
+    add_paths+=("$path")
+  fi
+done
+
+if [ "${#add_paths[@]}" -gt 0 ]; then
+  git add -A -- "${add_paths[@]}"
+fi
+
