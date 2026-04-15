@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createLogger } from '@/lib/logger';
 import { getEditorModel } from '@/lib/ai/llm-provider';
 import { generateText } from 'ai';
 import { z } from 'zod';
@@ -9,6 +10,8 @@ import {
   IMPROVEMENT_ACTIONS,
   buildImproveTextPrompt,
 } from '@/lib/ai/prompts';
+
+const log = createLogger('api.ai.improveText');
 
 const ImproveTextRequestSchema = z.object({
   text: z.string().min(1).max(10000),
@@ -61,7 +64,7 @@ export async function POST(request: NextRequest) {
       usage: result.usage,
     });
   } catch (err) {
-    console.error('[AI] improve-text error:', err);
+    log.error('Improve text failed', { error: err instanceof Error ? err.message : String(err) });
     return NextResponse.json(
       { error: 'Failed to improve text' },
       { status: 500 }

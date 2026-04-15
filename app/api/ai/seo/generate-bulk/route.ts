@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createLogger } from '@/lib/logger';
 import { getEditorModel } from '@/lib/ai/llm-provider';
 import { generateText } from 'ai';
 import { z } from 'zod';
@@ -11,6 +12,8 @@ import {
 } from '@/lib/ai/seo-prompts';
 import { scoreItemSeo, type SeoScoringInput, type SeoItemType } from '@/lib/seo/unified-scorer';
 import { createClient } from '@supabase/supabase-js';
+
+const log = createLogger('api.seo.generateBulk');
 
 const bulkRequestSchema = z.object({
   websiteId: z.string().uuid(),
@@ -113,15 +116,15 @@ export async function POST(request: NextRequest) {
       .from('destinations')
       .select('id, name, slug, image, description, seo_title, seo_description, target_keyword');
   } catch (e) {
-    console.warn('[seo.bulk.destinations] Table may not exist:', e);
+    log.warn('Destinations table may not exist', { error: e instanceof Error ? e.message : String(e) });
   }
 
-  if (hotelsRes.error) console.error('[seo.bulk.hotels]', hotelsRes.error);
-  if (activitiesRes.error) console.error('[seo.bulk.activities]', activitiesRes.error);
-  if (transfersRes.error) console.error('[seo.bulk.transfers]', transfersRes.error);
-  if (packagesRes.error) console.error('[seo.bulk.packages]', packagesRes.error);
-  if (overridesRes.error) console.error('[seo.bulk.overrides]', overridesRes.error);
-  if (destinationsRes.error) console.warn('[seo.bulk.destinations]', destinationsRes.error.message);
+  if (hotelsRes.error) log.error('Failed to fetch hotels', { error: hotelsRes.error.message });
+  if (activitiesRes.error) log.error('Failed to fetch activities', { error: activitiesRes.error.message });
+  if (transfersRes.error) log.error('Failed to fetch transfers', { error: transfersRes.error.message });
+  if (packagesRes.error) log.error('Failed to fetch packages', { error: packagesRes.error.message });
+  if (overridesRes.error) log.error('Failed to fetch overrides', { error: overridesRes.error.message });
+  if (destinationsRes.error) log.warn('Failed to fetch destinations', { error: destinationsRes.error.message });
 
   // Build override map: "type:legacyId" → override
   const overrideMap = new Map(

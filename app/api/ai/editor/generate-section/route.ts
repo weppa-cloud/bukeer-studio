@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createLogger } from '@/lib/logger';
 import { getEditorModel } from '@/lib/ai/llm-provider';
 import { generateObject } from 'ai';
 import { z } from 'zod';
@@ -6,6 +7,8 @@ import { getEditorAuth, hasEditorRole } from '@/lib/ai/auth-helpers';
 import { checkRateLimit, recordCost } from '@/lib/ai/rate-limit';
 import { SECTION_TYPES } from '@bukeer/website-contract';
 import { buildSectionGeneratorPrompt } from '@/lib/ai/prompts';
+
+const log = createLogger('api.ai.generateSection');
 
 const sectionContentSchema = z.object({
   title: z.string().optional(),
@@ -88,7 +91,7 @@ export async function POST(request: NextRequest) {
       usage: result.usage,
     });
   } catch (err) {
-    console.error('[AI] generate-section error:', err);
+    log.error('Generate section failed', { error: err instanceof Error ? err.message : String(err) });
     return NextResponse.json(
       { error: 'Failed to generate section content' },
       { status: 500 }

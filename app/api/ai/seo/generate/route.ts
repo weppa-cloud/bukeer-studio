@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createLogger } from '@/lib/logger';
 import { getEditorModel } from '@/lib/ai/llm-provider';
 import { generateText } from 'ai';
 import { getEditorAuth, hasEditorRole } from '@/lib/ai/auth-helpers';
@@ -8,6 +9,8 @@ import {
   getSeoSystemPrompt,
   buildSeoUserPrompt,
 } from '@/lib/ai/seo-prompts';
+
+const log = createLogger('api.seo.generate');
 
 export async function POST(request: NextRequest) {
   const auth = await getEditorAuth(request);
@@ -78,7 +81,7 @@ export async function POST(request: NextRequest) {
       usage: result.usage,
     });
   } catch (err) {
-    console.error('[AI] seo/generate error:', err);
+    log.error('SEO generate failed', { error: err instanceof Error ? err.message : String(err) });
     return NextResponse.json(
       { error: 'Error al generar sugerencias SEO' },
       { status: 500 }

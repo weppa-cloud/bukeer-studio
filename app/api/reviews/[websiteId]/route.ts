@@ -1,10 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
+import { createLogger } from '@/lib/logger';
 import { NextRequest, NextResponse } from 'next/server';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 const supabase = createClient(supabaseUrl, supabaseKey);
+
+const log = createLogger('api.reviews');
 
 // ─── Types ───────────────────────────────────────────────────────────
 
@@ -83,7 +86,7 @@ async function fetchReviewsFromSerpAPI(placeId: string): Promise<{
 } | null> {
   const SERPAPI_KEY = process.env.SERPAPI_KEY;
   if (!SERPAPI_KEY) {
-    console.error('[reviews] SERPAPI_KEY not configured');
+    log.error('SERPAPI_KEY not configured');
     return null;
   }
 
@@ -98,7 +101,7 @@ async function fetchReviewsFromSerpAPI(placeId: string): Promise<{
 
     const detailsRes = await fetch(detailsUrl.toString());
     if (!detailsRes.ok) {
-      console.error('[reviews] SerpAPI details error:', detailsRes.status);
+      log.error('SerpAPI details error', { status: detailsRes.status });
       return null;
     }
 
@@ -107,7 +110,7 @@ async function fetchReviewsFromSerpAPI(placeId: string): Promise<{
     const dataId = place.data_id;
 
     if (!dataId) {
-      console.error('[reviews] No data_id found for place_id:', placeId);
+      log.error('No data_id found for place_id', { placeId });
       return null;
     }
 
@@ -128,7 +131,7 @@ async function fetchReviewsFromSerpAPI(placeId: string): Promise<{
 
     const reviewsRes = await fetch(reviewsUrl.toString());
     if (!reviewsRes.ok) {
-      console.error('[reviews] SerpAPI reviews error:', reviewsRes.status);
+      log.error('SerpAPI reviews error', { status: reviewsRes.status });
       return null;
     }
 
@@ -186,7 +189,7 @@ async function fetchReviewsFromSerpAPI(placeId: string): Promise<{
       googleMapsUrl,
     };
   } catch (error) {
-    console.error('[reviews] SerpAPI fetch error:', error);
+    log.error('SerpAPI fetch error', { error: error instanceof Error ? error.message : String(error) });
     return null;
   }
 }
@@ -298,7 +301,7 @@ export async function POST(
     );
 
   if (upsertErr) {
-    console.error('[reviews] Upsert error:', upsertErr);
+    log.error('Upsert error', { error: upsertErr.message });
     return NextResponse.json({ error: 'Failed to cache reviews' }, { status: 500 });
   }
 

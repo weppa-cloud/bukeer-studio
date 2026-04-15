@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createLogger } from '@/lib/logger';
 import { getEditorModel } from '@/lib/ai/llm-provider';
 import { generateObject } from 'ai';
 import { z } from 'zod';
@@ -6,6 +7,8 @@ import { createClient } from '@supabase/supabase-js';
 import { getEditorAuth, hasEditorRole } from '@/lib/ai/auth-helpers';
 import { checkRateLimit, recordCost } from '@/lib/ai/rate-limit';
 // crypto.randomUUID() is available globally in Workers + Node 19+
+
+const log = createLogger('api.ai.copilot');
 
 // ── Request schema ──────────────────────────────────────────────────────────
 
@@ -190,7 +193,7 @@ export async function POST(request: NextRequest) {
     );
 
     if (snapshotError || !snapshot) {
-      console.error('[AI] copilot: failed to load website snapshot', snapshotError);
+      log.error('Failed to load website snapshot', { error: snapshotError?.message ?? 'unknown' });
       return NextResponse.json(
         { error: 'Failed to load website data' },
         { status: 500 }
@@ -281,7 +284,7 @@ export async function POST(request: NextRequest) {
       templates: PROMPT_TEMPLATES,
     });
   } catch (err) {
-    console.error('[AI] copilot error:', err);
+    log.error('Copilot failed', { error: err instanceof Error ? err.message : String(err) });
     return NextResponse.json(
       { error: 'Failed to generate copilot plan' },
       { status: 500 }

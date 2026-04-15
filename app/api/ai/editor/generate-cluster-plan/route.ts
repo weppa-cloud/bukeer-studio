@@ -6,11 +6,14 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { createLogger } from '@/lib/logger';
 import { getEditorModel } from '@/lib/ai/llm-provider';
 import { generateObject } from 'ai';
 import { z } from 'zod';
 import { getEditorAuth, hasEditorRole } from '@/lib/ai/auth-helpers';
 import { checkRateLimit, recordCost } from '@/lib/ai/rate-limit';
+
+const log = createLogger('api.ai.clusterPlan');
 
 const clusterPlanSchema = z.object({
   pillar: z.object({
@@ -83,7 +86,7 @@ Focus on practical, experience-driven topics that demonstrate E-E-A-T.`,
       usage: result.usage,
     });
   } catch (err) {
-    console.error('[AI] generate-cluster-plan error:', err);
+    log.error('Generate cluster plan failed', { error: err instanceof Error ? err.message : String(err) });
     return NextResponse.json({ error: 'Failed to generate cluster plan' }, { status: 500 });
   }
 }

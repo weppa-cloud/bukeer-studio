@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createLogger } from '@/lib/logger';
 import { getEditorModel } from '@/lib/ai/llm-provider';
 import { generateObject } from 'ai';
 import { z } from 'zod';
 import { getEditorAuth, hasEditorRole } from '@/lib/ai/auth-helpers';
 import { checkRateLimit, recordCost } from '@/lib/ai/rate-limit';
 import { SECTION_TYPES } from '@bukeer/website-contract';
+
+const log = createLogger('api.ai.suggestSections');
 
 const suggestionsSchema = z.object({
   suggestions: z.array(
@@ -75,7 +78,7 @@ Suggest 3-5 sections that would improve the website. Consider:
       usage: result.usage,
     });
   } catch (err) {
-    console.error('[AI] suggest-sections error:', err);
+    log.error('Suggest sections failed', { error: err instanceof Error ? err.message : String(err) });
     return NextResponse.json(
       { error: 'Failed to generate suggestions' },
       { status: 500 }

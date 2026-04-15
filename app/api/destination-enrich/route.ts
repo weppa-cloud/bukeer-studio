@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createLogger } from '@/lib/logger';
 import { z } from 'zod';
+
+const log = createLogger('api.destinationEnrich');
 
 const EnrichQuerySchema = z.object({
   city: z.string().min(1, 'Missing city parameter'),
@@ -179,7 +182,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ data: enrichedData, source: 'serpapi' });
   } catch (error) {
-    console.error('[destination-enrich] SerpAPI error:', error);
+    log.error('SerpAPI error', { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json({
       data: null,
       source: 'error',

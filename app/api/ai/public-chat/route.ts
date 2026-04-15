@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createLogger } from '@/lib/logger';
 import { anthropic } from '@ai-sdk/anthropic';
 import { streamText } from 'ai';
 import { z } from 'zod';
 import { getClientIp } from '@/lib/ai/auth-helpers';
 import { checkRateLimit } from '@/lib/ai/rate-limit';
 import { buildPublicChatPrompt } from '@/lib/ai/prompts';
+
+const log = createLogger('api.ai.publicChat');
 
 const ChatMessageSchema = z.object({
   role: z.enum(['user', 'assistant']),
@@ -77,7 +80,7 @@ export async function POST(request: NextRequest) {
 
     return result.toTextStreamResponse();
   } catch (err) {
-    console.error('[AI] public-chat error:', err);
+    log.error('Public chat failed', { error: err instanceof Error ? err.message : String(err) });
     return NextResponse.json(
       { error: 'Failed to process chat message' },
       { status: 500 }

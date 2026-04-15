@@ -9,6 +9,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { createLogger } from '@/lib/logger';
 import { createClient } from '@supabase/supabase-js';
 import { getEditorModel } from '@/lib/ai/llm-provider';
 import { generateObject, generateText } from 'ai';
@@ -16,6 +17,8 @@ import { z } from 'zod';
 import { getEditorAuth, hasEditorRole } from '@/lib/ai/auth-helpers';
 import { checkRateLimit, recordCost } from '@/lib/ai/rate-limit';
 import { scoreContent } from '@/lib/blog/content-scorer';
+
+const log = createLogger('api.ai.contentPipeline');
 
 function getAuthClient(token: string) {
   return createClient(
@@ -296,7 +299,7 @@ Requirements:
       stages_completed: ['generate', 'localize', 'channelize', 'qa', 'publish_decision'],
     });
   } catch (err) {
-    console.error('[Pipeline] error:', err);
+    log.error('Pipeline failed', { error: err instanceof Error ? err.message : String(err) });
     if (err instanceof z.ZodError) {
       return NextResponse.json({ error: 'Invalid input', details: err.errors }, { status: 400 });
     }

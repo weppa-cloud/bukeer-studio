@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import { createLogger } from '@/lib/logger';
 import { streamText, tool } from 'ai';
 import { z } from 'zod';
 import { createClient } from '@supabase/supabase-js';
@@ -7,6 +8,8 @@ import { getEditorAuth, hasEditorRole } from '@/lib/ai/auth-helpers';
 import { checkRateLimit, recordCost } from '@/lib/ai/rate-limit';
 import { SECTION_TYPES } from '@bukeer/website-contract';
 import { buildStudioChatPrompt } from '@/lib/ai/prompts';
+
+const log = createLogger('api.ai.studioChat');
 
 // ── Route handler ───────────────────────────────────────────────────────────
 
@@ -195,7 +198,7 @@ export async function POST(request: NextRequest) {
 
     return result.toUIMessageStreamResponse();
   } catch (err) {
-    console.error('[AI] studio-chat error:', err);
+    log.error('Studio chat failed', { error: err instanceof Error ? err.message : String(err) });
     return new Response(JSON.stringify({ error: 'Failed to process chat' }), { status: 500 });
   }
 }
