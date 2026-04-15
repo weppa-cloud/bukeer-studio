@@ -5,23 +5,17 @@ import Link from 'next/link';
 import { WebsiteProvider, useWebsite } from '@/lib/admin/website-context';
 
 const TABS = [
-  { slug: 'pages',     label: 'Pages',        href: 'pages' },
-  { slug: 'blog',      label: 'Blog',          href: 'blog' },
-  { slug: 'design',    label: 'Design',        href: 'design' },
-  { slug: 'content',   label: 'Content & SEO', href: 'content' },
-  { slug: 'products',  label: 'Products',      href: 'products' },
-  { slug: 'seo',       label: 'SEO Audit',     href: 'seo' },
-  { slug: 'analytics', label: 'Analytics',     href: 'analytics' },
-  { slug: 'quotes',    label: 'Leads',         href: 'quotes' },
-  { slug: 'settings',  label: 'Settings',      href: 'settings' },
+  { slug: 'pages',     label: 'Páginas',   href: 'pages' },
+  { slug: 'contenido', label: 'Contenido', href: 'contenido' },
+  { slug: 'design',    label: 'Diseño',    href: 'design' },
+  { slug: 'analytics', label: 'Analytics', href: 'analytics' },
+  { slug: 'settings',  label: 'Settings',  href: 'settings' },
 ];
 
 function WebsiteHeader({ websiteId, websiteName }: { websiteId: string; websiteName: string }) {
   const pathname = usePathname();
   const inferredTab = (() => {
-    if (pathname.includes('/contenido') || pathname.includes('/seo/') || pathname.endsWith('/seo')) return 'seo';
-    if (pathname.includes('/blog/')) return 'blog';
-    if (pathname.includes('/products/')) return 'products';
+    if (pathname.includes('/contenido') || pathname.includes('/seo/') || pathname.endsWith('/seo') || pathname.includes('/blog/') || pathname.includes('/products/')) return 'contenido';
     return TABS.find((t) => pathname.includes(`/${t.href}`))?.slug;
   })();
   const activeTab = inferredTab || 'pages';

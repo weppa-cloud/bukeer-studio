@@ -82,6 +82,7 @@ export default function ContenidoPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [typeFilter, setTypeFilter] = useState<'all' | SeoItemType>('all');
   const [gradeFilter, setGradeFilter] = useState<'all' | SeoGrade>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | PublishStatus>('all');
   const [completenessFilter, setCompletenessFilter] = useState<'all' | Completeness>('all');
@@ -503,14 +504,15 @@ export default function ContenidoPage() {
         row.name.toLowerCase().includes(q) ||
         row.slug.toLowerCase().includes(q) ||
         row.type.toLowerCase().includes(q);
+      const typeOk = typeFilter === 'all' || row.type === typeFilter;
       const gradeOk = gradeFilter === 'all' || row.grade === gradeFilter;
       const statusOk = statusFilter === 'all' || row.status === statusFilter;
       const completenessOk = completenessFilter === 'all' || row.completeness === completenessFilter;
-      return searchOk && gradeOk && statusOk && completenessOk;
+      return searchOk && typeOk && gradeOk && statusOk && completenessOk;
     });
-  }, [rows, search, gradeFilter, statusFilter, completenessFilter]);
+  }, [rows, search, typeFilter, gradeFilter, statusFilter, completenessFilter]);
 
-  useEffect(() => { setCurrentPage(1); }, [search, gradeFilter, statusFilter, completenessFilter]);
+  useEffect(() => { setCurrentPage(1); }, [search, typeFilter, gradeFilter, statusFilter, completenessFilter]);
 
   const paginatedRows = useMemo(() => {
     const start = (currentPage - 1) * PAGE_SIZE;
@@ -533,6 +535,39 @@ export default function ContenidoPage() {
           </div>
         )}
       />
+
+      {/* Chips de tipo de contenido */}
+      <div className="flex flex-wrap gap-2 mb-3">
+        {([
+          { value: 'all',         label: 'Todos' },
+          { value: 'hotel',       label: 'Hoteles' },
+          { value: 'activity',    label: 'Actividades' },
+          { value: 'package',     label: 'Paquetes' },
+          { value: 'destination', label: 'Destinos' },
+          { value: 'blog',        label: 'Blog' },
+          { value: 'page',        label: 'Páginas' },
+        ] as const).map(({ value, label }) => {
+          const count = value === 'all' ? rows.length : rows.filter(r => r.type === value).length;
+          const active = typeFilter === value;
+          return (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setTypeFilter(value)}
+              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+                active
+                  ? 'bg-[var(--studio-primary)] text-white border-[var(--studio-primary)]'
+                  : 'bg-[var(--studio-surface)] text-[var(--studio-text-muted)] border-[var(--studio-border)] hover:border-[var(--studio-primary)] hover:text-[var(--studio-text)]'
+              }`}
+            >
+              {label}
+              <span className={`text-[10px] ${active ? 'text-white/70' : 'text-[var(--studio-text-muted)]'}`}>
+                {count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
         <StudioSearch
