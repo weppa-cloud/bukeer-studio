@@ -231,6 +231,21 @@ function syncCommands(state, manifest, replacementSet, toolMapping) {
   }
 }
 
+function syncRules(state, manifest, replacementSet) {
+  if (!manifest.rules) return
+
+  const sourceRoot = path.join(ROOT, manifest.rules.sourceDir)
+  const targetRoot = path.join(ROOT, manifest.rules.targetDir)
+
+  if (!fs.existsSync(sourceRoot)) {
+    removePath(state, targetRoot)
+    return
+  }
+
+  fs.mkdirSync(targetRoot, { recursive: true })
+  syncDirectory(state, sourceRoot, targetRoot, replacementSet)
+}
+
 function validateMcp(manifest) {
   const mcpConfigPath = path.join(ROOT, manifest.mcp.configFile)
   if (!fs.existsSync(mcpConfigPath)) {
@@ -257,6 +272,7 @@ function run() {
   const agentsReplacements = manifest.replacements.agents ?? []
   const skillsReplacements = manifest.replacements.skills ?? []
   const commandReplacements = manifest.replacements.commands ?? []
+  const ruleReplacements = manifest.replacements.rules ?? []
 
   const state = createSyncState()
 
@@ -265,6 +281,7 @@ function run() {
   syncAgentsDoc(state, manifest, [...commonReplacements, ...agentsReplacements])
   syncSkills(state, manifest, [...commonReplacements, ...skillsReplacements])
   syncCommands(state, manifest, [...commonReplacements, ...commandReplacements], toolMapping)
+  syncRules(state, manifest, [...commonReplacements, ...ruleReplacements])
 
   if (checkMode) {
     if (state.drifts.length > 0) {
