@@ -37,7 +37,8 @@ const STATUS_OPTIONS = [
 ] as const;
 
 export default function QuotesTab() {
-  const { websiteId } = useParams<{ websiteId: string }>();
+  const routeParams = useParams<{ websiteId: string }>();
+  const websiteId = routeParams?.websiteId ?? '';
   const supabase = createSupabaseBrowserClient();
 
   const [leads, setLeads] = useState<LeadRow[]>([]);

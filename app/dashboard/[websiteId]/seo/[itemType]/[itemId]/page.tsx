@@ -79,7 +79,9 @@ export default function SeoItemDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const { websiteId, itemType, itemId } = params;
+  const websiteId = params?.websiteId ?? '';
+  const itemType = params?.itemType ?? '';
+  const itemId = params?.itemId ?? '';
 
   useEffect(() => {
     async function loadItem() {

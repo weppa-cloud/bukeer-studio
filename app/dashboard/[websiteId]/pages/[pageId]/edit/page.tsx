@@ -4,7 +4,9 @@ import { useParams, useRouter } from 'next/navigation';
 import { PageEditor } from '@/components/studio/page-editor';
 
 export default function PageEditRoute() {
-  const { websiteId, pageId } = useParams<{ websiteId: string; pageId: string }>();
+  const routeParams = useParams<{ websiteId: string; pageId: string }>();
+  const websiteId = routeParams?.websiteId ?? '';
+  const pageId = routeParams?.pageId ?? '';
   const router = useRouter();
 
   const handleBack = () => {

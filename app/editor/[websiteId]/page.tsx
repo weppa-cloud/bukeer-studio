@@ -48,7 +48,7 @@ interface WebsiteSnapshot {
 export default function EditorPage({ params }: EditorPageProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const mode = searchParams.get('mode');
+  const mode = searchParams?.get('mode');
   const [websiteId, setWebsiteId] = useState<string | null>(null);
   const [state, setState] = useState<'waiting' | 'loading' | 'ready' | 'error'>('waiting');
   const [error, setError] = useState<string | null>(null);
@@ -217,7 +217,7 @@ export default function EditorPage({ params }: EditorPageProps) {
   // Legacy Canvas Mode (read-only preview)
   // ============================================================================
   return (
-    <M3ThemeProvider initialTheme={data.website.theme?.tokens ? { tokens: data.website.theme.tokens, profile: data.website.theme.profile } : undefined}>
+    <M3ThemeProvider initialTheme={data.website.theme?.tokens ? ({ tokens: data.website.theme.tokens, profile: data.website.theme.profile } as any) : undefined}>
       <div className="min-h-screen">
         {(data.sections || []).map((section) => {
           const sectionForRender = {
