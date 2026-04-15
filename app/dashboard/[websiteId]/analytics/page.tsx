@@ -30,10 +30,14 @@ import { SeoRevenueAttribution } from '@/components/admin/seo-revenue-attributio
 import { SeoSchemaManager } from '@/components/admin/seo-schema-manager';
 import { SeoSetupBanner } from '@/components/admin/seo-setup-banner';
 import { SeoLocaleSettings } from '@/components/admin/seo-locale-settings';
+import { SeoContentIntelligencePanel } from '@/components/admin/seo-content-intelligence-panel';
+import { SeoClustersBoard } from '@/components/admin/seo-clusters-board';
 
 type AnalyticsTab =
   | 'overview'
+  | 'content-intelligence'
   | 'keywords'
+  | 'clusters'
   | 'competitors'
   | 'health'
   | 'ai-visibility'
@@ -48,7 +52,9 @@ type GoogleIntegrationOption = {
 
 const TAB_OPTIONS: ReadonlyArray<{ id: AnalyticsTab; label: string }> = [
   { id: 'overview', label: 'Overview' },
+  { id: 'content-intelligence', label: 'Content Intelligence' },
   { id: 'keywords', label: 'Keywords' },
+  { id: 'clusters', label: 'Clusters' },
   { id: 'competitors', label: 'Competitors' },
   { id: 'health', label: 'Health' },
   { id: 'ai-visibility', label: 'AI Visibility' },
@@ -84,11 +90,12 @@ function IntegrationPill({ connected, label }: { connected: boolean; label: stri
 export default function AnalyticsPage() {
   const router = useRouter();
   const pathname = usePathname();
-  const { websiteId } = useParams<{ websiteId: string }>();
+  const routeParams = useParams<{ websiteId: string }>();
+  const websiteId = routeParams?.websiteId ?? '';
   const searchParams = useSearchParams();
   const { website, save } = useWebsite();
 
-  const paramTab = parseAnalyticsTab(searchParams.get('tab'));
+  const paramTab = parseAnalyticsTab(searchParams?.get('tab') ?? null);
   const [activeTab, setActiveTab] = useState<AnalyticsTab>(
     paramTab ?? 'overview'
   );
@@ -124,9 +131,10 @@ export default function AnalyticsPage() {
 
   function handleTabChange(nextTab: AnalyticsTab) {
     setActiveTab(nextTab);
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(searchParams?.toString() ?? '');
     params.set('tab', nextTab);
-    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    const nextPath = pathname ?? `/dashboard/${websiteId}/analytics`;
+    router.replace(`${nextPath}?${params.toString()}`, { scroll: false });
   }
 
   const autosavePayload = useMemo(() => ({ gtmId, ga4Id, pixelId }), [gtmId, ga4Id, pixelId]);
@@ -331,7 +339,7 @@ export default function AnalyticsPage() {
   }, [websiteId]);
 
   useEffect(() => {
-    const nextTab = parseAnalyticsTab(searchParams.get('tab')) ?? 'overview';
+    const nextTab = parseAnalyticsTab(searchParams?.get('tab') ?? null) ?? 'overview';
     if (nextTab !== activeTab) {
       setActiveTab(nextTab);
     }
@@ -358,10 +366,10 @@ export default function AnalyticsPage() {
   }, [activeTab, gscNeedsSelection, ga4NeedsSelection]);
 
   useEffect(() => {
-    const success = searchParams.get('integration_success');
-    const provider = searchParams.get('provider');
-    const integrationConfig = searchParams.get('integration_config');
-    const integrationError = searchParams.get('integration_error');
+    const success = searchParams?.get('integration_success');
+    const provider = searchParams?.get('provider');
+    const integrationConfig = searchParams?.get('integration_config');
+    const integrationError = searchParams?.get('integration_error');
 
     if (success && provider) {
       const providerLabel = provider.toUpperCase();
@@ -378,6 +386,16 @@ export default function AnalyticsPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
+
+  if (!websiteId) {
+    return (
+      <StudioPage className="max-w-6xl">
+        <div className="studio-panel border border-[var(--studio-warning)]/40 text-[var(--studio-warning)] p-3 text-sm">
+          Missing website context. Reload from dashboard.
+        </div>
+      </StudioPage>
+    );
+  }
 
   return (
     <StudioPage className="max-w-6xl">
@@ -521,6 +539,14 @@ export default function AnalyticsPage() {
           </div>
           <SeoKeywordResearch websiteId={websiteId} />
         </div>
+      )}
+
+      {activeTab === 'content-intelligence' && (
+        <SeoContentIntelligencePanel websiteId={websiteId} />
+      )}
+
+      {activeTab === 'clusters' && (
+        <SeoClustersBoard websiteId={websiteId} />
       )}
 
       {activeTab === 'competitors' && (

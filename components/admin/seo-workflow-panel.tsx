@@ -13,7 +13,7 @@ export interface ChecklistItem {
 }
 
 export interface SeoWorkflowPanelProps {
-  itemType: 'hotel' | 'activity' | 'package' | 'destination' | 'blog';
+  itemType: 'hotel' | 'activity' | 'package' | 'destination' | 'blog' | 'page';
   itemId: string;
   itemName: string;
   itemUrl: string;

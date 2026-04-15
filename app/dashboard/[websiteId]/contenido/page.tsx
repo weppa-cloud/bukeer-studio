@@ -8,6 +8,7 @@ import { SeoActivityWorkflow } from '@/components/admin/seo-activity-workflow';
 import { SeoPackageWorkflow } from '@/components/admin/seo-package-workflow';
 import { SeoDestinationWorkflow } from '@/components/admin/seo-destination-workflow';
 import { SeoBlogWorkflow } from '@/components/admin/seo-blog-workflow';
+import { SeoPageWorkflow } from '@/components/admin/seo-page-workflow';
 import { SeoBacklog } from '@/components/admin/seo-backlog';
 import {
   scoreItemSeo,
@@ -105,7 +106,8 @@ function buildWorkflowUrl(type: SeoItemType, slug: string, subdomain?: string | 
 }
 
 export default function ContenidoPage() {
-  const { websiteId } = useParams<{ websiteId: string }>();
+  const routeParams = useParams<{ websiteId: string }>();
+  const websiteId = routeParams?.websiteId ?? '';
   const router = useRouter();
   const supabase = createSupabaseBrowserClient();
 
@@ -125,6 +127,12 @@ export default function ContenidoPage() {
   const destinationsUnavailableRef = useRef(false);
 
   async function loadRows() {
+    if (!websiteId) {
+      setRows([]);
+      setError('Missing website context');
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -571,6 +579,16 @@ export default function ContenidoPage() {
     return filteredRows.slice(start, start + PAGE_SIZE);
   }, [filteredRows, currentPage, PAGE_SIZE]);
 
+  if (!websiteId) {
+    return (
+      <StudioPage className="max-w-7xl">
+        <div className="studio-panel border border-[var(--studio-warning)]/40 text-[var(--studio-warning)] p-3 text-sm">
+          Missing website context. Reload from dashboard.
+        </div>
+      </StudioPage>
+    );
+  }
+
   return (
     <StudioPage className="max-w-6xl">
       <StudioSectionHeader
@@ -787,7 +805,7 @@ export default function ContenidoPage() {
                         >
                           Open SEO
                         </StudioButton>
-                        {(row.type === 'hotel' || row.type === 'activity' || row.type === 'package' || row.type === 'destination' || row.type === 'blog') && (
+                        {(row.type === 'hotel' || row.type === 'activity' || row.type === 'package' || row.type === 'destination' || row.type === 'blog' || row.type === 'page') && (
                           <StudioButton
                             size="sm"
                             variant="outline"
@@ -871,6 +889,17 @@ export default function ContenidoPage() {
           websiteId={websiteId}
           seoPath={workflowItem.seoPath}
           score={workflowItem.score}
+          onClose={() => setWorkflowItem(null)}
+        />
+      )}
+      {workflowItem?.type === 'page' && (
+        <SeoPageWorkflow
+          itemId={workflowItem.id}
+          itemName={workflowItem.name}
+          itemUrl={workflowItem.url}
+          locale={workflowItem.locale}
+          websiteId={websiteId}
+          seoPath={workflowItem.seoPath}
           onClose={() => setWorkflowItem(null)}
         />
       )}
