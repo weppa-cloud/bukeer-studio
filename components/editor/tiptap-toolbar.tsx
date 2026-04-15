@@ -2,11 +2,12 @@
 
 import type { Editor } from '@tiptap/react';
 import { useCallback } from 'react';
+import type { ReactNode } from 'react';
 
 // ─── SVG Icon Components ────────────────────────────────────────────
 // Lightweight inline SVGs — no external icon library needed.
 
-const icons: Record<string, JSX.Element> = {
+const icons: Record<string, ReactNode> = {
   bold: (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z" /><path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z" />

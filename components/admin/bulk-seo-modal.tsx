@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback } from 'react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser-client';
-import type { ScoredItem } from '@/app/dashboard/[websiteId]/seo/page';
+import type { ScoredItem } from '@/lib/seo/scored-item';
 import type { SeoItemType } from '@/lib/seo/unified-scorer';
 
 // ============================================================================

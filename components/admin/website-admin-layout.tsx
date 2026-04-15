@@ -13,7 +13,7 @@ const TABS = [
 ];
 
 function WebsiteHeader({ websiteId, websiteName }: { websiteId: string; websiteName: string }) {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? '';
   const inferredTab = (() => {
     if (pathname.includes('/contenido') || pathname.includes('/seo/') || pathname.endsWith('/seo') || pathname.includes('/blog/') || pathname.includes('/products/')) return 'contenido';
     return TABS.find((t) => pathname.includes(`/${t.href}`))?.slug;

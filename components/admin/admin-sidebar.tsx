@@ -45,7 +45,7 @@ interface AdminSidebarProps {
 
 export function AdminSidebar({ websiteId, websiteName, onNavigate }: AdminSidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
-  const pathname = usePathname();
+  const pathname = usePathname() ?? '';
 
   const items = websiteId
     ? WEBSITE_TABS.map((t) => ({

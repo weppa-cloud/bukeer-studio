@@ -60,13 +60,17 @@ export function HeroModern({
           {/* Actions */}
           <div className="flex flex-col sm:flex-row gap-4 mt-4">
             {primaryCta && (
-              <Button size="lg" asChild>
-                <Link href={primaryCta.href}>{primaryCta.text}</Link>
+              <Button size="lg">
+                <Link href={primaryCta.href} className="inline-flex items-center justify-center w-full h-full">
+                  {primaryCta.text}
+                </Link>
               </Button>
             )}
             {secondaryCta && (
-              <Button variant="outline" size="lg" asChild>
-                <Link href={secondaryCta.href}>{secondaryCta.text}</Link>
+              <Button variant="outline" size="lg">
+                <Link href={secondaryCta.href} className="inline-flex items-center justify-center w-full h-full">
+                  {secondaryCta.text}
+                </Link>
               </Button>
             )}
           </div>
