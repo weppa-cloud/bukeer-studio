@@ -183,6 +183,54 @@ export {
   WebsiteErrorCodeEnum,
 } from './schemas/payloads';
 
+// SEO Content Intelligence (EPIC #86)
+export {
+  SeoConfidenceSchema,
+  SeoSeveritySchema,
+  SeoContentTypeSchema,
+  SeoItemTypeSchema,
+  SeoPageTypeSchema,
+  SeoSourceMetadataSchema,
+  SeoAuditRequestSchema,
+  SeoAuditQuerySchema,
+  SeoAuditFindingSchema,
+  SeoResearchRequestSchema,
+  SeoSerpCompetitorSchema,
+  SeoKeywordCandidateSchema,
+  SeoClusterStatusSchema,
+  SeoClusterPageStatusSchema,
+  SeoCreateClusterSchema,
+  SeoAssignClusterKeywordSchema,
+  SeoAssignClusterPageSchema,
+  SeoUpdateClusterSchema,
+  SeoClustersPostSchema,
+  SeoClustersQuerySchema,
+  SeoBriefStatusSchema,
+  SeoBriefCreateSchema,
+  SeoBriefTransitionSchema,
+  SeoBriefRollbackSchema,
+  SeoBriefPostSchema,
+  SeoBriefQuerySchema,
+  SeoOptimizeRequestSchema,
+  SeoTranscreateRequestSchema,
+  SeoTrackQuerySchema,
+} from './schemas/seo-content-intelligence';
+export type {
+  SeoSourceMetadata,
+  SeoAuditRequest,
+  SeoAuditQuery,
+  SeoAuditFinding,
+  SeoResearchRequest,
+  SeoKeywordCandidate,
+  SeoClustersPost,
+  SeoClustersQuery,
+  SeoBriefPost,
+  SeoBriefQuery,
+  SeoOptimizeRequest,
+  SeoTranscreateRequest,
+  SeoTrackQuery,
+} from './schemas/seo-content-intelligence';
+
 // Validation
 export {
   validateSection,
