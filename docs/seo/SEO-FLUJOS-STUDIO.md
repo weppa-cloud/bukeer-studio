@@ -7,6 +7,36 @@ Este documento explica cómo un usuario de la agencia ejecuta cada flujo SEO dir
 
 ---
 
+## Principios operativos
+
+Antes de ejecutar cualquier flujo, estos principios definen cómo tomar decisiones:
+
+- **SERP-first, no keyword-first.** Cada decisión on-page arranca mirando el top 10 real del SERP objetivo, no una lista de palabras clave descontextualizadas.
+- **Revenue over rankings.** Una keyword sin intención de reserva o sin margen no entra al backlog, aunque tenga 10K de volumen.
+- **Medir antes de tocar.** Cada intervención requiere baseline de 28 días mínimo y ventana post-cambio de 6–8 semanas para on-page, 12–16 semanas para link building.
+- **Cerrar loop keyword → revenue.** La ventaja de Bukeer Studio es el acceso a reservas reales en Supabase. Úsala.
+- **AI-native.** Google AI Overviews, ChatGPT Search y Perplexity ya mueven tráfico travel. Optimizar solo para SERP clásico es dejar dinero en la mesa.
+
+## RACI — Quién hace qué
+
+| Flujo | Dueño de agencia | Content manager | Equipo técnico |
+|-------|-----------------|-----------------|----------------|
+| 0 — Configuración inicial | A | R | C |
+| 1 — Health Check | I | R | A |
+| 2 — Métricas orgánicas | A | R | I |
+| 3 — Investigar keywords | C | R | I |
+| 4 — Competidores | A | R | I |
+| 5–9 — Optimizar contenido | C | R | I |
+| 10 — Backlog quick wins | C | R | I |
+| 11 — Arquitectura | A | R | C |
+| 12 — Multi-locale | I | C | R |
+| 13 — AI Visibility | A | R | I |
+| 14 — Link Building | A | R | C |
+
+R = Responsable · A = Aprueba · C = Consultado · I = Informado
+
+---
+
 ## Tabla de flujos disponibles
 
 | Flujo | Objetivo | Ruta en el Studio | Tiempo estimado |
@@ -25,6 +55,7 @@ Este documento explica cómo un usuario de la agencia ejecuta cada flujo SEO dir
 | **11 — Arquitectura de contenido** | Planificar topic clusters y estructura de enlaces internos | Analytics → Keywords → Ver Arquitectura | 30 min |
 | **12 — Multi-locale y hreflang** | Configurar idiomas y etiquetas de regionalización | Analytics → Config → Locale Settings | 10 min |
 | **13 — Visibilidad en AI** | Monitorear presencia en ChatGPT, Perplexity y Gemini | Analytics → AI Visibility | 20 min |
+| **14 — Link Building** | Monitorear backlinks, detectar oportunidades y priorizar outreach | Analytics → Backlinks | 30–45 min |
 
 ---
 
@@ -609,6 +640,78 @@ Saber si el sitio aparece cuando usuarios hacen preguntas de viaje en asistentes
 
 ---
 
+## Flujo 14: Link Building & Digital PR
+
+### Objetivo
+Monitorear el perfil de backlinks del sitio, identificar oportunidades de link building y priorizar acciones de outreach. Los backlinks son el factor de autoridad más difícil de replicar y el que más impacta en rankings competitivos.
+
+### Ruta: Analytics → tab **Backlinks**
+
+### Pasos en el Studio
+
+**Revisar el perfil de backlinks propio**
+
+1. → Ir a **Analytics → Backlinks**. Revisar los 4 indicadores principales:
+   - **Domain Rating (DR)**: autoridad general del dominio (0–100). Meta realista para agencias travel LATAM: crecer 2–5 puntos por trimestre.
+   - **Referring Domains**: número de dominios únicos que enlazan. Más importante que el total de backlinks.
+   - **Backlinks totales**: suma de todos los enlaces entrantes.
+   - **Anchor distribution**: distribución de textos de enlace (brand, URL, keyword, genérico).
+
+2. → Revisar la **tabla de referring domains**: ordenar por DR descendente para ver los dominios más valiosos que ya enlazan. Verificar que sean dominios relevantes para travel, no spam.
+
+3. → Revisar la sección **Backlinks perdidos** (últimos 90 días). Un backlink perdido de un dominio de DR 40+ justifica outreach de recuperación inmediata.
+
+**Comparar con competidores**
+
+4. → Ir al tab **Competidores** y revisar la sección de backlinks de la competencia:
+   - ¿Qué DR tienen los 3 principales competidores?
+   - ¿Cuántos referring domains tienen vs el sitio?
+   - ¿Cuál es su link velocity mensual?
+
+5. → Revisar la sección **Domain Intersection**: dominios que enlazan a 2 o más competidores pero no al sitio. Estos son los targets de outreach más calificados — ya saben que el nicho travel vale la pena enlazar.
+
+**Auditar anchor distribution**
+
+6. → Revisar la distribución de anchors en la sección **Anchor Text**:
+   - **Saludable para travel:** 40–55% brand, 10–20% URL naked, 10–15% genérico, 10–20% partial match, < 10% exact match.
+   - Si exact match supera el 15% sin una campaña de PR activa → señal de riesgo. Priorizar anchors de marca en próximas acciones.
+
+**Priorizar acciones de link building**
+
+7. → Con los datos anteriores, organizar acciones en 4 prioridades:
+
+   **P1 — Link reclamation (alta ROI, bajo esfuerzo):**
+   - Backlinks perdidos de DR 30+: contactar al webmaster para restaurar o redirigir.
+   - Menciones de marca sin enlace: buscar en Google `"[nombre agencia]" -site:[dominio]` e identificar artículos que mencionan la agencia sin enlazar. Contactar para agregar el link.
+
+   **P2 — Digital PR estacional:**
+   - Crear contenido con datos propios de Bukeer (ej. "Los destinos más reservados para Semana Santa 2026 según [Agencia]").
+   - Distribuir a medios travel LATAM: Aviatur Magazine, Matador Network ES, revistas de aerolíneas, oficinas de turismo locales.
+   - Responder queries de periodistas en HARO/Qwoted para el nicho travel.
+
+   **P3 — Domain intersection outreach:**
+   - Contactar los dominios de la lista de intersection con un ángulo de contenido relevante (no pedir un link directamente, ofrecer valor primero).
+   - Priorizar por DR ≥ 30 y relevancia temática travel.
+
+   **P4 — Partnerships locales:**
+   - Tourism boards (Procolombia, Fontur, oficinas municipales de turismo).
+   - Proveedores e inventario con los que la agencia trabaja (hoteles, guías, transportistas).
+   - Bloggers de viaje con audiencia en el mercado objetivo.
+
+### Criterios de éxito
+- DR del sitio con tendencia positiva trimestral (+2 a +5 puntos).
+- Referring domains creciendo: al menos 5–10 dominios nuevos por mes en campañas activas.
+- Anchor distribution dentro de rangos saludables (exact match < 10%).
+- Sin backlinks perdidos de DR 30+ sin gestionar.
+- Al menos 1 acción de link reclamation ejecutada por semana.
+
+### Tiempo estimado: 30–45 minutos (revisión mensual) + tiempo de outreach variable
+
+### Nota sobre tiempos
+El link building es el proceso SEO más lento: los resultados en rankings tardan 3–6 meses en aparecer después de adquirir nuevos backlinks. La consistencia es más importante que los picos de actividad.
+
+---
+
 ## Ciclo operativo recomendado
 
 La siguiente tabla resume con qué frecuencia ejecutar cada flujo y cuánto tiempo reservar:
@@ -618,7 +721,7 @@ La siguiente tabla resume con qué frecuencia ejecutar cada flujo y cuánto tiem
 | **Diario** | — | — | El módulo SEO no requiere revisión diaria. Enfocarse en crear contenido de calidad. |
 | **Semanal** | Flujo 2 (métricas orgánicas) + Flujo 10 (backlog de quick wins) | 35–50 min | Mantener el momentum: revisar el tráfico de la semana y priorizar las optimizaciones de mayor impacto. |
 | **Mensual** | Flujo 3 (investigar keywords) + Flujo 4 (competidores) + 2 a 3 optimizaciones de contenido (Flujos 5–9) | 3–4 horas | Optimización activa: encontrar nuevas oportunidades y mejorar el contenido existente. |
-| **Trimestral** | Flujo 1 (health check) + Flujo 11 (arquitectura) + Flujo 13 (AI Visibility) + revisión de OKRs 90 días | 4–6 horas | Estrategia: evaluar resultados vs. objetivos, ajustar la arquitectura de contenido y planificar el siguiente trimestre. |
+| **Trimestral** | Flujo 1 (health check) + Flujo 11 (arquitectura) + Flujo 13 (AI Visibility) + Flujo 14 (link building audit) + revisión de OKRs 90 días | 5–7 horas | Estrategia: evaluar resultados vs. objetivos, ajustar la arquitectura de contenido y planificar el siguiente trimestre. |
 | **Una sola vez** | Flujo 0 (configuración inicial) + Flujo 12 (multi-locale) | 15–25 min | Setup inicial del módulo SEO. |
 
 ### Nota sobre el ritmo de resultados
