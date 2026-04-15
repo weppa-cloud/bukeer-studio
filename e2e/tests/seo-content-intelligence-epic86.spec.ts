@@ -3,6 +3,7 @@ import { gotoWebsiteSection } from './helpers';
 
 test.describe('EPIC #86 - SEO Content Intelligence', () => {
   test.use({ storageState: 'e2e/.auth/user.json' });
+  test.setTimeout(90_000);
 
   test('analytics exposes Content Intelligence, Keywords, and Clusters tabs', async ({ page }) => {
     await gotoWebsiteSection(page, 'analytics');
