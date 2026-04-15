@@ -43,6 +43,16 @@ interface WorkflowBaseline {
   recordedAt: string;
 }
 
+type BaselineEnvelope = {
+  success?: boolean;
+  data?: {
+    baseline?: WorkflowBaseline | null;
+  };
+  error?: {
+    message?: string;
+  };
+};
+
 const INITIAL_STEPS: Step[] = [
   { label: 'Research', status: 'completed' },
   { label: 'SERP', status: 'completed' },
@@ -119,12 +129,12 @@ export function SeoWorkflowPanel({
       const response = await fetch(`/api/seo/workflow/baseline?${params.toString()}`, {
         cache: 'no-store',
       });
-      const body = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        throw new Error(body.error || 'Failed to load baseline');
+      const body = (await response.json().catch(() => ({}))) as BaselineEnvelope;
+      if (!response.ok || !body.success) {
+        throw new Error(body.error?.message || 'Failed to load baseline');
       }
 
-      const nextBaseline = (body.baseline ?? null) as WorkflowBaseline | null;
+      const nextBaseline = body.data?.baseline ?? null;
       setBaseline(nextBaseline);
       setBaselinePosition(nextBaseline ? String(nextBaseline.position) : '');
     } catch (error) {
@@ -175,12 +185,12 @@ export function SeoWorkflowPanel({
           position: baselinePosition,
         }),
       });
-      const body = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        throw new Error(body.error || 'Failed to save baseline');
+      const body = (await response.json().catch(() => ({}))) as BaselineEnvelope;
+      if (!response.ok || !body.success) {
+        throw new Error(body.error?.message || 'Failed to save baseline');
       }
 
-      const nextBaseline = body.baseline as WorkflowBaseline;
+      const nextBaseline = body.data?.baseline as WorkflowBaseline;
       setBaseline(nextBaseline);
       setBaselinePosition(String(nextBaseline.position));
     } catch (error) {

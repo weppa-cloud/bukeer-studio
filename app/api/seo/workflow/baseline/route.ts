@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { requireWebsiteAccess } from '@/lib/seo/server-auth';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/service-role';
