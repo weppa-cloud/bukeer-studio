@@ -21,7 +21,8 @@ const mockWebsite: WebsiteData = {
     siteName: 'Test Travel Agency',
     tagline: 'Discover the world',
     seo: { title: 'Test Travel', description: 'Best tours', keywords: 'travel' },
-    contact: { email: 'info@test.com' },
+    contact: { email: 'info@test.com', phone: '+57 300 000 0000', address: 'Cartagena, Colombia' },
+    social: {},
   },
   account_id: 'test-account-001',
   custom_domain: null,
@@ -91,6 +92,26 @@ describe('generateBlogPostSchemas', () => {
     const schemas = generateBlogPostSchemas(mockPostBasic, mockWebsite, BASE_URL);
     const article = schemas.find((s: any) => s['@type'] === 'BlogPosting');
     expect((article as any).inLanguage).toBe('es');
+  });
+
+  it('falls back to website.language when post.locale is missing', () => {
+    const websiteWithLanguage = {
+      ...mockWebsite,
+      language: 'en',
+    } as WebsiteData;
+    const schemas = generateBlogPostSchemas(mockPostBasic, websiteWithLanguage, BASE_URL);
+    const article = schemas.find((s: any) => s['@type'] === 'BlogPosting');
+    expect((article as any).inLanguage).toBe('en');
+  });
+
+  it('falls back to website.locale when post.locale and website.language are missing', () => {
+    const websiteWithLocale = {
+      ...mockWebsite,
+      locale: 'pt',
+    } as WebsiteData;
+    const schemas = generateBlogPostSchemas(mockPostBasic, websiteWithLocale, BASE_URL);
+    const article = schemas.find((s: any) => s['@type'] === 'BlogPosting');
+    expect((article as any).inLanguage).toBe('pt');
   });
 
   it('uses updated_at for dateModified (F2 fix)', () => {
