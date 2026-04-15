@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "replacements": [
+    {
+      "from": "mcp__chrome-devtools__list_console_messages",
+      "to": "mcp__chrome_devtools__list_console_messages"
+    },
+    {
+      "from": "mcp__chrome-devtools__get_console_message",
+      "to": "mcp__chrome_devtools__get_console_message"
+    },
+    {
+      "from": "mcp__chrome-devtools__list_network_requests",
+      "to": "mcp__chrome_devtools__list_network_requests"
+    },
+    {
+      "from": "mcp__chrome-devtools__lighthouse_audit",
+      "to": "mcp__chrome_devtools__lighthouse_audit"
+    },
+    {
+      "from": "mcp__playwright__browser_screenshot",
+      "to": "mcp__playwright__browser_take_screenshot"
+    },
+    {
+      "from": "mcp__playwright__browser_new_tab",
+      "to": "mcp__playwright__browser_tabs"
+    },
+    {
+      "from": "mcp__playwright__browser_close_tab",
+      "to": "mcp__playwright__browser_tabs"
+    },
+    {
+      "from": "mcp__playwright__browser_tab_list",
+      "to": "mcp__playwright__browser_tabs"
+    },
+    {
+      "from": "mcp__playwright__browser_tab_select",
+      "to": "mcp__playwright__browser_tabs"
+    },
+    {
+      "from": "mcp__playwright__browser_go_back",
+      "to": "mcp__playwright__browser_navigate_back"
+    },
+    {
+      "from": "mcp__playwright__browser_go_forward",
+      "to": "mcp__playwright__browser_press_key"
+    },
+    {
+      "from": "mcp__playwright__browser_fill",
+      "to": "mcp__playwright__browser_type"
+    },
+    {
+      "from": "mcp__playwright__browser_route",
+      "to": "mcp__playwright__browser_run_code"
+    },
+    {
+      "from": "mcp__playwright__browser_unroute",
+      "to": "mcp__playwright__browser_run_code"
+    }
+  ],
+  "notes": {
+    "mcp__playwright__browser_tabs": "Codex Playwright tool uses browser_tabs(action=create|list|select|close) instead of tab-specific methods.",
+    "mcp__playwright__browser_run_code": "Codex Playwright tool does not expose route/unroute directly; use browser_run_code with page.route/page.unroute.",
+    "mcp__playwright__browser_press_key": "No direct go_forward helper; use browser_press_key with Alt+ArrowRight when needed."
+  }
+}

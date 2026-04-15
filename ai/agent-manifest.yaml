@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "sourceOfTruth": {
+    "claudeFile": "CLAUDE.md",
+    "agentsFile": "AGENTS.md"
+  },
+  "skills": {
+    "sourceDir": ".claude/skills",
+    "targetDir": ".agents/skills",
+    "preserve": ["playwright-skill"]
+  },
+  "commands": {
+    "sourceDir": ".claude/commands",
+    "targetDir": ".agents/commands"
+  },
+  "mcp": {
+    "configFile": ".mcp.json",
+    "expectedServers": [
+      "playwright",
+      "supabase",
+      "chrome-devtools",
+      "shadcn-ui",
+      "magic-ui",
+      "aceternity-ui",
+      "google-analytics",
+      "search-console"
+    ]
+  },
+  "replacements": {
+    "common": [
+      {
+        "from": "CLAUDE.md",
+        "to": "AGENTS.md"
+      },
+      {
+        "from": ".claude/",
+        "to": ".agents/"
+      },
+      {
+        "from": "Claude Code",
+        "to": "Codex"
+      },
+      {
+        "from": "claude.ai/code",
+        "to": "Codex"
+      }
+    ],
+    "agents": [
+      {
+        "from": "# CLAUDE.md —",
+        "to": "# AGENTS.md —"
+      },
+      {
+        "from": "This file provides guidance to Claude Code when working in this repository.",
+        "to": "This file provides guidance to Codex when working in this repository."
+      },
+      {
+        "from": "e.g. `anthropic/claude-sonnet-4-5`",
+        "to": "e.g. `openai/gpt-5`"
+      }
+    ],
+    "skills": [],
+    "commands": []
+  },
+  "toolMappingFile": "ai/tool-mapping.yaml"
+}
