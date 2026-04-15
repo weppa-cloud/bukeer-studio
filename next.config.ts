@@ -21,6 +21,9 @@ const withBundleAnalyzer = bundleAnalyzer({
 });
 
 const nextConfig: NextConfig = {
+  // Allow isolated build caches per local session to avoid .next collisions
+  distDir: process.env.NEXT_DIST_DIR || '.next',
+
   // Skip ESLint during build — lint runs as a separate CI step
   eslint: { ignoreDuringBuilds: true },
 

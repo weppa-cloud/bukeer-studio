@@ -1,14 +1,21 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const sessionName = process.env.E2E_SESSION_NAME || 'default';
+const reportFolder = `playwright-report/${sessionName}`;
+const outputDir = `test-results/${sessionName}`;
+const baseURL = process.env.E2E_BASE_URL || 'http://localhost:3000';
+const webServerCommand = process.env.E2E_WEBSERVER_CMD || 'npm run dev:node';
+
 export default defineConfig({
   testDir: './e2e/tests',
+  outputDir,
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
-  reporter: 'html',
+  reporter: [['html', { outputFolder: reportFolder, open: 'never' }], ['list']],
   use: {
-    baseURL: process.env.E2E_BASE_URL || 'http://localhost:3000',
+    baseURL,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },
@@ -40,8 +47,8 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'npm run dev:node',
-    url: 'http://localhost:3000',
+    command: webServerCommand,
+    url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
   },

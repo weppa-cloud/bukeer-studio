@@ -1,10 +1,10 @@
-const requiredMajor = 22;
+const minMajor = 22;
 const current = process.versions.node;
 const currentMajor = Number(current.split(".")[0]);
 
-if (currentMajor !== requiredMajor) {
+if (currentMajor < minMajor) {
   console.error(
-    `[node] Unsupported Node version ${current}. Use Node ${requiredMajor}.x for local/CI parity.`
+    `[node] Unsupported Node version ${current}. Requires Node ${minMajor}+ for compatibility.`
   );
   process.exit(1);
 }
