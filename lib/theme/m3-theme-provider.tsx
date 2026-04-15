@@ -62,6 +62,22 @@ export function useM3Theme() {
 }
 
 // ---------------------------------------------------------------------------
+// Module-level theme compilation cache
+// ---------------------------------------------------------------------------
+
+let _themeCache: { key: string; result: ReturnType<typeof compileTheme> } | null = null;
+
+function getCompiledTheme(tokens: DesignTokens, profile: ThemeProfile) {
+  const key = JSON.stringify({ t: tokens, p: profile });
+  if (_themeCache && _themeCache.key === key) {
+    return _themeCache.result;
+  }
+  const result = compileTheme(tokens, profile, { target: 'web' });
+  _themeCache = { key, result };
+  return result;
+}
+
+// ---------------------------------------------------------------------------
 // Apply compiled CSS variables to DOM
 // ---------------------------------------------------------------------------
 
@@ -102,10 +118,10 @@ function applyCompiledThemeToDOM(
   const safeTokens = mergeWithDefaults(tokens);
   let compiled;
   try {
-    compiled = compileTheme(safeTokens, profile, { target: 'web' });
+    compiled = getCompiledTheme(safeTokens, profile);
   } catch (e) {
     console.warn('[M3ThemeProvider] compileTheme failed, using defaults:', e);
-    compiled = compileTheme(defaultTokens, defaultProfile, { target: 'web' });
+    compiled = getCompiledTheme(defaultTokens, defaultProfile);
   }
   if (!compiled.web) return;
 

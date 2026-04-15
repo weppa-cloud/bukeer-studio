@@ -18,6 +18,24 @@ import type {
 } from './types';
 import type { WebsiteData, BlogPost, WebsiteSection } from '../supabase/get-website';
 
+function resolveSchemaLanguage(post: BlogPost, website: WebsiteData): string {
+  if (post.locale) return post.locale;
+
+  const websiteWithLocale = website as unknown as Record<string, unknown>;
+  const language = websiteWithLocale.language;
+  const locale = websiteWithLocale.locale;
+
+  if (typeof language === 'string' && language.trim().length > 0) {
+    return language;
+  }
+
+  if (typeof locale === 'string' && locale.trim().length > 0) {
+    return locale;
+  }
+
+  return 'es';
+}
+
 /**
  * Generate Organization/TravelAgency schema for a website
  */
@@ -144,7 +162,7 @@ export function generateArticleSchema(
     ...(wordCount && { wordCount }),
     ...(keywords && { keywords }),
     ...(post.category && { articleSection: post.category.name }),
-    inLanguage: post.locale || 'es',
+    inLanguage: resolveSchemaLanguage(post, website),
   };
 }
 

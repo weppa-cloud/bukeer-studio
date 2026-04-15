@@ -91,7 +91,7 @@ function deepFill<T>(value: unknown, fallback: T): T {
 }
 
 function cloneFallback<T>(fallback: T): T {
-  return JSON.parse(JSON.stringify(fallback)) as T;
+  return structuredClone(fallback);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
