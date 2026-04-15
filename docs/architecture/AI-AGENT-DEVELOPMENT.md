@@ -208,6 +208,8 @@ Scripts: `scripts/ai/sync-from-claude.mjs`, `scripts/ai/audit-skills.mjs`
 
 ## Cross-References
 
-- Core principles: [ARCHITECTURE.md](ARCHITECTURE.md) (P1–P10)
+- Core principles: [ARCHITECTURE.md](ARCHITECTURE.md) (P1-P10)
 - ADRs: [docs/architecture/](.) (ADR-001 through ADR-012)
 - Onboarding: [ONBOARDING-ARCHITECTURE.md](ONBOARDING-ARCHITECTURE.md)
+- Website creation workflow: [docs/guides/WEBSITE-CREATION-WORKFLOW.md](../guides/WEBSITE-CREATION-WORKFLOW.md)
+- Cross-repo context: [.claude/rules/cross-repo-flutter.md](../../.claude/rules/cross-repo-flutter.md)
