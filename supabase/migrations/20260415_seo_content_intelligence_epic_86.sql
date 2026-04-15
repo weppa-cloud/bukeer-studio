@@ -400,10 +400,7 @@ begin
     'seo_keyword_research_runs',
     'seo_keyword_candidates',
     'seo_clusters',
-    'seo_cluster_keywords',
-    'seo_cluster_pages',
     'seo_briefs',
-    'seo_brief_versions',
     'seo_optimizer_actions',
     'seo_transcreation_jobs',
     'seo_localized_variants',
@@ -425,10 +422,7 @@ begin
     'seo_keyword_research_runs',
     'seo_keyword_candidates',
     'seo_clusters',
-    'seo_cluster_keywords',
-    'seo_cluster_pages',
     'seo_briefs',
-    'seo_brief_versions',
     'seo_optimizer_actions',
     'seo_transcreation_jobs',
     'seo_localized_variants',
@@ -486,3 +480,136 @@ begin
     $f$, tbl);
   end loop;
 end $$;
+
+alter table public.seo_cluster_keywords enable row level security;
+alter table public.seo_cluster_pages enable row level security;
+alter table public.seo_brief_versions enable row level security;
+
+drop policy if exists seo_cluster_keywords_select on public.seo_cluster_keywords;
+create policy seo_cluster_keywords_select
+on public.seo_cluster_keywords
+for select
+using (
+  exists (
+    select 1
+    from public.seo_clusters sc
+    join public.websites w on w.id = sc.website_id
+    join public.user_roles ur on ur.account_id = w.account_id
+    where sc.id = seo_cluster_keywords.cluster_id
+      and ur.user_id = auth.uid()
+      and ur.is_active = true
+  )
+);
+
+drop policy if exists seo_cluster_keywords_manage on public.seo_cluster_keywords;
+create policy seo_cluster_keywords_manage
+on public.seo_cluster_keywords
+for all
+using (
+  exists (
+    select 1
+    from public.seo_clusters sc
+    join public.websites w on w.id = sc.website_id
+    join public.user_roles ur on ur.account_id = w.account_id
+    where sc.id = seo_cluster_keywords.cluster_id
+      and ur.user_id = auth.uid()
+      and ur.is_active = true
+  )
+)
+with check (
+  exists (
+    select 1
+    from public.seo_clusters sc
+    join public.websites w on w.id = sc.website_id
+    join public.user_roles ur on ur.account_id = w.account_id
+    where sc.id = seo_cluster_keywords.cluster_id
+      and ur.user_id = auth.uid()
+      and ur.is_active = true
+  )
+);
+
+drop policy if exists seo_cluster_pages_select on public.seo_cluster_pages;
+create policy seo_cluster_pages_select
+on public.seo_cluster_pages
+for select
+using (
+  exists (
+    select 1
+    from public.seo_clusters sc
+    join public.websites w on w.id = sc.website_id
+    join public.user_roles ur on ur.account_id = w.account_id
+    where sc.id = seo_cluster_pages.cluster_id
+      and ur.user_id = auth.uid()
+      and ur.is_active = true
+  )
+);
+
+drop policy if exists seo_cluster_pages_manage on public.seo_cluster_pages;
+create policy seo_cluster_pages_manage
+on public.seo_cluster_pages
+for all
+using (
+  exists (
+    select 1
+    from public.seo_clusters sc
+    join public.websites w on w.id = sc.website_id
+    join public.user_roles ur on ur.account_id = w.account_id
+    where sc.id = seo_cluster_pages.cluster_id
+      and ur.user_id = auth.uid()
+      and ur.is_active = true
+  )
+)
+with check (
+  exists (
+    select 1
+    from public.seo_clusters sc
+    join public.websites w on w.id = sc.website_id
+    join public.user_roles ur on ur.account_id = w.account_id
+    where sc.id = seo_cluster_pages.cluster_id
+      and ur.user_id = auth.uid()
+      and ur.is_active = true
+  )
+);
+
+drop policy if exists seo_brief_versions_select on public.seo_brief_versions;
+create policy seo_brief_versions_select
+on public.seo_brief_versions
+for select
+using (
+  exists (
+    select 1
+    from public.seo_briefs sb
+    join public.websites w on w.id = sb.website_id
+    join public.user_roles ur on ur.account_id = w.account_id
+    where sb.id = seo_brief_versions.brief_id
+      and ur.user_id = auth.uid()
+      and ur.is_active = true
+  )
+);
+
+drop policy if exists seo_brief_versions_manage on public.seo_brief_versions;
+create policy seo_brief_versions_manage
+on public.seo_brief_versions
+for all
+using (
+  exists (
+    select 1
+    from public.seo_briefs sb
+    join public.websites w on w.id = sb.website_id
+    join public.user_roles ur on ur.account_id = w.account_id
+    where sb.id = seo_brief_versions.brief_id
+      and ur.user_id = auth.uid()
+      and ur.is_active = true
+  )
+)
+with check (
+  exists (
+    select 1
+    from public.seo_briefs sb
+    join public.websites w on w.id = sb.website_id
+    join public.user_roles ur on ur.account_id = w.account_id
+    where sb.id = seo_brief_versions.brief_id
+      and ur.user_id = auth.uid()
+      and ur.is_active = true
+  )
+);
