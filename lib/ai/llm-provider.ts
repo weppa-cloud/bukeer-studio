@@ -15,8 +15,6 @@ import { createOpenAI } from '@ai-sdk/openai';
 const openrouter = createOpenAI({
   baseURL: process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1',
   apiKey: process.env.OPENROUTER_AUTH_TOKEN || '',
-  // Force chat completions API (NVIDIA NIM doesn't support /responses)
-  compatibility: 'compatible',
   headers: {
     'HTTP-Referer': 'https://app.bukeer.com',
     'X-Title': 'Bukeer Website Editor',
