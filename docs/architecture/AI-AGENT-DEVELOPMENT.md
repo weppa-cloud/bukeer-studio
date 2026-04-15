@@ -108,12 +108,13 @@ Each skill lives in `.agents/skills/{skill-name}/`:
 | `playwright-skill` | E2E testing patterns | cli/, POM/, CI/, migration/ |
 | `debugger` | Bug diagnosis with visual feedback loop | PATTERNS.md, CHECKLIST.md |
 
-### Commands (2 active)
+### Commands (3 active)
 
 | Command | Invocation | Purpose |
 |---------|-----------|---------|
 | `qa-nextjs` | `/qa-nextjs` | Studio editor QA with Playwright MCP, UX analysis, screenshots |
 | `website-creator` | `/website-creator` | Data-only website operations (themes, sections, content via Supabase) |
+| `design-session` | `/design-session` | Flexible website design improvement with visual feedback loop |
 
 ### Workflows by Role
 
@@ -123,8 +124,10 @@ Each skill lives in `.agents/skills/{skill-name}/`:
 - QA: `/qa-nextjs` → issues → `debugger`
 
 **Website Creator (Rol 2)** — modifies Supabase data only:
-- Command: `/website-creator`
+- Command: `/website-creator` for specific data operations
+- Command: `/design-session` for open-ended design improvement
 - New site: brief → theme preset → sections → visual QA
+- Improve site: screenshot → analyze (5 principles) → change plan → execute → validate
 - Edit theme: screenshot before → redesign tokens → screenshot after
 - Add section: check registry → insert DB → verify visual
 - Bug found in component → STOP → switch to Rol 1 with `debugger`

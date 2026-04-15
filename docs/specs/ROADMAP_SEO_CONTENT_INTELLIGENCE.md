@@ -220,7 +220,10 @@ Implementation consequence:
 
 ## 9. Links
 
+- [SEO Content Intelligence Integral Spec](./SPEC_SEO_CONTENT_INTELLIGENCE_INTEGRAL.md)
 - [SEO Implementation Reference](../seo/SEO-IMPLEMENTATION.md)
 - [SEO Flows in Studio](../seo/SEO-FLUJOS-STUDIO.md)
 - [SEO Playbook](../seo/SEO-PLAYBOOK.md)
 - [SEO Content Intelligence Spec](./SPEC_SEO_CONTENT_INTELLIGENCE.md)
+- [SEO Content Intelligence GitHub EPIC](./EPIC_SEO_CONTENT_INTELLIGENCE_GITHUB.md)
+- [SEO Content Intelligence Issue Map](./ISSUE_MAP_SEO_CONTENT_INTELLIGENCE.md)

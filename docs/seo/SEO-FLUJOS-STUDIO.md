@@ -20,6 +20,7 @@ For the target SEO operating model, see:
 
 - [SEO Playbook](./SEO-PLAYBOOK.md)
 - [SEO Content Intelligence Spec](../specs/SPEC_SEO_CONTENT_INTELLIGENCE.md)
+- [SEO Content Intelligence Integral Spec](../specs/SPEC_SEO_CONTENT_INTELLIGENCE_INTEGRAL.md)
 
 ---
 

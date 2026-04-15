@@ -350,3 +350,4 @@ Recommended build order:
 - [SEO Flows in Studio](./SEO-FLUJOS-STUDIO.md) documents current user-facing flows.
 - [SEO Content Intelligence Spec](../specs/SPEC_SEO_CONTENT_INTELLIGENCE.md) converts this playbook into an executable product spec.
 - [SEO Content Intelligence Roadmap](../specs/ROADMAP_SEO_CONTENT_INTELLIGENCE.md) defines phased implementation and issue-level execution.
+- [SEO Content Intelligence Integral Spec](../specs/SPEC_SEO_CONTENT_INTELLIGENCE_INTEGRAL.md) is the single operational source for delegation.
