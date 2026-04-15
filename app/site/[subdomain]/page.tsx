@@ -202,14 +202,25 @@ export default async function SitePage({ params }: SitePageProps) {
   const activityItems = toActivityItems(activitiesCatalog.items);
   const hotelItems = toHotelItems(hotelsCatalog.items);
 
-  const accountContent = (website.content as Record<string, unknown>)?.account as Record<string, unknown> | undefined;
+  const accountContent = ((website.content as unknown as Record<string, unknown>)?.account as Record<string, unknown> | undefined);
   const googleReviewsEnabled = accountContent?.google_reviews_enabled === true;
 
   let googleReviews: Parameters<typeof hydrateSections>[0]['googleReviews'] = null;
   if (googleReviewsEnabled && website.account_id) {
     const cached = await getCachedGoogleReviews(website.account_id);
     if (cached && cached.reviews.length > 0) {
-      googleReviews = cached;
+      googleReviews = {
+        ...cached,
+        average_rating: cached.average_rating ?? 0,
+        total_reviews: cached.total_reviews ?? 0,
+        google_maps_url: cached.google_maps_url ?? undefined,
+        business_name: cached.business_name ?? undefined,
+        reviews: cached.reviews.map((review) => ({
+          ...review,
+          images: review.images?.map((image) => image.url),
+          response: review.response?.text,
+        })),
+      };
     }
   }
 

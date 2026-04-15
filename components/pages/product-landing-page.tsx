@@ -34,9 +34,14 @@ const fadeUp = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.6 } },
 };
 
-/** Format a numeric price with currency symbol (e.g. "$156,250 COP") */
-function formatPrice(price: number, currency?: string): string {
-  const formatted = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(price);
+/** Format a price with currency symbol (e.g. "$156,250 COP") */
+function formatPrice(price: number | string, currency?: string): string {
+  const numericPrice = typeof price === 'number'
+    ? price
+    : Number(String(price).replace(/[^0-9.-]/g, ''));
+  const formatted = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(
+    Number.isFinite(numericPrice) ? numericPrice : 0
+  );
   const symbol = currency === 'EUR' ? '€' : '$';
   const suffix = currency && currency !== 'USD' && currency !== 'EUR' ? ` ${currency}` : '';
   return `${symbol}${formatted}${suffix}`;
@@ -450,16 +455,18 @@ function DestinationSections() {
 }
 
 function HotelSections({ product }: { product: ProductData }) {
-  const amenities = product.amenities || [
-    { emoji: '🏊', label: 'Piscina' },
-    { emoji: '📶', label: 'WiFi' },
-    { emoji: '🅿️', label: 'Parking' },
-    { emoji: '🍽️', label: 'Restaurante' },
-    { emoji: '💆', label: 'Spa' },
-    { emoji: '🍸', label: 'Bar' },
-    { emoji: '🏋️', label: 'Gimnasio' },
-    { emoji: '🛎️', label: 'Room Service' },
-  ];
+  const amenities = Array.isArray(product.amenities) && product.amenities.length > 0
+    ? product.amenities.map((label) => ({ emoji: '✨', label }))
+    : [
+        { emoji: '🏊', label: 'Piscina' },
+        { emoji: '📶', label: 'WiFi' },
+        { emoji: '🅿️', label: 'Parking' },
+        { emoji: '🍽️', label: 'Restaurante' },
+        { emoji: '💆', label: 'Spa' },
+        { emoji: '🍸', label: 'Bar' },
+        { emoji: '🏋️', label: 'Gimnasio' },
+        { emoji: '🛎️', label: 'Room Service' },
+      ];
 
   const includes = product.includes || ['Desayuno buffet', 'Acceso a piscina', 'WiFi alta velocidad', 'Servicio concierge'];
   const excludes = product.excludes || ['Traslado aeropuerto', 'Excursiones externas', 'Minibar'];
@@ -530,9 +537,9 @@ function HotelSections({ product }: { product: ProductData }) {
 
 function ActivitySections({ product }: { product: ProductData }) {
   const rawInc = product.includes;
-  const includes: string[] = Array.isArray(rawInc) ? rawInc : typeof rawInc === 'string' ? rawInc.split('\n').map(s => s.trim()).filter(Boolean) : ['Guia experto', 'Transporte', 'Equipo necesario'];
+  const includes: string[] = Array.isArray(rawInc) ? rawInc : typeof rawInc === 'string' ? rawInc.split('\n').map((s: string) => s.trim()).filter(Boolean) : ['Guia experto', 'Transporte', 'Equipo necesario'];
   const rawExc = product.excludes;
-  const excludes: string[] = Array.isArray(rawExc) ? rawExc : typeof rawExc === 'string' ? rawExc.split('\n').map(s => s.trim()).filter(Boolean) : ['Comidas', 'Propinas', 'Seguro de viaje'];
+  const excludes: string[] = Array.isArray(rawExc) ? rawExc : typeof rawExc === 'string' ? rawExc.split('\n').map((s: string) => s.trim()).filter(Boolean) : ['Comidas', 'Propinas', 'Seguro de viaje'];
   const rawRec = product.recommendations;
   const recommendations: string[] = Array.isArray(rawRec)
     ? rawRec

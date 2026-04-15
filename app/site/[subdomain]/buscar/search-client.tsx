@@ -16,7 +16,7 @@ interface SearchResult {
   image?: string;
   location?: string;
   description?: string;
-  price?: string;
+  price?: string | number;
 }
 
 interface SearchPageClientProps {
@@ -254,7 +254,7 @@ export function SearchPageClient({ subdomain, initialQuery, website }: SearchPag
                           <p className="text-sm text-muted-foreground line-clamp-2 mb-2">{result.description}</p>
                         )}
                         {result.price && (
-                          <span className="font-semibold text-primary">{result.price}</span>
+                          <span className="font-semibold text-primary">{String(result.price)}</span>
                         )}
                       </div>
                     </Link>

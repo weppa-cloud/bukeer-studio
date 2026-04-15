@@ -82,7 +82,7 @@ export function SiteFooter({ website, isCustomDomain = false, navigation }: Site
   const NavBlock = (
     <nav className="flex flex-col gap-2">
       {navItems.map((link) => (
-        <Link key={link.slug} href={resolveNavHref(link, basePath)} target={link.target === '_blank' ? '_blank' : undefined} rel={link.target === '_blank' ? 'noopener noreferrer' : undefined} className="text-muted-foreground hover:text-foreground transition-colors">{link.label}</Link>
+        <Link key={link.slug} href={resolveNavHref(link, basePath)} target={(link as NavigationItem).target === '_blank' ? '_blank' : undefined} rel={(link as NavigationItem).target === '_blank' ? 'noopener noreferrer' : undefined} className="text-muted-foreground hover:text-foreground transition-colors">{link.label}</Link>
       ))}
     </nav>
   );

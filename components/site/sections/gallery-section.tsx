@@ -35,7 +35,10 @@ function ImagePlaceholder() {
 }
 
 export function GallerySection({ section }: GallerySectionProps) {
-  const content = section.content || {};
+  const content = (section.content as {
+    title?: string;
+    images?: GalleryImage[];
+  } | null) || {};
   const title = content.title || 'Galería';
   const images: GalleryImage[] = content.images || [];
   const variant = section.variant || 'grid';

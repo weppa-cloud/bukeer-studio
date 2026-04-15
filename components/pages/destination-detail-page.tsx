@@ -14,18 +14,7 @@ import type { ProductData as ContractProductData } from '@bukeer/website-contrac
 import type { WebsiteData } from '@/lib/supabase/get-website';
 import type { DestinationData } from '@/lib/supabase/get-pages';
 
-export interface ProductData {
-  id: string;
-  name: string;
-  slug: string;
-  description?: string;
-  image?: string;
-  images?: string[];
-  location?: string;
-  price?: string;
-  type: string;
-  duration?: string;
-}
+export type ProductData = ContractProductData;
 
 interface SerpEnrichmentData {
   description: string | null;
@@ -77,7 +66,7 @@ export function DestinationDetailPage({
   }
 
   const packages = products.filter(
-    (p) => p.type === 'package' || p.type === 'package_kit'
+    (p) => p.type === 'package'
   );
   const activities = products.filter((p) => p.type === 'activity');
   const hotels = products.filter((p) => p.type === 'hotel');

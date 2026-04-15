@@ -6,7 +6,7 @@ import { useParams } from 'next/navigation';
 
 export default function SiteNotFound() {
   const params = useParams<{ subdomain: string }>();
-  const basePath = `/site/${params.subdomain}`;
+  const basePath = `/site/${params?.subdomain ?? ''}`;
 
   return (
     <div className="min-h-[70vh] flex items-center justify-center px-6">

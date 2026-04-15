@@ -9,7 +9,11 @@ interface NewsletterSectionProps {
 }
 
 export function NewsletterSection({ section }: NewsletterSectionProps) {
-  const content = section.content || {};
+  const content = (section.content as {
+    title?: string;
+    subtitle?: string;
+    buttonText?: string;
+  } | null) || {};
   const title = content.title || 'Suscríbete a nuestro newsletter';
   const subtitle = content.subtitle || 'Recibe ofertas exclusivas y novedades';
   const buttonText = content.buttonText || 'Suscribirme';
