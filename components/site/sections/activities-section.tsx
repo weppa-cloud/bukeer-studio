@@ -124,12 +124,13 @@ function ActivityCard({ activity, index, subdomain }: { activity: ActivityItem; 
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: '-60px' }}
         transition={{ delay: index * 0.08, duration: 0.55 }}
-        className="rounded-[20px] overflow-hidden flex flex-col"
+        whileHover={{ y: -4 }}
+        className="group rounded-[20px] overflow-hidden flex flex-col"
         style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-subtle)' }}
       >
-        <div className="relative h-52 overflow-hidden">
+        <div className="relative aspect-[3/4] overflow-hidden">
           {activity.image ? (
-            <Image src={activity.image} alt={activity.name} fill draggable={false} className="object-cover" />
+            <Image src={activity.image} alt={activity.name} fill draggable={false} className="object-cover transition-transform duration-700 group-hover:scale-105" />
           ) : (
             <div className="w-full h-full" style={{ backgroundColor: 'var(--bg-card)' }} />
           )}
@@ -170,9 +171,25 @@ function ActivityCard({ activity, index, subdomain }: { activity: ActivityItem; 
           </h3>
 
           {activity.description && (
-            <p className="text-sm leading-relaxed line-clamp-2 mb-5" style={{ color: 'var(--text-secondary)' }}>
+            <p className="text-sm leading-relaxed line-clamp-2 mb-3" style={{ color: 'var(--text-secondary)' }}>
               {activity.description}
             </p>
+          )}
+
+          {activity.rating && (
+            <div className="flex items-center gap-1 mb-5">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <svg key={i} className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"
+                  style={{ color: i < Math.round(activity.rating!) ? 'var(--accent)' : 'var(--border-medium)' }}>
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                </svg>
+              ))}
+              {activity.reviewCount && (
+                <span className="text-xs ml-0.5" style={{ color: 'var(--text-muted)' }}>
+                  ({activity.reviewCount})
+                </span>
+              )}
+            </div>
           )}
 
           <div className="flex-1" />

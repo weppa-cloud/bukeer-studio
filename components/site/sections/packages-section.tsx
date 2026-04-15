@@ -21,6 +21,7 @@ interface PackageItem {
   price?: string;
   description?: string;
   category?: string;
+  highlights?: string[];
 }
 
 export function PackagesSection({ section, website }: PackagesSectionProps) {
@@ -149,7 +150,7 @@ function PackageCard({ pkg, index, subdomain }: { pkg: PackageItem; index: numbe
         className="group rounded-[20px] overflow-hidden flex flex-col"
         style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-subtle)' }}
       >
-        <div className="relative h-52 overflow-hidden">
+        <div className="relative aspect-[16/10] overflow-hidden">
           {pkg.image ? (
             <Image
               src={pkg.image}
@@ -176,9 +177,24 @@ function PackageCard({ pkg, index, subdomain }: { pkg: PackageItem; index: numbe
 
         <div className="p-5 flex flex-col flex-1">
           {(pkg.duration || pkg.destination) && (
-            <div className="mb-3 flex items-center gap-3 text-sm" style={{ color: 'var(--text-muted)' }}>
-              {pkg.duration && <span>{pkg.duration}</span>}
-              {pkg.destination && <span className="line-clamp-1">{pkg.destination}</span>}
+            <div className="mb-3 flex flex-wrap items-center gap-1.5">
+              {pkg.duration && (
+                <span
+                  className="inline-flex items-center text-xs px-2 py-0.5 rounded-full"
+                  style={{
+                    backgroundColor: 'color-mix(in srgb, var(--accent) 10%, var(--bg-card))',
+                    color: 'var(--text-secondary)',
+                    border: '1px solid var(--border-subtle)',
+                  }}
+                >
+                  {pkg.duration}
+                </span>
+              )}
+              {pkg.destination && (
+                <span className="text-xs line-clamp-1" style={{ color: 'var(--text-muted)' }}>
+                  {pkg.destination}
+                </span>
+              )}
             </div>
           )}
 
@@ -186,9 +202,22 @@ function PackageCard({ pkg, index, subdomain }: { pkg: PackageItem; index: numbe
             {pkg.name}
           </h3>
 
-          <p className="text-sm leading-relaxed mb-5 line-clamp-2" style={{ color: 'var(--text-secondary)' }}>
-            {pkg.description?.trim() || 'Experiencia completa diseñada por expertos locales.'}
-          </p>
+          {pkg.highlights && pkg.highlights.length > 0 ? (
+            <ul className="mb-5 space-y-1">
+              {pkg.highlights.slice(0, 3).map((highlight, i) => (
+                <li key={i} className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
+                  <svg className="w-3 h-3 shrink-0" viewBox="0 0 20 20" fill="currentColor" style={{ color: 'var(--accent)' }}>
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                  {highlight}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm leading-relaxed mb-5 line-clamp-2" style={{ color: 'var(--text-secondary)' }}>
+              {pkg.description?.trim() || 'Experiencia completa diseñada por expertos locales.'}
+            </p>
+          )}
 
           <div className="flex-1" />
 
