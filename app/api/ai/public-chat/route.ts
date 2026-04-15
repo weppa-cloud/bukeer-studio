@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { createLogger } from '@/lib/logger';
+import { apiError, apiInternalError } from '@/lib/api';
 import { anthropic } from '@ai-sdk/anthropic';
 import { streamText } from 'ai';
 import { z } from 'zod';
@@ -36,17 +37,7 @@ export async function POST(request: NextRequest) {
 
   const rateCheck = await checkRateLimit(`ip:${ip}`, 'public');
   if (!rateCheck.allowed) {
-    return NextResponse.json(
-      { error: rateCheck.reason },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': Math.ceil(
-            (rateCheck.resetAt.getTime() - Date.now()) / 1000
-          ).toString(),
-        },
-      }
-    );
+    return apiError('RATE_LIMITED', rateCheck.reason ?? 'Rate limit exceeded', 429);
   }
 
   try {
@@ -54,10 +45,7 @@ export async function POST(request: NextRequest) {
     const parsed = PublicChatRequestSchema.safeParse(raw);
 
     if (!parsed.success) {
-      return NextResponse.json(
-        { error: parsed.error.flatten() },
-        { status: 400 }
-      );
+      return apiError('VALIDATION_ERROR', 'Invalid request');
     }
 
     const { message, subdomain, history: safeHistory, websiteInfo } = parsed.data;
@@ -81,9 +69,6 @@ export async function POST(request: NextRequest) {
     return result.toTextStreamResponse();
   } catch (err) {
     log.error('Public chat failed', { error: err instanceof Error ? err.message : String(err) });
-    return NextResponse.json(
-      { error: 'Failed to process chat message' },
-      { status: 500 }
-    );
+    return apiInternalError('Failed to process chat message');
   }
 }

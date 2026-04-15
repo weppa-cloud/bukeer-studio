@@ -5,8 +5,9 @@
  * Auth: getEditorAuth (same as generate-blog)
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { createLogger } from '@/lib/logger';
+import { apiSuccess, apiUnauthorized, apiForbidden, apiValidationError, apiInternalError } from '@/lib/api';
 import { z } from 'zod';
 import { getEditorAuth, hasEditorRole } from '@/lib/ai/auth-helpers';
 import { scoreContent } from '@/lib/blog/content-scorer';
@@ -25,30 +26,22 @@ const ScoreContentRequestSchema = z.object({
 
 export async function POST(request: NextRequest) {
   const auth = await getEditorAuth(request);
-  if (!auth) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  if (!hasEditorRole(auth)) {
-    return NextResponse.json({ error: 'Forbidden: insufficient role' }, { status: 403 });
-  }
+  if (!auth) return apiUnauthorized();
+  if (!hasEditorRole(auth)) return apiForbidden();
 
   try {
     const raw = await request.json();
     const parsed = ScoreContentRequestSchema.safeParse(raw);
 
     if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+      return apiValidationError(parsed.error);
     }
 
     const result = scoreContent(parsed.data);
 
-    return NextResponse.json(result);
+    return apiSuccess(result);
   } catch (err) {
     log.error('Score content failed', { error: err instanceof Error ? err.message : String(err) });
-    return NextResponse.json(
-      { error: 'Failed to score content' },
-      { status: 500 }
-    );
+    return apiInternalError('Failed to score content');
   }
 }

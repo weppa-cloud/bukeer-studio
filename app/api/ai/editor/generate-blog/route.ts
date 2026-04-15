@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { createLogger } from '@/lib/logger';
+import { apiSuccess, apiUnauthorized, apiForbidden, apiError, apiInternalError } from '@/lib/api';
 import { DEFAULT_MODEL, getEditorModel } from '@/lib/ai/llm-provider';
 import { generateObject } from 'ai';
 import { z } from 'zod';
@@ -137,20 +138,12 @@ ${clusterContext ? `\n## Related posts in this topic cluster:\n${clusterContext}
 
 export async function POST(request: NextRequest) {
   const auth = await getEditorAuth(request);
-  if (!auth) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  if (!hasEditorRole(auth)) {
-    return NextResponse.json({ error: 'Forbidden: insufficient role' }, { status: 403 });
-  }
+  if (!auth) return apiUnauthorized();
+  if (!hasEditorRole(auth)) return apiForbidden();
 
   const rateCheck = await checkRateLimit(auth.accountId, 'editor');
   if (!rateCheck.allowed) {
-    return NextResponse.json(
-      { error: rateCheck.reason },
-      { status: 429, headers: { 'Retry-After': Math.ceil((rateCheck.resetAt.getTime() - Date.now()) / 1000).toString() } }
-    );
+    return apiError('RATE_LIMITED', rateCheck.reason ?? 'Rate limit exceeded', 429);
   }
 
   try {
@@ -167,11 +160,11 @@ export async function POST(request: NextRequest) {
     } = body;
 
     if (!topic || typeof topic !== 'string') {
-      return NextResponse.json({ error: 'topic is required' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 'topic is required');
     }
 
     if (topic.length > 2000) {
-      return NextResponse.json({ error: 'Topic too long (max 2000 chars)' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 'Topic too long (max 2000 chars)');
     }
 
     const isV2 = version === 2;
@@ -189,7 +182,7 @@ export async function POST(request: NextRequest) {
     // V2 costs ~$0.015 (longer output), V1 costs ~$0.01
     await recordCost(auth.accountId, isV2 ? 0.015 : 0.01);
 
-    return NextResponse.json({
+    return apiSuccess({
       post: result.object,
       usage: result.usage,
       meta: {
@@ -201,9 +194,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (err) {
     log.error('Generate blog failed', { error: err instanceof Error ? err.message : String(err) });
-    return NextResponse.json(
-      { error: 'Failed to generate blog post' },
-      { status: 500 }
-    );
+    return apiInternalError('Failed to generate blog post');
   }
 }

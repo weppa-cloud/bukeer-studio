@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { createLogger } from '@/lib/logger';
+import { apiSuccess, apiUnauthorized, apiForbidden, apiError, apiValidationError, apiInternalError } from '@/lib/api';
 import { getEditorModel } from '@/lib/ai/llm-provider';
 import { generateText } from 'ai';
 import { z } from 'zod';
@@ -21,20 +22,12 @@ const ImproveTextRequestSchema = z.object({
 
 export async function POST(request: NextRequest) {
   const auth = await getEditorAuth(request);
-  if (!auth) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  if (!hasEditorRole(auth)) {
-    return NextResponse.json({ error: 'Forbidden: insufficient role' }, { status: 403 });
-  }
+  if (!auth) return apiUnauthorized();
+  if (!hasEditorRole(auth)) return apiForbidden();
 
   const rateCheck = await checkRateLimit(auth.accountId, 'editor');
   if (!rateCheck.allowed) {
-    return NextResponse.json(
-      { error: rateCheck.reason },
-      { status: 429, headers: { 'Retry-After': Math.ceil((rateCheck.resetAt.getTime() - Date.now()) / 1000).toString() } }
-    );
+    return apiError('RATE_LIMITED', rateCheck.reason ?? 'Rate limit exceeded', 429);
   }
 
   try {
@@ -42,7 +35,7 @@ export async function POST(request: NextRequest) {
     const parsed = ImproveTextRequestSchema.safeParse(raw);
 
     if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+      return apiValidationError(parsed.error);
     }
 
     const { text, action, targetLocale } = parsed.data;
@@ -57,7 +50,7 @@ export async function POST(request: NextRequest) {
 
     await recordCost(auth.accountId, 0.002);
 
-    return NextResponse.json({
+    return apiSuccess({
       original: text,
       improved: result.text,
       action,
@@ -65,9 +58,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (err) {
     log.error('Improve text failed', { error: err instanceof Error ? err.message : String(err) });
-    return NextResponse.json(
-      { error: 'Failed to improve text' },
-      { status: 500 }
-    );
+    return apiInternalError('Failed to improve text');
   }
 }

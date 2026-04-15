@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { createLogger } from '@/lib/logger';
+import { apiSuccess, apiUnauthorized, apiForbidden, apiError, apiInternalError } from '@/lib/api';
 import { getEditorModel } from '@/lib/ai/llm-provider';
 import { generateText } from 'ai';
 import { getEditorAuth, hasEditorRole } from '@/lib/ai/auth-helpers';
@@ -14,27 +15,12 @@ const log = createLogger('api.seo.generate');
 
 export async function POST(request: NextRequest) {
   const auth = await getEditorAuth(request);
-  if (!auth) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  if (!hasEditorRole(auth)) {
-    return NextResponse.json({ error: 'Forbidden: insufficient role' }, { status: 403 });
-  }
+  if (!auth) return apiUnauthorized();
+  if (!hasEditorRole(auth)) return apiForbidden();
 
   const rateCheck = await checkRateLimit(auth.accountId, 'editor');
   if (!rateCheck.allowed) {
-    return NextResponse.json(
-      { error: rateCheck.reason },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': Math.ceil(
-            (rateCheck.resetAt.getTime() - Date.now()) / 1000
-          ).toString(),
-        },
-      }
-    );
+    return apiError('RATE_LIMITED', rateCheck.reason ?? 'Rate limit exceeded', 429);
   }
 
   try {
@@ -42,10 +28,7 @@ export async function POST(request: NextRequest) {
     const parsed = seoGenerateRequestSchema.safeParse(body);
 
     if (!parsed.success) {
-      return NextResponse.json(
-        { error: 'Invalid input', details: parsed.error.message },
-        { status: 400 }
-      );
+      return apiError('VALIDATION_ERROR', parsed.error.message);
     }
 
     const data = parsed.data;
@@ -65,15 +48,12 @@ export async function POST(request: NextRequest) {
     const text = result.text.trim();
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      return NextResponse.json(
-        { error: 'AI did not return valid JSON' },
-        { status: 502 }
-      );
+      return apiError('UPSTREAM_ERROR', 'AI did not return valid JSON', 502);
     }
 
     const parsed_response = JSON.parse(jsonMatch[0]);
 
-    return NextResponse.json({
+    return apiSuccess({
       seoTitle: parsed_response.seoTitle || '',
       seoDescription: parsed_response.seoDescription || '',
       targetKeyword: parsed_response.targetKeyword || '',
@@ -82,9 +62,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (err) {
     log.error('SEO generate failed', { error: err instanceof Error ? err.message : String(err) });
-    return NextResponse.json(
-      { error: 'Error al generar sugerencias SEO' },
-      { status: 500 }
-    );
+    return apiInternalError('Error al generar sugerencias SEO');
   }
 }

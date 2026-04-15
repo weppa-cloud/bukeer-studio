@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { createLogger } from '@/lib/logger';
+import { apiUnauthorized, apiForbidden, apiError } from '@/lib/api';
 import { getEditorModel } from '@/lib/ai/llm-provider';
 import { generateText } from 'ai';
 import { z } from 'zod';
@@ -36,20 +37,12 @@ interface BulkItem {
 
 export async function POST(request: NextRequest) {
   const auth = await getEditorAuth(request);
-  if (!auth) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  if (!hasEditorRole(auth)) {
-    return NextResponse.json({ error: 'Forbidden: insufficient role' }, { status: 403 });
-  }
+  if (!auth) return apiUnauthorized();
+  if (!hasEditorRole(auth)) return apiForbidden();
 
   const rateCheck = await checkRateLimit(auth.accountId, 'editor');
   if (!rateCheck.allowed) {
-    return NextResponse.json(
-      { error: rateCheck.reason },
-      { status: 429, headers: { 'Retry-After': Math.ceil((rateCheck.resetAt.getTime() - Date.now()) / 1000).toString() } }
-    );
+    return apiError('RATE_LIMITED', rateCheck.reason ?? 'Rate limit exceeded', 429);
   }
 
   let parsed;
@@ -57,7 +50,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     parsed = bulkRequestSchema.parse(body);
   } catch {
-    return NextResponse.json({ error: 'Invalid input' }, { status: 400 });
+    return apiError('VALIDATION_ERROR', 'Invalid input');
   }
 
   const { websiteId, filter, scoreThreshold } = parsed;

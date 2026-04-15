@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { createLogger } from '@/lib/logger';
+import { apiSuccess, apiUnauthorized, apiForbidden, apiError, apiValidationError, apiInternalError } from '@/lib/api';
 import { getEditorModel } from '@/lib/ai/llm-provider';
 import { generateObject } from 'ai';
 import { z } from 'zod';
@@ -140,27 +141,12 @@ CONSTRAINTS:
 
 export async function POST(request: NextRequest) {
   const auth = await getEditorAuth(request);
-  if (!auth) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  if (!hasEditorRole(auth)) {
-    return NextResponse.json({ error: 'Forbidden: insufficient role' }, { status: 403 });
-  }
+  if (!auth) return apiUnauthorized();
+  if (!hasEditorRole(auth)) return apiForbidden();
 
   const rateCheck = await checkRateLimit(auth.accountId, 'copilot');
   if (!rateCheck.allowed) {
-    return NextResponse.json(
-      { error: rateCheck.reason },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': Math.ceil(
-            (rateCheck.resetAt.getTime() - Date.now()) / 1000
-          ).toString(),
-        },
-      }
-    );
+    return apiError('RATE_LIMITED', rateCheck.reason ?? 'Rate limit exceeded', 429);
   }
 
   try {
@@ -168,10 +154,7 @@ export async function POST(request: NextRequest) {
     const parsed = CopilotRequestSchema.safeParse(body);
 
     if (!parsed.success) {
-      return NextResponse.json(
-        { error: 'Invalid request', details: parsed.error.issues },
-        { status: 400 }
-      );
+      return apiValidationError(parsed.error);
     }
 
     const { prompt, websiteId, focusedSectionId, focusedSectionType, locale } = parsed.data;
@@ -194,10 +177,7 @@ export async function POST(request: NextRequest) {
 
     if (snapshotError || !snapshot) {
       log.error('Failed to load website snapshot', { error: snapshotError?.message ?? 'unknown' });
-      return NextResponse.json(
-        { error: 'Failed to load website data' },
-        { status: 500 }
-      );
+      return apiInternalError('Failed to load website data');
     }
 
     const typedSnapshot = snapshot as {
@@ -277,7 +257,7 @@ export async function POST(request: NextRequest) {
     // 8. Generate session ID
     const sessionId = crypto.randomUUID();
 
-    return NextResponse.json({
+    return apiSuccess({
       plan: result.object,
       usage: result.usage,
       sessionId,
@@ -285,9 +265,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (err) {
     log.error('Copilot failed', { error: err instanceof Error ? err.message : String(err) });
-    return NextResponse.json(
-      { error: 'Failed to generate copilot plan' },
-      { status: 500 }
-    );
+    return apiInternalError('Failed to generate copilot plan');
   }
 }

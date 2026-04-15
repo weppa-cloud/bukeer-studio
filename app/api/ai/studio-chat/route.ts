@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { createLogger } from '@/lib/logger';
+import { apiUnauthorized, apiForbidden, apiError, apiInternalError } from '@/lib/api';
 import { streamText, tool } from 'ai';
 import { z } from 'zod';
 import { createClient } from '@supabase/supabase-js';
@@ -15,20 +16,12 @@ const log = createLogger('api.ai.studioChat');
 
 export async function POST(request: NextRequest) {
   const auth = await getEditorAuth(request);
-  if (!auth) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
-  }
-
-  if (!hasEditorRole(auth)) {
-    return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403 });
-  }
+  if (!auth) return apiUnauthorized();
+  if (!hasEditorRole(auth)) return apiForbidden();
 
   const rateCheck = await checkRateLimit(auth.accountId, 'copilot');
   if (!rateCheck.allowed) {
-    return new Response(JSON.stringify({ error: rateCheck.reason }), {
-      status: 429,
-      headers: { 'Retry-After': Math.ceil((rateCheck.resetAt.getTime() - Date.now()) / 1000).toString() },
-    });
+    return apiError('RATE_LIMITED', rateCheck.reason ?? 'Rate limit exceeded', 429);
   }
 
   try {
@@ -36,7 +29,7 @@ export async function POST(request: NextRequest) {
     const { messages, websiteId, focusedSectionId, pageId } = body;
 
     if (!messages || !Array.isArray(messages) || !websiteId) {
-      return new Response(JSON.stringify({ error: 'Invalid request' }), { status: 400 });
+      return apiError('VALIDATION_ERROR', 'Invalid request');
     }
 
     // Load context
@@ -199,6 +192,6 @@ export async function POST(request: NextRequest) {
     return result.toUIMessageStreamResponse();
   } catch (err) {
     log.error('Studio chat failed', { error: err instanceof Error ? err.message : String(err) });
-    return new Response(JSON.stringify({ error: 'Failed to process chat' }), { status: 500 });
+    return apiInternalError('Failed to process chat');
   }
 }

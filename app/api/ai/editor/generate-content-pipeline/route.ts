@@ -8,8 +8,9 @@
  * Spec ref: SPEC_BLOG_GENERATOR_SEO_PIPELINE.md §3 D11
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { createLogger } from '@/lib/logger';
+import { apiSuccess, apiUnauthorized, apiForbidden, apiError, apiValidationError, apiInternalError } from '@/lib/api';
 import { createClient } from '@supabase/supabase-js';
 import { getEditorModel } from '@/lib/ai/llm-provider';
 import { generateObject, generateText } from 'ai';
@@ -87,15 +88,12 @@ function detectRiskFlags(content: string): RiskFlag[] {
 
 export async function POST(request: NextRequest) {
   const auth = await getEditorAuth(request);
-  if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  if (!hasEditorRole(auth)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  if (!auth) return apiUnauthorized();
+  if (!hasEditorRole(auth)) return apiForbidden();
 
   const rateCheck = await checkRateLimit(auth.accountId, 'editor');
   if (!rateCheck.allowed) {
-    return NextResponse.json(
-      { error: rateCheck.reason },
-      { status: 429, headers: { 'Retry-After': Math.ceil((rateCheck.resetAt.getTime() - Date.now()) / 1000).toString() } }
-    );
+    return apiError('RATE_LIMITED', rateCheck.reason ?? 'Rate limit exceeded', 429);
   }
 
   try {
@@ -287,7 +285,7 @@ Requirements:
 
     await recordCost(auth.accountId, totalCost);
 
-    return NextResponse.json({
+    return apiSuccess({
       job_id: canonicalAsset?.id || null,
       assets,
       quality_score: scoreResult.overall,
@@ -301,8 +299,8 @@ Requirements:
   } catch (err) {
     log.error('Pipeline failed', { error: err instanceof Error ? err.message : String(err) });
     if (err instanceof z.ZodError) {
-      return NextResponse.json({ error: 'Invalid input', details: err.errors }, { status: 400 });
+      return apiValidationError(err);
     }
-    return NextResponse.json({ error: 'Pipeline failed' }, { status: 500 });
+    return apiInternalError('Pipeline failed');
   }
 }

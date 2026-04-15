@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { createLogger } from '@/lib/logger';
+import { apiSuccess, apiError, apiUnauthorized, apiForbidden, apiInternalError } from '@/lib/api';
 import { getEditorModel } from '@/lib/ai/llm-provider';
 import { generateObject } from 'ai';
 import { z } from 'zod';
@@ -35,23 +36,12 @@ const sectionContentSchema = z.object({
 
 export async function POST(request: NextRequest) {
   const auth = await getEditorAuth(request);
-  if (!auth) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  if (!hasEditorRole(auth)) {
-    return NextResponse.json({ error: 'Forbidden: insufficient role' }, { status: 403 });
-  }
+  if (!auth) return apiUnauthorized();
+  if (!hasEditorRole(auth)) return apiForbidden();
 
   const rateCheck = await checkRateLimit(auth.accountId, 'editor');
   if (!rateCheck.allowed) {
-    return NextResponse.json(
-      { error: rateCheck.reason },
-      {
-        status: 429,
-        headers: { 'Retry-After': Math.ceil((rateCheck.resetAt.getTime() - Date.now()) / 1000).toString() },
-      }
-    );
+    return apiError('RATE_LIMITED', rateCheck.reason ?? 'Rate limit exceeded', 429);
   }
 
   try {
@@ -61,14 +51,11 @@ export async function POST(request: NextRequest) {
     // Input length guard
     const promptText = prompt ?? '';
     if (typeof promptText === 'string' && promptText.length > 2000) {
-      return NextResponse.json({ error: 'Prompt too long (max 2000 chars)' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 'Prompt too long (max 2000 chars)');
     }
 
     if (!sectionType || !SECTION_TYPES.includes(sectionType)) {
-      return NextResponse.json(
-        { error: `Invalid sectionType. Valid: ${SECTION_TYPES.join(', ')}` },
-        { status: 400 }
-      );
+      return apiError('VALIDATION_ERROR', `Invalid sectionType. Valid: ${SECTION_TYPES.join(', ')}`);
     }
 
     const result = await generateObject({
@@ -85,16 +72,13 @@ export async function POST(request: NextRequest) {
     // Estimate cost (~$0.003 per call for Sonnet)
     await recordCost(auth.accountId, 0.003);
 
-    return NextResponse.json({
+    return apiSuccess({
       content: result.object,
       sectionType,
       usage: result.usage,
     });
   } catch (err) {
     log.error('Generate section failed', { error: err instanceof Error ? err.message : String(err) });
-    return NextResponse.json(
-      { error: 'Failed to generate section content' },
-      { status: 500 }
-    );
+    return apiInternalError('Failed to generate section content');
   }
 }

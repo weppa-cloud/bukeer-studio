@@ -5,8 +5,9 @@
  * Cost: ~$0.015 per call.
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { createLogger } from '@/lib/logger';
+import { apiSuccess, apiUnauthorized, apiForbidden, apiError, apiInternalError } from '@/lib/api';
 import { getEditorModel } from '@/lib/ai/llm-provider';
 import { generateObject } from 'ai';
 import { z } from 'zod';
@@ -34,15 +35,12 @@ const clusterPlanSchema = z.object({
 
 export async function POST(request: NextRequest) {
   const auth = await getEditorAuth(request);
-  if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  if (!hasEditorRole(auth)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  if (!auth) return apiUnauthorized();
+  if (!hasEditorRole(auth)) return apiForbidden();
 
   const rateCheck = await checkRateLimit(auth.accountId, 'editor');
   if (!rateCheck.allowed) {
-    return NextResponse.json(
-      { error: rateCheck.reason },
-      { status: 429, headers: { 'Retry-After': Math.ceil((rateCheck.resetAt.getTime() - Date.now()) / 1000).toString() } }
-    );
+    return apiError('RATE_LIMITED', rateCheck.reason ?? 'Rate limit exceeded', 429);
   }
 
   try {
@@ -50,7 +48,7 @@ export async function POST(request: NextRequest) {
     const { keyword, locale = 'es', existingPosts = [], targetPostCount = 8 } = body;
 
     if (!keyword || typeof keyword !== 'string') {
-      return NextResponse.json({ error: 'keyword is required' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 'keyword is required');
     }
 
     const localeName = locale === 'es' ? 'Spanish' : locale === 'pt' ? 'Portuguese' : locale === 'fr' ? 'French' : 'English';
@@ -81,12 +79,12 @@ Focus on practical, experience-driven topics that demonstrate E-E-A-T.`,
 
     await recordCost(auth.accountId, 0.015);
 
-    return NextResponse.json({
+    return apiSuccess({
       plan: result.object,
       usage: result.usage,
     });
   } catch (err) {
     log.error('Generate cluster plan failed', { error: err instanceof Error ? err.message : String(err) });
-    return NextResponse.json({ error: 'Failed to generate cluster plan' }, { status: 500 });
+    return apiInternalError('Failed to generate cluster plan');
   }
 }
