@@ -182,9 +182,25 @@ Onboarding guide for new developers: [`docs/architecture/ONBOARDING-ARCHITECTURE
 - `specifying` — Feature requests → executable specs
 - `docs-keeper` — Documentation organization and maintenance
 - `prompt-optimiser` — Optimize prompts before execution
+- `debugger` — Structured bug diagnosis and resolution with visual feedback loop
 
 **Commands** (invoke with `/command-name`):
 - `/qa-nextjs` — Studio editor QA with UX analysis and screenshots
+- `/website-creator` — Data-only website operations (Rol 2: themes, sections, content via Supabase)
+
+### Workflows by Role
+
+**Studio Developer (Rol 1)** — modifies repo code:
+- Bug: `debugger` → fix → `tech-validator` MODE:CODE → commit
+- Feature: `specifying` → `tech-validator` MODE:PLAN → `nextjs-developer` → commit
+- QA: `/qa-nextjs` → issues → `debugger`
+
+**Website Creator (Rol 2)** — modifies Supabase data only:
+- Command: `/website-creator`
+- New site: brief → theme preset → sections → visual QA
+- Edit theme: screenshot before → redesign tokens → screenshot after
+- Add section: check registry → insert DB → verify visual
+- Bug found in component → STOP → switch to Rol 1 with `debugger`
 
 ---
 

@@ -7,7 +7,6 @@ import { createClient } from '@supabase/supabase-js';
 import { getEditorModel } from '@/lib/ai/llm-provider';
 import { getEditorAuth, hasEditorRole } from '@/lib/ai/auth-helpers';
 import { checkRateLimit, recordCost } from '@/lib/ai/rate-limit';
-import { SECTION_TYPES } from '@bukeer/website-contract';
 import { buildStudioChatPrompt } from '@/lib/ai/prompts';
 
 const log = createLogger('api.ai.studioChat');

@@ -5,7 +5,7 @@
 | Parameter | Required | Description |
 |-----------|----------|-------------|
 | Plan content | **YES** | PRD text, plan document, feature proposal, or path to .md file |
-| Domain | Auto-detected | Module the plan belongs to (chatwoot, itineraries, etc.) |
+| Domain | Auto-detected | Area the plan belongs to (sections, theme, dashboard, public-site, etc.) |
 
 ## When to Use
 
@@ -17,37 +17,34 @@
 ## Validation Protocol
 
 ### Step 1: Parse Plan Scope
-- Extract: features described, UI components mentioned, services involved, data models
+- Extract: features described, components mentioned, API routes involved, data models
 - Identify: affected modules, estimated file count, complexity level
 
 ### Step 2: ADR Compliance Check
-Scan the plan against ALL applicable ADRs in `docs/02-architecture/decisions/`:
+Scan the plan against ALL applicable ADRs in `docs/architecture/`:
 
 | ADR | Topic | Check |
 |-----|-------|-------|
-| ADR-001 | State Management | Does plan use AppServices? Does it propose new state outside pattern? |
-| ADR-011 | Layout vs Pattern | Does plan respect 3-layer separation for list pages? |
-| ADR-012 | Modal Organization | Are modals/dialogs following organization standards? |
-| ADR-015 | Optimistic UI | Do CRUD operations include optimistic update strategy? |
-| ADR-016 | Cache SWR | Does data fetching strategy mention cache invalidation? |
-| ADR-017 | OTA Standards | Do product/hotel models align with OTA standards? |
-| ADR-018 | Exception Handling | Does plan include error handling strategy? |
-| ADR-019 | Navigation Stack | Does navigation follow GoRouter patterns? |
-| ADR-020 | Flow Tracking | Are user journeys tracked? |
-| ADR-021 | Unified Dual View | If list page, does it consider list + kanban? |
-| ADR-022 | Auth Token Boundary | Are API calls through service layer (not UI)? |
-| ADR-023 | Chrome OOM | Are timers/listeners accounted for with cleanup? |
-| ADR-024 | Build Purity | Does plan mention init patterns correctly? |
-| ADR-032 | Catalog V2 | Does hotel/product work use catalog architecture? |
-| ADR-035 | Pagination | Does pagination use length < pageSize + appendLastPage? |
-| ADR-036 | Testing Surface | Do interactive components have `testKey` + `Semantics()`? |
+| ADR-001 | Server-First Rendering | Does plan use RSC by default? Is `'use client'` only where needed? |
+| ADR-002 | Error Handling | Does plan include error boundaries and structured error handling? |
+| ADR-003 | Contract-First Validation | Does plan validate data with Zod schemas? Uses `@bukeer/website-contract`? |
+| ADR-004 | State Management | Does plan use appropriate state strategy (server vs client, URL params)? |
+| ADR-005 | Security Defense-in-Depth | Are secrets server-only? RLS policies considered? Input sanitized? |
+| ADR-006 | AI Streaming | Does AI integration use streaming patterns (Vercel AI SDK)? |
+| ADR-007 | Edge-First Delivery | Is it Cloudflare Workers compatible? No Node-only APIs? |
+| ADR-008 | Monorepo Packages | Does it respect theme-sdk / website-contract boundaries? |
+| ADR-009 | Multi-Tenant Routing | Does subdomain routing go through middleware correctly? |
+| ADR-010 | Observability | Does plan include logging/monitoring where appropriate? |
+| ADR-011 | Middleware Cache | Does it respect middleware caching patterns? |
+| ADR-012 | API Response Envelope | Do API routes use standard response format? |
 
-### Step 3: M3 / Design System / Token Validation
-- **M3 Components**: Does the plan specify M3-native components? Does it avoid deprecated Material 2?
-- **Token Usage**: Does the plan reference Bukeer tokens (spacing, colors, elevation, border radius)?
-- **Reusability**: Does the plan consider existing DS components before creating new ones?
-- **3-Layer Architecture**: If UI, does the plan propose Widget → Pattern → Layout?
-- **Dark Mode**: Will the plan work in dark mode automatically (via token usage)?
+### Step 3: Design System / Token Validation
+- **shadcn/ui Primitives**: Does the plan use existing shadcn/ui components before creating custom ones?
+- **CSS Variable Bridge**: Does the plan reference theme tokens via `var(--primary)`, `var(--surface)`, etc.?
+- **Tailwind Tokens**: Does the plan use Tailwind utility classes for spacing, typography, borders?
+- **Theme SDK Presets**: If theme-related, does it use `@bukeer/theme-sdk` presets and `compileTheme()`?
+- **Dark Mode**: Will the plan work in dark mode via `dark:` prefix + `next-themes`?
+- **Component Reuse**: Does the plan check `components/ui/` before creating new primitives?
 
 ### Step 4: Recent Context Check
 - `git log --oneline -20 --grep="[domain]"` — Are there recent commits the plan should align with?
@@ -69,21 +66,21 @@ Scan the plan against ALL applicable ADRs in `docs/02-architecture/decisions/`:
  ⚠️ ADR-XXX (Topic) → [Partial compliance — what's missing]
  ❌ ADR-XXX (Topic) → [Violation — what must change]
 
-## M3 / Design System
- ✅ [M3 component usage is correct]
- ⚠️ [Missing token specification for X — recommend BukeerSpacing.m]
- ❌ [Plan mentions hardcoded colors — must use colorScheme]
+## Design System / Tokens
+ ✅ [shadcn/ui component usage is correct]
+ ⚠️ [Missing CSS variable usage for X — recommend var(--primary)]
+ ❌ [Plan mentions hardcoded colors — must use theme tokens]
 
 ## Token System Compliance
- Colors:       [✅ Uses colorScheme | ❌ Hardcoded]
- Typography:   [✅ Uses textTheme | ❌ Custom TextStyle]
- Spacing:      [✅ BukeerSpacing | ⚠️ Not specified]
- Elevation:    [✅ BukeerElevation | ⚠️ Not specified]
- Border Radius:[✅ BukeerBorderRadius | ⚠️ Not specified]
+ Colors:       [✅ Uses CSS vars | ❌ Hardcoded hex/rgb]
+ Typography:   [✅ Uses Tailwind classes | ❌ Custom inline styles]
+ Spacing:      [✅ Tailwind utilities | ⚠️ Not specified]
+ Shadows:      [✅ Tailwind shadow classes | ⚠️ Not specified]
+ Border Radius:[✅ Tailwind rounded classes | ⚠️ Not specified]
 
 ## Reusability Assessment
- Existing Components: [List DS components the plan should reuse]
- New Components Proposed: [List, with abstraction level recommendation]
+ Existing Components: [List shadcn/ui or site components the plan should reuse]
+ New Components Proposed: [List, with location recommendation]
  DRY Risks: [Potential duplication with existing code]
 
 ## Commit Context

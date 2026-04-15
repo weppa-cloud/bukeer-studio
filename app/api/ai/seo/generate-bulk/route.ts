@@ -330,7 +330,7 @@ export async function POST(request: NextRequest) {
               after: { ...result.object, score: scoreAfter },
             },
           });
-        } catch (err) {
+        } catch (_err) {
           processed++;
           send({
             type: 'item_error',

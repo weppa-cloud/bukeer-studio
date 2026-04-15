@@ -11,42 +11,43 @@ Wrap prompt sections in semantic XML tags so the model has clear parse boundarie
 
 **Before:**
 ```
-Create a hotel card component that shows name, price, and rating. It should follow our design system and be reusable.
+Create a hotel card section that shows name, price, and rating. It should follow our design system and be reusable.
 ```
 
 **After:**
 ```xml
 <role>
-You are an elite Flutter UI engineer on the Bukeer platform.
+You are an elite Next.js developer on the Bukeer Website Studio platform.
 </role>
 
 <context>
-Design System: import from `package:bukeer/design_system/index.dart`
-M3 tokens: `context.m3Colors`, `context.m3TextTheme`
-Component location: `lib/bukeer/design_system/components/`
+Design System: shadcn/ui primitives from `components/ui/`
+Theme tokens: CSS variables via M3ThemeProvider (`var(--primary)`, `var(--surface)`)
+Section types: `SECTION_TYPES` from `@bukeer/website-contract`
+Component location: `components/site/sections/`
 </context>
 
 <task>
-Create a reusable `BukeerHotelCard` widget that displays:
-- Hotel name (M3 titleMedium)
-- Price per night (M3 labelLarge, currency formatted)
-- Star rating (existing `BukeerRatingDisplay` widget)
+Create a reusable hotel card section component that displays:
+- Hotel name (Tailwind `text-lg font-semibold`)
+- Price per night (Tailwind `text-sm`, currency formatted)
+- Star rating (existing rating component or shadcn/ui Badge)
 </task>
 
 <constraints>
-- Never hardcode colors — use M3 tokens only
-- Add `Semantics(label: hotelName)` wrapper for accessibility (ADR-036)
-- Include `testKey` parameter of type `Key?` for Patrol selectors
+- Never hardcode colors — use CSS variables only (`var(--primary)`, etc.)
+- Use `cn()` utility for conditional class merging
+- Validate content props with Zod schema from `@bukeer/website-contract`
 - Component must be <300 lines; no business logic
 - Don't add features beyond what was asked
 </constraints>
 
 <success_criteria>
-- [ ] Widget renders correctly with all three data fields
-- [ ] M3 tokens used (no hardcoded Color())
-- [ ] Semantics wrapper present
-- [ ] testKey parameter accepted
-- [ ] flutter analyze: zero issues
+- [ ] Component renders correctly with all three data fields
+- [ ] CSS variables used (no hardcoded hex/rgb)
+- [ ] Zod validation for content props
+- [ ] data-testid attributes on interactive elements
+- [ ] npx tsc --noEmit: zero issues
 </success_criteria>
 ```
 
@@ -78,13 +79,13 @@ production-safe schema changes.
 
 | Task type | Role to inject |
 |-----------|---------------|
-| `ui-component` | "elite Flutter UI engineer on the Bukeer platform" |
-| `feature-screen` | "elite Flutter developer specializing in GoRouter navigation and AppServices" |
-| `bugfix` | "elite Flutter/Dart debugger with WASM expertise" |
-| `service` | "elite Dart service architect familiar with Bukeer's AppServices singleton pattern" |
+| `section-component` | "elite Next.js developer specializing in reusable section components with shadcn/ui and Framer Motion" |
+| `page-layout` | "elite Next.js 15 developer specializing in App Router, RSC, and server/client boundaries" |
+| `bugfix` | "elite Next.js/React debugger with expertise in hydration, RSC boundaries, and Zod validation" |
+| `api-route` | "elite Next.js API developer familiar with Vercel AI SDK, Supabase SSR, and edge runtime" |
 | `backend` | "elite Supabase/PostgreSQL backend engineer with RLS and migration expertise" |
-| `test` | "elite Flutter testing engineer specializing in Patrol E2E and unit testing" |
-| `catalog` | "elite Flutter developer familiar with Bukeer's Catalog V2 three-table architecture" |
+| `test` | "elite Playwright testing engineer specializing in Next.js E2E and component testing" |
+| `theme-config` | "elite design systems engineer familiar with Bukeer's theme-sdk, CSS Variable Bridge, and M3 presets" |
 
 ---
 
@@ -95,38 +96,39 @@ intermediate success criteria.
 
 **Before:**
 ```
-Implement real-time search with pagination on the itineraries screen
+Add a new destinations grid section type with Supabase data and theme integration
 ```
 
 **After (decomposed):**
 ```xml
 <task>
-Implement real-time search with pagination on the itineraries screen.
+Add a new destinations grid section type with Supabase data and theme integration.
 
-Phase 1 — Search state wiring:
-1. Add `_searchQuery` state variable to `ItinerariesWidget`
-2. Connect `BukeerSearchBar` `onChanged` to `_handleSearchChanged()`
-3. Store query in `UiStateService` via `appServices.uiState.setSearchQuery()`
+Phase 1 — Contract & Schema:
+1. Add `destinations-grid` to `SECTION_TYPES` in `@bukeer/website-contract`
+2. Define Zod schema for section content (title, destinations array, layout variant)
+3. Export types for the section props
 
-Phase 2 — Pagination integration:
-4. Update `_fetchPage()` to pass current search query to API call
-5. Call `controller.refresh()` in `_handleSearchChanged()` to reset page to 0
-6. Initialize controller in `initState()` — NOT in `build()` (ADR-024)
+Phase 2 — Component Implementation:
+4. Create `DestinationsGridSection` in `components/site/sections/`
+5. Use shadcn/ui Card + CSS variables for theme integration
+6. Add Framer Motion entrance animations
+7. Responsive grid: 1 col mobile, 2 col tablet, 3 col desktop
 
-Phase 3 — Last-page detection (ADR-035):
-7. Use `pageItems.length < _defaultPageSize` (not `isNotEmpty`) to detect last page
-8. Call `appendLastPage()` on final page, `appendPage()` otherwise
-9. Add `.catchError((e) { controller.error = e; })` handler
+Phase 3 — Registry & Rendering:
+8. Register new section type in `lib/sections/section-registry.tsx`
+9. Add normalization rules in `normalizeContent()` for backward compatibility
+10. Test rendering on public site via subdomain
 
-Success gate: each phase must pass `flutter analyze` before proceeding.
+Success gate: each phase must pass `npx tsc --noEmit` before proceeding.
 </task>
 ```
 
 **Trigger decomposition when:**
 - 3+ files will be modified
-- Multiple service layers involved (UI + service + backend)
-- Async state management across screens
-- Pagination or infinite scroll
+- Multiple layers involved (schema + component + registry)
+- Supabase data + frontend rendering
+- Theme integration across multiple components
 
 ---
 
@@ -137,28 +139,27 @@ relevant to the detected task type. This prevents the most common mistakes.
 
 **Constraint blocks by task type:**
 
-### ui-component constraints
+### section-component constraints
 ```xml
 <constraints>
-- Import from `package:bukeer/design_system/index.dart` only
-- Use M3 tokens: `context.m3Colors`, `context.m3TextTheme` — no hardcoded Color()
-- Wrap interactive component in `Semantics(label: humanReadableText, button: true)`
-- For form fields: use `Semantics(explicitChildNodes: true)` — NO label: parameter
-- Accept `testKey: Key?` parameter and wrap with `KeyedSubtree(key: testKey!)` if non-null
-- Never wrap Semantics with Tooltip — put Tooltip inside ExcludeSemantics
+- Use shadcn/ui primitives from `components/ui/` as base
+- Colors via CSS variables: `var(--primary)`, `var(--surface)` — no hardcoded hex/rgb
+- Use `cn()` from `@/lib/utils` for conditional class merging
+- Validate section content with Zod schema from `@bukeer/website-contract`
+- Use `SECTION_TYPES` constant — never hardcode section type strings
+- Add `data-testid` on interactive elements
 - Don't add features beyond what was asked
 </constraints>
 ```
 
-### feature-screen constraints
+### page-layout constraints
 ```xml
 <constraints>
-- Use `appServices.serviceName.method()` — NEVER instantiate services directly
-- Check `appServices.authorization.can*()` before ANY privileged operation
-- Use typed model getters: `.currentItineraryModel`, `.selectedHotelModel` (not deprecated dynamic getters)
-- NEVER use `currentJwtToken` in widgets — API calls go through service `callWithAuth`
-- Initialize controllers in `initState()` — NEVER in `build()`
-- Use single `setState(() { _a=1; _b=2; })` — never multiple sequential setState calls
+- Server Components by default — `'use client'` ONLY for hooks/event handlers/browser APIs
+- Use `createClient()` from `@/lib/supabase/server` for data fetching
+- Never import `useEffect`, `useState` in server components
+- Add error.tsx and loading.tsx for route segments
+- Use `cn()` for conditional classes — never inline style objects
 - Don't add features beyond what was asked
 </constraints>
 ```
@@ -166,9 +167,9 @@ relevant to the detected task type. This prevents the most common mistakes.
 ### bugfix constraints
 ```xml
 <constraints>
-- WASM-safe casts: `(val as num?)?.toDouble()` — NEVER `val as double?`
-- JSON access: `json.getString('key')`, `json.getDouble('key')` via SafeMap — NEVER `data['key']!`
-- Single setState for all state changes
+- Check hydration: no `Date.now()`, `Math.random()`, or `window` in RSC
+- Check RSC boundary: no hooks (`useState`, `useEffect`) in server components
+- Check Zod schema: ensure DB response matches `@bukeer/website-contract` types
 - Don't refactor code beyond the bug fix scope
 - Don't add error handling for scenarios that can't happen
 </constraints>
@@ -178,21 +179,21 @@ relevant to the detected task type. This prevents the most common mistakes.
 ```xml
 <constraints>
 - Migration filename: `YYYYMMDDHHMMSS_name.sql` (14-digit UTC timestamp)
-- Run `./scripts/validate_supabase_migrations.sh` before commit
 - NEVER create 8-digit migration files (`YYYYMMDD_name.sql`)
-- NEVER edit `supabase/migrations/.legacy_allowlist`
-- For DROP+CREATE functions: dump current body from production first
-- Add `DEPENDS ON:` header listing prior migrations
+- RLS policies required for new tables
+- Service role key NEVER in client-side code
+- Theme shape: `{ tokens: DesignTokens, profile: ThemeProfile }` — never flat
 </constraints>
 ```
 
-### pagination constraints
+### api-route constraints
 ```xml
 <constraints>
-- Last-page check: `pageItems.length < _defaultPageSize` — NEVER `isNotEmpty`
-- Call `appendLastPage(items)` on last page — NEVER `appendPage(items, null)`
-- Always add `.catchError((e) { controller.error = e; })` to API call chain
-- Initialize PagingController in `initState()` — not in `build()`
+- Validate all input with Zod schemas
+- Use standard response envelope format (ADR-012)
+- Service role key only in server-side API routes
+- Stream AI responses with Vercel AI SDK patterns
+- Edge-compatible: no Node-only APIs (ADR-007)
 </constraints>
 ```
 
@@ -203,11 +204,11 @@ relevant to the detected task type. This prevents the most common mistakes.
 Add explicit CoT instruction for tasks requiring reasoning before coding.
 
 **Add "Think step by step before writing any code" when:**
-- Debugging async/concurrent flows
-- Architecture decisions (where to put code, which service to use)
-- Multi-service interactions
-- WASM compatibility debugging
-- Choosing between patterns (e.g., model vs SafeMap vs getJsonField)
+- Debugging hydration or RSC boundary issues
+- Architecture decisions (where to put code, RSC vs client)
+- Multi-component interactions
+- Theme compilation or CSS variable resolution issues
+- Choosing between patterns (e.g., Server Action vs API route)
 
 **Don't add CoT for:**
 - Simple UI components (clear implementation path)
@@ -217,14 +218,14 @@ Add explicit CoT instruction for tasks requiring reasoning before coding.
 **Example placement:**
 ```xml
 <task>
-Debug why the itinerary total amount shows 0 after hotel is added.
+Debug why the hero section shows unstyled on the public site but works in the editor.
 </task>
 
 Think step by step before writing any code:
-1. Trace the data flow from hotel addition to total display
-2. Identify which service updates the total
-3. Check for WASM-unsafe casts in the amount calculation
-4. Verify setState is called after service update
+1. Check if M3ThemeProvider wraps the public site render path
+2. Verify CSS variables are injected (inspect var(--primary) in browser)
+3. Check if theme data is fetched from Supabase on the public site route
+4. Compare the editor and public site rendering pipelines
 ```
 
 ---
@@ -269,7 +270,7 @@ Score a prompt 0-10 before and after optimization. Target: ≥7 after optimizati
 | Anti-pattern | Fix |
 |-------------|-----|
 | "Arregla el error" | Ask which file/behavior, then inject CoT + bugfix constraints |
-| "Crea un componente" | Inject M3 constraints + testKey + Semantics template |
+| "Crea un componente" | Inject shadcn/ui base + CSS variables + Zod validation template |
 | "Implementa X como en Y" | Resolve "Y" to a real file path before optimizing |
 | "Optimiza el rendimiento" | Ask which metric, then scope to specific bottleneck |
 | "Haz lo que necesites" | Refuse open-ended scope — ask for specific deliverable |

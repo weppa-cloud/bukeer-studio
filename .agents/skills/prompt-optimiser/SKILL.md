@@ -18,13 +18,13 @@ description: |
   <example>
   Context: User wants a component but lacks specifics.
   user: "optimiza este prompt: crea un componente de tarjeta para hoteles"
-  assistant: "I'll optimize it by injecting M3 constraints, ADR-036 semantics, and testKey pattern."
+  assistant: "I'll optimize it by injecting shadcn/ui constraints, CSS variable bridge, and section type checks."
   <commentary>Medium-complexity prompt — skip clarification, inject architecture context.</commentary>
   </example>
   <example>
   Context: User has a complex multi-system feature.
-  user: "mejora mi prompt antes de ejecutarlo: implementa búsqueda en tiempo real con paginación"
-  assistant: "Complex prompt — I'll decompose into phases, inject ADR-035 and AppServices patterns."
+  user: "mejora mi prompt antes de ejecutarlo: implementa un nuevo tipo de sección con editor visual"
+  assistant: "Complex prompt — I'll decompose into phases, inject contract-first validation and RSC boundary patterns."
   <commentary>Complex prompt needs full decomposition and constraint injection.</commentary>
   </example>
 ---
@@ -40,12 +40,12 @@ structured, context-rich instructions before executing them in Codex.
 - Analyzing raw/unclear user prompts
 - Detecting missing context and asking targeted clarifying questions (max 3)
 - Applying XML structuring, role definition, CoT placeholders, constraint injection
-- Injecting relevant Bukeer architecture patterns based on task type
+- Injecting relevant Bukeer Studio architecture patterns based on task type
 - Presenting the optimized prompt for user confirmation
 - Executing the confirmed prompt as the next task in the session
 
 **Delegate To:**
-- The relevant skill (flutter-developer, backend-dev, etc.) after prompt is confirmed and executed
+- The relevant skill (nextjs-developer, backend-dev, website-section-generator, etc.) after prompt is confirmed and executed
 
 ## Activation Triggers
 
@@ -65,16 +65,15 @@ Classify the prompt along two axes:
 
 | Keyword signals | Task type | Context to inject |
 |----------------|-----------|-------------------|
-| componente, widget, card, UI, botón | `ui-component` | M3 patterns, Design System, ADR-036 |
-| pantalla, screen, flujo, flow, navegación | `feature-screen` | GoRouter, AppServices, RBAC |
-| bugfix, error, arregla, fix, crash | `bugfix` | CoT, defensive patterns, WASM safety |
-| servicio, service, AppService, modelo | `service` | AppServices singleton, typed getters |
-| migración, tabla, RLS, Supabase, SQL | `backend` | Migration governance, 14-digit timestamp |
-| test, E2E, Patrol, cobertura | `test` | Patrol patterns, ADR-036 selector strategy |
-| catálogo, hotel, Catalog V2 | `catalog` | Resolver pattern, feature flags |
-| auth, token, JWT | `auth` | ADR-022, callWithAuth boundary |
-| paginación, scroll, infinite | `pagination` | ADR-035, appendLastPage |
-| arquitectura, patrón, ADR | `architecture` | architecture-analyzer delegation |
+| section, component, card, UI, button | `section-component` | shadcn/ui, CSS Variable Bridge, SECTION_TYPES |
+| page, layout, dashboard, route | `page-layout` | App Router, RSC, server/client boundary |
+| bugfix, error, fix, crash, broken | `bugfix` | CoT, hydration errors, RSC boundary, Zod validation |
+| API route, endpoint, server action | `api-route` | Server Actions, API routes, Supabase SSR |
+| migration, table, RLS, Supabase, SQL | `backend` | Migration governance, 14-digit timestamp |
+| test, E2E, Playwright, coverage | `test` | Playwright patterns, data-testid selectors |
+| theme, preset, design, tokens, colors | `theme-config` | theme-sdk presets, compileTheme, CSS variables |
+| auth, login, session, middleware | `auth` | Supabase SSR cookies, middleware auth flow |
+| architecture, pattern, ADR | `architecture` | ADR-001 through ADR-012 references |
 
 **Complexity Level** (determines if decomposition is needed):
 
@@ -93,13 +92,13 @@ correct implementation. Skip this phase entirely if the prompt provides enough
 context to write a correct optimized version.
 
 **High-priority gaps** (always ask if missing):
-1. Which file/screen/component is affected? (for bugfixes)
+1. Which file/component/page is affected? (for bugfixes)
 2. What is the expected behavior vs current behavior? (for bugfixes)
 3. Where should the new code live? (for new features)
 
 **Low-priority gaps** (inject reasonable defaults, don't ask):
-- Exact styling details → use M3 defaults
-- Error message wording → use existing BukeerSnackBar patterns
+- Exact styling details → use shadcn/ui + Tailwind defaults
+- Error message wording → use existing toast/alert patterns
 - Variable naming → use project conventions
 
 Present questions in a numbered list:
@@ -121,8 +120,8 @@ Apply the following template. Include only sections relevant to the task type.
 
 ```
 <role>
-You are an elite [Flutter developer / Supabase backend engineer / etc.] working on
-the Bukeer travel platform (Flutter 3.37+ Web, Supabase, GoRouter 12.1.3).
+You are an elite [Next.js developer / Supabase backend engineer / etc.] working on
+Bukeer Website Studio (Next.js 15, React 19, Cloudflare Workers, Supabase, Tailwind v4).
 </role>
 
 <context>
@@ -142,7 +141,7 @@ the Bukeer travel platform (Flutter 3.37+ Web, Supabase, GoRouter 12.1.3).
 <success_criteria>
 - [ ] [Criterion 1]
 - [ ] [Criterion 2]
-- [ ] Tests pass (flutter analyze + dart_format)
+- [ ] Build passes (npx tsc --noEmit + npm run build)
 </success_criteria>
 
 Think step by step before writing any code. [Add only for architecture/debug tasks]
@@ -151,21 +150,20 @@ Think step by step before writing any code. [Add only for architecture/debug tas
 
 **Context Injection Rules by task type:**
 
-- `ui-component`: Import from `design_system/index.dart`. Use M3 tokens via `context.m3Colors`. Add `Semantics(label: humanText)` wrapper. Include `testKey: ValueKey('entity_screen_element')` param. Never use hardcoded colors.
-- `feature-screen`: Use `appServices.serviceName.method()` (NEVER direct instantiation). Check `appServices.authorization.can*()` before privileged ops. Use GoRouter for navigation.
-- `bugfix`: Use `SafeMap` extensions for JSON access. WASM-safe casts: `(val as num?)?.toDouble()`. Single `setState` for multiple changes.
-- `service`: Use typed model getters (`.currentItineraryModel`, `.selectedHotelModel`). NEVER deprecated dynamic getters. Wrap API calls in `callWithAuth`.
-- `backend`: Migration filename must be `YYYYMMDDHHMMSS_name.sql`. Run `./scripts/validate_supabase_migrations.sh`. Never edit `.legacy_allowlist`.
-- `test`: Use `ValueKey('entity_screen_element')` selectors. Never `find.bySemanticsLabel()` (fragile to i18n).
-- `catalog`: Use `resolveAccountHotelByProductRef()` resolver. Never duplicated list+match pattern.
-- `auth`: No `currentJwtToken` in `lib/bukeer/` widgets. Use service `callWithAuth`.
-- `pagination`: `pageItems.length < pageSize` check. Use `appendLastPage()`. Always add `.catchError()`.
+- `section-component`: Use shadcn/ui primitives from `components/ui/`. Colors via CSS variables (`var(--primary)`). Use `SECTION_TYPES` from `@bukeer/website-contract`. Validate content with Zod schema. Use `cn()` for conditional classes. Never hardcode hex colors.
+- `page-layout`: Server Components by default (RSC-first, ADR-001). `'use client'` only for hooks/event handlers. Use `createClient()` from `@/lib/supabase/server` for data fetching. Add error.tsx and loading.tsx for route segments.
+- `bugfix`: Check hydration mismatches (`Date.now()`, `Math.random()` in RSC). Check RSC boundary (hooks in server component). Check Zod schema drift (DB ≠ contract). Use `cn()` not inline styles.
+- `api-route`: Validate input with Zod. Use standard response envelope (ADR-012). Service role key server-only. Stream with Vercel AI SDK patterns for AI routes.
+- `backend`: Migration filename must be `YYYYMMDDHHMMSS_name.sql`. RLS policies required. Never expose service role key.
+- `test`: Use `data-testid` selectors. Playwright patterns. Never rely on text content for selectors (fragile to i18n).
+- `theme-config`: Use `@bukeer/theme-sdk` presets and `compileTheme()`. Theme shape: `{ tokens: DesignTokens, profile: ThemeProfile }` — NEVER flat. 8 presets available.
+- `auth`: Supabase SSR cookies via middleware. `createClient()` from `@/lib/supabase/server`. Never access JWT directly in components.
 
 **CoT placeholder** — add "Think step by step before writing any code" for:
 - Architecture decisions
-- Debugging complex async flows
-- Multi-service interactions
-- WASM compatibility issues
+- Debugging hydration or RSC boundary issues
+- Multi-component interactions
+- Theme compilation issues
 
 **Scope Guard** — always add for bugfixes and feature tasks:
 > "Don't add features, refactor code, or make improvements beyond what was asked."
@@ -219,11 +217,11 @@ Iterate once more (max 2 optimization rounds total).
 **Action**: Phase 2 — ask "Which button? What's the current vs expected behavior?"
 
 **Input**: `"crea un componente de tarjeta para hoteles"`
-**Action**: Skip Phase 2 → Inject: M3 tokens, `Semantics`, `testKey`, design_system location, scope guard
+**Action**: Skip Phase 2 → Inject: shadcn/ui Card, CSS variables, SECTION_TYPES, Zod validation, scope guard
 
-**Input**: `"implementa búsqueda en tiempo real con paginación en la pantalla de itinerarios"`
-**Action**: Skip Phase 2 → Complex: decompose into phases, inject ADR-035 (pagination), AppServices pattern, CoT placeholder
+**Input**: `"implementa un nuevo tipo de sección hero con animaciones"`
+**Action**: Skip Phase 2 → Complex: decompose into phases, inject section registry, Framer Motion, Aceternity UI, contract schema
 
 ## ADRs Relevantes
 
-Note: When optimizing prompts, inject relevant ADRs based on the task domain. Check `docs/02-architecture/decisions/` for the full list.
+Note: When optimizing prompts, inject relevant ADRs based on the task domain. Check `docs/architecture/` for the full list (ADR-001 through ADR-012).

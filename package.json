@@ -11,6 +11,7 @@
     "clean": "rm -rf .next .open-next playwright-report test-results",
     "ai:sync": "node scripts/ai/sync-from-claude.mjs",
     "ai:check": "node scripts/ai/check-ai-sync.mjs",
+    "ai:hooks:install": "node scripts/ai/install-hooks.mjs",
     "ai:audit": "node scripts/ai/audit-skills.mjs",
     "dev": "npm run check:node && npm run dev:node",
     "dev:node": "bash scripts/start-dev-node.sh",

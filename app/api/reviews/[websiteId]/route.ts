@@ -65,17 +65,6 @@ function extractTags(text: string): string[] {
   return tags;
 }
 
-interface ReviewsCacheRow {
-  account_id: string;
-  google_place_id: string;
-  business_name: string | null;
-  average_rating: number | null;
-  total_reviews: number | null;
-  google_maps_url: string | null;
-  reviews: GoogleReview[];
-  fetched_at: string;
-}
-
 // ─── SerpAPI Fetch ───────────────────────────────────────────────────
 
 async function fetchReviewsFromSerpAPI(placeId: string): Promise<{

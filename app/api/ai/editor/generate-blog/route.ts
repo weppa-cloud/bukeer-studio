@@ -59,7 +59,7 @@ function getLocaleName(locale: string): string {
   }
 }
 
-function buildV1Prompt(topic: string, locale: string, tone: string, websiteContext: any, productLinks: any): string {
+function buildV1Prompt(topic: string, locale: string, tone: string, websiteContext: Record<string, unknown>, productLinks: { slug: string; title: string }[]): string {
   return `Write a complete blog post for a travel agency website.
 
 Topic: ${topic}
@@ -84,8 +84,8 @@ function buildV2Prompt(
   topic: string,
   locale: string,
   tone: string,
-  websiteContext: any,
-  productLinks: any,
+  websiteContext: Record<string, unknown>,
+  productLinks: { slug: string; title: string }[],
   clusterContext?: string,
   targetWordCount: number = 2200,
 ): string {

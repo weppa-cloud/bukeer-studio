@@ -13,7 +13,7 @@ import { createLogger } from '@/lib/logger';
 import { apiSuccess, apiUnauthorized, apiForbidden, apiError, apiValidationError, apiInternalError } from '@/lib/api';
 import { createClient } from '@supabase/supabase-js';
 import { getEditorModel } from '@/lib/ai/llm-provider';
-import { generateObject, generateText } from 'ai';
+import { generateObject } from 'ai';
 import { z } from 'zod';
 import { getEditorAuth, hasEditorRole } from '@/lib/ai/auth-helpers';
 import { checkRateLimit, recordCost } from '@/lib/ai/rate-limit';
@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const input = pipelineInputSchema.parse(body);
     const supabase = getAuthClient(auth.token);
-    const assets: any[] = [];
+    const assets: { id: string; locale: string; channel: string }[] = [];
     let totalCost = 0;
 
     // === STAGE 1: GENERATE (canonical blog post in primary locale) ===

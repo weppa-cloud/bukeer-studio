@@ -1,5 +1,5 @@
 import { revalidatePath } from 'next/cache';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 import { createLogger } from '@/lib/logger';
