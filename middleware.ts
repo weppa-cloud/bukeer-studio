@@ -61,6 +61,38 @@ function getPotentialProductRoute(pathname: string): {
   };
 }
 
+// ---------------------------------------------------------------------------
+// In-memory TTL cache for middleware DB lookups
+// ---------------------------------------------------------------------------
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const MAX_CACHE_SIZE = 200;
+
+interface CacheEntry<T> {
+  data: T;
+  expiry: number;
+}
+
+const _middlewareCache = new Map<string, CacheEntry<unknown>>();
+
+function getCached<T>(key: string): T | undefined {
+  const entry = _middlewareCache.get(key);
+  if (!entry) return undefined;
+  if (Date.now() > entry.expiry) {
+    _middlewareCache.delete(key);
+    return undefined;
+  }
+  return entry.data as T;
+}
+
+function setCached<T>(key: string, data: T): void {
+  // Evict oldest entries if at capacity
+  if (_middlewareCache.size >= MAX_CACHE_SIZE) {
+    const firstKey = _middlewareCache.keys().next().value;
+    if (firstKey) _middlewareCache.delete(firstKey);
+  }
+  _middlewareCache.set(key, { data, expiry: Date.now() + CACHE_TTL_MS });
+}
+
 async function supabaseFetch<T>(path: string, init?: RequestInit): Promise<T | null> {
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
     return null;
@@ -85,27 +117,29 @@ async function supabaseFetch<T>(path: string, init?: RequestInit): Promise<T | n
 }
 
 async function getWebsiteBySubdomain(subdomain: string): Promise<WebsiteLookup | null> {
+  const cacheKey = `sub:${subdomain}`;
+  const cached = getCached<WebsiteLookup | null>(cacheKey);
+  if (cached !== undefined) return cached;
+
   const data = await supabaseFetch<WebsiteLookup[]>(
     `/rest/v1/websites?select=subdomain,account_id&subdomain=eq.${encodeURIComponent(subdomain)}&status=eq.published&deleted_at=is.null&limit=1`
   );
-
-  if (!data || data.length === 0) {
-    return null;
-  }
-
-  return data[0];
+  const result = data && data.length > 0 ? data[0] : null;
+  setCached(cacheKey, result);
+  return result;
 }
 
 async function getWebsiteByCustomDomain(host: string): Promise<WebsiteLookup | null> {
+  const cacheKey = `domain:${host}`;
+  const cached = getCached<WebsiteLookup | null>(cacheKey);
+  if (cached !== undefined) return cached;
+
   const data = await supabaseFetch<WebsiteLookup[]>(
     `/rest/v1/websites?select=subdomain,account_id&custom_domain=eq.${encodeURIComponent(host)}&status=eq.published&deleted_at=is.null&limit=1`
   );
-
-  if (!data || data.length === 0) {
-    return null;
-  }
-
-  return data[0];
+  const result = data && data.length > 0 ? data[0] : null;
+  setCached(cacheKey, result);
+  return result;
 }
 
 async function productExists(
@@ -113,6 +147,10 @@ async function productExists(
   productType: string,
   productSlug: string
 ): Promise<boolean> {
+  const cacheKey = `prod:${subdomain}:${productType}:${productSlug}`;
+  const cached = getCached<boolean>(cacheKey);
+  if (cached !== undefined) return cached;
+
   const data = await supabaseFetch<{ product?: unknown } | null>(
     '/rest/v1/rpc/get_website_product_page',
     {
@@ -124,8 +162,9 @@ async function productExists(
       }),
     }
   );
-
-  return Boolean(data && typeof data === 'object' && 'product' in data && data.product);
+  const result = Boolean(data && typeof data === 'object' && 'product' in data && data.product);
+  setCached(cacheKey, result);
+  return result;
 }
 
 async function getRedirectedSlug(
@@ -133,16 +172,16 @@ async function getRedirectedSlug(
   productType: string,
   oldSlug: string
 ): Promise<string | null> {
+  const cacheKey = `redir:${accountId}:${productType}:${oldSlug}`;
+  const cached = getCached<string | null>(cacheKey);
+  if (cached !== undefined) return cached;
+
   const data = await supabaseFetch<Array<{ new_slug: string }>>(
     `/rest/v1/slug_redirects?select=new_slug&account_id=eq.${encodeURIComponent(accountId)}&product_type=eq.${encodeURIComponent(productType)}&old_slug=eq.${encodeURIComponent(oldSlug)}&limit=1`
   );
-
-  if (!data || data.length === 0) {
-    return null;
-  }
-
-  const redirectedSlug = (data[0].new_slug || '').toLowerCase().trim();
-  return redirectedSlug || null;
+  const result = data && data.length > 0 ? (data[0].new_slug || '').toLowerCase().trim() || null : null;
+  setCached(cacheKey, result);
+  return result;
 }
 
 async function trySlugRedirect(

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { useParams, useSearchParams } from 'next/navigation';
+import { useParams, usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useWebsite } from '@/lib/admin/website-context';
 import { useAutosave } from '@/lib/hooks/use-autosave';
 import type {
@@ -20,12 +20,9 @@ import {
   StudioBadge,
   StudioSelect,
 } from '@/components/studio/ui/primitives';
-import { IntegrationHealth } from '@/components/admin/integration-health';
 import { SeoBaseline28D } from '@/components/admin/seo-baseline-28d';
 import { SeoTechnicalAudit } from '@/components/admin/seo-technical-audit';
 import { SeoKeywordResearch } from '@/components/admin/seo-keyword-research';
-import { SeoSerpAnalysis } from '@/components/admin/seo-serp-analysis';
-import { SeoCompetitiveAnalysis } from '@/components/admin/seo-competitive-analysis';
 import { SeoBacklinksDashboard } from '@/components/admin/seo-backlinks-dashboard';
 import { SeoAiVisibility } from '@/components/admin/seo-ai-visibility';
 import { SeoOkrCycle } from '@/components/admin/seo-okr-cycle';
@@ -59,6 +56,11 @@ const TAB_OPTIONS: ReadonlyArray<{ id: AnalyticsTab; label: string }> = [
   { id: 'config', label: 'Config' },
 ];
 
+function parseAnalyticsTab(value: string | null): AnalyticsTab | null {
+  if (!value) return null;
+  return TAB_OPTIONS.some((tab) => tab.id === value) ? (value as AnalyticsTab) : null;
+}
+
 function pct(value: number | null | undefined) {
   if (value == null) return '-';
   return `${(value * 100).toFixed(1)}%`;
@@ -80,13 +82,15 @@ function IntegrationPill({ connected, label }: { connected: boolean; label: stri
 }
 
 export default function AnalyticsPage() {
+  const router = useRouter();
+  const pathname = usePathname();
   const { websiteId } = useParams<{ websiteId: string }>();
   const searchParams = useSearchParams();
   const { website, save } = useWebsite();
 
-  const paramTab = searchParams.get('tab') as AnalyticsTab | null;
+  const paramTab = parseAnalyticsTab(searchParams.get('tab'));
   const [activeTab, setActiveTab] = useState<AnalyticsTab>(
-    paramTab && TAB_OPTIONS.some((t) => t.id === paramTab) ? paramTab : 'overview'
+    paramTab ?? 'overview'
   );
 
   const [loading, setLoading] = useState(false);
@@ -117,6 +121,13 @@ export default function AnalyticsPage() {
   const [pixelId, setPixelId] = useState(analytics.facebook_pixel_id || '');
   const [includeDataForSeo, setIncludeDataForSeo] = useState(false);
   const [syncing, setSyncing] = useState(false);
+
+  function handleTabChange(nextTab: AnalyticsTab) {
+    setActiveTab(nextTab);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('tab', nextTab);
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  }
 
   const autosavePayload = useMemo(() => ({ gtmId, ga4Id, pixelId }), [gtmId, ga4Id, pixelId]);
   const { status: autosaveStatus } = useAutosave({
@@ -320,6 +331,13 @@ export default function AnalyticsPage() {
   }, [websiteId]);
 
   useEffect(() => {
+    const nextTab = parseAnalyticsTab(searchParams.get('tab')) ?? 'overview';
+    if (nextTab !== activeTab) {
+      setActiveTab(nextTab);
+    }
+  }, [searchParams, activeTab]);
+
+  useEffect(() => {
     if (['overview', 'keywords', 'competitors', 'health'].includes(activeTab)) {
       loadTabData(activeTab).catch((err) => {
         setError(err instanceof Error ? err.message : 'Failed to load data');
@@ -377,9 +395,9 @@ export default function AnalyticsPage() {
         )}
       />
 
-      <SeoSetupBanner websiteId={websiteId} gscConnected={integrationStatus?.gsc.connected ?? false} />
+      <SeoSetupBanner websiteId={websiteId} gscConnected={integrationStatus?.gsc.connected} />
 
-      <StudioTabs value={activeTab} onChange={setActiveTab} options={TAB_OPTIONS} className="mb-6" />
+      <StudioTabs value={activeTab} onChange={handleTabChange} options={TAB_OPTIONS} className="mb-6" />
 
       {error && (
         <div className="studio-panel mb-4 border border-[var(--studio-danger)]/40 text-[var(--studio-danger)] p-3 text-sm">

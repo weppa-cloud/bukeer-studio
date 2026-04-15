@@ -34,6 +34,8 @@ interface UnifiedContentRow {
   type: SeoItemType;
   name: string;
   slug: string;
+  url: string;
+  locale: string;
   image?: string;
   seoPath: string;
   status: PublishStatus;
@@ -72,6 +74,36 @@ function gradeTone(grade: SeoGrade): 'success' | 'info' | 'warning' | 'danger' {
   return 'danger';
 }
 
+function resolveWebsiteLocale(content: unknown): string {
+  if (!content || typeof content !== 'object') return 'es-CO';
+  const record = content as Record<string, unknown>;
+  const candidates = [record.locale, record.language, record.siteLocale];
+  for (const candidate of candidates) {
+    if (typeof candidate === 'string' && candidate.trim().length > 0) {
+      return candidate;
+    }
+  }
+  return 'es-CO';
+}
+
+function buildWorkflowUrl(type: SeoItemType, slug: string, subdomain?: string | null): string {
+  const root = subdomain ? `/site/${subdomain}` : '';
+  const segmentMap: Record<SeoItemType, string> = {
+    hotel: 'hoteles',
+    activity: 'actividades',
+    transfer: 'traslados',
+    package: 'paquetes',
+    destination: 'destinos',
+    blog: 'blog',
+    page: '',
+  };
+
+  const segment = segmentMap[type];
+  const encodedSlug = encodeURIComponent(slug);
+  if (!segment) return `${root}/${encodedSlug}`;
+  return `${root}/${segment}/${encodedSlug}`;
+}
+
 export default function ContenidoPage() {
   const { websiteId } = useParams<{ websiteId: string }>();
   const router = useRouter();
@@ -98,7 +130,7 @@ export default function ContenidoPage() {
     try {
       const { data: website, error: websiteError } = await supabase
         .from('websites')
-        .select('id, account_id')
+        .select('id, account_id, subdomain, custom_domain, content')
         .eq('id', websiteId)
         .single();
 
@@ -107,6 +139,8 @@ export default function ContenidoPage() {
       }
 
       const accountId = website.account_id;
+      const websiteLocale = resolveWebsiteLocale(website.content);
+      const websiteSubdomain = website.subdomain || '';
 
       const [overridesRes, hotelsRes, activitiesRes, transfersRes, packagesRes, pagesRes, blogsRes] =
         await Promise.all([
@@ -162,6 +196,8 @@ export default function ContenidoPage() {
           type: SeoItemType;
           name: string;
           slug: string;
+          url: string;
+          locale: string;
           image?: string;
           status: PublishStatus;
         },
@@ -173,6 +209,8 @@ export default function ContenidoPage() {
           type: data.type,
           name: data.name,
           slug: data.slug,
+          url: data.url,
+          locale: data.locale,
           image: data.image,
           seoPath: `/dashboard/${websiteId}/seo/${data.type}/${data.id}`,
           status: data.status,
@@ -192,6 +230,8 @@ export default function ContenidoPage() {
             type: 'hotel',
             name: hotel.name || 'Untitled',
             slug,
+            url: buildWorkflowUrl('hotel', slug, websiteSubdomain),
+            locale: websiteLocale,
             image: hotel.main_image || undefined,
             status: override?.robots_noindex ? 'draft' : 'published',
           },
@@ -224,6 +264,8 @@ export default function ContenidoPage() {
             type: 'activity',
             name: activity.name || 'Untitled',
             slug,
+            url: buildWorkflowUrl('activity', slug, websiteSubdomain),
+            locale: websiteLocale,
             image: activity.main_image || undefined,
             status: override?.robots_noindex ? 'draft' : 'published',
           },
@@ -256,6 +298,8 @@ export default function ContenidoPage() {
             type: 'transfer',
             name: transfer.name || 'Untitled',
             slug,
+            url: buildWorkflowUrl('transfer', slug, websiteSubdomain),
+            locale: websiteLocale,
             image: transfer.main_image || undefined,
             status: override?.robots_noindex ? 'draft' : 'published',
           },
@@ -288,6 +332,8 @@ export default function ContenidoPage() {
             type: 'package',
             name: pkg.name || 'Untitled',
             slug,
+            url: buildWorkflowUrl('package', slug, websiteSubdomain),
+            locale: websiteLocale,
             image: pkg.cover_image_url || undefined,
             status: override?.robots_noindex ? 'draft' : 'published',
           },
@@ -318,6 +364,8 @@ export default function ContenidoPage() {
             type: 'page',
             name: page.title || 'Untitled',
             slug,
+            url: buildWorkflowUrl('page', slug, websiteSubdomain),
+            locale: websiteLocale,
             status: page.is_published ? 'published' : 'draft',
           },
           {
@@ -345,6 +393,8 @@ export default function ContenidoPage() {
             type: 'blog',
             name: post.title || 'Untitled',
             slug,
+            url: buildWorkflowUrl('blog', slug, websiteSubdomain),
+            locale: websiteLocale,
             image: post.featured_image || undefined,
             status: post.status === 'published' ? 'published' : 'draft',
           },
@@ -388,6 +438,8 @@ export default function ContenidoPage() {
               type: 'destination',
               name: destination.name || 'Untitled',
               slug,
+              url: buildWorkflowUrl('destination', slug, websiteSubdomain),
+              locale: websiteLocale,
               image: destination.main_image || undefined,
               status: destination.is_published === false ? 'draft' : 'published',
             },
@@ -614,6 +666,16 @@ export default function ContenidoPage() {
         </div>
       )}
 
+      <section className="space-y-3">
+        <div>
+          <h3 className="text-base font-semibold text-[var(--studio-text)]">Backlog SEO</h3>
+          <p className="text-sm text-[var(--studio-text-muted)]">
+            Quick wins priorizados: striking distance, low CTR, canibalización y tablero Kanban.
+          </p>
+        </div>
+        <SeoBacklog websiteId={websiteId} />
+      </section>
+
       <div className="studio-card overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
@@ -758,7 +820,10 @@ export default function ContenidoPage() {
 
       {workflowItem?.type === 'hotel' && (
         <SeoHotelWorkflow
+          itemId={workflowItem.id}
           itemName={workflowItem.name}
+          itemUrl={workflowItem.url}
+          locale={workflowItem.locale}
           websiteId={websiteId}
           seoPath={workflowItem.seoPath}
           onClose={() => setWorkflowItem(null)}
@@ -766,7 +831,10 @@ export default function ContenidoPage() {
       )}
       {workflowItem?.type === 'activity' && (
         <SeoActivityWorkflow
+          itemId={workflowItem.id}
           itemName={workflowItem.name}
+          itemUrl={workflowItem.url}
+          locale={workflowItem.locale}
           websiteId={websiteId}
           seoPath={workflowItem.seoPath}
           onClose={() => setWorkflowItem(null)}
@@ -774,7 +842,10 @@ export default function ContenidoPage() {
       )}
       {workflowItem?.type === 'package' && (
         <SeoPackageWorkflow
+          itemId={workflowItem.id}
           itemName={workflowItem.name}
+          itemUrl={workflowItem.url}
+          locale={workflowItem.locale}
           websiteId={websiteId}
           seoPath={workflowItem.seoPath}
           onClose={() => setWorkflowItem(null)}
@@ -782,7 +853,10 @@ export default function ContenidoPage() {
       )}
       {workflowItem?.type === 'destination' && (
         <SeoDestinationWorkflow
+          itemId={workflowItem.id}
           itemName={workflowItem.name}
+          itemUrl={workflowItem.url}
+          locale={workflowItem.locale}
           websiteId={websiteId}
           seoPath={workflowItem.seoPath}
           onClose={() => setWorkflowItem(null)}
@@ -790,13 +864,16 @@ export default function ContenidoPage() {
       )}
       {workflowItem?.type === 'blog' && (
         <SeoBlogWorkflow
+          itemId={workflowItem.id}
           itemName={workflowItem.name}
+          itemUrl={workflowItem.url}
+          locale={workflowItem.locale}
           websiteId={websiteId}
           seoPath={workflowItem.seoPath}
+          score={workflowItem.score}
           onClose={() => setWorkflowItem(null)}
         />
       )}
-      <SeoBacklog websiteId={websiteId} />
     </StudioPage>
   );
 }
