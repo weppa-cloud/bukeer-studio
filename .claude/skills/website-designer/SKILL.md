@@ -4,9 +4,15 @@ description: |
   Translates agency brand briefs into complete design specifications for Bukeer tourism websites.
   USE WHEN: new website design, theme customization, color palette, typography selection,
   "make it look more luxury/adventure/etc", brand identity, visual direction, design system config,
-  choosing a preset, adjusting theme tokens.
+  choosing a preset, adjusting theme tokens, analyzing existing site for improvements.
   NOT FOR: writing section code (use website-section-generator), quality validation
-  (use website-quality-gate), Flutter code (use flutter-developer).
+  (use website-quality-gate), Next.js features (use nextjs-developer), database migrations
+  (use backend-dev).
+allowed-tools: mcp__supabase__execute_sql,
+  mcp__aceternity-ui__get_all_components, mcp__aceternity-ui__get_component_info,
+  mcp__magic-ui__listRegistryItems, mcp__magic-ui__getRegistryItem,
+  mcp__shadcn-ui__list_shadcn_components, mcp__shadcn-ui__get_component_details,
+  Read, Grep, Glob
 
   Examples:
   <example>
@@ -186,6 +192,76 @@ The M3ThemeProvider reads `theme.tokens` + `theme.profile` and auto-generates:
 - Bridge CSS variables (Layer 3)
 - Font loading (Google Fonts)
 
+## Workflow: Analyze Existing Site
+
+When called to improve an **existing** website (not a new brand brief):
+
+### Step 1: Read Current State
+
+1. Query current theme from Supabase: `SELECT theme FROM websites WHERE subdomain = ?`
+2. Query current sections: types, variants, content, display order
+3. Identify: current preset, font pairing, section count, section types used
+
+### Step 2: Score Against 5 Design Principles
+
+Evaluate each principle from DESIGN_PRINCIPLES.md (score 1-5):
+
+| Principle | Score 1 (Generic) | Score 5 (Agency-Quality) |
+|-----------|-------------------|--------------------------|
+| P1: Constraint Violation | Everything uniform, no intentional breaks | One feature moment per section breaks a rule |
+| P2: Typographic Contrast | Only size changes between levels | 2+ property changes per level (size + weight + family + tracking) |
+| P3: Spatial Rhythm | Uniform 64px everywhere | Musical rhythm: 48-120px, density shifts between sections |
+| P4: Color Narrative | Same white background all sections | 4 zones shifting through scroll (inspire → explore → trust → convert) |
+| P5: Motion as Meaning | All fadeUp or no animation | Varied directions, choreographed sequences, duration = importance |
+
+### Step 3: Evaluate Section Flow
+
+Check section order against the **tourism storytelling arc**:
+```
+Hero (inspire) → Destinations (dream) → Products (explore) →
+Testimonials (trust) → Stats (credibility) → CTA (convert) → FAQ (reassure)
+```
+
+Check:
+- Is hero first? (mandatory)
+- Are products grouped logically? (packages → activities → hotels)
+- Is CTA near the end? (conversion zone)
+- Are trust elements (testimonials, stats, partners) in the middle?
+
+### Step 4: Section-Level Design Recommendations
+
+For each section, recommend:
+
+| Aspect | What to Evaluate | Recommendation Format |
+|--------|-----------------|----------------------|
+| Variant | Default vs showcase/immersive/carousel | "Switch hotels from grid → showcase (Airbnb card pattern)" |
+| Animation | Current direction and timing | "Vary: destinations slideFromLeft, testimonials scaleIn, stats blurFade" |
+| Color Zone | Position-based zone (1-4) | "Move testimonials to Zone 3 (warm neutrals, trust)" |
+| Background | default/muted/primary/gradient | "Add muted bg to testimonials section for contrast" |
+| Spacing | compact/normal/relaxed | "Use relaxed spacing for luxury presets, compact for corporate" |
+
+### Step 5: Content Quality Assessment
+
+Evaluate section content quality:
+
+| Section | Good Content | Weak Content |
+|---------|-------------|-------------|
+| Hero headline | "Descubre Colombia: Aventuras que Transforman" (benefit) | "Bienvenidos a Colombia Tours" (generic) |
+| CTA | "Reserva Tu Aventura → Cupos Limitados" (action + urgency) | "Contáctenos" (passive, no urgency) |
+| Testimonials | "Increíble safari en el Eje Cafetero — María G., Bogotá, 5★" | "Muy bueno" (no context) |
+| Descriptions | Tourism-specific: destinations, experiences, sensory | Generic: "servicios de calidad", "los mejores" |
+
+### Step 6: Output Prioritized Improvements
+
+Order recommendations by **impact** (highest first):
+1. Theme changes (affect entire site instantly)
+2. Section order changes (affect storytelling flow)
+3. Section variant changes (affect visual quality per section)
+4. Content improvements (affect conversion and engagement)
+5. Animation/motion changes (affect polish and premium feel)
+
+---
+
 ## Card Anatomy Patterns (from TRAVEL_UI_KIT.md)
 
 When designing, ensure card variants follow these Airbnb/G Adventures patterns:
@@ -195,30 +271,38 @@ When designing, ensure card variants follow these Airbnb/G Adventures patterns:
 - **Package cards**: 16:10 image + category badge + name + destination + duration + highlights + price
 - **Planner cards**: Initials avatar + specialty badges + rating + quote + WhatsApp CTA
 
+## MCP Tools for Component Reference
+
+When designing section variants and motion profiles, consult these MCPs for inspiration
+and to verify which components/effects are available:
+
+| MCP | Tool | Purpose |
+|-----|------|---------|
+| `mcp__shadcn-ui__` | `list_shadcn_components`, `get_component_details` | Base UI components (Card, Button, Dialog, Tabs, etc.) |
+| `mcp__aceternity-ui__` | `get_all_components`, `get_component_info` | Premium effects (SpotlightCard, TypeGenerateEffect, BackgroundBeams) |
+| `mcp__magic-ui__` | `listRegistryItems`, `getRegistryItem` | Special effects (NumberTicker, BlurFade, Marquee, AnimatedGradientText) |
+
+**Usage rules:**
+- Consult MCPs during Phase 2 (design thinking) ONLY — for inspiration, not installation
+- Match MCP component capabilities to section variant recommendations
+- The actual components are already in `components/ui/` — MCPs verify what's available
+
 ## Reference Docs
 
-- `docs/04-design-system/TRAVEL_UI_KIT.md` — Complete travel UI reference
 - `packages/theme-sdk/src/presets/tourism-presets.ts` — 8 preset definitions
-- `web-public/lib/theme/m3-theme-provider.tsx` — Bridge variable implementation
-- `web-public/lib/motion-presets.ts` — Animation presets
+- `lib/theme/m3-theme-provider.tsx` — Bridge variable implementation
+- `lib/sections/section-registry.tsx` — Section type → component mapping
+- `packages/website-contract/src/schemas/sections.ts` — Section content Zod schemas
 
-## Critical Rules
+## Rules
 
-**ALWAYS:**
-- Start from a theme-sdk preset (NEVER from scratch)
-- Use bridge CSS variables in section components (`var(--accent)`)
-- Validate WCAG AA contrast
-- Use fonts from the 30-font allowlist only
-- Include motion profile with varied animation directions
-- Choose section variants (showcase for travel, default for generic)
-- Set colorMode explicitly (light/dark/system)
-- Reference TRAVEL_UI_KIT.md for card anatomies
-
-**NEVER:**
-- Use arbitrary hex colors outside the palette
-- Mix more than 2 font families (heading + body; mono is always DM Mono)
-- Apply `showcase` variants without bridge CSS variables
-- Use all fadeUp animations (vary: slideFromLeft, slideFromRight, scaleIn, blurFade)
-- Skip motion profile definition
-- Create a design without specifying section variants
-- Suggest Tailwind color classes for themed sections (use var(--xxx))
+1. Start from a theme-sdk preset, then customize tokens — presets provide a tested baseline
+2. Use bridge CSS variables in section components (`var(--accent)`, `var(--bg)`) instead of Tailwind color classes
+3. Validate WCAG AA contrast (4.5:1 body, 3:1 large) for all palette combinations
+4. Use fonts from the 30-font allowlist only (max 2 families + DM Mono)
+5. Include a motion profile with varied animation directions — mix slideFromLeft, slideFromRight, scaleIn, blurFade
+6. Choose section variants explicitly: showcase for travel sections, default for generic
+7. Set colorMode explicitly (light/dark/system) based on preset and agency positioning
+8. Keep colors within the palette generated from the seed color
+9. Showcase variants require bridge CSS variables (auto-provided by M3ThemeProvider)
+10. Every design includes section variant assignments + motion profile + colorMode

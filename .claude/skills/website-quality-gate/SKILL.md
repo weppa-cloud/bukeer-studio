@@ -7,7 +7,15 @@ description: |
   "accessibility check", after section generation, "is this page ready", website QA,
   "validate the homepage", "check performance".
   NOT FOR: generating sections (use website-section-generator), design decisions
-  (use website-designer), Flutter code (use flutter-developer).
+  (use website-designer), Next.js features (use nextjs-developer).
+context: fork
+allowed-tools: mcp__playwright__browser_navigate, mcp__playwright__browser_take_screenshot,
+  mcp__playwright__browser_snapshot, mcp__playwright__browser_resize,
+  mcp__chrome-devtools__take_screenshot, mcp__chrome-devtools__navigate_page,
+  mcp__chrome-devtools__evaluate_script, mcp__chrome-devtools__lighthouse_audit,
+  mcp__chrome-devtools__list_console_messages,
+  Bash(npx tsc*), Bash(npm run lint*), Bash(npm run build*),
+  Read, Grep, Glob
 
   Examples:
   <example>

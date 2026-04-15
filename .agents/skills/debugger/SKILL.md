@@ -6,6 +6,16 @@ description: |
   Uses Playwright screenshots and Chrome DevTools for visual confirmation.
   ACTIVATION: bug, error, crash, visual regression, "doesn't work", "broken".
   NOT FOR: feature requests, refactoring, or documentation.
+allowed-tools: mcp__playwright__browser_navigate, mcp__playwright__browser_take_screenshot,
+  mcp__playwright__browser_snapshot, mcp__playwright__browser_click,
+  mcp__playwright__browser_evaluate, mcp__playwright__browser_console_messages,
+  mcp__playwright__browser_network_requests,
+  mcp__chrome-devtools__take_screenshot, mcp__chrome-devtools__navigate_page,
+  mcp__chrome-devtools__evaluate_script, mcp__chrome-devtools__list_console_messages,
+  mcp__chrome-devtools__get_console_message, mcp__chrome-devtools__list_network_requests,
+  mcp__chrome-devtools__get_network_request,
+  Bash(npx tsc*), Bash(npm run lint*), Bash(npm run build*), Bash(git blame*), Bash(git log*),
+  Read, Grep, Glob
 
   Examples:
   <example>

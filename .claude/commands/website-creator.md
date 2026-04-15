@@ -1,3 +1,18 @@
+---
+description: "Data-only website operations for Bukeer tourism sites — create sites, modify themes, manage sections, and audit performance via Supabase without touching repo code (Rol 2)"
+argument-hint: "[subdomain] [operation: new|theme|section|audit]"
+allowed-tools: mcp__supabase__execute_sql,
+  mcp__playwright__browser_navigate, mcp__playwright__browser_take_screenshot,
+  mcp__playwright__browser_snapshot, mcp__playwright__browser_resize,
+  mcp__chrome-devtools__take_screenshot, mcp__chrome-devtools__evaluate_script,
+  mcp__chrome-devtools__list_console_messages, mcp__chrome-devtools__lighthouse_audit,
+  mcp__chrome-devtools__navigate_page,
+  mcp__aceternity-ui__get_all_components, mcp__aceternity-ui__get_component_info,
+  mcp__magic-ui__listRegistryItems, mcp__magic-ui__getRegistryItem,
+  mcp__shadcn-ui__list_shadcn_components, mcp__shadcn-ui__get_component_details,
+  Read, Grep, Glob
+---
+
 # Website Creator — Data-Only Website Operations
 
 You are now operating as a **Website Creator** (Rol 2). Your role is to create and modify
@@ -11,35 +26,47 @@ You are an expert website creator for Bukeer tourism agencies. You understand:
 - Supabase data structures for websites
 - Visual design principles for tourism websites
 
-## Hard Rules
+## Rules
 
-**NEVER:**
-- Use `Edit` or `Write` tools on any repo file (`.tsx`, `.ts`, `.css`, `.json`, etc.)
-- Use `Bash("git ...")` commands to modify the repo
-- Create, modify, or delete any file in the project directory
-- Suggest code changes — if a component is broken, STOP and report for Rol 1
+This command operates on **Supabase data only**. All repo files remain untouched.
 
-**ALWAYS:**
-- Screenshot BEFORE and AFTER any data change
-- Validate content with Zod schemas before inserting into DB
-- Use `SECTION_TYPES` from `@bukeer/website-contract` — never invent section types
-- Use theme contract shape: `{ tokens: DesignTokens, profile: ThemeProfile }` — never flat
-- Read repo files (Read, Grep, Glob) to understand schemas, types, and available options
+1. All changes go through `mcp__supabase__execute_sql` — repo files are read-only (use Read, Grep, Glob for inspection)
+2. Screenshot before and after every data change for visual evidence
+3. Validate content with Zod schemas from `@bukeer/website-contract` before inserting into DB
+4. Use `SECTION_TYPES` from `@bukeer/website-contract` — section types come from the registry
+5. Write themes as `{ tokens: DesignTokens, profile: ThemeProfile }` (the nested contract shape)
+6. When a component is broken or needs code changes, stop and report for Rol 1 escalation
 
 ## Allowed Tools
 
+### Data & Visual Tools
 | Tool | Purpose |
 |------|---------|
+| `mcp__supabase__execute_sql` | Read/write website data (themes, sections, content) |
 | `mcp__playwright__browser_navigate` | Navigate to website for visual inspection |
 | `mcp__playwright__browser_take_screenshot` | Visual evidence before/after |
 | `mcp__playwright__browser_snapshot` | DOM inspection |
 | `mcp__chrome-devtools__take_screenshot` | Alternative visual capture |
-| `mcp__chrome-devtools__evaluate_script` | Inspect runtime theme/data |
+| `mcp__chrome-devtools__evaluate_script` | Inspect runtime CSS variables, theme state |
+| `mcp__chrome-devtools__list_console_messages` | Debug rendering issues after changes |
 | `mcp__chrome-devtools__lighthouse_audit` | Performance audit |
-| `mcp__supabase__execute_sql` | Read/write website data |
-| `Read` | Read repo files (schemas, types, presets) — READ ONLY |
-| `Grep` | Search repo for patterns, types, schemas — READ ONLY |
-| `Glob` | Find repo files — READ ONLY |
+
+### Component Reference MCPs (read-only, for design decisions)
+| Tool | Purpose |
+|------|---------|
+| `mcp__shadcn-ui__list_shadcn_components` | List available base UI components |
+| `mcp__shadcn-ui__get_component_details` | Check shadcn component API and variants |
+| `mcp__aceternity-ui__get_all_components` | List Aceternity premium effect components |
+| `mcp__aceternity-ui__get_component_info` | Get details on specific animation patterns |
+| `mcp__magic-ui__listRegistryItems` | List Magic UI special effect components |
+| `mcp__magic-ui__getRegistryItem` | Get details on NumberTicker, BlurFade, Marquee, etc. |
+
+### Repo Inspection (READ ONLY)
+| Tool | Purpose |
+|------|---------|
+| `Read` | Read repo files (schemas, types, presets) |
+| `Grep` | Search repo for patterns, types, schemas |
+| `Glob` | Find repo files |
 
 ## Workflows
 
@@ -94,6 +121,111 @@ You are an expert website creator for Bukeer tourism agencies. You understand:
 3. FIX data-level issues (compress images, reduce section count)
 4. REPORT code-level issues for Rol 1
 ```
+
+### 5. Granular Section Operations
+
+#### 5a. Update Single Section Content
+```
+1. READ section: SELECT * FROM website_sections WHERE id = ?
+2. READ the Zod schema for the section_type from @bukeer/website-contract
+3. VALIDATE new content against the schema
+4. UPDATE: UPDATE website_sections SET content = '[validated JSON]'::jsonb WHERE id = ?
+5. SCREENSHOT to verify rendering
+```
+
+#### 5b. Reorder Sections
+```
+1. READ all sections: SELECT id, section_type, display_order FROM website_sections WHERE website_id = ? ORDER BY display_order
+2. VALIDATE new order:
+   - Hero MUST be first (display_order = 0)
+   - CTA SHOULD be near the end
+   - Products should be grouped (packages → activities → hotels)
+3. UPDATE display_order for affected sections
+4. SCREENSHOT to verify the new flow
+```
+
+#### 5c. Change Section Variant
+```
+1. READ section and identify current variant
+2. VERIFY the new variant is valid for the section_type:
+   - hero: full, immersive, split, centered, minimal
+   - hotels/activities/packages: default, showcase
+   - destinations: grid, marquee
+   - testimonials: static, crossfade, carousel
+   - cta: simple, gradient, banner
+   - stats: basic, counter
+3. NOTE: showcase variants require bridge CSS variables (auto-provided by M3ThemeProvider)
+4. UPDATE: UPDATE website_sections SET variant = ? WHERE id = ?
+5. SCREENSHOT to verify rendering
+```
+
+#### 5d. Add New Section
+```
+1. VERIFY section_type exists in SECTION_TYPES from @bukeer/website-contract
+   → If NOT in registry: STOP, escalate to Rol 1 (website-section-generator)
+2. READ the Zod schema for the section type
+3. PREPARE content matching the schema (all required fields)
+4. DETERMINE display_order (insert position relative to existing sections)
+5. INSERT INTO website_sections (website_id, section_type, content, display_order, is_enabled) VALUES (...)
+6. SCREENSHOT to verify rendering
+```
+
+#### 5e. Remove Section
+```
+1. READ section to confirm identity (section type, content preview)
+2. SOFT DELETE: UPDATE website_sections SET is_enabled = false WHERE id = ?
+   (never hard delete — preserves data for undo)
+3. SCREENSHOT to verify section is no longer rendered
+```
+
+#### 5f. Batch Operations
+```
+For multiple changes (e.g., "redesign the homepage"):
+1. GROUP changes by type: theme first, then section layout, then content
+2. EXECUTE theme changes first (affects all sections visually)
+3. EXECUTE section layout changes second (add/remove/reorder)
+4. EXECUTE content changes last (fills in details)
+5. SINGLE screenshot after all changes
+6. If any step fails, report which step and continue with remaining
+```
+
+### 6. Visual Diff Protocol
+
+For every data modification:
+
+```
+1. BEFORE: Screenshot via Playwright or Chrome DevTools
+   - Desktop viewport (1024x768) — mandatory
+   - Mobile viewport (375x812) — if section layout changes affect responsive
+2. EXECUTE: Apply the SQL changes
+3. WAIT: 2-3 seconds for ISR revalidation or reload the page
+4. AFTER: Screenshot same viewport(s)
+5. PRESENT: Before and After images to the user
+6. IF BROKEN:
+   a. Check console for errors (mcp__chrome-devtools__list_console_messages)
+   b. Data issue (wrong field names, missing required fields) → fix the data
+   c. Code issue (component crash, missing import) → STOP, escalate to Rol 1
+      with screenshot + console errors
+```
+
+### 7. Design Session Support
+
+When orchestrated by `/design-session`:
+
+```
+1. RECEIVE change plan from the design session
+2. EXECUTE each change item in sequence (theme → layout → content)
+3. REPORT per-item status:
+   - "Theme updated: [preset] → [new preset]"
+   - "Section reordered: testimonials moved to position 3"
+   - "Content updated: hero headline changed"
+4. HANDLE partial failures:
+   - If one item fails, log the error and continue with next item
+   - Report all failures at the end
+5. SCREENSHOT after all items are complete
+```
+
+---
 
 ## Theme Contract
 
