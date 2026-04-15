@@ -92,7 +92,7 @@ Each skill lives in `.agents/skills/{skill-name}/`:
 5. **Reference Files** — paths to supporting docs
 6. **MCP Tools** — if skill uses MCP integrations
 
-### Current Skills (10 active)
+### Current Skills (11 active)
 
 | Skill | Domain | Key References |
 |-------|--------|---------------|
@@ -106,6 +106,28 @@ Each skill lives in `.agents/skills/{skill-name}/`:
 | `docs-keeper` | Documentation maintenance | STRUCTURE.md |
 | `prompt-optimiser` | Prompt analysis and optimization | TECHNIQUES.md |
 | `playwright-skill` | E2E testing patterns | cli/, POM/, CI/, migration/ |
+| `debugger` | Bug diagnosis with visual feedback loop | PATTERNS.md, CHECKLIST.md |
+
+### Commands (2 active)
+
+| Command | Invocation | Purpose |
+|---------|-----------|---------|
+| `qa-nextjs` | `/qa-nextjs` | Studio editor QA with Playwright MCP, UX analysis, screenshots |
+| `website-creator` | `/website-creator` | Data-only website operations (themes, sections, content via Supabase) |
+
+### Workflows by Role
+
+**Studio Developer (Rol 1)** — modifies repo code:
+- Bug: `debugger` → fix → `tech-validator` MODE:CODE → commit
+- Feature: `specifying` → `tech-validator` MODE:PLAN → `nextjs-developer` → commit
+- QA: `/qa-nextjs` → issues → `debugger`
+
+**Website Creator (Rol 2)** — modifies Supabase data only:
+- Command: `/website-creator`
+- New site: brief → theme preset → sections → visual QA
+- Edit theme: screenshot before → redesign tokens → screenshot after
+- Add section: check registry → insert DB → verify visual
+- Bug found in component → STOP → switch to Rol 1 with `debugger`
 
 ---
 

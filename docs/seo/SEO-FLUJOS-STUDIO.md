@@ -41,11 +41,13 @@ Each flow is labeled as one of:
 | 1. Overview review | Shipped with limitations | Check directional traffic and dashboard state |
 | 2. Keyword research | Shipped with limitations | Generate AI-assisted keyword ideas from one seed |
 | 3. Item workflow review | Shipped | Review SEO checklist per item type |
+| 3B. Page / landing optimization | Shipped with limitations | Optimize page/landing SEO from item detail (without workflow panel) |
 | 4. Save baseline position | Shipped | Register a baseline before optimization |
 | 5. Schema and locale review | Shipped with limitations | Inspect schema / locale UI and previews |
 | 6. Site architecture view | Shipped | Inspect structure and internal SEO architecture |
 | 7. Backlinks review | Exploratory | Inspect scaffolded backlinks surface |
 | 8. AI visibility review | Exploratory | Inspect scaffolded AI visibility surface |
+| 9. Blog translation workflow | Shipped with limitations | Run a manual translation + SEO optimization loop for an existing translated post |
 
 ---
 
@@ -211,6 +213,45 @@ They are execution scaffolding, not content intelligence.
 
 ---
 
+## Flow 3B — Page / Landing Optimization
+
+**Status**: Shipped with limitations
+
+### Goal
+
+Optimize SEO fields for pages and landings from the item detail UI.
+
+### Routes
+
+- `Dashboard -> Contenido -> Open SEO` (type: `page`)
+- `Dashboard -> SEO -> page item detail`
+
+### What the user can do today
+
+1. Open a page row from `Contenido`.
+2. Open `Open SEO` (no `Flujo SEO` button is shown for `page`).
+3. Use item detail tabs:
+   - Meta & Keywords
+   - Keyword Research
+   - Content Audit
+   - Technical
+   - Preview
+   - Content Score
+4. Save SEO title, description, target keyword, and robots indexability.
+
+### Expected result
+
+The page/landing gets direct SEO field optimization with scoring feedback.
+
+### Limitations
+
+- there is no guided workflow side panel for `page`
+- baseline registration in the workflow panel is not available for `page`
+- no cluster linkage or brief approval flow yet
+- no translation-aware source/target page linkage
+
+---
+
 ## Flow 4 — Save Baseline Position
 
 **Status**: Shipped
@@ -366,6 +407,49 @@ Use it only as exploratory guidance. For the target product in this area, see th
 
 ---
 
+## Flow 9 — Blog Translation Workflow
+
+**Status**: Shipped with limitations
+
+### Goal
+
+Apply a manual translation + SEO optimization process for an already-existing translated blog post.
+
+### Routes
+
+- Source optimization:
+  - `Dashboard -> Contenido -> blog -> Open SEO`
+  - `Dashboard -> SEO -> blog item detail`
+- Target content editing:
+  - `Dashboard -> blog/[postId]` (editor route for existing post)
+- Locale/config review:
+  - `Dashboard -> Analytics -> Config -> Locale settings`
+
+### What the user can do today
+
+1. Open the source blog in SEO detail and capture target intent/keyword direction.
+2. Run keyword research manually for target market inputs (country/language).
+3. Open an existing target-language post in the blog editor route and edit content manually.
+4. Open the translated post in SEO detail and update title, description, keyword, and technical flags.
+5. Review locale settings and hreflang previews in Config.
+
+### Expected result
+
+A translated post can be manually optimized and published with SEO metadata.
+
+### Limitations
+
+- no dedicated `Translate` tab in item detail yet
+- no `transcreation` job model, queue, or approval workflow
+- no automatic source-post to target-post relationship in SEO surfaces
+- no locale-specific keyword re-research enforced by the product flow
+
+### Operator note
+
+Treat this as a manual workaround, not as the target translation SEO system.
+
+---
+
 ## What Is Not Yet A Shipped Flow
 
 The following workflows are intentionally excluded from this guide because they are not fully shipped:
@@ -375,6 +459,7 @@ The following workflows are intentionally excluded from this guide because they 
 - locale-native keyword research by market
 - translation SEO / transcreation
 - in-editor optimizer for blog, destination, package, activity
+- guided SEO workflow parity for page/landing
 - local SEO / GBP operating flow
 - real field-based performance audit
 - real backlink intelligence
@@ -383,4 +468,3 @@ These belong to the target system described in:
 
 - [SEO Playbook](./SEO-PLAYBOOK.md)
 - [SEO Content Intelligence Spec](../specs/SPEC_SEO_CONTENT_INTELLIGENCE.md)
-

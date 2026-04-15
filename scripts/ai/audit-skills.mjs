@@ -10,7 +10,7 @@ import { join, resolve } from 'node:path';
 import { existsSync } from 'node:fs';
 
 const ROOT = resolve(import.meta.dirname, '../..');
-const SKILLS_DIR = join(ROOT, '.agents/skills');
+const SKILLS_DIR = join(ROOT, '.claude/skills');
 const CLAUDE_MD = join(ROOT, 'CLAUDE.md');
 
 let warnings = 0;
@@ -175,7 +175,12 @@ async function checkApiRouteCounts() {
 // 6. Check for deprecated references
 async function checkDeprecatedReferences() {
   info('Checking for deprecated references...');
-  const DEPRECATED_TERMS = ['Puck', 'puck editor', '@measured/puck'];
+  const DEPRECATED_TERMS = [
+    'Puck', 'puck editor', '@measured/puck',
+    'flutter-developer', 'testing-agent', 'architecture-analyzer',
+    'AppServices', 'GoRouter', 'BukeerSpacing', 'BukeerBorderRadius',
+    'dart analyze', 'dart format', 'mcp__dart__', 'mcp__dcm__',
+  ];
 
   const skillDirs = (await readdir(SKILLS_DIR, { withFileTypes: true }))
     .filter(d => d.isDirectory() && !d.name.startsWith('_'))

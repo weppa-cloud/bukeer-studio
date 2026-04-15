@@ -53,6 +53,22 @@ It follows the product rule already agreed:
 
 ---
 
+## 3.1 Current UI Baseline (Validated)
+
+The current rollout must preserve these realities while moving to the target model:
+
+1. `Flujo SEO` side panel exists for `blog`, `destination`, `hotel`, `package`, `activity`.
+2. `page`/landing uses `Open SEO` item detail only (no workflow side panel parity).
+3. Translation SEO is currently a manual workaround, not a first-class UI workflow.
+4. Backlinks and AI visibility surfaces remain exploratory and must not be promoted as decision-grade.
+
+Implementation consequence:
+
+- V2 must include page/landing workflow parity.
+- V3 must include source-target translation orchestration in UI and data model.
+
+---
+
 ## 4. V1 — Decision-Grade Foundation
 
 ### 4.1 Product scope
@@ -136,6 +152,8 @@ It follows the product rule already agreed:
 | V2-FE-02 | Frontend | Build brief review UI | Add draft, approve, archive flow and page attachment | V2-BE-02 |
 | V2-FE-03 | Frontend | Build assisted optimizer UI | Suggestion cards + scoped apply actions + before/after score feedback | V2-BE-04 |
 | V2-FE-04 | Frontend | Add policy-aware editing controls | Freer controls for blog/destination and restricted controls for package/activity | V2-BE-05 |
+| V2-BE-06 | Backend | Extend workflow baseline support to `page` | Update baseline route validation and persistence to support `page` item type with the same controls | V1-BE-05 |
+| V2-FE-05 | Frontend | Add `Flujo SEO` parity for page/landing | Add workflow side panel parity in `Contenido` for `page`, including checklist and baseline registration | V2-BE-06 |
 
 ---
 
@@ -168,13 +186,16 @@ It follows the product rule already agreed:
 |---|---|---|---|---|
 | V3-DM-01 | Data model | Create transcreation jobs table | Add `seo_transcreation_jobs` with source/target locale, keyword mapping, status, and payload | V2-DM-02 |
 | V3-DM-02 | Data model | Create SEO metrics rollup tables | Add `seo_page_metrics_daily` and `seo_cluster_metrics_daily` by locale/type | V2-DM-01 |
+| V3-DM-03 | Data model | Add localized variant mapping model | Add source-target content linkage (blog/page/destination) to track translation lineage and rollout status | V2-DM-02 |
 | V3-BE-01 | Backend | Ship transcreation API route | Add `POST /api/seo/content-intelligence/transcreate` with keyword re-research requirement | V3-DM-01 |
 | V3-BE-02 | Backend | Build tracking aggregation service | Join GSC metrics with cluster/page mapping and store daily rollups | V3-DM-02 |
 | V3-BE-03 | Backend | Ship tracking API route | Add `GET /api/seo/content-intelligence/track` with filters for locale/type/cluster/date | V3-BE-02 |
 | V3-BE-04 | Backend | Add measurement integrity guardrails | Reject/flag views that would fallback to derived placeholders in decision-grade panels | V3-BE-03 |
+| V3-BE-05 | Backend | Build translation orchestration endpoints | Add source-target lookup, draft generation, and apply operations with explicit review state transitions | V3-DM-03 |
 | V3-FE-01 | Frontend | Build translation SEO workspace | Add source-target locale workflow, review queue, and apply controls | V3-BE-01 |
 | V3-FE-02 | Frontend | Build cluster and locale tracking dashboards | Add trend charts, milestone compare, and drill-down to page level | V3-BE-03 |
 | V3-FE-03 | Frontend | Add measurement confidence indicators | Show explicit confidence state and data-source badges in tracking surfaces | V3-BE-04 |
+| V3-FE-04 | Frontend | Add translation entrypoints from item detail | Add `Translate` action from blog/page/destination detail, including source selector, target locale selector, review/apply, and status chips | V3-BE-05 |
 
 ---
 
