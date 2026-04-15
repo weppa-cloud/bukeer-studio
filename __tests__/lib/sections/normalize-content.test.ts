@@ -276,7 +276,9 @@ describe('real-world scenarios', () => {
       ],
     };
 
-    const result = normalizeContent(dbPosts);
+    const result = normalizeContent(dbPosts) as {
+      posts: Array<{ featuredImage: string; publishedAt: string }>;
+    };
 
     expect(result.posts[0].featuredImage).toBe('https://example.com/img1.jpg');
     expect(result.posts[0].publishedAt).toBe('2024-01-15T10:00:00Z');
