@@ -152,6 +152,46 @@ Rollback: `npx wrangler rollback`. Architecture: [`docs/architecture/ARCHITECTUR
 
 ---
 
+## E2E Testing — Session Pool (MANDATORY for all agents)
+
+**Never** run `npm run test:e2e`, `npm run dev`, or `playwright test` directly from any agent.
+Port 3000 is reserved for manual dev only. Agents must use the session pool.
+
+### Pool: 4 slots — claim before any test or dev server
+
+| Slot | Port | Build cache | Reports               |
+|------|------|-------------|-----------------------|
+| s1   | 3001 | `.next-s1`  | `playwright-report/s1` |
+| s2   | 3002 | `.next-s2`  | `playwright-report/s2` |
+| s3   | 3003 | `.next-s3`  | `playwright-report/s3` |
+| s4   | 3004 | `.next-s4`  | `playwright-report/s4` |
+
+### Commands
+
+```bash
+npm run session:list                        # check free slots before starting
+npm run session:run                         # auto-claim + run all tests + auto-release
+npm run session:run -- --grep "checkout"    # pass Playwright args after --
+npm run session:release s2                  # release stuck slot
+```
+
+### Interactive (Playwright MCP) pattern
+
+```bash
+eval "$(bash scripts/session-acquire.sh)"   # claim slot → sets SESSION_NAME, PORT, _ACQUIRED_SESSION
+PORT=$PORT NEXT_DIST_DIR=.next-$SESSION_NAME npm run dev:session &
+timeout 60 bash -c "until curl -s http://localhost:$PORT > /dev/null; do sleep 1; done"
+# ... run MCP tests on http://localhost:$PORT ...
+bash scripts/session-release.sh "$_ACQUIRED_SESSION"
+```
+
+### If all 4 slots busy
+Report to user. Do NOT spin a 5th server. `session:run` auto-clears stale locks (dead PIDs).
+
+Full docs: `docs/development/local-sessions.md`
+
+---
+
 ## Key patterns
 
 ### Supabase client

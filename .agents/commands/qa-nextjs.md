@@ -71,15 +71,42 @@ npx tsc --noEmit 2>&1
 - **New file errors > 0** → STOP and fix
 - Pre-existing → log count, continue
 
-### 1.2 Ensure Next.js running on :3000
+### 1.2 Claim a session slot (REQUIRED — never use port 3000 directly)
+
+Check available slots:
 ```bash
-lsof -i :3000 | grep LISTEN
+npm run session:list
 ```
-If not running, start it:
+
+If this QA run will execute Playwright tests via CLI, use auto-claim:
 ```bash
-npm run dev &
-# Poll until ready (max 30s)
-timeout 30 bash -c 'until curl -s http://localhost:3000 > /dev/null; do sleep 1; done'
+npm run session:run -- [playwright args]
+```
+The script sets `SESSION_NAME` and `PORT` automatically, then releases the slot on exit.
+
+If running interactively (Playwright MCP browser control, not CLI tests):
+```bash
+# Claim a slot and note the SESSION_NAME + PORT
+eval "$(bash scripts/session-acquire.sh)"
+echo "Slot: $SESSION_NAME  Port: $PORT"
+
+# Start dev server on that port
+PORT=$PORT NEXT_DIST_DIR=.next-$SESSION_NAME npm run dev:session &
+# Poll until ready (max 60s)
+timeout 60 bash -c "until curl -s http://localhost:$PORT > /dev/null; do sleep 1; done"
+echo "Dev server ready at http://localhost:$PORT"
+```
+
+**Base URL for all Playwright MCP calls**: `http://localhost:$PORT` (NOT :3000)
+
+Release when done:
+```bash
+bash scripts/session-release.sh "$_ACQUIRED_SESSION"
+```
+
+If all slots busy:
+```bash
+npm run session:list   # show which PIDs hold locks — report to user, do not spin a 5th server
 ```
 
 ### 1.3 Playwright browser connection
