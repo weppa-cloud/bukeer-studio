@@ -13,6 +13,10 @@
     "sourceDir": ".claude/commands",
     "targetDir": ".agents/commands"
   },
+  "rules": {
+    "sourceDir": ".claude/rules",
+    "targetDir": ".agents/rules"
+  },
   "mcp": {
     "configFile": ".mcp.json",
     "expectedServers": [
@@ -60,7 +64,8 @@
       }
     ],
     "skills": [],
-    "commands": []
+    "commands": [],
+    "rules": []
   },
   "toolMappingFile": "ai/tool-mapping.yaml"
 }

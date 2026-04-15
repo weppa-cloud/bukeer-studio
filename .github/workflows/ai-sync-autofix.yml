@@ -30,7 +30,7 @@ jobs:
 
       - name: Commit and push if changed
         run: |
-          git add -A -- AGENTS.md .agents/skills .agents/commands ai scripts/ai
+          git add -A -- AGENTS.md .agents/skills .agents/commands .agents/rules ai scripts/ai
 
           if git diff --cached --quiet; then
             echo "No AI sync changes to commit."
@@ -41,4 +41,3 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "chore(ai): sync Claude->Codex artifacts [skip ai-sync]"
           git push
-
