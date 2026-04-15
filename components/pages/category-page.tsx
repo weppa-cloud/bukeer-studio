@@ -81,13 +81,13 @@ export function CategoryPage({ website, page, categoryType }: CategoryPageProps)
 
   const sortedProducts = [...filteredProducts].sort((a, b) => {
     if (sortBy === 'price_asc') {
-      const pa = parseFloat((a.price || '0').replace(/[^0-9.]/g, '')) || 0;
-      const pb = parseFloat((b.price || '0').replace(/[^0-9.]/g, '')) || 0;
+      const pa = parseFloat(String(a.price ?? '0').replace(/[^0-9.]/g, '')) || 0;
+      const pb = parseFloat(String(b.price ?? '0').replace(/[^0-9.]/g, '')) || 0;
       return pa - pb;
     }
     if (sortBy === 'price_desc') {
-      const pa = parseFloat((a.price || '0').replace(/[^0-9.]/g, '')) || 0;
-      const pb = parseFloat((b.price || '0').replace(/[^0-9.]/g, '')) || 0;
+      const pa = parseFloat(String(a.price ?? '0').replace(/[^0-9.]/g, '')) || 0;
+      const pb = parseFloat(String(b.price ?? '0').replace(/[^0-9.]/g, '')) || 0;
       return pb - pa;
     }
     if (sortBy === 'name_asc') return a.name.localeCompare(b.name);

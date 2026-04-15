@@ -28,6 +28,7 @@ export async function generateMetadata({ params }: SiteLayoutProps): Promise<Met
   }
 
   const { content } = website;
+  const seoContent = content.seo as Record<string, unknown> | undefined;
   const siteName = content.account?.name || content.siteName;
   const description = content?.seo?.description
     || content?.tagline
@@ -38,7 +39,7 @@ export async function generateMetadata({ params }: SiteLayoutProps): Promise<Met
     (s: { section_type: string; is_enabled: boolean }) => s.section_type === 'hero' && s.is_enabled
   );
   const ogImage =
-    content.seo?.image ||
+    (seoContent?.image as string | undefined) ||
     (heroSection?.content as Record<string, unknown>)?.backgroundImage ||
     content.account?.logo;
 
@@ -88,7 +89,7 @@ export default async function SiteLayout({ children, params }: SiteLayoutProps) 
     : getDefaultNavigation(website.sections, basePath);
 
   return (
-    <M3ThemeProvider initialTheme={website.theme?.tokens ? { tokens: website.theme.tokens, profile: website.theme.profile } : undefined}>
+    <M3ThemeProvider initialTheme={website.theme?.tokens ? ({ tokens: website.theme.tokens, profile: website.theme.profile } as any) : undefined}>
       {/* Google Tag Manager and Analytics Scripts */}
       <GoogleTagManager analytics={website.analytics} />
 

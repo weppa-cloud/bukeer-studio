@@ -9,7 +9,12 @@ interface TextImageSectionProps {
 }
 
 export function TextImageSection({ section }: TextImageSectionProps) {
-  const content = section.content || {};
+  const content = (section.content as {
+    title?: string;
+    text?: string;
+    image?: string;
+    imagePosition?: string;
+  } | null) || {};
   const title = content.title || 'Nuestra Historia';
   const text = content.text || '';
   const image = content.image || '';
