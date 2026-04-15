@@ -95,7 +95,7 @@ export default async function CustomDomainPage({ params, searchParams }: CustomD
     const schemas = generateBlogListingSchemas(posts, website, baseUrl);
 
     return (
-      <M3ThemeProvider initialTheme={website.theme?.tokens ? { tokens: website.theme.tokens, profile: website.theme.profile } : undefined}>
+      <M3ThemeProvider initialTheme={website.theme?.tokens ? ({ tokens: website.theme.tokens, profile: website.theme.profile } as any) : undefined}>
         <GoogleTagManager analytics={website.analytics} />
         <div className="min-h-screen flex flex-col">
           <GoogleTagManagerBody analytics={website.analytics} />
@@ -248,7 +248,7 @@ export default async function CustomDomainPage({ params, searchParams }: CustomD
     const schemas = generateBlogPostSchemas(post, website, baseUrl);
 
     return (
-      <M3ThemeProvider initialTheme={website.theme?.tokens ? { tokens: website.theme.tokens, profile: website.theme.profile } : undefined}>
+      <M3ThemeProvider initialTheme={website.theme?.tokens ? ({ tokens: website.theme.tokens, profile: website.theme.profile } as any) : undefined}>
         <GoogleTagManager analytics={website.analytics} />
         <div className="min-h-screen flex flex-col">
           <GoogleTagManagerBody analytics={website.analytics} />
@@ -399,7 +399,7 @@ export default async function CustomDomainPage({ params, searchParams }: CustomD
     const legalContent = customContent || getDefaultLegalContent(legalType, siteName);
 
     return (
-      <M3ThemeProvider initialTheme={website.theme?.tokens ? { tokens: website.theme.tokens, profile: website.theme.profile } : undefined}>
+      <M3ThemeProvider initialTheme={website.theme?.tokens ? ({ tokens: website.theme.tokens, profile: website.theme.profile } as any) : undefined}>
         <GoogleTagManager analytics={website.analytics} />
         <div className="min-h-screen flex flex-col">
           <GoogleTagManagerBody analytics={website.analytics} />
@@ -461,7 +461,7 @@ export default async function CustomDomainPage({ params, searchParams }: CustomD
   }
 
   return (
-    <M3ThemeProvider initialTheme={website.theme?.tokens ? { tokens: website.theme.tokens, profile: website.theme.profile } : undefined}>
+    <M3ThemeProvider initialTheme={website.theme?.tokens ? ({ tokens: website.theme.tokens, profile: website.theme.profile } as any) : undefined}>
       {/* Google Tag Manager and Analytics Scripts */}
       <GoogleTagManager analytics={website.analytics} />
 
@@ -597,7 +597,8 @@ export async function generateMetadata({ params, searchParams }: CustomDomainPag
   const title = website.content.seo?.title || website.content.siteName;
   const description = website.content.seo?.description || website.content.tagline;
   const siteName = website.content.siteName;
-  const ogImage = website.content.seo?.image || website.content.account?.logo;
+  const seoContent = website.content.seo as Record<string, unknown> | undefined;
+  const ogImage = (seoContent?.image as string | undefined) || website.content.account?.logo;
   return {
     title: {
       default: title,

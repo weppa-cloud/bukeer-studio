@@ -31,9 +31,9 @@ export function QuoteForm({
   whatsappNumber,
   className = '',
 }: QuoteFormProps) {
-  const params = useParams();
+  const params = useParams<{ subdomain: string }>();
   const searchParams = useSearchParams();
-  const subdomain = params.subdomain as string;
+  const subdomain = params?.subdomain ?? '';
 
   const [formData, setFormData] = useState<FormData>({
     customerName: '',
@@ -88,9 +88,9 @@ export function QuoteForm({
           adults: formData.adults,
           children: formData.children,
           notes: formData.notes || undefined,
-          utmSource: searchParams.get('utm_source') || undefined,
-          utmMedium: searchParams.get('utm_medium') || undefined,
-          utmCampaign: searchParams.get('utm_campaign') || undefined,
+          utmSource: searchParams?.get('utm_source') || undefined,
+          utmMedium: searchParams?.get('utm_medium') || undefined,
+          utmCampaign: searchParams?.get('utm_campaign') || undefined,
         }),
       });
 
