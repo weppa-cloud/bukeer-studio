@@ -1,9 +1,9 @@
 ---
 name: tech-validator
 description: |
-  Technical validation for plans, tasks, and code against Bukeer architecture.
+  Technical validation for plans, tasks, and code against Bukeer Studio architecture.
   THREE MODES:
-  (1) PLAN — Validates a PRD/plan/proposal against ADRs, M3, tokens, reusability.
+  (1) PLAN — Validates a PRD/plan/proposal against ADRs, design tokens, reusability.
   (2) TASK — Generates a pre-implementation Technical Validation Brief (TVB).
   (3) CODE — Reviews written code for architectural compliance post-implementation.
   ACTIVATION: MANDATORY before any feature, bugfix, enhancement, or refactor.
@@ -12,19 +12,19 @@ description: |
   Examples:
   <example>
   Context: User shares a plan/PRD for validation.
-  user: "Validate this plan for the package builder feature"
-  assistant: "I'll run tech-validator in PLAN mode to check ADR/M3/token compliance."
+  user: "Validate this plan for the section editor feature"
+  assistant: "I'll run tech-validator in PLAN mode to check ADR/token/contract compliance."
   <commentary>Plan validation uses MODE: PLAN.</commentary>
   </example>
   <example>
   Context: User requests a new feature.
-  user: "Add pipeline stage filter to Chatwoot conversations"
+  user: "Add a new testimonials section type to the site builder"
   assistant: "Before implementing, I'll generate the Technical Validation Brief (TVB)."
   <commentary>Pre-implementation uses MODE: TASK.</commentary>
   </example>
   <example>
   Context: User wants to review code already written.
-  user: "Review the new PackageKitService for architecture compliance"
+  user: "Review the new theme compiler for architecture compliance"
   assistant: "I'll run tech-validator in CODE mode to check the implementation."
   <commentary>Post-implementation review uses MODE: CODE.</commentary>
   </example>
@@ -38,7 +38,7 @@ description: |
 
 # Tech Validator Skill
 
-Technical validation engine with **three operational modes** that ensures all development artifacts — plans, tasks, and code — align with Bukeer's architecture, ADRs, M3 design system, token system, and reusability principles.
+Technical validation engine with **three operational modes** that ensures all development artifacts — plans, tasks, and code — align with Bukeer Studio's architecture, ADRs, design token system, and reusability principles.
 
 ## Mode Selection
 
@@ -49,8 +49,6 @@ Technical validation engine with **three operational modes** that ensures all de
 | **CODE** | Code review requested | Code Review Report (CRR) | [CODE_MODE.md](CODE_MODE.md) |
 
 ## Mode Selection Logic
-
-The agent auto-detects the mode based on input:
 
 ```
 IF input contains PRD/plan/proposal document or "validate plan/PRD"
@@ -77,31 +75,34 @@ The developer can also explicitly request a mode:
 
 | ADR | Topic | Check |
 |-----|-------|-------|
-| ADR-001 | State Management | Does it use AppServices? Does it propose new state outside pattern? |
-| ADR-011 | Layout vs Pattern | Does it respect 3-layer separation for list pages? |
-| ADR-012 | Modal Organization | Are modals/dialogs following organization standards? |
-| ADR-015 | Optimistic UI | Do CRUD operations include optimistic update strategy? |
-| ADR-016 | Cache SWR | Does data fetching strategy mention cache invalidation? |
-| ADR-017 | OTA Standards | Do product/hotel models align with OTA standards? |
-| ADR-018 | Exception Handling | Does it include error handling strategy? |
-| ADR-019 | Navigation Stack | Does navigation follow GoRouter patterns? |
-| ADR-020 | Flow Tracking | Are user journeys tracked? |
-| ADR-021 | Unified Dual View | If list page, does it consider list + kanban? |
-| ADR-022 | Auth Token Boundary | Are API calls through service layer (not UI)? |
-| ADR-023 | Chrome OOM | Are timers/listeners accounted for with cleanup? |
-| ADR-024 | Build Purity | Does it mention init patterns correctly? |
-| ADR-032 | Catalog V2 | Does hotel/product work use catalog architecture? |
-| ADR-035 | Pagination | Does pagination use length < pageSize + appendLastPage? |
-| ADR-036 | Testing Surface | Do interactive components have `testKey` + `Semantics()`? |
+| ADR-001 | Server-First Rendering | Does it use RSC by default? Is `'use client'` only where needed? |
+| ADR-002 | Error Handling Strategy | Does it include proper error boundaries and try/catch? |
+| ADR-003 | Contract-First Validation | Does it validate data with Zod schemas before use? |
+| ADR-004 | State Management | Does it use appropriate state (server vs client, URL params, React state)? |
+| ADR-005 | Security Defense-in-Depth | Are service role keys server-only? RLS policies considered? |
+| ADR-006 | AI Streaming Architecture | Does AI integration use streaming (Vercel AI SDK patterns)? |
+| ADR-007 | Edge-First Delivery | Is it compatible with Cloudflare Workers? No Node-only APIs? |
+| ADR-008 | Monorepo Packages | Does it respect package boundaries (theme-sdk, website-contract)? |
+| ADR-009 | Multi-Tenant Subdomain Routing | Does it handle subdomain routing correctly via middleware? |
+| ADR-010 | Observability Strategy | Does it include logging/monitoring where appropriate? |
+| ADR-011 | Middleware Cache | Does it respect middleware caching strategy? |
+| ADR-012 | API Response Envelope | Do API routes use standard response envelope format? |
 
-## MCP Tools
+## Validation Tools
 
-- `mcp__dart__analyze_files` — Static analysis
-- `mcp__dart__run_tests` — Test execution
-- `mcp__dart__dart_format` — Code formatting
-- `mcp__dcm__dcm_calculate_metrics` — Code metrics
-- `mcp__dcm__dcm_check_dependencies` — Dependency analysis
-- `mcp__dcm__dcm_check_unused_code` — Dead code detection
+```bash
+# TypeScript type checking
+npx tsc --noEmit
+
+# Linting
+npm run lint
+
+# Production build (catches RSC boundary issues, import errors)
+npm run build
+
+# E2E tests
+npm run test:e2e
+```
 
 ## Reference Files
 
@@ -109,16 +110,19 @@ See [REFERENCE_FILES.md](REFERENCE_FILES.md) for documentation pointers.
 
 ## L10N Check (CODE mode)
 
-When reviewing code, check: "Are there hardcoded strings in Semantics labels?" Custom lint `no_hardcoded_semantics_label` detects this automatically.
+When reviewing code, check:
+- Dashboard UI: English only (no i18n required)
+- Public site: `website.locale` or `website.language` should drive `inLanguage` in JSON-LD
+- Hardcoded `'es'` in JSON-LD generators is a known bug (see CLAUDE.md SEO gaps)
 
 ## Delegate To
 
 After validation, the work is handed to the appropriate skill:
-- `flutter-developer`: Features, bugfixes, business logic
-- `flutter-ui-components`: Standalone UI components
-- `backend-dev`: Database, migrations, Edge Functions
-- `testing-agent`: Test creation and validation
-- `architecture-analyzer`: Deep architectural review (if violations found)
+- `nextjs-developer`: Pages, components, API routes, hooks
+- `website-section-generator`: Tourism section components (shadcn, Aceternity, Magic UI)
+- `backend-dev`: Database, migrations, Edge Functions, RLS
+- `website-designer`: Theme presets, design specifications
+- `website-quality-gate`: Lighthouse, WCAG AA, Core Web Vitals
 
 ## Git Context Commands
 
@@ -144,7 +148,7 @@ git diff main...HEAD --name-only
 | PLAN fails multiple ADRs | Return to plan author with specific violations |
 | No applicable ADRs found | Review if task is truly new territory → may need new ADR |
 | Conflicting ADRs | Flag to developer, suggest resolution |
-| Missing typed model | Flag as blocker → model must be created first |
+| Missing Zod schema | Flag as blocker → schema must be added to `@bukeer/website-contract` first |
 | CODE has critical violations | Block commit until fixed |
 | CODE has only warnings | Allow commit with documented debt |
 | Unclear integration points | Research mode → explore before generating report |

@@ -132,7 +132,7 @@ Success gate: each phase must pass `flutter analyze` before proceeding.
 
 ## Technique 4: Constraint Injection
 
-Automatically inject forbidden patterns and required patterns from CLAUDE.md
+Automatically inject forbidden patterns and required patterns from AGENTS.md
 relevant to the detected task type. This prevents the most common mistakes.
 
 **Constraint blocks by task type:**
@@ -239,7 +239,7 @@ Don't add features, refactor surrounding code, or make improvements beyond what 
 Fix only what's broken / implement only what was specified.
 ```
 
-**Why:** Claude Code tends to "improve" adjacent code, add error handling for impossible
+**Why:** Codex tends to "improve" adjacent code, add error handling for impossible
 cases, and add abstractions for one-time operations. The explicit scope guard cuts this
 significantly.
 

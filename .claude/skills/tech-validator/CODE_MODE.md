@@ -29,8 +29,16 @@ git diff main...HEAD --name-only
 ```
 
 ### Step 2: Static Analysis
-- Run `mcp__dart__analyze_files` on all changed files
-- Run `mcp__dart__dart_format` to check formatting
+```bash
+# TypeScript type checking
+npx tsc --noEmit
+
+# Linting
+npm run lint
+
+# Production build (catches RSC boundary errors, missing imports)
+npm run build
+```
 
 ### Step 3: Pattern Violation Scan
 
@@ -40,58 +48,54 @@ For each changed file, scan for these violations:
 
 | Violation | Pattern to Detect | Fix |
 |-----------|-------------------|-----|
-| Dynamic access | `data['key']!` or `getJsonField(` | Use typed model or SafeMap |
-| Hardcoded color | `Color(0x` or `Colors.` in widget code | Use `colorScheme.*` |
-| Hardcoded spacing | `EdgeInsets(` with literal numbers | Use `BukeerSpacing.*` |
-| Hardcoded text style | `TextStyle(fontSize:` | Use `textTheme.*` |
-| Hardcoded border radius | `BorderRadius.circular(` with literal | Use `BukeerBorderRadius.*` |
-| Token in UI | `currentJwtToken` in widget file | Move to service via callWithAuth |
-| Direct service instantiation | `XxxService()` in widget | Use `appServices.xxx` |
-| WASM-unsafe cast | `as double?` without `num` | Use `(val as num?)?.toDouble()` |
-| Multiple setState | Two `setState(` in same method | Combine into single setState |
-| Build impurity | `set*Controller(` in `build()` method | Move to `initState()` |
-| Inline FutureBuilder | `future: () async` in build | Use stable `_precomputed` field |
-| Wrong modal semantic | `showModalError(` with validation text | Use `showModalWarning(` |
-| Deprecated getter | `.selectedItinerary` / `.selectedHotel` | Use `.currentItineraryModel` / `.selectedHotelModel` |
-| Inline .toJS | `.toJS` in callback/loop | Cache as class field |
+| Untyped Supabase response | `.from('table').select()` without Zod validation | Validate with Zod schema from `@bukeer/website-contract` |
+| Hardcoded color | `#fff`, `rgb(`, `hsl(` in component code | Use CSS variables: `var(--primary)`, `var(--surface)`, etc. |
+| Hardcoded spacing | Inline `style={{ padding: '16px' }}` with literals | Use Tailwind utilities: `p-4`, `gap-6`, `space-y-2` |
+| Hardcoded section type | String literal `'hero'` or `'testimonials'` | Use `SECTION_TYPES` from `@bukeer/website-contract` |
+| Secret in client | `SUPABASE_SERVICE_ROLE_KEY` in `'use client'` file | Move to server component or API route |
+| Hooks in RSC | `useState`, `useEffect` in server component | Add `'use client'` directive or restructure |
+| Direct Supabase in middleware | `createClient()` in non-approved middleware path | Use `lib/supabase/middleware.ts` pattern |
+| Missing `'use client'` | React hooks used without directive | Add `'use client'` at top of file |
+| Flat theme shape | `{ seedColor: ... }` at root of theme object | Use `{ tokens: DesignTokens, profile: ThemeProfile }` |
+| Node-only API | `fs`, `path`, `crypto` (Node module) in edge runtime | Use Web APIs or Cloudflare-compatible alternatives |
 
 **WARNING (should fix):**
 
 | Violation | Pattern to Detect | Fix |
 |-----------|-------------------|-----|
-| Missing empty state | List without `BukeerEmptyState` | Add empty state variant |
-| Missing skeleton | Loading with `CircularProgressIndicator` | Use `BukeerSkeletonList` |
-| Missing RBAC check | Privileged action without `can*()` | Add authorization check |
-| Large component | Single widget file >300 LOC | Split into composition |
-| Import from internal path | `import 'package:bukeer/design_system/tokens/spacing.dart'` | Use `design_system/index.dart` |
-| DRY violation | Code block duplicated 2+ times | Extract to shared component |
+| Missing error boundary | Page without error.tsx | Add error.tsx for the route segment |
+| Raw `cn()` duplication | Same `cn()` pattern repeated 3+ times | Extract to shared component or variant |
+| Missing loading state | Async component without loading.tsx or Suspense | Add loading.tsx or wrap in Suspense boundary |
+| Large component | Single component file >300 LOC | Split into composition of smaller components |
+| Missing Zod validation | API route without input validation | Add Zod schema for request body/params |
+| Unused import | Import present but not referenced | Remove unused import |
+| DRY violation | Code block duplicated 2+ times | Extract to shared utility or component |
 
-### Step 4: M3 / Token Compliance Audit
+### Step 4: Design Token Compliance Audit
 
-For each widget file, verify:
+For each component file, verify:
 
 ```
 File: [path]
 ┌──────────────────────┬──────────┬─────────────────────────────┐
 │ Token Category       │ Status   │ Details                     │
 ├──────────────────────┼──────────┼─────────────────────────────┤
-│ Colors               │ ✅/⚠️/❌ │ [Uses colorScheme / mixed]  │
-│ Typography           │ ✅/⚠️/❌ │ [Uses textTheme / mixed]    │
-│ Spacing              │ ✅/⚠️/❌ │ [Uses BukeerSpacing / mixed]│
-│ Elevation            │ ✅/⚠️/❌ │ [Uses BukeerElevation]      │
-│ Border Radius        │ ✅/⚠️/❌ │ [Uses BukeerBorderRadius]   │
-│ Dark Mode            │ ✅/⚠️    │ [Auto / needs manual check] │
-│ Reusability Level    │ 0-3      │ [Appropriate for scope?]    │
+│ Colors               │ ✅/⚠️/❌ │ [Uses CSS vars / hardcoded] │
+│ Typography           │ ✅/⚠️/❌ │ [Uses Tailwind / inline]    │
+│ Spacing              │ ✅/⚠️/❌ │ [Uses Tailwind / hardcoded] │
+│ Shadows              │ ✅/⚠️/❌ │ [Uses Tailwind classes]     │
+│ Border Radius        │ ✅/⚠️/❌ │ [Uses Tailwind / hardcoded] │
+│ Dark Mode            │ ✅/⚠️    │ [Auto via dark: / manual]   │
+│ Animations           │ ✅/⚠️    │ [Framer Motion / CSS]       │
 └──────────────────────┴──────────┴─────────────────────────────┘
 ```
 
 ### Step 5: L10N Compliance Check
 
-- [ ] No hardcoded Spanish strings in Semantics labels
-- [ ] AppLocalizations used for all user-visible text
-- [ ] Test selectors use ValueKey, not bySemanticsLabel
-
-> Note: Custom lint `no_hardcoded_semantics_label` detects hardcoded strings in Semantics labels automatically.
+- [ ] Dashboard UI in English (no i18n framework needed)
+- [ ] Public site respects `website.locale` / `website.language`
+- [ ] JSON-LD `inLanguage` reads from DB (not hardcoded `'es'`)
+- [ ] Test selectors use `data-testid`, not text content
 
 ### Step 6: Generate Code Review Report
 
@@ -111,27 +115,27 @@ File: [path]
  ⚠️ [file:line] — [issue] → [recommendation]
 
 ## L10N Compliance
- ✅/❌ Hardcoded Semantics labels: [count found]
- ✅/❌ AppLocalizations usage: [compliant / missing in N files]
- ✅/❌ Test selectors: [ValueKey used / bySemanticsLabel found]
+ ✅/❌ Dashboard: English-only [compliant]
+ ✅/❌ Public site locale: [reads from DB / hardcoded]
+ ✅/❌ Test selectors: [data-testid used / text-based found]
 
-## M3 / Token Compliance
+## Design Token Compliance
  [Per-file token audit table]
 
 ## Reusability Assessment
- New Components: [count] — [appropriate levels?]
+ New Components: [count] — [appropriate locations?]
  DRY Violations: [count] — [where?]
- Existing DS Used: [list of reused components]
+ Existing shadcn/ui Used: [list of reused components]
 
 ## ADR Compliance
  ✅ [ADR-XXX compliant]
  ❌ [ADR-XXX violated at file:line]
 
 ## Quality Gate Results
- □ dart analyze: [0 issues / N issues]
- □ dart format: [all formatted / N files need formatting]
- □ Tests: [pass / fail / not run]
- □ Coverage: [percentage]
+ □ tsc --noEmit: [0 issues / N issues]
+ □ npm run lint: [pass / N issues]
+ □ npm run build: [pass / fail]
+ □ E2E tests: [pass / fail / not run]
 
 ## TVB Cross-Check (if TVB was generated)
  [Compare implementation against original TVB checklist]

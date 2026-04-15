@@ -53,7 +53,7 @@ docs/
 ├── 08-guides/
 └── archive/
 
-.Codex/
+.agents/
 ├── skills/
 ├── commands/
 └── agents/

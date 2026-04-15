@@ -52,7 +52,7 @@ docs/
 ## Claude Configuration
 
 ```
-.claude/
+.agents/
 ├── skills/                # AI skill definitions
 │   ├── flutter-developer/
 │   ├── backend-dev/
@@ -96,15 +96,15 @@ PRPs/                      # Product Requirement Plans
 | Testing | `docs/07-testing/` |
 | How-to guides | `docs/08-guides/` |
 | Outdated docs | `docs/archive/[year]/` |
-| AI skills | `.claude/skills/` |
-| AI commands | `.claude/commands/` |
+| AI skills | `.agents/skills/` |
+| AI commands | `.agents/commands/` |
 | Requirements | `PRPs/` |
 
 ## Root Directory Files
 
 **Allowed in root:**
 - README.md
-- CLAUDE.md
+- AGENTS.md
 - CONTRIBUTING.md
 - LICENSE
 - pubspec.yaml
