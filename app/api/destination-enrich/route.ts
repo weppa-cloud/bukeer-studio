@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { createLogger } from '@/lib/logger';
+import { apiSuccess, apiValidationError, apiInternalError } from '@/lib/api';
 import { z } from 'zod';
 
 const log = createLogger('api.destinationEnrich');
@@ -47,13 +48,13 @@ export async function GET(request: NextRequest) {
     city: request.nextUrl.searchParams.get('city'),
   });
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+    return apiValidationError(parsed.error);
   }
   const { city } = parsed.data;
 
   const SERPAPI_KEY = process.env.SERPAPI_KEY;
   if (!SERPAPI_KEY) {
-    return NextResponse.json({
+    return apiSuccess({
       data: null,
       source: 'static',
       message: 'SERPAPI_KEY not configured — using static content',
@@ -64,7 +65,7 @@ export async function GET(request: NextRequest) {
   const cacheKey = city.toLowerCase().trim();
   const cached = cache.get(cacheKey);
   if (cached && Date.now() - cached.ts < CACHE_TTL) {
-    return NextResponse.json({ data: cached.data, source: 'cache' });
+    return apiSuccess({ data: cached.data, source: 'cache' });
   }
 
   try {
@@ -80,7 +81,7 @@ export async function GET(request: NextRequest) {
     const searchData = await searchRes.json();
 
     if (!searchData.local_results?.length && !searchData.place_results) {
-      return NextResponse.json({ data: null, source: 'serpapi', message: 'No results found' });
+      return apiSuccess({ data: null, source: 'serpapi', message: 'No results found' });
     }
 
     // Get the first relevant result or place_results
@@ -104,7 +105,7 @@ export async function GET(request: NextRequest) {
         source: 'serpapi',
       };
       cache.set(cacheKey, { data: basicData, ts: Date.now() });
-      return NextResponse.json({ data: basicData, source: 'serpapi' });
+      return apiSuccess({ data: basicData, source: 'serpapi' });
     }
 
     // Step 2: Get detailed place info
@@ -180,13 +181,9 @@ export async function GET(request: NextRequest) {
     // Cache result
     cache.set(cacheKey, { data: enrichedData, ts: Date.now() });
 
-    return NextResponse.json({ data: enrichedData, source: 'serpapi' });
+    return apiSuccess({ data: enrichedData, source: 'serpapi' });
   } catch (error) {
     log.error('SerpAPI error', { error: error instanceof Error ? error.message : String(error) });
-    return NextResponse.json({
-      data: null,
-      source: 'error',
-      message: 'Failed to fetch from SerpAPI',
-    });
+    return apiInternalError('Failed to fetch from SerpAPI');
   }
 }

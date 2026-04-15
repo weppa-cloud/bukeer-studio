@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { createLogger } from '@/lib/logger';
-import { NextRequest, NextResponse } from 'next/server';
+import { apiSuccess, apiError, apiNotFound, apiInternalError } from '@/lib/api';
+import { NextRequest } from 'next/server';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -210,7 +211,7 @@ export async function GET(
     .single();
 
   if (wErr || !website) {
-    return NextResponse.json({ error: 'Website not found' }, { status: 404 });
+    return apiNotFound('Website not found');
   }
 
   // Check if Google Reviews enabled
@@ -221,7 +222,7 @@ export async function GET(
     .single();
 
   if (!account?.google_reviews_enabled || !account?.google_place_id) {
-    return NextResponse.json({ reviews: [], enabled: false });
+    return apiSuccess({ reviews: [], enabled: false });
   }
 
   // Get cached reviews
@@ -232,10 +233,10 @@ export async function GET(
     .single();
 
   if (!cached) {
-    return NextResponse.json({ reviews: [], cached: false });
+    return apiSuccess({ reviews: [], cached: false });
   }
 
-  return NextResponse.json({
+  return apiSuccess({
     reviews: cached.reviews,
     business_name: cached.business_name,
     average_rating: cached.average_rating,
@@ -262,7 +263,7 @@ export async function POST(
     .single();
 
   if (!website) {
-    return NextResponse.json({ error: 'Website not found' }, { status: 404 });
+    return apiNotFound('Website not found');
   }
 
   const { data: account } = await supabase
@@ -272,14 +273,14 @@ export async function POST(
     .single();
 
   if (!account?.google_place_id) {
-    return NextResponse.json({ error: 'No google_place_id configured' }, { status: 400 });
+    return apiError('VALIDATION_ERROR', 'No google_place_id configured');
   }
 
   // Fetch from SerpAPI
   const result = await fetchReviewsFromSerpAPI(account.google_place_id);
 
   if (!result) {
-    return NextResponse.json({ error: 'Failed to fetch reviews from Google' }, { status: 502 });
+    return apiError('UPSTREAM_ERROR', 'Failed to fetch reviews from Google', 502);
   }
 
   // Upsert cache
@@ -302,10 +303,10 @@ export async function POST(
 
   if (upsertErr) {
     log.error('Upsert error', { error: upsertErr.message });
-    return NextResponse.json({ error: 'Failed to cache reviews' }, { status: 500 });
+    return apiInternalError('Failed to cache reviews');
   }
 
-  return NextResponse.json({
+  return apiSuccess({
     reviews: result.reviews,
     business_name: result.businessName,
     average_rating: result.averageRating,

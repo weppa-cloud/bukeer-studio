@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 import { createLogger } from '@/lib/logger';
+import { apiSuccess, apiError, apiUnauthorized, apiValidationError, apiInternalError } from '@/lib/api';
 
 const log = createLogger('revalidate');
 
@@ -44,10 +45,7 @@ export async function POST(request: NextRequest) {
 
     if (!expectedSecret) {
       log.error('REVALIDATE_SECRET not configured');
-      return NextResponse.json(
-        { error: 'Revalidation not configured' },
-        { status: 500 }
-      );
+      return apiInternalError('Revalidation not configured');
     }
 
     // 3. Parse and validate request body
@@ -55,10 +53,7 @@ export async function POST(request: NextRequest) {
     const parsed = RevalidateBodySchema.safeParse(raw);
 
     if (!parsed.success) {
-      return NextResponse.json(
-        { error: parsed.error.flatten() },
-        { status: 400 }
-      );
+      return apiValidationError(parsed.error);
     }
 
     const { subdomain, path } = parsed.data;
@@ -67,7 +62,7 @@ export async function POST(request: NextRequest) {
     if (authHeader !== `Bearer ${expectedSecret}`) {
       if (parsed.data.secret !== expectedSecret) {
         log.error('Invalid or missing authorization');
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        return apiUnauthorized();
       }
     }
 
@@ -78,10 +73,7 @@ export async function POST(request: NextRequest) {
 
     if (!supabaseUrl || !supabaseServiceKey) {
       log.error('Missing Supabase configuration');
-      return NextResponse.json(
-        { error: 'Server configuration error' },
-        { status: 500 }
-      );
+      return apiInternalError('Server configuration error');
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -95,18 +87,12 @@ export async function POST(request: NextRequest) {
 
     if (websiteError) {
       log.error('Database error', { message: websiteError.message });
-      return NextResponse.json(
-        { error: 'Database error' },
-        { status: 500 }
-      );
+      return apiInternalError('Database error');
     }
 
     if (!website) {
-      console.warn(`[Revalidate] Invalid subdomain: ${subdomain}`);
-      return NextResponse.json(
-        { error: 'Invalid subdomain' },
-        { status: 400 }
-      );
+      log.warn(`Invalid subdomain: ${subdomain}`);
+      return apiError('VALIDATION_ERROR', 'Invalid subdomain');
     }
 
     // 5. Perform revalidation
@@ -140,7 +126,7 @@ export async function POST(request: NextRequest) {
         }
       });
 
-    return NextResponse.json({
+    return apiSuccess({
       revalidated: true,
       subdomain,
       paths: [sitePath, ...(path ? [path] : [])],
@@ -149,16 +135,13 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     log.error('Unexpected error', { message: String(error) });
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return apiInternalError();
   }
 }
 
 // Health check
 export async function GET() {
-  return NextResponse.json({
+  return apiSuccess({
     status: 'ok',
     endpoint: '/api/revalidate',
     method: 'POST',

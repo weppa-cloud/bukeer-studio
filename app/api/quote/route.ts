@@ -1,7 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { createLogger } from '@/lib/logger';
+import { apiSuccess, apiError, apiValidationError, apiInternalError } from '@/lib/api';
 
 const log = createLogger('quote');
 
@@ -41,10 +42,7 @@ export async function POST(request: NextRequest) {
     const result = QuoteRequestSchema.safeParse(raw);
 
     if (!result.success) {
-      return NextResponse.json(
-        { success: false, error: result.error.flatten() },
-        { status: 400 }
-      );
+      return apiValidationError(result.error);
     }
 
     const body = result.data;
@@ -74,29 +72,19 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       log.error('Supabase error', { message: error.message });
-      return NextResponse.json(
-        { success: false, error: 'Failed to submit quote request' },
-        { status: 500 }
-      );
+      return apiInternalError('Failed to submit quote request');
     }
 
     if (!data?.success) {
-      return NextResponse.json(
-        { success: false, error: data?.error || 'Unknown error' },
-        { status: 400 }
-      );
+      return apiError('QUOTE_ERROR', data?.error || 'Unknown error');
     }
 
-    return NextResponse.json({
-      success: true,
+    return apiSuccess({
       quoteId: data.quote_id,
       message: 'Quote request submitted successfully',
     });
   } catch (error) {
     log.error('Unexpected error', { message: String(error) });
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
+    return apiInternalError();
   }
 }
