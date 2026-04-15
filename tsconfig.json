@@ -1,7 +1,11 @@
 {
   "compilerOptions": {
     "target": "ES2017",
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -19,13 +23,34 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"],
-      "@bukeer/website-contract": ["./packages/website-contract/src"],
-      "@bukeer/website-contract/*": ["./packages/website-contract/src/*"],
-      "@bukeer/theme-sdk": ["./packages/theme-sdk/src"],
-      "@bukeer/theme-sdk/*": ["./packages/theme-sdk/src/*"]
+      "@/*": [
+        "./*"
+      ],
+      "@bukeer/website-contract": [
+        "./packages/website-contract/src"
+      ],
+      "@bukeer/website-contract/*": [
+        "./packages/website-contract/src/*"
+      ],
+      "@bukeer/theme-sdk": [
+        "./packages/theme-sdk/src"
+      ],
+      "@bukeer/theme-sdk/*": [
+        "./packages/theme-sdk/src/*"
+      ]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    ".next-epic86-e2e/types/**/*.ts",
+    ".next-epic86-e2e2/types/**/*.ts",
+    ".next-epic86/types/**/*.ts",
+    ".next/types/**/*.ts",
+    "next-env.d.ts",
+    ".next-s1/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
 }

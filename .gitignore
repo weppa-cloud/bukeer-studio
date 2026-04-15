@@ -12,6 +12,12 @@
 
 # testing
 /coverage
+/test-results/
+/playwright-report/
+/.sessions/locks/
+
+# parallel next.js build caches (session isolation)
+/.next-*/
 
 # next.js
 /.next/
