@@ -59,7 +59,7 @@ const CopilotPlanSchema = z.object({
 
 // ── Prompt templates ────────────────────────────────────────────────────────
 
-export const PROMPT_TEMPLATES: Record<
+const PROMPT_TEMPLATES: Record<
   string,
   { label: string; icon: string; prompt: string }
 > = {

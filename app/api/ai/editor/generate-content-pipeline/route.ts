@@ -37,7 +37,7 @@ const pipelineInputSchema = z.object({
   channels: z.array(z.enum(['blog', 'linkedin', 'youtube'])).default(['blog']),
   publish_mode: z.enum(['auto', 'review', 'draft']).default('draft'),
   websiteId: z.string().uuid(),
-  brand_kit: z.record(z.unknown()).optional(),
+  brand_kit: z.record(z.string(), z.unknown()).optional(),
   source_urls: z.array(z.string()).optional(),
   cluster_id: z.string().uuid().optional(),
   template_id: z.string().optional(),
@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const input = pipelineInputSchema.parse(body);
     const supabase = getAuthClient(auth.token);
-    const assets: { id: string; locale: string; channel: string }[] = [];
+    const assets: { id: string; locale: string; channel: string; content?: string | null }[] = [];
     let totalCost = 0;
 
     // === STAGE 1: GENERATE (canonical blog post in primary locale) ===
