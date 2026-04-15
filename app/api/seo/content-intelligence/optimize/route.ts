@@ -113,7 +113,6 @@ export async function POST(request: NextRequest) {
 
   const patch = parsed.data.patch ?? {};
   const baseBefore = JSON.stringify(patch);
-  const baseAfter = `${baseBefore}::optimized`;
   const scoreBefore = scoreFromText(baseBefore);
   const scoreAfter = Math.min(100, scoreBefore + 12);
 

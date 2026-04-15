@@ -210,6 +210,31 @@ export async function POST(request: NextRequest) {
         .eq('website_id', parsed.data.websiteId)
         .eq('id', parsed.data.targetContentId);
     }
+  } else if (parsed.data.pageType === 'page' && parsed.data.targetContentId) {
+    const payload = (currentJob.payload ?? {}) as Record<string, unknown>;
+    const updates: Record<string, unknown> = {};
+    if (typeof payload.title === 'string') updates.title = payload.title;
+    if (typeof payload.seoTitle === 'string') updates.seo_title = payload.seoTitle;
+    if (typeof payload.seoDescription === 'string') updates.seo_description = payload.seoDescription;
+    if (Object.keys(updates).length > 0) {
+      await admin
+        .from('website_pages')
+        .update(updates)
+        .eq('website_id', parsed.data.websiteId)
+        .eq('id', parsed.data.targetContentId);
+    }
+  } else if (parsed.data.pageType === 'destination' && parsed.data.targetContentId) {
+    const payload = (currentJob.payload ?? {}) as Record<string, unknown>;
+    const updates: Record<string, unknown> = {};
+    if (typeof payload.title === 'string') updates.name = payload.title;
+    if (typeof payload.seoTitle === 'string') updates.seo_title = payload.seoTitle;
+    if (typeof payload.seoDescription === 'string') updates.seo_description = payload.seoDescription;
+    if (Object.keys(updates).length > 0) {
+      await admin
+        .from('destinations')
+        .update(updates)
+        .eq('id', parsed.data.targetContentId);
+    }
   }
 
   return withNoStoreHeaders(

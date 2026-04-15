@@ -245,6 +245,12 @@ export function SeoItemDetail({
   const [optimizeError, setOptimizeError] = useState<string | null>(null);
   const [optimizeSourceMeta, setOptimizeSourceMeta] = useState<SourceMeta | null>(null);
   const [optimizeSuggestions, setOptimizeSuggestions] = useState<OptimizeSuggestion[]>([]);
+  const [optimizeApplyResult, setOptimizeApplyResult] = useState<{
+    actionId: string;
+    scoreBefore: number | null;
+    scoreAfter: number | null;
+    createdAt: string;
+  } | null>(null);
   const [seoIntro, setSeoIntro] = useState('');
   const [seoHighlights, setSeoHighlights] = useState('');
   const [seoFaq, setSeoFaq] = useState('');
@@ -650,13 +656,30 @@ export function SeoItemDetail({
       }
       const payload = body.data as {
         suggestions?: OptimizeSuggestion[];
+        action?: {
+          id: string;
+          score_before: number | null;
+          score_after: number | null;
+          created_at: string;
+        };
         sourceMeta?: SourceMeta;
       };
       setOptimizeSourceMeta(payload.sourceMeta ?? null);
       if (mode === 'suggest') {
         setOptimizeSuggestions(payload.suggestions ?? []);
+        setOptimizeApplyResult(null);
       } else {
         setOptimizeSuggestions([]);
+        if (payload.action) {
+          setOptimizeApplyResult({
+            actionId: payload.action.id,
+            scoreBefore: payload.action.score_before,
+            scoreAfter: payload.action.score_after,
+            createdAt: payload.action.created_at,
+          });
+        } else {
+          setOptimizeApplyResult(null);
+        }
       }
     } catch (err) {
       setOptimizeError(err instanceof Error ? err.message : 'Optimize falló');
@@ -892,6 +915,428 @@ export function SeoItemDetail({
           <div className="space-y-1">
             <label className="text-xs text-[var(--studio-text-muted)]">Target Keyword</label>
             <StudioInput value={targetKeyword} onChange={(e) => setTargetKeyword(e.target.value)} />
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'brief' && (
+        <div className="space-y-4 studio-card p-4">
+          {!contentType ? (
+            <p className="text-sm text-[var(--studio-text-muted)]">
+              Brief no está habilitado para este tipo de item.
+            </p>
+          ) : (
+            <>
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-[var(--studio-text)]">Brief workflow</h3>
+                <div className="flex items-center gap-2">
+                  <StudioButton size="sm" variant="outline" onClick={() => void loadBriefs()} disabled={briefLoading}>
+                    {briefLoading ? 'Cargando...' : 'Refresh'}
+                  </StudioButton>
+                  <StudioButton size="sm" onClick={handleCreateBrief} disabled={briefActionLoading}>
+                    {briefActionLoading ? 'Guardando...' : 'Create Draft'}
+                  </StudioButton>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs text-[var(--studio-text-muted)]">Primary keyword</label>
+                  <StudioInput value={briefPrimaryKeyword} onChange={(event) => setBriefPrimaryKeyword(event.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-[var(--studio-text-muted)]">Secondary keywords (comma separated)</label>
+                  <StudioInput value={briefSecondaryKeywords} onChange={(event) => setBriefSecondaryKeywords(event.target.value)} />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-[var(--studio-text-muted)]">Brief summary</label>
+                <StudioTextarea value={briefSummary} onChange={(event) => setBriefSummary(event.target.value)} rows={4} />
+              </div>
+
+              {briefSourceMeta ? (
+                <SeoTrustState source={briefSourceMeta.source} fetchedAt={briefSourceMeta.fetchedAt} confidence={briefSourceMeta.confidence} />
+              ) : null}
+
+              {briefError ? (
+                <p className="text-sm text-[var(--studio-danger)]">{briefError}</p>
+              ) : null}
+
+              {activeBrief ? (
+                <div className="space-y-3">
+                  <div className="border border-[var(--studio-border)] rounded p-3">
+                    <div className="flex items-center gap-2 mb-2">
+                      <StudioBadge tone={activeBrief.status === 'approved' ? 'success' : activeBrief.status === 'archived' ? 'neutral' : 'warning'}>
+                        {activeBrief.status}
+                      </StudioBadge>
+                      <span className="text-xs text-[var(--studio-text-muted)]">Brief ID {activeBrief.id}</span>
+                    </div>
+                    <pre className="text-xs bg-slate-950 text-slate-100 p-3 rounded overflow-x-auto">
+                      {JSON.stringify(activeBrief.brief, null, 2)}
+                    </pre>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    <StudioButton
+                      size="sm"
+                      onClick={() => void handleBriefTransition('approve')}
+                      disabled={briefActionLoading || activeBrief.status === 'approved'}
+                    >
+                      Approve
+                    </StudioButton>
+                    <StudioButton
+                      size="sm"
+                      variant="outline"
+                      onClick={() => void handleBriefTransition('archive')}
+                      disabled={briefActionLoading || activeBrief.status === 'archived'}
+                    >
+                      Archive
+                    </StudioButton>
+                  </div>
+
+                  <div className="border border-[var(--studio-border)] rounded p-3">
+                    <p className="text-xs text-[var(--studio-text-muted)] mb-2">Version history</p>
+                    <div className="space-y-2">
+                      {(activeBrief.versions ?? []).map((version) => (
+                        <div key={version.version} className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm text-[var(--studio-text)]">v{version.version}</p>
+                            <p className="text-xs text-[var(--studio-text-muted)]">
+                              {version.change_reason || 'n/a'} · {new Date(version.created_at).toLocaleString()}
+                            </p>
+                          </div>
+                          <StudioButton
+                            size="sm"
+                            variant="outline"
+                            onClick={() => void handleBriefRollback(version.version)}
+                            disabled={briefActionLoading}
+                          >
+                            Rollback
+                          </StudioButton>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-[var(--studio-text-muted)]">
+                  Aún no hay briefs para este item/locale.
+                </p>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'optimize' && (
+        <div className="space-y-4 studio-card p-4">
+          {!optimizeEnabled ? (
+            <p className="text-sm text-[var(--studio-text-muted)]">
+              Optimize no está habilitado para este tipo de item.
+            </p>
+          ) : (
+            <>
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-[var(--studio-text)]">Optimize</h3>
+                <div className="flex items-center gap-2">
+                  <StudioButton
+                    size="sm"
+                    variant="outline"
+                    onClick={() => void runOptimize('suggest')}
+                    disabled={optimizeLoading}
+                  >
+                    {optimizeLoading ? 'Procesando...' : 'Suggest'}
+                  </StudioButton>
+                  <StudioButton
+                    size="sm"
+                    onClick={() => void runOptimize('apply')}
+                    disabled={optimizeLoading}
+                  >
+                    Apply
+                  </StudioButton>
+                </div>
+              </div>
+
+              {!activeBrief || activeBrief.status !== 'approved' ? (
+                <p className="text-xs text-[var(--studio-warning)]">
+                  Requiere brief aprobado para ejecutar optimize.
+                </p>
+              ) : null}
+
+              {transactionalType ? (
+                <div className="text-xs text-[var(--studio-text-muted)] border border-[var(--studio-border)] rounded p-2">
+                  Guardrail activo: `package/activity` solo permite SEO layer (title/description/keyword + intro/highlights/faq).
+                </div>
+              ) : null}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs text-[var(--studio-text-muted)]">SEO title</label>
+                  <StudioInput value={seoTitle} onChange={(event) => setSeoTitle(event.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-[var(--studio-text-muted)]">Target keyword</label>
+                  <StudioInput value={targetKeyword} onChange={(event) => setTargetKeyword(event.target.value)} />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-[var(--studio-text-muted)]">SEO description</label>
+                <StudioTextarea value={seoDescription} onChange={(event) => setSeoDescription(event.target.value)} rows={3} />
+              </div>
+
+              {transactionalType ? (
+                <>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[var(--studio-text-muted)]">SEO intro</label>
+                    <StudioTextarea value={seoIntro} onChange={(event) => setSeoIntro(event.target.value)} rows={3} />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[var(--studio-text-muted)]">SEO highlights (one per line)</label>
+                    <StudioTextarea value={seoHighlights} onChange={(event) => setSeoHighlights(event.target.value)} rows={4} />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[var(--studio-text-muted)]">SEO FAQ questions (one per line)</label>
+                    <StudioTextarea value={seoFaq} onChange={(event) => setSeoFaq(event.target.value)} rows={4} />
+                  </div>
+                </>
+              ) : null}
+
+              {optimizeSourceMeta ? (
+                <SeoTrustState source={optimizeSourceMeta.source} fetchedAt={optimizeSourceMeta.fetchedAt} confidence={optimizeSourceMeta.confidence} />
+              ) : null}
+
+              {optimizeError ? (
+                <p className="text-sm text-[var(--studio-danger)]">{optimizeError}</p>
+              ) : null}
+
+              {optimizeSuggestions.length > 0 ? (
+                <div className="space-y-2">
+                  {optimizeSuggestions.map((suggestion) => (
+                    <div key={suggestion.id} className="border border-[var(--studio-border)] rounded p-3">
+                      <p className="text-sm font-medium text-[var(--studio-text)]">{suggestion.field}</p>
+                      <p className="text-xs text-[var(--studio-text-muted)]">Before: {suggestion.before || 'n/a'}</p>
+                      <p className="text-xs text-[var(--studio-text)]">After: {suggestion.after}</p>
+                      <p className="text-xs text-[var(--studio-text-muted)]">
+                        Score {suggestion.scoreBefore} → {suggestion.scoreAfter}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+
+              {optimizeApplyResult ? (
+                <div className="border border-[var(--studio-border)] rounded p-3">
+                  <p className="text-sm font-medium text-[var(--studio-text)]">Apply result</p>
+                  <p className="text-xs text-[var(--studio-text-muted)]">
+                    Score {optimizeApplyResult.scoreBefore ?? 'n/a'} → {optimizeApplyResult.scoreAfter ?? 'n/a'}
+                  </p>
+                  <p className="text-xs text-[var(--studio-text-muted)]">
+                    Action {optimizeApplyResult.actionId} · {new Date(optimizeApplyResult.createdAt).toLocaleString()}
+                  </p>
+                </div>
+              ) : null}
+            </>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'translate' && (
+        <div className="space-y-4 studio-card p-4">
+          {!translateEnabled ? (
+            <p className="text-sm text-[var(--studio-text-muted)]">
+              Translate está disponible para blog/page/destination.
+            </p>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs text-[var(--studio-text-muted)]">Source locale</label>
+                  <StudioInput value={locale} disabled />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-[var(--studio-text-muted)]">Target locale</label>
+                  <StudioInput value={targetLocale} onChange={(event) => setTargetLocale(event.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-[var(--studio-text-muted)]">Country</label>
+                  <StudioInput value={targetCountry} onChange={(event) => setTargetCountry(event.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-[var(--studio-text-muted)]">Language</label>
+                  <StudioInput value={targetLanguage} onChange={(event) => setTargetLanguage(event.target.value)} />
+                </div>
+                <div className="space-y-1 md:col-span-2">
+                  <label className="text-xs text-[var(--studio-text-muted)]">Target content id (optional)</label>
+                  <StudioInput value={targetContentId} onChange={(event) => setTargetContentId(event.target.value)} />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs text-[var(--studio-text-muted)]">Draft title</label>
+                  <StudioInput value={translateTitle} onChange={(event) => setTranslateTitle(event.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-[var(--studio-text-muted)]">Draft SEO title</label>
+                  <StudioInput value={translateSeoTitle} onChange={(event) => setTranslateSeoTitle(event.target.value)} />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-[var(--studio-text-muted)]">Draft SEO description</label>
+                <StudioTextarea value={translateSeoDescription} onChange={(event) => setTranslateSeoDescription(event.target.value)} rows={3} />
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <StudioButton onClick={() => void handleTranscreateAction('create_draft')} disabled={translateLoading}>
+                  {translateLoading ? 'Procesando...' : 'Create Draft'}
+                </StudioButton>
+                <StudioButton
+                  variant="outline"
+                  onClick={() => void handleTranscreateAction('review')}
+                  disabled={translateLoading || !translateJobId}
+                >
+                  Mark Reviewed
+                </StudioButton>
+                <StudioButton
+                  variant="outline"
+                  onClick={() => void handleTranscreateAction('apply')}
+                  disabled={translateLoading || !translateJobId}
+                >
+                  Apply
+                </StudioButton>
+              </div>
+
+              {translateJobId ? (
+                <p className="text-xs text-[var(--studio-text-muted)]">Job ID: {translateJobId}</p>
+              ) : null}
+
+              {translateStatus ? (
+                <StudioBadge tone={translateStatus === 'applied' ? 'success' : translateStatus === 'reviewed' ? 'info' : 'warning'}>
+                  {translateStatus}
+                </StudioBadge>
+              ) : null}
+
+              {variantStatus ? (
+                <div className="space-y-1">
+                  <StudioBadge tone={variantStatus === 'applied' ? 'success' : variantStatus === 'reviewed' ? 'info' : 'warning'}>
+                    Variant: {variantStatus}
+                  </StudioBadge>
+                  {variantSourceMeta ? (
+                    <SeoTrustState source={variantSourceMeta.source} fetchedAt={variantSourceMeta.fetchedAt} confidence={variantSourceMeta.confidence} />
+                  ) : null}
+                </div>
+              ) : null}
+
+              {translateSourceMeta ? (
+                <SeoTrustState source={translateSourceMeta.source} fetchedAt={translateSourceMeta.fetchedAt} confidence={translateSourceMeta.confidence} />
+              ) : null}
+
+              {translateError ? (
+                <p className="text-sm text-[var(--studio-danger)]">{translateError}</p>
+              ) : null}
+            </>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'track' && (
+        <div className="space-y-4 studio-card p-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <div className="space-y-1">
+              <label className="text-xs text-[var(--studio-text-muted)]">From</label>
+              <StudioInput type="date" value={trackFrom} onChange={(event) => setTrackFrom(event.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-[var(--studio-text-muted)]">To</label>
+              <StudioInput type="date" value={trackTo} onChange={(event) => setTrackTo(event.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-[var(--studio-text-muted)]">Locale</label>
+              <StudioInput value={locale} onChange={(event) => setLocale(event.target.value)} />
+            </div>
+            <div className="flex items-end">
+              <StudioButton onClick={() => void loadTrack()} disabled={trackLoading}>
+                {trackLoading ? 'Loading...' : 'Load Track'}
+              </StudioButton>
+            </div>
+          </div>
+
+          {trackWarning ? (
+            <div className="text-xs text-[var(--studio-warning)] border border-[var(--studio-warning)]/30 rounded p-2">
+              {trackWarning.code}: {trackWarning.message}
+            </div>
+          ) : null}
+          {trackError ? (
+            <p className="text-sm text-[var(--studio-danger)]">{trackError}</p>
+          ) : null}
+          {trackSourceMeta ? (
+            <SeoTrustState source={trackSourceMeta.source} fetchedAt={trackSourceMeta.fetchedAt} confidence={trackSourceMeta.confidence} />
+          ) : null}
+
+          <div className="border border-[var(--studio-border)] rounded p-3 overflow-x-auto">
+            <p className="text-xs text-[var(--studio-text-muted)] mb-2">Page metrics (item scoped)</p>
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="text-left border-b border-[var(--studio-border)]">
+                  <th className="py-1">Date</th>
+                  <th className="py-1">Clicks</th>
+                  <th className="py-1">Impressions</th>
+                  <th className="py-1">CTR</th>
+                  <th className="py-1">Avg pos</th>
+                  <th className="py-1">Sessions</th>
+                  <th className="py-1">Conversions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {trackPageMetrics.map((metric) => (
+                  <tr key={`${metric.metric_date}-${metric.page_id}`} className="border-b border-[var(--studio-border)]/40">
+                    <td className="py-1">{metric.metric_date}</td>
+                    <td className="py-1">{metric.clicks}</td>
+                    <td className="py-1">{metric.impressions}</td>
+                    <td className="py-1">{(metric.ctr * 100).toFixed(2)}%</td>
+                    <td className="py-1">{metric.avg_position ?? '-'}</td>
+                    <td className="py-1">{metric.sessions}</td>
+                    <td className="py-1">{metric.conversions}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {trackPageMetrics.length === 0 ? (
+              <p className="text-xs text-[var(--studio-text-muted)] mt-2">No page metrics for selected range.</p>
+            ) : null}
+          </div>
+
+          <div className="border border-[var(--studio-border)] rounded p-3 overflow-x-auto">
+            <p className="text-xs text-[var(--studio-text-muted)] mb-2">Cluster metrics (locale scoped)</p>
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="text-left border-b border-[var(--studio-border)]">
+                  <th className="py-1">Date</th>
+                  <th className="py-1">Cluster</th>
+                  <th className="py-1">Clicks</th>
+                  <th className="py-1">Impressions</th>
+                  <th className="py-1">CTR</th>
+                  <th className="py-1">Avg pos</th>
+                  <th className="py-1">Pages tracked</th>
+                </tr>
+              </thead>
+              <tbody>
+                {trackClusterMetrics.map((metric) => (
+                  <tr key={`${metric.metric_date}-${metric.cluster_id}`} className="border-b border-[var(--studio-border)]/40">
+                    <td className="py-1">{metric.metric_date}</td>
+                    <td className="py-1">{metric.cluster_id}</td>
+                    <td className="py-1">{metric.clicks}</td>
+                    <td className="py-1">{metric.impressions}</td>
+                    <td className="py-1">{(metric.ctr * 100).toFixed(2)}%</td>
+                    <td className="py-1">{metric.avg_position ?? '-'}</td>
+                    <td className="py-1">{metric.pages_tracked}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {trackClusterMetrics.length === 0 ? (
+              <p className="text-xs text-[var(--studio-text-muted)] mt-2">No cluster metrics for selected range.</p>
+            ) : null}
           </div>
         </div>
       )}
