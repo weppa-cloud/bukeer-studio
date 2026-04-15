@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { StudioTabs, StudioButton, StudioBadge, StudioInput, StudioTextarea } from '@/components/studio/ui/primitives';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser-client';
@@ -13,11 +13,26 @@ import {
 } from '@/lib/seo/unified-scorer';
 import type { KeywordResearchDTO } from '@/lib/seo/dto';
 import { SeoContentScore } from '@/components/admin/seo-content-score';
+import { SeoTrustState } from '@/components/admin/seo-trust-state';
 
-type DetailTab = 'meta' | 'research' | 'audit' | 'technical' | 'preview' | 'score';
+type DetailTab =
+  | 'meta'
+  | 'brief'
+  | 'optimize'
+  | 'translate'
+  | 'track'
+  | 'research'
+  | 'audit'
+  | 'technical'
+  | 'preview'
+  | 'score';
 
 const TAB_OPTIONS: ReadonlyArray<{ id: DetailTab; label: string }> = [
   { id: 'meta', label: 'Meta & Keywords' },
+  { id: 'brief', label: 'Brief' },
+  { id: 'optimize', label: 'Optimize' },
+  { id: 'translate', label: 'Translate' },
+  { id: 'track', label: 'Track' },
   { id: 'research', label: 'Keyword Research' },
   { id: 'audit', label: 'Content Audit' },
   { id: 'technical', label: 'Technical' },
@@ -95,6 +110,68 @@ interface SeoItemDetailProps {
   }) => Promise<void>;
 }
 
+type SourceMeta = {
+  source: string;
+  fetchedAt: string;
+  confidence: 'live' | 'partial' | 'exploratory';
+};
+
+type BriefVersion = {
+  version: number;
+  change_reason: string | null;
+  created_at: string;
+};
+
+type BriefRow = {
+  id: string;
+  locale: string;
+  contentType: string;
+  pageType: SeoItemType;
+  pageId: string;
+  primaryKeyword: string;
+  secondaryKeywords: string[];
+  brief: Record<string, unknown>;
+  status: 'draft' | 'approved' | 'archived';
+  versions: BriefVersion[];
+  source: string;
+  fetchedAt: string;
+  confidence: 'live' | 'partial' | 'exploratory';
+};
+
+type OptimizeSuggestion = {
+  id: string;
+  field: string;
+  before: string;
+  after: string;
+  rationale: string;
+  scoreBefore: number;
+  scoreAfter: number;
+};
+
+type TrackPageMetric = {
+  metric_date: string;
+  locale: string;
+  page_type: string;
+  page_id: string;
+  clicks: number;
+  impressions: number;
+  ctr: number;
+  avg_position: number | null;
+  sessions: number;
+  conversions: number;
+};
+
+type TrackClusterMetric = {
+  metric_date: string;
+  locale: string;
+  cluster_id: string;
+  clicks: number;
+  impressions: number;
+  ctr: number;
+  avg_position: number | null;
+  pages_tracked: number;
+};
+
 function safeNumber(value: unknown) {
   if (typeof value === 'number' && Number.isFinite(value)) return value;
   return undefined;
@@ -111,6 +188,19 @@ function buildPackageContext(item: SeoItemDetailProps['item']) {
     exclusions: item.programExclusions ?? [],
     itineraryItems: item.itineraryItems ?? 0,
   };
+}
+
+function toContentType(itemType: SeoItemType): 'blog' | 'destination' | 'package' | 'activity' | 'page' | null {
+  if (itemType === 'blog') return 'blog';
+  if (itemType === 'destination') return 'destination';
+  if (itemType === 'package') return 'package';
+  if (itemType === 'activity') return 'activity';
+  if (itemType === 'page') return 'page';
+  return null;
+}
+
+function formatDateInput(date: Date): string {
+  return date.toISOString().slice(0, 10);
 }
 
 export function SeoItemDetail({
@@ -141,6 +231,58 @@ export function SeoItemDetail({
   const [researchLoading, setResearchLoading] = useState(false);
   const [researchError, setResearchError] = useState<string | null>(null);
   const [researchResult, setResearchResult] = useState<KeywordResearchDTO | null>(null);
+
+  const [briefRows, setBriefRows] = useState<BriefRow[]>([]);
+  const [briefLoading, setBriefLoading] = useState(false);
+  const [briefError, setBriefError] = useState<string | null>(null);
+  const [briefSourceMeta, setBriefSourceMeta] = useState<SourceMeta | null>(null);
+  const [briefPrimaryKeyword, setBriefPrimaryKeyword] = useState(item.targetKeyword ?? '');
+  const [briefSecondaryKeywords, setBriefSecondaryKeywords] = useState('');
+  const [briefSummary, setBriefSummary] = useState(item.seoDescription ?? item.descriptionShort ?? '');
+  const [briefActionLoading, setBriefActionLoading] = useState(false);
+
+  const [optimizeLoading, setOptimizeLoading] = useState(false);
+  const [optimizeError, setOptimizeError] = useState<string | null>(null);
+  const [optimizeSourceMeta, setOptimizeSourceMeta] = useState<SourceMeta | null>(null);
+  const [optimizeSuggestions, setOptimizeSuggestions] = useState<OptimizeSuggestion[]>([]);
+  const [seoIntro, setSeoIntro] = useState('');
+  const [seoHighlights, setSeoHighlights] = useState('');
+  const [seoFaq, setSeoFaq] = useState('');
+
+  const [translateLoading, setTranslateLoading] = useState(false);
+  const [translateError, setTranslateError] = useState<string | null>(null);
+  const [translateSourceMeta, setTranslateSourceMeta] = useState<SourceMeta | null>(null);
+  const [translateStatus, setTranslateStatus] = useState<'draft' | 'reviewed' | 'applied' | null>(null);
+  const [translateJobId, setTranslateJobId] = useState('');
+  const [targetLocale, setTargetLocale] = useState('en-US');
+  const [targetCountry, setTargetCountry] = useState('United States');
+  const [targetLanguage, setTargetLanguage] = useState('en');
+  const [targetContentId, setTargetContentId] = useState('');
+  const [translateTitle, setTranslateTitle] = useState(item.name);
+  const [translateSeoTitle, setTranslateSeoTitle] = useState(item.seoTitle ?? '');
+  const [translateSeoDescription, setTranslateSeoDescription] = useState(item.seoDescription ?? '');
+  const [variantStatus, setVariantStatus] = useState<string | null>(null);
+  const [variantSourceMeta, setVariantSourceMeta] = useState<SourceMeta | null>(null);
+
+  const today = useMemo(() => new Date(), []);
+  const [trackFrom, setTrackFrom] = useState(formatDateInput(new Date(today.getTime() - 1000 * 60 * 60 * 24 * 30)));
+  const [trackTo, setTrackTo] = useState(formatDateInput(today));
+  const [trackLoading, setTrackLoading] = useState(false);
+  const [trackError, setTrackError] = useState<string | null>(null);
+  const [trackSourceMeta, setTrackSourceMeta] = useState<SourceMeta | null>(null);
+  const [trackWarning, setTrackWarning] = useState<{ code: string; message: string } | null>(null);
+  const [trackPageMetrics, setTrackPageMetrics] = useState<TrackPageMetric[]>([]);
+  const [trackClusterMetrics, setTrackClusterMetrics] = useState<TrackClusterMetric[]>([]);
+
+  const contentType = useMemo(() => toContentType(item.type), [item.type]);
+  const translateEnabled = item.type === 'blog' || item.type === 'page' || item.type === 'destination';
+  const optimizeEnabled = item.type === 'blog' || item.type === 'destination' || item.type === 'package' || item.type === 'activity' || item.type === 'page';
+  const transactionalType = item.type === 'package' || item.type === 'activity';
+  const tabOptions = useMemo(
+    () => TAB_OPTIONS.filter((tab) => (tab.id === 'translate' ? translateEnabled : true)),
+    [translateEnabled],
+  );
+  const activeBrief = briefRows[0] ?? null;
 
   const scoringInput: SeoScoringInput = useMemo(
     () => ({
@@ -176,6 +318,18 @@ export function SeoItemDetail({
     () => scoreItemSeo(scoringInput),
     [scoringInput]
   );
+
+  useEffect(() => {
+    if (activeTab !== 'brief') return;
+    loadBriefs().catch(() => undefined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, locale, item.id, item.type, contentType]);
+
+  useEffect(() => {
+    if (!translateEnabled) return;
+    loadVariantStatus().catch(() => undefined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [translateEnabled, targetLocale, item.id, item.type, websiteId]);
 
   const jsonLd = useMemo(
     () => ({
@@ -312,6 +466,318 @@ export function SeoItemDetail({
     }
   }
 
+  async function loadBriefs() {
+    if (!contentType) return;
+    setBriefLoading(true);
+    setBriefError(null);
+    try {
+      const params = new URLSearchParams({
+        websiteId,
+        pageType: item.type,
+        pageId: item.id,
+        locale,
+      });
+      const response = await fetch(`/api/seo/content-intelligence/briefs?${params.toString()}`, { cache: 'no-store' });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok || !body.success) {
+        throw new Error(body?.error?.message || 'No se pudo cargar briefs');
+      }
+      const payload = body.data as {
+        rows: BriefRow[];
+        sourceMeta?: SourceMeta;
+      };
+      setBriefRows(payload.rows ?? []);
+      setBriefSourceMeta(payload.sourceMeta ?? null);
+    } catch (err) {
+      setBriefError(err instanceof Error ? err.message : 'No se pudo cargar briefs');
+    } finally {
+      setBriefLoading(false);
+    }
+  }
+
+  async function handleCreateBrief() {
+    if (!contentType) {
+      setBriefError('Brief no habilitado para este tipo de item');
+      return;
+    }
+    setBriefActionLoading(true);
+    setBriefError(null);
+    try {
+      const secondary = briefSecondaryKeywords
+        .split(',')
+        .map((keyword) => keyword.trim())
+        .filter(Boolean);
+      const response = await fetch('/api/seo/content-intelligence/briefs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'create',
+          websiteId,
+          locale,
+          contentType,
+          pageType: item.type,
+          pageId: item.id,
+          primaryKeyword: briefPrimaryKeyword || targetKeyword || item.name,
+          secondaryKeywords: secondary,
+          brief: {
+            summary: briefSummary,
+            objective: `Optimizar ${item.type} para intención SEO`,
+            sourceTitle: item.name,
+          },
+          changeReason: 'manual-create',
+        }),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok || !body.success) {
+        throw new Error(body?.error?.message || 'No se pudo crear brief');
+      }
+      await loadBriefs();
+    } catch (err) {
+      setBriefError(err instanceof Error ? err.message : 'No se pudo crear brief');
+    } finally {
+      setBriefActionLoading(false);
+    }
+  }
+
+  async function handleBriefTransition(action: 'approve' | 'archive') {
+    if (!activeBrief) {
+      setBriefError('No hay brief para cambiar estado');
+      return;
+    }
+    setBriefActionLoading(true);
+    setBriefError(null);
+    try {
+      const response = await fetch('/api/seo/content-intelligence/briefs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action,
+          websiteId,
+          briefId: activeBrief.id,
+        }),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok || !body.success) {
+        throw new Error(body?.error?.message || `No se pudo ejecutar ${action}`);
+      }
+      await loadBriefs();
+    } catch (err) {
+      setBriefError(err instanceof Error ? err.message : `No se pudo ejecutar ${action}`);
+    } finally {
+      setBriefActionLoading(false);
+    }
+  }
+
+  async function handleBriefRollback(version: number) {
+    if (!activeBrief) {
+      setBriefError('No hay brief para rollback');
+      return;
+    }
+    setBriefActionLoading(true);
+    setBriefError(null);
+    try {
+      const response = await fetch('/api/seo/content-intelligence/briefs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'rollback',
+          websiteId,
+          briefId: activeBrief.id,
+          version,
+          changeReason: 'manual-rollback',
+        }),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok || !body.success) {
+        throw new Error(body?.error?.message || 'No se pudo hacer rollback');
+      }
+      await loadBriefs();
+    } catch (err) {
+      setBriefError(err instanceof Error ? err.message : 'No se pudo hacer rollback');
+    } finally {
+      setBriefActionLoading(false);
+    }
+  }
+
+  function buildOptimizePatch() {
+    const patch: Record<string, unknown> = {};
+    if (seoTitle.trim()) patch.seoTitle = seoTitle.trim();
+    if (seoDescription.trim()) patch.seoDescription = seoDescription.trim();
+    if (targetKeyword.trim()) patch.targetKeyword = targetKeyword.trim();
+
+    if (transactionalType) {
+      if (seoIntro.trim()) patch.seo_intro = seoIntro.trim();
+      const highlights = seoHighlights
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean);
+      if (highlights.length > 0) patch.seo_highlights = highlights;
+      const faq = seoFaq
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .map((line) => ({ question: line, answer: '' }));
+      if (faq.length > 0) patch.seo_faq = faq;
+    }
+
+    return patch;
+  }
+
+  async function runOptimize(mode: 'suggest' | 'apply') {
+    if (!optimizeEnabled) {
+      setOptimizeError('Optimize no habilitado para este tipo de item');
+      return;
+    }
+    setOptimizeLoading(true);
+    setOptimizeError(null);
+    try {
+      const response = await fetch('/api/seo/content-intelligence/optimize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          websiteId,
+          itemType: item.type,
+          itemId: item.id,
+          locale,
+          mode,
+          briefId: activeBrief?.id ?? undefined,
+          patch: buildOptimizePatch(),
+        }),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok || !body.success) {
+        throw new Error(body?.error?.message || `No se pudo ${mode === 'suggest' ? 'sugerir' : 'aplicar'} optimize`);
+      }
+      const payload = body.data as {
+        suggestions?: OptimizeSuggestion[];
+        sourceMeta?: SourceMeta;
+      };
+      setOptimizeSourceMeta(payload.sourceMeta ?? null);
+      if (mode === 'suggest') {
+        setOptimizeSuggestions(payload.suggestions ?? []);
+      } else {
+        setOptimizeSuggestions([]);
+      }
+    } catch (err) {
+      setOptimizeError(err instanceof Error ? err.message : 'Optimize falló');
+    } finally {
+      setOptimizeLoading(false);
+    }
+  }
+
+  async function loadVariantStatus() {
+    if (!translateEnabled) return;
+    const supabase = createSupabaseBrowserClient();
+    const { data } = await supabase
+      .from('seo_localized_variants')
+      .select('status, source, fetched_at, confidence')
+      .eq('website_id', websiteId)
+      .eq('page_type', item.type)
+      .eq('source_entity_id', item.id)
+      .eq('target_locale', targetLocale)
+      .maybeSingle();
+    if (!data) {
+      setVariantStatus(null);
+      setVariantSourceMeta(null);
+      return;
+    }
+    setVariantStatus((data.status as string) ?? null);
+    setVariantSourceMeta({
+      source: String(data.source ?? 'database'),
+      fetchedAt: String(data.fetched_at ?? new Date().toISOString()),
+      confidence: (data.confidence as SourceMeta['confidence']) ?? 'partial',
+    });
+  }
+
+  async function handleTranscreateAction(action: 'create_draft' | 'review' | 'apply') {
+    if (!translateEnabled) {
+      setTranslateError('Translate no habilitado para este tipo de item');
+      return;
+    }
+    if (action !== 'create_draft' && !translateJobId) {
+      setTranslateError('Debes crear draft primero');
+      return;
+    }
+    setTranslateLoading(true);
+    setTranslateError(null);
+    try {
+      const response = await fetch('/api/seo/content-intelligence/transcreate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action,
+          websiteId,
+          sourceContentId: item.id,
+          targetContentId: targetContentId || undefined,
+          pageType: item.type,
+          sourceLocale: locale,
+          targetLocale,
+          country: targetCountry,
+          language: targetLanguage,
+          sourceKeyword: targetKeyword || undefined,
+          targetKeyword: targetKeyword || undefined,
+          draft: {
+            title: translateTitle,
+            seoTitle: translateSeoTitle,
+            seoDescription: translateSeoDescription,
+          },
+          jobId: translateJobId || undefined,
+        }),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok || !body.success) {
+        throw new Error(body?.error?.message || `No se pudo ejecutar ${action}`);
+      }
+      const payload = body.data as {
+        job?: { id: string; status: 'draft' | 'reviewed' | 'applied' };
+        sourceMeta?: SourceMeta;
+      };
+      if (payload.job?.id) setTranslateJobId(payload.job.id);
+      if (payload.job?.status) setTranslateStatus(payload.job.status);
+      setTranslateSourceMeta(payload.sourceMeta ?? null);
+      await loadVariantStatus();
+    } catch (err) {
+      setTranslateError(err instanceof Error ? err.message : `No se pudo ejecutar ${action}`);
+    } finally {
+      setTranslateLoading(false);
+    }
+  }
+
+  async function loadTrack() {
+    setTrackLoading(true);
+    setTrackError(null);
+    try {
+      const params = new URLSearchParams({
+        websiteId,
+        from: trackFrom,
+        to: trackTo,
+        locale,
+      });
+      if (contentType) params.set('contentType', contentType);
+      const response = await fetch(`/api/seo/content-intelligence/track?${params.toString()}`, { cache: 'no-store' });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok || !body.success) {
+        throw new Error(body?.error?.message || 'No se pudo cargar tracking');
+      }
+      const payload = body.data as {
+        pageMetrics: TrackPageMetric[];
+        clusterMetrics: TrackClusterMetric[];
+        sourceMeta?: SourceMeta;
+        warning?: { code: string; message: string } | null;
+      };
+      setTrackSourceMeta(payload.sourceMeta ?? null);
+      setTrackWarning(payload.warning ?? null);
+      setTrackPageMetrics(
+        (payload.pageMetrics ?? []).filter((metric) => metric.page_id === item.id && metric.page_type === item.type),
+      );
+      setTrackClusterMetrics(payload.clusterMetrics ?? []);
+    } catch (err) {
+      setTrackError(err instanceof Error ? err.message : 'No se pudo cargar tracking');
+    } finally {
+      setTrackLoading(false);
+    }
+  }
+
   function renderCheckGroup(title: string, checks: SeoCheck[]) {
     return (
       <div className="space-y-2">
@@ -373,7 +839,7 @@ export function SeoItemDetail({
         </div>
       </div>
 
-      <StudioTabs value={activeTab} onChange={(value) => setActiveTab(value as DetailTab)} options={TAB_OPTIONS} />
+      <StudioTabs value={activeTab} onChange={(value) => setActiveTab(value as DetailTab)} options={tabOptions} />
 
       {activeTab === 'meta' && (
         <div className="space-y-4 studio-card p-4">

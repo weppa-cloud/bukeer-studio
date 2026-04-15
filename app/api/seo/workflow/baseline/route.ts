@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireWebsiteAccess } from '@/lib/seo/server-auth';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/service-role';
-import { SeoApiError, toErrorResponse } from '@/lib/seo/errors';
+import { SeoApiError } from '@/lib/seo/errors';
+import { apiError, apiSuccess } from '@/lib/api/response';
+import { withNoStoreHeaders } from '@/lib/seo/content-intelligence';
 
-const itemTypeSchema = z.enum(['hotel', 'activity', 'package', 'destination', 'blog']);
+const itemTypeSchema = z.enum(['hotel', 'activity', 'package', 'destination', 'blog', 'page']);
 
 const querySchema = z.object({
   websiteId: z.string().uuid(),
@@ -79,10 +81,12 @@ export async function GET(request: NextRequest) {
       throw new SeoApiError('VALIDATION_ERROR', 'Failed to load baseline', 400, error.message);
     }
 
-    return NextResponse.json({ baseline: mapBaseline(data ?? null) });
+    return withNoStoreHeaders(apiSuccess({ baseline: mapBaseline(data ?? null) }));
   } catch (error) {
-    const mapped = toErrorResponse(error);
-    return NextResponse.json(mapped.body, { status: mapped.status });
+    if (error instanceof SeoApiError) {
+      return withNoStoreHeaders(apiError(error.code, error.message, error.status, error.details));
+    }
+    return withNoStoreHeaders(apiError('INTERNAL_ERROR', 'Internal server error', 500));
   }
 }
 
@@ -116,9 +120,11 @@ export async function POST(request: NextRequest) {
       throw new SeoApiError('VALIDATION_ERROR', 'Failed to save baseline', 400, error?.message);
     }
 
-    return NextResponse.json({ baseline: mapBaseline(data) });
+    return withNoStoreHeaders(apiSuccess({ baseline: mapBaseline(data) }));
   } catch (error) {
-    const mapped = toErrorResponse(error);
-    return NextResponse.json(mapped.body, { status: mapped.status });
+    if (error instanceof SeoApiError) {
+      return withNoStoreHeaders(apiError(error.code, error.message, error.status, error.details));
+    }
+    return withNoStoreHeaders(apiError('INTERNAL_ERROR', 'Internal server error', 500));
   }
 }
