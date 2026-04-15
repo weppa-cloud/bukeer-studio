@@ -11,6 +11,8 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default: "bg-primary text-primary-foreground [a]:hover:bg-primary/80",
+        emerald: "bg-emerald-600 text-white hover:bg-emerald-700",
+        colombia: "bg-[hsl(var(--accent))] text-[hsl(var(--accent-foreground,0_0%_100%))] hover:opacity-90",
         outline:
           "border-border bg-background hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
         secondary:

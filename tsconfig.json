@@ -41,17 +41,24 @@
     }
   },
   "include": [
-    "**/*.ts",
-    "**/*.tsx",
-    ".next-epic86-e2e/types/**/*.ts",
-    ".next-epic86-e2e2/types/**/*.ts",
-    ".next-epic86/types/**/*.ts",
-    ".next-s1/types/**/*.ts",
-    ".next/types/**/*.ts",
     "next-env.d.ts",
-    ".next-epic86-e2e3/types/**/*.ts"
+    "app/**/*.ts",
+    "app/**/*.tsx",
+    "components/**/*.ts",
+    "components/**/*.tsx",
+    "lib/**/*.ts",
+    "lib/**/*.tsx",
+    "packages/**/*.ts",
+    "packages/**/*.tsx",
+    "__tests__/**/*.ts",
+    "__tests__/**/*.tsx",
+    ".next/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "themes/references/**",
+    ".next-*/**",
+    "playwright-report/**",
+    "test-results/**"
   ]
 }

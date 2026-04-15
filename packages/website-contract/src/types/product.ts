@@ -28,6 +28,7 @@ export interface ProductData {
 
   // Activity-specific
   duration_minutes?: number;
+  duration?: string;
 
   // Transfer-specific
   from_location?: string;
@@ -49,8 +50,10 @@ export interface ProductData {
   review_count?: number;
 
   // Pricing (from RPC — hotel_rates / activities_rates / itineraries.total)
-  price?: number;
+  price?: number | string;
   currency?: string;
+  includes?: string[] | string;
+  excludes?: string[] | string;
 }
 
 export interface ProductPageCustomization {

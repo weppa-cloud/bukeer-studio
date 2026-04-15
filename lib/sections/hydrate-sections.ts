@@ -15,19 +15,19 @@ type ProductSectionType = (typeof PRODUCT_SECTION_ORDER)[number];
 
 export interface HydrationInput {
   enabledSections: WebsiteSection[];
-  sectionDynamicDestinations: Array<Record<string, unknown>>;
-  packageItems: Array<Record<string, unknown>>;
-  activityItems: Array<Record<string, unknown>>;
-  hotelItems: Array<Record<string, unknown>>;
+  sectionDynamicDestinations: Array<unknown>;
+  packageItems: Array<unknown>;
+  activityItems: Array<unknown>;
+  hotelItems: Array<unknown>;
   googleReviews: {
     reviews: Array<{
       author_name: string;
-      author_photo?: string;
+      author_photo?: string | null;
       text: string;
       rating: number;
-      relative_time: string;
+      relative_time: string | null;
       images?: string[];
-      response?: string;
+      response?: string | { text: string; date: string };
       is_visible?: boolean;
     }>;
     average_rating: number;
@@ -40,7 +40,7 @@ export interface HydrationInput {
 function buildAutoProductSection(
   sectionType: ProductSectionType,
   displayOrder: number,
-  items: Array<Record<string, unknown>>
+  items: Array<unknown>
 ): WebsiteSection | null {
   if (items.length === 0) return null;
 
@@ -185,7 +185,7 @@ export function hydrateSections(input: HydrationInput): WebsiteSection[] {
 
   // 3. Order product sections
   const sectionByType = new Map(hydratedSections.map((section) => [section.section_type, section]));
-  const autoItemsByType: Record<ProductSectionType, Array<Record<string, unknown>>> = {
+  const autoItemsByType: Record<ProductSectionType, Array<unknown>> = {
     [SECTION_PACKAGES]: packageItems,
     [SECTION_ACTIVITIES]: activityItems,
     [SECTION_HOTELS]: hotelItems,
