@@ -9,7 +9,7 @@ async function ensureClusterOwnership(clusterId: string, websiteId: string) {
   const admin = createSupabaseServiceRoleClient();
   const { data: cluster, error } = await admin
     .from('seo_clusters')
-    .select('id, website_id, locale, status')
+    .select('id, website_id, locale, status, activated_at')
     .eq('id', clusterId)
     .single();
   if (error || !cluster || cluster.website_id !== websiteId) return null;

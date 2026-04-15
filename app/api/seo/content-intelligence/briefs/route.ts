@@ -27,128 +27,135 @@ export async function POST(request: NextRequest) {
   const admin = createSupabaseServiceRoleClient();
   const sourceMeta = buildSourceMeta('seo-content-intelligence/briefs', 'live');
 
-  if (parsed.data.action === 'create') {
-    const { data: brief, error: briefError } = await admin
-      .from('seo_briefs')
-      .insert({
-        website_id: parsed.data.websiteId,
-        locale: parsed.data.locale,
-        content_type: parsed.data.contentType,
-        page_type: parsed.data.pageType,
-        page_id: parsed.data.pageId,
-        cluster_id: parsed.data.clusterId ?? null,
-        primary_keyword: parsed.data.primaryKeyword,
-        secondary_keywords: parsed.data.secondaryKeywords,
+  switch (parsed.data.action) {
+    case 'create': {
+      const { data: brief, error: briefError } = await admin
+        .from('seo_briefs')
+        .insert({
+          website_id: parsed.data.websiteId,
+          locale: parsed.data.locale,
+          content_type: parsed.data.contentType,
+          page_type: parsed.data.pageType,
+          page_id: parsed.data.pageId,
+          cluster_id: parsed.data.clusterId ?? null,
+          primary_keyword: parsed.data.primaryKeyword,
+          secondary_keywords: parsed.data.secondaryKeywords,
+          brief: parsed.data.brief,
+          status: 'draft',
+          source: sourceMeta.source,
+          fetched_at: sourceMeta.fetchedAt,
+          confidence: sourceMeta.confidence,
+          created_by: access.userId,
+        })
+        .select('id, status, locale, page_type, page_id, primary_keyword, updated_at')
+        .single();
+      if (briefError || !brief) {
+        return withNoStoreHeaders(apiError('INTERNAL_ERROR', 'Unable to create brief', 500, briefError?.message));
+      }
+
+      await admin.from('seo_brief_versions').insert({
+        brief_id: brief.id,
+        version: 1,
         brief: parsed.data.brief,
-        status: 'draft',
+        change_reason: parsed.data.changeReason ?? 'initial',
         source: sourceMeta.source,
         fetched_at: sourceMeta.fetchedAt,
         confidence: sourceMeta.confidence,
         created_by: access.userId,
-      })
-      .select('id, status, locale, page_type, page_id, primary_keyword, updated_at')
-      .single();
-    if (briefError || !brief) {
-      return withNoStoreHeaders(apiError('INTERNAL_ERROR', 'Unable to create brief', 500, briefError?.message));
+      });
+
+      return withNoStoreHeaders(apiSuccess({ brief, sourceMeta }));
     }
 
-    await admin.from('seo_brief_versions').insert({
-      brief_id: brief.id,
-      version: 1,
-      brief: parsed.data.brief,
-      change_reason: parsed.data.changeReason ?? 'initial',
-      source: sourceMeta.source,
-      fetched_at: sourceMeta.fetchedAt,
-      confidence: sourceMeta.confidence,
-      created_by: access.userId,
-    });
+    case 'approve':
+    case 'archive': {
+      const status = parsed.data.action === 'approve' ? 'approved' : 'archived';
+      const payload: Record<string, unknown> = {
+        status,
+        updated_at: new Date().toISOString(),
+        source: sourceMeta.source,
+        fetched_at: sourceMeta.fetchedAt,
+        confidence: sourceMeta.confidence,
+      };
+      if (status === 'approved') payload.approved_by = access.userId;
 
-    return withNoStoreHeaders(apiSuccess({ brief, sourceMeta }));
-  }
+      const { data: brief, error: updateError } = await admin
+        .from('seo_briefs')
+        .update(payload)
+        .eq('id', parsed.data.briefId)
+        .eq('website_id', parsed.data.websiteId)
+        .select('id, status, locale, page_type, page_id, updated_at')
+        .single();
+      if (updateError || !brief) {
+        return withNoStoreHeaders(apiError('INTERNAL_ERROR', 'Unable to transition brief', 500, updateError?.message));
+      }
 
-  if (parsed.data.action === 'approve' || parsed.data.action === 'archive') {
-    const status = parsed.data.action === 'approve' ? 'approved' : 'archived';
-    const payload: Record<string, unknown> = {
-      status,
-      updated_at: new Date().toISOString(),
-      source: sourceMeta.source,
-      fetched_at: sourceMeta.fetchedAt,
-      confidence: sourceMeta.confidence,
-    };
-    if (status === 'approved') payload.approved_by = access.userId;
+      const { data: current } = await admin
+        .from('seo_briefs')
+        .select('brief')
+        .eq('id', parsed.data.briefId)
+        .maybeSingle();
+      const version = await nextVersion(admin, parsed.data.briefId);
+      await admin.from('seo_brief_versions').insert({
+        brief_id: parsed.data.briefId,
+        version,
+        brief: current?.brief ?? {},
+        change_reason: status,
+        source: sourceMeta.source,
+        fetched_at: sourceMeta.fetchedAt,
+        confidence: sourceMeta.confidence,
+        created_by: access.userId,
+      });
 
-    const { data: brief, error: updateError } = await admin
-      .from('seo_briefs')
-      .update(payload)
-      .eq('id', parsed.data.briefId)
-      .eq('website_id', parsed.data.websiteId)
-      .select('id, status, locale, page_type, page_id, updated_at')
-      .single();
-    if (updateError || !brief) {
-      return withNoStoreHeaders(apiError('INTERNAL_ERROR', 'Unable to transition brief', 500, updateError?.message));
+      return withNoStoreHeaders(apiSuccess({ brief, sourceMeta }));
     }
 
-    const { data: current } = await admin
-      .from('seo_briefs')
-      .select('brief')
-      .eq('id', parsed.data.briefId)
-      .maybeSingle();
-    const version = await nextVersion(admin, parsed.data.briefId);
-    await admin.from('seo_brief_versions').insert({
-      brief_id: parsed.data.briefId,
-      version,
-      brief: current?.brief ?? {},
-      change_reason: status,
-      source: sourceMeta.source,
-      fetched_at: sourceMeta.fetchedAt,
-      confidence: sourceMeta.confidence,
-      created_by: access.userId,
-    });
+    case 'rollback': {
+      const { data: versionRow, error: versionError } = await admin
+        .from('seo_brief_versions')
+        .select('brief')
+        .eq('brief_id', parsed.data.briefId)
+        .eq('version', parsed.data.version)
+        .maybeSingle();
+      if (versionError || !versionRow) {
+        return withNoStoreHeaders(apiError('NOT_FOUND', 'Requested brief version was not found', 404));
+      }
 
-    return withNoStoreHeaders(apiSuccess({ brief, sourceMeta }));
+      const { data: updatedBrief, error: rollbackError } = await admin
+        .from('seo_briefs')
+        .update({
+          brief: versionRow.brief,
+          status: 'draft',
+          updated_at: new Date().toISOString(),
+          source: sourceMeta.source,
+          fetched_at: sourceMeta.fetchedAt,
+          confidence: sourceMeta.confidence,
+        })
+        .eq('id', parsed.data.briefId)
+        .eq('website_id', parsed.data.websiteId)
+        .select('id, status, locale, page_type, page_id, updated_at')
+        .single();
+      if (rollbackError || !updatedBrief) {
+        return withNoStoreHeaders(apiError('INTERNAL_ERROR', 'Unable to rollback brief', 500, rollbackError?.message));
+      }
+
+      const version = await nextVersion(admin, parsed.data.briefId);
+      await admin.from('seo_brief_versions').insert({
+        brief_id: parsed.data.briefId,
+        version,
+        brief: versionRow.brief,
+        change_reason: parsed.data.changeReason ?? `rollback:v${parsed.data.version}`,
+        source: sourceMeta.source,
+        fetched_at: sourceMeta.fetchedAt,
+        confidence: sourceMeta.confidence,
+        created_by: access.userId,
+      });
+
+      return withNoStoreHeaders(apiSuccess({ brief: updatedBrief, sourceMeta }));
+    }
   }
 
-  const { data: versionRow, error: versionError } = await admin
-    .from('seo_brief_versions')
-    .select('brief')
-    .eq('brief_id', parsed.data.briefId)
-    .eq('version', parsed.data.version)
-    .maybeSingle();
-  if (versionError || !versionRow) {
-    return withNoStoreHeaders(apiError('NOT_FOUND', 'Requested brief version was not found', 404));
-  }
-
-  const { data: updatedBrief, error: rollbackError } = await admin
-    .from('seo_briefs')
-    .update({
-      brief: versionRow.brief,
-      status: 'draft',
-      updated_at: new Date().toISOString(),
-      source: sourceMeta.source,
-      fetched_at: sourceMeta.fetchedAt,
-      confidence: sourceMeta.confidence,
-    })
-    .eq('id', parsed.data.briefId)
-    .eq('website_id', parsed.data.websiteId)
-    .select('id, status, locale, page_type, page_id, updated_at')
-    .single();
-  if (rollbackError || !updatedBrief) {
-    return withNoStoreHeaders(apiError('INTERNAL_ERROR', 'Unable to rollback brief', 500, rollbackError?.message));
-  }
-
-  const version = await nextVersion(admin, parsed.data.briefId);
-  await admin.from('seo_brief_versions').insert({
-    brief_id: parsed.data.briefId,
-    version,
-    brief: versionRow.brief,
-    change_reason: parsed.data.changeReason ?? `rollback:v${parsed.data.version}`,
-    source: sourceMeta.source,
-    fetched_at: sourceMeta.fetchedAt,
-    confidence: sourceMeta.confidence,
-    created_by: access.userId,
-  });
-
-  return withNoStoreHeaders(apiSuccess({ brief: updatedBrief, sourceMeta }));
+  return withNoStoreHeaders(apiError('VALIDATION_ERROR', 'Unsupported brief action', 400));
 }
 
 export async function GET(request: NextRequest) {
@@ -167,7 +174,9 @@ export async function GET(request: NextRequest) {
 
   let query = admin
     .from('seo_briefs')
-    .select('id, locale, content_type, page_type, page_id, cluster_id, primary_keyword, secondary_keywords, status, source, fetched_at, confidence, updated_at')
+    .select(
+      'id, locale, content_type, page_type, page_id, cluster_id, primary_keyword, secondary_keywords, brief, status, source, fetched_at, confidence, updated_at',
+    )
     .eq('website_id', parsed.data.websiteId)
     .order('updated_at', { ascending: false });
 
@@ -197,6 +206,7 @@ export async function GET(request: NextRequest) {
         clusterId: brief.cluster_id,
         primaryKeyword: brief.primary_keyword,
         secondaryKeywords: brief.secondary_keywords ?? [],
+        brief: brief.brief ?? {},
         status: brief.status,
         versions: versions ?? [],
         source: brief.source,

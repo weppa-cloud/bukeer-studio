@@ -2,8 +2,9 @@ import { NextRequest } from 'next/server';
 import {
   SeoAuditQuerySchema,
   SeoAuditRequestSchema,
-  type SeoPageTypeSchema,
+  SeoPageTypeSchema,
 } from '@bukeer/website-contract';
+import { z } from 'zod';
 import { apiError, apiSuccess } from '@/lib/api/response';
 import { requireWebsiteAccess } from '@/lib/seo/server-auth';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/service-role';
@@ -16,7 +17,7 @@ import {
   type SeoConfidence,
 } from '@/lib/seo/content-intelligence';
 
-type PageType = SeoPageTypeSchema['_type'];
+type PageType = z.infer<typeof SeoPageTypeSchema>;
 
 type ContentItem = {
   pageType: PageType;
