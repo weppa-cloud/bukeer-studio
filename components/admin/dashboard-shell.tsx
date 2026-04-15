@@ -28,7 +28,7 @@ export function DashboardShell({
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { isOnline } = useNetworkStatus();
-  const pathname = usePathname();
+  const pathname = usePathname() ?? '';
 
   // Hide sidebar when inside a website (tabs are in horizontal nav already)
   // Only show sidebar on dashboard root (/dashboard) or /dashboard/new

@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import type { ScoredItem } from '@/app/dashboard/[websiteId]/seo/page';
+import type { ScoredItem } from '@/lib/seo/scored-item';
 
 type SeoGrade = 'A' | 'B' | 'C' | 'D' | 'F';
 
@@ -24,7 +24,8 @@ type SortField = 'score' | 'name';
 type SortDir = 'asc' | 'desc';
 
 export function SeoOverviewTable({ items }: SeoOverviewTableProps) {
-  const { websiteId } = useParams<{ websiteId: string }>();
+  const routeParams = useParams<{ websiteId: string }>();
+  const websiteId = routeParams?.websiteId ?? '';
   const router = useRouter();
   const [search, setSearch] = useState('');
   const [gradeFilter, setGradeFilter] = useState<SeoGrade | 'all'>('all');
@@ -141,7 +142,7 @@ export function SeoOverviewTable({ items }: SeoOverviewTableProps) {
                     <span className="text-xs text-[var(--studio-text-muted)] capitalize">{item.type}</span>
                   </td>
                   <td className="px-3 py-2 text-center">
-                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${GRADE_COLORS[item.result.grade]}`}>
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${GRADE_COLORS[item.result.grade as SeoGrade]}`}>
                       {item.result.grade} <span className="font-normal">({item.result.overall})</span>
                     </span>
                   </td>

@@ -60,7 +60,7 @@ export function BlogEditor({
   const [editorInstance, setEditorInstance] = useState<Editor | null>(null);
   // Live content ref — avoids re-rendering the entire tree on every keystroke.
   const contentRef = useRef(initialContent);
-  const wordCountTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const wordCountTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const authHeaders: Record<string, string> = authToken
     ? { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` }
@@ -80,7 +80,9 @@ export function BlogEditor({
       contentRef.current = markdown;
       onChange?.(markdown);
       // Debounced word count update (every 500ms)
-      clearTimeout(wordCountTimerRef.current);
+      if (wordCountTimerRef.current) {
+        clearTimeout(wordCountTimerRef.current);
+      }
       wordCountTimerRef.current = setTimeout(() => {
         setWordCount(markdown.split(/\s+/).filter(Boolean).length);
       }, 500);
