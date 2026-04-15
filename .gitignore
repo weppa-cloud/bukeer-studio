@@ -55,3 +55,4 @@ packages/*/tsconfig.tsbuildinfo
 # QA / test tool outputs
 .playwright-mcp/
 qa-screenshots/
+colombiatours-full.png
