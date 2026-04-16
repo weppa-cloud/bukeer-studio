@@ -22,7 +22,10 @@ export function SiteHeader({ website, isCustomDomain = false, navigation }: Site
   const basePath = getBasePath(subdomain, isCustomDomain);
 
   const siteName = content.account?.name || content.siteName;
-  const siteLogo = content.account?.logo || content.logo;
+  // Dual logo support: different logos for dark (transparent header over hero) vs light (scrolled white bg)
+  const logoForDark = content.logoDark || content.account?.logo || content.logo;   // Over hero image
+  const logoForLight = content.logoLight || content.account?.logo || content.logo;  // Scrolled white bg
+  const currentLogo = scrolled ? logoForLight : logoForDark;
   const headerCta: HeaderCTA | undefined = content.headerCta;
   const phone = content.account?.phone || content.social?.whatsapp;
 
@@ -113,9 +116,9 @@ export function SiteHeader({ website, isCustomDomain = false, navigation }: Site
               href={`${basePath}/`}
               className="absolute left-1/2 -translate-x-1/2 z-20 flex items-center justify-center max-w-[56vw] px-2 shrink-0 group"
             >
-              {siteLogo ? (
+              {currentLogo ? (
                 <img
-                  src={siteLogo}
+                  src={currentLogo}
                   alt={siteName}
                   className={`w-auto max-w-full object-contain transition-all duration-500 ${scrolled ? 'h-8' : 'h-10'}`}
                 />
@@ -157,9 +160,9 @@ export function SiteHeader({ website, isCustomDomain = false, navigation }: Site
           {/* Desktop Nav */}
           <div className="hidden lg:flex h-full items-center justify-between">
             <Link href={`${basePath}/`} className="flex items-center gap-2 shrink-0 group">
-              {siteLogo ? (
+              {currentLogo ? (
                 <img
-                  src={siteLogo}
+                  src={currentLogo}
                   alt={siteName}
                   className={`w-auto object-contain transition-all duration-500 ${scrolled ? 'h-8' : 'h-11'}`}
                 />
