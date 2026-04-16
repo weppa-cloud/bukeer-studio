@@ -49,8 +49,10 @@ export function DestinationListingPage({
       slug: destination.slug,
       meta: {
         state: destination.state,
+        image: destination.image,
         hotelCount: destination.hotel_count,
         activityCount: destination.activity_count,
+        totalCount: Number(destination.hotel_count || 0) + Number(destination.activity_count || 0),
       },
     }));
 

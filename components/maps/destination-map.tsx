@@ -27,6 +27,13 @@ const MARKER_COLORS: Record<MapMarkerKind, string> = {
   service: '#9333ea',
 };
 
+interface DestinationMarkerMeta {
+  image?: string;
+  hotelCount?: number;
+  activityCount?: number;
+  totalCount?: number;
+}
+
 interface ViewportBounds {
   minLat: number;
   maxLat: number;
@@ -115,6 +122,135 @@ function projectPointToPercent(lat: number, lng: number, bounds: ViewportBounds)
   };
 }
 
+function toNonNegativeInteger(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value >= 0 ? Math.trunc(value) : null;
+  }
+
+  if (typeof value === 'string' && value.trim().length > 0) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed) && parsed >= 0) {
+      return Math.trunc(parsed);
+    }
+  }
+
+  return null;
+}
+
+function getDestinationMarkerMeta(marker: MapMarker): DestinationMarkerMeta | null {
+  if (marker.kind !== 'destination') return null;
+  const meta = marker.meta as Record<string, unknown> | undefined;
+  if (!meta) return null;
+
+  const image = typeof meta.image === 'string' && meta.image.trim().length > 0 ? meta.image : undefined;
+  const hotelCount = toNonNegativeInteger(meta.hotelCount);
+  const activityCount = toNonNegativeInteger(meta.activityCount);
+  const providedTotal = toNonNegativeInteger(meta.totalCount);
+  const inferredTotal = (hotelCount ?? 0) + (activityCount ?? 0);
+  const totalCount = providedTotal ?? (inferredTotal > 0 ? inferredTotal : null);
+
+  return {
+    image,
+    hotelCount: hotelCount ?? undefined,
+    activityCount: activityCount ?? undefined,
+    totalCount: totalCount ?? undefined,
+  };
+}
+
+function formatMarkerCount(value: number | undefined): string | null {
+  if (typeof value !== 'number' || value <= 0) return null;
+  if (value > 99) return '99+';
+  return String(value);
+}
+
+function buildMarkerAriaDescription(marker: MapMarker): string {
+  const kindLabel = mapKindLabel(marker.kind);
+  const destinationMeta = getDestinationMarkerMeta(marker);
+  const markerCount = formatMarkerCount(destinationMeta?.totalCount);
+
+  if (markerCount) {
+    return `${kindLabel}: ${marker.label} (${markerCount} experiencias)`;
+  }
+
+  return `${kindLabel}: ${marker.label}`;
+}
+
+interface MarkerButtonProps {
+  marker: MapMarker;
+  selected: boolean;
+  onClick: () => void;
+}
+
+function MarkerButton({ marker, selected, onClick }: MarkerButtonProps) {
+  const destinationMeta = getDestinationMarkerMeta(marker);
+  const isDestination = marker.kind === 'destination';
+  const markerCount = formatMarkerCount(destinationMeta?.totalCount);
+
+  if (isDestination) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className="relative transition-transform hover:scale-105 focus:outline-none"
+        aria-label={buildMarkerAriaDescription(marker)}
+      >
+        <span
+          className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 border-white shadow-md"
+          style={{
+            backgroundColor: destinationMeta?.image ? 'rgba(15, 118, 110, 0.2)' : MARKER_COLORS.destination,
+            boxShadow: selected
+              ? `0 0 0 2px ${MARKER_COLORS.destination}, 0 8px 20px rgba(15,118,110,0.32)`
+              : '0 6px 18px rgba(15,23,42,0.26)',
+          }}
+        >
+          {destinationMeta?.image ? (
+            <img
+              src={destinationMeta.image}
+              alt=""
+              aria-hidden="true"
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <span className="text-[12px] font-bold text-white">
+              {marker.label.charAt(0).toUpperCase()}
+            </span>
+          )}
+        </span>
+        <span
+          className="absolute -top-1 -left-1 inline-flex h-3.5 w-3.5 rounded-full border border-white"
+          style={{ backgroundColor: MARKER_COLORS.destination }}
+        />
+        {markerCount ? (
+          <span
+            className="absolute -bottom-1 -right-1 inline-flex min-w-[18px] items-center justify-center rounded-full border px-1 text-[10px] font-semibold leading-none h-[18px]"
+            style={{
+              background: 'rgba(255,255,255,0.96)',
+              color: 'var(--text-heading)',
+              borderColor: 'rgba(15,23,42,0.2)',
+            }}
+            aria-hidden="true"
+          >
+            {markerCount}
+          </span>
+        ) : null}
+      </button>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="rounded-full border-2 border-white shadow-md w-4 h-4 transition-transform hover:scale-110"
+      style={{
+        backgroundColor: MARKER_COLORS[marker.kind],
+        transform: selected ? 'scale(1.2)' : undefined,
+      }}
+      aria-label={buildMarkerAriaDescription(marker)}
+    />
+  );
+}
+
 interface CompatibilityMapProps {
   markers: MapMarker[];
   selectedMarkerId: string | null;
@@ -136,8 +272,8 @@ function CompatibilityCroquisMap({
   );
 
   const polygonPath = useMemo(() => {
-    const coords = COLOMBIA_BOUNDARY_GEOJSON.features[0]?.geometry?.coordinates?.[0] || [];
-    if (!Array.isArray(coords) || coords.length === 0) return '';
+    const coords = COLOMBIA_BOUNDARY_GEOJSON.features[0]?.geometry?.coordinates?.[0];
+    if (!coords) return '';
 
     return coords
       .map((entry, index) => {
@@ -158,6 +294,7 @@ function CompatibilityCroquisMap({
     () => positionedMarkers.find((item) => item.marker.id === selectedMarkerId) || null,
     [positionedMarkers, selectedMarkerId]
   );
+  const selectedDestinationMeta = selectedPosition ? getDestinationMarkerMeta(selectedPosition.marker) : null;
 
   return (
     <div
@@ -179,14 +316,17 @@ function CompatibilityCroquisMap({
       </svg>
 
       {positionedMarkers.map(({ marker, x, y }) => (
-        <button
-          key={marker.id}
-          type="button"
-          onClick={() => onSelectMarker(marker.id)}
-          className="absolute rounded-full border-2 border-white shadow-md w-4 h-4 transition-transform hover:scale-110 z-10"
-          style={{ left: `${x}%`, top: `${y}%`, backgroundColor: MARKER_COLORS[marker.kind], transform: 'translate(-50%, -50%)' }}
-          aria-label={`${mapKindLabel(marker.kind)}: ${marker.label}`}
-        />
+        <div
+          key={`${marker.id}-visual`}
+          className="absolute z-10"
+          style={{ left: `${x}%`, top: `${y}%`, transform: 'translate(-50%, -50%)' }}
+        >
+          <MarkerButton
+            marker={marker}
+            selected={marker.id === selectedMarkerId}
+            onClick={() => onSelectMarker(marker.id)}
+          />
+        </div>
       ))}
 
       {selectedPosition ? (
@@ -206,6 +346,11 @@ function CompatibilityCroquisMap({
           <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
             {mapKindLabel(selectedPosition.marker.kind)}
           </p>
+          {selectedPosition.marker.kind === 'destination' && (selectedDestinationMeta?.hotelCount || selectedDestinationMeta?.activityCount) ? (
+            <p className="text-[11px] mt-1.5" style={{ color: 'var(--text-muted)' }}>
+              Hoteles: {selectedDestinationMeta?.hotelCount ?? 0} · Actividades: {selectedDestinationMeta?.activityCount ?? 0}
+            </p>
+          ) : null}
         </div>
       ) : null}
 
@@ -253,6 +398,10 @@ export function DestinationMap({
   const selectedMarker = useMemo(
     () => filteredMarkers.find((marker) => marker.id === selectedMarkerId) || null,
     [filteredMarkers, selectedMarkerId]
+  );
+  const selectedMarkerMeta = useMemo(
+    () => (selectedMarker ? getDestinationMarkerMeta(selectedMarker) : null),
+    [selectedMarker]
   );
 
   const center = useMemo(() => mapCenter(filteredMarkers.length > 0 ? filteredMarkers : markers, viewportPreset), [filteredMarkers, markers, viewportPreset]);
@@ -426,13 +575,13 @@ export function DestinationMap({
               longitude={marker.lng}
               anchor="bottom"
             >
-              <button
-                type="button"
-                onClick={() => setSelectedMarkerId(marker.id)}
-                className="rounded-full border-2 border-white shadow-md w-4 h-4 transition-transform hover:scale-110"
-                style={{ backgroundColor: MARKER_COLORS[marker.kind] }}
-                aria-label={`${mapKindLabel(marker.kind)}: ${marker.label}`}
-              />
+              <div style={{ transform: marker.kind === 'destination' ? 'translateY(-2px)' : undefined }}>
+                <MarkerButton
+                  marker={marker}
+                  selected={selectedMarkerId === marker.id}
+                  onClick={() => setSelectedMarkerId(marker.id)}
+                />
+              </div>
             </Marker>
           ))}
 
@@ -452,6 +601,12 @@ export function DestinationMap({
                 <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
                   {mapKindLabel(selectedMarker.kind)}
                 </p>
+                {selectedMarker.kind === 'destination' &&
+                (selectedMarkerMeta?.hotelCount || selectedMarkerMeta?.activityCount) ? (
+                  <p className="text-[11px] mt-1.5" style={{ color: 'var(--text-muted)' }}>
+                    Hoteles: {selectedMarkerMeta?.hotelCount ?? 0} · Actividades: {selectedMarkerMeta?.activityCount ?? 0}
+                  </p>
+                ) : null}
               </div>
             </Popup>
           ) : null}
