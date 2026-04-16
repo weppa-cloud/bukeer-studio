@@ -5,6 +5,11 @@ const reportFolder = `playwright-report/${sessionName}`;
 const outputDir = `test-results/${sessionName}`;
 const baseURL = process.env.E2E_BASE_URL || 'http://localhost:3000';
 const webServerCommand = process.env.E2E_WEBSERVER_CMD || 'npm run dev:node';
+const chromiumWebglArgs = [
+  '--ignore-gpu-blocklist',
+  '--use-angle=swiftshader-webgl',
+  '--enable-unsafe-swiftshader',
+];
 
 export default defineConfig({
   testDir: './e2e/tests',
@@ -28,6 +33,9 @@ export default defineConfig({
       name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
+        launchOptions: {
+          args: chromiumWebglArgs,
+        },
       },
       dependencies: ['setup'],
     },
@@ -42,6 +50,9 @@ export default defineConfig({
       name: 'mobile-chrome',
       use: {
         ...devices['Pixel 5'],
+        launchOptions: {
+          args: chromiumWebglArgs,
+        },
       },
       dependencies: ['setup'],
     },

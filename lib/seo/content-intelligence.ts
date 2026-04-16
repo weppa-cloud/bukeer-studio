@@ -7,7 +7,10 @@ export type SeoDecisionSource = {
   confidence: SeoConfidence;
 };
 
-export const DECISION_GRADE_CONFIDENCE: SeoConfidence[] = ['live', 'partial'];
+export const DECISION_GRADE_CONFIDENCE: SeoConfidence[] = ['live'];
+export const DECISION_GRADE_ERROR_CODE = 'DECISION_GRADE_BLOCKED';
+export const AUTHORITATIVE_SOURCE_REQUIRED_CODE = 'AUTHORITATIVE_SOURCE_REQUIRED';
+export const SYNC_QUEUED_CODE = 'SYNC_QUEUED';
 
 export const TRANSACTIONAL_ITEM_TYPES = new Set(['package', 'activity']);
 export const TRANSACTIONAL_BLOCKED_FIELDS = new Set([
@@ -71,6 +74,42 @@ export function withSharedCacheHeaders(response: Response, ttlSeconds: number): 
 
 export function isDecisionGrade(confidence: SeoConfidence): boolean {
   return DECISION_GRADE_CONFIDENCE.includes(confidence);
+}
+
+export function isDecisionGradeRow(row: {
+  confidence?: SeoConfidence | null;
+  decision_grade_ready?: boolean | null;
+}): boolean {
+  const confidence = row.confidence ?? null;
+  return confidence === 'live' && row.decision_grade_ready === true;
+}
+
+export function buildDecisionGradeBlockDetails(input: {
+  route: 'audit' | 'research' | 'track';
+  websiteId: string;
+  locale?: string;
+  contentType?: string;
+  from?: string;
+  to?: string;
+  missingSources: string[];
+  syncRequestId?: string;
+}) {
+  return {
+    code: AUTHORITATIVE_SOURCE_REQUIRED_CODE,
+    route: input.route,
+    websiteId: input.websiteId,
+    locale: input.locale ?? null,
+    contentType: input.contentType ?? null,
+    from: input.from ?? null,
+    to: input.to ?? null,
+    missingSources: input.missingSources,
+    sync: input.syncRequestId
+      ? {
+          code: SYNC_QUEUED_CODE,
+          requestId: input.syncRequestId,
+        }
+      : null,
+  };
 }
 
 export function extractBlockedTransactionalFields(patch: Record<string, unknown>): string[] {

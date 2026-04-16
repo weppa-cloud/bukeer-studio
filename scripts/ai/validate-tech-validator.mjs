@@ -5,23 +5,25 @@
  *
  * Automated CODE-mode gate for tech-validator:
  * - Skill structure checks
- * - ADR alignment checks (ADR-003, ADR-007, ADR-011, ADR-012)
- * - Static analysis gates (tsc, lint, build)
+ * - ADR alignment checks (ADR-003, ADR-007, ADR-011, ADR-012, ADR-013, ADR-014)
+ * - Static analysis gates (delta TypeScript, lint, build)
  *
  * Usage:
  *   npm run tech-validator:code
  *   npm run tech-validator:code -- --quick
+ *   npm run tech-validator:code -- --strict-global
  */
 
 import { spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
-import { join, resolve } from 'node:path';
+import { isAbsolute, join, relative, resolve } from 'node:path';
 
 const ROOT = resolve(import.meta.dirname, '../..');
 const TECH_VALIDATOR_DIR = join(ROOT, '.claude/skills/tech-validator');
 const ARCHITECTURE_DOC = join(ROOT, 'docs/architecture/ARCHITECTURE.md');
 const ADR_013_DOC = join(ROOT, 'docs/architecture/ADR-013-tech-validator-quality-gate.md');
+const ADR_014_DOC = join(ROOT, 'docs/architecture/ADR-014-delta-typescript-quality-gate.md');
 
 const args = new Set(process.argv.slice(2));
 const quick = args.has('--quick');
@@ -29,6 +31,13 @@ const allFiles = args.has('--all-files');
 const skipTypecheck = args.has('--no-typecheck');
 const skipLint = args.has('--no-lint') || quick;
 const skipBuild = args.has('--no-build') || quick;
+const strictGlobal = args.has('--strict-global');
+const legacyGlobalOnly = args.has('--legacy-global-only');
+
+if (strictGlobal && legacyGlobalOnly) {
+  console.error('Cannot combine --strict-global and --legacy-global-only.');
+  process.exit(1);
+}
 
 const findings = [];
 let gatesFailed = 0;
@@ -44,6 +53,11 @@ function addFinding(level, code, message, file = null) {
 
 function rel(path) {
   return path.replace(`${ROOT}/`, '');
+}
+
+function toRelPath(filePath) {
+  const absolutePath = isAbsolute(filePath) ? filePath : resolve(ROOT, filePath);
+  return relative(ROOT, absolutePath).replace(/\\/g, '/');
 }
 
 function runCapture(command, commandArgs) {
@@ -161,6 +175,10 @@ async function checkAdrRegistration() {
     addFinding('error', 'ADR_REGISTRY', 'ADR-013 file is missing', rel(ADR_013_DOC));
   }
 
+  if (!existsSync(ADR_014_DOC)) {
+    addFinding('error', 'ADR_REGISTRY', 'ADR-014 file is missing', rel(ADR_014_DOC));
+  }
+
   if (!existsSync(ARCHITECTURE_DOC)) {
     addFinding('error', 'ADR_REGISTRY', 'ARCHITECTURE.md is missing', rel(ARCHITECTURE_DOC));
     return;
@@ -169,6 +187,9 @@ async function checkAdrRegistration() {
   const architecture = await readFile(ARCHITECTURE_DOC, 'utf-8');
   if (!architecture.includes('ADR-013')) {
     addFinding('error', 'ADR_REGISTRY', 'ARCHITECTURE.md ADR index is missing ADR-013 entry', rel(ARCHITECTURE_DOC));
+  }
+  if (!architecture.includes('ADR-014')) {
+    addFinding('error', 'ADR_REGISTRY', 'ARCHITECTURE.md ADR index is missing ADR-014 entry', rel(ARCHITECTURE_DOC));
   }
 }
 
@@ -227,6 +248,118 @@ function checkNodeOnlyApis(content, filePath) {
 function checkCacheConfig(content) {
   const hasCacheDirective = /export\s+const\s+(revalidate|dynamic|fetchCache|runtime)\s*=/.test(content);
   return { ok: hasCacheDirective, skipped: false };
+}
+
+function parseTscDiagnostics(output, changedFiles) {
+  const diagnostics = [];
+  const lines = output.split(/\r?\n/);
+  const withLocationPattern = /^(?<file>.+?)\((?<line>\d+),(?<column>\d+)\): error TS(?<code>\d+): (?<message>.*)$/;
+  const withoutLocationPattern = /^error TS(?<code>\d+): (?<message>.*)$/;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) {
+      continue;
+    }
+
+    const withLocationMatch = trimmed.match(withLocationPattern);
+    if (withLocationMatch?.groups) {
+      const relativePath = toRelPath(withLocationMatch.groups.file);
+      diagnostics.push({
+        file: relativePath,
+        line: Number(withLocationMatch.groups.line),
+        column: Number(withLocationMatch.groups.column),
+        code: `TS${withLocationMatch.groups.code}`,
+        message: withLocationMatch.groups.message,
+        scope: changedFiles.has(relativePath) ? 'new' : 'legacy',
+        raw: trimmed,
+      });
+      continue;
+    }
+
+    const withoutLocationMatch = trimmed.match(withoutLocationPattern);
+    if (withoutLocationMatch?.groups) {
+      diagnostics.push({
+        file: null,
+        line: null,
+        column: null,
+        code: `TS${withoutLocationMatch.groups.code}`,
+        message: withoutLocationMatch.groups.message,
+        scope: 'legacy',
+        raw: trimmed,
+      });
+    }
+  }
+
+  return diagnostics;
+}
+
+function summarizeTscOutput(mode, diagnostics) {
+  const total = diagnostics.length;
+  const legacy = diagnostics.filter((diag) => diag.scope === 'legacy').length;
+  const newErrors = diagnostics.filter((diag) => diag.scope === 'new').length;
+  const strict = mode === 'strict-global' || mode === 'legacy-global-only';
+  const failed = strict ? total > 0 : newErrors > 0;
+
+  return {
+    mode,
+    status: failed ? 'fail' : 'pass',
+    total_errors: total,
+    legacy_errors: legacy,
+    new_errors: newErrors,
+    diagnostics,
+    failed,
+  };
+}
+
+function printTypecheckSummary(typecheck) {
+  console.log('\n▶ TypeScript quality gate');
+  console.log(`Mode: ${typecheck.mode}`);
+  console.log(`Total diagnostics: ${typecheck.total_errors}`);
+  console.log(`New errors: ${typecheck.new_errors}`);
+  console.log(`Legacy errors: ${typecheck.legacy_errors}`);
+
+  if (typecheck.status === 'pass') {
+    console.log('TypeScript gate: pass');
+    return;
+  }
+
+  if (typecheck.mode === 'strict-global' || typecheck.mode === 'legacy-global-only') {
+    console.log('TypeScript gate: fail (global mode)');
+    return;
+  }
+
+  console.log('TypeScript gate: fail (new errors only)');
+
+  const newDiagnostics = typecheck.diagnostics.filter((diag) => diag.scope === 'new');
+  for (const diag of newDiagnostics.slice(0, 20)) {
+    const where = diag.file ? `${diag.file}:${diag.line}:${diag.column}` : 'global';
+    console.log(`- [${diag.code}] ${where} ${diag.message}`);
+  }
+
+  if (newDiagnostics.length > 20) {
+    console.log(`- ...and ${newDiagnostics.length - 20} more new TypeScript diagnostics`);
+  }
+}
+
+async function runTypecheck(changedFiles) {
+  const mode = strictGlobal ? 'strict-global' : legacyGlobalOnly ? 'legacy-global-only' : 'delta';
+  const result = spawnSync('npx', ['tsc', '--noEmit', '--pretty', 'false'], {
+    cwd: ROOT,
+    encoding: 'utf-8',
+  });
+
+  const output = `${result.stdout ?? ''}\n${result.stderr ?? ''}`.trim();
+  const diagnostics = parseTscDiagnostics(output, changedFiles);
+  const typecheck = summarizeTscOutput(mode, diagnostics);
+
+  if (mode === 'strict-global' || mode === 'legacy-global-only') {
+    if (output) {
+      process.stdout.write(`${output}\n`);
+    }
+  }
+
+  return typecheck;
 }
 
 async function runPolicyScans(changedFiles) {
@@ -314,7 +447,7 @@ function collectChangedFiles() {
   return [...new Set([...unstaged, ...staged, ...branch])];
 }
 
-async function writeReport(changedFiles, gates) {
+async function writeReport(changedFiles, gates, typecheckDetails) {
   const reportPath = join(ROOT, 'reports/tech-validator/latest.json');
   await mkdir(join(ROOT, 'reports/tech-validator'), { recursive: true });
 
@@ -324,10 +457,14 @@ async function writeReport(changedFiles, gates) {
     filesAnalyzed: allFiles ? 'all-files' : 'changed-files',
     changedFiles,
     gates,
+    typecheck: typecheckDetails,
     findings,
     summary: {
       errors: findings.filter((f) => f.level === 'error').length,
       warnings: findings.filter((f) => f.level === 'warning').length,
+      legacyTypecheckErrors: typecheckDetails?.legacy_errors ?? 0,
+      newTypecheckErrors: typecheckDetails?.new_errors ?? 0,
+      totalTypecheckErrors: typecheckDetails?.total_errors ?? 0,
     },
   };
 
@@ -383,9 +520,17 @@ async function main() {
     lint: skipLint ? 'skipped' : 'pending',
     build: skipBuild ? 'skipped' : 'pending',
   };
+  let typecheckDetails = null;
 
   if (!skipTypecheck) {
-    gates.typecheck = runGate('TypeScript: npx tsc --noEmit', 'npx', ['tsc', '--noEmit']) ? 'pass' : 'fail';
+    const typecheck = await runTypecheck(new Set(changedFiles));
+    typecheckDetails = typecheck;
+    gates.typecheck = typecheck.status;
+    printTypecheckSummary(typecheck);
+    if (typecheck.failed) {
+      gatesFailed += 1;
+      addFinding('error', 'QUALITY_GATE', `TypeScript quality gate failed in ${typecheck.mode} mode`, null);
+    }
   }
 
   if (!skipLint) {
@@ -396,7 +541,7 @@ async function main() {
     gates.build = runGate('Build: npm run build', 'npm', ['run', 'build']) ? 'pass' : 'fail';
   }
 
-  await writeReport(changedFiles, gates);
+  await writeReport(changedFiles, gates, typecheckDetails);
   printSummary();
 
   const errorCount = findings.filter((f) => f.level === 'error').length;

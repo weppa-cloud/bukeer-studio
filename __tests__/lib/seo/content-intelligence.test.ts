@@ -1,7 +1,9 @@
 import {
+  buildDecisionGradeBlockDetails,
   computePriorityScore,
   extractBlockedTransactionalFields,
   isDecisionGrade,
+  isDecisionGradeRow,
   parseLocaleParts,
 } from '@/lib/seo/content-intelligence';
 
@@ -34,9 +36,9 @@ describe('seo content intelligence helpers', () => {
     expect(blocked).not.toContain('seoTitle');
   });
 
-  it('marks only live/partial as decision-grade', () => {
+  it('marks only live as decision-grade', () => {
     expect(isDecisionGrade('live')).toBe(true);
-    expect(isDecisionGrade('partial')).toBe(true);
+    expect(isDecisionGrade('partial')).toBe(false);
     expect(isDecisionGrade('exploratory')).toBe(false);
   });
 
@@ -54,5 +56,28 @@ describe('seo content intelligence helpers', () => {
       country: 'United States',
       language: 'en',
     });
+  });
+
+  it('requires live + ready rows for decision-grade panel data', () => {
+    expect(isDecisionGradeRow({ confidence: 'live', decision_grade_ready: true })).toBe(true);
+    expect(isDecisionGradeRow({ confidence: 'live', decision_grade_ready: false })).toBe(false);
+    expect(isDecisionGradeRow({ confidence: 'partial', decision_grade_ready: true })).toBe(false);
+  });
+
+  it('builds decision-grade blocked details contract', () => {
+    const details = buildDecisionGradeBlockDetails({
+      route: 'track',
+      websiteId: 'w1',
+      locale: 'es-CO',
+      contentType: 'destination',
+      from: '2026-01-01',
+      to: '2026-01-31',
+      missingSources: ['seo_page_metrics_daily.live'],
+      syncRequestId: 'req-123',
+    });
+
+    expect(details.code).toBe('AUTHORITATIVE_SOURCE_REQUIRED');
+    expect(details.sync?.code).toBe('SYNC_QUEUED');
+    expect(details.sync?.requestId).toBe('req-123');
   });
 });

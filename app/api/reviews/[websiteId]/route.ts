@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import { createLogger } from '@/lib/logger';
 import { apiSuccess, apiError, apiNotFound, apiInternalError } from '@/lib/api';
 import { NextRequest } from 'next/server';
+import { createSupabaseServiceRoleClient } from '@/lib/supabase/service-role';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -184,6 +185,77 @@ async function fetchReviewsFromSerpAPI(placeId: string): Promise<{
   }
 }
 
+// ─── Photo Caching ───────────────────────────────────────────────────
+
+const GOOGLE_PHOTO_RE = /googleusercontent\.com|lh[3-6]\.google/;
+
+function toSlug(text: string): string {
+  return text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
+async function cacheReviewPhotos(
+  websiteId: string,
+  accountId: string,
+  reviews: GoogleReview[]
+): Promise<void> {
+  const srClient = createSupabaseServiceRoleClient();
+
+  const updatedReviews = [...reviews];
+  let anyUpdated = false;
+
+  await Promise.allSettled(
+    reviews.map(async (review, idx) => {
+      if (!review.author_photo || !GOOGLE_PHOTO_RE.test(review.author_photo)) return;
+
+      try {
+        const res = await fetch(review.author_photo);
+        if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
+
+        const buffer = await res.arrayBuffer();
+        const slug = toSlug(review.author_name || review.review_id);
+        const path = `${websiteId}/${slug}.jpg`;
+
+        const { error: uploadErr } = await srClient.storage
+          .from('review-avatars')
+          .upload(path, buffer, {
+            contentType: 'image/jpeg',
+            upsert: true,
+          });
+
+        if (uploadErr) throw new Error(`Upload failed: ${uploadErr.message}`);
+
+        const { data: urlData } = srClient.storage
+          .from('review-avatars')
+          .getPublicUrl(path);
+
+        updatedReviews[idx] = { ...review, author_photo: urlData.publicUrl };
+        anyUpdated = true;
+      } catch (err) {
+        log.error('Photo cache failed for review', {
+          review_id: review.review_id,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    })
+  );
+
+  if (!anyUpdated) return;
+
+  const { error: updateErr } = await srClient
+    .from('account_google_reviews')
+    .update({ reviews: updatedReviews, updated_at: new Date().toISOString() })
+    .eq('account_id', accountId);
+
+  if (updateErr) {
+    log.error('Failed to update reviews with cached photos', { error: updateErr.message });
+  }
+}
+
 // ─── GET: Return cached reviews ──────────────────────────────────────
 
 export async function GET(
@@ -294,6 +366,15 @@ export async function POST(
     log.error('Upsert error', { error: upsertErr.message });
     return apiInternalError('Failed to cache reviews');
   }
+
+  // Cache Google profile photos to Supabase Storage in the background.
+  // This replaces volatile googleusercontent.com URLs with permanent Supabase Storage URLs.
+  // Run after responding — don't await full completion before returning.
+  void cacheReviewPhotos(websiteId, website.account_id, result.reviews).catch((err) => {
+    log.error('Background photo caching error', {
+      error: err instanceof Error ? err.message : String(err),
+    });
+  });
 
   return apiSuccess({
     reviews: result.reviews,

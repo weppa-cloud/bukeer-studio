@@ -5,6 +5,8 @@ import { notFound } from 'next/navigation';
 import { getWebsiteBySubdomain } from '@/lib/supabase/get-website';
 import { getPlanners } from '@/lib/supabase/get-planners';
 import type { PlannerData } from '@/lib/supabase/get-planners';
+import { getReviewsForContext } from '@/lib/supabase/get-reviews';
+import { ReviewsBlock } from '@/components/site/reviews-block';
 
 // ISR: Revalidate every 5 minutes
 export const revalidate = 300;
@@ -83,6 +85,10 @@ export default async function PlannerProfilePage({ params }: PlannerPageProps) {
   if (!planner) {
     notFound();
   }
+
+  const plannerReviews = website.account_id
+    ? await getReviewsForContext(website.account_id, { type: 'planner', name: planner.fullName }, 4)
+    : [];
 
   const whatsappBase = website.content.social?.whatsapp || '';
   const whatsappNumber = (planner.phone || whatsappBase).replace(/[^0-9]/g, '');
@@ -249,6 +255,17 @@ export default async function PlannerProfilePage({ params }: PlannerPageProps) {
             )}
           </div>
         </section>
+
+        {/* Reviews */}
+        {plannerReviews.length > 0 && (
+          <section className="mb-12">
+            <ReviewsBlock
+              reviews={plannerReviews}
+              title={`Lo que dicen sobre ${planner.name}`}
+              variant="grid-2"
+            />
+          </section>
+        )}
 
         {/* Agency Info */}
         <section

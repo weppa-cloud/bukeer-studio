@@ -13,3 +13,9 @@ export {
   IMPROVEMENT_ACTIONS,
   type ImprovementAction,
 } from './improve-text'
+export {
+  buildImageMetadataPrompt,
+  parseImageMetadataResponse,
+  type ImageMetadataContext,
+  type ImageMetadataResult,
+} from './image-metadata'

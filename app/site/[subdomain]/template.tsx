@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 /**
  * Page transition wrapper for site pages.
  * Uses AnimatePresence with crossfade + subtle slide for smooth navigation.
+ * @version 2
  */
 export default function SiteTemplate({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

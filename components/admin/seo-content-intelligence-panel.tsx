@@ -40,10 +40,13 @@ function severityTone(severity: AuditRow['severity']): 'danger' | 'warning' | 'i
 export function SeoContentIntelligencePanel({ websiteId }: SeoContentIntelligencePanelProps) {
   const [locale, setLocale] = useState('es-CO');
   const [contentType, setContentType] = useState('all');
+  const [decisionGradeOnly, setDecisionGradeOnly] = useState(true);
   const [rows, setRows] = useState<AuditRow[]>([]);
   const [running, setRunning] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [blocked, setBlocked] = useState<{ code: string; message: string; details?: unknown } | null>(null);
+  const [syncing, setSyncing] = useState(false);
   const [sourceMeta, setSourceMeta] = useState<{ source?: string; fetchedAt?: string; confidence?: 'live' | 'partial' | 'exploratory' } | null>(null);
 
   const sortedRows = useMemo(() => [...rows].sort((a, b) => b.priorityScore - a.priorityScore), [rows]);
@@ -51,17 +54,28 @@ export function SeoContentIntelligencePanel({ websiteId }: SeoContentIntelligenc
   async function loadFindings() {
     setLoading(true);
     setError(null);
+    setBlocked(null);
     try {
       const params = new URLSearchParams({
         websiteId,
         locale,
-        decisionGradeOnly: 'true',
+        decisionGradeOnly: decisionGradeOnly ? 'true' : 'false',
         limit: '100',
       });
       if (contentType !== 'all') params.set('contentType', contentType);
       const response = await fetch(`/api/seo/content-intelligence/audit?${params.toString()}`, { cache: 'no-store' });
       const body = await response.json().catch(() => ({}));
       if (!response.ok || !body.success) {
+        if (body?.error?.code) {
+          setBlocked({
+            code: body.error.code,
+            message: body.error.message || 'Decision-grade audit blocked',
+            details: body.error.details,
+          });
+          setRows([]);
+          setSourceMeta(null);
+          return;
+        }
         throw new Error(body?.error?.message || 'Failed to load content intelligence findings');
       }
       const payload = body.data as {
@@ -80,6 +94,7 @@ export function SeoContentIntelligencePanel({ websiteId }: SeoContentIntelligenc
   async function handleRunAudit() {
     setRunning(true);
     setError(null);
+    setBlocked(null);
     try {
       const response = await fetch('/api/seo/content-intelligence/audit', {
         method: 'POST',
@@ -103,6 +118,34 @@ export function SeoContentIntelligencePanel({ websiteId }: SeoContentIntelligenc
       setError(err instanceof Error ? err.message : 'Audit run failed');
     } finally {
       setRunning(false);
+    }
+  }
+
+  async function handleSyncNow() {
+    setSyncing(true);
+    setError(null);
+    try {
+      const response = await fetch('/api/seo/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          websiteId,
+          includeDataForSeo: true,
+        }),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(body?.error?.message || body?.error || 'Unable to queue sync');
+      }
+      setBlocked({
+        code: 'SYNC_QUEUED',
+        message: body?.requestId ? `Sync requested (${body.requestId})` : 'Sync requested',
+        details: body ?? null,
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to queue sync');
+    } finally {
+      setSyncing(false);
     }
   }
 
@@ -136,8 +179,34 @@ export function SeoContentIntelligencePanel({ websiteId }: SeoContentIntelligenc
             </StudioButton>
           </div>
         </div>
+        <label className="inline-flex items-center gap-2 text-xs text-[var(--studio-text-muted)]">
+          <input
+            type="checkbox"
+            checked={decisionGradeOnly}
+            onChange={(event) => setDecisionGradeOnly(event.target.checked)}
+          />
+          Decision-grade only (live + authoritative)
+        </label>
         {sourceMeta ? (
           <SeoTrustState source={sourceMeta.source} fetchedAt={sourceMeta.fetchedAt} confidence={sourceMeta.confidence} />
+        ) : null}
+        {blocked ? (
+          <div className="text-xs text-[var(--studio-warning)] border border-[var(--studio-warning)]/30 rounded p-2 space-y-2">
+            <p>{blocked.code}: {blocked.message}</p>
+            <div className="flex gap-2">
+              <StudioButton size="sm" variant="outline" onClick={() => void handleSyncNow()} disabled={syncing}>
+                {syncing ? 'Queueing sync...' : 'Sync now'}
+              </StudioButton>
+              <StudioButton size="sm" variant="outline" onClick={() => void loadFindings()} disabled={loading}>
+                Retry
+              </StudioButton>
+            </div>
+            {blocked.details ? (
+              <pre className="text-[10px] bg-slate-950 text-slate-100 rounded p-2 overflow-x-auto">
+                {JSON.stringify(blocked.details, null, 2)}
+              </pre>
+            ) : null}
+          </div>
         ) : null}
         {error ? (
           <p className="text-xs text-[var(--studio-danger)]">{error}</p>

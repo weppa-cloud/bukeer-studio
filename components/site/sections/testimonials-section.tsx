@@ -10,90 +10,150 @@ interface TestimonialsSectionProps {
   website: WebsiteData;
 }
 
-// Testimonial Card Component (reusable)
-function TestimonialCard({ testimonial }: {
-  testimonial: {
-    id?: string;
-    name: string;
-    avatar?: string;
-    text?: string;
-    content?: string;
-    rating?: number;
-    location?: string;
-    source?: string;
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+const AVATAR_COLORS = [
+  '#4285F4', '#EA4335', '#FBBC05', '#34A853',
+  '#FF6D00', '#7B1FA2', '#0288D1', '#00897B',
+];
+
+const getAvatarColor = (name: string): string => {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
   }
-}) {
-  const [expanded, setExpanded] = useState(false);
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+};
+
+// Google "G" logo SVG — used as source badge
+const GoogleLogo = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-label="Google">
+    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
+    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
+    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+  </svg>
+);
+
+// Star path for reuse
+const STAR_PATH = 'M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z';
+
+type TestimonialItem = {
+  id?: string;
+  name: string;
+  avatar?: string;
+  text?: string;
+  content?: string;
+  rating?: number;
+  location?: string;
+  source?: string;
+  relative_time?: string;
+  images?: Array<{ url: string; thumbnail?: string }>;
+  response?: { text: string; date: string } | null;
+};
+
+// ─── Testimonial Card ─────────────────────────────────────────────────────────
+
+const TestimonialCard = ({ testimonial }: { testimonial: TestimonialItem }) => {
   const quoteText = testimonial.text || testimonial.content || '';
+  const rating = testimonial.rating || 5;
+  const avatarColor = getAvatarColor(testimonial.name);
+  const initials = testimonial.name
+    .split(' ')
+    .slice(0, 2)
+    .map((w) => w.charAt(0).toUpperCase())
+    .join('');
+  const isGoogle =
+    (testimonial.source as string) === 'google' ||
+    (testimonial.source as string) === 'google_reviews';
 
   return (
-    <div className="variant-card bg-card p-6 h-full overflow-hidden border flex flex-col">
-      {/* Rating — always show 5 stars at top */}
-      <div className="flex gap-1 mb-4">
+    <div
+      className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col"
+      style={{ backgroundColor: 'var(--bg-card, #ffffff)', borderColor: 'var(--border-subtle, #f1f5f9)' }}
+    >
+      {/* Header row: avatar+name left, source logo right */}
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          {/* Avatar */}
+          {testimonial.avatar ? (
+            <Image
+              src={testimonial.avatar}
+              alt={testimonial.name}
+              width={48}
+              height={48}
+              unoptimized={false}
+              className="rounded-full object-cover flex-shrink-0"
+              style={{ width: 48, height: 48 }}
+            />
+          ) : (
+            <div
+              className="rounded-full flex items-center justify-center flex-shrink-0 text-white font-semibold text-sm"
+              style={{ width: 48, height: 48, backgroundColor: avatarColor }}
+            >
+              {initials}
+            </div>
+          )}
+          {/* Name + time */}
+          <div className="min-w-0">
+            <p
+              className="font-bold text-sm leading-tight truncate"
+              style={{ color: 'var(--text-heading, #0f172a)' }}
+            >
+              {testimonial.name}
+            </p>
+            {testimonial.relative_time && (
+              <p
+                className="text-xs mt-0.5 uppercase tracking-wide"
+                style={{ color: 'var(--text-secondary, #64748b)' }}
+              >
+                {testimonial.relative_time}
+              </p>
+            )}
+          </div>
+        </div>
+        {/* Source badge — top-right corner */}
+        {isGoogle && (
+          <div className="flex-shrink-0 mt-0.5">
+            <GoogleLogo />
+          </div>
+        )}
+      </div>
+
+      {/* Stars */}
+      <div className="flex gap-0.5 mt-3">
         {[...Array(5)].map((_, i) => (
           <svg
             key={i}
-            className={`w-5 h-5 ${i < (testimonial.rating || 5) ? 'text-yellow-400' : 'text-muted'}`}
+            className={`w-4 h-4 ${i < rating ? 'text-yellow-400' : 'text-slate-200'}`}
             fill="currentColor"
             viewBox="0 0 20 20"
           >
-            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+            <path d={STAR_PATH} />
           </svg>
         ))}
       </div>
-      {/* Quote with clamp + expand toggle */}
-      <p className={`text-muted-foreground italic ${!expanded ? 'line-clamp-4' : ''}`}>
-        &ldquo;{quoteText}&rdquo;
-      </p>
-      {quoteText.length > 200 && (
-        <button
-          onClick={() => setExpanded(!expanded)}
-          className="text-primary text-sm font-medium mt-1 hover:underline self-start"
+
+      {/* Quote — clamped at 5 lines to keep cards consistent height */}
+      {quoteText && (
+        <p
+          className="mt-3 text-sm leading-relaxed italic line-clamp-5"
+          style={{ color: 'var(--text-secondary, #334155)' }}
         >
-          {expanded ? 'Ver menos' : 'Leer mas'}
-        </button>
+          &ldquo;{quoteText}&rdquo;
+        </p>
       )}
-      {/* Author */}
-      <div className="flex items-center gap-3 mt-auto pt-4">
-        {testimonial.avatar ? (
-          <Image
-            src={testimonial.avatar}
-            alt={testimonial.name}
-            width={48}
-            height={48}
-            className="rounded-full object-cover"
-          />
-        ) : (
-          <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-            <span className="text-primary font-semibold">
-              {testimonial.name.charAt(0)}
-            </span>
-          </div>
-        )}
-        <div>
-          <p className="font-semibold">{testimonial.name}</p>
-          {testimonial.location && (
-            <p className="text-sm text-muted-foreground">{testimonial.location}</p>
-          )}
-        </div>
-        {(testimonial as Record<string, unknown>).source === 'google' && (
-          <svg className="w-4 h-4 ml-auto opacity-60" viewBox="0 0 24 24" fill="none">
-            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
-            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
-            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
-          </svg>
-        )}
-      </div>
     </div>
   );
-}
+};
 
-export function TestimonialsSection({ section }: TestimonialsSectionProps) {
-  const rawVariant = section.variant || 'carousel';
+export function TestimonialsSection({ section, website }: TestimonialsSectionProps) {
+  const rawVariant = section.variant || 'grid';
+  const [mounted, setMounted] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     const mql = window.matchMedia('(max-width: 767px)');
     const handler = (e: MediaQueryListEvent | MediaQueryList) => setIsMobile(e.matches);
     handler(mql);
@@ -101,8 +161,9 @@ export function TestimonialsSection({ section }: TestimonialsSectionProps) {
     return () => mql.removeEventListener('change', handler as (e: MediaQueryListEvent) => void);
   }, []);
 
-  // On mobile, force marquee/infinite variants to carousel for reliability
-  const variant = isMobile && (rawVariant === 'infinite' || rawVariant === 'marquee')
+  // Only switch variant after mount — prevents SSR/hydration mismatch that causes
+  // React 19 streaming error: "previously unvisited boundary must have exactly one root segment"
+  const variant = mounted && isMobile && (rawVariant === 'infinite' || rawVariant === 'marquee')
     ? 'carousel'
     : rawVariant;
 
@@ -113,64 +174,70 @@ export function TestimonialsSection({ section }: TestimonialsSectionProps) {
     totalReviews?: number;
     googleMapsUrl?: string;
     businessName?: string;
-    testimonials?: Array<{
-      id?: string;
-      name: string;
-      avatar?: string;
-      text?: string;
-      content?: string;
-      rating?: number;
-      location?: string;
-      images?: Array<{ url: string; thumbnail?: string }>;
-      response?: { text: string; date: string } | null;
-    }>;
+    testimonials?: TestimonialItem[];
   };
 
   const title = sectionContent.title || 'Lo que dicen nuestros viajeros';
   const testimonials = sectionContent.testimonials || [];
   const isGoogle = sectionContent.source === 'google_reviews';
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const logoUrl = (website?.content as any)?.logo as string | undefined;
 
   return (
     <div className="section-padding bg-muted/30">
       <div className={variant === 'infinite' ? '' : 'container'}>
+        {/* Section header — left-aligned title, aggregate badge top-right */}
         <motion.div
-          initial={{ opacity: 0, x: 40 }}
-          whileInView={{ opacity: 1, x: 0 }}
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-          className="text-center mb-12 container"
+          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+          className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-10 container"
         >
-          <h2 className="section-title" style={{ color: 'var(--text-heading)' }}>{title}</h2>
+          {/* Left: title */}
+          <h2 className="section-title text-left" style={{ color: 'var(--text-heading)' }}>
+            {title}
+          </h2>
+
+          {/* Right: aggregate rating badge */}
           {isGoogle && sectionContent.averageRating && (
-            <div className="flex items-center justify-center gap-3 mt-4">
+            <div className="flex items-center gap-2 flex-shrink-0 bg-white rounded-xl border border-slate-100 shadow-sm px-4 py-2.5">
+              {logoUrl && (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  src={logoUrl}
+                  alt="logo"
+                  className="h-6 w-auto object-contain"
+                  loading="lazy"
+                />
+              )}
               <div className="flex gap-0.5">
-                {Array.from({ length: Math.round(sectionContent.averageRating) }).map((_, i) => (
-                  <span key={i} className="text-yellow-400 text-lg">★</span>
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <span
+                    key={i}
+                    className={i < Math.round(sectionContent.averageRating!) ? 'text-yellow-400' : 'text-slate-200'}
+                    aria-hidden="true"
+                  >
+                    ★
+                  </span>
                 ))}
               </div>
-              <span className="text-lg font-semibold">{sectionContent.averageRating}</span>
-              {sectionContent.totalReviews && (
-                <span className="text-sm text-muted-foreground">
-                  · {sectionContent.totalReviews} reseñas en
-                </span>
-              )}
+              <span className="text-sm font-semibold" style={{ color: 'var(--text-heading)' }}>
+                {sectionContent.averageRating}
+                {sectionContent.totalReviews ? `/5 · ${sectionContent.totalReviews} reseñas en` : '/5'}
+              </span>
               {sectionContent.googleMapsUrl ? (
                 <a
                   href={sectionContent.googleMapsUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-sm font-medium hover:underline"
+                  className="inline-flex items-center gap-1 text-sm font-medium hover:underline"
+                  aria-label="Ver en Google"
                 >
-                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
-                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
-                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
-                  </svg>
-                  Google
+                  <GoogleLogo />
                 </a>
               ) : (
-                <span className="text-sm font-medium">Google</span>
+                <GoogleLogo />
               )}
             </div>
           )}
@@ -192,11 +259,10 @@ export function TestimonialsSection({ section }: TestimonialsSectionProps) {
                   x: {
                     duration: testimonials.length * 8,
                     repeat: Infinity,
-                    ease: "linear",
+                    ease: 'linear',
                   },
                 }}
               >
-                {/* Duplicate testimonials for seamless loop */}
                 {[...testimonials, ...testimonials, ...testimonials].map((testimonial, index) => (
                   <div key={`row1-${index}`} className="flex-none w-72 md:w-96 h-full">
                     <TestimonialCard testimonial={testimonial} />
@@ -215,7 +281,7 @@ export function TestimonialsSection({ section }: TestimonialsSectionProps) {
                     x: {
                       duration: testimonials.length * 10,
                       repeat: Infinity,
-                      ease: "linear",
+                      ease: 'linear',
                     },
                   }}
                 >
@@ -230,7 +296,7 @@ export function TestimonialsSection({ section }: TestimonialsSectionProps) {
           </div>
         )}
 
-        {/* Carousel / Marquee variant (original) */}
+        {/* Carousel / Marquee variant */}
         {(variant === 'carousel' || variant === 'marquee') && (
           <div className="flex gap-6 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide">
             {testimonials.map((testimonial, index) => (
@@ -248,7 +314,7 @@ export function TestimonialsSection({ section }: TestimonialsSectionProps) {
           </div>
         )}
 
-        {/* Grid variant */}
+        {/* Grid variant — uses new TestimonialCard */}
         {variant === 'grid' && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {testimonials.map((testimonial, index) => (
@@ -257,18 +323,9 @@ export function TestimonialsSection({ section }: TestimonialsSectionProps) {
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-                className="variant-card bg-card p-6"
+                transition={{ delay: Math.min(index * 0.08, 0.4) }}
               >
-                <p className="text-muted-foreground italic">&ldquo;{testimonial.text || testimonial.content}&rdquo;</p>
-                <div className="flex items-center gap-3 mt-4">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                    <span className="text-primary font-semibold text-sm">
-                      {testimonial.name.charAt(0)}
-                    </span>
-                  </div>
-                  <p className="font-semibold">{testimonial.name}</p>
-                </div>
+                <TestimonialCard testimonial={testimonial} />
               </motion.div>
             ))}
           </div>
@@ -287,18 +344,7 @@ export function TestimonialsSection({ section }: TestimonialsSectionProps) {
 }
 
 // Crossfade Testimonials Component — single card with auto-rotate + progress bar
-function CrossfadeTestimonials({ testimonials }: { testimonials: Array<{
-  id?: string;
-  name: string;
-  avatar?: string;
-  text?: string;
-  content?: string;
-  rating?: number;
-  location?: string;
-  tour?: string;
-  images?: Array<{ url: string; thumbnail?: string }>;
-  response?: { text: string; date: string } | null;
-}> }) {
+const CrossfadeTestimonials = ({ testimonials }: { testimonials: TestimonialItem[] }) => {
   const [active, setActive] = useState(0);
   const [paused, setPaused] = useState(false);
 
@@ -446,15 +492,7 @@ function CrossfadeTestimonials({ testimonials }: { testimonials: Array<{
 }
 
 // Stacked Testimonials Component
-function StackedTestimonials({ testimonials }: { testimonials: Array<{
-  id?: string;
-  name: string;
-  avatar?: string;
-  text?: string;
-  content?: string;
-  rating?: number;
-  location?: string;
-}> }) {
+const StackedTestimonials = ({ testimonials }: { testimonials: TestimonialItem[] }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
 

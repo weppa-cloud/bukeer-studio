@@ -226,13 +226,18 @@ export function hydrateSections(input: HydrationInput): WebsiteSection[] {
   // 4. Inject Google reviews into testimonials
   if (googleReviews && googleReviews.reviews.length > 0) {
     const visibleReviews = googleReviews.reviews.filter((r) => r.is_visible !== false);
+    const sorted = [...visibleReviews].sort((a, b) => {
+      const aScore = (a.author_photo ? 2 : 0) + ((a.images?.length ?? 0) > 0 ? 1 : 0) + (a.rating ?? 0);
+      const bScore = (b.author_photo ? 2 : 0) + ((b.images?.length ?? 0) > 0 ? 1 : 0) + (b.rating ?? 0);
+      return bScore - aScore;
+    });
     for (let i = 0; i < hydratedSections.length; i++) {
       if (hydratedSections[i].section_type !== SECTION_TESTIMONIALS) continue;
       hydratedSections[i] = {
         ...hydratedSections[i],
         content: {
           ...(hydratedSections[i].content as Record<string, unknown>),
-          testimonials: visibleReviews.map((r) => ({
+          testimonials: sorted.map((r) => ({
             name: r.author_name,
             avatar: r.author_photo,
             text: r.text,

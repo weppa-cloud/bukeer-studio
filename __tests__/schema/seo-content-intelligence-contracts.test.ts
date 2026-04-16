@@ -1,6 +1,7 @@
 import {
   SeoAuditRequestSchema,
   SeoBriefPostSchema,
+  SeoPageCatalogQuerySchema,
   SeoResearchRequestSchema,
   SeoTrackQuerySchema,
   SeoTranscreateRequestSchema,
@@ -34,6 +35,7 @@ describe('SEO content intelligence contracts (ADR-003)', () => {
     expect(valid.success).toBe(true);
     if (valid.success) {
       expect(valid.data.locale).toBe('es-CO');
+      expect(valid.data.decisionGradeOnly).toBe(true);
     }
   });
 
@@ -95,5 +97,19 @@ describe('SEO content intelligence contracts (ADR-003)', () => {
         contentType: 'destination',
       }).success,
     ).toBe(true);
+  });
+
+  it('supports page catalog query contract for human-friendly selectors', () => {
+    const valid = SeoPageCatalogQuerySchema.safeParse({
+      websiteId,
+      pageType: 'page',
+      locale: 'en-US',
+      search: 'cartagena',
+      limit: 50,
+    });
+    expect(valid.success).toBe(true);
+    if (valid.success) {
+      expect(valid.data.limit).toBe(50);
+    }
   });
 });
