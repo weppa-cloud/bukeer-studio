@@ -151,7 +151,6 @@ export function DestinationListingPage({
           <DestinationMap
             markers={mapMarkers}
             viewportPreset="colombia"
-            renderMode="croquis"
             showFilters={false}
             showLegend={mapMarkers.length > 0}
             height={400}
