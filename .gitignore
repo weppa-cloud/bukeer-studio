@@ -62,3 +62,4 @@ packages/*/tsconfig.tsbuildinfo
 .playwright-mcp/
 qa-screenshots/
 colombiatours-full.png
+reports/
