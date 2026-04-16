@@ -4,11 +4,9 @@ import React, { useState, useMemo } from 'react';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { getBasePath } from '@/lib/utils/base-path';
-import { DestinationMap } from '@/components/maps/destination-map';
 import { ActivityCard } from '@/components/site/sections/activities-section';
 import type { ActivityItem } from '@/components/site/sections/activities-section';
 import { toActivityItems } from '@/lib/products/to-items';
-import type { MapMarker } from '@/lib/maps/types';
 import type { WebsiteData } from '@/lib/supabase/get-website';
 import type { ProductData } from '@bukeer/website-contract';
 
@@ -23,7 +21,6 @@ export function ActivitiesListingPage({ website, activities }: ActivitiesListing
   const [activeCategory, setActiveCategory] = useState<string>('Todos');
   const [activeDifficulty, setActiveDifficulty] = useState<string>('Todos');
   const [activeLocation, setActiveLocation] = useState<string>('Todos');
-  const [activeView, setActiveView] = useState<'grid' | 'map'>('grid');
 
   const activityItems = useMemo(
     () => toActivityItems(activities, 0) as unknown as ActivityItem[],
@@ -50,25 +47,6 @@ export function ActivitiesListingPage({ website, activities }: ActivitiesListing
       return true;
     });
   }, [activityItems, activeCategory, activeDifficulty, activeLocation]);
-
-  const mapMarkers: MapMarker[] = useMemo(() => {
-    return activities
-      .filter((p) => {
-        const raw = p as unknown as Record<string, unknown>;
-        return Number.isFinite(Number(raw.latitude)) && Number.isFinite(Number(raw.longitude));
-      })
-      .map((p) => {
-        const raw = p as unknown as Record<string, unknown>;
-        return {
-          id: p.id,
-          label: p.name,
-          kind: 'activity' as const,
-          lat: Number(raw.latitude),
-          lng: Number(raw.longitude),
-          slug: p.slug,
-        };
-      });
-  }, [activities]);
 
   const anyFilterActive =
     activeCategory !== 'Todos' || activeDifficulty !== 'Todos' || activeLocation !== 'Todos';
@@ -318,104 +296,32 @@ export function ActivitiesListingPage({ website, activities }: ActivitiesListing
               </button>
             )}
 
-            {/* Results count + Grid/Map toggle (desktop) */}
-            <div className="hidden md:flex items-center gap-2 shrink-0">
-              <span className="text-sm" style={{ color: 'var(--text-muted)' }}>
-                {filteredActivities.length}{' '}
-                {filteredActivities.length === 1 ? 'actividad' : 'actividades'}
-              </span>
-            </div>
+            {/* Results count */}
+            <span className="text-sm shrink-0" style={{ color: 'var(--text-muted)' }}>
+              {filteredActivities.length}{' '}
+              {filteredActivities.length === 1 ? 'actividad' : 'actividades'}
+            </span>
           </div>
         </div>
       </section>
 
-      {/* Mobile tab switcher — Grid / Mapa */}
-      <div
-        className="md:hidden flex border-b"
-        style={{ borderColor: 'var(--border-subtle)' }}
-      >
-        {(['grid', 'map'] as const).map((view) => (
-          <button
-            key={view}
-            onClick={() => setActiveView(view)}
-            className="flex-1 py-3 text-sm font-medium capitalize transition-colors min-h-[44px]"
-            style={{
-              color: activeView === view ? 'var(--accent)' : 'var(--text-muted)',
-              borderBottom: activeView === view ? '2px solid var(--accent)' : '2px solid transparent',
-            }}
-          >
-            {view === 'grid' ? 'Lista' : 'Mapa'}
-          </button>
-        ))}
-      </div>
-
       {/* ─── MAIN CONTENT ─── */}
       <section className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto py-8">
-        {/* Desktop: cards + sticky map */}
-        <div className="hidden md:flex gap-6 items-start">
-          <div className="flex-1 min-w-0">
-            {filteredActivities.length === 0 ? (
-              <EmptyState onClear={clearFilters} hasFilters={anyFilterActive} />
-            ) : (
-              <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredActivities.map((activity, i) => (
-                  <ActivityCard
-                    key={activity.id}
-                    activity={activity}
-                    index={i}
-                    subdomain={website.subdomain}
-                    basePath={basePath}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Sticky map */}
-          <div
-            className="w-80 xl:w-96 shrink-0 sticky rounded-2xl overflow-hidden shadow-lg"
-            style={{ top: '80px' }}
-          >
-            <DestinationMap
-              markers={mapMarkers}
-              viewportPreset="colombia"
-              showFilters={false}
-              showLegend={mapMarkers.length > 0}
-              height={600}
-            />
-          </div>
-        </div>
-
-        {/* Mobile: conditional grid or map */}
-        <div className="md:hidden">
-          {activeView === 'grid' ? (
-            filteredActivities.length === 0 ? (
-              <EmptyState onClear={clearFilters} hasFilters={anyFilterActive} />
-            ) : (
-              <div className="grid grid-cols-1 gap-4">
-                {filteredActivities.map((activity, i) => (
-                  <ActivityCard
-                    key={activity.id}
-                    activity={activity}
-                    index={i}
-                    subdomain={website.subdomain}
-                    basePath={basePath}
-                  />
-                ))}
-              </div>
-            )
-          ) : (
-            <div className="rounded-2xl overflow-hidden shadow-lg" style={{ height: '400px' }}>
-              <DestinationMap
-                markers={mapMarkers}
-                viewportPreset="colombia"
-                showFilters={false}
-                showLegend={mapMarkers.length > 0}
-                height={400}
+        {filteredActivities.length === 0 ? (
+          <EmptyState onClear={clearFilters} hasFilters={anyFilterActive} />
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredActivities.map((activity, i) => (
+              <ActivityCard
+                key={activity.id}
+                activity={activity}
+                index={i}
+                subdomain={website.subdomain}
+                basePath={basePath}
               />
-            </div>
-          )}
-        </div>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* ─── CTA SECTION ─── */}
