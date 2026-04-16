@@ -219,7 +219,7 @@ function PackageCard({ pkg, index, subdomain }: { pkg: PackageItem; index: numbe
   });
   const circuitLabel = formatCircuitStops(circuitStops);
 
-  const showPopular = pkg.featured === true;
+  const showPopular = pkg.featured === true || pkg.category === 'Popular';
   const showNew = !showPopular && isNew(pkg.created_at);
 
   return (

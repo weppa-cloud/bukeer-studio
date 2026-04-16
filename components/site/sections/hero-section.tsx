@@ -352,7 +352,9 @@ export function HeroSection({ section, website }: HeroSectionProps) {
                   {sectionContent.ctaText}
                 </a>
               )}
-              {immersiveContent.secondaryCtaText && immersiveContent.secondaryCtaUrl && (
+              {immersiveContent.secondaryCtaText &&
+                immersiveContent.secondaryCtaUrl &&
+                immersiveContent.secondaryCtaText !== sectionContent.ctaText && (
                 <a
                   href={immersiveContent.secondaryCtaUrl}
                   className="px-7 py-3.5 rounded-full font-semibold text-sm tracking-wide border-2 border-white/30 text-white backdrop-blur-md hover:border-white/60 hover:bg-white/15 transition-all duration-300"
@@ -369,7 +371,7 @@ export function HeroSection({ section, website }: HeroSectionProps) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.9, duration: 0.6 }}
-              className="flex flex-wrap gap-3 mt-8 z-20 lg:absolute lg:bottom-8 lg:right-8 lg:mt-0 lg:gap-4"
+              className="flex flex-wrap justify-center gap-3 mt-8 z-20 lg:absolute lg:bottom-8 lg:right-8 lg:mt-0 lg:gap-4 lg:justify-end"
             >
               {immersiveContent.heroStats.map((stat, i) => {
                 // Parse stat.num to extract number and suffix
