@@ -17,6 +17,7 @@ const chromiumWebglArgs = [
 
 export default defineConfig({
   testDir: './e2e/tests',
+  globalSetup: './e2e/global-setup.ts',
   outputDir,
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
