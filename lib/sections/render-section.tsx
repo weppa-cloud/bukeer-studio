@@ -19,10 +19,12 @@ import {
   isValidSectionType,
 } from './section-registry';
 import type { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
+import type { PlannerData } from '@/lib/supabase/get-planners';
 
 interface RenderSectionProps {
   section: WebsiteSection;
   website: WebsiteData;
+  dbPlanners?: PlannerData[];
 }
 
 interface RenderSectionResult {
@@ -56,8 +58,8 @@ function reportSectionIssue(message: string): void {
  * @param props - Section and website data
  * @returns React element or null
  */
-export function renderSection({ section, website }: RenderSectionProps): React.ReactNode {
-  const result = renderSectionWithResult({ section, website });
+export function renderSection({ section, website, dbPlanners }: RenderSectionProps): React.ReactNode {
+  const result = renderSectionWithResult({ section, website, dbPlanners });
   return result.element;
 }
 
@@ -71,6 +73,7 @@ export function renderSection({ section, website }: RenderSectionProps): React.R
 export function renderSectionWithResult({
   section,
   website,
+  dbPlanners,
 }: RenderSectionProps): RenderSectionResult {
   // 1. Verify section type is known (derived from sectionComponents, NOT manual list)
   if (!isValidSectionType(section.section_type)) {
@@ -218,6 +221,11 @@ export function renderSectionWithResult({
     config: normalizedConfig,
   };
 
+  const plannerTypes = new Set(['planners', 'team', 'travel_planners']);
+  const extraProps = plannerTypes.has(section.section_type) && dbPlanners
+    ? { dbPlanners }
+    : {};
+
   return {
     element: (
       <section
@@ -226,7 +234,7 @@ export function renderSectionWithResult({
         data-section-id={section.id || section.section_type}
         data-section-type={section.section_type}
       >
-        <Component section={normalizedSection} website={website} />
+        <Component section={normalizedSection} website={website} {...extraProps} />
       </section>
     ),
   };

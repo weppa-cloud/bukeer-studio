@@ -7,6 +7,8 @@ import { generateHreflangLinks } from '@/lib/seo/hreflang';
 import { resolveOgImage } from '@/lib/seo/og-helpers';
 import { getWebsiteBySubdomain } from '@/lib/supabase/get-website';
 import { getCachedGoogleReviews, getCategoryProducts, getDestinations } from '@/lib/supabase/get-pages';
+import { getPlanners } from '@/lib/supabase/get-planners';
+import type { PlannerData } from '@/lib/supabase/get-planners';
 import type { ProductData, WebsiteSection } from '@bukeer/website-contract';
 import { SECTION_TYPES } from '@bukeer/website-contract';
 import { hydrateSections } from '@/lib/sections/hydrate-sections';
@@ -215,11 +217,19 @@ export default async function SitePage({ params }: SitePageProps) {
 
   const schemas = generateHomepageSchemas(website, baseUrl, reviewImages.length > 0 ? reviewImages : undefined);
 
-  const [dynamicDestinations, packagesCatalog, activitiesCatalog, hotelsCatalog] = await Promise.all([
+  const PLANNER_TYPES = new Set(['planners', 'team', 'travel_planners']);
+  const hasPlannersSection = (website.sections || []).some(
+    (s) => PLANNER_TYPES.has(s.section_type)
+  );
+
+  const [dynamicDestinations, packagesCatalog, activitiesCatalog, hotelsCatalog, dbPlanners] = await Promise.all([
     getDestinations(subdomain),
     getCategoryProducts(subdomain, SECTION_PACKAGES, { limit: 8 }),
     getCategoryProducts(subdomain, SECTION_ACTIVITIES, { limit: 8 }),
     getCategoryProducts(subdomain, SECTION_HOTELS, { limit: 8 }),
+    hasPlannersSection && website.account_id
+      ? getPlanners(website.account_id)
+      : Promise.resolve<PlannerData[]>([]),
   ]);
 
   const seenSingletonTypes = new Set<string>();
@@ -276,6 +286,7 @@ export default async function SitePage({ params }: SitePageProps) {
           key={section.id}
           section={section}
           website={website}
+          dbPlanners={PLANNER_TYPES.has(section.section_type) ? dbPlanners : undefined}
         />
       ))}
     </>

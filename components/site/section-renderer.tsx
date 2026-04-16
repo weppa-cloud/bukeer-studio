@@ -14,12 +14,14 @@
 
 import { renderSection } from '@/lib/sections/render-section';
 import type { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
+import type { PlannerData } from '@/lib/supabase/get-planners';
 
 interface SectionRendererProps {
   section: WebsiteSection;
   website: WebsiteData;
+  dbPlanners?: PlannerData[];
 }
 
-export function SectionRenderer({ section, website }: SectionRendererProps) {
-  return renderSection({ section, website });
+export function SectionRenderer({ section, website, dbPlanners }: SectionRendererProps) {
+  return renderSection({ section, website, dbPlanners });
 }
