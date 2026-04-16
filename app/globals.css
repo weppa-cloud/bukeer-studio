@@ -3,6 +3,7 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "maplibre-gl/dist/maplibre-gl.css";
+@plugin "@tailwindcss/typography";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -1038,4 +1039,149 @@ select.sort-select {
   max-width: 520px;
   font-size: 0.85rem;
   color: var(--studio-text-muted);
+}
+
+/* ─── Blog editorial styles ──────────────────────────────────────────────── */
+
+/* Figure wrapper for inline images (post-processed from <p><img></p>) */
+.blog-figure {
+  margin: 2.5rem 0;
+  display: block;
+}
+
+.blog-figure img {
+  display: block;
+  width: 100%;
+  border-radius: 0.875rem;
+  box-shadow: 0 4px 24px -4px rgb(0 0 0 / 0.18), 0 1px 4px -1px rgb(0 0 0 / 0.10);
+  border: 1px solid color-mix(in srgb, currentColor 8%, transparent);
+  object-fit: cover;
+}
+
+.blog-figure__caption {
+  display: block;
+  margin-top: 0.6rem;
+  font-size: 0.8125rem;
+  font-style: italic;
+  text-align: center;
+  line-height: 1.5;
+  color: var(--text-muted, #6b7280);
+  padding: 0 1rem;
+}
+
+/* Prose overrides — editorial travel blog quality */
+.blog-prose {
+  --tw-prose-body: var(--text-body, #374151);
+  --tw-prose-headings: var(--text-heading, #111827);
+  --tw-prose-links: var(--accent, #0ea5e9);
+  --tw-prose-bold: var(--text-heading, #111827);
+  --tw-prose-counters: var(--text-muted, #6b7280);
+  --tw-prose-bullets: var(--accent, #0ea5e9);
+  --tw-prose-hr: color-mix(in srgb, currentColor 12%, transparent);
+  --tw-prose-quotes: var(--text-heading, #111827);
+  --tw-prose-quote-borders: var(--accent, #0ea5e9);
+  --tw-prose-captions: var(--text-muted, #6b7280);
+  --tw-prose-code: var(--accent, #0ea5e9);
+  --tw-prose-pre-bg: color-mix(in srgb, var(--bg-card, #f9fafb) 80%, transparent);
+}
+
+/* Heading spacing + editorial accent border on H2 */
+.prose.blog-prose h2 {
+  font-size: 1.625rem;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  margin-top: 3rem;
+  margin-bottom: 1rem;
+  line-height: 1.2;
+  padding-left: 0.875rem;
+  border-left: 3px solid var(--accent, #0ea5e9);
+}
+
+.prose.blog-prose h3 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-top: 2.25rem;
+  margin-bottom: 0.75rem;
+}
+
+/* Paragraph — Google 1.5–2em gap recommendation */
+.prose.blog-prose p {
+  line-height: 1.8;
+  margin-bottom: 1.6rem;
+}
+
+/* Pull quote / blockquote */
+.prose.blog-prose blockquote {
+  position: relative;
+  margin: 2.5rem 0;
+  padding: 1.25rem 1.75rem;
+  background: color-mix(in srgb, var(--accent, #0ea5e9) 6%, transparent);
+  border-left: 4px solid var(--accent, #0ea5e9);
+  border-radius: 0 0.5rem 0.5rem 0;
+  font-style: italic;
+  font-size: 1.1rem;
+  line-height: 1.7;
+}
+
+.prose.blog-prose blockquote p {
+  margin: 0;
+}
+
+/* Inline images outside figure — CLS fix + basic treatment */
+.prose.blog-prose img:not(.blog-figure img) {
+  aspect-ratio: 16 / 9;
+  width: 100%;
+  height: auto;
+  border-radius: 0.875rem;
+  box-shadow: 0 4px 16px -4px rgb(0 0 0 / 0.15);
+  border: 1px solid color-mix(in srgb, currentColor 8%, transparent);
+}
+
+/* Horizontal rule as section divider */
+.prose.blog-prose hr {
+  margin: 3rem auto;
+  width: 4rem;
+  border-color: var(--accent, #0ea5e9);
+  opacity: 0.4;
+}
+
+/* Lists */
+.prose.blog-prose ul li,
+.prose.blog-prose ol li {
+  line-height: 1.75;
+  margin-bottom: 0.4rem;
+}
+
+/* Code */
+.prose.blog-prose code {
+  font-size: 0.875em;
+  padding: 0.2em 0.4em;
+  border-radius: 0.3rem;
+  background: color-mix(in srgb, var(--accent, #0ea5e9) 8%, transparent);
+}
+
+/* Mobile — 16px minimum body, tighter headings (Google mobile standard) */
+@media (max-width: 768px) {
+  .blog-prose {
+    font-size: 1rem;
+    line-height: 1.8;
+  }
+  .prose.blog-prose h2 {
+    font-size: 1.375rem;
+    margin-top: 2.25rem;
+    padding-left: 0.625rem;
+  }
+  .prose.blog-prose h3 {
+    font-size: 1.125rem;
+    margin-top: 1.75rem;
+  }
+  .prose.blog-prose p {
+    margin-bottom: 1.35rem;
+  }
+}
+
+/* Dark mode adjustments */
+.dark .blog-figure img {
+  box-shadow: 0 4px 24px -4px rgb(0 0 0 / 0.4), 0 1px 4px -1px rgb(0 0 0 / 0.2);
+  border-color: color-mix(in srgb, #ffffff 10%, transparent);
 }

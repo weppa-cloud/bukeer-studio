@@ -20,6 +20,9 @@ export interface BlogPost {
   seo_description: string | null;
   seo_keywords: string[] | null;
   word_count: number | null;
+  author_name?: string | null;
+  author_avatar?: string | null;
+  reading_time_minutes?: number | null;
   category?: BlogCategory;
 
   // V2 fields (SEO pipeline)
