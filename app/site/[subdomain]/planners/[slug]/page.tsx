@@ -3,7 +3,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getWebsiteBySubdomain } from '@/lib/supabase/get-website';
-import { getPlanners } from '@/lib/supabase/get-planners';
+import { getPlanners, slugify } from '@/lib/supabase/get-planners';
 import type { PlannerData } from '@/lib/supabase/get-planners';
 import { getReviewsForContext } from '@/lib/supabase/get-reviews';
 import { ReviewsBlock } from '@/components/site/reviews-block';
@@ -79,11 +79,48 @@ export default async function PlannerProfilePage({ params }: PlannerPageProps) {
     notFound();
   }
 
-  const planners = website.account_id ? await getPlanners(website.account_id) : [];
-  const planner = planners.find((p) => p.slug === slug);
+  // Try to find matching planner data from the planners section for quote/rating
+  const plannersSection = website.sections?.find(
+    (s) => s.section_type === 'planners' || s.section_type === 'team' || s.section_type === 'travel_planners'
+  );
+  type SectionPlanner = { name: string; quote?: string; rating?: number; reviewCount?: number; specialty?: string };
+  const sectionPlanners = (plannersSection?.content as { planners?: SectionPlanner[] })?.planners;
+
+  const dbPlanners = website.account_id ? await getPlanners(website.account_id) : [];
+  let planner = dbPlanners.find((p) => p.slug === slug);
+
+  // Fallback: resolve from section content planners when DB has no contacts
+  let sectionMatch: SectionPlanner | undefined;
+  if (!planner && sectionPlanners) {
+    sectionMatch = sectionPlanners.find((sp) => slugify(sp.name) === slug);
+    if (sectionMatch) {
+      // Build a synthetic PlannerData from section content
+      const parts = sectionMatch.name.split(' ');
+      planner = {
+        id: slug,
+        name: parts[0] || sectionMatch.name,
+        lastName: parts.slice(1).join(' '),
+        fullName: sectionMatch.name,
+        photo: null,
+        role: null,
+        position: sectionMatch.specialty || null,
+        phone: null,
+        slug,
+      };
+    }
+  }
 
   if (!planner) {
     notFound();
+  }
+
+  // Match section content for enrichment when coming from DB
+  if (!sectionMatch && sectionPlanners) {
+    sectionMatch = sectionPlanners.find(
+      (sp) =>
+        sp.name.toLowerCase().includes(planner!.name.toLowerCase()) ||
+        planner!.fullName.toLowerCase().includes(sp.name.toLowerCase())
+    );
   }
 
   const plannerReviews = website.account_id
@@ -94,17 +131,6 @@ export default async function PlannerProfilePage({ params }: PlannerPageProps) {
   const whatsappNumber = (planner.phone || whatsappBase).replace(/[^0-9]/g, '');
   const specialty = planner.position || mapRole(planner.role);
   const siteName = website.content?.account?.name || website.content?.siteName || subdomain;
-
-  // Try to find matching planner data from the planners section for quote/rating
-  const plannersSection = website.sections?.find(
-    (s) => s.section_type === 'planners' || s.section_type === 'team' || s.section_type === 'travel_planners'
-  );
-  const sectionPlanners = (plannersSection?.content as { planners?: Array<{ name: string; quote?: string; rating?: number; reviewCount?: number; specialty?: string }> })?.planners;
-  const sectionMatch = sectionPlanners?.find(
-    (sp) =>
-      sp.name.toLowerCase().includes(planner.name.toLowerCase()) ||
-      planner.fullName.toLowerCase().includes(sp.name.toLowerCase())
-  );
 
   const quote = sectionMatch?.quote;
   const rating = sectionMatch?.rating;

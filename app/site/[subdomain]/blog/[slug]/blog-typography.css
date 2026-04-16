@@ -1,0 +1,113 @@
+/* Blog editorial typography — imported directly in blog/[slug]/page.tsx */
+
+/* ── Figure / image ─────────────────────────────────────────────────────── */
+.blog-figure {
+  margin: 2.5rem 0;
+  display: block;
+}
+.blog-figure img {
+  display: block;
+  width: 100%;
+  border-radius: 0.875rem;
+  box-shadow: 0 4px 24px -4px rgba(0, 0, 0, 0.18), 0 1px 4px -1px rgba(0, 0, 0, 0.10);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  object-fit: cover;
+}
+.blog-figure__caption {
+  display: block;
+  margin-top: 0.6rem;
+  font-size: 0.8125rem;
+  font-style: italic;
+  text-align: center;
+  line-height: 1.5;
+  color: var(--text-muted, #6b7280);
+  padding: 0 1rem;
+}
+
+/* ── Prose overrides ─────────────────────────────────────────────────────── */
+.prose.blog-prose h2 {
+  font-size: 1.625rem !important;
+  font-weight: 800 !important;
+  line-height: 1.2 !important;
+  letter-spacing: -0.025em !important;
+  margin-top: 3rem !important;
+  margin-bottom: 1rem !important;
+  padding-left: 0.875rem !important;
+  border-left: 3px solid var(--accent, #0ea5e9) !important;
+}
+.prose.blog-prose h3 {
+  font-size: 1.25rem !important;
+  font-weight: 700 !important;
+  margin-top: 2.25rem !important;
+  margin-bottom: 0.75rem !important;
+}
+.prose.blog-prose p {
+  line-height: 1.8 !important;
+  margin-bottom: 1.6rem !important;
+}
+.prose.blog-prose blockquote {
+  position: relative;
+  margin: 2.5rem 0 !important;
+  padding: 1.25rem 1.75rem !important;
+  background: color-mix(in srgb, var(--accent, #0ea5e9) 6%, transparent);
+  border-left: 4px solid var(--accent, #0ea5e9) !important;
+  border-radius: 0 0.5rem 0.5rem 0;
+  font-style: italic;
+  font-size: 1.1rem;
+  line-height: 1.7;
+}
+.prose.blog-prose blockquote p {
+  margin: 0 !important;
+}
+.prose.blog-prose hr {
+  margin: 3rem auto !important;
+  width: 4rem;
+  border-color: var(--accent, #0ea5e9) !important;
+  opacity: 0.4;
+}
+.prose.blog-prose ul li,
+.prose.blog-prose ol li {
+  line-height: 1.75 !important;
+  margin-bottom: 0.4rem !important;
+}
+.prose.blog-prose code {
+  font-size: 0.875em;
+  padding: 0.2em 0.4em;
+  border-radius: 0.3rem;
+  background: color-mix(in srgb, var(--accent, #0ea5e9) 8%, transparent);
+}
+/* Inline images not in figure — CLS prevention */
+.prose.blog-prose img:not(.blog-figure img) {
+  aspect-ratio: 16 / 9;
+  width: 100%;
+  height: auto;
+  border-radius: 0.875rem;
+  box-shadow: 0 4px 16px -4px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+/* ── Mobile ─────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .prose.blog-prose {
+    font-size: 1rem;
+    line-height: 1.8;
+  }
+  .prose.blog-prose h2 {
+    font-size: 1.375rem !important;
+    margin-top: 2.25rem !important;
+    padding-left: 0.625rem !important;
+  }
+  .prose.blog-prose h3 {
+    font-size: 1.125rem !important;
+    margin-top: 1.75rem !important;
+  }
+  .prose.blog-prose p {
+    margin-bottom: 1.35rem !important;
+  }
+}
+
+/* ── Dark mode ──────────────────────────────────────────────────────────── */
+.dark .blog-figure img {
+  box-shadow: 0 4px 24px -4px rgba(0, 0, 0, 0.4), 0 1px 4px -1px rgba(0, 0, 0, 0.2);
+  border-color: rgba(255, 255, 255, 0.1);
+}

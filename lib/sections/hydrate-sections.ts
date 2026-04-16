@@ -1,4 +1,4 @@
-import type { WebsiteSection } from '@bukeer/website-contract';
+import type { WebsiteSection, BlogPost } from '@bukeer/website-contract';
 import { SECTION_TYPES } from '@bukeer/website-contract';
 
 const SECTION_DESTINATIONS = SECTION_TYPES.find((t) => t === 'destinations')!;
@@ -9,6 +9,7 @@ const SECTION_HOTELS = SECTION_TYPES.find((t) => t === 'hotels')!;
 const SECTION_CTA = SECTION_TYPES.find((t) => t === 'cta')!;
 const SECTION_HERO = SECTION_TYPES.find((t) => t === 'hero')!;
 const SECTION_STATS = SECTION_TYPES.find((t) => t === 'stats')!;
+const SECTION_BLOG = SECTION_TYPES.find((t) => t === 'blog')!;
 
 const PRODUCT_SECTION_ORDER = [SECTION_PACKAGES, SECTION_ACTIVITIES, SECTION_HOTELS] as const;
 type ProductSectionType = (typeof PRODUCT_SECTION_ORDER)[number];
@@ -35,6 +36,7 @@ export interface HydrationInput {
     google_maps_url?: string;
     business_name?: string;
   } | null;
+  blogPosts?: BlogPost[];
 }
 
 function buildAutoProductSection(
@@ -256,7 +258,30 @@ export function hydrateSections(input: HydrationInput): WebsiteSection[] {
     }
   }
 
-  // 5. Move CTA to end and re-index display_order
+  // 5. Inject real blog posts into blog sections
+  const { blogPosts } = input;
+  if (blogPosts && blogPosts.length > 0) {
+    for (let i = 0; i < hydratedSections.length; i++) {
+      if (hydratedSections[i].section_type !== SECTION_BLOG) continue;
+      hydratedSections[i] = {
+        ...hydratedSections[i],
+        content: {
+          ...(hydratedSections[i].content as Record<string, unknown>),
+          posts: blogPosts.map((p) => ({
+            id: p.id,
+            title: p.title,
+            slug: p.slug,
+            excerpt: p.excerpt || undefined,
+            featuredImage: p.featured_image || undefined,
+            publishedAt: p.published_at || undefined,
+            category: undefined, // category_id only — no join in RPC
+          })),
+        },
+      } as WebsiteSection;
+    }
+  }
+
+  // 6. Move CTA to end and re-index display_order
   const ctaSection = hydratedSections.find((section) => section.section_type === SECTION_CTA);
   if (ctaSection) {
     hydratedSections = [

@@ -10,6 +10,7 @@ const PURIFY_CONFIG = {
     'a', 'img',
     'table', 'thead', 'tbody', 'tr', 'th', 'td',
     'div', 'span',
+    'figure', 'figcaption',
   ],
   ALLOWED_ATTR: ['href', 'src', 'alt', 'title', 'class', 'id', 'loading', 'decoding'],
   ALLOW_DATA_ATTR: false,
@@ -42,6 +43,24 @@ export function renderMarkdown(content: string): string {
   // Parse markdown and sanitize
   const rawHtml = marked.parse(content, { gfm: true, breaks: true });
   return sanitizeHtml(rawHtml as string);
+}
+
+/**
+ * Wrap standalone <p><img ...></p> with editorial <figure> + <figcaption>.
+ * Alt text → caption. Images without alt text get no caption.
+ * Skips images that are already inside <figure>.
+ */
+function wrapImagesToFigures(html: string): string {
+  // Match <p> containing ONLY an <img> (no other text nodes)
+  return html.replace(
+    /<p>\s*(<img([^>]*)>)\s*<\/p>/gi,
+    (_, imgTag: string, imgAttrs: string) => {
+      const altMatch = imgAttrs.match(/alt="([^"]*)"/i);
+      const alt = altMatch ? altMatch[1].trim() : '';
+      const caption = alt && alt !== '' ? `\n  <figcaption class="blog-figure__caption">${alt}</figcaption>` : '';
+      return `<figure class="blog-figure">\n  ${imgTag}${caption}\n</figure>`;
+    }
+  );
 }
 
 /**
@@ -82,6 +101,7 @@ interface SafeHtmlProps {
  */
 export function SafeHtml({ content, className, fallbackAlt }: SafeHtmlProps) {
   let html = renderMarkdown(content);
+  html = wrapImagesToFigures(html);
   html = addLazyLoading(html);
   if (fallbackAlt) html = addAltFallback(html, fallbackAlt);
   return (

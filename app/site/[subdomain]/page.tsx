@@ -5,13 +5,13 @@ import { JsonLd, generateHomepageSchemas } from '@/lib/schema';
 import type { ImageObject } from '@/lib/schema/types';
 import { generateHreflangLinks } from '@/lib/seo/hreflang';
 import { resolveOgImage } from '@/lib/seo/og-helpers';
-import { getWebsiteBySubdomain } from '@/lib/supabase/get-website';
+import { getWebsiteBySubdomain, getBlogPosts } from '@/lib/supabase/get-website';
 import { getCachedGoogleReviews, getCategoryProducts, getDestinations } from '@/lib/supabase/get-pages';
 import { getPlanners } from '@/lib/supabase/get-planners';
 import type { PlannerData } from '@/lib/supabase/get-planners';
-import type { ProductData, WebsiteSection } from '@bukeer/website-contract';
 import { SECTION_TYPES } from '@bukeer/website-contract';
 import { hydrateSections } from '@/lib/sections/hydrate-sections';
+import { toPackageItems, toActivityItems, toHotelItems } from '@/lib/products/to-items';
 
 const SECTION_DESTINATIONS = SECTION_TYPES.find((t) => t === 'destinations')!;
 const SECTION_TESTIMONIALS = SECTION_TYPES.find((t) => t === 'testimonials')!;
@@ -23,6 +23,7 @@ const SECTION_HERO = SECTION_TYPES.find((t) => t === 'hero')!;
 const SECTION_STATS = SECTION_TYPES.find((t) => t === 'stats')!;
 const SECTION_CONTACT = SECTION_TYPES.find((t) => t === 'contact')!;
 const SECTION_CONTACT_FORM = SECTION_TYPES.find((t) => t === 'contact_form')!;
+const SECTION_BLOG = SECTION_TYPES.find((t) => t === 'blog')!;
 
 const SINGLETON_SECTION_TYPES = new Set<string>([
   SECTION_HERO,
@@ -40,87 +41,6 @@ export const revalidate = 300;
 
 interface SitePageProps {
   params: Promise<{ subdomain: string }>;
-}
-
-function formatProductPrice(rawPrice: unknown, currency?: string): string | undefined {
-  if (typeof rawPrice === 'string' && rawPrice.trim().length > 0) return rawPrice.trim();
-  if (typeof rawPrice !== 'number' || Number.isNaN(rawPrice)) return undefined;
-
-  const code = currency?.toUpperCase() || 'USD';
-  return `$${new Intl.NumberFormat('en-US').format(Math.round(rawPrice))} ${code}`;
-}
-
-function toProductLocation(product: ProductData): string | undefined {
-  if (product.location) return product.location;
-  if (product.city && product.country) return `${product.city}, ${product.country}`;
-  return product.city || product.country;
-}
-
-function toDurationLabel(product: ProductData): string | undefined {
-  const dynamicDuration = (product as unknown as { duration?: string }).duration;
-  if (typeof dynamicDuration === 'string' && dynamicDuration.trim().length > 0) {
-    return dynamicDuration.trim();
-  }
-
-  if (!product.duration_minutes || product.duration_minutes <= 0) return undefined;
-  if (product.duration_minutes < 60) return `${product.duration_minutes} min`;
-  return `${Math.max(1, Math.round(product.duration_minutes / 60))} h`;
-}
-
-function toPackageItems(products: ProductData[]): Array<Record<string, unknown>> {
-  return products.map((product) => {
-    // Use is_featured flag from DB; fall back to category label from package_kits.category
-    const featured = product.is_featured === true;
-    const dbCategory = typeof (product as unknown as Record<string, unknown>).category === 'string'
-      ? (product as unknown as Record<string, unknown>).category as string
-      : undefined;
-    const category = dbCategory || 'Popular';
-
-    return {
-      id: product.id,
-      slug: product.slug,
-      name: product.name,
-      image: product.image || product.images?.[0],
-      destination: toProductLocation(product),
-      duration: product.itinerary_items?.length ? `${product.itinerary_items.length} días` : toDurationLabel(product),
-      price: formatProductPrice(product.price, product.currency),
-      description: product.description,
-      category,
-      featured,
-    };
-  }).slice(0, 8);
-}
-
-function toActivityItems(products: ProductData[]): Array<Record<string, unknown>> {
-  return products.map((product) => ({
-    id: product.id,
-    slug: product.slug,
-    name: product.name,
-    image: product.image || product.images?.[0],
-    duration: toDurationLabel(product),
-    price: formatProductPrice(product.price, product.currency),
-    category: product.type === 'activity' ? 'Actividad' : 'Experiencia',
-    location: toProductLocation(product),
-    rating: product.rating,
-    reviewCount: product.review_count,
-    description: product.description,
-    difficulty: product.duration_minutes && product.duration_minutes > 360 ? 'Intensa' : 'Fácil',
-  })).slice(0, 8);
-}
-
-function toHotelItems(products: ProductData[]): Array<Record<string, unknown>> {
-  return products.map((product) => ({
-    id: product.id,
-    slug: product.slug,
-    name: product.name,
-    image: product.image || product.images?.[0],
-    location: toProductLocation(product),
-    rating: product.star_rating || undefined,
-    reviewRating: product.rating,
-    reviewCount: product.review_count,
-    price: formatProductPrice(product.price, product.currency),
-    badge: product.star_rating ? `${product.star_rating}★` : undefined,
-  })).slice(0, 8);
 }
 
 export async function generateMetadata({ params }: SitePageProps): Promise<Metadata> {
@@ -221,8 +141,11 @@ export default async function SitePage({ params }: SitePageProps) {
   const hasPlannersSection = (website.sections || []).some(
     (s) => PLANNER_TYPES.has(s.section_type)
   );
+  const hasBlogSection = (website.sections || []).some(
+    (s) => s.section_type === SECTION_BLOG
+  );
 
-  const [dynamicDestinations, packagesCatalog, activitiesCatalog, hotelsCatalog, dbPlanners] = await Promise.all([
+  const [dynamicDestinations, packagesCatalog, activitiesCatalog, hotelsCatalog, dbPlanners, blogResult] = await Promise.all([
     getDestinations(subdomain),
     getCategoryProducts(subdomain, SECTION_PACKAGES, { limit: 8 }),
     getCategoryProducts(subdomain, SECTION_ACTIVITIES, { limit: 8 }),
@@ -230,6 +153,9 @@ export default async function SitePage({ params }: SitePageProps) {
     hasPlannersSection && website.account_id
       ? getPlanners(website.account_id)
       : Promise.resolve<PlannerData[]>([]),
+    hasBlogSection && website.id
+      ? getBlogPosts(website.id, { limit: 6 })
+      : Promise.resolve({ posts: [], total: 0 }),
   ]);
 
   const seenSingletonTypes = new Set<string>();
@@ -275,6 +201,7 @@ export default async function SitePage({ params }: SitePageProps) {
     activityItems,
     hotelItems,
     googleReviews,
+    blogPosts: blogResult.posts.length > 0 ? blogResult.posts : undefined,
   });
 
   return (

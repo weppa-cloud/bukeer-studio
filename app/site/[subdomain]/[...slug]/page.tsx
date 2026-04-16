@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getWebsiteBySubdomain } from '@/lib/supabase/get-website';
-import { getPageBySlug, getProductPage, getDestinations, getDestinationProducts, getDestinationSeoOverride } from '@/lib/supabase/get-pages';
+import { getPageBySlug, getProductPage, getDestinations, getDestinationProducts, getDestinationSeoOverride, getCategoryProducts } from '@/lib/supabase/get-pages';
 import { getReviewsForContext, type ReviewContext } from '@/lib/supabase/get-reviews';
 import { enrichDestinationFromSerpAPI } from '@/lib/services/serpapi-enrichment';
 import { generateHreflangLinks, generateOgLocale } from '@/lib/seo/hreflang';
@@ -16,6 +16,12 @@ const DestinationListingPage = dynamic(
 );
 const DestinationDetailPage = dynamic(
   () => import('@/components/pages/destination-detail-page').then(m => m.DestinationDetailPage)
+);
+const ActivitiesListingPage = dynamic(
+  () => import('@/components/pages/activities-listing-page').then(m => m.ActivitiesListingPage)
+);
+const PackagesListingPage = dynamic(
+  () => import('@/components/pages/packages-listing-page').then(m => m.PackagesListingPage)
 );
 
 interface DynamicPageProps {
@@ -66,6 +72,62 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
 
   // Handle different page types based on slug
   const slugPath = slug.join('/');
+
+  // Activities listing (/actividades or /activities)
+  if (slug.length === 1 && (slug[0] === 'actividades' || slug[0] === 'activities')) {
+    const siteName = website.content?.account?.name || website.content?.siteName || subdomain;
+    const pathname = '/actividades';
+    const ogImage = resolveOgImage(website);
+    return {
+      title: `Actividades | ${siteName}`,
+      description: `Descubre todas las actividades y experiencias disponibles con ${siteName}.`,
+      openGraph: {
+        title: `Actividades | ${siteName}`,
+        description: `Descubre todas las actividades y experiencias disponibles con ${siteName}.`,
+        type: 'website',
+        locale: ogLocale,
+        ...(ogImage && { images: [{ url: ogImage }] }),
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title: `Actividades | ${siteName}`,
+        description: `Descubre todas las actividades y experiencias disponibles con ${siteName}.`,
+        ...(ogImage && { images: [ogImage] }),
+      },
+      alternates: {
+        canonical: `${baseUrl}${pathname}`,
+        languages: buildAlternateLanguages(baseUrl, pathname),
+      },
+    };
+  }
+
+  // Packages listing (/paquetes or /packages)
+  if (slug.length === 1 && (slug[0] === 'paquetes' || slug[0] === 'packages')) {
+    const siteName = website.content?.account?.name || website.content?.siteName || subdomain;
+    const pathname = '/paquetes';
+    const ogImage = resolveOgImage(website);
+    return {
+      title: `Paquetes de Viaje | ${siteName}`,
+      description: `Descubre los paquetes de viaje curados por ${siteName}. Experiencias únicas todo incluido.`,
+      openGraph: {
+        title: `Paquetes de Viaje | ${siteName}`,
+        description: `Descubre los paquetes de viaje curados por ${siteName}. Experiencias únicas todo incluido.`,
+        type: 'website',
+        locale: ogLocale,
+        ...(ogImage && { images: [{ url: ogImage }] }),
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title: `Paquetes de Viaje | ${siteName}`,
+        description: `Descubre los paquetes de viaje curados por ${siteName}. Experiencias únicas todo incluido.`,
+        ...(ogImage && { images: [ogImage] }),
+      },
+      alternates: {
+        canonical: `${baseUrl}${pathname}`,
+        languages: buildAlternateLanguages(baseUrl, pathname),
+      },
+    };
+  }
 
   // Destination listing (/destinos or /destinations)
   if (slug.length === 1 && (slug[0] === 'destinos' || slug[0] === 'destinations')) {
@@ -258,6 +320,18 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
   }
 
   const slugPath = slug.join('/');
+
+  // Handle activities listing (/actividades)
+  if (slug.length === 1 && (slug[0] === 'actividades' || slug[0] === 'activities')) {
+    const { items: activityProducts } = await getCategoryProducts(subdomain, 'activities', { limit: 100, offset: 0 });
+    return <ActivitiesListingPage website={website} activities={activityProducts} />;
+  }
+
+  // Handle packages listing (/paquetes)
+  if (slug.length === 1 && (slug[0] === 'paquetes' || slug[0] === 'packages')) {
+    const { items: packageProducts } = await getCategoryProducts(subdomain, 'packages', { limit: 100, offset: 0 });
+    return <PackagesListingPage website={website} packages={packageProducts} />;
+  }
 
   // Handle destination listing (/destinos)
   if (slug.length === 1 && (slug[0] === 'destinos' || slug[0] === 'destinations')) {

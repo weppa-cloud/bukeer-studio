@@ -1,3 +1,4 @@
+import './blog-typography.css';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -105,7 +106,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
       <JsonLd data={schemas} />
 
       <article className="section-padding">
-      <div className="container max-w-4xl">
+      <div className="container max-w-[72ch]">
         {/* Breadcrumb */}
         <nav className="mb-8">
           <ol className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -142,9 +143,9 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
             {post.title}
           </h1>
 
-          {/* Meta */}
-          {post.published_at && (
-            <div className="mt-6 flex items-center gap-4 text-muted-foreground">
+          {/* Meta: date · author · reading time */}
+          <div className="mt-6 flex flex-wrap items-center gap-2 text-sm" style={{ color: 'var(--text-muted)' }}>
+            {post.published_at && (
               <time dateTime={post.published_at}>
                 {new Date(post.published_at).toLocaleDateString('es-ES', {
                   day: 'numeric',
@@ -152,18 +153,28 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                   year: 'numeric',
                 })}
               </time>
-            </div>
-          )}
+            )}
+            {post.author_name && (
+              <>
+                <span aria-hidden="true">·</span>
+                <span>{post.author_name}</span>
+              </>
+            )}
+            <span aria-hidden="true">·</span>
+            <span>{Math.ceil(post.content.split(/\s+/).length / 200)} min de lectura</span>
+          </div>
         </header>
 
-        {/* Featured Image */}
+        {/* Featured Image — LCP optimized */}
         {post.featured_image && (
-          <div className="relative aspect-[16/9] rounded-xl overflow-hidden mb-8">
+          <div className="relative aspect-[16/9] rounded-xl overflow-hidden mb-10">
             <Image
               src={post.featured_image}
               alt={post.title}
               fill
               priority
+              fetchPriority="high"
+              sizes="(max-width: 768px) 100vw, 72ch"
               className="object-cover"
             />
           </div>
@@ -173,11 +184,12 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         <SafeHtml
           content={post.content}
           fallbackAlt={post.title}
-          className="prose prose-lg max-w-none dark:prose-invert
-            prose-headings:font-bold
-            prose-a:text-primary prose-a:no-underline hover:prose-a:underline
-            prose-img:rounded-lg
-            prose-blockquote:border-l-primary
+          className="blog-prose prose prose-lg max-w-none dark:prose-invert
+            prose-headings:font-bold prose-headings:tracking-tight
+            prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-a:font-medium
+            prose-strong:text-foreground
+            prose-blockquote:not-italic
+            prose-figure:my-0
           "
         />
 
