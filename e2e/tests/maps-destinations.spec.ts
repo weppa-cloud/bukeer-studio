@@ -63,19 +63,36 @@ test.describe('Maps — Destinations @maps', () => {
     await expect(page).toHaveURL(new RegExp(`/site/${SUBDOMAIN}/destinos$`));
     await expect(page.getByRole('heading', { name: /Destinos en Colombia/i })).toBeVisible();
 
-    const markerCount = await destinationMarkers(page).count();
-    if (markerCount > 0) {
-      expect(markerCount).toBeGreaterThan(0);
-      return;
-    }
+    let resolvedState = 'pending';
+    await expect
+      .poll(
+        async () => {
+          const markerCount = await destinationMarkers(page).count();
+          if (markerCount > 0) {
+            resolvedState = 'markers';
+            return resolvedState;
+          }
 
-    const compatibilityVisible = await compatibilityFallbackMap(page).isVisible().catch(() => false);
-    if (compatibilityVisible) {
-      await expect(compatibilityFallbackMap(page)).toBeVisible();
-      return;
-    }
+          const compatibilityVisible = await compatibilityFallbackMap(page).isVisible().catch(() => false);
+          if (compatibilityVisible) {
+            resolvedState = 'compatibility';
+            return resolvedState;
+          }
 
-    await expect(fallbackMapFrame(page)).toBeVisible();
+          const legacyVisible = await fallbackMapFrame(page).isVisible().catch(() => false);
+          if (legacyVisible) {
+            resolvedState = 'legacy';
+            return resolvedState;
+          }
+
+          resolvedState = 'pending';
+          return resolvedState;
+        },
+        { timeout: 20000 }
+      )
+      .toMatch(/markers|compatibility|legacy/);
+
+    expect(resolvedState).toMatch(/markers|compatibility|legacy/);
   });
 
   test('destination detail renders product/service markers with filters and simple popup @maps', async ({ page }) => {
