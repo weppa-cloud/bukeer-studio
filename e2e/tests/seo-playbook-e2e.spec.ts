@@ -45,7 +45,7 @@ test.describe('SEO Playbook v2.0 — Smoke Tests', () => {
       await expect(page.getByRole('heading', { name: 'Analytics' })).toBeVisible();
 
       await page.getByRole('button', { name: 'Keywords' }).click();
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       // Table columns (stable signal across browsers)
       await expect(page.getByRole('columnheader', { name: 'Keyword' }).first()).toBeVisible();
@@ -67,10 +67,10 @@ test.describe('SEO Playbook v2.0 — Smoke Tests', () => {
 
     test('loads competitors tab with competitor table @smoke', async ({ page }) => {
       await gotoSection(page, 'analytics');
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       await page.getByRole('button', { name: 'Competitors' }).click();
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       // Table columns
       await expect(page.getByRole('columnheader', { name: 'Domain' })).toBeVisible();
@@ -80,10 +80,10 @@ test.describe('SEO Playbook v2.0 — Smoke Tests', () => {
 
     test('loads health tab with technical audit and Schema.org manager @smoke', async ({ page }) => {
       await gotoSection(page, 'analytics');
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       await page.getByRole('button', { name: 'Health' }).click();
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       // Technical audit section
       await expect(page.getByRole('heading', { name: 'Auditoria PageSpeed' })).toBeVisible();
@@ -94,10 +94,10 @@ test.describe('SEO Playbook v2.0 — Smoke Tests', () => {
 
     test('loads backlinks tab with Backlinks heading @smoke', async ({ page }) => {
       await gotoSection(page, 'analytics');
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       await page.getByRole('button', { name: 'Backlinks' }).click();
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       // The Backlinks dashboard renders a heading or summary text
       await expect(page.getByRole('heading', { name: 'Resumen de Backlinks' })).toBeVisible();
@@ -105,10 +105,10 @@ test.describe('SEO Playbook v2.0 — Smoke Tests', () => {
 
     test('loads ai-visibility tab with AI Visibility content @smoke', async ({ page }) => {
       await gotoSection(page, 'analytics');
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       await page.getByRole('button', { name: 'AI Visibility' }).click();
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       // Assert a deterministic heading inside the AI Visibility panel.
       await expect(page.getByRole('heading', { name: /Presencia en AI Overviews de Google/i })).toBeVisible();
@@ -116,10 +116,10 @@ test.describe('SEO Playbook v2.0 — Smoke Tests', () => {
 
     test('loads config tab with locale settings and Google Integrations @smoke', async ({ page }) => {
       await gotoSection(page, 'analytics');
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       await page.getByRole('button', { name: 'Config', exact: true }).click();
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       // Google Integrations panel
       await expect(page.getByText('Google Integrations')).toBeVisible();
@@ -139,7 +139,7 @@ test.describe('SEO Playbook v2.0 — Smoke Tests', () => {
   test.describe('Contenido Page', () => {
     test('loads contenido page with unified table view by default @smoke', async ({ page }) => {
       await gotoSection(page, 'contenido');
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       // Page heading
       await expect(page.getByRole('heading', { name: 'Contenido' })).toBeVisible();
@@ -161,7 +161,7 @@ test.describe('SEO Playbook v2.0 — Smoke Tests', () => {
 
     test('shows Open SEO action button for each row that exists @smoke', async ({ page }) => {
       await gotoSection(page, 'contenido');
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       const openSeoButtons = page.getByRole('button', { name: 'Open SEO' });
       const count = await openSeoButtons.count();
@@ -176,7 +176,7 @@ test.describe('SEO Playbook v2.0 — Smoke Tests', () => {
     test('shows Flujo SEO button for eligible item types when rows exist @smoke', async ({ page }) => {
       // requires real data (hotels, activities, packages, destinations or blog posts)
       await gotoSection(page, 'contenido');
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       const flujoButtons = page.getByRole('button', { name: /Flujo SEO/ });
       const count = await flujoButtons.count();
@@ -199,7 +199,7 @@ test.describe('SEO Playbook v2.0 — Smoke Tests', () => {
     test('navigates to /seo/architecture page and shows main heading @smoke', async ({ page }) => {
       const websiteId = WEBSITE_ID_OVERRIDE || await getFirstWebsiteId(page);
       await page.goto(`/dashboard/${websiteId}/seo/architecture`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       await expect(page.getByRole('heading', { name: 'Arquitectura de Contenido' })).toBeVisible();
     });
@@ -207,7 +207,7 @@ test.describe('SEO Playbook v2.0 — Smoke Tests', () => {
     test('shows architecture category summary section with real metrics @smoke', async ({ page }) => {
       const websiteId = WEBSITE_ID_OVERRIDE || await getFirstWebsiteId(page);
       await page.goto(`/dashboard/${websiteId}/seo/architecture`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       await expect(page.getByText('Resumen por categoría')).toBeVisible();
       await expect(page.locator('p').filter({ hasText: /^Nodos totales$/ }).first()).toBeVisible();
@@ -216,7 +216,7 @@ test.describe('SEO Playbook v2.0 — Smoke Tests', () => {
     test('shows click depth section and bucket rows @smoke', async ({ page }) => {
       const websiteId = WEBSITE_ID_OVERRIDE || await getFirstWebsiteId(page);
       await page.goto(`/dashboard/${websiteId}/seo/architecture`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       await expect(page.getByRole('heading', { name: /Click depth buckets/i })).toBeVisible();
       await expect(page.getByRole('columnheader', { name: 'Bucket' })).toBeVisible();
@@ -226,13 +226,13 @@ test.describe('SEO Playbook v2.0 — Smoke Tests', () => {
     test('back button returns to analytics keywords tab @smoke', async ({ page }) => {
       const websiteId = WEBSITE_ID_OVERRIDE || await getFirstWebsiteId(page);
       await page.goto(`/dashboard/${websiteId}/seo/architecture`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       const backButton = page.getByRole('link', { name: /Volver a Keywords/ });
       await expect(backButton).toBeVisible();
 
       await backButton.click();
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       // Should land on analytics page with keywords tab
       await expect(page).toHaveURL(/\/analytics/);
@@ -240,10 +240,10 @@ test.describe('SEO Playbook v2.0 — Smoke Tests', () => {
 
     test('analytics keywords tab has Ver Arquitectura link @smoke', async ({ page }) => {
       await gotoSection(page, 'analytics');
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       await page.getByRole('button', { name: 'Keywords' }).click();
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       await expect(page.getByRole('button', { name: /Ver Arquitectura/ })).toBeVisible();
     });
@@ -263,7 +263,7 @@ test.describe('SEO Playbook v2.0 — Smoke Tests', () => {
       }, websiteId);
 
       await page.goto(`/dashboard/${websiteId}/analytics`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       await expect(page.getByText('Configura tu SEO en 5 minutos')).toBeVisible();
     });
@@ -276,7 +276,7 @@ test.describe('SEO Playbook v2.0 — Smoke Tests', () => {
       }, websiteId);
 
       await page.goto(`/dashboard/${websiteId}/analytics`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       const bannerButton = page.getByRole('button', { name: /Iniciar configuración/ });
       await expect(bannerButton).toBeVisible();
@@ -294,7 +294,7 @@ test.describe('SEO Playbook v2.0 — Smoke Tests', () => {
       }, websiteId);
 
       await page.goto(`/dashboard/${websiteId}/analytics`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       await expect(page.getByText('Configura tu SEO en 5 minutos')).toBeVisible();
 
@@ -327,7 +327,7 @@ test.describe('SEO Playbook v2.0 — Smoke Tests', () => {
 
       await expect(openSeoButton).toBeVisible();
       await openSeoButton.click();
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       await expect(page.getByRole('button', { name: 'Meta & Keywords' })).toBeVisible();
       await expect(page.getByRole('button', { name: 'Keyword Research' })).toBeVisible();
@@ -350,7 +350,7 @@ test.describe('SEO Playbook v2.0 — Smoke Tests', () => {
       }
 
       await openSeoButton.click();
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       // Locale pills: es-CO, es-MX or en-US may appear in the locale config panel
       // Check that at least one locale identifier is visible anywhere on the page

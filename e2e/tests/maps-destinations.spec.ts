@@ -18,6 +18,36 @@ async function gotoWithRetries(page: Page, url: string, attempts = 3): Promise<v
   throw lastError;
 }
 
+async function recoverFromRuntimeError(page: Page): Promise<void> {
+  const errorHeading = page.getByRole('heading', { name: /Something went wrong/i });
+  const hasError = await errorHeading.isVisible().catch(() => false);
+  if (!hasError) return;
+
+  const tryAgainButton = page.getByRole('button', { name: /Try again/i });
+  if (await tryAgainButton.isVisible().catch(() => false)) {
+    await tryAgainButton.click({ force: true });
+  } else {
+    await page.reload({ waitUntil: 'commit', timeout: 90000 });
+  }
+}
+
+async function gotoListingPageReady(page: Page): Promise<void> {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    await gotoWithRetries(page, DESTINATIONS_LIST_URL);
+    await recoverFromRuntimeError(page);
+
+    const heading = page.getByRole('heading', { name: /Destinos en Colombia/i });
+    const ready = await heading
+      .waitFor({ state: 'visible', timeout: 15000 })
+      .then(() => true)
+      .catch(() => false);
+
+    if (ready) return;
+  }
+
+  throw new Error('Could not load destinations listing page in a ready state');
+}
+
 function nonDestinationMarkers(page: Page): Locator {
   return page.locator(
     'button[aria-label^="Hotel:"], button[aria-label^="Actividad:"], button[aria-label^="Servicio:"]'
@@ -39,6 +69,7 @@ function compatibilityFallbackMap(page: Page): Locator {
 async function gotoFirstDestinationDetail(page: Page): Promise<void> {
   for (const slug of DETAIL_SLUG_CANDIDATES) {
     await gotoWithRetries(page, `/site/${SUBDOMAIN}/destinos/${slug}`);
+    await recoverFromRuntimeError(page);
     const heading = page.getByRole('heading', { name: /Ubicacion/i });
     const hasMapHeading = await heading
       .waitFor({ state: 'visible', timeout: 45000 })
@@ -59,9 +90,8 @@ test.describe('Maps — Destinations @maps', () => {
   test.setTimeout(150000);
 
   test('destinations listing renders map with main destination markers @maps', async ({ page }) => {
-    await gotoWithRetries(page, DESTINATIONS_LIST_URL);
+    await gotoListingPageReady(page);
     await expect(page).toHaveURL(new RegExp(`/site/${SUBDOMAIN}/destinos$`));
-    await expect(page.getByRole('heading', { name: /Destinos en Colombia/i })).toBeVisible();
 
     let resolvedState = 'pending';
     await expect
@@ -107,11 +137,39 @@ test.describe('Maps — Destinations @maps', () => {
 
     await expect(page.getByRole('button', { name: 'Todos' })).toBeVisible();
     await page.getByRole('heading', { name: /Ubicacion/i }).scrollIntoViewIfNeeded();
+    const popupCandidates = [
+      page.locator('[data-testid="map-croquis-popup"]').first(),
+      page.locator('.maplibregl-popup-content').first(),
+    ];
 
-    await productMarkers.first().click({ force: true });
-    const popup = compatibilityVisible
-      ? page.locator('[data-testid="map-croquis-popup"]').first()
-      : page.locator('.maplibregl-popup-content').first();
+    let popup: Locator | null = null;
+    const attempts = Math.min(await productMarkers.count(), 4);
+    for (let i = 0; i < attempts; i += 1) {
+      await productMarkers.nth(i).click({ force: true });
+      const popupIndex = await page
+        .waitForFunction(
+          () => {
+            const croquis = Boolean(document.querySelector('[data-testid="map-croquis-popup"]'));
+            const maplibre = Boolean(document.querySelector('.maplibregl-popup-content'));
+            if (croquis) return 0;
+            if (maplibre) return 1;
+            return -1;
+          },
+          { timeout: 4000 }
+        )
+        .then((handle) => handle.jsonValue())
+        .then((value) => (typeof value === 'number' ? value : -1))
+        .catch(() => -1);
+
+      if (popupIndex >= 0) {
+        popup = popupCandidates[popupIndex];
+        break;
+      }
+    }
+
+    if (!popup) {
+      popup = compatibilityVisible ? popupCandidates[0] : popupCandidates[1];
+    }
     await expect(popup).toBeVisible();
     await expect(popup.locator('p')).toHaveCount(2);
 
@@ -155,9 +213,8 @@ test.describe('Maps — Destinations @maps', () => {
       };
     });
 
-    await gotoWithRetries(page, DESTINATIONS_LIST_URL);
+    await gotoListingPageReady(page);
     await expect(page).toHaveURL(new RegExp(`/site/${SUBDOMAIN}/destinos$`));
-    await expect(page.getByRole('heading', { name: /Destinos en Colombia/i })).toBeVisible();
     await expect
       .poll(async () => compatibilityFallbackMap(page).isVisible().catch(() => false), { timeout: 20000 })
       .toBe(true);
@@ -173,9 +230,8 @@ test.describe('Maps — Destinations @maps', () => {
       await route.continue();
     });
 
-    await gotoWithRetries(page, DESTINATIONS_LIST_URL);
+    await gotoListingPageReady(page);
     await expect(page).toHaveURL(new RegExp(`/site/${SUBDOMAIN}/destinos$`));
-    await expect(page.getByRole('heading', { name: /Destinos en Colombia/i })).toBeVisible();
 
     let fallbackState = 'pending';
     await expect

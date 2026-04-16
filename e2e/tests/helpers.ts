@@ -51,7 +51,7 @@ export async function getFirstWebsiteId(page: Page): Promise<string> {
     return websiteIdOverride;
   }
 
-  await page.goto('/dashboard');
+  await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
   await expect(page.getByRole('heading', { name: 'My Websites' })).toBeVisible();
 
   const firstWebsiteLink = page.locator('a[href*="/dashboard/"][href*="/pages"]').first();
@@ -74,6 +74,6 @@ export async function getFirstWebsiteId(page: Page): Promise<string> {
 
 export async function gotoWebsiteSection(page: Page, section: string): Promise<string> {
   const websiteId = await getFirstWebsiteId(page);
-  await page.goto(`/dashboard/${websiteId}/${section}`);
+  await page.goto(`/dashboard/${websiteId}/${section}`, { waitUntil: 'domcontentloaded' });
   return websiteId;
 }
