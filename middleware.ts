@@ -488,7 +488,19 @@ export async function middleware(request: NextRequest) {
     response.headers.set('x-subdomain', subdomain);
     return response;
   } else {
-    const website = await getWebsiteByCustomDomain(host);
+    let website = await getWebsiteByCustomDomain(host);
+
+    if (!website && host.startsWith('www.')) {
+      const canonicalHost = host.slice(4);
+      website = await getWebsiteByCustomDomain(canonicalHost);
+
+      // Canonicalize www -> apex when the apex custom domain is registered.
+      if (website) {
+        const canonicalUrl = new URL(request.url);
+        canonicalUrl.hostname = canonicalHost;
+        return NextResponse.redirect(canonicalUrl, 301);
+      }
+    }
 
     const legacyRedirectResponse = await tryLegacyRedirect(request, website);
     if (legacyRedirectResponse) {
@@ -500,6 +512,19 @@ export async function middleware(request: NextRequest) {
       if (redirectResponse) {
         return redirectResponse;
       }
+    }
+
+    // Prefer the stable tenant pipeline for verified custom domains.
+    // This avoids custom-domain-specific rendering divergence in Worker runtime.
+    if (website?.subdomain) {
+      const newUrl = new URL(url);
+      if (!pathname.startsWith('/site/')) {
+        newUrl.pathname = `/site/${website.subdomain}${pathname}`;
+      }
+      const response = NextResponse.rewrite(newUrl);
+      response.headers.set('x-subdomain', website.subdomain);
+      response.headers.set('x-custom-domain', host);
+      return response;
     }
 
     // Custom domain (e.g., miagencia.com)
