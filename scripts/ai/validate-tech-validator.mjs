@@ -12,6 +12,7 @@
  *   npm run tech-validator:code
  *   npm run tech-validator:code -- --quick
  *   npm run tech-validator:code -- --strict-global
+ *   npm run tech-validator:code -- --strict-global-full
  */
 
 import { spawnSync } from 'node:child_process';
@@ -29,13 +30,19 @@ const args = new Set(process.argv.slice(2));
 const quick = args.has('--quick');
 const allFiles = args.has('--all-files');
 const skipTypecheck = args.has('--no-typecheck');
-const skipLint = args.has('--no-lint') || quick;
-const skipBuild = args.has('--no-build') || quick;
 const strictGlobal = args.has('--strict-global');
+const strictGlobalFull = args.has('--strict-global-full');
 const legacyGlobalOnly = args.has('--legacy-global-only');
+const skipLint = args.has('--no-lint') || quick || (strictGlobal && !strictGlobalFull);
+const skipBuild = args.has('--no-build') || quick || (strictGlobal && !strictGlobalFull);
 
-if (strictGlobal && legacyGlobalOnly) {
-  console.error('Cannot combine --strict-global and --legacy-global-only.');
+if ((strictGlobal && legacyGlobalOnly) || (strictGlobalFull && legacyGlobalOnly)) {
+  console.error('Cannot combine strict-global modes with --legacy-global-only.');
+  process.exit(1);
+}
+
+if (strictGlobal && strictGlobalFull) {
+  console.error('Use only one strict mode: --strict-global or --strict-global-full.');
   process.exit(1);
 }
 
@@ -298,7 +305,7 @@ function summarizeTscOutput(mode, diagnostics) {
   const total = diagnostics.length;
   const legacy = diagnostics.filter((diag) => diag.scope === 'legacy').length;
   const newErrors = diagnostics.filter((diag) => diag.scope === 'new').length;
-  const strict = mode === 'strict-global' || mode === 'legacy-global-only';
+  const strict = mode === 'strict-global' || mode === 'strict-global-full' || mode === 'legacy-global-only';
   const failed = strict ? total > 0 : newErrors > 0;
 
   return {
@@ -324,7 +331,11 @@ function printTypecheckSummary(typecheck) {
     return;
   }
 
-  if (typecheck.mode === 'strict-global' || typecheck.mode === 'legacy-global-only') {
+  if (
+    typecheck.mode === 'strict-global' ||
+    typecheck.mode === 'strict-global-full' ||
+    typecheck.mode === 'legacy-global-only'
+  ) {
     console.log('TypeScript gate: fail (global mode)');
     return;
   }
@@ -343,7 +354,7 @@ function printTypecheckSummary(typecheck) {
 }
 
 async function runTypecheck(changedFiles) {
-  const mode = strictGlobal ? 'strict-global' : legacyGlobalOnly ? 'legacy-global-only' : 'delta';
+  const mode = strictGlobalFull ? 'strict-global-full' : strictGlobal ? 'strict-global' : legacyGlobalOnly ? 'legacy-global-only' : 'delta';
   const result = spawnSync('npx', ['tsc', '--noEmit', '--pretty', 'false'], {
     cwd: ROOT,
     encoding: 'utf-8',

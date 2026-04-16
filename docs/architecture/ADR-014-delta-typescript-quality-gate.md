@@ -18,7 +18,8 @@ The validation workflow needs two distinct behaviors:
 Keep ADR-013 intact and extend the validator with a scope-aware TypeScript policy:
 
 - **Default mode:** analyze the repository with `npx tsc --noEmit`, classify diagnostics into `legacy_errors` and `new_errors`, and fail only when `new_errors > 0`.
-- **Strict mode:** `--strict-global` (or `npm run tech-validator:code:strict`) runs the same global `npx tsc --noEmit` and fails on any diagnostic.
+- **Strict mode (TypeScript-only):** `--strict-global` (or `npm run tech-validator:code:strict`) runs global `npx tsc --noEmit` and fails on any TypeScript diagnostic, while skipping lint/build to avoid unrelated legacy blockers.
+- **Strict full mode:** `--strict-global-full` (or `npm run tech-validator:code:strict:full`) keeps the full CODE gate (`tsc + lint + build`) for broad hardening campaigns.
 - **Fallback mode:** `--legacy-global-only` preserves the older full-repo failure behavior for compatibility.
 
 ### Report contract
@@ -47,7 +48,7 @@ This allows audits and CI logs to distinguish true regressions from pre-existing
 
 ### Mitigations
 
-- Keep `--strict-global` available for periodic cleanup and release hardening.
+- Keep `--strict-global` for TypeScript hardening and `--strict-global-full` for full-repo campaigns.
 - Preserve `--legacy-global-only` as an escape hatch while the repo is being normalized.
 - Use the validator report counts to track debt burn-down over time.
 
