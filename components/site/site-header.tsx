@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState, useEffect, useCallback } from 'react';
+import { usePathname } from 'next/navigation';
 import { WebsiteData } from '@/lib/supabase/get-website';
 import { getBasePath } from '@/lib/utils/base-path';
 import { resolveNavHref } from '@/lib/utils/navigation';
@@ -20,12 +21,18 @@ export function SiteHeader({ website, isCustomDomain = false, navigation }: Site
 
   const { content, subdomain } = website;
   const basePath = getBasePath(subdomain, isCustomDomain);
+  const pathname = usePathname();
+
+  // Transparent overlay only on homepage — interior pages (category, listing, blog) have light bg
+  const homePathPatterns = [basePath, `${basePath}/`, '/'];
+  const isHomePage = homePathPatterns.some((p) => pathname === p);
+  const isTransparent = isHomePage && !scrolled;
 
   const siteName = content.account?.name || content.siteName;
-  // Dual logo support: different logos for dark (transparent header over hero) vs light (scrolled white bg)
+  // Dual logo support: different logos for dark (transparent header over hero) vs light (scrolled/interior)
   const logoForDark = content.logoDark || content.account?.logo || content.logo;   // Over hero image
-  const logoForLight = content.logoLight || content.account?.logo || content.logo;  // Scrolled white bg
-  const currentLogo = scrolled ? logoForLight : logoForDark;
+  const logoForLight = content.logoLight || content.account?.logo || content.logo;  // Scrolled/interior bg
+  const currentLogo = isTransparent ? logoForDark : logoForLight;
   const headerCta: HeaderCTA | undefined = content.headerCta;
   const phone = content.account?.phone || content.social?.whatsapp;
 
@@ -83,16 +90,16 @@ export function SiteHeader({ website, isCustomDomain = false, navigation }: Site
         className="fixed top-0 left-0 right-0 z-50 transition-all duration-500 ease-out"
         data-scrolled={scrolled}
         style={{
-          background: scrolled
-            ? 'color-mix(in srgb, var(--bg, hsl(var(--background))) 88%, transparent)'
-            : 'linear-gradient(to bottom, rgba(0,0,0,0.35) 0%, transparent 100%)',
-          backdropFilter: scrolled ? 'blur(16px) saturate(180%)' : 'none',
-          WebkitBackdropFilter: scrolled ? 'blur(16px) saturate(180%)' : 'none',
-          borderBottom: scrolled ? '1px solid var(--border-subtle, hsl(var(--border)))' : 'none',
-          boxShadow: scrolled ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+          background: isTransparent
+            ? 'linear-gradient(to bottom, rgba(0,0,0,0.35) 0%, transparent 100%)'
+            : 'color-mix(in srgb, var(--bg, hsl(var(--background))) 88%, transparent)',
+          backdropFilter: isTransparent ? 'none' : 'blur(16px) saturate(180%)',
+          WebkitBackdropFilter: isTransparent ? 'none' : 'blur(16px) saturate(180%)',
+          borderBottom: isTransparent ? 'none' : '1px solid var(--border-subtle, hsl(var(--border)))',
+          boxShadow: isTransparent ? 'none' : '0 1px 3px rgba(0,0,0,0.06)',
         }}
       >
-        <nav className={`container relative transition-all duration-500 ${scrolled ? 'h-14' : 'h-20'}`}>
+        <nav className={`container relative transition-all duration-500 ${isTransparent ? 'h-20' : 'h-14'}`}>
           {/* Mobile: 3 fixed zones (menu left, centered logo, CTA right) */}
           <div className="lg:hidden h-full relative flex items-center justify-between">
             <button
@@ -102,7 +109,7 @@ export function SiteHeader({ website, isCustomDomain = false, navigation }: Site
                 setMobileMenuOpen((open) => !open);
               }}
               className="relative z-30 flex items-center justify-center w-10 h-10 rounded-lg transition-colors"
-              style={{ color: scrolled ? 'var(--text-heading, hsl(var(--foreground)))' : 'white' }}
+              style={{ color: isTransparent ? 'white' : 'var(--text-heading, hsl(var(--foreground)))' }}
               aria-label="Menu"
             >
               {mobileMenuOpen ? (
@@ -120,12 +127,12 @@ export function SiteHeader({ website, isCustomDomain = false, navigation }: Site
                 <img
                   src={currentLogo}
                   alt={siteName}
-                  className={`w-auto max-w-full object-contain transition-all duration-500 ${scrolled ? 'h-8' : 'h-10'}`}
+                  className={`w-auto max-w-full object-contain transition-all duration-500 ${isTransparent ? 'h-10' : 'h-8'}`}
                 />
               ) : (
                 <span
-                  className={`font-bold tracking-tight transition-all duration-500 ${scrolled ? 'text-base' : 'text-lg'}`}
-                  style={{ color: scrolled ? 'var(--text-heading, hsl(var(--foreground)))' : 'white', textShadow: scrolled ? 'none' : '0 1px 3px rgba(0,0,0,0.3)' }}
+                  className={`font-bold tracking-tight transition-all duration-500 ${isTransparent ? 'text-lg' : 'text-base'}`}
+                  style={{ color: isTransparent ? 'white' : 'var(--text-heading, hsl(var(--foreground)))', textShadow: isTransparent ? '0 1px 3px rgba(0,0,0,0.3)' : 'none' }}
                 >
                   {siteName}
                 </span>
@@ -164,12 +171,12 @@ export function SiteHeader({ website, isCustomDomain = false, navigation }: Site
                 <img
                   src={currentLogo}
                   alt={siteName}
-                  className={`w-auto object-contain transition-all duration-500 ${scrolled ? 'h-8' : 'h-11'}`}
+                  className={`w-auto object-contain transition-all duration-500 ${isTransparent ? 'h-11' : 'h-8'}`}
                 />
               ) : (
                 <span
-                  className={`font-bold tracking-tight transition-all duration-500 ${scrolled ? 'text-lg' : 'text-xl'}`}
-                  style={{ color: scrolled ? 'var(--text-heading, hsl(var(--foreground)))' : 'white', textShadow: scrolled ? 'none' : '0 1px 3px rgba(0,0,0,0.3)' }}
+                  className={`font-bold tracking-tight transition-all duration-500 ${isTransparent ? 'text-xl' : 'text-lg'}`}
+                  style={{ color: isTransparent ? 'white' : 'var(--text-heading, hsl(var(--foreground)))', textShadow: isTransparent ? '0 1px 3px rgba(0,0,0,0.3)' : 'none' }}
                 >
                   {siteName}
                 </span>
@@ -192,8 +199,8 @@ export function SiteHeader({ website, isCustomDomain = false, navigation }: Site
                     <button
                       className="px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 inline-flex items-center gap-1"
                       style={{
-                        color: scrolled ? 'var(--text-secondary, hsl(var(--muted-foreground)))' : 'rgba(255,255,255,0.9)',
-                        textShadow: scrolled ? 'none' : '0 1px 2px rgba(0,0,0,0.2)',
+                        color: isTransparent ? 'rgba(255,255,255,0.9)' : 'var(--text-secondary, hsl(var(--muted-foreground)))',
+                        textShadow: isTransparent ? '0 1px 2px rgba(0,0,0,0.2)' : 'none',
                       }}
                     >
                       {link.label}
@@ -223,16 +230,16 @@ export function SiteHeader({ website, isCustomDomain = false, navigation }: Site
                   target={link.target === '_blank' ? '_blank' : undefined}
                   className="px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:bg-white/10"
                   style={{
-                    color: scrolled ? 'var(--text-secondary, hsl(var(--muted-foreground)))' : 'rgba(255,255,255,0.9)',
-                    textShadow: scrolled ? 'none' : '0 1px 2px rgba(0,0,0,0.2)',
+                    color: isTransparent ? 'rgba(255,255,255,0.9)' : 'var(--text-secondary, hsl(var(--muted-foreground)))',
+                    textShadow: isTransparent ? '0 1px 2px rgba(0,0,0,0.2)' : 'none',
                   }}
                   onMouseEnter={(e) => {
-                    if (scrolled) e.currentTarget.style.color = 'var(--accent, hsl(var(--primary)))';
+                    if (!isTransparent) e.currentTarget.style.color = 'var(--accent, hsl(var(--primary)))';
                     else e.currentTarget.style.background = 'rgba(255,255,255,0.12)';
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.color = scrolled ? 'var(--text-secondary, hsl(var(--muted-foreground)))' : 'rgba(255,255,255,0.9)';
-                    if (!scrolled) e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.color = isTransparent ? 'rgba(255,255,255,0.9)' : 'var(--text-secondary, hsl(var(--muted-foreground)))';
+                    if (isTransparent) e.currentTarget.style.background = 'transparent';
                   }}
                 >
                   {link.label}
@@ -241,7 +248,7 @@ export function SiteHeader({ website, isCustomDomain = false, navigation }: Site
             })}
 
             {/* Divider */}
-            <div className="w-px h-5 mx-2" style={{ background: scrolled ? 'var(--border-subtle, hsl(var(--border)))' : 'rgba(255,255,255,0.25)' }} />
+            <div className="w-px h-5 mx-2" style={{ background: isTransparent ? 'rgba(255,255,255,0.25)' : 'var(--border-subtle, hsl(var(--border)))' }} />
 
             {/* WhatsApp CTA */}
             {whatsappUrl ? (
@@ -276,7 +283,7 @@ export function SiteHeader({ website, isCustomDomain = false, navigation }: Site
               className="lg:hidden fixed left-0 right-0 bottom-0 z-40"
               style={{
                 background: 'rgba(0, 0, 0, 0.5)',
-                top: scrolled ? '56px' : '80px',
+                top: isTransparent ? '80px' : '56px',
               }}
               onClick={closeMobile}
               aria-hidden="true"
@@ -286,7 +293,7 @@ export function SiteHeader({ website, isCustomDomain = false, navigation }: Site
               className="lg:hidden fixed inset-0 top-14 z-50 overflow-y-auto"
               style={{
                 background: 'var(--bg, hsl(var(--background)))',
-                top: scrolled ? '56px' : '80px',
+                top: isTransparent ? '80px' : '56px',
               }}
             >
               <nav className="container py-6 flex flex-col gap-1">

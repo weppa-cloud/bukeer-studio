@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import { Layer, Map, Marker, NavigationControl, Popup, Source, type MapRef } from '@vis.gl/react-maplibre';
 import { COLOMBIA_BOUNDARY_GEOJSON } from '@/components/maps/colombia-boundary';
-import { RouteMap } from '@/components/ui/route-map';
 import type { MapMarker, MapMarkerKind, MapViewportPreset, MarkerFilter } from '@/lib/maps/types';
 import { filterMarkersByKind, mapKindLabel } from '@/lib/maps/utils';
 
@@ -120,7 +119,7 @@ function buildMapThemePaletteFromRoot(root: HTMLElement): MapThemePalette {
     DEFAULT_MARKER_COLORS.service
   );
   const mapFillColor = resolveThemeColor(
-    styles.getPropertyValue('--secondary'),
+    styles.getPropertyValue('--accent'),
     DEFAULT_MAP_THEME_PALETTE.colombiaFillColor
   );
 
@@ -522,10 +521,21 @@ export function DestinationMap({
     if (!map) return;
     if (filteredMarkers.length === 0) return;
 
+    if (viewportPreset === 'colombia') {
+      map.fitBounds(
+        [
+          [COLOMBIA_VIEWPORT_BOUNDS.minLng, COLOMBIA_VIEWPORT_BOUNDS.minLat],
+          [COLOMBIA_VIEWPORT_BOUNDS.maxLng, COLOMBIA_VIEWPORT_BOUNDS.maxLat],
+        ],
+        { padding: 34, duration: 300 }
+      );
+      return;
+    }
+
     if (filteredMarkers.length === 1) {
       map.easeTo({
         center: [filteredMarkers[0].lng, filteredMarkers[0].lat],
-        zoom: viewportPreset === 'colombia' ? 6.5 : 10.2,
+        zoom: 10.2,
         duration: 300,
       });
       return;
@@ -547,7 +557,7 @@ export function DestinationMap({
     return null;
   }
 
-  if (isNoWebgl) {
+  if (isNoWebgl || styleFailed || !styleUrl) {
     return (
       <div className={className}>
         <div className="relative rounded-2xl overflow-hidden" style={{ height }}>
@@ -603,17 +613,6 @@ export function DestinationMap({
     );
   }
 
-  if (styleFailed || !styleUrl) {
-    return (
-      <div className={className}>
-        <RouteMap
-          points={markers.map((marker) => ({ city: marker.label, lat: marker.lat, lng: marker.lng }))}
-          height={height}
-        />
-      </div>
-    );
-  }
-
   return (
     <div className={className}>
       <div className="relative rounded-2xl overflow-hidden" style={{ height }}>
@@ -646,7 +645,7 @@ export function DestinationMap({
               type="fill"
               paint={{
                 'fill-color': palette.colombiaFillColor,
-                'fill-opacity': 0.12,
+                'fill-opacity': 0.2,
               }}
             />
             <Layer
@@ -654,8 +653,8 @@ export function DestinationMap({
               type="line"
               paint={{
                 'line-color': palette.colombiaLineColor,
-                'line-width': 2,
-                'line-opacity': 0.9,
+                'line-width': 2.8,
+                'line-opacity': 0.98,
               }}
             />
           </Source>

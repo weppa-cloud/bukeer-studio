@@ -339,8 +339,8 @@ export default function AnalyticsPage() {
   }, [websiteId]);
 
   useEffect(() => {
-    const nextTab = parseAnalyticsTab(searchParams?.get('tab') ?? null) ?? 'overview';
-    if (nextTab !== activeTab) {
+    const nextTab = parseAnalyticsTab(searchParams?.get('tab') ?? null);
+    if (nextTab && nextTab !== activeTab) {
       setActiveTab(nextTab);
     }
   }, [searchParams, activeTab]);
