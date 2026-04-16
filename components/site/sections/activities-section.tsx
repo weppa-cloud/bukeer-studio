@@ -144,8 +144,8 @@ function ActivityCard({ activity, index, subdomain }: { activity: ActivityItem; 
         className="group rounded-2xl overflow-hidden flex flex-col shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
         style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-subtle)' }}
       >
-        {/* Image — 3:4 portrait */}
-        <div className="relative aspect-[3/4] overflow-hidden">
+        {/* Image — 16:9 landscape */}
+        <div className="relative aspect-[16/9] overflow-hidden">
           {activity.image ? (
             <Image src={activity.image} alt={activity.name} fill draggable={false} className="object-cover transition-transform duration-700 group-hover:scale-105" />
           ) : (
