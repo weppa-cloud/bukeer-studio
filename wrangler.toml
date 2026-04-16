@@ -5,6 +5,11 @@ main = ".open-next/worker.js"
 compatibility_date = "2026-03-20"
 compatibility_flags = ["nodejs_compat"]
 
+routes = [
+  { pattern = "colombiatours.travel/*", zone_name = "colombiatours.travel" },
+  { pattern = "www.colombiatours.travel/*", zone_name = "colombiatours.travel" },
+]
+
 [assets]
 directory = ".open-next/assets"
 binding = "ASSETS"
@@ -57,4 +62,3 @@ new_sqlite_classes = ["DOQueueHandler"]
 
 [env.staging.vars]
 NEXT_PUBLIC_MAIN_DOMAIN = "bukeer.com"
-
