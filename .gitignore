@@ -63,3 +63,4 @@ packages/*/tsconfig.tsbuildinfo
 qa-screenshots/
 colombiatours-full.png
 reports/
+*.png
