@@ -184,7 +184,7 @@ export function TestimonialsSection({ section, website }: TestimonialsSectionPro
   const logoUrl = (website?.content as any)?.logo as string | undefined;
 
   return (
-    <div className="section-padding bg-muted/30">
+    <div className="section-padding !pb-10 lg:!pb-16 bg-muted/30">
       <div className={variant === 'infinite' ? '' : 'container'}>
         {/* Section header — left-aligned title, aggregate badge top-right */}
         <motion.div
