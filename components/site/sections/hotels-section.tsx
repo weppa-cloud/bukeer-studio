@@ -11,7 +11,7 @@ interface HotelsSectionProps {
   website: WebsiteData;
 }
 
-interface HotelItem {
+export interface HotelItem {
   id: string;
   slug?: string;
   name: string;
@@ -148,11 +148,12 @@ function AmenityIcon({ type }: { type: string }) {
   );
 }
 
-function HotelCard({ hotel, index, subdomain }: { hotel: HotelItem; index: number; subdomain: string }) {
+export function HotelCard({ hotel, index, subdomain, basePath: overrideBasePath }: { hotel: HotelItem; index: number; subdomain: string; basePath?: string }) {
+  const base = overrideBasePath ?? `/site/${subdomain}`;
   const detailSlug = (hotel.slug || '').trim();
   const detailHref = detailSlug
-    ? `/site/${subdomain}/hoteles/${encodeURIComponent(detailSlug)}`
-    : `/site/${subdomain}/hoteles`;
+    ? `${base}/hoteles/${encodeURIComponent(detailSlug)}`
+    : `${base}/hoteles`;
 
   return (
     <Link

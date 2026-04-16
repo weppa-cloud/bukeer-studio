@@ -16,7 +16,10 @@ import {
   deterministicOffsetCoordinates,
   toFiniteNumber,
 } from '@/lib/maps/utils';
-import { formatCircuitStops, getPackageCircuitStops } from '@/lib/products/package-circuit';
+import { PackageCard, type PackageItem } from '@/components/site/sections/packages-section';
+import { ActivityCard, type ActivityItem } from '@/components/site/sections/activities-section';
+import { HotelCard, type HotelItem } from '@/components/site/sections/hotels-section';
+import { toPackageItems, toActivityItems, toHotelItems } from '@/lib/products/to-items';
 import type { ProductData as ContractProductData } from '@bukeer/website-contract';
 import type { WebsiteData } from '@/lib/supabase/get-website';
 import type { DestinationData, GoogleReviewData } from '@/lib/supabase/get-pages';
@@ -79,6 +82,10 @@ export function DestinationDetailPage({
   );
   const activities = products.filter((p) => p.type === 'activity');
   const hotels = products.filter((p) => p.type === 'hotel');
+
+  const packageItems = toPackageItems(packages, 0) as unknown as PackageItem[];
+  const activityItems = toActivityItems(activities, 0) as unknown as ActivityItem[];
+  const hotelItems = toHotelItems(hotels, 0) as unknown as HotelItem[];
 
   const productMarkers: MapMarker[] = products.map((product) => {
     const productData = product as unknown as Record<string, unknown>;
@@ -470,7 +477,7 @@ export function DestinationDetailPage({
       )}
 
       {/* Packages Grid */}
-      {packages.length > 0 && (
+      {packageItems.length > 0 && (
         <BlurFade delay={0.4}>
           <section className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto py-12">
             <h2
@@ -480,92 +487,16 @@ export function DestinationDetailPage({
               Paquetes en {destination.name}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {packages.map((pkg) => {
-                const packageCircuit = formatCircuitStops(
-                  getPackageCircuitStops({
-                    itineraryItems: Array.isArray(pkg.itinerary_items) ? pkg.itinerary_items : [],
-                    name: pkg.name,
-                    destination: pkg.location || destination.name,
-                  })
-                );
-
-                return (
-                  <Link
-                    key={pkg.id}
-                    href={`${basePath}/paquetes/${pkg.slug}`}
-                  >
-                    <motion.div
-                      className="rounded-2xl overflow-hidden shadow-md group cursor-pointer"
-                      style={{ background: 'var(--surface-primary)' }}
-                      whileHover={{ y: -4 }}
-                      transition={{ duration: 0.3 }}
-                    >
-                      <div className="relative" style={{ aspectRatio: '16/10' }}>
-                        {pkg.image ? (
-                          <Image
-                            src={pkg.image}
-                            alt={`Paquete ${pkg.name} en ${destination.name}`}
-                            fill
-                            className="object-cover transition-transform duration-500 group-hover:scale-105"
-                            sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                          />
-                        ) : (
-                          <div
-                            className="absolute inset-0"
-                            style={{ background: 'var(--surface-secondary)' }}
-                          />
-                        )}
-                      </div>
-                      <div className="p-5">
-                        <h3
-                          className="text-lg font-bold"
-                          style={{ color: 'var(--text-heading)' }}
-                        >
-                          {pkg.name}
-                        </h3>
-                        {pkg.duration && (
-                          <p
-                            className="text-sm mt-1"
-                            style={{ color: 'var(--text-muted)' }}
-                          >
-                            {pkg.duration}
-                          </p>
-                        )}
-                        {packageCircuit && (
-                          <p
-                            className="text-xs mt-1 font-medium line-clamp-1"
-                            style={{ color: 'var(--text-muted)' }}
-                          >
-                            Circuito: {packageCircuit}
-                          </p>
-                        )}
-                        {pkg.price && (
-                          <p
-                            className="text-sm mt-1"
-                            style={{ color: 'var(--accent)' }}
-                          >
-                            Desde {pkg.price}
-                          </p>
-                        )}
-                        <p
-                          className="text-sm font-medium mt-3 inline-flex items-center gap-1"
-                          style={{ color: 'var(--accent)' }}
-                        >
-                          Ver Paquete
-                          <span aria-hidden="true">&rarr;</span>
-                        </p>
-                      </div>
-                    </motion.div>
-                  </Link>
-                );
-              })}
+              {packageItems.map((pkg, i) => (
+                <PackageCard key={pkg.id} pkg={pkg} index={i} subdomain={website.subdomain} basePath={basePath} />
+              ))}
             </div>
           </section>
         </BlurFade>
       )}
 
       {/* Activities Grid */}
-      {activities.length > 0 && (
+      {activityItems.length > 0 && (
         <BlurFade delay={0.5}>
           <section className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto py-12">
             <h2
@@ -575,62 +506,8 @@ export function DestinationDetailPage({
               Actividades en {destination.name}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {activities.map((activity) => (
-                <Link
-                  key={activity.id}
-                  href={`${basePath}/actividades/${activity.slug}`}
-                >
-                  <motion.div
-                    className="relative rounded-2xl overflow-hidden shadow-md group cursor-pointer"
-                    style={{ aspectRatio: '1/1' }}
-                    whileHover={{ y: -4 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    {activity.image ? (
-                      <Image
-                        src={activity.image}
-                        alt={`Actividad ${activity.name} en ${destination.name}`}
-                        fill
-                        className="object-cover transition-transform duration-500 group-hover:scale-105"
-                        sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                      />
-                    ) : (
-                      <div
-                        className="absolute inset-0"
-                        style={{ background: 'var(--surface-secondary)' }}
-                      />
-                    )}
-                    <div
-                      className="absolute inset-0"
-                      style={{
-                        background:
-                          'linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.1) 60%)',
-                      }}
-                    />
-                    <div className="absolute inset-0 flex flex-col justify-end p-5">
-                      <h3 className="text-lg font-bold text-white">
-                        {activity.name}
-                      </h3>
-                      {activity.duration && (
-                        <p className="text-sm text-white/70 mt-1">
-                          {activity.duration}
-                        </p>
-                      )}
-                      {activity.price && (
-                        <p
-                          className="text-sm font-semibold mt-1"
-                          style={{ color: 'var(--accent)' }}
-                        >
-                          Desde {activity.price}
-                        </p>
-                      )}
-                      <p className="text-sm font-medium mt-2 text-white/90 inline-flex items-center gap-1">
-                        Ver Actividad
-                        <span aria-hidden="true">&rarr;</span>
-                      </p>
-                    </div>
-                  </motion.div>
-                </Link>
+              {activityItems.map((activity, i) => (
+                <ActivityCard key={activity.id} activity={activity} index={i} subdomain={website.subdomain} basePath={basePath} />
               ))}
             </div>
           </section>
@@ -638,7 +515,7 @@ export function DestinationDetailPage({
       )}
 
       {/* Hotels Grid */}
-      {hotels.length > 0 && (
+      {hotelItems.length > 0 && (
         <BlurFade delay={0.55}>
           <section className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto py-12">
             <h2
@@ -648,58 +525,8 @@ export function DestinationDetailPage({
               Hoteles en {destination.name}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {hotels.map((hotel) => (
-                <Link
-                  key={hotel.id}
-                  href={`${basePath}/hoteles/${hotel.slug}`}
-                >
-                  <motion.div
-                    className="rounded-2xl overflow-hidden shadow-md group cursor-pointer"
-                    style={{ background: 'var(--surface-primary)' }}
-                    whileHover={{ y: -4 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    <div className="relative" style={{ aspectRatio: '16/10' }}>
-                      {hotel.image ? (
-                        <Image
-                          src={hotel.image}
-                          alt={`Hotel ${hotel.name} en ${destination.name}`}
-                          fill
-                          className="object-cover transition-transform duration-500 group-hover:scale-105"
-                          sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                        />
-                      ) : (
-                        <div
-                          className="absolute inset-0"
-                          style={{ background: 'var(--surface-secondary)' }}
-                        />
-                      )}
-                    </div>
-                    <div className="p-5">
-                      <h3
-                        className="text-lg font-bold"
-                        style={{ color: 'var(--text-heading)' }}
-                      >
-                        {hotel.name}
-                      </h3>
-                      {hotel.price && (
-                        <p
-                          className="text-sm mt-1"
-                          style={{ color: 'var(--accent)' }}
-                        >
-                          Desde {hotel.price}
-                        </p>
-                      )}
-                      <p
-                        className="text-sm font-medium mt-3 inline-flex items-center gap-1"
-                        style={{ color: 'var(--accent)' }}
-                      >
-                        Ver Hotel
-                        <span aria-hidden="true">&rarr;</span>
-                      </p>
-                    </div>
-                  </motion.div>
-                </Link>
+              {hotelItems.map((hotel, i) => (
+                <HotelCard key={hotel.id} hotel={hotel} index={i} subdomain={website.subdomain} basePath={basePath} />
               ))}
             </div>
           </section>

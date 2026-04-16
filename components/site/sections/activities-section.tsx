@@ -11,7 +11,7 @@ interface ActivitiesSectionProps {
   website: WebsiteData;
 }
 
-interface ActivityItem {
+export interface ActivityItem {
   id: string;
   slug?: string;
   name: string;
@@ -107,7 +107,7 @@ function SectionHeading({ title, subtitle }: { title: string; subtitle?: string 
   );
 }
 
-function getDifficultyStyle(difficulty: string): { bg: string; text: string } {
+export function getDifficultyStyle(difficulty: string): { bg: string; text: string } {
   const normalized = difficulty.toLowerCase().trim();
   if (normalized === 'facil' || normalized === 'fácil' || normalized === 'easy') {
     return { bg: 'rgb(16 185 129 / 0.9)', text: '#ffffff' };
@@ -122,11 +122,12 @@ function getDifficultyStyle(difficulty: string): { bg: string; text: string } {
   return { bg: 'color-mix(in srgb, var(--accent) 16%, var(--bg-card))', text: 'var(--accent)' };
 }
 
-function ActivityCard({ activity, index, subdomain }: { activity: ActivityItem; index: number; subdomain: string }) {
+export function ActivityCard({ activity, index, subdomain, basePath: overrideBasePath }: { activity: ActivityItem; index: number; subdomain: string; basePath?: string }) {
+  const base = overrideBasePath ?? `/site/${subdomain}`;
   const detailSlug = (activity.slug || '').trim();
   const detailHref = detailSlug
-    ? `/site/${subdomain}/actividades/${encodeURIComponent(detailSlug)}`
-    : `/site/${subdomain}/actividades`;
+    ? `${base}/actividades/${encodeURIComponent(detailSlug)}`
+    : `${base}/actividades`;
 
   const difficultyStyle = activity.difficulty ? getDifficultyStyle(activity.difficulty) : null;
 

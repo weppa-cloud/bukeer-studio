@@ -13,7 +13,7 @@ interface PackagesSectionProps {
   website: WebsiteData;
 }
 
-interface PackageItem {
+export interface PackageItem {
   id: string;
   slug?: string;
   name: string;
@@ -207,11 +207,12 @@ function isNew(createdAt?: string): boolean {
   return diffDays < 30;
 }
 
-function PackageCard({ pkg, index, subdomain }: { pkg: PackageItem; index: number; subdomain: string }) {
+export function PackageCard({ pkg, index, subdomain, basePath: overrideBasePath }: { pkg: PackageItem; index: number; subdomain: string; basePath?: string }) {
+  const base = overrideBasePath ?? `/site/${subdomain}`;
   const detailSlug = (pkg.slug || '').trim();
   const detailHref = detailSlug
-    ? `/site/${subdomain}/paquetes/${encodeURIComponent(detailSlug)}`
-    : `/site/${subdomain}/paquetes`;
+    ? `${base}/paquetes/${encodeURIComponent(detailSlug)}`
+    : `${base}/paquetes`;
   const circuitStops = getPackageCircuitStops({
     itineraryItems: pkg.itinerary_items,
     name: pkg.name,
