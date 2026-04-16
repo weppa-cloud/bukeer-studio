@@ -26,6 +26,12 @@ export interface WebsiteContent {
   siteName: string;
   tagline: string;
   logo?: string;
+  /** Logo horizontal for light backgrounds (scrolled header) */
+  logoLight?: string;
+  /** Logo horizontal for dark backgrounds (hero/transparent header) */
+  logoDark?: string;
+  /** Base locale for this website (e.g. "es-CO") */
+  locale?: string;
   headerCta?: HeaderCTA;
   seo: {
     title: string;
