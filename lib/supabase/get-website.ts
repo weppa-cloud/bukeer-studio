@@ -121,7 +121,11 @@ export async function getBlogPostBySlug(
       .eq('website_id', websiteId)
       .eq('slug', slug)
       .eq('status', 'published')
-      .single();
+      .is('deleted_at', null)
+      .order('published_at', { ascending: false, nullsFirst: false })
+      .order('updated_at', { ascending: false, nullsFirst: false })
+      .limit(1)
+      .maybeSingle();
 
     if (error) {
       console.error('[getBlogPostBySlug] Error:', error);
@@ -190,14 +194,15 @@ export async function getAllBlogSlugs(websiteId: string): Promise<string[]> {
       .from('website_blog_posts')
       .select('slug')
       .eq('website_id', websiteId)
-      .eq('status', 'published');
+      .eq('status', 'published')
+      .is('deleted_at', null);
 
     if (error) {
       console.error('[getAllBlogSlugs] Error:', error);
       return [];
     }
 
-    return data.map(p => p.slug);
+    return [...new Set(data.map(p => p.slug).filter(Boolean))];
   } catch (e) {
     console.error('[getAllBlogSlugs] Exception:', e);
     return [];
