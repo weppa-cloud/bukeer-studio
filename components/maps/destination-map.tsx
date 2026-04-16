@@ -20,11 +20,26 @@ interface DestinationMapProps {
 const DEV_STYLE_URL = 'https://demotiles.maplibre.org/style.json';
 type ProductFilterKind = 'hotel' | 'activity' | 'service';
 
-const MARKER_COLORS: Record<MapMarkerKind, string> = {
+const DEFAULT_MARKER_COLORS: Record<MapMarkerKind, string> = {
   destination: '#0f766e',
   hotel: '#2563eb',
   activity: '#16a34a',
   service: '#9333ea',
+};
+
+interface MapThemePalette {
+  markerColors: Record<MapMarkerKind, string>;
+  colombiaFillColor: string;
+  colombiaLineColor: string;
+  compatibilityBackground: string;
+}
+
+const DEFAULT_MAP_THEME_PALETTE: MapThemePalette = {
+  markerColors: DEFAULT_MARKER_COLORS,
+  colombiaFillColor: '#0ea5e9',
+  colombiaLineColor: '#0284c7',
+  compatibilityBackground:
+    'radial-gradient(circle at 12% 10%, rgba(14,165,233,0.18), transparent 52%), linear-gradient(180deg, #f1f9ff 0%, #e0f2fe 58%, #f8fafc 100%)',
 };
 
 interface DestinationMarkerMeta {
@@ -48,6 +63,8 @@ const COLOMBIA_VIEWPORT_BOUNDS: ViewportBounds = {
   maxLng: -66.8,
 };
 
+const COLOR_PREFIXES = ['hsl(', 'oklch(', 'rgb(', 'rgba(', '#', 'lab(', 'lch(', 'color('];
+
 function resolveMapStyleUrl(): string | null {
   const raw = process.env.NEXT_PUBLIC_MAP_STYLE_URL?.trim();
   const token = process.env.NEXT_PUBLIC_MAP_STYLE_TOKEN?.trim();
@@ -70,6 +87,56 @@ function supportsWebGL(): boolean {
   if (typeof window === 'undefined') return false;
   const canvas = document.createElement('canvas');
   return !!(canvas.getContext('webgl') || canvas.getContext('experimental-webgl'));
+}
+
+function resolveThemeColor(raw: string, fallback: string): string {
+  const value = raw.trim();
+  if (!value) return fallback;
+
+  if (COLOR_PREFIXES.some((prefix) => value.startsWith(prefix))) {
+    return value;
+  }
+
+  return `hsl(${value})`;
+}
+
+function buildMapThemePaletteFromRoot(root: HTMLElement): MapThemePalette {
+  const styles = getComputedStyle(root);
+
+  const destinationColor = resolveThemeColor(
+    styles.getPropertyValue('--accent'),
+    DEFAULT_MARKER_COLORS.destination
+  );
+  const hotelColor = resolveThemeColor(
+    styles.getPropertyValue('--chart-2'),
+    DEFAULT_MARKER_COLORS.hotel
+  );
+  const activityColor = resolveThemeColor(
+    styles.getPropertyValue('--chart-5'),
+    DEFAULT_MARKER_COLORS.activity
+  );
+  const serviceColor = resolveThemeColor(
+    styles.getPropertyValue('--chart-3'),
+    DEFAULT_MARKER_COLORS.service
+  );
+  const mapFillColor = resolveThemeColor(
+    styles.getPropertyValue('--secondary'),
+    DEFAULT_MAP_THEME_PALETTE.colombiaFillColor
+  );
+
+  return {
+    markerColors: {
+      destination: destinationColor,
+      hotel: hotelColor,
+      activity: activityColor,
+      service: serviceColor,
+    },
+    colombiaFillColor: mapFillColor,
+    colombiaLineColor: destinationColor,
+    compatibilityBackground:
+      `radial-gradient(circle at 12% 10%, color-mix(in srgb, ${destinationColor} 18%, transparent), transparent 52%), ` +
+      `linear-gradient(180deg, color-mix(in srgb, ${mapFillColor} 24%, white) 0%, color-mix(in srgb, ${mapFillColor} 14%, white) 58%, var(--bg, #f8fafc) 100%)`,
+  };
 }
 
 function mapCenter(markers: MapMarker[], viewportPreset: MapViewportPreset): { lat: number; lng: number; zoom: number } {
@@ -177,11 +244,12 @@ function buildMarkerAriaDescription(marker: MapMarker): string {
 
 interface MarkerButtonProps {
   marker: MapMarker;
+  markerColors: Record<MapMarkerKind, string>;
   selected: boolean;
   onClick: () => void;
 }
 
-function MarkerButton({ marker, selected, onClick }: MarkerButtonProps) {
+function MarkerButton({ marker, markerColors, selected, onClick }: MarkerButtonProps) {
   const destinationMeta = getDestinationMarkerMeta(marker);
   const isDestination = marker.kind === 'destination';
   const markerCount = formatMarkerCount(destinationMeta?.totalCount);
@@ -197,9 +265,11 @@ function MarkerButton({ marker, selected, onClick }: MarkerButtonProps) {
         <span
           className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 border-white shadow-md"
           style={{
-            backgroundColor: destinationMeta?.image ? 'rgba(15, 118, 110, 0.2)' : MARKER_COLORS.destination,
+            backgroundColor: destinationMeta?.image
+              ? `color-mix(in srgb, ${markerColors.destination} 24%, white)`
+              : markerColors.destination,
             boxShadow: selected
-              ? `0 0 0 2px ${MARKER_COLORS.destination}, 0 8px 20px rgba(15,118,110,0.32)`
+              ? `0 0 0 2px ${markerColors.destination}, 0 8px 20px color-mix(in srgb, ${markerColors.destination} 32%, transparent)`
               : '0 6px 18px rgba(15,23,42,0.26)',
           }}
         >
@@ -218,7 +288,7 @@ function MarkerButton({ marker, selected, onClick }: MarkerButtonProps) {
         </span>
         <span
           className="absolute -top-1 -left-1 inline-flex h-3.5 w-3.5 rounded-full border border-white"
-          style={{ backgroundColor: MARKER_COLORS.destination }}
+          style={{ backgroundColor: markerColors.destination }}
         />
         {markerCount ? (
           <span
@@ -243,7 +313,7 @@ function MarkerButton({ marker, selected, onClick }: MarkerButtonProps) {
       onClick={onClick}
       className="rounded-full border-2 border-white shadow-md w-4 h-4 transition-transform hover:scale-110"
       style={{
-        backgroundColor: MARKER_COLORS[marker.kind],
+        backgroundColor: markerColors[marker.kind],
         transform: selected ? 'scale(1.2)' : undefined,
       }}
       aria-label={buildMarkerAriaDescription(marker)}
@@ -253,6 +323,7 @@ function MarkerButton({ marker, selected, onClick }: MarkerButtonProps) {
 
 interface CompatibilityMapProps {
   markers: MapMarker[];
+  palette: MapThemePalette;
   selectedMarkerId: string | null;
   onSelectMarker: (markerId: string | null) => void;
   height: number;
@@ -261,6 +332,7 @@ interface CompatibilityMapProps {
 
 function CompatibilityCroquisMap({
   markers,
+  palette,
   selectedMarkerId,
   onSelectMarker,
   height,
@@ -302,15 +374,16 @@ function CompatibilityCroquisMap({
       className="relative rounded-2xl overflow-hidden"
       style={{
         height,
-        background:
-          'radial-gradient(circle at 12% 10%, rgba(14,165,233,0.18), transparent 52%), linear-gradient(180deg, #f1f9ff 0%, #e0f2fe 58%, #f8fafc 100%)',
+        background: palette.compatibilityBackground,
       }}
     >
       <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
         <path
           d={polygonPath}
-          fill="rgba(14,165,233,0.14)"
-          stroke="rgba(2,132,199,0.85)"
+          fill={palette.colombiaFillColor}
+          fillOpacity={0.14}
+          stroke={palette.colombiaLineColor}
+          strokeOpacity={0.9}
           strokeWidth="0.5"
         />
       </svg>
@@ -323,6 +396,7 @@ function CompatibilityCroquisMap({
         >
           <MarkerButton
             marker={marker}
+            markerColors={palette.markerColors}
             selected={marker.id === selectedMarkerId}
             onClick={() => onSelectMarker(marker.id)}
           />
@@ -374,6 +448,7 @@ export function DestinationMap({
 }: DestinationMapProps) {
   const styleUrl = useMemo(resolveMapStyleUrl, []);
   const mapRef = useRef<MapRef | null>(null);
+  const [palette, setPalette] = useState<MapThemePalette>(DEFAULT_MAP_THEME_PALETTE);
   const [isNoWebgl, setIsNoWebgl] = useState(false);
   const [styleFailed, setStyleFailed] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState<MarkerFilter>('all');
@@ -427,6 +502,22 @@ export function DestinationMap({
   }, []);
 
   useEffect(() => {
+    const root = document.documentElement;
+    const syncPalette = () => {
+      setPalette(buildMapThemePaletteFromRoot(root));
+    };
+
+    syncPalette();
+    const observer = new MutationObserver(syncPalette);
+    observer.observe(root, {
+      attributes: true,
+      attributeFilter: ['style', 'class', 'data-theme'],
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
     if (filteredMarkers.length === 0) return;
@@ -462,6 +553,7 @@ export function DestinationMap({
         <div className="relative rounded-2xl overflow-hidden" style={{ height }}>
           <CompatibilityCroquisMap
             markers={filteredMarkers.length > 0 ? filteredMarkers : markers}
+            palette={palette}
             selectedMarkerId={selectedMarkerId}
             onSelectMarker={setSelectedMarkerId}
             height={height}
@@ -497,7 +589,7 @@ export function DestinationMap({
                 <div key={kind} className="flex items-center gap-1.5">
                   <span
                     className="inline-flex w-2.5 h-2.5 rounded-full"
-                    style={{ backgroundColor: MARKER_COLORS[kind] }}
+                    style={{ backgroundColor: palette.markerColors[kind] }}
                   />
                   <span className="text-[11px] font-medium" style={{ color: 'var(--text-secondary)' }}>
                     {mapKindLabel(kind)}
@@ -553,15 +645,15 @@ export function DestinationMap({
               id="colombia-fill"
               type="fill"
               paint={{
-                'fill-color': '#0ea5e9',
-                'fill-opacity': 0.1,
+                'fill-color': palette.colombiaFillColor,
+                'fill-opacity': 0.12,
               }}
             />
             <Layer
               id="colombia-line"
               type="line"
               paint={{
-                'line-color': '#0284c7',
+                'line-color': palette.colombiaLineColor,
                 'line-width': 2,
                 'line-opacity': 0.9,
               }}
@@ -578,6 +670,7 @@ export function DestinationMap({
               <div style={{ transform: marker.kind === 'destination' ? 'translateY(-2px)' : undefined }}>
                 <MarkerButton
                   marker={marker}
+                  markerColors={palette.markerColors}
                   selected={selectedMarkerId === marker.id}
                   onClick={() => setSelectedMarkerId(marker.id)}
                 />
@@ -641,7 +734,7 @@ export function DestinationMap({
               <div key={kind} className="flex items-center gap-1.5">
                 <span
                   className="inline-flex w-2.5 h-2.5 rounded-full"
-                  style={{ backgroundColor: MARKER_COLORS[kind] }}
+                  style={{ backgroundColor: palette.markerColors[kind] }}
                 />
                 <span className="text-[11px] font-medium" style={{ color: 'var(--text-secondary)' }}>
                   {mapKindLabel(kind)}

@@ -70,6 +70,8 @@ export async function getReviewsForContext(
       filtered = visible.filter((r) =>
         r.text?.toLowerCase().includes(firstName)
       );
+      // fallback to general if no reviews mention this planner's name
+      if (filtered.length < 2) filtered = visible;
       break;
     }
     case 'general':

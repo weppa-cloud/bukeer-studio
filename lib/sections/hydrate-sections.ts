@@ -26,7 +26,7 @@ export interface HydrationInput {
       text: string;
       rating: number;
       relative_time: string | null;
-      images?: string[];
+      images?: Array<{ url: string; thumbnail?: string }>;
       response?: string | { text: string; date: string };
       is_visible?: boolean;
     }>;

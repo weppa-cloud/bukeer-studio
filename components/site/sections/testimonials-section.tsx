@@ -262,7 +262,13 @@ export function TestimonialsSection({ section, website }: TestimonialsSectionPro
         </motion.div>
 
         {/* Infinite Marquee variant */}
-        {variant === 'infinite' && testimonials.length > 0 && (
+        {variant === 'infinite' && testimonials.length > 0 && (() => {
+          // Split into two halves so each row shows different reviews
+          const half = Math.ceil(testimonials.length / 2);
+          const row1 = testimonials.slice(0, half);
+          const row2 = testimonials.slice(half);
+          const hasRow2 = row2.length > 0;
+          return (
           <div className="relative overflow-hidden">
             {/* Gradient masks for smooth edges */}
             <div className="absolute left-0 top-0 bottom-0 w-20 bg-gradient-to-r from-muted/30 to-transparent z-10 pointer-events-none" />
@@ -272,16 +278,16 @@ export function TestimonialsSection({ section, website }: TestimonialsSectionPro
             <div className="flex mb-6 items-stretch" style={{ height: '320px' }}>
               <motion.div
                 className="flex gap-6 h-full"
-                animate={{ x: [0, -50 * testimonials.length * 26] }}
+                animate={{ x: [0, -50 * row1.length * 26] }}
                 transition={{
                   x: {
-                    duration: testimonials.length * 8,
+                    duration: row1.length * 8,
                     repeat: Infinity,
                     ease: 'linear',
                   },
                 }}
               >
-                {[...testimonials, ...testimonials, ...testimonials].map((testimonial, index) => (
+                {[...row1, ...row1, ...row1].map((testimonial, index) => (
                   <div key={`row1-${index}`} className="flex-none w-72 md:w-96 h-full">
                     <TestimonialCard testimonial={testimonial} />
                   </div>
@@ -289,21 +295,21 @@ export function TestimonialsSection({ section, website }: TestimonialsSectionPro
               </motion.div>
             </div>
 
-            {/* Second row - scrolls right (if enough testimonials) */}
-            {testimonials.length > 2 && (
+            {/* Second row - scrolls right, with different reviews from row 1 */}
+            {hasRow2 && (
               <div className="flex items-stretch" style={{ height: '320px' }}>
                 <motion.div
                   className="flex gap-6 h-full"
-                  animate={{ x: [-50 * testimonials.length * 26, 0] }}
+                  animate={{ x: [-50 * row2.length * 26, 0] }}
                   transition={{
                     x: {
-                      duration: testimonials.length * 10,
+                      duration: row2.length * 10,
                       repeat: Infinity,
                       ease: 'linear',
                     },
                   }}
                 >
-                  {[...testimonials, ...testimonials, ...testimonials].reverse().map((testimonial, index) => (
+                  {[...row2, ...row2, ...row2].map((testimonial, index) => (
                     <div key={`row2-${index}`} className="flex-none w-72 md:w-96 h-full">
                       <TestimonialCard testimonial={testimonial} />
                     </div>
@@ -312,7 +318,8 @@ export function TestimonialsSection({ section, website }: TestimonialsSectionPro
               </div>
             )}
           </div>
-        )}
+          );
+        })()}
 
         {/* Carousel / Marquee variant */}
         {(variant === 'carousel' || variant === 'marquee') && (
