@@ -4,7 +4,8 @@ test.describe('Public Runtime Smoke', () => {
   test('login route renders without 5xx @smoke', async ({ page }) => {
     const response = await page.goto('/login', { waitUntil: 'domcontentloaded' });
     expect(response?.status()).toBeLessThan(500);
-    await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible();
+    // Login form is behind a Suspense boundary (useSearchParams) — wait for hydration
+    await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible({ timeout: 30000 });
   });
 
   test('public home route responds without 5xx @smoke', async ({ page }) => {

@@ -46,6 +46,11 @@ export async function createWebsiteViaWizard(page: Page): Promise<string> {
 }
 
 export async function getFirstWebsiteId(page: Page): Promise<string> {
+  const websiteIdOverride = process.env.E2E_WEBSITE_ID?.trim();
+  if (websiteIdOverride) {
+    return websiteIdOverride;
+  }
+
   await page.goto('/dashboard');
   await expect(page.getByRole('heading', { name: 'My Websites' })).toBeVisible();
 

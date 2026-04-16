@@ -110,8 +110,8 @@ test.describe('SEO Playbook v2.0 — Smoke Tests', () => {
       await page.getByRole('button', { name: 'AI Visibility' }).click();
       await page.waitForLoadState('networkidle');
 
-      // AI Visibility component renders some content with "AI" or "Visibilidad"
-      await expect(page.getByText(/AI|Visibilidad/i)).toBeVisible();
+      // Assert a deterministic heading inside the AI Visibility panel.
+      await expect(page.getByRole('heading', { name: /Presencia en AI Overviews de Google/i })).toBeVisible();
     });
 
     test('loads config tab with locale settings and Google Integrations @smoke', async ({ page }) => {

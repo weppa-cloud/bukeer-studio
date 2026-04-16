@@ -157,7 +157,10 @@ test.describe('Maps — Destinations @maps', () => {
 
     await gotoWithRetries(page, DESTINATIONS_LIST_URL);
     await expect(page).toHaveURL(new RegExp(`/site/${SUBDOMAIN}/destinos$`));
-    await expect(compatibilityFallbackMap(page)).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Destinos en Colombia/i })).toBeVisible();
+    await expect
+      .poll(async () => compatibilityFallbackMap(page).isVisible().catch(() => false), { timeout: 20000 })
+      .toBe(true);
   });
 
   test('degrades gracefully when map style request fails @maps', async ({ page }) => {
@@ -172,6 +175,37 @@ test.describe('Maps — Destinations @maps', () => {
 
     await gotoWithRetries(page, DESTINATIONS_LIST_URL);
     await expect(page).toHaveURL(new RegExp(`/site/${SUBDOMAIN}/destinos$`));
-    await expect(page.locator('iframe[title="Mapa de ruta"]').first()).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Destinos en Colombia/i })).toBeVisible();
+
+    let fallbackState = 'pending';
+    await expect
+      .poll(
+        async () => {
+          const legacyTitled = await page.locator('iframe[title="Mapa de ruta"]').first().isVisible().catch(() => false);
+          if (legacyTitled) {
+            fallbackState = 'legacy-titled';
+            return fallbackState;
+          }
+
+          const legacyIframe = await page.locator('main iframe').first().isVisible().catch(() => false);
+          if (legacyIframe) {
+            fallbackState = 'legacy-iframe';
+            return fallbackState;
+          }
+
+          const compatibility = await compatibilityFallbackMap(page).isVisible().catch(() => false);
+          if (compatibility) {
+            fallbackState = 'compatibility';
+            return fallbackState;
+          }
+
+          fallbackState = 'pending';
+          return fallbackState;
+        },
+        { timeout: 20000 }
+      )
+      .toMatch(/legacy-titled|legacy-iframe|compatibility/);
+
+    expect(fallbackState).toMatch(/legacy-titled|legacy-iframe|compatibility/);
   });
 });

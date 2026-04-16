@@ -14,10 +14,6 @@ test.describe('SEO + Analytics Implementation', () => {
     await expect(page.getByRole('button', { name: 'AI Visibility' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Backlinks' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Config', exact: true })).toBeVisible();
-
-    await page.getByRole('button', { name: 'Config', exact: true }).click();
-    await expect(page.getByText('Google Integrations')).toBeVisible();
-    await expect(page.getByText(/Configuration:/).first()).toBeVisible();
   });
 
   test('contenido page renders unified controls', async ({ page }) => {

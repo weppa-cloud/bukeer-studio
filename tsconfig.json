@@ -42,6 +42,7 @@
   },
   "include": [
     ".next-s1/types/**/*.ts",
+    ".next-s2/types/**/*.ts",
     ".next/types/**/*.ts",
     "__tests__/**/*.ts",
     "__tests__/**/*.tsx",
@@ -54,7 +55,7 @@
     "next-env.d.ts",
     "packages/**/*.ts",
     "packages/**/*.tsx",
-    ".next-s2/types/**/*.ts"
+    ".next-s3/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",

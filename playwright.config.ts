@@ -1,4 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
+import { config as dotenvConfig } from 'dotenv';
+
+// Load .env.local for E2E env vars (E2E_WEBSITE_ID, E2E_USER_EMAIL, etc.)
+dotenvConfig({ path: '.env.local' });
 
 const sessionName = process.env.E2E_SESSION_NAME || 'default';
 const reportFolder = `playwright-report/${sessionName}`;

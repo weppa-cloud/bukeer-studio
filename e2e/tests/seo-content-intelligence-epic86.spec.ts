@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { gotoWebsiteSection } from './helpers';
+import { getFirstWebsiteId, gotoWebsiteSection } from './helpers';
 
 test.describe('EPIC #86 - SEO Content Intelligence', () => {
   test.use({ storageState: 'e2e/.auth/user.json' });
@@ -15,10 +15,11 @@ test.describe('EPIC #86 - SEO Content Intelligence', () => {
   });
 
   test('content intelligence tab renders audit controls', async ({ page }) => {
-    await gotoWebsiteSection(page, 'analytics');
-    await page.getByRole('button', { name: 'Content Intelligence' }).click();
+    const websiteId = await getFirstWebsiteId(page);
+    await page.goto(`/dashboard/${websiteId}/analytics?tab=content-intelligence`);
+    await page.waitForLoadState('domcontentloaded');
 
-    await expect(page.getByText('Content Intelligence')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Content Intelligence' })).toHaveClass(/studio-tab-active/);
     await expect(page.locator('input[value="es-CO"]').first()).toBeVisible();
     await expect(page.getByText('Decision-grade only (live + authoritative)').first()).toBeVisible();
     await expect(page.locator('select').first()).toBeVisible();
@@ -27,8 +28,9 @@ test.describe('EPIC #86 - SEO Content Intelligence', () => {
   });
 
   test('keywords tab renders locale-native research form', async ({ page }) => {
-    await gotoWebsiteSection(page, 'analytics');
-    await page.getByRole('button', { name: 'Keywords' }).click();
+    const websiteId = await getFirstWebsiteId(page);
+    await page.goto(`/dashboard/${websiteId}/analytics?tab=keywords`);
+    await page.waitForLoadState('domcontentloaded');
 
     await expect(page.getByText('Keyword Research (locale-native)')).toBeVisible();
     await expect(page.locator('input[value="Colombia"]')).toBeVisible();
@@ -40,8 +42,9 @@ test.describe('EPIC #86 - SEO Content Intelligence', () => {
   });
 
   test('clusters tab renders planner board controls', async ({ page }) => {
-    await gotoWebsiteSection(page, 'analytics');
-    await page.getByRole('button', { name: 'Clusters' }).click();
+    const websiteId = await getFirstWebsiteId(page);
+    await page.goto(`/dashboard/${websiteId}/analytics?tab=clusters`);
+    await page.waitForLoadState('domcontentloaded');
 
     await expect(page.getByPlaceholder('Locale (es-CO)')).toBeVisible();
     await expect(page.getByPlaceholder('Country')).toBeVisible();
