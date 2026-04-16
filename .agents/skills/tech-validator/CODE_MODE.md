@@ -30,6 +30,12 @@ git diff main...HEAD --name-only
 
 ### Step 2: Static Analysis
 ```bash
+# Recommended single command (full gate)
+npm run tech-validator:code
+
+# Fast local loop (skips lint/build)
+npm run tech-validator:code:quick
+
 # TypeScript type checking
 npx tsc --noEmit
 

@@ -5,7 +5,7 @@
 | Document | Path | Use For |
 |----------|------|---------|
 | Architecture | `docs/architecture/ARCHITECTURE.md` | Overall architecture, principles P1-P10 |
-| ADR Decisions | `docs/architecture/ADR-001` through `ADR-012` | All architectural decisions |
+| ADR Decisions | `docs/architecture/ADR-001` through `ADR-013` | All architectural decisions |
 | Onboarding | `docs/architecture/ONBOARDING-ARCHITECTURE.md` | Developer onboarding guide |
 | AI Agent Dev | `docs/architecture/AI-AGENT-DEVELOPMENT.md` | AI agent development patterns |
 
@@ -40,3 +40,4 @@
 | AI Integration | `lib/ai/` | LLM provider config, prompt templates |
 | Env Validation | `lib/env.ts` | Zod-validated environment variables |
 | Studio Utils | `lib/studio/` | Studio-specific utilities |
+| CODE Gate Script | `scripts/ai/validate-tech-validator.mjs` | Automated tech-validator CODE checks and report generation |
