@@ -27,7 +27,7 @@ function TestimonialCard({ testimonial }: {
   const quoteText = testimonial.text || testimonial.content || '';
 
   return (
-    <div className="variant-card bg-card p-6 min-h-[200px] border flex flex-col">
+    <div className="variant-card bg-card p-6 h-full overflow-hidden border flex flex-col">
       {/* Rating — always show 5 stars at top */}
       <div className="flex gap-1 mb-4">
         {[...Array(5)].map((_, i) => (
@@ -184,9 +184,9 @@ export function TestimonialsSection({ section }: TestimonialsSectionProps) {
             <div className="absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-muted/30 to-transparent z-10 pointer-events-none" />
 
             {/* First row - scrolls left */}
-            <div className="flex mb-6">
+            <div className="flex mb-6 items-stretch" style={{ height: '320px' }}>
               <motion.div
-                className="flex gap-6"
+                className="flex gap-6 h-full"
                 animate={{ x: [0, -50 * testimonials.length * 26] }}
                 transition={{
                   x: {
@@ -198,7 +198,7 @@ export function TestimonialsSection({ section }: TestimonialsSectionProps) {
               >
                 {/* Duplicate testimonials for seamless loop */}
                 {[...testimonials, ...testimonials, ...testimonials].map((testimonial, index) => (
-                  <div key={`row1-${index}`} className="flex-none w-72 md:w-96">
+                  <div key={`row1-${index}`} className="flex-none w-72 md:w-96 h-full">
                     <TestimonialCard testimonial={testimonial} />
                   </div>
                 ))}
@@ -207,9 +207,9 @@ export function TestimonialsSection({ section }: TestimonialsSectionProps) {
 
             {/* Second row - scrolls right (if enough testimonials) */}
             {testimonials.length > 2 && (
-              <div className="flex">
+              <div className="flex items-stretch" style={{ height: '320px' }}>
                 <motion.div
-                  className="flex gap-6"
+                  className="flex gap-6 h-full"
                   animate={{ x: [-50 * testimonials.length * 26, 0] }}
                   transition={{
                     x: {
@@ -220,7 +220,7 @@ export function TestimonialsSection({ section }: TestimonialsSectionProps) {
                   }}
                 >
                   {[...testimonials, ...testimonials, ...testimonials].reverse().map((testimonial, index) => (
-                    <div key={`row2-${index}`} className="flex-none w-72 md:w-96">
+                    <div key={`row2-${index}`} className="flex-none w-72 md:w-96 h-full">
                       <TestimonialCard testimonial={testimonial} />
                     </div>
                   ))}
