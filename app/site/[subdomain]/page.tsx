@@ -217,7 +217,7 @@ export default async function SitePage({ params }: SitePageProps) {
         business_name: cached.business_name ?? undefined,
         reviews: cached.reviews.map((review) => ({
           ...review,
-          images: review.images?.map((image) => image.url),
+          images: review.images,
           response: review.response?.text,
         })),
       };
