@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
+import { MobileCardCarousel } from '@/components/ui/card-carousel';
 
 interface TestimonialsSectionProps {
   section: WebsiteSection;
@@ -134,22 +135,34 @@ const TestimonialCard = ({ testimonial }: { testimonial: TestimonialItem }) => {
         ))}
       </div>
 
-      {/* Review image thumbnail — shown above quote when present */}
+      {/* Review photos — 16:9 grid, max 2 images, broken images hidden */}
       {testimonial.images && testimonial.images.length > 0 && (() => {
-        const img = testimonial.images[0];
-        const src = typeof img === 'string' ? img : img.url;
-        const thumb = typeof img === 'string' ? img : (img.thumbnail ?? img.url);
-        return src ? (
-          <div className="mt-3 rounded-lg overflow-hidden" style={{ height: 80 }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={thumb}
-              alt={`Foto de ${testimonial.name}`}
-              className="w-full h-full object-cover"
-              loading="lazy"
-            />
+        const imgs = testimonial.images.slice(0, 2).map((img) => ({
+          src: typeof img === 'string' ? img : img.url,
+          thumb: typeof img === 'string' ? img : (img.thumbnail ?? img.url),
+        })).filter((i) => i.src);
+
+        if (imgs.length === 0) return null;
+
+        return (
+          <div className={`mt-3 gap-1.5 ${imgs.length > 1 ? 'grid grid-cols-2' : ''}`}>
+            {imgs.map((img, idx) => (
+              <div key={idx} className="relative rounded-lg overflow-hidden aspect-[16/9]">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={img.thumb}
+                  alt={`Viaje por Colombia · ${testimonial.name}`}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                  onError={(e) => {
+                    const wrapper = (e.target as HTMLImageElement).closest('.relative');
+                    if (wrapper) (wrapper as HTMLElement).style.display = 'none';
+                  }}
+                />
+              </div>
+            ))}
           </div>
-        ) : null;
+        );
       })()}
 
       {/* Quote — clamped at 3 lines when image present, 5 lines otherwise */}
@@ -275,13 +288,13 @@ export function TestimonialsSection({ section, website }: TestimonialsSectionPro
             <div className="absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-muted/30 to-transparent z-10 pointer-events-none" />
 
             {/* First row - scrolls left */}
-            <div className="flex mb-6 items-stretch" style={{ height: '320px' }}>
+            <div className="flex mb-3 items-stretch" style={{ height: '360px' }}>
               <motion.div
                 className="flex gap-6 h-full"
                 animate={{ x: [0, -50 * row1.length * 26] }}
                 transition={{
                   x: {
-                    duration: row1.length * 8,
+                    duration: row1.length * 20,
                     repeat: Infinity,
                     ease: 'linear',
                   },
@@ -297,13 +310,13 @@ export function TestimonialsSection({ section, website }: TestimonialsSectionPro
 
             {/* Second row - scrolls right, with different reviews from row 1 */}
             {hasRow2 && (
-              <div className="flex items-stretch" style={{ height: '320px' }}>
+              <div className="flex items-stretch" style={{ height: '360px' }}>
                 <motion.div
                   className="flex gap-6 h-full"
                   animate={{ x: [-50 * row2.length * 26, 0] }}
                   transition={{
                     x: {
-                      duration: row2.length * 10,
+                      duration: row2.length * 25,
                       repeat: Infinity,
                       ease: 'linear',
                     },
@@ -321,22 +334,15 @@ export function TestimonialsSection({ section, website }: TestimonialsSectionPro
           );
         })()}
 
-        {/* Carousel / Marquee variant */}
+        {/* Carousel / Marquee variant — MobileCardCarousel provides dots + swipe */}
         {(variant === 'carousel' || variant === 'marquee') && (
-          <div className="flex gap-6 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide">
-            {testimonials.map((testimonial, index) => (
-              <motion.div
-                key={testimonial.id || `testimonial-${index}`}
-                initial={{ opacity: 0, x: 20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-                className="flex-none w-[85vw] max-w-[340px] md:max-w-96 snap-center"
-              >
-                <TestimonialCard testimonial={testimonial} />
-              </motion.div>
-            ))}
-          </div>
+          <MobileCardCarousel
+            items={testimonials}
+            ariaLabel="Carrusel de testimonios"
+            getItemKey={(t, i) => t.id || `testimonial-${i}`}
+            itemWidthClassName="w-[85vw] max-w-[340px]"
+            renderItem={(testimonial) => <TestimonialCard testimonial={testimonial} />}
+          />
         )}
 
         {/* Grid variant — uses new TestimonialCard */}

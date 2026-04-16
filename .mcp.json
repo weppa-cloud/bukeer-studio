@@ -1,0 +1,36 @@
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "npx",
+      "args": ["@playwright/mcp@latest"]
+    },
+    "supabase": {
+      "command": "npx",
+      "args": ["-y", "@supabase/mcp-server-supabase@latest", "--access-token", "${SUPABASE_ACCESS_TOKEN}"]
+    },
+    "chrome-devtools": {
+      "command": "npx",
+      "args": ["@modelcontextprotocol/server-chrome-devtools"]
+    },
+    "shadcn-ui": {
+      "command": "npx",
+      "args": ["-y", "shadcn-ui-mcp-server"]
+    },
+    "magic-ui": {
+      "command": "npx",
+      "args": ["-y", "magicui-mcp"]
+    },
+    "aceternity-ui": {
+      "command": "npx",
+      "args": ["-y", "aceternity-ui-mcp"]
+    },
+    "google-analytics": {
+      "command": "npx",
+      "args": ["-y", "@galihlprakoso/google-analytics-mcp-server"]
+    },
+    "search-console": {
+      "command": "npx",
+      "args": ["-y", "@galihlprakoso/search-console-mcp-server"]
+    }
+  }
+}

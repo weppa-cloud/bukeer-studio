@@ -19,6 +19,14 @@ export interface ImageObject {
   width?: number;
   height?: number;
   caption?: string;
+  /** Human-readable name — used by Google Images rich results */
+  name?: string;
+  /** Detailed description for AI crawlers and Google Image search */
+  description?: string;
+  /** Person who took or shared the photo */
+  author?: Person;
+  /** Geographic context (e.g. "Colombia", "Cartagena") */
+  contentLocation?: { '@type': 'Place'; name: string };
 }
 
 export interface PostalAddress {
@@ -64,6 +72,12 @@ export interface TravelAgency extends Organization {
   priceRange?: string;
   openingHours?: string;
   geo?: GeoCoordinates;
+  /**
+   * User-generated travel photos cached from Google Reviews.
+   * Google uses this array for rich results in Image Search
+   * and as trust signals for the LocalBusiness entity.
+   */
+  photo?: ImageObject[];
 }
 
 export interface GeoCoordinates {

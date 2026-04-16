@@ -15,6 +15,7 @@ import type {
   WebSite,
   CollectionPage,
   ListItem,
+  ImageObject,
 } from './types';
 import type { WebsiteData, BlogPost, WebsiteSection } from '../supabase/get-website';
 
@@ -37,11 +38,79 @@ function resolveSchemaLanguage(post: BlogPost, website: WebsiteData): string {
 }
 
 /**
+ * Extract user-generated travel photos from the testimonials section.
+ *
+ * These images are Google Review photos that have been cached into Supabase
+ * Storage via /api/cache-review-photos. Using Supabase CDN URLs (instead of
+ * lh3.googleusercontent.com) means Google can crawl them without rate-limit
+ * issues and they persist even if the review is deleted.
+ *
+ * Each ImageObject gets:
+ *  - url: Supabase Storage CDN URL (stable, cacheable)
+ *  - name: "{reviewer} · {agencyName}" — appears in Google Images captions
+ *  - description: first 120 chars of the review text — feeds AI answer engines
+ *  - author: Person node — helps Google associate photo with a real reviewer
+ *  - contentLocation: Place "Colombia" — topical geo signal
+ *
+ * @param sections  - Enabled website sections (from hydrateSections output)
+ * @param agencyName - Agency name for caption context
+ * @returns Array of ImageObject (empty if no cached photos found)
+ */
+export function extractReviewImages(
+  sections: WebsiteSection[],
+  agencyName: string
+): ImageObject[] {
+  const testimonialsSection = sections.find(
+    (s) => s.section_type === 'testimonials' && s.is_enabled
+  );
+  if (!testimonialsSection?.content) return [];
+
+  const content = testimonialsSection.content as {
+    testimonials?: Array<{
+      name: string;
+      text?: string;
+      content?: string;
+      images?: Array<string | { url: string; thumbnail?: string }>;
+    }>;
+  };
+
+  if (!content.testimonials?.length) return [];
+
+  const result: ImageObject[] = [];
+
+  for (const testimonial of content.testimonials) {
+    if (!testimonial.images?.length) continue;
+
+    const reviewText = (testimonial.text || testimonial.content || '').slice(0, 120).trim();
+
+    for (const imgEntry of testimonial.images) {
+      const url = typeof imgEntry === 'string' ? imgEntry : imgEntry.url;
+
+      // Only include cached Supabase Storage URLs — external Google CDN URLs
+      // may be ephemeral and are not reliably crawlable by search engines.
+      if (!url || !url.includes('supabase.co/storage')) continue;
+
+      result.push({
+        '@type': 'ImageObject',
+        url,
+        name: `${testimonial.name} · ${agencyName}`,
+        ...(reviewText && { description: reviewText }),
+        author: { '@type': 'Person', name: testimonial.name },
+        contentLocation: { '@type': 'Place', name: 'Colombia' },
+      });
+    }
+  }
+
+  return result;
+}
+
+/**
  * Generate Organization/TravelAgency schema for a website
  */
 export function generateOrganizationSchema(
   website: WebsiteData,
-  baseUrl: string
+  baseUrl: string,
+  reviewImages?: ImageObject[]
 ): TravelAgency {
   const { content } = website;
 
@@ -82,6 +151,10 @@ export function generateOrganizationSchema(
       availableLanguage: ['Spanish', 'English'],
     },
     ...(sameAs.length > 0 && { sameAs }),
+    // User-generated travel photos from Google Reviews (cached to Supabase Storage).
+    // Google uses photo[] on TravelAgency/LocalBusiness for Knowledge Panel images
+    // and as a trust signal when evaluating the entity's real-world presence.
+    ...(reviewImages && reviewImages.length > 0 && { photo: reviewImages }),
   };
 }
 
@@ -259,7 +332,12 @@ export function generateCollectionPageSchema(
 }
 
 /**
- * Generate all schemas for the homepage
+ * Generate all schemas for the homepage.
+ *
+ * Includes: TravelAgency (with cached review photos), WebSite, BreadcrumbList,
+ * and optional FAQPage. The review photos are injected as photo[] on the
+ * TravelAgency node — this feeds Google's Knowledge Panel and image search
+ * indexing without creating a separate schema block.
  */
 export function generateHomepageSchemas(
   website: WebsiteData,
@@ -267,8 +345,13 @@ export function generateHomepageSchemas(
 ): object[] {
   const schemas: object[] = [];
 
-  // 1. Organization/TravelAgency schema
-  schemas.push(generateOrganizationSchema(website, baseUrl));
+  // Extract cached review photos from the testimonials section.
+  // Only Supabase Storage URLs are included (see extractReviewImages docs).
+  const agencyName = website.content.account?.name || website.content.siteName || '';
+  const reviewImages = extractReviewImages(website.sections || [], agencyName);
+
+  // 1. Organization/TravelAgency schema — includes photo[] when available
+  schemas.push(generateOrganizationSchema(website, baseUrl, reviewImages));
 
   // 2. WebSite schema
   schemas.push(generateWebSiteSchema(website, baseUrl));
