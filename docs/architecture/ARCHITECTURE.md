@@ -2,7 +2,7 @@
 
 > Next.js 15 / React 19 / Cloudflare Workers / Supabase
 
-Last updated: 2026-04-15
+Last updated: 2026-04-16
 
 ---
 
@@ -152,6 +152,7 @@ The Cloudflare Workers 10 MiB limit and 128 MB memory cap demand aggressive bund
 - Never expose internal error details to the client
 - Call `redirect()` OUTSIDE of `try/catch` (it throws internally)
 - Log server-side with namespaced prefixes: `[moduleName]`
+- Destination maps use compatibility-first fallback rendering, and marker photos always degrade to a stable avatar fallback when media fails.
 
 ---
 
@@ -197,6 +198,7 @@ Content-Security-Policy: frame-ancestors 'self' https://app.bukeer.com (/editor/
 | [ADR-012](./ADR-012-api-response-envelope.md) | Standard API Response Envelope | Accepted |
 | [ADR-013](./ADR-013-tech-validator-quality-gate.md) | Automated Tech Validator Quality Gate | Accepted |
 | [ADR-014](./ADR-014-delta-typescript-quality-gate.md) | Delta TypeScript Quality Gate for Tech Validator | Accepted |
+| [ADR-015](./ADR-015-resilient-map-rendering-and-marker-media-fallback.md) | Resilient Map Rendering and Marker Media Fallback | Accepted |
 
 ---
 
