@@ -462,6 +462,7 @@ export function DestinationMap({
 }: DestinationMapProps) {
   const styleUrl = useMemo(resolveMapStyleUrl, []);
   const mapRef = useRef<MapRef | null>(null);
+  const [hasHydrated, setHasHydrated] = useState(false);
   const [palette, setPalette] = useState<MapThemePalette>(DEFAULT_MAP_THEME_PALETTE);
   const [isNoWebgl, setIsNoWebgl] = useState(false);
   const [styleFailed, setStyleFailed] = useState(false);
@@ -493,6 +494,12 @@ export function DestinationMap({
     [selectedMarker]
   );
   const useCroquisMode = renderMode === 'croquis';
+  const shouldRenderCompatibilityMap =
+    !hasHydrated || useCroquisMode || isNoWebgl || styleFailed || !styleUrl;
+
+  useEffect(() => {
+    setHasHydrated(true);
+  }, []);
 
   const center = useMemo(() => mapCenter(filteredMarkers.length > 0 ? filteredMarkers : markers, viewportPreset), [filteredMarkers, markers, viewportPreset]);
 
@@ -569,7 +576,7 @@ export function DestinationMap({
     );
   }, [filteredMarkers, viewportPreset]);
 
-  if (useCroquisMode || isNoWebgl || styleFailed || !styleUrl) {
+  if (shouldRenderCompatibilityMap) {
     const croquisBadgeLabel = useCroquisMode ? 'Croquis Colombia' : 'Modo compatibilidad';
     return (
       <div className={className}>

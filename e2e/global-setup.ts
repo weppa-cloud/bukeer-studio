@@ -8,9 +8,20 @@ import { FullConfig } from '@playwright/test';
 async function globalSetup(config: FullConfig) {
   const baseURL = config.projects[0]?.use?.baseURL ?? 'http://localhost:3000';
 
+  // Grab website ID from env (set in .env.local)
+  const websiteId = process.env.E2E_WEBSITE_ID ?? '';
+
   const routesToWarm = [
-    '/site/colombiatours',
     '/login',
+    '/dashboard',
+    '/site/colombiatours',
+    '/site/colombiatours/destinos',
+    ...(websiteId ? [
+      `/dashboard/${websiteId}/pages`,
+      `/dashboard/${websiteId}/analytics`,
+      `/dashboard/${websiteId}/contenido`,
+      `/dashboard/${websiteId}/seo`,
+    ] : []),
   ];
 
   console.log(`\n[globalSetup] Prewarming ${routesToWarm.length} routes on ${baseURL}...`);
