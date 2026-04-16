@@ -5,6 +5,9 @@ import { requireWebsiteAccess } from '@/lib/seo/server-auth';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/service-role';
 import { buildSourceMeta, withNoStoreHeaders, withSharedCacheHeaders } from '@/lib/seo/content-intelligence';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 async function ensureClusterOwnership(clusterId: string, websiteId: string) {
   const admin = createSupabaseServiceRoleClient();
   const { data: cluster, error } = await admin
@@ -96,6 +99,52 @@ export async function POST(request: NextRequest) {
     const cluster = await ensureClusterOwnership(parsed.data.clusterId, parsed.data.websiteId);
     if (!cluster) {
       return withNoStoreHeaders(apiError('NOT_FOUND', 'Cluster not found for this website', 404));
+    }
+
+    if (parsed.data.pageType === 'page') {
+      const { data: pageExists } = await admin
+        .from('website_pages')
+        .select('id')
+        .eq('website_id', parsed.data.websiteId)
+        .eq('id', parsed.data.pageId)
+        .maybeSingle();
+      if (!pageExists) {
+        return withNoStoreHeaders(apiError('INVALID_PAGE_REFERENCE', 'Page does not belong to this website', 422));
+      }
+    }
+
+    if (parsed.data.pageType === 'blog') {
+      const { data: blogExists } = await admin
+        .from('website_blog_posts')
+        .select('id')
+        .eq('website_id', parsed.data.websiteId)
+        .eq('id', parsed.data.pageId)
+        .maybeSingle();
+      if (!blogExists) {
+        return withNoStoreHeaders(apiError('INVALID_PAGE_REFERENCE', 'Blog post does not belong to this website', 422));
+      }
+    }
+
+    if (parsed.data.pageType === 'destination') {
+      const { data: website } = await admin
+        .from('websites')
+        .select('account_id')
+        .eq('id', parsed.data.websiteId)
+        .maybeSingle();
+      const accountId = website?.account_id;
+      if (!accountId) {
+        return withNoStoreHeaders(apiError('NOT_FOUND', 'Website context missing for destination assignment', 404));
+      }
+      const { data: destinationExists } = await admin
+        .from('destinations')
+        .select('id')
+        .eq('account_id', accountId)
+        .eq('id', parsed.data.pageId)
+        .is('deleted_at', null)
+        .maybeSingle();
+      if (!destinationExists) {
+        return withNoStoreHeaders(apiError('INVALID_PAGE_REFERENCE', 'Destination does not belong to this website account', 422));
+      }
     }
 
     const { data, error } = await admin

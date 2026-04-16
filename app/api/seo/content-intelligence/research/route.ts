@@ -3,7 +3,17 @@ import { SeoResearchRequestSchema } from '@bukeer/website-contract';
 import { apiError, apiSuccess } from '@/lib/api/response';
 import { requireWebsiteAccess } from '@/lib/seo/server-auth';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/service-role';
-import { buildSourceMeta, computePriorityScore, withNoStoreHeaders } from '@/lib/seo/content-intelligence';
+import {
+  DECISION_GRADE_ERROR_CODE,
+  buildDecisionGradeBlockDetails,
+  buildSourceMeta,
+  computePriorityScore,
+  withNoStoreHeaders,
+} from '@/lib/seo/content-intelligence';
+import { enqueueDecisionGradeSync } from '@/lib/seo/decision-grade-sync';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 function inferIntent(keyword: string): 'informational' | 'navigational' | 'commercial' | 'transactional' | 'mixed' {
   const normalized = keyword.toLowerCase();
@@ -49,9 +59,109 @@ export async function POST(request: NextRequest) {
   }
 
   await requireWebsiteAccess(parsed.data.websiteId);
-
-  const sourceMeta = buildSourceMeta('seo-content-intelligence/research', 'partial');
   const admin = createSupabaseServiceRoleClient();
+
+  if (parsed.data.decisionGradeOnly) {
+    const { data: liveRows, error: liveError } = await admin
+      .from('seo_keyword_candidates')
+      .select(
+        'id,keyword,intent,recommendation_action,difficulty,search_volume,serp_top_competitors,seasonality_pattern,seasonality_status,priority_score,source,fetched_at,confidence,decision_grade_ready',
+      )
+      .eq('website_id', parsed.data.websiteId)
+      .eq('content_type', parsed.data.contentType)
+      .eq('country', parsed.data.country)
+      .eq('language', parsed.data.language)
+      .eq('locale', parsed.data.locale)
+      .eq('confidence', 'live')
+      .eq('decision_grade_ready', true)
+      .order('priority_score', { ascending: false })
+      .limit(500);
+
+    if (liveError) {
+      return withNoStoreHeaders(apiError('INTERNAL_ERROR', 'Unable to read authoritative candidates', 500, liveError.message));
+    }
+
+    const normalizedSeeds = parsed.data.seeds.map((seed) => seed.toLowerCase());
+    const matched = (liveRows ?? []).filter((row) => {
+      const keyword = String(row.keyword ?? '').toLowerCase();
+      return normalizedSeeds.some((seed) => keyword.includes(seed));
+    });
+
+    if (matched.length === 0) {
+      const sync = await enqueueDecisionGradeSync(parsed.data.websiteId);
+      return withNoStoreHeaders(
+        apiError(
+          DECISION_GRADE_ERROR_CODE,
+          'Decision-grade research requires authoritative market data. Sync has been queued.',
+          409,
+          buildDecisionGradeBlockDetails({
+            route: 'research',
+            websiteId: parsed.data.websiteId,
+            locale: parsed.data.locale,
+            contentType: parsed.data.contentType,
+            missingSources: ['seo_keyword_candidates.live', 'provider:gsc_or_dataforseo'],
+            syncRequestId: sync.requestId,
+          }),
+        ),
+      );
+    }
+
+    const sourceMeta = {
+      source: String(matched[0]?.source ?? 'database-live'),
+      fetchedAt: String(matched[0]?.fetched_at ?? new Date().toISOString()),
+      confidence: 'live' as const,
+    };
+
+    const runId = crypto.randomUUID();
+    const { error: runInsertError } = await admin.from('seo_keyword_research_runs').insert({
+      id: runId,
+      website_id: parsed.data.websiteId,
+      content_type: parsed.data.contentType,
+      country: parsed.data.country,
+      language: parsed.data.language,
+      locale: parsed.data.locale,
+      seeds: parsed.data.seeds,
+      source: sourceMeta.source,
+      fetched_at: sourceMeta.fetchedAt,
+      confidence: sourceMeta.confidence,
+      decision_grade_ready: true,
+    });
+    if (runInsertError) {
+      return withNoStoreHeaders(apiError('INTERNAL_ERROR', 'Unable to persist research run', 500, runInsertError.message));
+    }
+
+    const candidates = matched.map((row) => ({
+      id: String(row.id),
+      keyword: String(row.keyword),
+      intent: row.intent,
+      recommendationAction: row.recommendation_action,
+      difficulty: row.difficulty,
+      searchVolume: row.search_volume,
+      serpTopCompetitors: Array.isArray(row.serp_top_competitors) ? row.serp_top_competitors : [],
+      seasonalityPattern: Array.isArray(row.seasonality_pattern) ? row.seasonality_pattern : null,
+      seasonalityStatus: row.seasonality_status,
+      priorityScore: Number(row.priority_score ?? 0),
+      source: String(row.source ?? sourceMeta.source),
+      fetchedAt: String(row.fetched_at ?? sourceMeta.fetchedAt),
+      confidence: 'live' as const,
+      decisionGradeReady: true,
+    }));
+
+    return withNoStoreHeaders(
+      apiSuccess({
+        runId,
+        websiteId: parsed.data.websiteId,
+        contentType: parsed.data.contentType,
+        country: parsed.data.country,
+        language: parsed.data.language,
+        locale: parsed.data.locale,
+        candidates,
+        sourceMeta,
+      }),
+    );
+  }
+
+  const sourceMeta = buildSourceMeta('seo-content-intelligence/research', 'exploratory');
   const runId = crypto.randomUUID();
 
   const { error: runInsertError } = await admin.from('seo_keyword_research_runs').insert({
@@ -65,6 +175,7 @@ export async function POST(request: NextRequest) {
     source: sourceMeta.source,
     fetched_at: sourceMeta.fetchedAt,
     confidence: sourceMeta.confidence,
+    decision_grade_ready: false,
   });
   if (runInsertError) {
     return withNoStoreHeaders(apiError('INTERNAL_ERROR', 'Unable to persist research run', 500, runInsertError.message));
@@ -109,6 +220,7 @@ export async function POST(request: NextRequest) {
       source: sourceMeta.source,
       fetchedAt: sourceMeta.fetchedAt,
       confidence: sourceMeta.confidence,
+      decisionGradeReady: false,
     };
 
     rowsToInsert.push({
@@ -131,6 +243,7 @@ export async function POST(request: NextRequest) {
       source: row.source,
       fetched_at: row.fetchedAt,
       confidence: row.confidence,
+      decision_grade_ready: false,
     });
 
     return row;

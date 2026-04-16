@@ -8,7 +8,7 @@ import type { WebsiteData } from '@/lib/supabase/get-website';
 import type { ProductData, ProductPageCustomization } from '@/lib/supabase/get-pages';
 import { getCategoryProducts } from '@/lib/supabase/get-pages';
 import { getBasePath } from '@/lib/utils/base-path';
-import { RouteMap, RouteTimeline, parseRouteFromName } from '@/components/ui/route-map';
+import { formatCircuitStops, getPackageCircuitStops } from '@/lib/products/package-circuit';
 import { ProductSchema } from '../seo/product-schema';
 
 interface GoogleReviewProp {
@@ -691,21 +691,69 @@ function TransferSections() {
 }
 
 function PackageSections({ product }: { product: ProductData }) {
-  const routePoints = parseRouteFromName(product.name);
+  const itineraryItems = Array.isArray(product.itinerary_items) ? product.itinerary_items : [];
+  const productData = product as unknown as Record<string, unknown>;
+  const destinationHint = typeof productData.destination === 'string'
+    ? String(productData.destination)
+    : product.location;
+  const circuitStops = getPackageCircuitStops({
+    itineraryItems,
+    name: product.name,
+    destination: destinationHint,
+  });
+  const circuitLabel = formatCircuitStops(circuitStops, 4);
+
+  const normalizedItinerary = itineraryItems.length > 0
+    ? itineraryItems.map((item, index) => ({
+        key: `${item.day || index + 1}-${item.title || 'item'}`,
+        day: item.day || index + 1,
+        title: item.title || `Dia ${item.day || index + 1}`,
+        description: item.description || '',
+      }))
+    : circuitStops.length > 0
+      ? circuitStops.map((city, index) => ({
+          key: `${index + 1}-${city}`,
+          day: index + 1,
+          title: city,
+          description: `Explora lo mejor de ${city}`,
+        }))
+      : ['Dia 1: Llegada', 'Dia 2: Exploracion', 'Dia 3: Aventura', 'Dia 4: Regreso'].map(
+          (title, index) => ({
+            key: `${index + 1}-${title}`,
+            day: index + 1,
+            title,
+            description: 'Descripcion de las actividades del dia...',
+          })
+        );
 
   return (
     <>
-      {/* Route Map */}
-      {routePoints.length >= 2 && (
+      {/* Circuit summary (without map) */}
+      {circuitStops.length > 0 && (
         <motion.section
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: '-60px' }}
           variants={fadeUp}
         >
-          <h2 className="text-2xl font-bold mb-4">Ruta del viaje</h2>
-          <RouteTimeline points={routePoints} className="mb-6" />
-          <RouteMap points={routePoints} height={350} />
+          <h2 className="text-2xl font-bold mb-4">Circuito del viaje</h2>
+          <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>
+            {circuitLabel}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {circuitStops.map((city, index) => (
+              <span
+                key={`${city}-${index}`}
+                className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs"
+                style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)' }}
+              >
+                <span className="inline-flex w-4 h-4 rounded-full items-center justify-center text-[10px] font-semibold" style={{ backgroundColor: 'var(--accent)', color: 'var(--accent-text)' }}>
+                  {index + 1}
+                </span>
+                {city}
+              </span>
+            ))}
+          </div>
         </motion.section>
       )}
 
@@ -718,55 +766,30 @@ function PackageSections({ product }: { product: ProductData }) {
       >
         <h2 className="text-2xl font-bold mb-6">Itinerario</h2>
         <div className="space-y-4">
-          {routePoints.length > 0 ? (
-            routePoints.map((point, index) => (
-              <motion.div
-                key={point.city}
-                initial={{ opacity: 0, x: -20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-                className="flex items-start gap-4 p-4 rounded-xl"
-                style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-subtle)' }}
+          {normalizedItinerary.map((item, index) => (
+            <motion.div
+              key={item.key}
+              initial={{ opacity: 0, x: -20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: index * 0.1 }}
+              className="flex items-start gap-4 p-4 rounded-xl"
+              style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-subtle)' }}
+            >
+              <div
+                className="w-10 h-10 rounded-full flex items-center justify-center font-bold shrink-0 text-sm"
+                style={{ backgroundColor: 'var(--accent)', color: 'var(--accent-text)' }}
               >
-                <div
-                  className="w-10 h-10 rounded-full flex items-center justify-center font-bold shrink-0 text-sm"
-                  style={{ backgroundColor: 'var(--accent)', color: 'var(--accent-text)' }}
-                >
-                  {index + 1}
-                </div>
-                <div>
-                  <h3 className="font-medium" style={{ color: 'var(--text-heading)' }}>{point.city}</h3>
-                  <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
-                    Dia {index + 1}: Explora lo mejor de {point.city}
-                  </p>
-                </div>
-              </motion.div>
-            ))
-          ) : (
-            ['Dia 1: Llegada', 'Dia 2: Exploracion', 'Dia 3: Aventura', 'Dia 4: Regreso'].map(
-              (day, index) => (
-                <div
-                  key={index}
-                  className="flex items-start gap-4 p-4 rounded-xl"
-                  style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-subtle)' }}
-                >
-                  <div
-                    className="w-10 h-10 rounded-full flex items-center justify-center font-bold shrink-0"
-                    style={{ backgroundColor: 'var(--accent)', color: 'var(--accent-text)' }}
-                  >
-                    {index + 1}
-                  </div>
-                  <div>
-                    <h3 className="font-medium" style={{ color: 'var(--text-heading)' }}>{day}</h3>
-                    <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
-                      Descripcion de las actividades del dia...
-                    </p>
-                  </div>
-                </div>
-              )
-            )
-          )}
+                {item.day}
+              </div>
+              <div>
+                <h3 className="font-medium" style={{ color: 'var(--text-heading)' }}>{item.title}</h3>
+                <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
+                  {item.description || `Dia ${item.day}: actividades principales del itinerario`}
+                </p>
+              </div>
+            </motion.div>
+          ))}
         </div>
       </motion.section>
     </>

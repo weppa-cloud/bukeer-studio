@@ -5,6 +5,9 @@ import { requireWebsiteAccess } from '@/lib/seo/server-auth';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/service-role';
 import { buildSourceMeta, parseLocaleParts, withNoStoreHeaders } from '@/lib/seo/content-intelligence';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 function buildReresearchPayload(input: {
   sourceLocale: string;
   targetLocale: string;
@@ -112,8 +115,24 @@ export async function POST(request: NextRequest) {
     return withNoStoreHeaders(apiSuccess({ job, keywordReresearch, sourceMeta }));
   }
 
-  if (!parsed.data.jobId) {
-    return withNoStoreHeaders(apiError('VALIDATION_ERROR', 'jobId is required for review/apply actions', 400));
+  let resolvedJobId = parsed.data.jobId ?? null;
+  if (!resolvedJobId) {
+    const { data: latestJob } = await admin
+      .from('seo_transcreation_jobs')
+      .select('id,status,updated_at')
+      .eq('website_id', parsed.data.websiteId)
+      .eq('page_type', parsed.data.pageType)
+      .eq('page_id', parsed.data.sourceContentId)
+      .eq('source_locale', localeTuple.source_locale)
+      .eq('target_locale', localeTuple.target_locale)
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    resolvedJobId = latestJob?.id ?? null;
+  }
+  if (!resolvedJobId) {
+    return withNoStoreHeaders(apiError('NOT_FOUND', 'No transcreation draft found for source/target tuple', 404));
   }
 
   if (parsed.data.action === 'review') {
@@ -126,7 +145,7 @@ export async function POST(request: NextRequest) {
         source: sourceMeta.source,
         fetched_at: sourceMeta.fetchedAt,
       })
-      .eq('id', parsed.data.jobId)
+      .eq('id', resolvedJobId)
       .eq('website_id', parsed.data.websiteId)
       .select('id, status, source_locale, target_locale, updated_at')
       .single();
@@ -145,7 +164,7 @@ export async function POST(request: NextRequest) {
       .eq('website_id', parsed.data.websiteId)
       .eq('page_type', parsed.data.pageType)
       .eq('source_entity_id', parsed.data.sourceContentId)
-      .eq('target_locale', parsed.data.targetLocale);
+      .eq('target_locale', localeTuple.target_locale);
 
     return withNoStoreHeaders(apiSuccess({ job, sourceMeta }));
   }
@@ -153,7 +172,7 @@ export async function POST(request: NextRequest) {
   const { data: currentJob, error: jobReadError } = await admin
     .from('seo_transcreation_jobs')
     .select('id, status, payload, keyword_reresearch')
-    .eq('id', parsed.data.jobId)
+    .eq('id', resolvedJobId)
     .eq('website_id', parsed.data.websiteId)
     .single();
   if (jobReadError || !currentJob) {
@@ -175,7 +194,7 @@ export async function POST(request: NextRequest) {
       source: sourceMeta.source,
       fetched_at: sourceMeta.fetchedAt,
     })
-    .eq('id', parsed.data.jobId)
+    .eq('id', resolvedJobId)
     .eq('website_id', parsed.data.websiteId)
     .select('id, status, updated_at')
     .single();
@@ -184,18 +203,18 @@ export async function POST(request: NextRequest) {
   }
 
   await admin
-    .from('seo_localized_variants')
-    .update({
-      status: 'applied',
-      last_job_id: parsed.data.jobId,
-      updated_at: new Date().toISOString(),
-      source: sourceMeta.source,
-      fetched_at: sourceMeta.fetchedAt,
-    })
-    .eq('website_id', parsed.data.websiteId)
-    .eq('page_type', parsed.data.pageType)
-    .eq('source_entity_id', parsed.data.sourceContentId)
-    .eq('target_locale', parsed.data.targetLocale);
+      .from('seo_localized_variants')
+      .update({
+        status: 'applied',
+        last_job_id: resolvedJobId,
+        updated_at: new Date().toISOString(),
+        source: sourceMeta.source,
+        fetched_at: sourceMeta.fetchedAt,
+      })
+      .eq('website_id', parsed.data.websiteId)
+      .eq('page_type', parsed.data.pageType)
+      .eq('source_entity_id', parsed.data.sourceContentId)
+      .eq('target_locale', localeTuple.target_locale);
 
   if (parsed.data.pageType === 'blog' && parsed.data.targetContentId) {
     const payload = (currentJob.payload ?? {}) as Record<string, unknown>;

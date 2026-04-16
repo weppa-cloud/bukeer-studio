@@ -55,6 +55,7 @@ export const SeoResearchRequestSchema = z.object({
   language: z.string().min(2).max(16),
   locale: z.string().min(2).max(16),
   seeds: z.array(z.string().min(2).max(120)).min(1).max(30),
+  decisionGradeOnly: z.coerce.boolean().default(true),
 });
 
 export const SeoSerpCompetitorSchema = z.object({
@@ -208,6 +209,15 @@ export const SeoTrackQuerySchema = z.object({
   locale: z.string().min(2).max(16).optional(),
   contentType: SeoContentTypeSchema.optional(),
   clusterId: z.string().uuid().optional(),
+  decisionGradeOnly: z.coerce.boolean().default(true),
+});
+
+export const SeoPageCatalogQuerySchema = z.object({
+  websiteId: z.string().uuid(),
+  pageType: SeoPageTypeSchema.optional(),
+  locale: z.string().min(2).max(16).optional(),
+  search: z.string().min(1).max(120).optional(),
+  limit: z.coerce.number().int().min(1).max(250).default(100),
 });
 
 export type SeoSourceMetadata = z.infer<typeof SeoSourceMetadataSchema>;
@@ -223,3 +233,4 @@ export type SeoBriefQuery = z.infer<typeof SeoBriefQuerySchema>;
 export type SeoOptimizeRequest = z.infer<typeof SeoOptimizeRequestSchema>;
 export type SeoTranscreateRequest = z.infer<typeof SeoTranscreateRequestSchema>;
 export type SeoTrackQuery = z.infer<typeof SeoTrackQuerySchema>;
+export type SeoPageCatalogQuery = z.infer<typeof SeoPageCatalogQuerySchema>;

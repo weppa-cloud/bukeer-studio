@@ -6,13 +6,20 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { getBasePath } from '@/lib/utils/base-path';
 import { getDestinationContent } from '@/lib/data/colombia-destinations';
-import { RouteMap } from '@/components/ui/route-map';
+import { DestinationMap } from '@/components/maps/destination-map';
 import { BlurFade } from '@/components/ui/blur-fade';
 import { NumberTicker } from '@/components/ui/number-ticker';
 import { ProductSchema } from '@/components/seo/product-schema';
+import type { MapMarker } from '@/lib/maps/types';
+import {
+  classifyProductMarkerKind,
+  deterministicOffsetCoordinates,
+  toFiniteNumber,
+} from '@/lib/maps/utils';
+import { formatCircuitStops, getPackageCircuitStops } from '@/lib/products/package-circuit';
 import type { ProductData as ContractProductData } from '@bukeer/website-contract';
 import type { WebsiteData } from '@/lib/supabase/get-website';
-import type { DestinationData } from '@/lib/supabase/get-pages';
+import type { DestinationData, GoogleReviewData } from '@/lib/supabase/get-pages';
 
 export type ProductData = ContractProductData;
 
@@ -30,6 +37,7 @@ interface DestinationDetailPageProps {
   destination: DestinationData;
   products: ProductData[];
   serpEnrichment?: SerpEnrichmentData | null;
+  googleReviews?: GoogleReviewData[];
 }
 
 export function DestinationDetailPage({
@@ -37,6 +45,7 @@ export function DestinationDetailPage({
   destination,
   products,
   serpEnrichment,
+  googleReviews = [],
 }: DestinationDetailPageProps) {
   const basePath = getBasePath(website.subdomain);
   const staticContent = getDestinationContent(destination.name);
@@ -70,6 +79,57 @@ export function DestinationDetailPage({
   );
   const activities = products.filter((p) => p.type === 'activity');
   const hotels = products.filter((p) => p.type === 'hotel');
+
+  const productMarkers: MapMarker[] = products.map((product) => {
+    const productData = product as unknown as Record<string, unknown>;
+    const kind = classifyProductMarkerKind(product.type);
+
+    const explicitLat = toFiniteNumber(
+      productData.latitude ?? productData.lat ?? productData['geo_lat']
+    );
+    const explicitLng = toFiniteNumber(
+      productData.longitude ?? productData.lng ?? productData['geo_lng']
+    );
+    const hasExactCoordinates = explicitLat !== null && explicitLng !== null;
+
+    const resolvedCoordinates = hasExactCoordinates
+      ? { lat: explicitLat!, lng: explicitLng! }
+      : deterministicOffsetCoordinates(
+          destination.lat,
+          destination.lng,
+          `${product.id}:${product.type}`,
+          kind
+        );
+
+    return {
+      id: `product-${product.id}`,
+      label: product.name,
+      kind,
+      lat: resolvedCoordinates.lat,
+      lng: resolvedCoordinates.lng,
+      slug: product.slug,
+      meta: {
+        productType: product.type,
+        hasExactCoordinates,
+      },
+    };
+  });
+
+  const destinationFallbackMarker: MapMarker = {
+    id: `destination-${destination.id}`,
+    label: destination.name,
+    kind: 'destination',
+    lat: destination.lat,
+    lng: destination.lng,
+    slug: destination.slug,
+    meta: {
+      state: destination.state,
+    },
+  };
+
+  const mapMarkers = productMarkers.length > 0
+    ? productMarkers
+    : [destinationFallbackMarker];
 
   const heroImage =
     (enrichment.photos.length > 0 ? enrichment.photos[0] : null) ||
@@ -420,67 +480,85 @@ export function DestinationDetailPage({
               Paquetes en {destination.name}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {packages.map((pkg) => (
-                <Link
-                  key={pkg.id}
-                  href={`${basePath}/paquetes/${pkg.slug}`}
-                >
-                  <motion.div
-                    className="rounded-2xl overflow-hidden shadow-md group cursor-pointer"
-                    style={{ background: 'var(--surface-primary)' }}
-                    whileHover={{ y: -4 }}
-                    transition={{ duration: 0.3 }}
+              {packages.map((pkg) => {
+                const packageCircuit = formatCircuitStops(
+                  getPackageCircuitStops({
+                    itineraryItems: Array.isArray(pkg.itinerary_items) ? pkg.itinerary_items : [],
+                    name: pkg.name,
+                    destination: pkg.location || destination.name,
+                  })
+                );
+
+                return (
+                  <Link
+                    key={pkg.id}
+                    href={`${basePath}/paquetes/${pkg.slug}`}
                   >
-                    <div className="relative" style={{ aspectRatio: '16/10' }}>
-                      {pkg.image ? (
-                        <Image
-                          src={pkg.image}
-                          alt={`Paquete ${pkg.name} en ${destination.name}`}
-                          fill
-                          className="object-cover transition-transform duration-500 group-hover:scale-105"
-                          sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                        />
-                      ) : (
-                        <div
-                          className="absolute inset-0"
-                          style={{ background: 'var(--surface-secondary)' }}
-                        />
-                      )}
-                    </div>
-                    <div className="p-5">
-                      <h3
-                        className="text-lg font-bold"
-                        style={{ color: 'var(--text-heading)' }}
-                      >
-                        {pkg.name}
-                      </h3>
-                      {pkg.duration && (
-                        <p
-                          className="text-sm mt-1"
-                          style={{ color: 'var(--text-muted)' }}
+                    <motion.div
+                      className="rounded-2xl overflow-hidden shadow-md group cursor-pointer"
+                      style={{ background: 'var(--surface-primary)' }}
+                      whileHover={{ y: -4 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <div className="relative" style={{ aspectRatio: '16/10' }}>
+                        {pkg.image ? (
+                          <Image
+                            src={pkg.image}
+                            alt={`Paquete ${pkg.name} en ${destination.name}`}
+                            fill
+                            className="object-cover transition-transform duration-500 group-hover:scale-105"
+                            sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                          />
+                        ) : (
+                          <div
+                            className="absolute inset-0"
+                            style={{ background: 'var(--surface-secondary)' }}
+                          />
+                        )}
+                      </div>
+                      <div className="p-5">
+                        <h3
+                          className="text-lg font-bold"
+                          style={{ color: 'var(--text-heading)' }}
                         >
-                          {pkg.duration}
-                        </p>
-                      )}
-                      {pkg.price && (
+                          {pkg.name}
+                        </h3>
+                        {pkg.duration && (
+                          <p
+                            className="text-sm mt-1"
+                            style={{ color: 'var(--text-muted)' }}
+                          >
+                            {pkg.duration}
+                          </p>
+                        )}
+                        {packageCircuit && (
+                          <p
+                            className="text-xs mt-1 font-medium line-clamp-1"
+                            style={{ color: 'var(--text-muted)' }}
+                          >
+                            Circuito: {packageCircuit}
+                          </p>
+                        )}
+                        {pkg.price && (
+                          <p
+                            className="text-sm mt-1"
+                            style={{ color: 'var(--accent)' }}
+                          >
+                            Desde {pkg.price}
+                          </p>
+                        )}
                         <p
-                          className="text-sm mt-1"
+                          className="text-sm font-medium mt-3 inline-flex items-center gap-1"
                           style={{ color: 'var(--accent)' }}
                         >
-                          Desde {pkg.price}
+                          Ver Paquete
+                          <span aria-hidden="true">&rarr;</span>
                         </p>
-                      )}
-                      <p
-                        className="text-sm font-medium mt-3 inline-flex items-center gap-1"
-                        style={{ color: 'var(--accent)' }}
-                      >
-                        Ver Paquete
-                        <span aria-hidden="true">&rarr;</span>
-                      </p>
-                    </div>
-                  </motion.div>
-                </Link>
-              ))}
+                      </div>
+                    </motion.div>
+                  </Link>
+                );
+              })}
             </div>
           </section>
         </BlurFade>
@@ -638,18 +716,40 @@ export function DestinationDetailPage({
             Ubicacion
           </h2>
           <div className="rounded-2xl overflow-hidden shadow-lg" style={{ height: '350px' }}>
-            <RouteMap
-              points={[
-                {
-                  city: destination.name,
-                  lat: destination.lat,
-                  lng: destination.lng,
-                },
-              ]}
+            <DestinationMap
+              markers={mapMarkers}
+              height={350}
+              viewportPreset="destination-detail"
+              showFilters={productMarkers.length > 0}
+              showLegend={true}
             />
           </div>
         </section>
       </BlurFade>
+
+      {/* Google Reviews Section */}
+      {googleReviews.length > 0 && (
+        <BlurFade delay={0.65}>
+          <section className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto py-16">
+            <div className="flex items-center gap-3 mb-8">
+              <svg className="w-6 h-6 shrink-0" viewBox="0 0 24 24">
+                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
+                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
+                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+              </svg>
+              <h2 className="text-2xl font-bold" style={{ color: 'var(--text-heading)' }}>
+                Lo que dicen los viajeros sobre {destination.name}
+              </h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {googleReviews.map((review, idx) => (
+                <DestinationReviewCard key={review.review_id || idx} review={review} />
+              ))}
+            </div>
+          </section>
+        </BlurFade>
+      )}
 
       {/* CTA Section */}
       <BlurFade delay={0.7}>
@@ -700,6 +800,82 @@ export function DestinationDetailPage({
           </div>
         </section>
       </BlurFade>
+    </div>
+  );
+}
+
+const AVATAR_COLORS = [
+  '#6366f1','#8b5cf6','#ec4899','#f59e0b','#10b981','#3b82f6','#ef4444','#14b8a6',
+];
+
+function getAvatarColor(name: string): string {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+}
+
+function StarRow({ rating }: { rating: number }) {
+  return (
+    <div className="flex gap-0.5">
+      {[1, 2, 3, 4, 5].map((i) => (
+        <span key={i} className={`text-sm ${i <= Math.round(rating) ? 'text-yellow-400' : 'text-slate-200'}`}>★</span>
+      ))}
+    </div>
+  );
+}
+
+function DestinationReviewCard({ review }: { review: GoogleReviewData }) {
+  const initials = review.author_name
+    .split(' ')
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase() || '')
+    .join('');
+  const avatarColor = getAvatarColor(review.author_name);
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col gap-3">
+      {/* Author header */}
+      <div className="flex items-center gap-3">
+        {review.author_photo ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={review.author_photo}
+            alt={review.author_name}
+            className="w-12 h-12 rounded-full object-cover shrink-0"
+            style={{ border: `2px solid ${avatarColor}` }}
+          />
+        ) : (
+          <div
+            className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0"
+            style={{ background: avatarColor }}
+          >
+            {initials}
+          </div>
+        )}
+        <div className="min-w-0">
+          <p className="font-semibold text-sm text-slate-800 truncate">{review.author_name}</p>
+          {review.relative_time && (
+            <p className="text-xs text-slate-400 uppercase tracking-wide">{review.relative_time}</p>
+          )}
+        </div>
+        {/* Google G badge */}
+        <svg className="w-5 h-5 ml-auto shrink-0" viewBox="0 0 24 24">
+          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
+          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
+          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+        </svg>
+      </div>
+
+      {/* Stars */}
+      <StarRow rating={review.rating} />
+
+      {/* Quote */}
+      {review.text && (
+        <p className="text-sm text-slate-600 italic leading-relaxed line-clamp-4">
+          &ldquo;{review.text}&rdquo;
+        </p>
+      )}
     </div>
   );
 }

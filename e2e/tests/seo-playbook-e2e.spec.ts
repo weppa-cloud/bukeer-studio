@@ -48,9 +48,9 @@ test.describe('SEO Playbook v2.0 — Smoke Tests', () => {
       await page.waitForLoadState('networkidle');
 
       // Table columns (stable signal across browsers)
-      await expect(page.getByRole('columnheader', { name: 'Keyword' })).toBeVisible();
-      await expect(page.getByRole('columnheader', { name: 'Locale' })).toBeVisible();
-      await expect(page.getByRole('columnheader', { name: 'Latest position' })).toBeVisible();
+      await expect(page.getByRole('columnheader', { name: 'Keyword' }).first()).toBeVisible();
+      await expect(page.getByRole('columnheader', { name: 'Locale' }).first()).toBeVisible();
+      await expect(page.getByRole('columnheader', { name: 'Latest position' }).first()).toBeVisible();
 
       // Link to architecture page
       await expect(page.getByRole('button', { name: /Ver Arquitectura/ })).toBeVisible();
@@ -61,8 +61,8 @@ test.describe('SEO Playbook v2.0 — Smoke Tests', () => {
       await page.goto(`/dashboard/${websiteId}/analytics?tab=keywords`);
       await expect(page.getByRole('heading', { name: 'Analytics' })).toBeVisible();
 
-      await expect(page.getByText('Palabras clave rastreadas desde Google Search Console')).toBeVisible();
-      await expect(page.getByText('Keyword Universe Builder')).toBeVisible();
+      await expect(page.getByText('Palabras clave rastreadas desde Google Search Console').first()).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Keyword Research (locale-native)' })).toBeVisible();
     });
 
     test('loads competitors tab with competitor table @smoke', async ({ page }) => {

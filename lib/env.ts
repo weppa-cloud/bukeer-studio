@@ -30,6 +30,12 @@ const serverEnvSchema = z.object({
   NEXT_PUBLIC_URL: z.string().url().default('https://bukeer.com'),
   NEXT_PUBLIC_MAIN_DOMAIN: z.string().default('bukeer.com'),
 
+  // Maps (MapLibre)
+  NEXT_PUBLIC_MAP_STYLE_URL: process.env.NODE_ENV === 'production'
+    ? z.string().url('NEXT_PUBLIC_MAP_STYLE_URL is required in production')
+    : z.string().url('NEXT_PUBLIC_MAP_STYLE_URL must be a valid URL').optional(),
+  NEXT_PUBLIC_MAP_STYLE_TOKEN: z.string().optional(),
+
   // Optional
   NEXT_PUBLIC_GA_ID: z.string().optional(),
 })

@@ -5,7 +5,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { getBasePath } from '@/lib/utils/base-path';
-import { RouteMap } from '@/components/ui/route-map';
+import { DestinationMap } from '@/components/maps/destination-map';
+import type { MapMarker } from '@/lib/maps/types';
 import type { WebsiteData } from '@/lib/supabase/get-website';
 import type { DestinationData } from '@/lib/supabase/get-pages';
 
@@ -37,12 +38,21 @@ export function DestinationListingPage({
     return Array.from(bySlug.values());
   }, [destinations]);
 
-  // Convert to route points for the map
-  const routePoints = visibleDestinations.map((d) => ({
-    city: d.name,
-    lat: d.lat,
-    lng: d.lng,
-  }));
+  const mapMarkers: MapMarker[] = visibleDestinations
+    .filter((destination) => Number.isFinite(destination.lat) && Number.isFinite(destination.lng))
+    .map((destination) => ({
+      id: destination.id || destination.slug,
+      label: destination.name,
+      kind: 'destination',
+      lat: destination.lat,
+      lng: destination.lng,
+      slug: destination.slug,
+      meta: {
+        state: destination.state,
+        hotelCount: destination.hotel_count,
+        activityCount: destination.activity_count,
+      },
+    }));
 
   // Build JSON-LD structured data for CollectionPage + BreadcrumbList
   const jsonLdSchemas = useMemo(() => {
@@ -128,7 +138,7 @@ export function DestinationListingPage({
       </section>
 
       {/* Map Section */}
-      {routePoints.length > 0 && (
+      {mapMarkers.length > 0 && (
         <section className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto pb-16">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -137,7 +147,13 @@ export function DestinationListingPage({
             className="rounded-2xl overflow-hidden shadow-lg"
             style={{ height: '400px' }}
           >
-            <RouteMap points={routePoints} />
+            <DestinationMap
+              markers={mapMarkers}
+              viewportPreset="colombia"
+              showFilters={false}
+              showLegend={true}
+              height={400}
+            />
           </motion.div>
         </section>
       )}

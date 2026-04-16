@@ -214,6 +214,7 @@ export {
   SeoOptimizeRequestSchema,
   SeoTranscreateRequestSchema,
   SeoTrackQuerySchema,
+  SeoPageCatalogQuerySchema,
 } from './schemas/seo-content-intelligence';
 export type {
   SeoSourceMetadata,
@@ -229,6 +230,7 @@ export type {
   SeoOptimizeRequest,
   SeoTranscreateRequest,
   SeoTrackQuery,
+  SeoPageCatalogQuery,
 } from './schemas/seo-content-intelligence';
 
 // Validation

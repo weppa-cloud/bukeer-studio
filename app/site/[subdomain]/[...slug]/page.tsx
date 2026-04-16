@@ -1,7 +1,8 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getWebsiteBySubdomain } from '@/lib/supabase/get-website';
-import { getPageBySlug, getProductPage, getDestinations, getDestinationProducts, getReviewsForProduct, getDestinationSeoOverride } from '@/lib/supabase/get-pages';
+import { getPageBySlug, getProductPage, getDestinations, getDestinationProducts, getDestinationSeoOverride } from '@/lib/supabase/get-pages';
+import { getReviewsForContext, type ReviewContext } from '@/lib/supabase/get-reviews';
 import { enrichDestinationFromSerpAPI } from '@/lib/services/serpapi-enrichment';
 import { generateHreflangLinks, generateOgLocale } from '@/lib/seo/hreflang';
 import { resolveOgImage } from '@/lib/seo/og-helpers';
@@ -269,12 +270,15 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
     const destinations = await getDestinations(subdomain);
     const dest = destinations.find(d => d.slug === slug[1]);
     if (dest) {
-      const [products, serpData] = await Promise.all([
+      const [products, serpData, destReviews] = await Promise.all([
         getDestinationProducts(subdomain, dest.name),
         // Prevent slow external enrichment from blocking destination detail navigation.
         withTimeout(enrichDestinationFromSerpAPI(dest.name), 1200, null),
+        website.account_id
+          ? getReviewsForContext(website.account_id, { type: 'destination', name: dest.name }, 6)
+          : Promise.resolve([]),
       ]);
-      return <DestinationDetailPage website={website} destination={dest} products={products} serpEnrichment={serpData} />;
+      return <DestinationDetailPage website={website} destination={dest} products={products} serpEnrichment={serpData} googleReviews={destReviews} />;
     }
   }
 
@@ -288,14 +292,18 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
       const productPage = await getProductPage(subdomain, productType, productSlug);
 
       if (productPage?.product) {
-        // Fetch relevant Google Reviews for this product's location
+        // Fetch relevant Google Reviews using contextual scoring (photo-priority)
         const accountContent = ((website.content as unknown as Record<string, unknown>)?.account as Record<string, unknown> | undefined);
         const googleEnabled = accountContent?.google_reviews_enabled === true;
-        const productLocation = (productPage.product as unknown as Record<string, unknown>).location as string
-          || (productPage.product as unknown as Record<string, unknown>).destination as string
-          || '';
-        const productReviews = googleEnabled && productLocation && website.account_id
-          ? await getReviewsForProduct(website.account_id, productLocation, 3)
+        const product = productPage.product;
+        const productLocation = product.location || product.city || '';
+        const reviewContext: ReviewContext = productType === 'activity'
+          ? { type: 'activity', name: product.name }
+          : productType === 'package'
+          ? { type: 'package', destination: productLocation || product.name }
+          : { type: 'destination', name: productLocation || product.name };
+        const productReviews = googleEnabled && website.account_id
+          ? await getReviewsForContext(website.account_id, reviewContext, 3)
           : [];
 
         return (

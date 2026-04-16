@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 import { MobileCardCarousel } from '@/components/ui/card-carousel';
+import { formatCircuitStops, getPackageCircuitStops, type PackageItineraryItem } from '@/lib/products/package-circuit';
 
 interface PackagesSectionProps {
   section: WebsiteSection;
@@ -23,6 +24,7 @@ interface PackageItem {
   description?: string;
   category?: string;
   highlights?: string[];
+  itinerary_items?: PackageItineraryItem[];
   featured?: boolean;
   created_at?: string;
 }
@@ -210,6 +212,12 @@ function PackageCard({ pkg, index, subdomain }: { pkg: PackageItem; index: numbe
   const detailHref = detailSlug
     ? `/site/${subdomain}/paquetes/${encodeURIComponent(detailSlug)}`
     : `/site/${subdomain}/paquetes`;
+  const circuitStops = getPackageCircuitStops({
+    itineraryItems: pkg.itinerary_items,
+    name: pkg.name,
+    destination: pkg.destination,
+  });
+  const circuitLabel = formatCircuitStops(circuitStops);
 
   const showPopular = pkg.featured === true;
   const showNew = !showPopular && isNew(pkg.created_at);
@@ -302,6 +310,12 @@ function PackageCard({ pkg, index, subdomain }: { pkg: PackageItem; index: numbe
           {pkg.description && (
             <p className="text-sm leading-relaxed line-clamp-2 mb-3" style={{ color: 'var(--text-secondary)' }}>
               {pkg.description}
+            </p>
+          )}
+
+          {circuitLabel && (
+            <p className="text-xs mb-3 font-medium line-clamp-1" style={{ color: 'var(--text-secondary)' }}>
+              Circuito: {circuitLabel}
             </p>
           )}
 

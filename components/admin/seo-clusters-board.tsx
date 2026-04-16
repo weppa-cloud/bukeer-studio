@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { StudioButton, StudioInput, StudioSelect } from '@/components/studio/ui/primitives';
 import { SeoTrustState } from '@/components/admin/seo-trust-state';
 
@@ -70,6 +70,15 @@ export function SeoClustersBoard({ websiteId }: SeoClustersBoardProps) {
   const [pageTypeByCluster, setPageTypeByCluster] = useState<Record<string, string>>({});
   const [pageRoleByCluster, setPageRoleByCluster] = useState<Record<string, string>>({});
   const [pageKeywordByCluster, setPageKeywordByCluster] = useState<Record<string, string>>({});
+  const [pageSearchByCluster, setPageSearchByCluster] = useState<Record<string, string>>({});
+  const [advancedByCluster, setAdvancedByCluster] = useState<Record<string, boolean>>({});
+  const [catalogRows, setCatalogRows] = useState<Array<{
+    pageType: 'page' | 'blog' | 'destination';
+    pageId: string;
+    label: string;
+    slug: string;
+    url: string;
+  }>>([]);
 
   const grouped = useMemo(() => {
     return STATUS_COLUMNS.reduce<Record<string, ClusterRow[]>>((acc, status) => {
@@ -77,6 +86,11 @@ export function SeoClustersBoard({ websiteId }: SeoClustersBoardProps) {
       return acc;
     }, {});
   }, [rows]);
+
+  useEffect(() => {
+    void loadClusters();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [websiteId]);
 
   async function loadClusters() {
     setLoading(true);
@@ -99,11 +113,34 @@ export function SeoClustersBoard({ websiteId }: SeoClustersBoardProps) {
         return acc;
       }, {});
       setStatusByCluster(nextStatus);
+      await loadCatalog();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load clusters');
     } finally {
       setLoading(false);
     }
+  }
+
+  async function loadCatalog() {
+    const params = new URLSearchParams({
+      websiteId,
+      limit: '250',
+    });
+    const response = await fetch(`/api/seo/content-intelligence/page-catalog?${params.toString()}`, { cache: 'no-store' });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok || !body.success) {
+      throw new Error(body?.error?.message || 'Failed to load page catalog');
+    }
+    const payload = body.data as {
+      rows: Array<{
+        pageType: 'page' | 'blog' | 'destination';
+        pageId: string;
+        label: string;
+        slug: string;
+        url: string;
+      }>;
+    };
+    setCatalogRows(payload.rows ?? []);
   }
 
   async function createCluster() {
@@ -243,6 +280,27 @@ export function SeoClustersBoard({ websiteId }: SeoClustersBoardProps) {
     }
   }
 
+  const optionsByCluster = useMemo(() => {
+    return rows.reduce<Record<string, Array<{ value: string; label: string }>>>((acc, cluster) => {
+      const pageType = pageTypeByCluster[cluster.id] || 'page';
+      const search = (pageSearchByCluster[cluster.id] ?? '').trim().toLowerCase();
+      const options = catalogRows
+        .filter((entry) => entry.pageType === pageType)
+        .filter((entry) => {
+          if (!search) return true;
+          const bag = `${entry.label} ${entry.slug}`.toLowerCase();
+          return bag.includes(search);
+        })
+        .slice(0, 100)
+        .map((entry) => ({
+          value: entry.pageId,
+          label: `${entry.label} (${entry.slug || entry.pageId.slice(0, 8)})`,
+        }));
+      acc[cluster.id] = options;
+      return acc;
+    }, {});
+  }, [catalogRows, pageSearchByCluster, pageTypeByCluster, rows]);
+
   return (
     <div className="space-y-4">
       <div className="studio-card p-4 space-y-3">
@@ -344,12 +402,40 @@ export function SeoClustersBoard({ websiteId }: SeoClustersBoardProps) {
                         />
                       </div>
                       <StudioInput
+                        value={pageSearchByCluster[cluster.id] ?? ''}
+                        onChange={(event) =>
+                          setPageSearchByCluster((prev) => ({ ...prev, [cluster.id]: event.target.value }))
+                        }
+                        placeholder="Search page by title or slug"
+                      />
+                      <StudioSelect
                         value={pageIdByCluster[cluster.id] ?? ''}
                         onChange={(event) =>
                           setPageIdByCluster((prev) => ({ ...prev, [cluster.id]: event.target.value }))
                         }
-                        placeholder="Page ID (uuid)"
+                        options={[
+                          { value: '', label: optionsByCluster[cluster.id]?.length ? 'Select page' : 'No pages found' },
+                          ...(optionsByCluster[cluster.id] ?? []),
+                        ]}
                       />
+                      <StudioButton
+                        size="sm"
+                        variant="outline"
+                        onClick={() =>
+                          setAdvancedByCluster((prev) => ({ ...prev, [cluster.id]: !prev[cluster.id] }))
+                        }
+                      >
+                        {advancedByCluster[cluster.id] ? 'Hide advanced' : 'Advanced'}
+                      </StudioButton>
+                      {advancedByCluster[cluster.id] ? (
+                        <StudioInput
+                          value={pageIdByCluster[cluster.id] ?? ''}
+                          onChange={(event) =>
+                            setPageIdByCluster((prev) => ({ ...prev, [cluster.id]: event.target.value }))
+                          }
+                          placeholder="Manual Page ID (uuid)"
+                        />
+                      ) : null}
                       <StudioInput
                         value={pageKeywordByCluster[cluster.id] ?? ''}
                         onChange={(event) =>

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { cn } from '@/lib/utils';
-import { StudioTabs, StudioButton, StudioBadge, StudioInput, StudioTextarea } from '@/components/studio/ui/primitives';
+import { StudioTabs, StudioButton, StudioBadge, StudioInput, StudioSelect, StudioTextarea } from '@/components/studio/ui/primitives';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser-client';
 import {
   scoreItemSeo,
@@ -172,6 +172,14 @@ type TrackClusterMetric = {
   pages_tracked: number;
 };
 
+type TargetCatalogRow = {
+  pageType: 'page' | 'blog' | 'destination';
+  pageId: string;
+  label: string;
+  slug: string;
+  url: string;
+};
+
 function safeNumber(value: unknown) {
   if (typeof value === 'number' && Number.isFinite(value)) return value;
   return undefined;
@@ -269,14 +277,21 @@ export function SeoItemDetail({
   const [translateSeoDescription, setTranslateSeoDescription] = useState(item.seoDescription ?? '');
   const [variantStatus, setVariantStatus] = useState<string | null>(null);
   const [variantSourceMeta, setVariantSourceMeta] = useState<SourceMeta | null>(null);
+  const [targetCatalogRows, setTargetCatalogRows] = useState<TargetCatalogRow[]>([]);
+  const [targetCatalogLoading, setTargetCatalogLoading] = useState(false);
+  const [targetCatalogSearch, setTargetCatalogSearch] = useState('');
+  const [translateAdvancedOpen, setTranslateAdvancedOpen] = useState(false);
 
   const today = useMemo(() => new Date(), []);
   const [trackFrom, setTrackFrom] = useState(formatDateInput(new Date(today.getTime() - 1000 * 60 * 60 * 24 * 30)));
   const [trackTo, setTrackTo] = useState(formatDateInput(today));
   const [trackLoading, setTrackLoading] = useState(false);
   const [trackError, setTrackError] = useState<string | null>(null);
+  const [trackDecisionGradeOnly, setTrackDecisionGradeOnly] = useState(true);
   const [trackSourceMeta, setTrackSourceMeta] = useState<SourceMeta | null>(null);
   const [trackWarning, setTrackWarning] = useState<{ code: string; message: string } | null>(null);
+  const [trackWarningDetails, setTrackWarningDetails] = useState<unknown>(null);
+  const [trackSyncing, setTrackSyncing] = useState(false);
   const [trackPageMetrics, setTrackPageMetrics] = useState<TrackPageMetric[]>([]);
   const [trackClusterMetrics, setTrackClusterMetrics] = useState<TrackClusterMetric[]>([]);
 
@@ -336,6 +351,12 @@ export function SeoItemDetail({
     loadVariantStatus().catch(() => undefined);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [translateEnabled, targetLocale, item.id, item.type, websiteId]);
+
+  useEffect(() => {
+    if (!translateEnabled || activeTab !== 'translate') return;
+    loadTargetCatalog().catch(() => undefined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [translateEnabled, activeTab, targetLocale, item.type, websiteId]);
 
   const jsonLd = useMemo(
     () => ({
@@ -712,13 +733,78 @@ export function SeoItemDetail({
     });
   }
 
+  async function loadTargetCatalog() {
+    if (!translateEnabled) return;
+    setTargetCatalogLoading(true);
+    try {
+      const params = new URLSearchParams({
+        websiteId,
+        pageType: item.type,
+        locale: targetLocale,
+        limit: '120',
+      });
+      if (targetCatalogSearch.trim()) {
+        params.set('search', targetCatalogSearch.trim());
+      }
+      const response = await fetch(`/api/seo/content-intelligence/page-catalog?${params.toString()}`, { cache: 'no-store' });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok || !body.success) {
+        throw new Error(body?.error?.message || 'Unable to load target content catalog');
+      }
+      const payload = body.data as { rows: TargetCatalogRow[] };
+      setTargetCatalogRows(payload.rows ?? []);
+    } catch (err) {
+      setTranslateError(err instanceof Error ? err.message : 'Unable to load target content catalog');
+    } finally {
+      setTargetCatalogLoading(false);
+    }
+  }
+
+  function nextTranslateAction(): 'create_draft' | 'review' | 'apply' | null {
+    if (translateStatus === 'applied') return null;
+    if (translateStatus === 'reviewed') return 'apply';
+    if (translateStatus === 'draft') return 'review';
+    return 'create_draft';
+  }
+
+  function nextTranslateActionLabel(): string {
+    const action = nextTranslateAction();
+    if (action === 'review') return 'Step 2: Mark Reviewed';
+    if (action === 'apply') return 'Step 3: Apply';
+    if (action === 'create_draft') return 'Step 1: Create Draft';
+    return 'Completed';
+  }
+
+  async function queueDecisionSync() {
+    setTrackSyncing(true);
+    try {
+      const response = await fetch('/api/seo/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          websiteId,
+          includeDataForSeo: true,
+        }),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(body?.error?.message || body?.error || 'Unable to queue sync');
+      }
+      setTrackWarning({
+        code: 'SYNC_QUEUED',
+        message: body?.requestId ? `Sync requested (${body.requestId})` : 'Sync requested',
+      });
+      setTrackWarningDetails(body ?? null);
+    } catch (err) {
+      setTrackError(err instanceof Error ? err.message : 'Unable to queue sync');
+    } finally {
+      setTrackSyncing(false);
+    }
+  }
+
   async function handleTranscreateAction(action: 'create_draft' | 'review' | 'apply') {
     if (!translateEnabled) {
       setTranslateError('Translate no habilitado para este tipo de item');
-      return;
-    }
-    if (action !== 'create_draft' && !translateJobId) {
-      setTranslateError('Debes crear draft primero');
       return;
     }
     setTranslateLoading(true);
@@ -769,18 +855,34 @@ export function SeoItemDetail({
   async function loadTrack() {
     setTrackLoading(true);
     setTrackError(null);
+    setTrackWarning(null);
+    setTrackWarningDetails(null);
     try {
       const params = new URLSearchParams({
         websiteId,
         from: trackFrom,
         to: trackTo,
         locale,
+        decisionGradeOnly: trackDecisionGradeOnly ? 'true' : 'false',
       });
       if (contentType) params.set('contentType', contentType);
       const response = await fetch(`/api/seo/content-intelligence/track?${params.toString()}`, { cache: 'no-store' });
       const body = await response.json().catch(() => ({}));
       if (!response.ok || !body.success) {
-        throw new Error(body?.error?.message || 'No se pudo cargar tracking');
+        const errorCode = body?.error?.code as string | undefined;
+        const errorMessage = body?.error?.message as string | undefined;
+        const errorDetails = body?.error?.details;
+        if (errorCode) {
+          setTrackWarning({ code: errorCode, message: errorMessage ?? 'Tracking blocked' });
+          setTrackWarningDetails(errorDetails ?? null);
+        }
+        setTrackPageMetrics([]);
+        setTrackClusterMetrics([]);
+        setTrackSourceMeta(null);
+        if (errorCode === 'DECISION_GRADE_BLOCKED' || errorCode === 'AUTHORITATIVE_SOURCE_REQUIRED') {
+          return;
+        }
+        throw new Error(errorMessage || 'No se pudo cargar tracking');
       }
       const payload = body.data as {
         pageMetrics: TrackPageMetric[];
@@ -1165,10 +1267,31 @@ export function SeoItemDetail({
                   <label className="text-xs text-[var(--studio-text-muted)]">Language</label>
                   <StudioInput value={targetLanguage} onChange={(event) => setTargetLanguage(event.target.value)} />
                 </div>
-                <div className="space-y-1 md:col-span-2">
-                  <label className="text-xs text-[var(--studio-text-muted)]">Target content id (optional)</label>
-                  <StudioInput value={targetContentId} onChange={(event) => setTargetContentId(event.target.value)} />
+              </div>
+
+              <div className="space-y-2 border border-[var(--studio-border)] rounded p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <label className="text-xs text-[var(--studio-text-muted)]">Target content (optional)</label>
+                  <StudioButton size="sm" variant="outline" onClick={() => void loadTargetCatalog()} disabled={targetCatalogLoading}>
+                    {targetCatalogLoading ? 'Loading...' : 'Refresh catalog'}
+                  </StudioButton>
                 </div>
+                <StudioInput
+                  value={targetCatalogSearch}
+                  onChange={(event) => setTargetCatalogSearch(event.target.value)}
+                  placeholder="Search target content by title or slug"
+                />
+                <StudioSelect
+                  value={targetContentId}
+                  onChange={(event: { target: { value: string } }) => setTargetContentId(event.target.value)}
+                  options={[
+                    { value: '', label: targetCatalogRows.length ? 'Create/update from source without direct target binding' : 'No target content found' },
+                    ...targetCatalogRows.map((row) => ({
+                      value: row.pageId,
+                      label: `${row.label} (${row.slug || row.pageId.slice(0, 8)})`,
+                    })),
+                  ]}
+                />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -1186,35 +1309,59 @@ export function SeoItemDetail({
                 <StudioTextarea value={translateSeoDescription} onChange={(event) => setTranslateSeoDescription(event.target.value)} rows={3} />
               </div>
 
-              <div className="flex flex-wrap gap-2">
-                <StudioButton onClick={() => void handleTranscreateAction('create_draft')} disabled={translateLoading}>
-                  {translateLoading ? 'Procesando...' : 'Create Draft'}
-                </StudioButton>
-                <StudioButton
-                  variant="outline"
-                  onClick={() => void handleTranscreateAction('review')}
-                  disabled={translateLoading || !translateJobId}
-                >
-                  Mark Reviewed
-                </StudioButton>
-                <StudioButton
-                  variant="outline"
-                  onClick={() => void handleTranscreateAction('apply')}
-                  disabled={translateLoading || !translateJobId}
-                >
-                  Apply
-                </StudioButton>
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <StudioBadge tone={translateStatus === 'applied' ? 'success' : translateStatus === 'reviewed' ? 'info' : 'warning'}>
+                    {translateStatus ?? 'not-started'}
+                  </StudioBadge>
+                  {variantStatus ? (
+                    <StudioBadge tone={variantStatus === 'applied' ? 'success' : variantStatus === 'reviewed' ? 'info' : 'warning'}>
+                      Variant: {variantStatus}
+                    </StudioBadge>
+                  ) : null}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <StudioButton
+                    onClick={() => {
+                      const action = nextTranslateAction();
+                      if (!action) return;
+                      void handleTranscreateAction(action);
+                    }}
+                    disabled={translateLoading || !nextTranslateAction()}
+                  >
+                    {translateLoading ? 'Procesando...' : nextTranslateActionLabel()}
+                  </StudioButton>
+                  <StudioButton
+                    variant="outline"
+                    onClick={() => setTranslateAdvancedOpen((prev) => !prev)}
+                  >
+                    {translateAdvancedOpen ? 'Hide advanced details' : 'Advanced details'}
+                  </StudioButton>
+                </div>
+                {translateAdvancedOpen ? (
+                  <div className="space-y-2 border border-[var(--studio-border)] rounded p-3">
+                    <p className="text-xs text-[var(--studio-text-muted)]">
+                      Advanced mode (for operators): direct transitions and manual job id fallback.
+                    </p>
+                    <StudioInput
+                      value={translateJobId}
+                      onChange={(event) => setTranslateJobId(event.target.value)}
+                      placeholder="Job ID (optional)"
+                    />
+                    <div className="flex flex-wrap gap-2">
+                      <StudioButton variant="outline" onClick={() => void handleTranscreateAction('create_draft')} disabled={translateLoading}>
+                        Force Create Draft
+                      </StudioButton>
+                      <StudioButton variant="outline" onClick={() => void handleTranscreateAction('review')} disabled={translateLoading}>
+                        Force Review
+                      </StudioButton>
+                      <StudioButton variant="outline" onClick={() => void handleTranscreateAction('apply')} disabled={translateLoading}>
+                        Force Apply
+                      </StudioButton>
+                    </div>
+                  </div>
+                ) : null}
               </div>
-
-              {translateJobId ? (
-                <p className="text-xs text-[var(--studio-text-muted)]">Job ID: {translateJobId}</p>
-              ) : null}
-
-              {translateStatus ? (
-                <StudioBadge tone={translateStatus === 'applied' ? 'success' : translateStatus === 'reviewed' ? 'info' : 'warning'}>
-                  {translateStatus}
-                </StudioBadge>
-              ) : null}
 
               {variantStatus ? (
                 <div className="space-y-1">
@@ -1260,10 +1407,31 @@ export function SeoItemDetail({
               </StudioButton>
             </div>
           </div>
+          <label className="inline-flex items-center gap-2 text-xs text-[var(--studio-text-muted)]">
+            <input
+              type="checkbox"
+              checked={trackDecisionGradeOnly}
+              onChange={(event) => setTrackDecisionGradeOnly(event.target.checked)}
+            />
+            Decision-grade only (live + authoritative)
+          </label>
 
           {trackWarning ? (
-            <div className="text-xs text-[var(--studio-warning)] border border-[var(--studio-warning)]/30 rounded p-2">
-              {trackWarning.code}: {trackWarning.message}
+            <div className="text-xs text-[var(--studio-warning)] border border-[var(--studio-warning)]/30 rounded p-2 space-y-2">
+              <p>{trackWarning.code}: {trackWarning.message}</p>
+              <div className="flex flex-wrap gap-2">
+                <StudioButton size="sm" variant="outline" onClick={() => void queueDecisionSync()} disabled={trackSyncing}>
+                  {trackSyncing ? 'Queueing sync...' : 'Sync now'}
+                </StudioButton>
+                <StudioButton size="sm" variant="outline" onClick={() => void loadTrack()} disabled={trackLoading}>
+                  Retry
+                </StudioButton>
+              </div>
+              {trackWarningDetails ? (
+                <pre className="text-[10px] bg-slate-950 text-slate-100 rounded p-2 overflow-x-auto">
+                  {JSON.stringify(trackWarningDetails, null, 2)}
+                </pre>
+              ) : null}
             </div>
           ) : null}
           {trackError ? (

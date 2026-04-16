@@ -9,13 +9,19 @@ import { apiError, apiSuccess } from '@/lib/api/response';
 import { requireWebsiteAccess } from '@/lib/seo/server-auth';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/service-role';
 import {
+  AUTHORITATIVE_SOURCE_REQUIRED_CODE,
+  DECISION_GRADE_ERROR_CODE,
+  buildDecisionGradeBlockDetails,
   buildSourceMeta,
   computePriorityScore,
-  isDecisionGrade,
   withNoStoreHeaders,
   withSharedCacheHeaders,
   type SeoConfidence,
 } from '@/lib/seo/content-intelligence';
+import { enqueueDecisionGradeSync } from '@/lib/seo/decision-grade-sync';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 type PageType = z.infer<typeof SeoPageTypeSchema>;
 
@@ -309,131 +315,134 @@ export async function POST(request: NextRequest) {
     return withNoStoreHeaders(apiError('VALIDATION_ERROR', 'Invalid audit payload', 400, body.error.flatten()));
   }
 
-  await requireWebsiteAccess(body.data.websiteId);
-  const admin = createSupabaseServiceRoleClient();
-  const sourceMeta = buildSourceMeta('seo-content-intelligence/audit', 'partial');
+  try {
+    await requireWebsiteAccess(body.data.websiteId);
+    const admin = createSupabaseServiceRoleClient();
+    const sourceMeta = buildSourceMeta('seo-content-intelligence/audit', 'partial');
 
-  const items = await loadWebsiteItems(body.data.websiteId, body.data.locale, body.data.contentTypes);
-  const snapshots: Array<{ id: string; item: ContentItem }> = [];
+    const items = await loadWebsiteItems(body.data.websiteId, body.data.locale, body.data.contentTypes);
+    const snapshots: Array<{ id: string; item: ContentItem }> = [];
 
-  for (const item of items) {
-    const { data: existing } = await admin
-      .from('seo_render_snapshots')
-      .select('id, captured_at')
-      .eq('website_id', body.data.websiteId)
-      .eq('locale', item.locale)
-      .eq('page_type', item.pageType)
-      .eq('page_id', item.pageId)
-      .order('captured_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    for (const item of items) {
+      const { data: existing } = await admin
+        .from('seo_render_snapshots')
+        .select('id, captured_at')
+        .eq('website_id', body.data.websiteId)
+        .eq('locale', item.locale)
+        .eq('page_type', item.pageType)
+        .eq('page_id', item.pageId)
+        .order('captured_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-    if (existing && Date.now() - new Date(existing.captured_at as string).getTime() < 1000 * 60 * 60) {
-      snapshots.push({ id: existing.id as string, item });
-      continue;
+      if (existing && Date.now() - new Date(existing.captured_at as string).getTime() < 1000 * 60 * 60) {
+        snapshots.push({ id: existing.id as string, item });
+        continue;
+      }
+
+      const { data: inserted, error: insertError } = await admin
+        .from('seo_render_snapshots')
+        .insert({
+          website_id: body.data.websiteId,
+          locale: item.locale,
+          page_type: item.pageType,
+          page_id: item.pageId,
+          public_url: item.publicUrl,
+          title: item.title,
+          meta_description: item.metaDescription,
+          canonical_url: item.publicUrl,
+          hreflang: { [item.locale]: item.publicUrl },
+          headings: item.headingCandidates,
+          visible_text: item.metaDescription || item.title,
+          internal_links: item.internalLinks,
+          schema_types: item.schemaTypes,
+          source: sourceMeta.source,
+          fetched_at: sourceMeta.fetchedAt,
+          confidence: item.confidence,
+          decision_grade_ready: false,
+        })
+        .select('id')
+        .single();
+
+      if (!insertError && inserted?.id) {
+        snapshots.push({ id: inserted.id as string, item });
+      }
     }
 
-    const { data: inserted, error: insertError } = await admin
-      .from('seo_render_snapshots')
-      .insert({
-        website_id: body.data.websiteId,
-        locale: item.locale,
-        page_type: item.pageType,
-        page_id: item.pageId,
-        public_url: item.publicUrl,
-        title: item.title,
-        meta_description: item.metaDescription,
-        canonical_url: item.publicUrl,
-        hreflang: { [item.locale]: item.publicUrl },
-        headings: item.headingCandidates,
-        visible_text: item.metaDescription || item.title,
-        internal_links: item.internalLinks,
-        schema_types: item.schemaTypes,
-        source: sourceMeta.source,
-        fetched_at: sourceMeta.fetchedAt,
-        confidence: item.confidence,
-      })
-      .select('id')
-      .single();
-
-    if (!insertError && inserted?.id) {
-      snapshots.push({ id: inserted.id as string, item });
+    if (snapshots.length > 0) {
+      await admin.from('seo_audit_findings').delete().in('snapshot_id', snapshots.map((s) => s.id));
     }
-  }
 
-  if (snapshots.length > 0) {
-    await admin.from('seo_audit_findings').delete().in('snapshot_id', snapshots.map((s) => s.id));
-  }
-
-  const cannibalizationMap = new Map<string, string>();
-  const keywordGroups = new Map<string, number>();
-  for (const snap of snapshots) {
-    const key = `${snap.item.locale}:${snap.item.targetKeyword ?? ''}`;
-    if (!snap.item.targetKeyword) continue;
-    keywordGroups.set(key, (keywordGroups.get(key) ?? 0) + 1);
-  }
-  for (const [key, count] of keywordGroups.entries()) {
-    if (count > 1) cannibalizationMap.set(key, crypto.randomUUID());
-  }
-
-  const findings: Array<Record<string, unknown>> = [];
-  for (const snap of snapshots) {
-    const path = new URL(snap.item.publicUrl).pathname;
-    const clicks = await getRollingClicksByUrl(body.data.websiteId, path);
-    const issues = buildFindingFromSnapshot(snap.item, clicks.current, clicks.previous);
-    for (const issue of issues) {
+    const cannibalizationMap = new Map<string, string>();
+    const keywordGroups = new Map<string, number>();
+    for (const snap of snapshots) {
       const key = `${snap.item.locale}:${snap.item.targetKeyword ?? ''}`;
-      const groupId = cannibalizationMap.get(key) ?? null;
-      findings.push({
-        website_id: body.data.websiteId,
-        snapshot_id: snap.id,
-        locale: snap.item.locale,
-        page_type: snap.item.pageType,
-        page_id: snap.item.pageId,
-        public_url: snap.item.publicUrl,
-        finding_type: issue.findingType,
-        severity: issue.severity,
-        title: issue.title,
-        description: issue.description,
-        evidence: {
-          headings: snap.item.headingCandidates,
-          schemaTypes: snap.item.schemaTypes,
-          internalLinks: snap.item.internalLinks,
-          targetKeyword: snap.item.targetKeyword,
-        },
-        source: sourceMeta.source,
-        fetched_at: sourceMeta.fetchedAt,
-        confidence: issue.confidence,
-        decay_signal: issue.decaySignal,
-        clicks_90d_current: issue.clicksCurrent,
-        clicks_90d_previous: issue.clicksPrevious,
-        decay_delta_pct: issue.decayDeltaPct,
-        cannibalization_group_id: groupId,
-        cannibalization_recommended_action: groupId ? 'differentiate_intent' : 'none',
-        priority_score: issue.priorityScore,
-        captured_at: sourceMeta.fetchedAt,
-      });
+      if (!snap.item.targetKeyword) continue;
+      keywordGroups.set(key, (keywordGroups.get(key) ?? 0) + 1);
     }
+    for (const [key, count] of keywordGroups.entries()) {
+      if (count > 1) cannibalizationMap.set(key, crypto.randomUUID());
+    }
+
+    const findings: Array<Record<string, unknown>> = [];
+    for (const snap of snapshots) {
+      const path = new URL(snap.item.publicUrl).pathname;
+      const clicks = await getRollingClicksByUrl(body.data.websiteId, path);
+      const issues = buildFindingFromSnapshot(snap.item, clicks.current, clicks.previous);
+      for (const issue of issues) {
+        const key = `${snap.item.locale}:${snap.item.targetKeyword ?? ''}`;
+        const groupId = cannibalizationMap.get(key) ?? null;
+        findings.push({
+          website_id: body.data.websiteId,
+          snapshot_id: snap.id,
+          locale: snap.item.locale,
+          page_type: snap.item.pageType,
+          page_id: snap.item.pageId,
+          public_url: snap.item.publicUrl,
+          finding_type: issue.findingType,
+          severity: issue.severity,
+          title: issue.title,
+          description: issue.description,
+          evidence: {
+            headings: snap.item.headingCandidates,
+            schemaTypes: snap.item.schemaTypes,
+            internalLinks: snap.item.internalLinks,
+            targetKeyword: snap.item.targetKeyword,
+          },
+          source: sourceMeta.source,
+          fetched_at: sourceMeta.fetchedAt,
+          confidence: issue.confidence,
+          decision_grade_ready: issue.confidence === 'live',
+          decay_signal: issue.decaySignal,
+          clicks_90d_current: issue.clicksCurrent,
+          clicks_90d_previous: issue.clicksPrevious,
+          decay_delta_pct: issue.decayDeltaPct,
+          cannibalization_group_id: groupId,
+          cannibalization_recommended_action: groupId ? 'differentiate_intent' : 'none',
+          priority_score: issue.priorityScore,
+          captured_at: sourceMeta.fetchedAt,
+        });
+      }
+    }
+
+    if (findings.length > 0) {
+      await admin.from('seo_audit_findings').insert(findings);
+    }
+
+    return withNoStoreHeaders(
+      apiSuccess({
+        websiteId: body.data.websiteId,
+        locale: body.data.locale,
+        snapshotsStored: snapshots.length,
+        findingsCount: findings.length,
+        sourceMeta,
+      }),
+    );
+  } catch (error) {
+    return withNoStoreHeaders(
+      apiError('INTERNAL_ERROR', 'Unable to execute audit', 500, error instanceof Error ? error.message : String(error)),
+    );
   }
-
-  if (findings.length > 0) {
-    await admin.from('seo_audit_findings').insert(findings);
-  }
-
-  const decisionGradeFindings = findings
-    .filter((finding) => isDecisionGrade(finding.confidence as SeoConfidence))
-    .sort((a, b) => Number(b.priority_score) - Number(a.priority_score));
-
-  return withNoStoreHeaders(
-    apiSuccess({
-      websiteId: body.data.websiteId,
-      locale: body.data.locale,
-      snapshotsStored: snapshots.length,
-      findingsCount: findings.length,
-      opportunities: decisionGradeFindings.slice(0, 100),
-      sourceMeta,
-    }),
-  );
 }
 
 export async function GET(request: NextRequest) {
@@ -453,7 +462,7 @@ export async function GET(request: NextRequest) {
   let query = admin
     .from('seo_audit_findings')
     .select(
-      'id,snapshot_id,locale,page_type,page_id,public_url,finding_type,severity,title,description,evidence,source,fetched_at,confidence,decay_signal,clicks_90d_current,clicks_90d_previous,decay_delta_pct,cannibalization_group_id,cannibalization_recommended_action,priority_score,captured_at',
+      'id,snapshot_id,locale,page_type,page_id,public_url,finding_type,severity,title,description,evidence,source,fetched_at,confidence,decision_grade_ready,decay_signal,clicks_90d_current,clicks_90d_previous,decay_delta_pct,cannibalization_group_id,cannibalization_recommended_action,priority_score,captured_at',
     )
     .eq('website_id', parsed.data.websiteId)
     .order('priority_score', { ascending: false })
@@ -461,7 +470,9 @@ export async function GET(request: NextRequest) {
 
   if (parsed.data.locale) query = query.eq('locale', parsed.data.locale);
   if (parsed.data.contentType) query = query.eq('page_type', parsed.data.contentType);
-  if (parsed.data.decisionGradeOnly) query = query.in('confidence', ['live', 'partial']);
+  if (parsed.data.decisionGradeOnly) {
+    query = query.eq('decision_grade_ready', true).eq('confidence', 'live');
+  }
 
   const { data, error } = await query;
   if (error) {
@@ -483,6 +494,7 @@ export async function GET(request: NextRequest) {
     source: row.source,
     fetchedAt: row.fetched_at,
     confidence: row.confidence,
+    decisionGradeReady: row.decision_grade_ready,
     decaySignal: row.decay_signal,
     clicks90dCurrent: row.clicks_90d_current,
     clicks90dPrevious: row.clicks_90d_previous,
@@ -493,6 +505,45 @@ export async function GET(request: NextRequest) {
     capturedAt: row.captured_at,
   }));
 
+  if (parsed.data.decisionGradeOnly && rows.length === 0) {
+    const sync = await enqueueDecisionGradeSync(parsed.data.websiteId);
+    return withNoStoreHeaders(
+      apiError(
+        DECISION_GRADE_ERROR_CODE,
+        'Decision-grade audit data is not available yet. Sync has been queued.',
+        409,
+        buildDecisionGradeBlockDetails({
+          route: 'audit',
+          websiteId: parsed.data.websiteId,
+          locale: parsed.data.locale,
+          contentType: parsed.data.contentType,
+          missingSources: ['seo_render_snapshots.live', 'seo_audit_findings.live'],
+          syncRequestId: sync.requestId,
+        }),
+      ),
+    );
+  }
+
+  if (parsed.data.decisionGradeOnly && rows.length > 0) {
+    const staleOrNonLive = rows.some((row) => row.confidence !== 'live' || row.decisionGradeReady !== true);
+    if (staleOrNonLive) {
+      return withNoStoreHeaders(
+        apiError(
+          AUTHORITATIVE_SOURCE_REQUIRED_CODE,
+          'Decision-grade audit requires live and ready rows only.',
+          409,
+          buildDecisionGradeBlockDetails({
+            route: 'audit',
+            websiteId: parsed.data.websiteId,
+            locale: parsed.data.locale,
+            contentType: parsed.data.contentType,
+            missingSources: ['seo_audit_findings.live'],
+          }),
+        ),
+      );
+    }
+  }
+
   const latestFetchedAt = rows[0]?.fetchedAt ?? new Date().toISOString();
   return withSharedCacheHeaders(
     apiSuccess({
@@ -501,7 +552,7 @@ export async function GET(request: NextRequest) {
       sourceMeta: {
         source: rows[0]?.source ?? 'database-empty',
         fetchedAt: latestFetchedAt,
-        confidence: (rows[0]?.confidence ?? 'partial') as SeoConfidence,
+        confidence: (rows[0]?.confidence ?? 'exploratory') as SeoConfidence,
       },
     }),
     300,
