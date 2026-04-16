@@ -2,7 +2,7 @@
 
 > Next.js 15 / React 19 / Cloudflare Workers / Supabase
 
-Last updated: 2026-04-12
+Last updated: 2026-04-15
 
 ---
 
@@ -195,6 +195,7 @@ Content-Security-Policy: frame-ancestors 'self' https://app.bukeer.com (/editor/
 | [ADR-010](./ADR-010-observability-strategy.md) | Observability Strategy | Accepted |
 | [ADR-011](./ADR-011-middleware-cache.md) | Middleware In-Memory Cache | Accepted |
 | [ADR-012](./ADR-012-api-response-envelope.md) | Standard API Response Envelope | Accepted |
+| [ADR-013](./ADR-013-tech-validator-quality-gate.md) | Automated Tech Validator Quality Gate | Accepted |
 
 ---
 
