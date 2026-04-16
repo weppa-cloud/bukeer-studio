@@ -31,6 +31,7 @@ const CATEGORY_TO_PRODUCT_TYPE: Record<string, string> = {
 };
 
 interface WebsiteLookup {
+  id: string;
   subdomain: string;
   account_id: string;
 }
@@ -122,7 +123,7 @@ async function getWebsiteBySubdomain(subdomain: string): Promise<WebsiteLookup |
   if (cached !== undefined) return cached;
 
   const data = await supabaseFetch<WebsiteLookup[]>(
-    `/rest/v1/websites?select=subdomain,account_id&subdomain=eq.${encodeURIComponent(subdomain)}&status=eq.published&deleted_at=is.null&limit=1`
+    `/rest/v1/websites?select=id,subdomain,account_id&subdomain=eq.${encodeURIComponent(subdomain)}&status=eq.published&deleted_at=is.null&limit=1`
   );
   const result = data && data.length > 0 ? data[0] : null;
   setCached(cacheKey, result);
@@ -135,7 +136,7 @@ async function getWebsiteByCustomDomain(host: string): Promise<WebsiteLookup | n
   if (cached !== undefined) return cached;
 
   const data = await supabaseFetch<WebsiteLookup[]>(
-    `/rest/v1/websites?select=subdomain,account_id&custom_domain=eq.${encodeURIComponent(host)}&status=eq.published&deleted_at=is.null&limit=1`
+    `/rest/v1/websites?select=id,subdomain,account_id&custom_domain=eq.${encodeURIComponent(host)}&status=eq.published&deleted_at=is.null&limit=1`
   );
   const result = data && data.length > 0 ? data[0] : null;
   setCached(cacheKey, result);
@@ -211,6 +212,100 @@ async function trySlugRedirect(
   const redirectUrl = new URL(request.nextUrl);
   redirectUrl.pathname = `/${route.categorySlug}/${redirectedSlug}`;
   return NextResponse.redirect(redirectUrl, 301);
+}
+
+interface LegacyRedirectRow {
+  new_path: string;
+  status_code: number;
+}
+
+function buildLegacyPathCandidates(pathname: string): string[] {
+  const ensuredLeadingSlash = pathname.startsWith('/') ? pathname : `/${pathname}`;
+  const normalized =
+    ensuredLeadingSlash.length > 1
+      ? ensuredLeadingSlash.replace(/\/+$/, '')
+      : ensuredLeadingSlash;
+  const withTrailingSlash = normalized === '/' ? '/' : `${normalized}/`;
+  const candidates = [
+    ensuredLeadingSlash,
+    normalized,
+    withTrailingSlash,
+    ensuredLeadingSlash.toLowerCase(),
+    normalized.toLowerCase(),
+    withTrailingSlash.toLowerCase(),
+  ];
+
+  return [...new Set(candidates)];
+}
+
+function coerceRedirectStatusCode(value: number): 301 | 302 | 307 | 308 {
+  if (value === 302 || value === 307 || value === 308) {
+    return value;
+  }
+  return 301;
+}
+
+async function getLegacyRedirect(
+  websiteId: string,
+  pathname: string
+): Promise<LegacyRedirectRow | null> {
+  const cacheKey = `legacy:${websiteId}:${pathname}`;
+  const cached = getCached<LegacyRedirectRow | null>(cacheKey);
+  if (cached !== undefined) return cached;
+
+  const candidates = buildLegacyPathCandidates(pathname);
+
+  for (const candidate of candidates) {
+    const data = await supabaseFetch<LegacyRedirectRow[]>(
+      `/rest/v1/website_legacy_redirects?select=new_path,status_code&website_id=eq.${encodeURIComponent(websiteId)}&old_path=eq.${encodeURIComponent(candidate)}&limit=1`
+    );
+    if (data && data.length > 0 && data[0].new_path) {
+      const result = data[0];
+      setCached(cacheKey, result);
+      return result;
+    }
+  }
+
+  setCached(cacheKey, null);
+  return null;
+}
+
+async function tryLegacyRedirect(
+  request: NextRequest,
+  website: WebsiteLookup | null
+): Promise<NextResponse | null> {
+  if (!website?.id) {
+    return null;
+  }
+
+  const legacy = await getLegacyRedirect(website.id, request.nextUrl.pathname);
+  if (!legacy?.new_path) {
+    return null;
+  }
+
+  const target = legacy.new_path.startsWith('http://') || legacy.new_path.startsWith('https://')
+    ? new URL(legacy.new_path)
+    : new URL(
+        legacy.new_path.startsWith('/') ? legacy.new_path : `/${legacy.new_path}`,
+        request.url
+      );
+
+  // Preserve query params from original URL when redirect target does not define its own query
+  if (!target.search && request.nextUrl.search) {
+    target.search = request.nextUrl.search;
+  }
+
+  const current = request.nextUrl;
+  const isSameDestination =
+    target.origin === current.origin &&
+    target.pathname === current.pathname &&
+    target.search === current.search;
+
+  if (isSameDestination) {
+    return null;
+  }
+
+  return NextResponse.redirect(target, coerceRedirectStatusCode(legacy.status_code));
 }
 
 export async function middleware(request: NextRequest) {
@@ -325,8 +420,14 @@ export async function middleware(request: NextRequest) {
         return NextResponse.next();
       }
 
+      const website = await getWebsiteBySubdomain(subdomain);
+
+      const legacyRedirectResponse = await tryLegacyRedirect(request, website);
+      if (legacyRedirectResponse) {
+        return legacyRedirectResponse;
+      }
+
       if (potentialProductRoute) {
-        const website = await getWebsiteBySubdomain(subdomain);
         const redirectResponse = await trySlugRedirect(request, potentialProductRoute, website);
         if (redirectResponse) {
           return redirectResponse;
@@ -364,8 +465,14 @@ export async function middleware(request: NextRequest) {
       return NextResponse.next();
     }
 
+    const website = await getWebsiteBySubdomain(subdomain);
+
+    const legacyRedirectResponse = await tryLegacyRedirect(request, website);
+    if (legacyRedirectResponse) {
+      return legacyRedirectResponse;
+    }
+
     if (potentialProductRoute) {
-      const website = await getWebsiteBySubdomain(subdomain);
       const redirectResponse = await trySlugRedirect(request, potentialProductRoute, website);
       if (redirectResponse) {
         return redirectResponse;
@@ -381,8 +488,14 @@ export async function middleware(request: NextRequest) {
     response.headers.set('x-subdomain', subdomain);
     return response;
   } else {
+    const website = await getWebsiteByCustomDomain(host);
+
+    const legacyRedirectResponse = await tryLegacyRedirect(request, website);
+    if (legacyRedirectResponse) {
+      return legacyRedirectResponse;
+    }
+
     if (potentialProductRoute) {
-      const website = await getWebsiteByCustomDomain(host);
       const redirectResponse = await trySlugRedirect(request, potentialProductRoute, website);
       if (redirectResponse) {
         return redirectResponse;
