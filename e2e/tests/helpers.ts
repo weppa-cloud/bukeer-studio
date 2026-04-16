@@ -74,6 +74,16 @@ export async function getFirstWebsiteId(page: Page): Promise<string> {
 
 export async function gotoWebsiteSection(page: Page, section: string): Promise<string> {
   const websiteId = await getFirstWebsiteId(page);
-  await page.goto(`/dashboard/${websiteId}/${section}`, { waitUntil: 'domcontentloaded' });
-  return websiteId;
+  const targetPath = `/dashboard/${websiteId}/${section}`;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    await page.goto(targetPath, { waitUntil: 'domcontentloaded', timeout: 45000 });
+    if (page.url().includes(targetPath)) {
+      return websiteId;
+    }
+
+    // Firefox occasionally lands on an intermediate route before auth/session settles.
+    await page.waitForTimeout(500);
+  }
+
+  throw new Error(`Unable to navigate to ${targetPath}. Current URL: ${page.url()}`);
 }

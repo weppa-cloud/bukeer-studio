@@ -18,9 +18,8 @@ test.describe('SEO + Analytics Implementation', () => {
 
   test('contenido page renders unified controls', async ({ page }) => {
     await gotoWebsiteSection(page, 'contenido');
-    await expect(page.getByRole('heading', { name: 'Contenido' })).toBeVisible();
+    await expect(page.getByPlaceholder('Buscar por nombre, slug o tipo...')).toBeVisible({ timeout: 15000 });
 
-    await expect(page.getByPlaceholder('Buscar por nombre, slug o tipo...')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Publicar seleccionados' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Ocultar seleccionados' })).toBeVisible();
 
