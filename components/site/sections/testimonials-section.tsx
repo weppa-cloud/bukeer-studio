@@ -134,10 +134,28 @@ const TestimonialCard = ({ testimonial }: { testimonial: TestimonialItem }) => {
         ))}
       </div>
 
-      {/* Quote — clamped at 5 lines to keep cards consistent height */}
+      {/* Review image thumbnail — shown above quote when present */}
+      {testimonial.images && testimonial.images.length > 0 && (() => {
+        const img = testimonial.images[0];
+        const src = typeof img === 'string' ? img : img.url;
+        const thumb = typeof img === 'string' ? img : (img.thumbnail ?? img.url);
+        return src ? (
+          <div className="mt-3 rounded-lg overflow-hidden" style={{ height: 80 }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={thumb}
+              alt={`Foto de ${testimonial.name}`}
+              className="w-full h-full object-cover"
+              loading="lazy"
+            />
+          </div>
+        ) : null;
+      })()}
+
+      {/* Quote — clamped at 3 lines when image present, 5 lines otherwise */}
       {quoteText && (
         <p
-          className="mt-3 text-sm leading-relaxed italic line-clamp-5"
+          className={`mt-3 text-sm leading-relaxed italic ${testimonial.images && testimonial.images.length > 0 ? 'line-clamp-3' : 'line-clamp-5'}`}
           style={{ color: 'var(--text-secondary, #334155)' }}
         >
           &ldquo;{quoteText}&rdquo;
@@ -184,7 +202,7 @@ export function TestimonialsSection({ section, website }: TestimonialsSectionPro
   const logoUrl = (website?.content as any)?.logo as string | undefined;
 
   return (
-    <div className="section-padding !pb-10 lg:!pb-16 bg-muted/30">
+    <div className="section-padding bg-muted/30" style={{ paddingBottom: '2.5rem' }}>
       <div className={variant === 'infinite' ? '' : 'container'}>
         {/* Section header — left-aligned title, aggregate badge top-right */}
         <motion.div
