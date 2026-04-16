@@ -61,7 +61,6 @@ const PackagesSection = dynamic(
 
 const TestimonialsSection = dynamic(
   () => import('@/components/site/sections/testimonials-section').then((mod) => mod.TestimonialsSection),
-  { loading: SectionSkeleton }
 );
 
 const AboutSection = dynamic(
