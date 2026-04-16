@@ -5,6 +5,9 @@ import { requireWebsiteAccess } from '@/lib/seo/server-auth';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/service-role';
 import { buildSourceMeta, withNoStoreHeaders, withSharedCacheHeaders } from '@/lib/seo/content-intelligence';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 async function nextVersion(admin: ReturnType<typeof createSupabaseServiceRoleClient>, briefId: string) {
   const { data } = await admin
     .from('seo_brief_versions')
