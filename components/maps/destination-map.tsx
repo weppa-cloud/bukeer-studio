@@ -4,7 +4,13 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import { Layer, Map, Marker, NavigationControl, Popup, Source, type MapRef } from '@vis.gl/react-maplibre';
 import { COLOMBIA_BOUNDARY_GEOJSON } from '@/components/maps/colombia-boundary';
-import type { MapMarker, MapMarkerKind, MapViewportPreset, MarkerFilter } from '@/lib/maps/types';
+import type {
+  MapMarker,
+  MapMarkerKind,
+  MapViewportPreset,
+  MarkerFilter,
+  MapRenderMode,
+} from '@/lib/maps/types';
 import { filterMarkersByKind, mapKindLabel } from '@/lib/maps/utils';
 
 interface DestinationMapProps {
@@ -12,6 +18,7 @@ interface DestinationMapProps {
   height?: number;
   className?: string;
   viewportPreset?: MapViewportPreset;
+  renderMode?: MapRenderMode;
   showFilters?: boolean;
   showLegend?: boolean;
 }
@@ -262,6 +269,11 @@ function MarkerButton({ marker, markerColors, selected, onClick }: MarkerButtonP
         aria-label={buildMarkerAriaDescription(marker)}
       >
         <span
+          className="absolute -inset-1 rounded-full border animate-[pulse_2.2s_ease-in-out_infinite]"
+          style={{ borderColor: `color-mix(in srgb, ${markerColors.destination} 60%, white)` }}
+          aria-hidden="true"
+        />
+        <span
           className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 border-white shadow-md"
           style={{
             backgroundColor: destinationMeta?.image
@@ -327,6 +339,7 @@ interface CompatibilityMapProps {
   onSelectMarker: (markerId: string | null) => void;
   height: number;
   viewportPreset: MapViewportPreset;
+  badgeLabel: string;
 }
 
 function CompatibilityCroquisMap({
@@ -336,6 +349,7 @@ function CompatibilityCroquisMap({
   onSelectMarker,
   height,
   viewportPreset,
+  badgeLabel,
 }: CompatibilityMapProps) {
   const bounds = useMemo(
     () => computeViewportBounds(markers, viewportPreset),
@@ -431,7 +445,7 @@ function CompatibilityCroquisMap({
         className="absolute top-3 right-3 z-20 rounded-full px-3 py-1 text-[11px] font-medium"
         style={{ background: 'rgba(255,255,255,0.88)', color: 'var(--text-secondary)', border: '1px solid rgba(15,23,42,0.14)' }}
       >
-        Modo compatibilidad
+        {badgeLabel}
       </div>
     </div>
   );
@@ -442,6 +456,7 @@ export function DestinationMap({
   height = 400,
   className = '',
   viewportPreset = 'colombia',
+  renderMode = 'auto',
   showFilters = false,
   showLegend = true,
 }: DestinationMapProps) {
@@ -477,6 +492,7 @@ export function DestinationMap({
     () => (selectedMarker ? getDestinationMarkerMeta(selectedMarker) : null),
     [selectedMarker]
   );
+  const useCroquisMode = renderMode === 'croquis';
 
   const center = useMemo(() => mapCenter(filteredMarkers.length > 0 ? filteredMarkers : markers, viewportPreset), [filteredMarkers, markers, viewportPreset]);
 
@@ -553,11 +569,8 @@ export function DestinationMap({
     );
   }, [filteredMarkers, viewportPreset]);
 
-  if (markers.length === 0) {
-    return null;
-  }
-
-  if (isNoWebgl || styleFailed || !styleUrl) {
+  if (useCroquisMode || isNoWebgl || styleFailed || !styleUrl) {
+    const croquisBadgeLabel = useCroquisMode ? 'Croquis Colombia' : 'Modo compatibilidad';
     return (
       <div className={className}>
         <div className="relative rounded-2xl overflow-hidden" style={{ height }}>
@@ -568,7 +581,17 @@ export function DestinationMap({
             onSelectMarker={setSelectedMarkerId}
             height={height}
             viewportPreset={viewportPreset}
+            badgeLabel={croquisBadgeLabel}
           />
+
+          {markers.length === 0 ? (
+            <div
+              className="absolute bottom-3 right-3 z-10 rounded-full px-3 py-1 text-[11px] font-medium"
+              style={{ background: 'rgba(255,255,255,0.9)', color: 'var(--text-secondary)', border: '1px solid rgba(15,23,42,0.14)' }}
+            >
+              Sin puntos geolocalizados
+            </div>
+          ) : null}
 
           {showFilters && filterKinds.length > 0 ? (
             <div className="absolute top-3 left-3 z-10 flex flex-wrap gap-2 max-w-[85%]">

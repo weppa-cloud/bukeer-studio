@@ -20,6 +20,9 @@ export interface ProductData {
   amenities?: string[];
   star_rating?: number;
 
+  // Package-specific flags
+  is_featured?: boolean;
+
   // Activity/Transfer shared
   inclusions?: string;
   exclusions?: string;

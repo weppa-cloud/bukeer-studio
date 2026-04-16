@@ -1,6 +1,7 @@
 export type MapMarkerKind = 'destination' | 'hotel' | 'activity' | 'service';
 
 export type MapViewportPreset = 'colombia' | 'destination-detail';
+export type MapRenderMode = 'auto' | 'croquis';
 
 export interface MapMarker {
   id: string;

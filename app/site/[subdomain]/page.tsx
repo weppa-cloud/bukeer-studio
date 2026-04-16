@@ -2,6 +2,7 @@ import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { SectionRenderer } from '@/components/site/section-renderer';
 import { JsonLd, generateHomepageSchemas } from '@/lib/schema';
+import type { ImageObject } from '@/lib/schema/types';
 import { generateHreflangLinks } from '@/lib/seo/hreflang';
 import { resolveOgImage } from '@/lib/seo/og-helpers';
 import { getWebsiteBySubdomain } from '@/lib/supabase/get-website';
@@ -66,10 +67,12 @@ function toDurationLabel(product: ProductData): string | undefined {
 
 function toPackageItems(products: ProductData[]): Array<Record<string, unknown>> {
   return products.map((product) => {
-    const reviewRating = typeof product.rating === 'number' ? product.rating : undefined;
-    let category = 'Popular';
-    if (reviewRating && reviewRating >= 4.8) category = 'Exclusivo';
-    else if (reviewRating && reviewRating >= 4.5) category = 'Premium';
+    // Use is_featured flag from DB; fall back to category label from package_kits.category
+    const featured = product.is_featured === true;
+    const dbCategory = typeof (product as unknown as Record<string, unknown>).category === 'string'
+      ? (product as unknown as Record<string, unknown>).category as string
+      : undefined;
+    const category = dbCategory || 'Popular';
 
     return {
       id: product.id,
@@ -81,6 +84,7 @@ function toPackageItems(products: ProductData[]): Array<Record<string, unknown>>
       price: formatProductPrice(product.price, product.currency),
       description: product.description,
       category,
+      featured,
     };
   }).slice(0, 8);
 }
@@ -173,7 +177,43 @@ export default async function SitePage({ params }: SitePageProps) {
   const baseUrl = website.custom_domain
     ? `https://${website.custom_domain}`
     : `https://${subdomain}.bukeer.com`;
-  const schemas = generateHomepageSchemas(website, baseUrl);
+
+  const accountContent = ((website.content as unknown as Record<string, unknown>)?.account as Record<string, unknown> | undefined);
+  const googleReviewsEnabled = accountContent?.google_reviews_enabled === true;
+  const agencyName = (accountContent?.name as string | undefined) || website.content.siteName || '';
+
+  // Fetch Google reviews early — used for both JSON-LD photo[] and testimonials hydration
+  let googleReviewsCache: Awaited<ReturnType<typeof getCachedGoogleReviews>> = null;
+  if (googleReviewsEnabled && website.account_id) {
+    googleReviewsCache = await getCachedGoogleReviews(website.account_id);
+  }
+
+  // Build review ImageObjects for JSON-LD TravelAgency.photo[]
+  // Prefer Supabase Storage URLs (stable), also accept Google review photo CDN (geougc-cs).
+  // Profile thumbnails (lh3.googleusercontent.com/a-/) are excluded — too small for schema.
+  const reviewImages: ImageObject[] = [];
+  if (googleReviewsCache?.reviews?.length) {
+    for (const review of googleReviewsCache.reviews.filter((r) => r.is_visible !== false)) {
+      for (const img of (review.images || []).slice(0, 3)) {
+        if (!img?.url) continue;
+        const isCached = img.url.includes('supabase.co/storage');
+        const isGoogleReviewPhoto = img.url.includes('googleusercontent.com/geougc-cs');
+        if (!isCached && !isGoogleReviewPhoto) continue;
+        reviewImages.push({
+          '@type': 'ImageObject',
+          url: img.url,
+          name: `${review.author_name} · ${agencyName}`,
+          description: (review.text || '').slice(0, 120).trim() || undefined,
+          author: { '@type': 'Person', name: review.author_name },
+          contentLocation: { '@type': 'Place', name: 'Colombia' },
+        });
+        if (reviewImages.length >= 10) break;
+      }
+      if (reviewImages.length >= 10) break;
+    }
+  }
+
+  const schemas = generateHomepageSchemas(website, baseUrl, reviewImages.length > 0 ? reviewImages : undefined);
 
   const [dynamicDestinations, packagesCatalog, activitiesCatalog, hotelsCatalog] = await Promise.all([
     getDestinations(subdomain),
@@ -202,26 +242,20 @@ export default async function SitePage({ params }: SitePageProps) {
   const activityItems = toActivityItems(activitiesCatalog.items);
   const hotelItems = toHotelItems(hotelsCatalog.items);
 
-  const accountContent = ((website.content as unknown as Record<string, unknown>)?.account as Record<string, unknown> | undefined);
-  const googleReviewsEnabled = accountContent?.google_reviews_enabled === true;
-
   let googleReviews: Parameters<typeof hydrateSections>[0]['googleReviews'] = null;
-  if (googleReviewsEnabled && website.account_id) {
-    const cached = await getCachedGoogleReviews(website.account_id);
-    if (cached && cached.reviews.length > 0) {
-      googleReviews = {
-        ...cached,
-        average_rating: cached.average_rating ?? 0,
-        total_reviews: cached.total_reviews ?? 0,
-        google_maps_url: cached.google_maps_url ?? undefined,
-        business_name: cached.business_name ?? undefined,
-        reviews: cached.reviews.map((review) => ({
-          ...review,
-          images: review.images,
-          response: review.response?.text,
-        })),
-      };
-    }
+  if (googleReviewsCache && googleReviewsCache.reviews.length > 0) {
+    googleReviews = {
+      ...googleReviewsCache,
+      average_rating: googleReviewsCache.average_rating ?? 0,
+      total_reviews: googleReviewsCache.total_reviews ?? 0,
+      google_maps_url: googleReviewsCache.google_maps_url ?? undefined,
+      business_name: googleReviewsCache.business_name ?? undefined,
+      reviews: googleReviewsCache.reviews.map((review) => ({
+        ...review,
+        images: review.images,
+        response: review.response?.text,
+      })),
+    };
   }
 
   const hydratedSections = hydrateSections({

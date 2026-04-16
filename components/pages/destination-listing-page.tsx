@@ -140,25 +140,24 @@ export function DestinationListingPage({
       </section>
 
       {/* Map Section */}
-      {mapMarkers.length > 0 && (
-        <section className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto pb-16">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="rounded-2xl overflow-hidden shadow-lg"
-            style={{ height: '400px' }}
-          >
-            <DestinationMap
-              markers={mapMarkers}
-              viewportPreset="colombia"
-              showFilters={false}
-              showLegend={true}
-              height={400}
-            />
-          </motion.div>
-        </section>
-      )}
+      <section className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto pb-16">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="rounded-2xl overflow-hidden shadow-lg"
+          style={{ height: '400px' }}
+        >
+          <DestinationMap
+            markers={mapMarkers}
+            viewportPreset="colombia"
+            renderMode="croquis"
+            showFilters={false}
+            showLegend={mapMarkers.length > 0}
+            height={400}
+          />
+        </motion.div>
+      </section>
 
       {/* Destinations Grid */}
       <section className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto pb-24">

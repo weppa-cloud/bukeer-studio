@@ -86,9 +86,13 @@ export function extractReviewImages(
     for (const imgEntry of testimonial.images) {
       const url = typeof imgEntry === 'string' ? imgEntry : imgEntry.url;
 
-      // Only include cached Supabase Storage URLs — external Google CDN URLs
-      // may be ephemeral and are not reliably crawlable by search engines.
-      if (!url || !url.includes('supabase.co/storage')) continue;
+      // Prefer cached Supabase Storage URLs (stable, crawlable).
+      // Also accept Google CDN review photo domains — these are large photo
+      // uploads from reviewers (geougc-cs), not ephemeral profile thumbnails.
+      // TODO: cache all images to Supabase Storage for long-term stability.
+      const isCached = url.includes('supabase.co/storage');
+      const isGoogleReviewPhoto = url.includes('googleusercontent.com/geougc-cs');
+      if (!url || (!isCached && !isGoogleReviewPhoto)) continue;
 
       result.push({
         '@type': 'ImageObject',
@@ -338,20 +342,24 @@ export function generateCollectionPageSchema(
  * and optional FAQPage. The review photos are injected as photo[] on the
  * TravelAgency node — this feeds Google's Knowledge Panel and image search
  * indexing without creating a separate schema block.
+ *
+ * @param reviewImages - Optional pre-fetched review images (e.g. from account_google_reviews).
+ *   When provided, these take precedence over images extracted from section content.
  */
 export function generateHomepageSchemas(
   website: WebsiteData,
-  baseUrl: string
+  baseUrl: string,
+  reviewImages?: ImageObject[]
 ): object[] {
   const schemas: object[] = [];
 
-  // Extract cached review photos from the testimonials section.
-  // Only Supabase Storage URLs are included (see extractReviewImages docs).
+  // Use pre-fetched images when available (e.g. real Google Reviews fetched server-side).
+  // Fall back to extracting from sections content (e.g. static/cached testimonials).
   const agencyName = website.content.account?.name || website.content.siteName || '';
-  const reviewImages = extractReviewImages(website.sections || [], agencyName);
+  const images = reviewImages ?? extractReviewImages(website.sections || [], agencyName);
 
   // 1. Organization/TravelAgency schema — includes photo[] when available
-  schemas.push(generateOrganizationSchema(website, baseUrl, reviewImages));
+  schemas.push(generateOrganizationSchema(website, baseUrl, images));
 
   // 2. WebSite schema
   schemas.push(generateWebSiteSchema(website, baseUrl));
