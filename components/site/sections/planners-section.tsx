@@ -1,14 +1,17 @@
 'use client';
 
 import Image from 'next/image';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 import { BlurFade } from '@/components/ui/blur-fade';
 import { SpotlightCard } from '@/components/ui/spotlight-card';
+import type { PlannerData } from '@/lib/supabase/get-planners';
 
 interface PlannersSectionProps {
   section: WebsiteSection;
   website: WebsiteData;
+  dbPlanners?: PlannerData[];
 }
 
 interface Planner {
@@ -19,30 +22,84 @@ interface Planner {
   reviewCount?: number;
   quote?: string;
   whatsapp?: string;
+  slug?: string;
 }
 
-export function PlannersSection({ section, website }: PlannersSectionProps) {
+/** Map user_rol values to human-readable Spanish labels */
+function mapRole(role: string | null): string {
+  const roleMap: Record<string, string> = {
+    agent: 'Agente de Viajes',
+    admin: 'Administrador',
+    operations: 'Operaciones',
+    manager: 'Gerente',
+    sales: 'Ventas',
+  };
+  return role ? roleMap[role] || role : 'Agente de Viajes';
+}
+
+/** Convert DB planners to the component's Planner interface */
+function mapDbPlanners(
+  dbPlanners: PlannerData[],
+  sectionPlanners?: Planner[]
+): Planner[] {
+  return dbPlanners.map((dbPlanner) => {
+    // Try to find matching section content planner for quote/rating data
+    const match = sectionPlanners?.find(
+      (sp) =>
+        sp.name.toLowerCase().includes(dbPlanner.name.toLowerCase()) ||
+        dbPlanner.fullName.toLowerCase().includes(sp.name.toLowerCase())
+    );
+
+    return {
+      name: dbPlanner.fullName,
+      photo: dbPlanner.photo || undefined,
+      specialty: dbPlanner.position || mapRole(dbPlanner.role),
+      whatsapp: dbPlanner.phone || undefined,
+      quote: match?.quote || undefined,
+      rating: match?.rating,
+      reviewCount: match?.reviewCount,
+      slug: dbPlanner.slug,
+    };
+  });
+}
+
+const HARDCODED_FALLBACK: Planner[] = [
+  { name: 'Yenny Giraldo', specialty: 'Grupos', quote: 'Cada grupo tiene su ritmo, yo lo encuentro' },
+  { name: 'Juan David', specialty: 'Familias', quote: 'Viajes que unen familias para siempre' },
+  { name: 'Veronica Morales', specialty: 'Familias', quote: 'Los ninos son los mejores viajeros' },
+  { name: 'Susana Guerra', specialty: 'Grupos', quote: 'Colombia en grupo es otra experiencia' },
+  { name: 'Diana Tabares', specialty: 'Adultos', quote: 'Viajes a la medida de tu tiempo' },
+  { name: 'Leidy Giraldo', specialty: 'Amigos', quote: 'Las mejores historias nacen viajando' },
+  { name: 'Paola Henao', specialty: 'Parejas', quote: 'Romance y aventura en cada destino' },
+];
+
+export function PlannersSection({ section, website, dbPlanners }: PlannersSectionProps) {
   const sectionContent = section.content as {
     title?: string;
     subtitle?: string;
     eyebrow?: string;
     planners?: Planner[];
+    dbPlanners?: PlannerData[];
   };
 
   const title = sectionContent.title || 'Nuestros Travel Planners';
   const subtitle = sectionContent.subtitle || 'Expertos locales que disenan tu viaje ideal';
   const eyebrow = sectionContent.eyebrow || 'Tu guia personal';
   const whatsappBase = website.content.social?.whatsapp || '';
+  const subdomain = website.subdomain;
 
-  const planners = sectionContent.planners || [
-    { name: 'Yenny Giraldo', specialty: 'Grupos', quote: 'Cada grupo tiene su ritmo, yo lo encuentro' },
-    { name: 'Juan David', specialty: 'Familias', quote: 'Viajes que unen familias para siempre' },
-    { name: 'Veronica Morales', specialty: 'Familias', quote: 'Los ninos son los mejores viajeros' },
-    { name: 'Susana Guerra', specialty: 'Grupos', quote: 'Colombia en grupo es otra experiencia' },
-    { name: 'Diana Tabares', specialty: 'Adultos', quote: 'Viajes a la medida de tu tiempo' },
-    { name: 'Leidy Giraldo', specialty: 'Amigos', quote: 'Las mejores historias nacen viajando' },
-    { name: 'Paola Henao', specialty: 'Parejas', quote: 'Romance y aventura en cada destino' },
-  ];
+  // Resolve DB planners: prop > section content injection > empty
+  const resolvedDbPlanners = dbPlanners || sectionContent.dbPlanners || [];
+
+  // Priority: DB planners > section content planners > hardcoded fallback
+  let planners: Planner[];
+  if (resolvedDbPlanners.length > 0) {
+    planners = mapDbPlanners(resolvedDbPlanners, sectionContent.planners);
+  } else if (sectionContent.planners && sectionContent.planners.length > 0) {
+    planners = sectionContent.planners;
+  } else {
+    planners = HARDCODED_FALLBACK;
+  }
 
   const specialtyColors: Record<string, string> = {
     'Grupos': 'var(--accent)',
@@ -50,6 +107,10 @@ export function PlannersSection({ section, website }: PlannersSectionProps) {
     'Parejas': '#E8A838',
     'Adultos': '#9E7AFF',
     'Amigos': '#FE8BBB',
+    'Agente de Viajes': 'var(--accent)',
+    'Agente de Viajes Senior': '#006B60',
+    'Operaciones': '#9E7AFF',
+    'Administrador': '#E8A838',
   };
 
   return (
@@ -140,19 +201,48 @@ export function PlannersSection({ section, website }: PlannersSectionProps) {
                     </div>
                   )}
 
-                  {/* WhatsApp CTA */}
-                  <a
-                    href={`https://wa.me/${(planner.whatsapp || whatsappBase).replace(/[^0-9]/g, '')}?text=Hola ${planner.name}! Me interesa planear un viaje a Colombia`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-4 w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-full font-medium text-sm transition-all hover:scale-[1.03]"
-                    style={{ backgroundColor: 'var(--accent)', color: 'var(--accent-text)' }}
-                  >
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
-                    </svg>
-                    Hablar con {planner.name.split(' ')[0]}
-                  </a>
+                  {/* CTAs */}
+                  <div className="mt-4 flex items-center gap-2">
+                    {/* Primary: Profile link */}
+                    {planner.slug ? (
+                      <Link
+                        href={`/site/${subdomain}/planners/${planner.slug}`}
+                        className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-full font-medium text-sm transition-all hover:scale-[1.03]"
+                        style={{ backgroundColor: 'var(--accent)', color: 'var(--accent-text)' }}
+                      >
+                        Ver perfil
+                      </Link>
+                    ) : (
+                      <a
+                        href={`https://wa.me/${(planner.whatsapp || whatsappBase).replace(/[^0-9]/g, '')}?text=Hola ${planner.name}! Me interesa planear un viaje a Colombia`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-full font-medium text-sm transition-all hover:scale-[1.03]"
+                        style={{ backgroundColor: 'var(--accent)', color: 'var(--accent-text)' }}
+                      >
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+                        </svg>
+                        Hablar con {planner.name.split(' ')[0]}
+                      </a>
+                    )}
+
+                    {/* Secondary: WhatsApp icon button (shown when profile link is primary) */}
+                    {planner.slug && (
+                      <a
+                        href={`https://wa.me/${(planner.whatsapp || whatsappBase).replace(/[^0-9]/g, '')}?text=Hola ${planner.name}! Me interesa planear un viaje a Colombia`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-full transition-all hover:scale-[1.08]"
+                        style={{ backgroundColor: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: '#25D366' }}
+                        aria-label={`WhatsApp ${planner.name}`}
+                      >
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+                        </svg>
+                      </a>
+                    )}
+                  </div>
                 </motion.div>
               </SpotlightCard>
             </BlurFade>

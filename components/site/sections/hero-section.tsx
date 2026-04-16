@@ -333,7 +333,7 @@ export function HeroSection({ section, website }: HeroSectionProps) {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.55, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-            className="flex flex-col sm:flex-row items-start sm:items-center gap-6"
+            className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center gap-6"
           >
             {subtitle && (
               <p className="text-white/90 text-base md:text-lg max-w-md leading-relaxed drop-shadow-[0_1px_4px_rgba(0,0,0,0.4)]">{subtitle}</p>
@@ -369,7 +369,7 @@ export function HeroSection({ section, website }: HeroSectionProps) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.9, duration: 0.6 }}
-              className="flex gap-3 mt-8 md:absolute md:bottom-8 md:right-8 md:mt-0 md:gap-4"
+              className="flex flex-wrap gap-3 mt-8 z-20 lg:absolute lg:bottom-8 lg:right-8 lg:mt-0 lg:gap-4"
             >
               {immersiveContent.heroStats.map((stat, i) => {
                 // Parse stat.num to extract number and suffix
