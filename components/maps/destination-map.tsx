@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
-import maplibregl from 'maplibre-gl';
-import { Layer, Map, Marker, NavigationControl, Popup, Source, type MapRef } from '@vis.gl/react-maplibre';
+import { useEffect, useMemo, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { COLOMBIA_BOUNDARY_GEOJSON } from '@/components/maps/colombia-boundary';
+import { MarkerButton, getDestinationMarkerMeta } from '@/components/maps/shared-marker';
 import type {
   MapMarker,
   MapMarkerKind,
@@ -12,6 +12,17 @@ import type {
   MapRenderMode,
 } from '@/lib/maps/types';
 import { filterMarkersByKind, mapKindLabel } from '@/lib/maps/utils';
+import {
+  DEFAULT_MAP_THEME_PALETTE,
+  buildMapThemePaletteFromRoot,
+  resolveMapStyleUrl,
+  supportsWebGL,
+  type MapThemePalette,
+} from '@/lib/maps/theme';
+
+const DestinationMapWebGL = dynamic(() => import('./destination-map-webgl'), {
+  ssr: false,
+});
 
 interface DestinationMapProps {
   markers: MapMarker[];
@@ -21,39 +32,11 @@ interface DestinationMapProps {
   renderMode?: MapRenderMode;
   showFilters?: boolean;
   showLegend?: boolean;
+  /** Optional ordered path drawn as a connecting line between points ([lng, lat] pairs). */
+  routePath?: Array<[number, number]>;
 }
 
-const DEV_STYLE_URL = 'https://demotiles.maplibre.org/style.json';
 type ProductFilterKind = 'hotel' | 'activity' | 'service';
-
-const DEFAULT_MARKER_COLORS: Record<MapMarkerKind, string> = {
-  destination: '#0f766e',
-  hotel: '#2563eb',
-  activity: '#16a34a',
-  service: '#9333ea',
-};
-
-interface MapThemePalette {
-  markerColors: Record<MapMarkerKind, string>;
-  colombiaFillColor: string;
-  colombiaLineColor: string;
-  compatibilityBackground: string;
-}
-
-const DEFAULT_MAP_THEME_PALETTE: MapThemePalette = {
-  markerColors: DEFAULT_MARKER_COLORS,
-  colombiaFillColor: '#0ea5e9',
-  colombiaLineColor: '#0284c7',
-  compatibilityBackground:
-    'radial-gradient(circle at 12% 10%, rgba(14,165,233,0.18), transparent 52%), linear-gradient(180deg, #f1f9ff 0%, #e0f2fe 58%, #f8fafc 100%)',
-};
-
-interface DestinationMarkerMeta {
-  image?: string;
-  hotelCount?: number;
-  activityCount?: number;
-  totalCount?: number;
-}
 
 interface ViewportBounds {
   minLat: number;
@@ -68,82 +51,6 @@ const COLOMBIA_VIEWPORT_BOUNDS: ViewportBounds = {
   minLng: -81.85,
   maxLng: -66.8,
 };
-
-const COLOR_PREFIXES = ['hsl(', 'oklch(', 'rgb(', 'rgba(', '#', 'lab(', 'lch(', 'color('];
-
-function resolveMapStyleUrl(): string | null {
-  const raw = process.env.NEXT_PUBLIC_MAP_STYLE_URL?.trim();
-  const token = process.env.NEXT_PUBLIC_MAP_STYLE_TOKEN?.trim();
-
-  if (raw) {
-    if (token && raw.includes('{token}')) {
-      return raw.replaceAll('{token}', token);
-    }
-    return raw;
-  }
-
-  if (process.env.NODE_ENV !== 'production') {
-    return DEV_STYLE_URL;
-  }
-
-  return null;
-}
-
-function supportsWebGL(): boolean {
-  if (typeof window === 'undefined') return false;
-  const canvas = document.createElement('canvas');
-  return !!(canvas.getContext('webgl') || canvas.getContext('experimental-webgl'));
-}
-
-function resolveThemeColor(raw: string, fallback: string): string {
-  const value = raw.trim();
-  if (!value) return fallback;
-
-  if (COLOR_PREFIXES.some((prefix) => value.startsWith(prefix))) {
-    return value;
-  }
-
-  return `hsl(${value})`;
-}
-
-function buildMapThemePaletteFromRoot(root: HTMLElement): MapThemePalette {
-  const styles = getComputedStyle(root);
-
-  const destinationColor = resolveThemeColor(
-    styles.getPropertyValue('--accent'),
-    DEFAULT_MARKER_COLORS.destination
-  );
-  const hotelColor = resolveThemeColor(
-    styles.getPropertyValue('--chart-2'),
-    DEFAULT_MARKER_COLORS.hotel
-  );
-  const activityColor = resolveThemeColor(
-    styles.getPropertyValue('--chart-5'),
-    DEFAULT_MARKER_COLORS.activity
-  );
-  const serviceColor = resolveThemeColor(
-    styles.getPropertyValue('--chart-3'),
-    DEFAULT_MARKER_COLORS.service
-  );
-  const mapFillColor = resolveThemeColor(
-    styles.getPropertyValue('--accent'),
-    DEFAULT_MAP_THEME_PALETTE.colombiaFillColor
-  );
-
-  return {
-    markerColors: {
-      destination: destinationColor,
-      hotel: hotelColor,
-      activity: activityColor,
-      service: serviceColor,
-    },
-    colombiaFillColor: mapFillColor,
-    colombiaLineColor: destinationColor,
-    compatibilityBackground:
-      `radial-gradient(circle at 12% 10%, color-mix(in srgb, ${destinationColor} 18%, transparent), transparent 52%), ` +
-      `linear-gradient(180deg, color-mix(in srgb, ${mapFillColor} 24%, white) 0%, color-mix(in srgb, ${mapFillColor} 14%, white) 58%, var(--bg, #f8fafc) 100%)`,
-  };
-}
 
 function mapCenter(markers: MapMarker[], viewportPreset: MapViewportPreset): { lat: number; lng: number; zoom: number } {
   if (markers.length === 0) {
@@ -195,143 +102,6 @@ function projectPointToPercent(lat: number, lng: number, bounds: ViewportBounds)
   };
 }
 
-function toNonNegativeInteger(value: unknown): number | null {
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    return value >= 0 ? Math.trunc(value) : null;
-  }
-
-  if (typeof value === 'string' && value.trim().length > 0) {
-    const parsed = Number(value);
-    if (Number.isFinite(parsed) && parsed >= 0) {
-      return Math.trunc(parsed);
-    }
-  }
-
-  return null;
-}
-
-function getDestinationMarkerMeta(marker: MapMarker): DestinationMarkerMeta | null {
-  if (marker.kind !== 'destination') return null;
-  const meta = marker.meta as Record<string, unknown> | undefined;
-  if (!meta) return null;
-
-  const image = typeof meta.image === 'string' && meta.image.trim().length > 0 ? meta.image : undefined;
-  const hotelCount = toNonNegativeInteger(meta.hotelCount);
-  const activityCount = toNonNegativeInteger(meta.activityCount);
-  const providedTotal = toNonNegativeInteger(meta.totalCount);
-  const inferredTotal = (hotelCount ?? 0) + (activityCount ?? 0);
-  const totalCount = providedTotal ?? (inferredTotal > 0 ? inferredTotal : null);
-
-  return {
-    image,
-    hotelCount: hotelCount ?? undefined,
-    activityCount: activityCount ?? undefined,
-    totalCount: totalCount ?? undefined,
-  };
-}
-
-function formatMarkerCount(value: number | undefined): string | null {
-  if (typeof value !== 'number' || value <= 0) return null;
-  if (value > 99) return '99+';
-  return String(value);
-}
-
-function buildMarkerAriaDescription(marker: MapMarker): string {
-  const kindLabel = mapKindLabel(marker.kind);
-  const destinationMeta = getDestinationMarkerMeta(marker);
-  const markerCount = formatMarkerCount(destinationMeta?.totalCount);
-
-  if (markerCount) {
-    return `${kindLabel}: ${marker.label} (${markerCount} experiencias)`;
-  }
-
-  return `${kindLabel}: ${marker.label}`;
-}
-
-interface MarkerButtonProps {
-  marker: MapMarker;
-  markerColors: Record<MapMarkerKind, string>;
-  selected: boolean;
-  onClick: () => void;
-}
-
-function MarkerButton({ marker, markerColors, selected, onClick }: MarkerButtonProps) {
-  const destinationMeta = getDestinationMarkerMeta(marker);
-  const isDestination = marker.kind === 'destination';
-  const markerCount = formatMarkerCount(destinationMeta?.totalCount);
-
-  if (isDestination) {
-    return (
-      <button
-        type="button"
-        onClick={onClick}
-        className="relative transition-transform hover:scale-105 focus:outline-none"
-        aria-label={buildMarkerAriaDescription(marker)}
-      >
-        <span
-          className="absolute -inset-1 rounded-full border animate-[pulse_2.2s_ease-in-out_infinite]"
-          style={{ borderColor: `color-mix(in srgb, ${markerColors.destination} 60%, white)` }}
-          aria-hidden="true"
-        />
-        <span
-          className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 border-white shadow-md"
-          style={{
-            backgroundColor: destinationMeta?.image
-              ? `color-mix(in srgb, ${markerColors.destination} 24%, white)`
-              : markerColors.destination,
-            boxShadow: selected
-              ? `0 0 0 2px ${markerColors.destination}, 0 8px 20px color-mix(in srgb, ${markerColors.destination} 32%, transparent)`
-              : '0 6px 18px rgba(15,23,42,0.26)',
-          }}
-        >
-          {destinationMeta?.image ? (
-            <img
-              src={destinationMeta.image}
-              alt=""
-              aria-hidden="true"
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <span className="text-[12px] font-bold text-white">
-              {marker.label.charAt(0).toUpperCase()}
-            </span>
-          )}
-        </span>
-        <span
-          className="absolute -top-1 -left-1 inline-flex h-3.5 w-3.5 rounded-full border border-white"
-          style={{ backgroundColor: markerColors.destination }}
-        />
-        {markerCount ? (
-          <span
-            className="absolute -bottom-1 -right-1 inline-flex min-w-[18px] items-center justify-center rounded-full border px-1 text-[10px] font-semibold leading-none h-[18px]"
-            style={{
-              background: 'rgba(255,255,255,0.96)',
-              color: 'var(--text-heading)',
-              borderColor: 'rgba(15,23,42,0.2)',
-            }}
-            aria-hidden="true"
-          >
-            {markerCount}
-          </span>
-        ) : null}
-      </button>
-    );
-  }
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="rounded-full border-2 border-white shadow-md w-4 h-4 transition-transform hover:scale-110"
-      style={{
-        backgroundColor: markerColors[marker.kind],
-        transform: selected ? 'scale(1.2)' : undefined,
-      }}
-      aria-label={buildMarkerAriaDescription(marker)}
-    />
-  );
-}
-
 interface CompatibilityMapProps {
   markers: MapMarker[];
   palette: MapThemePalette;
@@ -340,6 +110,7 @@ interface CompatibilityMapProps {
   height: number;
   viewportPreset: MapViewportPreset;
   badgeLabel: string;
+  routePath?: Array<[number, number]>;
 }
 
 function CompatibilityCroquisMap({
@@ -350,6 +121,7 @@ function CompatibilityCroquisMap({
   height,
   viewportPreset,
   badgeLabel,
+  routePath,
 }: CompatibilityMapProps) {
   const bounds = useMemo(
     () => computeViewportBounds(markers, viewportPreset),
@@ -381,6 +153,16 @@ function CompatibilityCroquisMap({
   );
   const selectedDestinationMeta = selectedPosition ? getDestinationMarkerMeta(selectedPosition.marker) : null;
 
+  const routePolylinePoints = useMemo(() => {
+    if (!routePath || routePath.length < 2) return null;
+    return routePath
+      .map(([lng, lat]) => {
+        const projected = projectPointToPercent(lat, lng, bounds);
+        return `${projected.x},${projected.y}`;
+      })
+      .join(' ');
+  }, [routePath, bounds]);
+
   return (
     <div
       data-testid="map-croquis-fallback"
@@ -399,6 +181,18 @@ function CompatibilityCroquisMap({
           strokeOpacity={0.9}
           strokeWidth="0.5"
         />
+        {routePolylinePoints ? (
+          <polyline
+            points={routePolylinePoints}
+            fill="none"
+            stroke={palette.markerColors.destination}
+            strokeWidth="0.6"
+            strokeDasharray="1.5,1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            opacity="0.85"
+          />
+        ) : null}
       </svg>
 
       {positionedMarkers.map(({ marker, x, y }) => (
@@ -459,9 +253,9 @@ export function DestinationMap({
   renderMode = 'auto',
   showFilters = false,
   showLegend = true,
+  routePath,
 }: DestinationMapProps) {
   const styleUrl = useMemo(resolveMapStyleUrl, []);
-  const mapRef = useRef<MapRef | null>(null);
   const [hasHydrated, setHasHydrated] = useState(false);
   const [palette, setPalette] = useState<MapThemePalette>(DEFAULT_MAP_THEME_PALETTE);
   const [isNoWebgl, setIsNoWebgl] = useState(false);
@@ -485,14 +279,6 @@ export function DestinationMap({
     [markers, showFilters, selectedFilter]
   );
 
-  const selectedMarker = useMemo(
-    () => filteredMarkers.find((marker) => marker.id === selectedMarkerId) || null,
-    [filteredMarkers, selectedMarkerId]
-  );
-  const selectedMarkerMeta = useMemo(
-    () => (selectedMarker ? getDestinationMarkerMeta(selectedMarker) : null),
-    [selectedMarker]
-  );
   const useCroquisMode = renderMode === 'croquis';
   const shouldRenderCompatibilityMap =
     !hasHydrated || useCroquisMode || isNoWebgl || styleFailed || !styleUrl;
@@ -501,7 +287,10 @@ export function DestinationMap({
     setHasHydrated(true);
   }, []);
 
-  const center = useMemo(() => mapCenter(filteredMarkers.length > 0 ? filteredMarkers : markers, viewportPreset), [filteredMarkers, markers, viewportPreset]);
+  const center = useMemo(
+    () => mapCenter(filteredMarkers.length > 0 ? filteredMarkers : markers, viewportPreset),
+    [filteredMarkers, markers, viewportPreset]
+  );
 
   useEffect(() => {
     if (showFilters && selectedFilter !== 'all' && !filterKinds.includes(selectedFilter as ProductFilterKind)) {
@@ -539,42 +328,44 @@ export function DestinationMap({
     return () => observer.disconnect();
   }, []);
 
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
-    if (filteredMarkers.length === 0) return;
+  const filtersNode = showFilters && filterKinds.length > 0 ? (
+    <div className="absolute top-3 left-3 z-10 flex flex-wrap gap-2 max-w-[85%]">
+      {(['all', ...filterKinds] as MarkerFilter[]).map((filter) => (
+        <button
+          key={filter}
+          type="button"
+          onClick={() => setSelectedFilter(filter)}
+          className="px-3 py-1.5 rounded-full text-xs font-medium border backdrop-blur-sm"
+          style={{
+            background: selectedFilter === filter ? 'var(--accent)' : 'rgba(255,255,255,0.84)',
+            color: selectedFilter === filter ? 'var(--accent-text)' : 'var(--text-secondary)',
+            borderColor: selectedFilter === filter ? 'var(--accent)' : 'rgba(15,23,42,0.2)',
+          }}
+        >
+          {filter === 'all' ? 'Todos' : mapKindLabel(filter)}
+        </button>
+      ))}
+    </div>
+  ) : null;
 
-    if (viewportPreset === 'colombia') {
-      map.fitBounds(
-        [
-          [COLOMBIA_VIEWPORT_BOUNDS.minLng, COLOMBIA_VIEWPORT_BOUNDS.minLat],
-          [COLOMBIA_VIEWPORT_BOUNDS.maxLng, COLOMBIA_VIEWPORT_BOUNDS.maxLat],
-        ],
-        { padding: 34, duration: 300 }
-      );
-      return;
-    }
-
-    if (filteredMarkers.length === 1) {
-      map.easeTo({
-        center: [filteredMarkers[0].lng, filteredMarkers[0].lat],
-        zoom: 10.2,
-        duration: 300,
-      });
-      return;
-    }
-
-    const lats = filteredMarkers.map((marker) => marker.lat);
-    const lngs = filteredMarkers.map((marker) => marker.lng);
-
-    map.fitBounds(
-      [
-        [Math.min(...lngs), Math.min(...lats)],
-        [Math.max(...lngs), Math.max(...lats)],
-      ],
-      { padding: 56, duration: 300 }
-    );
-  }, [filteredMarkers, viewportPreset]);
+  const legendNode = showLegend && availableKinds.length > 0 ? (
+    <div
+      className="absolute bottom-3 left-3 z-10 rounded-xl px-3 py-2 flex flex-wrap gap-3"
+      style={{ background: 'rgba(255,255,255,0.88)', border: '1px solid rgba(15,23,42,0.12)' }}
+    >
+      {availableKinds.map((kind) => (
+        <div key={kind} className="flex items-center gap-1.5">
+          <span
+            className="inline-flex w-2.5 h-2.5 rounded-full"
+            style={{ backgroundColor: palette.markerColors[kind] }}
+          />
+          <span className="text-[11px] font-medium" style={{ color: 'var(--text-secondary)' }}>
+            {mapKindLabel(kind)}
+          </span>
+        </div>
+      ))}
+    </div>
+  ) : null;
 
   if (shouldRenderCompatibilityMap) {
     const croquisBadgeLabel = useCroquisMode ? 'Croquis Colombia' : 'Modo compatibilidad';
@@ -589,6 +380,7 @@ export function DestinationMap({
             height={height}
             viewportPreset={viewportPreset}
             badgeLabel={croquisBadgeLabel}
+            routePath={routePath}
           />
 
           {markers.length === 0 ? (
@@ -600,44 +392,8 @@ export function DestinationMap({
             </div>
           ) : null}
 
-          {showFilters && filterKinds.length > 0 ? (
-            <div className="absolute top-3 left-3 z-10 flex flex-wrap gap-2 max-w-[85%]">
-              {(['all', ...filterKinds] as MarkerFilter[]).map((filter) => (
-                <button
-                  key={filter}
-                  type="button"
-                  onClick={() => setSelectedFilter(filter)}
-                  className="px-3 py-1.5 rounded-full text-xs font-medium border backdrop-blur-sm"
-                  style={{
-                    background: selectedFilter === filter ? 'var(--accent)' : 'rgba(255,255,255,0.84)',
-                    color: selectedFilter === filter ? 'var(--accent-text)' : 'var(--text-secondary)',
-                    borderColor: selectedFilter === filter ? 'var(--accent)' : 'rgba(15,23,42,0.2)',
-                  }}
-                >
-                  {filter === 'all' ? 'Todos' : mapKindLabel(filter)}
-                </button>
-              ))}
-            </div>
-          ) : null}
-
-          {showLegend && availableKinds.length > 0 ? (
-            <div
-              className="absolute bottom-3 left-3 z-10 rounded-xl px-3 py-2 flex flex-wrap gap-3"
-              style={{ background: 'rgba(255,255,255,0.88)', border: '1px solid rgba(15,23,42,0.12)' }}
-            >
-              {availableKinds.map((kind) => (
-                <div key={kind} className="flex items-center gap-1.5">
-                  <span
-                    className="inline-flex w-2.5 h-2.5 rounded-full"
-                    style={{ backgroundColor: palette.markerColors[kind] }}
-                  />
-                  <span className="text-[11px] font-medium" style={{ color: 'var(--text-secondary)' }}>
-                    {mapKindLabel(kind)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          ) : null}
+          {filtersNode}
+          {legendNode}
         </div>
       </div>
     );
@@ -646,132 +402,20 @@ export function DestinationMap({
   return (
     <div className={className}>
       <div className="relative rounded-2xl overflow-hidden" style={{ height }}>
-        <Map
-          ref={mapRef}
-          mapLib={maplibregl}
-          mapStyle={styleUrl}
-          initialViewState={{
-            latitude: center.lat,
-            longitude: center.lng,
-            zoom: center.zoom,
-          }}
-          onError={(event) => {
-            const message = String((event as { error?: { message?: string } })?.error?.message || '').toLowerCase();
-            if (
-              message.includes('style') ||
-              message.includes('webgl') ||
-              message.includes('context') ||
-              message.includes('failed to load')
-            ) {
-              setStyleFailed(true);
-            }
-          }}
-        >
-          <NavigationControl position="top-right" />
+        <DestinationMapWebGL
+          markers={filteredMarkers}
+          selectedMarkerId={selectedMarkerId}
+          onSelectMarker={setSelectedMarkerId}
+          palette={palette}
+          styleUrl={styleUrl!}
+          viewportPreset={viewportPreset}
+          initialCenter={center}
+          onStyleFailed={() => setStyleFailed(true)}
+          routePath={routePath}
+        />
 
-          <Source id="colombia-outline" type="geojson" data={COLOMBIA_BOUNDARY_GEOJSON as unknown as GeoJSON.FeatureCollection}>
-            <Layer
-              id="colombia-fill"
-              type="fill"
-              paint={{
-                'fill-color': palette.colombiaFillColor,
-                'fill-opacity': 0.2,
-              }}
-            />
-            <Layer
-              id="colombia-line"
-              type="line"
-              paint={{
-                'line-color': palette.colombiaLineColor,
-                'line-width': 2.8,
-                'line-opacity': 0.98,
-              }}
-            />
-          </Source>
-
-          {filteredMarkers.map((marker) => (
-            <Marker
-              key={marker.id}
-              latitude={marker.lat}
-              longitude={marker.lng}
-              anchor="bottom"
-            >
-              <div style={{ transform: marker.kind === 'destination' ? 'translateY(-2px)' : undefined }}>
-                <MarkerButton
-                  marker={marker}
-                  markerColors={palette.markerColors}
-                  selected={selectedMarkerId === marker.id}
-                  onClick={() => setSelectedMarkerId(marker.id)}
-                />
-              </div>
-            </Marker>
-          ))}
-
-          {selectedMarker ? (
-            <Popup
-              closeOnClick={false}
-              closeButton
-              onClose={() => setSelectedMarkerId(null)}
-              latitude={selectedMarker.lat}
-              longitude={selectedMarker.lng}
-              anchor="top"
-            >
-              <div className="pr-4">
-                <p className="text-sm font-semibold" style={{ color: 'var(--text-heading)' }}>
-                  {selectedMarker.label}
-                </p>
-                <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
-                  {mapKindLabel(selectedMarker.kind)}
-                </p>
-                {selectedMarker.kind === 'destination' &&
-                (selectedMarkerMeta?.hotelCount || selectedMarkerMeta?.activityCount) ? (
-                  <p className="text-[11px] mt-1.5" style={{ color: 'var(--text-muted)' }}>
-                    Hoteles: {selectedMarkerMeta?.hotelCount ?? 0} · Actividades: {selectedMarkerMeta?.activityCount ?? 0}
-                  </p>
-                ) : null}
-              </div>
-            </Popup>
-          ) : null}
-        </Map>
-
-        {showFilters && filterKinds.length > 0 ? (
-          <div className="absolute top-3 left-3 z-10 flex flex-wrap gap-2 max-w-[85%]">
-            {(['all', ...filterKinds] as MarkerFilter[]).map((filter) => (
-              <button
-                key={filter}
-                type="button"
-                onClick={() => setSelectedFilter(filter)}
-                className="px-3 py-1.5 rounded-full text-xs font-medium border backdrop-blur-sm"
-                style={{
-                  background: selectedFilter === filter ? 'var(--accent)' : 'rgba(255,255,255,0.84)',
-                  color: selectedFilter === filter ? 'var(--accent-text)' : 'var(--text-secondary)',
-                  borderColor: selectedFilter === filter ? 'var(--accent)' : 'rgba(15,23,42,0.2)',
-                }}
-              >
-                {filter === 'all' ? 'Todos' : mapKindLabel(filter)}
-              </button>
-            ))}
-          </div>
-        ) : null}
-
-        {showLegend && availableKinds.length > 0 ? (
-          <div
-            className="absolute bottom-3 left-3 z-10 rounded-xl px-3 py-2 flex flex-wrap gap-3"
-            style={{ background: 'rgba(255,255,255,0.88)', border: '1px solid rgba(15,23,42,0.12)' }}
-          >
-            {availableKinds.map((kind) => (
-              <div key={kind} className="flex items-center gap-1.5">
-                <span
-                  className="inline-flex w-2.5 h-2.5 rounded-full"
-                  style={{ backgroundColor: palette.markerColors[kind] }}
-                />
-                <span className="text-[11px] font-medium" style={{ color: 'var(--text-secondary)' }}>
-                  {mapKindLabel(kind)}
-                </span>
-              </div>
-            ))}
-          </div>
-        ) : null}
+        {filtersNode}
+        {legendNode}
       </div>
     </div>
   );
