@@ -4,6 +4,7 @@ import type {
   AnalyticsConfig,
   WebsiteContent,
   FeaturedProducts,
+  AccountCurrencyRate,
   WebsiteSection,
   BlogPost,
   BlogCategory,
@@ -20,6 +21,7 @@ export type {
   BlogPost,
   BlogCategory,
   ThemeV3,
+  AccountCurrencyRate,
 };
 
 // Create a Supabase client for server-side data fetching
@@ -27,6 +29,54 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+interface AccountCurrencyColumns {
+  primary_currency: string | null;
+  enabled_currencies: string[] | null;
+  currency: AccountCurrencyRate[] | null;
+}
+
+async function getAccountCurrencyColumns(accountId: string): Promise<AccountCurrencyColumns | null> {
+  const { data, error } = await supabase
+    .from('accounts')
+    .select('primary_currency, enabled_currencies, currency')
+    .eq('id', accountId)
+    .maybeSingle();
+
+  if (error || !data) {
+    return null;
+  }
+
+  const primaryCurrency = typeof data.primary_currency === 'string'
+    ? data.primary_currency.toUpperCase()
+    : null;
+  const enabledCurrencies = Array.isArray(data.enabled_currencies)
+    ? data.enabled_currencies
+      .filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+      .map((item) => item.toUpperCase())
+    : null;
+  const currencyRates: AccountCurrencyRate[] | null = Array.isArray(data.currency)
+    ? data.currency.reduce<AccountCurrencyRate[]>((acc, entry) => {
+      if (!entry || typeof entry !== 'object') return acc;
+      const name = typeof entry.name === 'string' ? entry.name.toUpperCase() : null;
+      const rawRate = typeof entry.rate === 'number' ? entry.rate : Number(entry.rate);
+      if (!name || !Number.isFinite(rawRate) || rawRate <= 0) return acc;
+      const type = typeof entry.type === 'string' ? entry.type : null;
+      if (type) {
+        acc.push({ name, rate: rawRate, type });
+      } else {
+        acc.push({ name, rate: rawRate });
+      }
+      return acc;
+    }, [])
+    : null;
+
+  return {
+    primary_currency: primaryCurrency,
+    enabled_currencies: enabledCurrencies,
+    currency: currencyRates,
+  };
+}
 
 /**
  * Get website data by subdomain
@@ -52,6 +102,19 @@ export async function getWebsiteBySubdomain(subdomain: string): Promise<WebsiteD
       transfers: [],
       packages: [],
     };
+
+    if (website.account_id && website.content.account) {
+      const accountCurrencyColumns = await getAccountCurrencyColumns(website.account_id);
+      if (accountCurrencyColumns) {
+        website.content = {
+          ...website.content,
+          account: {
+            ...website.content.account,
+            ...accountCurrencyColumns,
+          },
+        };
+      }
+    }
 
     return {
       ...website,

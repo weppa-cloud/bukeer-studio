@@ -37,6 +37,7 @@ async function getWebsiteByCustomDomain(customDomain: string): Promise<WebsiteDa
     .from('websites')
     .select(`
       id,
+      account_id,
       subdomain,
       custom_domain,
       status,
@@ -58,7 +59,48 @@ async function getWebsiteByCustomDomain(customDomain: string): Promise<WebsiteDa
     return null;
   }
 
-  return website as unknown as WebsiteData;
+  const websiteData = website as unknown as WebsiteData;
+  if (websiteData.account_id && websiteData.content.account) {
+    const { data: accountCurrency } = await supabase
+      .from('accounts')
+      .select('primary_currency, enabled_currencies, currency')
+      .eq('id', websiteData.account_id)
+      .maybeSingle();
+
+    if (accountCurrency) {
+      websiteData.content = {
+        ...websiteData.content,
+        account: {
+          ...websiteData.content.account,
+          primary_currency: typeof accountCurrency.primary_currency === 'string'
+            ? accountCurrency.primary_currency.toUpperCase()
+            : null,
+          enabled_currencies: Array.isArray(accountCurrency.enabled_currencies)
+            ? accountCurrency.enabled_currencies
+              .filter((entry): entry is string => typeof entry === 'string' && entry.trim().length > 0)
+              .map((entry) => entry.toUpperCase())
+            : null,
+          currency: Array.isArray(accountCurrency.currency)
+            ? accountCurrency.currency
+              .map((entry) => {
+                if (!entry || typeof entry !== 'object') return null;
+                const name = typeof entry.name === 'string' ? entry.name.toUpperCase() : null;
+                const parsedRate = typeof entry.rate === 'number' ? entry.rate : Number(entry.rate);
+                if (!name || !Number.isFinite(parsedRate) || parsedRate <= 0) return null;
+                return {
+                  name,
+                  rate: parsedRate,
+                  type: typeof entry.type === 'string' ? entry.type : null,
+                };
+              })
+              .filter((entry): entry is { name: string; rate: number; type: string | null } => Boolean(entry))
+            : null,
+        },
+      };
+    }
+  }
+
+  return websiteData;
 }
 
 export default async function CustomDomainPage({ params, searchParams }: CustomDomainPageProps) {

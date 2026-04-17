@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import type { WebsiteData } from '@/lib/supabase/get-website';
 import type { ProductData, ProductPageCustomization } from '@/lib/supabase/get-pages';
 import { getCategoryProducts } from '@/lib/supabase/get-pages';
@@ -14,6 +15,15 @@ import { getPackageCircuitStops, withCoords } from '@/lib/products/package-circu
 import { PACKAGE_FAQS_DEFAULT } from '@/lib/products/package-faqs-default';
 import { ACTIVITY_FAQS_DEFAULT } from '@/lib/products/activity-faqs-default';
 import { trackEvent } from '@/lib/analytics/track';
+import {
+  SITE_CURRENCY_QUERY_PARAM,
+  SITE_CURRENCY_STORAGE_KEY,
+  buildCurrencyConfig,
+  convertCurrencyAmount,
+  normalizeCurrencyCode,
+  resolvePreferredCurrency,
+  type CurrencyConfig,
+} from '@/lib/site/currency';
 import { ProductSchema } from '../seo/product-schema';
 import { HighlightsGrid } from '@/components/site/highlights-grid';
 import { MeetingPointMap } from '@/components/site/meeting-point-map';
@@ -217,6 +227,45 @@ export function ProductLandingPage({
     product_name: displayName,
     tenant_subdomain: website.subdomain ?? null,
   };
+  const searchParams = useSearchParams();
+  const currencyConfig = useMemo(
+    () => buildCurrencyConfig(website.content.account),
+    [website.content.account]
+  );
+  const sourceCurrency = normalizeCurrencyCode(normalizedProduct.priceCurrency ?? product.currency)
+    ?? currencyConfig?.baseCurrency
+    ?? null;
+  const queryCurrency = searchParams?.get(SITE_CURRENCY_QUERY_PARAM) ?? null;
+  const enabledCurrenciesKey = currencyConfig?.enabledCurrencies.join(',') ?? '';
+  const [preferredCurrency, setPreferredCurrency] = useState<string | null>(sourceCurrency);
+
+  useEffect(() => {
+    const normalizedQueryCurrency = normalizeCurrencyCode(queryCurrency);
+    const normalizedStoredCurrency = typeof window !== 'undefined'
+      ? normalizeCurrencyCode(window.localStorage.getItem(SITE_CURRENCY_STORAGE_KEY))
+      : null;
+    const preferred = resolvePreferredCurrency({
+      queryCurrency: normalizedQueryCurrency,
+      storedCurrency: normalizedStoredCurrency,
+      config: currencyConfig,
+      fallbackCurrency: sourceCurrency,
+    });
+
+    setPreferredCurrency(preferred);
+
+    if (typeof window !== 'undefined' && preferred) {
+      window.localStorage.setItem(SITE_CURRENCY_STORAGE_KEY, preferred);
+    }
+  }, [currencyConfig, enabledCurrenciesKey, queryCurrency, sourceCurrency]);
+
+  const displayedCurrency = preferredCurrency ?? sourceCurrency;
+  const displayedBasePrice = convertCurrencyAmount(
+    normalizedProduct.price,
+    sourceCurrency,
+    displayedCurrency,
+    currencyConfig
+  );
+
   const handleWhatsAppClick = (location: string) => () => {
     trackEvent('whatsapp_cta_click', { ...analyticsContext, location_context: location });
   };
@@ -369,7 +418,7 @@ export function ProductLandingPage({
             <div className="mt-4 flex flex-wrap items-center gap-3">
               {normalizedProduct.price !== null && (
                 <span className="inline-flex items-center rounded-full bg-background/70 px-4 py-2 text-sm font-semibold backdrop-blur">
-                  Desde {formatPriceOrConsult(normalizedProduct.price, normalizedProduct.priceCurrency ?? product.currency)}
+                  Desde {formatPriceOrConsult(displayedBasePrice, displayedCurrency ?? sourceCurrency)}
                 </span>
               )}
               {whatsappUrl && (
@@ -399,7 +448,9 @@ export function ProductLandingPage({
 
       <StickyCTABar
         price={normalizedProduct.price}
-        currency={normalizedProduct.priceCurrency ?? product.currency}
+        currency={sourceCurrency}
+        preferredCurrency={displayedCurrency}
+        currencyConfig={currencyConfig}
         whatsappUrl={whatsappUrl}
         phone={primaryPhone || website.content.social?.whatsapp || null}
         analyticsContext={analyticsContext}
@@ -540,12 +591,21 @@ export function ProductLandingPage({
             )}
             {productType === 'activity' && (
               <SectionErrorBoundary sectionName="activity-sections">
-                <ActivitySections product={product} normalized={normalizedProduct} />
+                <ActivitySections
+                  product={product}
+                  normalized={normalizedProduct}
+                  preferredCurrency={displayedCurrency}
+                  currencyConfig={currencyConfig}
+                />
               </SectionErrorBoundary>
             )}
             {productType === 'package' && (
               <SectionErrorBoundary sectionName="package-sections">
-                <PackageSections product={product} normalized={normalizedProduct} analyticsContext={analyticsContext} />
+                <PackageSections
+                  product={product}
+                  normalized={normalizedProduct}
+                  analyticsContext={analyticsContext}
+                />
               </SectionErrorBoundary>
             )}
             {productType === 'transfer' && <TransferSections product={product} />}
@@ -583,6 +643,8 @@ export function ProductLandingPage({
                 <OptionsTable
                   title="Opciones disponibles"
                   options={product.options}
+                  preferredCurrency={displayedCurrency}
+                  currencyConfig={currencyConfig}
                 />
               </SectionErrorBoundary>
             )}
@@ -594,6 +656,8 @@ export function ProductLandingPage({
                 <SummarySidebar
                   product={product}
                   normalized={normalizedProduct}
+                  preferredCurrency={displayedCurrency}
+                  currencyConfig={currencyConfig}
                   productType={productType}
                   whatsappUrl={whatsappUrl}
                   phone={primaryPhone}
@@ -673,6 +737,8 @@ export function ProductLandingPage({
           product={product}
           productType={productType}
           basePath={basePath}
+          preferredCurrency={displayedCurrency}
+          currencyConfig={currencyConfig}
         />
       )}
     </div>
@@ -855,8 +921,23 @@ function HotelSections({ product, normalized }: { product: ProductData; normaliz
   );
 }
 
-function ActivitySections({ product, normalized }: { product: ProductData; normalized: NormalizedProduct }) {
+function ActivitySections({
+  product,
+  normalized,
+  preferredCurrency,
+  currencyConfig,
+}: {
+  product: ProductData;
+  normalized: NormalizedProduct;
+  preferredCurrency?: string | null;
+  currencyConfig?: CurrencyConfig | null;
+}) {
   const recommendations = normalizeTextList(product.recommendations);
+  const sourceCurrency = normalizeCurrencyCode(normalized.priceCurrency ?? product.currency)
+    ?? currencyConfig?.baseCurrency
+    ?? null;
+  const displayCurrency = preferredCurrency ?? sourceCurrency;
+  const convertedPrice = convertCurrencyAmount(normalized.price, sourceCurrency, displayCurrency, currencyConfig ?? null);
 
   if (recommendations.length === 0 && normalized.price === null) {
     return null;
@@ -894,7 +975,7 @@ function ActivitySections({ product, normalized }: { product: ProductData; norma
           <div className="rounded-xl overflow-hidden border border-border bg-card px-6 py-4">
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Desde</span>
-              <span className="text-xl font-bold text-primary">{formatPriceOrConsult(normalized.price, normalized.priceCurrency ?? product.currency)}</span>
+              <span className="text-xl font-bold text-primary">{formatPriceOrConsult(convertedPrice, displayCurrency ?? sourceCurrency)}</span>
             </div>
           </div>
         </motion.section>
@@ -1131,6 +1212,8 @@ function IncludeExcludeSection({
 function SummarySidebar({
   product,
   normalized,
+  preferredCurrency,
+  currencyConfig,
   productType,
   whatsappUrl,
   phone,
@@ -1139,6 +1222,8 @@ function SummarySidebar({
 }: {
   product: ProductData;
   normalized: NormalizedProduct;
+  preferredCurrency?: string | null;
+  currencyConfig?: CurrencyConfig | null;
   productType: string;
   whatsappUrl: string | null;
   phone?: string | null;
@@ -1146,6 +1231,11 @@ function SummarySidebar({
   analyticsContext?: Record<string, string | number | boolean | null | undefined>;
 }) {
   const phoneHref = phone ? `tel:${phone.replace(/[^0-9+]/g, '')}` : null;
+  const sourceCurrency = normalizeCurrencyCode(normalized.priceCurrency ?? product.currency)
+    ?? currencyConfig?.baseCurrency
+    ?? null;
+  const displayCurrency = preferredCurrency ?? sourceCurrency;
+  const convertedPrice = convertCurrencyAmount(normalized.price, sourceCurrency, displayCurrency, currencyConfig ?? null);
   const durationValue = productType === 'package' ? resolvePackageDuration(product) : product.duration || null;
   const quickFacts = [
     { label: 'Tipo', value: getCategoryLabel(productType) },
@@ -1159,7 +1249,7 @@ function SummarySidebar({
       {normalized.price !== null && (
         <div>
           <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground">Desde</span>
-          <p className="text-3xl mt-1 font-bold text-primary">{formatPriceOrConsult(normalized.price, normalized.priceCurrency ?? product.currency)}</p>
+          <p className="text-3xl mt-1 font-bold text-primary">{formatPriceOrConsult(convertedPrice, displayCurrency ?? sourceCurrency)}</p>
         </div>
       )}
 
@@ -1421,7 +1511,21 @@ function GoogleReviewsSection({ reviews }: { reviews: GoogleReviewProp[] }) {
 
 // --- Similar Products ---
 
-function SimilarProducts({ website, product, productType, basePath }: { website: WebsiteData; product: ProductData; productType: string; basePath: string }) {
+function SimilarProducts({
+  website,
+  product,
+  productType,
+  basePath,
+  preferredCurrency,
+  currencyConfig,
+}: {
+  website: WebsiteData;
+  product: ProductData;
+  productType: string;
+  basePath: string;
+  preferredCurrency?: string | null;
+  currencyConfig?: CurrencyConfig | null;
+}) {
   const [similar, setSimilar] = useState<ProductData[]>([]);
   const similarLabel = productType === 'hotel' ? 'Hoteles similares' : productType === 'activity' ? 'Experiencias similares' : 'Tambien te puede interesar';
   const categorySlug = getCategorySlug(productType);
@@ -1496,7 +1600,12 @@ function SimilarProducts({ website, product, productType, basePath }: { website:
                       <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{item.location}</span>
                     )}
                     {item.price && (
-                      <span className="text-sm font-semibold" style={{ color: 'var(--accent)' }}>{formatPriceOrConsult(item.price, item.currency)}</span>
+                      <span className="text-sm font-semibold" style={{ color: 'var(--accent)' }}>
+                        {formatPriceOrConsult(
+                          convertCurrencyAmount(item.price, item.currency, preferredCurrency ?? item.currency, currencyConfig ?? null),
+                          preferredCurrency ?? item.currency
+                        )}
+                      </span>
                     )}
                   </div>
                 </div>
