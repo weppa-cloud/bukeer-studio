@@ -54,6 +54,7 @@ All ADRs accepted unless noted. Cross-cut by Principles P1–P10 (see [[ARCHITEC
 | [[ADR-015]] | [ADR-015](./architecture/ADR-015-resilient-map-rendering-and-marker-media-fallback.md) | Resilient Map Rendering and Marker Media Fallback | [[maps]] [[webgl]] [[fallback]] |
 | [[ADR-016]] | [ADR-016](./architecture/ADR-016-seo-intelligence-caching.md) | SEO Content Intelligence Caching and Revalidation | [[SEO]] [[cache]] [[ISR]] [[places-cache]] |
 | [[ADR-017]] | [ADR-017](./architecture/ADR-017-geocoding-activity-circuits.md) | Geocoding for Activity Circuit Maps (MapTiler + places_cache) | [[geocoding]] [[maps]] [[places-cache]] |
+| [[ADR-018]] | [ADR-018](./architecture/ADR-018-webhook-idempotency.md) | Webhook Idempotency + Replay Protection (HMAC + 5min window + dedup) | [[webhook]] [[idempotency]] [[wompi]] [[booking]] |
 
 > **Note:** `ADR-022` and `ADR-032` referenced in specs are anchored in `weppa-cloud/bukeer-flutter`. Studio respects them but does not own them. See [[cross-repo-flutter]].
 
