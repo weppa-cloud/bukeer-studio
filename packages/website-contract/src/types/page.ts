@@ -17,6 +17,11 @@ export interface WebsitePage {
     title?: string;
     subtitle?: string;
     backgroundImage?: string;
+    eyebrow?: string;
+    ctaText?: string;
+    ctaUrl?: string;
+    secondaryCtaText?: string;
+    secondaryCtaUrl?: string;
   };
   intro_content: {
     text?: string;
