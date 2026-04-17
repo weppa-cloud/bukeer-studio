@@ -51,7 +51,7 @@ describe('getProductPage — Gate B package aggregation (#172)', () => {
     const result = await getProductPage('demo', 'package', 'tour-cartagena-5-dias');
 
     expect(result).not.toBeNull();
-    const prod = result!.product as typeof result.product & {
+    const prod = result!.product as NonNullable<typeof result>["product"] & {
       program_inclusions?: string[];
       program_exclusions?: string[];
       program_gallery?: string[];
@@ -83,7 +83,7 @@ describe('getProductPage — Gate B package aggregation (#172)', () => {
     expect(result).not.toBeNull();
     // Only one RPC call (main product) — aggregated not called
     expect(mockRpc).toHaveBeenCalledTimes(1);
-    const prod = result!.product as typeof result.product & {
+    const prod = result!.product as NonNullable<typeof result>["product"] & {
       program_inclusions?: string[];
     };
     expect(prod.program_inclusions).toEqual(['Kit inclusion']);
@@ -103,7 +103,7 @@ describe('getProductPage — Gate B package aggregation (#172)', () => {
     const result = await getProductPage('demo', 'package', 'tour-cartagena-5-dias');
 
     expect(result).not.toBeNull();
-    const prod = result!.product as typeof result.product & {
+    const prod = result!.product as NonNullable<typeof result>["product"] & {
       program_inclusions?: string[];
       program_exclusions?: string[];
       program_gallery?: string[];
@@ -127,7 +127,7 @@ describe('getProductPage — Gate B package aggregation (#172)', () => {
     // Must NOT crash — returns product with no aggregated fields
     expect(result).not.toBeNull();
     expect(result!.product.name).toBe('Tour Cartagena 5 días');
-    const prod = result!.product as typeof result.product & {
+    const prod = result!.product as NonNullable<typeof result>["product"] & {
       program_inclusions?: string[];
     };
     expect(prod.program_inclusions).toBeUndefined();
@@ -146,7 +146,7 @@ describe('getProductPage — Gate B package aggregation (#172)', () => {
     const result = await getProductPage('demo', 'package', 'tour-cartagena-5-dias');
 
     expect(result).not.toBeNull();
-    const prod = result!.product as typeof result.product & {
+    const prod = result!.product as NonNullable<typeof result>["product"] & {
       program_inclusions?: string[];
     };
     expect(prod.program_inclusions).toBeUndefined();
@@ -172,7 +172,7 @@ describe('getProductPage — Gate B package aggregation (#172)', () => {
     // Must not crash — Zod safeParse fails silently, product returned without agg fields
     expect(result).not.toBeNull();
     expect(result!.product.name).toBe('Tour Cartagena 5 días');
-    const prod = result!.product as typeof result.product & {
+    const prod = result!.product as NonNullable<typeof result>["product"] & {
       program_inclusions?: string[];
     };
     expect(prod.program_inclusions).toBeUndefined();
