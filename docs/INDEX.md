@@ -83,6 +83,14 @@ Feature requests formalized. Status tracked inline. GitHub Issues = source of tr
 
 ---
 
+## Product
+
+| Wikilink | File | Purpose |
+|----------|------|---------|
+| [[package-detail-anatomy]] | [file](./product/package-detail-anatomy.md) | Package landing anatomy: sections, fields, hygiene checklist, gaps. |
+
+---
+
 ## Ops, runbooks, CI
 
 | Wikilink | File | Purpose |
@@ -275,6 +283,7 @@ Obsidian resolves `[[ADR-005]]` by filename stem or alias. Claude Code / Codex g
 | `[[AI-AGENT-DEVELOPMENT]]` | `docs/architecture/AI-AGENT-DEVELOPMENT.md` |
 | `[[SPEC_*]]` | `docs/specs/SPEC_*.md` (filename stem match) |
 | `[[cross-repo-flutter]]` | `.claude/rules/cross-repo-flutter.md` |
+| `[[package-detail-anatomy]]` | `docs/product/package-detail-anatomy.md` |
 | `[[e2e-sessions]]` | `.claude/rules/e2e-sessions.md` |
 | Any unresolved concept | Search this INDEX with `grep "[[concept]]" docs/INDEX.md`. |
 
