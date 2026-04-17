@@ -8,6 +8,7 @@ import { renderSectionWithResult } from '@/lib/sections/render-section';
 import { EditableSection } from '@/components/editor/editable-section';
 import { EditorShell } from '@/components/editor/editor-shell';
 import type { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
+import type { ThemeInput } from '@/lib/theme/m3-theme-provider';
 
 // ============================================================================
 // Legacy Editor Page — Puck removed (#569)
@@ -43,6 +44,14 @@ interface WebsiteSnapshot {
     config: Record<string, unknown>;
     content: Record<string, unknown>;
   }>;
+}
+
+function getInitialTheme(theme: WebsiteSnapshot['website']['theme'] | null | undefined): ThemeInput | undefined {
+  if (!theme?.tokens || !theme?.profile) return undefined;
+  return {
+    tokens: theme.tokens as ThemeInput['tokens'],
+    profile: theme.profile as ThemeInput['profile'],
+  };
 }
 
 export default function EditorPage({ params }: EditorPageProps) {
@@ -217,7 +226,7 @@ export default function EditorPage({ params }: EditorPageProps) {
   // Legacy Canvas Mode (read-only preview)
   // ============================================================================
   return (
-    <M3ThemeProvider initialTheme={data.website.theme?.tokens ? ({ tokens: data.website.theme.tokens, profile: data.website.theme.profile } as any) : undefined}>
+    <M3ThemeProvider initialTheme={getInitialTheme(data.website.theme)}>
       <div className="min-h-screen">
         {(data.sections || []).map((section) => {
           const sectionForRender = {

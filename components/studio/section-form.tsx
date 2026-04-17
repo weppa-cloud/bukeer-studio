@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback } from 'react';
+import Image from 'next/image';
 import { StudioInput, StudioSelect, StudioTextarea } from '@/components/studio/ui/primitives';
 import { getSectionFieldConfig } from '@/lib/studio/section-fields';
 import type { FieldDefinition } from '@/lib/studio/section-fields';
@@ -116,12 +117,15 @@ function FieldRenderer({ field, value, onChange }: FieldRendererProps) {
           />
           {stringValue && (
             <div className="mt-1 rounded-md overflow-hidden border border-[var(--studio-border)] bg-[var(--studio-panel)]">
-              <img
+              <Image
                 src={stringValue}
                 alt={field.label}
+                width={640}
+                height={96}
+                unoptimized
                 className="w-full h-24 object-cover"
                 onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = 'none';
+                  e.currentTarget.style.display = 'none';
                 }}
               />
             </div>

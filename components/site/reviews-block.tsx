@@ -78,19 +78,18 @@ function ReviewCard({ review }: { review: GoogleReviewData }) {
         <div className="flex items-center gap-3 min-w-0">
           {/* Avatar */}
           {hasPhoto ? (
-            /* eslint-disable-next-line @next/next/no-img-element */
-            <img
+            <Image
               src={review.author_photo!}
               alt={review.author_name}
               width={48}
               height={48}
+              sizes="48px"
               className="rounded-full object-cover flex-shrink-0"
               style={{
                 width: 48,
                 height: 48,
                 border: '2px solid var(--accent, #16a34a)',
               }}
-              loading="lazy"
             />
           ) : (
             <div
@@ -143,12 +142,12 @@ function ReviewCard({ review }: { review: GoogleReviewData }) {
       {/* Review image thumbnail (if available) — shown ABOVE the quote */}
       {firstImage && (
         <div className="mt-3 aspect-video relative overflow-hidden rounded-lg">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          <Image
             src={firstImage.thumbnail ?? firstImage.url}
             alt={`Foto de ${review.author_name}`}
+            fill
+            sizes="(max-width: 768px) 100vw, 33vw"
             className="w-full h-full object-cover"
-            loading="lazy"
           />
         </div>
       )}

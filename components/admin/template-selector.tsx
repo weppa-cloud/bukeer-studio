@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser-client';
 
@@ -42,11 +43,7 @@ export function TemplateSelector({ open, currentTemplateId, onSelect, onClose }:
   const [templates, setTemplates] = useState<TemplateItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (open) loadTemplates();
-  }, [open]);
-
-  async function loadTemplates() {
+  const loadTemplates = useCallback(async () => {
     setLoading(true);
     const { data } = await supabase
       .from('website_templates')
@@ -58,7 +55,11 @@ export function TemplateSelector({ open, currentTemplateId, onSelect, onClose }:
 
     setTemplates((data as TemplateItem[]) || []);
     setLoading(false);
-  }
+  }, [supabase]);
+
+  useEffect(() => {
+    if (open) loadTemplates();
+  }, [open, loadTemplates]);
 
   return (
     <AnimatePresence>
@@ -121,9 +122,12 @@ export function TemplateSelector({ open, currentTemplateId, onSelect, onClose }:
                         }`}
                       >
                         {tpl.thumbnail_url ? (
-                          <img
+                          <Image
                             src={tpl.thumbnail_url}
                             alt={tpl.name}
+                            width={240}
+                            height={80}
+                            unoptimized
                             className="w-full h-20 object-cover rounded-lg bg-[var(--studio-surface-elevated)]"
                           />
                         ) : (

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useMemo, useCallback, useRef, lazy, Suspense } from 'react';
+import { useState, useMemo, lazy, Suspense } from 'react';
+import Image from 'next/image';
 import type { AutosaveStatus } from '@/lib/hooks/use-autosave';
 
 // Lazy-load TipTap BlogEditor to avoid SSR issues with ProseMirror
@@ -172,7 +173,14 @@ export function BlogEditorComponent({
               <h4 className="text-sm font-semibold text-slate-900 dark:text-white mb-3">Featured Image</h4>
               {post.featured_image ? (
                 <div className="relative">
-                  <img src={post.featured_image} alt="" className="w-full h-40 object-cover rounded-lg" />
+                  <Image
+                    src={post.featured_image}
+                    alt=""
+                    width={640}
+                    height={160}
+                    unoptimized
+                    className="w-full h-40 object-cover rounded-lg"
+                  />
                   <button
                     onClick={() => onChange({ ...post, featured_image: null })}
                     className="absolute top-2 right-2 p-1 bg-black/50 rounded-full text-white"

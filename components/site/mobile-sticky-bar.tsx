@@ -27,7 +27,7 @@ export function MobileStickyBar({ website }: MobileStickyBarProps) {
   if (config && !config.enabled) return null;
 
   // Resolve buttons: explicit config or auto-generate from content
-  let buttons = config?.buttons || [];
+  const buttons = config?.buttons ? [...config.buttons] : [];
 
   if (buttons.length === 0) {
     // Auto-generate from content

@@ -41,7 +41,7 @@ export function PackagesSection({ section, website }: PackagesSectionProps) {
   const title = sectionContent.title || 'Paquetes de Viaje';
   const subtitle = sectionContent.subtitle;
   const eyebrow = sectionContent.eyebrow || 'Experiencias Curadas';
-  const packages = sectionContent.packages || [];
+  const packages = useMemo(() => sectionContent.packages ?? [], [sectionContent.packages]);
 
   // Destination filter state
   const [activeDestination, setActiveDestination] = useState<string>('Todos');

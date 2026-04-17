@@ -5,7 +5,6 @@ import { createClient } from '@supabase/supabase-js';
 import {
   DndContext,
   DragEndEvent,
-  DragOverlay,
   closestCenter,
   PointerSensor,
   useSensor,
@@ -25,7 +24,8 @@ import { Toolbar, type ViewportSize } from './toolbar';
 import { SectionPalette } from './section-palette';
 import { CanvasFrame } from './canvas-frame';
 import { CopilotBar, type CopilotPlan } from './copilot-bar';
-import { createAuthClient, getAuthUser } from '@/lib/auth/require-auth';
+import { createAuthClient } from '@/lib/auth/require-auth';
+import type { ThemeInput } from '@/lib/theme/m3-theme-provider';
 import type { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 
 interface EditorSection {
@@ -309,9 +309,7 @@ export function EditorShell({ websiteId, initialToken }: EditorShellProps) {
   }, [websiteId, data, getSupabase]);
 
   // Section select
-  const handleSectionSelect = useCallback((
-    id: string, type: string, enabled: boolean, content: Record<string, unknown>
-  ) => {
+  const handleSectionSelect = useCallback((id: string, type: string) => {
     setSelectedSectionId(id);
     setSelectedSectionType(type);
   }, []);
@@ -406,6 +404,9 @@ export function EditorShell({ websiteId, initialToken }: EditorShellProps) {
 
   const websiteForRender = buildWebsiteForRender();
   if (!websiteForRender) return null;
+  const initialTheme: ThemeInput | undefined = data.website.theme?.tokens && data.website.theme?.profile
+    ? ({ tokens: data.website.theme.tokens, profile: data.website.theme.profile } as unknown as ThemeInput)
+    : undefined;
 
   return (
     <div className="h-screen flex flex-col">
@@ -431,7 +432,7 @@ export function EditorShell({ websiteId, initialToken }: EditorShellProps) {
           <SectionPalette isOpen={paletteOpen} onToggle={() => setPaletteOpen(!paletteOpen)} />
 
           <CanvasFrame websiteId={websiteId} viewport={viewport}>
-            <M3ThemeProvider initialTheme={data.website.theme?.tokens ? ({ tokens: data.website.theme.tokens, profile: data.website.theme.profile } as any) : undefined}>
+            <M3ThemeProvider initialTheme={initialTheme}>
               <SortableContext
                 items={data.sections.map((s) => s.id)}
                 strategy={verticalListSortingStrategy}

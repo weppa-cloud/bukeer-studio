@@ -10,7 +10,7 @@ interface ContentEditorProps {
 }
 
 export function ContentEditor({ website, onSave }: ContentEditorProps) {
-  const c = website.content || {} as any;
+  const c = website.content;
   const [siteName, setSiteName] = useState(c.siteName || '');
   const [tagline, setTagline] = useState(c.tagline || '');
   const [email, setEmail] = useState(c.contact?.email || '');
@@ -31,7 +31,7 @@ export function ContentEditor({ website, onSave }: ContentEditorProps) {
           contact: { email: d.email, phone: d.phone, address: d.address },
           social: d.social,
         },
-      } as any);
+      });
     },
   });
 

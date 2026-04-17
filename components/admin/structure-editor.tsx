@@ -23,22 +23,33 @@ interface StructureEditorProps {
 }
 
 export function StructureEditor({ website, onSave }: StructureEditorProps) {
-  const siteParts = (website.site_parts || {}) as any;
-  const [headerVariant, setHeaderVariant] = useState(siteParts.header?.variant || 'left-logo');
-  const [footerVariant, setFooterVariant] = useState(siteParts.footer?.variant || '4-column');
+  const siteParts = (website.site_parts ?? {}) as Partial<NonNullable<WebsiteData['site_parts']>>;
+  const [headerVariant, setHeaderVariant] = useState<string>(siteParts.header?.variant || 'left-logo');
+  const [footerVariant, setFooterVariant] = useState<string>(siteParts.footer?.variant || '4-column');
   const [stickyMobile, setStickyMobile] = useState(siteParts.mobileStickyBar?.enabled ?? true);
 
   const { status } = useAutosave({
     data: { headerVariant, footerVariant, stickyMobile },
     onSave: async (data) => {
-      await onSave({
-        site_parts: {
-          ...siteParts,
-          header: { ...siteParts.header, variant: data.headerVariant },
-          footer: { ...siteParts.footer, variant: data.footerVariant },
-          mobileStickyBar: { ...siteParts.mobileStickyBar, enabled: data.stickyMobile },
+      const updatedSiteParts: NonNullable<WebsiteData['site_parts']> = {
+        header: {
+          blocks: siteParts.header?.blocks ?? ['logo', 'nav', 'cta', 'theme_toggle'],
+          shrinkOnScroll: siteParts.header?.shrinkOnScroll ?? false,
+          variant: data.headerVariant as NonNullable<WebsiteData['site_parts']>['header']['variant'],
         },
-      } as any);
+        footer: {
+          blocks: siteParts.footer?.blocks ?? ['logo', 'nav', 'legal', 'contact', 'social', 'copyright'],
+          variant: data.footerVariant as NonNullable<WebsiteData['site_parts']>['footer']['variant'],
+        },
+        mobileStickyBar: {
+          buttons: siteParts.mobileStickyBar?.buttons ?? [],
+          enabled: data.stickyMobile,
+        },
+      };
+
+      await onSave({
+        site_parts: updatedSiteParts,
+      });
     },
   });
 

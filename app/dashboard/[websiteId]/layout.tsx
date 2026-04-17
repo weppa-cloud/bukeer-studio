@@ -44,7 +44,9 @@ export default function WebsiteLayout({
       }
 
       if (!active) return;
-      setWebsiteName((website.content as any)?.siteName || website.subdomain);
+      const websiteContent = website.content as { siteName?: unknown } | null;
+      const siteName = typeof websiteContent?.siteName === 'string' ? websiteContent.siteName : '';
+      setWebsiteName(siteName || website.subdomain);
     }
 
     loadLayoutData();

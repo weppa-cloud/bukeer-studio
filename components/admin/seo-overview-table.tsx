@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
 import type { ScoredItem } from '@/lib/seo/scored-item';
 
@@ -126,7 +127,14 @@ export function SeoOverviewTable({ items }: SeoOverviewTableProps) {
                 >
                   <td className="px-3 py-2">
                     {item.image ? (
-                      <img src={item.image} alt="" className="w-8 h-8 rounded object-cover" />
+                      <Image
+                        src={item.image}
+                        alt=""
+                        width={32}
+                        height={32}
+                        unoptimized
+                        className="w-8 h-8 rounded object-cover"
+                      />
                     ) : (
                       <div className="w-8 h-8 rounded bg-[var(--studio-border)] flex items-center justify-center">
                         <svg className="w-4 h-4 text-[var(--studio-text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">

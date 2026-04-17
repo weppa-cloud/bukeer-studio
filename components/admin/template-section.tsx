@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser-client';
 import { useWebsite } from '@/lib/admin/website-context';
@@ -33,11 +34,7 @@ export function TemplateSection({ websiteId }: { websiteId: string }) {
   const [applying, setApplying] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadCurrentTemplate();
-  }, [website?.template_id]);
-
-  async function loadCurrentTemplate() {
+  const loadCurrentTemplate = useCallback(async () => {
     setLoading(true);
     if (!website?.template_id) {
       setCurrentTemplate(null);
@@ -53,7 +50,11 @@ export function TemplateSection({ websiteId }: { websiteId: string }) {
 
     setCurrentTemplate(data as TemplateInfo | null);
     setLoading(false);
-  }
+  }, [supabase, website?.template_id]);
+
+  useEffect(() => {
+    loadCurrentTemplate();
+  }, [loadCurrentTemplate]);
 
   function handleSelectTemplate(templateId: string) {
     setSelectedTemplateId(templateId);
@@ -107,9 +108,12 @@ export function TemplateSection({ websiteId }: { websiteId: string }) {
         <h3 className="text-sm font-semibold text-[var(--studio-text)] mb-3">Current Template</h3>
         <div className="studio-card p-4 flex items-center gap-4">
           {currentTemplate?.thumbnail_url ? (
-            <img
+            <Image
               src={currentTemplate.thumbnail_url}
               alt={currentTemplate.name}
+              width={64}
+              height={64}
+              unoptimized
               className="w-16 h-16 rounded-lg object-cover bg-[var(--studio-surface-elevated)]"
             />
           ) : (

@@ -339,7 +339,8 @@ function Ciclo90D() {
 
 // ─── Main export ──────────────────────────────────────────────────────────────
 
-export function SeoOkrCycle({ websiteId: _websiteId, overview }: SeoOkrCycleProps) {
+export function SeoOkrCycle({ websiteId, overview }: SeoOkrCycleProps) {
+  void websiteId;
   return (
     <div className="space-y-3 mt-4">
       {/* Section title */}

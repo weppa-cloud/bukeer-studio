@@ -21,7 +21,8 @@ export class SectionErrorBoundary extends React.Component<
     hasError: false,
   };
 
-  static getDerivedStateFromError(_error: Error): SectionErrorBoundaryState {
+  static getDerivedStateFromError(error: Error): SectionErrorBoundaryState {
+    void error;
     return { hasError: true };
   }
 

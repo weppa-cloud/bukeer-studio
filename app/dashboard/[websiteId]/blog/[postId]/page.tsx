@@ -59,7 +59,10 @@ export default function BlogEditorPage() {
 
   const { status: autoSaveStatus, saveNow } = useAutosave({
     data: post,
-    onSave: handleSave as any,
+    onSave: async (data) => {
+      if (!data) return;
+      await handleSave(data);
+    },
     debounceMs: 2000,
     enabled: !!post,
   });

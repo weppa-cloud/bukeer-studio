@@ -13,7 +13,6 @@ import {
 } from '@/components/studio/ui/primitives';
 import {
   scorePageContent,
-  type PageScoringResult,
   type PageScoreCheck,
 } from '@/lib/studio/score-page-content';
 import type { EditorSection } from '@/lib/studio/section-actions';
@@ -110,11 +109,9 @@ function CheckItem({ check }: { check: PageScoreCheck }) {
 // ============================================================================
 
 function KeywordsManager({
-  websiteId,
   initialKeywords,
   onKeywordsChange,
 }: {
-  websiteId: string;
   initialKeywords: string[];
   onKeywordsChange: (keywords: string[]) => void;
 }) {
@@ -197,6 +194,7 @@ export function SeoPanel({
   seoDescription,
   onSeoChange,
 }: SeoPanelProps) {
+  void pageId;
   const [keywords, setKeywords] = useState<string[]>([]);
   const [loadingKeywords, setLoadingKeywords] = useState(true);
   const supabase = createSupabaseBrowserClient();
@@ -312,7 +310,6 @@ export function SeoPanel({
         {!loadingKeywords && (
           <StudioPanel className="p-4">
             <KeywordsManager
-              websiteId={websiteId}
               initialKeywords={keywords}
               onKeywordsChange={handleKeywordsChange}
             />

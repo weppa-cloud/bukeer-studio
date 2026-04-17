@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { useAutosave } from '@/lib/hooks/use-autosave';
 import type { WebsiteData } from '@bukeer/website-contract';
 
@@ -10,13 +11,15 @@ interface BrandKitEditorProps {
 }
 
 export function BrandKitEditor({ website, onSave }: BrandKitEditorProps) {
-  const content = website.content || {} as any;
-  const profile = (website.theme?.profile || {}) as any;
+  const content = website.content;
+  const profile = website.theme?.profile ?? {};
+  const initialBrandMood =
+    typeof profile.brandMood === 'string' ? profile.brandMood : 'corporate';
 
   const [logo, setLogo] = useState(content.logo || '');
   const [logoLight, setLogoLight] = useState(content.logoLight || '');
   const [logoDark, setLogoDark] = useState(content.logoDark || '');
-  const [brandMood, setBrandMood] = useState(profile.brandMood || 'corporate');
+  const [brandMood, setBrandMood] = useState(initialBrandMood);
 
   const MOODS = [
     { id: 'adventurous', label: 'Adventurous', desc: 'Bold & dynamic' },
@@ -36,9 +39,9 @@ export function BrandKitEditor({ website, onSave }: BrandKitEditorProps) {
         content: { ...content, logo: data.logo, logoLight: data.logoLight, logoDark: data.logoDark },
         theme: {
           ...website.theme,
-          profile: { ...(website.theme?.profile as any), brandMood: data.brandMood },
+          profile: { ...profile, brandMood: data.brandMood },
         },
-      } as any);
+      });
     },
   });
 
@@ -51,7 +54,14 @@ export function BrandKitEditor({ website, onSave }: BrandKitEditorProps) {
         <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-3">Logo</h3>
         {logo ? (
           <div className="relative inline-block">
-            <img src={logo} alt="Logo" className="h-16 object-contain" />
+            <Image
+              src={logo}
+              alt="Logo"
+              width={256}
+              height={64}
+              unoptimized
+              className="h-16 w-auto object-contain"
+            />
             <button
               onClick={() => setLogo('')}
               className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full"
@@ -88,7 +98,14 @@ export function BrandKitEditor({ website, onSave }: BrandKitEditorProps) {
             {logoLight ? (
               <div className="relative mb-3">
                 <div className="rounded-lg p-4 flex items-center justify-center" style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0' }}>
-                  <img src={logoLight} alt="Logo fondos claros" className="h-12 object-contain" />
+                  <Image
+                    src={logoLight}
+                    alt="Logo fondos claros"
+                    width={240}
+                    height={48}
+                    unoptimized
+                    className="h-12 w-auto object-contain"
+                  />
                 </div>
                 <button
                   onClick={() => setLogoLight('')}
@@ -116,7 +133,14 @@ export function BrandKitEditor({ website, onSave }: BrandKitEditorProps) {
             {logoDark ? (
               <div className="relative mb-3">
                 <div className="rounded-lg p-4 flex items-center justify-center" style={{ backgroundColor: '#1a1a2e' }}>
-                  <img src={logoDark} alt="Logo fondos oscuros" className="h-12 object-contain" />
+                  <Image
+                    src={logoDark}
+                    alt="Logo fondos oscuros"
+                    width={240}
+                    height={48}
+                    unoptimized
+                    className="h-12 w-auto object-contain"
+                  />
                 </div>
                 <button
                   onClick={() => setLogoDark('')}

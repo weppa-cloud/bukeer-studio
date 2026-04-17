@@ -58,7 +58,8 @@ interface SeoLocaleSettingsProps {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function SeoLocaleSettings({ websiteId: _websiteId }: SeoLocaleSettingsProps) {
+export function SeoLocaleSettings({ websiteId }: SeoLocaleSettingsProps) {
+  void websiteId;
   // A) Locales activos
   const [activeLocales, setActiveLocales] = useState<string[]>(['es-CO']);
   const [showAddForm, setShowAddForm] = useState(false);
