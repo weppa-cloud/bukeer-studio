@@ -174,8 +174,9 @@ export interface NormalizedGalleryContent {
   title?: string;
   images?: Array<{
     src?: string;
-    alt?: string;
-    caption?: string;
+    alt?: string | Record<string, string>;
+    caption?: string | Record<string, string>;
+    mediaAssetId?: string;
   }>;
 }
 
@@ -195,6 +196,9 @@ export interface NormalizedBlogGridContent {
 export interface NormalizedRichTextContent {
   title?: string;
   text?: string;
+  image?: string;
+  imageAlt?: string | Record<string, string>;
+  imageCaption?: string | Record<string, string>;
 }
 
 export interface NormalizedLogoCloudContent {

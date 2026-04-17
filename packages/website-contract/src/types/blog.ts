@@ -11,6 +11,7 @@ export interface BlogPost {
   excerpt: string;
   content: string;
   featured_image: string | null;
+  featured_alt?: string | null;
   category_id: string | null;
   status: 'draft' | 'published' | 'scheduled';
   published_at: string | null;

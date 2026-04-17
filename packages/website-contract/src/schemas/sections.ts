@@ -55,6 +55,11 @@ const SafeUrl = z.string().max(2048).optional().refine((val) => {
   }
 }, { message: 'Invalid URL' });
 
+const LocalizedAltSchema = z.record(z.string(), z.string().max(200));
+const LocalizedCaptionSchema = z.record(z.string(), z.string().max(500));
+const LocalizableAltSchema = z.union([z.string().max(200), LocalizedAltSchema]);
+const LocalizableCaptionSchema = z.union([z.string().max(500), LocalizedCaptionSchema]);
+
 // ============================================================================
 // Content Schemas by Section Type
 // ============================================================================
@@ -65,6 +70,8 @@ export const HeroContentSchema = z.object({
   ctaText: z.string().max(50).optional(),
   ctaUrl: SafeUrl,
   backgroundImage: z.string().url().optional(),
+  backgroundImageAlt: LocalizableAltSchema.optional(),
+  imageAlt: LocalizableAltSchema.optional(),
   // Immersive variant fields
   eyebrow: z.string().max(100).optional(),
   secondaryCtaText: z.string().max(50).optional(),
@@ -192,6 +199,8 @@ export const RichTextContentSchema = z.object({
   body: SafeString.optional(),
   eyebrow: z.string().max(100).optional(),
   image: z.string().url().optional(),
+  imageAlt: LocalizableAltSchema.optional(),
+  imageCaption: LocalizableCaptionSchema.optional(),
   imagePosition: z.enum(['left', 'right']).optional(),
   ctaText: z.string().max(50).optional(),
   ctaUrl: SafeUrl,
@@ -201,8 +210,9 @@ export const GalleryContentSchema = z.object({
   title: SafeTitle.optional(),
   images: z.array(z.object({
     src: z.string().url(),
-    alt: z.string().max(200).optional(),
-    caption: z.string().max(500).optional(),
+    alt: LocalizableAltSchema.optional(),
+    caption: LocalizableCaptionSchema.optional(),
+    mediaAssetId: z.string().uuid().optional(),
   })).max(50),
 });
 
@@ -260,6 +270,7 @@ export const ActivitiesContentSchema = z.object({
     id: z.string(),
     name: SafeTitle,
     image: z.string().url().nullish(),
+    imageAlt: LocalizableAltSchema.optional(),
     description: SafeString.optional(),
     duration: z.string().max(50).optional(),
     price: z.string().max(50).optional(),

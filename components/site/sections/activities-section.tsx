@@ -5,6 +5,8 @@ import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 import { MobileCardCarousel } from '@/components/ui/card-carousel';
+import { resolveAlt, type LocalizableAlt } from '@bukeer/website-contract';
+import { useWebsiteLocale } from '@/lib/hooks/use-website-locale';
 
 interface ActivitiesSectionProps {
   section: WebsiteSection;
@@ -16,6 +18,7 @@ export interface ActivityItem {
   slug?: string;
   name: string;
   image?: string;
+  imageAlt?: LocalizableAlt;
   duration?: string;
   price?: string;
   category?: string;
@@ -27,6 +30,7 @@ export interface ActivityItem {
 }
 
 export function ActivitiesSection({ section, website }: ActivitiesSectionProps) {
+  const locale = useWebsiteLocale();
   const variant = section.variant || 'default';
   const sectionContent = section.content as {
     title?: string;
@@ -57,12 +61,19 @@ export function ActivitiesSection({ section, website }: ActivitiesSectionProps) 
           ariaLabel="Carrusel de actividades"
           getItemKey={(activity) => activity.id}
           itemWidthClassName="w-[88%] sm:w-[72%]"
-          renderItem={(activity, index) => <ActivityCard activity={activity} index={index} subdomain={website.subdomain} />}
+          renderItem={(activity, index) => (
+            <ActivityCard
+              activity={activity}
+              index={index}
+              subdomain={website.subdomain}
+              locale={locale}
+            />
+          )}
         />
 
         <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {activities.map((activity, index) => (
-            <ActivityCard key={activity.id} activity={activity} index={index} subdomain={website.subdomain} />
+            <ActivityCard key={activity.id} activity={activity} index={index} subdomain={website.subdomain} locale={locale} />
           ))}
         </div>
 
@@ -122,7 +133,19 @@ export function getDifficultyStyle(difficulty: string): { bg: string; text: stri
   return { bg: 'color-mix(in srgb, var(--accent) 16%, var(--bg-card))', text: 'var(--accent)' };
 }
 
-export function ActivityCard({ activity, index, subdomain, basePath: overrideBasePath }: { activity: ActivityItem; index: number; subdomain: string; basePath?: string }) {
+export function ActivityCard({
+  activity,
+  index,
+  subdomain,
+  locale,
+  basePath: overrideBasePath,
+}: {
+  activity: ActivityItem;
+  index: number;
+  subdomain: string;
+  locale: string;
+  basePath?: string;
+}) {
   const base = overrideBasePath ?? `/site/${subdomain}`;
   const detailSlug = (activity.slug || '').trim();
   const detailHref = detailSlug
@@ -148,7 +171,13 @@ export function ActivityCard({ activity, index, subdomain, basePath: overrideBas
         {/* Image — 16:9 landscape */}
         <div className="relative aspect-[16/9] overflow-hidden">
           {activity.image ? (
-            <Image src={activity.image} alt={activity.name} fill draggable={false} className="object-cover transition-transform duration-700 group-hover:scale-105" />
+            <Image
+              src={activity.image}
+              alt={resolveAlt(activity.imageAlt, locale) || activity.name || `Activity image ${index + 1}`}
+              fill
+              draggable={false}
+              className="object-cover transition-transform duration-700 group-hover:scale-105"
+            />
           ) : (
             <div className="w-full h-full" style={{ backgroundColor: 'var(--bg-card)' }} />
           )}

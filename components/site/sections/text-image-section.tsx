@@ -3,6 +3,8 @@
 import Image from 'next/image';
 import { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 import { BlurFade } from '@/components/ui/blur-fade';
+import { resolveAlt, type LocalizableAlt } from '@bukeer/website-contract';
+import { useWebsiteLocale } from '@/lib/hooks/use-website-locale';
 
 interface TextImageSectionProps {
   section: WebsiteSection;
@@ -10,6 +12,7 @@ interface TextImageSectionProps {
 }
 
 export function TextImageSection({ section }: TextImageSectionProps) {
+  const locale = useWebsiteLocale();
   const content = (section.content as {
     title?: string;
     text?: string;
@@ -17,6 +20,7 @@ export function TextImageSection({ section }: TextImageSectionProps) {
     body?: string;
     eyebrow?: string;
     image?: string;
+    imageAlt?: LocalizableAlt;
     imagePosition?: string;
     ctaText?: string;
     ctaUrl?: string;
@@ -26,6 +30,7 @@ export function TextImageSection({ section }: TextImageSectionProps) {
   const text = content.text || content.body || '';
   const eyebrow = content.eyebrow;
   const image = content.image || '';
+  const imageAlt = content.imageAlt;
   const imagePosition = content.imagePosition || 'right';
   const ctaText = content.ctaText;
   const ctaUrl = content.ctaUrl;
@@ -73,7 +78,7 @@ export function TextImageSection({ section }: TextImageSectionProps) {
               <div className="relative aspect-[4/3] rounded-2xl overflow-hidden shadow-lg">
                 <Image
                   src={image}
-                  alt={title || 'Imagen'}
+                  alt={resolveAlt(imageAlt, locale) || title || 'Section image'}
                   fill
                   className="object-cover"
                   sizes="(max-width: 1024px) 100vw, 50vw"

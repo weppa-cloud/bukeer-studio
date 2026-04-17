@@ -2,11 +2,14 @@
 
 import Image from 'next/image';
 import { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
+import { resolveAlt, type LocalizableAlt } from '@bukeer/website-contract';
+import { useWebsiteLocale } from '@/lib/hooks/use-website-locale';
 
 interface GalleryImage {
   url: string;
-  alt?: string;
-  caption?: string;
+  alt?: LocalizableAlt;
+  caption?: LocalizableAlt;
+  mediaAssetId?: string;
 }
 
 interface GallerySectionProps {
@@ -35,6 +38,7 @@ function ImagePlaceholder() {
 }
 
 export function GallerySection({ section }: GallerySectionProps) {
+  const locale = useWebsiteLocale();
   const content = (section.content as {
     title?: string;
     images?: GalleryImage[];
@@ -44,18 +48,22 @@ export function GallerySection({ section }: GallerySectionProps) {
   const variant = section.variant || 'grid';
 
   if (variant === 'carousel') {
-    return <GalleryCarousel title={title} images={images} />;
+    return <GalleryCarousel title={title} images={images} locale={locale} />;
   }
 
   if (variant === 'masonry') {
-    return <GalleryMasonry title={title} images={images} />;
+    return <GalleryMasonry title={title} images={images} locale={locale} />;
   }
 
   // Default: grid
-  return <GalleryGrid title={title} images={images} />;
+  return <GalleryGrid title={title} images={images} locale={locale} />;
 }
 
-function GalleryGrid({ title, images }: { title: string; images: GalleryImage[] }) {
+function resolveCaption(caption: LocalizableAlt | undefined, locale: string): string {
+  return resolveAlt(caption as LocalizableAlt | undefined, locale);
+}
+
+function GalleryGrid({ title, images, locale }: { title: string; images: GalleryImage[]; locale: string }) {
   return (
     <section className="section-padding">
       <div className="container">
@@ -72,15 +80,15 @@ function GalleryGrid({ title, images }: { title: string; images: GalleryImage[] 
                   <>
                     <Image
                       src={image.url}
-                      alt={image.alt || `Imagen ${index + 1}`}
+                      alt={resolveAlt(image.alt, locale) || `Image ${index + 1}`}
                       fill
                       loading="lazy"
                       sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
                       className="object-cover group-hover:scale-105 transition-transform duration-300"
                     />
-                    {image.caption && (
+                    {resolveCaption(image.caption, locale) && (
                       <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-4">
-                        <p className="text-white text-sm">{image.caption}</p>
+                        <p className="text-white text-sm">{resolveCaption(image.caption, locale)}</p>
                       </div>
                     )}
                   </>
@@ -119,7 +127,7 @@ function GalleryGrid({ title, images }: { title: string; images: GalleryImage[] 
   );
 }
 
-function GalleryCarousel({ title, images }: { title: string; images: GalleryImage[] }) {
+function GalleryCarousel({ title, images, locale }: { title: string; images: GalleryImage[]; locale: string }) {
   return (
     <section className="section-padding bg-muted/30">
       <div className="container">
@@ -136,7 +144,7 @@ function GalleryCarousel({ title, images }: { title: string; images: GalleryImag
                   {image.url ? (
                     <Image
                       src={image.url}
-                      alt={image.alt || `Imagen ${index + 1}`}
+                      alt={resolveAlt(image.alt, locale) || `Image ${index + 1}`}
                       width={350}
                       height={467}
                       loading="lazy"
@@ -164,7 +172,7 @@ function GalleryCarousel({ title, images }: { title: string; images: GalleryImag
   );
 }
 
-function GalleryMasonry({ title, images }: { title: string; images: GalleryImage[] }) {
+function GalleryMasonry({ title, images, locale }: { title: string; images: GalleryImage[]; locale: string }) {
   return (
     <section className="section-padding">
       <div className="container">
@@ -180,7 +188,7 @@ function GalleryMasonry({ title, images }: { title: string; images: GalleryImage
                 {image.url ? (
                   <Image
                     src={image.url}
-                    alt={image.alt || `Imagen ${index + 1}`}
+                    alt={resolveAlt(image.alt, locale) || `Image ${index + 1}`}
                     width={400}
                     height={300}
                     loading="lazy"

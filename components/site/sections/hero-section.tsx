@@ -6,6 +6,8 @@ import { useRef, useEffect, useState, MouseEvent } from 'react';
 import { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 import { TextGenerateEffect } from '@/components/ui/text-generate-effect';
 import { NumberTicker } from '@/components/ui/number-ticker';
+import { resolveAlt, type LocalizableAlt } from '@bukeer/website-contract';
+import { useWebsiteLocale } from '@/lib/hooks/use-website-locale';
 
 interface HeroSectionProps {
   section: WebsiteSection;
@@ -199,6 +201,7 @@ function WavyBackground() {
 }
 
 export function HeroSection({ section, website }: HeroSectionProps) {
+  const locale = useWebsiteLocale();
   const { content, theme } = website;
   // Precedence: section.variant > theme.layout.heroStyle > 'full'
   const themeLayout = (theme as unknown as Record<string, Record<string, string>> | null)?.layout;
@@ -220,6 +223,8 @@ export function HeroSection({ section, website }: HeroSectionProps) {
     title?: string;
     subtitle?: string;
     backgroundImage?: string;
+    backgroundImageAlt?: LocalizableAlt;
+    imageAlt?: LocalizableAlt;
     backgroundVideo?: string;
     ctaText?: string;
     ctaUrl?: string;
@@ -227,6 +232,10 @@ export function HeroSection({ section, website }: HeroSectionProps) {
 
   const title = sectionContent.title || content.siteName;
   const subtitle = sectionContent.subtitle || content.tagline;
+  const heroImageAlt =
+    resolveAlt(sectionContent.backgroundImageAlt || sectionContent.imageAlt, locale)
+    || title
+    || 'Hero background image';
 
   // Variant-specific styles
   const variants = {
@@ -250,6 +259,8 @@ export function HeroSection({ section, website }: HeroSectionProps) {
     title?: string;
     subtitle?: string;
     backgroundImage?: string;
+    backgroundImageAlt?: LocalizableAlt;
+    imageAlt?: LocalizableAlt;
     ctaText?: string;
     ctaUrl?: string;
     secondaryCtaText?: string;
@@ -281,7 +292,7 @@ export function HeroSection({ section, website }: HeroSectionProps) {
           ) : sectionContent.backgroundImage ? (
             <Image
               src={sectionContent.backgroundImage}
-              alt={title || 'Hero background'}
+              alt={heroImageAlt}
               fill
               priority
               fetchPriority="high"
@@ -442,7 +453,7 @@ export function HeroSection({ section, website }: HeroSectionProps) {
             >
               <Image
                 src={sectionContent.backgroundImage}
-                alt={title || 'Hero background'}
+                alt={heroImageAlt}
                 fill
                 priority
                 fetchPriority="high"
@@ -454,7 +465,7 @@ export function HeroSection({ section, website }: HeroSectionProps) {
           ) : (
             <Image
               src={sectionContent.backgroundImage}
-              alt={title || 'Hero background'}
+              alt={heroImageAlt}
               fill
               priority
               fetchPriority="high"

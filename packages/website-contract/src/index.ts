@@ -26,6 +26,13 @@ export type {
   SectionTypeValue,
 } from './types/section';
 export { SECTION_TYPES } from './types/section';
+export type {
+  LocalizedString,
+  LocalizableAlt,
+  MediaAssetAlt,
+  MediaAsset,
+} from './types/media';
+export { resolveAlt } from './types/media';
 
 export type {
   WebsitePage,
