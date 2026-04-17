@@ -11,6 +11,8 @@ import { GoogleTagManager, GoogleTagManagerBody } from '@/components/analytics/g
 import { buildNavTree, getDefaultNavigation } from '@/lib/utils/navigation';
 import { getBasePath } from '@/lib/utils/base-path';
 import type { ThemeInput } from '@/lib/theme/m3-theme-provider';
+import { resolvePublicMetadataLocale } from '@/lib/seo/public-metadata';
+import { localeToOgLocale } from '@/lib/seo/locale-routing';
 import '@/app/globals.css';
 
 interface SiteLayoutProps {
@@ -43,6 +45,7 @@ export async function generateMetadata({ params }: SiteLayoutProps): Promise<Met
   const description = content?.seo?.description
     || content?.tagline
     || `${content?.siteName || subdomain} - Tu agencia de viajes de confianza`;
+  const localeContext = await resolvePublicMetadataLocale(website, '/');
 
   // Resolve og:image from: seo.image > hero backgroundImage > account logo
   const heroSection = website.sections?.find(
@@ -67,6 +70,7 @@ export async function generateMetadata({ params }: SiteLayoutProps): Promise<Met
       description,
       siteName: siteName,
       type: 'website',
+      locale: localeToOgLocale(localeContext.resolvedLocale),
       ...(ogImage ? { images: [{ url: ogImage as string }] } : {}),
     },
     twitter: {

@@ -18,23 +18,29 @@ import type {
   ImageObject,
 } from './types';
 import type { WebsiteData, BlogPost, WebsiteSection } from '../supabase/get-website';
+import { normalizeLocale } from '@/lib/seo/locale-routing';
 
 function resolveSchemaLanguage(post: BlogPost, website: WebsiteData): string {
-  if (post.locale) return post.locale;
+  if (post.locale) return normalizeLocale(post.locale);
 
   const websiteWithLocale = website as unknown as Record<string, unknown>;
   const language = websiteWithLocale.language;
   const locale = websiteWithLocale.locale;
+  const defaultLocale = websiteWithLocale.default_locale ?? websiteWithLocale.defaultLocale;
 
   if (typeof language === 'string' && language.trim().length > 0) {
-    return language;
+    return normalizeLocale(language);
   }
 
   if (typeof locale === 'string' && locale.trim().length > 0) {
-    return locale;
+    return normalizeLocale(locale);
   }
 
-  return 'es';
+  if (typeof defaultLocale === 'string' && defaultLocale.trim().length > 0) {
+    return normalizeLocale(defaultLocale);
+  }
+
+  return normalizeLocale('es-CO');
 }
 
 /**

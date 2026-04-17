@@ -18,6 +18,16 @@ test.describe('SEO Playbook v2.0 — Smoke Tests', () => {
     return gotoWebsiteSection(page, section);
   }
 
+  async function gotoArchitecture(page: Parameters<typeof gotoWebsiteSection>[0]): Promise<string> {
+    const websiteId = WEBSITE_ID_OVERRIDE || await getFirstWebsiteId(page);
+    await page.goto(`/dashboard/${websiteId}/seo/architecture`);
+    await page.waitForLoadState('domcontentloaded');
+
+    // Architecture view hydrates asynchronously after initial HTML render.
+    await expect(page.getByRole('heading', { name: 'Resumen por categoría' })).toBeVisible({ timeout: 15_000 });
+    return websiteId;
+  }
+
   // ═══════════════════════════════════════════════════════════════
   // GROUP 1: Analytics Dashboard tabs
   // ═══════════════════════════════════════════════════════════════
@@ -197,48 +207,31 @@ test.describe('SEO Playbook v2.0 — Smoke Tests', () => {
 
   test.describe('SEO Architecture Page', () => {
     test('navigates to /seo/architecture page and shows main heading @smoke', async ({ page }) => {
-      const websiteId = WEBSITE_ID_OVERRIDE || await getFirstWebsiteId(page);
-      await page.goto(`/dashboard/${websiteId}/seo/architecture`);
-      await page.waitForLoadState('domcontentloaded');
+      await gotoArchitecture(page);
 
       await expect(page.getByRole('heading', { name: 'Arquitectura de Contenido' })).toBeVisible();
     });
 
     test('shows architecture category summary section with real metrics @smoke', async ({ page }) => {
-      const websiteId = WEBSITE_ID_OVERRIDE || await getFirstWebsiteId(page);
-      await page.goto(`/dashboard/${websiteId}/seo/architecture`);
-      await page.waitForLoadState('domcontentloaded');
-
-      // The architecture screen renders skeleton first; wait for the API response
-      // to avoid transient visibility failures under parallel CI load.
-      await page.waitForResponse(
-        (response) =>
-          response.url().includes('/api/seo/architecture') &&
-          response.request().method() === 'GET',
-        { timeout: 20_000 }
-      );
+      await gotoArchitecture(page);
 
       await expect(page.getByRole('heading', { name: 'Resumen por categoría' })).toBeVisible({ timeout: 15_000 });
       await expect(page.locator('p').filter({ hasText: /^Nodos totales$/ }).first()).toBeVisible({ timeout: 15_000 });
     });
 
     test('shows click depth section and bucket rows @smoke', async ({ page }) => {
-      const websiteId = WEBSITE_ID_OVERRIDE || await getFirstWebsiteId(page);
-      await page.goto(`/dashboard/${websiteId}/seo/architecture`);
-      await page.waitForLoadState('domcontentloaded');
+      await gotoArchitecture(page);
 
-      await expect(page.getByRole('heading', { name: /Click depth buckets/i })).toBeVisible();
-      await expect(page.getByRole('columnheader', { name: 'Bucket' })).toBeVisible();
-      await expect(page.getByRole('columnheader', { name: '# Nodos' })).toBeVisible();
+      await expect(page.getByRole('heading', { name: /Click depth buckets/i })).toBeVisible({ timeout: 15_000 });
+      await expect(page.getByRole('columnheader', { name: 'Bucket' })).toBeVisible({ timeout: 15_000 });
+      await expect(page.getByRole('columnheader', { name: '# Nodos' })).toBeVisible({ timeout: 15_000 });
     });
 
     test('back button returns to analytics keywords tab @smoke', async ({ page }) => {
-      const websiteId = WEBSITE_ID_OVERRIDE || await getFirstWebsiteId(page);
-      await page.goto(`/dashboard/${websiteId}/seo/architecture`);
-      await page.waitForLoadState('domcontentloaded');
+      const websiteId = await gotoArchitecture(page);
 
       const backButton = page.getByRole('link', { name: /Volver a Keywords/ });
-      await expect(backButton).toBeVisible();
+      await expect(backButton).toBeVisible({ timeout: 15_000 });
 
       await backButton.click();
       await page.waitForLoadState('domcontentloaded');
