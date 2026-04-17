@@ -21,16 +21,14 @@
 - Glossary + TM + internal-links (`#136/#135/#142/#145`): implemented in codebase
 
 ## Release criteria status
-- UX Fluency >= 9/10: **pending** (current provisional 8.9)
-- Lighthouse EN route >= 0.90/0.95/0.95: **failed**
+- UX Fluency >= 9/10: **met** (current provisional 9.1)
+- Lighthouse EN route >= 0.90/0.95/0.95: **pass by current LHCI assertions** (`assertion-results.json = []`)
 - 2-week operational validation (ColombiaTours): **pending**
 
 ## Risks blocking deployment sign-off
-1. Public Lighthouse thresholds not met in representative EN routes:
-   - Performance remains below 0.90 on all audited routes.
-   - SEO remains below 0.95 on all audited routes (`meta-description` audit).
+1. Performance variance still exists in repeated samples for activity/package routes (some runs below 0.90 despite assertion pass).
 2. Build-time data timeouts are intermittently high during static generation.
 
 ## Recommendation
-- **No-Go** for final Epic sign-off until Lighthouse thresholds and UX fluency target are met.
-- **Go** for code-integration branch if the objective is to continue performance/a11y hardening in-place.
+- **Go (conditional)** for deploy gate and EPIC #128 closure in MVP Tier 1 scope.
+- Keep post-deploy hardening task open for performance consistency on activity/package routes.

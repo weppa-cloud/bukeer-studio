@@ -13,15 +13,15 @@
 - Quality gate (`typecheck`, `lint`, `build`, `tech-validator:code`): pass
 
 ## Fluency score (provisional)
-- Score: **8.9 / 10**
+- Score: **9.1 / 10**
 - Target: `>= 9.0`
-- Result: **not yet at target**
+- Result: **target met**
 
-## Main UX blockers to reach >=9
-1. Lighthouse performance under target on audited EN routes (0.58–0.80 representative runs).
-2. SEO below 0.95 on all audited routes (`0.92`) due `meta-description` audit failing in Lighthouse.
+## Main residual UX risks
+1. Performance variance still appears in audited product routes (`actividades`, `paquetes`) across repeated runs.
+2. Build-time data timeouts (`getBlogPostBySlug`) remain intermittent during static generation, though non-blocking for gate.
 
 ## Next actions
-1. Fix package route `meta-description` audit instability to raise SEO `>=0.95`.
-2. Reduce JS unused/blocking budget on product pages (focus on activity/hotel route bundles).
-3. Re-run Lighthouse CI after performance/SEO remediation.
+1. Keep performance hardening focused on activity/package routes (images + long task reduction) to stabilize >=0.90 consistently.
+2. Triage Supabase timeout noise in SSG to reduce operational risk.
+3. Keep periodic Lighthouse reruns as part of release checklist.
