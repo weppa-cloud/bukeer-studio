@@ -51,6 +51,50 @@ create index if not exists idx_destinations_translation_group
   on public.destinations(account_id, translation_group_id, locale);
 
 -- Slug uniqueness moves from mono-locale to locale-aware
+do $$
+declare
+  rec record;
+begin
+  for rec in
+    select conname
+    from pg_constraint
+    where conrelid = 'public.website_blog_posts'::regclass
+      and contype = 'u'
+      and conkey = array[
+        (select attnum from pg_attribute where attrelid='public.website_blog_posts'::regclass and attname='website_id'),
+        (select attnum from pg_attribute where attrelid='public.website_blog_posts'::regclass and attname='slug')
+      ]::smallint[]
+  loop
+    execute format('alter table public.website_blog_posts drop constraint if exists %I', rec.conname);
+  end loop;
+
+  for rec in
+    select conname
+    from pg_constraint
+    where conrelid = 'public.website_pages'::regclass
+      and contype = 'u'
+      and conkey = array[
+        (select attnum from pg_attribute where attrelid='public.website_pages'::regclass and attname='website_id'),
+        (select attnum from pg_attribute where attrelid='public.website_pages'::regclass and attname='slug')
+      ]::smallint[]
+  loop
+    execute format('alter table public.website_pages drop constraint if exists %I', rec.conname);
+  end loop;
+
+  for rec in
+    select conname
+    from pg_constraint
+    where conrelid = 'public.destinations'::regclass
+      and contype = 'u'
+      and conkey = array[
+        (select attnum from pg_attribute where attrelid='public.destinations'::regclass and attname='account_id'),
+        (select attnum from pg_attribute where attrelid='public.destinations'::regclass and attname='slug')
+      ]::smallint[]
+  loop
+    execute format('alter table public.destinations drop constraint if exists %I', rec.conname);
+  end loop;
+end $$;
+
 create unique index if not exists uq_website_blog_posts_slug_locale
   on public.website_blog_posts(website_id, locale, slug);
 
@@ -63,4 +107,3 @@ create unique index if not exists uq_destinations_slug_locale
 
 create unique index if not exists uq_website_product_pages_locale_product
   on public.website_product_pages(website_id, locale, product_type, product_id);
-

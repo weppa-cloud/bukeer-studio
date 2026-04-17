@@ -90,6 +90,8 @@ export interface WebsiteData {
   account_id: string | null;
   subdomain: string;
   custom_domain: string | null;
+  default_locale?: string;
+  supported_locales?: string[];
   status: 'draft' | 'published';
   template_id: string;
   theme: ThemeV3;

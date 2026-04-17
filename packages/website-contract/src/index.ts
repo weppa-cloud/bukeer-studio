@@ -259,6 +259,56 @@ export type {
   SeoPageCatalogQuery,
 } from './schemas/seo-content-intelligence';
 
+// Translations / Growth Ops / Human Rhythm (EPIC #128)
+export {
+  TranslationsListQuerySchema,
+  TranslationJobItemSchema,
+  TranslationsListResponseSchema,
+  TranslationsBulkRequestSchema,
+  TranslationsBulkResponseSchema,
+  GlossaryItemSchema,
+  TranslationMemoryItemSchema,
+  HreflangQuerySchema,
+  SerpSnapshotRequestSchema,
+  SerpSnapshotResponseSchema,
+  NlpScoreRequestSchema,
+  NlpScoreResponseSchema,
+  CannibalizationQuerySchema,
+  HreflangAuditRequestSchema,
+  HreflangAuditResponseSchema,
+  DriftCheckQuerySchema,
+  TopicalAuthorityQuerySchema,
+  InternalLinksSuggestRequestSchema,
+  QaAutofixRequestSchema,
+  OkrSchema,
+  WeeklyTaskSchema,
+  Objective90dSchema,
+} from './schemas/translations';
+export type {
+  TranslationsListQuery,
+  TranslationJobItem,
+  TranslationsListResponse,
+  TranslationsBulkRequest,
+  TranslationsBulkResponse,
+  GlossaryItem,
+  TranslationMemoryItem,
+  HreflangQuery,
+  SerpSnapshotRequest,
+  SerpSnapshotResponse,
+  NlpScoreRequest,
+  NlpScoreResponse,
+  CannibalizationQuery,
+  HreflangAuditRequest,
+  HreflangAuditResponse,
+  DriftCheckQuery,
+  TopicalAuthorityQuery,
+  InternalLinksSuggestRequest,
+  QaAutofixRequest,
+  Okr,
+  WeeklyTask,
+  Objective90d,
+} from './schemas/translations';
+
 // Validation
 export {
   validateSection,

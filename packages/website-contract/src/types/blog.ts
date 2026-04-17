@@ -30,7 +30,7 @@ export interface BlogPost {
   ai_generated?: boolean;
   ai_model?: string | null;
   human_edited?: boolean;
-  locale?: 'es' | 'en' | 'pt' | 'fr';
+  locale?: string;
   canonical_post_id?: string | null;
   faq_items?: FAQItem[] | null;
   internal_links?: InternalLink[] | null;
