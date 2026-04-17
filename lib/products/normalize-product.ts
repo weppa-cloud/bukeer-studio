@@ -90,8 +90,14 @@ function fallbackLogger(
 function normalizeListWithPrecedence(
   field: 'inclusions' | 'exclusions',
   v2Value: unknown,
-  logger: (event: ProductNormalizeLog) => void
+  logger: (event: ProductNormalizeLog) => void,
+  programValue?: string[] | null
 ): Array<string | Record<string, unknown>> | null {
+  // program_* fields (Gate B — package aggregated, #172) take highest precedence
+  if (Array.isArray(programValue) && programValue.length > 0) {
+    return programValue;
+  }
+
   const normalizedV2 = normalizeV2ListValue(v2Value);
   if (normalizedV2) {
     return normalizedV2;
@@ -186,7 +192,12 @@ function normalizeMeetingPoint(
   return null;
 }
 
-function normalizeGallery(product: ProductData, logger: (event: ProductNormalizeLog) => void): string[] {
+function normalizeGallery(product: ProductData & { program_gallery?: string[] | null }, logger: (event: ProductNormalizeLog) => void): string[] {
+  // program_gallery (Gate B — package aggregated, #172) takes highest precedence
+  if (Array.isArray(product.program_gallery) && product.program_gallery.length > 0) {
+    return product.program_gallery;
+  }
+
   if (Array.isArray(product.photos) && product.photos.length > 0) {
     const urls = product.photos
       .map((item) => {
@@ -277,14 +288,28 @@ function normalizeFaq(
 }
 
 export function normalizeProduct(
-  product: ProductData,
+  product: ProductData & {
+    program_inclusions?: string[] | null;
+    program_exclusions?: string[] | null;
+    program_gallery?: string[] | null;
+  },
   options: NormalizeProductOptions = {}
 ): NormalizedProductViewModel {
   const logger = options.logger || defaultLogger;
 
   return {
-    inclusions: normalizeListWithPrecedence('inclusions', product.inclusions, logger),
-    exclusions: normalizeListWithPrecedence('exclusions', product.exclusions, logger),
+    inclusions: normalizeListWithPrecedence(
+      'inclusions',
+      product.inclusions,
+      logger,
+      product.program_inclusions
+    ),
+    exclusions: normalizeListWithPrecedence(
+      'exclusions',
+      product.exclusions,
+      logger,
+      product.program_exclusions
+    ),
     highlights: normalizeHighlights(product.highlights, logger),
     schedule: normalizeSchedule(product, logger),
     meeting_point: normalizeMeetingPoint(product, logger),

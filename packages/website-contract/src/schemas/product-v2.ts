@@ -128,6 +128,11 @@ export const ProductDataSchema = z.object({
   services_snapshot_summary: z.string().optional(),
   duration_days: z.number().int().positive().optional(),
   duration_nights: z.number().int().nonnegative().optional(),
+
+  // Package aggregated fields (Gate B — F1 layer, #172)
+  program_inclusions: z.array(z.string()).optional(),
+  program_exclusions: z.array(z.string()).optional(),
+  program_gallery: z.array(z.string()).optional(),
 });
 
 export const ProductPageCustomizationSchema = z.object({
