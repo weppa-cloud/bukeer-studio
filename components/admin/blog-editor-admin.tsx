@@ -3,6 +3,9 @@
 import { useState, useMemo, lazy, Suspense } from 'react';
 import Image from 'next/image';
 import type { AutosaveStatus } from '@/lib/hooks/use-autosave';
+import { BlogAiGenerateDialog } from '@/components/admin/blog-ai-generate-dialog';
+import { TranscreateDialog } from '@/components/admin/transcreate-dialog';
+import { Sparkles, Languages } from 'lucide-react';
 
 // Lazy-load TipTap BlogEditor to avoid SSR issues with ProseMirror
 const BlogEditorRich = lazy(() =>
@@ -43,6 +46,8 @@ export function BlogEditorComponent({
   onBack,
 }: BlogEditorComponentProps) {
   const [showSidebar, setShowSidebar] = useState(true);
+  const [aiGenOpen, setAiGenOpen] = useState(false);
+  const [translateOpen, setTranslateOpen] = useState(false);
 
   const wordCount = useMemo(() => {
     return (post.content || '').replace(/<[^>]*>/g, '').split(/\s+/).filter(Boolean).length;
@@ -84,6 +89,24 @@ export function BlogEditorComponent({
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setAiGenOpen(true)}
+            className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-600"
+            title="Generar post con IA"
+          >
+            <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />
+            Generar con IA
+          </button>
+          <button
+            type="button"
+            onClick={() => setTranslateOpen(true)}
+            className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-600"
+            title="Crear borrador de traducción"
+          >
+            <Languages className="w-3.5 h-3.5" aria-hidden="true" />
+            Traducir a...
+          </button>
           <select
             value={post.status}
             onChange={(e) => onChange({ ...post, status: e.target.value as PostData['status'] })}
@@ -215,6 +238,36 @@ export function BlogEditorComponent({
         <span>{wordCount} words</span>
         <span>{readingTime} min read</span>
       </div>
+
+      {/* AI-generate dialog */}
+      <BlogAiGenerateDialog
+        open={aiGenOpen}
+        onOpenChange={setAiGenOpen}
+        websiteId={websiteId}
+        onApply={(data) => {
+          const keywords = Array.isArray(post.seo_keywords) ? post.seo_keywords : [];
+          onChange({
+            ...post,
+            title: data.title || post.title,
+            content: data.body || post.content,
+            excerpt: post.excerpt || data.seoDescription || '',
+            seo_title: data.seoTitle || post.seo_title,
+            seo_description: data.seoDescription || post.seo_description,
+            seo_keywords: keywords.length > 0 ? keywords : (data.tags ?? keywords),
+          });
+        }}
+      />
+
+      {/* Transcreate dialog */}
+      <TranscreateDialog
+        open={translateOpen}
+        onOpenChange={setTranslateOpen}
+        websiteId={websiteId}
+        sourceId={post.id}
+        sourceLocale="es-CO"
+        pageType="blog"
+        sourceName={post.title || 'este post'}
+      />
     </div>
   );
 }

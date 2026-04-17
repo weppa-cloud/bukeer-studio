@@ -83,22 +83,21 @@ export function ComparisonTableSection({ section }: ComparisonTableSectionProps)
               </thead>
               <tbody>
                 {rows.map((row, i) => (
-                  <BlurFade key={i} delay={0.04 * i + 0.15} direction="left" duration={0.35} inView>
-                    <tr
-                      className={`border-b transition-colors hover:bg-muted/30 ${i % 2 === 0 ? '' : 'bg-muted/10'}`}
-                      style={{ borderColor: 'var(--border-subtle)' }}
-                    >
-                      <td className="px-4 py-3 font-medium text-[var(--text-heading)]">{row.feature}</td>
-                      {row.values.map((val, j) => (
-                        <td
-                          key={j}
-                          className={`px-4 py-3 text-center ${columns[j]?.highlighted ? 'bg-[var(--accent)]/5' : ''}`}
-                        >
-                          <CellValue value={val} highlighted={columns[j]?.highlighted} />
-                        </td>
-                      ))}
-                    </tr>
-                  </BlurFade>
+                  <tr
+                    key={i}
+                    className={`border-b transition-colors hover:bg-muted/30 ${i % 2 === 0 ? '' : 'bg-muted/10'}`}
+                    style={{ borderColor: 'var(--border-subtle)' }}
+                  >
+                    <td className="px-4 py-3 font-medium text-[var(--text-heading)]">{row.feature}</td>
+                    {row.values.map((val, j) => (
+                      <td
+                        key={j}
+                        className={`px-4 py-3 text-center ${columns[j]?.highlighted ? 'bg-[var(--accent)]/5' : ''}`}
+                      >
+                        <CellValue value={val} highlighted={columns[j]?.highlighted} />
+                      </td>
+                    ))}
+                  </tr>
                 ))}
               </tbody>
             </table>

@@ -7,6 +7,9 @@ import type { WebsitePage, PageSection, DestinationData } from '@/lib/supabase/g
 import { renderSection } from '@/lib/sections/render-section';
 import { SECTION_TYPES } from '@bukeer/website-contract';
 import { LandingPageSchema } from '@/components/seo/landing-page-schema';
+import { StickyCTABar } from '@/components/site/sticky-cta-bar';
+import { WhatsAppCTA } from '@/components/site/whatsapp-cta';
+import { buildWhatsAppUrl } from '@/components/site/whatsapp-url';
 
 const HERO_SECTION_TYPES = SECTION_TYPES.filter((t) => t.startsWith('hero'));
 
@@ -70,6 +73,43 @@ export function StaticPage({ website, page, dynamicDestinations = [] }: StaticPa
     : `https://${(website as unknown as Record<string, unknown>).subdomain || ''}.bukeer.com`;
   const pageUrl = `${baseUrl}/${page.slug || ''}`;
 
+  // Contact channels for sticky mobile CTA + hero CTA
+  const websiteContent = (website.content ?? {}) as {
+    social?: { whatsapp?: string };
+    contact?: { phone?: string };
+    account?: { phone?: string | null; phone2?: string | null };
+  };
+  const rawWhatsApp =
+    websiteContent.social?.whatsapp ||
+    websiteContent.contact?.phone ||
+    websiteContent.account?.phone ||
+    null;
+  const heroWhatsappUrl =
+    heroConfig.ctaUrl && /^https?:\/\//.test(heroConfig.ctaUrl)
+      ? heroConfig.ctaUrl
+      : buildWhatsAppUrl({
+          phone: rawWhatsApp,
+          productName: heroConfig.title || page.title,
+          location: 'Colombia',
+          ref: page.slug,
+        });
+  const primaryCtaHref = heroConfig.ctaUrl || heroWhatsappUrl || '#contact';
+  const secondaryCtaHref = heroConfig.secondaryCtaUrl || '#pricing';
+
+  // Extract first pricing section's numeric price + currency for the sticky bar.
+  const firstPricing = sections.find((s) => {
+    const raw = s as unknown as Record<string, unknown>;
+    const t = s.type || (raw.sectionType as string) || (raw.section_type as string) || '';
+    return t === 'pricing';
+  });
+  const pricingContent = (firstPricing?.content ?? {}) as {
+    tiers?: Array<{ price?: string | number; currency?: string }>;
+    currency?: string;
+  };
+  const firstTier = pricingContent.tiers?.[0];
+  const stickyPrice = firstTier?.price ?? null;
+  const stickyCurrency = firstTier?.currency ?? pricingContent.currency ?? 'USD';
+
   return (
     <div className="min-h-screen">
       {/* Landing page structured data (TouristTrip, FAQPage, AggregateRating, BreadcrumbList) */}
@@ -82,7 +122,7 @@ export function StaticPage({ website, page, dynamicDestinations = [] }: StaticPa
       {/* Fallback Hero — only when sections don't include their own hero */}
       {!sectionsHaveHero && (
         <section
-          className="relative h-[40vh] min-h-[300px] flex items-center justify-center"
+          className="relative flex items-center justify-center min-h-[420px] md:min-h-[520px] py-16 md:py-24"
           style={{
             backgroundColor: 'var(--md-sys-color-primary-container)',
           }}
@@ -94,17 +134,52 @@ export function StaticPage({ website, page, dynamicDestinations = [] }: StaticPa
               fill
               className="object-cover"
               priority
+              sizes="100vw"
             />
           )}
-          <div className="absolute inset-0 bg-black/40" />
-          <div className="relative z-10 text-center text-white px-4">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">
+          <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/45 to-black/65" />
+          <div className="relative z-10 text-center text-white px-4 max-w-4xl">
+            {heroConfig.eyebrow && (
+              <span className="inline-block mb-3 rounded-full bg-white/15 backdrop-blur px-4 py-1.5 text-xs font-semibold tracking-widest uppercase">
+                {heroConfig.eyebrow}
+              </span>
+            )}
+            <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold mb-5 drop-shadow-sm">
               {heroConfig.title || page.title}
             </h1>
             {heroConfig.subtitle && (
-              <p className="text-lg md:text-xl max-w-2xl mx-auto opacity-90">
+              <p className="text-base md:text-xl max-w-3xl mx-auto opacity-95 mb-7 leading-relaxed">
                 {heroConfig.subtitle}
               </p>
+            )}
+            {(heroConfig.ctaText || heroConfig.secondaryCtaText) && (
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
+                {heroConfig.ctaText && primaryCtaHref && (
+                  <a
+                    href={primaryCtaHref}
+                    target={primaryCtaHref.startsWith('http') ? '_blank' : undefined}
+                    rel={primaryCtaHref.startsWith('http') ? 'noopener noreferrer' : undefined}
+                    className="inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-sm md:text-base font-semibold text-white shadow-lg hover:opacity-90 transition-opacity"
+                    style={{ background: 'var(--accent)' }}
+                  >
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden>
+                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347" />
+                    </svg>
+                    {heroConfig.ctaText}
+                  </a>
+                )}
+                {heroConfig.secondaryCtaText && (
+                  <a
+                    href={secondaryCtaHref}
+                    className="inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm md:text-base font-semibold text-white bg-white/10 hover:bg-white/20 backdrop-blur transition-colors border border-white/30"
+                  >
+                    {heroConfig.secondaryCtaText}
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                    </svg>
+                  </a>
+                )}
+              </div>
             )}
           </div>
         </section>
@@ -159,6 +234,33 @@ export function StaticPage({ website, page, dynamicDestinations = [] }: StaticPa
             )}
           </div>
         </section>
+      )}
+
+      {/* Mobile sticky CTA (appears after 200px scroll) */}
+      {rawWhatsApp && (
+        <StickyCTABar
+          price={stickyPrice}
+          currency={stickyCurrency}
+          whatsappUrl={heroWhatsappUrl}
+          phone={rawWhatsApp}
+          analyticsContext={{ page_slug: page.slug || '', context: 'static_landing' }}
+        />
+      )}
+
+      {/* Floating WhatsApp FAB — persistent */}
+      {rawWhatsApp && (
+        <div className="fixed bottom-5 right-5 z-40 hidden sm:block">
+          <WhatsAppCTA
+            phone={rawWhatsApp}
+            productName={heroConfig.title || page.title}
+            location="Colombia"
+            refCode={page.slug}
+            label="WhatsApp"
+            analyticsLocation="floating-fab"
+            analyticsContext={{ page_slug: page.slug || '', context: 'static_landing' }}
+            className="shadow-xl"
+          />
+        </div>
       )}
     </div>
   );

@@ -206,10 +206,12 @@ export function TestimonialsSection({ section, website }: TestimonialsSectionPro
     googleMapsUrl?: string;
     businessName?: string;
     testimonials?: TestimonialItem[];
+    items?: TestimonialItem[];
+    reviews?: TestimonialItem[];
   };
 
   const title = sectionContent.title || 'Lo que dicen nuestros viajeros';
-  const testimonials = sectionContent.testimonials || [];
+  const testimonials = sectionContent.testimonials || sectionContent.items || sectionContent.reviews || [];
   const isGoogle = sectionContent.source === 'google_reviews';
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const logoUrl = (website?.content as any)?.logo as string | undefined;

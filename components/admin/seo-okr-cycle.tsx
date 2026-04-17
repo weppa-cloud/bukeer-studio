@@ -396,30 +396,68 @@ function Ciclo30D({ overview, targets }: { overview?: AnalyticsOverviewDTO | nul
 
 // ─── Ciclo 90D ───────────────────────────────────────────────────────────────
 
+interface ObjectiveKpi {
+  label: string;
+  from: number;
+  to: number;
+}
+
 interface ObjectiveCard {
   id: string;
   title: string;
-  kpis: Array<{ label: string; from: number; to: number }>;
+  kpis: ObjectiveKpi[];
 }
 
-const OBJECTIVES_90D: ObjectiveCard[] = [
-  {
-    id: 'traffic',
-    title: 'Triplicar tráfico orgánico',
-    kpis: [
-      { label: 'Sessions', from: 0, to: 1500 },
-      { label: 'Top-10 keywords', from: 0, to: 20 },
-    ],
-  },
-  {
-    id: 'authority',
-    title: 'Autoridad de dominio',
-    kpis: [
-      { label: 'DR', from: 0, to: 30 },
-      { label: 'Backlinks', from: 0, to: 50 },
-    ],
-  },
-];
+interface Objective90dRow {
+  id: string;
+  title: string;
+  description?: string | null;
+  quarter: string;
+  status: 'active' | 'completed' | 'paused';
+  kpis: Array<Record<string, unknown>>;
+}
+
+function currentQuarter(input?: Date): string {
+  const base = input ?? new Date();
+  const year = base.getUTCFullYear();
+  const quarter = Math.floor(base.getUTCMonth() / 3) + 1;
+  return `${year}-Q${quarter}`;
+}
+
+function toFiniteNumber(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string') {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+}
+
+function mapObjectiveKpis(raw: Array<Record<string, unknown>>): ObjectiveKpi[] {
+  return raw
+    .map((entry, index) => {
+      const label =
+        typeof entry.label === 'string'
+          ? entry.label
+          : typeof entry.name === 'string'
+            ? entry.name
+            : typeof entry.key === 'string'
+              ? entry.key
+              : `KPI ${index + 1}`;
+      const from = toFiniteNumber(entry.from ?? entry.current ?? entry.start) ?? 0;
+      const to = toFiniteNumber(entry.to ?? entry.target ?? entry.goal) ?? 0;
+      return { label, from, to };
+    })
+    .filter((kpi) => kpi.label.length > 0);
+}
+
+function mapObjectiveToCard(row: Objective90dRow): ObjectiveCard {
+  return {
+    id: row.id,
+    title: row.title,
+    kpis: mapObjectiveKpis(row.kpis ?? []),
+  };
+}
 
 interface ProgressRingProps {
   pct: number;
@@ -457,7 +495,66 @@ function ProgressRing({ pct, size = 48 }: ProgressRingProps) {
   );
 }
 
-function Ciclo90D() {
+function Ciclo90D({ websiteId }: { websiteId: string }) {
+  const quarter = useMemo(() => currentQuarter(), []);
+  const quarterLabel = useMemo(() => {
+    const parts = quarter.split('-');
+    return parts.length === 2 ? parts[1] : quarter;
+  }, [quarter]);
+
+  const [objectives, setObjectives] = useState<ObjectiveCard[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadObjectives() {
+      setLoading(true);
+      setError(null);
+      try {
+        const params = new URLSearchParams({
+          websiteId,
+          quarter,
+          status: 'active',
+          limit: '50',
+        });
+        const response = await fetch(`/api/seo/objectives-90d?${params.toString()}`, {
+          cache: 'no-store',
+        });
+
+        const json = (await response.json().catch(() => null)) as
+          | {
+              success?: boolean;
+              data?: { rows?: Objective90dRow[] };
+              error?: { message?: string };
+            }
+          | null;
+
+        if (!response.ok || !json?.success) {
+          throw new Error(json?.error?.message ?? 'No se pudieron cargar los objetivos.');
+        }
+
+        if (!isMounted) return;
+        const rows = json.data?.rows ?? [];
+        setObjectives(rows.map(mapObjectiveToCard));
+      } catch (loadError) {
+        if (!isMounted) return;
+        setError(
+          loadError instanceof Error ? loadError.message : 'No se pudieron cargar los objetivos.',
+        );
+        setObjectives([]);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+
+    void loadObjectives();
+    return () => {
+      isMounted = false;
+    };
+  }, [websiteId, quarter]);
+
   return (
     <div className="studio-card p-4 flex flex-col gap-3">
       <div className="flex items-center gap-2">
@@ -467,47 +564,86 @@ function Ciclo90D() {
           <p className="text-xs text-[var(--studio-text-muted)]">Este trimestre · Objetivos</p>
         </div>
         <div className="ml-auto">
-          <StudioBadge tone="neutral">Q1</StudioBadge>
+          <StudioBadge tone="neutral">{quarterLabel}</StudioBadge>
         </div>
       </div>
 
-      <div className="space-y-3">
-        {OBJECTIVES_90D.map((obj) => {
-          const avgPct = Math.round(
-            obj.kpis.reduce((sum, kpi) => {
-              const p = kpi.to <= 0 ? 0 : Math.min(100, (kpi.from / kpi.to) * 100);
-              return sum + p;
-            }, 0) / obj.kpis.length,
-          );
-
-          return (
+      {loading ? (
+        <div className="space-y-3" aria-busy="true" aria-live="polite">
+          {[0, 1].map((key) => (
             <div
-              key={obj.id}
+              key={key}
               className="p-3 rounded-md border border-[var(--studio-border)] bg-[var(--studio-bg)]"
             >
               <div className="flex items-start gap-3">
-                <div className="shrink-0 flex flex-col items-center gap-0.5">
-                  <ProgressRing pct={avgPct} />
-                  <span className="text-[10px] text-[var(--studio-text-muted)]">{avgPct}%</span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-[var(--studio-text)] mb-2">{obj.title}</p>
-                  <div className="space-y-1">
-                    {obj.kpis.map((kpi) => (
-                      <div key={kpi.label} className="flex items-center justify-between">
-                        <span className="text-xs text-[var(--studio-text-muted)]">{kpi.label}</span>
-                        <span className="text-xs font-medium text-[var(--studio-text)]">
-                          {kpi.from} → {kpi.to}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
+                <div className="shrink-0 h-12 w-12 rounded-full bg-[var(--studio-border)] animate-pulse" />
+                <div className="flex-1 min-w-0 space-y-2">
+                  <div className="h-3 w-3/5 rounded bg-[var(--studio-border)] animate-pulse" />
+                  <div className="h-3 w-2/5 rounded bg-[var(--studio-border)] animate-pulse" />
                 </div>
               </div>
             </div>
-          );
-        })}
-      </div>
+          ))}
+        </div>
+      ) : error ? (
+        <p className="text-xs text-[var(--studio-text-muted)]">
+          No pudimos cargar los objetivos del trimestre.
+        </p>
+      ) : objectives.length === 0 ? (
+        <p className="text-xs text-[var(--studio-text-muted)]">
+          Sin objetivos configurados para {quarterLabel}.
+        </p>
+      ) : (
+        <div className="space-y-3">
+          {objectives.map((obj) => {
+            const avgPct =
+              obj.kpis.length === 0
+                ? 0
+                : Math.round(
+                    obj.kpis.reduce((sum, kpi) => {
+                      const p = kpi.to <= 0 ? 0 : Math.min(100, (kpi.from / kpi.to) * 100);
+                      return sum + p;
+                    }, 0) / obj.kpis.length,
+                  );
+
+            return (
+              <div
+                key={obj.id}
+                className="p-3 rounded-md border border-[var(--studio-border)] bg-[var(--studio-bg)]"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="shrink-0 flex flex-col items-center gap-0.5">
+                    <ProgressRing pct={avgPct} />
+                    <span className="text-[10px] text-[var(--studio-text-muted)]">{avgPct}%</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-[var(--studio-text)] mb-2">{obj.title}</p>
+                    {obj.kpis.length === 0 ? (
+                      <p className="text-[11px] text-[var(--studio-text-muted)]">
+                        Sin KPIs definidos.
+                      </p>
+                    ) : (
+                      <div className="space-y-1">
+                        {obj.kpis.map((kpi, index) => (
+                          <div
+                            key={`${obj.id}-${kpi.label}-${index}`}
+                            className="flex items-center justify-between"
+                          >
+                            <span className="text-xs text-[var(--studio-text-muted)]">{kpi.label}</span>
+                            <span className="text-xs font-medium text-[var(--studio-text)]">
+                              {kpi.from} → {kpi.to}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -578,7 +714,7 @@ export function SeoOkrCycle({ websiteId, overview }: SeoOkrCycleProps) {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <Ciclo7D websiteId={websiteId} />
         <Ciclo30D overview={overview} targets={targets} />
-        <Ciclo90D />
+        <Ciclo90D websiteId={websiteId} />
       </div>
     </div>
   );

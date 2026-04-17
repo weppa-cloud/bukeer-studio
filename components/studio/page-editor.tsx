@@ -30,6 +30,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { StudioButton, StudioTopbar, StudioTabs, StudioBadge, StudioBadgeStatus } from '@/components/studio/ui/primitives';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { ConfirmDialog } from '@/components/admin/confirm-dialog';
+import { TranscreateDialog } from '@/components/admin/transcreate-dialog';
 import {
   Plus,
   ArrowLeft,
@@ -49,6 +50,7 @@ import {
   PanelLeftOpen,
   Undo2,
   Redo2,
+  Languages,
 } from 'lucide-react';
 import type { WebsiteData, WebsiteSection } from '@bukeer/website-contract';
 import type { SectionTypeValue } from '@bukeer/website-contract';
@@ -170,6 +172,8 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
   const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false);
   // Drag & drop state
   const [draggingSectionType, setDraggingSectionType] = useState<string | null>(null);
+  // Transcreate dialog
+  const [translateOpen, setTranslateOpen] = useState(false);
   const dndSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
   // Track original section IDs from DB (for homepage INSERT/DELETE detection)
   const dbSectionIdsRef = useRef<Set<string>>(new Set());
@@ -1086,6 +1090,17 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
           )}
           right={(
             <>
+              {!isHomepage && pageData?.id ? (
+                <StudioButton
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setTranslateOpen(true)}
+                  title="Crear borrador de traducción"
+                >
+                  <Languages className="w-3.5 h-3.5" />
+                  Traducir a...
+                </StudioButton>
+              ) : null}
               <StudioButton variant="ghost" size="sm" onClick={handlePreview}>
                 <Eye className="w-3.5 h-3.5" />
                 Preview
@@ -1256,6 +1271,19 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
             {actionToast}
           </div>
         )}
+
+        {/* Transcreate dialog */}
+        {pageData?.id && !isHomepage ? (
+          <TranscreateDialog
+            open={translateOpen}
+            onOpenChange={setTranslateOpen}
+            websiteId={websiteId}
+            sourceId={pageData.id}
+            sourceLocale="es-CO"
+            pageType="page"
+            sourceName={pageData.title}
+          />
+        ) : null}
       </div>
     </TooltipProvider>
     {/* Drag overlay — visual ghost while dragging */}
