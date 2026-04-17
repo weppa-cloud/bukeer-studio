@@ -344,6 +344,65 @@ Recommended build order:
 
 ---
 
+## Human Operating Rhythm
+
+The product must support a **prescriptive cadence** so the operator never asks
+"what do I do now?". Three cycles run concurrently:
+
+### Daily (15 min morning)
+
+1. Open `Dashboard -> Analytics -> Overview`.
+2. Glance `Ciclo 7D` widget → pick top 1 Quick Win task.
+3. Open the linked item in Contenido → apply the suggested change (meta, anchor, image).
+4. Mark task complete. Close laptop.
+
+The goal is **one shipped improvement per day**, not heroic multi-hour work.
+
+### Weekly (Monday planning + Friday review, ~60 min)
+
+**Monday — planning (30 min):**
+
+1. Auto-generated Quick Wins ready in `Ciclo 7D` (3-5 tasks derived from striking distance + low CTR + drift + cannibalization).
+2. Operator reviews, re-prioritizes, and optionally adds manual tasks.
+3. Kanban shows the week backlog with `P1/P2/P3` priority.
+
+**Friday — review (30 min):**
+
+1. Mark completed tasks.
+2. Check `Ciclo 30D` OKR progress bars.
+3. Check `Ciclo 90D` quarterly objective progress rings.
+4. Export / commit notes for next Monday's seed.
+
+### Monthly (first Monday of month, ~90 min)
+
+1. Review `Ciclo 30D` OKR closed state vs targets (clicks, avg position, tech score).
+2. Run site-wide audit → export findings.
+3. Adjust cluster plan for next month.
+4. Update forbidden words + glossary if market insights surfaced.
+
+### Quarterly (first Monday of quarter, ~3 hours)
+
+1. Close `Ciclo 90D` objectives — record actuals.
+2. Open new 90D objectives in wizard.
+3. Update OKR targets for next quarter.
+4. Review topical authority coverage per cluster × locale.
+
+### Data requirements for the rhythm
+
+- **Quick Wins derived from real data**, never hardcoded. Sources:
+  - striking distance (position 8-20, volume ≥ 100)
+  - low CTR (impressions ≥ 500, CTR < benchmark × 0.6)
+  - drift detection (source updated > variant updated + 7d)
+  - cannibalization (2+ URLs same keyword same locale)
+- **OKR current values computed from real sources**:
+  - `clicks` = sum of GSC snapshots over period
+  - `avg position` = weighted GSC positions
+  - `tech score` = latest seo_audit_results aggregated
+  - never from static fields or hardcoded defaults
+- **Persistence** is mandatory — checkbox state, OKR targets, 90D objectives all live in DB, not component state.
+
+---
+
 ## Relationship To Current Product Docs
 
 - [SEO Implementation Reference](./SEO-IMPLEMENTATION.md) describes current shipped reality.

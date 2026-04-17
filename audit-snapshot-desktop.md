@@ -1,0 +1,446 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - banner [ref=e4]:
+      - navigation [ref=e5]:
+        - generic [ref=e6]:
+          - link "ColombiaTours.Travel" [ref=e7] [cursor=pointer]:
+            - /url: /site/colombiatours
+            - img "ColombiaTours.Travel" [ref=e8]
+          - generic [ref=e9]:
+            - link "Destinos" [ref=e10] [cursor=pointer]:
+              - /url: /site/colombiatours/destinos
+            - link "Paquetes" [ref=e11] [cursor=pointer]:
+              - /url: /site/colombiatours/paquetes
+            - link "Experiencias" [ref=e12] [cursor=pointer]:
+              - /url: /site/colombiatours/actividades
+            - link "Blog" [ref=e13] [cursor=pointer]:
+              - /url: /site/colombiatours/blog
+            - link "Nosotros" [ref=e14] [cursor=pointer]:
+              - /url: /site/colombiatours/nosotros
+            - link "Planear mi viaje" [ref=e16] [cursor=pointer]:
+              - /url: https://wa.me/573206129003
+              - img [ref=e17]
+              - generic [ref=e19]: Planear mi viaje
+    - main [ref=e20]:
+      - generic [ref=e22]:
+        - generic [ref=e23]:
+          - img "Actividad Barú en lancha + Islas del Rosario en Cartagena de Indias" [ref=e24]
+          - generic [ref=e27]:
+            - paragraph [ref=e28]: Actividades
+            - generic [ref=e30]:
+              - img [ref=e31]
+              - text: Cartagena de Indias
+            - heading "Barú en lancha + Islas del Rosario" [level=1] [ref=e33]
+            - generic [ref=e35]: Desde $156.250 USD
+        - generic [ref=e36]:
+          - navigation "Breadcrumb" [ref=e37]:
+            - link "Inicio" [ref=e38] [cursor=pointer]:
+              - /url: /site/colombiatours
+            - text: /
+            - link "Destinos" [ref=e39] [cursor=pointer]:
+              - /url: /site/colombiatours/destinos
+            - text: /
+            - link "Cartagena de Indias" [ref=e40] [cursor=pointer]:
+              - /url: /site/colombiatours/destinos/cartagena-de-indias
+            - text: /
+            - link "Actividades" [ref=e41] [cursor=pointer]:
+              - /url: /site/colombiatours/actividades
+            - text: /Barú en lancha + Islas del Rosario
+          - link "← Volver a actividades" [ref=e42] [cursor=pointer]:
+            - /url: /site/colombiatours/actividades
+        - generic [ref=e44]:
+          - generic [ref=e45]:
+            - generic [ref=e46]:
+              - heading "Galeria" [level=2] [ref=e47]
+              - button "Barú en lancha + Islas del Rosario - imagen 1 Ver en pantalla completa" [ref=e48]:
+                - img "Barú en lancha + Islas del Rosario - imagen 1" [ref=e49]
+                - generic [ref=e51]: Ver en pantalla completa
+              - generic [ref=e52]:
+                - button "Barú en lancha + Islas del Rosario - miniatura 1" [ref=e53]:
+                  - img "Barú en lancha + Islas del Rosario - miniatura 1" [ref=e54]
+                - button "Barú en lancha + Islas del Rosario - miniatura 2" [ref=e55]:
+                  - img "Barú en lancha + Islas del Rosario - miniatura 2" [ref=e56]
+                - button "Barú en lancha + Islas del Rosario - miniatura 3" [ref=e57]:
+                  - img "Barú en lancha + Islas del Rosario - miniatura 3" [ref=e58]
+                - button "Barú en lancha + Islas del Rosario - miniatura 4" [ref=e59]:
+                  - img "Barú en lancha + Islas del Rosario - miniatura 4" [ref=e60]
+            - generic [ref=e61]:
+              - heading "Descripción" [level=2] [ref=e62]
+              - paragraph [ref=e64]: Explora lo mejor de Cartagena con una visita a la playa Barú y la Isla del Rosario. En Barú, disfruta del sol y el mar Caribe en un entorno sereno, ideal para relajarse y desconectar. La Isla del Rosario te espera con sus aguas cristalinas, perfectas para admirar la rica vida marina. Este tour es una oportunidad única para experimentar la belleza del Caribe colombiano, combinando playas idílicas, naturaleza exuberante y una fascinante cultura local. Además, la gastronomía de la región promete deleitar tus sentidos, ofreciendo platos autóctonos llenos de sabor. Una experiencia inolvidable en un paraíso tropical que no te puedes perder.
+            - generic [ref=e65]:
+              - heading "Recomendaciones" [level=2] [ref=e66]
+              - list [ref=e67]:
+                - listitem [ref=e68]:
+                  - generic [ref=e70]: Tener en cuenta que las recogidas de los tours se realizan solamente en Hoteles ubicados en Bocagrande
+                - listitem [ref=e71]:
+                  - generic [ref=e73]: los pasajeros que no se encuentren hospedados dicha zona
+                - listitem [ref=e74]:
+                  - generic [ref=e76]: deberán de llegar por su cuenta a la zona al que el guía le indique para ser recogido.
+                - listitem [ref=e77]:
+                  - generic [ref=e79]: Todos los combos y actividades se operan a partir de 2 personas en adelante
+                - listitem [ref=e80]:
+                  - generic [ref=e82]: si solamente es una (1) persona deberá pagar la tarifa como si fueran 2 personas.
+                - listitem [ref=e83]:
+                  - generic [ref=e85]: Traslados a otros sitios no mencionados
+                - listitem [ref=e86]:
+                  - generic [ref=e88]: cotizar con nosotros el servicio de transporte.
+                - listitem [ref=e89]:
+                  - generic [ref=e91]: Tarifas sujetas a cambios.
+            - generic [ref=e92]:
+              - heading "Tarifa base" [level=2] [ref=e93]
+              - generic [ref=e95]:
+                - generic [ref=e96]: Desde
+                - generic [ref=e97]: $156.250 USD
+            - generic [ref=e98]:
+              - heading "Programa" [level=2] [ref=e100]
+              - list [ref=e101]:
+                - listitem [ref=e102]:
+                  - generic [ref=e104]: "1"
+                  - article [ref=e105]:
+                    - img "Inicio del Recorrido:" [ref=e107]
+                    - generic [ref=e108]:
+                      - heading "Inicio del Recorrido:" [level=3] [ref=e110]
+                      - paragraph [ref=e111]: Recogida en el hotel (aplican restricciones según zona). Traslado hacia el muelle para abordar la lancha rápida. Salida en lancha rumbo a las Islas del Rosario. Disfrute del paseo panorámico por las islas y explicación por parte del guía.
+                - listitem [ref=e112]:
+                  - generic [ref=e114]: "2"
+                  - article [ref=e115]:
+                    - img "Islas del rosario:" [ref=e117]
+                    - generic [ref=e118]:
+                      - heading "Islas del rosario:" [level=3] [ref=e120]
+                      - paragraph [ref=e121]: Parada en el acuario (entrada no especificada, consultar si tiene costo adicional). Tiempo para relajarse, explorar la playa o disfrutar del mar Caribe. Almuerzo incluido. Espacios para tomar fotos, descansar o hacer actividades opcionales (no incluidas).
+                - listitem [ref=e122]:
+                  - generic [ref=e124]: "3"
+                  - article [ref=e125]:
+                    - img "Fin del recorrido:" [ref=e127]
+                    - generic [ref=e128]:
+                      - heading "Fin del recorrido:" [level=3] [ref=e130]
+                      - paragraph [ref=e131]: Embarque de regreso en la lancha rápida hacia Cartagena. Traslado al hotel (si aplica). Fin de la experiencia.
+            - generic [ref=e132]:
+              - heading "Incluye / No incluye" [level=2] [ref=e133]
+              - generic [ref=e134]:
+                - generic [ref=e135]:
+                  - heading "Incluye" [level=3] [ref=e136]
+                  - list [ref=e137]:
+                    - listitem [ref=e138]:
+                      - img [ref=e139]
+                      - generic [ref=e141]: Recogida en el hotel.
+                    - listitem [ref=e142]:
+                      - img [ref=e143]
+                      - generic [ref=e145]: Transporte en lancha rápida.
+                    - listitem [ref=e146]:
+                      - img [ref=e147]
+                      - generic [ref=e149]: Paseo panorámico por Islas del Rosario.
+                    - listitem [ref=e150]:
+                      - img [ref=e151]
+                      - generic [ref=e153]: Parada en el acuario.
+                    - listitem [ref=e154]:
+                      - img [ref=e155]
+                      - generic [ref=e157]: Almuerzo (3 opciones).
+                - generic [ref=e158]:
+                  - heading "No incluye" [level=3] [ref=e159]
+                  - list [ref=e160]:
+                    - listitem [ref=e161]:
+                      - img [ref=e162]
+                      - generic [ref=e164]: Gastos no especificados
+            - generic [ref=e165]:
+              - generic [ref=e166]:
+                - heading "Punto de encuentro" [level=2] [ref=e167]
+                - paragraph [ref=e168]: Cartagena de Indias, Provincia de Cartagena, Bolívar, Colombia, Cartagena de Indias, Bolívar, CO
+              - generic [ref=e170]:
+                - generic [ref=e444]:
+                  - generic:
+                    - region "Map" [ref=e445]
+                    - button "Map marker" [ref=e446]:
+                      - 'button "Destino: Cartagena de Indias, Provincia de Cartagena, Bolívar, Colombia, Cartagena de Indias, Bolívar, CO" [ref=e448]':
+                        - generic [ref=e451]: C
+                  - generic:
+                    - generic [ref=e453]:
+                      - button "Zoom in" [ref=e454] [cursor=pointer]
+                      - button "Zoom out" [ref=e456] [cursor=pointer]
+                      - button "Drag to rotate map, click to reset north" [ref=e458]
+                    - group [ref=e460]:
+                      - generic "Toggle attribution" [ref=e461] [cursor=pointer]
+                      - generic [ref=e462]:
+                        - link "MapLibre" [ref=e463] [cursor=pointer]:
+                          - /url: https://maplibre.org/
+                        - text: "|"
+                        - link "© MapTiler" [ref=e464] [cursor=pointer]:
+                          - /url: https://www.maptiler.com/copyright/
+                        - link "© OpenStreetMap contributors" [ref=e465] [cursor=pointer]:
+                          - /url: https://www.openstreetmap.org/copyright
+                - generic [ref=e174]:
+                  - generic [ref=e175]: "1"
+                  - generic [ref=e176]: Cartagena de Indias, Provincia de Cartagena, Bolívar, Colombia, Cartagena de Indias, Bolívar, CO
+            - generic [ref=e177]:
+              - heading "Opciones disponibles" [level=2] [ref=e179]
+              - table [ref=e182]:
+                - rowgroup [ref=e183]:
+                  - row "Option Pricing Units Refundable Prices" [ref=e184]:
+                    - columnheader "Option" [ref=e185]
+                    - columnheader "Pricing" [ref=e186]
+                    - columnheader "Units" [ref=e187]
+                    - columnheader "Refundable" [ref=e188]
+                    - columnheader "Prices" [ref=e189]
+                - rowgroup [ref=e190]:
+                  - row "Tarifa por pax 4f5451f4-452b-4bbd-8be7-f11694f23446 UNIT Min 1 Yes $156.250 COP ADULT default 2000-01-01 to 2099-12-31" [ref=e191]:
+                    - cell "Tarifa por pax 4f5451f4-452b-4bbd-8be7-f11694f23446" [ref=e192]:
+                      - generic [ref=e193]:
+                        - generic [ref=e194]: Tarifa por pax
+                        - generic [ref=e195]: 4f5451f4-452b-4bbd-8be7-f11694f23446
+                    - cell "UNIT" [ref=e196]:
+                      - generic [ref=e197]: UNIT
+                    - cell "Min 1" [ref=e198]:
+                      - generic [ref=e200]: Min 1
+                    - cell "Yes" [ref=e201]:
+                      - generic [ref=e202]: "Yes"
+                    - cell "$156.250 COP ADULT default 2000-01-01 to 2099-12-31" [ref=e203]:
+                      - generic [ref=e205]:
+                        - generic [ref=e206]:
+                          - generic [ref=e207]: $156.250 COP
+                          - generic [ref=e208]: ADULT
+                          - generic [ref=e209]: default
+                        - generic [ref=e210]: 2000-01-01 to 2099-12-31
+          - complementary [ref=e213]:
+            - generic [ref=e214]:
+              - text: Desde
+              - paragraph [ref=e215]: $156.250 USD
+            - generic [ref=e216]:
+              - generic [ref=e217]:
+                - term [ref=e218]: Tipo
+                - definition [ref=e219]: Actividades
+              - generic [ref=e220]:
+                - term [ref=e221]: Ubicacion
+                - definition [ref=e222]: Cartagena de Indias
+            - link "Llamar" [ref=e224] [cursor=pointer]:
+              - /url: tel:+573206129003
+        - generic [ref=e226]:
+          - generic [ref=e227]:
+            - img [ref=e228]
+            - heading "Lo que dicen los viajeros" [level=2] [ref=e233]
+          - generic [ref=e234]:
+            - generic [ref=e235]:
+              - generic [ref=e236]: "5"
+              - generic [ref=e237]:
+                - generic [ref=e238]: ★
+                - generic [ref=e239]: ★
+                - generic [ref=e240]: ★
+                - generic [ref=e241]: ★
+                - generic [ref=e242]: ★
+              - paragraph [ref=e243]: 3 opiniones
+              - paragraph [ref=e244]: Google Reviews
+            - generic [ref=e245]:
+              - generic [ref=e246]:
+                - generic [ref=e247]: "5"
+                - generic [ref=e248]: ★
+                - generic [ref=e251]: 100%
+              - generic [ref=e252]:
+                - generic [ref=e253]: "4"
+                - generic [ref=e254]: ★
+                - generic [ref=e256]: 0%
+              - generic [ref=e257]:
+                - generic [ref=e258]: "3"
+                - generic [ref=e259]: ★
+                - generic [ref=e261]: 0%
+              - generic [ref=e262]:
+                - generic [ref=e263]: "2"
+                - generic [ref=e264]: ★
+                - generic [ref=e266]: 0%
+              - generic [ref=e267]:
+                - generic [ref=e268]: "1"
+                - generic [ref=e269]: ★
+                - generic [ref=e271]: 0%
+          - generic [ref=e272]:
+            - generic [ref=e273]:
+              - generic [ref=e274]:
+                - generic [ref=e275]:
+                  - img "Angela Cruz" [ref=e276]
+                  - generic [ref=e277]:
+                    - paragraph [ref=e278]: Angela Cruz
+                    - paragraph [ref=e279]: Hace 6 meses
+                - generic [ref=e280]:
+                  - generic [ref=e281]: ★
+                  - generic [ref=e282]: ★
+                  - generic [ref=e283]: ★
+                  - generic [ref=e284]: ★
+                  - generic [ref=e285]: ★
+              - generic [ref=e286]:
+                - paragraph [ref=e287]: “Paola no solo me orientó, sino que fue más allá en una situación muy particular como la mia, en menos de 24 horas organizó nuestro viaje de principio a fin. Los servicios del tour, la comida, las locaciones son de la mejor calidad, puntualidad y calidez. Gracias Paola y Olimpo por hacer nuestro viaje por Eje Cafetero Colombiano, una experiencia para nunca olvidar.”
+                - button "Leer más" [ref=e288]
+              - generic [ref=e289]:
+                - button "Foto 1 de Angela Cruz" [ref=e290] [cursor=pointer]:
+                  - img "Foto 1 de Angela Cruz" [ref=e291]
+                - button "Foto 2 de Angela Cruz" [ref=e292] [cursor=pointer]:
+                  - img "Foto 2 de Angela Cruz" [ref=e293]
+                - button "Foto 3 de Angela Cruz" [ref=e294] [cursor=pointer]:
+                  - img "Foto 3 de Angela Cruz" [ref=e295]
+                - button "+4" [ref=e296] [cursor=pointer]
+              - paragraph [ref=e298]: "Respuesta: Nos alegra saber que en nuestro equipo encontraste el apoyo ideal para tener el acompañamiento perfecto durante tu viaje. Te esperamos para una próxima aventura en Colombia."
+            - generic [ref=e299]:
+              - generic [ref=e300]:
+                - generic [ref=e301]:
+                  - img "Marisol" [ref=e302]
+                  - generic [ref=e303]:
+                    - paragraph [ref=e304]: Marisol
+                    - paragraph [ref=e305]: Hace 4 meses
+                - generic [ref=e306]:
+                  - generic [ref=e307]: ★
+                  - generic [ref=e308]: ★
+                  - generic [ref=e309]: ★
+                  - generic [ref=e310]: ★
+                  - generic [ref=e311]: ★
+              - generic [ref=e312]:
+                - paragraph [ref=e313]: “Conocimos a Diana Tabares buscando opciones para visitar Colombia. Ella entendio todo lo que estabamos buscando y los lugares que queriamos visitar. Nos preparo un tour que incluyo Bogota, Pereira, Cartagena y Medellin por 16 dias. Fue una experiencia increible, unica y la mejor. No tengo palabras suficiente para agradecerle a Diana por esta aventura. En Bogota hicimos el city tour, en Pereira fuimos a los termales, visitamos los pueblos de filandia, Salento y el valle del cocora, El parque del café y los cafetales. En Cartagena fuimos al City Tour, la noche Blanca, y Palmarito Beach. En Medellin hicimos el city tour, visitarmos varios pueblos, la piedra ect. Estamos super feliz por esta aventura. Si estas buscando las mejores vacaciones de tu vida te recomiendo 100% a la Agencia Colombia Tour y pregunta por Diana Tabares la mejor⭐️⭐️⭐️⭐️⭐️”
+                - button "Leer más" [ref=e314]
+              - generic [ref=e315]:
+                - button "Foto 1 de Marisol" [ref=e316] [cursor=pointer]:
+                  - img "Foto 1 de Marisol" [ref=e317]
+                - button "Foto 2 de Marisol" [ref=e318] [cursor=pointer]:
+                  - img "Foto 2 de Marisol" [ref=e319]
+                - button "Foto 3 de Marisol" [ref=e320] [cursor=pointer]:
+                  - img "Foto 3 de Marisol" [ref=e321]
+                - button "+10" [ref=e322] [cursor=pointer]
+              - paragraph [ref=e324]: "Respuesta: Nuestro compromiso es con ustedes, nos alegra saber que nuestro equipo trabaja con el esfuerzo y la dedicación necesaria para cumplir con lo que necesitan. Nos alegra que hayan disfrutado de su viaje a Colombia Marisol, con gusta te esperamos para llevarte a seguir explorando el país de la belleza."
+            - generic [ref=e325]:
+              - generic [ref=e326]:
+                - generic [ref=e327]:
+                  - img "Aurelio Sandoval" [ref=e328]
+                  - generic [ref=e329]:
+                    - paragraph [ref=e330]: Aurelio Sandoval
+                    - paragraph [ref=e331]: Hace 5 meses
+                - generic [ref=e332]:
+                  - generic [ref=e333]: ★
+                  - generic [ref=e334]: ★
+                  - generic [ref=e335]: ★
+                  - generic [ref=e336]: ★
+                  - generic [ref=e337]: ★
+              - generic [ref=e338]:
+                - paragraph [ref=e339]: “Fue una experiencia que rebasó nuestras expectativas desde la asesoría de Susana para programar el viaje, el transporte terrestre y aéreo el hospedaje y los recorridos. Quedamos encantados con todas las personas que nos transportaron, la atención en todos y cada uno de los sitios visitados. Recomendamos 100% los servicios prestados y la atención permanente por parte de Susana como asesora de viaje, Jessid que coordina todos los conductores que nos trasladaron especialmente a William en Bogotá y a Guiovani en Pereira qué son muestra de un pueblo amable, respetuoso siempre dispuestos a brindar apoyo. Muchas gracias a todos por sus atenciones.”
+                - button "Leer más" [ref=e340]
+              - generic [ref=e341]:
+                - button "Foto 1 de Aurelio Sandoval" [ref=e342] [cursor=pointer]:
+                  - img "Foto 1 de Aurelio Sandoval" [ref=e343]
+                - button "Foto 2 de Aurelio Sandoval" [ref=e344] [cursor=pointer]:
+                  - img "Foto 2 de Aurelio Sandoval" [ref=e345]
+                - button "Foto 3 de Aurelio Sandoval" [ref=e346] [cursor=pointer]:
+                  - img "Foto 3 de Aurelio Sandoval" [ref=e347]
+                - button "+47" [ref=e348] [cursor=pointer]
+              - paragraph [ref=e350]: "Respuesta: Nos alegra que hayan sentido la calidez, respeto y disposición que caracterizan a nuestro equipo. Gracias por su confianza y por recomendarnos al 100%. Será un honor acompañarlos en su próxima experiencia por Colombia."
+        - generic [ref=e352]:
+          - heading "Reserva con confianza" [level=2] [ref=e354]
+          - generic [ref=e355]:
+            - generic [ref=e357]:
+              - img [ref=e359]
+              - generic [ref=e361]:
+                - generic [ref=e362]: RNT vigente
+                - generic [ref=e363]: Operador turístico con registro activo.
+            - generic [ref=e365]:
+              - img [ref=e367]
+              - generic [ref=e369]:
+                - generic [ref=e370]: Afiliados al sector
+                - generic [ref=e371]: Alianzas con operadores y proveedores confiables.
+            - generic [ref=e373]:
+              - img [ref=e375]
+              - generic [ref=e377]:
+                - generic [ref=e378]: Años de experiencia
+                - generic [ref=e379]: Equipo local con trayectoria diseñando viajes en Colombia.
+        - generic [ref=e381]:
+          - heading "¿Listo para vivir esta experiencia?" [level=2] [ref=e382]
+          - paragraph [ref=e383]: Contactanos y te ayudamos a planificar tu viaje ideal
+          - link "Llamar ahora" [ref=e385] [cursor=pointer]:
+            - /url: tel:+573206129003
+        - generic [ref=e468]:
+          - generic [ref=e469]:
+            - heading "Experiencias similares" [level=2] [ref=e470]
+            - link "Ver todos →" [ref=e471] [cursor=pointer]:
+              - /url: /site/colombiatours/actividades
+          - generic [ref=e472]:
+            - link "4x1 Adventure 4x1 Adventure Cartagena de Indias Consultar" [ref=e474] [cursor=pointer]:
+              - /url: /site/colombiatours/actividades/4x1-adventure
+              - img "4x1 Adventure" [ref=e476]
+              - generic [ref=e477]:
+                - heading "4x1 Adventure" [level=3] [ref=e478]
+                - generic [ref=e479]:
+                  - generic [ref=e480]: Cartagena de Indias
+                  - generic [ref=e481]: Consultar
+            - link "Alimentación Alimentación Calarcá $11" [ref=e483] [cursor=pointer]:
+              - /url: /site/colombiatours/actividades/alimentaci-n
+              - img "Alimentación" [ref=e485]
+              - generic [ref=e486]:
+                - heading "Alimentación" [level=3] [ref=e487]
+                - generic [ref=e488]:
+                  - generic [ref=e489]: Calarcá
+                  - generic [ref=e490]: $11
+            - link "Amazonas Aventura Express 4 días 3 noches Amazonas Aventura Express 4 días 3 noches Leticia $360" [ref=e492] [cursor=pointer]:
+              - /url: /site/colombiatours/actividades/amazonas-aventura-express-4-d-as-3-noches
+              - img "Amazonas Aventura Express 4 días 3 noches" [ref=e494]
+              - generic [ref=e495]:
+                - heading "Amazonas Aventura Express 4 días 3 noches" [level=3] [ref=e496]
+                - generic [ref=e497]:
+                  - generic [ref=e498]: Leticia
+                  - generic [ref=e499]: $360
+    - contentinfo [ref=e386]:
+      - paragraph [ref=e389]: Síguenos para descubrir nuevas rutas y experiencias.
+      - generic [ref=e391]:
+        - generic [ref=e392]:
+          - heading "Explora" [level=3] [ref=e393]
+          - navigation [ref=e394]:
+            - link "Destinos" [ref=e395] [cursor=pointer]:
+              - /url: /site/colombiatours#destinations
+            - link "Paquetes" [ref=e396] [cursor=pointer]:
+              - /url: /site/colombiatours#packages
+            - link "Actividades" [ref=e397] [cursor=pointer]:
+              - /url: /site/colombiatours#activities
+            - link "Hoteles" [ref=e398] [cursor=pointer]:
+              - /url: /site/colombiatours#hotels
+        - generic [ref=e399]:
+          - heading "Compañía" [level=3] [ref=e400]
+          - navigation [ref=e401]:
+            - link "Nosotros" [ref=e402] [cursor=pointer]:
+              - /url: /site/colombiatours#about
+            - link "Reseñas" [ref=e403] [cursor=pointer]:
+              - /url: /site/colombiatours#testimonials
+            - link "Blog" [ref=e404] [cursor=pointer]:
+              - /url: /site/colombiatours/blog
+            - link "Preguntas frecuentes" [ref=e405] [cursor=pointer]:
+              - /url: /site/colombiatours#faq
+        - generic [ref=e406]:
+          - heading "Ayuda" [level=3] [ref=e407]
+          - navigation [ref=e408]:
+            - link "Solicitar asesoría" [ref=e409] [cursor=pointer]:
+              - /url: /site/colombiatours#cta
+            - link "Planear viaje" [ref=e410] [cursor=pointer]:
+              - /url: /site/colombiatours#cta
+            - link "hola@colombiatours.travel" [ref=e411] [cursor=pointer]:
+              - /url: mailto:hola@colombiatours.travel
+            - link "+57 320 612 90 03" [ref=e412] [cursor=pointer]:
+              - /url: tel:+57 320 612 90 03
+        - generic [ref=e413]:
+          - heading "Legal" [level=3] [ref=e414]
+          - navigation [ref=e415]:
+            - link "Términos y Condiciones" [ref=e416] [cursor=pointer]:
+              - /url: /site/colombiatours/terms
+            - link "Política de Privacidad" [ref=e417] [cursor=pointer]:
+              - /url: /site/colombiatours/privacy
+            - link "Política de Cancelación" [ref=e418] [cursor=pointer]:
+              - /url: /site/colombiatours/cancellation
+      - generic [ref=e420]:
+        - paragraph [ref=e421]: © 2026 ColombiaTours.Travel. Todos los derechos reservados.
+        - generic [ref=e422]:
+          - combobox "Seleccionar idioma" [ref=e423] [cursor=pointer]:
+            - option "🇪🇸 ES" [selected]
+            - option "🇺🇸 EN"
+            - option "🇧🇷 PT"
+          - link "Creado con Bukeer" [ref=e424] [cursor=pointer]:
+            - /url: https://bukeer.com
+  - alert [ref=e425]
+  - generic [ref=e430] [cursor=pointer]:
+    - button "Open Next.js Dev Tools" [ref=e431]:
+      - img [ref=e432]
+    - generic [ref=e435]:
+      - button "Open issues overlay" [ref=e436]:
+        - generic [ref=e437]:
+          - generic [ref=e438]: "0"
+          - generic [ref=e439]: "1"
+        - generic [ref=e440]: Issue
+      - button "Collapse issues badge" [ref=e441]:
+        - img [ref=e442]

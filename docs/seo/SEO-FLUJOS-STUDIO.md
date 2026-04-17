@@ -451,6 +451,35 @@ Treat this as a manual workaround, not as the target translation SEO system.
 
 ---
 
+## Human Operating Rhythm (operator cadence)
+
+Shipped widgets today (with known limitations — see each Flow above):
+
+| Cycle | Widget | Location | Status |
+|-------|--------|----------|--------|
+| 7D (weekly) | `Ciclo 7D` Quick Wins | `Analytics -> Overview` | Shipped UI, tasks currently hardcoded + checkbox state non-persistent |
+| 30D (monthly) | `Ciclo 30D` OKRs | `Analytics -> Overview` | Shipped UI, targets hardcoded + `current` partial (only clicks from sessions) |
+| 90D (quarterly) | `Ciclo 90D` Objectives | `Analytics -> Overview` | Shipped UI, objectives hardcoded + progress = 0% |
+| Onboarding | `SeoQuickStartWizard` | `Analytics -> Quick Start` | Shipped 7-step, step 6 targets captured but not yet linked to OKR widget |
+
+### Prescribed cadence (target, partial today)
+
+- **Daily (15 min):** one Quick Win per day from `Ciclo 7D` → apply → mark done.
+- **Monday (30 min):** review auto-generated weekly tasks + re-prioritize.
+- **Friday (30 min):** close tasks + check OKR progress.
+- **First Monday of month (90 min):** OKR close + audit + cluster plan adjust.
+- **First Monday of quarter (3h):** 90D close + new 90D objectives + update OKR targets.
+
+See [SEO Playbook → Human Operating Rhythm](./SEO-PLAYBOOK.md#human-operating-rhythm) for detail.
+
+### Operator note
+
+The target is **one shipped improvement per day**, driven by data surfaced in the widgets.
+Until the persistence + dynamic-quick-wins work lands, treat the widgets as a scaffold,
+not as a live operating surface.
+
+---
+
 ## What Is Not Yet A Shipped Flow
 
 The following workflows are intentionally excluded from this guide because they are not fully shipped:
