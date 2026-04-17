@@ -19,8 +19,6 @@ interface InclusionsExclusionsSectionProps {
 export function InclusionsExclusionsSection({ section }: InclusionsExclusionsSectionProps) {
   const content = (section.content as unknown as InclusionsExclusionsContent | null) || { included: [], excluded: [] };
   const { title, included = [], excluded = [], note } = content;
-  const variant = section.variant || 'two_column_check';
-  const isTabs = variant === 'single_column_tabs';
 
   return (
     <section className="section-padding" aria-label="Incluye y no incluye">

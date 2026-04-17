@@ -4,9 +4,13 @@ import { getWebsiteBySubdomain } from '@/lib/supabase/get-website';
 import { getPageBySlug, getProductPage, getDestinations, getDestinationProducts, getDestinationSeoOverride, getCategoryProducts } from '@/lib/supabase/get-pages';
 import { getReviewsForContext, type ReviewContext } from '@/lib/supabase/get-reviews';
 import { enrichDestinationFromSerpAPI } from '@/lib/services/serpapi-enrichment';
-import { generateHreflangLinks, generateOgLocale } from '@/lib/seo/hreflang';
 import { resolveOgImage } from '@/lib/seo/og-helpers';
-import { normalizeLanguage } from '@/components/seo/product-schema';
+import {
+  buildLocaleAwareAlternateLanguages,
+  resolvePublicMetadataLocale,
+  type PublicMetadataLocaleContext,
+} from '@/lib/seo/public-metadata';
+import { buildPublicLocalizedPath, localeToOgLocale } from '@/lib/seo/locale-routing';
 import { CategoryPage } from '@/components/pages/category-page';
 import { StaticPage } from '@/components/pages/static-page';
 import { ProductLandingPage } from '@/components/pages/product-landing-page';
@@ -39,16 +43,22 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number, fallback: T): Pr
   ]);
 }
 
-/**
- * Build alternate language links for Next.js metadata `alternates.languages`
- */
-function buildAlternateLanguages(baseUrl: string, pathname: string): Record<string, string> {
-  const links = generateHreflangLinks(baseUrl, pathname);
-  const languages: Record<string, string> = {};
-  for (const link of links) {
-    languages[link.hreflang] = link.href;
+function buildCanonicalUrl(
+  baseUrl: string,
+  pathname: string,
+  localeContext: PublicMetadataLocaleContext,
+): string {
+  const localizedPath = buildPublicLocalizedPath(
+    pathname,
+    localeContext.resolvedLocale,
+    localeContext.defaultLocale,
+  );
+
+  if (localizedPath === '/') {
+    return baseUrl;
   }
-  return languages;
+
+  return `${baseUrl}${localizedPath}`;
 }
 
 async function getListingRobotsNoindex(
@@ -78,16 +88,13 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
     ? `https://${website.custom_domain}`
     : `https://${subdomain}.bukeer.com`;
 
-  // OG locale from website language via normalizeLanguage (single source of default)
-  const websiteLang = normalizeLanguage(
-    (website as unknown as Record<string, unknown>).language as string
-      || (website as unknown as Record<string, unknown>).locale as string
-      || null,
-  );
-  const { locale: ogLocale } = generateOgLocale(websiteLang);
-
   // Handle different page types based on slug
   const slugPath = slug.join('/');
+  const localeContext = await resolvePublicMetadataLocale(
+    website,
+    slugPath ? `/${slugPath}` : '/',
+  );
+  const ogLocale = localeToOgLocale(localeContext.resolvedLocale);
 
   // Activities listing (/actividades or /activities)
   if (slug.length === 1 && (slug[0] === 'actividades' || slug[0] === 'activities')) {
@@ -111,8 +118,8 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
         ...(ogImage && { images: [ogImage] }),
       },
       alternates: {
-        canonical: `${baseUrl}${pathname}`,
-        languages: buildAlternateLanguages(baseUrl, pathname),
+        canonical: buildCanonicalUrl(baseUrl, pathname, localeContext),
+        languages: buildLocaleAwareAlternateLanguages(baseUrl, pathname, localeContext),
       },
     };
 
@@ -145,8 +152,8 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
         ...(ogImage && { images: [ogImage] }),
       },
       alternates: {
-        canonical: `${baseUrl}${pathname}`,
-        languages: buildAlternateLanguages(baseUrl, pathname),
+        canonical: buildCanonicalUrl(baseUrl, pathname, localeContext),
+        languages: buildLocaleAwareAlternateLanguages(baseUrl, pathname, localeContext),
       },
     };
 
@@ -179,8 +186,8 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
         ...(ogImage && { images: [ogImage] }),
       },
       alternates: {
-        canonical: `${baseUrl}${pathname}`,
-        languages: buildAlternateLanguages(baseUrl, pathname),
+        canonical: buildCanonicalUrl(baseUrl, pathname, localeContext),
+        languages: buildLocaleAwareAlternateLanguages(baseUrl, pathname, localeContext),
       },
     };
 
@@ -213,8 +220,8 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
         ...(ogImage && { images: [ogImage] }),
       },
       alternates: {
-        canonical: `${baseUrl}${pathname}`,
-        languages: buildAlternateLanguages(baseUrl, pathname),
+        canonical: buildCanonicalUrl(baseUrl, pathname, localeContext),
+        languages: buildLocaleAwareAlternateLanguages(baseUrl, pathname, localeContext),
       },
     };
 
@@ -247,8 +254,8 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
         ...(ogImage && { images: [ogImage] }),
       },
       alternates: {
-        canonical: `${baseUrl}${pathname}`,
-        languages: buildAlternateLanguages(baseUrl, pathname),
+        canonical: buildCanonicalUrl(baseUrl, pathname, localeContext),
+        languages: buildLocaleAwareAlternateLanguages(baseUrl, pathname, localeContext),
       },
     };
 
@@ -286,8 +293,8 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
           ...(resolveOgImage(website, dest.image) && { images: [resolveOgImage(website, dest.image)!] }),
         },
         alternates: {
-          canonical: `${baseUrl}${pathname}`,
-          languages: buildAlternateLanguages(baseUrl, pathname),
+          canonical: buildCanonicalUrl(baseUrl, pathname, localeContext),
+          languages: buildLocaleAwareAlternateLanguages(baseUrl, pathname, localeContext),
         },
       };
 
@@ -334,8 +341,8 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
             }),
           },
           alternates: {
-            canonical: `${baseUrl}${pathname}`,
-            languages: buildAlternateLanguages(baseUrl, pathname),
+            canonical: buildCanonicalUrl(baseUrl, pathname, localeContext),
+            languages: buildLocaleAwareAlternateLanguages(baseUrl, pathname, localeContext),
           },
         };
 
@@ -377,7 +384,8 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
           ...(ogImage && { images: [ogImage] }),
         },
         alternates: {
-          canonical: baseUrl,
+          canonical: buildCanonicalUrl(baseUrl, '/', localeContext),
+          languages: buildLocaleAwareAlternateLanguages(baseUrl, '/', localeContext),
         },
       };
     }
@@ -386,7 +394,7 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
 
   const title = page.seo_title || page.title;
   const description = page.seo_description || '';
-  const canonicalUrl = `${baseUrl}/${slugPath}`;
+  const canonicalUrl = buildCanonicalUrl(baseUrl, `/${slugPath}`, localeContext);
 
   const ogImage = resolveOgImage(website);
   const metadata: Metadata = {
@@ -407,6 +415,7 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
     },
     alternates: {
       canonical: canonicalUrl,
+      languages: buildLocaleAwareAlternateLanguages(baseUrl, `/${slugPath}`, localeContext),
     },
   };
 

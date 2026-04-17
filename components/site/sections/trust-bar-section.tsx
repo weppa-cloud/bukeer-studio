@@ -19,9 +19,6 @@ interface TrustBarSectionProps {
 }
 
 function StarRating({ score }: { score: number }) {
-  const reduced = typeof window !== 'undefined'
-    ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    : false;
   return (
     <span className="flex items-center gap-0.5" aria-label={`${score} de 5 estrellas`}>
       {[1, 2, 3, 4, 5].map((i) => (
@@ -42,8 +39,6 @@ function StarRating({ score }: { score: number }) {
 export function TrustBarSection({ section }: TrustBarSectionProps) {
   const content = (section.content as unknown as TrustBarContent | null) || {};
   const { rating, certifications = [], travelerCount, travelerLabel, sslBadge } = content;
-
-  const variant = section.variant || 'ratings_inline';
 
   return (
     <section

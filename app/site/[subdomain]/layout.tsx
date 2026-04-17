@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { Suspense } from 'react';
 import { getWebsiteBySubdomain } from '@/lib/supabase/get-website';
 import { getWebsiteNavigation } from '@/lib/supabase/get-pages';
 import { M3ThemeProvider } from '@/lib/theme/m3-theme-provider';
@@ -107,7 +108,9 @@ export default async function SiteLayout({ children, params }: SiteLayoutProps) 
           {/* GTM NoScript fallback */}
           <GoogleTagManagerBody analytics={website.analytics} />
 
-          <SiteHeader website={website} navigation={navigation} />
+          <Suspense fallback={null}>
+            <SiteHeader website={website} navigation={navigation} />
+          </Suspense>
           <main className="flex-1 overflow-x-hidden">
             {children}
           </main>

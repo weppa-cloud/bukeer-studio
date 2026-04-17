@@ -5,6 +5,11 @@ import { getWebsiteBySubdomain, getBlogPosts, getBlogCategories } from '@/lib/su
 import { notFound } from 'next/navigation';
 import { JsonLd, generateBlogListingSchemas } from '@/lib/schema';
 import { resolveOgImage } from '@/lib/seo/og-helpers';
+import {
+  buildLocaleAwareAlternateLanguages,
+  resolvePublicMetadataLocale,
+} from '@/lib/seo/public-metadata';
+import { localeToOgLocale } from '@/lib/seo/locale-routing';
 
 interface BlogPageProps {
   params: Promise<{ subdomain: string }>;
@@ -23,6 +28,10 @@ export async function generateMetadata({ params }: BlogPageProps): Promise<Metad
   const baseUrl = website.custom_domain
     ? `https://${website.custom_domain}`
     : `https://${subdomain}.bukeer.com`;
+  const localeContext = await resolvePublicMetadataLocale(website, '/blog');
+  const localizedBlogPath = localeContext.localizedPathname;
+  const canonical = `${baseUrl}${localizedBlogPath}`;
+  const languages = buildLocaleAwareAlternateLanguages(baseUrl, '/blog', localeContext);
   const description = `Lee las últimas publicaciones y guías de viaje de ${siteName}`;
   const ogImage = resolveOgImage(website);
 
@@ -30,14 +39,15 @@ export async function generateMetadata({ params }: BlogPageProps): Promise<Metad
     title: 'Blog',
     description,
     alternates: {
-      canonical: `${baseUrl}/blog`,
+      canonical,
+      languages,
     },
     openGraph: {
       title: `Blog — ${siteName}`,
       description,
-      url: `${baseUrl}/blog`,
+      url: canonical,
       siteName,
-      locale: 'es_ES',
+      locale: localeToOgLocale(localeContext.resolvedLocale),
       type: 'website',
       ...(ogImage && { images: [{ url: ogImage }] }),
     },

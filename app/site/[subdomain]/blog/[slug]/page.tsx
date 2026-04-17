@@ -9,8 +9,12 @@ import {
 } from '@/lib/supabase/get-website';
 import { JsonLd, generateBlogPostSchemas } from '@/lib/schema';
 import { SafeHtml } from '@/lib/sanitize';
-import { generateHreflangLinks } from '@/lib/seo/hreflang';
 import { resolveOgImage } from '@/lib/seo/og-helpers';
+import {
+  buildLocaleAwareAlternateLanguages,
+  resolvePublicMetadataLocale,
+} from '@/lib/seo/public-metadata';
+import { localeToOgLocale } from '@/lib/seo/locale-routing';
 
 interface BlogPostPageProps {
   params: Promise<{ subdomain: string; slug: string }>;
@@ -34,11 +38,10 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
     ? `https://${website.custom_domain}`
     : `https://${subdomain}.bukeer.com`;
   const blogPath = `/blog/${post.slug}`;
-  const hreflangLinks = generateHreflangLinks(baseUrl, blogPath);
-  const languages: Record<string, string> = {};
-  for (const link of hreflangLinks) {
-    languages[link.hreflang] = link.href;
-  }
+  const localeContext = await resolvePublicMetadataLocale(website, blogPath);
+  const localizedBlogPath = localeContext.localizedPathname;
+  const canonical = `${baseUrl}${localizedBlogPath}`;
+  const languages = buildLocaleAwareAlternateLanguages(baseUrl, blogPath, localeContext);
   const siteName = website.content?.account?.name || website.content?.siteName || subdomain;
   const title = post.seo_title || post.title;
   const description = post.seo_description || post.excerpt;
@@ -49,16 +52,16 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
     description,
     keywords: post.seo_keywords ?? undefined,
     alternates: {
-      canonical: `${baseUrl}${blogPath}`,
+      canonical,
       languages,
     },
     openGraph: {
       title,
       description,
       type: 'article',
-      locale: 'es_ES',
+      locale: localeToOgLocale(localeContext.resolvedLocale),
       siteName,
-      url: `${baseUrl}${blogPath}`,
+      url: canonical,
       publishedTime: post.published_at || undefined,
       ...(ogImage && { images: [{ url: ogImage }] }),
     },

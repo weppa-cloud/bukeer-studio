@@ -5,22 +5,16 @@ import { ProductLandingPage } from '@/components/pages/product-landing-page';
 import { getCategoryProducts, getProductPage } from '@/lib/supabase/get-pages';
 import { getReviewsForContext, type ReviewContext } from '@/lib/supabase/get-reviews';
 import { getWebsiteBySubdomain } from '@/lib/supabase/get-website';
-import { generateHreflangLinks, generateOgLocale } from '@/lib/seo/hreflang';
 import { resolveOgImage } from '@/lib/seo/og-helpers';
-import { normalizeLanguage } from '@/components/seo/product-schema';
+import {
+  buildLocaleAwareAlternateLanguages,
+  resolvePublicMetadataLocale,
+} from '@/lib/seo/public-metadata';
+import { buildPublicLocalizedPath, localeToOgLocale } from '@/lib/seo/locale-routing';
 import { sanitizeProductCopy } from '@/lib/products/normalize-product';
 
 interface PackagePageProps {
   params: Promise<{ subdomain: string; slug: string }>;
-}
-
-function buildAlternateLanguages(baseUrl: string, pathname: string): Record<string, string> {
-  const links = generateHreflangLinks(baseUrl, pathname);
-  const languages: Record<string, string> = {};
-  for (const link of links) {
-    languages[link.hreflang] = link.href;
-  }
-  return languages;
 }
 
 function looksLikeLegacyId(value: string): boolean {
@@ -49,13 +43,6 @@ export async function generateMetadata({ params }: PackagePageProps): Promise<Me
     ? `https://${website.custom_domain}`
     : `https://${subdomain}.bukeer.com`;
 
-  const websiteLang = normalizeLanguage(
-    (website as unknown as Record<string, unknown>).language as string
-      || (website as unknown as Record<string, unknown>).locale as string
-      || null,
-  );
-  const { locale: ogLocale } = generateOgLocale(websiteLang);
-
   const productPage = await getProductPage(subdomain, 'package', slug);
   if (!productPage?.product) {
     return {
@@ -65,6 +52,13 @@ export async function generateMetadata({ params }: PackagePageProps): Promise<Me
   }
 
   const pathname = `/paquetes/${productPage.product.slug || slug}`;
+  const localeContext = await resolvePublicMetadataLocale(website, pathname);
+  const localizedPathname = buildPublicLocalizedPath(
+    pathname,
+    localeContext.resolvedLocale,
+    localeContext.defaultLocale,
+  );
+  const canonical = `${baseUrl}${localizedPathname}`;
   const rawTitle = productPage.page?.custom_seo_title || productPage.product.name;
   const rawDescription = productPage.page?.custom_seo_description || productPage.product.description || '';
   const title = sanitizeProductCopy(rawTitle) || 'Paquete de viaje';
@@ -78,7 +72,7 @@ export async function generateMetadata({ params }: PackagePageProps): Promise<Me
       title,
       description,
       type: 'website',
-      locale: ogLocale,
+      locale: localeToOgLocale(localeContext.resolvedLocale),
       ...(ogImage && { images: [{ url: ogImage }] }),
     },
     twitter: {
@@ -88,8 +82,8 @@ export async function generateMetadata({ params }: PackagePageProps): Promise<Me
       ...(ogImage && { images: [ogImage] }),
     },
     alternates: {
-      canonical: `${baseUrl}${pathname}`,
-      languages: buildAlternateLanguages(baseUrl, pathname),
+      canonical,
+      languages: buildLocaleAwareAlternateLanguages(baseUrl, pathname, localeContext),
     },
   };
 

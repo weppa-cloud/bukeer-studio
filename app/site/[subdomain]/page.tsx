@@ -3,7 +3,11 @@ import { notFound } from 'next/navigation';
 import { SectionRenderer } from '@/components/site/section-renderer';
 import { JsonLd, generateHomepageSchemas } from '@/lib/schema';
 import type { ImageObject } from '@/lib/schema/types';
-import { generateHreflangLinks } from '@/lib/seo/hreflang';
+import {
+  buildLocaleAwareAlternateLanguages,
+  resolvePublicMetadataLocale,
+} from '@/lib/seo/public-metadata';
+import { localeToOgLocale } from '@/lib/seo/locale-routing';
 import { resolveOgImage } from '@/lib/seo/og-helpers';
 import { getWebsiteBySubdomain, getBlogPosts } from '@/lib/supabase/get-website';
 import { getCachedGoogleReviews, getCategoryProducts, getDestinations } from '@/lib/supabase/get-pages';
@@ -51,11 +55,11 @@ export async function generateMetadata({ params }: SitePageProps): Promise<Metad
   const baseUrl = website.custom_domain
     ? `https://${website.custom_domain}`
     : `https://${subdomain}.bukeer.com`;
-  const hreflangLinks = generateHreflangLinks(baseUrl, '/');
-  const languages: Record<string, string> = {};
-  for (const link of hreflangLinks) {
-    languages[link.hreflang] = link.href;
-  }
+  const localeContext = await resolvePublicMetadataLocale(website, '/');
+  const languages = buildLocaleAwareAlternateLanguages(baseUrl, '/', localeContext);
+  const canonical = localeContext.localizedPathname === '/'
+    ? baseUrl
+    : `${baseUrl}${localeContext.localizedPathname}`;
 
   const title = website.content.seo?.title || website.content.siteName || subdomain;
   const description = website.content.seo?.description || website.content.tagline || '';
@@ -67,15 +71,15 @@ export async function generateMetadata({ params }: SitePageProps): Promise<Metad
     description,
     robots: { index: true, follow: true },
     alternates: {
-      canonical: baseUrl,
+      canonical,
       languages,
     },
     openGraph: {
       title,
       description,
-      url: baseUrl,
+      url: canonical,
       siteName,
-      locale: 'es_ES',
+      locale: localeToOgLocale(localeContext.resolvedLocale),
       type: 'website',
       ...(ogImage && { images: [{ url: ogImage }] }),
     },

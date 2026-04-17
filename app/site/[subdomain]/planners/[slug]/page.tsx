@@ -6,6 +6,11 @@ import { getWebsiteBySubdomain } from '@/lib/supabase/get-website';
 import { getPlanners, slugify } from '@/lib/supabase/get-planners';
 import { getReviewsForContext } from '@/lib/supabase/get-reviews';
 import { ReviewsBlock } from '@/components/site/reviews-block';
+import {
+  buildLocaleAwareAlternateLanguages,
+  resolvePublicMetadataLocale,
+} from '@/lib/seo/public-metadata';
+import { buildPublicLocalizedPath, localeToOgLocale } from '@/lib/seo/locale-routing';
 
 // ISR: Revalidate every 5 minutes
 export const revalidate = 300;
@@ -36,6 +41,9 @@ export async function generateMetadata({ params }: PlannerPageProps): Promise<Me
   const baseUrl = website.custom_domain
     ? `https://${website.custom_domain}`
     : `https://${subdomain}.bukeer.com`;
+  const path = `/planners/${slug}`;
+  const localeContext = await resolvePublicMetadataLocale(website, path);
+  const canonical = `${baseUrl}${buildPublicLocalizedPath(path, localeContext.resolvedLocale, localeContext.defaultLocale)}`;
 
   return {
     title,
@@ -44,9 +52,9 @@ export async function generateMetadata({ params }: PlannerPageProps): Promise<Me
       title,
       description,
       type: 'profile',
-      locale: 'es_ES',
+      locale: localeToOgLocale(localeContext.resolvedLocale),
       siteName,
-      url: `${baseUrl}/planners/${slug}`,
+      url: canonical,
       ...(planner.photo && { images: [{ url: planner.photo }] }),
     },
     twitter: {
@@ -54,6 +62,10 @@ export async function generateMetadata({ params }: PlannerPageProps): Promise<Me
       title,
       description,
       ...(planner.photo && { images: [planner.photo] }),
+    },
+    alternates: {
+      canonical,
+      languages: buildLocaleAwareAlternateLanguages(baseUrl, path, localeContext),
     },
   };
 }

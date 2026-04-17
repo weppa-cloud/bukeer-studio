@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { refreshAuthSession } from '@/lib/supabase/middleware-client';
+import {
+  PUBLIC_LOCALE_HEADER_NAMES,
+  extractWebsiteLocaleSettings,
+  resolveLocaleFromPublicPath,
+} from '@/lib/seo/locale-routing';
 
 // Subdomains that should NOT be treated as tenant sites
 const RESERVED_SUBDOMAINS = [
@@ -34,6 +39,21 @@ interface WebsiteLookup {
   id: string;
   subdomain: string;
   account_id: string;
+  default_locale?: string | null;
+  supported_locales?: string[] | null;
+}
+
+interface LocaleAwareRoutingInput {
+  request: NextRequest;
+  sourceUrl: URL;
+  pathnameWithoutLang: string;
+  originalPathname: string;
+  subdomain: string;
+  host?: string;
+  resolvedLocale: string;
+  defaultLocale: string;
+  resolvedLanguage: string;
+  hasLanguageSegment: boolean;
 }
 
 function getRequestHost(request: NextRequest): string {
@@ -123,7 +143,7 @@ async function getWebsiteBySubdomain(subdomain: string): Promise<WebsiteLookup |
   if (cached !== undefined) return cached;
 
   const data = await supabaseFetch<WebsiteLookup[]>(
-    `/rest/v1/websites?select=id,subdomain,account_id&subdomain=eq.${encodeURIComponent(subdomain)}&status=eq.published&deleted_at=is.null&limit=1`
+    `/rest/v1/websites?select=id,subdomain,account_id,default_locale,supported_locales&subdomain=eq.${encodeURIComponent(subdomain)}&status=eq.published&deleted_at=is.null&limit=1`
   );
   const result = data && data.length > 0 ? data[0] : null;
   setCached(cacheKey, result);
@@ -136,7 +156,7 @@ async function getWebsiteByCustomDomain(host: string): Promise<WebsiteLookup | n
   if (cached !== undefined) return cached;
 
   const data = await supabaseFetch<WebsiteLookup[]>(
-    `/rest/v1/websites?select=id,subdomain,account_id&custom_domain=eq.${encodeURIComponent(host)}&status=eq.published&deleted_at=is.null&limit=1`
+    `/rest/v1/websites?select=id,subdomain,account_id,default_locale,supported_locales&custom_domain=eq.${encodeURIComponent(host)}&status=eq.published&deleted_at=is.null&limit=1`
   );
   const result = data && data.length > 0 ? data[0] : null;
   setCached(cacheKey, result);
@@ -272,13 +292,14 @@ async function getLegacyRedirect(
 
 async function tryLegacyRedirect(
   request: NextRequest,
-  website: WebsiteLookup | null
+  website: WebsiteLookup | null,
+  pathname: string = request.nextUrl.pathname,
 ): Promise<NextResponse | null> {
   if (!website?.id) {
     return null;
   }
 
-  const legacy = await getLegacyRedirect(website.id, request.nextUrl.pathname);
+  const legacy = await getLegacyRedirect(website.id, pathname);
   if (!legacy?.new_path) {
     return null;
   }
@@ -308,11 +329,62 @@ async function tryLegacyRedirect(
   return NextResponse.redirect(target, coerceRedirectStatusCode(legacy.status_code));
 }
 
+function applyLocaleAwareTenantRewrite(input: LocaleAwareRoutingInput): NextResponse {
+  const {
+    request,
+    sourceUrl,
+    pathnameWithoutLang,
+    originalPathname,
+    subdomain,
+    host,
+    resolvedLocale,
+    defaultLocale,
+    resolvedLanguage,
+    hasLanguageSegment,
+  } = input;
+
+  const rewriteUrl = new URL(sourceUrl);
+  rewriteUrl.pathname = `/site/${subdomain}${pathnameWithoutLang}`;
+
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set('x-subdomain', subdomain);
+  requestHeaders.set(PUBLIC_LOCALE_HEADER_NAMES.resolvedLocale, resolvedLocale);
+  requestHeaders.set(PUBLIC_LOCALE_HEADER_NAMES.defaultLocale, defaultLocale);
+  requestHeaders.set(PUBLIC_LOCALE_HEADER_NAMES.lang, resolvedLanguage);
+  requestHeaders.set(
+    PUBLIC_LOCALE_HEADER_NAMES.localeSegment,
+    hasLanguageSegment ? resolvedLanguage : '',
+  );
+  if (host) {
+    requestHeaders.set('x-custom-domain', host);
+  }
+
+  const response = NextResponse.rewrite(rewriteUrl, {
+    request: {
+      headers: requestHeaders,
+    },
+  });
+
+  response.headers.set('x-subdomain', subdomain);
+  response.headers.set(PUBLIC_LOCALE_HEADER_NAMES.resolvedLocale, resolvedLocale);
+  response.headers.set(PUBLIC_LOCALE_HEADER_NAMES.defaultLocale, defaultLocale);
+  response.headers.set(PUBLIC_LOCALE_HEADER_NAMES.lang, resolvedLanguage);
+  response.headers.set(
+    PUBLIC_LOCALE_HEADER_NAMES.localeSegment,
+    hasLanguageSegment ? resolvedLanguage : '',
+  );
+  response.headers.set('x-public-original-pathname', originalPathname);
+  if (host) {
+    response.headers.set('x-custom-domain', host);
+  }
+
+  return response;
+}
+
 export async function middleware(request: NextRequest) {
   const url = request.nextUrl;
   const host = getRequestHost(request);
   const pathname = url.pathname;
-  const potentialProductRoute = getPotentialProductRoute(pathname);
 
   // Editor routes — handle SSO token if present, otherwise pass through
   if (pathname.startsWith('/editor')) {
@@ -390,6 +462,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Already-internal tenant routes should pass through untouched.
+  if (pathname.startsWith('/site/') || pathname.startsWith('/domain/')) {
+    return NextResponse.next();
+  }
+
   // === BLOG SEO PIPELINE — AI crawler headers ===
   const userAgent = request.headers.get('user-agent') || '';
   const AI_CRAWLERS = ['GPTBot', 'ChatGPT-User', 'OAI-SearchBot', 'ClaudeBot', 'anthropic-ai', 'PerplexityBot'];
@@ -421,8 +498,17 @@ export async function middleware(request: NextRequest) {
       }
 
       const website = await getWebsiteBySubdomain(subdomain);
+      const localeResolution = resolveLocaleFromPublicPath(
+        pathname,
+        extractWebsiteLocaleSettings(website),
+      );
+      const potentialProductRoute = getPotentialProductRoute(localeResolution.pathnameWithoutLang);
 
-      const legacyRedirectResponse = await tryLegacyRedirect(request, website);
+      const legacyRedirectResponse = await tryLegacyRedirect(
+        request,
+        website,
+        localeResolution.pathnameWithoutLang,
+      );
       if (legacyRedirectResponse) {
         return legacyRedirectResponse;
       }
@@ -435,13 +521,17 @@ export async function middleware(request: NextRequest) {
       }
 
       // Rewrite to tenant route
-      const newUrl = new URL(url);
-      if (!pathname.startsWith('/site/')) {
-        newUrl.pathname = `/site/${subdomain}${pathname}`;
-      }
-      const response = NextResponse.rewrite(newUrl);
-      response.headers.set('x-subdomain', subdomain);
-      return response;
+      return applyLocaleAwareTenantRewrite({
+        request,
+        sourceUrl: url,
+        pathnameWithoutLang: localeResolution.pathnameWithoutLang,
+        originalPathname: localeResolution.originalPathname,
+        subdomain,
+        resolvedLocale: localeResolution.resolvedLocale,
+        defaultLocale: localeResolution.defaultLocale,
+        resolvedLanguage: localeResolution.resolvedLanguage,
+        hasLanguageSegment: localeResolution.hasLanguageSegment,
+      });
     }
 
     // Production Bukeer domain handling
@@ -466,8 +556,17 @@ export async function middleware(request: NextRequest) {
     }
 
     const website = await getWebsiteBySubdomain(subdomain);
+    const localeResolution = resolveLocaleFromPublicPath(
+      pathname,
+      extractWebsiteLocaleSettings(website),
+    );
+    const potentialProductRoute = getPotentialProductRoute(localeResolution.pathnameWithoutLang);
 
-    const legacyRedirectResponse = await tryLegacyRedirect(request, website);
+    const legacyRedirectResponse = await tryLegacyRedirect(
+      request,
+      website,
+      localeResolution.pathnameWithoutLang,
+    );
     if (legacyRedirectResponse) {
       return legacyRedirectResponse;
     }
@@ -480,13 +579,17 @@ export async function middleware(request: NextRequest) {
     }
 
     // Rewrite to tenant route
-    const newUrl = new URL(url);
-    if (!pathname.startsWith('/site/')) {
-      newUrl.pathname = `/site/${subdomain}${pathname}`;
-    }
-    const response = NextResponse.rewrite(newUrl);
-    response.headers.set('x-subdomain', subdomain);
-    return response;
+    return applyLocaleAwareTenantRewrite({
+      request,
+      sourceUrl: url,
+      pathnameWithoutLang: localeResolution.pathnameWithoutLang,
+      originalPathname: localeResolution.originalPathname,
+      subdomain,
+      resolvedLocale: localeResolution.resolvedLocale,
+      defaultLocale: localeResolution.defaultLocale,
+      resolvedLanguage: localeResolution.resolvedLanguage,
+      hasLanguageSegment: localeResolution.hasLanguageSegment,
+    });
   } else {
     let website = await getWebsiteByCustomDomain(host);
 
@@ -502,7 +605,17 @@ export async function middleware(request: NextRequest) {
       }
     }
 
-    const legacyRedirectResponse = await tryLegacyRedirect(request, website);
+    const localeResolution = resolveLocaleFromPublicPath(
+      pathname,
+      extractWebsiteLocaleSettings(website),
+    );
+    const potentialProductRoute = getPotentialProductRoute(localeResolution.pathnameWithoutLang);
+
+    const legacyRedirectResponse = await tryLegacyRedirect(
+      request,
+      website,
+      localeResolution.pathnameWithoutLang,
+    );
     if (legacyRedirectResponse) {
       return legacyRedirectResponse;
     }
@@ -517,14 +630,18 @@ export async function middleware(request: NextRequest) {
     // Prefer the stable tenant pipeline for verified custom domains.
     // This avoids custom-domain-specific rendering divergence in Worker runtime.
     if (website?.subdomain) {
-      const newUrl = new URL(url);
-      if (!pathname.startsWith('/site/')) {
-        newUrl.pathname = `/site/${website.subdomain}${pathname}`;
-      }
-      const response = NextResponse.rewrite(newUrl);
-      response.headers.set('x-subdomain', website.subdomain);
-      response.headers.set('x-custom-domain', host);
-      return response;
+      return applyLocaleAwareTenantRewrite({
+        request,
+        sourceUrl: url,
+        pathnameWithoutLang: localeResolution.pathnameWithoutLang,
+        originalPathname: localeResolution.originalPathname,
+        subdomain: website.subdomain,
+        host,
+        resolvedLocale: localeResolution.resolvedLocale,
+        defaultLocale: localeResolution.defaultLocale,
+        resolvedLanguage: localeResolution.resolvedLanguage,
+        hasLanguageSegment: localeResolution.hasLanguageSegment,
+      });
     }
 
     // Custom domain (e.g., miagencia.com)
