@@ -6,7 +6,7 @@ module.exports = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
     '^@bukeer/website-contract$':
-      '<rootDir>/../packages/website-contract/src/index',
+      '<rootDir>/packages/website-contract/src/index',
   },
   transform: {
     '^.+\\.tsx?$': ['ts-jest', { tsconfig: 'tsconfig.json' }],

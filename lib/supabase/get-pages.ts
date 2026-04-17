@@ -8,6 +8,11 @@ import type {
   ProductPageData,
   CategoryProducts,
 } from '@bukeer/website-contract';
+import {
+  ProductPageDataSchema,
+  CategoryProductsSchema,
+  ProductDataSchema,
+} from '@bukeer/website-contract';
 
 // Re-export types from contract (Strangler migration)
 export type {
@@ -25,6 +30,19 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+function logProductV2ParseWarning(
+  scope: string,
+  payload: unknown,
+  issues: Array<{ path: Array<PropertyKey>; message: string }>
+) {
+  console.warn('[product.v2-parse] Schema mismatch', {
+    scope,
+    issues: issues.slice(0, 5),
+    totalIssues: issues.length,
+    payloadType: Array.isArray(payload) ? 'array' : typeof payload,
+  });
+}
 
 /**
  * Get a page by slug
@@ -75,8 +93,19 @@ export async function getProductPage(
       return null;
     }
 
+    const parsed = ProductPageDataSchema.safeParse(data);
+    if (parsed.success) {
+      return parsed.data as ProductPageData;
+    }
+
+    logProductV2ParseWarning('getProductPage', data, parsed.error.issues);
+
+    // Graceful fallback for legacy/partial payloads.
+    const parsedLegacyProduct = ProductDataSchema.safeParse(data.product);
     return {
-      product: data.product as ProductData,
+      product: parsedLegacyProduct.success
+        ? (parsedLegacyProduct.data as ProductData)
+        : (data.product as ProductData),
       page: data.page as ProductPageCustomization | undefined,
     };
   } catch (e) {
@@ -84,6 +113,9 @@ export async function getProductPage(
     return null;
   }
 }
+
+// Alias kept for backwards compatibility with callers that still use "BySlug" naming.
+export const getProductPageBySlug = getProductPage;
 
 /**
  * Get navigation items for a website
@@ -213,16 +245,28 @@ export async function getCategoryProducts(
       return { items: [], total: 0 };
     }
 
-    // Backward compatibility: tolerate array payloads during RPC cutover.
-    if (Array.isArray(data)) {
-      return { items: data as ProductData[], total: data.length };
+    // Backward compatibility: normalize array payloads during RPC cutover.
+    const normalizedPayload = Array.isArray(data)
+      ? { items: data, total: data.length }
+      : data;
+
+    const parsed = CategoryProductsSchema.safeParse(normalizedPayload);
+    if (parsed.success) {
+      return {
+        items: parsed.data.items as ProductData[],
+        total: Number(parsed.data.total),
+      };
     }
 
-    const payload = data as { items?: unknown; total?: unknown };
+    logProductV2ParseWarning('getCategoryProducts', normalizedPayload, parsed.error.issues);
+
+    const payload = normalizedPayload as { items?: unknown; total?: unknown };
     const items = Array.isArray(payload.items)
       ? (payload.items as ProductData[])
       : [];
-    const total = typeof payload.total === 'number' ? payload.total : 0;
+    const total = typeof payload.total === 'number'
+      ? payload.total
+      : Number(payload.total) || 0;
 
     return { items, total };
   } catch (e) {

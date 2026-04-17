@@ -4,6 +4,59 @@
 
 import type { PageSection } from './section.js';
 
+export interface ScheduleEntry {
+  day?: number;
+  title: string;
+  description?: string;
+  image?: string;
+  time?: string;
+}
+
+export interface MeetingPoint {
+  address?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  zip_code?: string;
+  google_place_id?: string;
+  latitude?: number;
+  longitude?: number;
+}
+
+export interface ActivityPrice {
+  unit_type_code: string;
+  season: string;
+  price: number;
+  currency: string;
+  valid_from?: string;
+  valid_until?: string;
+}
+
+export interface ActivityOption {
+  id: string;
+  name: string;
+  pricing_per: 'UNIT' | 'BOOKING';
+  min_units?: number;
+  max_units?: number;
+  start_times?: string[];
+  is_refundable?: boolean;
+  prices: ActivityPrice[];
+}
+
+export interface PackageVersion {
+  version_number: number;
+  total_price: number;
+  base_currency: string;
+  services_snapshot_summary: string;
+  duration_days?: number;
+  duration_nights?: number;
+}
+
+export interface ProductFAQ {
+  question: string;
+  answer: string;
+}
+
 export interface ProductData {
   id: string;
   name: string;
@@ -24,8 +77,8 @@ export interface ProductData {
   is_featured?: boolean;
 
   // Activity/Transfer shared
-  inclusions?: string;
-  exclusions?: string;
+  inclusions?: string | string[] | Record<string, unknown>[];
+  exclusions?: string | string[] | Record<string, unknown>[];
   recommendations?: string;
   instructions?: string;
 
@@ -57,6 +110,23 @@ export interface ProductData {
   currency?: string;
   includes?: string[] | string;
   excludes?: string[] | string;
+
+  // V2 enrichment (all optional for backwards compatibility)
+  schedule?: ScheduleEntry[];
+  meeting_point?: MeetingPoint;
+  highlights?: string[];
+  photos?: string[] | Record<string, unknown>[];
+  social_image?: string;
+  user_rating?: number;
+  experience_type?: string;
+  activity_type?: string;
+  region?: string;
+  options?: ActivityOption[];
+  package_version?: PackageVersion;
+  package_versions?: PackageVersion[];
+  services_snapshot_summary?: string;
+  duration_days?: number;
+  duration_nights?: number;
 }
 
 export interface ProductPageCustomization {
@@ -72,6 +142,7 @@ export interface ProductPageCustomization {
   custom_seo_title?: string;
   custom_seo_description?: string;
   robots_noindex?: boolean;
+  custom_faq?: ProductFAQ[];
   is_published: boolean;
 }
 

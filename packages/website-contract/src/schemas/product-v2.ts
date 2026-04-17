@@ -1,0 +1,163 @@
+/**
+ * Product V2 schemas for RPC bridge payloads.
+ * All V2 fields are optional to preserve backwards compatibility with legacy RPC output.
+ */
+
+import { z } from 'zod';
+
+const ProductTypeSchema = z.enum(['destination', 'hotel', 'activity', 'transfer', 'package']);
+const NumericSchema = z.union([
+  z.number(),
+  z.string().regex(/^-?\d+(?:\.\d+)?$/).transform(Number),
+]);
+const StringOrStringArraySchema = z.union([z.string(), z.array(z.string())]);
+const JsonObjectSchema = z.record(z.string(), z.unknown());
+const RichTextListSchema = z.union([
+  z.array(z.string()),
+  z.array(JsonObjectSchema),
+]);
+
+export const ScheduleEntrySchema = z.object({
+  day: z.number().int().positive().optional(),
+  title: z.string(),
+  description: z.string().optional(),
+  image: z.string().optional(),
+  time: z.string().optional(),
+});
+
+export const MeetingPointSchema = z.object({
+  address: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  country: z.string().optional(),
+  zip_code: z.string().optional(),
+  google_place_id: z.string().optional(),
+  latitude: NumericSchema.optional(),
+  longitude: NumericSchema.optional(),
+});
+
+export const ActivityPriceSchema = z.object({
+  unit_type_code: z.string(),
+  season: z.string(),
+  price: NumericSchema,
+  currency: z.string(),
+  valid_from: z.string().optional(),
+  valid_until: z.string().optional(),
+});
+
+export const ActivityOptionSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  pricing_per: z.enum(['UNIT', 'BOOKING']),
+  min_units: z.number().int().positive().optional(),
+  max_units: z.number().int().positive().optional(),
+  start_times: z.array(z.string()).optional(),
+  is_refundable: z.boolean().optional(),
+  prices: z.array(ActivityPriceSchema),
+});
+
+export const PackageVersionSchema = z.object({
+  version_number: z.number().int().positive(),
+  total_price: NumericSchema,
+  base_currency: z.string(),
+  services_snapshot_summary: z.string(),
+  duration_days: z.number().int().positive().optional(),
+  duration_nights: z.number().int().nonnegative().optional(),
+});
+
+export const ProductFAQSchema = z.object({
+  question: z.string(),
+  answer: z.string(),
+});
+
+const ItineraryItemSchema = z.object({
+  day: z.number().int().optional(),
+  title: z.string(),
+  description: z.string().optional(),
+});
+
+export const ProductDataSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  slug: z.string(),
+  description: z.string().optional(),
+  image: z.string().optional(),
+  images: z.array(z.string()).optional(),
+  location: z.string().optional(),
+  country: z.string().optional(),
+  city: z.string().optional(),
+  type: ProductTypeSchema,
+
+  amenities: z.array(z.string()).optional(),
+  star_rating: NumericSchema.optional(),
+  is_featured: z.boolean().optional(),
+
+  inclusions: z.union([z.string(), RichTextListSchema]).optional(),
+  exclusions: z.union([z.string(), RichTextListSchema]).optional(),
+  recommendations: z.string().optional(),
+  instructions: z.string().optional(),
+
+  duration_minutes: NumericSchema.optional(),
+  duration: z.string().optional(),
+  from_location: z.string().optional(),
+  to_location: z.string().optional(),
+  itinerary_items: z.array(ItineraryItemSchema).optional(),
+
+  latitude: NumericSchema.optional(),
+  longitude: NumericSchema.optional(),
+  rating: NumericSchema.optional(),
+  review_count: NumericSchema.optional(),
+  price: z.union([NumericSchema, z.string()]).optional(),
+  currency: z.string().optional(),
+  includes: StringOrStringArraySchema.optional(),
+  excludes: StringOrStringArraySchema.optional(),
+
+  // V2 fields (optional)
+  schedule: z.array(ScheduleEntrySchema).optional(),
+  meeting_point: MeetingPointSchema.optional(),
+  highlights: z.array(z.string()).optional(),
+  photos: z.union([z.array(z.string()), z.array(JsonObjectSchema)]).optional(),
+  social_image: z.string().optional(),
+  user_rating: NumericSchema.optional(),
+  experience_type: z.string().optional(),
+  activity_type: z.string().optional(),
+  region: z.string().optional(),
+  options: z.array(ActivityOptionSchema).optional(),
+  package_version: PackageVersionSchema.optional(),
+  package_versions: z.array(PackageVersionSchema).optional(),
+  services_snapshot_summary: z.string().optional(),
+  duration_days: z.number().int().positive().optional(),
+  duration_nights: z.number().int().nonnegative().optional(),
+});
+
+export const ProductPageCustomizationSchema = z.object({
+  id: z.string(),
+  custom_hero: z.object({
+    title: z.string().optional(),
+    subtitle: z.string().optional(),
+    backgroundImage: z.string().optional(),
+  }).optional(),
+  custom_sections: z.array(z.record(z.string(), z.unknown())),
+  sections_order: z.array(z.string()),
+  hidden_sections: z.array(z.string()),
+  custom_seo_title: z.string().optional(),
+  custom_seo_description: z.string().optional(),
+  robots_noindex: z.boolean().optional(),
+  custom_faq: z.array(ProductFAQSchema).max(10).optional(),
+  is_published: z.boolean(),
+});
+
+export const ProductPageDataSchema = z.object({
+  product: ProductDataSchema,
+  page: ProductPageCustomizationSchema.optional(),
+});
+
+export const CategoryProductsSchema = z.object({
+  items: z.array(ProductDataSchema),
+  total: NumericSchema,
+});
+
+export type ProductDataInput = z.input<typeof ProductDataSchema>;
+export type ProductDataOutput = z.output<typeof ProductDataSchema>;
+export type ProductPageDataInput = z.input<typeof ProductPageDataSchema>;
+export type ProductPageDataOutput = z.output<typeof ProductPageDataSchema>;

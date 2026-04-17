@@ -52,6 +52,12 @@ export type {
   ProductPageCustomization,
   ProductPageData,
   CategoryProducts,
+  ScheduleEntry,
+  MeetingPoint,
+  ActivityPrice,
+  ActivityOption,
+  PackageVersion,
+  ProductFAQ,
 } from './types/product';
 
 export type {
@@ -133,6 +139,25 @@ export {
   QuoteRequestSchema,
 } from './schemas/quote';
 export type { QuoteRequest } from './schemas/quote';
+
+export {
+  ScheduleEntrySchema,
+  MeetingPointSchema,
+  ActivityPriceSchema,
+  ActivityOptionSchema,
+  PackageVersionSchema,
+  ProductFAQSchema,
+  ProductDataSchema,
+  ProductPageCustomizationSchema,
+  ProductPageDataSchema,
+  CategoryProductsSchema,
+} from './schemas/product-v2';
+export type {
+  ProductDataInput,
+  ProductDataOutput,
+  ProductPageDataInput,
+  ProductPageDataOutput,
+} from './schemas/product-v2';
 
 // Template Contract v1 schemas (#572)
 export {
