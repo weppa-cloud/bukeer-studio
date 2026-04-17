@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getWebsiteBySubdomain } from '@/lib/supabase/get-website';
 import { getPlanners, slugify } from '@/lib/supabase/get-planners';
-import type { PlannerData } from '@/lib/supabase/get-planners';
 import { getReviewsForContext } from '@/lib/supabase/get-reviews';
 import { ReviewsBlock } from '@/components/site/reviews-block';
 

@@ -18,6 +18,23 @@ interface BlogPostData {
   featured_image: string | null;
 }
 
+interface BlogScoreResult {
+  checks: Array<{
+    id: string;
+    category: 'seo' | 'readability' | 'structure' | 'geo';
+    pass: boolean;
+    score: number;
+    weight: number;
+    message: string;
+  }>;
+  overall: number;
+  seo: number;
+  readability: number;
+  structure: number;
+  geo: number;
+  grade: 'A' | 'B' | 'C' | 'D' | 'F';
+}
+
 interface BlogPostPageProps {
   params: Promise<{ websiteId: string; postId: string }>;
 }
@@ -37,7 +54,7 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
   const [seoTitle, setSeoTitle] = useState('');
   const [seoDescription, setSeoDescription] = useState('');
   const [tokenRef, setTokenRef] = useState<string | null>(null);
-  const [scoreResult, setScoreResult] = useState<any>(null);
+  const [scoreResult, setScoreResult] = useState<BlogScoreResult | null>(null);
   const [isScoring, setIsScoring] = useState(false);
 
   const getSupabase = useCallback(() => {

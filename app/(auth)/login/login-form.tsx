@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser-client';
-import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 
 export function LoginForm({ redirect }: { redirect: string }) {
@@ -11,7 +10,6 @@ export function LoginForm({ redirect }: { redirect: string }) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [shake, setShake] = useState(false);
-  const router = useRouter();
 
   const supabase = createSupabaseBrowserClient();
 
@@ -20,7 +18,7 @@ export function LoginForm({ redirect }: { redirect: string }) {
     setError('');
     setLoading(true);
 
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
