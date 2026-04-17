@@ -7,6 +7,20 @@ Landing v1 rollout. Complements the runbook at
 Replaces the imprecise `performance.timing` numbers captured by Playwright MCP
 in QA #120 with real Lighthouse scores.
 
+> **Dev mode caveat:** the script uses `npm run dev:session` (Turbopack).
+> The first compile per route is cold and skews the first run. `numberOfRuns: 2`
+> averages them, but dev-mode Performance scores typically run 10-20 points
+> below production. SEO scores can momentarily drop when a cold compile serves
+> partial HTML. **For pre-prod gate use the production build path** (see below).
+>
+> Run against production build:
+> ```bash
+> npm run build
+> PORT=3001 npm run start &
+> LHCI_PORT=3001 npx lhci autorun --config=./lighthouserc.js
+> ```
+> Dev-mode run is useful for iteration, not gate validation.
+
 ---
 
 ## Thresholds
