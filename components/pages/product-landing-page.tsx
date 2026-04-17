@@ -17,6 +17,7 @@ import { CalBookingCTA } from '@/components/site/cal-booking-cta';
 import { HighlightsGrid } from '@/components/site/highlights-grid';
 import { MeetingPointMap } from '@/components/site/meeting-point-map';
 import { OptionsTable } from '@/components/site/options-table';
+import { ItineraryItemRenderer } from '@/components/site/itinerary-item-renderer';
 import { ProductFAQ } from '@/components/site/product-faq';
 import { ProgramTimeline } from '@/components/site/program-timeline';
 import { SectionErrorBoundary } from '@/components/site/section-error-boundary';
@@ -850,7 +851,7 @@ function PackageSections({ product, normalized }: { product: ProductData; normal
           viewport={{ once: true, margin: '-60px' }}
           variants={fadeUp}
         >
-          <h2 className="text-2xl font-bold mb-6">Itinerario</h2>
+          <h2 className="text-2xl font-bold mb-6">Día a día</h2>
           <div className="space-y-4">
             {itinerary.map((item, index) => (
               <motion.div
@@ -862,13 +863,10 @@ function PackageSections({ product, normalized }: { product: ProductData; normal
                 className="flex items-start gap-4 rounded-xl border border-border bg-card p-4"
               >
                 <div className="h-10 w-10 shrink-0 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold">
-                  {item.day}
+                  {index + 1}
                 </div>
-                <div>
-                  <h3 className="font-medium">{item.title}</h3>
-                  {item.description && (
-                    <p className="mt-1 text-sm text-muted-foreground">{item.description}</p>
-                  )}
+                <div className="flex-1 min-w-0">
+                  <ItineraryItemRenderer item={item} />
                 </div>
               </motion.div>
             ))}
