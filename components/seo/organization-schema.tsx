@@ -74,12 +74,19 @@ function collectSameAs(website: WebsiteData): string[] {
     .map((v) => v.trim());
 }
 
+const UUID_SHAPE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 function buildAddress(website: WebsiteData): Record<string, unknown> | undefined {
-  const street = website.content?.contact?.address || website.content?.account?.location;
+  const candidates = [website.content?.contact?.address, website.content?.account?.location];
+  const street = candidates.find((value): value is string => {
+    if (typeof value !== 'string') return false;
+    const trimmed = value.trim();
+    return trimmed.length > 0 && !UUID_SHAPE.test(trimmed);
+  });
   if (!street) return undefined;
   return {
     '@type': 'PostalAddress',
-    streetAddress: street,
+    streetAddress: street.trim(),
   };
 }
 
