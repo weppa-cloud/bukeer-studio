@@ -24,6 +24,12 @@ import {
   AboutContentSchema,
   PartnersContentSchema,
   NewsletterContentSchema,
+  TrustBarContentSchema,
+  ItineraryAccordionContentSchema,
+  InclusionsExclusionsContentSchema,
+  ComparisonTableContentSchema,
+  GuaranteeBadgesContentSchema,
+  CountdownTimerContentSchema,
   GenericContentSchema,
 } from '../schemas/sections';
 
@@ -93,6 +99,18 @@ export function validateSectionContent(sectionType: SectionTypeValue, content: u
       return PartnersContentSchema.safeParse(content);
     case 'newsletter':
       return NewsletterContentSchema.safeParse(content);
+    case 'trust_bar':
+      return TrustBarContentSchema.safeParse(content);
+    case 'itinerary_accordion':
+      return ItineraryAccordionContentSchema.safeParse(content);
+    case 'inclusions_exclusions':
+      return InclusionsExclusionsContentSchema.safeParse(content);
+    case 'comparison_table':
+      return ComparisonTableContentSchema.safeParse(content);
+    case 'guarantee_badges':
+      return GuaranteeBadgesContentSchema.safeParse(content);
+    case 'countdown_timer':
+      return CountdownTimerContentSchema.safeParse(content);
     default:
       return GenericContentSchema.safeParse(content);
   }

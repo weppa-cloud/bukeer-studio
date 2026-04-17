@@ -4,6 +4,10 @@
 /node_modules
 /.pnp
 .pnp.*
+
+# local MCP server builds
+/.claude/mcp-servers/*/dist/
+/.claude/mcp-servers/*/node_modules/
 .yarn/*
 !.yarn/patches
 !.yarn/plugins
@@ -69,3 +73,11 @@ reports/
 
 # Lighthouse CI reports
 .lighthouseci/
+
+# Local MCP servers — build output, deps, cache, budget state
+.claude/mcp-servers/*/dist/
+.claude/mcp-servers/*/node_modules/
+.claude/mcp-servers/dataforseo/cache/*
+!.claude/mcp-servers/dataforseo/cache/.gitkeep
+.claude/mcp-servers/dataforseo/budget.json
+.claude/mcp-servers/dataforseo/budget.json.*.bak

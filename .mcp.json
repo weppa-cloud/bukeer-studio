@@ -40,6 +40,26 @@
         "-lc",
         "set -a; [ -f .env.mcp ] && source .env.mcp; set +a; npx -y search-console-mcp@latest"
       ]
+    },
+    "dataforseo": {
+      "command": "node",
+      "args": [".claude/mcp-servers/dataforseo/dist/index.js"],
+      "env": {
+        "DATAFORSEO_LOGIN": "${DATAFORSEO_LOGIN}",
+        "DATAFORSEO_PASSWORD": "${DATAFORSEO_PASSWORD}",
+        "DATAFORSEO_MONTHLY_CAP_USD": "50",
+        "DATAFORSEO_BASE_URL": "https://api.dataforseo.com"
+      }
+    },
+    "bukeer-studio": {
+      "command": "node",
+      "args": [".claude/mcp-servers/bukeer-studio/dist/index.js"],
+      "env": {
+        "BUKEER_BASE_URL": "http://localhost:3000",
+        "BUKEER_SERVICE_ROLE_KEY": "${BUKEER_SERVICE_ROLE_KEY}",
+        "SUPABASE_URL": "${SUPABASE_URL}",
+        "SUPABASE_SERVICE_ROLE_KEY": "${SUPABASE_SERVICE_ROLE_KEY}"
+      }
     }
   }
 }
