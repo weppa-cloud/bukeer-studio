@@ -199,6 +199,17 @@ export const SeoTranscreateRequestSchema = z.object({
   sourceKeyword: z.string().max(120).optional(),
   targetKeyword: z.string().max(120).optional(),
   draft: z.record(z.string(), z.unknown()).default({}),
+  draftSource: z.enum(['manual', 'ai', 'tm_exact']).default('manual'),
+  aiModel: z.string().max(120).optional(),
+  aiOutput: z
+    .object({
+      meta_title: z.string().min(1).max(70),
+      meta_desc: z.string().min(1).max(160),
+      slug: z.string().min(1).max(120).regex(/^[a-z0-9-]+$/),
+      h1: z.string().min(1).max(100),
+      keywords: z.array(z.string()).max(10),
+    })
+    .optional(),
   jobId: z.string().uuid().optional(),
 });
 

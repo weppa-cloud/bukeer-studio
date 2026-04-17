@@ -9,6 +9,8 @@ import {
   parseLocaleParts,
   withNoStoreHeaders,
 } from '@/lib/seo/content-intelligence';
+import { LocaleAdaptationOutputSchema } from '@/lib/ai/prompts/locale-adaptation';
+import { checkTranscreateRateLimit } from '@/lib/seo/transcreate-rate-limit';
 import {
   applyTranscreateJob,
   prepareDraftWithTM,
@@ -127,6 +129,28 @@ function buildReresearchDetails(input: {
   };
 }
 
+function mapAiOutputToDraft(aiOutput: {
+  meta_title: string;
+  meta_desc: string;
+  slug: string;
+  h1: string;
+  keywords: string[];
+}): Record<string, unknown> {
+  return {
+    // New schema fields.
+    meta_title: aiOutput.meta_title,
+    meta_desc: aiOutput.meta_desc,
+    slug: aiOutput.slug,
+    h1: aiOutput.h1,
+    keywords: aiOutput.keywords,
+    // Legacy-compatible fields used by apply/review workflow.
+    seoTitle: aiOutput.meta_title,
+    seoDescription: aiOutput.meta_desc,
+    title: aiOutput.h1,
+    targetKeyword: aiOutput.keywords[0] ?? null,
+  };
+}
+
 export async function POST(request: NextRequest) {
   const bodyRaw = await request.json().catch(() => null);
   const parsed = SeoTranscreateRequestSchema.safeParse(bodyRaw);
@@ -154,13 +178,60 @@ export async function POST(request: NextRequest) {
   };
 
   if (parsed.data.action === 'create_draft') {
+    const draftSource = parsed.data.draftSource ?? 'manual';
+    let draftPayload: Record<string, unknown> = { ...parsed.data.draft };
+    let aiGenerated = false;
+    let aiModel: string | null = null;
+
+    if (draftSource === 'ai') {
+      const validatedAiOutput = LocaleAdaptationOutputSchema.safeParse(parsed.data.aiOutput);
+      if (!validatedAiOutput.success) {
+        return withNoStoreHeaders(
+          apiError(
+            'VALIDATION_ERROR',
+            'aiOutput failed schema validation',
+            400,
+            validatedAiOutput.error.flatten(),
+          ),
+        );
+      }
+
+      const aiRateLimit = await checkTranscreateRateLimit(
+        parsed.data.websiteId,
+        localeTuple.target_locale,
+        admin,
+      );
+      if (!aiRateLimit.allowed) {
+        return withNoStoreHeaders(
+          apiError('RATE_LIMITED', 'Daily transcreate AI limit exceeded for this locale.', 429, {
+            limit: 10,
+            remaining: aiRateLimit.remaining,
+            resetAt: aiRateLimit.resetAt.toISOString(),
+            websiteId: parsed.data.websiteId,
+            targetLocale: localeTuple.target_locale,
+          }),
+        );
+      }
+
+      draftPayload = {
+        ...draftPayload,
+        ...mapAiOutputToDraft(validatedAiOutput.data),
+      };
+      aiGenerated = true;
+      aiModel = parsed.data.aiModel ?? process.env.OPENROUTER_MODEL ?? null;
+    }
+
     const jobId = crypto.randomUUID();
+    const targetKeywordForJob =
+      parsed.data.targetKeyword ??
+      (typeof draftPayload.targetKeyword === 'string' ? draftPayload.targetKeyword : undefined);
+
     const keywordReresearch = await resolveTargetMarketReresearch({
       admin,
       websiteId: parsed.data.websiteId,
       localeTuple,
       sourceKeyword: parsed.data.sourceKeyword,
-      targetKeyword: parsed.data.targetKeyword,
+      targetKeyword: targetKeywordForJob,
     });
 
     if (!keywordReresearch) {
@@ -189,7 +260,7 @@ export async function POST(request: NextRequest) {
               country: parsed.data.country,
               language: parsed.data.language,
               sourceKeyword: parsed.data.sourceKeyword,
-              targetKeyword: parsed.data.targetKeyword,
+              targetKeyword: targetKeywordForJob,
             }),
           },
         ),
@@ -208,7 +279,7 @@ export async function POST(request: NextRequest) {
       sourceContentId: parsed.data.sourceContentId,
       sourceLocale: localeTuple.source_locale,
       targetLocale: localeTuple.target_locale,
-      draft: parsed.data.draft,
+      draft: draftPayload,
     });
 
     const { data: job, error } = await admin
@@ -223,10 +294,12 @@ export async function POST(request: NextRequest) {
         country: localeTuple.country,
         language: localeTuple.language,
         source_keyword: parsed.data.sourceKeyword ?? null,
-        target_keyword: parsed.data.targetKeyword ?? null,
+        target_keyword: targetKeywordForJob ?? null,
         keyword_reresearch: keywordReresearch,
         status: 'draft',
         payload: enriched.payload,
+        ai_generated: aiGenerated,
+        ai_model: aiModel,
         source: keywordReresearch.source,
         fetched_at: keywordReresearch.fetched_at,
         confidence: keywordReresearch.confidence,
