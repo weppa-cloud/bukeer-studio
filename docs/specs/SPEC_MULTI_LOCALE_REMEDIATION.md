@@ -77,8 +77,8 @@ growth SEO multi-mercado con UX fluida?"** → **SI** post-implementación.
 Full detail in plan. Summary:
 
 - **CC-1 Zod contracts** — 13 schemas in `packages/website-contract/src/schemas/translations.ts`.
-- **CC-2 ADR-012 envelope** — all endpoints use `apiSuccess/apiError` + error codes inventory.
-- **CC-3 Cache-Tag ADR-016** — read endpoints emit tags, mutations purge.
+- **CC-2 [[ADR-012]] envelope** — all endpoints use `apiSuccess/apiError` + error codes inventory.
+- **CC-3 Cache-Tag [[ADR-016]]** — read endpoints emit tags, mutations purge.
 - **CC-4 Observability** — structured JSON logs per endpoint.
 - **CC-5 Security** — rehype-sanitize (LLM HTML), papaparse+CSV injection guards, rate limiting.
 - **CC-6 Middleware edge cache** — `WEBSITES_LOCALE_CACHE` KV TTL 5min.

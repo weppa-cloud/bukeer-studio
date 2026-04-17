@@ -4,6 +4,8 @@
 **Last updated**: 2026-04-15
 **Audience**: Agency operators using Bukeer Studio
 
+> **Agent setup**: see [docs/development/agent-setup.md](../development/agent-setup.md) to configure MCPs + credentials before running flows.
+
 ---
 
 ## Purpose

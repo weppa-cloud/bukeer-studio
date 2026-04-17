@@ -31,7 +31,7 @@ Auditoría UX/conversión del 2026-04-17 sobre `/site/colombiatours/paquetes/paq
 - `components/site/product-faq.tsx`, `trust-badges.tsx`, `program-timeline.tsx`, `highlights-grid.tsx`, `meeting-point-map.tsx`, `reviews-block.tsx`
 - `lib/products/package-circuit.ts` devuelve stops (string[]) derivados del itinerario — sin coordenadas
 
-**Decisión guía:** Cero formularios. WhatsApp = CTA único. Mapa = componente nuevo sobre MapLibre respetando ADR-015.
+**Decisión guía:** Cero formularios. WhatsApp = CTA único. Mapa = componente nuevo sobre MapLibre respetando [[ADR-015]].
 
 ---
 
@@ -39,7 +39,7 @@ Auditoría UX/conversión del 2026-04-17 sobre `/site/colombiatours/paquetes/paq
 
 ### En scope
 
-1. **Mapa del circuito** (P0) — nuevo `<PackageCircuitMap>` con MapLibre, markers numerados por día, polyline entre stops, popup con foto/título del día. Fallback SVG/lista si WebGL falla (ADR-015).
+1. **Mapa del circuito** (P0) — nuevo `<PackageCircuitMap>` con MapLibre, markers numerados por día, polyline entre stops, popup con foto/título del día. Fallback SVG/lista si WebGL falla ([[ADR-015]]).
 2. **Geocoding de stops** — tabla estática `lib/products/city-coords.ts` con lat/lng de `KNOWN_CITIES` (Cartagena, Salento, Medellín, etc.). Sin dependencia de servicio externo.
 3. **Hero enriquecido** — chips `{duración} · {rating} · {grupo}` + botón WhatsApp inline + precio desde.
 4. **Sanear copy interno** — pipeline en `normalizeProduct`/`formatCircuitStops` que esconda strings con patrón `\b(plan|pax|visitor|\d{4})\b` y formatee etiquetas comerciales.
@@ -91,7 +91,7 @@ usuario toca sticky → abre wa.me con mensaje prellenado
 
 ```
 PackageCircuitMap monta
-  | detecta WebGL fail (ADR-015)
+  | detecta WebGL fail ([[ADR-015]])
   | render fallback: lista numerada de stops con íconos pin + línea SVG conectora
   | sin mapa interactivo, pero información del circuito preservada
 ```
@@ -136,7 +136,7 @@ scroll hasta "¿Listo para vivir esta experiencia?"
   **cuando** se visita la página,
   **entonces** `<PackageCircuitMap>` monta un mapa MapLibre con markers numerados y polyline.
 - Markers muestran número de día y abren popup con ciudad al tap/hover.
-- Estilo respeta `--accent` y `--chart-*` tokens (ADR-015 §4).
+- Estilo respeta `--accent` y `--chart-*` tokens ([[ADR-015]] §4).
 - Sin WebGL → fallback lista numerada (no blank container).
 
 ### AC2 — Hero convierte
@@ -171,7 +171,7 @@ scroll hasta "¿Listo para vivir esta experiencia?"
 - `map_marker_click`, `whatsapp_cta_click`, `gallery_open`, `sticky_cta_click` emiten con contexto `{product_id, product_type, position?}`.
 
 ### AC9 — Resiliencia
-- Sin fotos del producto → hero usa fallback de website (ADR-015 §3 análogo).
+- Sin fotos del producto → hero usa fallback de website ([[ADR-015]] §3 análogo).
 - Sin coordenadas → circuit cae a modo lista.
 - Sin FAQ data → 6 FAQs genéricas por tipo "package".
 - Sin description → placeholder generado.
@@ -192,7 +192,7 @@ scroll hasta "¿Listo para vivir esta experiencia?"
 | EC3 | website.content.social.whatsapp = null | Oculta botones WhatsApp, muestra sólo tel; si tampoco hay tel, muestra email mailto |
 | EC4 | Description contiene sólo números/fechas | Tratar como vacío y usar placeholder |
 | EC5 | reviews.length = 0 | Oculta bloque "Lo que dicen"; omite AggregateRating del schema |
-| EC6 | Mapa style URL 404 | Fallback según ADR-015 §2 (lista) |
+| EC6 | Mapa style URL 404 | Fallback según [[ADR-015]] §2 (lista) |
 | EC7 | Nombre paquete contiene "1 pax" | Stripper en `normalizeProduct` limpia antes del H1 y metadata |
 | EC8 | `no_incluye` en DB pero sólo tiene 1 ítem | Completa hasta 3 con defaults, sin duplicar |
 | EC9 | Galería = 1 imagen | No muestra controles next/prev; lightbox permanece funcional |
@@ -269,7 +269,7 @@ Nuevo campo `package_kits.waypoints jsonb` para override manual de coordenadas/f
 
 - **Público** (sin auth): lee rendering SSR. Sin cambios RBAC.
 - `SUPABASE_SERVICE_ROLE_KEY` no usado en rutas nuevas.
-- `NEXT_PUBLIC_MAP_STYLE_URL` / `NEXT_PUBLIC_MAP_STYLE_TOKEN` ya existen (ADR-015 §5). Sin variables nuevas.
+- `NEXT_PUBLIC_MAP_STYLE_URL` / `NEXT_PUBLIC_MAP_STYLE_TOKEN` ya existen ([[ADR-015]] §5). Sin variables nuevas.
 
 ---
 
@@ -287,12 +287,12 @@ Página es `es` only en MVP actual. Todos los strings nuevos:
 
 | ADR | Aplica a |
 |-----|----------|
-| ADR-001 Server-First Rendering | Toda la página sigue SSR + ISR (`revalidate = 300` ya presente) |
-| ADR-002 Error Handling | `<SectionErrorBoundary>` ya envuelve secciones; nuevo mapa envuelto igual |
-| ADR-003 Contract-First Validation | Si se añade `waypoints` al contract (Fase 2), pasa por `packages/website-contract/src/schemas/` con Zod |
-| ADR-009 Multi-tenant Subdomain | Sin cambios; ruta `/site/[subdomain]/paquetes/[slug]` se preserva |
-| ADR-015 Resilient Map Rendering | **Crítico.** `PackageCircuitMap` hereda reglas: hydration-safe paint, WebGL fallback, style fallback, theme tokens, env contract |
-| ADR-022 Auth Token Boundary | Página pública, sin tokens expuestos |
+| [[ADR-001]] Server-First Rendering | Toda la página sigue SSR + ISR (`revalidate = 300` ya presente) |
+| [[ADR-002]] Error Handling | `<SectionErrorBoundary>` ya envuelve secciones; nuevo mapa envuelto igual |
+| [[ADR-003]] Contract-First Validation | Si se añade `waypoints` al contract (Fase 2), pasa por `packages/website-contract/src/schemas/` con Zod |
+| [[ADR-009]] Multi-tenant Subdomain | Sin cambios; ruta `/site/[subdomain]/paquetes/[slug]` se preserva |
+| [[ADR-015]] Resilient Map Rendering | **Crítico.** `PackageCircuitMap` hereda reglas: hydration-safe paint, WebGL fallback, style fallback, theme tokens, env contract |
+| [[ADR-022]] Auth Token Boundary | Página pública, sin tokens expuestos |
 
 ---
 

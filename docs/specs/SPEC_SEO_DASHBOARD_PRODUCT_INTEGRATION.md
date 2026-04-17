@@ -488,7 +488,7 @@ if (['hotel', 'activity', 'transfer', 'package'].includes(item.type)) {
 }
 ```
 
-#### S2.4: Error handling (ADR-002)
+#### S2.4: Error handling ([[ADR-002]])
 
 ```typescript
 // Fallback si query falla
@@ -506,7 +506,7 @@ if (bridgeError) {
 }
 ```
 
-#### S2.5: Observability (ADR-010)
+#### S2.5: Observability ([[ADR-010]])
 
 ```typescript
 console.log('[seo.dashboard.load]', {
@@ -527,10 +527,10 @@ console.error('[seo.ai.generate]', { error, itemId });
 - [ ] AC-4: Click en hotel → detail carga legacy + V2 master data
 - [ ] AC-5: Guardar SEO → upsert en website_product_pages con LEGACY ID
 - [ ] AC-6: Si V2 bridge no existe → funciona con solo datos legacy (degradacion graceful)
-- [ ] AC-7: Errores de query no causan crash (ADR-002 Tier 1: return null)
-- [ ] AC-8: Logs estructurados con namespace `[seo.*]` (ADR-010)
+- [ ] AC-7: Errores de query no causan crash ([[ADR-002]] Tier 1: return null)
+- [ ] AC-8: Logs estructurados con namespace `[seo.*]` ([[ADR-010]])
 - [ ] AC-9: Multi-tenant: filtro por account_id
-- [ ] AC-10: Paginacion server-side (no cargar >500 items en memoria — ADR-007)
+- [ ] AC-10: Paginacion server-side (no cargar >500 items en memoria — [[ADR-007]])
 
 ---
 
@@ -721,19 +721,19 @@ Fase 3: READ + V2 enrichment para JSON-LD y AI context → WRITE to website_prod
 
 | ADR | Status | Notas |
 |-----|--------|-------|
-| ADR-001 Server-First | ✅ | Dashboard es server component, RPCs server-side |
-| ADR-002 Error Handling | ✅ | Fallback si query falla, V2 bridge degrada gracefully |
-| ADR-003 Contract-First | ⚠️ PENDIENTE | Definir Zod schemas para respuestas de queries en website-contract |
-| ADR-004 State Management | ✅ | Server components + URL params, useActionState para forms |
-| ADR-005 Security | ✅ | getUser() + role check, RLS via account_id, rate limiting |
-| ADR-006 AI Streaming | ✅ | Bulk usa ReadableStream + SSE, prompts en lib/ai/ |
-| ADR-007 Edge-First | ✅ | Paginacion server-side 50/page, no cargar todo en memoria |
-| ADR-008 Monorepo | ⚠️ PENDIENTE | Zod schemas nuevos deben ir en website-contract |
-| ADR-009 Multi-Tenant | ✅ | Filtro por account_id, aislamiento correcto |
-| ADR-010 Observability | ✅ | Logs [seo.dashboard], [seo.detail], [seo.ai] |
-| ADR-032 Catalog V2 | ✅ | Hibrido: legacy base + V2 enrichment via bridge |
+| [[ADR-001]] Server-First | ✅ | Dashboard es server component, RPCs server-side |
+| [[ADR-002]] Error Handling | ✅ | Fallback si query falla, V2 bridge degrada gracefully |
+| [[ADR-003]] Contract-First | ⚠️ PENDIENTE | Definir Zod schemas para respuestas de queries en website-contract |
+| [[ADR-004]] State Management | ✅ | Server components + URL params, useActionState para forms |
+| [[ADR-005]] Security | ✅ | getUser() + role check, RLS via account_id, rate limiting |
+| [[ADR-006]] AI Streaming | ✅ | Bulk usa ReadableStream + SSE, prompts en lib/ai/ |
+| [[ADR-007]] Edge-First | ✅ | Paginacion server-side 50/page, no cargar todo en memoria |
+| [[ADR-008]] Monorepo | ⚠️ PENDIENTE | Zod schemas nuevos deben ir en website-contract |
+| [[ADR-009]] Multi-Tenant | ✅ | Filtro por account_id, aislamiento correcto |
+| [[ADR-010]] Observability | ✅ | Logs [seo.dashboard], [seo.detail], [seo.ai] |
+| [[ADR-032]] Catalog V2 | ✅ | Hibrido: legacy base + V2 enrichment via bridge |
 
-### ADR-003 / ADR-008 pendiente: Zod schemas
+### [[ADR-003]] / [[ADR-008]] pendiente: Zod schemas
 
 ```typescript
 // Agregar a @bukeer/website-contract:
@@ -779,7 +779,7 @@ export const SeoUpdateSchema = z.object({
 | Activities V2 bridge parcial (20/828) | Baja | Mayoría usa solo legacy; V2 enrichment mejora con migracion |
 | Editar descripcion en Studio conflicta con Flutter | N/A Rev4 | Studio solo edita SEO metadata, no contenido del producto |
 | AI genera datos que inventan info | Media | Prompt: "NUNCA inventar datos no proporcionados" |
-| CF Worker memory con queries pesadas | Media | Paginacion + stream para bulk (ADR-007) |
+| CF Worker memory con queries pesadas | Media | Paginacion + stream para bulk ([[ADR-007]]) |
 
 ---
 

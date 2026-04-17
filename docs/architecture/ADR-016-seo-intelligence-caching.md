@@ -48,7 +48,7 @@ Tags are emitted in the `Cache-Tag` response header using deterministic, lowerca
 - `seo-content-intelligence:market:<country>:<language>[:<locale>]`
 - `seo-content-intelligence:mode:decision-grade|exploratory`
 
-The header is additive. It does not change the ADR-012 envelope and does not require any response body shape changes.
+The header is additive. It does not change the [[ADR-012]] envelope and does not require any response body shape changes.
 
 ### Invalidation model
 

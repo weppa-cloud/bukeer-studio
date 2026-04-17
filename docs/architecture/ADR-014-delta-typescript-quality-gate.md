@@ -15,7 +15,7 @@ The validation workflow needs two distinct behaviors:
 
 ## Decision
 
-Keep ADR-013 intact and extend the validator with a scope-aware TypeScript policy:
+Keep [[ADR-013]] intact and extend the validator with a scope-aware TypeScript policy:
 
 - **Default mode:** analyze the repository with `npx tsc --noEmit`, classify diagnostics into `legacy_errors` and `new_errors`, and fail only when `new_errors > 0`.
 - **Strict mode (TypeScript-only):** `--strict-global` (or `npm run tech-validator:code:strict`) runs global `npx tsc --noEmit` and fails on any TypeScript diagnostic, while skipping lint/build to avoid unrelated legacy blockers.
