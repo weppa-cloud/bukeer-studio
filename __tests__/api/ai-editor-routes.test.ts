@@ -82,7 +82,7 @@ describe('AI Editor Routes - Common Guards', () => {
       const data = await response.json();
 
       expect(response.status).toBe(401);
-      expect(data.error).toBe('Unauthorized');
+      expect(data.error.code).toBe('UNAUTHORIZED');
     });
 
     it('returns 403 when role is insufficient', async () => {
@@ -93,7 +93,7 @@ describe('AI Editor Routes - Common Guards', () => {
       const data = await response.json();
 
       expect(response.status).toBe(403);
-      expect(data.error).toContain('Forbidden');
+      expect(data.error.code).toBe('FORBIDDEN');
     });
 
     it('returns 429 when rate limited', async () => {
@@ -118,7 +118,8 @@ describe('AI Editor Routes - Common Guards', () => {
       const data = await response.json();
 
       expect(response.status).toBe(400);
-      expect(data.error).toContain('Invalid sectionType');
+      expect(data.error.code).toBe('VALIDATION_ERROR');
+      expect(data.error.message).toContain('Invalid sectionType');
     });
 
     it('returns 400 for prompt exceeding 2000 chars', async () => {
@@ -135,7 +136,8 @@ describe('AI Editor Routes - Common Guards', () => {
       const data = await response.json();
 
       expect(response.status).toBe(400);
-      expect(data.error).toContain('too long');
+      expect(data.error.code).toBe('VALIDATION_ERROR');
+      expect(data.error.message).toContain('too long');
     });
 
     it('generates section content successfully', async () => {
@@ -153,8 +155,8 @@ describe('AI Editor Routes - Common Guards', () => {
       const data = await response.json();
 
       expect(response.status).toBe(200);
-      expect(data.content.title).toBe('Welcome');
-      expect(data.sectionType).toBe('hero');
+      expect(data.data.content.title).toBe('Welcome');
+      expect(data.data.sectionType).toBe('hero');
       expect(recordCost).toHaveBeenCalledWith('a1', 0.003);
     });
   });
@@ -176,7 +178,8 @@ describe('AI Editor Routes - Common Guards', () => {
       const data = await response.json();
 
       expect(response.status).toBe(400);
-      expect(data.error).toContain('topic');
+      expect(data.error.code).toBe('VALIDATION_ERROR');
+      expect(data.error.message).toContain('topic');
     });
 
     it('returns 400 when topic exceeds 2000 chars', async () => {
@@ -190,7 +193,8 @@ describe('AI Editor Routes - Common Guards', () => {
       const data = await response.json();
 
       expect(response.status).toBe(400);
-      expect(data.error).toContain('too long');
+      expect(data.error.code).toBe('VALIDATION_ERROR');
+      expect(data.error.message).toContain('too long');
     });
 
     it('generates blog post successfully', async () => {
@@ -218,7 +222,7 @@ describe('AI Editor Routes - Common Guards', () => {
       const data = await response.json();
 
       expect(response.status).toBe(200);
-      expect(data.post.title).toBe('Top 10 Destinations');
+      expect(data.data.post.title).toBe('Top 10 Destinations');
       expect(recordCost).toHaveBeenCalledWith('a1', 0.01);
     });
   });
@@ -240,7 +244,8 @@ describe('AI Editor Routes - Common Guards', () => {
       const data = await response.json();
 
       expect(response.status).toBe(400);
-      expect(data.error).toContain('text');
+      expect(data.error.code).toBe('VALIDATION_ERROR');
+      expect(data.error.details.some((d: { path: string }) => d.path === 'text')).toBe(true);
     });
 
     it('returns 400 for invalid action', async () => {
@@ -254,7 +259,8 @@ describe('AI Editor Routes - Common Guards', () => {
       const data = await response.json();
 
       expect(response.status).toBe(400);
-      expect(data.error).toContain('Invalid action');
+      expect(data.error.code).toBe('VALIDATION_ERROR');
+      expect(data.error.details.some((d: { path: string }) => d.path === 'action')).toBe(true);
     });
 
     it('returns 400 when text exceeds 10000 chars', async () => {
@@ -268,7 +274,8 @@ describe('AI Editor Routes - Common Guards', () => {
       const data = await response.json();
 
       expect(response.status).toBe(400);
-      expect(data.error).toContain('too long');
+      expect(data.error.code).toBe('VALIDATION_ERROR');
+      expect(data.error.details.some((d: { path: string }) => d.path === 'text')).toBe(true);
     });
 
     it('improves text successfully', async () => {
@@ -286,8 +293,8 @@ describe('AI Editor Routes - Common Guards', () => {
       const data = await response.json();
 
       expect(response.status).toBe(200);
-      expect(data.improved).toBe('Improved text here');
-      expect(data.action).toBe('rewrite');
+      expect(data.data.improved).toBe('Improved text here');
+      expect(data.data.action).toBe('rewrite');
     });
   });
 });
