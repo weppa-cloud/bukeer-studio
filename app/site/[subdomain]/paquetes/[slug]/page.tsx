@@ -8,6 +8,7 @@ import { getWebsiteBySubdomain } from '@/lib/supabase/get-website';
 import { generateHreflangLinks, generateOgLocale } from '@/lib/seo/hreflang';
 import { resolveOgImage } from '@/lib/seo/og-helpers';
 import { normalizeLanguage } from '@/components/seo/product-schema';
+import { sanitizeProductCopy } from '@/lib/products/normalize-product';
 
 interface PackagePageProps {
   params: Promise<{ subdomain: string; slug: string }>;
@@ -64,8 +65,10 @@ export async function generateMetadata({ params }: PackagePageProps): Promise<Me
   }
 
   const pathname = `/paquetes/${productPage.product.slug || slug}`;
-  const title = productPage.page?.custom_seo_title || productPage.product.name;
-  const description = productPage.page?.custom_seo_description || productPage.product.description?.slice(0, 160) || 'Paquete de viaje';
+  const rawTitle = productPage.page?.custom_seo_title || productPage.product.name;
+  const rawDescription = productPage.page?.custom_seo_description || productPage.product.description || '';
+  const title = sanitizeProductCopy(rawTitle) || 'Paquete de viaje';
+  const description = (sanitizeProductCopy(rawDescription) || 'Paquete de viaje').slice(0, 160);
   const ogImage = resolveOgImage(website, productPage.product.social_image || productPage.product.image);
 
   const metadata: Metadata = {
