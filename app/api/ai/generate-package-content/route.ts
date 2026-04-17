@@ -88,7 +88,7 @@ export async function POST(request: Request) {
   const { data: pkg, error: pkgError } = await supabase
     .from('package_kits')
     .select(
-      'id, name, destination, duration_days, slug, subdomain, program_highlights, description, last_ai_hash'
+      'id, name, destination, duration_days, slug, subdomain, program_highlights, description, last_ai_hash, description_ai_generated, highlights_ai_generated'
     )
     .eq('id', packageId)
     .maybeSingle();
@@ -183,18 +183,19 @@ export async function POST(request: Request) {
   const cleanDescription = sanitizeProductCopy(generated.description, 500);
 
   // 10. Persist to package_kits
-  // TODO: add description_ai_generated + highlights_ai_generated after supabase/migrations/XXXX_package_ai_flags.sql is applied
   const updatePayload: Record<string, unknown> = {
     program_highlights: cleanHighlights,
+    highlights_ai_generated: true,
     last_ai_hash: currentHash,
   };
 
-  // Only update description if it is empty/short (< 80 chars) and the package
-  // doesn't have a manually curated description (description_ai_generated flag
-  // not yet available — skip overwrite check until migration is applied).
+  // Only update description if short (<80 chars) AND operator hasn't manually edited it
+  // (description_ai_generated=false means operator locked the field).
   const existingDescription = typeof pkg.description === 'string' ? pkg.description.trim() : '';
-  if (existingDescription.length < 80) {
+  const descriptionLocked = pkg.description_ai_generated === false;
+  if (!descriptionLocked && existingDescription.length < 80) {
     updatePayload.description = cleanDescription;
+    updatePayload.description_ai_generated = true;
   }
 
   const { error: updateError } = await supabase
