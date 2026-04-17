@@ -29,6 +29,7 @@ export function getDefaultTermsContent(siteName: string): string {
 }
 
 export function getDefaultPrivacyContent(siteName: string): string {
+  void siteName;
   const date = formatDate();
   return `<h1>Política de Privacidad</h1>
 <p><em>Última actualización: ${date}</em></p>
@@ -44,7 +45,8 @@ export function getDefaultPrivacyContent(siteName: string): string {
 <p>Para ejercer tus derechos sobre tus datos personales, contáctanos a través del formulario del sitio.</p>`;
 }
 
-export function getDefaultCancellationContent(_siteName: string): string {
+export function getDefaultCancellationContent(siteName: string): string {
+  void siteName;
   const date = formatDate();
   return `<h1>Política de Cancelación</h1>
 <p><em>Última actualización: ${date}</em></p>

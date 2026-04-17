@@ -74,7 +74,7 @@ export function WebsiteProvider({ websiteId, children }: WebsiteProviderProps) {
   }, [websiteId, supabase]);
 
   const publish = useCallback(async () => {
-    await save({ status: 'published' } as any);
+    await save({ status: 'published' });
   }, [save]);
 
   return (

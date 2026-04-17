@@ -62,7 +62,6 @@ export function trackEvent(
     }
 
     if (process.env.NODE_ENV !== 'production') {
-      // eslint-disable-next-line no-console
       console.log(`[analytics.${name}]`, cleaned);
     }
   } catch {
