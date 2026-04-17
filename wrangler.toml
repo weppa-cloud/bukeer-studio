@@ -34,6 +34,11 @@ new_sqlite_classes = ["DOQueueHandler"]
 [vars]
 NEXT_PUBLIC_MAIN_DOMAIN = "bukeer.com"
 
+# Production route required by EPIC #22 runtime gate.
+[[routes]]
+pattern = "colombiatours.bukeer.com/*"
+zone_name = "bukeer.com"
+
 # ── Staging environment ──────────────────────────────────────────────────────
 
 [env.staging]
