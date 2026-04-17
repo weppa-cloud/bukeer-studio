@@ -21,7 +21,7 @@ import { checkRateLimit } from '@/lib/ai/rate-limit';
 import { getModel } from '@/lib/ai/llm-provider';
 import { buildPackageHighlightsPrompt } from '@/lib/ai/prompts';
 import { PackageAiHighlightsSchema } from '@bukeer/website-contract';
-import { sanitizeProductCopy } from '@/lib/products/normalize-product';
+import { sanitizeAiMarketingCopy as sanitizeProductCopy } from '@/lib/products/normalize-product';
 
 const log = createLogger('api.ai.generatePackageContent');
 
