@@ -2,8 +2,17 @@ name: AI Sync Autofix
 
 on:
   push:
-    branches:
-      - '**'
+    branches: [main]
+    paths:
+      - '.agents/**'
+      - 'ai/**'
+      - 'scripts/ai/**'
+      - 'AGENTS.md'
+      - '.github/workflows/ai-sync-autofix.yml'
+
+concurrency:
+  group: ai-sync-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: write
