@@ -41,12 +41,40 @@ const defaultLogger = (event: ProductNormalizeLog) => {
   console.warn('[product.normalize] fallback', event);
 };
 
-function asNonEmptyString(value: unknown): string | null {
+const INTERNAL_COPY_PATTERNS: RegExp[] = [
+  /\bplan\s+pam\b/gi,
+  /\bvisitor\b/gi,
+  /\bpasaporte\s+natural\b/gi,
+  /\b\d+\s*(?:a|-|–)\s*\d+\s*pax(?:\s*\d{4})?\b/gi,
+  /\b\d+\s*pax(?:\s*\d{4})?\b/gi,
+];
+
+export function sanitizeProductCopy(value: unknown): string {
   if (typeof value !== 'string') {
-    return null;
+    return '';
   }
-  const trimmed = value.trim();
-  return trimmed ? trimmed : null;
+
+  let output = value;
+  for (const pattern of INTERNAL_COPY_PATTERNS) {
+    output = output.replace(pattern, ' ');
+  }
+
+  output = output
+    .replace(/\b\d{4}\b(?=\s*$)/g, ' ')
+    .replace(/\s+[-|/,:;]+\s*/g, ' ')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+
+  return output;
+}
+
+export function sanitizeProductCopyNullable(value: unknown): string | null {
+  const sanitized = sanitizeProductCopy(value);
+  return sanitized.length > 0 ? sanitized : null;
+}
+
+function asNonEmptyString(value: unknown): string | null {
+  return sanitizeProductCopyNullable(value);
 }
 
 function parseNumeric(value: unknown): number | null {
@@ -63,16 +91,27 @@ function parseNumeric(value: unknown): number | null {
 function splitLegacyText(value: string): string[] | null {
   const items = value
     .split(/\n|,|;/g)
-    .map((item) => item.trim())
+    .map((item) => sanitizeProductCopy(item))
     .filter(Boolean);
   return items.length > 0 ? items : null;
 }
 
 function normalizeV2ListValue(value: unknown): Array<string | Record<string, unknown>> | null {
   if (Array.isArray(value)) {
-    const rows = value.filter(
-      (item) => typeof item === 'string' || (item !== null && typeof item === 'object')
-    ) as Array<string | Record<string, unknown>>;
+    const rows = value
+      .map((item) => {
+        if (typeof item === 'string') {
+          const cleaned = sanitizeProductCopy(item);
+          return cleaned.length > 0 ? cleaned : null;
+        }
+
+        if (item !== null && typeof item === 'object') {
+          return item as Record<string, unknown>;
+        }
+
+        return null;
+      })
+      .filter(Boolean) as Array<string | Record<string, unknown>>;
     return rows.length ? rows : null;
   }
   return null;
@@ -114,9 +153,20 @@ function normalizeHighlights(
   logger: (event: ProductNormalizeLog) => void
 ): Array<string | Record<string, unknown>> | null {
   if (Array.isArray(value)) {
-    const rows = value.filter(
-      (item) => typeof item === 'string' || (item !== null && typeof item === 'object')
-    ) as Array<string | Record<string, unknown>>;
+    const rows = value
+      .map((item) => {
+        if (typeof item === 'string') {
+          const cleaned = sanitizeProductCopy(item);
+          return cleaned.length > 0 ? cleaned : null;
+        }
+
+        if (item !== null && typeof item === 'object') {
+          return item as Record<string, unknown>;
+        }
+
+        return null;
+      })
+      .filter(Boolean) as Array<string | Record<string, unknown>>;
     return rows.length ? rows : null;
   }
 
@@ -129,18 +179,52 @@ function normalizeSchedule(
   logger: (event: ProductNormalizeLog) => void
 ): Array<ScheduleEntry | Record<string, unknown>> | null {
   if (Array.isArray(product.schedule) && product.schedule.length > 0) {
-    return product.schedule as Array<ScheduleEntry | Record<string, unknown>>;
+    const cleaned = product.schedule.reduce<ScheduleEntry[]>((acc, entry) => {
+      if (!entry || typeof entry !== 'object') return acc;
+      const cleanedTitle = sanitizeProductCopyNullable(entry.title);
+      if (!cleanedTitle) return acc;
+      acc.push({
+        ...entry,
+        title: cleanedTitle,
+        description: sanitizeProductCopyNullable(entry.description) || undefined,
+      });
+      return acc;
+    }, []);
+    return cleaned.length > 0 ? cleaned : null;
   }
 
   const legacyProduct = product as ProductData & { schedule_data?: unknown };
   if (Array.isArray(legacyProduct.schedule_data) && legacyProduct.schedule_data.length > 0) {
     fallbackLogger(logger, 'schedule', 'v2', 'legacy');
-    return legacyProduct.schedule_data as Array<ScheduleEntry | Record<string, unknown>>;
+    const cleaned = legacyProduct.schedule_data.reduce<ScheduleEntry[]>((acc, entry) => {
+      if (!entry || typeof entry !== 'object') return acc;
+      const source = entry as Record<string, unknown>;
+      const cleanedTitle = sanitizeProductCopyNullable(source.title);
+      if (!cleanedTitle) return acc;
+      acc.push({
+        day: typeof source.day === 'number' ? source.day : undefined,
+        title: cleanedTitle,
+        description: sanitizeProductCopyNullable(source.description) || undefined,
+      });
+      return acc;
+    }, []);
+    return cleaned.length > 0 ? cleaned : null;
   }
 
   if (Array.isArray(product.itinerary_items) && product.itinerary_items.length > 0) {
     fallbackLogger(logger, 'schedule', 'legacy', 'legacy');
-    return product.itinerary_items as Array<ScheduleEntry | Record<string, unknown>>;
+    const cleaned = product.itinerary_items.reduce<ScheduleEntry[]>((acc, entry) => {
+      if (!entry || typeof entry !== 'object') return acc;
+      const cleanedTitle = sanitizeProductCopyNullable(entry.title);
+      if (!cleanedTitle) return acc;
+      acc.push({
+        day: typeof entry.day === 'number' ? entry.day : undefined,
+        title: cleanedTitle,
+        description: sanitizeProductCopyNullable(entry.description) || undefined,
+      });
+      return acc;
+    }, []);
+    return cleaned.length > 0 ? cleaned : null;
   }
 
   fallbackLogger(logger, 'schedule', 'legacy', 'null');
@@ -269,7 +353,14 @@ function normalizeFaq(
   logger: (event: ProductNormalizeLog) => void
 ): ProductFAQ[] | null {
   if (Array.isArray(page?.custom_faq) && page.custom_faq.length > 0) {
-    return page.custom_faq;
+    const cleaned = page.custom_faq
+      .map((faq) => ({
+        question: sanitizeProductCopy(faq.question),
+        answer: sanitizeProductCopy(faq.answer),
+      }))
+      .filter((faq) => faq.question.length > 0 && faq.answer.length > 0);
+
+    return cleaned.length > 0 ? cleaned : null;
   }
 
   fallbackLogger(logger, 'faq', 'v2', 'null');

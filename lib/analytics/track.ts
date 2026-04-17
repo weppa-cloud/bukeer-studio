@@ -31,6 +31,9 @@ export type AnalyticsEventName =
   | 'quote_form_submit'
   | 'phone_cta_click'
   | 'email_cta_click'
+  | 'map_marker_click'
+  | 'gallery_open'
+  | 'sticky_cta_click'
   | (string & {}); // allow other strings without losing autocomplete on the known ones
 
 /**

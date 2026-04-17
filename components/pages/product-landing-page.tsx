@@ -8,15 +8,16 @@ import type { WebsiteData } from '@/lib/supabase/get-website';
 import type { ProductData, ProductPageCustomization } from '@/lib/supabase/get-pages';
 import { getCategoryProducts } from '@/lib/supabase/get-pages';
 import { getBasePath } from '@/lib/utils/base-path';
-import { normalizeProduct } from '@/lib/products/normalize-product';
+import { normalizeProduct, sanitizeProductCopy } from '@/lib/products/normalize-product';
 import { formatPriceOrConsult } from '@/lib/products/format-price';
-import { formatCircuitStops, getPackageCircuitStops } from '@/lib/products/package-circuit';
+import { getPackageCircuitStops, withCoords } from '@/lib/products/package-circuit';
+import { PACKAGE_FAQS_DEFAULT } from '@/lib/products/package-faqs-default';
 import { trackEvent } from '@/lib/analytics/track';
 import { ProductSchema } from '../seo/product-schema';
-import { CalBookingCTA } from '@/components/site/cal-booking-cta';
 import { HighlightsGrid } from '@/components/site/highlights-grid';
 import { MeetingPointMap } from '@/components/site/meeting-point-map';
 import { OptionsTable } from '@/components/site/options-table';
+import { PackageCircuitMap } from '@/components/site/package-circuit-map';
 import { ProductFAQ } from '@/components/site/product-faq';
 import { ProgramTimeline } from '@/components/site/program-timeline';
 import { SectionErrorBoundary } from '@/components/site/section-error-boundary';
@@ -51,9 +52,9 @@ function normalizeTextList(value: unknown): string[] {
   if (Array.isArray(value)) {
     return value
       .map((item) => {
-        if (typeof item === 'string') return item.trim();
+        if (typeof item === 'string') return sanitizeProductCopy(item);
         if (item && typeof item === 'object' && 'label' in item && typeof item.label === 'string') {
-          return item.label.trim();
+          return sanitizeProductCopy(item.label);
         }
         return '';
       })
@@ -63,11 +64,55 @@ function normalizeTextList(value: unknown): string[] {
   if (typeof value === 'string') {
     return value
       .split(/\n|,|;/g)
-      .map((item) => item.trim())
+      .map((item) => sanitizeProductCopy(item))
       .filter(Boolean);
   }
 
   return [];
+}
+
+function resolvePackageDuration(product: ProductData): string | null {
+  if (typeof product.duration_days === 'number' && Number.isFinite(product.duration_days) && product.duration_days > 0) {
+    const nights = typeof product.duration_nights === 'number' && Number.isFinite(product.duration_nights)
+      ? product.duration_nights
+      : Math.max(product.duration_days - 1, 0);
+    return `${product.duration_days} días / ${nights} noches`;
+  }
+
+  if (product.duration && product.duration.trim().length > 0) {
+    return sanitizeProductCopy(product.duration);
+  }
+
+  return null;
+}
+
+function resolveGroupSizeLabel(product: ProductData): string | null {
+  const candidates = [
+    product.name,
+    product.description,
+    product.services_snapshot_summary,
+  ].filter((value): value is string => typeof value === 'string' && value.trim().length > 0);
+
+  for (const value of candidates) {
+    const rangeMatch = value.match(/(\d+)\s*(?:a|-|–)\s*(\d+)\s*pax/i);
+    if (rangeMatch) {
+      return `${rangeMatch[1]}-${rangeMatch[2]} personas`;
+    }
+
+    const singleMatch = value.match(/(\d+)\s*pax/i);
+    if (singleMatch) {
+      return `${singleMatch[1]} personas`;
+    }
+  }
+
+  return null;
+}
+
+function buildPackageDescriptionFallback(product: ProductData): string {
+  const location = sanitizeProductCopy(product.location || product.city || product.country || 'Colombia');
+  const duration = resolvePackageDuration(product);
+  const durationLead = duration ? `en ${duration.toLowerCase()}` : 'en una experiencia cuidadosamente diseñada';
+  return `Descubre ${location} ${durationLead}. Este paquete combina experiencias locales, paisajes memorables y logística coordinada para que viajes con tranquilidad y aproveches cada día.`;
 }
 
 type NormalizedProduct = ReturnType<typeof normalizeProduct>;
@@ -80,6 +125,14 @@ export function ProductLandingPage({
   googleReviews = [],
 }: ProductLandingPageProps) {
   const normalizedProduct = normalizeProduct(product, { page: pageCustomization });
+  const displayName = sanitizeProductCopy(pageCustomization?.custom_hero?.title || product.name) || product.name;
+  const displayLocation = sanitizeProductCopy(
+    pageCustomization?.custom_hero?.subtitle || product.location || [product.city, product.country].filter(Boolean).join(', ')
+  );
+  const rawDescription = sanitizeProductCopy(product.description || '');
+  const descriptionText = productType === 'package' && rawDescription.length < 80
+    ? buildPackageDescriptionFallback(product)
+    : rawDescription;
   const images = normalizedProduct.gallery.length > 0
     ? normalizedProduct.gallery
     : product.images || (product.image ? [product.image] : []);
@@ -92,9 +145,10 @@ export function ProductLandingPage({
   const [lightboxOpen, setLightboxOpen] = useState(false);
 
   const openLightbox = useCallback((index: number) => {
+    trackEvent('gallery_open', { product_id: product.id, product_type: productType, image_index: index });
     setActiveImageIndex(index);
     setLightboxOpen(true);
-  }, []);
+  }, [product.id, productType]);
 
   const closeLightbox = useCallback(() => setLightboxOpen(false), []);
 
@@ -107,18 +161,24 @@ export function ProductLandingPage({
   }, [images.length]);
   const customHero = pageCustomization?.custom_hero;
   const basePath = getBasePath(website.subdomain);
+  const websiteUrl = website.custom_domain
+    ? `https://${website.custom_domain}${basePath}`
+    : website.subdomain
+      ? `https://${website.subdomain}.bukeer.com${basePath}`
+      : undefined;
   const primaryPhone = website.content.account?.phone || website.content.contact?.phone || null;
+  const callHref = primaryPhone ? `tel:${primaryPhone.replace(/[^0-9+]/g, '')}` : null;
   const whatsappUrl = buildWhatsAppUrl({
     phone: website.content.social?.whatsapp,
-    productName: product.name,
+    productName: displayName,
     location: product.location || product.city || product.country,
     ref: product.id,
+    url: websiteUrl,
   });
-  const bookingLink = (website.content.social as { booking_link?: string } | undefined)?.booking_link;
   const analyticsContext = {
     product_id: product.id,
     product_type: productType,
-    product_name: product.name,
+    product_name: displayName,
     tenant_subdomain: website.subdomain ?? null,
   };
   const handleWhatsAppClick = (location: string) => () => {
@@ -138,21 +198,28 @@ export function ProductLandingPage({
   const highlightSource = (Array.isArray(pageCustomization?.custom_highlights) && pageCustomization.custom_highlights.length > 0)
     ? pageCustomization.custom_highlights
     : normalizedProduct.highlights;
-  const faqSource = normalizedProduct.faq ?? pageCustomization?.custom_faq ?? null;
-  const websiteUrl = website.custom_domain
-    ? `https://${website.custom_domain}${basePath}`
-    : website.subdomain
-      ? `https://${website.subdomain}.bukeer.com${basePath}`
-      : undefined;
+  const faqSource = (normalizedProduct.faq ?? pageCustomization?.custom_faq ?? null) || (
+    productType === 'package' ? PACKAGE_FAQS_DEFAULT : null
+  );
+  const packageDuration = productType === 'package' ? resolvePackageDuration(product) : null;
+  const packageGroupSize = productType === 'package' ? resolveGroupSizeLabel(product) : null;
+  const packageRating = productType === 'package' && normalizedProduct.rating !== null
+    ? `${normalizedProduct.rating.toFixed(1)} ★`
+    : null;
+  const schemaProduct: ProductData = {
+    ...product,
+    name: displayName,
+    description: descriptionText || product.description,
+  };
 
   return (
     <>
     <ProductSchema
-      product={product}
+      product={schemaProduct}
       productType={productType}
       websiteUrl={websiteUrl}
       language={(website as unknown as { language?: string; locale?: string }).language || (website as unknown as { locale?: string }).locale}
-      faqs={pageCustomization?.custom_faq}
+      faqs={faqSource}
     />
     <div className="min-h-screen">
       {/* Hero Section — Gradient fades into page bg */}
@@ -163,7 +230,7 @@ export function ProductLandingPage({
         {(customHero?.backgroundImage || images[0]) && (
           <Image
             src={customHero?.backgroundImage || images[0]}
-            alt={`${productType === 'hotel' ? 'Hotel' : productType === 'activity' ? 'Actividad' : productType === 'transport' ? 'Transporte' : 'Producto'} ${product.name}${product.location ? ` en ${product.location}` : ''}`}
+            alt={`${productType === 'hotel' ? 'Hotel' : productType === 'activity' ? 'Actividad' : productType === 'transport' ? 'Transporte' : 'Producto'} ${displayName}${displayLocation ? ` en ${displayLocation}` : ''}`}
             fill
             sizes="100vw"
             className="object-cover"
@@ -210,13 +277,32 @@ export function ProductLandingPage({
                 )}
               </div>
             )}
+            {productType === 'package' && (
+              <div className="flex flex-wrap items-center gap-3 mb-4">
+                {packageDuration && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs backdrop-blur-sm bg-background/60 border border-border/50 text-muted-foreground font-mono">
+                    {packageDuration}
+                  </span>
+                )}
+                {packageRating && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs backdrop-blur-sm bg-background/60 border border-border/50 text-muted-foreground font-mono">
+                    {packageRating}
+                  </span>
+                )}
+                {packageGroupSize && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs backdrop-blur-sm bg-background/60 border border-border/50 text-muted-foreground font-mono">
+                    {packageGroupSize}
+                  </span>
+                )}
+              </div>
+            )}
             <h1 className="text-4xl md:text-5xl font-bold mb-2">
-              {customHero?.title || product.name}
+              {displayName}
             </h1>
             <div className="mt-4 flex flex-wrap items-center gap-3">
-              {product.price && (
+              {normalizedProduct.price !== null && (
                 <span className="inline-flex items-center rounded-full bg-background/70 px-4 py-2 text-sm font-semibold backdrop-blur">
-                  Desde {formatPriceOrConsult(product.price, product.currency)}
+                  Desde {formatPriceOrConsult(normalizedProduct.price, product.currency)}
                 </span>
               )}
               {whatsappUrl && (
@@ -231,13 +317,13 @@ export function ProductLandingPage({
                 </a>
               )}
             </div>
-            {productType !== 'activity' && (customHero?.subtitle || product.location) && (
+            {productType !== 'activity' && displayLocation && (
               <p className="text-lg text-muted-foreground flex items-center gap-2 mt-2">
                 <svg className="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
-                {customHero?.subtitle || product.location || [product.city, product.country].filter(Boolean).join(', ') || ''}
+                {displayLocation}
               </p>
             )}
           </div>
@@ -249,6 +335,7 @@ export function ProductLandingPage({
         currency={product.currency}
         whatsappUrl={whatsappUrl}
         phone={primaryPhone || website.content.social?.whatsapp || null}
+        analyticsContext={analyticsContext}
       />
 
       {/* Breadcrumb */}
@@ -283,7 +370,7 @@ export function ProductLandingPage({
             {getCategoryLabel(productType)}
           </Link>
           <span className="mx-2">/</span>
-          <span className="text-primary">{product.name}</span>
+          <span className="text-primary">{displayName}</span>
         </nav>
         <Link
           href={`${basePath}/${getCategorySlug(productType)}`}
@@ -321,7 +408,7 @@ export function ProductLandingPage({
                 >
                   <Image
                     src={images[activeImageIndex]}
-                    alt={`${product.name} - imagen ${activeImageIndex + 1}`}
+                    alt={`${displayName} - imagen ${activeImageIndex + 1}`}
                     fill
                     className="object-cover transition-transform duration-500 group-hover:scale-105"
                   />
@@ -344,7 +431,7 @@ export function ProductLandingPage({
                     >
                       <Image
                         src={image}
-                        alt={`${product.name} - miniatura ${index + 1}`}
+                        alt={`${displayName} - miniatura ${index + 1}`}
                         fill
                         className="object-cover"
                       />
@@ -355,7 +442,7 @@ export function ProductLandingPage({
             )}
 
             {/* Description */}
-            {product.description && (
+            {descriptionText && (
               <motion.section
                 initial="hidden"
                 whileInView="visible"
@@ -363,10 +450,16 @@ export function ProductLandingPage({
                 variants={fadeUp}
               >
                 <h2 className="text-2xl font-bold mb-6">
-                  {productType === 'hotel' ? 'Sobre el Hotel' : productType === 'transfer' ? 'Sobre el traslado' : 'Descripcion'}
+                  {productType === 'hotel'
+                    ? 'Sobre el Hotel'
+                    : productType === 'transfer'
+                      ? 'Sobre el traslado'
+                      : productType === 'package'
+                        ? 'Sobre el paquete'
+                        : 'Descripción'}
                 </h2>
                 <div className="prose prose-lg max-w-none text-muted-foreground leading-relaxed">
-                  <p>{product.description}</p>
+                  <p>{descriptionText}</p>
                 </div>
               </motion.section>
             )}
@@ -385,12 +478,12 @@ export function ProductLandingPage({
             )}
             {productType === 'package' && (
               <SectionErrorBoundary sectionName="package-sections">
-                <PackageSections product={product} normalized={normalizedProduct} />
+                <PackageSections product={product} normalized={normalizedProduct} analyticsContext={analyticsContext} />
               </SectionErrorBoundary>
             )}
             {productType === 'transfer' && <TransferSections product={product} />}
 
-            {!isTransfer && (
+            {!isTransfer && productType !== 'package' && (
               <SectionErrorBoundary sectionName="program-timeline">
                 <ProgramTimeline
                   title="Programa"
@@ -404,6 +497,7 @@ export function ProductLandingPage({
                 <IncludeExcludeSection
                   inclusions={normalizedProduct.inclusions}
                   exclusions={normalizedProduct.exclusions}
+                  isPackage={productType === 'package'}
                 />
               </SectionErrorBoundary>
             )}
@@ -435,7 +529,7 @@ export function ProductLandingPage({
                   normalized={normalizedProduct}
                   productType={productType}
                   whatsappUrl={whatsappUrl}
-                  bookingLink={bookingLink}
+                  phone={primaryPhone}
                   onWhatsAppClick={handleWhatsAppClick('sidebar')}
                   analyticsContext={analyticsContext}
                 />
@@ -484,7 +578,7 @@ export function ProductLandingPage({
                 href={whatsappUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                onClick={handleWhatsAppClick('cta_section')}
+                onClick={handleWhatsAppClick('final_cta')}
                 className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-green-600 text-white rounded-full font-medium hover:bg-green-700 transition-colors"
               >
                 <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
@@ -493,19 +587,15 @@ export function ProductLandingPage({
                 WhatsApp
               </a>
             )}
-            <Link
-              href={`${basePath}/contacto`}
-              className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-primary text-primary-foreground rounded-full font-medium hover:bg-primary/90 transition-colors"
-            >
-              Solicitar cotizacion
-            </Link>
-            <CalBookingCTA
-              bookingLink={bookingLink}
-              className="px-8 py-4"
-              label="Agendar llamada"
-              analyticsLocation="cta_section"
-              analyticsContext={analyticsContext}
-            />
+            {callHref && (
+              <a
+                href={callHref}
+                onClick={() => trackEvent('phone_cta_click', { ...analyticsContext, location_context: 'cta_section' })}
+                className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-primary text-primary-foreground rounded-full font-medium hover:bg-primary/90 transition-colors"
+              >
+                Llamar ahora
+              </a>
+            )}
           </div>
         </div>
       </section>
@@ -569,7 +659,7 @@ export function ProductLandingPage({
           >
             <Image
               src={images[activeImageIndex]}
-              alt={`${product.name} - imagen ${activeImageIndex + 1}`}
+              alt={`${displayName} - imagen ${activeImageIndex + 1}`}
               fill
               className="object-contain"
               sizes="90vw"
@@ -784,7 +874,15 @@ function TransferSections({ product }: { product: ProductData }) {
   );
 }
 
-function PackageSections({ product, normalized }: { product: ProductData; normalized: NormalizedProduct }) {
+function PackageSections({
+  product,
+  normalized,
+  analyticsContext,
+}: {
+  product: ProductData;
+  normalized: NormalizedProduct;
+  analyticsContext?: Record<string, string | number | boolean | null | undefined>;
+}) {
   const itineraryItems = Array.isArray(product.itinerary_items) ? product.itinerary_items : [];
   const productData = product as unknown as Record<string, unknown>;
   const destinationHint = typeof productData.destination === 'string'
@@ -795,19 +893,19 @@ function PackageSections({ product, normalized }: { product: ProductData; normal
     name: product.name,
     destination: destinationHint,
   });
-  const circuitLabel = formatCircuitStops(circuitStops, 4);
+  const mappedCircuitStops = withCoords(circuitStops);
   const normalizedSchedule = Array.isArray(normalized.schedule) ? normalized.schedule : [];
   const itinerary = normalizedSchedule
     .map((entry, index) => {
       if (!entry || typeof entry !== 'object') return null;
       const source = entry as Record<string, unknown>;
-      const title = typeof source.title === 'string' ? source.title.trim() : '';
+      const title = typeof source.title === 'string' ? sanitizeProductCopy(source.title) : '';
       if (!title) return null;
       return {
         key: `${index + 1}-${title}`,
-        day: typeof source.day === 'number' ? source.day : index + 1,
+        day: index + 1,
         title,
-        description: typeof source.description === 'string' ? source.description.trim() : '',
+        description: typeof source.description === 'string' ? sanitizeProductCopy(source.description) : '',
       };
     })
     .filter((row): row is { key: string; day: number; title: string; description: string } => Boolean(row));
@@ -818,7 +916,21 @@ function PackageSections({ product, normalized }: { product: ProductData; normal
 
   return (
     <>
-      {circuitStops.length > 0 && (
+      {mappedCircuitStops.length > 0 && (
+        <motion.section
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: '-60px' }}
+          variants={fadeUp}
+        >
+          <PackageCircuitMap
+            stops={mappedCircuitStops}
+            analyticsContext={analyticsContext}
+          />
+        </motion.section>
+      )}
+
+      {mappedCircuitStops.length === 0 && circuitStops.length > 0 && (
         <motion.section
           initial="hidden"
           whileInView="visible"
@@ -826,7 +938,6 @@ function PackageSections({ product, normalized }: { product: ProductData; normal
           variants={fadeUp}
         >
           <h2 className="text-2xl font-bold mb-4">Circuito del viaje</h2>
-          <p className="text-sm mb-4 text-muted-foreground">{circuitLabel}</p>
           <div className="flex flex-wrap gap-2">
             {circuitStops.map((city, index) => (
               <span
@@ -850,7 +961,7 @@ function PackageSections({ product, normalized }: { product: ProductData; normal
           viewport={{ once: true, margin: '-60px' }}
           variants={fadeUp}
         >
-          <h2 className="text-2xl font-bold mb-6">Itinerario</h2>
+          <h2 className="text-2xl font-bold mb-6">Día a día</h2>
           <div className="space-y-4">
             {itinerary.map((item, index) => (
               <motion.div
@@ -882,12 +993,25 @@ function PackageSections({ product, normalized }: { product: ProductData; normal
 function IncludeExcludeSection({
   inclusions,
   exclusions,
+  isPackage = false,
 }: {
   inclusions: NormalizedProduct['inclusions'];
   exclusions: NormalizedProduct['exclusions'];
+  isPackage?: boolean;
 }) {
-  const includeItems = normalizeTextList(inclusions);
-  const excludeItems = normalizeTextList(exclusions);
+  const fallbackIncludeItems = ['Asistencia del equipo de viaje durante tu experiencia'];
+  const fallbackExcludeItems = [
+    'Vuelos nacionales o internacionales (salvo que se indique explícitamente)',
+    'Gastos personales y consumos no especificados',
+    'Servicios no mencionados en la sección Incluye',
+  ];
+
+  const includeItemsRaw = normalizeTextList(inclusions);
+  const excludeItemsRaw = normalizeTextList(exclusions);
+  const includeItems = isPackage && includeItemsRaw.length === 0 ? fallbackIncludeItems : includeItemsRaw;
+  const excludeItems = isPackage
+    ? Array.from(new Set([...excludeItemsRaw, ...fallbackExcludeItems])).slice(0, Math.max(3, excludeItemsRaw.length || 3))
+    : excludeItemsRaw;
 
   if (includeItems.length === 0 && excludeItems.length === 0) {
     return null;
@@ -942,7 +1066,7 @@ function SummarySidebar({
   normalized,
   productType,
   whatsappUrl,
-  bookingLink,
+  phone,
   onWhatsAppClick,
   analyticsContext,
 }: {
@@ -950,14 +1074,16 @@ function SummarySidebar({
   normalized: NormalizedProduct;
   productType: string;
   whatsappUrl: string | null;
-  bookingLink?: string;
+  phone?: string | null;
   onWhatsAppClick?: () => void;
   analyticsContext?: Record<string, string | number | boolean | null | undefined>;
 }) {
+  const phoneHref = phone ? `tel:${phone.replace(/[^0-9+]/g, '')}` : null;
+  const durationValue = productType === 'package' ? resolvePackageDuration(product) : product.duration || null;
   const quickFacts = [
     { label: 'Tipo', value: getCategoryLabel(productType) },
-    { label: 'Ubicacion', value: product.location || [product.city, product.country].filter(Boolean).join(', ') || null },
-    { label: 'Duracion', value: product.duration || null },
+    { label: 'Ubicacion', value: sanitizeProductCopy(product.location || [product.city, product.country].filter(Boolean).join(', ')) || null },
+    { label: 'Duracion', value: durationValue },
     { label: 'Rating', value: normalized.rating !== null ? `${normalized.rating.toFixed(1)} / 5` : null },
   ].filter((item): item is { label: string; value: string } => Boolean(item.value));
 
@@ -993,13 +1119,15 @@ function SummarySidebar({
             WhatsApp
           </a>
         )}
-        <CalBookingCTA
-          bookingLink={bookingLink}
-          className="w-full py-3 text-sm"
-          label="Agendar llamada"
-          analyticsLocation="sidebar"
-          analyticsContext={analyticsContext}
-        />
+        {phoneHref && (
+          <a
+            href={phoneHref}
+            onClick={() => trackEvent('phone_cta_click', { ...(analyticsContext ?? {}), location_context: 'sidebar' })}
+            className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-border px-4 py-3 text-sm font-medium transition-colors hover:bg-muted"
+          >
+            Llamar
+          </a>
+        )}
       </div>
     </aside>
   );

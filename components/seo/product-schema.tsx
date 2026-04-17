@@ -172,6 +172,7 @@ function buildDestinationSchema(product: ProductData, websiteUrl: string | undef
 
 function buildPackageSchema(product: ProductData, websiteUrl: string | undefined, inLanguage: string) {
   const itinerary = (product.itinerary_items ?? []).filter((item) => item && typeof item.title === 'string' && item.title.trim());
+  const aggregateRating = buildAggregateRating(product);
 
   return {
     '@context': 'https://schema.org',
@@ -183,6 +184,7 @@ function buildPackageSchema(product: ProductData, websiteUrl: string | undefined
     inLanguage,
     touristType: 'Leisure',
     offers: buildOffer(product),
+    aggregateRating,
     itinerary: itinerary.length
       ? {
           '@type': 'ItemList',

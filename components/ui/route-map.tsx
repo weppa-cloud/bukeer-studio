@@ -13,22 +13,34 @@ interface RouteMapProps {
   points: RoutePoint[];
   className?: string;
   height?: number;
+  onPointClick?: (point: RoutePoint, index: number) => void;
+  numberedLabels?: boolean;
 }
 
 /**
  * Route map — renders destination markers plus a connecting polyline
  * using the shared MapLibre-based DestinationMap primitive (with croquis fallback).
  */
-export function RouteMap({ points, className = '', height = 400 }: RouteMapProps) {
+export function RouteMap({
+  points,
+  className = '',
+  height = 400,
+  onPointClick,
+  numberedLabels = false,
+}: RouteMapProps) {
   const markers = useMemo<MapMarker[]>(() => {
     return points.map((point, index) => ({
       id: `route-${index}-${point.city}`,
-      label: point.city,
+      label: numberedLabels ? `${index + 1}. ${point.city}` : point.city,
       kind: 'destination',
       lat: point.lat,
       lng: point.lng,
+      meta: {
+        routeIndex: index,
+        city: point.city,
+      },
     }));
-  }, [points]);
+  }, [numberedLabels, points]);
 
   const routePath = useMemo<Array<[number, number]> | undefined>(() => {
     if (points.length < 2) return undefined;
@@ -45,6 +57,14 @@ export function RouteMap({ points, className = '', height = 400 }: RouteMapProps
         height={height}
         viewportPreset="destination-detail"
         showLegend={false}
+        onMarkerSelect={(marker) => {
+          if (!marker || !onPointClick) return;
+          const routeIndex = Number((marker.meta as Record<string, unknown> | undefined)?.routeIndex);
+          if (!Number.isFinite(routeIndex)) return;
+          const point = points[routeIndex];
+          if (!point) return;
+          onPointClick(point, routeIndex);
+        }}
       />
 
       <div className="mt-4 flex flex-wrap items-center gap-3">

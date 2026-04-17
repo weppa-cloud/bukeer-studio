@@ -34,6 +34,7 @@ interface DestinationMapProps {
   showLegend?: boolean;
   /** Optional ordered path drawn as a connecting line between points ([lng, lat] pairs). */
   routePath?: Array<[number, number]>;
+  onMarkerSelect?: (marker: MapMarker | null) => void;
 }
 
 type ProductFilterKind = 'hotel' | 'activity' | 'service';
@@ -254,6 +255,7 @@ export function DestinationMap({
   showFilters = false,
   showLegend = true,
   routePath,
+  onMarkerSelect,
 }: DestinationMapProps) {
   const styleUrl = useMemo(resolveMapStyleUrl, []);
   const [hasHydrated, setHasHydrated] = useState(false);
@@ -303,8 +305,9 @@ export function DestinationMap({
     const stillVisible = filteredMarkers.some((marker) => marker.id === selectedMarkerId);
     if (!stillVisible) {
       setSelectedMarkerId(null);
+      onMarkerSelect?.(null);
     }
-  }, [filteredMarkers, selectedMarkerId]);
+  }, [filteredMarkers, onMarkerSelect, selectedMarkerId]);
 
   useEffect(() => {
     if (!supportsWebGL()) {
@@ -367,6 +370,13 @@ export function DestinationMap({
     </div>
   ) : null;
 
+  const handleSelectMarker = (markerId: string | null) => {
+    setSelectedMarkerId(markerId);
+    if (!onMarkerSelect) return;
+    const marker = markerId ? markers.find((item) => item.id === markerId) || null : null;
+    onMarkerSelect(marker);
+  };
+
   if (shouldRenderCompatibilityMap) {
     const croquisBadgeLabel = useCroquisMode ? 'Croquis Colombia' : 'Modo compatibilidad';
     return (
@@ -376,7 +386,7 @@ export function DestinationMap({
             markers={filteredMarkers.length > 0 ? filteredMarkers : markers}
             palette={palette}
             selectedMarkerId={selectedMarkerId}
-            onSelectMarker={setSelectedMarkerId}
+            onSelectMarker={handleSelectMarker}
             height={height}
             viewportPreset={viewportPreset}
             badgeLabel={croquisBadgeLabel}
@@ -405,7 +415,7 @@ export function DestinationMap({
         <DestinationMapWebGL
           markers={filteredMarkers}
           selectedMarkerId={selectedMarkerId}
-          onSelectMarker={setSelectedMarkerId}
+          onSelectMarker={handleSelectMarker}
           palette={palette}
           styleUrl={styleUrl!}
           viewportPreset={viewportPreset}

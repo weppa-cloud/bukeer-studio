@@ -81,7 +81,10 @@ export function StickyCTABar({
             href={whatsappUrl}
             target="_blank"
             rel="noopener noreferrer"
-            onClick={() => trackEvent('whatsapp_cta_click', { ...(analyticsContext ?? {}), location_context: 'sticky_bar' })}
+            onClick={() => {
+              trackEvent('sticky_cta_click', { ...(analyticsContext ?? {}), channel: 'whatsapp' });
+              trackEvent('whatsapp_cta_click', { ...(analyticsContext ?? {}), location_context: 'sticky_bar' });
+            }}
             className="inline-flex items-center justify-center rounded-full px-3 py-2 text-xs font-semibold"
             style={{ backgroundColor: 'hsl(var(--accent))', color: 'hsl(var(--accent-text))' }}
           >
@@ -92,7 +95,10 @@ export function StickyCTABar({
         {callHref ? (
           <a
             href={callHref}
-            onClick={() => trackEvent('phone_cta_click', { ...(analyticsContext ?? {}), location_context: 'sticky_bar' })}
+            onClick={() => {
+              trackEvent('sticky_cta_click', { ...(analyticsContext ?? {}), channel: 'tel' });
+              trackEvent('phone_cta_click', { ...(analyticsContext ?? {}), location_context: 'sticky_bar' });
+            }}
             className="inline-flex items-center justify-center rounded-full border px-3 py-2 text-xs font-semibold hover:bg-muted"
           >
             Llamar
@@ -102,4 +108,3 @@ export function StickyCTABar({
     </aside>
   );
 }
-

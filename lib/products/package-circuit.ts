@@ -1,3 +1,5 @@
+import { lookupCityCoords } from '@/lib/products/city-coords';
+
 const KNOWN_CITIES = [
   'Cartagena de Indias',
   'Santa Rosa de Cabal',
@@ -20,6 +22,13 @@ const KNOWN_CITIES = [
   'Cali',
   'Leticia',
 ] as const;
+
+export interface PackageCircuitStopWithCoords {
+  city: string;
+  lat: number;
+  lng: number;
+  day: number;
+}
 
 export interface PackageItineraryItem {
   day?: number;
@@ -98,3 +107,20 @@ export function formatCircuitStops(stops: string[], maxVisible = 3): string {
   return `${stops.slice(0, maxVisible).join(' \u2192 ')} +${hidden}`;
 }
 
+export function withCoords(stops: string[]): PackageCircuitStopWithCoords[] {
+  return dedupePreservingOrder(stops)
+    .map((city, index) => {
+      const coords = lookupCityCoords(city);
+      if (!coords) {
+        return null;
+      }
+
+      return {
+        city,
+        lat: coords.lat,
+        lng: coords.lng,
+        day: index + 1,
+      };
+    })
+    .filter((stop): stop is PackageCircuitStopWithCoords => Boolean(stop));
+}

@@ -20,6 +20,24 @@ export interface TrustBadgesProps {
   subtitle?: string | null;
 }
 
+const DEFAULT_TRUST_SIGNALS: TrustSignal[] = [
+  {
+    label: 'RNT vigente',
+    description: 'Operador turístico con registro activo.',
+    icon: 'check',
+  },
+  {
+    label: 'Afiliados al sector',
+    description: 'Alianzas con operadores y proveedores confiables.',
+    icon: 'award',
+  },
+  {
+    label: 'Años de experiencia',
+    description: 'Equipo local con trayectoria diseñando viajes en Colombia.',
+    icon: 'clock',
+  },
+];
+
 function normalizeSignal(signal: TrustSignal | string | null | undefined): TrustSignal | null {
   if (typeof signal === 'string') {
     const label = signal.trim();
@@ -96,9 +114,7 @@ export function TrustBadges({ website, className = '', title, subtitle }: TrustB
     .map(normalizeSignal)
     .filter((signal): signal is TrustSignal => Boolean(signal));
 
-  if (badges.length === 0) {
-    return null;
-  }
+  const resolvedBadges = badges.length > 0 ? badges : DEFAULT_TRUST_SIGNALS;
 
   return (
     <section className={className}>
@@ -118,7 +134,7 @@ export function TrustBadges({ website, className = '', title, subtitle }: TrustB
       )}
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        {badges.map((badge, index) => {
+        {resolvedBadges.map((badge, index) => {
           const content = (
             <div
               className="flex items-start gap-3 rounded-2xl border p-4 transition-colors"
