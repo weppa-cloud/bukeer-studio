@@ -1,5 +1,5 @@
 import type { ProductData, ProductPageCustomization } from '@bukeer/website-contract';
-import { normalizeProduct } from '@/lib/products/normalize-product';
+import { normalizeProduct, sanitizeProductCopy } from '@/lib/products/normalize-product';
 
 const baseProduct: ProductData = {
   id: 'prod-1',
@@ -295,5 +295,11 @@ describe('normalizeProduct', () => {
     expect(result.faq).toBeNull();
     // Sanity: no crash, no log for unexpected fields
     expect(Array.isArray(logs)).toBe(true);
+  });
+
+  it('sanitizes internal copy patterns from visible text', () => {
+    expect(sanitizeProductCopy('Plan PAM Eje Cafetero 1 a 3 pax 2025')).toBe('Eje Cafetero');
+    expect(sanitizeProductCopy('Transporte privado Visitor 2 pax 2026')).toBe('Transporte privado');
+    expect(sanitizeProductCopy('Paquete especial 2025')).toBe('Paquete especial');
   });
 });

@@ -1,4 +1,4 @@
-import { formatCircuitStops, getPackageCircuitStops } from '@/lib/products/package-circuit';
+import { formatCircuitStops, getPackageCircuitStops, withCoords } from '@/lib/products/package-circuit';
 
 describe('package circuit helpers', () => {
   it('uses itinerary items as primary source when they include known cities', () => {
@@ -26,5 +26,13 @@ describe('package circuit helpers', () => {
     const label = formatCircuitStops(['Bogota', 'Medellin', 'Cartagena', 'Santa Marta'], 3);
     expect(label).toBe('Bogota \u2192 Medellin \u2192 Cartagena +1');
   });
-});
 
+  it('maps known cities to coordinates preserving order', () => {
+    const mapped = withCoords(['Pereira', 'Salento', 'Ciudad Inventada', 'Cartagena']);
+
+    expect(mapped).toHaveLength(3);
+    expect(mapped[0]).toMatchObject({ city: 'Pereira', day: 1 });
+    expect(mapped[1]).toMatchObject({ city: 'Salento', day: 2 });
+    expect(mapped[2]).toMatchObject({ city: 'Cartagena', day: 4 });
+  });
+});

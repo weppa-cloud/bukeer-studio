@@ -23,4 +23,18 @@ describe('buildWhatsAppUrl', () => {
     expect(textParam).toContain("San Andrés & 'Johnny Cay'");
     expect(textParam).toContain('(Ref: PKG-#A&B)');
   });
+
+  it('includes canonical url in message when provided', () => {
+    const url = buildWhatsAppUrl({
+      phone: '573001234567',
+      productName: 'Eje Cafetero 4 días',
+      location: 'Pereira',
+      ref: 'pkg-1',
+      url: 'https://colombiatours.bukeer.com/paquetes/eje-cafetero',
+    });
+
+    expect(url).not.toBeNull();
+    const textParam = new URL(url!).searchParams.get('text');
+    expect(textParam).toContain('https://colombiatours.bukeer.com/paquetes/eje-cafetero');
+  });
 });
