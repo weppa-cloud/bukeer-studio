@@ -1,4 +1,4 @@
-import type { WebsiteData, WebsiteSection } from '@bukeer/website-contract';
+import type { WebsiteData } from '@bukeer/website-contract';
 
 /**
  * og:image fallback cascade for public site pages.

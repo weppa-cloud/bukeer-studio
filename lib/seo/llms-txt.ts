@@ -16,6 +16,11 @@ interface Destination {
   slug: string;
 }
 
+function getPostViewCount(post: BlogPost): number {
+  const postWithViews = post as BlogPost & { view_count?: unknown };
+  return typeof postWithViews.view_count === 'number' ? postWithViews.view_count : 0;
+}
+
 export function generateLlmsTxt(
   website: WebsiteData,
   posts: BlogPost[],
@@ -55,7 +60,7 @@ export function generateLlmsTxt(
   // Travel Guides (top 20 published posts by views)
   const publishedPosts = posts
     .filter(p => p.status === 'published')
-    .sort((a, b) => ((b as any).view_count || 0) - ((a as any).view_count || 0))
+    .sort((a, b) => getPostViewCount(b) - getPostViewCount(a))
     .slice(0, 20);
 
   if (publishedPosts.length > 0) {

@@ -11,6 +11,7 @@
 
 import dynamic from 'next/dynamic';
 import type { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
+import { SectionLoader } from '@/components/ui/branded-loader';
 
 // ============================================================================
 // Component Type Definition
@@ -35,7 +36,6 @@ import { HeroSection } from '@/components/site/sections/hero-section';
 
 // Loading skeleton for below-fold sections — branded compass loader
 const SectionSkeleton = () => {
-  const { SectionLoader } = require('@/components/ui/branded-loader');
   return <SectionLoader />;
 };
 

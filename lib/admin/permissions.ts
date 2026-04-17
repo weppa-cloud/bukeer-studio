@@ -3,6 +3,8 @@
  * 3 levels: viewer, editor, publisher
  */
 
+import type { SupabaseClient } from '@supabase/supabase-js';
+
 export type AdminRole = 'viewer' | 'editor' | 'publisher' | 'owner';
 
 export interface AdminPermissions {
@@ -68,7 +70,7 @@ export function hasPermission(
 export async function getUserRole(
   userId: string,
   accountId: string,
-  supabase: { from: (table: string) => any }
+  supabase: SupabaseClient
 ): Promise<AdminRole> {
   const { data } = await supabase
     .from('user_roles')

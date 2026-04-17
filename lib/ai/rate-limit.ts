@@ -153,7 +153,6 @@ export async function cleanupStaleEntries(): Promise<number> {
 export async function recordCost(key: string, costUsd: number): Promise<void> {
   const supabase = getServiceClient();
   if (!supabase) return;
-  const now = new Date();
 
   // Find the most recent rate limit entry for this key
   const { data: entry } = await supabase
