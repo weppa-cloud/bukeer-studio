@@ -245,7 +245,32 @@ async function upsertGa4Metrics(websiteId: string, rows: Array<{ date: string; p
   }
 }
 
-async function upsertGscKeywords(websiteId: string, rows: SearchConsoleRow[]) {
+async function resolveWebsiteDefaultLocale(websiteId: string): Promise<string> {
+  const supabase = createSupabaseServiceRoleClient();
+  const { data, error } = await supabase
+    .from('websites')
+    .select('default_locale, content')
+    .eq('id', websiteId)
+    .single();
+
+  if (error || !data) {
+    return 'es-CO';
+  }
+
+  if (typeof data.default_locale === 'string' && data.default_locale.trim().length > 0) {
+    return data.default_locale;
+  }
+
+  const content = data.content as Record<string, unknown> | null;
+  const fallbackLocale = content?.locale;
+  if (typeof fallbackLocale === 'string' && fallbackLocale.trim().length > 0) {
+    return fallbackLocale;
+  }
+
+  return 'es-CO';
+}
+
+async function upsertGscKeywords(websiteId: string, locale: string, rows: SearchConsoleRow[]) {
   if (!rows.length) return;
   const supabase = createSupabaseServiceRoleClient();
 
@@ -260,7 +285,7 @@ async function upsertGscKeywords(websiteId: string, rows: SearchConsoleRow[]) {
         {
           website_id: websiteId,
           keyword,
-          locale: 'es',
+          locale,
           target_url: null,
         },
         { onConflict: 'website_id,keyword,locale' }
@@ -312,6 +337,7 @@ export async function syncSeoData(
 ) {
   const startedAt = Date.now();
   const { from, to } = parseDateRange(params.from, params.to);
+  const defaultLocale = await resolveWebsiteDefaultLocale(websiteId);
   const credentials = await getCredentialMap(websiteId);
 
   const gscCredential = credentials.get('gsc');
@@ -345,7 +371,7 @@ export async function syncSeoData(
     })
   );
 
-  await upsertGscKeywords(websiteId, gscRows);
+  await upsertGscKeywords(websiteId, defaultLocale, gscRows);
 
   const ga4Rows = await withRetry(() =>
     runGa4Report({
@@ -402,6 +428,7 @@ export async function syncSeoData(
       from,
       to,
       includeDataForSeo: Boolean(params.includeDataForSeo),
+      locale: defaultLocale,
       gscRows: gscRows.length,
       ga4Rows: metricsPayload.length,
     },
@@ -412,6 +439,7 @@ export async function syncSeoData(
     to,
     gscRows: gscRows.length,
     ga4Rows: metricsPayload.length,
+    locale: defaultLocale,
     dataforseo: params.includeDataForSeo ? 'skipped_optional' : 'disabled',
     durationMs,
   };
