@@ -398,14 +398,12 @@ function normalizeFaq(
 }
 
 /**
- * Sanitize AI-generated marketing copy.
- * Strips leading/trailing whitespace, collapses internal whitespace,
- * removes control characters, and truncates to a safe max length.
+ * Sanitize AI-generated marketing copy (renamed to avoid collision with legacy sanitizeProductCopy).
  */
-export function sanitizeProductCopy(text: string, maxLength = 500): string {
+export function sanitizeAiMarketingCopy(text: string, maxLength = 500): string {
   return text
-    .replace(/[\u0000-\u001F\u007F]/g, ' ') // strip control chars
-    .replace(/\s+/g, ' ')                    // collapse whitespace
+    .replace(/[\u0000-\u001F\u007F]/g, ' ')
+    .replace(/\s+/g, ' ')
     .trim()
     .slice(0, maxLength);
 }

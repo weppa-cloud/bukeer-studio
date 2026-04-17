@@ -36,6 +36,9 @@ const serverEnvSchema = z.object({
     : z.string().url('NEXT_PUBLIC_MAP_STYLE_URL must be a valid URL').optional(),
   NEXT_PUBLIC_MAP_STYLE_TOKEN: z.string().optional(),
 
+  // MapTiler Geocoding (server-only; fills places_cache misses)
+  MAPTILER_GEOCODING_KEY: z.string().optional(),
+
   // Optional
   NEXT_PUBLIC_GA_ID: z.string().optional(),
 })
