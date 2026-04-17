@@ -12,6 +12,7 @@ import {
   ProductPageDataSchema,
   CategoryProductsSchema,
   ProductDataSchema,
+  PackageAggregatedDataSchema,
 } from '@bukeer/website-contract';
 
 // Re-export types from contract (Strangler migration)
@@ -94,20 +95,63 @@ export async function getProductPage(
     }
 
     const parsed = ProductPageDataSchema.safeParse(data);
+    let result: ProductPageData;
+
     if (parsed.success) {
-      return parsed.data as ProductPageData;
+      result = parsed.data as ProductPageData;
+    } else {
+      logProductV2ParseWarning('getProductPage', data, parsed.error.issues);
+
+      // Graceful fallback for legacy/partial payloads.
+      const parsedLegacyProduct = ProductDataSchema.safeParse(data.product);
+      result = {
+        product: parsedLegacyProduct.success
+          ? (parsedLegacyProduct.data as ProductData)
+          : (data.product as ProductData),
+        page: data.page as ProductPageCustomization | undefined,
+      };
     }
 
-    logProductV2ParseWarning('getProductPage', data, parsed.error.issues);
+    // Gate B — F1 layer (#172): for packages, fetch aggregated inclusions/exclusions/gallery
+    // when the kit-level fields are absent or empty.
+    if (productType === 'package' && result.product) {
+      const prod = result.product as ProductData & {
+        program_inclusions?: string[];
+        program_exclusions?: string[];
+        program_gallery?: string[];
+      };
+      const needsAgg =
+        !prod.program_inclusions?.length ||
+        !prod.program_exclusions?.length ||
+        !prod.program_gallery?.length;
 
-    // Graceful fallback for legacy/partial payloads.
-    const parsedLegacyProduct = ProductDataSchema.safeParse(data.product);
-    return {
-      product: parsedLegacyProduct.success
-        ? (parsedLegacyProduct.data as ProductData)
-        : (data.product as ProductData),
-      page: data.page as ProductPageCustomization | undefined,
-    };
+      if (needsAgg) {
+        try {
+          const { data: aggData, error: aggError } = await supabase.rpc(
+            'get_package_aggregated_data',
+            { p_package_id: prod.id }
+          );
+          if (!aggError && aggData) {
+            const aggParsed = PackageAggregatedDataSchema.safeParse(aggData);
+            if (aggParsed.success) {
+              if (!prod.program_inclusions?.length) {
+                (result.product as typeof prod).program_inclusions = aggParsed.data.inclusions;
+              }
+              if (!prod.program_exclusions?.length) {
+                (result.product as typeof prod).program_exclusions = aggParsed.data.exclusions;
+              }
+              if (!prod.program_gallery?.length) {
+                (result.product as typeof prod).program_gallery = aggParsed.data.gallery;
+              }
+            }
+          }
+        } catch {
+          // Graceful degrade: use kit-raw data (ADR-015)
+        }
+      }
+    }
+
+    return result;
   } catch (e) {
     console.error('[getProductPage] Exception:', e);
     return null;

@@ -167,6 +167,12 @@ export type {
   ProductPageDataOutput,
 } from './schemas/product-v2';
 
+// Package aggregated data schema (Gate B — F1 layer, #172)
+export {
+  PackageAggregatedDataSchema,
+} from './schemas/package-aggregated';
+export type { PackageAggregatedData } from './schemas/package-aggregated';
+
 // Template Contract v1 schemas (#572)
 export {
   PageRoleSchema,
