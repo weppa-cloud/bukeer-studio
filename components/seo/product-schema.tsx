@@ -418,7 +418,7 @@ function normalizeNumber(value: unknown): number | null {
   return null;
 }
 
-function normalizeLanguage(language: string | null | undefined): string {
+export function normalizeLanguage(language: string | null | undefined): string {
   if (!language || typeof language !== 'string' || !language.trim()) {
     return 'es';
   }

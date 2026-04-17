@@ -10,6 +10,7 @@
 
 import { MetadataRoute } from 'next';
 import { createClient } from '@supabase/supabase-js';
+import { getCategoryProducts } from '@/lib/supabase/get-pages';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -86,6 +87,33 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
           changeFrequency: 'monthly',
           priority: 0.7,
         });
+      }
+
+      // 7. Add paquetes (package_kits) for this website
+      try {
+        const { items: packages } = await getCategoryProducts(
+          website.subdomain,
+          'packages',
+          { limit: 500, offset: 0 },
+        );
+
+        for (const pkg of packages || []) {
+          if (!pkg.slug || pkg.slug.trim().length === 0) continue;
+          const pkgRecord = pkg as unknown as Record<string, unknown>;
+          const pkgUpdatedAt =
+            typeof pkgRecord.updated_at === 'string' ? pkgRecord.updated_at : null;
+          sitemapEntries.push({
+            url: `${siteUrl}/paquetes/${pkg.slug}`,
+            lastModified: pkgUpdatedAt ? new Date(pkgUpdatedAt) : new Date(),
+            changeFrequency: 'weekly',
+            priority: 0.8,
+          });
+        }
+      } catch (packagesError) {
+        console.error(
+          `[sitemap] Error fetching packages for ${website.subdomain}:`,
+          packagesError,
+        );
       }
     }
   } catch (error) {

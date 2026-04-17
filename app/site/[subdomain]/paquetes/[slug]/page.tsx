@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import { notFound, redirect } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 
 import { ProductLandingPage } from '@/components/pages/product-landing-page';
 import { getCategoryProducts, getProductPage } from '@/lib/supabase/get-pages';
@@ -7,6 +7,7 @@ import { getReviewsForContext, type ReviewContext } from '@/lib/supabase/get-rev
 import { getWebsiteBySubdomain } from '@/lib/supabase/get-website';
 import { generateHreflangLinks, generateOgLocale } from '@/lib/seo/hreflang';
 import { resolveOgImage } from '@/lib/seo/og-helpers';
+import { normalizeLanguage } from '@/components/seo/product-schema';
 
 interface PackagePageProps {
   params: Promise<{ subdomain: string; slug: string }>;
@@ -47,9 +48,11 @@ export async function generateMetadata({ params }: PackagePageProps): Promise<Me
     ? `https://${website.custom_domain}`
     : `https://${subdomain}.bukeer.com`;
 
-  const websiteLang = (website as unknown as Record<string, unknown>).language as string
-    || (website as unknown as Record<string, unknown>).locale as string
-    || 'es';
+  const websiteLang = normalizeLanguage(
+    (website as unknown as Record<string, unknown>).language as string
+      || (website as unknown as Record<string, unknown>).locale as string
+      || null,
+  );
   const { locale: ogLocale } = generateOgLocale(websiteLang);
 
   const productPage = await getProductPage(subdomain, 'package', slug);
@@ -102,12 +105,21 @@ export default async function PackageSlugPage({ params }: PackagePageProps) {
     notFound();
   }
 
-  const migratedSlug = await resolveLegacyPackageSlug(subdomain, slug);
-  if (migratedSlug && migratedSlug !== slug) {
-    redirect(`/site/${subdomain}/paquetes/${migratedSlug}`);
+  // Legacy UUID/numeric ID routing: if the slug segment is actually a legacy
+  // record id, resolve it to the current slug and emit a permanent redirect
+  // so search engines collapse old URLs onto the slug canonical.
+  // Next.js `permanentRedirect` returns 308 which Google treats equivalently
+  // to 301 for SEO purposes (and preserves the original method).
+  if (looksLikeLegacyId(slug)) {
+    const migratedSlug = await resolveLegacyPackageSlug(subdomain, slug);
+    if (migratedSlug && migratedSlug !== slug) {
+      permanentRedirect(`/site/${subdomain}/paquetes/${migratedSlug}`);
+    }
+    // Legacy id with no matching slug → 404 instead of trying to render.
+    notFound();
   }
 
-  const productPage = await getProductPage(subdomain, 'package', migratedSlug || slug);
+  const productPage = await getProductPage(subdomain, 'package', slug);
   if (!productPage?.product) {
     notFound();
   }

@@ -7,9 +7,24 @@ import { apiSuccess, apiError, apiUnauthorized, apiValidationError, apiInternalE
 
 const log = createLogger('revalidate');
 
+// Maps a content type to the public URL segment used in site routes.
+const TYPE_TO_SEGMENT: Record<string, string> = {
+  package: 'paquetes',
+  activity: 'actividades',
+  hotel: 'hoteles',
+  transfer: 'traslados',
+  destination: 'destinos',
+};
+
 const RevalidateBodySchema = z.object({
   subdomain: z.string().min(1).transform((s) => s.toLowerCase().trim()),
   path: z.string().optional(),
+  // Optional structured payload for content-type-aware revalidation.
+  // Callers (e.g. Supabase Edge Functions / DB triggers) can pass
+  // { type: 'package', slug: 'machu-picchu-7d' } to invalidate the
+  // specific product page without computing the route segment themselves.
+  type: z.enum(['package', 'activity', 'hotel', 'transfer', 'destination']).optional(),
+  slug: z.string().min(1).optional(),
   secret: z.string().optional(), // Legacy body-based auth
 });
 
@@ -56,7 +71,7 @@ export async function POST(request: NextRequest) {
       return apiValidationError(parsed.error);
     }
 
-    const { subdomain, path } = parsed.data;
+    const { subdomain, path, type, slug } = parsed.data;
 
     // Check auth: Bearer token or legacy body secret
     if (authHeader !== `Bearer ${expectedSecret}`) {
@@ -97,15 +112,31 @@ export async function POST(request: NextRequest) {
 
     // 5. Perform revalidation
     const sitePath = `/site/${subdomain}`;
+    const revalidatedPaths: string[] = [sitePath];
     revalidatePath(sitePath);
 
     // Also revalidate specific path if provided
     if (path && typeof path === 'string') {
       revalidatePath(path);
+      revalidatedPaths.push(path);
+    }
+
+    // Content-type-aware revalidation: targets the specific product route
+    // plus its category listing so both pages pick up the change.
+    if (type && slug) {
+      const segment = TYPE_TO_SEGMENT[type];
+      if (segment) {
+        const productPath = `/site/${subdomain}/${segment}/${slug}`;
+        const listingPath = `/site/${subdomain}/${segment}`;
+        revalidatePath(productPath);
+        revalidatePath(listingPath);
+        revalidatedPaths.push(productPath, listingPath);
+      }
     }
 
     // Common paths that should always be revalidated
     revalidatePath(`/site/${subdomain}/blog`);
+    revalidatedPaths.push(`/site/${subdomain}/blog`);
 
     const duration = Date.now() - startTime;
     log.info(`Success: ${subdomain} in ${duration}ms`, { ip });
@@ -129,7 +160,7 @@ export async function POST(request: NextRequest) {
     return apiSuccess({
       revalidated: true,
       subdomain,
-      paths: [sitePath, ...(path ? [path] : [])],
+      paths: revalidatedPaths,
       timestamp: new Date().toISOString(),
       duration_ms: duration,
     });
@@ -153,6 +184,8 @@ export async function GET() {
     required_body: {
       subdomain: 'string (required)',
       path: 'string (optional)',
+      type: 'package|activity|hotel|transfer|destination (optional)',
+      slug: 'string (optional, paired with type to target a specific product page)',
     },
   });
 }

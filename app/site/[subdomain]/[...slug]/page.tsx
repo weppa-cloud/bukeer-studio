@@ -6,6 +6,7 @@ import { getReviewsForContext, type ReviewContext } from '@/lib/supabase/get-rev
 import { enrichDestinationFromSerpAPI } from '@/lib/services/serpapi-enrichment';
 import { generateHreflangLinks, generateOgLocale } from '@/lib/seo/hreflang';
 import { resolveOgImage } from '@/lib/seo/og-helpers';
+import { normalizeLanguage } from '@/components/seo/product-schema';
 import { CategoryPage } from '@/components/pages/category-page';
 import { StaticPage } from '@/components/pages/static-page';
 import { ProductLandingPage } from '@/components/pages/product-landing-page';
@@ -77,10 +78,12 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
     ? `https://${website.custom_domain}`
     : `https://${subdomain}.bukeer.com`;
 
-  // OG locale from website language (default: es)
-  const websiteLang = (website as unknown as Record<string, unknown>).language as string
-    || (website as unknown as Record<string, unknown>).locale as string
-    || 'es';
+  // OG locale from website language via normalizeLanguage (single source of default)
+  const websiteLang = normalizeLanguage(
+    (website as unknown as Record<string, unknown>).language as string
+      || (website as unknown as Record<string, unknown>).locale as string
+      || null,
+  );
   const { locale: ogLocale } = generateOgLocale(websiteLang);
 
   // Handle different page types based on slug
