@@ -3,6 +3,15 @@
  * Generates alternate language links for international SEO
  */
 
+import {
+  DEFAULT_PUBLIC_LOCALE,
+  buildPublicLocalizedPath,
+  localeToLanguage,
+  localeToOgLocale,
+  normalizeLocale,
+  normalizeWebsiteLocales,
+} from '@/lib/seo/locale-routing';
+
 export interface HreflangLink {
   rel: 'alternate';
   hreflang: string;
@@ -10,62 +19,111 @@ export interface HreflangLink {
 }
 
 export interface LanguageConfig {
-  code: string;        // ISO 639-1 code (es, en, pt, fr)
-  region?: string;     // ISO 3166-1 code (ES, MX, CO, US)
+  code: string;
+  region?: string;
+  locale?: string;
   isDefault?: boolean;
 }
 
-// Supported languages for travel agency websites
+export interface LocaleHreflangOptions {
+  defaultLocale: string;
+  supportedLocales: string[];
+}
+
+// Backward-compatible default set
 export const SUPPORTED_LANGUAGES: LanguageConfig[] = [
-  { code: 'es', isDefault: true },
-  { code: 'en' },
-  { code: 'pt' },
-  { code: 'fr' },
+  { code: 'es', region: 'CO', locale: 'es-CO', isDefault: true },
+  { code: 'en', region: 'US', locale: 'en-US' },
+  { code: 'pt', region: 'BR', locale: 'pt-BR' },
+  { code: 'fr', region: 'FR', locale: 'fr-FR' },
 ];
+
+function normalizePath(pathname: string): string {
+  if (!pathname || pathname.trim().length === 0) return '/';
+  const withSlash = pathname.startsWith('/') ? pathname : `/${pathname}`;
+  if (withSlash !== '/' && withSlash.endsWith('/')) {
+    return withSlash.slice(0, -1);
+  }
+  return withSlash;
+}
+
+function toLocaleString(language: LanguageConfig): string {
+  if (language.locale) {
+    return normalizeLocale(language.locale);
+  }
+
+  const code = (language.code || '').toLowerCase();
+  const region = (language.region || '').toUpperCase();
+  return normalizeLocale(region ? `${code}-${region}` : code);
+}
+
+function toHreflangTag(locale: string): string {
+  const normalized = normalizeLocale(locale);
+  const [language, region] = normalized.split('-');
+  return region ? `${language}-${region}` : language;
+}
+
+function buildLanguageConfigs(options?: LocaleHreflangOptions): LanguageConfig[] {
+  if (!options) {
+    return SUPPORTED_LANGUAGES;
+  }
+
+  const normalized = normalizeWebsiteLocales(options);
+
+  return normalized.supportedLocales.map((locale) => {
+    const [language, region] = locale.split('-');
+    return {
+      code: language,
+      region,
+      locale,
+      isDefault: locale === normalized.defaultLocale,
+    };
+  });
+}
 
 /**
  * Generate hreflang tags for a page
- * @param baseUrl - The base URL of the website (e.g., https://miagencia.bukeer.com)
- * @param pathname - The current page path (e.g., /destinos/cartagena)
- * @param availableLanguages - Languages available for this page
- * @returns Array of hreflang link objects
  */
 export function generateHreflangLinks(
   baseUrl: string,
   pathname: string,
-  availableLanguages: LanguageConfig[] = SUPPORTED_LANGUAGES
+  availableLanguages: LanguageConfig[] = SUPPORTED_LANGUAGES,
 ): HreflangLink[] {
+  const normalizedPath = normalizePath(pathname);
   const links: HreflangLink[] = [];
 
-  availableLanguages.forEach((lang) => {
-    const hreflang = lang.region
-      ? `${lang.code}-${lang.region}`
-      : lang.code;
+  const locales = availableLanguages.map(toLocaleString);
+  const explicitDefault = availableLanguages.find((lang) => lang.isDefault);
+  const defaultLocale = explicitDefault
+    ? toLocaleString(explicitDefault)
+    : locales[0] || DEFAULT_PUBLIC_LOCALE;
 
-    // For default language, path is without prefix
-    // For other languages, add language prefix
-    const href = lang.isDefault
-      ? `${baseUrl}${pathname}`
-      : `${baseUrl}/${lang.code}${pathname}`;
+  const dedupedLocales = [...new Set([defaultLocale, ...locales])];
 
+  dedupedLocales.forEach((locale) => {
+    const hrefPath = buildPublicLocalizedPath(normalizedPath, locale, defaultLocale);
     links.push({
       rel: 'alternate',
-      hreflang,
-      href,
+      hreflang: toHreflangTag(locale),
+      href: `${baseUrl}${hrefPath}`,
     });
   });
 
-  // Add x-default for language selection page
-  const defaultLang = availableLanguages.find((l) => l.isDefault);
-  if (defaultLang) {
-    links.push({
-      rel: 'alternate',
-      hreflang: 'x-default',
-      href: `${baseUrl}${pathname}`,
-    });
-  }
+  links.push({
+    rel: 'alternate',
+    hreflang: 'x-default',
+    href: `${baseUrl}${buildPublicLocalizedPath(normalizedPath, defaultLocale, defaultLocale)}`,
+  });
 
   return links;
+}
+
+export function generateHreflangLinksForLocales(
+  baseUrl: string,
+  pathname: string,
+  options: LocaleHreflangOptions,
+): HreflangLink[] {
+  return generateHreflangLinks(baseUrl, pathname, buildLanguageConfigs(options));
 }
 
 /**
@@ -75,14 +133,14 @@ export function generateHreflangLinks(
 export function generateHreflangMetaTags(
   baseUrl: string,
   pathname: string,
-  availableLanguages?: LanguageConfig[]
+  availableLanguages?: LanguageConfig[],
 ): string {
   const links = generateHreflangLinks(baseUrl, pathname, availableLanguages);
 
   return links
     .map(
       (link) =>
-        `<link rel="${link.rel}" hreflang="${link.hreflang}" href="${link.href}" />`
+        `<link rel="${link.rel}" hreflang="${link.hreflang}" href="${link.href}" />`,
     )
     .join('\n');
 }
@@ -93,33 +151,18 @@ export function generateHreflangMetaTags(
  * @returns Language code or null if default
  */
 export function getLanguageFromPath(pathname: string): string | null {
-  const match = pathname.match(/^\/([a-z]{2})(\/|$)/);
+  const match = pathname.match(/^\/([a-z]{2})(\/|$)/i);
   if (match) {
-    const lang = match[1];
-    if (SUPPORTED_LANGUAGES.some((l) => l.code === lang && !l.isDefault)) {
-      return lang;
-    }
+    return match[1].toLowerCase();
   }
   return null;
 }
 
 /**
  * Generate canonical URL
- * Removes language prefix for default language
  */
 export function getCanonicalUrl(baseUrl: string, pathname: string): string {
-  const lang = getLanguageFromPath(pathname);
-
-  // If it's a non-default language path, keep as is
-  if (lang) {
-    return `${baseUrl}${pathname}`;
-  }
-
-  // For default language, remove any trailing slash
-  const cleanPath = pathname.endsWith('/') && pathname !== '/'
-    ? pathname.slice(0, -1)
-    : pathname;
-
+  const cleanPath = normalizePath(pathname);
   return `${baseUrl}${cleanPath}`;
 }
 
@@ -127,22 +170,21 @@ export function getCanonicalUrl(baseUrl: string, pathname: string): string {
  * Generate Open Graph locale tags
  */
 export function generateOgLocale(
-  currentLang: string = 'es',
-  availableLanguages: LanguageConfig[] = SUPPORTED_LANGUAGES
+  currentLocaleOrLang: string = DEFAULT_PUBLIC_LOCALE,
+  availableLanguages: LanguageConfig[] = SUPPORTED_LANGUAGES,
 ): { locale: string; alternateLocales: string[] } {
-  const localeMap: Record<string, string> = {
-    es: 'es_ES',
-    en: 'en_US',
-    pt: 'pt_BR',
-    fr: 'fr_FR',
-  };
+  const resolvedLocale = normalizeLocale(currentLocaleOrLang, DEFAULT_PUBLIC_LOCALE);
+  const locale = localeToOgLocale(resolvedLocale);
 
-  const locale = localeMap[currentLang] || 'es_ES';
   const alternateLocales = availableLanguages
-    .filter((l) => l.code !== currentLang)
-    .map((l) => localeMap[l.code] || `${l.code}_${l.code.toUpperCase()}`);
+    .map(toLocaleString)
+    .filter((candidate) => candidate !== resolvedLocale)
+    .map((candidate) => localeToOgLocale(candidate));
 
-  return { locale, alternateLocales };
+  return {
+    locale,
+    alternateLocales,
+  };
 }
 
 /**
@@ -163,11 +205,9 @@ const SLUG_TRANSLATIONS: Record<string, Record<string, string>> = {
 /**
  * Translate a path segment to target language
  */
-export function translatePathSegment(
-  segment: string,
-  targetLang: string
-): string {
-  if (targetLang === 'es') return segment; // Spanish is default
+export function translatePathSegment(segment: string, targetLangOrLocale: string): string {
+  const targetLang = localeToLanguage(targetLangOrLocale);
+  if (targetLang === 'es') return segment;
 
   const translation = SLUG_TRANSLATIONS[segment]?.[targetLang];
   return translation || segment;
@@ -176,13 +216,14 @@ export function translatePathSegment(
 /**
  * Translate full path to target language
  */
-export function translatePath(pathname: string, targetLang: string): string {
+export function translatePath(pathname: string, targetLangOrLocale: string): string {
+  const targetLang = localeToLanguage(targetLangOrLocale);
   if (targetLang === 'es') return pathname;
 
   const segments = pathname.split('/').filter(Boolean);
   const translatedSegments = segments.map((seg) =>
-    translatePathSegment(seg, targetLang)
+    translatePathSegment(seg, targetLang),
   );
 
-  return '/' + translatedSegments.join('/');
+  return `/${translatedSegments.join('/')}`;
 }

@@ -15,12 +15,6 @@ export const DEFAULT_LOCALE = 'es-CO';
 
 const LOCALE_ALLOWED = /^[a-zA-Z0-9_-]+$/;
 
-function assertNonEmptyString(value: unknown, name: string): asserts value is string {
-  if (typeof value !== 'string' || value.trim().length === 0) {
-    throw new Error(`${name} must be non-empty string`);
-  }
-}
-
 function localeToPrefix(locale: string): string {
   if (typeof locale !== 'string' || locale.trim().length === 0) {
     throw new Error('locale must be non-empty string');
