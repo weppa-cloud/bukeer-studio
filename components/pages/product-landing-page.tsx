@@ -10,6 +10,16 @@ import { getCategoryProducts } from '@/lib/supabase/get-pages';
 import { getBasePath } from '@/lib/utils/base-path';
 import { formatCircuitStops, getPackageCircuitStops } from '@/lib/products/package-circuit';
 import { ProductSchema } from '../seo/product-schema';
+import { CalBookingCTA } from '@/components/site/cal-booking-cta';
+import { HighlightsGrid } from '@/components/site/highlights-grid';
+import { MeetingPointMap } from '@/components/site/meeting-point-map';
+import { OptionsTable } from '@/components/site/options-table';
+import { ProductFAQ } from '@/components/site/product-faq';
+import { ProgramTimeline } from '@/components/site/program-timeline';
+import { SectionErrorBoundary } from '@/components/site/section-error-boundary';
+import { StickyCTABar } from '@/components/site/sticky-cta-bar';
+import { TrustBadges } from '@/components/site/trust-badges';
+import { buildWhatsAppUrl } from '@/components/site/whatsapp-url';
 
 interface GoogleReviewProp {
   author_name: string;
@@ -74,6 +84,14 @@ export function ProductLandingPage({
   }, [images.length]);
   const customHero = pageCustomization?.custom_hero;
   const basePath = getBasePath(website.subdomain);
+  const primaryPhone = website.content.account?.phone || website.content.contact?.phone || null;
+  const whatsappUrl = buildWhatsAppUrl({
+    phone: website.content.social?.whatsapp,
+    productName: product.name,
+    location: product.location || product.city || product.country,
+    ref: product.id,
+  });
+  const bookingLink = (website.content.social as { booking_link?: string } | undefined)?.booking_link;
   const websiteUrl = website.custom_domain
     ? `https://${website.custom_domain}${basePath}`
     : website.subdomain
@@ -274,6 +292,49 @@ export function ProductLandingPage({
             {productType === 'package' && <PackageSections product={product} />}
             {productType === 'transfer' && <TransferSections />}
 
+            <SectionErrorBoundary sectionName="highlights-grid">
+              <HighlightsGrid
+                title="Highlights"
+                highlights={product.highlights}
+              />
+            </SectionErrorBoundary>
+
+            <SectionErrorBoundary sectionName="program-timeline">
+              <ProgramTimeline
+                title="Programa"
+                schedule={product.schedule}
+              />
+            </SectionErrorBoundary>
+
+            <SectionErrorBoundary sectionName="options-table">
+              <OptionsTable
+                title="Opciones disponibles"
+                options={product.options}
+              />
+            </SectionErrorBoundary>
+
+            <SectionErrorBoundary sectionName="meeting-point-map">
+              <MeetingPointMap
+                title="Punto de encuentro"
+                meetingPoint={product.meeting_point}
+              />
+            </SectionErrorBoundary>
+
+            <SectionErrorBoundary sectionName="product-faq">
+              <ProductFAQ
+                title="Preguntas frecuentes"
+                faqs={pageCustomization?.custom_faq}
+                website={website}
+              />
+            </SectionErrorBoundary>
+
+            <SectionErrorBoundary sectionName="trust-badges">
+              <TrustBadges
+                title="Reserva con confianza"
+                website={website}
+              />
+            </SectionErrorBoundary>
+
             {/* Reviews Section — hide fake reviews when real Google Reviews available */}
             {googleReviews.length === 0 && <ReviewsSection product={product} />}
           </div>
@@ -310,9 +371,9 @@ export function ProductLandingPage({
             Contactanos y te ayudamos a planificar tu viaje ideal
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            {website.content.social?.whatsapp && (
+            {whatsappUrl && (
               <a
-                href={`https://wa.me/${website.content.social.whatsapp}?text=Hola! Me interesa ${product.name}`}
+                href={whatsappUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-green-600 text-white rounded-full font-medium hover:bg-green-700 transition-colors"
@@ -329,9 +390,21 @@ export function ProductLandingPage({
             >
               Solicitar cotizacion
             </Link>
+            <CalBookingCTA
+              bookingLink={bookingLink}
+              className="px-8 py-4"
+              label="Agendar llamada"
+            />
           </div>
         </div>
       </section>
+
+      <StickyCTABar
+        price={product.price}
+        currency={product.currency}
+        whatsappUrl={whatsappUrl}
+        phone={primaryPhone || website.content.social?.whatsapp || null}
+      />
     </div>
 
     {/* Lightbox */}
@@ -810,6 +883,12 @@ function QuoteForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const whatsappUrl = buildWhatsAppUrl({
+    phone: website.content.social?.whatsapp,
+    productName: product.name,
+    location: product.location || product.city || product.country,
+    ref: product.id,
+  });
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -868,9 +947,9 @@ function QuoteForm({
         <p className="text-muted-foreground mb-4">
           Nos pondremos en contacto contigo pronto para darte mas informacion sobre {product.name}.
         </p>
-        {website.content.social?.whatsapp && (
+        {whatsappUrl && (
           <a
-            href={`https://wa.me/${website.content.social.whatsapp}?text=Hola! Acabo de enviar una solicitud de cotizacion para ${product.name}`}
+            href={whatsappUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-full font-medium hover:bg-green-700 transition-colors"
@@ -1051,9 +1130,9 @@ function QuoteForm({
           </li>
         </ul>
 
-        {website.content.social?.whatsapp && (
+        {whatsappUrl && (
           <a
-            href={`https://wa.me/${website.content.social.whatsapp}?text=Hola! Me interesa ${product.name}`}
+            href={whatsappUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="w-full flex items-center justify-center gap-2 py-3.5 bg-green-600 text-white rounded-xl font-medium text-sm hover:bg-green-700 transition-colors"
