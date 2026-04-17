@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import type { MapMarker, MapMarkerKind } from '@/lib/maps/types';
 import { mapKindLabel } from '@/lib/maps/utils';
 
@@ -100,11 +101,14 @@ export function MarkerButton({ marker, markerColors, selected, onClick }: Marker
           }}
         >
           {destinationMeta?.image ? (
-            <img
+            <Image
               src={destinationMeta.image}
               alt=""
-              aria-hidden="true"
+              width={40}
+              height={40}
+              sizes="40px"
               className="h-full w-full object-cover"
+              aria-hidden="true"
             />
           ) : (
             <span className="text-[12px] font-bold text-white">

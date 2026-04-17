@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { WebsiteData } from '@/lib/supabase/get-website';
 import { getBasePath } from '@/lib/utils/base-path';
 import { resolveNavHref } from '@/lib/utils/navigation';
@@ -66,7 +67,14 @@ export function SiteFooter({ website, isCustomDomain = false, navigation }: Site
   const LogoBlock = (
     <Link href={`${basePath}/`} className="inline-block">
       {siteLogo ? (
-        <img src={siteLogo} alt={siteName} className="h-12 w-auto object-contain" />
+        <Image
+          src={siteLogo}
+          alt={siteName}
+          width={192}
+          height={48}
+          sizes="192px"
+          className="h-12 w-auto object-contain"
+        />
       ) : (
         <span className="text-2xl font-bold">{siteName}</span>
       )}
