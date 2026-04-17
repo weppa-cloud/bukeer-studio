@@ -17,6 +17,11 @@ interface ActivitiesListingPageProps {
 
 export function ActivitiesListingPage({ website, activities }: ActivitiesListingPageProps) {
   const basePath = getBasePath(website.subdomain);
+  const websiteLocale =
+    (website as WebsiteData & { default_locale?: string; defaultLocale?: string }).default_locale ??
+    (website as WebsiteData & { default_locale?: string; defaultLocale?: string }).defaultLocale ??
+    website.content?.locale ??
+    'es-CO';
 
   const [activeCategory, setActiveCategory] = useState<string>('Todos');
   const [activeDifficulty, setActiveDifficulty] = useState<string>('Todos');
@@ -317,6 +322,7 @@ export function ActivitiesListingPage({ website, activities }: ActivitiesListing
                 activity={activity}
                 index={i}
                 subdomain={website.subdomain}
+                locale={websiteLocale}
                 basePath={basePath}
               />
             ))}
