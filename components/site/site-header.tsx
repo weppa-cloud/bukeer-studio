@@ -18,6 +18,10 @@ import {
   resolvePreferredCurrency,
   resolveSiteMenuLocales,
 } from '@/lib/site/currency';
+import {
+  buildPublicLocalizedPath,
+  resolveLocaleFromPublicPath,
+} from '@/lib/seo/locale-routing';
 import type { NavigationItem, HeaderCTA, MarketSwitcherStyle } from '@bukeer/website-contract';
 
 interface SiteHeaderProps {
@@ -171,11 +175,21 @@ export function SiteHeader({ website, isCustomDomain = false, navigation }: Site
       ? requestedLocale
       : fallbackLocale;
     setSelectedLocale(nextLocale);
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem(SITE_LANG_STORAGE_KEY, nextLocale);
-    }
-    updatePreferenceParam(SITE_LANG_QUERY_PARAM, nextLocale);
-  }, [fallbackLocale, localeCodes, updatePreferenceParam]);
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(SITE_LANG_STORAGE_KEY, nextLocale);
+    // Navigate to path-based locale URL so server renders correct translated content
+    const defaultLoc = website.default_locale ?? 'es-CO';
+    const { pathnameWithoutLang } = resolveLocaleFromPublicPath(
+      window.location.pathname,
+      { defaultLocale: defaultLoc, supportedLocales: website.supported_locales ?? [] },
+    );
+    const targetPath = buildPublicLocalizedPath(pathnameWithoutLang, nextLocale, defaultLoc);
+    // Preserve currency query param; drop lang (now in path)
+    const params = new URLSearchParams(window.location.search);
+    params.delete(SITE_LANG_QUERY_PARAM);
+    const query = params.toString();
+    window.location.href = query ? `${targetPath}?${query}` : targetPath;
+  }, [fallbackLocale, localeCodes, website.default_locale, website.supported_locales]);
 
   const handleCurrencyChange = useCallback((value: string) => {
     const nextCurrency = normalizeCurrencyCode(value);

@@ -294,6 +294,7 @@ export async function discoverAssetsForBatch(params: {
       .select('id, title, slug, featured_image, featured_alt')
       .eq('website_id', websiteId)
       .not('featured_image', 'is', null)
+      .or('featured_alt.is.null,featured_alt.eq.')
       .limit(limit);
 
     if (error) {

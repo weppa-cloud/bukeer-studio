@@ -329,6 +329,8 @@ export function SiteFooter({ website, isCustomDomain = false, navigation }: Site
                 currentLocale={currentLocale}
                 locales={localeOptions}
                 footerPalette={footerPalette}
+                defaultLocale={website.default_locale ?? undefined}
+                supportedLocales={website.supported_locales ?? undefined}
               />
             ) : null}
             <a href="https://bukeer.com" target="_blank" rel="noopener noreferrer" className="hover:underline">

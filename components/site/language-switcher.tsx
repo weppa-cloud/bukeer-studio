@@ -8,14 +8,20 @@ import {
   normalizeLanguageCode,
   resolveSiteMenuLocales,
 } from '@/lib/site/currency';
+import {
+  buildPublicLocalizedPath,
+  resolveLocaleFromPublicPath,
+} from '@/lib/seo/locale-routing';
 
 interface LanguageSwitcherProps {
   currentLocale: string;
   locales?: Array<{ code: string; label: string }>;
   footerPalette: { muted: string; border: string; text: string };
+  defaultLocale?: string;
+  supportedLocales?: string[];
 }
 
-export function LanguageSwitcher({ currentLocale, locales, footerPalette }: LanguageSwitcherProps) {
+export function LanguageSwitcher({ currentLocale, locales, footerPalette, defaultLocale, supportedLocales }: LanguageSwitcherProps) {
   const localeOptions = useMemo(() => {
     if (!Array.isArray(locales) || locales.length === 0) {
       return resolveSiteMenuLocales({ contentLocale: currentLocale });
@@ -46,13 +52,20 @@ export function LanguageSwitcher({ currentLocale, locales, footerPalette }: Lang
   const handleChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
     const newLocale = normalizeLanguageCode(e.target.value);
     if (!newLocale || newLocale === normalizedLocale) return;
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem(SITE_LANG_STORAGE_KEY, newLocale);
-    }
-    const url = new URL(window.location.href);
-    url.searchParams.set(SITE_LANG_QUERY_PARAM, newLocale);
-    window.location.href = url.toString();
-  }, [normalizedLocale]);
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(SITE_LANG_STORAGE_KEY, newLocale);
+    const defLoc = defaultLocale ?? 'es-CO';
+    const { pathnameWithoutLang } = resolveLocaleFromPublicPath(
+      window.location.pathname,
+      { defaultLocale: defLoc, supportedLocales: supportedLocales ?? [] },
+    );
+    const targetPath = buildPublicLocalizedPath(pathnameWithoutLang, newLocale, defLoc);
+    // Preserve currency query; drop lang (now in path)
+    const params = new URLSearchParams(window.location.search);
+    params.delete(SITE_LANG_QUERY_PARAM);
+    const query = params.toString();
+    window.location.href = query ? `${targetPath}?${query}` : targetPath;
+  }, [normalizedLocale, defaultLocale, supportedLocales]);
 
   return (
     <select
