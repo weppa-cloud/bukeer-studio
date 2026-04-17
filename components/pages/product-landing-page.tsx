@@ -29,6 +29,8 @@ import type { ActivityCircuitStop } from '@/lib/products/activity-circuit';
 import { ItineraryItemRenderer } from '@/components/site/itinerary-item-renderer';
 import { SectionErrorBoundary } from '@/components/site/section-error-boundary';
 import { StickyCTABar } from '@/components/site/sticky-cta-bar';
+import { MediaLightbox } from '@/components/site/media-lightbox';
+import { ProductVideoHero } from '@/components/site/product-video-hero';
 import { buildWhatsAppUrl } from '@/components/site/whatsapp-url';
 
 interface GoogleReviewProp {
@@ -510,6 +512,14 @@ export function ProductLandingPage({
                   WhatsApp
                 </a>
               )}
+              {product.video_url && (
+                <ProductVideoHero
+                  videoUrl={product.video_url}
+                  videoCaption={product.video_caption}
+                  productId={product.id}
+                  productName={displayName}
+                />
+              )}
             </div>
             {productType !== 'activity' && displayLocation && (
               <p className="mt-2 flex items-center gap-2 text-lg text-foreground/90">
@@ -829,84 +839,17 @@ export function ProductLandingPage({
     </div>
 
     {/* Lightbox */}
-    
       {lightboxOpen && images.length > 0 && (
-        <div
-          className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
-          onClick={closeLightbox}
-        >
-          {/* Close button */}
-          <button
-            onClick={closeLightbox}
-            className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors cursor-pointer"
-          >
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-
-          {/* Counter */}
-          <div className="absolute top-4 left-4 text-white/60 text-sm font-mono">
-            {activeImageIndex + 1} / {images.length}
-          </div>
-
-          {/* Previous */}
-          {images.length > 1 && (
-            <button
-              onClick={(e) => { e.stopPropagation(); prevImage(); }}
-              className="absolute left-4 top-1/2 -translate-y-1/2 z-10 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors cursor-pointer"
-            >
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-          )}
-
-          {/* Image */}
-          <div
-            key={activeImageIndex}
-            className="relative w-[90vw] h-[80vh]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <Image
-              src={images[activeImageIndex]}
-              alt={`${displayName} - imagen ${activeImageIndex + 1}`}
-              fill
-              className="object-contain"
-              sizes="90vw"
-              priority
-            />
-          </div>
-
-          {/* Next */}
-          {images.length > 1 && (
-            <button
-              onClick={(e) => { e.stopPropagation(); nextImage(); }}
-              className="absolute right-4 top-1/2 -translate-y-1/2 z-10 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors cursor-pointer"
-            >
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-          )}
-
-          {/* Thumbnails */}
-          {images.length > 1 && (
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-              {images.map((img, i) => (
-                <button
-                  key={i}
-                  onClick={(e) => { e.stopPropagation(); setActiveImageIndex(i); }}
-                  className={`relative w-16 h-12 rounded-lg overflow-hidden border-2 transition-colors cursor-pointer ${
-                    i === activeImageIndex ? 'border-white' : 'border-white/20 hover:border-white/50'
-                  }`}
-                >
-                  <Image src={img} alt="" fill className="object-cover" sizes="64px" />
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        <MediaLightbox
+          type="image"
+          images={images}
+          activeIndex={activeImageIndex}
+          altPrefix={displayName}
+          onClose={closeLightbox}
+          onNext={nextImage}
+          onPrev={prevImage}
+          onThumb={setActiveImageIndex}
+        />
       )}
     
     </>

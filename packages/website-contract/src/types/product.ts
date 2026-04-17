@@ -127,6 +127,16 @@ export interface ProductData {
   services_snapshot_summary?: string;
   duration_days?: number;
   duration_nights?: number;
+
+  // Video field (#165)
+  video_url?: string | null;
+  video_caption?: string | null;
+
+  // Package aggregated + AI-generated fields (Gate B #172, Gate D #174)
+  program_inclusions?: string[] | null;
+  program_exclusions?: string[] | null;
+  program_gallery?: string[] | null;
+  program_highlights?: string[] | null;
 }
 
 export interface ProductPageCustomization {

@@ -1,4 +1,5 @@
 import type { MeetingPoint, ProductData, ProductFAQ } from '@bukeer/website-contract';
+import { parseVideoMeta } from '@/lib/products/video-url';
 
 interface ProductSchemaProps {
   product: ProductData;
@@ -44,11 +45,13 @@ function generateSchemas(
   const productSchema = buildProductSchema(product, productType, websiteUrl, inLanguage);
   const breadcrumb = buildBreadcrumbSchema(product, productType, websiteUrl, inLanguage);
   const faqSchema = buildFaqSchema(faqs, inLanguage);
+  const videoSchema = buildVideoObjectSchema(product);
 
   const schemas: Record<string, unknown>[] = [];
   if (productSchema) schemas.push(productSchema);
   if (breadcrumb) schemas.push(breadcrumb);
   if (faqSchema) schemas.push(faqSchema);
+  if (videoSchema) schemas.push(videoSchema);
   return schemas;
 }
 
@@ -230,6 +233,24 @@ function buildFaqSchema(faqs: ProductFAQ[] | null | undefined, inLanguage: strin
     '@type': 'FAQPage',
     inLanguage,
     mainEntity,
+  });
+}
+
+function buildVideoObjectSchema(product: ProductData): Record<string, unknown> | null {
+  const videoUrl = product.video_url;
+  if (!videoUrl || typeof videoUrl !== 'string') return null;
+  const meta = parseVideoMeta(videoUrl);
+  if (!meta || meta.provider === 'external') return null;
+
+  return clean({
+    '@context': 'https://schema.org',
+    '@type': 'VideoObject',
+    name: product.video_caption ?? product.name,
+    description: product.description,
+    thumbnailUrl: meta.thumbnailUrl ?? getPrimaryImage(product),
+    contentUrl: meta.provider === 'mp4' ? videoUrl : undefined,
+    embedUrl: meta.provider !== 'mp4' ? meta.embedUrl : undefined,
+    uploadDate: undefined,
   });
 }
 

@@ -129,6 +129,10 @@ export const ProductDataSchema = z.object({
   duration_days: z.number().int().positive().optional(),
   duration_nights: z.number().int().nonnegative().optional(),
 
+  // Video field (#165)
+  video_url: z.string().url().nullish(),
+  video_caption: z.string().nullish(),
+
   // Package aggregated + AI-generated fields (Gate B F1 #172, Gate D F3 #174)
   program_inclusions: z.array(z.string()).optional(),
   program_exclusions: z.array(z.string()).optional(),
