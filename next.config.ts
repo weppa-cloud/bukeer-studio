@@ -79,6 +79,8 @@ const nextConfig: NextConfig = {
       '@radix-ui/react-tabs',
       '@radix-ui/react-navigation-menu',
       'framer-motion',
+      'maplibre-gl',
+      '@vis.gl/react-maplibre',
     ],
   },
 

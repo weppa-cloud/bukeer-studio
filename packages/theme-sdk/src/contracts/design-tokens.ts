@@ -59,6 +59,19 @@ export const ColorSchemeSchema = z.object({
   background: HexColor,
 });
 
+/**
+ * Chart / data-viz palette — used for markers, chips, and categorical viz.
+ * Shared across light/dark modes. If omitted, globals.css provides OKLCH fallbacks.
+ * Map markers use c2 (hotel), c3 (service), c5 (activity) by convention.
+ */
+export const ChartColorsSchema = z.object({
+  c1: HexColor.optional(),
+  c2: HexColor.optional(),
+  c3: HexColor.optional(),
+  c4: HexColor.optional(),
+  c5: HexColor.optional(),
+});
+
 export const ColorTokensSchema = z.object({
   /** Seed color used to generate the palette */
   seedColor: HexColor,
@@ -66,6 +79,8 @@ export const ColorTokensSchema = z.object({
   light: ColorSchemeSchema,
   /** Dark mode color scheme */
   dark: ColorSchemeSchema,
+  /** Optional chart / data-viz palette (shared across modes) */
+  chart: ChartColorsSchema.optional(),
 });
 
 // ---------------------------------------------------------------------------
@@ -184,6 +199,7 @@ export const DesignTokensSchema = z.object({
 // ---------------------------------------------------------------------------
 
 export type ColorScheme = z.infer<typeof ColorSchemeSchema>;
+export type ChartColors = z.infer<typeof ChartColorsSchema>;
 export type ColorTokens = z.infer<typeof ColorTokensSchema>;
 export type Typeface = z.infer<typeof TypefaceSchema>;
 export type TypographyTokens = z.infer<typeof TypographyTokensSchema>;

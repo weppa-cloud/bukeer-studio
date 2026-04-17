@@ -2,7 +2,7 @@
  * CSS Variable Generator — compiles DesignTokens + ThemeProfile into CSS custom properties.
  */
 
-import type { DesignTokens, ColorScheme, RadiusValue, ElevationLevel } from '../contracts/design-tokens';
+import type { ChartColors, DesignTokens, ColorScheme, RadiusValue, ElevationLevel } from '../contracts/design-tokens';
 import type { ThemeProfile } from '../contracts/theme-profile';
 import type { CssVariable, WebRuntimeOutput } from '../contracts/runtime-output';
 import { RUNTIME_OUTPUT_SCHEMA_VERSION } from '../contracts/runtime-output';
@@ -18,8 +18,9 @@ export function generateCssOutput(
   profile: ThemeProfile,
   inputHash: string,
 ): WebRuntimeOutput {
-  const lightVars = generateColorVars(tokens.colors.light);
-  const darkVars = generateColorVars(tokens.colors.dark);
+  const chartVars = generateChartVars(tokens.colors.chart);
+  const lightVars = [...generateColorVars(tokens.colors.light), ...chartVars];
+  const darkVars = [...generateColorVars(tokens.colors.dark), ...chartVars];
   const invariantVars = generateInvariantVars(tokens, profile);
 
   const dataAttributes: Record<string, string> = {
@@ -102,6 +103,33 @@ function generateColorVars(scheme: ColorScheme): CssVariable[] {
   vars.push({ name: 'surface-container', value: hexToHsl(scheme.surfaceContainer), category: cat });
   vars.push({ name: 'surface-container-high', value: hexToHsl(scheme.surfaceContainerHigh), category: cat });
   vars.push({ name: 'surface-container-highest', value: hexToHsl(scheme.surfaceContainerHighest), category: cat });
+
+  return vars;
+}
+
+// ---------------------------------------------------------------------------
+// Chart / data-viz Variables (shared across light & dark)
+// ---------------------------------------------------------------------------
+
+function generateChartVars(chart: ChartColors | undefined): CssVariable[] {
+  if (!chart) return [];
+
+  const cat = 'color' as const;
+  const vars: CssVariable[] = [];
+  const slots: Array<[keyof ChartColors, string]> = [
+    ['c1', 'chart-1'],
+    ['c2', 'chart-2'],
+    ['c3', 'chart-3'],
+    ['c4', 'chart-4'],
+    ['c5', 'chart-5'],
+  ];
+
+  for (const [key, varName] of slots) {
+    const hex = chart[key];
+    if (hex) {
+      vars.push({ name: varName, value: hexToHsl(hex), category: cat });
+    }
+  }
 
   return vars;
 }

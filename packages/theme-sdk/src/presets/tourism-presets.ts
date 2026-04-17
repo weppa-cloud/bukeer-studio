@@ -39,6 +39,7 @@ export const ADVENTURE_PRESET: ThemePreset = preset({
     $schema: DESIGN_TOKENS_SCHEMA_VERSION,
     colors: {
       seedColor: '#2E7D32',
+      chart: { c2: '#1E88E5', c3: '#8E24AA', c5: '#43A047' },
       light: {
         primary: '#2E7D32',
         onPrimary: '#FFFFFF',
@@ -162,6 +163,7 @@ export const LUXURY_PRESET: ThemePreset = preset({
     $schema: DESIGN_TOKENS_SCHEMA_VERSION,
     colors: {
       seedColor: '#1A237E',
+      chart: { c2: '#3949AB', c3: '#8A6508', c5: '#00897B' },
       light: {
         primary: '#1A237E',
         onPrimary: '#FFFFFF',
@@ -285,6 +287,7 @@ export const TROPICAL_PRESET: ThemePreset = preset({
     $schema: DESIGN_TOKENS_SCHEMA_VERSION,
     colors: {
       seedColor: '#006B60',
+      chart: { c2: '#00ACC1', c3: '#E53935', c5: '#43A047' },
       light: {
         primary: '#006B60',
         onPrimary: '#FFFFFF',
@@ -408,6 +411,7 @@ export const CORPORATE_PRESET: ThemePreset = preset({
     $schema: DESIGN_TOKENS_SCHEMA_VERSION,
     colors: {
       seedColor: '#455A64',
+      chart: { c2: '#1976D2', c3: '#6A1B9A', c5: '#388E3C' },
       light: {
         primary: '#455A64',
         onPrimary: '#FFFFFF',
@@ -531,6 +535,7 @@ export const BOUTIQUE_PRESET: ThemePreset = preset({
     $schema: DESIGN_TOKENS_SCHEMA_VERSION,
     colors: {
       seedColor: '#8D6E63',
+      chart: { c2: '#5E35B1', c3: '#D81B60', c5: '#00897B' },
       light: {
         primary: '#8D6E63',
         onPrimary: '#FFFFFF',
@@ -654,6 +659,7 @@ export const CULTURAL_PRESET: ThemePreset = preset({
     $schema: DESIGN_TOKENS_SCHEMA_VERSION,
     colors: {
       seedColor: '#880E4F',
+      chart: { c2: '#C62828', c3: '#6A1B9A', c5: '#2E7D32' },
       light: {
         primary: '#880E4F',
         onPrimary: '#FFFFFF',
@@ -777,6 +783,7 @@ export const ECO_PRESET: ThemePreset = preset({
     $schema: DESIGN_TOKENS_SCHEMA_VERSION,
     colors: {
       seedColor: '#33691E',
+      chart: { c2: '#0288D1', c3: '#795548', c5: '#2E7D32' },
       light: {
         primary: '#33691E',
         onPrimary: '#FFFFFF',
@@ -900,6 +907,7 @@ export const ROMANTIC_PRESET: ThemePreset = preset({
     $schema: DESIGN_TOKENS_SCHEMA_VERSION,
     colors: {
       seedColor: '#AD1457',
+      chart: { c2: '#AD1457', c3: '#8A6508', c5: '#2E7D32' },
       light: {
         primary: '#AD1457',
         onPrimary: '#FFFFFF',
