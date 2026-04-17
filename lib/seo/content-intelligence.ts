@@ -7,6 +7,17 @@ export type SeoDecisionSource = {
   confidence: SeoConfidence;
 };
 
+export type SeoContentIntelligenceCacheTagInput = {
+  route: 'audit' | 'research' | 'clusters' | 'track';
+  websiteId?: string;
+  locale?: string | null;
+  contentType?: string | null;
+  clusterId?: string | null;
+  country?: string | null;
+  language?: string | null;
+  mode?: 'decision-grade' | 'exploratory';
+};
+
 export const DECISION_GRADE_CONFIDENCE: SeoConfidence[] = ['live'];
 export const DECISION_GRADE_ERROR_CODE = 'DECISION_GRADE_BLOCKED';
 export const AUTHORITATIVE_SOURCE_REQUIRED_CODE = 'AUTHORITATIVE_SOURCE_REQUIRED';
@@ -52,9 +63,52 @@ export function buildSourceMeta(source: string, confidence: SeoConfidence): SeoD
   };
 }
 
-export function withNoStoreHeaders(response: Response): Response {
+function normalizeCacheTag(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9:_-]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^[-:]+|[-:]+$/g, '');
+}
+
+function applyCacheTags(headers: Headers, tags: string[]): void {
+  const normalized = Array.from(
+    new Set(
+      tags
+        .map((tag) => normalizeCacheTag(tag))
+        .filter((tag) => tag.length > 0),
+    ),
+  ).sort();
+
+  if (normalized.length > 0) {
+    headers.set('Cache-Tag', normalized.join(','));
+  }
+}
+
+export function buildSeoContentIntelligenceCacheTags(input: SeoContentIntelligenceCacheTagInput): string[] {
+  const tags = [
+    'seo-content-intelligence',
+    `seo-content-intelligence:route:${input.route}`,
+    input.websiteId ? `seo-content-intelligence:website:${input.websiteId}` : null,
+    input.locale ? `seo-content-intelligence:locale:${input.locale}` : null,
+    input.contentType ? `seo-content-intelligence:content-type:${input.contentType}` : null,
+    input.clusterId ? `seo-content-intelligence:cluster:${input.clusterId}` : null,
+    input.country ? `seo-content-intelligence:country:${input.country}` : null,
+    input.language ? `seo-content-intelligence:language:${input.language}` : null,
+    input.country && input.language
+      ? `seo-content-intelligence:market:${input.country}:${input.language}${input.locale ? `:${input.locale}` : ''}`
+      : null,
+    `seo-content-intelligence:mode:${input.mode ?? 'decision-grade'}`,
+  ];
+
+  return Array.from(new Set(tags.filter((tag): tag is string => Boolean(tag)))).sort();
+}
+
+export function withNoStoreHeaders(response: Response, tags: string[] = []): Response {
   const headers = new Headers(response.headers);
   headers.set('Cache-Control', 'no-store');
+  applyCacheTags(headers, tags);
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,
@@ -62,9 +116,10 @@ export function withNoStoreHeaders(response: Response): Response {
   });
 }
 
-export function withSharedCacheHeaders(response: Response, ttlSeconds: number): Response {
+export function withSharedCacheHeaders(response: Response, ttlSeconds: number, tags: string[] = []): Response {
   const headers = new Headers(response.headers);
   headers.set('Cache-Control', `public, s-maxage=${ttlSeconds}, stale-while-revalidate=${ttlSeconds}`);
+  applyCacheTags(headers, tags);
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,

@@ -3,7 +3,12 @@ import { SeoClustersPostSchema, SeoClustersQuerySchema } from '@bukeer/website-c
 import { apiError, apiSuccess } from '@/lib/api/response';
 import { requireWebsiteAccess } from '@/lib/seo/server-auth';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/service-role';
-import { buildSourceMeta, withNoStoreHeaders, withSharedCacheHeaders } from '@/lib/seo/content-intelligence';
+import {
+  buildSeoContentIntelligenceCacheTags,
+  buildSourceMeta,
+  withNoStoreHeaders,
+  withSharedCacheHeaders,
+} from '@/lib/seo/content-intelligence';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -12,7 +17,7 @@ async function ensureClusterOwnership(clusterId: string, websiteId: string) {
   const admin = createSupabaseServiceRoleClient();
   const { data: cluster, error } = await admin
     .from('seo_clusters')
-    .select('id, website_id, locale, status, activated_at')
+    .select('id, website_id, locale, content_type, status, activated_at')
     .eq('id', clusterId)
     .single();
   if (error || !cluster || cluster.website_id !== websiteId) return null;
@@ -52,7 +57,16 @@ export async function POST(request: NextRequest) {
       return withNoStoreHeaders(apiError('INTERNAL_ERROR', 'Unable to create cluster', 500, error?.message));
     }
 
-    return withNoStoreHeaders(apiSuccess({ cluster: data, sourceMeta }));
+    return withNoStoreHeaders(
+      apiSuccess({ cluster: data, sourceMeta }),
+      buildSeoContentIntelligenceCacheTags({
+        route: 'clusters',
+        websiteId: parsed.data.websiteId,
+        locale: parsed.data.locale,
+        contentType: parsed.data.contentType,
+        mode: 'decision-grade',
+      }),
+    );
   }
 
   if (parsed.data.action === 'assign_keyword') {
@@ -92,7 +106,16 @@ export async function POST(request: NextRequest) {
       return withNoStoreHeaders(apiError('INTERNAL_ERROR', 'Unable to assign keyword', 500, error?.message));
     }
 
-    return withNoStoreHeaders(apiSuccess({ assignment: data, conflicts: sameLocaleConflicts, sourceMeta }));
+    return withNoStoreHeaders(
+      apiSuccess({ assignment: data, conflicts: sameLocaleConflicts, sourceMeta }),
+      buildSeoContentIntelligenceCacheTags({
+        route: 'clusters',
+        websiteId: parsed.data.websiteId,
+        locale: cluster.locale,
+        contentType: cluster.content_type,
+        mode: 'decision-grade',
+      }),
+    );
   }
 
   if (parsed.data.action === 'assign_page') {
@@ -169,7 +192,16 @@ export async function POST(request: NextRequest) {
       return withNoStoreHeaders(apiError('INTERNAL_ERROR', 'Unable to assign page', 500, error?.message));
     }
 
-    return withNoStoreHeaders(apiSuccess({ assignment: data, sourceMeta }));
+    return withNoStoreHeaders(
+      apiSuccess({ assignment: data, sourceMeta }),
+      buildSeoContentIntelligenceCacheTags({
+        route: 'clusters',
+        websiteId: parsed.data.websiteId,
+        locale: cluster.locale,
+        contentType: cluster.content_type,
+        mode: 'decision-grade',
+      }),
+    );
   }
 
   const cluster = await ensureClusterOwnership(parsed.data.clusterId, parsed.data.websiteId);
@@ -192,13 +224,22 @@ export async function POST(request: NextRequest) {
     .from('seo_clusters')
     .update(payload)
     .eq('id', parsed.data.clusterId)
-    .select('id, locale, status, name, updated_at')
+    .select('id, locale, content_type, status, name, updated_at')
     .single();
   if (error || !data) {
     return withNoStoreHeaders(apiError('INTERNAL_ERROR', 'Unable to update cluster', 500, error?.message));
   }
 
-  return withNoStoreHeaders(apiSuccess({ cluster: data, sourceMeta }));
+  return withNoStoreHeaders(
+    apiSuccess({ cluster: data, sourceMeta }),
+    buildSeoContentIntelligenceCacheTags({
+      route: 'clusters',
+      websiteId: parsed.data.websiteId,
+      locale: data.locale,
+      contentType: data.content_type,
+      mode: 'decision-grade',
+    }),
+  );
 }
 
 export async function GET(request: NextRequest) {
@@ -267,5 +308,12 @@ export async function GET(request: NextRequest) {
       },
     }),
     60,
+    buildSeoContentIntelligenceCacheTags({
+      route: 'clusters',
+      websiteId: parsed.data.websiteId,
+      locale: parsed.data.locale,
+      contentType: parsed.data.contentType ?? null,
+      mode: 'decision-grade',
+    }),
   );
 }

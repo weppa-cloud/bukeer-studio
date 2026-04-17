@@ -12,6 +12,7 @@ import {
   AUTHORITATIVE_SOURCE_REQUIRED_CODE,
   DECISION_GRADE_ERROR_CODE,
   buildDecisionGradeBlockDetails,
+  buildSeoContentIntelligenceCacheTags,
   buildSourceMeta,
   computePriorityScore,
   withNoStoreHeaders,
@@ -437,6 +438,13 @@ export async function POST(request: NextRequest) {
         findingsCount: findings.length,
         sourceMeta,
       }),
+      buildSeoContentIntelligenceCacheTags({
+        route: 'audit',
+        websiteId: body.data.websiteId,
+        locale: body.data.locale,
+        contentType: body.data.contentTypes.length > 0 ? body.data.contentTypes.slice().sort().join('+') : null,
+        mode: 'exploratory',
+      }),
     );
   } catch (error) {
     return withNoStoreHeaders(
@@ -556,5 +564,12 @@ export async function GET(request: NextRequest) {
       },
     }),
     300,
+    buildSeoContentIntelligenceCacheTags({
+      route: 'audit',
+      websiteId: parsed.data.websiteId,
+      locale: parsed.data.locale,
+      contentType: parsed.data.contentType ?? null,
+      mode: parsed.data.decisionGradeOnly ? 'decision-grade' : 'exploratory',
+    }),
   );
 }

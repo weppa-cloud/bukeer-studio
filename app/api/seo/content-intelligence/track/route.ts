@@ -7,6 +7,7 @@ import {
   AUTHORITATIVE_SOURCE_REQUIRED_CODE,
   DECISION_GRADE_ERROR_CODE,
   buildDecisionGradeBlockDetails,
+  buildSeoContentIntelligenceCacheTags,
   buildSourceMeta,
   withNoStoreHeaders,
   withSharedCacheHeaders,
@@ -149,5 +150,13 @@ export async function GET(request: NextRequest) {
       warning,
     }),
     300,
+    buildSeoContentIntelligenceCacheTags({
+      route: 'track',
+      websiteId: parsed.data.websiteId,
+      locale: parsed.data.locale,
+      contentType: parsed.data.contentType ?? null,
+      clusterId: parsed.data.clusterId ?? null,
+      mode: parsed.data.decisionGradeOnly ? 'decision-grade' : 'exploratory',
+    }),
   );
 }
