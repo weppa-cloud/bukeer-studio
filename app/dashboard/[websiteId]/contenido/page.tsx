@@ -12,6 +12,7 @@ import { SeoBlogWorkflow } from '@/components/admin/seo-blog-workflow';
 import { SeoPageWorkflow } from '@/components/admin/seo-page-workflow';
 import { SeoBacklog } from '@/components/admin/seo-backlog';
 import { TranscreateDialog, type TranscreatePageType } from '@/components/admin/transcreate-dialog';
+import { MediaHealthWidget } from '@/components/admin/media-health-widget';
 import {
   scoreItemSeo,
   type SeoItemType,
@@ -608,6 +609,8 @@ export default function ContenidoPage() {
           </div>
         )}
       />
+
+      <MediaHealthWidget websiteId={websiteId} />
 
       {/* Chips de tipo de contenido */}
       <div className="flex flex-wrap gap-2 mb-3">

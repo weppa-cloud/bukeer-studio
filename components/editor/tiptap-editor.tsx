@@ -27,7 +27,6 @@ import Placeholder from '@tiptap/extension-placeholder';
 import Link from '@tiptap/extension-link';
 import { useEffect, useCallback } from 'react';
 import { TiptapToolbar } from './tiptap-toolbar';
-import { createClient } from '@supabase/supabase-js';
 
 interface TiptapEditorProps {
   content: string;
@@ -123,25 +122,33 @@ export function TiptapEditor({
       editor.chain().focus().setImage({ src: placeholderUrl, alt: file.name }).run();
 
       try {
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-        const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-        const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-          global: { headers: authToken ? { Authorization: `Bearer ${authToken}` } : {} },
+        if (!websiteId) {
+          throw new Error('websiteId is required for image upload');
+        }
+
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('websiteId', websiteId);
+        formData.append('entityType', 'blog_post');
+        formData.append('entitySlug', 'editor');
+        formData.append('usageContext', 'body');
+        formData.append('locale', 'es');
+
+        const response = await fetch('/api/media/upload', {
+          method: 'POST',
+          headers: authToken ? { Authorization: `Bearer ${authToken}` } : undefined,
+          body: formData,
         });
 
-        const ext = file.name.split('.').pop() || 'png';
-        const path = `blog/${websiteId || 'general'}/${Date.now()}.${ext}`;
-
-        const { data, error } = await supabase.storage
-          .from('images')
-          .upload(path, file, { contentType: file.type, upsert: false });
-
-        if (error) throw error;
-
-        const { data: urlData } = supabase.storage.from('images').getPublicUrl(data.path);
+        const payload = await response.json().catch(() => null) as
+          | { success?: boolean; data?: { publicUrl?: string }; error?: { message?: string } }
+          | null;
+        if (!response.ok || !payload?.success || !payload.data?.publicUrl) {
+          throw new Error(payload?.error?.message || 'Image upload failed');
+        }
 
         const html = editor.getHTML();
-        const updated = html.replace(placeholderUrl, urlData.publicUrl);
+        const updated = html.replace(placeholderUrl, payload.data.publicUrl);
         editor.commands.setContent(updated);
       } catch (err) {
         console.error('Image upload failed:', err);

@@ -51,7 +51,7 @@ export function GlossaryDeleteConfirm({
           <StudioButton type="button" variant="outline" onClick={onCancel}>
             Cancelar
           </StudioButton>
-          <StudioButton type="button" variant="destructive" onClick={onConfirm}>
+          <StudioButton type="button" variant="danger" onClick={onConfirm}>
             Eliminar
           </StudioButton>
         </div>
