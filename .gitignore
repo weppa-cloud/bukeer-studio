@@ -81,3 +81,4 @@ reports/
 !.claude/mcp-servers/dataforseo/cache/.gitkeep
 .claude/mcp-servers/dataforseo/budget.json
 .claude/mcp-servers/dataforseo/budget.json.*.bak
+.claude/worktrees/
