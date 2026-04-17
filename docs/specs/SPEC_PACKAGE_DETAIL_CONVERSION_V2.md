@@ -1,6 +1,6 @@
 # SPEC: Package Detail — Conversion Upgrade v2
 
-**Estado**: Draft
+**Estado**: Shipped (partial — F1/F2/F3 merged 2026-04-17, UX items pending)
 **Fecha**: 2026-04-17
 **Autor**: Yeison Gomez
 **Prioridad**: Alta

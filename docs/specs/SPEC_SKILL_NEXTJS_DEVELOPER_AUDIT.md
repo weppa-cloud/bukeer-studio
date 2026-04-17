@@ -330,7 +330,7 @@ The drift follows a clear pattern:
 | 3 | AI.md endpoint table | Add `/api/ai/studio-chat`, `/api/ai/seo/generate`, `/api/ai/seo/generate-bulk`, `/api/ai/editor/generate-content-pipeline` |
 | 4 | SKILL.md §RBAC | Replace roles: `viewer, editor, publisher, owner`. Add `canDelete`, `canExportData` |
 
-### P1 — Fix soon (agent misses available tools)
+### P1 — Fix by 2026-05-01 (agent misses available tools)
 
 | # | File | Fix |
 |---|------|-----|

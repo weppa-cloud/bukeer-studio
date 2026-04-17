@@ -4,7 +4,7 @@
 >
 > **Convention:** `[[ADR-XXX]]` or `[[SPEC_NAME]]` = wikilink resolved below. `[text](path.md)` = regular markdown link. Both coexist.
 
-Last updated: 2026-04-17
+Last updated: 2026-04-17 (WIKI full-refresh — CORRELATION+AUDIT post 4w)
 
 ---
 
@@ -25,7 +25,9 @@ Last updated: 2026-04-17
 | Cross-repo bridge | `.claude/rules/cross-repo-flutter.md` | Shared DB + decisions with `weppa-cloud/bukeer-flutter`. |
 | Skills | `.claude/skills/*/SKILL.md` | 11 skills: nextjs-developer, backend-dev, tech-validator, specifying, docs-keeper, debugger, website-designer, website-section-generator, website-quality-gate, prompt-optimiser. |
 | Commands | `.claude/commands/*.md` | `/qa-nextjs`, `/website-creator`, `/design-session`. |
-| Auto-memory | `~/.claude/projects/.../memory/MEMORY.md` | Cross-session persistent memory index. |
+| Auto-memory | `~/.claude/projects/.../memory/MEMORY.md` | Cross-session persistent memory index. Not a repo file — lives in user home. |
+| MCP servers | `.claude/mcp-servers/` | `bukeer-studio/` (Studio API) + `dataforseo/` (SEO data). READMEs in each subfolder. |
+| Agent setup | [agent-setup](./development/agent-setup.md) | How to configure Codex/Opencode/Claude Code for this repo. |
 
 ---
 
@@ -50,7 +52,8 @@ All ADRs accepted unless noted. Cross-cut by Principles P1–P10 (see [[ARCHITEC
 | [[ADR-013]] | [ADR-013](./architecture/ADR-013-tech-validator-quality-gate.md) | Automated Tech Validator Quality Gate | [[tech-validator]] [[quality-gate]] |
 | [[ADR-014]] | [ADR-014](./architecture/ADR-014-delta-typescript-quality-gate.md) | Delta TypeScript Quality Gate | [[tech-validator]] [[typescript]] |
 | [[ADR-015]] | [ADR-015](./architecture/ADR-015-resilient-map-rendering-and-marker-media-fallback.md) | Resilient Map Rendering and Marker Media Fallback | [[maps]] [[webgl]] [[fallback]] |
-| [[ADR-016]] | [ADR-016](./architecture/ADR-016-seo-intelligence-caching.md) | SEO Content Intelligence Caching and Revalidation | [[SEO]] [[cache]] [[ISR]] |
+| [[ADR-016]] | [ADR-016](./architecture/ADR-016-seo-intelligence-caching.md) | SEO Content Intelligence Caching and Revalidation | [[SEO]] [[cache]] [[ISR]] [[places-cache]] |
+| [[ADR-017]] | [ADR-017](./architecture/ADR-017-geocoding-activity-circuits.md) | Geocoding for Activity Circuit Maps (MapTiler + places_cache) | [[geocoding]] [[maps]] [[places-cache]] |
 
 > **Note:** `ADR-022` and `ADR-032` referenced in specs are anchored in `weppa-cloud/bukeer-flutter`. Studio respects them but does not own them. See [[cross-repo-flutter]].
 
@@ -156,6 +159,7 @@ Persisted state pre-#148 (`seo_website_okrs`). Post-#148 these stay as human-rea
 | Wikilink | File | Purpose |
 |----------|------|---------|
 | [[local-sessions]] | [file](./development/local-sessions.md) | Parallel-safe local dev + Playwright (session pool s1–s4). |
+| [[agent-setup]] | [file](./development/agent-setup.md) | Configure Codex/Opencode/Claude Code for this repo. |
 
 ---
 
@@ -206,8 +210,11 @@ Each concept below lists the ADRs/SPECs/ops docs that touch it. Use this to find
 - 8 presets: adventure, luxury, tropical, corporate, boutique, cultural, eco, romantic
 
 ### [[package-kits]] + [[package-landing]]
-- [[SPEC_PACKAGE_DETAIL_CONVERSION_V2]] — conversion upgrade v2
-- [[ADR-015]] — resilient map for package circuit
+- [[SPEC_PACKAGE_DETAIL_CONVERSION_V2]] — Shipped (partial) 2026-04-17; F1/F2/F3 merged
+- F1: `PackageAggregatedDataSchema` + `get_package_aggregated_data` RPC — `lib/supabase/get-pages.ts`
+- F2: `ItineraryItemRenderer` + `ActivityScheduleInline` — day-by-day specialized render
+- F3: `generate-package-content` AI route — `app/api/ai/generate-package-content/route.ts`, prompt: `lib/ai/prompts/package-highlights.ts`
+- [[ADR-015]] + [[ADR-017]] — resilient map + geocoding for circuit
 - [[product-landing-v1-runbook]]
 - [[product-landing-qa-matrix]]
 - Shared DB: see [[cross-repo-flutter]] (Flutter admin owns catalog)
@@ -218,6 +225,8 @@ Each concept below lists the ADRs/SPECs/ops docs that touch it. Use this to find
 - Specs: [[SPEC_SEO_CONTENT_INTELLIGENCE]] [[SPEC_SEO_CONTENT_INTELLIGENCE_INTEGRAL]] [[SPEC_SEO_DASHBOARD_PRODUCT_INTEGRATION]] [[SPEC_SEO_DESTINATIONS_PRODUCTS]] [[SPEC_SEO_OPTIMIZATION_TOOLKIT]]
 - Meta: [[EPIC_SEO_CONTENT_INTELLIGENCE_GITHUB]] [[ROADMAP_SEO_CONTENT_INTELLIGENCE]] [[ISSUE_MAP_SEO_CONTENT_INTELLIGENCE]]
 - QA: [[link-validation-colombiatours]]
+- Shipped APIs (2026-04-17): serp-snapshot, nlp-score, transcreate, objectives-90d, okrs, translations, weekly-tasks — see [[SEO-IMPLEMENTATION]]
+- Trust / JSON-LD: [[trust]] + [[organization-schema]] concepts
 
 ### [[AI]] + [[openrouter]] + [[streaming]]
 - [[ADR-006]] — streaming-first AI integration
@@ -239,13 +248,29 @@ Each concept below lists the ADRs/SPECs/ops docs that touch it. Use this to find
 - [[ADR-014]] — delta TypeScript quality gate
 - Skill: `.claude/skills/tech-validator/SKILL.md`
 
-### [[maps]] + [[webgl]] + [[fallback]]
-- [[ADR-015]] — resilient map + marker media fallback
-- [[SPEC_PACKAGE_DETAIL_CONVERSION_V2]] — `<PackageCircuitMap>` respects [[ADR-015]]
+### [[maps]] + [[webgl]] + [[fallback]] + [[geocoding]]
+- [[ADR-015]] — resilient map + marker media fallback (destinations, destination pins)
+- [[ADR-017]] — geocoding pipeline for activity circuits (MapTiler + `places_cache`)
+- [[SPEC_PACKAGE_DETAIL_CONVERSION_V2]] — `<PackageCircuitMap>` + `<ActivityCircuitMap>` respect both ADRs
+- Geocoding code: `lib/geocoding/{geocode,maptiler,normalize}.ts`, `lib/products/activity-circuit.ts`, `lib/products/place-coords.ts`
+- Shared map primitive: `components/site/circuit-map.tsx`
 
 ### [[i18n]] + [[locale]]
-- [[SPEC_MULTI_LOCALE_REMEDIATION]]
-- Gap: `inLanguage` hardcoded `'es'` in SEO (see [[cross-repo-flutter]])
+- [[SPEC_MULTI_LOCALE_REMEDIATION]] — Shipped (partial) 2026-04-17
+- `lib/seo/locale-routing.ts`, `lib/seo/slug-locale.ts`, `lib/seo/hreflang.ts` — shipped
+- Migration `20260418000000_multi_locale_content.sql` — multi-locale content schema
+- Remaining gap: `inLanguage` hardcoded `'es'` in keyword persistence (see [[cross-repo-flutter]])
+
+### [[bookings]] + [[payments]] + [[leads]]
+- Schemas in `@bukeer/website-contract`: `schemas/{bookings,cancellation,leads,wompi}.ts`
+- No dedicated ADR yet — data flows Flutter → Supabase → Studio read-only
+- Wompi = payment provider integration schema
+
+### [[trust]] + [[organization-schema]]
+- `packages/website-contract/src/schemas/trust.ts` — trust content contract
+- `components/seo/organization-schema.tsx` — Organization JSON-LD (guards against UUID leak)
+- `components/site/trust-badges.tsx` — trust badge UI
+- Related: [[SEO]] (JSON-LD), [[SPEC_PACKAGE_DETAIL_CONVERSION_V2]] (trust section on landing)
 
 ### [[skills]] + [[specifying]] + [[debugging]]
 - [[AI-AGENT-DEVELOPMENT]] — AI-assisted dev principles
@@ -276,6 +301,7 @@ Obsidian resolves `[[ADR-005]]` by filename stem or alias. Claude Code / Codex g
 | `[[ADR-014]]` | `docs/architecture/ADR-014-delta-typescript-quality-gate.md` |
 | `[[ADR-015]]` | `docs/architecture/ADR-015-resilient-map-rendering-and-marker-media-fallback.md` |
 | `[[ADR-016]]` | `docs/architecture/ADR-016-seo-intelligence-caching.md` |
+| `[[ADR-017]]` | `docs/architecture/ADR-017-geocoding-activity-circuits.md` |
 | `[[ADR-022]]` | Flutter repo — auth token boundary |
 | `[[ADR-032]]` | Flutter repo — catalog v2 |
 | `[[ARCHITECTURE]]` | `docs/architecture/ARCHITECTURE.md` |

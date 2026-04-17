@@ -1,6 +1,6 @@
 # SPEC: Multi-Locale Remediation + Growth Ops (Bukeer Studio)
 
-**Status:** Ready for execution
+**Status:** Shipped (partial — migrations + locale-routing + hreflang merged 2026-04-17; full locale-native keyword research not yet shipped)
 **Date:** 2026-04-17
 **Scope:** Schema + Backend + Public routing + Dashboard + Growth ops + QA across 6 phases
 **Primary source:** `/Users/yeisongomez/.claude/plans/hacer-la-siute-de-mellow-dolphin.md` (approved)

@@ -31,7 +31,7 @@ Check these KPIs at T+5, T+15, T+30, and T+60 minutes:
 - Search console or rich-result validation errors
 - Core landing page traffic and conversion click-through
 - Console errors on the public site
-- Content freshness on recently updated landing pages
+- Content freshness on landing pages updated since rollout date
 
 ## Rollback
 

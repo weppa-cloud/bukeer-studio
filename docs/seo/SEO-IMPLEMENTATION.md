@@ -1,7 +1,7 @@
 # SEO Implementation Reference — Current Product State
 
 **Status**: Partially shipped
-**Last updated**: 2026-04-15
+**Last updated**: 2026-04-17
 **Audience**: Product, engineering, SEO operations
 
 ---
@@ -51,14 +51,14 @@ It should **not** be described today as:
 | Workflow panels by type | Shipped | Checklists and baseline capture exist |
 | SEO score endpoint | Shipped | Unified scorer endpoint exists |
 | Site architecture view | Shipped | Internal graph / click depth support exists |
-| Hreflang utilities | Partial | Utilities exist, but activation and full locale workflow are incomplete |
+| Hreflang utilities | Shipped | `lib/seo/hreflang.ts` + `lib/seo/locale-routing.ts` + `lib/seo/slug-locale.ts` merged 2026-04-17 |
 | Schema manager | Partial | Editing / validation UI exists, but not all checks are runtime-backed |
 | Technical audit | Partial | Health tab exists, but PageSpeed route currently returns derived values |
 | Backlinks dashboard | Exploratory | UI exists, but current summary is derived from stored API-call history |
 | AI visibility dashboard | Exploratory | UI and persistence hooks exist, but current tracking is not a reliable source of truth |
 | Cluster tracking | Not shipped | No persistent cluster model yet |
 | Locale-specific keyword research | Not shipped | Inputs exist, but research is not locale-native end to end |
-| Translation SEO / transcreation | Not shipped | No workflow that re-researches target keywords per locale |
+| Translation SEO / transcreation | Partial | `lib/seo/transcreate-workflow.ts` + `app/api/seo/content-intelligence/transcreate/route.ts` shipped 2026-04-17; keyword re-research not yet locale-native |
 | In-editor content optimizer | Not shipped | Current workflows are checklist-driven, not content-editor-driven |
 
 ---
@@ -93,13 +93,21 @@ Current SEO UI includes:
 Current API routes under `app/api/seo/**` include:
 
 - Google integration connect / callback / refresh / options / configure / status
+- Google integration connect / callback / refresh / options / configure / status
 - analytics overview / keywords / competitors / health / striking-distance
+- `app/api/seo/analytics/serp-snapshot/route.ts` — SERP snapshot (shipped 2026-04-17)
 - architecture
 - backlinks summary / intersection
 - AI visibility overview / referrals
+- `app/api/seo/content-intelligence/nlp-score/route.ts` — NLP score (shipped 2026-04-17)
+- `app/api/seo/content-intelligence/transcreate/route.ts` — transcreation workflow (shipped 2026-04-17)
 - keyword research
+- `app/api/seo/objectives-90d/route.ts` + `[id]/route.ts` — 90-day objectives CRUD (shipped 2026-04-17)
+- `app/api/seo/okrs/route.ts` + `[id]/route.ts` — OKR CRUD (shipped 2026-04-17)
 - score
 - sync
+- `app/api/seo/translations/route.ts` + `bulk/route.ts` — translation management (shipped 2026-04-17)
+- `app/api/seo/weekly-tasks/route.ts` + `[id]/route.ts` + `generate/route.ts` — weekly task generator (shipped 2026-04-17)
 - workflow baseline
 
 ---
