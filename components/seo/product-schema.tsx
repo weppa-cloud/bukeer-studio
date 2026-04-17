@@ -322,10 +322,29 @@ function buildAddress(product: ProductData) {
 }
 
 function buildOffer(product: ProductData): Record<string, unknown> | undefined {
-  const price = normalizeNumber(product.price);
+  const optionMinPrice = Array.isArray(product.options)
+    ? product.options
+        .flatMap((option) => option?.prices ?? [])
+        .map((p) => ({
+          value: normalizeNumber(p?.price),
+          currency: typeof p?.currency === 'string' ? p.currency.toUpperCase() : null,
+        }))
+        .filter((row): row is { value: number; currency: string | null } => row.value !== null && row.value > 0)
+        .reduce<{ value: number; currency: string | null } | null>(
+          (min, row) => (min === null || row.value < min.value ? row : min),
+          null
+        )
+    : null;
+
+  const fallbackPrice = normalizeNumber(product.price);
+  const price = optionMinPrice?.value ?? fallbackPrice;
   if (price === null) {
     return undefined;
   }
+
+  const currency = optionMinPrice?.currency
+    || (typeof product.currency === 'string' ? product.currency.toUpperCase() : null)
+    || 'USD';
 
   const validUntil = new Date(Date.now() + 1000 * 60 * 60 * 24 * 365)
     .toISOString()
@@ -334,7 +353,7 @@ function buildOffer(product: ProductData): Record<string, unknown> | undefined {
   return {
     '@type': 'Offer',
     price,
-    priceCurrency: product.currency || 'USD',
+    priceCurrency: currency,
     availability: 'https://schema.org/InStock',
     priceValidUntil: validUntil,
   };

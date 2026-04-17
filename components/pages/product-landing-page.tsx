@@ -12,6 +12,7 @@ import { normalizeProduct, sanitizeProductCopy } from '@/lib/products/normalize-
 import { formatPriceOrConsult } from '@/lib/products/format-price';
 import { getPackageCircuitStops, withCoords } from '@/lib/products/package-circuit';
 import { PACKAGE_FAQS_DEFAULT } from '@/lib/products/package-faqs-default';
+import { ACTIVITY_FAQS_DEFAULT } from '@/lib/products/activity-faqs-default';
 import { trackEvent } from '@/lib/analytics/track';
 import { ProductSchema } from '../seo/product-schema';
 import { HighlightsGrid } from '@/components/site/highlights-grid';
@@ -110,6 +111,39 @@ function resolveGroupSizeLabel(product: ProductData): string | null {
   return null;
 }
 
+const INCLUSION_HIGHLIGHT_PATTERNS: Array<{ match: RegExp; label: string }> = [
+  { match: /almuerzo|comida|cena|desayuno|aliment/i, label: 'Comida incluida' },
+  { match: /transporte|traslado|recogida|pickup/i, label: 'Traslados incluidos' },
+  { match: /gu[ií]a|tour guide/i, label: 'Guía local' },
+  { match: /seguro|insurance/i, label: 'Seguro incluido' },
+  { match: /bebida|hidrataci/i, label: 'Bebidas incluidas' },
+  { match: /entrada|admisi[óo]n|ticket/i, label: 'Entradas incluidas' },
+];
+
+function detectInclusionHighlights(
+  inclusions: Array<string | Record<string, unknown>> | null
+): string[] {
+  if (!Array.isArray(inclusions) || inclusions.length === 0) return [];
+  const texts = inclusions
+    .map((item) => {
+      if (typeof item === 'string') return item;
+      if (item && typeof item === 'object') {
+        const label = (item as { label?: unknown }).label;
+        return typeof label === 'string' ? label : '';
+      }
+      return '';
+    })
+    .join(' | ');
+
+  const hits = new Set<string>();
+  for (const entry of INCLUSION_HIGHLIGHT_PATTERNS) {
+    if (entry.match.test(texts) && !hits.has(entry.label)) {
+      hits.add(entry.label);
+    }
+  }
+  return Array.from(hits).slice(0, 3);
+}
+
 function buildPackageDescriptionFallback(product: ProductData): string {
   const location = sanitizeProductCopy(product.location || product.city || product.country || 'Colombia');
   const duration = resolvePackageDuration(product);
@@ -200,9 +234,14 @@ export function ProductLandingPage({
   const highlightSource = (Array.isArray(pageCustomization?.custom_highlights) && pageCustomization.custom_highlights.length > 0)
     ? pageCustomization.custom_highlights
     : normalizedProduct.highlights;
-  const faqSource = (normalizedProduct.faq ?? pageCustomization?.custom_faq ?? null) || (
-    productType === 'package' ? PACKAGE_FAQS_DEFAULT : null
-  );
+  const defaultFaqForType = productType === 'package'
+    ? PACKAGE_FAQS_DEFAULT
+    : productType === 'activity'
+      ? ACTIVITY_FAQS_DEFAULT
+      : null;
+  const faqCandidate = normalizedProduct.faq
+    ?? (Array.isArray(pageCustomization?.custom_faq) && pageCustomization.custom_faq.length > 0 ? pageCustomization.custom_faq : null);
+  const faqSource = faqCandidate ?? defaultFaqForType;
   const packageDuration = productType === 'package' ? resolvePackageDuration(product) : null;
   const packageGroupSize = productType === 'package' ? resolveGroupSizeLabel(product) : null;
   const reviewRating = googleReviews.length > 0
@@ -212,6 +251,12 @@ export function ProductLandingPage({
   const packageRating = productType === 'package' && effectiveRating !== null
     ? `${effectiveRating.toFixed(1)} ★${googleReviews.length > 0 ? ` (${googleReviews.length})` : ''}`
     : null;
+  const activityRatingLabel = productType === 'activity' && effectiveRating !== null
+    ? `${effectiveRating.toFixed(1)} ★${googleReviews.length > 0 ? ` (${googleReviews.length})` : ''}`
+    : null;
+  const activityInclusionHighlights = productType === 'activity'
+    ? detectInclusionHighlights(normalizedProduct.inclusions)
+    : [];
   const schemaProduct: ProductData = {
     ...product,
     name: displayName,
@@ -281,6 +326,22 @@ export function ProductLandingPage({
                     {product.location}
                   </span>
                 )}
+                {activityRatingLabel && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs backdrop-blur-sm bg-background/60 border border-border/50 text-muted-foreground font-mono">
+                    {activityRatingLabel}
+                  </span>
+                )}
+                {activityInclusionHighlights.map((label) => (
+                  <span
+                    key={label}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs backdrop-blur-sm bg-background/60 border border-border/50 text-muted-foreground font-mono"
+                  >
+                    <svg className="w-3 h-3 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    {label}
+                  </span>
+                ))}
               </div>
             )}
             {productType === 'package' && (
@@ -1366,11 +1427,22 @@ function SimilarProducts({ website, product, productType, basePath }: { website:
   const categorySlug = getCategorySlug(productType);
 
   useEffect(() => {
-    getCategoryProducts(website.subdomain, productType, { limit: 4 }).then(({ items }) => {
-      // Exclude current product, take 3
-      setSimilar(items.filter(p => p.id !== product.id).slice(0, 3));
+    getCategoryProducts(website.subdomain, productType, { limit: 16 }).then(({ items }) => {
+      const referenceLocation = (product.location || product.city || '').toLowerCase().trim();
+      const matchesLocation = (p: ProductData): boolean => {
+        if (!referenceLocation) return false;
+        const candidate = (p.location || p.city || '').toLowerCase();
+        return candidate.includes(referenceLocation) || referenceLocation.includes(candidate);
+      };
+
+      const others = items.filter((p) => p.id !== product.id);
+      const sameLocation = others.filter(matchesLocation).slice(0, 3);
+      const result = sameLocation.length > 0
+        ? sameLocation
+        : others.slice(0, 3);
+      setSimilar(result);
     });
-  }, [website.subdomain, productType, product.id]);
+  }, [website.subdomain, productType, product.id, product.location, product.city]);
 
   if (similar.length === 0) return null;
 

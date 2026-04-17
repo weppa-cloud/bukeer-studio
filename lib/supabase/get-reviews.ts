@@ -51,7 +51,6 @@ export async function getReviewsForContext(
       filtered = visible.filter((r) =>
         r.tags?.some((t) => slugify(t).includes(slug) || slug.includes(slugify(t)))
       );
-      if (filtered.length < 2) filtered = visible;
       break;
     }
     case 'activity': {
@@ -60,7 +59,6 @@ export async function getReviewsForContext(
         r.tags?.some((t) => slugify(t).includes(slug) || slug.includes(slugify(t))) ||
         r.text?.toLowerCase().includes(context.name.toLowerCase().split(' ')[0])
       );
-      if (filtered.length < 2) filtered = visible;
       break;
     }
     case 'planner': {
