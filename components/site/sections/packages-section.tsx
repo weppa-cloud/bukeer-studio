@@ -6,6 +6,8 @@ import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 import { MobileCardCarousel } from '@/components/ui/card-carousel';
+import { useWebsiteLocale } from '@/lib/hooks/use-website-locale';
+import { buildEntityAlt } from '@/lib/utils/entity-alt';
 import { formatCircuitStops, getPackageCircuitStops, type PackageItineraryItem } from '@/lib/products/package-circuit';
 
 interface PackagesSectionProps {
@@ -208,6 +210,7 @@ function isNew(createdAt?: string): boolean {
 }
 
 export function PackageCard({ pkg, index, subdomain, basePath: overrideBasePath }: { pkg: PackageItem; index: number; subdomain: string; basePath?: string }) {
+  const locale = useWebsiteLocale();
   const base = overrideBasePath ?? `/site/${subdomain}`;
   const detailSlug = (pkg.slug || '').trim();
   const detailHref = detailSlug
@@ -251,7 +254,7 @@ export function PackageCard({ pkg, index, subdomain, basePath: overrideBasePath 
           {pkg.image ? (
             <Image
               src={pkg.image}
-              alt={pkg.name}
+              alt={buildEntityAlt('package', pkg.name, locale)}
               fill
               draggable={false}
               className="object-cover transition-transform duration-700 group-hover:scale-105"

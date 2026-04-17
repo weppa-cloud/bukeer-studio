@@ -5,6 +5,8 @@ import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 import { MobileCardCarousel } from '@/components/ui/card-carousel';
+import { useWebsiteLocale } from '@/lib/hooks/use-website-locale';
+import { buildEntityAlt } from '@/lib/utils/entity-alt';
 
 interface HotelsSectionProps {
   section: WebsiteSection;
@@ -149,6 +151,7 @@ function AmenityIcon({ type }: { type: string }) {
 }
 
 export function HotelCard({ hotel, index, subdomain, basePath: overrideBasePath }: { hotel: HotelItem; index: number; subdomain: string; basePath?: string }) {
+  const locale = useWebsiteLocale();
   const base = overrideBasePath ?? `/site/${subdomain}`;
   const detailSlug = (hotel.slug || '').trim();
   const detailHref = detailSlug
@@ -172,7 +175,7 @@ export function HotelCard({ hotel, index, subdomain, basePath: overrideBasePath 
         {/* Image — 16:9 with star overlay */}
         <div className="relative aspect-[16/9] overflow-hidden rounded-t-2xl">
           {hotel.image ? (
-            <Image src={hotel.image} alt={hotel.name} fill draggable={false} className="object-cover transition-transform duration-700 group-hover:scale-105" />
+            <Image src={hotel.image} alt={buildEntityAlt('hotel', hotel.name, locale)} fill draggable={false} className="object-cover transition-transform duration-700 group-hover:scale-105" />
           ) : (
             <div className="w-full h-full" style={{ backgroundColor: 'var(--bg-card)' }} />
           )}

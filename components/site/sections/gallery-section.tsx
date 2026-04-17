@@ -59,6 +59,12 @@ export function GallerySection({ section }: GallerySectionProps) {
   return <GalleryGrid title={title} images={images} locale={locale} />;
 }
 
+function imgFallback(locale: string, index: number): string {
+  const lang = locale.split('-')[0];
+  const word = ({ es: 'Imagen', en: 'Image', pt: 'Imagem' } as Record<string, string>)[lang] ?? 'Image';
+  return `${word} ${index + 1}`;
+}
+
 function resolveCaption(caption: LocalizableAlt | undefined, locale: string): string {
   return resolveAlt(caption as LocalizableAlt | undefined, locale);
 }
@@ -80,7 +86,7 @@ function GalleryGrid({ title, images, locale }: { title: string; images: Gallery
                   <>
                     <Image
                       src={image.url}
-                      alt={resolveAlt(image.alt, locale) || `Image ${index + 1}`}
+                      alt={resolveAlt(image.alt, locale) || imgFallback(locale, index)}
                       fill
                       loading="lazy"
                       sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
@@ -144,7 +150,7 @@ function GalleryCarousel({ title, images, locale }: { title: string; images: Gal
                   {image.url ? (
                     <Image
                       src={image.url}
-                      alt={resolveAlt(image.alt, locale) || `Image ${index + 1}`}
+                      alt={resolveAlt(image.alt, locale) || imgFallback(locale, index)}
                       width={350}
                       height={467}
                       loading="lazy"
@@ -188,7 +194,7 @@ function GalleryMasonry({ title, images, locale }: { title: string; images: Gall
                 {image.url ? (
                   <Image
                     src={image.url}
-                    alt={resolveAlt(image.alt, locale) || `Image ${index + 1}`}
+                    alt={resolveAlt(image.alt, locale) || imgFallback(locale, index)}
                     width={400}
                     height={300}
                     loading="lazy"

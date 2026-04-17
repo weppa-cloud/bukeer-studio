@@ -5,6 +5,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRef, MouseEvent } from 'react';
 import { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
+import { useWebsiteLocale } from '@/lib/hooks/use-website-locale';
+import { buildEntityAlt } from '@/lib/utils/entity-alt';
 
 interface DestinationsSectionProps {
   section: WebsiteSection;
@@ -59,7 +61,7 @@ function normalizeDestination(raw: Record<string, unknown>, index: number): Dest
 }
 
 // Tilt Card Component with 3D effect
-function TiltCard({ destination, href }: { destination: Destination; href: string }) {
+function TiltCard({ destination, href, locale, agency }: { destination: Destination; href: string; locale: string; agency: string }) {
   const cardRef = useRef<HTMLDivElement>(null);
 
   const x = useMotionValue(0);
@@ -109,7 +111,7 @@ function TiltCard({ destination, href }: { destination: Destination; href: strin
           {destination.image ? (
             <Image
               src={destination.image}
-              alt={destination.name}
+              alt={buildEntityAlt('destination', destination.name, locale, agency)}
               fill
               draggable={false}
               className="object-cover"
@@ -141,7 +143,7 @@ function TiltCard({ destination, href }: { destination: Destination; href: strin
 }
 
 /** Card for marquee rows — image with overlay info */
-function MarqueeCard({ d, href }: { d: Destination; href: string }) {
+function MarqueeCard({ d, href, locale, agency }: { d: Destination; href: string; locale: string; agency: string }) {
   return (
     <Link href={href} className="block" aria-label={`Ver detalle de ${d.name}`}>
       <div
@@ -149,7 +151,7 @@ function MarqueeCard({ d, href }: { d: Destination; href: string }) {
         style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}
       >
         {d.image ? (
-          <Image src={d.image} alt={d.name} fill draggable={false} className="object-cover transition-transform duration-700 group-hover:scale-110 pointer-events-none" />
+          <Image src={d.image} alt={buildEntityAlt('destination', d.name, locale, agency)} fill draggable={false} className="object-cover transition-transform duration-700 group-hover:scale-110 pointer-events-none" />
         ) : (
           <div className="w-full h-full bg-muted" />
         )}
@@ -188,6 +190,9 @@ export function DestinationsSection({ section, website }: DestinationsSectionPro
     subtitle?: string;
     destinations?: Array<Destination | Record<string, unknown>>;
   };
+
+  const locale = useWebsiteLocale();
+  const agency = website.content.siteName || '';
 
   const title = sectionContent.title || 'Destinos Destacados';
   const subtitle = sectionContent.subtitle || 'Descubre los lugares más increíbles';
@@ -253,7 +258,7 @@ export function DestinationsSection({ section, website }: DestinationsSectionPro
                   {destination.image ? (
                     <Image
                       src={destination.image}
-                      alt={destination.name}
+                      alt={buildEntityAlt('destination', destination.name, locale, agency)}
                       fill
                       draggable={false}
                       className="object-cover group-hover:scale-110 transition-transform duration-500"
@@ -305,7 +310,7 @@ export function DestinationsSection({ section, website }: DestinationsSectionPro
                   {destination.image ? (
                     <Image
                       src={destination.image}
-                      alt={destination.name}
+                      alt={buildEntityAlt('destination', destination.name, locale, agency)}
                       fill
                       draggable={false}
                       className="object-cover group-hover:scale-110 transition-transform duration-500"
@@ -347,7 +352,7 @@ export function DestinationsSection({ section, website }: DestinationsSectionPro
                   {destination.image ? (
                     <Image
                       src={destination.image}
-                      alt={destination.name}
+                      alt={buildEntityAlt('destination', destination.name, locale, agency)}
                       fill
                       draggable={false}
                       className="object-cover group-hover:scale-110 transition-transform duration-500"
@@ -385,6 +390,8 @@ export function DestinationsSection({ section, website }: DestinationsSectionPro
                 <TiltCard
                   destination={destination}
                   href={getDestinationHref(destination, website.subdomain)}
+                  locale={locale}
+                  agency={agency}
                 />
               </motion.div>
             ))}
@@ -400,6 +407,8 @@ export function DestinationsSection({ section, website }: DestinationsSectionPro
                   <MarqueeCard
                     d={d}
                     href={getDestinationHref(d, website.subdomain)}
+                    locale={locale}
+                    agency={agency}
                   />
                 </div>
               ))}

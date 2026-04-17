@@ -4,6 +4,8 @@ import { motion } from 'framer-motion';
 import Image from 'next/image';
 import Link from 'next/link';
 import { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
+import { useWebsiteLocale } from '@/lib/hooks/use-website-locale';
+import { buildEntityAlt } from '@/lib/utils/entity-alt';
 
 interface BlogSectionProps {
   section: WebsiteSection;
@@ -28,12 +30,15 @@ export function BlogSection({ section, website }: BlogSectionProps) {
     posts?: BlogPost[];
   };
 
+  const locale = useWebsiteLocale();
+  const agency = website.content.siteName || '';
+
   const variant = section.variant || 'default';
   const title = sectionContent.title || 'Últimas del Blog';
   const posts = sectionContent.posts || [];
 
   if (variant === 'showcase') {
-    return <ShowcaseBlog title={title} subtitle={sectionContent.subtitle} posts={posts} subdomain={subdomain} />;
+    return <ShowcaseBlog title={title} subtitle={sectionContent.subtitle} posts={posts} subdomain={subdomain} locale={locale} agency={agency} />;
   }
 
   return (
@@ -80,7 +85,7 @@ export function BlogSection({ section, website }: BlogSectionProps) {
                     {post.featuredImage ? (
                       <Image
                         src={post.featuredImage}
-                        alt={post.title}
+                        alt={buildEntityAlt('blog', post.title, locale, agency)}
                         fill
                         className="object-cover group-hover:scale-105 transition-transform duration-300"
                       />
@@ -142,7 +147,7 @@ function getCategoryName(category?: string | { name: string; slug: string }): st
 }
 
 // Showcase variant — pixel-perfect match with theme reference using bridge CSS variables
-function ShowcaseBlog({ title, subtitle, posts, subdomain }: { title: string; subtitle?: string; posts: BlogPost[]; subdomain: string }) {
+function ShowcaseBlog({ title, subtitle, posts, subdomain, locale, agency }: { title: string; subtitle?: string; posts: BlogPost[]; subdomain: string; locale: string; agency: string }) {
   return (
     <div className="section-padding">
       <div className="container">
@@ -193,7 +198,7 @@ function ShowcaseBlog({ title, subtitle, posts, subdomain }: { title: string; su
                     {post.featuredImage ? (
                       <Image
                         src={post.featuredImage}
-                        alt={post.title}
+                        alt={buildEntityAlt('blog', post.title, locale, agency)}
                         fill
                         className="object-cover transition-transform duration-700 group-hover:scale-105"
                       />

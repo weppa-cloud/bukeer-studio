@@ -215,6 +215,7 @@ export function TestimonialsSection({ section, website }: TestimonialsSectionPro
   const isGoogle = sectionContent.source === 'google_reviews';
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const logoUrl = (website?.content as any)?.logo as string | undefined;
+  const siteName = website?.content?.siteName || '';
 
   return (
     <div className="section-padding bg-muted/30" style={{ paddingBottom: '2.5rem' }}>
@@ -239,7 +240,7 @@ export function TestimonialsSection({ section, website }: TestimonialsSectionPro
                 /* eslint-disable-next-line @next/next/no-img-element */
                 <img
                   src={logoUrl}
-                  alt="logo"
+                  alt={siteName ? `Logo ${siteName}` : 'Logo'}
                   className="h-6 w-auto object-contain"
                   loading="lazy"
                 />

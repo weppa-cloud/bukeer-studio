@@ -2,6 +2,8 @@
 
 import Image from 'next/image';
 import { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
+import { useWebsiteLocale } from '@/lib/hooks/use-website-locale';
+import { buildEntityAlt } from '@/lib/utils/entity-alt';
 import { BlurFade } from '@/components/ui/blur-fade';
 import {
   Accordion,
@@ -36,6 +38,7 @@ interface ItineraryAccordionSectionProps {
 }
 
 export function ItineraryAccordionSection({ section }: ItineraryAccordionSectionProps) {
+  const locale = useWebsiteLocale();
   const content = (section.content as unknown as ItineraryAccordionContent | null) || { days: [] };
   const { title = 'Itinerario día a día', subtitle, days = [] } = content;
 
@@ -88,7 +91,7 @@ export function ItineraryAccordionSection({ section }: ItineraryAccordionSection
                       <div className="relative h-44 w-full overflow-hidden rounded-xl">
                         <Image
                           src={day.image}
-                          alt={day.title}
+                          alt={buildEntityAlt('day', day.title, locale)}
                           fill
                           className="object-cover"
                           sizes="(max-width: 768px) 100vw, 700px"

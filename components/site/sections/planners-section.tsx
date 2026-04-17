@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 import { BlurFade } from '@/components/ui/blur-fade';
+import { useWebsiteLocale } from '@/lib/hooks/use-website-locale';
+import { buildEntityAlt } from '@/lib/utils/entity-alt';
 import { SpotlightCard } from '@/components/ui/spotlight-card';
 import type { PlannerData } from '@/lib/supabase/get-planners';
 
@@ -94,6 +96,8 @@ export function PlannersSection({ section, website, dbPlanners }: PlannersSectio
   const title = sectionContent.title || 'Nuestros Travel Planners';
   const subtitle = sectionContent.subtitle || 'Expertos locales que disenan tu viaje ideal';
   const eyebrow = sectionContent.eyebrow || 'Tu guia personal';
+  const locale = useWebsiteLocale();
+  const agency = website.content.siteName || '';
   const whatsappBase = website.content.social?.whatsapp || '';
   const subdomain = website.subdomain;
 
@@ -167,7 +171,7 @@ export function PlannersSection({ section, website, dbPlanners }: PlannersSectio
                   {planner.photo ? (
                     <Image
                       src={planner.photo}
-                      alt={planner.name}
+                      alt={buildEntityAlt('planner', planner.name, locale, agency)}
                       fill
                       className="object-cover rounded-full"
                     />
