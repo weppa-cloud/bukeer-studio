@@ -23,3 +23,9 @@ export {
   buildPackageHighlightsPrompt,
   type PackageHighlightsInput,
 } from './package-highlights'
+export {
+  buildLocaleAdaptationPrompt,
+  LocaleAdaptationOutputSchema,
+  type LocaleAdaptationOutput,
+  type LocaleAdaptationPromptInput,
+} from './locale-adaptation'

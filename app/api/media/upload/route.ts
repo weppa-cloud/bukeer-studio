@@ -1,3 +1,4 @@
+import sharp from 'sharp';
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import {
@@ -18,6 +19,30 @@ import {
 } from '@/lib/supabase/media';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/service-role';
 
+// Max width per usage context — withoutEnlargement prevents upscaling
+const WEBP_MAX_WIDTH: Record<string, number> = {
+  hero: 2400,
+  og: 1200,
+  featured: 1600,
+  gallery: 1600,
+  body: 1200,
+  avatar: 400,
+};
+
+async function convertToWebP(
+  bytes: Uint8Array,
+  usageContext: string,
+): Promise<{ buffer: Buffer; width: number; height: number }> {
+  const maxWidth = WEBP_MAX_WIDTH[usageContext] ?? 1200;
+  const pipeline = sharp(Buffer.from(bytes))
+    .resize({ width: maxWidth, withoutEnlargement: true })
+    .webp({ quality: 82 });
+  const [buffer, meta] = await Promise.all([pipeline.toBuffer(), sharp(Buffer.from(bytes)).metadata()]);
+  // Get actual output dimensions from converted buffer
+  const outMeta = await sharp(buffer).metadata();
+  return { buffer, width: outMeta.width ?? meta.width ?? 0, height: outMeta.height ?? meta.height ?? 0 };
+}
+
 const UploadMetadataSchema = z.object({
   websiteId: z.string().uuid(),
   entityType: z.enum(['blog_post', 'package', 'activity', 'page', 'brand', 'review', 'gallery_item']).default('blog_post'),
@@ -29,16 +54,6 @@ const UploadMetadataSchema = z.object({
   alt: z.string().min(1).max(125).optional(),
 });
 
-function getFileExtension(fileName: string, mimeType: string): string {
-  const nameExt = fileName.includes('.') ? fileName.split('.').pop() : undefined;
-  if (nameExt && /^[a-z0-9]+$/i.test(nameExt)) return nameExt.toLowerCase();
-
-  if (mimeType === 'image/jpeg') return 'jpg';
-  if (mimeType === 'image/png') return 'png';
-  if (mimeType === 'image/webp') return 'webp';
-  if (mimeType === 'image/gif') return 'gif';
-  return 'jpg';
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -87,22 +102,43 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const extension = getFileExtension(file.name, file.type);
+    const rawBytes = new Uint8Array(await file.arrayBuffer());
+    const isGif = file.type === 'image/gif';
+
+    // Convert non-GIF to WebP; GIF preserved to retain animation
+    let uploadBytes: Uint8Array;
+    let uploadMime: string;
+    let uploadExtension: string;
+    let imageDims: { width: number | null; height: number | null };
+
+    if (isGif) {
+      uploadBytes = rawBytes;
+      uploadMime = file.type;
+      uploadExtension = 'gif';
+      const raw = extractUploadImageMetadata(file, rawBytes);
+      imageDims = { width: raw.widthPx, height: raw.heightPx };
+    } else {
+      const converted = await convertToWebP(rawBytes, metadata.usageContext);
+      uploadBytes = new Uint8Array(converted.buffer);
+      uploadMime = 'image/webp';
+      uploadExtension = 'webp';
+      imageDims = { width: converted.width, height: converted.height };
+    }
+
     const storagePath = buildCanonicalSiteMediaPath({
       accountId: access.accountId,
       websiteId: metadata.websiteId,
       entityType: metadata.entityType,
       entitySlug: metadata.entitySlug,
       usageContext: metadata.usageContext,
-      extension,
+      extension: uploadExtension,
     });
 
-    const fileBytes = new Uint8Array(await file.arrayBuffer());
     const service = createSupabaseServiceRoleClient();
     const upload = await service.storage
       .from('site-media')
-      .upload(storagePath, fileBytes, {
-        contentType: file.type,
+      .upload(storagePath, uploadBytes, {
+        contentType: uploadMime,
         upsert: false,
       });
 
@@ -112,7 +148,6 @@ export async function POST(request: NextRequest) {
 
     const { data: publicData } = service.storage.from('site-media').getPublicUrl(storagePath);
     const publicUrl = publicData.publicUrl;
-    const imageMetadata = extractUploadImageMetadata(file, fileBytes);
 
     const generated = metadata.alt
       ? {
@@ -139,10 +174,10 @@ export async function POST(request: NextRequest) {
       aiGenerated: !metadata.alt,
       metadata: generated,
       httpStatus: 200,
-      fileSizeBytes: imageMetadata.sizeBytes,
-      widthPx: imageMetadata.widthPx,
-      heightPx: imageMetadata.heightPx,
-      format: imageMetadata.format,
+      fileSizeBytes: uploadBytes.byteLength,
+      widthPx: imageDims.width,
+      heightPx: imageDims.height,
+      format: isGif ? 'gif' : 'webp',
     });
 
     return apiSuccess({
@@ -150,11 +185,11 @@ export async function POST(request: NextRequest) {
       bucket: 'site-media',
       path: storagePath,
       publicUrl,
-      mimeType: file.type,
-      sizeBytes: imageMetadata.sizeBytes,
-      width: imageMetadata.widthPx,
-      height: imageMetadata.heightPx,
-      format: imageMetadata.format,
+      mimeType: uploadMime,
+      sizeBytes: uploadBytes.byteLength,
+      width: imageDims.width,
+      height: imageDims.height,
+      format: isGif ? 'gif' : 'webp',
       alt: generated.alt,
       title: generated.title,
       caption: generated.caption,
