@@ -58,10 +58,6 @@ function destinationMarkers(page: Page): Locator {
   return page.locator('button[aria-label^="Destino:"]');
 }
 
-function fallbackMapFrame(page: Page): Locator {
-  return page.locator('iframe[title="Mapa de ruta"]').first();
-}
-
 function compatibilityFallbackMap(page: Page): Locator {
   return page.locator('[data-testid="map-croquis-fallback"]').first();
 }
@@ -109,20 +105,14 @@ test.describe('Maps — Destinations @maps', () => {
             return resolvedState;
           }
 
-          const legacyVisible = await fallbackMapFrame(page).isVisible().catch(() => false);
-          if (legacyVisible) {
-            resolvedState = 'legacy';
-            return resolvedState;
-          }
-
           resolvedState = 'pending';
           return resolvedState;
         },
         { timeout: 20000 }
       )
-      .toMatch(/markers|compatibility|legacy/);
+      .toMatch(/markers|compatibility/);
 
-    expect(resolvedState).toMatch(/markers|compatibility|legacy/);
+    expect(resolvedState).toMatch(/markers|compatibility/);
   });
 
   test('destination detail renders product/service markers with filters and simple popup @maps', async ({ page }) => {
@@ -233,35 +223,52 @@ test.describe('Maps — Destinations @maps', () => {
     await gotoListingPageReady(page);
     await expect(page).toHaveURL(new RegExp(`/site/${SUBDOMAIN}/destinos$`));
 
-    let fallbackState = 'pending';
     await expect
-      .poll(
-        async () => {
-          const legacyTitled = await page.locator('iframe[title="Mapa de ruta"]').first().isVisible().catch(() => false);
-          if (legacyTitled) {
-            fallbackState = 'legacy-titled';
-            return fallbackState;
-          }
+      .poll(async () => compatibilityFallbackMap(page).isVisible().catch(() => false), { timeout: 20000 })
+      .toBe(true);
+  });
 
-          const legacyIframe = await page.locator('main iframe').first().isVisible().catch(() => false);
-          if (legacyIframe) {
-            fallbackState = 'legacy-iframe';
-            return fallbackState;
-          }
+  test('marker colors resolve from --chart-2 theme variable @maps', async ({ page }) => {
+    await gotoFirstDestinationDetail(page);
 
-          const compatibility = await compatibilityFallbackMap(page).isVisible().catch(() => false);
-          if (compatibility) {
-            fallbackState = 'compatibility';
-            return fallbackState;
-          }
+    const hotelMarker = page.locator('button[aria-label^="Hotel:"]').first();
+    const hotelVisible = await hotelMarker
+      .waitFor({ state: 'visible', timeout: 15000 })
+      .then(() => true)
+      .catch(() => false);
+    test.skip(!hotelVisible, 'No hotel marker on this destination; chart-2 assertion cannot run');
 
-          fallbackState = 'pending';
-          return fallbackState;
-        },
-        { timeout: 20000 }
-      )
-      .toMatch(/legacy-titled|legacy-iframe|compatibility/);
+    const themeChart2 = await page.evaluate(() =>
+      getComputedStyle(document.documentElement).getPropertyValue('--chart-2').trim()
+    );
+    expect(themeChart2).not.toBe('');
 
-    expect(fallbackState).toMatch(/legacy-titled|legacy-iframe|compatibility/);
+    const expectedRgb = await page.evaluate((chartValue) => {
+      const prefixes = ['hsl(', 'oklch(', 'rgb(', 'rgba(', '#', 'lab(', 'lch(', 'color('];
+      const hasPrefix = prefixes.some((p) => chartValue.startsWith(p));
+      const probe = document.createElement('div');
+      probe.style.color = hasPrefix ? chartValue : `hsl(${chartValue})`;
+      document.body.appendChild(probe);
+      const rgb = getComputedStyle(probe).color;
+      probe.remove();
+      return rgb;
+    }, themeChart2);
+
+    const markerBg = await hotelMarker.evaluate((el) => getComputedStyle(el).backgroundColor);
+    expect(markerBg).toBe(expectedRgb);
+  });
+
+  test('map-less site routes do not ship maplibre-gl chunk @maps', async ({ page }) => {
+    const mapLibreRequests: string[] = [];
+    page.on('request', (request) => {
+      const url = request.url();
+      if (url.includes('maplibre')) mapLibreRequests.push(url);
+    });
+
+    await gotoWithRetries(page, `/site/${SUBDOMAIN}`);
+    await recoverFromRuntimeError(page);
+    await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => undefined);
+
+    expect(mapLibreRequests, `Unexpected maplibre requests: ${mapLibreRequests.join(', ')}`).toHaveLength(0);
   });
 });
