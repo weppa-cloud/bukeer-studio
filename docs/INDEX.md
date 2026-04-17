@@ -100,6 +100,7 @@ Feature requests formalized. Status tracked inline. GitHub Issues = source of tr
 |----------|------|---------|
 | [[package-detail-anatomy]] | [file](./product/package-detail-anatomy.md) | Package landing anatomy: sections, fields, hygiene checklist, gaps. |
 | [[product-detail-inventory]] | [file](./product/product-detail-inventory.md) | Activity + package inventory with editability matrix (Flutter / Studio / AI / Computed). |
+| [[product-detail-matrix]] | [file](./product/product-detail-matrix.md) | Full product-design matrix: all fields/sections, origin, generation type, artifact, Act/Pkg presence. |
 
 ---
 
@@ -339,6 +340,7 @@ Obsidian resolves `[[ADR-005]]` by filename stem or alias. Claude Code / Codex g
 | `[[issue-103-media-closure-checklist]]` | `docs/ops/issue-103-media-closure-checklist.md` |
 | `[[package-detail-anatomy]]` | `docs/product/package-detail-anatomy.md` |
 | `[[product-detail-inventory]]` | `docs/product/product-detail-inventory.md` |
+| `[[product-detail-matrix]]` | `docs/product/product-detail-matrix.md` |
 | `[[e2e-sessions]]` | `.claude/rules/e2e-sessions.md` |
 | Any unresolved concept | Search this INDEX with `grep "[[concept]]" docs/INDEX.md`. |
 
