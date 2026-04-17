@@ -101,7 +101,7 @@ export function SearchPageClient({ subdomain, initialQuery, website }: SearchPag
     }, 400);
 
     return () => clearTimeout(timeout);
-  }, [query, subdomain]);
+  }, [query, subdomain, website.id]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();

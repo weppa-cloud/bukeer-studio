@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser-client';
 import { useWebsite } from '@/lib/admin/website-context';
-import { useAutosave } from '@/lib/hooks/use-autosave';
 import { ConfirmDialog } from '@/components/admin/confirm-dialog';
 import { DomainWizard } from '@/components/admin/domain-wizard';
 import { VersionTimeline } from '@/components/admin/version-timeline';
@@ -56,7 +55,7 @@ export default function SettingsTab() {
   }
 
   async function handleUnpublish() {
-    await save({ status: 'draft' } as any);
+    await save({ status: 'draft' });
     setShowUnpublish(false);
   }
 

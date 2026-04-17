@@ -9,11 +9,20 @@ import { SmoothScroll } from '@/components/ui/smooth-scroll';
 import { GoogleTagManager, GoogleTagManagerBody } from '@/components/analytics/google-tag-manager';
 import { buildNavTree, getDefaultNavigation } from '@/lib/utils/navigation';
 import { getBasePath } from '@/lib/utils/base-path';
+import type { ThemeInput } from '@/lib/theme/m3-theme-provider';
 import '@/app/globals.css';
 
 interface SiteLayoutProps {
   children: React.ReactNode;
   params: Promise<{ subdomain: string }>;
+}
+
+function getInitialTheme(theme: { tokens: Record<string, unknown>; profile: Record<string, unknown> } | null | undefined): ThemeInput | undefined {
+  if (!theme?.tokens || !theme?.profile) return undefined;
+  return {
+    tokens: theme.tokens as ThemeInput['tokens'],
+    profile: theme.profile as ThemeInput['profile'],
+  };
 }
 
 // Generate metadata for SEO
@@ -89,7 +98,7 @@ export default async function SiteLayout({ children, params }: SiteLayoutProps) 
     : getDefaultNavigation(website.sections, basePath);
 
   return (
-    <M3ThemeProvider initialTheme={website.theme?.tokens ? ({ tokens: website.theme.tokens, profile: website.theme.profile } as any) : undefined}>
+    <M3ThemeProvider initialTheme={getInitialTheme(website.theme)}>
       {/* Google Tag Manager and Analytics Scripts */}
       <GoogleTagManager analytics={website.analytics} />
 

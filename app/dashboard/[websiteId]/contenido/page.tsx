@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser-client';
 import { SeoHotelWorkflow } from '@/components/admin/seo-hotel-workflow';
 import { SeoActivityWorkflow } from '@/components/admin/seo-activity-workflow';
@@ -751,7 +752,14 @@ export default function ContenidoPage() {
                     <td className="px-3 py-2">
                       <div className="flex items-center gap-2 min-w-[240px]">
                         {row.image ? (
-                          <img src={row.image} alt="" className="w-8 h-8 rounded object-cover" />
+                          <Image
+                            src={row.image}
+                            alt=""
+                            width={32}
+                            height={32}
+                            unoptimized
+                            className="w-8 h-8 rounded object-cover"
+                          />
                         ) : (
                           <div className="w-8 h-8 rounded bg-[var(--studio-border)]" />
                         )}

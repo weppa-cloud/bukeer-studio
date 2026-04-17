@@ -35,6 +35,17 @@ interface BulkItem {
   image?: string;
 }
 
+interface DestinationRow {
+  id: string;
+  name: string | null;
+  slug: string | null;
+  image: string | null;
+  description: string | null;
+  seo_title: string | null;
+  seo_description: string | null;
+  target_keyword: string | null;
+}
+
 export async function POST(request: NextRequest) {
   const auth = await getEditorAuth(request);
   if (!auth) return apiUnauthorized();
@@ -103,11 +114,15 @@ export async function POST(request: NextRequest) {
   ]);
 
   // Destinations (table may not exist in all environments)
-  let destinationsRes: { data: any[] | null; error: any } = { data: null, error: null };
+  let destinationsRes: { data: DestinationRow[] | null; error: { message: string } | null } = { data: null, error: null };
   try {
-    destinationsRes = await supabase
+    const { data, error } = await supabase
       .from('destinations')
       .select('id, name, slug, image, description, seo_title, seo_description, target_keyword');
+    destinationsRes = {
+      data: (data as DestinationRow[] | null) ?? null,
+      error: error ? { message: error.message } : null,
+    };
   } catch (e) {
     log.warn('Destinations table may not exist', { error: e instanceof Error ? e.message : String(e) });
   }
@@ -330,7 +345,7 @@ export async function POST(request: NextRequest) {
               after: { ...result.object, score: scoreAfter },
             },
           });
-        } catch (_err) {
+        } catch {
           processed++;
           send({
             type: 'item_error',

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser-client';
 import { WebsiteCard } from '@/components/admin/website-card';
 import { EmptyState } from '@/components/admin/empty-state';
@@ -24,11 +24,7 @@ export default function DashboardPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const supabase = createSupabaseBrowserClient();
 
-  useEffect(() => {
-    loadWebsites();
-  }, []);
-
-  async function loadWebsites() {
+  const loadWebsites = useCallback(async () => {
     setLoading(true);
     setAccessError(null);
     try {
@@ -63,7 +59,11 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [supabase]);
+
+  useEffect(() => {
+    void loadWebsites();
+  }, [loadWebsites]);
 
   async function handleDelete(id: string) {
     await supabase

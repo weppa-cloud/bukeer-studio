@@ -14,10 +14,19 @@ import { SafeHtml } from '@/lib/sanitize';
 import { generateHreflangLinks } from '@/lib/seo/hreflang';
 import { getDefaultLegalContent } from '@/lib/legal-defaults';
 import Image from 'next/image';
+import type { ThemeInput } from '@/lib/theme/m3-theme-provider';
 
 interface CustomDomainPageProps {
   params: Promise<{ host: string; slug?: string[] }>;
   searchParams: Promise<{ category?: string; page?: string }>;
+}
+
+function getInitialTheme(theme: WebsiteData['theme'] | null | undefined): ThemeInput | undefined {
+  if (!theme?.tokens || !theme?.profile) return undefined;
+  return {
+    tokens: theme.tokens as ThemeInput['tokens'],
+    profile: theme.profile as ThemeInput['profile'],
+  };
 }
 
 async function getWebsiteByCustomDomain(customDomain: string): Promise<WebsiteData | null> {
@@ -95,7 +104,7 @@ export default async function CustomDomainPage({ params, searchParams }: CustomD
     const schemas = generateBlogListingSchemas(posts, website, baseUrl);
 
     return (
-      <M3ThemeProvider initialTheme={website.theme?.tokens ? ({ tokens: website.theme.tokens, profile: website.theme.profile } as any) : undefined}>
+      <M3ThemeProvider initialTheme={getInitialTheme(website.theme)}>
         <GoogleTagManager analytics={website.analytics} />
         <div className="min-h-screen flex flex-col">
           <GoogleTagManagerBody analytics={website.analytics} />
@@ -248,7 +257,7 @@ export default async function CustomDomainPage({ params, searchParams }: CustomD
     const schemas = generateBlogPostSchemas(post, website, baseUrl);
 
     return (
-      <M3ThemeProvider initialTheme={website.theme?.tokens ? ({ tokens: website.theme.tokens, profile: website.theme.profile } as any) : undefined}>
+      <M3ThemeProvider initialTheme={getInitialTheme(website.theme)}>
         <GoogleTagManager analytics={website.analytics} />
         <div className="min-h-screen flex flex-col">
           <GoogleTagManagerBody analytics={website.analytics} />
@@ -399,7 +408,7 @@ export default async function CustomDomainPage({ params, searchParams }: CustomD
     const legalContent = customContent || getDefaultLegalContent(legalType, siteName);
 
     return (
-      <M3ThemeProvider initialTheme={website.theme?.tokens ? ({ tokens: website.theme.tokens, profile: website.theme.profile } as any) : undefined}>
+      <M3ThemeProvider initialTheme={getInitialTheme(website.theme)}>
         <GoogleTagManager analytics={website.analytics} />
         <div className="min-h-screen flex flex-col">
           <GoogleTagManagerBody analytics={website.analytics} />
@@ -461,7 +470,7 @@ export default async function CustomDomainPage({ params, searchParams }: CustomD
   }
 
   return (
-    <M3ThemeProvider initialTheme={website.theme?.tokens ? ({ tokens: website.theme.tokens, profile: website.theme.profile } as any) : undefined}>
+    <M3ThemeProvider initialTheme={getInitialTheme(website.theme)}>
       {/* Google Tag Manager and Analytics Scripts */}
       <GoogleTagManager analytics={website.analytics} />
 
@@ -483,7 +492,7 @@ export default async function CustomDomainPage({ params, searchParams }: CustomD
 export const revalidate = 300;
 
 // Generate metadata
-export async function generateMetadata({ params, searchParams }: CustomDomainPageProps) {
+export async function generateMetadata({ params }: CustomDomainPageProps) {
   const { host, slug } = await params;
   const decodedHost = decodeURIComponent(host);
   const normalizedHost = decodedHost.toLowerCase().replace(/\.$/, '');

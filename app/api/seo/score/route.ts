@@ -358,9 +358,6 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     const d4Calc = calcD4Conversion({ image, description, amenities, inclusions, slug });
     const d4Score = d4Calc.score;
 
-    // D5 Competitive: always 0 until real GSC integration
-    const d5Score = 0;
-
     // Build check message details grouped by dimension
     const metaDetails = scorerResult.checks
       .filter((c) => c.dimension === 'meta' && !c.pass)
