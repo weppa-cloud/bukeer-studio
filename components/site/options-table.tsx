@@ -8,6 +8,44 @@ export interface OptionsTableProps {
   className?: string;
 }
 
+/** Hide placeholder/sentinel date ranges that represent "always valid" in admin data. */
+const PLACEHOLDER_DATES = new Set(['2000-01-01', '2099-12-31', '1970-01-01', '9999-12-31']);
+
+function formatValidityRange(from?: string | null, until?: string | null): string | null {
+  const fromValid = from && !PLACEHOLDER_DATES.has(from) ? from : null;
+  const untilValid = until && !PLACEHOLDER_DATES.has(until) ? until : null;
+  if (!fromValid && !untilValid) return null;
+  if (fromValid && untilValid) return `${fromValid} → ${untilValid}`;
+  return fromValid ? `Desde ${fromValid}` : `Hasta ${untilValid}`;
+}
+
+function formatSeason(season?: string | null): string | null {
+  if (!season) return null;
+  const normalized = season.trim().toLowerCase();
+  if (!normalized || normalized === 'default' || normalized === 'standard' || normalized === 'all') return null;
+  return season;
+}
+
+function formatUnitType(code?: string | null): string | null {
+  if (!code) return null;
+  const normalized = code.trim().toUpperCase();
+  const map: Record<string, string> = {
+    ADULT: 'Adulto',
+    CHILD: 'Niño',
+    INFANT: 'Infante',
+    SENIOR: 'Adulto mayor',
+    STUDENT: 'Estudiante',
+    PAX: 'Por persona',
+  };
+  return map[normalized] || code;
+}
+
+function formatPricingPer(code?: string | null): string {
+  if (code === 'UNIT') return 'Por persona';
+  if (code === 'BOOKING') return 'Por reserva';
+  return code || '—';
+}
+
 function normalizeOption(option: ActivityOption | null | undefined): ActivityOption | null {
   if (!option || typeof option !== 'object') {
     return null;
@@ -74,19 +112,19 @@ export function OptionsTable({
             <thead>
               <tr style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 6%, var(--bg-card))' }}>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--text-secondary)' }}>
-                  Option
+                  Opción
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--text-secondary)' }}>
-                  Pricing
+                  Modalidad
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--text-secondary)' }}>
-                  Units
+                  Detalles
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--text-secondary)' }}>
-                  Refundable
+                  Reembolso
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--text-secondary)' }}>
-                  Prices
+                  Precio
                 </th>
               </tr>
             </thead>
@@ -98,13 +136,8 @@ export function OptionsTable({
                   style={{ borderColor: 'var(--border-subtle)' }}
                 >
                   <td className="px-4 py-4 align-top">
-                    <div className="space-y-1">
-                      <div className="font-medium leading-6" style={{ color: 'var(--text-heading)' }}>
-                        {option.name}
-                      </div>
-                      <div className="text-xs uppercase tracking-[0.16em]" style={{ color: 'var(--text-muted)' }}>
-                        {option.id}
-                      </div>
+                    <div className="font-medium leading-6" style={{ color: 'var(--text-heading)' }}>
+                      {option.name}
                     </div>
                   </td>
                   <td className="px-4 py-4 align-top">
@@ -115,24 +148,24 @@ export function OptionsTable({
                         color: 'var(--accent)',
                       }}
                     >
-                      {option.pricing_per}
+                      {formatPricingPer(option.pricing_per)}
                     </span>
                   </td>
                   <td className="px-4 py-4 align-top">
                     <div className="flex flex-wrap gap-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
                       {typeof option.min_units === 'number' && (
                         <span className="rounded-full px-2.5 py-0.5" style={{ backgroundColor: 'var(--bg)', border: '1px solid var(--border-subtle)' }}>
-                          Min {option.min_units}
+                          Mín. {option.min_units}
                         </span>
                       )}
                       {typeof option.max_units === 'number' && (
                         <span className="rounded-full px-2.5 py-0.5" style={{ backgroundColor: 'var(--bg)', border: '1px solid var(--border-subtle)' }}>
-                          Max {option.max_units}
+                          Máx. {option.max_units}
                         </span>
                       )}
                       {option.start_times && option.start_times.length > 0 && (
                         <span className="rounded-full px-2.5 py-0.5" style={{ backgroundColor: 'var(--bg)', border: '1px solid var(--border-subtle)' }}>
-                          {option.start_times.length} start times
+                          {option.start_times.length} horarios
                         </span>
                       )}
                     </div>
@@ -147,38 +180,47 @@ export function OptionsTable({
                         color: option.is_refundable ? 'var(--accent)' : 'var(--text-secondary)',
                       }}
                     >
-                      {option.is_refundable ? 'Yes' : 'No'}
+                      {option.is_refundable ? 'Sí' : 'No'}
                     </span>
                   </td>
                   <td className="px-4 py-4 align-top">
                     <div className="space-y-2">
-                      {option.prices.map((price, priceIndex) => (
-                        <div
-                          key={`${option.id}-${price.unit_type_code}-${price.season}-${priceIndex}`}
-                          className="rounded-xl border px-3 py-2"
-                          style={{
-                            backgroundColor: 'color-mix(in srgb, var(--accent) 4%, var(--bg-card))',
-                            borderColor: 'var(--border-subtle)',
-                          }}
-                        >
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="text-sm font-medium" style={{ color: 'var(--text-heading)' }}>
-                              {formatOptionPrice(price)}
-                            </span>
-                            <span className="text-xs uppercase tracking-[0.16em]" style={{ color: 'var(--text-muted)' }}>
-                              {price.unit_type_code}
-                            </span>
-                            <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                              {price.season}
-                            </span>
-                          </div>
-                          {(price.valid_from || price.valid_until) && (
-                            <div className="mt-1 text-xs" style={{ color: 'var(--text-muted)' }}>
-                              {[price.valid_from, price.valid_until].filter(Boolean).join(' to ')}
+                      {option.prices.map((price, priceIndex) => {
+                        const validity = formatValidityRange(price.valid_from, price.valid_until);
+                        const seasonLabel = formatSeason(price.season);
+                        const unitLabel = formatUnitType(price.unit_type_code);
+                        return (
+                          <div
+                            key={`${option.id}-${price.unit_type_code}-${price.season}-${priceIndex}`}
+                            className="rounded-xl border px-3 py-2"
+                            style={{
+                              backgroundColor: 'color-mix(in srgb, var(--accent) 4%, var(--bg-card))',
+                              borderColor: 'var(--border-subtle)',
+                            }}
+                          >
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="text-sm font-medium" style={{ color: 'var(--text-heading)' }}>
+                                {formatOptionPrice(price)}
+                              </span>
+                              {unitLabel && (
+                                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                                  {unitLabel}
+                                </span>
+                              )}
+                              {seasonLabel && (
+                                <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                                  {seasonLabel}
+                                </span>
+                              )}
                             </div>
-                          )}
-                        </div>
-                      ))}
+                            {validity && (
+                              <div className="mt-1 text-xs" style={{ color: 'var(--text-muted)' }}>
+                                {validity}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </td>
                 </tr>

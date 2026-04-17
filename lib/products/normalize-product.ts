@@ -28,6 +28,7 @@ export interface NormalizedProductViewModel {
   meeting_point: NormalizedMeetingPoint | null;
   gallery: string[];
   price: number | null;
+  priceCurrency: string | null;
   rating: number | null;
   faq: ProductFAQ[] | null;
 }
@@ -299,24 +300,39 @@ function normalizeGallery(product: ProductData, logger: (event: ProductNormalize
   return [];
 }
 
-function minActivityOptionPrice(product: ProductData): number | null {
+interface PriceWithCurrency {
+  value: number;
+  currency: string | null;
+}
+
+function minActivityOptionPrice(product: ProductData): PriceWithCurrency | null {
   if (!Array.isArray(product.options) || product.options.length === 0) {
     return null;
   }
 
-  const prices = product.options
+  const rows = product.options
     .flatMap((option) => option.prices || [])
-    .map((price) => parseNumeric(price.price))
-    .filter((value): value is number => value !== null && value > 0);
+    .map((price) => {
+      const numeric = parseNumeric(price.price);
+      if (numeric === null || numeric <= 0) return null;
+      const currency = typeof price.currency === 'string' && price.currency.trim().length > 0
+        ? price.currency.trim().toUpperCase()
+        : null;
+      return { value: numeric, currency };
+    })
+    .filter((row): row is PriceWithCurrency => Boolean(row));
 
-  if (prices.length === 0) {
+  if (rows.length === 0) {
     return null;
   }
 
-  return Math.min(...prices);
+  return rows.reduce((min, row) => (row.value < min.value ? row : min), rows[0]);
 }
 
-function normalizePrice(product: ProductData, logger: (event: ProductNormalizeLog) => void): number | null {
+function normalizePrice(
+  product: ProductData,
+  logger: (event: ProductNormalizeLog) => void
+): { value: number; currency: string | null } | null {
   const optionMinPrice = minActivityOptionPrice(product);
   if (optionMinPrice !== null) {
     return optionMinPrice;
@@ -325,7 +341,10 @@ function normalizePrice(product: ProductData, logger: (event: ProductNormalizeLo
   const fallbackPrice = parseNumeric(product.price);
   if (fallbackPrice !== null && fallbackPrice > 0) {
     fallbackLogger(logger, 'price', 'v2', 'legacy');
-    return fallbackPrice;
+    const currency = typeof product.currency === 'string' && product.currency.trim().length > 0
+      ? product.currency.trim().toUpperCase()
+      : null;
+    return { value: fallbackPrice, currency };
   }
 
   fallbackLogger(logger, 'price', 'legacy', 'null');
@@ -372,6 +391,7 @@ export function normalizeProduct(
   options: NormalizeProductOptions = {}
 ): NormalizedProductViewModel {
   const logger = options.logger || defaultLogger;
+  const priceResult = normalizePrice(product, logger);
 
   return {
     inclusions: normalizeListWithPrecedence('inclusions', product.inclusions, logger),
@@ -380,7 +400,8 @@ export function normalizeProduct(
     schedule: normalizeSchedule(product, logger),
     meeting_point: normalizeMeetingPoint(product, logger),
     gallery: normalizeGallery(product, logger),
-    price: normalizePrice(product, logger),
+    price: priceResult?.value ?? null,
+    priceCurrency: priceResult?.currency ?? null,
     rating: normalizeRating(product, logger),
     faq: normalizeFaq(options.page, logger),
   };

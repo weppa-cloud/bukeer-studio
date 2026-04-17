@@ -96,12 +96,14 @@ function resolveGroupSizeLabel(product: ProductData): string | null {
   for (const value of candidates) {
     const rangeMatch = value.match(/(\d+)\s*(?:a|-|–)\s*(\d+)\s*pax/i);
     if (rangeMatch) {
-      return `${rangeMatch[1]}-${rangeMatch[2]} personas`;
+      const upper = Number(rangeMatch[2]);
+      return `${rangeMatch[1]}-${rangeMatch[2]} ${upper === 1 ? 'persona' : 'personas'}`;
     }
 
     const singleMatch = value.match(/(\d+)\s*pax/i);
     if (singleMatch) {
-      return `${singleMatch[1]} personas`;
+      const count = Number(singleMatch[1]);
+      return `${singleMatch[1]} ${count === 1 ? 'persona' : 'personas'}`;
     }
   }
 
@@ -203,8 +205,12 @@ export function ProductLandingPage({
   );
   const packageDuration = productType === 'package' ? resolvePackageDuration(product) : null;
   const packageGroupSize = productType === 'package' ? resolveGroupSizeLabel(product) : null;
-  const packageRating = productType === 'package' && normalizedProduct.rating !== null
-    ? `${normalizedProduct.rating.toFixed(1)} ★`
+  const reviewRating = googleReviews.length > 0
+    ? googleReviews.reduce((sum, r) => sum + (r.rating || 0), 0) / googleReviews.length
+    : null;
+  const effectiveRating = normalizedProduct.rating ?? reviewRating;
+  const packageRating = productType === 'package' && effectiveRating !== null
+    ? `${effectiveRating.toFixed(1)} ★${googleReviews.length > 0 ? ` (${googleReviews.length})` : ''}`
     : null;
   const schemaProduct: ProductData = {
     ...product,
@@ -302,7 +308,7 @@ export function ProductLandingPage({
             <div className="mt-4 flex flex-wrap items-center gap-3">
               {normalizedProduct.price !== null && (
                 <span className="inline-flex items-center rounded-full bg-background/70 px-4 py-2 text-sm font-semibold backdrop-blur">
-                  Desde {formatPriceOrConsult(normalizedProduct.price, product.currency)}
+                  Desde {formatPriceOrConsult(normalizedProduct.price, normalizedProduct.priceCurrency ?? product.currency)}
                 </span>
               )}
               {whatsappUrl && (
@@ -332,7 +338,7 @@ export function ProductLandingPage({
 
       <StickyCTABar
         price={normalizedProduct.price}
-        currency={product.currency}
+        currency={normalizedProduct.priceCurrency ?? product.currency}
         whatsappUrl={whatsappUrl}
         phone={primaryPhone || website.content.social?.whatsapp || null}
         analyticsContext={analyticsContext}
@@ -827,7 +833,7 @@ function ActivitySections({ product, normalized }: { product: ProductData; norma
           <div className="rounded-xl overflow-hidden border border-border bg-card px-6 py-4">
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Desde</span>
-              <span className="text-xl font-bold text-primary">{formatPriceOrConsult(normalized.price, product.currency)}</span>
+              <span className="text-xl font-bold text-primary">{formatPriceOrConsult(normalized.price, normalized.priceCurrency ?? product.currency)}</span>
             </div>
           </div>
         </motion.section>
@@ -1092,7 +1098,7 @@ function SummarySidebar({
       {normalized.price !== null && (
         <div>
           <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground">Desde</span>
-          <p className="text-3xl mt-1 font-bold text-primary">{formatPriceOrConsult(normalized.price, product.currency)}</p>
+          <p className="text-3xl mt-1 font-bold text-primary">{formatPriceOrConsult(normalized.price, normalized.priceCurrency ?? product.currency)}</p>
         </div>
       )}
 
