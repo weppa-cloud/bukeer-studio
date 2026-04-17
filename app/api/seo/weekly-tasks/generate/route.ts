@@ -193,39 +193,40 @@ async function buildStrikingDistanceSeeds(input: {
     }
   }
 
-  const seeds = keywordRows
-    .map((keyword) => {
-      const latest = latestSnapshotByKeyword.get(keyword.id);
-      if (!latest) return null;
-      const position = latest.position ?? null;
-      const volume = latest.search_volume ?? 0;
-      if (position == null || position < 8 || position > 20) return null;
-      if (volume < 100) return null;
+  const seeds: TaskSeed[] = [];
+  for (const keyword of keywordRows) {
+    const latest = latestSnapshotByKeyword.get(keyword.id);
+    if (!latest) continue;
+    const position = latest.position ?? null;
+    const volume = latest.search_volume ?? 0;
+    if (position == null || position < 8 || position > 20) continue;
+    if (volume < 100) continue;
 
-      const url = normalizeUrlPath(keyword.target_url ?? null);
-      const priority = resolveStrikingPriority(position);
-      return {
-        week_of: input.weekOf,
-        task_type: 'striking_distance' as const,
-        priority,
-        title: `Subir \"${keyword.keyword}\" a top 10`,
-        description: `URL ${url} · posición ${position} · volumen ${volume}`,
-        source_data: {
-          source: 'striking_distance',
-          keywordId: keyword.id,
-          keyword: keyword.keyword,
-          locale: keyword.locale,
-          position,
-          searchVolume: volume,
-          url,
-          snapshotDate: latest.snapshot_date,
-        },
-        related_entity_type: 'seo_keyword',
-        related_entity_id: keyword.id,
-        due_at: weekDueAtIso(input.weekOf),
-      } satisfies TaskSeed;
-    })
-    .filter((row): row is TaskSeed => Boolean(row))
+    const url = normalizeUrlPath(keyword.target_url ?? null);
+    const priority = resolveStrikingPriority(position);
+    seeds.push({
+      week_of: input.weekOf,
+      task_type: 'striking_distance',
+      priority,
+      title: `Subir \"${keyword.keyword}\" a top 10`,
+      description: `URL ${url} · posición ${position} · volumen ${volume}`,
+      source_data: {
+        source: 'striking_distance',
+        keywordId: keyword.id,
+        keyword: keyword.keyword,
+        locale: keyword.locale,
+        position,
+        searchVolume: volume,
+        url,
+        snapshotDate: latest.snapshot_date,
+      },
+      related_entity_type: 'seo_keyword',
+      related_entity_id: keyword.id,
+      due_at: weekDueAtIso(input.weekOf),
+    });
+  }
+
+  return seeds
     .sort((a, b) => {
       const priorityOrder: Record<Priority, number> = { P1: 0, P2: 1, P3: 2 };
       if (a.priority !== b.priority) return priorityOrder[a.priority] - priorityOrder[b.priority];
@@ -234,8 +235,6 @@ async function buildStrikingDistanceSeeds(input: {
       return bVolume - aVolume;
     })
     .slice(0, input.maxPerSource);
-
-  return seeds;
 }
 
 async function buildLowCtrSeeds(input: {
@@ -300,46 +299,45 @@ async function buildLowCtrSeeds(input: {
     grouped.set(key, bucket);
   }
 
-  const seeds = Array.from(grouped.values())
-    .map((group) => {
-      if (group.impressions < 600) return null;
-      const ctr = group.impressions > 0 ? group.clicks / group.impressions : 0;
-      if (ctr >= 0.02) return null;
-      const avgPosition = group.samples > 0 ? group.avgPositionWeighted / group.samples : null;
-      if (avgPosition != null && avgPosition > 25) return null;
+  const seeds: TaskSeed[] = [];
+  for (const group of grouped.values()) {
+    if (group.impressions < 600) continue;
+    const ctr = group.impressions > 0 ? group.clicks / group.impressions : 0;
+    if (ctr >= 0.02) continue;
+    const avgPosition = group.samples > 0 ? group.avgPositionWeighted / group.samples : null;
+    if (avgPosition != null && avgPosition > 25) continue;
 
-      const priority: Priority = ctr < 0.01 && group.impressions >= 2000 ? 'P1' : 'P2';
-      return {
-        week_of: input.weekOf,
-        task_type: 'low_ctr' as const,
-        priority,
-        title: `Mejorar CTR de ${group.url}`,
-        description: `Impresiones 28d ${group.impressions} · CTR ${(ctr * 100).toFixed(2)}%`,
-        source_data: {
-          source: 'low_ctr',
-          url: group.url,
-          pageType: group.pageType,
-          pageId: group.pageId,
-          impressions28d: group.impressions,
-          clicks28d: group.clicks,
-          ctr28d: Number(ctr.toFixed(6)),
-          avgPosition28d: avgPosition == null ? null : Number(avgPosition.toFixed(2)),
-          latestMetricDate: group.latestDate,
-        },
-        related_entity_type: group.pageType,
-        related_entity_id: group.pageId,
-        due_at: weekDueAtIso(input.weekOf),
-      } satisfies TaskSeed;
-    })
-    .filter((row): row is TaskSeed => Boolean(row))
+    const priority: Priority = ctr < 0.01 && group.impressions >= 2000 ? 'P1' : 'P2';
+    seeds.push({
+      week_of: input.weekOf,
+      task_type: 'low_ctr',
+      priority,
+      title: `Mejorar CTR de ${group.url}`,
+      description: `Impresiones 28d ${group.impressions} · CTR ${(ctr * 100).toFixed(2)}%`,
+      source_data: {
+        source: 'low_ctr',
+        url: group.url,
+        pageType: group.pageType,
+        pageId: group.pageId,
+        impressions28d: group.impressions,
+        clicks28d: group.clicks,
+        ctr28d: Number(ctr.toFixed(6)),
+        avgPosition28d: avgPosition == null ? null : Number(avgPosition.toFixed(2)),
+        latestMetricDate: group.latestDate,
+      },
+      related_entity_type: group.pageType,
+      related_entity_id: group.pageId,
+      due_at: weekDueAtIso(input.weekOf),
+    });
+  }
+
+  return seeds
     .sort((a, b) => {
       const aImpressions = Number(a.source_data.impressions28d ?? 0);
       const bImpressions = Number(b.source_data.impressions28d ?? 0);
       return bImpressions - aImpressions;
     })
     .slice(0, input.maxPerSource);
-
-  return seeds;
 }
 
 async function buildDriftSeeds(input: {

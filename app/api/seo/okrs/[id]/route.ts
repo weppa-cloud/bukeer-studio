@@ -90,8 +90,9 @@ async function loadWebsiteId(id: string): Promise<string | null> {
   return data.website_id as string;
 }
 
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
-  const idParsed = UuidSchema.safeParse(params.id);
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const idParsed = UuidSchema.safeParse(id);
   if (!idParsed.success) {
     return withNoStoreHeaders(apiValidationError(idParsed.error));
   }
@@ -141,8 +142,9 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   }
 }
 
-export async function DELETE(_request: NextRequest, { params }: { params: { id: string } }) {
-  const idParsed = UuidSchema.safeParse(params.id);
+export async function DELETE(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const idParsed = UuidSchema.safeParse(id);
   if (!idParsed.success) {
     return withNoStoreHeaders(apiValidationError(idParsed.error));
   }

@@ -201,7 +201,7 @@ async function reserveUniqueSlug(input: {
   locale: string;
   baseSlug: string;
 }) {
-  let candidate = baseSlug;
+  let candidate = input.baseSlug;
   for (let i = 0; i < 10; i += 1) {
     let query = input.admin
       .from(input.table)
@@ -217,10 +217,10 @@ async function reserveUniqueSlug(input: {
 
     const { data } = await query.maybeSingle();
     if (!data) return candidate;
-    candidate = `${baseSlug}-${i + 2}`;
+    candidate = `${input.baseSlug}-${i + 2}`;
   }
 
-  return `${baseSlug}-${Math.random().toString(36).slice(2, 6)}`;
+  return `${input.baseSlug}-${Math.random().toString(36).slice(2, 6)}`;
 }
 
 async function ensureTargetBlog(input: {
