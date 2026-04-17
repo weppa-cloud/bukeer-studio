@@ -209,8 +209,17 @@ test.describe('SEO Playbook v2.0 — Smoke Tests', () => {
       await page.goto(`/dashboard/${websiteId}/seo/architecture`);
       await page.waitForLoadState('domcontentloaded');
 
-      await expect(page.getByText('Resumen por categoría')).toBeVisible();
-      await expect(page.locator('p').filter({ hasText: /^Nodos totales$/ }).first()).toBeVisible();
+      // The architecture screen renders skeleton first; wait for the API response
+      // to avoid transient visibility failures under parallel CI load.
+      await page.waitForResponse(
+        (response) =>
+          response.url().includes('/api/seo/architecture') &&
+          response.request().method() === 'GET',
+        { timeout: 20_000 }
+      );
+
+      await expect(page.getByRole('heading', { name: 'Resumen por categoría' })).toBeVisible({ timeout: 15_000 });
+      await expect(page.locator('p').filter({ hasText: /^Nodos totales$/ }).first()).toBeVisible({ timeout: 15_000 });
     });
 
     test('shows click depth section and bucket rows @smoke', async ({ page }) => {
