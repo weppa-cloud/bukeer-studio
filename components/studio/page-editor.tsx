@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect, useMemo, useRef, SyntheticEvent } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, type DragEndEvent, type DragStartEvent } from '@dnd-kit/core';
 import { arrayMove } from '@dnd-kit/sortable';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser-client';
@@ -43,14 +43,12 @@ import {
   Pencil,
   Moon,
   Sun,
-  RefreshCw,
   PanelRightClose,
   PanelRightOpen,
   PanelLeftClose,
   PanelLeftOpen,
   Undo2,
   Redo2,
-  LayoutGrid,
 } from 'lucide-react';
 import type { WebsiteData, WebsiteSection } from '@bukeer/website-contract';
 import type { SectionTypeValue } from '@bukeer/website-contract';
@@ -176,7 +174,7 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
   // Track original section IDs from DB (for homepage INSERT/DELETE detection)
   const dbSectionIdsRef = useRef<Set<string>>(new Set());
   // Undo/redo history
-  const [history, setHistory] = useState<EditorSection[][]>([]);
+  const [history] = useState<EditorSection[][]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   // exactPreviewRef removed — no more iframe
 
@@ -751,29 +749,7 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
   // Undo / Redo
   // ============================================================================
 
-  const pushHistory = useCallback(
-    (prev: EditorSection[]) => {
-      setHistory((h) => {
-        const newHistory = h.slice(0, historyIndex + 1);
-        newHistory.push(prev);
-        // Keep max 30 entries
-        if (newHistory.length > 30) newHistory.shift();
-        return newHistory;
-      });
-      setHistoryIndex((i) => Math.min(i + 1, 29));
-    },
-    [historyIndex]
-  );
-
-  // Wrap updateSections to track history
   const originalUpdateSections = updateSections;
-  const updateSectionsWithHistory = useCallback(
-    (newSections: EditorSection[]) => {
-      pushHistory(sections);
-      originalUpdateSections(newSections);
-    },
-    [sections, pushHistory, originalUpdateSections]
-  );
 
   const handleUndo = useCallback(() => {
     if (historyIndex < 0 || history.length === 0) return;

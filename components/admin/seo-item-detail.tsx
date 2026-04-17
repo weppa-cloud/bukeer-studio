@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { StudioTabs, StudioButton, StudioBadge, StudioInput, StudioSelect, StudioTextarea } from '@/components/studio/ui/primitives';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser-client';
@@ -1807,7 +1808,14 @@ export function SeoItemDetail({
 
           <div className="border border-[var(--studio-border)] rounded overflow-hidden max-w-lg">
             {item.image ? (
-              <img src={item.image} alt={item.name} className="w-full h-48 object-cover" />
+              <Image
+                src={item.image}
+                alt={item.name}
+                width={640}
+                height={192}
+                unoptimized
+                className="w-full h-48 object-cover"
+              />
             ) : (
               <div className="w-full h-48 bg-[var(--studio-border)] flex items-center justify-center text-[var(--studio-text-muted)] text-sm">
                 No image

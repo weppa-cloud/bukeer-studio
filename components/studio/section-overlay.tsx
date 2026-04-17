@@ -4,14 +4,12 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { useDroppable } from '@dnd-kit/core';
 import {
-  GripVertical,
   ChevronUp,
   ChevronDown,
   Copy,
   Eye,
   EyeOff,
   Trash2,
-  Plus,
 } from 'lucide-react';
 import type { EditorSection } from '@/lib/studio/section-actions';
 
@@ -35,7 +33,6 @@ interface SectionOverlayProps {
   onDuplicate: (id: string) => void;
   onToggleVisibility: (id: string) => void;
   onDelete: (id: string) => void;
-  onAddSection: () => void;
   /** Increment this when iframe content changes (e.g. after load/save) */
   iframeLoadKey?: number;
   /** True when a section card is being dragged from the Elements panel */
@@ -82,7 +79,6 @@ export function SectionOverlay({
   onDuplicate,
   onToggleVisibility,
   onDelete,
-  onAddSection,
   iframeLoadKey = 0,
   isDraggingNewSection = false,
 }: SectionOverlayProps) {

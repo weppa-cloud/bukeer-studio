@@ -11,7 +11,7 @@ const AccordionHeaderPrimitive = AccordionPrimitive.Header as unknown as React.E
 const AccordionTriggerPrimitive = AccordionPrimitive.Trigger as unknown as React.ElementType;
 const AccordionPanelPrimitive = AccordionPrimitive.Panel as unknown as React.ElementType;
 
-function Accordion<Value = any>({
+function Accordion<Value = unknown>({
   className,
   ...props
 }: AccordionPrimitive.Root.Props<Value>) {

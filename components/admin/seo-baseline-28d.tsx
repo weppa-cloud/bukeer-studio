@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import type { AnalyticsOverviewDTO } from '@/lib/seo/dto';
-import { StudioBadge, StudioButton } from '@/components/studio/ui/primitives';
+import { StudioBadge } from '@/components/studio/ui/primitives';
 import { cn } from '@/lib/utils';
 
 interface SeoBaseline28DProps {
@@ -65,7 +65,8 @@ function TrendBadge({ trendValue }: { trendValue: number | null | undefined }) {
   return <StudioBadge tone="neutral">→ Estable</StudioBadge>;
 }
 
-export function SeoBaseline28D({ overview, websiteId: _websiteId }: SeoBaseline28DProps) {
+export function SeoBaseline28D({ overview, websiteId }: SeoBaseline28DProps) {
+  void websiteId;
   const [brandFilter, setBrandFilter] = useState<BrandFilter>('all');
   const isLoading = overview === null;
 

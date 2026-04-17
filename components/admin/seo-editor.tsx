@@ -10,8 +10,8 @@ interface SeoEditorProps {
 }
 
 export function SeoEditor({ website, onSave }: SeoEditorProps) {
-  const c = website.content || {} as any;
-  const a = website.analytics || {} as any;
+  const c = website.content;
+  const a = website.analytics ?? {};
 
   const [seoTitle, setSeoTitle] = useState(c.seo?.title || '');
   const [seoDesc, setSeoDesc] = useState(c.seo?.description || '');
@@ -34,7 +34,7 @@ export function SeoEditor({ website, onSave }: SeoEditorProps) {
           custom_head_scripts: d.headScripts,
           custom_body_scripts: d.bodyScripts,
         },
-      } as any);
+      });
     },
   });
 
