@@ -1,0 +1,3 @@
+work_id,post_slug,dimension,component,issue,severity,priority,owner,estimate,depends_on,acceptance_test,status
+TECH-001,<slug>,technical,<component>,<issue>,P1,high,<owner>,M,,<acceptance_test>,Open
+CONT-001,<slug>,content,<component>,<issue>,P2,medium,<owner>,M,TECH-001,<acceptance_test>,Open

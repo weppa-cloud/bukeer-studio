@@ -1,0 +1,8 @@
+component,check,status,severity,evidence,owner,acceptance_test
+canonical-hreflang,"Canonical and hreflang use production domain (no placeholders)",fail,P0,,,"Canonical and hreflang resolved to final domain for all target slugs"
+robots-sitemap,"robots.txt and sitemap are valid, crawlable, and linked",fail,P0,,,"Robots parses correctly and sitemap is reachable/referenced"
+metadata,"Unique title and meta description per post",fail,P1,,,"No missing or duplicated metadata in target batch"
+semantics-a11y,"Sequential heading order, descriptive anchors, AA contrast",fail,P1,,,"No heading-order or critical contrast/link-text failures"
+media-seo,"Relevant non-empty alt text and valid image aspect ratios",fail,P1,,,"No aspect-ratio failures and descriptive alt policy met"
+structured-data,"BlogPosting, BreadcrumbList, Organization/TravelAgency valid",fail,P1,,,"Required schema present and valid for all target posts"
+cwv-gate,"CWV p75 targets met where measurable (LCP<=2.5, INP<=200, CLS<=0.1)",fail,P2,,,"CWV target met or accepted exception documented"

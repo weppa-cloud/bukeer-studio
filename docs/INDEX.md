@@ -77,6 +77,7 @@ Feature requests formalized. Status tracked inline. GitHub Issues = source of tr
 | [[SPEC_SEO_CONTENT_INTELLIGENCE_INTEGRAL]] | [file](./specs/SPEC_SEO_CONTENT_INTELLIGENCE_INTEGRAL.md) | [[SEO]] [[AI]] [[content-ops]] |
 | [[SPEC_SEO_DASHBOARD_PRODUCT_INTEGRATION]] | [file](./specs/SPEC_SEO_DASHBOARD_PRODUCT_INTEGRATION.md) | [[SEO]] [[product-landing]] [[catalog-v2]] |
 | [[SPEC_SEO_DESTINATIONS_PRODUCTS]] | [file](./specs/SPEC_SEO_DESTINATIONS_PRODUCTS.md) | [[SEO]] [[destinations]] [[product-landing]] |
+| [[SPEC_SEO_BLOG_EXECUTION_FRAMEWORK_2026]] | [file](./specs/SPEC_SEO_BLOG_EXECUTION_FRAMEWORK_2026.md) | [[SEO]] [[content-ops]] [[quality-gate]] |
 | [[SPEC_SEO_OPTIMIZATION_TOOLKIT]] | [file](./specs/SPEC_SEO_OPTIMIZATION_TOOLKIT.md) | [[SEO]] [[AI]] [[bulk-actions]] |
 | [[SPEC_SKILL_NEXTJS_DEVELOPER_AUDIT]] | [file](./specs/SPEC_SKILL_NEXTJS_DEVELOPER_AUDIT.md) | [[skills]] [[nextjs-developer]] |
 | [[SPEC_UX_IA_AUDIT_BUKEER_STUDIO]] | [file](./specs/SPEC_UX_IA_AUDIT_BUKEER_STUDIO.md) | [[UX]] [[information-architecture]] |
@@ -113,6 +114,7 @@ Feature requests formalized. Status tracked inline. GitHub Issues = source of tr
 | [[SEO-IMPLEMENTATION]] | [file](./seo/SEO-IMPLEMENTATION.md) | Current shipped product state. |
 | [[SEO-PLAYBOOK]] | [file](./seo/SEO-PLAYBOOK.md) | Target operating model. |
 | [[SEO-FLUJOS-STUDIO]] | [file](./seo/SEO-FLUJOS-STUDIO.md) | Shipped user flows. |
+| [[SEO-BLOG-EXECUTION-FRAMEWORK-2026]] | [file](./seo/SEO-BLOG-EXECUTION-FRAMEWORK-2026.md) | Dual-dimension operating checklist and phased backlog model for blog SEO execution. |
 | [[jsonld-fixtures]] | [file](./seo/jsonld-fixtures.md) | JSON-LD rich-results validation samples. |
 
 ---
@@ -224,7 +226,7 @@ Each concept below lists the ADRs/SPECs/ops docs that touch it. Use this to find
 ### [[SEO]]
 - [[ADR-016]] — caching + revalidation
 - [[SEO-PLAYBOOK]] [[SEO-IMPLEMENTATION]] [[SEO-FLUJOS-STUDIO]] [[jsonld-fixtures]]
-- Specs: [[SPEC_SEO_CONTENT_INTELLIGENCE]] [[SPEC_SEO_CONTENT_INTELLIGENCE_INTEGRAL]] [[SPEC_SEO_DASHBOARD_PRODUCT_INTEGRATION]] [[SPEC_SEO_DESTINATIONS_PRODUCTS]] [[SPEC_SEO_OPTIMIZATION_TOOLKIT]]
+- Specs: [[SPEC_SEO_CONTENT_INTELLIGENCE]] [[SPEC_SEO_CONTENT_INTELLIGENCE_INTEGRAL]] [[SPEC_SEO_DASHBOARD_PRODUCT_INTEGRATION]] [[SPEC_SEO_DESTINATIONS_PRODUCTS]] [[SPEC_SEO_BLOG_EXECUTION_FRAMEWORK_2026]] [[SPEC_SEO_OPTIMIZATION_TOOLKIT]]
 - Meta: [[EPIC_SEO_CONTENT_INTELLIGENCE_GITHUB]] [[ROADMAP_SEO_CONTENT_INTELLIGENCE]] [[ISSUE_MAP_SEO_CONTENT_INTELLIGENCE]]
 - QA: [[link-validation-colombiatours]]
 - Shipped APIs (2026-04-17): serp-snapshot, nlp-score, transcreate, objectives-90d, okrs, translations, weekly-tasks — see [[SEO-IMPLEMENTATION]]
@@ -310,6 +312,7 @@ Obsidian resolves `[[ADR-005]]` by filename stem or alias. Claude Code / Codex g
 | `[[ONBOARDING-ARCHITECTURE]]` | `docs/architecture/ONBOARDING-ARCHITECTURE.md` |
 | `[[AI-AGENT-DEVELOPMENT]]` | `docs/architecture/AI-AGENT-DEVELOPMENT.md` |
 | `[[SPEC_*]]` | `docs/specs/SPEC_*.md` (filename stem match) |
+| `[[SEO-BLOG-EXECUTION-FRAMEWORK-2026]]` | `docs/seo/SEO-BLOG-EXECUTION-FRAMEWORK-2026.md` |
 | `[[cross-repo-flutter]]` | `.claude/rules/cross-repo-flutter.md` |
 | `[[package-detail-anatomy]]` | `docs/product/package-detail-anatomy.md` |
 | `[[e2e-sessions]]` | `.claude/rules/e2e-sessions.md` |
