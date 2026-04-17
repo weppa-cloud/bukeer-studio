@@ -9,6 +9,8 @@ module.exports = {
       '<rootDir>/packages/website-contract/src/index',
   },
   transform: {
-    '^.+\\.tsx?$': ['ts-jest', { tsconfig: 'tsconfig.json' }],
+    // `tsconfig.jest.json` overrides `jsx: preserve` → `react-jsx` so
+    // component tests can render JSX directly under ts-jest.
+    '^.+\\.tsx?$': ['ts-jest', { tsconfig: 'tsconfig.jest.json' }],
   },
 };
