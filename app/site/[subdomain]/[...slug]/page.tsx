@@ -14,6 +14,7 @@ import { buildPublicLocalizedPath, localeToOgLocale } from '@/lib/seo/locale-rou
 import { CategoryPage } from '@/components/pages/category-page';
 import { StaticPage } from '@/components/pages/static-page';
 import { ProductLandingPage } from '@/components/pages/product-landing-page';
+import { getActivityCircuitStops, type ActivityCircuitStop } from '@/lib/products/activity-circuit';
 import dynamic from 'next/dynamic';
 
 const DestinationListingPage = dynamic(
@@ -495,6 +496,22 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
           ? await getReviewsForContext(website.account_id, reviewContext, 3)
           : [];
 
+        let activityCircuitStops: ActivityCircuitStop[] = [];
+        if (productType === 'activity') {
+          const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+          const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+          const maptilerKey = process.env.MAPTILER_GEOCODING_KEY ?? '';
+          if (supabaseUrl && supabaseServiceRoleKey) {
+            try {
+              activityCircuitStops = await getActivityCircuitStops(product, {
+                deps: { supabaseUrl, supabaseServiceRoleKey, maptilerKey },
+              });
+            } catch (error) {
+              console.warn('[activity-circuit] extraction failed', { slug: productSlug, error });
+            }
+          }
+        }
+
         return (
           <ProductLandingPage
             website={website}
@@ -502,6 +519,7 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
             pageCustomization={productPage.page}
             productType={productType}
             googleReviews={productReviews}
+            activityCircuitStops={activityCircuitStops}
           />
         );
       }

@@ -30,6 +30,8 @@ import { HighlightsGrid } from '@/components/site/highlights-grid';
 import { MeetingPointMap } from '@/components/site/meeting-point-map';
 import { OptionsTable } from '@/components/site/options-table';
 import { PackageCircuitMap } from '@/components/site/package-circuit-map';
+import { ActivityCircuitMap } from '@/components/site/activity-circuit-map';
+import type { ActivityCircuitStop } from '@/lib/products/activity-circuit';
 import { ItineraryItemRenderer } from '@/components/site/itinerary-item-renderer';
 import { ProductFAQ } from '@/components/site/product-faq';
 import { ProgramTimeline } from '@/components/site/program-timeline';
@@ -54,6 +56,7 @@ interface ProductLandingPageProps {
   pageCustomization?: ProductPageCustomization;
   productType: string;
   googleReviews?: GoogleReviewProp[];
+  activityCircuitStops?: ActivityCircuitStop[];
 }
 
 const fadeUp = {
@@ -171,6 +174,7 @@ export function ProductLandingPage({
   pageCustomization,
   productType,
   googleReviews = [],
+  activityCircuitStops = [],
 }: ProductLandingPageProps) {
   const normalizedProduct = normalizeProduct(product, { page: pageCustomization });
   const displayName = sanitizeProductCopy(pageCustomization?.custom_hero?.title || product.name) || product.name;
@@ -632,7 +636,16 @@ export function ProductLandingPage({
               </SectionErrorBoundary>
             )}
 
-            {!isTransfer && (
+            {productType === 'activity' && activityCircuitStops.length >= 2 && (
+              <SectionErrorBoundary sectionName="activity-circuit-map">
+                <ActivityCircuitMap
+                  stops={activityCircuitStops}
+                  analyticsContext={{ product_id: product.id, product_type: 'activity' }}
+                />
+              </SectionErrorBoundary>
+            )}
+
+            {!isTransfer && (productType !== 'activity' || activityCircuitStops.length < 2) && (
               <SectionErrorBoundary sectionName="meeting-point-map">
                 <MeetingPointMap
                   title="Punto de encuentro"
