@@ -149,6 +149,7 @@ export type { TrustCertification, TrustContent } from './schemas/trust';
 
 export {
   ScheduleEntrySchema,
+  ScheduleEntrySchema as ScheduleStepSchema,
   MeetingPointSchema,
   ActivityPriceSchema,
   ActivityOptionSchema,
@@ -314,6 +315,49 @@ export type {
   WeeklyTask,
   Objective90d,
 } from './schemas/translations';
+
+// Display constants
+export {
+  PACKAGE_GALLERY_MAX,
+  PACKAGE_INCLUSIONS_MAX,
+  HOTEL_AMENITIES_MAX,
+  SCHEDULE_STEPS_VISIBLE,
+} from './constants';
+
+// Online Booking — SPEC #166 (Phase A #168 / Phase B #169 / Phase C #170)
+export {
+  LeadSourceSchema,
+  LeadInputSchema,
+  LeadRowSchema,
+} from './schemas/leads';
+export type { LeadSource, LeadInput, LeadRow } from './schemas/leads';
+
+export {
+  BookingStatusSchema,
+  ProductAvailabilityRowSchema,
+  BookingRowSchema,
+  BookingEventSchema,
+} from './schemas/bookings';
+export type {
+  BookingStatus,
+  ProductAvailabilityRow,
+  BookingRow,
+  BookingEvent,
+} from './schemas/bookings';
+
+export { WompiEventSchema } from './schemas/wompi';
+export type { WompiEvent } from './schemas/wompi';
+
+export {
+  CancellationTierSchema,
+  CancellationPolicySchema,
+  CancellationTokenPayloadSchema,
+} from './schemas/cancellation';
+export type {
+  CancellationTier,
+  CancellationPolicy,
+  CancellationTokenPayload,
+} from './schemas/cancellation';
 
 // Validation
 export {

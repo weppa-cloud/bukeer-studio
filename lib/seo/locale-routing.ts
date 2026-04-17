@@ -209,22 +209,26 @@ export function resolveLocaleFromRequestHeaders(
   languageSegment: string | null;
 } {
   const normalized = normalizeWebsiteLocales(settings);
+  const headerResolvedLocaleRaw = getHeader(PUBLIC_LOCALE_HEADER_NAMES.resolvedLocale);
+  const headerDefaultLocaleRaw = getHeader(PUBLIC_LOCALE_HEADER_NAMES.defaultLocale);
 
-  const headerResolvedLocale = normalizeLocale(
-    getHeader(PUBLIC_LOCALE_HEADER_NAMES.resolvedLocale),
-    normalized.defaultLocale,
-  );
-  const resolvedLocale = normalized.supportedLocales.includes(headerResolvedLocale)
-    ? headerResolvedLocale
-    : normalized.defaultLocale;
+  const headerResolvedLocale = normalizeLocale(headerResolvedLocaleRaw, normalized.defaultLocale);
+  const defaultLocaleFromHeader = normalizeLocale(headerDefaultLocaleRaw, normalized.defaultLocale);
 
-  const defaultLocaleFromHeader = normalizeLocale(
-    getHeader(PUBLIC_LOCALE_HEADER_NAMES.defaultLocale),
-    normalized.defaultLocale,
-  );
-  const defaultLocale = normalized.supportedLocales.includes(defaultLocaleFromHeader)
+  const supportedLocales = [...normalized.supportedLocales];
+  if (headerResolvedLocaleRaw && !supportedLocales.includes(headerResolvedLocale)) {
+    supportedLocales.push(headerResolvedLocale);
+  }
+  if (headerDefaultLocaleRaw && !supportedLocales.includes(defaultLocaleFromHeader)) {
+    supportedLocales.push(defaultLocaleFromHeader);
+  }
+
+  const defaultLocale = supportedLocales.includes(defaultLocaleFromHeader)
     ? defaultLocaleFromHeader
     : normalized.defaultLocale;
+  const resolvedLocale = supportedLocales.includes(headerResolvedLocale)
+    ? headerResolvedLocale
+    : defaultLocale;
 
   const resolvedLanguage = localeToLanguage(
     getHeader(PUBLIC_LOCALE_HEADER_NAMES.lang) || resolvedLocale,
@@ -235,7 +239,7 @@ export function resolveLocaleFromRequestHeaders(
 
   return {
     defaultLocale,
-    supportedLocales: normalized.supportedLocales,
+    supportedLocales,
     resolvedLocale,
     resolvedLanguage,
     languageSegment,

@@ -53,6 +53,21 @@ const AGENCY_TYPE_OPTIONS = [
   { value: 'especializada', label: 'Especializada' },
 ];
 
+function toIsoDate(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function addDays(date: Date, days: number) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+function getQuarterLabel(date: Date) {
+  const quarter = Math.floor(date.getMonth() / 3) + 1;
+  return `${date.getFullYear()}-Q${quarter}`;
+}
+
 function ProgressBar({ current, total }: { current: number; total: number }) {
   const pct = Math.round((current / total) * 100);
   return (
@@ -125,6 +140,8 @@ export function SeoQuickStartWizard({
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [keywordsInput, setKeywordsInput] = useState('');
+  const [step6Saving, setStep6Saving] = useState(false);
+  const [step6Error, setStep6Error] = useState<string | null>(null);
   const [wizardData, setWizardData] = useState<WizardData>({
     businessName: '',
     country: '',
@@ -194,8 +211,124 @@ export function SeoQuickStartWizard({
     return false;
   }
 
-  function handleNext() {
-    if (currentStep < TOTAL_STEPS) setCurrentStep((s) => s + 1);
+  async function persistStep6Targets() {
+    const today = new Date();
+    const okrStart = toIsoDate(today);
+    const okrEnd = toIsoDate(addDays(today, 29));
+    const objectiveEnd = toIsoDate(addDays(today, 89));
+    const quarter = getQuarterLabel(today);
+
+    const okrsResponse = await fetch('/api/seo/okrs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        websiteId,
+        rows: [
+          {
+            period: '30d',
+            kpiKey: 'organic_clicks_monthly',
+            target: wizardData.targetClicks,
+            periodStart: okrStart,
+            periodEnd: okrEnd,
+            notes: 'Configurado desde SEO Quick Start Wizard',
+          },
+          {
+            period: '30d',
+            kpiKey: 'avg_position',
+            target: wizardData.targetPosition,
+            periodStart: okrStart,
+            periodEnd: okrEnd,
+            notes: 'Configurado desde SEO Quick Start Wizard',
+          },
+          {
+            period: '30d',
+            kpiKey: 'technical_score',
+            target: wizardData.targetTechScore,
+            periodStart: okrStart,
+            periodEnd: okrEnd,
+            notes: 'Configurado desde SEO Quick Start Wizard',
+          },
+        ],
+      }),
+    });
+
+    const okrsJson = (await okrsResponse.json().catch(() => null)) as
+      | { success?: boolean; error?: { message?: string } }
+      | null;
+
+    if (!okrsResponse.ok || !okrsJson?.success) {
+      const message = okrsJson?.error?.message ?? 'No se pudieron guardar los OKRs.';
+      throw new Error(message);
+    }
+
+    const objectivesResponse = await fetch('/api/seo/objectives-90d', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        websiteId,
+        upsert: true,
+        rows: [
+          {
+            quarter,
+            title: `Objetivo SEO ${quarter}`,
+            description: 'Objetivo trimestral generado desde el asistente de configuración SEO.',
+            status: 'active',
+            startsOn: okrStart,
+            endsOn: objectiveEnd,
+            kpis: [
+              {
+                key: 'organic_clicks_90d',
+                label: 'Clicks orgánicos',
+                from: 0,
+                to: wizardData.targetClicks * 3,
+                unit: 'clicks/90d',
+              },
+              {
+                key: 'avg_position',
+                label: 'Posición promedio',
+                from: 0,
+                to: wizardData.targetPosition,
+                unit: 'pos avg',
+              },
+              {
+                key: 'technical_score',
+                label: 'Score técnico',
+                from: 0,
+                to: wizardData.targetTechScore,
+                unit: '/100',
+              },
+            ],
+          },
+        ],
+      }),
+    });
+
+    const objectivesJson = (await objectivesResponse.json().catch(() => null)) as
+      | { success?: boolean; error?: { message?: string } }
+      | null;
+
+    if (!objectivesResponse.ok || !objectivesJson?.success) {
+      const message = objectivesJson?.error?.message ?? 'No se pudieron guardar los objetivos 90d.';
+      throw new Error(message);
+    }
+  }
+
+  async function handleNext() {
+    if (currentStep >= TOTAL_STEPS) return;
+    if (currentStep === 6) {
+      setStep6Saving(true);
+      setStep6Error(null);
+      try {
+        await persistStep6Targets();
+        setCurrentStep((s) => s + 1);
+      } catch (error) {
+        setStep6Error(error instanceof Error ? error.message : 'No se pudo guardar la configuración.');
+      } finally {
+        setStep6Saving(false);
+      }
+      return;
+    }
+    setCurrentStep((s) => s + 1);
   }
 
   function handleBack() {
@@ -459,6 +592,11 @@ export function SeoQuickStartWizard({
                 max={100}
               />
             </div>
+            {step6Error && (
+              <div className="rounded-md border border-[var(--studio-danger)]/30 bg-[var(--studio-danger)]/10 px-3 py-2 text-xs text-[var(--studio-danger)]">
+                {step6Error}
+              </div>
+            )}
           </div>
         );
 
@@ -599,12 +737,12 @@ export function SeoQuickStartWizard({
                 Comenzar →
               </StudioButton>
             ) : currentStep === 4 || currentStep === 5 ? (
-              <StudioButton size="sm" onClick={handleNext} disabled={isNextDisabled()}>
+              <StudioButton size="sm" onClick={handleNext} disabled={isNextDisabled() || step6Saving}>
                 Siguiente →
               </StudioButton>
             ) : (
-              <StudioButton size="sm" onClick={handleNext} disabled={isNextDisabled()}>
-                Siguiente →
+              <StudioButton size="sm" onClick={handleNext} disabled={isNextDisabled() || step6Saving}>
+                {currentStep === 6 && step6Saving ? 'Guardando...' : 'Siguiente →'}
               </StudioButton>
             )}
           </div>

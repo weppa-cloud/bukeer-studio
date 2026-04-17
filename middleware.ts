@@ -208,7 +208,8 @@ async function getRedirectedSlug(
 async function trySlugRedirect(
   request: NextRequest,
   route: { categorySlug: string; productType: string; productSlug: string },
-  website: WebsiteLookup | null
+  website: WebsiteLookup | null,
+  languageSegment: string | null = null,
 ): Promise<NextResponse | null> {
   if (!website || !website.subdomain || !website.account_id) {
     return null;
@@ -230,7 +231,9 @@ async function trySlugRedirect(
   }
 
   const redirectUrl = new URL(request.nextUrl);
-  redirectUrl.pathname = `/${route.categorySlug}/${redirectedSlug}`;
+  redirectUrl.pathname = languageSegment
+    ? `/${languageSegment}/${route.categorySlug}/${redirectedSlug}`
+    : `/${route.categorySlug}/${redirectedSlug}`;
   return NextResponse.redirect(redirectUrl, 301);
 }
 
@@ -514,7 +517,14 @@ export async function middleware(request: NextRequest) {
       }
 
       if (potentialProductRoute) {
-        const redirectResponse = await trySlugRedirect(request, potentialProductRoute, website);
+        const redirectResponse = await trySlugRedirect(
+          request,
+          potentialProductRoute,
+          website,
+          localeResolution.resolvedLocale === localeResolution.defaultLocale
+            ? null
+            : localeResolution.resolvedLanguage,
+        );
         if (redirectResponse) {
           return redirectResponse;
         }
@@ -572,7 +582,14 @@ export async function middleware(request: NextRequest) {
     }
 
     if (potentialProductRoute) {
-      const redirectResponse = await trySlugRedirect(request, potentialProductRoute, website);
+      const redirectResponse = await trySlugRedirect(
+        request,
+        potentialProductRoute,
+        website,
+        localeResolution.resolvedLocale === localeResolution.defaultLocale
+          ? null
+          : localeResolution.resolvedLanguage,
+      );
       if (redirectResponse) {
         return redirectResponse;
       }
@@ -621,7 +638,14 @@ export async function middleware(request: NextRequest) {
     }
 
     if (potentialProductRoute) {
-      const redirectResponse = await trySlugRedirect(request, potentialProductRoute, website);
+      const redirectResponse = await trySlugRedirect(
+        request,
+        potentialProductRoute,
+        website,
+        localeResolution.resolvedLocale === localeResolution.defaultLocale
+          ? null
+          : localeResolution.resolvedLanguage,
+      );
       if (redirectResponse) {
         return redirectResponse;
       }

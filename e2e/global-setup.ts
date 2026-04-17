@@ -15,7 +15,6 @@ async function globalSetup(config: FullConfig) {
     '/login',
     '/dashboard',
     '/site/colombiatours',
-    '/site/colombiatours/destinos',
     ...(websiteId ? [
       `/dashboard/${websiteId}/pages`,
       `/dashboard/${websiteId}/analytics`,

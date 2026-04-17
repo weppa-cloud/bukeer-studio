@@ -31,6 +31,7 @@ import { MeetingPointMap } from '@/components/site/meeting-point-map';
 import { OptionsTable } from '@/components/site/options-table';
 import { PackageCircuitMap } from '@/components/site/package-circuit-map';
 import { ProductFAQ } from '@/components/site/product-faq';
+import { ItineraryItemRenderer } from '@/components/site/itinerary-item-renderer';
 import { ProgramTimeline } from '@/components/site/program-timeline';
 import { SectionErrorBoundary } from '@/components/site/section-error-boundary';
 import { StickyCTABar } from '@/components/site/sticky-cta-bar';
@@ -1123,13 +1124,10 @@ function PackageSections({
                 className="flex items-start gap-4 rounded-xl border border-border bg-card p-4"
               >
                 <div className="h-10 w-10 shrink-0 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold">
-                  {item.day}
+                  {index + 1}
                 </div>
-                <div>
-                  <h3 className="font-medium">{item.title}</h3>
-                  {item.description && (
-                    <p className="mt-1 text-sm text-muted-foreground">{item.description}</p>
-                  )}
+                <div className="flex-1 min-w-0">
+                  <ItineraryItemRenderer item={item} />
                 </div>
               </motion.div>
             ))}
