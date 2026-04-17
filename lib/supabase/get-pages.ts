@@ -31,6 +31,8 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const PRODUCT_PAGE_CACHE_TTL_MS = Number(process.env.PRODUCT_PAGE_CACHE_TTL_MS || 5 * 60 * 1000);
+const productPageCache = new Map<string, { value: ProductPageData; expiresAt: number }>();
 
 function logProductV2ParseWarning(
   scope: string,
@@ -79,6 +81,12 @@ export async function getProductPage(
   productSlug: string
 ): Promise<ProductPageData | null> {
   try {
+    const cacheKey = `${subdomain.toLowerCase()}::${productType.toLowerCase()}::${productSlug.toLowerCase()}`;
+    const cached = productPageCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.value;
+    }
+
     const { data, error } = await supabase.rpc('get_website_product_page', {
       p_subdomain: subdomain,
       p_product_type: productType,
@@ -150,6 +158,11 @@ export async function getProductPage(
         }
       }
     }
+
+    productPageCache.set(cacheKey, {
+      value: result,
+      expiresAt: Date.now() + PRODUCT_PAGE_CACHE_TTL_MS,
+    });
 
     return result;
   } catch (e) {

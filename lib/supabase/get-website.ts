@@ -29,6 +29,8 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const WEBSITE_CACHE_TTL_MS = Number(process.env.WEBSITE_CACHE_TTL_MS || 5 * 60 * 1000);
+const websiteBySubdomainCache = new Map<string, { value: WebsiteData; expiresAt: number }>();
 
 interface AccountCurrencyColumns {
   primary_currency: string | null;
@@ -84,6 +86,12 @@ async function getAccountCurrencyColumns(accountId: string): Promise<AccountCurr
  */
 export async function getWebsiteBySubdomain(subdomain: string): Promise<WebsiteData | null> {
   try {
+    const cacheKey = subdomain.toLowerCase();
+    const cached = websiteBySubdomainCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.value;
+    }
+
     const { data, error } = await supabase
       .rpc('get_website_by_subdomain', { p_subdomain: subdomain });
 
@@ -116,7 +124,7 @@ export async function getWebsiteBySubdomain(subdomain: string): Promise<WebsiteD
       }
     }
 
-    return {
+    const hydratedWebsite = {
       ...website,
       featured_products: {
         destinations: featuredProducts.destinations || [],
@@ -126,6 +134,12 @@ export async function getWebsiteBySubdomain(subdomain: string): Promise<WebsiteD
         packages: featuredProducts.packages || [],
       },
     };
+    websiteBySubdomainCache.set(cacheKey, {
+      value: hydratedWebsite,
+      expiresAt: Date.now() + WEBSITE_CACHE_TTL_MS,
+    });
+
+    return hydratedWebsite;
   } catch (e) {
     console.error('[getWebsiteBySubdomain] Exception:', e);
     return null;

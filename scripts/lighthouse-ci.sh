@@ -71,6 +71,20 @@ done
 echo "[lighthouse-ci] Server up. Running Lighthouse CI..."
 
 # --- Run Lighthouse CI -------------------------------------------------------
+# Optional prewarm to stabilize data/cache before measurements.
+if [[ "${LHCI_PREWARM:-1}" == "1" ]]; then
+  TENANT="${LHCI_TENANT:-colombiatours}"
+  echo "[lighthouse-ci] Prewarming audited URLs for tenant '$TENANT'..."
+  prewarm_urls=(
+    "http://localhost:${PORT}/site/${TENANT}/actividades/4x1-adventure"
+    "http://localhost:${PORT}/site/${TENANT}/hoteles/aloft-bogota-airport"
+    "http://localhost:${PORT}/site/${TENANT}/paquetes/paquete-bogot-4-d-as"
+  )
+  for prewarm_url in "${prewarm_urls[@]}"; do
+    curl -sf "$prewarm_url" > /dev/null || true
+  done
+fi
+
 # LHCI_PORT is consumed by lighthouserc.js to build the URL list.
 LHCI_PORT="$PORT" npx --no-install lhci autorun --config=./lighthouserc.js || {
   status=$?
