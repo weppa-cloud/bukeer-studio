@@ -1,26 +1,44 @@
-import type { ComponentPropsWithoutRef } from 'react';
+import type { ComponentPropsWithoutRef, MouseEvent } from 'react';
 import clsx from 'clsx';
+import { trackEvent } from '@/lib/analytics/track';
 
 interface CalBookingCTAProps extends Omit<ComponentPropsWithoutRef<'a'>, 'href'> {
   bookingLink?: string | null;
   label?: string;
+  /** Free-form tag describing where on the page this CTA appears. */
+  analyticsLocation?: string;
+  /** Optional extra dimensions merged into the analytics event payload. */
+  analyticsContext?: Record<string, string | number | boolean | null | undefined>;
 }
 
 export function CalBookingCTA({
   bookingLink,
   label = 'Agendar llamada',
   className,
+  analyticsLocation,
+  analyticsContext,
+  onClick,
   ...anchorProps
 }: CalBookingCTAProps) {
   if (!bookingLink) {
     return null;
   }
 
+  const handleClick = (event: MouseEvent<HTMLAnchorElement>) => {
+    trackEvent('cal_booking_click', {
+      booking_link: bookingLink,
+      location_context: analyticsLocation ?? null,
+      ...(analyticsContext ?? {}),
+    });
+    onClick?.(event);
+  };
+
   return (
     <a
       href={bookingLink}
       target="_blank"
       rel="noopener noreferrer"
+      onClick={handleClick}
       className={clsx(
         'inline-flex items-center justify-center gap-2 rounded-full border px-5 py-3 text-sm font-semibold transition-colors hover:bg-muted',
         className

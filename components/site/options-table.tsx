@@ -1,4 +1,5 @@
 import type { ActivityOption, ActivityPrice } from '@bukeer/website-contract';
+import { formatPriceOrConsult } from '@/lib/products/format-price';
 
 export interface OptionsTableProps {
   options?: Array<ActivityOption | null | undefined> | null;
@@ -32,16 +33,8 @@ function normalizeOption(option: ActivityOption | null | undefined): ActivityOpt
   };
 }
 
-function formatPrice(price: ActivityPrice): string {
-  try {
-    return new Intl.NumberFormat('es-CO', {
-      style: 'currency',
-      currency: price.currency,
-      maximumFractionDigits: 0,
-    }).format(price.price);
-  } catch {
-    return `${price.price} ${price.currency}`;
-  }
+function formatOptionPrice(price: ActivityPrice): string {
+  return formatPriceOrConsult(price.price, price.currency);
 }
 
 export function OptionsTable({
@@ -170,7 +163,7 @@ export function OptionsTable({
                         >
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="text-sm font-medium" style={{ color: 'var(--text-heading)' }}>
-                              {formatPrice(price)}
+                              {formatOptionPrice(price)}
                             </span>
                             <span className="text-xs uppercase tracking-[0.16em]" style={{ color: 'var(--text-muted)' }}>
                               {price.unit_type_code}

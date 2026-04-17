@@ -1,11 +1,17 @@
 import type { ProductData } from '@bukeer/website-contract';
+import { formatPrice } from './format-price';
 
+/**
+ * Preserves backward-compatible signature (`string | undefined`) while delegating
+ * to the unified `formatPrice` helper. Prefer `formatPrice` in new code.
+ */
 export function formatProductPrice(rawPrice: unknown, currency?: string): string | undefined {
   if (typeof rawPrice === 'string' && rawPrice.trim().length > 0) return rawPrice.trim();
   if (typeof rawPrice !== 'number' || Number.isNaN(rawPrice)) return undefined;
 
+  // Default to USD only when caller didn't specify — matches legacy behavior.
   const code = currency?.toUpperCase() || 'USD';
-  return `$${new Intl.NumberFormat('en-US').format(Math.round(rawPrice))} ${code}`;
+  return formatPrice(rawPrice, code) ?? undefined;
 }
 
 export function toProductLocation(product: ProductData): string | undefined {

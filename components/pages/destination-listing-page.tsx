@@ -9,6 +9,7 @@ import { DestinationMap } from '@/components/maps/destination-map';
 import type { MapMarker } from '@/lib/maps/types';
 import type { WebsiteData } from '@/lib/supabase/get-website';
 import type { DestinationData } from '@/lib/supabase/get-pages';
+import { formatPriceOrConsult } from '@/lib/products/format-price';
 
 interface DestinationListingPageProps {
   website: WebsiteData;
@@ -216,7 +217,7 @@ export function DestinationListingPage({
                         className="text-sm font-semibold mt-2"
                         style={{ color: 'var(--accent)' }}
                       >
-                        Desde ${new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(Number(dest.min_price))}
+                        Desde {formatPriceOrConsult(dest.min_price, null)}
                       </p>
                     )}
                   </div>

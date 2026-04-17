@@ -1,6 +1,7 @@
-import type { ComponentPropsWithoutRef } from 'react';
+import type { ComponentPropsWithoutRef, MouseEvent } from 'react';
 import clsx from 'clsx';
 import { buildWhatsAppUrl } from './whatsapp-url';
+import { trackEvent } from '@/lib/analytics/track';
 
 interface WhatsAppCTAProps extends ComponentPropsWithoutRef<'a'> {
   phone?: string | null;
@@ -8,6 +9,10 @@ interface WhatsAppCTAProps extends ComponentPropsWithoutRef<'a'> {
   location?: string | null;
   refCode?: string | number | null;
   label?: string;
+  /** Free-form tag describing where on the page this CTA appears (hero, sidebar, sticky…). */
+  analyticsLocation?: string;
+  /** Optional extra dimensions merged into the analytics event payload. */
+  analyticsContext?: Record<string, string | number | boolean | null | undefined>;
 }
 
 export function WhatsAppCTA({
@@ -17,6 +22,9 @@ export function WhatsAppCTA({
   refCode,
   label = 'Escribir por WhatsApp',
   className,
+  analyticsLocation,
+  analyticsContext,
+  onClick,
   ...anchorProps
 }: WhatsAppCTAProps) {
   const href = buildWhatsAppUrl({
@@ -30,11 +38,22 @@ export function WhatsAppCTA({
     return null;
   }
 
+  const handleClick = (event: MouseEvent<HTMLAnchorElement>) => {
+    trackEvent('whatsapp_cta_click', {
+      product_name: productName ?? null,
+      location_context: analyticsLocation ?? null,
+      ref: refCode ? String(refCode) : null,
+      ...(analyticsContext ?? {}),
+    });
+    onClick?.(event);
+  };
+
   return (
     <a
       href={href}
       target="_blank"
       rel="noopener noreferrer"
+      onClick={handleClick}
       className={clsx(
         'inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-semibold transition-opacity hover:opacity-90',
         className

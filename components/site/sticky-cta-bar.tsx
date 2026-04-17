@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import clsx from 'clsx';
+import { formatPriceOrConsult } from '@/lib/products/format-price';
+import { trackEvent } from '@/lib/analytics/track';
 
 interface StickyCTABarProps {
   price?: number | string | null;
@@ -9,25 +11,8 @@ interface StickyCTABarProps {
   whatsappUrl?: string | null;
   phone?: string | null;
   className?: string;
-}
-
-function formatStickyPrice(price?: number | string | null, currency?: string | null): string {
-  if (price === null || price === undefined) {
-    return 'Consultar';
-  }
-
-  const numericPrice = typeof price === 'number'
-    ? price
-    : Number(String(price).replace(/[^0-9.-]/g, ''));
-
-  if (!Number.isFinite(numericPrice) || numericPrice <= 0) {
-    return 'Consultar';
-  }
-
-  const formatted = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(numericPrice);
-  const symbol = currency === 'EUR' ? '€' : '$';
-  const suffix = currency && !['USD', 'EUR'].includes(currency) ? ` ${currency}` : '';
-  return `${symbol}${formatted}${suffix}`;
+  /** Optional analytics dimensions merged into whatsapp_cta_click / phone_cta_click events. */
+  analyticsContext?: Record<string, string | number | boolean | null | undefined>;
 }
 
 export function StickyCTABar({
@@ -36,13 +21,14 @@ export function StickyCTABar({
   whatsappUrl,
   phone,
   className,
+  analyticsContext,
 }: StickyCTABarProps) {
   const [isVisible, setIsVisible] = useState(false);
   const callHref = useMemo(() => {
     const cleanPhone = (phone ?? '').replace(/[^0-9+]/g, '');
     return cleanPhone ? `tel:${cleanPhone}` : null;
   }, [phone]);
-  const priceLabel = formatStickyPrice(price, currency);
+  const priceLabel = formatPriceOrConsult(price, currency);
 
   useEffect(() => {
     const onScroll = () => {
@@ -95,6 +81,7 @@ export function StickyCTABar({
             href={whatsappUrl}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={() => trackEvent('whatsapp_cta_click', { ...(analyticsContext ?? {}), location_context: 'sticky_bar' })}
             className="inline-flex items-center justify-center rounded-full px-3 py-2 text-xs font-semibold"
             style={{ backgroundColor: 'hsl(var(--accent))', color: 'hsl(var(--accent-text))' }}
           >
@@ -105,6 +92,7 @@ export function StickyCTABar({
         {callHref ? (
           <a
             href={callHref}
+            onClick={() => trackEvent('phone_cta_click', { ...(analyticsContext ?? {}), location_context: 'sticky_bar' })}
             className="inline-flex items-center justify-center rounded-full border px-3 py-2 text-xs font-semibold hover:bg-muted"
           >
             Llamar

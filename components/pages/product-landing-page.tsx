@@ -9,7 +9,9 @@ import type { ProductData, ProductPageCustomization } from '@/lib/supabase/get-p
 import { getCategoryProducts } from '@/lib/supabase/get-pages';
 import { getBasePath } from '@/lib/utils/base-path';
 import { normalizeProduct } from '@/lib/products/normalize-product';
+import { formatPriceOrConsult } from '@/lib/products/format-price';
 import { formatCircuitStops, getPackageCircuitStops } from '@/lib/products/package-circuit';
+import { trackEvent } from '@/lib/analytics/track';
 import { ProductSchema } from '../seo/product-schema';
 import { CalBookingCTA } from '@/components/site/cal-booking-cta';
 import { HighlightsGrid } from '@/components/site/highlights-grid';
@@ -44,19 +46,6 @@ const fadeUp = {
   hidden: { opacity: 0, y: 20 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.6 } },
 };
-
-/** Format a price with currency symbol (e.g. "$156,250 COP") */
-function formatPrice(price: number | string, currency?: string): string {
-  const numericPrice = typeof price === 'number'
-    ? price
-    : Number(String(price).replace(/[^0-9.-]/g, ''));
-  const formatted = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(
-    Number.isFinite(numericPrice) ? numericPrice : 0
-  );
-  const symbol = currency === 'EUR' ? '€' : '$';
-  const suffix = currency && currency !== 'USD' && currency !== 'EUR' ? ` ${currency}` : '';
-  return `${symbol}${formatted}${suffix}`;
-}
 
 function normalizeTextList(value: unknown): string[] {
   if (Array.isArray(value)) {
@@ -126,6 +115,15 @@ export function ProductLandingPage({
     ref: product.id,
   });
   const bookingLink = (website.content.social as { booking_link?: string } | undefined)?.booking_link;
+  const analyticsContext = {
+    product_id: product.id,
+    product_type: productType,
+    product_name: product.name,
+    tenant_subdomain: website.subdomain ?? null,
+  };
+  const handleWhatsAppClick = (location: string) => () => {
+    trackEvent('whatsapp_cta_click', { ...analyticsContext, location_context: location });
+  };
   const mapMeetingPoint = product.meeting_point ?? (
     product.latitude !== undefined && product.longitude !== undefined
       ? {
@@ -218,7 +216,7 @@ export function ProductLandingPage({
             <div className="mt-4 flex flex-wrap items-center gap-3">
               {product.price && (
                 <span className="inline-flex items-center rounded-full bg-background/70 px-4 py-2 text-sm font-semibold backdrop-blur">
-                  Desde {formatPrice(product.price, product.currency)}
+                  Desde {formatPriceOrConsult(product.price, product.currency)}
                 </span>
               )}
               {whatsappUrl && (
@@ -226,6 +224,7 @@ export function ProductLandingPage({
                   href={whatsappUrl}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={handleWhatsAppClick('hero')}
                   className="inline-flex items-center gap-2 rounded-full bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700 transition-colors"
                 >
                   WhatsApp
@@ -437,6 +436,8 @@ export function ProductLandingPage({
                   productType={productType}
                   whatsappUrl={whatsappUrl}
                   bookingLink={bookingLink}
+                  onWhatsAppClick={handleWhatsAppClick('sidebar')}
+                  analyticsContext={analyticsContext}
                 />
               </div>
             </div>
@@ -483,6 +484,7 @@ export function ProductLandingPage({
                 href={whatsappUrl}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={handleWhatsAppClick('cta_section')}
                 className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-green-600 text-white rounded-full font-medium hover:bg-green-700 transition-colors"
               >
                 <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
@@ -501,6 +503,8 @@ export function ProductLandingPage({
               bookingLink={bookingLink}
               className="px-8 py-4"
               label="Agendar llamada"
+              analyticsLocation="cta_section"
+              analyticsContext={analyticsContext}
             />
           </div>
         </div>
@@ -733,7 +737,7 @@ function ActivitySections({ product, normalized }: { product: ProductData; norma
           <div className="rounded-xl overflow-hidden border border-border bg-card px-6 py-4">
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Desde</span>
-              <span className="text-xl font-bold text-primary">{formatPrice(normalized.price, product.currency)}</span>
+              <span className="text-xl font-bold text-primary">{formatPriceOrConsult(normalized.price, product.currency)}</span>
             </div>
           </div>
         </motion.section>
@@ -939,12 +943,16 @@ function SummarySidebar({
   productType,
   whatsappUrl,
   bookingLink,
+  onWhatsAppClick,
+  analyticsContext,
 }: {
   product: ProductData;
   normalized: NormalizedProduct;
   productType: string;
   whatsappUrl: string | null;
   bookingLink?: string;
+  onWhatsAppClick?: () => void;
+  analyticsContext?: Record<string, string | number | boolean | null | undefined>;
 }) {
   const quickFacts = [
     { label: 'Tipo', value: getCategoryLabel(productType) },
@@ -958,7 +966,7 @@ function SummarySidebar({
       {normalized.price !== null && (
         <div>
           <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground">Desde</span>
-          <p className="text-3xl mt-1 font-bold text-primary">{formatPrice(normalized.price, product.currency)}</p>
+          <p className="text-3xl mt-1 font-bold text-primary">{formatPriceOrConsult(normalized.price, product.currency)}</p>
         </div>
       )}
 
@@ -979,6 +987,7 @@ function SummarySidebar({
             href={whatsappUrl}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={onWhatsAppClick}
             className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-green-700"
           >
             WhatsApp
@@ -988,6 +997,8 @@ function SummarySidebar({
           bookingLink={bookingLink}
           className="w-full py-3 text-sm"
           label="Agendar llamada"
+          analyticsLocation="sidebar"
+          analyticsContext={analyticsContext}
         />
       </div>
     </aside>
@@ -1279,7 +1290,7 @@ function SimilarProducts({ website, product, productType, basePath }: { website:
                       <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{item.location}</span>
                     )}
                     {item.price && (
-                      <span className="text-sm font-semibold" style={{ color: 'var(--accent)' }}>{formatPrice(item.price, item.currency)}</span>
+                      <span className="text-sm font-semibold" style={{ color: 'var(--accent)' }}>{formatPriceOrConsult(item.price, item.currency)}</span>
                     )}
                   </div>
                 </div>

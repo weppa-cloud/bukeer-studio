@@ -92,6 +92,7 @@ SESSION_NAME=s1 PORT=3001 npm run test:e2e:session             # e2e
 | `npm run test:e2e` | Playwright completo |
 | `npm run test:e2e:session` | Playwright aislado por SESSION_NAME + PORT |
 | `npm run start:prod:clean` | Limpia cache, build producción y arranca |
+| `bash scripts/lighthouse-ci.sh` | Lighthouse CI gate (perf/a11y/SEO/best-practices) via session pool — ver [`docs/ops/lighthouse-ci.md`](docs/ops/lighthouse-ci.md) |
 
 ## Build & Deploy
 
