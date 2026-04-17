@@ -38,12 +38,18 @@ echo "[lighthouse-ci] Starting dev server (NEXT_DIST_DIR=.next-$SESSION_NAME)"
 NEXT_DIST_DIR=".next-$SESSION_NAME" PORT="$PORT" npm run dev:session &
 DEV_PID=$!
 
-# --- Wait for server to be reachable ----------------------------------------
+# --- Wait for server to be reachable (pure bash, macOS-safe) ----------------
 echo "[lighthouse-ci] Waiting for http://localhost:$PORT ..."
-if ! timeout 90 bash -c "until curl -sf http://localhost:$PORT > /dev/null; do sleep 2; done"; then
-  echo "[lighthouse-ci] ERROR: dev server did not become reachable on port $PORT within 90s" >&2
-  exit 1
-fi
+WAIT_SECS=120
+elapsed=0
+until curl -sf "http://localhost:$PORT" > /dev/null; do
+  if (( elapsed >= WAIT_SECS )); then
+    echo "[lighthouse-ci] ERROR: dev server did not become reachable on port $PORT within ${WAIT_SECS}s" >&2
+    exit 1
+  fi
+  sleep 3
+  elapsed=$((elapsed + 3))
+done
 
 echo "[lighthouse-ci] Server up. Running Lighthouse CI..."
 
