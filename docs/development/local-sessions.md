@@ -169,4 +169,3 @@ To get prod-equivalent tiles locally:
 4. Restart `npm run dev`. The destinations map on `/site/colombiatours/destinos` should render with real tiles instead of the compatibility croquis.
 
 Alternative providers that also expose a MapLibre-compatible `style.json`: Stadia Maps, Protomaps (self-hosted PMTiles on Cloudflare R2), MapBox. Swap the URL and token accordingly.
-```
