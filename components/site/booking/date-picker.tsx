@@ -184,14 +184,14 @@ export function DatePicker({
         style={{ color: 'var(--text-heading)' }}
       >
         <span aria-live="polite">{monthHeader}</span>
-        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+        <span className="text-xs" style={{ color: 'var(--text-secondary, var(--text-heading))' }}>
           Próximos 60 días
         </span>
       </div>
 
       <div
         className="grid grid-cols-7 gap-1 px-1 text-center text-[10px] uppercase tracking-wider"
-        style={{ color: 'var(--text-muted)' }}
+        style={{ color: 'var(--text-secondary, var(--text-heading))' }}
         aria-hidden="true"
       >
         {WEEK_LABELS.map((w) => (
@@ -204,7 +204,7 @@ export function DatePicker({
       <div
         ref={gridRef}
         className="grid grid-cols-7 gap-1 px-1 pb-1"
-        role="grid"
+        role="group"
         aria-label="Selecciona una fecha"
       >
         {days.map((d, i) => {
@@ -218,8 +218,6 @@ export function DatePicker({
             <button
               key={d.iso}
               type="button"
-              role="gridcell"
-              aria-selected={selected}
               aria-disabled={d.disabled}
               data-date={d.iso}
               tabIndex={focused ? 0 : -1}
@@ -236,7 +234,7 @@ export function DatePicker({
                 color: selected
                   ? 'var(--accent-contrast, #ffffff)'
                   : d.disabled
-                    ? 'var(--text-muted)'
+                    ? 'var(--text-secondary, var(--text-heading))'
                     : 'var(--text-heading)',
                 backgroundColor: selected
                   ? 'var(--accent)'

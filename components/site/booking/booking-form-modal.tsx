@@ -31,12 +31,7 @@ type BookingWhatsAppBuilder = (args: {
  */
 async function resolveBookingWhatsAppUrl(): Promise<BookingWhatsAppBuilder> {
   try {
-    // Module ships from Agent B (#168). Resolved at runtime via a dynamic
-    // specifier so the TypeScript compiler does not require the file to
-    // exist while agents A/B/C land in parallel. Once B lands, this still
-    // works as-is (the import succeeds and the real builder is returned).
-    const modPath = ['@', '/lib/booking/whatsapp-deeplink'].join('');
-    const mod = (await import(/* @vite-ignore */ modPath)) as {
+    const mod = (await import('@/lib/booking/whatsapp-deeplink')) as {
       buildBookingWhatsAppUrl?: BookingWhatsAppBuilder;
     };
     if (mod && typeof mod.buildBookingWhatsAppUrl === 'function') {

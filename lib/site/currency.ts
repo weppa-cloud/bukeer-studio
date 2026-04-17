@@ -1,4 +1,8 @@
-import type { WebsiteContent } from '@bukeer/website-contract';
+import type {
+  WebsiteContent,
+  MarketExperienceSettings,
+  MarketSwitcherStyle,
+} from '@bukeer/website-contract';
 
 export const SITE_LANG_QUERY_PARAM = 'lang';
 export const SITE_CURRENCY_QUERY_PARAM = 'currency';
@@ -12,12 +16,32 @@ export const SITE_MENU_LOCALES = [
 ] as const;
 
 export type SiteMenuLocale = typeof SITE_MENU_LOCALES[number];
+export const MARKET_SWITCHER_STYLES: readonly MarketSwitcherStyle[] = ['compact', 'chips', 'segmented'];
+export const DEFAULT_MARKET_SWITCHER_STYLE: MarketSwitcherStyle = 'compact';
 
 export interface CurrencyConfig {
   baseCurrency: string;
   enabledCurrencies: string[];
   rates: Record<string, number>;
 }
+
+export interface MarketExperienceConfig {
+  switcherStyle: MarketSwitcherStyle;
+  showInHeader: boolean;
+  showInFooter: boolean;
+  showLanguage: boolean;
+  showCurrency: boolean;
+}
+
+const LOCALE_LABELS: Record<string, string> = {
+  es: 'Español',
+  en: 'English',
+  pt: 'Português',
+  fr: 'Français',
+  de: 'Deutsch',
+  it: 'Italiano',
+  nl: 'Nederlands',
+};
 
 type WebsiteAccount = WebsiteContent['account'];
 
@@ -32,11 +56,28 @@ function parseFiniteNumber(value: unknown): number | null {
   return null;
 }
 
-export function normalizeLanguageCode(value: string | null | undefined): string | null {
+function normalizeLanguageToken(value: string | null | undefined): string | null {
   if (!value) return null;
-  const normalized = value.trim().toLowerCase().split(/[-_]/)[0];
+  const normalized = value
+    .trim()
+    .toLowerCase()
+    .replace(/_/g, '-')
+    .split('-')[0];
   if (!normalized) return null;
-  return SITE_MENU_LOCALES.some((entry) => entry.code === normalized) ? normalized : null;
+  return /^[a-z]{2,5}$/.test(normalized) ? normalized : null;
+}
+
+function uniqueItems(values: Array<string | null | undefined>): string[] {
+  const seen = new Set<string>();
+  for (const value of values) {
+    if (!value) continue;
+    seen.add(value);
+  }
+  return Array.from(seen);
+}
+
+export function normalizeLanguageCode(value: string | null | undefined): string | null {
+  return normalizeLanguageToken(value);
 }
 
 export function normalizeCurrencyCode(value: string | null | undefined): string | null {
@@ -46,13 +87,70 @@ export function normalizeCurrencyCode(value: string | null | undefined): string 
 }
 
 function dedupeCurrencyCodes(values: Array<string | null | undefined>): string[] {
-  const seen = new Set<string>();
-  for (const value of values) {
-    const normalized = normalizeCurrencyCode(value);
-    if (!normalized) continue;
-    seen.add(normalized);
+  return uniqueItems(values.map((value) => normalizeCurrencyCode(value)));
+}
+
+function parseMarketBoolean(value: unknown, fallback: boolean): boolean {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') return value !== 0;
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (['true', '1', 'yes', 'on'].includes(normalized)) return true;
+    if (['false', '0', 'no', 'off'].includes(normalized)) return false;
   }
-  return Array.from(seen);
+  return fallback;
+}
+
+function normalizeMarketSwitcherStyle(value: unknown): MarketSwitcherStyle {
+  if (typeof value !== 'string') return DEFAULT_MARKET_SWITCHER_STYLE;
+  const normalized = value.trim().toLowerCase();
+  return MARKET_SWITCHER_STYLES.includes(normalized as MarketSwitcherStyle)
+    ? (normalized as MarketSwitcherStyle)
+    : DEFAULT_MARKET_SWITCHER_STYLE;
+}
+
+export function getLocaleLabel(code: string): string {
+  const normalized = normalizeLanguageCode(code);
+  if (!normalized) return code.toUpperCase();
+  return LOCALE_LABELS[normalized] ?? normalized.toUpperCase();
+}
+
+export function resolveSiteMenuLocales(input: {
+  defaultLocale?: string | null;
+  supportedLocales?: string[] | null;
+  contentLocale?: string | null;
+}): Array<{ code: string; label: string }> {
+  const defaultLocale = normalizeLanguageCode(input.defaultLocale);
+  const contentLocale = normalizeLanguageCode(input.contentLocale);
+  const supportedLocales = Array.isArray(input.supportedLocales)
+    ? input.supportedLocales
+      .map((locale) => normalizeLanguageCode(locale))
+      .filter((locale): locale is string => Boolean(locale))
+    : [];
+
+  const fallbackLocales = SITE_MENU_LOCALES.map((locale) => locale.code);
+  const localeCodes = supportedLocales.length > 0
+    ? uniqueItems([defaultLocale, ...supportedLocales])
+    : uniqueItems([defaultLocale, contentLocale, ...fallbackLocales]);
+
+  return localeCodes.map((code) => ({
+    code,
+    label: getLocaleLabel(code),
+  }));
+}
+
+export function resolveMarketExperienceConfig(content: WebsiteContent | null | undefined): MarketExperienceConfig {
+  const marketExperience = (content?.market_experience ?? {}) as MarketExperienceSettings;
+  const showLanguage = parseMarketBoolean(marketExperience.show_language, true);
+  const showCurrency = parseMarketBoolean(marketExperience.show_currency, true);
+
+  return {
+    switcherStyle: normalizeMarketSwitcherStyle(marketExperience.switcher_style),
+    showInHeader: parseMarketBoolean(marketExperience.show_in_header, true),
+    showInFooter: parseMarketBoolean(marketExperience.show_in_footer, true),
+    showLanguage,
+    showCurrency,
+  };
 }
 
 export function buildCurrencyConfig(account: WebsiteAccount | null | undefined): CurrencyConfig | null {

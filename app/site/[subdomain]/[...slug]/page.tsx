@@ -15,6 +15,7 @@ import { CategoryPage } from '@/components/pages/category-page';
 import { StaticPage } from '@/components/pages/static-page';
 import { ProductLandingPage } from '@/components/pages/product-landing-page';
 import { getActivityCircuitStops, type ActivityCircuitStop } from '@/lib/products/activity-circuit';
+import { sanitizeProductCopy } from '@/lib/products/normalize-product';
 import dynamic from 'next/dynamic';
 
 const DestinationListingPage = dynamic(
@@ -79,9 +80,14 @@ async function getListingRobotsNoindex(
 export async function generateMetadata({ params }: DynamicPageProps): Promise<Metadata> {
   const { subdomain, slug } = await params;
   const website = await getWebsiteBySubdomain(subdomain);
+  const siteName = website?.content?.account?.name || website?.content?.siteName || subdomain;
+  const fallbackDescription = `${siteName} - Explora itinerarios, hoteles y experiencias con soporte local.`;
 
   if (!website) {
-    return { title: 'Sitio no encontrado' };
+    return {
+      title: 'Sitio no encontrado',
+      description: fallbackDescription,
+    };
   }
 
   // Canonical base URL: prefer custom_domain when available
@@ -316,9 +322,17 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
     if (productType) {
       const productPage = await getProductPage(subdomain, productType, productSlug);
       if (productPage?.product) {
-        const title = productPage.page?.custom_seo_title || productPage.product.name;
-        const description = productPage.page?.custom_seo_description ||
-          productPage.product.description?.substring(0, 160);
+        const title = sanitizeProductCopy(productPage.page?.custom_seo_title || productPage.product.name) || productPage.product.name;
+        const rawDescription = sanitizeProductCopy(
+          productPage.page?.custom_seo_description || productPage.product.description || ''
+        );
+        const locationHint = sanitizeProductCopy(
+          productPage.product.location || productPage.product.city || productPage.product.country || ''
+        );
+        const fallbackDescription = sanitizeProductCopy(
+          `Reserva ${productPage.product.name}${locationHint ? ` en ${locationHint}` : ''} con soporte local, actividades y opciones flexibles.`
+        );
+        const description = (rawDescription || fallbackDescription).slice(0, 160);
         const pathname = `/${slugPath}`;
 
         const metadata: Metadata = {
@@ -390,7 +404,10 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
         },
       };
     }
-    return { title: 'Página no encontrada' };
+    return {
+      title: 'Página no encontrada',
+      description: fallbackDescription,
+    };
   }
 
   const title = page.seo_title || page.title;
@@ -492,9 +509,14 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
           : productType === 'package'
           ? { type: 'package', destination: productLocation || product.name }
           : { type: 'destination', name: productLocation || product.name };
-        const productReviews = googleEnabled && website.account_id
-          ? await getReviewsForContext(website.account_id, reviewContext, 3)
-          : [];
+        const categoryType = getProductCategoryType(productType);
+        const [productReviews, similarProductsPayload] = await Promise.all([
+          googleEnabled && website.account_id
+            ? getReviewsForContext(website.account_id, reviewContext, 3)
+            : Promise.resolve([]),
+          getCategoryProducts(subdomain, categoryType, { limit: 24, offset: 0 }),
+        ]);
+        const similarProducts = similarProductsPayload.items;
 
         let activityCircuitStops: ActivityCircuitStop[] = [];
         if (productType === 'activity') {
@@ -520,6 +542,7 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
             productType={productType}
             googleReviews={productReviews}
             activityCircuitStops={activityCircuitStops}
+            similarProducts={similarProducts}
           />
         );
       }
@@ -577,6 +600,18 @@ function getCategoryProductType(categorySlug: string): string | null {
   };
 
   return mapping[categorySlug.toLowerCase()] || null;
+}
+
+function getProductCategoryType(productType: string): string {
+  const mapping: Record<string, string> = {
+    destination: 'destinations',
+    hotel: 'hotels',
+    activity: 'activities',
+    transfer: 'transfers',
+    package: 'packages',
+  };
+
+  return mapping[productType] || 'activities';
 }
 
 // Revalidate every 5 minutes

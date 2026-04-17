@@ -13,7 +13,7 @@ import { getBasePath } from '@/lib/utils/base-path';
 import type { ThemeInput } from '@/lib/theme/m3-theme-provider';
 import { resolvePublicMetadataLocale } from '@/lib/seo/public-metadata';
 import { localeToOgLocale } from '@/lib/seo/locale-routing';
-import { WebsiteLocaleContext } from '@/lib/context/website-locale';
+import { WebsiteLocaleProvider } from '@/components/site/website-locale-provider';
 import '@/app/globals.css';
 
 interface SiteLayoutProps {
@@ -105,7 +105,7 @@ export default async function SiteLayout({ children, params }: SiteLayoutProps) 
     : getDefaultNavigation(website.sections, basePath);
 
   return (
-    <WebsiteLocaleContext.Provider value={localeContext.resolvedLocale}>
+    <WebsiteLocaleProvider locale={localeContext.resolvedLocale}>
       <M3ThemeProvider initialTheme={getInitialTheme(website.theme)}>
         {/* Google Tag Manager and Analytics Scripts */}
         <GoogleTagManager analytics={website.analytics} />
@@ -125,7 +125,7 @@ export default async function SiteLayout({ children, params }: SiteLayoutProps) 
           </div>
         </SmoothScroll>
       </M3ThemeProvider>
-    </WebsiteLocaleContext.Provider>
+    </WebsiteLocaleProvider>
   );
 }
 

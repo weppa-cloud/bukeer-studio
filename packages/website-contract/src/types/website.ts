@@ -29,6 +29,16 @@ export interface AccountCurrencyRate {
   type?: string | null;
 }
 
+export type MarketSwitcherStyle = 'compact' | 'chips' | 'segmented';
+
+export interface MarketExperienceSettings {
+  switcher_style?: MarketSwitcherStyle;
+  show_in_header?: boolean;
+  show_in_footer?: boolean;
+  show_language?: boolean;
+  show_currency?: boolean;
+}
+
 export interface WebsiteContent {
   siteName: string;
   tagline: string;
@@ -76,6 +86,7 @@ export interface WebsiteContent {
       cancellation_policy: string | null;
     };
   };
+  market_experience?: MarketExperienceSettings;
   trust?: TrustContent;
 }
 

@@ -7,6 +7,11 @@ import { getBasePath } from '@/lib/utils/base-path';
 import { resolveNavHref } from '@/lib/utils/navigation';
 import type { NavigationItem, FooterVariant } from '@bukeer/website-contract';
 import { LanguageSwitcher } from '@/components/site/language-switcher';
+import {
+  normalizeLanguageCode,
+  resolveMarketExperienceConfig,
+  resolveSiteMenuLocales,
+} from '@/lib/site/currency';
 
 interface SiteFooterProps {
   website: WebsiteData;
@@ -25,8 +30,19 @@ export function SiteFooter({ website, isCustomDomain = false, navigation }: Site
     ['cta', 'cta_banner', 'cta_section'].includes(s.section_type)
   );
 
-  // Language config
-  const currentLocale = content.locale?.split('-')[0] || 'es';
+  const marketExperience = resolveMarketExperienceConfig(content);
+  const localeOptions = resolveSiteMenuLocales({
+    defaultLocale: website.default_locale ?? null,
+    supportedLocales: website.supported_locales ?? null,
+    contentLocale: content.locale ?? null,
+  });
+  const currentLocale = normalizeLanguageCode(content.locale)
+    ?? normalizeLanguageCode(website.default_locale)
+    ?? localeOptions[0]?.code
+    ?? 'es';
+  const showFooterLanguageSwitcher = marketExperience.showInFooter
+    && marketExperience.showLanguage
+    && localeOptions.length > 0;
 
   // Usar datos de account si están disponibles (fallback a content)
   const siteName = content.account?.name || content.siteName;
@@ -308,10 +324,13 @@ export function SiteFooter({ website, isCustomDomain = false, navigation }: Site
             © {currentYear} {siteName}. Todos los derechos reservados.
           </p>
           <div className="flex items-center gap-4 text-sm" style={{ color: footerPalette.muted }}>
-            <LanguageSwitcher
-              currentLocale={currentLocale}
-              footerPalette={footerPalette}
-            />
+            {showFooterLanguageSwitcher ? (
+              <LanguageSwitcher
+                currentLocale={currentLocale}
+                locales={localeOptions}
+                footerPalette={footerPalette}
+              />
+            ) : null}
             <a href="https://bukeer.com" target="_blank" rel="noopener noreferrer" className="hover:underline">
               Creado con Bukeer
             </a>

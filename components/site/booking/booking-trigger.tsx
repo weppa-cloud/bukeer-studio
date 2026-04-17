@@ -110,20 +110,20 @@ function BookingTriggerInner({
     >
       <header className="space-y-1">
         <h3 className="text-base font-semibold">Reservar esta experiencia</h3>
-        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+        <p className="text-sm" style={{ color: 'var(--text-secondary, var(--text-heading))' }}>
           {priceLabel}
         </p>
       </header>
 
       <div>
-        <span className="mb-1 block text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+        <span className="mb-1 block text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-secondary, var(--text-heading))' }}>
           Fecha
         </span>
         <DatePicker value={selectedDate} onChange={setSelectedDate} />
       </div>
 
       <div className="flex items-center justify-between gap-4">
-        <span className="text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+        <span className="text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-secondary, var(--text-heading))' }}>
           Personas
         </span>
         <div
@@ -161,10 +161,10 @@ function BookingTriggerInner({
           <label
             htmlFor="booking-option"
             className="mb-1 block text-xs font-medium uppercase tracking-wider"
-            style={{ color: 'var(--text-muted)' }}
+            style={{ color: 'var(--text-secondary, var(--text-heading))' }}
           >
-            Opción
-          </label>
+              Opción
+            </label>
           <select
             id="booking-option"
             value={optionId ?? ''}
@@ -202,7 +202,7 @@ function BookingTriggerInner({
       </button>
 
       {!canSubmit && (
-        <p className="text-center text-xs" style={{ color: 'var(--text-muted)' }}>
+        <p className="text-center text-xs" style={{ color: 'var(--text-secondary, var(--text-heading))' }}>
           Selecciona una fecha para continuar.
         </p>
       )}

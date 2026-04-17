@@ -40,6 +40,16 @@ export const WebsiteUpdateSchema = z.object({
     siteName: z.string().optional(),
     tagline: z.string().optional(),
     logo: z.string().optional(),
+    logoLight: z.string().optional(),
+    logoDark: z.string().optional(),
+    locale: z.string().optional(),
+    market_experience: z.object({
+      switcher_style: z.enum(['compact', 'chips', 'segmented']).optional(),
+      show_in_header: z.boolean().optional(),
+      show_in_footer: z.boolean().optional(),
+      show_language: z.boolean().optional(),
+      show_currency: z.boolean().optional(),
+    }).optional(),
     headerCta: z.object({
       label: z.string(),
       href: z.string(),

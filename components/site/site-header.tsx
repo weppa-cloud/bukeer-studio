@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { WebsiteData } from '@/lib/supabase/get-website';
 import { getBasePath } from '@/lib/utils/base-path';
@@ -11,13 +11,15 @@ import {
   SITE_CURRENCY_STORAGE_KEY,
   SITE_LANG_QUERY_PARAM,
   SITE_LANG_STORAGE_KEY,
-  SITE_MENU_LOCALES,
   buildCurrencyConfig,
+  getLocaleLabel,
   normalizeCurrencyCode,
   normalizeLanguageCode,
+  resolveMarketExperienceConfig,
   resolvePreferredCurrency,
+  resolveSiteMenuLocales,
 } from '@/lib/site/currency';
-import type { NavigationItem, HeaderCTA } from '@bukeer/website-contract';
+import type { NavigationItem, HeaderCTA, MarketSwitcherStyle } from '@bukeer/website-contract';
 
 interface SiteHeaderProps {
   website: WebsiteData;
@@ -50,12 +52,21 @@ export function SiteHeader({ website, isCustomDomain = false, navigation }: Site
   const currentLogo = isTransparent ? logoForDark : logoForLight;
   const headerCta: HeaderCTA | undefined = content.headerCta;
   const phone = content.account?.phone || content.social?.whatsapp;
-  const isColombiaToursSite = subdomain === 'colombiatours'
-    || (website.custom_domain ?? '').toLowerCase().includes('colombiatours');
+  const marketExperience = useMemo(() => resolveMarketExperienceConfig(content), [content]);
   const currencyConfig = useMemo(() => buildCurrencyConfig(content.account), [content.account]);
-  const hasCurrencySwitcher = (currencyConfig?.enabledCurrencies.length ?? 0) > 1;
-  const hasPreferenceSwitchers = hasCurrencySwitcher || isColombiaToursSite;
-  const fallbackLocale = normalizeLanguageCode(content.locale) ?? 'es';
+  const localeOptions = useMemo(() => resolveSiteMenuLocales({
+    defaultLocale: website.default_locale ?? null,
+    supportedLocales: website.supported_locales ?? null,
+    contentLocale: content.locale ?? null,
+  }), [website.default_locale, website.supported_locales, content.locale]);
+  const localeCodes = useMemo(() => localeOptions.map((locale) => locale.code), [localeOptions]);
+  const hasLanguageSwitcher = marketExperience.showLanguage && localeCodes.length > 0;
+  const hasCurrencySwitcher = marketExperience.showCurrency && (currencyConfig?.enabledCurrencies.length ?? 0) > 1;
+  const hasPreferenceSwitchers = marketExperience.showInHeader && (hasLanguageSwitcher || hasCurrencySwitcher);
+  const fallbackLocale = normalizeLanguageCode(content.locale)
+    ?? normalizeLanguageCode(website.default_locale)
+    ?? localeCodes[0]
+    ?? 'es';
   const enabledCurrencyKey = currencyConfig?.enabledCurrencies.join(',') ?? '';
   const [selectedLocale, setSelectedLocale] = useState(fallbackLocale);
   const [selectedCurrency, setSelectedCurrency] = useState<string | null>(currencyConfig?.baseCurrency ?? null);
@@ -113,8 +124,9 @@ export function SiteHeader({ website, isCustomDomain = false, navigation }: Site
   useEffect(() => {
     const params = new URLSearchParams(searchParamsString);
     const queryLocale = normalizeLanguageCode(params.get(SITE_LANG_QUERY_PARAM));
+    const queryIsValid = queryLocale && localeCodes.includes(queryLocale);
 
-    if (queryLocale) {
+    if (queryIsValid && queryLocale) {
       setSelectedLocale(queryLocale);
       if (typeof window !== 'undefined') {
         window.localStorage.setItem(SITE_LANG_STORAGE_KEY, queryLocale);
@@ -124,12 +136,15 @@ export function SiteHeader({ website, isCustomDomain = false, navigation }: Site
 
     if (typeof window !== 'undefined') {
       const storedLocale = normalizeLanguageCode(window.localStorage.getItem(SITE_LANG_STORAGE_KEY));
-      setSelectedLocale(storedLocale ?? fallbackLocale);
+      const nextLocale = storedLocale && localeCodes.includes(storedLocale)
+        ? storedLocale
+        : fallbackLocale;
+      setSelectedLocale(nextLocale);
       return;
     }
 
     setSelectedLocale(fallbackLocale);
-  }, [fallbackLocale, searchParamsString]);
+  }, [fallbackLocale, localeCodes, searchParamsString]);
 
   useEffect(() => {
     const params = new URLSearchParams(searchParamsString);
@@ -152,13 +167,16 @@ export function SiteHeader({ website, isCustomDomain = false, navigation }: Site
   }, [currencyConfig, enabledCurrencyKey, searchParamsString]);
 
   const handleLocaleChange = useCallback((value: string) => {
-    const nextLocale = normalizeLanguageCode(value) ?? fallbackLocale;
+    const requestedLocale = normalizeLanguageCode(value);
+    const nextLocale = requestedLocale && localeCodes.includes(requestedLocale)
+      ? requestedLocale
+      : fallbackLocale;
     setSelectedLocale(nextLocale);
     if (typeof window !== 'undefined') {
       window.localStorage.setItem(SITE_LANG_STORAGE_KEY, nextLocale);
     }
     updatePreferenceParam(SITE_LANG_QUERY_PARAM, nextLocale);
-  }, [fallbackLocale, updatePreferenceParam]);
+  }, [fallbackLocale, localeCodes, updatePreferenceParam]);
 
   const handleCurrencyChange = useCallback((value: string) => {
     const nextCurrency = normalizeCurrencyCode(value);
@@ -352,8 +370,11 @@ export function SiteHeader({ website, isCustomDomain = false, navigation }: Site
               <MenuPreferenceSwitchers
                 selectedLocale={selectedLocale}
                 selectedCurrency={selectedCurrency}
+                localeOptions={localeOptions}
+                hasLanguageSwitcher={hasLanguageSwitcher}
                 hasCurrencySwitcher={hasCurrencySwitcher}
                 currencyOptions={currencyConfig?.enabledCurrencies ?? []}
+                switcherStyle={marketExperience.switcherStyle}
                 isTransparent={isTransparent}
                 onLocaleChange={handleLocaleChange}
                 onCurrencyChange={handleCurrencyChange}
@@ -442,6 +463,8 @@ export function SiteHeader({ website, isCustomDomain = false, navigation }: Site
                   <MobilePreferenceSwitchers
                     selectedLocale={selectedLocale}
                     selectedCurrency={selectedCurrency}
+                    localeOptions={localeOptions}
+                    hasLanguageSwitcher={hasLanguageSwitcher}
                     hasCurrencySwitcher={hasCurrencySwitcher}
                     currencyOptions={currencyConfig?.enabledCurrencies ?? []}
                     onLocaleChange={handleLocaleChange}
@@ -522,8 +545,11 @@ function HeaderCtaButton({ cta }: { cta?: HeaderCTA }) {
 interface PreferenceSwitchersProps {
   selectedLocale: string;
   selectedCurrency: string | null;
+  localeOptions: Array<{ code: string; label: string }>;
+  hasLanguageSwitcher: boolean;
   hasCurrencySwitcher: boolean;
   currencyOptions: string[];
+  switcherStyle: MarketSwitcherStyle;
   onLocaleChange: (value: string) => void;
   onCurrencyChange: (value: string) => void;
 }
@@ -531,38 +557,119 @@ interface PreferenceSwitchersProps {
 function MenuPreferenceSwitchers({
   selectedLocale,
   selectedCurrency,
+  localeOptions,
+  hasLanguageSwitcher,
   hasCurrencySwitcher,
   currencyOptions,
+  switcherStyle,
   isTransparent,
   onLocaleChange,
   onCurrencyChange,
 }: PreferenceSwitchersProps & { isTransparent: boolean }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const panelRef = useRef<HTMLDivElement | null>(null);
   const textColor = isTransparent ? 'rgba(255,255,255,0.9)' : 'var(--text-secondary, hsl(var(--muted-foreground)))';
   const borderColor = isTransparent ? 'rgba(255,255,255,0.25)' : 'var(--border-subtle, hsl(var(--border)))';
   const background = isTransparent ? 'rgba(0,0,0,0.12)' : 'var(--bg, hsl(var(--background)))';
+  const panelBackground = isTransparent
+    ? 'color-mix(in srgb, rgba(11,18,32,0.92) 85%, transparent)'
+    : 'color-mix(in srgb, var(--bg, hsl(var(--background))) 96%, white 4%)';
+  const selectedLocaleShort = getLocaleLabel(selectedLocale).slice(0, 2).toUpperCase();
+  const labelParts = [
+    hasLanguageSwitcher ? selectedLocaleShort : null,
+    hasCurrencySwitcher ? (selectedCurrency ?? currencyOptions[0] ?? '').toUpperCase() : null,
+  ].filter((part): part is string => Boolean(part));
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const onPointerDown = (event: MouseEvent) => {
+      if (!panelRef.current) return;
+      const target = event.target as Node | null;
+      if (!target || panelRef.current.contains(target)) return;
+      setIsOpen(false);
+    };
+    const onEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsOpen(false);
+    };
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('keydown', onEscape);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('keydown', onEscape);
+    };
+  }, [isOpen]);
 
   return (
-    <div className="ml-2 flex items-center gap-2">
-      <PreferenceSelect
-        label="Idioma"
-        value={selectedLocale}
-        options={SITE_MENU_LOCALES.map((locale) => ({ value: locale.code, label: locale.label }))}
-        onChange={onLocaleChange}
-        textColor={textColor}
-        borderColor={borderColor}
-        background={background}
-      />
-      {hasCurrencySwitcher && (
-        <PreferenceSelect
-          label="Moneda"
-          value={selectedCurrency ?? currencyOptions[0] ?? ''}
-          options={currencyOptions.map((code) => ({ value: code, label: code }))}
-          onChange={onCurrencyChange}
-          textColor={textColor}
-          borderColor={borderColor}
-          background={background}
-        />
-      )}
+    <div className="relative ml-2" ref={panelRef}>
+      <button
+        type="button"
+        aria-expanded={isOpen}
+        aria-haspopup="dialog"
+        onClick={() => setIsOpen((current) => !current)}
+        className="inline-flex h-9 min-w-[112px] items-center justify-between gap-2 rounded-full border px-3 transition-all duration-200"
+        style={{
+          color: textColor,
+          borderColor,
+          background,
+          boxShadow: isOpen ? '0 8px 24px rgba(0,0,0,0.16)' : 'none',
+        }}
+      >
+        <span className="text-[10px] uppercase tracking-[0.16em] opacity-70">Mercado</span>
+        <span className="text-xs font-semibold tracking-wide">
+          {labelParts.join(' · ') || 'Preferencias'}
+        </span>
+        <svg className={`h-3.5 w-3.5 transition-transform ${isOpen ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5 7.5L10 12.5L15 7.5" />
+        </svg>
+      </button>
+      {isOpen ? (
+        <div
+          className="absolute right-0 top-full z-50 mt-2 w-[280px] rounded-2xl border p-3 shadow-2xl backdrop-blur"
+          style={{
+            borderColor,
+            background: panelBackground,
+            color: textColor,
+          }}
+        >
+          <p className="mb-3 text-[11px] uppercase tracking-[0.15em] opacity-75">
+            Personaliza tu experiencia
+          </p>
+
+          {hasLanguageSwitcher ? (
+            <MarketOptionGroup
+              title="Idioma"
+              value={selectedLocale}
+              options={localeOptions.map((locale) => ({
+                value: locale.code,
+                label: locale.label,
+                shortLabel: locale.code.toUpperCase(),
+              }))}
+              styleVariant={switcherStyle}
+              onChange={(value) => {
+                onLocaleChange(value);
+                setIsOpen(false);
+              }}
+            />
+          ) : null}
+
+          {hasCurrencySwitcher ? (
+            <MarketOptionGroup
+              title="Moneda"
+              value={(selectedCurrency ?? currencyOptions[0] ?? '').toUpperCase()}
+              options={currencyOptions.map((code) => ({
+                value: code,
+                label: code.toUpperCase(),
+                shortLabel: code.toUpperCase(),
+              }))}
+              styleVariant={switcherStyle}
+              onChange={(value) => {
+                onCurrencyChange(value);
+                setIsOpen(false);
+              }}
+            />
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -570,33 +677,40 @@ function MenuPreferenceSwitchers({
 function MobilePreferenceSwitchers({
   selectedLocale,
   selectedCurrency,
+  localeOptions,
+  hasLanguageSwitcher,
   hasCurrencySwitcher,
   currencyOptions,
   onLocaleChange,
   onCurrencyChange,
-}: PreferenceSwitchersProps) {
+}: Omit<PreferenceSwitchersProps, 'switcherStyle'>) {
+  const showLocaleControl = hasLanguageSwitcher && localeOptions.length > 0;
+  const columns = showLocaleControl && hasCurrencySwitcher ? 'grid-cols-2' : 'grid-cols-1';
+
   return (
-    <div className="grid grid-cols-2 gap-3">
-      <div>
-        <p className="text-xs mb-1" style={{ color: 'var(--text-secondary, hsl(var(--muted-foreground)))' }}>Idioma</p>
-        <select
-          value={selectedLocale}
-          onChange={(event) => onLocaleChange(event.target.value)}
-          className="w-full rounded-lg border px-2 py-1.5 text-sm"
-          style={{
-            borderColor: 'var(--border-subtle, hsl(var(--border)))',
-            color: 'var(--text-heading, hsl(var(--foreground)))',
-            backgroundColor: 'var(--bg, hsl(var(--background)))',
-          }}
-          aria-label="Idioma del sitio"
-        >
-          {SITE_MENU_LOCALES.map((locale) => (
-            <option key={locale.code} value={locale.code}>
-              {locale.label}
-            </option>
-          ))}
-        </select>
-      </div>
+    <div className={`grid gap-3 ${columns}`}>
+      {showLocaleControl ? (
+        <div>
+          <p className="text-xs mb-1" style={{ color: 'var(--text-secondary, hsl(var(--muted-foreground)))' }}>Idioma</p>
+          <select
+            value={selectedLocale}
+            onChange={(event) => onLocaleChange(event.target.value)}
+            className="w-full rounded-lg border px-2 py-1.5 text-sm"
+            style={{
+              borderColor: 'var(--border-subtle, hsl(var(--border)))',
+              color: 'var(--text-heading, hsl(var(--foreground)))',
+              backgroundColor: 'var(--bg, hsl(var(--background)))',
+            }}
+            aria-label="Idioma del sitio"
+          >
+            {localeOptions.map((locale) => (
+              <option key={locale.code} value={locale.code}>
+                {locale.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : null}
       {hasCurrencySwitcher ? (
         <div>
           <p className="text-xs mb-1" style={{ color: 'var(--text-secondary, hsl(var(--muted-foreground)))' }}>Moneda</p>
@@ -623,44 +737,62 @@ function MobilePreferenceSwitchers({
   );
 }
 
-function PreferenceSelect({
-  label,
+function MarketOptionGroup({
+  title,
   value,
   options,
+  styleVariant,
   onChange,
-  textColor,
-  borderColor,
-  background,
 }: {
-  label: string;
+  title: string;
   value: string;
-  options: Array<{ value: string; label: string }>;
+  options: Array<{ value: string; label: string; shortLabel: string }>;
+  styleVariant: MarketSwitcherStyle;
   onChange: (value: string) => void;
-  textColor: string;
-  borderColor: string;
-  background: string;
 }) {
+  const wrapperClass = styleVariant === 'segmented'
+    ? 'grid grid-cols-2 gap-2'
+    : 'flex flex-wrap gap-2';
+
+  const hasCompactStyle = styleVariant === 'compact';
+
   return (
-    <label className="inline-flex">
-      <span className="sr-only">{label}</span>
-      <select
-        aria-label={label}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="h-8 rounded-md border px-2 text-xs font-medium"
-        style={{
-          color: textColor,
-          borderColor,
-          background,
-        }}
-      >
+    <div className="mb-3 last:mb-0">
+      <p className="mb-1.5 text-[11px] font-medium uppercase tracking-[0.16em] opacity-70">{title}</p>
+      <div className={wrapperClass}>
         {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => onChange(option.value)}
+            className={`rounded-xl border px-2.5 py-1.5 text-left transition-all ${
+              hasCompactStyle ? 'min-w-[76px]' : 'min-w-[88px]'
+            }`}
+            style={{
+              borderColor: option.value === value
+                ? 'var(--accent, hsl(var(--primary)))'
+                : 'var(--border-subtle, hsl(var(--border)))',
+              background: option.value === value
+                ? 'color-mix(in srgb, var(--accent, hsl(var(--primary))) 16%, transparent)'
+                : 'transparent',
+              color: option.value === value
+                ? 'var(--accent, hsl(var(--primary)))'
+                : 'var(--text-heading, hsl(var(--foreground)))',
+            }}
+            aria-pressed={option.value === value}
+          >
+            {hasCompactStyle ? (
+              <span className="text-xs font-semibold tracking-wide">{option.shortLabel}</span>
+            ) : (
+              <>
+                <span className="block text-xs font-semibold tracking-wide">{option.shortLabel}</span>
+                <span className="block text-[11px] opacity-75">{option.label}</span>
+              </>
+            )}
+          </button>
         ))}
-      </select>
-    </label>
+      </div>
+    </div>
   );
 }
 

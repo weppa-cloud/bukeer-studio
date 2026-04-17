@@ -8,6 +8,9 @@ export interface ImageMetadataContext {
   plannerName?: string;
   agencyName: string;
   locale?: string; // e.g. 'es-CO', 'en-US', 'pt-BR'
+  entityType?: 'blog_post' | 'package' | 'activity' | 'page' | 'brand' | 'review' | 'gallery_item';
+  usageContext?: 'featured' | 'body' | 'hero' | 'gallery' | 'avatar' | 'og';
+  entityName?: string;
 }
 
 export interface ImageMetadataResult {
@@ -22,6 +25,9 @@ export function buildImageMetadataPrompt(ctx: ImageMetadataContext): string {
 
   const context = [
     ctx.destination && `Destination: ${ctx.destination}`,
+    ctx.entityType && `Entity type: ${ctx.entityType}`,
+    ctx.usageContext && `Usage context: ${ctx.usageContext}`,
+    ctx.entityName && `Entity name: ${ctx.entityName}`,
     ctx.plannerName && `Travel Planner: ${ctx.plannerName}`,
     `Agency: ${ctx.agencyName}`,
   ].filter(Boolean).join(', ');

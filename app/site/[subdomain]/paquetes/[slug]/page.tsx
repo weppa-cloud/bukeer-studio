@@ -17,6 +17,14 @@ interface PackagePageProps {
   params: Promise<{ subdomain: string; slug: string }>;
 }
 
+function ensureSeoDescription(seed: string, fallback: string): string {
+  const base = sanitizeProductCopy(seed) || sanitizeProductCopy(fallback);
+  const expanded = base.length >= 120
+    ? base
+    : `${base} Incluye planificación personalizada, soporte local y opciones flexibles para reservar con confianza.`;
+  return expanded.slice(0, 160);
+}
+
 function looksLikeLegacyId(value: string): boolean {
   return /^[0-9]+$/.test(value) || /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
@@ -34,9 +42,14 @@ async function resolveLegacyPackageSlug(subdomain: string, value: string): Promi
 export async function generateMetadata({ params }: PackagePageProps): Promise<Metadata> {
   const { subdomain, slug } = await params;
   const website = await getWebsiteBySubdomain(subdomain);
+  const siteName = website?.content?.account?.name || website?.content?.siteName || subdomain;
+  const fallbackDescription = `${siteName} - Descubre paquetes de viaje con itinerarios completos, precios actualizados y asesoría local para reservar con confianza.`;
 
   if (!website) {
-    return { title: 'Sitio no encontrado' };
+    return {
+      title: 'Sitio no encontrado',
+      description: fallbackDescription,
+    };
   }
 
   const baseUrl = website.custom_domain
@@ -47,6 +60,7 @@ export async function generateMetadata({ params }: PackagePageProps): Promise<Me
   if (!productPage?.product) {
     return {
       title: 'Paquete no encontrado',
+      description: fallbackDescription,
       robots: { index: false, follow: true },
     };
   }
@@ -62,7 +76,8 @@ export async function generateMetadata({ params }: PackagePageProps): Promise<Me
   const rawTitle = productPage.page?.custom_seo_title || productPage.product.name;
   const rawDescription = productPage.page?.custom_seo_description || productPage.product.description || '';
   const title = sanitizeProductCopy(rawTitle) || 'Paquete de viaje';
-  const description = (sanitizeProductCopy(rawDescription) || 'Paquete de viaje').slice(0, 160);
+  const productFallbackDescription = `Descubre ${title} con itinerario detallado, experiencias locales y asistencia personalizada durante todo tu viaje en Colombia.`;
+  const description = ensureSeoDescription(rawDescription, productFallbackDescription);
   const ogImage = resolveOgImage(website, productPage.product.social_image || productPage.product.image);
 
   const metadata: Metadata = {
@@ -130,6 +145,7 @@ export default async function PackageSlugPage({ params }: PackagePageProps) {
   const packageReviews = googleEnabled && website.account_id
     ? await getReviewsForContext(website.account_id, reviewContext, 3)
     : [];
+  const { items: similarPackages } = await getCategoryProducts(subdomain, 'packages', { limit: 24, offset: 0 });
 
   return (
     <ProductLandingPage
@@ -138,6 +154,7 @@ export default async function PackageSlugPage({ params }: PackagePageProps) {
       pageCustomization={productPage.page}
       productType="package"
       googleReviews={packageReviews}
+      similarProducts={similarPackages}
     />
   );
 }
