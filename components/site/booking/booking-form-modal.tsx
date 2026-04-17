@@ -54,7 +54,7 @@ function stubBookingWhatsAppUrl(args: {
   productName: string;
   lead: LeadInput;
   leadId: string;
-  locale?: string;
+  locale?: string | null;
 }): string | null {
   const clean = (args.phone ?? '').replace(/[^0-9]/g, '');
   if (!clean) return null;

@@ -28,7 +28,7 @@ export interface GlossaryItemRow {
   isDestinationName: boolean;
   caseSensitive: boolean;
   notes: string | null;
-  updatedAt?: string;
+  updatedAt: string | undefined;
 }
 
 interface GlossaryTableProps {
