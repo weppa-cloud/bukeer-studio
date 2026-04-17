@@ -1,139 +1,188 @@
-# Documentation Structure
+# Documentation Structure — Bukeer Studio (Next.js)
 
-## Main Directories
+Actual repo layout (reality as of 2026-04-17). REORGANIZE mode uses this as
+the canonical placement reference.
+
+---
+
+## Top-level
 
 ```
-docs/
-├── 01-getting-started/    # Setup, onboarding
-│   ├── SETUP.md
-│   └── QUICKSTART.md
-│
-├── 02-architecture/       # Architecture, patterns
-│   ├── ARCHITECTURE.md    # Main reference
-│   ├── BEST_PRACTICES.md
-│   └── SERVICE_LAYER.md
-│
-├── 03-design-system/      # UI, M3, components
-│   ├── M3_CODING_GUIDE.md
-│   ├── M3_IMPLEMENTATION_QUICKSTART.md
-│   └── BUKEER_DESIGN_TOKENS.md
-│
-├── 04-business-systems/   # Business domains
-│   ├── payments/
-│   ├── itineraries/
-│   └── crm/
-│
-├── 05-modules/            # Feature modules
-│   ├── hotels/
-│   ├── flights/
-│   ├── activities/
-│   └── gateway/
-│
-├── 06-api/                # API documentation
-│   ├── edge-functions/
-│   └── rpc-functions/
-│
-├── 07-testing/            # Testing guides
-│   ├── TESTING_GUIDE.md
-│   ├── E2E_TESTING_GUIDE.md
-│   └── TESTING_PATTERNS.md
-│
-├── 08-guides/             # How-to guides
-│   └── chatwoot/
-│
-├── archive/               # Historical docs
-│   ├── 2024/
-│   └── 2025/
-│
-├── INDEX.md               # Documentation index
-└── README.md              # Overview
+/
+├── CLAUDE.md                    ← agent entry point (required)
+├── AGENTS.md                    ← optional Codex/Opencode mirror
+├── README.md                    ← repo overview
+├── CONTRIBUTING.md              ← (if present) contribution guide
+├── LICENSE
+├── .claude/                     ← agent configuration
+├── docs/                        ← project documentation
+└── packages/*/README.md         ← per-package docs
 ```
 
-## Claude Configuration
+---
+
+## `.claude/` layout
 
 ```
 .claude/
-├── skills/                # AI skill definitions
-│   ├── flutter-developer/
-│   ├── backend-dev/
-│   ├── testing-agent/
-│   ├── flutter-ui-components/
-│   ├── architecture-analyzer/
-│   └── docs-keeper/
+├── skills/<name>/
+│   ├── SKILL.md                 ← required, frontmatter + dispatcher
+│   ├── MODES.md                 ← optional, detailed per-mode workflow
+│   ├── <REFERENCE>.md           ← topic reference files
+│   └── templates/               ← optional sub-templates
+├── commands/<name>.md           ← /command-name definitions
+├── rules/<name>.md              ← enforcement rules (loaded into context)
+└── settings.local.json          ← local config (gitignored)
+```
+
+---
+
+## `docs/` layout
+
+```
+docs/
+├── INDEX.md                     ← LLM Wiki entry point (REQUIRED)
 │
-├── commands/              # Custom commands
-│   ├── execute-prp.md
-│   ├── orchestrate.md
-│   └── start-testing.md
+├── architecture/
+│   ├── ARCHITECTURE.md          ← narrative + ADR index
+│   ├── ONBOARDING-ARCHITECTURE.md
+│   ├── AI-AGENT-DEVELOPMENT.md
+│   └── ADR-NNN-<slug>.md        ← one file per decision
 │
-├── agents/                # Subagent definitions
-│   ├── code-explorer.md
-│   ├── test-runner.md
-│   └── feature-planner.md
+├── specs/
+│   ├── SPEC_<TITLE>.md          ← stubs (source of truth = GitHub Issue)
+│   ├── EPIC_<TITLE>.md          ← optional epic bodies
+│   ├── ROADMAP_<TITLE>.md
+│   └── ISSUE_MAP_<TITLE>.md
 │
-└── settings.json          # Claude settings
+├── ops/                         ← CI gates, operational runbooks
+│   └── <topic>.md
+│
+├── runbooks/                    ← release / rollout procedures
+│   └── <feature>-rollout-runbook.md
+│
+├── seo/
+│   ├── SEO-IMPLEMENTATION.md
+│   ├── SEO-PLAYBOOK.md
+│   ├── SEO-FLUJOS-STUDIO.md
+│   └── jsonld-fixtures.md
+│
+├── theming/
+│   └── <topic>.md
+│
+├── qa/
+│   ├── <feature>-qa-matrix.md
+│   └── <topic>.md
+│
+├── evidence/
+│   └── epic<N>/walkthrough.md
+│
+├── growth-okrs/
+├── growth-sessions/
+├── growth-weekly/
+│
+├── research/
+│   └── <topic>-YYYY-MM-DD.md
+│
+├── development/
+│   └── local-sessions.md
+│
+├── guides/
+│   └── <topic>-WORKFLOW.md
+│
+└── archive/
+    └── <YYYY>/                  ← deprecated, never deleted
 ```
 
-## Product Requirements
+---
 
-```
-PRPs/                      # Product Requirement Plans
-├── active/                # Current requirements
-├── completed/             # Implemented PRPs
-└── templates/             # PRP templates
-```
+## File placement rules
 
-## File Placement Rules
+| Content type | Location | Naming |
+|--------------|----------|--------|
+| Architecture decision | `docs/architecture/ADR-NNN-<slug>.md` | `ADR-017-feature-name.md` |
+| Feature spec stub | `docs/specs/SPEC_<TITLE>.md` | `SPEC_FEATURE_NAME.md` (SCREAMING_SNAKE) |
+| EPIC body | `docs/specs/EPIC_<TITLE>.md` | — |
+| CI / gate setup | `docs/ops/<topic>.md` | kebab-case |
+| Release runbook | `docs/runbooks/<feature>-rollout-runbook.md` | kebab-case |
+| SEO reference | `docs/seo/<TOPIC>.md` | UPPER-KEBAB for refs, kebab for fixtures |
+| Theme reference | `docs/theming/<topic>.md` | kebab-case |
+| QA matrix | `docs/qa/<feature>-qa-matrix.md` | kebab-case |
+| Per-EPIC evidence | `docs/evidence/epic<N>/walkthrough.md` | numeric epic |
+| OKR / weekly / session | `docs/growth-*/` | per-file README sets convention |
+| Research notes | `docs/research/<topic>-YYYY-MM-DD.md` | dated |
+| Local dev / tooling | `docs/development/<topic>.md` | kebab-case |
+| How-to / workflow | `docs/guides/<TOPIC>-WORKFLOW.md` | UPPER-KEBAB |
+| Deprecated doc | `docs/archive/<YYYY>/<original-name>.md` | preserve original |
+| Agent skill | `.claude/skills/<name>/SKILL.md` | kebab skill name |
+| Agent command | `.claude/commands/<name>.md` | kebab |
+| Enforcement rule | `.claude/rules/<name>.md` | kebab |
+| Package README | `packages/<name>/README.md` | — |
 
-| File Type | Location |
-|-----------|----------|
-| Getting started | `docs/01-getting-started/` |
-| Architecture | `docs/02-architecture/` |
-| Design system | `docs/03-design-system/` |
-| Business logic | `docs/04-business-systems/` |
-| Feature modules | `docs/05-modules/` |
-| API docs | `docs/06-api/` |
-| Testing | `docs/07-testing/` |
-| How-to guides | `docs/08-guides/` |
-| Outdated docs | `docs/archive/[year]/` |
-| AI skills | `.claude/skills/` |
-| AI commands | `.claude/commands/` |
-| Requirements | `PRPs/` |
+---
 
-## Root Directory Files
+## Root allow-list
 
-**Allowed in root:**
-- README.md
-- CLAUDE.md
-- CONTRIBUTING.md
-- LICENSE
-- pubspec.yaml
-- analysis_options.yaml
-- Configuration files (.gitignore, etc.)
+ONLY these `.md` files may live at repo root:
 
-**NOT allowed in root:**
-- Feature documentation → `docs/`
-- Historical docs → `docs/archive/`
-- Temporary files → delete or move
+- `README.md`
+- `CLAUDE.md`
+- `AGENTS.md` (if Codex/Opencode support enabled)
+- `CONTRIBUTING.md`
+- `LICENSE`
+- `CODE_OF_CONDUCT.md` (if present)
+- `SECURITY.md` (if present)
 
-## Naming Conventions
+Anything else in root = MODE:REORGANIZE target.
 
-| Type | Convention | Example |
-|------|------------|---------|
-| Guide files | UPPER_SNAKE.md | `TESTING_GUIDE.md` |
-| Reference files | UPPER_SNAKE.md | `ARCHITECTURE.md` |
-| Index files | lowercase | `README.md`, `index.md` |
-| Directories | kebab-case or numbers | `01-getting-started/` |
+---
 
-## Cross-Reference Format
+## Naming conventions
 
-```markdown
-<!-- Reference another doc -->
-See [ARCHITECTURE.md](../02-architecture/ARCHITECTURE.md)
+| Artifact | Convention | Example |
+|----------|------------|---------|
+| ADR | `ADR-NNN-<slug>.md` | `ADR-017-event-bus.md` |
+| SPEC | `SPEC_<TITLE>.md` | `SPEC_MULTI_LOCALE.md` |
+| EPIC | `EPIC_<TITLE>.md` | `EPIC_SEO_CONTENT.md` |
+| Roadmap | `ROADMAP_<TITLE>.md` | — |
+| Issue map | `ISSUE_MAP_<TITLE>.md` | — |
+| Runbook | `<feature>-rollout-runbook.md` | `product-landing-rollout-runbook.md` |
+| Ops gate | `<topic>.md` | `lighthouse-ci.md` |
+| Guide | `<TOPIC>-WORKFLOW.md` | `WEBSITE-CREATION-WORKFLOW.md` |
+| Index | `INDEX.md` | — |
+| Skills | `SKILL.md` + uppercase refs | `PATTERNS.md` |
 
-<!-- Reference a class -->
-Uses [AppServices] for service access
+---
 
-<!-- Reference with anchor -->
-See [Error Handling](../02-architecture/ARCHITECTURE.md#error-handling)
-```
+## Cross-reference rules
+
+| Target | Use | Example |
+|--------|-----|---------|
+| ADR in prose | wikilink | `respetando [[ADR-015]]` |
+| ADR click target | markdown link | `[ADR-015](./architecture/ADR-015-*.md)` |
+| Spec in prose | wikilink | `blocks [[SPEC_MULTI_LOCALE]]` |
+| Concept cluster | wikilink | `[[auth]] + [[RLS]]` |
+| Code path | inline code | `` `app/api/foo/route.ts` `` |
+| Component class | inline code or `[[Component]]` | `` `<PackageCircuitMap>` `` |
+| Issue / PR | `#NNN` with `gh issue view` assumed | `see #122` |
+| External URL | markdown link | `[OpenRouter](https://openrouter.ai)` |
+
+---
+
+## Archive policy
+
+- Deprecated docs go to `docs/archive/<YYYY>/` with ORIGINAL filename.
+- Add a replacement pointer at top: `> SUPERSEDED by [[new-artifact]] on YYYY-MM-DD.`
+- Keep in `git mv` (preserve history). Never `rm`.
+- Archived docs are exempt from freshness audits but still checked for link integrity.
+
+---
+
+## Gaps in current repo (2026-04-17 snapshot)
+
+AUDIT mode should flag these on next run:
+
+- `docs/GLOSSARY.md` — does not exist. Useful for agent term disambiguation.
+- `docs/api/` — no per-API-route doc directory; API routes scattered across specs.
+- `AGENTS.md` — not present (optional, useful for Codex/Opencode parity).
+- No `.github/scripts/check-orphan-docs.sh` or wikilink validator (automation pending).

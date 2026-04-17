@@ -1,263 +1,440 @@
-# Documentation Templates
+# Documentation Templates — Bukeer Studio
 
-## Feature Documentation Template
+Copy-paste templates. Each includes required frontmatter-style header so
+AUDIT mode passes on day one. All templates use TypeScript / Next.js 15
+syntax (repo reality).
+
+---
+
+## ADR template
 
 ```markdown
-# [Feature Name]
+# ADR-NNN — <Title>
 
-## Overview
-[1-2 sentence description of what this feature does]
+**Status:** Proposed
+**Date:** YYYY-MM-DD
+**Principles:** P2 (Validate at Boundaries), ...
+**Supersedes:** (optional) [[ADR-XXX]]
 
-## Purpose
-[Why this feature exists, what problem it solves]
+## Context
 
-## Architecture
+Two to five sentences describing the forces at play: what changed, what
+constraint appeared, why an ad-hoc decision is no longer acceptable.
 
-### Components
-- `ComponentA` - [purpose]
-- `ComponentB` - [purpose]
+## Decision
 
-### Data Flow
-```mermaid
-graph LR
-    A[Input] --> B[Process] --> C[Output]
-```
+Lead with the decision in one sentence. Then list the rules / contracts the
+decision enforces.
 
-## Usage
+- Rule 1.
+- Rule 2.
+- Rule 3.
 
-### Basic Example
-```dart
-// Example code
-```
+## Consequences
 
-### Advanced Example
-```dart
-// More complex example
-```
+### Positive
+- <benefit>
 
-## Configuration
+### Negative
+- <drawback>
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| option1 | String | "default" | Description |
+### Neutral
+- <observation>
+
+## Alternatives considered
+
+1. <Alternative A> — rejected because <reason>.
+2. <Alternative B> — rejected because <reason>.
+
+## Implementation notes
+
+- Key files: `path/to/file.ts`
+- Validation: `npm run <script>` / `tech-validator` rule.
+- Edge cases: <list>.
+
+## Known gaps
+
+- <gap> — tracked in [[SPEC_X]] / issue #NNN.
 
 ## Related
-- [RelatedFeature](../related/README.md)
-- [AppServices]
 
-## Changelog
-- [Date]: Initial implementation
+- [[ADR-XXX]] — <relation>
+- [[SPEC_X]] — <relation>
 ```
 
-## API Documentation Template
+---
+
+## SPEC stub template
+
+SPECs live in `docs/specs/` as stubs. The GitHub Issue is the source of truth.
 
 ```markdown
-# [API Name]
+# SPEC: <Title>
 
-## Endpoint
-`POST /functions/v1/[name]`
+**Status:** Draft | Approved | Ready for execution | Shipped
+**Date:** YYYY-MM-DD
+**Issue:** #NNN (source of truth)
+**Owner:** @handle
+**Related:** [[ADR-XXX]], [[SPEC_Y]]
 
-## Authentication
-Requires JWT token in Authorization header.
+## Problem
+
+One paragraph. User-facing pain or business driver. No solution here.
+
+## Goal
+
+Measurable target. Conversion +N%, latency < N ms, coverage N→M.
+
+## Non-goals
+
+Explicit exclusions to prevent scope creep.
+
+## Scope
+
+### In scope
+- <item>
+
+### Out of scope
+- <item>
+
+## Decision guide
+
+Non-obvious choices made upfront so implementers don't need to re-decide.
+
+## Acceptance criteria
+
+- [ ] AC1 — <statement>
+- [ ] AC2 — <statement>
+
+## Edge cases
+
+| Case | Behavior |
+|------|----------|
+
+## ADR compliance
+
+| ADR | Status | Notes |
+|-----|--------|-------|
+| [[ADR-001]] | ✅ / ⚠️ / ❌ | <note> |
+
+## Analytics
+
+| Event | Props | When |
+|-------|-------|------|
+
+## References
+
+- Issue #NNN
+- Related PR #NNN
+```
+
+---
+
+## Runbook template
+
+```markdown
+# <Feature> Rollout Runbook
+
+**Status:** Active
+**Date:** YYYY-MM-DD
+**Owner:** @handle
+**Triggers:** <when to use this runbook>
+
+## Pre-flight
+
+- [ ] <check 1>
+- [ ] <check 2>
+
+## Deploy
+
+### 1. Build
+```bash
+npm run build:worker
+```
+
+### 2. Preview
+```bash
+npm run preview:worker
+```
+
+### 3. Ship
+Describe the promotion path (GitHub Actions workflow, wrangler, etc).
+
+## Monitoring
+
+| Signal | Where | Threshold |
+|--------|-------|-----------|
+| <metric> | <dashboard / log> | <value> |
+
+## Rollback
+
+```bash
+npx wrangler rollback
+```
+
+Describe any data / migration rollback steps separately.
+
+## Postmortem template (for failed rollouts)
+
+- Timeline.
+- Root cause.
+- Mitigations.
+- Follow-ups.
+
+## Related
+
+- [[ADR-XXX]]
+- [[SPEC_X]]
+```
+
+---
+
+## API route doc template
+
+Used for new `app/api/**/route.ts` routes when a full SPEC would be overkill.
+
+```markdown
+# <Method> <Path>
+
+**Status:** Shipped
+**Date:** YYYY-MM-DD
+**Implementation:** `app/api/<path>/route.ts`
+**Runtime:** `edge` / `nodejs`
+**Compliance:** [[ADR-003]] (Zod), [[ADR-012]] (envelope), [[ADR-005]] (auth)
+
+## Purpose
+
+One-line description of what this endpoint does.
 
 ## Request
 
 ### Headers
-| Header | Required | Description |
-|--------|----------|-------------|
-| Authorization | Yes | Bearer token |
+| Header | Required | Value |
+|--------|----------|-------|
 
-### Body
-```json
-{
-  "param1": "string",
-  "param2": 123
-}
+### Body (Zod schema)
+```typescript
+import { z } from 'zod'
+
+export const RequestSchema = z.object({
+  field: z.string(),
+})
 ```
 
 ## Response
 
 ### Success (200)
+Uses standard envelope (`apiSuccess`):
+
 ```json
 {
-  "success": true,
-  "data": {}
+  "ok": true,
+  "data": { "...": "..." }
 }
 ```
 
-### Error (4xx/5xx)
+### Error (4xx / 5xx)
+Uses standard envelope (`apiError`):
+
 ```json
 {
-  "success": false,
-  "error": "Error message"
+  "ok": false,
+  "error": { "code": "ERROR_CODE", "message": "..." }
 }
 ```
+
+## Auth
+
+Describe role/permission checks. Reference [[ADR-005]].
+
+## Observability
+
+| Log prefix | When |
+|------------|------|
+| `[<namespace>]` | <event> |
 
 ## Examples
 
 ### cURL
 ```bash
-curl -X POST https://api.example.com/functions/v1/name \
-  -H "Authorization: Bearer $TOKEN" \
-  -d '{"param1": "value"}'
+curl -X POST https://<host>/api/<path> \
+  -H 'Authorization: Bearer $TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{"field": "value"}'
 ```
 
-### Dart
-```dart
-final response = await appServices.api.callFunction(
-  'name',
-  body: {'param1': 'value'},
-);
+### TypeScript (internal caller)
+```typescript
+const res = await fetch('/api/<path>', {
+  method: 'POST',
+  headers: { 'content-type': 'application/json' },
+  body: JSON.stringify({ field: 'value' }),
+})
 ```
 ```
 
-## Module Documentation Template
+---
+
+## Feature / section doc template
 
 ```markdown
-# [Module Name] Module
+# <Feature name>
+
+**Status:** Shipped
+**Date:** YYYY-MM-DD
+**Owning skill:** nextjs-developer / backend-dev
+**Touches:** [[concept-a]] [[concept-b]]
 
 ## Overview
-[Description of the module's purpose]
 
-## Directory Structure
+One to two sentences. What the user sees / experiences.
+
+## Architecture
+
+- Entry: `app/<route>/page.tsx` (or `components/...`)
+- Server data: `lib/<module>/queries.ts`
+- Client UI: `components/<module>/<component>.tsx`
+- Contract: `packages/website-contract/src/<file>.ts`
+
+## Data flow
+
 ```
-lib/bukeer/[module]/
-├── screens/
-│   └── [screen]_screen.dart
-├── widgets/
-│   └── [widget]_widget.dart
-├── models/
-│   └── [model].dart
-└── services/
-    └── [service]_service.dart
-```
-
-## Key Components
-
-### Screens
-- `[Screen]Screen` - [purpose]
-
-### Widgets
-- `[Widget]Widget` - [purpose]
-
-### Services
-- `[Service]Service` - [purpose]
-
-## Dependencies
-- [AppServices]
-- [Other dependencies]
-
-## Usage
-
-### Navigation
-```dart
-context.go('/[module]');
-context.push('/[module]/details', extra: id);
+Server page → query → Zod parse → component → render
 ```
 
-### Service Access
-```dart
-final data = await appServices.[module].getAll();
-```
+## Public API
 
-## Permissions
-- `can[Action][Module]()` - Required for [action]
+- Server function: `getX(...)` — returns `XResult`.
+- Client component: `<Feature />` — props `...`.
 
-## Related Modules
-- [RelatedModule](../related/README.md)
-```
+## Configuration
 
-## Architecture Decision Record (ADR) Template
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
 
-```markdown
-# ADR-[NUMBER]: [Title]
+## Edge cases
 
-## Status
-[Proposed | Accepted | Deprecated | Superseded]
+| Case | Behavior |
+|------|----------|
 
-## Date
-[YYYY-MM-DD]
+## Analytics
 
-## Context
-[What is the issue that we're seeing that is motivating this decision?]
-
-## Decision
-[What is the change that we're proposing/have agreed to implement?]
-
-## Consequences
-
-### Positive
-- [Benefit 1]
-- [Benefit 2]
-
-### Negative
-- [Drawback 1]
-- [Drawback 2]
-
-### Neutral
-- [Observation]
-
-## Alternatives Considered
-1. [Alternative 1] - [Why rejected]
-2. [Alternative 2] - [Why rejected]
+| Event | Props | When |
+|-------|-------|------|
 
 ## Related
-- [ADR-X](./ADR-X.md)
-- [Issue #Y](link)
+
+- [[ADR-XXX]]
+- [[SPEC_X]]
 ```
 
-## Quick Reference Template
+---
+
+## Research note template
 
 ```markdown
-# [Topic] Quick Reference
+# <Topic> — Research YYYY-MM-DD
 
-## Common Tasks
+**Status:** Archive (historical)
+**Author:** @handle
+**Related:** [[SPEC_X]]
 
-### [Task 1]
-```dart
-// Code
+## Objective
+
+What question this note answers.
+
+## Method
+
+How data / evidence was gathered.
+
+## Findings
+
+- Finding 1.
+- Finding 2.
+
+## Recommendations
+
+- Action 1.
+- Action 2.
+
+## Artifacts
+
+- Screenshots / logs / etc: `path/to/artifact/`.
 ```
 
-### [Task 2]
-```dart
-// Code
+---
+
+## Quick-reference / cheat sheet template
+
+```markdown
+# <Topic> Quick Reference
+
+**Status:** Living doc
+**Date:** YYYY-MM-DD
+
+## Common tasks
+
+### <Task 1>
+```typescript
+// snippet
 ```
 
-## Cheat Sheet
+### <Task 2>
+```typescript
+// snippet
+```
+
+## Cheat sheet
 
 | Action | Code |
 |--------|------|
-| Action 1 | `code` |
-| Action 2 | `code` |
+| <action> | `<code>` |
 
-## Common Errors
+## Common errors
 
-### [Error 1]
-**Cause**: [cause]
-**Solution**: [solution]
+### `<error message>`
+- **Cause:** <cause>
+- **Fix:** <fix>
 
-## See Also
-- [Detailed Guide](./GUIDE.md)
+## See also
+- [[ADR-XXX]]
+- [Detailed guide](../guides/TOPIC-WORKFLOW.md)
 ```
 
-## Checklist Template
+---
+
+## Checklist template
 
 ```markdown
-# [Process] Checklist
+# <Process> Checklist
 
-## Pre-[Process]
-- [ ] [Step 1]
-- [ ] [Step 2]
+**Status:** Active
+**Date:** YYYY-MM-DD
 
-## During [Process]
-- [ ] [Step 1]
-- [ ] [Step 2]
+## Pre
+- [ ] <step>
 
-## Post-[Process]
-- [ ] [Step 1]
-- [ ] [Step 2]
+## During
+- [ ] <step>
+
+## Post
+- [ ] <step>
 
 ## Validation
-- [ ] [Check 1]
-- [ ] [Check 2]
+- [ ] <check>
 ```
+
+---
+
+## Required headers summary
+
+Every doc produced by this skill MUST include, within the first 10 lines:
+
+- `# <Title>` (single H1 at line 1)
+- `**Status:**` — one of `Proposed | Draft | Accepted | Approved | Ready for execution | Shipped | Active | Archive | Deprecated | Superseded`
+- `**Date:**` — absolute `YYYY-MM-DD`
+
+Optional but recommended:
+- `**Issue:** #NNN` (for SPEC / runbook tied to GitHub issue)
+- `**Owner:** @handle`
+- `**Related:** [[ADR-XXX]]` (wikilinks, comma-separated)

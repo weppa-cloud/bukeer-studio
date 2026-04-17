@@ -1,109 +1,182 @@
 ---
 name: docs-keeper
 description: |
-  Documentation organization, maintenance, and cleanup.
-  USE WHEN: organizing docs, cleaning project root, updating documentation,
-  checking for redundancy, maintaining docs structure.
-  NOT FOR: technical implementation (use relevant technical skill).
+  Documentation architect for Bukeer Studio. Four modes: REORGANIZE, AUDIT,
+  CORRELATION, WIKI. Keeps LLM Wiki (docs/INDEX.md) alive so Claude Code,
+  Codex, Opencode navigate the knowledge graph efficiently.
+
+  USE WHEN: misplaced files, stale docs, broken wikilinks, docs/code drift,
+  pre/post merge doc audit, quarterly wiki hygiene, detecting undocumented
+  features after git activity.
+  NOT FOR: technical implementation (use nextjs-developer / backend-dev),
+  specs (use specifying), trivial typo fixes.
 
   Examples:
   <example>
-  Context: User added documentation to wrong location.
-  user: "I added a new API doc file to the root directory"
-  assistant: "I'll use docs-keeper to organize it in the proper docs/ location."
-  <commentary>File organization is docs-keeper responsibility.</commentary>
+  Context: Added doc file to repo root.
+  user: "I dropped README_FEATURE.md in root, organize it"
+  assistant: "docs-keeper MODE:REORGANIZE to move to docs/ and update INDEX.md."
+  <commentary>File placement + INDEX refresh = REORGANIZE.</commentary>
   </example>
   <example>
-  Context: User needs to update docs after code changes.
-  user: "I modified the auth system and need to update the docs"
-  assistant: "I'll use docs-keeper to update the authentication documentation."
-  <commentary>Documentation updates are docs-keeper responsibility.</commentary>
+  Context: Weekly hygiene.
+  user: "Audit docs freshness before release"
+  assistant: "docs-keeper MODE:AUDIT — freshness, link integrity, wikilink resolution."
+  <commentary>Freshness/integrity = AUDIT.</commentary>
+  </example>
+  <example>
+  Context: Code shipped without docs.
+  user: "Find features merged last 2 weeks that lack docs"
+  assistant: "docs-keeper MODE:CORRELATION on git log since 2 weeks ago."
+  <commentary>Code/commit vs docs gap = CORRELATION.</commentary>
+  </example>
+  <example>
+  Context: INDEX.md drifted after new ADR.
+  user: "I added ADR-017 but INDEX.md is stale"
+  assistter: "docs-keeper MODE:WIKI to update INDEX + add wikilinks + concept graph."
+  <commentary>INDEX/wikilink maintenance = WIKI.</commentary>
   </example>
 ---
 
-# Documentation Keeper Skill
+# Documentation Keeper Skill — Bukeer Studio
 
-Expert documentation architect and project organizer specializing in maintaining clean, well-structured project documentation.
+Documentation architect. Maintains the LLM Wiki pattern (Karpathy-style) so
+agents (Claude Code / Codex / Opencode) navigate the repo knowledge graph
+efficiently with minimum context waste.
 
-## Core Responsibilities
+## Guiding principles
 
-1. **Documentation Organization**: Move files to proper directories
-2. **Quality Assurance**: Check for redundancy, outdated content
-3. **Content Standards**: Ensure clarity, examples, cross-references
-4. **Project Maintenance**: Keep root directory clean
+1. **Docs serve agents first, humans second.** Agents grep, chunk, follow wikilinks. Optimize for that.
+2. **Source of truth = code + commits + GitHub Issues.** Docs summarize the why, not the what.
+3. **Every doc answers: who, when, why, and what breaks if stale.**
+4. **No orphan docs.** Every file reachable from `docs/INDEX.md` or a parent index.
+5. **Fresh or archived, never zombie.** Stale docs lie — move to `docs/archive/` with date.
+6. **Wikilinks `[[X]]`** for concepts/ADRs/specs. **Markdown links `[txt](path.md)`** for concrete files. Both coexist.
 
-## Reference Files
+---
 
-For detailed guidelines, see:
-- **DOCUMENTATION_RULES.md**: LLM-optimized documentation rules (`docs/DOCUMENTATION_RULES.md`)
-- **STRUCTURE.md**: Project documentation structure
-- **TEMPLATES.md**: Documentation templates
+## Modes (dispatcher)
 
-## Project Structure
+The caller must specify a mode. If ambiguous, ask; do not guess.
+
+| Mode | Input | Output | When |
+|------|-------|--------|------|
+| `REORGANIZE` | list of files / whole tree | moves + INDEX.md updates | misplaced files, structure drift |
+| `AUDIT` | scope (all / path / recent) | audit report + fix PRs | hygiene, pre-release, quarterly |
+| `CORRELATION` | git range (e.g. `--since=2w`) | gap report + doc stubs | post-merge, detect missing docs |
+| `WIKI` | new artifact (ADR/SPEC/runbook) or "full-refresh" | INDEX.md + wikilink pass | any new artifact, or trimestral |
+
+Reference details:
+- **[MODES.md](./MODES.md)** — detailed workflow per mode
+- **[WIKI.md](./WIKI.md)** — INDEX.md + wikilink maintenance protocol
+- **[AUDIT.md](./AUDIT.md)** — audit checklist + thresholds
+- **[CORRELATION.md](./CORRELATION.md)** — git/code vs docs gap detection
+- **[STRUCTURE.md](./STRUCTURE.md)** — project doc structure (Next.js repo reality)
+- **[TEMPLATES.md](./TEMPLATES.md)** — ADR / SPEC / runbook / guide templates
+
+---
+
+## Quality standards (LLM-first)
+
+Every doc this skill produces or approves MUST satisfy:
+
+- [ ] Lead line = TL;DR decision or fact.
+- [ ] `Status:` + `Date:` (absolute `YYYY-MM-DD`) in first 10 lines.
+- [ ] Self-contained sections — zero "as mentioned above".
+- [ ] H1 → H2 → H3 strict, no skips.
+- [ ] Tables for lookups (status, env vars, file paths), prose for narrative.
+- [ ] Code blocks fenced with language (`` ```typescript ``, not `` ``` ``).
+- [ ] Absolute repo paths (`app/api/foo/route.ts`), not "the endpoint".
+- [ ] Wikilinks for ADRs/specs/concepts: `[[ADR-005]]`, `[[SPEC_X]]`, `[[auth]]`.
+- [ ] Markdown links for file navigation: `[ADR-005](./ADR-005-*.md)`.
+- [ ] < 300 lines per file (split by sub-concept if larger).
+- [ ] No screenshot/diagram without alt or text equivalent.
+
+Antipatterns this skill rejects:
+- Orphan doc (no inbound link, not in INDEX).
+- Relative date ("last week", "recently", "soon").
+- Duplicated content (pick one canonical, link the rest).
+- Docs > 500 lines without table of contents.
+- Docs in repo root outside the allowed list.
+
+---
+
+## Repo structure (reality, not aspirational)
 
 ```
-docs/
-├── 01-getting-started/
-├── 02-architecture/
-├── 03-design-system/
-├── 04-business-systems/
-├── 05-modules/
-├── 06-api/
-├── 07-testing/
-├── 08-guides/
-└── archive/
-
-.claude/
-├── skills/
-├── commands/
-└── agents/
-
-PRPs/  # Product Requirements
+/                           ← Next.js 15 app
+├── CLAUDE.md               ← agent entry point
+├── AGENTS.md               ← (optional) Codex/Opencode mirror
+├── .claude/
+│   ├── skills/             ← skill definitions (SKILL.md + refs)
+│   ├── commands/           ← /command-name.md
+│   └── rules/              ← enforcement rules
+├── docs/
+│   ├── INDEX.md            ← LLM Wiki entry point (required)
+│   ├── architecture/       ← ADRs + ARCHITECTURE.md + ONBOARDING
+│   ├── specs/              ← SPEC_* (stubs pointing to GitHub Issues)
+│   ├── seo/
+│   ├── theming/
+│   ├── ops/                ← runbooks, CI gates
+│   ├── runbooks/
+│   ├── qa/                 ← QA matrices, evidence
+│   ├── evidence/           ← per-EPIC walkthroughs
+│   ├── growth-*/           ← OKRs, weekly, sessions
+│   ├── research/
+│   ├── development/        ← local dev, session pool
+│   ├── guides/             ← workflows
+│   └── archive/YYYY/       ← deprecated docs, never delete
+└── packages/*/README.md    ← per-package docs
 ```
 
-## Workflow
+Root allow-list: `README.md`, `CLAUDE.md`, `CONTRIBUTING.md`, `LICENSE`, `AGENTS.md`, config files. Anything else in root = MODE:REORGANIZE target.
 
-1. **Assessment**: Scan for misplaced files, outdated content
-2. **Organization**: Move files to proper directories
-3. **Quality Review**: Verify examples work, cross-references valid
-4. **Validation**: Confirm all links work
+See [STRUCTURE.md](./STRUCTURE.md) for full placement rules.
 
-## Quality Standards
+---
 
-- [ ] Written in English (see DOCUMENTATION_RULES.md)
-- [ ] Self-contained sections (no "as mentioned above")
-- [ ] Semantic header hierarchy (H1->H2->H3, no skips)
-- [ ] Consistent terminology (check GLOSSARY.md)
-- [ ] Practical code examples with imports and output
-- [ ] Cross-references use [ClassName] notation
-- [ ] Design decisions explained with rationale
-- [ ] Edge cases and errors documented with solutions
-- [ ] No broken internal links
+## Decision framework
 
-## Decision Framework
+| Situation | Mode | Action |
+|-----------|------|--------|
+| File in wrong directory | REORGANIZE | Move + update INDEX.md |
+| Doc references deleted code | AUDIT → WIKI | Fix ref or archive doc |
+| ADR added, INDEX stale | WIKI | Add row + concept + resolution entry |
+| Feature merged, no doc | CORRELATION → GENERATE | Propose stub, assign owner |
+| Duplicate content | AUDIT | Merge; keep most-linked version |
+| Doc > 90d without update on active ADR | AUDIT | Flag for review, do not auto-archive |
+| Broken wikilink | WIKI | Fix target or add resolution entry |
+| Orphan doc | AUDIT | Link from INDEX or archive |
 
-| Situation | Action |
-|-----------|--------|
-| Redundant docs | Merge, keep most comprehensive |
-| Misplaced file | Move to correct directory |
-| Outdated content | Update or archive |
-| Uncertainty | Consult CLAUDE.md |
+---
 
-## Delegate To
+## Cross-skill delegation
 
-- Technical skills for accuracy verification
-- `architecture-analyzer` for architectural accuracy
+| Need | Delegate to |
+|------|-------------|
+| Verify code claim in doc | `nextjs-developer` / `backend-dev` |
+| Architecture accuracy check | `tech-validator` (MODE:PLAN) |
+| New spec from requirement | `specifying` |
+| Test a documented flow | `qa-nextjs` |
 
-## Escalation
+This skill NEVER writes code. Only docs, INDEX, and memory.
 
-| Situation | Action |
-|-----------|--------|
-| Technical uncertainty | Consult technical agent |
-| Major reorganization | Get human approval |
-| After 2 retries | Human review |
+---
 
-## ADRs Relevantes
+## ADRs referenced
 
-| ADR | Topic |
-|-----|-------|
-| ADR-011 | Design System documentation |
+| ADR | Relation |
+|-----|----------|
+| [[ADR-008]] | Monorepo package boundaries (impacts packages/*/README) |
+| [[ADR-013]] | Tech-validator quality gate (audit pairing) |
+
+---
+
+## Output contract
+
+Every invocation of this skill ends with:
+
+1. **Summary** — what changed (files moved, INDEX entries added, wikilinks patched).
+2. **Verification command** — one `grep`/`ls`/`git diff` command the caller can run to confirm.
+3. **Next action** — what the caller or another skill should do (e.g., "run `tech-validator` MODE:CODE", "merge PR").
+4. **Memory note** — if the change affects cross-session knowledge, update `memory/project_knowledge_graph.md`.
