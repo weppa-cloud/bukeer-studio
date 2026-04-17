@@ -114,6 +114,7 @@ Path aliases in `tsconfig.json`: `@bukeer/website-contract` → `./packages/webs
 
 Push to `main` → GitHub Actions → `build` + `deploy-staging`. Worker: `bukeer-web-public`. Prod deploy commented out in `.github/workflows/deploy.yml`.
 Rollback: `npx wrangler rollback`. Architecture: [`docs/architecture/ARCHITECTURE.md`](docs/architecture/ARCHITECTURE.md)
+Product Landing v1 rollout runbook: [`docs/ops/product-landing-v1-runbook.md`](docs/ops/product-landing-v1-runbook.md)
 
 ---
 
