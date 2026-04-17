@@ -1,11 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect, useCallback, useMemo, useRef, type ReactNode } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
-import { useSearchParams } from 'next/navigation';
 import type { WebsiteData } from '@/lib/supabase/get-website';
 import type { ProductData, ProductPageCustomization } from '@/lib/supabase/get-pages';
 import { getBasePath } from '@/lib/utils/base-path';
@@ -27,14 +25,10 @@ import {
 import { ProductSchema } from '../seo/product-schema';
 import { OrganizationSchema } from '../seo/organization-schema';
 import { HighlightsGrid } from '@/components/site/highlights-grid';
-import { OptionsTable } from '@/components/site/options-table';
 import type { ActivityCircuitStop } from '@/lib/products/activity-circuit';
 import { ItineraryItemRenderer } from '@/components/site/itinerary-item-renderer';
-import { ProductFAQ } from '@/components/site/product-faq';
-import { ProgramTimeline } from '@/components/site/program-timeline';
 import { SectionErrorBoundary } from '@/components/site/section-error-boundary';
 import { StickyCTABar } from '@/components/site/sticky-cta-bar';
-import { TrustBadges } from '@/components/site/trust-badges';
 import { buildWhatsAppUrl } from '@/components/site/whatsapp-url';
 
 interface GoogleReviewProp {
@@ -57,13 +51,12 @@ interface ProductLandingPageProps {
   similarProducts?: ProductData[];
 }
 
-const fadeUp = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.6 } },
-};
-
 function MapSectionSkeleton() {
   return <div aria-hidden="true" className="h-[320px] w-full animate-pulse rounded-xl bg-muted/40" />;
+}
+
+function SectionSkeleton() {
+  return <div aria-hidden="true" className="h-24 w-full animate-pulse rounded-xl bg-muted/30" />;
 }
 
 const MeetingPointMap = dynamic(
@@ -80,6 +73,65 @@ const ActivityCircuitMap = dynamic(
   () => import('@/components/site/activity-circuit-map').then((mod) => mod.ActivityCircuitMap),
   { ssr: false, loading: () => <MapSectionSkeleton /> }
 );
+
+const ProgramTimeline = dynamic(
+  () => import('@/components/site/program-timeline').then((mod) => mod.ProgramTimeline),
+  { loading: () => <SectionSkeleton /> }
+);
+
+const OptionsTable = dynamic(
+  () => import('@/components/site/options-table').then((mod) => mod.OptionsTable),
+  { loading: () => <SectionSkeleton /> }
+);
+
+const ProductFAQ = dynamic(
+  () => import('@/components/site/product-faq').then((mod) => mod.ProductFAQ),
+  { loading: () => <SectionSkeleton /> }
+);
+
+const TrustBadges = dynamic(
+  () => import('@/components/site/trust-badges').then((mod) => mod.TrustBadges),
+  { loading: () => <SectionSkeleton /> }
+);
+
+function DeferredRender({
+  children,
+  fallback = null,
+  rootMargin = '320px',
+}: {
+  children: ReactNode;
+  fallback?: ReactNode;
+  rootMargin?: string;
+}) {
+  const [visible, setVisible] = useState(false);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (visible) return;
+    if (typeof IntersectionObserver === 'undefined') {
+      setVisible(true);
+      return;
+    }
+
+    const node = containerRef.current;
+    if (!node) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin }
+    );
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [rootMargin, visible]);
+
+  return <div ref={containerRef}>{visible ? children : fallback}</div>;
+}
 
 function normalizeTextList(value: unknown): string[] {
   if (Array.isArray(value)) {
@@ -251,7 +303,6 @@ export function ProductLandingPage({
     product_name: displayName,
     tenant_subdomain: website.subdomain ?? null,
   };
-  const searchParams = useSearchParams();
   const currencyConfig = useMemo(
     () => buildCurrencyConfig(website.content.account),
     [website.content.account]
@@ -259,11 +310,13 @@ export function ProductLandingPage({
   const sourceCurrency = normalizeCurrencyCode(normalizedProduct.priceCurrency ?? product.currency)
     ?? currencyConfig?.baseCurrency
     ?? null;
-  const queryCurrency = searchParams?.get(SITE_CURRENCY_QUERY_PARAM) ?? null;
   const enabledCurrenciesKey = currencyConfig?.enabledCurrencies.join(',') ?? '';
   const [preferredCurrency, setPreferredCurrency] = useState<string | null>(sourceCurrency);
 
   useEffect(() => {
+    const queryCurrency = typeof window !== 'undefined'
+      ? new URLSearchParams(window.location.search).get(SITE_CURRENCY_QUERY_PARAM)
+      : null;
     const normalizedQueryCurrency = normalizeCurrencyCode(queryCurrency);
     const normalizedStoredCurrency = typeof window !== 'undefined'
       ? normalizeCurrencyCode(window.localStorage.getItem(SITE_CURRENCY_STORAGE_KEY))
@@ -280,7 +333,7 @@ export function ProductLandingPage({
     if (typeof window !== 'undefined' && preferred) {
       window.localStorage.setItem(SITE_CURRENCY_STORAGE_KEY, preferred);
     }
-  }, [currencyConfig, enabledCurrenciesKey, queryCurrency, sourceCurrency]);
+  }, [currencyConfig, enabledCurrenciesKey, sourceCurrency]);
 
   const displayedCurrency = preferredCurrency ?? sourceCurrency;
   const displayedBasePrice = convertCurrencyAmount(
@@ -538,11 +591,7 @@ export function ProductLandingPage({
 
             {/* Gallery */}
             {!isTransfer && images.length > 1 && (
-              <motion.section
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true, margin: '-60px' }}
-                variants={fadeUp}
+              <section
               >
                 <h2 className="text-2xl font-bold mb-6">Galeria</h2>
                 <button
@@ -553,6 +602,7 @@ export function ProductLandingPage({
                     src={images[activeImageIndex]}
                     alt={`${displayName} - imagen ${activeImageIndex + 1}`}
                     fill
+                    sizes="(max-width: 1024px) 100vw, 66vw"
                     className="object-cover transition-transform duration-500 group-hover:scale-105"
                   />
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
@@ -576,21 +626,18 @@ export function ProductLandingPage({
                         src={image}
                         alt={`${displayName} - miniatura ${index + 1}`}
                         fill
+                        sizes="(max-width: 768px) 50vw, 24vw"
                         className="object-cover"
                       />
                     </button>
                   ))}
                 </div>
-              </motion.section>
+              </section>
             )}
 
             {/* Description */}
             {descriptionText && (
-              <motion.section
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true, margin: '-60px' }}
-                variants={fadeUp}
+              <section
               >
                 <h2 className="text-2xl font-bold mb-6">
                   {productType === 'hotel'
@@ -604,7 +651,7 @@ export function ProductLandingPage({
                 <div className="prose prose-lg max-w-none text-muted-foreground leading-relaxed">
                   <p>{descriptionText}</p>
                 </div>
-              </motion.section>
+              </section>
             )}
 
             {/* Product Type Specific Sections */}
@@ -656,19 +703,23 @@ export function ProductLandingPage({
 
             {productType === 'activity' && activityCircuitStops.length >= 2 && (
               <SectionErrorBoundary sectionName="activity-circuit-map">
-                <ActivityCircuitMap
-                  stops={activityCircuitStops}
-                  analyticsContext={{ product_id: product.id, product_type: 'activity' }}
-                />
+                <DeferredRender fallback={<MapSectionSkeleton />}>
+                  <ActivityCircuitMap
+                    stops={activityCircuitStops}
+                    analyticsContext={{ product_id: product.id, product_type: 'activity' }}
+                  />
+                </DeferredRender>
               </SectionErrorBoundary>
             )}
 
             {!isTransfer && (productType !== 'activity' || activityCircuitStops.length < 2) && (
               <SectionErrorBoundary sectionName="meeting-point-map">
-                <MeetingPointMap
-                  title="Punto de encuentro"
-                  meetingPoint={mapMeetingPoint}
-                />
+                <DeferredRender fallback={<MapSectionSkeleton />}>
+                  <MeetingPointMap
+                    title="Punto de encuentro"
+                    meetingPoint={mapMeetingPoint}
+                  />
+                </DeferredRender>
               </SectionErrorBoundary>
             )}
 
@@ -778,12 +829,9 @@ export function ProductLandingPage({
     </div>
 
     {/* Lightbox */}
-    <AnimatePresence>
+    
       {lightboxOpen && images.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
+        <div
           className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
           onClick={closeLightbox}
         >
@@ -815,12 +863,8 @@ export function ProductLandingPage({
           )}
 
           {/* Image */}
-          <motion.div
+          <div
             key={activeImageIndex}
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ duration: 0.2 }}
             className="relative w-[90vw] h-[80vh]"
             onClick={(e) => e.stopPropagation()}
           >
@@ -832,7 +876,7 @@ export function ProductLandingPage({
               sizes="90vw"
               priority
             />
-          </motion.div>
+          </div>
 
           {/* Next */}
           {images.length > 1 && (
@@ -862,9 +906,9 @@ export function ProductLandingPage({
               ))}
             </div>
           )}
-        </motion.div>
+        </div>
       )}
-    </AnimatePresence>
+    
     </>
   );
 }
@@ -873,11 +917,7 @@ export function ProductLandingPage({
 
 function DestinationSections() {
   return (
-    <motion.section
-      initial="hidden"
-      whileInView="visible"
-      viewport={{ once: true, margin: '-60px' }}
-      variants={fadeUp}
+    <section
     >
       <h2 className="text-2xl font-bold mb-6">Puntos Destacados</h2>
       <div className="grid sm:grid-cols-2 gap-3">
@@ -893,7 +933,7 @@ function DestinationSections() {
           </div>
         ))}
       </div>
-    </motion.section>
+    </section>
   );
 }
 
@@ -914,11 +954,7 @@ function HotelSections({ product, normalized }: { product: ProductData; normaliz
   return (
     <>
       {hasSummary && (
-        <motion.section
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: '-60px' }}
-          variants={fadeUp}
+        <section
           className="rounded-xl border border-border bg-card p-6"
         >
           <h2 className="text-2xl font-bold mb-2">Calificacion de viajeros</h2>
@@ -928,15 +964,11 @@ function HotelSections({ product, normalized }: { product: ProductData; normaliz
           {reviewCount !== null && Number.isFinite(reviewCount) && reviewCount > 0 && (
             <p className="text-sm text-muted-foreground">{reviewCount} resenas verificadas</p>
           )}
-        </motion.section>
+        </section>
       )}
 
       {amenities.length > 0 && (
-        <motion.section
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: '-60px' }}
-          variants={fadeUp}
+        <section
         >
           <h2 className="text-2xl font-bold mb-6">Amenidades</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -949,7 +981,7 @@ function HotelSections({ product, normalized }: { product: ProductData; normaliz
               </div>
             ))}
           </div>
-        </motion.section>
+        </section>
       )}
     </>
   );
@@ -980,11 +1012,7 @@ function ActivitySections({
   return (
     <>
       {recommendations.length > 0 && (
-        <motion.section
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: '-60px' }}
-          variants={fadeUp}
+        <section
         >
           <h2 className="text-2xl font-bold mb-6">Recomendaciones</h2>
           <ul className="space-y-3">
@@ -995,15 +1023,11 @@ function ActivitySections({
               </li>
             ))}
           </ul>
-        </motion.section>
+        </section>
       )}
 
       {normalized.price !== null && (
-        <motion.section
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: '-60px' }}
-          variants={fadeUp}
+        <section
         >
           <h2 className="text-2xl font-bold mb-6">Tarifa base</h2>
           <div className="rounded-xl overflow-hidden border border-border bg-card px-6 py-4">
@@ -1012,7 +1036,7 @@ function ActivitySections({
               <span className="text-xl font-bold text-primary">{formatPriceOrConsult(convertedPrice, displayCurrency ?? sourceCurrency)}</span>
             </div>
           </div>
-        </motion.section>
+        </section>
       )}
     </>
   );
@@ -1036,11 +1060,7 @@ function TransferSections({ product }: { product: ProductData }) {
   }
 
   return (
-    <motion.section
-      initial="hidden"
-      whileInView="visible"
-      viewport={{ once: true, margin: '-60px' }}
-      variants={fadeUp}
+    <section
       className="rounded-xl border border-border bg-card p-6"
     >
       <h2 className="text-2xl font-bold mb-6">Detalles del traslado</h2>
@@ -1052,7 +1072,7 @@ function TransferSections({ product }: { product: ProductData }) {
           </div>
         ))}
       </dl>
-    </motion.section>
+    </section>
   );
 }
 
@@ -1099,25 +1119,19 @@ function PackageSections({
   return (
     <>
       {mappedCircuitStops.length > 0 && (
-        <motion.section
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: '-60px' }}
-          variants={fadeUp}
+        <section
         >
-          <PackageCircuitMap
-            stops={mappedCircuitStops}
-            analyticsContext={analyticsContext}
-          />
-        </motion.section>
+          <DeferredRender fallback={<MapSectionSkeleton />}>
+            <PackageCircuitMap
+              stops={mappedCircuitStops}
+              analyticsContext={analyticsContext}
+            />
+          </DeferredRender>
+        </section>
       )}
 
       {mappedCircuitStops.length === 0 && circuitStops.length > 0 && (
-        <motion.section
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: '-60px' }}
-          variants={fadeUp}
+        <section
         >
           <h2 className="text-2xl font-bold mb-4">Circuito del viaje</h2>
           <div className="flex flex-wrap gap-2">
@@ -1133,25 +1147,17 @@ function PackageSections({
               </span>
             ))}
           </div>
-        </motion.section>
+        </section>
       )}
 
       {itinerary.length > 0 && (
-        <motion.section
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: '-60px' }}
-          variants={fadeUp}
+        <section
         >
           <h2 className="text-2xl font-bold mb-6">Día a día</h2>
           <div className="space-y-4">
             {itinerary.map((item, index) => (
-              <motion.div
+              <div
                 key={item.key}
-                initial={{ opacity: 0, x: -20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
                 className="flex items-start gap-4 rounded-xl border border-border bg-card p-4"
               >
                 <div className="h-10 w-10 shrink-0 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold">
@@ -1160,10 +1166,10 @@ function PackageSections({
                 <div className="flex-1 min-w-0">
                   <ItineraryItemRenderer item={item} />
                 </div>
-              </motion.div>
+              </div>
             ))}
           </div>
-        </motion.section>
+        </section>
       )}
     </>
   );
@@ -1197,11 +1203,7 @@ function IncludeExcludeSection({
   }
 
   return (
-    <motion.section
-      initial="hidden"
-      whileInView="visible"
-      viewport={{ once: true, margin: '-60px' }}
-      variants={fadeUp}
+    <section
     >
       <h2 className="text-2xl font-bold mb-6">Incluye / No incluye</h2>
       <div className="grid sm:grid-cols-2 gap-8">
@@ -1236,7 +1238,7 @@ function IncludeExcludeSection({
           </div>
         )}
       </div>
-    </motion.section>
+    </section>
   );
 }
 
@@ -1393,12 +1395,8 @@ function GoogleReviewsSection({ reviews }: { reviews: GoogleReviewProp[] }) {
               const needsTruncation = review.text.length > 200;
 
               return (
-                <motion.div
+                <div
                   key={idx}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: idx * 0.1 }}
                   className="bg-card border rounded-xl p-6 flex flex-col"
                 >
                   {/* Author + Stars header */}
@@ -1484,7 +1482,7 @@ function GoogleReviewsSection({ reviews }: { reviews: GoogleReviewProp[] }) {
                       </p>
                     </div>
                   )}
-                </motion.div>
+                </div>
               );
             })}
           </div>
@@ -1492,12 +1490,9 @@ function GoogleReviewsSection({ reviews }: { reviews: GoogleReviewProp[] }) {
       </section>
 
       {/* Photo Lightbox */}
-      <AnimatePresence>
+      
         {lightboxImages.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+          <div
             className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center"
             onClick={() => setLightboxImages([])}
           >
@@ -1533,9 +1528,9 @@ function GoogleReviewsSection({ reviews }: { reviews: GoogleReviewProp[] }) {
             <div className="absolute bottom-4 text-white/70 text-sm">
               {lightboxIdx + 1} / {lightboxImages.length}
             </div>
-          </motion.div>
+          </div>
         )}
-      </AnimatePresence>
+      
     </>
   );
 }
@@ -1579,10 +1574,7 @@ function SimilarProducts({
   return (
     <section className="py-16 px-6">
       <div className="max-w-7xl mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
+        <div
           className="flex items-center justify-between mb-8"
         >
           <h2 className="text-2xl font-bold" style={{ color: 'var(--text-heading)' }}>{similarLabel}</h2>
@@ -1593,17 +1585,12 @@ function SimilarProducts({
           >
             Ver todos →
           </Link>
-        </motion.div>
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {similar.map((item, i) => (
-            <motion.div
+          {similar.map((item) => (
+            <div
               key={item.id}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.1 }}
-              whileHover={{ y: -4 }}
             >
               <Link
                 href={`${basePath}/${categorySlug}/${item.slug}`}
@@ -1612,7 +1599,13 @@ function SimilarProducts({
               >
                 <div className="relative overflow-hidden" style={{ aspectRatio: '16/10' }}>
                   {item.image ? (
-                    <Image src={item.image} alt="" fill className="object-cover transition-transform duration-700 group-hover:scale-105" />
+                    <Image
+                      src={item.image}
+                      alt=""
+                      fill
+                      sizes="(max-width: 768px) 100vw, 33vw"
+                      className="object-cover transition-transform duration-700 group-hover:scale-105"
+                    />
                   ) : (
                     <div className="w-full h-full bg-muted flex items-center justify-center">
                       <span className="text-3xl">{productType === 'hotel' ? '🏨' : '🎯'}</span>
@@ -1636,7 +1629,7 @@ function SimilarProducts({
                   </div>
                 </div>
               </Link>
-            </motion.div>
+            </div>
           ))}
         </div>
       </div>

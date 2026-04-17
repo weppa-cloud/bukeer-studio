@@ -145,7 +145,7 @@ export default async function PackageSlugPage({ params }: PackagePageProps) {
   const packageReviews = googleEnabled && website.account_id
     ? await getReviewsForContext(website.account_id, reviewContext, 3)
     : [];
-  const { items: similarPackages } = await getCategoryProducts(subdomain, 'packages', { limit: 24, offset: 0 });
+  const { items: similarPackages } = await getCategoryProducts(subdomain, 'packages', { limit: 8, offset: 0 });
 
   return (
     <ProductLandingPage

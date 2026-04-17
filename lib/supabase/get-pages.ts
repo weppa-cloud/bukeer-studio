@@ -32,7 +32,9 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 const PRODUCT_PAGE_CACHE_TTL_MS = Number(process.env.PRODUCT_PAGE_CACHE_TTL_MS || 5 * 60 * 1000);
+const CATEGORY_PRODUCTS_CACHE_TTL_MS = Number(process.env.CATEGORY_PRODUCTS_CACHE_TTL_MS || 2 * 60 * 1000);
 const productPageCache = new Map<string, { value: ProductPageData; expiresAt: number }>();
+const categoryProductsCache = new Map<string, { value: CategoryProducts; expiresAt: number }>();
 
 function logProductV2ParseWarning(
   scope: string,
@@ -285,6 +287,18 @@ export async function getCategoryProducts(
   } = {}
 ): Promise<CategoryProducts> {
   try {
+    const cacheKey = [
+      subdomain.toLowerCase(),
+      categoryType.toLowerCase(),
+      String(options.limit || 12),
+      String(options.offset || 0),
+      (options.search || '').toLowerCase(),
+    ].join('::');
+    const cached = categoryProductsCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.value;
+    }
+
     const { data, error } = await supabase.rpc('get_website_category_products', {
       p_subdomain: subdomain,
       p_category: categoryType,
@@ -309,10 +323,15 @@ export async function getCategoryProducts(
 
     const parsed = CategoryProductsSchema.safeParse(normalizedPayload);
     if (parsed.success) {
-      return {
+      const result = {
         items: parsed.data.items as ProductData[],
         total: Number(parsed.data.total),
       };
+      categoryProductsCache.set(cacheKey, {
+        value: result,
+        expiresAt: Date.now() + CATEGORY_PRODUCTS_CACHE_TTL_MS,
+      });
+      return result;
     }
 
     logProductV2ParseWarning('getCategoryProducts', normalizedPayload, parsed.error.issues);
@@ -325,7 +344,12 @@ export async function getCategoryProducts(
       ? payload.total
       : Number(payload.total) || 0;
 
-    return { items, total };
+    const result = { items, total };
+    categoryProductsCache.set(cacheKey, {
+      value: result,
+      expiresAt: Date.now() + CATEGORY_PRODUCTS_CACHE_TTL_MS,
+    });
+    return result;
   } catch (e) {
     console.error('[getCategoryProducts] Exception:', e);
     return { items: [], total: 0 };

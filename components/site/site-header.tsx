@@ -12,7 +12,6 @@ import {
   SITE_LANG_QUERY_PARAM,
   SITE_LANG_STORAGE_KEY,
   buildCurrencyConfig,
-  getLocaleLabel,
   normalizeCurrencyCode,
   normalizeLanguageCode,
   resolveMarketExperienceConfig,
@@ -574,10 +573,12 @@ function MenuPreferenceSwitchers({
   const panelBackground = isTransparent
     ? 'color-mix(in srgb, rgba(11,18,32,0.92) 85%, transparent)'
     : 'color-mix(in srgb, var(--bg, hsl(var(--background))) 96%, white 4%)';
-  const selectedLocaleShort = getLocaleLabel(selectedLocale).slice(0, 2).toUpperCase();
+  const selectedLocaleFlag = getLocaleFlagEmoji(selectedLocale);
+  const selectedCurrencyCode = (selectedCurrency ?? currencyOptions[0] ?? '').toUpperCase();
+  const selectedCurrencySymbol = getCurrencySymbol(selectedCurrencyCode);
   const labelParts = [
-    hasLanguageSwitcher ? selectedLocaleShort : null,
-    hasCurrencySwitcher ? (selectedCurrency ?? currencyOptions[0] ?? '').toUpperCase() : null,
+    hasLanguageSwitcher ? selectedLocaleFlag : null,
+    hasCurrencySwitcher ? `${selectedCurrencySymbol} ${selectedCurrencyCode}` : null,
   ].filter((part): part is string => Boolean(part));
 
   useEffect(() => {
@@ -603,10 +604,11 @@ function MenuPreferenceSwitchers({
     <div className="relative ml-2" ref={panelRef}>
       <button
         type="button"
+        aria-label="Personalización de idioma y moneda"
         aria-expanded={isOpen}
         aria-haspopup="dialog"
         onClick={() => setIsOpen((current) => !current)}
-        className="inline-flex h-9 min-w-[112px] items-center justify-between gap-2 rounded-full border px-3 transition-all duration-200"
+        className="inline-flex h-9 min-w-[118px] items-center justify-between gap-2 rounded-full border px-3 transition-all duration-200"
         style={{
           color: textColor,
           borderColor,
@@ -614,8 +616,8 @@ function MenuPreferenceSwitchers({
           boxShadow: isOpen ? '0 8px 24px rgba(0,0,0,0.16)' : 'none',
         }}
       >
-        <span className="text-[10px] uppercase tracking-[0.16em] opacity-70">Mercado</span>
-        <span className="text-xs font-semibold tracking-wide">
+        <span className="sr-only">Personalización</span>
+        <span className="text-sm font-semibold tracking-wide">
           {labelParts.join(' · ') || 'Preferencias'}
         </span>
         <svg className={`h-3.5 w-3.5 transition-transform ${isOpen ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
@@ -642,7 +644,7 @@ function MenuPreferenceSwitchers({
               options={localeOptions.map((locale) => ({
                 value: locale.code,
                 label: locale.label,
-                shortLabel: locale.code.toUpperCase(),
+                shortLabel: `${getLocaleFlagEmoji(locale.code)} ${locale.code.toUpperCase()}`,
               }))}
               styleVariant={switcherStyle}
               onChange={(value) => {
@@ -658,8 +660,8 @@ function MenuPreferenceSwitchers({
               value={(selectedCurrency ?? currencyOptions[0] ?? '').toUpperCase()}
               options={currencyOptions.map((code) => ({
                 value: code,
-                label: code.toUpperCase(),
-                shortLabel: code.toUpperCase(),
+                label: `${getCurrencySymbol(code)} ${code.toUpperCase()}`,
+                shortLabel: `${getCurrencySymbol(code)} ${code.toUpperCase()}`,
               }))}
               styleVariant={switcherStyle}
               onChange={(value) => {
@@ -794,6 +796,41 @@ function MarketOptionGroup({
       </div>
     </div>
   );
+}
+
+function getLocaleFlagEmoji(localeCode: string): string {
+  const normalized = (normalizeLanguageCode(localeCode) ?? localeCode).toLowerCase();
+  const map: Record<string, string> = {
+    es: '🇪🇸',
+    en: '🇺🇸',
+    pt: '🇧🇷',
+    fr: '🇫🇷',
+    de: '🇩🇪',
+    it: '🇮🇹',
+    nl: '🇳🇱',
+  };
+  return map[normalized] ?? '🌐';
+}
+
+function getCurrencySymbol(currencyCode: string): string {
+  const normalized = currencyCode.toUpperCase();
+  try {
+    const part = new Intl.NumberFormat('en', {
+      style: 'currency',
+      currency: normalized,
+      currencyDisplay: 'narrowSymbol',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    })
+      .formatToParts(1)
+      .find((piece) => piece.type === 'currency')?.value;
+    if (part && part.trim().length > 0) {
+      return part;
+    }
+  } catch {
+    // Fall back to code when browser doesn't support a currency code.
+  }
+  return normalized;
 }
 
 // Icons

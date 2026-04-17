@@ -41,11 +41,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" suppressHydrationWarning className={cn(playfair.variable, montserrat.variable, geist.variable, manrope.variable, jetBrainsMono.variable, "font-sans")}>
-      <head>
-        {/* Preconnect to external services for faster loading */}
-        <link rel="preconnect" href="https://wzlxbpicdcdvxvdcvgas.supabase.co" />
-        <link rel="dns-prefetch" href="https://wzlxbpicdcdvxvdcvgas.supabase.co" />
-      </head>
       <body className="font-sans antialiased">
         {children}
       </body>

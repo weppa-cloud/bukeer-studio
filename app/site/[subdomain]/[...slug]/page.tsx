@@ -510,11 +510,11 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
           ? { type: 'package', destination: productLocation || product.name }
           : { type: 'destination', name: productLocation || product.name };
         const categoryType = getProductCategoryType(productType);
-        const [productReviews, similarProductsPayload] = await Promise.all([
-          googleEnabled && website.account_id
-            ? getReviewsForContext(website.account_id, reviewContext, 3)
-            : Promise.resolve([]),
-          getCategoryProducts(subdomain, categoryType, { limit: 24, offset: 0 }),
+          const [productReviews, similarProductsPayload] = await Promise.all([
+            googleEnabled && website.account_id
+              ? getReviewsForContext(website.account_id, reviewContext, 3)
+              : Promise.resolve([]),
+          getCategoryProducts(subdomain, categoryType, { limit: 8, offset: 0 }),
         ]);
         const similarProducts = similarProductsPayload.items;
 
