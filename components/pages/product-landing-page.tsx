@@ -25,6 +25,7 @@ import {
   type CurrencyConfig,
 } from '@/lib/site/currency';
 import { ProductSchema } from '../seo/product-schema';
+import { OrganizationSchema } from '../seo/organization-schema';
 import { HighlightsGrid } from '@/components/site/highlights-grid';
 import { MeetingPointMap } from '@/components/site/meeting-point-map';
 import { OptionsTable } from '@/components/site/options-table';
@@ -321,6 +322,7 @@ export function ProductLandingPage({
       language={(website as unknown as { language?: string; locale?: string }).language || (website as unknown as { locale?: string }).locale}
       faqs={faqSource}
     />
+    <OrganizationSchema website={website} websiteUrl={websiteUrl} />
     <div className="min-h-screen">
       {/* Hero Section — Gradient fades into page bg */}
       <section
