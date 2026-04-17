@@ -1,0 +1,83 @@
+{
+  "issue": {
+    "number": 122,
+    "title": "EPIC 86 closure KPI report",
+    "scope": "database-wide"
+  },
+  "generatedAt": "2026-04-17T01:40:10.991Z",
+  "filters": {
+    "websiteId": null
+  },
+  "thresholds": {
+    "auditCoveragePct": 0.95,
+    "researchCandidatesValidatedPerLocale": 500,
+    "sourceAttributionCompletenessPct": 1
+  },
+  "metrics": {
+    "auditCoverage": {
+      "threshold": 0.95,
+      "passed": false,
+      "totalSnapshots": 0,
+      "validatedSnapshots": 0,
+      "latestSnapshotsByLocale": []
+    },
+    "researchCandidates": {
+      "threshold": 500,
+      "passed": false,
+      "totalValidated": 0,
+      "byLocale": [],
+      "localesBelowThreshold": []
+    },
+    "sourceAttributionCompleteness": {
+      "threshold": 1,
+      "passed": false,
+      "totalRows": 0,
+      "attributedRows": 0,
+      "byTable": [
+        {
+          "table": "seo_audit_findings",
+          "rows": 0,
+          "attributedRows": 0,
+          "pct": 0,
+          "passed": true
+        },
+        {
+          "table": "seo_cluster_metrics_daily",
+          "rows": 0,
+          "attributedRows": 0,
+          "pct": 0,
+          "passed": true
+        },
+        {
+          "table": "seo_keyword_candidates",
+          "rows": 0,
+          "attributedRows": 0,
+          "pct": 0,
+          "passed": true
+        },
+        {
+          "table": "seo_keyword_research_runs",
+          "rows": 0,
+          "attributedRows": 0,
+          "pct": 0,
+          "passed": true
+        },
+        {
+          "table": "seo_page_metrics_daily",
+          "rows": 0,
+          "attributedRows": 0,
+          "pct": 0,
+          "passed": true
+        },
+        {
+          "table": "seo_render_snapshots",
+          "rows": 0,
+          "attributedRows": 0,
+          "pct": 0,
+          "passed": true
+        }
+      ]
+    }
+  },
+  "passed": false
+}
