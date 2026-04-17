@@ -17,6 +17,7 @@ export type {
   HeaderCTA,
   AnalyticsConfig,
   FeaturedProducts,
+  AccountCurrencyRate,
 } from './types/website';
 
 export type {

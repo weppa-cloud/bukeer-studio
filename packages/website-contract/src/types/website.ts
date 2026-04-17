@@ -22,6 +22,12 @@ export interface HeaderCTA {
   enabled: boolean;
 }
 
+export interface AccountCurrencyRate {
+  name: string;
+  rate: number;
+  type?: string | null;
+}
+
 export interface WebsiteContent {
   siteName: string;
   tagline: string;
@@ -60,6 +66,9 @@ export interface WebsiteContent {
     phone2: string | null;
     website: string | null;
     location: string | null;
+    primary_currency?: string | null;
+    enabled_currencies?: string[] | null;
+    currency?: AccountCurrencyRate[] | null;
     legal?: {
       terms_conditions: string | null;
       privacy_policy: string | null;

@@ -22,6 +22,9 @@ export const SectionType = z.enum([
   'faq', 'faq_accordion', 'contact', 'contact_form',
   'blog', 'blog_grid',
   'planners', 'team', 'travel_planners',
+  // SEM landing page sections (2026 blueprint)
+  'trust_bar', 'itinerary_accordion', 'inclusions_exclusions',
+  'comparison_table', 'guarantee_badges', 'countdown_timer',
 ]);
 
 export type SectionTypeValue = z.infer<typeof SectionType>;
@@ -127,15 +130,20 @@ export const TestimonialsContentSchema = z.object({
 export const PricingContentSchema = z.object({
   title: SafeTitle.optional(),
   subtitle: SafeString.optional(),
+  currency: z.string().max(10).optional(),
+  anchorLabel: z.string().max(30).optional(),
   tiers: z.array(z.object({
     name: SafeTitle,
     price: z.string().max(50),
     period: z.string().max(20).optional(),
+    perPerson: z.boolean().optional(),
+    installments: z.string().max(80).optional(),
     description: SafeString.optional(),
     features: z.array(z.string().max(200)).max(15),
     ctaText: z.string().max(50).optional(),
     ctaUrl: z.string().url().optional(),
     highlighted: z.boolean().optional(),
+    badge: z.string().max(40).optional(),
   })).max(5),
 });
 
@@ -295,6 +303,90 @@ export const NewsletterContentSchema = z.object({
   buttonText: z.string().max(50).optional(),
   placeholder: z.string().max(100).optional(),
 });
+
+// ============================================================================
+// SEM Landing Page Schemas (2026 blueprint)
+// ============================================================================
+
+export const TrustBarContentSchema = z.object({
+  rating: z.object({
+    score: z.number().min(0).max(5),
+    count: z.number().int().min(0),
+    source: z.string().max(50).optional(),
+  }).optional(),
+  certifications: z.array(z.object({
+    name: z.string().max(80),
+    logo: z.string().url().optional(),
+  })).max(6).optional(),
+  travelerCount: z.number().int().min(0).optional(),
+  travelerLabel: z.string().max(50).optional(),
+  sslBadge: z.boolean().optional(),
+});
+
+export const ItineraryDaySchema = z.object({
+  dayNumber: z.number().int().min(1).max(30),
+  title: SafeTitle,
+  location: z.string().max(100).optional(),
+  summary: SafeString,
+  activities: z.array(z.string().max(300)).max(10),
+  included: z.array(z.string().max(200)).max(8).optional(),
+  image: z.string().url().optional(),
+  night: z.string().max(100).optional(),
+});
+
+export const ItineraryAccordionContentSchema = z.object({
+  title: SafeTitle.optional(),
+  subtitle: SafeString.optional(),
+  days: z.array(ItineraryDaySchema).min(1).max(30),
+  schema: z.boolean().optional(),
+});
+
+export const InclusionsExclusionsContentSchema = z.object({
+  title: SafeTitle.optional(),
+  included: z.array(z.string().max(200)).min(1).max(30),
+  excluded: z.array(z.string().max(200)).max(20),
+  note: SafeString.optional(),
+});
+
+export const ComparisonTableContentSchema = z.object({
+  title: SafeTitle.optional(),
+  subtitle: SafeString.optional(),
+  columns: z.array(z.object({
+    label: z.string().max(60),
+    highlighted: z.boolean().optional(),
+  })).min(2).max(5),
+  rows: z.array(z.object({
+    feature: z.string().max(120),
+    values: z.array(z.union([z.string().max(100), z.boolean()])),
+  })).min(1).max(15),
+});
+
+export const GuaranteeBadgesContentSchema = z.object({
+  title: SafeTitle.optional(),
+  badges: z.array(z.object({
+    icon: z.string().max(50),
+    label: z.string().max(80),
+    description: z.string().max(200).optional(),
+  })).min(1).max(6),
+});
+
+export const CountdownTimerContentSchema = z.object({
+  title: SafeTitle,
+  targetDate: z.string().datetime(),
+  mode: z.enum(['departure', 'offer']),
+  ctaText: z.string().max(60).optional(),
+  ctaUrl: SafeUrl,
+  fallbackText: z.string().max(200).optional(),
+}).refine(
+  (data) => {
+    if (data.mode === 'offer') {
+      const diff = new Date(data.targetDate).getTime() - Date.now();
+      return diff >= 24 * 60 * 60 * 1000;
+    }
+    return true;
+  },
+  { message: 'mode=offer requires targetDate at least 24 hours in the future' }
+);
 
 export const GenericContentSchema = z.record(z.string(), z.unknown());
 
