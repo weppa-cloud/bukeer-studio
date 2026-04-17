@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { WebsiteSection } from '@/lib/supabase/get-website';
+import { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 import { BlurFade } from '@/components/ui/blur-fade';
 import {
   Accordion,
@@ -32,10 +32,11 @@ interface ItineraryAccordionContent {
 
 interface ItineraryAccordionSectionProps {
   section: WebsiteSection;
+  website: WebsiteData;
 }
 
 export function ItineraryAccordionSection({ section }: ItineraryAccordionSectionProps) {
-  const content = (section.content as ItineraryAccordionContent | null) || { days: [] };
+  const content = (section.content as unknown as ItineraryAccordionContent | null) || { days: [] };
   const { title = 'Itinerario día a día', subtitle, days = [] } = content;
 
   return (
@@ -48,7 +49,7 @@ export function ItineraryAccordionSection({ section }: ItineraryAccordionSection
           </div>
         </BlurFade>
 
-        <Accordion openMultiple>
+        <Accordion multiple>
           {days.map((day, i) => (
             <BlurFade key={day.dayNumber} delay={0.05 * i} direction="up" duration={0.35}>
               <AccordionItem value={`day-${day.dayNumber}`}>

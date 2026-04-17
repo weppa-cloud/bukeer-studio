@@ -1,6 +1,6 @@
 'use client';
 
-import { WebsiteSection } from '@/lib/supabase/get-website';
+import { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 import { BlurFade } from '@/components/ui/blur-fade';
 import { Check, X } from 'lucide-react';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
@@ -24,6 +24,7 @@ interface ComparisonTableContent {
 
 interface ComparisonTableSectionProps {
   section: WebsiteSection;
+  website: WebsiteData;
 }
 
 function CellValue({ value, highlighted }: { value: string | boolean; highlighted?: boolean }) {
@@ -42,7 +43,7 @@ function CellValue({ value, highlighted }: { value: string | boolean; highlighte
 }
 
 export function ComparisonTableSection({ section }: ComparisonTableSectionProps) {
-  const content = (section.content as ComparisonTableContent | null) || { columns: [], rows: [] };
+  const content = (section.content as unknown as ComparisonTableContent | null) || { columns: [], rows: [] };
   const { title, subtitle, columns = [], rows = [] } = content;
 
   return (

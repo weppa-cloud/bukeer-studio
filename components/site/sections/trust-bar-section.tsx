@@ -1,6 +1,6 @@
 'use client';
 
-import { WebsiteSection } from '@/lib/supabase/get-website';
+import { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 import { BlurFade } from '@/components/ui/blur-fade';
 import { NumberTicker } from '@/components/ui/number-ticker';
 import { Shield } from 'lucide-react';
@@ -15,6 +15,7 @@ interface TrustBarContent {
 
 interface TrustBarSectionProps {
   section: WebsiteSection;
+  website: WebsiteData;
 }
 
 function StarRating({ score }: { score: number }) {
@@ -39,7 +40,7 @@ function StarRating({ score }: { score: number }) {
 }
 
 export function TrustBarSection({ section }: TrustBarSectionProps) {
-  const content = (section.content as TrustBarContent | null) || {};
+  const content = (section.content as unknown as TrustBarContent | null) || {};
   const { rating, certifications = [], travelerCount, travelerLabel, sslBadge } = content;
 
   const variant = section.variant || 'ratings_inline';

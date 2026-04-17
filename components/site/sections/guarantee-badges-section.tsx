@@ -1,6 +1,6 @@
 'use client';
 
-import { WebsiteSection } from '@/lib/supabase/get-website';
+import { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 import { BlurFade } from '@/components/ui/blur-fade';
 import {
   RotateCcw, Lock, BadgeDollarSign, Headphones,
@@ -20,6 +20,7 @@ interface GuaranteeBadgesContent {
 
 interface GuaranteeBadgesSectionProps {
   section: WebsiteSection;
+  website: WebsiteData;
 }
 
 const ICON_MAP: Record<string, React.ReactNode> = {
@@ -42,7 +43,7 @@ function BadgeIcon({ name }: { name: string }) {
 }
 
 export function GuaranteeBadgesSection({ section }: GuaranteeBadgesSectionProps) {
-  const content = (section.content as GuaranteeBadgesContent | null) || { badges: [] };
+  const content = (section.content as unknown as GuaranteeBadgesContent | null) || { badges: [] };
   const { title, badges = [] } = content;
   const variant = section.variant || 'risk_reversal_row';
   const isRow = variant === 'risk_reversal_row';

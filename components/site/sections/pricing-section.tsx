@@ -1,6 +1,6 @@
 'use client';
 
-import { WebsiteSection } from '@/lib/supabase/get-website';
+import { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 import { BlurFade } from '@/components/ui/blur-fade';
 import { NumberTicker } from '@/components/ui/number-ticker';
 import { Check, Star } from 'lucide-react';
@@ -29,6 +29,7 @@ interface PricingContent {
 
 interface PricingSectionProps {
   section: WebsiteSection;
+  website: WebsiteData;
 }
 
 function extractNumericPrice(price: string): number | null {
@@ -127,7 +128,7 @@ function PricingCard({ tier, currency, delay }: { tier: PricingTier; currency?: 
 }
 
 export function PricingSection({ section }: PricingSectionProps) {
-  const content = (section.content as PricingContent | null) || { tiers: [] };
+  const content = (section.content as unknown as PricingContent | null) || { tiers: [] };
   const { title, subtitle, currency, anchorLabel, tiers = [] } = content;
   const variant = section.variant || 'tiered_anchor';
   const isSingle = variant === 'single_highlight' || tiers.length === 1;

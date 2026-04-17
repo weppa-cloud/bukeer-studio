@@ -1,6 +1,6 @@
 'use client';
 
-import { WebsiteSection } from '@/lib/supabase/get-website';
+import { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 import { BlurFade } from '@/components/ui/blur-fade';
 import { Check, X } from 'lucide-react';
 
@@ -13,10 +13,11 @@ interface InclusionsExclusionsContent {
 
 interface InclusionsExclusionsSectionProps {
   section: WebsiteSection;
+  website: WebsiteData;
 }
 
 export function InclusionsExclusionsSection({ section }: InclusionsExclusionsSectionProps) {
-  const content = (section.content as InclusionsExclusionsContent | null) || { included: [], excluded: [] };
+  const content = (section.content as unknown as InclusionsExclusionsContent | null) || { included: [], excluded: [] };
   const { title, included = [], excluded = [], note } = content;
   const variant = section.variant || 'two_column_check';
   const isTabs = variant === 'single_column_tabs';

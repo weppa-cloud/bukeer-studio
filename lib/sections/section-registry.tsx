@@ -123,6 +123,42 @@ const PlannersSection = dynamic(
   { loading: SectionSkeleton }
 );
 
+// SEM Landing Page Sections (2026 blueprint)
+const TrustBarSection = dynamic(
+  () => import('@/components/site/sections/trust-bar-section').then((mod) => mod.TrustBarSection),
+  { loading: SectionSkeleton }
+);
+
+const ItineraryAccordionSection = dynamic(
+  () => import('@/components/site/sections/itinerary-accordion-section').then((mod) => mod.ItineraryAccordionSection),
+  { loading: SectionSkeleton }
+);
+
+const InclusionsExclusionsSection = dynamic(
+  () => import('@/components/site/sections/inclusions-exclusions-section').then((mod) => mod.InclusionsExclusionsSection),
+  { loading: SectionSkeleton }
+);
+
+const ComparisonTableSection = dynamic(
+  () => import('@/components/site/sections/comparison-table-section').then((mod) => mod.ComparisonTableSection),
+  { loading: SectionSkeleton }
+);
+
+const GuaranteeBadgesSection = dynamic(
+  () => import('@/components/site/sections/guarantee-badges-section').then((mod) => mod.GuaranteeBadgesSection),
+  { loading: SectionSkeleton }
+);
+
+const CountdownTimerSection = dynamic(
+  () => import('@/components/site/sections/countdown-timer-section').then((mod) => mod.CountdownTimerSection),
+  { loading: SectionSkeleton }
+);
+
+const PricingSection = dynamic(
+  () => import('@/components/site/sections/pricing-section').then((mod) => mod.PricingSection),
+  { loading: SectionSkeleton }
+);
+
 // ============================================================================
 // Section Components Registry
 // ============================================================================
@@ -187,11 +223,19 @@ export const sectionComponents: Record<string, SectionComponent> = {
   team: PlannersSection,
   travel_planners: PlannersSection,
 
-  // Pricing (schema supports it)
-  pricing: CtaSection,              // Use CTA for now, create PricingSection later
+  // Pricing — real component (replaces CtaSection placeholder)
+  pricing: PricingSection,
 
   // Blog
   blog_grid: BlogSection,
+
+  // SEM Landing Page Sections (2026 blueprint)
+  trust_bar: TrustBarSection,
+  itinerary_accordion: ItineraryAccordionSection,
+  inclusions_exclusions: InclusionsExclusionsSection,
+  comparison_table: ComparisonTableSection,
+  guarantee_badges: GuaranteeBadgesSection,
+  countdown_timer: CountdownTimerSection,
 };
 
 // ============================================================================
