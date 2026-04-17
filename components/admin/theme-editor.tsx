@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { useAutosave } from '@/lib/hooks/use-autosave';
 import type { WebsiteData } from '@bukeer/website-contract';
 
@@ -31,31 +31,47 @@ interface ThemeEditorProps {
 
 export function ThemeEditor({ website, onSave }: ThemeEditorProps) {
   const theme = website.theme || { tokens: { colors: { seedColor: '#1976D2' } }, profile: {} };
-  const tokens = theme.tokens as any;
-  const profile = theme.profile as any;
+  const tokens = theme.tokens ?? {};
+  const profile = theme.profile ?? {};
+  const colors =
+    tokens.colors && typeof tokens.colors === 'object'
+      ? (tokens.colors as Record<string, unknown>)
+      : {};
+  const typography =
+    profile.typography && typeof profile.typography === 'object'
+      ? (profile.typography as Record<string, unknown>)
+      : {};
+  const layout =
+    profile.layout && typeof profile.layout === 'object'
+      ? (profile.layout as Record<string, unknown>)
+      : {};
 
-  const [seedColor, setSeedColor] = useState(tokens?.colors?.seedColor || '#1976D2');
-  const [brandMood, setBrandMood] = useState(profile?.brandMood || 'corporate');
-  const [headingFont, setHeadingFont] = useState(profile?.typography?.headingFont || 'Montserrat');
-  const [bodyFont, setBodyFont] = useState(profile?.typography?.bodyFont || 'Open Sans');
-  const [radius, setRadius] = useState(profile?.radius ?? 12);
-  const [layoutVariant, setLayoutVariant] = useState(profile?.layout?.variant || 'modern');
+  const [seedColor, setSeedColor] = useState(typeof colors.seedColor === 'string' ? colors.seedColor : '#1976D2');
+  const [brandMood, setBrandMood] = useState(typeof profile.brandMood === 'string' ? profile.brandMood : 'corporate');
+  const [headingFont, setHeadingFont] = useState(
+    typeof typography.headingFont === 'string' ? typography.headingFont : 'Montserrat'
+  );
+  const [bodyFont, setBodyFont] = useState(
+    typeof typography.bodyFont === 'string' ? typography.bodyFont : 'Open Sans'
+  );
+  const [radius, setRadius] = useState(typeof profile.radius === 'number' ? profile.radius : 12);
+  const [layoutVariant, setLayoutVariant] = useState(typeof layout.variant === 'string' ? layout.variant : 'modern');
 
   const themeData = {
-    tokens: { ...tokens, colors: { ...tokens?.colors, seedColor } },
+    tokens: { ...tokens, colors: { ...colors, seedColor } },
     profile: {
       ...profile,
       brandMood,
       typography: { headingFont, bodyFont },
       radius,
-      layout: { ...profile?.layout, variant: layoutVariant },
+      layout: { ...layout, variant: layoutVariant },
     },
   };
 
   const { status } = useAutosave({
     data: themeData,
     onSave: async (data) => {
-      await onSave({ theme: data } as any);
+      await onSave({ theme: data });
     },
     debounceMs: 1500,
   });

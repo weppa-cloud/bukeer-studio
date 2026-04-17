@@ -184,7 +184,7 @@ export function BulkSeoModal({ isOpen, onClose, websiteId, items, onApplied }: B
     setApplying(false);
     setState('applied');
     onApplied();
-  }, [generated, onApplied]);
+  }, [generated, onApplied, websiteId]);
 
   const handleClose = () => {
     if (abortRef.current) {

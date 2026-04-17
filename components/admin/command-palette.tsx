@@ -18,6 +18,12 @@ interface SearchResult {
   type: 'website' | 'action';
 }
 
+interface WebsiteSearchRow {
+  id: string;
+  subdomain: string;
+  content: { siteName?: string } | null;
+}
+
 export function CommandPalette({ open, onClose }: CommandPaletteProps) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -54,7 +60,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
         .ilike('subdomain', `%${query}%`)
         .limit(5);
 
-      const websites: SearchResult[] = (data || []).map((w: any) => ({
+      const websites: SearchResult[] = ((data as WebsiteSearchRow[] | null) || []).map((w) => ({
         id: w.id,
         title: w.content?.siteName || w.subdomain,
         subtitle: w.subdomain,

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { StatusBadge } from './status-badge';
 
@@ -33,7 +34,14 @@ export function WebsiteCard({
         {/* Preview thumbnail */}
         <div className="aspect-video bg-[var(--studio-panel)] relative overflow-hidden">
           {ogImage ? (
-            <img src={ogImage} alt={name} className="w-full h-full object-cover" />
+            <Image
+              src={ogImage}
+              alt={name}
+              fill
+              unoptimized
+              sizes="(max-width: 1024px) 100vw, 33vw"
+              className="w-full h-full object-cover"
+            />
           ) : (
             <div className="flex items-center justify-center h-full text-[var(--studio-text-muted)]">
               <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">

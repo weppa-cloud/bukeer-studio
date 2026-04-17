@@ -31,9 +31,9 @@ interface StudioButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement
   size?: StudioComponentSize;
 }
 
-interface StudioInputProps extends React.InputHTMLAttributes<HTMLInputElement> {}
+type StudioInputProps = React.InputHTMLAttributes<HTMLInputElement>;
 
-interface StudioTextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {}
+type StudioTextareaProps = React.TextareaHTMLAttributes<HTMLTextAreaElement>;
 
 interface StudioPanelProps {
   children: ReactNode;
@@ -74,7 +74,7 @@ interface StudioSelectProps extends Omit<React.SelectHTMLAttributes<HTMLSelectEl
   options: StudioSelectOption[];
 }
 
-interface StudioListRowProps extends React.HTMLAttributes<HTMLDivElement> {}
+type StudioListRowProps = React.HTMLAttributes<HTMLDivElement>;
 
 interface StudioEmptyStateProps {
   title: string;

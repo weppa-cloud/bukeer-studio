@@ -15,6 +15,7 @@
  */
 
 import Script from 'next/script';
+import Image from 'next/image';
 
 export interface AnalyticsConfig {
   gtm_id?: string;           // Google Tag Manager ID (GTM-XXXXXX)
@@ -127,9 +128,10 @@ export function FacebookPixelScript({ analytics }: GoogleTagManagerProps) {
         }}
       />
       <noscript>
-        <img
-          height="1"
-          width="1"
+        <Image
+          height={1}
+          width={1}
+          unoptimized
           style={{ display: 'none' }}
           src={`https://www.facebook.com/tr?id=${analytics.facebook_pixel_id}&ev=PageView&noscript=1`}
           alt=""

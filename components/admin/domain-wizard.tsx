@@ -13,7 +13,6 @@ export function DomainWizard({ websiteId, currentDomain }: DomainWizardProps) {
   const [domain, setDomain] = useState(currentDomain || '');
   const [step, setStep] = useState(currentDomain ? 2 : 0);
   const [verifying, setVerifying] = useState(false);
-  const [verified, setVerified] = useState(false);
 
   async function saveDomain() {
     await supabase.from('websites').update({ custom_domain: domain }).eq('id', websiteId);
@@ -25,7 +24,6 @@ export function DomainWizard({ websiteId, currentDomain }: DomainWizardProps) {
     // In production, this would check DNS records
     setTimeout(() => {
       setVerifying(false);
-      setVerified(true);
       setStep(2);
     }, 2000);
   }

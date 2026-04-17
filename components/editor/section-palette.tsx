@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useDraggable } from '@dnd-kit/core';
-import { SECTION_TYPES } from '@bukeer/website-contract';
 import type { SectionTypeValue } from '@bukeer/website-contract';
 
 const SECTION_CATEGORIES: Record<string, { label: string; types: SectionTypeValue[] }> = {

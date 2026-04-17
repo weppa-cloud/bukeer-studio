@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, type ComponentProps } from 'react';
 import { GradeBadge, ScoreDetailPanel, ScoreWarningBanner } from './score-display';
 import { TiptapEditor } from './tiptap-editor';
 import { TiptapToolbar } from './tiptap-toolbar';
@@ -8,22 +8,14 @@ import { SlashMenu } from './slash-command';
 import type { Editor } from '@tiptap/react';
 import '../../styles/tiptap-bukeer.css';
 
-interface ScoringResult {
-  overall: number;
-  seo: number;
-  readability: number;
-  structure: number;
-  geo: number;
-  grade: 'A' | 'B' | 'C' | 'D' | 'F';
-  checks: any[];
-}
+type ScoringResult = NonNullable<ComponentProps<typeof ScoreDetailPanel>['score']>;
 
 interface BlogEditorProps {
   initialContent?: string;
   initialTitle?: string;
   onChange?: (content: string) => void;
   onTitleChange?: (title: string) => void;
-  onSeoDataChange?: (data: { faqItems?: any[]; seoKeywords?: string[]; tldr?: string }) => void;
+  onSeoDataChange?: (data: { faqItems?: unknown[]; seoKeywords?: string[]; tldr?: string }) => void;
   websiteId: string;
   postId?: string;
   authToken?: string;
@@ -46,7 +38,6 @@ export function BlogEditor({
   onTitleChange,
   onSeoDataChange,
   websiteId,
-  postId,
   authToken,
   scoreResult,
   onScoreRefresh,
@@ -61,10 +52,6 @@ export function BlogEditor({
   // Live content ref — avoids re-rendering the entire tree on every keystroke.
   const contentRef = useRef(initialContent);
   const wordCountTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const authHeaders: Record<string, string> = authToken
-    ? { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` }
-    : { 'Content-Type': 'application/json' };
 
   const handleTitleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -118,11 +105,15 @@ export function BlogEditor({
       setAiError(null);
 
       try {
+        const requestHeaders: Record<string, string> = authToken
+          ? { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` }
+          : { 'Content-Type': 'application/json' };
+
         if (action === 'draft' || action === 'draft-v2') {
           const isV2 = action === 'draft-v2';
           const res = await fetch('/api/ai/editor/generate-blog', {
             method: 'POST',
-            headers: authHeaders,
+            headers: requestHeaders,
             body: JSON.stringify({
               topic: title || 'Travel tips',
               locale: 'es',
@@ -144,7 +135,7 @@ export function BlogEditor({
         } else if (action === 'improve' || action === 'seo') {
           const res = await fetch('/api/ai/editor/improve-text', {
             method: 'POST',
-            headers: authHeaders,
+            headers: requestHeaders,
             body: JSON.stringify({ text: contentRef.current, action: 'rewrite' }),
           });
           if (!res.ok) throw new Error('Failed to improve');
@@ -153,7 +144,7 @@ export function BlogEditor({
         } else if (action === 'translate') {
           const res = await fetch('/api/ai/editor/improve-text', {
             method: 'POST',
-            headers: authHeaders,
+            headers: requestHeaders,
             body: JSON.stringify({
               text: contentRef.current,
               action: 'translate',
@@ -170,7 +161,7 @@ export function BlogEditor({
         setIsGenerating(false);
       }
     },
-    [title, setEditorContent, onTitleChange, onSeoDataChange, authHeaders]
+    [authToken, title, setEditorContent, onTitleChange, onSeoDataChange]
   );
 
   return (
@@ -272,7 +263,7 @@ export function BlogEditor({
       {/* Status bar */}
       <div className="tiptap-status-bar">
         <span className="word-count">{wordCount} palabras</span>
-        <span>Escribe "/" para insertar bloques · WYSIWYG · Markdown</span>
+        <span>Escribe &quot;/&quot; para insertar bloques · WYSIWYG · Markdown</span>
       </div>
 
       {/* Slash command menu — rendered via portal, outside TiptapEditor tree */}

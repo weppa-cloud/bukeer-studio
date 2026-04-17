@@ -284,7 +284,7 @@ function KeywordGap({
 
 // ─── Section C: Backlinks Summary KPI cards ───────────────────────────────────
 
-function BacklinksSummary({ websiteId }: { websiteId: string }) {
+function BacklinksSummary() {
   const kpis = [
     { label: 'Dominios referentes', value: '—' },
     { label: 'Total Backlinks', value: '—' },
@@ -431,7 +431,7 @@ export function SeoCompetitiveAnalysis({ competitors, websiteId }: SeoCompetitiv
 
       {/* C + D: Two-column layout for backlinks summary and anchor distribution */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <BacklinksSummary websiteId={websiteId} />
+        <BacklinksSummary />
         <AnchorDistribution />
       </div>
 
