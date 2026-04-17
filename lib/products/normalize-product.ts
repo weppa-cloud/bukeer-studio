@@ -413,6 +413,7 @@ export function normalizeProduct(
     program_inclusions?: string[] | null;
     program_exclusions?: string[] | null;
     program_gallery?: string[] | null;
+    program_highlights?: string[] | null;
   },
   options: NormalizeProductOptions = {}
 ): NormalizedProductViewModel {
@@ -432,7 +433,12 @@ export function normalizeProduct(
       logger,
       product.program_exclusions
     ),
-    highlights: normalizeHighlights(product.highlights, logger),
+    highlights: normalizeHighlights(
+      Array.isArray(product.program_highlights) && product.program_highlights.length > 0
+        ? product.program_highlights
+        : product.highlights,
+      logger
+    ),
     schedule: normalizeSchedule(product, logger),
     meeting_point: normalizeMeetingPoint(product, logger),
     gallery: normalizeGallery(product, logger),

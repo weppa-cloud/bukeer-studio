@@ -5,16 +5,27 @@
  * - /site/[subdomain]/sitemap.xml/route.ts (subdomain tenants)
  * - /domain/[host]/sitemap.xml/route.ts (custom domain tenants)
  * - /api/sitemap/route.ts (legacy API, backward compat)
+ *
+ * Multi-locale (issue #139): when a website has multiple `supported_locales`,
+ * each <url> entry gets reciprocal <xhtml:link rel="alternate" hreflang="..."/>
+ * tags plus an x-default, per Google's localized-versions spec.
  */
 
 import { getBlogPosts } from '@/lib/supabase/get-website';
 import { getAllPageSlugs, getIndexablePageSlugs, getCategoryProducts, getDestinations, getNoindexProductSlugs, getNoindexDestinationSlugs } from '@/lib/supabase/get-pages';
+import { generateHreflangLinksForLocales, type HreflangLink } from '@/lib/seo/hreflang';
+import { normalizeWebsiteLocales, type WebsiteLocaleSettings } from '@/lib/seo/locale-routing';
 
 export interface SitemapUrl {
   loc: string;
   lastmod?: string;
   changefreq: string;
   priority: string;
+}
+
+export interface SitemapLocaleContext {
+  baseUrl: string;
+  settings: WebsiteLocaleSettings;
 }
 
 /** Category slug → RPC category type mapping (only types supported by get_website_category_products) */
@@ -30,6 +41,9 @@ const CATEGORY_SLUG_MAP: Record<string, string> = {
 
 /**
  * Build all sitemap URLs for a tenant website.
+ *
+ * URLs are emitted for the website's DEFAULT locale only. Alternate-locale
+ * versions are attached later by `generateSitemapXml` via xhtml:link tags.
  *
  * @param subdomain - Tenant subdomain (used for RPC calls)
  * @param websiteId - Website UUID (used for blog posts RPC: p_website_id)
@@ -166,22 +180,88 @@ export async function buildSitemapUrls(
 }
 
 /**
- * Generate XML sitemap string from URL entries.
+ * Extract the pathname portion of a URL relative to baseUrl. Falls back to
+ * "/" if the URL equals baseUrl, or to the raw URL if parsing fails.
  */
-export function generateSitemapXml(urls: SitemapUrl[]): string {
+function extractPathname(url: string, baseUrl: string): string {
+  if (url === baseUrl) return '/';
+  if (url.startsWith(baseUrl)) {
+    const rest = url.slice(baseUrl.length);
+    return rest.startsWith('/') ? rest : `/${rest}`;
+  }
+  try {
+    return new URL(url).pathname || '/';
+  } catch {
+    return '/';
+  }
+}
+
+/**
+ * Generate XML sitemap string from URL entries.
+ *
+ * When `locale` is provided AND the website has more than one supported
+ * locale, each <url> gets reciprocal <xhtml:link rel="alternate"
+ * hreflang="..."/> tags (+ x-default) per Google's spec:
+ * https://developers.google.com/search/docs/specialty/international/localized-versions#sitemap
+ */
+export function generateSitemapXml(
+  urls: SitemapUrl[],
+  locale?: SitemapLocaleContext,
+): string {
+  const normalizedSettings = locale
+    ? normalizeWebsiteLocales(locale.settings)
+    : null;
+
+  const multiLocale =
+    normalizedSettings !== null && normalizedSettings.supportedLocales.length > 1;
+
+  const urlsetOpen = multiLocale
+    ? '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">'
+    : '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
+
+  const rendered = urls.map((url) => renderUrlEntry(url, locale, multiLocale));
+
   return `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${urls
-  .map(
-    (url) => `  <url>
-    <loc>${escapeXml(url.loc)}</loc>
-    ${url.lastmod ? `<lastmod>${url.lastmod}</lastmod>` : ''}
-    <changefreq>${url.changefreq}</changefreq>
-    <priority>${url.priority}</priority>
-  </url>`
-  )
-  .join('\n')}
+${urlsetOpen}
+${rendered.join('\n')}
 </urlset>`;
+}
+
+function renderUrlEntry(
+  url: SitemapUrl,
+  locale: SitemapLocaleContext | undefined,
+  multiLocale: boolean,
+): string {
+  const parts: string[] = [];
+  parts.push('  <url>');
+  parts.push(`    <loc>${escapeXml(url.loc)}</loc>`);
+  if (url.lastmod) parts.push(`    <lastmod>${url.lastmod}</lastmod>`);
+  parts.push(`    <changefreq>${url.changefreq}</changefreq>`);
+  parts.push(`    <priority>${url.priority}</priority>`);
+
+  if (multiLocale && locale) {
+    const pathname = extractPathname(url.loc, locale.baseUrl);
+    const alternates = buildAlternateLinks(locale.baseUrl, pathname, locale.settings);
+    for (const link of alternates) {
+      parts.push(
+        `    <xhtml:link rel="alternate" hreflang="${escapeXml(link.hreflang)}" href="${escapeXml(link.href)}"/>`,
+      );
+    }
+  }
+
+  parts.push('  </url>');
+  return parts.join('\n');
+}
+
+function buildAlternateLinks(
+  baseUrl: string,
+  pathname: string,
+  settings: WebsiteLocaleSettings,
+): HreflangLink[] {
+  return generateHreflangLinksForLocales(baseUrl, pathname, {
+    defaultLocale: settings.defaultLocale,
+    supportedLocales: settings.supportedLocales,
+  });
 }
 
 function escapeXml(str: string): string {

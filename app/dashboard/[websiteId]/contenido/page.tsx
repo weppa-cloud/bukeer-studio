@@ -11,6 +11,7 @@ import { SeoDestinationWorkflow } from '@/components/admin/seo-destination-workf
 import { SeoBlogWorkflow } from '@/components/admin/seo-blog-workflow';
 import { SeoPageWorkflow } from '@/components/admin/seo-page-workflow';
 import { SeoBacklog } from '@/components/admin/seo-backlog';
+import { TranscreateDialog, type TranscreatePageType } from '@/components/admin/transcreate-dialog';
 import {
   scoreItemSeo,
   type SeoItemType,
@@ -123,6 +124,7 @@ export default function ContenidoPage() {
   const [completenessFilter, setCompletenessFilter] = useState<'all' | Completeness>('all');
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [workflowItem, setWorkflowItem] = useState<UnifiedContentRow | null>(null);
+  const [translateItem, setTranslateItem] = useState<UnifiedContentRow | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const PAGE_SIZE = 50;
   const destinationsUnavailableRef = useRef(false);
@@ -822,6 +824,16 @@ export default function ContenidoPage() {
                             Flujo SEO →
                           </StudioButton>
                         )}
+                        {(row.type === 'blog' || row.type === 'page' || row.type === 'hotel' || row.type === 'activity' || row.type === 'package' || row.type === 'transfer' || row.type === 'destination') && (
+                          <StudioButton
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setTranslateItem(row)}
+                            title="Crear borrador de traducción"
+                          >
+                            Traducir a...
+                          </StudioButton>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -911,6 +923,20 @@ export default function ContenidoPage() {
           onClose={() => setWorkflowItem(null)}
         />
       )}
+
+      {translateItem ? (
+        <TranscreateDialog
+          open={!!translateItem}
+          onOpenChange={(next) => {
+            if (!next) setTranslateItem(null);
+          }}
+          websiteId={websiteId}
+          sourceId={translateItem.id}
+          sourceLocale={translateItem.locale}
+          pageType={translateItem.type as TranscreatePageType}
+          sourceName={translateItem.name}
+        />
+      ) : null}
     </StudioPage>
   );
 }

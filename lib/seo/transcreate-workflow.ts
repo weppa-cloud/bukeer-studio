@@ -2,6 +2,51 @@ import type { SeoDecisionSource } from '@/lib/seo/content-intelligence';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/service-role';
 
 type TranscreatePageType = 'blog' | 'page' | 'destination' | 'hotel' | 'activity' | 'package' | 'transfer';
+type ProductPageType = Extract<TranscreatePageType, 'hotel' | 'activity' | 'package' | 'transfer'>;
+
+/**
+ * Truth-field denylist — columns owned by truth tables (hotels, activities,
+ * package_kits, transfers, destinations). Transcreate may only write SEO
+ * overlay columns on `website_product_pages`; attempting to mutate any key in
+ * this set via the transcreation payload trips SEO_TRUTH_FIELD_BLOCKED (422).
+ *
+ * Keep in sync with `.claude/mcp-servers/bukeer-studio/src/safety.ts`.
+ */
+const TRUTH_FIELD_DENYLIST: ReadonlySet<string> = new Set<string>([
+  'name',
+  'description',
+  'description_main',
+  'price',
+  'main_image',
+  'star_rating',
+  'user_rating',
+  'amenities',
+  'duration_minutes',
+  'inclutions',
+  'exclutions',
+  'recomendations',
+  'experience_type',
+  'currency',
+  'base_price',
+  'net_price',
+  'total_price',
+  'availability',
+  'account_id',
+  'hotel_id',
+  'activity_id',
+  'destination_id',
+  'package_kit_id',
+  'product_id',
+  'transfer_id',
+]);
+
+function detectTruthFieldsInPayload(payload: Record<string, unknown>): string[] {
+  const offending: string[] = [];
+  for (const key of Object.keys(payload)) {
+    if (TRUTH_FIELD_DENYLIST.has(key)) offending.push(key);
+  }
+  return offending;
+}
 
 type LocaleTuple = {
   sourceLocale: string;
@@ -110,7 +155,7 @@ function buildContentUpdates(pageType: 'blog' | 'page' | 'destination', payload:
 function buildProductOverlayPayload(input: {
   websiteId: string;
   targetContentId: string;
-  pageType: 'hotel' | 'activity' | 'package';
+  pageType: ProductPageType;
   targetLocale: string;
   sourceMeta: SeoDecisionSource;
   payload: Record<string, unknown>;
@@ -434,7 +479,7 @@ async function ensureOrphanTargetEntity(input: {
 async function resolveProductTranslationGroup(input: {
   admin: ReturnType<typeof createSupabaseServiceRoleClient>;
   websiteId: string;
-  pageType: 'hotel' | 'activity' | 'package';
+  pageType: ProductPageType;
   sourceContentId: string;
   sourceLocale: string;
 }) {
@@ -605,6 +650,19 @@ export async function applyTranscreateJob(input: ApplyActionInput): Promise<Tran
 
   const payload = isRecord(job.payload) ? job.payload : {};
 
+  // Truth-field guardrail: SEO transcreate may only write overlay columns.
+  // Reject BEFORE any DB write if payload references a truth-table column.
+  const offendingTruthFields = detectTruthFieldsInPayload(payload);
+  if (offendingTruthFields.length > 0) {
+    return failure({
+      code: 'SEO_TRUTH_FIELD_BLOCKED',
+      message:
+        'Transcreate payload contains truth-table columns owned by backend-dev. Only SEO overlay fields may be written.',
+      status: 422,
+      details: { blockedFields: offendingTruthFields },
+    });
+  }
+
   const { data: currentVariant } = await input.admin
     .from('seo_localized_variants')
     .select('target_entity_id')
@@ -636,6 +694,21 @@ export async function applyTranscreateJob(input: ApplyActionInput): Promise<Tran
         status: 500,
       });
     }
+  }
+
+  // For product types (hotel / activity / package / transfer), `targetContentId`
+  // is the source product id itself — the overlay row is in
+  // `website_product_pages` keyed by (website_id, locale, product_type, product_id).
+  // When no variant exists yet, seed `targetContentId` from `job.page_id` so
+  // review/apply stages have a concrete target. Overlay row is upserted below.
+  if (
+    (job.page_type === 'hotel' ||
+      job.page_type === 'activity' ||
+      job.page_type === 'package' ||
+      job.page_type === 'transfer') &&
+    !targetContentId
+  ) {
+    targetContentId = job.page_id;
   }
 
   if (job.page_type === 'blog' && targetContentId) {
@@ -685,7 +758,12 @@ export async function applyTranscreateJob(input: ApplyActionInput): Promise<Tran
         });
       }
     }
-  } else if (job.page_type === 'hotel' || job.page_type === 'activity' || job.page_type === 'package') {
+  } else if (
+    job.page_type === 'hotel' ||
+    job.page_type === 'activity' ||
+    job.page_type === 'package' ||
+    job.page_type === 'transfer'
+  ) {
     const overlayTargetId = targetContentId ?? job.page_id;
     const translationGroupId = await resolveProductTranslationGroup({
       admin: input.admin,
