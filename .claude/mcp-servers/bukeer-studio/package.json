@@ -1,0 +1,29 @@
+{
+  "name": "@bukeer/mcp-bukeer-studio",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local MCP server exposing Bukeer Studio /api/seo/* and /api/ai/* endpoints plus direct Supabase helpers.",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "mcp-bukeer-studio": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "@supabase/supabase-js": "^2.45.4",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.5",
+    "typescript": "^5.6.3",
+    "zod-to-json-schema": "^3.23.5"
+  }
+}
