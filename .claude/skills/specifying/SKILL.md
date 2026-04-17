@@ -2,7 +2,8 @@
 name: specifying
 description: |
   Converts feature requests into executable specifications with user flows,
-  acceptance criteria, and edge cases. Produces docs/specs/SPEC_[name].md.
+  acceptance criteria, and edge cases. Produces docs/specs/SPEC_<name>.md +
+  GitHub Epic Issue + child issues (GitHub = SSOT for execution state).
   USE WHEN: requirements need formalization before implementation, feature
   touches 2+ files. NOT FOR: trivial changes or well-defined bug fixes.
 ---
@@ -10,54 +11,104 @@ description: |
 
 Transforms feature requests into structured, executable specifications.
 
+**GitHub = SSOT for execution state** (epic + child issues track what ships when).
+**Repo = SSOT for spec content** (versioned alongside code in `docs/specs/`).
+
+## Artifact split
+
+| Artifact | Lives in | Role |
+|----------|----------|------|
+| Spec doc | `docs/specs/SPEC_<name>.md` | What / why / AC / data model (durable) |
+| ADR | `docs/architecture/ADR-NNN-<slug>.md` | Arch decision (only if new) |
+| Epic Issue | GitHub (label `epic`) | Execution tracker + child task-list |
+| Child Issue | GitHub | 1 deliverable → 1 PR |
+| PR | GitHub | `Closes #<child-issue>` |
+
+**Rule:** never duplicate content. Spec = _what is_. Epic = _what ships when_.
+
 ## Workflow
 
-### Phase 1: Understand
-1. Read the feature request / conversation context
-2. Identify affected systems (frontend, backend, both)
-3. Map to existing architecture patterns
+### Phase 1 — Understand
+1. Read feature request + conversation context
+2. Identify affected systems (frontend, backend, theme-sdk, contract)
+3. Map to existing patterns
 
-### Phase 2: Research
-1. Find related existing code (`Glob`, `Grep`)
-2. Check relevant ADRs in `docs/02-architecture/decisions/`
-3. Identify existing models, services, and components that will be affected
+### Phase 2 — Research
+1. Find related code (`Glob`, `Grep`)
+2. Check relevant ADRs in `docs/architecture/`
+3. Identify models, services, components touched
+4. Search `docs/specs/` — avoid duplicate specs
 
-### Phase 3: Structure
-1. Define user flows (happy path + edge cases)
-2. List acceptance criteria (testable assertions)
-3. Identify data model changes
-4. Map permission requirements (RBAC)
+### Phase 3 — Structure
+1. User flows (happy path + edge cases)
+2. Acceptance criteria (testable)
+3. Data model changes
+4. RBAC / permissions
+5. Cross-repo impact (bukeer-flutter shared tables)
 
-### Phase 4: Write Spec
-1. Create `docs/specs/SPEC_[FEATURE_NAME].md` using template
-2. Include: scope, user flows, acceptance criteria, edge cases, data model, permissions
+### Phase 4 — Write spec file
+1. Create `docs/specs/SPEC_<FEATURE_NAME>.md` from TEMPLATE.md
+2. Leave `GitHub Tracking` fields as `TBD` until Phase 6–7
+3. Include `ADRs referenced` list
 
-### Phase 5: Validate
-1. Cross-reference with ADRs for compliance
-2. Verify no architectural violations
-3. Present to user for approval
+### Phase 5 — Validate
+1. Cross-reference ADRs → no violations
+2. If changes arch: run `tech-validator MODE:PLAN`
+3. Present spec to user for approval **before** opening GitHub artifacts
 
-## Output Format
+### Phase 6 — Open GitHub Epic Issue
+1. Template: `ISSUE_TEMPLATES.md` → Epic
+2. Body links: spec path + ADRs
+3. Labels: `epic`, `type:feat`, `area:<pkg>`, `priority:<pN>`, `size:<s|m|l>`, `needs-tvb`
+4. Milestone: current quarter/release
+5. Update spec file `Epic Issue` field with `#N` + URL
+6. Commit spec update: `docs(spec): link epic #N to SPEC_<name>`
 
-File: `docs/specs/SPEC_[FEATURE_NAME].md`
+### Phase 7 — Break into child issues
+1. For each deliverable in spec → child issue (ISSUE_TEMPLATES.md → Child)
+2. Body: `Part of #<epic>`, spec section ref, acceptance, affected files
+3. Add child numbers to epic task-list (edit epic body)
+4. Labels: same `area:` + `type:feat/fix/chore` + `size:` + `rol:1|rol:2`
+5. Mark child `needs-tvb` if non-trivial → tech-validator MODE:TASK will comment TVB
+
+### Phase 8 — Handoff
+Output to user (literal format):
+```
+Spec:    docs/specs/SPEC_<name>.md
+Epic:    <url> (#N)
+Issues:  #N1, #N2, #N3
+Next:    tech-validator MODE:TASK for #N1
+```
+
+## Skip GitHub phases when
+
+- User says "just draft the spec, no issues yet"
+- Status still `Draft` (discovery)
+- Repo missing `epic` label → halt, ask user to bootstrap labels
 
 ## Boundary with tech-validator
 
-- **specifying** produces a DOCUMENT in `docs/specs/` (persistent artifact)
-- **tech-validator TASK** produces an ephemeral TVB in conversation context
-- Use specifying FIRST for complex features, THEN tech-validator TASK for implementation brief
+- **specifying** → writes spec + opens epic/issues (this skill)
+- **tech-validator MODE:PLAN** → validates spec vs ADRs (Phase 5)
+- **tech-validator MODE:TASK** → per-issue TVB posted as issue comment
+- **tech-validator MODE:CODE** → PR review
 
-## ADRs Relevantes
+Bugs / single-file chores → skip specifying, go straight to tech-validator MODE:TASK.
 
-Note: When generating specs, cross-reference all ADRs relevant to the feature domain. Check `docs/02-architecture/decisions/` for the full list. Common spec-relevant ADRs:
+## ADR references (common)
 
 | ADR | Topic |
 |-----|-------|
-| ADR-012 | Modal feedback semantics |
-| ADR-015 | AppServices pattern |
-| ADR-022 | Auth token boundary |
-| ADR-035 | Pagination |
-| ADR-036 | Dual-layer testing surface |
+| ADR-001 | Server-first rendering |
+| ADR-003 | Contract-first validation |
+| ADR-005 | Security defense-in-depth |
+| ADR-008 | Monorepo packages |
+| ADR-009 | Multi-tenant subdomain routing |
+| ADR-012 | API response envelope |
+| ADR-013 | tech-validator quality gate |
+| ADR-016 | SEO intelligence caching |
 
-## L10N Rule
-All user-visible text in specs must note localization requirements. Reference `lib/l10n/app_es.arb` for existing keys.
+Cross-reference relevant ADRs in spec `Dependencies` + epic body.
+
+## L10N
+User-visible text in specs must note localization. Reference `lib/l10n/` keys (flutter repo) or Next.js i18n.
