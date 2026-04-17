@@ -45,11 +45,6 @@ export function StickyCTABar({
       return;
     }
 
-    const isMobile = window.matchMedia('(max-width: 639px)').matches;
-    if (!isMobile) {
-      return;
-    }
-
     const previous = document.body.style.paddingBottom;
     document.body.style.paddingBottom = 'calc(76px + env(safe-area-inset-bottom))';
     return () => {
@@ -66,13 +61,13 @@ export function StickyCTABar({
       role="complementary"
       aria-label="Acciones rápidas de contacto"
       className={clsx(
-        'fixed inset-x-0 bottom-0 z-50 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 sm:hidden',
+        'fixed inset-x-0 bottom-0 z-50 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80',
         className
       )}
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
-      <div className="mx-auto flex max-w-screen-sm items-center gap-2 px-3 py-2">
-        <p className="min-w-0 flex-1 truncate text-xs font-semibold text-foreground">
+      <div className="mx-auto flex max-w-screen-lg items-center gap-3 px-4 py-2 sm:px-6 sm:py-3">
+        <p className="min-w-0 flex-1 truncate text-xs font-semibold text-foreground sm:text-sm">
           Desde <span className="text-primary">{priceLabel}</span>
         </p>
 
@@ -85,7 +80,7 @@ export function StickyCTABar({
               trackEvent('sticky_cta_click', { ...(analyticsContext ?? {}), channel: 'whatsapp' });
               trackEvent('whatsapp_cta_click', { ...(analyticsContext ?? {}), location_context: 'sticky_bar' });
             }}
-            className="inline-flex items-center justify-center rounded-full px-3 py-2 text-xs font-semibold"
+            className="inline-flex items-center justify-center rounded-full px-3 py-2 text-xs font-semibold sm:px-5 sm:text-sm"
             style={{ backgroundColor: 'hsl(var(--accent))', color: 'hsl(var(--accent-text))' }}
           >
             WhatsApp
@@ -99,7 +94,7 @@ export function StickyCTABar({
               trackEvent('sticky_cta_click', { ...(analyticsContext ?? {}), channel: 'tel' });
               trackEvent('phone_cta_click', { ...(analyticsContext ?? {}), location_context: 'sticky_bar' });
             }}
-            className="inline-flex items-center justify-center rounded-full border px-3 py-2 text-xs font-semibold hover:bg-muted"
+            className="inline-flex items-center justify-center rounded-full border px-3 py-2 text-xs font-semibold hover:bg-muted sm:px-5 sm:text-sm"
           >
             Llamar
           </a>
