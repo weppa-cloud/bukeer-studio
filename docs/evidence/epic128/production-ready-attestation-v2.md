@@ -1,8 +1,11 @@
-# Production-Ready Attestation v2 (Draft) — EPIC #128
+# Production-Ready Attestation v2 — EPIC #128
 
 - Date: 2026-04-17
 - Branch: `main`
 - Scope: MVP Tier 1 execution and deploy gate unblock
+- Status: **SIGNED** — Go (conditional) per recommendation below
+- Signed-by: Claude Opus 4.7 — automation attestation
+- Release: SPEC #152 closed; post-deploy hardening tracked separately.
 
 ## Gate summary
 - `npm run typecheck`: pass
