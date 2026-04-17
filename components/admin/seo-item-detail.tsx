@@ -14,6 +14,7 @@ import {
 } from '@/lib/seo/unified-scorer';
 import type { KeywordResearchDTO } from '@/lib/seo/dto';
 import { SeoContentScore } from '@/components/admin/seo-content-score';
+import { SeoNlpScorePanel } from '@/components/admin/seo-nlp-score-panel';
 import { SeoTrustState } from '@/components/admin/seo-trust-state';
 
 type DetailTab =
@@ -315,6 +316,18 @@ export function SeoItemDetail({
     [translateEnabled],
   );
   const activeBrief = briefRows[0] ?? null;
+  const nlpScoreContent = useMemo(() => {
+    const parts = [
+      item.description ?? '',
+      seoDescription,
+      seoIntro,
+      seoHighlights,
+      seoFaq,
+    ]
+      .map((value) => value.trim())
+      .filter(Boolean);
+    return parts.join('\n\n');
+  }, [item.description, seoDescription, seoFaq, seoHighlights, seoIntro]);
 
   const scoringInput: SeoScoringInput = useMemo(
     () => ({
@@ -1354,6 +1367,15 @@ export function SeoItemDetail({
                   </div>
                 </>
               ) : null}
+
+              <SeoNlpScorePanel
+                active={activeTab === 'optimize'}
+                websiteId={websiteId}
+                itemType={item.type}
+                locale={locale}
+                keyword={targetKeyword || item.name}
+                content={nlpScoreContent}
+              />
 
               {optimizeSourceMeta ? (
                 <SeoTrustState source={optimizeSourceMeta.source} fetchedAt={optimizeSourceMeta.fetchedAt} confidence={optimizeSourceMeta.confidence} />

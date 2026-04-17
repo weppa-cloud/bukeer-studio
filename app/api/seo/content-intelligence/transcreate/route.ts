@@ -9,6 +9,7 @@ import {
   parseLocaleParts,
   withNoStoreHeaders,
 } from '@/lib/seo/content-intelligence';
+import { applyTranscreateJob, reviewTranscreateJob } from '@/lib/seo/transcreate-workflow';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -102,28 +103,6 @@ async function resolveTargetMarketReresearch(input: {
     },
     generated_at: new Date().toISOString(),
   };
-}
-
-function hasValidTargetReresearch(input: {
-  payload: Record<string, unknown> | null;
-  localeTuple: LocaleTuple;
-}): boolean {
-  const payload = input.payload;
-  if (!payload) return false;
-
-  return (
-    payload.required === true &&
-    payload.authoritative === true &&
-    payload.decision_grade_ready === true &&
-    payload.confidence === 'live' &&
-    payload.target_locale === input.localeTuple.target_locale &&
-    payload.country === input.localeTuple.country &&
-    payload.language === input.localeTuple.language &&
-    typeof payload.fetched_at === 'string' &&
-    payload.fetched_at.length > 0 &&
-    typeof payload.candidate_id === 'string' &&
-    payload.candidate_id.length > 0
-  );
 }
 
 function buildReresearchDetails(input: {
@@ -296,146 +275,56 @@ export async function POST(request: NextRequest) {
   }
 
   if (parsed.data.action === 'review') {
-    const { data: job, error } = await admin
-      .from('seo_transcreation_jobs')
-      .update({
-        status: 'reviewed',
-        reviewed_by: access.userId,
-        updated_at: new Date().toISOString(),
-        source: sourceMeta.source,
-        fetched_at: sourceMeta.fetchedAt,
-      })
-      .eq('id', resolvedJobId)
-      .eq('website_id', parsed.data.websiteId)
-      .select('id, status, source_locale, target_locale, updated_at')
-      .single();
-    if (error || !job) {
-      return withNoStoreHeaders(apiError('INTERNAL_ERROR', 'Unable to transition transcreation job to reviewed', 500, error?.message));
+    const reviewed = await reviewTranscreateJob({
+      admin,
+      sourceMeta,
+      websiteId: parsed.data.websiteId,
+      actorUserId: access.userId,
+      jobId: resolvedJobId,
+    });
+    if (!reviewed.ok) {
+      return withNoStoreHeaders(
+        apiError(reviewed.error.code, reviewed.error.message, reviewed.error.status, reviewed.error.details),
+      );
     }
-    await admin
-      .from('seo_localized_variants')
-      .update({
-        status: 'reviewed',
-        last_job_id: job.id,
-        updated_at: new Date().toISOString(),
-        source: sourceMeta.source,
-        fetched_at: sourceMeta.fetchedAt,
-      })
-      .eq('website_id', parsed.data.websiteId)
-      .eq('page_type', parsed.data.pageType)
-      .eq('source_entity_id', parsed.data.sourceContentId)
-      .eq('target_locale', localeTuple.target_locale);
-
-    return withNoStoreHeaders(apiSuccess({ job, sourceMeta }));
+    return withNoStoreHeaders(apiSuccess({ job: reviewed.job, sourceMeta }));
   }
 
-  const { data: currentJob, error: jobReadError } = await admin
-    .from('seo_transcreation_jobs')
-    .select('id, status, payload, keyword_reresearch')
-    .eq('id', resolvedJobId)
-    .eq('website_id', parsed.data.websiteId)
-    .single();
-  if (jobReadError || !currentJob) {
-    return withNoStoreHeaders(apiError('NOT_FOUND', 'Transcreation job not found', 404));
-  }
-  if (currentJob.status !== 'reviewed') {
-    return withNoStoreHeaders(apiError('TRANSCREATE_REVIEW_REQUIRED', 'Apply is blocked unless job is reviewed', 409));
-  }
-  const keywordReresearch = (currentJob.keyword_reresearch ?? null) as Record<string, unknown> | null;
-  if (!hasValidTargetReresearch({ payload: keywordReresearch, localeTuple })) {
-    return withNoStoreHeaders(
-      apiError('TARGET_RERESEARCH_REQUIRED', 'Target-market re-research is required before apply', 409, {
-        required: buildReresearchDetails({
-          sourceLocale: parsed.data.sourceLocale,
-          targetLocale: parsed.data.targetLocale,
-          country: parsed.data.country,
-          language: parsed.data.language,
-          sourceKeyword: parsed.data.sourceKeyword,
-          targetKeyword: parsed.data.targetKeyword,
-        }),
-        current: keywordReresearch,
-      }),
-    );
-  }
-
-  const { data: jobApplied, error: applyError } = await admin
-    .from('seo_transcreation_jobs')
-    .update({
-      status: 'applied',
-      applied_by: access.userId,
-      updated_at: new Date().toISOString(),
-      source: sourceMeta.source,
-      fetched_at: sourceMeta.fetchedAt,
-    })
-    .eq('id', resolvedJobId)
-    .eq('website_id', parsed.data.websiteId)
-    .select('id, status, updated_at')
-    .single();
-  if (applyError || !jobApplied) {
-    return withNoStoreHeaders(apiError('INTERNAL_ERROR', 'Unable to apply transcreation job', 500, applyError?.message));
-  }
-
-  await admin
-      .from('seo_localized_variants')
-      .update({
-        status: 'applied',
-        last_job_id: resolvedJobId,
-        updated_at: new Date().toISOString(),
-        source: sourceMeta.source,
-        fetched_at: sourceMeta.fetchedAt,
-      })
-      .eq('website_id', parsed.data.websiteId)
-      .eq('page_type', parsed.data.pageType)
-      .eq('source_entity_id', parsed.data.sourceContentId)
-      .eq('target_locale', localeTuple.target_locale);
-
-  if (parsed.data.pageType === 'blog' && parsed.data.targetContentId) {
-    const payload = (currentJob.payload ?? {}) as Record<string, unknown>;
-    const updates: Record<string, unknown> = {};
-    if (typeof payload.title === 'string') updates.title = payload.title;
-    if (typeof payload.seoTitle === 'string') updates.seo_title = payload.seoTitle;
-    if (typeof payload.seoDescription === 'string') updates.seo_description = payload.seoDescription;
-    if (Object.keys(updates).length > 0) {
-      await admin
-        .from('website_blog_posts')
-        .update(updates)
-        .eq('website_id', parsed.data.websiteId)
-        .eq('id', parsed.data.targetContentId);
-    }
-  } else if (parsed.data.pageType === 'page' && parsed.data.targetContentId) {
-    const payload = (currentJob.payload ?? {}) as Record<string, unknown>;
-    const updates: Record<string, unknown> = {};
-    if (typeof payload.title === 'string') updates.title = payload.title;
-    if (typeof payload.seoTitle === 'string') updates.seo_title = payload.seoTitle;
-    if (typeof payload.seoDescription === 'string') updates.seo_description = payload.seoDescription;
-    if (Object.keys(updates).length > 0) {
-      await admin
-        .from('website_pages')
-        .update(updates)
-        .eq('website_id', parsed.data.websiteId)
-        .eq('id', parsed.data.targetContentId);
-    }
-  } else if (parsed.data.pageType === 'destination' && parsed.data.targetContentId) {
-    const payload = (currentJob.payload ?? {}) as Record<string, unknown>;
-    const updates: Record<string, unknown> = {};
-    if (typeof payload.title === 'string') updates.name = payload.title;
-    if (typeof payload.seoTitle === 'string') updates.seo_title = payload.seoTitle;
-    if (typeof payload.seoDescription === 'string') updates.seo_description = payload.seoDescription;
-    if (Object.keys(updates).length > 0) {
-      await admin
-        .from('destinations')
-        .update(updates)
-        .eq('id', parsed.data.targetContentId);
-    }
+  const applied = await applyTranscreateJob({
+    admin,
+    sourceMeta,
+    websiteId: parsed.data.websiteId,
+    accountId: access.accountId,
+    actorUserId: access.userId,
+    jobId: resolvedJobId,
+    preferredTargetContentId: parsed.data.targetContentId ?? null,
+  });
+  if (!applied.ok) {
+    const details =
+      applied.error.code === 'TARGET_RERESEARCH_REQUIRED'
+        ? {
+            ...(applied.error.details as Record<string, unknown> | null),
+            required: buildReresearchDetails({
+              sourceLocale: parsed.data.sourceLocale,
+              targetLocale: parsed.data.targetLocale,
+              country: parsed.data.country,
+              language: parsed.data.language,
+              sourceKeyword: parsed.data.sourceKeyword,
+              targetKeyword: parsed.data.targetKeyword,
+            }),
+          }
+        : applied.error.details;
+    return withNoStoreHeaders(apiError(applied.error.code, applied.error.message, applied.error.status, details));
   }
 
   return withNoStoreHeaders(
     apiSuccess({
-      job: jobApplied,
-      source_locale: parsed.data.sourceLocale,
-      target_locale: parsed.data.targetLocale,
-      country: parsed.data.country,
-      language: parsed.data.language,
+      job: applied.job,
+      source_locale: applied.sourceLocale,
+      target_locale: applied.targetLocale,
+      country: applied.country,
+      language: applied.language,
+      target_content_id: applied.targetContentId,
       sourceMeta,
     }),
   );
