@@ -26,11 +26,19 @@
     },
     "google-analytics": {
       "command": "npx",
-      "args": ["-y", "@galihlprakoso/google-analytics-mcp-server"]
+      "args": ["-y", "@weppa-cloud/mcp-google-analytics@latest"],
+      "env": {
+        "GA_PROPERTY_ID": "${GA_PROPERTY_ID}",
+        "GOOGLE_ANALYTICS_CREDENTIALS": "${GOOGLE_ANALYTICS_CREDENTIALS}"
+      }
     },
     "search-console": {
       "command": "npx",
-      "args": ["-y", "@galihlprakoso/search-console-mcp-server"]
+      "args": ["-y", "search-console-mcp@latest"],
+      "env": {
+        "GOOGLE_APPLICATION_CREDENTIALS": "${GOOGLE_APPLICATION_CREDENTIALS}",
+        "GSC_SITE_URL": "${GSC_SITE_URL}"
+      }
     }
   }
 }

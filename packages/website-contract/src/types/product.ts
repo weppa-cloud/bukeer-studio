@@ -143,6 +143,7 @@ export interface ProductPageCustomization {
   custom_seo_description?: string;
   robots_noindex?: boolean;
   custom_faq?: ProductFAQ[];
+  custom_highlights?: string[];
   is_published: boolean;
 }
 

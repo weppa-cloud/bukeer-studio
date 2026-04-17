@@ -144,6 +144,7 @@ export const ProductPageCustomizationSchema = z.object({
   custom_seo_description: z.string().optional(),
   robots_noindex: z.boolean().optional(),
   custom_faq: z.array(ProductFAQSchema).max(10).optional(),
+  custom_highlights: z.array(z.string()).max(6).optional(),
   is_published: z.boolean(),
 });
 

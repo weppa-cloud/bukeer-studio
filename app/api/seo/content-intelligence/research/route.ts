@@ -6,6 +6,7 @@ import { createSupabaseServiceRoleClient } from '@/lib/supabase/service-role';
 import {
   DECISION_GRADE_ERROR_CODE,
   buildDecisionGradeBlockDetails,
+  buildSeoContentIntelligenceCacheTags,
   buildSourceMeta,
   computePriorityScore,
   withNoStoreHeaders,
@@ -158,6 +159,15 @@ export async function POST(request: NextRequest) {
         candidates,
         sourceMeta,
       }),
+      buildSeoContentIntelligenceCacheTags({
+        route: 'research',
+        websiteId: parsed.data.websiteId,
+        locale: parsed.data.locale,
+        contentType: parsed.data.contentType,
+        country: parsed.data.country,
+        language: parsed.data.language,
+        mode: 'decision-grade',
+      }),
     );
   }
 
@@ -267,6 +277,15 @@ export async function POST(request: NextRequest) {
       locale: parsed.data.locale,
       candidates: ordered,
       sourceMeta,
+    }),
+    buildSeoContentIntelligenceCacheTags({
+      route: 'research',
+      websiteId: parsed.data.websiteId,
+      locale: parsed.data.locale,
+      contentType: parsed.data.contentType,
+      country: parsed.data.country,
+      language: parsed.data.language,
+      mode: 'exploratory',
     }),
   );
 }
