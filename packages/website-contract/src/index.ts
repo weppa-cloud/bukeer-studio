@@ -258,6 +258,12 @@ export type {
   SeoPageCatalogQuery,
 } from './schemas/seo-content-intelligence';
 
+// AI-generated content schemas
+export {
+  PackageAiHighlightsSchema,
+} from './schemas/package-ai';
+export type { PackageAiHighlights } from './schemas/package-ai';
+
 // Validation
 export {
   validateSection,

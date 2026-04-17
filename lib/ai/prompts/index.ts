@@ -19,3 +19,7 @@ export {
   type ImageMetadataContext,
   type ImageMetadataResult,
 } from './image-metadata'
+export {
+  buildPackageHighlightsPrompt,
+  type PackageHighlightsInput,
+} from './package-highlights'
