@@ -1,0 +1,28 @@
+# bukeer-studio — Cloudflare Worker preview environment
+# Copy to .dev.vars and fill with real values. Never commit .dev.vars.
+# Loaded by `npm run preview:worker` (OpenNext + Wrangler) to simulate prod
+# locally. For prod, configure these as Cloudflare secrets via `wrangler secret put`.
+
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+
+# AI
+OPENROUTER_AUTH_TOKEN=sk-or-v1-your-token
+OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
+OPENROUTER_MODEL=anthropic/claude-sonnet-4-5
+
+# ISR
+REVALIDATE_SECRET=change-me-to-a-random-string
+
+# Public
+NEXT_PUBLIC_URL=https://bukeer.com
+NEXT_PUBLIC_MAIN_DOMAIN=bukeer.com
+
+# Maps — MapTiler free-tier. See .env.local.example for setup steps.
+NEXT_PUBLIC_MAP_STYLE_URL=https://api.maptiler.com/maps/streets-v2/style.json?key={token}
+NEXT_PUBLIC_MAP_STYLE_TOKEN=your-maptiler-api-key
+
+# Analytics (optional)
+# NEXT_PUBLIC_GA_ID=G-XXXXXXXXXX
