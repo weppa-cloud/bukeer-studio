@@ -4,7 +4,7 @@
     "title": "EPIC 86 closure KPI report",
     "scope": "website:894545b7-73ca-4dae-b76a-da5b6a3f8441"
   },
-  "generatedAt": "2026-04-17T02:04:23.208Z",
+  "generatedAt": "2026-04-17T02:12:27.052Z",
   "filters": {
     "websiteId": "894545b7-73ca-4dae-b76a-da5b6a3f8441"
   },
@@ -46,8 +46,8 @@
     "sourceAttributionCompleteness": {
       "threshold": 1,
       "passed": true,
-      "totalRows": 734,
-      "attributedRows": 734,
+      "totalRows": 1471,
+      "attributedRows": 1471,
       "byTable": [
         {
           "table": "seo_audit_findings",
@@ -65,29 +65,29 @@
         },
         {
           "table": "seo_keyword_candidates",
-          "rows": 500,
-          "attributedRows": 500,
+          "rows": 1000,
+          "attributedRows": 1000,
           "pct": 1,
           "passed": true
         },
         {
           "table": "seo_keyword_research_runs",
-          "rows": 1,
-          "attributedRows": 1,
+          "rows": 2,
+          "attributedRows": 2,
           "pct": 1,
           "passed": true
         },
         {
           "table": "seo_page_metrics_daily",
-          "rows": 0,
-          "attributedRows": 0,
-          "pct": 0,
+          "rows": 3,
+          "attributedRows": 3,
+          "pct": 1,
           "passed": true
         },
         {
           "table": "seo_render_snapshots",
-          "rows": 233,
-          "attributedRows": 233,
+          "rows": 466,
+          "attributedRows": 466,
           "pct": 1,
           "passed": true
         }

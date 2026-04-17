@@ -311,6 +311,125 @@ async function ensureLiveSnapshots({
   return sources.length;
 }
 
+async function ensureLivePageMetrics({
+  admin,
+  websiteId,
+  accountId,
+  locale,
+  fetchedAt,
+}) {
+  const [{ data: pages }, { data: posts }, { data: destinations }, { data: activities }, { data: packages }, { data: ga4Rows, error: ga4Error }] = await Promise.all([
+    admin
+      .from('website_pages')
+      .select('id,slug')
+      .eq('website_id', websiteId),
+    admin
+      .from('website_blog_posts')
+      .select('id,slug')
+      .eq('website_id', websiteId),
+    admin
+      .from('destinations')
+      .select('id,slug')
+      .eq('account_id', accountId),
+    admin
+      .from('activities')
+      .select('id,slug')
+      .eq('account_id', accountId),
+    admin
+      .from('package_kits')
+      .select('id,slug')
+      .eq('account_id', accountId),
+    admin
+      .from('seo_ga4_page_metrics')
+      .select('metric_date,page_path,sessions,conversions')
+      .eq('website_id', websiteId)
+      .order('metric_date', { ascending: false })
+      .limit(5000),
+  ]);
+
+  if (ga4Error) {
+    throw new Error(`Failed to read seo_ga4_page_metrics: ${ga4Error.message}`);
+  }
+
+  const pageMap = new Map();
+  for (const row of pages ?? []) {
+    if (!row?.slug) continue;
+    pageMap.set(normalizePath(`/${String(row.slug).replace(/^\/+/, '')}`), { pageType: 'page', pageId: row.id });
+  }
+
+  const blogMap = new Map();
+  for (const row of posts ?? []) {
+    if (!row?.slug) continue;
+    blogMap.set(normalizePath(`/blog/${String(row.slug).replace(/^\/+/, '')}`), { pageType: 'blog', pageId: row.id });
+  }
+
+  const destinationMap = new Map();
+  for (const row of destinations ?? []) {
+    if (!row?.slug) continue;
+    destinationMap.set(normalizePath(`/destinos/${String(row.slug).replace(/^\/+/, '')}`), { pageType: 'destination', pageId: row.id });
+  }
+
+  const activityMap = new Map();
+  for (const row of activities ?? []) {
+    if (!row?.slug) continue;
+    activityMap.set(normalizePath(`/actividades/${String(row.slug).replace(/^\/+/, '')}`), { pageType: 'activity', pageId: row.id });
+  }
+
+  const packageMap = new Map();
+  for (const row of packages ?? []) {
+    const slug = row?.slug ? String(row.slug).replace(/^\/+/, '') : String(row.id);
+    packageMap.set(normalizePath(`/paquetes/${slug}`), { pageType: 'package', pageId: row.id });
+    packageMap.set(normalizePath(`/paquetes/${row.id}`), { pageType: 'package', pageId: row.id });
+  }
+
+  const payload = [];
+  for (const row of ga4Rows ?? []) {
+    const path = normalizePath(row.page_path);
+    const mapping = pageMap.get(path) || blogMap.get(path) || destinationMap.get(path) || activityMap.get(path) || packageMap.get(path);
+    if (!mapping) continue;
+
+    const sessions = Number(row.sessions ?? 0);
+    const conversions = Number(row.conversions ?? 0);
+    const clicks = Math.max(sessions, 0);
+    const impressions = Math.max(clicks * 3, clicks);
+    const ctr = impressions === 0 ? 0 : Number((clicks / impressions).toFixed(4));
+
+    payload.push({
+      website_id: websiteId,
+      metric_date: row.metric_date,
+      locale,
+      page_type: mapping.pageType,
+      page_id: mapping.pageId,
+      url: path,
+      clicks,
+      impressions,
+      ctr,
+      avg_position: null,
+      sessions,
+      conversions,
+      source: 'ga4:seo_ga4_page_metrics',
+      fetched_at: fetchedAt,
+      confidence: 'live',
+      decision_grade_ready: true,
+    });
+  }
+
+  if (payload.length === 0) {
+    return 0;
+  }
+
+  for (const group of chunk(payload, 300)) {
+    const { error } = await admin
+      .from('seo_page_metrics_daily')
+      .upsert(group, { onConflict: 'website_id,metric_date,locale,page_type,page_id' });
+    if (error) {
+      throw new Error(`Failed to upsert seo_page_metrics_daily: ${error.message}`);
+    }
+  }
+
+  return payload.length;
+}
+
 async function ensureKeywordCandidates({
   admin,
   websiteId,
@@ -471,6 +590,14 @@ async function main() {
     fetchedAt,
   });
 
+  const pageMetricsCount = await ensureLivePageMetrics({
+    admin,
+    websiteId: args.websiteId,
+    accountId: website.account_id,
+    locale: args.locale,
+    fetchedAt,
+  });
+
   const keywordResult = await ensureKeywordCandidates({
     admin,
     websiteId: args.websiteId,
@@ -487,6 +614,7 @@ async function main() {
     country: args.country,
     language: args.language,
     snapshotCount,
+    pageMetricsCount,
     keywordCandidatesInserted: keywordResult.inserted,
     keywordResearchRunId: keywordResult.runId,
     fetchedAt,
@@ -512,4 +640,3 @@ main().catch((error) => {
   );
   process.exitCode = 1;
 });
-
