@@ -148,6 +148,13 @@ export {
 export type { TrustCertification, TrustContent } from './schemas/trust';
 
 export {
+  PlaceSourceSchema,
+  PlaceCacheRowSchema,
+  PlaceCacheInsertSchema,
+} from './schemas/places-cache';
+export type { PlaceSource, PlaceCacheRow, PlaceCacheInsert } from './schemas/places-cache';
+
+export {
   ScheduleEntrySchema,
   ScheduleEntrySchema as ScheduleStepSchema,
   MeetingPointSchema,

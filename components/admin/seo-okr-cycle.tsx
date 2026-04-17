@@ -228,7 +228,7 @@ function Ciclo7D({ websiteId }: { websiteId: string }) {
         <p className="text-xs text-[var(--studio-text-muted)]">Cargando tareas semanales...</p>
       ) : tasks.length === 0 ? (
         <p className="text-xs text-[var(--studio-text-muted)]">
-          Sin tareas generadas para {weekOf}. Usa "Generar" para crear el plan semanal.
+          Sin tareas generadas para {weekOf}. Usa &quot;Generar&quot; para crear el plan semanal.
         </p>
       ) : (
         <div className="space-y-2">
