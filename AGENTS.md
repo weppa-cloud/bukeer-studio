@@ -10,6 +10,10 @@ Bukeer Website Studio — the Next.js 15 public website renderer and design toke
 
 **Related repo:** `weppa-cloud/bukeer-flutter` — Flutter app + Supabase backend (shared DB).
 
+## Knowledge graph (LLM Wiki)
+
+**Entry point:** [`docs/INDEX.md`](./docs/INDEX.md) — Obsidian-style index of all ADRs, SPECs, ops docs, and cross-cutting concepts. Use it to navigate the repo's knowledge graph via `[[ADR-XXX]]` / `[[SPEC_NAME]]` / `[[concept]]` wikilinks. When adding a new ADR/SPEC/runbook, update `docs/INDEX.md` (table row + concept section + resolution map).
+
 ---
 
 ## Repo layout

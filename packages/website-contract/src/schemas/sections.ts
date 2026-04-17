@@ -116,7 +116,12 @@ const TestimonialItemSchema = z.object({
   avatar: z.string().url().optional(),
   rating: z.number().int().min(1).max(5).optional(),
   tour: z.string().max(100).optional(),
-});
+  // Extended fields for video testimonials + geo/date context
+  videoUrl: z.string().url().optional(),
+  youtubeUrl: z.string().url().optional(),
+  market: z.string().max(100).optional(),
+  dateLabel: z.string().max(50).optional(),
+}).passthrough();
 
 export const TestimonialsContentSchema = z.object({
   title: SafeTitle.optional(),

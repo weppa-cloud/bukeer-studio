@@ -142,6 +142,12 @@ export {
 export type { QuoteRequest } from './schemas/quote';
 
 export {
+  TrustCertificationSchema,
+  TrustContentSchema,
+} from './schemas/trust';
+export type { TrustCertification, TrustContent } from './schemas/trust';
+
+export {
   ScheduleEntrySchema,
   MeetingPointSchema,
   ActivityPriceSchema,

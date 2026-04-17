@@ -5,6 +5,7 @@
 import type { ThemeV3 } from './theme';
 import type { WebsiteSection } from './section';
 import type { SiteParts } from './site-parts';
+import type { TrustContent } from '../schemas/trust';
 
 export interface AnalyticsConfig {
   gtm_id?: string;
@@ -75,6 +76,7 @@ export interface WebsiteContent {
       cancellation_policy: string | null;
     };
   };
+  trust?: TrustContent;
 }
 
 export interface FeaturedProducts {
