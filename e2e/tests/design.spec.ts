@@ -28,4 +28,10 @@ test.describe('Design Tab', () => {
     await page.getByRole('button', { name: 'Brand Kit' }).click();
     await expect(page.getByRole('heading', { name: 'Logo' })).toBeVisible();
   });
+
+  test('switch to market ux section', async ({ page }) => {
+    await gotoWebsiteSection(page, 'design');
+    await page.getByRole('button', { name: 'Market UX' }).click();
+    await expect(page.getByRole('heading', { name: 'Locales del sitio' })).toBeVisible();
+  });
 });

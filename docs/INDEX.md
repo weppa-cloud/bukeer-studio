@@ -4,7 +4,7 @@
 >
 > **Convention:** `[[ADR-XXX]]` or `[[SPEC_NAME]]` = wikilink resolved below. `[text](path.md)` = regular markdown link. Both coexist.
 
-Last updated: 2026-04-17 (WIKI full-refresh — CORRELATION+AUDIT post 4w)
+Last updated: 2026-04-17 (WIKI full-refresh + #103 media closure checklist)
 
 ---
 
@@ -82,6 +82,7 @@ Feature requests formalized. Status tracked inline. GitHub Issues = source of tr
 | [[SPEC_SKILL_NEXTJS_DEVELOPER_AUDIT]] | [file](./specs/SPEC_SKILL_NEXTJS_DEVELOPER_AUDIT.md) | [[skills]] [[nextjs-developer]] |
 | [[SPEC_UX_IA_AUDIT_BUKEER_STUDIO]] | [file](./specs/SPEC_UX_IA_AUDIT_BUKEER_STUDIO.md) | [[UX]] [[information-architecture]] |
 | [[SPEC_BOOKINGS_STUDIO]] | [file](./specs/SPEC_BOOKINGS_STUDIO.md) | Stub — booking flows in Studio | [[bookings]] [[leads]] |
+| [[SPEC_MARKET_EXPERIENCE_SWITCHER]] | [file](./specs/SPEC_MARKET_EXPERIENCE_SWITCHER.md) | [[market-ux]] [[i18n]] [[currency]] |
 | [[SECTION_TYPES_REGISTRY]] | [file](./specs/SECTION_TYPES_REGISTRY.md) | Stub — section types table | [[sections]] [[website-contract]] |
 | [[EPIC_SEO_CONTENT_INTELLIGENCE_GITHUB]] | [file](./specs/EPIC_SEO_CONTENT_INTELLIGENCE_GITHUB.md) | [[SEO]] [[EPIC]] |
 | [[ISSUE_MAP_SEO_CONTENT_INTELLIGENCE]] | [file](./specs/ISSUE_MAP_SEO_CONTENT_INTELLIGENCE.md) | [[SEO]] [[issue-tracking]] |
@@ -103,6 +104,7 @@ Feature requests formalized. Status tracked inline. GitHub Issues = source of tr
 |----------|------|---------|
 | [[product-landing-v1-runbook]] | [file](./ops/product-landing-v1-runbook.md) | EPIC 7 rollout + monitoring. |
 | [[lighthouse-ci]] | [file](./ops/lighthouse-ci.md) | Core Web Vitals gate (perf/a11y/SEO). |
+| [[issue-103-media-closure-checklist]] | [file](./ops/issue-103-media-closure-checklist.md) | Formal SQL/runtime closure validation for media (#176/#177/#179) and residual legacy-bucket risk gate. |
 | [[product-landing-rollout-runbook]] | [file](./runbooks/product-landing-rollout-runbook.md) | Rollout for public site rendering / ISR changes. |
 
 ---
@@ -194,6 +196,7 @@ Each concept below lists the ADRs/SPECs/ops docs that touch it. Use this to find
 - [[ADR-009]] — subdomain routing + account_id isolation
 - [[ADR-022]] — auth token boundary (Flutter-owned)
 - Touched by: [[SPEC_SEO_DASHBOARD_PRODUCT_INTEGRATION]]
+- Ops gate: [[issue-103-media-closure-checklist]] (media storage/write hardening verification)
 
 ### [[middleware]] + [[cache]] + [[edge]]
 - [[ADR-007]] — Cloudflare Workers delivery
@@ -212,6 +215,11 @@ Each concept below lists the ADRs/SPECs/ops docs that touch it. Use this to find
 - [[dark-mode-behavior]]
 - DB shape: `websites.theme = { tokens, profile }` — see [[cross-repo-flutter]]
 - 8 presets: adventure, luxury, tropical, corporate, boutique, cultural, eco, romantic
+
+### [[market-ux]] + [[i18n]] + [[currency]]
+- [[SPEC_MARKET_EXPERIENCE_SWITCHER]] — control unificado de idioma/moneda en header + configuración en Studio.
+- Runtime: `components/site/site-header.tsx`, `components/site/site-footer.tsx`, `lib/site/currency.ts`.
+- Studio: `app/dashboard/[websiteId]/design/page.tsx`, `components/admin/market-experience-editor.tsx`.
 
 ### [[package-kits]] + [[package-landing]]
 - [[SPEC_PACKAGE_DETAIL_CONVERSION_V2]] — Shipped (partial) 2026-04-17; F1/F2/F3 merged
@@ -314,6 +322,7 @@ Obsidian resolves `[[ADR-005]]` by filename stem or alias. Claude Code / Codex g
 | `[[SPEC_*]]` | `docs/specs/SPEC_*.md` (filename stem match) |
 | `[[SEO-BLOG-EXECUTION-FRAMEWORK-2026]]` | `docs/seo/SEO-BLOG-EXECUTION-FRAMEWORK-2026.md` |
 | `[[cross-repo-flutter]]` | `.claude/rules/cross-repo-flutter.md` |
+| `[[issue-103-media-closure-checklist]]` | `docs/ops/issue-103-media-closure-checklist.md` |
 | `[[package-detail-anatomy]]` | `docs/product/package-detail-anatomy.md` |
 | `[[e2e-sessions]]` | `.claude/rules/e2e-sessions.md` |
 | Any unresolved concept | Search this INDEX with `grep "[[concept]]" docs/INDEX.md`. |

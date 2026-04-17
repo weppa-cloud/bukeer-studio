@@ -18,6 +18,8 @@ export type {
   AnalyticsConfig,
   FeaturedProducts,
   AccountCurrencyRate,
+  MarketExperienceSettings,
+  MarketSwitcherStyle,
 } from './types/website';
 
 export type {

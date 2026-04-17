@@ -1,7 +1,7 @@
 post_slug,component,check,status,priority,estimate,owner,acceptance_test
-<slug>,search-intent,"Primary/secondary intent mapped and aligned with SERP",fail,high,M,,"Intent map documented and reflected in intro+structure"
-<slug>,editorial-structure,"Value-first opening, useful H2/H3, strong closing CTA",fail,high,M,,"Editorial structure checklist passes"
+<slug>,search-intent,"Primary/secondary intent mapped and aligned with SERP",fail,high,M,,"SERP snapshot ID recorded; intro reflects target intent in first 140 words"
+<slug>,editorial-structure,"Value-first opening, useful H2/H3, strong closing CTA",fail,high,M,,"At least 3 H2 sections + 1 closing CTA block"
 <slug>,tourism-value,"Logistics, best season, indicative costs, safety, recommendations",fail,high,L,,"Required tourism-value components present"
-<slug>,internal-linking,"Cluster links to destination/package/activity/related posts",fail,medium,S,,"Internal links meet density and relevance target"
-<slug>,eeat-trust,"Source references and local-expertise trust signals included",fail,medium,M,,"Trust and source evidence visibly present"
-<slug>,multilingual-parity,"es/en/pt maintain semantic equivalence",fail,high,L,,"Locale parity checklist >= 85%"
+<slug>,internal-linking,"Cluster links to destination/package/activity/related posts",fail,medium,S,,"At least 3 contextual internal links (destination + product + related post)"
+<slug>,eeat-trust,"Source references and local-expertise trust signals included",fail,medium,M,,"At least 2 named sources plus updated date and reviewer/author signal"
+<slug>,multilingual-parity,"es/en/pt maintain semantic equivalence",fail,high,L,,"Semantic parity >= 85% and hreflang reciprocal links validated"

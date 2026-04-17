@@ -17,4 +17,10 @@ test.describe('Public Runtime Smoke', () => {
     const response = await page.goto('/site/colombiatours/destinos', { waitUntil: 'domcontentloaded' });
     expect(response?.status()).toBeLessThan(500);
   });
+
+  test('market switcher is visible in header when enabled', async ({ page }) => {
+    const response = await page.goto('/site/colombiatours', { waitUntil: 'domcontentloaded' });
+    expect(response?.status()).toBeLessThan(500);
+    await expect(page.getByRole('button', { name: /Mercado/i })).toBeVisible();
+  });
 });

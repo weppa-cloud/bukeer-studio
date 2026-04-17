@@ -8,6 +8,23 @@ Template files:
 - `docs/seo/templates/seo-blog-content-checklist.template.csv`
 - `docs/seo/templates/seo-blog-work-items.template.csv`
 
+## Alignment Snapshot (2026-04-17)
+
+Related execution context:
+
+- Epic open: [#128](https://github.com/weppa-cloud/bukeer-studio/issues/128) (Multi-Locale Remediation + Growth Ops)
+- MVP spec open: [#152](https://github.com/weppa-cloud/bukeer-studio/issues/152)
+- Media/alt pipeline open: [#176](https://github.com/weppa-cloud/bukeer-studio/issues/176), [#177](https://github.com/weppa-cloud/bukeer-studio/issues/177), [#178](https://github.com/weppa-cloud/bukeer-studio/issues/178), [#179](https://github.com/weppa-cloud/bukeer-studio/issues/179)
+- Image metadata gap open: [#103](https://github.com/weppa-cloud/bukeer-studio/issues/103)
+- Shipped enablers closed: [#138](https://github.com/weppa-cloud/bukeer-studio/issues/138), [#143](https://github.com/weppa-cloud/bukeer-studio/issues/143), [#144](https://github.com/weppa-cloud/bukeer-studio/issues/144), [#149](https://github.com/weppa-cloud/bukeer-studio/issues/149)
+- Historical baseline closed: [#122](https://github.com/weppa-cloud/bukeer-studio/issues/122)
+
+Related commits:
+
+- `bdf3997` (adds this framework + templates + media migrations)
+- `1518d31` (docs index/spec alignment)
+- `1c4fed5` (SEO playbook/flows refresh)
+
 ## Objective
 
 Operationalize blog SEO work in two mandatory dimensions:
@@ -17,6 +34,21 @@ Operationalize blog SEO work in two mandatory dimensions:
 
 Initial audited baseline: `62/100`
 Publication target: `90/100`
+
+## Score Contract (mandatory)
+
+To avoid ambiguous interpretation of `62 -> 90`, all batches must report:
+
+- `lighthouse_seo_avg`: average Lighthouse SEO score for target slugs (mobile profile)
+- `content_score_post`: `(passed_content_checks / total_content_checks) * 100` per post
+- `content_score_avg`: average `content_score_post` for target batch
+- `batch_score`: `round((0.6 * lighthouse_seo_avg) + (0.4 * content_score_avg))`
+
+Publication-ready threshold:
+
+- `batch_score >= 90`
+- `lighthouse_seo_avg >= 90`
+- `technical` P0/P1 checks all in `pass`
 
 ## Scope
 
@@ -32,6 +64,16 @@ Out of scope for this framework:
 - Non-SEO architectural refactors.
 
 ## Phase model (mandatory)
+
+### Phase A.0: Governance hardening (blocking)
+
+Before technical fixes start, lock process contracts:
+
+- Evidence contract (tool + URL + locale + device + timestamp per failed check).
+- Deterministic score contract (see section above).
+- Dependency validator runnable from CLI:
+  `node scripts/seo/validate-blog-work-items.mjs --file <work-items.csv>`
+- AI content policy (human review required before publish for AI-generated draft changes).
 
 ### Phase A: Global technical hardening (blocking)
 
@@ -54,6 +96,7 @@ Severity values: `P0` | `P1` | `P2` | `P3`
 | semantics-a11y | Sequential heading order, descriptive anchor text, AA contrast minimum. | fail | P1 | Lighthouse accessibility + manual review |  | No heading-order or critical contrast/link-text failures. |
 | media-seo | Relevant non-empty alt text and valid image aspect ratios. | fail | P1 | Lighthouse + DOM inspection |  | No incorrect aspect-ratio failures; informational images have descriptive alt. |
 | structured-data | `BlogPosting`, `BreadcrumbList`, `Organization/TravelAgency` valid. | fail | P1 | Rich Results Test + JSON-LD validation |  | Required schema present and valid for all target posts. |
+| ai-content-governance | AI-assisted changes are reviewed and validated before publish. | fail | P1 | Editorial QA log |  | Every AI-assisted post has reviewer sign-off and visible source/trust checks. |
 | cwv-gate | Meets CWV target in p75 where measurable (LCP <= 2.5s, INP <= 200ms, CLS <= 0.1). | fail | P2 | CrUX/PSI/Lighthouse evidence |  | CWV target met or accepted exception documented. |
 
 ## Artifact 2: Per-Post Content Checklist (template)
@@ -64,12 +107,12 @@ Estimate values: `S` | `M` | `L`
 
 | post_slug | component | check | status | priority | estimate | owner | acceptance_test |
 |---|---|---|---|---|---|---|---|
-| <slug> | search-intent | Primary/secondary intent mapped and aligned with current SERP. | fail | high | M |  | Query intent map documented; intro + structure match intent. |
-| <slug> | editorial-structure | Clear scan flow: value-first opening, useful H2/H3, strong close CTA. | fail | high | M |  | Article readability and section hierarchy validated by editor checklist. |
+| <slug> | search-intent | Primary/secondary intent mapped and aligned with current SERP. | fail | high | M |  | SERP snapshot ID recorded; intro includes target intent in first 140 words. |
+| <slug> | editorial-structure | Clear scan flow: value-first opening, useful H2/H3, strong close CTA. | fail | high | M |  | At least 3 H2 sections + 1 closing CTA block; no heading-order violations. |
 | <slug> | tourism-value | Includes logistics, best season, indicative costs, safety, recommendations. | fail | high | L |  | Required tourism components present and coherent. |
-| <slug> | internal-linking | Cluster links to destination/package/activity/related posts. | fail | medium | S |  | Minimum internal link density and relevance met. |
-| <slug> | eeat-trust | Adds source references and local-expertise trust signals. | fail | medium | M |  | Trust and source evidence visibly present. |
-| <slug> | multilingual-parity | `es`, `en`, `pt` maintain semantic equivalence. | fail | high | L |  | Localized versions validated for intent and key claims parity. |
+| <slug> | internal-linking | Cluster links to destination/package/activity/related posts. | fail | medium | S |  | At least 3 contextual internal links: 1 destination + 1 package/activity + 1 related post. |
+| <slug> | eeat-trust | Adds source references and local-expertise trust signals. | fail | medium | M |  | At least 2 named sources plus updated date and author/reviewer signal. |
+| <slug> | multilingual-parity | `es`, `en`, `pt` maintain semantic equivalence. | fail | high | L |  | Semantic parity >= 85% and hreflang reciprocal links validated for available locales. |
 
 ## Artifact 3: Operational backlog item interface
 
@@ -103,6 +146,8 @@ work_id,post_slug,dimension,component,issue,severity,priority,owner,estimate,dep
 ### Precedence rule (mandatory)
 
 - A `content` item cannot be marked `Done` if any `depends_on` points to a `technical` item with status different from `Done`.
+- Enforce with validator:
+  `node scripts/seo/validate-blog-work-items.mjs --file <work-items.csv>`
 
 ## Initial batch execution board (seed)
 
@@ -132,9 +177,11 @@ work_id,post_slug,dimension,component,issue,severity,priority,owner,estimate,dep
 - Search intent coverage and SERP-aligned completeness.
 - Internal linking quality and final CTA effectiveness.
 - Editorial consistency between primary and localized variants.
+- Evidence traceability: each failed/passed check has timestamped tool evidence.
 
 ### Exit criteria
 
 - 100% of `technical` P0/P1 items in `Done`.
 - Content checklist completion >= 85% per prioritized post.
-- Average score for target batch >= 90/100.
+- `lighthouse_seo_avg >= 90`.
+- `batch_score >= 90/100` under the score contract.

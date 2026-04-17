@@ -41,6 +41,7 @@
     }
   },
   "include": [
+    ".next-eval/types/**/*.ts",
     ".next-s1/types/**/*.ts",
     ".next-s2/types/**/*.ts",
     ".next-s3/types/**/*.ts",
@@ -56,8 +57,7 @@
     "lib/**/*.tsx",
     "next-env.d.ts",
     "packages/**/*.ts",
-    "packages/**/*.tsx",
-    ".next-eval/types/**/*.ts"
+    "packages/**/*.tsx"
   ],
   "exclude": [
     "node_modules",

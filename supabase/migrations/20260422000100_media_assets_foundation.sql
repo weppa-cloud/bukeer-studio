@@ -130,6 +130,7 @@ begin
     join public.websites w on w.id = wbp.website_id
     where wbp.featured_image is not null
       and btrim(wbp.featured_image) <> ''
+      and w.account_id is not null
       and (p_website_id is null or wbp.website_id = p_website_id)
   ),
   dedup as (

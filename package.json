@@ -32,6 +32,7 @@
     "session:run": "bash scripts/session-acquire.sh --run",
     "session:list": "bash scripts/session-list.sh",
     "session:release": "bash scripts/session-release.sh",
+    "seo:validate-blog-work-items": "node scripts/seo/validate-blog-work-items.mjs",
     "test:watch": "jest --watch",
     "build:worker": "npm run check:node && opennextjs-cloudflare build",
     "preview:worker": "npm run check:node && opennextjs-cloudflare build && opennextjs-cloudflare preview",

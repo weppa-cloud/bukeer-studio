@@ -6,10 +6,10 @@ Backlog de documentación para docs-keeper. Formato: `A#` = acción, `D#` = done
 
 | ID | Doc | Acción | Status | Owner |
 |---|---|---|---|---|
-| A4 | Cross-repo references | Sincronizar con bukeer-flutter | ⏳ pending | - |
-| A6 | SPEC-I18N-001 | No existe — crear o mover a backlog | ⏳ pending | - |
-| A7 | bookings spec | Completar SPEC_BOOKINGS_STUDIO | ⏳ pending | - |
-| A15 | ADR-018 bookings | Nuevo ADR para bookings | ⏳ pending | - |
+| A4 | Cross-repo references | .claude/rules/cross-repo-flutter.md vigente | ✅ done | docs-keeper |
+| A6 | SPEC-I18N-001 | SPEC_MULTI_LOCALE_REMEDIATION existe (partial) | ✅ done | docs-keeper |
+| A7 | bookings spec | Completar SPEC_BOOKINGS_STUDIO | ✅ done (data model + features) | docs-keeper |
+| A15 | ADR-018 bookings | Nuevo ADR para bookings | ⏳ pending | specifying |
 
 ## Media Prioridad (M-Series)
 

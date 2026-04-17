@@ -2,7 +2,9 @@
 # lighthouse-ci.sh — Run Lighthouse CI against product landing pages.
 #
 # - Claims a session pool slot (s1..s4) via scripts/session-acquire.sh.
-# - Starts `npm run dev:session` on the claimed PORT with isolated NEXT_DIST_DIR.
+# - Starts a server on the claimed PORT:
+#   - default: production mode (`next build` + `next start`)
+#   - opt-in dev mode with `LHCI_SERVER_MODE=dev`
 # - Waits for the server to be reachable, then runs `npx lhci autorun`.
 # - Releases the slot (and kills the dev server) on exit/error/CTRL+C.
 #
@@ -33,10 +35,25 @@ trap cleanup EXIT INT TERM
 
 echo "[lighthouse-ci] Claimed slot $SESSION_NAME on port $PORT"
 
-# --- Start dev server --------------------------------------------------------
-echo "[lighthouse-ci] Starting dev server (NEXT_DIST_DIR=.next-$SESSION_NAME)"
-NEXT_DIST_DIR=".next-$SESSION_NAME" PORT="$PORT" npm run dev:session &
-DEV_PID=$!
+# --- Start server ------------------------------------------------------------
+SERVER_MODE="${LHCI_SERVER_MODE:-prod}"
+DIST_DIR="${LHCI_DIST_DIR:-.next}"
+
+if [[ "$SERVER_MODE" == "dev" ]]; then
+  echo "[lighthouse-ci] Starting dev server (NEXT_DIST_DIR=$DIST_DIR)"
+  NEXT_DIST_DIR="$DIST_DIR" PORT="$PORT" npm run dev:session &
+  DEV_PID=$!
+else
+  if [[ "${LHCI_FORCE_BUILD:-0}" == "1" || ! -d "$DIST_DIR" ]]; then
+    echo "[lighthouse-ci] Building production bundle (NEXT_DIST_DIR=$DIST_DIR)"
+    NEXT_DIST_DIR="$DIST_DIR" npm run build
+  else
+    echo "[lighthouse-ci] Using existing production bundle at $DIST_DIR"
+  fi
+  echo "[lighthouse-ci] Starting production server on port $PORT"
+  NEXT_DIST_DIR="$DIST_DIR" npm run start -- --port "$PORT" &
+  DEV_PID=$!
+fi
 
 # --- Wait for server to be reachable (pure bash, macOS-safe) ----------------
 echo "[lighthouse-ci] Waiting for http://localhost:$PORT ..."
