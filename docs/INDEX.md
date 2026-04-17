@@ -99,6 +99,7 @@ Feature requests formalized. Status tracked inline. GitHub Issues = source of tr
 | Wikilink | File | Purpose |
 |----------|------|---------|
 | [[package-detail-anatomy]] | [file](./product/package-detail-anatomy.md) | Package landing anatomy: sections, fields, hygiene checklist, gaps. |
+| [[product-detail-inventory]] | [file](./product/product-detail-inventory.md) | Activity + package inventory with editability matrix (Flutter / Studio / AI / Computed). |
 
 ---
 
@@ -337,6 +338,7 @@ Obsidian resolves `[[ADR-005]]` by filename stem or alias. Claude Code / Codex g
 | `[[cross-repo-flutter]]` | `.claude/rules/cross-repo-flutter.md` |
 | `[[issue-103-media-closure-checklist]]` | `docs/ops/issue-103-media-closure-checklist.md` |
 | `[[package-detail-anatomy]]` | `docs/product/package-detail-anatomy.md` |
+| `[[product-detail-inventory]]` | `docs/product/product-detail-inventory.md` |
 | `[[e2e-sessions]]` | `.claude/rules/e2e-sessions.md` |
 | Any unresolved concept | Search this INDEX with `grep "[[concept]]" docs/INDEX.md`. |
 
