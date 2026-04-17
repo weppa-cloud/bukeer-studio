@@ -47,6 +47,8 @@ what data powers it, its current status, and its fallback when data is absent.
 
 **Hygiene note:** If `program_highlights` is empty and no custom override exists, this section does not render. Trigger F3 AI generation or add manual highlights via Flutter admin.
 
+**Precedence in `normalizeProduct`:** `program_highlights` (F3 AI) → `product.highlights` (legacy V2) → null.
+
 Status: ✅ (data-dependent — see F3)
 
 ### 1.5 Gallery
