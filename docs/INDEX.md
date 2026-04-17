@@ -55,6 +55,9 @@ All ADRs accepted unless noted. Cross-cut by Principles P1–P10 (see [[ARCHITEC
 | [[ADR-016]] | [ADR-016](./architecture/ADR-016-seo-intelligence-caching.md) | SEO Content Intelligence Caching and Revalidation | [[SEO]] [[cache]] [[ISR]] [[places-cache]] |
 | [[ADR-017]] | [ADR-017](./architecture/ADR-017-geocoding-activity-circuits.md) | Geocoding for Activity Circuit Maps (MapTiler + places_cache) | [[geocoding]] [[maps]] [[places-cache]] |
 | [[ADR-018]] | [ADR-018](./architecture/ADR-018-webhook-idempotency.md) | Webhook Idempotency + Replay Protection (HMAC + 5min window + dedup) | [[webhook]] [[idempotency]] [[wompi]] [[booking]] |
+| [[ADR-019]] | [ADR-019](./architecture/ADR-019-multi-locale-url-routing.md) | Multi-locale URL Routing (path-prefix strategy) | [[multi-locale]] [[routing]] [[middleware]] [[i18n]] |
+| [[ADR-020]] | [ADR-020](./architecture/ADR-020-hreflang-emission-policy.md) | hreflang Emission Policy and x-default Strategy | [[SEO]] [[hreflang]] [[multi-locale]] [[sitemap]] |
+| [[ADR-021]] | [ADR-021](./architecture/ADR-021-translation-memory-transcreation-pipeline.md) | Translation Memory + AI Transcreation Pipeline | [[translation]] [[TM]] [[AI]] [[transcreation]] [[multi-locale]] |
 
 > **Note:** `ADR-022` and `ADR-032` referenced in specs are anchored in `weppa-cloud/bukeer-flutter`. Studio respects them but does not own them. See [[cross-repo-flutter]].
 
@@ -217,7 +220,16 @@ Each concept below lists the ADRs/SPECs/ops docs that touch it. Use this to find
 - DB shape: `websites.theme = { tokens, profile }` — see [[cross-repo-flutter]]
 - 8 presets: adventure, luxury, tropical, corporate, boutique, cultural, eco, romantic
 
-### [[market-ux]] + [[i18n]] + [[currency]]
+### [[multi-locale]] + [[i18n]] + [[routing]]
+- [[ADR-019]] — path-prefix URL routing (`/en/...`, default locale has no prefix)
+- [[ADR-020]] — hreflang emission for all `supported_locales`; `x-default` → default locale
+- [[ADR-021]] — TM + glossary + AI transcreation pipeline; job lifecycle draft→reviewed→applied→published
+- Key files: `lib/seo/locale-routing.ts`, `lib/seo/hreflang.ts`, `lib/seo/transcreate-workflow.ts`, `middleware.ts`
+- Switcher: `components/site/site-header.tsx`, `components/site/language-switcher.tsx`
+- Tables: `seo_translation_memory`, `seo_translation_glossary`, `seo_transcreation_jobs`, `seo_localized_variants`
+- Open: [[SPEC #188]] (AI wiring), [[SPEC #189]] (fallback strategy)
+
+### [[market-ux]] + [[currency]]
 - [[SPEC_MARKET_EXPERIENCE_SWITCHER]] — control unificado de idioma/moneda en header + configuración en Studio.
 - Runtime: `components/site/site-header.tsx`, `components/site/site-footer.tsx`, `lib/site/currency.ts`.
 - Studio: `app/dashboard/[websiteId]/design/page.tsx`, `components/admin/market-experience-editor.tsx`.
