@@ -14,6 +14,10 @@ function normalizeSearchNeedle(value?: string): string | null {
   return text.replace(/[%_,]/g, '');
 }
 
+function isUuid(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
 export async function GET(request: NextRequest) {
   const parsed = TranslationsListQuerySchema.safeParse({
     websiteId: request.nextUrl.searchParams.get('websiteId'),
@@ -54,9 +58,9 @@ export async function GET(request: NextRequest) {
 
   const needle = normalizeSearchNeedle(parsed.data.search);
   if (needle) {
-    query = query.or(
-      `source_keyword.ilike.%${needle}%,target_keyword.ilike.%${needle}%,page_id.ilike.%${needle}%`,
-    );
+    const clauses = [`source_keyword.ilike.%${needle}%`, `target_keyword.ilike.%${needle}%`];
+    if (isUuid(needle)) clauses.push(`page_id.eq.${needle}`);
+    query = query.or(clauses.join(','));
   }
 
   const { data, error, count } = await query;
