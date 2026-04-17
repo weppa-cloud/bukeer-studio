@@ -28,8 +28,10 @@ const baseInput = {
     medium: 'cpc',
     campaign: 'summer-2026',
   },
-  consent_marketing: true,
-};
+  option_id: null,
+  consent_tos: true,
+  consent_privacy: true,
+} as const;
 
 describe('LeadInputSchema', () => {
   it('accepts a full valid payload', () => {

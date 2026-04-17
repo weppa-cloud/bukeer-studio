@@ -9,7 +9,11 @@ import {
   parseLocaleParts,
   withNoStoreHeaders,
 } from '@/lib/seo/content-intelligence';
-import { applyTranscreateJob, reviewTranscreateJob } from '@/lib/seo/transcreate-workflow';
+import {
+  applyTranscreateJob,
+  prepareDraftWithTM,
+  reviewTranscreateJob,
+} from '@/lib/seo/transcreate-workflow';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -192,6 +196,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // TM fuzzy match + glossary prompt injection (Issue #135).
+    // Reads source-side text per segment, queries TM for exact/fuzzy hits,
+    // pre-fills exact hits into the draft, loads glossary rules for both
+    // locales, and persists hits + glossary prompt in payload.metadata.
+    const enriched = await prepareDraftWithTM({
+      admin,
+      websiteId: parsed.data.websiteId,
+      accountId: access.accountId,
+      pageType: parsed.data.pageType,
+      sourceContentId: parsed.data.sourceContentId,
+      sourceLocale: localeTuple.source_locale,
+      targetLocale: localeTuple.target_locale,
+      draft: parsed.data.draft,
+    });
+
     const { data: job, error } = await admin
       .from('seo_transcreation_jobs')
       .insert({
@@ -207,7 +226,7 @@ export async function POST(request: NextRequest) {
         target_keyword: parsed.data.targetKeyword ?? null,
         keyword_reresearch: keywordReresearch,
         status: 'draft',
-        payload: parsed.data.draft,
+        payload: enriched.payload,
         source: keywordReresearch.source,
         fetched_at: keywordReresearch.fetched_at,
         confidence: keywordReresearch.confidence,

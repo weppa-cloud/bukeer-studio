@@ -25,6 +25,8 @@ export const LeadInputSchema = z.object({
   source: LeadSourceSchema,
   locale: z.string().length(5).nullable(),
   utm: z.record(z.string(), z.string()).optional(),
+  consent_tos: z.literal(true),
+  consent_privacy: z.literal(true),
 });
 
 export const LeadRowSchema = LeadInputSchema.extend({

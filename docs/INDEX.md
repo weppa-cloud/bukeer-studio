@@ -80,6 +80,8 @@ Feature requests formalized. Status tracked inline. GitHub Issues = source of tr
 | [[SPEC_SEO_OPTIMIZATION_TOOLKIT]] | [file](./specs/SPEC_SEO_OPTIMIZATION_TOOLKIT.md) | [[SEO]] [[AI]] [[bulk-actions]] |
 | [[SPEC_SKILL_NEXTJS_DEVELOPER_AUDIT]] | [file](./specs/SPEC_SKILL_NEXTJS_DEVELOPER_AUDIT.md) | [[skills]] [[nextjs-developer]] |
 | [[SPEC_UX_IA_AUDIT_BUKEER_STUDIO]] | [file](./specs/SPEC_UX_IA_AUDIT_BUKEER_STUDIO.md) | [[UX]] [[information-architecture]] |
+| [[SPEC_BOOKINGS_STUDIO]] | [file](./specs/SPEC_BOOKINGS_STUDIO.md) | Stub — booking flows in Studio | [[bookings]] [[leads]] |
+| [[SECTION_TYPES_REGISTRY]] | [file](./specs/SECTION_TYPES_REGISTRY.md) | Stub — section types table | [[sections]] [[website-contract]] |
 | [[EPIC_SEO_CONTENT_INTELLIGENCE_GITHUB]] | [file](./specs/EPIC_SEO_CONTENT_INTELLIGENCE_GITHUB.md) | [[SEO]] [[EPIC]] |
 | [[ISSUE_MAP_SEO_CONTENT_INTELLIGENCE]] | [file](./specs/ISSUE_MAP_SEO_CONTENT_INTELLIGENCE.md) | [[SEO]] [[issue-tracking]] |
 | [[ROADMAP_SEO_CONTENT_INTELLIGENCE]] | [file](./specs/ROADMAP_SEO_CONTENT_INTELLIGENCE.md) | [[SEO]] [[roadmap]] |

@@ -37,6 +37,7 @@ import { ProductFAQ } from '@/components/site/product-faq';
 import { ProgramTimeline } from '@/components/site/program-timeline';
 import { SectionErrorBoundary } from '@/components/site/section-error-boundary';
 import { StickyCTABar } from '@/components/site/sticky-cta-bar';
+import { BookingTrigger } from '@/components/site/booking/booking-trigger';
 import { TrustBadges } from '@/components/site/trust-badges';
 import { buildWhatsAppUrl } from '@/components/site/whatsapp-url';
 
@@ -668,7 +669,12 @@ export function ProductLandingPage({
 
           {!isTransfer && (
             <div className="lg:col-span-1">
-              <div className="lg:sticky lg:top-28">
+              <div className="lg:sticky lg:top-28 space-y-6">
+                {(productType === 'activity' || productType === 'package') && (
+                  <SectionErrorBoundary sectionName="booking-trigger">
+                    <BookingTrigger product={product} website={website} />
+                  </SectionErrorBoundary>
+                )}
                 <SummarySidebar
                   product={product}
                   normalized={normalizedProduct}

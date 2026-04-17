@@ -1,5 +1,12 @@
 import type { SeoDecisionSource } from '@/lib/seo/content-intelligence';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/service-role';
+import {
+  buildGlossaryPromptBlock,
+  enrichDraftWithTM,
+  loadGlossaryForLocales,
+  upsertTM,
+  type TMHitEntry,
+} from '@/lib/seo/translation-memory';
 
 type TranscreatePageType = 'blog' | 'page' | 'destination' | 'hotel' | 'activity' | 'package' | 'transfer';
 type ProductPageType = Extract<TranscreatePageType, 'hotel' | 'activity' | 'package' | 'transfer'>;
@@ -835,6 +842,35 @@ export async function applyTranscreateJob(input: ApplyActionInput): Promise<Tran
     sourceMeta: input.sourceMeta,
   });
 
+  // Upsert applied segments into TM so future drafts can reuse them.
+  // Best-effort: never fail an apply because TM write errored.
+  try {
+    const sourceFields = await collectSourceFieldsForPage({
+      admin: input.admin,
+      websiteId: input.websiteId,
+      accountId: input.accountId,
+      pageType: job.page_type,
+      sourceContentId: job.page_id,
+      sourceLocale: job.source_locale,
+    });
+    const appliedFields = extractAppliedTargetFields(job.page_type, payload);
+    for (const [field, targetText] of Object.entries(appliedFields)) {
+      const sourceText = sourceFields[field];
+      if (!sourceText || !targetText) continue;
+      await upsertTM({
+        websiteId: input.websiteId,
+        sourceLocale: job.source_locale,
+        targetLocale: job.target_locale,
+        sourceText,
+        targetText,
+        context: job.page_type,
+        createdBy: input.actorUserId,
+      }).catch(() => undefined);
+    }
+  } catch {
+    // swallow — TM is a non-critical augmentation
+  }
+
   return {
     ok: true,
     job: {
@@ -849,5 +885,201 @@ export async function applyTranscreateJob(input: ApplyActionInput): Promise<Tran
     country: job.country,
     language: job.language,
     targetContentId,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Translation Memory + Glossary helpers (Issue #135)
+// ---------------------------------------------------------------------------
+
+const TRANSCREATE_TEXT_FIELDS = ['title', 'seoTitle', 'seoDescription', 'body', 'seo_intro'] as const;
+
+function pickStringField(row: Record<string, unknown> | null | undefined, key: string): string | undefined {
+  if (!row) return undefined;
+  const value = row[key];
+  return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
+
+/**
+ * Read the source-side text fields for a page so we can key TM lookups on
+ * the *actual* source strings (not user-provided needles). Returns a map
+ * keyed by the draft payload field name used in transcreation (`title`,
+ * `seoTitle`, etc).
+ */
+export async function collectSourceFieldsForPage(input: {
+  admin: ReturnType<typeof createSupabaseServiceRoleClient>;
+  websiteId: string;
+  accountId?: string;
+  pageType: TranscreatePageType;
+  sourceContentId: string;
+  sourceLocale: string;
+}): Promise<Record<string, string | undefined>> {
+  const { admin, websiteId, pageType, sourceContentId } = input;
+
+  if (pageType === 'blog') {
+    const { data } = await admin
+      .from('website_blog_posts')
+      .select('title,seo_title,seo_description,content')
+      .eq('website_id', websiteId)
+      .eq('id', sourceContentId)
+      .maybeSingle();
+    const row = (data ?? null) as Record<string, unknown> | null;
+    return {
+      title: pickStringField(row, 'title'),
+      seoTitle: pickStringField(row, 'seo_title'),
+      seoDescription: pickStringField(row, 'seo_description'),
+      body: pickStringField(row, 'content'),
+    };
+  }
+
+  if (pageType === 'page') {
+    const { data } = await admin
+      .from('website_pages')
+      .select('title,seo_title,seo_description')
+      .eq('website_id', websiteId)
+      .eq('id', sourceContentId)
+      .maybeSingle();
+    const row = (data ?? null) as Record<string, unknown> | null;
+    return {
+      title: pickStringField(row, 'title'),
+      seoTitle: pickStringField(row, 'seo_title'),
+      seoDescription: pickStringField(row, 'seo_description'),
+    };
+  }
+
+  if (pageType === 'destination') {
+    const { data } = await admin
+      .from('destinations')
+      .select('name,seo_title,seo_description')
+      .eq('id', sourceContentId)
+      .is('deleted_at', null)
+      .maybeSingle();
+    const row = (data ?? null) as Record<string, unknown> | null;
+    return {
+      title: pickStringField(row, 'name'),
+      seoTitle: pickStringField(row, 'seo_title'),
+      seoDescription: pickStringField(row, 'seo_description'),
+    };
+  }
+
+  // Product types — overlay lives in `website_product_pages`.
+  const { data } = await admin
+    .from('website_product_pages')
+    .select('custom_seo_title,custom_seo_description,seo_intro,target_keyword')
+    .eq('website_id', websiteId)
+    .eq('product_type', pageType)
+    .eq('product_id', sourceContentId)
+    .eq('locale', input.sourceLocale)
+    .limit(1)
+    .maybeSingle();
+  const row = (data ?? null) as Record<string, unknown> | null;
+  return {
+    seoTitle: pickStringField(row, 'custom_seo_title'),
+    seoDescription: pickStringField(row, 'custom_seo_description'),
+    seo_intro: pickStringField(row, 'seo_intro'),
+  };
+}
+
+function extractAppliedTargetFields(
+  pageType: TranscreatePageType,
+  payload: Record<string, unknown>,
+): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const field of TRANSCREATE_TEXT_FIELDS) {
+    const value = payload[field];
+    if (typeof value === 'string' && value.trim().length > 0) {
+      out[field] = value;
+    }
+  }
+  // `body` only makes sense for blog — strip it out for other page types so
+  // we don't pollute TM with unrelated copy.
+  if (pageType !== 'blog') delete out.body;
+  return out;
+}
+
+export type TranscreateTMHit = TMHitEntry;
+
+export interface PrepareDraftWithTMInput {
+  admin: ReturnType<typeof createSupabaseServiceRoleClient>;
+  websiteId: string;
+  accountId?: string;
+  pageType: TranscreatePageType;
+  sourceContentId: string;
+  sourceLocale: string;
+  targetLocale: string;
+  draft: Record<string, unknown>;
+  /**
+   * When true, exact TM hits pre-fill the draft so the downstream LLM call
+   * only regenerates fields without a reliable TM match. Default true.
+   */
+  applyExactMatches?: boolean;
+  exactMatchThreshold?: number;
+}
+
+export interface PrepareDraftWithTMResult {
+  payload: Record<string, unknown>;
+  tmHits: TranscreateTMHit[];
+  glossaryPromptBlock: string;
+}
+
+/**
+ * Pre-LLM TM lookup + glossary injection.
+ *
+ * 1. Reads source text for each transcreate segment (title, seoTitle, ...)
+ * 2. Runs `findTMMatches` (exact + in-memory fuzzy) per segment.
+ * 3. Applies exact hits directly into the draft payload.
+ * 4. Loads glossary for (source, target) locales and returns a prompt
+ *    block suitable for appending to any LLM system prompt.
+ *
+ * The returned `payload` is what we persist on `seo_transcreation_jobs.payload`.
+ * `tmHits` should be stored on `job.metadata.tm_hits` (caller stashes it on
+ * the job row — the current schema uses a free-form `metadata` jsonb on
+ * seo_translation_memory only, so callers persist `tm_hits` in whatever
+ * metadata field exists on their job row, or surface it in the API response).
+ */
+export async function prepareDraftWithTM(
+  input: PrepareDraftWithTMInput,
+): Promise<PrepareDraftWithTMResult> {
+  const sourceFields = await collectSourceFieldsForPage({
+    admin: input.admin,
+    websiteId: input.websiteId,
+    accountId: input.accountId,
+    pageType: input.pageType,
+    sourceContentId: input.sourceContentId,
+    sourceLocale: input.sourceLocale,
+  });
+
+  const enriched = await enrichDraftWithTM({
+    websiteId: input.websiteId,
+    sourceLocale: input.sourceLocale,
+    targetLocale: input.targetLocale,
+    pageType: input.pageType,
+    draft: input.draft,
+    sourceFields,
+    threshold: input.exactMatchThreshold ?? 0.95,
+  });
+
+  const glossaryEntries = await loadGlossaryForLocales({
+    websiteId: input.websiteId,
+    locales: [input.sourceLocale, input.targetLocale],
+  });
+  const glossaryPromptBlock = buildGlossaryPromptBlock(glossaryEntries);
+
+  // Persist tm_hits into payload.metadata so the route doesn't need a
+  // separate column. The existing payload is free-form jsonb on the job row.
+  const metadata =
+    (enriched.payload.metadata && typeof enriched.payload.metadata === 'object' && !Array.isArray(enriched.payload.metadata)
+      ? (enriched.payload.metadata as Record<string, unknown>)
+      : {}) ?? {};
+  enriched.payload.metadata = {
+    ...metadata,
+    tm_hits: enriched.hits,
+    glossary_prompt: glossaryPromptBlock || null,
+  };
+
+  return {
+    payload: enriched.payload,
+    tmHits: enriched.hits,
+    glossaryPromptBlock,
   };
 }

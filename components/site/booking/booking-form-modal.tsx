@@ -19,7 +19,7 @@ type BookingWhatsAppBuilder = (args: {
   productName: string;
   lead: LeadInput;
   leadId: string;
-  locale?: string;
+  locale?: string | null;
 }) => string | null;
 
 /**
@@ -102,7 +102,7 @@ export async function submitBookingLead(args: {
   payload: LeadInput;
   phone: string | null | undefined;
   productName: string;
-  locale?: string;
+  locale?: string | null;
   fetchFn?: typeof fetch;
   buildUrl?: BookingWhatsAppBuilder;
 }): Promise<SubmitOutcome> {
@@ -187,7 +187,7 @@ export function BookingFormModal({
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [submit, setSubmit] = useState<SubmitState>({ kind: 'idle' });
 
-  const effectiveLocale = locale || website.content.locale || undefined;
+  const effectiveLocale = locale ?? website.content.locale ?? null;
 
   // Focus trap: capture previously focused element, focus first field on open,
   // restore on close. Esc closes. Tab cycles within the dialog.
