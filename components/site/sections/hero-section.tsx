@@ -213,6 +213,7 @@ export function HeroSection({ section, website }: HeroSectionProps) {
 
   const y = useTransform(scrollYProgress, [0, 1], ['0%', '50%']);
   const opacity = useTransform(scrollYProgress, [0, 0.5, 1], [1, 0.8, 0.3]);
+  const immersiveScale = useTransform(scrollYProgress, [0, 1], [1, 1.08]);
 
   // Content is normalized to camelCase by render-section.tsx
   const sectionContent = section.content as {
@@ -263,7 +264,7 @@ export function HeroSection({ section, website }: HeroSectionProps) {
       <div ref={containerRef} className="relative h-screen min-h-[700px] overflow-hidden">
         {/* Background with parallax + scale */}
         <motion.div
-          style={{ y, opacity, scale: useTransform(scrollYProgress, [0, 1], [1, 1.08]) }}
+          style={{ y, opacity, scale: immersiveScale }}
           className="absolute inset-0 w-full h-[115%]"
         >
           {sectionContent.backgroundVideo ? (

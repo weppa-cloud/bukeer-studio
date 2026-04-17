@@ -1,6 +1,5 @@
 'use client';
 
-import { motion } from 'framer-motion';
 import { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 import { NumberTicker } from '@/components/ui/number-ticker';
 import { BlurFade } from '@/components/ui/blur-fade';
