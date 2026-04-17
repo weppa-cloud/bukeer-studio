@@ -365,6 +365,10 @@ export type {
   CancellationTokenPayload,
 } from './schemas/cancellation';
 
+// AI-generated content schemas — F3 (#174)
+export { PackageAiHighlightsSchema } from './schemas/package-ai';
+export type { PackageAiHighlights } from './schemas/package-ai';
+
 // Validation
 export {
   validateSection,
