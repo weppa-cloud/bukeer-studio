@@ -1,11 +1,22 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect, useCallback } from 'react';
-import { usePathname } from 'next/navigation';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { WebsiteData } from '@/lib/supabase/get-website';
 import { getBasePath } from '@/lib/utils/base-path';
 import { resolveNavHref } from '@/lib/utils/navigation';
+import {
+  SITE_CURRENCY_QUERY_PARAM,
+  SITE_CURRENCY_STORAGE_KEY,
+  SITE_LANG_QUERY_PARAM,
+  SITE_LANG_STORAGE_KEY,
+  SITE_MENU_LOCALES,
+  buildCurrencyConfig,
+  normalizeCurrencyCode,
+  normalizeLanguageCode,
+  resolvePreferredCurrency,
+} from '@/lib/site/currency';
 import type { NavigationItem, HeaderCTA } from '@bukeer/website-contract';
 
 interface SiteHeaderProps {
@@ -22,6 +33,10 @@ export function SiteHeader({ website, isCustomDomain = false, navigation }: Site
   const { content, subdomain } = website;
   const basePath = getBasePath(subdomain, isCustomDomain);
   const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const currentPathname = pathname || '/';
+  const searchParamsString = searchParams?.toString() ?? '';
 
   // Transparent overlay only on homepage — interior pages (category, listing, blog) have light bg
   const homePathPatterns = [basePath, `${basePath}/`, '/'];
@@ -35,6 +50,15 @@ export function SiteHeader({ website, isCustomDomain = false, navigation }: Site
   const currentLogo = isTransparent ? logoForDark : logoForLight;
   const headerCta: HeaderCTA | undefined = content.headerCta;
   const phone = content.account?.phone || content.social?.whatsapp;
+  const isColombiaToursSite = subdomain === 'colombiatours'
+    || (website.custom_domain ?? '').toLowerCase().includes('colombiatours');
+  const currencyConfig = useMemo(() => buildCurrencyConfig(content.account), [content.account]);
+  const hasCurrencySwitcher = (currencyConfig?.enabledCurrencies.length ?? 0) > 1;
+  const hasPreferenceSwitchers = hasCurrencySwitcher || isColombiaToursSite;
+  const fallbackLocale = normalizeLanguageCode(content.locale) ?? 'es';
+  const enabledCurrencyKey = currencyConfig?.enabledCurrencies.join(',') ?? '';
+  const [selectedLocale, setSelectedLocale] = useState(fallbackLocale);
+  const [selectedCurrency, setSelectedCurrency] = useState<string | null>(currencyConfig?.baseCurrency ?? null);
 
   // Fallback navigation
   const navFallback: NavigationItem[] = [
@@ -78,6 +102,75 @@ export function SiteHeader({ website, isCustomDomain = false, navigation }: Site
       document.body.style.overflow = '';
     };
   }, [mobileMenuOpen]);
+
+  const updatePreferenceParam = useCallback((param: string, value: string) => {
+    const params = new URLSearchParams(searchParamsString);
+    params.set(param, value);
+    const query = params.toString();
+    router.replace(query ? `${currentPathname}?${query}` : currentPathname, { scroll: false });
+  }, [currentPathname, router, searchParamsString]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(searchParamsString);
+    const queryLocale = normalizeLanguageCode(params.get(SITE_LANG_QUERY_PARAM));
+
+    if (queryLocale) {
+      setSelectedLocale(queryLocale);
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(SITE_LANG_STORAGE_KEY, queryLocale);
+      }
+      return;
+    }
+
+    if (typeof window !== 'undefined') {
+      const storedLocale = normalizeLanguageCode(window.localStorage.getItem(SITE_LANG_STORAGE_KEY));
+      setSelectedLocale(storedLocale ?? fallbackLocale);
+      return;
+    }
+
+    setSelectedLocale(fallbackLocale);
+  }, [fallbackLocale, searchParamsString]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(searchParamsString);
+    const queryCurrency = normalizeCurrencyCode(params.get(SITE_CURRENCY_QUERY_PARAM));
+    const storedCurrency = typeof window !== 'undefined'
+      ? normalizeCurrencyCode(window.localStorage.getItem(SITE_CURRENCY_STORAGE_KEY))
+      : null;
+    const preferred = resolvePreferredCurrency({
+      queryCurrency,
+      storedCurrency,
+      config: currencyConfig,
+      fallbackCurrency: currencyConfig?.baseCurrency ?? null,
+    });
+
+    setSelectedCurrency(preferred);
+
+    if (typeof window !== 'undefined' && preferred) {
+      window.localStorage.setItem(SITE_CURRENCY_STORAGE_KEY, preferred);
+    }
+  }, [currencyConfig, enabledCurrencyKey, searchParamsString]);
+
+  const handleLocaleChange = useCallback((value: string) => {
+    const nextLocale = normalizeLanguageCode(value) ?? fallbackLocale;
+    setSelectedLocale(nextLocale);
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(SITE_LANG_STORAGE_KEY, nextLocale);
+    }
+    updatePreferenceParam(SITE_LANG_QUERY_PARAM, nextLocale);
+  }, [fallbackLocale, updatePreferenceParam]);
+
+  const handleCurrencyChange = useCallback((value: string) => {
+    const nextCurrency = normalizeCurrencyCode(value);
+    if (!nextCurrency) return;
+    if (currencyConfig && !currencyConfig.enabledCurrencies.includes(nextCurrency)) return;
+
+    setSelectedCurrency(nextCurrency);
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(SITE_CURRENCY_STORAGE_KEY, nextCurrency);
+    }
+    updatePreferenceParam(SITE_CURRENCY_QUERY_PARAM, nextCurrency);
+  }, [currencyConfig, updatePreferenceParam]);
 
   // WhatsApp URL
   const whatsappUrl = content.social?.whatsapp
@@ -255,6 +348,18 @@ export function SiteHeader({ website, isCustomDomain = false, navigation }: Site
               );
             })}
 
+            {hasPreferenceSwitchers && (
+              <MenuPreferenceSwitchers
+                selectedLocale={selectedLocale}
+                selectedCurrency={selectedCurrency}
+                hasCurrencySwitcher={hasCurrencySwitcher}
+                currencyOptions={currencyConfig?.enabledCurrencies ?? []}
+                isTransparent={isTransparent}
+                onLocaleChange={handleLocaleChange}
+                onCurrencyChange={handleCurrencyChange}
+              />
+            )}
+
             {/* Divider */}
             <div className="w-px h-5 mx-2" style={{ background: isTransparent ? 'rgba(255,255,255,0.25)' : 'var(--border-subtle, hsl(var(--border)))' }} />
 
@@ -326,6 +431,25 @@ export function SiteHeader({ website, isCustomDomain = false, navigation }: Site
                 );
               })}
 
+              {hasPreferenceSwitchers && (
+                <div
+                  className="mt-3 rounded-2xl border px-4 py-3"
+                  style={{ borderColor: 'var(--border-subtle, hsl(var(--border)))' }}
+                >
+                  <p className="text-xs uppercase tracking-[0.18em] mb-2" style={{ color: 'var(--text-secondary, hsl(var(--muted-foreground)))' }}>
+                    Preferencias
+                  </p>
+                  <MobilePreferenceSwitchers
+                    selectedLocale={selectedLocale}
+                    selectedCurrency={selectedCurrency}
+                    hasCurrencySwitcher={hasCurrencySwitcher}
+                    currencyOptions={currencyConfig?.enabledCurrencies ?? []}
+                    onLocaleChange={handleLocaleChange}
+                    onCurrencyChange={handleCurrencyChange}
+                  />
+                </div>
+              )}
+
               {/* Mobile CTA */}
               {whatsappUrl && (
                 <a
@@ -393,6 +517,151 @@ function HeaderCtaButton({ cta }: { cta?: HeaderCTA }) {
     );
   }
   return null;
+}
+
+interface PreferenceSwitchersProps {
+  selectedLocale: string;
+  selectedCurrency: string | null;
+  hasCurrencySwitcher: boolean;
+  currencyOptions: string[];
+  onLocaleChange: (value: string) => void;
+  onCurrencyChange: (value: string) => void;
+}
+
+function MenuPreferenceSwitchers({
+  selectedLocale,
+  selectedCurrency,
+  hasCurrencySwitcher,
+  currencyOptions,
+  isTransparent,
+  onLocaleChange,
+  onCurrencyChange,
+}: PreferenceSwitchersProps & { isTransparent: boolean }) {
+  const textColor = isTransparent ? 'rgba(255,255,255,0.9)' : 'var(--text-secondary, hsl(var(--muted-foreground)))';
+  const borderColor = isTransparent ? 'rgba(255,255,255,0.25)' : 'var(--border-subtle, hsl(var(--border)))';
+  const background = isTransparent ? 'rgba(0,0,0,0.12)' : 'var(--bg, hsl(var(--background)))';
+
+  return (
+    <div className="ml-2 flex items-center gap-2">
+      <PreferenceSelect
+        label="Idioma"
+        value={selectedLocale}
+        options={SITE_MENU_LOCALES.map((locale) => ({ value: locale.code, label: locale.label }))}
+        onChange={onLocaleChange}
+        textColor={textColor}
+        borderColor={borderColor}
+        background={background}
+      />
+      {hasCurrencySwitcher && (
+        <PreferenceSelect
+          label="Moneda"
+          value={selectedCurrency ?? currencyOptions[0] ?? ''}
+          options={currencyOptions.map((code) => ({ value: code, label: code }))}
+          onChange={onCurrencyChange}
+          textColor={textColor}
+          borderColor={borderColor}
+          background={background}
+        />
+      )}
+    </div>
+  );
+}
+
+function MobilePreferenceSwitchers({
+  selectedLocale,
+  selectedCurrency,
+  hasCurrencySwitcher,
+  currencyOptions,
+  onLocaleChange,
+  onCurrencyChange,
+}: PreferenceSwitchersProps) {
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      <div>
+        <p className="text-xs mb-1" style={{ color: 'var(--text-secondary, hsl(var(--muted-foreground)))' }}>Idioma</p>
+        <select
+          value={selectedLocale}
+          onChange={(event) => onLocaleChange(event.target.value)}
+          className="w-full rounded-lg border px-2 py-1.5 text-sm"
+          style={{
+            borderColor: 'var(--border-subtle, hsl(var(--border)))',
+            color: 'var(--text-heading, hsl(var(--foreground)))',
+            backgroundColor: 'var(--bg, hsl(var(--background)))',
+          }}
+          aria-label="Idioma del sitio"
+        >
+          {SITE_MENU_LOCALES.map((locale) => (
+            <option key={locale.code} value={locale.code}>
+              {locale.label}
+            </option>
+          ))}
+        </select>
+      </div>
+      {hasCurrencySwitcher ? (
+        <div>
+          <p className="text-xs mb-1" style={{ color: 'var(--text-secondary, hsl(var(--muted-foreground)))' }}>Moneda</p>
+          <select
+            value={selectedCurrency ?? currencyOptions[0] ?? ''}
+            onChange={(event) => onCurrencyChange(event.target.value)}
+            className="w-full rounded-lg border px-2 py-1.5 text-sm"
+            style={{
+              borderColor: 'var(--border-subtle, hsl(var(--border)))',
+              color: 'var(--text-heading, hsl(var(--foreground)))',
+              backgroundColor: 'var(--bg, hsl(var(--background)))',
+            }}
+            aria-label="Moneda del sitio"
+          >
+            {currencyOptions.map((code) => (
+              <option key={code} value={code}>
+                {code}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function PreferenceSelect({
+  label,
+  value,
+  options,
+  onChange,
+  textColor,
+  borderColor,
+  background,
+}: {
+  label: string;
+  value: string;
+  options: Array<{ value: string; label: string }>;
+  onChange: (value: string) => void;
+  textColor: string;
+  borderColor: string;
+  background: string;
+}) {
+  return (
+    <label className="inline-flex">
+      <span className="sr-only">{label}</span>
+      <select
+        aria-label={label}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="h-8 rounded-md border px-2 text-xs font-medium"
+        style={{
+          color: textColor,
+          borderColor,
+          background,
+        }}
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
 }
 
 // Icons

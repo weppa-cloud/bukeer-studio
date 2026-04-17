@@ -3,11 +3,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import clsx from 'clsx';
 import { formatPriceOrConsult } from '@/lib/products/format-price';
+import { convertCurrencyAmount, type CurrencyConfig } from '@/lib/site/currency';
 import { trackEvent } from '@/lib/analytics/track';
 
 interface StickyCTABarProps {
   price?: number | string | null;
   currency?: string | null;
+  preferredCurrency?: string | null;
+  currencyConfig?: CurrencyConfig | null;
   whatsappUrl?: string | null;
   phone?: string | null;
   className?: string;
@@ -18,6 +21,8 @@ interface StickyCTABarProps {
 export function StickyCTABar({
   price,
   currency,
+  preferredCurrency,
+  currencyConfig,
   whatsappUrl,
   phone,
   className,
@@ -28,7 +33,9 @@ export function StickyCTABar({
     const cleanPhone = (phone ?? '').replace(/[^0-9+]/g, '');
     return cleanPhone ? `tel:${cleanPhone}` : null;
   }, [phone]);
-  const priceLabel = formatPriceOrConsult(price, currency);
+  const effectiveCurrency = preferredCurrency ?? currency ?? null;
+  const convertedPrice = convertCurrencyAmount(price, currency, effectiveCurrency, currencyConfig ?? null);
+  const priceLabel = formatPriceOrConsult(convertedPrice, effectiveCurrency ?? currency);
 
   useEffect(() => {
     const onScroll = () => {

@@ -1,12 +1,12 @@
 'use client';
 
 import { useCallback } from 'react';
-
-const AVAILABLE_LOCALES = [
-  { code: 'es', label: 'Español', flag: '🇪🇸' },
-  { code: 'en', label: 'English', flag: '🇺🇸' },
-  { code: 'pt', label: 'Português', flag: '🇧🇷' },
-] as const;
+import {
+  SITE_LANG_QUERY_PARAM,
+  SITE_LANG_STORAGE_KEY,
+  SITE_MENU_LOCALES,
+  normalizeLanguageCode,
+} from '@/lib/site/currency';
 
 interface LanguageSwitcherProps {
   currentLocale: string;
@@ -14,17 +14,22 @@ interface LanguageSwitcherProps {
 }
 
 export function LanguageSwitcher({ currentLocale, footerPalette }: LanguageSwitcherProps) {
+  const normalizedLocale = normalizeLanguageCode(currentLocale) ?? 'es';
+
   const handleChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newLocale = e.target.value;
-    if (newLocale === currentLocale) return;
+    const newLocale = normalizeLanguageCode(e.target.value);
+    if (!newLocale || newLocale === normalizedLocale) return;
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(SITE_LANG_STORAGE_KEY, newLocale);
+    }
     const url = new URL(window.location.href);
-    url.searchParams.set('lang', newLocale);
+    url.searchParams.set(SITE_LANG_QUERY_PARAM, newLocale);
     window.location.href = url.toString();
-  }, [currentLocale]);
+  }, [normalizedLocale]);
 
   return (
     <select
-      value={currentLocale}
+      value={normalizedLocale}
       onChange={handleChange}
       aria-label="Seleccionar idioma"
       className="bg-transparent border rounded px-2 py-1 text-sm cursor-pointer appearance-none"
@@ -33,9 +38,9 @@ export function LanguageSwitcher({ currentLocale, footerPalette }: LanguageSwitc
         borderColor: footerPalette.border,
       }}
     >
-      {AVAILABLE_LOCALES.map((locale) => (
+      {SITE_MENU_LOCALES.map((locale) => (
         <option key={locale.code} value={locale.code}>
-          {locale.flag} {locale.code.toUpperCase()}
+          {locale.label}
         </option>
       ))}
     </select>

@@ -1,10 +1,13 @@
 import type { ActivityOption, ActivityPrice } from '@bukeer/website-contract';
 import { formatPriceOrConsult } from '@/lib/products/format-price';
+import { convertCurrencyAmount, type CurrencyConfig } from '@/lib/site/currency';
 
 export interface OptionsTableProps {
   options?: Array<ActivityOption | null | undefined> | null;
   title?: string | null;
   subtitle?: string | null;
+  preferredCurrency?: string | null;
+  currencyConfig?: CurrencyConfig | null;
   className?: string;
 }
 
@@ -71,14 +74,22 @@ function normalizeOption(option: ActivityOption | null | undefined): ActivityOpt
   };
 }
 
-function formatOptionPrice(price: ActivityPrice): string {
-  return formatPriceOrConsult(price.price, price.currency);
+function formatOptionPrice(
+  price: ActivityPrice,
+  preferredCurrency: string | null | undefined,
+  currencyConfig: CurrencyConfig | null | undefined
+): string {
+  const effectiveCurrency = preferredCurrency ?? price.currency;
+  const convertedPrice = convertCurrencyAmount(price.price, price.currency, effectiveCurrency, currencyConfig ?? null);
+  return formatPriceOrConsult(convertedPrice, effectiveCurrency);
 }
 
 export function OptionsTable({
   options,
   title,
   subtitle,
+  preferredCurrency,
+  currencyConfig,
   className = '',
 }: OptionsTableProps) {
   const items = (options ?? [])
@@ -200,7 +211,7 @@ export function OptionsTable({
                           >
                             <div className="flex flex-wrap items-center gap-2">
                               <span className="text-sm font-medium" style={{ color: 'var(--text-heading)' }}>
-                                {formatOptionPrice(price)}
+                                {formatOptionPrice(price, preferredCurrency, currencyConfig)}
                               </span>
                               {unitLabel && (
                                 <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
