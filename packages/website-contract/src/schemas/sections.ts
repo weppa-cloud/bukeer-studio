@@ -182,8 +182,15 @@ export const CtaContentSchema = z.object({
 
 export const RichTextContentSchema = z.object({
   title: SafeTitle.optional(),
-  text: SafeString.optional().default(''),
-});
+  text: SafeString.optional(),
+  headline: SafeTitle.optional(),
+  body: SafeString.optional(),
+  eyebrow: z.string().max(100).optional(),
+  image: z.string().url().optional(),
+  imagePosition: z.enum(['left', 'right']).optional(),
+  ctaText: z.string().max(50).optional(),
+  ctaUrl: SafeUrl,
+}).passthrough();
 
 export const GalleryContentSchema = z.object({
   title: SafeTitle.optional(),
