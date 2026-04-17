@@ -52,7 +52,6 @@ export async function buildSitemapUrls(
 
   // 2. Static pages (from website_pages, excluding noindex)
   const pageSlugs = await getIndexablePageSlugs(subdomain);
-  const pageSlugSet = new Set(pageSlugs);
 
   // Keep all slugs (including noindex) for category detection
   const allPageSlugs = await getAllPageSlugs(subdomain);
@@ -121,8 +120,11 @@ export async function buildSitemapUrls(
 
     for (const item of items) {
       if (item.slug && !noindexProducts.has(item.slug)) {
+        const itemMeta = item as { updated_at?: string; last_modified?: string };
+        const lastmod = (itemMeta.updated_at || itemMeta.last_modified)?.split('T')[0];
         urls.push({
           loc: `${baseUrl}/${categorySlug}/${item.slug}`,
+          ...(lastmod ? { lastmod } : {}),
           changefreq: 'weekly',
           priority: '0.5',
         });

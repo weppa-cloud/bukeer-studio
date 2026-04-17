@@ -1,0 +1,98 @@
+{
+  "issue": {
+    "number": 122,
+    "title": "EPIC 86 closure KPI report",
+    "scope": "website:894545b7-73ca-4dae-b76a-da5b6a3f8441"
+  },
+  "generatedAt": "2026-04-17T02:04:23.208Z",
+  "filters": {
+    "websiteId": "894545b7-73ca-4dae-b76a-da5b6a3f8441"
+  },
+  "thresholds": {
+    "auditCoveragePct": 0.95,
+    "researchCandidatesValidatedPerLocale": 500,
+    "sourceAttributionCompletenessPct": 1
+  },
+  "metrics": {
+    "auditCoverage": {
+      "threshold": 0.95,
+      "passed": true,
+      "totalSnapshots": 233,
+      "validatedSnapshots": 233,
+      "latestSnapshotsByLocale": [
+        {
+          "locale": "es-CO",
+          "totalSnapshots": 233,
+          "validatedSnapshots": 233,
+          "pct": 1,
+          "passed": true
+        }
+      ]
+    },
+    "researchCandidates": {
+      "threshold": 500,
+      "passed": true,
+      "totalValidated": 500,
+      "byLocale": [
+        {
+          "locale": "es-CO",
+          "validated": 500,
+          "threshold": 500,
+          "passed": true
+        }
+      ],
+      "localesBelowThreshold": []
+    },
+    "sourceAttributionCompleteness": {
+      "threshold": 1,
+      "passed": true,
+      "totalRows": 734,
+      "attributedRows": 734,
+      "byTable": [
+        {
+          "table": "seo_audit_findings",
+          "rows": 0,
+          "attributedRows": 0,
+          "pct": 0,
+          "passed": true
+        },
+        {
+          "table": "seo_cluster_metrics_daily",
+          "rows": 0,
+          "attributedRows": 0,
+          "pct": 0,
+          "passed": true
+        },
+        {
+          "table": "seo_keyword_candidates",
+          "rows": 500,
+          "attributedRows": 500,
+          "pct": 1,
+          "passed": true
+        },
+        {
+          "table": "seo_keyword_research_runs",
+          "rows": 1,
+          "attributedRows": 1,
+          "pct": 1,
+          "passed": true
+        },
+        {
+          "table": "seo_page_metrics_daily",
+          "rows": 0,
+          "attributedRows": 0,
+          "pct": 0,
+          "passed": true
+        },
+        {
+          "table": "seo_render_snapshots",
+          "rows": 233,
+          "attributedRows": 233,
+          "pct": 1,
+          "passed": true
+        }
+      ]
+    }
+  },
+  "passed": true
+}

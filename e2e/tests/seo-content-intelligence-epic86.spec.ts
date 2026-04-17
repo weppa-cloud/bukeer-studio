@@ -256,6 +256,26 @@ async function runBlockedOptimize(page: Page, payload: Record<string, unknown>) 
   return { response, body };
 }
 
+async function gotoWithRetry(page: Page, url: string, attempts = 3) {
+  let lastError: unknown = null;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      await page.goto(url, { waitUntil: 'domcontentloaded' });
+      await page.waitForLoadState('networkidle');
+      return;
+    } catch (error) {
+      lastError = error;
+      const message = error instanceof Error ? error.message : String(error);
+      const retryable = message.includes('NS_BINDING_ABORTED');
+      if (!retryable || attempt === attempts) {
+        throw error;
+      }
+      await page.waitForTimeout(500 * attempt);
+    }
+  }
+  throw lastError;
+}
+
 test.describe('EPIC #86 - SEO Content Intelligence', () => {
   test.use({ storageState: 'e2e/.auth/user.json' });
   test.setTimeout(90_000);
@@ -452,8 +472,7 @@ test.describe('EPIC #86 - SEO Content Intelligence', () => {
     await expect(page.getByPlaceholder('Cluster name')).toBeVisible();
     await shot('04-clusters-board.png');
 
-    await page.goto(`/dashboard/${websiteId}/seo/package/${packageFixture.id}`);
-    await page.waitForLoadState('networkidle');
+    await gotoWithRetry(page, `/dashboard/${websiteId}/seo/package/${packageFixture.id}`);
     await expect(page.getByRole('heading', { name: packageFixture.name ?? '' })).toBeVisible();
 
     await page.getByRole('button', { name: 'Brief' }).click();
@@ -464,8 +483,7 @@ test.describe('EPIC #86 - SEO Content Intelligence', () => {
     await expect(page.getByText('Guardrail activo: `package/activity` solo permite SEO layer (title/description/keyword + intro/highlights/faq).')).toBeVisible();
     await shot('06-package-optimize-guardrail.png');
 
-    await page.goto(`/dashboard/${websiteId}/seo/${translatableFixture.type}/${translatableFixture.id}`);
-    await page.waitForLoadState('networkidle');
+    await gotoWithRetry(page, `/dashboard/${websiteId}/seo/${translatableFixture.type}/${translatableFixture.id}`);
     await expect(page.getByRole('heading', { name: translatableFixture.label })).toBeVisible();
 
     await page.getByRole('button', { name: 'Translate' }).click();

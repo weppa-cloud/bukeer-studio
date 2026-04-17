@@ -8,6 +8,7 @@ import type { WebsiteData } from '@/lib/supabase/get-website';
 import type { ProductData, ProductPageCustomization } from '@/lib/supabase/get-pages';
 import { getCategoryProducts } from '@/lib/supabase/get-pages';
 import { getBasePath } from '@/lib/utils/base-path';
+import { normalizeProduct } from '@/lib/products/normalize-product';
 import { formatCircuitStops, getPackageCircuitStops } from '@/lib/products/package-circuit';
 import { ProductSchema } from '../seo/product-schema';
 import { CalBookingCTA } from '@/components/site/cal-booking-cta';
@@ -57,6 +58,31 @@ function formatPrice(price: number | string, currency?: string): string {
   return `${symbol}${formatted}${suffix}`;
 }
 
+function normalizeTextList(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => {
+        if (typeof item === 'string') return item.trim();
+        if (item && typeof item === 'object' && 'label' in item && typeof item.label === 'string') {
+          return item.label.trim();
+        }
+        return '';
+      })
+      .filter(Boolean);
+  }
+
+  if (typeof value === 'string') {
+    return value
+      .split(/\n|,|;/g)
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  return [];
+}
+
+type NormalizedProduct = ReturnType<typeof normalizeProduct>;
+
 export function ProductLandingPage({
   website,
   product,
@@ -64,9 +90,17 @@ export function ProductLandingPage({
   productType,
   googleReviews = [],
 }: ProductLandingPageProps) {
+  const normalizedProduct = normalizeProduct(product, { page: pageCustomization });
+  const images = normalizedProduct.gallery.length > 0
+    ? normalizedProduct.gallery
+    : product.images || (product.image ? [product.image] : []);
+  const isTransfer = productType === 'transfer';
+  const hotelStars = productType === 'hotel' && normalizedProduct.rating
+    ? Math.max(1, Math.min(5, Math.round(normalizedProduct.rating)))
+    : 0;
+
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
-  const images = product.images || (product.image ? [product.image] : []);
 
   const openLightbox = useCallback((index: number) => {
     setActiveImageIndex(index);
@@ -92,6 +126,21 @@ export function ProductLandingPage({
     ref: product.id,
   });
   const bookingLink = (website.content.social as { booking_link?: string } | undefined)?.booking_link;
+  const mapMeetingPoint = product.meeting_point ?? (
+    product.latitude !== undefined && product.longitude !== undefined
+      ? {
+          latitude: product.latitude,
+          longitude: product.longitude,
+          city: product.city,
+          country: product.country,
+          address: product.location,
+        }
+      : null
+  );
+  const highlightSource = (Array.isArray(pageCustomization?.custom_highlights) && pageCustomization.custom_highlights.length > 0)
+    ? pageCustomization.custom_highlights
+    : normalizedProduct.highlights;
+  const faqSource = normalizedProduct.faq ?? pageCustomization?.custom_faq ?? null;
   const websiteUrl = website.custom_domain
     ? `https://${website.custom_domain}${basePath}`
     : website.subdomain
@@ -104,12 +153,14 @@ export function ProductLandingPage({
       product={product}
       productType={productType}
       websiteUrl={websiteUrl}
+      language={(website as unknown as { language?: string; locale?: string }).language || (website as unknown as { locale?: string }).locale}
+      faqs={pageCustomization?.custom_faq}
     />
     <div className="min-h-screen">
       {/* Hero Section — Gradient fades into page bg */}
       <section
         className="relative flex items-end"
-        style={{ height: '50vh', minHeight: 400 }}
+        style={{ height: '70vh', minHeight: 520 }}
       >
         {(customHero?.backgroundImage || images[0]) && (
           <Image
@@ -127,10 +178,13 @@ export function ProductLandingPage({
         />
         <div className="relative z-10 w-full max-w-7xl mx-auto px-6 pb-10">
           <div>
+            <p className="mb-3 text-xs font-mono uppercase tracking-[0.2em] text-primary/90">
+              {getCategoryLabel(productType)}
+            </p>
             {/* Rating stars for hotels */}
-            {productType === 'hotel' && product.rating && product.rating > 0 && (
+            {productType === 'hotel' && hotelStars > 0 && (
               <div className="flex items-center gap-1 mb-3">
-                {Array.from({ length: product.rating }).map((_, i) => (
+                {Array.from({ length: hotelStars }).map((_, i) => (
                   <svg key={i} className="w-4 h-4 text-yellow-400 fill-yellow-400" viewBox="0 0 20 20" fill="currentColor">
                     <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                   </svg>
@@ -161,6 +215,23 @@ export function ProductLandingPage({
             <h1 className="text-4xl md:text-5xl font-bold mb-2">
               {customHero?.title || product.name}
             </h1>
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              {product.price && (
+                <span className="inline-flex items-center rounded-full bg-background/70 px-4 py-2 text-sm font-semibold backdrop-blur">
+                  Desde {formatPrice(product.price, product.currency)}
+                </span>
+              )}
+              {whatsappUrl && (
+                <a
+                  href={whatsappUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-full bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700 transition-colors"
+                >
+                  WhatsApp
+                </a>
+              )}
+            </div>
             {productType !== 'activity' && (customHero?.subtitle || product.location) && (
               <p className="text-lg text-muted-foreground flex items-center gap-2 mt-2">
                 <svg className="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -173,6 +244,13 @@ export function ProductLandingPage({
           </div>
         </div>
       </section>
+
+      <StickyCTABar
+        price={normalizedProduct.price}
+        currency={product.currency}
+        whatsappUrl={whatsappUrl}
+        phone={primaryPhone || website.content.social?.whatsapp || null}
+      />
 
       {/* Breadcrumb */}
       <div className="max-w-7xl mx-auto px-6 py-4">
@@ -217,11 +295,20 @@ export function ProductLandingPage({
       </div>
 
       <div className="max-w-7xl mx-auto px-6 pb-24">
-        <div className="grid gap-10 lg:grid-cols-3">
+        <div className={`grid gap-10 ${isTransfer ? '' : 'lg:grid-cols-3'}`}>
           {/* Main Content */}
-          <div className="lg:col-span-2 space-y-16">
+          <div className={isTransfer ? 'space-y-16' : 'lg:col-span-2 space-y-16'}>
+            {!isTransfer && (
+              <SectionErrorBoundary sectionName="highlights-grid">
+                <HighlightsGrid
+                  title="Highlights"
+                  highlights={highlightSource}
+                />
+              </SectionErrorBoundary>
+            )}
+
             {/* Gallery */}
-            {images.length > 1 && (
+            {!isTransfer && images.length > 1 && (
               <motion.section
                 initial="hidden"
                 whileInView="visible"
@@ -277,7 +364,7 @@ export function ProductLandingPage({
                 variants={fadeUp}
               >
                 <h2 className="text-2xl font-bold mb-6">
-                  {productType === 'hotel' ? 'Sobre el Hotel' : 'Descripcion'}
+                  {productType === 'hotel' ? 'Sobre el Hotel' : productType === 'transfer' ? 'Sobre el traslado' : 'Descripcion'}
                 </h2>
                 <div className="prose prose-lg max-w-none text-muted-foreground leading-relaxed">
                   <p>{product.description}</p>
@@ -287,78 +374,98 @@ export function ProductLandingPage({
 
             {/* Product Type Specific Sections */}
             {productType === 'destination' && <DestinationSections />}
-            {productType === 'hotel' && <HotelSections product={product} />}
-            {productType === 'activity' && <ActivitySections product={product} />}
-            {productType === 'package' && <PackageSections product={product} />}
-            {productType === 'transfer' && <TransferSections />}
+            {productType === 'hotel' && (
+              <SectionErrorBoundary sectionName="hotel-sections">
+                <HotelSections product={product} normalized={normalizedProduct} />
+              </SectionErrorBoundary>
+            )}
+            {productType === 'activity' && (
+              <SectionErrorBoundary sectionName="activity-sections">
+                <ActivitySections product={product} normalized={normalizedProduct} />
+              </SectionErrorBoundary>
+            )}
+            {productType === 'package' && (
+              <SectionErrorBoundary sectionName="package-sections">
+                <PackageSections product={product} normalized={normalizedProduct} />
+              </SectionErrorBoundary>
+            )}
+            {productType === 'transfer' && <TransferSections product={product} />}
 
-            <SectionErrorBoundary sectionName="highlights-grid">
-              <HighlightsGrid
-                title="Highlights"
-                highlights={product.highlights}
-              />
-            </SectionErrorBoundary>
+            {!isTransfer && (
+              <SectionErrorBoundary sectionName="program-timeline">
+                <ProgramTimeline
+                  title="Programa"
+                  schedule={normalizedProduct.schedule as Array<{ day?: number; title: string; description?: string; image?: string; time?: string }> | null}
+                />
+              </SectionErrorBoundary>
+            )}
 
-            <SectionErrorBoundary sectionName="program-timeline">
-              <ProgramTimeline
-                title="Programa"
-                schedule={product.schedule}
-              />
-            </SectionErrorBoundary>
+            {!isTransfer && (
+              <SectionErrorBoundary sectionName="include-exclude">
+                <IncludeExcludeSection
+                  inclusions={normalizedProduct.inclusions}
+                  exclusions={normalizedProduct.exclusions}
+                />
+              </SectionErrorBoundary>
+            )}
 
-            <SectionErrorBoundary sectionName="options-table">
-              <OptionsTable
-                title="Opciones disponibles"
-                options={product.options}
-              />
-            </SectionErrorBoundary>
+            {!isTransfer && (
+              <SectionErrorBoundary sectionName="meeting-point-map">
+                <MeetingPointMap
+                  title="Punto de encuentro"
+                  meetingPoint={mapMeetingPoint}
+                />
+              </SectionErrorBoundary>
+            )}
 
-            <SectionErrorBoundary sectionName="meeting-point-map">
-              <MeetingPointMap
-                title="Punto de encuentro"
-                meetingPoint={product.meeting_point}
-              />
-            </SectionErrorBoundary>
-
-            <SectionErrorBoundary sectionName="product-faq">
-              <ProductFAQ
-                title="Preguntas frecuentes"
-                faqs={pageCustomization?.custom_faq}
-                website={website}
-              />
-            </SectionErrorBoundary>
-
-            <SectionErrorBoundary sectionName="trust-badges">
-              <TrustBadges
-                title="Reserva con confianza"
-                website={website}
-              />
-            </SectionErrorBoundary>
-
-            {/* Reviews Section — hide fake reviews when real Google Reviews available */}
-            {googleReviews.length === 0 && <ReviewsSection product={product} />}
+            {!isTransfer && (
+              <SectionErrorBoundary sectionName="options-table">
+                <OptionsTable
+                  title="Opciones disponibles"
+                  options={product.options}
+                />
+              </SectionErrorBoundary>
+            )}
           </div>
 
-          {/* Sidebar - Quote Form */}
-          <div className="lg:col-span-1">
-            <div className="lg:sticky lg:top-28">
-              <QuoteForm website={website} product={product} productType={productType} />
+          {!isTransfer && (
+            <div className="lg:col-span-1">
+              <div className="lg:sticky lg:top-28">
+                <SummarySidebar
+                  product={product}
+                  normalized={normalizedProduct}
+                  productType={productType}
+                  whatsappUrl={whatsappUrl}
+                  bookingLink={bookingLink}
+                />
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
 
-      {/* Similar Products */}
-      <SimilarProducts
-        website={website}
-        product={product}
-        productType={productType}
-        basePath={basePath}
-      />
-
       {/* Google Reviews Section */}
-      {googleReviews.length > 0 && (
+      {!isTransfer && googleReviews.length > 0 && (
         <GoogleReviewsSection reviews={googleReviews} />
+      )}
+
+      {!isTransfer && (
+        <div className="max-w-7xl mx-auto px-6 pb-16 space-y-16">
+          <SectionErrorBoundary sectionName="product-faq">
+            <ProductFAQ
+              title="Preguntas frecuentes"
+              faqs={faqSource}
+              website={website}
+            />
+          </SectionErrorBoundary>
+
+          <SectionErrorBoundary sectionName="trust-badges">
+            <TrustBadges
+              title="Reserva con confianza"
+              website={website}
+            />
+          </SectionErrorBoundary>
+        </div>
       )}
 
       {/* CTA Section */}
@@ -399,12 +506,14 @@ export function ProductLandingPage({
         </div>
       </section>
 
-      <StickyCTABar
-        price={product.price}
-        currency={product.currency}
-        whatsappUrl={whatsappUrl}
-        phone={primaryPhone || website.content.social?.whatsapp || null}
-      />
+      {!isTransfer && (
+        <SimilarProducts
+          website={website}
+          product={product}
+          productType={productType}
+          basePath={basePath}
+        />
+      )}
     </div>
 
     {/* Lightbox */}
@@ -527,170 +636,104 @@ function DestinationSections() {
   );
 }
 
-function HotelSections({ product }: { product: ProductData }) {
-  const amenities = Array.isArray(product.amenities) && product.amenities.length > 0
-    ? product.amenities.map((label) => ({ emoji: '✨', label }))
-    : [
-        { emoji: '🏊', label: 'Piscina' },
-        { emoji: '📶', label: 'WiFi' },
-        { emoji: '🅿️', label: 'Parking' },
-        { emoji: '🍽️', label: 'Restaurante' },
-        { emoji: '💆', label: 'Spa' },
-        { emoji: '🍸', label: 'Bar' },
-        { emoji: '🏋️', label: 'Gimnasio' },
-        { emoji: '🛎️', label: 'Room Service' },
-      ];
+function HotelSections({ product, normalized }: { product: ProductData; normalized: NormalizedProduct }) {
+  const amenities = normalizeTextList(product.amenities);
+  const rating = normalized.rating;
+  const reviewCount = typeof product.review_count === 'number'
+    ? product.review_count
+    : typeof product.review_count === 'string'
+      ? Number(product.review_count)
+      : null;
+  const hasSummary = rating !== null || (reviewCount !== null && Number.isFinite(reviewCount) && reviewCount > 0);
 
-  const includes = product.includes || ['Desayuno buffet', 'Acceso a piscina', 'WiFi alta velocidad', 'Servicio concierge'];
-  const excludes = product.excludes || ['Traslado aeropuerto', 'Excursiones externas', 'Minibar'];
+  if (!hasSummary && amenities.length === 0) {
+    return null;
+  }
 
   return (
     <>
-      {/* Amenities */}
-      <motion.section
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, margin: '-60px' }}
-        variants={fadeUp}
-      >
-        <h2 className="text-2xl font-bold mb-6">Amenidades</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {amenities.map((a: { emoji: string; label: string }) => (
-            <div
-              key={a.label}
-              className="flex flex-col items-center gap-2 py-5 rounded-xl text-center bg-card border border-border"
-            >
-              <span className="text-2xl">{a.emoji}</span>
-              <span className="text-sm text-muted-foreground">{a.label}</span>
-            </div>
-          ))}
-        </div>
-      </motion.section>
+      {hasSummary && (
+        <motion.section
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: '-60px' }}
+          variants={fadeUp}
+          className="rounded-xl border border-border bg-card p-6"
+        >
+          <h2 className="text-2xl font-bold mb-2">Calificacion de viajeros</h2>
+          {rating !== null && (
+            <p className="text-3xl font-bold text-primary mb-1">{rating.toFixed(1)} / 5</p>
+          )}
+          {reviewCount !== null && Number.isFinite(reviewCount) && reviewCount > 0 && (
+            <p className="text-sm text-muted-foreground">{reviewCount} resenas verificadas</p>
+          )}
+        </motion.section>
+      )}
 
-      {/* Includes / Excludes */}
-      <motion.section
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, margin: '-60px' }}
-        variants={fadeUp}
-      >
-        <h2 className="text-2xl font-bold mb-6">Incluye / No incluye</h2>
-        <div className="grid sm:grid-cols-2 gap-8">
-          <div>
-            <h3 className="font-medium text-sm uppercase tracking-wider mb-4">Incluye</h3>
-            <ul className="space-y-3">
-              {(includes as string[]).map((item) => (
-                <li key={item} className="flex items-center gap-3">
-                  <svg className="w-4 h-4 text-green-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span className="text-sm text-muted-foreground">{item}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <h3 className="font-medium text-sm uppercase tracking-wider mb-4">No incluye</h3>
-            <ul className="space-y-3">
-              {(excludes as string[]).map((item) => (
-                <li key={item} className="flex items-center gap-3">
-                  <svg className="w-4 h-4 text-red-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                  <span className="text-sm text-muted-foreground">{item}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </motion.section>
-    </>
-  );
-}
-
-function ActivitySections({ product }: { product: ProductData }) {
-  const rawInc = product.includes;
-  const includes: string[] = Array.isArray(rawInc) ? rawInc : typeof rawInc === 'string' ? rawInc.split('\n').map((s: string) => s.trim()).filter(Boolean) : ['Guia experto', 'Transporte', 'Equipo necesario'];
-  const rawExc = product.excludes;
-  const excludes: string[] = Array.isArray(rawExc) ? rawExc : typeof rawExc === 'string' ? rawExc.split('\n').map((s: string) => s.trim()).filter(Boolean) : ['Comidas', 'Propinas', 'Seguro de viaje'];
-  const rawRec = product.recommendations;
-  const recommendations: string[] = Array.isArray(rawRec)
-    ? rawRec
-    : typeof rawRec === 'string'
-      ? rawRec.split('\n').map(s => s.trim()).filter(Boolean)
-      : ['Ropa comoda y calzado para caminar', 'Protector solar y gorra', 'Llegar 15 minutos antes del horario'];
-
-  return (
-    <>
-      {/* What's Included */}
-      <motion.section
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, margin: '-60px' }}
-        variants={fadeUp}
-      >
-        <h2 className="text-2xl font-bold mb-6">Que incluye</h2>
-        <div className="grid sm:grid-cols-2 gap-8">
-          <div>
-            <h3 className="font-medium text-sm uppercase tracking-wider mb-4">Incluye</h3>
-            <ul className="space-y-3">
-              {(includes as string[]).map((item) => (
-                <li key={item} className="flex items-center gap-3">
-                  <svg className="w-4 h-4 text-green-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span className="text-sm text-muted-foreground">{item}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <h3 className="font-medium text-sm uppercase tracking-wider mb-4">No incluye</h3>
-            <ul className="space-y-3">
-              {(excludes as string[]).map((item) => (
-                <li key={item} className="flex items-center gap-3">
-                  <svg className="w-4 h-4 text-red-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                  <span className="text-sm text-muted-foreground">{item}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </motion.section>
-
-      {/* Recommendations */}
-      <motion.section
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, margin: '-60px' }}
-        variants={fadeUp}
-      >
-        <h2 className="text-2xl font-bold mb-6">Recomendaciones</h2>
-        <ul className="space-y-3">
-          {(recommendations as string[]).map((item) => (
-            <li key={item} className="flex items-start gap-3">
-              <span className="mt-2 w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
-              <span className="text-sm text-muted-foreground leading-relaxed">{item}</span>
-            </li>
-          ))}
-        </ul>
-      </motion.section>
-
-      {/* Rates table */}
-      {product.price && (
+      {amenities.length > 0 && (
         <motion.section
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: '-60px' }}
           variants={fadeUp}
         >
-          <h2 className="text-2xl font-bold mb-6">Tarifas</h2>
-          <div className="rounded-xl overflow-hidden border border-border">
-            <div className="flex items-center justify-between px-6 py-4 bg-card">
-              <span className="text-sm text-muted-foreground">Precio por persona</span>
-              <span className="text-xl font-bold text-primary">{formatPrice(product.price, product.currency)}</span>
+          <h2 className="text-2xl font-bold mb-6">Amenidades</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {amenities.map((label) => (
+              <div
+                key={label}
+                className="rounded-xl border border-border bg-card px-4 py-3 text-sm text-muted-foreground"
+              >
+                {label}
+              </div>
+            ))}
+          </div>
+        </motion.section>
+      )}
+    </>
+  );
+}
+
+function ActivitySections({ product, normalized }: { product: ProductData; normalized: NormalizedProduct }) {
+  const recommendations = normalizeTextList(product.recommendations);
+
+  if (recommendations.length === 0 && normalized.price === null) {
+    return null;
+  }
+
+  return (
+    <>
+      {recommendations.length > 0 && (
+        <motion.section
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: '-60px' }}
+          variants={fadeUp}
+        >
+          <h2 className="text-2xl font-bold mb-6">Recomendaciones</h2>
+          <ul className="space-y-3">
+            {recommendations.map((item) => (
+              <li key={item} className="flex items-start gap-3">
+                <span className="mt-2 w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
+                <span className="text-sm text-muted-foreground leading-relaxed">{item}</span>
+              </li>
+            ))}
+          </ul>
+        </motion.section>
+      )}
+
+      {normalized.price !== null && (
+        <motion.section
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: '-60px' }}
+          variants={fadeUp}
+        >
+          <h2 className="text-2xl font-bold mb-6">Tarifa base</h2>
+          <div className="rounded-xl overflow-hidden border border-border bg-card px-6 py-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Desde</span>
+              <span className="text-xl font-bold text-primary">{formatPrice(normalized.price, product.currency)}</span>
             </div>
           </div>
         </motion.section>
@@ -699,71 +742,45 @@ function ActivitySections({ product }: { product: ProductData }) {
   );
 }
 
-function TransferSections() {
-  return (
-    <>
-      <motion.section
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, margin: '-60px' }}
-        variants={fadeUp}
-      >
-        <h2 className="text-2xl font-bold mb-6">Detalles del Traslado</h2>
-        <div className="grid sm:grid-cols-2 gap-8">
-          <div>
-            <h3 className="font-medium text-sm uppercase tracking-wider mb-4">Incluye</h3>
-            <ul className="space-y-3">
-              {['Vehiculo privado', 'Conductor bilingue', 'Asistencia en aeropuerto'].map((item) => (
-                <li key={item} className="flex items-center gap-3">
-                  <svg className="w-4 h-4 text-green-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span className="text-sm text-muted-foreground">{item}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <h3 className="font-medium text-sm uppercase tracking-wider mb-4">No incluye</h3>
-            <ul className="space-y-3">
-              {['Propinas', 'Peajes adicionales', 'Paradas no programadas'].map((item) => (
-                <li key={item} className="flex items-center gap-3">
-                  <svg className="w-4 h-4 text-red-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                  <span className="text-sm text-muted-foreground">{item}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </motion.section>
+function TransferSections({ product }: { product: ProductData }) {
+  const transferProduct = product as ProductData & {
+    vehicle_type?: string;
+    max_passengers?: number;
+  };
+  const transferDetails = [
+    { label: 'Origen', value: product.from_location || null },
+    { label: 'Destino', value: product.to_location || product.location || null },
+    { label: 'Duracion estimada', value: product.duration || null },
+    { label: 'Vehiculo', value: transferProduct.vehicle_type || null },
+    { label: 'Capacidad', value: transferProduct.max_passengers ? `${transferProduct.max_passengers} pasajeros` : null },
+  ].filter((item): item is { label: string; value: string } => Boolean(item.value));
 
-      <motion.section
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, margin: '-60px' }}
-        variants={fadeUp}
-      >
-        <h2 className="text-2xl font-bold mb-6">Recomendaciones</h2>
-        <ul className="space-y-3">
-          {[
-            'Confirma tu vuelo con anticipacion para coordinar el horario de recogida',
-            'Ten a la mano tu confirmacion de reserva',
-            'Indica el numero de maletas al momento de reservar',
-          ].map((tip) => (
-            <li key={tip} className="flex items-start gap-3">
-              <span className="mt-2 w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
-              <span className="text-sm text-muted-foreground leading-relaxed">{tip}</span>
-            </li>
-          ))}
-        </ul>
-      </motion.section>
-    </>
+  if (transferDetails.length === 0) {
+    return null;
+  }
+
+  return (
+    <motion.section
+      initial="hidden"
+      whileInView="visible"
+      viewport={{ once: true, margin: '-60px' }}
+      variants={fadeUp}
+      className="rounded-xl border border-border bg-card p-6"
+    >
+      <h2 className="text-2xl font-bold mb-6">Detalles del traslado</h2>
+      <dl className="grid gap-4 sm:grid-cols-2">
+        {transferDetails.map((item) => (
+          <div key={item.label}>
+            <dt className="text-xs uppercase tracking-wider text-muted-foreground">{item.label}</dt>
+            <dd className="mt-1 text-base font-medium">{item.value}</dd>
+          </div>
+        ))}
+      </dl>
+    </motion.section>
   );
 }
 
-function PackageSections({ product }: { product: ProductData }) {
+function PackageSections({ product, normalized }: { product: ProductData; normalized: NormalizedProduct }) {
   const itineraryItems = Array.isArray(product.itinerary_items) ? product.itinerary_items : [];
   const productData = product as unknown as Record<string, unknown>;
   const destinationHint = typeof productData.destination === 'string'
@@ -775,33 +792,28 @@ function PackageSections({ product }: { product: ProductData }) {
     destination: destinationHint,
   });
   const circuitLabel = formatCircuitStops(circuitStops, 4);
+  const normalizedSchedule = Array.isArray(normalized.schedule) ? normalized.schedule : [];
+  const itinerary = normalizedSchedule
+    .map((entry, index) => {
+      if (!entry || typeof entry !== 'object') return null;
+      const source = entry as Record<string, unknown>;
+      const title = typeof source.title === 'string' ? source.title.trim() : '';
+      if (!title) return null;
+      return {
+        key: `${index + 1}-${title}`,
+        day: typeof source.day === 'number' ? source.day : index + 1,
+        title,
+        description: typeof source.description === 'string' ? source.description.trim() : '',
+      };
+    })
+    .filter((row): row is { key: string; day: number; title: string; description: string } => Boolean(row));
 
-  const normalizedItinerary = itineraryItems.length > 0
-    ? itineraryItems.map((item, index) => ({
-        key: `${item.day || index + 1}-${item.title || 'item'}`,
-        day: item.day || index + 1,
-        title: item.title || `Dia ${item.day || index + 1}`,
-        description: item.description || '',
-      }))
-    : circuitStops.length > 0
-      ? circuitStops.map((city, index) => ({
-          key: `${index + 1}-${city}`,
-          day: index + 1,
-          title: city,
-          description: `Explora lo mejor de ${city}`,
-        }))
-      : ['Dia 1: Llegada', 'Dia 2: Exploracion', 'Dia 3: Aventura', 'Dia 4: Regreso'].map(
-          (title, index) => ({
-            key: `${index + 1}-${title}`,
-            day: index + 1,
-            title,
-            description: 'Descripcion de las actividades del dia...',
-          })
-        );
+  if (circuitStops.length === 0 && itinerary.length === 0) {
+    return null;
+  }
 
   return (
     <>
-      {/* Circuit summary (without map) */}
       {circuitStops.length > 0 && (
         <motion.section
           initial="hidden"
@@ -810,17 +822,14 @@ function PackageSections({ product }: { product: ProductData }) {
           variants={fadeUp}
         >
           <h2 className="text-2xl font-bold mb-4">Circuito del viaje</h2>
-          <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>
-            {circuitLabel}
-          </p>
+          <p className="text-sm mb-4 text-muted-foreground">{circuitLabel}</p>
           <div className="flex flex-wrap gap-2">
             {circuitStops.map((city, index) => (
               <span
                 key={`${city}-${index}`}
-                className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs"
-                style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)' }}
+                className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground"
               >
-                <span className="inline-flex w-4 h-4 rounded-full items-center justify-center text-[10px] font-semibold" style={{ backgroundColor: 'var(--accent)', color: 'var(--accent-text)' }}>
+                <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground">
                   {index + 1}
                 </span>
                 {city}
@@ -830,321 +839,158 @@ function PackageSections({ product }: { product: ProductData }) {
         </motion.section>
       )}
 
-      {/* Itinerary timeline */}
-      <motion.section
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, margin: '-60px' }}
-        variants={fadeUp}
-      >
-        <h2 className="text-2xl font-bold mb-6">Itinerario</h2>
-        <div className="space-y-4">
-          {normalizedItinerary.map((item, index) => (
-            <motion.div
-              key={item.key}
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.1 }}
-              className="flex items-start gap-4 p-4 rounded-xl"
-              style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-subtle)' }}
-            >
-              <div
-                className="w-10 h-10 rounded-full flex items-center justify-center font-bold shrink-0 text-sm"
-                style={{ backgroundColor: 'var(--accent)', color: 'var(--accent-text)' }}
+      {itinerary.length > 0 && (
+        <motion.section
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: '-60px' }}
+          variants={fadeUp}
+        >
+          <h2 className="text-2xl font-bold mb-6">Itinerario</h2>
+          <div className="space-y-4">
+            {itinerary.map((item, index) => (
+              <motion.div
+                key={item.key}
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+                className="flex items-start gap-4 rounded-xl border border-border bg-card p-4"
               >
-                {item.day}
-              </div>
-              <div>
-                <h3 className="font-medium" style={{ color: 'var(--text-heading)' }}>{item.title}</h3>
-                <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
-                  {item.description || `Dia ${item.day}: actividades principales del itinerario`}
-                </p>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </motion.section>
+                <div className="h-10 w-10 shrink-0 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold">
+                  {item.day}
+                </div>
+                <div>
+                  <h3 className="font-medium">{item.title}</h3>
+                  {item.description && (
+                    <p className="mt-1 text-sm text-muted-foreground">{item.description}</p>
+                  )}
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </motion.section>
+      )}
     </>
   );
 }
 
-// --- Quote Form ---
-
-function QuoteForm({
-  website,
-  product,
-  productType,
+function IncludeExcludeSection({
+  inclusions,
+  exclusions,
 }: {
-  website: WebsiteData;
-  product: ProductData;
-  productType: string;
+  inclusions: NormalizedProduct['inclusions'];
+  exclusions: NormalizedProduct['exclusions'];
 }) {
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const whatsappUrl = buildWhatsAppUrl({
-    phone: website.content.social?.whatsapp,
-    productName: product.name,
-    location: product.location || product.city || product.country,
-    ref: product.id,
-  });
+  const includeItems = normalizeTextList(inclusions);
+  const excludeItems = normalizeTextList(exclusions);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setError(null);
-
-    const formData = new FormData(e.currentTarget);
-
-    try {
-      const response = await fetch('/api/quote', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          subdomain: website.subdomain,
-          productType,
-          productId: product.id,
-          productName: product.name,
-          customerName: formData.get('name'),
-          customerEmail: formData.get('email'),
-          customerPhone: formData.get('phone'),
-          travelDates: { checkIn: formData.get('dates') },
-          adults: parseInt(formData.get('adults') as string) || 2,
-          children: parseInt(formData.get('children') as string) || 0,
-          notes: formData.get('notes'),
-        }),
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        setIsSubmitted(true);
-      } else {
-        setError(data.error || 'Error al enviar la solicitud');
-      }
-    } catch {
-      setError('Error de conexion. Intenta nuevamente.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  if (isSubmitted) {
-    return (
-      <motion.div
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true }}
-        variants={fadeUp}
-        className="rounded-2xl p-6 bg-card border border-border text-center"
-      >
-        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-          </svg>
-        </div>
-        <h3 className="text-xl font-semibold mb-2">Solicitud Enviada</h3>
-        <p className="text-muted-foreground mb-4">
-          Nos pondremos en contacto contigo pronto para darte mas informacion sobre {product.name}.
-        </p>
-        {whatsappUrl && (
-          <a
-            href={whatsappUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-full font-medium hover:bg-green-700 transition-colors"
-          >
-            Continuar por WhatsApp
-          </a>
-        )}
-      </motion.div>
-    );
+  if (includeItems.length === 0 && excludeItems.length === 0) {
+    return null;
   }
 
   return (
-    <motion.div
+    <motion.section
       initial="hidden"
       whileInView="visible"
-      viewport={{ once: true }}
+      viewport={{ once: true, margin: '-60px' }}
       variants={fadeUp}
-      className="rounded-2xl p-6 space-y-5"
-      style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-subtle)' }}
     >
-      {/* Price header */}
-      {product.price && (
-        <>
+      <h2 className="text-2xl font-bold mb-6">Incluye / No incluye</h2>
+      <div className="grid sm:grid-cols-2 gap-8">
+        {includeItems.length > 0 && (
           <div>
-            <span className="font-mono text-xs uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Desde</span>
-            <div className="text-3xl mt-1" style={{ color: 'var(--accent)' }}>
-              {formatPrice(product.price, product.currency)}
-              {productType === 'hotel' && (
-                <span className="text-base" style={{ color: 'var(--text-muted)' }}>/noche</span>
-              )}
-            </div>
-          </div>
-
-          {/* Rating for hotels */}
-          {productType === 'hotel' && product.rating && product.rating > 0 && (
-            <div className="flex items-center gap-1">
-              {Array.from({ length: product.rating }).map((_, i) => (
-                <svg key={i} className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                </svg>
+            <h3 className="font-medium text-sm uppercase tracking-wider mb-4">Incluye</h3>
+            <ul className="space-y-3">
+              {includeItems.map((item) => (
+                <li key={item} className="flex items-center gap-3">
+                  <svg className="w-4 h-4 text-green-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="text-sm text-muted-foreground">{item}</span>
+                </li>
               ))}
-            </div>
-          )}
+            </ul>
+          </div>
+        )}
+        {excludeItems.length > 0 && (
+          <div>
+            <h3 className="font-medium text-sm uppercase tracking-wider mb-4">No incluye</h3>
+            <ul className="space-y-3">
+              {excludeItems.map((item) => (
+                <li key={item} className="flex items-center gap-3">
+                  <svg className="w-4 h-4 text-red-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  <span className="text-sm text-muted-foreground">{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    </motion.section>
+  );
+}
 
-          <div className="h-px" style={{ backgroundColor: 'var(--border-subtle)' }} />
-        </>
+function SummarySidebar({
+  product,
+  normalized,
+  productType,
+  whatsappUrl,
+  bookingLink,
+}: {
+  product: ProductData;
+  normalized: NormalizedProduct;
+  productType: string;
+  whatsappUrl: string | null;
+  bookingLink?: string;
+}) {
+  const quickFacts = [
+    { label: 'Tipo', value: getCategoryLabel(productType) },
+    { label: 'Ubicacion', value: product.location || [product.city, product.country].filter(Boolean).join(', ') || null },
+    { label: 'Duracion', value: product.duration || null },
+    { label: 'Rating', value: normalized.rating !== null ? `${normalized.rating.toFixed(1)} / 5` : null },
+  ].filter((item): item is { label: string; value: string } => Boolean(item.value));
+
+  return (
+    <aside className="rounded-2xl border border-border bg-card p-6 space-y-5">
+      {normalized.price !== null && (
+        <div>
+          <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground">Desde</span>
+          <p className="text-3xl mt-1 font-bold text-primary">{formatPrice(normalized.price, product.currency)}</p>
+        </div>
       )}
 
-      <h3 className="text-lg font-semibold" style={{ color: 'var(--text-heading)' }}>Solicitar Cotizacion</h3>
-
-      {error && (
-        <div className="p-3 bg-red-100 text-red-700 rounded-lg text-sm">{error}</div>
+      {quickFacts.length > 0 && (
+        <dl className="space-y-3">
+          {quickFacts.map((item) => (
+            <div key={item.label} className="flex items-start justify-between gap-4 border-b border-border/60 pb-2">
+              <dt className="text-xs uppercase tracking-wider text-muted-foreground">{item.label}</dt>
+              <dd className="text-sm text-right">{item.value}</dd>
+            </div>
+          ))}
+        </dl>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label htmlFor="dates" className="block text-xs text-muted-foreground mb-1 uppercase tracking-wider font-mono">
-            Fechas de viaje
-          </label>
-          <input
-            type="text"
-            id="dates"
-            name="dates"
-            placeholder="Selecciona fechas"
-            className="w-full px-4 py-2.5 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary text-sm"
-          />
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label htmlFor="adults" className="block text-xs text-muted-foreground mb-1 uppercase tracking-wider font-mono">
-              Adultos
-            </label>
-            <select
-              id="adults"
-              name="adults"
-              className="w-full px-4 py-2.5 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary text-sm"
-            >
-              {[1, 2, 3, 4, 5, 6].map((n) => (
-                <option key={n} value={n}>{n}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label htmlFor="children" className="block text-xs text-muted-foreground mb-1 uppercase tracking-wider font-mono">
-              Ninos
-            </label>
-            <select
-              id="children"
-              name="children"
-              className="w-full px-4 py-2.5 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary text-sm"
-            >
-              {[0, 1, 2, 3, 4].map((n) => (
-                <option key={n} value={n}>{n}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div>
-          <label htmlFor="name" className="block text-xs text-muted-foreground mb-1 uppercase tracking-wider font-mono">
-            Nombre
-          </label>
-          <input
-            type="text"
-            id="name"
-            name="name"
-            className="w-full px-4 py-2.5 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary text-sm"
-          />
-        </div>
-
-        <div>
-          <label htmlFor="email" className="block text-xs text-muted-foreground mb-1 uppercase tracking-wider font-mono">
-            Email
-          </label>
-          <input
-            type="email"
-            id="email"
-            name="email"
-            className="w-full px-4 py-2.5 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary text-sm"
-          />
-        </div>
-
-        <div>
-          <label htmlFor="phone" className="block text-xs text-muted-foreground mb-1 uppercase tracking-wider font-mono">
-            Telefono / WhatsApp
-          </label>
-          <input
-            type="tel"
-            id="phone"
-            name="phone"
-            className="w-full px-4 py-2.5 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary text-sm"
-          />
-        </div>
-
-        <div>
-          <label htmlFor="notes" className="block text-xs text-muted-foreground mb-1 uppercase tracking-wider font-mono">
-            Comentarios (opcional)
-          </label>
-          <textarea
-            id="notes"
-            name="notes"
-            rows={3}
-            className="w-full px-4 py-2.5 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary resize-none text-sm"
-          />
-        </div>
-
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="w-full py-3.5 rounded-xl font-medium text-sm tracking-wide transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-          style={{ backgroundColor: 'var(--accent)', color: 'var(--accent-text)' }}
-        >
-          {isSubmitting ? 'Enviando...' : 'Solicitar cotizacion'}
-        </button>
-
-        <div className="h-px" style={{ backgroundColor: 'var(--border-subtle)' }} />
-
-        {/* Trust badges */}
-        <ul className="space-y-3">
-          <li className="flex items-center gap-3">
-            <svg className="w-4 h-4 text-muted-foreground shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-            </svg>
-            <span className="text-xs text-muted-foreground">Pago seguro</span>
-          </li>
-          <li className="flex items-center gap-3">
-            <svg className="w-4 h-4 text-muted-foreground shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <span className="text-xs text-muted-foreground">Cancelacion 48h</span>
-          </li>
-          <li className="flex items-center gap-3">
-            <svg className="w-4 h-4 text-muted-foreground shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
-            </svg>
-            <span className="text-xs text-muted-foreground">Soporte 24/7</span>
-          </li>
-        </ul>
-
+      <div className="space-y-3">
         {whatsappUrl && (
           <a
             href={whatsappUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-full flex items-center justify-center gap-2 py-3.5 bg-green-600 text-white rounded-xl font-medium text-sm hover:bg-green-700 transition-colors"
+            className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-green-700"
           >
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
-            </svg>
-            Escribir por WhatsApp
+            WhatsApp
           </a>
         )}
-      </form>
-    </motion.div>
+        <CalBookingCTA
+          bookingLink={bookingLink}
+          className="w-full py-3 text-sm"
+          label="Agendar llamada"
+        />
+      </div>
+    </aside>
   );
 }
 
@@ -1364,106 +1210,6 @@ function GoogleReviewsSection({ reviews }: { reviews: GoogleReviewProp[] }) {
         )}
       </AnimatePresence>
     </>
-  );
-}
-
-// --- Reviews Section ---
-
-function ReviewsSection({ product }: { product: ProductData }) {
-  // Generate realistic placeholder reviews based on product name
-  const reviews = [
-    { name: 'Maria Garcia', rating: 5, date: 'Hace 2 semanas', text: `Increible experiencia en ${product.name}. Todo estuvo perfecto, desde la atencion hasta las instalaciones. Lo recomiendo totalmente.` },
-    { name: 'Carlos Rodriguez', rating: 4, date: 'Hace 1 mes', text: 'Muy buena experiencia. El servicio fue excelente y la ubicacion inmejorable. Volveria sin dudarlo.' },
-    { name: 'Ana Martinez', rating: 5, date: 'Hace 2 meses', text: 'Superó todas nuestras expectativas. Los guias fueron increibles y cada detalle estaba cuidado. Una experiencia para recordar.' },
-  ];
-
-  const avgRating = 4.7;
-  const totalReviews = 128;
-
-  return (
-    <motion.section
-      initial="hidden"
-      whileInView="visible"
-      viewport={{ once: true, margin: '-60px' }}
-      variants={fadeUp}
-    >
-      <h2 className="text-2xl font-bold mb-6">Opiniones de viajeros</h2>
-
-      {/* Rating summary */}
-      <div className="flex items-center gap-6 mb-8 p-5 rounded-xl" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-subtle)' }}>
-        <div className="text-center">
-          <div className="text-4xl font-bold" style={{ color: 'var(--accent)' }}>{avgRating}</div>
-          <div className="flex items-center gap-0.5 mt-1">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <svg key={i} className={`w-4 h-4 ${i <= Math.round(avgRating) ? 'text-yellow-400 fill-yellow-400' : 'text-muted fill-muted'}`} viewBox="0 0 20 20" fill="currentColor">
-                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-              </svg>
-            ))}
-          </div>
-          <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{totalReviews} opiniones</p>
-        </div>
-
-        {/* Rating bars */}
-        <div className="flex-1 space-y-1.5">
-          {[
-            { stars: 5, pct: 72 },
-            { stars: 4, pct: 18 },
-            { stars: 3, pct: 7 },
-            { stars: 2, pct: 2 },
-            { stars: 1, pct: 1 },
-          ].map((row) => (
-            <div key={row.stars} className="flex items-center gap-2 text-xs">
-              <span className="w-3 text-right" style={{ color: 'var(--text-muted)' }}>{row.stars}</span>
-              <svg className="w-3 h-3 text-yellow-400 fill-yellow-400 shrink-0" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-              </svg>
-              <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--border-subtle)' }}>
-                <div className="h-full rounded-full bg-yellow-400" style={{ width: `${row.pct}%` }} />
-              </div>
-              <span className="w-7 text-right" style={{ color: 'var(--text-muted)' }}>{row.pct}%</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Review cards */}
-      <div className="space-y-4">
-        {reviews.map((review, i) => (
-          <motion.div
-            key={i}
-            initial={{ opacity: 0, y: 10 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: i * 0.1 }}
-            className="p-5 rounded-xl"
-            style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-subtle)' }}
-          >
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium"
-                  style={{ background: 'linear-gradient(135deg, var(--accent), var(--accent-hover))', color: 'var(--accent-text)' }}
-                >
-                  {review.name.split(' ').map(w => w[0]).join('')}
-                </div>
-                <div>
-                  <p className="text-sm font-medium" style={{ color: 'var(--text-heading)' }}>{review.name}</p>
-                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{review.date}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-0.5">
-                {Array.from({ length: review.rating }).map((_, j) => (
-                  <svg key={j} className="w-3 h-3 text-yellow-400 fill-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                  </svg>
-                ))}
-              </div>
-            </div>
-            <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{review.text}</p>
-          </motion.div>
-        ))}
-      </div>
-    </motion.section>
   );
 }
 

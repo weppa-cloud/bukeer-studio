@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { ProductFAQSchema } from '@bukeer/website-contract';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser-client';
 import { SeoItemDetail } from '@/components/admin/seo-item-detail';
 import type { SeoItemType } from '@/lib/seo/unified-scorer';
@@ -22,6 +23,8 @@ interface ItemData {
   targetKeyword?: string;
   wordCount?: number;
   robotsNoindex?: boolean;
+  customFaq?: Array<{ question: string; answer: string }>;
+  customHighlights?: string[];
   // Type-specific fields (legacy)
   amenities?: string[];
   starRating?: number;
@@ -127,13 +130,33 @@ export default function SeoItemDetailPage() {
     seoDescription?: string;
     targetKeyword?: string;
     robotsNoindex?: boolean;
+    customFaq?: Array<{ question: string; answer: string }>;
+    customHighlights?: string[];
   }) => {
     if (!item) return;
 
     const PRODUCT_TYPES: SeoItemType[] = ['hotel', 'activity', 'transfer', 'package'];
+    const normalizeCustomFaqForSave = (value: Array<{ question: string; answer: string }> | undefined) => {
+      if (value === undefined) return undefined;
+
+      return value
+        .map((entry) => {
+          const parsed = ProductFAQSchema.safeParse(entry);
+          if (!parsed.success) return null;
+
+          const question = parsed.data.question.trim();
+          const answer = parsed.data.answer.trim();
+          if (!question || !answer) return null;
+
+          return { question, answer };
+        })
+        .filter((entry): entry is { question: string; answer: string } => Boolean(entry))
+        .slice(0, 10);
+    };
 
     if (PRODUCT_TYPES.includes(item.type)) {
       // Products: ALL SEO goes to website_product_pages with legacy ID
+      const customFaq = normalizeCustomFaqForSave(fields.customFaq);
       const upsertData: Record<string, unknown> = {
         website_id: websiteId,
         product_id: itemId,
@@ -143,6 +166,8 @@ export default function SeoItemDetailPage() {
       if (fields.seoDescription !== undefined) upsertData.custom_seo_description = fields.seoDescription;
       if (fields.targetKeyword !== undefined) upsertData.target_keyword = fields.targetKeyword;
       if (fields.robotsNoindex !== undefined) upsertData.robots_noindex = fields.robotsNoindex;
+      if (customFaq !== undefined) upsertData.custom_faq = customFaq;
+      if (fields.customHighlights !== undefined) upsertData.custom_highlights = fields.customHighlights;
 
       const { error: upsertError } = await supabase
         .from('website_product_pages')
@@ -197,7 +222,35 @@ export default function SeoItemDetailPage() {
       }
     }
 
-    console.log('[seo.detail.save]', { itemId, itemType: item.type, fields: Object.keys(fields) });
+    console.log('[seo.detail.save]', {
+      itemId,
+      itemType: item.type,
+      fields: Object.keys(fields),
+      keys: PRODUCT_TYPES.includes(item.type)
+        ? Object.keys({
+            website_id: websiteId,
+            product_id: itemId,
+            product_type: item.type,
+            ...(fields.seoTitle !== undefined ? { custom_seo_title: fields.seoTitle } : {}),
+            ...(fields.seoDescription !== undefined ? { custom_seo_description: fields.seoDescription } : {}),
+            ...(fields.targetKeyword !== undefined ? { target_keyword: fields.targetKeyword } : {}),
+            ...(fields.robotsNoindex !== undefined ? { robots_noindex: fields.robotsNoindex } : {}),
+            ...(fields.customFaq !== undefined ? { custom_faq: normalizeCustomFaqForSave(fields.customFaq) } : {}),
+            ...(fields.customHighlights !== undefined ? { custom_highlights: fields.customHighlights } : {}),
+          })
+        : Object.keys({
+            ...(fields.seoTitle !== undefined ? { seo_title: fields.seoTitle } : {}),
+            ...(fields.seoDescription !== undefined ? { seo_description: fields.seoDescription } : {}),
+            ...(fields.targetKeyword !== undefined
+              ? item.type === 'blog'
+                ? { seo_keywords: fields.targetKeyword ? [fields.targetKeyword] : [] }
+                : { target_keyword: fields.targetKeyword }
+              : {}),
+            ...(fields.robotsNoindex !== undefined && ['page', 'blog'].includes(item.type)
+              ? { robots_noindex: fields.robotsNoindex }
+              : {}),
+          }),
+    });
 
     // Update local state
     setItem((prev) =>
@@ -208,6 +261,8 @@ export default function SeoItemDetailPage() {
             seoDescription: fields.seoDescription ?? prev.seoDescription,
             targetKeyword: fields.targetKeyword ?? prev.targetKeyword,
             robotsNoindex: fields.robotsNoindex ?? prev.robotsNoindex,
+            customFaq: normalizeCustomFaqForSave(fields.customFaq) ?? prev.customFaq,
+            customHighlights: fields.customHighlights ?? prev.customHighlights,
           }
         : null
     );
@@ -277,12 +332,38 @@ function getTableForType(type: SeoItemType): string | null {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function fetchItemByType(supabase: any, type: SeoItemType, id: string, websiteId?: string): Promise<ItemData | null> {
+  function normalizeCustomFaq(value: unknown): Array<{ question: string; answer: string }> {
+    if (!Array.isArray(value)) return [];
+    return value
+      .map((entry) => {
+        if (!entry || typeof entry !== 'object') return null;
+        const question = typeof (entry as { question?: unknown }).question === 'string'
+          ? (entry as { question: string }).question.trim()
+          : '';
+        const answer = typeof (entry as { answer?: unknown }).answer === 'string'
+          ? (entry as { answer: string }).answer.trim()
+          : '';
+        if (!question || !answer) return null;
+        return { question, answer };
+      })
+      .filter((entry): entry is { question: string; answer: string } => Boolean(entry))
+      .slice(0, 10);
+  }
+
+  function normalizeCustomHighlights(value: unknown): string[] {
+    if (!Array.isArray(value)) return [];
+    return value
+      .map((entry) => (typeof entry === 'string' ? entry.trim() : ''))
+      .filter(Boolean)
+      .slice(0, 6);
+  }
+
   // Helper to get SEO override from website_product_pages (for all product types)
   async function getProductOverride() {
     if (!websiteId) return null;
     const { data } = await supabase
       .from('website_product_pages')
-      .select('custom_seo_title, custom_seo_description, target_keyword, robots_noindex')
+      .select('custom_seo_title, custom_seo_description, target_keyword, robots_noindex, custom_faq, custom_highlights')
       .eq('product_id', id)
       .eq('website_id', websiteId)
       .maybeSingle();
@@ -348,6 +429,8 @@ async function fetchItemByType(supabase: any, type: SeoItemType, id: string, web
         seoDescription: override?.custom_seo_description ?? undefined,
         targetKeyword: override?.target_keyword ?? undefined,
         robotsNoindex: override?.robots_noindex ?? false,
+        customFaq: normalizeCustomFaq(override?.custom_faq),
+        customHighlights: normalizeCustomHighlights(override?.custom_highlights),
         wordCount: hotel.description ? hotel.description.split(/\s+/).filter(Boolean).length : 0,
         amenities: hotel.amenities,
         starRating: hotel.star_rating,
@@ -390,6 +473,8 @@ async function fetchItemByType(supabase: any, type: SeoItemType, id: string, web
         seoDescription: override?.custom_seo_description ?? undefined,
         targetKeyword: override?.target_keyword ?? undefined,
         robotsNoindex: override?.robots_noindex ?? false,
+        customFaq: normalizeCustomFaq(override?.custom_faq),
+        customHighlights: normalizeCustomHighlights(override?.custom_highlights),
         wordCount: activity.description ? activity.description.split(/\s+/).filter(Boolean).length : 0,
         duration: activity.duration_minutes,
         experienceType: activity.experience_type ?? undefined,
@@ -425,6 +510,8 @@ async function fetchItemByType(supabase: any, type: SeoItemType, id: string, web
         seoDescription: override?.custom_seo_description ?? undefined,
         targetKeyword: override?.target_keyword ?? undefined,
         robotsNoindex: override?.robots_noindex ?? false,
+        customFaq: normalizeCustomFaq(override?.custom_faq),
+        customHighlights: normalizeCustomHighlights(override?.custom_highlights),
         wordCount: transfer.description ? transfer.description.split(/\s+/).filter(Boolean).length : 0,
         vehicleType: transfer.vehicle_type ?? undefined,
         maxPassengers: transfer.max_passengers ?? undefined,
@@ -470,6 +557,8 @@ async function fetchItemByType(supabase: any, type: SeoItemType, id: string, web
         seoDescription: override?.custom_seo_description ?? undefined,
         targetKeyword: override?.target_keyword ?? undefined,
         robotsNoindex: override?.robots_noindex ?? false,
+        customFaq: normalizeCustomFaq(override?.custom_faq),
+        customHighlights: normalizeCustomHighlights(override?.custom_highlights),
         wordCount: pkg.description ? pkg.description.split(/\s+/).filter(Boolean).length : 0,
         destination: pkg.destination ?? undefined,
         durationDays: pkg.duration_days ?? undefined,

@@ -50,6 +50,19 @@ function buildAlternateLanguages(baseUrl: string, pathname: string): Record<stri
   return languages;
 }
 
+async function getListingRobotsNoindex(
+  subdomain: string,
+  candidateSlugs: string[],
+): Promise<boolean> {
+  for (const candidate of candidateSlugs) {
+    const page = await getPageBySlug(subdomain, candidate);
+    if (page) {
+      return Boolean(page.robots_noindex);
+    }
+  }
+  return false;
+}
+
 // Generate metadata for SEO
 export async function generateMetadata({ params }: DynamicPageProps): Promise<Metadata> {
   const { subdomain, slug } = await params;
@@ -78,7 +91,7 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
     const siteName = website.content?.account?.name || website.content?.siteName || subdomain;
     const pathname = '/actividades';
     const ogImage = resolveOgImage(website);
-    return {
+    const metadata: Metadata = {
       title: `Actividades | ${siteName}`,
       description: `Descubre todas las actividades y experiencias disponibles con ${siteName}.`,
       openGraph: {
@@ -99,6 +112,80 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
         languages: buildAlternateLanguages(baseUrl, pathname),
       },
     };
+
+    if (await getListingRobotsNoindex(subdomain, ['actividades', 'activities'])) {
+      metadata.robots = { index: false, follow: true };
+    }
+
+    return metadata;
+  }
+
+  // Hotels listing (/hoteles or /hotels)
+  if (slug.length === 1 && (slug[0] === 'hoteles' || slug[0] === 'hotels')) {
+    const siteName = website.content?.account?.name || website.content?.siteName || subdomain;
+    const pathname = '/hoteles';
+    const ogImage = resolveOgImage(website);
+    const metadata: Metadata = {
+      title: `Hoteles | ${siteName}`,
+      description: `Explora hoteles seleccionados por ${siteName} para tu proximo viaje.`,
+      openGraph: {
+        title: `Hoteles | ${siteName}`,
+        description: `Explora hoteles seleccionados por ${siteName} para tu proximo viaje.`,
+        type: 'website',
+        locale: ogLocale,
+        ...(ogImage && { images: [{ url: ogImage }] }),
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title: `Hoteles | ${siteName}`,
+        description: `Explora hoteles seleccionados por ${siteName} para tu proximo viaje.`,
+        ...(ogImage && { images: [ogImage] }),
+      },
+      alternates: {
+        canonical: `${baseUrl}${pathname}`,
+        languages: buildAlternateLanguages(baseUrl, pathname),
+      },
+    };
+
+    if (await getListingRobotsNoindex(subdomain, ['hoteles', 'hotels'])) {
+      metadata.robots = { index: false, follow: true };
+    }
+
+    return metadata;
+  }
+
+  // Transfers listing (/traslados or /transfers)
+  if (slug.length === 1 && (slug[0] === 'traslados' || slug[0] === 'transfers')) {
+    const siteName = website.content?.account?.name || website.content?.siteName || subdomain;
+    const pathname = '/traslados';
+    const ogImage = resolveOgImage(website);
+    const metadata: Metadata = {
+      title: `Traslados | ${siteName}`,
+      description: `Reserva traslados privados y compartidos con ${siteName}.`,
+      openGraph: {
+        title: `Traslados | ${siteName}`,
+        description: `Reserva traslados privados y compartidos con ${siteName}.`,
+        type: 'website',
+        locale: ogLocale,
+        ...(ogImage && { images: [{ url: ogImage }] }),
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title: `Traslados | ${siteName}`,
+        description: `Reserva traslados privados y compartidos con ${siteName}.`,
+        ...(ogImage && { images: [ogImage] }),
+      },
+      alternates: {
+        canonical: `${baseUrl}${pathname}`,
+        languages: buildAlternateLanguages(baseUrl, pathname),
+      },
+    };
+
+    if (await getListingRobotsNoindex(subdomain, ['traslados', 'transfers'])) {
+      metadata.robots = { index: false, follow: true };
+    }
+
+    return metadata;
   }
 
   // Packages listing (/paquetes or /packages)
@@ -106,7 +193,7 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
     const siteName = website.content?.account?.name || website.content?.siteName || subdomain;
     const pathname = '/paquetes';
     const ogImage = resolveOgImage(website);
-    return {
+    const metadata: Metadata = {
       title: `Paquetes de Viaje | ${siteName}`,
       description: `Descubre los paquetes de viaje curados por ${siteName}. Experiencias únicas todo incluido.`,
       openGraph: {
@@ -127,6 +214,12 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
         languages: buildAlternateLanguages(baseUrl, pathname),
       },
     };
+
+    if (await getListingRobotsNoindex(subdomain, ['paquetes', 'packages'])) {
+      metadata.robots = { index: false, follow: true };
+    }
+
+    return metadata;
   }
 
   // Destination listing (/destinos or /destinations)
@@ -134,7 +227,7 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
     const siteName = website.content?.account?.name || website.content?.siteName || subdomain;
     const pathname = '/destinos';
     const ogImage = resolveOgImage(website);
-    return {
+    const metadata: Metadata = {
       title: `Destinos | ${siteName}`,
       description: `Descubre los mejores destinos de viaje con ${siteName}. Hoteles, actividades y experiencias seleccionadas.`,
       openGraph: {
@@ -155,6 +248,12 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
         languages: buildAlternateLanguages(baseUrl, pathname),
       },
     };
+
+    if (await getListingRobotsNoindex(subdomain, ['destinos', 'destinations'])) {
+      metadata.robots = { index: false, follow: true };
+    }
+
+    return metadata;
   }
 
   // Destination detail (/destinos/[slug])
@@ -219,13 +318,17 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
             description,
             type: 'website',
             locale: ogLocale,
-            ...(resolveOgImage(website, productPage.product.image) && { images: [{ url: resolveOgImage(website, productPage.product.image)! }] }),
+            ...(resolveOgImage(website, productPage.product.social_image || productPage.product.image) && {
+              images: [{ url: resolveOgImage(website, productPage.product.social_image || productPage.product.image)! }],
+            }),
           },
           twitter: {
             card: 'summary_large_image',
             title,
             description,
-            ...(resolveOgImage(website, productPage.product.image) && { images: [resolveOgImage(website, productPage.product.image)!] }),
+            ...(resolveOgImage(website, productPage.product.social_image || productPage.product.image) && {
+              images: [resolveOgImage(website, productPage.product.social_image || productPage.product.image)!],
+            }),
           },
           alternates: {
             canonical: `${baseUrl}${pathname}`,

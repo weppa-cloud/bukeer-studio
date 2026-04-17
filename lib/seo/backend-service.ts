@@ -296,6 +296,15 @@ function parseNumber(value: string | undefined, fallback = 0): number {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+function getSearchConsoleRowLimit(): number {
+  const raw = process.env.SEO_GSC_SYNC_ROW_LIMIT;
+  const parsed = raw ? Number(raw) : 2500;
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return 2500;
+  }
+  return Math.min(Math.floor(parsed), 25000);
+}
+
 export async function syncSeoData(
   websiteId: string,
   requestId: string,
@@ -331,7 +340,7 @@ export async function syncSeoData(
         startDate: from,
         endDate: to,
         dimensions: ['query', 'date'],
-        rowLimit: 500,
+        rowLimit: getSearchConsoleRowLimit(),
       },
     })
   );

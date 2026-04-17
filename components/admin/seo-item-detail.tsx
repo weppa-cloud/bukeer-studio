@@ -61,6 +61,8 @@ interface SeoItemDetailProps {
     targetKeyword?: string;
     wordCount?: number;
     robotsNoindex?: boolean;
+    customFaq?: Array<{ question: string; answer: string }>;
+    customHighlights?: string[];
     amenities?: string[];
     starRating?: number;
     duration?: number;
@@ -107,6 +109,8 @@ interface SeoItemDetailProps {
     seoDescription?: string;
     targetKeyword?: string;
     robotsNoindex?: boolean;
+    customFaq?: Array<{ question: string; answer: string }>;
+    customHighlights?: string[];
   }) => Promise<void>;
 }
 
@@ -225,6 +229,12 @@ export function SeoItemDetail({
   const [seoDescription, setSeoDescription] = useState(item.seoDescription ?? '');
   const [targetKeyword, setTargetKeyword] = useState(item.targetKeyword ?? '');
   const [robotsNoindex, setRobotsNoindex] = useState(item.robotsNoindex ?? false);
+  const [customFaq, setCustomFaq] = useState<Array<{ question: string; answer: string }>>(
+    Array.isArray(item.customFaq) ? item.customFaq.slice(0, 10) : []
+  );
+  const [customHighlights, setCustomHighlights] = useState<string[]>(
+    Array.isArray(item.customHighlights) ? item.customHighlights.slice(0, 6) : []
+  );
   const [saving, setSaving] = useState(false);
 
   const [aiLoading, setAiLoading] = useState(false);
@@ -379,15 +389,51 @@ export function SeoItemDetail({
   async function handleSave() {
     setSaving(true);
     try {
+      const sanitizedFaq = customFaq
+        .map((entry) => ({
+          question: entry.question.trim(),
+          answer: entry.answer.trim(),
+        }))
+        .filter((entry) => entry.question.length > 0 && entry.answer.length > 0)
+        .slice(0, 10);
+
+      const sanitizedHighlights = customHighlights
+        .map((entry) => entry.trim())
+        .filter(Boolean)
+        .slice(0, 6);
+
       await onSave({
         seoTitle: seoTitle || undefined,
         seoDescription: seoDescription || undefined,
         targetKeyword: targetKeyword || undefined,
         robotsNoindex,
+        customFaq: sanitizedFaq,
+        customHighlights: sanitizedHighlights,
       });
+
+      setCustomFaq(sanitizedFaq);
+      setCustomHighlights(sanitizedHighlights);
     } finally {
       setSaving(false);
     }
+  }
+
+  const isProductType = item.type === 'hotel' || item.type === 'activity' || item.type === 'transfer' || item.type === 'package';
+
+  function moveFaq(index: number, direction: -1 | 1) {
+    const next = [...customFaq];
+    const target = index + direction;
+    if (target < 0 || target >= next.length) return;
+    [next[index], next[target]] = [next[target], next[index]];
+    setCustomFaq(next);
+  }
+
+  function moveHighlight(index: number, direction: -1 | 1) {
+    const next = [...customHighlights];
+    const target = index + direction;
+    if (target < 0 || target >= next.length) return;
+    [next[index], next[target]] = [next[target], next[index]];
+    setCustomHighlights(next);
   }
 
   async function handleGenerateAi() {
@@ -1018,6 +1064,111 @@ export function SeoItemDetail({
             <label className="text-xs text-[var(--studio-text-muted)]">Target Keyword</label>
             <StudioInput value={targetKeyword} onChange={(e) => setTargetKeyword(e.target.value)} />
           </div>
+
+          {isProductType && (
+            <>
+              <div className="space-y-2 pt-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs text-[var(--studio-text-muted)]">Custom highlights ({customHighlights.length}/6)</label>
+                  <StudioButton
+                    size="sm"
+                    variant="outline"
+                    disabled={customHighlights.length >= 6}
+                    onClick={() => setCustomHighlights((prev) => [...prev, ''])}
+                  >
+                    Agregar
+                  </StudioButton>
+                </div>
+                {customHighlights.map((highlight, index) => (
+                  <div key={`highlight-${index}`} className="flex items-center gap-2">
+                    <StudioInput
+                      value={highlight}
+                      onChange={(event) => {
+                        const next = [...customHighlights];
+                        next[index] = event.target.value;
+                        setCustomHighlights(next);
+                      }}
+                    />
+                    <StudioButton size="sm" variant="outline" disabled={index === 0} onClick={() => moveHighlight(index, -1)}>
+                      ↑
+                    </StudioButton>
+                    <StudioButton
+                      size="sm"
+                      variant="outline"
+                      disabled={index === customHighlights.length - 1}
+                      onClick={() => moveHighlight(index, 1)}
+                    >
+                      ↓
+                    </StudioButton>
+                    <StudioButton
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setCustomHighlights((prev) => prev.filter((_, i) => i !== index))}
+                    >
+                      Eliminar
+                    </StudioButton>
+                  </div>
+                ))}
+              </div>
+
+              <div className="space-y-2 pt-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs text-[var(--studio-text-muted)]">Custom FAQ ({customFaq.length}/10)</label>
+                  <StudioButton
+                    size="sm"
+                    variant="outline"
+                    disabled={customFaq.length >= 10}
+                    onClick={() => setCustomFaq((prev) => [...prev, { question: '', answer: '' }])}
+                  >
+                    Agregar
+                  </StudioButton>
+                </div>
+                {customFaq.map((faq, index) => (
+                  <div key={`faq-${index}`} className="space-y-2 rounded border border-[var(--studio-border)] p-3">
+                    <StudioInput
+                      value={faq.question}
+                      placeholder="Pregunta"
+                      onChange={(event) => {
+                        const next = [...customFaq];
+                        next[index] = { ...next[index], question: event.target.value };
+                        setCustomFaq(next);
+                      }}
+                    />
+                    <StudioTextarea
+                      value={faq.answer}
+                      placeholder="Respuesta"
+                      rows={3}
+                      onChange={(event) => {
+                        const next = [...customFaq];
+                        next[index] = { ...next[index], answer: event.target.value };
+                        setCustomFaq(next);
+                      }}
+                    />
+                    <div className="flex items-center gap-2">
+                      <StudioButton size="sm" variant="outline" disabled={index === 0} onClick={() => moveFaq(index, -1)}>
+                        Subir
+                      </StudioButton>
+                      <StudioButton
+                        size="sm"
+                        variant="outline"
+                        disabled={index === customFaq.length - 1}
+                        onClick={() => moveFaq(index, 1)}
+                      >
+                        Bajar
+                      </StudioButton>
+                      <StudioButton
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setCustomFaq((prev) => prev.filter((_, i) => i !== index))}
+                      >
+                        Eliminar
+                      </StudioButton>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       )}
 

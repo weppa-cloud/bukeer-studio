@@ -5,12 +5,15 @@
       "args": ["@playwright/mcp@latest"]
     },
     "supabase": {
-      "command": "npx",
-      "args": ["-y", "@supabase/mcp-server-supabase@latest", "--access-token", "${SUPABASE_ACCESS_TOKEN}"]
+      "command": "bash",
+      "args": [
+        "-lc",
+        "set -a; [ -f .env.mcp ] && source .env.mcp; set +a; npx -y @supabase/mcp-server-supabase@latest --access-token \"$SUPABASE_ACCESS_TOKEN\""
+      ]
     },
     "chrome-devtools": {
       "command": "npx",
-      "args": ["@modelcontextprotocol/server-chrome-devtools"]
+      "args": ["-y", "chrome-devtools-mcp@latest"]
     },
     "shadcn-ui": {
       "command": "npx",
@@ -25,20 +28,18 @@
       "args": ["-y", "aceternity-ui-mcp"]
     },
     "google-analytics": {
-      "command": "npx",
-      "args": ["-y", "@weppa-cloud/mcp-google-analytics@latest"],
-      "env": {
-        "GA_PROPERTY_ID": "${GA_PROPERTY_ID}",
-        "GOOGLE_ANALYTICS_CREDENTIALS": "${GOOGLE_ANALYTICS_CREDENTIALS}"
-      }
+      "command": "bash",
+      "args": [
+        "-lc",
+        "set -a; [ -f .env.mcp ] && source .env.mcp; set +a; pipx run analytics-mcp"
+      ]
     },
     "search-console": {
-      "command": "npx",
-      "args": ["-y", "search-console-mcp@latest"],
-      "env": {
-        "GOOGLE_APPLICATION_CREDENTIALS": "${GOOGLE_APPLICATION_CREDENTIALS}",
-        "GSC_SITE_URL": "${GSC_SITE_URL}"
-      }
+      "command": "bash",
+      "args": [
+        "-lc",
+        "set -a; [ -f .env.mcp ] && source .env.mcp; set +a; npx -y search-console-mcp@latest"
+      ]
     }
   }
 }

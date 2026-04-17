@@ -141,3 +141,32 @@ Notes:
 ```bash
 KILL_ALL_NEXT=0 PORT=3000 npm run start:prod:clean
 ```
+
+---
+
+## First-time env setup
+
+```bash
+cp .env.local.example .env.local        # Next.js dev
+cp .dev.vars.example .dev.vars          # Cloudflare Worker preview
+```
+
+Fill the values you actually need. At minimum for dev:
+
+- `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` — same Supabase project as `bukeer-flutter`.
+- `OPENROUTER_AUTH_TOKEN` — any valid OpenRouter key; required or AI routes fail on boot.
+- `REVALIDATE_SECRET` — any random string.
+
+### MapTiler (base tiles)
+
+`NEXT_PUBLIC_MAP_STYLE_URL` is validated as a URL in `lib/env.ts`. In prod it's required; in dev it falls back to `demotiles.maplibre.org` (unstyled, fine for smoke tests but ugly).
+
+To get prod-equivalent tiles locally:
+
+1. Sign up for the free tier at <https://www.maptiler.com/cloud/> (100k map loads / month, no card).
+2. Dashboard → API Keys → create a key.
+3. Paste it into `NEXT_PUBLIC_MAP_STYLE_TOKEN` in `.env.local`. Leave `NEXT_PUBLIC_MAP_STYLE_URL` at the default (`…/streets-v2/style.json?key={token}` — the `{token}` substitution is handled at runtime by `components/maps/destination-map.tsx` → `resolveMapStyleUrl`).
+4. Restart `npm run dev`. The destinations map on `/site/colombiatours/destinos` should render with real tiles instead of the compatibility croquis.
+
+Alternative providers that also expose a MapLibre-compatible `style.json`: Stadia Maps, Protomaps (self-hosted PMTiles on Cloudflare R2), MapBox. Swap the URL and token accordingly.
+```
