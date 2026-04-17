@@ -258,6 +258,7 @@ export function TranslationsDashboard({
 
       {/* Pending table */}
       <TableSection
+        websiteId={websiteId}
         title="Pendientes"
         subtitle="Jobs en draft — listos para crear borrador o editar transcreación."
         rows={pendingRows}
@@ -270,6 +271,7 @@ export function TranslationsDashboard({
 
       {/* Active jobs table */}
       <TableSection
+        websiteId={websiteId}
         title="Jobs activos"
         subtitle="Revisión y aplicación de jobs ya procesados."
         rows={activeRows}
@@ -293,6 +295,7 @@ export function TranslationsDashboard({
 }
 
 interface TableSectionProps {
+  websiteId: string;
   title: string;
   subtitle: string;
   rows: TranslationRowVM[];
@@ -305,6 +308,7 @@ interface TableSectionProps {
 }
 
 function TableSection({
+  websiteId,
   title,
   subtitle,
   rows,
@@ -362,6 +366,7 @@ function TableSection({
             rows.map((row) => (
               <TranslationRow
                 key={row.job.id}
+                websiteId={websiteId}
                 row={row}
                 selected={selected.has(row.job.id)}
                 onToggle={onToggleOne}

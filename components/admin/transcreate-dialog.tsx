@@ -1,11 +1,13 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useCompletion } from '@ai-sdk/react';
 import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser-client';
 import { ConfirmDialog } from '@/components/admin/confirm-dialog';
 import { AlertCircle, Loader2, RefreshCw } from 'lucide-react';
+import { inferLocaleParts, parseLocaleAdaptationCompletion } from '@/lib/seo/transcreate-client';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -51,51 +53,6 @@ type KeywordReresearchRequired = {
   source_keyword?: string | null;
 };
 
-// ---------------------------------------------------------------------------
-// Helpers: locale -> country / language
-// ---------------------------------------------------------------------------
-
-/** Maps a BCP47-ish locale like "en-US" or "es" to a best-guess country + language pair the API accepts. */
-function inferLocaleParts(locale: string): { country: string; language: string; label: string } {
-  const [langRaw, regionRaw] = locale.split('-');
-  const language = (langRaw || locale || 'es').toLowerCase();
-  const region = (regionRaw || '').toUpperCase();
-
-  const countryByRegion: Record<string, string> = {
-    US: 'United States',
-    CO: 'Colombia',
-    MX: 'Mexico',
-    ES: 'Spain',
-    AR: 'Argentina',
-    CL: 'Chile',
-    PE: 'Peru',
-    BR: 'Brazil',
-    PT: 'Portugal',
-    FR: 'France',
-    DE: 'Germany',
-    IT: 'Italy',
-    GB: 'United Kingdom',
-    CA: 'Canada',
-  };
-
-  const fallbackByLanguage: Record<string, { country: string }> = {
-    es: { country: 'Colombia' },
-    en: { country: 'United States' },
-    pt: { country: 'Brazil' },
-    fr: { country: 'France' },
-    de: { country: 'Germany' },
-    it: { country: 'Italy' },
-  };
-
-  const country =
-    (region && countryByRegion[region]) ||
-    fallbackByLanguage[language]?.country ||
-    'United States';
-
-  const label = locale;
-  return { country, language, label };
-}
-
 const DEFAULT_LOCALES = ['es-CO', 'en-US', 'pt-BR'] as const;
 
 // ---------------------------------------------------------------------------
@@ -128,6 +85,7 @@ export function TranscreateDialog({
 
   // Request state ------------------------------------------------------------
   const [submitting, setSubmitting] = useState(false);
+  const [persistingAi, setPersistingAi] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [errorCode, setErrorCode] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -137,7 +95,27 @@ export function TranscreateDialog({
   // Confirm-on-close when dirty ---------------------------------------------
   const [confirmClose, setConfirmClose] = useState(false);
 
-  const isDirty = submitting || syncing || !!errorCode;
+  const {
+    completion,
+    complete,
+    setCompletion,
+    isLoading: generatingAi,
+  } = useCompletion({
+    api: '/api/seo/content-intelligence/transcreate/stream',
+    streamProtocol: 'text',
+    onError: (error) => {
+      setErrorCode('AI_STREAM_ERROR');
+      setErrorMessage(error.message || 'No se pudo generar el borrador con IA.');
+    },
+  });
+
+  const isDirty =
+    submitting ||
+    persistingAi ||
+    syncing ||
+    generatingAi ||
+    !!errorCode ||
+    completion.trim().length > 0;
 
   // Fetch supported locales if not provided ---------------------------------
   useEffect(() => {
@@ -185,13 +163,81 @@ export function TranscreateDialog({
     setErrorMessage(null);
     setReresearchDetails(null);
     setSyncQueuedId(null);
+    setCompletion('');
     setSelectedSourceLocale(sourceLocale);
     setSelectedPageType(pageType);
-  }, [open, sourceLocale, pageType]);
+  }, [open, sourceLocale, pageType, setCompletion]);
 
   // -------------------------------------------------------------------------
   // Handlers
   // -------------------------------------------------------------------------
+
+  async function createDraft(input: {
+    draft?: Record<string, unknown>;
+    draftSource?: 'manual' | 'ai' | 'tm_exact';
+    aiOutput?: {
+      meta_title: string;
+      meta_desc: string;
+      slug: string;
+      h1: string;
+      keywords: string[];
+    };
+    aiModel?: string;
+  }): Promise<string | null> {
+    const { country, language } = inferLocaleParts(targetLocale);
+    const response = await fetch('/api/seo/content-intelligence/transcreate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'create_draft',
+        websiteId,
+        sourceContentId: sourceId,
+        pageType: selectedPageType,
+        sourceLocale: selectedSourceLocale,
+        targetLocale,
+        country,
+        language,
+        sourceKeyword: sourceKeyword || undefined,
+        targetKeyword: sourceKeyword || undefined,
+        draft: input.draft ?? {},
+        draftSource: input.draftSource ?? 'manual',
+        aiOutput: input.aiOutput,
+        aiModel: input.aiModel,
+      }),
+    });
+
+    const body = (await response.json().catch(() => ({}))) as {
+      success?: boolean;
+      data?: { job?: { id: string } };
+      error?: {
+        code?: string;
+        message?: string;
+        details?: {
+          required?: KeywordReresearchRequired;
+          sync?: { code?: string; requestId?: string } | null;
+        } | null;
+      };
+    };
+
+    if (response.status === 409 && body?.error?.code === 'TARGET_RERESEARCH_REQUIRED') {
+      setErrorCode('TARGET_RERESEARCH_REQUIRED');
+      setErrorMessage(
+        body.error.message ??
+          'Necesitas sincronizar keywords para el locale destino antes de crear el borrador.',
+      );
+      setReresearchDetails(body.error.details?.required ?? null);
+      setSyncQueuedId(body.error.details?.sync?.requestId ?? null);
+      return null;
+    }
+
+    if (!response.ok || !body.success) {
+      setErrorCode(body?.error?.code ?? `HTTP_${response.status}`);
+      setErrorMessage(body?.error?.message ?? 'No se pudo crear el borrador de traducción.');
+      return null;
+    }
+
+    return body.data?.job?.id ?? null;
+  }
 
   async function handleSubmit() {
     if (!targetLocale) {
@@ -210,14 +256,39 @@ export function TranscreateDialog({
     setErrorMessage(null);
     setReresearchDetails(null);
 
+    try {
+      const jobId = await createDraft({ draftSource: 'manual', draft: {} });
+      if (jobId && onSuccess) onSuccess(jobId);
+      if (jobId) onOpenChange(false);
+    } catch (err) {
+      setErrorCode('NETWORK_ERROR');
+      setErrorMessage(err instanceof Error ? err.message : 'Error de red al contactar el servidor.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleGenerateWithAI() {
+    if (!targetLocale) {
+      setErrorCode('VALIDATION_ERROR');
+      setErrorMessage('Selecciona un idioma destino.');
+      return;
+    }
+    if (targetLocale === selectedSourceLocale) {
+      setErrorCode('VALIDATION_ERROR');
+      setErrorMessage('El idioma destino debe ser distinto al idioma origen.');
+      return;
+    }
+
     const { country, language } = inferLocaleParts(targetLocale);
+    setErrorCode(null);
+    setErrorMessage(null);
+    setReresearchDetails(null);
+    setCompletion('');
 
     try {
-      const response = await fetch('/api/seo/content-intelligence/transcreate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'create_draft',
+      const completionText = await complete('Generate transcreate draft JSON', {
+        body: {
           websiteId,
           sourceContentId: sourceId,
           pageType: selectedPageType,
@@ -228,47 +299,36 @@ export function TranscreateDialog({
           sourceKeyword: sourceKeyword || undefined,
           targetKeyword: sourceKeyword || undefined,
           draft: {},
-        }),
+        },
       });
 
-      const body = (await response.json().catch(() => ({}))) as {
-        success?: boolean;
-        data?: { job?: { id: string } };
-        error?: {
-          code?: string;
-          message?: string;
-          details?: {
-            required?: KeywordReresearchRequired;
-            sync?: { code?: string; requestId?: string } | null;
-          } | null;
-        };
-      };
-
-      if (response.status === 409 && body?.error?.code === 'TARGET_RERESEARCH_REQUIRED') {
-        setErrorCode('TARGET_RERESEARCH_REQUIRED');
-        setErrorMessage(
-          body.error.message ??
-            'Necesitas sincronizar keywords para el locale destino antes de crear el borrador.',
-        );
-        setReresearchDetails(body.error.details?.required ?? null);
-        setSyncQueuedId(body.error.details?.sync?.requestId ?? null);
+      if (!completionText) {
+        setErrorCode('AI_STREAM_EMPTY');
+        setErrorMessage('La IA no devolvió contenido.');
         return;
       }
 
-      if (!response.ok || !body.success) {
-        setErrorCode(body?.error?.code ?? `HTTP_${response.status}`);
-        setErrorMessage(body?.error?.message ?? 'No se pudo crear el borrador de traducción.');
+      const parsed = parseLocaleAdaptationCompletion(completionText);
+      if (!parsed) {
+        setErrorCode('AI_OUTPUT_INVALID');
+        setErrorMessage('La respuesta de IA no cumple el contrato esperado.');
         return;
       }
 
-      const jobId = body.data?.job?.id;
+      setCompletion(JSON.stringify(parsed, null, 2));
+      setPersistingAi(true);
+      const jobId = await createDraft({
+        draftSource: 'ai',
+        aiOutput: parsed,
+        aiModel: 'openrouter',
+      });
       if (jobId && onSuccess) onSuccess(jobId);
-      onOpenChange(false);
+      if (jobId) onOpenChange(false);
     } catch (err) {
-      setErrorCode('NETWORK_ERROR');
-      setErrorMessage(err instanceof Error ? err.message : 'Error de red al contactar el servidor.');
+      setErrorCode('AI_STREAM_ERROR');
+      setErrorMessage(err instanceof Error ? err.message : 'No se pudo generar con IA.');
     } finally {
-      setSubmitting(false);
+      setPersistingAi(false);
     }
   }
 
@@ -402,6 +462,20 @@ export function TranscreateDialog({
               <p className="text-xs text-muted-foreground">Cargando idiomas soportados…</p>
             ) : null}
 
+            {completion.trim().length > 0 || generatingAi ? (
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">
+                  AI preview (JSON)
+                </label>
+                <textarea
+                  value={completion}
+                  readOnly
+                  rows={8}
+                  className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-xs font-mono text-foreground"
+                />
+              </div>
+            ) : null}
+
             {errorCode && errorCode === 'TARGET_RERESEARCH_REQUIRED' ? (
               <div
                 role="alert"
@@ -465,13 +539,46 @@ export function TranscreateDialog({
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => handleRequestClose(false)} disabled={submitting}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => handleRequestClose(false)}
+              disabled={submitting || persistingAi || generatingAi}
+            >
               Cancelar
             </Button>
             <Button
               type="button"
+              variant="secondary"
+              onClick={() => void handleGenerateWithAI()}
+              disabled={
+                submitting ||
+                persistingAi ||
+                generatingAi ||
+                !targetLocale ||
+                targetLocale === selectedSourceLocale
+              }
+              className="gap-1.5"
+            >
+              {generatingAi || persistingAi ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+              ) : null}
+              {generatingAi
+                ? 'Generando con IA…'
+                : persistingAi
+                  ? 'Guardando draft AI…'
+                  : 'Generate with AI'}
+            </Button>
+            <Button
+              type="button"
               onClick={handleSubmit}
-              disabled={submitting || !targetLocale || targetLocale === selectedSourceLocale}
+              disabled={
+                submitting ||
+                persistingAi ||
+                generatingAi ||
+                !targetLocale ||
+                targetLocale === selectedSourceLocale
+              }
               className="gap-1.5"
             >
               {submitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : null}
