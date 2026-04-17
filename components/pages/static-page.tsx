@@ -6,6 +6,7 @@ import type { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 import type { WebsitePage, PageSection, DestinationData } from '@/lib/supabase/get-pages';
 import { renderSection } from '@/lib/sections/render-section';
 import { SECTION_TYPES } from '@bukeer/website-contract';
+import { LandingPageSchema } from '@/components/seo/landing-page-schema';
 
 const HERO_SECTION_TYPES = SECTION_TYPES.filter((t) => t.startsWith('hero'));
 
@@ -64,8 +65,20 @@ export function StaticPage({ website, page, dynamicDestinations = [] }: StaticPa
     return HERO_SECTION_TYPES.includes(t as typeof HERO_SECTION_TYPES[number]);
   });
 
+  const baseUrl = (website as unknown as Record<string, unknown>).custom_domain
+    ? `https://${(website as unknown as Record<string, unknown>).custom_domain}`
+    : `https://${(website as unknown as Record<string, unknown>).subdomain || ''}.bukeer.com`;
+  const pageUrl = `${baseUrl}/${page.slug || ''}`;
+
   return (
     <div className="min-h-screen">
+      {/* Landing page structured data (TouristTrip, FAQPage, AggregateRating, BreadcrumbList) */}
+      <LandingPageSchema
+        sections={sections}
+        pageTitle={page.seo_title || page.title}
+        pageUrl={pageUrl}
+      />
+
       {/* Fallback Hero — only when sections don't include their own hero */}
       {!sectionsHaveHero && (
         <section
