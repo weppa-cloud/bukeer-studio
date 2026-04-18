@@ -1,5 +1,5 @@
 import {
-  LocaleAdaptationOutputSchema,
+  normalizeLocaleAdaptationOutput,
   type LocaleAdaptationOutput,
 } from '@/lib/ai/prompts/locale-adaptation';
 
@@ -42,15 +42,17 @@ export function inferLocaleParts(locale: string): { country: string; language: s
   return { country, language, label: locale };
 }
 
-export function parseLocaleAdaptationCompletion(text: string): LocaleAdaptationOutput | null {
+export function parseLocaleAdaptationCompletion(
+  text: string,
+  fallbackKeyword?: string,
+): LocaleAdaptationOutput | null {
   const trimmed = text.trim();
   if (!trimmed) return null;
 
   const parseCandidate = (candidate: string): LocaleAdaptationOutput | null => {
     try {
       const parsedJson = JSON.parse(candidate);
-      const validated = LocaleAdaptationOutputSchema.safeParse(parsedJson);
-      return validated.success ? validated.data : null;
+      return normalizeLocaleAdaptationOutput(parsedJson, fallbackKeyword);
     } catch {
       return null;
     }

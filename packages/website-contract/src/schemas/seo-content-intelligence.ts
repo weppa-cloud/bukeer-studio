@@ -207,7 +207,7 @@ export const SeoTranscreateRequestSchema = z.object({
       meta_desc: z.string().min(1).max(160),
       slug: z.string().min(1).max(120).regex(/^[a-z0-9-]+$/),
       h1: z.string().min(1).max(100),
-      keywords: z.array(z.string()).max(10),
+      keywords: z.union([z.array(z.string()).max(10), z.string().max(400)]),
     })
     .optional(),
   jobId: z.string().uuid().optional(),
