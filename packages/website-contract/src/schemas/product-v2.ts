@@ -5,6 +5,8 @@
 
 import { z } from 'zod';
 
+import { CustomSectionSchema } from './custom-section';
+
 const ProductTypeSchema = z.enum(['destination', 'hotel', 'activity', 'transfer', 'package']);
 const NumericSchema = z.union([
   z.number(),
@@ -147,7 +149,7 @@ export const ProductPageCustomizationSchema = z.object({
     subtitle: z.string().nullish(),
     backgroundImage: z.string().nullish(),
   }).nullish(),
-  custom_sections: z.array(z.record(z.string(), z.unknown())).nullish(),
+  custom_sections: z.array(CustomSectionSchema).max(20).nullish(),
   sections_order: z.array(z.string()).nullish(),
   hidden_sections: z.array(z.string()).nullish(),
   custom_seo_title: z.string().nullish(),

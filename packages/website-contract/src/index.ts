@@ -393,6 +393,26 @@ export type {
 export { PackageAiHighlightsSchema } from './schemas/package-ai';
 export type { PackageAiHighlights } from './schemas/package-ai';
 
+// Studio Unified Product Editor — Phase 0 (#191)
+export {
+  CustomSectionSchema,
+  CustomSectionsArraySchema,
+  CustomSectionTextSchema,
+  CustomSectionImageTextSchema,
+  CustomSectionCtaSchema,
+  CustomSectionSpacerSchema,
+} from './schemas/custom-section';
+export type {
+  CustomSection,
+  CustomSectionText,
+  CustomSectionImageText,
+  CustomSectionCta,
+  CustomSectionSpacer,
+} from './schemas/custom-section';
+
+export { VideoUrlSchema, VideoUpdateRequestSchema } from './schemas/video-url';
+export type { VideoUpdateRequest } from './schemas/video-url';
+
 // Validation
 export {
   validateSection,
