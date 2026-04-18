@@ -436,6 +436,26 @@ export type {
   ToggleStudioEditorV2Request,
 } from './schemas/marketing-patch';
 
+// Studio AI Cost Ledger — R9 D2 (#195)
+export {
+  AiCostFeatureSchema,
+  AiCostStatusSchema,
+  AiCostEventSchema,
+  AiCostEventInputSchema,
+  AiCostBudgetTierSchema,
+  AiCostBudgetSchema,
+  AiSpendSummarySchema,
+} from './schemas/ai-cost';
+export type {
+  AiCostFeature,
+  AiCostStatus,
+  AiCostEvent,
+  AiCostEventInput,
+  AiCostBudgetTier,
+  AiCostBudget,
+  AiSpendSummary,
+} from './schemas/ai-cost';
+
 // Studio Unified Product Editor — Phase 0.5 (#192) content health
 export {
   DataSourceCodeSchema,
