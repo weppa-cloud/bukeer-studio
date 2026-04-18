@@ -58,6 +58,7 @@ All ADRs accepted unless noted. Cross-cut by Principles P1–P10 (see [[ARCHITEC
 | [[ADR-019]] | [ADR-019](./architecture/ADR-019-multi-locale-url-routing.md) | Multi-locale URL Routing (path-prefix strategy) | [[multi-locale]] [[routing]] [[middleware]] [[i18n]] |
 | [[ADR-020]] | [ADR-020](./architecture/ADR-020-hreflang-emission-policy.md) | hreflang Emission Policy and x-default Strategy | [[SEO]] [[hreflang]] [[multi-locale]] [[sitemap]] |
 | [[ADR-021]] | [ADR-021](./architecture/ADR-021-translation-memory-transcreation-pipeline.md) | Translation Memory + AI Transcreation Pipeline | [[translation]] [[TM]] [[AI]] [[transcreation]] [[multi-locale]] |
+| [[ADR-023]] | [ADR-023](./architecture/ADR-023-qa-tooling-studio-editor.md) | QA Tooling: Playwright Component Testing + Visual Regression | [[testing]] [[CT]] [[visual-regression]] [[quality-gate]] |
 
 > **Note:** `ADR-022` and `ADR-032` referenced in specs are anchored in `weppa-cloud/bukeer-flutter`. Studio respects them but does not own them. See [[cross-repo-flutter]].
 

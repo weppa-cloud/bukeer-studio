@@ -66,10 +66,12 @@ packages/*/tsconfig.tsbuildinfo
 
 # QA / test tool outputs
 .playwright-mcp/
+/playwright/.cache/
 qa-screenshots/
 colombiatours-full.png
 reports/
 *.png
+!__tests__/visual/studio-editor-baselines/**/*.png
 
 # Lighthouse CI reports
 .lighthouseci/
