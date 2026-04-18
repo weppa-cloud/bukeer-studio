@@ -122,6 +122,7 @@ Feature requests formalized. Status tracked inline. GitHub Issues = source of tr
 
 | Wikilink | File | Purpose |
 |----------|------|---------|
+| [[multi-locale-transcreation-infrastructure]] | [file](./seo/multi-locale-transcreation-infrastructure.md) | Multi-locale transcreation: shipped state + target post-EPIC #198 (architecture, pipeline, flows, KPIs). |
 | [[SEO-IMPLEMENTATION]] | [file](./seo/SEO-IMPLEMENTATION.md) | Current shipped product state. |
 | [[SEO-PLAYBOOK]] | [file](./seo/SEO-PLAYBOOK.md) | Target operating model. |
 | [[SEO-FLUJOS-STUDIO]] | [file](./seo/SEO-FLUJOS-STUDIO.md) | Shipped user flows. |
