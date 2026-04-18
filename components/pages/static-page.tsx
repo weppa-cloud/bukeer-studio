@@ -72,6 +72,11 @@ export function StaticPage({ website, page, dynamicDestinations = [] }: StaticPa
     ? `https://${(website as unknown as Record<string, unknown>).custom_domain}`
     : `https://${(website as unknown as Record<string, unknown>).subdomain || ''}.bukeer.com`;
   const pageUrl = `${baseUrl}/${page.slug || ''}`;
+  const websiteLocale =
+    (website as WebsiteData & { default_locale?: string; defaultLocale?: string }).default_locale ??
+    (website as WebsiteData & { default_locale?: string; defaultLocale?: string }).defaultLocale ??
+    website.content?.locale ??
+    'es-CO';
 
   // Contact channels for sticky mobile CTA + hero CTA
   const websiteContent = (website.content ?? {}) as {
@@ -117,6 +122,7 @@ export function StaticPage({ website, page, dynamicDestinations = [] }: StaticPa
         sections={sections}
         pageTitle={page.seo_title || page.title}
         pageUrl={pageUrl}
+        inLanguage={websiteLocale}
       />
 
       {/* Fallback Hero — only when sections don't include their own hero */}

@@ -12,6 +12,7 @@ import {
   resolveMarketExperienceConfig,
   resolveSiteMenuLocales,
 } from '@/lib/site/currency';
+import { getPublicUiMessages } from '@/lib/site/public-ui-messages';
 
 interface SiteFooterProps {
   website: WebsiteData;
@@ -40,6 +41,7 @@ export function SiteFooter({ website, isCustomDomain = false, navigation }: Site
     ?? normalizeLanguageCode(website.default_locale)
     ?? localeOptions[0]?.code
     ?? 'es';
+  const uiMessages = getPublicUiMessages(currentLocale);
   const showFooterLanguageSwitcher = marketExperience.showInFooter
     && marketExperience.showLanguage
     && localeOptions.length > 0;
@@ -61,11 +63,11 @@ export function SiteFooter({ website, isCustomDomain = false, navigation }: Site
   ].filter(link => link.url);
 
   const navFallback = [
-    { slug: '', label: 'Inicio', page_type: 'custom' as const, href: `${basePath}/` },
-    { slug: 'destinations', label: 'Destinos', page_type: 'anchor' as const, href: `${basePath}/#destinations` },
-    { slug: 'hotels', label: 'Hoteles', page_type: 'anchor' as const, href: `${basePath}/#hotels` },
-    { slug: 'blog', label: 'Blog', page_type: 'custom' as const, href: `${basePath}/blog` },
-    { slug: 'cta', label: 'Asesoría', page_type: 'anchor' as const, href: `${basePath}/#cta` },
+    { slug: '', label: uiMessages.nav.home, page_type: 'custom' as const, href: `${basePath}/` },
+    { slug: 'destinations', label: uiMessages.nav.destinations, page_type: 'anchor' as const, href: `${basePath}/#destinations` },
+    { slug: 'hotels', label: uiMessages.nav.hotels, page_type: 'anchor' as const, href: `${basePath}/#hotels` },
+    { slug: 'blog', label: uiMessages.nav.blog, page_type: 'custom' as const, href: `${basePath}/blog` },
+    { slug: 'cta', label: uiMessages.nav.advisory, page_type: 'anchor' as const, href: `${basePath}/#cta` },
   ];
   const navItems = (navigation || navFallback)
     .filter((link) => !(link.slug?.toLowerCase() === 'contact' && link.page_type === 'anchor'))
@@ -74,7 +76,7 @@ export function SiteFooter({ website, isCustomDomain = false, navigation }: Site
       return {
         ...link,
         slug: 'cta',
-        label: 'Asesoría',
+        label: uiMessages.nav.advisory,
         href: `${basePath}/#cta`,
       };
     });
@@ -109,8 +111,12 @@ export function SiteFooter({ website, isCustomDomain = false, navigation }: Site
 
   const CopyrightBlock = (
     <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-      <p className="text-sm text-muted-foreground">&copy; {currentYear} {siteName}. Todos los derechos reservados.</p>
-      <p className="text-sm text-muted-foreground">Creado con{' '}<a href="https://bukeer.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Bukeer</a></p>
+      <p className="text-sm text-muted-foreground">&copy; {currentYear} {siteName}. {uiMessages.footer.rightsReserved}</p>
+      <p className="text-sm text-muted-foreground">
+        <a href="https://bukeer.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+          {uiMessages.footer.createdWithBukeer}
+        </a>
+      </p>
     </div>
   );
 
@@ -134,7 +140,7 @@ export function SiteFooter({ website, isCustomDomain = false, navigation }: Site
     ? `https://wa.me/${content.social.whatsapp.replace(/[^0-9]/g, '')}`
     : null;
   const primaryCtaHref = whatsappLink || `${basePath}/#cta`;
-  const primaryCtaLabel = whatsappLink ? 'Hablar por WhatsApp' : 'Solicitar asesoría';
+  const primaryCtaLabel = whatsappLink ? uiMessages.footer.talkWhatsapp : uiMessages.footer.requestAdvisory;
   const footerPalette = {
     surface: 'color-mix(in srgb, var(--text-heading) 84%, var(--bg) 16%)',
     border: 'color-mix(in srgb, var(--bg) 16%, transparent)',
@@ -144,38 +150,38 @@ export function SiteFooter({ website, isCustomDomain = false, navigation }: Site
 
   const taxonomyColumns = [
     {
-      title: 'Explora',
+      title: uiMessages.footer.explore,
       links: [
-        { label: 'Destinos', href: `${basePath}/#destinations` },
-        { label: 'Paquetes', href: `${basePath}/#packages` },
-        { label: 'Actividades', href: `${basePath}/#activities` },
-        { label: 'Hoteles', href: `${basePath}/#hotels` },
+        { label: uiMessages.nav.destinations, href: `${basePath}/#destinations` },
+        { label: uiMessages.nav.packages, href: `${basePath}/#packages` },
+        { label: uiMessages.nav.experiences, href: `${basePath}/#activities` },
+        { label: uiMessages.nav.hotels, href: `${basePath}/#hotels` },
       ],
     },
     {
-      title: 'Compañía',
+      title: uiMessages.footer.company,
       links: [
-        { label: 'Nosotros', href: `${basePath}/#about` },
-        { label: 'Reseñas', href: `${basePath}/#testimonials` },
-        { label: 'Blog', href: `${basePath}/blog` },
-        { label: 'Preguntas frecuentes', href: `${basePath}/#faq` },
+        { label: uiMessages.nav.about, href: `${basePath}/#about` },
+        { label: uiMessages.footer.reviews, href: `${basePath}/#testimonials` },
+        { label: uiMessages.nav.blog, href: `${basePath}/blog` },
+        { label: uiMessages.footer.faq, href: `${basePath}/#faq` },
       ],
     },
     {
-      title: 'Ayuda',
+      title: uiMessages.footer.help,
       links: [
         { label: primaryCtaLabel, href: primaryCtaHref, external: Boolean(whatsappLink) },
-        { label: 'Planear viaje', href: `${basePath}/#cta` },
+        { label: uiMessages.footer.planTrip, href: `${basePath}/#cta` },
         ...(contactEmail ? [{ label: contactEmail, href: `mailto:${contactEmail}`, external: true }] : []),
         ...(contactPhone ? [{ label: contactPhone, href: `tel:${contactPhone}`, external: true }] : []),
       ],
     },
     {
-      title: 'Legal',
+      title: uiMessages.footer.legal,
       links: [
-        { label: 'Términos y Condiciones', href: `${basePath}/terms` },
-        { label: 'Política de Privacidad', href: `${basePath}/privacy` },
-        { label: 'Política de Cancelación', href: `${basePath}/cancellation` },
+        { label: uiMessages.footer.terms, href: `${basePath}/terms` },
+        { label: uiMessages.footer.privacy, href: `${basePath}/privacy` },
+        { label: uiMessages.footer.cancellation, href: `${basePath}/cancellation` },
       ],
     },
   ];
@@ -228,11 +234,11 @@ export function SiteFooter({ website, isCustomDomain = false, navigation }: Site
               <div className="mt-6">{SocialBlock}</div>
             </div>
             <div>
-              <h3 className="font-semibold mb-4">Navegación</h3>
+              <h3 className="font-semibold mb-4">{uiMessages.footer.navigation}</h3>
               {NavBlock}
             </div>
             <div>
-              <h3 className="font-semibold mb-4">Contacto</h3>
+              <h3 className="font-semibold mb-4">{uiMessages.footer.contact}</h3>
               {ContactBlock}
             </div>
           </div>
@@ -249,9 +255,9 @@ export function SiteFooter({ website, isCustomDomain = false, navigation }: Site
         <div className="border-t" style={{ borderColor: footerPalette.border }}>
           <div className="container py-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
-              <p className="font-heading text-xl leading-tight">Planifiquemos tu viaje por Colombia</p>
+              <p className="font-heading text-xl leading-tight">{uiMessages.footer.planTripTitle}</p>
               <p className="text-sm mt-1" style={{ color: footerPalette.muted }}>
-                Itinerarios, hoteles y actividades en una sola asesoría.
+                {uiMessages.footer.planTripSubtitle}
               </p>
             </div>
             <a
@@ -270,7 +276,7 @@ export function SiteFooter({ website, isCustomDomain = false, navigation }: Site
       <div className="border-t" style={{ borderColor: footerPalette.border }}>
         <div className="container py-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <p className="text-sm" style={{ color: footerPalette.muted }}>
-            Síguenos para descubrir nuevas rutas y experiencias.
+            {uiMessages.footer.followUs}
           </p>
           {socialLinks.length > 0 && (
             <div className="flex items-center gap-2">
@@ -321,7 +327,7 @@ export function SiteFooter({ website, isCustomDomain = false, navigation }: Site
       <div className="border-t" style={{ borderColor: footerPalette.border }}>
         <div className="container py-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <p className="text-sm" style={{ color: footerPalette.muted }}>
-            © {currentYear} {siteName}. Todos los derechos reservados.
+            © {currentYear} {siteName}. {uiMessages.footer.rightsReserved}
           </p>
           <div className="flex items-center gap-4 text-sm" style={{ color: footerPalette.muted }}>
             {showFooterLanguageSwitcher ? (
@@ -331,10 +337,11 @@ export function SiteFooter({ website, isCustomDomain = false, navigation }: Site
                 footerPalette={footerPalette}
                 defaultLocale={website.default_locale ?? undefined}
                 supportedLocales={website.supported_locales ?? undefined}
+                selectLanguageAriaLabel={uiMessages.languageSwitcher.selectLanguageAria}
               />
             ) : null}
             <a href="https://bukeer.com" target="_blank" rel="noopener noreferrer" className="hover:underline">
-              Creado con Bukeer
+              {uiMessages.footer.createdWithBukeer}
             </a>
           </div>
         </div>

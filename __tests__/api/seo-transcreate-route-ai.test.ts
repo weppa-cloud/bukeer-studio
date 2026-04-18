@@ -163,11 +163,15 @@ describe('/api/seo/content-intelligence/transcreate create_draft with AI payload
     expect(checkTranscreateRateLimit).toHaveBeenCalled();
     expect(capture.jobInsert?.ai_generated).toBe(true);
     expect(capture.jobInsert?.ai_model).toBe('openai/gpt-5');
+    expect(capture.jobInsert?.schema_version).toBe('2.0');
+    expect(capture.jobInsert?.payload_v2).toBeDefined();
 
     const payload = capture.jobInsert?.payload as Record<string, unknown>;
     expect(payload.meta_title).toBe('Best Caribbean Package');
     expect(payload.meta_desc).toBeDefined();
     expect(payload.h1).toBe('Best Caribbean Package');
+    expect(payload.schema_version).toBe('2.0');
+    expect(payload.payload_v2).toBeDefined();
     expect(payload.seoTitle).toBe('Best Caribbean Package');
     expect(payload.seoDescription).toBeDefined();
     expect(payload.title).toBe('Best Caribbean Package');
@@ -215,5 +219,7 @@ describe('/api/seo/content-intelligence/transcreate create_draft with AI payload
     const payload = capture.jobInsert?.payload as Record<string, unknown>;
     expect(payload.keywords).toEqual(['cartagena 4 days 3 nights']);
     expect(payload.targetKeyword).toBe('cartagena 4 days 3 nights');
+    expect(capture.jobInsert?.schema_version).toBe('2.0');
+    expect(capture.jobInsert?.payload_v2).toBeDefined();
   });
 });

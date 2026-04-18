@@ -10,6 +10,7 @@ import type { MapMarker } from '@/lib/maps/types';
 import type { WebsiteData } from '@/lib/supabase/get-website';
 import type { DestinationData } from '@/lib/supabase/get-pages';
 import { formatPriceOrConsult } from '@/lib/products/format-price';
+import { localeToLanguage, normalizeLocale } from '@/lib/seo/locale-routing';
 
 interface DestinationListingPageProps {
   website: WebsiteData;
@@ -66,13 +67,28 @@ export function DestinationListingPage({
     const baseUrl = website.custom_domain
       ? `https://${website.custom_domain}`
       : `https://${website.subdomain}.bukeer.com`;
+    const websiteLocale =
+      (website as WebsiteData & { default_locale?: string; defaultLocale?: string }).default_locale ??
+      (website as WebsiteData & { default_locale?: string; defaultLocale?: string }).defaultLocale ??
+      website.content?.locale ??
+      'es-CO';
+    const normalizedSchemaLocale = normalizeLocale(websiteLocale, 'es-CO');
+    const schemaLanguage = localeToLanguage(normalizedSchemaLocale);
+    const isEnglishSchema = schemaLanguage === 'en';
+    const destinationsLabel = isEnglishSchema ? 'Destinations' : 'Destinos';
+    const destinationsSegment = isEnglishSchema ? 'destinations' : 'destinos';
+    const homeLabel = isEnglishSchema ? 'Home' : 'Inicio';
+    const collectionDescription = isEnglishSchema
+      ? `Discover the best travel destinations with ${siteName}.`
+      : `Descubre los mejores destinos de viaje con ${siteName}.`;
 
     const collectionSchema = {
       '@context': 'https://schema.org',
       '@type': 'CollectionPage',
-      name: `Destinos | ${siteName}`,
-      description: `Descubre los mejores destinos de viaje con ${siteName}.`,
-      url: `${baseUrl}/destinos`,
+      inLanguage: normalizedSchemaLocale,
+      name: `${destinationsLabel} | ${siteName}`,
+      description: collectionDescription,
+      url: `${baseUrl}/${destinationsSegment}`,
       mainEntity: {
         '@type': 'ItemList',
         numberOfItems: visibleDestinations.length,
@@ -80,7 +96,7 @@ export function DestinationListingPage({
           '@type': 'ListItem',
           position: i + 1,
           name: dest.name,
-          url: `${baseUrl}/destinos/${dest.slug}`,
+          url: `${baseUrl}/${destinationsSegment}/${dest.slug}`,
         })),
       },
     };
@@ -88,9 +104,10 @@ export function DestinationListingPage({
     const breadcrumbSchema = {
       '@context': 'https://schema.org',
       '@type': 'BreadcrumbList',
+      inLanguage: normalizedSchemaLocale,
       itemListElement: [
-        { '@type': 'ListItem', position: 1, name: 'Inicio', item: baseUrl },
-        { '@type': 'ListItem', position: 2, name: 'Destinos' },
+        { '@type': 'ListItem', position: 1, name: homeLabel, item: baseUrl },
+        { '@type': 'ListItem', position: 2, name: destinationsLabel },
       ],
     };
 

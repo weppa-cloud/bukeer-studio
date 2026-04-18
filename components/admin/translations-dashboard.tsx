@@ -238,7 +238,12 @@ export function TranslationsDashboard({
             sourceKeyword: row.sourceKeyword || undefined,
             targetKeyword: row.targetKeyword || row.sourceKeyword || undefined,
             draftSource: 'ai',
-            aiOutput,
+            aiOutput: {
+              schema_version: '2.0',
+              payload_v2: aiOutput,
+            },
+            schemaVersion: '2.0',
+            payloadV2: aiOutput,
             aiModel: 'openrouter',
             draft: {},
           }),

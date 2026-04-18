@@ -180,6 +180,7 @@ export function DestinationDetailPage({
         product={schemaProduct}
         productType="destination"
         websiteUrl={websiteUrl}
+        language={websiteLocale}
       />
 
       {/* Hero Section */}

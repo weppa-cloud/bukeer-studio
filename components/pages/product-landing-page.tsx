@@ -397,7 +397,13 @@ export function ProductLandingPage({
       product={schemaProduct}
       productType={productType}
       websiteUrl={websiteUrl}
-      language={(website as unknown as { language?: string; locale?: string }).language || (website as unknown as { locale?: string }).locale}
+      language={
+        (website as unknown as { language?: string; locale?: string }).language ||
+        (website as unknown as { locale?: string; default_locale?: string; defaultLocale?: string }).locale ||
+        (website as unknown as { default_locale?: string; defaultLocale?: string }).default_locale ||
+        (website as unknown as { defaultLocale?: string }).defaultLocale ||
+        website.content?.locale
+      }
       faqs={faqSource}
     />
     <OrganizationSchema website={website} websiteUrl={websiteUrl} />

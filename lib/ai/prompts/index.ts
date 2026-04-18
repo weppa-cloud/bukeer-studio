@@ -25,7 +25,15 @@ export {
 } from './package-highlights'
 export {
   buildLocaleAdaptationPrompt,
+  LOCALE_ADAPTATION_SCHEMA_VERSION_V2,
+  LocaleAdaptationOutputSchemaV1,
+  LocaleAdaptationOutputSchemaV2,
+  LocaleAdaptationOutputEnvelopeSchemaV2,
   LocaleAdaptationOutputSchema,
+  normalizeLocaleAdaptationOutputEnvelope,
   type LocaleAdaptationOutput,
+  type LocaleAdaptationOutputV1,
+  type LocaleAdaptationOutputV2,
+  type LocaleAdaptationOutputEnvelopeV2,
   type LocaleAdaptationPromptInput,
 } from './locale-adaptation'

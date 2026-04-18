@@ -175,13 +175,9 @@ export function TranscreateDialog({
   async function createDraft(input: {
     draft?: Record<string, unknown>;
     draftSource?: 'manual' | 'ai' | 'tm_exact';
-    aiOutput?: {
-      meta_title: string;
-      meta_desc: string;
-      slug: string;
-      h1: string;
-      keywords: string[];
-    };
+    aiOutput?: Record<string, unknown>;
+    schemaVersion?: '2.0';
+    payloadV2?: Record<string, unknown>;
     aiModel?: string;
   }): Promise<string | null> {
     const { country, language } = inferLocaleParts(targetLocale);
@@ -202,6 +198,8 @@ export function TranscreateDialog({
         draft: input.draft ?? {},
         draftSource: input.draftSource ?? 'manual',
         aiOutput: input.aiOutput,
+        schemaVersion: input.schemaVersion,
+        payloadV2: input.payloadV2,
         aiModel: input.aiModel,
       }),
     });
@@ -322,7 +320,12 @@ export function TranscreateDialog({
       setPersistingAi(true);
       const jobId = await createDraft({
         draftSource: 'ai',
-        aiOutput: parsed,
+        aiOutput: {
+          schema_version: '2.0',
+          payload_v2: parsed,
+        },
+        schemaVersion: '2.0',
+        payloadV2: parsed,
         aiModel: 'openrouter',
       });
       if (jobId && onSuccess) onSuccess(jobId);

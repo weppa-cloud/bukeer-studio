@@ -2,6 +2,7 @@
 
 import { WebsiteData } from '@/lib/supabase/get-website';
 import type { MobileStickyBarConfig } from '@bukeer/website-contract';
+import { getPublicUiMessages } from '@/lib/site/public-ui-messages';
 
 interface MobileStickyBarProps {
   website: WebsiteData;
@@ -22,6 +23,12 @@ const ICONS: Record<string, React.ReactNode> = {
 export function MobileStickyBar({ website }: MobileStickyBarProps) {
   const { content, site_parts: siteParts } = website;
   const config = siteParts?.mobileStickyBar as MobileStickyBarConfig | undefined;
+  const locale =
+    (website as WebsiteData & { default_locale?: string; defaultLocale?: string }).default_locale ??
+    (website as WebsiteData & { default_locale?: string; defaultLocale?: string }).defaultLocale ??
+    content.locale ??
+    'es-CO';
+  const messages = getPublicUiMessages(locale);
 
   // If explicitly disabled, don't render
   if (config && !config.enabled) return null;
@@ -37,7 +44,7 @@ export function MobileStickyBar({ website }: MobileStickyBarProps) {
     }
     const contactPhone = content.account?.phone || content.contact?.phone;
     if (contactPhone) {
-      buttons.push({ type: 'phone', label: 'Llamar', href: `tel:${contactPhone}` });
+      buttons.push({ type: 'phone', label: messages.mobileStickyBar.call, href: `tel:${contactPhone}` });
     }
     const contactEmail = content.account?.email || content.contact?.email;
     if (contactEmail) {

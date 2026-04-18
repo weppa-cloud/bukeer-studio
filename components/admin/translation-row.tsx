@@ -167,9 +167,9 @@ export function TranslationRow({
       const response = await fetch('/api/seo/content-intelligence/transcreate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'create_draft',
-          websiteId,
+          body: JSON.stringify({
+            action: 'create_draft',
+            websiteId,
           sourceContentId: job.pageId,
           pageType: job.pageType,
           sourceLocale: job.sourceLocale,
@@ -177,13 +177,18 @@ export function TranslationRow({
           country,
           language,
           sourceKeyword: job.sourceKeyword || undefined,
-          targetKeyword: job.targetKeyword || job.sourceKeyword || undefined,
-          draftSource: 'ai',
-          aiOutput: parsed,
-          aiModel: 'openrouter',
-          draft: {},
-        }),
-      });
+            targetKeyword: job.targetKeyword || job.sourceKeyword || undefined,
+            draftSource: 'ai',
+            aiOutput: {
+              schema_version: '2.0',
+              payload_v2: parsed,
+            },
+            schemaVersion: '2.0',
+            payloadV2: parsed,
+            aiModel: 'openrouter',
+            draft: {},
+          }),
+        });
 
       const body = (await response.json().catch(() => ({}))) as {
         success?: boolean;

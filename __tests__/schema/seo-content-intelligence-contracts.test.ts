@@ -79,6 +79,55 @@ describe('SEO content intelligence contracts (ADR-003)', () => {
     expect(valid.success).toBe(true);
   });
 
+  it('accepts explicit v2 transcreate payload envelope', () => {
+    const valid = SeoTranscreateRequestSchema.safeParse({
+      action: 'create_draft',
+      websiteId,
+      sourceContentId: itemId,
+      pageType: 'package',
+      sourceLocale: 'es-CO',
+      targetLocale: 'en-US',
+      country: 'United States',
+      language: 'en',
+      schemaVersion: '2.0',
+      payloadV2: {
+        meta_title: 'Best Caribbean Package',
+        meta_desc: 'Discover the Caribbean in one itinerary.',
+        slug: 'best-caribbean-package',
+        h1: 'Best Caribbean Package',
+        keywords: ['caribbean package'],
+        body_content: {
+          seo_intro: 'A full-service package with local operators.',
+        },
+      },
+    });
+
+    expect(valid.success).toBe(true);
+  });
+
+  it('rejects unsupported transcreate schema versions', () => {
+    const invalid = SeoTranscreateRequestSchema.safeParse({
+      action: 'create_draft',
+      websiteId,
+      sourceContentId: itemId,
+      pageType: 'package',
+      sourceLocale: 'es-CO',
+      targetLocale: 'en-US',
+      country: 'United States',
+      language: 'en',
+      schemaVersion: '1.0',
+      payloadV2: {
+        meta_title: 'Title',
+        meta_desc: 'Description',
+        slug: 'title',
+        h1: 'Title',
+        keywords: ['title'],
+      },
+    });
+
+    expect(invalid.success).toBe(false);
+  });
+
   it('validates audit/track boundaries', () => {
     expect(
       SeoAuditRequestSchema.safeParse({

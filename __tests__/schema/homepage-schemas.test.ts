@@ -135,4 +135,11 @@ describe('generateHomepageSchemas', () => {
     }));
     expect(shape).toMatchSnapshot();
   });
+
+  it('localizes homepage breadcrumb label for en-US', () => {
+    const schemas = generateHomepageSchemas(mockWebsite, BASE_URL, undefined, 'en-US');
+    const breadcrumb = schemas.find((s: any) => s['@type'] === 'BreadcrumbList') as any;
+    expect(breadcrumb).toBeDefined();
+    expect(breadcrumb.itemListElement?.[0]?.name).toBe('Home');
+  });
 });

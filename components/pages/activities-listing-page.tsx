@@ -9,6 +9,7 @@ import type { ActivityItem } from '@/components/site/sections/activities-section
 import { toActivityItems } from '@/lib/products/to-items';
 import type { WebsiteData } from '@/lib/supabase/get-website';
 import type { ProductData } from '@bukeer/website-contract';
+import { localeToLanguage, normalizeLocale } from '@/lib/seo/locale-routing';
 
 interface ActivitiesListingPageProps {
   website: WebsiteData;
@@ -67,14 +68,24 @@ export function ActivitiesListingPage({ website, activities }: ActivitiesListing
   const baseUrl = website.custom_domain
     ? `https://${website.custom_domain}`
     : `https://${website.subdomain}.bukeer.com`;
+  const normalizedSchemaLocale = normalizeLocale(websiteLocale, 'es-CO');
+  const schemaLanguage = localeToLanguage(normalizedSchemaLocale);
+  const isEnglishSchema = schemaLanguage === 'en';
+  const activitiesSegment = isEnglishSchema ? 'activities' : 'actividades';
+  const activitiesLabel = isEnglishSchema ? 'Activities' : 'Actividades';
+  const homeLabel = isEnglishSchema ? 'Home' : 'Inicio';
+  const collectionDescription = isEnglishSchema
+    ? `Discover all activities and experiences available with ${siteName}.`
+    : `Descubre todas las actividades y experiencias disponibles con ${siteName}.`;
 
   const jsonLdSchemas = [
     {
       '@context': 'https://schema.org',
       '@type': 'CollectionPage',
-      name: `Actividades | ${siteName}`,
-      description: `Descubre todas las actividades y experiencias disponibles con ${siteName}.`,
-      url: `${baseUrl}/actividades`,
+      inLanguage: normalizedSchemaLocale,
+      name: `${activitiesLabel} | ${siteName}`,
+      description: collectionDescription,
+      url: `${baseUrl}/${activitiesSegment}`,
       mainEntity: {
         '@type': 'ItemList',
         numberOfItems: activityItems.length,
@@ -82,16 +93,17 @@ export function ActivitiesListingPage({ website, activities }: ActivitiesListing
           '@type': 'ListItem',
           position: i + 1,
           name: a.name,
-          url: `${baseUrl}/actividades/${a.slug || ''}`,
+          url: `${baseUrl}/${activitiesSegment}/${a.slug || ''}`,
         })),
       },
     },
     {
       '@context': 'https://schema.org',
       '@type': 'BreadcrumbList',
+      inLanguage: normalizedSchemaLocale,
       itemListElement: [
-        { '@type': 'ListItem', position: 1, name: 'Inicio', item: baseUrl },
-        { '@type': 'ListItem', position: 2, name: 'Actividades' },
+        { '@type': 'ListItem', position: 1, name: homeLabel, item: baseUrl },
+        { '@type': 'ListItem', position: 2, name: activitiesLabel },
       ],
     },
   ];

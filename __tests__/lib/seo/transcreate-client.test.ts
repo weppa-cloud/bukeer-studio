@@ -36,4 +36,25 @@ describe('transcreate client parsing', () => {
     expect(normalized?.slug).toBe('cartagena-4-dias-and-islands');
     expect(normalized?.keywords).toEqual(['cartagena tours']);
   });
+
+  it('parses v2 envelope output and preserves backward-compatible shape', () => {
+    const raw = JSON.stringify({
+      schema_version: '2.0',
+      payload_v2: {
+        meta_title: 'Cartagena in 4 Days',
+        meta_desc: 'A curated 4-day Cartagena itinerary.',
+        slug: 'cartagena-in-4-days',
+        h1: 'Cartagena in 4 Days',
+        keywords: ['cartagena itinerary'],
+        body_content: {
+          seo_intro: 'Discover Cartagena with local experts.',
+        },
+      },
+    });
+
+    const parsed = parseLocaleAdaptationCompletion(raw);
+    expect(parsed).not.toBeNull();
+    expect(parsed?.meta_title).toBe('Cartagena in 4 Days');
+    expect(parsed?.keywords).toEqual(['cartagena itinerary']);
+  });
 });
