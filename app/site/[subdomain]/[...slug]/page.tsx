@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { getWebsiteBySubdomain } from '@/lib/supabase/get-website';
 import { getPageBySlug, getProductPage, getDestinations, getDestinationProducts, getDestinationSeoOverride, getCategoryProducts } from '@/lib/supabase/get-pages';
 import { getReviewsForContext, type ReviewContext } from '@/lib/supabase/get-reviews';
+import { createSupabaseServiceRoleClient } from '@/lib/supabase/service-role';
 import { enrichDestinationFromSerpAPI } from '@/lib/services/serpapi-enrichment';
 import { resolveOgImage } from '@/lib/seo/og-helpers';
 import {
@@ -10,7 +11,7 @@ import {
   resolvePublicMetadataLocale,
   type PublicMetadataLocaleContext,
 } from '@/lib/seo/public-metadata';
-import { buildPublicLocalizedPath, localeToOgLocale } from '@/lib/seo/locale-routing';
+import { buildPublicLocalizedPath, localeToOgLocale, normalizeLocale } from '@/lib/seo/locale-routing';
 import { CategoryPage } from '@/components/pages/category-page';
 import { StaticPage } from '@/components/pages/static-page';
 import { ProductLandingPage } from '@/components/pages/product-landing-page';
@@ -38,6 +39,15 @@ interface DynamicPageProps {
   }>;
 }
 
+type TranscreatePageType =
+  | 'blog'
+  | 'page'
+  | 'destination'
+  | 'hotel'
+  | 'activity'
+  | 'package'
+  | 'transfer';
+
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number, fallback: T): Promise<T> {
   return Promise.race([
     promise,
@@ -63,17 +73,51 @@ function buildCanonicalUrl(
   return `${baseUrl}${localizedPath}`;
 }
 
-async function getListingRobotsNoindex(
+async function resolveListingPageMeta(
   subdomain: string,
   candidateSlugs: string[],
-): Promise<boolean> {
+): Promise<{ pageId: string | null; robotsNoindex: boolean }> {
   for (const candidate of candidateSlugs) {
     const page = await getPageBySlug(subdomain, candidate);
     if (page) {
-      return Boolean(page.robots_noindex);
+      return {
+        pageId: typeof page.id === 'string' ? page.id : null,
+        robotsNoindex: Boolean(page.robots_noindex),
+      };
     }
   }
-  return false;
+  return { pageId: null, robotsNoindex: false };
+}
+
+async function loadTranslatedLocalesForPage(input: {
+  websiteId: string;
+  pageType: TranscreatePageType;
+  pageId: string;
+  defaultLocale: string;
+}): Promise<string[] | undefined> {
+  try {
+    const admin = createSupabaseServiceRoleClient();
+    const { data, error } = await admin
+      .from('seo_transcreation_jobs')
+      .select('target_locale')
+      .eq('website_id', input.websiteId)
+      .eq('page_type', input.pageType)
+      .eq('page_id', input.pageId)
+      .in('status', ['applied', 'published']);
+
+    if (error) {
+      return [normalizeLocale(input.defaultLocale)];
+    }
+
+    const translated = (data ?? [])
+      .map((row) => row.target_locale)
+      .filter((locale): locale is string => typeof locale === 'string' && locale.trim().length > 0)
+      .map((locale) => normalizeLocale(locale));
+
+    return Array.from(new Set([normalizeLocale(input.defaultLocale), ...translated]));
+  } catch {
+    return [normalizeLocale(input.defaultLocale)];
+  }
 }
 
 // Generate metadata for SEO
@@ -102,11 +146,41 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
     slugPath ? `/${slugPath}` : '/',
   );
   const ogLocale = localeToOgLocale(localeContext.resolvedLocale);
+  const translatedLocalesCache = new Map<string, string[] | undefined>();
+
+  const buildAlternatesLanguages = async (
+    pathname: string,
+    pageRef?: { pageType: TranscreatePageType; pageId: string | null },
+  ): Promise<Record<string, string>> => {
+    if (!pageRef?.pageId) {
+      return buildLocaleAwareAlternateLanguages(baseUrl, pathname, localeContext);
+    }
+
+    const cacheKey = `${pageRef.pageType}:${pageRef.pageId}`;
+    if (!translatedLocalesCache.has(cacheKey)) {
+      const translatedLocales = await loadTranslatedLocalesForPage({
+        websiteId: website.id,
+        pageType: pageRef.pageType,
+        pageId: pageRef.pageId,
+        defaultLocale: localeContext.defaultLocale,
+      });
+      translatedLocalesCache.set(cacheKey, translatedLocales);
+    }
+
+    const translatedLocales = translatedLocalesCache.get(cacheKey);
+    return buildLocaleAwareAlternateLanguages(
+      baseUrl,
+      pathname,
+      localeContext,
+      translatedLocales ? { translatedLocales } : undefined,
+    );
+  };
 
   // Activities listing (/actividades or /activities)
   if (slug.length === 1 && (slug[0] === 'actividades' || slug[0] === 'activities')) {
     const siteName = website.content?.account?.name || website.content?.siteName || subdomain;
     const pathname = '/actividades';
+    const listingMeta = await resolveListingPageMeta(subdomain, ['actividades', 'activities']);
     const ogImage = resolveOgImage(website);
     const metadata: Metadata = {
       title: `Actividades | ${siteName}`,
@@ -126,11 +200,14 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
       },
       alternates: {
         canonical: buildCanonicalUrl(baseUrl, pathname, localeContext),
-        languages: buildLocaleAwareAlternateLanguages(baseUrl, pathname, localeContext),
+        languages: await buildAlternatesLanguages(pathname, {
+          pageType: 'page',
+          pageId: listingMeta.pageId,
+        }),
       },
     };
 
-    if (await getListingRobotsNoindex(subdomain, ['actividades', 'activities'])) {
+    if (listingMeta.robotsNoindex) {
       metadata.robots = { index: false, follow: true };
     }
 
@@ -141,6 +218,7 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
   if (slug.length === 1 && (slug[0] === 'hoteles' || slug[0] === 'hotels')) {
     const siteName = website.content?.account?.name || website.content?.siteName || subdomain;
     const pathname = '/hoteles';
+    const listingMeta = await resolveListingPageMeta(subdomain, ['hoteles', 'hotels']);
     const ogImage = resolveOgImage(website);
     const metadata: Metadata = {
       title: `Hoteles | ${siteName}`,
@@ -160,11 +238,14 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
       },
       alternates: {
         canonical: buildCanonicalUrl(baseUrl, pathname, localeContext),
-        languages: buildLocaleAwareAlternateLanguages(baseUrl, pathname, localeContext),
+        languages: await buildAlternatesLanguages(pathname, {
+          pageType: 'page',
+          pageId: listingMeta.pageId,
+        }),
       },
     };
 
-    if (await getListingRobotsNoindex(subdomain, ['hoteles', 'hotels'])) {
+    if (listingMeta.robotsNoindex) {
       metadata.robots = { index: false, follow: true };
     }
 
@@ -175,6 +256,7 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
   if (slug.length === 1 && (slug[0] === 'traslados' || slug[0] === 'transfers')) {
     const siteName = website.content?.account?.name || website.content?.siteName || subdomain;
     const pathname = '/traslados';
+    const listingMeta = await resolveListingPageMeta(subdomain, ['traslados', 'transfers']);
     const ogImage = resolveOgImage(website);
     const metadata: Metadata = {
       title: `Traslados | ${siteName}`,
@@ -194,11 +276,14 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
       },
       alternates: {
         canonical: buildCanonicalUrl(baseUrl, pathname, localeContext),
-        languages: buildLocaleAwareAlternateLanguages(baseUrl, pathname, localeContext),
+        languages: await buildAlternatesLanguages(pathname, {
+          pageType: 'page',
+          pageId: listingMeta.pageId,
+        }),
       },
     };
 
-    if (await getListingRobotsNoindex(subdomain, ['traslados', 'transfers'])) {
+    if (listingMeta.robotsNoindex) {
       metadata.robots = { index: false, follow: true };
     }
 
@@ -209,6 +294,7 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
   if (slug.length === 1 && (slug[0] === 'paquetes' || slug[0] === 'packages')) {
     const siteName = website.content?.account?.name || website.content?.siteName || subdomain;
     const pathname = '/paquetes';
+    const listingMeta = await resolveListingPageMeta(subdomain, ['paquetes', 'packages']);
     const ogImage = resolveOgImage(website);
     const metadata: Metadata = {
       title: `Paquetes de Viaje | ${siteName}`,
@@ -228,11 +314,14 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
       },
       alternates: {
         canonical: buildCanonicalUrl(baseUrl, pathname, localeContext),
-        languages: buildLocaleAwareAlternateLanguages(baseUrl, pathname, localeContext),
+        languages: await buildAlternatesLanguages(pathname, {
+          pageType: 'page',
+          pageId: listingMeta.pageId,
+        }),
       },
     };
 
-    if (await getListingRobotsNoindex(subdomain, ['paquetes', 'packages'])) {
+    if (listingMeta.robotsNoindex) {
       metadata.robots = { index: false, follow: true };
     }
 
@@ -243,6 +332,7 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
   if (slug.length === 1 && (slug[0] === 'destinos' || slug[0] === 'destinations')) {
     const siteName = website.content?.account?.name || website.content?.siteName || subdomain;
     const pathname = '/destinos';
+    const listingMeta = await resolveListingPageMeta(subdomain, ['destinos', 'destinations']);
     const ogImage = resolveOgImage(website);
     const metadata: Metadata = {
       title: `Destinos | ${siteName}`,
@@ -262,11 +352,14 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
       },
       alternates: {
         canonical: buildCanonicalUrl(baseUrl, pathname, localeContext),
-        languages: buildLocaleAwareAlternateLanguages(baseUrl, pathname, localeContext),
+        languages: await buildAlternatesLanguages(pathname, {
+          pageType: 'page',
+          pageId: listingMeta.pageId,
+        }),
       },
     };
 
-    if (await getListingRobotsNoindex(subdomain, ['destinos', 'destinations'])) {
+    if (listingMeta.robotsNoindex) {
       metadata.robots = { index: false, follow: true };
     }
 
@@ -301,7 +394,10 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
         },
         alternates: {
           canonical: buildCanonicalUrl(baseUrl, pathname, localeContext),
-          languages: buildLocaleAwareAlternateLanguages(baseUrl, pathname, localeContext),
+          languages: await buildAlternatesLanguages(pathname, {
+            pageType: 'destination',
+            pageId: typeof dest.id === 'string' ? dest.id : null,
+          }),
         },
       };
 
@@ -357,7 +453,10 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
           },
           alternates: {
             canonical: buildCanonicalUrl(baseUrl, pathname, localeContext),
-            languages: buildLocaleAwareAlternateLanguages(baseUrl, pathname, localeContext),
+            languages: await buildAlternatesLanguages(pathname, {
+              pageType: productType as TranscreatePageType,
+              pageId: typeof productPage.product.id === 'string' ? productPage.product.id : null,
+            }),
           },
         };
 
@@ -400,7 +499,7 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
         },
         alternates: {
           canonical: buildCanonicalUrl(baseUrl, '/', localeContext),
-          languages: buildLocaleAwareAlternateLanguages(baseUrl, '/', localeContext),
+          languages: await buildAlternatesLanguages('/'),
         },
       };
     }
@@ -433,7 +532,10 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
     },
     alternates: {
       canonical: canonicalUrl,
-      languages: buildLocaleAwareAlternateLanguages(baseUrl, `/${slugPath}`, localeContext),
+      languages: await buildAlternatesLanguages(`/${slugPath}`, {
+        pageType: 'page',
+        pageId: typeof page.id === 'string' ? page.id : null,
+      }),
     },
   };
 

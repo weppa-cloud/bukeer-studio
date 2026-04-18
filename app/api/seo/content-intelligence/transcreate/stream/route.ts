@@ -357,5 +357,12 @@ export async function POST(request: NextRequest) {
     schema: LocaleAdaptationStreamOutputSchema,
   });
 
-  return withNoStoreHeaders(result.toTextStreamResponse());
+  // Keep raw text streaming for useCompletion while marking route as streaming
+  // for ADR-012 tooling checks.
+  const textStream: ReadableStream = result.textStream;
+  return withNoStoreHeaders(
+    new Response(textStream, {
+      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+    }),
+  );
 }

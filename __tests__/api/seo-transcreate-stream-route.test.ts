@@ -139,8 +139,12 @@ describe('/api/seo/content-intelligence/transcreate/stream', () => {
       resetAt: new Date(Date.now() + 60_000),
     });
     (streamObject as jest.Mock).mockReturnValue({
-      toTextStreamResponse: () =>
-        new Response('{"meta_title":"A","meta_desc":"B","slug":"a","h1":"A","keywords":["a"]}'),
+      textStream: new ReadableStream({
+        start(controller) {
+          controller.enqueue('{"meta_title":"A","meta_desc":"B","slug":"a","h1":"A","keywords":["a"]}');
+          controller.close();
+        },
+      }),
     });
 
     const mod = await import('@/app/api/seo/content-intelligence/transcreate/stream/route');
