@@ -1,11 +1,12 @@
 import { NextRequest } from 'next/server';
 import { createLogger } from '@/lib/logger';
 import { apiUnauthorized, apiForbidden, apiError } from '@/lib/api';
-import { getEditorModel } from '@/lib/ai/llm-provider';
+import { getEditorModel, DEFAULT_MODEL } from '@/lib/ai/llm-provider';
 import { generateText } from 'ai';
 import { z } from 'zod';
 import { getEditorAuth, hasEditorRole } from '@/lib/ai/auth-helpers';
 import { checkRateLimit, recordCost } from '@/lib/ai/rate-limit';
+import { calculateCost } from '@/lib/ai/model-pricing';
 import {
   getSeoSystemPrompt,
   buildSeoUserPrompt,
@@ -309,8 +310,12 @@ export async function POST(request: NextRequest) {
           const jsonMatch = aiResult.text.trim().match(/\{[\s\S]*\}/);
           const result = { object: jsonMatch ? JSON.parse(jsonMatch[0]) : { seoTitle: '', seoDescription: '', targetKeyword: '', reasoning: '' } };
 
-          await recordCost(auth.accountId, 0.003);
-          totalCost += 0.003;
+          const itemCost = calculateCost(DEFAULT_MODEL, {
+            inputTokens: aiResult.usage?.inputTokens ?? 0,
+            outputTokens: aiResult.usage?.outputTokens ?? 0,
+          });
+          await recordCost(auth.accountId, itemCost);
+          totalCost += itemCost;
           processed++;
 
           // Score before/after

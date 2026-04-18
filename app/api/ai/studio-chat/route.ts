@@ -4,10 +4,12 @@ import { apiUnauthorized, apiForbidden, apiError, apiInternalError } from '@/lib
 import { streamText, tool } from 'ai';
 import { z } from 'zod';
 import { createClient } from '@supabase/supabase-js';
-import { getEditorModel } from '@/lib/ai/llm-provider';
+import { getEditorModel, DEFAULT_MODEL } from '@/lib/ai/llm-provider';
 import { getEditorAuth, hasEditorRole } from '@/lib/ai/auth-helpers';
 import { checkRateLimit, recordCost } from '@/lib/ai/rate-limit';
+import { calculateCost } from '@/lib/ai/model-pricing';
 import { buildStudioChatPrompt } from '@/lib/ai/prompts';
+import { after } from 'next/server';
 
 const log = createLogger('api.ai.studioChat');
 
@@ -183,8 +185,17 @@ export async function POST(request: NextRequest) {
           }),
         }),
       },
-      onFinish: async () => {
-        await recordCost(auth.accountId, 0.01);
+      onFinish: ({ usage }) => {
+        // Stream may close before DB write completes on Cloudflare Workers.
+        // Defer via `after()` so the worker keeps cost accounting alive.
+        after(async () => {
+          if (!usage) return;
+          const cost = calculateCost(DEFAULT_MODEL, {
+            inputTokens: usage.inputTokens ?? 0,
+            outputTokens: usage.outputTokens ?? 0,
+          });
+          await recordCost(auth.accountId, cost);
+        });
       },
     });
 

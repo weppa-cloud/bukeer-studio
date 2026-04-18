@@ -1,11 +1,12 @@
 import { NextRequest } from 'next/server';
 import { createLogger } from '@/lib/logger';
 import { apiSuccess, apiUnauthorized, apiForbidden, apiError, apiValidationError, apiInternalError } from '@/lib/api';
-import { getEditorModel } from '@/lib/ai/llm-provider';
+import { getEditorModel, DEFAULT_MODEL } from '@/lib/ai/llm-provider';
 import { generateText } from 'ai';
 import { z } from 'zod';
 import { getEditorAuth, hasEditorRole } from '@/lib/ai/auth-helpers';
 import { checkRateLimit, recordCost } from '@/lib/ai/rate-limit';
+import { calculateCost } from '@/lib/ai/model-pricing';
 
 import {
   IMPROVEMENT_ACTIONS,
@@ -48,7 +49,13 @@ export async function POST(request: NextRequest) {
       prompt: text,
     });
 
-    await recordCost(auth.accountId, 0.002);
+    await recordCost(
+      auth.accountId,
+      calculateCost(DEFAULT_MODEL, {
+        inputTokens: result.usage?.inputTokens ?? 0,
+        outputTokens: result.usage?.outputTokens ?? 0,
+      }),
+    );
 
     return apiSuccess({
       original: text,

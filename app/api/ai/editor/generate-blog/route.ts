@@ -6,6 +6,7 @@ import { generateObject } from 'ai';
 import { z } from 'zod';
 import { getEditorAuth, hasEditorRole } from '@/lib/ai/auth-helpers';
 import { checkRateLimit, recordCost } from '@/lib/ai/rate-limit';
+import { calculateCost } from '@/lib/ai/model-pricing';
 
 const log = createLogger('api.ai.generateBlog');
 
@@ -179,8 +180,13 @@ export async function POST(request: NextRequest) {
       prompt,
     });
 
-    // V2 costs ~$0.015 (longer output), V1 costs ~$0.01
-    await recordCost(auth.accountId, isV2 ? 0.015 : 0.01);
+    await recordCost(
+      auth.accountId,
+      calculateCost(DEFAULT_MODEL, {
+        inputTokens: result.usage?.inputTokens ?? 0,
+        outputTokens: result.usage?.outputTokens ?? 0,
+      }),
+    );
 
     return apiSuccess({
       post: result.object,

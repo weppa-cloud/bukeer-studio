@@ -1,11 +1,12 @@
 import { NextRequest } from 'next/server';
 import { createLogger } from '@/lib/logger';
 import { apiSuccess, apiError, apiUnauthorized, apiForbidden, apiInternalError } from '@/lib/api';
-import { getEditorModel } from '@/lib/ai/llm-provider';
+import { getEditorModel, DEFAULT_MODEL } from '@/lib/ai/llm-provider';
 import { generateObject } from 'ai';
 import { z } from 'zod';
 import { getEditorAuth, hasEditorRole } from '@/lib/ai/auth-helpers';
 import { checkRateLimit, recordCost } from '@/lib/ai/rate-limit';
+import { calculateCost } from '@/lib/ai/model-pricing';
 import { SECTION_TYPES } from '@bukeer/website-contract';
 import { buildSectionGeneratorPrompt } from '@/lib/ai/prompts';
 
@@ -69,8 +70,13 @@ export async function POST(request: NextRequest) {
       }),
     });
 
-    // Estimate cost (~$0.003 per call for Sonnet)
-    await recordCost(auth.accountId, 0.003);
+    await recordCost(
+      auth.accountId,
+      calculateCost(DEFAULT_MODEL, {
+        inputTokens: result.usage?.inputTokens ?? 0,
+        outputTokens: result.usage?.outputTokens ?? 0,
+      }),
+    );
 
     return apiSuccess({
       content: result.object,

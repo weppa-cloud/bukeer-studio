@@ -1,12 +1,13 @@
 import { NextRequest } from 'next/server';
 import { createLogger } from '@/lib/logger';
 import { apiSuccess, apiUnauthorized, apiForbidden, apiError, apiValidationError, apiInternalError } from '@/lib/api';
-import { getEditorModel } from '@/lib/ai/llm-provider';
+import { getEditorModel, DEFAULT_MODEL } from '@/lib/ai/llm-provider';
 import { generateObject } from 'ai';
 import { z } from 'zod';
 import { createClient } from '@supabase/supabase-js';
 import { getEditorAuth, hasEditorRole } from '@/lib/ai/auth-helpers';
 import { checkRateLimit, recordCost } from '@/lib/ai/rate-limit';
+import { calculateCost } from '@/lib/ai/model-pricing';
 // crypto.randomUUID() is available globally in Workers + Node 19+
 
 const log = createLogger('api.ai.copilot');
@@ -251,8 +252,14 @@ export async function POST(request: NextRequest) {
       prompt: userPrompt,
     });
 
-    // 7. Record cost (~$0.008 per copilot call — more context than single-section)
-    await recordCost(auth.accountId, 0.008);
+    // 7. Record cost (token-driven — model pricing × usage)
+    await recordCost(
+      auth.accountId,
+      calculateCost(DEFAULT_MODEL, {
+        inputTokens: result.usage?.inputTokens ?? 0,
+        outputTokens: result.usage?.outputTokens ?? 0,
+      }),
+    );
 
     // 8. Generate session ID
     const sessionId = crypto.randomUUID();

@@ -12,11 +12,12 @@ import { NextRequest } from 'next/server';
 import { createLogger } from '@/lib/logger';
 import { apiSuccess, apiUnauthorized, apiForbidden, apiError, apiValidationError, apiInternalError } from '@/lib/api';
 import { createClient } from '@supabase/supabase-js';
-import { getEditorModel } from '@/lib/ai/llm-provider';
+import { getEditorModel, DEFAULT_MODEL } from '@/lib/ai/llm-provider';
 import { generateObject } from 'ai';
 import { z } from 'zod';
 import { getEditorAuth, hasEditorRole } from '@/lib/ai/auth-helpers';
 import { checkRateLimit, recordCost } from '@/lib/ai/rate-limit';
+import { calculateCost } from '@/lib/ai/model-pricing';
 import { scoreContent } from '@/lib/blog/content-scorer';
 
 const log = createLogger('api.ai.contentPipeline');
@@ -121,7 +122,9 @@ export async function POST(request: NextRequest) {
 
     const generateData = await generateRes.json();
     const canonicalPost = generateData.post;
-    totalCost += 0.015;
+    // NOTE: sub-route /generate-blog now self-charges via calculateCost(usage).
+    // Do NOT accumulate here — would double-charge. Keep accumulator for
+    // locally-inlined generateObject stages only (linkedin, youtube).
 
     // Save canonical as blog asset
     const { data: canonicalAsset } = await supabase
@@ -171,7 +174,7 @@ export async function POST(request: NextRequest) {
           .single();
 
         if (localizedAsset) assets.push(localizedAsset);
-        totalCost += 0.01;
+        // Sub-route /improve-text self-charges — no double-charge here.
       }
     }
 
@@ -212,7 +215,10 @@ Requirements:
             .single();
 
           if (linkedinAsset) assets.push(linkedinAsset);
-          totalCost += 0.005;
+          totalCost += calculateCost(DEFAULT_MODEL, {
+            inputTokens: linkedinResult.usage?.inputTokens ?? 0,
+            outputTokens: linkedinResult.usage?.outputTokens ?? 0,
+          });
         }
 
         if (channel === 'youtube') {
@@ -247,7 +253,10 @@ Requirements:
             .single();
 
           if (youtubeAsset) assets.push(youtubeAsset);
-          totalCost += 0.005;
+          totalCost += calculateCost(DEFAULT_MODEL, {
+            inputTokens: youtubeResult.usage?.inputTokens ?? 0,
+            outputTokens: youtubeResult.usage?.outputTokens ?? 0,
+          });
         }
       }
     }
@@ -283,7 +292,12 @@ Requirements:
       publishDecision = 'review';
     }
 
-    await recordCost(auth.accountId, totalCost);
+    // Record only the cost of inlined LLM calls (linkedin + youtube).
+    // Sub-routes (/generate-blog, /improve-text) already self-charged via
+    // calculateCost(usage) in their own onFinish/post-await handlers.
+    if (totalCost > 0) {
+      await recordCost(auth.accountId, totalCost);
+    }
 
     return apiSuccess({
       job_id: canonicalAsset?.id || null,

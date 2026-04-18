@@ -8,11 +8,12 @@
 import { NextRequest } from 'next/server';
 import { createLogger } from '@/lib/logger';
 import { apiSuccess, apiUnauthorized, apiForbidden, apiError, apiInternalError } from '@/lib/api';
-import { getEditorModel } from '@/lib/ai/llm-provider';
+import { getEditorModel, DEFAULT_MODEL } from '@/lib/ai/llm-provider';
 import { generateObject } from 'ai';
 import { z } from 'zod';
 import { getEditorAuth, hasEditorRole } from '@/lib/ai/auth-helpers';
 import { checkRateLimit, recordCost } from '@/lib/ai/rate-limit';
+import { calculateCost } from '@/lib/ai/model-pricing';
 
 const log = createLogger('api.ai.clusterPlan');
 
@@ -77,7 +78,13 @@ Think about what travelers actually search for when planning trips to this desti
 Focus on practical, experience-driven topics that demonstrate E-E-A-T.`,
     });
 
-    await recordCost(auth.accountId, 0.015);
+    await recordCost(
+      auth.accountId,
+      calculateCost(DEFAULT_MODEL, {
+        inputTokens: result.usage?.inputTokens ?? 0,
+        outputTokens: result.usage?.outputTokens ?? 0,
+      }),
+    );
 
     return apiSuccess({
       plan: result.object,

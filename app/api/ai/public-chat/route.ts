@@ -1,12 +1,15 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, after } from 'next/server';
 import { createLogger } from '@/lib/logger';
 import { apiError, apiInternalError } from '@/lib/api';
 import { anthropic } from '@ai-sdk/anthropic';
 import { streamText } from 'ai';
 import { z } from 'zod';
 import { getClientIp } from '@/lib/ai/auth-helpers';
-import { checkRateLimit } from '@/lib/ai/rate-limit';
+import { checkRateLimit, recordCost } from '@/lib/ai/rate-limit';
+import { calculateCost } from '@/lib/ai/model-pricing';
 import { buildPublicChatPrompt } from '@/lib/ai/prompts';
+
+const PUBLIC_CHAT_MODEL = 'claude-haiku-4-5-20251001';
 
 const log = createLogger('api.ai.publicChat');
 
@@ -51,7 +54,7 @@ export async function POST(request: NextRequest) {
     const { message, subdomain, history: safeHistory, websiteInfo } = parsed.data;
 
     const result = streamText({
-      model: anthropic('claude-haiku-4-5-20251001'),
+      model: anthropic(PUBLIC_CHAT_MODEL),
       system: buildPublicChatPrompt({
         siteName: websiteInfo?.siteName ?? subdomain,
         tagline: websiteInfo?.tagline,
@@ -64,6 +67,16 @@ export async function POST(request: NextRequest) {
         })),
         { role: 'user' as const, content: message.slice(0, 2000) },
       ],
+      onFinish: ({ usage }) => {
+        after(async () => {
+          if (!usage) return;
+          const cost = calculateCost(PUBLIC_CHAT_MODEL, {
+            inputTokens: usage.inputTokens ?? 0,
+            outputTokens: usage.outputTokens ?? 0,
+          });
+          await recordCost(`ip:${ip}`, cost);
+        });
+      },
     });
 
     return result.toTextStreamResponse();
