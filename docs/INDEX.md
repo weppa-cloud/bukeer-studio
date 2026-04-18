@@ -102,6 +102,7 @@ Feature requests formalized. Status tracked inline. GitHub Issues = source of tr
 | [[package-detail-anatomy]] | [file](./product/package-detail-anatomy.md) | Package landing anatomy: sections, fields, hygiene checklist, gaps. |
 | [[product-detail-inventory]] | [file](./product/product-detail-inventory.md) | Activity + package inventory with editability matrix (Flutter / Studio / AI / Computed). |
 | [[product-detail-matrix]] | [file](./product/product-detail-matrix.md) | Full product-design matrix: all fields/sections, origin, generation type, artifact, Act/Pkg presence. |
+| [[schema-parity-audit]] | [file](./product/schema-parity-audit.md) | activities + hotels vs package_kits schema parity audit (F1, 2026-04-18). Informs #204 F2 migrations. |
 
 ---
 
@@ -145,6 +146,7 @@ Feature requests formalized. Status tracked inline. GitHub Issues = source of tr
 |----------|------|---------|
 | [[product-landing-qa-matrix]] | [file](./qa/product-landing-qa-matrix.md) | QA matrix for 3 release tenants. |
 | [[link-validation-colombiatours]] | [file](./qa/link-validation-colombiatours.md) | Link validation report (2026-04-15). |
+| [[ai-routes-cost-recording]] | [file](./audits/ai-routes-cost-recording.md) | AI routes cost-tracking audit — 13 routes mapped, recordCost wire patterns (D1, 2026-04-18). Basis for #195 R9 impl. |
 | [[epic86-walkthrough]] | [file](./evidence/epic86/walkthrough.md) | EPIC 86 evidence (Issue #122). |
 | [[epic128-lighthouse-summary]] | [file](./evidence/epic128/lighthouse-summary.md) | EPIC 128 Lighthouse/CWV summary. |
 | [[epic128-production-ready-attestation-v2]] | [file](./evidence/epic128/production-ready-attestation-v2.md) | EPIC 128 production-ready attestation v2. |
@@ -232,7 +234,7 @@ Each concept below lists the ADRs/SPECs/ops docs that touch it. Use this to find
 
 ### [[multi-locale]] + [[i18n]] + [[routing]]
 - [[ADR-019]] — path-prefix URL routing (`/en/...`, default locale has no prefix)
-- [[ADR-020]] — hreflang emission for all `supported_locales`; `x-default` → default locale
+- [[ADR-020]] — hreflang emission for `defaultLocale` + translated locales (`applied|published`); `x-default` → default locale
 - [[ADR-021]] — TM + glossary + AI transcreation pipeline; job lifecycle draft→reviewed→applied→published
 - Key files: `lib/seo/locale-routing.ts`, `lib/seo/hreflang.ts`, `lib/seo/transcreate-workflow.ts`, `middleware.ts`
 - Switcher: `components/site/site-header.tsx`, `components/site/language-switcher.tsx`
@@ -243,6 +245,18 @@ Each concept below lists the ADRs/SPECs/ops docs that touch it. Use this to find
 - [[SPEC_MARKET_EXPERIENCE_SWITCHER]] — control unificado de idioma/moneda en header + configuración en Studio.
 - Runtime: `components/site/site-header.tsx`, `components/site/site-footer.tsx`, `lib/site/currency.ts`.
 - Studio: `app/dashboard/[websiteId]/design/page.tsx`, `components/admin/market-experience-editor.tsx`.
+
+### [[studio-unified-product-editor]] + [[#190]] + [[editor-v2]]
+- EPIC: [#190](https://github.com/weppa-cloud/bukeer-studio/issues/190) — Studio Unified Product Editor
+- Phase 0 [[#191]] + Phase 0.5 [[#192]] + QA infra [[#193]] — all closed 2026-04-17
+- Phase 1 RFCs: [[#194]] R7 migration plan, [[#195]] R9 AI cost tracking, [[#197]] W3 edit history
+- Phase 1a children (2026-04-18): [[#200]] marketing editors, [[#201]] gallery curator, [[#204]] schema parity migrations, [[#205]] Flutter banner
+- D1 impl closed: [[#203]] — `recordCost()` wired in 13 AI routes with token-based costing via `lib/ai/model-pricing.ts`
+- Foundation shipped: `account_feature_flags` + `package_kits_audit_log` + `reconciliation_alerts` + `update_package_kit_marketing_field` RPC + `resolve_studio_editor_v2` RPC
+- Key paths: `lib/features/studio-editor-v2.ts`, `components/admin/marketing/*`, `components/admin/ops/*`, `app/dashboard/[w]/products/[slug]/marketing/`, `app/dashboard/[w]/ops/reconciliation/`
+- Schema: `packages/website-contract/src/schemas/marketing-patch.ts` — `MarketingFieldPatchSchema` discriminated union (9 fields)
+- Audits: [[schema-parity-audit]] + [[ai-routes-cost-recording]]
+- Multi-front strategy: `.claude/plans/generic-crafting-sketch.md`
 
 ### [[package-kits]] + [[package-landing]]
 - [[SPEC_PACKAGE_DETAIL_CONVERSION_V2]] — Shipped (partial) 2026-04-17; F1/F2/F3 merged
@@ -267,6 +281,9 @@ Each concept below lists the ADRs/SPECs/ops docs that touch it. Use this to find
 - [[ADR-006]] — streaming-first AI integration
 - Specs: [[SPEC_SEO_CONTENT_INTELLIGENCE]] [[SPEC_SEO_OPTIMIZATION_TOOLKIT]] [[SPEC_SEO_DASHBOARD_PRODUCT_INTEGRATION]]
 - Env: `OPENROUTER_AUTH_TOKEN`, `OPENROUTER_BASE_URL`, `OPENROUTER_MODEL`
+- Cost tracking: `lib/ai/rate-limit.ts` (`checkRateLimit` + `recordCost`) + `lib/ai/model-pricing.ts` (`calculateCost(model, usage)`) — token-based per [[ai-routes-cost-recording]] audit
+- Streaming routes use `after()` from `next/server` for Cloudflare Worker cost-record compat
+- Pipeline double-counting avoided via header gate (`x-internal-call`) and/or inline-only accounting
 
 ### [[validation]] + [[website-contract]]
 - [[ADR-003]] — contract-first validation with Zod
