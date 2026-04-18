@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
-import { streamText } from 'ai';
+import { streamObject } from 'ai';
 import { apiError } from '@/lib/api/response';
 import { requireWebsiteAccess } from '@/lib/seo/server-auth';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/service-role';
@@ -10,6 +10,9 @@ import { getEditorModel } from '@/lib/ai/llm-provider';
 import {
   buildLocaleAdaptationPrompt,
   LocaleAdaptationOutputSchema,
+  SERP_META_DESC_MAX,
+  SERP_META_TITLE_MAX,
+  normalizeLocaleAdaptationOutput,
 } from '@/lib/ai/prompts/locale-adaptation';
 import {
   collectSourceFieldsForPage,
@@ -31,6 +34,11 @@ const TranscreateStreamRequestSchema = z.object({
   sourceKeyword: z.string().max(120).optional(),
   targetKeyword: z.string().max(120).optional(),
   draft: z.record(z.string(), z.unknown()).default({}),
+});
+
+const LocaleAdaptationStreamOutputSchema = LocaleAdaptationOutputSchema.extend({
+  meta_title: z.string().min(1).max(SERP_META_TITLE_MAX),
+  meta_desc: z.string().min(1).max(SERP_META_DESC_MAX),
 });
 
 type KeywordReresearchPayload = {
@@ -290,10 +298,13 @@ export async function POST(request: NextRequest) {
       sourceFields,
       targetKeyword: parsed.data.targetKeyword,
     });
-    const validated = LocaleAdaptationOutputSchema.safeParse(tmOutput);
-    if (validated.success) {
+    const normalizedTmOutput = normalizeLocaleAdaptationOutput(
+      tmOutput,
+      parsed.data.targetKeyword ?? parsed.data.sourceKeyword ?? undefined,
+    );
+    if (normalizedTmOutput) {
       return withNoStoreHeaders(
-        new Response(JSON.stringify(validated.data), {
+        new Response(JSON.stringify(normalizedTmOutput), {
           headers: { 'Content-Type': 'text/plain; charset=utf-8' },
         }),
       );
@@ -339,10 +350,11 @@ export async function POST(request: NextRequest) {
     tmHints,
   });
 
-  const result = streamText({
+  const result = streamObject({
     model: getEditorModel(),
     system: prompt.system,
     prompt: prompt.user,
+    schema: LocaleAdaptationStreamOutputSchema,
   });
 
   return withNoStoreHeaders(result.toTextStreamResponse());

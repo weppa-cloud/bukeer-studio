@@ -152,7 +152,10 @@ export function TranslationRow({
         return;
       }
 
-      const parsed = parseLocaleAdaptationCompletion(completionText);
+      const parsed = parseLocaleAdaptationCompletion(
+        completionText,
+        job.targetKeyword || job.sourceKeyword || undefined,
+      );
       if (!parsed) {
         setLocalError('La respuesta de IA no cumple el contrato esperado.');
         return;

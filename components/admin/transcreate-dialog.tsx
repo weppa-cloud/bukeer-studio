@@ -308,7 +308,10 @@ export function TranscreateDialog({
         return;
       }
 
-      const parsed = parseLocaleAdaptationCompletion(completionText);
+      const parsed = parseLocaleAdaptationCompletion(
+        completionText,
+        sourceKeyword || undefined,
+      );
       if (!parsed) {
         setErrorCode('AI_OUTPUT_INVALID');
         setErrorMessage('La respuesta de IA no cumple el contrato esperado.');

@@ -9,7 +9,10 @@ import {
   parseLocaleParts,
   withNoStoreHeaders,
 } from '@/lib/seo/content-intelligence';
-import { LocaleAdaptationOutputSchema } from '@/lib/ai/prompts/locale-adaptation';
+import {
+  type LocaleAdaptationOutput,
+  normalizeLocaleAdaptationOutput,
+} from '@/lib/ai/prompts/locale-adaptation';
 import { checkTranscreateRateLimit } from '@/lib/seo/transcreate-rate-limit';
 import {
   applyTranscreateJob,
@@ -129,13 +132,7 @@ function buildReresearchDetails(input: {
   };
 }
 
-function mapAiOutputToDraft(aiOutput: {
-  meta_title: string;
-  meta_desc: string;
-  slug: string;
-  h1: string;
-  keywords: string[];
-}): Record<string, unknown> {
+function mapAiOutputToDraft(aiOutput: LocaleAdaptationOutput): Record<string, unknown> {
   return {
     // New schema fields.
     meta_title: aiOutput.meta_title,
@@ -184,14 +181,16 @@ export async function POST(request: NextRequest) {
     let aiModel: string | null = null;
 
     if (draftSource === 'ai') {
-      const validatedAiOutput = LocaleAdaptationOutputSchema.safeParse(parsed.data.aiOutput);
-      if (!validatedAiOutput.success) {
+      const normalizedAiOutput = normalizeLocaleAdaptationOutput(
+        parsed.data.aiOutput,
+        parsed.data.targetKeyword ?? parsed.data.sourceKeyword ?? undefined,
+      );
+      if (!normalizedAiOutput) {
         return withNoStoreHeaders(
           apiError(
             'VALIDATION_ERROR',
             'aiOutput failed schema validation',
             400,
-            validatedAiOutput.error.flatten(),
           ),
         );
       }
@@ -215,7 +214,7 @@ export async function POST(request: NextRequest) {
 
       draftPayload = {
         ...draftPayload,
-        ...mapAiOutputToDraft(validatedAiOutput.data),
+        ...mapAiOutputToDraft(normalizedAiOutput),
       };
       aiGenerated = true;
       aiModel = parsed.data.aiModel ?? process.env.OPENROUTER_MODEL ?? null;

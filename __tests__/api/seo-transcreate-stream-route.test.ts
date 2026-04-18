@@ -27,13 +27,13 @@ jest.mock('@/lib/seo/transcreate-rate-limit', () => ({
 }));
 
 jest.mock('ai', () => ({
-  streamText: jest.fn(),
+  streamObject: jest.fn(),
 }));
 
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/service-role';
 import { collectSourceFieldsForPage, prepareDraftWithTM } from '@/lib/seo/transcreate-workflow';
 import { checkTranscreateRateLimit } from '@/lib/seo/transcreate-rate-limit';
-import { streamText } from 'ai';
+import { streamObject } from 'ai';
 import { NextRequest } from 'next/server';
 
 function mockKeywordCandidatesAdmin() {
@@ -118,10 +118,10 @@ describe('/api/seo/content-intelligence/transcreate/stream', () => {
     const parsed = JSON.parse(text);
     expect(response.status).toBe(200);
     expect(parsed.meta_title).toBeDefined();
-    expect(streamText).not.toHaveBeenCalled();
+    expect(streamObject).not.toHaveBeenCalled();
   });
 
-  it('calls streamText when TM coverage is incomplete', async () => {
+  it('calls streamObject when TM coverage is incomplete', async () => {
     const admin = mockKeywordCandidatesAdmin();
     (createSupabaseServiceRoleClient as jest.Mock).mockReturnValue(admin);
     (collectSourceFieldsForPage as jest.Mock).mockResolvedValue({
@@ -138,7 +138,7 @@ describe('/api/seo/content-intelligence/transcreate/stream', () => {
       remaining: 9,
       resetAt: new Date(Date.now() + 60_000),
     });
-    (streamText as jest.Mock).mockReturnValue({
+    (streamObject as jest.Mock).mockReturnValue({
       toTextStreamResponse: () =>
         new Response('{"meta_title":"A","meta_desc":"B","slug":"a","h1":"A","keywords":["a"]}'),
     });
@@ -158,6 +158,6 @@ describe('/api/seo/content-intelligence/transcreate/stream', () => {
     );
 
     expect(response.status).toBe(200);
-    expect(streamText).toHaveBeenCalled();
+    expect(streamObject).toHaveBeenCalled();
   });
 });

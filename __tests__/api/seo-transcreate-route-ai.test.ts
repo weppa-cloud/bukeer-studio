@@ -173,4 +173,47 @@ describe('/api/seo/content-intelligence/transcreate create_draft with AI payload
     expect(payload.title).toBe('Best Caribbean Package');
     expect(payload.targetKeyword).toBe('caribbean package');
   });
+
+  it('accepts keywords string by normalizing aiOutput before persistence', async () => {
+    const capture: { jobInsert?: Record<string, unknown> } = {};
+    (createSupabaseServiceRoleClient as jest.Mock).mockReturnValue(buildAdminMock(capture));
+    (checkTranscreateRateLimit as jest.Mock).mockResolvedValue({
+      allowed: true,
+      remaining: 9,
+      resetAt: new Date(Date.now() + 60_000),
+    });
+    (prepareDraftWithTM as jest.Mock).mockImplementation(async (input: { draft: Record<string, unknown> }) => ({
+      payload: input.draft,
+      tmHits: [],
+      glossaryPromptBlock: '',
+    }));
+
+    const mod = await import('@/app/api/seo/content-intelligence/transcreate/route');
+    const response = await mod.POST(
+      request({
+        action: 'create_draft',
+        websiteId: '11111111-1111-4111-8111-111111111111',
+        sourceContentId: '22222222-2222-4222-8222-222222222222',
+        pageType: 'page',
+        sourceLocale: 'es-CO',
+        targetLocale: 'en-US',
+        country: 'United States',
+        language: 'en',
+        draftSource: 'ai',
+        sourceKeyword: 'cartagena 4 dias 3 noches',
+        aiOutput: {
+          meta_title: 'Cartagena 4 Days',
+          meta_desc: 'Discover Cartagena in 4 days.',
+          slug: 'cartagena-4-days',
+          h1: 'Cartagena 4 Days',
+          keywords: 'cartagena 4 days 3 nights',
+        },
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    const payload = capture.jobInsert?.payload as Record<string, unknown>;
+    expect(payload.keywords).toEqual(['cartagena 4 days 3 nights']);
+    expect(payload.targetKeyword).toBe('cartagena 4 days 3 nights');
+  });
 });
