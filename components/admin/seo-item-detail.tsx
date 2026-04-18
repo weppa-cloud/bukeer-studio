@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { StudioTabs, StudioButton, StudioBadge, StudioInput, StudioSelect, StudioTextarea } from '@/components/studio/ui/primitives';
@@ -217,6 +218,13 @@ function formatDateInput(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
 
+const SUPPORTED_LOCALES = ['es-CO', 'es-MX', 'en-US'] as const;
+type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
+
+function isSupportedLocale(value: string): value is SupportedLocale {
+  return (SUPPORTED_LOCALES as readonly string[]).includes(value);
+}
+
 export function SeoItemDetail({
   item,
   websiteId,
@@ -225,8 +233,26 @@ export function SeoItemDetail({
   onBack,
   onSave,
 }: SeoItemDetailProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   const [activeTab, setActiveTab] = useState<DetailTab>('meta');
-  const [locale, setLocale] = useState('es-CO');
+
+  const localeParam = searchParams?.get('locale') ?? '';
+  const locale: SupportedLocale = isSupportedLocale(localeParam) ? localeParam : 'es-CO';
+
+  const setLocale = useCallback(
+    (next: string) => {
+      const params = new URLSearchParams(searchParams?.toString() ?? '');
+      if (isSupportedLocale(next)) {
+        params.set('locale', next);
+      } else {
+        params.delete('locale');
+      }
+      router.replace(`?${params.toString()}`, { scroll: false });
+    },
+    [router, searchParams],
+  );
   const [seoTitle, setSeoTitle] = useState(item.seoTitle ?? '');
   const [seoDescription, setSeoDescription] = useState(item.seoDescription ?? '');
   const [targetKeyword, setTargetKeyword] = useState(item.targetKeyword ?? '');
@@ -995,7 +1021,7 @@ export function SeoItemDetail({
             <h1 className="text-xl font-semibold text-[var(--studio-text)]">{item.name}</h1>
             <p className="text-sm text-[var(--studio-text-muted)] capitalize">{item.type}</p>
             <div className="flex items-center gap-1.5 mt-1.5">
-              {['es-CO', 'es-MX', 'en-US'].map((loc) => (
+              {SUPPORTED_LOCALES.map((loc) => (
                 <button
                   key={loc}
                   type="button"
@@ -1573,7 +1599,7 @@ export function SeoItemDetail({
             </div>
             <div className="space-y-1">
               <label className="text-xs text-[var(--studio-text-muted)]">Locale</label>
-              <StudioInput value={locale} onChange={(event) => setLocale(event.target.value)} />
+              <StudioInput value={locale} readOnly />
             </div>
             <div className="flex items-end">
               <StudioButton onClick={() => void loadTrack()} disabled={trackLoading}>

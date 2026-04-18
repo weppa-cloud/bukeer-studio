@@ -245,3 +245,37 @@ export type SeoOptimizeRequest = z.infer<typeof SeoOptimizeRequestSchema>;
 export type SeoTranscreateRequest = z.infer<typeof SeoTranscreateRequestSchema>;
 export type SeoTrackQuery = z.infer<typeof SeoTrackQuerySchema>;
 export type SeoPageCatalogQuery = z.infer<typeof SeoPageCatalogQuerySchema>;
+
+export const ProductSeoOverrideProductTypeSchema = z.enum([
+  'package_kit',
+  'hotel',
+  'activity',
+  'transfer',
+]);
+
+export const ProductSeoOverrideSchema = z.object({
+  id: z.string().uuid().optional(),
+  websiteId: z.string().uuid(),
+  productType: ProductSeoOverrideProductTypeSchema,
+  productId: z.string().uuid(),
+  locale: z.string().min(2).max(16),
+  metaTitle: z.string().max(70).nullable().optional(),
+  metaDesc: z.string().max(160).nullable().optional(),
+  slug: z.string().max(120).regex(/^[a-z0-9-]+$/).nullable().optional(),
+  h1: z.string().max(100).nullable().optional(),
+  keywords: z.array(z.string()).max(10).default([]),
+});
+
+export const ProductSeoOverrideUpsertSchema = ProductSeoOverrideSchema.omit({ id: true });
+
+export const ProductSeoOverrideQuerySchema = z.object({
+  websiteId: z.string().uuid(),
+  productType: ProductSeoOverrideProductTypeSchema,
+  productId: z.string().uuid(),
+  locale: z.string().min(2).max(16),
+});
+
+export type ProductSeoOverrideProductType = z.infer<typeof ProductSeoOverrideProductTypeSchema>;
+export type ProductSeoOverride = z.infer<typeof ProductSeoOverrideSchema>;
+export type ProductSeoOverrideUpsert = z.infer<typeof ProductSeoOverrideUpsertSchema>;
+export type ProductSeoOverrideQuery = z.infer<typeof ProductSeoOverrideQuerySchema>;

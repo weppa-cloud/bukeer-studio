@@ -270,6 +270,10 @@ export {
   SeoTranscreateRequestSchema,
   SeoTrackQuerySchema,
   SeoPageCatalogQuerySchema,
+  ProductSeoOverrideProductTypeSchema,
+  ProductSeoOverrideSchema,
+  ProductSeoOverrideUpsertSchema,
+  ProductSeoOverrideQuerySchema,
 } from './schemas/seo-content-intelligence';
 export type {
   SeoSourceMetadata,
@@ -286,6 +290,10 @@ export type {
   SeoTranscreateRequest,
   SeoTrackQuery,
   SeoPageCatalogQuery,
+  ProductSeoOverrideProductType,
+  ProductSeoOverride,
+  ProductSeoOverrideUpsert,
+  ProductSeoOverrideQuery,
 } from './schemas/seo-content-intelligence';
 
 // Translations / Growth Ops / Human Rhythm (EPIC #128)
