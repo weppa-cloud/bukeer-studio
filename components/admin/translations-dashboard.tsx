@@ -13,6 +13,7 @@ import { TranslationRow } from '@/components/admin/translation-row';
 import { TranslationBulkBar } from '@/components/admin/translation-bulk-bar';
 import { DriftBanner } from '@/components/admin/drift-banner';
 import { TopicalAuthorityCard } from '@/components/admin/topical-authority-card';
+import { inferLocaleParts, parseLocaleAdaptationCompletion } from '@/lib/seo/transcreate-client';
 
 export interface TranslationsFilterValues {
   sourceLocale: string;
@@ -29,9 +30,30 @@ export interface TranslationRowVM {
   drift: boolean;
 }
 
+export type TranslationCoverageStatus = 'source' | 'translated' | 'in_progress' | 'missing';
+
+export interface TranslationCoverageCellVM {
+  targetLocale: string;
+  status: TranslationCoverageStatus;
+  jobId: string | null;
+}
+
+export interface TranslationCoverageRowVM {
+  key: string;
+  pageType: TranslationJobItem['pageType'];
+  pageId: string;
+  sourceLocale: string;
+  sourceKeyword: string | null;
+  targetKeyword: string | null;
+  updatedAt: string;
+  cells: TranslationCoverageCellVM[];
+}
+
 interface TranslationsDashboardProps {
   websiteId: string;
   rows: TranslationRowVM[];
+  coverageRows: TranslationCoverageRowVM[];
+  coverageLocales: string[];
   kpis: {
     total: number;
     translated: number;
@@ -82,9 +104,25 @@ function KpiCard({
   );
 }
 
+function getCoverageLabel(status: TranslationCoverageStatus): string {
+  if (status === 'translated') return 'OK';
+  if (status === 'in_progress') return 'Draft';
+  if (status === 'source') return 'Source';
+  return 'Missing';
+}
+
+function getCoverageTone(status: TranslationCoverageStatus): 'success' | 'warning' | 'danger' | 'neutral' {
+  if (status === 'translated') return 'success';
+  if (status === 'in_progress') return 'warning';
+  if (status === 'source') return 'neutral';
+  return 'danger';
+}
+
 export function TranslationsDashboard({
   websiteId,
   rows,
+  coverageRows,
+  coverageLocales,
   kpis,
   driftCount,
   filters,
@@ -94,6 +132,8 @@ export function TranslationsDashboard({
   const [isPending, startTransition] = useTransition();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState(filters.search);
+  const [matrixBusyKey, setMatrixBusyKey] = useState<string | null>(null);
+  const [matrixError, setMatrixError] = useState<string | null>(null);
 
   const updateSearchParams = useCallback(
     (updates: Partial<TranslationsFilterValues>) => {
@@ -136,6 +176,94 @@ export function TranslationsDashboard({
   const handleToggleDrift = useCallback(() => {
     updateSearchParams({ drift: !filters.drift });
   }, [filters.drift, updateSearchParams]);
+
+  const handleCoverageGenerateAi = useCallback(
+    async (row: TranslationCoverageRowVM, targetLocale: string) => {
+      const busyKey = `${row.key}:${targetLocale}`;
+      setMatrixBusyKey(busyKey);
+      setMatrixError(null);
+
+      try {
+        const { country, language } = inferLocaleParts(targetLocale);
+        const streamResponse = await fetch('/api/seo/content-intelligence/transcreate/stream', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            websiteId,
+            sourceContentId: row.pageId,
+            pageType: row.pageType,
+            sourceLocale: row.sourceLocale,
+            targetLocale,
+            country,
+            language,
+            sourceKeyword: row.sourceKeyword || undefined,
+            targetKeyword: row.targetKeyword || row.sourceKeyword || undefined,
+            draft: {},
+          }),
+        });
+
+        const streamText = await streamResponse.text();
+        if (!streamResponse.ok) {
+          const fallbackMessage = `No se pudo generar draft AI para ${targetLocale}.`;
+          try {
+            const parsedError = JSON.parse(streamText) as {
+              error?: { message?: string };
+            };
+            throw new Error(parsedError.error?.message || fallbackMessage);
+          } catch {
+            throw new Error(fallbackMessage);
+          }
+        }
+
+        const aiOutput = parseLocaleAdaptationCompletion(
+          streamText,
+          row.targetKeyword || row.sourceKeyword || undefined,
+        );
+        if (!aiOutput) {
+          throw new Error('La respuesta de IA no cumple el contrato esperado.');
+        }
+
+        const saveResponse = await fetch('/api/seo/content-intelligence/transcreate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'create_draft',
+            websiteId,
+            sourceContentId: row.pageId,
+            pageType: row.pageType,
+            sourceLocale: row.sourceLocale,
+            targetLocale,
+            country,
+            language,
+            sourceKeyword: row.sourceKeyword || undefined,
+            targetKeyword: row.targetKeyword || row.sourceKeyword || undefined,
+            draftSource: 'ai',
+            aiOutput,
+            aiModel: 'openrouter',
+            draft: {},
+          }),
+        });
+
+        const saveBody = (await saveResponse.json().catch(() => ({}))) as {
+          success?: boolean;
+          error?: { message?: string };
+        };
+
+        if (!saveResponse.ok || !saveBody.success) {
+          throw new Error(saveBody.error?.message || 'No se pudo crear el draft AI.');
+        }
+
+        router.refresh();
+      } catch (error) {
+        setMatrixError(
+          error instanceof Error ? error.message : 'No se pudo ejecutar Translate with AI.',
+        );
+      } finally {
+        setMatrixBusyKey(null);
+      }
+    },
+    [router, websiteId],
+  );
 
   const pendingRows = useMemo(
     () => rows.filter((row) => row.job.status === 'draft'),
@@ -254,6 +382,94 @@ export function TranslationsDashboard({
         <div className="xl:col-span-2">
           <TopicalAuthorityCard websiteId={websiteId} locale={topicalLocale} />
         </div>
+      </section>
+
+      {/* Coverage matrix */}
+      <section className="studio-card overflow-x-auto">
+        <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-[var(--studio-border)]">
+          <div>
+            <h2 className="text-sm font-semibold text-[var(--studio-text)]">Coverage matrix</h2>
+            <p className="text-xs text-[var(--studio-text-muted)]">
+              Cobertura por página y locale. Verde: publicado/applied, naranja: draft/review, rojo: faltante.
+            </p>
+          </div>
+          <StudioBadge tone="neutral">{coverageRows.length}</StudioBadge>
+        </div>
+        {matrixError ? (
+          <div className="px-4 py-2 text-xs text-[var(--studio-danger)] border-b border-[var(--studio-border)]">
+            {matrixError}
+          </div>
+        ) : null}
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-left border-b border-[var(--studio-border)]">
+              <th className="py-2 px-3">Página</th>
+              <th className="py-2 px-3">Tipo</th>
+              {coverageLocales.map((locale) => (
+                <th key={locale} className="py-2 px-3 text-center">
+                  {locale}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {coverageRows.length === 0 ? (
+              <tr>
+                <td
+                  colSpan={2 + coverageLocales.length}
+                  className="px-3 py-6 text-center text-[var(--studio-text-muted)]"
+                >
+                  No hay datos de cobertura para los filtros actuales.
+                </td>
+              </tr>
+            ) : (
+              coverageRows.map((row) => {
+                const cellByLocale = new Map(row.cells.map((cell) => [cell.targetLocale, cell]));
+                return (
+                  <tr key={row.key} className="border-b border-[var(--studio-border)]/50">
+                    <td className="px-3 py-2 min-w-[220px]">
+                      <div className="flex flex-col">
+                        <span className="font-medium text-[var(--studio-text)] truncate">
+                          {row.targetKeyword || row.sourceKeyword || row.pageId}
+                        </span>
+                        <span className="text-[11px] text-[var(--studio-text-muted)] font-mono truncate">
+                          {row.pageId}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-3 py-2 capitalize text-[var(--studio-text-muted)]">
+                      {row.pageType}
+                    </td>
+                    {coverageLocales.map((locale) => {
+                      const cell = cellByLocale.get(locale);
+                      const status: TranslationCoverageStatus = cell?.status ?? 'missing';
+                      const busy = matrixBusyKey === `${row.key}:${locale}`;
+                      return (
+                        <td key={`${row.key}:${locale}`} className="px-3 py-2 text-center">
+                          <div className="inline-flex flex-col items-center gap-1">
+                            <StudioBadge tone={getCoverageTone(status)}>
+                              {getCoverageLabel(status)}
+                            </StudioBadge>
+                            {status === 'missing' ? (
+                              <StudioButton
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => void handleCoverageGenerateAi(row, locale)}
+                                disabled={Boolean(matrixBusyKey)}
+                              >
+                                {busy ? 'Generating…' : 'Translate with AI'}
+                              </StudioButton>
+                            ) : null}
+                          </div>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
       </section>
 
       {/* Pending table */}

@@ -4,7 +4,7 @@
 >
 > **Convention:** `[[ADR-XXX]]` or `[[SPEC_NAME]]` = wikilink resolved below. `[text](path.md)` = regular markdown link. Both coexist.
 
-Last updated: 2026-04-17 (WIKI full-refresh + #103 media closure checklist)
+Last updated: 2026-04-17 (WIKI full-refresh + #103 media closure checklist); 2026-04-17 wiki-patch (epic128 evidence + issue resolution rows)
 
 ---
 
@@ -142,6 +142,9 @@ Feature requests formalized. Status tracked inline. GitHub Issues = source of tr
 | [[product-landing-qa-matrix]] | [file](./qa/product-landing-qa-matrix.md) | QA matrix for 3 release tenants. |
 | [[link-validation-colombiatours]] | [file](./qa/link-validation-colombiatours.md) | Link validation report (2026-04-15). |
 | [[epic86-walkthrough]] | [file](./evidence/epic86/walkthrough.md) | EPIC 86 evidence (Issue #122). |
+| [[epic128-lighthouse-summary]] | [file](./evidence/epic128/lighthouse-summary.md) | EPIC 128 Lighthouse/CWV summary. |
+| [[epic128-production-ready-attestation-v2]] | [file](./evidence/epic128/production-ready-attestation-v2.md) | EPIC 128 production-ready attestation v2. |
+| [[epic128-ux-fluency]] | [file](./evidence/epic128/ux-fluency.md) | EPIC 128 UX fluency evidence. |
 
 ---
 
@@ -151,6 +154,7 @@ Persisted state pre-#148 (`seo_website_okrs`). Post-#148 these stay as human-rea
 
 | Wikilink | File | Purpose |
 |----------|------|---------|
+| [[growth-okrs-readme]] | [file](./growth-okrs/README.md) | Growth OKRs directory README (structure + template). |
 | [[growth-okrs-active]] | [file](./growth-okrs/active.md) | Active OKRs (7D/30D/90D). |
 | [[growth-okrs-budget]] | [file](./growth-okrs/budget.md) | Provider budget counter (pre-#130). |
 | [[growth-sessions-readme]] | [file](./growth-sessions/README.md) | Per-session audit trail. |
@@ -342,6 +346,16 @@ Obsidian resolves `[[ADR-005]]` by filename stem or alias. Claude Code / Codex g
 | `[[product-detail-inventory]]` | `docs/product/product-detail-inventory.md` |
 | `[[product-detail-matrix]]` | `docs/product/product-detail-matrix.md` |
 | `[[e2e-sessions]]` | `.claude/rules/e2e-sessions.md` |
+| `[[#127]]` | GitHub Issue — Package Detail Conversion v2 (hero chips, WhatsApp CTA) |
+| `[[#165]]` | GitHub Issue — Product Video Field (video_url + hero lightbox) |
+| `[[#171]]` | GitHub Issue — Package Content Population (epic parent F1/F2/F3) |
+| `[[#172]]` | GitHub Issue — F1 `get_package_aggregated_data` RPC |
+| `[[#173]]` | GitHub Issue — F2 `ItineraryItemRenderer` per-type variants |
+| `[[#174]]` | GitHub Issue — F3 AI highlights + description (`/api/ai/generate-package-content`) |
+| `[[SPEC #187]]` | GitHub Issue — Multi-locale translation + SEO migration EPIC |
+| `[[epic128-lighthouse-summary]]` | `docs/evidence/epic128/lighthouse-summary.md` |
+| `[[epic128-production-ready-attestation-v2]]` | `docs/evidence/epic128/production-ready-attestation-v2.md` |
+| `[[epic128-ux-fluency]]` | `docs/evidence/epic128/ux-fluency.md` |
 | Any unresolved concept | Search this INDEX with `grep "[[concept]]" docs/INDEX.md`. |
 
 ---

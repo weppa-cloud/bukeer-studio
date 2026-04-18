@@ -5,9 +5,11 @@ import { requireWebsiteAccess } from '@/lib/seo/server-auth';
 import { StudioPage, StudioSectionHeader } from '@/components/studio/ui/primitives';
 import { TranslationsDashboard } from '@/components/admin/translations-dashboard';
 import type {
+  TranslationCoverageRowVM,
   TranslationRowVM,
   TranslationsFilterValues,
 } from '@/components/admin/translations-dashboard';
+import { normalizeWebsiteLocales } from '@/lib/seo/locale-routing';
 
 // Rendering must stay dynamic — filters come from searchParams.
 export const dynamic = 'force-dynamic';
@@ -27,6 +29,8 @@ interface TranslationsPageProps {
 
 interface TranslationsDataPayload {
   rows: TranslationRowVM[];
+  coverageRows: TranslationCoverageRowVM[];
+  coverageLocales: string[];
   total: number;
   kpis: {
     total: number;
@@ -60,6 +64,8 @@ async function loadTranslations(
   const fallbackKpis = { total: 0, translated: 0, inDraft: 0, inReview: 0, pending: 0 };
   const empty: TranslationsDataPayload = {
     rows: [],
+    coverageRows: [],
+    coverageLocales: [],
     total: 0,
     kpis: fallbackKpis,
     driftCount: 0,
@@ -90,6 +96,27 @@ async function loadTranslations(
   }
 
   const admin = createSupabaseServiceRoleClient();
+  let coverageLocales: string[] = [];
+  try {
+    const { data: websiteLocales } = await admin
+      .from('websites')
+      .select('supported_locales,default_locale')
+      .eq('id', websiteId)
+      .single();
+
+    const normalized = normalizeWebsiteLocales({
+      defaultLocale:
+        typeof websiteLocales?.default_locale === 'string'
+          ? websiteLocales.default_locale
+          : undefined,
+      supportedLocales: Array.isArray(websiteLocales?.supported_locales)
+        ? websiteLocales.supported_locales
+        : undefined,
+    });
+    coverageLocales = normalized.supportedLocales;
+  } catch {
+    coverageLocales = [];
+  }
 
   try {
     let query = admin
@@ -203,6 +230,108 @@ async function loadTranslations(
       };
     });
 
+    const coverageGroup = new Map<
+      string,
+      {
+        pageType: TranslationRowVM['job']['pageType'];
+        pageId: string;
+        sourceLocale: string;
+        sourceKeyword: string | null;
+        targetKeyword: string | null;
+        updatedAt: string;
+        byLocale: Map<string, TranslationRowVM['job']>;
+      }
+    >();
+
+    for (const row of rows) {
+      if (!row.job.pageId) continue;
+      const key = `${row.job.pageType}:${row.job.pageId}`;
+      const existing = coverageGroup.get(key);
+      if (!existing) {
+        coverageGroup.set(key, {
+          pageType: row.job.pageType,
+          pageId: row.job.pageId,
+          sourceLocale: row.job.sourceLocale,
+          sourceKeyword: row.job.sourceKeyword,
+          targetKeyword: row.job.targetKeyword,
+          updatedAt: row.job.updatedAt,
+          byLocale: new Map([[row.job.targetLocale, row.job]]),
+        });
+        continue;
+      }
+
+      const current = existing.byLocale.get(row.job.targetLocale);
+      if (
+        !current ||
+        new Date(row.job.updatedAt).getTime() > new Date(current.updatedAt).getTime()
+      ) {
+        existing.byLocale.set(row.job.targetLocale, row.job);
+      }
+
+      if (new Date(row.job.updatedAt).getTime() > new Date(existing.updatedAt).getTime()) {
+        existing.updatedAt = row.job.updatedAt;
+      }
+
+      if (!existing.sourceKeyword && row.job.sourceKeyword) {
+        existing.sourceKeyword = row.job.sourceKeyword;
+      }
+      if (!existing.targetKeyword && row.job.targetKeyword) {
+        existing.targetKeyword = row.job.targetKeyword;
+      }
+    }
+
+    const fallbackLocaleSet = new Set<string>(coverageLocales);
+    for (const row of rows) {
+      fallbackLocaleSet.add(row.job.sourceLocale);
+      fallbackLocaleSet.add(row.job.targetLocale);
+    }
+    const effectiveCoverageLocales = Array.from(fallbackLocaleSet);
+
+    const coverageRows: TranslationCoverageRowVM[] = Array.from(coverageGroup.entries())
+      .map(([key, group]) => {
+        const cells = effectiveCoverageLocales.map((locale) => {
+          if (locale === group.sourceLocale) {
+            return {
+              targetLocale: locale,
+              status: 'source' as const,
+              jobId: null,
+            };
+          }
+
+          const job = group.byLocale.get(locale);
+          if (!job) {
+            return {
+              targetLocale: locale,
+              status: 'missing' as const,
+              jobId: null,
+            };
+          }
+
+          const status =
+            job.status === 'applied' || job.status === 'published'
+              ? ('translated' as const)
+              : ('in_progress' as const);
+
+          return {
+            targetLocale: locale,
+            status,
+            jobId: job.id,
+          };
+        });
+
+        return {
+          key,
+          pageType: group.pageType,
+          pageId: group.pageId,
+          sourceLocale: group.sourceLocale,
+          sourceKeyword: group.sourceKeyword ?? null,
+          targetKeyword: group.targetKeyword ?? null,
+          updatedAt: group.updatedAt,
+          cells,
+        };
+      })
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+
     const filteredRows = filters.drift ? rows.filter((row) => row.drift) : rows;
 
     const kpis = {
@@ -223,6 +352,8 @@ async function loadTranslations(
 
     return {
       rows: filteredRows,
+      coverageRows,
+      coverageLocales: effectiveCoverageLocales,
       total: filteredRows.length,
       kpis,
       driftCount: rows.filter((row) => row.drift).length,
@@ -258,6 +389,8 @@ export default async function TranslationsPage({
       <TranslationsDashboard
         websiteId={websiteId}
         rows={payload.rows}
+        coverageRows={payload.coverageRows}
+        coverageLocales={payload.coverageLocales}
         kpis={payload.kpis}
         driftCount={payload.driftCount}
         filters={payload.filters}
