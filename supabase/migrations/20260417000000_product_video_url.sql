@@ -1,14 +1,14 @@
--- #165 — Product Video Field
--- Adds video_url + video_caption to products table (packages, activities, hotels, transfers).
--- write path: Flutter admin → existing product update
--- read path: Studio SSR via get_website_product_page RPC
+-- #165 — Product Video Field (Phase 0 scope: package_kits)
+-- Phase 0 scope: package_kits only. Activities + hotels follow-up (own schemas).
+-- write path: Studio editor PATCH /api/products/[id]/video
+-- read path: Studio SSR for public /paquetes/[slug] landing
 
-ALTER TABLE public.products
+ALTER TABLE public.package_kits
   ADD COLUMN IF NOT EXISTS video_url     text   DEFAULT NULL
-    CONSTRAINT products_video_url_shape CHECK (
+    CONSTRAINT package_kits_video_url_shape CHECK (
       video_url IS NULL
       OR video_url ~* '^https?://'
     ),
   ADD COLUMN IF NOT EXISTS video_caption text   DEFAULT NULL;
 
--- Rollback: ALTER TABLE public.products DROP COLUMN IF EXISTS video_url, DROP COLUMN IF EXISTS video_caption;
+-- Rollback: ALTER TABLE public.package_kits DROP COLUMN IF EXISTS video_url, DROP COLUMN IF EXISTS video_caption;

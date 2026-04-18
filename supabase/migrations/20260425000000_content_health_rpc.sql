@@ -1,18 +1,21 @@
 -- ============================================================================
 -- Issue #192 (child of #190) — Phase 0.5: Content Health RPCs
+-- Phase 0 scope: package_kits only. Activities + hotels follow-up.
 --
 -- SCORE FORMULA
 --   Required fields (40 pts):
---     name, description ≥80ch, image, price, slug → 8 pts c/u
+--     name, description ≥80ch, cover_image_url, slug → 10 pts c/u
 --   Marketing fields (30 pts):
---     highlights, inclusions, exclusions, gallery ≥2, video → 6 pts c/u
---   SEO fields (15 pts):
---     custom_seo_title, custom_seo_description, social_image → 5 pts c/u
+--     program_highlights, program_inclusions, program_exclusions,
+--     program_gallery ≥2, video_url → 6 pts c/u
+--   SEO fields (15 pts — read from website_product_pages, if exists):
+--     custom_seo_title, custom_seo_description, social_image (cover proxy)
+--     → 5 pts c/u
 --   Ghost penalty: -2 pts per ghost (max -20)
---   AI locked bonus: +0.5 pt per locked field (max +5)
 --   Clamp [0, 100]
 --
--- TENANCY (ADR-005): SECURITY DEFINER + explicit account_id check. No auth.uid().
+-- TENANCY (ADR-005): SECURITY DEFINER + explicit account_id check via
+-- package_kits.account_id. No auth.uid().
 -- ============================================================================
 
 -- ─── Scalar function: compute_content_health_score ──────────────────────────
@@ -26,8 +29,7 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-  v_account_id    UUID;
-  v_product       RECORD;
+  v_pkg           RECORD;
   v_page          RECORD;
   v_score         INT := 0;
   v_ghosts        JSONB := '[]'::jsonb;
@@ -35,21 +37,21 @@ DECLARE
   v_fallbacks     JSONB := '[]'::jsonb;
   v_computed      JSONB := '[]'::jsonb;
   v_ghost_count   INT := 0;
-  v_ai_locked     INT := 0;
 BEGIN
-  -- 1. Load product + tenancy
-  SELECT p.id, p.account_id, p.type, p.name, p.slug, p.description, p.image,
-         p.price, p.video_url, p.highlights, p.photos,
-         p.inclusions, p.exclusions
-  INTO   v_product
-  FROM   public.products p
-  WHERE  p.id = p_product_id
+  -- 1. Load package_kit (source of truth for marketing + required fields)
+  SELECT pk.id, pk.account_id, pk.name, pk.slug, pk.description, pk.cover_image_url,
+         pk.video_url, pk.program_highlights, pk.program_inclusions,
+         pk.program_exclusions, pk.program_gallery,
+         pk.description_ai_generated, pk.highlights_ai_generated
+  INTO   v_pkg
+  FROM   public.package_kits pk
+  WHERE  pk.id = p_product_id
   LIMIT  1;
 
-  IF v_product IS NULL THEN
+  IF v_pkg IS NULL THEN
     RETURN jsonb_build_object(
       'product_id', p_product_id,
-      'product_type', 'activity',
+      'product_type', 'package',
       'score', 0,
       'ghosts', '[]'::jsonb,
       'ai_fields', '[]'::jsonb,
@@ -59,36 +61,43 @@ BEGIN
     );
   END IF;
 
-  v_account_id := v_product.account_id;
-
-  -- 2. Load page customization (optional)
-  SELECT ppc.custom_seo_title, ppc.custom_seo_description, ppc.custom_hero,
-         ppc.custom_faq, ppc.custom_highlights, ppc.hidden_sections
+  -- 2. Load website_product_pages row (optional — SEO overrides + custom sections)
+  SELECT wpp.custom_seo_title, wpp.custom_seo_description, wpp.custom_hero,
+         wpp.custom_faq, wpp.custom_highlights, wpp.hidden_sections
   INTO   v_page
-  FROM   public.product_page_customizations ppc
-  WHERE  ppc.product_id = p_product_id
+  FROM   public.website_product_pages wpp
+  WHERE  wpp.product_id = p_product_id AND wpp.product_type = 'package'
+  ORDER  BY wpp.updated_at DESC NULLS LAST
   LIMIT  1;
 
-  -- 3. Required fields (40 pts — 8 each)
-  IF COALESCE(v_product.name,'') <> '' THEN v_score := v_score + 8; END IF;
-  IF COALESCE(length(v_product.description),0) >= 80 THEN
-    v_score := v_score + 8;
+  -- 3. Required fields (40 pts — 10 each)
+  IF COALESCE(v_pkg.name,'') <> '' THEN v_score := v_score + 10; END IF;
+
+  IF COALESCE(length(v_pkg.description),0) >= 80 THEN
+    v_score := v_score + 10;
   ELSE
     v_ghosts := v_ghosts || jsonb_build_object(
-      'section', 'description',
-      'label', 'Descripción',
-      'reason', 'threshold_not_met',
+      'section', 'description', 'label', 'Descripción', 'reason', 'threshold_not_met',
       'cta', jsonb_build_object('label','Editar descripción','anchor','#editor-description')
     );
     v_ghost_count := v_ghost_count + 1;
   END IF;
-  IF COALESCE(v_product.image,'') <> '' THEN v_score := v_score + 8; END IF;
-  IF v_product.price IS NOT NULL AND v_product.price > 0 THEN v_score := v_score + 8; END IF;
-  IF COALESCE(v_product.slug,'') <> '' THEN v_score := v_score + 8; END IF;
+
+  IF COALESCE(v_pkg.cover_image_url,'') <> '' THEN
+    v_score := v_score + 10;
+  ELSE
+    v_ghosts := v_ghosts || jsonb_build_object(
+      'section','cover_image','label','Imagen de portada','reason','empty',
+      'cta', jsonb_build_object('label','Subir imagen','anchor','#editor-cover')
+    );
+    v_ghost_count := v_ghost_count + 1;
+  END IF;
+
+  IF COALESCE(v_pkg.slug,'') <> '' THEN v_score := v_score + 10; END IF;
 
   -- 4. Marketing fields (30 pts — 6 each)
   IF (v_page.custom_highlights IS NOT NULL AND jsonb_array_length(v_page.custom_highlights) > 0)
-     OR (v_product.highlights IS NOT NULL AND jsonb_array_length(v_product.highlights) > 0) THEN
+     OR (v_pkg.program_highlights IS NOT NULL AND jsonb_array_length(v_pkg.program_highlights) > 0) THEN
     v_score := v_score + 6;
   ELSE
     v_ghosts := v_ghosts || jsonb_build_object(
@@ -98,7 +107,7 @@ BEGIN
     v_ghost_count := v_ghost_count + 1;
   END IF;
 
-  IF v_product.inclusions IS NOT NULL THEN
+  IF v_pkg.program_inclusions IS NOT NULL AND jsonb_array_length(v_pkg.program_inclusions) > 0 THEN
     v_score := v_score + 6;
   ELSE
     v_ghosts := v_ghosts || jsonb_build_object(
@@ -108,7 +117,7 @@ BEGIN
     v_ghost_count := v_ghost_count + 1;
   END IF;
 
-  IF v_product.exclusions IS NOT NULL THEN
+  IF v_pkg.program_exclusions IS NOT NULL AND jsonb_array_length(v_pkg.program_exclusions) > 0 THEN
     v_score := v_score + 6;
   ELSE
     v_ghosts := v_ghosts || jsonb_build_object(
@@ -118,7 +127,7 @@ BEGIN
     v_ghost_count := v_ghost_count + 1;
   END IF;
 
-  IF v_product.photos IS NOT NULL AND jsonb_array_length(v_product.photos) >= 2 THEN
+  IF v_pkg.program_gallery IS NOT NULL AND jsonb_array_length(v_pkg.program_gallery) >= 2 THEN
     v_score := v_score + 6;
   ELSE
     v_ghosts := v_ghosts || jsonb_build_object(
@@ -128,7 +137,7 @@ BEGIN
     v_ghost_count := v_ghost_count + 1;
   END IF;
 
-  IF COALESCE(v_product.video_url,'') <> '' THEN
+  IF COALESCE(v_pkg.video_url,'') <> '' THEN
     v_score := v_score + 6;
   ELSE
     v_ghosts := v_ghosts || jsonb_build_object(
@@ -141,34 +150,42 @@ BEGIN
   -- 5. SEO fields (15 pts — 5 each)
   IF COALESCE(v_page.custom_seo_title,'') <> '' THEN v_score := v_score + 5; END IF;
   IF COALESCE(v_page.custom_seo_description,'') <> '' THEN v_score := v_score + 5; END IF;
-  -- social_image proxy via image
-  IF COALESCE(v_product.image,'') <> '' THEN v_score := v_score + 5; END IF;
+  IF COALESCE(v_pkg.cover_image_url,'') <> '' THEN v_score := v_score + 5; END IF;
 
   -- 6. Ghost penalty (capped -20)
   v_score := v_score - LEAST(v_ghost_count * 2, 20);
 
-  -- 7. Computed fields always present
+  -- 7. Computed fields always present on landing
   v_computed := '["breadcrumb","similar_products","rating_badge"]'::jsonb;
 
-  -- 8. Fallbacks (heuristic — more work in Phase 2)
+  -- 8. Fallbacks (heuristic — extend Phase 2)
   IF v_page.custom_faq IS NULL OR jsonb_array_length(v_page.custom_faq) = 0 THEN
     v_fallbacks := v_fallbacks || '"faq_default"'::jsonb;
   END IF;
 
-  -- 9. AI fields (placeholder — full wiring Phase 2)
-  IF v_product.type = 'package' THEN
-    v_ai_fields := '[
-      {"field":"highlights","locked":false,"generated_at":null,"hash":null},
-      {"field":"description","locked":false,"generated_at":null,"hash":null}
-    ]'::jsonb;
-  END IF;
+  -- 9. AI fields (from package_kits ai_generated flags).
+  -- "locked" = operator controls (ai_generated=false, AI will not regenerate)
+  v_ai_fields := jsonb_build_array(
+    jsonb_build_object(
+      'field','description',
+      'locked', NOT COALESCE(v_pkg.description_ai_generated, false),
+      'generated_at', NULL,
+      'hash', NULL
+    ),
+    jsonb_build_object(
+      'field','highlights',
+      'locked', NOT COALESCE(v_pkg.highlights_ai_generated, false),
+      'generated_at', NULL,
+      'hash', NULL
+    )
+  );
 
   -- 10. Clamp + return
   v_score := GREATEST(0, LEAST(100, v_score));
 
   RETURN jsonb_build_object(
     'product_id', p_product_id,
-    'product_type', v_product.type,
+    'product_type', 'package',
     'score', v_score,
     'ghosts', v_ghosts,
     'ai_fields', v_ai_fields,
@@ -191,20 +208,16 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
-DECLARE
-  v_result JSONB;
 BEGIN
-  v_result := public.compute_content_health_score(p_product_id);
-  RETURN v_result;
+  RETURN public.compute_content_health_score(p_product_id);
 END;
 $$;
 
 GRANT EXECUTE ON FUNCTION public.get_product_content_health(UUID) TO anon, authenticated;
 
 -- ─── RPC: list_products_content_health ──────────────────────────────────────
--- Paginated aggregated list for dashboard. Computes score per-product inline.
--- Phase 0.5: on-demand compute. Phase 2 optimization: materialized view refresh
--- via pg_cron. Tracked in issue body (R2).
+-- Paginated list of package_kits for the website's owning account.
+-- Phase 0.5: on-demand compute. Phase 2: materialized view + pg_cron refresh.
 
 CREATE OR REPLACE FUNCTION public.list_products_content_health(
   p_website_id UUID,
@@ -235,14 +248,14 @@ BEGIN
   END IF;
 
   WITH scored AS (
-    SELECT p.id, p.name, p.slug, p.type,
-           (public.compute_content_health_score(p.id)) AS health
-    FROM   public.products p
-    WHERE  p.account_id = v_account_id
-    ORDER  BY p.name
+    SELECT pk.id, pk.name, pk.slug,
+           (public.compute_content_health_score(pk.id)) AS health
+    FROM   public.package_kits pk
+    WHERE  pk.account_id = v_account_id
+    ORDER  BY pk.name
   ),
   filtered AS (
-    SELECT s.id, s.name, s.slug, s.type,
+    SELECT s.id, s.name, s.slug,
            (s.health->>'score')::int AS score,
            jsonb_array_length(COALESCE(s.health->'ghosts','[]'::jsonb)) AS ghosts_count,
            (
@@ -258,14 +271,14 @@ BEGIN
   SELECT COUNT(*)::int INTO v_total FROM filtered;
 
   WITH scored AS (
-    SELECT p.id, p.name, p.slug, p.type,
-           (public.compute_content_health_score(p.id)) AS health
-    FROM   public.products p
-    WHERE  p.account_id = v_account_id
-    ORDER  BY p.name
+    SELECT pk.id, pk.name, pk.slug,
+           (public.compute_content_health_score(pk.id)) AS health
+    FROM   public.package_kits pk
+    WHERE  pk.account_id = v_account_id
+    ORDER  BY pk.name
   ),
   filtered AS (
-    SELECT s.id, s.name, s.slug, s.type,
+    SELECT s.id, s.name, s.slug,
            (s.health->>'score')::int AS score,
            jsonb_array_length(COALESCE(s.health->'ghosts','[]'::jsonb)) AS ghosts_count,
            (
@@ -283,7 +296,7 @@ BEGIN
       'product_id', f.id,
       'product_name', f.name,
       'product_slug', f.slug,
-      'product_type', f.type,
+      'product_type', 'package',
       'score', f.score,
       'ghosts_count', f.ghosts_count,
       'ai_unlocked_count', f.ai_unlocked_count,

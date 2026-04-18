@@ -36,11 +36,11 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     const supabase = createSupabaseServiceRoleClient();
 
     const { data: existing, error: selectError } = await supabase
-      .from('products')
-      .select('id, account_id, slug, type')
+      .from('package_kits')
+      .select('id, account_id, slug')
       .eq('id', id)
       .eq('account_id', auth.accountId)
-      .maybeSingle();
+      .maybeSingle<{ id: string; account_id: string; slug: string }>();
 
     if (selectError) {
       log.error('video_update_select_failed', { product_id: id, error: selectError.message });
@@ -49,7 +49,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     if (!existing) return apiNotFound();
 
     const { error: updateError } = await supabase
-      .from('products')
+      .from('package_kits')
       .update({
         video_url: parsed.data.video_url,
         video_caption: parsed.data.video_caption,
@@ -68,9 +68,8 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
       has_url: Boolean(parsed.data.video_url),
     });
 
-    const typeSlug = typeSlugFor(existing.type);
-    if (typeSlug && existing.slug) {
-      revalidatePath(`/${typeSlug}/${existing.slug}`);
+    if (existing.slug) {
+      revalidatePath(`/paquetes/${existing.slug}`);
     }
 
     return apiSuccess({ id, video_url: parsed.data.video_url, video_caption: parsed.data.video_caption });
@@ -80,22 +79,5 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
       error: err instanceof Error ? err.message : String(err),
     });
     return apiInternalError('Failed to update product video');
-  }
-}
-
-function typeSlugFor(productType: string): string | null {
-  switch (productType) {
-    case 'activity':
-      return 'actividades';
-    case 'hotel':
-      return 'hoteles';
-    case 'package':
-      return 'paquetes';
-    case 'transfer':
-      return 'traslados';
-    case 'destination':
-      return 'destinos';
-    default:
-      return null;
   }
 }

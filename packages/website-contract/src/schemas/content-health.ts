@@ -35,7 +35,7 @@ export type GhostSection = z.infer<typeof GhostSectionSchema>;
 export const AiFieldSchema = z.object({
   field: z.string(),
   locked: z.boolean(),
-  generated_at: z.string().datetime().nullable(),
+  generated_at: z.string().datetime({ offset: true }).nullable(),
   hash: z.string().nullable(),
 });
 export type AiField = z.infer<typeof AiFieldSchema>;
@@ -48,7 +48,7 @@ export const ContentHealthSchema = z.object({
   ai_fields: z.array(AiFieldSchema),
   fallbacks: z.array(z.string()),
   computed: z.array(z.string()),
-  last_computed_at: z.string().datetime(),
+  last_computed_at: z.string().datetime({ offset: true }),
 });
 export type ContentHealth = z.infer<typeof ContentHealthSchema>;
 
@@ -61,7 +61,7 @@ export const ContentHealthListItemSchema = z.object({
   ghosts_count: z.number().int().nonnegative(),
   ai_unlocked_count: z.number().int().nonnegative(),
   fallbacks_count: z.number().int().nonnegative(),
-  last_computed_at: z.string().datetime(),
+  last_computed_at: z.string().datetime({ offset: true }),
 });
 export type ContentHealthListItem = z.infer<typeof ContentHealthListItemSchema>;
 

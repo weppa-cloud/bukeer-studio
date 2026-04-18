@@ -5,60 +5,78 @@ import { SectionVisibilityToggle } from '@/components/admin/page-customization/s
 import { SectionsReorderEditor } from '@/components/admin/page-customization/sections-reorder-editor';
 import { CustomSectionsEditor } from '@/components/admin/page-customization/custom-sections-editor';
 import { VideoUrlEditor } from '@/components/admin/page-customization/video-url-editor';
-import type { ProductType } from '@/components/admin/page-customization/use-renderable-sections';
+import { AiFlagsPanel } from '@/components/admin/content-health/ai-flags-panel';
+import { ContentHealthSchema, type ContentHealth } from '@bukeer/website-contract';
+import {
+  saveHeroOverride,
+  saveVisibility,
+  saveOrder,
+  saveCustomSections,
+  saveVideoUrl,
+  toggleAiFlag,
+} from './actions';
 import type { CustomSection } from '@bukeer/website-contract';
 
 interface PageProps {
   params: Promise<{ websiteId: string; slug: string }>;
 }
 
-type ProductRow = {
+type PackageRow = {
   id: string;
-  type: string;
+  account_id: string;
+  slug: string;
   video_url: string | null;
   video_caption: string | null;
 };
 
-type PageCustomization = {
+type PageRow = {
   custom_hero: { title?: string | null; subtitle?: string | null; backgroundImage?: string | null } | null;
   custom_sections: CustomSection[] | null;
   sections_order: string[] | null;
   hidden_sections: string[] | null;
 };
 
-function toProductType(dbType: string): ProductType | null {
-  if (dbType === 'activity' || dbType === 'hotel' || dbType === 'transfer' || dbType === 'destination' || dbType === 'package') {
-    return dbType;
-  }
-  return null;
-}
-
 export default async function ProductContentPage({ params }: PageProps) {
   const { websiteId, slug } = await params;
   const supabase = await createSupabaseServerClient();
 
-  const { data: product } = await supabase
-    .from('products')
-    .select('id, type, video_url, video_caption')
+  const { data: website } = await supabase
+    .from('websites')
+    .select('id, account_id')
+    .eq('id', websiteId)
+    .maybeSingle();
+
+  if (!website) notFound();
+
+  const { data: pkg } = await supabase
+    .from('package_kits')
+    .select('id, account_id, slug, video_url, video_caption')
     .eq('slug', slug)
-    .maybeSingle<ProductRow>();
+    .eq('account_id', website.account_id)
+    .maybeSingle<PackageRow>();
 
-  if (!product) notFound();
-
-  const productType = toProductType(product.type);
-  if (!productType) notFound();
+  if (!pkg) notFound();
 
   const { data: page } = await supabase
-    .from('product_page_customizations')
+    .from('website_product_pages')
     .select('custom_hero, custom_sections, sections_order, hidden_sections')
-    .eq('product_id', product.id)
-    .maybeSingle<PageCustomization>();
+    .eq('product_id', pkg.id)
+    .eq('product_type', 'package')
+    .eq('website_id', websiteId)
+    .maybeSingle<PageRow>();
 
   const heroValue = {
     title: page?.custom_hero?.title ?? null,
     subtitle: page?.custom_hero?.subtitle ?? null,
     backgroundImage: page?.custom_hero?.backgroundImage ?? null,
   };
+
+  const { data: healthRaw } = await supabase.rpc('get_product_content_health', {
+    p_product_id: pkg.id,
+  });
+  const health: ContentHealth | null = healthRaw
+    ? ContentHealthSchema.safeParse(healthRaw).data ?? null
+    : null;
 
   return (
     <div className="mx-auto max-w-4xl space-y-6 p-6">
@@ -71,28 +89,62 @@ export default async function ProductContentPage({ params }: PageProps) {
       </header>
 
       <VideoUrlEditor
-        productId={product.id}
-        videoUrl={product.video_url}
-        videoCaption={product.video_caption}
+        productId={pkg.id}
+        videoUrl={pkg.video_url}
+        videoCaption={pkg.video_caption}
+        onSave={async (next) => {
+          'use server';
+          await saveVideoUrl({ websiteId, productId: pkg.id, value: next });
+        }}
       />
 
-      <HeroOverrideEditor productId={product.id} value={heroValue} />
+      {health && health.ai_fields.length > 0 && (
+        <AiFlagsPanel
+          productId={pkg.id}
+          aiFields={health.ai_fields}
+          onToggle={async (field, locked) => {
+            'use server';
+            await toggleAiFlag({ websiteId, productId: pkg.id, field, locked });
+          }}
+        />
+      )}
+
+      <HeroOverrideEditor
+        productId={pkg.id}
+        value={heroValue}
+        onSave={async (next) => {
+          'use server';
+          await saveHeroOverride({ websiteId, productId: pkg.id, value: next });
+        }}
+      />
 
       <SectionVisibilityToggle
-        productId={product.id}
-        productType={productType}
+        productId={pkg.id}
+        productType="package"
         hiddenSections={page?.hidden_sections ?? []}
+        onChange={async (next) => {
+          'use server';
+          await saveVisibility({ websiteId, productId: pkg.id, hidden: next });
+        }}
       />
 
       <SectionsReorderEditor
-        productId={product.id}
-        productType={productType}
+        productId={pkg.id}
+        productType="package"
         sectionsOrder={page?.sections_order ?? []}
+        onChange={async (next) => {
+          'use server';
+          await saveOrder({ websiteId, productId: pkg.id, order: next });
+        }}
       />
 
       <CustomSectionsEditor
-        productId={product.id}
+        productId={pkg.id}
         sections={page?.custom_sections ?? []}
+        onChange={async (next) => {
+          'use server';
+          await saveCustomSections({ websiteId, productId: pkg.id, sections: next });
+        }}
       />
     </div>
   );
