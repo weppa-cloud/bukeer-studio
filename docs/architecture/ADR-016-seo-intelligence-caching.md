@@ -97,6 +97,10 @@ Current invalidation is tag-oriented and edge-friendly:
 3. **Cloudflare KV/Redis cache layer**  
    Rejected. Too much infrastructure for the current scope and unnecessary for deterministic dashboard reads.
 
+## Related caching surfaces
+
+- **`places_cache` table** — row-level geocoding cache used by `/api/seo/*` ranking tasks and activity circuit maps ([[ADR-017]]). Lives in Supabase, not edge. TTL per place, refreshed on geocoder hit. Orthogonal to the response-level cache defined here: `places_cache` reduces upstream MapTiler calls, while `Cache-Tag` controls edge CDN reuse. Purge by tag does NOT invalidate `places_cache` — those rows expire on their own TTL or via scheduled sync.
+
 ## Operational Rule
 
 When a SEO intelligence dataset changes, purge by tag in this order:

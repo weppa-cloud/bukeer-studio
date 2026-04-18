@@ -36,6 +36,27 @@ Each flow is labeled as one of:
 
 ---
 
+## Table of Contents
+
+1. [Purpose](#purpose)
+2. [How To Read This Guide](#how-to-read-this-guide)
+3. [Flow Index](#flow-index)
+4. [Flow 0 — Initial Setup](#flow-0--initial-setup)
+5. [Flow 1 — Overview Review](#flow-1--overview-review)
+6. [Flow 2 — Keyword Research](#flow-2--keyword-research)
+7. [Flow 3 — Item Workflow Review](#flow-3--item-workflow-review)
+8. [Flow 3B — Page / Landing Optimization](#flow-3b--page--landing-optimization)
+9. [Flow 4 — Save Baseline Position](#flow-4--save-baseline-position)
+10. [Flow 5 — Schema and Locale Review](#flow-5--schema-and-locale-review)
+11. [Flow 6 — Site Architecture View](#flow-6--site-architecture-view)
+12. [Flow 7 — Backlinks Review](#flow-7--backlinks-review)
+13. [Flow 8 — AI Visibility Review](#flow-8--ai-visibility-review)
+14. [Flow 9 — Blog Translation Workflow](#flow-9--blog-translation-workflow)
+15. [Human Operating Rhythm (operator cadence)](#human-operating-rhythm-operator-cadence)
+16. [What Is Not Yet A Shipped Flow](#what-is-not-yet-a-shipped-flow)
+
+---
+
 ## Flow Index
 
 | Flow | Status | Goal |

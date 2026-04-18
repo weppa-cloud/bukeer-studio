@@ -413,6 +413,28 @@ export type {
 export { VideoUrlSchema, VideoUpdateRequestSchema } from './schemas/video-url';
 export type { VideoUpdateRequest } from './schemas/video-url';
 
+// Studio Unified Product Editor — Phase 0.5 (#192) content health
+export {
+  DataSourceCodeSchema,
+  GhostReasonSchema,
+  GhostSectionSchema,
+  AiFieldSchema,
+  ContentHealthSchema,
+  ContentHealthListItemSchema,
+  ContentHealthListSchema,
+  AiFlagsUpdateRequestSchema,
+} from './schemas/content-health';
+export type {
+  DataSourceCode,
+  GhostReason,
+  GhostSection,
+  AiField,
+  ContentHealth,
+  ContentHealthListItem,
+  ContentHealthList,
+  AiFlagsUpdateRequest,
+} from './schemas/content-health';
+
 // Validation
 export {
   validateSection,
