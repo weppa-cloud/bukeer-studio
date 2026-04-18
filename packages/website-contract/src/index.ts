@@ -413,6 +413,29 @@ export type {
 export { VideoUrlSchema, VideoUpdateRequestSchema } from './schemas/video-url';
 export type { VideoUpdateRequest } from './schemas/video-url';
 
+// Studio Unified Product Editor — Phase 1 (#190) R7 marketing field patches
+export {
+  MarketingFieldNameSchema,
+  MarketingFieldPatchSchema,
+  DescriptionPatchSchema,
+  HighlightsPatchSchema,
+  InclusionsPatchSchema,
+  ExclusionsPatchSchema,
+  NotesPatchSchema,
+  MeetingInfoPatchSchema,
+  GalleryPatchSchema,
+  SocialImagePatchSchema,
+  CoverImagePatchSchema,
+  StudioEditorV2FlagResolutionSchema,
+  ToggleStudioEditorV2RequestSchema,
+} from './schemas/marketing-patch';
+export type {
+  MarketingFieldName,
+  MarketingFieldPatch,
+  StudioEditorV2FlagResolution,
+  ToggleStudioEditorV2Request,
+} from './schemas/marketing-patch';
+
 // Studio Unified Product Editor — Phase 0.5 (#192) content health
 export {
   DataSourceCodeSchema,
