@@ -9,6 +9,7 @@ import { InclusionsExclusionsEditor } from '@/components/admin/marketing/inclusi
 import { RecommendationsEditor } from '@/components/admin/marketing/recommendations-editor';
 import { InstructionsEditor } from '@/components/admin/marketing/instructions-editor';
 import { SocialImagePicker } from '@/components/admin/marketing/social-image-picker';
+import { GalleryCurator, type GalleryItem } from '@/components/admin/marketing/gallery-curator';
 import { saveMarketingField } from './actions';
 import type { MarketingFieldName } from '@bukeer/website-contract';
 
@@ -28,6 +29,7 @@ type PackageRow = {
   program_exclusions: string[] | null;
   program_notes: string | null;
   program_meeting_info: string | null;
+  program_gallery: GalleryItem[] | null;
   cover_image_url: string | null;
   last_edited_by_surface: string | null;
 };
@@ -51,7 +53,7 @@ export default async function MarketingPage({ params }: PageProps) {
   const { data: pkg } = await supabase
     .from('package_kits')
     .select(
-      'id, account_id, slug, description, description_ai_generated, program_highlights, highlights_ai_generated, program_inclusions, program_exclusions, program_notes, program_meeting_info, cover_image_url, last_edited_by_surface',
+      'id, account_id, slug, description, description_ai_generated, program_highlights, highlights_ai_generated, program_inclusions, program_exclusions, program_notes, program_meeting_info, program_gallery, cover_image_url, last_edited_by_surface',
     )
     .eq('slug', slug)
     .eq('account_id', website.account_id)
@@ -184,18 +186,20 @@ export default async function MarketingPage({ params }: PageProps) {
         }}
       />
 
-      <section
-        className="rounded-lg border border-dashed border-border bg-muted/30 p-6 text-sm text-muted-foreground"
-        aria-label="Próximamente"
-      >
-        <p className="font-semibold text-foreground">Próximamente:</p>
-        <ul className="mt-2 list-disc space-y-1 pl-5">
-          <li>GalleryCurator (A3) — dnd-kit + upload + AI alt-text</li>
-        </ul>
-        <p className="mt-2">
-          Tracked in [A3 #201](https://github.com/weppa-cloud/bukeer-studio/issues/201).
-        </p>
-      </section>
+      <GalleryCurator
+        productId={pkg.id}
+        websiteId={websiteId}
+        value={pkg.program_gallery ?? []}
+        readOnly={!isFieldStudio('program_gallery')}
+        onSave={async (next) => {
+          'use server';
+          await saveMarketingField({
+            websiteId,
+            productId: pkg.id,
+            patch: { field: 'program_gallery', value: next },
+          });
+        }}
+      />
     </div>
   );
 }
