@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, after } from 'next/server';
 import { z } from 'zod';
 import { streamObject } from 'ai';
 import { apiError } from '@/lib/api/response';
@@ -6,7 +6,9 @@ import { requireWebsiteAccess } from '@/lib/seo/server-auth';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/service-role';
 import { enqueueDecisionGradeSync } from '@/lib/seo/decision-grade-sync';
 import { parseLocaleParts, withNoStoreHeaders } from '@/lib/seo/content-intelligence';
-import { getEditorModel } from '@/lib/ai/llm-provider';
+import { getEditorModel, DEFAULT_MODEL } from '@/lib/ai/llm-provider';
+import { recordCost } from '@/lib/ai/rate-limit';
+import { calculateCost } from '@/lib/ai/model-pricing';
 import {
   buildLocaleAdaptationPrompt,
   LocaleAdaptationOutputSchema,
@@ -355,6 +357,16 @@ export async function POST(request: NextRequest) {
     system: prompt.system,
     prompt: prompt.user,
     schema: LocaleAdaptationStreamOutputSchema,
+    onFinish: ({ usage }) => {
+      after(async () => {
+        if (!usage) return;
+        const cost = calculateCost(DEFAULT_MODEL, {
+          inputTokens: usage.inputTokens ?? 0,
+          outputTokens: usage.outputTokens ?? 0,
+        });
+        await recordCost(`${access.accountId}:seo:transcreate`, cost);
+      });
+    },
   });
 
   // Keep raw text streaming for useCompletion while marking route as streaming

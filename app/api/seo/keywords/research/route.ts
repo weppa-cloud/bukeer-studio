@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { generateText } from 'ai';
-import { getEditorModel } from '@/lib/ai/llm-provider';
+import { getEditorModel, DEFAULT_MODEL } from '@/lib/ai/llm-provider';
 import { requireWebsiteAccess } from '@/lib/seo/server-auth';
 import { getFreshCredential, getIntegrationStatus } from '@/lib/seo/backend-service';
 import { querySearchConsole } from '@/lib/seo/google-client';
 import type { KeywordResearchDTO } from '@/lib/seo/dto';
 import { toErrorResponse } from '@/lib/seo/errors';
+import { checkRateLimit, recordCost } from '@/lib/ai/rate-limit';
+import { calculateCost } from '@/lib/ai/model-pricing';
+import { apiError } from '@/lib/api';
 
 const bodySchema = z.object({
   websiteId: z.string().uuid(),
@@ -69,7 +72,15 @@ function extractJson(text: string) {
 export async function POST(request: NextRequest) {
   try {
     const body = bodySchema.parse(await request.json());
-    await requireWebsiteAccess(body.websiteId);
+    const access = await requireWebsiteAccess(body.websiteId);
+
+    const rateCheck = await checkRateLimit(
+      `${access.accountId}:seo:keyword-research`,
+      'editor',
+    );
+    if (!rateCheck.allowed) {
+      return apiError('RATE_LIMITED', rateCheck.reason ?? 'Rate limit exceeded', 429);
+    }
 
     const status = await getIntegrationStatus(body.websiteId);
 
@@ -161,6 +172,14 @@ export async function POST(request: NextRequest) {
       contentBrief: ['Optimiza title y description con intención de búsqueda.'],
       reasoning: 'No se pudo parsear JSON del modelo, se usó fallback.',
     };
+
+    await recordCost(
+      `${access.accountId}:seo:keyword-research`,
+      calculateCost(DEFAULT_MODEL, {
+        inputTokens: aiResult.usage?.inputTokens ?? 0,
+        outputTokens: aiResult.usage?.outputTokens ?? 0,
+      }),
+    );
 
     const response: KeywordResearchDTO = {
       mode,
