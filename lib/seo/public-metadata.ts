@@ -50,11 +50,14 @@ export function buildLocaleAwareAlternateLanguages(
   baseUrl: string,
   pathname: string,
   localeContext: Pick<PublicMetadataLocaleContext, 'defaultLocale' | 'supportedLocales'>,
+  options?: {
+    translatedLocales?: string[];
+  },
 ): Record<string, string> {
   return hreflangLinksToLanguageRecord(
     generateHreflangLinksForLocales(baseUrl, pathname, {
       defaultLocale: localeContext.defaultLocale,
       supportedLocales: localeContext.supportedLocales,
-    }),
+    }, options?.translatedLocales),
   );
 }

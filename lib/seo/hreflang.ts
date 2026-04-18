@@ -88,6 +88,7 @@ export function generateHreflangLinks(
   baseUrl: string,
   pathname: string,
   availableLanguages: LanguageConfig[] = SUPPORTED_LANGUAGES,
+  translatedLocales?: string[],
 ): HreflangLink[] {
   const normalizedPath = normalizePath(pathname);
   const links: HreflangLink[] = [];
@@ -98,7 +99,20 @@ export function generateHreflangLinks(
     ? toLocaleString(explicitDefault)
     : locales[0] || DEFAULT_PUBLIC_LOCALE;
 
-  const dedupedLocales = [...new Set([defaultLocale, ...locales])];
+  const availableLocaleSet = new Set([defaultLocale, ...locales]);
+  const translatedLocaleSet =
+    translatedLocales && translatedLocales.length > 0
+      ? new Set(translatedLocales.map((locale) => normalizeLocale(locale)))
+      : null;
+
+  const dedupedLocales = [...availableLocaleSet].filter((locale) => {
+    if (!translatedLocaleSet) return true;
+    return locale === defaultLocale || translatedLocaleSet.has(locale);
+  });
+
+  if (!dedupedLocales.includes(defaultLocale)) {
+    dedupedLocales.unshift(defaultLocale);
+  }
 
   dedupedLocales.forEach((locale) => {
     const hrefPath = buildPublicLocalizedPath(normalizedPath, locale, defaultLocale);
@@ -122,8 +136,14 @@ export function generateHreflangLinksForLocales(
   baseUrl: string,
   pathname: string,
   options: LocaleHreflangOptions,
+  translatedLocales?: string[],
 ): HreflangLink[] {
-  return generateHreflangLinks(baseUrl, pathname, buildLanguageConfigs(options));
+  return generateHreflangLinks(
+    baseUrl,
+    pathname,
+    buildLanguageConfigs(options),
+    translatedLocales,
+  );
 }
 
 /**
