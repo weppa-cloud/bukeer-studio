@@ -4,18 +4,18 @@ import { ContentHealthScore } from '@/components/admin/content-health/score';
 test.describe('<ContentHealthScore>', () => {
   test('green — score 90', async ({ mount }) => {
     const c = await mount(<ContentHealthScore score={90} />);
-    await expect(c.getByRole('status')).toHaveAttribute('data-color', 'green');
+    await expect(c).toHaveAttribute('data-color', 'green');
     await expect(c).toContainText('90');
   });
 
   test('yellow — score 65', async ({ mount }) => {
     const c = await mount(<ContentHealthScore score={65} />);
-    await expect(c.getByRole('status')).toHaveAttribute('data-color', 'yellow');
+    await expect(c).toHaveAttribute('data-color', 'yellow');
   });
 
   test('red — score 30', async ({ mount }) => {
     const c = await mount(<ContentHealthScore score={30} />);
-    await expect(c.getByRole('status')).toHaveAttribute('data-color', 'red');
+    await expect(c).toHaveAttribute('data-color', 'red');
   });
 
   test('inline variant — renders compact', async ({ mount }) => {
@@ -26,7 +26,7 @@ test.describe('<ContentHealthScore>', () => {
 
   test('aria label', async ({ mount }) => {
     const c = await mount(<ContentHealthScore score={50} />);
-    await expect(c.getByRole('status')).toHaveAttribute('aria-label', 'Puntaje de contenido: 50 sobre 100');
+    await expect(c).toHaveAttribute('aria-label', 'Puntaje de contenido: 50 sobre 100');
   });
 
   test('visual — circular green', async ({ mount }) => {
