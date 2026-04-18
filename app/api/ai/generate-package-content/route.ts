@@ -17,8 +17,9 @@ export const runtime = 'edge';
 import { createClient } from '@supabase/supabase-js';
 import { generateObject } from 'ai';
 import { createLogger } from '@/lib/logger';
-import { checkRateLimit } from '@/lib/ai/rate-limit';
+import { checkRateLimit, recordCost } from '@/lib/ai/rate-limit';
 import { getModel } from '@/lib/ai/llm-provider';
+import { calculateCost } from '@/lib/ai/model-pricing';
 import { buildPackageHighlightsPrompt } from '@/lib/ai/prompts';
 import { PackageAiHighlightsSchema } from '@bukeer/website-contract';
 import { sanitizeAiMarketingCopy as sanitizeProductCopy } from '@/lib/products/normalize-product';
@@ -167,6 +168,14 @@ export async function POST(request: Request) {
       prompt,
     });
     generated = result.object;
+
+    await recordCost(
+      rateLimitKey,
+      calculateCost('anthropic/claude-haiku-4-5', {
+        inputTokens: result.usage?.inputTokens ?? 0,
+        outputTokens: result.usage?.outputTokens ?? 0,
+      }),
+    );
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     // Differentiate provider errors (429/500) from Zod parse failures
