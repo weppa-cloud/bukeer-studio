@@ -117,7 +117,8 @@ describe('/api/seo/content-intelligence/transcreate/stream', () => {
     const text = await response.text();
     const parsed = JSON.parse(text);
     expect(response.status).toBe(200);
-    expect(parsed.meta_title).toBeDefined();
+    expect(parsed.schema_version).toBe('2.0');
+    expect(parsed.payload_v2?.meta_title).toBeDefined();
     expect(streamObject).not.toHaveBeenCalled();
   });
 
@@ -141,7 +142,7 @@ describe('/api/seo/content-intelligence/transcreate/stream', () => {
     (streamObject as jest.Mock).mockReturnValue({
       textStream: new ReadableStream({
         start(controller) {
-          controller.enqueue('{"meta_title":"A","meta_desc":"B","slug":"a","h1":"A","keywords":["a"]}');
+          controller.enqueue('{"schema_version":"2.0","payload_v2":{"meta_title":"A","meta_desc":"B","slug":"a","h1":"A","keywords":["a"]}}');
           controller.close();
         },
       }),

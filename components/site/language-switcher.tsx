@@ -8,6 +8,7 @@ import {
   normalizeLanguageCode,
   resolveSiteMenuLocales,
 } from '@/lib/site/currency';
+import { getPublicUiMessages } from '@/lib/site/public-ui-messages';
 import {
   buildPublicLocalizedPath,
   resolveLocaleFromPublicPath,
@@ -19,9 +20,17 @@ interface LanguageSwitcherProps {
   footerPalette: { muted: string; border: string; text: string };
   defaultLocale?: string;
   supportedLocales?: string[];
+  selectLanguageAriaLabel?: string;
 }
 
-export function LanguageSwitcher({ currentLocale, locales, footerPalette, defaultLocale, supportedLocales }: LanguageSwitcherProps) {
+export function LanguageSwitcher({
+  currentLocale,
+  locales,
+  footerPalette,
+  defaultLocale,
+  supportedLocales,
+  selectLanguageAriaLabel,
+}: LanguageSwitcherProps) {
   const localeOptions = useMemo(() => {
     if (!Array.isArray(locales) || locales.length === 0) {
       return resolveSiteMenuLocales({ contentLocale: currentLocale });
@@ -48,6 +57,10 @@ export function LanguageSwitcher({ currentLocale, locales, footerPalette, defaul
     }
     return localeOptions[0]?.code ?? 'es';
   }, [currentLocale, localeOptions]);
+  const messages = useMemo(
+    () => getPublicUiMessages(normalizedLocale),
+    [normalizedLocale],
+  );
 
   const handleChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
     const newLocale = normalizeLanguageCode(e.target.value);
@@ -71,7 +84,7 @@ export function LanguageSwitcher({ currentLocale, locales, footerPalette, defaul
     <select
       value={normalizedLocale}
       onChange={handleChange}
-      aria-label="Seleccionar idioma"
+      aria-label={selectLanguageAriaLabel ?? messages.languageSwitcher.selectLanguageAria}
       className="bg-transparent border rounded px-2 py-1 text-sm cursor-pointer appearance-none"
       style={{
         color: footerPalette.muted,

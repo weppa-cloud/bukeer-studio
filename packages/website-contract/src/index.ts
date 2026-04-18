@@ -267,6 +267,11 @@ export {
   SeoBriefPostSchema,
   SeoBriefQuerySchema,
   SeoOptimizeRequestSchema,
+  LocaleAdaptationBodyFaqItemSchema,
+  LocaleAdaptationBodyContentSchema,
+  LocaleAdaptationOutputSchemaV1,
+  LocaleAdaptationOutputSchemaV2,
+  LocaleAdaptationOutputEnvelopeSchemaV2,
   SeoTranscreateRequestSchema,
   SeoTrackQuerySchema,
   SeoPageCatalogQuerySchema,
@@ -287,6 +292,9 @@ export type {
   SeoBriefPost,
   SeoBriefQuery,
   SeoOptimizeRequest,
+  LocaleAdaptationOutputV1,
+  LocaleAdaptationOutputV2,
+  LocaleAdaptationOutputEnvelopeV2,
   SeoTranscreateRequest,
   SeoTrackQuery,
   SeoPageCatalogQuery,
@@ -435,6 +443,44 @@ export type {
   StudioEditorV2FlagResolution,
   ToggleStudioEditorV2Request,
 } from './schemas/marketing-patch';
+
+// Studio Product Edit History — W3 (#197)
+export {
+  ProductTypeSchema,
+  EditHistorySourceSchema,
+  EditHistoryOperationSchema,
+  EditHistoryEntrySchema,
+  RollbackRequestSchema,
+  EditHistoryListQuerySchema,
+} from './schemas/edit-history';
+export type {
+  ProductType,
+  EditHistorySource,
+  EditHistoryOperation,
+  EditHistoryEntry,
+  RollbackRequest,
+  EditHistoryListQuery,
+} from './schemas/edit-history';
+
+// Studio AI Cost Ledger — R9 D2 (#195)
+export {
+  AiCostFeatureSchema,
+  AiCostStatusSchema,
+  AiCostEventSchema,
+  AiCostEventInputSchema,
+  AiCostBudgetTierSchema,
+  AiCostBudgetSchema,
+  AiSpendSummarySchema,
+} from './schemas/ai-cost';
+export type {
+  AiCostFeature,
+  AiCostStatus,
+  AiCostEvent,
+  AiCostEventInput,
+  AiCostBudgetTier,
+  AiCostBudget,
+  AiSpendSummary,
+} from './schemas/ai-cost';
 
 // Studio Unified Product Editor — Phase 0.5 (#192) content health
 export {

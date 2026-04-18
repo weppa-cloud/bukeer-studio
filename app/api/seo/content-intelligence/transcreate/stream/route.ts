@@ -11,10 +11,12 @@ import { recordCost } from '@/lib/ai/rate-limit';
 import { calculateCost } from '@/lib/ai/model-pricing';
 import {
   buildLocaleAdaptationPrompt,
-  LocaleAdaptationOutputSchema,
+  LOCALE_ADAPTATION_SCHEMA_VERSION_V2,
+  LocaleAdaptationOutputEnvelopeSchemaV2,
+  LocaleAdaptationOutputSchemaV2,
   SERP_META_DESC_MAX,
   SERP_META_TITLE_MAX,
-  normalizeLocaleAdaptationOutput,
+  normalizeLocaleAdaptationOutputEnvelope,
 } from '@/lib/ai/prompts/locale-adaptation';
 import {
   collectSourceFieldsForPage,
@@ -38,9 +40,11 @@ const TranscreateStreamRequestSchema = z.object({
   draft: z.record(z.string(), z.unknown()).default({}),
 });
 
-const LocaleAdaptationStreamOutputSchema = LocaleAdaptationOutputSchema.extend({
-  meta_title: z.string().min(1).max(SERP_META_TITLE_MAX),
-  meta_desc: z.string().min(1).max(SERP_META_DESC_MAX),
+const LocaleAdaptationStreamOutputSchema = LocaleAdaptationOutputEnvelopeSchemaV2.extend({
+  payload_v2: LocaleAdaptationOutputSchemaV2.extend({
+    meta_title: z.string().min(1).max(SERP_META_TITLE_MAX),
+    meta_desc: z.string().min(1).max(SERP_META_DESC_MAX),
+  }),
 });
 
 type KeywordReresearchPayload = {
@@ -171,7 +175,7 @@ function deriveOutputFromPayload(input: {
   payload: Record<string, unknown>;
   sourceFields: Record<string, string>;
   targetKeyword?: string;
-}): z.infer<typeof LocaleAdaptationOutputSchema> {
+}): z.infer<typeof LocaleAdaptationOutputEnvelopeSchemaV2> {
   const meta_title =
     firstString(input.payload.meta_title, input.payload.seoTitle, input.sourceFields.seoTitle, input.sourceFields.title, input.sourceFields.seoDescription) ??
     'Localized SEO title';
@@ -187,12 +191,47 @@ function deriveOutputFromPayload(input: {
     input.targetKeyword ?? firstString(input.payload.targetKeyword, null),
   );
 
-  return {
+  const body = typeof input.payload.body === 'string' ? input.payload.body.trim() : '';
+  const seoIntro = typeof input.payload.seo_intro === 'string' ? input.payload.seo_intro.trim() : '';
+  const seoHighlights = Array.isArray(input.payload.seo_highlights)
+    ? input.payload.seo_highlights
+        .filter((value): value is string => typeof value === 'string')
+        .map((value) => value.trim())
+        .filter(Boolean)
+        .slice(0, 20)
+    : [];
+  const seoFaq = Array.isArray(input.payload.seo_faq)
+    ? input.payload.seo_faq
+        .filter((row): row is Record<string, unknown> => Boolean(row) && typeof row === 'object' && !Array.isArray(row))
+        .map((row) => ({
+          question: typeof row.question === 'string' ? row.question.trim() : '',
+          answer: typeof row.answer === 'string' ? row.answer.trim() : '',
+        }))
+        .filter((row) => row.question.length > 0 && row.answer.length > 0)
+        .slice(0, 20)
+    : [];
+
+  const payload_v2: z.infer<typeof LocaleAdaptationOutputSchemaV2> = {
     meta_title: meta_title.slice(0, 70),
     meta_desc: meta_desc.slice(0, 160),
     slug: slugify(slugSeed),
     h1: h1.slice(0, 100),
     keywords,
+    ...((body || seoIntro || seoHighlights.length > 0 || seoFaq.length > 0)
+      ? {
+          body_content: {
+            ...(body ? { body } : {}),
+            ...(seoIntro ? { seo_intro: seoIntro } : {}),
+            ...(seoHighlights.length > 0 ? { seo_highlights: seoHighlights } : {}),
+            ...(seoFaq.length > 0 ? { seo_faq: seoFaq } : {}),
+          },
+        }
+      : {}),
+  };
+
+  return {
+    schema_version: LOCALE_ADAPTATION_SCHEMA_VERSION_V2,
+    payload_v2,
   };
 }
 
@@ -295,22 +334,29 @@ export async function POST(request: NextRequest) {
     Object.keys(sourceFields).every((field) => exactFieldSet.has(field));
 
   if (tmExactCoverage) {
-    const tmOutput = deriveOutputFromPayload({
+    const tmOutputEnvelope = deriveOutputFromPayload({
       payload: enriched.payload,
       sourceFields,
       targetKeyword: parsed.data.targetKeyword,
     });
-    const normalizedTmOutput = normalizeLocaleAdaptationOutput(
-      tmOutput,
+    const normalizedTmOutput = normalizeLocaleAdaptationOutputEnvelope(
+      tmOutputEnvelope,
       parsed.data.targetKeyword ?? parsed.data.sourceKeyword ?? undefined,
     );
-    if (normalizedTmOutput) {
+    if (!normalizedTmOutput) {
       return withNoStoreHeaders(
-        new Response(JSON.stringify(normalizedTmOutput), {
-          headers: { 'Content-Type': 'text/plain; charset=utf-8' },
-        }),
+        apiError(
+          'VALIDATION_ERROR',
+          'TM-derived output failed schema validation (schema_version + payload_v2 required).',
+          422,
+        ),
       );
     }
+    return withNoStoreHeaders(
+      new Response(JSON.stringify(normalizedTmOutput), {
+        headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+      }),
+    );
   }
 
   const rate = await checkTranscreateRateLimit(

@@ -1,6 +1,11 @@
 import type { SeoDecisionSource } from '@/lib/seo/content-intelligence';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/service-role';
 import {
+  LOCALE_ADAPTATION_SCHEMA_VERSION_V2,
+  type LocaleAdaptationOutputEnvelopeV2,
+  normalizeLocaleAdaptationOutputEnvelope,
+} from '@/lib/ai/prompts/locale-adaptation';
+import {
   buildGlossaryPromptBlock,
   enrichDraftWithTM,
   loadGlossaryForLocales,
@@ -73,6 +78,8 @@ type TranscreateJobRow = {
   language: string;
   status: 'draft' | 'reviewed' | 'applied' | 'published';
   payload: Record<string, unknown> | null;
+  schema_version: string | null;
+  payload_v2: Record<string, unknown> | null;
   keyword_reresearch: Record<string, unknown> | null;
 };
 
@@ -144,6 +151,106 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+function pickString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : undefined;
+}
+
+function buildBodyContentCandidate(payload: Record<string, unknown>): Record<string, unknown> | undefined {
+  if (isRecord(payload.body_content)) return payload.body_content;
+
+  const body = pickString(payload.body);
+  const seoIntro = pickString(payload.seo_intro);
+  const seoHighlights = Array.isArray(payload.seo_highlights)
+    ? payload.seo_highlights
+        .filter((value): value is string => typeof value === 'string')
+        .map((value) => value.trim())
+        .filter(Boolean)
+    : [];
+  const seoFaq = Array.isArray(payload.seo_faq)
+    ? payload.seo_faq
+        .filter((row): row is Record<string, unknown> => isRecord(row))
+        .map((row) => ({
+          question: pickString(row.question) ?? '',
+          answer: pickString(row.answer) ?? '',
+        }))
+        .filter((row) => row.question.length > 0 && row.answer.length > 0)
+    : [];
+
+  if (!body && !seoIntro && seoHighlights.length === 0 && seoFaq.length === 0) {
+    return undefined;
+  }
+
+  return {
+    ...(body ? { body } : {}),
+    ...(seoIntro ? { seo_intro: seoIntro } : {}),
+    ...(seoHighlights.length > 0 ? { seo_highlights: seoHighlights } : {}),
+    ...(seoFaq.length > 0 ? { seo_faq: seoFaq } : {}),
+  };
+}
+
+function parseTranscreateEnvelope(job: TranscreateJobRow): LocaleAdaptationOutputEnvelopeV2 | null {
+  const payload = isRecord(job.payload) ? job.payload : {};
+  const payloadV2FromPayload = isRecord(payload.payload_v2) ? payload.payload_v2 : null;
+  const payloadV2FromColumn = isRecord(job.payload_v2) ? job.payload_v2 : null;
+  const schemaVersion =
+    pickString(job.schema_version) ??
+    pickString(payload.schema_version) ??
+    undefined;
+
+  const envelopeCandidate = schemaVersion || payloadV2FromPayload || payloadV2FromColumn
+    ? {
+        schema_version: schemaVersion ?? LOCALE_ADAPTATION_SCHEMA_VERSION_V2,
+        payload_v2: payloadV2FromColumn ?? payloadV2FromPayload ?? {},
+      }
+    : null;
+
+  const legacyCandidate = {
+    meta_title: pickString(payload.meta_title) ?? pickString(payload.seoTitle) ?? '',
+    meta_desc: pickString(payload.meta_desc) ?? pickString(payload.seoDescription) ?? '',
+    slug: pickString(payload.slug) ?? '',
+    h1: pickString(payload.h1) ?? pickString(payload.title) ?? '',
+    keywords: payload.keywords ?? pickString(payload.targetKeyword) ?? [],
+    body_content: buildBodyContentCandidate(payload),
+  };
+
+  return normalizeLocaleAdaptationOutputEnvelope(
+    envelopeCandidate ?? legacyCandidate,
+    pickString(payload.targetKeyword),
+  );
+}
+
+function buildApplyPayload(job: TranscreateJobRow): Record<string, unknown> | null {
+  const envelope = parseTranscreateEnvelope(job);
+  if (!envelope) return null;
+
+  const basePayload = isRecord(job.payload) ? job.payload : {};
+  const payloadV2 = envelope.payload_v2;
+  const nextPayload: Record<string, unknown> = {
+    ...basePayload,
+    schema_version: envelope.schema_version,
+    payload_v2: payloadV2,
+    meta_title: payloadV2.meta_title,
+    meta_desc: payloadV2.meta_desc,
+    slug: payloadV2.slug,
+    h1: payloadV2.h1,
+    keywords: payloadV2.keywords,
+    seoTitle: payloadV2.meta_title,
+    seoDescription: payloadV2.meta_desc,
+    title: payloadV2.h1,
+    targetKeyword: payloadV2.keywords[0] ?? null,
+  };
+
+  if (payloadV2.body_content) {
+    nextPayload.body_content = payloadV2.body_content;
+    if (pickString(payloadV2.body_content.body)) nextPayload.body = payloadV2.body_content.body;
+    if (pickString(payloadV2.body_content.seo_intro)) nextPayload.seo_intro = payloadV2.body_content.seo_intro;
+    if (Array.isArray(payloadV2.body_content.seo_highlights)) nextPayload.seo_highlights = payloadV2.body_content.seo_highlights;
+    if (Array.isArray(payloadV2.body_content.seo_faq)) nextPayload.seo_faq = payloadV2.body_content.seo_faq;
+  }
+
+  return nextPayload;
+}
+
 function buildContentUpdates(pageType: 'blog' | 'page' | 'destination', payload: Record<string, unknown>) {
   const updates: Record<string, unknown> = {};
 
@@ -155,6 +262,12 @@ function buildContentUpdates(pageType: 'blog' | 'page' | 'destination', payload:
 
   if (typeof payload.seoTitle === 'string') updates.seo_title = payload.seoTitle;
   if (typeof payload.seoDescription === 'string') updates.seo_description = payload.seoDescription;
+  if (pageType === 'blog') {
+    const body =
+      pickString(payload.body) ??
+      (isRecord(payload.body_content) ? pickString(payload.body_content.body) : undefined);
+    if (body) updates.content = body;
+  }
 
   return updates;
 }
@@ -185,6 +298,7 @@ function buildProductOverlayPayload(input: {
   if (typeof input.payload.seo_intro === 'string') row.seo_intro = input.payload.seo_intro;
   if (Array.isArray(input.payload.seo_highlights)) row.seo_highlights = input.payload.seo_highlights;
   if (Array.isArray(input.payload.seo_faq)) row.seo_faq = input.payload.seo_faq;
+  if (isRecord(input.payload.body_content)) row.body_content = input.payload.body_content;
 
   return row;
 }
@@ -197,7 +311,7 @@ async function readJob(input: {
   const { data, error } = await input.admin
     .from('seo_transcreation_jobs')
     .select(
-      'id,website_id,page_type,page_id,source_locale,target_locale,country,language,status,payload,keyword_reresearch',
+      'id,website_id,page_type,page_id,source_locale,target_locale,country,language,status,payload,schema_version,payload_v2,keyword_reresearch',
     )
     .eq('website_id', input.websiteId)
     .eq('id', input.jobId)
@@ -655,7 +769,14 @@ export async function applyTranscreateJob(input: ApplyActionInput): Promise<Tran
     });
   }
 
-  const payload = isRecord(job.payload) ? job.payload : {};
+  const payload = buildApplyPayload(job);
+  if (!payload) {
+    return failure({
+      code: 'VALIDATION_ERROR',
+      message: 'Transcreate payload failed schema validation (schema_version + payload_v2 required).',
+      status: 422,
+    });
+  }
 
   // Truth-field guardrail: SEO transcreate may only write overlay columns.
   // Reject BEFORE any DB write if payload references a truth-table column.
@@ -965,7 +1086,7 @@ export async function collectSourceFieldsForPage(input: {
   // Product types — overlay lives in `website_product_pages`.
   const { data } = await admin
     .from('website_product_pages')
-    .select('custom_seo_title,custom_seo_description,seo_intro,target_keyword')
+    .select('custom_seo_title,custom_seo_description,seo_intro,target_keyword,body_content')
     .eq('website_id', websiteId)
     .eq('product_type', pageType)
     .eq('product_id', sourceContentId)
@@ -977,6 +1098,7 @@ export async function collectSourceFieldsForPage(input: {
     seoTitle: pickStringField(row, 'custom_seo_title'),
     seoDescription: pickStringField(row, 'custom_seo_description'),
     seo_intro: pickStringField(row, 'seo_intro'),
+    body: isRecord(row?.body_content) ? pickString(row.body_content.body) : undefined,
   };
 }
 

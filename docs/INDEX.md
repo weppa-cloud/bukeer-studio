@@ -115,6 +115,7 @@ Feature requests formalized. Status tracked inline. GitHub Issues = source of tr
 | [[issue-103-media-closure-checklist]] | [file](./ops/issue-103-media-closure-checklist.md) | Formal SQL/runtime closure validation for media (#176/#177/#179) and residual legacy-bucket risk gate. |
 | [[github-actions-billing-incident]] | [file](./ops/github-actions-billing-incident.md) | Runbook: CI fails in 3-4s → GitHub billing/spending-limit issue, not code. |
 | [[transcreate-website-content-runbook]] | [file](./ops/transcreate-website-content-runbook.md) | End-to-end flow: traducir todo el contenido de un sitio (glossary → AI draft → review → apply → verify). |
+| [[studio-editor-v2-rollback]] | [file](./ops/studio-editor-v2-rollback.md) | Rollback runbook for #190 Studio Editor v2 — 4 levels (field / website / account / data restore) + pre-flight re-enable gate. |
 | [[product-landing-rollout-runbook]] | [file](./runbooks/product-landing-rollout-runbook.md) | Rollout for public site rendering / ISR changes. |
 
 ---
@@ -253,8 +254,15 @@ Each concept below lists the ADRs/SPECs/ops docs that touch it. Use this to find
 - Phase 1a children (2026-04-18): [[#200]] marketing editors, [[#201]] gallery curator, [[#204]] schema parity migrations, [[#205]] Flutter banner
 - D1 impl closed: [[#203]] — `recordCost()` wired in 13 AI routes with token-based costing via `lib/ai/model-pricing.ts`
 - Foundation shipped: `account_feature_flags` + `package_kits_audit_log` + `reconciliation_alerts` + `update_package_kit_marketing_field` RPC + `resolve_studio_editor_v2` RPC
-- Key paths: `lib/features/studio-editor-v2.ts`, `components/admin/marketing/*`, `components/admin/ops/*`, `app/dashboard/[w]/products/[slug]/marketing/`, `app/dashboard/[w]/ops/reconciliation/`
-- Schema: `packages/website-contract/src/schemas/marketing-patch.ts` — `MarketingFieldPatchSchema` discriminated union (9 fields)
+- Phase 1a closeout shipped 2026-04-18 (commits `bbf0a79`→`8d8ca86`):
+  - A2 complete [[#200]] — 6 marketing editors + CT specs (description/highlights/inclusions/exclusions/recommendations/instructions/social-image)
+  - D2 ai_cost_events ledger [[#195]] — `ai_cost_events` + `ai_cost_budgets` + `log_ai_cost_event` + `get_account_ai_spend` RPC + `lib/ai/cost-ledger.ts`
+  - W3 product_edit_history [[#197]] — partitioned RANGE(created_at) monthly + pg_cron rollover/purge + polymorphic `reconcile_product_surfaces` RPC
+  - F2 activities/hotels parity [[#204]] — `account_id NOT NULL` backfill + `last_edited_by_surface` column + audit triggers
+  - C2 rollback runbook [[studio-editor-v2-rollback]] — 4-level rollback guide
+  - G3 smoke test — `e2e/tests/marketing-editor-smoke.spec.ts`
+- Key paths: `lib/features/studio-editor-v2.ts`, `lib/ai/cost-ledger.ts`, `components/admin/marketing/*`, `components/admin/ops/*`, `app/dashboard/[w]/products/[slug]/marketing/`, `app/dashboard/[w]/ops/reconciliation/`
+- Schema: `packages/website-contract/src/schemas/marketing-patch.ts` — `MarketingFieldPatchSchema` discriminated union (9 fields) · `schemas/edit-history.ts` · `schemas/ai-cost.ts`
 - Audits: [[schema-parity-audit]] + [[ai-routes-cost-recording]]
 - Multi-front strategy: `.claude/plans/generic-crafting-sketch.md`
 

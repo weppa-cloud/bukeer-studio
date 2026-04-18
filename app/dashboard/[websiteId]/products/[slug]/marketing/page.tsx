@@ -4,6 +4,11 @@ import { createSupabaseServerClient } from '@/lib/supabase/server-client';
 import { getDashboardUserContext } from '@/lib/admin/user-context';
 import { resolveStudioEditorV2Flag, isStudioFieldEnabled } from '@/lib/features/studio-editor-v2';
 import { DescriptionEditor } from '@/components/admin/marketing/description-editor';
+import { HighlightsEditor } from '@/components/admin/marketing/highlights-editor';
+import { InclusionsExclusionsEditor } from '@/components/admin/marketing/inclusions-exclusions-editor';
+import { RecommendationsEditor } from '@/components/admin/marketing/recommendations-editor';
+import { InstructionsEditor } from '@/components/admin/marketing/instructions-editor';
+import { SocialImagePicker } from '@/components/admin/marketing/social-image-picker';
 import { saveMarketingField } from './actions';
 import type { MarketingFieldName } from '@bukeer/website-contract';
 
@@ -19,6 +24,11 @@ type PackageRow = {
   description_ai_generated: boolean | null;
   program_highlights: string[] | null;
   highlights_ai_generated: boolean | null;
+  program_inclusions: string[] | null;
+  program_exclusions: string[] | null;
+  program_notes: string | null;
+  program_meeting_info: string | null;
+  cover_image_url: string | null;
   last_edited_by_surface: string | null;
 };
 
@@ -41,7 +51,7 @@ export default async function MarketingPage({ params }: PageProps) {
   const { data: pkg } = await supabase
     .from('package_kits')
     .select(
-      'id, account_id, slug, description, description_ai_generated, program_highlights, highlights_ai_generated, last_edited_by_surface',
+      'id, account_id, slug, description, description_ai_generated, program_highlights, highlights_ai_generated, program_inclusions, program_exclusions, program_notes, program_meeting_info, cover_image_url, last_edited_by_surface',
     )
     .eq('slug', slug)
     .eq('account_id', website.account_id)
@@ -93,18 +103,97 @@ export default async function MarketingPage({ params }: PageProps) {
         }}
       />
 
+      <HighlightsEditor
+        productId={pkg.id}
+        value={pkg.program_highlights ?? []}
+        aiGenerated={pkg.highlights_ai_generated ?? false}
+        readOnly={!isFieldStudio('program_highlights')}
+        onSave={async (next) => {
+          'use server';
+          await saveMarketingField({
+            websiteId,
+            productId: pkg.id,
+            patch: { field: 'program_highlights', value: next },
+          });
+        }}
+      />
+
+      <InclusionsExclusionsEditor
+        productId={pkg.id}
+        inclusions={pkg.program_inclusions ?? []}
+        exclusions={pkg.program_exclusions ?? []}
+        inclusionsReadOnly={!isFieldStudio('program_inclusions')}
+        exclusionsReadOnly={!isFieldStudio('program_exclusions')}
+        onSaveInclusions={async (next) => {
+          'use server';
+          await saveMarketingField({
+            websiteId,
+            productId: pkg.id,
+            patch: { field: 'program_inclusions', value: next },
+          });
+        }}
+        onSaveExclusions={async (next) => {
+          'use server';
+          await saveMarketingField({
+            websiteId,
+            productId: pkg.id,
+            patch: { field: 'program_exclusions', value: next },
+          });
+        }}
+      />
+
+      <RecommendationsEditor
+        productId={pkg.id}
+        value={pkg.program_notes}
+        readOnly={!isFieldStudio('program_notes')}
+        onSave={async (next) => {
+          'use server';
+          await saveMarketingField({
+            websiteId,
+            productId: pkg.id,
+            patch: { field: 'program_notes', value: next },
+          });
+        }}
+      />
+
+      <InstructionsEditor
+        productId={pkg.id}
+        value={pkg.program_meeting_info}
+        readOnly={!isFieldStudio('program_meeting_info')}
+        onSave={async (next) => {
+          'use server';
+          await saveMarketingField({
+            websiteId,
+            productId: pkg.id,
+            patch: { field: 'program_meeting_info', value: next },
+          });
+        }}
+      />
+
+      <SocialImagePicker
+        productId={pkg.id}
+        value={pkg.cover_image_url}
+        readOnly={!isFieldStudio('social_image')}
+        onSave={async (next) => {
+          'use server';
+          await saveMarketingField({
+            websiteId,
+            productId: pkg.id,
+            patch: { field: 'social_image', value: next },
+          });
+        }}
+      />
+
       <section
         className="rounded-lg border border-dashed border-border bg-muted/30 p-6 text-sm text-muted-foreground"
-        aria-label="Editores adicionales — próximamente"
+        aria-label="Próximamente"
       >
-        <p className="font-semibold text-foreground">Próximamente en esta página:</p>
+        <p className="font-semibold text-foreground">Próximamente:</p>
         <ul className="mt-2 list-disc space-y-1 pl-5">
-          <li>HighlightsEditor · InclusionsExclusionsEditor · RecommendationsEditor</li>
-          <li>InstructionsEditor · SocialImagePicker · GalleryCurator (A3)</li>
+          <li>GalleryCurator (A3) — dnd-kit + upload + AI alt-text</li>
         </ul>
         <p className="mt-2">
-          Tracked in [A2 #200](https://github.com/weppa-cloud/bukeer-studio/issues/200) + [A3
-          #201](https://github.com/weppa-cloud/bukeer-studio/issues/201).
+          Tracked in [A3 #201](https://github.com/weppa-cloud/bukeer-studio/issues/201).
         </p>
       </section>
     </div>

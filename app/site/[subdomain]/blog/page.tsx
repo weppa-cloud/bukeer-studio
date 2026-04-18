@@ -86,9 +86,10 @@ export default async function BlogPage({ params, searchParams }: BlogPageProps) 
   const baseUrl = website.custom_domain
     ? `https://${website.custom_domain}`
     : `https://${subdomain}.bukeer.com`;
+  const localeContext = await resolvePublicMetadataLocale(website, '/blog');
 
   // Generate JSON-LD schemas (CollectionPage, Breadcrumb, Organization)
-  const schemas = generateBlogListingSchemas(posts, website, baseUrl);
+  const schemas = generateBlogListingSchemas(posts, website, baseUrl, localeContext.resolvedLocale);
 
   return (
     <>

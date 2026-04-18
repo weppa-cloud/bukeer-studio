@@ -18,7 +18,7 @@ import type {
   ImageObject,
 } from './types';
 import type { WebsiteData, BlogPost, WebsiteSection } from '../supabase/get-website';
-import { normalizeLocale } from '@/lib/seo/locale-routing';
+import { localeToLanguage, normalizeLocale } from '@/lib/seo/locale-routing';
 
 function resolveSchemaLanguage(post: BlogPost, website: WebsiteData): string {
   if (post.locale) return normalizeLocale(post.locale);
@@ -41,6 +41,24 @@ function resolveSchemaLanguage(post: BlogPost, website: WebsiteData): string {
   }
 
   return normalizeLocale('es-CO');
+}
+
+function resolveSchemaUiLanguage(localeLike: string | null | undefined): 'es' | 'en' {
+  const language = localeToLanguage(normalizeLocale(localeLike ?? 'es-CO'));
+  return language === 'en' ? 'en' : 'es';
+}
+
+function schemaLabel(labelKey: 'home' | 'blog' | 'blogCollectionDescription', localeLike: string | null | undefined): string {
+  const language = resolveSchemaUiLanguage(localeLike);
+  if (language === 'en') {
+    if (labelKey === 'home') return 'Home';
+    if (labelKey === 'blog') return 'Blog';
+    return 'Travel guides and updates from';
+  }
+
+  if (labelKey === 'home') return 'Inicio';
+  if (labelKey === 'blog') return 'Blog';
+  return 'Artículos y noticias de';
 }
 
 /**
@@ -314,7 +332,8 @@ export function extractFAQFromSections(
 export function generateCollectionPageSchema(
   posts: BlogPost[],
   website: WebsiteData,
-  baseUrl: string
+  baseUrl: string,
+  resolvedLocale?: string | null,
 ): CollectionPage {
   const blogUrl = `${baseUrl}/blog`;
 
@@ -331,7 +350,7 @@ export function generateCollectionPageSchema(
     '@context': 'https://schema.org',
     '@type': 'CollectionPage',
     name: `Blog - ${collectionSiteName}`,
-    description: `Artículos y noticias de ${collectionSiteName}`,
+    description: `${schemaLabel('blogCollectionDescription', resolvedLocale)} ${collectionSiteName}`,
     url: blogUrl,
     mainEntity: {
       '@type': 'ItemList',
@@ -355,7 +374,8 @@ export function generateCollectionPageSchema(
 export function generateHomepageSchemas(
   website: WebsiteData,
   baseUrl: string,
-  reviewImages?: ImageObject[]
+  reviewImages?: ImageObject[],
+  resolvedLocale?: string | null,
 ): object[] {
   const schemas: object[] = [];
 
@@ -372,7 +392,7 @@ export function generateHomepageSchemas(
 
   // 3. Breadcrumb for homepage
   schemas.push(generateBreadcrumbSchema([
-    { name: 'Inicio', url: baseUrl },
+    { name: schemaLabel('home', resolvedLocale), url: baseUrl },
   ]));
 
   // 4. FAQ schema if FAQ section exists
@@ -390,7 +410,8 @@ export function generateHomepageSchemas(
 export function generateBlogPostSchemas(
   post: BlogPost,
   website: WebsiteData,
-  baseUrl: string
+  baseUrl: string,
+  resolvedLocale?: string | null,
 ): object[] {
   const schemas: object[] = [];
 
@@ -415,8 +436,8 @@ export function generateBlogPostSchemas(
 
   // 3. Breadcrumb schema
   schemas.push(generateBreadcrumbSchema([
-    { name: 'Inicio', url: baseUrl },
-    { name: 'Blog', url: `${baseUrl}/blog` },
+    { name: schemaLabel('home', resolvedLocale), url: baseUrl },
+    { name: schemaLabel('blog', resolvedLocale), url: `${baseUrl}/blog` },
     { name: post.title },
   ]));
 
@@ -432,17 +453,18 @@ export function generateBlogPostSchemas(
 export function generateBlogListingSchemas(
   posts: BlogPost[],
   website: WebsiteData,
-  baseUrl: string
+  baseUrl: string,
+  resolvedLocale?: string | null,
 ): object[] {
   const schemas: object[] = [];
 
   // 1. CollectionPage schema
-  schemas.push(generateCollectionPageSchema(posts, website, baseUrl));
+  schemas.push(generateCollectionPageSchema(posts, website, baseUrl, resolvedLocale));
 
   // 2. Breadcrumb schema
   schemas.push(generateBreadcrumbSchema([
-    { name: 'Inicio', url: baseUrl },
-    { name: 'Blog' },
+    { name: schemaLabel('home', resolvedLocale), url: baseUrl },
+    { name: schemaLabel('blog', resolvedLocale) },
   ]));
 
   // 3. Organization schema

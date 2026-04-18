@@ -56,6 +56,7 @@ export async function generateMetadata({ params }: SitePageProps): Promise<Metad
     ? `https://${website.custom_domain}`
     : `https://${subdomain}.bukeer.com`;
   const localeContext = await resolvePublicMetadataLocale(website, '/');
+  const localeContext = await resolvePublicMetadataLocale(website, '/');
   const languages = buildLocaleAwareAlternateLanguages(baseUrl, '/', localeContext);
   const canonical = localeContext.localizedPathname === '/'
     ? baseUrl
@@ -139,7 +140,12 @@ export default async function SitePage({ params }: SitePageProps) {
     }
   }
 
-  const schemas = generateHomepageSchemas(website, baseUrl, reviewImages.length > 0 ? reviewImages : undefined);
+  const schemas = generateHomepageSchemas(
+    website,
+    baseUrl,
+    reviewImages.length > 0 ? reviewImages : undefined,
+    localeContext.resolvedLocale,
+  );
 
   const PLANNER_TYPES = new Set(['planners', 'team', 'travel_planners']);
   const hasPlannersSection = (website.sections || []).some(

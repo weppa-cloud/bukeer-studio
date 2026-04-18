@@ -1,4 +1,5 @@
 import type { PageSection } from '@/lib/supabase/get-pages';
+import { localeToLanguage, normalizeLocale } from '@/lib/seo/locale-routing';
 
 interface LandingPageSchemaProps {
   sections: PageSection[];
@@ -9,6 +10,35 @@ interface LandingPageSchemaProps {
 
 function clean(obj: unknown): Record<string, unknown> {
   return JSON.parse(JSON.stringify(obj));
+}
+
+type SchemaUiLanguage = 'es' | 'en';
+
+function resolveSchemaUiLanguage(localeLike: string): SchemaUiLanguage {
+  const language = localeToLanguage(normalizeLocale(localeLike));
+  return language === 'en' ? 'en' : 'es';
+}
+
+function getSchemaLabels(language: SchemaUiLanguage): {
+  home: string;
+  day: string;
+  touristTypes: string[];
+  currency: string;
+} {
+  if (language === 'en') {
+    return {
+      home: 'Home',
+      day: 'Day',
+      touristTypes: ['Leisure', 'Cultural'],
+      currency: 'USD',
+    };
+  }
+  return {
+    home: 'Inicio',
+    day: 'Día',
+    touristTypes: ['Ocio', 'Cultural'],
+    currency: 'COP',
+  };
 }
 
 function buildTouristTripSchema(
@@ -49,6 +79,7 @@ function buildTouristTripSchema(
   const priceStr = featuredTier?.price ?? '';
   const numericMatch = priceStr.replace(/[^0-9.]/g, '');
   const numericPrice = parseFloat(numericMatch);
+  const labels = getSchemaLabels(resolveSchemaUiLanguage(inLanguage));
 
   return clean({
     '@context': 'https://schema.org',
@@ -56,12 +87,12 @@ function buildTouristTripSchema(
     name: pageTitle,
     url: pageUrl,
     inLanguage,
-    touristType: ['Leisure', 'Cultural'],
+    touristType: labels.touristTypes,
     offers: !isNaN(numericPrice) && numericPrice > 0
       ? {
           '@type': 'Offer',
           price: numericPrice,
-          priceCurrency: 'USD',
+          priceCurrency: labels.currency,
           availability: 'https://schema.org/InStock',
           priceValidUntil: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         }
@@ -72,7 +103,7 @@ function buildTouristTripSchema(
           itemListElement: days.map((day, i) => ({
             '@type': 'ListItem',
             position: i + 1,
-            name: `Día ${day.dayNumber}: ${day.title}`,
+            name: `${labels.day} ${day.dayNumber}: ${day.title}`,
             item: day.location
               ? { '@type': 'Place', name: day.location }
               : undefined,
@@ -164,12 +195,13 @@ function buildBreadcrumbSchema(
   baseUrl: string,
   inLanguage: string,
 ): Record<string, unknown> {
+  const labels = getSchemaLabels(resolveSchemaUiLanguage(inLanguage));
   return clean({
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
     inLanguage,
     itemListElement: [
-      { '@type': 'ListItem', position: 1, name: 'Inicio', item: baseUrl },
+      { '@type': 'ListItem', position: 1, name: labels.home, item: baseUrl },
       { '@type': 'ListItem', position: 2, name: pageTitle, item: pageUrl },
     ],
   });
@@ -179,24 +211,25 @@ export function LandingPageSchema({
   sections,
   pageTitle,
   pageUrl,
-  inLanguage = 'es',
+  inLanguage = 'es-CO',
 }: LandingPageSchemaProps) {
   if (!sections?.length) return null;
+  const normalizedLanguage = normalizeLocale(inLanguage, 'es-CO');
 
   const baseUrl = new URL(pageUrl).origin;
 
   const schemas: Record<string, unknown>[] = [];
 
-  const touristTrip = buildTouristTripSchema(sections, pageTitle, pageUrl, inLanguage);
+  const touristTrip = buildTouristTripSchema(sections, pageTitle, pageUrl, normalizedLanguage);
   if (touristTrip) schemas.push(touristTrip);
 
-  const faqPage = buildFaqPageSchema(sections, inLanguage);
+  const faqPage = buildFaqPageSchema(sections, normalizedLanguage);
   if (faqPage) schemas.push(faqPage);
 
-  const aggregateRating = buildAggregateRatingSchema(sections, pageTitle, pageUrl, inLanguage);
+  const aggregateRating = buildAggregateRatingSchema(sections, pageTitle, pageUrl, normalizedLanguage);
   if (aggregateRating) schemas.push(aggregateRating);
 
-  const breadcrumb = buildBreadcrumbSchema(pageTitle, pageUrl, baseUrl, inLanguage);
+  const breadcrumb = buildBreadcrumbSchema(pageTitle, pageUrl, baseUrl, normalizedLanguage);
   schemas.push(breadcrumb);
 
   if (schemas.length === 0) return null;

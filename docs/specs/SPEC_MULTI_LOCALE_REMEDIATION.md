@@ -1,7 +1,7 @@
 # SPEC: Multi-Locale Remediation + Growth Ops (Bukeer Studio)
 
-**Status:** Shipped (partial — migrations + locale-routing + hreflang merged 2026-04-17; full locale-native keyword research not yet shipped)
-**Date:** 2026-04-17
+**Status:** Shipped (partial, amended 2026-04-18 — routing/hreflang/sitemap active; growth and semantic layers pending)
+**Date:** 2026-04-17 (amended 2026-04-18)
 **Scope:** Schema + Backend + Public routing + Dashboard + Growth ops + QA across 6 phases
 **Primary source:** `/Users/yeisongomez/.claude/plans/hacer-la-siute-de-mellow-dolphin.md` (approved)
 **Reference tenant:** colombiatours.travel (`894545b7-73ca-4dae-b76a-da5b6a3f8441`)
@@ -21,17 +21,29 @@ growth SEO multi-mercado con UX fluida?"** → **SI** post-implementación.
 
 ---
 
-## 2. Current Baseline (2026-04-17)
+## 2. Current Baseline (Historical snapshot — 2026-04-17)
 
 **Evidence:** `docs/evidence/growth-readiness/ux-fluency.md` — 8/10 PASS, 2 FAILs.
 
-### Shipped (works)
+### Shipped (works, snapshot 2026-04-17)
 - Transcreate schema (`seo_transcreation_jobs`, `seo_localized_variants`)
 - Endpoints locale-aware: `transcreate`, `optimize`, `research`, `audit`, `score`
 - GSC/GA4 sync (pero hardcoded `locale:'es'` en `lib/seo/backend-service.ts:263`)
-- Hreflang helpers (`lib/seo/hreflang.ts`) — completos pero NO integrados en SSR
+- Hreflang helpers (`lib/seo/hreflang.ts`) — completos (integration pending at snapshot time)
 
-### Gaps blocking multi-market operation
+### Shipped updates (2026-04-18 amendment)
+
+- Public routing + hreflang + sitemap quedaron integrados en SSR/public metadata.
+- `hreflang` policy alineada con ADR-020 enmendado:
+  - Emitir `defaultLocale` + locales con `seo_transcreation_jobs.status IN ('applied','published')` por URL.
+  - Locales en `supported_locales` sin contenido traducido aplicado/publicado se omiten en esa página.
+- Este documento mantiene el baseline de 2026-04-17 como evidencia histórica, pero la política vigente se rige por:
+  - `docs/architecture/ADR-020-hreflang-emission-policy.md`
+  - `docs/seo/multi-locale-transcreation-infrastructure.md`
+
+### Gaps blocking multi-market operation (snapshot 2026-04-17)
+
+Note: items 2-4 in this historical list were closed later and are superseded by the 2026-04-18 shipped updates above.
 1. Truth tables (`website_blog_posts`, `website_pages`, `website_product_pages`, `destinations`) sin columna `locale` ni `translation_group_id`.
 2. Rendering público monolingüe — sin `[locale]` segment.
 3. Hreflang helpers no llamados desde `generateMetadata`.

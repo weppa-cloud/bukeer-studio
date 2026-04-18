@@ -10,8 +10,8 @@ import {
   withNoStoreHeaders,
 } from '@/lib/seo/content-intelligence';
 import {
-  type LocaleAdaptationOutput,
-  normalizeLocaleAdaptationOutput,
+  type LocaleAdaptationOutputEnvelopeV2,
+  normalizeLocaleAdaptationOutputEnvelope,
 } from '@/lib/ai/prompts/locale-adaptation';
 import { checkTranscreateRateLimit } from '@/lib/seo/transcreate-rate-limit';
 import {
@@ -132,19 +132,27 @@ function buildReresearchDetails(input: {
   };
 }
 
-function mapAiOutputToDraft(aiOutput: LocaleAdaptationOutput): Record<string, unknown> {
+function mapAiOutputToDraft(aiOutput: LocaleAdaptationOutputEnvelopeV2): Record<string, unknown> {
+  const payload = aiOutput.payload_v2;
   return {
+    schema_version: aiOutput.schema_version,
+    payload_v2: payload,
     // New schema fields.
-    meta_title: aiOutput.meta_title,
-    meta_desc: aiOutput.meta_desc,
-    slug: aiOutput.slug,
-    h1: aiOutput.h1,
-    keywords: aiOutput.keywords,
+    meta_title: payload.meta_title,
+    meta_desc: payload.meta_desc,
+    slug: payload.slug,
+    h1: payload.h1,
+    keywords: payload.keywords,
+    body_content: payload.body_content,
+    ...(payload.body_content?.body ? { body: payload.body_content.body } : {}),
+    ...(payload.body_content?.seo_intro ? { seo_intro: payload.body_content.seo_intro } : {}),
+    ...(payload.body_content?.seo_highlights ? { seo_highlights: payload.body_content.seo_highlights } : {}),
+    ...(payload.body_content?.seo_faq ? { seo_faq: payload.body_content.seo_faq } : {}),
     // Legacy-compatible fields used by apply/review workflow.
-    seoTitle: aiOutput.meta_title,
-    seoDescription: aiOutput.meta_desc,
-    title: aiOutput.h1,
-    targetKeyword: aiOutput.keywords[0] ?? null,
+    seoTitle: payload.meta_title,
+    seoDescription: payload.meta_desc,
+    title: payload.h1,
+    targetKeyword: payload.keywords[0] ?? null,
   };
 }
 
@@ -177,19 +185,29 @@ export async function POST(request: NextRequest) {
   if (parsed.data.action === 'create_draft') {
     const draftSource = parsed.data.draftSource ?? 'manual';
     let draftPayload: Record<string, unknown> = { ...parsed.data.draft };
+    let normalizedEnvelope: LocaleAdaptationOutputEnvelopeV2 | null = null;
     let aiGenerated = false;
     let aiModel: string | null = null;
 
     if (draftSource === 'ai') {
-      const normalizedAiOutput = normalizeLocaleAdaptationOutput(
-        parsed.data.aiOutput,
+      const aiEnvelopeCandidate = parsed.data.aiOutput
+        ?? (
+          parsed.data.schemaVersion === '2.0' && parsed.data.payloadV2
+            ? {
+                schema_version: parsed.data.schemaVersion,
+                payload_v2: parsed.data.payloadV2,
+              }
+            : null
+        );
+      normalizedEnvelope = normalizeLocaleAdaptationOutputEnvelope(
+        aiEnvelopeCandidate,
         parsed.data.targetKeyword ?? parsed.data.sourceKeyword ?? undefined,
       );
-      if (!normalizedAiOutput) {
+      if (!normalizedEnvelope) {
         return withNoStoreHeaders(
           apiError(
             'VALIDATION_ERROR',
-            'aiOutput failed schema validation',
+            'aiOutput failed schema validation (expected schema_version + payload_v2)',
             400,
           ),
         );
@@ -214,10 +232,33 @@ export async function POST(request: NextRequest) {
 
       draftPayload = {
         ...draftPayload,
-        ...mapAiOutputToDraft(normalizedAiOutput),
+        ...mapAiOutputToDraft(normalizedEnvelope),
       };
       aiGenerated = true;
       aiModel = parsed.data.aiModel ?? process.env.OPENROUTER_MODEL ?? null;
+    }
+
+    if (!normalizedEnvelope && parsed.data.schemaVersion === '2.0' && parsed.data.payloadV2) {
+      normalizedEnvelope = normalizeLocaleAdaptationOutputEnvelope(
+        {
+          schema_version: parsed.data.schemaVersion,
+          payload_v2: parsed.data.payloadV2,
+        },
+        parsed.data.targetKeyword ?? parsed.data.sourceKeyword ?? undefined,
+      );
+      if (!normalizedEnvelope) {
+        return withNoStoreHeaders(
+          apiError(
+            'VALIDATION_ERROR',
+            'payloadV2 failed schema validation',
+            400,
+          ),
+        );
+      }
+      draftPayload = {
+        ...draftPayload,
+        ...mapAiOutputToDraft(normalizedEnvelope),
+      };
     }
 
     const jobId = crypto.randomUUID();
@@ -302,6 +343,8 @@ export async function POST(request: NextRequest) {
         source: keywordReresearch.source,
         fetched_at: keywordReresearch.fetched_at,
         confidence: keywordReresearch.confidence,
+        schema_version: normalizedEnvelope?.schema_version ?? null,
+        payload_v2: normalizedEnvelope?.payload_v2 ?? null,
         created_by: access.userId,
       })
       .select('id, status, source_locale, target_locale, created_at')

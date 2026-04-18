@@ -22,6 +22,7 @@ import {
   buildPublicLocalizedPath,
   resolveLocaleFromPublicPath,
 } from '@/lib/seo/locale-routing';
+import { getPublicUiMessages } from '@/lib/site/public-ui-messages';
 import type { NavigationItem, HeaderCTA, MarketSwitcherStyle } from '@bukeer/website-contract';
 
 interface SiteHeaderProps {
@@ -70,17 +71,18 @@ export function SiteHeader({ website, isCustomDomain = false, navigation }: Site
     ?? normalizeLanguageCode(website.default_locale)
     ?? localeCodes[0]
     ?? 'es';
+  const uiMessages = useMemo(() => getPublicUiMessages(fallbackLocale), [fallbackLocale]);
   const enabledCurrencyKey = currencyConfig?.enabledCurrencies.join(',') ?? '';
   const [selectedLocale, setSelectedLocale] = useState(fallbackLocale);
   const [selectedCurrency, setSelectedCurrency] = useState<string | null>(currencyConfig?.baseCurrency ?? null);
 
   // Fallback navigation
   const navFallback: NavigationItem[] = [
-    { slug: 'destinations', label: 'Destinos', page_type: 'anchor', href: `${basePath}/#destinations`, target: '_self' },
-    { slug: 'packages', label: 'Paquetes', page_type: 'anchor', href: `${basePath}/#packages`, target: '_self' },
-    { slug: 'activities', label: 'Experiencias', page_type: 'anchor', href: `${basePath}/#activities`, target: '_self' },
-    { slug: 'about', label: 'Nosotros', page_type: 'anchor', href: `${basePath}/#about`, target: '_self' },
-    { slug: 'cta', label: 'Asesoría', page_type: 'anchor', href: `${basePath}/#cta`, target: '_self' },
+    { slug: 'destinations', label: uiMessages.nav.destinations, page_type: 'anchor', href: `${basePath}/#destinations`, target: '_self' },
+    { slug: 'packages', label: uiMessages.nav.packages, page_type: 'anchor', href: `${basePath}/#packages`, target: '_self' },
+    { slug: 'activities', label: uiMessages.nav.experiences, page_type: 'anchor', href: `${basePath}/#activities`, target: '_self' },
+    { slug: 'about', label: uiMessages.nav.about, page_type: 'anchor', href: `${basePath}/#about`, target: '_self' },
+    { slug: 'cta', label: uiMessages.nav.advisory, page_type: 'anchor', href: `${basePath}/#cta`, target: '_self' },
   ];
   const navLinks: NavigationItem[] = (navigation || navFallback)
     .filter((link) => !(link.slug?.toLowerCase() === 'contact' && link.page_type === 'anchor'))
@@ -89,7 +91,7 @@ export function SiteHeader({ website, isCustomDomain = false, navigation }: Site
       return {
         ...link,
         slug: 'cta',
-        label: 'Asesoría',
+        label: uiMessages.nav.advisory,
         href: `${basePath}/#cta`,
       };
     });
@@ -234,7 +236,7 @@ export function SiteHeader({ website, isCustomDomain = false, navigation }: Site
               }}
               className="relative z-30 flex items-center justify-center w-10 h-10 rounded-lg transition-colors"
               style={{ color: isTransparent ? 'white' : 'var(--text-heading, hsl(var(--foreground)))' }}
-              aria-label="Menu"
+              aria-label={uiMessages.header.menuAria}
             >
               {mobileMenuOpen ? (
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
@@ -284,7 +286,7 @@ export function SiteHeader({ website, isCustomDomain = false, navigation }: Site
                   href={`${basePath}/#cta`}
                   className="flex items-center justify-center w-10 h-10 rounded-full transition-transform hover:scale-105"
                   style={{ backgroundColor: 'var(--accent)', color: 'var(--accent-text)' }}
-                  aria-label="Asesoría"
+                  aria-label={uiMessages.header.advisoryAria}
                 >
                   <CalendarIcon className="w-4 h-4" />
                 </Link>
@@ -381,6 +383,7 @@ export function SiteHeader({ website, isCustomDomain = false, navigation }: Site
 
             {hasPreferenceSwitchers && (
               <MenuPreferenceSwitchers
+                labels={uiMessages.header}
                 selectedLocale={selectedLocale}
                 selectedCurrency={selectedCurrency}
                 localeOptions={localeOptions}
@@ -413,7 +416,7 @@ export function SiteHeader({ website, isCustomDomain = false, navigation }: Site
                 onMouseLeave={(e) => { e.currentTarget.style.boxShadow = '0 2px 8px color-mix(in srgb, var(--accent, hsl(var(--primary))) 35%, transparent)'; }}
               >
                 <WhatsAppIcon className="w-4 h-4" />
-                <span>Planear mi viaje</span>
+                <span>{uiMessages.header.planMyTrip}</span>
               </a>
             ) : (
               <HeaderCtaButton cta={headerCta} />
@@ -471,9 +474,10 @@ export function SiteHeader({ website, isCustomDomain = false, navigation }: Site
                   style={{ borderColor: 'var(--border-subtle, hsl(var(--border)))' }}
                 >
                   <p className="text-xs uppercase tracking-[0.18em] mb-2" style={{ color: 'var(--text-secondary, hsl(var(--muted-foreground)))' }}>
-                    Preferencias
+                    {uiMessages.header.preferences}
                   </p>
                   <MobilePreferenceSwitchers
+                    labels={uiMessages.header}
                     selectedLocale={selectedLocale}
                     selectedCurrency={selectedCurrency}
                     localeOptions={localeOptions}
@@ -499,7 +503,7 @@ export function SiteHeader({ website, isCustomDomain = false, navigation }: Site
                   }}
                 >
                   <WhatsAppIcon className="w-5 h-5" />
-                  Planear mi viaje por WhatsApp
+                  {uiMessages.header.planMyTripWhatsapp}
                 </a>
               )}
 
@@ -514,7 +518,7 @@ export function SiteHeader({ website, isCustomDomain = false, navigation }: Site
                   }}
                 >
                   <PhoneIcon className="w-5 h-5" />
-                  Llamar ahora
+                  {uiMessages.header.callNow}
                 </a>
               )}
             </nav>
@@ -556,6 +560,16 @@ function HeaderCtaButton({ cta }: { cta?: HeaderCTA }) {
 }
 
 interface PreferenceSwitchersProps {
+  labels: {
+    preferences: string;
+    customizeExperience: string;
+    language: string;
+    currency: string;
+    languageCurrencyCustomizationAria: string;
+    customizationSrOnly: string;
+    siteLanguageAria: string;
+    siteCurrencyAria: string;
+  };
   selectedLocale: string;
   selectedCurrency: string | null;
   localeOptions: Array<{ code: string; label: string }>;
@@ -568,6 +582,7 @@ interface PreferenceSwitchersProps {
 }
 
 function MenuPreferenceSwitchers({
+  labels,
   selectedLocale,
   selectedCurrency,
   localeOptions,
@@ -618,7 +633,7 @@ function MenuPreferenceSwitchers({
     <div className="relative ml-2" ref={panelRef}>
       <button
         type="button"
-        aria-label="Personalización de idioma y moneda"
+        aria-label={labels.languageCurrencyCustomizationAria}
         aria-expanded={isOpen}
         aria-haspopup="dialog"
         onClick={() => setIsOpen((current) => !current)}
@@ -630,9 +645,9 @@ function MenuPreferenceSwitchers({
           boxShadow: isOpen ? '0 8px 24px rgba(0,0,0,0.16)' : 'none',
         }}
       >
-        <span className="sr-only">Personalización</span>
+        <span className="sr-only">{labels.customizationSrOnly}</span>
         <span className="text-sm font-semibold tracking-wide">
-          {labelParts.join(' · ') || 'Preferencias'}
+          {labelParts.join(' · ') || labels.preferences}
         </span>
         <svg className={`h-3.5 w-3.5 transition-transform ${isOpen ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
           <path strokeLinecap="round" strokeLinejoin="round" d="M5 7.5L10 12.5L15 7.5" />
@@ -648,12 +663,12 @@ function MenuPreferenceSwitchers({
           }}
         >
           <p className="mb-3 text-[11px] uppercase tracking-[0.15em] opacity-75">
-            Personaliza tu experiencia
+            {labels.customizeExperience}
           </p>
 
           {hasLanguageSwitcher ? (
             <MarketOptionGroup
-              title="Idioma"
+              title={labels.language}
               value={selectedLocale}
               options={localeOptions.map((locale) => ({
                 value: locale.code,
@@ -670,7 +685,7 @@ function MenuPreferenceSwitchers({
 
           {hasCurrencySwitcher ? (
             <MarketOptionGroup
-              title="Moneda"
+              title={labels.currency}
               value={(selectedCurrency ?? currencyOptions[0] ?? '').toUpperCase()}
               options={currencyOptions.map((code) => ({
                 value: code,
@@ -691,6 +706,7 @@ function MenuPreferenceSwitchers({
 }
 
 function MobilePreferenceSwitchers({
+  labels,
   selectedLocale,
   selectedCurrency,
   localeOptions,
@@ -707,7 +723,7 @@ function MobilePreferenceSwitchers({
     <div className={`grid gap-3 ${columns}`}>
       {showLocaleControl ? (
         <div>
-          <p className="text-xs mb-1" style={{ color: 'var(--text-secondary, hsl(var(--muted-foreground)))' }}>Idioma</p>
+          <p className="text-xs mb-1" style={{ color: 'var(--text-secondary, hsl(var(--muted-foreground)))' }}>{labels.language}</p>
           <select
             value={selectedLocale}
             onChange={(event) => onLocaleChange(event.target.value)}
@@ -717,7 +733,7 @@ function MobilePreferenceSwitchers({
               color: 'var(--text-heading, hsl(var(--foreground)))',
               backgroundColor: 'var(--bg, hsl(var(--background)))',
             }}
-            aria-label="Idioma del sitio"
+            aria-label={labels.siteLanguageAria}
           >
             {localeOptions.map((locale) => (
               <option key={locale.code} value={locale.code}>
@@ -729,7 +745,7 @@ function MobilePreferenceSwitchers({
       ) : null}
       {hasCurrencySwitcher ? (
         <div>
-          <p className="text-xs mb-1" style={{ color: 'var(--text-secondary, hsl(var(--muted-foreground)))' }}>Moneda</p>
+          <p className="text-xs mb-1" style={{ color: 'var(--text-secondary, hsl(var(--muted-foreground)))' }}>{labels.currency}</p>
           <select
             value={selectedCurrency ?? currencyOptions[0] ?? ''}
             onChange={(event) => onCurrencyChange(event.target.value)}
@@ -739,7 +755,7 @@ function MobilePreferenceSwitchers({
               color: 'var(--text-heading, hsl(var(--foreground)))',
               backgroundColor: 'var(--bg, hsl(var(--background)))',
             }}
-            aria-label="Moneda del sitio"
+            aria-label={labels.siteCurrencyAria}
           >
             {currencyOptions.map((code) => (
               <option key={code} value={code}>

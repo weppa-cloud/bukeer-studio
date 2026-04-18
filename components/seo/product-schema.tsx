@@ -1,5 +1,6 @@
 import type { MeetingPoint, ProductData, ProductFAQ } from '@bukeer/website-contract';
 import { parseVideoMeta } from '@/lib/products/video-url';
+import { localeToLanguage, normalizeLocale } from '@/lib/seo/locale-routing';
 
 interface ProductSchemaProps {
   product: ProductData;
@@ -176,6 +177,8 @@ function buildDestinationSchema(product: ProductData, websiteUrl: string | undef
 function buildPackageSchema(product: ProductData, websiteUrl: string | undefined, inLanguage: string) {
   const itinerary = (product.itinerary_items ?? []).filter((item) => item && typeof item.title === 'string' && item.title.trim());
   const aggregateRating = buildAggregateRating(product);
+  const language = localeToLanguage(normalizeLocale(inLanguage, 'es-CO'));
+  const dayLabel = language === 'en' ? 'Day' : 'Día';
 
   return {
     '@context': 'https://schema.org',
@@ -194,14 +197,14 @@ function buildPackageSchema(product: ProductData, websiteUrl: string | undefined
           itemListElement: itinerary.map((item, i) => ({
             '@type': 'ListItem',
             position: i + 1,
-            name: item.title || `Day ${i + 1}`,
+            name: item.title || `${dayLabel} ${i + 1}`,
           })),
         }
       : undefined,
     subTrip: itinerary.length
       ? itinerary.map((item, i) => ({
           '@type': 'TouristTrip',
-          name: item.title || `Day ${i + 1}`,
+          name: item.title || `${dayLabel} ${i + 1}`,
           description: item.description || undefined,
         }))
       : undefined,
@@ -270,6 +273,22 @@ const PRODUCT_TYPE_SLUGS: Record<string, string> = {
   package: 'paquetes',
 };
 
+const PRODUCT_TYPE_LABELS_EN: Record<string, string> = {
+  destination: 'Destinations',
+  hotel: 'Hotels',
+  activity: 'Activities',
+  transfer: 'Transfers',
+  package: 'Packages',
+};
+
+const PRODUCT_TYPE_SLUGS_EN: Record<string, string> = {
+  destination: 'destinations',
+  hotel: 'hotels',
+  activity: 'activities',
+  transfer: 'transfers',
+  package: 'packages',
+};
+
 function buildBreadcrumbSchema(
   product: ProductData,
   productType: string,
@@ -278,9 +297,16 @@ function buildBreadcrumbSchema(
 ): Record<string, unknown> | null {
   if (!websiteUrl) return null;
 
-  const typeName = PRODUCT_TYPE_LABELS[productType];
-  const typeSlug = PRODUCT_TYPE_SLUGS[productType];
+  const language = localeToLanguage(normalizeLocale(inLanguage, 'es-CO'));
+  const isEnglish = language === 'en';
+  const labels = isEnglish ? PRODUCT_TYPE_LABELS_EN : PRODUCT_TYPE_LABELS;
+  const slugs = isEnglish ? PRODUCT_TYPE_SLUGS_EN : PRODUCT_TYPE_SLUGS;
+  const typeName = labels[productType];
+  const typeSlug = slugs[productType];
   if (!typeName || !typeSlug) return null;
+  const homeLabel = isEnglish ? 'Home' : 'Inicio';
+  const destinationsLabel = isEnglish ? 'Destinations' : 'Destinos';
+  const destinationsSlug = isEnglish ? 'destinations' : 'destinos';
 
   const hasDestination = product.location && productType !== 'destination';
 
@@ -288,7 +314,7 @@ function buildBreadcrumbSchema(
     {
       '@type': 'ListItem',
       position: 1,
-      name: 'Inicio',
+      name: homeLabel,
       item: websiteUrl,
     },
   ];
@@ -299,14 +325,14 @@ function buildBreadcrumbSchema(
     items.push({
       '@type': 'ListItem',
       position: pos++,
-      name: 'Destinos',
-      item: `${websiteUrl}/destinos`,
+      name: destinationsLabel,
+      item: `${websiteUrl}/${destinationsSlug}`,
     });
     items.push({
       '@type': 'ListItem',
       position: pos++,
       name: product.location!,
-      item: `${websiteUrl}/destinos/${slugify(product.location!)}`,
+      item: `${websiteUrl}/${destinationsSlug}/${slugify(product.location!)}`,
     });
   }
 
@@ -462,9 +488,9 @@ function normalizeNumber(value: unknown): number | null {
 
 export function normalizeLanguage(language: string | null | undefined): string {
   if (!language || typeof language !== 'string' || !language.trim()) {
-    return 'es';
+    return 'es-CO';
   }
-  return language;
+  return normalizeLocale(language, 'es-CO');
 }
 
 function slugify(text: string): string {

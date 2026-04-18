@@ -186,6 +186,40 @@ export const SeoOptimizeRequestSchema = z.object({
   patch: z.record(z.string(), z.unknown()).default({}),
 });
 
+export const LocaleAdaptationBodyFaqItemSchema = z.object({
+  question: z.string().min(1).max(240),
+  answer: z.string().min(1).max(2000),
+});
+
+export const LocaleAdaptationBodyContentSchema = z.object({
+  body: z.string().min(1).max(20000).optional(),
+  seo_intro: z.string().min(1).max(2000).optional(),
+  seo_highlights: z.array(z.string().min(1).max(300)).max(20).optional(),
+  seo_faq: z.array(LocaleAdaptationBodyFaqItemSchema).max(20).optional(),
+});
+
+export const LocaleAdaptationOutputSchemaV1 = z.object({
+  meta_title: z.string().min(1).max(70),
+  meta_desc: z.string().min(1).max(160),
+  slug: z.string().min(1).max(120).regex(/^[a-z0-9-]+$/),
+  h1: z.string().min(1).max(100),
+  keywords: z.union([z.array(z.string()).max(10), z.string().max(400)]),
+});
+
+export const LocaleAdaptationOutputSchemaV2 = z.object({
+  meta_title: z.string().min(1).max(70),
+  meta_desc: z.string().min(1).max(160),
+  slug: z.string().min(1).max(120).regex(/^[a-z0-9-]+$/),
+  h1: z.string().min(1).max(100),
+  keywords: z.union([z.array(z.string()).max(10), z.string().max(400)]),
+  body_content: LocaleAdaptationBodyContentSchema.optional(),
+});
+
+export const LocaleAdaptationOutputEnvelopeSchemaV2 = z.object({
+  schema_version: z.literal('2.0'),
+  payload_v2: LocaleAdaptationOutputSchemaV2,
+});
+
 export const SeoTranscreateRequestSchema = z.object({
   action: z.enum(['create_draft', 'review', 'apply']),
   websiteId: z.string().uuid(),
@@ -201,15 +235,9 @@ export const SeoTranscreateRequestSchema = z.object({
   draft: z.record(z.string(), z.unknown()).default({}),
   draftSource: z.enum(['manual', 'ai', 'tm_exact']).default('manual'),
   aiModel: z.string().max(120).optional(),
-  aiOutput: z
-    .object({
-      meta_title: z.string().min(1).max(70),
-      meta_desc: z.string().min(1).max(160),
-      slug: z.string().min(1).max(120).regex(/^[a-z0-9-]+$/),
-      h1: z.string().min(1).max(100),
-      keywords: z.union([z.array(z.string()).max(10), z.string().max(400)]),
-    })
-    .optional(),
+  schemaVersion: z.literal('2.0').optional(),
+  payloadV2: LocaleAdaptationOutputSchemaV2.optional(),
+  aiOutput: z.union([LocaleAdaptationOutputSchemaV1, LocaleAdaptationOutputEnvelopeSchemaV2]).optional(),
   jobId: z.string().uuid().optional(),
 });
 
@@ -242,6 +270,9 @@ export type SeoClustersQuery = z.infer<typeof SeoClustersQuerySchema>;
 export type SeoBriefPost = z.infer<typeof SeoBriefPostSchema>;
 export type SeoBriefQuery = z.infer<typeof SeoBriefQuerySchema>;
 export type SeoOptimizeRequest = z.infer<typeof SeoOptimizeRequestSchema>;
+export type LocaleAdaptationOutputV1 = z.infer<typeof LocaleAdaptationOutputSchemaV1>;
+export type LocaleAdaptationOutputV2 = z.infer<typeof LocaleAdaptationOutputSchemaV2>;
+export type LocaleAdaptationOutputEnvelopeV2 = z.infer<typeof LocaleAdaptationOutputEnvelopeSchemaV2>;
 export type SeoTranscreateRequest = z.infer<typeof SeoTranscreateRequestSchema>;
 export type SeoTrackQuery = z.infer<typeof SeoTrackQuerySchema>;
 export type SeoPageCatalogQuery = z.infer<typeof SeoPageCatalogQuerySchema>;
@@ -264,6 +295,7 @@ export const ProductSeoOverrideSchema = z.object({
   slug: z.string().max(120).regex(/^[a-z0-9-]+$/).nullable().optional(),
   h1: z.string().max(100).nullable().optional(),
   keywords: z.array(z.string()).max(10).default([]),
+  bodyContent: z.string().max(20000).nullable().optional(),
 });
 
 export const ProductSeoOverrideUpsertSchema = ProductSeoOverrideSchema.omit({ id: true });

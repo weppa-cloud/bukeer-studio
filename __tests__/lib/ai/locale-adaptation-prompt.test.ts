@@ -1,6 +1,8 @@
 import {
   buildLocaleAdaptationPrompt,
+  LocaleAdaptationOutputEnvelopeSchemaV2,
   LocaleAdaptationOutputSchema,
+  normalizeLocaleAdaptationOutputEnvelope,
 } from '@/lib/ai/prompts/locale-adaptation';
 
 describe('locale adaptation prompt', () => {
@@ -46,5 +48,20 @@ describe('locale adaptation prompt', () => {
     });
 
     expect(invalid.success).toBe(false);
+  });
+
+  it('normalizes legacy output into v2 envelope', () => {
+    const normalized = normalizeLocaleAdaptationOutputEnvelope({
+      meta_title: 'Best Cartagena Tours',
+      meta_desc: 'Discover Cartagena with curated local guides and flexible departures.',
+      slug: 'best-cartagena-tours',
+      h1: 'Best Cartagena Tours',
+      keywords: ['cartagena tours'],
+    });
+
+    expect(normalized).not.toBeNull();
+    expect(normalized?.schema_version).toBe('2.0');
+    const valid = LocaleAdaptationOutputEnvelopeSchemaV2.safeParse(normalized);
+    expect(valid.success).toBe(true);
   });
 });

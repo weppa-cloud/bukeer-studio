@@ -88,10 +88,10 @@ describe('generateBlogPostSchemas', () => {
     expect((article as any).inLanguage).toBe('es');
   });
 
-  it('defaults inLanguage to es when no locale', () => {
+  it('defaults inLanguage to es-CO when no locale', () => {
     const schemas = generateBlogPostSchemas(mockPostBasic, mockWebsite, BASE_URL);
     const article = schemas.find((s: any) => s['@type'] === 'BlogPosting');
-    expect((article as any).inLanguage).toBe('es');
+    expect((article as any).inLanguage).toBe('es-CO');
   });
 
   it('falls back to website.language when post.locale is missing', () => {
@@ -153,6 +153,14 @@ describe('generateBlogPostSchemas', () => {
     const schemas = generateBlogPostSchemas(mockPostBasic, mockWebsite, BASE_URL);
     const breadcrumb = schemas.find((s: any) => s['@type'] === 'BreadcrumbList');
     expect(breadcrumb).toBeDefined();
+  });
+
+  it('localizes breadcrumb labels for en-US', () => {
+    const schemas = generateBlogPostSchemas(mockPostBasic, mockWebsite, BASE_URL, 'en-US');
+    const breadcrumb = schemas.find((s: any) => s['@type'] === 'BreadcrumbList') as any;
+    expect(breadcrumb).toBeDefined();
+    expect(breadcrumb.itemListElement?.[0]?.name).toBe('Home');
+    expect(breadcrumb.itemListElement?.[1]?.name).toBe('Blog');
   });
 
   it('includes Organization schema', () => {

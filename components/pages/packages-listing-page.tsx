@@ -9,6 +9,7 @@ import type { PackageItem } from '@/components/site/sections/packages-section';
 import { toPackageItems } from '@/lib/products/to-items';
 import type { WebsiteData } from '@/lib/supabase/get-website';
 import type { ProductData } from '@bukeer/website-contract';
+import { localeToLanguage, normalizeLocale } from '@/lib/seo/locale-routing';
 
 interface PackagesListingPageProps {
   website: WebsiteData;
@@ -172,14 +173,29 @@ export function PackagesListingPage({ website, packages }: PackagesListingPagePr
   const baseUrl = website.custom_domain
     ? `https://${website.custom_domain}`
     : `https://${website.subdomain}.bukeer.com`;
+  const websiteLocale =
+    (website as WebsiteData & { default_locale?: string; defaultLocale?: string }).default_locale ??
+    (website as WebsiteData & { default_locale?: string; defaultLocale?: string }).defaultLocale ??
+    website.content?.locale ??
+    'es-CO';
+  const normalizedSchemaLocale = normalizeLocale(websiteLocale, 'es-CO');
+  const schemaLanguage = localeToLanguage(normalizedSchemaLocale);
+  const isEnglishSchema = schemaLanguage === 'en';
+  const packagesLabel = isEnglishSchema ? 'Packages' : 'Paquetes';
+  const packagesSegment = isEnglishSchema ? 'packages' : 'paquetes';
+  const homeLabel = isEnglishSchema ? 'Home' : 'Inicio';
+  const collectionDescription = isEnglishSchema
+    ? `Discover curated travel packages by ${siteName}. All-in-one unique experiences.`
+    : `Descubre los paquetes de viaje curados por ${siteName}. Experiencias únicas todo incluido.`;
 
   const jsonLdSchemas = [
     {
       '@context': 'https://schema.org',
       '@type': 'CollectionPage',
-      name: `Paquetes de Viaje | ${siteName}`,
-      description: `Descubre los paquetes de viaje curados por ${siteName}. Experiencias únicas todo incluido.`,
-      url: `${baseUrl}/paquetes`,
+      inLanguage: normalizedSchemaLocale,
+      name: `${packagesLabel} | ${siteName}`,
+      description: collectionDescription,
+      url: `${baseUrl}/${packagesSegment}`,
       mainEntity: {
         '@type': 'ItemList',
         numberOfItems: packageItems.length,
@@ -187,16 +203,17 @@ export function PackagesListingPage({ website, packages }: PackagesListingPagePr
           '@type': 'ListItem',
           position: i + 1,
           name: p.name,
-          url: `${baseUrl}/paquetes/${p.slug || ''}`,
+          url: `${baseUrl}/${packagesSegment}/${p.slug || ''}`,
         })),
       },
     },
     {
       '@context': 'https://schema.org',
       '@type': 'BreadcrumbList',
+      inLanguage: normalizedSchemaLocale,
       itemListElement: [
-        { '@type': 'ListItem', position: 1, name: 'Inicio', item: baseUrl },
-        { '@type': 'ListItem', position: 2, name: 'Paquetes' },
+        { '@type': 'ListItem', position: 1, name: homeLabel, item: baseUrl },
+        { '@type': 'ListItem', position: 2, name: packagesLabel },
       ],
     },
   ];

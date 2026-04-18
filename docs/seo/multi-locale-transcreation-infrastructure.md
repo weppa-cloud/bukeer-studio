@@ -38,7 +38,7 @@ Bukeer Studio tiene infraestructura de **meta-level transcreation** operativa: S
 | ADR | Scope |
 |-----|-------|
 | [ADR-019](../architecture/ADR-019-multi-locale-url-routing.md) | Path-prefix routing (`/en/...`, default locale sin prefix) |
-| [ADR-020](../architecture/ADR-020-hreflang-emission-policy.md) | hreflang per `supported_locales`, filtered by translated jobs; `x-default` → default locale |
+| [ADR-020](../architecture/ADR-020-hreflang-emission-policy.md) | hreflang for translated locales + default locale; `x-default` → default locale |
 | [ADR-021](../architecture/ADR-021-translation-memory-transcreation-pipeline.md) | TM → glossary → AI draft → review → apply pipeline; TRUTH_FIELD_DENYLIST |
 | [ADR-006](../architecture/ADR-006-ai-streaming-architecture.md) | Streaming-first AI integration (streamText/streamObject) |
 | [ADR-016](../architecture/ADR-016-seo-intelligence-caching.md) | Cache tags per website/locale/content-type |
@@ -217,7 +217,9 @@ Set en `middleware.ts`:
 
 ### hreflang emission policy (ADR-020)
 
-- Emit hreflang para todos los `supported_locales` **filtered by** locales con `seo_transcreation_jobs.status IN ('applied', 'published')` para esa página
+- Policy aligned with [[ADR-020]] amendment (2026-04-18)
+- Emit hreflang para `defaultLocale` + locales con `seo_transcreation_jobs.status IN ('applied', 'published')` para esa página
+- Locales en `supported_locales` sin transcreación aplicada/publicada se omiten en ese URL
 - Default locale siempre incluido (sin filter)
 - `x-default` → canonical del default locale
 - Tag format: `language-REGION` (e.g. `en-US`)
@@ -379,6 +381,26 @@ Once all 8 phases of EPIC #198 land, la infraestructura pasa de **meta-only tran
 | `seo_transcreation_jobs.serp_context` | Phase 8 | JSONB SERP top 10 target market snapshot |
 | `seo_transcreation_jobs.keyword_volume_target` | Phase 8 | Integer (DataForSEO volume) |
 | `seo_transcreation_jobs.intent_classification` | Phase 8 | Enum (info/transactional/navigational) |
+
+### Contract-first gates (Phase 2 — #202)
+
+Para considerar Phase 2 "ready for merge", el scope debe cerrar estos gates técnicos:
+
+1. **Schema versioning (ADR-003):**
+   - Definir schema v2 estricto para output AI (15 campos) y payload persistido.
+   - Mantener compatibilidad de lectura con payload v1 durante rollout.
+2. **DB migration safety:**
+   - `payload_v2` y `body_content` deben agregarse con defaults no-breaking.
+   - Backfill idempotente para filas existentes sin bloquear writes.
+3. **Runtime validation + envelope (ADR-003, ADR-012):**
+   - Parse fail-closed en API transcreate; nunca persistir payload inválido.
+   - Error response estándar con causa de validación y campo fallido.
+4. **Rollout & rollback:**
+   - Feature flag por website/locale para activar v2 progresivamente.
+   - Rollback definido: desactivar flag y servir solo capa v1 sin pérdida de datos.
+5. **Test coverage mínima:**
+   - Unit tests de schema parse v1/v2.
+   - E2E de flujo draft → reviewed → applied con body content v2.
 
 ### Nuevo i18n bundle (Phase 1)
 
@@ -587,6 +609,19 @@ Phase 8 (semantic SEO) ─── Overlays on all above
 ```
 
 Phases 1-7 son mayormente paralelos tras desacoplamiento. Phase 8 (Semantic SEO) es overlay que mejora la calidad de las anteriores.
+
+## Phase readiness checklist (release gates)
+
+| Phase | Gate de salida mínimo |
+|------|------------------------|
+| Phase 1 (`#199`) | 100% strings públicas en `lib/i18n/messages/*`, fallback locale probado, sin hardcoded ES en nav/footer/forms |
+| Phase 2 (`#202`) | Contract-first gates cerrados (schema v2, migración segura, parse fail-closed, rollback, tests) |
+| Phase 3 | Overlay per-market activo (currency/CTA/trust) sin romper canonical/hreflang |
+| Phase 4 | JSON-LD locale-aware para Product/FAQ/Article/Video con validación rich results |
+| Phase 5 | `alt_localized` poblado + sitemap image captions por locale |
+| Phase 6 | Destinations/pages con parity de body content + linking localizable |
+| Phase 7 | Blog body transcreation + remapeo de enlaces internos por locale |
+| Phase 8 | Semantic gate operativo (SERP context, volume threshold, drift/cannibalization alerts) |
 
 ## Referencias
 
