@@ -113,6 +113,7 @@ Feature requests formalized. Status tracked inline. GitHub Issues = source of tr
 | [[lighthouse-ci]] | [file](./ops/lighthouse-ci.md) | Core Web Vitals gate (perf/a11y/SEO). |
 | [[issue-103-media-closure-checklist]] | [file](./ops/issue-103-media-closure-checklist.md) | Formal SQL/runtime closure validation for media (#176/#177/#179) and residual legacy-bucket risk gate. |
 | [[github-actions-billing-incident]] | [file](./ops/github-actions-billing-incident.md) | Runbook: CI fails in 3-4s → GitHub billing/spending-limit issue, not code. |
+| [[transcreate-website-content-runbook]] | [file](./ops/transcreate-website-content-runbook.md) | End-to-end flow: traducir todo el contenido de un sitio (glossary → AI draft → review → apply → verify). |
 | [[product-landing-rollout-runbook]] | [file](./runbooks/product-landing-rollout-runbook.md) | Rollout for public site rendering / ISR changes. |
 
 ---
