@@ -50,7 +50,7 @@ test.describe('<InclusionsExclusionsEditor>', () => {
     const c = await mount(
       <InclusionsExclusionsEditor productId="p-1" inclusions={[]} exclusions={[]} />,
     );
-    await expect(c.getByTestId('marketing-editor-inclusions-exclusions')).toBeVisible();
+    await expect(c).toHaveAttribute('data-testid', 'marketing-editor-inclusions-exclusions');
   });
 
   test('mixed readOnly — inclusions ro, exclusions editable', async ({ mount }) => {
