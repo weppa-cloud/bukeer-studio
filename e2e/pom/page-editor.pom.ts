@@ -54,6 +54,15 @@ export class PageEditorPom {
   }
 
   async switchPanel(tab: PanelTab): Promise<void> {
+    // #226 — prefer stable testid contract; fall back to role for legacy
+    // picker/structure tabs that still use plain buttons.
+    const testId = `studio-editor-panel-${tab}`;
+    const byTestId = this.page.getByTestId(testId).first();
+    if (await byTestId.isVisible().catch(() => false)) {
+      await byTestId.click();
+      return;
+    }
+
     const label = tab === 'edit' ? 'Edit' : tab === 'ai' ? 'AI' : 'SEO';
     const tabByRole = this.page.getByRole('tab', { name: label, exact: true }).first();
     if (await tabByRole.isVisible().catch(() => false)) {

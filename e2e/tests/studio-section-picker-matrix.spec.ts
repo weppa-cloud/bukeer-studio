@@ -53,9 +53,11 @@ test.describe('Section picker — matrix @p0-editor', () => {
     const dialog = page.getByTestId('studio-picker-dialog');
     await expect(dialog).toBeVisible({ timeout: 15000 });
 
+    // SECTION_LABELS covers the legacy label set; assert each rendered
+    // label is present. Type-level testid (studio-picker-item-<type>) is
+    // the contract used by other tests for exact lookups.
     for (const label of SECTION_LABELS) {
-      await expect(dialog.getByRole('button', { name: new RegExp(`^${label}$`, 'i') }).first())
-        .toBeVisible();
+      await expect(dialog.getByText(label, { exact: true }).first()).toBeVisible();
     }
   });
 
@@ -69,9 +71,9 @@ test.describe('Section picker — matrix @p0-editor', () => {
     const dialog = page.getByTestId('studio-picker-dialog');
     await dialog.getByTestId('studio-picker-search').fill('faq');
 
-    await expect(dialog.getByRole('button', { name: /^FAQ$/ })).toBeVisible();
-    await expect(dialog.getByRole('button', { name: /FAQ Accordion/ })).toBeVisible();
-    await expect(dialog.getByRole('button', { name: /Destinations/ })).toBeHidden();
+    await expect(dialog.getByTestId('studio-picker-item-faq')).toBeVisible();
+    await expect(dialog.getByTestId('studio-picker-item-faq_accordion')).toBeVisible();
+    await expect(dialog.getByTestId('studio-picker-item-destinations')).toBeHidden();
   });
 
   test('category tab restricts the visible set', async ({ page }) => {
@@ -84,8 +86,8 @@ test.describe('Section picker — matrix @p0-editor', () => {
     const dialog = page.getByTestId('studio-picker-dialog');
     await dialog.getByTestId('studio-picker-category-tab-hero').click();
 
-    await expect(dialog.getByRole('button', { name: /^Hero$/ })).toBeVisible();
-    await expect(dialog.getByRole('button', { name: /^Hero with Image$/ })).toBeVisible();
-    await expect(dialog.getByRole('button', { name: /^FAQ$/ })).toBeHidden();
+    await expect(dialog.getByTestId('studio-picker-item-hero')).toBeVisible();
+    await expect(dialog.getByTestId('studio-picker-item-hero_image')).toBeVisible();
+    await expect(dialog.getByTestId('studio-picker-item-faq')).toBeHidden();
   });
 });
