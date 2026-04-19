@@ -59,7 +59,7 @@ test.describe('<GalleryCurator>', () => {
   });
 
   test('edit alt field triggers dirty save button', async ({ mount }) => {
-    let captured: Array<{ url: string; alt: string | null; caption: string | null }> | undefined;
+    let captured: Array<{ url: string; alt?: string | null; caption?: string | null }> | undefined;
     const c = await mount(
       <GalleryCurator
         productId="p-1"

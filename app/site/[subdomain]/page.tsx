@@ -56,7 +56,6 @@ export async function generateMetadata({ params }: SitePageProps): Promise<Metad
     ? `https://${website.custom_domain}`
     : `https://${subdomain}.bukeer.com`;
   const localeContext = await resolvePublicMetadataLocale(website, '/');
-  const localeContext = await resolvePublicMetadataLocale(website, '/');
   const languages = buildLocaleAwareAlternateLanguages(baseUrl, '/', localeContext);
   const canonical = localeContext.localizedPathname === '/'
     ? baseUrl
@@ -140,6 +139,7 @@ export default async function SitePage({ params }: SitePageProps) {
     }
   }
 
+  const localeContext = await resolvePublicMetadataLocale(website, '/');
   const schemas = generateHomepageSchemas(
     website,
     baseUrl,
