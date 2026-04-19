@@ -103,7 +103,7 @@ export function OptionsTable({
   }
 
   return (
-    <section className={className}>
+    <section data-testid="section-options-table" className={className}>
       {(title || subtitle) && (
         <div className="mb-6">
           {title && (

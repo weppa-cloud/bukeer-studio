@@ -46,7 +46,7 @@ export function ProgramTimeline({
   }
 
   return (
-    <section className={className}>
+    <section data-testid="section-program-timeline" className={className}>
       {(title || subtitle) && (
         <div className="mb-6">
           {title && (

@@ -62,7 +62,7 @@ export function PackageCircuitMap({
   }
 
   return (
-    <section className={className}>
+    <section data-testid="section-package-circuit-map" className={className}>
       <h2 className="text-2xl font-bold mb-4">{text('packageCircuitMapTitle')}</h2>
       <CircuitMap
         stops={circuitStops}

@@ -55,7 +55,7 @@ export function ActivityCircuitMap({
   if (circuitStops.length === 0) return null;
 
   return (
-    <section className={className}>
+    <section data-testid="section-activity-circuit-map" className={className}>
       <h2 className="text-2xl font-bold mb-4">{text('activityCircuitMapTitle')}</h2>
       <CircuitMap
         stops={circuitStops}

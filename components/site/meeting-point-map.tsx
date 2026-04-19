@@ -54,7 +54,7 @@ export function MeetingPointMap({
   const label = buildLocationLabel(meetingPoint);
 
   return (
-    <section className={className}>
+    <section data-testid="section-meeting-point-map" className={className}>
       {(title || subtitle || label) && (
         <div className="mb-6">
           {title && (

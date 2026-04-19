@@ -30,7 +30,7 @@ export function ProductFAQAccordion({
 }: ProductFAQAccordionProps) {
   return React.createElement(
     "section",
-    { className, ...(lang ? { lang } : {}) },
+    { "data-testid": "section-product-faq", className, ...(lang ? { lang } : {}) },
     React.createElement(
       "div",
       { className: "mx-auto max-w-3xl" },
