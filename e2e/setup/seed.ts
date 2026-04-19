@@ -153,7 +153,7 @@ export async function cleanupTestData() {
     .maybeSingle();
   const { data: pkg } = await supabase
     .from('package_kits')
-    .select('id')
+    .select('id, source_itinerary_id')
     .eq('slug', E2E_PACKAGE_SLUG)
     .maybeSingle();
 
@@ -166,12 +166,44 @@ export async function cleanupTestData() {
       .in('page_id', pageIds);
   }
 
+  // EPIC #226.B: also clean the itinerary+overlay rows we created. We only
+  // touch rows narrowly scoped to the E2E namespace — never global truncation.
+  const itineraryIds = new Set<string>();
+  if (pkg?.source_itinerary_id) itineraryIds.add(String(pkg.source_itinerary_id));
+
+  const companionName = `E2E QA Package ${SUFFIX_SOURCE} Noindex`;
+  const primaryName = `E2E QA Package ${SUFFIX_SOURCE}`;
+  const { data: ownedItineraries } = await supabase
+    .from('itineraries')
+    .select('id')
+    .eq('account_id', accountId)
+    .in('name', [primaryName, companionName]);
+  for (const row of (ownedItineraries ?? []) as Array<{ id: string }>) {
+    if (row.id) itineraryIds.add(String(row.id));
+  }
+
+  if (itineraryIds.size > 0) {
+    const ids = Array.from(itineraryIds);
+    await supabase
+      .from('website_product_pages')
+      .delete()
+      .eq('website_id', websiteId)
+      .eq('product_type', 'package')
+      .in('product_id', ids);
+    await supabase
+      .from('seo_transcreation_jobs')
+      .delete()
+      .eq('website_id', websiteId)
+      .in('page_id', ids);
+    await supabase.from('itineraries').delete().eq('account_id', accountId).in('id', ids);
+  }
+
   await supabase
     .from('seo_translation_glossary')
     .delete()
     .eq('website_id', websiteId)
     .eq('locale', 'en-US')
-    .in('term', [...E2E_GLOSSARY_TERMS]);
+    .in('term', [...E2E_GLOSSARY_TERMS, 'hotel']);
 
   await supabase
     .from('website_blog_posts')
@@ -210,6 +242,28 @@ export interface SeoFixtures {
   appliedTranscreationJobIds: string[];
   /** Resolved `websites.supported_locales` (may include locales added by this seeder). */
   supportedLocales: string[];
+  /**
+   * EPIC #226.B — Itinerary id linked to the seeded package_kit. Required for
+   * `get_website_product_page` RPC to resolve `/site/<sub>/paquetes/<slug>`.
+   * Without it the route 404s and JSON-LD specs skip.
+   */
+  packageItineraryId: string | null;
+  /**
+   * EPIC #226.B — `website_product_pages` overlay (is_published=true) for the
+   * seeded package. Required by the RPC's overlay lookup.
+   */
+  packageProductPageId: string | null;
+  /**
+   * EPIC #226.B — `seo_transcreation_jobs.id` with `status='published'`. Used
+   * by the translations-dashboard `?status=published` bulk-apply spec.
+   */
+  publishedTranscreationJobId: string | null;
+  /**
+   * EPIC #226.B — `seo_transcreation_jobs.id` targeting a locale that is NOT
+   * covered by the primary en-US job, so the coverage matrix exposes a cell
+   * with status='missing' → "Translate with AI" button (`transcreate-stream`).
+   */
+  missingLocaleTranscreationJobId: string | null;
 }
 
 interface SeedWave2Result {
@@ -318,35 +372,66 @@ async function upsertPackageKit(
   accountId: string,
   warnings: string[],
 ): Promise<string | null> {
-  const { data, error } = await admin
+  // EPIC #226.B: DB has a BEFORE-INSERT trigger (`set_package_kit_slug`) that
+  // rewrites `slug` to append `-2`, `-3`, ... whenever the base slug already
+  // exists. That means `onConflict: 'slug'` with the canonical slug creates a
+  // fresh duplicate on every run (the trigger fires BEFORE the conflict
+  // check). We therefore select-first-then-update so the returned row is
+  // always the canonical `E2E_PACKAGE_SLUG` → the helper `getSeededPackageSlug`
+  // and the RPC `get_website_product_page` converge on the same package.
+  const patch = {
+    account_id: accountId,
+    slug: E2E_PACKAGE_SLUG,
+    name: 'E2E QA Package',
+    description: 'Deterministic QA package for Studio editor regression suite.',
+    description_ai_generated: false,
+    program_highlights: ['Highlight A', 'Highlight B', 'Highlight C'],
+    highlights_ai_generated: false,
+    program_inclusions: ['Included item 1', 'Included item 2'],
+    program_exclusions: ['Excluded item 1'],
+    program_notes: 'QA notes.',
+    program_meeting_info: 'QA meeting info.',
+    program_gallery: [],
+    cover_image_url: null,
+    last_edited_by_surface: 'studio',
+  };
+
+  const { data: existing, error: readError } = await admin
     .from('package_kits')
-    .upsert(
-      {
-        account_id: accountId,
-        slug: E2E_PACKAGE_SLUG,
-        name: 'E2E QA Package',
-        description: 'Deterministic QA package for Studio editor regression suite.',
-        description_ai_generated: false,
-        program_highlights: ['Highlight A', 'Highlight B', 'Highlight C'],
-        highlights_ai_generated: false,
-        program_inclusions: ['Included item 1', 'Included item 2'],
-        program_exclusions: ['Excluded item 1'],
-        program_notes: 'QA notes.',
-        program_meeting_info: 'QA meeting info.',
-        program_gallery: [],
-        cover_image_url: null,
-        last_edited_by_surface: 'studio',
-      },
-      { onConflict: 'slug' },
-    )
+    .select('id')
+    .eq('slug', E2E_PACKAGE_SLUG)
+    .maybeSingle();
+
+  if (readError) {
+    warnings.push(`package_kits read failed: ${errorMessage(readError)}`);
+    return null;
+  }
+
+  if (existing?.id) {
+    const { data: updated, error: updateError } = await admin
+      .from('package_kits')
+      .update(patch)
+      .eq('id', existing.id)
+      .select('id')
+      .maybeSingle();
+    if (updateError) {
+      warnings.push(`package_kits update failed: ${errorMessage(updateError)}`);
+      return String(existing.id);
+    }
+    return updated?.id ? String(updated.id) : String(existing.id);
+  }
+
+  const { data: inserted, error: insertError } = await admin
+    .from('package_kits')
+    .insert(patch)
     .select('id')
     .maybeSingle();
 
-  if (error) {
-    warnings.push(`package_kits upsert failed: ${errorMessage(error)}`);
+  if (insertError) {
+    warnings.push(`package_kits insert failed: ${errorMessage(insertError)}`);
     return null;
   }
-  return data?.id ? String(data.id) : null;
+  return inserted?.id ? String(inserted.id) : null;
 }
 
 async function upsertWebsitePage(
@@ -558,8 +643,28 @@ interface SeedSeoContext {
 
 async function seedSeoFixtures(ctx: SeedSeoContext): Promise<SeoFixtures> {
   const supportedLocales = await ensureWebsiteLocales(ctx);
-  const appliedTranscreationJobIds = await markTranscreationJobsApplied(ctx);
-  const noindexProductId = await ensureNoindexProductOverlay(ctx);
+  // EPIC #226.B: seed the package public route BEFORE other mutations — JSON-LD
+  // specs (`public-structured-data`) + noindex sitemap spec both depend on
+  // `/site/*/paquetes/{slug}` rendering with an overlay row.
+  const { itineraryId, productPageId } = await ensurePackagePublicRoute(ctx);
+  // EPIC #226.B: leave exactly one transcreation job in `status='published'`
+  // so `translations-dashboard.spec.ts::bulk apply` (which filters by
+  // `?status=published`) finds a checkbox.
+  const publishedTranscreationJobId = await ensurePublishedTranscreationJob(ctx);
+  // EPIC #226.B: insert one job targeting pt-BR so the coverage matrix has at
+  // least one 'missing' cell → `transcreate-stream.spec.ts` finds the
+  // "Translate with AI" button.
+  const missingLocaleTranscreationJobId = await ensureMissingLocaleCoverageCell(ctx);
+  // EPIC #226.B: deterministic glossary row + reinforced payload_v2 for the
+  // glossary-enforcement assertion (hotel → hotel boutique).
+  await ensureGlossaryEnforcementFixtures(ctx);
+
+  const appliedTranscreationJobIds = await markTranscreationJobsApplied(ctx, {
+    excludeJobIds: [publishedTranscreationJobId, missingLocaleTranscreationJobId].filter(
+      (id): id is string => Boolean(id),
+    ),
+  });
+  const noindexProductId = await ensureNoindexProductOverlay(ctx, itineraryId);
   const legacyRedirectPath = await ensureLegacyRedirect(ctx);
   const slugRedirectOldSlug = await ensureSlugRedirect(ctx);
   const videoPackageId = await ensurePackageVideoUrl(ctx);
@@ -571,6 +676,10 @@ async function seedSeoFixtures(ctx: SeedSeoContext): Promise<SeoFixtures> {
     videoPackageId,
     appliedTranscreationJobIds,
     supportedLocales,
+    packageItineraryId: itineraryId,
+    packageProductPageId: productPageId,
+    publishedTranscreationJobId,
+    missingLocaleTranscreationJobId,
   };
 }
 
@@ -622,7 +731,10 @@ async function ensureWebsiteLocales(ctx: SeedSeoContext): Promise<string[]> {
   return desired;
 }
 
-async function markTranscreationJobsApplied(ctx: SeedSeoContext): Promise<string[]> {
+async function markTranscreationJobsApplied(
+  ctx: SeedSeoContext,
+  options: { excludeJobIds?: string[] } = {},
+): Promise<string[]> {
   const { admin, websiteId, pageId, packageId, warnings } = ctx;
   const candidatePageIds = [pageId, packageId].filter(Boolean) as string[];
   if (candidatePageIds.length === 0) {
@@ -630,40 +742,78 @@ async function markTranscreationJobsApplied(ctx: SeedSeoContext): Promise<string
     return [];
   }
 
-  const { data, error } = await admin
+  // EPIC #226.B: preserve jobs that other seeders intentionally set to a
+  // different status (e.g. `published` for bulk-apply, other target locale for
+  // the missing-locale coverage cell). Without this carve-out the subsequent
+  // `applied` sweep would erase those fixtures.
+  const excludeIds = (options.excludeJobIds ?? []).filter((id): id is string => Boolean(id));
+  let query = admin
     .from('seo_transcreation_jobs')
     .update({ status: 'applied' })
     .eq('website_id', websiteId)
     .eq('source_locale', 'es-CO')
     .eq('target_locale', 'en-US')
-    .in('page_id', candidatePageIds)
-    .select('id');
+    .in('page_id', candidatePageIds);
+
+  if (excludeIds.length > 0) {
+    query = query.not('id', 'in', `(${excludeIds.join(',')})`);
+  }
+
+  const { data, error } = await query.select('id');
 
   if (error) {
     warnings.push(`seo: could not mark transcreation jobs as applied: ${errorMessage(error)}`);
     return [];
   }
-  return (data ?? []).map((row) => String(row.id));
+
+  const appliedIds = (data ?? []).map((row) => String(row.id));
+  // ADR-020 hreflang: callers rely on this array to prove at least one
+  // public-eligible en-US variant exists. `published` rows are also eligible,
+  // so we include the excluded-but-public-eligible ids.
+  for (const id of excludeIds) {
+    if (!appliedIds.includes(id)) appliedIds.push(id);
+  }
+  return appliedIds;
 }
 
-async function ensureNoindexProductOverlay(ctx: SeedSeoContext): Promise<string | null> {
-  const { admin, websiteId, packageId, warnings } = ctx;
-  if (!packageId) {
-    warnings.push('seo: no packageId available for noindex overlay');
+async function ensureNoindexProductOverlay(
+  ctx: SeedSeoContext,
+  primaryItineraryId: string | null,
+): Promise<string | null> {
+  const { admin, websiteId, warnings } = ctx;
+  // EPIC #226.B: the noindex overlay must point at a DIFFERENT itinerary than
+  // the primary package route — the primary overlay has `robots_noindex=false`
+  // (so `TouristTrip + BreadcrumbList` passes). We seed a dedicated "noindex
+  // companion" itinerary so the sitemap exclusion check has a real target
+  // without affecting the primary package route rendering.
+  const companionItineraryId = primaryItineraryId
+    ? await ensureNoindexCompanionItinerary(ctx, primaryItineraryId)
+    : null;
+  const productId = companionItineraryId ?? primaryItineraryId;
+  if (!productId) {
+    warnings.push('seo: no itinerary id available for noindex overlay');
     return null;
   }
 
-  // `website_product_pages` is the overlay queried by `lib/supabase/get-pages.ts#getNoindexProductSlugs`.
-  // The table is Flutter-owned; columns used: website_id, product_type, product_id, slug,
-  // robots_noindex, translation_group_id (may be NOT NULL), locale (default 'es-CO').
+  // `website_product_pages` has NO `slug` column — the table is keyed by
+  // (website_id, locale, product_type, product_id) per
+  // `uq_website_product_pages_locale_product`. The sitemap filter uses
+  // `lib/supabase/get-pages.ts#getNoindexProductSlugs`; NOT NULL defaults
+  // are populated in the row below.
   const overlay = {
     website_id: websiteId,
     product_type: 'package' as const,
-    product_id: packageId,
-    slug: `${E2E_PACKAGE_SLUG}-noindex`,
+    product_id: productId,
     robots_noindex: true,
+    is_published: true,
     locale: 'es-CO',
-    translation_group_id: packageId,
+    translation_group_id: productId,
+    seo_highlights: [] as unknown[],
+    seo_faq: [] as unknown[],
+    custom_faq: [] as unknown[],
+    custom_highlights: [] as unknown[],
+    source: 'e2e-seed-noindex',
+    confidence: 'live',
   };
 
   const { data, error } = await admin
@@ -674,10 +824,54 @@ async function ensureNoindexProductOverlay(ctx: SeedSeoContext): Promise<string 
 
   if (error) {
     // Schema mismatch or RLS — record and degrade gracefully.
-    warnings.push(`seo: website_product_pages upsert failed: ${errorMessage(error)}`);
+    warnings.push(`seo: website_product_pages upsert (noindex) failed: ${errorMessage(error)}`);
     return null;
   }
-  return data?.product_id ? String(data.product_id) : packageId;
+  return data?.product_id ? String(data.product_id) : productId;
+}
+
+async function ensureNoindexCompanionItinerary(
+  ctx: SeedSeoContext,
+  primaryItineraryId: string,
+): Promise<string | null> {
+  const { admin, accountId, warnings } = ctx;
+  const companionName = `E2E QA Package ${SUFFIX_SOURCE} Noindex`;
+
+  const { data: existing } = await admin
+    .from('itineraries')
+    .select('id')
+    .eq('account_id', accountId)
+    .eq('name', companionName)
+    .is('deleted_at', null)
+    .maybeSingle();
+
+  if (existing?.id) return String(existing.id);
+
+  const today = new Date();
+  const oneMonthLater = new Date(today.getTime() + 30 * 24 * 3600 * 1000);
+  const toDate = (d: Date) => d.toISOString().slice(0, 10);
+
+  const { data: inserted, error } = await admin
+    .from('itineraries')
+    .insert({
+      account_id: accountId,
+      name: companionName,
+      start_date: toDate(today),
+      end_date: toDate(oneMonthLater),
+      passenger_count: 1,
+      status: 'draft',
+      itinerary_visibility: false,
+    })
+    .select('id')
+    .maybeSingle();
+
+  if (error || !inserted?.id) {
+    warnings.push(
+      `seo: noindex companion itinerary insert failed (fallback=primary): ${errorMessage(error)}`,
+    );
+    return primaryItineraryId;
+  }
+  return String(inserted.id);
 }
 
 async function ensureLegacyRedirect(ctx: SeedSeoContext): Promise<string | null> {
@@ -777,4 +971,318 @@ async function ensurePackageVideoUrl(ctx: SeedSeoContext): Promise<string | null
     return null;
   }
   return packageId;
+}
+
+// ============================================================================
+// EPIC #226.B · seed extension for 9 P0 seed-coupled skips
+// ============================================================================
+// Adds fixtures needed to convert the seed-coupled `test.skip()` branches in
+// the P0 Recovery Gate run to pass:
+//   (a) JSON-LD coverage on homepage + package page (public-structured-data)
+//   (b) `website_product_pages.robots_noindex=true` overlay (public-sitemap)
+//   (c) payload_v2 envelope with glossary-mapped term (glossary-enforcement)
+//   (d) missing-locale cell in the coverage matrix (transcreate-stream)
+//   (e) at least one transcreation job in `status='published'`
+//       (translations-dashboard::bulk apply)
+//
+// Idempotent — narrow to `E2E_PACKAGE_SLUG` / account namespace. No global
+// truncation, no cross-tenant writes.
+// ============================================================================
+
+const E2E_MISSING_LOCALE_TARGET = 'pt-BR' as const;
+
+interface PackageRouteFixtures {
+  itineraryId: string | null;
+  productPageId: string | null;
+}
+
+/**
+ * Seed: link the primary `package_kits` row to an `itineraries` row (required
+ * by `get_website_product_page` RPC) + publish a `website_product_pages`
+ * overlay row (required by the RPC's final SELECT). Without both,
+ * `/site/colombiatours/paquetes/{E2E_PACKAGE_SLUG}` returns 404 and the
+ * JSON-LD specs skip.
+ */
+async function ensurePackagePublicRoute(ctx: SeedSeoContext): Promise<PackageRouteFixtures> {
+  const { admin, websiteId, accountId, packageId, warnings } = ctx;
+  if (!packageId) {
+    warnings.push('seo (#226.B): package public route skipped — no packageId');
+    return { itineraryId: null, productPageId: null };
+  }
+
+  // 1. Resolve-or-create an itinerary row linking back to the kit.
+  let itineraryId: string | null = null;
+
+  const { data: kitRow } = await admin
+    .from('package_kits')
+    .select('source_itinerary_id')
+    .eq('id', packageId)
+    .maybeSingle();
+  if (kitRow?.source_itinerary_id) {
+    itineraryId = String(kitRow.source_itinerary_id);
+  }
+
+  if (!itineraryId) {
+    const { data: byKit } = await admin
+      .from('itineraries')
+      .select('id')
+      .eq('source_package_id', packageId)
+      .is('deleted_at', null)
+      .maybeSingle();
+    if (byKit?.id) itineraryId = String(byKit.id);
+  }
+
+  if (!itineraryId) {
+    const itineraryName = `E2E QA Package ${SUFFIX_SOURCE}`;
+    const today = new Date();
+    const oneMonthLater = new Date(today.getTime() + 30 * 24 * 3600 * 1000);
+    const toDate = (d: Date) => d.toISOString().slice(0, 10);
+
+    const { data: inserted, error: insertError } = await admin
+      .from('itineraries')
+      .insert({
+        account_id: accountId,
+        name: itineraryName,
+        start_date: toDate(today),
+        end_date: toDate(oneMonthLater),
+        passenger_count: 1,
+        status: 'draft',
+        source_package_id: packageId,
+        itinerary_visibility: true,
+      })
+      .select('id')
+      .maybeSingle();
+
+    if (insertError || !inserted?.id) {
+      warnings.push(
+        `seo (#226.B): itineraries insert for package route failed: ${errorMessage(insertError)}`,
+      );
+      return { itineraryId: null, productPageId: null };
+    }
+    itineraryId = String(inserted.id);
+  }
+
+  // Backfill kit → itinerary pointer for future idempotent runs.
+  if (itineraryId && !kitRow?.source_itinerary_id) {
+    await admin
+      .from('package_kits')
+      .update({ source_itinerary_id: itineraryId })
+      .eq('id', packageId);
+  }
+
+  // 2. Upsert a `website_product_pages` overlay with `is_published=true`. The
+  // RPC keys overlays on (website_id, product_type, product_id). For packages
+  // `v_product_id = i.id` so we use the itinerary id here.
+  const overlayProductId = itineraryId;
+  const overlayRow = {
+    website_id: websiteId,
+    product_type: 'package' as const,
+    product_id: overlayProductId,
+    locale: 'es-CO',
+    is_published: true,
+    robots_noindex: false,
+    translation_group_id: overlayProductId,
+    seo_highlights: [] as unknown[],
+    seo_faq: [] as unknown[],
+    custom_faq: [] as unknown[],
+    custom_highlights: [] as unknown[],
+    source: 'e2e-seed-public',
+    confidence: 'live',
+  };
+
+  const { data: overlay, error: overlayError } = await admin
+    .from('website_product_pages')
+    .upsert(overlayRow, { onConflict: 'website_id,locale,product_type,product_id' })
+    .select('id')
+    .maybeSingle();
+
+  if (overlayError) {
+    warnings.push(
+      `seo (#226.B): website_product_pages upsert (published) failed: ${errorMessage(overlayError)}`,
+    );
+    return { itineraryId, productPageId: null };
+  }
+
+  return {
+    itineraryId,
+    productPageId: overlay?.id ? String(overlay.id) : null,
+  };
+}
+
+/**
+ * Seed: leave at least one transcreation job in `status='published'` so the
+ * `translations-dashboard ?status=published` filter has a non-empty row set
+ * (and therefore a checkbox for `bulk apply`).
+ */
+async function ensurePublishedTranscreationJob(ctx: SeedSeoContext): Promise<string | null> {
+  const { admin, websiteId, pageId, packageId, warnings } = ctx;
+  const candidate = packageId ?? pageId;
+  if (!candidate) {
+    warnings.push('seo (#226.B): no candidate id for published transcreation job');
+    return null;
+  }
+
+  const { data, error } = await admin
+    .from('seo_transcreation_jobs')
+    .select('id,status')
+    .eq('website_id', websiteId)
+    .eq('page_id', candidate)
+    .eq('source_locale', 'es-CO')
+    .eq('target_locale', 'en-US')
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error || !data?.id) {
+    warnings.push(
+      `seo (#226.B): published transcreation job lookup failed: ${errorMessage(error)}`,
+    );
+    return null;
+  }
+
+  if (data.status !== 'published') {
+    const { error: upError } = await admin
+      .from('seo_transcreation_jobs')
+      .update({ status: 'published' })
+      .eq('id', data.id);
+    if (upError) {
+      warnings.push(`seo (#226.B): could not promote job to published: ${errorMessage(upError)}`);
+    }
+  }
+
+  return String(data.id);
+}
+
+/**
+ * Seed: insert a job for a different `page_id` + different `target_locale`
+ * than the primary (en-US) pair. The resulting coverage matrix exposes at
+ * least one cell with status='missing' → `transcreate-stream.spec.ts` finds
+ * the "Translate with AI" button.
+ */
+async function ensureMissingLocaleCoverageCell(ctx: SeedSeoContext): Promise<string | null> {
+  const { admin, websiteId, pageId, packageId, warnings } = ctx;
+  // Use the page (not the package) as the carrier so the matrix ends up
+  // asymmetric: package has (en-US) coverage, page has (pt-BR) coverage —
+  // each row shows a `missing` cell under the locale it does not cover.
+  const rowPageId = pageId ?? packageId;
+  if (!rowPageId) {
+    warnings.push('seo (#226.B): no page id for missing-locale job');
+    return null;
+  }
+  const pageType = rowPageId === pageId ? 'page' : 'package';
+
+  const { data: existing } = await admin
+    .from('seo_transcreation_jobs')
+    .select('id')
+    .eq('website_id', websiteId)
+    .eq('page_type', pageType)
+    .eq('page_id', rowPageId)
+    .eq('source_locale', 'es-CO')
+    .eq('target_locale', E2E_MISSING_LOCALE_TARGET)
+    .maybeSingle();
+
+  if (existing?.id) return String(existing.id);
+
+  const { data, error } = await admin
+    .from('seo_transcreation_jobs')
+    .insert({
+      website_id: websiteId,
+      page_type: pageType,
+      page_id: rowPageId,
+      source_locale: 'es-CO',
+      target_locale: E2E_MISSING_LOCALE_TARGET,
+      country: 'BR',
+      language: 'pt',
+      status: 'applied',
+      source_keyword: 'paquete colombia',
+      target_keyword: 'pacote colombia',
+      schema_version: '2.1',
+      payload: {
+        schema_version: '2.1',
+        title: 'QA Package (PT-BR)',
+      },
+      payload_v2: {
+        schema_version: '2.1',
+        title: 'QA Package (PT-BR)',
+        body_content: {
+          summary: 'Conteúdo determinístico para cobertura pt-BR (E2E).',
+          highlights: ['Destaque A', 'Destaque B'],
+        },
+      },
+      source: 'e2e-seed-missing-locale',
+      confidence: 'live',
+    })
+    .select('id')
+    .maybeSingle();
+
+  if (error || !data?.id) {
+    warnings.push(`seo (#226.B): missing-locale job insert failed: ${errorMessage(error)}`);
+    return null;
+  }
+  return String(data.id);
+}
+
+/**
+ * Seed: deterministic glossary term ("hotel" → "hotel boutique") + reinforce
+ * payload_v2 on the primary en-US package job so the serialised envelope
+ * contains the mapped value that `glossary-enforcement.spec.ts` asserts on.
+ */
+async function ensureGlossaryEnforcementFixtures(ctx: SeedSeoContext): Promise<void> {
+  const { admin, websiteId, packageId, warnings } = ctx;
+
+  const { error: glossaryError } = await admin.from('seo_translation_glossary').upsert(
+    {
+      website_id: websiteId,
+      locale: 'en-US',
+      term: 'hotel',
+      translation: 'hotel boutique',
+      notes: 'E2E #226.B glossary enforcement seed.',
+    },
+    { onConflict: 'website_id,locale,term' },
+  );
+  if (glossaryError) {
+    warnings.push(`seo (#226.B): glossary upsert failed: ${errorMessage(glossaryError)}`);
+  }
+
+  if (!packageId) return;
+
+  const { data: job } = await admin
+    .from('seo_transcreation_jobs')
+    .select('id,payload_v2')
+    .eq('website_id', websiteId)
+    .eq('page_id', packageId)
+    .eq('source_locale', 'es-CO')
+    .eq('target_locale', 'en-US')
+    .maybeSingle();
+
+  if (!job?.id) return;
+
+  const current =
+    job.payload_v2 && typeof job.payload_v2 === 'object' && !Array.isArray(job.payload_v2)
+      ? (job.payload_v2 as Record<string, unknown>)
+      : {};
+  const reinforced: Record<string, unknown> = {
+    ...current,
+    schema_version: '2.1',
+    meta_title: 'QA Package featuring hotel boutique',
+    meta_desc: 'Experience our hotel boutique for a curated stay.',
+    slug: 'qa-package-en',
+    h1: 'QA Package — hotel boutique',
+    keywords: ['qa', 'hotel boutique'],
+    body_content:
+      current.body_content && typeof current.body_content === 'object'
+        ? current.body_content
+        : {
+            summary: 'Deterministic QA transcreate payload featuring hotel boutique.',
+            highlights: ['Hotel boutique stay', 'Highlight B'],
+          },
+  };
+
+  const { error: upError } = await admin
+    .from('seo_transcreation_jobs')
+    .update({ payload_v2: reinforced, schema_version: '2.1' })
+    .eq('id', job.id);
+  if (upError) {
+    warnings.push(`seo (#226.B): payload_v2 reinforcement failed: ${errorMessage(upError)}`);
+  }
 }
