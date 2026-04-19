@@ -48,7 +48,7 @@ describe('getProductPage — Gate B package aggregation (#172)', () => {
       error: null,
     });
 
-    const result = await getProductPage('demo', 'package', 'tour-cartagena-5-dias');
+    const result = await getProductPage('demo-agg-1', 'package', 'tour-cartagena-5-dias');
 
     expect(result).not.toBeNull();
     const prod = result!.product as NonNullable<typeof result>["product"] & {
@@ -78,7 +78,7 @@ describe('getProductPage — Gate B package aggregation (#172)', () => {
       error: null,
     });
 
-    const result = await getProductPage('demo', 'package', 'tour-cartagena-5-dias');
+    const result = await getProductPage('demo-agg-2', 'package', 'tour-cartagena-5-dias');
 
     expect(result).not.toBeNull();
     // Only one RPC call (main product) — aggregated not called
@@ -100,7 +100,7 @@ describe('getProductPage — Gate B package aggregation (#172)', () => {
       error: null,
     });
 
-    const result = await getProductPage('demo', 'package', 'tour-cartagena-5-dias');
+    const result = await getProductPage('demo-agg-3', 'package', 'tour-cartagena-5-dias');
 
     expect(result).not.toBeNull();
     const prod = result!.product as NonNullable<typeof result>["product"] & {
@@ -122,7 +122,7 @@ describe('getProductPage — Gate B package aggregation (#172)', () => {
     // Aggregated RPC throws a network error
     mockRpc.mockRejectedValueOnce(new Error('Network timeout'));
 
-    const result = await getProductPage('demo', 'package', 'tour-cartagena-5-dias');
+    const result = await getProductPage('demo-agg-4', 'package', 'tour-cartagena-5-dias');
 
     // Must NOT crash — returns product with no aggregated fields
     expect(result).not.toBeNull();
@@ -143,7 +143,7 @@ describe('getProductPage — Gate B package aggregation (#172)', () => {
       error: { message: 'function does not exist', code: '42883' },
     });
 
-    const result = await getProductPage('demo', 'package', 'tour-cartagena-5-dias');
+    const result = await getProductPage('demo-agg-5', 'package', 'tour-cartagena-5-dias');
 
     expect(result).not.toBeNull();
     const prod = result!.product as NonNullable<typeof result>["product"] & {
@@ -167,7 +167,7 @@ describe('getProductPage — Gate B package aggregation (#172)', () => {
       error: null,
     });
 
-    const result = await getProductPage('demo', 'package', 'tour-cartagena-5-dias');
+    const result = await getProductPage('demo-agg-6', 'package', 'tour-cartagena-5-dias');
 
     // Must not crash — Zod safeParse fails silently, product returned without agg fields
     expect(result).not.toBeNull();
@@ -192,7 +192,7 @@ describe('getProductPage — Gate B package aggregation (#172)', () => {
       error: null,
     });
 
-    const result = await getProductPage('demo', 'activity', 'buceo');
+    const result = await getProductPage('demo-agg-7', 'activity', 'buceo');
 
     expect(result).not.toBeNull();
     // Only one RPC call — no aggregation for non-packages

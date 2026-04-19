@@ -147,6 +147,7 @@ describe('normalizeProduct', () => {
       meeting_point: null,
       gallery: [],
       price: null,
+      priceCurrency: null,
       rating: null,
       faq: null,
     });

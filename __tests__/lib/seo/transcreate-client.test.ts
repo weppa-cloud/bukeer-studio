@@ -57,4 +57,32 @@ describe('transcreate client parsing', () => {
     expect(parsed?.meta_title).toBe('Cartagena in 4 Days');
     expect(parsed?.keywords).toEqual(['cartagena itinerary']);
   });
+
+  it('parses v2.1 envelope output and exposes full payload fields', () => {
+    const raw = JSON.stringify({
+      schema_version: '2.1',
+      payload_v2: {
+        meta_title: 'Cartagena in 4 Days',
+        meta_desc: 'A curated 4-day Cartagena itinerary.',
+        slug: 'cartagena-in-4-days',
+        h1: 'Cartagena in 4 Days',
+        keywords: ['cartagena itinerary'],
+        description_long: 'Long form text',
+        highlights: ['Historic center'],
+        faq: [{ question: 'When to go?', answer: 'Any season.' }],
+        recommendations: ['Visit Rosario Islands'],
+        cta_final_text: 'Book now',
+        program_timeline: [{ title: 'Day 1', description: 'Arrival' }],
+        inclusions: ['Hotel'],
+        exclusions: ['Flights'],
+        hero_subtitle: 'Tailor-made experiences',
+        category_label: 'Travel',
+      },
+    });
+
+    const parsed = parseLocaleAdaptationCompletion(raw);
+    expect(parsed).not.toBeNull();
+    expect(parsed?.meta_title).toBe('Cartagena in 4 Days');
+    expect((parsed as Record<string, unknown>)?.description_long).toBe('Long form text');
+  });
 });
