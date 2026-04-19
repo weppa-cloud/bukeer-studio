@@ -1,9 +1,11 @@
 # Product Detail — Inventory & Data Ownership
 
-**Last updated:** 2026-04-17
-**Scope:** Activity landing (`/actividades/[slug]`) + Package landing (`/paquetes/[slug]`)
-**Entry point:** `components/pages/product-landing-page.tsx`
-**Related:** [[package-detail-anatomy]] (deeper package-only breakdown)
+**Last updated:** 2026-04-19 (priority v2 applied — pilot policy for Act parity + Hotel as-is + Blog scope Section P in matrix)
+**Scope:** Activity landing (`/actividades/[slug]`) + Package landing (`/paquetes/[slug]`) + Hotel landing (`/hoteles/[slug]`) + Blog detail (`/blog/[slug]` + `/{locale}/blog/[slug]` — see matrix Section P)
+**Entry point:** `components/pages/product-landing-page.tsx` (product types) · `app/site/[subdomain]/blog/[slug]/page.tsx` (blog)
+**Related:** [[package-detail-anatomy]] (deeper package-only breakdown) · [[product-detail-matrix]] · [[ADR-024]] · [[ADR-025]] · [[pilot-readiness-deps]]
+
+> **Priority v2 (2026-04-19):** Packages + Activities are Studio-editable under `studio_editor_v2` (see matrix Section N). Hotels stay Flutter-owner for marketing/content (pilot policy — see Section O of matrix); SEO meta still editable via SEO item detail. Booking V1 (Section M of matrix) deferred post-pilot — [[ADR-024]]. Blog transcreate scope lives in matrix Section P (W5 + W6 consumer).
 
 ---
 
@@ -233,23 +235,37 @@ Fields aggregated across BOTH activity + package landings. Answers: "who can cha
 
 ### 3.2 Content editable via Studio dashboard (page customization)
 
-Writer: `app/dashboard/[websiteId]/seo/[itemType]/[itemId]/page.tsx`.
+Writer (SEO surface): `app/dashboard/[websiteId]/seo/[itemType]/[itemId]/page.tsx`.
+Writer (marketing + layout surface): `app/dashboard/[websiteId]/products/[slug]/marketing/page.tsx` + `/content/page.tsx` (flag `studio_editor_v2`).
 Table: `product_page_customizations`.
 
-| DB field | Activity | Package | Writer UI status |
-|----------|:--------:|:-------:|------------------|
-| `custom_seo_title` | ✅ | ✅ | ✅ Studio SEO editor |
-| `custom_seo_description` | ✅ | ✅ | ✅ Studio SEO editor |
-| `robots_noindex` | ✅ | ✅ | ✅ Studio SEO editor |
-| `custom_faq[]` (≤10) | ✅ | ✅ | ✅ Studio SEO editor |
-| `custom_highlights[]` (≤6) | ✅ | ✅ | ✅ Studio SEO editor |
-| `custom_hero.title` | ✅ | ✅ | 🚫 **schema exists, editor missing** |
-| `custom_hero.subtitle` | ✅ | ✅ | 🚫 **editor missing** |
-| `custom_hero.backgroundImage` | ✅ | ✅ | 🚫 **editor missing** |
-| `custom_sections[]` | ✅ | ✅ | 🚫 **editor missing** |
-| `sections_order[]` | ✅ | ✅ | 🚫 **editor missing** |
-| `hidden_sections[]` | ✅ | ✅ | 🚫 **editor missing** |
-| `is_published` | ✅ | ✅ | implicit via SEO editor save |
+Ownership per priority v2 (2026-04-19):
+- **Pkg**: Studio-editable today for all rows below (flag-gated where noted).
+- **Act**: Studio-editable **post-W2** (`update_activity_marketing_field` RPC + `product_type` branching in the dashboard pages). Until W2 merges, Act is read-only on marketing/customization surfaces (🟡-flag in matrix).
+- **Hotel**: **As-is Flutter-owner** for marketing/customization rows (pilot policy 2026-04-19). SEO meta (`custom_seo_*`, `robots_noindex`) remains editable via SEO item detail.
+
+| DB field | Act (post-W2) | Pkg | Hotel | Writer UI status |
+|----------|:-------------:|:---:|:-----:|------------------|
+| `custom_seo_title` | ✅ | ✅ | ✅ (SEO item detail) | ✅ Studio SEO editor |
+| `custom_seo_description` | ✅ | ✅ | ✅ (SEO item detail) | ✅ Studio SEO editor |
+| `robots_noindex` | ✅ | ✅ | ✅ (SEO item detail) | ✅ Studio SEO editor |
+| `custom_faq[]` (≤10) | ✅ | ✅ | 🚫 as-is Flutter-owner | ✅ Studio SEO editor |
+| `custom_highlights[]` (≤6) | 🟡-flag (W2) | ✅ | 🚫 as-is Flutter-owner | ✅ `HighlightsEditor` (flag `studio_editor_v2`) |
+| `custom_hero.title` | 🟡-flag (W2) | ✅ | 🚫 as-is Flutter-owner | ✅ `HeroOverrideEditor` (flag `studio_editor_v2`) |
+| `custom_hero.subtitle` | 🟡-flag (W2) | ✅ | 🚫 as-is Flutter-owner | ✅ `HeroOverrideEditor` |
+| `custom_hero.backgroundImage` | 🟡-flag (W2) | ✅ | 🚫 as-is Flutter-owner | ✅ `HeroOverrideEditor` |
+| `custom_sections[]` | 🟡-flag (W2) | ✅ | 🚫 as-is Flutter-owner | ✅ `CustomSectionsEditor` |
+| `sections_order[]` | 🟡-flag (W2) | ✅ | 🚫 as-is Flutter-owner | ✅ `SectionsReorderEditor` |
+| `hidden_sections[]` | 🟡-flag (W2) | ✅ | 🚫 as-is Flutter-owner | ✅ `SectionVisibilityToggle` |
+| `video_url` (hero) | 🟡-flag (W2) | ✅ | 🚫 as-is Flutter-owner | ✅ `VideoUrlEditor` |
+| `gallery` / `photos` curation | 🟡-flag (W2) | ✅ | 🚫 as-is Flutter-owner | ✅ `GalleryCurator` |
+| `description` (marketing) | 🟡-flag (W2) | ✅ | 🚫 as-is Flutter-owner | ✅ `DescriptionEditor` |
+| `inclusions` / `exclusions` | 🟡-flag (W2) | ✅ | 🚫 as-is Flutter-owner | ✅ `InclusionsExclusionsEditor` |
+| `recommendations` (act-only) | 🟡-flag (W2) | n/a | n/a | ✅ `RecommendationsEditor` |
+| `social_image` (OG) | 🟡-flag (W2) | ✅ | 🚫 as-is Flutter-owner | ✅ `SocialImagePicker` |
+| `is_published` | ✅ | ✅ | ✅ | implicit via SEO editor save |
+
+Cross-ref: see matrix Section N (editor → campo mapping) and Section O (Flutter-only gaps — Hotel as-is policy).
 
 ### 3.3 AI-Generated (and writable from Studio/Flutter trigger)
 
@@ -326,14 +342,17 @@ highlights         = ['X']             # legacy Flutter field
 
 | # | Gap | Field | Priority |
 |---|-----|-------|:--------:|
-| E1 | No Studio editor for `custom_hero.title/subtitle/backgroundImage` | page-level hero override | P2 |
-| E2 | No Studio editor for `custom_sections[]` / `sections_order[]` / `hidden_sections[]` | section reordering/hiding | P3 |
+| E1 | ~~No Studio editor for `custom_hero.title/subtitle/backgroundImage`~~ | page-level hero override | ✅ **RESOLVED 2026-04-19** — `HeroOverrideEditor` shipped (Pkg · Act post-W2 · Hotel = as-is per [[ADR-025]]) |
+| E2 | ~~No Studio editor for `custom_sections[]` / `sections_order[]` / `hidden_sections[]`~~ | section reordering/hiding | ✅ **RESOLVED 2026-04-19** — `CustomSectionsEditor`, `SectionsReorderEditor`, `SectionVisibilityToggle` shipped (same ownership split) |
 | E3 | No auto-trigger for F3 AI on package publish | `program_highlights`, AI description | P2 (G4) |
 | E4 | Flutter UI for `*_ai_generated` + `last_ai_hash` flags not shipped | AI lock control | P1 — `bukeer-flutter#757` |
-| E5 | No Flutter UI for `video_url` / `video_caption` ([[#165]]) | hero video | P1 — spec open |
+| E5 | No Flutter UI for `video_url` / `video_caption` ([[#165]]) | hero video (Studio `VideoUrlEditor` already shipped) | P1 — spec open |
 | E6 | Group size has no explicit field (regex-only) | package hero badge | P3 (G1) |
 | E7 | Cancellation policy hardcoded in `PACKAGE_FAQS_DEFAULT` | FAQ answer | P2 (G2) |
 | E8 | No AI generator for activity highlights (package-only scope) | `program_highlights` for activities | P3 |
+| E9 | Activities parity for Studio marketing/customization editors | `update_activity_marketing_field` RPC + dashboard product-type branching | P0 — W2 #216 |
+| E10 | Hotel marketing/customization = as-is Flutter-owner | pilot policy 2026-04-19 | Out of pilot scope — [[ADR-025]] |
+| E11 | Booking V1 (`BookingTrigger`, `DatePicker`, `CalBookingCTA`) not wired | deferred post-pilot | DEFER — [[ADR-024]] |
 
 ---
 
@@ -410,3 +429,7 @@ Rule of thumb:
 | `bukeer-flutter#757` | Flutter UI for AI flags |
 | [[ADR-003]] | Contract-First Validation |
 | [[ADR-015]] | AppServices pattern |
+| [[ADR-024]] | Booking V1 DEFER post-pilot (Section M of matrix) |
+| [[ADR-025]] | Studio / Flutter field ownership (Pkg + Act Studio · Hotel as-is Flutter) |
+| [[product-detail-matrix]] | Canonical matrix — editor→campo mapping (Section N), Flutter-only gaps (Section O), Blog transcreate (Section P) |
+| [[pilot-readiness-deps]] | EPIC #214 dependency gate |

@@ -1,9 +1,10 @@
 # Package Detail Landing Page — Anatomy & Hygiene Guide
 
-**Last updated:** 2026-04-17
-**Spec references:** [[#127]] [[#171]] [[#172]] [[#173]] [[#174]]
+**Last updated:** 2026-04-19 (priority v2 note — Studio editors for Pkg shipped; Act parity pending W2; Hotel as-is; Booking DEFER — cross-ref matrix Section N/O/P)
+**Spec references:** [[#127]] [[#171]] [[#172]] [[#173]] [[#174]] · EPIC #214 (pilot readiness)
 **Entry point:** `components/pages/product-landing-page.tsx` (`productType === 'package'`)
 **Data source:** `get_website_product_page` RPC + `get_package_aggregated_data` RPC (F1)
+**Cross-ref:** [[product-detail-matrix]] Section N (editor → campo), Section O (Flutter-only gaps), Section P (blog transcreate — outside package scope but consumed by W5). Booking post-pilot per [[ADR-024]].
 
 ---
 
@@ -256,12 +257,16 @@ For a package to render at full quality, verify in Flutter admin:
 - [ ] Each activity in itinerary has `schedule_data` (for expandable program)
 - [ ] `user_rating` — or Google Reviews enabled for account
 
-### Optional (per-page overrides)
+### Optional (per-page overrides — Studio editable bajo `studio_editor_v2`)
 
-- [ ] `pageCustomization.custom_hero` — custom title/subtitle/image per page
-- [ ] `pageCustomization.custom_highlights` — override auto-highlights
+- [ ] `pageCustomization.custom_hero` — custom title/subtitle/image per page (`HeroOverrideEditor`)
+- [ ] `pageCustomization.custom_highlights` — override auto-highlights (`HighlightsEditor`)
 - [ ] `pageCustomization.custom_faq` — custom FAQ answers
 - [ ] `pageCustomization.custom_seo_title` / `custom_seo_description`
+- [ ] `pageCustomization.custom_sections[]` / `sections_order[]` / `hidden_sections[]` — layout control (`CustomSectionsEditor` / `SectionsReorderEditor` / `SectionVisibilityToggle`)
+- [ ] `video_url` (hero video) — `VideoUrlEditor`
+- [ ] `gallery` / `photos` curation — `GalleryCurator`
+- [ ] `description` (marketing) / `inclusions` / `exclusions` / `social_image` — `DescriptionEditor` / `InclusionsExclusionsEditor` / `SocialImagePicker`
 
 ---
 
