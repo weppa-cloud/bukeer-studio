@@ -12,6 +12,7 @@ import {
 } from '@/lib/seo/public-metadata';
 import { buildPublicLocalizedPath, localeToOgLocale } from '@/lib/seo/locale-routing';
 import { sanitizeProductCopy } from '@/lib/products/normalize-product';
+import { getPublicUiExtraText } from '@/lib/site/public-ui-extra-text';
 
 interface PackagePageProps {
   params: Promise<{ subdomain: string; slug: string }>;
@@ -75,7 +76,7 @@ export async function generateMetadata({ params }: PackagePageProps): Promise<Me
   const canonical = `${baseUrl}${localizedPathname}`;
   const rawTitle = productPage.page?.custom_seo_title || productPage.product.name;
   const rawDescription = productPage.page?.custom_seo_description || productPage.product.description || '';
-  const title = sanitizeProductCopy(rawTitle) || 'Paquete de viaje';
+  const title = sanitizeProductCopy(rawTitle) || getPublicUiExtraText(localeContext.resolvedLocale, 'productPackageFallbackTitle');
   const productFallbackDescription = `Descubre ${title} con itinerario detallado, experiencias locales y asistencia personalizada durante todo tu viaje en Colombia.`;
   const description = ensureSeoDescription(rawDescription, productFallbackDescription);
   const ogImage = resolveOgImage(website, productPage.product.social_image || productPage.product.image);
