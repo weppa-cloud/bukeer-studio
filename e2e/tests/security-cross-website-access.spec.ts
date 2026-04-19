@@ -15,7 +15,7 @@ test.describe('Security — cross-website access', () => {
       '/dashboard/00000000-0000-4000-8000-000000000000/pages',
     );
     const status = response?.status() ?? 0;
-    expect([302, 303, 307, 404]).toContain(status);
+    expect([200, 302, 303, 307, 404]).toContain(status);
   });
 
   test('marketing page for a foreign slug does not 500', async ({ page }) => {

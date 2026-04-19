@@ -71,7 +71,9 @@ test.describe('Contenido UI Validation', () => {
 
       const rowCheckbox = firstDataRow.locator('input[type="checkbox"]').first();
       await rowCheckbox.check();
-      await expect(page.getByText(/seleccionados/i)).toBeVisible();
+      await expect(rowCheckbox).toBeChecked();
+      await expect(page.getByRole('button', { name: 'Publicar seleccionados' })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Ocultar seleccionados' })).toBeVisible();
 
       await firstDataRow.hover();
       await expect(firstDataRow.getByRole('button', { name: 'Open SEO' })).toBeVisible();

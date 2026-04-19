@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import type { HreflangLink } from '@/lib/seo/hreflang';
+import { seedWave2Fixtures } from './helpers';
 
 /**
  * EPIC #207 W1 · P0-3 · Hreflang alternates rendered in <head>.
@@ -19,6 +20,16 @@ type _HreflangContract = HreflangLink;
 const HOMEPAGE = '/site/colombiatours';
 
 test.describe('Public hreflang alternates @p0-seo', () => {
+  test.beforeAll(async () => {
+    // Ensures the tenant has supported_locales including en-US and at least one
+    // applied transcreation job — ADR-020 requires both for hreflang emission.
+    try {
+      await seedWave2Fixtures();
+    } catch {
+      // Specs degrade via test.skip() below when fixtures missing.
+    }
+  });
+
   test('homepage exposes hreflang alternates + x-default (ADR-020)', async ({ page }) => {
     const response = await page.goto(HOMEPAGE, { waitUntil: 'domcontentloaded' });
     test.skip(

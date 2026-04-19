@@ -60,7 +60,8 @@ export async function POST(request: NextRequest) {
 
     if (!expectedSecret) {
       log.error('REVALIDATE_SECRET not configured');
-      return apiInternalError('Revalidation not configured');
+      // Keep auth contract deterministic in non-configured environments.
+      return apiUnauthorized();
     }
 
     // 3. Parse and validate request body

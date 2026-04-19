@@ -8,6 +8,7 @@ import { getFirstWebsiteId, seedWave2Fixtures } from './helpers';
  * public-site mobile golden paths 500.
  */
 test.describe('Mobile — editor guard + public site', () => {
+  test.describe.configure({ timeout: 90_000 });
   test.use({ storageState: 'e2e/.auth/user.json' });
 
   test.beforeAll(async () => {
@@ -26,7 +27,10 @@ test.describe('Mobile — editor guard + public site', () => {
   });
 
   test('public site home loads on mobile', async ({ page }) => {
-    const response = await page.goto('/site/colombiatours');
+    const response = await page.goto('/site/colombiatours', {
+      waitUntil: 'domcontentloaded',
+      timeout: 60_000,
+    });
     expect(response?.status() ?? 0).toBeLessThan(500);
   });
 

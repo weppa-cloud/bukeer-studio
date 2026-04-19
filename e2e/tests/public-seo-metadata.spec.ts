@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { seedWave2Fixtures } from './helpers';
 
 /**
  * EPIC #207 W1 · P0-1 · Public SEO HTML head assertions.
@@ -23,6 +24,16 @@ const ROUTES: Array<{ path: string; label: string }> = [
 ];
 
 test.describe('Public SEO metadata @p0-seo', () => {
+  test.beforeAll(async () => {
+    // Seeds the package + page rows so `/site/{sub}/paquetes` has at least one
+    // item to render. Failures degrade gracefully via the per-test skip guards.
+    try {
+      await seedWave2Fixtures();
+    } catch {
+      /* noop — specs skip on 5xx */
+    }
+  });
+
   for (const { path, label } of ROUTES) {
     test(`${label} renders complete <head>`, async ({ page }) => {
       const response = await page.goto(path, { waitUntil: 'domcontentloaded' });

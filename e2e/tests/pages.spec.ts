@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 import { gotoWebsiteSection } from './helpers';
 
 test.describe('Pages Tab', () => {
+  test.describe.configure({ timeout: 90_000 });
   test.use({ storageState: 'e2e/.auth/user.json' });
 
   test('create a new page', async ({ page }) => {

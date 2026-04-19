@@ -55,7 +55,13 @@ export class PageEditorPom {
 
   async switchPanel(tab: PanelTab): Promise<void> {
     const label = tab === 'edit' ? 'Edit' : tab === 'ai' ? 'AI' : 'SEO';
-    await this.page.getByRole('tab', { name: label, exact: true }).click();
+    const tabByRole = this.page.getByRole('tab', { name: label, exact: true }).first();
+    if (await tabByRole.isVisible().catch(() => false)) {
+      await tabByRole.click();
+      return;
+    }
+
+    await this.page.getByRole('button', { name: new RegExp(`^${label}$`, 'i') }).first().click();
   }
 
   async undo(): Promise<void> {
@@ -69,7 +75,15 @@ export class PageEditorPom {
   }
 
   async openAddSection(): Promise<void> {
-    await this.page.getByRole('button', { name: /^Add Section$/ }).click();
+    const addSectionButton = this.page.getByRole('button', { name: /^Add Section$/i }).first();
+    if (await addSectionButton.isVisible().catch(() => false)) {
+      await addSectionButton.click();
+      return;
+    }
+
+    // If a section is selected, clear focus in the canvas so the empty-state CTA appears.
+    await this.sectionCanvas().click({ position: { x: 12, y: 12 } }).catch(() => undefined);
+    await addSectionButton.click({ timeout: 10_000 });
   }
 
   sectionCanvas(): Locator {

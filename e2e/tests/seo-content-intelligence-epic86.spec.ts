@@ -191,16 +191,20 @@ async function pickTranslatableFixture(admin: SupabaseClient, websiteId: string)
 async function getOverlaySnapshot(admin: SupabaseClient, websiteId: string, productId: string) {
   const { data, error } = await admin
     .from('website_product_pages')
-    .select('website_id, product_id, product_type, custom_seo_title, custom_seo_description, target_keyword, robots_noindex, seo_intro, seo_highlights, seo_faq')
+    .select('website_id, product_id, product_type, locale, custom_seo_title, custom_seo_description, target_keyword, robots_noindex, seo_intro, seo_highlights, seo_faq, updated_at')
     .eq('website_id', websiteId)
     .eq('product_id', productId)
-    .maybeSingle();
+    .eq('product_type', 'package')
+    .order('updated_at', { ascending: false })
+    .limit(10);
 
   if (error) {
     throw new Error(`Could not load website_product_pages snapshot: ${error.message}`);
   }
 
-  return snapshotOverlay(data);
+  const rows = (data as Array<Record<string, unknown>> | null) ?? [];
+  const preferred = rows.find((row) => row.locale === 'es-CO') ?? rows[0] ?? null;
+  return snapshotOverlay(preferred);
 }
 
 async function ensureApprovedBrief(page: Page, websiteId: string, packageFixture: PackageSnapshot) {

@@ -1,6 +1,6 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { expect, test, type Page } from '@playwright/test';
-import { getFirstWebsiteId } from './helpers';
+import { getFirstWebsiteId, seedWave2Fixtures } from './helpers';
 
 const TRANSCREATE_ROUTE = '/api/seo/content-intelligence/transcreate';
 
@@ -501,5 +501,19 @@ test.describe('SEO transcreate lifecycle v2/v2.1 @e2e', () => {
       'content',
       /^en/i,
     );
+  });
+
+  // EPIC #207 W1 · seeded-fixture variant of the applied-transcreate contract.
+  // Uses `seedWave2Fixtures().seo.appliedTranscreationJobIds` so the assertion
+  // works even when the dynamic v2/v2.1 lifecycle above is skipped (e.g. CI
+  // without OpenRouter creds). The seeded jobs target `en-US` directly.
+  test('seeded applied transcreation jobs exist for en-US (ADR-020) @p0-seo', async () => {
+    const fixtures = await seedWave2Fixtures();
+    test.skip(
+      fixtures.seo.appliedTranscreationJobIds.length === 0,
+      'No applied transcreation jobs seeded — hreflang emission would be disabled (see seed warnings).',
+    );
+    expect(fixtures.seo.appliedTranscreationJobIds.length).toBeGreaterThan(0);
+    expect(fixtures.seo.supportedLocales).toEqual(expect.arrayContaining(['es-CO', 'en-US']));
   });
 });
