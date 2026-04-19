@@ -13,18 +13,33 @@ test.describe('Studio chat — copilot stream @p0-editor', () => {
 
   test('user message triggers mocked assistant stream', async ({ page }) => {
     await page.route('**/api/ai/studio-chat', async (route) => {
-      // Minimal AI SDK v5 transport stream: emit a single text chunk.
-      const stream = [
-        '0:"Mock assistant response."\n',
-        'd:{"finishReason":"stop"}\n',
-      ].join('');
+      // #226.A — AI SDK v5 UI message stream (SSE). Each frame is a JSON-encoded
+      // chunk matching `uiMessageChunkSchema` (text-start / text-delta / text-end)
+      // followed by a [DONE] terminator. Matches the shape emitted by
+      // `toUIMessageStreamResponse()` in `app/api/ai/studio-chat/route.ts`.
+      //
+      // The response header is `x-vercel-ai-ui-message-stream: v1` (v5 spec),
+      // NOT the legacy v1 data-stream header `X-Vercel-AI-Data-Stream`.
+      const TEXT_ID = 'mock-text-1';
+      const chunks = [
+        { type: 'text-start', id: TEXT_ID },
+        { type: 'text-delta', id: TEXT_ID, delta: 'Mock assistant response.' },
+        { type: 'text-end', id: TEXT_ID },
+      ];
+      const body =
+        chunks.map((chunk) => `data: ${JSON.stringify(chunk)}\n\n`).join('') +
+        'data: [DONE]\n\n';
+
       await route.fulfill({
         status: 200,
         headers: {
-          'Content-Type': 'text/plain; charset=utf-8',
-          'X-Vercel-AI-Data-Stream': 'v1',
+          'content-type': 'text/event-stream',
+          'cache-control': 'no-cache',
+          connection: 'keep-alive',
+          'x-vercel-ai-ui-message-stream': 'v1',
+          'x-accel-buffering': 'no',
         },
-        body: stream,
+        body,
       });
     });
 

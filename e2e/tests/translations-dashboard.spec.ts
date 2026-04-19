@@ -18,9 +18,13 @@ test.describe('Translations dashboard — E2E', () => {
     await page.goto(`/dashboard/${websiteId}/translations`);
 
     await expect(page.getByRole('heading', { name: 'Traducciones' })).toBeVisible({ timeout: 15000 });
-    await expect(page.getByText('Total', { exact: false })).toBeVisible();
-    await expect(page.getByText('Traducidos')).toBeVisible();
-    await expect(page.getByText('In Draft')).toBeVisible();
+
+    // #226.A — scoped KPI testids (avoids strict-mode collisions with inline badges
+    // and the "30d total" summary row that also contains the substring "Total").
+    await expect(page.getByTestId('translations-dashboard-kpis')).toBeVisible();
+    await expect(page.getByTestId('translations-dashboard-kpi-total')).toBeVisible();
+    await expect(page.getByTestId('translations-dashboard-kpi-translated')).toBeVisible();
+    await expect(page.getByTestId('translations-dashboard-kpi-draft')).toBeVisible();
 
     await expect(page.getByRole('heading', { name: 'Coverage matrix' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Pendientes' })).toBeVisible();
@@ -33,10 +37,12 @@ test.describe('Translations dashboard — E2E', () => {
 
     await expect(page.getByRole('heading', { name: 'Traducciones' })).toBeVisible({ timeout: 15000 });
 
-    const activeSection = page.getByRole('heading', { name: 'Jobs activos' }).locator('..').locator('..');
+    // #226.A — the DB query restricts to status='draft' server-side; the "Jobs activos"
+    // table which renders reviewed/applied/published is therefore empty. Empty copy is
+    // unique to this table so a page-level text match is unambiguous.
     await expect(
-      activeSection.getByText(/Aún no hay jobs en review \/ applied \/ published\./),
-    ).toBeVisible();
+      page.getByText('Aún no hay jobs en review / applied / published.'),
+    ).toBeVisible({ timeout: 10000 });
   });
 
   test('bulk apply calls API with selected job ids', async ({ page }) => {
