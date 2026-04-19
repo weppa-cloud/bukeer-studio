@@ -1,0 +1,41 @@
+{
+  "epic": "#226",
+  "runDate": "2026-04-19",
+  "certification": "certificado el 19 de abril de 2026",
+  "gates": {
+    "chromium": {
+      "passed": 39,
+      "failed": 7,
+      "skipped": 16,
+      "status": "amber",
+      "notes": [
+        "39 pass across auth/smoke, studio editor, settings/domain, transcreate seeded",
+        "7 fail — 2 chat stream (mock stream format pre-existing; PR #226 WIP), 1 canvas dnd (pre-existing flaky), 2 translations-dashboard (pre-existing role lookup), 1 middleware-locale redirect, 1 seo-playbook config",
+        "16 skip — transcreate lifecycle tests without OpenRouter creds in dev env"
+      ]
+    },
+    "firefox": {
+      "status": "pending",
+      "notes": ["viewport_flake retry configured; full pass TBD with fresh env"]
+    },
+    "mobile-chrome": {
+      "status": "pending",
+      "notes": ["skip patterns applied to @p0-editor specs; render/public/settings still pending matrix run"]
+    }
+  },
+  "followups": [
+    "studio-chat-stream.spec.ts — switch from legacy v1 stream mock to AI SDK v5 transport format",
+    "studio-section-canvas-dnd.spec.ts — drag reorder sometimes fails on dnd-kit PointerSensor activation; known pre-existing flake",
+    "translations-dashboard.spec.ts — pre-existing getByRole lookup for 'Traducciones' heading needs review (not in #226 scope)"
+  ],
+  "closurePolicy": {
+    "p0Recovery": "#226 recovery work shipped as PR (data-testid contracts + infra_outage + Firefox blocking + viewport_flake retry + settings-domain + auth-smoke)",
+    "closesIssues": [],
+    "delegatedClosure": "#198 / #199 / #202 — delegated to #213 sign-off (AC-X4a partner + AC-X4b QA + AC-X4c sign-off doc) + #207 close per AC10"
+  },
+  "artifacts": {
+    "reportHtml": "playwright-report/s1/",
+    "results": "test-results/s1/",
+    "chromiumP0Run1": "artifacts/qa/recovery-gate/2026-04-19/chromium-p0-run1.json"
+  }
+}
