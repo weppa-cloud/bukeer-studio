@@ -6,6 +6,7 @@ import {
   RotateCcw, Lock, BadgeDollarSign, Headphones,
   ShieldCheck, Clock, Award, ThumbsUp,
 } from 'lucide-react';
+import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 
 interface Badge {
   icon: string;
@@ -33,6 +34,7 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   award: <Award className="w-6 h-6" />,
   thumbs_up: <ThumbsUp className="w-6 h-6" />,
 };
+const text = getPublicUiExtraTextGetter('es-CO');
 
 function BadgeIcon({ name }: { name: string }) {
   return (
@@ -49,7 +51,7 @@ export function GuaranteeBadgesSection({ section }: GuaranteeBadgesSectionProps)
   const isRow = variant === 'risk_reversal_row';
 
   return (
-    <section className="section-padding bg-muted/20" aria-label="Garantías">
+    <section className="section-padding bg-muted/20" aria-label={text('sectionGuarantees')}>
       <div className="container">
         {title && (
           <BlurFade delay={0} direction="up" duration={0.4}>

@@ -5,6 +5,7 @@ import clsx from 'clsx';
 import { formatPriceOrConsult } from '@/lib/products/format-price';
 import { convertCurrencyAmount, type CurrencyConfig } from '@/lib/site/currency';
 import { trackEvent } from '@/lib/analytics/track';
+import { getPublicUiMessages } from '@/lib/site/public-ui-messages';
 
 interface StickyCTABarProps {
   price?: number | string | null;
@@ -36,6 +37,7 @@ export function StickyCTABar({
   const effectiveCurrency = preferredCurrency ?? currency ?? null;
   const convertedPrice = convertCurrencyAmount(price, currency, effectiveCurrency, currencyConfig ?? null);
   const priceLabel = formatPriceOrConsult(convertedPrice, effectiveCurrency ?? currency);
+  const uiMessages = getPublicUiMessages('es-CO');
 
   useEffect(() => {
     const onScroll = () => {
@@ -66,7 +68,7 @@ export function StickyCTABar({
   return (
     <aside
       role="complementary"
-      aria-label="Acciones rápidas de contacto"
+      aria-label={uiMessages.stickyCta.quickActionsAria}
       className={clsx(
         'fixed inset-x-0 bottom-0 z-50 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80',
         className
@@ -75,7 +77,7 @@ export function StickyCTABar({
     >
       <div className="mx-auto flex max-w-screen-lg items-center gap-3 px-4 py-2 sm:px-6 sm:py-3">
         <p className="min-w-0 flex-1 truncate text-xs font-semibold text-foreground sm:text-sm">
-          Desde <span className="text-primary">{priceLabel}</span>
+          {uiMessages.stickyCta.fromLabel} <span className="text-primary">{priceLabel}</span>
         </p>
 
         {whatsappUrl ? (
@@ -90,7 +92,7 @@ export function StickyCTABar({
             className="inline-flex items-center justify-center rounded-full px-3 py-2 text-xs font-semibold sm:px-5 sm:text-sm"
             style={{ backgroundColor: 'hsl(var(--accent))', color: 'hsl(var(--accent-text))' }}
           >
-            WhatsApp
+            {uiMessages.stickyCta.whatsapp}
           </a>
         ) : null}
 
@@ -103,7 +105,7 @@ export function StickyCTABar({
             }}
             className="inline-flex items-center justify-center rounded-full border px-3 py-2 text-xs font-semibold hover:bg-muted sm:px-5 sm:text-sm"
           >
-            Llamar
+            {uiMessages.stickyCta.call}
           </a>
         ) : null}
       </div>

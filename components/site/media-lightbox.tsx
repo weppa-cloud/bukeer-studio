@@ -2,6 +2,7 @@
 
 import { useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
+import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 
 interface ImageLightboxProps {
   type: 'image';
@@ -25,6 +26,7 @@ export type MediaLightboxProps = ImageLightboxProps | VideoLightboxProps;
 
 export function MediaLightbox(props: MediaLightboxProps) {
   const closeRef = useRef<HTMLButtonElement>(null);
+  const text = getPublicUiExtraTextGetter('es-CO');
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -57,7 +59,7 @@ export function MediaLightbox(props: MediaLightboxProps) {
         <button
           ref={closeRef}
           onClick={props.onClose}
-          aria-label="Cerrar video"
+          aria-label={text('mediaCloseVideo')}
           className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors cursor-pointer"
         >
           <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
@@ -90,14 +92,14 @@ export function MediaLightbox(props: MediaLightboxProps) {
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Galería de imágenes"
+      aria-label={text('mediaImageGallery')}
       className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
       onClick={onClose}
     >
       <button
         ref={closeRef}
         onClick={onClose}
-        aria-label="Cerrar galería"
+        aria-label={text('mediaCloseGallery')}
         className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors cursor-pointer"
       >
         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
@@ -112,7 +114,7 @@ export function MediaLightbox(props: MediaLightboxProps) {
       {images.length > 1 && (
         <button
           onClick={(e) => { e.stopPropagation(); onPrev?.(); }}
-          aria-label="Imagen anterior"
+          aria-label={text('mediaPrevImage')}
           className="absolute left-4 top-1/2 -translate-y-1/2 z-10 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors cursor-pointer"
         >
           <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
@@ -139,7 +141,7 @@ export function MediaLightbox(props: MediaLightboxProps) {
       {images.length > 1 && (
         <button
           onClick={(e) => { e.stopPropagation(); onNext?.(); }}
-          aria-label="Imagen siguiente"
+          aria-label={text('mediaNextImage')}
           className="absolute right-4 top-1/2 -translate-y-1/2 z-10 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors cursor-pointer"
         >
           <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>

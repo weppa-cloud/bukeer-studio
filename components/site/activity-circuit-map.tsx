@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { CircuitMap, type CircuitMapStop } from '@/components/site/circuit-map';
 import type { ActivityCircuitStop } from '@/lib/products/activity-circuit';
 import { trackEvent } from '@/lib/analytics/track';
+import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 
 interface ActivityCircuitMapProps {
   stops: ActivityCircuitStop[];
@@ -38,6 +39,7 @@ export function ActivityCircuitMap({
   className = '',
   analyticsContext,
 }: ActivityCircuitMapProps) {
+  const text = getPublicUiExtraTextGetter('es-CO');
   const circuitStops = useMemo<CircuitMapStop[]>(
     () =>
       stops.map((stop) => ({
@@ -54,7 +56,7 @@ export function ActivityCircuitMap({
 
   return (
     <section className={className}>
-      <h2 className="text-2xl font-bold mb-4">Recorrido de la actividad</h2>
+      <h2 className="text-2xl font-bold mb-4">{text('activityCircuitMapTitle')}</h2>
       <CircuitMap
         stops={circuitStops}
         activeIndex={activeIndex}

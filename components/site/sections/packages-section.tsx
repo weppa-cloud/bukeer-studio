@@ -9,6 +9,7 @@ import { MobileCardCarousel } from '@/components/ui/card-carousel';
 import { useWebsiteLocale } from '@/lib/hooks/use-website-locale';
 import { buildEntityAlt } from '@/lib/utils/entity-alt';
 import { formatCircuitStops, getPackageCircuitStops, type PackageItineraryItem } from '@/lib/products/package-circuit';
+import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 
 interface PackagesSectionProps {
   section: WebsiteSection;
@@ -32,6 +33,8 @@ export interface PackageItem {
 }
 
 export function PackagesSection({ section, website }: PackagesSectionProps) {
+  const locale = useWebsiteLocale();
+  const text = getPublicUiExtraTextGetter(locale);
   const sectionContent = section.content as {
     eyebrow?: string;
     title?: string;
@@ -96,13 +99,13 @@ export function PackagesSection({ section, website }: PackagesSectionProps) {
             <Link
               href={`/site/${website.subdomain}/paquetes`}
               className="inline-flex items-center justify-center rounded-full px-6 py-2.5 text-sm font-medium"
-              style={{
-                backgroundColor: 'var(--bg-card)',
-                border: '1px solid var(--border-medium)',
-                color: 'var(--text-heading)',
-              }}
-            >
-              Ver todos los paquetes
+            style={{
+              backgroundColor: 'var(--bg-card)',
+              border: '1px solid var(--border-medium)',
+              color: 'var(--text-heading)',
+            }}
+          >
+              {text('sectionPackagesViewAll')}
             </Link>
           </div>
         </div>
@@ -139,7 +142,7 @@ export function PackagesSection({ section, website }: PackagesSectionProps) {
               color: 'var(--text-heading)',
             }}
           >
-            Ver todos los paquetes
+            {text('sectionPackagesViewAll')}
           </Link>
         </div>
       </div>
@@ -211,6 +214,7 @@ function isNew(createdAt?: string): boolean {
 
 export function PackageCard({ pkg, index, subdomain, basePath: overrideBasePath }: { pkg: PackageItem; index: number; subdomain: string; basePath?: string }) {
   const locale = useWebsiteLocale();
+  const text = getPublicUiExtraTextGetter(locale);
   const base = overrideBasePath ?? `/site/${subdomain}`;
   const detailSlug = (pkg.slug || '').trim();
   const detailHref = detailSlug
@@ -319,7 +323,7 @@ export function PackageCard({ pkg, index, subdomain, basePath: overrideBasePath 
 
           {circuitLabel && (
             <p className="text-xs mb-3 font-medium line-clamp-1" style={{ color: 'var(--text-secondary)' }}>
-              Circuito: {circuitLabel}
+              {text('sectionPackagesCircuit')} {circuitLabel}
             </p>
           )}
 
@@ -351,14 +355,14 @@ export function PackageCard({ pkg, index, subdomain, basePath: overrideBasePath 
           <div className="pt-4 flex items-end justify-between gap-4" style={{ borderTop: '1px solid var(--border-subtle)' }}>
             <div>
               <p className="font-mono text-[11px] uppercase tracking-[0.16em]" style={{ color: 'var(--text-muted)' }}>
-                Desde
+                {text('sectionFrom')}
               </p>
               <p className="product-price mt-1" style={{ color: 'var(--accent)' }}>
                 {pkg.price || 'Consultar'}
               </p>
             </div>
             <span className="inline-flex items-center gap-1 font-mono text-xs uppercase tracking-wider" style={{ color: 'var(--accent)' }}>
-              Ver paquete
+              {text('sectionViewPackage')}
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
               </svg>

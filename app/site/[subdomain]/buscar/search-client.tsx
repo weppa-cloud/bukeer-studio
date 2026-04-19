@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { WebsiteData } from '@/lib/supabase/get-website';
 import { getBasePath } from '@/lib/utils/base-path';
+import { getPublicUiMessages } from '@/lib/site/public-ui-messages';
 
 interface SearchResult {
   id: string;
@@ -32,6 +33,8 @@ export function SearchPageClient({ subdomain, initialQuery, website }: SearchPag
   const [hasSearched, setHasSearched] = useState(false);
   const router = useRouter();
   const basePath = getBasePath(subdomain);
+  const locale = (website.content as { locale?: string } | undefined)?.locale ?? 'es-CO';
+  const messages = getPublicUiMessages(locale);
 
   const getCategorySlug = (type: string) => {
     const mapping: Record<string, string> = {
@@ -46,11 +49,11 @@ export function SearchPageClient({ subdomain, initialQuery, website }: SearchPag
 
   const getCategoryLabel = (type: string) => {
     const labels: Record<string, string> = {
-      destination: 'Destino',
-      hotel: 'Hotel',
-      activity: 'Actividad',
-      transfer: 'Traslado',
-      package: 'Paquete',
+      destination: messages.searchPage.destinationLabel,
+      hotel: messages.searchPage.hotelLabel,
+      activity: messages.searchPage.activityLabel,
+      transfer: messages.searchPage.transferLabel,
+      package: messages.searchPage.packageLabel,
     };
     return labels[type] || type;
   };
@@ -121,7 +124,7 @@ export function SearchPageClient({ subdomain, initialQuery, website }: SearchPag
             transition={{ duration: 0.5 }}
             className="text-xs tracking-[0.15em] uppercase mb-3 text-primary font-mono"
           >
-            Buscar
+            {messages.searchPage.eyebrow}
           </motion.p>
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
@@ -129,7 +132,7 @@ export function SearchPageClient({ subdomain, initialQuery, website }: SearchPag
             transition={{ delay: 0.1, duration: 0.6 }}
             className="text-4xl md:text-5xl font-bold mb-8"
           >
-            ¿Que estas buscando?
+            {messages.searchPage.title}
           </motion.h1>
 
           <motion.form
@@ -156,7 +159,7 @@ export function SearchPageClient({ subdomain, initialQuery, website }: SearchPag
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Destinos, hoteles, actividades, paquetes..."
+              placeholder={messages.searchPage.placeholder}
               className="w-full pl-14 pr-6 py-4 rounded-2xl border border-border bg-card text-lg focus:outline-none focus:ring-2 focus:ring-primary"
               autoFocus
             />
@@ -186,10 +189,10 @@ export function SearchPageClient({ subdomain, initialQuery, website }: SearchPag
               className="text-center py-16"
             >
               <p className="text-6xl mb-4">🔍</p>
-              <p className="text-lg font-medium mb-2">Sin resultados para &ldquo;{query}&rdquo;</p>
-              <p className="text-muted-foreground">Intenta con otros terminos o explora nuestras categorias</p>
+              <p className="text-lg font-medium mb-2">{messages.searchPage.noResultsPrefix} &ldquo;{query}&rdquo;</p>
+              <p className="text-muted-foreground">{messages.searchPage.noResultsHint}</p>
               <div className="flex flex-wrap justify-center gap-3 mt-6">
-                {['Destinos', 'Hoteles', 'Actividades', 'Paquetes'].map((cat) => (
+                {[messages.searchPage.destinationsCategory, messages.searchPage.hotelsCategory, messages.searchPage.activitiesCategory, messages.searchPage.packagesCategory].map((cat) => (
                   <Link
                     key={cat}
                     href={`${basePath}/${cat.toLowerCase()}`}
@@ -203,7 +206,7 @@ export function SearchPageClient({ subdomain, initialQuery, website }: SearchPag
           ) : results.length > 0 ? (
             <>
               <p className="text-sm text-muted-foreground mb-6">
-                {results.length} {results.length === 1 ? 'resultado' : 'resultados'} para &ldquo;{query}&rdquo;
+                {results.length} {results.length === 1 ? messages.searchPage.resultSingular : messages.searchPage.resultPlural} {messages.searchPage.resultFor} &ldquo;{query}&rdquo;
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {results.map((result, index) => (
@@ -269,7 +272,7 @@ export function SearchPageClient({ subdomain, initialQuery, website }: SearchPag
               transition={{ delay: 0.3 }}
               className="text-center py-12"
             >
-              <p className="text-muted-foreground">Escribe para buscar entre todos nuestros productos</p>
+              <p className="text-muted-foreground">{messages.searchPage.initialHint}</p>
               <div className="flex flex-wrap justify-center gap-3 mt-6">
                 {['Cartagena', 'Eje Cafetero', 'San Andres', 'Medellin'].map((suggestion) => (
                   <button

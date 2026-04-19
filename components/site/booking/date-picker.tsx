@@ -10,13 +10,9 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { getPublicUiMessages, resolvePublicUiLocale } from '@/lib/site/public-ui-messages';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-const WEEK_LABELS = ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá', 'Do'] as const;
-const MONTH_LABELS = [
-  'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
-  'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
-] as const;
 
 export interface DatePickerProps {
   value: string | null;
@@ -26,6 +22,7 @@ export interface DatePickerProps {
   minDate?: string;
   /** ISO yyyy-mm-dd — defaults to today + 59 days. */
   maxDate?: string;
+  locale?: string;
   className?: string;
   id?: string;
 }
@@ -63,9 +60,12 @@ export function DatePicker({
   disabledDates,
   minDate,
   maxDate,
+  locale,
   className = '',
   id,
 }: DatePickerProps) {
+  const resolvedLocale = resolvePublicUiLocale(locale ?? 'es-CO');
+  const messages = getPublicUiMessages(resolvedLocale);
   const today = todayIso();
   const min = minDate ?? today;
   const max = maxDate ?? addDaysIso(today, 59);
@@ -106,8 +106,17 @@ export function DatePicker({
 
   const monthHeader = useMemo(() => {
     const d = fromIso(focusIso);
-    return `${MONTH_LABELS[d.getMonth()]} ${d.getFullYear()}`;
-  }, [focusIso]);
+    return new Intl.DateTimeFormat(resolvedLocale, { month: 'long', year: 'numeric' }).format(d);
+  }, [focusIso, resolvedLocale]);
+
+  const weekLabels = useMemo(() => {
+    const monday = new Date(2024, 0, 1); // Monday baseline.
+    return Array.from({ length: 7 }, (_, index) =>
+      new Intl.DateTimeFormat(resolvedLocale, { weekday: 'short' })
+        .format(new Date(monday.getTime() + index * DAY_MS))
+        .replace('.', ''),
+    );
+  }, [resolvedLocale]);
 
   const moveFocus = useCallback(
     (deltaDays: number) => {
@@ -185,7 +194,7 @@ export function DatePicker({
       >
         <span aria-live="polite">{monthHeader}</span>
         <span className="text-xs" style={{ color: 'var(--text-secondary, var(--text-heading))' }}>
-          Próximos 60 días
+          {messages.datePicker.next60Days}
         </span>
       </div>
 
@@ -194,7 +203,7 @@ export function DatePicker({
         style={{ color: 'var(--text-secondary, var(--text-heading))' }}
         aria-hidden="true"
       >
-        {WEEK_LABELS.map((w) => (
+        {weekLabels.map((w) => (
           <span key={w} className="py-1">
             {w}
           </span>
@@ -205,7 +214,7 @@ export function DatePicker({
         ref={gridRef}
         className="grid grid-cols-7 gap-1 px-1 pb-1"
         role="group"
-        aria-label="Selecciona una fecha"
+        aria-label={messages.datePicker.selectDateAria}
       >
         {days.map((d, i) => {
           if (!d.inMonth) {

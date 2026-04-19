@@ -3,7 +3,6 @@
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 import { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
-import { useWebsiteLocale } from '@/lib/hooks/use-website-locale';
 
 interface AboutSectionProps {
   section: WebsiteSection;
@@ -23,7 +22,6 @@ export function AboutSection({ section, website }: AboutSectionProps) {
     stats?: Array<{ value: string; label: string }>;
   };
 
-  const locale = useWebsiteLocale();
   const agency = website.content.siteName || '';
   const imageAlt = `${agency} — ${sectionContent.title || 'Sobre Nosotros'}`;
 

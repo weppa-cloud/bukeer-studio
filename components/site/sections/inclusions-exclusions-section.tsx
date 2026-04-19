@@ -3,6 +3,7 @@
 import { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 import { BlurFade } from '@/components/ui/blur-fade';
 import { Check, X } from 'lucide-react';
+import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 
 interface InclusionsExclusionsContent {
   title?: string;
@@ -17,11 +18,12 @@ interface InclusionsExclusionsSectionProps {
 }
 
 export function InclusionsExclusionsSection({ section }: InclusionsExclusionsSectionProps) {
+  const text = getPublicUiExtraTextGetter('es-CO');
   const content = (section.content as unknown as InclusionsExclusionsContent | null) || { included: [], excluded: [] };
   const { title, included = [], excluded = [], note } = content;
 
   return (
-    <section className="section-padding" aria-label="Incluye y no incluye">
+    <section className="section-padding" aria-label={text('sectionInclusionsTitle')}>
       <div className="container max-w-4xl">
         {title && (
           <BlurFade delay={0} direction="up" duration={0.4}>
@@ -37,7 +39,7 @@ export function InclusionsExclusionsSection({ section }: InclusionsExclusionsSec
                 <span className="flex h-6 w-6 items-center justify-center rounded-full bg-green-100 text-green-600">
                   <Check className="w-3.5 h-3.5" />
                 </span>
-                Incluye
+                {text('sectionIncludes')}
               </h3>
               <ul className="space-y-2.5">
                 {included.map((item, i) => (
@@ -59,7 +61,7 @@ export function InclusionsExclusionsSection({ section }: InclusionsExclusionsSec
                 <span className="flex h-6 w-6 items-center justify-center rounded-full bg-red-100 text-red-500">
                   <X className="w-3.5 h-3.5" />
                 </span>
-                No incluye
+                {text('sectionExcludes')}
               </h3>
               <ul className="space-y-2.5">
                 {excluded.map((item, i) => (

@@ -1,5 +1,6 @@
 import type { MeetingPoint } from '@bukeer/website-contract';
 import { RouteMap } from '@/components/ui/route-map';
+import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 
 export interface MeetingPointMapProps {
   meetingPoint?: MeetingPoint | null;
@@ -8,6 +9,8 @@ export interface MeetingPointMapProps {
   className?: string;
   height?: number;
 }
+
+const text = getPublicUiExtraTextGetter('es-CO');
 
 function normalizeCoordinate(value: unknown): number | null {
   if (typeof value === 'number' && Number.isFinite(value)) {
@@ -87,7 +90,7 @@ export function MeetingPointMap({
 
       {meetingPoint.google_place_id && (
         <p className="mt-3 text-xs" style={{ color: 'var(--text-muted)' }}>
-          Google place id: {meetingPoint.google_place_id}
+          {text('meetingPointGooglePlaceId')} {meetingPoint.google_place_id}
         </p>
       )}
     </section>

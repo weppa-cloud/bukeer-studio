@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 import { MobileCardCarousel } from '@/components/ui/card-carousel';
+import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 
 interface TestimonialsSectionProps {
   section: WebsiteSection;
@@ -28,7 +29,7 @@ const getAvatarColor = (name: string): string => {
 
 // Google "G" logo SVG — used as source badge
 const GoogleLogo = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-label="Google">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-label={text('googleLabel')}>
     <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
     <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
     <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
@@ -38,6 +39,7 @@ const GoogleLogo = () => (
 
 // Star path for reuse
 const STAR_PATH = 'M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z';
+const text = getPublicUiExtraTextGetter('es-CO');
 
 type TestimonialItem = {
   id?: string;
@@ -266,7 +268,7 @@ export function TestimonialsSection({ section, website }: TestimonialsSectionPro
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 text-sm font-medium hover:underline"
-                  aria-label="Ver en Google"
+                  aria-label={text('sectionTestimonialsViewGoogle')}
                 >
                   <GoogleLogo />
                 </a>
@@ -414,7 +416,7 @@ const CrossfadeTestimonials = ({ testimonials }: { testimonials: TestimonialItem
                 {Array.from({ length: current.rating }).map((_, i) => (
                   <span key={i} className="text-yellow-400 text-lg" aria-hidden="true">★</span>
                 ))}
-                <span className="sr-only">{current.rating} de 5 estrellas</span>
+                <span className="sr-only">{current.rating} {text('sectionTestimonialsOfFive')}</span>
               </div>
             )}
 
@@ -485,7 +487,7 @@ const CrossfadeTestimonials = ({ testimonials }: { testimonials: TestimonialItem
       </div>
 
       {/* Dot navigation */}
-      <div className="flex justify-center gap-3 mt-10" role="tablist" aria-label="Testimonios">
+      <div className="flex justify-center gap-3 mt-10" role="tablist" aria-label={text('sectionTestimonialsTitle')}>
         {testimonials.map((t, i) => (
           <button
             key={i}

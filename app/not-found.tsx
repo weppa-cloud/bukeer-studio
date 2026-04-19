@@ -1,11 +1,19 @@
 import Link from 'next/link'
+import { headers } from 'next/headers'
+import { getPublicUiMessages, resolvePublicUiLocale } from '@/lib/site/public-ui-messages'
 
 /**
  * Global 404 page for routes that don't match any known segment.
  */
-export default function NotFound() {
+export default async function NotFound() {
+  const headerList = await headers()
+  const acceptLanguage = headerList.get('accept-language')
+  const localeCandidate = acceptLanguage?.split(',')[0]?.trim() ?? 'es-CO'
+  const locale = resolvePublicUiLocale(localeCandidate)
+  const messages = getPublicUiMessages(locale)
+
   return (
-    <html lang="es">
+    <html lang={locale}>
       <body
         style={{
           margin: 0,
@@ -31,10 +39,10 @@ export default function NotFound() {
             404
           </p>
           <h1 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '0.75rem' }}>
-            Page not found
+            {messages.global404.title}
           </h1>
           <p style={{ color: '#71717a', marginBottom: '1.5rem', lineHeight: 1.6 }}>
-            The page you are looking for does not exist or has been moved.
+            {messages.global404.body}
           </p>
           <Link
             href="/"
@@ -49,7 +57,7 @@ export default function NotFound() {
               textDecoration: 'none',
             }}
           >
-            Go home
+            {messages.global404.goHome}
           </Link>
         </div>
       </body>

@@ -1,6 +1,7 @@
 import type { ActivityOption, ActivityPrice } from '@bukeer/website-contract';
 import { formatPriceOrConsult } from '@/lib/products/format-price';
 import { convertCurrencyAmount, type CurrencyConfig } from '@/lib/site/currency';
+import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 
 export interface OptionsTableProps {
   options?: Array<ActivityOption | null | undefined> | null;
@@ -13,13 +14,14 @@ export interface OptionsTableProps {
 
 /** Hide placeholder/sentinel date ranges that represent "always valid" in admin data. */
 const PLACEHOLDER_DATES = new Set(['2000-01-01', '2099-12-31', '1970-01-01', '9999-12-31']);
+const text = getPublicUiExtraTextGetter('es-CO');
 
 function formatValidityRange(from?: string | null, until?: string | null): string | null {
   const fromValid = from && !PLACEHOLDER_DATES.has(from) ? from : null;
   const untilValid = until && !PLACEHOLDER_DATES.has(until) ? until : null;
   if (!fromValid && !untilValid) return null;
   if (fromValid && untilValid) return `${fromValid} → ${untilValid}`;
-  return fromValid ? `Desde ${fromValid}` : `Hasta ${untilValid}`;
+  return fromValid ? `${text('sectionFrom')} ${fromValid}` : `Hasta ${untilValid}`;
 }
 
 function formatSeason(season?: string | null): string | null {
@@ -123,19 +125,19 @@ export function OptionsTable({
             <thead>
               <tr style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 6%, var(--bg-card))' }}>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--text-secondary)' }}>
-                  Opción
+                  {text('optionsTableOption')}
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--text-secondary)' }}>
-                  Modalidad
+                  {text('optionsTableMode')}
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--text-secondary)' }}>
-                  Detalles
+                  {text('optionsTableDetails')}
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--text-secondary)' }}>
-                  Reembolso
+                  {text('optionsTableRefund')}
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--text-secondary)' }}>
-                  Precio
+                  {text('optionsTablePrice')}
                 </th>
               </tr>
             </thead>
@@ -166,17 +168,17 @@ export function OptionsTable({
                     <div className="flex flex-wrap gap-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
                       {typeof option.min_units === 'number' && (
                         <span className="rounded-full px-2.5 py-0.5" style={{ backgroundColor: 'var(--bg)', border: '1px solid var(--border-subtle)' }}>
-                          Mín. {option.min_units}
+                          {text('optionsTableMin')} {option.min_units}
                         </span>
                       )}
                       {typeof option.max_units === 'number' && (
                         <span className="rounded-full px-2.5 py-0.5" style={{ backgroundColor: 'var(--bg)', border: '1px solid var(--border-subtle)' }}>
-                          Máx. {option.max_units}
+                          {text('optionsTableMax')} {option.max_units}
                         </span>
                       )}
                       {option.start_times && option.start_times.length > 0 && (
                         <span className="rounded-full px-2.5 py-0.5" style={{ backgroundColor: 'var(--bg)', border: '1px solid var(--border-subtle)' }}>
-                          {option.start_times.length} horarios
+                          {option.start_times.length} {text('optionsTableSchedules')}
                         </span>
                       )}
                     </div>

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import type { ScheduleEntry } from '@bukeer/website-contract';
 import { SCHEDULE_STEPS_VISIBLE } from '@bukeer/website-contract';
+import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 
 interface ActivityScheduleInlineProps {
   steps: ScheduleEntry[];
@@ -17,6 +18,7 @@ export function ActivityScheduleInline({
   activityName,
 }: ActivityScheduleInlineProps) {
   const [expanded, setExpanded] = useState(false);
+  const text = getPublicUiExtraTextGetter('es-CO');
 
   if (!steps || steps.length === 0) {
     return null;
@@ -29,7 +31,7 @@ export function ActivityScheduleInline({
   return (
     <div className="mt-3 space-y-2">
       <p className="text-xs font-mono uppercase tracking-wider text-muted-foreground mb-2">
-        Programa
+        {text('activityScheduleProgram')}
       </p>
       <ol className="space-y-2">
         {visibleSteps.map((step, index) => (
@@ -73,7 +75,7 @@ export function ActivityScheduleInline({
             className="text-xs font-mono text-muted-foreground hover:text-primary transition-colors"
             aria-label={`Ver detalle completo de ${activityName}`}
           >
-            Ver detalle completo →
+            {text('activityScheduleViewDetail')}
           </Link>
         )}
       </div>

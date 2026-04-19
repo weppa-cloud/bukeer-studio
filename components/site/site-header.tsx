@@ -277,7 +277,7 @@ export function SiteHeader({ website, isCustomDomain = false, navigation }: Site
                   rel="noopener noreferrer"
                   className="flex items-center justify-center w-10 h-10 rounded-full transition-transform hover:scale-105"
                   style={{ backgroundColor: 'var(--accent)', color: 'var(--accent-text)' }}
-                  aria-label="WhatsApp"
+                  aria-label={uiMessages.header.whatsappAria}
                 >
                   <WhatsAppIcon className="w-5 h-5" />
                 </a>

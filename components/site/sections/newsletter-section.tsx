@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
+import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 
 interface NewsletterSectionProps {
   section: WebsiteSection;
@@ -9,6 +10,7 @@ interface NewsletterSectionProps {
 }
 
 export function NewsletterSection({ section }: NewsletterSectionProps) {
+  const text = getPublicUiExtraTextGetter('es-CO');
   const content = (section.content as {
     title?: string;
     subtitle?: string;
@@ -49,7 +51,7 @@ export function NewsletterSection({ section }: NewsletterSectionProps) {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="tu@email.com"
+              placeholder={text('sectionNewsletterEmailPlaceholder')}
               required
               className="flex-1 px-4 py-3 rounded-lg text-foreground bg-background focus:outline-none focus:ring-2 focus:ring-primary-foreground/50"
             />
@@ -64,7 +66,7 @@ export function NewsletterSection({ section }: NewsletterSectionProps) {
 
           {isSuccess && (
             <p className="mt-4 text-primary-foreground/90 animate-fade-in">
-              ¡Gracias por suscribirte! Pronto recibirás nuestras novedades.
+              {text('sectionNewsletterSuccess')}
             </p>
           )}
         </div>

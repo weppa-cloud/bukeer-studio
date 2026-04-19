@@ -40,7 +40,7 @@ export function MobileStickyBar({ website }: MobileStickyBarProps) {
     // Auto-generate from content
     if (content.social?.whatsapp) {
       const phone = content.social.whatsapp.replace(/[^0-9]/g, '');
-      buttons.push({ type: 'whatsapp', label: 'WhatsApp', href: `https://wa.me/${phone}` });
+      buttons.push({ type: 'whatsapp', label: messages.mobileStickyBar.whatsapp, href: `https://wa.me/${phone}` });
     }
     const contactPhone = content.account?.phone || content.contact?.phone;
     if (contactPhone) {
@@ -48,7 +48,7 @@ export function MobileStickyBar({ website }: MobileStickyBarProps) {
     }
     const contactEmail = content.account?.email || content.contact?.email;
     if (contactEmail) {
-      buttons.push({ type: 'email', label: 'Email', href: `mailto:${contactEmail}` });
+      buttons.push({ type: 'email', label: messages.mobileStickyBar.email, href: `mailto:${contactEmail}` });
     }
   }
 

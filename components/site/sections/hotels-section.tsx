@@ -7,6 +7,7 @@ import { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 import { MobileCardCarousel } from '@/components/ui/card-carousel';
 import { useWebsiteLocale } from '@/lib/hooks/use-website-locale';
 import { buildEntityAlt } from '@/lib/utils/entity-alt';
+import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 
 interface HotelsSectionProps {
   section: WebsiteSection;
@@ -29,6 +30,8 @@ export interface HotelItem {
 }
 
 export function HotelsSection({ section, website }: HotelsSectionProps) {
+  const locale = useWebsiteLocale();
+  const text = getPublicUiExtraTextGetter(locale);
   const sectionContent = section.content as {
     title?: string;
     subtitle?: string;
@@ -52,7 +55,7 @@ export function HotelsSection({ section, website }: HotelsSectionProps) {
       }}
     >
       <div className="container">
-        <SectionHeading title={title} subtitle={subtitle} />
+        <SectionHeading title={title} subtitle={subtitle} locale={locale} />
 
         <MobileCardCarousel
           items={hotels}
@@ -78,7 +81,7 @@ export function HotelsSection({ section, website }: HotelsSectionProps) {
               color: 'var(--text-heading)',
             }}
           >
-            Ver todos los hoteles
+            {text('sectionHotelsViewAll')}
           </Link>
         </div>
       </div>
@@ -86,7 +89,8 @@ export function HotelsSection({ section, website }: HotelsSectionProps) {
   );
 }
 
-function SectionHeading({ title, subtitle }: { title: string; subtitle?: string }) {
+function SectionHeading({ title, subtitle, locale }: { title: string; subtitle?: string; locale: string }) {
+  const text = getPublicUiExtraTextGetter(locale);
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -95,7 +99,7 @@ function SectionHeading({ title, subtitle }: { title: string; subtitle?: string 
       className="text-center mb-12"
     >
       <p className="font-mono text-xs tracking-[0.2em] uppercase mb-3" style={{ color: 'var(--accent)' }}>
-        Estancias Seleccionadas
+        {text('sectionHotelsSelected')}
       </p>
       <h2 className="section-title" style={{ color: 'var(--text-heading)' }}>
         {title}
@@ -152,6 +156,7 @@ function AmenityIcon({ type }: { type: string }) {
 
 export function HotelCard({ hotel, index, subdomain, basePath: overrideBasePath }: { hotel: HotelItem; index: number; subdomain: string; basePath?: string }) {
   const locale = useWebsiteLocale();
+  const text = getPublicUiExtraTextGetter(locale);
   const base = overrideBasePath ?? `/site/${subdomain}`;
   const detailSlug = (hotel.slug || '').trim();
   const detailHref = detailSlug
@@ -264,14 +269,14 @@ export function HotelCard({ hotel, index, subdomain, basePath: overrideBasePath 
           <div className="pt-4 flex items-end justify-between gap-4" style={{ borderTop: '1px solid var(--border-subtle)' }}>
             <div>
               <p className="font-mono text-[11px] uppercase tracking-[0.16em]" style={{ color: 'var(--text-muted)' }}>
-                Desde
+                {text('sectionFrom')}
               </p>
               <p className="product-price mt-1" style={{ color: 'var(--accent)' }}>
                 {hotel.price ? `${hotel.price} / noche` : 'Consultar'}
               </p>
             </div>
             <span className="inline-flex items-center gap-1 font-mono text-xs uppercase tracking-wider" style={{ color: 'var(--accent)' }}>
-              Ver hotel
+              {text('sectionViewHotel')}
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
               </svg>
