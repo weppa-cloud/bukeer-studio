@@ -11,6 +11,8 @@ import {
   type MarketingFieldPatch,
   type MarketingFieldName,
 } from '@bukeer/website-contract';
+import type { ProductEditorType } from '@/lib/admin/product-resolver';
+import { publicPathPrefix } from '@/lib/admin/product-resolver';
 
 const log = createLogger('actions.marketing-field');
 
@@ -58,20 +60,27 @@ async function authorize(websiteId: string): Promise<AuthorizedContext> {
   return { accountId: ctx.accountId, userId: ctx.userId, role: ctx.role };
 }
 
-async function ensurePackageTenancy(
+/**
+ * Generalized tenancy check — replaces the prior `ensurePackageTenancy` helper.
+ * Returns the row's public slug (for revalidatePath) by querying the product
+ * table matching `productType`.
+ */
+async function ensureTenancy(
+  productType: ProductEditorType,
   productId: string,
   accountId: string,
 ): Promise<{ slug: string; id: string }> {
   const supabase = createSupabaseServiceRoleClient();
+  const table = productType === 'package' ? 'package_kits' : 'activities';
   const { data } = await supabase
-    .from('package_kits')
+    .from(table)
     .select('id, slug')
     .eq('id', productId)
     .eq('account_id', accountId)
-    .maybeSingle<{ id: string; slug: string }>();
+    .maybeSingle<{ id: string; slug: string | null }>();
 
-  if (!data) throw new Error('NOT_FOUND');
-  return data;
+  if (!data || !data.slug) throw new Error('NOT_FOUND');
+  return { id: data.id, slug: data.slug };
 }
 
 async function ensureFieldIsStudioOwned(
@@ -93,9 +102,16 @@ async function ensureFieldIsStudioOwned(
   }
 }
 
+function rpcNameFor(productType: ProductEditorType): string {
+  return productType === 'package'
+    ? 'update_package_kit_marketing_field'
+    : 'update_activity_marketing_field';
+}
+
 export async function saveMarketingField(input: {
   websiteId: string;
   productId: string;
+  productType: ProductEditorType;
   patch: MarketingFieldPatch;
 }): Promise<void> {
   const parsed = MarketingFieldPatchSchema.safeParse(input.patch);
@@ -105,7 +121,7 @@ export async function saveMarketingField(input: {
   }
 
   const auth = await authorize(input.websiteId);
-  const { slug } = await ensurePackageTenancy(input.productId, auth.accountId);
+  const { slug } = await ensureTenancy(input.productType, input.productId, auth.accountId);
   await ensureFieldIsStudioOwned(input.websiteId, auth.accountId, parsed.data.field);
 
   const column = FIELD_TO_COLUMN[parsed.data.field];
@@ -113,9 +129,10 @@ export async function saveMarketingField(input: {
 
   const supabase = createSupabaseServiceRoleClient();
 
-  // Single-transaction RPC: sets app.edit_surface='studio' (trigger reads this)
-  // + performs UPDATE + resets AI flag when applicable — all atomic.
-  const { error } = await supabase.rpc('update_package_kit_marketing_field', {
+  // Single-transaction RPC per product type: sets app.edit_surface='studio'
+  // (audit trigger reads this) + performs UPDATE + resets AI flag when
+  // applicable — all atomic.
+  const { error } = await supabase.rpc(rpcNameFor(input.productType), {
     p_product_id: input.productId,
     p_account_id: auth.accountId,
     p_column: column,
@@ -127,6 +144,7 @@ export async function saveMarketingField(input: {
     log.error('marketing_update_failed', {
       website_id: input.websiteId,
       product_id: input.productId,
+      product_type: input.productType,
       field: parsed.data.field,
       error: error.message,
     });
@@ -136,9 +154,10 @@ export async function saveMarketingField(input: {
   log.info('marketing_field_saved', {
     website_id: input.websiteId,
     product_id: input.productId,
+    product_type: input.productType,
     user_id: auth.userId,
     field: parsed.data.field,
   });
 
-  revalidatePath(`/paquetes/${slug}`);
+  revalidatePath(`${publicPathPrefix(input.productType)}/${slug}`);
 }

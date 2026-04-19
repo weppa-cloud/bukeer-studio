@@ -60,7 +60,7 @@ All ADRs accepted unless noted. Cross-cut by Principles P1–P10 (see [[ARCHITEC
 | [[ADR-021]] | [ADR-021](./architecture/ADR-021-translation-memory-transcreation-pipeline.md) | Translation Memory + AI Transcreation Pipeline | [[translation]] [[TM]] [[AI]] [[transcreation]] [[multi-locale]] |
 | [[ADR-023]] | [ADR-023](./architecture/ADR-023-qa-tooling-studio-editor.md) | QA Tooling: Playwright Component Testing + Visual Regression | [[testing]] [[CT]] [[visual-regression]] [[quality-gate]] |
 | [[ADR-024]] | [ADR-024](./architecture/ADR-024-booking-v1-pilot-scope.md) | Booking V1 Pilot Scope (Proposed — W3 decision meeting) | [[booking]] [[pilot-readiness]] [[leads]] |
-| [[ADR-025]] | [ADR-025](./architecture/ADR-025-studio-flutter-field-ownership.md) | Studio / Flutter Field Ownership Boundary (Proposed — priority-v2 aligned, W2 pending) | [[studio-editor-v2]] [[package-kits]] [[pilot-readiness]] |
+| [[ADR-025]] | [ADR-025](./architecture/ADR-025-studio-flutter-field-ownership.md) | Studio / Flutter Field Ownership Boundary (**Accepted 2026-04-19** — pkg+act Studio-editable, hotels Flutter-owner; Option A RPC expansion + activities parity) | [[studio-editor-v2]] [[package-kits]] [[pilot-readiness]] [[studio-editor-parity-audit]] |
 
 > **Note:** `ADR-022` and `ADR-032` referenced in specs are anchored in `weppa-cloud/bukeer-flutter`. Studio respects them but does not own them. See [[cross-repo-flutter]].
 
@@ -406,6 +406,8 @@ Obsidian resolves `[[ADR-005]]` by filename stem or alias. Claude Code / Codex g
 | `[[package-detail-anatomy]]` | `docs/product/package-detail-anatomy.md` |
 | `[[product-detail-inventory]]` | `docs/product/product-detail-inventory.md` |
 | `[[product-detail-matrix]]` | `docs/product/product-detail-matrix.md` |
+| `[[studio-editor-parity-audit]]` | `docs/product/studio-editor-parity-audit.md` |
+| `[[schema-parity-audit]]` | `docs/product/schema-parity-audit.md` |
 | `[[e2e-sessions]]` | `.claude/rules/e2e-sessions.md` |
 | `[[#127]]` | GitHub Issue — Package Detail Conversion v2 (hero chips, WhatsApp CTA) |
 | `[[#165]]` | GitHub Issue — Product Video Field (video_url + hero lightbox) |

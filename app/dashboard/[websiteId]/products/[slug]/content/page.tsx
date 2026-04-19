@@ -16,18 +16,11 @@ import {
   toggleAiFlag,
 } from './actions';
 import type { CustomSection } from '@bukeer/website-contract';
+import { resolveProductRow, pageProductTypeValue } from '@/lib/admin/product-resolver';
 
 interface PageProps {
   params: Promise<{ websiteId: string; slug: string }>;
 }
-
-type PackageRow = {
-  id: string;
-  account_id: string;
-  slug: string;
-  video_url: string | null;
-  video_caption: string | null;
-};
 
 type PageRow = {
   custom_hero: { title?: string | null; subtitle?: string | null; backgroundImage?: string | null } | null;
@@ -48,20 +41,20 @@ export default async function ProductContentPage({ params }: PageProps) {
 
   if (!website) notFound();
 
-  const { data: pkg } = await supabase
-    .from('package_kits')
-    .select('id, account_id, slug, video_url, video_caption')
-    .eq('slug', slug)
-    .eq('account_id', website.account_id)
-    .maybeSingle<PackageRow>();
+  const resolved = await resolveProductRow(supabase, {
+    accountId: website.account_id,
+    slug,
+    mode: 'content',
+  });
+  if (!resolved) notFound();
 
-  if (!pkg) notFound();
+  const { productType, row: product } = resolved;
 
   const { data: page } = await supabase
     .from('website_product_pages')
     .select('custom_hero, custom_sections, sections_order, hidden_sections')
-    .eq('product_id', pkg.id)
-    .eq('product_type', 'package')
+    .eq('product_id', product.id)
+    .eq('product_type', pageProductTypeValue(productType))
     .eq('website_id', websiteId)
     .maybeSingle<PageRow>();
 
@@ -72,7 +65,7 @@ export default async function ProductContentPage({ params }: PageProps) {
   };
 
   const { data: healthRaw } = await supabase.rpc('get_product_content_health', {
-    p_product_id: pkg.id,
+    p_product_id: product.id,
   });
   const health: ContentHealth | null = healthRaw
     ? ContentHealthSchema.safeParse(healthRaw).data ?? null
@@ -81,7 +74,9 @@ export default async function ProductContentPage({ params }: PageProps) {
   return (
     <div className="mx-auto max-w-4xl space-y-6 p-6">
       <header>
-        <p className="text-xs font-mono uppercase tracking-wide text-muted-foreground">Website {websiteId}</p>
+        <p className="text-xs font-mono uppercase tracking-wide text-muted-foreground">
+          Website {websiteId} · type: {productType}
+        </p>
         <h1 className="text-2xl font-bold text-foreground">Contenido de &ldquo;{slug}&rdquo;</h1>
         <p className="text-sm text-muted-foreground">
           Personalización por landing: hero, visibilidad + orden de secciones, secciones custom, video.
@@ -89,61 +84,61 @@ export default async function ProductContentPage({ params }: PageProps) {
       </header>
 
       <VideoUrlEditor
-        productId={pkg.id}
-        videoUrl={pkg.video_url}
-        videoCaption={pkg.video_caption}
+        productId={product.id}
+        videoUrl={product.video_url}
+        videoCaption={product.video_caption}
         onSave={async (next) => {
           'use server';
-          await saveVideoUrl({ websiteId, productId: pkg.id, value: next });
+          await saveVideoUrl({ websiteId, productId: product.id, productType, value: next });
         }}
       />
 
       {health && health.ai_fields.length > 0 && (
         <AiFlagsPanel
-          productId={pkg.id}
+          productId={product.id}
           aiFields={health.ai_fields}
           onToggle={async (field, locked) => {
             'use server';
-            await toggleAiFlag({ websiteId, productId: pkg.id, field, locked });
+            await toggleAiFlag({ websiteId, productId: product.id, productType, field, locked });
           }}
         />
       )}
 
       <HeroOverrideEditor
-        productId={pkg.id}
+        productId={product.id}
         value={heroValue}
         onSave={async (next) => {
           'use server';
-          await saveHeroOverride({ websiteId, productId: pkg.id, value: next });
+          await saveHeroOverride({ websiteId, productId: product.id, productType, value: next });
         }}
       />
 
       <SectionVisibilityToggle
-        productId={pkg.id}
-        productType="package"
+        productId={product.id}
+        productType={productType}
         hiddenSections={page?.hidden_sections ?? []}
         onChange={async (next) => {
           'use server';
-          await saveVisibility({ websiteId, productId: pkg.id, hidden: next });
+          await saveVisibility({ websiteId, productId: product.id, productType, hidden: next });
         }}
       />
 
       <SectionsReorderEditor
-        productId={pkg.id}
-        productType="package"
+        productId={product.id}
+        productType={productType}
         sectionsOrder={page?.sections_order ?? []}
         onChange={async (next) => {
           'use server';
-          await saveOrder({ websiteId, productId: pkg.id, order: next });
+          await saveOrder({ websiteId, productId: product.id, productType, order: next });
         }}
       />
 
       <CustomSectionsEditor
-        productId={pkg.id}
+        productId={product.id}
         sections={page?.custom_sections ?? []}
         onChange={async (next) => {
           'use server';
-          await saveCustomSections({ websiteId, productId: pkg.id, sections: next });
+          await saveCustomSections({ websiteId, productId: product.id, productType, sections: next });
         }}
       />
     </div>
