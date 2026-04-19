@@ -4,6 +4,17 @@ Source of truth for `tech-validator MODE:PLAN` Round 2 Dependency Gate tables in
 
 Last updated: 2026-04-19.
 
+## Client priority change v2 — 2026-04-19
+
+Client meeting 2026-04-19 reset pilot priorities. This section is authoritative and supersedes prior assumptions; downstream rows (W2/W3/W5/W6/W7) below reflect this change. See #214 for EPIC-level restatement.
+
+- **Priority 1 — Translation**: top priority for cutover. Scope covers **blog + activities/experiences + packages**. Hotels out of translation scope (kept as-is in both locales if already translated; no new transcreate work).
+- **Priority 2 — Editing**: Studio (Rol 2) must allow partner to edit marketing + content for **packages and activities**. Hotels stay Flutter-owner (no new Studio editor surface).
+- **Hotels — as-is**: Flutter-owner for all marketing/catalog fields during pilot. SEO meta (`custom_seo_title`, `custom_seo_description`, `custom_faq`, `robots_noindex`) still editable via existing SEO item detail.
+- **Booking V1 — DEFER**: deferred to post-pilot. Pilot goes live with WhatsApp + phone CTAs only. ADR-024 DEFER decision lands via separate PR.
+- **No rate-limit mitigation**: client accepts real transcreate API usage. No TM exact-coverage short-circuit forced usage; no rate-limit mitigation ACs in W5.
+- **Complementary work** (outside translation + editing priorities) can follow post-cutover.
+
 ## Hard dependencies
 
 | Consumer AC / child | Blocked by | Current status | Notes |
@@ -12,12 +23,13 @@ Last updated: 2026-04-19.
 | #213 AC-C4, C5 | #209 (EN-URL segment) | Verify at Day-0 | R2 verification noted closed |
 | #213 AC-X1 | #207 W5.1–W5.4 CI gate | Open | Primary mapping |
 | #213 AC-X3 | #207 W5.7 | Open | |
-| #214 W2 kickoff | W1 (#215) merged | Pending Stage 1 | |
+| #214 W2 kickoff | W1 (#215) merged | Pending Stage 1 | Scope expanded to activities RPC (formerly post-pilot follow-up) — ship `update_activity_marketing_field` + editor routes alongside packages; hotels stay Flutter-owner. Sizing bumped L → XL. |
+| #214 W3 kickoff | — | **DEFER confirmed 2026-04-19 — no Stage 3 impl; ADR-024 Accepted PR pending** | Docs-only DEFER closure (size-S). Pilot ships WhatsApp + phone CTAs; `/api/leads` un-deprecation cancelled; W4 booking specs removed. |
 | #214 W4 kickoff | W1 + W2 merged | Pending Stage 2 | |
-| #214 W5 kickoff | W4 seed shipped | Pending Stage 4 start | `pilot-seed.ts` variant-factory |
-| #214 W6 kickoff | W1 + W2 + W4 merged | Pending Stage 4 | |
+| #214 W5 kickoff | W4 seed shipped | Pending Stage 4 start | `pilot-seed.ts` variant-factory. Scope expanded to blog + activities (in addition to packages); rate-limit mitigation removed. `translation-ready` seed variant must cover ≥1 pkg + 1 act + 1 blog. Sizing bumped L → XL. |
+| #214 W6 kickoff | W1 + W2 + W4 merged | Pending Stage 4 | Activities editable coverage + blog matrix spec (`pilot-matrix-blog.spec.ts`). Hotels read-only (render verification only, no editing loop). Booking matrix rows skip (`PILOT_BOOKING_ENABLED=false`). |
 | #214 W7-a | W1 merged | Pending Stage 1 | |
-| #214 W7-b | W2 decision act/hotel | Pending Stage 2 | Variant B default |
+| #214 W7-b | W2 decision act/hotel | Pending Stage 2 | Flow 4 translation expanded to blog + pkg + act (3 sub-flows); Flow 2 booking DEFER (WhatsApp-only copy); Flow 6 Activity = Variant A (Studio native editor, matches W2); Flow 7 Hotel = Variant B (Flutter handoff, unchanged). |
 | #214 W7-c | W2 + W3 + W4 + W5 + W6 merged | Pending Stage 5 | Screencasts post-UI freeze |
 | #207 close | #214 closed + #213 signed-off | Pending | |
 
@@ -25,8 +37,8 @@ Last updated: 2026-04-19.
 
 | Gate | Status | Blocks |
 |---|---|---|
-| W3 decision meeting (GO / DEFER) | **Pending** | Stage 2 W3 impl, W7 Flow 2 copy |
-| ADR-024 finalized | Pending (skeleton shipped Stage 0) | W3 PR merge |
+| W3 decision meeting (GO / DEFER) | **DEFER confirmed 2026-04-19 — no Stage 3 impl; ADR-024 Accepted PR pending** | Stage 2 W3 impl (cancelled), W7 Flow 2 copy (WhatsApp-only) |
+| ADR-024 finalized | Pending Accepted PR (DEFER populated; landing via separate PR) | W3 closure (docs-only), W4 booking E2E removal |
 | ADR-025 finalized | Pending (skeleton shipped Stage 0) | W2 PR merge |
 | #208 merge confirmation | **Verify Day-0** | W5 AC-W5-7 |
 | #209 merge confirmation | **Verify Day-0** | W5 AC-W5-5/6 |

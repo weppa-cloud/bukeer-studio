@@ -4,7 +4,7 @@
 >
 > **Convention:** `[[ADR-XXX]]` or `[[SPEC_NAME]]` = wikilink resolved below. `[text](path.md)` = regular markdown link. Both coexist.
 
-Last updated: 2026-04-19 (EPIC #214 Stage 0 — ADR-024 + ADR-025 skeletons + pilot-readiness-deps); 2026-04-19 (EPIC #190 certification rerun evidence); 2026-04-18 (EPIC #190 certification run evidence + checklist); 2026-04-17 (WIKI full-refresh + #103 media closure checklist); 2026-04-17 wiki-patch (epic128 evidence + issue resolution rows)
+Last updated: 2026-04-19 (EPIC #214 client priority change v2 — pilot-readiness concept scope notes); 2026-04-19 (EPIC #214 Stage 0 — ADR-024 + ADR-025 skeletons + pilot-readiness-deps); 2026-04-19 (EPIC #190 certification rerun evidence); 2026-04-18 (EPIC #190 certification run evidence + checklist); 2026-04-17 (WIKI full-refresh + #103 media closure checklist); 2026-04-17 wiki-patch (epic128 evidence + issue resolution rows)
 
 ---
 
@@ -351,9 +351,10 @@ Each concept below lists the ADRs/SPECs/ops docs that touch it. Use this to find
 - Children (W1-W7): [#215](https://github.com/weppa-cloud/bukeer-studio/issues/215) W1 matrix+testids · [#216](https://github.com/weppa-cloud/bukeer-studio/issues/216) W2 parity · [#217](https://github.com/weppa-cloud/bukeer-studio/issues/217) W3 booking decision · [#218](https://github.com/weppa-cloud/bukeer-studio/issues/218) W4 E2E editor→render · [#219](https://github.com/weppa-cloud/bukeer-studio/issues/219) W5 transcreate · [#220](https://github.com/weppa-cloud/bukeer-studio/issues/220) W6 matrix+Lighthouse · [#221](https://github.com/weppa-cloud/bukeer-studio/issues/221) W7 training
 - Acceptance sibling: [#213](https://github.com/weppa-cloud/bukeer-studio/issues/213)
 - Stage 0 artefacts (2026-04-19): [[ADR-024-booking-v1-pilot-scope]] · [[ADR-025-studio-flutter-field-ownership]] · [[pilot-readiness-deps]]
-- Matrix foundation: [[product-detail-matrix]] (W1 pkg-only scope + Section M + 🟡-flag + editor mapping)
+- **Client priority change v2 (2026-04-19)** — logged in [[pilot-readiness-deps]]: priority 1 = translation (blog + pkg + act); priority 2 = editing (pkg + act Studio editors); hotels as-is (Flutter-owner); booking V1 DEFER post-pilot (ADR-024 Accepted PR pending); no rate-limit mitigation. W2 + W5 bumped to XL; W3 becomes docs-only DEFER closure.
+- Matrix foundation: [[product-detail-matrix]] (W1 pkg-only scope + Section M + 🟡-flag + editor mapping; Act column bumped to 🟨 for editable fields post client v2; blog section added)
 - Cross-repo boundary: [[cross-repo-flutter]] (Flutter-owner fields per ADR-025)
-- Seed strategy (unified): `e2e/setup/pilot-seed.ts` (variant-factory `full | minimum | seo-max | translation-ready`)
+- Seed strategy (unified): `e2e/setup/pilot-seed.ts` (variant-factory `full | minimum | seo-max | translation-ready`; `translation-ready` covers pkg + act + blog post client v2)
 - ADR mapping authoritative: [[ADR-003]] [[ADR-005]] [[ADR-011]] [[ADR-016]] [[ADR-018]] [[ADR-019]] [[ADR-020]] [[ADR-021]] [[ADR-023]] [[ADR-024]] [[ADR-025]]
 
 ---

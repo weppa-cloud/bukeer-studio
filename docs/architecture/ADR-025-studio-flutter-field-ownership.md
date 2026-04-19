@@ -32,6 +32,7 @@ Ownership is **per field × per product type × under `studio_editor_v2` flag**.
 - W7 training flows 6 (Activity) + 7 (Hotel) default to Flutter-handoff protocol (Variant B).
 - Flag resolution (3 scopes: website | account | default + per-field whitelist) remains authoritative gate.
 - `last_edited_by_surface` column records Studio vs Flutter writes (audit).
+- Activities scope confirmed Studio-editable post client meeting 2026-04-19 (prep note; final Decision section updated at W2 #216 PR time).
 
 ## Refactor at W2 PR time
 
