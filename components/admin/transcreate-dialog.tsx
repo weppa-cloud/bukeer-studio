@@ -7,7 +7,10 @@ import { Button } from '@/components/ui/button';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser-client';
 import { ConfirmDialog } from '@/components/admin/confirm-dialog';
 import { AlertCircle, Loader2, RefreshCw } from 'lucide-react';
-import { inferLocaleParts, parseLocaleAdaptationCompletion } from '@/lib/seo/transcreate-client';
+import {
+  inferLocaleParts,
+  parseLocaleAdaptationEnvelopeCompletion,
+} from '@/lib/seo/transcreate-client';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -176,7 +179,7 @@ export function TranscreateDialog({
     draft?: Record<string, unknown>;
     draftSource?: 'manual' | 'ai' | 'tm_exact';
     aiOutput?: Record<string, unknown>;
-    schemaVersion?: '2.0';
+    schemaVersion?: '2.0' | '2.1';
     payloadV2?: Record<string, unknown>;
     aiModel?: string;
   }): Promise<string | null> {
@@ -306,26 +309,26 @@ export function TranscreateDialog({
         return;
       }
 
-      const parsed = parseLocaleAdaptationCompletion(
+      const envelope = parseLocaleAdaptationEnvelopeCompletion(
         completionText,
         sourceKeyword || undefined,
       );
-      if (!parsed) {
+      if (!envelope) {
         setErrorCode('AI_OUTPUT_INVALID');
         setErrorMessage('La respuesta de IA no cumple el contrato esperado.');
         return;
       }
 
-      setCompletion(JSON.stringify(parsed, null, 2));
+      setCompletion(JSON.stringify(envelope, null, 2));
       setPersistingAi(true);
       const jobId = await createDraft({
         draftSource: 'ai',
         aiOutput: {
-          schema_version: '2.0',
-          payload_v2: parsed,
+          schema_version: envelope.schema_version,
+          payload_v2: envelope.payload_v2,
         },
-        schemaVersion: '2.0',
-        payloadV2: parsed,
+        schemaVersion: envelope.schema_version,
+        payloadV2: envelope.payload_v2,
         aiModel: 'openrouter',
       });
       if (jobId && onSuccess) onSuccess(jobId);

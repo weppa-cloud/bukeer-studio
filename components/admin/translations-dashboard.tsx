@@ -13,7 +13,11 @@ import { TranslationRow } from '@/components/admin/translation-row';
 import { TranslationBulkBar } from '@/components/admin/translation-bulk-bar';
 import { DriftBanner } from '@/components/admin/drift-banner';
 import { TopicalAuthorityCard } from '@/components/admin/topical-authority-card';
-import { inferLocaleParts, parseLocaleAdaptationCompletion } from '@/lib/seo/transcreate-client';
+import {
+  inferLocaleParts,
+  parseLocaleAdaptationEnvelopeCompletion,
+} from '@/lib/seo/transcreate-client';
+import type { TranscreatePayloadField } from '@bukeer/website-contract';
 
 export interface TranslationsFilterValues {
   sourceLocale: string;
@@ -26,6 +30,7 @@ export interface TranslationsFilterValues {
 
 export interface TranslationRowVM {
   job: TranslationJobItem;
+  payloadV2: Record<string, unknown> | null;
   qaFindingCount: number;
   drift: boolean;
 }
@@ -60,6 +65,12 @@ interface TranslationsDashboardProps {
     inDraft: number;
     inReview: number;
     pending: number;
+  };
+  costSummary: {
+    totalUsd: number;
+    todayUsd: number;
+    byLocaleToday: Array<{ locale: string; costUsd: number }>;
+    daily: Array<{ date: string; costUsd: number }>;
   };
   driftCount: number;
   filters: TranslationsFilterValues;
@@ -118,12 +129,22 @@ function getCoverageTone(status: TranslationCoverageStatus): 'success' | 'warnin
   return 'danger';
 }
 
+function formatUsd(value: number): string {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 4,
+  }).format(value);
+}
+
 export function TranslationsDashboard({
   websiteId,
   rows,
   coverageRows,
   coverageLocales,
   kpis,
+  costSummary,
   driftCount,
   filters,
 }: TranslationsDashboardProps) {
@@ -134,6 +155,8 @@ export function TranslationsDashboard({
   const [search, setSearch] = useState(filters.search);
   const [matrixBusyKey, setMatrixBusyKey] = useState<string | null>(null);
   const [matrixError, setMatrixError] = useState<string | null>(null);
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkError, setBulkError] = useState<string | null>(null);
 
   const updateSearchParams = useCallback(
     (updates: Partial<TranslationsFilterValues>) => {
@@ -215,11 +238,11 @@ export function TranslationsDashboard({
           }
         }
 
-        const aiOutput = parseLocaleAdaptationCompletion(
+        const envelope = parseLocaleAdaptationEnvelopeCompletion(
           streamText,
           row.targetKeyword || row.sourceKeyword || undefined,
         );
-        if (!aiOutput) {
+        if (!envelope) {
           throw new Error('La respuesta de IA no cumple el contrato esperado.');
         }
 
@@ -239,11 +262,11 @@ export function TranslationsDashboard({
             targetKeyword: row.targetKeyword || row.sourceKeyword || undefined,
             draftSource: 'ai',
             aiOutput: {
-              schema_version: '2.0',
-              payload_v2: aiOutput,
+              schema_version: envelope.schema_version,
+              payload_v2: envelope.payload_v2,
             },
-            schemaVersion: '2.0',
-            payloadV2: aiOutput,
+            schemaVersion: envelope.schema_version,
+            payloadV2: envelope.payload_v2,
             aiModel: 'openrouter',
             draft: {},
           }),
@@ -307,6 +330,59 @@ export function TranslationsDashboard({
 
   const clearSelection = useCallback(() => setSelected(new Set()), []);
 
+  const handleBulkRun = useCallback(
+    async (action: 'review' | 'apply', fields?: TranscreatePayloadField[]) => {
+      if (selected.size === 0) return;
+
+      setBulkBusy(true);
+      setBulkError(null);
+
+      try {
+        const response = await fetch('/api/seo/translations/bulk', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            websiteId,
+            jobIds: Array.from(selected),
+            action,
+            ...(action === 'apply' && fields && fields.length > 0 ? { fields } : {}),
+          }),
+        });
+
+        const body = (await response.json().catch(() => ({}))) as {
+          success?: boolean;
+          data?: {
+            processed?: number;
+            failed?: number;
+            rows?: Array<{ jobId: string; success: boolean; error: string | null }>;
+          };
+          error?: { message?: string };
+        };
+
+        if (!response.ok || !body.success) {
+          throw new Error(body.error?.message || `No se pudo ejecutar bulk ${action}.`);
+        }
+
+        const failedRows = (body.data?.rows ?? []).filter((row) => !row.success);
+        if (failedRows.length > 0) {
+          setSelected(new Set(failedRows.map((row) => row.jobId)));
+          setBulkError(
+            `Bulk ${action}: ${body.data?.processed ?? 0} ok, ${body.data?.failed ?? failedRows.length} fallaron.`,
+          );
+        } else {
+          clearSelection();
+        }
+
+        router.refresh();
+      } catch (error) {
+        setBulkError(error instanceof Error ? error.message : `No se pudo ejecutar bulk ${action}.`);
+      } finally {
+        setBulkBusy(false);
+      }
+    },
+    [clearSelection, router, selected, websiteId],
+  );
+
   // Topical authority card reads the first known targetLocale — fallback to 'en-US'.
   const topicalLocale = filters.targetLocale || 'en-US';
 
@@ -369,12 +445,13 @@ export function TranslationsDashboard({
       </form>
 
       {/* KPI cards */}
-      <section className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <section className="grid grid-cols-2 md:grid-cols-6 gap-3">
         <KpiCard label="Total" value={kpis.total} tone="info" />
         <KpiCard label="Traducidos" value={kpis.translated} tone="success" />
         <KpiCard label="In Draft" value={kpis.inDraft} tone="warning" />
         <KpiCard label="In Review" value={kpis.inReview} tone="info" />
         <KpiCard label="Pending" value={kpis.pending} tone="danger" />
+        <KpiCard label="AI Spend Hoy" value={formatUsd(costSummary.todayUsd)} tone="info" />
       </section>
 
       {/* Widgets row */}
@@ -386,6 +463,29 @@ export function TranslationsDashboard({
         />
         <div className="xl:col-span-2">
           <TopicalAuthorityCard websiteId={websiteId} locale={topicalLocale} />
+        </div>
+      </section>
+
+      <section className="studio-card p-4 space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 className="text-sm font-semibold text-[var(--studio-text)]">Transcreate AI Cost Tracker</h2>
+            <p className="text-xs text-[var(--studio-text-muted)]">
+              Agregado diario por website + locale (fuente: ai_cost_events).
+            </p>
+          </div>
+          <StudioBadge tone="info">30d total: {formatUsd(costSummary.totalUsd)}</StudioBadge>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {costSummary.byLocaleToday.length === 0 ? (
+            <StudioBadge tone="neutral">Sin gasto hoy</StudioBadge>
+          ) : (
+            costSummary.byLocaleToday.map((entry) => (
+              <StudioBadge key={entry.locale} tone="neutral">
+                {entry.locale}: {formatUsd(entry.costUsd)}
+              </StudioBadge>
+            ))
+          )}
         </div>
       </section>
 
@@ -508,6 +608,9 @@ export function TranslationsDashboard({
       {selected.size > 0 ? (
         <TranslationBulkBar
           count={selected.size}
+          busy={bulkBusy}
+          error={bulkError}
+          onRun={handleBulkRun}
           onClear={clearSelection}
         />
       ) : null}
