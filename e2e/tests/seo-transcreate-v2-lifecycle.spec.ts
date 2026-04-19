@@ -110,12 +110,39 @@ async function seedDecisionGradeCandidate(input: {
 }
 
 async function postTranscreateAction(page: Page, payload: Record<string, unknown>) {
-  const response = await page.request.post(TRANSCREATE_ROUTE, { data: payload });
-  const body = await response.json();
-  return { response, body };
+  const maxAttempts = 3;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    const response = await page.request.post(TRANSCREATE_ROUTE, { data: payload });
+    const rawText = await response.text();
+    let body: unknown = null;
+    if (rawText) {
+      try {
+        body = JSON.parse(rawText);
+      } catch {
+        body = { parseError: true, rawText };
+      }
+    }
+
+    const bodyCode = (body as { code?: string } | null)?.code ?? '';
+    const retryable =
+      response.status() === 401 ||
+      response.status() === 429 ||
+      bodyCode === 'AUTH_EXPIRED' ||
+      bodyCode === 'RATE_LIMITED';
+
+    if (!retryable || attempt === maxAttempts - 1) {
+      return { response, body };
+    }
+
+    await page.waitForTimeout(200 * (attempt + 1));
+  }
+
+  throw new Error('unreachable');
 }
 
 test.describe('SEO transcreate lifecycle v2/v2.1 @e2e', () => {
+  test.describe.configure({ mode: 'serial' });
   test.use({ storageState: 'e2e/.auth/user.json' });
   test.setTimeout(120_000);
 

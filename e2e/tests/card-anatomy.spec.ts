@@ -13,12 +13,11 @@ const BASE = `/site/${SUBDOMAIN}`;
 
 test.describe('Card Anatomy — Packages (Intrepid pattern)', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto(BASE);
+    await page.goto(BASE, { waitUntil: 'domcontentloaded' });
     await page.setViewportSize({ width: 1440, height: 900 });
-    await page.waitForLoadState('networkidle');
   });
 
-  test('package image container uses 16:10 aspect ratio', async ({ page }) => {
+  test('package image container uses 16:9 aspect ratio', async ({ page }) => {
     const section = page.locator('section#packages');
     await expect(section).toBeVisible();
 
@@ -28,7 +27,7 @@ test.describe('Card Anatomy — Packages (Intrepid pattern)', () => {
 
     for (let i = 0; i < count; i++) {
       const cls = await imgContainers.nth(i).getAttribute('class');
-      expect(cls).toContain('aspect-[16/10]');
+      expect(cls).toContain('aspect-[16/9]');
     }
   });
 
@@ -82,12 +81,11 @@ test.describe('Card Anatomy — Packages (Intrepid pattern)', () => {
 
 test.describe('Card Anatomy — Activities (G Adventures pattern)', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto(BASE);
+    await page.goto(BASE, { waitUntil: 'domcontentloaded' });
     await page.setViewportSize({ width: 1440, height: 900 });
-    await page.waitForLoadState('networkidle');
   });
 
-  test('activity image container uses 3:4 portrait aspect ratio', async ({ page }) => {
+  test('activity image container uses 16:9 aspect ratio', async ({ page }) => {
     const section = page.locator('section#activities');
     const visible = await section.isVisible();
     if (!visible) return; // section not in this website's layout
@@ -98,7 +96,7 @@ test.describe('Card Anatomy — Activities (G Adventures pattern)', () => {
 
     for (let i = 0; i < count; i++) {
       const cls = await imgContainers.nth(i).getAttribute('class');
-      expect(cls).toContain('aspect-[3/4]');
+      expect(cls).toContain('aspect-[16/9]');
     }
   });
 
@@ -141,12 +139,11 @@ test.describe('Card Anatomy — Activities (G Adventures pattern)', () => {
 
 test.describe('Card Anatomy — Hotels (Airbnb pattern)', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto(BASE);
+    await page.goto(BASE, { waitUntil: 'domcontentloaded' });
     await page.setViewportSize({ width: 1440, height: 900 });
-    await page.waitForLoadState('networkidle');
   });
 
-  test('hotel image container uses 16:10 aspect ratio', async ({ page }) => {
+  test('hotel image container uses 16:9 aspect ratio', async ({ page }) => {
     const section = page.locator('section#hotels');
     const visible = await section.isVisible();
     if (!visible) return;
@@ -157,7 +154,7 @@ test.describe('Card Anatomy — Hotels (Airbnb pattern)', () => {
 
     for (let i = 0; i < count; i++) {
       const cls = await imgContainers.nth(i).getAttribute('class');
-      expect(cls).toContain('aspect-[16/10]');
+      expect(cls).toContain('aspect-[16/9]');
     }
   });
 
@@ -221,9 +218,8 @@ test.describe('Card Anatomy — Hotels (Airbnb pattern)', () => {
 
 test.describe('Card Anatomy — No h-52 fixed heights remain', () => {
   test('no card image container uses deprecated h-52 class', async ({ page }) => {
-    await page.goto(BASE);
+    await page.goto(BASE, { waitUntil: 'domcontentloaded' });
     await page.setViewportSize({ width: 1440, height: 900 });
-    await page.waitForLoadState('networkidle');
 
     const staleContainers = await page.evaluate(() => {
       const all = document.querySelectorAll('article .relative');

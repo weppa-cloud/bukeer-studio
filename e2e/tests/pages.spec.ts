@@ -8,6 +8,7 @@ test.describe('Pages Tab', () => {
     await gotoWebsiteSection(page, 'pages');
     await expect(page.getByRole('heading', { name: 'Pages' })).toBeVisible();
     await page.getByRole('button', { name: /add page/i }).first().click();
+    await expect(page.getByRole('heading', { name: 'Create page' })).toBeVisible();
 
     const title = `Contact ${Date.now().toString().slice(-4)}`;
     await page.getByPlaceholder('About Us').fill(title);
