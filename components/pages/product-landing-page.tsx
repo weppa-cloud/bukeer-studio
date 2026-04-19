@@ -51,6 +51,13 @@ interface ProductLandingPageProps {
   googleReviews?: GoogleReviewProp[];
   activityCircuitStops?: ActivityCircuitStop[];
   similarProducts?: ProductData[];
+  /**
+   * Request-scoped locale resolved server-side from the
+   * `x-public-resolved-locale` header (see issue #208). When present it wins
+   * over website defaults for JSON-LD `inLanguage` so `/en/paquetes/X` emits
+   * `en-US` on a multi-locale tenant instead of the tenant default.
+   */
+  resolvedLocale?: string;
 }
 
 function MapSectionSkeleton() {
@@ -247,6 +254,7 @@ export function ProductLandingPage({
   googleReviews = [],
   activityCircuitStops = [],
   similarProducts = [],
+  resolvedLocale,
 }: ProductLandingPageProps) {
   const normalizedProduct = normalizeProduct(product, { page: pageCustomization });
   const displayName = sanitizeProductCopy(pageCustomization?.custom_hero?.title || product.name) || product.name;
@@ -398,11 +406,14 @@ export function ProductLandingPage({
       productType={productType}
       websiteUrl={websiteUrl}
       language={
-        (website as unknown as { language?: string; locale?: string }).language ||
-        (website as unknown as { locale?: string; default_locale?: string; defaultLocale?: string }).locale ||
+        // Issue #208: request-scoped locale (from middleware `x-public-resolved-locale`)
+        // wins over website defaults so `/en/paquetes/X` emits `inLanguage: 'en-US'`
+        // instead of the tenant default.
+        resolvedLocale ||
+        (website as unknown as { language?: string }).language ||
         (website as unknown as { default_locale?: string; defaultLocale?: string }).default_locale ||
         (website as unknown as { defaultLocale?: string }).defaultLocale ||
-        website.content?.locale
+        'es-CO'
       }
       faqs={faqSource}
     />

@@ -20,7 +20,25 @@ import type {
 import type { WebsiteData, BlogPost, WebsiteSection } from '../supabase/get-website';
 import { localeToLanguage, normalizeLocale } from '@/lib/seo/locale-routing';
 
-function resolveSchemaLanguage(post: BlogPost, website: WebsiteData): string {
+const VALID_LOCALE_PATTERN = /^[a-z]{2}(-[A-Z]{2})?$/;
+
+function isValidLocale(value: unknown): value is string {
+  return typeof value === 'string' && VALID_LOCALE_PATTERN.test(value.trim());
+}
+
+function resolveSchemaLanguage(
+  post: BlogPost,
+  website: WebsiteData,
+  requestLocale?: string | null,
+): string {
+  // Issue #208: request scope wins. Middleware sets `x-public-resolved-locale`
+  // and RSC pages forward it via `resolvePublicMetadataLocale`. A well-formed
+  // request locale (e.g. `/en/...` → `en-US`) must override the website
+  // default so JSON-LD `inLanguage` matches the rendered page language.
+  if (requestLocale && isValidLocale(requestLocale)) {
+    return normalizeLocale(requestLocale);
+  }
+
   if (post.locale) return normalizeLocale(post.locale);
 
   const websiteWithLocale = website as unknown as Record<string, unknown>;
@@ -216,7 +234,8 @@ export function generateWebSiteSchema(
 export function generateArticleSchema(
   post: BlogPost,
   website: WebsiteData,
-  baseUrl: string
+  baseUrl: string,
+  requestLocale?: string | null,
 ): BlogPosting {
   const articleUrl = `${baseUrl}/blog/${post.slug}`;
 
@@ -263,7 +282,7 @@ export function generateArticleSchema(
     ...(wordCount && { wordCount }),
     ...(keywords && { keywords }),
     ...(post.category && { articleSection: post.category.name }),
-    inLanguage: resolveSchemaLanguage(post, website),
+    inLanguage: resolveSchemaLanguage(post, website, requestLocale),
   };
 }
 
@@ -415,8 +434,8 @@ export function generateBlogPostSchemas(
 ): object[] {
   const schemas: object[] = [];
 
-  // 1. Article/BlogPosting schema
-  schemas.push(generateArticleSchema(post, website, baseUrl));
+  // 1. Article/BlogPosting schema — request locale wins over post/website fallback
+  schemas.push(generateArticleSchema(post, website, baseUrl, resolvedLocale));
 
   // 2. FAQPage schema (when post has faq_items from v2 generator)
   if (post.faq_items && post.faq_items.length > 0) {

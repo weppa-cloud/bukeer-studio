@@ -147,6 +147,12 @@ export default async function PackageSlugPage({ params }: PackagePageProps) {
     ? await getReviewsForContext(website.account_id, reviewContext, 3)
     : [];
   const { items: similarPackages } = await getCategoryProducts(subdomain, 'packages', { limit: 8, offset: 0 });
+  // Issue #208: thread resolved request locale into JSON-LD `inLanguage` so
+  // `/en/paquetes/X` emits `en-US` instead of the website default.
+  const localeContext = await resolvePublicMetadataLocale(
+    website,
+    `/paquetes/${productPage.product.slug || slug}`,
+  );
 
   return (
     <ProductLandingPage
@@ -156,6 +162,7 @@ export default async function PackageSlugPage({ params }: PackagePageProps) {
       productType="package"
       googleReviews={packageReviews}
       similarProducts={similarPackages}
+      resolvedLocale={localeContext.resolvedLocale}
     />
   );
 }

@@ -587,7 +587,21 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
           ? getReviewsForContext(website.account_id, { type: 'destination', name: dest.name }, 6)
           : Promise.resolve([]),
       ]);
-      return <DestinationDetailPage website={website} destination={dest} products={products} serpEnrichment={serpData} googleReviews={destReviews} />;
+      // Issue #208: thread resolved request locale into JSON-LD `inLanguage`.
+      const destLocaleContext = await resolvePublicMetadataLocale(
+        website,
+        `/destinos/${dest.slug}`,
+      );
+      return (
+        <DestinationDetailPage
+          website={website}
+          destination={dest}
+          products={products}
+          serpEnrichment={serpData}
+          googleReviews={destReviews}
+          resolvedLocale={destLocaleContext.resolvedLocale}
+        />
+      );
     }
   }
 
@@ -636,6 +650,11 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
           }
         }
 
+        // Issue #208: thread resolved request locale into JSON-LD `inLanguage`.
+        const productLocaleContext = await resolvePublicMetadataLocale(
+          website,
+          `/${slugPath}`,
+        );
         return (
           <ProductLandingPage
             website={website}
@@ -645,6 +664,7 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
             googleReviews={productReviews}
             activityCircuitStops={activityCircuitStops}
             similarProducts={similarProducts}
+            resolvedLocale={productLocaleContext.resolvedLocale}
           />
         );
       }

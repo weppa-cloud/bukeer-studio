@@ -41,6 +41,12 @@ interface DestinationDetailPageProps {
   products: ProductData[];
   serpEnrichment?: SerpEnrichmentData | null;
   googleReviews?: GoogleReviewData[];
+  /**
+   * Request-scoped locale resolved server-side from the
+   * `x-public-resolved-locale` header (see issue #208). When present it wins
+   * over the website default for JSON-LD `inLanguage`.
+   */
+  resolvedLocale?: string;
 }
 
 export function DestinationDetailPage({
@@ -49,8 +55,19 @@ export function DestinationDetailPage({
   products,
   serpEnrichment,
   googleReviews = [],
+  resolvedLocale,
 }: DestinationDetailPageProps) {
   const basePath = getBasePath(website.subdomain);
+  // Issue #208: request-scoped locale wins over website defaults. This is the
+  // value threaded into JSON-LD `inLanguage`. `websiteLocale` below still
+  // powers UI date/number formatting where the tenant default is the right
+  // anchor when no request locale is present.
+  const schemaLocale =
+    resolvedLocale ??
+    (website as WebsiteData & { default_locale?: string; defaultLocale?: string }).default_locale ??
+    (website as WebsiteData & { default_locale?: string; defaultLocale?: string }).defaultLocale ??
+    website.content?.locale ??
+    'es-CO';
   const websiteLocale =
     (website as WebsiteData & { default_locale?: string; defaultLocale?: string }).default_locale ??
     (website as WebsiteData & { default_locale?: string; defaultLocale?: string }).defaultLocale ??
@@ -180,7 +197,7 @@ export function DestinationDetailPage({
         product={schemaProduct}
         productType="destination"
         websiteUrl={websiteUrl}
-        language={websiteLocale}
+        language={schemaLocale}
       />
 
       {/* Hero Section */}
