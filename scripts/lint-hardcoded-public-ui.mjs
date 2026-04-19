@@ -17,6 +17,29 @@ const TARGET_PATHS = [
 
 const ATTRIBUTE_NAMES = new Set(['aria-label', 'title', 'placeholder', 'alt']);
 const SCANNED_EXTENSIONS = new Set(['.tsx']);
+const USER_FACING_NAME_HINTS = [
+  'title',
+  'subtitle',
+  'label',
+  'placeholder',
+  'message',
+  'description',
+  'heading',
+  'eyebrow',
+  'cta',
+  'button',
+  'text',
+  'copy',
+  'error',
+  'success',
+  'empty',
+  'notice',
+  'helper',
+  'badge',
+  'aria',
+  'caption',
+  'hint',
+];
 
 function loadAllowlist() {
   if (!fs.existsSync(ALLOWLIST_PATH)) {
@@ -40,6 +63,13 @@ function normalizeText(value) {
 function isHumanText(value) {
   if (!value) return false;
   if (/^&[a-z0-9#]+;$/i.test(value)) return false;
+  if (value.includes('{') || value.includes('}')) return false;
+  if (value.includes('/') || value.includes('://')) return false;
+  if (/^var\(/i.test(value)) return false;
+  if (/^rgba?\(/i.test(value)) return false;
+  if (/^\[.*\]$/.test(value.trim())) return false;
+  if (value.startsWith('--')) return false;
+  if (/^[a-z0-9._:-]+$/i.test(value) && !/[A-Z]/.test(value) && !/\s/.test(value)) return false;
   const letterCount = (value.match(/\p{L}/gu) ?? []).length;
   return letterCount >= 3;
 }
@@ -115,6 +145,18 @@ function collectFindingsForFile(relativePath, allowlist) {
     });
   }
 
+  function getNodeText(node) {
+    if (!node) return null;
+    if (ts.isStringLiteralLike(node)) return node.text;
+    return null;
+  }
+
+  function isLikelyUserFacingIdentifier(identifier) {
+    if (!identifier) return false;
+    const normalized = identifier.toLowerCase();
+    return USER_FACING_NAME_HINTS.some((hint) => normalized.includes(hint));
+  }
+
   function visit(node) {
     if (ts.isJsxText(node)) {
       report(node, node.getText(sourceFile));
@@ -124,6 +166,39 @@ function collectFindingsForFile(relativePath, allowlist) {
       const attrName = node.name.getText(sourceFile);
       if (ATTRIBUTE_NAMES.has(attrName)) {
         report(node.initializer, node.initializer.text);
+      }
+    }
+
+    if (ts.isJsxExpression(node) && node.expression && ts.isStringLiteralLike(node.expression)) {
+      report(node.expression, node.expression.text);
+    }
+
+    if (ts.isVariableDeclaration(node) && node.initializer && ts.isIdentifier(node.name)) {
+      const initializerText = getNodeText(node.initializer);
+      if (initializerText && isLikelyUserFacingIdentifier(node.name.text)) {
+        report(node.initializer, initializerText);
+      }
+
+      if (
+        ts.isBinaryExpression(node.initializer)
+        && (node.initializer.operatorToken.kind === ts.SyntaxKind.BarBarToken
+          || node.initializer.operatorToken.kind === ts.SyntaxKind.QuestionQuestionToken)
+      ) {
+        const fallbackText = getNodeText(node.initializer.right);
+        if (fallbackText && isLikelyUserFacingIdentifier(node.name.text)) {
+          report(node.initializer.right, fallbackText);
+        }
+      }
+
+      if (ts.isConditionalExpression(node.initializer)) {
+        const whenTrue = getNodeText(node.initializer.whenTrue);
+        const whenFalse = getNodeText(node.initializer.whenFalse);
+        if (whenTrue && isLikelyUserFacingIdentifier(node.name.text)) {
+          report(node.initializer.whenTrue, whenTrue);
+        }
+        if (whenFalse && isLikelyUserFacingIdentifier(node.name.text)) {
+          report(node.initializer.whenFalse, whenFalse);
+        }
       }
     }
 
