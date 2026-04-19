@@ -2,6 +2,24 @@ import { z } from 'zod';
 
 const LocaleSchema = z.string().min(2).max(16);
 const PageTypeSchema = z.enum(['blog', 'page', 'destination', 'hotel', 'activity', 'package', 'transfer']);
+export const TranscreatePayloadFieldSchema = z.enum([
+  'meta_title',
+  'meta_desc',
+  'slug',
+  'h1',
+  'keywords',
+  'body_content',
+  'description_long',
+  'highlights',
+  'faq',
+  'recommendations',
+  'cta_final_text',
+  'program_timeline',
+  'inclusions',
+  'exclusions',
+  'hero_subtitle',
+  'category_label',
+]);
 
 export const TranslationsListQuerySchema = z.object({
   websiteId: z.string().uuid(),
@@ -38,6 +56,7 @@ export const TranslationsBulkRequestSchema = z.object({
   websiteId: z.string().uuid(),
   jobIds: z.array(z.string().uuid()).min(1).max(250),
   action: z.enum(['review', 'apply']),
+  fields: z.array(TranscreatePayloadFieldSchema).min(1).max(16).optional(),
 });
 
 export const TranslationsBulkResponseSchema = z.object({
@@ -246,6 +265,7 @@ export type TranslationJobItem = z.infer<typeof TranslationJobItemSchema>;
 export type TranslationsListResponse = z.infer<typeof TranslationsListResponseSchema>;
 export type TranslationsBulkRequest = z.infer<typeof TranslationsBulkRequestSchema>;
 export type TranslationsBulkResponse = z.infer<typeof TranslationsBulkResponseSchema>;
+export type TranscreatePayloadField = z.infer<typeof TranscreatePayloadFieldSchema>;
 export type GlossaryItem = z.infer<typeof GlossaryItemSchema>;
 export type TranslationMemoryItem = z.infer<typeof TranslationMemoryItemSchema>;
 export type HreflangQuery = z.infer<typeof HreflangQuerySchema>;

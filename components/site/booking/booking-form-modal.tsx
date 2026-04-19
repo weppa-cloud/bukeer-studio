@@ -13,6 +13,7 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { LeadInputSchema, type LeadInput } from '@bukeer/website-contract';
 
 import { trackEvent } from '@/lib/analytics/track';
+import { getPublicUiMessages } from '@/lib/site/public-ui-messages';
 
 type BookingWhatsAppBuilder = (args: {
   phone: string | null | undefined;
@@ -53,7 +54,8 @@ function stubBookingWhatsAppUrl(args: {
 }): string | null {
   const clean = (args.phone ?? '').replace(/[^0-9]/g, '');
   if (!clean) return null;
-  const text = `Hola, quiero reservar *${args.productName}* para el ${args.lead.date} (${args.lead.pax} pax). Ref: ${args.leadId}`;
+  const messages = getPublicUiMessages(args.locale ?? 'es-CO');
+  const text = `${messages.quoteForm.whatsappGreeting}, ${messages.bookingForm.title.toLowerCase()} *${args.productName}* (${args.lead.date}, ${args.lead.pax} pax). Ref: ${args.leadId}`;
   return `https://wa.me/${clean}?text=${encodeURIComponent(text)}`;
 }
 
@@ -101,6 +103,7 @@ export async function submitBookingLead(args: {
   fetchFn?: typeof fetch;
   buildUrl?: BookingWhatsAppBuilder;
 }): Promise<SubmitOutcome> {
+  const bookingMessages = getPublicUiMessages(args.locale ?? 'es-CO').bookingForm;
   const parsed = LeadInputSchema.safeParse(args.payload);
   if (!parsed.success) {
     const errs: FieldErrors = {};
@@ -119,7 +122,7 @@ export async function submitBookingLead(args: {
   });
 
   if (res.status === 429) {
-    return { kind: 'rate_limit', message: 'Demasiados intentos, intenta en 1 minuto.' };
+    return { kind: 'rate_limit', message: bookingMessages.rateLimit };
   }
 
   if (res.status === 400) {
@@ -141,7 +144,7 @@ export async function submitBookingLead(args: {
   if (!res.ok) {
     return {
       kind: 'server_error',
-      message: 'No pudimos procesar tu solicitud, intenta de nuevo.',
+      message: bookingMessages.serverError,
     };
   }
 
@@ -183,6 +186,10 @@ export function BookingFormModal({
   const [submit, setSubmit] = useState<SubmitState>({ kind: 'idle' });
 
   const effectiveLocale = locale ?? website.content.locale ?? null;
+  const uiMessages = useMemo(
+    () => getPublicUiMessages(effectiveLocale ?? 'es-CO'),
+    [effectiveLocale],
+  );
 
   // Focus trap: capture previously focused element, focus first field on open,
   // restore on close. Esc closes. Tab cycles within the dialog.
@@ -272,7 +279,7 @@ export function BookingFormModal({
           setFieldErrors(outcome.fieldErrors);
           setSubmit({
             kind: 'error',
-            message: 'Revisa los campos marcados.',
+            message: uiMessages.bookingForm.reviewFields,
             fieldErrors: outcome.fieldErrors,
           });
           return;
@@ -306,7 +313,7 @@ export function BookingFormModal({
       } catch {
         setSubmit({
           kind: 'error',
-          message: 'No pudimos procesar tu solicitud, intenta de nuevo.',
+          message: uiMessages.bookingForm.serverError,
         });
       }
     },
@@ -325,6 +332,8 @@ export function BookingFormModal({
       consentPrivacy,
       phoneForWhatsApp,
       onClose,
+      uiMessages.bookingForm.reviewFields,
+      uiMessages.bookingForm.serverError,
     ],
   );
 
@@ -339,7 +348,7 @@ export function BookingFormModal({
     >
       <button
         type="button"
-        aria-label="Cerrar"
+        aria-label={uiMessages.bookingForm.closeAria}
         className="absolute inset-0 bg-black/60"
         onClick={onClose}
         tabIndex={-1}
@@ -360,7 +369,7 @@ export function BookingFormModal({
         <div className="mb-4 flex items-start justify-between gap-4">
           <div>
             <h2 id={titleId} className="text-lg font-semibold">
-              Reservar por WhatsApp
+              {uiMessages.bookingForm.title}
             </h2>
             <p id={descId} className="mt-1 text-sm" style={{ color: 'var(--text-muted)' }}>
               {product.name} · {selectedDate} · {pax} {pax === 1 ? 'pax' : 'pax'}
@@ -369,7 +378,7 @@ export function BookingFormModal({
           <button
             type="button"
             onClick={onClose}
-            aria-label="Cerrar"
+            aria-label={uiMessages.bookingForm.closeAria}
             className="rounded-full px-2 py-1 text-lg leading-none"
             style={{ color: 'var(--text-muted)' }}
           >
@@ -393,7 +402,7 @@ export function BookingFormModal({
 
         <form onSubmit={handleSubmit} noValidate className="space-y-3" data-testid="booking-form">
           <Field
-            label="Nombre"
+            label={uiMessages.bookingForm.nameLabel}
             error={fieldErrors.name}
             input={
               <input
@@ -411,7 +420,7 @@ export function BookingFormModal({
             }
           />
           <Field
-            label="Email"
+            label={uiMessages.bookingForm.emailLabel}
             error={fieldErrors.email}
             input={
               <input
@@ -428,7 +437,7 @@ export function BookingFormModal({
             }
           />
           <Field
-            label="Teléfono"
+            label={uiMessages.bookingForm.phoneLabel}
             error={fieldErrors.phone}
             input={
               <input
@@ -457,7 +466,7 @@ export function BookingFormModal({
               required
             />
             <span>
-              Acepto los términos y condiciones del servicio.
+              {uiMessages.bookingForm.consentTos}
               {fieldErrors.consent_tos && (
                 <span className="mt-1 block" style={{ color: '#b91c1c' }}>
                   {fieldErrors.consent_tos}
@@ -477,7 +486,7 @@ export function BookingFormModal({
               required
             />
             <span>
-              Autorizo el tratamiento de mis datos para contacto comercial.
+              {uiMessages.bookingForm.consentPrivacy}
               {fieldErrors.consent_privacy && (
                 <span className="mt-1 block" style={{ color: '#b91c1c' }}>
                   {fieldErrors.consent_privacy}
@@ -497,7 +506,7 @@ export function BookingFormModal({
               cursor: submitting ? 'progress' : 'pointer',
             }}
           >
-            {submitting ? 'Enviando…' : 'Continuar por WhatsApp'}
+            {submitting ? uiMessages.bookingForm.submitting : uiMessages.bookingForm.continueWhatsapp}
           </button>
         </form>
       </div>

@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react';
 import { MediaLightbox } from './media-lightbox';
 import { parseVideoMeta } from '@/lib/products/video-url';
 import { trackEvent } from '@/lib/analytics/track';
+import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 
 interface ProductVideoHeroProps {
   videoUrl: string;
@@ -20,6 +21,7 @@ export function ProductVideoHero({
 }: ProductVideoHeroProps) {
   const [open, setOpen] = useState(false);
   const meta = parseVideoMeta(videoUrl);
+  const text = getPublicUiExtraTextGetter('es-CO');
 
   const handlePlay = useCallback(() => {
     if (!meta) return;
@@ -34,10 +36,10 @@ export function ProductVideoHero({
         target="_blank"
         rel="noopener noreferrer"
         className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium backdrop-blur-sm bg-background/85 border border-border/70 text-foreground hover:bg-background/95 transition-colors"
-        aria-label="Ver video (abre en nueva pestaña)"
+        aria-label={text('productVideoOpenAria')}
       >
         <PlayIcon />
-        Ver video
+        {text('productVideoLabel')}
       </a>
     );
   }
@@ -47,10 +49,10 @@ export function ProductVideoHero({
       <button
         onClick={handlePlay}
         className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium backdrop-blur-sm bg-background/85 border border-border/70 text-foreground hover:bg-background/95 transition-colors cursor-pointer"
-        aria-label="Ver video del producto"
+        aria-label={text('productVideoAria')}
       >
         <PlayIcon />
-        Ver video
+        {text('productVideoLabel')}
       </button>
 
       {open && (

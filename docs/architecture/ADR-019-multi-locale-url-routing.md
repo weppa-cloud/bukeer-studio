@@ -76,6 +76,36 @@ Flow:
 - Default locale has no path prefix — if `defaultLocale` changes, all non-prefixed URLs break. Default locale is immutable after site creation.
 - Slug translation table (`SLUG_TRANSLATIONS`) must be maintained manually as new route segments are added.
 
+## Amendment 2026-04-19 — Category Segment Localization (Option C)
+
+Category segments localized per language; Spanish is internal canonical.
+Middleware rewrites EN segment → Spanish internal path; browser URL preserved.
+Applies to 5 category pairs (see `CATEGORY_CANONICAL_SEGMENT` in `lib/seo/locale-routing.ts`).
+
+Hreflang builder uses CANONICAL_SEGMENT map to emit correct segment per locale.
+
+### Implementation details
+
+- `CATEGORY_CANONICAL_SEGMENT` map in `lib/seo/locale-routing.ts` holds per-productType `{ es, en }` segment pairs.
+- `resolveCategorySegment(segment)` resolves any segment (es or en) → `{ productType, canonicalEs, language }`.
+- `translateCategoryPathname(pathname, targetLanguage)` rewrites the first path segment to the canonical form for the target language; unknown segments are passed through unchanged.
+- `resolveLocaleFromPublicPath()` now returns `canonicalPathname` alongside `pathnameWithoutLang`. Middleware's `applyLocaleAwareTenantRewrite()` uses `canonicalPathname` to build the internal `/site/${subdomain}/...` rewrite target. The response URL is unchanged, so `/en/packages/X` stays in the browser while the SSR renderer hits `app/site/[subdomain]/paquetes/[slug]/page.tsx`.
+- `generateHreflangLinks()` (hreflang.ts) passes each alternate's language through `translateCategoryPathname()` before building the final URL. This guarantees `en-US` alternates use `/en/packages/...` and `es-CO` alternates use `/paquetes/...`, regardless of the source pathname.
+- Client-side language switcher (`site-header.tsx`, `language-switcher.tsx`) translates the first segment when navigating to a new locale.
+
+### Alternatives rejected on 2026-04-19
+
+| Option | Why rejected |
+|--------|-------------|
+| **A — Duplicate route files** (`app/site/[subdomain]/packages/[slug]/page.tsx` re-exports Spanish) | 5× duplication, drift risk. |
+| **B — 301 redirect EN → Spanish segment** | First-crawl equity loss; English URL never becomes canonical. |
+
+### Cache stability
+
+`productExists()` and `getRedirectedSlug()` cache keys use `productType` (`package`, `hotel`, …), not the raw URL segment — unchanged by this amendment. See [[ADR-011]].
+
+Closes #209.
+
 ## Related
 
 - [[ADR-009]] — Multi-tenant subdomain routing (middleware foundation)

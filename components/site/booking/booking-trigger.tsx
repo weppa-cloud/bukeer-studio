@@ -16,6 +16,7 @@ import type { ProductData } from '@bukeer/website-contract';
 
 import { formatPriceOrConsult } from '@/lib/products/format-price';
 import type { WebsiteData } from '@/lib/supabase/get-website';
+import { getPublicUiMessages } from '@/lib/site/public-ui-messages';
 
 import { DatePicker } from './date-picker';
 import { BookingFormModal } from './booking-form-modal';
@@ -81,15 +82,16 @@ function BookingTriggerInner({
   }, []);
 
   const locale = (website.content as unknown as { locale?: string } | undefined)?.locale;
+  const uiMessages = getPublicUiMessages(locale ?? 'es-CO');
 
   const priceLabel = useMemo(() => {
     const raw = typeof product.price === 'string' ? Number(product.price) : product.price;
     const num = typeof raw === 'number' && Number.isFinite(raw) ? raw : null;
     if (num === null) {
-      return 'Consulta precio por persona';
+      return uiMessages.bookingWidget.priceConsultPerPerson;
     }
-    return `Desde ${formatPriceOrConsult(num, product.currency)} por persona`;
-  }, [product.price, product.currency]);
+    return `${uiMessages.bookingWidget.priceFromPerPersonPrefix} ${formatPriceOrConsult(num, product.currency)} ${uiMessages.bookingWidget.priceFromPerPersonSuffix}`;
+  }, [product.price, product.currency, uiMessages.bookingWidget.priceConsultPerPerson, uiMessages.bookingWidget.priceFromPerPersonPrefix, uiMessages.bookingWidget.priceFromPerPersonSuffix]);
 
   const canSubmit = Boolean(selectedDate);
 
@@ -106,10 +108,10 @@ function BookingTriggerInner({
         borderColor: 'var(--border-subtle)',
         color: 'var(--text-heading)',
       }}
-      aria-label="Reservar esta experiencia"
+      aria-label={uiMessages.bookingWidget.reserveExperience}
     >
       <header className="space-y-1">
-        <h3 className="text-base font-semibold">Reservar esta experiencia</h3>
+        <h3 className="text-base font-semibold">{uiMessages.bookingWidget.reserveExperience}</h3>
         <p className="text-sm" style={{ color: 'var(--text-secondary, var(--text-heading))' }}>
           {priceLabel}
         </p>
@@ -117,14 +119,14 @@ function BookingTriggerInner({
 
       <div>
         <span className="mb-1 block text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-secondary, var(--text-heading))' }}>
-          Fecha
+          {uiMessages.bookingWidget.dateLabel}
         </span>
-        <DatePicker value={selectedDate} onChange={setSelectedDate} />
+        <DatePicker value={selectedDate} onChange={setSelectedDate} locale={locale ?? 'es-CO'} />
       </div>
 
       <div className="flex items-center justify-between gap-4">
         <span className="text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-secondary, var(--text-heading))' }}>
-          Personas
+          {uiMessages.bookingWidget.peopleLabel}
         </span>
         <div
           className="inline-flex items-center gap-2 rounded-full border px-2 py-1"
@@ -134,7 +136,7 @@ function BookingTriggerInner({
             type="button"
             onClick={() => setPax((p) => Math.max(1, p - 1))}
             disabled={pax <= 1}
-            aria-label="Quitar persona"
+            aria-label={uiMessages.bookingWidget.removePersonAria}
             className="flex h-7 w-7 items-center justify-center rounded-full text-sm disabled:opacity-40"
             style={{ color: 'var(--text-heading)' }}
           >
@@ -147,7 +149,7 @@ function BookingTriggerInner({
             type="button"
             onClick={() => setPax((p) => Math.min(20, p + 1))}
             disabled={pax >= 20}
-            aria-label="Añadir persona"
+            aria-label={uiMessages.bookingWidget.addPersonAria}
             className="flex h-7 w-7 items-center justify-center rounded-full text-sm disabled:opacity-40"
             style={{ color: 'var(--text-heading)' }}
           >
@@ -163,7 +165,7 @@ function BookingTriggerInner({
             className="mb-1 block text-xs font-medium uppercase tracking-wider"
             style={{ color: 'var(--text-secondary, var(--text-heading))' }}
           >
-              Opción
+              {uiMessages.bookingWidget.optionLabel}
             </label>
           <select
             id="booking-option"
@@ -198,12 +200,12 @@ function BookingTriggerInner({
         }}
         aria-disabled={!canSubmit}
       >
-        Reservar por WhatsApp
+        {uiMessages.bookingWidget.reserveByWhatsapp}
       </button>
 
       {!canSubmit && (
         <p className="text-center text-xs" style={{ color: 'var(--text-secondary, var(--text-heading))' }}>
-          Selecciona una fecha para continuar.
+          {uiMessages.bookingWidget.selectDatePrompt}
         </p>
       )}
 

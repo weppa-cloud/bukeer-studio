@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { getPublicUiMessages, resolvePublicUiLocale } from '@/lib/site/public-ui-messages'
 
 /**
  * Global error boundary — catches root layout errors.
@@ -16,12 +17,16 @@ export default function GlobalError({
   error: Error & { digest?: string }
   reset: () => void
 }) {
+  const [locale, setLocale] = useState('es-CO')
+  const messages = getPublicUiMessages(locale)
+
   useEffect(() => {
     console.error('[global-error]', error)
+    setLocale(resolvePublicUiLocale(window.navigator.language))
   }, [error])
 
   return (
-    <html lang="es">
+    <html lang={locale}>
       <body
         style={{
           margin: 0,
@@ -44,13 +49,13 @@ export default function GlobalError({
               marginBottom: '0.5rem',
             }}
           >
-            Error
+            500
           </p>
           <h1 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.75rem' }}>
-            Something went wrong
+            {messages.globalError.title}
           </h1>
           <p style={{ color: '#71717a', marginBottom: '1.5rem', lineHeight: 1.6 }}>
-            An unexpected error occurred. Please try reloading the page.
+            {messages.globalError.body}
           </p>
           <button
             onClick={reset}
@@ -65,7 +70,7 @@ export default function GlobalError({
               cursor: 'pointer',
             }}
           >
-            Try again
+            {messages.globalError.tryAgain}
           </button>
         </div>
       </body>

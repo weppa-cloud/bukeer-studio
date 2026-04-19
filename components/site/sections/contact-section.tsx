@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 import { supabase } from '@/lib/supabase/client';
+import { getPublicUiMessages } from '@/lib/site/public-ui-messages';
 
 interface ContactSectionProps {
   section: WebsiteSection;
@@ -12,6 +13,8 @@ interface ContactSectionProps {
 
 export function ContactSection({ section, website }: ContactSectionProps) {
   const { content } = website;
+  const locale = website.default_locale ?? content.locale ?? 'es-CO';
+  const uiMessages = getPublicUiMessages(locale);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -21,7 +24,7 @@ export function ContactSection({ section, website }: ContactSectionProps) {
     subtitle?: string;
   };
 
-  const title = sectionContent.title || 'Contáctanos';
+  const title = sectionContent.title || uiMessages.contactForm.titleDefault;
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -43,9 +46,9 @@ export function ContactSection({ section, website }: ContactSectionProps) {
 
       if (rpcError) {
         if (rpcError.message === 'Too many requests') {
-          setError('Has enviado demasiados mensajes. Intenta de nuevo más tarde.');
+          setError(uiMessages.contactForm.rateLimitError);
         } else {
-          setError('Error al enviar el mensaje. Intenta de nuevo.');
+          setError(uiMessages.contactForm.genericError);
           console.error('Form submission error:', rpcError);
         }
         setIsSubmitting(false);
@@ -54,7 +57,7 @@ export function ContactSection({ section, website }: ContactSectionProps) {
 
       setSubmitted(true);
     } catch (err) {
-      setError('Error al enviar el mensaje. Intenta de nuevo.');
+      setError(uiMessages.contactForm.genericError);
       console.error('Form submission error:', err);
     } finally {
       setIsSubmitting(false);
@@ -73,7 +76,7 @@ export function ContactSection({ section, website }: ContactSectionProps) {
           >
             <h2 className="text-3xl md:text-4xl font-bold">{title}</h2>
             <p className="mt-4 text-lg text-muted-foreground">
-              {sectionContent.subtitle || 'Estamos aquí para ayudarte a planificar tu próximo viaje'}
+              {sectionContent.subtitle || uiMessages.contactForm.subtitleDefault}
             </p>
 
             <div className="mt-8 space-y-6">
@@ -85,7 +88,7 @@ export function ContactSection({ section, website }: ContactSectionProps) {
                     </svg>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Email</p>
+                    <p className="text-sm text-muted-foreground">{uiMessages.contactForm.emailLabel}</p>
                     <p className="font-medium">{content.account?.email || content.contact?.email}</p>
                   </div>
                 </a>
@@ -99,7 +102,7 @@ export function ContactSection({ section, website }: ContactSectionProps) {
                     </svg>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Teléfono</p>
+                    <p className="text-sm text-muted-foreground">{uiMessages.contactForm.phoneLabel}</p>
                     <p className="font-medium">{content.account?.phone || content.contact?.phone}</p>
                   </div>
                 </a>
@@ -114,7 +117,7 @@ export function ContactSection({ section, website }: ContactSectionProps) {
                     </svg>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Dirección</p>
+                    <p className="text-sm text-muted-foreground">{uiMessages.contactForm.addressLabel}</p>
                     <p className="font-medium">{content.contact.address}</p>
                   </div>
                 </div>
@@ -135,8 +138,8 @@ export function ContactSection({ section, website }: ContactSectionProps) {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
-                <h3 className="text-xl font-semibold mt-4">¡Mensaje enviado!</h3>
-                <p className="text-muted-foreground mt-2">Nos pondremos en contacto contigo pronto.</p>
+                <h3 className="text-xl font-semibold mt-4">{uiMessages.contactForm.successTitle}</h3>
+                <p className="text-muted-foreground mt-2">{uiMessages.contactForm.successBody}</p>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="bg-card rounded-xl p-8 space-y-6 shadow-sm">
@@ -151,7 +154,7 @@ export function ContactSection({ section, website }: ContactSectionProps) {
                 />
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div>
-                    <label htmlFor="contact-name" className="block text-sm font-medium mb-2">Nombre</label>
+                    <label htmlFor="contact-name" className="block text-sm font-medium mb-2">{uiMessages.contactForm.nameLabel}</label>
                     <input
                       id="contact-name"
                       type="text"
@@ -161,7 +164,7 @@ export function ContactSection({ section, website }: ContactSectionProps) {
                     />
                   </div>
                   <div>
-                    <label htmlFor="contact-email" className="block text-sm font-medium mb-2">Email</label>
+                    <label htmlFor="contact-email" className="block text-sm font-medium mb-2">{uiMessages.contactForm.emailLabel}</label>
                     <input
                       id="contact-email"
                       type="email"
@@ -172,7 +175,7 @@ export function ContactSection({ section, website }: ContactSectionProps) {
                   </div>
                 </div>
                 <div>
-                  <label htmlFor="contact-phone" className="block text-sm font-medium mb-2">Teléfono</label>
+                  <label htmlFor="contact-phone" className="block text-sm font-medium mb-2">{uiMessages.contactForm.phoneLabel}</label>
                   <input
                     id="contact-phone"
                     type="tel"
@@ -181,7 +184,7 @@ export function ContactSection({ section, website }: ContactSectionProps) {
                   />
                 </div>
                 <div>
-                  <label htmlFor="contact-message" className="block text-sm font-medium mb-2">Mensaje</label>
+                  <label htmlFor="contact-message" className="block text-sm font-medium mb-2">{uiMessages.contactForm.messageLabel}</label>
                   <textarea
                     id="contact-message"
                     name="message"
@@ -201,7 +204,7 @@ export function ContactSection({ section, website }: ContactSectionProps) {
                   disabled={isSubmitting}
                   className="w-full py-3 bg-primary text-primary-foreground font-semibold rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
                 >
-                  {isSubmitting ? 'Enviando...' : 'Enviar mensaje'}
+                  {isSubmitting ? uiMessages.contactForm.sending : uiMessages.contactForm.sendMessage}
                 </button>
               </form>
             )}

@@ -13,6 +13,7 @@ import {
   AccordionPanel,
 } from '@/components/ui/accordion';
 import { MapPin, Check, ChevronDown } from 'lucide-react';
+import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 
 interface ItineraryDay {
   dayNumber: number;
@@ -39,11 +40,12 @@ interface ItineraryAccordionSectionProps {
 
 export function ItineraryAccordionSection({ section }: ItineraryAccordionSectionProps) {
   const locale = useWebsiteLocale();
+  const text = getPublicUiExtraTextGetter(locale);
   const content = (section.content as unknown as ItineraryAccordionContent | null) || { days: [] };
   const { title = 'Itinerario día a día', subtitle, days = [] } = content;
 
   return (
-    <section className="section-padding" aria-label="Itinerario">
+    <section className="section-padding" aria-label={text('sectionItineraryTitle')}>
       <div className="container max-w-3xl">
         <BlurFade delay={0} direction="up" duration={0.4}>
           <div className="text-center mb-10">
@@ -116,7 +118,7 @@ export function ItineraryAccordionSection({ section }: ItineraryAccordionSection
                     {day.included && day.included.length > 0 && (
                       <div className="rounded-lg bg-muted/40 p-3">
                         <p className="text-xs font-semibold text-[var(--text-heading)] mb-1.5 uppercase tracking-wide">
-                          Incluye esta noche
+                          {text('sectionItineraryIncludesTonight')}
                         </p>
                         <ul className="space-y-1">
                           {day.included.map((item, j) => (
@@ -130,7 +132,7 @@ export function ItineraryAccordionSection({ section }: ItineraryAccordionSection
                     )}
 
                     {day.night && (
-                      <p className="text-xs text-[var(--text-muted)] italic">🏨 Alojamiento: {day.night}</p>
+                      <p className="text-xs text-[var(--text-muted)] italic">{text('sectionItineraryAccommodation')} {day.night}</p>
                     )}
                   </div>
                 </AccordionPanel>

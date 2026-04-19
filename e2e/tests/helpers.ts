@@ -1,10 +1,53 @@
 import { expect, Page } from '@playwright/test';
+import { E2E_FIXTURE_IDS, seedWave2Fixtures } from '../setup/seed';
+
+export { seedWave2Fixtures, E2E_FIXTURE_IDS };
+
+export function getSeededPackageSlug(): string {
+  return E2E_FIXTURE_IDS.packageSlug;
+}
+
+export function getSeededPageSlug(): string {
+  return E2E_FIXTURE_IDS.pageSlug;
+}
+
+export function getSeededWebsiteId(): string {
+  return process.env.E2E_WEBSITE_ID?.trim() || E2E_FIXTURE_IDS.websiteId;
+}
+
+export async function getSeededSeoItem(
+  itemType: 'page' | 'package' | 'blog',
+): Promise<{ pageId: string; slug: string }> {
+  const fixtures = await seedWave2Fixtures();
+  if (itemType === 'page') {
+    if (!fixtures.pageId) throw new Error('Seed fixture missing pageId');
+    return { pageId: fixtures.pageId, slug: fixtures.pageSlug };
+  }
+  if (itemType === 'package') {
+    if (!fixtures.packageId) throw new Error('Seed fixture missing packageId');
+    return { pageId: fixtures.packageId, slug: fixtures.packageSlug };
+  }
+  if (!fixtures.blogId) throw new Error('Seed fixture missing blogId');
+  return { pageId: fixtures.blogId, slug: fixtures.blogSlug };
+}
 
 export function getE2ECredentials() {
   return {
     email: process.env.E2E_USER_EMAIL || 'test@bukeer.com',
     password: process.env.E2E_USER_PASSWORD || 'test-password',
   };
+}
+
+async function ensureAuthenticatedDashboard(page: Page): Promise<void> {
+  const { email, password } = getE2ECredentials();
+  await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
+
+  if (page.url().includes('/login')) {
+    await page.getByLabel('Email').fill(email);
+    await page.getByLabel('Password').fill(password);
+    await page.getByRole('button', { name: /sign in/i }).click();
+    await page.waitForURL(/\/dashboard/, { timeout: 45000 });
+  }
 }
 
 function extractWebsiteId(href: string): string {
@@ -51,7 +94,7 @@ export async function getFirstWebsiteId(page: Page): Promise<string> {
     return websiteIdOverride;
   }
 
-  await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
+  await ensureAuthenticatedDashboard(page);
   await expect(page.getByRole('heading', { name: 'My Websites' })).toBeVisible();
 
   const firstWebsiteLink = page.locator('a[href*="/dashboard/"][href*="/pages"]').first();
@@ -79,6 +122,10 @@ export async function gotoWebsiteSection(page: Page, section: string): Promise<s
     await page.goto(targetPath, { waitUntil: 'domcontentloaded', timeout: 45000 });
     if (page.url().includes(targetPath)) {
       return websiteId;
+    }
+    if (page.url().includes('/login')) {
+      await ensureAuthenticatedDashboard(page);
+      continue;
     }
 
     // Firefox occasionally lands on an intermediate route before auth/session settles.

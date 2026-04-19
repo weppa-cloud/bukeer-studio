@@ -2,6 +2,8 @@
 
 import { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 import { BlurFade } from '@/components/ui/blur-fade';
+import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
+import { useWebsiteLocale } from '@/lib/hooks/use-website-locale';
 
 interface CtaSectionProps {
   section: WebsiteSection;
@@ -9,6 +11,8 @@ interface CtaSectionProps {
 }
 
 export function CtaSection({ section, website }: CtaSectionProps) {
+  const locale = useWebsiteLocale();
+  const text = getPublicUiExtraTextGetter(locale);
   const { content } = website;
   const sectionContent = section.content as {
     title?: string;
@@ -18,7 +22,7 @@ export function CtaSection({ section, website }: CtaSectionProps) {
     backgroundImage?: string;
   };
 
-  const title = sectionContent.title || '¿Listo para tu proxima aventura?';
+  const title = sectionContent.title || text('sectionCtaTitle');
 
   return (
     <div className="relative py-24 overflow-hidden">
@@ -99,7 +103,7 @@ export function CtaSection({ section, website }: CtaSectionProps) {
                   className="px-8 py-4 border-2 font-semibold rounded-full hover:bg-white/10 transition-all duration-300"
                   style={{ borderColor: 'var(--accent-text)', color: 'var(--accent-text)' }}
                 >
-                  WhatsApp
+                  {text('sectionWhatsapp')}
                 </a>
               )}
             </div>

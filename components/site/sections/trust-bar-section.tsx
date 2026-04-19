@@ -4,6 +4,7 @@ import { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 import { BlurFade } from '@/components/ui/blur-fade';
 import { NumberTicker } from '@/components/ui/number-ticker';
 import { Shield } from 'lucide-react';
+import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 
 interface TrustBarContent {
   rating?: { score: number; count: number; source?: string };
@@ -17,6 +18,8 @@ interface TrustBarSectionProps {
   section: WebsiteSection;
   website: WebsiteData;
 }
+
+const text = getPublicUiExtraTextGetter('es-CO');
 
 function StarRating({ score }: { score: number }) {
   return (
@@ -44,7 +47,7 @@ export function TrustBarSection({ section }: TrustBarSectionProps) {
     <section
       className="border-b bg-muted/50 py-3"
       style={{ borderColor: 'var(--border-subtle)' }}
-      aria-label="Confianza y certificaciones"
+      aria-label={text('sectionTrustTitle')}
     >
       <div className="container">
         <div className="flex flex-wrap items-center justify-center gap-4 md:gap-8 text-sm min-h-[52px]">
@@ -60,7 +63,7 @@ export function TrustBarSection({ section }: TrustBarSectionProps) {
                 )}
                 {rating.count > 0 && (
                   <span className="text-[var(--text-muted)] hidden md:inline">
-                    (<NumberTicker value={rating.count} className="font-medium" /> reseñas)
+                    (<NumberTicker value={rating.count} className="font-medium" /> {text('sectionTrustReviewsSuffix')}
                   </span>
                 )}
               </div>
@@ -100,7 +103,7 @@ export function TrustBarSection({ section }: TrustBarSectionProps) {
                 <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 24 24" aria-hidden>
                   <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z" />
                 </svg>
-                <span className="text-xs font-medium">Pago seguro SSL</span>
+                <span className="text-xs font-medium">{text('sectionTrustSsl')}</span>
               </div>
             </BlurFade>
           )}

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 import { useWebsiteLocale } from '@/lib/hooks/use-website-locale';
 import { buildEntityAlt } from '@/lib/utils/entity-alt';
+import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 
 interface BlogSectionProps {
   section: WebsiteSection;
@@ -31,10 +32,11 @@ export function BlogSection({ section, website }: BlogSectionProps) {
   };
 
   const locale = useWebsiteLocale();
+  const text = getPublicUiExtraTextGetter(locale);
   const agency = website.content.siteName || '';
 
   const variant = section.variant || 'default';
-  const title = sectionContent.title || 'Últimas del Blog';
+  const title = sectionContent.title || text('sectionBlogTitle');
   const posts = sectionContent.posts || [];
 
   if (variant === 'showcase') {
@@ -64,7 +66,7 @@ export function BlogSection({ section, website }: BlogSectionProps) {
               href={`/site/${subdomain}/blog`}
               className="text-primary font-medium hover:underline hidden md:block"
             >
-              Ver todos →
+              {text('sectionBlogViewAllArrow')}
             </Link>
           </motion.div>
         </div>
@@ -120,7 +122,7 @@ export function BlogSection({ section, website }: BlogSectionProps) {
           </div>
         ) : (
           <div className="text-center py-12 text-muted-foreground">
-            <p>No hay publicaciones disponibles</p>
+            <p>{text('sectionBlogNoPosts')}</p>
           </div>
         )}
 
@@ -129,7 +131,7 @@ export function BlogSection({ section, website }: BlogSectionProps) {
             href={`/site/${subdomain}/blog`}
             className="inline-flex items-center gap-2 text-primary font-medium"
           >
-            Ver todos los posts
+            {text('sectionBlogViewAllPosts')}
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
             </svg>
@@ -148,6 +150,7 @@ function getCategoryName(category?: string | { name: string; slug: string }): st
 
 // Showcase variant — pixel-perfect match with theme reference using bridge CSS variables
 function ShowcaseBlog({ title, subtitle, posts, subdomain, locale, agency }: { title: string; subtitle?: string; posts: BlogPost[]; subdomain: string; locale: string; agency: string }) {
+  const text = getPublicUiExtraTextGetter(locale);
   return (
     <div className="section-padding">
       <div className="container">
@@ -172,7 +175,7 @@ function ShowcaseBlog({ title, subtitle, posts, subdomain, locale, agency }: { t
               className="font-medium hover:underline hidden md:block"
               style={{ color: 'var(--accent)' }}
             >
-              Ver todos →
+              {text('sectionBlogViewAllArrow')}
             </Link>
           </motion.div>
         </div>
@@ -248,7 +251,7 @@ function ShowcaseBlog({ title, subtitle, posts, subdomain, locale, agency }: { t
           </div>
         ) : (
           <div className="text-center py-12" style={{ color: 'var(--text-muted)' }}>
-            <p>No hay publicaciones disponibles</p>
+            <p>{text('sectionBlogNoPosts')}</p>
           </div>
         )}
 
@@ -258,7 +261,7 @@ function ShowcaseBlog({ title, subtitle, posts, subdomain, locale, agency }: { t
             className="inline-flex items-center gap-2 font-medium"
             style={{ color: 'var(--accent)' }}
           >
-            Ver todos los posts
+            {text('sectionBlogViewAllPosts')}
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
             </svg>

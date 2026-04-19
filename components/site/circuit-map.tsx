@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { RouteMap } from '@/components/ui/route-map';
 import { supportsWebGL } from '@/lib/maps/theme';
+import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 
 /**
  * Single stop in a circuit route (shared primitive — SPEC #164 Phase 1).
@@ -70,6 +71,7 @@ export function CircuitMap({
 }: CircuitMapProps) {
   const [webglAvailable, setWebglAvailable] = useState<boolean | null>(null);
   const prefersReducedMotion = usePrefersReducedMotion();
+  const text = getPublicUiExtraTextGetter('es-CO');
 
   useEffect(() => {
     setWebglAvailable(supportsWebGL());
@@ -116,7 +118,7 @@ export function CircuitMap({
           data-testid="circuit-map-fallback"
         >
           <p className="text-sm text-muted-foreground mb-4">
-            Vista de circuito simplificada.
+            {text('circuitMapSimplifiedView')}
           </p>
           <ol className="space-y-3">
             {orderedStops.map((stop, index) => {

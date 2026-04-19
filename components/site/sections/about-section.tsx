@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import Image from 'next/image';
 import { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 import { useWebsiteLocale } from '@/lib/hooks/use-website-locale';
+import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 
 interface AboutSectionProps {
   section: WebsiteSection;
@@ -11,6 +12,8 @@ interface AboutSectionProps {
 }
 
 export function AboutSection({ section, website }: AboutSectionProps) {
+  const locale = useWebsiteLocale();
+  const uiText = getPublicUiExtraTextGetter(locale);
   const variant = section.variant || 'default';
   const { content } = website;
   const sectionContent = section.content as {
@@ -23,11 +26,10 @@ export function AboutSection({ section, website }: AboutSectionProps) {
     stats?: Array<{ value: string; label: string }>;
   };
 
-  const locale = useWebsiteLocale();
   const agency = website.content.siteName || '';
-  const imageAlt = `${agency} — ${sectionContent.title || 'Sobre Nosotros'}`;
+  const imageAlt = `${agency} — ${sectionContent.title || uiText('sectionAboutTitle')}`;
 
-  const title = sectionContent.title || 'Sobre Nosotros';
+  const title = sectionContent.title || uiText('sectionAboutTitle');
   const text = sectionContent.text || content.tagline;
 
   // Split Stats variant — 2 columns with embedded 2x2 stats grid + spotlight

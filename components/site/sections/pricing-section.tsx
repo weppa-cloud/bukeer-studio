@@ -4,6 +4,7 @@ import { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 import { BlurFade } from '@/components/ui/blur-fade';
 import { NumberTicker } from '@/components/ui/number-ticker';
 import { Check, Star } from 'lucide-react';
+import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 
 interface PricingTier {
   name: string;
@@ -31,6 +32,8 @@ interface PricingSectionProps {
   section: WebsiteSection;
   website: WebsiteData;
 }
+
+const text = getPublicUiExtraTextGetter('es-CO');
 
 function extractNumericPrice(price: string): number | null {
   const clean = price.replace(/[^0-9.]/g, '');
@@ -62,7 +65,7 @@ function PricingCard({ tier, currency, delay }: { tier: PricingTier; currency?: 
         {tier.highlighted && (
           <div className="flex items-center gap-1 mb-3">
             <Star className="w-4 h-4 fill-[var(--accent)] text-[var(--accent)]" aria-hidden />
-            <span className="text-xs font-semibold text-[var(--accent)]">Recomendado</span>
+            <span className="text-xs font-semibold text-[var(--accent)]">{text('sectionPricingRecommended')}</span>
           </div>
         )}
 
@@ -134,7 +137,7 @@ export function PricingSection({ section }: PricingSectionProps) {
   const isSingle = variant === 'single_highlight' || tiers.length === 1;
 
   return (
-    <section className="section-padding" aria-label="Precios y paquetes">
+    <section className="section-padding" aria-label={text('sectionPricingTitle')}>
       <div className="container">
         {(title || subtitle) && (
           <BlurFade delay={0} direction="up" duration={0.4}>

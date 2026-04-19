@@ -1,5 +1,6 @@
 import {
   buildLocaleAdaptationPrompt,
+  LocaleAdaptationOutputEnvelopeSchemaV2_1,
   LocaleAdaptationOutputEnvelopeSchemaV2,
   LocaleAdaptationOutputSchema,
   normalizeLocaleAdaptationOutputEnvelope,
@@ -63,5 +64,63 @@ describe('locale adaptation prompt', () => {
     expect(normalized?.schema_version).toBe('2.0');
     const valid = LocaleAdaptationOutputEnvelopeSchemaV2.safeParse(normalized);
     expect(valid.success).toBe(true);
+  });
+
+  it('accepts explicit v2.1 envelope and keeps full payload fields', () => {
+    const normalized = normalizeLocaleAdaptationOutputEnvelope({
+      schema_version: '2.1',
+      payload_v2: {
+        meta_title: 'Best Cartagena Tours',
+        meta_desc: 'Discover Cartagena with curated local guides and flexible departures.',
+        slug: 'best-cartagena-tours',
+        h1: 'Best Cartagena Tours',
+        keywords: ['cartagena tours'],
+        description_long: 'Long localized description',
+        highlights: ['Historic center'],
+        faq: [{ question: 'Best season?', answer: 'All year.' }],
+        recommendations: ['Add Rosario Islands'],
+        cta_final_text: 'Book your trip now',
+        program_timeline: [{ title: 'Arrival', description: 'Airport transfer' }],
+        inclusions: ['Hotel'],
+        exclusions: ['Flights'],
+        hero_subtitle: 'Tailor-made experiences',
+        category_label: 'Travel',
+      },
+    });
+
+    expect(normalized).not.toBeNull();
+    expect(normalized?.schema_version).toBe('2.1');
+    const valid = LocaleAdaptationOutputEnvelopeSchemaV2_1.safeParse(normalized);
+    expect(valid.success).toBe(true);
+  });
+
+  it('fails closed for unsupported schema versions', () => {
+    const normalized = normalizeLocaleAdaptationOutputEnvelope({
+      schema_version: '3.0',
+      payload_v2: {
+        meta_title: 'Title',
+        meta_desc: 'Description',
+        slug: 'title',
+        h1: 'Heading',
+        keywords: ['keyword'],
+      },
+    });
+
+    expect(normalized).toBeNull();
+  });
+
+  it('fails closed for malformed explicit v2.1 envelopes', () => {
+    const normalized = normalizeLocaleAdaptationOutputEnvelope({
+      schema_version: '2.1',
+      payload_v2: {
+        meta_title: 'Title',
+        meta_desc: 'Description',
+        slug: 'title',
+        h1: 'Heading',
+        keywords: ['keyword'],
+      },
+    });
+
+    expect(normalized).toBeNull();
   });
 });

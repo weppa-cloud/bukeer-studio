@@ -1,7 +1,12 @@
 'use client';
 
-import { useState } from 'react';
-import { useParams, useSearchParams } from 'next/navigation';
+import { useMemo, useState } from 'react';
+import { useParams, usePathname, useSearchParams } from 'next/navigation';
+import {
+  formatPublicDate,
+  getPublicUiMessages,
+  resolvePublicUiLocale,
+} from '@/lib/site/public-ui-messages';
 
 interface QuoteFormProps {
   productType: string;
@@ -32,8 +37,22 @@ export function QuoteForm({
   className = '',
 }: QuoteFormProps) {
   const params = useParams<{ subdomain: string }>();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const subdomain = params?.subdomain ?? '';
+
+  const locale = useMemo(() => {
+    const queryLocale = searchParams?.get('lang');
+    if (queryLocale) return resolvePublicUiLocale(queryLocale);
+
+    const parts = (pathname ?? '').split('/').filter(Boolean);
+    if (parts[0] === 'site' && parts[1] === subdomain && parts[2]) {
+      return resolvePublicUiLocale(parts[2]);
+    }
+
+    return resolvePublicUiLocale('es-CO');
+  }, [pathname, searchParams, subdomain]);
+  const uiMessages = useMemo(() => getPublicUiMessages(locale), [locale]);
 
   const [formData, setFormData] = useState<FormData>({
     customerName: '',
@@ -56,7 +75,7 @@ export function QuoteForm({
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: name === 'adults' || name === 'children' ? parseInt(value) || 0 : value,
+      [name]: name === 'adults' || name === 'children' ? parseInt(value, 10) || 0 : value,
     }));
   };
 
@@ -98,7 +117,6 @@ export function QuoteForm({
 
       if (data.success) {
         setSubmitStatus('success');
-        // Reset form
         setFormData({
           customerName: '',
           customerEmail: '',
@@ -111,14 +129,19 @@ export function QuoteForm({
         });
       } else {
         setSubmitStatus('error');
-        setErrorMessage(data.error || 'Error al enviar la solicitud');
+        setErrorMessage(data.error || uiMessages.quoteForm.requestError);
       }
     } catch {
       setSubmitStatus('error');
-      setErrorMessage('Error de conexión. Por favor intenta de nuevo.');
+      setErrorMessage(uiMessages.quoteForm.connectionError);
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return '';
+    return formatPublicDate(`${dateStr}T00:00:00`, locale);
   };
 
   const handleWhatsApp = () => {
@@ -126,39 +149,40 @@ export function QuoteForm({
 
     const dateRange =
       formData.checkIn && formData.checkOut
-        ? `📅 Fechas: ${formatDate(formData.checkIn)} - ${formatDate(formData.checkOut)}`
+        ? `📅 ${uiMessages.quoteForm.whatsappDates}: ${formatDate(formData.checkIn)} - ${formatDate(formData.checkOut)}`
         : formData.checkIn
-          ? `📅 Fecha: ${formatDate(formData.checkIn)}`
+          ? `📅 ${uiMessages.quoteForm.whatsappDate}: ${formatDate(formData.checkIn)}`
           : '';
 
-    const travelers = `👥 Viajeros: ${formData.adults} adulto${formData.adults !== 1 ? 's' : ''}${formData.children > 0 ? `, ${formData.children} niño${formData.children !== 1 ? 's' : ''}` : ''}`;
+    const adultsLabel = formData.adults === 1
+      ? uiMessages.quoteForm.adultSingular
+      : uiMessages.quoteForm.adultPlural;
+    const childrenLabel = formData.children === 1
+      ? uiMessages.quoteForm.childSingular
+      : uiMessages.quoteForm.childPlural;
 
-    const message = `¡Hola! 👋
+    const travelers = `👥 ${uiMessages.quoteForm.whatsappTravelers}: ${formData.adults} ${adultsLabel}${formData.children > 0 ? `, ${formData.children} ${childrenLabel}` : ''}`;
 
-Estoy interesado en cotizar:
+    const message = `${uiMessages.quoteForm.whatsappGreeting}! 👋
 
-🌴 *${productName}*${productDestination ? `\n📍 Destino: ${productDestination}` : ''}
+${uiMessages.quoteForm.whatsappInterested}
+
+🌴 *${productName}*${productDestination ? `\n📍 ${uiMessages.quoteForm.whatsappDestination}: ${productDestination}` : ''}
 ${dateRange}
 ${travelers}
-${formData.notes ? `\n💬 Notas: ${formData.notes}` : ''}
+${formData.notes ? `\n💬 ${uiMessages.quoteForm.whatsappNotes}: ${formData.notes}` : ''}
 
-*Mis datos:*
+*${uiMessages.quoteForm.whatsappMyDetails}*
 👤 ${formData.customerName}
 📧 ${formData.customerEmail}${formData.customerPhone ? `\n📱 ${formData.customerPhone}` : ''}
 
-¡Gracias!`;
+${uiMessages.quoteForm.whatsappThanks}`;
 
     const encodedMessage = encodeURIComponent(message);
     const cleanNumber = whatsappNumber.replace(/\D/g, '');
     const whatsappUrl = `https://wa.me/${cleanNumber}?text=${encodedMessage}`;
 
     window.open(whatsappUrl, '_blank');
-  };
-
-  const formatDate = (dateStr: string) => {
-    if (!dateStr) return '';
-    const date = new Date(dateStr + 'T00:00:00');
-    return date.toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' });
   };
 
   const isFormValid =
@@ -174,15 +198,13 @@ ${formData.notes ? `\n💬 Notas: ${formData.notes}` : ''}
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        <h3 className="text-xl font-semibold text-green-800 mb-2">¡Solicitud Enviada!</h3>
-        <p className="text-green-700 mb-4">
-          Hemos recibido tu solicitud de cotización. Te contactaremos pronto.
-        </p>
+        <h3 className="text-xl font-semibold text-green-800 mb-2">{uiMessages.quoteForm.successTitle}</h3>
+        <p className="text-green-700 mb-4">{uiMessages.quoteForm.successBody}</p>
         <button
           onClick={() => setSubmitStatus('idle')}
           className="text-green-600 hover:text-green-800 font-medium"
         >
-          Enviar otra solicitud
+          {uiMessages.quoteForm.sendAnother}
         </button>
       </div>
     );
@@ -190,20 +212,18 @@ ${formData.notes ? `\n💬 Notas: ${formData.notes}` : ''}
 
   return (
     <div className={`bg-background rounded-xl shadow-lg p-6 ${className}`}>
-      <h3 className="text-xl font-semibold mb-6">Solicitar Cotización</h3>
+      <h3 className="text-xl font-semibold mb-6">{uiMessages.quoteForm.requestQuote}</h3>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Product Info (readonly) */}
         <div className="bg-muted/50 rounded-lg p-4 mb-6">
-          <p className="text-sm text-muted-foreground">Producto seleccionado:</p>
+          <p className="text-sm text-muted-foreground">{uiMessages.quoteForm.selectedProduct}</p>
           <p className="font-medium">{productName}</p>
         </div>
 
-        {/* Personal Info */}
         <div className="grid md:grid-cols-2 gap-4">
           <div>
             <label htmlFor="customerName" className="block text-sm font-medium mb-1">
-              Nombre completo *
+              {uiMessages.quoteForm.fullNameLabel}
             </label>
             <input
               type="text"
@@ -213,12 +233,12 @@ ${formData.notes ? `\n💬 Notas: ${formData.notes}` : ''}
               onChange={handleChange}
               required
               className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-              placeholder="Tu nombre"
+              placeholder={uiMessages.quoteForm.namePlaceholder}
             />
           </div>
           <div>
             <label htmlFor="customerEmail" className="block text-sm font-medium mb-1">
-              Email *
+              {uiMessages.quoteForm.emailLabel}
             </label>
             <input
               type="email"
@@ -228,14 +248,14 @@ ${formData.notes ? `\n💬 Notas: ${formData.notes}` : ''}
               onChange={handleChange}
               required
               className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-              placeholder="tu@email.com"
+              placeholder={uiMessages.quoteForm.emailPlaceholder}
             />
           </div>
         </div>
 
         <div>
           <label htmlFor="customerPhone" className="block text-sm font-medium mb-1">
-            Teléfono / WhatsApp
+            {uiMessages.quoteForm.phoneLabel}
           </label>
           <input
             type="tel"
@@ -244,15 +264,14 @@ ${formData.notes ? `\n💬 Notas: ${formData.notes}` : ''}
             value={formData.customerPhone}
             onChange={handleChange}
             className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-            placeholder="+57 300 123 4567"
+            placeholder={uiMessages.quoteForm.phonePlaceholder}
           />
         </div>
 
-        {/* Travel Dates */}
         <div className="grid md:grid-cols-2 gap-4">
           <div>
             <label htmlFor="checkIn" className="block text-sm font-medium mb-1">
-              Fecha de llegada
+              {uiMessages.quoteForm.checkInLabel}
             </label>
             <input
               type="date"
@@ -266,7 +285,7 @@ ${formData.notes ? `\n💬 Notas: ${formData.notes}` : ''}
           </div>
           <div>
             <label htmlFor="checkOut" className="block text-sm font-medium mb-1">
-              Fecha de salida
+              {uiMessages.quoteForm.checkOutLabel}
             </label>
             <input
               type="date"
@@ -280,11 +299,10 @@ ${formData.notes ? `\n💬 Notas: ${formData.notes}` : ''}
           </div>
         </div>
 
-        {/* Travelers */}
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label htmlFor="adults" className="block text-sm font-medium mb-1">
-              Adultos
+              {uiMessages.quoteForm.adultsLabel}
             </label>
             <select
               id="adults"
@@ -295,14 +313,14 @@ ${formData.notes ? `\n💬 Notas: ${formData.notes}` : ''}
             >
               {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
                 <option key={n} value={n}>
-                  {n} adulto{n !== 1 ? 's' : ''}
+                  {n} {n === 1 ? uiMessages.quoteForm.adultSingular : uiMessages.quoteForm.adultPlural}
                 </option>
               ))}
             </select>
           </div>
           <div>
             <label htmlFor="children" className="block text-sm font-medium mb-1">
-              Niños
+              {uiMessages.quoteForm.childrenLabel}
             </label>
             <select
               id="children"
@@ -313,17 +331,16 @@ ${formData.notes ? `\n💬 Notas: ${formData.notes}` : ''}
             >
               {[0, 1, 2, 3, 4, 5, 6].map((n) => (
                 <option key={n} value={n}>
-                  {n} niño{n !== 1 ? 's' : ''}
+                  {n} {n === 1 ? uiMessages.quoteForm.childSingular : uiMessages.quoteForm.childPlural}
                 </option>
               ))}
             </select>
           </div>
         </div>
 
-        {/* Notes */}
         <div>
           <label htmlFor="notes" className="block text-sm font-medium mb-1">
-            Comentarios adicionales
+            {uiMessages.quoteForm.notesLabel}
           </label>
           <textarea
             id="notes"
@@ -332,18 +349,16 @@ ${formData.notes ? `\n💬 Notas: ${formData.notes}` : ''}
             onChange={handleChange}
             rows={3}
             className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
-            placeholder="¿Alguna preferencia o solicitud especial?"
+            placeholder={uiMessages.quoteForm.notesPlaceholder}
           />
         </div>
 
-        {/* Error message */}
         {submitStatus === 'error' && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
             {errorMessage}
           </div>
         )}
 
-        {/* Buttons */}
         <div className="flex flex-col sm:flex-row gap-3 pt-2">
           <button
             type="submit"
@@ -368,7 +383,7 @@ ${formData.notes ? `\n💬 Notas: ${formData.notes}` : ''}
                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                   />
                 </svg>
-                Enviando...
+                {uiMessages.quoteForm.submitting}
               </>
             ) : (
               <>
@@ -380,7 +395,7 @@ ${formData.notes ? `\n💬 Notas: ${formData.notes}` : ''}
                     d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
                   />
                 </svg>
-                Solicitar Cotización
+                {uiMessages.quoteForm.submitQuote}
               </>
             )}
           </button>
@@ -395,13 +410,13 @@ ${formData.notes ? `\n💬 Notas: ${formData.notes}` : ''}
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
               </svg>
-              Enviar por WhatsApp
+              {uiMessages.quoteForm.submitWhatsapp}
             </button>
           )}
         </div>
 
         <p className="text-xs text-muted-foreground text-center pt-2">
-          Al enviar, aceptas que te contactemos para responder tu solicitud.
+          {uiMessages.quoteForm.privacyNotice}
         </p>
       </form>
     </div>

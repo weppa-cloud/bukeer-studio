@@ -10,6 +10,7 @@ import {
   resolvePublicMetadataLocale,
 } from '@/lib/seo/public-metadata';
 import { localeToOgLocale } from '@/lib/seo/locale-routing';
+import { formatPublicDate, getPublicUiMessages } from '@/lib/site/public-ui-messages';
 
 interface BlogPageProps {
   params: Promise<{ subdomain: string }>;
@@ -29,21 +30,22 @@ export async function generateMetadata({ params }: BlogPageProps): Promise<Metad
     ? `https://${website.custom_domain}`
     : `https://${subdomain}.bukeer.com`;
   const localeContext = await resolvePublicMetadataLocale(website, '/blog');
+  const messages = getPublicUiMessages(localeContext.resolvedLocale);
   const localizedBlogPath = localeContext.localizedPathname;
   const canonical = `${baseUrl}${localizedBlogPath}`;
   const languages = buildLocaleAwareAlternateLanguages(baseUrl, '/blog', localeContext);
-  const description = `Lee las últimas publicaciones y guías de viaje de ${siteName}`;
+  const description = `${messages.blogListing.heroDescription} ${siteName}`.trim();
   const ogImage = resolveOgImage(website);
 
   return {
-    title: 'Blog',
+    title: messages.blogListing.title,
     description,
     alternates: {
       canonical,
       languages,
     },
     openGraph: {
-      title: `Blog — ${siteName}`,
+      title: `${messages.blogListing.title} — ${siteName}`,
       description,
       url: canonical,
       siteName,
@@ -53,7 +55,7 @@ export async function generateMetadata({ params }: BlogPageProps): Promise<Metad
     },
     twitter: {
       card: 'summary_large_image',
-      title: `Blog — ${siteName}`,
+      title: `${messages.blogListing.title} — ${siteName}`,
       description,
       ...(ogImage && { images: [ogImage] }),
     },
@@ -87,6 +89,7 @@ export default async function BlogPage({ params, searchParams }: BlogPageProps) 
     ? `https://${website.custom_domain}`
     : `https://${subdomain}.bukeer.com`;
   const localeContext = await resolvePublicMetadataLocale(website, '/blog');
+  const messages = getPublicUiMessages(localeContext.resolvedLocale);
 
   // Generate JSON-LD schemas (CollectionPage, Breadcrumb, Organization)
   const schemas = generateBlogListingSchemas(posts, website, baseUrl, localeContext.resolvedLocale);
@@ -100,9 +103,9 @@ export default async function BlogPage({ params, searchParams }: BlogPageProps) 
       <div className="container">
         {/* Header */}
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold mb-4">Blog</h1>
+          <h1 className="text-4xl font-bold mb-4">{messages.blogListing.title}</h1>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Descubre las últimas novedades, guías de viaje y consejos para tu próxima aventura
+            {messages.blogListing.heroDescription}
           </p>
         </div>
 
@@ -117,7 +120,7 @@ export default async function BlogPage({ params, searchParams }: BlogPageProps) 
                   : 'bg-muted hover:bg-muted/80'
               }`}
             >
-              Todos
+              {messages.blogListing.allCategories}
             </Link>
             {categories.map((cat) => (
               <Link
@@ -139,7 +142,7 @@ export default async function BlogPage({ params, searchParams }: BlogPageProps) 
         {posts.length === 0 ? (
           <div className="text-center py-16">
             <p className="text-muted-foreground text-lg">
-              No hay publicaciones disponibles
+              {messages.blogListing.noPosts}
             </p>
           </div>
         ) : (
@@ -216,7 +219,7 @@ export default async function BlogPage({ params, searchParams }: BlogPageProps) 
                       dateTime={post.published_at}
                       className="mt-4 block text-sm text-muted-foreground"
                     >
-                      {new Date(post.published_at).toLocaleDateString('es-ES', {
+                      {formatPublicDate(post.published_at, localeContext.resolvedLocale, {
                         day: 'numeric',
                         month: 'long',
                         year: 'numeric',
@@ -237,12 +240,12 @@ export default async function BlogPage({ params, searchParams }: BlogPageProps) 
                 href={`/site/${subdomain}/blog?page=${pageNum - 1}${category ? `&category=${category}` : ''}`}
                 className="px-4 py-2 rounded-lg bg-muted hover:bg-muted/80 transition-colors"
               >
-                Anterior
+                {messages.blogListing.previous}
               </Link>
             )}
 
             <span className="px-4 py-2">
-              Página {pageNum} de {totalPages}
+              {messages.blogListing.pageLabel} {pageNum} {messages.blogListing.ofLabel} {totalPages}
             </span>
 
             {pageNum < totalPages && (
@@ -250,7 +253,7 @@ export default async function BlogPage({ params, searchParams }: BlogPageProps) 
                 href={`/site/${subdomain}/blog?page=${pageNum + 1}${category ? `&category=${category}` : ''}`}
                 className="px-4 py-2 rounded-lg bg-muted hover:bg-muted/80 transition-colors"
               >
-                Siguiente
+                {messages.blogListing.next}
               </Link>
             )}
           </div>

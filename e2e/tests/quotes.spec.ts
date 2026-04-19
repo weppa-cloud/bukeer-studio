@@ -12,7 +12,7 @@ test.describe('Leads Tab', () => {
 
   test('filter by status', async ({ page }) => {
     await gotoWebsiteSection(page, 'quotes');
-    const newTab = page.getByRole('button', { name: 'New' });
+    const newTab = page.locator('.studio-tabs').getByRole('button', { name: 'New', exact: true });
     await newTab.click();
     await expect(newTab).toHaveClass(/studio-tab-active/);
   });

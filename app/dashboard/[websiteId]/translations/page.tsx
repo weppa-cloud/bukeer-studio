@@ -39,6 +39,12 @@ interface TranslationsDataPayload {
     inReview: number;
     pending: number;
   };
+  costSummary: {
+    totalUsd: number;
+    todayUsd: number;
+    byLocaleToday: Array<{ locale: string; costUsd: number }>;
+    daily: Array<{ date: string; costUsd: number }>;
+  };
   driftCount: number;
   filters: TranslationsFilterValues;
   error: string | null;
@@ -62,12 +68,19 @@ async function loadTranslations(
   filters: TranslationsFilterValues,
 ): Promise<TranslationsDataPayload> {
   const fallbackKpis = { total: 0, translated: 0, inDraft: 0, inReview: 0, pending: 0 };
+  const emptyCostSummary = {
+    totalUsd: 0,
+    todayUsd: 0,
+    byLocaleToday: [] as Array<{ locale: string; costUsd: number }>,
+    daily: [] as Array<{ date: string; costUsd: number }>,
+  };
   const empty: TranslationsDataPayload = {
     rows: [],
     coverageRows: [],
     coverageLocales: [],
     total: 0,
     kpis: fallbackKpis,
+    costSummary: emptyCostSummary,
     driftCount: 0,
     filters,
     error: null,
@@ -122,7 +135,7 @@ async function loadTranslations(
     let query = admin
       .from('seo_transcreation_jobs')
       .select(
-        'id,website_id,page_type,page_id,source_locale,target_locale,status,source_keyword,target_keyword,created_at,updated_at',
+        'id,website_id,page_type,page_id,source_locale,target_locale,status,source_keyword,target_keyword,payload_v2,created_at,updated_at',
       )
       .eq('website_id', websiteId)
       .order('updated_at', { ascending: false })
@@ -157,6 +170,7 @@ async function loadTranslations(
       status: string;
       source_keyword: string | null;
       target_keyword: string | null;
+      payload_v2: Record<string, unknown> | null;
       created_at: string;
       updated_at: string;
     }>;
@@ -225,6 +239,10 @@ async function loadTranslations(
       const pageIdKey = job.pageId ?? '';
       return {
         job,
+        payloadV2:
+          row.payload_v2 && typeof row.payload_v2 === 'object' && !Array.isArray(row.payload_v2)
+            ? row.payload_v2
+            : null,
         qaFindingCount: pageIdKey ? qaCountByPageId.get(pageIdKey) ?? 0 : 0,
         drift: pageIdKey ? driftPageIdSet.has(pageIdKey) : false,
       };
@@ -350,12 +368,67 @@ async function loadTranslations(
       (row) => row.job.status === 'draft' && row.qaFindingCount === 0,
     ).length;
 
+    const costSince = new Date();
+    costSince.setUTCDate(costSince.getUTCDate() - 30);
+    const { data: costRows } = await admin
+      .from('ai_cost_events')
+      .select('cost_usd,created_at,metadata')
+      .eq('website_id', websiteId)
+      .eq('feature', 'seo-transcreate')
+      .gte('created_at', costSince.toISOString())
+      .order('created_at', { ascending: false })
+      .limit(5000);
+
+    const nowIsoDay = new Date().toISOString().slice(0, 10);
+    const dailyMap = new Map<string, number>();
+    const localeTodayMap = new Map<string, number>();
+    let totalUsd = 0;
+    let todayUsd = 0;
+
+    for (const row of (costRows ?? []) as Array<{
+      cost_usd: number | string | null;
+      created_at: string;
+      metadata: Record<string, unknown> | null;
+    }>) {
+      const parsedCost = Number(row.cost_usd ?? 0);
+      if (!Number.isFinite(parsedCost) || parsedCost <= 0) continue;
+
+      const day = typeof row.created_at === 'string'
+        ? row.created_at.slice(0, 10)
+        : nowIsoDay;
+
+      totalUsd += parsedCost;
+      dailyMap.set(day, (dailyMap.get(day) ?? 0) + parsedCost);
+
+      if (day === nowIsoDay) {
+        todayUsd += parsedCost;
+        const localeRaw = row.metadata?.target_locale;
+        const locale = typeof localeRaw === 'string' && localeRaw.trim().length > 0
+          ? localeRaw
+          : 'unknown';
+        localeTodayMap.set(locale, (localeTodayMap.get(locale) ?? 0) + parsedCost);
+      }
+    }
+
+    const round = (value: number) => Number(value.toFixed(4));
+    const costSummary = {
+      totalUsd: round(totalUsd),
+      todayUsd: round(todayUsd),
+      byLocaleToday: Array.from(localeTodayMap.entries())
+        .map(([locale, costUsd]) => ({ locale, costUsd: round(costUsd) }))
+        .sort((a, b) => b.costUsd - a.costUsd),
+      daily: Array.from(dailyMap.entries())
+        .map(([date, costUsd]) => ({ date, costUsd: round(costUsd) }))
+        .sort((a, b) => a.date.localeCompare(b.date)),
+    };
+
     return {
       rows: filteredRows,
       coverageRows,
       coverageLocales: effectiveCoverageLocales,
       total: filteredRows.length,
       kpis,
+      costSummary,
       driftCount: rows.filter((row) => row.drift).length,
       filters,
       error: null,
@@ -392,6 +465,7 @@ export default async function TranslationsPage({
         coverageRows={payload.coverageRows}
         coverageLocales={payload.coverageLocales}
         kpis={payload.kpis}
+        costSummary={payload.costSummary}
         driftCount={payload.driftCount}
         filters={payload.filters}
       />

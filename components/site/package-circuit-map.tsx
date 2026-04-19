@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import { CircuitMap, type CircuitMapStop } from '@/components/site/circuit-map';
 import { trackEvent } from '@/lib/analytics/track';
+import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 
 /**
  * Public shape used by the package landing flow.
@@ -41,6 +42,7 @@ export function PackageCircuitMap({
   className = '',
   analyticsContext,
 }: PackageCircuitMapProps) {
+  const text = getPublicUiExtraTextGetter('es-CO');
   const orderedStops = useMemo(() => orderByDay(stops), [stops]);
 
   const circuitStops = useMemo<CircuitMapStop[]>(
@@ -61,7 +63,7 @@ export function PackageCircuitMap({
 
   return (
     <section className={className}>
-      <h2 className="text-2xl font-bold mb-4">Circuito del viaje</h2>
+      <h2 className="text-2xl font-bold mb-4">{text('packageCircuitMapTitle')}</h2>
       <CircuitMap
         stops={circuitStops}
         onPinClick={(index) => {

@@ -2,7 +2,13 @@ import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { test, expect, type Page } from '@playwright/test';
-import { getFirstWebsiteId, gotoWebsiteSection } from './helpers';
+import { getFirstWebsiteId, gotoWebsiteSection, seedWave2Fixtures } from './helpers';
+
+test.beforeAll(async () => {
+  // Wave2 seed — ensures package_kit + SEO items + Contenido rows exist so
+  // the conditional `test.skip(true, 'No rows ...')` branches stop firing.
+  await seedWave2Fixtures().catch(() => undefined);
+});
 
 type PackageSnapshot = {
   id: string;

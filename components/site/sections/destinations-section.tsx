@@ -7,6 +7,7 @@ import { useRef, MouseEvent } from 'react';
 import { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 import { useWebsiteLocale } from '@/lib/hooks/use-website-locale';
 import { buildEntityAlt } from '@/lib/utils/entity-alt';
+import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 
 interface DestinationsSectionProps {
   section: WebsiteSection;
@@ -62,6 +63,7 @@ function normalizeDestination(raw: Record<string, unknown>, index: number): Dest
 
 // Tilt Card Component with 3D effect
 function TiltCard({ destination, href, locale, agency }: { destination: Destination; href: string; locale: string; agency: string }) {
+  const text = getPublicUiExtraTextGetter(locale);
   const cardRef = useRef<HTMLDivElement>(null);
 
   const x = useMotionValue(0);
@@ -132,7 +134,7 @@ function TiltCard({ destination, href, locale, agency }: { destination: Destinat
             )}
             {destination.price && (
               <p className="mt-3 text-white font-semibold drop-shadow">
-                Desde <span className="text-lg">{destination.price}</span>
+                {text('sectionFrom')} <span className="text-lg">{destination.price}</span>
               </p>
             )}
           </div>
@@ -144,6 +146,7 @@ function TiltCard({ destination, href, locale, agency }: { destination: Destinat
 
 /** Card for marquee rows — image with overlay info */
 function MarqueeCard({ d, href, locale, agency }: { d: Destination; href: string; locale: string; agency: string }) {
+  const text = getPublicUiExtraTextGetter(locale);
   return (
     <Link href={href} className="block" aria-label={`Ver detalle de ${d.name}`}>
       <div
@@ -167,12 +170,12 @@ function MarqueeCard({ d, href, locale, agency }: { d: Destination; href: string
             <div className="flex items-center gap-2 mt-2">
               {d.activity_count !== undefined && d.activity_count > 0 && (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-white/15 backdrop-blur-sm text-white border border-white/10">
-                  {d.activity_count} actividades
+                  {d.activity_count} {text('sectionActivitiesWord')}
                 </span>
               )}
               {d.hotel_count !== undefined && d.hotel_count > 0 && (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-white/15 backdrop-blur-sm text-white border border-white/10">
-                  {d.hotel_count} paquetes
+                  {d.hotel_count} {text('sectionPackagesWord')}
                 </span>
               )}
             </div>
@@ -192,10 +195,11 @@ export function DestinationsSection({ section, website }: DestinationsSectionPro
   };
 
   const locale = useWebsiteLocale();
+  const text = getPublicUiExtraTextGetter(locale);
   const agency = website.content.siteName || '';
 
-  const title = sectionContent.title || 'Destinos Destacados';
-  const subtitle = sectionContent.subtitle || 'Descubre los lugares más increíbles';
+  const title = sectionContent.title || text('sectionDestinationsTitle');
+  const subtitle = sectionContent.subtitle || text('sectionDestinationsSubtitle');
   const rawDestinations = Array.isArray(sectionContent.destinations)
     ? sectionContent.destinations
     : [];
@@ -276,7 +280,7 @@ export function DestinationsSection({ section, website }: DestinationsSectionPro
                     )}
                     {destination.price && (
                       <p className="mt-3 text-white font-semibold">
-                        Desde <span className="text-lg">{destination.price}</span>
+                        {text('sectionFrom')} <span className="text-lg">{destination.price}</span>
                       </p>
                     )}
                   </div>
@@ -324,7 +328,7 @@ export function DestinationsSection({ section, website }: DestinationsSectionPro
                       {destination.name}
                     </h3>
                     {destination.price && index === 0 && (
-                      <p className="mt-2 text-white/90">Desde {destination.price}</p>
+                      <p className="mt-2 text-white/90">{text('sectionFrom')} {destination.price}</p>
                     )}
                   </div>
                 </motion.div>
@@ -364,7 +368,7 @@ export function DestinationsSection({ section, website }: DestinationsSectionPro
                   <div className="absolute bottom-0 left-0 right-0 p-5">
                     <h3 className="text-lg font-bold text-white">{destination.name}</h3>
                     {destination.price && (
-                      <p className="mt-1 text-white/80">Desde {destination.price}</p>
+                      <p className="mt-1 text-white/80">{text('sectionFrom')} {destination.price}</p>
                     )}
                   </div>
                 </Link>
@@ -419,7 +423,7 @@ export function DestinationsSection({ section, website }: DestinationsSectionPro
         {/* Empty state */}
         {destinations.length === 0 && (
           <div className="text-center py-16 text-muted-foreground">
-            <p>No hay destinos configurados</p>
+            <p>{text('sectionDestinationsNoData')}</p>
           </div>
         )}
 
@@ -435,7 +439,7 @@ export function DestinationsSection({ section, website }: DestinationsSectionPro
                 color: 'var(--text-heading)',
               }}
             >
-              Ver todos los destinos
+              {text('sectionDestinationsViewAll')}
             </Link>
           </div>
         )}

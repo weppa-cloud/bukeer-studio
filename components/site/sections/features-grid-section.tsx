@@ -1,6 +1,8 @@
 'use client';
 
 import { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
+import { useWebsiteLocale } from '@/lib/hooks/use-website-locale';
+import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 
 interface FeatureItem {
   icon: string;
@@ -39,8 +41,10 @@ const iconMap: Record<string, React.ReactNode> = {
 };
 
 export function FeaturesGridSection({ section }: FeaturesGridSectionProps) {
+  const locale = useWebsiteLocale();
+  const text = getPublicUiExtraTextGetter(locale);
   const content = (section.content as { title?: string; items?: FeatureItem[] } | null) || {};
-  const title = content.title || 'Nuestras Características';
+  const title = content.title || text('sectionFeaturesTitle');
   const items: FeatureItem[] = content.items || [];
 
   return (

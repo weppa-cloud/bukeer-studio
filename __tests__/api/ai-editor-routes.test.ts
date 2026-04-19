@@ -30,6 +30,7 @@ jest.mock('@bukeer/website-contract', () => ({
 import { getEditorAuth, hasEditorRole } from '@/lib/ai/auth-helpers';
 import { checkRateLimit, recordCost } from '@/lib/ai/rate-limit';
 import { generateObject, generateText } from 'ai';
+import { calculateCost } from '@/lib/ai/model-pricing';
 import { NextRequest } from 'next/server';
 
 // Helper to create mock NextRequest
@@ -146,7 +147,7 @@ describe('AI Editor Routes - Common Guards', () => {
       (checkRateLimit as jest.Mock).mockResolvedValue(mockRateOk);
       (generateObject as jest.Mock).mockResolvedValue({
         object: { title: 'Welcome', description: 'Travel with us' },
-        usage: { totalTokens: 100 },
+        usage: { totalTokens: 100, inputTokens: 80, outputTokens: 20 },
       });
 
       const response = await POST(
@@ -157,7 +158,13 @@ describe('AI Editor Routes - Common Guards', () => {
       expect(response.status).toBe(200);
       expect(data.data.content.title).toBe('Welcome');
       expect(data.data.sectionType).toBe('hero');
-      expect(recordCost).toHaveBeenCalledWith('a1', 0.003);
+      expect(recordCost).toHaveBeenCalledWith(
+        'a1',
+        calculateCost('mistralai/mistral-large', {
+          inputTokens: 80,
+          outputTokens: 20,
+        }),
+      );
     });
   });
 
@@ -213,7 +220,7 @@ describe('AI Editor Routes - Common Guards', () => {
             keywords: ['travel'],
           },
         },
-        usage: { totalTokens: 500 },
+        usage: { totalTokens: 500, inputTokens: 300, outputTokens: 200 },
       });
 
       const response = await POST(
@@ -223,7 +230,13 @@ describe('AI Editor Routes - Common Guards', () => {
 
       expect(response.status).toBe(200);
       expect(data.data.post.title).toBe('Top 10 Destinations');
-      expect(recordCost).toHaveBeenCalledWith('a1', 0.01);
+      expect(recordCost).toHaveBeenCalledWith(
+        'a1',
+        calculateCost('mistralai/mistral-large', {
+          inputTokens: 300,
+          outputTokens: 200,
+        }),
+      );
     });
   });
 

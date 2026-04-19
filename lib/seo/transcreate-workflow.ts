@@ -2,7 +2,7 @@ import type { SeoDecisionSource } from '@/lib/seo/content-intelligence';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/service-role';
 import {
   LOCALE_ADAPTATION_SCHEMA_VERSION_V2,
-  type LocaleAdaptationOutputEnvelopeV2,
+  type LocaleAdaptationOutputEnvelope,
   normalizeLocaleAdaptationOutputEnvelope,
 } from '@/lib/ai/prompts/locale-adaptation';
 import {
@@ -15,6 +15,23 @@ import {
 
 type TranscreatePageType = 'blog' | 'page' | 'destination' | 'hotel' | 'activity' | 'package' | 'transfer';
 type ProductPageType = Extract<TranscreatePageType, 'hotel' | 'activity' | 'package' | 'transfer'>;
+type TranscreatePayloadField =
+  | 'meta_title'
+  | 'meta_desc'
+  | 'slug'
+  | 'h1'
+  | 'keywords'
+  | 'body_content'
+  | 'description_long'
+  | 'highlights'
+  | 'faq'
+  | 'recommendations'
+  | 'cta_final_text'
+  | 'program_timeline'
+  | 'inclusions'
+  | 'exclusions'
+  | 'hero_subtitle'
+  | 'category_label';
 
 /**
  * Truth-field denylist — columns owned by truth tables (hotels, activities,
@@ -124,6 +141,8 @@ type SharedActionInput = {
 type ApplyActionInput = SharedActionInput & {
   accountId: string;
   preferredTargetContentId?: string | null;
+  fullContractEnabled?: boolean;
+  selectedFields?: TranscreatePayloadField[];
 };
 
 function failure(error: TranscreateActionError): TranscreateActionFailure {
@@ -188,7 +207,7 @@ function buildBodyContentCandidate(payload: Record<string, unknown>): Record<str
   };
 }
 
-function parseTranscreateEnvelope(job: TranscreateJobRow): LocaleAdaptationOutputEnvelopeV2 | null {
+function parseTranscreateEnvelope(job: TranscreateJobRow): LocaleAdaptationOutputEnvelope | null {
   const payload = isRecord(job.payload) ? job.payload : {};
   const payloadV2FromPayload = isRecord(payload.payload_v2) ? payload.payload_v2 : null;
   const payloadV2FromColumn = isRecord(job.payload_v2) ? job.payload_v2 : null;
@@ -219,36 +238,218 @@ function parseTranscreateEnvelope(job: TranscreateJobRow): LocaleAdaptationOutpu
   );
 }
 
-function buildApplyPayload(job: TranscreateJobRow): Record<string, unknown> | null {
+function buildApplyPayload(job: TranscreateJobRow, fullContractEnabled: boolean): Record<string, unknown> | null {
   const envelope = parseTranscreateEnvelope(job);
   if (!envelope) return null;
 
   const basePayload = isRecord(job.payload) ? job.payload : {};
-  const payloadV2 = envelope.payload_v2;
-  const nextPayload: Record<string, unknown> = {
-    ...basePayload,
-    schema_version: envelope.schema_version,
-    payload_v2: payloadV2,
-    meta_title: payloadV2.meta_title,
-    meta_desc: payloadV2.meta_desc,
-    slug: payloadV2.slug,
-    h1: payloadV2.h1,
-    keywords: payloadV2.keywords,
-    seoTitle: payloadV2.meta_title,
-    seoDescription: payloadV2.meta_desc,
-    title: payloadV2.h1,
-    targetKeyword: payloadV2.keywords[0] ?? null,
+  const payloadV2 = envelope.payload_v2 as Record<string, unknown>;
+  const keywords = Array.isArray(payloadV2.keywords) ? payloadV2.keywords : [];
+  const bodyContent = isRecord(payloadV2.body_content) ? payloadV2.body_content : undefined;
+  const compatPayloadV2 = {
+    meta_title: pickString(payloadV2.meta_title) ?? '',
+    meta_desc: pickString(payloadV2.meta_desc) ?? '',
+    slug: pickString(payloadV2.slug) ?? '',
+    h1: pickString(payloadV2.h1) ?? '',
+    keywords,
+    ...(bodyContent ? { body_content: bodyContent } : {}),
   };
 
-  if (payloadV2.body_content) {
-    nextPayload.body_content = payloadV2.body_content;
-    if (pickString(payloadV2.body_content.body)) nextPayload.body = payloadV2.body_content.body;
-    if (pickString(payloadV2.body_content.seo_intro)) nextPayload.seo_intro = payloadV2.body_content.seo_intro;
-    if (Array.isArray(payloadV2.body_content.seo_highlights)) nextPayload.seo_highlights = payloadV2.body_content.seo_highlights;
-    if (Array.isArray(payloadV2.body_content.seo_faq)) nextPayload.seo_faq = payloadV2.body_content.seo_faq;
+  const nextPayload: Record<string, unknown> = {
+    ...basePayload,
+    schema_version: fullContractEnabled ? envelope.schema_version : LOCALE_ADAPTATION_SCHEMA_VERSION_V2,
+    payload_v2: fullContractEnabled ? payloadV2 : compatPayloadV2,
+    meta_title: compatPayloadV2.meta_title,
+    meta_desc: compatPayloadV2.meta_desc,
+    slug: compatPayloadV2.slug,
+    h1: compatPayloadV2.h1,
+    keywords: compatPayloadV2.keywords,
+    seoTitle: compatPayloadV2.meta_title,
+    seoDescription: compatPayloadV2.meta_desc,
+    title: compatPayloadV2.h1,
+    targetKeyword: keywords[0] ?? null,
+  };
+
+  if (bodyContent) {
+    nextPayload.body_content = bodyContent;
+    if (pickString(bodyContent.body)) nextPayload.body = bodyContent.body;
+    if (pickString(bodyContent.seo_intro)) nextPayload.seo_intro = bodyContent.seo_intro;
+    if (Array.isArray(bodyContent.seo_highlights)) nextPayload.seo_highlights = bodyContent.seo_highlights;
+    if (Array.isArray(bodyContent.seo_faq)) nextPayload.seo_faq = bodyContent.seo_faq;
+  }
+
+  if (fullContractEnabled) {
+    if (pickString(payloadV2.description_long)) nextPayload.description_long = payloadV2.description_long;
+    if (Array.isArray(payloadV2.highlights)) nextPayload.highlights = payloadV2.highlights;
+    if (Array.isArray(payloadV2.faq)) nextPayload.faq = payloadV2.faq;
+    if (Array.isArray(payloadV2.recommendations)) nextPayload.recommendations = payloadV2.recommendations;
+    if (pickString(payloadV2.cta_final_text)) nextPayload.cta_final_text = payloadV2.cta_final_text;
+    if (Array.isArray(payloadV2.program_timeline)) nextPayload.program_timeline = payloadV2.program_timeline;
+    if (Array.isArray(payloadV2.inclusions)) nextPayload.inclusions = payloadV2.inclusions;
+    if (Array.isArray(payloadV2.exclusions)) nextPayload.exclusions = payloadV2.exclusions;
+    if (pickString(payloadV2.hero_subtitle)) nextPayload.hero_subtitle = payloadV2.hero_subtitle;
+    if (pickString(payloadV2.category_label)) nextPayload.category_label = payloadV2.category_label;
   }
 
   return nextPayload;
+}
+
+function projectApplyPayloadByFields(
+  payload: Record<string, unknown>,
+  selectedFields: TranscreatePayloadField[] | undefined,
+  fullContractEnabled: boolean,
+): Record<string, unknown> {
+  if (!selectedFields || selectedFields.length === 0) return payload;
+
+  const selectedSet = new Set(selectedFields);
+  const payloadV2 = isRecord(payload.payload_v2) ? payload.payload_v2 : null;
+  const projected: Record<string, unknown> = {};
+
+  if (typeof payload.schema_version === 'string') {
+    projected.schema_version = payload.schema_version;
+  }
+
+  if (payloadV2) {
+    const projectedV2: Record<string, unknown> = {};
+    for (const field of selectedSet) {
+      const value = payloadV2[field];
+      if (value !== undefined) {
+        projectedV2[field] = value;
+      }
+    }
+    if (Object.keys(projectedV2).length > 0) {
+      projected.payload_v2 = projectedV2;
+    }
+  }
+
+  if (selectedSet.has('meta_title')) {
+    const value = pickString(payloadV2?.meta_title) ?? pickString(payload.meta_title);
+    if (value) {
+      projected.meta_title = value;
+      projected.seoTitle = value;
+    }
+  }
+  if (selectedSet.has('meta_desc')) {
+    const value = pickString(payloadV2?.meta_desc) ?? pickString(payload.meta_desc);
+    if (value) {
+      projected.meta_desc = value;
+      projected.seoDescription = value;
+    }
+  }
+  if (selectedSet.has('slug')) {
+    const value = pickString(payloadV2?.slug) ?? pickString(payload.slug);
+    if (value) projected.slug = value;
+  }
+  if (selectedSet.has('h1')) {
+    const value = pickString(payloadV2?.h1) ?? pickString(payload.h1) ?? pickString(payload.title);
+    if (value) {
+      projected.h1 = value;
+      projected.title = value;
+    }
+  }
+  if (selectedSet.has('keywords')) {
+    const keywordsRaw = payloadV2?.keywords ?? payload.keywords;
+    if (Array.isArray(keywordsRaw)) {
+      const keywords = keywordsRaw.filter((entry): entry is string => typeof entry === 'string');
+      projected.keywords = keywords;
+      projected.targetKeyword = keywords[0] ?? null;
+    } else if (typeof keywordsRaw === 'string') {
+      const keyword = keywordsRaw.trim();
+      if (keyword.length > 0) {
+        projected.keywords = [keyword];
+        projected.targetKeyword = keyword;
+      }
+    }
+  }
+  if (selectedSet.has('body_content')) {
+    const bodyContent = isRecord(payloadV2?.body_content)
+      ? payloadV2.body_content
+      : isRecord(payload.body_content)
+        ? payload.body_content
+        : null;
+    if (bodyContent) {
+      projected.body_content = bodyContent;
+      const body = pickString(bodyContent.body);
+      const seoIntro = pickString(bodyContent.seo_intro);
+      if (body) projected.body = body;
+      if (seoIntro) projected.seo_intro = seoIntro;
+      if (Array.isArray(bodyContent.seo_highlights)) projected.seo_highlights = bodyContent.seo_highlights;
+      if (Array.isArray(bodyContent.seo_faq)) projected.seo_faq = bodyContent.seo_faq;
+    }
+  }
+
+  if (!fullContractEnabled) return projected;
+
+  if (selectedSet.has('description_long')) {
+    const value = pickString(payloadV2?.description_long) ?? pickString(payload.description_long);
+    if (value) projected.description_long = value;
+  }
+  if (selectedSet.has('highlights')) {
+    const value = payloadV2?.highlights ?? payload.highlights;
+    if (Array.isArray(value)) projected.highlights = value;
+  }
+  if (selectedSet.has('faq')) {
+    const value = payloadV2?.faq ?? payload.faq;
+    if (Array.isArray(value)) projected.faq = value;
+  }
+  if (selectedSet.has('recommendations')) {
+    const value = payloadV2?.recommendations ?? payload.recommendations;
+    if (Array.isArray(value)) projected.recommendations = value;
+  }
+  if (selectedSet.has('cta_final_text')) {
+    const value = pickString(payloadV2?.cta_final_text) ?? pickString(payload.cta_final_text);
+    if (value) projected.cta_final_text = value;
+  }
+  if (selectedSet.has('program_timeline')) {
+    const value = payloadV2?.program_timeline ?? payload.program_timeline;
+    if (Array.isArray(value)) projected.program_timeline = value;
+  }
+  if (selectedSet.has('inclusions')) {
+    const value = payloadV2?.inclusions ?? payload.inclusions;
+    if (Array.isArray(value)) projected.inclusions = value;
+  }
+  if (selectedSet.has('exclusions')) {
+    const value = payloadV2?.exclusions ?? payload.exclusions;
+    if (Array.isArray(value)) projected.exclusions = value;
+  }
+  if (selectedSet.has('hero_subtitle')) {
+    const value = pickString(payloadV2?.hero_subtitle) ?? pickString(payload.hero_subtitle);
+    if (value) {
+      projected.hero_subtitle = value;
+      projected.seo_intro = value;
+    }
+  }
+  if (selectedSet.has('category_label')) {
+    const value = pickString(payloadV2?.category_label) ?? pickString(payload.category_label);
+    if (value) projected.category_label = value;
+  }
+
+  return projected;
+}
+
+function buildBodyOverlayV2(payload: Record<string, unknown>, fullContractEnabled: boolean): Record<string, unknown> {
+  const overlay: Record<string, unknown> = {
+    ...(isRecord(payload.body_content) ? { body_content: payload.body_content } : {}),
+    ...(pickString(payload.body) ? { body: payload.body } : {}),
+    ...(pickString(payload.seo_intro) ? { seo_intro: payload.seo_intro } : {}),
+    ...(Array.isArray(payload.seo_highlights) ? { seo_highlights: payload.seo_highlights } : {}),
+    ...(Array.isArray(payload.seo_faq) ? { seo_faq: payload.seo_faq } : {}),
+  };
+
+  if (!fullContractEnabled) return overlay;
+
+  if (pickString(payload.description_long)) overlay.description_long = payload.description_long;
+  if (Array.isArray(payload.highlights)) overlay.highlights = payload.highlights;
+  if (Array.isArray(payload.faq)) overlay.faq = payload.faq;
+  if (Array.isArray(payload.recommendations)) overlay.recommendations = payload.recommendations;
+  if (pickString(payload.cta_final_text)) overlay.cta_final_text = payload.cta_final_text;
+  if (Array.isArray(payload.program_timeline)) overlay.program_timeline = payload.program_timeline;
+  if (Array.isArray(payload.inclusions)) overlay.inclusions = payload.inclusions;
+  if (Array.isArray(payload.exclusions)) overlay.exclusions = payload.exclusions;
+  if (pickString(payload.hero_subtitle)) overlay.hero_subtitle = payload.hero_subtitle;
+  if (pickString(payload.category_label)) overlay.category_label = payload.category_label;
+
+  return overlay;
 }
 
 function buildContentUpdates(pageType: 'blog' | 'page' | 'destination', payload: Record<string, unknown>) {
@@ -280,6 +481,7 @@ function buildProductOverlayPayload(input: {
   sourceMeta: SeoDecisionSource;
   payload: Record<string, unknown>;
   translationGroupId: string;
+  fullContractEnabled: boolean;
 }) {
   const row: Record<string, unknown> = {
     website_id: input.websiteId,
@@ -298,7 +500,8 @@ function buildProductOverlayPayload(input: {
   if (typeof input.payload.seo_intro === 'string') row.seo_intro = input.payload.seo_intro;
   if (Array.isArray(input.payload.seo_highlights)) row.seo_highlights = input.payload.seo_highlights;
   if (Array.isArray(input.payload.seo_faq)) row.seo_faq = input.payload.seo_faq;
-  if (isRecord(input.payload.body_content)) row.body_content = input.payload.body_content;
+  const bodyOverlay = buildBodyOverlayV2(input.payload, input.fullContractEnabled);
+  if (Object.keys(bodyOverlay).length > 0) row.body_content = bodyOverlay;
 
   return row;
 }
@@ -334,6 +537,7 @@ async function upsertVariantState(input: {
   status: 'reviewed' | 'applied';
   jobId: string;
   sourceMeta: SeoDecisionSource;
+  bodyOverlayV2?: Record<string, unknown> | null;
 }) {
   const payload: Record<string, unknown> = {
       website_id: input.websiteId,
@@ -352,6 +556,9 @@ async function upsertVariantState(input: {
   };
   if (input.targetContentId !== undefined) {
     payload.target_entity_id = input.targetContentId;
+  }
+  if (input.bodyOverlayV2 !== undefined) {
+    payload.body_overlay_v2 = input.bodyOverlayV2;
   }
 
   await input.admin
@@ -666,6 +873,15 @@ export async function reviewTranscreateJob(input: SharedActionInput): Promise<Tr
     });
   }
 
+  const envelope = parseTranscreateEnvelope(job);
+  if (!envelope) {
+    return failure({
+      code: 'VALIDATION_ERROR',
+      message: 'Transcreate payload failed schema validation before review transition.',
+      status: 422,
+    });
+  }
+
   const now = new Date().toISOString();
   const { data: updated, error } = await input.admin
     .from('seo_transcreation_jobs')
@@ -769,14 +985,16 @@ export async function applyTranscreateJob(input: ApplyActionInput): Promise<Tran
     });
   }
 
-  const payload = buildApplyPayload(job);
-  if (!payload) {
+  const fullContractEnabled = input.fullContractEnabled !== false;
+  const fullPayload = buildApplyPayload(job, fullContractEnabled);
+  if (!fullPayload) {
     return failure({
       code: 'VALIDATION_ERROR',
       message: 'Transcreate payload failed schema validation (schema_version + payload_v2 required).',
       status: 422,
     });
   }
+  const payload = projectApplyPayloadByFields(fullPayload, input.selectedFields, fullContractEnabled);
 
   // Truth-field guardrail: SEO transcreate may only write overlay columns.
   // Reject BEFORE any DB write if payload references a truth-table column.
@@ -908,6 +1126,7 @@ export async function applyTranscreateJob(input: ApplyActionInput): Promise<Tran
       sourceMeta: input.sourceMeta,
       payload,
       translationGroupId,
+      fullContractEnabled,
     });
     const { error } = await input.admin
       .from('website_product_pages')
@@ -961,6 +1180,7 @@ export async function applyTranscreateJob(input: ApplyActionInput): Promise<Tran
     status: 'applied',
     jobId: job.id,
     sourceMeta: input.sourceMeta,
+    bodyOverlayV2: buildBodyOverlayV2(payload, fullContractEnabled),
   });
 
   // Upsert applied segments into TM so future drafts can reuse them.

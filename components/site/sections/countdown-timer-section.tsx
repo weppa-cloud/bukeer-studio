@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 import { BlurFade } from '@/components/ui/blur-fade';
 import { Clock } from 'lucide-react';
+import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 
 interface CountdownTimerContent {
   title: string;
@@ -57,6 +58,7 @@ function TimeUnit({ value, label }: { value: number; label: string }) {
 }
 
 export function CountdownTimerSection({ section }: CountdownTimerSectionProps) {
+  const text = getPublicUiExtraTextGetter('es-CO');
   const content = (section.content as unknown as CountdownTimerContent | null) || {
     title: '',
     targetDate: new Date(Date.now() + 86400000 * 7).toISOString(),
@@ -113,7 +115,7 @@ export function CountdownTimerSection({ section }: CountdownTimerSectionProps) {
             {expired ? (
               <p className="text-white/80 text-sm">{fallbackText || 'Consulta disponibilidad para próximas fechas.'}</p>
             ) : (
-              <div className="flex items-center gap-4 md:gap-8" role="timer" aria-label="Cuenta regresiva">
+              <div className="flex items-center gap-4 md:gap-8" role="timer" aria-label={text('sectionCountdownTitle')}>
                 <TimeUnit value={timeLeft!.days} label="días" />
                 <span className="text-3xl font-bold text-white/50 -mt-3" aria-hidden>:</span>
                 <TimeUnit value={timeLeft!.hours} label="horas" />

@@ -33,6 +33,8 @@ const baseLead = {
   option_id: null,
   source: 'website_booking_form' as const,
   locale: 'es-CO',
+  consent_tos: true as const,
+  consent_privacy: true as const,
 };
 
 const baseBooking = {

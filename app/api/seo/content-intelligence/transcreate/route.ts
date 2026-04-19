@@ -10,6 +10,8 @@ import {
   withNoStoreHeaders,
 } from '@/lib/seo/content-intelligence';
 import {
+  LOCALE_ADAPTATION_SCHEMA_VERSION_V2,
+  type LocaleAdaptationOutputEnvelope,
   type LocaleAdaptationOutputEnvelopeV2,
   normalizeLocaleAdaptationOutputEnvelope,
 } from '@/lib/ai/prompts/locale-adaptation';
@@ -19,6 +21,7 @@ import {
   prepareDraftWithTM,
   reviewTranscreateJob,
 } from '@/lib/seo/transcreate-workflow';
+import { isTranscreateV2EnabledForLocale, resolveTranscreateV2Flag } from '@/lib/features/transcreate-v2';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -132,8 +135,42 @@ function buildReresearchDetails(input: {
   };
 }
 
-function mapAiOutputToDraft(aiOutput: LocaleAdaptationOutputEnvelopeV2): Record<string, unknown> {
-  const payload = aiOutput.payload_v2;
+function toCompatEnvelope(envelope: LocaleAdaptationOutputEnvelope): LocaleAdaptationOutputEnvelopeV2 {
+  if (envelope.schema_version === LOCALE_ADAPTATION_SCHEMA_VERSION_V2) {
+    return envelope as LocaleAdaptationOutputEnvelopeV2;
+  }
+
+  const payload = envelope.payload_v2 as Record<string, unknown>;
+  const bodyContent = (
+    payload.body_content && typeof payload.body_content === 'object' && !Array.isArray(payload.body_content)
+      ? payload.body_content
+      : {
+          ...(typeof payload.description_long === 'string' ? { body: payload.description_long } : {}),
+          ...(typeof payload.hero_subtitle === 'string' ? { seo_intro: payload.hero_subtitle } : {}),
+          ...(Array.isArray(payload.highlights) ? { seo_highlights: payload.highlights } : {}),
+          ...(Array.isArray(payload.faq) ? { seo_faq: payload.faq } : {}),
+        }
+  ) as Record<string, unknown>;
+
+  return {
+    schema_version: LOCALE_ADAPTATION_SCHEMA_VERSION_V2,
+    payload_v2: {
+      meta_title: String(payload.meta_title ?? ''),
+      meta_desc: String(payload.meta_desc ?? ''),
+      slug: String(payload.slug ?? ''),
+      h1: String(payload.h1 ?? ''),
+      keywords: Array.isArray(payload.keywords) ? payload.keywords : [],
+      ...(Object.keys(bodyContent).length > 0 ? { body_content: bodyContent } : {}),
+    },
+  };
+}
+
+function mapAiOutputToDraft(aiOutput: LocaleAdaptationOutputEnvelope): Record<string, unknown> {
+  const payload = aiOutput.payload_v2 as Record<string, unknown>;
+  const bodyContent =
+    payload.body_content && typeof payload.body_content === 'object' && !Array.isArray(payload.body_content)
+      ? (payload.body_content as Record<string, unknown>)
+      : null;
   return {
     schema_version: aiOutput.schema_version,
     payload_v2: payload,
@@ -143,16 +180,26 @@ function mapAiOutputToDraft(aiOutput: LocaleAdaptationOutputEnvelopeV2): Record<
     slug: payload.slug,
     h1: payload.h1,
     keywords: payload.keywords,
-    body_content: payload.body_content,
-    ...(payload.body_content?.body ? { body: payload.body_content.body } : {}),
-    ...(payload.body_content?.seo_intro ? { seo_intro: payload.body_content.seo_intro } : {}),
-    ...(payload.body_content?.seo_highlights ? { seo_highlights: payload.body_content.seo_highlights } : {}),
-    ...(payload.body_content?.seo_faq ? { seo_faq: payload.body_content.seo_faq } : {}),
+    body_content: bodyContent,
+    ...(bodyContent?.body ? { body: bodyContent.body } : {}),
+    ...(bodyContent?.seo_intro ? { seo_intro: bodyContent.seo_intro } : {}),
+    ...(bodyContent?.seo_highlights ? { seo_highlights: bodyContent.seo_highlights } : {}),
+    ...(bodyContent?.seo_faq ? { seo_faq: bodyContent.seo_faq } : {}),
+    ...(payload.description_long ? { description_long: payload.description_long } : {}),
+    ...(payload.highlights ? { highlights: payload.highlights } : {}),
+    ...(payload.faq ? { faq: payload.faq } : {}),
+    ...(payload.recommendations ? { recommendations: payload.recommendations } : {}),
+    ...(payload.cta_final_text ? { cta_final_text: payload.cta_final_text } : {}),
+    ...(payload.program_timeline ? { program_timeline: payload.program_timeline } : {}),
+    ...(payload.inclusions ? { inclusions: payload.inclusions } : {}),
+    ...(payload.exclusions ? { exclusions: payload.exclusions } : {}),
+    ...(payload.hero_subtitle ? { hero_subtitle: payload.hero_subtitle } : {}),
+    ...(payload.category_label ? { category_label: payload.category_label } : {}),
     // Legacy-compatible fields used by apply/review workflow.
-    seoTitle: payload.meta_title,
-    seoDescription: payload.meta_desc,
-    title: payload.h1,
-    targetKeyword: payload.keywords[0] ?? null,
+    seoTitle: typeof payload.meta_title === 'string' ? payload.meta_title : '',
+    seoDescription: typeof payload.meta_desc === 'string' ? payload.meta_desc : '',
+    title: typeof payload.h1 === 'string' ? payload.h1 : '',
+    targetKeyword: Array.isArray(payload.keywords) ? payload.keywords[0] ?? null : null,
   };
 }
 
@@ -181,18 +228,24 @@ export async function POST(request: NextRequest) {
     country: localeTupleRaw.country ?? parsed.data.country,
     language: localeTupleRaw.language ?? parsed.data.language,
   };
+  const transcreateFlag = await resolveTranscreateV2Flag(
+    admin,
+    parsed.data.websiteId,
+    localeTuple.target_locale,
+  );
+  const fullContractEnabled = isTranscreateV2EnabledForLocale(transcreateFlag);
 
   if (parsed.data.action === 'create_draft') {
     const draftSource = parsed.data.draftSource ?? 'manual';
     let draftPayload: Record<string, unknown> = { ...parsed.data.draft };
-    let normalizedEnvelope: LocaleAdaptationOutputEnvelopeV2 | null = null;
+    let normalizedEnvelope: LocaleAdaptationOutputEnvelope | null = null;
     let aiGenerated = false;
     let aiModel: string | null = null;
 
     if (draftSource === 'ai') {
       const aiEnvelopeCandidate = parsed.data.aiOutput
         ?? (
-          parsed.data.schemaVersion === '2.0' && parsed.data.payloadV2
+          parsed.data.schemaVersion && parsed.data.payloadV2
             ? {
                 schema_version: parsed.data.schemaVersion,
                 payload_v2: parsed.data.payloadV2,
@@ -211,6 +264,9 @@ export async function POST(request: NextRequest) {
             400,
           ),
         );
+      }
+      if (!fullContractEnabled) {
+        normalizedEnvelope = toCompatEnvelope(normalizedEnvelope);
       }
 
       const aiRateLimit = await checkTranscreateRateLimit(
@@ -238,7 +294,7 @@ export async function POST(request: NextRequest) {
       aiModel = parsed.data.aiModel ?? process.env.OPENROUTER_MODEL ?? null;
     }
 
-    if (!normalizedEnvelope && parsed.data.schemaVersion === '2.0' && parsed.data.payloadV2) {
+    if (!normalizedEnvelope && parsed.data.schemaVersion && parsed.data.payloadV2) {
       normalizedEnvelope = normalizeLocaleAdaptationOutputEnvelope(
         {
           schema_version: parsed.data.schemaVersion,
@@ -254,6 +310,9 @@ export async function POST(request: NextRequest) {
             400,
           ),
         );
+      }
+      if (!fullContractEnabled) {
+        normalizedEnvelope = toCompatEnvelope(normalizedEnvelope);
       }
       draftPayload = {
         ...draftPayload,
@@ -432,6 +491,7 @@ export async function POST(request: NextRequest) {
     actorUserId: access.userId,
     jobId: resolvedJobId,
     preferredTargetContentId: parsed.data.targetContentId ?? null,
+    fullContractEnabled,
   });
   if (!applied.ok) {
     const details =

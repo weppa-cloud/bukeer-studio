@@ -11,6 +11,7 @@ import { HOTEL_AMENITIES_MAX } from '@bukeer/website-contract';
 import type { ScheduleEntry } from '@bukeer/website-contract';
 import { ScheduleEntrySchema } from '@bukeer/website-contract';
 import { z } from 'zod';
+import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 
 export interface ItineraryItem {
   day_number?: number;
@@ -41,6 +42,8 @@ export interface ItineraryItem {
 interface ItineraryItemRendererProps {
   item: ItineraryItem;
 }
+
+const text = getPublicUiExtraTextGetter('es-CO');
 
 function parseScheduleData(raw: unknown[]): ScheduleEntry[] {
   const result = z.array(ScheduleEntrySchema).safeParse(raw);
@@ -90,7 +93,7 @@ function HotelVariant({ item }: { item: ItineraryItem }) {
           className="text-xs font-mono text-muted-foreground hover:text-primary transition-colors"
           aria-label={`Ver detalles del hotel ${item.title ?? ''}`}
         >
-          Ver hotel →
+          {text('itineraryViewHotel')}
         </Link>
       )}
       {item.description && (

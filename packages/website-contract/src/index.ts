@@ -269,9 +269,13 @@ export {
   SeoOptimizeRequestSchema,
   LocaleAdaptationBodyFaqItemSchema,
   LocaleAdaptationBodyContentSchema,
+  LocaleAdaptationTimelineItemSchema,
   LocaleAdaptationOutputSchemaV1,
   LocaleAdaptationOutputSchemaV2,
   LocaleAdaptationOutputEnvelopeSchemaV2,
+  LocaleAdaptationOutputSchemaV2_1,
+  LocaleAdaptationOutputEnvelopeSchemaV2_1,
+  LocaleAdaptationOutputEnvelopeSchema,
   SeoTranscreateRequestSchema,
   SeoTrackQuerySchema,
   SeoPageCatalogQuerySchema,
@@ -294,7 +298,10 @@ export type {
   SeoOptimizeRequest,
   LocaleAdaptationOutputV1,
   LocaleAdaptationOutputV2,
+  LocaleAdaptationOutputV2_1,
   LocaleAdaptationOutputEnvelopeV2,
+  LocaleAdaptationOutputEnvelopeV2_1,
+  LocaleAdaptationOutputEnvelope,
   SeoTranscreateRequest,
   SeoTrackQuery,
   SeoPageCatalogQuery,
@@ -309,6 +316,7 @@ export {
   TranslationsListQuerySchema,
   TranslationJobItemSchema,
   TranslationsListResponseSchema,
+  TranscreatePayloadFieldSchema,
   TranslationsBulkRequestSchema,
   TranslationsBulkResponseSchema,
   GlossaryItemSchema,
@@ -333,6 +341,7 @@ export type {
   TranslationsListQuery,
   TranslationJobItem,
   TranslationsListResponse,
+  TranscreatePayloadField,
   TranslationsBulkRequest,
   TranslationsBulkResponse,
   GlossaryItem,
@@ -400,6 +409,13 @@ export type {
 // AI-generated content schemas — F3 (#174)
 export { PackageAiHighlightsSchema } from './schemas/package-ai';
 export type { PackageAiHighlights } from './schemas/package-ai';
+
+// Package Kit slug contract (#210)
+export {
+  PACKAGE_KIT_SLUG_REGEX,
+  PackageKitSlugSchema,
+} from './schemas/package-kit';
+export type { PackageKitSlug } from './schemas/package-kit';
 
 // Studio Unified Product Editor — Phase 0 (#191)
 export {

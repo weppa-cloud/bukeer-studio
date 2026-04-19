@@ -7,6 +7,7 @@ import { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 import { MobileCardCarousel } from '@/components/ui/card-carousel';
 import { resolveAlt, type LocalizableAlt } from '@bukeer/website-contract';
 import { useWebsiteLocale } from '@/lib/hooks/use-website-locale';
+import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 
 interface ActivitiesSectionProps {
   section: WebsiteSection;
@@ -31,6 +32,7 @@ export interface ActivityItem {
 
 export function ActivitiesSection({ section, website }: ActivitiesSectionProps) {
   const locale = useWebsiteLocale();
+  const text = getPublicUiExtraTextGetter(locale);
   const variant = section.variant || 'default';
   const sectionContent = section.content as {
     title?: string;
@@ -38,7 +40,7 @@ export function ActivitiesSection({ section, website }: ActivitiesSectionProps) 
     activities?: ActivityItem[];
   };
 
-  const title = sectionContent.title || 'Actividades Destacadas';
+  const title = sectionContent.title || text('sectionActivitiesTitle');
   const subtitle = sectionContent.subtitle;
   const activities = sectionContent.activities || [];
 
@@ -54,7 +56,7 @@ export function ActivitiesSection({ section, website }: ActivitiesSectionProps) 
       }}
     >
       <div className="container">
-        <SectionHeading title={title} subtitle={subtitle} />
+        <SectionHeading title={title} subtitle={subtitle} locale={locale} />
 
         <MobileCardCarousel
           items={activities}
@@ -87,7 +89,7 @@ export function ActivitiesSection({ section, website }: ActivitiesSectionProps) 
               color: 'var(--text-heading)',
             }}
           >
-            Ver todas las actividades
+            {text('sectionActivitiesViewAll')}
           </Link>
         </div>
       </div>
@@ -95,7 +97,8 @@ export function ActivitiesSection({ section, website }: ActivitiesSectionProps) 
   );
 }
 
-function SectionHeading({ title, subtitle }: { title: string; subtitle?: string }) {
+function SectionHeading({ title, subtitle, locale }: { title: string; subtitle?: string; locale: string }) {
+  const text = getPublicUiExtraTextGetter(locale);
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -104,7 +107,7 @@ function SectionHeading({ title, subtitle }: { title: string; subtitle?: string 
       className="text-center mb-12"
     >
       <p className="font-mono text-xs tracking-[0.2em] uppercase mb-3" style={{ color: 'var(--accent)' }}>
-        Experiencias Curadas
+        {text('sectionActivitiesCurated')}
       </p>
       <h2 className="section-title" style={{ color: 'var(--text-heading)' }}>
         {title}
@@ -146,6 +149,7 @@ export function ActivityCard({
   locale: string;
   basePath?: string;
 }) {
+  const text = getPublicUiExtraTextGetter(locale);
   const base = overrideBasePath ?? `/site/${subdomain}`;
   const detailSlug = (activity.slug || '').trim();
   const detailHref = detailSlug
@@ -251,7 +255,7 @@ export function ActivityCard({
           {/* Footer: price left + duration right, CTA */}
           <div className="pt-4 flex items-end justify-between gap-4" style={{ borderTop: '1px solid var(--border-subtle)' }}>
             <div>
-              <p className="font-mono text-[11px] uppercase tracking-[0.16em]" style={{ color: 'var(--text-muted)' }}>Desde</p>
+              <p className="font-mono text-[11px] uppercase tracking-[0.16em]" style={{ color: 'var(--text-muted)' }}>{text('sectionFrom')}</p>
               <p className="product-price mt-1" style={{ color: 'var(--accent)' }}>
                 {activity.price || 'Consultar'}
               </p>
@@ -267,7 +271,7 @@ export function ActivityCard({
                 </span>
               )}
               <span className="inline-flex items-center gap-1 font-mono text-xs uppercase tracking-wider" style={{ color: 'var(--accent)' }}>
-                Ver actividad
+                {text('sectionViewActivity')}
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
                 </svg>

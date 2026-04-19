@@ -9,6 +9,7 @@ import { useWebsiteLocale } from '@/lib/hooks/use-website-locale';
 import { buildEntityAlt } from '@/lib/utils/entity-alt';
 import { SpotlightCard } from '@/components/ui/spotlight-card';
 import type { PlannerData } from '@/lib/supabase/get-planners';
+import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 
 function slugify(text: string): string {
   return text
@@ -93,10 +94,11 @@ export function PlannersSection({ section, website, dbPlanners }: PlannersSectio
     dbPlanners?: PlannerData[];
   };
 
-  const title = sectionContent.title || 'Nuestros Travel Planners';
-  const subtitle = sectionContent.subtitle || 'Expertos locales que disenan tu viaje ideal';
-  const eyebrow = sectionContent.eyebrow || 'Tu guia personal';
   const locale = useWebsiteLocale();
+  const text = getPublicUiExtraTextGetter(locale);
+  const title = sectionContent.title || text('sectionPlannersTitle');
+  const subtitle = sectionContent.subtitle || text('sectionPlannersSubtitle');
+  const eyebrow = sectionContent.eyebrow || text('sectionPlannersEyebrow');
   const agency = website.content.siteName || '';
   const whatsappBase = website.content.social?.whatsapp || '';
   const subdomain = website.subdomain;
@@ -228,7 +230,7 @@ export function PlannersSection({ section, website, dbPlanners }: PlannersSectio
                     className="flex-1 inline-flex items-center justify-center gap-1.5 text-sm font-medium"
                     style={{ color: 'var(--accent)' }}
                   >
-                    Ver perfil
+                    {text('sectionPlannersViewProfile')}
                     <svg className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                     </svg>

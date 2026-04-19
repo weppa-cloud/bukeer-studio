@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 import { BlurFade } from '@/components/ui/blur-fade';
+import { useWebsiteLocale } from '@/lib/hooks/use-website-locale';
+import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 
 interface FaqSectionProps {
   section: WebsiteSection;
@@ -11,6 +13,8 @@ interface FaqSectionProps {
 }
 
 export function FaqSection({ section }: FaqSectionProps) {
+  const locale = useWebsiteLocale();
+  const text = getPublicUiExtraTextGetter(locale);
   const [openIndex, setOpenIndex] = useState<number | null>(0);
   const sectionContent = section.content as {
     title?: string;
@@ -20,7 +24,7 @@ export function FaqSection({ section }: FaqSectionProps) {
     }>;
   };
 
-  const title = sectionContent.title || 'Preguntas Frecuentes';
+  const title = sectionContent.title || text('sectionFaqTitle');
   const faqs = sectionContent.faqs || [];
 
   return (

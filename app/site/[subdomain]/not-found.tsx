@@ -2,11 +2,17 @@
 
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, usePathname } from 'next/navigation';
+import { getPublicUiMessages, resolvePublicUiLocale } from '@/lib/site/public-ui-messages';
 
 export default function SiteNotFound() {
   const params = useParams<{ subdomain: string }>();
+  const pathname = usePathname();
   const basePath = `/site/${params?.subdomain ?? ''}`;
+  const pathParts = (pathname ?? '').split('/').filter(Boolean);
+  const localeToken = pathParts[2] ?? 'es-CO';
+  const locale = resolvePublicUiLocale(localeToken);
+  const messages = getPublicUiMessages(locale);
 
   return (
     <div className="min-h-[70vh] flex items-center justify-center px-6">
@@ -27,12 +33,11 @@ export default function SiteNotFound() {
         </motion.p>
 
         <h1 className="text-2xl md:text-3xl font-bold mb-3">
-          Página no encontrada
+          {messages.site404.title}
         </h1>
 
         <p className="text-muted-foreground mb-8 leading-relaxed">
-          Lo sentimos, la página que buscas no existe o fue movida.
-          Pero hay muchos destinos increíbles esperándote.
+          {messages.site404.body}
         </p>
 
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -43,13 +48,13 @@ export default function SiteNotFound() {
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0h4" />
             </svg>
-            Volver al inicio
+            {messages.site404.backHome}
           </Link>
           <Link
             href={`${basePath}/contacto`}
             className="inline-flex items-center justify-center gap-2 px-6 py-3 border border-border rounded-full font-medium text-muted-foreground hover:bg-muted transition-colors"
           >
-            Contáctanos
+            {messages.site404.contactUs}
           </Link>
         </div>
 

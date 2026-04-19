@@ -114,6 +114,40 @@ describe('generateBlogPostSchemas', () => {
     expect((article as any).inLanguage).toBe('pt');
   });
 
+  // Issue #208: request-scoped locale must win over post/website fallback.
+  describe('inLanguage request-locale override (#208)', () => {
+    it('uses resolvedLocale when supplied — wins over post.locale', () => {
+      const schemas = generateBlogPostSchemas(mockPostWithFAQ, mockWebsite, BASE_URL, 'en-US');
+      const article = schemas.find((s: any) => s['@type'] === 'BlogPosting');
+      expect((article as any).inLanguage).toBe('en-US');
+    });
+
+    it('uses resolvedLocale when supplied — wins over website.language', () => {
+      const websiteWithLanguage = { ...mockWebsite, language: 'es' } as WebsiteData;
+      const schemas = generateBlogPostSchemas(mockPostBasic, websiteWithLanguage, BASE_URL, 'en-US');
+      const article = schemas.find((s: any) => s['@type'] === 'BlogPosting');
+      expect((article as any).inLanguage).toBe('en-US');
+    });
+
+    it('falls back through post/website chain when resolvedLocale is malformed', () => {
+      const schemas = generateBlogPostSchemas(
+        mockPostWithFAQ,
+        mockWebsite,
+        BASE_URL,
+        'not-a-locale!',
+      );
+      const article = schemas.find((s: any) => s['@type'] === 'BlogPosting');
+      // Malformed request locale is rejected → post.locale ('es') wins.
+      expect((article as any).inLanguage).toBe('es');
+    });
+
+    it('falls back through the full chain when resolvedLocale is undefined', () => {
+      const schemas = generateBlogPostSchemas(mockPostBasic, mockWebsite, BASE_URL, undefined);
+      const article = schemas.find((s: any) => s['@type'] === 'BlogPosting');
+      expect((article as any).inLanguage).toBe('es-CO');
+    });
+  });
+
   it('uses updated_at for dateModified (F2 fix)', () => {
     const schemas = generateBlogPostSchemas(mockPostWithFAQ, mockWebsite, BASE_URL);
     const article = schemas.find((s: any) => s['@type'] === 'BlogPosting');

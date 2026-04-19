@@ -26,7 +26,7 @@ test.describe('Design Tab', () => {
   test('switch to brand kit section', async ({ page }) => {
     await gotoWebsiteSection(page, 'design');
     await page.getByRole('button', { name: 'Brand Kit' }).click();
-    await expect(page.getByRole('heading', { name: 'Logo' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Logo', exact: true }).first()).toBeVisible();
   });
 
   test('switch to market ux section', async ({ page }) => {

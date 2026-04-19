@@ -4,6 +4,7 @@ import { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 import { BlurFade } from '@/components/ui/blur-fade';
 import { Check, X } from 'lucide-react';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 
 interface ComparisonColumn {
   label: string;
@@ -27,12 +28,14 @@ interface ComparisonTableSectionProps {
   website: WebsiteData;
 }
 
+const text = getPublicUiExtraTextGetter('es-CO');
+
 function CellValue({ value, highlighted }: { value: string | boolean; highlighted?: boolean }) {
   if (typeof value === 'boolean') {
     return value ? (
-      <Check className={`w-5 h-5 mx-auto ${highlighted ? 'text-[var(--accent)]' : 'text-green-500'}`} aria-label="Incluido" />
+      <Check className={`w-5 h-5 mx-auto ${highlighted ? 'text-[var(--accent)]' : 'text-green-500'}`} aria-label={text('sectionComparisonIncluded')} />
     ) : (
-      <X className="w-5 h-5 mx-auto text-red-400" aria-label="No incluido" />
+      <X className="w-5 h-5 mx-auto text-red-400" aria-label={text('sectionComparisonNotIncluded')} />
     );
   }
   return (
@@ -47,7 +50,7 @@ export function ComparisonTableSection({ section }: ComparisonTableSectionProps)
   const { title, subtitle, columns = [], rows = [] } = content;
 
   return (
-    <section className="section-padding" aria-label="Comparativa">
+    <section className="section-padding" aria-label={text('sectionComparisonTitle')}>
       <div className="container">
         {(title || subtitle) && (
           <BlurFade delay={0} direction="up" duration={0.4}>
@@ -63,7 +66,7 @@ export function ComparisonTableSection({ section }: ComparisonTableSectionProps)
             <table className="w-full min-w-[560px] caption-bottom text-sm">
               <thead>
                 <tr className="border-b" style={{ borderColor: 'var(--border-subtle)' }}>
-                  <th className="px-4 py-3 text-left text-[var(--text-muted)] font-medium w-48">Características</th>
+                  <th className="px-4 py-3 text-left text-[var(--text-muted)] font-medium w-48">{text('sectionComparisonFeatures')}</th>
                   {columns.map((col, i) => (
                     <th
                       key={i}
@@ -74,7 +77,7 @@ export function ComparisonTableSection({ section }: ComparisonTableSectionProps)
                       }`}
                     >
                       {col.highlighted && (
-                        <span className="block text-xs font-normal text-[var(--accent)] mb-0.5">⭐ Bukeer</span>
+                        <span className="block text-xs font-normal text-[var(--accent)] mb-0.5">⭐ {text('sectionComparisonBukeer')}</span>
                       )}
                       {col.label}
                     </th>

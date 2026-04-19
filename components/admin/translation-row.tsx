@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useCompletion } from '@ai-sdk/react';
 import { useRouter } from 'next/navigation';
 import {
@@ -10,7 +10,10 @@ import {
   StudioTextarea,
 } from '@/components/studio/ui/primitives';
 import type { TranslationRowVM } from '@/components/admin/translations-dashboard';
-import { inferLocaleParts, parseLocaleAdaptationCompletion } from '@/lib/seo/transcreate-client';
+import {
+  inferLocaleParts,
+  parseLocaleAdaptationEnvelopeCompletion,
+} from '@/lib/seo/transcreate-client';
 
 interface TranslationRowProps {
   websiteId: string;
@@ -39,6 +42,57 @@ function labelToAction(label?: string): 'create_draft' | 'review' | 'apply' | nu
   return null;
 }
 
+const FIELD_DIFF_KEYS = [
+  'meta_title',
+  'meta_desc',
+  'slug',
+  'h1',
+  'keywords',
+  'description_long',
+  'highlights',
+  'faq',
+  'recommendations',
+  'cta_final_text',
+  'program_timeline',
+  'inclusions',
+  'exclusions',
+  'hero_subtitle',
+  'category_label',
+] as const;
+const JSON_ARRAY_FIELDS = new Set([
+  'highlights',
+  'faq',
+  'recommendations',
+  'program_timeline',
+  'inclusions',
+  'exclusions',
+  'keywords',
+]);
+
+function formatFieldValue(value: unknown): string {
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'string') return value;
+  return JSON.stringify(value, null, 2);
+}
+
+function parseEditedFieldValue(field: string, raw: string): unknown {
+  if (!JSON_ARRAY_FIELDS.has(field)) {
+    return raw.trim();
+  }
+
+  const trimmed = raw.trim();
+  if (!trimmed) return [];
+
+  if (field === 'keywords' && !trimmed.startsWith('[')) {
+    return trimmed
+      .split(',')
+      .map((entry) => entry.trim())
+      .filter(Boolean);
+  }
+
+  return JSON.parse(trimmed);
+}
+
 export function TranslationRow({
   websiteId,
   row,
@@ -53,6 +107,7 @@ export function TranslationRow({
   const [actionLoading, setActionLoading] = useState(false);
   const [persistingAi, setPersistingAi] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [fieldDraft, setFieldDraft] = useState<Record<string, string>>({});
 
   const {
     completion,
@@ -67,7 +122,46 @@ export function TranslationRow({
 
   const primaryAction = useMemo(() => labelToAction(primaryLabel), [primaryLabel]);
   const secondaryAction = useMemo(() => labelToAction(secondaryLabel), [secondaryLabel]);
+  const previewEnvelope = useMemo(
+    () =>
+      parseLocaleAdaptationEnvelopeCompletion(
+        completion,
+        job.targetKeyword || job.sourceKeyword || undefined,
+      ),
+    [completion, job.sourceKeyword, job.targetKeyword],
+  );
+  const previewFieldDiffs = useMemo(() => {
+    if (!previewEnvelope) return [];
+
+    return FIELD_DIFF_KEYS.map((key) => {
+      const currentRaw = (previewEnvelope.payload_v2 as Record<string, unknown>)[key];
+      const previousRaw = (row.payloadV2 as Record<string, unknown> | null)?.[key];
+      const current = formatFieldValue(currentRaw);
+      const previous = formatFieldValue(previousRaw);
+      const changed = current !== previous;
+      return {
+        key,
+        changed,
+        current,
+        previous,
+        currentLength: current.length,
+      };
+    }).filter((entry) => entry.current.length > 0 || entry.previous.length > 0);
+  }, [previewEnvelope, row.payloadV2]);
   const isBusy = actionLoading || generatingAi || persistingAi;
+
+  useEffect(() => {
+    if (previewFieldDiffs.length === 0) return;
+    setFieldDraft((prev) => {
+      const next = { ...prev };
+      for (const entry of previewFieldDiffs) {
+        if (typeof next[entry.key] !== 'string') {
+          next[entry.key] = entry.current;
+        }
+      }
+      return next;
+    });
+  }, [previewFieldDiffs]);
 
   const handleToggle = useCallback(() => {
     onToggle(job.id);
@@ -152,16 +246,16 @@ export function TranslationRow({
         return;
       }
 
-      const parsed = parseLocaleAdaptationCompletion(
+      const envelope = parseLocaleAdaptationEnvelopeCompletion(
         completionText,
         job.targetKeyword || job.sourceKeyword || undefined,
       );
-      if (!parsed) {
+      if (!envelope) {
         setLocalError('La respuesta de IA no cumple el contrato esperado.');
         return;
       }
 
-      setCompletion(JSON.stringify(parsed, null, 2));
+      setCompletion(JSON.stringify(envelope, null, 2));
       setPersistingAi(true);
 
       const response = await fetch('/api/seo/content-intelligence/transcreate', {
@@ -180,11 +274,11 @@ export function TranslationRow({
             targetKeyword: job.targetKeyword || job.sourceKeyword || undefined,
             draftSource: 'ai',
             aiOutput: {
-              schema_version: '2.0',
-              payload_v2: parsed,
+              schema_version: envelope.schema_version,
+              payload_v2: envelope.payload_v2,
             },
-            schemaVersion: '2.0',
-            payloadV2: parsed,
+            schemaVersion: envelope.schema_version,
+            payloadV2: envelope.payload_v2,
             aiModel: 'openrouter',
             draft: {},
           }),
@@ -213,6 +307,80 @@ export function TranslationRow({
     job.targetLocale,
     router,
     setCompletion,
+    websiteId,
+  ]);
+
+  const handleSaveFieldEditorDraft = useCallback(async () => {
+    if (!previewEnvelope || !job.pageId) {
+      setLocalError('No hay preview válido para guardar.');
+      return;
+    }
+
+    const payload = { ...(previewEnvelope.payload_v2 as Record<string, unknown>) };
+    try {
+      for (const entry of previewFieldDiffs) {
+        const editedValue = fieldDraft[entry.key] ?? entry.current;
+        payload[entry.key] = parseEditedFieldValue(entry.key, editedValue);
+      }
+    } catch {
+      setLocalError('Uno o más campos JSON no tienen formato válido.');
+      return;
+    }
+
+    const { country, language } = inferLocaleParts(job.targetLocale);
+    setPersistingAi(true);
+    setLocalError(null);
+    try {
+      const response = await fetch('/api/seo/content-intelligence/transcreate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'create_draft',
+          websiteId,
+          sourceContentId: job.pageId,
+          pageType: job.pageType,
+          sourceLocale: job.sourceLocale,
+          targetLocale: job.targetLocale,
+          country,
+          language,
+          sourceKeyword: job.sourceKeyword || undefined,
+          targetKeyword: job.targetKeyword || job.sourceKeyword || undefined,
+          draftSource: 'ai',
+          aiOutput: {
+            schema_version: previewEnvelope.schema_version,
+            payload_v2: payload,
+          },
+          schemaVersion: previewEnvelope.schema_version,
+          payloadV2: payload,
+          aiModel: 'openrouter',
+          draft: {},
+        }),
+      });
+
+      const body = (await response.json().catch(() => ({}))) as {
+        success?: boolean;
+        error?: { message?: string };
+      };
+      if (!response.ok || !body.success) {
+        throw new Error(body.error?.message || 'No se pudo guardar el draft editado.');
+      }
+      router.refresh();
+    } catch (error) {
+      setLocalError(error instanceof Error ? error.message : 'No se pudo guardar el draft editado.');
+    } finally {
+      setPersistingAi(false);
+    }
+  }, [
+    fieldDraft,
+    job.pageId,
+    job.pageType,
+    job.sourceKeyword,
+    job.sourceLocale,
+    job.targetKeyword,
+    job.targetLocale,
+    previewEnvelope,
+    previewFieldDiffs,
+    router,
     websiteId,
   ]);
 
@@ -313,6 +481,57 @@ export function TranslationRow({
             ) : null}
             {localError ? (
               <p className="text-xs text-[var(--studio-danger)]">{localError}</p>
+            ) : null}
+            {previewFieldDiffs.length > 0 ? (
+              <div className="space-y-2 rounded-md border border-[var(--studio-border)] p-2">
+                <p className="text-xs font-medium text-[var(--studio-text)]">
+                  Field preview and diff (vs previous payload)
+                </p>
+                <div className="space-y-1.5">
+                  {previewFieldDiffs.map((entry) => (
+                    <div
+                      key={entry.key}
+                      className="rounded border border-[var(--studio-border)] p-2 text-xs"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="font-mono text-[11px]">{entry.key}</span>
+                        <div className="flex items-center gap-2">
+                          <StudioBadge tone={entry.changed ? 'warning' : 'success'}>
+                            {entry.changed ? 'changed' : 'same'}
+                          </StudioBadge>
+                          <span className="text-[var(--studio-text-muted)]">
+                            {(fieldDraft[entry.key] ?? entry.current).length} chars
+                          </span>
+                        </div>
+                      </div>
+                      {entry.changed && entry.previous.length > 0 ? (
+                        <p className="mt-1 whitespace-pre-wrap text-[var(--studio-text-muted)]">
+                          prev: {entry.previous}
+                        </p>
+                      ) : null}
+                      <StudioTextarea
+                        value={fieldDraft[entry.key] ?? entry.current}
+                        rows={Math.min(8, Math.max(2, (fieldDraft[entry.key] ?? entry.current).split('\n').length))}
+                        onChange={(event) =>
+                          setFieldDraft((prev) => ({ ...prev, [entry.key]: event.target.value }))
+                        }
+                        className="mt-1 font-mono text-xs"
+                        aria-label={`Editor ${entry.key}`}
+                      />
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-center justify-end gap-2">
+                  <StudioButton
+                    size="sm"
+                    variant="outline"
+                    onClick={() => void handleSaveFieldEditorDraft()}
+                    disabled={isBusy || !previewEnvelope}
+                  >
+                    Guardar draft editado
+                  </StudioButton>
+                </div>
+              </div>
             ) : null}
           </td>
         </tr>

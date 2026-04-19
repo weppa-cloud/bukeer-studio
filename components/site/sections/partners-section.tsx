@@ -3,6 +3,8 @@
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 import { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
+import { useWebsiteLocale } from '@/lib/hooks/use-website-locale';
+import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 
 interface PartnersSectionProps {
   section: WebsiteSection;
@@ -10,6 +12,8 @@ interface PartnersSectionProps {
 }
 
 export function PartnersSection({ section }: PartnersSectionProps) {
+  const locale = useWebsiteLocale();
+  const text = getPublicUiExtraTextGetter(locale);
   const variant = section.variant || 'marquee';
   const sectionContent = section.content as {
     title?: string;
@@ -20,7 +24,7 @@ export function PartnersSection({ section }: PartnersSectionProps) {
     }>;
   };
 
-  const title = sectionContent.title || 'Nuestros Partners';
+  const title = sectionContent.title || text('sectionPartnersTitle');
   const partners = sectionContent.partners || [];
 
   return (
