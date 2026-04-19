@@ -39,7 +39,7 @@ export function HotelsSection({ section, website }: HotelsSectionProps) {
   };
 
   const variant = section.variant || 'default';
-  const title = sectionContent.title || 'Hoteles Recomendados';
+  const title = sectionContent.title || text('sectionHotelsTitle');
   const subtitle = sectionContent.subtitle;
   const hotels = sectionContent.hotels || [];
 

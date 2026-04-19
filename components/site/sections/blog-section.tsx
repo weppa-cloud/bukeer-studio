@@ -36,7 +36,7 @@ export function BlogSection({ section, website }: BlogSectionProps) {
   const agency = website.content.siteName || '';
 
   const variant = section.variant || 'default';
-  const title = sectionContent.title || 'Últimas del Blog';
+  const title = sectionContent.title || text('sectionBlogTitle');
   const posts = sectionContent.posts || [];
 
   if (variant === 'showcase') {

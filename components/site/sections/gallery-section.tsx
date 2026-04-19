@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 import { resolveAlt, type LocalizableAlt } from '@bukeer/website-contract';
 import { useWebsiteLocale } from '@/lib/hooks/use-website-locale';
+import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 
 interface GalleryImage {
   url: string;
@@ -39,11 +40,12 @@ function ImagePlaceholder() {
 
 export function GallerySection({ section }: GallerySectionProps) {
   const locale = useWebsiteLocale();
+  const text = getPublicUiExtraTextGetter(locale);
   const content = (section.content as {
     title?: string;
     images?: GalleryImage[];
   } | null) || {};
-  const title = content.title || 'Galería';
+  const title = content.title || text('sectionGalleryTitle');
   const images: GalleryImage[] = content.images || [];
   const variant = section.variant || 'grid';
 

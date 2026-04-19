@@ -43,13 +43,14 @@ export function PackagesSection({ section, website }: PackagesSectionProps) {
   };
 
   const variant = section.variant || 'default';
-  const title = sectionContent.title || 'Paquetes de Viaje';
+  const title = sectionContent.title || text('sectionPackagesTitle');
   const subtitle = sectionContent.subtitle;
-  const eyebrow = sectionContent.eyebrow || 'Experiencias Curadas';
+  const eyebrow = sectionContent.eyebrow || text('sectionPackagesEyebrow');
   const packages = useMemo(() => sectionContent.packages ?? [], [sectionContent.packages]);
+  const allDestinationsLabel = text('sectionFilterAll');
 
   // Destination filter state
-  const [activeDestination, setActiveDestination] = useState<string>('Todos');
+  const [activeDestination, setActiveDestination] = useState<string>(allDestinationsLabel);
 
   const uniqueDestinations = useMemo(() => {
     const destinations = packages
@@ -61,9 +62,9 @@ export function PackagesSection({ section, website }: PackagesSectionProps) {
   const showFilter = uniqueDestinations.length >= 2;
 
   const filteredPackages = useMemo(() => {
-    if (activeDestination === 'Todos') return packages;
+    if (activeDestination === allDestinationsLabel) return packages;
     return packages.filter((pkg) => pkg.destination === activeDestination);
-  }, [packages, activeDestination]);
+  }, [packages, activeDestination, allDestinationsLabel]);
 
   if (packages.length === 0) return null;
 
@@ -76,6 +77,7 @@ export function PackagesSection({ section, website }: PackagesSectionProps) {
           {showFilter && (
             <DestinationFilter
               destinations={uniqueDestinations}
+              allLabel={allDestinationsLabel}
               active={activeDestination}
               onSelect={setActiveDestination}
             />
@@ -121,6 +123,7 @@ export function PackagesSection({ section, website }: PackagesSectionProps) {
         {showFilter && (
           <DestinationFilter
             destinations={uniqueDestinations}
+            allLabel={allDestinationsLabel}
             active={activeDestination}
             onSelect={setActiveDestination}
           />
@@ -152,14 +155,16 @@ export function PackagesSection({ section, website }: PackagesSectionProps) {
 
 function DestinationFilter({
   destinations,
+  allLabel,
   active,
   onSelect,
 }: {
   destinations: string[];
+  allLabel: string;
   active: string;
   onSelect: (dest: string) => void;
 }) {
-  const all = ['Todos', ...destinations];
+  const all = [allLabel, ...destinations];
   return (
     <div className="mb-8 flex gap-2 overflow-x-auto pb-2 scrollbar-none -mx-4 px-4 md:mx-0 md:px-0 md:justify-center md:flex-wrap">
       {all.map((dest) => (

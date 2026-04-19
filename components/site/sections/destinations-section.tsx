@@ -198,8 +198,8 @@ export function DestinationsSection({ section, website }: DestinationsSectionPro
   const text = getPublicUiExtraTextGetter(locale);
   const agency = website.content.siteName || '';
 
-  const title = sectionContent.title || 'Destinos Destacados';
-  const subtitle = sectionContent.subtitle || 'Descubre los lugares más increíbles';
+  const title = sectionContent.title || text('sectionDestinationsTitle');
+  const subtitle = sectionContent.subtitle || text('sectionDestinationsSubtitle');
   const rawDestinations = Array.isArray(sectionContent.destinations)
     ? sectionContent.destinations
     : [];

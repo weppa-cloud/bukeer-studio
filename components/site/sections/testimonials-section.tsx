@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 import { MobileCardCarousel } from '@/components/ui/card-carousel';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
+import { useWebsiteLocale } from '@/lib/hooks/use-website-locale';
 
 interface TestimonialsSectionProps {
   section: WebsiteSection;
@@ -28,8 +29,8 @@ const getAvatarColor = (name: string): string => {
 };
 
 // Google "G" logo SVG — used as source badge
-const GoogleLogo = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-label={text('googleLabel')}>
+const GoogleLogo = ({ ariaLabel }: { ariaLabel: string }) => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-label={ariaLabel}>
     <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
     <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
     <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
@@ -39,7 +40,6 @@ const GoogleLogo = () => (
 
 // Star path for reuse
 const STAR_PATH = 'M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z';
-const text = getPublicUiExtraTextGetter('es-CO');
 
 type TestimonialItem = {
   id?: string;
@@ -57,7 +57,8 @@ type TestimonialItem = {
 
 // ─── Testimonial Card ─────────────────────────────────────────────────────────
 
-const TestimonialCard = ({ testimonial }: { testimonial: TestimonialItem }) => {
+const TestimonialCard = ({ testimonial, locale }: { testimonial: TestimonialItem; locale: string }) => {
+  const text = getPublicUiExtraTextGetter(locale);
   const quoteText = testimonial.text || testimonial.content || '';
   const rating = testimonial.rating || 5;
   const avatarColor = getAvatarColor(testimonial.name);
@@ -118,7 +119,7 @@ const TestimonialCard = ({ testimonial }: { testimonial: TestimonialItem }) => {
         {/* Source badge — top-right corner */}
         {isGoogle && (
           <div className="flex-shrink-0 mt-0.5">
-            <GoogleLogo />
+            <GoogleLogo ariaLabel={text('googleLabel')} />
           </div>
         )}
       </div>
@@ -181,6 +182,8 @@ const TestimonialCard = ({ testimonial }: { testimonial: TestimonialItem }) => {
 };
 
 export function TestimonialsSection({ section, website }: TestimonialsSectionProps) {
+  const locale = useWebsiteLocale();
+  const text = getPublicUiExtraTextGetter(locale);
   const rawVariant = section.variant || 'grid';
   const [mounted, setMounted] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -212,7 +215,7 @@ export function TestimonialsSection({ section, website }: TestimonialsSectionPro
     reviews?: TestimonialItem[];
   };
 
-  const title = sectionContent.title || 'Lo que dicen nuestros viajeros';
+  const title = sectionContent.title || text('sectionTestimonialsMainTitle');
   const testimonials = sectionContent.testimonials || sectionContent.items || sectionContent.reviews || [];
   const isGoogle = sectionContent.source === 'google_reviews';
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -270,10 +273,10 @@ export function TestimonialsSection({ section, website }: TestimonialsSectionPro
                   className="inline-flex items-center gap-1 text-sm font-medium hover:underline"
                   aria-label={text('sectionTestimonialsViewGoogle')}
                 >
-                  <GoogleLogo />
+                  <GoogleLogo ariaLabel={text('googleLabel')} />
                 </a>
               ) : (
-                <GoogleLogo />
+                <GoogleLogo ariaLabel={text('googleLabel')} />
               )}
             </div>
           )}
@@ -307,7 +310,7 @@ export function TestimonialsSection({ section, website }: TestimonialsSectionPro
               >
                 {[...row1, ...row1, ...row1].map((testimonial, index) => (
                   <div key={`row1-${index}`} className="flex-none w-72 md:w-96 h-full">
-                    <TestimonialCard testimonial={testimonial} />
+                    <TestimonialCard testimonial={testimonial} locale={locale} />
                   </div>
                 ))}
               </motion.div>
@@ -329,7 +332,7 @@ export function TestimonialsSection({ section, website }: TestimonialsSectionPro
                 >
                   {[...row2, ...row2, ...row2].map((testimonial, index) => (
                     <div key={`row2-${index}`} className="flex-none w-72 md:w-96 h-full">
-                      <TestimonialCard testimonial={testimonial} />
+                      <TestimonialCard testimonial={testimonial} locale={locale} />
                     </div>
                   ))}
                 </motion.div>
@@ -346,7 +349,7 @@ export function TestimonialsSection({ section, website }: TestimonialsSectionPro
             ariaLabel="Carrusel de testimonios"
             getItemKey={(t, i) => t.id || `testimonial-${i}`}
             itemWidthClassName="w-[85vw] max-w-[340px]"
-            renderItem={(testimonial) => <TestimonialCard testimonial={testimonial} />}
+            renderItem={(testimonial) => <TestimonialCard testimonial={testimonial} locale={locale} />}
           />
         )}
 
@@ -361,7 +364,7 @@ export function TestimonialsSection({ section, website }: TestimonialsSectionPro
                 viewport={{ once: true }}
                 transition={{ delay: Math.min(index * 0.08, 0.4) }}
               >
-                <TestimonialCard testimonial={testimonial} />
+                <TestimonialCard testimonial={testimonial} locale={locale} />
               </motion.div>
             ))}
           </div>
@@ -372,7 +375,7 @@ export function TestimonialsSection({ section, website }: TestimonialsSectionPro
 
         {/* Crossfade variant — single testimonial with auto-advance + progress bar */}
         {variant === 'crossfade' && testimonials.length > 0 && (
-          <CrossfadeTestimonials testimonials={testimonials} />
+          <CrossfadeTestimonials testimonials={testimonials} locale={locale} />
         )}
       </div>
     </div>
@@ -380,7 +383,14 @@ export function TestimonialsSection({ section, website }: TestimonialsSectionPro
 }
 
 // Crossfade Testimonials Component — single card with auto-rotate + progress bar
-const CrossfadeTestimonials = ({ testimonials }: { testimonials: TestimonialItem[] }) => {
+const CrossfadeTestimonials = ({
+  testimonials,
+  locale,
+}: {
+  testimonials: TestimonialItem[];
+  locale: string;
+}) => {
+  const text = getPublicUiExtraTextGetter(locale);
   const [active, setActive] = useState(0);
   const [paused, setPaused] = useState(false);
 

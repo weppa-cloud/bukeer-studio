@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
+import { useWebsiteLocale } from '@/lib/hooks/use-website-locale';
 
 interface NewsletterSectionProps {
   section: WebsiteSection;
@@ -10,15 +11,16 @@ interface NewsletterSectionProps {
 }
 
 export function NewsletterSection({ section }: NewsletterSectionProps) {
-  const text = getPublicUiExtraTextGetter('es-CO');
+  const locale = useWebsiteLocale();
+  const text = getPublicUiExtraTextGetter(locale);
   const content = (section.content as {
     title?: string;
     subtitle?: string;
     buttonText?: string;
   } | null) || {};
-  const title = content.title || 'Suscríbete a nuestro newsletter';
-  const subtitle = content.subtitle || 'Recibe ofertas exclusivas y novedades';
-  const buttonText = content.buttonText || 'Suscribirme';
+  const title = content.title || text('sectionNewsletterTitle');
+  const subtitle = content.subtitle || text('sectionNewsletterSubtitle');
+  const buttonText = content.buttonText || text('sectionNewsletterButton');
 
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -60,7 +62,7 @@ export function NewsletterSection({ section }: NewsletterSectionProps) {
               disabled={isSubmitting}
               className="px-6 py-3 bg-primary-foreground text-primary rounded-lg font-semibold hover:bg-primary-foreground/90 transition-colors disabled:opacity-50"
             >
-              {isSubmitting ? 'Enviando...' : buttonText}
+              {isSubmitting ? text('sectionNewsletterSending') : buttonText}
             </button>
           </form>
 

@@ -94,11 +94,11 @@ export function PlannersSection({ section, website, dbPlanners }: PlannersSectio
     dbPlanners?: PlannerData[];
   };
 
-  const title = sectionContent.title || 'Nuestros Travel Planners';
-  const subtitle = sectionContent.subtitle || 'Expertos locales que disenan tu viaje ideal';
-  const eyebrow = sectionContent.eyebrow || 'Tu guia personal';
   const locale = useWebsiteLocale();
   const text = getPublicUiExtraTextGetter(locale);
+  const title = sectionContent.title || text('sectionPlannersTitle');
+  const subtitle = sectionContent.subtitle || text('sectionPlannersSubtitle');
+  const eyebrow = sectionContent.eyebrow || text('sectionPlannersEyebrow');
   const agency = website.content.siteName || '';
   const whatsappBase = website.content.social?.whatsapp || '';
   const subdomain = website.subdomain;

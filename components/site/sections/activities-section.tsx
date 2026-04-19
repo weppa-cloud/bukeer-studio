@@ -40,7 +40,7 @@ export function ActivitiesSection({ section, website }: ActivitiesSectionProps) 
     activities?: ActivityItem[];
   };
 
-  const title = sectionContent.title || 'Actividades Destacadas';
+  const title = sectionContent.title || text('sectionActivitiesTitle');
   const subtitle = sectionContent.subtitle;
   const activities = sectionContent.activities || [];
 
