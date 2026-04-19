@@ -4,7 +4,7 @@
 >
 > **Convention:** `[[ADR-XXX]]` or `[[SPEC_NAME]]` = wikilink resolved below. `[text](path.md)` = regular markdown link. Both coexist.
 
-Last updated: 2026-04-19 (EPIC #190 certification rerun evidence); 2026-04-18 (EPIC #190 certification run evidence + checklist); 2026-04-17 (WIKI full-refresh + #103 media closure checklist); 2026-04-17 wiki-patch (epic128 evidence + issue resolution rows)
+Last updated: 2026-04-19 (EPIC #214 Stage 0 — ADR-024 + ADR-025 skeletons + pilot-readiness-deps); 2026-04-19 (EPIC #190 certification rerun evidence); 2026-04-18 (EPIC #190 certification run evidence + checklist); 2026-04-17 (WIKI full-refresh + #103 media closure checklist); 2026-04-17 wiki-patch (epic128 evidence + issue resolution rows)
 
 ---
 
@@ -59,6 +59,8 @@ All ADRs accepted unless noted. Cross-cut by Principles P1–P10 (see [[ARCHITEC
 | [[ADR-020]] | [ADR-020](./architecture/ADR-020-hreflang-emission-policy.md) | hreflang Emission Policy and x-default Strategy | [[SEO]] [[hreflang]] [[multi-locale]] [[sitemap]] |
 | [[ADR-021]] | [ADR-021](./architecture/ADR-021-translation-memory-transcreation-pipeline.md) | Translation Memory + AI Transcreation Pipeline | [[translation]] [[TM]] [[AI]] [[transcreation]] [[multi-locale]] |
 | [[ADR-023]] | [ADR-023](./architecture/ADR-023-qa-tooling-studio-editor.md) | QA Tooling: Playwright Component Testing + Visual Regression | [[testing]] [[CT]] [[visual-regression]] [[quality-gate]] |
+| [[ADR-024]] | [ADR-024](./architecture/ADR-024-booking-v1-pilot-scope.md) | Booking V1 Pilot Scope (Proposed — W3 decision meeting) | [[booking]] [[pilot-readiness]] [[leads]] |
+| [[ADR-025]] | [ADR-025](./architecture/ADR-025-studio-flutter-field-ownership.md) | Studio / Flutter Field Ownership Boundary (Proposed — W2 PR) | [[studio-editor-v2]] [[package-kits]] [[pilot-readiness]] |
 
 > **Note:** `ADR-022` and `ADR-032` referenced in specs are anchored in `weppa-cloud/bukeer-flutter`. Studio respects them but does not own them. See [[cross-repo-flutter]].
 
@@ -87,6 +89,7 @@ Feature requests formalized. Status tracked inline. GitHub Issues = source of tr
 | [[SPEC_SKILL_NEXTJS_DEVELOPER_AUDIT]] | [file](./specs/SPEC_SKILL_NEXTJS_DEVELOPER_AUDIT.md) | [[skills]] [[nextjs-developer]] |
 | [[SPEC_UX_IA_AUDIT_BUKEER_STUDIO]] | [file](./specs/SPEC_UX_IA_AUDIT_BUKEER_STUDIO.md) | [[UX]] [[information-architecture]] |
 | [[SPEC_BOOKINGS_STUDIO]] | [file](./specs/SPEC_BOOKINGS_STUDIO.md) | Stub — booking flows in Studio | [[bookings]] [[leads]] |
+| [[pilot-readiness-deps]] | [file](./specs/pilot-readiness-deps.md) | EPIC #214 dependency gate (hard deps + parallel gates across W1-W7) | [[pilot-readiness]] [[EPIC-214]] |
 | [[SPEC_MARKET_EXPERIENCE_SWITCHER]] | [file](./specs/SPEC_MARKET_EXPERIENCE_SWITCHER.md) | [[market-ux]] [[i18n]] [[currency]] |
 | [[SECTION_TYPES_REGISTRY]] | [file](./specs/SECTION_TYPES_REGISTRY.md) | Stub — section types table | [[sections]] [[website-contract]] |
 | [[EPIC_SEO_CONTENT_INTELLIGENCE_GITHUB]] | [file](./specs/EPIC_SEO_CONTENT_INTELLIGENCE_GITHUB.md) | [[SEO]] [[EPIC]] |
@@ -343,6 +346,16 @@ Each concept below lists the ADRs/SPECs/ops docs that touch it. Use this to find
 - [[SPEC_SKILL_NEXTJS_DEVELOPER_AUDIT]] — skill audit
 - Skills registry: `.claude/skills/`
 
+### [[pilot-readiness]] + [[EPIC-214]] + [[ColombiaTours]]
+- EPIC: [#214](https://github.com/weppa-cloud/bukeer-studio/issues/214) — Pilot Readiness (work layer for #213)
+- Children (W1-W7): [#215](https://github.com/weppa-cloud/bukeer-studio/issues/215) W1 matrix+testids · [#216](https://github.com/weppa-cloud/bukeer-studio/issues/216) W2 parity · [#217](https://github.com/weppa-cloud/bukeer-studio/issues/217) W3 booking decision · [#218](https://github.com/weppa-cloud/bukeer-studio/issues/218) W4 E2E editor→render · [#219](https://github.com/weppa-cloud/bukeer-studio/issues/219) W5 transcreate · [#220](https://github.com/weppa-cloud/bukeer-studio/issues/220) W6 matrix+Lighthouse · [#221](https://github.com/weppa-cloud/bukeer-studio/issues/221) W7 training
+- Acceptance sibling: [#213](https://github.com/weppa-cloud/bukeer-studio/issues/213)
+- Stage 0 artefacts (2026-04-19): [[ADR-024-booking-v1-pilot-scope]] · [[ADR-025-studio-flutter-field-ownership]] · [[pilot-readiness-deps]]
+- Matrix foundation: [[product-detail-matrix]] (W1 pkg-only scope + Section M + 🟡-flag + editor mapping)
+- Cross-repo boundary: [[cross-repo-flutter]] (Flutter-owner fields per ADR-025)
+- Seed strategy (unified): `e2e/setup/pilot-seed.ts` (variant-factory `full | minimum | seo-max | translation-ready`)
+- ADR mapping authoritative: [[ADR-003]] [[ADR-005]] [[ADR-011]] [[ADR-016]] [[ADR-018]] [[ADR-019]] [[ADR-020]] [[ADR-021]] [[ADR-023]] [[ADR-024]] [[ADR-025]]
+
 ---
 
 ## Wikilink resolution table
@@ -368,6 +381,16 @@ Obsidian resolves `[[ADR-005]]` by filename stem or alias. Claude Code / Codex g
 | `[[ADR-015]]` | `docs/architecture/ADR-015-resilient-map-rendering-and-marker-media-fallback.md` |
 | `[[ADR-016]]` | `docs/architecture/ADR-016-seo-intelligence-caching.md` |
 | `[[ADR-017]]` | `docs/architecture/ADR-017-geocoding-activity-circuits.md` |
+| `[[ADR-018]]` | `docs/architecture/ADR-018-webhook-idempotency.md` |
+| `[[ADR-019]]` | `docs/architecture/ADR-019-multi-locale-url-routing.md` |
+| `[[ADR-020]]` | `docs/architecture/ADR-020-hreflang-emission-policy.md` |
+| `[[ADR-021]]` | `docs/architecture/ADR-021-translation-memory-transcreation-pipeline.md` |
+| `[[ADR-023]]` | `docs/architecture/ADR-023-qa-tooling-studio-editor.md` |
+| `[[ADR-024]]` | `docs/architecture/ADR-024-booking-v1-pilot-scope.md` |
+| `[[ADR-024-booking-v1-pilot-scope]]` | `docs/architecture/ADR-024-booking-v1-pilot-scope.md` |
+| `[[ADR-025]]` | `docs/architecture/ADR-025-studio-flutter-field-ownership.md` |
+| `[[ADR-025-studio-flutter-field-ownership]]` | `docs/architecture/ADR-025-studio-flutter-field-ownership.md` |
+| `[[pilot-readiness-deps]]` | `docs/specs/pilot-readiness-deps.md` |
 | `[[ADR-022]]` | Flutter repo — auth token boundary |
 | `[[ADR-032]]` | Flutter repo — catalog v2 |
 | `[[ARCHITECTURE]]` | `docs/architecture/ARCHITECTURE.md` |
