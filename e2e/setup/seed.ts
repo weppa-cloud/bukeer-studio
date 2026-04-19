@@ -264,6 +264,14 @@ export interface SeoFixtures {
    * with status='missing' → "Translate with AI" button (`transcreate-stream`).
    */
   missingLocaleTranscreationJobId: string | null;
+  /**
+   * Resolved tenant subdomain (`websites.subdomain`). Required by specs that
+   * exercise the middleware host pipeline in local dev (see `middleware.ts`
+   * line ~498 — localhost uses `x-subdomain` header or `?subdomain=` query to
+   * scope requests to a tenant). Without it, middleware short-circuits to
+   * `NextResponse.next()` and legacy/slug redirects never fire.
+   */
+  subdomain: string;
 }
 
 interface SeedWave2Result {
@@ -300,6 +308,7 @@ export async function seedWave2Fixtures(): Promise<SeedWave2Result> {
   const base = await seedTestData();
   const accountId = String(base.account?.id ?? E2E_ACCOUNT_ID);
   const websiteId = String(base.website?.id ?? E2E_WEBSITE_ID);
+  const subdomain = String(base.website?.subdomain ?? WEBSITE_FALLBACK_SUBDOMAIN);
 
   const packageId = await upsertPackageKit(supabase, accountId, warnings);
   const pageId = await upsertWebsitePage(supabase, websiteId, warnings);
@@ -317,6 +326,7 @@ export async function seedWave2Fixtures(): Promise<SeedWave2Result> {
     admin: supabase,
     websiteId,
     accountId,
+    subdomain,
     packageId,
     pageId,
     warnings,
@@ -636,6 +646,7 @@ interface SeedSeoContext {
   admin: SupabaseClient;
   websiteId: string;
   accountId: string;
+  subdomain: string;
   packageId: string | null;
   pageId: string | null;
   warnings: string[];
@@ -680,6 +691,7 @@ async function seedSeoFixtures(ctx: SeedSeoContext): Promise<SeoFixtures> {
     packageProductPageId: productPageId,
     publishedTranscreationJobId,
     missingLocaleTranscreationJobId,
+    subdomain: ctx.subdomain,
   };
 }
 

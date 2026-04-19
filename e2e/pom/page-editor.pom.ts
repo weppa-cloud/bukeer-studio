@@ -54,26 +54,43 @@ export class PageEditorPom {
   }
 
   async switchPanel(tab: PanelTab): Promise<void> {
-    // #226 — scoped to the editor panel tablist to avoid collisions with
-    // picker/left-panel tabs of similar names.
+    // #226.A — primary lookup uses the stable testid emitted by StudioTabs
+    // (`${testIdPrefix}-${id}` → `studio-editor-panel-${tab}`). This avoids
+    // collisions with picker/left-panel tabs AND masks the previous role="button"
+    // fallback that silently matched unrelated buttons on page load races.
+    const testId = `studio-editor-panel-${tab}-tab`;
     const label = tab === 'edit' ? 'Edit' : tab === 'ai' ? 'AI' : 'SEO';
     const tablist = this.page.getByTestId('studio-editor-panel-tabs');
+
+    // Wait for the tablist to mount — failing here surfaces the real cause
+    // (editor did not mount) instead of timing out on a stale fallback.
+    await tablist.waitFor({ state: 'visible', timeout: 15_000 });
+
+    // Primary — tab by testid (StudioTabs exposes `${testIdPrefix}-${id}`).
+    const byTestId = tablist.getByTestId(`studio-editor-panel-${tab}`);
+    if (await byTestId.count().catch(() => 0) > 0) {
+      await byTestId.first().click({ timeout: 10_000 });
+      return;
+    }
+
+    // Fallback 1 — scoped role=tab with exact label.
     const scoped = tablist.getByRole('tab', { name: label, exact: true });
-    const count = await scoped.count().catch(() => 0);
-    if (count > 0) {
+    if (await scoped.count().catch(() => 0) > 0) {
       await scoped.first().click({ timeout: 10_000 });
       return;
     }
 
-    // Legacy fallback — still name-based for older snapshots where the
-    // editor panel tabs lacked `role="tab"`.
-    const tabByRole = this.page.getByRole('tab', { name: label, exact: true }).first();
-    if (await tabByRole.isVisible().catch(() => false)) {
-      await tabByRole.click();
+    // Fallback 2 — testid prefix without hyphen suffix (legacy layouts).
+    const legacyPanelTestId = this.page.getByTestId(testId);
+    if (await legacyPanelTestId.count().catch(() => 0) > 0) {
+      await legacyPanelTestId.first().click({ timeout: 10_000 });
       return;
     }
 
-    await this.page.getByRole('button', { name: new RegExp(`^${label}$`, 'i') }).first().click();
+    throw new Error(
+      `switchPanel('${tab}'): editor tablist mounted but no tab matched. ` +
+        `Expected testid "studio-editor-panel-${tab}" or role=tab name="${label}".`,
+    );
   }
 
   async undo(): Promise<void> {
