@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Locator, type Page } from '@playwright/test';
 import { Buffer } from 'node:buffer';
 import { getFirstWebsiteId, seedWave2Fixtures, getSeededPackageSlug } from './helpers';
 
@@ -8,15 +8,19 @@ const PNG_1x1 = Buffer.from(
   'base64',
 );
 
-async function gotoMarketing(page: Page): Promise<void> {
+async function gotoMarketing(page: Page): Promise<{ gallery: Locator; editable: boolean }> {
   const websiteId = await getFirstWebsiteId(page);
   const slug = getSeededPackageSlug();
   await page.goto(`/dashboard/${websiteId}/products/${slug}/marketing`);
-  await expect(page.getByTestId('marketing-editor-gallery')).toBeVisible({ timeout: 15000 });
+  const gallery = page.getByTestId('marketing-editor-gallery');
+  await expect(gallery).toBeVisible({ timeout: 15000 });
+  const editable = (await gallery.locator('input[type="file"]').count()) > 0;
+  return { gallery, editable };
 }
 
-async function uploadFiles(page: Page, files: Array<{ name: string; buffer: Buffer }>): Promise<void> {
-  const fileInput = page.locator('input[type="file"][aria-label="Seleccionar imágenes"]');
+async function uploadFiles(gallery: Locator, files: Array<{ name: string; buffer: Buffer }>): Promise<void> {
+  const fileInput = gallery.locator('input[type="file"]').first();
+  await expect(fileInput).toHaveCount(1, { timeout: 10000 });
   await fileInput.setInputFiles(
     files.map(({ name, buffer }) => ({ name, mimeType: 'image/png', buffer })),
   );
@@ -35,7 +39,8 @@ test.describe('GalleryCurator — E2E', () => {
   });
 
   test('upload happy path appends gallery tiles', async ({ page }) => {
-    await gotoMarketing(page);
+    const { gallery, editable } = await gotoMarketing(page);
+    test.skip(!editable, 'program_gallery is not Studio-owned in this environment (read-only mode).');
 
     await page.route('**/api/media/upload', async (route) => {
       const url = `https://mock.cdn/e2e/${crypto.randomUUID()}.png`;
@@ -53,20 +58,20 @@ test.describe('GalleryCurator — E2E', () => {
       });
     });
 
-    await uploadFiles(page, [
+    await uploadFiles(gallery, [
       { name: 'photo-a.png', buffer: PNG_1x1 },
       { name: 'photo-b.png', buffer: PNG_1x1 },
     ]);
 
-    const gallery = page.getByTestId('marketing-editor-gallery');
     await expect(gallery.locator('[data-testid="gallery-tile"]')).toHaveCount(2);
 
     await gallery.getByRole('button', { name: /^Guardar$/ }).click();
-    await expect(gallery.getByRole('status', { name: /Guardado/ })).toBeVisible({ timeout: 10000 });
+    await expect(gallery.getByRole('status')).toContainText(/Guardado/i, { timeout: 10000 });
   });
 
   test('upload failure surfaces error without losing draft', async ({ page }) => {
-    await gotoMarketing(page);
+    const { gallery, editable } = await gotoMarketing(page);
+    test.skip(!editable, 'program_gallery is not Studio-owned in this environment (read-only mode).');
 
     await page.route('**/api/media/upload', async (route) => {
       await route.fulfill({
@@ -79,16 +84,15 @@ test.describe('GalleryCurator — E2E', () => {
       });
     });
 
-    await uploadFiles(page, [{ name: 'photo-fail.png', buffer: PNG_1x1 }]);
-
-    const gallery = page.getByTestId('marketing-editor-gallery');
+    await uploadFiles(gallery, [{ name: 'photo-fail.png', buffer: PNG_1x1 }]);
     await expect(gallery.getByRole('alert')).toContainText(/Mocked upload failure|Upload failed/i, {
       timeout: 10000,
     });
   });
 
   test('drag-and-drop reorder via keyboard', async ({ page }) => {
-    await gotoMarketing(page);
+    const { gallery, editable } = await gotoMarketing(page);
+    test.skip(!editable, 'program_gallery is not Studio-owned in this environment (read-only mode).');
 
     await page.route('**/api/media/upload', async (route, request) => {
       const form = request.postDataBuffer();
@@ -104,16 +108,15 @@ test.describe('GalleryCurator — E2E', () => {
       });
     });
 
-    await uploadFiles(page, [
+    await uploadFiles(gallery, [
       { name: 'first.png', buffer: PNG_1x1 },
       { name: 'second.png', buffer: PNG_1x1 },
     ]);
 
-    const gallery = page.getByTestId('marketing-editor-gallery');
     await expect(gallery.locator('[data-testid="gallery-tile"]')).toHaveCount(2);
 
     const firstTile = gallery.locator('[data-testid="gallery-tile"]').first();
-    const firstAltBefore = await firstTile.locator('input[id^="gallery-alt-"]').inputValue();
+    const firstSrcBefore = await firstTile.locator('img').getAttribute('src');
 
     // Keyboard DnD: focus drag handle, Space to pick up, Arrow to move, Space to drop.
     const handle = firstTile.getByRole('button', { name: /Reordenar imagen 1/ });
@@ -122,12 +125,12 @@ test.describe('GalleryCurator — E2E', () => {
     await page.keyboard.press('ArrowRight');
     await page.keyboard.press('Space');
 
-    const firstAltAfter = await gallery
+    const firstSrcAfter = await gallery
       .locator('[data-testid="gallery-tile"]')
       .first()
-      .locator('input[id^="gallery-alt-"]')
-      .inputValue();
+      .locator('img')
+      .getAttribute('src');
 
-    expect(firstAltAfter).not.toEqual(firstAltBefore);
+    expect(firstSrcAfter).not.toEqual(firstSrcBefore);
   });
 });

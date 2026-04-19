@@ -18,9 +18,9 @@ test.describe('Translations dashboard — E2E', () => {
     await page.goto(`/dashboard/${websiteId}/translations`);
 
     await expect(page.getByRole('heading', { name: 'Traducciones' })).toBeVisible({ timeout: 15000 });
-    await expect(page.getByText('Total', { exact: false })).toBeVisible();
-    await expect(page.getByText('Traducidos')).toBeVisible();
-    await expect(page.getByText('In Draft')).toBeVisible();
+    await expect(page.getByText('Total').first()).toBeVisible();
+    await expect(page.getByText('Traducidos').first()).toBeVisible();
+    await expect(page.getByText('In Draft').first()).toBeVisible();
 
     await expect(page.getByRole('heading', { name: 'Coverage matrix' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Pendientes' })).toBeVisible();
@@ -32,8 +32,14 @@ test.describe('Translations dashboard — E2E', () => {
     await page.goto(`/dashboard/${websiteId}/translations?status=draft`);
 
     await expect(page.getByRole('heading', { name: 'Traducciones' })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('combobox', { name: 'Status' })).toHaveValue('draft');
 
-    const activeSection = page.getByRole('heading', { name: 'Jobs activos' }).locator('..').locator('..');
+    const activeSection = page
+      .locator('section')
+      .filter({ has: page.getByRole('heading', { name: 'Jobs activos' }) })
+      .first();
+
+    await expect(activeSection.locator('tbody input[type="checkbox"]')).toHaveCount(0);
     await expect(
       activeSection.getByText(/Aún no hay jobs en review \/ applied \/ published\./),
     ).toBeVisible();

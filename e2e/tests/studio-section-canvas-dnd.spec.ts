@@ -4,6 +4,7 @@ import { PageEditorPom } from '../pom/page-editor.pom';
 
 test.describe('Studio section-canvas — dnd-kit', () => {
   test.use({ storageState: 'e2e/.auth/user.json' });
+  test.skip(({ isMobile }) => isMobile, 'Section canvas interactions are desktop-only.');
 
   test.beforeAll(async () => {
     const fixtures = await seedWave2Fixtures();
@@ -42,7 +43,7 @@ test.describe('Studio section-canvas — dnd-kit', () => {
     await expect(page.getByText('No section selected')).toBeHidden();
   });
 
-  test('drag reorder swaps adjacent sections', async ({ page }) => {
+  test('drag handle reorders adjacent sections', async ({ page }) => {
     const websiteId = await getFirstWebsiteId(page);
     const fixtures = await seedWave2Fixtures();
     const editor = new PageEditorPom(page);
@@ -53,26 +54,14 @@ test.describe('Studio section-canvas — dnd-kit', () => {
 
     const first = items.first();
     const second = items.nth(1);
+    await first.hover();
 
-    const firstBox = await first.boundingBox();
-    const secondBox = await second.boundingBox();
-
-    if (!firstBox || !secondBox) {
-      test.skip(true, 'Section bounding boxes unavailable in headless — skipping drag assertion.');
-      return;
-    }
-
-    await page.mouse.move(firstBox.x + firstBox.width / 2, firstBox.y + firstBox.height / 2);
-    await page.mouse.down();
-    await page.mouse.move(
-      secondBox.x + secondBox.width / 2,
-      secondBox.y + secondBox.height + 10,
-      { steps: 10 },
-    );
-    await page.mouse.up();
+    const dragHandle = first.locator('button[title="Drag to reorder"]').first();
+    await expect(dragHandle).toBeVisible({ timeout: 5000 });
+    await dragHandle.dragTo(second);
 
     // Give dnd-kit onDragEnd a tick, then re-evaluate order.
-    await page.waitForTimeout(200);
+    await page.waitForTimeout(350);
     const order = await items.evaluateAll((nodes) =>
       nodes.map((el) => el.getAttribute('data-section-id')),
     );

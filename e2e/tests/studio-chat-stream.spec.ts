@@ -4,6 +4,7 @@ import { PageEditorPom } from '../pom/page-editor.pom';
 
 test.describe('Studio chat — copilot stream', () => {
   test.use({ storageState: 'e2e/.auth/user.json' });
+  test.skip(({ isMobile }) => isMobile, 'Studio chat panel is desktop-only.');
 
   test.beforeAll(async () => {
     await seedWave2Fixtures();
@@ -11,16 +12,20 @@ test.describe('Studio chat — copilot stream', () => {
 
   test('user message triggers mocked assistant stream', async ({ page }) => {
     await page.route('**/api/ai/studio-chat', async (route) => {
-      // Minimal AI SDK v5 transport stream: emit a single text chunk.
+      // AI SDK v5 UI message stream chunks over SSE.
       const stream = [
-        '0:"Mock assistant response."\n',
-        'd:{"finishReason":"stop"}\n',
+        'data: {"type":"start","messageId":"m1"}\n\n',
+        'data: {"type":"text-start","id":"t1"}\n\n',
+        'data: {"type":"text-delta","id":"t1","delta":"Mock assistant response."}\n\n',
+        'data: {"type":"text-end","id":"t1"}\n\n',
+        'data: {"type":"finish","finishReason":"stop"}\n\n',
+        'data: [DONE]\n\n',
       ].join('');
       await route.fulfill({
         status: 200,
         headers: {
-          'Content-Type': 'text/plain; charset=utf-8',
-          'X-Vercel-AI-Data-Stream': 'v1',
+          'Content-Type': 'text/event-stream',
+          'X-Vercel-AI-UI-Message-Stream': 'v1',
         },
         body: stream,
       });

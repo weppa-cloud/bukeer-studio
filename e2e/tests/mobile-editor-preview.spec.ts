@@ -15,8 +15,8 @@ test.describe('Mobile — editor guard + public site', () => {
     await seedWave2Fixtures();
   });
 
-  test('editor shows Desktop required interstitial on mobile', async ({ page, browserName }) => {
-    test.skip(browserName !== 'chromium', 'Pixel 5 project is only wired under chromium.');
+  test('editor shows Desktop required interstitial on mobile', async ({ page, isMobile }) => {
+    test.skip(!isMobile, 'Desktop projects do not render the mobile interstitial.');
     const websiteId = await getFirstWebsiteId(page);
     const fixtures = await seedWave2Fixtures();
     test.skip(!fixtures.pageId, 'Missing seeded pageId.');

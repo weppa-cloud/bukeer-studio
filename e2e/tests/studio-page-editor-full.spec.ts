@@ -5,6 +5,7 @@ import { TranscreateDialogPom } from '../pom/transcreate-dialog.pom';
 
 test.describe('Studio page editor — full flow', () => {
   test.use({ storageState: 'e2e/.auth/user.json' });
+  test.skip(({ isMobile }) => isMobile, 'Studio page editor is desktop-only.');
 
   test.beforeAll(async () => {
     const fixtures = await seedWave2Fixtures();

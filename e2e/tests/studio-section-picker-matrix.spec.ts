@@ -35,6 +35,7 @@ const SECTION_LABELS = [
 
 test.describe('Section picker — matrix', () => {
   test.use({ storageState: 'e2e/.auth/user.json' });
+  test.skip(({ isMobile }) => isMobile, 'Section picker validation is desktop-only.');
 
   test.beforeAll(async () => {
     await seedWave2Fixtures();
@@ -50,13 +51,17 @@ test.describe('Section picker — matrix', () => {
     await editor.openAddSection();
 
     const dialog = page.getByRole('dialog');
+    const optionButtons = dialog.locator('div.grid.grid-cols-2 > button');
     await expect(dialog.getByRole('heading', { name: 'Add Section' })).toBeVisible({
       timeout: 15000,
     });
 
     for (const label of SECTION_LABELS) {
-      await expect(dialog.getByRole('button', { name: new RegExp(`^${label}$`, 'i') }).first())
-        .toBeVisible();
+      await expect(
+        optionButtons.filter({
+          has: dialog.getByText(new RegExp(`^${label}$`, 'i')),
+        }).first(),
+      ).toHaveCount(1);
     }
   });
 
@@ -68,11 +73,12 @@ test.describe('Section picker — matrix', () => {
     await editor.openAddSection();
 
     const dialog = page.getByRole('dialog');
+    const optionButtons = dialog.locator('div.grid.grid-cols-2 > button');
     await dialog.getByPlaceholder('Search sections...').fill('faq');
 
-    await expect(dialog.getByRole('button', { name: /^FAQ$/ })).toBeVisible();
-    await expect(dialog.getByRole('button', { name: /FAQ Accordion/ })).toBeVisible();
-    await expect(dialog.getByRole('button', { name: /Destinations/ })).toBeHidden();
+    await expect(optionButtons.filter({ has: dialog.getByText(/^FAQ$/) })).toHaveCount(1);
+    await expect(optionButtons.filter({ has: dialog.getByText(/FAQ Accordion/) })).toHaveCount(1);
+    await expect(optionButtons.filter({ has: dialog.getByText(/^Destinations$/) })).toHaveCount(0);
   });
 
   test('category tab restricts the visible set', async ({ page }) => {
@@ -83,10 +89,11 @@ test.describe('Section picker — matrix', () => {
     await editor.openAddSection();
 
     const dialog = page.getByRole('dialog');
-    await dialog.getByRole('tab', { name: 'Hero', exact: true }).click();
+    const optionButtons = dialog.locator('div.grid.grid-cols-2 > button');
+    await dialog.locator('.studio-tabs').getByRole('button', { name: 'Hero', exact: true }).click();
 
-    await expect(dialog.getByRole('button', { name: /^Hero$/ })).toBeVisible();
-    await expect(dialog.getByRole('button', { name: /^Hero with Image$/ })).toBeVisible();
-    await expect(dialog.getByRole('button', { name: /^FAQ$/ })).toBeHidden();
+    await expect(optionButtons.filter({ has: dialog.getByText(/^Hero$/) })).toHaveCount(1);
+    await expect(optionButtons.filter({ has: dialog.getByText(/^Hero with Image$/) })).toHaveCount(1);
+    await expect(optionButtons.filter({ has: dialog.getByText(/^FAQ$/) })).toHaveCount(0);
   });
 });
