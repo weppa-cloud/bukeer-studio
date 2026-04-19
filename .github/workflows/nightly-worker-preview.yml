@@ -1,0 +1,175 @@
+name: Nightly Worker preview — @p0-seo
+
+# EPIC #207 W5.7 — run the @p0-seo suite against an OpenNext Worker preview
+# to catch runtime divergence between `next dev` and the Cloudflare Worker
+# runtime (ADR-007 edge-first full coverage).
+#
+# Secrets reused from the staging deploy pipeline (see
+# docs/ops/ci-seo-i18n-gate.md §"Required repository secrets").
+
+on:
+  schedule:
+    - cron: '0 7 * * *' # 07:00 UTC daily
+  workflow_dispatch:
+
+concurrency:
+  group: nightly-worker-preview
+  cancel-in-progress: true
+
+jobs:
+  worker-preview-p0-seo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Cache workspace node_modules
+        id: cache-deps
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            packages/theme-sdk/node_modules
+            packages/website-contract/node_modules
+          key: deps-${{ runner.os }}-node22-${{ hashFiles('package-lock.json', 'packages/*/package-lock.json') }}
+
+      - name: Cache Playwright browsers
+        id: cache-playwright
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Build theme-sdk
+        working-directory: packages/theme-sdk
+        run: |
+          if [ ! -d node_modules ]; then npm ci; fi
+          npm run build
+
+      - name: Build website-contract
+        working-directory: packages/website-contract
+        run: |
+          if [ ! -d node_modules ]; then npm ci; fi
+          npm run build
+
+      - name: Install dependencies
+        if: steps.cache-deps.outputs.cache-hit != 'true'
+        run: npm ci
+
+      - name: Install Playwright (Chromium)
+        if: steps.cache-playwright.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+
+      - name: Install Playwright system deps
+        if: steps.cache-playwright.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+
+      - name: Build Worker (OpenNext)
+        run: npm run build:worker
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL_STAGING }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY_STAGING }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY_STAGING }}
+          OPENROUTER_AUTH_TOKEN: ci-openrouter-token
+          OPENROUTER_BASE_URL: https://openrouter.ai/api/v1
+          OPENROUTER_MODEL: anthropic/claude-sonnet-4-5
+          REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET_STAGING }}
+          NEXT_PUBLIC_URL: https://bukeer.com
+          NEXT_PUBLIC_MAIN_DOMAIN: bukeer.com
+
+      - name: Start Worker preview (background)
+        run: |
+          nohup npm run preview:worker > worker-preview.log 2>&1 &
+          echo $! > worker-preview.pid
+          echo "Started Worker preview PID=$(cat worker-preview.pid)"
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL_STAGING }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY_STAGING }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY_STAGING }}
+          REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET_STAGING }}
+
+      - name: Wait for Worker preview port (8787)
+        run: |
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:8787 > /dev/null 2>&1; then
+              echo "Worker preview ready after ${i}s"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::Worker preview did not become ready within 120s"
+          tail -n 200 worker-preview.log || true
+          exit 1
+
+      - name: Run @p0-seo suite against Worker preview
+        id: p0-seo
+        run: |
+          npx playwright test \
+            --grep "@p0-seo" \
+            --project=chromium --no-deps \
+            --reporter=list,json,html
+        env:
+          E2E_BASE_URL: http://localhost:8787
+          E2E_WEBSERVER_CMD: ':' # preview already running in background
+          PLAYWRIGHT_JSON_OUTPUT_NAME: playwright-report/default/results.json
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL_STAGING }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY_STAGING }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY_STAGING }}
+          REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET_STAGING }}
+          E2E_WEBSITE_ID: ${{ secrets.E2E_WEBSITE_ID_STAGING }}
+          NEXT_PUBLIC_URL: https://bukeer.com
+          NEXT_PUBLIC_MAIN_DOMAIN: bukeer.com
+
+      - name: Generate SEO i18n gate report
+        if: always()
+        run: |
+          mkdir -p reports/e2e-seo-i18n
+          node scripts/gen-seo-i18n-report.mjs || echo "report generator encountered an error"
+        continue-on-error: true
+
+      - name: Upload SEO i18n report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-e2e-seo-i18n-report
+          path: reports/e2e-seo-i18n/
+          retention-days: 30
+
+      - name: Upload Worker preview log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-worker-preview-log
+          path: worker-preview.log
+          retention-days: 7
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-playwright-report
+          path: playwright-report/
+          retention-days: 14
+
+      - name: Notify EPIC #207 on failure
+        if: failure()
+        env:
+          # Built-in GITHUB_TOKEN has issue:write on the host repo — no extra
+          # secret needed. See docs/ops/ci-seo-i18n-gate.md.
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          gh issue comment 207 --repo "${GITHUB_REPOSITORY}" --body "Nightly Worker-preview @p0-seo failed on $(date -u +'%Y-%m-%dT%H:%MZ'). Run: ${RUN_URL}" || echo "Could not post comment on #207"
+
+      - name: Stop Worker preview
+        if: always()
+        run: |
+          if [ -f worker-preview.pid ]; then
+            kill "$(cat worker-preview.pid)" 2>/dev/null || true
+          fi
