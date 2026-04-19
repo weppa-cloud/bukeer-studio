@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { gotoWebsiteSection } from './helpers';
 
-test.describe('Settings Tab', () => {
+test.describe('Settings Tab @p0-settings', () => {
   test.use({ storageState: 'e2e/.auth/user.json' });
 
   test('shows subdomain editor', async ({ page }) => {
@@ -13,17 +13,17 @@ test.describe('Settings Tab', () => {
 
   test('domain wizard step-by-step', async ({ page }) => {
     await gotoWebsiteSection(page, 'settings');
-    await page.getByRole('button', { name: 'Domain' }).click();
+    await page.getByTestId('settings-tab-domain').click();
 
-    const connectedBanner = page.getByText('Domain connected');
-    if (await connectedBanner.isVisible().catch(() => false)) {
-      await page.getByRole('button', { name: 'Remove custom domain' }).click();
+    const atStep2 = await page.getByTestId('domain-wizard-step-2').isVisible().catch(() => false);
+    if (atStep2) {
+      await page.getByTestId('domain-wizard-prev').click();
     }
 
-    await page.getByPlaceholder('www.myagency.com').fill('test.example.com');
-    await page.getByRole('button', { name: 'Continue' }).click();
+    await page.getByTestId('domain-wizard-domain-input').fill('test.example.com');
+    await page.getByTestId('domain-wizard-next').click();
 
-    await expect(page.getByRole('heading', { name: 'Step 1: Add CNAME record' })).toBeVisible();
+    await expect(page.getByTestId('domain-wizard-step-1')).toBeVisible({ timeout: 10000 });
     await expect(page.getByText('cname.bukeer.com', { exact: true })).toBeVisible();
   });
 

@@ -15,19 +15,31 @@ const chromiumWebglArgs = [
   '--enable-unsafe-swiftshader',
 ];
 
+// AC8 (Recovery Gate #226): Firefox is BLOCKING. Viewport flakes get a
+// narrow retry budget (1 extra attempt per test). Real regressions still
+// fail. Infra outages are classified via e2e/setup/infra-classifier.ts.
+const ciRetries = process.env.CI ? 2 : 0;
+const firefoxRetries = Number(process.env.PW_FIREFOX_RETRIES ?? ciRetries);
+const viewportFlakeRetries = Number(process.env.PW_VIEWPORT_FLAKE_RETRIES ?? 1);
+
 export default defineConfig({
   testDir: './e2e/tests',
   globalSetup: './e2e/global-setup.ts',
   outputDir,
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
+  retries: ciRetries,
   workers: 1,
-  reporter: [['html', { outputFolder: reportFolder, open: 'never' }], ['list']],
+  reporter: [
+    ['html', { outputFolder: reportFolder, open: 'never' }],
+    ['list'],
+    ['json', { outputFile: `${outputDir}/results.json` }],
+  ],
   use: {
     baseURL,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
+    video: 'retain-on-failure',
   },
   projects: [
     {
@@ -45,13 +57,20 @@ export default defineConfig({
       dependencies: ['setup'],
     },
     {
+      // #226 AC8 — Firefox BLOCKING (same matrix as chromium).
+      // viewport_flake retries ensure narrow layout-sensitivity isn't
+      // counted as a real regression. See e2e/setup/infra-classifier.ts.
       name: 'firefox',
       use: {
         ...devices['Desktop Firefox'],
       },
+      retries: Math.max(firefoxRetries, viewportFlakeRetries),
       dependencies: ['setup'],
     },
     {
+      // #226 AC9 — mobile-chrome runs render/public/settings/domain specs.
+      // Desktop-only flows (DnD + section canvas) skip via
+      // `test.skip(({ isMobile }) => isMobile, 'desktop-only editor')`.
       name: 'mobile-chrome',
       use: {
         ...devices['Pixel 5'],

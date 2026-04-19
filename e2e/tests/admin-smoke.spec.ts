@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { getFirstWebsiteId, seedWave2Fixtures } from './helpers';
 
-test.describe('Admin surfaces — smoke', () => {
+test.describe('Admin surfaces — smoke @p0-auth', () => {
   test.use({ storageState: 'e2e/.auth/user.json' });
 
   test.beforeAll(async () => {

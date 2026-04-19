@@ -33,8 +33,9 @@ const SECTION_LABELS = [
   'Blog Grid',
 ] as const;
 
-test.describe('Section picker — matrix', () => {
+test.describe('Section picker — matrix @p0-editor', () => {
   test.use({ storageState: 'e2e/.auth/user.json' });
+  test.skip(({ isMobile }) => !!isMobile, 'desktop-only editor');
 
   test.beforeAll(async () => {
     await seedWave2Fixtures();
@@ -49,10 +50,8 @@ test.describe('Section picker — matrix', () => {
     // Clear selection → open picker via right-panel "Add Section" CTA.
     await editor.openAddSection();
 
-    const dialog = page.getByRole('dialog');
-    await expect(dialog.getByRole('heading', { name: 'Add Section' })).toBeVisible({
-      timeout: 15000,
-    });
+    const dialog = page.getByTestId('studio-picker-dialog');
+    await expect(dialog).toBeVisible({ timeout: 15000 });
 
     for (const label of SECTION_LABELS) {
       await expect(dialog.getByRole('button', { name: new RegExp(`^${label}$`, 'i') }).first())
@@ -67,8 +66,8 @@ test.describe('Section picker — matrix', () => {
     await editor.goto(websiteId, fixtures.pageId!);
     await editor.openAddSection();
 
-    const dialog = page.getByRole('dialog');
-    await dialog.getByPlaceholder('Search sections...').fill('faq');
+    const dialog = page.getByTestId('studio-picker-dialog');
+    await dialog.getByTestId('studio-picker-search').fill('faq');
 
     await expect(dialog.getByRole('button', { name: /^FAQ$/ })).toBeVisible();
     await expect(dialog.getByRole('button', { name: /FAQ Accordion/ })).toBeVisible();
@@ -82,8 +81,8 @@ test.describe('Section picker — matrix', () => {
     await editor.goto(websiteId, fixtures.pageId!);
     await editor.openAddSection();
 
-    const dialog = page.getByRole('dialog');
-    await dialog.getByRole('tab', { name: 'Hero', exact: true }).click();
+    const dialog = page.getByTestId('studio-picker-dialog');
+    await dialog.getByTestId('studio-picker-category-tab-hero').click();
 
     await expect(dialog.getByRole('button', { name: /^Hero$/ })).toBeVisible();
     await expect(dialog.getByRole('button', { name: /^Hero with Image$/ })).toBeVisible();

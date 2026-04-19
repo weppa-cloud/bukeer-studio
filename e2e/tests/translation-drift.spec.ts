@@ -13,7 +13,7 @@ import { getFirstWebsiteId, seedWave2Fixtures } from './helpers';
  *         lib/seo/transcreate-workflow.ts (drift calculation)
  */
 
-test.describe('Translation drift banner @p1-seo', () => {
+test.describe('Translation drift banner @p0-seo @translations', () => {
   test.use({ storageState: 'e2e/.auth/user.json' });
 
   test('drift banner appears after source content mutated post-apply', async ({ page }) => {

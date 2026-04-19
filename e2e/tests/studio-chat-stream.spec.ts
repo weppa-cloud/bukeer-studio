@@ -2,8 +2,10 @@ import { test, expect } from '@playwright/test';
 import { getFirstWebsiteId, seedWave2Fixtures } from './helpers';
 import { PageEditorPom } from '../pom/page-editor.pom';
 
-test.describe('Studio chat — copilot stream', () => {
+test.describe('Studio chat — copilot stream @p0-editor', () => {
   test.use({ storageState: 'e2e/.auth/user.json' });
+  // #226 AC9 — desktop-only editor flow
+  test.skip(({ isMobile }) => !!isMobile, 'desktop-only editor');
 
   test.beforeAll(async () => {
     await seedWave2Fixtures();
@@ -32,7 +34,7 @@ test.describe('Studio chat — copilot stream', () => {
     await editor.goto(websiteId, fixtures.pageId!);
     await editor.switchPanel('ai');
 
-    const input = page.getByPlaceholder('Ask AI to edit your page...');
+    const input = page.getByTestId('studio-chat-input');
     await expect(input).toBeVisible({ timeout: 15000 });
 
     await input.fill('Suggest an improvement to the hero section');
@@ -56,10 +58,10 @@ test.describe('Studio chat — copilot stream', () => {
     await editor.goto(websiteId, fixtures.pageId!);
     await editor.switchPanel('ai');
 
-    const input = page.getByPlaceholder('Ask AI to edit your page...');
+    const input = page.getByTestId('studio-chat-input');
     await input.fill('Generate something');
     await input.press('Enter');
 
-    await expect(page.getByRole('alert')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('studio-chat-error').first()).toBeVisible({ timeout: 10000 });
   });
 });

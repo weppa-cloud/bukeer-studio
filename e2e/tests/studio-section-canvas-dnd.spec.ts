@@ -2,8 +2,9 @@ import { test, expect } from '@playwright/test';
 import { getFirstWebsiteId, seedWave2Fixtures } from './helpers';
 import { PageEditorPom } from '../pom/page-editor.pom';
 
-test.describe('Studio section-canvas — dnd-kit', () => {
+test.describe('Studio section-canvas — dnd-kit @p0-editor', () => {
   test.use({ storageState: 'e2e/.auth/user.json' });
+  test.skip(({ isMobile }) => !!isMobile, 'desktop-only editor');
 
   test.beforeAll(async () => {
     const fixtures = await seedWave2Fixtures();
