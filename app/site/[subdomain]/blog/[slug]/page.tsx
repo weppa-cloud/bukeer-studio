@@ -112,7 +112,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
       {/* JSON-LD Structured Data for SEO and AI crawlers */}
       <JsonLd data={schemas} />
 
-      <article className="section-padding">
+      <article data-testid="detail-blog" className="section-padding">
       <div className="container max-w-[72ch]">
         {/* Breadcrumb */}
         <nav className="mb-8">

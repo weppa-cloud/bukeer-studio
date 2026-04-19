@@ -203,7 +203,7 @@ export function TrustBadges({ website, className = '', title, subtitle }: TrustB
       : DEFAULT_TRUST_SIGNALS;
 
   return (
-    <section className={className}>
+    <section data-testid="section-trust-badges" className={className}>
       {(title || subtitle) && (
         <div className="mb-6">
           {title && (

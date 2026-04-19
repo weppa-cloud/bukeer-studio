@@ -421,6 +421,7 @@ export function ProductLandingPage({
     <div className="min-h-screen">
       {/* Hero Section — Gradient fades into page bg */}
       <section
+        data-testid="detail-hero"
         className="relative flex items-end"
         style={{ height: '70vh', minHeight: 520 }}
       >
@@ -609,16 +610,19 @@ export function ProductLandingPage({
           <div className={isTransfer ? 'space-y-16' : 'lg:col-span-2 space-y-16'}>
             {!isTransfer && (
               <SectionErrorBoundary sectionName="highlights-grid">
-                <HighlightsGrid
-                  title="Highlights"
-                  highlights={highlightSource}
-                />
+                <div data-testid="detail-highlights">
+                  <HighlightsGrid
+                    title="Highlights"
+                    highlights={highlightSource}
+                  />
+                </div>
               </SectionErrorBoundary>
             )}
 
             {/* Gallery */}
             {!isTransfer && images.length > 1 && (
               <section
+                data-testid="detail-gallery"
               >
                 <h2 className="text-2xl font-bold mb-6">Galeria</h2>
                 <button
@@ -665,6 +669,7 @@ export function ProductLandingPage({
             {/* Description */}
             {descriptionText && (
               <section
+                data-testid="detail-description"
               >
                 <h2 className="text-2xl font-bold mb-6">
                   {productType === 'hotel'
@@ -730,40 +735,46 @@ export function ProductLandingPage({
 
             {productType === 'activity' && activityCircuitStops.length >= 2 && (
               <SectionErrorBoundary sectionName="activity-circuit-map">
-                <DeferredRender fallback={<MapSectionSkeleton />}>
-                  <ActivityCircuitMap
-                    stops={activityCircuitStops}
-                    analyticsContext={{ product_id: product.id, product_type: 'activity' }}
-                  />
-                </DeferredRender>
+                <div data-testid="detail-map">
+                  <DeferredRender fallback={<MapSectionSkeleton />}>
+                    <ActivityCircuitMap
+                      stops={activityCircuitStops}
+                      analyticsContext={{ product_id: product.id, product_type: 'activity' }}
+                    />
+                  </DeferredRender>
+                </div>
               </SectionErrorBoundary>
             )}
 
             {!isTransfer && (productType !== 'activity' || activityCircuitStops.length < 2) && (
               <SectionErrorBoundary sectionName="meeting-point-map">
-                <DeferredRender fallback={<MapSectionSkeleton />}>
-                  <MeetingPointMap
-                    title="Punto de encuentro"
-                    meetingPoint={mapMeetingPoint}
-                  />
-                </DeferredRender>
+                <div data-testid="detail-map">
+                  <DeferredRender fallback={<MapSectionSkeleton />}>
+                    <MeetingPointMap
+                      title="Punto de encuentro"
+                      meetingPoint={mapMeetingPoint}
+                    />
+                  </DeferredRender>
+                </div>
               </SectionErrorBoundary>
             )}
 
             {!isTransfer && (
               <SectionErrorBoundary sectionName="options-table">
-                <OptionsTable
-                  title="Opciones disponibles"
-                  options={product.options}
-                  preferredCurrency={displayedCurrency}
-                  currencyConfig={currencyConfig}
-                />
+                <div data-testid="detail-options">
+                  <OptionsTable
+                    title="Opciones disponibles"
+                    options={product.options}
+                    preferredCurrency={displayedCurrency}
+                    currencyConfig={currencyConfig}
+                  />
+                </div>
               </SectionErrorBoundary>
             )}
           </div>
 
           {!isTransfer && (
-            <div className="lg:col-span-1">
+            <div data-testid="detail-sidebar" className="lg:col-span-1">
               <div className="lg:sticky lg:top-28">
                 <SummarySidebar
                   product={product}
@@ -784,30 +795,36 @@ export function ProductLandingPage({
 
       {/* Google Reviews Section */}
       {!isTransfer && googleReviews.length > 0 && (
-        <GoogleReviewsSection reviews={googleReviews} />
+        <div data-testid="detail-reviews">
+          <GoogleReviewsSection reviews={googleReviews} />
+        </div>
       )}
 
       {!isTransfer && (
         <div className="max-w-7xl mx-auto px-6 pb-16 space-y-16">
           <SectionErrorBoundary sectionName="product-faq">
-            <ProductFAQ
-              title="Preguntas frecuentes"
-              faqs={faqSource}
-              website={website}
-            />
+            <div data-testid="detail-faq">
+              <ProductFAQ
+                title="Preguntas frecuentes"
+                faqs={faqSource}
+                website={website}
+              />
+            </div>
           </SectionErrorBoundary>
 
           <SectionErrorBoundary sectionName="trust-badges">
-            <TrustBadges
-              title="Reserva con confianza"
-              website={website}
-            />
+            <div data-testid="detail-trust">
+              <TrustBadges
+                title="Reserva con confianza"
+                website={website}
+              />
+            </div>
           </SectionErrorBoundary>
         </div>
       )}
 
       {/* CTA Section */}
-      <section className="py-16 px-4 bg-primary/5">
+      <section data-testid="detail-cta-final" className="py-16 px-4 bg-primary/5">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-2xl md:text-3xl font-bold mb-4">
             ¿Listo para vivir esta experiencia?
@@ -1080,6 +1097,7 @@ function PackageSections({
     <>
       {mappedCircuitStops.length > 0 && (
         <section
+          data-testid="detail-map"
         >
           <DeferredRender fallback={<MapSectionSkeleton />}>
             <PackageCircuitMap
@@ -1092,6 +1110,7 @@ function PackageSections({
 
       {mappedCircuitStops.length === 0 && circuitStops.length > 0 && (
         <section
+          data-testid="detail-map"
         >
           <h2 className="text-2xl font-bold mb-4">Circuito del viaje</h2>
           <div className="flex flex-wrap gap-2">
@@ -1112,6 +1131,7 @@ function PackageSections({
 
       {itinerary.length > 0 && (
         <section
+          data-testid="detail-itinerary"
         >
           <h2 className="text-2xl font-bold mb-6">Día a día</h2>
           <div className="space-y-4">
@@ -1532,7 +1552,7 @@ function SimilarProducts({
   if (similar.length === 0) return null;
 
   return (
-    <section className="py-16 px-6">
+    <section data-testid="detail-similares" className="py-16 px-6">
       <div className="max-w-7xl mx-auto">
         <div
           className="flex items-center justify-between mb-8"

@@ -92,7 +92,7 @@ export function HighlightsGrid({
   }
 
   return (
-    <section className={className}>
+    <section data-testid="section-highlights-grid" className={className}>
       {(title || subtitle) && (
         <div className="mb-6">
           {title && (
