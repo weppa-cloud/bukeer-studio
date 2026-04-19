@@ -4,7 +4,7 @@
 >
 > **Convention:** `[[ADR-XXX]]` or `[[SPEC_NAME]]` = wikilink resolved below. `[text](path.md)` = regular markdown link. Both coexist.
 
-Last updated: 2026-04-19 (EPIC #214 Stage 1 W1 — matrix refresh pkg+act editable + blog Section P + hotels as-is + Section M booking DEFER; pilot-readiness concept section expanded with matrix/ADR wikilinks); 2026-04-19 (ADR-025 priority-v2 alignment: Activities target Studio ownership with W2 pending); 2026-04-19 (EPIC #214 client priority change v2 — pilot-readiness concept scope notes); 2026-04-19 (EPIC #214 Stage 0 — ADR-024 + ADR-025 skeletons + pilot-readiness-deps); 2026-04-19 (EPIC #190 certification rerun evidence); 2026-04-18 (EPIC #190 certification run evidence + checklist); 2026-04-17 (WIKI full-refresh + #103 media closure checklist); 2026-04-17 wiki-patch (epic128 evidence + issue resolution rows)
+Last updated: 2026-04-19 (EPIC #214 Stage 2 W7-a — training onboarding ColombiaTours + pilot runbook + cutover checklist); 2026-04-19 (EPIC #214 Stage 1 W1 — matrix refresh pkg+act editable + blog Section P + hotels as-is + Section M booking DEFER; pilot-readiness concept section expanded with matrix/ADR wikilinks); 2026-04-19 (ADR-025 priority-v2 alignment: Activities target Studio ownership with W2 pending); 2026-04-19 (EPIC #214 client priority change v2 — pilot-readiness concept scope notes); 2026-04-19 (EPIC #214 Stage 0 — ADR-024 + ADR-025 skeletons + pilot-readiness-deps); 2026-04-19 (EPIC #190 certification rerun evidence); 2026-04-18 (EPIC #190 certification run evidence + checklist); 2026-04-17 (WIKI full-refresh + #103 media closure checklist); 2026-04-17 wiki-patch (epic128 evidence + issue resolution rows)
 
 ---
 
@@ -119,7 +119,19 @@ Feature requests formalized. Status tracked inline. GitHub Issues = source of tr
 | [[github-actions-billing-incident]] | [file](./ops/github-actions-billing-incident.md) | Runbook: CI fails in 3-4s → GitHub billing/spending-limit issue, not code. |
 | [[transcreate-website-content-runbook]] | [file](./ops/transcreate-website-content-runbook.md) | End-to-end flow: traducir todo el contenido de un sitio (glossary → AI draft → review → apply → verify). |
 | [[studio-editor-v2-rollback]] | [file](./ops/studio-editor-v2-rollback.md) | Rollback runbook for #190 Studio Editor v2 — 4 levels (field / website / account / data restore) + pre-flight re-enable gate. |
+| [[pilot-runbook-colombiatours]] | [file](./ops/pilot-runbook-colombiatours.md) | EPIC #214 pilot cutover runbook (cross-links 4 existing runbooks; DNS TTL / ±24 h Flutter rule / SLA / post-cutover cadence). |
+| [[cutover-checklist]] | [file](./ops/cutover-checklist.md) | Standalone reusable cutover checklist imported into pilot runbook §5.1 (preflight / cutover / post-cutover / rollback criteria + sequence). |
+| [[release-gate-checklist]] | [file](./ops/release-gate-checklist.md) | Go/No-Go automated gate checklist for prod deploys (EPIC #207 certification). |
+| [[ci-seo-i18n-gate]] | [file](./ops/ci-seo-i18n-gate.md) | CI gate `@p0-seo` + nightly Worker preview (ADR-013). |
 | [[product-landing-rollout-runbook]] | [file](./runbooks/product-landing-rollout-runbook.md) | Rollout for public site rendering / ISR changes. |
+
+---
+
+## Training
+
+| Wikilink | File | Audience | Purpose |
+|----------|------|----------|---------|
+| [[colombiatours-onboarding]] | [file](./training/colombiatours-onboarding.md) | Partner Rol 2 (ColombiaTours) | Pilot onboarding: Flows 1-5 (marketing / booking-DEFER / layout / SEO / translation) + FAQ + what-NOT-to-do + cheat-sheet. Spanish-first. Screencasts pending W7-c. |
 
 ---
 
@@ -353,6 +365,7 @@ Each concept below lists the ADRs/SPECs/ops docs that touch it. Use this to find
 - Stage 0 artefacts (2026-04-19): [[ADR-024-booking-v1-pilot-scope]] · [[ADR-025-studio-flutter-field-ownership]] · [[pilot-readiness-deps]]
 - Recovery Gate prereq of Stage 4: [#226](https://github.com/weppa-cloud/bukeer-studio/issues/226) QA Recovery Gate P0 GUI (blocks W4 #218, W5 #219, W6 #220 kickoff; details in [[pilot-readiness-deps]] §Parallel / Recovery Gate)
 - Stage 1 W1 artefacts (2026-04-19): [[product-detail-matrix]] (refresh pkg+act editable + Sections M/N/O/P + Hotel column as-is + 🟡-flag legend) · [[package-detail-anatomy]] (hygiene checklist cross-ref) · [[product-detail-inventory]] (§3.2 ownership matrix aligned with matrix Sections N/O)
+- Stage 2 W7-a artefacts (2026-04-19): [[colombiatours-onboarding]] (partner-facing training — Flows 1-5 + FAQ + what-NOT-to-do + cheat-sheet; screencasts pending W7-c) · [[pilot-runbook-colombiatours]] (operational runbook — cross-links 4 existing runbooks; DNS TTL / ±24 h Flutter rule / SLA / post-cutover cadence) · [[cutover-checklist]] (standalone preflight/cutover/post-cutover/rollback checklist)
 - **Client priority change v2 (2026-04-19)** — logged in [[pilot-readiness-deps]]: priority 1 = translation (blog + pkg + act); priority 2 = editing (pkg + act Studio editors); hotels as-is (Flutter-owner); booking V1 DEFER post-pilot (ADR-024 Accepted PR pending); no rate-limit mitigation. W2 + W5 bumped to XL; W3 becomes docs-only DEFER closure.
 - Matrix foundation: [[product-detail-matrix]] (W1 pkg+act editable + Section M Booking DEFER + Section N editor→campo + Section O Flutter-only gaps + Section P Blog transcreate + 🟡-flag legend + Hotel column as-is)
 - Cross-repo boundary: [[cross-repo-flutter]] (Flutter-owner fields per [[ADR-025]])
@@ -394,6 +407,11 @@ Obsidian resolves `[[ADR-005]]` by filename stem or alias. Claude Code / Codex g
 | `[[ADR-025]]` | `docs/architecture/ADR-025-studio-flutter-field-ownership.md` |
 | `[[ADR-025-studio-flutter-field-ownership]]` | `docs/architecture/ADR-025-studio-flutter-field-ownership.md` |
 | `[[pilot-readiness-deps]]` | `docs/specs/pilot-readiness-deps.md` |
+| `[[colombiatours-onboarding]]` | `docs/training/colombiatours-onboarding.md` |
+| `[[pilot-runbook-colombiatours]]` | `docs/ops/pilot-runbook-colombiatours.md` |
+| `[[cutover-checklist]]` | `docs/ops/cutover-checklist.md` |
+| `[[release-gate-checklist]]` | `docs/ops/release-gate-checklist.md` |
+| `[[ci-seo-i18n-gate]]` | `docs/ops/ci-seo-i18n-gate.md` |
 | `[[ADR-022]]` | Flutter repo — auth token boundary |
 | `[[ADR-032]]` | Flutter repo — catalog v2 |
 | `[[ARCHITECTURE]]` | `docs/architecture/ARCHITECTURE.md` |
