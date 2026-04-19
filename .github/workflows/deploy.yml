@@ -65,7 +65,21 @@ jobs:
       - name: Unit tests
         run: npm test -- --ci --passWithNoTests
 
-  # ── E2E smoke — validates app boot/navigation stability ────────────
+      # ADR-013/014 — single-gate contract. Delta-TS + ADR policy scans
+      # performed by tech-validator:code. See docs/ops/ci-seo-i18n-gate.md
+      # and EPIC #207 W5.1.
+      - name: Tech validator (CODE mode, delta)
+        run: npm run tech-validator:code
+
+      - name: Upload tech-validator report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tech-validator-report
+          path: reports/tech-validator/
+          retention-days: 7
+
+  # ── E2E smoke + @p0-seo — validates app boot + SEO/i18n HTML output ─
   e2e-smoke:
     needs: quality
     runs-on: ubuntu-latest
@@ -119,19 +133,50 @@ jobs:
         if: steps.cache-playwright.outputs.cache-hit == 'true'
         run: npx playwright install-deps chromium
 
-      - name: Run smoke E2E
-        run: npx playwright test e2e/tests/public-runtime.smoke.spec.ts --project=chromium --no-deps
+      # EPIC #207 W5 — SEO + i18n production-cert gate.
+      # Environment secrets must be configured in repo settings (SEO i18n gate per EPIC #207 W5).
+      # Fallbacks preserve the current PR-level smoke behaviour when staging
+      # secrets are absent (forks, draft PRs). When secrets are present, the
+      # `@p0-seo` suite runs against the seeded staging tenant.
+      # NOTE: CI does NOT use scripts/session-acquire.sh — that pool is for
+      # local dev only (see .claude/rules/e2e-sessions.md). Each CI runner
+      # is its own isolated VM.
+      - name: Run public smoke + @p0-seo suite
+        run: |
+          npx playwright test \
+            e2e/tests/public-runtime.smoke.spec.ts \
+            --grep "@p0-seo" \
+            --project=chromium --no-deps \
+            --reporter=list,json,html
         env:
           E2E_BASE_URL: http://localhost:3000
-          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-anon-key
-          SUPABASE_SERVICE_ROLE_KEY: ci-service-role-key
+          PLAYWRIGHT_JSON_OUTPUT_NAME: playwright-report/default/results.json
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL_STAGING || 'https://example.supabase.co' }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY_STAGING || 'ci-anon-key' }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY_STAGING || 'ci-service-role-key' }}
           OPENROUTER_AUTH_TOKEN: ci-openrouter-token
           OPENROUTER_BASE_URL: https://openrouter.ai/api/v1
           OPENROUTER_MODEL: anthropic/claude-sonnet-4-5
-          REVALIDATE_SECRET: ci-revalidate-secret
+          REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET_STAGING || 'ci-revalidate-secret' }}
+          E2E_WEBSITE_ID: ${{ secrets.E2E_WEBSITE_ID_STAGING }}
           NEXT_PUBLIC_URL: https://bukeer.com
           NEXT_PUBLIC_MAIN_DOMAIN: bukeer.com
+
+      # ADR-010 — machine-readable SEO/i18n gate telemetry for audits and QA.
+      - name: Generate SEO i18n gate report
+        if: always()
+        run: |
+          mkdir -p reports/e2e-seo-i18n
+          node scripts/gen-seo-i18n-report.mjs || echo "report generator encountered an error"
+        continue-on-error: true
+
+      - name: Upload SEO i18n report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-seo-i18n-report
+          path: reports/e2e-seo-i18n/
+          retention-days: 14
 
       - name: Upload Playwright report
         if: failure()
