@@ -17,7 +17,7 @@ describe('generateHreflangLinksForLocales translated locale filtering', () => {
       'https://example.com/paquetes/cartagena',
     );
     expect(links.find((link) => link.hreflang === 'en-US')?.href).toBe(
-      'https://example.com/en/paquetes/cartagena',
+      'https://example.com/en/packages/cartagena',
     );
   });
 });

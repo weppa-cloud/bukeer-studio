@@ -20,7 +20,9 @@ import {
 } from '@/lib/site/currency';
 import {
   buildPublicLocalizedPath,
+  localeToLanguage,
   resolveLocaleFromPublicPath,
+  translateCategoryPathname,
 } from '@/lib/seo/locale-routing';
 import { getPublicUiMessages } from '@/lib/site/public-ui-messages';
 import type { NavigationItem, HeaderCTA, MarketSwitcherStyle } from '@bukeer/website-contract';
@@ -185,7 +187,11 @@ export function SiteHeader({ website, isCustomDomain = false, navigation }: Site
       window.location.pathname,
       { defaultLocale: defaultLoc, supportedLocales: website.supported_locales ?? [] },
     );
-    const targetPath = buildPublicLocalizedPath(pathnameWithoutLang, nextLocale, defaultLoc);
+    const translatedPath = translateCategoryPathname(
+      pathnameWithoutLang,
+      localeToLanguage(nextLocale),
+    );
+    const targetPath = buildPublicLocalizedPath(translatedPath, nextLocale, defaultLoc);
     // Preserve currency query param; drop lang (now in path)
     const params = new URLSearchParams(window.location.search);
     params.delete(SITE_LANG_QUERY_PARAM);

@@ -7,6 +7,99 @@ export const PUBLIC_LOCALE_HEADER_NAMES = {
   localeSegment: 'x-public-locale-segment',
 } as const;
 
+/**
+ * Canonical category segments per language.
+ *
+ * Spanish segments are the internal canonical form — they back the actual
+ * Next.js route files under `app/site/[subdomain]/{paquetes,hoteles,...}`.
+ * Middleware rewrites non-Spanish segments (e.g. `/en/packages/X`) back to
+ * the canonical Spanish path (`/site/sub/paquetes/X`) while preserving the
+ * requested URL in the browser (see [[ADR-019]] amendment 2026-04-19).
+ */
+export const CATEGORY_CANONICAL_SEGMENT = {
+  destination: { es: 'destinos', en: 'destinations' },
+  hotel: { es: 'hoteles', en: 'hotels' },
+  activity: { es: 'actividades', en: 'activities' },
+  transfer: { es: 'traslados', en: 'transfers' },
+  package: { es: 'paquetes', en: 'packages' },
+} as const;
+
+export type CategoryProductType = keyof typeof CATEGORY_CANONICAL_SEGMENT;
+export type CategoryLanguage = keyof (typeof CATEGORY_CANONICAL_SEGMENT)[CategoryProductType];
+
+interface CategorySegmentIndex {
+  segment: string;
+  productType: CategoryProductType;
+  language: CategoryLanguage;
+}
+
+const CATEGORY_SEGMENT_INDEX: CategorySegmentIndex[] = (
+  Object.keys(CATEGORY_CANONICAL_SEGMENT) as CategoryProductType[]
+).flatMap((productType) => {
+  const entry = CATEGORY_CANONICAL_SEGMENT[productType];
+  return (Object.keys(entry) as CategoryLanguage[]).map((language) => ({
+    segment: entry[language],
+    productType,
+    language,
+  }));
+});
+
+/**
+ * Resolve any category segment (Spanish or English) to its productType and
+ * the canonical Spanish segment used for internal rewrite targets.
+ *
+ * Returns null for unknown segments.
+ */
+export function resolveCategorySegment(segment: string): {
+  productType: CategoryProductType;
+  canonicalEs: string;
+  language: CategoryLanguage;
+} | null {
+  if (!segment || typeof segment !== 'string') return null;
+  const normalized = segment.trim().toLowerCase();
+  if (!normalized) return null;
+
+  const match = CATEGORY_SEGMENT_INDEX.find((entry) => entry.segment === normalized);
+  if (!match) return null;
+
+  return {
+    productType: match.productType,
+    canonicalEs: CATEGORY_CANONICAL_SEGMENT[match.productType].es,
+    language: match.language,
+  };
+}
+
+/**
+ * Translate the first path segment to the canonical segment for the given
+ * target language. Only the first segment is affected; unknown segments are
+ * returned unchanged. Used by hreflang builder + middleware canonical
+ * rewrite.
+ */
+export function translateCategoryPathname(
+  pathname: string,
+  targetLanguage: string,
+): string {
+  if (!pathname || typeof pathname !== 'string') return pathname;
+  const normalized = normalizePathname(pathname);
+  if (normalized === '/') return normalized;
+
+  const segments = normalized.split('/').filter(Boolean);
+  if (segments.length === 0) return normalized;
+
+  const firstSegment = segments[0].toLowerCase();
+  const resolved = resolveCategorySegment(firstSegment);
+  if (!resolved) return normalized;
+
+  const lang = (targetLanguage || '').toLowerCase() as CategoryLanguage;
+  const mapping = CATEGORY_CANONICAL_SEGMENT[resolved.productType] as Record<string, string>;
+  const nextSegment = mapping[lang] || mapping.es;
+
+  if (nextSegment === firstSegment) return normalized;
+
+  segments[0] = nextSegment;
+  return `/${segments.join('/')}`;
+}
+
 const DEFAULT_REGION_BY_LANG: Record<string, string> = {
   es: 'CO',
   en: 'US',
@@ -129,6 +222,13 @@ function pickLocaleForLanguage(
 export interface PublicLocalePathResolution {
   originalPathname: string;
   pathnameWithoutLang: string;
+  /**
+   * Spanish-canonical form of `pathnameWithoutLang` used as the internal
+   * rewrite target. Category segments (e.g. `/packages/X`) are translated
+   * back to their Spanish canonical counterpart (`/paquetes/X`). Non-category
+   * routes are identical to `pathnameWithoutLang`.
+   */
+  canonicalPathname: string;
   hasLanguageSegment: boolean;
   languageSegment: string | null;
   resolvedLocale: string;
@@ -163,9 +263,12 @@ export function resolveLocaleFromPublicPath(
     }
   }
 
+  const canonicalPathname = translateCategoryPathname(pathnameWithoutLang, 'es');
+
   return {
     originalPathname: normalizedPathname,
     pathnameWithoutLang,
+    canonicalPathname,
     hasLanguageSegment,
     languageSegment,
     resolvedLocale,

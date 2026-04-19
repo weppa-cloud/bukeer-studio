@@ -10,6 +10,7 @@ import {
   localeToOgLocale,
   normalizeLocale,
   normalizeWebsiteLocales,
+  translateCategoryPathname,
 } from '@/lib/seo/locale-routing';
 
 export interface HreflangLink {
@@ -115,7 +116,9 @@ export function generateHreflangLinks(
   }
 
   dedupedLocales.forEach((locale) => {
-    const hrefPath = buildPublicLocalizedPath(normalizedPath, locale, defaultLocale);
+    const localeLanguage = localeToLanguage(locale);
+    const localizedPath = translateCategoryPathname(normalizedPath, localeLanguage);
+    const hrefPath = buildPublicLocalizedPath(localizedPath, locale, defaultLocale);
     links.push({
       rel: 'alternate',
       hreflang: toHreflangTag(locale),
@@ -123,10 +126,12 @@ export function generateHreflangLinks(
     });
   });
 
+  const defaultLanguage = localeToLanguage(defaultLocale);
+  const defaultLocalizedPath = translateCategoryPathname(normalizedPath, defaultLanguage);
   links.push({
     rel: 'alternate',
     hreflang: 'x-default',
-    href: `${baseUrl}${buildPublicLocalizedPath(normalizedPath, defaultLocale, defaultLocale)}`,
+    href: `${baseUrl}${buildPublicLocalizedPath(defaultLocalizedPath, defaultLocale, defaultLocale)}`,
   });
 
   return links;

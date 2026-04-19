@@ -47,6 +47,7 @@ interface LocaleAwareRoutingInput {
   request: NextRequest;
   sourceUrl: URL;
   pathnameWithoutLang: string;
+  canonicalPathname: string;
   originalPathname: string;
   subdomain: string;
   host?: string;
@@ -337,6 +338,7 @@ function applyLocaleAwareTenantRewrite(input: LocaleAwareRoutingInput): NextResp
     request,
     sourceUrl,
     pathnameWithoutLang,
+    canonicalPathname,
     originalPathname,
     subdomain,
     host,
@@ -346,8 +348,12 @@ function applyLocaleAwareTenantRewrite(input: LocaleAwareRoutingInput): NextResp
     hasLanguageSegment,
   } = input;
 
+  // Internal rewrite target uses Spanish-canonical category segments so a
+  // single route file per category serves all locales. The browser URL is
+  // preserved (response.url unchanged) — see [[ADR-019]] amendment.
+  const internalPathname = canonicalPathname || pathnameWithoutLang;
   const rewriteUrl = new URL(sourceUrl);
-  rewriteUrl.pathname = `/site/${subdomain}${pathnameWithoutLang}`;
+  rewriteUrl.pathname = `/site/${subdomain}${internalPathname}`;
 
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set('x-subdomain', subdomain);
@@ -535,6 +541,7 @@ export async function middleware(request: NextRequest) {
         request,
         sourceUrl: url,
         pathnameWithoutLang: localeResolution.pathnameWithoutLang,
+        canonicalPathname: localeResolution.canonicalPathname,
         originalPathname: localeResolution.originalPathname,
         subdomain,
         resolvedLocale: localeResolution.resolvedLocale,
@@ -600,6 +607,7 @@ export async function middleware(request: NextRequest) {
       request,
       sourceUrl: url,
       pathnameWithoutLang: localeResolution.pathnameWithoutLang,
+      canonicalPathname: localeResolution.canonicalPathname,
       originalPathname: localeResolution.originalPathname,
       subdomain,
       resolvedLocale: localeResolution.resolvedLocale,
@@ -658,6 +666,7 @@ export async function middleware(request: NextRequest) {
         request,
         sourceUrl: url,
         pathnameWithoutLang: localeResolution.pathnameWithoutLang,
+        canonicalPathname: localeResolution.canonicalPathname,
         originalPathname: localeResolution.originalPathname,
         subdomain: website.subdomain,
         host,
