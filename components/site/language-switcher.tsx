@@ -11,7 +11,9 @@ import {
 import { getPublicUiMessages } from '@/lib/site/public-ui-messages';
 import {
   buildPublicLocalizedPath,
+  localeToLanguage,
   resolveLocaleFromPublicPath,
+  translateCategoryPathname,
 } from '@/lib/seo/locale-routing';
 
 interface LanguageSwitcherProps {
@@ -72,7 +74,11 @@ export function LanguageSwitcher({
       window.location.pathname,
       { defaultLocale: defLoc, supportedLocales: supportedLocales ?? [] },
     );
-    const targetPath = buildPublicLocalizedPath(pathnameWithoutLang, newLocale, defLoc);
+    const translatedPath = translateCategoryPathname(
+      pathnameWithoutLang,
+      localeToLanguage(newLocale),
+    );
+    const targetPath = buildPublicLocalizedPath(translatedPath, newLocale, defLoc);
     // Preserve currency query; drop lang (now in path)
     const params = new URLSearchParams(window.location.search);
     params.delete(SITE_LANG_QUERY_PARAM);
