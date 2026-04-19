@@ -134,10 +134,12 @@ jobs:
         run: npx playwright install-deps chromium
 
       # EPIC #207 W5 — SEO + i18n production-cert gate.
-      # Environment secrets must be configured in repo settings (SEO i18n gate per EPIC #207 W5).
-      # Fallbacks preserve the current PR-level smoke behaviour when staging
-      # secrets are absent (forks, draft PRs). When secrets are present, the
-      # `@p0-seo` suite runs against the seeded staging tenant.
+      # Secrets reuse Flutter-repo naming (no _STAGING suffix) since Studio +
+      # Flutter share the same Supabase project. See docs/ops/ci-seo-i18n-gate.md
+      # for the "no separate staging" rationale + risk note.
+      # Fallbacks preserve the current PR-level smoke behaviour when secrets
+      # are absent (forks, draft PRs). When secrets are present, the
+      # `@p0-seo` suite runs against the seeded tenant.
       # NOTE: CI does NOT use scripts/session-acquire.sh — that pool is for
       # local dev only (see .claude/rules/e2e-sessions.md). Each CI runner
       # is its own isolated VM.
@@ -151,14 +153,14 @@ jobs:
         env:
           E2E_BASE_URL: http://localhost:3000
           PLAYWRIGHT_JSON_OUTPUT_NAME: playwright-report/default/results.json
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL_STAGING || 'https://example.supabase.co' }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY_STAGING || 'ci-anon-key' }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY_STAGING || 'ci-service-role-key' }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL || 'https://example.supabase.co' }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || 'ci-anon-key' }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || 'ci-service-role-key' }}
           OPENROUTER_AUTH_TOKEN: ci-openrouter-token
           OPENROUTER_BASE_URL: https://openrouter.ai/api/v1
           OPENROUTER_MODEL: anthropic/claude-sonnet-4-5
-          REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET_STAGING || 'ci-revalidate-secret' }}
-          E2E_WEBSITE_ID: ${{ secrets.E2E_WEBSITE_ID_STAGING }}
+          REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET || 'ci-revalidate-secret' }}
+          E2E_WEBSITE_ID: ${{ secrets.E2E_WEBSITE_ID }}
           NEXT_PUBLIC_URL: https://bukeer.com
           NEXT_PUBLIC_MAIN_DOMAIN: bukeer.com
 

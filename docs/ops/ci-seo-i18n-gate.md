@@ -65,15 +65,40 @@ Configure in **Settings → Secrets and variables → Actions**:
 
 | Secret | Used by | Notes |
 |---|---|---|
-| `NEXT_PUBLIC_SUPABASE_URL_STAGING` | `e2e-smoke`, nightly | Staging Supabase project |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY_STAGING` | `e2e-smoke`, nightly | Public anon key |
-| `SUPABASE_SERVICE_ROLE_KEY_STAGING` | `e2e-smoke`, nightly | Server-only |
-| `REVALIDATE_SECRET_STAGING` | `e2e-smoke`, nightly | Matches `REVALIDATE_SECRET` in app env |
-| `E2E_WEBSITE_ID_STAGING` | `e2e-smoke`, nightly | Seeded multi-locale tenant UUID |
+| `SUPABASE_URL` | `e2e-smoke`, nightly, deploy | Shared with Flutter repo (same name) |
+| `SUPABASE_ANON_KEY` | `e2e-smoke`, nightly, deploy | Shared with Flutter repo (same name) |
+| `SUPABASE_SERVICE_ROLE_KEY` | `e2e-smoke`, nightly | Server-only. Copy value from Supabase dashboard |
+| `REVALIDATE_SECRET` | `e2e-smoke`, nightly | Matches `REVALIDATE_SECRET` in app env |
+| `E2E_WEBSITE_ID` | `e2e-smoke`, nightly | Seeded multi-locale tenant UUID |
 | `GITHUB_TOKEN` | nightly notifier | Built-in, no setup |
+
+### No separate staging environment
+
+Studio and Flutter repos share a single Supabase project (no dedicated staging DB). Secret names
+omit the `_STAGING` suffix to match Flutter's naming convention. Implications:
+
+- **Tests run against real tenant data** — seed fixtures use `ON CONFLICT DO NOTHING` and idempotent writes, but destructive writes are guarded by `assertSeedEnvAllowsMutation()` requiring `ALLOW_SEED=1`
+- **Pick a dedicated tenant** for `E2E_WEBSITE_ID` (e.g., `colombiatours`) that is not customer-facing critical
+- **Consider isolated staging project** for future hardening — out of scope for EPIC #207
 
 When secrets are absent (e.g., forks, draft PRs), the workflow falls back to placeholder values
 so the smoke subset still runs; `@p0-seo` assertions may be skipped or short-circuit.
+
+### Quick setup
+
+```bash
+# From Supabase Dashboard → Project Settings → API → copy service role key
+gh secret set SUPABASE_SERVICE_ROLE_KEY --repo weppa-cloud/bukeer-studio
+# paste when prompted
+
+# Generate a random secret (or reuse value from .env.local)
+openssl rand -hex 32 | gh secret set REVALIDATE_SECRET --repo weppa-cloud/bukeer-studio
+
+# Set E2E tenant UUID
+gh secret set E2E_WEBSITE_ID --repo weppa-cloud/bukeer-studio --body "<tenant-uuid>"
+```
+
+`SUPABASE_URL` and `SUPABASE_ANON_KEY` should already exist (used by existing deploy pipeline).
 
 ---
 
