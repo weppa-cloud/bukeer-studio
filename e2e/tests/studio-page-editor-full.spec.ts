@@ -3,8 +3,9 @@ import { getFirstWebsiteId, seedWave2Fixtures } from './helpers';
 import { PageEditorPom } from '../pom/page-editor.pom';
 import { TranscreateDialogPom } from '../pom/transcreate-dialog.pom';
 
-test.describe('Studio page editor — full flow', () => {
+test.describe('Studio page editor — full flow @p0-editor', () => {
   test.use({ storageState: 'e2e/.auth/user.json' });
+  test.skip(({ isMobile }) => !!isMobile, 'desktop-only editor');
 
   test.beforeAll(async () => {
     const fixtures = await seedWave2Fixtures();
@@ -21,9 +22,9 @@ test.describe('Studio page editor — full flow', () => {
     const editor = new PageEditorPom(page);
     await editor.goto(websiteId, fixtures.pageId!);
 
-    await expect(page.getByRole('button', { name: /^Save$/ })).toBeVisible({ timeout: 30000 });
-    await expect(page.getByRole('button', { name: /^Publish$/ })).toBeVisible();
-    await expect(page.getByRole('button', { name: /^Preview$/ })).toBeVisible();
+    await expect(page.getByTestId('studio-editor-save-button')).toBeVisible({ timeout: 30000 });
+    await expect(page.getByTestId('studio-editor-publish-button')).toBeVisible();
+    await expect(page.getByTestId('studio-editor-preview-button')).toBeVisible();
 
     await editor.setViewport('tablet');
     await editor.setViewport('mobile');
@@ -57,6 +58,6 @@ test.describe('Studio page editor — full flow', () => {
     await editor.undo();
     await editor.redo();
 
-    await expect(page.getByRole('button', { name: /^Save$/ })).toBeVisible();
+    await expect(page.getByTestId('studio-editor-save-button')).toBeVisible();
   });
 });

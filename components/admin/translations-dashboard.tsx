@@ -99,13 +99,15 @@ function KpiCard({
   label,
   value,
   tone = 'neutral',
+  testId,
 }: {
   label: string;
   value: number | string;
   tone?: 'neutral' | 'info' | 'success' | 'warning' | 'danger';
+  testId?: string;
 }) {
   return (
-    <div className="studio-card p-4 space-y-2">
+    <div className="studio-card p-4 space-y-2" data-testid={testId}>
       <p className="text-xs text-[var(--studio-text-muted)] uppercase tracking-wide">{label}</p>
       <div className="flex items-end justify-between gap-2">
         <p className="text-2xl font-semibold text-[var(--studio-text)]">{value}</p>
@@ -387,12 +389,13 @@ export function TranslationsDashboard({
   const topicalLocale = filters.targetLocale || 'en-US';
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5" data-testid="translations-dashboard-root">
       {/* Filter bar */}
       <form
         onSubmit={handleSubmitSearch}
         className="grid grid-cols-1 md:grid-cols-6 gap-2"
         aria-label="Filtros de traducciones"
+        data-testid="translations-dashboard-filters"
       >
         <StudioInput
           value={filters.sourceLocale}
@@ -401,6 +404,7 @@ export function TranslationsDashboard({
           }
           placeholder="Source locale (es-CO)"
           aria-label="Source locale"
+          data-testid="translations-dashboard-filter-source-locale"
         />
         <StudioInput
           value={filters.targetLocale}
@@ -409,27 +413,36 @@ export function TranslationsDashboard({
           }
           placeholder="Target locale (en-US)"
           aria-label="Target locale"
+          data-testid="translations-dashboard-filter-target-locale"
         />
         <StudioSelect
           value={filters.pageType}
           onChange={(event) => updateSearchParams({ pageType: event.target.value })}
           options={PAGE_TYPE_OPTIONS}
           aria-label="Page type"
+          data-testid="translations-dashboard-filter-page-type"
         />
         <StudioSelect
           value={filters.status}
           onChange={(event) => updateSearchParams({ status: event.target.value })}
           options={STATUS_OPTIONS}
           aria-label="Status"
+          data-testid="translations-dashboard-filter-status"
         />
         <StudioInput
           value={search}
           onChange={(event) => setSearch(event.target.value)}
           placeholder="Buscar keyword / id"
           aria-label="Buscar"
+          data-testid="translations-dashboard-filter-search"
         />
         <div className="flex items-center gap-2">
-          <StudioButton type="submit" size="sm" disabled={isPending}>
+          <StudioButton
+            type="submit"
+            size="sm"
+            disabled={isPending}
+            data-testid="translations-dashboard-filter-apply"
+          >
             Aplicar
           </StudioButton>
           <StudioButton
@@ -438,6 +451,7 @@ export function TranslationsDashboard({
             variant="ghost"
             onClick={handleToggleDrift}
             aria-pressed={filters.drift}
+            data-testid="translations-dashboard-filter-drift-toggle"
           >
             {filters.drift ? 'Drift: on' : 'Drift: off'}
           </StudioButton>
@@ -445,13 +459,16 @@ export function TranslationsDashboard({
       </form>
 
       {/* KPI cards */}
-      <section className="grid grid-cols-2 md:grid-cols-6 gap-3">
-        <KpiCard label="Total" value={kpis.total} tone="info" />
-        <KpiCard label="Traducidos" value={kpis.translated} tone="success" />
-        <KpiCard label="In Draft" value={kpis.inDraft} tone="warning" />
-        <KpiCard label="In Review" value={kpis.inReview} tone="info" />
-        <KpiCard label="Pending" value={kpis.pending} tone="danger" />
-        <KpiCard label="AI Spend Hoy" value={formatUsd(costSummary.todayUsd)} tone="info" />
+      <section
+        className="grid grid-cols-2 md:grid-cols-6 gap-3"
+        data-testid="translations-dashboard-kpis"
+      >
+        <KpiCard label="Total" value={kpis.total} tone="info" testId="translations-dashboard-kpi-total" />
+        <KpiCard label="Traducidos" value={kpis.translated} tone="success" testId="translations-dashboard-kpi-translated" />
+        <KpiCard label="In Draft" value={kpis.inDraft} tone="warning" testId="translations-dashboard-kpi-draft" />
+        <KpiCard label="In Review" value={kpis.inReview} tone="info" testId="translations-dashboard-kpi-review" />
+        <KpiCard label="Pending" value={kpis.pending} tone="danger" testId="translations-dashboard-kpi-pending" />
+        <KpiCard label="AI Spend Hoy" value={formatUsd(costSummary.todayUsd)} tone="info" testId="translations-dashboard-kpi-ai-spend" />
       </section>
 
       {/* Widgets row */}
@@ -678,7 +695,7 @@ function TableSection({
         </thead>
         <tbody>
           {rows.length === 0 ? (
-            <tr>
+            <tr data-testid="translations-dashboard-empty">
               <td
                 colSpan={8}
                 className="px-3 py-6 text-center text-[var(--studio-text-muted)]"

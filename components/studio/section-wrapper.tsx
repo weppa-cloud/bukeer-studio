@@ -39,18 +39,21 @@ function OverlayButton({
   title,
   destructive,
   children,
+  testId,
 }: {
   onClick: (e: React.MouseEvent) => void;
   disabled?: boolean;
   title: string;
   destructive?: boolean;
   children: React.ReactNode;
+  testId?: string;
 }) {
   return (
     <button
       onClick={onClick}
       disabled={disabled}
       title={title}
+      data-testid={testId}
       className={cn(
         'p-1 rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed',
         destructive
@@ -136,6 +139,7 @@ export function SectionWrapper({
             {...attributes}
             onClick={(e) => e.stopPropagation()}
             title="Drag to reorder"
+            data-testid={`studio-canvas-handle-${section.id}`}
           >
             <GripVertical className="w-3.5 h-3.5" />
           </button>
@@ -147,11 +151,15 @@ export function SectionWrapper({
 
       {/* Floating toolbar — top-right corner */}
       {showToolbar && (
-        <div className="absolute top-2 right-2 z-50 flex items-center gap-0.5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg px-1 py-0.5 pointer-events-auto">
+        <div
+          className="absolute top-2 right-2 z-50 flex items-center gap-0.5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg px-1 py-0.5 pointer-events-auto"
+          data-testid={`studio-canvas-toolbar-${section.id}`}
+        >
           <OverlayButton
             onClick={(e) => { e.stopPropagation(); onMoveUp(section.id); }}
             disabled={isFirst}
             title="Move up"
+            testId={`studio-canvas-move-up-${section.id}`}
           >
             <ChevronUp className="w-3 h-3" />
           </OverlayButton>
@@ -159,6 +167,7 @@ export function SectionWrapper({
             onClick={(e) => { e.stopPropagation(); onMoveDown(section.id); }}
             disabled={isLast}
             title="Move down"
+            testId={`studio-canvas-move-down-${section.id}`}
           >
             <ChevronDown className="w-3 h-3" />
           </OverlayButton>
@@ -166,12 +175,14 @@ export function SectionWrapper({
           <OverlayButton
             onClick={(e) => { e.stopPropagation(); onDuplicate(section.id); }}
             title="Duplicate"
+            testId={`studio-canvas-duplicate-${section.id}`}
           >
             <Copy className="w-3 h-3" />
           </OverlayButton>
           <OverlayButton
             onClick={(e) => { e.stopPropagation(); onToggleVisibility(section.id); }}
             title={section.isEnabled ? 'Hide' : 'Show'}
+            testId={`studio-canvas-toggle-visibility-${section.id}`}
           >
             {section.isEnabled ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
           </OverlayButton>
@@ -180,6 +191,7 @@ export function SectionWrapper({
             onClick={(e) => { e.stopPropagation(); onDelete(section.id); }}
             title="Delete"
             destructive
+            testId={`studio-canvas-delete-${section.id}`}
           >
             <Trash2 className="w-3 h-3" />
           </OverlayButton>

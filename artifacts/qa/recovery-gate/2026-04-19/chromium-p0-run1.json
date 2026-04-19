@@ -1,0 +1,3292 @@
+{
+  "config": {
+    "configFile": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/playwright.config.ts",
+    "rootDir": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/tests",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/global-setup.ts",
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/test-results/s1",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "setup",
+        "name": "setup",
+        "testDir": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "/.*\\.setup\\.ts/"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/test-results/s1",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/test-results/s1",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "firefox",
+        "name": "firefox",
+        "testDir": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/test-results/s1",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "mobile-chrome",
+        "name": "mobile-chrome",
+        "testDir": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "html",
+        {
+          "outputFolder": "playwright-report/s1",
+          "open": "never"
+        }
+      ],
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "test-results/s1/results.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "runAgents": "none",
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.58.2",
+    "workers": 1,
+    "webServer": {
+      "command": "PORT=3001 NEXT_DIST_DIR=.next-s1 npm run dev:node",
+      "url": "http://localhost:3001",
+      "reuseExistingServer": true,
+      "timeout": 120000
+    }
+  },
+  "suites": [
+    {
+      "title": "auth.setup.ts",
+      "file": "auth.setup.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "authenticate",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "setup",
+              "projectName": "setup",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 114,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "Auth cookie valid until 2027-05-21T04:00:11.580Z\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-04-19T16:57:38.345Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "17e3fe6f4d9d8bd79c6b-60f085b113a677673906",
+          "file": "auth.setup.ts",
+          "line": 7,
+          "column": 6
+        }
+      ]
+    },
+    {
+      "title": "admin-smoke.spec.ts",
+      "file": "admin-smoke.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Admin surfaces — smoke @p0-auth",
+          "file": "admin-smoke.spec.ts",
+          "line": 4,
+          "column": 6,
+          "specs": [
+            {
+              "title": "analytics route loads without 500",
+              "ok": true,
+              "tags": [
+                "p0-auth"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2411,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-19T16:57:39.260Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "3e1ae038a429e6569c19-1b919bbf8e476caed3ff",
+              "file": "admin-smoke.spec.ts",
+              "line": 11,
+              "column": 7
+            },
+            {
+              "title": "ops/reconciliation route returns 200 or 404 (never 500)",
+              "ok": true,
+              "tags": [
+                "p0-auth"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2837,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-19T16:57:45.245Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "3e1ae038a429e6569c19-517f09c8ef3458be9c39",
+              "file": "admin-smoke.spec.ts",
+              "line": 18,
+              "column": 7
+            },
+            {
+              "title": "contenido route loads",
+              "ok": true,
+              "tags": [
+                "p0-auth"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2771,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-19T16:57:48.087Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "3e1ae038a429e6569c19-ff5df5245f4d29416bb7",
+              "file": "admin-smoke.spec.ts",
+              "line": 25,
+              "column": 7
+            },
+            {
+              "title": "settings route loads",
+              "ok": true,
+              "tags": [
+                "p0-auth"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2095,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-19T16:57:50.864Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "3e1ae038a429e6569c19-6e7290797302ae521931",
+              "file": "admin-smoke.spec.ts",
+              "line": 31,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "auth-smoke.spec.ts",
+      "file": "auth-smoke.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Auth surface smoke @p0-auth",
+          "file": "auth-smoke.spec.ts",
+          "line": 11,
+          "column": 6,
+          "specs": [
+            {
+              "title": "root route does not 5xx",
+              "ok": true,
+              "tags": [
+                "p0-auth"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 203,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-19T16:57:52.975Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "81a7ae6f69a4ebf209d7-7a9d755668d8031e439f",
+              "file": "auth-smoke.spec.ts",
+              "line": 12,
+              "column": 7
+            },
+            {
+              "title": "login page renders form fields",
+              "ok": true,
+              "tags": [
+                "p0-auth"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 227,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-19T16:57:53.186Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "81a7ae6f69a4ebf209d7-8c891926af0e1df30a2e",
+              "file": "auth-smoke.spec.ts",
+              "line": 18,
+              "column": 7
+            },
+            {
+              "title": "forgot-password page renders without 5xx",
+              "ok": true,
+              "tags": [
+                "p0-auth"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 627,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-19T16:57:53.416Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "81a7ae6f69a4ebf209d7-08e29ccbed779a4b1cb5",
+              "file": "auth-smoke.spec.ts",
+              "line": 26,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "glossary-enforcement.spec.ts",
+      "file": "glossary-enforcement.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Glossary enforcement @p1-seo",
+          "file": "glossary-enforcement.spec.ts",
+          "line": 17,
+          "column": 6,
+          "specs": [
+            {
+              "title": "transcreate output respects glossary term mapping",
+              "ok": true,
+              "tags": [
+                "p1-seo"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "description": "No payload_v2 in response — contract may differ from expectation",
+                      "location": {
+                        "file": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/tests/glossary-enforcement.spec.ts",
+                        "line": 99,
+                        "column": 10
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "skipped",
+                      "duration": 709,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-19T16:57:54.053Z",
+                      "annotations": [
+                        {
+                          "type": "skip",
+                          "description": "No payload_v2 in response — contract may differ from expectation",
+                          "location": {
+                            "file": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/tests/glossary-enforcement.spec.ts",
+                            "line": 99,
+                            "column": 10
+                          }
+                        }
+                      ],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "3a96514c0af623d16a59-a3981d5abf99fe2784f7",
+              "file": "glossary-enforcement.spec.ts",
+              "line": 20,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "middleware-locale-routing.spec.ts",
+      "file": "middleware-locale-routing.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Middleware locale routing @p0-seo",
+          "file": "middleware-locale-routing.spec.ts",
+          "line": 18,
+          "column": 6,
+          "specs": [
+            {
+              "title": "base path serves default locale without prefix",
+              "ok": true,
+              "tags": [
+                "p0-seo"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 903,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-19T16:57:54.769Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "f9065da111ced3dc070d-a966aa61ed9d5cef33a3",
+              "file": "middleware-locale-routing.spec.ts",
+              "line": 30,
+              "column": 7
+            },
+            {
+              "title": "GET /en/paquetes/{slug} routes through middleware without 404",
+              "ok": true,
+              "tags": [
+                "p0-seo"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 535,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-19T16:57:55.680Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "f9065da111ced3dc070d-9fb74db6c9ba3fd1bb07",
+              "file": "middleware-locale-routing.spec.ts",
+              "line": 39,
+              "column": 7
+            },
+            {
+              "title": "GET /en/packages/{slug} (EN category alias) routes without 500 (#209 Option C)",
+              "ok": true,
+              "tags": [
+                "p0-seo"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "description": "EN category alias /en/packages/... not yet implemented (#209 Option C pending)",
+                      "location": {
+                        "file": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/tests/middleware-locale-routing.spec.ts",
+                        "line": 65,
+                        "column": 10
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "skipped",
+                      "duration": 134,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-19T16:57:56.223Z",
+                      "annotations": [
+                        {
+                          "type": "skip",
+                          "description": "EN category alias /en/packages/... not yet implemented (#209 Option C pending)",
+                          "location": {
+                            "file": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/tests/middleware-locale-routing.spec.ts",
+                            "line": 65,
+                            "column": 10
+                          }
+                        }
+                      ],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "f9065da111ced3dc070d-8a958b55f9dbc5d8dfac",
+              "file": "middleware-locale-routing.spec.ts",
+              "line": 52,
+              "column": 7
+            },
+            {
+              "title": "legacy path 301-redirects via website_legacy_redirects",
+              "ok": false,
+              "tags": [
+                "p0-seo"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 22,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoContain\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // indexOf\u001b[22m\n\nExpected value: \u001b[32m404\u001b[39m\nReceived array: \u001b[31m[301, 302, 307, 308]\u001b[39m",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoContain\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // indexOf\u001b[22m\n\nExpected value: \u001b[32m404\u001b[39m\nReceived array: \u001b[31m[301, 302, 307, 308]\u001b[39m\n    at /Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/tests/middleware-locale-routing.spec.ts:85:34",
+                        "location": {
+                          "file": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/tests/middleware-locale-routing.spec.ts",
+                          "column": 34,
+                          "line": 85
+                        },
+                        "snippet": "  83 |       `Middleware returned ${res.status()} — legacy redirect needs live middleware`,\n  84 |     );\n> 85 |     expect([301, 302, 307, 308]).toContain(res.status());\n     |                                  ^\n  86 |     const location = res.headers()['location'] ?? '';\n  87 |     expect(location).toContain('/paquetes/');\n  88 |   });"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/tests/middleware-locale-routing.spec.ts",
+                            "column": 34,
+                            "line": 85
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoContain\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // indexOf\u001b[22m\n\nExpected value: \u001b[32m404\u001b[39m\nReceived array: \u001b[31m[301, 302, 307, 308]\u001b[39m\n\n  83 |       `Middleware returned ${res.status()} — legacy redirect needs live middleware`,\n  84 |     );\n> 85 |     expect([301, 302, 307, 308]).toContain(res.status());\n     |                                  ^\n  86 |     const location = res.headers()['location'] ?? '';\n  87 |     expect(location).toContain('/paquetes/');\n  88 |   });\n    at /Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/tests/middleware-locale-routing.spec.ts:85:34"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-19T16:57:56.361Z",
+                      "annotations": [],
+                      "attachments": [],
+                      "errorLocation": {
+                        "file": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/tests/middleware-locale-routing.spec.ts",
+                        "column": 34,
+                        "line": 85
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "f9065da111ced3dc070d-5ad005a2b8dd79ce3acf",
+              "file": "middleware-locale-routing.spec.ts",
+              "line": 72,
+              "column": 7
+            },
+            {
+              "title": "x-public-resolved-locale header is emitted by middleware",
+              "ok": true,
+              "tags": [
+                "p0-seo"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "description": "x-public-resolved-locale header not emitted — middleware contract may have changed",
+                      "location": {
+                        "file": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/tests/middleware-locale-routing.spec.ts",
+                        "line": 97,
+                        "column": 10
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "skipped",
+                      "duration": 945,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-19T16:57:56.897Z",
+                      "annotations": [
+                        {
+                          "type": "skip",
+                          "description": "x-public-resolved-locale header not emitted — middleware contract may have changed",
+                          "location": {
+                            "file": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/tests/middleware-locale-routing.spec.ts",
+                            "line": 97,
+                            "column": 10
+                          }
+                        }
+                      ],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "f9065da111ced3dc070d-715f21d4e9436b58df69",
+              "file": "middleware-locale-routing.spec.ts",
+              "line": 90,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "public-hreflang.spec.ts",
+      "file": "public-hreflang.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Public hreflang alternates @p0-seo",
+          "file": "public-hreflang.spec.ts",
+          "line": 22,
+          "column": 6,
+          "specs": [
+            {
+              "title": "homepage exposes hreflang alternates + x-default (ADR-020)",
+              "ok": true,
+              "tags": [
+                "p0-seo"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 992,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-19T16:58:00.730Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "b76ac64d817d60ba588d-f0a38f9b1e30edb353c3",
+              "file": "public-hreflang.spec.ts",
+              "line": 33,
+              "column": 7
+            },
+            {
+              "title": "each alternate href is an absolute URL",
+              "ok": true,
+              "tags": [
+                "p0-seo"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 999,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-19T16:58:02.062Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "b76ac64d817d60ba588d-ddadf4beb4c158866df9",
+              "file": "public-hreflang.spec.ts",
+              "line": 64,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "public-seo-metadata.spec.ts",
+      "file": "public-seo-metadata.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Public SEO metadata @p0-seo",
+          "file": "public-seo-metadata.spec.ts",
+          "line": 26,
+          "column": 6,
+          "specs": [
+            {
+              "title": "homepage renders complete <head>",
+              "ok": true,
+              "tags": [
+                "p0-seo"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1025,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-19T16:58:03.069Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "5a51d56e3679fe6d93ca-8604483dd2f3b6f8b879",
+              "file": "public-seo-metadata.spec.ts",
+              "line": 38,
+              "column": 9
+            },
+            {
+              "title": "paquetes index renders complete <head>",
+              "ok": true,
+              "tags": [
+                "p0-seo"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2931,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-19T16:58:04.102Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "5a51d56e3679fe6d93ca-d025d15aef6166ce037c",
+              "file": "public-seo-metadata.spec.ts",
+              "line": 38,
+              "column": 9
+            },
+            {
+              "title": "destinos index renders complete <head>",
+              "ok": true,
+              "tags": [
+                "p0-seo"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 733,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-19T16:58:07.038Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "5a51d56e3679fe6d93ca-ee9767024689b3471a05",
+              "file": "public-seo-metadata.spec.ts",
+              "line": 38,
+              "column": 9
+            },
+            {
+              "title": "blog index renders complete <head>",
+              "ok": true,
+              "tags": [
+                "p0-seo"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1975,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-19T16:58:07.775Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "5a51d56e3679fe6d93ca-81aac0dba23f208e519b",
+              "file": "public-seo-metadata.spec.ts",
+              "line": 38,
+              "column": 9
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "public-sitemap.spec.ts",
+      "file": "public-sitemap.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Public sitemap & robots @p0-seo",
+          "file": "public-sitemap.spec.ts",
+          "line": 12,
+          "column": 6,
+          "specs": [
+            {
+              "title": "/sitemap.xml serves valid XML with >=1 <url>",
+              "ok": true,
+              "tags": [
+                "p0-seo"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1945,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-19T16:58:09.758Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "78b5bd90991a858914ce-bd337a8a769f8d4e2ad7",
+              "file": "public-sitemap.spec.ts",
+              "line": 24,
+              "column": 7
+            },
+            {
+              "title": "/site/colombiatours/sitemap.xml serves tenant-scoped URLs",
+              "ok": true,
+              "tags": [
+                "p0-seo"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 9849,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-19T16:58:11.713Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "78b5bd90991a858914ce-7e5f538e6dde27d55f7a",
+              "file": "public-sitemap.spec.ts",
+              "line": 34,
+              "column": 7
+            },
+            {
+              "title": "noindex product is excluded from tenant sitemap",
+              "ok": true,
+              "tags": [
+                "p0-seo"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "description": "No seeded noindex product — seedWave2Fixtures could not create website_product_pages row",
+                      "location": {
+                        "file": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/tests/public-sitemap.spec.ts",
+                        "line": 49,
+                        "column": 10
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "skipped",
+                      "duration": 2,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-19T16:58:21.571Z",
+                      "annotations": [
+                        {
+                          "type": "skip",
+                          "description": "No seeded noindex product — seedWave2Fixtures could not create website_product_pages row",
+                          "location": {
+                            "file": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/tests/public-sitemap.spec.ts",
+                            "line": 49,
+                            "column": 10
+                          }
+                        }
+                      ],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "78b5bd90991a858914ce-cddf49b3f87b55169d83",
+              "file": "public-sitemap.spec.ts",
+              "line": 48,
+              "column": 7
+            },
+            {
+              "title": "/robots.txt references sitemap line and sets crawl policy",
+              "ok": true,
+              "tags": [
+                "p0-seo"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 170,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-19T16:58:21.579Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "78b5bd90991a858914ce-58067146f02616120507",
+              "file": "public-sitemap.spec.ts",
+              "line": 68,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "public-structured-data.spec.ts",
+      "file": "public-structured-data.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Public structured data @p0-seo",
+          "file": "public-structured-data.spec.ts",
+          "line": 33,
+          "column": 6,
+          "specs": [
+            {
+              "title": "homepage exposes Organization or TravelAgency JSON-LD",
+              "ok": true,
+              "tags": [
+                "p0-seo"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "description": "No JSON-LD scripts emitted on homepage",
+                      "location": {
+                        "file": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/tests/public-structured-data.spec.ts",
+                        "line": 57,
+                        "column": 10
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "skipped",
+                      "duration": 1042,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-19T16:58:21.756Z",
+                      "annotations": [
+                        {
+                          "type": "skip",
+                          "description": "No JSON-LD scripts emitted on homepage",
+                          "location": {
+                            "file": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/tests/public-structured-data.spec.ts",
+                            "line": 57,
+                            "column": 10
+                          }
+                        }
+                      ],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d7bb6cadc5c269965283-6fdb30e75eacd0a45fce",
+              "file": "public-structured-data.spec.ts",
+              "line": 47,
+              "column": 7
+            },
+            {
+              "title": "package page exposes TouristTrip + BreadcrumbList",
+              "ok": true,
+              "tags": [
+                "p0-seo"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "description": "No JSON-LD on package page — nothing to validate",
+                      "location": {
+                        "file": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/tests/public-structured-data.spec.ts",
+                        "line": 78,
+                        "column": 10
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "skipped",
+                      "duration": 2298,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-19T16:58:22.808Z",
+                      "annotations": [
+                        {
+                          "type": "skip",
+                          "description": "No JSON-LD on package page — nothing to validate",
+                          "location": {
+                            "file": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/tests/public-structured-data.spec.ts",
+                            "line": 78,
+                            "column": 10
+                          }
+                        }
+                      ],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d7bb6cadc5c269965283-83555e2a7d2d1bb564ae",
+              "file": "public-structured-data.spec.ts",
+              "line": 65,
+              "column": 7
+            },
+            {
+              "title": "package page exposes VideoObject JSON-LD when video_url set",
+              "ok": true,
+              "tags": [
+                "p0-seo"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "description": "No JSON-LD on package page — nothing to validate",
+                      "location": {
+                        "file": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/tests/public-structured-data.spec.ts",
+                        "line": 104,
+                        "column": 10
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "skipped",
+                      "duration": 575,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-19T16:58:25.111Z",
+                      "annotations": [
+                        {
+                          "type": "skip",
+                          "description": "No JSON-LD on package page — nothing to validate",
+                          "location": {
+                            "file": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/tests/public-structured-data.spec.ts",
+                            "line": 104,
+                            "column": 10
+                          }
+                        }
+                      ],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d7bb6cadc5c269965283-cef837b68a053e18f764",
+              "file": "public-structured-data.spec.ts",
+              "line": 86,
+              "column": 7
+            },
+            {
+              "title": "inLanguage on package JSON-LD matches URL locale segment (#208)",
+              "ok": true,
+              "tags": [
+                "p0-seo"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "description": "/en/paquetes/{slug} not available — requires multi-locale routing + applied transcreation",
+                      "location": {
+                        "file": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/tests/public-structured-data.spec.ts",
+                        "line": 117,
+                        "column": 10
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "skipped",
+                      "duration": 135,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-19T16:58:25.689Z",
+                      "annotations": [
+                        {
+                          "type": "skip",
+                          "description": "/en/paquetes/{slug} not available — requires multi-locale routing + applied transcreation",
+                          "location": {
+                            "file": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/tests/public-structured-data.spec.ts",
+                            "line": 117,
+                            "column": 10
+                          }
+                        }
+                      ],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d7bb6cadc5c269965283-c6bb831b4557fbd78705",
+              "file": "public-structured-data.spec.ts",
+              "line": 114,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "revalidate-flow.spec.ts",
+      "file": "revalidate-flow.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Revalidate flow @p0-seo",
+          "file": "revalidate-flow.spec.ts",
+          "line": 16,
+          "column": 6,
+          "specs": [
+            {
+              "title": "rejects request with no auth header (401)",
+              "ok": true,
+              "tags": [
+                "p0-seo"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 301,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-19T16:58:25.830Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "148c2290f708ceb82338-f8f5dc25ef0e58a0db35",
+              "file": "revalidate-flow.spec.ts",
+              "line": 28,
+              "column": 7
+            },
+            {
+              "title": "rejects request with invalid bearer token (401)",
+              "ok": true,
+              "tags": [
+                "p0-seo"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 15,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-19T16:58:26.139Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "148c2290f708ceb82338-7040c7432189768241ec",
+              "file": "revalidate-flow.spec.ts",
+              "line": 35,
+              "column": 7
+            },
+            {
+              "title": "accepts valid secret and returns 200 envelope",
+              "ok": true,
+              "tags": [
+                "p0-seo"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "description": "REVALIDATE_SECRET not available in test env — cannot verify happy path",
+                      "location": {
+                        "file": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/tests/revalidate-flow.spec.ts",
+                        "line": 45,
+                        "column": 10
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "skipped",
+                      "duration": 0,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-19T16:58:26.158Z",
+                      "annotations": [
+                        {
+                          "type": "skip",
+                          "description": "REVALIDATE_SECRET not available in test env — cannot verify happy path",
+                          "location": {
+                            "file": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/tests/revalidate-flow.spec.ts",
+                            "line": 45,
+                            "column": 10
+                          }
+                        }
+                      ],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "148c2290f708ceb82338-9fdf6721339333fa883f",
+              "file": "revalidate-flow.spec.ts",
+              "line": 43,
+              "column": 7
+            },
+            {
+              "title": "full mutation -> revalidate -> page reflects change",
+              "ok": true,
+              "tags": [
+                "p0-seo"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "description": "TODO: requires SUPABASE_SERVICE_ROLE_KEY + seeded tenant. Mutate DB, call /api/revalidate, refetch page, assert new copy. Tracked in EPIC #207.",
+                      "location": {
+                        "file": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/tests/revalidate-flow.spec.ts",
+                        "line": 65,
+                        "column": 10
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "skipped",
+                      "duration": 0,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-19T16:58:26.162Z",
+                      "annotations": [
+                        {
+                          "type": "skip",
+                          "description": "TODO: requires SUPABASE_SERVICE_ROLE_KEY + seeded tenant. Mutate DB, call /api/revalidate, refetch page, assert new copy. Tracked in EPIC #207.",
+                          "location": {
+                            "file": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/tests/revalidate-flow.spec.ts",
+                            "line": 65,
+                            "column": 10
+                          }
+                        }
+                      ],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "148c2290f708ceb82338-a3cfaffc3280c75ed233",
+              "file": "revalidate-flow.spec.ts",
+              "line": 64,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "security-api-auth-contract.spec.ts",
+      "file": "security-api-auth-contract.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Security — API auth contract",
+          "file": "security-api-auth-contract.spec.ts",
+          "line": 9,
+          "column": 6,
+          "specs": [
+            {
+              "title": "POST /api/seo/content-intelligence/transcreate rejects anonymous",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 16,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-19T16:58:26.169Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d52e49a31483f09b70ab-70eb360b383eaec1e80a",
+              "file": "security-api-auth-contract.spec.ts",
+              "line": 19,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "seo-playbook-e2e.spec.ts",
+      "file": "seo-playbook-e2e.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "SEO Playbook v2.0 — Smoke Tests",
+          "file": "seo-playbook-e2e.spec.ts",
+          "line": 8,
+          "column": 6,
+          "specs": [],
+          "suites": [
+            {
+              "title": "Analytics Dashboard",
+              "file": "seo-playbook-e2e.spec.ts",
+              "line": 35,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "loads config tab with locale settings and Google Integrations @smoke",
+                  "ok": false,
+                  "tags": [
+                    "smoke"
+                  ],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 2,
+                          "parallelIndex": 0,
+                          "status": "timedOut",
+                          "duration": 30527,
+                          "error": {
+                            "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m",
+                            "stack": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                          },
+                          "errors": [
+                            {
+                              "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                            },
+                            {
+                              "location": {
+                                "file": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/tests/seo-playbook-e2e.spec.ts",
+                                "column": 71,
+                                "line": 131
+                              },
+                              "message": "Error: locator.click: Test timeout of 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: 'Config', exact: true })\u001b[22m\n\n\n  129 |       await page.waitForLoadState('domcontentloaded');\n  130 |\n> 131 |       await page.getByRole('button', { name: 'Config', exact: true }).click();\n      |                                                                       ^\n  132 |       await page.waitForLoadState('domcontentloaded');\n  133 |\n  134 |       // Google Integrations panel\n    at /Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/tests/seo-playbook-e2e.spec.ts:131:71"
+                            }
+                          ],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-04-19T16:58:26.193Z",
+                          "annotations": [],
+                          "attachments": [
+                            {
+                              "name": "screenshot",
+                              "contentType": "image/png",
+                              "path": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/test-results/s1/seo-playbook-e2e-SEO-Playb-a384c-d-Google-Integrations-smoke-chromium/test-failed-1.png"
+                            },
+                            {
+                              "name": "video",
+                              "contentType": "video/webm",
+                              "path": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/test-results/s1/seo-playbook-e2e-SEO-Playb-a384c-d-Google-Integrations-smoke-chromium/video.webm"
+                            },
+                            {
+                              "name": "error-context",
+                              "contentType": "text/markdown",
+                              "path": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/test-results/s1/seo-playbook-e2e-SEO-Playb-a384c-d-Google-Integrations-smoke-chromium/error-context.md"
+                            }
+                          ]
+                        }
+                      ],
+                      "status": "unexpected"
+                    }
+                  ],
+                  "id": "b56524f8b4e9d3f4a804-c6c7a639293258f42e3f",
+                  "file": "seo-playbook-e2e.spec.ts",
+                  "line": 127,
+                  "column": 9
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "seo-transcreate-v2-lifecycle.spec.ts",
+      "file": "seo-transcreate-v2-lifecycle.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "SEO transcreate lifecycle v2/v2.1 @e2e",
+          "file": "seo-transcreate-v2-lifecycle.spec.ts",
+          "line": 144,
+          "column": 6,
+          "specs": [
+            {
+              "title": "v2 draft -> reviewed -> applied (schema 2.0)",
+              "ok": true,
+              "tags": [
+                "e2e"
+              ],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 8253,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-19T16:58:57.232Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "bfd7f9e09fe7733e918a-037bb2cd3d70b33fb4f8",
+              "file": "seo-transcreate-v2-lifecycle.spec.ts",
+              "line": 195,
+              "column": 7
+            },
+            {
+              "title": "v2.1 draft -> reviewed -> applied (schema 2.1 full payload)",
+              "ok": true,
+              "tags": [
+                "e2e"
+              ],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 8105,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-19T16:59:06.647Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "bfd7f9e09fe7733e918a-724c748a458a39e108f6",
+              "file": "seo-transcreate-v2-lifecycle.spec.ts",
+              "line": 329,
+              "column": 7
+            },
+            {
+              "title": "applied transcreate renders on /en/paquetes/{slug} @p0-seo",
+              "ok": true,
+              "tags": [
+                "e2e",
+                "p0-seo"
+              ],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "description": "Public /en/paquetes/e2e-qa-package not available — requires earlier \"applied\" lifecycle test to seed an overlay with a matching slug",
+                      "location": {
+                        "file": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/tests/seo-transcreate-v2-lifecycle.spec.ts",
+                        "line": 488,
+                        "column": 10
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 0,
+                      "status": "skipped",
+                      "duration": 169,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-19T16:59:14.760Z",
+                      "annotations": [
+                        {
+                          "type": "skip",
+                          "description": "Public /en/paquetes/e2e-qa-package not available — requires earlier \"applied\" lifecycle test to seed an overlay with a matching slug",
+                          "location": {
+                            "file": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/tests/seo-transcreate-v2-lifecycle.spec.ts",
+                            "line": 488,
+                            "column": 10
+                          }
+                        }
+                      ],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bfd7f9e09fe7733e918a-4138cbda695327a86690",
+              "file": "seo-transcreate-v2-lifecycle.spec.ts",
+              "line": 475,
+              "column": 7
+            },
+            {
+              "title": "seeded applied transcreation jobs exist for en-US (ADR-020) @p0-seo",
+              "ok": true,
+              "tags": [
+                "e2e",
+                "p0-seo"
+              ],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2896,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-19T16:59:14.934Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "bfd7f9e09fe7733e918a-67fc758cea2145e4bbc4",
+              "file": "seo-transcreate-v2-lifecycle.spec.ts",
+              "line": 510,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "settings-domain.spec.ts",
+      "file": "settings-domain.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Settings tab + domain wizard @p0-settings",
+          "file": "settings-domain.spec.ts",
+          "line": 15,
+          "column": 6,
+          "specs": [
+            {
+              "title": "subdomain field + save button use stable testids",
+              "ok": true,
+              "tags": [
+                "p0-settings"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2206,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-19T16:59:18.063Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ffb955ada6c1958fa64c-0ffc0db24bc518dd6678",
+              "file": "settings-domain.spec.ts",
+              "line": 18,
+              "column": 7
+            },
+            {
+              "title": "domain wizard steps + verify button expose testids",
+              "ok": true,
+              "tags": [
+                "p0-settings"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2812,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-19T16:59:20.275Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ffb955ada6c1958fa64c-1f0f468fbe727d062c4d",
+              "file": "settings-domain.spec.ts",
+              "line": 43,
+              "column": 7
+            },
+            {
+              "title": "danger zone exposes unpublish + delete testids",
+              "ok": true,
+              "tags": [
+                "p0-settings"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2150,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-19T16:59:23.092Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ffb955ada6c1958fa64c-83308527aefa2f21cbf7",
+              "file": "settings-domain.spec.ts",
+              "line": 69,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "settings.spec.ts",
+      "file": "settings.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Settings Tab @p0-settings",
+          "file": "settings.spec.ts",
+          "line": 4,
+          "column": 6,
+          "specs": [
+            {
+              "title": "shows subdomain editor",
+              "ok": true,
+              "tags": [
+                "p0-settings"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2206,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-19T16:59:25.248Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d877ffdf71ec720167ae-65e46bafee92014b7eb8",
+              "file": "settings.spec.ts",
+              "line": 7,
+              "column": 7
+            },
+            {
+              "title": "domain wizard step-by-step",
+              "ok": true,
+              "tags": [
+                "p0-settings"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2602,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-19T16:59:27.459Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d877ffdf71ec720167ae-b95e761bbf32e9b3b9ff",
+              "file": "settings.spec.ts",
+              "line": 14,
+              "column": 7
+            },
+            {
+              "title": "danger zone requires confirmation",
+              "ok": true,
+              "tags": [
+                "p0-settings"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2194,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-19T16:59:30.065Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d877ffdf71ec720167ae-a8ea9729f30cbd639d90",
+              "file": "settings.spec.ts",
+              "line": 30,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "studio-chat-stream.spec.ts",
+      "file": "studio-chat-stream.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Studio chat — copilot stream @p0-editor",
+          "file": "studio-chat-stream.spec.ts",
+          "line": 5,
+          "column": 6,
+          "specs": [
+            {
+              "title": "user message triggers mocked assistant stream",
+              "ok": false,
+              "tags": [
+                "p0-editor"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 0,
+                      "status": "timedOut",
+                      "duration": 30092,
+                      "error": {
+                        "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m",
+                        "stack": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                      },
+                      "errors": [
+                        {
+                          "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                        },
+                        {
+                          "location": {
+                            "file": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/pom/page-editor.pom.ts",
+                            "column": 90,
+                            "line": 76
+                          },
+                          "message": "Error: locator.click: Test timeout of 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: /^AI$/i }).first()\u001b[22m\n\n\n   at ../pom/page-editor.pom.ts:76\n\n  74 |     }\n  75 |\n> 76 |     await this.page.getByRole('button', { name: new RegExp(`^${label}$`, 'i') }).first().click();\n     |                                                                                          ^\n  77 |   }\n  78 |\n  79 |   async undo(): Promise<void> {\n    at PageEditorPom.switchPanel (/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/pom/page-editor.pom.ts:76:90)\n    at /Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/tests/studio-chat-stream.spec.ts:35:5"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-19T16:59:32.266Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/test-results/s1/studio-chat-stream-Studio--c90d5-ers-mocked-assistant-stream-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/test-results/s1/studio-chat-stream-Studio--c90d5-ers-mocked-assistant-stream-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/test-results/s1/studio-chat-stream-Studio--c90d5-ers-mocked-assistant-stream-chromium/error-context.md"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "8ed6ad43d4f781070ec1-9ecb78bfb0c433a629c8",
+              "file": "studio-chat-stream.spec.ts",
+              "line": 14,
+              "column": 7
+            },
+            {
+              "title": "upstream error renders inline alert",
+              "ok": false,
+              "tags": [
+                "p0-editor"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 0,
+                      "status": "timedOut",
+                      "duration": 30085,
+                      "error": {
+                        "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m",
+                        "stack": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                      },
+                      "errors": [
+                        {
+                          "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                        },
+                        {
+                          "location": {
+                            "file": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/pom/page-editor.pom.ts",
+                            "column": 90,
+                            "line": 76
+                          },
+                          "message": "Error: locator.click: Test timeout of 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: /^AI$/i }).first()\u001b[22m\n\n\n   at ../pom/page-editor.pom.ts:76\n\n  74 |     }\n  75 |\n> 76 |     await this.page.getByRole('button', { name: new RegExp(`^${label}$`, 'i') }).first().click();\n     |                                                                                          ^\n  77 |   }\n  78 |\n  79 |   async undo(): Promise<void> {\n    at PageEditorPom.switchPanel (/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/pom/page-editor.pom.ts:76:90)\n    at /Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/tests/studio-chat-stream.spec.ts:59:5"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-19T17:00:02.881Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/test-results/s1/studio-chat-stream-Studio--68007--error-renders-inline-alert-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/test-results/s1/studio-chat-stream-Studio--68007--error-renders-inline-alert-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/test-results/s1/studio-chat-stream-Studio--68007--error-renders-inline-alert-chromium/error-context.md"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "8ed6ad43d4f781070ec1-f2f451adfda6a06f6e6e",
+              "file": "studio-chat-stream.spec.ts",
+              "line": 46,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "studio-page-editor-full.spec.ts",
+      "file": "studio-page-editor-full.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Studio page editor — full flow @p0-editor",
+          "file": "studio-page-editor-full.spec.ts",
+          "line": 6,
+          "column": 6,
+          "specs": [
+            {
+              "title": "editor mounts with topbar, viewport switcher, and panel tabs",
+              "ok": true,
+              "tags": [
+                "p0-editor"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 5,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2805,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-19T17:00:36.769Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "9ce055c7ae0d00d579cc-8921f8505dba4abc5895",
+              "file": "studio-page-editor-full.spec.ts",
+              "line": 19,
+              "column": 7
+            },
+            {
+              "title": "transcreate dialog opens from \"Traducir a...\" button",
+              "ok": true,
+              "tags": [
+                "p0-editor"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 5,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 3179,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-19T17:00:43.210Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "9ce055c7ae0d00d579cc-b11e3333727e62f23750",
+              "file": "studio-page-editor-full.spec.ts",
+              "line": 38,
+              "column": 7
+            },
+            {
+              "title": "undo / redo hotkeys fire without throwing",
+              "ok": true,
+              "tags": [
+                "p0-editor"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 5,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2328,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-19T17:00:46.394Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "9ce055c7ae0d00d579cc-6f9e369cef7960c3f9b8",
+              "file": "studio-page-editor-full.spec.ts",
+              "line": 52,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "studio-section-canvas-dnd.spec.ts",
+      "file": "studio-section-canvas-dnd.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Studio section-canvas — dnd-kit @p0-editor",
+          "file": "studio-section-canvas-dnd.spec.ts",
+          "line": 5,
+          "column": 6,
+          "specs": [
+            {
+              "title": "canvas renders 5 seeded sections with data-section-id attributes",
+              "ok": true,
+              "tags": [
+                "p0-editor"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 5,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2356,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-19T17:00:48.728Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "2337309447d80fc1d563-8b9a281e298bf3992832",
+              "file": "studio-section-canvas-dnd.spec.ts",
+              "line": 16,
+              "column": 7
+            },
+            {
+              "title": "selecting a section via click highlights it",
+              "ok": true,
+              "tags": [
+                "p0-editor"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 5,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2529,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-19T17:00:51.092Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "2337309447d80fc1d563-9ffc30c1350fe464077a",
+              "file": "studio-section-canvas-dnd.spec.ts",
+              "line": 32,
+              "column": 7
+            },
+            {
+              "title": "drag reorder swaps adjacent sections",
+              "ok": false,
+              "tags": [
+                "p0-editor"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 5,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 2722,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mnot\u001b[2m.\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: not \u001b[32m\"sec-hero\"\u001b[39m",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mnot\u001b[2m.\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: not \u001b[32m\"sec-hero\"\u001b[39m\n    at /Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/tests/studio-section-canvas-dnd.spec.ts:80:26",
+                        "location": {
+                          "file": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/tests/studio-section-canvas-dnd.spec.ts",
+                          "column": 26,
+                          "line": 80
+                        },
+                        "snippet": "  78 |       nodes.map((el) => el.getAttribute('data-section-id')),\n  79 |     );\n> 80 |     expect(order[0]).not.toBe('sec-hero');\n     |                          ^\n  81 |   });\n  82 | });\n  83 |"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/tests/studio-section-canvas-dnd.spec.ts",
+                            "column": 26,
+                            "line": 80
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mnot\u001b[2m.\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: not \u001b[32m\"sec-hero\"\u001b[39m\n\n  78 |       nodes.map((el) => el.getAttribute('data-section-id')),\n  79 |     );\n> 80 |     expect(order[0]).not.toBe('sec-hero');\n     |                          ^\n  81 |   });\n  82 | });\n  83 |\n    at /Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/tests/studio-section-canvas-dnd.spec.ts:80:26"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-19T17:00:53.626Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/test-results/s1/studio-section-canvas-dnd--173e3-der-swaps-adjacent-sections-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/test-results/s1/studio-section-canvas-dnd--173e3-der-swaps-adjacent-sections-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/test-results/s1/studio-section-canvas-dnd--173e3-der-swaps-adjacent-sections-chromium/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/tests/studio-section-canvas-dnd.spec.ts",
+                        "column": 26,
+                        "line": 80
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "2337309447d80fc1d563-71ae1c1bf9ba98a85a78",
+              "file": "studio-section-canvas-dnd.spec.ts",
+              "line": 46,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "studio-section-picker-matrix.spec.ts",
+      "file": "studio-section-picker-matrix.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Section picker — matrix @p0-editor",
+          "file": "studio-section-picker-matrix.spec.ts",
+          "line": 36,
+          "column": 6,
+          "specs": [
+            {
+              "title": "all registered section labels appear in Add Section dialog",
+              "ok": true,
+              "tags": [
+                "p0-editor"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 6,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2695,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-19T17:00:56.790Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "f9345cce99d111e0c21a-04cb2010d17338e26792",
+              "file": "studio-section-picker-matrix.spec.ts",
+              "line": 44,
+              "column": 7
+            },
+            {
+              "title": "search filter narrows results to matching types",
+              "ok": true,
+              "tags": [
+                "p0-editor"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 6,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2458,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-19T17:01:02.880Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "f9345cce99d111e0c21a-0867c9589a1f09ae8d12",
+              "file": "studio-section-picker-matrix.spec.ts",
+              "line": 64,
+              "column": 7
+            },
+            {
+              "title": "category tab restricts the visible set",
+              "ok": true,
+              "tags": [
+                "p0-editor"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 6,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2616,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-19T17:01:05.342Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "f9345cce99d111e0c21a-594ede0f0aed39deba87",
+              "file": "studio-section-picker-matrix.spec.ts",
+              "line": 79,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "transcreate-stream.spec.ts",
+      "file": "transcreate-stream.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Transcreate streaming — E2E",
+          "file": "transcreate-stream.spec.ts",
+          "line": 5,
+          "column": 6,
+          "specs": [
+            {
+              "title": "translations dashboard \"Translate with AI\" streams and creates draft",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "description": "Coverage matrix has no missing-locale cells — seed or filters filled all locales.",
+                      "location": {
+                        "file": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/tests/transcreate-stream.spec.ts",
+                        "line": 40,
+                        "column": 10
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 6,
+                      "parallelIndex": 0,
+                      "status": "skipped",
+                      "duration": 4237,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-19T17:01:07.965Z",
+                      "annotations": [
+                        {
+                          "type": "skip",
+                          "description": "Coverage matrix has no missing-locale cells — seed or filters filled all locales.",
+                          "location": {
+                            "file": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/tests/transcreate-stream.spec.ts",
+                            "line": 40,
+                            "column": 10
+                          }
+                        }
+                      ],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "86a5bdb9f3b4c5b28bff-b07c1b3efdaac5122b38",
+              "file": "transcreate-stream.spec.ts",
+              "line": 16,
+              "column": 7
+            },
+            {
+              "title": "stream error surfaces inline message without creating a draft",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "description": "Coverage matrix empty in current filters.",
+                      "location": {
+                        "file": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/tests/transcreate-stream.spec.ts",
+                        "line": 69,
+                        "column": 10
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 6,
+                      "parallelIndex": 0,
+                      "status": "skipped",
+                      "duration": 2914,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-19T17:01:12.210Z",
+                      "annotations": [
+                        {
+                          "type": "skip",
+                          "description": "Coverage matrix empty in current filters.",
+                          "location": {
+                            "file": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/tests/transcreate-stream.spec.ts",
+                            "line": 69,
+                            "column": 10
+                          }
+                        }
+                      ],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "86a5bdb9f3b4c5b28bff-dfb6a9aea607bd3f03a9",
+              "file": "transcreate-stream.spec.ts",
+              "line": 49,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "translation-drift.spec.ts",
+      "file": "translation-drift.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Translation drift banner @p0-seo @translations",
+          "file": "translation-drift.spec.ts",
+          "line": 16,
+          "column": 6,
+          "specs": [
+            {
+              "title": "drift banner appears after source content mutated post-apply",
+              "ok": true,
+              "tags": [
+                "p0-seo",
+                "translations"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "description": "Drift banner not visible — feature may be gated or drift-calc not yet wired.",
+                      "location": {
+                        "file": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/tests/translation-drift.spec.ts",
+                        "line": 60,
+                        "column": 10
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 6,
+                      "parallelIndex": 0,
+                      "status": "skipped",
+                      "duration": 3348,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-19T17:01:15.130Z",
+                      "annotations": [
+                        {
+                          "type": "skip",
+                          "description": "Drift banner not visible — feature may be gated or drift-calc not yet wired.",
+                          "location": {
+                            "file": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/tests/translation-drift.spec.ts",
+                            "line": 60,
+                            "column": 10
+                          }
+                        }
+                      ],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "559fb439070ba5fe1162-14b7a67b2149fe0accc0",
+              "file": "translation-drift.spec.ts",
+              "line": 19,
+              "column": 7
+            },
+            {
+              "title": "Republish action creates a new job",
+              "ok": true,
+              "tags": [
+                "p0-seo",
+                "translations"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "description": "Republish button not exposed yet — action may be gated",
+                      "location": {
+                        "file": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/tests/translation-drift.spec.ts",
+                        "line": 98,
+                        "column": 10
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 6,
+                      "parallelIndex": 0,
+                      "status": "skipped",
+                      "duration": 2915,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-19T17:01:18.482Z",
+                      "annotations": [
+                        {
+                          "type": "skip",
+                          "description": "Republish button not exposed yet — action may be gated",
+                          "location": {
+                            "file": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/tests/translation-drift.spec.ts",
+                            "line": 98,
+                            "column": 10
+                          }
+                        }
+                      ],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "559fb439070ba5fe1162-548fb910528cc80066b9",
+              "file": "translation-drift.spec.ts",
+              "line": 67,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "translations-dashboard.spec.ts",
+      "file": "translations-dashboard.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Translations dashboard — E2E",
+          "file": "translations-dashboard.spec.ts",
+          "line": 4,
+          "column": 6,
+          "specs": [
+            {
+              "title": "renders KPIs, coverage matrix, pending + active tables",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 6,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 3333,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByText('Total')\nExpected: visible\nError: strict mode violation: getByText('Total') resolved to 3 elements:\n    1) <p class=\"text-xs text-[var(--studio-text-muted)] uppercase tracking-wide\">Total</p> aka getByRole('paragraph').filter({ hasText: 'Total' })\n    2) <span class=\"studio-badge studio-badge-info\">Total</span> aka getByTestId('translations-dashboard-kpi-total').locator('span')\n    3) <span class=\"studio-badge studio-badge-info\">30d total: $0.00</span> aka getByText('30d total: $')\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for getByText('Total')\u001b[22m\n",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByText('Total')\nExpected: visible\nError: strict mode violation: getByText('Total') resolved to 3 elements:\n    1) <p class=\"text-xs text-[var(--studio-text-muted)] uppercase tracking-wide\">Total</p> aka getByRole('paragraph').filter({ hasText: 'Total' })\n    2) <span class=\"studio-badge studio-badge-info\">Total</span> aka getByTestId('translations-dashboard-kpi-total').locator('span')\n    3) <span class=\"studio-badge studio-badge-info\">30d total: $0.00</span> aka getByText('30d total: $')\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for getByText('Total')\u001b[22m\n\n    at /Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/tests/translations-dashboard.spec.ts:21:61",
+                        "location": {
+                          "file": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/tests/translations-dashboard.spec.ts",
+                          "column": 61,
+                          "line": 21
+                        },
+                        "snippet": "  19 |\n  20 |     await expect(page.getByRole('heading', { name: 'Traducciones' })).toBeVisible({ timeout: 15000 });\n> 21 |     await expect(page.getByText('Total', { exact: false })).toBeVisible();\n     |                                                             ^\n  22 |     await expect(page.getByText('Traducidos')).toBeVisible();\n  23 |     await expect(page.getByText('In Draft')).toBeVisible();\n  24 |"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/tests/translations-dashboard.spec.ts",
+                            "column": 61,
+                            "line": 21
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByText('Total')\nExpected: visible\nError: strict mode violation: getByText('Total') resolved to 3 elements:\n    1) <p class=\"text-xs text-[var(--studio-text-muted)] uppercase tracking-wide\">Total</p> aka getByRole('paragraph').filter({ hasText: 'Total' })\n    2) <span class=\"studio-badge studio-badge-info\">Total</span> aka getByTestId('translations-dashboard-kpi-total').locator('span')\n    3) <span class=\"studio-badge studio-badge-info\">30d total: $0.00</span> aka getByText('30d total: $')\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for getByText('Total')\u001b[22m\n\n\n  19 |\n  20 |     await expect(page.getByRole('heading', { name: 'Traducciones' })).toBeVisible({ timeout: 15000 });\n> 21 |     await expect(page.getByText('Total', { exact: false })).toBeVisible();\n     |                                                             ^\n  22 |     await expect(page.getByText('Traducidos')).toBeVisible();\n  23 |     await expect(page.getByText('In Draft')).toBeVisible();\n  24 |\n    at /Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/tests/translations-dashboard.spec.ts:21:61"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-19T17:01:21.404Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/test-results/s1/translations-dashboard-Tra-cd7d4-atrix-pending-active-tables-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/test-results/s1/translations-dashboard-Tra-cd7d4-atrix-pending-active-tables-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/test-results/s1/translations-dashboard-Tra-cd7d4-atrix-pending-active-tables-chromium/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/tests/translations-dashboard.spec.ts",
+                        "column": 61,
+                        "line": 21
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "3376beba68e737eb2418-81aa61edb8b42929c037",
+              "file": "translations-dashboard.spec.ts",
+              "line": 16,
+              "column": 7
+            },
+            {
+              "title": "filter by status=draft narrows active table to zero rows",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 7,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 7328,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('heading', { name: 'Jobs activos' }).locator('..').locator('..').getByText(/Aún no hay jobs en review \\/ applied \\/ published\\./)\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('heading', { name: 'Jobs activos' }).locator('..').locator('..').getByText(/Aún no hay jobs en review \\/ applied \\/ published\\./)\u001b[22m\n",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('heading', { name: 'Jobs activos' }).locator('..').locator('..').getByText(/Aún no hay jobs en review \\/ applied \\/ published\\./)\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('heading', { name: 'Jobs activos' }).locator('..').locator('..').getByText(/Aún no hay jobs en review \\/ applied \\/ published\\./)\u001b[22m\n\n    at /Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/tests/translations-dashboard.spec.ts:39:7",
+                        "location": {
+                          "file": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/tests/translations-dashboard.spec.ts",
+                          "column": 7,
+                          "line": 39
+                        },
+                        "snippet": "  37 |     await expect(\n  38 |       activeSection.getByText(/Aún no hay jobs en review \\/ applied \\/ published\\./),\n> 39 |     ).toBeVisible();\n     |       ^\n  40 |   });\n  41 |\n  42 |   test('bulk apply calls API with selected job ids', async ({ page }) => {"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/tests/translations-dashboard.spec.ts",
+                            "column": 7,
+                            "line": 39
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('heading', { name: 'Jobs activos' }).locator('..').locator('..').getByText(/Aún no hay jobs en review \\/ applied \\/ published\\./)\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('heading', { name: 'Jobs activos' }).locator('..').locator('..').getByText(/Aún no hay jobs en review \\/ applied \\/ published\\./)\u001b[22m\n\n\n  37 |     await expect(\n  38 |       activeSection.getByText(/Aún no hay jobs en review \\/ applied \\/ published\\./),\n> 39 |     ).toBeVisible();\n     |       ^\n  40 |   });\n  41 |\n  42 |   test('bulk apply calls API with selected job ids', async ({ page }) => {\n    at /Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/tests/translations-dashboard.spec.ts:39:7"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-19T17:01:25.257Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/test-results/s1/translations-dashboard-Tra-2200f-s-active-table-to-zero-rows-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/test-results/s1/translations-dashboard-Tra-2200f-s-active-table-to-zero-rows-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/test-results/s1/translations-dashboard-Tra-2200f-s-active-table-to-zero-rows-chromium/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/tests/translations-dashboard.spec.ts",
+                        "column": 7,
+                        "line": 39
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "3376beba68e737eb2418-08d598b8a8445d93c113",
+              "file": "translations-dashboard.spec.ts",
+              "line": 30,
+              "column": 7
+            },
+            {
+              "title": "bulk apply calls API with selected job ids",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "description": "No active jobs to select — seed mismatch.",
+                      "location": {
+                        "file": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/tests/translations-dashboard.spec.ts",
+                        "line": 64,
+                        "column": 10
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 8,
+                      "parallelIndex": 0,
+                      "status": "skipped",
+                      "duration": 2296,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-19T17:01:36.612Z",
+                      "annotations": [
+                        {
+                          "type": "skip",
+                          "description": "No active jobs to select — seed mismatch.",
+                          "location": {
+                            "file": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/e2e/tests/translations-dashboard.spec.ts",
+                            "line": 64,
+                            "column": 10
+                          }
+                        }
+                      ],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "3376beba68e737eb2418-803f6d7b2abbef27ae0d",
+              "file": "translations-dashboard.spec.ts",
+              "line": 42,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-04-19T16:57:30.402Z",
+    "duration": 251849.55099999998,
+    "expected": 39,
+    "skipped": 16,
+    "unexpected": 7,
+    "flaky": 0
+  }
+}

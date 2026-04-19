@@ -158,6 +158,7 @@ export function SectionCanvas({
   return (
     <div
       ref={containerRef}
+      data-testid="studio-canvas-root"
       className={cn(
         'flex-1 bg-muted/30 overflow-y-auto overflow-x-hidden flex justify-center p-4',
         className
@@ -166,6 +167,7 @@ export function SectionCanvas({
       {/* Scaler: renders at target width, scales down to fit container */}
       <div
         className="bg-background shadow-lg will-change-transform"
+        data-testid="studio-canvas-scaler"
         style={{
           width: `${targetWidth}px`,
           transformOrigin: 'top center',
@@ -211,6 +213,7 @@ export function SectionCanvas({
                         id={section.sectionType}
                         data-section-id={section.id}
                         data-section-type={section.sectionType}
+                        data-testid={`studio-canvas-section-${section.id}`}
                       >
                         <Component
                           section={normalizedSection as unknown as WebsiteSection}
@@ -218,7 +221,10 @@ export function SectionCanvas({
                         />
                       </section>
                     ) : (
-                      <div className="p-8 bg-amber-50 border border-amber-200 text-amber-700 text-sm">
+                      <div
+                        className="p-8 bg-amber-50 border border-amber-200 text-amber-700 text-sm"
+                        data-testid={`studio-canvas-section-${section.id}`}
+                      >
                         Unknown section type: <code>{section.sectionType}</code>
                       </div>
                     )}
@@ -235,7 +241,10 @@ export function SectionCanvas({
 
           {/* Empty state */}
           {sections.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-32 text-muted-foreground">
+            <div
+              className="flex flex-col items-center justify-center py-32 text-muted-foreground"
+              data-testid="studio-canvas-empty"
+            >
               <p className="text-lg font-medium">No sections yet</p>
               <p className="text-sm mt-1">Drag an element from the left panel to get started</p>
             </div>

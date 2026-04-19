@@ -79,6 +79,8 @@ export default function SettingsTab() {
       <StudioTabs
         value={section}
         onChange={(value) => setSection(value as 'general' | 'domain' | 'template' | 'versions')}
+        testIdPrefix="settings-tab"
+        aria-label="Settings sections"
         options={[
           { id: 'general', label: 'General' },
           { id: 'domain', label: 'Domain' },
@@ -89,9 +91,9 @@ export default function SettingsTab() {
       />
 
       {section === 'general' && (
-        <div className="space-y-8">
+        <div className="space-y-8" data-testid="settings-general">
           {/* Subdomain */}
-          <div>
+          <div data-testid="settings-subdomain-section">
             <h3 className="text-sm font-semibold text-[var(--studio-text)] mb-3">Subdomain</h3>
             <div className="flex items-center gap-2">
               <StudioInput
@@ -102,12 +104,15 @@ export default function SettingsTab() {
                   checkSubdomain(v);
                 }}
                 className="flex-1"
+                data-testid="settings-subdomain-field"
+                aria-label="Subdomain"
               />
               <span className="text-sm text-[var(--studio-text-muted)]">.bukeer.com</span>
               {subdomain !== website.subdomain && !subdomainError && (
                 <button
                   onClick={saveSubdomain}
                   className="studio-btn studio-btn-primary studio-btn-md"
+                  data-testid="settings-save-button"
                 >
                   Save
                 </button>
@@ -117,7 +122,10 @@ export default function SettingsTab() {
           </div>
 
           {/* Danger Zone */}
-          <div className="bg-[color-mix(in_srgb,var(--studio-danger)_10%,transparent)] border border-[color-mix(in_srgb,var(--studio-danger)_24%,transparent)] rounded-xl p-6 space-y-4">
+          <div
+            className="bg-[color-mix(in_srgb,var(--studio-danger)_10%,transparent)] border border-[color-mix(in_srgb,var(--studio-danger)_24%,transparent)] rounded-xl p-6 space-y-4"
+            data-testid="settings-danger-zone"
+          >
             <h3 className="text-sm font-semibold text-[var(--studio-danger)]">Danger Zone</h3>
 
             <div className="flex items-center justify-between">
@@ -129,6 +137,7 @@ export default function SettingsTab() {
                 onClick={() => setShowUnpublish(true)}
                 disabled={website.status !== 'published'}
                 className="studio-btn studio-btn-outline studio-btn-md !border-[color-mix(in_srgb,var(--studio-danger)_45%,transparent)] !text-[var(--studio-danger)] disabled:opacity-50"
+                data-testid="settings-unpublish-button"
               >
                 Unpublish
               </button>
@@ -142,6 +151,7 @@ export default function SettingsTab() {
               <button
                 onClick={() => setShowDelete(true)}
                 className="studio-btn studio-btn-danger studio-btn-md"
+                data-testid="settings-delete-button"
               >
                 Delete
               </button>

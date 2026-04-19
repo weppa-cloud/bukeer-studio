@@ -68,7 +68,12 @@ function ToolActionCard({
   };
 
   return (
-    <div className="studio-panel my-2 p-3" role="status" aria-label={`Tool action: ${toolLabels[toolName] ?? toolName}`}>
+    <div
+      className="studio-panel my-2 p-3"
+      role="status"
+      aria-label={`Tool action: ${toolLabels[toolName] ?? toolName}`}
+      data-testid={`studio-chat-tool-card-${toolName}`}
+    >
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
@@ -91,6 +96,7 @@ function ToolActionCard({
             className="shrink-0 text-xs h-7"
             onClick={handleApply}
             disabled={isPending}
+            data-testid={`studio-chat-tool-apply-${toolName}`}
           >
             Apply
           </StudioButton>
@@ -125,7 +131,10 @@ function ChatMessage({
   const textContent = textParts.map((p) => (p as { type: 'text'; text: string }).text).join('');
 
   return (
-    <div className={cn('flex gap-2 mb-4', isUser ? 'flex-row-reverse' : '')}>
+    <div
+      className={cn('flex gap-2 mb-4', isUser ? 'flex-row-reverse' : '')}
+      data-testid={`studio-chat-message-${message.role}`}
+    >
       <div
         className={cn(
           'w-7 h-7 rounded-full flex items-center justify-center shrink-0',
@@ -285,12 +294,15 @@ export function StudioChat({
   );
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full" data-testid="studio-chat-root">
       {/* Messages area */}
       <ScrollArea className="flex-1 px-4">
-        <div className="py-4">
+        <div className="py-4" data-testid="studio-chat-messages">
           {messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-8 text-center">
+            <div
+              className="flex flex-col items-center justify-center py-8 text-center"
+              data-testid="studio-chat-empty"
+            >
               <div className="w-12 h-12 rounded-full bg-[color-mix(in_srgb,var(--studio-primary)_12%,transparent)] flex items-center justify-center mb-4">
                 <Sparkles className="w-6 h-6 text-[var(--studio-primary)]" />
               </div>
@@ -307,6 +319,9 @@ export function StudioChat({
                     variant="outline"
                     size="sm"
                     className="text-xs"
+                    data-testid={`studio-chat-quick-action-${action.label
+                      .toLowerCase()
+                      .replace(/\s+/g, '-')}`}
                     onClick={() => handleQuickAction(action.prompt)}
                   >
                     {action.label}
@@ -325,17 +340,30 @@ export function StudioChat({
           )}
 
           {isLoading && (
-            <div className="flex items-center gap-2 text-[var(--studio-text-muted)] mb-4">
+            <div
+              className="flex items-center gap-2 text-[var(--studio-text-muted)] mb-4"
+              data-testid="studio-chat-stream-indicator"
+            >
               <Loader2 className="w-4 h-4 animate-spin" />
               <span className="text-xs">Thinking...</span>
-              <StudioButton variant="ghost" size="sm" className="text-xs h-6" onClick={stop}>
+              <StudioButton
+                variant="ghost"
+                size="sm"
+                className="text-xs h-6"
+                onClick={stop}
+                data-testid="studio-chat-stop"
+              >
                 Stop
               </StudioButton>
             </div>
           )}
 
           {error && (
-            <div className="flex items-center gap-2 text-[var(--studio-danger)] mb-4 p-2 rounded-md border border-[color-mix(in_srgb,var(--studio-danger)_24%,transparent)] bg-[color-mix(in_srgb,var(--studio-danger)_12%,transparent)]">
+            <div
+              role="alert"
+              className="flex items-center gap-2 text-[var(--studio-danger)] mb-4 p-2 rounded-md border border-[color-mix(in_srgb,var(--studio-danger)_24%,transparent)] bg-[color-mix(in_srgb,var(--studio-danger)_12%,transparent)]"
+              data-testid="studio-chat-error"
+            >
               <AlertCircle className="w-4 h-4 shrink-0" />
               <span className="text-xs flex-1">{error.message}</span>
               {lastPrompt && (
@@ -347,11 +375,18 @@ export function StudioChat({
                     clearError();
                     sendMessage({ text: lastPrompt });
                   }}
+                  data-testid="studio-chat-retry"
                 >
                   Retry
                 </StudioButton>
               )}
-              <StudioButton variant="ghost" size="sm" className="text-xs h-6 shrink-0" onClick={() => clearError()}>
+              <StudioButton
+                variant="ghost"
+                size="sm"
+                className="text-xs h-6 shrink-0"
+                onClick={() => clearError()}
+                data-testid="studio-chat-dismiss-error"
+              >
                 Dismiss
               </StudioButton>
             </div>
@@ -364,11 +399,11 @@ export function StudioChat({
       <div className="border-t border-[var(--studio-border)]" />
 
       {/* Input area */}
-      <form onSubmit={handleSubmit} className="p-3">
+      <form onSubmit={handleSubmit} className="p-3" data-testid="studio-chat-form">
         {selectedSectionId && (
-          <div className="mb-2">
+          <div className="mb-2" data-testid="studio-chat-focus-badge">
             <StudioBadge tone="info" className="text-xs">
-              Focused: {sections.find(s => s.id === selectedSectionId)?.sectionType?.replace(/_/g, ' ') || selectedSectionId.slice(0, 8)}
+              Focused: {sections.find((s) => s.id === selectedSectionId)?.sectionType?.replace(/_/g, ' ') || selectedSectionId.slice(0, 8)}
             </StudioBadge>
           </div>
         )}
@@ -380,12 +415,14 @@ export function StudioChat({
             placeholder="Ask AI to edit your page..."
             className="min-h-[40px] max-h-[120px] resize-none text-sm overflow-y-auto"
             rows={1}
+            data-testid="studio-chat-input"
           />
           <StudioButton
             type="submit"
             size="md"
             className="shrink-0 h-10 w-10 px-0"
             disabled={!inputValue.trim() || isLoading}
+            data-testid="studio-chat-send"
           >
             <Send className="w-4 h-4" />
           </StudioButton>

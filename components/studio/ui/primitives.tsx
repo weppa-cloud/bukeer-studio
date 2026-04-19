@@ -50,6 +50,8 @@ interface StudioTabsProps<T extends string = string> {
   options: ReadonlyArray<StudioTabsOption<T>>;
   onChange: (value: T) => void;
   className?: string;
+  testIdPrefix?: string;
+  'aria-label'?: string;
 }
 
 interface StudioBadgeProps {
@@ -63,6 +65,7 @@ interface StudioTopbarProps {
   right?: ReactNode;
   center?: ReactNode;
   className?: string;
+  'data-testid'?: string;
 }
 
 interface StudioSelectOption {
@@ -121,13 +124,23 @@ export function StudioTabs<T extends string>({
   options,
   onChange,
   className,
+  testIdPrefix,
+  'aria-label': ariaLabel,
 }: StudioTabsProps<T>) {
   return (
-    <div className={cn('studio-tabs', className)}>
+    <div
+      className={cn('studio-tabs', className)}
+      role="tablist"
+      aria-label={ariaLabel}
+      data-testid={testIdPrefix ? `${testIdPrefix}-tablist` : undefined}
+    >
       {options.map((option) => (
         <button
           key={option.id}
           type="button"
+          role="tab"
+          aria-selected={value === option.id}
+          data-testid={testIdPrefix ? `${testIdPrefix}-${option.id}` : undefined}
           onClick={() => onChange(option.id)}
           className={cn('studio-tab', value === option.id && 'studio-tab-active')}
         >
@@ -228,9 +241,15 @@ export const StudioListRow = forwardRef<HTMLDivElement, StudioListRowProps>(func
   );
 });
 
-export function StudioTopbar({ left, center, right, className }: StudioTopbarProps) {
+export function StudioTopbar({
+  left,
+  center,
+  right,
+  className,
+  'data-testid': dataTestid,
+}: StudioTopbarProps) {
   return (
-    <div className={cn('studio-topbar', className)}>
+    <div className={cn('studio-topbar', className)} data-testid={dataTestid}>
       <div className="studio-topbar-left">{left}</div>
       {center ? <div className="studio-topbar-center">{center}</div> : null}
       {right ? <div className="studio-topbar-right">{right}</div> : null}
