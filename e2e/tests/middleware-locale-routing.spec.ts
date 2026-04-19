@@ -74,8 +74,21 @@ test.describe('Middleware locale routing @p0-seo', () => {
       !seo?.legacyRedirectPath,
       'No seeded legacy redirect — seedWave2Fixtures could not write website_legacy_redirects',
     );
+    test.skip(
+      !seo?.subdomain,
+      'No seeded tenant subdomain — middleware cannot scope legacy redirect lookup',
+    );
 
-    const res = await request.get(seo!.legacyRedirectPath!, { maxRedirects: 0 });
+    // #226.A — middleware.ts resolves the tenant in localhost via either
+    // `?subdomain=` query OR the `x-subdomain` header. Without one of those
+    // hints, `getWebsiteBySubdomain` is skipped and legacy redirects never
+    // fire (middleware returns 404 or a `/site/...` rewrite) — which is what
+    // the previous revision of this test was silently accepting.
+    const res = await request.get(seo!.legacyRedirectPath!, {
+      headers: { 'x-subdomain': seo!.subdomain },
+      maxRedirects: 0,
+    });
+
     // Some environments return 301, others 308 — middleware uses `coerceRedirectStatusCode`
     // but seeded row is 301.
     test.skip(

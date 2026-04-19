@@ -128,7 +128,8 @@ test.describe('SEO Playbook v2.0 — Smoke Tests', () => {
       await gotoSection(page, 'analytics');
       await page.waitForLoadState('domcontentloaded');
 
-      await page.getByRole('button', { name: 'Config', exact: true }).click();
+      // #226.A — StudioTabs renders native <button role="tab">; explicit ARIA role wins.
+      await page.getByRole('tab', { name: 'Config', exact: true }).click();
       await page.waitForLoadState('domcontentloaded');
 
       // Google Integrations panel
