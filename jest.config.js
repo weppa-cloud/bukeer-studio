@@ -3,6 +3,10 @@ module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
   roots: ['<rootDir>/__tests__'],
+  testPathIgnorePatterns: [
+    '<rootDir>/__tests__/ct/',
+    '<rootDir>/__tests__/visual/',
+  ],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
     '^@bukeer/website-contract$':

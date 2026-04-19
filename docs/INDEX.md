@@ -4,7 +4,7 @@
 >
 > **Convention:** `[[ADR-XXX]]` or `[[SPEC_NAME]]` = wikilink resolved below. `[text](path.md)` = regular markdown link. Both coexist.
 
-Last updated: 2026-04-17 (WIKI full-refresh + #103 media closure checklist); 2026-04-17 wiki-patch (epic128 evidence + issue resolution rows)
+Last updated: 2026-04-19 (EPIC #190 certification rerun evidence); 2026-04-18 (EPIC #190 certification run evidence + checklist); 2026-04-17 (WIKI full-refresh + #103 media closure checklist); 2026-04-17 wiki-patch (epic128 evidence + issue resolution rows)
 
 ---
 
@@ -147,6 +147,9 @@ Feature requests formalized. Status tracked inline. GitHub Issues = source of tr
 |----------|------|---------|
 | [[product-landing-qa-matrix]] | [file](./qa/product-landing-qa-matrix.md) | QA matrix for 3 release tenants. |
 | [[link-validation-colombiatours]] | [file](./qa/link-validation-colombiatours.md) | Link validation report (2026-04-15). |
+| [[epic190-certification-checklist]] | [file](./qa/studio-unified-product-editor/epic-190-certification-checklist.md) | Executable QA certification checklist for EPIC #190 (D0-D2, commands, SQL/RPC checks, evidence template). |
+| [[epic190-certification-run-2026-04-18]] | [file](./evidence/epic190/certification-run-2026-04-18.md) | EPIC #190 certification execution report: automated gates, SQL/RPC validations, RLS checks, Go/No-Go decision. |
+| [[epic190-certification-rerun-2026-04-19]] | [file](./evidence/epic190/certification-rerun-2026-04-19.md) | EPIC #190 remediation rerun report: P0 permission hardening verified, gates re-run, final GO decision. |
 | [[ai-routes-cost-recording]] | [file](./audits/ai-routes-cost-recording.md) | AI routes cost-tracking audit — 13 routes mapped, recordCost wire patterns (D1, 2026-04-18). Basis for #195 R9 impl. |
 | [[epic86-walkthrough]] | [file](./evidence/epic86/walkthrough.md) | EPIC 86 evidence (Issue #122). |
 | [[epic128-lighthouse-summary]] | [file](./evidence/epic128/lighthouse-summary.md) | EPIC 128 Lighthouse/CWV summary. |
@@ -264,6 +267,9 @@ Each concept below lists the ADRs/SPECs/ops docs that touch it. Use this to find
 - Key paths: `lib/features/studio-editor-v2.ts`, `lib/ai/cost-ledger.ts`, `components/admin/marketing/*`, `components/admin/ops/*`, `app/dashboard/[w]/products/[slug]/marketing/`, `app/dashboard/[w]/ops/reconciliation/`
 - Schema: `packages/website-contract/src/schemas/marketing-patch.ts` — `MarketingFieldPatchSchema` discriminated union (9 fields) · `schemas/edit-history.ts` · `schemas/ai-cost.ts`
 - Audits: [[schema-parity-audit]] + [[ai-routes-cost-recording]]
+- Certification playbook: [[epic190-certification-checklist]]
+- Certification execution evidence: [[epic190-certification-run-2026-04-18]]
+- Certification rerun evidence: [[epic190-certification-rerun-2026-04-19]]
 - Multi-front strategy: `.claude/plans/generic-crafting-sketch.md`
 
 ### [[package-kits]] + [[package-landing]]
