@@ -37,11 +37,11 @@ create table if not exists public.product_edit_history (
 )
 partition by range (created_at);
 
--- FK to ai_cost_events (NOT VALID so existing rows don't block, avoids heavy scan)
-alter table public.product_edit_history
-  add constraint product_edit_history_ai_cost_event_fk
-  foreign key (ai_cost_event_id) references public.ai_cost_events(id) on delete set null
-  not valid;
+-- NOTE: Postgres 15 (42809) does NOT support NOT VALID FK on partitioned
+-- tables. `ai_cost_event_id` therefore stays as a plain uuid without a DB
+-- constraint; enforce at app layer via lib/ai/cost-ledger.ts on inserts.
+comment on column public.product_edit_history.ai_cost_event_id is
+  'Logical FK to ai_cost_events.id — no DB constraint (partitioned table, PG15).';
 
 -- ─── Partition helper: ensure partition exists for a given month ─────────────
 
