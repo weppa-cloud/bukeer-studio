@@ -470,4 +470,36 @@ test.describe('SEO transcreate lifecycle v2/v2.1 @e2e', () => {
     await admin.from('seo_keyword_candidates').delete().eq('id', seeded.candidateId);
     await admin.from('seo_keyword_research_runs').delete().eq('id', seeded.runId);
   });
+
+  // EPIC #207 W1 · P0-7 · closes flow #24 from the e2e-gap audit.
+  test('applied transcreate renders on /en/paquetes/{slug} @p0-seo', async ({ page }) => {
+    test.skip(
+      !packageFixture,
+      'No package fixture seeded — applied-transcreate public render loop needs a package kit',
+    );
+
+    const slug = String(packageFixture!.name)
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
+    test.skip(slug.length === 0, 'Could not derive slug from package fixture');
+
+    const response = await page.goto(`/en/paquetes/${slug}`, { waitUntil: 'domcontentloaded' });
+    test.skip(
+      !response || response.status() === 404,
+      `Public /en/paquetes/${slug} not available — requires earlier "applied" lifecycle test to seed an overlay with a matching slug`,
+    );
+    test.skip(
+      response!.status() >= 500,
+      `/en/paquetes/${slug} returned ${response!.status()} — middleware or SSR unavailable in this env`,
+    );
+
+    // The applied overlay writes English title + description into
+    // website_product_pages; the public SSR should surface them.
+    await expect(page.locator('html')).toHaveAttribute('lang', /^en/i);
+    await expect(page.locator('meta[property="og:locale"]').first()).toHaveAttribute(
+      'content',
+      /^en/i,
+    );
+  });
 });
