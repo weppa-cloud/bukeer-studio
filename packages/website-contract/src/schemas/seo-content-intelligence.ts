@@ -198,6 +198,11 @@ export const LocaleAdaptationBodyContentSchema = z.object({
   seo_faq: z.array(LocaleAdaptationBodyFaqItemSchema).max(20).optional(),
 });
 
+export const LocaleAdaptationTimelineItemSchema = z.object({
+  title: z.string().min(1).max(160),
+  description: z.string().min(1).max(1000).optional(),
+});
+
 export const LocaleAdaptationOutputSchemaV1 = z.object({
   meta_title: z.string().min(1).max(70),
   meta_desc: z.string().min(1).max(160),
@@ -220,6 +225,29 @@ export const LocaleAdaptationOutputEnvelopeSchemaV2 = z.object({
   payload_v2: LocaleAdaptationOutputSchemaV2,
 });
 
+export const LocaleAdaptationOutputSchemaV2_1 = LocaleAdaptationOutputSchemaV2.extend({
+  description_long: z.string().min(1).max(20000),
+  highlights: z.array(z.string().min(1).max(300)).max(20),
+  faq: z.array(LocaleAdaptationBodyFaqItemSchema).max(20),
+  recommendations: z.array(z.string().min(1).max(300)).max(20),
+  cta_final_text: z.string().min(1).max(320),
+  program_timeline: z.array(LocaleAdaptationTimelineItemSchema).max(30),
+  inclusions: z.array(z.string().min(1).max(300)).max(30),
+  exclusions: z.array(z.string().min(1).max(300)).max(30),
+  hero_subtitle: z.string().min(1).max(200),
+  category_label: z.string().min(1).max(120),
+});
+
+export const LocaleAdaptationOutputEnvelopeSchemaV2_1 = z.object({
+  schema_version: z.literal('2.1'),
+  payload_v2: LocaleAdaptationOutputSchemaV2_1,
+});
+
+export const LocaleAdaptationOutputEnvelopeSchema = z.union([
+  LocaleAdaptationOutputEnvelopeSchemaV2,
+  LocaleAdaptationOutputEnvelopeSchemaV2_1,
+]);
+
 export const SeoTranscreateRequestSchema = z.object({
   action: z.enum(['create_draft', 'review', 'apply']),
   websiteId: z.string().uuid(),
@@ -235,9 +263,15 @@ export const SeoTranscreateRequestSchema = z.object({
   draft: z.record(z.string(), z.unknown()).default({}),
   draftSource: z.enum(['manual', 'ai', 'tm_exact']).default('manual'),
   aiModel: z.string().max(120).optional(),
-  schemaVersion: z.literal('2.0').optional(),
-  payloadV2: LocaleAdaptationOutputSchemaV2.optional(),
-  aiOutput: z.union([LocaleAdaptationOutputSchemaV1, LocaleAdaptationOutputEnvelopeSchemaV2]).optional(),
+  schemaVersion: z.union([z.literal('2.0'), z.literal('2.1')]).optional(),
+  payloadV2: z.union([LocaleAdaptationOutputSchemaV2_1, LocaleAdaptationOutputSchemaV2]).optional(),
+  aiOutput: z
+    .union([
+      LocaleAdaptationOutputSchemaV1,
+      LocaleAdaptationOutputEnvelopeSchemaV2,
+      LocaleAdaptationOutputEnvelopeSchemaV2_1,
+    ])
+    .optional(),
   jobId: z.string().uuid().optional(),
 });
 
@@ -272,7 +306,10 @@ export type SeoBriefQuery = z.infer<typeof SeoBriefQuerySchema>;
 export type SeoOptimizeRequest = z.infer<typeof SeoOptimizeRequestSchema>;
 export type LocaleAdaptationOutputV1 = z.infer<typeof LocaleAdaptationOutputSchemaV1>;
 export type LocaleAdaptationOutputV2 = z.infer<typeof LocaleAdaptationOutputSchemaV2>;
+export type LocaleAdaptationOutputV2_1 = z.infer<typeof LocaleAdaptationOutputSchemaV2_1>;
 export type LocaleAdaptationOutputEnvelopeV2 = z.infer<typeof LocaleAdaptationOutputEnvelopeSchemaV2>;
+export type LocaleAdaptationOutputEnvelopeV2_1 = z.infer<typeof LocaleAdaptationOutputEnvelopeSchemaV2_1>;
+export type LocaleAdaptationOutputEnvelope = z.infer<typeof LocaleAdaptationOutputEnvelopeSchema>;
 export type SeoTranscreateRequest = z.infer<typeof SeoTranscreateRequestSchema>;
 export type SeoTrackQuery = z.infer<typeof SeoTrackQuerySchema>;
 export type SeoPageCatalogQuery = z.infer<typeof SeoPageCatalogQuerySchema>;
