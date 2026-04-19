@@ -241,6 +241,7 @@ export async function seedWave2Fixtures(): Promise<SeedWave2Result> {
   if (wave2SeedPromise) return wave2SeedPromise;
 
   wave2SeedPromise = (async () => {
+  assertSeedEnvAllowsMutation();
   const warnings: string[] = [];
   const base = await seedTestData();
   const accountId = String(base.account?.id ?? E2E_ACCOUNT_ID);
@@ -258,6 +259,15 @@ export async function seedWave2Fixtures(): Promise<SeedWave2Result> {
     warnings,
   );
 
+  const seo = await seedSeoFixtures({
+    admin: supabase,
+    websiteId,
+    accountId,
+    packageId,
+    pageId,
+    warnings,
+  });
+
   return {
     accountId,
     websiteId,
@@ -270,6 +280,7 @@ export async function seedWave2Fixtures(): Promise<SeedWave2Result> {
     transcreationJobIds,
     glossaryTermIds,
     warnings,
+    seo,
   };
   })().catch((error) => {
     wave2SeedPromise = null;
@@ -277,6 +288,29 @@ export async function seedWave2Fixtures(): Promise<SeedWave2Result> {
   });
 
   return wave2SeedPromise;
+}
+
+/**
+ * Returns the `seo` branch of the Wave 2 fixtures. Thin wrapper for specs that
+ * only need SEO fixtures — `seedWave2Fixtures` is idempotent so calling either
+ * entry point is safe.
+ */
+export async function getSeededSeoFixtures(): Promise<SeoFixtures> {
+  const fixtures = await seedWave2Fixtures();
+  return fixtures.seo;
+}
+
+/**
+ * Guardrail: the seeder mutates rows on the target Supabase project. CI pipelines
+ * and developer workstations are OK; production environments must never run it.
+ */
+function assertSeedEnvAllowsMutation(): void {
+  if (process.env.ALLOW_SEED === '1') return;
+  if (process.env.NODE_ENV === 'production' && process.env.ALLOW_SEED !== '1') {
+    throw new Error(
+      'seedWave2Fixtures refused to run with NODE_ENV=production. Set ALLOW_SEED=1 to override.',
+    );
+  }
 }
 
 async function upsertPackageKit(
