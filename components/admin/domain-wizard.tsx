@@ -33,12 +33,12 @@ export function DomainWizard({ websiteId, currentDomain }: DomainWizardProps) {
   }
 
   return (
-    <div className="space-y-6 max-w-xl">
+    <div className="space-y-6 max-w-xl" data-testid="domain-wizard-root">
       <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Custom Domain</h3>
 
       {/* Step 0: Enter domain */}
       {step === 0 && (
-        <div className="space-y-4">
+        <div className="space-y-4" data-testid="domain-wizard-step-0">
           <p className="text-sm text-slate-500">
             Connect your own domain to your Bukeer website.
           </p>
@@ -48,11 +48,14 @@ export function DomainWizard({ websiteId, currentDomain }: DomainWizardProps) {
               onChange={(e) => setDomain(e.target.value.toLowerCase().replace(/\s/g, ''))}
               className="flex-1 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm"
               placeholder="www.myagency.com"
+              data-testid="domain-wizard-domain-input"
+              aria-label="Custom domain"
             />
             <button
               onClick={saveDomain}
               disabled={!domain}
               className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg disabled:opacity-50"
+              data-testid="domain-wizard-next"
             >
               Continue
             </button>
@@ -62,7 +65,7 @@ export function DomainWizard({ websiteId, currentDomain }: DomainWizardProps) {
 
       {/* Step 1: DNS instructions */}
       {step === 1 && (
-        <div className="space-y-4">
+        <div className="space-y-4" data-testid="domain-wizard-step-1">
           <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4">
             <h4 className="text-sm font-medium text-blue-800 dark:text-blue-300 mb-3">
               Step 1: Add CNAME record
@@ -106,6 +109,7 @@ export function DomainWizard({ websiteId, currentDomain }: DomainWizardProps) {
             onClick={verifyDNS}
             disabled={verifying}
             className="w-full py-2 bg-blue-600 text-white text-sm font-medium rounded-lg disabled:opacity-50"
+            data-testid="domain-wizard-verify-button"
           >
             {verifying ? 'Verifying DNS...' : 'Verify DNS records'}
           </button>
@@ -114,7 +118,7 @@ export function DomainWizard({ websiteId, currentDomain }: DomainWizardProps) {
 
       {/* Step 2: Connected */}
       {step === 2 && (
-        <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-4">
+        <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-4" data-testid="domain-wizard-step-2">
           <div className="flex items-center gap-2 mb-2">
             <svg className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -129,6 +133,7 @@ export function DomainWizard({ websiteId, currentDomain }: DomainWizardProps) {
           <button
             onClick={() => { setStep(0); setDomain(''); }}
             className="mt-3 text-sm text-red-600 hover:text-red-700"
+            data-testid="domain-wizard-prev"
           >
             Remove custom domain
           </button>
