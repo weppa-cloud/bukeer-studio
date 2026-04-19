@@ -1,0 +1,11 @@
+{
+  "exact": [
+    "pax",
+    "ID",
+    "&copy;"
+  ],
+  "contains": [
+    "http://",
+    "https://"
+  ]
+}
