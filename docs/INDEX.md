@@ -4,7 +4,7 @@
 >
 > **Convention:** `[[ADR-XXX]]` or `[[SPEC_NAME]]` = wikilink resolved below. `[text](path.md)` = regular markdown link. Both coexist.
 
-Last updated: 2026-04-19 (EPIC #214 client priority change v2 — pilot-readiness concept scope notes); 2026-04-19 (EPIC #214 Stage 0 — ADR-024 + ADR-025 skeletons + pilot-readiness-deps); 2026-04-19 (EPIC #190 certification rerun evidence); 2026-04-18 (EPIC #190 certification run evidence + checklist); 2026-04-17 (WIKI full-refresh + #103 media closure checklist); 2026-04-17 wiki-patch (epic128 evidence + issue resolution rows)
+Last updated: 2026-04-19 (EPIC #214 Stage 1 W1 — matrix refresh pkg+act editable + blog Section P + hotels as-is + Section M booking DEFER; pilot-readiness concept section expanded with matrix/ADR wikilinks); 2026-04-19 (ADR-025 priority-v2 alignment: Activities target Studio ownership with W2 pending); 2026-04-19 (EPIC #214 client priority change v2 — pilot-readiness concept scope notes); 2026-04-19 (EPIC #214 Stage 0 — ADR-024 + ADR-025 skeletons + pilot-readiness-deps); 2026-04-19 (EPIC #190 certification rerun evidence); 2026-04-18 (EPIC #190 certification run evidence + checklist); 2026-04-17 (WIKI full-refresh + #103 media closure checklist); 2026-04-17 wiki-patch (epic128 evidence + issue resolution rows)
 
 ---
 
@@ -60,7 +60,7 @@ All ADRs accepted unless noted. Cross-cut by Principles P1–P10 (see [[ARCHITEC
 | [[ADR-021]] | [ADR-021](./architecture/ADR-021-translation-memory-transcreation-pipeline.md) | Translation Memory + AI Transcreation Pipeline | [[translation]] [[TM]] [[AI]] [[transcreation]] [[multi-locale]] |
 | [[ADR-023]] | [ADR-023](./architecture/ADR-023-qa-tooling-studio-editor.md) | QA Tooling: Playwright Component Testing + Visual Regression | [[testing]] [[CT]] [[visual-regression]] [[quality-gate]] |
 | [[ADR-024]] | [ADR-024](./architecture/ADR-024-booking-v1-pilot-scope.md) | Booking V1 Pilot Scope (Proposed — W3 decision meeting) | [[booking]] [[pilot-readiness]] [[leads]] |
-| [[ADR-025]] | [ADR-025](./architecture/ADR-025-studio-flutter-field-ownership.md) | Studio / Flutter Field Ownership Boundary (Proposed — W2 PR) | [[studio-editor-v2]] [[package-kits]] [[pilot-readiness]] |
+| [[ADR-025]] | [ADR-025](./architecture/ADR-025-studio-flutter-field-ownership.md) | Studio / Flutter Field Ownership Boundary (Proposed — priority-v2 aligned, W2 pending) | [[studio-editor-v2]] [[package-kits]] [[pilot-readiness]] |
 
 > **Note:** `ADR-022` and `ADR-032` referenced in specs are anchored in `weppa-cloud/bukeer-flutter`. Studio respects them but does not own them. See [[cross-repo-flutter]].
 
@@ -351,9 +351,10 @@ Each concept below lists the ADRs/SPECs/ops docs that touch it. Use this to find
 - Children (W1-W7): [#215](https://github.com/weppa-cloud/bukeer-studio/issues/215) W1 matrix+testids · [#216](https://github.com/weppa-cloud/bukeer-studio/issues/216) W2 parity · [#217](https://github.com/weppa-cloud/bukeer-studio/issues/217) W3 booking decision · [#218](https://github.com/weppa-cloud/bukeer-studio/issues/218) W4 E2E editor→render · [#219](https://github.com/weppa-cloud/bukeer-studio/issues/219) W5 transcreate · [#220](https://github.com/weppa-cloud/bukeer-studio/issues/220) W6 matrix+Lighthouse · [#221](https://github.com/weppa-cloud/bukeer-studio/issues/221) W7 training
 - Acceptance sibling: [#213](https://github.com/weppa-cloud/bukeer-studio/issues/213)
 - Stage 0 artefacts (2026-04-19): [[ADR-024-booking-v1-pilot-scope]] · [[ADR-025-studio-flutter-field-ownership]] · [[pilot-readiness-deps]]
+- Stage 1 W1 artefacts (2026-04-19): [[product-detail-matrix]] (refresh pkg+act editable + Sections M/N/O/P + Hotel column as-is + 🟡-flag legend) · [[package-detail-anatomy]] (hygiene checklist cross-ref) · [[product-detail-inventory]] (§3.2 ownership matrix aligned with matrix Sections N/O)
 - **Client priority change v2 (2026-04-19)** — logged in [[pilot-readiness-deps]]: priority 1 = translation (blog + pkg + act); priority 2 = editing (pkg + act Studio editors); hotels as-is (Flutter-owner); booking V1 DEFER post-pilot (ADR-024 Accepted PR pending); no rate-limit mitigation. W2 + W5 bumped to XL; W3 becomes docs-only DEFER closure.
-- Matrix foundation: [[product-detail-matrix]] (W1 pkg-only scope + Section M + 🟡-flag + editor mapping; Act column bumped to 🟨 for editable fields post client v2; blog section added)
-- Cross-repo boundary: [[cross-repo-flutter]] (Flutter-owner fields per ADR-025)
+- Matrix foundation: [[product-detail-matrix]] (W1 pkg+act editable + Section M Booking DEFER + Section N editor→campo + Section O Flutter-only gaps + Section P Blog transcreate + 🟡-flag legend + Hotel column as-is)
+- Cross-repo boundary: [[cross-repo-flutter]] (Flutter-owner fields per [[ADR-025]])
 - Seed strategy (unified): `e2e/setup/pilot-seed.ts` (variant-factory `full | minimum | seo-max | translation-ready`; `translation-ready` covers pkg + act + blog post client v2)
 - ADR mapping authoritative: [[ADR-003]] [[ADR-005]] [[ADR-011]] [[ADR-016]] [[ADR-018]] [[ADR-019]] [[ADR-020]] [[ADR-021]] [[ADR-023]] [[ADR-024]] [[ADR-025]]
 
