@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { seedWave2Fixtures, type SeoFixtures } from './helpers';
 
 /**
  * EPIC #207 W1 · P0-6 · Revalidate end-to-end.
@@ -13,6 +14,17 @@ const REVALIDATE_PATH = '/api/revalidate';
 const TENANT_SUBDOMAIN = 'colombiatours';
 
 test.describe('Revalidate flow @p0-seo', () => {
+  let seo: SeoFixtures | null = null;
+
+  test.beforeAll(async () => {
+    try {
+      const fixtures = await seedWave2Fixtures();
+      seo = fixtures.seo;
+    } catch {
+      seo = null;
+    }
+  });
+
   test('rejects request with no auth header (401)', async ({ request }) => {
     const res = await request.post(REVALIDATE_PATH, {
       data: { subdomain: TENANT_SUBDOMAIN },

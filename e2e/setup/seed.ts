@@ -536,3 +536,245 @@ async function upsertTranscreationJobs(
   }
   return (data ?? []).map((row) => String(row.id));
 }
+
+// ============================================================================
+// EPIC #207 W1 · SEO fixtures
+// ============================================================================
+
+const E2E_LEGACY_REDIRECT_OLD_PATH = `/legacy-e2e-${SUFFIX_SOURCE}`;
+const E2E_LEGACY_REDIRECT_NEW_PATH = `/paquetes/${E2E_PACKAGE_SLUG}`;
+const E2E_SLUG_REDIRECT_OLD_SLUG = `e2e-legacy-package-${SUFFIX_SOURCE}`;
+const E2E_VIDEO_URL = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+const E2E_TARGET_LOCALES = ['es-CO', 'en-US'] as const;
+
+interface SeedSeoContext {
+  admin: SupabaseClient;
+  websiteId: string;
+  accountId: string;
+  packageId: string | null;
+  pageId: string | null;
+  warnings: string[];
+}
+
+async function seedSeoFixtures(ctx: SeedSeoContext): Promise<SeoFixtures> {
+  const supportedLocales = await ensureWebsiteLocales(ctx);
+  const appliedTranscreationJobIds = await markTranscreationJobsApplied(ctx);
+  const noindexProductId = await ensureNoindexProductOverlay(ctx);
+  const legacyRedirectPath = await ensureLegacyRedirect(ctx);
+  const slugRedirectOldSlug = await ensureSlugRedirect(ctx);
+  const videoPackageId = await ensurePackageVideoUrl(ctx);
+
+  return {
+    noindexProductId,
+    legacyRedirectPath,
+    slugRedirectOldSlug,
+    videoPackageId,
+    appliedTranscreationJobIds,
+    supportedLocales,
+  };
+}
+
+async function ensureWebsiteLocales(ctx: SeedSeoContext): Promise<string[]> {
+  const { admin, websiteId, warnings } = ctx;
+  const { data, error } = await admin
+    .from('websites')
+    .select('default_locale, supported_locales')
+    .eq('id', websiteId)
+    .maybeSingle();
+
+  if (error || !data) {
+    warnings.push(`seo: could not read websites row for locale check: ${errorMessage(error)}`);
+    return [...E2E_TARGET_LOCALES];
+  }
+
+  const defaultLocale = typeof data.default_locale === 'string' && data.default_locale
+    ? data.default_locale
+    : 'es-CO';
+  const existing = Array.isArray(data.supported_locales)
+    ? data.supported_locales.filter((l): l is string => typeof l === 'string' && l.length > 0)
+    : [];
+
+  const desired = Array.from(new Set([...existing, ...E2E_TARGET_LOCALES]));
+  const mustWrite =
+    data.default_locale !== defaultLocale ||
+    desired.length !== existing.length ||
+    desired.some((l) => !existing.includes(l));
+
+  if (!mustWrite) {
+    return existing.length > 0 ? existing : [...E2E_TARGET_LOCALES];
+  }
+
+  const { error: updateError } = await admin
+    .from('websites')
+    .update({
+      default_locale: defaultLocale,
+      supported_locales: desired,
+    })
+    .eq('id', websiteId);
+
+  if (updateError) {
+    warnings.push(
+      `seo: could not update websites.supported_locales (read-only?): ${errorMessage(updateError)}`,
+    );
+    return existing.length > 0 ? existing : [...E2E_TARGET_LOCALES];
+  }
+
+  return desired;
+}
+
+async function markTranscreationJobsApplied(ctx: SeedSeoContext): Promise<string[]> {
+  const { admin, websiteId, pageId, packageId, warnings } = ctx;
+  const candidatePageIds = [pageId, packageId].filter(Boolean) as string[];
+  if (candidatePageIds.length === 0) {
+    warnings.push('seo: no page or package id to mark as applied transcreation');
+    return [];
+  }
+
+  const { data, error } = await admin
+    .from('seo_transcreation_jobs')
+    .update({ status: 'applied' })
+    .eq('website_id', websiteId)
+    .eq('source_locale', 'es-CO')
+    .eq('target_locale', 'en-US')
+    .in('page_id', candidatePageIds)
+    .select('id');
+
+  if (error) {
+    warnings.push(`seo: could not mark transcreation jobs as applied: ${errorMessage(error)}`);
+    return [];
+  }
+  return (data ?? []).map((row) => String(row.id));
+}
+
+async function ensureNoindexProductOverlay(ctx: SeedSeoContext): Promise<string | null> {
+  const { admin, websiteId, packageId, warnings } = ctx;
+  if (!packageId) {
+    warnings.push('seo: no packageId available for noindex overlay');
+    return null;
+  }
+
+  // `website_product_pages` is the overlay queried by `lib/supabase/get-pages.ts#getNoindexProductSlugs`.
+  // The table is Flutter-owned; columns used: website_id, product_type, product_id, slug,
+  // robots_noindex, translation_group_id (may be NOT NULL), locale (default 'es-CO').
+  const overlay = {
+    website_id: websiteId,
+    product_type: 'package' as const,
+    product_id: packageId,
+    slug: `${E2E_PACKAGE_SLUG}-noindex`,
+    robots_noindex: true,
+    locale: 'es-CO',
+    translation_group_id: packageId,
+  };
+
+  const { data, error } = await admin
+    .from('website_product_pages')
+    .upsert(overlay, { onConflict: 'website_id,locale,product_type,product_id' })
+    .select('product_id')
+    .maybeSingle();
+
+  if (error) {
+    // Schema mismatch or RLS — record and degrade gracefully.
+    warnings.push(`seo: website_product_pages upsert failed: ${errorMessage(error)}`);
+    return null;
+  }
+  return data?.product_id ? String(data.product_id) : packageId;
+}
+
+async function ensureLegacyRedirect(ctx: SeedSeoContext): Promise<string | null> {
+  const { admin, websiteId, warnings } = ctx;
+
+  const row = {
+    website_id: websiteId,
+    old_path: E2E_LEGACY_REDIRECT_OLD_PATH,
+    new_path: E2E_LEGACY_REDIRECT_NEW_PATH,
+    status_code: 301,
+  };
+
+  // Flutter-managed table — we don't know the unique-constraint name, so fall
+  // back to existence check + insert-if-missing. Idempotent either way.
+  const { data: existing, error: readError } = await admin
+    .from('website_legacy_redirects')
+    .select('old_path')
+    .eq('website_id', websiteId)
+    .eq('old_path', E2E_LEGACY_REDIRECT_OLD_PATH)
+    .maybeSingle();
+
+  if (readError) {
+    warnings.push(`seo: website_legacy_redirects unreadable: ${errorMessage(readError)}`);
+    return null;
+  }
+  if (existing?.old_path) return E2E_LEGACY_REDIRECT_OLD_PATH;
+
+  const { error: insertError } = await admin.from('website_legacy_redirects').insert(row);
+  if (insertError) {
+    warnings.push(`seo: website_legacy_redirects insert failed: ${errorMessage(insertError)}`);
+    return null;
+  }
+  return E2E_LEGACY_REDIRECT_OLD_PATH;
+}
+
+async function ensureSlugRedirect(ctx: SeedSeoContext): Promise<string | null> {
+  const { admin, accountId, warnings } = ctx;
+
+  const row = {
+    account_id: accountId,
+    product_type: 'package' as const,
+    old_slug: E2E_SLUG_REDIRECT_OLD_SLUG,
+    new_slug: E2E_PACKAGE_SLUG,
+  };
+
+  const { data: existing, error: readError } = await admin
+    .from('slug_redirects')
+    .select('old_slug')
+    .eq('account_id', accountId)
+    .eq('product_type', 'package')
+    .eq('old_slug', E2E_SLUG_REDIRECT_OLD_SLUG)
+    .maybeSingle();
+
+  if (readError) {
+    warnings.push(`seo: slug_redirects unreadable: ${errorMessage(readError)}`);
+    return null;
+  }
+  if (existing?.old_slug) return E2E_SLUG_REDIRECT_OLD_SLUG;
+
+  const { error: insertError } = await admin.from('slug_redirects').insert(row);
+  if (insertError) {
+    warnings.push(`seo: slug_redirects insert failed: ${errorMessage(insertError)}`);
+    return null;
+  }
+  return E2E_SLUG_REDIRECT_OLD_SLUG;
+}
+
+async function ensurePackageVideoUrl(ctx: SeedSeoContext): Promise<string | null> {
+  const { admin, packageId, warnings } = ctx;
+  if (!packageId) {
+    warnings.push('seo: no packageId to attach video_url');
+    return null;
+  }
+
+  const { data: current, error: readError } = await admin
+    .from('package_kits')
+    .select('video_url')
+    .eq('id', packageId)
+    .maybeSingle();
+
+  if (readError) {
+    warnings.push(`seo: package_kits.video_url read failed: ${errorMessage(readError)}`);
+    return null;
+  }
+
+  if (current?.video_url === E2E_VIDEO_URL) {
+    return packageId;
+  }
+
+  const { error: updateError } = await admin
+    .from('package_kits')
+    .update({ video_url: E2E_VIDEO_URL })
+    .eq('id', packageId);
+
+  if (updateError) {
+    warnings.push(`seo: package_kits.video_url update failed: ${errorMessage(updateError)}`);
+    return null;
+  }
+  return packageId;
+}

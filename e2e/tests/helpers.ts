@@ -1,7 +1,13 @@
 import { expect, Page } from '@playwright/test';
-import { E2E_FIXTURE_IDS, seedWave2Fixtures } from '../setup/seed';
+import {
+  E2E_FIXTURE_IDS,
+  getSeededSeoFixtures,
+  seedWave2Fixtures,
+  type SeoFixtures,
+} from '../setup/seed';
 
-export { seedWave2Fixtures, E2E_FIXTURE_IDS };
+export { seedWave2Fixtures, getSeededSeoFixtures, E2E_FIXTURE_IDS };
+export type { SeoFixtures };
 
 export function getSeededPackageSlug(): string {
   return E2E_FIXTURE_IDS.packageSlug;

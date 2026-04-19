@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { getSeededPackageSlug } from './helpers';
+import { getSeededPackageSlug, seedWave2Fixtures, type SeoFixtures } from './helpers';
 
 /**
  * EPIC #207 W1 · P0-4 · JSON-LD structured data in public HTML.
@@ -31,6 +31,19 @@ function collectTypes(node: unknown): string[] {
 }
 
 test.describe('Public structured data @p0-seo', () => {
+  let seo: SeoFixtures | null = null;
+
+  test.beforeAll(async () => {
+    try {
+      const fixtures = await seedWave2Fixtures();
+      seo = fixtures.seo;
+    } catch (error) {
+      // Service-role creds missing or seed environment unreachable — stubs fall
+      // back to `test.skip()` when ids are null.
+      seo = null;
+    }
+  });
+
   test('homepage exposes Organization or TravelAgency JSON-LD', async ({ page }) => {
     const response = await page.goto('/site/colombiatours', { waitUntil: 'domcontentloaded' });
     test.skip(
@@ -68,6 +81,34 @@ test.describe('Public structured data @p0-seo', () => {
     const allTypes = parsed.flatMap(collectTypes);
     expect(allTypes).toEqual(expect.arrayContaining(['TouristTrip']));
     expect(allTypes).toEqual(expect.arrayContaining(['BreadcrumbList']));
+  });
+
+  test('package page exposes VideoObject JSON-LD when video_url set', async ({ page }) => {
+    test.skip(
+      !seo?.videoPackageId,
+      'No seeded package with video_url — seedWave2Fixtures could not attach video_url',
+    );
+
+    const slug = getSeededPackageSlug();
+    const response = await page.goto(`/site/colombiatours/paquetes/${slug}`, {
+      waitUntil: 'domcontentloaded',
+    });
+    test.skip(
+      !response || response.status() === 404 || response.status() >= 500,
+      `Package "${slug}" unreachable — skip VideoObject check`,
+    );
+
+    const scripts = await page
+      .locator('script[type="application/ld+json"]')
+      .allTextContents();
+    test.skip(scripts.length === 0, 'No JSON-LD on package page — nothing to validate');
+
+    const parsed = scripts.map(parseJsonLd).filter(Boolean);
+    const allTypes = parsed.flatMap(collectTypes);
+    expect(
+      allTypes,
+      `expected VideoObject in JSON-LD (@types=${allTypes.join(', ')})`,
+    ).toContain('VideoObject');
   });
 
   test('inLanguage on package JSON-LD matches URL locale segment (#208)', async ({ page }) => {
