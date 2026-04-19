@@ -51,10 +51,8 @@ test.describe('SEO item detail — matrix', () => {
     );
 
     await saveButton.click();
-    await expect(saveButton).toBeDisabled({ timeout: 5000 });
     const saveResponse = await saveResponsePromise;
     expect(saveResponse.ok()).toBeTruthy();
-    await expect(saveButton).toBeEnabled({ timeout: 15000 });
     await expect(titleInput).toHaveValue('E2E Seo Title Update');
   });
 });

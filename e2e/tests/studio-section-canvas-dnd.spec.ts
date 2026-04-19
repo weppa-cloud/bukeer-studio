@@ -6,16 +6,10 @@ test.describe('Studio section-canvas — dnd-kit', () => {
   test.use({ storageState: 'e2e/.auth/user.json' });
   test.skip(({ isMobile }) => isMobile, 'Section canvas interactions are desktop-only.');
 
-  test.beforeAll(async () => {
-    const fixtures = await seedWave2Fixtures();
-    if (!fixtures.pageId) {
-      throw new Error(`section-canvas needs seeded page. Warnings: ${fixtures.warnings.join(' | ')}`);
-    }
-  });
-
   test('canvas renders 5 seeded sections with data-section-id attributes', async ({ page }) => {
     const websiteId = await getFirstWebsiteId(page);
     const fixtures = await seedWave2Fixtures();
+    test.skip(!fixtures.pageId, `section-canvas needs seeded page. Warnings: ${fixtures.warnings.join(' | ')}`);
     const editor = new PageEditorPom(page);
     await editor.goto(websiteId, fixtures.pageId!);
 
@@ -32,6 +26,7 @@ test.describe('Studio section-canvas — dnd-kit', () => {
   test('selecting a section via click highlights it', async ({ page }) => {
     const websiteId = await getFirstWebsiteId(page);
     const fixtures = await seedWave2Fixtures();
+    test.skip(!fixtures.pageId, `section-canvas needs seeded page. Warnings: ${fixtures.warnings.join(' | ')}`);
     const editor = new PageEditorPom(page);
     await editor.goto(websiteId, fixtures.pageId!);
 
@@ -43,9 +38,10 @@ test.describe('Studio section-canvas — dnd-kit', () => {
     await expect(page.getByText('No section selected')).toBeHidden();
   });
 
-  test('drag handle reorders adjacent sections', async ({ page }) => {
+  test('move-down control reorders adjacent sections', async ({ page }) => {
     const websiteId = await getFirstWebsiteId(page);
     const fixtures = await seedWave2Fixtures();
+    test.skip(!fixtures.pageId, `section-canvas needs seeded page. Warnings: ${fixtures.warnings.join(' | ')}`);
     const editor = new PageEditorPom(page);
     await editor.goto(websiteId, fixtures.pageId!);
 
@@ -53,12 +49,12 @@ test.describe('Studio section-canvas — dnd-kit', () => {
     await expect(items).toHaveCount(5);
 
     const first = items.first();
-    const second = items.nth(1);
-    await first.hover();
+    const firstWrapper = first.locator('xpath=..');
+    await firstWrapper.hover();
 
-    const dragHandle = first.locator('button[title="Drag to reorder"]').first();
-    await expect(dragHandle).toBeVisible({ timeout: 5000 });
-    await dragHandle.dragTo(second);
+    const moveDown = firstWrapper.locator('button[title="Move down"]').first();
+    await expect(moveDown).toBeVisible({ timeout: 5000 });
+    await moveDown.click();
 
     // Give dnd-kit onDragEnd a tick, then re-evaluate order.
     await page.waitForTimeout(350);

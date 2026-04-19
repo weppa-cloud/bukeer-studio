@@ -12,9 +12,10 @@ test.describe('Leads Tab', () => {
 
   test('filter by status', async ({ page }) => {
     await gotoWebsiteSection(page, 'quotes');
-    const newTab = page.locator('.studio-tabs').getByRole('button', { name: 'New', exact: true });
+    const tabs = page.locator('.studio-tabs').first();
+    const newTab = tabs.getByRole('button', { name: 'New', exact: true });
     await newTab.click();
-    await expect(newTab).toHaveClass(/studio-tab-active/);
+    await expect(tabs.locator('.studio-tab-active')).toHaveText('New', { timeout: 15000 });
   });
 
   test('export CSV', async ({ page }) => {

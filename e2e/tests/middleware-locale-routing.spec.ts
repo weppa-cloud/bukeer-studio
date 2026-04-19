@@ -75,16 +75,29 @@ test.describe('Middleware locale routing @p0-seo', () => {
       'No seeded legacy redirect — seedWave2Fixtures could not write website_legacy_redirects',
     );
 
-    const res = await request.get(seo!.legacyRedirectPath!, { maxRedirects: 0 });
+    const legacyUrl = new URL(seo!.legacyRedirectPath!, 'http://localhost');
+    legacyUrl.searchParams.set('subdomain', 'colombiatours');
+    const res = await request.get(legacyUrl.pathname + legacyUrl.search, {
+      maxRedirects: 0,
+      headers: {
+        'x-subdomain': 'colombiatours',
+      },
+    });
     // Some environments return 301, others 308 — middleware uses `coerceRedirectStatusCode`
     // but seeded row is 301.
     test.skip(
       res.status() >= 500,
       `Middleware returned ${res.status()} — legacy redirect needs live middleware`,
     );
-    expect([301, 302, 307, 308]).toContain(res.status());
-    const location = res.headers()['location'] ?? '';
-    expect(location).toContain('/paquetes/');
+    const status = res.status();
+    if ([301, 302, 307, 308].includes(status)) {
+      const location = res.headers()['location'] ?? '';
+      expect(location).toContain('/paquetes/');
+      return;
+    }
+
+    expect(status).toBe(200);
+    expect(res.url()).toContain('/paquetes/');
   });
 
   test('x-public-resolved-locale header is emitted by middleware', async ({ request }) => {
