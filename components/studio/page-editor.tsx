@@ -977,7 +977,7 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
       onDragCancel={handleDragCancel}
     >
     <TooltipProvider>
-      <div className="fixed inset-0 z-[100] flex flex-col studio-shell">
+      <div className="fixed inset-0 z-[100] flex flex-col studio-shell" data-testid="studio-editor-root">
         {/* Mobile guard — editor requires a wide screen */}
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-background p-8 text-center lg:hidden">
           <div className="max-w-sm">
@@ -994,6 +994,7 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
         </div>
 
         <StudioTopbar
+          data-testid="studio-editor-topbar"
           left={(
             <>
               <StudioButton
@@ -1066,11 +1067,18 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
               </div>
 
               {/* Viewport switcher */}
-              <div className="flex items-center gap-1 bg-[var(--studio-panel)] rounded-full p-1 border border-[var(--studio-border)]">
+              <div
+                className="flex items-center gap-1 bg-[var(--studio-panel)] rounded-full p-1 border border-[var(--studio-border)]"
+                data-testid="studio-editor-viewport-switcher"
+                role="group"
+                aria-label="Viewport switcher"
+              >
                 {(['desktop', 'tablet', 'mobile'] as ViewportSize[]).map((vp) => (
                   <button
                     key={vp}
                     onClick={() => setViewport(vp)}
+                    data-testid={`studio-editor-viewport-${vp}`}
+                    aria-pressed={viewport === vp}
                     className={`p-1.5 rounded-full transition-all ${
                       viewport === vp
                         ? 'bg-[var(--studio-bg-elevated)] text-[var(--studio-text)] shadow-sm border border-[var(--studio-border)]'
@@ -1096,12 +1104,18 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
                   size="sm"
                   onClick={() => setTranslateOpen(true)}
                   title="Crear borrador de traducción"
+                  data-testid="studio-editor-translate-button"
                 >
                   <Languages className="w-3.5 h-3.5" />
                   Traducir a...
                 </StudioButton>
               ) : null}
-              <StudioButton variant="ghost" size="sm" onClick={handlePreview}>
+              <StudioButton
+                variant="ghost"
+                size="sm"
+                onClick={handlePreview}
+                data-testid="studio-editor-preview-button"
+              >
                 <Eye className="w-3.5 h-3.5" />
                 Preview
               </StudioButton>
@@ -1110,6 +1124,7 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
                 size="sm"
                 onClick={() => setPanelCollapsed((c) => !c)}
                 title="Toggle panel (\\)"
+                data-testid="studio-editor-panel-toggle"
               >
                 {panelCollapsed ? (
                   <PanelRightOpen className="w-3.5 h-3.5" />
@@ -1117,7 +1132,12 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
                   <PanelRightClose className="w-3.5 h-3.5" />
                 )}
               </StudioButton>
-              <StudioButton variant="ghost" size="sm" onClick={toggleStudioMode}>
+              <StudioButton
+                variant="ghost"
+                size="sm"
+                onClick={toggleStudioMode}
+                data-testid="studio-editor-mode-toggle"
+              >
                 {studioMode === 'dark' ? (
                   <Sun className="w-3.5 h-3.5" />
                 ) : (
@@ -1130,11 +1150,17 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
                 size="sm"
                 disabled={isSaving || !isEditorDirty}
                 onClick={handleSaveDraft}
+                data-testid="studio-editor-save-button"
               >
                 <Save className="w-3.5 h-3.5" />
                 {isSaving ? 'Saving...' : 'Save'}
               </StudioButton>
-              <StudioButton size="sm" disabled={isPublishing} onClick={handlePublish}>
+              <StudioButton
+                size="sm"
+                disabled={isPublishing}
+                onClick={handlePublish}
+                data-testid="studio-editor-publish-button"
+              >
                 <Upload className="w-3.5 h-3.5" />
                 {isPublishing ? 'Publishing...' : 'Publish'}
               </StudioButton>
@@ -1176,10 +1202,12 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
 
           {/* Right panel — Edit / AI / SEO */}
           <div className={`border-l border-[var(--studio-border)] bg-[var(--studio-bg-elevated)] flex flex-col transition-all duration-300 ${panelCollapsed ? 'w-0 min-w-0 max-w-0 overflow-hidden opacity-0 border-l-0' : 'w-[320px] min-w-[320px] max-w-[420px]'}`}>
-            <div className="p-2 border-b border-[var(--studio-border)]">
+            <div className="p-2 border-b border-[var(--studio-border)]" data-testid="studio-editor-panel-tabs">
               <StudioTabs
                 value={panelTab}
                 onChange={(value) => setPanelTab(value as 'edit' | 'ai' | 'seo')}
+                testIdPrefix="studio-editor-panel"
+                aria-label="Editor side panel"
                 options={[
                   { id: 'edit', label: 'Edit' },
                   { id: 'ai', label: 'AI' },
@@ -1189,7 +1217,7 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
             </div>
 
             {panelTab === 'edit' ? (
-              <ScrollArea className="h-full">
+              <ScrollArea className="h-full" data-testid="studio-editor-panel-edit">
                 {selectedSection ? (
                   <SectionForm
                     sectionType={selectedSection.sectionType}
@@ -1197,7 +1225,10 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
                     onChange={handleFieldChange}
                   />
                 ) : (
-                  <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
+                  <div
+                    className="flex flex-col items-center justify-center py-20 px-6 text-center"
+                    data-testid="studio-editor-panel-edit-empty"
+                  >
                     <div className="w-14 h-14 rounded-2xl bg-[color-mix(in_srgb,var(--studio-primary)_14%,transparent)] flex items-center justify-center mb-5">
                       <Pencil className="w-6 h-6 text-[var(--studio-primary)]" />
                     </div>
@@ -1210,6 +1241,7 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
                       size="sm"
                       className="mt-5 gap-2 rounded-full"
                       onClick={() => setPickerOpen(true)}
+                      data-testid="studio-editor-add-section"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       Add Section
@@ -1220,7 +1252,7 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
             ) : null}
 
             {panelTab === 'ai' ? (
-              <div className="flex-1 overflow-hidden">
+              <div className="flex-1 overflow-hidden" data-testid="studio-editor-panel-ai">
                 <StudioChat
                   websiteId={websiteId}
                   pageId={pageId}
@@ -1232,7 +1264,7 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
             ) : null}
 
             {panelTab === 'seo' ? (
-              <div className="flex-1 overflow-hidden">
+              <div className="flex-1 overflow-hidden" data-testid="studio-editor-panel-seo">
                 <SeoPanel
                   websiteId={websiteId}
                   pageId={pageId}

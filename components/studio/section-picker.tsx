@@ -164,7 +164,10 @@ export function SectionPicker({ open, onClose, onSelect }: SectionPickerProps) {
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <DialogContent className="studio-panel max-w-3xl max-h-[82vh] p-0 overflow-hidden bg-[var(--studio-bg-elevated)] border-[var(--studio-border)]">
+      <DialogContent
+        className="studio-panel max-w-3xl max-h-[82vh] p-0 overflow-hidden bg-[var(--studio-bg-elevated)] border-[var(--studio-border)]"
+        data-testid="studio-picker-dialog"
+      >
         <DialogHeader>
           <div className="px-5 pt-5 pb-3 border-b border-[var(--studio-border)]">
             <DialogTitle className="text-[var(--studio-text)] text-lg font-semibold">Add Section</DialogTitle>
@@ -180,15 +183,18 @@ export function SectionPicker({ open, onClose, onSelect }: SectionPickerProps) {
               placeholder="Search sections..."
               className="pl-9"
               autoFocus
+              data-testid="studio-picker-search"
             />
           </div>
         </div>
 
         {!search && (
-          <div className="px-5 pb-2">
+          <div className="px-5 pb-2" data-testid="studio-picker-category-tabs">
             <StudioTabs
               value={activeCategory ?? 'all'}
               onChange={(value) => setActiveCategory(value === 'all' ? null : value)}
+              testIdPrefix="studio-picker-category-tab"
+              aria-label="Section categories"
               options={[
                 { id: 'all', label: 'All' },
                 ...SECTION_CATEGORIES.map((cat) => ({ id: cat.key, label: cat.label })),
@@ -199,11 +205,11 @@ export function SectionPicker({ open, onClose, onSelect }: SectionPickerProps) {
         )}
 
         <ScrollArea className="max-h-[56vh]">
-          <div className="space-y-6 px-5 pb-5">
+          <div className="space-y-6 px-5 pb-5" data-testid="studio-picker-items">
             {filteredCategories
               .filter((cat) => !activeCategory || cat.key === activeCategory)
               .map((cat) => (
-                <div key={cat.key}>
+                <div key={cat.key} data-testid={`studio-picker-group-${cat.key}`}>
                   <h4 className="text-xs font-semibold text-[var(--studio-text-muted)] uppercase tracking-wider mb-2">
                     {cat.label}
                   </h4>
@@ -213,6 +219,7 @@ export function SectionPicker({ open, onClose, onSelect }: SectionPickerProps) {
                         key={type}
                         onClick={() => handleSelect(type)}
                         type="button"
+                        data-testid={`studio-picker-item-${type}`}
                         className={cn(
                           'text-left p-3 rounded-xl border border-[var(--studio-border)] bg-[var(--studio-bg-elevated)] transition-all duration-150',
                           'hover:border-[color-mix(in_srgb,var(--studio-primary)_40%,transparent)] hover:bg-[color-mix(in_srgb,var(--studio-primary)_8%,transparent)] hover:shadow-sm hover:-translate-y-0.5',
@@ -232,7 +239,10 @@ export function SectionPicker({ open, onClose, onSelect }: SectionPickerProps) {
               ))}
 
             {filteredCategories.length === 0 && (
-              <p className="text-sm text-[var(--studio-text-muted)] text-center py-8">
+              <p
+                className="text-sm text-[var(--studio-text-muted)] text-center py-8"
+                data-testid="studio-picker-empty"
+              >
                 No sections match &ldquo;{search}&rdquo;
               </p>
             )}
