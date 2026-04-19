@@ -26,7 +26,8 @@ describe('studio-editor-v2 flag resolution', () => {
     scope: 'account',
   };
 
-  describe('3-level resolution order (field > account > default)', () => {
+  // 3 scopes + per-field whitelist — see packages/website-contract/src/schemas/marketing-patch.ts:82-86.
+  describe('3-scope resolution order (field whitelist > account flag > default)', () => {
     it('default → Flutter for all fields', () => {
       expect(isStudioFieldEnabled(defaultRes, 'description')).toBe(false);
       expect(whichSurface(defaultRes, 'program_highlights')).toBe('flutter');
@@ -38,7 +39,7 @@ describe('studio-editor-v2 flag resolution', () => {
       expect(whichSurface(accountWideRes, 'social_image')).toBe('studio');
     });
 
-    it('per-field override takes precedence over account flag', () => {
+    it('per-field whitelist takes precedence when enabled=false', () => {
       // perFieldRes.enabled=false but fields=['description','program_highlights']
       expect(isStudioFieldEnabled(perFieldRes, 'description')).toBe(true);
       expect(isStudioFieldEnabled(perFieldRes, 'program_highlights')).toBe(true);
@@ -46,12 +47,39 @@ describe('studio-editor-v2 flag resolution', () => {
       expect(whichSurface(perFieldRes, 'program_inclusions')).toBe('flutter');
     });
 
-    it('account flag with field exclusion — fields[] is whitelist not blacklist', () => {
+    it('account flag enabled with field exclusion — fields[] is whitelist not blacklist', () => {
       // When enabled=true + fields=['description']:
       // current behavior: enabled=true wins → all fields to Studio
       // (field list only acts as EXTRA enablement when enabled=false)
       expect(isStudioFieldEnabled(mixedRes, 'description')).toBe(true);
       expect(isStudioFieldEnabled(mixedRes, 'program_inclusions')).toBe(true);
+    });
+  });
+
+  describe('product type parity (W2 #216 AC-W2-5 + ADR-025)', () => {
+    // Flag resolution is product-type-agnostic: the same resolution applies
+    // to both package_kits and activities rows. The caller (marketing/actions
+    // or content/actions) dispatches to the right RPC based on productType,
+    // but the flag gate is identical.
+    it('resolution is product-type-agnostic — same rules for package + activity editors', () => {
+      expect(isStudioFieldEnabled(accountWideRes, 'description')).toBe(true);
+      // The editor passes the same `field` key regardless of productType,
+      // so all MarketingFieldName values pass through the same gate.
+      const allFields: Array<Parameters<typeof isStudioFieldEnabled>[1]> = [
+        'description',
+        'program_highlights',
+        'program_inclusions',
+        'program_exclusions',
+        'program_notes',
+        'program_meeting_info',
+        'program_gallery',
+        'social_image',
+        'cover_image_url',
+      ];
+      for (const f of allFields) {
+        expect(isStudioFieldEnabled(accountWideRes, f)).toBe(true);
+        expect(isStudioFieldEnabled(defaultRes, f)).toBe(false);
+      }
     });
   });
 });
