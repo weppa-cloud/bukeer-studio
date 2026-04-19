@@ -401,6 +401,13 @@ export type {
 export { PackageAiHighlightsSchema } from './schemas/package-ai';
 export type { PackageAiHighlights } from './schemas/package-ai';
 
+// Package Kit slug contract (#210)
+export {
+  PACKAGE_KIT_SLUG_REGEX,
+  PackageKitSlugSchema,
+} from './schemas/package-kit';
+export type { PackageKitSlug } from './schemas/package-kit';
+
 // Studio Unified Product Editor — Phase 0 (#191)
 export {
   CustomSectionSchema,
