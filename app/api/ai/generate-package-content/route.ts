@@ -12,7 +12,8 @@
  * @see GitHub Issue #174 (child of #171)
  */
 
-export const runtime = 'edge';
+// Runtime defaults to Node — OpenNext converts to Worker runtime for Cloudflare deploy.
+// Declaring 'edge' (Next.js Vercel-style) breaks the OpenNext bundle step.
 
 import { createClient } from '@supabase/supabase-js';
 import { generateObject } from 'ai';

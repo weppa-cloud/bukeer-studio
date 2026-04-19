@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 
-export const runtime = 'edge';
+// Runtime defaults to Node — OpenNext converts to Worker runtime for Cloudflare deploy.
+// Declaring 'edge' (Next.js Vercel-style) breaks the OpenNext bundle step.
 
 /**
  * Deprecated endpoint.
