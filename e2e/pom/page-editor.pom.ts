@@ -57,9 +57,10 @@ export class PageEditorPom {
     // #226 — prefer stable testid contract; fall back to role for legacy
     // picker/structure tabs that still use plain buttons.
     const testId = `studio-editor-panel-${tab}`;
-    const byTestId = this.page.getByTestId(testId).first();
-    if (await byTestId.isVisible().catch(() => false)) {
-      await byTestId.click();
+    const byTestId = this.page.getByTestId(testId);
+    const count = await byTestId.count().catch(() => 0);
+    if (count > 0) {
+      await byTestId.first().click({ timeout: 10_000 });
       return;
     }
 
