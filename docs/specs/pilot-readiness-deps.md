@@ -31,6 +31,7 @@ Client meeting 2026-04-19 reset pilot priorities. This section is authoritative 
 | #214 W7-a | W1 merged | Pending Stage 1 | |
 | #214 W7-b | W2 decision act/hotel | Pending Stage 2 | Flow 4 translation expanded to blog + pkg + act (3 sub-flows); Flow 2 booking DEFER (WhatsApp-only copy); Flow 6 Activity = Variant A (Studio native editor, matches W2); Flow 7 Hotel = Variant B (Flutter handoff, unchanged). |
 | #214 W7-c | W2 + W3 + W4 + W5 + W6 merged | Pending Stage 5 | Screencasts post-UI freeze |
+| W4/W5/W6 kickoff (#218/#219/#220) | **#226 Recovery Gate P0 green** | Pending | Gate bloqueante; must be green before W4/W5/W6 start |
 | #207 close | #214 closed + #213 signed-off | Pending | |
 
 ## Parallel gates
@@ -42,6 +43,19 @@ Client meeting 2026-04-19 reset pilot priorities. This section is authoritative 
 | ADR-025 finalized | Pending (skeleton shipped Stage 0) | W2 PR merge |
 | #208 merge confirmation | **Verify Day-0** | W5 AC-W5-7 |
 | #209 merge confirmation | **Verify Day-0** | W5 AC-W5-5/6 |
+
+## Parallel / Recovery Gate
+
+### #226 QA Recovery Gate P0 GUI
+- Scope: auth/smoke + studio editor + settings/domain + translations dashboard + transcreate lifecycle v2/v2.1 chromium 0/0/0.
+- Boundary: data-testid work for studio/dashboards/settings (complementary to PR #225 detail-*).
+- Blocks: W4 #218, W5 #219, W6 #220 kickoff.
+- Does NOT close: #198/#199/#202 (delegated to #213 + #207).
+- Related: #213 AC-X1, #214 Stage 4 gate criteria.
+
+### Stage 4 entry gate
+
+Stage 4 (#214 W4/W5/W6 kickoff) cannot start until **#226 QA Recovery Gate P0 GUI** is green on chromium (0 failed / 0 did-not-run). #226 runs in parallel with Stage 2 (W2 + W7-a) via qa-nextjs dedicated agent; its green-state is an operational prereq of Stage 4 in addition to the Stage-specific blockers above.
 
 ## Updates
 
