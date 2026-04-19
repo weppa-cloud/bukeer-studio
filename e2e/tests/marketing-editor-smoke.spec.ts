@@ -1,29 +1,28 @@
 import { test, expect } from '@playwright/test';
-import { getFirstWebsiteId } from './helpers';
+import { getFirstWebsiteId, seedWave2Fixtures, getSeededPackageSlug } from './helpers';
 
 /**
  * Marketing editor (Studio Editor v2) smoke — covers the save → audit →
- * reconciliation loop end to end. Depends on at least one package_kit in the
- * test account having slug set and the studio_editor_v2 flag enabled for
- * description. Skips (rather than fails) when no package_kit is available, so
- * the suite stays green on freshly-seeded CI accounts.
+ * reconciliation loop end to end. The wave2 fixture seed guarantees a
+ * deterministic package_kit on the test account with studio_editor_v2 flag
+ * wired for description; skips collapse to a hard seed-failure check.
  */
 
 test.describe('Marketing editor — smoke', () => {
   test.use({ storageState: 'e2e/.auth/user.json' });
 
+  test.beforeAll(async () => {
+    const fixtures = await seedWave2Fixtures();
+    if (!fixtures.packageId) {
+      throw new Error(
+        `Marketing smoke requires a seeded package. Warnings: ${fixtures.warnings.join(' | ')}`,
+      );
+    }
+  });
+
   test('description editor renders on marketing page', async ({ page }) => {
     const websiteId = await getFirstWebsiteId(page);
-
-    await page.goto(`/dashboard/${websiteId}/products`);
-    const firstPackageLink = page.locator('a[href*="/products/"]').first();
-    const hasPackage = (await firstPackageLink.count()) > 0;
-    test.skip(!hasPackage, 'No package_kits in test account — seed first.');
-
-    const href = await firstPackageLink.getAttribute('href');
-    expect(href).toBeTruthy();
-
-    const slug = href!.split('/products/')[1].split('/')[0];
+    const slug = getSeededPackageSlug();
     await page.goto(`/dashboard/${websiteId}/products/${slug}/marketing`);
 
     await expect(page.getByTestId('marketing-editor-description')).toBeVisible({
@@ -33,14 +32,7 @@ test.describe('Marketing editor — smoke', () => {
 
   test('marketing page exposes all 6 editor slots', async ({ page }) => {
     const websiteId = await getFirstWebsiteId(page);
-
-    await page.goto(`/dashboard/${websiteId}/products`);
-    const firstPackageLink = page.locator('a[href*="/products/"]').first();
-    const hasPackage = (await firstPackageLink.count()) > 0;
-    test.skip(!hasPackage, 'No package_kits in test account — seed first.');
-
-    const href = await firstPackageLink.getAttribute('href');
-    const slug = href!.split('/products/')[1].split('/')[0];
+    const slug = getSeededPackageSlug();
     await page.goto(`/dashboard/${websiteId}/products/${slug}/marketing`);
 
     // 5 dedicated editors + twin inclusions/exclusions group

@@ -1,4 +1,35 @@
 import { expect, Page } from '@playwright/test';
+import { E2E_FIXTURE_IDS, seedWave2Fixtures } from '../setup/seed';
+
+export { seedWave2Fixtures, E2E_FIXTURE_IDS };
+
+export function getSeededPackageSlug(): string {
+  return E2E_FIXTURE_IDS.packageSlug;
+}
+
+export function getSeededPageSlug(): string {
+  return E2E_FIXTURE_IDS.pageSlug;
+}
+
+export function getSeededWebsiteId(): string {
+  return process.env.E2E_WEBSITE_ID?.trim() || E2E_FIXTURE_IDS.websiteId;
+}
+
+export async function getSeededSeoItem(
+  itemType: 'page' | 'package' | 'blog',
+): Promise<{ pageId: string; slug: string }> {
+  const fixtures = await seedWave2Fixtures();
+  if (itemType === 'page') {
+    if (!fixtures.pageId) throw new Error('Seed fixture missing pageId');
+    return { pageId: fixtures.pageId, slug: fixtures.pageSlug };
+  }
+  if (itemType === 'package') {
+    if (!fixtures.packageId) throw new Error('Seed fixture missing packageId');
+    return { pageId: fixtures.packageId, slug: fixtures.packageSlug };
+  }
+  if (!fixtures.blogId) throw new Error('Seed fixture missing blogId');
+  return { pageId: fixtures.blogId, slug: fixtures.blogSlug };
+}
 
 export function getE2ECredentials() {
   return {

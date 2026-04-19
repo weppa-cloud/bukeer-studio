@@ -15,9 +15,16 @@
 
 import type { Page } from '@playwright/test';
 import { test, expect } from '@playwright/test';
-import { getFirstWebsiteId } from './helpers';
+import { getFirstWebsiteId, seedWave2Fixtures } from './helpers';
 
 test.use({ storageState: 'e2e/.auth/user.json' });
+
+test.beforeAll(async () => {
+  // Seed deterministic wave2 fixtures — primes keyword research, SEO items,
+  // packages, blog posts so the conditional `test.skip` paths below flip to
+  // "data present" instead of silently skipping in CI.
+  await seedWave2Fixtures().catch(() => undefined);
+});
 
 async function getWebsiteId(page: Parameters<typeof getFirstWebsiteId>[0]): Promise<string> {
   const override = process.env.E2E_WEBSITE_ID ?? '';
