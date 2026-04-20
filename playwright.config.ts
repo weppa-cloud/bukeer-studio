@@ -80,6 +80,24 @@ export default defineConfig({
       },
       dependencies: ['setup'],
     },
+    {
+      // EPIC #214 W4 #218 — Pilot editor→render suite scoped to
+      // `e2e/tests/pilot/editor-render/`. Tagged `@pilot-w4` so
+      // `--project=pilot --grep "@pilot-w4"` resolves the full W4
+      // surface without pulling the rest of the regression matrix.
+      // Coexists with chromium/firefox/mobile-chrome — run those
+      // explicitly for full-matrix coverage (per Gate 2 instruction).
+      name: 'pilot',
+      testDir: './e2e/tests/pilot',
+      grep: /@pilot-w4/,
+      use: {
+        ...devices['Desktop Chrome'],
+        launchOptions: {
+          args: chromiumWebglArgs,
+        },
+      },
+      dependencies: ['setup'],
+    },
   ],
   webServer: {
     command: webServerCommand,
