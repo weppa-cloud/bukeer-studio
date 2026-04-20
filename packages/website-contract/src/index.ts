@@ -62,7 +62,9 @@ export type {
   ProductPageCustomization,
   ProductPageData,
   CategoryProducts,
+  ScheduleEventType,
   ScheduleEntry,
+  JsonValue,
   MeetingPoint,
   ActivityPrice,
   ActivityOption,
@@ -164,6 +166,7 @@ export {
 export type { PlaceSource, PlaceCacheRow, PlaceCacheInsert } from './schemas/places-cache';
 
 export {
+  ScheduleEventTypeSchema,
   ScheduleEntrySchema,
   ScheduleEntrySchema as ScheduleStepSchema,
   MeetingPointSchema,

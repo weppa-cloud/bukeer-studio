@@ -2,7 +2,14 @@
  * CSS Variable Generator — compiles DesignTokens + ThemeProfile into CSS custom properties.
  */
 
-import type { ChartColors, DesignTokens, ColorScheme, RadiusValue, ElevationLevel } from '../contracts/design-tokens';
+import type {
+  ChartColors,
+  DesignTokens,
+  ColorScheme,
+  RadiusValue,
+  ElevationLevel,
+  SpacingDensity,
+} from '../contracts/design-tokens';
 import type { ThemeProfile } from '../contracts/theme-profile';
 import type { CssVariable, WebRuntimeOutput } from '../contracts/runtime-output';
 import { RUNTIME_OUTPUT_SCHEMA_VERSION } from '../contracts/runtime-output';
@@ -19,8 +26,8 @@ export function generateCssOutput(
   inputHash: string,
 ): WebRuntimeOutput {
   const chartVars = generateChartVars(tokens.colors.chart);
-  const lightVars = [...generateColorVars(tokens.colors.light), ...chartVars];
-  const darkVars = [...generateColorVars(tokens.colors.dark), ...chartVars];
+  const lightVars = [...generateColorVars(tokens.colors.light, tokens.colors.accents), ...chartVars];
+  const darkVars = [...generateColorVars(tokens.colors.dark, tokens.colors.accents), ...chartVars];
   const invariantVars = generateInvariantVars(tokens, profile);
 
   const dataAttributes: Record<string, string> = {
@@ -58,7 +65,10 @@ export function generateCssOutput(
 // Color Variables
 // ---------------------------------------------------------------------------
 
-function generateColorVars(scheme: ColorScheme): CssVariable[] {
+function generateColorVars(
+  scheme: ColorScheme,
+  accents: DesignTokens['colors']['accents'] | undefined,
+): CssVariable[] {
   const vars: CssVariable[] = [];
   const cat = 'color' as const;
 
@@ -77,6 +87,12 @@ function generateColorVars(scheme: ColorScheme): CssVariable[] {
   vars.push({ name: 'muted-foreground', value: hexToHsl(scheme.onSurfaceVariant), category: cat });
   vars.push({ name: 'accent', value: hexToHsl(scheme.tertiaryContainer), category: cat });
   vars.push({ name: 'accent-foreground', value: hexToHsl(scheme.onTertiaryContainer), category: cat });
+  if (accents?.accent2) {
+    vars.push({ name: 'accent-2', value: hexToHsl(accents.accent2), category: cat });
+  }
+  if (accents?.accent3) {
+    vars.push({ name: 'accent-3', value: hexToHsl(accents.accent3), category: cat });
+  }
   vars.push({ name: 'destructive', value: hexToHsl(scheme.error), category: cat });
   vars.push({ name: 'destructive-foreground', value: hexToHsl(scheme.onError), category: cat });
   vars.push({ name: 'border', value: hexToHsl(scheme.outlineVariant), category: cat });
@@ -140,6 +156,12 @@ function generateChartVars(chart: ChartColors | undefined): CssVariable[] {
 
 function generateInvariantVars(tokens: DesignTokens, profile: ThemeProfile): CssVariable[] {
   const vars: CssVariable[] = [];
+  const density = resolveSpacingDensity(tokens.spacing.density, tokens.spacing.scale);
+  const densityMultiplier = densityToMultiplier(density);
+  const spacingRamp = buildSpacingRamp(tokens.spacing.baseUnit, densityMultiplier);
+  const sectionPaddingPx = tokens.spacing.baseUnit * 8 * tokens.spacing.sectionPaddingMultiplier * densityMultiplier;
+  const containerPx = tokens.spacing.containerMaxPx ?? profile.layout.maxContentWidth;
+  const easingValue = customEasingToValue(tokens.motion.customEasing) ?? easingToValue(tokens.motion.easing);
 
   // Typography
   vars.push({ name: 'font-heading', value: `"${tokens.typography.display.family}", ${tokens.typography.display.fallback}`, category: 'typography' });
@@ -167,15 +189,23 @@ function generateInvariantVars(tokens: DesignTokens, profile: ThemeProfile): Css
   const variantConfig = layoutVariantConfig[profile.layout.variant] ?? layoutVariantConfig.modern;
   vars.push({ name: 'layout-elevation', value: variantConfig.elevation, category: 'layout' });
   vars.push({ name: 'layout-border', value: variantConfig.borderStyle, category: 'layout' });
-  vars.push({ name: 'max-content-width', value: `${profile.layout.maxContentWidth}px`, category: 'layout' });
+  vars.push({ name: 'container', value: `${containerPx}px`, category: 'layout' });
+  vars.push({ name: 'max-content-width', value: `${containerPx}px`, category: 'layout' });
 
   // Motion
   vars.push({ name: 'transition-duration', value: `${tokens.motion.durationMs}ms`, category: 'motion' });
-  vars.push({ name: 'transition-easing', value: easingToValue(tokens.motion.easing), category: 'motion' });
+  vars.push({ name: 'ease', value: easingValue, category: 'motion' });
+  vars.push({ name: 'transition-easing', value: easingValue, category: 'motion' });
 
   // Spacing
-  vars.push({ name: 'spacing-unit', value: `${tokens.spacing.baseUnit}px`, category: 'spacing' });
-  vars.push({ name: 'section-padding', value: `${tokens.spacing.baseUnit * 8 * tokens.spacing.sectionPaddingMultiplier}px`, category: 'spacing' });
+  vars.push({ name: 'spacing-unit', value: `${formatPx(tokens.spacing.baseUnit * densityMultiplier)}px`, category: 'spacing' });
+  vars.push({ name: 'section-padding', value: `${formatPx(sectionPaddingPx)}px`, category: 'spacing' });
+  vars.push({ name: 'section-py', value: `${formatPx(sectionPaddingPx)}px`, category: 'spacing' });
+  vars.push({ name: 'card-pad', value: `${formatPx(spacingRamp[3])}px`, category: 'spacing' });
+  vars.push({ name: 'gutter', value: `${formatPx(spacingRamp[5])}px`, category: 'spacing' });
+  for (let i = 0; i < spacingRamp.length; i += 1) {
+    vars.push({ name: `sp-${i + 1}`, value: `${formatPx(spacingRamp[i])}px`, category: 'spacing' });
+  }
 
   return vars;
 }
@@ -273,17 +303,66 @@ function easingToValue(easing: string): string {
     'ease-out': 'cubic-bezier(0, 0, 0.2, 1)',
     'ease-in-out': 'cubic-bezier(0.4, 0, 0.2, 1)',
     spring: 'cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+    organic: 'cubic-bezier(0.2, 0.7, 0.2, 1)',
   };
-  return map[easing] ?? 'ease-out';
+  return map[easing] ?? 'cubic-bezier(0.2, 0.7, 0.2, 1)';
 }
 
 function buildFontImports(tokens: DesignTokens): string[] {
-  const fonts = new Set<string>();
-  fonts.add(tokens.typography.display.family);
-  fonts.add(tokens.typography.body.family);
+  const fonts = new Set<string>([
+    tokens.typography.display.family,
+    tokens.typography.body.family,
+  ]);
+  const urls = new Set<string>();
 
-  return Array.from(fonts).map((font) => {
+  for (const font of fonts) {
+    if (font === 'Bricolage Grotesque') {
+      urls.add('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@8..144,200..800&display=swap');
+      continue;
+    }
+    if (font === 'Instrument Serif') {
+      urls.add('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap');
+      continue;
+    }
     const encoded = font.replace(/ /g, '+');
-    return `https://fonts.googleapis.com/css2?family=${encoded}:wght@300;400;500;600;700&display=swap`;
-  });
+    urls.add(`https://fonts.googleapis.com/css2?family=${encoded}:wght@300;400;500;600;700&display=swap`);
+  }
+
+  return Array.from(urls);
+}
+
+function customEasingToValue(customEasing: DesignTokens['motion']['customEasing']): string | null {
+  if (!customEasing) return null;
+  const [x1, y1, x2, y2] = customEasing;
+  return `cubic-bezier(${x1}, ${y1}, ${x2}, ${y2})`;
+}
+
+function resolveSpacingDensity(
+  density: SpacingDensity | undefined,
+  scale: DesignTokens['spacing']['scale'],
+): SpacingDensity {
+  if (density) return density;
+  const fallbackByScale: Record<DesignTokens['spacing']['scale'], SpacingDensity> = {
+    compact: 'snug',
+    default: 'roomy',
+    relaxed: 'airy',
+  };
+  return fallbackByScale[scale];
+}
+
+function densityToMultiplier(density: SpacingDensity): number {
+  const multiplier: Record<SpacingDensity, number> = {
+    snug: 0.9,
+    roomy: 1,
+    airy: 1.2,
+  };
+  return multiplier[density];
+}
+
+function buildSpacingRamp(baseUnit: number, densityMultiplier: number): number[] {
+  return [1, 2, 3, 4, 5, 6, 7, 8].map((step) => baseUnit * step * densityMultiplier);
+}
+
+function formatPx(value: number): string {
+  return Number(value.toFixed(2)).toString();
 }

@@ -39,6 +39,7 @@ export const FONT_ALLOWLIST = new Set([
   'Cormorant Garamond',
   'Libre Baskerville',
   'DM Serif Display',
+  'Instrument Serif',
   'Fraunces',
   'Crimson Pro',
 

@@ -1,5 +1,5 @@
 /**
- * @bukeer/theme-sdk v3.0.0
+ * @bukeer/theme-sdk v3.1.0
  *
  * Theme Platform v3 — canonical design tokens, theme profiles, and compiler
  * for Bukeer websites. Single source of truth for all theme types and validation.
@@ -42,6 +42,7 @@ export {
   MotionPresetEnum,
   TypeScaleEnum,
   SpacingScaleEnum,
+  SpacingDensityEnum,
   FontWeightEnum,
 } from './contracts/design-tokens';
 
@@ -60,6 +61,7 @@ export type {
   MotionPreset,
   TypeScale,
   SpacingScale,
+  SpacingDensity,
   FontWeight,
 } from './contracts/design-tokens';
 
@@ -187,3 +189,8 @@ export {
   ECO_PRESET,
   ROMANTIC_PRESET,
 } from './presets/tourism-presets';
+
+export {
+  COLOMBIA_CARIBE_PRESET,
+  ALL_SYSTEM_PRESETS,
+} from './presets/colombia-presets';

@@ -1,5 +1,5 @@
 /**
- * @bukeer/theme-sdk — Design Tokens Contract v3.0
+ * @bukeer/theme-sdk — Design Tokens Contract v3.1
  *
  * Canonical, versioned design token schema.
  * Single source of truth for all color, typography, spacing,
@@ -11,7 +11,7 @@ import { z } from 'zod';
 // ---------------------------------------------------------------------------
 // Schema version — bump on breaking changes
 // ---------------------------------------------------------------------------
-export const DESIGN_TOKENS_SCHEMA_VERSION = '3.0.0';
+export const DESIGN_TOKENS_SCHEMA_VERSION = '3.1.0';
 
 // ---------------------------------------------------------------------------
 // Primitives
@@ -75,6 +75,11 @@ export const ChartColorsSchema = z.object({
 export const ColorTokensSchema = z.object({
   /** Seed color used to generate the palette */
   seedColor: HexColor,
+  /** Optional extra accents for multi-color UI accents */
+  accents: z.object({
+    accent2: HexColor.optional(),
+    accent3: HexColor.optional(),
+  }).optional(),
   /** Light mode color scheme */
   light: ColorSchemeSchema,
   /** Dark mode color scheme */
@@ -159,7 +164,9 @@ export const MotionTokensSchema = z.object({
   /** Transition duration in ms (100 – 1000) */
   durationMs: z.number().int().min(100).max(1000).default(200),
   /** Easing function name */
-  easing: z.enum(['linear', 'ease-in', 'ease-out', 'ease-in-out', 'spring']).default('ease-out'),
+  easing: z.enum(['linear', 'ease-in', 'ease-out', 'ease-in-out', 'spring', 'organic']).default('ease-out'),
+  /** Optional cubic-bezier tuple [x1, y1, x2, y2] */
+  customEasing: z.tuple([z.number(), z.number(), z.number(), z.number()]).optional(),
   /** Whether to respect prefers-reduced-motion */
   reducedMotion: z.boolean().default(true),
 });
@@ -169,12 +176,17 @@ export const MotionTokensSchema = z.object({
 // ---------------------------------------------------------------------------
 
 export const SpacingScaleEnum = z.enum(['compact', 'default', 'relaxed']);
+export const SpacingDensityEnum = z.enum(['snug', 'roomy', 'airy']);
 
 export const SpacingTokensSchema = z.object({
   /** Base spacing unit in px (4 – 12) */
   baseUnit: z.number().int().min(4).max(12).default(4),
   /** Global scale */
   scale: SpacingScaleEnum.default('default'),
+  /** Optional density preset for spacing ramps */
+  density: SpacingDensityEnum.optional(),
+  /** Optional max content width override for container in px */
+  containerMaxPx: z.number().int().min(960).max(1600).optional(),
   /** Section vertical padding multiplier (1x – 4x of base * 8) */
   sectionPaddingMultiplier: z.number().min(1).max(4).default(2),
 });
@@ -214,6 +226,7 @@ export type ElevationLevel = z.infer<typeof ElevationLevelEnum>;
 export type MotionPreset = z.infer<typeof MotionPresetEnum>;
 export type TypeScale = z.infer<typeof TypeScaleEnum>;
 export type SpacingScale = z.infer<typeof SpacingScaleEnum>;
+export type SpacingDensity = z.infer<typeof SpacingDensityEnum>;
 export type FontWeight = z.infer<typeof FontWeightEnum>;
 
 export { HexColor };

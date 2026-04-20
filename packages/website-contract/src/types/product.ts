@@ -4,12 +4,29 @@
 
 import type { PageSection } from './section.js';
 
+export type ScheduleEventType =
+  | 'transport'
+  | 'activity'
+  | 'meal'
+  | 'lodging'
+  | 'free_time'
+  | 'flight';
+
+export type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonValue[]
+  | { [key: string]: JsonValue };
+
 export interface ScheduleEntry {
   day?: number;
   title: string;
   description?: string;
   image?: string;
   time?: string;
+  event_type?: ScheduleEventType;
 }
 
 export interface MeetingPoint {
@@ -95,6 +112,7 @@ export interface ProductData {
     day?: number;
     title: string;
     description?: string;
+    event_type?: ScheduleEventType;
   }>;
 
   // Geo coordinates
@@ -154,6 +172,7 @@ export interface ProductPageCustomization {
   robots_noindex?: boolean;
   custom_faq?: ProductFAQ[];
   custom_highlights?: string[];
+  custom_tiers?: Array<Record<string, JsonValue>>;
   is_published: boolean;
 }
 

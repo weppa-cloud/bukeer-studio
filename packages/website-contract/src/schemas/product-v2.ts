@@ -14,9 +14,30 @@ const NumericSchema = z.union([
 ]);
 const StringOrStringArraySchema = z.union([z.string(), z.array(z.string())]);
 const JsonObjectSchema = z.record(z.string(), z.unknown());
+const JsonValueSchema: z.ZodType<
+  string | number | boolean | null | Record<string, unknown> | unknown[]
+> = z.lazy(() =>
+  z.union([
+    z.string(),
+    z.number(),
+    z.boolean(),
+    z.null(),
+    z.array(JsonValueSchema),
+    z.record(z.string(), JsonValueSchema),
+  ])
+);
 const RichTextListSchema = z.union([
   z.array(z.string()),
   z.array(JsonObjectSchema),
+]);
+
+export const ScheduleEventTypeSchema = z.enum([
+  'transport',
+  'activity',
+  'meal',
+  'lodging',
+  'free_time',
+  'flight',
 ]);
 
 export const ScheduleEntrySchema = z.object({
@@ -25,6 +46,7 @@ export const ScheduleEntrySchema = z.object({
   description: z.string().optional(),
   image: z.string().optional(),
   time: z.string().optional(),
+  event_type: ScheduleEventTypeSchema.optional(),
 });
 
 export const MeetingPointSchema = z.object({
@@ -76,6 +98,7 @@ const ItineraryItemSchema = z.object({
   day: z.number().int().optional(),
   title: z.string(),
   description: z.string().optional(),
+  event_type: ScheduleEventTypeSchema.optional(),
 });
 
 export const ProductDataSchema = z.object({
@@ -157,6 +180,7 @@ export const ProductPageCustomizationSchema = z.object({
   robots_noindex: z.boolean().nullish(),
   custom_faq: z.array(ProductFAQSchema).max(10).nullish(),
   custom_highlights: z.array(z.string()).max(6).nullish(),
+  custom_tiers: z.array(z.record(z.string(), JsonValueSchema)).nullish(),
   is_published: z.boolean(),
 });
 
