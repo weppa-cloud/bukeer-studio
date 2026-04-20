@@ -206,7 +206,7 @@ export async function getLocalizedProductOverlay(input: {
   locale: string;
 } | null> {
   try {
-    const { data, error } = await supabase
+    const primary = await supabase
       .from('website_product_pages')
       .select('custom_seo_title, custom_seo_description, custom_faq, robots_noindex, locale')
       .eq('website_id', input.websiteId)
@@ -215,14 +215,52 @@ export async function getLocalizedProductOverlay(input: {
       .eq('locale', input.locale)
       .maybeSingle();
 
-    if (error || !data) return null;
-    return data as {
-      custom_seo_title: string | null;
-      custom_seo_description: string | null;
-      custom_faq: unknown;
-      robots_noindex: boolean | null;
-      locale: string;
-    };
+    if (!primary.error && primary.data) {
+      return primary.data as {
+        custom_seo_title: string | null;
+        custom_seo_description: string | null;
+        custom_faq: unknown;
+        robots_noindex: boolean | null;
+        locale: string;
+      };
+    }
+
+    // Package overlays may be keyed by the package_kit id (transcreate apply
+    // uses `job.page_id` = package_kits.id) while the public SSR receives the
+    // underlying itinerary id from `get_website_product_page` (it returns
+    // `i.id` as the product id). Mirror the RPC's dual-id lookup
+    // (`pp.product_id = v_product_id OR v_package_kit_id`) at the overlay
+    // reader layer so applied EN transcreate rows surface regardless of which
+    // id the apply path happened to store. See Stage 6 Cluster F — Bug F1.
+    if (input.productType === 'package') {
+      const { data: kitRow } = await supabase
+        .from('package_kits')
+        .select('id')
+        .eq('source_itinerary_id', input.productId)
+        .maybeSingle();
+      const kitId = kitRow?.id ? String(kitRow.id) : null;
+      if (kitId && kitId !== input.productId) {
+        const fallback = await supabase
+          .from('website_product_pages')
+          .select('custom_seo_title, custom_seo_description, custom_faq, robots_noindex, locale')
+          .eq('website_id', input.websiteId)
+          .eq('product_type', input.productType)
+          .eq('product_id', kitId)
+          .eq('locale', input.locale)
+          .maybeSingle();
+        if (!fallback.error && fallback.data) {
+          return fallback.data as {
+            custom_seo_title: string | null;
+            custom_seo_description: string | null;
+            custom_faq: unknown;
+            robots_noindex: boolean | null;
+            locale: string;
+          };
+        }
+      }
+    }
+
+    return null;
   } catch (e) {
     console.warn('[getLocalizedProductOverlay] Exception:', e);
     return null;
