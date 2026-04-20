@@ -235,6 +235,42 @@ EPIC #214 W4 #218 exercises the full editor→DB→ISR→public loop against the
 
 Seed factory: `e2e/setup/pilot-seed.ts::seedPilot(variant)` with variants `baseline` | `translation-ready` | `empty-state` | `missing-locale`. Runbook: `docs/qa/pilot/editor-to-render-playbook.md`.
 
+### N.5 W5 #219 transcreate lifecycle E2E specs
+
+EPIC #214 W5 #219 drives the transcreate lifecycle (es-CO → en-US) across packages + activities + blog posts. Specs live under `e2e/tests/pilot/transcreate/`, tagged `@pilot-w5`. Consume `seedPilot('translation-ready')` variant (pkg + act + blog fixtures).
+
+| Spec | Scope | Assertions |
+|------|-------|-----------|
+| `lifecycle.spec.ts` | Parameterized pkg / act / blog (AC-W5-4, AC-W5-9/10/11) | `create_draft → review → apply` via `/api/seo/content-intelligence/transcreate`; `seo_transcreation_jobs.status='applied'`; overlay row holds localized payload |
+| `public-render.spec.ts` | Parameterized (AC-W5-5) | `/en/<seg>/<slug>` renders applied meta_title/meta_desc (EN) via SSR |
+| `hreflang-canonical.spec.ts` | Parameterized (AC-W5-6, AC-W5-7) | hreflang `es-CO` + `en-US` + `x-default`; JSON-LD `inLanguage` matches resolved locale (depends on #208, merged) |
+| `drift.spec.ts` | Package (AC-W5-8 Path A) | Backdate `seo_localized_variants.updated_at` 31d → re-apply advances it |
+| `stream-abort.spec.ts` | Package (AC-W5-2 edge) | Real stream endpoint: 200/429/5xx accepted; no orphan `seo_transcreation_jobs` row |
+| `idempotency.spec.ts` | Activity | Teardown called twice is a no-op; `updated_at` monotonic |
+| `isr-revalidate.spec.ts` | pkg + act (AC-W5-3) | Post-apply `/api/revalidate` returns paths fan-out including product URL |
+| `bulk-review.spec.ts` | pkg + act | `/api/seo/translations/bulk` review + apply on 2 jobs atomically |
+
+Helper: `e2e/setup/transcreate-helpers.ts` (parameterized `executeTranscreate` + `assertLocalizedVariantsApplied` + `cleanupTranscreateRun`). Playbook: `docs/qa/pilot/transcreate-playbook.md`.
+
+### N.6 W6 #220 matrix visual + Lighthouse E2E specs
+
+EPIC #214 W6 #220 walks the canonical matrix (this document) per content type and captures visual snapshots + Lighthouse scores for the pilot seed. Specs live under `e2e/tests/pilot/matrix/` and `e2e/tests/pilot/lighthouse/`, tagged `@pilot-w6`. Consume `seedPilot('baseline')` + `seedPilot('translation-ready')`.
+
+| Spec | Surface | Matrix coverage |
+|------|---------|------------------|
+| `pilot-matrix-public-package.spec.ts` | `/paquetes/<slug>` (desktop + mobile) | Rows 1-48 applicable to `pkg`; Section M skipped via `PILOT_BOOKING_ENABLED` |
+| `pilot-matrix-public-activity.spec.ts` | `/actividades/<slug>` + editable loop (AC-W6-12) | Rows 1-48 applicable to `act`; editable description via W2 `update_activity_marketing_field` |
+| `pilot-matrix-public-hotel.spec.ts` | `/hoteles/<slug>` (read-only — ADR-025) | Rows applicable to `hotel`; no editor assertions |
+| `pilot-matrix-public-blog.spec.ts` | `/blog/<slug>` + `/en/blog/<slug>` | Section P rows + hreflang + JSON-LD Article (AC-W6-13) |
+| `pilot-lighthouse-{package,activity,hotel,blog}.spec.ts` | Respective detail URLs (desktop) | perf / a11y / seo / best-practices; thresholds per `lighthouserc.js` |
+
+Fixture + helpers:
+- `e2e/fixtures/product-matrix.ts` — structured matrix (row 1-48 + Section M + Section P + Section M-booking env-gated).
+- `e2e/setup/matrix-helpers.ts` — `assertMatrixRow`, `assertVisualSnapshot`, `runLighthouseAudit`, `freezeAnimations`, `LIGHTHOUSE_THRESHOLDS`.
+- `scripts/lighthouse-pilot.sh` + `lighthouserc.pilot.js` — standalone Lighthouse runner (session-pool-aware).
+
+Playbook: [`docs/qa/pilot/matrix-playbook.md`](../qa/pilot/matrix-playbook.md).
+
 ---
 
 ## O. Gaps Flutter-only (razón documentada)
