@@ -22,6 +22,48 @@ import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import type { ContentType, MatrixBlock } from '../fixtures/product-matrix';
 
+// --- Navigation / readiness -----------------------------------------------
+
+/**
+ * Primary root selector per content type. Emitted by `ProductLandingPage` and
+ * the blog detail RSC — guaranteed present on first SSR flush, no hydration
+ * dependency. Used by {@link waitForDetailReady} to replace the flaky
+ * `networkidle` wait (see cluster-c fix: Turbopack dev mode continuously
+ * emits websocket pings → `networkidle` races the 90s spec timeout).
+ */
+const DETAIL_ROOT_SELECTOR: Record<ContentType, string> = {
+  pkg: '[data-testid="detail-hero"]',
+  act: '[data-testid="detail-hero"]',
+  hotel: '[data-testid="detail-hero"]',
+  blog: '[data-testid="detail-blog"]',
+};
+
+/**
+ * Deterministic "page is renderable" wait for pilot matrix specs.
+ *
+ * Replaces `page.goto(url, { waitUntil: 'networkidle' })` which races in
+ * Turbopack dev mode (HMR keeps emitting websocket frames, so networkidle
+ * never resolves and the 90s spec timeout fires).
+ *
+ * Contract:
+ *   1. DOMContentLoaded has fired (SSR HTML is parsed).
+ *   2. The canonical root element for the content type is visible (15s budget).
+ *
+ * Matches the production SSR hydration model — the root container is always
+ * in the first HTML flush, so this closes out well under 30s even with
+ * Turbopack overhead.
+ */
+export async function waitForDetailReady(
+  page: Page,
+  contentType: ContentType,
+  opts: { timeout?: number } = {},
+): Promise<void> {
+  const { timeout = 15_000 } = opts;
+  await page.waitForLoadState('domcontentloaded', { timeout });
+  const selector = DETAIL_ROOT_SELECTOR[contentType];
+  await page.waitForSelector(selector, { state: 'visible', timeout });
+}
+
 // --- Animation freeze -----------------------------------------------------
 
 /**

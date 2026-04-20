@@ -4,6 +4,7 @@ import {
   assertMatrixRow,
   assertVisualSnapshot,
   freezeAnimations,
+  waitForDetailReady,
   type MatrixRowOutcome,
 } from '../../../setup/matrix-helpers';
 import { getPilotSeed, pilotSubdomain } from '../helpers';
@@ -36,12 +37,13 @@ test.describe('@pilot-w6 Pilot W6 · matrix · package', () => {
     const subdomain = pilotSubdomain();
     const route = `/site/${subdomain}/paquetes/${pkg.slug}`;
 
-    const response = await page.goto(route, { waitUntil: 'networkidle' });
+    const response = await page.goto(route, { waitUntil: 'domcontentloaded' });
     test.skip(
       !response || response.status() === 404 || response.status() >= 500,
       `Public package page unreachable (status=${response?.status() ?? 'no-response'}) — seed → RPC gap.`,
     );
 
+    await waitForDetailReady(page, 'pkg');
     await freezeAnimations(page);
 
     const outcomes: MatrixRowOutcome[] = [];
@@ -87,12 +89,13 @@ test.describe('@pilot-w6 Pilot W6 · matrix · package', () => {
     try {
       const subdomain = pilotSubdomain();
       const route = `/site/${subdomain}/paquetes/${pkg.slug}`;
-      const response = await page.goto(route, { waitUntil: 'networkidle' });
+      const response = await page.goto(route, { waitUntil: 'domcontentloaded' });
       test.skip(
         !response || response.status() === 404 || response.status() >= 500,
         `Public package page unreachable on mobile (status=${response?.status() ?? 'no-response'}).`,
       );
 
+      await waitForDetailReady(page, 'pkg');
       await freezeAnimations(page);
 
       const outcomes: MatrixRowOutcome[] = [];
