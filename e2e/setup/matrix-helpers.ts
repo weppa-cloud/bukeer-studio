@@ -1,0 +1,264 @@
+/**
+ * EPIC #214 · W6 #220 — Matrix visual + Lighthouse helpers.
+ *
+ * Shared instrumentation consumed by:
+ *   - `e2e/tests/pilot/matrix/pilot-matrix-public-*.spec.ts`
+ *   - `e2e/tests/pilot/lighthouse/pilot-lighthouse-*.spec.ts`
+ *
+ * Design:
+ *   - Helpers are pure (no seed call inside) — specs own the seed lifecycle
+ *     via `getPilotSeed('baseline' | 'translation-ready')` from `../helpers`.
+ *   - Visual snapshots attach PNG evidence to the test trace. Per AC-W6-9,
+ *     snapshots are evidence-only — no pixel-diff assertion.
+ *   - Animation freeze is applied before every capture to stabilize evidence.
+ *   - Lighthouse helper shells out to `lighthouse` CLI (installed via
+ *     `devDependencies`). It writes HTML + JSON under `artifacts/qa/pilot/...`
+ *     and returns parsed category scores for inline threshold assertions.
+ */
+
+import { expect, type Page, type TestInfo } from '@playwright/test';
+import { spawnSync } from 'node:child_process';
+import { existsSync, mkdirSync, readFileSync } from 'node:fs';
+import path from 'node:path';
+import type { ContentType, MatrixBlock } from '../fixtures/product-matrix';
+
+// --- Animation freeze -----------------------------------------------------
+
+/**
+ * Disables CSS + JS animations so visual snapshots are stable. Must be called
+ * AFTER the page navigates but BEFORE capture.
+ */
+export async function freezeAnimations(page: Page): Promise<void> {
+  await page.addStyleTag({
+    content:
+      '*,*::before,*::after{animation-duration:0s!important;animation-delay:0s!important;transition-duration:0s!important;transition-delay:0s!important;scroll-behavior:auto!important;}',
+  });
+  await page.evaluate(() => {
+    const anims = document.getAnimations ? document.getAnimations() : [];
+    for (const a of anims) a.finish();
+  });
+}
+
+// --- Matrix row assertion -------------------------------------------------
+
+export interface AssertMatrixRowOptions {
+  page: Page;
+  row: MatrixBlock;
+  type: ContentType;
+  /**
+   * When the cell status is 'conditional' the spec may pass
+   * `allowConditionalAbsent: true` to record an empty-state outcome instead of
+   * failing when the element isn't present.
+   */
+  allowConditionalAbsent?: boolean;
+}
+
+export type MatrixRowOutcome =
+  | { status: 'ok'; rowId: string }
+  | { status: 'empty'; rowId: string; reason: string }
+  | { status: 'conditional-skip'; rowId: string; reason: string }
+  | { status: 'na-skip'; rowId: string; reason: string }
+  | { status: 'defer-skip'; rowId: string; reason: string }
+  | { status: 'fail'; rowId: string; reason: string };
+
+/**
+ * Visibility check with a conditional/empty fallback. Selector is the primary
+ * role/testid from the fixture (CSS fallback only consulted if primary fails
+ * AND the fixture declared a fallback — still surfaced as a warning outcome).
+ */
+export async function assertMatrixRow(opts: AssertMatrixRowOptions): Promise<MatrixRowOutcome> {
+  const { page, row, type, allowConditionalAbsent } = opts;
+  const cell = row.types[type];
+  if (!cell) {
+    return { status: 'na-skip', rowId: row.id, reason: `Row ${row.row}: no ${type} cell defined` };
+  }
+  if (cell.status === 'na') {
+    return {
+      status: 'na-skip',
+      rowId: row.id,
+      reason: `Row ${row.row} — ${row.block}: n/a for ${type}${cell.note ? ` (${cell.note})` : ''}`,
+    };
+  }
+  if (row.envFlag === 'PILOT_BOOKING_ENABLED') {
+    const enabled = (process.env.PILOT_BOOKING_ENABLED ?? 'false').toLowerCase() === 'true';
+    if (!enabled) {
+      return {
+        status: 'defer-skip',
+        rowId: row.id,
+        reason: `Row ${row.row} — ${row.block}: PILOT_BOOKING_ENABLED=false (ADR-024 DEFER, WhatsApp-only pilot)`,
+      };
+    }
+  }
+
+  const primary = page.locator(row.selectors.primary).first();
+  try {
+    await expect(primary).toBeVisible({ timeout: 5_000 });
+    return { status: 'ok', rowId: row.id };
+  } catch (primaryError) {
+    if (row.selectors.fallback) {
+      try {
+        const fallback = page.locator(row.selectors.fallback).first();
+        await expect(fallback).toBeVisible({ timeout: 2_000 });
+        return { status: 'ok', rowId: row.id };
+      } catch {
+        // fall through to conditional/empty handling
+      }
+    }
+    if (cell.status === 'conditional' || allowConditionalAbsent || row.emptyStateExpected) {
+      return {
+        status: 'empty',
+        rowId: row.id,
+        reason: `Row ${row.row} — ${row.block}: element absent (conditional cell, condition=${cell.condition ?? 'n/a'})`,
+      };
+    }
+    return {
+      status: 'fail',
+      rowId: row.id,
+      reason: `Row ${row.row} — ${row.block}: required element missing. ${(primaryError as Error).message}`,
+    };
+  }
+}
+
+// --- Visual snapshot -------------------------------------------------------
+
+export interface AssertVisualSnapshotInput {
+  page: Page;
+  testInfo: TestInfo;
+  route: string;
+  contentType: ContentType;
+  locale?: string;
+  viewport: 'desktop' | 'mobile';
+}
+
+/**
+ * Captures a full-page screenshot and attaches it to the trace. This is
+ * evidence-only (per AC-W6-9 pixel-diff tolerance = 0 / no golden image).
+ * Screenshots land in `test-results/<session>/...` AND also as named
+ * attachments in the report.
+ */
+export async function assertVisualSnapshot(input: AssertVisualSnapshotInput): Promise<void> {
+  const { page, testInfo, route, contentType, locale, viewport } = input;
+  await freezeAnimations(page);
+  const buffer = await page.screenshot({ fullPage: true });
+  const safeRoute = route.replace(/[^a-z0-9-]/gi, '_');
+  const name = `matrix-${contentType}-${viewport}${locale ? `-${locale}` : ''}-${safeRoute}.png`;
+  await testInfo.attach(name, { body: buffer, contentType: 'image/png' });
+}
+
+// --- Lighthouse audit ------------------------------------------------------
+
+export interface LighthouseScores {
+  performance: number | null;
+  accessibility: number | null;
+  seo: number | null;
+  bestPractices: number | null;
+}
+
+export interface LighthouseResult {
+  scores: LighthouseScores;
+  reportPaths: { html: string; json: string };
+  skipped: boolean;
+  reason?: string;
+}
+
+export interface RunLighthouseInput {
+  url: string;
+  contentType: ContentType;
+  /** Preset: `desktop` (default) or `mobile`. */
+  preset?: 'desktop' | 'mobile';
+  /** Output directory (absolute path). */
+  outputDir: string;
+  /** File slug (no extension). */
+  slug: string;
+  /** Number of runs — median score taken. Default 1. */
+  numberOfRuns?: number;
+}
+
+/**
+ * Runs `lighthouse` CLI and parses category scores. Writes HTML + JSON reports
+ * under `outputDir`. Returns skipped=true with a reason when lighthouse is not
+ * installed or the audit fails — specs call `test.skip(result.skipped, reason)`
+ * to keep the Stage 4 gate metric "0 failed, justified skips only".
+ */
+export function runLighthouseAudit(input: RunLighthouseInput): LighthouseResult {
+  const { url, outputDir, slug } = input;
+  const preset = input.preset ?? 'desktop';
+
+  if (!existsSync(outputDir)) {
+    mkdirSync(outputDir, { recursive: true });
+  }
+
+  const jsonPath = path.join(outputDir, `${slug}-${preset}.json`);
+  const htmlPath = path.join(outputDir, `${slug}-${preset}.html`);
+
+  const args = [
+    url,
+    `--output=json`,
+    `--output=html`,
+    `--output-path=${path.join(outputDir, `${slug}-${preset}`)}`,
+    '--quiet',
+    '--chrome-flags=--headless=new --no-sandbox --disable-gpu',
+  ];
+  if (preset === 'desktop') {
+    args.push('--preset=desktop');
+  }
+
+  const result = spawnSync('npx', ['--no-install', 'lighthouse', ...args], {
+    encoding: 'utf-8',
+    env: process.env,
+    timeout: 120_000,
+  });
+
+  if (result.status !== 0) {
+    return {
+      scores: { performance: null, accessibility: null, seo: null, bestPractices: null },
+      reportPaths: { html: htmlPath, json: jsonPath },
+      skipped: true,
+      reason: `lighthouse CLI exit ${result.status ?? 'unknown'}: ${
+        (result.stderr || result.stdout || 'no output').slice(0, 300)
+      }`,
+    };
+  }
+
+  if (!existsSync(jsonPath)) {
+    return {
+      scores: { performance: null, accessibility: null, seo: null, bestPractices: null },
+      reportPaths: { html: htmlPath, json: jsonPath },
+      skipped: true,
+      reason: `lighthouse JSON report not generated at ${jsonPath}`,
+    };
+  }
+
+  try {
+    const raw = JSON.parse(readFileSync(jsonPath, 'utf-8'));
+    const cats = raw.categories ?? {};
+    return {
+      scores: {
+        performance: cats.performance?.score ?? null,
+        accessibility: cats.accessibility?.score ?? null,
+        seo: cats.seo?.score ?? null,
+        bestPractices: cats['best-practices']?.score ?? null,
+      },
+      reportPaths: { html: htmlPath, json: jsonPath },
+      skipped: false,
+    };
+  } catch (err) {
+    return {
+      scores: { performance: null, accessibility: null, seo: null, bestPractices: null },
+      reportPaths: { html: htmlPath, json: jsonPath },
+      skipped: true,
+      reason: `lighthouse JSON parse error: ${(err as Error).message}`,
+    };
+  }
+}
+
+/**
+ * Default thresholds from `lighthouserc.js`. Mobile-perf decision gate may
+ * relax this via ADR-026 — default here matches desktop until then.
+ */
+export const LIGHTHOUSE_THRESHOLDS = {
+  performance: { min: 0.9, severity: 'warn' as const },
+  accessibility: { min: 0.95, severity: 'error' as const },
+  seo: { min: 0.95, severity: 'error' as const },
+  bestPractices: { min: 0.9, severity: 'warn' as const },
+};

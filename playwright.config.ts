@@ -81,16 +81,15 @@ export default defineConfig({
       dependencies: ['setup'],
     },
     {
-      // EPIC #214 W4/W5 — Pilot editor→render + transcreate suites. Runs
-      // every spec tagged `@pilot-w4` OR `@pilot-w5` on a Chromium
-      // baseline. Coexists with the chromium/firefox/mobile-chrome projects
-      // — full-matrix runs use `--project=chromium --grep @pilot-w5` (or
-      // firefox/mobile-chrome) directly. This project exists so
-      // `--project=pilot` is a one-liner that resolves only pilot suites
-      // without pulling the regression matrix. testDir is inherited from
-      // the top-level config; only the grep filter narrows scope.
+      // EPIC #214 W4 + W5 + W6 — Pilot editor→render (W4 #218) + transcreate
+      // lifecycle (W5 #219) + matrix visual + Lighthouse (W6 #220). Runs
+      // specs tagged `@pilot-w4`, `@pilot-w5`, OR `@pilot-w6` on a Chromium
+      // baseline. Coexists with chromium/firefox/mobile-chrome — full-matrix
+      // runs use `--project=chromium --grep @pilot-w<N>` (or
+      // firefox/mobile-chrome) directly. testDir inherited from top-level
+      // config; only grep filter narrows scope.
       name: 'pilot',
-      grep: /@pilot-(w4|w5)/,
+      grep: /@pilot-(w4|w5|w6)/,
       use: {
         ...devices['Desktop Chrome'],
         launchOptions: {

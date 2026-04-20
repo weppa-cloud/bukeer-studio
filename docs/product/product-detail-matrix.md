@@ -265,7 +265,7 @@ EPIC #214 W6 #220 walks the canonical matrix (this document) per content type an
 | `pilot-lighthouse-{package,activity,hotel,blog}.spec.ts` | Respective detail URLs (desktop) | perf / a11y / seo / best-practices; thresholds per `lighthouserc.js` |
 
 Fixture + helpers:
-- `e2e/fixtures/product-matrix.ts` — structured matrix (row 1-48 + Section M + Section P + Section M-booking env-gated).
+- `e2e/fixtures/product-matrix.ts` — structured matrix (row 1-48 + Section M env-gated + Section P blog).
 - `e2e/setup/matrix-helpers.ts` — `assertMatrixRow`, `assertVisualSnapshot`, `runLighthouseAudit`, `freezeAnimations`, `LIGHTHOUSE_THRESHOLDS`.
 - `scripts/lighthouse-pilot.sh` + `lighthouserc.pilot.js` — standalone Lighthouse runner (session-pool-aware).
 
