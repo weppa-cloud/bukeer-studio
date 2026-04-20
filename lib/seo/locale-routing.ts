@@ -1,5 +1,36 @@
 export const DEFAULT_PUBLIC_LOCALE = 'es-CO';
 
+/**
+ * Legacy ISO-639 → canonical BCP-47 locale normalization.
+ *
+ * Production has 500+ `website_blog_posts` rows stored with legacy `es`/`en`
+ * (ISO-639 short codes) from the WordPress migration. Stage 6 middleware +
+ * hreflang emission assume canonical `es-CO`/`en-US`. Read-time normalize so
+ * legacy rows resolve cleanly without DB writes. NEVER update
+ * `website_blog_posts.locale` directly — middleware-layer only.
+ */
+const LEGACY_BLOG_LOCALE_MAP: Record<string, string> = {
+  es: 'es-CO',
+  en: 'en-US',
+};
+
+/**
+ * Normalize a stored locale value, mapping legacy ISO-639 short codes to
+ * canonical BCP-47. Passes through canonical codes (`es-CO`, `en-US`,
+ * `pt-BR`, etc.) unchanged. Returns `null` for empty/whitespace input.
+ *
+ * Use this at the data-access boundary for any resource whose `locale`
+ * column may still contain legacy values (blog posts being the main case).
+ */
+export function normalizeBlogLocale(
+  stored: string | null | undefined,
+): string | null {
+  if (!stored) return null;
+  const trimmed = stored.trim();
+  if (!trimmed) return null;
+  return LEGACY_BLOG_LOCALE_MAP[trimmed] ?? trimmed;
+}
+
 export const PUBLIC_LOCALE_HEADER_NAMES = {
   resolvedLocale: 'x-public-locale',
   defaultLocale: 'x-public-default-locale',

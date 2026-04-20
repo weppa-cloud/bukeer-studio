@@ -18,7 +18,7 @@ import type {
   ImageObject,
 } from './types';
 import type { WebsiteData, BlogPost, WebsiteSection } from '../supabase/get-website';
-import { localeToLanguage, normalizeLocale } from '@/lib/seo/locale-routing';
+import { localeToLanguage, normalizeBlogLocale, normalizeLocale } from '@/lib/seo/locale-routing';
 
 const VALID_LOCALE_PATTERN = /^[a-z]{2}(-[A-Z]{2})?$/;
 
@@ -39,7 +39,12 @@ function resolveSchemaLanguage(
     return normalizeLocale(requestLocale);
   }
 
-  if (post.locale) return normalizeLocale(post.locale);
+  // Wrap stored locale in legacy-code normalizer so rows with
+  // `locale='es'`/`'en'` (WordPress migration) emit canonical BCP-47.
+  if (post.locale) {
+    const canonical = normalizeBlogLocale(post.locale);
+    if (canonical) return normalizeLocale(canonical);
+  }
 
   const websiteWithLocale = website as unknown as Record<string, unknown>;
   const language = websiteWithLocale.language;
