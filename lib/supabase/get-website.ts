@@ -10,6 +10,10 @@ import type {
   BlogCategory,
   ThemeV3,
 } from '@bukeer/website-contract';
+import {
+  resolveThemeDesignerV1Flag,
+  selectPublicThemeForDesignerFlag,
+} from '@/lib/features/theme-designer-v1';
 
 // Re-export types from contract
 export type {
@@ -31,6 +35,11 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 const WEBSITE_CACHE_TTL_MS = Number(process.env.WEBSITE_CACHE_TTL_MS || 5 * 60 * 1000);
 const websiteBySubdomainCache = new Map<string, { value: WebsiteData; expiresAt: number }>();
+
+type WebsiteWithEffectiveTheme = WebsiteData & {
+  effective_theme?: ThemeV3;
+  effective_theme_source?: 'website_theme_flag_on' | 'snapshot_fallback' | 'website_theme_default';
+};
 
 interface AccountCurrencyColumns {
   primary_currency: string | null;
@@ -80,6 +89,47 @@ async function getAccountCurrencyColumns(accountId: string): Promise<AccountCurr
   };
 }
 
+async function applyThemeDesignerV1Resolution(website: WebsiteData): Promise<WebsiteWithEffectiveTheme> {
+  if (!website.account_id) {
+    return {
+      ...website,
+      effective_theme: website.theme,
+      effective_theme_source: 'website_theme_default',
+    };
+  }
+
+  const flagResolution = await resolveThemeDesignerV1Flag(
+    supabase,
+    website.account_id,
+    website.id,
+  );
+
+  let snapshotTheme: unknown = null;
+  if (!flagResolution.enabled) {
+    const { data, error } = await supabase.rpc('get_latest_pilot_theme_snapshot', {
+      p_website_id: website.id,
+    });
+    if (error) {
+      console.error('[getWebsiteBySubdomain] get_latest_pilot_theme_snapshot error:', error);
+    } else {
+      snapshotTheme = data;
+    }
+  }
+
+  const selected = selectPublicThemeForDesignerFlag({
+    currentTheme: website.theme,
+    snapshotTheme,
+    flagResolution,
+  });
+
+  return {
+    ...website,
+    theme: selected.theme,
+    effective_theme: selected.theme,
+    effective_theme_source: selected.source,
+  };
+}
+
 /**
  * Get website data by subdomain
  * Uses RPC function for optimized query
@@ -89,7 +139,7 @@ export async function getWebsiteBySubdomain(subdomain: string): Promise<WebsiteD
     const cacheKey = subdomain.toLowerCase();
     const cached = websiteBySubdomainCache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) {
-      return cached.value;
+      return applyThemeDesignerV1Resolution(cached.value);
     }
 
     const { data, error } = await supabase
@@ -139,7 +189,7 @@ export async function getWebsiteBySubdomain(subdomain: string): Promise<WebsiteD
       expiresAt: Date.now() + WEBSITE_CACHE_TTL_MS,
     });
 
-    return hydratedWebsite;
+    return applyThemeDesignerV1Resolution(hydratedWebsite);
   } catch (e) {
     console.error('[getWebsiteBySubdomain] Exception:', e);
     return null;

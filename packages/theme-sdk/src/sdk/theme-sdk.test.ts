@@ -16,12 +16,16 @@ import {
   validateFonts,
   lintTheme,
   TOURISM_PRESETS,
+  COLOMBIA_CARIBE_PRESET,
+  ALL_SYSTEM_PRESETS,
   getPresetBySlug,
   getPresetsByCategory,
   hexToHsl,
   computeHash,
   canonicalize,
   FONT_ALLOWLIST,
+  DESIGN_TOKENS_SCHEMA_VERSION,
+  THEME_PROFILE_SCHEMA_VERSION,
   DesignTokensSchema,
   ThemeProfileSchema,
 } from '../index';
@@ -38,6 +42,17 @@ function makeValidTokens(): DesignTokens {
 
 function makeValidProfile(): ThemeProfile {
   return JSON.parse(JSON.stringify(TOURISM_PRESETS[0].profile));
+}
+
+function stripCompiledAt<T>(value: T): T {
+  const copy = JSON.parse(JSON.stringify(value)) as T;
+  if (typeof copy === 'object' && copy !== null && 'web' in copy) {
+    const withWeb = copy as { web?: { metadata?: Record<string, unknown> } };
+    if (withWeb.web?.metadata) {
+      delete withWeb.web.metadata.compiledAt;
+    }
+  }
+  return copy;
 }
 
 // ---------------------------------------------------------------------------
@@ -153,12 +168,12 @@ describe('compileTheme', () => {
 
   it('hydrates seed-only payloads instead of crashing', () => {
     const seedOnlyTokens = {
-      $schema: '3.0.0',
+      $schema: DESIGN_TOKENS_SCHEMA_VERSION,
       colors: { seedColor: '#006B60' },
     } as unknown as DesignTokens;
 
     const partialProfile = {
-      $schema: '3.0.0',
+      $schema: THEME_PROFILE_SCHEMA_VERSION,
       brand: { mood: 'corporate', name: 'Fallback Brand' },
     } as unknown as ThemeProfile;
 
@@ -167,6 +182,31 @@ describe('compileTheme', () => {
     assert.ok(result.web!.light.length > 0);
     assert.ok(result.web!.dark.length > 0);
     assert.ok(result.web!.invariant.length > 0);
+  });
+
+  it('produces deterministic web snapshots when compiledAt is excluded', () => {
+    const r1 = compileTheme(makeValidTokens(), makeValidProfile(), { target: 'web' });
+    const r2 = compileTheme(makeValidTokens(), makeValidProfile(), { target: 'web' });
+    assert.deepEqual(stripCompiledAt(r1), stripCompiledAt(r2));
+  });
+
+  it('parses and compiles colombia caribe preset', () => {
+    const parsed = parseTheme({
+      tokens: COLOMBIA_CARIBE_PRESET.tokens,
+      profile: COLOMBIA_CARIBE_PRESET.profile,
+    });
+    assert.equal(parsed.success, true);
+
+    const compiled = compileTheme(COLOMBIA_CARIBE_PRESET.tokens, COLOMBIA_CARIBE_PRESET.profile, { target: 'web' });
+    assert.ok(compiled.web);
+    const varNames = new Set(compiled.web!.invariant.map((v) => v.name));
+    assert.ok(varNames.has('container'));
+    assert.ok(varNames.has('ease'));
+    const lightNames = new Set(compiled.web!.light.map((v) => v.name));
+    assert.ok(lightNames.has('accent-2'));
+    assert.ok(lightNames.has('accent-3'));
+    assert.ok(compiled.web!.fontImports.some((url) => url.includes('Bricolage+Grotesque:opsz,wght@8..144,200..800')));
+    assert.ok(compiled.web!.fontImports.some((url) => url.includes('Instrument+Serif:ital@0;1')));
   });
 });
 
@@ -209,6 +249,20 @@ describe('accessibility', () => {
     const violations = checkContrast(tokens);
     assert.ok(violations.length > 0);
     assert.ok(violations.some(v => v.mode === 'light'));
+  });
+
+  it('ensures WCAG AA for critical color pairs including optional accents', () => {
+    const tokens = COLOMBIA_CARIBE_PRESET.tokens;
+
+    const primaryOnPrimary = getContrastRatio(tokens.colors.light.primary, tokens.colors.light.onPrimary);
+    const surfaceOnSurface = getContrastRatio(tokens.colors.light.surface, tokens.colors.light.onSurface);
+    const accent2OnSurface = getContrastRatio(tokens.colors.accents!.accent2!, tokens.colors.light.onSurface);
+    const accent3OnSurface = getContrastRatio(tokens.colors.accents!.accent3!, tokens.colors.light.onSurface);
+
+    assert.ok(primaryOnPrimary >= 4.5, `primary/onPrimary should be >= 4.5, got ${primaryOnPrimary}`);
+    assert.ok(surfaceOnSurface >= 4.5, `surface/onSurface should be >= 4.5, got ${surfaceOnSurface}`);
+    assert.ok(accent2OnSurface >= 4.5, `accent2/onSurface should be >= 4.5, got ${accent2OnSurface}`);
+    assert.ok(accent3OnSurface >= 4.5, `accent3/onSurface should be >= 4.5, got ${accent3OnSurface}`);
   });
 });
 
@@ -320,6 +374,21 @@ describe('presets', () => {
       const compiled = compileTheme(preset.tokens, preset.profile);
       assert.ok(compiled.web, `${preset.metadata.slug} web output`);
       assert.ok(compiled.flutter, `${preset.metadata.slug} flutter output`);
+    }
+  });
+
+  it('exposes all system presets (8 tourism + caribe)', () => {
+    assert.equal(ALL_SYSTEM_PRESETS.length, 9);
+    assert.ok(ALL_SYSTEM_PRESETS.some((preset) => preset.metadata.slug === 'colombia-caribe'));
+  });
+
+  it('maintains backward compatibility for all tourism presets', () => {
+    for (const preset of TOURISM_PRESETS) {
+      assert.equal(preset.metadata.isSystem, true);
+      const parsed = parseTheme({ tokens: preset.tokens, profile: preset.profile });
+      assert.equal(parsed.success, true, `${preset.metadata.slug} should parse successfully`);
+      const compiled = compileTheme(preset.tokens, preset.profile, { target: 'web' });
+      assert.ok(compiled.web?.light.length, `${preset.metadata.slug} should compile web vars`);
     }
   });
 });

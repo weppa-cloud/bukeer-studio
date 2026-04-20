@@ -166,6 +166,9 @@ function applyBridgeVariables(root: HTMLElement) {
   const foreground = s.getPropertyValue('--foreground').trim();
   const primary = s.getPropertyValue('--primary').trim();
   const primaryFg = s.getPropertyValue('--primary-foreground').trim();
+  const accent = s.getPropertyValue('--accent').trim();
+  const accent2 = s.getPropertyValue('--accent-2').trim();
+  const accent3 = s.getPropertyValue('--accent-3').trim();
   const mutedFg = s.getPropertyValue('--muted-foreground').trim();
   const border = s.getPropertyValue('--border').trim();
 
@@ -197,6 +200,18 @@ function applyBridgeVariables(root: HTMLElement) {
   root.style.setProperty('--nav-link-hover-bg', `hsl(${foreground} / 0.06)`);
   root.style.setProperty('--stat-border', `hsl(${border} / 0.3)`);
   root.style.setProperty('--spotlight-color', `hsl(${primary} / 0.08)`);
+
+  // Bridge aliases for legacy/public components
+  root.style.setProperty('--c-primary', `hsl(${primary})`);
+  root.style.setProperty('--c-primary-ink', `hsl(${primaryFg})`);
+  root.style.setProperty('--c-accent', `hsl(${accent || primary})`);
+  root.style.setProperty('--c-accent-2', `hsl(${accent2 || accent || primary})`);
+  root.style.setProperty('--c-accent-3', `hsl(${accent3 || accent || primary})`);
+  root.style.setProperty('--c-ink', `hsl(${foreground})`);
+  root.style.setProperty('--c-ink-2', `hsl(${mutedFg})`);
+  root.style.setProperty('--c-line', `hsl(${border})`);
+  root.style.setProperty('--c-surface', `hsl(${card})`);
+  root.style.setProperty('--c-bg', `hsl(${bg})`);
 
   // Responsive display typography
   root.style.setProperty('--text-display-xl', 'clamp(3rem, 6vw, 6rem)');

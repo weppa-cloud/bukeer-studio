@@ -4,6 +4,7 @@ import type {
   ProductFAQ,
   ProductPageCustomization,
   ScheduleEntry,
+  ScheduleEventType,
 } from '@bukeer/website-contract';
 
 type LogSource = 'v2' | 'legacy' | 'null';
@@ -87,6 +88,70 @@ function parseNumeric(value: unknown): number | null {
     return Number.isFinite(parsed) ? parsed : null;
   }
   return null;
+}
+
+const SCHEDULE_EVENT_TYPES: readonly ScheduleEventType[] = [
+  'transport',
+  'activity',
+  'meal',
+  'lodging',
+  'free_time',
+  'flight',
+];
+
+function isScheduleEventType(value: unknown): value is ScheduleEventType {
+  return typeof value === 'string' && SCHEDULE_EVENT_TYPES.includes(value as ScheduleEventType);
+}
+
+function normalizeDay(value: unknown): number | undefined {
+  const numeric = parseNumeric(value);
+  if (numeric === null) return undefined;
+  const rounded = Math.trunc(numeric);
+  return rounded > 0 ? rounded : undefined;
+}
+
+function inferScheduleEventTypeFromText(text: string): ScheduleEventType | null {
+  const normalized = text.toLowerCase();
+
+  if (/\b(vuelo|flight|aeropuerto|airline|boarding)\b/.test(normalized)) return 'flight';
+  if (/\b(traslado|transfer|transporte|bus|tren|shuttle|pickup)\b/.test(normalized)) return 'transport';
+  if (/\b(desayuno|almuerzo|cena|comida|meal|dinner|lunch|breakfast)\b/.test(normalized)) return 'meal';
+  if (/\b(hotel|hospedaje|alojamiento|check-?in|check-?out|lodging)\b/.test(normalized)) return 'lodging';
+  if (/\b(libre|free time|tiempo libre|descanso)\b/.test(normalized)) return 'free_time';
+  return null;
+}
+
+function defaultScheduleEventTypeByProductType(productType: ProductData['type'] | undefined): ScheduleEventType {
+  switch (productType) {
+    case 'transfer':
+      return 'transport';
+    case 'hotel':
+      return 'lodging';
+    case 'activity':
+      return 'activity';
+    case 'destination':
+    case 'package':
+    default:
+      return 'activity';
+  }
+}
+
+function resolveScheduleEventType(
+  source: { event_type?: unknown; title?: unknown; description?: unknown },
+  defaultType: ScheduleEventType
+): ScheduleEventType {
+  if (isScheduleEventType(source.event_type)) {
+    return source.event_type;
+  }
+
+  const hint = inferScheduleEventTypeFromText(
+    `${sanitizeProductCopy(source.title)} ${sanitizeProductCopy(source.description)}`
+  );
+  if (hint) {
+    return hint;
+  }
+
+  return defaultType;
 }
 
 function splitLegacyText(value: string): string[] | null {
@@ -185,15 +250,20 @@ function normalizeSchedule(
   product: ProductData,
   logger: (event: ProductNormalizeLog) => void
 ): Array<ScheduleEntry | Record<string, unknown>> | null {
+  const productDefaultEventType = defaultScheduleEventTypeByProductType(product.type);
+
   if (Array.isArray(product.schedule) && product.schedule.length > 0) {
     const cleaned = product.schedule.reduce<ScheduleEntry[]>((acc, entry) => {
       if (!entry || typeof entry !== 'object') return acc;
       const cleanedTitle = sanitizeProductCopyNullable(entry.title);
       if (!cleanedTitle) return acc;
+      const event_type = resolveScheduleEventType(entry, productDefaultEventType);
       acc.push({
         ...entry,
+        day: normalizeDay(entry.day),
         title: cleanedTitle,
         description: sanitizeProductCopyNullable(entry.description) || undefined,
+        event_type,
       });
       return acc;
     }, []);
@@ -208,10 +278,14 @@ function normalizeSchedule(
       const source = entry as Record<string, unknown>;
       const cleanedTitle = sanitizeProductCopyNullable(source.title);
       if (!cleanedTitle) return acc;
+      // Legacy `schedule_data` (activities table) historically has no `event_type`.
+      // Fallback order: explicit event_type -> title/description keyword inference -> `activity`.
+      const event_type = resolveScheduleEventType(source, 'activity');
       acc.push({
-        day: typeof source.day === 'number' ? source.day : undefined,
+        day: normalizeDay(source.day),
         title: cleanedTitle,
         description: sanitizeProductCopyNullable(source.description) || undefined,
+        event_type,
       });
       return acc;
     }, []);
@@ -224,10 +298,14 @@ function normalizeSchedule(
       if (!entry || typeof entry !== 'object') return acc;
       const cleanedTitle = sanitizeProductCopyNullable(entry.title);
       if (!cleanedTitle) return acc;
+      // Legacy `itinerary_items` can mix event kinds but are often untyped.
+      // Fallback order: explicit event_type -> title/description keyword inference -> product-derived default.
+      const event_type = resolveScheduleEventType(entry, productDefaultEventType);
       acc.push({
-        day: typeof entry.day === 'number' ? entry.day : undefined,
+        day: normalizeDay(entry.day),
         title: cleanedTitle,
         description: sanitizeProductCopyNullable(entry.description) || undefined,
+        event_type,
       });
       return acc;
     }, []);

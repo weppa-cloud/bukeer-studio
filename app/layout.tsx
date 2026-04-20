@@ -1,5 +1,12 @@
 import type { Metadata } from "next";
-import { Playfair_Display, Montserrat, Geist, Manrope, JetBrains_Mono } from "next/font/google";
+import {
+  Bricolage_Grotesque,
+  Instrument_Serif,
+  Montserrat,
+  Geist,
+  Manrope,
+  JetBrains_Mono,
+} from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 
@@ -8,11 +15,19 @@ const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 const manrope = Manrope({ subsets: ["latin"], variable: "--font-studio-ui", display: "swap" });
 const jetBrainsMono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-studio-mono", display: "swap" });
 
-const playfair = Playfair_Display({
+const bricolage = Bricolage_Grotesque({
   subsets: ["latin"],
   variable: "--font-display",
   display: "swap",
-  weight: ["400", "700"],
+  weight: ["400", "500", "600", "700", "800"],
+});
+
+const instrumentSerif = Instrument_Serif({
+  subsets: ["latin"],
+  variable: "--font-serif",
+  display: "swap",
+  weight: ["400"],
+  style: ["normal", "italic"],
 });
 
 const montserrat = Montserrat({
@@ -40,7 +55,19 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es" suppressHydrationWarning className={cn(playfair.variable, montserrat.variable, geist.variable, manrope.variable, jetBrainsMono.variable, "font-sans")}>
+    <html
+      lang="es"
+      suppressHydrationWarning
+      className={cn(
+        bricolage.variable,
+        instrumentSerif.variable,
+        montserrat.variable,
+        geist.variable,
+        manrope.variable,
+        jetBrainsMono.variable,
+        "font-sans",
+      )}
+    >
       <body className="font-sans antialiased">
         {children}
       </body>
