@@ -104,6 +104,101 @@ export type MatrixRowOutcome =
   | { status: 'fail'; rowId: string; reason: string };
 
 /**
+ * Selectors that target elements that live in `<head>` (e.g. `title`, `meta`)
+ * or non-rendered elements (e.g. `<script type="application/ld+json">`). These
+ * have `display: none` by default and will never satisfy `toBeVisible()`. For
+ * matrix purposes we assert presence structurally instead so SEO rows (41–48)
+ * can be verified alongside body-visible blocks.
+ */
+function isStructuralOnlySelector(selector: string): boolean {
+  const trimmed = selector.trim().toLowerCase();
+  return (
+    trimmed.startsWith('head ') ||
+    trimmed.startsWith('head>') ||
+    trimmed.includes('head > ') ||
+    trimmed.includes('head>') ||
+    trimmed.startsWith('script[') ||
+    trimmed.startsWith('script ') ||
+    trimmed.includes('meta[') ||
+    /^title\b/.test(trimmed)
+  );
+}
+
+/**
+ * Minimal HTML selector matcher for the subset of selectors we place in
+ * `<head>` (title, meta[name|property], link[rel="alternate"]) plus
+ * `<script type="application/ld+json">`. Raw SSR HTML is the canonical source
+ * when `document.querySelectorAll` under-reports in Turbopack dev mode
+ * (metadata streams in after the RSC flight payload — the locator-layer
+ * `count()` can race the walk).
+ */
+function matchesSelectorInHtml(html: string, selector: string): boolean {
+  const trimmed = selector.trim();
+  if (/^(head\s*>?\s*)?title\b/.test(trimmed)) {
+    return /<title[^>]*>[^<]*<\/title>/i.test(html);
+  }
+  const metaMatch = trimmed.match(/meta\[(name|property|http-equiv)="([^"]+)"\]/i);
+  if (metaMatch) {
+    const attr = metaMatch[1];
+    const value = metaMatch[2];
+    const pattern = new RegExp(
+      `<meta[^>]*\\b${attr}\\s*=\\s*"${value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"[^>]*>`,
+      'i',
+    );
+    return pattern.test(html);
+  }
+  if (/script\[type="application\/ld\+json"\]/i.test(trimmed)) {
+    return /<script[^>]*type\s*=\s*"application\/ld\+json"[^>]*>/i.test(html);
+  }
+  if (/link\[rel="alternate"\]\[hreflang/i.test(trimmed)) {
+    return /<link[^>]*\brel\s*=\s*"alternate"[^>]*\bhreflang\s*=/i.test(html);
+  }
+  return false;
+}
+
+async function selectorPasses(
+  page: Page,
+  selector: string,
+  timeoutMs: number,
+): Promise<{ ok: true } | { ok: false; error: Error }> {
+  if (isStructuralOnlySelector(selector)) {
+    // `toBeVisible()` rejects head/script elements (display:none). We poll
+    // `document.querySelectorAll` via `page.evaluate` and fall back to the raw
+    // SSR HTML once per poll so dev-mode HMR reconciliation never reports a
+    // false 0-count for metadata that clearly shipped in the HTML payload.
+    const deadline = Date.now() + timeoutMs;
+    let lastErrorMessage = `selector ${selector} not present in document`;
+    while (Date.now() < deadline) {
+      try {
+        const count = await page.evaluate(
+          (sel) => document.querySelectorAll(sel).length,
+          selector,
+        );
+        if (count >= 1) {
+          return { ok: true };
+        }
+        const html = await page.content();
+        if (matchesSelectorInHtml(html, selector)) {
+          return { ok: true };
+        }
+        lastErrorMessage = `selector ${selector} resolved to 0 elements (expected ≥1)`;
+      } catch (err) {
+        lastErrorMessage = (err as Error).message;
+      }
+      await page.waitForTimeout(Math.min(250, Math.max(50, Math.floor(timeoutMs / 10))));
+    }
+    return { ok: false, error: new Error(lastErrorMessage) };
+  }
+  const locator = page.locator(selector).first();
+  try {
+    await expect(locator).toBeVisible({ timeout: timeoutMs });
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err as Error };
+  }
+}
+
+/**
  * Visibility check with a conditional/empty fallback. Selector is the primary
  * role/testid from the fixture (CSS fallback only consulted if primary fails
  * AND the fixture declared a fallback — still surfaced as a warning outcome).
@@ -132,33 +227,30 @@ export async function assertMatrixRow(opts: AssertMatrixRowOptions): Promise<Mat
     }
   }
 
-  const primary = page.locator(row.selectors.primary).first();
-  try {
-    await expect(primary).toBeVisible({ timeout: 5_000 });
+  const primaryCheck = await selectorPasses(page, row.selectors.primary, 5_000);
+  if (primaryCheck.ok) {
     return { status: 'ok', rowId: row.id };
-  } catch (primaryError) {
-    if (row.selectors.fallback) {
-      try {
-        const fallback = page.locator(row.selectors.fallback).first();
-        await expect(fallback).toBeVisible({ timeout: 2_000 });
-        return { status: 'ok', rowId: row.id };
-      } catch {
-        // fall through to conditional/empty handling
-      }
+  }
+
+  if (row.selectors.fallback) {
+    const fallbackCheck = await selectorPasses(page, row.selectors.fallback, 2_000);
+    if (fallbackCheck.ok) {
+      return { status: 'ok', rowId: row.id };
     }
-    if (cell.status === 'conditional' || allowConditionalAbsent || row.emptyStateExpected) {
-      return {
-        status: 'empty',
-        rowId: row.id,
-        reason: `Row ${row.row} — ${row.block}: element absent (conditional cell, condition=${cell.condition ?? 'n/a'})`,
-      };
-    }
+  }
+
+  if (cell.status === 'conditional' || allowConditionalAbsent || row.emptyStateExpected) {
     return {
-      status: 'fail',
+      status: 'empty',
       rowId: row.id,
-      reason: `Row ${row.row} — ${row.block}: required element missing. ${(primaryError as Error).message}`,
+      reason: `Row ${row.row} — ${row.block}: element absent (conditional cell, condition=${cell.condition ?? 'n/a'})`,
     };
   }
+  return {
+    status: 'fail',
+    rowId: row.id,
+    reason: `Row ${row.row} — ${row.block}: required element missing. ${primaryCheck.error.message}`,
+  };
 }
 
 // --- Visual snapshot -------------------------------------------------------

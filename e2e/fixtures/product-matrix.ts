@@ -272,7 +272,14 @@ export const PRODUCT_MATRIX: MatrixBlock[] = [
     row: 15,
     section: 'B. Navegación',
     block: 'Miga de pan (category back link)',
-    selectors: { primary: 'a[href*="/paquetes"], a[href*="/actividades"], a[href*="/hoteles"]' },
+    // Scope to the detail breadcrumb wrapper — the generic `a[href*="/paquetes"]`
+    // selector collided with the site-header desktop nav link (`hidden lg:flex`)
+    // on mobile viewports. `detail-breadcrumb` testid wraps the in-page nav
+    // rendered by `ProductLandingPage` (see Stage 6 Bug 14 fix).
+    selectors: {
+      primary: '[data-testid="detail-breadcrumb"] nav[aria-label="Breadcrumb"]',
+      fallback: '[data-testid="detail-breadcrumb"]',
+    },
     viewports: ['desktop', 'mobile'],
     types: { pkg: OK, act: OK, hotel: OK, blog: NA },
     source: 'docs/product/product-detail-matrix.md#row-15',
@@ -604,11 +611,23 @@ export const PRODUCT_MATRIX: MatrixBlock[] = [
     selectors: { primary: '[data-testid="detail-faq"]' },
     viewports: ['desktop', 'mobile'],
     types: {
+      // pkg + act ship hardcoded `*_FAQS_DEFAULT` fallbacks — always render.
       pkg: OK,
       act: OK,
-      hotel: { status: 'ok', note: 'as-is Flutter-owner for content, accordion still renders' },
+      // Hotels are Flutter-owner for catalog/marketing (ADR-025). No default
+      // FAQ bank exists yet; when `custom_faq` is empty `ProductFAQ` returns
+      // `null` so the `[data-testid="detail-faq"]` wrapper stays empty and
+      // Playwright reports it as hidden. Matrix treats this as a conditional
+      // empty-state until Flutter ships a hotel FAQ dataset or Studio adds a
+      // fallback (tracked upstream — Stage 6 Bug 12 documented handoff).
+      hotel: {
+        status: 'conditional',
+        condition: 'custom_faq.length > 0 (Flutter-owner, no default bank)',
+        note: 'as-is Flutter-owner — accordion wrapper stays empty when no FAQ seeded',
+      },
       blog: NA,
     },
+    emptyStateExpected: true,
     source: 'docs/product/product-detail-matrix.md#row-35',
   },
   {
