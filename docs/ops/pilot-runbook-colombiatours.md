@@ -12,6 +12,7 @@ This runbook **cross-references and extends** four existing runbooks. It does **
 - [`release-gate-checklist.md`](./release-gate-checklist.md) — Go/No-Go automated gate.
 - [`studio-editor-v2-rollback.md`](./studio-editor-v2-rollback.md) — Studio editor flag rollback L1–L4.
 - [`ci-seo-i18n-gate.md`](./ci-seo-i18n-gate.md) — `@p0-seo` CI gate + nightly Worker preview.
+- [`pilot-theme-designer-v1-rollout.md`](./pilot-theme-designer-v1-rollout.md) — Designer reference pilot theme apply/rollback (flag + snapshot + revalidate).
 
 Audience: on-call engineers, release lead, partner liaison, orchestrator. Training audience (partner Rol 2) reads [`docs/training/colombiatours-onboarding.md`](../training/colombiatours-onboarding.md) instead.
 
@@ -23,6 +24,7 @@ Audience: on-call engineers, release lead, partner liaison, orchestrator. Traini
 - **Editing** second — packages + activities Studio-editable; hotels Flutter-owner (SEO meta still editable in Studio).
 - **Booking V1 DEFERRED** post-pilot — WhatsApp + phone CTAs only. See [[ADR-024]] + issue [#217](https://github.com/weppa-cloud/bukeer-studio/issues/217).
 - **No rate-limit mitigation** required — client accepts direct transcreate API usage.
+- **Designer reference theme rollout** (EPIC #250 stream) is website-scoped and reversible via `theme_designer_v1_enabled` + `pilot_theme_snapshots`. Follow [[pilot-theme-designer-v1-rollout]].
 
 Full context: priority change v2 comment on EPIC [#214](https://github.com/weppa-cloud/bukeer-studio/issues/214).
 

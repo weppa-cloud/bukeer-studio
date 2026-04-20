@@ -4,7 +4,7 @@
 >
 > **Convention:** `[[ADR-XXX]]` or `[[SPEC_NAME]]` = wikilink resolved below. `[text](path.md)` = regular markdown link. Both coexist.
 
-Last updated: 2026-04-20 (EPIC #214 Stage 6 autonomous — #213 Flow 2 + Flow 3 + Lighthouse AC-A5 executed on pilot seed; matrix + sign-off stubs published to `docs/qa/pilot/`; partner + QA-lead human sign-off still pending per AC-X4a/b); 2026-04-20 (EPIC #214 Stage 5 W7-b — training onboarding extended with Flows 6/7/8 + cutover checklist Stage map + FAQ expansion); 2026-04-19 (EPIC #214 Stage 2 W7-a — training onboarding ColombiaTours + pilot runbook + cutover checklist); 2026-04-19 (EPIC #214 Stage 1 W1 — matrix refresh pkg+act editable + blog Section P + hotels as-is + Section M booking DEFER; pilot-readiness concept section expanded with matrix/ADR wikilinks); 2026-04-19 (ADR-025 priority-v2 alignment: Activities target Studio ownership with W2 pending); 2026-04-19 (EPIC #214 client priority change v2 — pilot-readiness concept scope notes); 2026-04-19 (EPIC #214 Stage 0 — ADR-024 + ADR-025 skeletons + pilot-readiness-deps); 2026-04-19 (EPIC #190 certification rerun evidence); 2026-04-18 (EPIC #190 certification run evidence + checklist); 2026-04-17 (WIKI full-refresh + #103 media closure checklist); 2026-04-17 wiki-patch (epic128 evidence + issue resolution rows)
+Last updated: 2026-04-20 (EPIC #250 #259/#260 — ADR-027 + pilot theme rollout/rollback runbook + theme-designer-v1 flag/snapshot docs sync); 2026-04-20 (EPIC #214 Stage 6 autonomous — #213 Flow 2 + Flow 3 + Lighthouse AC-A5 executed on pilot seed; matrix + sign-off stubs published to `docs/qa/pilot/`; partner + QA-lead human sign-off still pending per AC-X4a/b); 2026-04-20 (EPIC #214 Stage 5 W7-b — training onboarding extended with Flows 6/7/8 + cutover checklist Stage map + FAQ expansion); 2026-04-19 (EPIC #214 Stage 2 W7-a — training onboarding ColombiaTours + pilot runbook + cutover checklist); 2026-04-19 (EPIC #214 Stage 1 W1 — matrix refresh pkg+act editable + blog Section P + hotels as-is + Section M booking DEFER; pilot-readiness concept section expanded with matrix/ADR wikilinks); 2026-04-19 (ADR-025 priority-v2 alignment: Activities target Studio ownership with W2 pending); 2026-04-19 (EPIC #214 client priority change v2 — pilot-readiness concept scope notes); 2026-04-19 (EPIC #214 Stage 0 — ADR-024 + ADR-025 skeletons + pilot-readiness-deps); 2026-04-19 (EPIC #190 certification rerun evidence); 2026-04-18 (EPIC #190 certification run evidence + checklist); 2026-04-17 (WIKI full-refresh + #103 media closure checklist); 2026-04-17 wiki-patch (epic128 evidence + issue resolution rows)
 
 ---
 
@@ -61,6 +61,7 @@ All ADRs accepted unless noted. Cross-cut by Principles P1–P10 (see [[ARCHITEC
 | [[ADR-023]] | [ADR-023](./architecture/ADR-023-qa-tooling-studio-editor.md) | QA Tooling: Playwright Component Testing + Visual Regression | [[testing]] [[CT]] [[visual-regression]] [[quality-gate]] |
 | [[ADR-024]] | [ADR-024](./architecture/ADR-024-booking-v1-pilot-scope.md) | Booking V1 Pilot Scope (Proposed — W3 decision meeting) | [[booking]] [[pilot-readiness]] [[leads]] |
 | [[ADR-025]] | [ADR-025](./architecture/ADR-025-studio-flutter-field-ownership.md) | Studio / Flutter Field Ownership Boundary (**Accepted 2026-04-19** — pkg+act Studio-editable, hotels Flutter-owner; Option A RPC expansion + activities parity) | [[studio-editor-v2]] [[package-kits]] [[pilot-readiness]] [[studio-editor-parity-audit]] |
+| [[ADR-027]] | [ADR-027](./architecture/ADR-027-designer-reference-theme-adoption.md) | Designer Reference Theme Adoption for Pilot (flag-gated + snapshot-backed rollback) | [[theme-v3]] [[theme-sdk]] [[pilot-readiness]] [[rollout]] |
 
 > **Note:** `ADR-022` and `ADR-032` referenced in specs are anchored in `weppa-cloud/bukeer-flutter`. Studio respects them but does not own them. See [[cross-repo-flutter]].
 
@@ -119,6 +120,7 @@ Feature requests formalized. Status tracked inline. GitHub Issues = source of tr
 | [[github-actions-billing-incident]] | [file](./ops/github-actions-billing-incident.md) | Runbook: CI fails in 3-4s → GitHub billing/spending-limit issue, not code. |
 | [[transcreate-website-content-runbook]] | [file](./ops/transcreate-website-content-runbook.md) | End-to-end flow: traducir todo el contenido de un sitio (glossary → AI draft → review → apply → verify). |
 | [[studio-editor-v2-rollback]] | [file](./ops/studio-editor-v2-rollback.md) | Rollback runbook for #190 Studio Editor v2 — 4 levels (field / website / account / data restore) + pre-flight re-enable gate. |
+| [[pilot-theme-designer-v1-rollout]] | [file](./ops/pilot-theme-designer-v1-rollout.md) | Pilot designer-reference theme rollout + rollback (`theme_designer_v1_enabled` + `pilot_theme_snapshots` + revalidate). |
 | [[pilot-runbook-colombiatours]] | [file](./ops/pilot-runbook-colombiatours.md) | EPIC #214 pilot cutover runbook (cross-links 4 existing runbooks; DNS TTL / ±24 h Flutter rule / SLA / post-cutover cadence). |
 | [[cutover-checklist]] | [file](./ops/cutover-checklist.md) | Standalone reusable cutover checklist imported into pilot runbook §5.1 (preflight / cutover / post-cutover / rollback criteria + sequence). |
 | [[release-gate-checklist]] | [file](./ops/release-gate-checklist.md) | Go/No-Go automated gate checklist for prod deploys (EPIC #207 certification). |
@@ -259,9 +261,11 @@ Each concept below lists the ADRs/SPECs/ops docs that touch it. Use this to find
 
 ### [[theme-v3]] + [[theme-sdk]]
 - [[ADR-008]] — monorepo packages (`@bukeer/theme-sdk`)
+- [[ADR-027]] — pilot adoption strategy for designer-reference theme (flag-gated, snapshot-backed rollback)
 - [[dark-mode-behavior]]
 - DB shape: `websites.theme = { tokens, profile }` — see [[cross-repo-flutter]]
 - 8 presets: adventure, luxury, tropical, corporate, boutique, cultural, eco, romantic
+- Pilot rollout controls: `account_feature_flags.theme_designer_v1_enabled` + `pilot_theme_snapshots` + [[pilot-theme-designer-v1-rollout]]
 
 ### [[multi-locale]] + [[i18n]] + [[routing]]
 - [[ADR-019]] — path-prefix URL routing (`/en/...`, default locale has no prefix)
@@ -419,11 +423,13 @@ Obsidian resolves `[[ADR-005]]` by filename stem or alias. Claude Code / Codex g
 | `[[ADR-024-booking-v1-pilot-scope]]` | `docs/architecture/ADR-024-booking-v1-pilot-scope.md` |
 | `[[ADR-025]]` | `docs/architecture/ADR-025-studio-flutter-field-ownership.md` |
 | `[[ADR-025-studio-flutter-field-ownership]]` | `docs/architecture/ADR-025-studio-flutter-field-ownership.md` |
+| `[[ADR-027]]` | `docs/architecture/ADR-027-designer-reference-theme-adoption.md` |
 | `[[field-ownership]]` | `docs/architecture/ADR-025-studio-flutter-field-ownership.md` (concept alias) |
 | `[[booking-defer]]` | `docs/architecture/ADR-024-booking-v1-pilot-scope.md` (concept alias) |
 | `[[pilot-readiness-deps]]` | `docs/specs/pilot-readiness-deps.md` |
 | `[[colombiatours-onboarding]]` | `docs/training/colombiatours-onboarding.md` |
 | `[[pilot-runbook-colombiatours]]` | `docs/ops/pilot-runbook-colombiatours.md` |
+| `[[pilot-theme-designer-v1-rollout]]` | `docs/ops/pilot-theme-designer-v1-rollout.md` |
 | `[[cutover-checklist]]` | `docs/ops/cutover-checklist.md` |
 | `[[release-gate-checklist]]` | `docs/ops/release-gate-checklist.md` |
 | `[[ci-seo-i18n-gate]]` | `docs/ops/ci-seo-i18n-gate.md` |

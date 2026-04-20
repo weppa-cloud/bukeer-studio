@@ -1,7 +1,7 @@
 # Matriz de Inventario — Detalle de Producto
 
-**Actualizado:** 2026-04-19
-**Verificado contra commit:** `90f2303` (docs(deps) priority v2 logged — EPIC #214)
+**Actualizado:** 2026-04-20
+**Verificado contra commit:** `EPIC-250-theme-rollout` (designer-reference rollout/docs sync)
 **Aplica a:** landing de Actividad/Servicio + landing de Paquete + landing de Hotel + detalle de Blog (Sección P)
 **Propósito:** vista de diseño de producto (no dev). Lista cada pieza de información que aparece en la página pública, de dónde viene, cómo se llena, qué componente la muestra y en qué landing aparece.
 **Ver también:** [[package-detail-anatomy]] · [[product-detail-inventory]] · [[pilot-readiness-deps]] · [[ADR-024]] · [[ADR-025]]
@@ -11,6 +11,9 @@
 > - **Hotels = as-is (Flutter-owner)** para marketing/contenido. SEO meta sí editable vía SEO item detail. Política pilot confirmada 2026-04-19 (ver leyenda al pie).
 > - **Booking V1 = DEFER post-pilot** (Sección M). ADR-024 Accepted (DEFER).
 > - **Blog transcreate scope = Sección P** (nueva) para W5 + W6.
+
+> **Designer-reference rollout scope (2026-04-20)** — para ColombiaTours pilot, el visual system Caribe se controla por `theme_designer_v1_enabled` (website/account/default resolution) y rollback con `pilot_theme_snapshots`.  
+> Estado de la matriz: los estados funcionales de filas no cambian por este rollout; el cambio es de capa visual (tokens/theme) y se valida en sign-off post-theme.
 
 ---
 

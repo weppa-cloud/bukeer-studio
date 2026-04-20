@@ -20,6 +20,7 @@ Do NOT invoke for:
 - Single-user confusion about field ownership (educate first).
 - One-off Studio 500 without dual-write evidence.
 - Missing AI badge / stale flag reset (cosmetic — file issue).
+- Designer-reference pilot theme incidents (`theme_designer_v1_enabled`) — use [[pilot-theme-designer-v1-rollout]].
 
 ## 1 · Rollback levels (pick the smallest that works)
 

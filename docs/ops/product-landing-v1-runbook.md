@@ -8,6 +8,7 @@
 Related:
 - Generic release runbook: [`docs/runbooks/product-landing-rollout-runbook.md`](../runbooks/product-landing-rollout-runbook.md)
 - JSON-LD fixtures (SEO validation reference): [`docs/seo/jsonld-fixtures.md`](../seo/jsonld-fixtures.md)
+- Pilot theme rollout (designer-reference): [`docs/ops/pilot-theme-designer-v1-rollout.md`](./pilot-theme-designer-v1-rollout.md)
 - Deploy workflow: [`.github/workflows/deploy.yml`](../../.github/workflows/deploy.yml)
 - QA matrix: issue [#120](https://github.com/weppa-cloud/bukeer-studio/issues/120)
 
@@ -27,7 +28,8 @@ Product Landing v1 redesigns the public product pages for all four product types
 | EPIC 6 | Breadcrumbs, related products, internal linking |
 | EPIC 7 | **This rollout + monitoring (current).** |
 
-**Rollout mode:** direct (no feature flag). ColombiaTours is the validation tenant — failures there gate production for all tenants.
+**Rollout mode:** direct (no feature flag) for product-landing runtime changes.  
+**Exception:** designer-reference pilot theme rollout is flag-gated under `theme_designer_v1_enabled` and follows [`pilot-theme-designer-v1-rollout.md`](./pilot-theme-designer-v1-rollout.md).
 
 ---
 
