@@ -46,7 +46,11 @@ test.describe(`${PILOT_W5_TAG} Pilot W5 · stream + abort`, () => {
     test.skip(!pkg, 'translation-ready seed missing package');
 
     // Unique target locale so no state from prior runs collides.
-    const targetLocale = `en-w5stream-${Date.now().toString().slice(-6)}`;
+    // NOTE (Stage 6 Bug 11, 2026-04-20): keep the token ≤16 chars to satisfy
+    // `TranscreateStreamRequestSchema.targetLocale.max(16)` in the stream
+    // route. The prior `en-w5stream-<6>` token was 18 chars and produced a
+    // deterministic 400 VALIDATION_ERROR outside the accepted status set.
+    const targetLocale = `en-w5s-${Date.now().toString().slice(-6)}`; // 13 chars
     const targetKeyword = `w5-stream-${Date.now().toString().slice(-6)}`;
     let dgSeed: DecisionGradeSeedResult | null = null;
 

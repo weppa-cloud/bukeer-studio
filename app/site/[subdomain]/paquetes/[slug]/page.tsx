@@ -2,7 +2,11 @@ import { Metadata } from 'next';
 import { notFound, permanentRedirect } from 'next/navigation';
 
 import { ProductLandingPage } from '@/components/pages/product-landing-page';
-import { getCategoryProducts, getProductPage } from '@/lib/supabase/get-pages';
+import {
+  getCategoryProducts,
+  getLocalizedProductOverlay,
+  getProductPage,
+} from '@/lib/supabase/get-pages';
 import { getReviewsForContext, type ReviewContext } from '@/lib/supabase/get-reviews';
 import { getWebsiteBySubdomain } from '@/lib/supabase/get-website';
 import { resolveOgImage } from '@/lib/seo/og-helpers';
@@ -74,8 +78,41 @@ export async function generateMetadata({ params }: PackagePageProps): Promise<Me
     localeContext.defaultLocale,
   );
   const canonical = `${baseUrl}${localizedPathname}`;
-  const rawTitle = productPage.page?.custom_seo_title || productPage.product.name;
-  const rawDescription = productPage.page?.custom_seo_description || productPage.product.description || '';
+
+  // Bug 9 (Stage 6 2026-04-20): when the request resolves to a non-default
+  // locale, layer a locale-specific overlay on top of the default one so the
+  // applied transcreate meta_title/meta_desc surface in SSR. The base
+  // `get_website_product_page` RPC is not locale-aware — it returns one
+  // overlay row, which for `/en/paquetes/...` would leak the es-CO overlay.
+  let localizedOverlayTitle: string | null = null;
+  let localizedOverlayDescription: string | null = null;
+  let localizedOverlayNoindex: boolean | null = null;
+  if (
+    localeContext.resolvedLocale &&
+    localeContext.resolvedLocale !== localeContext.defaultLocale &&
+    website.id &&
+    productPage.product.id
+  ) {
+    const overlay = await getLocalizedProductOverlay({
+      websiteId: String(website.id),
+      productType: 'package',
+      productId: String(productPage.product.id),
+      locale: localeContext.resolvedLocale,
+    });
+    if (overlay) {
+      localizedOverlayTitle = overlay.custom_seo_title ?? null;
+      localizedOverlayDescription = overlay.custom_seo_description ?? null;
+      localizedOverlayNoindex = overlay.robots_noindex ?? null;
+    }
+  }
+
+  const rawTitle =
+    localizedOverlayTitle || productPage.page?.custom_seo_title || productPage.product.name;
+  const rawDescription =
+    localizedOverlayDescription
+    || productPage.page?.custom_seo_description
+    || productPage.product.description
+    || '';
   const title = sanitizeProductCopy(rawTitle) || getPublicUiExtraText(localeContext.resolvedLocale, 'productPackageFallbackTitle');
   const productFallbackDescription = `Descubre ${title} con itinerario detallado, experiencias locales y asistencia personalizada durante todo tu viaje en Colombia.`;
   const description = ensureSeoDescription(rawDescription, productFallbackDescription);
@@ -103,7 +140,11 @@ export async function generateMetadata({ params }: PackagePageProps): Promise<Me
     },
   };
 
-  if (productPage.page?.robots_noindex) {
+  // Localized robots_noindex wins when the locale overlay explicitly sets it;
+  // otherwise fall back to the default-locale overlay flag.
+  const effectiveNoindex =
+    localizedOverlayNoindex !== null ? localizedOverlayNoindex : productPage.page?.robots_noindex;
+  if (effectiveNoindex) {
     metadata.robots = { index: false, follow: true };
   }
 
