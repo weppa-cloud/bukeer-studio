@@ -20,7 +20,7 @@ MCPs are declared in [`.mcp.json`](../../.mcp.json). Config snippets below mirro
 
 | MCP | Purpose | Package | Config snippet | Required for |
 |-----|---------|---------|----------------|--------------|
-| `playwright` | E2E browser control for Studio flows | `@playwright/mcp@latest` | `"command": "npx", "args": ["@playwright/mcp@latest"]` | `playwright-skill`, `qa-nextjs`, growth playbook visual verification |
+| `playwright` | E2E browser control for Studio flows | `@playwright/mcp@latest` | `bash -lc "if [ -z \"${HOME:-}\" ] || [ \"$HOME\" = \"/\" ]; then export HOME=\"$PWD/.mcp-home\"; fi; mkdir -p \"$HOME/.playwright-mcp\"; exec npx @playwright/mcp@latest"` | `playwright-skill`, `qa-nextjs`, growth playbook visual verification |
 | `supabase` | DB queries, migrations, Edge Function logs for the shared Bukeer project | `@supabase/mcp-server-supabase@latest` | `bash -lc "set -a; [ -f .env.mcp ] && source .env.mcp; set +a; npx -y @supabase/mcp-server-supabase@latest --access-token \"$SUPABASE_ACCESS_TOKEN\""` | `backend-dev`, all `seo-growth-agent` playbooks that read `seo_*` tables |
 | `chrome-devtools` | Lighthouse audits, DOM / network inspection | `chrome-devtools-mcp@latest` | `"command": "npx", "args": ["-y", "chrome-devtools-mcp@latest"]` | `website-quality-gate`, tech-score playbook |
 | `shadcn-ui` | shadcn component metadata + scaffolding | `shadcn-ui-mcp-server` | `"command": "npx", "args": ["-y", "shadcn-ui-mcp-server"]` | `website-section-generator`, UI PRs |
@@ -216,6 +216,7 @@ bash scripts/session-release.sh "$_ACQUIRED_SESSION"
 | 3 | Empty GA4 list | Service account missing Viewer role | Add SA email in GA4 admin → Property Access Management |
 | 5 | Port already in use | Stale session slot | `npm run session:list` → `npm run session:release <slot>` |
 | 6 | `402 Payment Required` from DataForSEO (once wired) | Budget cap hit | Check [`docs/growth-okrs/budget.md`](../growth-okrs/budget.md) and raise cap |
+| any | `ENOENT: mkdir '/.playwright-mcp'` from Playwright MCP | MCP started with invalid `HOME` (`/`) | Ensure `.mcp.json` uses the guarded Playwright command that rewrites `HOME` to a writable path; restart Codex/Claude session |
 
 ---
 
@@ -266,6 +267,7 @@ Common failure modes and first-response fixes.
 | `session:list` shows all slots `BUSY` | Other parallel agents or stale locks | `npm run session:list` to see PIDs; if a PID is dead, `npm run session:release <slot>`; otherwise wait |
 | `npm run dev:session` fails: `EADDRINUSE` | Port not released | `npm run session:release <slot>` and retry |
 | Blog AI endpoint returns `500` with `OPENROUTER_AUTH_TOKEN` in error | Missing or invalid token | Set `OPENROUTER_AUTH_TOKEN` in `.env.local`; restart `npm run dev:session` |
+| Playwright MCP fails with `ENOENT: mkdir '/.playwright-mcp'` | Agent process inherited `HOME=/` | Use the guarded Playwright config in [`.mcp.json`](../../.mcp.json) (forces writable `HOME`), then restart Codex/Claude session |
 
 If a fix here does not resolve the issue, capture the exact error and hand it to the `debugger` skill.
 

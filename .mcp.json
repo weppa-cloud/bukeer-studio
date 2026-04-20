@@ -1,8 +1,11 @@
 {
   "mcpServers": {
     "playwright": {
-      "command": "npx",
-      "args": ["@playwright/mcp@latest"]
+      "command": "bash",
+      "args": [
+        "-lc",
+        "if [ -z \"${HOME:-}\" ] || [ \"$HOME\" = \"/\" ]; then export HOME=\"$PWD/.mcp-home\"; fi; mkdir -p \"$HOME/.playwright-mcp\"; exec npx @playwright/mcp@latest"
+      ]
     },
     "supabase": {
       "command": "bash",
