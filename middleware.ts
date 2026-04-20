@@ -62,6 +62,32 @@ function getRequestHost(request: NextRequest): string {
   return hostHeader.split(':')[0].toLowerCase().replace(/\.$/, '');
 }
 
+/**
+ * Parse an already-internal `/site/<subdomain>/<rest>` pathname into its
+ * component parts. Returns null if the pathname is not in the expected
+ * shape (e.g. `/site/` alone, `/site/<sub>` with no trailing path).
+ *
+ * Used by the `/site/` branch of the middleware to detect translated-locale
+ * segments such as `/site/colombiatours/en/paquetes/<slug>` so the locale
+ * headers + canonical rewrite get applied even when the browser hit the
+ * internal route directly (E2E fixtures, staging smoke tests, etc).
+ */
+export function parseInternalSitePath(pathname: string): {
+  subdomain: string;
+  innerPathname: string;
+} | null {
+  if (!pathname.startsWith('/site/')) return null;
+  const segments = pathname.split('/').filter(Boolean);
+  if (segments.length < 2) return null;
+  const [marker, subdomainRaw, ...rest] = segments;
+  if (marker !== 'site' || !subdomainRaw) return null;
+  const innerPathname = rest.length > 0 ? `/${rest.join('/')}` : '/';
+  return {
+    subdomain: subdomainRaw.toLowerCase(),
+    innerPathname,
+  };
+}
+
 function getPotentialProductRoute(pathname: string): {
   categorySlug: string;
   productType: string;
@@ -471,8 +497,54 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Already-internal tenant routes should pass through untouched.
-  if (pathname.startsWith('/site/') || pathname.startsWith('/domain/')) {
+  // Already-internal tenant routes normally pass through untouched. One
+  // exception: direct requests to `/site/<subdomain>/<lang>/...` (used by
+  // E2E specs and internal tooling) must still receive the locale headers
+  // + canonical rewrite that the subdomain-first flow applies. Without
+  // this, SSR falls back to the tenant default locale even though the URL
+  // contains a translated-locale segment. See [[ADR-019]] + Cluster-E of
+  // Stage 6 (#213) for the handoff from PR #243.
+  if (pathname.startsWith('/site/')) {
+    const internalMatch = parseInternalSitePath(pathname);
+    if (
+      internalMatch &&
+      internalMatch.innerPathname !== '/' &&
+      /^[a-z]{2}$/.test(internalMatch.innerPathname.split('/').filter(Boolean)[0] || '')
+    ) {
+      const website = await getWebsiteBySubdomain(internalMatch.subdomain);
+      const localeSettings = extractWebsiteLocaleSettings(website);
+      const localeResolution = resolveLocaleFromPublicPath(
+        internalMatch.innerPathname,
+        localeSettings,
+      );
+
+      // Only intervene when the leading segment resolved to an actual
+      // supported non-default locale. If the leading two-letter segment
+      // did not map to a locale, fall back to pass-through so we don't
+      // accidentally break unrelated routes.
+      if (
+        localeResolution.hasLanguageSegment &&
+        localeResolution.resolvedLocale !== localeResolution.defaultLocale
+      ) {
+        return applyLocaleAwareTenantRewrite({
+          request,
+          sourceUrl: url,
+          pathnameWithoutLang: localeResolution.pathnameWithoutLang,
+          canonicalPathname: localeResolution.canonicalPathname,
+          originalPathname: localeResolution.originalPathname,
+          subdomain: internalMatch.subdomain,
+          resolvedLocale: localeResolution.resolvedLocale,
+          defaultLocale: localeResolution.defaultLocale,
+          resolvedLanguage: localeResolution.resolvedLanguage,
+          hasLanguageSegment: localeResolution.hasLanguageSegment,
+        });
+      }
+    }
+
+    return NextResponse.next();
+  }
+
+  if (pathname.startsWith('/domain/')) {
     return NextResponse.next();
   }
 
