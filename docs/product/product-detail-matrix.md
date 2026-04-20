@@ -220,6 +220,21 @@
 | `app/dashboard/[websiteId]/products/[slug]/content/page.tsx` | Page-customization editors (N.2) | Pre-W2 → solo packages; post-W2 → detecta `product_type` y ramifica |
 | `app/dashboard/[websiteId]/seo/[itemType]/[itemId]/page.tsx` | SEO item detail surface (rows #41, #42, #48) | Cubre Pkg + Act + Hotel (excepción Hotel as-is para marketing) |
 
+### N.4 W4 #218 editor→render E2E specs
+
+EPIC #214 W4 #218 exercises the full editor→DB→ISR→public loop against the `pilot-colombiatours-*` seed. Specs live under `e2e/tests/pilot/editor-render/`, tagged `@pilot-w4`:
+
+| Spec | Editor → testid | Target (public) |
+|------|-----------------|-----------------|
+| `hero-override.spec.ts` | `HeroOverrideEditor` → `section[aria-label="Personalización del hero"]` | `[data-testid="detail-hero"]` |
+| `marketing-body.spec.ts` | `DescriptionEditor` / `HighlightsEditor` → `marketing-editor-description` / `-highlights` | `[data-testid="detail-description"]` / `[data-testid="detail-highlights"]` |
+| `video-url.spec.ts` | `VideoUrlEditor` → `section[aria-label="Video del producto"]` | `<iframe>` + `VideoObject` JSON-LD (skip until #234 RPC ships) |
+| `sections-layout.spec.ts` | `SectionsReorderEditor` + `SectionVisibilityToggle` | overlay `sections_order` / `hidden_sections` honored by renderer |
+| `custom-sections.spec.ts` | `CustomSectionsEditor` | overlay `custom_sections[]` persisted + revalidate fan-out |
+| `activity-parity.spec.ts` | `DescriptionEditor` (activity variant) | `[data-testid="detail-description"]` on `/actividades/<slug>` |
+
+Seed factory: `e2e/setup/pilot-seed.ts::seedPilot(variant)` with variants `baseline` | `translation-ready` | `empty-state` | `missing-locale`. Runbook: `docs/qa/pilot/editor-to-render-playbook.md`.
+
 ---
 
 ## O. Gaps Flutter-only (razón documentada)

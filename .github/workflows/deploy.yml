@@ -186,6 +186,92 @@ jobs:
           path: playwright-report/
           retention-days: 7
 
+  # ── Pilot editor→render (EPIC #214 W4 #218) ────────────────────────
+  # Runs only on workflow_dispatch to keep main-push latency low.
+  # Uses workers: 1 + timeout 45 min per AC-W4-3 session-pool semantics.
+  e2e-pilot:
+    needs: quality
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Cache workspace node_modules
+        id: cache-deps
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            packages/theme-sdk/node_modules
+            packages/website-contract/node_modules
+          key: deps-${{ runner.os }}-node22-${{ hashFiles('package-lock.json', 'packages/*/package-lock.json') }}
+
+      - name: Cache Playwright browsers
+        id: cache-playwright
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Build theme-sdk
+        working-directory: packages/theme-sdk
+        run: |
+          if [ ! -d node_modules ]; then npm ci; fi
+          npm run build
+
+      - name: Build website-contract
+        working-directory: packages/website-contract
+        run: |
+          if [ ! -d node_modules ]; then npm ci; fi
+          npm run build
+
+      - name: Install dependencies
+        if: steps.cache-deps.outputs.cache-hit != 'true'
+        run: npm ci
+
+      - name: Install Playwright (Chromium + Firefox)
+        if: steps.cache-playwright.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium firefox
+
+      - name: Run pilot editor→render suite
+        run: |
+          npx playwright test \
+            --project=pilot \
+            --grep "@pilot-w4" \
+            --workers=1 \
+            --reporter=list,json,html
+        env:
+          E2E_BASE_URL: http://localhost:3000
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL_STAGING || 'https://example.supabase.co' }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY_STAGING || 'ci-anon-key' }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY_STAGING || 'ci-service-role-key' }}
+          OPENROUTER_AUTH_TOKEN: ci-openrouter-token
+          OPENROUTER_BASE_URL: https://openrouter.ai/api/v1
+          OPENROUTER_MODEL: anthropic/claude-sonnet-4-5
+          REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET_STAGING || 'ci-revalidate-secret' }}
+          E2E_REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET_STAGING || 'ci-revalidate-secret' }}
+          E2E_WEBSITE_ID: ${{ secrets.E2E_WEBSITE_ID_STAGING }}
+          ALLOW_SEED: '1'
+          NEXT_PUBLIC_URL: https://bukeer.com
+          NEXT_PUBLIC_MAIN_DOMAIN: bukeer.com
+
+      - name: Upload pilot Playwright artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pilot-w4-playwright
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14
+
   # ── Deploy — manual only while staging is not in use ──────────────
   # Trigger on demand: gh workflow run deploy.yml --ref main
   deploy-staging:
