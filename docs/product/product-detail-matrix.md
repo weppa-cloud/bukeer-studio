@@ -235,6 +235,25 @@ EPIC #214 W4 #218 exercises the full editor→DB→ISR→public loop against the
 
 Seed factory: `e2e/setup/pilot-seed.ts::seedPilot(variant)` with variants `baseline` | `translation-ready` | `empty-state` | `missing-locale`. Runbook: `docs/qa/pilot/editor-to-render-playbook.md`.
 
+### N.5 W6 #220 matrix visual + Lighthouse E2E specs
+
+EPIC #214 W6 #220 walks the canonical matrix (this document) per content type and captures visual snapshots + Lighthouse scores for the pilot seed. Specs live under `e2e/tests/pilot/matrix/` and `e2e/tests/pilot/lighthouse/`, tagged `@pilot-w6`. Consume `seedPilot('baseline')` + `seedPilot('translation-ready')`.
+
+| Spec | Surface | Matrix coverage |
+|------|---------|------------------|
+| `pilot-matrix-public-package.spec.ts` | `/paquetes/<slug>` (desktop + mobile) | Rows 1-48 applicable to `pkg`; Section M skipped via `PILOT_BOOKING_ENABLED` |
+| `pilot-matrix-public-activity.spec.ts` | `/actividades/<slug>` + editable loop (AC-W6-12) | Rows 1-48 applicable to `act`; editable description via W2 `update_activity_marketing_field` |
+| `pilot-matrix-public-hotel.spec.ts` | `/hoteles/<slug>` (read-only — ADR-025) | Rows applicable to `hotel`; no editor assertions |
+| `pilot-matrix-public-blog.spec.ts` | `/blog/<slug>` + `/en/blog/<slug>` | Section P rows + hreflang + JSON-LD Article (AC-W6-13) |
+| `pilot-lighthouse-{package,activity,hotel,blog}.spec.ts` | Respective detail URLs (desktop) | perf / a11y / seo / best-practices; thresholds per `lighthouserc.js` |
+
+Fixture + helpers:
+- `e2e/fixtures/product-matrix.ts` — structured matrix (row 1-48 + Section M env-gated + Section P blog).
+- `e2e/setup/matrix-helpers.ts` — `assertMatrixRow`, `assertVisualSnapshot`, `runLighthouseAudit`, `freezeAnimations`, `LIGHTHOUSE_THRESHOLDS`.
+- `scripts/lighthouse-pilot.sh` + `lighthouserc.pilot.js` — standalone Lighthouse runner (session-pool-aware).
+
+Playbook: [`docs/qa/pilot/matrix-playbook.md`](../qa/pilot/matrix-playbook.md).
+
 ---
 
 ## O. Gaps Flutter-only (razón documentada)
