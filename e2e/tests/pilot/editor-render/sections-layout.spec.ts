@@ -40,8 +40,9 @@ test.describe('@pilot-w4 Pilot W4 · sections layout', () => {
     await pom.goto(seed.websiteId, pkg.slug);
 
     await captureBeforeAfter(page, testInfo, 'sections-layout-editor', async () => {
-      // Hide reviews (matches overlay baseline, asserts the toggle is stable).
-      await pom.toggleVisibility('Reseñas', { hidden: true });
+      // Hide Google reviews (matches `useRenderableSections` label constant
+      // in `components/admin/page-customization/use-renderable-sections.ts`).
+      await pom.toggleVisibility('Google reviews', { hidden: true });
       // Nudge the second section up — exercises the reorder save path via the
       // keyboard-accessible arrow buttons (not DnD).
       await pom.nudgeSection(1, 'up');
