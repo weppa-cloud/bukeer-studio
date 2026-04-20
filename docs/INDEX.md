@@ -4,7 +4,7 @@
 >
 > **Convention:** `[[ADR-XXX]]` or `[[SPEC_NAME]]` = wikilink resolved below. `[text](path.md)` = regular markdown link. Both coexist.
 
-Last updated: 2026-04-20 (EPIC #214 Stage 5 W7-b — training onboarding extended with Flows 6/7/8 + cutover checklist Stage map + FAQ expansion); 2026-04-19 (EPIC #214 Stage 2 W7-a — training onboarding ColombiaTours + pilot runbook + cutover checklist); 2026-04-19 (EPIC #214 Stage 1 W1 — matrix refresh pkg+act editable + blog Section P + hotels as-is + Section M booking DEFER; pilot-readiness concept section expanded with matrix/ADR wikilinks); 2026-04-19 (ADR-025 priority-v2 alignment: Activities target Studio ownership with W2 pending); 2026-04-19 (EPIC #214 client priority change v2 — pilot-readiness concept scope notes); 2026-04-19 (EPIC #214 Stage 0 — ADR-024 + ADR-025 skeletons + pilot-readiness-deps); 2026-04-19 (EPIC #190 certification rerun evidence); 2026-04-18 (EPIC #190 certification run evidence + checklist); 2026-04-17 (WIKI full-refresh + #103 media closure checklist); 2026-04-17 wiki-patch (epic128 evidence + issue resolution rows)
+Last updated: 2026-04-20 (EPIC #214 Stage 6 autonomous — #213 Flow 2 + Flow 3 + Lighthouse AC-A5 executed on pilot seed; matrix + sign-off stubs published to `docs/qa/pilot/`; partner + QA-lead human sign-off still pending per AC-X4a/b); 2026-04-20 (EPIC #214 Stage 5 W7-b — training onboarding extended with Flows 6/7/8 + cutover checklist Stage map + FAQ expansion); 2026-04-19 (EPIC #214 Stage 2 W7-a — training onboarding ColombiaTours + pilot runbook + cutover checklist); 2026-04-19 (EPIC #214 Stage 1 W1 — matrix refresh pkg+act editable + blog Section P + hotels as-is + Section M booking DEFER; pilot-readiness concept section expanded with matrix/ADR wikilinks); 2026-04-19 (ADR-025 priority-v2 alignment: Activities target Studio ownership with W2 pending); 2026-04-19 (EPIC #214 client priority change v2 — pilot-readiness concept scope notes); 2026-04-19 (EPIC #214 Stage 0 — ADR-024 + ADR-025 skeletons + pilot-readiness-deps); 2026-04-19 (EPIC #190 certification rerun evidence); 2026-04-18 (EPIC #190 certification run evidence + checklist); 2026-04-17 (WIKI full-refresh + #103 media closure checklist); 2026-04-17 wiki-patch (epic128 evidence + issue resolution rows)
 
 ---
 
@@ -132,6 +132,18 @@ Feature requests formalized. Status tracked inline. GitHub Issues = source of tr
 | Wikilink | File | Audience | Purpose |
 |----------|------|----------|---------|
 | [[colombiatours-onboarding]] | [file](./training/colombiatours-onboarding.md) | Partner Rol 2 (ColombiaTours) | Pilot onboarding: Flows 1-8 (mkt / booking-DEFER / layout / SEO / translation / activity Variant A / hotel Variant B handoff / transcreate technical) + FAQ + what-NOT-to-do + cheat-sheet. Spanish-first. Screencasts pending W7-c. |
+
+---
+
+## QA / Pilot sign-off
+
+| Wikilink | File | Purpose |
+|----------|------|---------|
+| [[colombiatours-matrix-2026-04-20]] | [file](./qa/pilot/colombiatours-matrix-2026-04-20.md) | EPIC #214 #213 Flow 2 — 48-row matrix status on pilot seed (pkg/act/hotel/blog × chromium/firefox/mobile-chrome). Deterministic failures + owners. |
+| [[sign-off-2026-04-20]] | [file](./qa/pilot/sign-off-2026-04-20.md) | Stage 6 autonomous sign-off stub (Flow 2 + Flow 3 + Lighthouse AC-A5). Partner + QA-lead human sign-off still pending per AC-X4a/b. |
+| [[matrix-playbook]] | [file](./qa/pilot/matrix-playbook.md) | W6 playbook for matrix visual E2E + Lighthouse. |
+| [[transcreate-playbook]] | [file](./qa/pilot/transcreate-playbook.md) | W5 playbook for transcreate lifecycle (pkg + act + blog). |
+| [[editor-to-render-playbook]] | [file](./qa/pilot/editor-to-render-playbook.md) | W4 playbook for pilot editor→render flows. |
 
 ---
 
@@ -430,6 +442,11 @@ Obsidian resolves `[[ADR-005]]` by filename stem or alias. Claude Code / Codex g
 | `[[studio-editor-parity-audit]]` | `docs/product/studio-editor-parity-audit.md` |
 | `[[schema-parity-audit]]` | `docs/product/schema-parity-audit.md` |
 | `[[e2e-sessions]]` | `.claude/rules/e2e-sessions.md` |
+| `[[colombiatours-matrix-2026-04-20]]` | `docs/qa/pilot/colombiatours-matrix-2026-04-20.md` |
+| `[[sign-off-2026-04-20]]` | `docs/qa/pilot/sign-off-2026-04-20.md` |
+| `[[matrix-playbook]]` | `docs/qa/pilot/matrix-playbook.md` |
+| `[[transcreate-playbook]]` | `docs/qa/pilot/transcreate-playbook.md` |
+| `[[editor-to-render-playbook]]` | `docs/qa/pilot/editor-to-render-playbook.md` |
 | `[[#127]]` | GitHub Issue — Package Detail Conversion v2 (hero chips, WhatsApp CTA) |
 | `[[#165]]` | GitHub Issue — Product Video Field (video_url + hero lightbox) |
 | `[[#171]]` | GitHub Issue — Package Content Population (epic parent F1/F2/F3) |
