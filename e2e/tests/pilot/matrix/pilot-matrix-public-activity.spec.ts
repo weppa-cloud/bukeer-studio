@@ -78,10 +78,14 @@ test.describe('@pilot-w6 Pilot W6 · matrix · activity', () => {
     const act = seed.activities[0];
     test.skip(!act, 'Pilot baseline missing activity');
 
+    // Firefox throws `options.isMobile is not supported in Firefox`
+    // (ffBrowser.js). Omit the chromium-only `isMobile`/`hasTouch` flags for
+    // firefox so the mobile viewport walk still exercises narrow layout
+    // assertions. See Stage 6 Cluster F — Bug F4.
+    const isFirefox = browser.browserType().name() === 'firefox';
     const context = await browser.newContext({
       viewport: { width: 390, height: 844 },
-      isMobile: true,
-      hasTouch: true,
+      ...(isFirefox ? {} : { isMobile: true, hasTouch: true }),
       reducedMotion: 'reduce',
     });
     const page = await context.newPage();
