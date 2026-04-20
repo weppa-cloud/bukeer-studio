@@ -15,6 +15,7 @@ interface StickyCTABarProps {
   whatsappUrl?: string | null;
   phone?: string | null;
   className?: string;
+  sentinelId?: string;
   /** Optional analytics dimensions merged into whatsapp_cta_click / phone_cta_click events. */
   analyticsContext?: Record<string, string | number | boolean | null | undefined>;
 }
@@ -27,9 +28,11 @@ export function StickyCTABar({
   whatsappUrl,
   phone,
   className,
+  sentinelId = 'detail-sticky-sentinel',
   analyticsContext,
 }: StickyCTABarProps) {
   const [isVisible, setIsVisible] = useState(false);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const callHref = useMemo(() => {
     const cleanPhone = (phone ?? '').replace(/[^0-9+]/g, '');
     return cleanPhone ? `tel:${cleanPhone}` : null;
@@ -40,14 +43,38 @@ export function StickyCTABar({
   const uiMessages = getPublicUiMessages('es-CO');
 
   useEffect(() => {
-    const onScroll = () => {
-      setIsVisible(window.scrollY > 200);
-    };
+    if (typeof window === 'undefined') return;
 
+    const media = window.matchMedia('(prefers-reduced-motion: reduce)');
+    setPrefersReducedMotion(media.matches);
+    const onChange = (event: MediaQueryListEvent) => setPrefersReducedMotion(event.matches);
+    media.addEventListener('change', onChange);
+    return () => media.removeEventListener('change', onChange);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const sentinel = document.getElementById(sentinelId);
+
+    if (sentinel && typeof IntersectionObserver !== 'undefined') {
+      const observer = new IntersectionObserver(
+        ([entry]) => {
+          // Sticky bar is visible when the hero sentinel is no longer in viewport.
+          setIsVisible(!entry.isIntersecting);
+        },
+        { threshold: 0, rootMargin: '-64px 0px 0px 0px' }
+      );
+
+      observer.observe(sentinel);
+      return () => observer.disconnect();
+    }
+
+    const onScroll = () => setIsVisible(window.scrollY > 220);
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
-  }, []);
+  }, [sentinelId]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -61,7 +88,7 @@ export function StickyCTABar({
     };
   }, []);
 
-  if (!isVisible || (!whatsappUrl && !callHref)) {
+  if (!whatsappUrl && !callHref) {
     return null;
   }
 
@@ -71,6 +98,8 @@ export function StickyCTABar({
       aria-label={uiMessages.stickyCta.quickActionsAria}
       className={clsx(
         'fixed inset-x-0 bottom-0 z-50 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80',
+        prefersReducedMotion ? '' : 'transition-transform duration-300 ease-out',
+        isVisible ? 'translate-y-0' : 'translate-y-full pointer-events-none',
         className
       )}
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}

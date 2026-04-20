@@ -69,30 +69,43 @@ export function MeetingPointMap({
           )}
           {label && (
             <p className="mt-2 inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm" style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 8%, var(--bg-card))', color: 'var(--text-secondary)' }}>
-              <span className="inline-flex h-2.5 w-2.5 rounded-full" style={{ backgroundColor: 'var(--accent)' }} />
+              <span className="relative inline-flex h-2.5 w-2.5" aria-hidden="true">
+                <span className="absolute inset-0 rounded-full bg-[var(--accent)] opacity-60 motion-safe:animate-ping motion-reduce:animate-none" />
+                <span className="relative inline-flex h-2.5 w-2.5 rounded-full" style={{ backgroundColor: 'var(--accent)' }} />
+              </span>
               {label}
             </p>
           )}
         </div>
       )}
 
-      <RouteMap
-        points={[
-          {
-            city: label ?? 'Meeting point',
-            lat,
-            lng,
-          },
-        ]}
-        className="rounded-2xl overflow-hidden"
-        height={height}
-      />
+      <div className="meeting-point-map-marker-pulse">
+        <RouteMap
+          points={[
+            {
+              city: label ?? 'Meeting point',
+              lat,
+              lng,
+            },
+          ]}
+          className="rounded-2xl overflow-hidden"
+          height={height}
+        />
+      </div>
 
       {meetingPoint.google_place_id && (
         <p className="mt-3 text-xs" style={{ color: 'var(--text-muted)' }}>
           {text('meetingPointGooglePlaceId')} {meetingPoint.google_place_id}
         </p>
       )}
+
+      <style jsx global>{`
+        @media (prefers-reduced-motion: reduce) {
+          [data-testid='section-meeting-point-map'] .meeting-point-map-marker-pulse [class*='animate-[pulse_'] {
+            animation: none !important;
+          }
+        }
+      `}</style>
     </section>
   );
 }

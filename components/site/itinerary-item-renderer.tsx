@@ -8,7 +8,7 @@ import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { ActivityScheduleInline } from '@/components/site/activity-schedule-inline';
 import { HOTEL_AMENITIES_MAX } from '@bukeer/website-contract';
-import type { ScheduleEntry } from '@bukeer/website-contract';
+import type { ScheduleEntry, ScheduleEventType } from '@bukeer/website-contract';
 import { ScheduleEntrySchema } from '@bukeer/website-contract';
 import { z } from 'zod';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
@@ -37,6 +37,8 @@ export interface ItineraryItem {
   flight_number?: string;
   departure?: string;
   arrival?: string;
+  /** V2 typed itinerary model (#256). */
+  event_type?: ScheduleEventType | string;
 }
 
 interface ItineraryItemRendererProps {
@@ -48,6 +50,74 @@ const text = getPublicUiExtraTextGetter('es-CO');
 function parseScheduleData(raw: unknown[]): ScheduleEntry[] {
   const result = z.array(ScheduleEntrySchema).safeParse(raw);
   return result.success ? result.data : [];
+}
+
+const LEGACY_PRODUCT_TYPE_TO_EVENT: Record<string, ScheduleEventType> = {
+  Hoteles: 'lodging',
+  Actividades: 'activity',
+  Transporte: 'transport',
+  Vuelos: 'flight',
+};
+
+function inferEventTypeFromText(textValue: string): ScheduleEventType | null {
+  const normalized = textValue.toLowerCase();
+
+  if (/\b(vuelo|flight|aeropuerto|boarding)\b/.test(normalized)) return 'flight';
+  if (/\b(traslado|transfer|transporte|bus|tren|shuttle)\b/.test(normalized)) return 'transport';
+  if (/\b(desayuno|almuerzo|cena|comida|meal|dinner|lunch|breakfast)\b/.test(normalized)) return 'meal';
+  if (/\b(hotel|hospedaje|alojamiento|check-?in|check-?out|lodging)\b/.test(normalized)) return 'lodging';
+  if (/\b(libre|free time|tiempo libre|descanso)\b/.test(normalized)) return 'free_time';
+  return null;
+}
+
+function resolveEventType(item: ItineraryItem): ScheduleEventType {
+  // Backwards-compatible bridge for one release:
+  // prefer typed `event_type`, then legacy `product_type`, then field/text inference.
+  if (
+    item.event_type === 'transport' ||
+    item.event_type === 'activity' ||
+    item.event_type === 'meal' ||
+    item.event_type === 'lodging' ||
+    item.event_type === 'free_time' ||
+    item.event_type === 'flight'
+  ) {
+    return item.event_type;
+  }
+
+  const legacyType = item.product_type ? LEGACY_PRODUCT_TYPE_TO_EVENT[item.product_type] : undefined;
+  if (legacyType) return legacyType;
+
+  if (item.marketing_carrier || item.flight_number || item.departure || item.arrival) {
+    return 'flight';
+  }
+
+  if (item.from_location || item.to_location || item.duration) {
+    return 'transport';
+  }
+
+  if (item.hotel_slug || typeof item.star_rating === 'number') {
+    return 'lodging';
+  }
+
+  if (Array.isArray(item.schedule_data) && item.schedule_data.length > 0) {
+    return 'activity';
+  }
+
+  const inferred = inferEventTypeFromText(`${item.title ?? ''} ${item.description ?? ''}`);
+  return inferred ?? 'activity';
+}
+
+function eventTypeLabel(eventType: ScheduleEventType): string | null {
+  switch (eventType) {
+    case 'meal':
+      return 'Comida';
+    case 'free_time':
+      return 'Tiempo libre';
+    case 'lodging':
+      return 'Alojamiento';
+    default:
+      return null;
+  }
 }
 
 // --- Hotel Variant ---
@@ -173,9 +243,16 @@ function FlightVariant({ item }: { item: ItineraryItem }) {
 }
 
 // --- Generic Fallback ---
-function GenericVariant({ item }: { item: ItineraryItem }) {
+function GenericVariant({ item, eventType }: { item: ItineraryItem; eventType: ScheduleEventType }) {
+  const badgeLabel = eventTypeLabel(eventType);
+
   return (
     <div className="space-y-1">
+      {badgeLabel && (
+        <Badge variant="secondary" className="w-fit text-[10px] uppercase tracking-wide">
+          {badgeLabel}
+        </Badge>
+      )}
       {item.title && (
         <p className="font-medium leading-snug">{item.title}</p>
       )}
@@ -188,16 +265,36 @@ function GenericVariant({ item }: { item: ItineraryItem }) {
 
 // --- Main Renderer ---
 export function ItineraryItemRenderer({ item }: ItineraryItemRendererProps) {
-  switch (item.product_type ?? '') {
-    case 'Hoteles':
-      return <HotelVariant item={item} />;
-    case 'Actividades':
+  const resolvedEventType = resolveEventType(item);
+
+  switch (resolvedEventType) {
+    case 'lodging':
+      if (item.product_type === 'Hoteles' || item.hotel_slug || typeof item.star_rating === 'number') {
+        return <HotelVariant item={item} />;
+      }
+      return <GenericVariant item={item} eventType={resolvedEventType} />;
+    case 'activity':
       return <ActivityVariant item={item} />;
-    case 'Transporte':
+    case 'transport':
       return <TransportVariant item={item} />;
-    case 'Vuelos':
+    case 'flight':
       return <FlightVariant item={item} />;
+    case 'meal':
+    case 'free_time':
+      return <GenericVariant item={item} eventType={resolvedEventType} />;
     default:
-      return <GenericVariant item={item} />;
+      // Keep existing legacy branch behavior intact if future enum values appear.
+      switch (item.product_type ?? '') {
+        case 'Hoteles':
+          return <HotelVariant item={item} />;
+        case 'Actividades':
+          return <ActivityVariant item={item} />;
+        case 'Transporte':
+          return <TransportVariant item={item} />;
+        case 'Vuelos':
+          return <FlightVariant item={item} />;
+        default:
+          return <GenericVariant item={item} eventType="activity" />;
+      }
   }
 }

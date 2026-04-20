@@ -15,6 +15,12 @@ interface RouteMapProps {
   height?: number;
   onPointClick?: (point: RoutePoint, index: number) => void;
   numberedLabels?: boolean;
+  connectorStyle?: 'solid' | 'dashed';
+  /**
+   * When enabled with dashed connector mode, suppresses map polyline rendering
+   * so we do not mix two route styles in the same widget.
+   */
+  hideMapPolylineWhenDashed?: boolean;
 }
 
 /**
@@ -27,6 +33,8 @@ export function RouteMap({
   height = 400,
   onPointClick,
   numberedLabels = false,
+  connectorStyle = 'solid',
+  hideMapPolylineWhenDashed = false,
 }: RouteMapProps) {
   const markers = useMemo<MapMarker[]>(() => {
     return points.map((point, index) => ({
@@ -44,8 +52,9 @@ export function RouteMap({
 
   const routePath = useMemo<Array<[number, number]> | undefined>(() => {
     if (points.length < 2) return undefined;
+    if (connectorStyle === 'dashed' && hideMapPolylineWhenDashed) return undefined;
     return points.map((point) => [point.lng, point.lat]);
-  }, [points]);
+  }, [connectorStyle, hideMapPolylineWhenDashed, points]);
 
   if (points.length === 0) return null;
 
@@ -80,9 +89,17 @@ export function RouteMap({
               {point.city}
             </span>
             {i < points.length - 1 && (
-              <svg className="w-4 h-4" style={{ color: 'var(--text-muted)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
+              connectorStyle === 'dashed' ? (
+                <span
+                  aria-hidden="true"
+                  className="mx-1 inline-block w-6 border-t border-dashed"
+                  style={{ borderColor: 'var(--text-muted)' }}
+                />
+              ) : (
+                <svg className="w-4 h-4" style={{ color: 'var(--text-muted)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              )
             )}
           </div>
         ))}

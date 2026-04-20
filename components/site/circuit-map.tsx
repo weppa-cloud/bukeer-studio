@@ -108,6 +108,8 @@ export function CircuitMap({
           className="rounded-2xl overflow-hidden touch-pan-y"
           height={360}
           numberedLabels
+          connectorStyle="dashed"
+          hideMapPolylineWhenDashed
           onPointClick={(_point, index) => {
             onPinClick?.(index);
           }}
@@ -129,7 +131,7 @@ export function CircuitMap({
                     type="button"
                     onClick={() => onPinClick?.(index)}
                     aria-current={isActive ? 'step' : undefined}
-                    className={[
+                  className={[
                       'w-full flex items-center gap-3 rounded-xl border px-3 py-2 text-left transition-colors',
                       isActive
                         ? 'border-primary bg-primary/10'
@@ -141,6 +143,13 @@ export function CircuitMap({
                     </span>
                     <span className="text-sm font-medium">{stop.label}</span>
                   </button>
+                  {index < orderedStops.length - 1 ? (
+                    <span
+                      aria-hidden="true"
+                      className="ml-3 mt-2 block h-4 w-0 border-l border-dashed"
+                      style={{ borderColor: 'color-mix(in srgb, var(--border-medium) 75%, transparent)' }}
+                    />
+                  ) : null}
                 </li>
               );
             })}
