@@ -403,31 +403,32 @@ Para 99% de tu operación usas Stream (Flow 5). Manual override es para el equip
 
 Tabla clave: `seo_localized_variants`. Cada fila representa una overlay de un campo traducido para una tupla `(target_entity_type, target_entity_id, target_locale, field)`.
 
-Estados (`status`):
+Estados (`status`) — gated per [[ADR-021]] (no skipping de `draft` → `applied`):
 
 | Estado | Significado | Acción siguiente |
 |--------|-------------|------------------|
-| `draft` | El LLM generó el campo, no revisado. | Revisar en dashboard (Flow 5) → Reviewed |
+| `draft` | El LLM generó el campo, no revisado. | Revisar en dashboard (Flow 5) → marcar `reviewed` |
 | `reviewed` | Un humano aprobó el draft. | Apply para publicar |
-| `applied` | Publicado en `/en/...` (render público). | Ninguna. Drift puede marcarlo `stale`. |
-| `stale` | Contenido base (es-CO) cambió después del apply → re-traducir. | Re-entrar Flow 5 para refrescar |
+| `applied` | Publicado en `/en/...` (render público). | Ninguna. Puede caer en drift (ver 8.3). |
 
-Relación con `seo_transcreation_jobs`: cada apply crea (o actualiza) un `seo_transcreation_jobs` row con el payload completo del LLM. `seo_localized_variants` es la overlay proyectada que el SSR renderiza.
+Cada fila tiene además una flag booleana `drift` (independiente del `status`): cuando `true`, la fila está `applied` pero el contenido base (es-CO) cambió después del apply — UI la etiqueta como "stale" (etiqueta de presentación, no un estado adicional en el enum).
 
-### 8.3 Drift detection (`status='stale'`)
+Relación con `seo_transcreation_jobs`: cada apply crea (o actualiza) un `seo_transcreation_jobs` row con el payload completo del LLM ([[ADR-021]] audit trail). `seo_localized_variants` es la overlay proyectada que el SSR renderiza.
 
-Cuando editas contenido es-CO de un paquete/actividad/blog que ya tiene traducción `applied` en en-US, el sistema marca el variant EN como `stale` ([[ADR-021]] drift policy).
+### 8.3 Drift detection (flag `drift=true`)
+
+Cuando editas contenido es-CO de un paquete/actividad/blog que ya tiene traducción `applied` en en-US, el sistema marca la fila EN con `drift=true` (la UI la muestra como "stale"). Ver [[ADR-021]] drift policy.
 
 **Dónde ves drift:**
-- Dashboard `Coverage` → banner "N items con drift" (top del dashboard).
-- `/dashboard/<websiteId>/ops/reconciliation` → lista de stale items con link al editor.
+- Dashboard Translations → banner superior con contador de items en drift + toggle `translations-dashboard-filter-drift-toggle` para filtrar solo drifted items.
+- `/dashboard/<websiteId>/ops/reconciliation` → lista de items en drift con link al editor.
 - Alertas opcionales en Slack (si el equipo configuró webhook de drift).
 
 **Cómo re-aplicar tras drift:**
-1. Abrir el item desde el drift banner (click → va directo al translation editor).
+1. Filtrar dashboard por drift (toggle `Drift: on`) o abrir el item desde el drift banner (click → va directo al translation editor).
 2. Disparar transcreate de nuevo (mismo Flow 5.a/b/c).
-3. El nuevo draft refleja los cambios es-CO; revisar → Reviewed → Apply.
-4. Variant vuelve a `applied` (deja de estar `stale`).
+3. El nuevo draft refleja los cambios es-CO; revisar → `reviewed` → Apply.
+4. Variant vuelve a `applied` con `drift=false` (deja de estar marcado como "stale").
 
 ### 8.4 Bulk review (`/api/seo/translations/bulk`)
 
@@ -664,7 +665,7 @@ Esta sección es vinculante. Hacer cualquiera de estas cosas puede romper el sit
 | Traducción aplicada pero público en español | [FAQ render](#traducción-parece-no-actualizarse) — distinguir coverage cache vs render cache |
 | Necesito editar una actividad (marketing/contenido) | [Flow 6](#flow-6--editar-una-actividad-variant-a--studio-native) — Variant A Studio native |
 | Necesito cambiar marketing de un hotel | [Flow 7](#flow-7--hotel-flutter-handoff-variant-b--read-only-studio) — handoff Slack al equipo Flutter |
-| Drift alert sobre traducción stale | [Flow 8.3](#83-drift-detection-statusstale) — re-disparar transcreate del item |
+| Drift alert sobre traducción stale | [Flow 8.3](#83-drift-detection-flag-drifttrue) — re-disparar transcreate del item |
 | Quiero aplicar varias traducciones en batch | [Flow 8.4](#84-bulk-review-apiseotranslationsbulk) — bulk atómico |
 | Confundido entre Variant A y Variant B | [FAQ Variant](#variant-a-vs-variant-b--cómo-distinguirlas) — tabla de expectativas |
 
