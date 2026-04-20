@@ -48,14 +48,14 @@ export class ContentEditorPom {
     });
     const pressed = await toggle.getAttribute('aria-pressed');
     if (pressed !== 'true') await toggle.click();
-    await expect(this.heroSection().getByLabel('Título')).toBeVisible();
+    await expect(this.heroSection().getByLabel('Título', { exact: true })).toBeVisible();
   }
 
   async saveHeroOverride(next: { title?: string; subtitle?: string; backgroundImage?: string }): Promise<void> {
     await this.enableHeroOverride();
     const section = this.heroSection();
     if (typeof next.title === 'string') {
-      await section.getByLabel('Título').fill(next.title);
+      await section.getByLabel('Título', { exact: true }).fill(next.title);
     }
     if (typeof next.subtitle === 'string') {
       await section.getByLabel('Subtítulo').fill(next.subtitle);
@@ -64,7 +64,7 @@ export class ContentEditorPom {
       await section.getByLabel('URL de imagen de hero').fill(next.backgroundImage);
     }
     await section.getByRole('button', { name: /^Guardar$/ }).click();
-    await expect(section.getByRole('status', { name: /Guardado/i })).toBeVisible({
+    await expect(section.locator('[role="status"]', { hasText: /Guardado/i })).toBeVisible({
       timeout: 15_000,
     });
   }
@@ -76,7 +76,7 @@ export class ContentEditorPom {
       await section.getByLabel(/Título del video/).fill(caption);
     }
     await section.getByRole('button', { name: /^Guardar$/ }).click();
-    await expect(section.getByRole('status', { name: /Guardado/i })).toBeVisible({
+    await expect(section.locator('[role="status"]', { hasText: /Guardado/i })).toBeVisible({
       timeout: 15_000,
     });
   }

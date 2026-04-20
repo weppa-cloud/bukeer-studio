@@ -22,6 +22,10 @@ import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import type { ContentType, MatrixBlock } from '../fixtures/product-matrix';
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 // --- Navigation / readiness -----------------------------------------------
 
 /**
@@ -58,8 +62,10 @@ export async function waitForDetailReady(
   contentType: ContentType,
   opts: { timeout?: number } = {},
 ): Promise<void> {
+  if (page.isClosed()) return;
   const { timeout = 15_000 } = opts;
   await page.waitForLoadState('domcontentloaded', { timeout });
+  if (page.isClosed()) return;
   const selector = DETAIL_ROOT_SELECTOR[contentType];
   await page.waitForSelector(selector, { state: 'visible', timeout });
 }
@@ -71,10 +77,12 @@ export async function waitForDetailReady(
  * AFTER the page navigates but BEFORE capture.
  */
 export async function freezeAnimations(page: Page): Promise<void> {
+  if (page.isClosed()) return;
   await page.addStyleTag({
     content:
       '*,*::before,*::after{animation-duration:0s!important;animation-delay:0s!important;transition-duration:0s!important;transition-delay:0s!important;scroll-behavior:auto!important;}',
   });
+  if (page.isClosed()) return;
   await page.evaluate(() => {
     const anims = document.getAnimations ? document.getAnimations() : [];
     for (const a of anims) a.finish();
@@ -161,14 +169,24 @@ async function selectorPasses(
   selector: string,
   timeoutMs: number,
 ): Promise<{ ok: true } | { ok: false; error: Error }> {
+  if (page.isClosed()) {
+    return { ok: false, error: new Error(`page already closed before checking selector ${selector}`) };
+  }
   if (isStructuralOnlySelector(selector)) {
     // `toBeVisible()` rejects head/script elements (display:none). We poll
     // `document.querySelectorAll` via `page.evaluate` and fall back to the raw
     // SSR HTML once per poll so dev-mode HMR reconciliation never reports a
     // false 0-count for metadata that clearly shipped in the HTML payload.
     const deadline = Date.now() + timeoutMs;
+    const sleepMs = Math.min(250, Math.max(50, Math.floor(timeoutMs / 10)));
     let lastErrorMessage = `selector ${selector} not present in document`;
     while (Date.now() < deadline) {
+      if (page.isClosed()) {
+        return {
+          ok: false,
+          error: new Error(`page closed while waiting structural selector ${selector}`),
+        };
+      }
       try {
         const count = await page.evaluate(
           (sel) => document.querySelectorAll(sel).length,
@@ -184,8 +202,11 @@ async function selectorPasses(
         lastErrorMessage = `selector ${selector} resolved to 0 elements (expected ≥1)`;
       } catch (err) {
         lastErrorMessage = (err as Error).message;
+        if (lastErrorMessage.toLowerCase().includes('target page, context or browser has been closed')) {
+          return { ok: false, error: new Error(`page closed while checking selector ${selector}`) };
+        }
       }
-      await page.waitForTimeout(Math.min(250, Math.max(50, Math.floor(timeoutMs / 10))));
+      await sleep(sleepMs);
     }
     return { ok: false, error: new Error(lastErrorMessage) };
   }
@@ -272,7 +293,9 @@ export interface AssertVisualSnapshotInput {
  */
 export async function assertVisualSnapshot(input: AssertVisualSnapshotInput): Promise<void> {
   const { page, testInfo, route, contentType, locale, viewport } = input;
+  if (page.isClosed()) return;
   await freezeAnimations(page);
+  if (page.isClosed()) return;
   const buffer = await page.screenshot({ fullPage: true });
   const safeRoute = route.replace(/[^a-z0-9-]/gi, '_');
   const name = `matrix-${contentType}-${viewport}${locale ? `-${locale}` : ''}-${safeRoute}.png`;

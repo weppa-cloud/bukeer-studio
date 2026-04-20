@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 import { createLogger } from '@/lib/logger';
 import { apiSuccess, apiError, apiUnauthorized, apiValidationError, apiInternalError } from '@/lib/api';
+import { invalidatePublicDataCache } from '@/lib/supabase/get-pages';
 
 const log = createLogger('revalidate');
 
@@ -112,6 +113,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 5. Perform revalidation
+    invalidatePublicDataCache(subdomain);
     const sitePath = `/site/${subdomain}`;
     const revalidatedPaths: string[] = [sitePath];
     revalidatePath(sitePath);

@@ -47,6 +47,7 @@ interface SortableTileProps {
   onAltChange: (alt: string) => void;
   onCaptionChange: (caption: string) => void;
   onRemove: () => void;
+  onKeyboardMove: (delta: number) => void;
   disabled: boolean;
 }
 
@@ -56,6 +57,7 @@ function SortableTile({
   onAltChange,
   onCaptionChange,
   onRemove,
+  onKeyboardMove,
   disabled,
 }: SortableTileProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -69,6 +71,9 @@ function SortableTile({
   };
 
   const aiGenerated = Boolean(item.alt && item.alt.length > 0);
+  const sortableOnKeyDown = listeners?.onKeyDown as
+    | ((event: React.KeyboardEvent<HTMLButtonElement>) => void)
+    | undefined;
 
   return (
     <li
@@ -85,6 +90,18 @@ function SortableTile({
           disabled={disabled}
           {...attributes}
           {...listeners}
+          onKeyDown={(event) => {
+            sortableOnKeyDown?.(event);
+            if (disabled || event.defaultPrevented) return;
+            if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+              event.preventDefault();
+              onKeyboardMove(1);
+            }
+            if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+              event.preventDefault();
+              onKeyboardMove(-1);
+            }
+          }}
         >
           ⋮⋮
         </button>
@@ -340,6 +357,13 @@ export function GalleryCurator({
                 onAltChange={(alt) => updateAlt(idx, alt)}
                 onCaptionChange={(caption) => updateCaption(idx, caption)}
                 onRemove={() => removeItem(idx)}
+                onKeyboardMove={(delta) =>
+                  setDraft((curr) => {
+                    const nextIdx = idx + delta;
+                    if (nextIdx < 0 || nextIdx >= curr.length) return curr;
+                    return arrayMove(curr, idx, nextIdx);
+                  })
+                }
                 disabled={uploading || status === 'saving'}
               />
             ))}

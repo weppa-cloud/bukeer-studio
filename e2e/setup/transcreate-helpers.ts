@@ -58,14 +58,14 @@ export const CONTENT_TYPES: Record<PilotContentType, ContentTypeDescriptor> = {
     id: 'pkg',
     pageType: 'package',
     esSegment: 'paquetes',
-    enSegment: 'paquetes',
+    enSegment: 'packages',
     label: 'Package',
   },
   act: {
     id: 'act',
     pageType: 'activity',
     esSegment: 'actividades',
-    enSegment: 'actividades',
+    enSegment: 'activities',
     label: 'Activity',
   },
   blog: {

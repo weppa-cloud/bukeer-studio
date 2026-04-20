@@ -118,13 +118,11 @@ test.describe('GalleryCurator — E2E', () => {
     await tiles.nth(0).locator('input[id^="gallery-alt-"]').fill('alt-first');
     await tiles.nth(1).locator('input[id^="gallery-alt-"]').fill('alt-second');
 
-    // Keyboard DnD: focus drag handle, Space to pick up, Arrow to move, Space to drop.
+    // Keyboard reorder via drag handle arrows.
     const firstTile = tiles.first();
     const handle = firstTile.getByRole('button', { name: /Reordenar imagen 1/ });
     await handle.focus();
-    await page.keyboard.press('Space');
     await page.keyboard.press('ArrowDown');
-    await page.keyboard.press('Space');
 
     await expect(
       gallery

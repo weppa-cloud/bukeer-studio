@@ -13,7 +13,7 @@
  *   - Flujo 10: Backlog Kanban 3 columnas + Scorecard
  */
 
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 import { test, expect } from '@playwright/test';
 import { getFirstWebsiteId, seedWave2Fixtures } from './helpers';
 
@@ -32,9 +32,24 @@ async function getWebsiteId(page: Parameters<typeof getFirstWebsiteId>[0]): Prom
   return getFirstWebsiteId(page);
 }
 
+async function openAnalyticsTab(page: Page, name: string | RegExp, readyState?: Locator) {
+  const tab = page.getByRole('tab', { name }).first();
+  await expect(tab).toBeVisible({ timeout: 15000 });
+  if ((await tab.getAttribute('aria-selected')) !== 'true') {
+    await tab.click();
+  }
+  await expect(tab).toHaveAttribute('aria-selected', 'true', { timeout: 10000 });
+  if (readyState) {
+    await expect(readyState).toBeVisible({ timeout: 15000 });
+  }
+}
+
 async function openKeywordsTab(page: Page) {
-  await page.getByRole('button', { name: /Keywords|Palabras/i }).first().click();
-  await page.waitForLoadState('domcontentloaded');
+  await openAnalyticsTab(
+    page,
+    /Keywords|Palabras/i,
+    page.getByText(/Palabras clave rastreadas desde Google Search Console|Keyword Research \(locale-native\)/i).first()
+  );
 }
 
 async function ensureKeywordResearchPanel(page: Page): Promise<boolean> {
@@ -202,11 +217,15 @@ test.describe('Flujo 1 — Health Check PageSpeed @interactive', () => {
     const websiteId = await getWebsiteId(page);
     await page.goto(`/dashboard/${websiteId}/analytics`);
     await page.waitForLoadState('domcontentloaded');
+    await expect(page.getByRole('heading', { name: 'Analytics' })).toBeVisible();
 
-    await page.getByRole('button', { name: /Health|Salud técnica/i }).click();
-    await page.waitForLoadState('domcontentloaded');
+    await openAnalyticsTab(
+      page,
+      /Health|Salud técnica/i,
+      page.getByRole('heading', { name: /Auditoria PageSpeed/i }).first()
+    );
 
-    const auditBtn = page.getByRole('button', { name: /Auditar|Run Audit|PageSpeed|Audit/i }).first();
+    const auditBtn = page.getByRole('button', { name: /Auditar paginas|Auditar|Run Audit|PageSpeed|Audit/i }).first();
     const count = await auditBtn.count();
     if (count === 0) {
       test.skip(true, 'No hay acción de auditoría disponible en este entorno');

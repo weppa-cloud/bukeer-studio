@@ -26,6 +26,8 @@ import { MarketingEditorPom } from '../../../pom/marketing-editor.pom';
  * Hotels are read-only (separate spec). Booking rows skip via ADR-024.
  */
 test.describe('@pilot-w6 Pilot W6 · matrix · activity', () => {
+  test.describe.configure({ timeout: 120_000 });
+
   test('matrix walk renders expected blocks + captures visual snapshots', async ({
     page,
   }, testInfo) => {

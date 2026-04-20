@@ -46,7 +46,7 @@ export class MarketingEditorPom {
     await textarea.fill('');
     await textarea.fill(next);
     await section.getByRole('button', { name: /^Guardar$/ }).click();
-    await expect(section.getByRole('status', { name: /Guardado/i })).toBeVisible({
+    await expect(section.locator('[role="status"]', { hasText: /Guardado/i })).toBeVisible({
       timeout: 15_000,
     });
   }
@@ -70,7 +70,7 @@ export class MarketingEditorPom {
     }
 
     await section.getByRole('button', { name: /^Guardar$/ }).click();
-    await expect(section.getByRole('status', { name: /Guardado/i })).toBeVisible({
+    await expect(section.locator('[role="status"]', { hasText: /Guardado/i })).toBeVisible({
       timeout: 15_000,
     });
   }

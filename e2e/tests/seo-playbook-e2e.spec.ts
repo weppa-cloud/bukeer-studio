@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Locator, type Page } from '@playwright/test';
 import { gotoWebsiteSection, getFirstWebsiteId } from './helpers';
 
 // All tests in this suite target a single websiteId.
@@ -28,6 +28,22 @@ test.describe('SEO Playbook v2.0 — Smoke Tests', () => {
     return websiteId;
   }
 
+  function analyticsTab(page: Page, name: string | RegExp) {
+    return page.getByRole('tab', { name }).first();
+  }
+
+  async function openAnalyticsTab(page: Page, name: string | RegExp, readyState?: Locator) {
+    const tab = analyticsTab(page, name);
+    await expect(tab).toBeVisible({ timeout: 15_000 });
+    if ((await tab.getAttribute('aria-selected')) !== 'true') {
+      await tab.click();
+    }
+    await expect(tab).toHaveAttribute('aria-selected', 'true', { timeout: 10_000 });
+    if (readyState) {
+      await expect(readyState).toBeVisible({ timeout: 15_000 });
+    }
+  }
+
   // ═══════════════════════════════════════════════════════════════
   // GROUP 1: Analytics Dashboard tabs
   // ═══════════════════════════════════════════════════════════════
@@ -37,8 +53,11 @@ test.describe('SEO Playbook v2.0 — Smoke Tests', () => {
       await gotoSection(page, 'analytics');
       await expect(page.getByRole('heading', { name: 'Analytics' })).toBeVisible();
 
-      // Tab bar must be present
-      await expect(page.getByRole('button', { name: 'Overview' })).toBeVisible();
+      await openAnalyticsTab(
+        page,
+        /^Overview$/,
+        page.locator('div.studio-card p').filter({ hasText: /^Sessions$/ }).first()
+      );
 
       // Overview stat cards
       await expect(page.locator('div.studio-card p').filter({ hasText: /^Sessions$/ }).first()).toBeVisible();
@@ -54,8 +73,11 @@ test.describe('SEO Playbook v2.0 — Smoke Tests', () => {
       await gotoSection(page, 'analytics');
       await expect(page.getByRole('heading', { name: 'Analytics' })).toBeVisible();
 
-      await page.getByRole('button', { name: 'Keywords' }).click();
-      await page.waitForLoadState('domcontentloaded');
+      await openAnalyticsTab(
+        page,
+        /^Keywords$/,
+        page.getByRole('columnheader', { name: 'Keyword' }).first()
+      );
 
       // Table columns (stable signal across browsers)
       await expect(page.getByRole('columnheader', { name: 'Keyword' }).first()).toBeVisible();
@@ -70,6 +92,7 @@ test.describe('SEO Playbook v2.0 — Smoke Tests', () => {
       const websiteId = WEBSITE_ID_OVERRIDE || await getFirstWebsiteId(page);
       await page.goto(`/dashboard/${websiteId}/analytics?tab=keywords`);
       await expect(page.getByRole('heading', { name: 'Analytics' })).toBeVisible();
+      await expect(analyticsTab(page, /^Keywords$/)).toHaveAttribute('aria-selected', 'true', { timeout: 10_000 });
 
       await expect(page.getByText('Palabras clave rastreadas desde Google Search Console').first()).toBeVisible();
       await expect(page.getByRole('heading', { name: 'Keyword Research (locale-native)' })).toBeVisible();
@@ -79,8 +102,11 @@ test.describe('SEO Playbook v2.0 — Smoke Tests', () => {
       await gotoSection(page, 'analytics');
       await page.waitForLoadState('domcontentloaded');
 
-      await page.getByRole('button', { name: 'Competitors' }).click();
-      await page.waitForLoadState('domcontentloaded');
+      await openAnalyticsTab(
+        page,
+        /^Competitors$/,
+        page.getByRole('columnheader', { name: 'Domain' }).first()
+      );
 
       // Table columns
       await expect(page.getByRole('columnheader', { name: 'Domain' })).toBeVisible();
@@ -92,8 +118,11 @@ test.describe('SEO Playbook v2.0 — Smoke Tests', () => {
       await gotoSection(page, 'analytics');
       await page.waitForLoadState('domcontentloaded');
 
-      await page.getByRole('button', { name: 'Health' }).click();
-      await page.waitForLoadState('domcontentloaded');
+      await openAnalyticsTab(
+        page,
+        /^Health$/,
+        page.getByRole('heading', { name: 'Auditoria PageSpeed' }).first()
+      );
 
       // Technical audit section
       await expect(page.getByRole('heading', { name: 'Auditoria PageSpeed' })).toBeVisible();
@@ -106,8 +135,11 @@ test.describe('SEO Playbook v2.0 — Smoke Tests', () => {
       await gotoSection(page, 'analytics');
       await page.waitForLoadState('domcontentloaded');
 
-      await page.getByRole('button', { name: 'Backlinks' }).click();
-      await page.waitForLoadState('domcontentloaded');
+      await openAnalyticsTab(
+        page,
+        /^Backlinks$/,
+        page.getByRole('heading', { name: 'Resumen de Backlinks' }).first()
+      );
 
       // The Backlinks dashboard renders a heading or summary text
       await expect(page.getByRole('heading', { name: 'Resumen de Backlinks' })).toBeVisible();
@@ -117,8 +149,11 @@ test.describe('SEO Playbook v2.0 — Smoke Tests', () => {
       await gotoSection(page, 'analytics');
       await page.waitForLoadState('domcontentloaded');
 
-      await page.getByRole('button', { name: 'AI Visibility' }).click();
-      await page.waitForLoadState('domcontentloaded');
+      await openAnalyticsTab(
+        page,
+        /^AI Visibility$/,
+        page.getByRole('heading', { name: /Presencia en AI Overviews de Google/i }).first()
+      );
 
       // Assert a deterministic heading inside the AI Visibility panel.
       await expect(page.getByRole('heading', { name: /Presencia en AI Overviews de Google/i })).toBeVisible();
@@ -128,9 +163,7 @@ test.describe('SEO Playbook v2.0 — Smoke Tests', () => {
       await gotoSection(page, 'analytics');
       await page.waitForLoadState('domcontentloaded');
 
-      // #226.A — StudioTabs renders native <button role="tab">; explicit ARIA role wins.
-      await page.getByRole('tab', { name: 'Config', exact: true }).click();
-      await page.waitForLoadState('domcontentloaded');
+      await openAnalyticsTab(page, /^Config$/, page.getByText('Google Integrations'));
 
       // Google Integrations panel
       await expect(page.getByText('Google Integrations')).toBeVisible();
@@ -245,8 +278,7 @@ test.describe('SEO Playbook v2.0 — Smoke Tests', () => {
       await gotoSection(page, 'analytics');
       await page.waitForLoadState('domcontentloaded');
 
-      await page.getByRole('button', { name: 'Keywords' }).click();
-      await page.waitForLoadState('domcontentloaded');
+      await openAnalyticsTab(page, /^Keywords$/, page.getByRole('button', { name: /Ver Arquitectura/ }).first());
 
       await expect(page.getByRole('button', { name: /Ver Arquitectura/ })).toBeVisible();
     });
@@ -332,11 +364,11 @@ test.describe('SEO Playbook v2.0 — Smoke Tests', () => {
       await openSeoButton.click();
       await page.waitForLoadState('domcontentloaded');
 
-      await expect(page.getByRole('button', { name: 'Meta & Keywords' })).toBeVisible();
-      await expect(page.getByRole('button', { name: 'Keyword Research' })).toBeVisible();
-      await expect(page.getByRole('button', { name: 'Content Audit' })).toBeVisible();
-      await expect(page.getByRole('button', { name: 'Technical' })).toBeVisible();
-      await expect(page.getByRole('button', { name: 'Preview' })).toBeVisible();
+      await expect(page.getByRole('tab', { name: 'Meta & Keywords' })).toBeVisible();
+      await expect(page.getByRole('tab', { name: 'Keyword Research' })).toBeVisible();
+      await expect(page.getByRole('tab', { name: 'Content Audit' })).toBeVisible();
+      await expect(page.getByRole('tab', { name: 'Technical' })).toBeVisible();
+      await expect(page.getByRole('tab', { name: 'Preview' })).toBeVisible();
     });
 
     test('locale pills render in item detail header when accessible @smoke', async ({ page }) => {

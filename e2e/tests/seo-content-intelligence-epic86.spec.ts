@@ -294,9 +294,10 @@ test.describe('EPIC #86 - SEO Content Intelligence', () => {
     await gotoWebsiteSection(page, 'analytics');
 
     await expect(page.getByRole('heading', { name: 'Analytics' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Content Intelligence' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Keywords' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Clusters' })).toBeVisible();
+    const tablist = page.getByRole('tablist');
+    await expect(tablist.getByRole('tab', { name: 'Content Intelligence' })).toBeVisible();
+    await expect(tablist.getByRole('tab', { name: 'Keywords' })).toBeVisible();
+    await expect(tablist.getByRole('tab', { name: 'Clusters' })).toBeVisible();
   });
 
   test('content intelligence tab renders audit controls', async ({ page }) => {
@@ -304,7 +305,8 @@ test.describe('EPIC #86 - SEO Content Intelligence', () => {
     await page.goto(`/dashboard/${websiteId}/analytics?tab=content-intelligence`);
     await page.waitForLoadState('domcontentloaded');
 
-    await expect(page.getByRole('button', { name: 'Content Intelligence' })).toHaveClass(/studio-tab-active/);
+    const contentIntelligenceTab = page.getByRole('tab', { name: 'Content Intelligence' });
+    await expect(contentIntelligenceTab).toHaveAttribute('aria-selected', 'true');
     await expect(page.locator('input[value="es-CO"]').first()).toBeVisible();
     await expect(page.getByText('Decision-grade only (live + authoritative)').first()).toBeVisible();
     await expect(page.locator('select').first()).toBeVisible();
@@ -470,37 +472,37 @@ test.describe('EPIC #86 - SEO Content Intelligence', () => {
     await expect(page.getByRole('heading', { name: 'Analytics' })).toBeVisible();
     await shot('01-analytics-overview.png');
 
-    await page.getByRole('button', { name: 'Content Intelligence' }).click();
+    await page.getByRole('tab', { name: 'Content Intelligence' }).click();
     await expect(page.getByText('Decision-grade only (live + authoritative)').first()).toBeVisible();
     await shot('02-content-intelligence-audit.png');
 
-    await page.getByRole('button', { name: 'Keywords' }).click();
+    await page.getByRole('tab', { name: 'Keywords' }).click();
     await expect(page.getByText('Keyword Research (locale-native)')).toBeVisible();
     await shot('03-keywords-research.png');
 
-    await page.getByRole('button', { name: 'Clusters' }).click();
+    await page.getByRole('tab', { name: 'Clusters' }).click();
     await expect(page.getByPlaceholder('Cluster name')).toBeVisible();
     await shot('04-clusters-board.png');
 
     await gotoWithRetry(page, `/dashboard/${websiteId}/seo/package/${packageFixture.id}`);
     await expect(page.getByRole('heading', { name: packageFixture.name ?? '' })).toBeVisible();
 
-    await page.getByRole('button', { name: 'Brief' }).click();
+    await page.getByRole('tab', { name: 'Brief' }).click();
     await expect(page.getByRole('button', { name: 'Create Draft' })).toBeVisible();
     await shot('05-package-brief.png');
 
-    await page.getByRole('button', { name: 'Optimize' }).click();
+    await page.getByRole('tab', { name: 'Optimize' }).click();
     await expect(page.getByText('Guardrail activo: `package/activity` solo permite SEO layer (title/description/keyword + intro/highlights/faq).')).toBeVisible();
     await shot('06-package-optimize-guardrail.png');
 
     await gotoWithRetry(page, `/dashboard/${websiteId}/seo/${translatableFixture.type}/${translatableFixture.id}`);
     await expect(page.getByRole('heading', { name: translatableFixture.label })).toBeVisible();
 
-    await page.getByRole('button', { name: 'Translate' }).click();
+    await page.getByRole('tab', { name: 'Translate' }).click();
     await expect(page.getByPlaceholder('Search target content by title or slug')).toBeVisible();
     await shot('07-transcreate-translate.png');
 
-    await page.getByRole('button', { name: 'Track' }).click();
+    await page.getByRole('tab', { name: 'Track' }).click();
     await expect(page.getByRole('button', { name: 'Load Track' })).toBeVisible();
     await shot('08-transcreate-track.png');
 

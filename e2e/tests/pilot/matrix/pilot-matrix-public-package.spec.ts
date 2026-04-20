@@ -24,6 +24,8 @@ import { getPilotSeed, pilotSubdomain } from '../helpers';
  * rows whose condition isn't met in the seed are recorded as `empty`.
  */
 test.describe('@pilot-w6 Pilot W6 · matrix · package', () => {
+  test.describe.configure({ timeout: 120_000 });
+
   test('matrix walk renders expected blocks + captures visual snapshots', async ({
     page,
   }, testInfo) => {

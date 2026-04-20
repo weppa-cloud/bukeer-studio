@@ -29,12 +29,39 @@ export type {
 // Create a Supabase client for server-side data fetching
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const supabaseService = supabaseServiceKey
+  ? createClient(supabaseUrl, supabaseServiceKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    })
+  : null;
+const ENABLE_IN_MEMORY_CACHE = process.env.NODE_ENV === 'production';
 const PRODUCT_PAGE_CACHE_TTL_MS = Number(process.env.PRODUCT_PAGE_CACHE_TTL_MS || 5 * 60 * 1000);
 const CATEGORY_PRODUCTS_CACHE_TTL_MS = Number(process.env.CATEGORY_PRODUCTS_CACHE_TTL_MS || 2 * 60 * 1000);
 const productPageCache = new Map<string, { value: ProductPageData; expiresAt: number }>();
 const categoryProductsCache = new Map<string, { value: CategoryProducts; expiresAt: number }>();
+
+/**
+ * Manual in-memory caches here are independent from Next ISR caches.
+ * Revalidation flows must explicitly clear these entries to avoid stale reads.
+ */
+export function invalidatePublicDataCache(subdomain: string): void {
+  const prefix = `${subdomain.toLowerCase()}::`;
+
+  for (const key of productPageCache.keys()) {
+    if (key.startsWith(prefix)) {
+      productPageCache.delete(key);
+    }
+  }
+
+  for (const key of categoryProductsCache.keys()) {
+    if (key.startsWith(prefix)) {
+      categoryProductsCache.delete(key);
+    }
+  }
+}
 
 function logProductV2ParseWarning(
   scope: string,
@@ -47,6 +74,12 @@ function logProductV2ParseWarning(
     totalIssues: issues.length,
     payloadType: Array.isArray(payload) ? 'array' : typeof payload,
   });
+}
+
+function asStringArray(value: unknown): string[] | null {
+  if (!Array.isArray(value)) return null;
+  const rows = value.filter((item): item is string => typeof item === 'string');
+  return rows;
 }
 
 /**
@@ -84,9 +117,11 @@ export async function getProductPage(
 ): Promise<ProductPageData | null> {
   try {
     const cacheKey = `${subdomain.toLowerCase()}::${productType.toLowerCase()}::${productSlug.toLowerCase()}`;
-    const cached = productPageCache.get(cacheKey);
-    if (cached && cached.expiresAt > Date.now()) {
-      return cached.value;
+    if (ENABLE_IN_MEMORY_CACHE) {
+      const cached = productPageCache.get(cacheKey);
+      if (cached && cached.expiresAt > Date.now()) {
+        return cached.value;
+      }
     }
 
     const { data, error } = await supabase.rpc('get_website_product_page', {
@@ -120,6 +155,73 @@ export async function getProductPage(
           : (data.product as ProductData),
         page: data.page as ProductPageCustomization | undefined,
       };
+    }
+
+    if (productType === 'package' && result.product) {
+      const product = result.product as ProductData & {
+        program_inclusions?: string[] | null;
+        program_exclusions?: string[] | null;
+        program_gallery?: string[] | null;
+        program_highlights?: string[] | null;
+        video_url?: string | null;
+        video_caption?: string | null;
+        social_image?: string | null;
+      };
+
+      // Package SSR RPC still misses some kit-origin marketing fields on certain
+      // paths. Overlay `package_kits` values when resolvable by itinerary link.
+      try {
+        const packageReader = supabaseService ?? supabase;
+        const byItinerary = await packageReader
+          .from('package_kits')
+          .select(
+            'id, description, program_highlights, program_inclusions, program_exclusions, program_gallery, cover_image_url, video_url, video_caption',
+          )
+          .eq('source_itinerary_id', product.id)
+          .maybeSingle();
+
+        let kit = byItinerary.data;
+        if ((!kit || byItinerary.error) && product.id) {
+          const byId = await packageReader
+            .from('package_kits')
+            .select(
+              'id, description, program_highlights, program_inclusions, program_exclusions, program_gallery, cover_image_url, video_url, video_caption',
+            )
+            .eq('id', product.id)
+            .maybeSingle();
+          if (!byId.error) kit = byId.data;
+        }
+
+        if (kit) {
+          if (typeof kit.description === 'string') {
+            product.description = kit.description;
+          }
+
+          const highlights = asStringArray(kit.program_highlights);
+          if (highlights) product.program_highlights = highlights;
+
+          const inclusions = asStringArray(kit.program_inclusions);
+          if (inclusions) product.program_inclusions = inclusions;
+
+          const exclusions = asStringArray(kit.program_exclusions);
+          if (exclusions) product.program_exclusions = exclusions;
+
+          const gallery = asStringArray(kit.program_gallery);
+          if (gallery) product.program_gallery = gallery;
+
+          if (typeof kit.video_url === 'string' || kit.video_url === null) {
+            product.video_url = kit.video_url;
+          }
+          if (typeof kit.video_caption === 'string' || kit.video_caption === null) {
+            product.video_caption = kit.video_caption;
+          }
+          if (!product.social_image && typeof kit.cover_image_url === 'string') {
+            product.social_image = kit.cover_image_url;
+          }
+        }
+      } catch {
+        // Keep the base RPC payload if kit overlay lookup is unavailable.
+      }
     }
 
     // Gate B — F1 layer (#172): for packages, fetch aggregated inclusions/exclusions/gallery
@@ -161,10 +263,12 @@ export async function getProductPage(
       }
     }
 
-    productPageCache.set(cacheKey, {
-      value: result,
-      expiresAt: Date.now() + PRODUCT_PAGE_CACHE_TTL_MS,
-    });
+    if (ENABLE_IN_MEMORY_CACHE) {
+      productPageCache.set(cacheKey, {
+        value: result,
+        expiresAt: Date.now() + PRODUCT_PAGE_CACHE_TTL_MS,
+      });
+    }
 
     return result;
   } catch (e) {
@@ -385,9 +489,11 @@ export async function getCategoryProducts(
       String(options.offset || 0),
       (options.search || '').toLowerCase(),
     ].join('::');
-    const cached = categoryProductsCache.get(cacheKey);
-    if (cached && cached.expiresAt > Date.now()) {
-      return cached.value;
+    if (ENABLE_IN_MEMORY_CACHE) {
+      const cached = categoryProductsCache.get(cacheKey);
+      if (cached && cached.expiresAt > Date.now()) {
+        return cached.value;
+      }
     }
 
     const { data, error } = await supabase.rpc('get_website_category_products', {
@@ -418,10 +524,12 @@ export async function getCategoryProducts(
         items: parsed.data.items as ProductData[],
         total: Number(parsed.data.total),
       };
-      categoryProductsCache.set(cacheKey, {
-        value: result,
-        expiresAt: Date.now() + CATEGORY_PRODUCTS_CACHE_TTL_MS,
-      });
+      if (ENABLE_IN_MEMORY_CACHE) {
+        categoryProductsCache.set(cacheKey, {
+          value: result,
+          expiresAt: Date.now() + CATEGORY_PRODUCTS_CACHE_TTL_MS,
+        });
+      }
       return result;
     }
 
@@ -436,10 +544,12 @@ export async function getCategoryProducts(
       : Number(payload.total) || 0;
 
     const result = { items, total };
-    categoryProductsCache.set(cacheKey, {
-      value: result,
-      expiresAt: Date.now() + CATEGORY_PRODUCTS_CACHE_TTL_MS,
-    });
+    if (ENABLE_IN_MEMORY_CACHE) {
+      categoryProductsCache.set(cacheKey, {
+        value: result,
+        expiresAt: Date.now() + CATEGORY_PRODUCTS_CACHE_TTL_MS,
+      });
+    }
     return result;
   } catch (e) {
     console.error('[getCategoryProducts] Exception:', e);
