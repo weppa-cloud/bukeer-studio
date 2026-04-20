@@ -124,13 +124,13 @@ function SectionHeading({ title, subtitle, locale }: { title: string; subtitle?:
 export function getDifficultyStyle(difficulty: string): { bg: string; text: string } {
   const normalized = difficulty.toLowerCase().trim();
   if (normalized === 'facil' || normalized === 'fácil' || normalized === 'easy') {
-    return { bg: 'rgb(16 185 129 / 0.9)', text: '#ffffff' };
+    return { bg: 'hsl(var(--secondary) / 0.9)', text: 'hsl(var(--secondary-foreground))' };
   }
   if (normalized === 'medio' || normalized === 'moderado' || normalized === 'medium' || normalized === 'moderate') {
-    return { bg: 'rgb(245 158 11 / 0.9)', text: '#ffffff' };
+    return { bg: 'hsl(var(--accent) / 0.9)', text: 'hsl(var(--accent-foreground))' };
   }
   if (normalized === 'dificil' || normalized === 'difícil' || normalized === 'hard' || normalized === 'difficult') {
-    return { bg: 'rgb(239 68 68 / 0.9)', text: '#ffffff' };
+    return { bg: 'hsl(var(--destructive) / 0.9)', text: 'hsl(var(--destructive-foreground))' };
   }
   // Default: accent-based
   return { bg: 'color-mix(in srgb, var(--accent) 16%, var(--bg-card))', text: 'var(--accent)' };

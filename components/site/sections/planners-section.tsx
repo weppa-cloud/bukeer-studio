@@ -123,15 +123,15 @@ export function PlannersSection({ section, website, dbPlanners }: PlannersSectio
   }
 
   const specialtyColors: Record<string, string> = {
-    'Grupos': 'var(--accent)',
-    'Familias': '#006B60',
-    'Parejas': '#E8A838',
-    'Adultos': '#9E7AFF',
-    'Amigos': '#FE8BBB',
-    'Agente de Viajes': 'var(--accent)',
-    'Agente de Viajes Senior': '#006B60',
-    'Operaciones': '#9E7AFF',
-    'Administrador': '#E8A838',
+    'Grupos': 'var(--c-accent)',
+    'Familias': 'var(--c-primary)',
+    'Parejas': 'var(--c-accent-2)',
+    'Adultos': 'var(--c-accent-3)',
+    'Amigos': 'var(--c-accent-2)',
+    'Agente de Viajes': 'var(--c-accent)',
+    'Agente de Viajes Senior': 'var(--c-primary)',
+    'Operaciones': 'var(--c-accent-3)',
+    'Administrador': 'var(--c-accent-2)',
   };
 
   return (
@@ -160,6 +160,7 @@ export function PlannersSection({ section, website, dbPlanners }: PlannersSectio
             const waHref = waNumber
               ? `https://wa.me/${waNumber}?text=Hola ${planner.name}! Me interesa planear un viaje a Colombia`
               : null;
+            const specialtyTone = specialtyColors[planner.specialty] || 'var(--c-accent)';
 
             const cardInner = (
               <motion.div
@@ -198,8 +199,8 @@ export function PlannersSection({ section, website, dbPlanners }: PlannersSectio
                 <span
                   className="inline-block mt-2 px-3 py-1 rounded-full font-mono text-[10px] tracking-widest uppercase"
                   style={{
-                    backgroundColor: `${specialtyColors[planner.specialty] || 'var(--accent)'}20`,
-                    color: specialtyColors[planner.specialty] || 'var(--accent)',
+                    backgroundColor: `color-mix(in srgb, ${specialtyTone} 18%, transparent)`,
+                    color: specialtyTone,
                   }}
                 >
                   {planner.specialty}
@@ -244,7 +245,10 @@ export function PlannersSection({ section, website, dbPlanners }: PlannersSectio
                       rel="noopener noreferrer"
                       onClick={(e) => e.stopPropagation()}
                       className="flex-shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-full transition-all hover:scale-[1.12]"
-                      style={{ backgroundColor: '#25D36620', color: '#25D366' }}
+                      style={{
+                        backgroundColor: 'color-mix(in srgb, var(--brand-whatsapp) 18%, transparent)',
+                        color: 'var(--brand-whatsapp)',
+                      }}
                       aria-label={`WhatsApp ${planner.name}`}
                     >
                       <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
@@ -260,7 +264,7 @@ export function PlannersSection({ section, website, dbPlanners }: PlannersSectio
               <BlurFade key={planner.name} delay={index * 0.08} direction="up">
                 <SpotlightCard
                   className="rounded-2xl"
-                  spotlightColor={specialtyColors[planner.specialty] || 'var(--accent)'}
+                  spotlightColor={specialtyTone}
                 >
                   {profileHref ? (
                     <Link href={profileHref} className="block cursor-pointer">

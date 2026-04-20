@@ -1,13 +1,12 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, useRef, type ReactNode } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import type { WebsiteData } from '@/lib/supabase/get-website';
 import type { ProductData, ProductPageCustomization } from '@/lib/supabase/get-pages';
 import { getBasePath } from '@/lib/utils/base-path';
-import { normalizeProduct, sanitizeProductCopy } from '@/lib/products/normalize-product';
+import { normalizeProduct, sanitizeProductCopy, sanitizeProductCopyNullable } from '@/lib/products/normalize-product';
 import { formatPriceOrConsult } from '@/lib/products/format-price';
 import { getPackageCircuitStops, withCoords } from '@/lib/products/package-circuit';
 import { PACKAGE_FAQS_DEFAULT } from '@/lib/products/package-faqs-default';
@@ -32,6 +31,12 @@ import { StickyCTABar } from '@/components/site/sticky-cta-bar';
 import { MediaLightbox } from '@/components/site/media-lightbox';
 import { ProductVideoHero } from '@/components/site/product-video-hero';
 import { buildWhatsAppUrl } from '@/components/site/whatsapp-url';
+import { HeroSplit } from '@/components/site/product-detail/p1/hero-split';
+import { GalleryStrip } from '@/components/site/product-detail/p1/gallery-strip';
+import { SummarySidebar as ProductSummarySidebar, type SummarySidebarFact } from '@/components/site/product-detail/p1/summary-sidebar';
+import { PricingTiers, type PricingTier } from '@/components/site/product-detail/p3/pricing-tiers';
+import { RelatedCarousel } from '@/components/site/product-detail/p3/related-carousel.client';
+import { WhatsAppFlowDrawer } from '@/components/site/product-detail/p3/whatsapp-flow';
 
 interface GoogleReviewProp {
   author_name: string;
@@ -246,6 +251,70 @@ function buildPackageDescriptionFallback(product: ProductData): string {
 
 type NormalizedProduct = ReturnType<typeof normalizeProduct>;
 
+type TierInput = Record<string, unknown>;
+
+function normalizeCustomTiers(
+  value: unknown,
+  fallbackPrice: number | null,
+  fallbackCurrency: string | null
+): PricingTier[] {
+  if (!Array.isArray(value)) {
+    if (fallbackPrice === null) return [];
+    return [
+      {
+        id: 'base',
+        label: 'Tarifa base',
+        amount: fallbackPrice,
+        currency: fallbackCurrency,
+      },
+    ];
+  }
+
+  const tiers = value
+    .map((row, index): PricingTier | null => {
+      if (!row || typeof row !== 'object') return null;
+      const source = row as TierInput;
+      const idCandidate = typeof source.id === 'string' ? source.id.trim() : '';
+      const labelCandidate = typeof source.label === 'string' ? source.label.trim() : '';
+      const amountCandidate =
+        typeof source.amount === 'number'
+          ? source.amount
+          : typeof source.price === 'number'
+            ? source.price
+            : null;
+      const currencyCandidate = typeof source.currency === 'string' ? source.currency.trim().toUpperCase() : fallbackCurrency;
+      const description = typeof source.description === 'string' ? sanitizeProductCopyNullable(source.description) : null;
+      const features = Array.isArray(source.features)
+        ? source.features.filter((feature): feature is string => typeof feature === 'string' && feature.trim().length > 0)
+        : [];
+
+      const label = labelCandidate || `Opcion ${index + 1}`;
+      const id = idCandidate || `tier-${index + 1}`;
+
+      return {
+        id,
+        label,
+        description,
+        amount: amountCandidate,
+        currency: currencyCandidate,
+        features,
+      };
+    })
+    .filter((tier): tier is PricingTier => Boolean(tier));
+
+  if (tiers.length > 0) return tiers;
+
+  if (fallbackPrice === null) return [];
+  return [
+    {
+      id: 'base',
+      label: 'Tarifa base',
+      amount: fallbackPrice,
+      currency: fallbackCurrency,
+    },
+  ];
+}
+
 export function ProductLandingPage({
   website,
   product,
@@ -390,9 +459,96 @@ export function ProductLandingPage({
   const activityRatingLabel = productType === 'activity' && effectiveRating !== null
     ? `${effectiveRating.toFixed(1)} ★${googleReviews.length > 0 ? ` (${googleReviews.length})` : ''}`
     : null;
-  const activityInclusionHighlights = productType === 'activity'
-    ? detectInclusionHighlights(normalizedProduct.inclusions)
-    : [];
+  const activityInclusionHighlights = useMemo(
+    () => (productType === 'activity' ? detectInclusionHighlights(normalizedProduct.inclusions) : []),
+    [normalizedProduct.inclusions, productType]
+  );
+  const heroChips = useMemo(() => {
+    const chips: Array<{ id: string; label: string; icon?: 'clock' | 'pin' | 'rating' | 'group' | 'check' }> = [];
+
+    if (productType === 'activity') {
+      if (product.duration) chips.push({ id: 'duration', label: product.duration, icon: 'clock' });
+      if (product.location) chips.push({ id: 'location', label: product.location, icon: 'pin' });
+      if (activityRatingLabel) chips.push({ id: 'rating', label: activityRatingLabel, icon: 'rating' });
+      activityInclusionHighlights.forEach((label, index) => chips.push({ id: `inc-${index}`, label, icon: 'check' }));
+    }
+
+    if (productType === 'package') {
+      if (packageDuration) chips.push({ id: 'pkg-duration', label: packageDuration, icon: 'clock' });
+      if (packageRating) chips.push({ id: 'pkg-rating', label: packageRating, icon: 'rating' });
+      if (packageGroupSize) chips.push({ id: 'pkg-group', label: packageGroupSize, icon: 'group' });
+    }
+
+    return chips;
+  }, [activityInclusionHighlights, activityRatingLabel, packageDuration, packageGroupSize, packageRating, product.duration, product.location, productType]);
+  const pricingTiers = useMemo(
+    () => normalizeCustomTiers(pageCustomization?.custom_tiers, displayedBasePrice, displayedCurrency ?? sourceCurrency),
+    [displayedBasePrice, displayedCurrency, pageCustomization?.custom_tiers, sourceCurrency]
+  );
+  const [selectedTierId, setSelectedTierId] = useState<string>(() => pricingTiers[0]?.id ?? 'base');
+  useEffect(() => {
+    if (pricingTiers.length === 0) return;
+    const exists = pricingTiers.some((tier) => tier.id === selectedTierId);
+    if (!exists) {
+      setSelectedTierId(pricingTiers[0].id);
+    }
+  }, [pricingTiers, selectedTierId]);
+  const selectedTier = useMemo(
+    () => pricingTiers.find((tier) => tier.id === selectedTierId) ?? pricingTiers[0] ?? null,
+    [pricingTiers, selectedTierId]
+  );
+  const selectedTierPriceLabel = useMemo(() => {
+    if (selectedTier?.amount !== null && selectedTier?.amount !== undefined) {
+      const source = selectedTier.currency ?? sourceCurrency;
+      const target = displayedCurrency ?? source;
+      return formatPriceOrConsult(convertCurrencyAmount(selectedTier.amount, source, target, currencyConfig ?? null), target);
+    }
+    if (normalizedProduct.price === null) return null;
+    return formatPriceOrConsult(displayedBasePrice, displayedCurrency ?? sourceCurrency);
+  }, [currencyConfig, displayedBasePrice, displayedCurrency, normalizedProduct.price, selectedTier, sourceCurrency]);
+  const sidebarFacts = useMemo<SummarySidebarFact[]>(() => {
+    const durationValue = productType === 'package' ? resolvePackageDuration(product) : product.duration || null;
+    const rows = [
+      { label: 'Tipo', value: getCategoryLabel(productType) },
+      { label: 'Ubicacion', value: sanitizeProductCopy(product.location || [product.city, product.country].filter(Boolean).join(', ')) || null },
+      { label: 'Duracion', value: durationValue },
+      { label: 'Rating', value: normalizedProduct.rating !== null ? `${normalizedProduct.rating.toFixed(1)} / 5` : null },
+    ];
+    return rows.filter((item): item is SummarySidebarFact => Boolean(item.value));
+  }, [normalizedProduct.rating, product, productType]);
+  const relatedCarouselItems = useMemo(() => {
+    const referenceLocation = (product.location || product.city || '').toLowerCase().trim();
+    const matchesLocation = (candidate: ProductData): boolean => {
+      if (!referenceLocation) return false;
+      const location = (candidate.location || candidate.city || '').toLowerCase();
+      return location.includes(referenceLocation) || referenceLocation.includes(location);
+    };
+
+    const others = similarProducts.filter((candidate) => candidate.id !== product.id);
+    const sameLocation = others.filter(matchesLocation).slice(0, 6);
+    const selected = sameLocation.length > 0 ? sameLocation : others.slice(0, 6);
+
+    return selected.map((item) => ({
+      id: item.id,
+      href: `${basePath}/${getCategorySlug(productType)}/${item.slug}`,
+      title: sanitizeProductCopy(item.name) || item.name,
+      location: item.location ?? null,
+      image: item.image ?? null,
+      priceLabel: item.price
+        ? formatPriceOrConsult(
+            convertCurrencyAmount(item.price, item.currency, preferredCurrency ?? item.currency, currencyConfig ?? null),
+            preferredCurrency ?? item.currency
+          )
+        : null,
+    }));
+  }, [basePath, currencyConfig, preferredCurrency, product.city, product.id, product.location, productType, similarProducts]);
+  const relatedTitle = productType === 'hotel'
+    ? 'Hoteles similares'
+    : productType === 'activity'
+      ? 'Experiencias similares'
+      : 'Tambien te puede interesar';
+  const whatsappFlowVariant = productType === 'package' ? 'D' : productType === 'activity' ? 'B' : 'A';
+  const whatsappFlowEnabled = !isTransfer && Boolean(website.subdomain);
   const schemaProduct: ProductData = {
     ...product,
     name: displayName,
@@ -419,138 +575,30 @@ export function ProductLandingPage({
     />
     <OrganizationSchema website={website} websiteUrl={websiteUrl} />
     <div className="min-h-screen">
-      {/* Hero Section — Gradient fades into page bg */}
-      <section
-        data-testid="detail-hero"
-        className="relative flex items-end"
-        style={{ height: '70vh', minHeight: 520 }}
-      >
-        {(customHero?.backgroundImage || images[0]) && (
-          <Image
-            src={customHero?.backgroundImage || images[0]}
-            alt={`${productType === 'hotel' ? 'Hotel' : productType === 'activity' ? 'Actividad' : productType === 'transport' ? 'Transporte' : 'Producto'} ${displayName}${displayLocation ? ` en ${displayLocation}` : ''}`}
-            fill
-            sizes="100vw"
-            className="object-cover"
-            priority
-          />
-        )}
-        <div
-          className="absolute inset-0"
-          style={{ background: 'linear-gradient(to top, hsl(var(--background)) 0%, transparent 60%)' }}
-        />
-        <div className="relative z-10 w-full max-w-7xl mx-auto px-6 pb-10">
-          <div>
-            <p className="mb-3 text-xs font-mono uppercase tracking-[0.2em] text-primary/90">
-              {getCategoryLabel(productType)}
-            </p>
-            {/* Rating stars for hotels */}
-            {productType === 'hotel' && hotelStars > 0 && (
-              <div className="flex items-center gap-1 mb-3">
-                {Array.from({ length: hotelStars }).map((_, i) => (
-                  <svg key={i} className="w-4 h-4 text-yellow-400 fill-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                  </svg>
-                ))}
-              </div>
-            )}
-            {/* Activity badges */}
-            {productType === 'activity' && (
-              <div className="flex flex-wrap items-center gap-3 mb-4">
-                {product.duration && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs backdrop-blur-sm bg-background/85 border border-border/70 text-foreground font-mono">
-                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    {product.duration}
-                  </span>
-                )}
-                {product.location && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs backdrop-blur-sm bg-background/85 border border-border/70 text-foreground font-mono">
-                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                    </svg>
-                    {product.location}
-                  </span>
-                )}
-                {activityRatingLabel && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs backdrop-blur-sm bg-background/85 border border-border/70 text-foreground font-mono">
-                    {activityRatingLabel}
-                  </span>
-                )}
-                {activityInclusionHighlights.map((label) => (
-                  <span
-                    key={label}
-                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs backdrop-blur-sm bg-background/85 border border-border/70 text-foreground font-mono"
-                  >
-                    <svg className="w-3 h-3 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    {label}
-                  </span>
-                ))}
-              </div>
-            )}
-            {productType === 'package' && (
-              <div className="flex flex-wrap items-center gap-3 mb-4">
-                {packageDuration && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs backdrop-blur-sm bg-background/85 border border-border/70 text-foreground font-mono">
-                    {packageDuration}
-                  </span>
-                )}
-                {packageRating && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs backdrop-blur-sm bg-background/85 border border-border/70 text-foreground font-mono">
-                    {packageRating}
-                  </span>
-                )}
-                {packageGroupSize && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs backdrop-blur-sm bg-background/85 border border-border/70 text-foreground font-mono">
-                    {packageGroupSize}
-                  </span>
-                )}
-              </div>
-            )}
-            <h1 className="text-4xl md:text-5xl font-bold mb-2">
-              {displayName}
-            </h1>
-            <div className="mt-4 flex flex-wrap items-center gap-3">
-              {normalizedProduct.price !== null && (
-                <span className="inline-flex items-center rounded-full bg-background/70 px-4 py-2 text-sm font-semibold backdrop-blur">
-                  Desde {formatPriceOrConsult(displayedBasePrice, displayedCurrency ?? sourceCurrency)}
-                </span>
-              )}
-              {whatsappUrl && (
-                <a
-                  href={whatsappUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={handleWhatsAppClick('hero')}
-                  className="inline-flex items-center gap-2 rounded-full bg-emerald-800 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-emerald-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
-                >
-                  WhatsApp
-                </a>
-              )}
-              {product.video_url && (
-                <ProductVideoHero
-                  videoUrl={product.video_url}
-                  videoCaption={product.video_caption}
-                  productId={product.id}
-                  productName={displayName}
-                />
-              )}
-            </div>
-            {productType !== 'activity' && displayLocation && (
-              <p className="mt-2 flex items-center gap-2 text-lg text-foreground/90">
-                <svg className="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                {displayLocation}
-              </p>
-            )}
-          </div>
-        </div>
-      </section>
+      <HeroSplit
+        productTypeLabel={getCategoryLabel(productType)}
+        productType={productType}
+        displayName={displayName}
+        displayLocation={displayLocation}
+        backgroundImage={customHero?.backgroundImage || images[0]}
+        hotelStars={hotelStars}
+        chips={heroChips}
+        priceLabel={normalizedProduct.price !== null ? formatPriceOrConsult(displayedBasePrice, displayedCurrency ?? sourceCurrency) : null}
+        whatsappUrl={whatsappUrl}
+        onWhatsAppClick={handleWhatsAppClick('hero')}
+        videoAction={
+          product.video_url ? (
+            <ProductVideoHero
+              videoUrl={product.video_url}
+              videoCaption={product.video_caption}
+              productId={product.id}
+              productName={displayName}
+            />
+          ) : null
+        }
+        basePath={basePath}
+        defaultSearchQuery={displayName}
+      />
 
       <StickyCTABar
         price={normalizedProduct.price}
@@ -619,52 +667,15 @@ export function ProductLandingPage({
               </SectionErrorBoundary>
             )}
 
-            {/* Gallery */}
-            {!isTransfer && images.length > 1 && (
-              <section
-                data-testid="detail-gallery"
-              >
-                <h2 className="text-2xl font-bold mb-6">Galeria</h2>
-                <button
-                  onClick={() => openLightbox(activeImageIndex)}
-                  className="relative aspect-video rounded-xl overflow-hidden mb-4 w-full cursor-zoom-in group"
-                >
-                  <Image
-                    src={images[activeImageIndex]}
-                    alt={`${displayName} - imagen ${activeImageIndex + 1}`}
-                    fill
-                    sizes="(max-width: 1024px) 100vw, 66vw"
-                    className="object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
-                    <span className="opacity-0 group-hover:opacity-100 transition-opacity bg-black/50 text-white px-4 py-2 rounded-full text-sm backdrop-blur-sm">
-                      Ver en pantalla completa
-                    </span>
-                  </div>
-                </button>
-                <div className="grid grid-cols-2 gap-3">
-                  {images.slice(0, 4).map((image, index) => (
-                    <button
-                      key={index}
-                      onClick={() => openLightbox(index)}
-                      className={`relative aspect-[4/3] rounded-xl overflow-hidden border-2 transition-colors cursor-zoom-in ${
-                        index === activeImageIndex
-                          ? 'border-primary'
-                          : 'border-transparent hover:border-border'
-                      }`}
-                    >
-                      <Image
-                        src={image}
-                        alt={`${displayName} - miniatura ${index + 1}`}
-                        fill
-                        sizes="(max-width: 768px) 50vw, 24vw"
-                        className="object-cover"
-                      />
-                    </button>
-                  ))}
-                </div>
-              </section>
-            )}
+            {!isTransfer ? (
+              <GalleryStrip
+                images={images}
+                displayName={displayName}
+                activeImageIndex={activeImageIndex}
+                onSetActiveImageIndex={setActiveImageIndex}
+                onOpenLightbox={openLightbox}
+              />
+            ) : null}
 
             {/* Description */}
             {descriptionText && (
@@ -685,6 +696,23 @@ export function ProductLandingPage({
                 </div>
               </section>
             )}
+
+            {!isTransfer && pricingTiers.length > 0 ? (
+              <SectionErrorBoundary sectionName="pricing-tiers">
+                <PricingTiers
+                  tiers={pricingTiers}
+                  selectedTierId={selectedTierId}
+                  onSelectTier={setSelectedTierId}
+                  formatAmount={(tier) => {
+                    if (tier.amount === null || tier.amount === undefined) return 'Consultar';
+                    const source = tier.currency ?? sourceCurrency;
+                    const target = displayedCurrency ?? source;
+                    const converted = convertCurrencyAmount(tier.amount, source, target, currencyConfig ?? null);
+                    return formatPriceOrConsult(converted, target);
+                  }}
+                />
+              </SectionErrorBoundary>
+            ) : null}
 
             {/* Product Type Specific Sections */}
             {productType === 'destination' && <DestinationSections />}
@@ -776,14 +804,11 @@ export function ProductLandingPage({
           {!isTransfer && (
             <div data-testid="detail-sidebar" className="lg:col-span-1">
               <div className="lg:sticky lg:top-28">
-                <SummarySidebar
-                  product={product}
-                  normalized={normalizedProduct}
-                  preferredCurrency={displayedCurrency}
-                  currencyConfig={currencyConfig}
-                  productType={productType}
+                <ProductSummarySidebar
+                  priceLabel={selectedTierPriceLabel}
+                  facts={sidebarFacts}
                   whatsappUrl={whatsappUrl}
-                  phone={primaryPhone}
+                  phoneHref={callHref}
                   onWhatsAppClick={handleWhatsAppClick('sidebar')}
                   analyticsContext={analyticsContext}
                 />
@@ -860,16 +885,25 @@ export function ProductLandingPage({
         </div>
       </section>
 
-      {!isTransfer && (
-        <SimilarProducts
-          product={product}
-          productType={productType}
-          basePath={basePath}
-          preferredCurrency={displayedCurrency}
-          currencyConfig={currencyConfig}
-          similarProducts={similarProducts}
+      {!isTransfer ? (
+        <RelatedCarousel
+          title={relatedTitle}
+          viewAllHref={`${basePath}/${getCategorySlug(productType)}`}
+          viewAllLabel="Ver todos"
+          items={relatedCarouselItems}
         />
-      )}
+      ) : null}
+
+      <WhatsAppFlowDrawer
+        enabled={whatsappFlowEnabled}
+        subdomain={website.subdomain ?? ''}
+        productId={product.id}
+        productType={productType}
+        productName={displayName}
+        selectedTier={selectedTier}
+        variant={whatsappFlowVariant}
+        locale={resolvedLocale ?? website.default_locale ?? 'es-CO'}
+      />
     </div>
 
     {/* Lightbox */}
@@ -1222,87 +1256,6 @@ function IncludeExcludeSection({
   );
 }
 
-function SummarySidebar({
-  product,
-  normalized,
-  preferredCurrency,
-  currencyConfig,
-  productType,
-  whatsappUrl,
-  phone,
-  onWhatsAppClick,
-  analyticsContext,
-}: {
-  product: ProductData;
-  normalized: NormalizedProduct;
-  preferredCurrency?: string | null;
-  currencyConfig?: CurrencyConfig | null;
-  productType: string;
-  whatsappUrl: string | null;
-  phone?: string | null;
-  onWhatsAppClick?: () => void;
-  analyticsContext?: Record<string, string | number | boolean | null | undefined>;
-}) {
-  const phoneHref = phone ? `tel:${phone.replace(/[^0-9+]/g, '')}` : null;
-  const sourceCurrency = normalizeCurrencyCode(normalized.priceCurrency ?? product.currency)
-    ?? currencyConfig?.baseCurrency
-    ?? null;
-  const displayCurrency = preferredCurrency ?? sourceCurrency;
-  const convertedPrice = convertCurrencyAmount(normalized.price, sourceCurrency, displayCurrency, currencyConfig ?? null);
-  const durationValue = productType === 'package' ? resolvePackageDuration(product) : product.duration || null;
-  const quickFacts = [
-    { label: 'Tipo', value: getCategoryLabel(productType) },
-    { label: 'Ubicacion', value: sanitizeProductCopy(product.location || [product.city, product.country].filter(Boolean).join(', ')) || null },
-    { label: 'Duracion', value: durationValue },
-    { label: 'Rating', value: normalized.rating !== null ? `${normalized.rating.toFixed(1)} / 5` : null },
-  ].filter((item): item is { label: string; value: string } => Boolean(item.value));
-
-  return (
-    <aside className="rounded-2xl border border-border bg-card p-6 space-y-5">
-      {normalized.price !== null && (
-        <div>
-          <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground">Desde</span>
-          <p className="text-3xl mt-1 font-bold text-primary">{formatPriceOrConsult(convertedPrice, displayCurrency ?? sourceCurrency)}</p>
-        </div>
-      )}
-
-      {quickFacts.length > 0 && (
-        <dl className="space-y-3">
-          {quickFacts.map((item) => (
-            <div key={item.label} className="flex items-start justify-between gap-4 border-b border-border/60 pb-2">
-              <dt className="text-xs uppercase tracking-wider text-muted-foreground">{item.label}</dt>
-              <dd className="text-sm text-right">{item.value}</dd>
-            </div>
-          ))}
-        </dl>
-      )}
-
-      <div className="space-y-3">
-        {whatsappUrl && (
-          <a
-            href={whatsappUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={onWhatsAppClick}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-800 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-emerald-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
-          >
-            WhatsApp
-          </a>
-        )}
-        {phoneHref && (
-          <a
-            href={phoneHref}
-            onClick={() => trackEvent('phone_cta_click', { ...(analyticsContext ?? {}), location_context: 'sidebar' })}
-            className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-border px-4 py-3 text-sm font-medium transition-colors hover:bg-muted"
-          >
-            Llamar
-          </a>
-        )}
-      </div>
-    </aside>
-  );
-}
-
 // --- Google Reviews Section (Booking.com-level design) ---
 
 function GoogleReviewsSection({ reviews }: { reviews: GoogleReviewProp[] }) {
@@ -1331,10 +1284,10 @@ function GoogleReviewsSection({ reviews }: { reviews: GoogleReviewProp[] }) {
           {/* Header with Google branding */}
           <div className="flex items-center gap-3 mb-6">
             <svg className="w-6 h-6" viewBox="0 0 24 24">
-              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
-              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
-              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="var(--brand-google-blue)" />
+              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="var(--brand-google-green)" />
+              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="var(--brand-google-yellow)" />
+              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="var(--brand-google-red)" />
             </svg>
             <h2 className="text-2xl font-bold">Lo que dicen los viajeros</h2>
           </div>
@@ -1512,108 +1465,6 @@ function GoogleReviewsSection({ reviews }: { reviews: GoogleReviewProp[] }) {
         )}
       
     </>
-  );
-}
-
-// --- Similar Products ---
-
-function SimilarProducts({
-  product,
-  productType,
-  basePath,
-  preferredCurrency,
-  currencyConfig,
-  similarProducts,
-}: {
-  product: ProductData;
-  productType: string;
-  basePath: string;
-  preferredCurrency?: string | null;
-  currencyConfig?: CurrencyConfig | null;
-  similarProducts: ProductData[];
-}) {
-  const similarLabel = productType === 'hotel' ? 'Hoteles similares' : productType === 'activity' ? 'Experiencias similares' : 'Tambien te puede interesar';
-  const categorySlug = getCategorySlug(productType);
-  const similar = useMemo(() => {
-    const referenceLocation = (product.location || product.city || '').toLowerCase().trim();
-    const matchesLocation = (p: ProductData): boolean => {
-      if (!referenceLocation) return false;
-      const candidate = (p.location || p.city || '').toLowerCase();
-      return candidate.includes(referenceLocation) || referenceLocation.includes(candidate);
-    };
-
-    const others = similarProducts.filter((p) => p.id !== product.id);
-    const sameLocation = others.filter(matchesLocation).slice(0, 3);
-    return sameLocation.length > 0
-      ? sameLocation
-      : others.slice(0, 3);
-  }, [product.city, product.id, product.location, similarProducts]);
-
-  if (similar.length === 0) return null;
-
-  return (
-    <section data-testid="detail-similares" className="py-16 px-6">
-      <div className="max-w-7xl mx-auto">
-        <div
-          className="flex items-center justify-between mb-8"
-        >
-          <h2 className="text-2xl font-bold" style={{ color: 'var(--text-heading)' }}>{similarLabel}</h2>
-          <Link
-            href={`${basePath}/${categorySlug}`}
-            className="font-mono text-xs uppercase tracking-wider"
-            style={{ color: 'var(--accent)' }}
-          >
-            Ver todos →
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {similar.map((item) => (
-            <div
-              key={item.id}
-            >
-              <Link
-                href={`${basePath}/${categorySlug}/${item.slug}`}
-                className="group block rounded-2xl overflow-hidden"
-                style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-subtle)' }}
-              >
-                <div className="relative overflow-hidden" style={{ aspectRatio: '16/10' }}>
-                  {item.image ? (
-                    <Image
-                      src={item.image}
-                      alt=""
-                      fill
-                      sizes="(max-width: 768px) 100vw, 33vw"
-                      className="object-cover transition-transform duration-700 group-hover:scale-105"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-muted flex items-center justify-center">
-                      <span className="text-3xl">{productType === 'hotel' ? '🏨' : '🎯'}</span>
-                    </div>
-                  )}
-                </div>
-                <div className="p-4">
-                  <h3 className="text-sm font-semibold line-clamp-1 mb-1" style={{ color: 'var(--text-heading)' }}>{item.name}</h3>
-                  <div className="flex items-center justify-between">
-                    {item.location && (
-                      <span className="text-xs" style={{ color: 'var(--text-secondary, var(--text-heading))' }}>{item.location}</span>
-                    )}
-                    {item.price && (
-                      <span className="text-sm font-semibold" style={{ color: 'var(--accent)' }}>
-                        {formatPriceOrConsult(
-                          convertCurrencyAmount(item.price, item.currency, preferredCurrency ?? item.currency, currencyConfig ?? null),
-                          preferredCurrency ?? item.currency
-                        )}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </Link>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
   );
 }
 

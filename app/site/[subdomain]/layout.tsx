@@ -103,10 +103,14 @@ export default async function SiteLayout({ children, params }: SiteLayoutProps) 
   const navigation = navItems.length > 0
     ? buildNavTree(navItems)
     : getDefaultNavigation(website.sections, basePath);
+  const websiteWithEffectiveTheme = website as typeof website & {
+    effective_theme?: { tokens: Record<string, unknown>; profile: Record<string, unknown> };
+  };
+  const initialTheme = getInitialTheme(websiteWithEffectiveTheme.effective_theme ?? website.theme);
 
   return (
     <WebsiteLocaleProvider locale={localeContext.resolvedLocale}>
-      <M3ThemeProvider initialTheme={getInitialTheme(website.theme)}>
+      <M3ThemeProvider initialTheme={initialTheme}>
         {/* Google Tag Manager and Analytics Scripts */}
         <GoogleTagManager analytics={website.analytics} />
 
