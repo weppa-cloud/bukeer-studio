@@ -150,3 +150,54 @@ Raise TTL back to 3600 s only after the +24 h cadence checkpoint passes.
 | Partner (ColombiaTours) |  |  |  |
 
 File a copy of this completed checklist under `docs/qa/pilot/sign-off-YYYY-MM-DD.md` per cutover (or rollback) event.
+
+---
+
+## Stage → Flow verification map (EPIC #214 W1→W6 deliverables)
+
+Added W7-b (2026-04-20) to map shipping stages to training Flows + acceptance verification. Complement to preflight / cutover / post-cutover rows above. Use on cutover day to assert each shipped capability is exercised at least once.
+
+| Stage | Wave / Issue | PR | Deliverable | Training Flow(s) | Verification row |
+|-------|--------------|-----|-------------|------------------|------------------|
+| Stage 1 | W1 #215 | [#225](https://github.com/weppa-cloud/bukeer-studio/pull/225) + [#227](https://github.com/weppa-cloud/bukeer-studio/pull/227) | Matrix pkg+act editable + Section P blog + hotels as-is + testid instrumentation | Flow 1 (pkg mkt), Flow 5.c (blog), Flow 6 (act), Flow 7 (hotel) | `/dashboard/<id>/products` lists pkg + act; hotel detail read-only |
+| Stage 2 | W2 #216 | [#229](https://github.com/weppa-cloud/bukeer-studio/pull/229) | Activities marketing parity — RPC `update_activity_marketing_field` + routes + editors | Flow 6 (Variant A) | Edit an activity marketing field → persists + reflects in public `/actividades/<slug>` ≤ 60 s |
+| Stage 2 | W3 #217 | — (DEFER) | Booking V1 scope decision → DEFER | Flow 2 (DEFER note) | WhatsApp + phone CTAs visible on pkg + act detail (PC-06 in preflight table) |
+| Stage 4 | W4 #218 | [#237](https://github.com/weppa-cloud/bukeer-studio/pull/237) | pilot-seed variant-factory + editor→render E2E | Flows 1, 3, 6 (editor surface) | `activity-parity.spec.ts` + `package-parity.spec.ts` green in CI |
+| Stage 4 | W5 #219 | [#238](https://github.com/weppa-cloud/bukeer-studio/pull/238) | Transcreate lifecycle E2E (pkg + act + blog; hreflang + canonical + inLanguage) | Flows 5.a / 5.b / 5.c + Flow 8 | `/en/paquetes/<slug>`, `/en/actividades/<slug>`, `/en/blog/<slug>` render applied variants with `<html lang="en">` + hreflang triple |
+| Stage 4 | W6 #220 | [#239](https://github.com/weppa-cloud/bukeer-studio/pull/239) | Matrix visual playbook — Playwright MCP + Lighthouse snapshots | Flows 1, 3, 4, 5, 6, 7 (UI parity) | Matrix visual E2E baseline present in `artifacts/qa/pilot/<date>/matrix-visual/` |
+| Stage 5 | W7-a | [#230](https://github.com/weppa-cloud/bukeer-studio/pull/230) | Onboarding skeleton (Flows 1-5) + pilot runbook + cutover checklist | Flows 1-5 | `docs/training/colombiatours-onboarding.md` + `docs/ops/pilot-runbook-colombiatours.md` + this file exist |
+| Stage 5 | W7-b | (this) | Training extension: Flows 6/7/8 + FAQ expansion + cutover Stage map | Flows 6, 7, 8 | Sign-off: partner has read Flows 6 + 7 + 8 before cutover T-0 |
+| Stage 5 | W7-c | pending | Screencasts | Flows 1-8 | **Deferred** — placeholder `{{screenshot-placeholder}}` markers in `colombiatours-onboarding.md` replaced post-UI-freeze |
+
+### Per-flow cutover day verification
+
+Add to cutover-day artifact bundle. Each flow must have at least one executed verification row before sign-off.
+
+| Flow | Minimum verification | Owner | Evidence |
+|------|---------------------|-------|----------|
+| Flow 1 — Pkg marketing | Edit 1 pkg description + cover → public URL reflects ≤ 60 s | Partner | Slug + screenshot |
+| Flow 2 — Booking DEFER | WhatsApp CTA click opens correct number on 1 pkg + 1 act | Partner | `whatsapp_cta_click` event in GA4 |
+| Flow 3 — Layout | Reorder 2 sections on 1 pkg; hide 1 section → public reflects | Partner | URL + screenshot |
+| Flow 4 — SEO per-page | Override meta title on 1 pkg → `<title>` in HTML matches | Partner | `curl -s <url> \| grep '<title>'` |
+| Flow 5 — Translation | Apply 1 pkg + 1 act + 1 blog → `/en/...` URLs render | Partner | 3 URLs + `<html lang="en">` grep |
+| Flow 6 — Activity Variant A | Edit 1 activity marketing field + 1 content field → public reflects | Partner | URL + screenshot |
+| Flow 7 — Hotel Flutter handoff | Open 1 hotel in Studio → editors disabled + banner Flutter-owner; edit SEO meta succeeds | Partner | Screenshot + updated `<title>` |
+| Flow 8 — SEO transcreate | 1 drift re-apply OR 1 bulk apply of 2 items → variants return to `applied` | Partner | `seo_localized_variants.status` query snapshot |
+
+### Booking-row exclusions (priority v2)
+
+Removed rows — do NOT re-add unless Booking V1 un-DEFER-s:
+
+- ~~Date picker smoke (pkg + act)~~ — Booking DEFERRED, [[ADR-024]].
+- ~~Lead form submit smoke~~ — endpoint `/api/leads` inactive.
+- ~~Lead row appears in DB~~ — N/A.
+- ~~Stripe webhook signature check~~ — N/A for pilot.
+
+Parity check kept: **WhatsApp + phone CTA** (PC-06 above) as the canonical conversion signal.
+
+---
+
+## Changelog
+
+- **2026-04-20** (W7-b #221): added Stage → Flow verification map (W1→W6 deliverables + Flows 1-8) + per-flow cutover day verification rows. Documented booking-row exclusions per priority v2. Cross-linked PRs #225/#227/#229/#237/#238/#239/#230.
+- **2026-04-19** (W7-a): initial standalone checklist (preflight / cutover / post-cutover / rollback + DNS TTL + SLA + sign-off template).
