@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 import path from 'node:path';
 import {
   runLighthouseAudit,
+  waitForDetailReady,
   LIGHTHOUSE_THRESHOLDS,
 } from '../../../setup/matrix-helpers';
 import { getPilotSeed, pilotSubdomain } from '../helpers';
@@ -18,11 +19,13 @@ test.describe('@pilot-w6 Pilot W6 · lighthouse · activity', () => {
     const subdomain = pilotSubdomain();
     const url = `http://localhost:${port}/site/${subdomain}/actividades/${act.slug}`;
 
-    const prewarm = await page.goto(url, { waitUntil: 'networkidle' });
+    // Deterministic prewarm (cluster-C pattern, see matrix-helpers.ts).
+    const prewarm = await page.goto(url, { waitUntil: 'domcontentloaded' });
     test.skip(
       !prewarm || prewarm.status() === 404 || prewarm.status() >= 500,
       `Prewarm failed for ${url} (status=${prewarm?.status() ?? 'no-response'}).`,
     );
+    await waitForDetailReady(page, 'act');
 
     const outputDir = path.resolve(
       process.cwd(),

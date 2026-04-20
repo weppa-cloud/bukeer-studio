@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 import path from 'node:path';
 import {
   runLighthouseAudit,
+  waitForDetailReady,
   LIGHTHOUSE_THRESHOLDS,
 } from '../../../setup/matrix-helpers';
 import { getPilotSeed, pilotSubdomain } from '../helpers';
@@ -28,12 +29,17 @@ test.describe('@pilot-w6 Pilot W6 · lighthouse · package', () => {
     const subdomain = pilotSubdomain();
     const url = `http://localhost:${port}/site/${subdomain}/paquetes/${pkg.slug}`;
 
-    // Prewarm so first compile doesn't skew the audit.
-    const prewarm = await page.goto(url, { waitUntil: 'networkidle' });
+    // Prewarm so first compile doesn't skew the audit. Deterministic wait via
+    // `waitForDetailReady` mirrors cluster-C (PR #245): Turbopack dev mode
+    // keeps websocket pings open so `networkidle` races the 90s spec timeout
+    // — see matrix-helpers.ts. DOMContentLoaded + detail-hero visibility is
+    // sufficient for the Lighthouse prewarm (page renderable from first flush).
+    const prewarm = await page.goto(url, { waitUntil: 'domcontentloaded' });
     test.skip(
       !prewarm || prewarm.status() === 404 || prewarm.status() >= 500,
       `Prewarm failed for ${url} (status=${prewarm?.status() ?? 'no-response'}).`,
     );
+    await waitForDetailReady(page, 'pkg');
 
     const outputDir = path.resolve(
       process.cwd(),
