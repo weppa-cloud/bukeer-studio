@@ -367,8 +367,11 @@ export async function getSeededSeoFixtures(): Promise<SeoFixtures> {
 /**
  * Guardrail: the seeder mutates rows on the target Supabase project. CI pipelines
  * and developer workstations are OK; production environments must never run it.
+ *
+ * Exported so sibling seed modules (e.g. `pilot-seed.ts`) reuse the exact same
+ * safety contract without duplicating the check.
  */
-function assertSeedEnvAllowsMutation(): void {
+export function assertSeedEnvAllowsMutation(): void {
   if (process.env.ALLOW_SEED === '1') return;
   if (process.env.NODE_ENV === 'production' && process.env.ALLOW_SEED !== '1') {
     throw new Error(
