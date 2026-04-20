@@ -42,13 +42,13 @@
       ]
     },
     "dataforseo": {
-      "command": "node",
-      "args": [".claude/mcp-servers/dataforseo/dist/index.js"],
+      "command": "bash",
+      "args": [
+        "-lc",
+        "ENV_FILE=\"/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/.env.local\"; set -a; [ -f \"$ENV_FILE\" ] && source \"$ENV_FILE\"; set +a; export DATAFORSEO_USERNAME=\"${DATAFORSEO_LOGIN:-$DATAFORSEO_USERNAME}\"; export DATAFORSEO_PASSWORD=\"$DATAFORSEO_PASSWORD\"; exec npx -y dataforseo-mcp-server@latest"
+      ],
       "env": {
-        "DATAFORSEO_LOGIN": "${DATAFORSEO_LOGIN}",
-        "DATAFORSEO_PASSWORD": "${DATAFORSEO_PASSWORD}",
-        "DATAFORSEO_MONTHLY_CAP_USD": "50",
-        "DATAFORSEO_BASE_URL": "https://api.dataforseo.com"
+        "ENABLED_MODULES": "SERP,KEYWORDS_DATA,DATAFORSEO_LABS,BACKLINKS"
       }
     },
     "bukeer-studio": {
