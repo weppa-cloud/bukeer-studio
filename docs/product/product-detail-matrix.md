@@ -235,7 +235,24 @@ EPIC #214 W4 #218 exercises the full editor→DB→ISR→public loop against the
 
 Seed factory: `e2e/setup/pilot-seed.ts::seedPilot(variant)` with variants `baseline` | `translation-ready` | `empty-state` | `missing-locale`. Runbook: `docs/qa/pilot/editor-to-render-playbook.md`.
 
-### N.5 W6 #220 matrix visual + Lighthouse E2E specs
+### N.5 W5 #219 transcreate lifecycle E2E specs
+
+EPIC #214 W5 #219 drives the transcreate lifecycle (es-CO → en-US) across packages + activities + blog posts. Specs live under `e2e/tests/pilot/transcreate/`, tagged `@pilot-w5`. Consume `seedPilot('translation-ready')` variant (pkg + act + blog fixtures).
+
+| Spec | Scope | Assertions |
+|------|-------|-----------|
+| `lifecycle.spec.ts` | Parameterized pkg / act / blog (AC-W5-4, AC-W5-9/10/11) | `create_draft → review → apply` via `/api/seo/content-intelligence/transcreate`; `seo_transcreation_jobs.status='applied'`; overlay row holds localized payload |
+| `public-render.spec.ts` | Parameterized (AC-W5-5) | `/en/<seg>/<slug>` renders applied meta_title/meta_desc (EN) via SSR |
+| `hreflang-canonical.spec.ts` | Parameterized (AC-W5-6, AC-W5-7) | hreflang `es-CO` + `en-US` + `x-default`; JSON-LD `inLanguage` matches resolved locale (depends on #208, merged) |
+| `drift.spec.ts` | Package (AC-W5-8 Path A) | Backdate `seo_localized_variants.updated_at` 31d → re-apply advances it |
+| `stream-abort.spec.ts` | Package (AC-W5-2 edge) | Real stream endpoint: 200/429/5xx accepted; no orphan `seo_transcreation_jobs` row |
+| `idempotency.spec.ts` | Activity | Teardown called twice is a no-op; `updated_at` monotonic |
+| `isr-revalidate.spec.ts` | pkg + act (AC-W5-3) | Post-apply `/api/revalidate` returns paths fan-out including product URL |
+| `bulk-review.spec.ts` | pkg + act | `/api/seo/translations/bulk` review + apply on 2 jobs atomically |
+
+Helper: `e2e/setup/transcreate-helpers.ts` (parameterized `executeTranscreate` + `assertLocalizedVariantsApplied` + `cleanupTranscreateRun`). Playbook: `docs/qa/pilot/transcreate-playbook.md`.
+
+### N.6 W6 #220 matrix visual + Lighthouse E2E specs
 
 EPIC #214 W6 #220 walks the canonical matrix (this document) per content type and captures visual snapshots + Lighthouse scores for the pilot seed. Specs live under `e2e/tests/pilot/matrix/` and `e2e/tests/pilot/lighthouse/`, tagged `@pilot-w6`. Consume `seedPilot('baseline')` + `seedPilot('translation-ready')`.
 
