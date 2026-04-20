@@ -24,6 +24,10 @@ import { seedPilot, type PilotSeedResult, type PilotSeedVariant } from '../../se
 // Shared tag so every W4 spec gets picked up by `--grep "@pilot-w4"`.
 export const PILOT_W4_TAG = '@pilot-w4';
 
+// W6 #220 matrix + Lighthouse specs. `--grep "@pilot-w6"` narrows to the
+// visual matrix suite.
+export const PILOT_W6_TAG = '@pilot-w6';
+
 // Matches `ensurePackagePublicRoute` subdomain contract in `e2e/setup/seed.ts`.
 const DEFAULT_SUBDOMAIN = (process.env.E2E_PUBLIC_SUBDOMAIN ?? 'colombiatours')
   .trim()
