@@ -1,0 +1,1080 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>ColombiaTours — Idioma + Moneda Switcher</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700&family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css" />
+<style>
+  /* ============== Canvas scaffolding ============== */
+  body { background: #eef0e7; }
+  .canvas {
+    max-width: 1360px; margin: 0 auto;
+    padding: 56px 32px 120px;
+  }
+  .canvas-head { margin-bottom: 48px; }
+  .canvas-head .kicker {
+    display: inline-flex; align-items: center; gap: 10px;
+    font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--c-muted); font-weight: 600;
+  }
+  .canvas-head .kicker::before { content: ""; width: 32px; height: 1px; background: currentColor; }
+  .canvas-head h1 {
+    font-family: var(--font-display); font-weight: 500;
+    font-size: clamp(36px, 4vw, 52px); letter-spacing: -0.025em;
+    line-height: 1.02; margin: 14px 0 10px;
+    max-width: 24ch;
+  }
+  .canvas-head h1 em { font-family: var(--font-serif); font-style: italic; color: var(--c-accent); font-weight: 400; }
+  .canvas-head p { max-width: 60ch; color: var(--c-ink-2); font-size: 16px; margin: 0; }
+
+  .cc-meta {
+    margin-top: 20px; display: flex; gap: 32px; flex-wrap: wrap;
+    padding-top: 20px; border-top: 1px solid var(--c-line);
+    font-size: 12px; color: var(--c-muted);
+  }
+  .cc-meta b { color: var(--c-ink); font-weight: 600; display: block; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 4px;}
+
+  /* Section frames */
+  .cc-section {
+    margin-top: 72px;
+  }
+  .cc-section-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin-bottom: 24px; gap: 20px; flex-wrap: wrap;
+  }
+  .cc-section-head h2 {
+    font-family: var(--font-display); font-weight: 500;
+    font-size: 28px; letter-spacing: -0.02em; margin: 0;
+  }
+  .cc-section-head h2 em { font-family: var(--font-serif); font-style: italic; color: var(--c-accent); font-weight: 400; }
+  .cc-section-head .num {
+    font-family: var(--font-serif); font-style: italic;
+    font-size: 18px; color: var(--c-muted);
+  }
+  .cc-section-head p { margin: 6px 0 0; color: var(--c-ink-2); font-size: 14px; max-width: 60ch; }
+
+  /* Cell grids */
+  .cell-grid {
+    display: grid; gap: 18px;
+  }
+  .cell-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+  .cell-grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
+
+  .cell {
+    background: var(--c-surface);
+    border: 1px solid var(--c-line);
+    border-radius: 20px;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .cell-head {
+    padding: 16px 20px; display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px dashed var(--c-line);
+    background: color-mix(in oklab, var(--c-surface) 55%, var(--c-bg));
+  }
+  .cell-head b {
+    font-family: var(--font-display); font-weight: 600;
+    font-size: 14px; letter-spacing: -0.005em;
+  }
+  .cell-head small {
+    font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--c-muted); font-weight: 600;
+  }
+  .cell-body {
+    padding: 36px 24px;
+    display: flex; align-items: center; justify-content: center;
+    min-height: 130px;
+    flex: 1;
+    position: relative;
+  }
+  .cell-body.tall { min-height: 420px; align-items: flex-start; padding-top: 28px; }
+  .cell-body.dark {
+    background:
+      linear-gradient(180deg, rgba(19,32,23,0) 0%, rgba(19,32,23,.25) 100%),
+      linear-gradient(135deg, #143320 0%, #1f4d2e 55%, #2a5e3a 100%);
+    color: #fff;
+  }
+  .cell-body.dark::before {
+    content: ""; position: absolute; inset: 0;
+    background:
+      radial-gradient(1200px 400px at 10% 100%, rgba(255,255,255,.08), transparent 60%),
+      radial-gradient(700px 400px at 90% 0%, rgba(214,168,74,.18), transparent 60%);
+    pointer-events: none;
+  }
+  .cell-body.dark > * { position: relative; z-index: 1; }
+
+  .cell-caption {
+    padding: 14px 20px 16px;
+    border-top: 1px dashed var(--c-line);
+    color: var(--c-muted); font-size: 12px; line-height: 1.5;
+  }
+  .cell-caption code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    background: var(--c-surface-2);
+    padding: 1px 6px; border-radius: 4px;
+    font-size: 11px; color: var(--c-ink-2);
+  }
+
+  /* ============== SWITCHER — shared ============== */
+  .sw-pill {
+    display: inline-flex; align-items: center; gap: 10px;
+    height: 40px; padding: 0 14px 0 12px;
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--c-ink) 6%, transparent);
+    border: 1px solid color-mix(in oklab, var(--c-ink) 9%, transparent);
+    color: var(--c-ink);
+    font-size: 13px; font-weight: 600;
+    cursor: pointer;
+    transition: background .2s, border-color .2s, transform .2s var(--ease);
+    white-space: nowrap;
+  }
+  .sw-pill:hover { background: color-mix(in oklab, var(--c-ink) 10%, transparent); }
+  .sw-pill.open { background: var(--c-surface); border-color: var(--c-line-2); box-shadow: var(--shadow-2); }
+  .sw-pill .flag {
+    font-size: 16px; line-height: 1;
+    display: inline-flex; align-items: center;
+    /* Nudge flag emojis to align optically */
+    transform: translateY(-0.5px);
+  }
+  .sw-pill .divider {
+    width: 1px; height: 16px; background: color-mix(in oklab, currentColor 20%, transparent);
+  }
+  .sw-pill .cur { display: inline-flex; align-items: center; gap: 4px; }
+  .sw-pill .cur .sym { font-weight: 700; opacity: .9; }
+  .sw-pill .caret {
+    width: 14px; height: 14px; opacity: .6;
+    transition: transform .2s var(--ease);
+  }
+  .sw-pill.open .caret { transform: rotate(180deg); }
+
+  /* Transparent variant (on hero) */
+  .sw-pill.on-dark {
+    background: rgba(255,255,255,.12);
+    border-color: rgba(255,255,255,.22);
+    color: #fff;
+    backdrop-filter: blur(10px);
+  }
+  .sw-pill.on-dark:hover { background: rgba(255,255,255,.18); }
+  .sw-pill.on-dark .divider { background: rgba(255,255,255,.28); }
+
+  /* Focus ring */
+  .sw-pill:focus-visible,
+  .sw-chip:focus-visible,
+  .sw-seg button:focus-visible,
+  .sw-select:focus-visible,
+  .sw-item:focus-visible {
+    outline: 2px solid var(--c-accent);
+    outline-offset: 2px;
+  }
+
+  /* ============== DROPDOWN PANEL ============== */
+  .pop-anchor { position: relative; display: inline-block; }
+  .pop {
+    position: absolute; top: calc(100% + 10px); right: 0;
+    width: 320px;
+    background: var(--c-surface);
+    border: 1px solid var(--c-line);
+    border-radius: 22px;
+    box-shadow: var(--shadow-3);
+    padding: 18px;
+    z-index: 10;
+    transform-origin: top right;
+    animation: popin .22s var(--ease);
+  }
+  @keyframes popin {
+    from { opacity: 0; transform: translateY(-6px) scale(.98); }
+    to { opacity: 1; transform: none; }
+  }
+  .pop-heading {
+    font-family: var(--font-display); font-weight: 500;
+    font-size: 15px; letter-spacing: -0.005em;
+    margin: 2px 4px 4px;
+  }
+  .pop-heading em { font-family: var(--font-serif); font-style: italic; color: var(--c-accent); font-weight: 400; }
+  .pop-sub {
+    color: var(--c-muted); font-size: 11px;
+    letter-spacing: 0.12em; text-transform: uppercase; font-weight: 600;
+    margin: 14px 4px 8px;
+  }
+  .pop hr.pop-div { border-top: 1px solid var(--c-line); margin: 14px 0 0; }
+  .pop-foot {
+    margin-top: 16px; padding-top: 12px;
+    border-top: 1px solid var(--c-line);
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 11px; color: var(--c-muted);
+  }
+  .pop-foot a { color: var(--c-primary); font-weight: 600; }
+
+  /* --- compact: native-ish select rows --- */
+  .sw-select {
+    width: 100%;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px;
+    padding: 10px 14px;
+    background: var(--c-bg);
+    border: 1px solid var(--c-line);
+    border-radius: 12px;
+    font-size: 14px; font-weight: 500; color: var(--c-ink);
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+  }
+  .sw-select:hover { border-color: var(--c-line-2); background: var(--c-surface); }
+  .sw-select .lhs { display: inline-flex; align-items: center; gap: 10px; }
+  .sw-select .flag { font-size: 18px; }
+  .sw-select svg { opacity: .5; }
+  .sw-select .hint { color: var(--c-muted); font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+
+  /* --- chips variant --- */
+  .sw-chips {
+    display: flex; flex-wrap: wrap; gap: 6px;
+  }
+  .sw-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 12px;
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--c-ink) 5%, transparent);
+    border: 1px solid transparent;
+    font-size: 12px; font-weight: 600; color: var(--c-ink-2);
+    cursor: pointer;
+    transition: all .18s var(--ease);
+  }
+  .sw-chip:hover {
+    background: color-mix(in oklab, var(--c-ink) 9%, transparent);
+    color: var(--c-ink);
+  }
+  .sw-chip.on {
+    background: var(--c-ink);
+    color: var(--c-primary-ink);
+    border-color: var(--c-ink);
+  }
+  .sw-chip.on.accent {
+    background: var(--c-primary);
+    border-color: var(--c-primary);
+  }
+  .sw-chip .flag { font-size: 14px; line-height: 1; }
+  .sw-chip .sym {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 18px; height: 18px;
+    border-radius: 999px;
+    background: color-mix(in oklab, currentColor 14%, transparent);
+    font-size: 11px; font-weight: 700;
+  }
+  .sw-chip.on .sym { background: rgba(255,255,255,.18); }
+
+  /* --- segmented iOS-ish --- */
+  .sw-seg {
+    display: grid;
+    grid-auto-columns: 1fr; grid-auto-flow: column;
+    background: color-mix(in oklab, var(--c-ink) 6%, transparent);
+    border-radius: 14px;
+    padding: 4px;
+    gap: 2px;
+  }
+  .sw-seg button {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 8px 6px;
+    border-radius: 10px;
+    font-size: 12px; font-weight: 600; color: var(--c-ink-2);
+    transition: background .18s, color .18s, box-shadow .18s;
+  }
+  .sw-seg button:hover { color: var(--c-ink); }
+  .sw-seg button.on {
+    background: var(--c-surface);
+    color: var(--c-ink);
+    box-shadow: 0 1px 2px rgba(17,40,39,.1), 0 2px 6px rgba(17,40,39,.06);
+  }
+  .sw-seg button .flag { font-size: 14px; }
+  .sw-seg button .code { font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; opacity: .8; }
+
+  /* ============== FOOTER SWITCHER ============== */
+  .footer-sw {
+    display: inline-flex; align-items: center; gap: 10px;
+    padding: 10px 14px;
+    border: 1px solid rgba(255,255,255,.18);
+    background: transparent;
+    border-radius: 12px;
+    color: rgba(255,255,255,.92);
+    font-size: 13px; font-weight: 500;
+    cursor: pointer;
+    transition: border-color .2s, background .2s;
+  }
+  .footer-sw:hover { border-color: rgba(255,255,255,.3); background: rgba(255,255,255,.04); }
+  .footer-sw .flag { font-size: 16px; }
+  .footer-sw svg { opacity: .6; margin-left: 4px; }
+
+  /* ============== HEADER MOCK ============== */
+  .hdr-mock {
+    width: 100%;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 24px;
+  }
+  .hdr-mock .logo {
+    font-family: var(--font-display); font-weight: 600;
+    font-size: 18px; letter-spacing: -0.01em;
+  }
+  .hdr-mock .logo em { font-family: var(--font-serif); font-style: italic; color: var(--c-accent); font-weight: 400; }
+  .hdr-mock .on-dark-logo { color: #fff; }
+  .hdr-mock .links {
+    display: flex; gap: 2px;
+    font-size: 13px; font-weight: 500;
+  }
+  .hdr-mock .links a { padding: 8px 12px; border-radius: 999px; color: inherit; opacity: .78; }
+  .hdr-mock .links a.active { background: var(--c-ink); color: var(--c-primary-ink); opacity: 1; }
+  .hdr-mock .dark-links a.active { background: #fff; color: var(--c-ink); }
+  .hdr-mock .right { display: flex; align-items: center; gap: 8px; }
+  .mini-cta {
+    display: inline-flex; align-items: center; gap: 6px;
+    height: 40px; padding: 0 16px;
+    border-radius: 999px;
+    background: var(--c-ink); color: var(--c-primary-ink);
+    font-size: 13px; font-weight: 600;
+  }
+  .mini-cta.on-dark { background: #fff; color: var(--c-ink); }
+
+  /* ============== LOADING STATE ============== */
+  .reload-cover {
+    position: absolute; inset: 0;
+    background: color-mix(in oklab, var(--c-bg) 86%, transparent);
+    backdrop-filter: blur(4px);
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 14px;
+    border-radius: inherit;
+    z-index: 5;
+  }
+  .reload-cover .dot-spin {
+    width: 36px; height: 36px; border-radius: 50%;
+    border: 3px solid color-mix(in oklab, var(--c-primary) 20%, transparent);
+    border-top-color: var(--c-primary);
+    animation: spin .9s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .reload-cover p {
+    font-family: var(--font-display); font-weight: 500;
+    font-size: 14px; letter-spacing: -0.005em;
+    color: var(--c-ink); margin: 0;
+  }
+  .reload-cover p em { font-family: var(--font-serif); font-style: italic; color: var(--c-accent); font-weight: 400; }
+
+  /* ============== MOBILE DRAWER ============== */
+  .phone {
+    width: 340px; height: 640px;
+    margin: 0 auto;
+    background: #0b1a12;
+    border-radius: 40px;
+    padding: 10px;
+    box-shadow: 0 30px 60px -20px rgba(0,0,0,.3), inset 0 0 0 1px rgba(255,255,255,.05);
+    position: relative;
+  }
+  .phone-screen {
+    width: 100%; height: 100%;
+    background: var(--c-bg);
+    border-radius: 30px;
+    overflow: hidden;
+    position: relative;
+    display: flex; flex-direction: column;
+  }
+  .phone-status {
+    padding: 12px 22px 6px; font-size: 12px; font-weight: 600;
+    display: flex; justify-content: space-between; color: var(--c-ink);
+  }
+  .phone-status .notch {
+    position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+    width: 90px; height: 22px; background: #0b1a12; border-radius: 0 0 14px 14px;
+  }
+  .phone-topnav {
+    padding: 10px 16px; display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid var(--c-line);
+  }
+  .phone-topnav .ct-logo {
+    font-family: var(--font-display); font-weight: 600; font-size: 15px;
+  }
+  .phone-topnav .ct-logo em { font-family: var(--font-serif); font-style: italic; color: var(--c-accent); font-weight: 400; }
+  .ham {
+    width: 38px; height: 38px; border-radius: 999px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--c-surface);
+    border: 1px solid var(--c-line);
+  }
+  .phone-body { flex: 1; padding: 16px; overflow: hidden; position: relative; }
+  .phone-body.drawer-open::after {
+    content: ""; position: absolute; inset: 0; background: rgba(19,32,23,.4);
+    backdrop-filter: blur(2px); z-index: 2;
+  }
+
+  .drawer {
+    position: absolute; inset: 0; top: 0;
+    background: var(--c-surface);
+    z-index: 3;
+    display: flex; flex-direction: column;
+    animation: slideRight .3s var(--ease);
+  }
+  @keyframes slideRight {
+    from { transform: translateX(100%); }
+    to { transform: none; }
+  }
+  .drawer-head {
+    padding: 14px 16px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid var(--c-line);
+  }
+  .drawer-head b { font-family: var(--font-display); font-weight: 500; font-size: 15px; }
+  .drawer-links {
+    display: flex; flex-direction: column;
+    padding: 8px 0;
+  }
+  .drawer-links a {
+    padding: 14px 20px;
+    font-size: 15px; font-weight: 500;
+    border-bottom: 1px solid var(--c-line);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .drawer-links a:last-child { border-bottom: none; }
+  .drawer-section {
+    border-top: 8px solid var(--c-bg);
+    padding: 14px 20px 18px;
+  }
+  .drawer-section > b {
+    font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--c-muted); font-weight: 600;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .drawer-section .chev {
+    transition: transform .2s;
+  }
+  .drawer-section.open .chev { transform: rotate(180deg); }
+  .drawer-expand {
+    max-height: 0; overflow: hidden;
+    transition: max-height .35s var(--ease), margin-top .35s var(--ease);
+  }
+  .drawer-section.open .drawer-expand { max-height: 400px; margin-top: 14px; }
+  .drawer-expand .sw-chips { gap: 5px; }
+
+  /* ============== SPEC ANNOTATIONS ============== */
+  .spec-notes {
+    background: var(--c-surface);
+    border: 1px solid var(--c-line);
+    border-radius: 20px;
+    padding: 24px 28px;
+    margin-top: 48px;
+  }
+  .spec-notes h3 {
+    font-family: var(--font-display); font-weight: 500;
+    font-size: 18px; margin: 0 0 14px; letter-spacing: -0.01em;
+  }
+  .spec-notes h3 em { font-family: var(--font-serif); font-style: italic; color: var(--c-accent); font-weight: 400; }
+  .spec-notes ul {
+    margin: 0; padding: 0; list-style: none;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px 32px;
+  }
+  .spec-notes li {
+    font-size: 13px; color: var(--c-ink-2);
+    padding-left: 18px; position: relative;
+    line-height: 1.5;
+  }
+  .spec-notes li::before {
+    content: ""; position: absolute; left: 0; top: 9px;
+    width: 6px; height: 6px; border-radius: 999px; background: var(--c-accent);
+  }
+  .spec-notes code {
+    font-family: ui-monospace, Menlo, monospace;
+    font-size: 12px; background: var(--c-surface-2);
+    padding: 1px 6px; border-radius: 4px;
+  }
+
+  /* ============== MISC ============== */
+  svg.i { width: 14px; height: 14px; }
+  .state-tag {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--c-muted); font-weight: 600;
+  }
+  .state-tag::before {
+    content: ""; width: 6px; height: 6px; border-radius: 50%;
+    background: var(--c-muted);
+  }
+  .state-tag.on::before { background: var(--c-accent-3); }
+
+  @media (max-width: 900px) {
+    .cell-grid.cols-3, .cell-grid.cols-2 { grid-template-columns: 1fr; }
+    .spec-notes ul { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body data-palette="selva" data-density="snug">
+
+<div class="canvas">
+
+  <!-- ============== HEADER ============== -->
+  <header class="canvas-head">
+    <span class="kicker">Component · Market Experience</span>
+    <h1>Switcher de <em>idioma</em> y moneda</h1>
+    <p>Pill combinado en el header, variantes de grupo (compact · chips · segmented), panel dropdown <code style="font-family:ui-monospace,Menlo,monospace;font-size:13px;background:var(--c-surface-2);padding:2px 7px;border-radius:4px">280–320px</code>, select simple para el footer y drawer expandible mobile. Tokens del sistema <b>selva</b>, densidad snug.</p>
+    <div class="cc-meta">
+      <div><b>Idiomas</b>es · en · pt · fr · de · it · nl</div>
+      <div><b>Monedas</b>COP · USD · EUR · MXN · BRL</div>
+      <div><b>Default style</b>compact</div>
+      <div><b>Storage</b>localStorage · query param</div>
+    </div>
+  </header>
+
+  <div id="root"></div>
+
+</div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" data-presets="react">
+const { useState, useMemo, useEffect, useRef } = React;
+
+/* =================== DATA =================== */
+const LANGS = [
+  { code: 'es', flag: '🇨🇴', label: 'Español', native: 'Español' },
+  { code: 'en', flag: '🇺🇸', label: 'English', native: 'English' },
+  { code: 'pt', flag: '🇧🇷', label: 'Português', native: 'Português' },
+  { code: 'fr', flag: '🇫🇷', label: 'Français', native: 'Français' },
+  { code: 'de', flag: '🇩🇪', label: 'Deutsch', native: 'Deutsch' },
+  { code: 'it', flag: '🇮🇹', label: 'Italiano', native: 'Italiano' },
+  { code: 'nl', flag: '🇳🇱', label: 'Nederlands', native: 'Nederlands' },
+];
+
+const CURRENCIES = [
+  { code: 'COP', sym: '$',   name: 'Peso colombiano', rate: 1 },
+  { code: 'USD', sym: '$',   name: 'US Dollar',        rate: 0.00025 },
+  { code: 'EUR', sym: '€',   name: 'Euro',             rate: 0.00023 },
+  { code: 'MXN', sym: 'Mex$',name: 'Peso mexicano',    rate: 0.0042 },
+  { code: 'BRL', sym: 'R$',  name: 'Real',             rate: 0.0013 },
+];
+
+/* =================== ICONS =================== */
+const Caret = ({className='caret'}) => (
+  <svg className={className} viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M5 8l5 5 5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+const Globe = () => (
+  <svg className="i" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.6"/>
+    <path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18" stroke="currentColor" strokeWidth="1.6"/>
+  </svg>
+);
+const Chev = () => (
+  <svg className="i" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M7 5l5 5-5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+const XMark = () => (
+  <svg viewBox="0 0 20 20" width="14" height="14" fill="none"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
+);
+
+/* =================== PILL (closed state) =================== */
+function Pill({ lang, cur, open, onDark, onClick }) {
+  const L = LANGS.find(l => l.code === lang);
+  const C = CURRENCIES.find(c => c.code === cur);
+  return (
+    <button
+      className={`sw-pill ${open ? 'open' : ''} ${onDark ? 'on-dark' : ''}`}
+      onClick={onClick}
+      aria-haspopup="dialog" aria-expanded={open}
+    >
+      <span className="flag">{L.flag}</span>
+      <span>{L.code.toUpperCase()}</span>
+      <span className="divider" />
+      <span className="cur"><span className="sym">{C.sym}</span><span>{C.code}</span></span>
+      <Caret />
+    </button>
+  );
+}
+
+/* =================== DROPDOWN PANEL =================== */
+function Panel({ style, lang, setLang, cur, setCur, onClose }) {
+  return (
+    <div className="pop" role="dialog" aria-label="Personaliza tu experiencia">
+      <div className="pop-heading">Personaliza tu <em>experiencia</em></div>
+      <div style={{fontSize:12,color:'var(--c-muted)',margin:'0 4px 4px'}}>Idioma del sitio y moneda de precios.</div>
+
+      <div className="pop-sub">Idioma</div>
+      <LangGroup style={style} value={lang} onChange={setLang} />
+
+      <hr className="pop-div" />
+
+      <div className="pop-sub">Moneda</div>
+      <CurGroup style={style} value={cur} onChange={setCur} />
+
+      <div className="pop-foot">
+        <span>Guardado en este navegador</span>
+        <a href="#">Ver precios en {cur}</a>
+      </div>
+    </div>
+  );
+}
+
+/* =================== GROUP RENDERERS =================== */
+function LangGroup({ style, value, onChange }) {
+  if (style === 'compact')
+    return <CompactSelect items={LANGS} getKey={l=>l.code} getLabel={l => `${l.native}`} getFlag={l=>l.flag} getHint={l=>l.code.toUpperCase()} value={value} onChange={onChange} />;
+  if (style === 'chips')
+    return (
+      <div className="sw-chips">
+        {LANGS.map(l => (
+          <button key={l.code} className={`sw-chip accent ${value===l.code?'on accent':''}`} onClick={()=>onChange(l.code)}>
+            <span className="flag">{l.flag}</span>
+            <span>{l.code.toUpperCase()}</span>
+          </button>
+        ))}
+      </div>
+    );
+  // segmented — show first 4 for single row, wrap to 2nd if needed
+  const shown = LANGS.slice(0,4);
+  const rest  = LANGS.slice(4);
+  return (
+    <>
+      <div className="sw-seg" style={{gridTemplateColumns:'repeat(4,1fr)'}}>
+        {shown.map(l => (
+          <button key={l.code} className={value===l.code?'on':''} onClick={()=>onChange(l.code)}>
+            <span className="flag">{l.flag}</span>
+            <span className="code">{l.code}</span>
+          </button>
+        ))}
+      </div>
+      <div className="sw-seg" style={{gridTemplateColumns:'repeat(3,1fr)', marginTop:4}}>
+        {rest.map(l => (
+          <button key={l.code} className={value===l.code?'on':''} onClick={()=>onChange(l.code)}>
+            <span className="flag">{l.flag}</span>
+            <span className="code">{l.code}</span>
+          </button>
+        ))}
+      </div>
+    </>
+  );
+}
+
+function CurGroup({ style, value, onChange }) {
+  if (style === 'compact')
+    return <CompactSelect items={CURRENCIES} getKey={c=>c.code} getLabel={c=>c.name} getFlag={c=>c.sym} getHint={c=>c.code} value={value} onChange={onChange} isCurrency />;
+  if (style === 'chips')
+    return (
+      <div className="sw-chips">
+        {CURRENCIES.map(c => (
+          <button key={c.code} className={`sw-chip ${value===c.code?'on':''}`} onClick={()=>onChange(c.code)}>
+            <span className="sym">{c.sym}</span>
+            <span>{c.code}</span>
+          </button>
+        ))}
+      </div>
+    );
+  return (
+    <div className="sw-seg" style={{gridTemplateColumns:`repeat(${CURRENCIES.length},1fr)`}}>
+      {CURRENCIES.map(c => (
+        <button key={c.code} className={value===c.code?'on':''} onClick={()=>onChange(c.code)}>
+          <span className="code"><b style={{marginRight:3,fontWeight:700}}>{c.sym}</b>{c.code}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/* Compact select: one row per option (radio-ish) */
+function CompactSelect({ items, value, onChange, getKey, getLabel, getFlag, getHint, isCurrency }) {
+  return (
+    <div style={{display:'flex', flexDirection:'column', gap:4}}>
+      {items.map(it => {
+        const k = getKey(it);
+        const active = k === value;
+        return (
+          <button key={k}
+            onClick={()=>onChange(k)}
+            className="sw-item"
+            style={{
+              display:'flex', alignItems:'center', gap:10,
+              padding:'9px 10px', borderRadius:10,
+              background: active ? 'color-mix(in oklab, var(--c-primary) 10%, transparent)' : 'transparent',
+              border: active ? '1px solid color-mix(in oklab, var(--c-primary) 22%, transparent)' : '1px solid transparent',
+              color: active ? 'var(--c-primary)' : 'var(--c-ink)',
+              fontSize:13, fontWeight: active ? 600 : 500,
+              cursor:'pointer', textAlign:'left', width:'100%'
+            }}>
+            <span style={{width:22, display:'inline-flex', justifyContent:'center',
+                         fontSize: isCurrency ? 13 : 16, fontWeight: isCurrency?700:400}}>{getFlag(it)}</span>
+            <span style={{flex:1}}>{getLabel(it)}</span>
+            <span style={{fontSize:10, letterSpacing:'0.12em', color: active?'var(--c-primary)':'var(--c-muted)', fontWeight:700}}>{getHint(it)}</span>
+            {active && <span style={{width:6,height:6,borderRadius:999,background:'var(--c-primary)'}}/>}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/* =================== HEADER MOCKS =================== */
+function LightHeader({children}){
+  return (
+    <div className="hdr-mock">
+      <div className="logo">Colombia<em>Tours</em></div>
+      <div className="links">
+        <a className="active">Destinos</a>
+        <a>Paquetes</a>
+        <a>Experiencias</a>
+        <a>Blog</a>
+      </div>
+      <div className="right">
+        {children}
+        <a className="mini-cta">Hablar con planner</a>
+      </div>
+    </div>
+  );
+}
+function DarkHeader({children}){
+  return (
+    <div className="hdr-mock" style={{color:'#fff'}}>
+      <div className="logo on-dark-logo">Colombia<em>Tours</em></div>
+      <div className="links dark-links" style={{color:'rgba(255,255,255,.9)'}}>
+        <a className="active">Destinos</a>
+        <a>Paquetes</a>
+        <a>Experiencias</a>
+        <a>Blog</a>
+      </div>
+      <div className="right">
+        {children}
+        <a className="mini-cta on-dark">Hablar con planner</a>
+      </div>
+    </div>
+  );
+}
+
+/* =================== APP =================== */
+function App() {
+  const [openKey, setOpenKey] = useState(null);
+  const [state, setState] = useState({
+    a: { lang: 'es', cur: 'COP' },
+    b: { lang: 'en', cur: 'USD' },
+    c: { lang: 'pt', cur: 'BRL' },
+    dark: { lang: 'es', cur: 'USD' },
+  });
+
+  const updateSlot = (slot) => (patch) => setState(s => ({...s, [slot]: {...s[slot], ...patch}}));
+
+  // Close pop on outside click
+  useEffect(() => {
+    function h(e){
+      if (!e.target.closest('.pop-anchor')) setOpenKey(null);
+    }
+    function esc(e){ if (e.key === 'Escape') setOpenKey(null); }
+    document.addEventListener('click', h);
+    document.addEventListener('keydown', esc);
+    return () => { document.removeEventListener('click', h); document.removeEventListener('keydown', esc); };
+  }, []);
+
+  const [reloading, setReloading] = useState(false);
+
+  const triggerReload = (slot, code) => {
+    setReloading(true);
+    updateSlot(slot)({ lang: code });
+    setTimeout(() => setReloading(false), 1600);
+  };
+
+  return (
+    <>
+      {/* ============== 1. PILL VARIANTS (closed) ============== */}
+      <section className="cc-section">
+        <div className="cc-section-head">
+          <div>
+            <div><span className="num">01 —</span></div>
+            <h2>Pill combinado · <em>estados cerrados</em></h2>
+            <p>Un solo control en header muestra idioma + moneda. Dos fondos: claro (estado scrolled / solid) y transparente (sobre hero).</p>
+          </div>
+        </div>
+
+        <div className="cell-grid cols-2">
+          <div className="cell">
+            <div className="cell-head"><b>Solid · scrolled</b><small>default · light bg</small></div>
+            <div className="cell-body" style={{background:'var(--c-bg)', justifyContent:'flex-end', padding:'28px'}}>
+              <LightHeader>
+                <Pill lang={state.a.lang} cur={state.a.cur} open={false} onClick={()=>{}} />
+              </LightHeader>
+            </div>
+            <div className="cell-caption">Border <code>var(--c-ink) 9%</code> · bg <code>var(--c-ink) 6%</code> · h 40px</div>
+          </div>
+
+          <div className="cell">
+            <div className="cell-head" style={{color:'var(--c-ink)'}}><b>Transparent · over hero</b><small>pre-scroll state</small></div>
+            <div className="cell-body dark" style={{justifyContent:'flex-end', padding:'28px'}}>
+              <DarkHeader>
+                <Pill lang={state.dark.lang} cur={state.dark.cur} open={false} onDark onClick={()=>{}} />
+              </DarkHeader>
+            </div>
+            <div className="cell-caption">Glass: <code>rgba(255,255,255,.12)</code> · blur 10px · border <code>rgba(255,255,255,.22)</code></div>
+          </div>
+        </div>
+      </section>
+
+      {/* ============== 2. OPEN DROPDOWN × 3 STYLES ============== */}
+      <section className="cc-section">
+        <div className="cc-section-head">
+          <div>
+            <div><span className="num">02 —</span></div>
+            <h2>Dropdown abierto · <em>tres estilos</em></h2>
+            <p>Ancho 320px. Heading + grupo idioma + divider + grupo moneda. El <code>switcherStyle</code> de <code>MarketExperienceConfig</code> cambia cómo renderiza cada grupo.</p>
+          </div>
+        </div>
+
+        <div className="cell-grid cols-3">
+          {/* COMPACT */}
+          <div className="cell">
+            <div className="cell-head"><b>compact</b><small>switcherStyle: default</small></div>
+            <div className="cell-body tall" style={{background:'var(--c-bg)', justifyContent:'flex-end', alignItems:'flex-start', padding:'28px 28px 60px'}}>
+              <div className="pop-anchor">
+                <Pill lang={state.a.lang} cur={state.a.cur} open={openKey==='a'} onClick={(e)=>{e.stopPropagation(); setOpenKey(openKey==='a'?null:'a');}} />
+                {openKey==='a' && <Panel
+                  style="compact"
+                  lang={state.a.lang} setLang={(v)=>updateSlot('a')({lang:v})}
+                  cur={state.a.cur} setCur={(v)=>updateSlot('a')({cur:v})}
+                  onClose={()=>setOpenKey(null)} />}
+              </div>
+            </div>
+            <div className="cell-caption">Un renglón por opción, denso. Ideal para listas largas (7 idiomas).</div>
+          </div>
+
+          {/* CHIPS */}
+          <div className="cell">
+            <div className="cell-head"><b>chips</b><small>switcherStyle: chips</small></div>
+            <div className="cell-body tall" style={{background:'var(--c-bg)', justifyContent:'flex-end', alignItems:'flex-start', padding:'28px 28px 60px'}}>
+              <div className="pop-anchor">
+                <Pill lang={state.b.lang} cur={state.b.cur} open={openKey==='b'} onClick={(e)=>{e.stopPropagation(); setOpenKey(openKey==='b'?null:'b');}} />
+                {openKey==='b' && <Panel
+                  style="chips"
+                  lang={state.b.lang} setLang={(v)=>updateSlot('b')({lang:v})}
+                  cur={state.b.cur} setCur={(v)=>updateSlot('b')({cur:v})}
+                  onClose={()=>setOpenKey(null)} />}
+              </div>
+            </div>
+            <div className="cell-caption">Tag cloud seleccionable. Pone toda la oferta a la vista de inmediato.</div>
+          </div>
+
+          {/* SEGMENTED */}
+          <div className="cell">
+            <div className="cell-head"><b>segmented</b><small>switcherStyle: iOS-style</small></div>
+            <div className="cell-body tall" style={{background:'var(--c-bg)', justifyContent:'flex-end', alignItems:'flex-start', padding:'28px 28px 60px'}}>
+              <div className="pop-anchor">
+                <Pill lang={state.c.lang} cur={state.c.cur} open={openKey==='c'} onClick={(e)=>{e.stopPropagation(); setOpenKey(openKey==='c'?null:'c');}} />
+                {openKey==='c' && <Panel
+                  style="segmented"
+                  lang={state.c.lang} setLang={(v)=>updateSlot('c')({lang:v})}
+                  cur={state.c.cur} setCur={(v)=>updateSlot('c')({cur:v})}
+                  onClose={()=>setOpenKey(null)} />}
+              </div>
+            </div>
+            <div className="cell-caption">Toggle group físico, feedback táctil. Mejor para conjuntos ≤ 5.</div>
+          </div>
+        </div>
+      </section>
+
+      {/* ============== 3. FOOTER + STATES ============== */}
+      <section className="cc-section">
+        <div className="cc-section-head">
+          <div>
+            <div><span className="num">03 —</span></div>
+            <h2>Footer standalone · <em>loading state</em></h2>
+            <p>En footer usamos un select simple (outline, fondo transparente). El reload de idioma se cubre con un overlay blur sobre el viewport.</p>
+          </div>
+        </div>
+
+        <div className="cell-grid cols-2">
+          <div className="cell">
+            <div className="cell-head"><b>Footer LanguageSwitcher</b><small>sobre fondo ink</small></div>
+            <div className="cell-body dark" style={{padding:'40px 28px', justifyContent:'flex-start', flexDirection:'column', alignItems:'flex-start', gap:18}}>
+              <div style={{fontFamily:'var(--font-display)', fontWeight:500, fontSize:20, color:'#fff', letterSpacing:'-0.015em'}}>
+                Colombia<em style={{fontFamily:'var(--font-serif)', fontStyle:'italic', color:'var(--c-accent-2)', fontWeight:400}}>Tours</em>
+              </div>
+              <div style={{fontSize:12, letterSpacing:'0.14em', textTransform:'uppercase', color:'rgba(255,255,255,.55)', fontWeight:600}}>Preferencias</div>
+              <div style={{display:'flex', gap:10, flexWrap:'wrap'}}>
+                <button className="footer-sw">
+                  <span className="flag">🇨🇴</span>
+                  <span>Español</span>
+                  <Chev/>
+                </button>
+                <button className="footer-sw">
+                  <span style={{fontWeight:700}}>$</span>
+                  <span>COP</span>
+                  <Chev/>
+                </button>
+              </div>
+              <small style={{color:'rgba(255,255,255,.5)', fontSize:11}}>Native &lt;select&gt; con outline border — más simple que el pill combinado.</small>
+            </div>
+            <div className="cell-caption">Dos selects paralelos, no pill. Usa <code>getLocaleLabel(code)</code>.</div>
+          </div>
+
+          <div className="cell">
+            <div className="cell-head"><b>Loading · cambio idioma</b><small>durante reload SSR</small></div>
+            <div className="cell-body" style={{background:'var(--c-bg)', justifyContent:'flex-end', padding:'28px', position:'relative', minHeight:260}}>
+              <LightHeader>
+                <div className="pop-anchor">
+                  <Pill lang={state.a.lang} cur={state.a.cur} open={false} onClick={()=>{}} />
+                </div>
+              </LightHeader>
+              {reloading && (
+                <div className="reload-cover">
+                  <div className="dot-spin" />
+                  <p>Cargando en <em>{LANGS.find(l=>l.code===state.a.lang)?.native}</em>…</p>
+                </div>
+              )}
+              <div style={{position:'absolute', bottom:16, left:16, display:'flex', gap:6}}>
+                {LANGS.slice(0,4).map(l => (
+                  <button key={l.code}
+                    onClick={()=>triggerReload('a', l.code)}
+                    className="sw-chip">
+                    <span className="flag">{l.flag}</span>{l.code.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="cell-caption">Demo: click un idioma para simular el <code>window.location.href</code> reload.</div>
+          </div>
+        </div>
+      </section>
+
+      {/* ============== 4. MOBILE DRAWER ============== */}
+      <section className="cc-section">
+        <div className="cc-section-head">
+          <div>
+            <div><span className="num">04 —</span></div>
+            <h2>Mobile · <em>drawer expandible</em></h2>
+            <p>En mobile, el pill desaparece del header y las preferencias viven dentro del nav drawer en una sección expandible al final.</p>
+          </div>
+        </div>
+
+        <div className="cell-grid cols-3">
+          <div className="cell">
+            <div className="cell-head"><b>Drawer cerrado</b><small>preferencias collapsed</small></div>
+            <div className="cell-body" style={{background:'#dfe3d6', padding:'24px'}}>
+              <Phone variant="closed" />
+            </div>
+            <div className="cell-caption">Item "Idioma · Moneda" como último renglón del drawer, con chevron.</div>
+          </div>
+          <div className="cell">
+            <div className="cell-head"><b>Drawer expandido</b><small>chips inline</small></div>
+            <div className="cell-body" style={{background:'#dfe3d6', padding:'24px'}}>
+              <Phone variant="expanded" />
+            </div>
+            <div className="cell-caption">Chips row para idioma, chips row para moneda. Sin modales anidados.</div>
+          </div>
+          <div className="cell">
+            <div className="cell-head"><b>Active selection</b><small>feedback visual</small></div>
+            <div className="cell-body" style={{background:'#dfe3d6', padding:'24px'}}>
+              <Phone variant="active" />
+            </div>
+            <div className="cell-caption">Selección actual en primary fill; el resto ink 5%. Tap target ≥ 40px.</div>
+          </div>
+        </div>
+      </section>
+
+      {/* ============== 5. SPEC NOTES ============== */}
+      <div className="spec-notes">
+        <h3>Notas para <em>implementación</em></h3>
+        <ul>
+          <li><b>Locale cambia</b> → path-based <code>/en/paquetes</code> → full page reload (SSR con nuevo locale).</li>
+          <li><b>Moneda cambia</b> → solo query <code>?currency=USD</code> + re-render client-side (sin reload).</li>
+          <li><b>Close panel</b> → Escape o click outside. Focus vuelve al pill.</li>
+          <li><b>Keyboard nav</b> → Arrow keys entre items, Enter para seleccionar, Tab entre grupos.</li>
+          <li><b>Focus ring</b> AA → <code>outline: 2px solid var(--c-accent)</code>, offset 2px.</li>
+          <li><b>Loading state</b> → overlay blur 4px + spinner + label localizada del target.</li>
+          <li><b>Bandera</b> via <code>getLocaleFlagEmoji(code)</code>, fallback a código ISO.</li>
+          <li><b>Footer</b> usa <code>&lt;select&gt;</code> nativo — no dropdown custom, menos peso.</li>
+        </ul>
+      </div>
+
+    </>
+  );
+}
+
+/* =================== PHONE =================== */
+function Phone({ variant }) {
+  const open = variant !== 'closed';
+  const [lang, setLang] = useState('es');
+  const [cur, setCur] = useState('COP');
+
+  useEffect(() => {
+    if (variant === 'active') { setLang('pt'); setCur('BRL'); }
+  }, [variant]);
+
+  return (
+    <div className="phone">
+      <div className="phone-screen">
+        <div className="phone-status">
+          <span>9:41</span>
+          <span style={{display:'flex',gap:4,alignItems:'center'}}>
+            <svg width="14" height="10" viewBox="0 0 14 10" fill="currentColor"><rect x="0" y="6" width="2" height="4" rx=".5"/><rect x="3" y="4" width="2" height="6" rx=".5"/><rect x="6" y="2" width="2" height="8" rx=".5"/><rect x="9" y="0" width="2" height="10" rx=".5"/></svg>
+            <span style={{fontSize:11}}>100%</span>
+          </span>
+        </div>
+        <div className="phone-topnav">
+          <div className="ct-logo">Colombia<em>Tours</em></div>
+          <button className="ham">
+            <svg width="16" height="14" viewBox="0 0 16 14"><path d="M1 2h14M1 7h14M1 12h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
+          </button>
+        </div>
+        <div className={`phone-body ${open ? 'drawer-open' : ''}`}>
+          {!open && (
+            <div style={{padding:'4px 4px'}}>
+              <div style={{fontFamily:'var(--font-display)', fontWeight:500, fontSize:22, lineHeight:1.1, letterSpacing:'-0.015em'}}>
+                Colombia, <em style={{fontFamily:'var(--font-serif)', fontStyle:'italic', color:'var(--c-accent)', fontWeight:400}}>sin filtros</em>
+              </div>
+              <div style={{height:120, marginTop:16, borderRadius:16, background:'linear-gradient(135deg,#1f4d2e,#6a8f3d)'}}/>
+              <div style={{marginTop:14, fontSize:13, color:'var(--c-ink-2)'}}>Destinos destacados esta semana…</div>
+            </div>
+          )}
+
+          {open && (
+            <div className="drawer">
+              <div className="drawer-head">
+                <b>Menú</b>
+                <button className="ham"><XMark/></button>
+              </div>
+              <div className="drawer-links">
+                <a>Destinos <Chev/></a>
+                <a>Paquetes <Chev/></a>
+                <a>Experiencias <Chev/></a>
+                <a>Blog <Chev/></a>
+              </div>
+              <div className={`drawer-section ${variant!=='closed' ? 'open' : ''}`}>
+                <b>
+                  <span>Idioma · Moneda</span>
+                  <svg className="chev" width="14" height="14" viewBox="0 0 20 20" fill="none"><path d="M5 8l5 5 5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
+                </b>
+                <div className="drawer-expand">
+                  <div style={{fontSize:10,letterSpacing:'0.14em',textTransform:'uppercase',color:'var(--c-muted)',fontWeight:600,marginBottom:6}}>Idioma</div>
+                  <div className="sw-chips" style={{gap:5}}>
+                    {LANGS.slice(0,6).map(l => (
+                      <button key={l.code} className={`sw-chip accent ${lang===l.code?'on accent':''}`} onClick={()=>setLang(l.code)}>
+                        <span className="flag">{l.flag}</span>{l.code.toUpperCase()}
+                      </button>
+                    ))}
+                  </div>
+                  <div style={{fontSize:10,letterSpacing:'0.14em',textTransform:'uppercase',color:'var(--c-muted)',fontWeight:600,margin:'14px 0 6px'}}>Moneda</div>
+                  <div className="sw-chips" style={{gap:5}}>
+                    {CURRENCIES.map(c => (
+                      <button key={c.code} className={`sw-chip ${cur===c.code?'on':''}`} onClick={()=>setCur(c.code)}>
+                        <span className="sym">{c.sym}</span>{c.code}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+
+</body>
+</html>

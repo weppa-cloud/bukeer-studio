@@ -1,0 +1,717 @@
+/* ==========================================================
+   Fase 1 — WhatsApp Flow
+   Drawer, Trust Bar, "Cómo funciona", Flotante, Success
+   ========================================================== */
+
+/* ---------- Overlay + Drawer shell ---------- */
+.waf-overlay {
+  position: fixed; inset: 0; z-index: 90;
+  background: rgba(8, 14, 18, 0);
+  transition: background .3s ease;
+  pointer-events: none;
+}
+.waf-overlay.on {
+  background: rgba(8, 14, 18, .55);
+  backdrop-filter: blur(4px);
+  pointer-events: auto;
+}
+
+.waf-drawer {
+  position: fixed; z-index: 91;
+  top: 0; right: 0; bottom: 0;
+  width: min(560px, 100vw);
+  background: #fff;
+  display: flex; flex-direction: column;
+  transform: translateX(100%);
+  transition: transform .4s cubic-bezier(.2,.8,.2,1);
+  box-shadow: -30px 0 80px rgba(0,0,0,.18);
+  overflow: hidden;
+}
+.waf-drawer.on { transform: translateX(0); }
+
+@media (max-width: 720px) {
+  .waf-drawer {
+    top: auto; bottom: 0; right: 0; left: 0;
+    width: 100%;
+    height: 92vh;
+    border-radius: 24px 24px 0 0;
+    transform: translateY(100%);
+    box-shadow: 0 -20px 60px rgba(0,0,0,.25);
+  }
+  .waf-drawer.on { transform: translateY(0); }
+}
+
+/* ---------- Drawer header (contextual hero) ---------- */
+.waf-head {
+  position: relative;
+  padding: 28px 32px 24px;
+  overflow: hidden;
+  color: #fff;
+  flex: none;
+}
+.waf-head-bg {
+  position: absolute; inset: 0;
+  z-index: 0;
+}
+.waf-head-bg::after {
+  content: "";
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(8,20,26,.35) 0%, rgba(8,20,26,.82) 100%);
+}
+.waf-head-inner {
+  position: relative; z-index: 2;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.waf-head-top {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 8px;
+}
+.waf-head-eyebrow {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 11px; letter-spacing: .16em; text-transform: uppercase; font-weight: 600;
+  color: rgba(255,255,255,.85);
+}
+.waf-head-eyebrow .dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 0 4px rgba(34,197,94,.25);
+  animation: waf-pulse 1.8s infinite;
+}
+@keyframes waf-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .55; }
+}
+.waf-close {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: rgba(255,255,255,.14);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255,255,255,.18);
+  color: #fff; cursor: pointer;
+  display: grid; place-items: center;
+  transition: background .2s;
+}
+.waf-close:hover { background: rgba(255,255,255,.24); }
+
+.waf-head-title {
+  font-family: var(--font-display, "Bricolage Grotesque"), serif;
+  font-size: 28px; line-height: 1.1; letter-spacing: -0.01em;
+  font-weight: 500;
+  margin: 0;
+  text-wrap: balance;
+}
+.waf-head-title em {
+  font-family: var(--font-serif, "Instrument Serif"), serif;
+  font-style: italic; font-weight: 400;
+  color: #f3b13b;
+}
+.waf-head-sub {
+  font-size: 14px; line-height: 1.5;
+  color: rgba(255,255,255,.82);
+  margin: 4px 0 0;
+  max-width: 42ch;
+}
+
+.waf-pill-context {
+  display: inline-flex; align-items: center; gap: 10px;
+  background: rgba(255,255,255,.12);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255,255,255,.2);
+  color: #fff;
+  padding: 8px 14px; border-radius: 999px;
+  font-size: 12px; font-weight: 500;
+  margin-bottom: 4px;
+  width: fit-content;
+}
+.waf-pill-context b { font-weight: 600; }
+
+/* ---------- Drawer body (form) ---------- */
+.waf-body {
+  flex: 1; overflow-y: auto;
+  padding: 28px 32px 20px;
+  background: #fff;
+  scrollbar-width: thin;
+}
+.waf-body::-webkit-scrollbar { width: 6px; }
+.waf-body::-webkit-scrollbar-thumb { background: rgba(0,0,0,.15); border-radius: 3px; }
+
+.waf-field {
+  margin-bottom: 22px;
+}
+.waf-label {
+  display: flex; align-items: baseline; justify-content: space-between;
+  font-size: 13px; font-weight: 600;
+  color: var(--c-ink, #1a1a1a);
+  margin-bottom: 10px;
+  letter-spacing: 0.01em;
+}
+.waf-label .opt {
+  font-size: 11px; font-weight: 500;
+  color: var(--c-muted, #7a7a7a);
+  letter-spacing: .04em; text-transform: uppercase;
+}
+.waf-label .req {
+  color: #c24b3c;
+  font-weight: 600; font-size: 11px;
+  letter-spacing: .04em; text-transform: uppercase;
+}
+
+/* ---------- Chips (multi-select) ---------- */
+.waf-chips {
+  display: flex; flex-wrap: wrap; gap: 8px;
+}
+.waf-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 9px 14px;
+  background: #fff;
+  border: 1.5px solid rgba(0,0,0,.12);
+  border-radius: 999px;
+  font-size: 13px; font-weight: 500;
+  color: var(--c-ink, #1a1a1a);
+  cursor: pointer;
+  transition: all .15s ease;
+  font-family: inherit;
+}
+.waf-chip:hover { border-color: rgba(0,0,0,.3); transform: translateY(-1px); }
+.waf-chip.on {
+  background: var(--c-ink, #1a1a1a);
+  color: #fff;
+  border-color: var(--c-ink, #1a1a1a);
+}
+.waf-chip .checkmark {
+  opacity: 0; width: 0; overflow: hidden;
+  transition: all .15s;
+}
+.waf-chip.on .checkmark { opacity: 1; width: 14px; }
+
+/* Single-select variant (stepper-like) */
+.waf-chip-row {
+  display: flex; gap: 8px; flex-wrap: wrap;
+}
+.waf-chip-row .waf-chip.compact {
+  padding: 8px 14px;
+  font-size: 13px;
+}
+
+/* ---------- Input ---------- */
+.waf-input-wrap {
+  position: relative;
+  display: flex; align-items: stretch;
+  border: 1.5px solid rgba(0,0,0,.12);
+  border-radius: 12px;
+  background: #fff;
+  transition: border-color .15s;
+  overflow: hidden;
+}
+.waf-input-wrap:focus-within {
+  border-color: var(--c-ink, #1a1a1a);
+  box-shadow: 0 0 0 3px rgba(0,0,0,.06);
+}
+.waf-input-wrap.error {
+  border-color: #c24b3c;
+  box-shadow: 0 0 0 3px rgba(194,75,60,.1);
+}
+.waf-input {
+  flex: 1;
+  border: 0; outline: none; background: transparent;
+  padding: 13px 16px;
+  font-size: 15px; font-family: inherit;
+  color: var(--c-ink, #1a1a1a);
+  min-width: 0;
+}
+.waf-input::placeholder { color: rgba(0,0,0,.4); }
+
+.waf-prefix {
+  display: flex; align-items: center; gap: 6px;
+  padding: 0 14px;
+  background: rgba(0,0,0,.03);
+  border-right: 1px solid rgba(0,0,0,.08);
+  font-size: 14px; font-weight: 500;
+  color: var(--c-ink, #1a1a1a);
+  cursor: pointer;
+  user-select: none;
+}
+.waf-prefix .flag {
+  font-size: 16px; line-height: 1;
+}
+.waf-prefix .chev {
+  color: rgba(0,0,0,.4);
+  font-size: 10px;
+}
+
+.waf-error-msg {
+  font-size: 12px; color: #c24b3c;
+  margin-top: 6px; font-weight: 500;
+}
+
+/* Country dropdown */
+.waf-country-dd {
+  position: absolute;
+  top: calc(100% + 6px); left: 0;
+  background: #fff;
+  border: 1px solid rgba(0,0,0,.1);
+  border-radius: 10px;
+  box-shadow: 0 20px 40px rgba(0,0,0,.12);
+  width: 240px;
+  max-height: 260px; overflow-y: auto;
+  z-index: 10;
+  padding: 6px;
+}
+.waf-country-opt {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0; background: transparent;
+  border-radius: 6px;
+  text-align: left;
+  font-size: 14px; font-family: inherit;
+  cursor: pointer;
+  color: var(--c-ink, #1a1a1a);
+}
+.waf-country-opt:hover { background: rgba(0,0,0,.04); }
+.waf-country-opt .code { color: var(--c-muted, #7a7a7a); margin-left: auto; font-variant-numeric: tabular-nums; }
+
+/* ---------- Stepper (pax) ---------- */
+.waf-stepper-row {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+}
+.waf-stepper {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 16px;
+  border: 1.5px solid rgba(0,0,0,.12);
+  border-radius: 12px;
+  background: #fff;
+}
+.waf-stepper-label {
+  display: flex; flex-direction: column;
+}
+.waf-stepper-label b { font-size: 14px; font-weight: 600; color: var(--c-ink,#1a1a1a); }
+.waf-stepper-label small { font-size: 11px; color: var(--c-muted, #7a7a7a); }
+.waf-stepper-controls {
+  display: flex; align-items: center; gap: 8px;
+}
+.waf-stepper-btn {
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 1.5px solid rgba(0,0,0,.12);
+  background: #fff; cursor: pointer;
+  display: grid; place-items: center;
+  color: var(--c-ink, #1a1a1a);
+  transition: all .15s;
+}
+.waf-stepper-btn:hover:not(:disabled) { background: var(--c-ink, #1a1a1a); color: #fff; border-color: var(--c-ink, #1a1a1a); }
+.waf-stepper-btn:disabled { opacity: .3; cursor: not-allowed; }
+.waf-stepper-val {
+  font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums;
+  width: 20px; text-align: center;
+}
+
+/* ---------- Drawer footer (sticky CTA) ---------- */
+.waf-foot {
+  flex: none;
+  padding: 18px 32px 22px;
+  border-top: 1px solid rgba(0,0,0,.08);
+  background: #fff;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.waf-availability {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 12px; color: var(--c-muted, #7a7a7a);
+  gap: 12px;
+}
+.waf-availability .live {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-weight: 500;
+  color: #1a6b3f;
+}
+.waf-availability .live .dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 0 3px rgba(34,197,94,.2);
+}
+.waf-availability .resp {
+  display: inline-flex; align-items: center; gap: 6px;
+}
+
+.waf-submit {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  width: 100%;
+  padding: 16px 22px;
+  background: #25D366; /* WhatsApp green */
+  color: #fff;
+  border: 0; border-radius: 12px;
+  font-size: 15px; font-weight: 600; font-family: inherit;
+  cursor: pointer;
+  box-shadow: 0 10px 22px rgba(37,211,102,.25);
+  transition: all .2s;
+}
+.waf-submit:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 14px 28px rgba(37,211,102,.35); }
+.waf-submit:disabled { opacity: .55; cursor: not-allowed; }
+
+.waf-skip {
+  text-align: center;
+  font-size: 12px;
+  color: var(--c-muted, #7a7a7a);
+}
+.waf-skip a {
+  color: var(--c-ink, #1a1a1a);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.waf-skip a:hover { color: #25D366; }
+
+.waf-privacy {
+  text-align: center;
+  font-size: 11px;
+  color: var(--c-muted, #7a7a7a);
+  line-height: 1.5;
+}
+
+/* ---------- Success state ---------- */
+.waf-success {
+  flex: 1;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 40px 32px;
+  text-align: center;
+}
+.waf-success-ic {
+  width: 72px; height: 72px; border-radius: 50%;
+  background: #25D366;
+  color: #fff;
+  display: grid; place-items: center;
+  margin-bottom: 24px;
+  box-shadow: 0 20px 40px rgba(37,211,102,.3);
+  animation: waf-pop .45s cubic-bezier(.2,.8,.2,1);
+}
+@keyframes waf-pop {
+  0% { transform: scale(0); }
+  60% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+.waf-success h3 {
+  font-family: var(--font-display, "Bricolage Grotesque"), serif;
+  font-size: 28px; line-height: 1.15;
+  margin: 0 0 12px;
+  font-weight: 500;
+  max-width: 18ch;
+  text-wrap: balance;
+}
+.waf-success p {
+  font-size: 15px; color: var(--c-ink-2, #444);
+  margin: 0 0 24px; max-width: 38ch; line-height: 1.55;
+}
+.waf-success-preview {
+  background: #e3f6e3;
+  border: 1px solid rgba(37,211,102,.25);
+  border-radius: 14px;
+  padding: 16px 18px;
+  text-align: left;
+  font-size: 13px; line-height: 1.55;
+  color: #0f3a1f;
+  max-width: 320px;
+  width: 100%;
+  margin-bottom: 24px;
+  white-space: pre-wrap;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  position: relative;
+}
+.waf-success-preview::before {
+  content: "Mensaje que se envía";
+  position: absolute;
+  top: -8px; left: 14px;
+  background: #fff;
+  padding: 0 8px;
+  font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--c-muted, #7a7a7a);
+  font-weight: 600;
+  font-family: var(--font-sans, "Inter"), sans-serif;
+}
+.waf-success-actions {
+  display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;
+  width: 100%;
+}
+.waf-success .btn-wa {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 14px 22px;
+  background: #25D366; color: #fff;
+  border-radius: 10px; font-weight: 600; font-size: 14px;
+  text-decoration: none;
+  border: 0; cursor: pointer; font-family: inherit;
+}
+.waf-success .btn-wa:hover { background: #1ebe5a; }
+.waf-success .btn-sec {
+  padding: 14px 20px;
+  background: transparent; color: var(--c-ink, #1a1a1a);
+  border: 1.5px solid rgba(0,0,0,.12);
+  border-radius: 10px; font-weight: 600; font-size: 14px;
+  cursor: pointer; font-family: inherit;
+}
+
+.waf-ref-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11px;
+  color: var(--c-muted, #7a7a7a);
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  letter-spacing: 0;
+  margin-top: 8px;
+}
+.waf-ref-badge b { color: var(--c-ink,#1a1a1a); font-weight: 600; }
+
+/* ==========================================================
+   Trust Bar (below hero)
+   ========================================================== */
+.trust-bar-f1 {
+  background: var(--c-ink, #152029);
+  color: #fff;
+  padding: 16px 0;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+.trust-bar-f1 .inner {
+  display: flex; align-items: center; justify-content: center;
+  flex-wrap: wrap;
+  gap: 28px 44px;
+  font-size: 13px;
+}
+.trust-bar-f1 .item {
+  display: inline-flex; align-items: center; gap: 10px;
+  color: rgba(255,255,255,.85);
+}
+.trust-bar-f1 .item b { color: #fff; font-weight: 600; }
+.trust-bar-f1 .dot-live {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 0 4px rgba(34,197,94,.2);
+  animation: waf-pulse 1.8s infinite;
+}
+.trust-bar-f1 .ic {
+  color: #f3b13b;
+}
+
+/* ==========================================================
+   "Cómo funciona" — 3 steps section
+   ========================================================== */
+.howit-f1 {
+  padding: 100px 0 110px;
+  background: #fbf9f6;
+  position: relative;
+  overflow: hidden;
+}
+.howit-f1 .head {
+  max-width: 780px;
+  margin-bottom: 64px;
+}
+.howit-f1 .head h2 {
+  font-family: var(--font-display, "Bricolage Grotesque"), serif;
+  font-size: clamp(36px, 4.5vw, 58px);
+  line-height: 1.02; letter-spacing: -0.02em;
+  font-weight: 500;
+  margin: 12px 0 0;
+}
+.howit-f1 .head h2 em {
+  font-family: var(--font-serif, "Instrument Serif"), serif;
+  font-style: italic; font-weight: 400;
+}
+.howit-f1 .head p {
+  font-size: 18px; color: var(--c-ink-2, #444);
+  max-width: 56ch; line-height: 1.55;
+  margin-top: 20px;
+}
+
+.howit-steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0;
+  position: relative;
+}
+@media (max-width: 860px) {
+  .howit-steps { grid-template-columns: 1fr; gap: 12px; }
+}
+
+.howit-step {
+  position: relative;
+  padding: 32px 32px 36px;
+  background: #fff;
+  border: 1px solid rgba(0,0,0,.08);
+  border-radius: 0;
+}
+.howit-step:first-child { border-radius: 18px 0 0 18px; }
+.howit-step:last-child { border-radius: 0 18px 18px 0; }
+.howit-step + .howit-step { border-left: 0; }
+@media (max-width: 860px) {
+  .howit-step, .howit-step:first-child, .howit-step:last-child {
+    border-radius: 14px;
+    border: 1px solid rgba(0,0,0,.08);
+  }
+}
+
+.howit-num {
+  font-family: var(--font-serif, "Instrument Serif"), serif;
+  font-size: 64px; line-height: 1; font-style: italic;
+  color: var(--c-accent, #e85c3c);
+  font-weight: 400;
+  margin-bottom: 18px;
+}
+.howit-step h3 {
+  font-family: var(--font-display, "Bricolage Grotesque"), serif;
+  font-size: 24px; line-height: 1.15; letter-spacing: -0.01em;
+  font-weight: 500;
+  margin: 0 0 14px;
+}
+.howit-step p {
+  font-size: 15px; line-height: 1.55;
+  color: var(--c-ink-2, #444);
+  margin: 0;
+}
+.howit-step .meta {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin-top: 20px;
+  font-size: 12px; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--c-muted, #7a7a7a);
+  font-weight: 600;
+}
+
+.howit-step-img {
+  margin-top: 24px;
+  height: 120px;
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+  background: #eee;
+}
+
+.howit-bottom {
+  margin-top: 44px;
+  display: flex; gap: 16px; align-items: center; flex-wrap: wrap;
+}
+
+/* ==========================================================
+   Flotante WhatsApp mejorado (condicional, con bocadillo)
+   ========================================================== */
+.wa-fab-f1 {
+  position: fixed; right: 22px; bottom: 22px;
+  z-index: 60;
+  display: flex; align-items: center; gap: 10px;
+  opacity: 0; transform: translateY(20px) scale(.9);
+  transition: all .35s cubic-bezier(.2,.8,.2,1);
+  pointer-events: none;
+}
+.wa-fab-f1.on {
+  opacity: 1; transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+.wa-fab-bubble {
+  background: #fff;
+  border: 1px solid rgba(0,0,0,.08);
+  border-radius: 14px;
+  padding: 12px 16px;
+  font-size: 13px; font-weight: 500;
+  color: var(--c-ink, #1a1a1a);
+  box-shadow: 0 10px 24px rgba(0,0,0,.1);
+  max-width: 240px;
+  line-height: 1.4;
+  display: flex; flex-direction: column; gap: 2px;
+  position: relative;
+  animation: waf-float-in .4s .15s backwards;
+}
+.wa-fab-bubble small {
+  font-size: 11px; color: var(--c-muted, #7a7a7a); font-weight: 400;
+}
+.wa-fab-bubble::after {
+  content: "";
+  position: absolute;
+  right: -6px; top: 50%;
+  width: 12px; height: 12px;
+  background: #fff;
+  border-right: 1px solid rgba(0,0,0,.08);
+  border-top: 1px solid rgba(0,0,0,.08);
+  transform: translateY(-50%) rotate(45deg);
+}
+.wa-fab-close {
+  position: absolute; top: -8px; left: -8px;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: #fff; border: 1px solid rgba(0,0,0,.1);
+  cursor: pointer; color: rgba(0,0,0,.5);
+  display: grid; place-items: center;
+  font-size: 11px; line-height: 1;
+  padding: 0;
+}
+.wa-fab-btn {
+  width: 58px; height: 58px; border-radius: 50%;
+  background: #25D366;
+  color: #fff;
+  border: 0; cursor: pointer;
+  display: grid; place-items: center;
+  box-shadow: 0 14px 32px rgba(37,211,102,.38);
+  animation: waf-fab-wiggle 4s infinite;
+  transition: transform .2s;
+  position: relative;
+}
+.wa-fab-btn:hover { transform: scale(1.08); }
+.wa-fab-btn::before {
+  content: "";
+  position: absolute; inset: -4px;
+  border-radius: 50%;
+  border: 2px solid rgba(37,211,102,.4);
+  animation: waf-fab-ring 2s infinite;
+}
+@keyframes waf-fab-ring {
+  0% { transform: scale(.8); opacity: 1; }
+  100% { transform: scale(1.4); opacity: 0; }
+}
+@keyframes waf-fab-wiggle {
+  0%, 90%, 100% { transform: rotate(0); }
+  92% { transform: rotate(-6deg); }
+  95% { transform: rotate(6deg); }
+  97% { transform: rotate(-3deg); }
+}
+@keyframes waf-float-in {
+  from { opacity: 0; transform: translateX(8px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@media (max-width: 720px) {
+  .wa-fab-f1 .wa-fab-bubble { display: none; }
+}
+
+/* Hide the legacy .wa-bubble when Fase 1 active */
+body.f1-active .wa-bubble { display: none; }
+
+/* ==========================================================
+   Hero CTA — gently emphasize new entry
+   ========================================================== */
+.hero-cta .btn-wa-hero {
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 16px 26px;
+  background: #25D366;
+  color: #fff;
+  border: 0; border-radius: 999px;
+  font-size: 15px; font-weight: 600; font-family: inherit;
+  cursor: pointer;
+  box-shadow: 0 14px 30px rgba(37,211,102,.35);
+  transition: all .2s;
+}
+.hero-cta .btn-wa-hero:hover { transform: translateY(-2px); box-shadow: 0 18px 36px rgba(37,211,102,.45); }
+
+/* ==========================================================
+   Package detail — sticky CTA override
+   ========================================================== */
+.pkg-cta-wa {
+  background: #25D366 !important;
+  color: #fff !important;
+  border-color: #25D366 !important;
+}
+.pkg-cta-wa:hover { background: #1ebe5a !important; }
+
+/* Animation for drawer content reveal */
+.waf-field {
+  animation: waf-stagger .4s backwards;
+}
+.waf-field:nth-child(1) { animation-delay: .08s; }
+.waf-field:nth-child(2) { animation-delay: .14s; }
+.waf-field:nth-child(3) { animation-delay: .2s; }
+.waf-field:nth-child(4) { animation-delay: .26s; }
+.waf-field:nth-child(5) { animation-delay: .32s; }
+.waf-field:nth-child(6) { animation-delay: .38s; }
+@keyframes waf-stagger {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}

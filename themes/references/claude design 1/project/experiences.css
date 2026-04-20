@@ -1,0 +1,309 @@
+/* ==========================================================
+   Experiences page
+   ========================================================== */
+
+/* Level pill colors */
+.chip.level-leaf  { background: #e6f0da; color: #3e6a1f; border: 1px solid #cfe1b5; }
+.chip.level-amber { background: #fbe9bf; color: #6d4a13; border: 1px solid #f1d78a; }
+.chip.level-coral { background: #fbd9cf; color: #802f18; border: 1px solid #f3b8a4; }
+
+/* -------- Category tiles -------- */
+.exp-cats {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 10px;
+}
+.exp-cat {
+  text-align: left; padding: 16px 18px;
+  border: 1px solid var(--c-line); border-radius: 18px;
+  background: var(--c-surface); cursor: pointer;
+  transition: all .2s var(--ease);
+  display: flex; flex-direction: column; gap: 4px;
+  min-height: 74px;
+}
+.exp-cat b { font-family: var(--font-display); font-weight: 500; font-size: 16px; letter-spacing: -0.01em; }
+.exp-cat small { font-size: 11px; color: var(--c-muted); line-height: 1.3; }
+.exp-cat:hover { border-color: var(--c-line-2); transform: translateY(-2px); }
+.exp-cat.active {
+  background: var(--c-ink); color: #fff; border-color: var(--c-ink);
+}
+.exp-cat.active small { color: rgba(255,255,255,.7); }
+
+/* -------- Featured -------- */
+.exp-featured {
+  display: grid; grid-template-columns: 1fr 1.1fr;
+  background: var(--c-surface); border: 1px solid var(--c-line);
+  border-radius: 28px; overflow: hidden; cursor: pointer;
+  transition: box-shadow .25s, transform .25s;
+}
+.exp-featured:hover { box-shadow: var(--shadow-3); transform: translateY(-3px); }
+.exp-feat-media { position: relative; min-height: 420px; overflow: hidden; }
+.exp-feat-media .scenic { transition: transform .5s var(--ease); }
+.exp-featured:hover .exp-feat-media .scenic { transform: scale(1.04); }
+.exp-feat-body { padding: 48px; display: flex; flex-direction: column; justify-content: center; }
+.exp-feat-body h2 .serif { font-family: var(--font-serif); font-style: italic; font-weight: 400; }
+.exp-feat-meta {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 20px; padding: 20px 0; border-top: 1px solid var(--c-line); margin-top: 6px;
+}
+.exp-feat-meta small { display: block; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--c-muted); margin-bottom: 4px; font-weight: 600; }
+.exp-feat-meta b { font-family: var(--font-display); font-weight: 500; font-size: 15px; }
+
+/* -------- Toolbar -------- */
+.exp-toolbar {
+  display: flex; gap: 16px; align-items: center;
+  margin-bottom: 16px; flex-wrap: wrap;
+  padding-bottom: 16px; border-bottom: 1px solid var(--c-line);
+}
+.exp-search {
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 18px; background: var(--c-surface);
+  border: 1px solid var(--c-line); border-radius: 999px;
+  flex: 1; min-width: 260px; color: var(--c-muted);
+}
+.exp-search input { flex: 1; border: none; background: transparent; font: inherit; font-size: 14px; color: var(--c-ink); outline: none; }
+.exp-dur-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+
+.exp-filterbar {
+  display: flex; gap: 24px; align-items: center;
+  flex-wrap: wrap; padding: 18px 0;
+}
+.exp-filter-group { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.exp-filter-group .label { margin: 0 4px 0 0; font-size: 11px; }
+.exp-range { display: flex; align-items: center; gap: 10px; min-width: 200px; }
+.exp-range input[type=range] { flex: 1; }
+.exp-range .val { font-family: var(--font-display); font-weight: 500; font-size: 13px; min-width: 42px; }
+
+.exp-count {
+  font-size: 14px; color: var(--c-ink-2);
+  margin: 8px 0 24px;
+}
+.exp-count b { color: var(--c-ink); font-family: var(--font-display); font-weight: 600; font-size: 16px; }
+
+/* -------- Grid -------- */
+.exp-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;
+}
+
+/* -------- Card -------- */
+.exp-card {
+  background: var(--c-surface); border: 1px solid var(--c-line);
+  border-radius: 22px; overflow: hidden; cursor: pointer;
+  display: flex; flex-direction: column;
+  transition: transform .2s, box-shadow .2s, border-color .2s;
+}
+.exp-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-2); border-color: var(--c-line-2); }
+.exp-media { position: relative; aspect-ratio: 5/4; overflow: hidden; }
+.exp-media .scenic { transition: transform .5s var(--ease); }
+.exp-card:hover .exp-media .scenic { transform: scale(1.06); }
+.exp-badges-left {
+  position: absolute; top: 14px; left: 14px;
+  display: flex; gap: 6px; flex-wrap: wrap; z-index: 2;
+}
+.exp-badges-right {
+  position: absolute; top: 14px; right: 54px;
+  display: flex; gap: 6px; flex-wrap: wrap; z-index: 2;
+}
+.exp-media .heart {
+  position: absolute; top: 12px; right: 12px; z-index: 3;
+  width: 34px; height: 34px; border-radius: 999px;
+  background: rgba(255,255,255,.9); border: none; cursor: pointer;
+  display: grid; place-items: center; color: var(--c-ink-2);
+  transition: color .15s, background .15s;
+}
+.exp-media .heart.on { color: var(--c-accent); }
+.exp-media .heart:hover { background: #fff; }
+
+.exp-body { padding: 20px 22px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.exp-loc {
+  font-size: 12px; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--c-muted); font-weight: 600;
+  display: inline-flex; align-items: center; gap: 5px;
+}
+.exp-title {
+  font-family: var(--font-display); font-weight: 500;
+  font-size: 20px; letter-spacing: -0.015em; line-height: 1.2;
+  margin: 0;
+}
+.exp-sub {
+  font-family: var(--font-serif); font-size: 16px;
+  font-style: italic; color: var(--c-ink-2);
+  margin: -2px 0 4px; line-height: 1.3;
+}
+.exp-desc {
+  font-size: 13px; color: var(--c-ink-2); line-height: 1.5; margin: 0;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.exp-rating { margin-top: 2px; }
+.exp-foot {
+  display: flex; justify-content: space-between; align-items: flex-end;
+  margin-top: auto; padding-top: 14px; border-top: 1px solid var(--c-line);
+}
+.exp-dur {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 13px; color: var(--c-ink-2); font-weight: 500;
+}
+.exp-price { text-align: right; }
+.exp-price small { display: block; font-size: 10px; letter-spacing: .15em; text-transform: uppercase; color: var(--c-muted); font-weight: 600; }
+.exp-price b { font-family: var(--font-display); font-weight: 600; font-size: 17px; color: var(--c-ink); }
+
+/* -------- Modal -------- */
+.exp-modal {
+  position: relative;
+  width: min(960px, 94vw); max-height: 92vh;
+  background: var(--c-surface); border-radius: 28px;
+  overflow: hidden; display: flex; flex-direction: column;
+  box-shadow: 0 40px 80px rgba(0,0,0,.45);
+}
+.exp-modal-hero { position: relative; min-height: 260px; color: #fff; flex: none; }
+.exp-modal-hero .scenic { position: absolute; inset: 0; }
+.exp-modal-wash { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,.15) 0%, rgba(0,0,0,.8) 100%); }
+.exp-modal-heroin {
+  position: relative; z-index: 2;
+  padding: 32px 40px 28px; height: 100%;
+  display: flex; flex-direction: column; justify-content: flex-end;
+  gap: 12px;
+}
+.exp-modal-heroin .exp-badges-left { position: static; }
+.exp-modal-loc {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12px; letter-spacing: .12em; text-transform: uppercase;
+  color: rgba(255,255,255,.85); font-weight: 600;
+}
+.exp-modal-heroin h2 { color: #fff; margin: 6px 0; }
+.exp-modal-heroin h2 em { font-family: var(--font-serif); font-style: italic; color: var(--c-accent-2); font-weight: 400; }
+.exp-modal-meta {
+  display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+  font-size: 14px; color: rgba(255,255,255,.9);
+}
+.exp-modal-meta span { display: inline-flex; align-items: center; gap: 5px; }
+
+.exp-modal-body {
+  display: grid; grid-template-columns: 1fr 280px; gap: 32px;
+  padding: 32px 40px 40px; overflow-y: auto;
+}
+.exp-modal-main section { margin-bottom: 24px; }
+.exp-modal-main section:last-child { margin-bottom: 0; }
+.exp-modal-main .label { margin-bottom: 10px; }
+.exp-hl {
+  list-style: none; padding: 0; margin: 0;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.exp-hl li {
+  display: flex; align-items: flex-start; gap: 10px;
+  font-size: 14px; color: var(--c-ink-2); line-height: 1.45;
+}
+.exp-hl li svg { margin-top: 3px; color: var(--c-accent-3); flex: none; }
+
+.exp-modal-rail {
+  background: var(--c-bg); border: 1px solid var(--c-line);
+  border-radius: 18px; padding: 22px;
+  display: flex; flex-direction: column; gap: 12px;
+  align-self: start; position: sticky; top: 20px;
+}
+.exp-modal-price { text-align: left; padding-bottom: 8px; border-bottom: 1px solid var(--c-line); }
+.exp-modal-price small { display: block; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--c-muted); font-weight: 600; margin-bottom: 2px; }
+.exp-modal-price b { font-family: var(--font-display); font-weight: 500; font-size: 32px; letter-spacing: -0.02em; display: block; }
+.exp-modal-price span { font-size: 12px; color: var(--c-muted); }
+.exp-modal-notes {
+  display: flex; flex-direction: column; gap: 6px;
+  padding-top: 8px; margin-top: 4px; border-top: 1px solid var(--c-line);
+  font-size: 12px; color: var(--c-ink-2);
+}
+.exp-modal-notes div { display: inline-flex; align-items: center; gap: 6px; }
+.exp-modal-notes svg { color: var(--c-accent-3); }
+
+/* -------- Cross-sell block -------- */
+.exp-cross {
+  display: grid; grid-template-columns: 1fr 1.1fr; gap: 48px;
+  background: var(--c-surface); border: 1px solid var(--c-line);
+  border-radius: 28px; padding: 48px;
+  align-items: center;
+}
+.exp-cross-body em { font-family: var(--font-serif); font-style: italic; color: var(--c-accent); font-weight: 400; }
+.exp-cross-chips {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;
+}
+.exp-cross-chip {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px; background: var(--c-bg);
+  border: 1px solid var(--c-line); border-radius: 14px;
+  cursor: pointer;
+  transition: transform .15s, border-color .15s;
+}
+.exp-cross-chip:hover { transform: translateY(-2px); border-color: var(--c-accent); }
+.exp-cross-dot {
+  width: 44px; height: 44px; border-radius: 12px;
+  overflow: hidden; flex: none; position: relative;
+}
+.exp-cross-chip small {
+  display: block; font-size: 10px; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--c-muted); font-weight: 600;
+}
+.exp-cross-chip b {
+  display: block; font-family: var(--font-display); font-weight: 500;
+  font-size: 14px; letter-spacing: -0.01em; line-height: 1.2;
+  margin-top: 2px;
+}
+
+/* -------- Reviews -------- */
+.exp-reviews {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;
+}
+.exp-review {
+  background: var(--c-surface); border: 1px solid var(--c-line);
+  border-radius: 18px; padding: 24px;
+  display: flex; flex-direction: column; gap: 14px;
+}
+.exp-review p {
+  font-family: var(--font-serif); font-style: italic;
+  font-size: 18px; line-height: 1.4; color: var(--c-ink);
+  margin: 0;
+}
+.exp-review-foot {
+  display: flex; justify-content: space-between; align-items: flex-end;
+  padding-top: 14px; border-top: 1px solid var(--c-line); margin-top: auto;
+}
+.exp-review-foot b { display: block; font-weight: 600; font-size: 14px; }
+.exp-review-foot small { display: block; font-size: 12px; color: var(--c-muted); margin-top: 2px; }
+.exp-review-link {
+  background: none; border: none; cursor: pointer;
+  font-size: 12px; color: var(--c-accent); font-weight: 600;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+
+/* -------- Final CTA -------- */
+.exp-finalcta {
+  background: var(--c-ink); color: #fff;
+  border-radius: 28px; padding: 48px 56px;
+  display: grid; grid-template-columns: 1fr auto; gap: 32px;
+  align-items: center; position: relative; overflow: hidden;
+}
+.exp-finalcta::before {
+  content: ""; position: absolute; right: -60px; top: -60px;
+  width: 240px; height: 240px; border-radius: 50%;
+  background: var(--c-accent); opacity: .22;
+}
+.exp-finalcta h3 em { font-family: var(--font-serif); font-style: italic; color: var(--c-accent-2); font-weight: 400; }
+.exp-finalcta .btn { position: relative; z-index: 1; }
+
+@media (max-width: 1100px) {
+  .exp-cats { grid-template-columns: repeat(4, 1fr); }
+  .exp-featured { grid-template-columns: 1fr; }
+  .exp-feat-media { min-height: 280px; }
+  .exp-feat-body { padding: 32px; }
+  .exp-grid { grid-template-columns: repeat(2, 1fr); }
+  .exp-cross { grid-template-columns: 1fr; padding: 36px; }
+  .exp-reviews { grid-template-columns: 1fr; }
+  .exp-modal-body { grid-template-columns: 1fr; }
+  .exp-modal-rail { position: static; }
+  .exp-finalcta { grid-template-columns: 1fr; padding: 36px; }
+}
+@media (max-width: 640px) {
+  .exp-cats { grid-template-columns: repeat(2, 1fr); }
+  .exp-grid { grid-template-columns: 1fr; }
+  .exp-feat-meta { grid-template-columns: repeat(2, 1fr); }
+  .exp-toolbar { flex-direction: column; align-items: stretch; }
+  .exp-modal-heroin { padding: 24px; }
+  .exp-modal-body { padding: 24px; }
+}
