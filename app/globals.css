@@ -97,6 +97,7 @@ body.studio-editor-fullscreen [data-slot="dialog-content"] {
   --font-family-display: var(--font-display), serif;
   --font-family-sans: var(--font-sans), sans-serif;
   --font-family-special: var(--font-special), sans-serif;
+  --font-family-serif: var(--font-serif), serif;
 
   /* Spacing */
   --spacing-18: 4.5rem;
@@ -166,6 +167,52 @@ body {
 
 .font-body {
   font-family: var(--font-body);
+}
+
+.display-xl {
+  font-family: var(--font-heading);
+  font-size: var(--text-display-xl, clamp(3rem, 6vw, 6rem));
+  line-height: 0.98;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+}
+
+.display-lg {
+  font-family: var(--font-heading);
+  font-size: var(--text-display-lg, clamp(2.25rem, 4vw, 4rem));
+  line-height: 1.02;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+}
+
+.display-md {
+  font-family: var(--font-heading);
+  font-size: var(--text-display-md, clamp(1.75rem, 3vw, 3rem));
+  line-height: 1.08;
+  letter-spacing: -0.01em;
+  font-weight: 700;
+}
+
+.heading {
+  font-family: var(--font-heading);
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+
+.body {
+  font-family: var(--font-body);
+  line-height: var(--body-line-height, 1.6);
+  letter-spacing: var(--letter-spacing, 0);
+}
+
+.label {
+  font-family: var(--font-body);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.serif {
+  font-family: var(--font-serif), serif;
 }
 
 /* Mono font for labels, badges, tracking text */
@@ -405,7 +452,8 @@ select.sort-select {
   .container {
     margin-left: auto;
     margin-right: auto;
-    max-width: 80rem;
+    width: 100%;
+    max-width: var(--container, 80rem);
     padding-left: 1rem;
     padding-right: 1rem;
   }
@@ -425,21 +473,21 @@ select.sort-select {
   }
 
   .section-padding {
-    padding-top: 5rem;
-    padding-bottom: 5rem;
+    padding-top: var(--section-py, 5rem);
+    padding-bottom: var(--section-py, 5rem);
   }
 
   @media (min-width: 768px) {
     .section-padding {
-      padding-top: 6rem;
-      padding-bottom: 6rem;
+      padding-top: var(--section-py, 6rem);
+      padding-bottom: var(--section-py, 6rem);
     }
   }
 
   @media (min-width: 1024px) {
     .section-padding {
-      padding-top: 8rem;
-      padding-bottom: 8rem;
+      padding-top: var(--section-py, 8rem);
+      padding-bottom: var(--section-py, 8rem);
     }
   }
 
@@ -536,6 +584,12 @@ select.sort-select {
    Accent: #EE8B60 (orange), Error: #FF5963 (red)
    ============================================ */
 :root {
+  --font-serif: "Instrument Serif", serif;
+  --brand-whatsapp: #25D366;
+  --brand-google-blue: #4285F4;
+  --brand-google-green: #34A853;
+  --brand-google-yellow: #FBBC05;
+  --brand-google-red: #EA4335;
   --background: oklch(1 0 0);
   --foreground: oklch(0.2 0.03 285);
   --card: oklch(1 0 0);

@@ -226,6 +226,59 @@ export interface PublicUiMessages {
     whatsapp: string;
     call: string;
   };
+  productDetail: {
+    galleryTitle: string;
+    openGalleryAria: string;
+    openFullscreenLabel: string;
+    fromLabel: string;
+    whatsappLabel: string;
+    searchPanelAria: string;
+    searchTitle: string;
+    searchSubtitle: string;
+    searchQueryLabel: string;
+    checkInLabel: string;
+    checkOutLabel: string;
+    adultsLabel: string;
+    childrenLabel: string;
+    searchButton: string;
+    viewAllLabel: string;
+    sidebarWhatsappLabel: string;
+    sidebarCallLabel: string;
+    pricingOptionsTitle: string;
+    pricingSelectionAria: string;
+    relatedEyebrow: string;
+    relatedTitle: string;
+    relatedPrevAria: string;
+    relatedPrevButton: string;
+    relatedNextAria: string;
+    relatedNextButton: string;
+    relatedListAria: string;
+  };
+  whatsappFlow: {
+    fabLabel: string;
+    dialogTitle: string;
+    dialogDescription: string;
+    requiredContactError: string;
+    submitError: string;
+    selectedTierPrefix: string;
+    travelDateLabel: string;
+    adultsLabel: string;
+    childrenLabel: string;
+    notesLabel: string;
+    notesPlaceholder: string;
+    continueButton: string;
+    nameLabel: string;
+    emailOptionalLabel: string;
+    phoneLabel: string;
+    backButton: string;
+    submitButton: string;
+    submittingButton: string;
+    successTitle: string;
+    referenceLabel: string;
+    openWhatsappButton: string;
+    closeButton: string;
+    variants: Record<'A' | 'B' | 'D', { title: string; subtitle: string }>;
+  };
 }
 
 const ES_CO_MESSAGES: PublicUiMessages = {
@@ -449,6 +502,72 @@ const ES_CO_MESSAGES: PublicUiMessages = {
     fromLabel: 'Desde',
     whatsapp: 'WhatsApp',
     call: 'Llamar',
+  },
+  productDetail: {
+    galleryTitle: 'Galeria',
+    openGalleryAria: 'Abrir galeria en pantalla completa',
+    openFullscreenLabel: 'Ver en pantalla completa',
+    fromLabel: 'Desde',
+    whatsappLabel: 'WhatsApp',
+    searchPanelAria: 'Panel de busqueda',
+    searchTitle: 'Buscar disponibilidad',
+    searchSubtitle: 'Ajusta fechas y viajeros para continuar en el buscador.',
+    searchQueryLabel: 'Destino o experiencia',
+    checkInLabel: 'Check-in',
+    checkOutLabel: 'Check-out',
+    adultsLabel: 'Adultos',
+    childrenLabel: 'Ninos',
+    searchButton: 'Buscar',
+    viewAllLabel: 'Ver todos',
+    sidebarWhatsappLabel: 'WhatsApp',
+    sidebarCallLabel: 'Llamar',
+    pricingOptionsTitle: 'Opciones de tarifa',
+    pricingSelectionAria: 'Seleccion de tarifa',
+    relatedEyebrow: 'Relacionados',
+    relatedTitle: 'Tambien te puede interesar',
+    relatedPrevAria: 'Slide anterior',
+    relatedPrevButton: 'Anterior',
+    relatedNextAria: 'Siguiente slide',
+    relatedNextButton: 'Siguiente',
+    relatedListAria: 'Productos relacionados',
+  },
+  whatsappFlow: {
+    fabLabel: 'Cotizar por WhatsApp',
+    dialogTitle: 'Flujo de WhatsApp',
+    dialogDescription: 'Comparte tus datos y te enviamos una propuesta personalizada.',
+    requiredContactError: 'Completa nombre y telefono para continuar.',
+    submitError: 'No fue posible iniciar el flujo.',
+    selectedTierPrefix: 'Tarifa seleccionada:',
+    travelDateLabel: 'Fecha tentativa',
+    adultsLabel: 'Adultos',
+    childrenLabel: 'Ninos',
+    notesLabel: 'Comentarios',
+    notesPlaceholder: 'Ej: prefiero hotel frente al mar',
+    continueButton: 'Continuar',
+    nameLabel: 'Nombre completo',
+    emailOptionalLabel: 'Correo (opcional)',
+    phoneLabel: 'Telefono',
+    backButton: 'Atras',
+    submitButton: 'Enviar por WhatsApp',
+    submittingButton: 'Enviando...',
+    successTitle: 'Solicitud registrada',
+    referenceLabel: 'Referencia:',
+    openWhatsappButton: 'Abrir WhatsApp',
+    closeButton: 'Cerrar',
+    variants: {
+      A: {
+        title: 'Asesoria express',
+        subtitle: 'Te enviamos una propuesta por WhatsApp con base en tus preferencias.',
+      },
+      B: {
+        title: 'Propuesta en minutos',
+        subtitle: 'Priorizamos tarifas y horarios para que tomes una decision rapida.',
+      },
+      D: {
+        title: 'Viaje disenado a medida',
+        subtitle: 'Cuanto mas contexto compartas, mejor adaptamos el itinerario.',
+      },
+    },
   },
 };
 
@@ -674,6 +793,72 @@ const EN_US_MESSAGES: PublicUiMessages = {
     whatsapp: 'WhatsApp',
     call: 'Call',
   },
+  productDetail: {
+    galleryTitle: 'Gallery',
+    openGalleryAria: 'Open gallery in fullscreen',
+    openFullscreenLabel: 'View fullscreen',
+    fromLabel: 'From',
+    whatsappLabel: 'WhatsApp',
+    searchPanelAria: 'Search panel',
+    searchTitle: 'Search availability',
+    searchSubtitle: 'Adjust dates and travelers to continue in search.',
+    searchQueryLabel: 'Destination or experience',
+    checkInLabel: 'Check-in',
+    checkOutLabel: 'Check-out',
+    adultsLabel: 'Adults',
+    childrenLabel: 'Children',
+    searchButton: 'Search',
+    viewAllLabel: 'View all',
+    sidebarWhatsappLabel: 'WhatsApp',
+    sidebarCallLabel: 'Call',
+    pricingOptionsTitle: 'Pricing options',
+    pricingSelectionAria: 'Pricing selection',
+    relatedEyebrow: 'Related',
+    relatedTitle: 'You may also like',
+    relatedPrevAria: 'Previous slide',
+    relatedPrevButton: 'Previous',
+    relatedNextAria: 'Next slide',
+    relatedNextButton: 'Next',
+    relatedListAria: 'Related products',
+  },
+  whatsappFlow: {
+    fabLabel: 'Quote on WhatsApp',
+    dialogTitle: 'WhatsApp flow',
+    dialogDescription: 'Share your details and we will send a personalized proposal.',
+    requiredContactError: 'Complete name and phone to continue.',
+    submitError: 'Unable to start the flow.',
+    selectedTierPrefix: 'Selected tier:',
+    travelDateLabel: 'Estimated date',
+    adultsLabel: 'Adults',
+    childrenLabel: 'Children',
+    notesLabel: 'Comments',
+    notesPlaceholder: 'Example: oceanfront hotel preferred',
+    continueButton: 'Continue',
+    nameLabel: 'Full name',
+    emailOptionalLabel: 'Email (optional)',
+    phoneLabel: 'Phone',
+    backButton: 'Back',
+    submitButton: 'Send via WhatsApp',
+    submittingButton: 'Sending...',
+    successTitle: 'Request submitted',
+    referenceLabel: 'Reference:',
+    openWhatsappButton: 'Open WhatsApp',
+    closeButton: 'Close',
+    variants: {
+      A: {
+        title: 'Express advisory',
+        subtitle: 'We will send a WhatsApp proposal based on your preferences.',
+      },
+      B: {
+        title: 'Proposal in minutes',
+        subtitle: 'We prioritize rates and schedules for a quick decision.',
+      },
+      D: {
+        title: 'Tailor-made trip',
+        subtitle: 'The more context you share, the better we tailor the itinerary.',
+      },
+    },
+  },
 };
 
 const PT_BR_MESSAGES: PublicUiMessages = {
@@ -897,6 +1082,72 @@ const PT_BR_MESSAGES: PublicUiMessages = {
     fromLabel: 'Desde',
     whatsapp: 'WhatsApp',
     call: 'Ligar',
+  },
+  productDetail: {
+    galleryTitle: 'Galeria',
+    openGalleryAria: 'Abrir galeria em tela cheia',
+    openFullscreenLabel: 'Ver em tela cheia',
+    fromLabel: 'Desde',
+    whatsappLabel: 'WhatsApp',
+    searchPanelAria: 'Painel de busca',
+    searchTitle: 'Buscar disponibilidade',
+    searchSubtitle: 'Ajuste datas e viajantes para continuar na busca.',
+    searchQueryLabel: 'Destino ou experiencia',
+    checkInLabel: 'Check-in',
+    checkOutLabel: 'Check-out',
+    adultsLabel: 'Adultos',
+    childrenLabel: 'Criancas',
+    searchButton: 'Buscar',
+    viewAllLabel: 'Ver todos',
+    sidebarWhatsappLabel: 'WhatsApp',
+    sidebarCallLabel: 'Ligar',
+    pricingOptionsTitle: 'Opcoes de tarifa',
+    pricingSelectionAria: 'Selecao de tarifa',
+    relatedEyebrow: 'Relacionados',
+    relatedTitle: 'Tambem pode interessar',
+    relatedPrevAria: 'Slide anterior',
+    relatedPrevButton: 'Anterior',
+    relatedNextAria: 'Proximo slide',
+    relatedNextButton: 'Proximo',
+    relatedListAria: 'Produtos relacionados',
+  },
+  whatsappFlow: {
+    fabLabel: 'Cotar no WhatsApp',
+    dialogTitle: 'Fluxo de WhatsApp',
+    dialogDescription: 'Compartilhe seus dados e enviaremos uma proposta personalizada.',
+    requiredContactError: 'Preencha nome e telefone para continuar.',
+    submitError: 'Nao foi possivel iniciar o fluxo.',
+    selectedTierPrefix: 'Tarifa selecionada:',
+    travelDateLabel: 'Data estimada',
+    adultsLabel: 'Adultos',
+    childrenLabel: 'Criancas',
+    notesLabel: 'Comentarios',
+    notesPlaceholder: 'Ex: prefiro hotel em frente ao mar',
+    continueButton: 'Continuar',
+    nameLabel: 'Nome completo',
+    emailOptionalLabel: 'Email (opcional)',
+    phoneLabel: 'Telefone',
+    backButton: 'Voltar',
+    submitButton: 'Enviar pelo WhatsApp',
+    submittingButton: 'Enviando...',
+    successTitle: 'Solicitacao registrada',
+    referenceLabel: 'Referencia:',
+    openWhatsappButton: 'Abrir WhatsApp',
+    closeButton: 'Fechar',
+    variants: {
+      A: {
+        title: 'Consultoria expressa',
+        subtitle: 'Enviaremos uma proposta no WhatsApp com base nas suas preferencias.',
+      },
+      B: {
+        title: 'Proposta em minutos',
+        subtitle: 'Priorizamos tarifas e horarios para uma decisao rapida.',
+      },
+      D: {
+        title: 'Viagem sob medida',
+        subtitle: 'Quanto mais contexto voce compartilhar, melhor o roteiro.',
+      },
+    },
   },
 };
 
