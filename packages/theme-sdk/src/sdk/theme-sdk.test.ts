@@ -190,12 +190,27 @@ describe('compileTheme', () => {
     assert.deepEqual(stripCompiledAt(r1), stripCompiledAt(r2));
   });
 
-  it('parses and compiles colombia caribe preset', () => {
+  it('parses and compiles colombia-tours-caribe preset', () => {
     const parsed = parseTheme({
       tokens: COLOMBIA_CARIBE_PRESET.tokens,
       profile: COLOMBIA_CARIBE_PRESET.profile,
     });
     assert.equal(parsed.success, true);
+    assert.equal(COLOMBIA_CARIBE_PRESET.metadata.slug, 'colombia-tours-caribe');
+    assert.equal(COLOMBIA_CARIBE_PRESET.profile.brand.name, 'ColombiaTours');
+    assert.equal(COLOMBIA_CARIBE_PRESET.profile.brand.mood, 'tropical');
+    assert.equal(COLOMBIA_CARIBE_PRESET.tokens.typography.display.family, 'Bricolage Grotesque');
+    assert.equal(COLOMBIA_CARIBE_PRESET.tokens.typography.display.weight, '500');
+    assert.equal(COLOMBIA_CARIBE_PRESET.tokens.typography.body.family, 'Inter');
+    assert.equal(COLOMBIA_CARIBE_PRESET.tokens.colors.seedColor, '#0E5B5B');
+    assert.equal(COLOMBIA_CARIBE_PRESET.tokens.colors.accents!.accent2, '#F3B13B');
+    assert.equal(COLOMBIA_CARIBE_PRESET.tokens.colors.accents!.accent3, '#6EA842');
+    assert.equal(COLOMBIA_CARIBE_PRESET.tokens.colors.light.tertiary, '#E85C3C');
+    assert.equal(COLOMBIA_CARIBE_PRESET.tokens.motion.durationMs, 250);
+    assert.equal(COLOMBIA_CARIBE_PRESET.tokens.motion.easing, 'organic');
+    assert.deepEqual(COLOMBIA_CARIBE_PRESET.tokens.motion.customEasing, [0.2, 0.7, 0.2, 1]);
+    assert.equal(COLOMBIA_CARIBE_PRESET.tokens.spacing.density, 'roomy');
+    assert.equal(COLOMBIA_CARIBE_PRESET.tokens.spacing.containerMaxPx, 1240);
 
     const compiled = compileTheme(COLOMBIA_CARIBE_PRESET.tokens, COLOMBIA_CARIBE_PRESET.profile, { target: 'web' });
     assert.ok(compiled.web);
@@ -206,7 +221,11 @@ describe('compileTheme', () => {
     assert.ok(lightNames.has('accent-2'));
     assert.ok(lightNames.has('accent-3'));
     assert.ok(compiled.web!.fontImports.some((url) => url.includes('Bricolage+Grotesque:opsz,wght@8..144,200..800')));
-    assert.ok(compiled.web!.fontImports.some((url) => url.includes('Instrument+Serif:ital@0;1')));
+    // Body font (Inter) emitted via generic css2 family URL.
+    assert.ok(compiled.web!.fontImports.some((url) => url.includes('family=Inter')));
+    // NOTE: Instrument Serif loads via `next/font/google` in `app/layout.tsx`
+    // for italic accent class `.serif` — it is NOT part of theme-sdk
+    // fontImports because schema only covers display + body typefaces.
   });
 });
 
@@ -377,9 +396,13 @@ describe('presets', () => {
     }
   });
 
-  it('exposes all system presets (8 tourism + caribe)', () => {
+  it('exposes all system presets (8 tourism + colombia-tours-caribe)', () => {
     assert.equal(ALL_SYSTEM_PRESETS.length, 9);
-    assert.ok(ALL_SYSTEM_PRESETS.some((preset) => preset.metadata.slug === 'colombia-caribe'));
+    assert.ok(
+      ALL_SYSTEM_PRESETS.some(
+        (preset) => preset.metadata.slug === 'colombia-tours-caribe',
+      ),
+    );
   });
 
   it('maintains backward compatibility for all tourism presets', () => {
@@ -390,6 +413,58 @@ describe('presets', () => {
       const compiled = compileTheme(preset.tokens, preset.profile, { target: 'web' });
       assert.ok(compiled.web?.light.length, `${preset.metadata.slug} should compile web vars`);
     }
+  });
+
+  it('schema v3.1.0 additions do not introduce required fields in tourism presets', () => {
+    // Regression guard — tourism presets predate accent-2/3 + density + custom easing.
+    // All new fields must be .optional(); zero breakage for pre-existing presets.
+    for (const preset of TOURISM_PRESETS) {
+      assert.equal(
+        preset.tokens.colors.accents,
+        undefined,
+        `${preset.metadata.slug} should not declare optional accents`,
+      );
+      assert.equal(
+        preset.tokens.spacing.density,
+        undefined,
+        `${preset.metadata.slug} should not declare optional density`,
+      );
+      assert.equal(
+        preset.tokens.motion.customEasing,
+        undefined,
+        `${preset.metadata.slug} should not declare optional customEasing`,
+      );
+    }
+  });
+
+  it('caribe preset WCAG AA contrast on dark scheme', () => {
+    const tokens = COLOMBIA_CARIBE_PRESET.tokens;
+    const dark = tokens.colors.dark;
+    const primaryPair = getContrastRatio(dark.primary, dark.onPrimary);
+    const surfacePair = getContrastRatio(dark.surface, dark.onSurface);
+    const tertiaryPair = getContrastRatio(dark.tertiary, dark.onTertiary);
+    // Accent colors paint UI elements over the surface (not text) — check
+    // against `dark.surface`, the actual rendering background.
+    const accent2OnSurface = getContrastRatio(tokens.colors.accents!.accent2!, dark.surface);
+    const accent3OnSurface = getContrastRatio(tokens.colors.accents!.accent3!, dark.surface);
+    assert.ok(primaryPair >= 4.5, `dark primary/onPrimary >= 4.5, got ${primaryPair}`);
+    assert.ok(surfacePair >= 4.5, `dark surface/onSurface >= 4.5, got ${surfacePair}`);
+    assert.ok(tertiaryPair >= 4.5, `dark tertiary/onTertiary >= 4.5, got ${tertiaryPair}`);
+    assert.ok(accent2OnSurface >= 3, `dark accent2 over surface >= 3 (non-text), got ${accent2OnSurface}`);
+    assert.ok(accent3OnSurface >= 3, `dark accent3 over surface >= 3 (non-text), got ${accent3OnSurface}`);
+  });
+
+  it('caribe preset density emits full sp-1..sp-8 + section-py + card-pad + gutter', () => {
+    const compiled = compileTheme(COLOMBIA_CARIBE_PRESET.tokens, COLOMBIA_CARIBE_PRESET.profile, {
+      target: 'web',
+    });
+    const invariants = new Set(compiled.web!.invariant.map((v) => v.name));
+    for (const name of ['sp-1', 'sp-2', 'sp-3', 'sp-4', 'sp-5', 'sp-6', 'sp-7', 'sp-8']) {
+      assert.ok(invariants.has(name), `expected invariant ${name} under density=roomy`);
+    }
+    assert.ok(invariants.has('section-py'));
+    assert.ok(invariants.has('card-pad'));
+    assert.ok(invariants.has('gutter'));
   });
 });
 

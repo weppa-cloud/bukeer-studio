@@ -192,5 +192,7 @@ export {
 
 export {
   COLOMBIA_CARIBE_PRESET,
+  COLOMBIA_PRESETS,
+  getColombiaPresetBySlug,
   ALL_SYSTEM_PRESETS,
 } from './presets/colombia-presets';
