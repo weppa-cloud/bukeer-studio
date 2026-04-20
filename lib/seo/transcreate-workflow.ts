@@ -596,21 +596,58 @@ async function reserveUniqueSlug(input: {
   return `${input.baseSlug}-${Math.random().toString(36).slice(2, 6)}`;
 }
 
+/**
+ * Explicit list of columns we copy from the source blog post when creating a
+ * localized sibling row. Keeping this explicit (vs `{ ...source }`) avoids
+ * accidentally carrying over auto-generated / computed columns introduced by
+ * future migrations, which previously caused opaque INSERT failures surfaced
+ * as "Unable to create localized target content" (Bug 8, Stage 6 2026-04-20).
+ *
+ * `id`, `locale`, `translation_group_id`, `slug`, `updated_at`, `created_at`,
+ * `status`, `published_at`, `title`, `seo_title`, `seo_description` are set
+ * explicitly below, so they're intentionally excluded from this list.
+ */
+const BLOG_COPY_COLUMNS = [
+  'website_id',
+  'content',
+  'excerpt',
+  'featured_image_url',
+  'author_id',
+  'category',
+  'tags',
+  'seo_keywords',
+  'word_count',
+  'robots_noindex',
+  'canonical_url',
+  'target_keyword',
+] as const;
+
+function pickColumns(source: Record<string, unknown>, columns: readonly string[]): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const col of columns) {
+    if (col in source && source[col] !== undefined) {
+      out[col] = source[col];
+    }
+  }
+  return out;
+}
+
 async function ensureTargetBlog(input: {
   admin: ReturnType<typeof createSupabaseServiceRoleClient>;
   websiteId: string;
   sourceContentId: string;
   targetLocale: string;
   payload: Record<string, unknown>;
-}): Promise<string | null> {
-  const { data: source } = await input.admin
+}): Promise<{ id: string | null; error?: string }> {
+  const { data: source, error: sourceError } = await input.admin
     .from('website_blog_posts')
     .select('*')
     .eq('website_id', input.websiteId)
     .eq('id', input.sourceContentId)
     .maybeSingle();
 
-  if (!source || !isRecord(source)) return null;
+  if (sourceError) return { id: null, error: `source-read: ${sourceError.message}` };
+  if (!source || !isRecord(source)) return { id: null, error: 'source blog post not found' };
   const translationGroupId = typeof source.translation_group_id === 'string' ? source.translation_group_id : input.sourceContentId;
 
   const { data: existing } = await input.admin
@@ -622,20 +659,25 @@ async function ensureTargetBlog(input: {
     .limit(1)
     .maybeSingle();
 
-  if (existing?.id) return String(existing.id);
+  if (existing?.id) return { id: String(existing.id) };
 
   const now = new Date().toISOString();
-  const row: Record<string, unknown> = { ...source };
+  // Explicit column pick (see BLOG_COPY_COLUMNS note above) — do NOT spread
+  // `...source`, which also carries over computed/auto columns.
+  const row: Record<string, unknown> = pickColumns(source, BLOG_COPY_COLUMNS);
   const newId = crypto.randomUUID();
   row.id = newId;
   row.locale = input.targetLocale;
   row.translation_group_id = translationGroupId;
   row.updated_at = now;
-  if ('created_at' in row) row.created_at = now;
-  if ('published_at' in row) row.published_at = null;
-  if ('status' in row) row.status = 'draft';
+  row.created_at = now;
+  row.published_at = null;
+  row.status = 'draft';
+  if (typeof source.title === 'string') row.title = source.title;
   if (typeof input.payload.title === 'string') row.title = input.payload.title;
+  if (typeof source.seo_title === 'string') row.seo_title = source.seo_title;
   if (typeof input.payload.seoTitle === 'string') row.seo_title = input.payload.seoTitle;
+  if (typeof source.seo_description === 'string') row.seo_description = source.seo_description;
   if (typeof input.payload.seoDescription === 'string') row.seo_description = input.payload.seoDescription;
 
   const baseTitle = typeof row.title === 'string' ? row.title : String(row.slug ?? row.id);
@@ -655,9 +697,20 @@ async function ensureTargetBlog(input: {
     .select('id')
     .single();
 
-  if (error || !inserted?.id) return null;
-  return String(inserted.id);
+  if (error) return { id: null, error: `insert: ${error.message}${error.details ? ` — ${error.details}` : ''}` };
+  if (!inserted?.id) return { id: null, error: 'insert returned no id' };
+  return { id: String(inserted.id) };
 }
+
+const PAGE_COPY_COLUMNS = [
+  'website_id',
+  'sections',
+  'seo_keywords',
+  'target_keyword',
+  'robots_noindex',
+  'canonical_url',
+  'layout',
+] as const;
 
 async function ensureTargetPage(input: {
   admin: ReturnType<typeof createSupabaseServiceRoleClient>;
@@ -665,15 +718,16 @@ async function ensureTargetPage(input: {
   sourceContentId: string;
   targetLocale: string;
   payload: Record<string, unknown>;
-}): Promise<string | null> {
-  const { data: source } = await input.admin
+}): Promise<{ id: string | null; error?: string }> {
+  const { data: source, error: sourceError } = await input.admin
     .from('website_pages')
     .select('*')
     .eq('website_id', input.websiteId)
     .eq('id', input.sourceContentId)
     .maybeSingle();
 
-  if (!source || !isRecord(source)) return null;
+  if (sourceError) return { id: null, error: `source-read: ${sourceError.message}` };
+  if (!source || !isRecord(source)) return { id: null, error: 'source page not found' };
   const translationGroupId = typeof source.translation_group_id === 'string' ? source.translation_group_id : input.sourceContentId;
 
   const { data: existing } = await input.admin
@@ -685,19 +739,22 @@ async function ensureTargetPage(input: {
     .limit(1)
     .maybeSingle();
 
-  if (existing?.id) return String(existing.id);
+  if (existing?.id) return { id: String(existing.id) };
 
   const now = new Date().toISOString();
-  const row: Record<string, unknown> = { ...source };
+  const row: Record<string, unknown> = pickColumns(source, PAGE_COPY_COLUMNS);
   const newId = crypto.randomUUID();
   row.id = newId;
   row.locale = input.targetLocale;
   row.translation_group_id = translationGroupId;
   row.updated_at = now;
-  if ('created_at' in row) row.created_at = now;
-  if ('is_published' in row) row.is_published = false;
+  row.created_at = now;
+  row.is_published = false;
+  if (typeof source.title === 'string') row.title = source.title;
   if (typeof input.payload.title === 'string') row.title = input.payload.title;
+  if (typeof source.seo_title === 'string') row.seo_title = source.seo_title;
   if (typeof input.payload.seoTitle === 'string') row.seo_title = input.payload.seoTitle;
+  if (typeof source.seo_description === 'string') row.seo_description = source.seo_description;
   if (typeof input.payload.seoDescription === 'string') row.seo_description = input.payload.seoDescription;
 
   const baseTitle = typeof row.title === 'string' ? row.title : String(row.slug ?? row.id);
@@ -717,9 +774,23 @@ async function ensureTargetPage(input: {
     .select('id')
     .single();
 
-  if (error || !inserted?.id) return null;
-  return String(inserted.id);
+  if (error) return { id: null, error: `insert: ${error.message}${error.details ? ` — ${error.details}` : ''}` };
+  if (!inserted?.id) return { id: null, error: 'insert returned no id' };
+  return { id: String(inserted.id) };
 }
+
+const DESTINATION_COPY_COLUMNS = [
+  'account_id',
+  'description',
+  'country',
+  'region',
+  'image_url',
+  'gallery',
+  'seo_keywords',
+  'target_keyword',
+  'robots_noindex',
+  'canonical_url',
+] as const;
 
 async function ensureTargetDestination(input: {
   admin: ReturnType<typeof createSupabaseServiceRoleClient>;
@@ -727,8 +798,8 @@ async function ensureTargetDestination(input: {
   sourceContentId: string;
   targetLocale: string;
   payload: Record<string, unknown>;
-}): Promise<string | null> {
-  const { data: source } = await input.admin
+}): Promise<{ id: string | null; error?: string }> {
+  const { data: source, error: sourceError } = await input.admin
     .from('destinations')
     .select('*')
     .eq('account_id', input.accountId)
@@ -736,7 +807,8 @@ async function ensureTargetDestination(input: {
     .is('deleted_at', null)
     .maybeSingle();
 
-  if (!source || !isRecord(source)) return null;
+  if (sourceError) return { id: null, error: `source-read: ${sourceError.message}` };
+  if (!source || !isRecord(source)) return { id: null, error: 'source destination not found' };
   const translationGroupId = typeof source.translation_group_id === 'string' ? source.translation_group_id : input.sourceContentId;
 
   const { data: existing } = await input.admin
@@ -749,20 +821,23 @@ async function ensureTargetDestination(input: {
     .limit(1)
     .maybeSingle();
 
-  if (existing?.id) return String(existing.id);
+  if (existing?.id) return { id: String(existing.id) };
 
   const now = new Date().toISOString();
-  const row: Record<string, unknown> = { ...source };
+  const row: Record<string, unknown> = pickColumns(source, DESTINATION_COPY_COLUMNS);
   const newId = crypto.randomUUID();
   row.id = newId;
   row.locale = input.targetLocale;
   row.translation_group_id = translationGroupId;
   row.updated_at = now;
-  if ('created_at' in row) row.created_at = now;
-  if ('is_published' in row) row.is_published = false;
-  if ('deleted_at' in row) row.deleted_at = null;
+  row.created_at = now;
+  row.is_published = false;
+  row.deleted_at = null;
+  if (typeof source.name === 'string') row.name = source.name;
   if (typeof input.payload.title === 'string') row.name = input.payload.title;
+  if (typeof source.seo_title === 'string') row.seo_title = source.seo_title;
   if (typeof input.payload.seoTitle === 'string') row.seo_title = input.payload.seoTitle;
+  if (typeof source.seo_description === 'string') row.seo_description = source.seo_description;
   if (typeof input.payload.seoDescription === 'string') row.seo_description = input.payload.seoDescription;
 
   const baseTitle = typeof row.name === 'string' ? row.name : String(row.slug ?? row.id);
@@ -782,8 +857,9 @@ async function ensureTargetDestination(input: {
     .select('id')
     .single();
 
-  if (error || !inserted?.id) return null;
-  return String(inserted.id);
+  if (error) return { id: null, error: `insert: ${error.message}${error.details ? ` — ${error.details}` : ''}` };
+  if (!inserted?.id) return { id: null, error: 'insert returned no id' };
+  return { id: String(inserted.id) };
 }
 
 async function ensureOrphanTargetEntity(input: {
@@ -794,7 +870,7 @@ async function ensureOrphanTargetEntity(input: {
   sourceContentId: string;
   targetLocale: string;
   payload: Record<string, unknown>;
-}): Promise<string | null> {
+}): Promise<{ id: string | null; error?: string }> {
   if (input.pageType === 'blog') {
     return ensureTargetBlog(input);
   }
@@ -1023,7 +1099,7 @@ export async function applyTranscreateJob(input: ApplyActionInput): Promise<Tran
     input.preferredTargetContentId ?? (currentVariant?.target_entity_id ? String(currentVariant.target_entity_id) : null);
 
   if ((job.page_type === 'blog' || job.page_type === 'page' || job.page_type === 'destination') && !targetContentId) {
-    targetContentId = await ensureOrphanTargetEntity({
+    const ensureResult = await ensureOrphanTargetEntity({
       admin: input.admin,
       accountId: input.accountId,
       websiteId: input.websiteId,
@@ -1033,13 +1109,15 @@ export async function applyTranscreateJob(input: ApplyActionInput): Promise<Tran
       payload,
     });
 
-    if (!targetContentId) {
+    if (!ensureResult.id) {
       return failure({
         code: 'INTERNAL_ERROR',
         message: 'Unable to create localized target content',
         status: 500,
+        details: ensureResult.error ?? 'unknown',
       });
     }
+    targetContentId = ensureResult.id;
   }
 
   // For product types (hotel / activity / package / transfer), `targetContentId`

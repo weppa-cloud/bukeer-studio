@@ -719,6 +719,63 @@ async function upsertBlogPost(
   return data?.id ? String(data.id) : null;
 }
 
+/**
+ * Ensure the pilot website row advertises both `es-CO` (default) and `en-US`
+ * in `websites.supported_locales`. Without this step the hreflang builder
+ * filters `en-US` out of the alternates set (`generateHreflangLinks` only
+ * emits locales that appear in `supportedLocales`), which makes W5 specs
+ * that assert `<link rel="alternate" hreflang="en-US" ...>` fail deterministically.
+ *
+ * Introduced for Stage 6 Bug 10 (2026-04-20) — see
+ * `docs/qa/pilot/sign-off-2026-04-20.md` §"Flow 3 failures". Idempotent:
+ * a second call is a no-op when the array already contains both locales.
+ */
+const PILOT_REQUIRED_LOCALES: readonly string[] = ['es-CO', 'en-US'];
+
+async function ensurePilotWebsiteLocales(
+  websiteId: string,
+  warnings: string[],
+): Promise<void> {
+  const { data, error } = await admin
+    .from('websites')
+    .select('default_locale, supported_locales')
+    .eq('id', websiteId)
+    .maybeSingle();
+
+  if (error || !data) {
+    warnings.push(`pilot: could not read websites row for locale ensure: ${errorMessage(error)}`);
+    return;
+  }
+
+  const defaultLocale =
+    typeof data.default_locale === 'string' && data.default_locale ? data.default_locale : 'es-CO';
+  const existing = Array.isArray(data.supported_locales)
+    ? data.supported_locales.filter((l): l is string => typeof l === 'string' && l.length > 0)
+    : [];
+
+  const desired = Array.from(new Set([...existing, ...PILOT_REQUIRED_LOCALES]));
+  const mustWrite =
+    data.default_locale !== defaultLocale ||
+    desired.length !== existing.length ||
+    desired.some((l) => !existing.includes(l));
+
+  if (!mustWrite) return;
+
+  const { error: updateError } = await admin
+    .from('websites')
+    .update({
+      default_locale: defaultLocale,
+      supported_locales: desired,
+    })
+    .eq('id', websiteId);
+
+  if (updateError) {
+    warnings.push(
+      `pilot: could not update websites.supported_locales: ${errorMessage(updateError)}`,
+    );
+  }
+}
+
 // --- Public API -------------------------------------------------------------
 
 /**
@@ -739,6 +796,12 @@ export async function seedPilot(variant: PilotSeedVariant): Promise<PilotSeedRes
     const websiteId = String(base.website.id);
     const subdomain = String(base.website.subdomain);
     const warnings: string[] = [];
+
+    // Bug 10 (Stage 6 2026-04-20): ensure `websites.supported_locales` includes
+    // `en-US` so hreflang alternates are emitted on translated pages. This
+    // mirrors the `ensureWebsiteLocales` step in `seedSeoFixtures` (Wave 2)
+    // but runs on the pilot seed which does NOT go through that path.
+    await ensurePilotWebsiteLocales(websiteId, warnings);
 
     const s = slugs(variant);
     const packageTpl = packageTemplateFor(variant);

@@ -177,6 +177,59 @@ export async function getProductPage(
 export const getProductPageBySlug = getProductPage;
 
 /**
+ * Locale-aware overlay fetch for product pages (pkg / activity / hotel /
+ * transfer). The base `get_website_product_page` RPC resolves the default
+ * locale overlay only. When a request resolves to a non-default locale (e.g.
+ * `/en/paquetes/<slug>`), the page SSR must also pick up the localized
+ * overlay row from `website_product_pages` keyed by
+ * `(website_id, product_type, product_id, locale)` so applied transcreate
+ * `custom_seo_title` + `custom_seo_description` render in the `<title>` /
+ * `<meta description>` of the translated URL.
+ *
+ * Returns the overlay row subset used by `generateMetadata` (seo fields +
+ * robots). Returns `null` when no localized overlay exists; callers should
+ * fall back to the default-locale row from `getProductPage` in that case.
+ *
+ * Introduced for Stage 6 Bug 9 (2026-04-20): pkg `/en/` render was leaking
+ * the es-CO `custom_seo_title` because no locale-aware lookup existed.
+ */
+export async function getLocalizedProductOverlay(input: {
+  websiteId: string;
+  productType: string;
+  productId: string;
+  locale: string;
+}): Promise<{
+  custom_seo_title: string | null;
+  custom_seo_description: string | null;
+  custom_faq: unknown;
+  robots_noindex: boolean | null;
+  locale: string;
+} | null> {
+  try {
+    const { data, error } = await supabase
+      .from('website_product_pages')
+      .select('custom_seo_title, custom_seo_description, custom_faq, robots_noindex, locale')
+      .eq('website_id', input.websiteId)
+      .eq('product_type', input.productType)
+      .eq('product_id', input.productId)
+      .eq('locale', input.locale)
+      .maybeSingle();
+
+    if (error || !data) return null;
+    return data as {
+      custom_seo_title: string | null;
+      custom_seo_description: string | null;
+      custom_faq: unknown;
+      robots_noindex: boolean | null;
+      locale: string;
+    };
+  } catch (e) {
+    console.warn('[getLocalizedProductOverlay] Exception:', e);
+    return null;
+  }
+}
+
+/**
  * Get navigation items for a website
  */
 export async function getWebsiteNavigation(

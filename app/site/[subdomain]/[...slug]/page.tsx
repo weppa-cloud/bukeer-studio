@@ -1,7 +1,15 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getWebsiteBySubdomain } from '@/lib/supabase/get-website';
-import { getPageBySlug, getProductPage, getDestinations, getDestinationProducts, getDestinationSeoOverride, getCategoryProducts } from '@/lib/supabase/get-pages';
+import {
+  getCategoryProducts,
+  getDestinations,
+  getDestinationProducts,
+  getDestinationSeoOverride,
+  getLocalizedProductOverlay,
+  getPageBySlug,
+  getProductPage,
+} from '@/lib/supabase/get-pages';
 import { getReviewsForContext, type ReviewContext } from '@/lib/supabase/get-reviews';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/service-role';
 import { enrichDestinationFromSerpAPI } from '@/lib/services/serpapi-enrichment';
@@ -418,9 +426,34 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
     if (productType) {
       const productPage = await getProductPage(subdomain, productType, productSlug);
       if (productPage?.product) {
-        const title = sanitizeProductCopy(productPage.page?.custom_seo_title || productPage.product.name) || productPage.product.name;
+        // Bug 9 (Stage 6 2026-04-20): locale-aware overlay for /en/<seg>/<slug>
+        // — see note in `app/site/[subdomain]/paquetes/[slug]/page.tsx`.
+        let localizedOverlayTitle: string | null = null;
+        let localizedOverlayDescription: string | null = null;
+        let localizedOverlayNoindex: boolean | null = null;
+        if (
+          localeContext.resolvedLocale
+          && localeContext.resolvedLocale !== localeContext.defaultLocale
+          && website.id
+          && typeof productPage.product.id === 'string'
+        ) {
+          const overlay = await getLocalizedProductOverlay({
+            websiteId: String(website.id),
+            productType,
+            productId: String(productPage.product.id),
+            locale: localeContext.resolvedLocale,
+          });
+          if (overlay) {
+            localizedOverlayTitle = overlay.custom_seo_title ?? null;
+            localizedOverlayDescription = overlay.custom_seo_description ?? null;
+            localizedOverlayNoindex = overlay.robots_noindex ?? null;
+          }
+        }
+        const title = sanitizeProductCopy(
+          localizedOverlayTitle || productPage.page?.custom_seo_title || productPage.product.name
+        ) || productPage.product.name;
         const rawDescription = sanitizeProductCopy(
-          productPage.page?.custom_seo_description || productPage.product.description || ''
+          localizedOverlayDescription || productPage.page?.custom_seo_description || productPage.product.description || ''
         );
         const locationHint = sanitizeProductCopy(
           productPage.product.location || productPage.product.city || productPage.product.country || ''
@@ -460,7 +493,9 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
           },
         };
 
-        if (productPage.page?.robots_noindex) {
+        const effectiveNoindex =
+          localizedOverlayNoindex !== null ? localizedOverlayNoindex : productPage.page?.robots_noindex;
+        if (effectiveNoindex) {
           metadata.robots = { index: false, follow: true };
         }
 
