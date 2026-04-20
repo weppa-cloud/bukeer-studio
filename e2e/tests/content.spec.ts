@@ -20,7 +20,7 @@ test.describe('Content & SEO Tab', () => {
     await gotoWebsiteSection(page, 'content');
     const main = page.getByRole('main');
     await expect(main.getByRole('heading', { name: 'Content & SEO' })).toBeVisible();
-    await main.getByRole('button', { name: 'SEO & Scripts' }).click();
+    await main.getByRole('tab', { name: 'SEO & Scripts' }).click();
 
     const titleInput = main.locator('input[maxlength="70"]');
     const title = 'Best Travel Agency E2E';

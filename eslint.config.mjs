@@ -11,6 +11,18 @@ const compat = new FlatCompat({
 
 const eslintConfig = [
   ...compat.extends("next/core-web-vitals", "next/typescript"),
+  {
+    files: ["components/site/product-detail/**/*.{ts,tsx}", "components/pages/product-landing-page.tsx"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "Literal[value=/^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/]",
+          message: "Use theme tokens or --brand-* CSS variables instead of hex literals.",
+        },
+      ],
+    },
+  },
 ];
 
 export default eslintConfig;

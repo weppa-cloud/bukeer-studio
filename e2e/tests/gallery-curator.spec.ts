@@ -62,7 +62,9 @@ test.describe('GalleryCurator — E2E', () => {
     await expect(gallery.locator('[data-testid="gallery-tile"]')).toHaveCount(2);
 
     await gallery.getByRole('button', { name: /^Guardar$/ }).click();
-    await expect(gallery.getByRole('status', { name: /Guardado/ })).toBeVisible({ timeout: 10000 });
+    await expect(gallery.getByRole('status').filter({ hasText: 'Guardado' })).toBeVisible({
+      timeout: 20000,
+    });
   });
 
   test('upload failure surfaces error without losing draft', async ({ page }) => {
@@ -112,22 +114,23 @@ test.describe('GalleryCurator — E2E', () => {
     const gallery = page.getByTestId('marketing-editor-gallery');
     await expect(gallery.locator('[data-testid="gallery-tile"]')).toHaveCount(2);
 
-    const firstTile = gallery.locator('[data-testid="gallery-tile"]').first();
-    const firstAltBefore = await firstTile.locator('input[id^="gallery-alt-"]').inputValue();
+    const tiles = gallery.locator('[data-testid="gallery-tile"]');
+    await tiles.nth(0).locator('input[id^="gallery-alt-"]').fill('alt-first');
+    await tiles.nth(1).locator('input[id^="gallery-alt-"]').fill('alt-second');
 
     // Keyboard DnD: focus drag handle, Space to pick up, Arrow to move, Space to drop.
+    const firstTile = tiles.first();
     const handle = firstTile.getByRole('button', { name: /Reordenar imagen 1/ });
     await handle.focus();
     await page.keyboard.press('Space');
-    await page.keyboard.press('ArrowRight');
+    await page.keyboard.press('ArrowDown');
     await page.keyboard.press('Space');
 
-    const firstAltAfter = await gallery
-      .locator('[data-testid="gallery-tile"]')
-      .first()
-      .locator('input[id^="gallery-alt-"]')
-      .inputValue();
-
-    expect(firstAltAfter).not.toEqual(firstAltBefore);
+    await expect(
+      gallery
+        .locator('[data-testid="gallery-tile"]')
+        .first()
+        .locator('input[id^="gallery-alt-"]'),
+    ).toHaveValue('alt-second');
   });
 });

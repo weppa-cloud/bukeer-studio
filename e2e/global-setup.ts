@@ -1,4 +1,62 @@
 import { FullConfig } from '@playwright/test';
+import { createClient } from '@supabase/supabase-js';
+
+const ZERO_UUID = '00000000-0000-0000-0000-000000000000';
+
+async function ensureRequiredRpcsAvailable() {
+  if (process.env.E2E_SKIP_RPC_PREFLIGHT === '1') {
+    console.log('[globalSetup] RPC preflight skipped via E2E_SKIP_RPC_PREFLIGHT=1');
+    return;
+  }
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!supabaseUrl || !serviceRoleKey) {
+    console.warn('[globalSetup] Skipping RPC preflight (missing Supabase credentials)');
+    return;
+  }
+
+  const supabase = createClient(supabaseUrl, serviceRoleKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  });
+
+  const probes: Array<{ name: string; args: Record<string, string> }> = [
+    {
+      name: 'resolve_theme_designer_v1',
+      args: { p_account_id: ZERO_UUID, p_website_id: ZERO_UUID },
+    },
+    {
+      name: 'get_latest_pilot_theme_snapshot',
+      args: { p_website_id: ZERO_UUID },
+    },
+  ];
+
+  const missing: string[] = [];
+  for (const probe of probes) {
+    const { error } = await supabase.rpc(probe.name, probe.args);
+    if (error?.code === 'PGRST202') {
+      missing.push(probe.name);
+      continue;
+    }
+
+    if (error) {
+      console.warn(`[globalSetup] RPC probe ${probe.name} returned ${error.code}: ${error.message}`);
+      continue;
+    }
+
+    console.log(`[globalSetup] RPC probe ok: ${probe.name}`);
+  }
+
+  if (missing.length) {
+    throw new Error(
+      `[globalSetup] Missing required Supabase RPC(s): ${missing.join(', ')}. ` +
+      'Apply pending migrations before running E2E.',
+    );
+  }
+}
 
 /**
  * Prewarms Turbopack-heavy routes before E2E tests start.
@@ -6,6 +64,8 @@ import { FullConfig } from '@playwright/test';
  * returns 500 because the build-manifest.json hasn't been generated yet.
  */
 async function globalSetup(config: FullConfig) {
+  await ensureRequiredRpcsAvailable();
+
   const baseURL = config.projects[0]?.use?.baseURL ?? 'http://localhost:3000';
 
   // Grab website ID from env (set in .env.local)
