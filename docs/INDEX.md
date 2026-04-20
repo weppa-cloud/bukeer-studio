@@ -4,7 +4,7 @@
 >
 > **Convention:** `[[ADR-XXX]]` or `[[SPEC_NAME]]` = wikilink resolved below. `[text](path.md)` = regular markdown link. Both coexist.
 
-Last updated: 2026-04-19 (EPIC #214 Stage 2 W7-a — training onboarding ColombiaTours + pilot runbook + cutover checklist); 2026-04-19 (EPIC #214 Stage 1 W1 — matrix refresh pkg+act editable + blog Section P + hotels as-is + Section M booking DEFER; pilot-readiness concept section expanded with matrix/ADR wikilinks); 2026-04-19 (ADR-025 priority-v2 alignment: Activities target Studio ownership with W2 pending); 2026-04-19 (EPIC #214 client priority change v2 — pilot-readiness concept scope notes); 2026-04-19 (EPIC #214 Stage 0 — ADR-024 + ADR-025 skeletons + pilot-readiness-deps); 2026-04-19 (EPIC #190 certification rerun evidence); 2026-04-18 (EPIC #190 certification run evidence + checklist); 2026-04-17 (WIKI full-refresh + #103 media closure checklist); 2026-04-17 wiki-patch (epic128 evidence + issue resolution rows)
+Last updated: 2026-04-20 (EPIC #214 Stage 5 W7-b — training onboarding extended with Flows 6/7/8 + cutover checklist Stage map + FAQ expansion); 2026-04-19 (EPIC #214 Stage 2 W7-a — training onboarding ColombiaTours + pilot runbook + cutover checklist); 2026-04-19 (EPIC #214 Stage 1 W1 — matrix refresh pkg+act editable + blog Section P + hotels as-is + Section M booking DEFER; pilot-readiness concept section expanded with matrix/ADR wikilinks); 2026-04-19 (ADR-025 priority-v2 alignment: Activities target Studio ownership with W2 pending); 2026-04-19 (EPIC #214 client priority change v2 — pilot-readiness concept scope notes); 2026-04-19 (EPIC #214 Stage 0 — ADR-024 + ADR-025 skeletons + pilot-readiness-deps); 2026-04-19 (EPIC #190 certification rerun evidence); 2026-04-18 (EPIC #190 certification run evidence + checklist); 2026-04-17 (WIKI full-refresh + #103 media closure checklist); 2026-04-17 wiki-patch (epic128 evidence + issue resolution rows)
 
 ---
 
@@ -131,7 +131,7 @@ Feature requests formalized. Status tracked inline. GitHub Issues = source of tr
 
 | Wikilink | File | Audience | Purpose |
 |----------|------|----------|---------|
-| [[colombiatours-onboarding]] | [file](./training/colombiatours-onboarding.md) | Partner Rol 2 (ColombiaTours) | Pilot onboarding: Flows 1-5 (marketing / booking-DEFER / layout / SEO / translation) + FAQ + what-NOT-to-do + cheat-sheet. Spanish-first. Screencasts pending W7-c. |
+| [[colombiatours-onboarding]] | [file](./training/colombiatours-onboarding.md) | Partner Rol 2 (ColombiaTours) | Pilot onboarding: Flows 1-8 (mkt / booking-DEFER / layout / SEO / translation / activity Variant A / hotel Variant B handoff / transcreate technical) + FAQ + what-NOT-to-do + cheat-sheet. Spanish-first. Screencasts pending W7-c. |
 
 ---
 
@@ -366,6 +366,7 @@ Each concept below lists the ADRs/SPECs/ops docs that touch it. Use this to find
 - Recovery Gate prereq of Stage 4: [#226](https://github.com/weppa-cloud/bukeer-studio/issues/226) QA Recovery Gate P0 GUI (blocks W4 #218, W5 #219, W6 #220 kickoff; details in [[pilot-readiness-deps]] §Parallel / Recovery Gate)
 - Stage 1 W1 artefacts (2026-04-19): [[product-detail-matrix]] (refresh pkg+act editable + Sections M/N/O/P + Hotel column as-is + 🟡-flag legend) · [[package-detail-anatomy]] (hygiene checklist cross-ref) · [[product-detail-inventory]] (§3.2 ownership matrix aligned with matrix Sections N/O)
 - Stage 2 W7-a artefacts (2026-04-19): [[colombiatours-onboarding]] (partner-facing training — Flows 1-5 + FAQ + what-NOT-to-do + cheat-sheet; screencasts pending W7-c) · [[pilot-runbook-colombiatours]] (operational runbook — cross-links 4 existing runbooks; DNS TTL / ±24 h Flutter rule / SLA / post-cutover cadence) · [[cutover-checklist]] (standalone preflight/cutover/post-cutover/rollback checklist)
+- Stage 5 W7-b artefacts (2026-04-20) — docs-only extension of W7-a: [[colombiatours-onboarding]] now covers **Flows 6 / 7 / 8** (Activity Studio editor Variant A — see [[studio-unified-product-editor]] / [[ADR-025]]; Hotel Flutter handoff Variant B — see [[field-ownership]]; SEO transcreate technical layer — see [[transcreate-website-content-runbook]] / [[ADR-021]]) + FAQ expansion (Variant A vs B, bulk partial failure, 429 as expected) + cheat-sheet rows for new flows. [[cutover-checklist]] extended with Stage → Flow verification map (W1→W6 deliverables + PRs #225/#227/#229/#237/#238/#239/#230) + per-flow cutover day verification table. **Screencasts (W7-c) still pending** — `{{screenshot-placeholder}}` markers in onboarding doc.
 - **Client priority change v2 (2026-04-19)** — logged in [[pilot-readiness-deps]]: priority 1 = translation (blog + pkg + act); priority 2 = editing (pkg + act Studio editors); hotels as-is (Flutter-owner); booking V1 DEFER post-pilot (ADR-024 Accepted PR pending); no rate-limit mitigation. W2 + W5 bumped to XL; W3 becomes docs-only DEFER closure.
 - Matrix foundation: [[product-detail-matrix]] (W1 pkg+act editable + Section M Booking DEFER + Section N editor→campo + Section O Flutter-only gaps + Section P Blog transcreate + 🟡-flag legend + Hotel column as-is)
 - Cross-repo boundary: [[cross-repo-flutter]] (Flutter-owner fields per [[ADR-025]])
@@ -406,6 +407,8 @@ Obsidian resolves `[[ADR-005]]` by filename stem or alias. Claude Code / Codex g
 | `[[ADR-024-booking-v1-pilot-scope]]` | `docs/architecture/ADR-024-booking-v1-pilot-scope.md` |
 | `[[ADR-025]]` | `docs/architecture/ADR-025-studio-flutter-field-ownership.md` |
 | `[[ADR-025-studio-flutter-field-ownership]]` | `docs/architecture/ADR-025-studio-flutter-field-ownership.md` |
+| `[[field-ownership]]` | `docs/architecture/ADR-025-studio-flutter-field-ownership.md` (concept alias) |
+| `[[booking-defer]]` | `docs/architecture/ADR-024-booking-v1-pilot-scope.md` (concept alias) |
 | `[[pilot-readiness-deps]]` | `docs/specs/pilot-readiness-deps.md` |
 | `[[colombiatours-onboarding]]` | `docs/training/colombiatours-onboarding.md` |
 | `[[pilot-runbook-colombiatours]]` | `docs/ops/pilot-runbook-colombiatours.md` |
