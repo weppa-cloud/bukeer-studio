@@ -667,6 +667,32 @@ async function upsertBlogPost(
   tpl: BlogTemplate,
   warnings: string[],
 ): Promise<string | null> {
+  // Public SELECT RLS on `website_blog_posts` requires `published_at <= now()`
+  // AND `status = 'published'`. Without an explicit `published_at`, published
+  // seeds are invisible to the anon SSR client and `/blog/{slug}` 404s even
+  // though the blog listing (SECURITY DEFINER RPC) shows the row.
+  // Stage 6 Bug 13 fix — always stamp published_at for published seeds so
+  // the detail page round-trips under anon + pilot matrix renders.
+  const publishedAt = tpl.status === 'published' ? new Date().toISOString() : null;
+
+  // `translation_group_id` is NOT NULL — self-reference for the canonical
+  // post keeps the blog seed independent of an external group. Fetch the
+  // existing row (if any) so idempotent re-runs preserve the same UUID
+  // instead of generating a fresh one every call.
+  const { data: existing } = await admin
+    .from('website_blog_posts')
+    .select('id, translation_group_id')
+    .eq('website_id', websiteId)
+    .eq('slug', slug)
+    .eq('locale', tpl.locale)
+    .maybeSingle();
+  const translationGroupId =
+    existing?.translation_group_id
+    ?? existing?.id
+    ?? (typeof globalThis.crypto?.randomUUID === 'function'
+      ? globalThis.crypto.randomUUID()
+      : `00000000-0000-4000-8000-${Date.now().toString(16).padStart(12, '0')}`);
+
   const { data, error } = await admin
     .from('website_blog_posts')
     .upsert(
@@ -678,6 +704,8 @@ async function upsertBlogPost(
         content: tpl.content,
         status: tpl.status,
         locale: tpl.locale,
+        published_at: publishedAt,
+        translation_group_id: translationGroupId,
       },
       { onConflict: 'website_id,slug,locale' },
     )

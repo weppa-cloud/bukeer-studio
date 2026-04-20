@@ -563,7 +563,7 @@ export function ProductLandingPage({
       />
 
       {/* Breadcrumb */}
-      <div className="max-w-7xl mx-auto px-6 py-4">
+      <div data-testid="detail-breadcrumb" className="max-w-7xl mx-auto px-6 py-4">
         <nav aria-label="Breadcrumb" className="text-xs text-muted-foreground font-mono">
           <Link href={`${basePath}/`} className="hover:underline">
             Inicio

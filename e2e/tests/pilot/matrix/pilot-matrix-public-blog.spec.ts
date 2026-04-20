@@ -134,8 +134,11 @@ test.describe('@pilot-w6 Pilot W6 · matrix · blog', () => {
     const response = await page.goto(route, { waitUntil: 'domcontentloaded' });
 
     // Acceptable terminal states:
-    //  - 200 → assert render + hreflang
+    //  - 200 + real render → assert render + hreflang
     //  - 404 → translation gap → conditional-skip with reason (not a failure)
+    //  - 200 + dev-mode notFound() overlay (Turbopack dev returns 200 with a
+    //    `NEXT_HTTP_ERROR_FALLBACK;404` payload where prod would 404) →
+    //    treat as translation gap so the spec skips consistently in both envs.
     if (!response || response.status() === 404) {
       test.skip(
         true,
@@ -149,7 +152,17 @@ test.describe('@pilot-w6 Pilot W6 · matrix · blog', () => {
       `Translated blog URL server error (status=${response.status()}).`,
     );
 
+    const bodyHtml = await page.content();
+    if (bodyHtml.includes('NEXT_HTTP_ERROR_FALLBACK;404')) {
+      test.skip(
+        true,
+        `Translated en-US blog variant rendered notFound() via Turbopack dev (no dedicated /en/blog/{slug} route yet). W5 transcreate publishes the translated route; W6 documents the render gap.`,
+      );
+      return;
+    }
+
     await waitForDetailReady(page, 'blog');
+
     await freezeAnimations(page);
 
     const outcomes: MatrixRowOutcome[] = [];
