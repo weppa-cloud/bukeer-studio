@@ -1,0 +1,88 @@
+{
+  "epic": 214,
+  "issue": 213,
+  "stage": 6,
+  "scope": "final re-validation after all 5 Stage-6 clusters (A/B/C/D/E) merged — measures post-fix state for #213 autonomous handoff",
+  "branch": "qa/213-stage-6-final-revalidation",
+  "base": "main",
+  "base_commit_sha": "78bd32f",
+  "date_utc": "2026-04-20",
+  "executor": "Claude Opus 4.7 (autonomous, 1M ctx)",
+  "session_slot": "s1",
+  "port": 3001,
+  "dist_dir": ".next-s1",
+  "server_mode": "next-dev-turbopack (E2E_WEBSERVER_CMD override = 'echo reuse existing')",
+  "node_version": "24.1.0",
+  "playwright_version": "1.58.2 (via @playwright/test/cli.js)",
+  "seed_policy": "pilot-seed — seedPilot('baseline') + seedPilot('translation-ready') via test setup + Lighthouse runner script",
+  "projects_invoked": ["chromium", "firefox", "mobile-chrome"],
+  "grep": "@pilot-(w4|w5|w6)",
+  "shipping_prs_validated": [
+    {"pr": 243, "cluster": "A", "scope": "transcreate — blog apply 500 + pkg render/hreflang + stream 400 range"},
+    {"pr": 244, "cluster": "D", "scope": "re-validate activity specs post W2 prod DDL apply"},
+    {"pr": 245, "cluster": "C", "scope": "replace networkidle with deterministic wait on pilot matrix"},
+    {"pr": 246, "cluster": "B", "scope": "matrix — hotel schema + blog BlogPosting/x-default + pkg mobile breadcrumb"},
+    {"pr": 247, "cluster": "E", "scope": "middleware — /site/<sub>/<locale>/... locale header injection"}
+  ],
+  "stats": {
+    "chromium":      {"expected": 11, "skipped": 12, "unexpected": 12, "flaky": 0, "duration_ms": 566097},
+    "firefox":       {"expected": 13, "skipped": 10, "unexpected": 12, "flaky": 0, "duration_ms": 502316},
+    "mobile-chrome": {"expected": 11, "skipped": 12, "unexpected": 12, "flaky": 0, "duration_ms": 540700}
+  },
+  "delta_vs_pr_242": {
+    "chromium":      {"pass_delta": "+8",  "pre": "3p/12s/10f", "post": "11p/12s/12f"},
+    "firefox":       {"pass_delta": "+10", "pre": "3p/12s/10f", "post": "13p/10s/12f"},
+    "mobile-chrome": {"pass_delta": "+8",  "pre": "3p/12s/10f", "post": "11p/12s/12f"}
+  },
+  "expected_improvements_verdict": {
+    "stream-endpoint-400": "FIXED — PASS on chromium/firefox/mobile-chrome (cluster A)",
+    "blog-transcreate-apply-500": "FIXED — blog lifecycle PASS on firefox + mobile-chrome (cluster A)",
+    "activity-transcreate-lifecycle": "FIXED — PASS on firefox + mobile-chrome (cluster D); chromium skipped (translation-ready seed conditional, not regression)",
+    "activity-hreflang-injanguage": "FIXED on firefox (cluster D)",
+    "hotel-matrix-desktop": "FIXED — PASS on firefox + mobile-chrome (cluster B)",
+    "hotel-matrix-mobile-read-only": "FIXED — PASS on mobile-chrome (cluster B); firefox isMobile unsupported (platform, not regression)",
+    "blog-en-x-default": "PARTIAL — firefox PASS; chromium + mobile still FAIL (cluster B fix browser-sensitive)",
+    "blog-matrix-es-co": "PARTIAL — mobile-chrome PASS; chromium + firefox FAIL on upstream timeout",
+    "pkg-mobile-breadcrumb": "BLOCKED by pkg desktop matrix walk 30s-timeout (cluster C partial)",
+    "turbopack-90s-matrix-timeout": "PARTIAL — infra-level wait shortened but marketing-editor step inside matrix walk re-adds 30s-per-test hang",
+    "pkg-hreflang-inlanguage-es-co": "PARTIAL — firefox PASS; chromium + mobile still FAIL (cluster A + E)",
+    "pkg-en-render-meta-title": "NOT FIXED — W5 EN title assertion still fails on all 3 browsers (follow-up)"
+  },
+  "lighthouse_ac_a5": {
+    "mode": "dev (Turbopack, LHCI_SERVER_MODE=dev, 2 runs/URL)",
+    "thresholds": "perf>=0.90 (warn), a11y>=0.95 (err), seo>=0.95 (err), bp>=0.90 (warn); hard-block if seo<0.90 OR a11y<0.85",
+    "pre_fix_hard_blocks": ["act (seo=0.58)", "blog (seo=0.58)"],
+    "post_fix_hard_blocks": [],
+    "post_fix_soft_warns_seo_meta_description": ["hotel (seo=0.92)", "blog (seo=0.92)", "act run1 (seo=0.92, run2=1.00)"],
+    "root_cause_post_fix": "is-crawlable (noindex) resolved; remaining 0.92 cap is meta-description audit — seed fixtures don't populate meta_description. Partner-gated seed remediation.",
+    "new_minor_regression": "hotel SEO 1.00 -> 0.92 on meta-description missing (pre-fix fixture must have had it)",
+    "summary_path": "artifacts/qa/pilot/2026-04-20/final-revalidation/lighthouse/summary.json"
+  },
+  "new_regressions_discovered": [
+    {"finding": "Hotel Lighthouse SEO 1.00 -> 0.92 on meta-description gap", "follow_up": "seed `aloft-bogota-airport` metadata OR verify hotel fallback path"},
+    {"finding": "Pkg matrix desktop walk still times out at 30s per-test in dev (marketing-editor step wait)", "follow_up": "cluster C refinement — localize domcontentloaded wait to marketing-editor save step"},
+    {"finding": "isMobile unsupported in firefox → 3 matrix mobile specs fail", "follow_up": "add test.skip(browserName === 'firefox') to mobile matrix specs"}
+  ],
+  "partner_gated_remain_unchanged": [
+    "Flow 1 partner walkthrough on live subdomain (AC-A1..A4)",
+    "AC-X4a partner owner (ColombiaTours) GO/NO-GO",
+    "AC-X4b internal QA-lead human sign-off on #207",
+    "ops ticket #63 (pilot env vars: REVALIDATE_SECRET, analytics, OG CDN, colombiatours subdomain)",
+    "W7-c partner screencasts (training collateral)",
+    "DNS cutover (colombiatours or staging equivalent)"
+  ],
+  "artifacts": [
+    {"path": "chromium-pilot.json", "bytes": 6127827, "description": "Playwright JSON report — chromium --grep @pilot-(w4|w5|w6)"},
+    {"path": "chromium-pilot-console.log", "bytes": 6391888, "description": "Captured console+JSON for chromium run"},
+    {"path": "firefox-pilot.json", "bytes": 5234466, "description": "Playwright JSON report — firefox --grep @pilot-(w4|w5|w6)"},
+    {"path": "firefox-pilot-console.log", "bytes": 5388570, "description": "Captured console+JSON for firefox run"},
+    {"path": "mobile-chrome-pilot.json", "bytes": 14610225, "description": "Playwright JSON report — mobile-chrome --grep @pilot-(w4|w5|w6)"},
+    {"path": "mobile-chrome-pilot-console.log", "bytes": 14903949, "description": "Captured console+JSON for mobile-chrome run"},
+    {"path": "lighthouse/summary.json", "description": "Aggregated scores for the 8 final-revalidation Lighthouse runs"},
+    {"path": "lighthouse/*.report.{html,json}", "description": "Individual per-run Lighthouse reports (desktop, 2 runs/URL, 4 URLs = 8 reports × 2 formats)"}
+  ],
+  "docs_updated": [
+    "docs/qa/pilot/sign-off-2026-04-20.md (new Final re-validation section prepended)",
+    "docs/qa/pilot/colombiatours-matrix-2026-04-20.md (new Final re-validation section prepended)"
+  ]
+}
