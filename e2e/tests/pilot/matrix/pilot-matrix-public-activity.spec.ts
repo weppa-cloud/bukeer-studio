@@ -4,6 +4,7 @@ import {
   assertMatrixRow,
   assertVisualSnapshot,
   freezeAnimations,
+  waitForDetailReady,
   type MatrixRowOutcome,
 } from '../../../setup/matrix-helpers';
 import {
@@ -38,12 +39,13 @@ test.describe('@pilot-w6 Pilot W6 · matrix · activity', () => {
     const subdomain = pilotSubdomain();
     const route = `/site/${subdomain}/actividades/${act.slug}`;
 
-    const response = await page.goto(route, { waitUntil: 'networkidle' });
+    const response = await page.goto(route, { waitUntil: 'domcontentloaded' });
     test.skip(
       !response || response.status() === 404 || response.status() >= 500,
       `Public activity page unreachable (status=${response?.status() ?? 'no-response'}).`,
     );
 
+    await waitForDetailReady(page, 'act');
     await freezeAnimations(page);
 
     const outcomes: MatrixRowOutcome[] = [];
@@ -86,12 +88,13 @@ test.describe('@pilot-w6 Pilot W6 · matrix · activity', () => {
     try {
       const subdomain = pilotSubdomain();
       const route = `/site/${subdomain}/actividades/${act.slug}`;
-      const response = await page.goto(route, { waitUntil: 'networkidle' });
+      const response = await page.goto(route, { waitUntil: 'domcontentloaded' });
       test.skip(
         !response || response.status() === 404 || response.status() >= 500,
         `Public activity page unreachable on mobile (status=${response?.status() ?? 'no-response'}).`,
       );
 
+      await waitForDetailReady(page, 'act');
       await freezeAnimations(page);
       const outcomes: MatrixRowOutcome[] = [];
       for (const row of applicableRows('act').filter((r) => r.viewports.includes('mobile'))) {
@@ -160,6 +163,8 @@ test.describe('@pilot-w6 Pilot W6 · matrix · activity', () => {
         !response || response.status() === 404 || response.status() >= 500,
         `Public activity page unreachable (status=${response?.status() ?? 'no-response'}).`,
       );
+
+      await waitForDetailReady(page, 'act');
 
       const description = page.getByTestId('detail-description');
       await expect(description).toBeVisible();

@@ -4,6 +4,7 @@ import {
   assertMatrixRow,
   assertVisualSnapshot,
   freezeAnimations,
+  waitForDetailReady,
   type MatrixRowOutcome,
 } from '../../../setup/matrix-helpers';
 import { getPilotSeed, pilotSubdomain } from '../helpers';
@@ -35,12 +36,13 @@ test.describe('@pilot-w6 Pilot W6 · matrix · blog', () => {
 
     const subdomain = pilotSubdomain();
     const route = `/site/${subdomain}/blog/${blog.slug}`;
-    const response = await page.goto(route, { waitUntil: 'networkidle' });
+    const response = await page.goto(route, { waitUntil: 'domcontentloaded' });
     test.skip(
       !response || response.status() === 404 || response.status() >= 500,
       `Blog detail page unreachable (status=${response?.status() ?? 'no-response'}).`,
     );
 
+    await waitForDetailReady(page, 'blog');
     await freezeAnimations(page);
 
     const outcomes: MatrixRowOutcome[] = [];
@@ -129,7 +131,7 @@ test.describe('@pilot-w6 Pilot W6 · matrix · blog', () => {
 
     const subdomain = pilotSubdomain();
     const route = `/site/${subdomain}/en/blog/${blog.slug}`;
-    const response = await page.goto(route, { waitUntil: 'networkidle' });
+    const response = await page.goto(route, { waitUntil: 'domcontentloaded' });
 
     // Acceptable terminal states:
     //  - 200 → assert render + hreflang
@@ -147,6 +149,7 @@ test.describe('@pilot-w6 Pilot W6 · matrix · blog', () => {
       `Translated blog URL server error (status=${response.status()}).`,
     );
 
+    await waitForDetailReady(page, 'blog');
     await freezeAnimations(page);
 
     const outcomes: MatrixRowOutcome[] = [];
