@@ -1,0 +1,82 @@
+[
+  {
+    "file": "localhost-_site_colombiatours_actividades_pilot_colombiatours_act_baseline-2026_04_20_16_10_06.report.json",
+    "url": "http://localhost:3001/site/colombiatours/actividades/pilot-colombiatours-act-baseline",
+    "scores": {
+      "performance": 0.78,
+      "accessibility": 1,
+      "best-practices": 1,
+      "seo": 0.92
+    }
+  },
+  {
+    "file": "localhost-_site_colombiatours_actividades_pilot_colombiatours_act_baseline-2026_04_20_16_10_22.report.json",
+    "url": "http://localhost:3001/site/colombiatours/actividades/pilot-colombiatours-act-baseline",
+    "scores": {
+      "performance": 0.83,
+      "accessibility": 1,
+      "best-practices": 1,
+      "seo": 1
+    }
+  },
+  {
+    "file": "localhost-_site_colombiatours_blog_pilot_colombiatours_blog_translation_ready-2026_04_20_16_11_21.report.json",
+    "url": "http://localhost:3001/site/colombiatours/blog/pilot-colombiatours-blog-translation-ready",
+    "scores": {
+      "performance": 0.96,
+      "accessibility": 0.96,
+      "best-practices": 1,
+      "seo": 0.92
+    }
+  },
+  {
+    "file": "localhost-_site_colombiatours_blog_pilot_colombiatours_blog_translation_ready-2026_04_20_16_11_33.report.json",
+    "url": "http://localhost:3001/site/colombiatours/blog/pilot-colombiatours-blog-translation-ready",
+    "scores": {
+      "performance": 0.97,
+      "accessibility": 0.96,
+      "best-practices": 1,
+      "seo": 0.92
+    }
+  },
+  {
+    "file": "localhost-_site_colombiatours_hoteles_aloft_bogota_airport-2026_04_20_16_10_38.report.json",
+    "url": "http://localhost:3001/site/colombiatours/hoteles/aloft-bogota-airport",
+    "scores": {
+      "performance": 0.82,
+      "accessibility": 1,
+      "best-practices": 1,
+      "seo": 0.92
+    }
+  },
+  {
+    "file": "localhost-_site_colombiatours_hoteles_aloft_bogota_airport-2026_04_20_16_11_01.report.json",
+    "url": "http://localhost:3001/site/colombiatours/hoteles/aloft-bogota-airport",
+    "scores": {
+      "performance": 0.76,
+      "accessibility": 1,
+      "best-practices": 1,
+      "seo": 0.92
+    }
+  },
+  {
+    "file": "localhost-_site_colombiatours_paquetes_pilot_colombiatours_pkg_baseline-2026_04_20_16_09_21.report.json",
+    "url": "http://localhost:3001/site/colombiatours/paquetes/pilot-colombiatours-pkg-baseline",
+    "scores": {
+      "performance": 0.8,
+      "accessibility": 1,
+      "best-practices": 1,
+      "seo": 1
+    }
+  },
+  {
+    "file": "localhost-_site_colombiatours_paquetes_pilot_colombiatours_pkg_baseline-2026_04_20_16_09_50.report.json",
+    "url": "http://localhost:3001/site/colombiatours/paquetes/pilot-colombiatours-pkg-baseline",
+    "scores": {
+      "performance": 0.84,
+      "accessibility": 1,
+      "best-practices": 1,
+      "seo": 1
+    }
+  }
+]
