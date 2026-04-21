@@ -100,6 +100,11 @@ function parseNumericValue(raw: number | string | undefined): {
   };
 }
 
+function hasMeaningfulMetric(metric: StatsMetric): boolean {
+  const parsed = parseNumericValue(metric.value);
+  return Number.isFinite(parsed.value) && parsed.value > 0;
+}
+
 export function StatsSection({
   section,
 }: EditorialStatsSectionProps): ReactElement {
@@ -108,6 +113,13 @@ export function StatsSection({
   let metrics: StatsMetric[] = Array.isArray(content.metrics)
     ? content.metrics.filter((m): m is StatsMetric => !!m && m.value !== undefined && m.value !== null)
     : [];
+
+  // Guard against stale DB payloads that ship four "0" stats and make
+  // the band look broken. When every authored metric is zero, rebuild from
+  // live brand claims/defaults.
+  if (metrics.length > 0 && metrics.every((metric) => !hasMeaningfulMetric(metric))) {
+    metrics = [];
+  }
 
   if (metrics.length === 0 && content.brandClaims) {
     metrics = deriveFromBrandClaims(content.brandClaims);

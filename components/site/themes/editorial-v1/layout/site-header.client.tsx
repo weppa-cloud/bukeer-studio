@@ -9,6 +9,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { Icons } from '../primitives/icons';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 
@@ -18,6 +19,49 @@ export interface MobileNavToggleProps {
   panelId: string;
   openLabel?: string;
   closeLabel?: string;
+}
+
+export interface HeaderScrollStateProps {
+  headerId: string;
+}
+
+function isEditorialHomePath(pathname: string): boolean {
+  const parts = pathname.split('/').filter(Boolean);
+  if (parts.length < 2) return false;
+  if (parts[0] !== 'site') return false;
+  // /site/{subdomain}
+  if (parts.length === 2) return true;
+  // /site/{subdomain}/{lang}
+  if (parts.length === 3 && /^[a-z]{2}$/i.test(parts[2])) return true;
+  return false;
+}
+
+export function HeaderScrollState({ headerId }: HeaderScrollStateProps) {
+  const pathname = usePathname();
+
+  useEffect(() => {
+    const header =
+      typeof document !== 'undefined'
+        ? document.getElementById(headerId)
+        : null;
+    if (!header) return;
+
+    const update = () => {
+      const home = isEditorialHomePath(pathname || '');
+      const scrolled = !home || window.scrollY > 8;
+      header.classList.toggle('scrolled', scrolled);
+    };
+
+    update();
+    window.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('hashchange', update);
+    return () => {
+      window.removeEventListener('scroll', update);
+      window.removeEventListener('hashchange', update);
+    };
+  }, [headerId, pathname]);
+
+  return null;
 }
 
 export function MobileNavToggle({

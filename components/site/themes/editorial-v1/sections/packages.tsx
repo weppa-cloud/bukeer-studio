@@ -85,6 +85,12 @@ export function PackagesSection({ section, website }: PackagesSectionProps) {
       count: typeof t.count === 'number' ? t.count : undefined,
     }));
 
+  const derivedTabs: EditorialFilterTab[] =
+    safeTabs.length === 0
+      ? deriveTabsFromPackages(packages)
+      : [];
+  const effectiveTabs = safeTabs.length > 0 ? safeTabs : derivedTabs;
+
   const basePath = `/site/${website.subdomain}`;
 
   return (
@@ -119,12 +125,50 @@ export function PackagesSection({ section, website }: PackagesSectionProps) {
 
         <PackagesFilters
           packages={packages}
-          tabs={safeTabs}
-          enableFilters={filtersEnabled && safeTabs.length > 0}
+          tabs={effectiveTabs}
+          enableFilters={filtersEnabled && effectiveTabs.length > 0}
           basePath={basePath}
           labels={LABELS}
         />
       </div>
     </section>
   );
+}
+
+function deriveTabsFromPackages(
+  packages: EditorialPackageItem[],
+): EditorialFilterTab[] {
+  const acc = new Map<string, { label: string; count: number }>();
+
+  const add = (raw: string | null | undefined) => {
+    const label = (raw ?? '').toString().trim();
+    if (!label) return;
+    const key = label.toLowerCase();
+    const current = acc.get(key);
+    if (current) {
+      current.count += 1;
+      return;
+    }
+    acc.set(key, { label, count: 1 });
+  };
+
+  for (const pkg of packages) {
+    const tags = [
+      ...(pkg.tags ?? []),
+      ...(pkg.categoryKeys ?? []),
+    ];
+    if (tags.length > 0) {
+      for (const tag of tags) add(tag);
+      continue;
+    }
+    add(pkg.country ?? pkg.destination ?? null);
+  }
+
+  return Array.from(acc.entries())
+    .slice(0, 5)
+    .map(([filterKey, value]) => ({
+      label: value.label,
+      filterKey,
+      count: value.count,
+    }));
 }

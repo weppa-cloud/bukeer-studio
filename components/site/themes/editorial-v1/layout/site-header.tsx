@@ -25,7 +25,7 @@ import { getBasePath } from '@/lib/utils/base-path';
 import { resolveNavHref } from '@/lib/utils/navigation';
 import { Logo } from '../primitives/logo';
 import { Icons } from '../primitives/icons';
-import { MobileNavToggle } from './site-header.client';
+import { HeaderScrollState, MobileNavToggle } from './site-header.client';
 import { MarketSwitcher } from './market-switcher';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 
@@ -74,9 +74,11 @@ export function EditorialSiteHeader({
   const whatsappExternal = Boolean(whatsappRaw);
 
   const mobilePanelId = 'ev-nav-mobile-panel';
+  const headerId = 'ev-header-root';
 
   return (
-    <header className="ev-header" data-screen-label="Header">
+    <header id={headerId} className="ev-header" data-screen-label="Header">
+      <HeaderScrollState headerId={headerId} />
       <div className="ev-container">
         <div className="nav nav-inner">
           <Link href={`${basePath}/`} className="nav-logo" aria-label={siteName}>

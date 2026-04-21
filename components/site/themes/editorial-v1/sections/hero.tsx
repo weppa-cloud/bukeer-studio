@@ -88,6 +88,12 @@ interface HeroContent {
   slides?: HeroSlideContent[];
   search?: HeroSearchContent;
   trustChip?: HeroTrustChipContent;
+  featuredDestinations?: Array<{
+    slug?: string | null;
+    headline?: string | null;
+    heroImageUrl?: string | null;
+    featuredOrder?: number | null;
+  }>;
 }
 
 // ---------- Constants ----------
@@ -118,6 +124,16 @@ function sanitizeHeadline(raw: string | undefined | null): string {
     if (tag === 'br') return '<br>';
     return isClosing ? `</${tag}>` : `<${tag}>`;
   });
+}
+
+function humanizeSlug(slug: string | undefined | null): string {
+  if (!slug) return '';
+  const decoded = decodeURIComponent(slug);
+  return decoded
+    .replace(/-/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 // ---------- Helpers ----------
@@ -186,7 +202,7 @@ export function HeroSection({
   const subtitle = content.subtitle?.trim() || '';
   const trustChip = content.trustChip;
 
-  const slides: HeroRotatorSlide[] = Array.isArray(content.slides)
+  const authoredSlides: HeroRotatorSlide[] = Array.isArray(content.slides)
     ? content.slides
         .filter((s) => s && (s.imageUrl || s.city))
         .map((s) => ({
@@ -197,13 +213,47 @@ export function HeroSection({
         }))
     : [];
 
+  const featuredSlides: HeroRotatorSlide[] = Array.isArray(content.featuredDestinations)
+    ? [...content.featuredDestinations]
+        .sort((a, b) => Number(a?.featuredOrder ?? 9999) - Number(b?.featuredOrder ?? 9999))
+        .map((dest) => {
+          const city = (dest?.headline ?? '').toString().trim() || humanizeSlug(dest?.slug);
+          if (!city && !dest?.heroImageUrl) return null;
+          return {
+            imageUrl: dest?.heroImageUrl || null,
+            city,
+            alt: city ? `${city} · Colombia` : undefined,
+            region: city || undefined,
+          } as HeroRotatorSlide;
+        })
+        .filter((slide): slide is HeroRotatorSlide => Boolean(slide))
+    : [];
+
+  const slides: HeroRotatorSlide[] = authoredSlides.length > 0
+    ? authoredSlides
+    : featuredSlides;
+
   const ctas: HeroCtaContent[] = Array.isArray(content.ctas)
     ? content.ctas.filter((c) => c && c.label)
     : [];
 
-  const sideList: HeroSideListItem[] = Array.isArray(content.sideList)
+  const authoredSideList: HeroSideListItem[] = Array.isArray(content.sideList)
     ? content.sideList.filter((x) => x && x.label)
     : [];
+
+  const sideListFromSlides: HeroSideListItem[] =
+    authoredSideList.length === 0
+      ? slides
+          .map((slide, index) => ({
+            label: (slide.city ?? '').trim(),
+            badge: (slide.region ?? '').trim() || String(index + 1).padStart(2, '0'),
+          }))
+          .filter((item) => item.label.length > 0)
+          .slice(0, 4)
+      : [];
+
+  const sideList: HeroSideListItem[] =
+    authoredSideList.length > 0 ? authoredSideList : sideListFromSlides;
 
   const searchEnabled = content.search?.enabled === true;
   const placeholders = searchPlaceholders(content.search);

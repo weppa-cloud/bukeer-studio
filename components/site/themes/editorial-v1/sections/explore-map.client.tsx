@@ -120,8 +120,15 @@ function locateDestination(
   ].filter((v): v is string => typeof v === 'string' && v.length > 0);
 
   for (const candidate of candidates) {
-    const hit = CITY_LOOKUP[NORMALIZE(candidate)];
+    const normalized = NORMALIZE(candidate);
+    const hit = CITY_LOOKUP[normalized];
     if (hit) return hit;
+
+    // Fuzzy fallback for slugs like "cartagena-de-indias" where the
+    // catalog city key is shorter ("cartagena").
+    for (const [city, entry] of Object.entries(CITY_LOOKUP)) {
+      if (normalized.includes(city) || city.includes(normalized)) return entry;
+    }
   }
   return null;
 }

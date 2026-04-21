@@ -339,11 +339,12 @@
   z-index: 50;
   backdrop-filter: saturate(1.2) blur(12px);
   -webkit-backdrop-filter: saturate(1.2) blur(12px);
-  background: color-mix(in oklab, var(--c-bg) 82%, transparent);
+  background: color-mix(in oklab, var(--c-bg) 18%, transparent);
   border-bottom: 1px solid transparent;
   transition: border-color .25s var(--ease), background .25s var(--ease);
 }
 :where([data-template-set="editorial-v1"]) .ev-header.scrolled {
+  background: color-mix(in oklab, var(--c-bg) 82%, transparent);
   border-color: var(--c-line);
 }
 :where([data-template-set="editorial-v1"]) .nav {
