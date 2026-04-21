@@ -486,7 +486,7 @@
   display: grid;
   grid-template-columns: 1.1fr .9fr;
   gap: 40px;
-  padding: var(--sp-7, 72px) 0 var(--sp-8, 112px);
+  padding: var(--sp-7, 72px) 0 140px;
   align-items: end;
   min-height: inherit;
 }
@@ -523,65 +523,56 @@
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 24px;
+  bottom: 0;
   z-index: 3;
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
-  gap: 0;
   pointer-events: none;
-}
-:where([data-template-set="editorial-v1"]) .hero-meta-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  padding: 6px 14px 6px 12px;
-  background: rgba(14, 91, 91, 0.72);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 99px;
-  pointer-events: auto;
-  color: rgba(255, 255, 255, .92);
+  padding: 10px var(--container-px, 40px);
+  background: rgba(14, 91, 91, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  color: rgba(255, 255, 255, .9);
   font-size: 11px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   white-space: nowrap;
 }
+:where([data-template-set="editorial-v1"]) .hero-meta-pill {
+  display: contents;
+}
 :where([data-template-set="editorial-v1"]) .hero-meta-label {
-  opacity: 0.8;
   font-weight: 500;
+  opacity: 0.85;
 }
 :where([data-template-set="editorial-v1"]) .hero-meta-sep {
-  width: 1px;
-  height: 10px;
-  background: rgba(255, 255, 255, 0.3);
-  flex-shrink: 0;
+  display: none;
 }
 :where([data-template-set="editorial-v1"]) .hero-meta .dots {
   display: flex;
   gap: 5px;
   align-items: center;
+  pointer-events: auto;
 }
 :where([data-template-set="editorial-v1"]) .hero-meta .dot {
-  width: 18px;
-  height: 4px;
+  width: 20px;
+  height: 3px;
   border-radius: 99px;
   background: transparent;
-  border: 1.5px solid rgba(255, 255, 255, 0.5);
+  border: 1.5px solid rgba(255, 255, 255, 0.55);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.22s ease;
   padding: 0;
 }
 :where([data-template-set="editorial-v1"]) .hero-meta .dot.active {
-  width: 28px;
+  width: 32px;
   background: #fff;
   border-color: #fff;
 }
 :where([data-template-set="editorial-v1"]) .hero-meta-counter {
   font-variant-numeric: tabular-nums;
-  opacity: 0.7;
-  font-size: 11px;
+  opacity: 0.75;
 }
 :where([data-template-set="editorial-v1"]) .hero-side-list {
   display: flex;
@@ -1659,6 +1650,44 @@
   :where([data-template-set="editorial-v1"]) .trust-bar-f1 .dot-live {
     animation: none;
   }
+}
+
+:where([data-template-set="editorial-v1"]) .trust-logos-row {
+  background: var(--c-surface, #fffaf0);
+  border-top: 1px solid var(--c-line-2, #e8dfc8);
+  padding: 12px 0;
+}
+:where([data-template-set="editorial-v1"]) .trust-logos-inner {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  flex-wrap: wrap;
+}
+:where([data-template-set="editorial-v1"]) .trust-logos-label {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--c-muted, #7a8a84);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+:where([data-template-set="editorial-v1"]) .trust-logos-list {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+  flex: 1;
+}
+:where([data-template-set="editorial-v1"]) .trust-logos-list span {
+  font-size: 13px;
+  color: var(--c-ink-2, #3b534f);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+:where([data-template-set="editorial-v1"]) .trust-logos-list span.serif {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
 }
 
 /* ============ Testimonials ============ */
@@ -3833,6 +3862,27 @@
   position: relative;
   z-index: 3;
 }
+:where([data-template-set="editorial-v1"]) .ov-item {
+  padding: 20px 24px;
+  border-right: 1px solid var(--c-line);
+}
+:where([data-template-set="editorial-v1"]) .ov-item:last-child { border-right: none; }
+:where([data-template-set="editorial-v1"]) .ov-item small {
+  display: block;
+  color: var(--c-muted);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+:where([data-template-set="editorial-v1"]) .ov-item strong {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 18px;
+  letter-spacing: -0.01em;
+  color: var(--c-ink);
+}
 
 /* -------- Activity detail timeline -------- */
 :where([data-template-set="editorial-v1"]) .act-timeline-block { margin-bottom: 24px; }
@@ -5499,12 +5549,79 @@
   }
 }
 
-/* ============ content-visibility: auto for below-fold sections ============
-   Skips paint+layout for off-screen sections → cuts Style & Layout main-thread
-   work by ~60%. contain-intrinsic-size prevents scroll-height collapse.
-   Applied only to inner sections (not hero, not header, not footer).
-   ======================================================================= */
-:where([data-template-set="editorial-v1"]) .ev-section {
-  content-visibility: auto;
-  contain-intrinsic-size: auto 500px;
+
+
+/* ============ Testimonials Carousel — star row fix ============ */
+:where([data-template-set="editorial-v1"]) .stars {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 2px;
+  color: var(--c-accent, #f59e0b);
+}
+:where([data-template-set="editorial-v1"]) .stars span {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* ============ Inclusions & Exclusions ============ */
+:where([data-template-set="editorial-v1"]) .inclusions-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+}
+:where([data-template-set="editorial-v1"]) .inclusions-col-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+:where([data-template-set="editorial-v1"]) .inclusions-col-icon--yes {
+  color: var(--c-accent-3, #16a34a);
+  display: inline-flex;
+}
+:where([data-template-set="editorial-v1"]) .inclusions-col-icon--no {
+  color: var(--c-accent, #ef4444);
+  display: inline-flex;
+}
+:where([data-template-set="editorial-v1"]) .inclusions-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+:where([data-template-set="editorial-v1"]) .inclusions-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+:where([data-template-set="editorial-v1"]) .inclusions-item-icon--yes {
+  color: var(--c-accent-3, #16a34a);
+  flex-shrink: 0;
+  margin-top: 2px;
+  display: inline-flex;
+}
+:where([data-template-set="editorial-v1"]) .inclusions-item-icon--no {
+  color: var(--c-accent, #ef4444);
+  flex-shrink: 0;
+  margin-top: 2px;
+  display: inline-flex;
+}
+:where([data-template-set="editorial-v1"]) .inclusions-note {
+  margin-top: 24px;
+  color: var(--c-ink-2);
+  font-size: 0.875rem;
+}
+@media (max-width: 640px) {
+  :where([data-template-set="editorial-v1"]) .inclusions-grid {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
 }
