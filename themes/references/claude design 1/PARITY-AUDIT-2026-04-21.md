@@ -88,15 +88,55 @@ Hero planner detail ahora renderiza: avatar + breadcrumb + role + location chip 
 
 ---
 
-## Pendientes para llegar a 98% (10 pts)
+## Iteración 3 (multi-agente final) — capturas `LOCAL-FINAL3-*.png`
 
-1. **Home stats wiring** (P1 — 5pts) — NumberTicker SSR fix aplicado pero sigue `0 0 0 0`. Causa: animación intersection observer puede no activarse en capture fullpage (DOM inicia `0`, anima on scroll-in-view). Fallback: renderizar valor final en SSR sin esperar intersect. Validar también que `websites.content.stats[]` tenga metrics válidos.
-2. **Home itinerarios/destinations imágenes** (P2 — 2pts) — cards grid con placeholder gris. Fix: poblar `itineraries.cover_image` o bucket Supabase Storage para destination images. Data puramente.
-3. **Package detail itinerary variants visual** (P2 — 1pt) — Agent B cerró `event_type` en RPC; validar rendering visual por tipo con icons (hotel/actividad/transporte/vuelo).
-4. **Viaje firma + Otros paquetes planner detail** (P3 — 1pt) — UI lista pero `signature_package_id` no backfilled + falta query `package_kits WHERE planner_id=X` (schema FK no existe — requiere decisión si se modela como col en packages o junction table).
-5. **Options table #34** (out-of-scope pilot) — ADR-025 gated Flutter master overlay.
-6. **Route map markers numerados #24** (P3 polish — 1pt).
-7. **Palettes alt + densities** (P3 opcional) — `theme_designer_v1_enabled` flag + UI selector.
+**Commits iter 3 mergeados:**
+- `c127b8d` Agent E — migration `package_kits.planner_id` FK ON DELETE SET NULL + partial index
+- `5ccf706` Agent E — wiring signature + hallmarks on planner-detail (`toRelatedPackage`, `getPlannerPackages`, `getPackageKitById`)
+- `7389766` Agent E — backfill planner↔package links (4 ColombiaTours planners)
+- `8929751` Agent D — stats SSR fix (NumberTicker formatTicker helper) + suffix concat fix + layout WebsiteLocaleProvider wrap + ColombiaMap `numberedRoute` prop + editorial-v1.css `.co-pin.numbered/.co-pin-number/.co-route-connector`
+- `cbca691` dev cache header fix (immutable → skip in dev)
+- `81438d1` merge Cluster D
+- `1d9d7da` Agent F — package day-by-day variants (BedDouble/Compass/Bus/Plane/UtensilsCrossed icons via lucide-react + border-left 3px + chips Localizados)
+- `5e5a734` merge Cluster F
+
+**Migrations aplicadas prod iter 3:**
+- `20260504110000_planner_id_on_package_kits` — FK + index
+- `20260504110100_pilot_colombiatours_planner_package_backfill` — 4 signatures + 9 related packages
+
+**Scores FINAL post iter 3:**
+| Pantalla | Baseline | Iter 1 | Iter 2 | Iter 3 | Δ total |
+|---|:---:|:---:|:---:|:---:|:---:|
+| 01 Home | 70% | 80% | 80% | **92%** | +22 (stats 12.4k+/4.9/96%/32 ✅, 8 packages grid con imágenes ✅) |
+| 03 Package detail | 55% | 88% | 88% | **95%** | +40 (gallery + chips + pricing + itinerary icons por tipo + map numerado) |
+| 04 Experiencias | 45% | 90% | 90% | 90% | +45 |
+| 05 Activity detail | 40% | 87% | 87% | 87% | +47 |
+| 06 Planners index | 50% | 88% | 92% | 92% | +42 |
+| 07 Blog | 92% | 92% | 92% | 92% | 0 |
+| **08 Planner detail** | 35% | 72% | 92% | **100%** | **+65** (viaje firma card + otros paquetes grid con data live) |
+| 09 Waflow modal | 85% | 85% | 85% | 85% | 0 |
+
+**Parity score global final: ~92%** (promedio ponderado).
+
+---
+
+## Bug descubierto — CSS truncation (RESUELTO)
+
+Agent E reportó `editorial-v1.css` parecía truncarse ~línea 4300 en browser (reglas `.pl-grid/.pld-body/.sig-card/.hall-grid` no aplicaban). Root cause: `next.config.ts:156` aplicaba `Cache-Control: max-age=31536000, immutable` para `/_next/static/*` **también en dev**. Turbopack dev emite chunk URLs estables a través de HMR rebuilds, browser quedaba pinned a CSS antiguo.
+
+Fix permanente (commit `cbca691`): conditionalize — dev omite regla header, prod retiene immutable. Content-hashed URLs prod cambian con content → invalidation auto.
+
+**No es un bug Turbopack**, es config incorrecta de cache. Prod no se ve afectada.
+
+---
+
+## Pendientes residuales (~8 pts restantes)
+
+1. **Client hydration errors** — 36-51 chunks ERR_FAILED en browser Chromium Playwright (pre-existing, no blockea SSR). Posibles causas: STS header en localhost, theme-sdk zod/v4 bundle failure (Agent F reportó). Afecta interactividad (accordions, animations) pero NO render inicial. Out-of-scope parity visual.
+2. **Options table #34** (out-of-scope pilot) — ADR-025 gated Flutter master overlay.
+3. **Palettes alt caribe/andes/selva/cafe + densities snug/airy** (P3 opcional) — `theme_designer_v1_enabled` flag + UI selector. No requerido para pilot.
+4. **W6 E2E specs + Lighthouse gate** — no corridos. Validación automatizada pendiente pero el audit visual confirma parity≥92%.
+5. **Backfill prod masivo** — pilot ColombiaTours cubre 4 planners de ~6 real; 8 packages de ~100. Datos pilot demostrativos.
 
 ---
 
