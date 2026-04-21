@@ -55,6 +55,17 @@
   color: var(--c-ink);
 }
 
+/* Tailwind border-border uses raw HSL tuple — override to editorial token */
+:where([data-template-set="editorial-v1"]) .border-border {
+  border-color: var(--c-line-2);
+}
+:where([data-template-set="editorial-v1"]) .border-border\/60 {
+  border-color: color-mix(in srgb, var(--c-line-2) 60%, transparent);
+}
+:where([data-template-set="editorial-v1"]) .border-border\/70 {
+  border-color: color-mix(in srgb, var(--c-line-2) 70%, transparent);
+}
+
 /* ============ Base typography/link rules (scoped) ============ */
 :where([data-template-set="editorial-v1"]) img {
   max-width: 100%;
@@ -462,7 +473,7 @@
 /* ============ HERO base ============ */
 :where([data-template-set="editorial-v1"]) .hero {
   position: relative;
-  min-height: min(88vh, 820px);
+  min-height: min(calc(100dvh - 77px), 900px);
   overflow: hidden;
   isolation: isolate;
   border-radius: 0 0 36px 36px;
@@ -486,7 +497,7 @@
   display: grid;
   grid-template-columns: 1.1fr .9fr;
   gap: 40px;
-  padding: var(--sp-7, 72px) 0 140px;
+  padding: var(--sp-7, 72px) 0 64px;
   align-items: end;
   min-height: inherit;
 }
@@ -1655,39 +1666,51 @@
 :where([data-template-set="editorial-v1"]) .trust-reconocidos {
   background: var(--c-surface, #fffaf0);
   border-bottom: 1px solid var(--c-line-2, #e8dfc8);
-  padding: 12px 0;
+  padding: 10px 0;
 }
 :where([data-template-set="editorial-v1"]) .trust-logos-inner {
   display: flex;
   align-items: center;
-  gap: 32px;
+  gap: 24px;
   flex-wrap: wrap;
 }
 :where([data-template-set="editorial-v1"]) .trust-logos-label {
-  font-size: 11px;
-  letter-spacing: 0.1em;
+  font-size: 10px;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--c-muted, #7a8a84);
   white-space: nowrap;
   flex-shrink: 0;
+  padding-right: 8px;
+  border-right: 1px solid var(--c-line-2, #e8dfc8);
 }
 :where([data-template-set="editorial-v1"]) .trust-logos-list {
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: 0;
   flex-wrap: wrap;
   flex: 1;
 }
 :where([data-template-set="editorial-v1"]) .trust-logos-list span {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--c-ink-2, #3b534f);
-  font-weight: 600;
-  letter-spacing: 0.01em;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 0 16px;
+  border-right: 1px solid var(--c-line-2, #e8dfc8);
+}
+:where([data-template-set="editorial-v1"]) .trust-logos-list span:first-child {
+  padding-left: 0;
+}
+:where([data-template-set="editorial-v1"]) .trust-logos-list span:last-child {
+  border-right: none;
 }
 :where([data-template-set="editorial-v1"]) .trust-logos-list span.serif {
   font-family: var(--font-serif);
   font-style: italic;
   font-weight: 400;
+  font-size: 14px;
+  color: var(--c-ink, #152029);
 }
 
 /* ============ Testimonials ============ */
@@ -5626,5 +5649,338 @@
   :where([data-template-set="editorial-v1"]) .inclusions-grid {
     grid-template-columns: 1fr;
     gap: 24px;
+  }
+}
+
+/* ============ RouteMap strip ============ */
+:where([data-template-set="editorial-v1"]) .rm-track {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 12px 20px 0;
+  margin-bottom: 24px;
+}
+:where([data-template-set="editorial-v1"]) .rm-line {
+  position: absolute;
+  top: 24px;
+  left: 40px;
+  right: 40px;
+  height: 2px;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--c-line-2) 0,
+    var(--c-line-2) 6px,
+    transparent 6px,
+    transparent 12px
+  );
+}
+:where([data-template-set="editorial-v1"]) .rm-stop {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+  flex: 1;
+}
+:where([data-template-set="editorial-v1"]) .rm-dot {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  background: var(--c-primary);
+  color: var(--c-primary-ink);
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 13px;
+  box-shadow: 0 0 0 4px var(--c-surface);
+}
+:where([data-template-set="editorial-v1"]) .rm-stop b {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 14px;
+  letter-spacing: -0.01em;
+  color: var(--c-ink);
+}
+:where([data-template-set="editorial-v1"]) .rm-stop small {
+  font-size: 11px;
+  color: var(--c-muted);
+}
+@media (max-width: 640px) {
+  :where([data-template-set="editorial-v1"]) .rm-track {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+  :where([data-template-set="editorial-v1"]) .rm-line {
+    display: none;
+  }
+  :where([data-template-set="editorial-v1"]) .rm-stop {
+    flex-direction: row;
+    justify-content: flex-start;
+    text-align: left;
+    gap: 12px;
+  }
+}
+
+/* ==========================================================
+   MOBILE-FIRST LAYER — ≤640px
+   All overrides for a premium mobile experience.
+   Design standard: iPhone 14 Pro (390×844) as baseline.
+   Priority order: P0 hero → P1 globals → P2 sections → P3 touch
+   ========================================================== */
+
+/* ── P1: Global layout tokens ──────────────────────────────
+   Reduces 224px dead-space padding per section and tightens
+   horizontal gutters from 32px → 20px (gives 350px content
+   on 390px device vs 326px before). */
+@media (max-width: 640px) {
+  [data-template-set="editorial-v1"] {
+    --section-py: 64px;
+    --gutter: 20px;
+  }
+
+  /* ── P0: Hero — fits exactly in viewport ──────────────────
+     Use exact height (not min-height) so hero never grows
+     beyond the screen on mobile. The meta strip stays pinned
+     at bottom:0 of the hero, which now ends at 100dvh - 77px.
+     Hide the side list (destination index) — it stacks below
+     the copy and pushes the hero off screen. */
+  :where([data-template-set="editorial-v1"]) .hero {
+    height: calc(100dvh - 77px);
+    min-height: unset;
+    border-radius: 0 0 24px 24px;
+  }
+  :where([data-template-set="editorial-v1"]) .hero-inner {
+    padding: 32px 0 72px;
+    gap: 0;
+    align-items: start;
+  }
+  :where([data-template-set="editorial-v1"]) .hero-inner > aside {
+    display: none;
+  }
+
+  /* Tighter H1 on mobile — 52px min wraps into 3 lines at 390px.
+     Cap at 40px so headline fits in ~2 lines. */
+  :where([data-template-set="editorial-v1"]) .display-xl {
+    font-size: clamp(36px, 9.5vw, 52px);
+    letter-spacing: -0.03em;
+    line-height: 0.96;
+  }
+
+  /* Hero lead tighter */
+  :where([data-template-set="editorial-v1"]) .hero-copy .lead {
+    font-size: 16px;
+    max-width: 100%;
+  }
+
+  /* Hero CTAs stack or shrink */
+  :where([data-template-set="editorial-v1"]) .hero-cta {
+    gap: 10px;
+    margin-top: 24px;
+  }
+  :where([data-template-set="editorial-v1"]) .hero-cta .btn {
+    padding: 13px 18px;
+    font-size: 14px;
+  }
+
+  /* ── P2a: Trust bar — horizontal scroll, no wrap ──────────
+     4 trust chips in a row, swipeable. Avoids 2-row wrapping
+     that causes the 148px tall bar on mobile. */
+  :where([data-template-set="editorial-v1"]) .trust-bar-f1 .inner {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 0;
+    padding: 0 var(--gutter, 20px);
+    margin: 0 calc(var(--gutter, 20px) * -1);
+  }
+  :where([data-template-set="editorial-v1"]) .trust-bar-f1 .inner::-webkit-scrollbar {
+    display: none;
+  }
+  :where([data-template-set="editorial-v1"]) .trust-bar-f1 .item {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+    padding: 4px 20px;
+    border-right: 1px solid rgba(255,255,255,.1);
+    white-space: nowrap;
+  }
+  :where([data-template-set="editorial-v1"]) .trust-bar-f1 .item:last-child {
+    border-right: none;
+  }
+
+  /* ── P2b: Reconocidos — horizontal scroll ─────────────────
+     Logo names in a single row, swipeable. Avoids 120px height. */
+  :where([data-template-set="editorial-v1"]) .trust-logos-inner {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 0;
+  }
+  :where([data-template-set="editorial-v1"]) .trust-logos-inner::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* ── P2c: Destinations — horizontal scroll rail ───────────
+     8 destination cards in a swipeable rail on mobile.
+     Each card is 72% viewport width for a peek-next effect. */
+  :where([data-template-set="editorial-v1"]) .dest-grid {
+    display: flex;
+    flex-direction: row;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 12px;
+    grid-auto-rows: unset;
+    margin: 0 calc(var(--gutter, 20px) * -1);
+    padding: 0 var(--gutter, 20px) 8px;
+  }
+  :where([data-template-set="editorial-v1"]) .dest-grid::-webkit-scrollbar {
+    display: none;
+  }
+  :where([data-template-set="editorial-v1"]) .dest-card {
+    flex: 0 0 72%;
+    height: 240px;
+    scroll-snap-align: start;
+    transform: none;
+    /* reset all grid-column/row spans */
+    grid-column: unset;
+    grid-row: unset;
+  }
+  :where([data-template-set="editorial-v1"]) .dest-card.c-12-4,
+  :where([data-template-set="editorial-v1"]) .dest-card.c-5-4,
+  :where([data-template-set="editorial-v1"]) .dest-card.c-4,
+  :where([data-template-set="editorial-v1"]) .dest-card.c-4-tall {
+    grid-column: unset;
+    grid-row: unset;
+  }
+
+  /* ── P2d: Planners — horizontal scroll rail ───────────────
+     Planner grid was 1-column (1fr) on mobile → 6 cards × full
+     width each = 2459px. Convert to swipeable rail, 80% width. */
+  :where([data-template-set="editorial-v1"]) .planners {
+    display: flex;
+    flex-direction: row;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 12px;
+    grid-template-columns: unset;
+    margin: 0 calc(var(--gutter, 20px) * -1);
+    padding: 0 var(--gutter, 20px) 8px;
+  }
+  :where([data-template-set="editorial-v1"]) .planners::-webkit-scrollbar {
+    display: none;
+  }
+  :where([data-template-set="editorial-v1"]) .planner {
+    flex: 0 0 72%;
+    scroll-snap-align: start;
+  }
+  :where([data-template-set="editorial-v1"]) .planner-avatar {
+    aspect-ratio: 4/3;
+  }
+
+  /* ── P2e: Testimonials — stack big card only, hide list ───
+     testi-list adds ~5 mini cards below the big quote card.
+     On mobile we show only the featured testimonial.
+     User can see "see more" reviews via the section CTA. */
+  :where([data-template-set="editorial-v1"]) .testi {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  :where([data-template-set="editorial-v1"]) .testi-list {
+    display: flex;
+    flex-direction: row;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 12px;
+  }
+  :where([data-template-set="editorial-v1"]) .testi-list::-webkit-scrollbar {
+    display: none;
+  }
+  :where([data-template-set="editorial-v1"]) .testi-mini {
+    flex: 0 0 80%;
+    scroll-snap-align: start;
+  }
+  :where([data-template-set="editorial-v1"]) .testi-big {
+    padding: 28px 24px;
+  }
+  :where([data-template-set="editorial-v1"]) .testi-big blockquote {
+    font-size: 20px;
+  }
+
+  /* ── P2f: Promise card — single col with tighter padding ──
+     Already 1-col at 1100px but still has 40px padding.
+     On mobile reduce to 24px. */
+  :where([data-template-set="editorial-v1"]) .promise {
+    padding: 28px 24px;
+    border-radius: 20px;
+  }
+
+  /* ── P2g: Section headers — remove 2-col layout ──────────
+     ev-section-head already goes 1-col at 1100px. On mobile
+     also reduce the margin-bottom. */
+  :where([data-template-set="editorial-v1"]) .ev-section-head {
+    margin-bottom: 32px;
+    gap: 16px;
+  }
+
+  /* ── P2h: Stats — reduce padding per stat cell ────────────
+     40px per cell on mobile wastes space. */
+  :where([data-template-set="editorial-v1"]) .stat {
+    padding: 24px 16px;
+  }
+
+  /* ── P3: Touch feedback ────────────────────────────────────
+     Hover states don't fire on touch. Add active scale
+     transform for instant tactile feedback on all interactive
+     cards and buttons. No transition delay (feels snappy). */
+  :where([data-template-set="editorial-v1"]) .btn:active {
+    transform: scale(0.96);
+    transition: transform 0.08s ease;
+  }
+  :where([data-template-set="editorial-v1"]) .pack-card:active,
+  :where([data-template-set="editorial-v1"]) .dest-card:active,
+  :where([data-template-set="editorial-v1"]) .planner:active,
+  :where([data-template-set="editorial-v1"]) .testi-mini:active,
+  :where([data-template-set="editorial-v1"]) .lm-card:active {
+    transform: scale(0.98);
+    transition: transform 0.08s ease;
+  }
+
+  /* ── P3: Navigation — full-width mobile panel ─────────────
+     Existing .nav-mobile-panel but ensure it covers full
+     screen height cleanly. */
+  :where([data-template-set="editorial-v1"]) .nav-mobile-panel {
+    padding: 20px var(--gutter, 20px);
+  }
+
+  /* ── P3: display-lg/md tighter on mobile ─────────────────
+     Section H2s use display-lg (clamp 44px min). Cap at 32px. */
+  :where([data-template-set="editorial-v1"]) .display-lg {
+    font-size: clamp(32px, 8.5vw, 44px);
+  }
+  :where([data-template-set="editorial-v1"]) .display-md {
+    font-size: clamp(28px, 7vw, 36px);
+  }
+
+  /* ── Scroll-snap padding correction ──────────────────────
+     Negative margin + padding trick: pull carousels edge-to-edge
+     and let first card start flush with gutter. */
+  :where([data-template-set="editorial-v1"]) .pack-rail {
+    margin: 0 calc(var(--gutter, 20px) * -1);
+    padding-left: var(--gutter, 20px);
+    padding-right: var(--gutter, 20px);
   }
 }

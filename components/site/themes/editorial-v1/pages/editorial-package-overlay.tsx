@@ -15,7 +15,7 @@ import type { ProductData, ScheduleEventType } from '@bukeer/website-contract';
 import { ColombiaMap, type ColombiaMapPin } from '../maps/colombia-map';
 import { Eyebrow } from '../primitives/eyebrow';
 import { HotelCard } from '@/components/site/product-detail/p2/hotel-card';
-import { DayEventTimeline } from '@/components/site/product-detail/p2/day-event-timeline';
+import { ItineraryDayAccordion } from '../primitives/itinerary-day-accordion.client';
 import { sanitizeProductCopy } from '@/lib/products/normalize-product';
 import { getPackageCircuitStops, withCoords } from '@/lib/products/package-circuit';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
@@ -254,45 +254,8 @@ export function EditorialPackageOverlay({
   const timelineGroups = groupByDay(timelineItems);
   const mapPins = buildMapPins(product);
 
-  const hasDuration = (product.duration_days ?? 0) > 0 || (product.duration_nights ?? 0) > 0;
-  const hasStats = hasDuration || mapPins.length > 0 || (product.rating ?? 0) > 0;
-
   return (
     <div className="mx-auto max-w-7xl px-6 pb-16 space-y-16">
-      {hasStats ? (
-        <section data-testid="editorial-package-stats" className="pt-4">
-          <div className="pkg-meta" style={{ marginTop: 0 }}>
-            {hasDuration ? (
-              <div className="ov-item">
-                <small>{editorialText('editorialPackageDurationLabel')}</small>
-                <strong>
-                  {product.duration_days ? `${product.duration_days}d` : ''}
-                  {product.duration_days && product.duration_nights ? ' / ' : ''}
-                  {product.duration_nights ? `${product.duration_nights}n` : ''}
-                </strong>
-              </div>
-            ) : null}
-            {mapPins.length > 0 ? (
-              <div className="ov-item">
-                <small>{editorialText('editorialPackageDestinationsLabel')}</small>
-                <strong>
-                  {mapPins.length} {mapPins.length === 1 ? 'ciudad' : 'ciudades'}
-                </strong>
-              </div>
-            ) : null}
-            {(product.rating ?? 0) > 0 ? (
-              <div className="ov-item">
-                <small>{editorialText('editorialPackageRatingLabel')}</small>
-                <strong>
-                  {(product.rating as number).toFixed(1)} ★
-                  {(product.review_count ?? 0) > 0 ? ` · ${product.review_count}` : ''}
-                </strong>
-              </div>
-            ) : null}
-          </div>
-        </section>
-      ) : null}
-
       {mapPins.length > 0 ? (
         <section data-testid="editorial-package-map" className="route-map">
           <div className="rm-head">
@@ -300,6 +263,15 @@ export function EditorialPackageOverlay({
             <small>
               {mapPins.length} {editorialText('editorialPackageStopsSuffix')}
             </small>
+          </div>
+          <div className="rm-track">
+            <div className="rm-line" aria-hidden="true" />
+            {mapPins.map((pin, i) => (
+              <div key={pin.id} className="rm-stop">
+                <div className="rm-dot">{i + 1}</div>
+                <b>{pin.label}</b>
+              </div>
+            ))}
           </div>
           <ColombiaMap pins={mapPins} height={460} numberedRoute />
         </section>
@@ -313,37 +285,7 @@ export function EditorialPackageOverlay({
               {editorialText('editorialPackageTimelineTitle')}
             </h2>
           </div>
-          <div className="space-y-8">
-            {timelineGroups.map((group, idx) => (
-              <DayEventTimeline
-                key={`day-${idx}-${group.day ?? 'single'}`}
-                day={group.day}
-                events={group.entries.map((item) => {
-                  const extras: Record<string, unknown> = {};
-                  if (item.marketing_carrier) extras.marketing_carrier = item.marketing_carrier;
-                  if (item.flight_number) extras.flight_number = item.flight_number;
-                  if (item.departure) extras.departure = item.departure;
-                  if (item.arrival) extras.arrival = item.arrival;
-                  if (item.from_location) extras.from_location = item.from_location;
-                  if (item.to_location) extras.to_location = item.to_location;
-                  if (item.duration) extras.duration = item.duration;
-                  if (typeof item.star_rating === 'number') extras.star_rating = item.star_rating;
-                  if (item.amenities) extras.amenities = item.amenities;
-                  if (item.hotel_slug) extras.hotel_slug = item.hotel_slug;
-                  if (item.schedule_data) extras.schedule_data = item.schedule_data;
-                  if (item.activity_slug) extras.activity_slug = item.activity_slug;
-                  return {
-                    day: item.day ?? undefined,
-                    title: item.title,
-                    description: item.description ?? undefined,
-                    time: item.time ?? undefined,
-                    event_type: item.event_type,
-                    ...extras,
-                  };
-                })}
-              />
-            ))}
-          </div>
+          <ItineraryDayAccordion groups={timelineGroups} />
         </section>
       ) : null}
 
