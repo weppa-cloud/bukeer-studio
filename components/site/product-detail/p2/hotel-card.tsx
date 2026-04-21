@@ -31,6 +31,11 @@ export interface HotelCardProps {
    * Optional category/grade label (e.g. "Boutique", "Resort") shown in the eyebrow line.
    */
   category?: string | null;
+  /**
+   * Optional route prefix for detail links (e.g. `/site/<subdomain>`).
+   * Defaults to root-relative (`/hoteles/<slug>`).
+   */
+  basePath?: string | null;
 }
 
 function StarRow({ stars }: { stars: number }) {
@@ -61,11 +66,16 @@ export function HotelCard({
   city,
   nights,
   category,
+  basePath,
 }: HotelCardProps) {
   const stars = typeof starRating === 'number'
     ? Math.max(1, Math.min(5, Math.round(starRating)))
     : 0;
   const displayAmenities = Array.isArray(amenities) ? amenities.slice(0, HOTEL_AMENITIES_MAX) : [];
+  const normalizedBasePath = (basePath ?? '').replace(/\/+$/, '');
+  const hotelHref = hotelSlug
+    ? `${normalizedBasePath}/hoteles/${hotelSlug}`.replace(/^\/+/, '/')
+    : null;
 
   if (variant === 'card') {
     const eyebrowParts = [city, category].filter((part): part is string => Boolean(part && part.trim().length));
@@ -134,9 +144,9 @@ export function HotelCard({
                   {nightsLabel}
                 </span>
               ) : <span />}
-              {hotelSlug ? (
+              {hotelHref ? (
                 <Link
-                  href={`/hoteles/${hotelSlug}`}
+                  href={hotelHref}
                   className="text-xs font-mono hover:text-primary transition-colors"
                   style={{ color: 'var(--text-muted)' }}
                   aria-label={`Ver detalles del hotel ${title ?? ''}`}
@@ -174,9 +184,9 @@ export function HotelCard({
           {description}
         </p>
       )}
-      {hotelSlug && (
+      {hotelHref && (
         <Link
-          href={`/hoteles/${hotelSlug}`}
+          href={hotelHref}
           className="text-xs font-mono hover:text-primary transition-colors"
           style={{ color: 'var(--text-muted)' }}
           aria-label={`Ver detalles del hotel ${title ?? ''}`}
