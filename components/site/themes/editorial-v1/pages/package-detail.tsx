@@ -90,6 +90,21 @@ interface TimelineItem {
   description: string | null;
   time: string | null;
   event_type: ScheduleEventType;
+  // Variant-specific extended fields — passed through to DayEventTimeline
+  // so each row can render its specialized layout (star rating, route,
+  // airline/flight, activity steps) without losing data in transit.
+  marketing_carrier?: string | null;
+  flight_number?: string | null;
+  departure?: string | null;
+  arrival?: string | null;
+  from_location?: string | null;
+  to_location?: string | null;
+  duration?: string | null;
+  star_rating?: number | null;
+  amenities?: string[] | null;
+  hotel_slug?: string | null;
+  schedule_data?: unknown[] | null;
+  activity_slug?: string | null;
 }
 
 function readString(source: Record<string, unknown>, key: string): string | null {
@@ -159,6 +174,11 @@ function extractFlights(itineraryItems: ReadonlyArray<Record<string, unknown>>):
   return out;
 }
 
+function readUnknownArray(source: Record<string, unknown>, key: string): unknown[] | null {
+  const value = source[key];
+  return Array.isArray(value) && value.length > 0 ? value : null;
+}
+
 function extractTimeline(itineraryItems: ReadonlyArray<Record<string, unknown>>): TimelineItem[] {
   return itineraryItems
     .map((entry): TimelineItem | null => {
@@ -180,6 +200,22 @@ function extractTimeline(itineraryItems: ReadonlyArray<Record<string, unknown>>)
         description: readString(entry, 'description'),
         time: readString(entry, 'time'),
         event_type: eventType,
+        // Pass-through variant payloads (matrix rows #26-29): each is optional
+        // and the timeline component picks only the subset that applies to the
+        // resolved event_type. Ghost pattern when a field is absent — the row
+        // falls back to title/description only.
+        marketing_carrier: readString(entry, 'marketing_carrier') ?? readString(entry, 'carrier'),
+        flight_number: readString(entry, 'flight_number'),
+        departure: readString(entry, 'departure'),
+        arrival: readString(entry, 'arrival'),
+        from_location: readString(entry, 'from_location'),
+        to_location: readString(entry, 'to_location'),
+        duration: readString(entry, 'duration'),
+        star_rating: readNumber(entry, 'star_rating') ?? readNumber(entry, 'stars'),
+        amenities: readStringArray(entry, 'amenities'),
+        hotel_slug: readString(entry, 'hotel_slug') ?? readString(entry, 'slug'),
+        schedule_data: readUnknownArray(entry, 'schedule_data') ?? readUnknownArray(entry, 'steps'),
+        activity_slug: readString(entry, 'activity_slug'),
       };
     })
     .filter((row): row is TimelineItem => row !== null);
@@ -304,13 +340,32 @@ export function EditorialPackageDetail({
                 <DayEventTimeline
                   key={`day-${idx}-${group.day ?? 'single'}`}
                   day={group.day}
-                  events={group.entries.map((item) => ({
-                    day: item.day ?? undefined,
-                    title: item.title,
-                    description: item.description ?? undefined,
-                    time: item.time ?? undefined,
-                    event_type: item.event_type,
-                  }))}
+                  events={group.entries.map((item) => {
+                    // Keep ScheduleEntry shape for the declared prop, but pass
+                    // variant-specific extended fields as loosely-typed extras
+                    // consumed by day-event-timeline.
+                    const extras: Record<string, unknown> = {};
+                    if (item.marketing_carrier) extras.marketing_carrier = item.marketing_carrier;
+                    if (item.flight_number) extras.flight_number = item.flight_number;
+                    if (item.departure) extras.departure = item.departure;
+                    if (item.arrival) extras.arrival = item.arrival;
+                    if (item.from_location) extras.from_location = item.from_location;
+                    if (item.to_location) extras.to_location = item.to_location;
+                    if (item.duration) extras.duration = item.duration;
+                    if (typeof item.star_rating === 'number') extras.star_rating = item.star_rating;
+                    if (item.amenities) extras.amenities = item.amenities;
+                    if (item.hotel_slug) extras.hotel_slug = item.hotel_slug;
+                    if (item.schedule_data) extras.schedule_data = item.schedule_data;
+                    if (item.activity_slug) extras.activity_slug = item.activity_slug;
+                    return {
+                      day: item.day ?? undefined,
+                      title: item.title,
+                      description: item.description ?? undefined,
+                      time: item.time ?? undefined,
+                      event_type: item.event_type,
+                      ...extras,
+                    };
+                  })}
                 />
               ))}
             </div>

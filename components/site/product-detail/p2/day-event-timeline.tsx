@@ -3,6 +3,7 @@ import { TimelineEvent } from './timeline-event';
 import { FlightRow } from './flight-row';
 import { TransferRow } from './transfer-row';
 import { HotelCard } from './hotel-card';
+import { ActivityScheduleInline } from '@/components/site/activity-schedule-inline';
 
 export interface DayEventTimelineProps {
   day?: number | null;
@@ -11,16 +12,23 @@ export interface DayEventTimelineProps {
 }
 
 interface ExtendedScheduleEntry extends ScheduleEntry {
+  // Flight-specific
   marketing_carrier?: string;
   flight_number?: string;
   departure?: string;
   arrival?: string;
+  // Transport-specific
   from_location?: string;
   to_location?: string;
   duration?: string;
+  // Lodging-specific
   star_rating?: number;
   amenities?: string[];
   hotel_slug?: string;
+  // Activity-specific
+  schedule_data?: unknown[];
+  activity_slug?: string;
+  steps?: unknown[];
 }
 
 function hasTypedFields(event: ExtendedScheduleEntry, eventType: ScheduleEventType): boolean {
@@ -31,7 +39,15 @@ function hasTypedFields(event: ExtendedScheduleEntry, eventType: ScheduleEventTy
     return Boolean(event.from_location || event.to_location || event.duration);
   }
   if (eventType === 'lodging') {
-    return Boolean(event.hotel_slug || typeof event.star_rating === 'number' || (event.amenities && event.amenities.length > 0));
+    return Boolean(
+      event.hotel_slug ||
+        typeof event.star_rating === 'number' ||
+        (event.amenities && event.amenities.length > 0)
+    );
+  }
+  if (eventType === 'activity') {
+    const steps = Array.isArray(event.schedule_data) ? event.schedule_data : event.steps;
+    return Array.isArray(steps) && steps.length > 0;
   }
   return false;
 }
@@ -71,6 +87,36 @@ function TypedContent({ event, eventType }: { event: ExtendedScheduleEntry; even
       />
     );
   }
+  if (eventType === 'activity') {
+    const rawSteps = Array.isArray(event.schedule_data) ? event.schedule_data : event.steps;
+    const steps = Array.isArray(rawSteps)
+      ? (rawSteps.filter(
+          (step): step is ScheduleEntry =>
+            step !== null && typeof step === 'object' && typeof (step as ScheduleEntry).title === 'string'
+        ) as ScheduleEntry[])
+      : [];
+    return (
+      <div className="space-y-1">
+        {event.title && (
+          <p className="font-medium leading-snug" style={{ color: 'var(--text-heading, hsl(var(--foreground)))' }}>
+            {event.title}
+          </p>
+        )}
+        {event.description && (
+          <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary, hsl(var(--muted-foreground)))' }}>
+            {event.description}
+          </p>
+        )}
+        {steps.length > 0 ? (
+          <ActivityScheduleInline
+            steps={steps}
+            activitySlug={event.activity_slug}
+            activityName={event.title ?? 'Actividad'}
+          />
+        ) : null}
+      </div>
+    );
+  }
   return null;
 }
 
@@ -86,7 +132,7 @@ export function DayEventTimeline({ day, events, className = '' }: DayEventTimeli
       {day != null && (
         <h3
           className="mb-4 text-sm font-semibold uppercase tracking-wider"
-          style={{ color: 'var(--text-muted)' }}
+          style={{ color: 'var(--text-muted, hsl(var(--muted-foreground)))' }}
         >
           Día {day}
         </h3>
