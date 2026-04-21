@@ -569,6 +569,14 @@ export interface DestinationData {
   lng: number;
   hotel_count: number;
   activity_count: number;
+  /**
+   * Editorial v1 — count of featured package_kits whose
+   * free-text `destination` field mentions this city (fuzzy match,
+   * unaccented + lowercased). Added by migration
+   * `20260503000130_editorial_v1_destinations_package_count`.
+   * Always a number; 0 when the RPC returns null/undefined.
+   */
+  package_count: number;
   total: number;
   min_price: string | null;
   image: string | null;
@@ -592,6 +600,12 @@ export async function getDestinations(
 
     return destinations.map((destination, index) => ({
       ...destination,
+      // Defensive: coerce package_count to a number (RPC always returns int,
+      // but some environments may surface null on fuzzy-match misses).
+      package_count:
+        typeof destination.package_count === 'number'
+          ? destination.package_count
+          : 0,
       id:
         (typeof destination.slug === 'string' && destination.slug) ||
         `${destination.name}-${index}`,
