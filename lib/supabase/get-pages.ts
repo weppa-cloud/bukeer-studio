@@ -346,6 +346,25 @@ export async function getProductPage(
             .maybeSingle();
           if (!byId.error) kit = byId.data;
         }
+        // Third path: itinerary.source_package_id → kit.
+        // Handles the case where multiple itineraries share a kit but only one
+        // has source_itinerary_id set on the kit side.
+        if (!kit && product.id) {
+          const { data: itinRow } = await supabase
+            .from('itineraries')
+            .select('source_package_id')
+            .eq('id', product.id)
+            .maybeSingle();
+          const kitId = itinRow?.source_package_id ? String(itinRow.source_package_id) : null;
+          if (kitId) {
+            const bySourcePkg = await packageReader
+              .from('package_kits')
+              .select(kitFields)
+              .eq('id', kitId)
+              .maybeSingle();
+            if (!bySourcePkg.error) kit = bySourcePkg.data;
+          }
+        }
 
         if (kit) {
           if (typeof kit.description === 'string') {
@@ -558,11 +577,50 @@ export async function getLocalizedProductOverlay(input: {
 async function getProductIdsWithLocaleOverlay(
   websiteId: string,
   productType: string,
-  productIds: string[],
+  productIds: string[],  // itinerary IDs from RPC
   locale: string
 ): Promise<Set<string>> {
   if (productIds.length === 0) return new Set();
   try {
+    // Packages: website_product_pages stores kit IDs (source_package_id), but
+    // the RPC returns itinerary IDs. Resolve via itineraries.source_package_id.
+    if (productType === 'package') {
+      const { data: itinData } = await supabase
+        .from('itineraries')
+        .select('id, source_package_id')
+        .in('id', productIds)
+        .not('source_package_id', 'is', null);
+
+      if (!Array.isArray(itinData) || itinData.length === 0) return new Set();
+
+      const kitToItinerary = new Map<string, string>();
+      const kitIds: string[] = [];
+      for (const row of itinData) {
+        if (row.source_package_id) {
+          kitToItinerary.set(String(row.source_package_id), String(row.id));
+          kitIds.push(String(row.source_package_id));
+        }
+      }
+      if (kitIds.length === 0) return new Set();
+
+      const { data, error } = await supabase
+        .from('website_product_pages')
+        .select('product_id')
+        .eq('website_id', websiteId)
+        .eq('product_type', productType)
+        .eq('locale', locale)
+        .in('product_id', kitIds);
+
+      if (error || !Array.isArray(data)) return new Set();
+      // Return itinerary IDs so the caller can filter baseItems correctly
+      const result = new Set<string>();
+      for (const r of data) {
+        const itinId = kitToItinerary.get(String(r.product_id));
+        if (itinId) result.add(itinId);
+      }
+      return result;
+    }
+
     const { data, error } = await supabase
       .from('website_product_pages')
       .select('product_id')
@@ -698,6 +756,7 @@ export async function getCategoryProducts(
       String(options.limit || 12),
       String(options.offset || 0),
       (options.search || '').toLowerCase(),
+      (options.locale || '').toLowerCase(),
     ].join('::');
     if (ENABLE_IN_MEMORY_CACHE) {
       const cached = categoryProductsCache.get(cacheKey);

@@ -67,7 +67,11 @@ export async function generateMetadata({ params }: PackagePageProps): Promise<Me
     ? `https://${website.custom_domain}`
     : `https://${subdomain}.bukeer.com`;
 
-  const productPage = await getProductPage(subdomain, 'package', slug);
+  const pathname = `/paquetes/${slug}`;
+  const localeContext = await resolvePublicMetadataLocale(website, pathname);
+  const productPage = await getProductPage(subdomain, 'package', slug, {
+    locale: localeContext.resolvedLocale,
+  });
   if (!productPage?.product) {
     return {
       title: 'Paquete no encontrado',
@@ -76,10 +80,9 @@ export async function generateMetadata({ params }: PackagePageProps): Promise<Me
     };
   }
 
-  const pathname = `/paquetes/${productPage.product.slug || slug}`;
-  const localeContext = await resolvePublicMetadataLocale(website, pathname);
+  const canonicalPathname = `/paquetes/${productPage.product.slug || slug}`;
   const localizedPathname = buildPublicLocalizedPath(
-    pathname,
+    canonicalPathname,
     localeContext.resolvedLocale,
     localeContext.defaultLocale,
   );
@@ -112,11 +115,16 @@ export async function generateMetadata({ params }: PackagePageProps): Promise<Me
     }
   }
 
+  // For non-default locales skip the default-locale page overlay (custom_seo_title/description)
+  // since it's written in the default locale and would bleed through into EN/PT pages.
+  const isDefaultLocale = localeContext.resolvedLocale === localeContext.defaultLocale;
   const rawTitle =
-    localizedOverlayTitle || productPage.page?.custom_seo_title || productPage.product.name;
+    localizedOverlayTitle
+    || (isDefaultLocale ? productPage.page?.custom_seo_title : null)
+    || productPage.product.name;
   const rawDescription =
     localizedOverlayDescription
-    || productPage.page?.custom_seo_description
+    || (isDefaultLocale ? productPage.page?.custom_seo_description : null)
     || productPage.product.description
     || '';
   const title = sanitizeProductCopy(rawTitle) || getPublicUiExtraText(localeContext.resolvedLocale, 'productPackageFallbackTitle');
@@ -179,7 +187,15 @@ export default async function PackageSlugPage({ params }: PackagePageProps) {
     notFound();
   }
 
-  const productPage = await getProductPage(subdomain, 'package', slug);
+  // Resolve locale before fetching product so translation overlay is applied.
+  const localeContext = await resolvePublicMetadataLocale(
+    website,
+    `/paquetes/${slug}`,
+  );
+  const resolvedLocale = localeContext.resolvedLocale;
+  const productPage = await getProductPage(subdomain, 'package', slug, {
+    locale: resolvedLocale,
+  });
   if (!productPage?.product) {
     notFound();
   }
@@ -194,13 +210,6 @@ export default async function PackageSlugPage({ params }: PackagePageProps) {
     ? await getReviewsForContext(website.account_id, reviewContext, 3)
     : [];
   const { items: similarPackages } = await getCategoryProducts(subdomain, 'packages', { limit: 8, offset: 0 });
-  // Issue #208: thread resolved request locale into JSON-LD `inLanguage` so
-  // `/en/paquetes/X` emits `en-US` instead of the website default.
-  const localeContext = await resolvePublicMetadataLocale(
-    website,
-    `/paquetes/${productPage.product.slug || slug}`,
-  );
-  const resolvedLocale = localeContext.resolvedLocale;
   const defaultLocale = localeContext.defaultLocale ?? 'es-CO';
 
   // Non-default locale + no EN overlay → redirect to default locale URL.
