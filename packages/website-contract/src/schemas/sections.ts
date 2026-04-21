@@ -441,6 +441,7 @@ export const SectionSchema = z.object({
   is_enabled: z.boolean().default(true),
   config: SectionConfigSchema.optional(),
   content: z.record(z.string(), z.unknown()),
+  content_translations: z.record(z.string(), z.record(z.string(), z.unknown())).optional(),
 });
 
 export type Section = z.infer<typeof SectionSchema>;

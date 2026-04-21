@@ -160,6 +160,9 @@ export interface ProductData {
    */
   program_gallery?: Array<string | { url: string; alt?: string; caption?: string }> | null;
   program_highlights?: string[] | null;
+
+  // Issue #276 — optional locale overlays from package_kits/products translations.
+  translations?: Record<string, Record<string, unknown>>;
 }
 
 export interface ProductPageCustomization {
