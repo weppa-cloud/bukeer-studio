@@ -22,6 +22,11 @@ export interface PlannerData {
    * Source: `contacts.language`.
    */
   language: string | null;
+  /**
+   * Short editorial tagline (locale-overlay from `contacts.translations["en-US"].tagline`).
+   * Spec: SPEC_SECTION_ENTITY_TRANSLATION_LAYER — shape `{ "en-US": { bio, specialty, tagline } }`.
+   */
+  tagline: string | null;
   translations?: Record<string, Record<string, unknown>>;
   // Planner profile fields (matrix PD-02..PD-07, migration planner_profile_columns_on_contacts)
   tripsCount: number | null;
@@ -141,6 +146,8 @@ export async function getPlanners(
     const overlay = resolvePlannerTranslationOverlay(row.translations, locale);
     const translatedBio = pickTranslatedString(overlay, ['bio']);
     const translatedSpecialty = pickTranslatedString(overlay, ['specialty']);
+    const translatedPosition = pickTranslatedString(overlay, ['position']);
+    const translatedTagline = pickTranslatedString(overlay, ['tagline']);
     const ratingRaw = row.rating_avg;
     const ratingAvg = ratingRaw == null ? null : typeof ratingRaw === 'number' ? ratingRaw : Number(ratingRaw);
     return {
@@ -150,13 +157,14 @@ export async function getPlanners(
       fullName: `${contact.name || ''} ${contact.last_name || ''}`.trim(),
       photo: contact.user_image || authPhotos[contact.id] || null,
       role: contact.user_rol,
-      position: contact.position,
+      position: translatedPosition ?? contact.position,
       phone: contact.phone || contact.phone2 || null,
       slug: slugify(`${contact.name || ''} ${contact.last_name || ''}`),
       quote: row.quote ?? null,
       bio: translatedBio ?? row.bio ?? null,
       specialty: translatedSpecialty ?? row.specialty ?? null,
       language: row.language ?? null,
+      tagline: translatedTagline,
       translations: row.translations
         ? {
             ...(row.translations as Record<string, Record<string, unknown>>),

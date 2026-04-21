@@ -37,6 +37,7 @@ import { getActivityCircuitStops, type ActivityCircuitStop } from '@/lib/product
 import { sanitizeProductCopy } from '@/lib/products/normalize-product';
 import { getBasePath } from '@/lib/utils/base-path';
 import dynamic from 'next/dynamic';
+import { applyContentTranslations } from '@/lib/sections/apply-content-translations';
 
 const DestinationListingPage = dynamic(
   () => import('@/components/pages/destination-listing-page').then(m => m.DestinationListingPage)
@@ -605,13 +606,19 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
     website,
     slugPath ? `/${slugPath}` : '/',
   );
-  const websiteForRender = {
-    ...website,
-    resolvedLocale: localeContext.resolvedLocale,
-  } as WebsiteData & { resolvedLocale?: string };
-
   const resolvedLocale = localeContext.resolvedLocale;
   const defaultLocale = localeContext.defaultLocale ?? 'es-CO';
+
+  const translatedSections = applyContentTranslations(
+    website.sections || [],
+    resolvedLocale,
+    defaultLocale,
+  );
+  const websiteForRender = {
+    ...website,
+    sections: translatedSections,
+    resolvedLocale,
+  } as WebsiteData & { resolvedLocale?: string };
 
   // Handle activities listing (/actividades)
   if (slug.length === 1 && (slug[0] === 'actividades' || slug[0] === 'activities')) {

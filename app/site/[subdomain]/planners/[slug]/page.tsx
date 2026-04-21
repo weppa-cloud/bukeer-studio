@@ -154,6 +154,7 @@ export default async function PlannerProfilePage({ params }: PlannerPageProps) {
         bio: null,
         specialty: sectionMatch.specialty ?? null,
         language: null,
+        tagline: null,
         tripsCount: null,
         ratingAvg: null,
         yearsExperience: null,

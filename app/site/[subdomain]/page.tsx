@@ -18,6 +18,7 @@ import { getBrandClaims } from '@/lib/supabase/get-brand-claims';
 import { getFeaturedDestinations } from '@/lib/supabase/get-featured-destinations';
 import { SECTION_TYPES } from '@bukeer/website-contract';
 import { hydrateSections } from '@/lib/sections/hydrate-sections';
+import { applyContentTranslations } from '@/lib/sections/apply-content-translations';
 import { toPackageItems, toActivityItems, toHotelItems } from '@/lib/products/to-items';
 import { resolveTemplateSet } from '@/lib/sections/template-set';
 
@@ -49,50 +50,6 @@ export const revalidate = 300;
 
 interface SitePageProps {
   params: Promise<{ subdomain: string }>;
-}
-
-function getSectionLocaleOverlay(
-  section: WebsiteData['sections'][number],
-  locale: string
-): Record<string, unknown> | null {
-  const translations = section.content_translations;
-  if (!translations || typeof translations !== 'object' || Array.isArray(translations)) {
-    return null;
-  }
-  const map = translations as Record<string, unknown>;
-  const exact = map[locale];
-  if (exact && typeof exact === 'object' && !Array.isArray(exact)) {
-    return exact as Record<string, unknown>;
-  }
-  const lang = locale.split('-')[0]?.toLowerCase();
-  if (!lang) return null;
-  for (const [key, value] of Object.entries(map)) {
-    if (!key.toLowerCase().startsWith(`${lang}-`)) continue;
-    if (value && typeof value === 'object' && !Array.isArray(value)) {
-      return value as Record<string, unknown>;
-    }
-  }
-  return null;
-}
-
-function applySectionLocaleOverlay(
-  section: WebsiteData['sections'][number],
-  locale: string,
-  defaultLocale: string
-) : WebsiteData['sections'][number] {
-  if (!locale || locale === defaultLocale) return section;
-  const overlay = getSectionLocaleOverlay(section, locale);
-  if (!overlay || Object.keys(overlay).length === 0) return section;
-  const baseContent = section.content && typeof section.content === 'object' && !Array.isArray(section.content)
-    ? section.content as Record<string, unknown>
-    : {};
-  return {
-    ...section,
-    content: {
-      ...baseContent,
-      ...overlay,
-    },
-  } as WebsiteData['sections'][number];
 }
 
 export async function generateMetadata({ params }: SitePageProps): Promise<Metadata> {
@@ -237,12 +194,10 @@ export default async function SitePage({ params }: SitePageProps) {
   ]);
 
   const seenSingletonTypes = new Set<string>();
-  const localeAwareSections: WebsiteData['sections'] = (website.sections || []).map((section) =>
-    applySectionLocaleOverlay(
-      section,
-      localeContext.resolvedLocale,
-      localeContext.defaultLocale,
-    )
+  const localeAwareSections = applyContentTranslations(
+    website.sections || [],
+    localeContext.resolvedLocale,
+    localeContext.defaultLocale,
   );
   const enabledSections = localeAwareSections
     .filter((section) => section.section_type !== SECTION_CONTACT && section.section_type !== SECTION_CONTACT_FORM)
