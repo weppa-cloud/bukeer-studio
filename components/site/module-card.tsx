@@ -9,11 +9,11 @@ interface ModuleCardProps {
     description: string;
     duration: string;
     lessons: number;
+    locale?: string;
 }
 
-const text = getPublicUiExtraTextGetter('es-CO');
-
-export function ModuleCard({ number, title, description, duration, lessons }: ModuleCardProps) {
+export function ModuleCard({ number, title, description, duration, lessons, locale = 'es-CO' }: ModuleCardProps) {
+    const text = getPublicUiExtraTextGetter(locale);
     return (
         <Card className="h-full border-slate-200 hover:border-emerald-500 hover:shadow-md transition-all">
             <CardHeader>

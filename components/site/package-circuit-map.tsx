@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { CircuitMap, type CircuitMapStop } from '@/components/site/circuit-map';
 import { trackEvent } from '@/lib/analytics/track';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
+import { useWebsiteLocale } from '@/lib/hooks/use-website-locale';
 
 /**
  * Public shape used by the package landing flow.
@@ -42,7 +43,8 @@ export function PackageCircuitMap({
   className = '',
   analyticsContext,
 }: PackageCircuitMapProps) {
-  const text = getPublicUiExtraTextGetter('es-CO');
+  const locale = useWebsiteLocale();
+  const text = getPublicUiExtraTextGetter(locale);
   const orderedStops = useMemo(() => orderByDay(stops), [stops]);
 
   const circuitStops = useMemo<CircuitMapStop[]>(

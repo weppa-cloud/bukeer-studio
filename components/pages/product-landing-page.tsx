@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo, useRef, type ReactNode } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef, type ReactNode } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import type { WebsiteData } from '@/lib/supabase/get-website';
@@ -63,6 +63,28 @@ interface ProductLandingPageProps {
    * `en-US` on a multi-locale tenant instead of the tenant default.
    */
   resolvedLocale?: string;
+  /**
+   * When true, suppresses generic map sections (ActivityCircuitMap and
+   * MeetingPointMap) that are replaced by the editorial overlay
+   * (e.g. editorial-v1 ColombiaMap). Defaults to false.
+   */
+  editorialMode?: boolean;
+  /**
+   * Slot rendered immediately after HeroSplit (before breadcrumb/highlights).
+   * Used by editorial-v1 to inject the PackageStatsBar.
+   */
+  renderAfterHero?: React.ReactNode;
+  /**
+   * Slot rendered after the main content grid (description/pricing/sections)
+   * but BEFORE the FAQ/reviews/related sections.
+   * Used by editorial-v1 to inject the ColombiaMap + DayEventTimeline + HotelCards.
+   */
+  renderAfterMain?: React.ReactNode;
+  /**
+   * When true, suppresses HighlightsGrid, GalleryStrip, and ProgramTimeline
+   * because editorial-v1 replaces them with its own components.
+   */
+  suppressEditorialSections?: boolean;
 }
 
 function MapSectionSkeleton() {
@@ -324,6 +346,10 @@ export function ProductLandingPage({
   activityCircuitStops = [],
   similarProducts = [],
   resolvedLocale,
+  editorialMode = false,
+  renderAfterHero,
+  renderAfterMain,
+  suppressEditorialSections = false,
 }: ProductLandingPageProps) {
   const normalizedProduct = normalizeProduct(product, { page: pageCustomization });
   const displayName = sanitizeProductCopy(pageCustomization?.custom_hero?.title || product.name) || product.name;
@@ -610,6 +636,8 @@ export function ProductLandingPage({
         analyticsContext={analyticsContext}
       />
 
+      {renderAfterHero}
+
       {/* Breadcrumb */}
       <div data-testid="detail-breadcrumb" className="max-w-7xl mx-auto px-6 py-4">
         <nav aria-label="Breadcrumb" className="text-xs text-muted-foreground font-mono">
@@ -656,7 +684,7 @@ export function ProductLandingPage({
         <div className={`grid gap-10 ${isTransfer ? '' : 'lg:grid-cols-3'}`}>
           {/* Main Content */}
           <div className={isTransfer ? 'space-y-16' : 'lg:col-span-2 space-y-16'}>
-            {!isTransfer && (
+            {!isTransfer && !suppressEditorialSections && (
               <SectionErrorBoundary sectionName="highlights-grid">
                 <div data-testid="detail-highlights">
                   <HighlightsGrid
@@ -667,7 +695,7 @@ export function ProductLandingPage({
               </SectionErrorBoundary>
             )}
 
-            {!isTransfer ? (
+            {!isTransfer && !suppressEditorialSections ? (
               <GalleryStrip
                 images={images}
                 displayName={displayName}
@@ -742,7 +770,7 @@ export function ProductLandingPage({
             )}
             {productType === 'transfer' && <TransferSections product={product} />}
 
-            {!isTransfer && productType !== 'package' && (
+            {!isTransfer && productType !== 'package' && !suppressEditorialSections && (
               <SectionErrorBoundary sectionName="program-timeline">
                 <ProgramTimeline
                   title="Programa"
@@ -761,7 +789,7 @@ export function ProductLandingPage({
               </SectionErrorBoundary>
             )}
 
-            {productType === 'activity' && activityCircuitStops.length >= 2 && (
+            {productType === 'activity' && activityCircuitStops.length >= 2 && !editorialMode && (
               <SectionErrorBoundary sectionName="activity-circuit-map">
                 <div data-testid="detail-map">
                   <DeferredRender fallback={<MapSectionSkeleton />}>
@@ -774,7 +802,7 @@ export function ProductLandingPage({
               </SectionErrorBoundary>
             )}
 
-            {!isTransfer && (productType !== 'activity' || activityCircuitStops.length < 2) && (
+            {!isTransfer && (productType !== 'activity' || activityCircuitStops.length < 2) && !editorialMode && (
               <SectionErrorBoundary sectionName="meeting-point-map">
                 <div data-testid="detail-map">
                   <DeferredRender fallback={<MapSectionSkeleton />}>
@@ -817,6 +845,8 @@ export function ProductLandingPage({
           )}
         </div>
       </div>
+
+      {renderAfterMain}
 
       {/* Google Reviews Section */}
       {!isTransfer && googleReviews.length > 0 && (

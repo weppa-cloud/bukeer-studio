@@ -8,9 +8,8 @@ export interface MeetingPointMapProps {
   subtitle?: string | null;
   className?: string;
   height?: number;
+  locale?: string;
 }
-
-const text = getPublicUiExtraTextGetter('es-CO');
 
 function normalizeCoordinate(value: unknown): number | null {
   if (typeof value === 'number' && Number.isFinite(value)) {
@@ -39,7 +38,9 @@ export function MeetingPointMap({
   subtitle,
   className = '',
   height = 400,
+  locale = 'es-CO',
 }: MeetingPointMapProps) {
+  const text = getPublicUiExtraTextGetter(locale);
   if (!meetingPoint) {
     return null;
   }

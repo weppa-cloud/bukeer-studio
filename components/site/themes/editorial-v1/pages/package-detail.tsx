@@ -31,7 +31,7 @@
  * re-emit any of those here to avoid duplicate JSON-LD blocks.
  */
 
-import React, { type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import type { WebsiteData } from '@/lib/supabase/get-website';
 import type { ProductData, ScheduleEventType } from '@bukeer/website-contract';
 import { ColombiaMap, type ColombiaMapPin } from '../maps/colombia-map';

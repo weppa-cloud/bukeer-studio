@@ -5,6 +5,7 @@ import { MediaLightbox } from './media-lightbox';
 import { parseVideoMeta } from '@/lib/products/video-url';
 import { trackEvent } from '@/lib/analytics/track';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
+import { useWebsiteLocale } from '@/lib/hooks/use-website-locale';
 
 interface ProductVideoHeroProps {
   videoUrl: string;
@@ -21,7 +22,8 @@ export function ProductVideoHero({
 }: ProductVideoHeroProps) {
   const [open, setOpen] = useState(false);
   const meta = parseVideoMeta(videoUrl);
-  const text = getPublicUiExtraTextGetter('es-CO');
+  const locale = useWebsiteLocale();
+  const text = getPublicUiExtraTextGetter(locale);
 
   const handlePlay = useCallback(() => {
     if (!meta) return;

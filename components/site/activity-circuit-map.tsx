@@ -5,6 +5,7 @@ import { CircuitMap, type CircuitMapStop } from '@/components/site/circuit-map';
 import type { ActivityCircuitStop } from '@/lib/products/activity-circuit';
 import { trackEvent } from '@/lib/analytics/track';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
+import { useWebsiteLocale } from '@/lib/hooks/use-website-locale';
 
 interface ActivityCircuitMapProps {
   stops: ActivityCircuitStop[];
@@ -39,7 +40,8 @@ export function ActivityCircuitMap({
   className = '',
   analyticsContext,
 }: ActivityCircuitMapProps) {
-  const text = getPublicUiExtraTextGetter('es-CO');
+  const locale = useWebsiteLocale();
+  const text = getPublicUiExtraTextGetter(locale);
   const circuitStops = useMemo<CircuitMapStop[]>(
     () =>
       stops.map((stop) => ({

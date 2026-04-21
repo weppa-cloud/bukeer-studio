@@ -7,6 +7,7 @@ import {
   ShieldCheck, Clock, Award, ThumbsUp,
 } from 'lucide-react';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
+import { useWebsiteLocale } from '@/lib/hooks/use-website-locale';
 
 interface Badge {
   icon: string;
@@ -34,8 +35,6 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   award: <Award className="w-6 h-6" />,
   thumbs_up: <ThumbsUp className="w-6 h-6" />,
 };
-const text = getPublicUiExtraTextGetter('es-CO');
-
 function BadgeIcon({ name }: { name: string }) {
   return (
     <span className="text-[var(--accent)]">
@@ -45,6 +44,8 @@ function BadgeIcon({ name }: { name: string }) {
 }
 
 export function GuaranteeBadgesSection({ section }: GuaranteeBadgesSectionProps) {
+  const locale = useWebsiteLocale();
+  const text = getPublicUiExtraTextGetter(locale);
   const content = (section.content as unknown as GuaranteeBadgesContent | null) || { badges: [] };
   const { title, badges = [] } = content;
   const variant = section.variant || 'risk_reversal_row';

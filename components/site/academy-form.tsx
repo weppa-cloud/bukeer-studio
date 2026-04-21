@@ -4,10 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { useState } from "react";
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
+import { useWebsiteLocale } from '@/lib/hooks/use-website-locale';
 
 export function AcademyForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const text = getPublicUiExtraTextGetter('es-CO');
+  const locale = useWebsiteLocale();
+  const text = getPublicUiExtraTextGetter(locale);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -3,6 +3,7 @@
 import { useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
+import { useWebsiteLocale } from '@/lib/hooks/use-website-locale';
 
 interface ImageLightboxProps {
   type: 'image';
@@ -26,7 +27,8 @@ export type MediaLightboxProps = ImageLightboxProps | VideoLightboxProps;
 
 export function MediaLightbox(props: MediaLightboxProps) {
   const closeRef = useRef<HTMLButtonElement>(null);
-  const text = getPublicUiExtraTextGetter('es-CO');
+  const locale = useWebsiteLocale();
+  const text = getPublicUiExtraTextGetter(locale);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {

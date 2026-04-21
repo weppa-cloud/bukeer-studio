@@ -2,8 +2,8 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 
-export function AcademyHero() {
-  const text = getPublicUiExtraTextGetter('es-CO');
+export function AcademyHero({ locale = 'es-CO' }: { locale?: string } = {}) {
+  const text = getPublicUiExtraTextGetter(locale);
 
   return (
     <section className="relative w-full py-20 lg:py-32 overflow-hidden bg-slate-950">

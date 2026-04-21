@@ -4,6 +4,7 @@ import { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 import { BlurFade } from '@/components/ui/blur-fade';
 import { Check, X } from 'lucide-react';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
+import { useWebsiteLocale } from '@/lib/hooks/use-website-locale';
 
 interface InclusionsExclusionsContent {
   title?: string;
@@ -18,7 +19,8 @@ interface InclusionsExclusionsSectionProps {
 }
 
 export function InclusionsExclusionsSection({ section }: InclusionsExclusionsSectionProps) {
-  const text = getPublicUiExtraTextGetter('es-CO');
+  const locale = useWebsiteLocale();
+  const text = getPublicUiExtraTextGetter(locale);
   const content = (section.content as unknown as InclusionsExclusionsContent | null) || { included: [], excluded: [] };
   const { title, included = [], excluded = [], note } = content;
 

@@ -5,6 +5,7 @@ import { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 import { BlurFade } from '@/components/ui/blur-fade';
 import { Clock } from 'lucide-react';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
+import { useWebsiteLocale } from '@/lib/hooks/use-website-locale';
 
 interface CountdownTimerContent {
   title: string;
@@ -58,7 +59,8 @@ function TimeUnit({ value, label }: { value: number; label: string }) {
 }
 
 export function CountdownTimerSection({ section }: CountdownTimerSectionProps) {
-  const text = getPublicUiExtraTextGetter('es-CO');
+  const locale = useWebsiteLocale();
+  const text = getPublicUiExtraTextGetter(locale);
   const content = (section.content as unknown as CountdownTimerContent | null) || {
     title: '',
     targetDate: new Date(Date.now() + 86400000 * 7).toISOString(),

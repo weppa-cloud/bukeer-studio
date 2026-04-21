@@ -5,6 +5,7 @@ import Link from 'next/link';
 import type { ScheduleEntry } from '@bukeer/website-contract';
 import { SCHEDULE_STEPS_VISIBLE } from '@bukeer/website-contract';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
+import { useWebsiteLocale } from '@/lib/hooks/use-website-locale';
 
 interface ActivityScheduleInlineProps {
   steps: ScheduleEntry[];
@@ -18,7 +19,8 @@ export function ActivityScheduleInline({
   activityName,
 }: ActivityScheduleInlineProps) {
   const [expanded, setExpanded] = useState(false);
-  const text = getPublicUiExtraTextGetter('es-CO');
+  const locale = useWebsiteLocale();
+  const text = getPublicUiExtraTextGetter(locale);
 
   if (!steps || steps.length === 0) {
     return null;

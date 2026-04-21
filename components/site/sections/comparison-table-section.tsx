@@ -5,6 +5,7 @@ import { BlurFade } from '@/components/ui/blur-fade';
 import { Check, X } from 'lucide-react';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
+import { useWebsiteLocale } from '@/lib/hooks/use-website-locale';
 
 interface ComparisonColumn {
   label: string;
@@ -28,9 +29,9 @@ interface ComparisonTableSectionProps {
   website: WebsiteData;
 }
 
-const text = getPublicUiExtraTextGetter('es-CO');
+type TextGetter = ReturnType<typeof getPublicUiExtraTextGetter>;
 
-function CellValue({ value, highlighted }: { value: string | boolean; highlighted?: boolean }) {
+function CellValue({ value, highlighted, text }: { value: string | boolean; highlighted?: boolean; text: TextGetter }) {
   if (typeof value === 'boolean') {
     return value ? (
       <Check className={`w-5 h-5 mx-auto ${highlighted ? 'text-[var(--accent)]' : 'text-green-500'}`} aria-label={text('sectionComparisonIncluded')} />
@@ -46,6 +47,8 @@ function CellValue({ value, highlighted }: { value: string | boolean; highlighte
 }
 
 export function ComparisonTableSection({ section }: ComparisonTableSectionProps) {
+  const locale = useWebsiteLocale();
+  const text = getPublicUiExtraTextGetter(locale);
   const content = (section.content as unknown as ComparisonTableContent | null) || { columns: [], rows: [] };
   const { title, subtitle, columns = [], rows = [] } = content;
 
@@ -97,7 +100,7 @@ export function ComparisonTableSection({ section }: ComparisonTableSectionProps)
                         key={j}
                         className={`px-4 py-3 text-center ${columns[j]?.highlighted ? 'bg-[var(--accent)]/5' : ''}`}
                       >
-                        <CellValue value={val} highlighted={columns[j]?.highlighted} />
+                        <CellValue value={val} highlighted={columns[j]?.highlighted} text={text} />
                       </td>
                     ))}
                   </tr>

@@ -5,6 +5,7 @@ import { BlurFade } from '@/components/ui/blur-fade';
 import { NumberTicker } from '@/components/ui/number-ticker';
 import { Shield } from 'lucide-react';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
+import { useWebsiteLocale } from '@/lib/hooks/use-website-locale';
 
 interface TrustBarContent {
   rating?: { score: number; count: number; source?: string };
@@ -18,8 +19,6 @@ interface TrustBarSectionProps {
   section: WebsiteSection;
   website: WebsiteData;
 }
-
-const text = getPublicUiExtraTextGetter('es-CO');
 
 function StarRating({ score }: { score: number }) {
   return (
@@ -40,6 +39,8 @@ function StarRating({ score }: { score: number }) {
 }
 
 export function TrustBarSection({ section }: TrustBarSectionProps) {
+  const locale = useWebsiteLocale();
+  const text = getPublicUiExtraTextGetter(locale);
   const content = (section.content as unknown as TrustBarContent | null) || {};
   const { rating, certifications = [], travelerCount, travelerLabel, sslBadge } = content;
 

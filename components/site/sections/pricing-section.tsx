@@ -5,6 +5,7 @@ import { BlurFade } from '@/components/ui/blur-fade';
 import { NumberTicker } from '@/components/ui/number-ticker';
 import { Check, Star } from 'lucide-react';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
+import { useWebsiteLocale } from '@/lib/hooks/use-website-locale';
 
 interface PricingTier {
   name: string;
@@ -33,7 +34,7 @@ interface PricingSectionProps {
   website: WebsiteData;
 }
 
-const text = getPublicUiExtraTextGetter('es-CO');
+type TextGetter = ReturnType<typeof getPublicUiExtraTextGetter>;
 
 function extractNumericPrice(price: string): number | null {
   const clean = price.replace(/[^0-9.]/g, '');
@@ -41,7 +42,7 @@ function extractNumericPrice(price: string): number | null {
   return isNaN(parsed) ? null : parsed;
 }
 
-function PricingCard({ tier, currency, delay }: { tier: PricingTier; currency?: string; delay: number }) {
+function PricingCard({ tier, currency, delay, text }: { tier: PricingTier; currency?: string; delay: number; text: TextGetter }) {
   const numericPrice = extractNumericPrice(tier.price);
 
   return (
@@ -131,6 +132,8 @@ function PricingCard({ tier, currency, delay }: { tier: PricingTier; currency?: 
 }
 
 export function PricingSection({ section }: PricingSectionProps) {
+  const locale = useWebsiteLocale();
+  const text = getPublicUiExtraTextGetter(locale);
   const content = (section.content as unknown as PricingContent | null) || { tiers: [] };
   const { title, subtitle, currency, anchorLabel, tiers = [] } = content;
   const variant = section.variant || 'tiered_anchor';
@@ -167,7 +170,7 @@ export function PricingSection({ section }: PricingSectionProps) {
           }
         >
           {tiers.map((tier, i) => (
-            <PricingCard key={i} tier={tier} currency={currency} delay={0.08 * i + 0.05} />
+            <PricingCard key={i} tier={tier} currency={currency} delay={0.08 * i + 0.05} text={text} />
           ))}
         </div>
       </div>

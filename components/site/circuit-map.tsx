@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { RouteMap } from '@/components/ui/route-map';
 import { supportsWebGL } from '@/lib/maps/theme';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
+import { useWebsiteLocale } from '@/lib/hooks/use-website-locale';
 
 /**
  * Single stop in a circuit route (shared primitive — SPEC #164 Phase 1).
@@ -71,7 +72,8 @@ export function CircuitMap({
 }: CircuitMapProps) {
   const [webglAvailable, setWebglAvailable] = useState<boolean | null>(null);
   const prefersReducedMotion = usePrefersReducedMotion();
-  const text = getPublicUiExtraTextGetter('es-CO');
+  const locale = useWebsiteLocale();
+  const text = getPublicUiExtraTextGetter(locale);
 
   useEffect(() => {
     setWebglAvailable(supportsWebGL());
