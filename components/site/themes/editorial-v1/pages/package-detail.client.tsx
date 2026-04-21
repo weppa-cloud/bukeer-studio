@@ -3,16 +3,17 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import type { ProductData, ProductFAQ, ScheduleEntry } from '@bukeer/website-contract';
+import type { ProductData, ProductFAQ, ScheduleEventType } from '@bukeer/website-contract';
 import type { WebsiteData } from '@/lib/supabase/get-website';
 import { sanitizeProductCopy } from '@/lib/products/normalize-product';
 import { formatPriceOrConsult } from '@/lib/products/format-price';
+import { getPackageCircuitStops, withCoords } from '@/lib/products/package-circuit';
 import { buildWhatsAppUrl } from '@/components/site/whatsapp-url';
 import { MediaLightbox } from '@/components/site/media-lightbox';
+import { PackageCircuitMap } from '@/components/site/package-circuit-map';
 import { Breadcrumbs } from '../primitives/breadcrumbs';
-import { Eyebrow } from '../primitives/eyebrow';
-import { Icons } from '../primitives/icons';
 import { Rating } from '../primitives/rating';
+import { Icons } from '../primitives/icons';
 
 interface GoogleReviewProp {
   author_name: string;
@@ -24,7 +25,7 @@ interface GoogleReviewProp {
   response: { text: string; date: string } | null;
 }
 
-export interface EditorialActivityDetailClientProps {
+interface EditorialPackageDetailClientProps {
   website: WebsiteData;
   basePath: string;
   product: ProductData;
@@ -37,11 +38,12 @@ export interface EditorialActivityDetailClientProps {
 }
 
 interface TimelineItem {
+  day: number;
   time: string;
   label: string;
   title: string;
-  note?: string;
-  tone: 'transporte' | 'actividad' | 'comida' | 'alojamiento' | 'libre';
+  note: string | null;
+  tone: 'transporte' | 'actividad' | 'comida' | 'alojamiento' | 'libre' | 'vuelo';
 }
 
 function normalizeTextList(value: unknown): string[] {
@@ -75,46 +77,11 @@ function resolveImages(product: ProductData): string[] {
 
 function resolveDuration(product: ProductData): string {
   if (typeof product.duration === 'string' && product.duration.trim().length > 0) return product.duration.trim();
-  if (typeof product.duration_minutes === 'number' && product.duration_minutes > 0) {
-    if (product.duration_minutes < 60) return `${product.duration_minutes} min`;
-    const h = Math.floor(product.duration_minutes / 60);
-    const m = product.duration_minutes % 60;
-    return m > 0 ? `${h}h ${m}min` : `${h}h`;
+  if (typeof product.duration_days === 'number' && typeof product.duration_nights === 'number') {
+    return `${product.duration_days} días / ${product.duration_nights} noches`;
   }
+  if (typeof product.duration_days === 'number') return `${product.duration_days} días`;
   return '—';
-}
-
-function resolveStartTime(product: ProductData): string {
-  const options = Array.isArray(product.options) ? product.options : [];
-  for (const option of options) {
-    if (Array.isArray(option.start_times) && option.start_times.length > 0) {
-      return option.start_times[0];
-    }
-  }
-  const schedule = Array.isArray(product.schedule) ? product.schedule : [];
-  const first = schedule.find((entry) => typeof entry?.time === 'string' && entry.time.trim().length > 0);
-  return first?.time?.trim() || '—';
-}
-
-function resolveDifficulty(product: ProductData): string {
-  if (typeof product.duration_minutes === 'number' && product.duration_minutes > 0) {
-    if (product.duration_minutes <= 240) return 'Fácil';
-    if (product.duration_minutes <= 420) return 'Moderada';
-    return 'Intensa';
-  }
-  return 'Fácil';
-}
-
-function resolveLanguages(product: ProductData): string {
-  const record = product as ProductData & { languages?: unknown };
-  if (Array.isArray(record.languages)) {
-    const labels = record.languages
-      .map((entry) => (typeof entry === 'string' ? entry.trim() : ''))
-      .filter(Boolean)
-      .slice(0, 3);
-    if (labels.length > 0) return labels.join(' · ');
-  }
-  return 'ES · EN';
 }
 
 function resolveGroup(product: ProductData): string {
@@ -123,84 +90,87 @@ function resolveGroup(product: ProductData): string {
     .map((option) => (typeof option.max_units === 'number' ? option.max_units : null))
     .filter((value): value is number => value !== null);
   if (max.length > 0) return `Hasta ${Math.max(...max)}`;
-  return 'Hasta 10';
+  return 'Privado o compartido';
+}
+
+function mapTone(raw: unknown): TimelineItem['tone'] {
+  const event = typeof raw === 'string' ? raw : 'activity';
+  if (event === 'transport') return 'transporte';
+  if (event === 'meal') return 'comida';
+  if (event === 'lodging') return 'alojamiento';
+  if (event === 'free_time') return 'libre';
+  if (event === 'flight') return 'vuelo';
+  return 'actividad';
+}
+
+function mapLabel(tone: TimelineItem['tone']): string {
+  if (tone === 'transporte') return 'Transporte';
+  if (tone === 'comida') return 'Comida';
+  if (tone === 'alojamiento') return 'Alojamiento';
+  if (tone === 'libre') return 'Tiempo libre';
+  if (tone === 'vuelo') return 'Vuelo';
+  return 'Actividad';
 }
 
 function buildTimeline(product: ProductData): TimelineItem[] {
-  const schedule = Array.isArray(product.schedule) ? product.schedule : [];
-  if (schedule.length > 0) {
-    return schedule.slice(0, 8).map((entry): TimelineItem => {
-      const tone =
-        entry.event_type === 'transport'
-          ? 'transporte'
-          : entry.event_type === 'meal'
-            ? 'comida'
-            : entry.event_type === 'lodging'
-              ? 'alojamiento'
-              : entry.event_type === 'free_time'
-                ? 'libre'
-                : 'actividad';
-      const label =
-        tone === 'transporte'
-          ? 'Transporte'
-          : tone === 'comida'
-            ? 'Comida'
-            : tone === 'alojamiento'
-              ? 'Alojamiento'
-              : tone === 'libre'
-                ? 'Tiempo libre'
-                : 'Actividad';
+  const itinerary = Array.isArray(product.itinerary_items)
+    ? (product.itinerary_items as Array<Record<string, unknown>>)
+    : [];
+  const rows = itinerary
+    .map((entry, index) => {
+      const titleRaw = entry.title;
+      const title = typeof titleRaw === 'string' ? sanitizeProductCopy(titleRaw) : '';
+      if (!title) return null;
+      const tone = mapTone(entry.event_type as ScheduleEventType);
+      const dayValue = typeof entry.day === 'number'
+        ? entry.day
+        : typeof entry.day_number === 'number'
+          ? entry.day_number
+          : index + 1;
+      const timeRaw = typeof entry.time === 'string' ? sanitizeProductCopy(entry.time) : '';
+      const noteRaw = typeof entry.description === 'string' ? sanitizeProductCopy(entry.description) : '';
       return {
-        time: entry.time || '—',
-        label,
-        title: entry.title,
-        note: entry.description,
+        day: dayValue > 0 ? dayValue : index + 1,
+        time: timeRaw || '—',
+        label: mapLabel(tone),
+        title,
+        note: noteRaw || null,
         tone,
-      };
-    });
-  }
+      } satisfies TimelineItem;
+    })
+    .filter((item): item is TimelineItem => Boolean(item));
 
-  const highlights = normalizeTextList(product.highlights);
+  if (rows.length > 0) return rows;
+
   return [
     {
-      time: resolveStartTime(product),
+      day: 1,
+      time: 'Llegada',
       label: 'Transporte',
-      title: 'Recogida / meeting point',
-      note: 'Encuentro con el guía en el punto acordado.',
+      title: 'Inicio del recorrido',
+      note: 'Recepción y coordinación de logística.',
       tone: 'transporte',
     },
     {
-      time: '+1h',
+      day: 2,
+      time: 'Mañana',
       label: 'Actividad',
-      title: 'Primer segmento',
-      note: highlights[0] || 'Inicio del recorrido.',
+      title: 'Experiencias destacadas',
+      note: 'Recorridos guiados y actividades seleccionadas.',
       tone: 'actividad',
     },
     {
-      time: 'Mediodía',
-      label: 'Comida',
-      title: 'Almuerzo',
-      note: 'Incluido — cocina regional.',
-      tone: 'comida',
-    },
-    {
+      day: 3,
       time: 'Tarde',
-      label: 'Actividad',
-      title: 'Segmento principal',
-      note: highlights[1] || 'Punto destacado de la experiencia.',
-      tone: 'actividad',
-    },
-    {
-      time: 'Cierre',
-      label: 'Transporte',
-      title: 'Regreso',
-      note: 'Retorno al punto de encuentro.',
-      tone: 'transporte',
+      label: 'Alojamiento',
+      title: 'Check-in y descanso',
+      note: 'Hospedaje con servicios recomendados.',
+      tone: 'alojamiento',
     },
   ];
 }
 
-export function EditorialActivityDetailClient({
+export function EditorialPackageDetailClient({
   website,
   basePath,
   product,
@@ -210,7 +180,7 @@ export function EditorialActivityDetailClient({
   googleReviews,
   similarProducts,
   faqs,
-}: EditorialActivityDetailClientProps) {
+}: EditorialPackageDetailClientProps) {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [openFaq, setOpenFaq] = useState(0);
@@ -257,18 +227,41 @@ export function EditorialActivityDetailClient({
 
   const breadcrumbItems = [
     { label: 'Inicio', href: `${basePath}/` },
-    { label: 'Experiencias', href: `${basePath}/actividades` },
+    { label: 'Paquetes', href: `${basePath}/paquetes` },
     { label: displayName },
   ];
 
   const heroImage = images[0] || product.image || null;
-  const optionsForRail = options.length > 0 ? options : [{ id: 'base', name: 'Regular', prices: [] }];
+  const optionsForRail = options.length > 0 ? options : [{ id: 'base', name: 'Plan base', prices: [] }];
   const selectedOption = optionsForRail.find((option) => option.id === selectedOptionId) || optionsForRail[0];
+
+  const routeStops = useMemo(() => {
+    const itineraryItems = Array.isArray(product.itinerary_items) ? product.itinerary_items : [];
+    const destinationHint =
+      typeof (product as unknown as Record<string, unknown>).destination === 'string'
+        ? String((product as unknown as Record<string, unknown>).destination)
+        : product.location ?? null;
+    const stops = getPackageCircuitStops({
+      itineraryItems,
+      name: product.name ?? null,
+      destination: destinationHint,
+    });
+    return withCoords(stops);
+  }, [product]);
+
+  const groupedTimeline = useMemo(() => {
+    const groups = new Map<number, TimelineItem[]>();
+    for (const item of timeline) {
+      if (!groups.has(item.day)) groups.set(item.day, []);
+      groups.get(item.day)?.push(item);
+    }
+    return Array.from(groups.entries()).sort((a, b) => a[0] - b[0]);
+  }, [timeline]);
 
   return (
     <>
-      <div data-screen-label="ActivityDetail">
-        <section className="relative overflow-hidden rounded-b-[28px]">
+      <div data-screen-label="PackageDetail">
+        <section data-testid="detail-hero" className="relative overflow-hidden rounded-b-[28px]">
           {heroImage ? (
             <div className="relative h-[520px] w-full">
               <Image src={heroImage} alt={displayName} fill sizes="100vw" className="object-cover" priority />
@@ -280,9 +273,11 @@ export function EditorialActivityDetailClient({
 
           <div className="absolute inset-x-0 bottom-8 z-10">
             <div className="mx-auto w-full max-w-7xl px-6">
-              <Breadcrumbs items={breadcrumbItems} className="mb-4" />
+              <div data-testid="detail-breadcrumb" className="mb-4">
+                <Breadcrumbs items={breadcrumbItems} />
+              </div>
               <div className="mb-3 flex flex-wrap items-center gap-2">
-                <span className="chip chip-white">Experiencias</span>
+                <span className="chip chip-white">Paquetes</span>
                 {displayLocation ? <span className="chip chip-white">{displayLocation}</span> : null}
                 {reviewRating ? (
                   <span className="chip chip-white">
@@ -290,9 +285,7 @@ export function EditorialActivityDetailClient({
                   </span>
                 ) : null}
               </div>
-              <h1 className="display-lg text-white">
-                {displayName}
-              </h1>
+              <h1 className="display-lg text-white">{displayName}</h1>
               <div className="mt-4 flex flex-wrap items-center gap-3">
                 <span className="inline-flex items-center rounded-full bg-white/20 px-3 py-1 text-sm font-semibold text-white">
                   Desde {priceLabel}
@@ -310,9 +303,9 @@ export function EditorialActivityDetailClient({
         <div className="mx-auto mt-[-28px] w-full max-w-7xl px-6">
           <div className="pkg-meta">
             <div className="ov-item"><small>Duración</small><strong>{resolveDuration(product)}</strong></div>
-            <div className="ov-item"><small>Salida</small><strong>{resolveStartTime(product)}</strong></div>
-            <div className="ov-item"><small>Nivel</small><strong>{resolveDifficulty(product)}</strong></div>
-            <div className="ov-item"><small>Idiomas</small><strong>{resolveLanguages(product)}</strong></div>
+            <div className="ov-item"><small>Tipo</small><strong>Circuito editorial</strong></div>
+            <div className="ov-item"><small>Nivel</small><strong>Moderado</strong></div>
+            <div className="ov-item"><small>Idioma</small><strong>ES · EN</strong></div>
             <div className="ov-item"><small>Grupo</small><strong>{resolveGroup(product)}</strong></div>
             <div className="ov-item">
               <small>Reseñas</small>
@@ -322,8 +315,22 @@ export function EditorialActivityDetailClient({
 
           <div className="pkg-body mt-8">
             <div className="detail-main space-y-10">
+              {highlights.length > 0 ? (
+                <section data-testid="detail-highlights">
+                  <h2 className="text-2xl font-bold">Highlights</h2>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    {highlights.slice(0, 6).map((item, index) => (
+                      <article key={`${index}-${item}`} className="hl-card">
+                        <small className="label">Destacado</small>
+                        <p>{item}</p>
+                      </article>
+                    ))}
+                  </div>
+                </section>
+              ) : null}
+
               {images.length > 0 ? (
-                <section className="border-none pt-0">
+                <section data-testid="detail-gallery" className="border-none pt-0">
                   <h2 className="mb-5 text-2xl font-bold">Galería</h2>
                   <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                     <button
@@ -349,82 +356,73 @@ export function EditorialActivityDetailClient({
                 </section>
               ) : null}
 
-              <section>
+              <section data-testid="detail-description">
                 <h2 className="text-2xl font-bold">Descripción</h2>
                 <p className="body-lg mt-4 text-[var(--c-ink-2)]">
-                  {product.description || 'Experiencia diseñada por expertos locales con logística coordinada y asistencia personalizada.'}
+                  {product.description || 'Paquete diseñado por expertos locales con logística coordinada y soporte personalizado.'}
                 </p>
               </section>
 
-              <section>
-                <h2 className="text-2xl font-bold">Programa <em>paso a paso</em></h2>
-                <p className="body-md mt-2 text-[var(--c-muted)]">Tiempos aproximados — ajustables por clima y ritmo del grupo.</p>
+              {routeStops.length > 0 ? (
+                <div data-testid="detail-map">
+                  <PackageCircuitMap
+                    stops={routeStops}
+                    analyticsContext={{ product_id: product.id, product_type: 'package' }}
+                  />
+                </div>
+              ) : null}
+
+              <section data-testid="detail-itinerary">
+                <h2 className="text-2xl font-bold">Programa <em>día a día</em></h2>
                 <div className="act-timeline mt-5">
-                  {timeline.map((event, index) => (
-                    <div key={`${event.title}-${index}`} className={`evt evt-${event.tone}`}>
-                      <div className="evt-time">{event.time}</div>
-                      <div className="evt-dot"><span><Icons.sparkle size={14} /></span></div>
-                      <div className="evt-body">
-                        <small>{event.label}</small>
-                        <b>{event.title}</b>
-                        {event.note ? <p>{event.note}</p> : null}
-                      </div>
+                  {groupedTimeline.map(([day, entries]) => (
+                    <div key={day} data-testid={`timeline-day-${day}`} className="act-timeline-block">
+                      <h3 className="mb-3 text-lg font-semibold">Día {day}</h3>
+                      {entries.map((event, index) => (
+                        <div
+                          key={`${day}-${event.title}-${index}`}
+                          data-testid={`timeline-event-${event.tone === 'vuelo' ? 'flight' : event.tone === 'transporte' ? 'transport' : event.tone === 'alojamiento' ? 'lodging' : event.tone === 'comida' ? 'meal' : event.tone === 'libre' ? 'free_time' : 'activity'}`}
+                          className={`evt evt-${event.tone}`}
+                        >
+                          <div className="evt-time">{event.time}</div>
+                          <div className="evt-dot"><span><Icons.sparkle size={14} /></span></div>
+                          <div className="evt-body">
+                            <small>{event.label}</small>
+                            <b>{event.title}</b>
+                            {event.note ? <p>{event.note}</p> : null}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   ))}
                 </div>
               </section>
 
-              <section>
-                <h2 className="text-2xl font-bold">Punto de <em>encuentro</em></h2>
-                <div className="meeting-map mt-5">
-                  <div className="mm-map">
-                    {heroImage ? <Image src={heroImage} alt={displayName} fill className="object-cover" /> : null}
-                    <div className="mm-pin">
-                      <div className="mm-pulse" />
-                      <div className="mm-dot"><Icons.pin size={16} /></div>
-                    </div>
-                    <div className="mm-chip">Meeting point</div>
-                  </div>
-                  <div className="mm-info">
-                    <small className="label">Dirección</small>
-                    <b>{displayLocation || product.location || product.city || 'Ubicación por confirmar'}</b>
-                    <p>Te enviamos la ubicación exacta con indicaciones al confirmar la reserva.</p>
-                    <div className="mm-details">
-                      <div><Icons.clock size={14} /> Llegada recomendada: 10 min antes</div>
-                      <div><Icons.compass size={14} /> Cómo llegar: taxi, Uber o caminando</div>
-                      <div><Icons.users size={14} /> Guía identificado de ColombiaTours</div>
-                    </div>
-                  </div>
+              <section data-testid="detail-options">
+                <h2 className="text-2xl font-bold">Opciones <em>disponibles</em></h2>
+                <div className="price-table mt-5">
+                  {optionsForRail.map((option) => {
+                    const basePrice = option.prices?.[0];
+                    return (
+                      <button
+                        key={option.id}
+                        type="button"
+                        onClick={() => setSelectedOptionId(option.id)}
+                        className={`price-col text-left ${selectedOptionId === option.id ? 'selected' : ''}`}
+                      >
+                        <h4>{option.name}</h4>
+                        <div className="pr">{formatPriceOrConsult(basePrice?.price ?? sourcePrice, basePrice?.currency ?? sourceCurrency)}</div>
+                        <div className="per">{option.pricing_per === 'UNIT' ? 'por persona' : 'por reserva'}</div>
+                        <ul>
+                          {typeof option.min_units === 'number' ? <li>Mínimo {option.min_units}</li> : null}
+                          {typeof option.max_units === 'number' ? <li>Grupo hasta {option.max_units}</li> : null}
+                          {Array.isArray(option.start_times) && option.start_times.length > 0 ? <li>{option.start_times.length} salidas</li> : null}
+                        </ul>
+                      </button>
+                    );
+                  })}
                 </div>
               </section>
-
-              {options.length > 0 ? (
-                <section>
-                  <h2 className="text-2xl font-bold">Opciones <em>disponibles</em></h2>
-                  <div className="price-table mt-5">
-                    {options.map((option) => {
-                      const basePrice = option.prices?.[0];
-                      return (
-                        <button
-                          key={option.id}
-                          type="button"
-                          onClick={() => setSelectedOptionId(option.id)}
-                          className={`price-col text-left ${selectedOptionId === option.id ? 'selected' : ''}`}
-                        >
-                          <h4>{option.name}</h4>
-                          <div className="pr">{formatPriceOrConsult(basePrice?.price ?? null, basePrice?.currency ?? sourceCurrency)}</div>
-                          <div className="per">{option.pricing_per === 'UNIT' ? 'por persona' : 'por reserva'}</div>
-                          <ul>
-                            {typeof option.min_units === 'number' ? <li>Mínimo {option.min_units}</li> : null}
-                            {typeof option.max_units === 'number' ? <li>Grupo hasta {option.max_units}</li> : null}
-                            {Array.isArray(option.start_times) && option.start_times.length > 0 ? <li>{option.start_times.length} horarios</li> : null}
-                          </ul>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </section>
-              ) : null}
 
               <section>
                 <h2 className="text-2xl font-bold">Incluye / No incluye</h2>
@@ -432,7 +430,7 @@ export function EditorialActivityDetailClient({
                   <div className="incl-col yes">
                     <b>Incluye</b>
                     <ul>
-                      {(inclusions.length > 0 ? inclusions : ['Asistencia del equipo durante tu experiencia']).map((item) => (
+                      {(inclusions.length > 0 ? inclusions : ['Asistencia del equipo durante todo el recorrido']).map((item) => (
                         <li key={item}><span className="mark"><Icons.check size={14} /></span>{item}</li>
                       ))}
                     </ul>
@@ -450,7 +448,7 @@ export function EditorialActivityDetailClient({
 
               {recommendations.length > 0 ? (
                 <section>
-                  <h2 className="text-2xl font-bold">Recomendaciones <em>para el día</em></h2>
+                  <h2 className="text-2xl font-bold">Recomendaciones para el viaje</h2>
                   <div className="recs-grid mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
                     {recommendations.slice(0, 12).map((item, index) => (
                       <div key={`${index}-${item}`} className="rec-card">
@@ -463,7 +461,7 @@ export function EditorialActivityDetailClient({
               ) : null}
 
               {googleReviews.length > 0 ? (
-                <section>
+                <section data-testid="detail-reviews">
                   <h2 className="text-2xl font-bold">Lo que dicen los viajeros</h2>
                   <div className="mt-4 rounded-2xl border border-[var(--c-line)] bg-[var(--c-surface)] p-5">
                     <div className="mb-5 flex items-center justify-between gap-4">
@@ -488,24 +486,22 @@ export function EditorialActivityDetailClient({
                 </section>
               ) : null}
 
-              {faqs.length > 0 ? (
-                <section>
-                  <h2 className="text-3xl font-bold text-center">Preguntas frecuentes</h2>
-                  <div className="faq-list mt-6">
-                    {faqs.map((faq, index) => (
-                      <div className={`faq-item ${openFaq === index ? 'open' : ''}`} key={`${faq.question}-${index}`}>
-                        <button className="faq-q" onClick={() => setOpenFaq(openFaq === index ? -1 : index)}>
-                          <span>{faq.question}</span>
-                          <span className="plus"><Icons.plus size={14} /></span>
-                        </button>
-                        <div className="faq-a">{faq.answer}</div>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              ) : null}
+              <section data-testid="detail-faq">
+                <h2 className="text-3xl font-bold text-center">Preguntas frecuentes</h2>
+                <div className="faq-list mt-6">
+                  {faqs.map((faq, index) => (
+                    <div className={`faq-item ${openFaq === index ? 'open' : ''}`} key={`${faq.question}-${index}`}>
+                      <button className="faq-q" onClick={() => setOpenFaq(openFaq === index ? -1 : index)}>
+                        <span>{faq.question}</span>
+                        <span className="plus"><Icons.plus size={14} /></span>
+                      </button>
+                      <div className="faq-a">{faq.answer}</div>
+                    </div>
+                  ))}
+                </div>
+              </section>
 
-              <section>
+              <section data-testid="detail-trust">
                 <h2 className="text-2xl font-bold">Reserva con confianza</h2>
                 <div className="trust-row mt-5">
                   <div className="trust-item"><div className="ic"><Icons.shield size={18} /></div><div><b>RNT vigente</b><small>Operador turístico con registro activo</small></div></div>
@@ -516,10 +512,10 @@ export function EditorialActivityDetailClient({
               </section>
 
               {similarProducts.length > 0 ? (
-                <section>
+                <section data-testid="detail-similares">
                   <div className="mb-4 flex items-center justify-between">
-                    <h2 className="text-2xl font-bold">Experiencias similares</h2>
-                    <Link href={`${basePath}/actividades`} className="text-xs uppercase tracking-wider text-[var(--c-muted)] hover:text-[var(--c-accent)]">
+                    <h2 className="text-2xl font-bold">Paquetes similares</h2>
+                    <Link href={`${basePath}/paquetes`} className="text-xs uppercase tracking-wider text-[var(--c-muted)] hover:text-[var(--c-accent)]">
                       Ver todos
                     </Link>
                   </div>
@@ -528,7 +524,7 @@ export function EditorialActivityDetailClient({
                       const similarImage = resolveImages(similar)[0] || similar.image || null;
                       return (
                         <article key={similar.id} className="rounded-2xl border border-[var(--c-line)] bg-[var(--c-surface)] overflow-hidden">
-                          <Link href={`${basePath}/actividades/${similar.slug}`}>
+                          <Link href={`${basePath}/paquetes/${similar.slug}`}>
                             <div className="relative aspect-[4/3]">
                               {similarImage ? <Image src={similarImage} alt={similar.name} fill className="object-cover" /> : null}
                             </div>
@@ -545,11 +541,11 @@ export function EditorialActivityDetailClient({
               ) : null}
             </div>
 
-            <aside className="detail-rail">
+            <aside data-testid="detail-sidebar" className="detail-rail">
               <div>
                 <div className="mb-1 text-[11px] font-semibold uppercase tracking-[.14em] text-[var(--c-muted)]">Desde · por persona</div>
                 <div className="text-3xl font-semibold">{priceLabel}</div>
-                <div className="mt-1 text-xs text-[var(--c-muted)]">Opción {selectedOption?.name?.toLowerCase() || 'regular'}</div>
+                <div className="mt-1 text-xs text-[var(--c-muted)]">Opción {selectedOption?.name?.toLowerCase() || 'base'}</div>
               </div>
 
               <div className="rail-form grid gap-3">
@@ -582,20 +578,20 @@ export function EditorialActivityDetailClient({
 
               {whatsappUrl ? (
                 <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="btn btn-accent" style={{ justifyContent: 'center' }}>
-                  Reservar experiencia <Icons.arrow size={14} />
+                  Reservar paquete <Icons.arrow size={14} />
                 </a>
               ) : null}
-              <Link href={`${basePath}/paquetes`} className="btn btn-outline" style={{ justifyContent: 'center' }}>
-                Sumar a un paquete
+              <Link href={`${basePath}/actividades`} className="btn btn-outline" style={{ justifyContent: 'center' }}>
+                Agregar experiencias
               </Link>
               <div className="rail-share">
                 <button><Icons.heart size={14} /> Guardar</button>
                 <button><Icons.arrowUpRight size={14} /> Compartir</button>
               </div>
               <div className="rail-trust">
-                <div><Icons.check size={12} /> Cancelación hasta 48h antes</div>
-                <div><Icons.check size={12} /> Guía bilingüe certificado</div>
-                <div><Icons.check size={12} /> Grupos pequeños</div>
+                <div><Icons.check size={12} /> Confirmación inmediata</div>
+                <div><Icons.check size={12} /> Soporte local durante el viaje</div>
+                <div><Icons.check size={12} /> Asesoría personalizada</div>
               </div>
 
               <div className="rounded-2xl border border-[var(--c-line)] p-4">
@@ -614,7 +610,39 @@ export function EditorialActivityDetailClient({
             </aside>
           </div>
         </div>
+
+        <section data-testid="detail-cta-final" className="py-16 px-4 bg-primary/5 mt-10 rounded-2xl">
+          <div className="max-w-4xl mx-auto text-center">
+            <h2 className="text-2xl md:text-3xl font-bold mb-4">¿Listo para vivir este paquete?</h2>
+            <p className="text-muted-foreground mb-8">Te ayudamos a ajustar itinerario, fechas y servicios en minutos.</p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              {whatsappUrl ? (
+                <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="btn btn-accent">
+                  <Icons.whatsapp size={16} /> WhatsApp
+                </a>
+              ) : null}
+              {phoneHref ? (
+                <a href={phoneHref} className="btn btn-outline">
+                  Llamar ahora
+                </a>
+              ) : null}
+            </div>
+          </div>
+        </section>
       </div>
+
+      {whatsappUrl ? (
+        <a
+          data-testid="mobile-sticky-bar"
+          href={whatsappUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="pkg-sticky-wa"
+        >
+          <Icons.whatsapp size={16} />
+          <span>Reservar</span>
+        </a>
+      ) : null}
 
       {lightboxOpen && images.length > 0 ? (
         <MediaLightbox

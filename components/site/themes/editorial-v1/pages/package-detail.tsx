@@ -87,9 +87,9 @@ export function EditorialPackageDetail({
         product={resolvedPayload.product}
         displayName={resolvedPayload.displayName}
         displayLocation={resolvedPayload.displayLocation}
-        resolvedLocale={resolvedPayload.resolvedLocale}
-        googleReviews={resolvedPayload.googleReviews}
-        similarProducts={resolvedPayload.similarProducts}
+        resolvedLocale={resolvedPayload.resolvedLocale || 'es-CO'}
+        googleReviews={Array.isArray(resolvedPayload.googleReviews) ? resolvedPayload.googleReviews : []}
+        similarProducts={Array.isArray(resolvedPayload.similarProducts) ? resolvedPayload.similarProducts : []}
         faqs={faqSource}
       />
     </div>
