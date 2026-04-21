@@ -1,0 +1,173 @@
+/**
+ * editorial-v1 Promise section (about → promise editorial variant).
+ *
+ * Port of designer `Promise` in
+ *   themes/references/claude design 1/project/sections.jsx
+ *
+ * Two-column dark panel:
+ *  - left: eyebrow + h2 (with `<em>` emphasis markers preserved) + subtitle
+ *    + optional primary CTA.
+ *  - right: ordered feature list. Each feature has icon (by key), title, desc.
+ *    List items are divider-separated rows ported from the `.promise .feat`
+ *    designer layout.
+ *
+ * Server component. No state, no hooks.
+ *
+ * Content contract (normalized camelCase):
+ *   eyebrow?:     string
+ *   title?:       string         — may contain `<em>` (kept verbatim in DOM)
+ *   subtitle?:    string
+ *   features?:    Array<{ icon?: string; title: string; description: string }>
+ *   ctaLabel?:    string
+ *   ctaUrl?:      string         — also accepts `{{whatsapp}}` magic token.
+ *
+ * Registered under `about` in `editorialV1SectionComponents`. Generic about
+ * sections authored in the DB get this visual treatment when the website
+ * template set resolves to `editorial-v1`.
+ */
+
+import type { ReactElement } from 'react';
+
+import type { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
+import { getBasePath } from '@/lib/utils/base-path';
+
+import { Eyebrow } from '../primitives/eyebrow';
+import { Icons, type IconName } from '../primitives/icons';
+import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
+
+const editorialText = getPublicUiExtraTextGetter('es-CO');
+
+export interface EditorialPromiseSectionProps {
+  section: WebsiteSection;
+  website: WebsiteData;
+}
+
+interface PromiseFeature {
+  icon?: string;
+  title?: string;
+  description?: string;
+}
+
+interface PromiseContent {
+  eyebrow?: string;
+  title?: string;
+  subtitle?: string;
+  features?: PromiseFeature[];
+  ctaLabel?: string;
+  ctaUrl?: string;
+}
+
+const DEFAULT_EYEBROW = editorialText('editorialPromiseEyebrowFallback');
+const DEFAULT_TITLE = editorialText('editorialPromiseTitleFallback');
+const DEFAULT_FEATURE_ICONS: IconName[] = ['pin', 'shield', 'leaf', 'sparkle', 'users', 'award'];
+
+// Narrow allowlist to match hero sanitizer — only `<em>` and `<br>` are
+// preserved inside the h2 so authors can ship the designer's italic-serif
+// emphasis without risking arbitrary HTML injection.
+const ALLOWED_TITLE_TAGS = new Set(['em', 'br']);
+
+function sanitizeTitle(raw: string | undefined | null): string {
+  if (!raw) return '';
+  const noComments = raw
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/<!\[CDATA\[[\s\S]*?\]\]>/g, '');
+  return noComments.replace(/<\/?([a-zA-Z][a-zA-Z0-9]*)[^>]*>/g, (match, name) => {
+    const tag = String(name).toLowerCase();
+    if (!ALLOWED_TITLE_TAGS.has(tag)) return '';
+    const isClosing = match.startsWith('</');
+    if (tag === 'br') return '<br>';
+    return isClosing ? `</${tag}>` : `<${tag}>`;
+  });
+}
+
+function resolveWhatsAppHref(website: WebsiteData, fallback: string): string {
+  const raw = website.content?.social?.whatsapp || '';
+  if (!raw) return fallback;
+  const digits = raw.replace(/[^0-9]/g, '');
+  return digits ? `https://wa.me/${digits}` : fallback;
+}
+
+function resolveCtaHref(
+  href: string | undefined,
+  website: WebsiteData,
+  basePath: string,
+): string {
+  if (!href) return `${basePath}/#cta`;
+  if (/^(https?:|mailto:|tel:|wa\.me)/.test(href)) return href;
+  if (href === '{{whatsapp}}' || href === 'whatsapp') {
+    return resolveWhatsAppHref(website, `${basePath}/#cta`);
+  }
+  if (href.startsWith('#') || href.startsWith('/')) return `${basePath}${href}`;
+  return href;
+}
+
+function renderIcon(iconKey: string | undefined, fallback: IconName): ReactElement {
+  const key = (iconKey ?? '').toLowerCase().trim();
+  const Icon = (key && (Icons as Record<string, (p?: { size?: number }) => ReactElement>)[key]) || Icons[fallback];
+  return Icon({ size: 22 });
+}
+
+export function PromiseSection({
+  section,
+  website,
+}: EditorialPromiseSectionProps): ReactElement {
+  const content = (section.content || {}) as PromiseContent;
+  const basePath = getBasePath(website.subdomain, false);
+
+  const eyebrow = content.eyebrow?.trim() || DEFAULT_EYEBROW;
+  const sanitizedTitle = sanitizeTitle(content.title) || sanitizeTitle(DEFAULT_TITLE);
+  const subtitle = content.subtitle?.trim() || '';
+
+  const features: PromiseFeature[] = Array.isArray(content.features)
+    ? content.features
+        .filter((f): f is PromiseFeature => !!f && typeof f.title === 'string' && f.title.trim().length > 0)
+        .slice(0, 6)
+    : [];
+
+  const ctaLabel = content.ctaLabel?.trim() || '';
+  const ctaHref = ctaLabel ? resolveCtaHref(content.ctaUrl, website, basePath) : '';
+
+  return (
+    <section
+      className="ev-section ev-promise"
+      data-screen-label="Promise"
+      aria-label={eyebrow}
+    >
+      <div className="ev-container">
+        <div className="promise">
+          <div>
+            <Eyebrow tone="light">{eyebrow}</Eyebrow>
+            <h2
+              className="display-md"
+              dangerouslySetInnerHTML={{ __html: sanitizedTitle }}
+            />
+            {subtitle ? <p className="lead">{subtitle}</p> : null}
+            {ctaLabel ? (
+              <div style={{ marginTop: 28 }}>
+                <a href={ctaHref} className="btn btn-accent">
+                  {ctaLabel}
+                  <Icons.arrow size={14} />
+                </a>
+              </div>
+            ) : null}
+          </div>
+          <div className="list" role="list">
+            {features.map((f, i) => (
+              <div className="feat" key={`${f.title}-${i}`} role="listitem">
+                <div className="ic" aria-hidden="true">
+                  {renderIcon(f.icon, DEFAULT_FEATURE_ICONS[i] ?? 'sparkle')}
+                </div>
+                <div>
+                  <b>{f.title}</b>
+                  {f.description ? <p>{f.description}</p> : null}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export default PromiseSection;

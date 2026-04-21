@@ -1,13 +1,25 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { useMemo } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { DestinationMap } from '@/components/maps/destination-map';
 import type { MapMarker } from '@/lib/maps/types';
 
 export { COLOMBIA_CITIES, parseRouteFromName } from '@/lib/maps/colombia-cities';
 export type { RoutePoint } from '@/lib/maps/colombia-cities';
 import type { RoutePoint } from '@/lib/maps/colombia-cities';
+
+/**
+ * Context passed to the optional `renderMap` slot. Lets consumers swap the
+ * default MapLibre `<DestinationMap>` for a custom renderer (e.g. a hand-drawn
+ * SVG map in editorial-v1) while keeping the outer wrapper, route list, and
+ * croquis fallback behavior intact.
+ */
+export interface RouteMapRenderContext {
+  points: RoutePoint[];
+  markers: MapMarker[];
+  routePath?: Array<[number, number]>;
+}
 
 interface RouteMapProps {
   points: RoutePoint[];
@@ -21,6 +33,13 @@ interface RouteMapProps {
    * so we do not mix two route styles in the same widget.
    */
   hideMapPolylineWhenDashed?: boolean;
+  /**
+   * Optional slot that bypasses the internal MapLibre `<DestinationMap>` and
+   * renders a custom map surface (e.g. editorial SVG). Receives the already
+   * computed `markers` + `routePath` so the renderer can reuse the derived data.
+   * The outer wrapper (className, route list, croquis fallback) is preserved.
+   */
+  renderMap?: (ctx: RouteMapRenderContext) => ReactNode;
 }
 
 /**
@@ -35,6 +54,7 @@ export function RouteMap({
   numberedLabels = false,
   connectorStyle = 'solid',
   hideMapPolylineWhenDashed = false,
+  renderMap,
 }: RouteMapProps) {
   const markers = useMemo<MapMarker[]>(() => {
     return points.map((point, index) => ({
@@ -60,21 +80,25 @@ export function RouteMap({
 
   return (
     <div className={className}>
-      <DestinationMap
-        markers={markers}
-        routePath={routePath}
-        height={height}
-        viewportPreset="destination-detail"
-        showLegend={false}
-        onMarkerSelect={(marker) => {
-          if (!marker || !onPointClick) return;
-          const routeIndex = Number((marker.meta as Record<string, unknown> | undefined)?.routeIndex);
-          if (!Number.isFinite(routeIndex)) return;
-          const point = points[routeIndex];
-          if (!point) return;
-          onPointClick(point, routeIndex);
-        }}
-      />
+      {renderMap ? (
+        renderMap({ points, markers, routePath })
+      ) : (
+        <DestinationMap
+          markers={markers}
+          routePath={routePath}
+          height={height}
+          viewportPreset="destination-detail"
+          showLegend={false}
+          onMarkerSelect={(marker) => {
+            if (!marker || !onPointClick) return;
+            const routeIndex = Number((marker.meta as Record<string, unknown> | undefined)?.routeIndex);
+            if (!Number.isFinite(routeIndex)) return;
+            const point = points[routeIndex];
+            if (!point) return;
+            onPointClick(point, routeIndex);
+          }}
+        />
+      )}
 
       <div className="mt-4 flex flex-wrap items-center gap-3">
         {points.map((point, i) => (
