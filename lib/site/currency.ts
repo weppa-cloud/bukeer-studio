@@ -12,8 +12,12 @@ export const SITE_CURRENCY_STORAGE_KEY = 'bukeer.site.currency';
 export const SITE_MENU_LOCALES = [
   { code: 'es', label: 'Español' },
   { code: 'en', label: 'English' },
-  { code: 'pt', label: 'Português' },
 ] as const;
+
+export const SWITCHER_ALLOWED_LANGUAGE_CODES = new Set(
+  SITE_MENU_LOCALES.map((locale) => locale.code),
+);
+export const SWITCHER_ALLOWED_CURRENCIES = ['COP', 'USD'] as const;
 
 export type SiteMenuLocale = typeof SITE_MENU_LOCALES[number];
 export const MARKET_SWITCHER_STYLES: readonly MarketSwitcherStyle[] = ['compact', 'chips', 'segmented'];
@@ -125,13 +129,23 @@ export function resolveSiteMenuLocales(input: {
   const supportedLocales = Array.isArray(input.supportedLocales)
     ? input.supportedLocales
       .map((locale) => normalizeLanguageCode(locale))
-      .filter((locale): locale is string => Boolean(locale))
+      .filter(
+        (locale): locale is string => Boolean(locale)
+          && SWITCHER_ALLOWED_LANGUAGE_CODES.has(locale),
+      )
     : [];
 
   const fallbackLocales = SITE_MENU_LOCALES.map((locale) => locale.code);
   const localeCodes = supportedLocales.length > 0
-    ? uniqueItems([defaultLocale, ...supportedLocales])
-    : uniqueItems([defaultLocale, contentLocale, ...fallbackLocales]);
+    ? uniqueItems([
+      defaultLocale && SWITCHER_ALLOWED_LANGUAGE_CODES.has(defaultLocale) ? defaultLocale : null,
+      ...supportedLocales,
+    ])
+    : uniqueItems([
+      defaultLocale && SWITCHER_ALLOWED_LANGUAGE_CODES.has(defaultLocale) ? defaultLocale : null,
+      contentLocale && SWITCHER_ALLOWED_LANGUAGE_CODES.has(contentLocale) ? contentLocale : null,
+      ...fallbackLocales,
+    ]);
 
   return localeCodes.map((code) => ({
     code,
