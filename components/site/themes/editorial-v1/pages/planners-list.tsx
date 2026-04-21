@@ -270,17 +270,21 @@ export function EditorialPlannersListPage({
                 <b>{totalPlanners}</b>
                 <small>{editorialText('editorialPlannersListStatsPlanners')}</small>
               </div>
-              <div className="s">
-                <b>
-                  {formatRating(avgRating)}
-                  <em>/5</em>
-                </b>
-                <small>{editorialText('editorialPlannersListStatsRating')}</small>
-              </div>
-              <div className="s">
-                <b>{totalReviews ?? '—'}</b>
-                <small>{editorialText('editorialPlannersListStatsTrips')}</small>
-              </div>
+              {typeof avgRating === 'number' ? (
+                <div className="s">
+                  <b>
+                    {formatRating(avgRating)}
+                    <em>/5</em>
+                  </b>
+                  <small>{editorialText('editorialPlannersListStatsRating')}</small>
+                </div>
+              ) : null}
+              {typeof totalReviews === 'number' ? (
+                <div className="s">
+                  <b>{totalReviews}</b>
+                  <small>{editorialText('editorialPlannersListStatsTrips')}</small>
+                </div>
+              ) : null}
             </div>
           </div>
 

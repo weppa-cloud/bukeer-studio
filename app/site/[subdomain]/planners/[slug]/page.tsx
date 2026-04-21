@@ -121,6 +121,7 @@ export default async function PlannerProfilePage({ params }: PlannerPageProps) {
         phone: null,
         slug,
         quote: sectionMatch.quote ?? null,
+        language: null,
       };
     }
   }

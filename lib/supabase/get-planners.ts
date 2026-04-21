@@ -15,6 +15,11 @@ export interface PlannerData {
    * Source: `contacts.quote` (added in migration 20260503000110).
    */
   quote: string | null;
+  /**
+   * ISO-639-1 language code for the planner (fallback 'es').
+   * Source: `contacts.language`.
+   */
+  language: string | null;
 }
 
 /**
@@ -26,7 +31,7 @@ export async function getPlanners(accountId: string): Promise<PlannerData[]> {
   const supabase = createSupabaseServiceRoleClient();
   const { data, error } = await supabase
     .from('contacts')
-    .select('id, name, last_name, user_image, user_rol, position, phone, phone2, user_id, quote')
+    .select('id, name, last_name, user_image, user_rol, position, phone, phone2, user_id, quote, language')
     .eq('account_id', accountId)
     .eq('show_on_website', true)
     .is('deleted_at', null)
@@ -64,6 +69,7 @@ export async function getPlanners(accountId: string): Promise<PlannerData[]> {
     phone: contact.phone || contact.phone2 || null,
     slug: slugify(`${contact.name || ''} ${contact.last_name || ''}`),
     quote: (contact as { quote?: string | null }).quote ?? null,
+    language: (contact as { language?: string | null }).language ?? null,
   }));
 }
 

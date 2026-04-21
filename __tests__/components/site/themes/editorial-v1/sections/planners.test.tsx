@@ -94,6 +94,7 @@ function makePlanner(overrides: Partial<PlannerData> = {}): PlannerData {
   // We preserve explicit `null` on nullable fields via `in` checks so a test
   // can force `quote: null` / `photo: null` without falling back to defaults.
   const hasQuote = Object.prototype.hasOwnProperty.call(overrides, 'quote');
+  const hasLanguage = Object.prototype.hasOwnProperty.call(overrides, 'language');
   return {
     id: overrides.id ?? '1',
     name: overrides.name ?? 'Mariana',
@@ -105,6 +106,7 @@ function makePlanner(overrides: Partial<PlannerData> = {}): PlannerData {
     phone: overrides.phone ?? '+573111111111',
     slug: overrides.slug ?? 'mariana-velez',
     quote: hasQuote ? (overrides.quote as string | null) : 'El Caribe es mi casa.',
+    language: hasLanguage ? (overrides.language as string | null) : 'es',
   };
 }
 

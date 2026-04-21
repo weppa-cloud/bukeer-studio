@@ -218,10 +218,15 @@ export function EditorialPlannerDetailPage({
 
   const regions = payload?.regions ?? [];
   const specialties = payload?.specialties ?? [];
+  // Derive language chip from `contacts.language` when payload omits it.
+  const fallbackLanguage =
+    planner.language && planner.language.trim()
+      ? planner.language.trim().slice(0, 2).toUpperCase()
+      : 'ES';
   const languages =
     payload?.languages && payload.languages.length > 0
       ? payload.languages
-      : ['ES'];
+      : [fallbackLanguage];
 
   const rating =
     typeof payload?.rating === 'number' ? payload.rating : null;
@@ -229,6 +234,27 @@ export function EditorialPlannerDetailPage({
     typeof payload?.reviews === 'number' ? payload.reviews : null;
   const trips = payload?.trips ?? null;
   const years = payload?.years ?? null;
+
+  // Ghost pattern: only render a KPI when we actually have the number.
+  // The whole KPI grid hides when every cell would be empty (prevents
+  // "— viajes / — rating / — años" placeholder strip visible in local
+  // audit LOCAL-08-planner-detail-leidy-fullpage.png).
+  const kpis: Array<{ key: string; value: string; label: string }> = [];
+  if (years != null) {
+    kpis.push({ key: 'years', value: String(years), label: SECTION_COPY.kpiExperience });
+  }
+  if (trips != null) {
+    kpis.push({ key: 'trips', value: String(trips), label: SECTION_COPY.kpiTrips });
+  }
+  if (rating != null) {
+    kpis.push({ key: 'rating', value: rating.toFixed(1), label: SECTION_COPY.kpiRating });
+  }
+  // Languages: always show (at minimum we have the planner's `language`).
+  kpis.push({
+    key: 'languages',
+    value: String(languages.length),
+    label: SECTION_COPY.kpiLanguages,
+  });
 
   const waPrimary = waHref(
     planner.phone,
@@ -363,27 +389,19 @@ export function EditorialPlannerDetailPage({
                 </div>
               ) : null}
             </div>
-            <div className="kpis" aria-label="Planner KPIs">
-              <div className="k">
-                <b>
-                  {years ?? '—'}
-                  <em>a</em>
-                </b>
-                <small>{SECTION_COPY.kpiExperience}</small>
+            {kpis.length > 1 ? (
+              <div className="kpis" aria-label="Planner KPIs">
+                {kpis.map((k) => (
+                  <div className="k" key={k.key}>
+                    <b>
+                      {k.value}
+                      {k.key === 'years' ? <em>a</em> : null}
+                    </b>
+                    <small>{k.label}</small>
+                  </div>
+                ))}
               </div>
-              <div className="k">
-                <b>{trips ?? '—'}</b>
-                <small>{SECTION_COPY.kpiTrips}</small>
-              </div>
-              <div className="k">
-                <b>{rating != null ? rating.toFixed(1) : '—'}</b>
-                <small>{SECTION_COPY.kpiRating}</small>
-              </div>
-              <div className="k">
-                <b>{languages.length}</b>
-                <small>{SECTION_COPY.kpiLanguages}</small>
-              </div>
-            </div>
+            ) : null}
           </div>
         </div>
       </div>
