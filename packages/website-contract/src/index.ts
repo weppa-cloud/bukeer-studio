@@ -463,24 +463,6 @@ export type {
   ToggleStudioEditorV2Request,
 } from './schemas/marketing-patch';
 
-// Studio Product Edit History — W3 (#197)
-export {
-  ProductTypeSchema,
-  EditHistorySourceSchema,
-  EditHistoryOperationSchema,
-  EditHistoryEntrySchema,
-  RollbackRequestSchema,
-  EditHistoryListQuerySchema,
-} from './schemas/edit-history';
-export type {
-  ProductType,
-  EditHistorySource,
-  EditHistoryOperation,
-  EditHistoryEntry,
-  RollbackRequest,
-  EditHistoryListQuery,
-} from './schemas/edit-history';
-
 // Studio AI Cost Ledger — R9 D2 (#195)
 export {
   AiCostFeatureSchema,
