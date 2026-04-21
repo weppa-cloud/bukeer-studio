@@ -17,6 +17,11 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+/** Map locale codes to URL path segments (e.g. 'en-US' → 'en'). */
+function localeToPathSegment(locale: string): string {
+  return locale.split('-')[0].toLowerCase();
+}
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const sitemapEntries: MetadataRoute.Sitemap = [];
 
@@ -31,10 +36,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   });
 
   try {
-    // 2. Fetch all published websites
+    // 2. Fetch all published websites (include locale config)
     const { data: websites, error: websitesError } = await supabase
       .from('websites')
-      .select('id, subdomain, custom_domain, updated_at')
+      .select('id, subdomain, custom_domain, updated_at, default_locale, supported_locales')
       .eq('status', 'published');
 
     if (websitesError) {
@@ -47,6 +52,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       const siteUrl = website.custom_domain
         ? `https://${website.custom_domain}`
         : `https://${website.subdomain}.bukeer.com`;
+      const defaultLocale: string = website.default_locale ?? 'es-CO';
+      const supportedLocales: string[] = Array.isArray(website.supported_locales)
+        ? website.supported_locales
+        : [defaultLocale];
+      const nonDefaultLocales = supportedLocales.filter((l) => l !== defaultLocale);
 
       sitemapEntries.push({
         url: siteUrl,
@@ -55,18 +65,26 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         priority: 0.9,
       });
 
-      // 4. Add blog listing page
+      // 4. Blog listing — default locale + non-default locale variants
       sitemapEntries.push({
         url: `${siteUrl}/blog`,
         lastModified: new Date(),
         changeFrequency: 'daily',
         priority: 0.8,
       });
+      for (const locale of nonDefaultLocales) {
+        sitemapEntries.push({
+          url: `${siteUrl}/${localeToPathSegment(locale)}/blog`,
+          lastModified: new Date(),
+          changeFrequency: 'daily',
+          priority: 0.7,
+        });
+      }
 
-      // 5. Fetch blog posts for this website
+      // 5. Fetch blog posts for this website grouped by locale
       const { data: posts, error: postsError } = await supabase
         .from('website_blog_posts')
-        .select('slug, updated_at, published_at')
+        .select('slug, updated_at, published_at, locale')
         .eq('website_id', website.id)
         .eq('status', 'published');
 
@@ -75,21 +93,25 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         continue;
       }
 
-      // 6. Add each blog post
+      // 6. Add each blog post. Default-locale posts → /blog/{slug}, others → /{lang}/blog/{slug}
       for (const post of posts || []) {
+        const postLocale: string = (post as unknown as Record<string, unknown>).locale as string ?? defaultLocale;
+        const urlPath = postLocale === defaultLocale
+          ? `${siteUrl}/blog/${post.slug}`
+          : `${siteUrl}/${localeToPathSegment(postLocale)}/blog/${post.slug}`;
         sitemapEntries.push({
-          url: `${siteUrl}/blog/${post.slug}`,
+          url: urlPath,
           lastModified: post.updated_at
             ? new Date(post.updated_at)
             : post.published_at
             ? new Date(post.published_at)
             : new Date(),
           changeFrequency: 'monthly',
-          priority: 0.7,
+          priority: postLocale === defaultLocale ? 0.7 : 0.6,
         });
       }
 
-      // 7. Add paquetes (package_kits) for this website
+      // 7. Add paquetes — default locale
       try {
         const { items: packages } = await getCategoryProducts(
           website.subdomain,
@@ -108,6 +130,31 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
             changeFrequency: 'weekly',
             priority: 0.8,
           });
+        }
+
+        // 8. For non-default locales: only packages with an overlay
+        for (const locale of nonDefaultLocales) {
+          const langSeg = localeToPathSegment(locale);
+          const { items: localizedPkgs } = await getCategoryProducts(
+            website.subdomain,
+            'packages',
+            {
+              limit: 500,
+              offset: 0,
+              locale,
+              defaultLocale,
+              websiteId: String(website.id),
+            },
+          );
+          for (const pkg of localizedPkgs || []) {
+            if (!pkg.slug || pkg.slug.trim().length === 0) continue;
+            sitemapEntries.push({
+              url: `${siteUrl}/${langSeg}/paquetes/${pkg.slug}`,
+              lastModified: new Date(),
+              changeFrequency: 'weekly',
+              priority: 0.7,
+            });
+          }
         }
       } catch (packagesError) {
         console.error(

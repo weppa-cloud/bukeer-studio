@@ -167,6 +167,9 @@ export default async function ExperiencesPageRoute({
     const catalog = await getCategoryProducts(subdomain, 'activities', {
       limit: 100,
       offset: 0,
+      locale: localeContext.resolvedLocale,
+      defaultLocale: localeContext.defaultLocale ?? 'es-CO',
+      websiteId: String(website.id),
     });
     // toActivityItems returns the canonical editorial shape (name, image,
     // duration, price, location, rating...), which normaliseActivities then

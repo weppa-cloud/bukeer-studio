@@ -42,6 +42,7 @@ export function PackagesSection({ section, website }: PackagesSectionProps) {
     packages?: PackageItem[];
   };
 
+  const allDestinationsLabel = text('sectionPackagesAllDestinations');
   const variant = section.variant || 'default';
   const title = sectionContent.title || text('sectionPackagesTitle');
   const subtitle = sectionContent.subtitle;

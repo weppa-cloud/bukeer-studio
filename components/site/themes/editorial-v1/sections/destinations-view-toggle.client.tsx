@@ -79,17 +79,25 @@ export function DestinationsViewToggle({
 }: DestinationsViewToggleProps) {
   const editorialText = getPublicUiExtraTextGetter(locale ?? 'es-CO');
   const [view, setView] = useState<DestinationsViewMode>(defaultView);
+  // Lazy-mount the map view: only render once the user activates it.
+  // MapLibre GL can't initialize inside a hidden container so we defer
+  // mounting until the tab is first shown.
+  const [mapMounted, setMapMounted] = useState(defaultView === 'map');
 
   // On mount, prefer the URL hash when present.
   useEffect(() => {
     if (!syncHash) return;
     const hashed = readHashView();
-    if (hashed) setView(hashed);
+    if (hashed) {
+      setView(hashed);
+      if (hashed === 'map') setMapMounted(true);
+    }
   }, [syncHash]);
 
   const handleChange = useCallback(
     (next: DestinationsViewMode) => {
       setView(next);
+      if (next === 'map') setMapMounted(true);
       if (!syncHash || typeof window === 'undefined') return;
       const url = new URL(window.location.href);
       url.hash = next === 'map' ? `#${HASH_MAP}` : '';
@@ -148,7 +156,7 @@ export function DestinationsViewToggle({
         {listView}
       </div>
       <div data-view="map" hidden={view !== 'map'}>
-        {mapView}
+        {mapMounted ? mapView : null}
       </div>
     </>
   );

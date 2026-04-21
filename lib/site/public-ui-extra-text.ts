@@ -98,6 +98,7 @@ const BASE_EXTRA_TEXTS = {
   sectionNewsletterSending: 'Enviando...',
   sectionNewsletterSuccess:
     'Gracias por suscribirte. Pronto recibiras nuestras novedades.',
+  sectionPackagesAllDestinations: 'Todos los destinos',
   sectionPackagesTitle: 'Paquetes de Viaje',
   sectionPackagesEyebrow: 'Experiencias Curadas',
   sectionPackagesViewAll: 'Ver todos los paquetes',

@@ -32,6 +32,7 @@ export interface BlogPost {
   ai_model?: string | null;
   human_edited?: boolean;
   locale?: string;
+  translation_group_id?: string | null;
   canonical_post_id?: string | null;
   faq_items?: FAQItem[] | null;
   internal_links?: InternalLink[] | null;

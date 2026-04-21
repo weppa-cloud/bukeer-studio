@@ -170,8 +170,9 @@ async function applyTranslationOverlayToProducts(
       }
     }
   } else {
+    // Activities: query activities table (no products table in this schema)
     const { data, error } = await supabase
-      .from('products')
+      .from('activities')
       .select('id, translations')
       .in('id', ids);
 
@@ -503,6 +504,34 @@ export async function getLocalizedProductOverlay(input: {
 }
 
 /**
+ * Return the subset of product IDs that have a website_product_pages overlay
+ * for the given locale. Used to filter listing pages so only transcreated
+ * products appear on non-default locale routes (e.g. /en/actividades).
+ */
+async function getProductIdsWithLocaleOverlay(
+  websiteId: string,
+  productType: string,
+  productIds: string[],
+  locale: string
+): Promise<Set<string>> {
+  if (productIds.length === 0) return new Set();
+  try {
+    const { data, error } = await supabase
+      .from('website_product_pages')
+      .select('product_id')
+      .eq('website_id', websiteId)
+      .eq('product_type', productType)
+      .eq('locale', locale)
+      .in('product_id', productIds);
+
+    if (error || !Array.isArray(data)) return new Set();
+    return new Set(data.map((r) => String(r.product_id)));
+  } catch {
+    return new Set();
+  }
+}
+
+/**
  * Get navigation items for a website
  */
 export async function getWebsiteNavigation(
@@ -611,6 +640,8 @@ export async function getCategoryProducts(
     offset?: number;
     search?: string;
     locale?: string;
+    defaultLocale?: string;
+    websiteId?: string;
   } = {}
 ): Promise<CategoryProducts> {
   try {
@@ -652,14 +683,28 @@ export async function getCategoryProducts(
 
     const parsed = CategoryProductsSchema.safeParse(normalizedPayload);
     if (parsed.success) {
+      let baseItems = parsed.data.items as ProductData[];
+
+      // For non-default locale: filter to products that have an en overlay.
+      const locale = options.locale;
+      const defaultLocale = options.defaultLocale ?? 'es-CO';
+      if (locale && locale !== defaultLocale && options.websiteId) {
+        const productType = categoryType === 'packages' ? 'package' : categoryType.replace(/s$/, '');
+        const productIds = baseItems.map((i) => i.id).filter((id): id is string => !!id);
+        const idsWithOverlay = await getProductIdsWithLocaleOverlay(
+          options.websiteId, productType, productIds, locale
+        );
+        baseItems = baseItems.filter((i) => i.id && idsWithOverlay.has(i.id));
+      }
+
       const localizedItems = await applyTranslationOverlayToProducts(
-        parsed.data.items as ProductData[],
+        baseItems,
         categoryType,
-        options.locale ?? null,
+        locale ?? null,
       );
       const result = {
         items: localizedItems,
-        total: Number(parsed.data.total),
+        total: locale && locale !== defaultLocale ? localizedItems.length : Number(parsed.data.total),
       };
       if (ENABLE_IN_MEMORY_CACHE) {
         categoryProductsCache.set(cacheKey, {

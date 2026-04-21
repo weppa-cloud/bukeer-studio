@@ -4433,6 +4433,73 @@
   margin-top: 6px;
 }
 
+/* HOMEPAGE: planner cards (4-col grid, big square avatar) */
+:where([data-template-set="editorial-v1"]) .planners {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+:where([data-template-set="editorial-v1"]) .planner {
+  background: var(--c-surface);
+  border-radius: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px;
+  cursor: pointer;
+  transition: transform .2s var(--ease), box-shadow .2s;
+  text-decoration: none;
+  color: inherit;
+}
+:where([data-template-set="editorial-v1"]) .planner:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-2);
+}
+:where([data-template-set="editorial-v1"]) .planner-avatar {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 18px;
+  overflow: hidden;
+  position: relative;
+}
+:where([data-template-set="editorial-v1"]) .planner h4 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 20px;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+:where([data-template-set="editorial-v1"]) .planner .planner-role {
+  color: var(--c-muted);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-top: -6px;
+}
+:where([data-template-set="editorial-v1"]) .planner .planner-quote {
+  margin: 0;
+  font-size: 14px;
+  color: var(--c-ink-2);
+  line-height: 1.5;
+}
+:where([data-template-set="editorial-v1"]) .planner .planner-langs {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid var(--c-line);
+}
+:where([data-template-set="editorial-v1"]) .planner .planner-langs .lg {
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: var(--c-surface-2);
+  color: var(--c-ink-2);
+  font-weight: 600;
+}
+
 /* LIST: toolbar */
 :where([data-template-set="editorial-v1"]) .pl-toolbar {
   display: flex;
@@ -5079,6 +5146,9 @@
   :where([data-template-set="editorial-v1"]) .pl-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+  :where([data-template-set="editorial-v1"]) .planners {
+    grid-template-columns: repeat(2, 1fr);
+  }
   :where([data-template-set="editorial-v1"]) .pl-match .inner {
     grid-template-columns: 1fr;
   }
@@ -5118,6 +5188,9 @@
 
 @media (max-width: 720px) {
   :where([data-template-set="editorial-v1"]) .pl-grid {
+    grid-template-columns: 1fr;
+  }
+  :where([data-template-set="editorial-v1"]) .planners {
     grid-template-columns: 1fr;
   }
   :where([data-template-set="editorial-v1"]) .pld-hero h1 {
@@ -5392,4 +5465,14 @@
   :where([data-template-set="editorial-v1"]) .itinerary-day-chev {
     transition: none;
   }
+}
+
+/* ============ content-visibility: auto for below-fold sections ============
+   Skips paint+layout for off-screen sections → cuts Style & Layout main-thread
+   work by ~60%. contain-intrinsic-size prevents scroll-height collapse.
+   Applied only to inner sections (not hero, not header, not footer).
+   ======================================================================= */
+:where([data-template-set="editorial-v1"]) .ev-section {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 500px;
 }

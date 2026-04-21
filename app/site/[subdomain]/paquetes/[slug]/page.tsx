@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import { notFound, permanentRedirect } from 'next/navigation';
+import { notFound, permanentRedirect, redirect } from 'next/navigation';
 
 import { ProductLandingPage } from '@/components/pages/product-landing-page';
 import { TemplateSlot } from '@/components/site/themes/editorial-v1/template-slot';
@@ -199,6 +199,22 @@ export default async function PackageSlugPage({ params }: PackagePageProps) {
     website,
     `/paquetes/${productPage.product.slug || slug}`,
   );
+  const resolvedLocale = localeContext.resolvedLocale;
+  const defaultLocale = localeContext.defaultLocale ?? 'es-CO';
+
+  // Non-default locale + no EN overlay → redirect to default locale URL.
+  // Avoids serving Spanish content under /en/ URLs.
+  if (resolvedLocale !== defaultLocale && website.id && productPage.product.id) {
+    const enOverlay = await getLocalizedProductOverlay({
+      websiteId: String(website.id),
+      productType: 'package',
+      productId: String(productPage.product.id),
+      locale: resolvedLocale,
+    });
+    if (!enOverlay) {
+      redirect(`/site/${subdomain}/paquetes/${productPage.product.slug || slug}`);
+    }
+  }
 
   const displayName = sanitizeProductCopy(
     productPage.page?.custom_hero?.title || productPage.product.name

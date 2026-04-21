@@ -151,138 +151,81 @@ export function PlannersSection({
       style={{ background: 'var(--c-bg)' }}
     >
       <div className="ev-container">
-        <header style={headerStyle}>
-          <Eyebrow>{eyebrow}</Eyebrow>
-          <h2
-            style={titleStyle}
-            dangerouslySetInnerHTML={editorialHtml(title) ?? undefined}
-          />
-          <p
-            style={subtitleStyle}
-            dangerouslySetInnerHTML={editorialHtml(subtitle) ?? undefined}
-          />
-          <div style={viewAllRowStyle}>
-            <Link href={viewAllHref} className="btn btn-outline">
+        {/* 2-col header: title left, subtitle + "Ver todos" right */}
+        <div className="ev-section-head">
+          <div>
+            <Eyebrow>{eyebrow}</Eyebrow>
+            <h2
+              style={titleStyle}
+              dangerouslySetInnerHTML={editorialHtml(title) ?? undefined}
+            />
+          </div>
+          <div className="tools">
+            <p
+              style={subtitleStyle}
+              dangerouslySetInnerHTML={editorialHtml(subtitle) ?? undefined}
+            />
+            <Link href={viewAllHref} className="btn btn-outline btn-sm" style={{ marginTop: 12 }}>
               {viewAllLabel}
               <Icons.arrow size={14} />
             </Link>
           </div>
-        </header>
+        </div>
 
         {planners.length === 0 ? (
           <div style={emptyStyle}>
-            {/* Intentional soft empty state: editors may preview the
-                section before seeding contacts. */}
             <p style={{ color: 'var(--c-muted)' }}>
               {editorialText('editorialPlannersEmpty')}
             </p>
           </div>
         ) : (
-          <div className="pl-grid" style={gridStyle}>
-            {planners.map((p) => {
+          <div className="planners">
+            {planners.slice(0, 4).map((p) => {
               const firstName = p.name.split(' ')[0] || p.fullName;
-              const override = findOverride(
-                content.planners,
-                p.fullName,
-                firstName,
-              );
+              const override = findOverride(content.planners, p.fullName, firstName);
               const role = localizeEditorialText(
                 website,
                 override?.specialty || mapRole(p.role, editorialText),
               );
-              const specialties =
-                override?.specialties && override.specialties.length > 0
-                  ? override.specialties
-                  : override?.specialty
-                    ? [override.specialty]
-                    : [];
               const quote = localizeEditorialText(
                 website,
                 (p.quote && p.quote.trim())
                   || (override?.quote && override.quote.trim())
                   || editorialText('editorialPlannersQuoteFallback'),
               );
-              const waHref = resolveWhatsAppHref(
-                p.phone,
-                websiteWhatsapp,
-                firstName,
-              );
               const profileHref = `${basePath}/planners/${p.slug}`;
+              const langs = p.languages && p.languages.length > 0 ? p.languages : [];
               return (
-                <article key={p.id} className="pl-card">
-                  <Link href={profileHref} style={cardLinkStyle}>
-                    <div className="top">
-                      <div className="av" style={avatarStyle(!!p.photo)}>
-                        {p.photo ? (
-                          <Image
-                            src={p.photo}
-                            alt={p.fullName}
-                            fill
-                            sizes="72px"
-                            style={{ objectFit: 'cover' }}
-                          />
-                        ) : (
-                          <span
-                            aria-hidden="true"
-                            style={avatarInitialsStyle}
-                          >
-                            {p.fullName
-                              .split(' ')
-                              .map((n) => n[0])
-                              .join('')
-                              .slice(0, 2)
-                              .toUpperCase()}
-                          </span>
-                        )}
-                      </div>
-                      <div className="who">
-                        <b>{p.fullName}</b>
-                        <div className="role">{role}</div>
-                      </div>
-                    </div>
-                    <div className="body">
-                      <p className="quote">&ldquo;{quote}&rdquo;</p>
-                      {specialties.length > 0 ? (
-                        <div className="tags">
-                          {specialties.map((s) => (
-                            <span key={s} className="tg">
-                              {localizeEditorialText(website, s)}
-                            </span>
-                          ))}
-                        </div>
-                      ) : null}
-                    </div>
-                  </Link>
-                  <div className="foot">
-                    <span className="avail">
-                      <span className="dot" />
-                      {editorialText('editorialPlannersAvailable')}
-                    </span>
-                    {waHref ? (
-                      <a
-                        href={waHref}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="btn btn-outline btn-sm"
-                        aria-label={`WhatsApp ${p.fullName}`}
-                      >
-                        <Icons.whatsapp size={14} />
-                        {editorialText('editorialPlannersWhatsapp')}
-                      </a>
+                <Link key={p.id} href={profileHref} className="planner">
+                  <div className="planner-avatar">
+                    {p.photo ? (
+                      <Image
+                        src={p.photo}
+                        alt={p.fullName}
+                        fill
+                        sizes="(max-width: 720px) 100vw, (max-width: 1100px) 50vw, 25vw"
+                        style={{ objectFit: 'cover' }}
+                      />
                     ) : (
-                      <Link
-                        href={profileHref}
-                        style={{
-                          fontSize: 13,
-                          fontWeight: 600,
-                          color: 'var(--c-ink)',
-                        }}
-                      >
-                        {editorialText('editorialPlannersViewProfile')} <Icons.arrow size={12} />
-                      </Link>
+                      <div style={avatarGradientStyle}>
+                        <div style={avatarShineStyle} />
+                        <span style={avatarInitialsStyle}>
+                          {p.fullName.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()}
+                        </span>
+                      </div>
                     )}
                   </div>
-                </article>
+                  <div>
+                    <h4>{p.fullName}</h4>
+                    <div className="planner-role">{role}</div>
+                  </div>
+                  <p className="planner-quote">&ldquo;{quote}&rdquo;</p>
+                  {langs.length > 0 ? (
+                    <div className="planner-langs">
+                      {langs.map((l) => <span key={l} className="lg">{l}</span>)}
+                    </div>
+                  ) : null}
+                </Link>
               );
             })}
           </div>
@@ -292,77 +235,49 @@ export function PlannersSection({
   );
 }
 
-// ---------- Inline styles (keep close to designer spec) ----------
-
-const headerStyle: CSSProperties = {
-  textAlign: 'center',
-  marginBottom: 48,
-  maxWidth: '68ch',
-  marginInline: 'auto',
-};
+// ---------- Inline styles ----------
 
 const titleStyle: CSSProperties = {
   fontFamily: 'var(--font-display)',
   fontWeight: 500,
-  fontSize: 'clamp(30px, 4vw, 44px)',
+  fontSize: 'clamp(28px, 3.5vw, 40px)',
   letterSpacing: '-0.02em',
   lineHeight: 1.1,
-  margin: '12px 0 14px',
+  margin: '8px 0 0',
+  maxWidth: '18ch',
 };
 
 const subtitleStyle: CSSProperties = {
-  color: 'var(--c-ink-2)',
   fontSize: 17,
+  color: 'var(--c-ink-2)',
+  maxWidth: '40ch',
   lineHeight: 1.55,
-  margin: '0 auto',
-  maxWidth: '52ch',
+  margin: 0,
 };
 
-const viewAllRowStyle: CSSProperties = {
-  display: 'flex',
-  justifyContent: 'center',
-  marginTop: 24,
-};
-
-const gridStyle: CSSProperties = {
-  display: 'grid',
-  gap: 20,
-  gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
-};
-
-const cardLinkStyle: CSSProperties = {
-  color: 'inherit',
-  textDecoration: 'none',
-  display: 'flex',
-  flexDirection: 'column',
-  flex: 1,
-};
-
-function avatarStyle(hasPhoto: boolean): CSSProperties {
-  return {
-    width: 72,
-    height: 72,
-    borderRadius: '50%',
-    background: hasPhoto
-      ? 'transparent'
-      : 'linear-gradient(135deg, var(--c-accent), var(--c-primary))',
-    position: 'relative',
-    overflow: 'hidden',
-    boxShadow:
-      '0 0 0 3px var(--c-surface), 0 6px 20px rgba(0,0,0,.1)',
-  };
-}
-
-const avatarInitialsStyle: CSSProperties = {
-  position: 'absolute',
-  inset: 0,
+const avatarGradientStyle: CSSProperties = {
+  width: '100%',
+  height: '100%',
+  background: 'linear-gradient(135deg, var(--c-accent), var(--c-primary))',
+  position: 'relative',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
+};
+
+const avatarShineStyle: CSSProperties = {
+  position: 'absolute',
+  inset: 0,
+  background: 'radial-gradient(circle at 30% 30%, rgba(255,255,255,.2), transparent 60%)',
+};
+
+const avatarInitialsStyle: CSSProperties = {
+  position: 'relative',
   color: '#fff',
   fontFamily: 'var(--font-display)',
   fontWeight: 500,
-  fontSize: 22,
+  fontSize: 32,
+  zIndex: 1,
 };
 
 const emptyStyle: CSSProperties = {
