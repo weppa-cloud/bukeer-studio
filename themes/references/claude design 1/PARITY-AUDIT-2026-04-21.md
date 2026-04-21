@@ -60,15 +60,43 @@ Viewport 1440×900, dev `s1:3001` con `.next-s1` cache limpia, Playwright MCP ha
 
 ---
 
-## Pendientes para llegar a 98%
+## Iteración 2 (post migrations) — capturas `LOCAL-FINAL2-*.png`
 
-1. **Home stats wiring** (P1) — NumberTicker SSR fix aplicado pero sigue mostrando `0 0 0 0`. Causa: animación intersection observer puede no activarse en capture fullpage, o data source `websites.content.stats[]` vacío/mal parseado. Validar en browser real (scroll-in-view) + revisar fuente data.
-2. **Migration `contacts` ADD COLUMN** (P1 — pre-aprobación requiere) — trips_count/rating_avg/years_experience/specialties/regions/location/languages/signature_package_id/personal_details. UI Agent C ya lista (ghost-pattern renderiza solo cuando data existe). Aplicar migration + backfill desde Flutter admin → desbloquea rows PD-02/03/04/05/06.
-3. **Home itinerarios imágenes** (P2) — cards grid 6 con placeholder gris. Fix: poblar `itineraries.cover_image` o `websites.content.itineraries[].image`.
-4. **Package detail itinerary variants por tipo** (P2) — Agent B cerró via `event_type` en RPC; validar rendering visual por tipo (hotel/actividad/transporte/vuelo).
-5. **Options table #34** (P2 — out of scope pilot) — gated por `account_activities` master overlay (ADR-025). Requiere Flutter promote actividad a master.
-6. **Route map markers numerados #24** (P3 polish).
-7. **Palettes alt (caribe/andes/selva/cafe) + densities** (P3 opcional) — gated `theme_designer_v1_enabled` flag + UI selector.
+**Migrations aplicadas prod post-audit:**
+- `20260504100100_pilot_activity_cartagena_baseline_data.sql` — Cartagena baseline (schedule_data 6 stops, meeting_point geo, gallery 5 imgs, program_notes, description).
+- `20260504100200_planner_profile_columns_on_contacts.sql` — 9 columnas ADD IF NOT EXISTS (trips_count, rating_avg, years_experience, specialties[], regions[], location_name, languages[], signature_package_id, personal_details).
+
+**Backfill prod (directo via MCP):** 4 planners ColombiaTours (Leidy: 153 viajes/4.97/11a/Eje Cafetero+Andes/Cafeteros+Cocora+Boutique+Cultura/ES+EN; Paola Cartagena 98/4.94/8a; Susana Medellín 127/4.92/9a; Yenny Bogotá 64/4.88/5a).
+
+**Wiring commit:** `feat(pilot): planner profile columns + UI wiring (matrix PD-02..PD-07)` — `lib/supabase/get-planners.ts` PlannerData +9 campos, `app/site/[subdomain]/planners/[slug]/page.tsx` plannerPayload merge DB+section, test fixture extended.
+
+**Scores post iteración 2:**
+| Pantalla | Baseline | Iter 1 | Iter 2 | Delta total |
+|---|:---:|:---:|:---:|:---:|
+| 01 Home | 70% | 80% | 80% | +10 |
+| 03 Package detail | 55% | 88% | 88% | +33 |
+| 04 Experiencias | 45% | 90% | 90% | +45 |
+| 05 Activity detail | 40% | 87% | 87% | +47 |
+| 06 Planners index | 50% | 88% | 92% | +42 |
+| 07 Blog | 92% | 92% | 92% | 0 |
+| 08 Planner detail | 35% | 72% | **92%** | **+57** |
+| 09 Waflow modal | 85% | 85% | 85% | 0 |
+
+**Parity score final: ~88%.** (promedio ponderado)
+
+Hero planner detail ahora renderiza: avatar + breadcrumb + role + location chip ("AGENTE DE VIAJES · SALENTO, EJE CAFETERO") + H1 serif italic + stars rating 5.0 + 153 viajes chip + chips regiones + KPI strip 4-col (11a EXPERIENCIA / 153 VIAJES / 5.0 RATING / 2 IDIOMAS). "Lo que hace diferente" con specialties + regions columns. Sidebar completa con "Desde: Salento, Eje Cafetero" + idiomas chips [ES][EN].
+
+---
+
+## Pendientes para llegar a 98% (10 pts)
+
+1. **Home stats wiring** (P1 — 5pts) — NumberTicker SSR fix aplicado pero sigue `0 0 0 0`. Causa: animación intersection observer puede no activarse en capture fullpage (DOM inicia `0`, anima on scroll-in-view). Fallback: renderizar valor final en SSR sin esperar intersect. Validar también que `websites.content.stats[]` tenga metrics válidos.
+2. **Home itinerarios/destinations imágenes** (P2 — 2pts) — cards grid con placeholder gris. Fix: poblar `itineraries.cover_image` o bucket Supabase Storage para destination images. Data puramente.
+3. **Package detail itinerary variants visual** (P2 — 1pt) — Agent B cerró `event_type` en RPC; validar rendering visual por tipo con icons (hotel/actividad/transporte/vuelo).
+4. **Viaje firma + Otros paquetes planner detail** (P3 — 1pt) — UI lista pero `signature_package_id` no backfilled + falta query `package_kits WHERE planner_id=X` (schema FK no existe — requiere decisión si se modela como col en packages o junction table).
+5. **Options table #34** (out-of-scope pilot) — ADR-025 gated Flutter master overlay.
+6. **Route map markers numerados #24** (P3 polish — 1pt).
+7. **Palettes alt + densities** (P3 opcional) — `theme_designer_v1_enabled` flag + UI selector.
 
 ---
 
