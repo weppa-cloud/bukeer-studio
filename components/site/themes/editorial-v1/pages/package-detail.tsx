@@ -31,12 +31,12 @@
  * re-emit any of those here to avoid duplicate JSON-LD blocks.
  */
 
-import type { ReactNode } from 'react';
+import React, { type ReactNode } from 'react';
 import type { WebsiteData } from '@/lib/supabase/get-website';
 import type { ProductData, ScheduleEventType } from '@bukeer/website-contract';
 import { ColombiaMap, type ColombiaMapPin } from '../maps/colombia-map';
 import { Eyebrow } from '../primitives/eyebrow';
-import { Breadcrumbs } from '../primitives/breadcrumbs';
+import { PackageStatsBar } from '../primitives/package-stats-bar';
 import { HotelCard } from '@/components/site/product-detail/p2/hotel-card';
 import { FlightRow } from '@/components/site/product-detail/p2/flight-row';
 import { DayEventTimeline } from '@/components/site/product-detail/p2/day-event-timeline';
@@ -281,7 +281,7 @@ export function EditorialPackageDetail({
     return <>{children}</>;
   }
 
-  const { product, basePath, displayName, displayLocation } = resolvedPayload;
+  const { product } = resolvedPayload;
   const itineraryItems = Array.isArray(product.itinerary_items)
     ? (product.itinerary_items as ReadonlyArray<Record<string, unknown>>)
     : [];
@@ -292,31 +292,29 @@ export function EditorialPackageDetail({
   const timelineGroups = groupByDay(timelineItems);
   const mapPins = buildMapPins(product);
 
-  const breadcrumbItems = [
-    { label: editorialText('editorialBreadcrumbHome'), href: `${basePath}/` },
-    { label: editorialText('editorialBreadcrumbPackages'), href: `${basePath}/paquetes` },
-    { label: displayName },
-  ];
-
   return (
     <div
       data-template-set="editorial-v1"
       data-editorial-variant="package-detail"
       className="editorial-package-detail"
     >
-      {/* Generic body: hero, gallery, pricing, CTA, WhatsApp flow, SEO schemas */}
+      {/* Generic body: hero, pricing sidebar, description, includes/excludes,
+          FAQ, related carousel, WhatsApp flow, SEO schemas.
+          suppressEditorialSections removes highlights/gallery/generic-timeline
+          so the editorial sections below are the canonical itinerary view. */}
       {children}
 
-      {/* Editorial overlay sections — appended after the generic body so the
-          generic component continues to own SEO/ISR/state. */}
+      {/* Editorial overlay — rendered after the generic body. */}
       <div className="mx-auto max-w-7xl px-6 pb-16 space-y-16">
-        <section data-testid="editorial-package-breadcrumbs" className="pt-4">
-          <Breadcrumbs items={breadcrumbItems} />
-          {displayLocation ? (
-            <p className="mt-2 text-sm" style={{ color: 'var(--c-ink-2)' }}>
-              {displayLocation}
-            </p>
-          ) : null}
+        <section data-testid="editorial-package-stats" className="pt-4">
+          <PackageStatsBar
+            nights={product.duration_nights ?? null}
+            days={product.duration_days ?? null}
+            destinationsCount={mapPins.length > 0 ? mapPins.length : null}
+            rating={product.rating ?? null}
+            reviewCount={product.review_count ?? null}
+            locale={resolvedLocale}
+          />
         </section>
 
         {mapPins.length > 0 ? (
@@ -341,9 +339,6 @@ export function EditorialPackageDetail({
                   key={`day-${idx}-${group.day ?? 'single'}`}
                   day={group.day}
                   events={group.entries.map((item) => {
-                    // Keep ScheduleEntry shape for the declared prop, but pass
-                    // variant-specific extended fields as loosely-typed extras
-                    // consumed by day-event-timeline.
                     const extras: Record<string, unknown> = {};
                     if (item.marketing_carrier) extras.marketing_carrier = item.marketing_carrier;
                     if (item.flight_number) extras.flight_number = item.flight_number;

@@ -34,10 +34,19 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 
-import { ColombiaMapLibre } from '@/components/site/themes/editorial-v1/maps/colombia-maplibre.client';
 import type { ColombiaMapPin } from '@/components/site/themes/editorial-v1/maps/colombia-maplibre.client';
+
+// Dynamic import — maplibre-gl requires window (no SSR)
+const ColombiaMapLibre = dynamic(
+  () =>
+    import('@/components/site/themes/editorial-v1/maps/colombia-maplibre.client').then(
+      (m) => ({ default: m.ColombiaMapLibre }),
+    ),
+  { ssr: false, loading: () => <div style={{ height: 580, borderRadius: 16, background: '#F5F1E8' }} /> },
+);
 import { COLOMBIA_CITIES } from '@/lib/maps/colombia-cities';
 import type { ColombiaRegion } from '@/lib/maps/colombia-cities';
 import { Icons } from '@/components/site/themes/editorial-v1/primitives/icons';

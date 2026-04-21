@@ -38,55 +38,61 @@ export function project({ lat, lng }: { lat: number; lng: number }): {
 }
 
 /**
- * Hand-built Colombia silhouette. Guajira peninsula pokes NE, Pacific
- * coast bulges W, Amazonas tapers SE. Coordinates live in the 800×1000
- * viewBox matching `project()`.
+ * Colombia silhouette — 60+ geographic points projected into the 800×1000
+ * viewBox. Clockwise from Punta Gallinas (NE tip, La Guajira):
+ *   Caribbean coast → Panama border → Pacific coast → Ecuador/Peru border
+ *   → Leticia (S tip) → Brazil border → Venezuela border → back to start.
+ *
+ * Coordinates derived from real lat/lng via project():
+ *   x = ((lng + 82.5) / 16) * 800
+ *   y = 1000 - ((lat + 4.8) / 18) * 1000
  */
 export const COLOMBIA_PATH = [
-  'M 580 92',
-  'L 612 118',
-  'L 602 160',
-  'L 568 182',
-  'L 540 186',
-  'L 512 196',
-  'L 486 208',
-  'L 472 232',
-  'L 450 258',
-  'L 432 284',
-  'L 402 312',
-  'L 380 352',
-  'L 362 404',
-  'L 348 454',
-  'L 338 498',
-  'L 328 548',
-  'L 352 576',
-  'L 390 610',
-  'L 432 636',
-  'L 470 672',
-  'L 508 710',
-  'L 554 760',
-  'L 598 812',
-  'L 632 862',
-  'L 656 906',
-  'L 664 938',
-  'L 700 910',
-  'L 728 862',
-  'L 748 806',
-  'L 762 744',
-  'L 756 684',
-  'L 738 628',
-  'L 718 578',
-  'L 708 528',
-  'L 702 478',
-  'L 692 428',
-  'L 678 386',
-  'L 660 346',
-  'L 640 304',
-  'L 624 264',
-  'L 612 220',
-  'L 602 186',
-  'L 598 156',
-  'L 588 124',
+  // ── NE tip: Punta Gallinas / La Guajira peninsula ──
+  'M 542 42',
+  'L 525 53', 'L 516 56',
+  // ── Caribbean coast going W ──
+  'L 480 92',                        // Riohacha
+  'L 423 104', 'L 415 108',          // Santa Marta
+  'L 385 124',                       // Barranquilla
+  'L 361 141',
+  'L 348 154', 'L 345 164',          // Cartagena
+  'L 344 202', 'L 348 220',          // Golfo Morrosquillo
+  'L 314 241',                       // Arboletes
+  'L 265 253',                       // Panama border (Cabo Tiburón)
+  // ── Pacific coast going S ──
+  'L 257 274', 'L 234 338',          // N Pacific
+  'L 256 388',                       // Bahía Solano
+  'L 248 424', 'L 248 430',          // Cabo Corrientes
+  'L 257 480',
+  'L 271 516', 'L 262 527',          // Buenaventura
+  'L 225 591',                       // Guapi
+  'L 187 631',                       // Tumaco
+  'L 182 651',                       // Ecuador border (Pacific)
+  // ── Ecuador border going E ──
+  'L 216 669', 'L 250 685',
+  'L 273 700', 'L 361 733',          // Ecuador–Peru tripoint
+  // ── Peru border going SE toward Leticia ──
+  'L 400 767',                       // along Putumayo
+  'L 500 822',
+  'L 550 878',
+  'L 620 956',                       // Colombia–Peru–Brazil triple point
+  'L 628 967',                       // Leticia (southernmost)
+  // ── Brazil border going NE ──
+  'L 624 933', 'L 623 844',
+  'L 632 771',
+  'L 783 659',                       // Brazil–Venezuela junction
+  // ── Venezuela border going W/NW ──
+  'L 749 622', 'L 714 621',
+  'L 633 641',
+  'L 737 553',                       // Inírida area
+  'L 742 497', 'L 736 441',
+  'L 750 391', 'L 705 351',
+  'L 627 313',                       // Arauca llanos
+  'L 499 295', 'L 521 288',          // Cúcuta area
+  'L 474 249', 'L 474 209',          // Serranía del Perijá
+  'L 492 186', 'L 475 152',
+  'L 508 118',                       // back toward Guajira
   'Z',
 ].join(' ');
 
@@ -105,16 +111,22 @@ export const SAN_ANDRES_ISLANDS: ReadonlyArray<{
  * Soft dashed lines in the editorial variant.
  */
 export const ANDES_RIDGES: ReadonlyArray<string> = [
-  'M 420 296 Q 408 400 396 498 Q 388 572 372 620',
-  'M 468 260 Q 452 360 438 460 Q 428 542 420 610',
-  'M 540 266 Q 556 360 568 456 Q 574 536 566 608',
+  // Western cordillera (Chocó → Valle → Nariño)
+  'M 310 280 Q 298 380 290 480 Q 284 560 280 630',
+  // Central cordillera (Antioquia → Eje Cafetero → Huila)
+  'M 360 275 Q 348 375 338 475 Q 330 555 322 630',
+  // Eastern cordillera (Santander → Bogotá → Nariño)
+  'M 470 258 Q 482 350 488 450 Q 492 530 488 610',
 ];
 
 /** Rivers — Magdalena (north-bound), Amazonas (east), Orinoco (NE llanos). */
 export const RIVERS: ReadonlyArray<string> = [
-  'M 500 580 Q 504 480 508 380 Q 510 300 512 212',
-  'M 540 830 Q 600 850 660 900',
-  'M 660 400 Q 700 350 740 320',
+  // Río Magdalena — flows N from Andes into Caribbean near Barranquilla
+  'M 420 640 Q 418 540 420 440 Q 422 360 380 240',
+  // Río Amazonas / Putumayo — eastward across south
+  'M 490 820 Q 560 840 628 880',
+  // Río Orinoco / Meta — NE through llanos
+  'M 627 313 Q 670 360 700 390',
 ];
 
 /**
@@ -123,73 +135,12 @@ export const RIVERS: ReadonlyArray<string> = [
  * NOT a cartographic boundary — purely illustrative.
  */
 export const REGION_PATHS: Record<EditorialRegion, string> = {
-  caribe: [
-    'M 486 208',
-    'L 472 232',
-    'L 450 258',
-    'L 432 284',
-    'L 540 186',
-    'L 568 182',
-    'L 602 160',
-    'L 612 118',
-    'L 580 92',
-    'L 588 124',
-    'L 598 156',
-    'L 602 186',
-    'L 612 220',
-    'L 560 240',
-    'L 512 196',
-    'Z',
-  ].join(' '),
-  andes: [
-    'M 432 284',
-    'L 402 312',
-    'L 380 352',
-    'L 362 404',
-    'L 348 454',
-    'L 338 498',
-    'L 328 548',
-    'L 352 576',
-    'L 390 610',
-    'L 432 636',
-    'L 500 580',
-    'L 540 480',
-    'L 540 380',
-    'L 500 300',
-    'L 460 270',
-    'Z',
-  ].join(' '),
-  pacifico: [
-    'M 432 284',
-    'L 402 312',
-    'L 380 352',
-    'L 362 404',
-    'L 348 454',
-    'L 338 498',
-    'L 328 548',
-    'L 352 576',
-    'L 380 540',
-    'L 372 468',
-    'L 392 400',
-    'L 412 340',
-    'Z',
-  ].join(' '),
-  selva: [
-    'M 432 636',
-    'L 470 672',
-    'L 508 710',
-    'L 554 760',
-    'L 598 812',
-    'L 632 862',
-    'L 656 906',
-    'L 664 938',
-    'L 700 910',
-    'L 728 862',
-    'L 748 806',
-    'L 762 744',
-    'L 700 720',
-    'L 620 700',
-    'L 540 680',
-    'Z',
-  ].join(' '),
+  // Caribbean coastal strip — N Colombia, y < ~280
+  caribe: 'M 542 42 L 265 253 L 310 280 L 400 270 L 474 249 L 508 118 Z',
+  // Pacific coastal strip — narrow W coast
+  pacifico: 'M 265 253 L 182 651 L 310 640 L 340 430 L 310 280 Z',
+  // Andean mountain belt — central Colombia (Medellín, Bogotá, Cali corridor)
+  andes: 'M 310 280 L 310 640 L 361 733 L 490 820 L 520 620 L 500 380 L 474 249 L 400 270 Z',
+  // Amazon / Orinoco lowlands — SE large area
+  selva: 'M 500 380 L 520 620 L 490 820 L 628 967 L 783 659 L 736 441 L 627 313 L 474 249 Z',
 };
