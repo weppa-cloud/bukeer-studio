@@ -11,6 +11,8 @@ import { GoogleTagManager, GoogleTagManagerBody } from '@/components/analytics/g
 import { buildNavTree, getDefaultNavigation } from '@/lib/utils/navigation';
 import { getBasePath } from '@/lib/utils/base-path';
 import type { ThemeInput } from '@/lib/theme/m3-theme-provider';
+import { compileTheme } from '@bukeer/theme-sdk';
+import type { DesignTokens, ThemeProfile } from '@bukeer/theme-sdk';
 import { resolvePublicMetadataLocale } from '@/lib/seo/public-metadata';
 import { localeToOgLocale } from '@/lib/seo/locale-routing';
 import { WebsiteLocaleProvider } from '@/components/site/website-locale-provider';
@@ -36,6 +38,31 @@ function getInitialTheme(theme: { tokens: Record<string, unknown>; profile: Reco
     tokens: theme.tokens as ThemeInput['tokens'],
     profile: theme.profile as ThemeInput['profile'],
   };
+}
+
+/** Generate a :root { } CSS block from theme tokens so CSS vars are available
+ *  before any JS executes, preventing the mount-time style recalculation from
+ *  blocking LCP paint. */
+function generateThemeCSS(themeInput: ThemeInput | undefined): string {
+  if (!themeInput) return '';
+  try {
+    const compiled = compileTheme(
+      themeInput.tokens as DesignTokens,
+      themeInput.profile as ThemeProfile,
+      { target: 'web' },
+    );
+    if (!compiled.web) return '';
+    const vars: string[] = [];
+    for (const v of [...compiled.web.invariant, ...compiled.web.light]) {
+      vars.push(`--${v.name}:${v.value}`);
+    }
+    for (const [k, v] of Object.entries(compiled.web.dataAttributes)) {
+      vars.push(`--data-${k}:${v}`);
+    }
+    return vars.length ? `:root{${vars.join(';')}}` : '';
+  } catch {
+    return '';
+  }
 }
 
 // Generate metadata for SEO
@@ -121,6 +148,7 @@ export default async function SiteLayout({ children, params }: SiteLayoutProps) 
     effective_theme?: { tokens: Record<string, unknown>; profile: Record<string, unknown> };
   };
   const initialTheme = getInitialTheme(websiteWithEffectiveTheme.effective_theme ?? website.theme);
+  const themeCSS = generateThemeCSS(initialTheme);
   // Wave 1.1 plumbing: resolve opt-in template set (editorial-v1). When null we
   // skip the wrapper entirely to preserve byte-identical HTML for generic sites.
   // Wave 1.2: swap header/footer for the editorial variants when opted in.
@@ -178,6 +206,13 @@ export default async function SiteLayout({ children, params }: SiteLayoutProps) 
   );
 
   return (
+    <>
+      {/* Preconnect to common third-party origins */}
+      <link rel="preconnect" href="https://fonts.googleapis.com" />
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+      {/* Inline theme CSS variables so they're available before JS, preventing
+          mount-time style recalculation from delaying LCP paint. */}
+      {themeCSS ? <style dangerouslySetInnerHTML={{ __html: themeCSS }} /> : null}
     <WebsiteLocaleProvider locale={localeContext.resolvedLocale}>
       <M3ThemeProvider initialTheme={initialTheme}>
         {/* Google Tag Manager and Analytics Scripts */}
@@ -190,6 +225,7 @@ export default async function SiteLayout({ children, params }: SiteLayoutProps) 
         )}
       </M3ThemeProvider>
     </WebsiteLocaleProvider>
+    </>
   );
 }
 

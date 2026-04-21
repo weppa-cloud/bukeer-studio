@@ -84,6 +84,7 @@ export function HeroSplit({
           alt={`${productTypeLabel} ${displayName}${displayLocation ? ` en ${displayLocation}` : ''}`}
           fill
           priority
+          fetchPriority="high"
           sizes="100vw"
           className="object-cover"
         />

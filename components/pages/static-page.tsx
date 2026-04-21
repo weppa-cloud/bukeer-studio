@@ -138,6 +138,7 @@ export function StaticPage({ website, page, dynamicDestinations = [] }: StaticPa
               fill
               className="object-cover"
               priority
+              fetchPriority="high"
               sizes="100vw"
             />
           )}
