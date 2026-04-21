@@ -150,7 +150,7 @@ export function EditorialDestinosListPage({
   payload,
 }: EditorialDestinosListProps): ReactElement {
   const resolvedLocale =
-    (website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale ?? 'es-CO';
+    (website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale ?? website.default_locale ?? website.content?.locale ?? 'es-CO';
   const editorialText = getPublicUiExtraTextGetter(resolvedLocale);
   const resolved = payload as EditorialDestinosListPagePayload | undefined;
   const destinations = Array.isArray(resolved?.destinations)

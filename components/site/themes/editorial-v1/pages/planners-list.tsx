@@ -124,7 +124,7 @@ export function EditorialPlannersListPage({
   brandClaims,
 }: EditorialPlannersListPageProps) {
   const resolvedLocale =
-    (website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale ?? 'es-CO';
+    (website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale ?? website.default_locale ?? website.content?.locale ?? 'es-CO';
   const editorialText = getPublicUiExtraTextGetter(resolvedLocale);
   const isEnglish = resolvedLocale.toLowerCase().startsWith('en');
   const basePath = getBasePath(website.subdomain, false);

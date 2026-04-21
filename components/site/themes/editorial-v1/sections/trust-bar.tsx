@@ -131,7 +131,7 @@ export function TrustBarSection({
   website,
 }: EditorialTrustBarSectionProps): ReactElement | null {
   const editorialText = getEditorialTextGetter(website);
-  const locale = (website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale || 'es-CO';
+  const locale = (website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale || website.default_locale || website.content?.locale || 'es-CO';
   const content = (section.content || {}) as TrustBarContent;
 
   const authoredItems: TrustBarItem[] = Array.isArray(content.items)

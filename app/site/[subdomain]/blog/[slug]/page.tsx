@@ -25,26 +25,30 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
   const website = await getWebsiteBySubdomain(subdomain);
 
   if (!website) {
-    return { title: getPublicUiMessages('es-CO').blogPost.notFoundTitle };
+    return { title: getPublicUiMessages(undefined).blogPost.notFoundTitle };
   }
+  const localeContext = await resolvePublicMetadataLocale(website, `/blog/${slug}`);
+  const messages = getPublicUiMessages(localeContext.resolvedLocale);
 
   const post = await getBlogPostBySlug(website.id, slug);
 
   if (!post) {
-    return { title: getPublicUiMessages('es-CO').blogPost.notFoundTitle };
+    return { title: messages.blogPost.notFoundTitle };
   }
 
   const baseUrl = website.custom_domain
     ? `https://${website.custom_domain}`
     : `https://${subdomain}.bukeer.com`;
   const blogPath = `/blog/${post.slug}`;
-  const localeContext = await resolvePublicMetadataLocale(website, blogPath);
-  const messages = getPublicUiMessages(localeContext.resolvedLocale);
-  const localizedBlogPath = localeContext.localizedPathname;
+  const localizedLocaleContext = blogPath === `/blog/${slug}`
+    ? localeContext
+    : await resolvePublicMetadataLocale(website, blogPath);
+  const localizedMessages = getPublicUiMessages(localizedLocaleContext.resolvedLocale);
+  const localizedBlogPath = localizedLocaleContext.localizedPathname;
   const canonical = `${baseUrl}${localizedBlogPath}`;
-  const languages = buildLocaleAwareAlternateLanguages(baseUrl, blogPath, localeContext);
+  const languages = buildLocaleAwareAlternateLanguages(baseUrl, blogPath, localizedLocaleContext);
   const siteName = website.content?.account?.name || website.content?.siteName || subdomain;
-  const title = post.seo_title || post.title || messages.blogPost.notFoundTitle;
+  const title = post.seo_title || post.title || localizedMessages.blogPost.notFoundTitle;
   const description = post.seo_description || post.excerpt;
 
   const ogImage = resolveOgImage(website, post.featured_image);
@@ -60,7 +64,7 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
       title,
       description,
       type: 'article',
-      locale: localeToOgLocale(localeContext.resolvedLocale),
+      locale: localeToOgLocale(localizedLocaleContext.resolvedLocale),
       siteName,
       url: canonical,
       publishedTime: post.published_at || undefined,

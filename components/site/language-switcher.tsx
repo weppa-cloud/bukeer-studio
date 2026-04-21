@@ -11,6 +11,7 @@ import {
 import { getPublicUiMessages } from '@/lib/site/public-ui-messages';
 import {
   buildPublicLocalizedPath,
+  extractWebsiteLocaleSettings,
   localeToLanguage,
   resolveLocaleFromPublicPath,
   translateCategoryPathname,
@@ -33,6 +34,16 @@ export function LanguageSwitcher({
   supportedLocales,
   selectLanguageAriaLabel,
 }: LanguageSwitcherProps) {
+  const localeSettings = useMemo(
+    () =>
+      extractWebsiteLocaleSettings({
+        default_locale: defaultLocale ?? null,
+        supported_locales: supportedLocales ?? null,
+        locale: currentLocale ?? null,
+      }),
+    [currentLocale, defaultLocale, supportedLocales],
+  );
+
   const localeOptions = useMemo(() => {
     if (!Array.isArray(locales) || locales.length === 0) {
       return resolveSiteMenuLocales({ contentLocale: currentLocale });
@@ -69,22 +80,25 @@ export function LanguageSwitcher({
     if (!newLocale || newLocale === normalizedLocale) return;
     if (typeof window === 'undefined') return;
     window.localStorage.setItem(SITE_LANG_STORAGE_KEY, newLocale);
-    const defLoc = defaultLocale ?? 'es-CO';
     const { pathnameWithoutLang } = resolveLocaleFromPublicPath(
       window.location.pathname,
-      { defaultLocale: defLoc, supportedLocales: supportedLocales ?? [] },
+      localeSettings,
     );
     const translatedPath = translateCategoryPathname(
       pathnameWithoutLang,
       localeToLanguage(newLocale),
     );
-    const targetPath = buildPublicLocalizedPath(translatedPath, newLocale, defLoc);
+    const targetPath = buildPublicLocalizedPath(
+      translatedPath,
+      newLocale,
+      localeSettings.defaultLocale,
+    );
     // Preserve currency query; drop lang (now in path)
     const params = new URLSearchParams(window.location.search);
     params.delete(SITE_LANG_QUERY_PARAM);
     const query = params.toString();
     window.location.href = query ? `${targetPath}?${query}` : targetPath;
-  }, [normalizedLocale, defaultLocale, supportedLocales]);
+  }, [normalizedLocale, localeSettings]);
 
   return (
     <select

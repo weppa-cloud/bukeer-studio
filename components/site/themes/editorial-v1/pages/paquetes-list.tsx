@@ -118,7 +118,7 @@ export function EditorialPaquetesListPage({
   packages,
 }: EditorialPaquetesListPageProps) {
   const resolvedLocale =
-    (website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale ?? 'es-CO';
+    (website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale ?? website.default_locale ?? website.content?.locale ?? 'es-CO';
   const editorialText = getPublicUiExtraTextGetter(resolvedLocale);
   const heroCopy = getHeroCopy(resolvedLocale);
   const basePath = getBasePath(website.subdomain, false);

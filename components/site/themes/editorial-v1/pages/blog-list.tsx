@@ -24,6 +24,7 @@ import { Eyebrow } from '@/components/site/themes/editorial-v1/primitives/eyebro
 import { Breadcrumbs } from '@/components/site/themes/editorial-v1/primitives/breadcrumbs';
 import { Icons } from '@/components/site/themes/editorial-v1/primitives/icons';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
+import { formatPublicDate } from '@/lib/site/public-ui-messages';
 
 import { BlogListToolbar } from './blog-list-toolbar.client';
 
@@ -41,11 +42,11 @@ export interface EditorialBlogListPageProps {
   sort?: string | null;
 }
 
-function formatDate(raw: string | null | undefined): string {
+function formatDate(raw: string | null | undefined, localeLike: string): string {
   if (!raw) return '';
   const d = new Date(raw);
   if (Number.isNaN(d.valueOf())) return '';
-  return d.toLocaleDateString('es-CO', {
+  return formatPublicDate(d, localeLike, {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
@@ -81,6 +82,8 @@ export function EditorialBlogListPage({
   const resolvedLocale =
     locale
     || (website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale
+    || website.default_locale
+    || website.content?.locale
     || 'es-CO';
   const editorialText = getPublicUiExtraTextGetter(resolvedLocale);
   const DEFAULT_EYEBROW = editorialText('editorialBlogListEyebrow');
@@ -186,7 +189,7 @@ export function EditorialBlogListPage({
                     <>
                       {featured.author_name ? <span aria-hidden="true">·</span> : null}
                       <time dateTime={featured.published_at}>
-                        {formatDate(featured.published_at)}
+                        {formatDate(featured.published_at, resolvedLocale)}
                       </time>
                     </>
                   ) : null}
@@ -281,7 +284,7 @@ export function EditorialBlogListPage({
                           <>
                             {post.author_name ? <span aria-hidden="true">·</span> : null}
                             <time dateTime={post.published_at}>
-                              {formatDate(post.published_at)}
+                              {formatDate(post.published_at, resolvedLocale)}
                             </time>
                           </>
                         ) : null}

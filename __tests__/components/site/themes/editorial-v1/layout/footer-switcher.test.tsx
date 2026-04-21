@@ -135,4 +135,18 @@ describe('editorial-v1 <FooterSwitcher>', () => {
     // Currency code still present
     expect(html).toContain('>COP<');
   });
+
+  it('uses resolvedLocale over content.locale for footer locale label', () => {
+    const html = renderToStaticMarkup(
+      React.createElement(FooterSwitcher, {
+        website: makeWebsite({
+          content: { ...makeWebsite().content, locale: 'es-CO' },
+          resolvedLocale: 'en-US',
+        } as unknown as Partial<WebsiteData>),
+      }),
+    );
+
+    expect(html).toContain('English');
+    expect(html).toContain('🇺🇸');
+  });
 });

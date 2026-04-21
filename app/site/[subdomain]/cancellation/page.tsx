@@ -6,6 +6,7 @@ import { SafeHtml } from '@/lib/sanitize';
 import { getBasePath } from '@/lib/utils/base-path';
 import { getDefaultLegalContent } from '@/lib/legal-defaults';
 import { getPublicUiMessages } from '@/lib/site/public-ui-messages';
+import { resolvePublicMetadataLocale } from '@/lib/seo/public-metadata';
 
 interface CancellationPageProps {
   params: Promise<{ subdomain: string }>;
@@ -16,12 +17,12 @@ export async function generateMetadata({ params }: CancellationPageProps): Promi
   const website = await getWebsiteBySubdomain(subdomain);
 
   if (!website) {
-    return { title: getPublicUiMessages('es-CO').legalPages.siteNotFoundTitle };
+    return { title: getPublicUiMessages(undefined).legalPages.siteNotFoundTitle };
   }
 
   const siteName = website.content.account?.name || website.content.siteName;
-  const locale = (website.content as { locale?: string } | undefined)?.locale ?? 'es-CO';
-  const messages = getPublicUiMessages(locale);
+  const localeContext = await resolvePublicMetadataLocale(website, '/cancellation');
+  const messages = getPublicUiMessages(localeContext.resolvedLocale);
 
   return {
     title: messages.legalPages.cancellationTitle,
@@ -40,8 +41,8 @@ export default async function CancellationPage({ params }: CancellationPageProps
 
   const basePath = getBasePath(subdomain);
   const siteName = website.content.account?.name || website.content.siteName;
-  const locale = (website.content as { locale?: string } | undefined)?.locale ?? 'es-CO';
-  const messages = getPublicUiMessages(locale);
+  const localeContext = await resolvePublicMetadataLocale(website, '/cancellation');
+  const messages = getPublicUiMessages(localeContext.resolvedLocale);
   const customContent = website.content.account?.legal?.cancellation_policy;
 
   // If content is a URL, redirect to it
@@ -50,7 +51,7 @@ export default async function CancellationPage({ params }: CancellationPageProps
   }
 
   // Use custom content if available, otherwise show default placeholder
-  const legalContent = customContent || getDefaultLegalContent('cancellation', siteName);
+  const legalContent = customContent || getDefaultLegalContent('cancellation', siteName, localeContext.resolvedLocale);
 
   return (
     <article className="section-padding">

@@ -151,4 +151,18 @@ describe('<EditorialBlogDetailPage />', () => {
     );
     expect(markup).not.toContain('data-testid="blog-author-card"');
   });
+
+  it('formats published date using contextual locale', () => {
+    const markup = renderToStaticMarkup(
+      <EditorialBlogDetailPage
+        website={makeWebsite()}
+        subdomain="acme"
+        locale="en-US"
+        post={POST}
+        related={[]}
+      />,
+    );
+
+    expect(markup).toContain('March');
+  });
 });

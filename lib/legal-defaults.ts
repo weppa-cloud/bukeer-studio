@@ -2,17 +2,19 @@
  * Default legal page content for websites that haven't configured custom legal pages.
  * Standard practice for website builders — show placeholder content instead of 404/redirect.
  */
+import { resolvePublicUiLocale } from '@/lib/site/public-ui-messages';
 
-function formatDate(): string {
-  return new Date().toLocaleDateString('es-ES', {
+function formatDate(localeLike?: string | null): string {
+  const locale = resolvePublicUiLocale(localeLike);
+  return new Intl.DateTimeFormat(locale, {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
-  });
+  }).format(new Date());
 }
 
-export function getDefaultTermsContent(siteName: string): string {
-  const date = formatDate();
+export function getDefaultTermsContent(siteName: string, localeLike?: string | null): string {
+  const date = formatDate(localeLike);
   return `<h1>Términos y Condiciones</h1>
 <p><em>Última actualización: ${date}</em></p>
 <p>Estos términos regulan el uso de este sitio web. Al acceder y utilizar este sitio, aceptas estos términos.</p>
@@ -28,9 +30,9 @@ export function getDefaultTermsContent(siteName: string): string {
 <p>Para consultas sobre estos términos, contáctanos a través del formulario del sitio.</p>`;
 }
 
-export function getDefaultPrivacyContent(siteName: string): string {
+export function getDefaultPrivacyContent(siteName: string, localeLike?: string | null): string {
   void siteName;
-  const date = formatDate();
+  const date = formatDate(localeLike);
   return `<h1>Política de Privacidad</h1>
 <p><em>Última actualización: ${date}</em></p>
 <h2>1. Información que Recopilamos</h2>
@@ -45,9 +47,9 @@ export function getDefaultPrivacyContent(siteName: string): string {
 <p>Para ejercer tus derechos sobre tus datos personales, contáctanos a través del formulario del sitio.</p>`;
 }
 
-export function getDefaultCancellationContent(siteName: string): string {
+export function getDefaultCancellationContent(siteName: string, localeLike?: string | null): string {
   void siteName;
-  const date = formatDate();
+  const date = formatDate(localeLike);
   return `<h1>Política de Cancelación</h1>
 <p><em>Última actualización: ${date}</em></p>
 <p>Las políticas de cancelación varían según el servicio contratado y el proveedor. Consulta las condiciones específicas de cada reserva.</p>
@@ -59,14 +61,15 @@ export function getDefaultCancellationContent(siteName: string): string {
  */
 export function getDefaultLegalContent(
   type: 'terms' | 'privacy' | 'cancellation',
-  siteName: string
+  siteName: string,
+  localeLike?: string | null,
 ): string {
   switch (type) {
     case 'terms':
-      return getDefaultTermsContent(siteName);
+      return getDefaultTermsContent(siteName, localeLike);
     case 'privacy':
-      return getDefaultPrivacyContent(siteName);
+      return getDefaultPrivacyContent(siteName, localeLike);
     case 'cancellation':
-      return getDefaultCancellationContent(siteName);
+      return getDefaultCancellationContent(siteName, localeLike);
   }
 }

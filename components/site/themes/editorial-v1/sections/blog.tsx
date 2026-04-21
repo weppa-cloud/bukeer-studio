@@ -23,6 +23,7 @@ import type { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 import { Eyebrow } from '@/components/site/themes/editorial-v1/primitives/eyebrow';
 import { Icons } from '@/components/site/themes/editorial-v1/primitives/icons';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
+import { formatPublicDate } from '@/lib/site/public-ui-messages';
 
 export interface BlogTeaserPost {
   id: string;
@@ -50,11 +51,11 @@ interface BlogSectionContent {
   viewAllHref?: string | null;
 }
 
-function formatDate(raw: string | null | undefined): string {
+function formatDate(raw: string | null | undefined, localeLike: string): string {
   if (!raw) return '';
   const d = new Date(raw);
   if (Number.isNaN(d.valueOf())) return '';
-  return d.toLocaleDateString('es-CO', {
+  return formatPublicDate(d, localeLike, {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
@@ -74,7 +75,10 @@ export interface EditorialBlogSectionProps {
 
 export function BlogSection({ section, website }: EditorialBlogSectionProps) {
   const resolvedLocale =
-    (website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale || 'es-CO';
+    (website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale
+    || website.default_locale
+    || website.content?.locale
+    || 'es-CO';
   const editorialText = getPublicUiExtraTextGetter(resolvedLocale);
   const DEFAULT_EYEBROW = editorialText('editorialBlogEyebrowFallback');
   const DEFAULT_TITLE = editorialText('editorialBlogTitleFallback');
@@ -134,7 +138,7 @@ export function BlogSection({ section, website }: EditorialBlogSectionProps) {
           <div className="blog-grid" data-testid="blog-teaser-grid">
             {posts.map((post) => {
               const cat = categoryLabel(post.category);
-              const dateLabel = formatDate(post.publishedAt);
+              const dateLabel = formatDate(post.publishedAt, resolvedLocale);
               const href = `${basePath}/blog/${encodeURIComponent(post.slug)}`;
               return (
                 <article key={post.id} className="blog-card">

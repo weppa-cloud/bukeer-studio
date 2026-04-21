@@ -87,7 +87,7 @@ export function TestimonialsSection({
   website,
 }: EditorialTestimonialsSectionProps): ReactElement | null {
   const editorialText = getEditorialTextGetter(website);
-  const locale = (website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale || 'es-CO';
+  const locale = (website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale || website.default_locale || website.content?.locale || 'es-CO';
   const content = (section.content || {}) as TestimonialsContent;
 
   const raw = Array.isArray(content.testimonials) ? content.testimonials : [];

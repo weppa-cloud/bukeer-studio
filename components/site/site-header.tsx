@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState, useEffect, useCallback } from 'react';
-import { usePathname } from 'next/navigation';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { WebsiteData } from '@/lib/supabase/get-website';
 import { getBasePath } from '@/lib/utils/base-path';
 import { resolveNavHref } from '@/lib/utils/navigation';
@@ -21,6 +21,7 @@ import {
 } from '@/lib/site/currency';
 import {
   buildPublicLocalizedPath,
+  extractWebsiteLocaleSettings,
   localeToLanguage,
   resolveLocaleFromPublicPath,
   translateCategoryPathname,
@@ -59,19 +60,29 @@ export function SiteHeader({ website, isCustomDomain = false, navigation }: Site
   const currentLogo = isTransparent ? logoForDark : logoForLight;
   const headerCta: HeaderCTA | undefined = content.headerCta;
   const phone = content.account?.phone || content.social?.whatsapp;
+  const resolvedLocale = (website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale ?? null;
+  const localeSettings = useMemo(
+    () =>
+      extractWebsiteLocaleSettings({
+        default_locale: website.default_locale ?? null,
+        supported_locales: website.supported_locales ?? null,
+        locale: resolvedLocale ?? content.locale ?? null,
+      }),
+    [website.default_locale, website.supported_locales, content.locale, resolvedLocale],
+  );
   const marketExperience = useMemo(() => resolveMarketExperienceConfig(content), [content]);
   const currencyConfig = useMemo(() => buildCurrencyConfig(content.account), [content.account]);
   const localeOptions = useMemo(() => resolveSiteMenuLocales({
-    defaultLocale: website.default_locale ?? null,
-    supportedLocales: website.supported_locales ?? null,
-    contentLocale: content.locale ?? null,
-  }), [website.default_locale, website.supported_locales, content.locale]);
+    defaultLocale: localeSettings.defaultLocale,
+    supportedLocales: localeSettings.supportedLocales,
+    contentLocale: resolvedLocale ?? content.locale ?? null,
+  }), [localeSettings.defaultLocale, localeSettings.supportedLocales, content.locale, resolvedLocale]);
   const localeCodes = useMemo(() => localeOptions.map((locale) => locale.code), [localeOptions]);
   const hasLanguageSwitcher = marketExperience.showLanguage && localeCodes.length > 0;
   const hasCurrencySwitcher = marketExperience.showCurrency && (currencyConfig?.enabledCurrencies.length ?? 0) > 1;
   const hasPreferenceSwitchers = marketExperience.showInHeader && (hasLanguageSwitcher || hasCurrencySwitcher);
-  const fallbackLocale = normalizeLanguageCode(content.locale)
-    ?? normalizeLanguageCode(website.default_locale)
+  const fallbackLocale = normalizeLanguageCode(resolvedLocale)
+    ?? normalizeLanguageCode(localeSettings.defaultLocale)
     ?? localeCodes[0]
     ?? 'es';
   const uiMessages = useMemo(() => getPublicUiMessages(fallbackLocale), [fallbackLocale]);
@@ -183,22 +194,25 @@ export function SiteHeader({ website, isCustomDomain = false, navigation }: Site
     if (typeof window === 'undefined') return;
     window.localStorage.setItem(SITE_LANG_STORAGE_KEY, nextLocale);
     // Navigate to path-based locale URL so server renders correct translated content
-    const defaultLoc = website.default_locale ?? 'es-CO';
     const { pathnameWithoutLang } = resolveLocaleFromPublicPath(
       window.location.pathname,
-      { defaultLocale: defaultLoc, supportedLocales: website.supported_locales ?? [] },
+      localeSettings,
     );
     const translatedPath = translateCategoryPathname(
       pathnameWithoutLang,
       localeToLanguage(nextLocale),
     );
-    const targetPath = buildPublicLocalizedPath(translatedPath, nextLocale, defaultLoc);
+    const targetPath = buildPublicLocalizedPath(
+      translatedPath,
+      nextLocale,
+      localeSettings.defaultLocale,
+    );
     // Preserve currency query param; drop lang (now in path)
     const params = new URLSearchParams(window.location.search);
     params.delete(SITE_LANG_QUERY_PARAM);
     const query = params.toString();
     window.location.href = query ? `${targetPath}?${query}` : targetPath;
-  }, [fallbackLocale, localeCodes, website.default_locale, website.supported_locales]);
+  }, [fallbackLocale, localeCodes, localeSettings]);
 
   const handleCurrencyChange = useCallback((value: string) => {
     const nextCurrency = normalizeCurrencyCode(value);

@@ -128,6 +128,20 @@ describe('editorial-v1 <MarketSwitcher>', () => {
     expect(html).toBe('');
   });
 
+  it('uses resolvedLocale over content.locale for current language pill', () => {
+    const html = renderToStaticMarkup(
+      React.createElement(MarketSwitcher, {
+        website: makeWebsite({
+          content: { ...makeWebsite().content, locale: 'es-CO' },
+          resolvedLocale: 'en-US',
+        } as unknown as Partial<WebsiteData>),
+      }),
+    );
+
+    expect(html).toContain('>EN<');
+    expect(html).toContain('🇺🇸');
+  });
+
   it('exposes `locale_switch` and `currency_switch` via the analytics catalogue', () => {
     // Type-check only — if the union ever drops these, this file stops compiling.
     const locale: AnalyticsEventName = 'locale_switch';

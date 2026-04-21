@@ -23,6 +23,7 @@ import type { WebsiteData } from '@/lib/supabase/get-website';
 import type { NavigationItem } from '@bukeer/website-contract';
 import { getBasePath } from '@/lib/utils/base-path';
 import { resolveNavHref } from '@/lib/utils/navigation';
+import { extractWebsiteLocaleSettings } from '@/lib/seo/locale-routing';
 import { Logo } from '../primitives/logo';
 import { Icons } from '../primitives/icons';
 import { HeaderScrollState, MobileNavToggle } from './site-header.client';
@@ -41,7 +42,11 @@ export function EditorialSiteHeader({
   isCustomDomain = false,
 }: EditorialSiteHeaderProps) {
   const editorialText = getEditorialTextGetter(website);
-  const resolvedLocale = (website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale ?? 'es-CO';
+  const localeSettings = extractWebsiteLocaleSettings(website);
+  const resolvedLocale = (
+    (website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale
+    ?? localeSettings.defaultLocale
+  );
   const isEnglish = resolvedLocale.startsWith('en');
   const { content, subdomain } = website;
   const basePath = getBasePath(subdomain, isCustomDomain);

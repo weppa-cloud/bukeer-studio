@@ -32,6 +32,7 @@ import {
 } from '@/lib/site/currency';
 import {
   buildPublicLocalizedPath,
+  extractWebsiteLocaleSettings,
   localeToLanguage,
   resolveLocaleFromPublicPath,
   translateCategoryPathname,
@@ -55,6 +56,7 @@ export interface UseMarketPreferencesResult {
 
 export function useMarketPreferences(website: WebsiteData): UseMarketPreferencesResult {
   const { content } = website;
+  const resolvedLocale = (website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale ?? null;
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -62,6 +64,15 @@ export function useMarketPreferences(website: WebsiteData): UseMarketPreferences
   const searchParamsString = searchParams?.toString() ?? '';
 
   const marketExperience = useMemo(() => resolveMarketExperienceConfig(content), [content]);
+  const localeSettings = useMemo(
+    () =>
+      extractWebsiteLocaleSettings({
+        default_locale: website.default_locale ?? null,
+        supported_locales: website.supported_locales ?? null,
+        locale: resolvedLocale ?? content.locale ?? null,
+      }),
+    [website.default_locale, website.supported_locales, content.locale, resolvedLocale],
+  );
   const currencyConfig = useMemo(
     () => buildCurrencyConfig(content.account),
     [content.account],
@@ -69,11 +80,11 @@ export function useMarketPreferences(website: WebsiteData): UseMarketPreferences
   const localeOptions = useMemo(
     () =>
       resolveSiteMenuLocales({
-        defaultLocale: website.default_locale ?? null,
-        supportedLocales: website.supported_locales ?? null,
-        contentLocale: content.locale ?? null,
+        defaultLocale: localeSettings.defaultLocale,
+        supportedLocales: localeSettings.supportedLocales,
+        contentLocale: resolvedLocale ?? content.locale ?? null,
       }),
-    [website.default_locale, website.supported_locales, content.locale],
+    [localeSettings.defaultLocale, localeSettings.supportedLocales, content.locale, resolvedLocale],
   );
   const localeCodes = useMemo(
     () => localeOptions.map((locale) => locale.code),
@@ -89,8 +100,8 @@ export function useMarketPreferences(website: WebsiteData): UseMarketPreferences
     marketExperience.showCurrency && currencyOptions.length > 1;
 
   const fallbackLocale =
-    normalizeLanguageCode(content.locale) ??
-    normalizeLanguageCode(website.default_locale) ??
+    normalizeLanguageCode(resolvedLocale) ??
+    normalizeLanguageCode(localeSettings.defaultLocale) ??
     localeCodes[0] ??
     'es';
 
@@ -152,7 +163,6 @@ export function useMarketPreferences(website: WebsiteData): UseMarketPreferences
       setSelectedLocale(next);
       if (typeof window === 'undefined') return;
       window.localStorage.setItem(SITE_LANG_STORAGE_KEY, next);
-      const defaultLoc = website.default_locale ?? 'es-CO';
       const rawPathname = window.location.pathname;
       // Dev-mode internal paths: /site/<subdomain>[/<lang>][/<rest>]
       // Locale segment lives AFTER subdomain, not at the start of the URL.
@@ -160,7 +170,7 @@ export function useMarketPreferences(website: WebsiteData): UseMarketPreferences
       if (internalSiteMatch) {
         const base = internalSiteMatch[1]; // /site/<subdomain>
         const innerRest = internalSiteMatch[3] ?? ''; // /<rest> without old lang
-        const defaultLang = localeToLanguage(defaultLoc);
+        const defaultLang = localeToLanguage(localeSettings.defaultLocale);
         const params = new URLSearchParams(window.location.search);
         params.delete(SITE_LANG_QUERY_PARAM);
         const query = params.toString();
@@ -175,20 +185,24 @@ export function useMarketPreferences(website: WebsiteData): UseMarketPreferences
 
       // Production / custom-domain paths: locale prefix at start of path.
       const { pathnameWithoutLang } = resolveLocaleFromPublicPath(rawPathname, {
-        defaultLocale: defaultLoc,
-        supportedLocales: website.supported_locales ?? [],
+        defaultLocale: localeSettings.defaultLocale,
+        supportedLocales: localeSettings.supportedLocales,
       });
       const translatedPath = translateCategoryPathname(
         pathnameWithoutLang,
         localeToLanguage(next),
       );
-      const targetPath = buildPublicLocalizedPath(translatedPath, next, defaultLoc);
+      const targetPath = buildPublicLocalizedPath(
+        translatedPath,
+        next,
+        localeSettings.defaultLocale,
+      );
       const params = new URLSearchParams(window.location.search);
       params.delete(SITE_LANG_QUERY_PARAM);
       const query = params.toString();
       window.location.href = query ? `${targetPath}?${query}` : targetPath;
     },
-    [fallbackLocale, localeCodes, website.default_locale, website.supported_locales],
+    [fallbackLocale, localeCodes, localeSettings.defaultLocale, localeSettings.supportedLocales],
   );
 
   const applyCurrency = useCallback(

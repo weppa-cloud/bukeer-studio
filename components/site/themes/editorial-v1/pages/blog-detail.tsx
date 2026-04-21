@@ -30,6 +30,7 @@ import { Eyebrow } from '@/components/site/themes/editorial-v1/primitives/eyebro
 import { Breadcrumbs } from '@/components/site/themes/editorial-v1/primitives/breadcrumbs';
 import { Icons } from '@/components/site/themes/editorial-v1/primitives/icons';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
+import { formatPublicDate } from '@/lib/site/public-ui-messages';
 
 export interface EditorialBlogDetailPageProps {
   website: WebsiteData;
@@ -39,11 +40,11 @@ export interface EditorialBlogDetailPageProps {
   related: BlogPost[];
 }
 
-function formatDate(raw: string | null | undefined): string {
+function formatDate(raw: string | null | undefined, localeLike: string): string {
   if (!raw) return '';
   const d = new Date(raw);
   if (Number.isNaN(d.valueOf())) return '';
-  return d.toLocaleDateString('es-CO', {
+  return formatPublicDate(d, localeLike, {
     day: '2-digit',
     month: 'long',
     year: 'numeric',
@@ -88,6 +89,8 @@ export function EditorialBlogDetailPage({
   const resolvedLocale =
     locale
     || (website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale
+    || website.default_locale
+    || website.content?.locale
     || 'es-CO';
   const editorialText = getPublicUiExtraTextGetter(resolvedLocale);
   const SHARE_LABEL = editorialText('editorialBlogShare');
@@ -106,7 +109,7 @@ export function EditorialBlogDetailPage({
     ? `https://${website.custom_domain}`
     : `https://${subdomain}.bukeer.com`;
   const siteTitleTrail = website.content?.siteName || subdomain;
-  const dateLabel = formatDate(post.published_at);
+  const dateLabel = formatDate(post.published_at, resolvedLocale);
   const categoryName = post.category?.name ?? undefined;
   const shares = shareHrefs(post, publicBaseUrl);
   const waHref = resolveWhatsAppHref(website);

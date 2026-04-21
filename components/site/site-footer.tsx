@@ -22,6 +22,7 @@ interface SiteFooterProps {
 
 export function SiteFooter({ website, isCustomDomain = false, navigation }: SiteFooterProps) {
   const { content, subdomain, site_parts: siteParts } = website;
+  const resolvedLocale = (website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale ?? null;
   const currentYear = new Date().getFullYear();
   const footerVariant: FooterVariant = siteParts?.footer?.variant || '4-column';
   const basePath = getBasePath(subdomain, isCustomDomain);
@@ -35,9 +36,10 @@ export function SiteFooter({ website, isCustomDomain = false, navigation }: Site
   const localeOptions = resolveSiteMenuLocales({
     defaultLocale: website.default_locale ?? null,
     supportedLocales: website.supported_locales ?? null,
-    contentLocale: content.locale ?? null,
+    contentLocale: resolvedLocale ?? content.locale ?? null,
   });
-  const currentLocale = normalizeLanguageCode(content.locale)
+  const currentLocale = normalizeLanguageCode(resolvedLocale)
+    ?? normalizeLanguageCode(content.locale)
     ?? normalizeLanguageCode(website.default_locale)
     ?? localeOptions[0]?.code
     ?? 'es';
