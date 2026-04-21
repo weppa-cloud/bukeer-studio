@@ -4,8 +4,7 @@ import { PageEditorPom } from '../pom/page-editor.pom';
 
 test.describe('Studio chat — copilot stream @p0-editor', () => {
   test.use({ storageState: 'e2e/.auth/user.json' });
-  // #226 AC9 — desktop-only editor flow
-  test.skip(({ isMobile }) => !!isMobile, 'desktop-only editor');
+  test.skip(({ isMobile }) => isMobile, 'Studio chat panel is desktop-only.');
 
   test.beforeAll(async () => {
     await seedWave2Fixtures();
@@ -13,31 +12,20 @@ test.describe('Studio chat — copilot stream @p0-editor', () => {
 
   test('user message triggers mocked assistant stream', async ({ page }) => {
     await page.route('**/api/ai/studio-chat', async (route) => {
-      // #226.A — AI SDK v5 UI message stream (SSE). Each frame is a JSON-encoded
-      // chunk matching `uiMessageChunkSchema` (text-start / text-delta / text-end)
-      // followed by a [DONE] terminator. Matches the shape emitted by
-      // `toUIMessageStreamResponse()` in `app/api/ai/studio-chat/route.ts`.
-      //
-      // The response header is `x-vercel-ai-ui-message-stream: v1` (v5 spec),
-      // NOT the legacy v1 data-stream header `X-Vercel-AI-Data-Stream`.
-      const TEXT_ID = 'mock-text-1';
-      const chunks = [
-        { type: 'text-start', id: TEXT_ID },
-        { type: 'text-delta', id: TEXT_ID, delta: 'Mock assistant response.' },
-        { type: 'text-end', id: TEXT_ID },
-      ];
-      const body =
-        chunks.map((chunk) => `data: ${JSON.stringify(chunk)}\n\n`).join('') +
-        'data: [DONE]\n\n';
-
+      // AI SDK v5 UI message stream chunks over SSE.
+      const stream = [
+        'data: {"type":"start","messageId":"m1"}\n\n',
+        'data: {"type":"text-start","id":"t1"}\n\n',
+        'data: {"type":"text-delta","id":"t1","delta":"Mock assistant response."}\n\n',
+        'data: {"type":"text-end","id":"t1"}\n\n',
+        'data: {"type":"finish","finishReason":"stop"}\n\n',
+        'data: [DONE]\n\n',
+      ].join('');
       await route.fulfill({
         status: 200,
         headers: {
-          'content-type': 'text/event-stream',
-          'cache-control': 'no-cache',
-          connection: 'keep-alive',
-          'x-vercel-ai-ui-message-stream': 'v1',
-          'x-accel-buffering': 'no',
+          'Content-Type': 'text/event-stream',
+          'X-Vercel-AI-UI-Message-Stream': 'v1',
         },
         body,
       });

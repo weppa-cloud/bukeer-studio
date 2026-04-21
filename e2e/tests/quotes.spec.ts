@@ -30,16 +30,10 @@ test.describe('Leads Tab', () => {
 
   test('filter by status', async ({ page }) => {
     await gotoWebsiteSection(page, 'quotes');
-    const { noLeads, rowCount } = await resolveQuotesDataState(page);
-    test.skip(
-      noLeads || rowCount === 0,
-      'No leads seeded in this environment; status filtering is not assertable.',
-    );
-    const newTab = page.getByRole('tablist').getByRole('tab', { name: 'New', exact: true });
+    const tabs = page.locator('.studio-tabs').first();
+    const newTab = tabs.getByRole('button', { name: 'New', exact: true });
     await newTab.click();
-    await expect
-      .poll(async () => newTab.getAttribute('aria-selected'), { timeout: 10_000 })
-      .toBe('true');
+    await expect(tabs.locator('.studio-tab-active')).toHaveText('New', { timeout: 15000 });
   });
 
   test('export CSV', async ({ page }) => {

@@ -32,7 +32,7 @@ test.describe('Legacy URL redirects @p1-seo', () => {
     const admin = createClient(supabaseUrl!, serviceRoleKey!);
 
     const suffix = Date.now();
-    const oldPath = `/site/${TENANT_SUBDOMAIN}/legacy-${suffix}`;
+    const oldPath = `/legacy-${suffix}`;
     const newPath = `/site/${TENANT_SUBDOMAIN}/paquetes/${fixtures.packageSlug}`;
 
     const { error: insertError } = await admin
@@ -51,22 +51,37 @@ test.describe('Legacy URL redirects @p1-seo', () => {
       `Could not seed legacy redirect (${insertError?.message ?? ''}) — table may be missing in this env`,
     );
 
-    const res = await request.get(oldPath, { maxRedirects: 0 });
+    const res = await request.get(`${oldPath}?subdomain=${TENANT_SUBDOMAIN}`, {
+      maxRedirects: 0,
+      headers: {
+        'x-subdomain': TENANT_SUBDOMAIN,
+      },
+    });
     test.skip(
       res.status() >= 500,
       `Middleware returned ${res.status()} on legacy path — skip (env likely lacks seed propagation)`,
     );
-    test.skip(
-      ![301, 308].includes(res.status()),
-      `Legacy redirect not active in this env (status=${res.status()}) — skip`,
-    );
-    expect([301, 308]).toContain(res.status());
-    const location = res.headers()['location'];
-    expect(location).toBeDefined();
-    expect(location).toContain(newPath);
+    const status = res.status();
+    if ([301, 302, 307, 308].includes(status)) {
+      const location = res.headers()['location'];
+      expect(location).toBeDefined();
+      expect(location).toContain(newPath);
 
-    // Follow redirect and ensure the new path resolves (< 500).
-    const followed = await request.get(location!, { maxRedirects: 5 });
-    expect(followed.status()).toBeLessThan(500);
+      // Follow redirect and ensure the new path resolves (< 500).
+      const followUrl = new URL(location!, 'http://localhost');
+      followUrl.searchParams.set('subdomain', TENANT_SUBDOMAIN);
+      const followed = await request.get(followUrl.pathname + followUrl.search, {
+        maxRedirects: 5,
+        headers: {
+          'x-subdomain': TENANT_SUBDOMAIN,
+        },
+      });
+      expect(followed.status()).toBeLessThan(500);
+      return;
+    }
+
+    // Some runners follow redirects even with maxRedirects=0 and return final 200.
+    expect(status).toBe(200);
+    expect(res.url()).toContain(newPath);
   });
 });

@@ -35,16 +35,7 @@ test.describe('SEO item detail — matrix', () => {
     await expect(page.getByRole('button', { name: /^Guardar$/ })).toBeVisible({ timeout: 20000 });
   });
 
-  test('edit + save meta title on page item persists via RPC', async ({ page }) => {
-    let saveRequestBody: Record<string, unknown> | null = null;
-    await page.route('**/rest/v1/rpc/**', async (route) => {
-      const body = (await route.request().postDataJSON().catch(() => null)) as
-        | Record<string, unknown>
-        | null;
-      if (body) saveRequestBody = body;
-      await route.continue();
-    });
-
+  test('edit + save meta title on page item persists via API', async ({ page }) => {
     const websiteId = await getFirstWebsiteId(page);
     const item = await getSeededSeoItem('page');
     await page.goto(`/dashboard/${websiteId}/seo/page/${item.pageId}`);
@@ -53,11 +44,15 @@ test.describe('SEO item detail — matrix', () => {
     await expect(titleInput).toBeVisible({ timeout: 15000 });
     await titleInput.fill('E2E Seo Title Update');
 
-    await page.getByRole('button', { name: /^Guardar$/ }).click();
+    const saveButton = page.getByRole('button', { name: /^Guardar$/ });
+    const saveResponsePromise = page.waitForResponse((response) =>
+      response.request().method() === 'PATCH'
+      && response.url().includes('/rest/v1/website_pages'),
+    );
 
-    // Saved badge or toast
-    await expect(
-      page.getByText(/Guardado|Saved/i).first(),
-    ).toBeVisible({ timeout: 15000 });
+    await saveButton.click();
+    const saveResponse = await saveResponsePromise;
+    expect(saveResponse.ok()).toBeTruthy();
+    await expect(titleInput).toHaveValue('E2E Seo Title Update');
   });
 });

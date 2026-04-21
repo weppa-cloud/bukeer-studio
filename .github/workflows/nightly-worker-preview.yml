@@ -73,13 +73,13 @@ jobs:
       - name: Build Worker (OpenNext)
         run: npm run build:worker
         env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL_STAGING }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY_STAGING }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY_STAGING }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           OPENROUTER_AUTH_TOKEN: ci-openrouter-token
           OPENROUTER_BASE_URL: https://openrouter.ai/api/v1
           OPENROUTER_MODEL: anthropic/claude-sonnet-4-5
-          REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET_STAGING }}
+          REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET }}
           NEXT_PUBLIC_URL: https://bukeer.com
           NEXT_PUBLIC_MAIN_DOMAIN: bukeer.com
 
@@ -89,10 +89,10 @@ jobs:
           echo $! > worker-preview.pid
           echo "Started Worker preview PID=$(cat worker-preview.pid)"
         env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL_STAGING }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY_STAGING }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY_STAGING }}
-          REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET_STAGING }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET }}
 
       - name: Wait for Worker preview port (8787)
         run: |
@@ -118,11 +118,11 @@ jobs:
           E2E_BASE_URL: http://localhost:8787
           E2E_WEBSERVER_CMD: ':' # preview already running in background
           PLAYWRIGHT_JSON_OUTPUT_NAME: playwright-report/default/results.json
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL_STAGING }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY_STAGING }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY_STAGING }}
-          REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET_STAGING }}
-          E2E_WEBSITE_ID: ${{ secrets.E2E_WEBSITE_ID_STAGING }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET }}
+          E2E_WEBSITE_ID: ${{ secrets.E2E_WEBSITE_ID }}
           NEXT_PUBLIC_URL: https://bukeer.com
           NEXT_PUBLIC_MAIN_DOMAIN: bukeer.com
 

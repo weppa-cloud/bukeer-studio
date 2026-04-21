@@ -4,6 +4,7 @@ import {
   PUBLIC_LOCALE_HEADER_NAMES,
   extractWebsiteLocaleSettings,
   resolveLocaleFromPublicPath,
+  type WebsiteLocaleSettings,
 } from '@/lib/seo/locale-routing';
 
 // Subdomains that should NOT be treated as tenant sites
@@ -21,6 +22,7 @@ const RESERVED_SUBDOMAINS = [
 const MAIN_DOMAIN = process.env.NEXT_PUBLIC_MAIN_DOMAIN || 'bukeer.com';
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const CATEGORY_TO_PRODUCT_TYPE: Record<string, string> = {
   destinos: 'destination',
@@ -55,6 +57,33 @@ interface LocaleAwareRoutingInput {
   defaultLocale: string;
   resolvedLanguage: string;
   hasLanguageSegment: boolean;
+}
+
+function resolveWebsiteLocaleSettingsForMiddleware(
+  website: WebsiteLookup | null,
+): WebsiteLocaleSettings {
+  const settings = extractWebsiteLocaleSettings(website);
+  const hasExplicitLocaleColumns = Boolean(
+    website && (
+      (typeof website.default_locale === 'string' && website.default_locale.length > 0) ||
+      (Array.isArray(website.supported_locales) && website.supported_locales.length > 0)
+    ),
+  );
+
+  if (hasExplicitLocaleColumns) {
+    return settings;
+  }
+
+  // Backward-compatible fallback for schemas where websites table doesn't
+  // expose locale columns. Keep default locale and allow EN aliases.
+  const supportedLocales = settings.supportedLocales.includes('en-US')
+    ? settings.supportedLocales
+    : [...settings.supportedLocales, 'en-US'];
+
+  return {
+    ...settings,
+    supportedLocales,
+  };
 }
 
 function getRequestHost(request: NextRequest): string {
@@ -142,15 +171,16 @@ function setCached<T>(key: string, data: T): void {
 }
 
 async function supabaseFetch<T>(path: string, init?: RequestInit): Promise<T | null> {
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  const supabaseKey = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY;
+  if (!SUPABASE_URL || !supabaseKey) {
     return null;
   }
 
   const response = await fetch(`${SUPABASE_URL}${path}`, {
     ...init,
     headers: {
-      apikey: SUPABASE_ANON_KEY,
-      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      apikey: supabaseKey,
+      Authorization: `Bearer ${supabaseKey}`,
       'Content-Type': 'application/json',
       ...(init?.headers || {}),
     },
@@ -164,13 +194,18 @@ async function supabaseFetch<T>(path: string, init?: RequestInit): Promise<T | n
   return (await response.json()) as T;
 }
 
-async function getWebsiteBySubdomain(subdomain: string): Promise<WebsiteLookup | null> {
-  const cacheKey = `sub:${subdomain}`;
+async function getWebsiteBySubdomain(
+  subdomain: string,
+  options?: { includeUnpublished?: boolean },
+): Promise<WebsiteLookup | null> {
+  const includeUnpublished = options?.includeUnpublished === true;
+  const cacheKey = `sub:${includeUnpublished ? 'all' : 'published'}:${subdomain}`;
   const cached = getCached<WebsiteLookup | null>(cacheKey);
   if (cached !== undefined) return cached;
 
+  const statusFilter = includeUnpublished ? '' : '&status=eq.published';
   const data = await supabaseFetch<WebsiteLookup[]>(
-    `/rest/v1/websites?select=id,subdomain,account_id,default_locale,supported_locales&subdomain=eq.${encodeURIComponent(subdomain)}&status=eq.published&deleted_at=is.null&limit=1`
+    `/rest/v1/websites?select=id,subdomain,account_id&subdomain=eq.${encodeURIComponent(subdomain)}${statusFilter}&deleted_at=is.null&limit=1`
   );
   const result = data && data.length > 0 ? data[0] : null;
   setCached(cacheKey, result);
@@ -183,7 +218,7 @@ async function getWebsiteByCustomDomain(host: string): Promise<WebsiteLookup | n
   if (cached !== undefined) return cached;
 
   const data = await supabaseFetch<WebsiteLookup[]>(
-    `/rest/v1/websites?select=id,subdomain,account_id,default_locale,supported_locales&custom_domain=eq.${encodeURIComponent(host)}&status=eq.published&deleted_at=is.null&limit=1`
+    `/rest/v1/websites?select=id,subdomain,account_id&custom_domain=eq.${encodeURIComponent(host)}&status=eq.published&deleted_at=is.null&limit=1`
   );
   const result = data && data.length > 0 ? data[0] : null;
   setCached(cacheKey, result);
@@ -578,10 +613,10 @@ export async function middleware(request: NextRequest) {
         return NextResponse.next();
       }
 
-      const website = await getWebsiteBySubdomain(subdomain);
+      const website = await getWebsiteBySubdomain(subdomain, { includeUnpublished: true });
       const localeResolution = resolveLocaleFromPublicPath(
         pathname,
-        extractWebsiteLocaleSettings(website),
+        resolveWebsiteLocaleSettingsForMiddleware(website),
       );
       const potentialProductRoute = getPotentialProductRoute(localeResolution.pathnameWithoutLang);
 
@@ -647,7 +682,7 @@ export async function middleware(request: NextRequest) {
     const website = await getWebsiteBySubdomain(subdomain);
     const localeResolution = resolveLocaleFromPublicPath(
       pathname,
-      extractWebsiteLocaleSettings(website),
+      resolveWebsiteLocaleSettingsForMiddleware(website),
     );
     const potentialProductRoute = getPotentialProductRoute(localeResolution.pathnameWithoutLang);
 
@@ -704,7 +739,7 @@ export async function middleware(request: NextRequest) {
 
     const localeResolution = resolveLocaleFromPublicPath(
       pathname,
-      extractWebsiteLocaleSettings(website),
+      resolveWebsiteLocaleSettingsForMiddleware(website),
     );
     const potentialProductRoute = getPotentialProductRoute(localeResolution.pathnameWithoutLang);
 
