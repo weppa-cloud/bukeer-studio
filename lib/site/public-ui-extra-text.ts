@@ -216,6 +216,12 @@ const BASE_EXTRA_TEXTS = {
   editorialRegionPacificoHighlight:
     'Ballenas, gastronomía chocoana y selva costera.',
 
+  // Itinerary Accordion
+  editorialItineraryEyebrowFallback: 'Itinerario',
+
+  // Pricing
+  editorialPricingEyebrowFallback: 'Precios',
+
   // FAQ
   editorialFaqEyebrowFallback: 'Preguntas frecuentes',
   editorialFaqTitleFallback: 'Lo que nos preguntan antes de reservar.',

@@ -20,6 +20,7 @@ import {
 import { buildPublicLocalizedPath, localeToOgLocale } from '@/lib/seo/locale-routing';
 import { sanitizeProductCopy } from '@/lib/products/normalize-product';
 import { getPublicUiExtraText } from '@/lib/site/public-ui-extra-text';
+import { resolveTemplateSet } from '@/lib/sections/template-set';
 
 interface PackagePageProps {
   params: Promise<{ subdomain: string; slug: string }>;
@@ -213,6 +214,8 @@ export default async function PackageSlugPage({ params }: PackagePageProps) {
     displayLocation,
   };
 
+  const isEditorialTemplate = resolveTemplateSet(website) === 'editorial-v1';
+
   return (
     <TemplateSlot name="package-detail" website={website} payload={editorialPayload}>
       <ProductLandingPage
@@ -223,6 +226,8 @@ export default async function PackageSlugPage({ params }: PackagePageProps) {
         googleReviews={packageReviews}
         similarProducts={similarPackages}
         resolvedLocale={localeContext.resolvedLocale}
+        editorialMode={isEditorialTemplate}
+        suppressEditorialSections={isEditorialTemplate}
       />
     </TemplateSlot>
   );
