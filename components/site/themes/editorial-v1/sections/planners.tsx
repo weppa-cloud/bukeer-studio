@@ -187,12 +187,15 @@ export function PlannersSection({
                 website,
                 override?.specialty || mapRole(p.role, editorialText),
               );
-              const quote = localizeEditorialText(
-                website,
-                (p.quote && p.quote.trim())
-                  || (override?.quote && override.quote.trim())
-                  || editorialText('editorialPlannersQuoteFallback'),
-              );
+              // "8 años diseñando viajes a medida." when available, else quote
+              const experienceText = p.yearsExperience
+                ? `${p.yearsExperience} ${editorialText('editorialPlannersYearsText')}`
+                : localizeEditorialText(
+                  website,
+                  (p.quote && p.quote.trim())
+                    || (override?.quote && override.quote.trim())
+                    || editorialText('editorialPlannersQuoteFallback'),
+                );
               const profileHref = `${basePath}/planners/${p.slug}`;
               const langs = p.languages && p.languages.length > 0 ? p.languages : [];
               return (
@@ -205,6 +208,7 @@ export function PlannersSection({
                         fill
                         sizes="(max-width: 720px) 100vw, (max-width: 1100px) 50vw, 25vw"
                         style={{ objectFit: 'cover' }}
+                        unoptimized={p.photo.includes('supabase.co')}
                       />
                     ) : (
                       <div style={avatarGradientStyle}>
@@ -219,7 +223,7 @@ export function PlannersSection({
                     <h4>{p.fullName}</h4>
                     <div className="planner-role">{role}</div>
                   </div>
-                  <p className="planner-quote">&ldquo;{quote}&rdquo;</p>
+                  <p className="planner-quote">{experienceText}</p>
                   {langs.length > 0 ? (
                     <div className="planner-langs">
                       {langs.map((l) => <span key={l} className="lg">{l}</span>)}

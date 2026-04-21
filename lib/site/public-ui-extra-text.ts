@@ -246,6 +246,7 @@ const BASE_EXTRA_TEXTS = {
   editorialPlannersAvailable: 'Disponible',
   editorialPlannersViewProfile: 'Ver perfil',
   editorialPlannersWhatsapp: 'WhatsApp',
+  editorialPlannersYearsText: 'años diseñando viajes a medida.',
   editorialPlannersEmpty: 'Aún no hay travel planners publicados.',
   editorialRoleAgent: 'Agente de Viajes',
   editorialRolePlanner: 'Travel Planner',
