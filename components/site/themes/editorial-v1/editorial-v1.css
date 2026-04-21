@@ -3325,6 +3325,8 @@
   }
 }
 
+/* Market Switcher styles → layout/market-switcher.css (imported by component) */
+
 /* ============ Keyframes (can't scope) ============ */
 @keyframes editorial-v1-waf-pop {
   0%   { transform: scale(0); }
@@ -3358,4 +3360,977 @@
   0%   { box-shadow: 0 0 0 0 rgba(34, 197, 94, .6); }
   70%  { box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
   100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+}
+
+/* ============================================================
+   Page hero (listing / detail) — port of designer `.page-hero`
+   Scoped to editorial-v1; the ink-filled hero band used by
+   /destinos, /destinos/[slug] and (shared) other listing pages.
+   ============================================================ */
+:where([data-template-set="editorial-v1"]) .ev-page-hero {
+  position: relative;
+  overflow: hidden;
+  background: var(--c-ink);
+  color: #fff;
+  padding: 100px 0 72px;
+  border-radius: 0 0 32px 32px;
+}
+:where([data-template-set="editorial-v1"]) .ev-page-hero .ev-page-hero-media {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+:where([data-template-set="editorial-v1"]) .ev-page-hero .ev-page-hero-media img {
+  object-fit: cover;
+  opacity: .42;
+}
+:where([data-template-set="editorial-v1"]) .ev-page-hero .ev-page-hero-wash {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0,0,0,.15), rgba(0,0,0,.55));
+  pointer-events: none;
+}
+:where([data-template-set="editorial-v1"]) .ev-page-hero .ev-container {
+  position: relative;
+  z-index: 1;
+}
+:where([data-template-set="editorial-v1"]) .ev-page-hero h1 {
+  color: #fff;
+  margin: 12px 0 14px;
+}
+:where([data-template-set="editorial-v1"]) .ev-page-hero h1 em {
+  font-family: var(--font-serif);
+  font-style: italic;
+  color: var(--c-accent-2);
+  font-weight: 400;
+}
+:where([data-template-set="editorial-v1"]) .ev-page-hero p {
+  color: rgba(255,255,255,.82);
+  max-width: 60ch;
+  font-size: 17px;
+  margin: 0;
+}
+:where([data-template-set="editorial-v1"]) .ev-page-hero .ev-page-hero-eyebrow {
+  color: var(--c-accent-2, #e7c28a);
+}
+
+/* ============================================================
+   Destinos list page — region legend + grid scaffold
+   ============================================================ */
+:where([data-template-set="editorial-v1"]) .ev-destinos-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 32px 0 40px;
+  align-items: center;
+}
+:where([data-template-set="editorial-v1"]) .ev-destinos-legend .chip-filter {
+  cursor: default;
+}
+:where([data-template-set="editorial-v1"]) .ev-destinos-legend .region-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  display: inline-block;
+  margin-right: 6px;
+}
+
+/* ============================================================
+   Destino detail page — quick-facts band + related blocks
+   ============================================================ */
+:where([data-template-set="editorial-v1"]) .ev-dest-hero {
+  position: relative;
+  border-radius: 0 0 32px 32px;
+  overflow: hidden;
+  aspect-ratio: 16/8;
+  min-height: 420px;
+  max-height: 620px;
+  color: #fff;
+  background: var(--c-ink);
+}
+:where([data-template-set="editorial-v1"]) .ev-dest-hero .ev-dest-hero-media {
+  position: absolute;
+  inset: 0;
+}
+:where([data-template-set="editorial-v1"]) .ev-dest-hero .ev-dest-hero-media img {
+  object-fit: cover;
+}
+:where([data-template-set="editorial-v1"]) .ev-dest-hero .ev-dest-hero-wash {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0,0,0,0) 40%, rgba(0,0,0,.72) 100%);
+}
+:where([data-template-set="editorial-v1"]) .ev-dest-hero .ev-dest-hero-meta {
+  position: absolute;
+  inset: auto 0 32px 0;
+  z-index: 2;
+}
+:where([data-template-set="editorial-v1"]) .ev-dest-hero h1 {
+  color: #fff;
+  max-width: 20ch;
+  margin: 12px 0 14px;
+}
+:where([data-template-set="editorial-v1"]) .ev-dest-hero h1 em {
+  font-family: var(--font-serif);
+  font-style: italic;
+  color: var(--c-accent-2);
+  font-weight: 400;
+}
+:where([data-template-set="editorial-v1"]) .ev-dest-hero .ev-dest-hero-intro {
+  color: rgba(255,255,255,.9);
+  max-width: 60ch;
+  font-size: 17px;
+  margin: 0;
+}
+:where([data-template-set="editorial-v1"]) .ev-quick-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0;
+  background: var(--c-surface);
+  border: 1px solid var(--c-line);
+  border-radius: 20px;
+  overflow: hidden;
+  margin-top: var(--sp-6, 48px);
+}
+:where([data-template-set="editorial-v1"]) .ev-quick-facts > div {
+  padding: 20px 24px;
+  border-right: 1px solid var(--c-line);
+}
+:where([data-template-set="editorial-v1"]) .ev-quick-facts > div:last-child {
+  border-right: none;
+}
+:where([data-template-set="editorial-v1"]) .ev-quick-facts small {
+  display: block;
+  color: var(--c-muted);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+:where([data-template-set="editorial-v1"]) .ev-quick-facts strong {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 18px;
+  letter-spacing: -0.01em;
+}
+:where([data-template-set="editorial-v1"]) .ev-dest-section {
+  padding: var(--sp-7, 64px) 0;
+  border-top: 1px solid var(--c-line);
+}
+:where([data-template-set="editorial-v1"]) .ev-dest-section:first-of-type {
+  border-top: none;
+}
+:where([data-template-set="editorial-v1"]) .ev-dest-section h2 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 28px;
+  letter-spacing: -0.02em;
+  margin: 0 0 24px;
+}
+:where([data-template-set="editorial-v1"]) .ev-dest-section h2 em {
+  font-family: var(--font-serif);
+  font-style: italic;
+  color: var(--c-accent);
+  font-weight: 400;
+}
+:where([data-template-set="editorial-v1"]) .ev-related-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 20px;
+}
+:where([data-template-set="editorial-v1"]) .ev-related-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--c-surface);
+  border: 1px solid var(--c-line);
+  border-radius: 20px;
+  overflow: hidden;
+  color: inherit;
+  text-decoration: none;
+  transition: transform .25s var(--ease), box-shadow .25s var(--ease);
+}
+:where([data-template-set="editorial-v1"]) .ev-related-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-3);
+}
+:where([data-template-set="editorial-v1"]) .ev-related-card .media {
+  position: relative;
+  aspect-ratio: 4/3;
+  background: var(--c-surface-2);
+}
+:where([data-template-set="editorial-v1"]) .ev-related-card .media img {
+  object-fit: cover;
+}
+:where([data-template-set="editorial-v1"]) .ev-related-card .body {
+  padding: 16px 18px 20px;
+}
+:where([data-template-set="editorial-v1"]) .ev-related-card .body h3 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 18px;
+  letter-spacing: -0.01em;
+  margin: 0 0 4px;
+  color: var(--c-ink);
+}
+:where([data-template-set="editorial-v1"]) .ev-related-card .body small {
+  color: var(--c-muted);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+:where([data-template-set="editorial-v1"]) .ev-dest-cta {
+  margin-top: var(--sp-7, 64px);
+  padding: 40px 32px;
+  border-radius: 24px;
+  background: var(--c-surface);
+  border: 1px solid var(--c-line);
+  text-align: center;
+}
+:where([data-template-set="editorial-v1"]) .ev-dest-cta h2 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 26px;
+  letter-spacing: -0.02em;
+  margin: 0 0 12px;
+}
+:where([data-template-set="editorial-v1"]) .ev-dest-cta h2 em {
+  font-family: var(--font-serif);
+  font-style: italic;
+  color: var(--c-accent);
+  font-weight: 400;
+}
+:where([data-template-set="editorial-v1"]) .ev-dest-cta p {
+  color: var(--c-ink-2);
+  max-width: 44ch;
+  margin: 0 auto 22px;
+}
+:where([data-template-set="editorial-v1"]) .ev-dest-cta-actions {
+  display: inline-flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* ==========================================================
+   Listing pages — /paquetes & /hoteles toolbar + grid
+   ========================================================== */
+:where([data-template-set="editorial-v1"]) .pql-toolbar {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
+  padding: 20px;
+  background: var(--c-surface);
+  border: 1px solid var(--c-line);
+  border-radius: 20px;
+  margin-bottom: 24px;
+}
+@media (min-width: 720px) {
+  :where([data-template-set="editorial-v1"]) .pql-toolbar {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 24px;
+  }
+}
+:where([data-template-set="editorial-v1"]) .pql-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+:where([data-template-set="editorial-v1"]) .pql-filter-label {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--c-ink);
+}
+:where([data-template-set="editorial-v1"]) .pql-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+:where([data-template-set="editorial-v1"]) .pql-listing-top {
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+:where([data-template-set="editorial-v1"]) .pql-view-toggle {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--c-surface);
+  border-radius: 999px;
+  border: 1px solid var(--c-line);
+}
+:where([data-template-set="editorial-v1"]) .pql-view-toggle button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--c-ink-2);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+:where([data-template-set="editorial-v1"]) .pql-view-toggle button:hover {
+  color: var(--c-ink);
+}
+:where([data-template-set="editorial-v1"]) .pql-view-toggle button.on {
+  background: var(--c-ink);
+  color: var(--c-primary-ink);
+}
+:where([data-template-set="editorial-v1"]) .pql-empty {
+  padding: 80px 20px;
+  text-align: center;
+  background: var(--c-surface);
+  border-radius: 20px;
+  border: 1px solid var(--c-line);
+}
+:where([data-template-set="editorial-v1"]) .pql-empty-heading {
+  font-family: var(--font-display);
+  font-size: 22px;
+  margin-bottom: 10px;
+  color: var(--c-ink);
+}
+
+/* Hotels grid — same 3-col cadence as .pack-grid */
+:where([data-template-set="editorial-v1"]) .hoteles-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+}
+@media (max-width: 1100px) {
+  :where([data-template-set="editorial-v1"]) .hoteles-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 720px) {
+  :where([data-template-set="editorial-v1"]) .hoteles-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ==========================================================
+   Wave 7.1 — Detail page primitives (port from details.css + pages.css)
+   Source of truth:
+     themes/references/claude design 1/project/details.css
+     themes/references/claude design 1/project/pages.css (pkg/act/price/incl/hl/highlights/mobile-bar/detail-rail)
+   Scope: every selector wrapped in :where([data-template-set="editorial-v1"])
+   Notes:
+     - Designer --c-* vars resolve to the aliases defined at the top of this file.
+     - Literal hex for typed events (food #fbe9bf / lodging #e6f0da) intentional.
+     - `.hotel-card` designer class collides with inline variant — we target
+       the card variant via `[data-testid="hotel-card"][data-variant="card"]`
+       (already styled above) and keep `.hotels-grid` for the layout shell.
+   ========================================================== */
+
+/* -------- Package/activity hero card + meta -------- */
+:where([data-template-set="editorial-v1"]) .pkg-hero {
+  position: relative;
+  border-radius: 0 0 32px 32px;
+  overflow: hidden;
+  aspect-ratio: 16/8;
+  min-height: 420px;
+  max-height: 620px;
+}
+:where([data-template-set="editorial-v1"]) .pkg-hero .scenic {
+  position: absolute;
+  inset: 0;
+}
+:where([data-template-set="editorial-v1"]) .pkg-hero .wash {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0,0,0,0) 40%, rgba(0,0,0,.7) 100%);
+}
+:where([data-template-set="editorial-v1"]) .pkg-hero .meta {
+  position: absolute;
+  inset: auto 0 32px 0;
+  z-index: 2;
+}
+:where([data-template-set="editorial-v1"]) .pkg-body {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 48px;
+  margin-top: var(--sp-6, 40px);
+}
+:where([data-template-set="editorial-v1"]) .pkg-body section {
+  padding: 28px 0;
+  border-top: 1px solid var(--c-line);
+}
+:where([data-template-set="editorial-v1"]) .pkg-body section:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+:where([data-template-set="editorial-v1"]) .pkg-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  background: var(--c-surface);
+  border: 1px solid var(--c-line);
+  border-radius: 20px;
+  margin-top: -48px;
+  position: relative;
+  z-index: 3;
+}
+
+/* -------- Activity detail timeline -------- */
+:where([data-template-set="editorial-v1"]) .act-timeline-block { margin-bottom: 24px; }
+:where([data-template-set="editorial-v1"]) .atb-label {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 16px;
+  letter-spacing: -0.01em;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--c-line);
+  margin-bottom: 12px;
+}
+:where([data-template-set="editorial-v1"]) .act-timeline {
+  display: flex;
+  flex-direction: column;
+}
+:where([data-template-set="editorial-v1"]) .act-timeline .evt:last-child::after { display: none; }
+
+/* -------- Typed day events (evt / evt-pill / day-card / day-inner-v2 / day-timeline / day-media) -------- */
+:where([data-template-set="editorial-v1"]) .day-list-v2 .day-card { background: var(--c-surface); }
+:where([data-template-set="editorial-v1"]) .day-summary {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+  margin-right: 12px;
+}
+:where([data-template-set="editorial-v1"]) .evt-pill {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: var(--c-bg);
+  color: var(--c-ink-2);
+  border: 1px solid var(--c-line);
+}
+:where([data-template-set="editorial-v1"]) .evt-pill-transporte { color: var(--c-primary); }
+:where([data-template-set="editorial-v1"]) .evt-pill-actividad { color: var(--c-accent); }
+:where([data-template-set="editorial-v1"]) .evt-pill-comida {
+  color: #6d4a13;
+  background: #fbe9bf;
+  border-color: #f1d78a;
+}
+:where([data-template-set="editorial-v1"]) .evt-pill-alojamiento {
+  color: #3e6a1f;
+  background: #e6f0da;
+  border-color: #cfe1b5;
+}
+:where([data-template-set="editorial-v1"]) .evt-pill-libre { color: var(--c-muted); }
+
+:where([data-template-set="editorial-v1"]) .day-inner-v2 {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 28px;
+  padding: 20px 28px 28px;
+}
+:where([data-template-set="editorial-v1"]) .day-timeline {
+  display: flex;
+  flex-direction: column;
+}
+:where([data-template-set="editorial-v1"]) .day-timeline .evt:last-child::after { display: none; }
+:where([data-template-set="editorial-v1"]) .day-card {
+  border: 1px solid var(--c-line);
+  border-radius: 18px;
+  background: var(--c-surface);
+  overflow: hidden;
+  transition: box-shadow .2s;
+}
+:where([data-template-set="editorial-v1"]) .day-card.open { box-shadow: var(--shadow-2); }
+:where([data-template-set="editorial-v1"]) .day-media {
+  border-radius: 14px;
+  overflow: hidden;
+  min-height: 140px;
+  position: relative;
+  aspect-ratio: 4/3;
+}
+
+:where([data-template-set="editorial-v1"]) .evt {
+  display: grid;
+  grid-template-columns: 80px 36px 1fr;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 10px 0;
+  position: relative;
+}
+:where([data-template-set="editorial-v1"]) .evt-time {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--c-ink);
+  padding-top: 6px;
+}
+:where([data-template-set="editorial-v1"]) .evt-dot {
+  position: relative;
+  padding-top: 4px;
+}
+:where([data-template-set="editorial-v1"]) .evt-dot span {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: var(--c-bg);
+  color: var(--c-ink);
+  border: 1px solid var(--c-line);
+}
+:where([data-template-set="editorial-v1"]) .evt::after {
+  content: "";
+  position: absolute;
+  left: 110px;
+  top: 40px;
+  bottom: -4px;
+  width: 1px;
+  background: var(--c-line);
+}
+:where([data-template-set="editorial-v1"]) .evt-transporte .evt-dot span {
+  color: #fff;
+  background: var(--c-primary);
+  border-color: var(--c-primary);
+}
+:where([data-template-set="editorial-v1"]) .evt-actividad .evt-dot span {
+  color: #fff;
+  background: var(--c-accent);
+  border-color: var(--c-accent);
+}
+:where([data-template-set="editorial-v1"]) .evt-comida .evt-dot span {
+  color: #6d4a13;
+  background: #fbe9bf;
+  border-color: #f1d78a;
+}
+:where([data-template-set="editorial-v1"]) .evt-alojamiento .evt-dot span {
+  color: #3e6a1f;
+  background: #e6f0da;
+  border-color: #cfe1b5;
+}
+:where([data-template-set="editorial-v1"]) .evt-libre .evt-dot span { color: var(--c-muted); }
+
+:where([data-template-set="editorial-v1"]) .evt-body small {
+  display: block;
+  font-size: 10px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--c-muted);
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+:where([data-template-set="editorial-v1"]) .evt-body b {
+  display: block;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 16px;
+  letter-spacing: -0.01em;
+}
+:where([data-template-set="editorial-v1"]) .evt-body p {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--c-ink-2);
+  line-height: 1.5;
+}
+
+/* -------- Hotels layout shell (editorial variant tunes in existing block) -------- */
+:where([data-template-set="editorial-v1"]) .hotels-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+/* -------- Flights -------- */
+:where([data-template-set="editorial-v1"]) .flights-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+:where([data-template-set="editorial-v1"]) .flight-row {
+  display: grid;
+  grid-template-columns: 40px 1fr auto;
+  gap: 16px;
+  align-items: center;
+  padding: 16px 20px;
+  background: var(--c-surface);
+  border: 1px solid var(--c-line);
+  border-radius: 14px;
+}
+:where([data-template-set="editorial-v1"]) .f-ic {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--c-bg);
+  display: grid;
+  place-items: center;
+  color: var(--c-primary);
+}
+:where([data-template-set="editorial-v1"]) .f-route {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 16px;
+  letter-spacing: -0.01em;
+}
+:where([data-template-set="editorial-v1"]) .f-arrow { color: var(--c-muted); }
+:where([data-template-set="editorial-v1"]) .f-meta { text-align: right; }
+:where([data-template-set="editorial-v1"]) .f-meta small {
+  display: block;
+  font-size: 11px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--c-muted);
+  font-weight: 600;
+}
+:where([data-template-set="editorial-v1"]) .f-meta span {
+  font-size: 13px;
+  color: var(--c-ink-2);
+}
+
+/* -------- Highlights grid + card -------- */
+:where([data-template-set="editorial-v1"]) .highlights-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+:where([data-template-set="editorial-v1"]) .hl-card {
+  padding: 20px;
+  background: var(--c-surface);
+  border: 1px solid var(--c-line);
+  border-radius: 16px;
+}
+:where([data-template-set="editorial-v1"]) .hl-card .ic {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--c-accent) 15%, transparent);
+  color: var(--c-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+:where([data-template-set="editorial-v1"]) .hl-card b {
+  display: block;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 16px;
+  margin-bottom: 6px;
+}
+:where([data-template-set="editorial-v1"]) .hl-card p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--c-ink-2);
+  line-height: 1.5;
+}
+
+/* -------- Includes / excludes grid -------- */
+:where([data-template-set="editorial-v1"]) .incl-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+}
+:where([data-template-set="editorial-v1"]) .incl-col b,
+:where([data-template-set="editorial-v1"]) .excl-col b {
+  display: block;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 15px;
+  margin-bottom: 14px;
+  letter-spacing: -0.005em;
+}
+:where([data-template-set="editorial-v1"]) .incl-col ul,
+:where([data-template-set="editorial-v1"]) .excl-col ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 10px;
+}
+:where([data-template-set="editorial-v1"]) .incl-col li,
+:where([data-template-set="editorial-v1"]) .excl-col li {
+  display: flex;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--c-ink-2);
+  line-height: 1.5;
+}
+:where([data-template-set="editorial-v1"]) .incl-col li .mark,
+:where([data-template-set="editorial-v1"]) .excl-col li .mark {
+  flex: none;
+  margin-top: 2px;
+}
+:where([data-template-set="editorial-v1"]) .incl-col.yes li .mark { color: var(--c-accent-3); }
+:where([data-template-set="editorial-v1"]) .incl-col.no li .mark,
+:where([data-template-set="editorial-v1"]) .excl-col li .mark { color: var(--c-muted); }
+
+/* -------- Pricing table columns -------- */
+:where([data-template-set="editorial-v1"]) .price-table {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+:where([data-template-set="editorial-v1"]) .price-col {
+  padding: 24px;
+  border-radius: 18px;
+  border: 1px solid var(--c-line);
+  background: var(--c-surface);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+:where([data-template-set="editorial-v1"]) .price-col.featured {
+  border-color: var(--c-ink);
+  background: var(--c-ink);
+  color: #fff;
+  position: relative;
+}
+:where([data-template-set="editorial-v1"]) .price-col.featured::before {
+  content: "Recomendado";
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--c-accent);
+  color: #fff;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+:where([data-template-set="editorial-v1"]) .price-col.selected {
+  border-color: var(--c-accent);
+  box-shadow: 0 0 0 2px rgba(232,92,60,.18);
+}
+:where([data-template-set="editorial-v1"]) .price-col h4 {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+}
+:where([data-template-set="editorial-v1"]) .price-col .pr {
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+:where([data-template-set="editorial-v1"]) .price-col .pr sup {
+  font-size: 14px;
+  vertical-align: super;
+  opacity: .7;
+  margin-right: 2px;
+}
+:where([data-template-set="editorial-v1"]) .price-col .per {
+  font-size: 12px;
+  opacity: .7;
+  margin-top: -6px;
+}
+:where([data-template-set="editorial-v1"]) .price-col ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 8px;
+  font-size: 13px;
+}
+:where([data-template-set="editorial-v1"]) .price-col ul li {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  opacity: .9;
+}
+:where([data-template-set="editorial-v1"]) .price-col ul li::before {
+  content: "·";
+  opacity: .5;
+}
+
+/* -------- Sticky CTAs (desktop rail + mobile bar + pkg WhatsApp) -------- */
+:where([data-template-set="editorial-v1"]) .detail-rail {
+  position: sticky;
+  top: 100px;
+  align-self: start;
+  background: var(--c-surface);
+  border: 1px solid var(--c-line);
+  border-radius: 22px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+:where([data-template-set="editorial-v1"]) .mobile-bar {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  z-index: 55;
+  background: var(--c-surface);
+  border: 1px solid var(--c-line);
+  border-radius: 20px;
+  padding: 10px 12px;
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  box-shadow: var(--shadow-3);
+}
+:where([data-template-set="editorial-v1"]) .mobile-bar b {
+  font-family: var(--font-display);
+  font-size: 18px;
+}
+:where([data-template-set="editorial-v1"]) .pkg-sticky-wa,
+:where([data-template-set="editorial-v1"]) .pkg-cta-wa {
+  background: #25D366 !important;
+  color: #fff !important;
+  border-color: #25D366 !important;
+}
+:where([data-template-set="editorial-v1"]) .pkg-sticky-wa:hover,
+:where([data-template-set="editorial-v1"]) .pkg-cta-wa:hover {
+  background: #1ebe5a !important;
+}
+
+/* -------- Responsive (detail primitives) -------- */
+@media (max-width: 1100px) {
+  :where([data-template-set="editorial-v1"]) .hotels-grid { grid-template-columns: 1fr; }
+  :where([data-template-set="editorial-v1"]) .day-inner-v2 { grid-template-columns: 1fr; }
+  :where([data-template-set="editorial-v1"]) .pkg-body { grid-template-columns: 1fr; }
+  :where([data-template-set="editorial-v1"]) .detail-rail { position: static; }
+  :where([data-template-set="editorial-v1"]) .highlights-grid { grid-template-columns: 1fr 1fr; }
+  :where([data-template-set="editorial-v1"]) .price-table { grid-template-columns: 1fr; }
+}
+@media (max-width: 720px) {
+  :where([data-template-set="editorial-v1"]) .incl-grid { grid-template-columns: 1fr; }
+  :where([data-template-set="editorial-v1"]) .highlights-grid { grid-template-columns: 1fr; }
+  :where([data-template-set="editorial-v1"]) .mobile-bar { display: flex; }
+}
+@media (max-width: 640px) {
+  :where([data-template-set="editorial-v1"]) .evt {
+    grid-template-columns: 60px 28px 1fr;
+    gap: 10px;
+  }
+  :where([data-template-set="editorial-v1"]) .evt-dot span {
+    width: 26px;
+    height: 26px;
+  }
+  :where([data-template-set="editorial-v1"]) .evt::after { left: 74px; }
+}
+
+/* ==========================================================
+   Wave 7.1 — ExploreMap region legend (port from maps.css)
+   Fix: chips were rendering as concatenated text because
+   `.region-legend` + `.region-legend-chip` had no scoped CSS.
+   ========================================================== */
+:where([data-template-set="editorial-v1"]) .region-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 24px;
+}
+:where([data-template-set="editorial-v1"]) .region-legend-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: var(--c-bg);
+  border: 1px solid var(--c-line);
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+  color: var(--c-ink);
+  font-family: inherit;
+}
+:where([data-template-set="editorial-v1"]) .region-legend-chip .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--c-accent);
+}
+:where([data-template-set="editorial-v1"]) .region-legend-chip:hover {
+  border-color: var(--c-ink);
+}
+:where([data-template-set="editorial-v1"]) .region-legend-chip.on {
+  background: var(--c-ink);
+  color: var(--c-primary-ink);
+  border-color: var(--c-ink);
+}
+:where([data-template-set="editorial-v1"]) .region-legend-chip[data-region="caribe"] .dot { background: var(--c-accent-2); }
+:where([data-template-set="editorial-v1"]) .region-legend-chip[data-region="andes"] .dot { background: var(--c-primary); }
+:where([data-template-set="editorial-v1"]) .region-legend-chip[data-region="pacifico"] .dot { background: var(--c-accent-3); }
+:where([data-template-set="editorial-v1"]) .region-legend-chip[data-region="selva"] .dot,
+:where([data-template-set="editorial-v1"]) .region-legend-chip[data-region="amazonia"] .dot { background: var(--c-accent); }
+
+/* Explore map section shell + hover card */
+:where([data-template-set="editorial-v1"]) .explore-map-section {
+  background: var(--c-surface);
+  border-top: 1px solid var(--c-line);
+  border-bottom: 1px solid var(--c-line);
+}
+:where([data-template-set="editorial-v1"]) .explore-map-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.3fr;
+  gap: 56px;
+  align-items: center;
+}
+:where([data-template-set="editorial-v1"]) .explore-map-stage {
+  position: relative;
+  min-height: 580px;
+}
+:where([data-template-set="editorial-v1"]) .explore-map-copy h2 { margin: 12px 0 16px; }
+:where([data-template-set="editorial-v1"]) .explore-map-copy p { max-width: 42ch; }
+
+:where([data-template-set="editorial-v1"]) .explore-hover-card {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  right: 16px;
+  padding: 14px 18px;
+  background: var(--c-surface);
+  border: 1px solid var(--c-line);
+  border-radius: 16px;
+  box-shadow: var(--shadow-2);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  transform: translateY(10px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .2s, transform .2s;
+}
+:where([data-template-set="editorial-v1"]) .explore-hover-card.on {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+:where([data-template-set="editorial-v1"]) .explore-hover-card small {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--c-muted);
+  font-weight: 600;
+}
+:where([data-template-set="editorial-v1"]) .explore-hover-card b {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  display: block;
+}
+:where([data-template-set="editorial-v1"]) .explore-hover-card .ehc-right {
+  margin-left: auto;
+}
+
+@media (max-width: 1100px) {
+  :where([data-template-set="editorial-v1"]) .explore-map-grid {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
 }

@@ -24,6 +24,7 @@ import type { WebsiteData } from '@/lib/supabase/get-website';
 import type { NavigationItem } from '@bukeer/website-contract';
 import { getBasePath } from '@/lib/utils/base-path';
 import { Icons } from '../primitives/icons';
+import { FooterSwitcher } from './footer-switcher';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 
 const editorialText = getPublicUiExtraTextGetter('es-CO');
@@ -276,6 +277,7 @@ export function EditorialSiteFooter({
               </a>
             ))}
           </div>
+          <FooterSwitcher website={website} />
           <div className="credit">
             Creado con <em>Bukeer</em>
           </div>

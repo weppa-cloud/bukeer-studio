@@ -42,6 +42,22 @@ import {
   EditorialExperiencesPage,
   type EditorialExperiencesPageProps,
 } from './pages/experiences';
+import {
+  EditorialDestinosListPage,
+  type EditorialDestinosListPagePayload,
+} from './pages/destinos-list';
+import {
+  EditorialDestinoDetailPage,
+  type EditorialDestinoDetailPayload,
+} from './pages/destino-detail';
+import {
+  EditorialPaquetesListPage,
+  type EditorialPaquetesListPagePayload,
+} from './pages/paquetes-list';
+import {
+  EditorialHotelesListPage,
+  type EditorialHotelesListPagePayload,
+} from './pages/hoteles-list';
 
 export type TemplateSlotName =
   | 'package-detail'
@@ -51,7 +67,11 @@ export type TemplateSlotName =
   | 'blog-detail'
   | 'planner-detail'
   | 'planners-list'
-  | 'experiences-page';
+  | 'experiences-page'
+  | 'destinos-list'
+  | 'destino-detail'
+  | 'paquetes-list'
+  | 'hoteles-list';
 
 export interface TemplateSlotProps {
   name: TemplateSlotName;
@@ -168,6 +188,58 @@ function ExperiencesPageAdapter({
   return <EditorialExperiencesPage website={website} {...typed} />;
 }
 
+function DestinosListAdapter({
+  website,
+  payload,
+}: {
+  website: WebsiteData;
+  payload?: unknown;
+  children?: ReactNode;
+}) {
+  const typed = payload as EditorialDestinosListPagePayload | undefined;
+  if (!typed || !Array.isArray(typed.destinations)) return null;
+  return <EditorialDestinosListPage website={website} payload={typed} />;
+}
+
+function DestinoDetailAdapter({
+  website,
+  payload,
+}: {
+  website: WebsiteData;
+  payload?: unknown;
+  children?: ReactNode;
+}) {
+  const typed = payload as EditorialDestinoDetailPayload | undefined;
+  if (!typed || !typed.destination) return null;
+  return <EditorialDestinoDetailPage website={website} payload={typed} />;
+}
+
+function PaquetesListAdapter({
+  website,
+  payload,
+}: {
+  website: WebsiteData;
+  payload?: unknown;
+  children?: ReactNode;
+}) {
+  const typed = payload as EditorialPaquetesListPagePayload | undefined;
+  if (!typed || !Array.isArray(typed.packages)) return null;
+  return <EditorialPaquetesListPage website={website} packages={typed.packages} />;
+}
+
+function HotelesListAdapter({
+  website,
+  payload,
+}: {
+  website: WebsiteData;
+  payload?: unknown;
+  children?: ReactNode;
+}) {
+  const typed = payload as EditorialHotelesListPagePayload | undefined;
+  if (!typed || !Array.isArray(typed.hotels)) return null;
+  return <EditorialHotelesListPage website={website} hotels={typed.hotels} />;
+}
+
 /**
  * Registry of editorial-v1 page variants. Each variant receives
  * `children` (the generic page body rendered by the fallback) and either
@@ -185,6 +257,10 @@ const EDITORIAL_V1_PAGE_COMPONENTS: Partial<
   'blog-list': BlogListAdapter,
   'blog-detail': BlogDetailAdapter,
   'experiences-page': ExperiencesPageAdapter,
+  'destinos-list': DestinosListAdapter,
+  'destino-detail': DestinoDetailAdapter,
+  'paquetes-list': PaquetesListAdapter,
+  'hoteles-list': HotelesListAdapter,
 };
 
 export function TemplateSlot({
@@ -206,7 +282,11 @@ export function TemplateSlot({
         name === 'planners-list' ||
         name === 'blog-list' ||
         name === 'blog-detail' ||
-        name === 'experiences-page';
+        name === 'experiences-page' ||
+        name === 'destinos-list' ||
+        name === 'destino-detail' ||
+        name === 'paquetes-list' ||
+        name === 'hoteles-list';
       if (needsPayload && !payload) {
         return <>{children}</>;
       }

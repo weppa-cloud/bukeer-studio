@@ -1,0 +1,264 @@
+/* Market Switcher — header pill + footer compact variant.
+   Imported directly by market-switcher.tsx so Turbopack
+   bundles it in a separate chunk (avoids large-file parse issues). */
+
+:where([data-template-set="editorial-v1"]) .mkt-anchor {
+  position: relative;
+  display: inline-flex;
+}
+
+:where([data-template-set="editorial-v1"]) .mkt-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--c-ink) 6%, transparent);
+  border: 1px solid color-mix(in oklab, var(--c-ink) 9%, transparent);
+  color: var(--c-ink);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background 0.2s, border-color 0.2s;
+  cursor: pointer;
+}
+:where([data-template-set="editorial-v1"]) .mkt-pill:hover {
+  background: color-mix(in oklab, var(--c-ink) 10%, transparent);
+}
+:where([data-template-set="editorial-v1"]) .mkt-pill.open {
+  background: var(--c-surface);
+  border-color: var(--c-line-2);
+  box-shadow: var(--shadow-2);
+}
+:where([data-template-set="editorial-v1"]) .mkt-pill:focus-visible {
+  outline: 2px solid var(--c-accent);
+  outline-offset: 2px;
+}
+:where([data-template-set="editorial-v1"]) .mkt-pill .mkt-flag {
+  font-size: 16px;
+  line-height: 1;
+  transform: translateY(-0.5px);
+}
+:where([data-template-set="editorial-v1"]) .mkt-pill .mkt-sep {
+  width: 1px;
+  height: 16px;
+  background: color-mix(in oklab, currentColor 22%, transparent);
+}
+:where([data-template-set="editorial-v1"]) .mkt-pill .mkt-cur {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+:where([data-template-set="editorial-v1"]) .mkt-pill .mkt-sym {
+  font-weight: 700;
+  opacity: 0.9;
+}
+:where([data-template-set="editorial-v1"]) .mkt-pill.on-dark {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.22);
+  color: #fff;
+  backdrop-filter: blur(10px);
+}
+:where([data-template-set="editorial-v1"]) .mkt-pill.on-dark:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+:where([data-template-set="editorial-v1"]) .mkt-pill.on-dark .mkt-sep {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+:where([data-template-set="editorial-v1"]) .mkt-pop {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 320px;
+  background: var(--c-surface, #fffaf0);
+  border: 1px solid var(--c-line, #e6dcc6);
+  border-radius: 22px;
+  box-shadow: var(--shadow-3, 0 16px 40px rgba(0, 0, 0, 0.14));
+  padding: 18px;
+  z-index: 60;
+  transform-origin: top right;
+  animation: editorial-v1-mkt-popin 0.2s var(--ease, cubic-bezier(.2,.7,.2,1));
+}
+:where([data-template-set="editorial-v1"]) .mkt-pop-head {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 15px;
+  letter-spacing: -0.005em;
+  margin: 2px 4px;
+  color: var(--c-ink);
+}
+:where([data-template-set="editorial-v1"]) .mkt-pop-head em {
+  font-family: var(--font-serif);
+  font-style: italic;
+  color: var(--c-accent);
+  font-weight: 400;
+}
+:where([data-template-set="editorial-v1"]) .mkt-pop-desc {
+  color: var(--c-muted);
+  font-size: 12px;
+  margin: 0 4px 4px;
+}
+:where([data-template-set="editorial-v1"]) .mkt-pop-sub {
+  color: var(--c-muted);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 600;
+  margin: 14px 4px 8px;
+}
+:where([data-template-set="editorial-v1"]) .mkt-pop-div {
+  border-top: 1px solid var(--c-line);
+  margin: 14px 0 0;
+}
+:where([data-template-set="editorial-v1"]) .mkt-pop-foot {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--c-line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--c-muted);
+}
+
+:where([data-template-set="editorial-v1"]) .mkt-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+:where([data-template-set="editorial-v1"]) .mkt-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: 10px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--c-ink);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: background 0.15s, border-color 0.15s;
+}
+:where([data-template-set="editorial-v1"]) .mkt-item:hover {
+  background: color-mix(in oklab, var(--c-ink) 4%, transparent);
+}
+:where([data-template-set="editorial-v1"]) .mkt-item.on {
+  background: color-mix(in oklab, var(--c-primary) 10%, transparent);
+  border-color: color-mix(in oklab, var(--c-primary) 22%, transparent);
+  color: var(--c-primary);
+  font-weight: 600;
+}
+:where([data-template-set="editorial-v1"]) .mkt-item:focus-visible {
+  outline: 2px solid var(--c-accent);
+  outline-offset: 2px;
+}
+:where([data-template-set="editorial-v1"]) .mkt-item-lead {
+  width: 22px;
+  display: inline-flex;
+  justify-content: center;
+}
+:where([data-template-set="editorial-v1"]) .mkt-item-flag {
+  font-size: 16px;
+}
+:where([data-template-set="editorial-v1"]) .mkt-item-sym {
+  font-weight: 700;
+  font-size: 13px;
+}
+:where([data-template-set="editorial-v1"]) .mkt-item-label {
+  flex: 1;
+}
+:where([data-template-set="editorial-v1"]) .mkt-item-hint {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  font-weight: 700;
+  color: var(--c-muted);
+}
+:where([data-template-set="editorial-v1"]) .mkt-item.on .mkt-item-hint {
+  color: var(--c-primary);
+}
+:where([data-template-set="editorial-v1"]) .mkt-item-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--c-primary);
+}
+
+/* Footer compact variant */
+:where([data-template-set="editorial-v1"]) .mkt-footer {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+:where([data-template-set="editorial-v1"]) .mkt-footer-select {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: transparent;
+  border-radius: 12px;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+:where([data-template-set="editorial-v1"]) .mkt-footer-select:hover {
+  border-color: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.04);
+}
+:where([data-template-set="editorial-v1"]) .mkt-footer-select select {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  font: inherit;
+  color: #000;
+}
+:where([data-template-set="editorial-v1"]) .mkt-footer-select:focus-within {
+  outline: 2px solid var(--c-accent);
+  outline-offset: 2px;
+}
+:where([data-template-set="editorial-v1"]) .mkt-footer-flag {
+  font-size: 16px;
+}
+:where([data-template-set="editorial-v1"]) .mkt-footer-sym {
+  font-weight: 700;
+}
+:where([data-template-set="editorial-v1"]) .mkt-footer-text {
+  letter-spacing: -0.005em;
+}
+
+@media (max-width: 720px) {
+  :where([data-template-set="editorial-v1"]) .mkt-pop {
+    width: min(320px, calc(100vw - 32px));
+    right: -8px;
+  }
+  :where([data-template-set="editorial-v1"]) .mkt-pill .mkt-code {
+    display: none;
+  }
+  :where([data-template-set="editorial-v1"]) .mkt-pill .mkt-sep {
+    display: none;
+  }
+  :where([data-template-set="editorial-v1"]) .mkt-pill {
+    padding: 0 10px;
+    gap: 6px;
+  }
+}
+
+@keyframes editorial-v1-mkt-popin {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}

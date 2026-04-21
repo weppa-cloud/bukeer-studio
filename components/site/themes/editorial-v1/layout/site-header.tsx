@@ -26,6 +26,7 @@ import { resolveNavHref } from '@/lib/utils/navigation';
 import { Logo } from '../primitives/logo';
 import { Icons } from '../primitives/icons';
 import { MobileNavToggle } from './site-header.client';
+import { MarketSwitcher } from './market-switcher';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 
 const editorialText = getPublicUiExtraTextGetter('es-CO');
@@ -104,6 +105,7 @@ export function EditorialSiteHeader({
           </nav>
 
           <div className="nav-cta">
+            <MarketSwitcher website={website} />
             <a
               href={whatsappHref}
               target={whatsappExternal ? '_blank' : undefined}
