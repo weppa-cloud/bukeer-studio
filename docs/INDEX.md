@@ -79,7 +79,7 @@ Feature requests formalized. Status tracked inline. GitHub Issues = source of tr
 | Wikilink | File | Concepts |
 |----------|------|----------|
 | [[SPEC_MULTI_LOCALE_REMEDIATION]] | [file](./specs/SPEC_MULTI_LOCALE_REMEDIATION.md) | [[i18n]] [[SEO]] [[growth-ops]] |
-| [[SPEC_SECTION_ENTITY_TRANSLATION_LAYER]] | [file](./specs/SPEC_SECTION_ENTITY_TRANSLATION_LAYER.md) | [[i18n]] [[website_sections]] [[package_kits]] [[contacts]] [[translation-overlay]] Epic #273 |
+| [[SPEC_SECTION_ENTITY_TRANSLATION_LAYER]] | [file](./specs/SPEC_SECTION_ENTITY_TRANSLATION_LAYER.md) | [[i18n]] [[website_sections]] [[package_kits]] [[contacts]] [[translation-overlay]] Epic #273 (infra #274-#278 implemented in code, content population pending) |
 | [[SPEC_PACKAGE_DETAIL_CONVERSION_V2]] | [file](./specs/SPEC_PACKAGE_DETAIL_CONVERSION_V2.md) | [[package-landing]] [[package-kits]] [[maps]] [[conversion]] |
 | [[SPEC_SEO_CONTENT_INTELLIGENCE]] | [file](./specs/SPEC_SEO_CONTENT_INTELLIGENCE.md) | [[SEO]] [[AI]] [[keyword-research]] |
 | [[SPEC_SEO_CONTENT_INTELLIGENCE_INTEGRAL]] | [file](./specs/SPEC_SEO_CONTENT_INTELLIGENCE_INTEGRAL.md) | [[SEO]] [[AI]] [[content-ops]] |

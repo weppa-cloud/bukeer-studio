@@ -9,9 +9,18 @@
 ## Status
 - **Author**: Yeison Gomez
 - **Date**: 2026-04-21
-- **Status**: Draft
+- **Status**: In Progress (infra implemented in code on 2026-04-21; pending EN content population + Studio UI)
 - **ADRs referenced**: ADR-009, ADR-019, ADR-020, ADR-021, ADR-025
 - **Cross-repo impact**: none — `website_sections`, `package_kits`, `contacts` are Studio-owned tables per ADR-025
+
+## Implementation Progress (2026-04-21)
+
+- [x] `#274` RPC locale fix implemented in codebase (`get_website_by_subdomain` + runtime fallback in `getWebsiteBySubdomain`).
+- [x] `#275` `website_sections.content_translations` migration + SSR overlay consumption implemented.
+- [x] `#276` `package_kits/products.translations` migration + locale-aware product name/description overlay implemented in public queries.
+- [x] `#277` `contacts.translations` migration + planner locale overlay (`bio`/`specialty`) implemented.
+- [x] `#278` hardcoded locale/date formatter/public switcher fixes implemented in public pages/components.
+- [ ] EN transcreation population jobs (top-N sections/packages/products/planners) still pending execution/content QA.
 
 ## Summary
 
@@ -60,15 +69,15 @@ Without these 4 fixes, no amount of transcreation of SEO meta fields will produc
 
 ## Acceptance Criteria
 
-- [ ] AC-1 **RPC fix**: `get_website_by_subdomain` returns `default_locale`, `supported_locales`; SSR pages no longer fall back to `es-CO` for colombiatours.travel.
-- [ ] AC-2 **Section overlay**: `website_sections.content_translations jsonb default '{}'` column exists; SSR section renderer reads `content_translations[locale]` with fallback to `content`.
+- [x] AC-1 **RPC fix**: `get_website_by_subdomain` returns `default_locale`, `supported_locales`; SSR pages no longer fall back to `es-CO` for colombiatours.travel.
+- [x] AC-2 **Section overlay**: `website_sections.content_translations jsonb default '{}'` column exists; SSR section renderer reads `content_translations[locale]` with fallback to `content`.
 - [ ] AC-3 **Package names EN**: `package_kits.translations['en-US'].name` and `package_kits.translations['en-US'].description_short` populated for top-20 colombiatours packages; package cards render EN name on `/en/` routes.
 - [ ] AC-4 **Product names EN**: `products.translations['en-US']` populated for top-50 activities; activity pages render EN name/description.
 - [ ] AC-5 **Planner bios EN**: `contacts.translations['en-US'].bio` and `contacts.translations['en-US'].specialty` populated for all colombiatours planners; planner detail renders EN bio on `/en/` routes.
-- [ ] AC-6 **Fallback chain**: missing translation in any overlay → falls back to base Spanish content; no 500, no missing text.
-- [ ] AC-7 **No flutter-owned data mutations**: migrations are additive only; zero writes to `hotels`, `activities` truth table content per ADR-025.
+- [x] AC-6 **Fallback chain**: missing translation in any overlay → falls back to base Spanish content; no 500, no missing text.
+- [x] AC-7 **No flutter-owned data mutations**: migrations are additive only; zero writes to `hotels`, `activities` truth table content per ADR-025.
 - [ ] AC-8 **Studio UI**: section editor shows language toggle for locales in `supported_locales`; saves to overlay column.
-- [ ] AC-9 **TypeScript types**: `WebsiteSection` type in `@bukeer/website-contract` includes optional `content_translations: Record<string, Partial<SectionContent>>`.
+- [x] AC-9 **TypeScript types**: `WebsiteSection` type in `@bukeer/website-contract` includes optional `content_translations: Record<string, Partial<SectionContent>>`.
 
 ## Data Model Changes
 
@@ -116,17 +125,17 @@ RLS: `website_sections.account_id` check (existing) covers the new column automa
 
 | Path | Change | Description |
 |------|--------|-------------|
-| `supabase/migrations/20260421000000_section_entity_translation_overlay.sql` | Create | ADD COLUMN content_translations/translations to 4 tables + RPC fix |
+| `supabase/migrations/20260504110200_get_website_by_subdomain_locale_columns.sql` | Create | Patch RPC `get_website_by_subdomain` to expose locale columns |
+| `supabase/migrations/20260504110300_issue_276_package_kits_products_translations.sql` | Create | Add `package_kits/products.translations` JSONB overlays |
+| `supabase/migrations/20260504110400_website_sections_and_contacts_translations.sql` | Create | Add `website_sections.content_translations` + `contacts.translations` |
 | `packages/website-contract/src/schemas/sections.ts` | Modify | Add `content_translations` optional field to `WebsiteSection` |
-| `packages/website-contract/src/types/entities.ts` | Modify | Add `translations` to `PackageKit`, `Product`, `Contact` types |
-| `lib/supabase/websites.ts` | Modify | Update `getWebsiteBySubdomain` to include locale columns from RPC result |
+| `packages/website-contract/src/types/section.ts` | Modify | Add `content_translations` to `WebsiteSection` type |
+| `packages/website-contract/src/types/product.ts` | Modify | Add optional `translations` to `ProductData` |
+| `lib/supabase/get-website.ts` | Modify | Runtime locale fallback while RPC rollout propagates |
 | `app/site/[subdomain]/page.tsx` | Modify | Read `content_translations[locale]` in section rendering |
-| `lib/sections/section-renderer.tsx` | Modify | Fallback chain: `content_translations[locale] ?? content` |
-| `components/studio/section-editor/` | Modify | Add locale toggle + save to `content_translations` |
-| `lib/supabase/packages.ts` (new or existing) | Modify | Include `translations` in package queries |
-| `lib/supabase/contacts.ts` (new or existing) | Modify | Include `translations` in contact/planner queries |
-| `components/site/themes/editorial-v1/pages/planner-detail.tsx` | Modify | Render `translations[locale].bio` with fallback |
-| `components/site/product-card.tsx` (and variants) | Modify | Render `translations[locale].name` with fallback |
+| `lib/supabase/get-pages.ts` | Modify | Include locale overlay from `package_kits/products.translations` |
+| `lib/supabase/get-planners.ts` | Modify | Include locale overlay from `contacts.translations` |
+| `app/site/[subdomain]/planners/[slug]/page.tsx` | Modify | Render planner localized bio/specialty fallback chain |
 
 ## Edge Cases & Error Handling
 
