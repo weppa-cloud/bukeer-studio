@@ -40,6 +40,8 @@ import dynamic from 'next/dynamic';
 import { applyContentTranslations } from '@/lib/sections/apply-content-translations';
 import { resolveTemplateSet } from '@/lib/sections/template-set';
 import { EditorialActivityStatsBar } from '@/components/site/themes/editorial-v1/pages/editorial-activity-stats-bar';
+import { EditorialPackageStatsBar } from '@/components/site/themes/editorial-v1/pages/editorial-package-stats-bar';
+import { EditorialPackageOverlay } from '@/components/site/themes/editorial-v1/pages/editorial-package-overlay';
 
 const DestinationListingPage = dynamic(
   () => import('@/components/pages/destination-listing-page').then(m => m.DestinationListingPage)
@@ -879,7 +881,30 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
 
         const activityStatsBar =
           isEditorialV1 && productType === 'activity' ? (
-            <EditorialActivityStatsBar product={productPage.product} />
+            <EditorialActivityStatsBar
+              product={productPage.product}
+              reviewRating={
+                productReviews.length > 0
+                  ? productReviews.reduce((sum, review) => sum + (review.rating || 0), 0) /
+                    productReviews.length
+                  : null
+              }
+              reviewCount={productReviews.length}
+            />
+          ) : null;
+        const packageStatsBar =
+          isEditorialV1 && productType === 'package' ? (
+            <EditorialPackageStatsBar
+              product={productPage.product}
+              resolvedLocale={productLocaleContext.resolvedLocale}
+            />
+          ) : null;
+        const packageOverlay =
+          isEditorialV1 && productType === 'package' ? (
+            <EditorialPackageOverlay
+              product={productPage.product}
+              resolvedLocale={productLocaleContext.resolvedLocale}
+            />
           ) : null;
 
         const genericBody = (
@@ -892,7 +917,9 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
             activityCircuitStops={activityCircuitStops}
             similarProducts={similarProducts}
             resolvedLocale={productLocaleContext.resolvedLocale}
-            renderAfterHero={activityStatsBar}
+            renderAfterHero={activityStatsBar ?? packageStatsBar}
+            renderAfterMain={packageOverlay}
+            editorialMode={isEditorialV1 && productType === 'activity'}
           />
         );
 

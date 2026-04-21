@@ -115,11 +115,11 @@ test.describe('GalleryCurator — E2E', () => {
 
     await expect(gallery.locator('[data-testid="gallery-tile"]')).toHaveCount(2);
 
-    const firstTile = gallery.locator('[data-testid="gallery-tile"]').first();
+    const tiles = gallery.locator('[data-testid="gallery-tile"]');
+    const firstTile = tiles.first();
     const firstSrcBefore = await firstTile.locator('img').getAttribute('src');
 
     // Keyboard reorder via drag handle arrows.
-    const firstTile = tiles.first();
     const handle = firstTile.getByRole('button', { name: /Reordenar imagen 1/ });
     await handle.focus();
     await page.keyboard.press('ArrowDown');

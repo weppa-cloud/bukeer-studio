@@ -32,14 +32,18 @@ export function toDurationLabel(product: ProductData): string | undefined {
 }
 
 export function toPackageItems(products: ProductData[], limit = 8): Array<Record<string, unknown>> {
-  const items = products.map((product) => {
+  const seen = new Set<string>();
+  const items: Array<Record<string, unknown>> = [];
+  for (const product of products) {
+    if (!product.id || seen.has(product.id)) continue;
+    seen.add(product.id);
     const featured = product.is_featured === true;
     const dbCategory = typeof (product as unknown as Record<string, unknown>).category === 'string'
       ? (product as unknown as Record<string, unknown>).category as string
       : undefined;
     const category = dbCategory || 'Popular';
 
-    return {
+    items.push({
       id: product.id,
       slug: product.slug,
       name: product.name,
@@ -50,41 +54,53 @@ export function toPackageItems(products: ProductData[], limit = 8): Array<Record
       description: product.description,
       category,
       featured,
-    };
-  });
+    });
+  }
   return limit > 0 ? items.slice(0, limit) : items;
 }
 
 export function toActivityItems(products: ProductData[], limit = 8): Array<Record<string, unknown>> {
-  const items = products.map((product) => ({
-    id: product.id,
-    slug: product.slug,
-    name: product.name,
-    image: product.image || product.images?.[0],
-    duration: toDurationLabel(product),
-    price: formatProductPrice(product.price, product.currency),
-    category: product.type === 'activity' ? 'Actividad' : 'Experiencia',
-    location: toProductLocation(product),
-    rating: product.rating,
-    reviewCount: product.review_count,
-    description: product.description,
-    difficulty: product.duration_minutes && product.duration_minutes > 360 ? 'Intensa' : 'Fácil',
-  }));
+  const seen = new Set<string>();
+  const items: Array<Record<string, unknown>> = [];
+  for (const product of products) {
+    if (!product.id || seen.has(product.id)) continue;
+    seen.add(product.id);
+    items.push({
+      id: product.id,
+      slug: product.slug,
+      name: product.name,
+      image: product.image || product.images?.[0],
+      duration: toDurationLabel(product),
+      price: formatProductPrice(product.price, product.currency),
+      category: product.type === 'activity' ? 'Actividad' : 'Experiencia',
+      location: toProductLocation(product),
+      rating: product.rating,
+      reviewCount: product.review_count,
+      description: product.description,
+      difficulty: product.duration_minutes && product.duration_minutes > 360 ? 'Intensa' : 'Fácil',
+    });
+  }
   return limit > 0 ? items.slice(0, limit) : items;
 }
 
 export function toHotelItems(products: ProductData[], limit = 8): Array<Record<string, unknown>> {
-  const items = products.map((product) => ({
-    id: product.id,
-    slug: product.slug,
-    name: product.name,
-    image: product.image || product.images?.[0],
-    location: toProductLocation(product),
-    rating: product.star_rating || undefined,
-    reviewRating: product.rating,
-    reviewCount: product.review_count,
-    price: formatProductPrice(product.price, product.currency),
-    badge: product.star_rating ? `${product.star_rating}★` : undefined,
-  }));
+  const seen = new Set<string>();
+  const items: Array<Record<string, unknown>> = [];
+  for (const product of products) {
+    if (!product.id || seen.has(product.id)) continue;
+    seen.add(product.id);
+    items.push({
+      id: product.id,
+      slug: product.slug,
+      name: product.name,
+      image: product.image || product.images?.[0],
+      location: toProductLocation(product),
+      rating: product.star_rating || undefined,
+      reviewRating: product.rating,
+      reviewCount: product.review_count,
+      price: formatProductPrice(product.price, product.currency),
+      badge: product.star_rating ? `${product.star_rating}★` : undefined,
+    });
+  }
   return limit > 0 ? items.slice(0, limit) : items;
 }

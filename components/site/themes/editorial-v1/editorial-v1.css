@@ -3929,6 +3929,21 @@
   color: var(--c-ink);
 }
 
+/* -------- Activity detail hero polish -------- */
+:where([data-template-set="editorial-v1"])[data-editorial-variant="activity-detail"] [data-testid="detail-hero"] p,
+:where([data-template-set="editorial-v1"])[data-editorial-variant="activity-detail"] [data-testid="detail-hero"] .text-foreground\/90 {
+  color: rgba(255, 255, 255, 0.92);
+}
+:where([data-template-set="editorial-v1"])[data-editorial-variant="activity-detail"] [data-testid="detail-hero"] .font-mono {
+  color: rgba(255, 255, 255, 0.78);
+}
+:where([data-template-set="editorial-v1"])[data-editorial-variant="activity-detail"] [data-testid="detail-hero"] .rounded-full.bg-background\/70,
+:where([data-template-set="editorial-v1"])[data-editorial-variant="activity-detail"] [data-testid="detail-hero"] .rounded-full.bg-background\/85 {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.28);
+  color: #fff;
+}
+
 /* -------- Activity detail timeline -------- */
 :where([data-template-set="editorial-v1"]) .act-timeline-block { margin-bottom: 24px; }
 :where([data-template-set="editorial-v1"]) .atb-label {

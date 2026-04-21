@@ -71,13 +71,18 @@ export function HeroSplit({
   defaultSearchQuery,
 }: HeroSplitProps) {
   const detailUi = getPublicUiMessages('es-CO').productDetail;
+  const isActivity = productType === 'activity';
   const searchableLabel = useMemo(() => {
     const cleaned = (defaultSearchQuery ?? displayName).trim();
     return cleaned.length > 0 ? cleaned : displayName;
   }, [defaultSearchQuery, displayName]);
 
   return (
-    <section data-testid="detail-hero" className="relative" style={{ minHeight: 560 }}>
+    <section
+      data-testid="detail-hero"
+      className={`relative ${isActivity ? 'detail-hero-activity' : ''}`}
+      style={{ minHeight: 560 }}
+    >
       {backgroundImage ? (
         <Image
           src={backgroundImage}
@@ -90,7 +95,7 @@ export function HeroSplit({
         />
       ) : null}
 
-      <div className="absolute inset-0 hidden bg-gradient-to-t from-background via-background/45 to-background/10 sm:block" />
+      <div className={`absolute inset-0 hidden sm:block ${isActivity ? 'bg-gradient-to-t from-black/70 via-black/35 to-black/10' : 'bg-gradient-to-t from-background via-background/45 to-background/10'}`} />
 
       <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-col gap-6 px-6 pb-12 pt-6 sm:pt-24 lg:flex-row lg:items-end lg:justify-between">
         {backgroundImage ? (
@@ -136,7 +141,7 @@ export function HeroSplit({
             </div>
           ) : null}
 
-          <h1 className="text-balance text-4xl font-bold md:text-5xl">{displayName}</h1>
+          <h1 className={`text-balance font-bold ${isActivity ? 'display-lg text-white' : 'text-4xl md:text-5xl'}`}>{displayName}</h1>
 
           {displayLocation && productType !== 'activity' ? (
             <p className="mt-2 flex items-center gap-2 text-lg text-foreground/90">

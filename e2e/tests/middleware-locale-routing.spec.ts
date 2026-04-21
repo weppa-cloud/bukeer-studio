@@ -84,11 +84,6 @@ test.describe('Middleware locale routing @p0-seo', () => {
     // hints, `getWebsiteBySubdomain` is skipped and legacy redirects never
     // fire (middleware returns 404 or a `/site/...` rewrite) — which is what
     // the previous revision of this test was silently accepting.
-    const res = await request.get(seo!.legacyRedirectPath!, {
-      headers: { 'x-subdomain': seo!.subdomain },
-      maxRedirects: 0,
-    });
-
     const legacyUrl = new URL(seo!.legacyRedirectPath!, 'http://localhost');
     legacyUrl.searchParams.set('subdomain', 'colombiatours');
     const res = await request.get(legacyUrl.pathname + legacyUrl.search, {
