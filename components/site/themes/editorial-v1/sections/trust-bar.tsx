@@ -48,6 +48,9 @@ interface TrustBarContent {
   brandClaims?: BrandClaims | null;
   liveLabel?: string;
   liveResponseTime?: string;
+  /** Optional "Reconocidos por" partner row — array of label strings */
+  logos?: Array<{ label: string; serif?: boolean }>;
+  logosLabel?: string;
 }
 
 function buildDefaultItems(
@@ -147,23 +150,43 @@ export function TrustBarSection({
 
   if (items.length === 0) return null;
 
+  const logos = Array.isArray(content.logos) ? content.logos : [];
+
   return (
-    <section
-      className="trust-bar-f1"
-      data-screen-label="TrustBar"
-      aria-label={editorialText('editorialTrustAriaLabel')}
-    >
-      <div className="ev-container inner">
-        {items.map((item, i) => (
-          <span className="item" key={`${item.bold}-${i}`}>
-            {renderItemIcon(item)}
-            {item.bold ? <b>{item.bold}</b> : null}
-            {item.bold && item.body ? ' · ' : ''}
-            {item.body ? <span>{item.body}</span> : null}
-          </span>
-        ))}
-      </div>
-    </section>
+    <>
+      <section
+        className="trust-bar-f1"
+        data-screen-label="TrustBar"
+        aria-label={editorialText('editorialTrustAriaLabel')}
+      >
+        <div className="ev-container inner">
+          {items.map((item, i) => (
+            <span className="item" key={`${item.bold}-${i}`}>
+              {renderItemIcon(item)}
+              {item.bold ? <b>{item.bold}</b> : null}
+              {item.bold && item.body ? ' · ' : ''}
+              {item.body ? <span>{item.body}</span> : null}
+            </span>
+          ))}
+        </div>
+      </section>
+      {logos.length > 0 && (
+        <section className="trust-reconocidos" aria-label="Reconocidos por">
+          <div className="ev-container trust-logos-inner">
+            <span className="trust-logos-label">
+              {content.logosLabel || 'Reconocidos por'}
+            </span>
+            <div className="trust-logos-list">
+              {logos.map((logo, i) => (
+                <span key={i} className={logo.serif ? 'serif' : undefined}>
+                  {logo.label}
+                </span>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+    </>
   );
 }
 

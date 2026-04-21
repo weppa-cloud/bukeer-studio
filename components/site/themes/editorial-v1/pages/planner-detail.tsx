@@ -276,7 +276,19 @@ export function EditorialPlannerDetailPage({
   return (
     <div data-screen-label="PlannerDetail">
       {/* Hero */}
-      <div className="pld-hero" style={pldHeroWrapperStyle}>
+      <div
+        className="pld-hero"
+        style={{
+          ...pldHeroWrapperStyle,
+          ...(planner.photo
+            ? {
+                backgroundImage: `url(${planner.photo})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center top',
+              }
+            : {}),
+        }}
+      >
         <div
           style={{
             position: 'absolute',
@@ -389,7 +401,7 @@ export function EditorialPlannerDetailPage({
                 </div>
               ) : null}
             </div>
-            {kpis.length > 1 ? (
+            {kpis.length > 0 ? (
               <div className="kpis" aria-label="Planner KPIs">
                 {kpis.map((k) => (
                   <div className="k" key={k.key}>

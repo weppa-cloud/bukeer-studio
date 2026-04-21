@@ -30,9 +30,9 @@
   --c-surface-2: hsl(var(--muted));
   --c-ink: hsl(var(--foreground));
   --c-ink-2: hsl(var(--muted-foreground));
-  --c-muted: hsl(var(--border));
-  --c-line: color-mix(in srgb, hsl(var(--border)) 50%, transparent);
-  --c-line-2: hsl(var(--border));
+  --c-muted: hsl(var(--input));           /* outline: #7a8a84 gray-green — for subdued text */
+  --c-line: color-mix(in srgb, hsl(var(--border)) 80%, transparent); /* lighter warm beige dividers */
+  --c-line-2: hsl(var(--border));         /* outlineVariant: #d6c9ad warm beige — for card borders */
   --c-hero-wash: linear-gradient(180deg, hsl(var(--primary) / 0) 0%, hsl(var(--primary) / 0.55) 100%);
   --font-display: var(--font-heading);
   --font-serif: 'Instrument Serif', ui-serif, Georgia, serif;
@@ -1652,9 +1652,9 @@
   }
 }
 
-:where([data-template-set="editorial-v1"]) .trust-logos-row {
+:where([data-template-set="editorial-v1"]) .trust-reconocidos {
   background: var(--c-surface, #fffaf0);
-  border-top: 1px solid var(--c-line-2, #e8dfc8);
+  border-bottom: 1px solid var(--c-line-2, #e8dfc8);
   padding: 12px 0;
 }
 :where([data-template-set="editorial-v1"]) .trust-logos-inner {

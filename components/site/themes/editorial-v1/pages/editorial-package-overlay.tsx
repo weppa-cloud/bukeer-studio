@@ -10,12 +10,11 @@
  * Server component — no 'use client'.
  */
 
+import { Plane } from 'lucide-react';
 import type { ProductData, ScheduleEventType } from '@bukeer/website-contract';
 import { ColombiaMap, type ColombiaMapPin } from '../maps/colombia-map';
 import { Eyebrow } from '../primitives/eyebrow';
-import { PackageStatsBar } from '../primitives/package-stats-bar';
 import { HotelCard } from '@/components/site/product-detail/p2/hotel-card';
-import { FlightRow } from '@/components/site/product-detail/p2/flight-row';
 import { DayEventTimeline } from '@/components/site/product-detail/p2/day-event-timeline';
 import { sanitizeProductCopy } from '@/lib/products/normalize-product';
 import { getPackageCircuitStops, withCoords } from '@/lib/products/package-circuit';
@@ -255,18 +254,44 @@ export function EditorialPackageOverlay({
   const timelineGroups = groupByDay(timelineItems);
   const mapPins = buildMapPins(product);
 
+  const hasDuration = (product.duration_days ?? 0) > 0 || (product.duration_nights ?? 0) > 0;
+  const hasStats = hasDuration || mapPins.length > 0 || (product.rating ?? 0) > 0;
+
   return (
     <div className="mx-auto max-w-7xl px-6 pb-16 space-y-16">
-      <section data-testid="editorial-package-stats" className="pt-4">
-        <PackageStatsBar
-          nights={product.duration_nights ?? null}
-          days={product.duration_days ?? null}
-          destinationsCount={mapPins.length > 0 ? mapPins.length : null}
-          rating={product.rating ?? null}
-          reviewCount={product.review_count ?? null}
-          locale={resolvedLocale}
-        />
-      </section>
+      {hasStats ? (
+        <section data-testid="editorial-package-stats" className="pt-4">
+          <div className="pkg-meta" style={{ marginTop: 0 }}>
+            {hasDuration ? (
+              <div className="ov-item">
+                <small>{editorialText('editorialPackageDurationLabel')}</small>
+                <strong>
+                  {product.duration_days ? `${product.duration_days}d` : ''}
+                  {product.duration_days && product.duration_nights ? ' / ' : ''}
+                  {product.duration_nights ? `${product.duration_nights}n` : ''}
+                </strong>
+              </div>
+            ) : null}
+            {mapPins.length > 0 ? (
+              <div className="ov-item">
+                <small>{editorialText('editorialPackageDestinationsLabel')}</small>
+                <strong>
+                  {mapPins.length} {mapPins.length === 1 ? 'ciudad' : 'ciudades'}
+                </strong>
+              </div>
+            ) : null}
+            {(product.rating ?? 0) > 0 ? (
+              <div className="ov-item">
+                <small>{editorialText('editorialPackageRatingLabel')}</small>
+                <strong>
+                  {(product.rating as number).toFixed(1)} ★
+                  {(product.review_count ?? 0) > 0 ? ` · ${product.review_count}` : ''}
+                </strong>
+              </div>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
 
       {mapPins.length > 0 ? (
         <section data-testid="editorial-package-map" className="route-map">
@@ -360,24 +385,25 @@ export function EditorialPackageOverlay({
               {editorialText('editorialPackageFlightsTitle')}
             </h2>
           </div>
-          <div className="flights-list space-y-3">
+          <div className="flights-list">
             {flightEntries.map((flight, idx) => (
-              <div
-                key={`flight-${idx}`}
-                className="flight-row rounded-xl border p-4"
-                style={{
-                  background: 'var(--c-surface)',
-                  borderColor: 'var(--c-line)',
-                }}
-              >
-                <FlightRow
-                  carrier={flight.carrier}
-                  flightNumber={flight.flightNumber}
-                  departure={flight.departure}
-                  arrival={flight.arrival}
-                  title={flight.title}
-                  description={flight.description}
-                />
+              <div key={`flight-${idx}`} className="flight-row">
+                <div className="f-ic">
+                  <Plane className="h-4 w-4" aria-hidden="true" />
+                </div>
+                <div className="f-route">
+                  <b>{flight.fromLocation || flight.title}</b>
+                  {flight.fromLocation && flight.toLocation ? (
+                    <span className="f-arrow">→</span>
+                  ) : null}
+                  {flight.toLocation ? <b>{flight.toLocation}</b> : null}
+                </div>
+                <div className="f-meta">
+                  {(flight.departure || flight.arrival) ? (
+                    <small>{[flight.departure, flight.arrival].filter(Boolean).join(' → ')}</small>
+                  ) : null}
+                  <span>{[flight.carrier, flight.flightNumber].filter(Boolean).join(' ') || flight.description || ''}</span>
+                </div>
               </div>
             ))}
           </div>

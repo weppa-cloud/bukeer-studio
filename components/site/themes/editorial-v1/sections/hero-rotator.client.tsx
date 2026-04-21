@@ -137,34 +137,28 @@ export function HeroRotator({
           );
         })}
       </div>
-      <div className="ev-container hero-meta" aria-live="polite">
-        <div className="hero-meta-pill">
-          {(activeSlide?.region || activeSlide?.city) && (
-            <>
-              <span className="hero-meta-label">
-                {editorialText('editorialHeroPresenting')} · {activeSlide.region || activeSlide.city}
-              </span>
-              <span className="hero-meta-sep" aria-hidden="true" />
-            </>
-          )}
-          <div className="dots" role="tablist" aria-label={editorialText('editorialHeroDotsAria')}>
-            {slides.map((_, i) => (
-              <button
-                key={i}
-                type="button"
-                className={`dot${i === idx ? ' active' : ''}`}
-                onClick={() => goTo(i)}
-                aria-label={`${editorialText('editorialHeroSlidePrefix')} ${i + 1}`}
-                aria-selected={i === idx}
-                role="tab"
-              />
-            ))}
-          </div>
-          <span className="hero-meta-sep" aria-hidden="true" />
-          <span className="hero-meta-counter">
-            {String(idx + 1).padStart(2, '0')} / {String(total).padStart(2, '0')}
-          </span>
+      <div className="hero-meta" aria-live="polite">
+        <span className="hero-meta-label">
+          {activeSlide?.region || activeSlide?.city
+            ? `${editorialText('editorialHeroPresenting')} · ${activeSlide.region || activeSlide.city}`
+            : ''}
+        </span>
+        <div className="dots" role="tablist" aria-label={editorialText('editorialHeroDotsAria')}>
+          {slides.map((_, i) => (
+            <button
+              key={i}
+              type="button"
+              className={`dot${i === idx ? ' active' : ''}`}
+              onClick={() => goTo(i)}
+              aria-label={`${editorialText('editorialHeroSlidePrefix')} ${i + 1}`}
+              aria-selected={i === idx}
+              role="tab"
+            />
+          ))}
         </div>
+        <span className="hero-meta-counter">
+          {String(idx + 1).padStart(2, '0')} / {String(total).padStart(2, '0')}
+        </span>
       </div>
     </>
   );

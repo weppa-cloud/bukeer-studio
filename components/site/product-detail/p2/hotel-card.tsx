@@ -87,8 +87,8 @@ export function HotelCard({
       <article
         data-testid="hotel-card"
         data-variant="card"
-        className="flex flex-col overflow-hidden rounded-2xl border bg-card shadow-sm"
-        style={{ borderColor: 'var(--border, var(--c-line, rgba(0,0,0,0.08)))' }}
+        className="flex flex-col overflow-hidden rounded-2xl bg-card shadow-sm"
+        style={{ borderWidth: '1px', borderStyle: 'solid', borderColor: 'var(--c-line-2, hsl(var(--border, 40 29% 74%)))' }}
       >
         {imageUrl ? (
           <div className="relative aspect-[16/9] w-full overflow-hidden bg-muted">
