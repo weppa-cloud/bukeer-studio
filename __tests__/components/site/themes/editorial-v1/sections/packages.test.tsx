@@ -246,6 +246,34 @@ describe('<PackagesSection /> editorial-v1', () => {
     }
   });
 
+  it('supports legacy `filterTabs` and derives tab matching from package category', () => {
+    const section = makeSection({
+      title: 'Paquetes',
+      filterTabs: ['Playa', 'Cultura'],
+      packages: [
+        {
+          id: 'legacy-1',
+          name: 'Caribe clásico',
+          category: 'Playa',
+        },
+        {
+          id: 'legacy-2',
+          name: 'Bogotá cultural',
+          category: 'Cultura',
+        },
+      ],
+    });
+
+    const markup = renderToStaticMarkup(
+      <PackagesSection section={section} website={makeWebsite()} />,
+    );
+
+    expect(markup).toContain('>Playa<');
+    expect(markup).toContain('>Cultura<');
+    expect(markup).toContain('Caribe clásico');
+    expect(markup).toContain('Bogotá cultural');
+  });
+
   it('builds `/paquetes/{slug}` links when slug is present and falls back to `/paquetes` otherwise', () => {
     const section = makeSection({
       title: 'Paquetes',

@@ -193,4 +193,27 @@ describe('hydrateSections — editorial v1 extensions', () => {
     });
     expect(result[0].content).toEqual({});
   });
+
+  it('does not auto-insert activities/hotels for editorial-v1 home hydration', () => {
+    const input = [
+      makeSection('s-hero', 'hero', {}, 0),
+      makeSection('s-packages', 'packages', {}, 1),
+      makeSection('s-cta', 'cta', {}, 2),
+    ];
+
+    const result = hydrateSections({
+      enabledSections: input,
+      templateSet: 'editorial-v1',
+      sectionDynamicDestinations: [],
+      packageItems: [{ id: 'p1' }],
+      activityItems: [{ id: 'a1' }],
+      hotelItems: [{ id: 'h1' }],
+      googleReviews: null,
+    });
+
+    const types = result.map((s) => s.section_type);
+    expect(types).toContain('packages');
+    expect(types).not.toContain('activities');
+    expect(types).not.toContain('hotels');
+  });
 });

@@ -98,7 +98,7 @@ describe('<EditorialDestinosListPage />', () => {
     expect(markup).toContain('>Leticia<');
     expect(markup).toContain('>Bahía Solano<');
     // Links to detail page
-    expect(markup).toContain('/destinos/cartagena');
+    expect(markup).toContain('/site/acme/destinos/cartagena');
     // JSON-LD schemas
     expect(markup).toContain('"@type":"CollectionPage"');
     expect(markup).toContain('"@type":"BreadcrumbList"');
@@ -152,7 +152,7 @@ describe('<EditorialDestinosListPage />', () => {
       />,
     );
     // Only one card with this slug should render.
-    const matches = markup.match(/\/destinos\/cartagena/g) ?? [];
+    const matches = markup.match(/\/site\/acme\/destinos\/cartagena/g) ?? [];
     // Appears in the link href and possibly the JSON-LD item URL — but exactly
     // once for the card link (we exclude JSON-LD by filtering).
     const cardHrefs = matches.filter((_, i) => i === 0);

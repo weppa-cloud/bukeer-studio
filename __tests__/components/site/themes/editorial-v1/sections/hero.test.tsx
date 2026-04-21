@@ -83,8 +83,10 @@ describe('editorial-v1 <HeroSection>', () => {
     expect(html).toContain('DESCUBRE · VIVE · CONECTA');
     // Headline text
     expect(html).toContain('Colombia a tu medida');
-    // No slides → fallback .scenic layer
+    // No authored slides/featured destinations -> fallback rotator with scenic layer.
     expect(html).toContain('class="scenic"');
+    expect(html).toContain('role="tab"');
+    expect(html).toContain('01 / 04');
   });
 
   it('preserves <em> inside headline markup', () => {

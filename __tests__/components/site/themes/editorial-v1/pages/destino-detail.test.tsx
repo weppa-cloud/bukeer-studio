@@ -140,9 +140,9 @@ describe('<EditorialDestinoDetailPage />', () => {
     expect(markup).toContain('data-testid="destino-packages"');
     expect(markup).toContain('Caribe en 7 días');
     // Links use editorial routes (destino detail doesn't link to /destinos)
-    expect(markup).toContain('/actividades/city-tour');
-    expect(markup).toContain('/hoteles/boutique-hotel');
-    expect(markup).toContain('/paquetes/caribbean-week');
+    expect(markup).toContain('/site/acme/actividades/city-tour');
+    expect(markup).toContain('/site/acme/hoteles/boutique-hotel');
+    expect(markup).toContain('/site/acme/paquetes/caribbean-week');
   });
 
   it('filters related destinations to the same region and excludes current', () => {
