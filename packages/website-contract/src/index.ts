@@ -158,6 +158,19 @@ export {
 } from './schemas/trust';
 export type { TrustCertification, TrustContent } from './schemas/trust';
 
+// Editorial v1 — dynamic brand claims + featured destinations (#267)
+export {
+  BrandClaimsSchema,
+  BrandClaimsRowSchema,
+  FeaturedDestinationSchema,
+  brandClaimsRowToClaims,
+} from './schemas/brand-claims';
+export type {
+  BrandClaims,
+  BrandClaimsRow,
+  FeaturedDestination,
+} from './schemas/brand-claims';
+
 export {
   PlaceSourceSchema,
   PlaceCacheRowSchema,

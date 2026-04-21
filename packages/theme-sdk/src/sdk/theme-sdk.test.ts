@@ -206,7 +206,8 @@ describe('compileTheme', () => {
     assert.ok(lightNames.has('accent-2'));
     assert.ok(lightNames.has('accent-3'));
     assert.ok(compiled.web!.fontImports.some((url) => url.includes('Bricolage+Grotesque:opsz,wght@8..144,200..800')));
-    assert.ok(compiled.web!.fontImports.some((url) => url.includes('Instrument+Serif:ital@0;1')));
+    // Body font is Inter per designer reference default palette
+    assert.ok(compiled.web!.fontImports.some((url) => url.includes('family=Inter')));
   });
 });
 
