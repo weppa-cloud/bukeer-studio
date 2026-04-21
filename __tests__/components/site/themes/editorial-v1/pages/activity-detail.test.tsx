@@ -34,7 +34,7 @@ function makeProduct(overrides: Partial<ProductData> = {}): ProductData {
 }
 
 describe('<EditorialActivityDetail /> editorial-v1', () => {
-  it('renders with minimal product data and wraps the generic body', () => {
+  it('renders standalone activity detail with editorial shell', () => {
     const markup = renderToStaticMarkup(
       <EditorialActivityDetail
         website={makeWebsite()}
@@ -51,12 +51,11 @@ describe('<EditorialActivityDetail /> editorial-v1', () => {
 
     expect(markup).toContain('data-template-set="editorial-v1"');
     expect(markup).toContain('data-editorial-variant="activity-detail"');
-    expect(markup).toContain('data-testid="generic-body"');
-    expect(markup).toContain('editorial-activity-breadcrumbs');
+    expect(markup).toContain('data-screen-label="ActivityDetail"');
     expect(markup).toContain('Salento, Colombia');
   });
 
-  it('hides highlights section when product.highlights is empty', () => {
+  it('does not inject highlight copy into timeline when highlights are empty', () => {
     const markup = renderToStaticMarkup(
       <EditorialActivityDetail
         website={makeWebsite()}
@@ -71,10 +70,11 @@ describe('<EditorialActivityDetail /> editorial-v1', () => {
       </EditorialActivityDetail>
     );
 
-    expect(markup).not.toContain('editorial-activity-highlights');
+    expect(markup).not.toContain('Palmas de cera');
+    expect(markup).not.toContain('Vistas panorámicas');
   });
 
-  it('shows highlights section when highlights are present', () => {
+  it('injects highlight copy into timeline when highlights are present', () => {
     const markup = renderToStaticMarkup(
       <EditorialActivityDetail
         website={makeWebsite()}
@@ -91,7 +91,6 @@ describe('<EditorialActivityDetail /> editorial-v1', () => {
       </EditorialActivityDetail>
     );
 
-    expect(markup).toContain('editorial-activity-highlights');
     expect(markup).toContain('Palmas de cera');
     expect(markup).toContain('Vistas panorámicas');
   });
