@@ -1,0 +1,80 @@
+{
+  "journey": "growth-journey",
+  "websiteId": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+  "steps": [
+    {
+      "name": "1. Dashboard home",
+      "startedAt": "2026-04-17T12:04:13.012Z",
+      "durationMs": 1142,
+      "consoleErrors": 0,
+      "screenshot": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/docs/evidence/growth-readiness/screenshots/growth-journey-1-1-dashboard-home.png"
+    },
+    {
+      "name": "2. Analytics — integrations connected",
+      "startedAt": "2026-04-17T12:04:14.204Z",
+      "durationMs": 2871,
+      "consoleErrors": 0,
+      "screenshot": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/docs/evidence/growth-readiness/screenshots/growth-journey-2-2-analytics-integrations-connected.png"
+    },
+    {
+      "name": "3. Sync now",
+      "startedAt": "2026-04-17T12:04:17.133Z",
+      "durationMs": 1222,
+      "consoleErrors": 1,
+      "screenshot": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/docs/evidence/growth-readiness/screenshots/growth-journey-3-3-sync-now.png"
+    },
+    {
+      "name": "4. Contenido — filter Paquetes",
+      "startedAt": "2026-04-17T12:04:18.411Z",
+      "durationMs": 1132,
+      "consoleErrors": 0,
+      "screenshot": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/docs/evidence/growth-readiness/screenshots/growth-journey-4-4-contenido-filter-paquetes.png"
+    },
+    {
+      "name": "5. Open a package",
+      "startedAt": "2026-04-17T12:04:19.617Z",
+      "durationMs": 207,
+      "consoleErrors": 0,
+      "screenshot": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/docs/evidence/growth-readiness/screenshots/growth-journey-5-5-open-a-package.png"
+    },
+    {
+      "name": "6. Keywords research (es-CO)",
+      "startedAt": "2026-04-17T12:04:19.883Z",
+      "durationMs": 24,
+      "consoleErrors": 0,
+      "screenshot": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/docs/evidence/growth-readiness/screenshots/growth-journey-6-6-keywords-research-es-co.png"
+    },
+    {
+      "name": "7. Cluster create",
+      "startedAt": "2026-04-17T12:04:19.966Z",
+      "durationMs": 17,
+      "consoleErrors": 0,
+      "screenshot": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/docs/evidence/growth-readiness/screenshots/growth-journey-7-7-cluster-create.png"
+    },
+    {
+      "name": "8. Optimize package (SEO layer only)",
+      "startedAt": "2026-04-17T12:04:20.050Z",
+      "durationMs": 16,
+      "consoleErrors": 0,
+      "screenshot": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/docs/evidence/growth-readiness/screenshots/growth-journey-8-8-optimize-package-seo-layer-only.png"
+    },
+    {
+      "name": "9. Transcreate (es-CO → en-US)",
+      "startedAt": "2026-04-17T12:04:20.133Z",
+      "durationMs": 1091,
+      "consoleErrors": 0,
+      "screenshot": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/docs/evidence/growth-readiness/screenshots/growth-journey-9-9-transcreate-es-co-en-us.png"
+    },
+    {
+      "name": "10. Track — overview reload",
+      "startedAt": "2026-04-17T12:04:21.252Z",
+      "durationMs": 1058,
+      "consoleErrors": 1,
+      "screenshot": "/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer-studio/docs/evidence/growth-readiness/screenshots/growth-journey-10-10-track-overview-reload.png"
+    }
+  ],
+  "totals": {
+    "durationMs": 8780,
+    "consoleErrors": 2
+  }
+}

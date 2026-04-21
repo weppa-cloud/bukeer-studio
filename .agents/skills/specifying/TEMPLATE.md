@@ -1,14 +1,23 @@
-<!--
-  GitHub Issue body template for specs created by the `specifying` skill.
-  Title convention: `[SPEC] <Feature Name>`
-  Labels: spec, needs-tech-validation, (optional) area:<domain>
--->
+# Spec: [Feature Name]
+
+## GitHub Tracking
+- **Epic Issue**: TBD (fill after Phase 6)
+- **Child Issues**: TBD (fill after Phase 7)
+- **Milestone**: [e.g. Q2-2026]
+- **Area**: [studio | editor | theme-sdk | contract | seo]
+
+## Status
+- **Author**: [name]
+- **Date**: [YYYY-MM-DD]
+- **Status**: Draft | Reviewed | Implementing | Implemented
+- **ADRs referenced**: [ADR-NNN, ADR-NNN]
+- **Cross-repo impact**: [none | bukeer-flutter reads/writes tables X, Y]
 
 ## Summary
 <1-2 sentences describing the feature>
 
 ## Motivation
-<User pain point or business requirement. Why now.>
+[Why needed — user pain point / business constraint / compliance]
 
 ## User Flows
 
@@ -16,19 +25,14 @@
 1. User navigates to...
 2. User clicks...
 3. System shows...
-4. User fills...
-5. System validates...
-6. User confirms...
-7. System saves and shows success.
 
 ### Flow 2: Edge case
 1. ...
 
 ## Acceptance Criteria
-
-- [ ] AC1: <Testable assertion>
-- [ ] AC2: <Testable assertion>
-- [ ] AC3: <Testable assertion>
+- [ ] AC1: [testable assertion]
+- [ ] AC2: [testable assertion]
+- [ ] AC3: [testable assertion]
 
 ## Data Model Changes
 
@@ -36,50 +40,41 @@
 |-------|--------|------|-------|
 |       |        |      |       |
 
-## API / RPC Changes
+Migration path: [forward-only | requires backfill | none]
 
-| Endpoint / RPC | Method | Payload | Notes |
-|----------------|--------|---------|-------|
-|                |        |         |       |
+## API / Contract Changes
+
+| Endpoint/RPC/Schema | Method | Payload | Notes |
+|---------------------|--------|---------|-------|
+| ... | ... | ... | ... |
 
 ## Permissions (RBAC)
 
-| Role        | View | Create | Edit | Delete |
-|-------------|------|--------|------|--------|
-| super_admin | yes  | yes    | yes  | yes    |
-| owner       | yes  | yes    | yes  | yes    |
-| admin       | yes  | yes    | yes  | no     |
-| agent       | yes  | no     | no   | no     |
+| Role | View | Create | Edit | Delete |
+|------|------|--------|------|--------|
+| super_admin | yes | yes | yes | yes |
+| owner | yes | yes | yes | yes |
+| admin | yes | yes | yes | no |
+| agent | yes | no | no | no |
 
-## Affected Files
+## Affected Files / Packages
 
-| File | Change | Description |
+| Path | Change | Description |
 |------|--------|-------------|
-|      | Create / Modify |    |
+| ... | Create/Modify | ... |
 
 ## Edge Cases & Error Handling
-
-1. <Edge case> → <Expected behavior>
-2. ...
+1. [case] → [expected behavior]
 
 ## Out of Scope
-
-- <Explicitly excluded>
+- [explicitly excluded]
 
 ## Dependencies
+- ADRs: [ADR-NNN]
+- Other specs: [SPEC_<name>.md]
+- External: [migrations, third-party]
 
-- <Other features, issues, or systems>
-
-## ADR References
-
-- ADR-XXX: <title>
-
-## L10N
-
-- Copy keys to add in `lib/l10n/app_es.arb`: `<key>`, `<key>`
-
----
-
-<!-- Workflow markers (do not remove) -->
-- Status: `Draft` → `Reviewed` (after tech-validator PLAN) → `Implementing` → `Implemented`
-- Related: `Relates to #`, `Closes #`
+## Rollout
+- Feature flag: [name | none]
+- Revalidation: [required paths / none]
+- Runbook: [docs/ops/<name>-runbook.md | none]

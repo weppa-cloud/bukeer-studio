@@ -11,9 +11,6 @@ import { GoogleTagManager, GoogleTagManagerBody } from '@/components/analytics/g
 import { buildNavTree, getDefaultNavigation } from '@/lib/utils/navigation';
 import { getBasePath } from '@/lib/utils/base-path';
 import type { ThemeInput } from '@/lib/theme/m3-theme-provider';
-import { resolvePublicMetadataLocale } from '@/lib/seo/public-metadata';
-import { localeToOgLocale } from '@/lib/seo/locale-routing';
-import { WebsiteLocaleProvider } from '@/components/site/website-locale-provider';
 import '@/app/globals.css';
 
 interface SiteLayoutProps {
@@ -109,10 +106,9 @@ export default async function SiteLayout({ children, params }: SiteLayoutProps) 
   const initialTheme = getInitialTheme(websiteWithEffectiveTheme.effective_theme ?? website.theme);
 
   return (
-    <WebsiteLocaleProvider locale={localeContext.resolvedLocale}>
-      <M3ThemeProvider initialTheme={initialTheme}>
-        {/* Google Tag Manager and Analytics Scripts */}
-        <GoogleTagManager analytics={website.analytics} />
+    <M3ThemeProvider initialTheme={getInitialTheme(website.theme)}>
+      {/* Google Tag Manager and Analytics Scripts */}
+      <GoogleTagManager analytics={website.analytics} />
 
         <SmoothScroll>
           <div className="min-h-screen flex flex-col overflow-x-hidden">

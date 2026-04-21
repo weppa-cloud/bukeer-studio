@@ -651,59 +651,7 @@ function Ciclo90D({ websiteId }: { websiteId: string }) {
 // ─── Main export ──────────────────────────────────────────────────────────────
 
 export function SeoOkrCycle({ websiteId, overview }: SeoOkrCycleProps) {
-  const [targets, setTargets] = useState<OkrTargets | null>(null);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    async function loadTargets() {
-      try {
-        const params = new URLSearchParams({
-          websiteId,
-          period: '30d',
-          limit: '20',
-        });
-        const response = await fetch(`/api/seo/okrs?${params.toString()}`, { cache: 'no-store' });
-        const json = (await response.json().catch(() => null)) as
-          | {
-              success?: boolean;
-              data?: {
-                rows?: Array<{ kpiKey?: string; target?: number }>;
-              };
-            }
-          | null;
-
-        if (!response.ok || !json?.success) return;
-
-        const byKey = new Map<string, number>();
-        for (const row of json.data?.rows ?? []) {
-          if (typeof row.kpiKey === 'string' && typeof row.target === 'number') {
-            byKey.set(row.kpiKey, row.target);
-          }
-        }
-
-        const next: OkrTargets = {
-          clicks: byKey.get('organic_clicks_monthly') ?? 500,
-          position: byKey.get('avg_position') ?? 15,
-          score: byKey.get('technical_score') ?? 75,
-        };
-
-        if (isMounted) {
-          setTargets(next);
-        }
-      } catch {
-        if (isMounted) {
-          setTargets(null);
-        }
-      }
-    }
-
-    void loadTargets();
-    return () => {
-      isMounted = false;
-    };
-  }, [websiteId]);
-
+  void websiteId;
   return (
     <div className="space-y-3 mt-4">
       <div className="flex items-center gap-2">

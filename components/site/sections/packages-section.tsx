@@ -45,9 +45,8 @@ export function PackagesSection({ section, website }: PackagesSectionProps) {
   const variant = section.variant || 'default';
   const title = sectionContent.title || text('sectionPackagesTitle');
   const subtitle = sectionContent.subtitle;
-  const eyebrow = sectionContent.eyebrow || text('sectionPackagesEyebrow');
+  const eyebrow = sectionContent.eyebrow || 'Experiencias Curadas';
   const packages = useMemo(() => sectionContent.packages ?? [], [sectionContent.packages]);
-  const allDestinationsLabel = text('sectionFilterAll');
 
   // Destination filter state
   const [activeDestination, setActiveDestination] = useState<string>(allDestinationsLabel);

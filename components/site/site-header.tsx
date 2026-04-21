@@ -1,8 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import Image from 'next/image';
+import { useState, useEffect, useCallback } from 'react';
+import { usePathname } from 'next/navigation';
 import { WebsiteData } from '@/lib/supabase/get-website';
 import { getBasePath } from '@/lib/utils/base-path';
 import { resolveNavHref } from '@/lib/utils/navigation';
@@ -256,13 +257,12 @@ export function SiteHeader({ website, isCustomDomain = false, navigation }: Site
               className="absolute left-1/2 -translate-x-1/2 z-20 flex items-center justify-center max-w-[56vw] px-2 shrink-0 group"
             >
               {currentLogo ? (
-                /* eslint-disable-next-line @next/next/no-img-element */
-                <img
+                <Image
                   src={currentLogo}
                   alt={siteName}
                   width={220}
                   height={56}
-                  decoding="async"
+                  sizes="(max-width: 1024px) 56vw, 220px"
                   className={`w-auto max-w-full object-contain transition-all duration-500 ${isTransparent ? 'h-10' : 'h-8'}`}
                 />
               ) : (
@@ -304,13 +304,12 @@ export function SiteHeader({ website, isCustomDomain = false, navigation }: Site
           <div className="hidden lg:flex h-full items-center justify-between">
             <Link href={`${basePath}/`} className="flex items-center gap-2 shrink-0 group">
               {currentLogo ? (
-                /* eslint-disable-next-line @next/next/no-img-element */
-                <img
+                <Image
                   src={currentLogo}
                   alt={siteName}
                   width={220}
                   height={56}
-                  decoding="async"
+                  sizes="220px"
                   className={`w-auto object-contain transition-all duration-500 ${isTransparent ? 'h-11' : 'h-8'}`}
                 />
               ) : (

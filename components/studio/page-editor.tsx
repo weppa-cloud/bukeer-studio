@@ -50,7 +50,6 @@ import {
   PanelLeftOpen,
   Undo2,
   Redo2,
-  Languages,
 } from 'lucide-react';
 import type { WebsiteData, WebsiteSection } from '@bukeer/website-contract';
 import type { SectionTypeValue } from '@bukeer/website-contract';
