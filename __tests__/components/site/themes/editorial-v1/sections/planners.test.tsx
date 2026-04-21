@@ -107,6 +107,15 @@ function makePlanner(overrides: Partial<PlannerData> = {}): PlannerData {
     slug: overrides.slug ?? 'mariana-velez',
     quote: hasQuote ? (overrides.quote as string | null) : 'El Caribe es mi casa.',
     language: hasLanguage ? (overrides.language as string | null) : 'es',
+    tripsCount: overrides.tripsCount ?? null,
+    ratingAvg: overrides.ratingAvg ?? null,
+    yearsExperience: overrides.yearsExperience ?? null,
+    specialties: overrides.specialties ?? null,
+    regions: overrides.regions ?? null,
+    locationName: overrides.locationName ?? null,
+    languages: overrides.languages ?? null,
+    signaturePackageId: overrides.signaturePackageId ?? null,
+    personalDetails: overrides.personalDetails ?? null,
   };
 }
 

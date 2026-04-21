@@ -122,6 +122,15 @@ export default async function PlannerProfilePage({ params }: PlannerPageProps) {
         slug,
         quote: sectionMatch.quote ?? null,
         language: null,
+        tripsCount: null,
+        ratingAvg: null,
+        yearsExperience: null,
+        specialties: null,
+        regions: null,
+        locationName: null,
+        languages: null,
+        signaturePackageId: null,
+        personalDetails: null,
       };
     }
   }
@@ -153,20 +162,28 @@ export default async function PlannerProfilePage({ params }: PlannerPageProps) {
   const rating = sectionMatch?.rating;
   const reviewCount = sectionMatch?.reviewCount;
 
-  // Editorial-v1 payload — enriches planner with any author-authored
-  // overrides surfaced via the legacy `planners` section content (quote,
-  // rating, specialty). Extra editorial fields (bio, signature, regions,
-  // languages, funFacts) live under the per-planner entry when authored.
-  const plannerPayload: PlannerPayload | undefined = sectionMatch
-    ? {
-        bio: undefined,
-        rating: sectionMatch.rating,
-        reviews: sectionMatch.reviewCount,
-        specialties: sectionMatch.specialty
-          ? [sectionMatch.specialty]
-          : undefined,
-      }
-    : undefined;
+  // Editorial-v1 payload — merges section content overrides + DB planner
+  // profile columns (trips_count/rating_avg/years_experience/specialties/
+  // regions/location_name/languages/personal_details; migration
+  // planner_profile_columns_on_contacts 2026-04-21). Section content wins
+  // when both present so author edits keep priority over catalog sync.
+  const dbSpecialties = planner.specialties ?? undefined;
+  const dbRegions = planner.regions ?? undefined;
+  const dbLanguages = planner.languages ?? undefined;
+  const plannerPayload: PlannerPayload = {
+    rating: sectionMatch?.rating ?? planner.ratingAvg ?? undefined,
+    reviews: sectionMatch?.reviewCount ?? undefined,
+    trips: planner.tripsCount ?? undefined,
+    years: planner.yearsExperience ?? undefined,
+    specialties: sectionMatch?.specialty
+      ? [sectionMatch.specialty, ...(dbSpecialties ?? [])]
+      : dbSpecialties,
+    regions: dbRegions,
+    languages: dbLanguages && dbLanguages.length > 0
+      ? dbLanguages.map((l) => l.toUpperCase())
+      : undefined,
+    base: planner.locationName ?? undefined,
+  };
 
   // Fetch the full planners list (for Otros planners strip).
   const allPlanners = website.account_id ? await getPlanners(website.account_id) : [];

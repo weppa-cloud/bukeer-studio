@@ -20,6 +20,16 @@ export interface PlannerData {
    * Source: `contacts.language`.
    */
   language: string | null;
+  // Planner profile fields (matrix PD-02..PD-07, migration planner_profile_columns_on_contacts)
+  tripsCount: number | null;
+  ratingAvg: number | null;
+  yearsExperience: number | null;
+  specialties: string[] | null;
+  regions: string[] | null;
+  locationName: string | null;
+  languages: string[] | null;
+  signaturePackageId: string | null;
+  personalDetails: Record<string, unknown> | null;
 }
 
 /**
@@ -31,7 +41,7 @@ export async function getPlanners(accountId: string): Promise<PlannerData[]> {
   const supabase = createSupabaseServiceRoleClient();
   const { data, error } = await supabase
     .from('contacts')
-    .select('id, name, last_name, user_image, user_rol, position, phone, phone2, user_id, quote, language')
+    .select('id, name, last_name, user_image, user_rol, position, phone, phone2, user_id, quote, language, trips_count, rating_avg, years_experience, specialties, regions, location_name, languages, signature_package_id, personal_details')
     .eq('account_id', accountId)
     .eq('show_on_website', true)
     .is('deleted_at', null)
@@ -58,19 +68,45 @@ export async function getPlanners(accountId: string): Promise<PlannerData[]> {
     );
   }
 
-  return data.map(contact => ({
-    id: contact.id,
-    name: contact.name || '',
-    lastName: contact.last_name || '',
-    fullName: `${contact.name || ''} ${contact.last_name || ''}`.trim(),
-    photo: contact.user_image || authPhotos[contact.id] || null,
-    role: contact.user_rol,
-    position: contact.position,
-    phone: contact.phone || contact.phone2 || null,
-    slug: slugify(`${contact.name || ''} ${contact.last_name || ''}`),
-    quote: (contact as { quote?: string | null }).quote ?? null,
-    language: (contact as { language?: string | null }).language ?? null,
-  }));
+  return data.map(contact => {
+    const row = contact as typeof contact & {
+      quote?: string | null;
+      language?: string | null;
+      trips_count?: number | null;
+      rating_avg?: number | string | null;
+      years_experience?: number | null;
+      specialties?: string[] | null;
+      regions?: string[] | null;
+      location_name?: string | null;
+      languages?: string[] | null;
+      signature_package_id?: string | null;
+      personal_details?: Record<string, unknown> | null;
+    };
+    const ratingRaw = row.rating_avg;
+    const ratingAvg = ratingRaw == null ? null : typeof ratingRaw === 'number' ? ratingRaw : Number(ratingRaw);
+    return {
+      id: contact.id,
+      name: contact.name || '',
+      lastName: contact.last_name || '',
+      fullName: `${contact.name || ''} ${contact.last_name || ''}`.trim(),
+      photo: contact.user_image || authPhotos[contact.id] || null,
+      role: contact.user_rol,
+      position: contact.position,
+      phone: contact.phone || contact.phone2 || null,
+      slug: slugify(`${contact.name || ''} ${contact.last_name || ''}`),
+      quote: row.quote ?? null,
+      language: row.language ?? null,
+      tripsCount: row.trips_count ?? null,
+      ratingAvg: Number.isFinite(ratingAvg) ? (ratingAvg as number) : null,
+      yearsExperience: row.years_experience ?? null,
+      specialties: row.specialties ?? null,
+      regions: row.regions ?? null,
+      locationName: row.location_name ?? null,
+      languages: row.languages ?? null,
+      signaturePackageId: row.signature_package_id ?? null,
+      personalDetails: row.personal_details ?? null,
+    };
+  });
 }
 
 export function slugify(text: string): string {
