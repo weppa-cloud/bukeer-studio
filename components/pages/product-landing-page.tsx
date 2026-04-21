@@ -364,6 +364,7 @@ export function ProductLandingPage({
     ? normalizedProduct.gallery
     : product.images || (product.image ? [product.image] : []);
   const isTransfer = productType === 'transfer';
+  const showStickyCta = productType !== 'activity';
   const hotelStars = productType === 'hotel' && normalizedProduct.rating
     ? Math.max(1, Math.min(5, Math.round(normalizedProduct.rating)))
     : 0;
@@ -626,15 +627,17 @@ export function ProductLandingPage({
         defaultSearchQuery={displayName}
       />
 
-      <StickyCTABar
-        price={normalizedProduct.price}
-        currency={sourceCurrency}
-        preferredCurrency={displayedCurrency}
-        currencyConfig={currencyConfig}
-        whatsappUrl={whatsappUrl}
-        phone={primaryPhone || website.content.social?.whatsapp || null}
-        analyticsContext={analyticsContext}
-      />
+      {showStickyCta ? (
+        <StickyCTABar
+          price={normalizedProduct.price}
+          currency={sourceCurrency}
+          preferredCurrency={displayedCurrency}
+          currencyConfig={currencyConfig}
+          whatsappUrl={whatsappUrl}
+          phone={primaryPhone || website.content.social?.whatsapp || null}
+          analyticsContext={analyticsContext}
+        />
+      ) : null}
 
       {renderAfterHero}
 
