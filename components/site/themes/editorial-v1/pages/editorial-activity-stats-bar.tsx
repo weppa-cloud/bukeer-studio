@@ -13,6 +13,8 @@ import type { ProductData, ActivityOption } from '@bukeer/website-contract';
 
 export interface EditorialActivityStatsBarProps {
   product: ProductData;
+  reviewRating?: number | null;
+  reviewCount?: number | null;
 }
 
 function resolveActivityDuration(product: ProductData): string | null {
@@ -37,6 +39,16 @@ function resolveFirstStartTime(options: ActivityOption[] | undefined): string | 
   return null;
 }
 
+function resolveFirstScheduleTime(product: ProductData): string | null {
+  if (!Array.isArray(product.schedule) || product.schedule.length === 0) return null;
+  for (const entry of product.schedule) {
+    if (entry && typeof entry.time === 'string' && entry.time.trim().length > 0) {
+      return entry.time.trim();
+    }
+  }
+  return null;
+}
+
 function resolveGroupSize(options: ActivityOption[] | undefined): string | null {
   if (!Array.isArray(options) || options.length === 0) return null;
   const maxUnits = options
@@ -54,18 +66,30 @@ function resolveActivityType(product: ProductData): string | null {
   return label.charAt(0).toUpperCase() + label.slice(1).toLowerCase();
 }
 
-export function EditorialActivityStatsBar({ product }: EditorialActivityStatsBarProps) {
+export function EditorialActivityStatsBar({
+  product,
+  reviewRating = null,
+  reviewCount = null,
+}: EditorialActivityStatsBarProps) {
   const duration = resolveActivityDuration(product);
-  const startTime = resolveFirstStartTime(product.options);
+  const startTime = resolveFirstStartTime(product.options) ?? resolveFirstScheduleTime(product);
   const groupSize = resolveGroupSize(product.options);
-  const activityType = resolveActivityType(product);
+  const activityType = resolveActivityType(product) ?? 'Actividad';
+  const location = product.location || product.city || null;
   const rating = typeof product.rating === 'number' && product.rating > 0 ? product.rating : null;
+  const ratingSource = rating ?? reviewRating;
+  const ratingCount =
+    typeof product.review_count === 'number' && product.review_count > 0
+      ? product.review_count
+      : typeof reviewCount === 'number' && reviewCount > 0
+        ? reviewCount
+        : null;
 
-  const hasStats = duration || startTime || groupSize || activityType || rating;
+  const hasStats = duration || startTime || groupSize || activityType || location || ratingSource;
   if (!hasStats) return null;
 
-  const ratingLabel = rating
-    ? `${rating.toFixed(1)} ★${typeof product.review_count === 'number' && product.review_count > 0 ? ` · ${product.review_count}` : ''}`
+  const ratingLabel = ratingSource
+    ? `${ratingSource.toFixed(1)} ★${ratingCount ? ` · ${ratingCount}` : ''}`
     : null;
 
   return (
@@ -96,6 +120,12 @@ export function EditorialActivityStatsBar({ product }: EditorialActivityStatsBar
           <div className="ov-item">
             <small>Grupo</small>
             <strong>{groupSize}</strong>
+          </div>
+        ) : null}
+        {location ? (
+          <div className="ov-item">
+            <small>Ubicación</small>
+            <strong>{location}</strong>
           </div>
         ) : null}
         {ratingLabel ? (

@@ -1055,7 +1055,7 @@ function ActivitySections({
       {recommendations.length > 0 && (
         <section>
           <h2 className="text-2xl font-bold mb-6">Recomendaciones para el día</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {recommendations.map((item, idx) => (
               <div
                 key={`${idx}-${item}`}

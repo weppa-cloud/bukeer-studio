@@ -132,7 +132,10 @@ export function ExperiencesGrid({
   }, [activities]);
 
   const filtered = useMemo(() => {
+    const seen = new Set<string>();
     return activities.filter((a) => {
+      if (seen.has(a.id)) return false;
+      seen.add(a.id);
       if (categoryFilter && categoryFilter !== 'all') {
         const key = normalise(a.categoryKey || a.category);
         if (key !== normalise(categoryFilter)) return false;

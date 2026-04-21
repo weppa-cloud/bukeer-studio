@@ -29,6 +29,8 @@ import { Breadcrumbs } from '../primitives/breadcrumbs';
 import { Eyebrow } from '../primitives/eyebrow';
 import { sanitizeProductCopy } from '@/lib/products/normalize-product';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
+import { COLOMBIA_CITIES } from '@/lib/maps/colombia-cities';
+import { ColombiaMapStandalone } from '../maps/colombia-map-standalone.client';
 
 export interface EditorialActivityDetailPayload {
   product: ProductData;
@@ -78,6 +80,15 @@ export function EditorialActivityDetail({
 
   const { product, basePath, displayName, displayLocation } = resolvedPayload;
   const highlights = normalizeHighlights(product);
+
+  // Build Colombia map pin from product coords or city lookup.
+  const cityEntry = product.city ? COLOMBIA_CITIES[product.city] ?? null : null;
+  const pinLat = Number.isFinite(product.latitude) ? product.latitude : cityEntry?.lat;
+  const pinLng = Number.isFinite(product.longitude) ? product.longitude : cityEntry?.lng;
+  const mapPin =
+    pinLat !== undefined && pinLng !== undefined
+      ? [{ id: product.id, label: displayName, lat: pinLat, lng: pinLng, region: cityEntry?.region }]
+      : [];
   const durationLabel = product.duration
     ? sanitizeProductCopy(product.duration)
     : typeof product.duration_minutes === 'number'
@@ -160,6 +171,21 @@ export function EditorialActivityDetail({
                 </li>
               ))}
             </ul>
+          </section>
+        ) : null}
+
+        {mapPin.length > 0 ? (
+          <section data-testid="editorial-activity-map">
+            <h2 className="text-xl font-bold mb-4">
+              {editorialText('editorialDestinoMapTitle')}{' '}
+              <em>{displayLocation ?? displayName}.</em>
+            </h2>
+            <ColombiaMapStandalone
+              pins={mapPin}
+              activePinId={mapPin[0].id}
+              height={380}
+              ariaLabel={`Mapa de Colombia mostrando ${displayName}`}
+            />
           </section>
         ) : null}
       </div>
