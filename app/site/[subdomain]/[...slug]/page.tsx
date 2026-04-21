@@ -919,6 +919,7 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
             resolvedLocale={productLocaleContext.resolvedLocale}
             renderAfterHero={activityStatsBar ?? packageStatsBar}
             renderAfterMain={packageOverlay}
+            editorialMode={isEditorialV1 && productType === 'activity'}
           />
         );
 
