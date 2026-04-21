@@ -49,8 +49,82 @@ interface TrustBarContent {
   liveLabel?: string;
   liveResponseTime?: string;
   /** Optional "Reconocidos por" partner row — array of label strings */
-  logos?: Array<{ label: string; serif?: boolean }>;
+  logos?: Array<{ label: string; serif?: boolean } | string> | string;
   logosLabel?: string;
+}
+
+interface TrustLogo {
+  label: string;
+  serif?: boolean;
+}
+
+const KNOWN_LOGO_TOKENS = [
+  'ProColombia',
+  'ANATO',
+  "Travellers' Choice",
+  'Travellers Choice',
+  'MinCIT',
+  'Rainforest Alliance',
+  'RNT 83412',
+] as const;
+
+function splitLegacyLogoString(raw: string): TrustLogo[] {
+  const cleaned = raw.replace(/\s+/g, ' ').trim();
+  if (!cleaned) return [];
+
+  if (/[|;,·]/.test(cleaned)) {
+    return cleaned
+      .split(/[|;,·]/g)
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .map((label) => ({ label }));
+  }
+
+  const matched: TrustLogo[] = [];
+  let cursor = cleaned;
+  for (const token of KNOWN_LOGO_TOKENS) {
+    const idx = cursor.indexOf(token);
+    if (idx === -1) continue;
+    if (idx > 0) {
+      const before = cursor.slice(0, idx).trim();
+      if (before) matched.push({ label: before });
+    }
+    matched.push({ label: token });
+    cursor = cursor.slice(idx + token.length).trim();
+  }
+  if (cursor) matched.push({ label: cursor });
+
+  if (matched.length > 1) return matched;
+  return [{ label: cleaned }];
+}
+
+function normalizeLogos(input: TrustBarContent['logos']): TrustLogo[] {
+  const list: TrustLogo[] = [];
+  const pushLabel = (label: string, serif?: boolean) => {
+    const normalized = label.replace(/\s+/g, ' ').trim();
+    if (!normalized) return;
+    list.push({ label: normalized, serif });
+  };
+
+  if (typeof input === 'string') {
+    return splitLegacyLogoString(input);
+  }
+
+  if (!Array.isArray(input)) return list;
+
+  for (const item of input) {
+    if (typeof item === 'string') {
+      for (const parsed of splitLegacyLogoString(item)) {
+        pushLabel(parsed.label, parsed.serif);
+      }
+      continue;
+    }
+    if (item && typeof item.label === 'string') {
+      pushLabel(item.label, item.serif);
+    }
+  }
+
+  return list;
 }
 
 function buildDefaultItems(
@@ -150,7 +224,7 @@ export function TrustBarSection({
 
   if (items.length === 0) return null;
 
-  const logos = Array.isArray(content.logos) ? content.logos : [];
+  const logos = normalizeLogos(content.logos);
 
   return (
     <>
@@ -174,14 +248,20 @@ export function TrustBarSection({
         <section className="trust-reconocidos" aria-label="Reconocidos por">
           <div className="ev-container trust-logos-inner">
             <span className="trust-logos-label">
-              {content.logosLabel || 'Reconocidos por'}
+              {content.logosLabel || editorialText('editorialTrustLogosLabel')}
             </span>
             <div className="trust-logos-list">
-              {logos.map((logo, i) => (
-                <span key={i} className={logo.serif ? 'serif' : undefined}>
-                  {logo.label}
-                </span>
-              ))}
+              {logos.map((logo, i) => {
+                const hasNext = i < logos.length - 1;
+                return (
+                  <span key={`${logo.label}-${i}`} className="trust-logo-item-wrap">
+                    <span className={logo.serif ? 'serif trust-logo-item' : 'trust-logo-item'}>
+                      {logo.label}
+                    </span>
+                    {hasNext ? <span className="trust-logo-sep" aria-hidden="true">•</span> : null}
+                  </span>
+                );
+              })}
             </div>
           </div>
         </section>

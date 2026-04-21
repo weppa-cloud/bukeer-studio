@@ -198,38 +198,60 @@ export function PlannersSection({
                 );
               const profileHref = `${basePath}/planners/${p.slug}`;
               const langs = p.languages && p.languages.length > 0 ? p.languages : [];
+              const whatsappHref = resolveWhatsAppHref(p.phone, websiteWhatsapp, firstName);
               return (
-                <Link key={p.id} href={profileHref} className="planner">
-                  <div className="planner-avatar">
-                    {p.photo ? (
-                      <Image
-                        src={p.photo}
-                        alt={p.fullName}
-                        fill
-                        sizes="(max-width: 720px) 100vw, (max-width: 1100px) 50vw, 25vw"
-                        style={{ objectFit: 'cover' }}
-                        unoptimized={p.photo.includes('supabase.co')}
-                      />
-                    ) : (
-                      <div style={avatarGradientStyle}>
-                        <div style={avatarShineStyle} />
-                        <span style={avatarInitialsStyle}>
-                          {p.fullName.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  <div>
-                    <h4>{p.fullName}</h4>
-                    <div className="planner-role">{role}</div>
-                  </div>
-                  <p className="planner-quote">{experienceText}</p>
-                  {langs.length > 0 ? (
-                    <div className="planner-langs">
-                      {langs.map((l) => <span key={l} className="lg">{l}</span>)}
+                <article key={p.id} className="planner">
+                  <Link href={profileHref} className="planner-card-link">
+                    <div className="planner-avatar">
+                      {p.photo ? (
+                        <Image
+                          src={p.photo}
+                          alt={p.fullName}
+                          fill
+                          sizes="(max-width: 720px) 100vw, (max-width: 1100px) 50vw, 25vw"
+                          style={{ objectFit: 'cover' }}
+                          unoptimized={p.photo.includes('supabase.co')}
+                        />
+                      ) : (
+                        <div style={avatarGradientStyle}>
+                          <div style={avatarShineStyle} />
+                          <span style={avatarInitialsStyle}>
+                            {p.fullName.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()}
+                          </span>
+                        </div>
+                      )}
                     </div>
-                  ) : null}
-                </Link>
+                    <div>
+                      <h4>{p.fullName}</h4>
+                      <div className="planner-role">{role}</div>
+                    </div>
+                    <p className="planner-quote">{experienceText}</p>
+                    {langs.length > 0 ? (
+                      <div className="planner-langs">
+                        {langs.map((l) => <span key={l} className="lg">{l}</span>)}
+                      </div>
+                    ) : (
+                      <div />
+                    )}
+                  </Link>
+                  <div className="planner-actions">
+                    <Link href={profileHref} className="planner-action planner-action-profile">
+                      {editorialText('editorialPlannersViewProfile')}
+                      <Icons.arrow size={14} />
+                    </Link>
+                    {whatsappHref ? (
+                      <a
+                        href={whatsappHref}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="planner-action planner-action-whatsapp"
+                      >
+                        <Icons.whatsapp size={14} />
+                        {editorialText('editorialPlannersWhatsapp')}
+                      </a>
+                    ) : null}
+                  </div>
+                </article>
               );
             })}
           </div>

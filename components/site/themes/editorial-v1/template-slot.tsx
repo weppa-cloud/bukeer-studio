@@ -278,6 +278,7 @@ export function TemplateSlot({
       // if the caller didn't pass a planner payload, fall through to the
       // generic body instead of rendering an empty editorial shell.
       const needsPayload =
+        name === 'activity-detail' ||
         name === 'planner-detail' ||
         name === 'planners-list' ||
         name === 'blog-list' ||

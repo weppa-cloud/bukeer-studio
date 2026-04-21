@@ -1,51 +1,97 @@
 /**
- * editorial-v1 — Package detail page wrapper.
+ * editorial-v1 — Full Package detail page (standalone replacement).
  *
- * Provides the `data-template-set="editorial-v1"` CSS scope wrapper for the
- * package detail page. The editorial overlay sections (stats bar, Colombia
- * map, timeline, hotels, flights) are now injected via `renderAfterMain` from
- * `page.tsx` using `<EditorialPackageOverlay>`, so they appear between the
- * pricing section and the FAQ instead of after all generic content.
- *
- * SEO: the generic `<ProductLandingPage>` still emits
- * `<ProductSchema>`, `<OrganizationSchema>` and FAQ JSON-LD. We do NOT
- * re-emit any of those here to avoid duplicate JSON-LD blocks.
+ * This variant no longer wraps the generic ProductLandingPage body. Instead it
+ * renders a dedicated editorial layout and re-emits SEO JSON-LD
+ * (ProductSchema + OrganizationSchema + FAQ schema) for parity.
  */
 
 import type { ReactNode } from 'react';
 import type { WebsiteData } from '@/lib/supabase/get-website';
-import type { ProductData } from '@bukeer/website-contract';
+import type { ProductData, ProductFAQ } from '@bukeer/website-contract';
+import { ProductSchema } from '@/components/seo/product-schema';
+import { OrganizationSchema } from '@/components/seo/organization-schema';
+import { PACKAGE_FAQS_DEFAULT } from '@/lib/products/package-faqs-default';
+import { EditorialPackageDetailClient } from './package-detail.client';
+
+interface GoogleReviewProp {
+  author_name: string;
+  author_photo: string | null;
+  rating: number;
+  text: string;
+  relative_time: string | null;
+  images: Array<{ url: string; thumbnail?: string }>;
+  response: { text: string; date: string } | null;
+}
 
 export interface EditorialPackageDetailPayload {
   product: ProductData;
   basePath: string;
   displayName: string;
   displayLocation: string | null;
+  resolvedLocale: string;
+  googleReviews: GoogleReviewProp[];
+  similarProducts: ProductData[];
+  faqs?: ProductFAQ[] | null;
 }
 
 interface EditorialPackageDetailProps {
   website: WebsiteData;
   payload?: unknown;
-  /**
-   * The generic page body rendered by the dispatcher's fallback. We wrap
-   * it with editorial chrome instead of rebuilding hero/gallery/pricing
-   * from scratch.
-   */
   children?: ReactNode;
 }
 
+function buildWebsiteUrl(website: WebsiteData, basePath: string): string | undefined {
+  if (website.custom_domain) {
+    return `https://${website.custom_domain}${basePath}`;
+  }
+  if (website.subdomain) {
+    return `https://${website.subdomain}.bukeer.com${basePath}`;
+  }
+  return undefined;
+}
+
 export function EditorialPackageDetail({
-  website: _website,
-  payload: _payload,
+  website,
+  payload,
   children,
 }: EditorialPackageDetailProps) {
+  const resolvedPayload = payload as EditorialPackageDetailPayload | undefined;
+  if (!resolvedPayload || !resolvedPayload.product) {
+    return <>{children}</>;
+  }
+
+  const faqSource = Array.isArray(resolvedPayload.faqs) && resolvedPayload.faqs.length > 0
+    ? resolvedPayload.faqs
+    : PACKAGE_FAQS_DEFAULT;
+  const websiteUrl = buildWebsiteUrl(website, resolvedPayload.basePath);
+
   return (
     <div
       data-template-set="editorial-v1"
       data-editorial-variant="package-detail"
       className="editorial-package-detail"
     >
-      {children}
+      <ProductSchema
+        product={resolvedPayload.product}
+        productType="package"
+        websiteUrl={websiteUrl}
+        language={resolvedPayload.resolvedLocale}
+        faqs={faqSource}
+      />
+      <OrganizationSchema website={website} websiteUrl={websiteUrl} />
+
+      <EditorialPackageDetailClient
+        website={website}
+        basePath={resolvedPayload.basePath}
+        product={resolvedPayload.product}
+        displayName={resolvedPayload.displayName}
+        displayLocation={resolvedPayload.displayLocation}
+        resolvedLocale={resolvedPayload.resolvedLocale}
+        googleReviews={resolvedPayload.googleReviews}
+        similarProducts={resolvedPayload.similarProducts}
+        faqs={faqSource}
+      />
     </div>
   );
 }

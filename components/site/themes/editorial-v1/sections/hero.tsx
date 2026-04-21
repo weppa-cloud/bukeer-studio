@@ -198,14 +198,20 @@ export function HeroSection({
 }: EditorialHeroSectionProps): ReactElement {
   const editorialText = getEditorialTextGetter(website);
   const defaultEyebrow = editorialText('editorialHeroEyebrowFallback');
-  const defaultSideListLabel = editorialText('editorialHeroSideListLabel');
+  const defaultSideListLabel = localizeEditorialText(
+    website,
+    editorialText('editorialHeroSideListLabel'),
+  );
   const content = (section.content || {}) as HeroContent;
   const basePath = getBasePath(website.subdomain, false);
 
   const eyebrow = localizeEditorialText(website, content.eyebrow?.trim() || defaultEyebrow);
   const sanitizedHeadline = sanitizeHeadline(localizeEditorialText(website, content.headline));
   const subtitle = localizeEditorialText(website, content.subtitle?.trim() || '');
-  const trustChip = content.trustChip;
+  const trustChipLabel = localizeEditorialText(website, content.trustChip?.label);
+  const trustChip = content.trustChip
+    ? { ...content.trustChip, label: trustChipLabel }
+    : undefined;
 
   const authoredSlides: HeroRotatorSlide[] = Array.isArray(content.slides)
     ? content.slides
@@ -245,6 +251,10 @@ export function HeroSection({
         .filter((c) => c && c.label)
         .map((c) => ({ ...c, label: localizeEditorialText(website, c.label) }))
     : [];
+  const hasWhatsappCta = ctas.some((cta) => {
+    const resolvedHref = resolveCtaHref(cta.href, website, basePath);
+    return cta.href === '{{whatsapp}}' || cta.href === 'whatsapp' || resolvedHref.includes('wa.me');
+  });
 
   const authoredSideList: HeroSideListItem[] = Array.isArray(content.sideList)
     ? content.sideList.filter((x) => x && x.label)
@@ -329,6 +339,9 @@ export function HeroSection({
               })}
             </div>
           ) : null}
+          {hasWhatsappCta ? (
+            <p className="hero-cta-meta">{editorialText('editorialHeroWhatsappMeta')}</p>
+          ) : null}
 
           {searchEnabled ? (
             <div style={{ marginTop: 36, maxWidth: 720 }}>
@@ -362,8 +375,12 @@ export function HeroSection({
                     >
                       {index}
                     </b>
-                    <span>{item.label}</span>
-                    {item.badge ? <span>{item.badge}</span> : <span />}
+                    <span>{localizeEditorialText(website, item.label)}</span>
+                    {item.badge ? (
+                      <span>{localizeEditorialText(website, item.badge)}</span>
+                    ) : (
+                      <span />
+                    )}
                   </>
                 );
                 return item.href ? (

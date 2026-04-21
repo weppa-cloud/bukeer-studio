@@ -79,6 +79,9 @@ export function EditorialSiteHeader({
     ? `https://wa.me/${whatsappRaw.replace(/[^0-9]/g, '')}`
     : `${basePath}/#cta`;
   const whatsappExternal = Boolean(whatsappRaw);
+  const headerCtaLabel = whatsappExternal
+    ? editorialText('editorialHeaderWhatsappCta')
+    : editorialText('editorialHeaderQuoteCta');
 
   const mobilePanelId = 'ev-nav-mobile-panel';
   const headerId = 'ev-header-root';
@@ -121,7 +124,8 @@ export function EditorialSiteHeader({
               rel={whatsappExternal ? 'noopener noreferrer' : undefined}
               className="btn btn-ink btn-sm"
             >
-              {editorialText('editorialHeaderQuoteCta')}
+              {whatsappExternal ? <Icons.whatsapp size={16} /> : null}
+              {headerCtaLabel}
               <Icons.arrow size={14} />
             </a>
             <MobileNavToggle
@@ -159,7 +163,7 @@ export function EditorialSiteHeader({
             style={{ marginTop: 8, justifyContent: 'center' }}
           >
             <Icons.whatsapp size={16} />
-            {editorialText('editorialHeaderQuoteCta')}
+            {headerCtaLabel}
           </a>
         </div>
       </div>

@@ -1,42 +1,40 @@
 /**
- * editorial-v1 — Activity detail page.
+ * editorial-v1 — Full Activity detail page (standalone replacement).
  *
- * Mounted by the `TemplateSlot` dispatcher when the website opts into
- * `editorial-v1`. Composes the existing `ProductLandingPage` body
- * (hero, gallery, pricing, meeting-point/circuit map, FAQ, WhatsApp
- * flow, SEO schemas) and layers editorial chrome on top — breadcrumbs,
- * an editorial "act-timeline-block" header, and highlights grid.
- *
- * Reused primitives:
- *   - p1/hero-split (inherited)
- *   - p1/gallery-strip (inherited)
- *   - p3/pricing-tiers (inherited)
- *   - p3/related-carousel (inherited)
- *   - p3/whatsapp-flow (inherited)
- *   - site/activity-circuit-map (inherited)
- *   - site/meeting-point-map (inherited fallback)
- *   - site/activity-schedule-inline (inherited inside the timeline)
- *   - editorial-v1 `Breadcrumbs`, `Eyebrow` primitives
- *
- * SEO: `ProductSchema` + `OrganizationSchema` + FAQ JSON-LD continue to
- * emit from the generic body. We do NOT re-emit them here.
+ * This variant no longer wraps the generic ProductLandingPage body. Instead it
+ * renders a dedicated editorial detail layout and re-emits SEO JSON-LD
+ * (ProductSchema + OrganizationSchema + FAQ schema) for parity.
  */
 
 import type { ReactNode } from 'react';
 import type { WebsiteData } from '@/lib/supabase/get-website';
-import type { ProductData } from '@bukeer/website-contract';
-import { Breadcrumbs } from '../primitives/breadcrumbs';
-import { Eyebrow } from '../primitives/eyebrow';
-import { sanitizeProductCopy } from '@/lib/products/normalize-product';
-import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
-import { COLOMBIA_CITIES } from '@/lib/maps/colombia-cities';
-import { ColombiaMapStandalone } from '../maps/colombia-map-standalone.client';
+import type { ProductData, ProductFAQ } from '@bukeer/website-contract';
+import type { ActivityCircuitStop } from '@/lib/products/activity-circuit';
+import { ProductSchema } from '@/components/seo/product-schema';
+import { OrganizationSchema } from '@/components/seo/organization-schema';
+import { ACTIVITY_FAQS_DEFAULT } from '@/lib/products/activity-faqs-default';
+import { EditorialActivityDetailClient } from './activity-detail.client';
+
+interface GoogleReviewProp {
+  author_name: string;
+  author_photo: string | null;
+  rating: number;
+  text: string;
+  relative_time: string | null;
+  images: Array<{ url: string; thumbnail?: string }>;
+  response: { text: string; date: string } | null;
+}
 
 export interface EditorialActivityDetailPayload {
   product: ProductData;
   basePath: string;
   displayName: string;
   displayLocation: string | null;
+  resolvedLocale: string;
+  googleReviews: GoogleReviewProp[];
+  similarProducts: ProductData[];
+  activityCircuitStops: ActivityCircuitStop[];
+  faqs?: ProductFAQ[] | null;
 }
 
 interface EditorialActivityDetailProps {
@@ -45,20 +43,14 @@ interface EditorialActivityDetailProps {
   children?: ReactNode;
 }
 
-function normalizeHighlights(product: ProductData): string[] {
-  const source = Array.isArray(product.highlights) ? product.highlights : [];
-  return source
-    .map((entry): string => {
-      if (typeof entry === 'string') return sanitizeProductCopy(entry);
-      if (entry && typeof entry === 'object') {
-        const record = entry as Record<string, unknown>;
-        const label = record.label;
-        if (typeof label === 'string') return sanitizeProductCopy(label);
-      }
-      return '';
-    })
-    .filter((entry) => entry.length > 0)
-    .slice(0, 8);
+function buildWebsiteUrl(website: WebsiteData, basePath: string): string | undefined {
+  if (website.custom_domain) {
+    return `https://${website.custom_domain}${basePath}`;
+  }
+  if (website.subdomain) {
+    return `https://${website.subdomain}.bukeer.com${basePath}`;
+  }
+  return undefined;
 }
 
 export function EditorialActivityDetail({
@@ -66,40 +58,15 @@ export function EditorialActivityDetail({
   payload,
   children,
 }: EditorialActivityDetailProps) {
-  const resolvedLocale =
-    (website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale ??
-    website.content?.locale ??
-    website.default_locale ??
-    'es-CO';
-  const editorialText = getPublicUiExtraTextGetter(resolvedLocale);
   const resolvedPayload = payload as EditorialActivityDetailPayload | undefined;
-
   if (!resolvedPayload || !resolvedPayload.product) {
     return <>{children}</>;
   }
 
-  const { product, basePath, displayName, displayLocation } = resolvedPayload;
-  const highlights = normalizeHighlights(product);
-
-  // Build Colombia map pin from product coords or city lookup.
-  const cityEntry = product.city ? COLOMBIA_CITIES[product.city] ?? null : null;
-  const pinLat = Number.isFinite(product.latitude) ? product.latitude : cityEntry?.lat;
-  const pinLng = Number.isFinite(product.longitude) ? product.longitude : cityEntry?.lng;
-  const mapPin =
-    pinLat !== undefined && pinLng !== undefined
-      ? [{ id: product.id, label: displayName, lat: pinLat, lng: pinLng, region: cityEntry?.region }]
-      : [];
-  const durationLabel = product.duration
-    ? sanitizeProductCopy(product.duration)
-    : typeof product.duration_minutes === 'number'
-      ? `${Math.round(product.duration_minutes / 60)}h`
-      : null;
-
-  const breadcrumbItems = [
-    { label: editorialText('editorialBreadcrumbHome'), href: `${basePath}/` },
-    { label: editorialText('editorialBreadcrumbActivities'), href: `${basePath}/actividades` },
-    { label: displayName },
-  ];
+  const faqSource = Array.isArray(resolvedPayload.faqs) && resolvedPayload.faqs.length > 0
+    ? resolvedPayload.faqs
+    : ACTIVITY_FAQS_DEFAULT;
+  const websiteUrl = buildWebsiteUrl(website, resolvedPayload.basePath);
 
   return (
     <div
@@ -107,88 +74,26 @@ export function EditorialActivityDetail({
       data-editorial-variant="activity-detail"
       className="editorial-activity-detail"
     >
-      {/* Generic body: hero, gallery, pricing, meeting-point / circuit map,
-          FAQ, reviews, WhatsApp flow, SEO schemas. */}
-      {children}
+      <ProductSchema
+        product={resolvedPayload.product}
+        productType="activity"
+        websiteUrl={websiteUrl}
+        language={resolvedPayload.resolvedLocale}
+        faqs={faqSource}
+      />
+      <OrganizationSchema website={website} websiteUrl={websiteUrl} />
 
-      {/* Editorial overlay sections. */}
-      <div className="mx-auto max-w-7xl px-6 pb-16 space-y-16">
-        <section data-testid="editorial-activity-breadcrumbs" className="pt-4">
-          <Breadcrumbs items={breadcrumbItems} />
-          <div
-            className="mt-3 flex flex-wrap items-center gap-3 text-sm"
-            style={{ color: 'var(--c-ink-2)' }}
-          >
-            {durationLabel ? (
-              <span
-                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs"
-                style={{
-                  background: 'var(--c-surface-2)',
-                  color: 'var(--c-ink)',
-                }}
-              >
-                ⏱ {durationLabel}
-              </span>
-            ) : null}
-            {displayLocation ? (
-              <span
-                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs"
-                style={{
-                  background: 'var(--c-surface-2)',
-                  color: 'var(--c-ink)',
-                }}
-              >
-                {displayLocation}
-              </span>
-            ) : null}
-          </div>
-        </section>
-
-        {highlights.length > 0 ? (
-          <section
-            data-testid="editorial-activity-highlights"
-            className="act-timeline-block"
-          >
-            <div className="mb-4">
-              <Eyebrow>{editorialText('editorialActivityHighlightsEyebrow')}</Eyebrow>
-              <h2 className="mt-2 text-2xl font-bold">{editorialText('editorialActivityHighlightsTitle')}</h2>
-            </div>
-            <ul
-              className="grid gap-3"
-              style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}
-            >
-              {highlights.map((highlight, idx) => (
-                <li
-                  key={`highlight-${idx}-${highlight}`}
-                  className="rounded-xl border p-4 text-sm"
-                  style={{
-                    background: 'var(--c-surface)',
-                    borderColor: 'var(--c-line)',
-                    color: 'var(--c-ink-2)',
-                  }}
-                >
-                  {highlight}
-                </li>
-              ))}
-            </ul>
-          </section>
-        ) : null}
-
-        {mapPin.length > 0 ? (
-          <section data-testid="editorial-activity-map">
-            <h2 className="text-xl font-bold mb-4">
-              {editorialText('editorialDestinoMapTitle')}{' '}
-              <em>{displayLocation ?? displayName}.</em>
-            </h2>
-            <ColombiaMapStandalone
-              pins={mapPin}
-              activePinId={mapPin[0].id}
-              height={380}
-              ariaLabel={`Mapa de Colombia mostrando ${displayName}`}
-            />
-          </section>
-        ) : null}
-      </div>
+      <EditorialActivityDetailClient
+        website={website}
+        basePath={resolvedPayload.basePath}
+        product={resolvedPayload.product}
+        displayName={resolvedPayload.displayName}
+        displayLocation={resolvedPayload.displayLocation}
+        resolvedLocale={resolvedPayload.resolvedLocale}
+        googleReviews={resolvedPayload.googleReviews}
+        similarProducts={resolvedPayload.similarProducts}
+        faqs={faqSource}
+      />
     </div>
   );
 }
