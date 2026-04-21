@@ -11,6 +11,7 @@ export interface WebsiteSection {
   is_enabled: boolean;
   config: Record<string, unknown>;
   content: Record<string, unknown>;
+  content_translations?: Record<string, Record<string, unknown>>;
 }
 
 export interface PageSection {

@@ -161,7 +161,7 @@ export const COLOMBIA_CARIBE_PRESET: ThemePreset = preset({
   profile: {
     $schema: THEME_PROFILE_SCHEMA_VERSION,
     brand: { mood: 'adventurous', name: 'Colombia Tours' },
-    colorMode: 'system',
+    colorMode: 'light',
     layout: {
       variant: 'modern',
       heroStyle: 'split',
