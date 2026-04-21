@@ -41,6 +41,8 @@ export type AnalyticsEventParams = Record<string, string | number | boolean | nu
  *  - `waflow_step_next`         { variant, from, to }
  *  - `waflow_submit`            { variant }
  *  - `matchmaker_submit`        { group, region, style }                    (reserved)
+ *  - `currency_switch`          { from, to, surface? }                      (surface: 'header' | 'footer')
+ *  - `locale_switch`            { from, to, surface? }                      (surface: 'header' | 'footer')
  *
  * Base catalogue (generic site) events retain the same shape across templates.
  * Adding a new event name: prefer listing it here before firing so the
@@ -70,6 +72,8 @@ export type AnalyticsEventName =
   | 'waflow_step_next'
   | 'waflow_submit'
   | 'matchmaker_submit'
+  | 'currency_switch'
+  | 'locale_switch'
   | (string & {}); // allow other strings without losing autocomplete on the known ones
 
 /**

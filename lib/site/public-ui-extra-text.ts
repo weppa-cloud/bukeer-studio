@@ -144,6 +144,19 @@ const BASE_EXTRA_TEXTS = {
   editorialFooterLegalTerms: 'Términos',
   editorialFooterLegalCancellation: 'Política de cancelación',
 
+  // Market switcher (header pill + footer compact)
+  editorialSwitcherHeading: 'Personaliza tu',
+  editorialSwitcherHeadingEmphasis: 'experiencia',
+  editorialSwitcherDescription: 'Idioma del sitio y moneda de precios.',
+  editorialSwitcherLanguageSubheading: 'Idioma',
+  editorialSwitcherCurrencySubheading: 'Moneda',
+  editorialSwitcherSavedHint: 'Guardado en este navegador',
+  editorialSwitcherTriggerAria: 'Abrir preferencias de idioma y moneda',
+  editorialSwitcherDialogAria: 'Personaliza tu experiencia',
+  editorialSwitcherLanguageItemAria: 'Cambiar idioma',
+  editorialSwitcherCurrencyItemAria: 'Cambiar moneda',
+  editorialSwitcherLoadingPrefix: 'Cargando en',
+
   // Hero
   editorialHeroEyebrowFallback: 'DESCUBRE · VIVE · CONECTA',
   editorialHeroSideListLabel: 'Destino del mes',
