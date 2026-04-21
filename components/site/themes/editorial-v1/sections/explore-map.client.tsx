@@ -36,8 +36,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 
-import { ColombiaMapClient } from '@/components/site/themes/editorial-v1/maps/colombia-map.client';
-import type { ColombiaMapPin } from '@/components/site/themes/editorial-v1/maps/colombia-map';
+import { ColombiaMapLibre } from '@/components/site/themes/editorial-v1/maps/colombia-maplibre.client';
+import type { ColombiaMapPin } from '@/components/site/themes/editorial-v1/maps/colombia-maplibre.client';
 import { COLOMBIA_CITIES } from '@/lib/maps/colombia-cities';
 import type { ColombiaRegion } from '@/lib/maps/colombia-cities';
 import { Icons } from '@/components/site/themes/editorial-v1/primitives/icons';
@@ -305,7 +305,7 @@ export function ExploreMapClient({
 
       {/* Right column — map stage + floating hover card */}
       <div className="explore-map-stage">
-        <ColombiaMapClient
+        <ColombiaMapLibre
           highlightedRegions={highlightedRegions}
           pins={pins}
           activePinId={hoveredPinId}
