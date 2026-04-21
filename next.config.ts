@@ -153,11 +153,19 @@ const nextConfig: NextConfig = {
         ],
       },
       {
+        // Prod: content-hashed static chunks can be cached forever (immutable).
+        // Dev: Turbopack may re-emit the same chunk URL on HMR rebuild, so a
+        // stale immutable cache pins the browser to the old CSS/JS and makes
+        // the page look like a render regression (e.g. pl-grid rules vanish
+        // after editing editorial-v1.css). Force no-store in development.
         source: '/_next/static/:path*',
         headers: [
           {
             key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
+            value:
+              process.env.NODE_ENV === 'development'
+                ? 'no-store, must-revalidate'
+                : 'public, max-age=31536000, immutable',
           },
         ],
       },
