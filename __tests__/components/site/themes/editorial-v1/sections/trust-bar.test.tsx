@@ -96,4 +96,23 @@ describe('editorial-v1 <TrustBarSection>', () => {
     expect(html).toContain('Planners en línea');
     expect(html).toContain('responden en ~5 min');
   });
+
+  it('normalizes legacy logos string into separated tokens', () => {
+    const html = renderToStaticMarkup(
+      <TrustBarSection
+        section={makeSection({
+          items: [{ live: true, bold: 'Planners en línea', body: 'responden en ~3 min' }],
+          logos: 'ProColombiaANATOTravellers ChoiceMinCITRainforest AllianceRNT 83412',
+        })}
+        website={makeWebsite()}
+      />,
+    );
+    expect(html).toContain('trust-reconocidos');
+    expect(html).toContain('trust-logo-sep');
+    expect(html).toContain('ProColombia');
+    expect(html).toContain('ANATO');
+    expect(html).toContain('Travellers Choice');
+    expect(html).toContain('Rainforest Alliance');
+    expect(html).toContain('RNT 83412');
+  });
 });
