@@ -18,10 +18,10 @@ import { createClient } from '@supabase/supabase-js';
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 
-const WEBSITE_ID = '894545b7-73ca-4dae-b76a-da5b6a3f8441';
+const DEFAULT_WEBSITE_ID = '894545b7-73ca-4dae-b76a-da5b6a3f8441';
 const SOURCE_LOCALE = 'es-CO';
 const TARGET_LOCALE = 'en-US';
-const DELAY_MS = 1500;
+const DELAY_MS = 800;
 
 /** Fields we transcreate and write into translations['en-US'] */
 const TRANSLATABLE_FIELDS = ['bio', 'position', 'specialty'];
@@ -46,7 +46,7 @@ loadEnv();
 
 function parseArgs() {
   const args = process.argv.slice(2);
-  const out = { dryRun: false, force: false, ids: null };
+  const out = { dryRun: false, force: false, ids: null, websiteId: null };
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--dry-run') { out.dryRun = true; continue; }
     if (args[i] === '--force')   { out.force = true; continue; }
@@ -54,6 +54,7 @@ function parseArgs() {
       out.ids = args[++i].split(',').map(s => s.trim()).filter(Boolean);
       continue;
     }
+    if (args[i] === '--website-id' && args[i + 1]) { out.websiteId = args[++i].trim(); continue; }
   }
   return out;
 }
@@ -263,12 +264,13 @@ async function transcreatePlanner(admin, contact, dryRun, force) {
 async function main() {
   const args = parseArgs();
   const admin = makeAdmin();
+  const websiteId = args.websiteId ?? DEFAULT_WEBSITE_ID;
 
   // Resolve account_id from website
   const { data: website, error: wsErr } = await admin
     .from('websites')
     .select('account_id')
-    .eq('id', WEBSITE_ID)
+    .eq('id', websiteId)
     .single();
 
   if (wsErr || !website?.account_id) {

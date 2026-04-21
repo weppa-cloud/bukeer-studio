@@ -38,27 +38,31 @@ invents features (delegate to `specifying`).
 
 ## Playbooks overview
 
-Five playbooks, full step-by-step in [PLAYBOOKS.md](PLAYBOOKS.md):
+Seven playbooks, full step-by-step in [PLAYBOOKS.md](PLAYBOOKS.md):
 
-| Playbook                 | Trigger                           | Time  | Output                                                   |
-|--------------------------|-----------------------------------|-------|----------------------------------------------------------|
-| Daily Morning Check      | "daily check"                     | 15 min | `docs/growth-sessions/YYYY-MM-DD-morning-{website}.md`   |
-| Weekly Planning          | "weekly planning" (Monday)        | 30 min | `docs/growth-weekly/YYYY-WW-{website}.md`                |
-| Content Creation         | "crea blog", "new post"           | 10 min/post | Supabase draft + session log                        |
-| Translation Flow         | "traduce a <locale>"              | 5 min/post  | Transcreated draft + session log                    |
-| Multi-locale Audit       | "audit multi-locale"              | 5 min  | `docs/growth-sessions/YYYY-MM-DD-audit-{website}.md`     |
+| Playbook                   | Trigger                                          | Time           | Output                                                          |
+|----------------------------|--------------------------------------------------|----------------|-----------------------------------------------------------------|
+| 1. Daily Morning Check     | "daily check", "morning SEO"                     | 15 min         | `docs/growth-sessions/YYYY-MM-DD-morning-{website}.md`          |
+| 2. Weekly Planning         | "weekly planning", "quick wins" (Monday)         | 30 min         | `docs/growth-weekly/YYYY-WW-{website}.md`                       |
+| 3. Content Creation        | "crea blog", "new post", "write article"         | 10 min/post    | Supabase draft + session log                                    |
+| 4. Translation Flow        | "traduce a <locale>", "transcreate post"         | 5 min/post     | Transcreated draft + session log                                |
+| 5. Multi-locale Audit      | "audit multi-locale", "missing en-US"            | 5 min          | `docs/growth-sessions/YYYY-MM-DD-audit-{website}.md`            |
+| 6. Bulk Product Transcreation | "traduce paquetes", "transcreate all", "bulk transcreate", "traduce todo" | per volume | updated `translations` JSONB + session log |
+| 7. OKR Progress Update     | "update OKRs", "check OKRs", "OKR progress", "how are we doing" | 10 min | updated `active.md` + summary |
 
 ## Safety rules
 
 Hard rules in [SAFETY.md](SAFETY.md). Summary:
 
-- NEVER mutate truth tables (`hotels`, `activities`, `package_kits`, `destinations`).
-  Only `website_product_pages` SEO overlay columns are writable.
+- NEVER mutate truth tables (`hotels`, `activities`, `destinations`).
+  `package_kits.translations` and `contacts.translations` JSONB columns ARE writable
+  by transcreation scripts. `website_product_pages` SEO overlay columns are writable.
 - NEVER delete rows without explicit user confirmation.
 - Every mutation MUST be logged in the session file under `## Mutations`.
-- Check `docs/growth-okrs/budget.md` **before** any paid call (DataForSEO, NVIDIA Nim).
-- Confirm with user before bulk mutations (>10 rows), deletes, or changes to
-  published content (`published_at IS NOT NULL`).
+- DataForSEO + OpenRouter AI calls: **no budget gate** — use freely for growth work.
+  Log costs in session for visibility only. No abort on cost.
+- Confirm with user before bulk mutations to `website_blog_posts` (>10 rows published).
+  Bulk `package_kits.translations` + `contacts.translations` via scripts: always OK.
 - Never log or commit secrets (`SUPABASE_SERVICE_ROLE_KEY`, `OPENROUTER_AUTH_TOKEN`,
   `DATAFORSEO_PASSWORD`). Redact in session logs.
 
@@ -73,8 +77,8 @@ Full list in [APIS.md](APIS.md). Top-level groups:
   `seo_keywords`, `seo_keyword_snapshots`, `seo_page_metrics_daily`,
   `seo_audit_results`, `seo_clusters`, `seo_transcreation_jobs`, `seo_localized_variants`
 - **MCPs** — `supabase`, `search-console` (GSC), `google-analytics` (GA4),
-  `chrome-devtools`, `playwright`. Planned Tier 1: `mcp-bukeer-studio` (#158),
-  `mcp-dataforseo` (#159).
+  `dataforseo` (SERP + keyword metrics — **Tier 1, use freely**),
+  `chrome-devtools`, `playwright`. Pending: `mcp-bukeer-studio` (#158).
 
 ## Session start ritual (MANDATORY)
 

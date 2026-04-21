@@ -34,10 +34,11 @@ Conventions:
    - Inputs: site URL, date range. Outputs: list of anomalous queries/pages.
 
 3. **Striking distance refresh (P1)**
-   - HTTP: `GET /api/seo/analytics/striking-distance?websiteId={site_id}`.
-   - Expected envelope: `{ success: true, data: { items: [{ keyword, url,
-     position, volume, delta }, ...] } }` (ADR-012).
-   - Alt MCP: `mcp__search-console__seo_striking_distance`.
+   - Primary: `mcp__search-console__seo_striking_distance` `site_url={site_url}`.
+   - Enrich top 3 keywords with DataForSEO:
+     `mcp__dataforseo__dataforseo_labs_google_keyword_overview`
+     `keywords: [kw1, kw2, kw3]`, `location_code: 2170` (or 2840 for en-US).
+   - Fallback: `GET /api/seo/analytics/striking-distance?websiteId={site_id}`.
    - Keep top 3 by `(volume * (11 - position))`.
 
 4. **Digest — top 3 actions**
@@ -74,11 +75,14 @@ Conventions:
 
 ### Steps
 
-1. **Pull GSC top queries (7d)**
+1. **Pull GSC top queries (7d) + DataForSEO enrichment**
    - MCP: `mcp__search-console__analytics_top_queries`
      `site_url={site_url}`, `range: 7d`, `row_limit: 50`.
-   - Compute 7-day position delta per query vs previous 7d
-     (`mcp__search-console__analytics_compare_periods`).
+   - Compute 7-day position delta: `mcp__search-console__analytics_compare_periods`.
+   - Enrich top 10 queries with volume + difficulty:
+     `mcp__dataforseo__dataforseo_labs_google_keyword_overview`
+     `keywords: [top10queries]`, `location_code: 2840`, `language_code: "en"`.
+   - Flag keywords with high volume + low difficulty as priority opportunities.
 
 2. **Drift detection (translation_group)**
    - SQL via `mcp__supabase__execute_sql`:
@@ -315,6 +319,133 @@ Conventions:
 
 ---
 
+---
+
+## Playbook 6 — Bulk Product Transcreation (no time box)
+
+**Trigger phrases:** "transcreate products", "traduce paquetes", "traduce planners",
+"transcreate all", "bulk transcreate", "traduce todo el sitio".
+**Scope:** `bulk-transcreate`.
+**Output:** console progress log + session file `docs/growth-sessions/{today}-transcreate-{site}.md`.
+
+### Steps
+
+1. **Confirm scope with user**
+   - Which content types? (package_kits / planners / activities / blogs / all).
+   - Target locale (default `en-US`).
+   - Dry run first? (recommended for first run per site).
+   - `--website-id` if not colombiatours default.
+
+2. **Package kits transcreation**
+   ```bash
+   node scripts/seo/transcreate-package-kits.mjs \
+     --website-id {site_id} \
+     [--dry-run] [--force] [--limit N] [--ids a,b,c]
+   ```
+   - Default: processes ALL packages linked to the website (no limit).
+   - Writes to `package_kits.translations['en-US']`.
+   - Skips already-translated unless `--force`.
+
+3. **Planners transcreation**
+   ```bash
+   node scripts/seo/transcreate-planners.mjs \
+     --website-id {site_id} \
+     [--dry-run] [--force] [--ids a,b,c]
+   ```
+   - Processes all contacts with `show_on_website = true` for the account.
+   - Writes to `contacts.translations['en-US']` (bio, position, specialty).
+
+4. **Blog translation (per post, via API)**
+   - For each high-priority blog (P1 from Playbook 5 audit):
+     ```
+     POST /api/seo/content-intelligence/transcreate
+       { action: "create_draft", sourcePostId, targetLocale }
+     POST /api/seo/content-intelligence/transcreate
+       { action: "review", jobId }
+     POST /api/seo/content-intelligence/transcreate
+       { action: "apply", jobId }
+     ```
+   - Never skip `review` step. Escalate blockers to user.
+
+5. **Verify coverage post-run**
+   - Run Playbook 5 (Multi-locale Audit) after completion.
+   - Expected: missing count drops significantly.
+
+6. **Write session file**
+   - Include: packages processed, planners processed, blogs translated,
+     success/skip/error counts per type, total tokens used.
+
+### Expected inputs / outputs
+
+- **Input:** `{site_id}`, content types, target locale.
+- **Output:** updated `translations` JSONB in DB + session log.
+
+### Failure modes
+
+- AI rate limit from OpenRouter → script auto-retries once, then logs error per item.
+- Package has no `name` → skipped automatically.
+- Blog apply returns 409 → log job ID, escalate to user (never force state).
+
+---
+
+## Playbook 7 — OKR Progress Update
+
+**Trigger phrases:** "update OKRs", "check OKRs", "OKR progress", "how are we doing",
+"progress vs targets", "weekly OKR update", "monthly review".
+**Scope:** `okr-update`.
+**Output:** updated `docs/growth-okrs/active.md` + summary in chat.
+
+### Steps
+
+1. **Read current OKRs**
+   - `Read docs/growth-okrs/active.md` → extract site_id, KPI targets, current values.
+
+2. **Pull 7D metrics from GSC**
+   - MCP: `mcp__search-console__analytics_performance_summary`
+     `site_url={site_url}`, `date_range: 7d`.
+   - Extract: clicks, impressions, avg_position.
+
+3. **Pull 30D metrics from GA4**
+   - MCP: `mcp__google-analytics__run_report`
+     `property_id={ga4_property}`, dimensions `[sessionSource]`,
+     metrics `[sessions, newUsers]`, `date_ranges: [{startDate: "30daysAgo", endDate: "today"}]`.
+
+4. **Pull domain metrics from DataForSEO**
+   - `mcp__dataforseo__dataforseo_labs_google_domain_rank_overview`
+     `target: {site_domain}`, `location_code: 2840`, `language_code: "en"`.
+   - Extract: DR equivalent, ranked keywords count.
+   - `mcp__dataforseo__dataforseo_labs_google_ranked_keywords`
+     `target: {site_domain}`, `location_code: 2840`, count top-10 keywords in `en-US`.
+
+5. **Pull tech score from DB**
+   ```sql
+   SELECT performance_score FROM seo_audit_results
+   WHERE website_id = '{site_id}'
+   ORDER BY created_at DESC LIMIT 1;
+   ```
+
+6. **Update active.md**
+   - Overwrite `Current` column in each KPI row with fetched values.
+   - Update `Last fetch` to today's date.
+   - Update `Progress` = `Current / Target * 100%`.
+
+7. **Print 3-line summary to chat**
+   - Format: `KPI: {current} / {target} ({delta vs last period} {↑↓=})`.
+   - Flag any KPI at risk (< 50% of target with < 30 days left in period).
+
+### Expected inputs / outputs
+
+- **Input:** `{site_id}`, `{site_url}`, `{ga4_property}`, `{site_domain}`.
+- **Output:** updated `active.md` + summary printed to chat.
+
+### Failure modes
+
+- GSC returns no data → flag "GSC sync needed" (use `POST /api/seo/sync`).
+- GA4 property not linked → skip GA4 row, mark `n/a`.
+- DataForSEO no results for domain → mark `—` and note "domain too new or no indexed pages".
+
+---
+
 ## Cross-playbook notes
 
 - Every playbook ends with a **Self-review** paragraph in the session file
@@ -323,3 +454,5 @@ Conventions:
   with `outcome: partial` and list unfinished steps under `## Next steps`.
 - When a playbook spawns follow-up work (e.g. weekly plan yields 7 tasks),
   cross-link the resulting file in the `## Outputs delivered` section.
+- **No hard budget gates** — DataForSEO and AI calls are unrestricted for growth work.
+  Log costs in session file for visibility, but never abort a playbook due to cost alone.

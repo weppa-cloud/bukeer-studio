@@ -21,9 +21,9 @@ import { createClient } from '@supabase/supabase-js';
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 
-const WEBSITE_ID = '894545b7-73ca-4dae-b76a-da5b6a3f8441';
+const DEFAULT_WEBSITE_ID = '894545b7-73ca-4dae-b76a-da5b6a3f8441';
 const TARGET_LOCALE = 'en-US';
-const DELAY_MS = 1500;
+const DELAY_MS = 800;
 
 // ─── Env ─────────────────────────────────────────────────────────────────────
 
@@ -45,12 +45,13 @@ loadEnv();
 
 function parseArgs() {
   const args = process.argv.slice(2);
-  const out = { dryRun: false, force: false, limit: 20, ids: null };
+  const out = { dryRun: false, force: false, limit: 0, ids: null, websiteId: null };
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--dry-run') { out.dryRun = true; continue; }
     if (args[i] === '--force') { out.force = true; continue; }
-    if (args[i] === '--limit' && args[i + 1]) { out.limit = Number(args[++i]) || 20; continue; }
+    if (args[i] === '--limit' && args[i + 1]) { out.limit = Number(args[++i]) || 0; continue; }
     if (args[i] === '--ids' && args[i + 1]) { out.ids = args[++i].split(',').map(s => s.trim()).filter(Boolean); continue; }
+    if (args[i] === '--website-id' && args[i + 1]) { out.websiteId = args[++i].trim(); continue; }
   }
   return out;
 }
@@ -252,29 +253,23 @@ async function transcreatePackage(admin, pkg, dryRun, forceUpdate) {
 async function main() {
   const args = parseArgs();
   const admin = makeAdmin();
+  const websiteId = args.websiteId ?? DEFAULT_WEBSITE_ID;
 
-  // Resolve forceUpdate: always true when --ids is set (re-run specific packages), or when --force
   const forceUpdate = args.force || !!args.ids;
 
-  console.log(`\nColombiaTours Package Kits Transcreation — es-CO -> en-US`);
-  console.log(`Website ID: ${WEBSITE_ID}`);
-  console.log(`Dry run: ${args.dryRun} | Force: ${forceUpdate} | Limit: ${args.ids ? 'n/a (--ids mode)' : args.limit}\n`);
-
-  // ── Fetch packages ──────────────────────────────────────────────────────────
-  // Join via website_product_pages to get only packages linked to ColombiaTours
-  // Select the overlay rows first, then join package_kits fields
+  console.log(`\nPackage Kits Transcreation — es-CO -> en-US`);
+  console.log(`Website ID: ${websiteId}`);
+  console.log(`Dry run: ${args.dryRun} | Force: ${forceUpdate} | Limit: ${args.ids ? 'n/a (--ids mode)' : (args.limit || 'all')}\n`);
 
   let overlayQuery = admin
     .from('website_product_pages')
     .select('product_id')
-    .eq('website_id', WEBSITE_ID)
+    .eq('website_id', websiteId)
     .eq('product_type', 'package')
     .not('product_id', 'is', null);
 
   if (args.ids) {
     overlayQuery = overlayQuery.in('product_id', args.ids);
-  } else {
-    overlayQuery = overlayQuery.limit(args.limit + 10); // fetch a few extra, filter below
   }
 
   const { data: overlayRows, error: overlayErr } = await overlayQuery;
@@ -301,8 +296,8 @@ async function main() {
     process.exit(1);
   }
 
-  // Apply limit (when not using --ids)
-  const targets = args.ids ? packages : packages.slice(0, args.limit);
+  // Apply limit (when not using --ids); 0 = no limit
+  const targets = args.ids ? packages : (args.limit > 0 ? packages.slice(0, args.limit) : packages);
 
   console.log(`Packages linked to website: ${productIds.length}`);
   console.log(`Packages to process: ${targets.length}\n`);
