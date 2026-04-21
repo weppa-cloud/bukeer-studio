@@ -35,6 +35,7 @@ type ProductSectionType = (typeof PRODUCT_SECTION_ORDER)[number];
 
 export interface HydrationInput {
   enabledSections: WebsiteSection[];
+  templateSet?: string | null;
   sectionDynamicDestinations: Array<unknown>;
   packageItems: Array<unknown>;
   activityItems: Array<unknown>;
@@ -132,6 +133,7 @@ function buildAutoProductSection(
 export function hydrateSections(input: HydrationInput): WebsiteSection[] {
   const {
     enabledSections,
+    templateSet,
     sectionDynamicDestinations,
     packageItems,
     activityItems,
@@ -224,7 +226,12 @@ export function hydrateSections(input: HydrationInput): WebsiteSection[] {
     [SECTION_HOTELS]: hotelItems,
   };
 
-  const orderedProductSections: WebsiteSection[] = PRODUCT_SECTION_ORDER
+  const productSectionOrder: ProductSectionType[] =
+    templateSet === 'editorial-v1'
+      ? [SECTION_PACKAGES]
+      : [...PRODUCT_SECTION_ORDER];
+
+  const orderedProductSections: WebsiteSection[] = productSectionOrder
     .map((sectionType, index) => {
       const existing = sectionByType.get(sectionType);
       if (existing) return existing;
