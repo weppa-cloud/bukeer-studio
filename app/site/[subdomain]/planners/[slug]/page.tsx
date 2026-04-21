@@ -4,6 +4,11 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getWebsiteBySubdomain } from '@/lib/supabase/get-website';
 import { getPlanners, slugify } from '@/lib/supabase/get-planners';
+import {
+  getPlannerPackages,
+  getPackageKitById,
+  type PlannerPackageSummary,
+} from '@/lib/supabase/get-planner-packages';
 import { getReviewsForContext } from '@/lib/supabase/get-reviews';
 import { ReviewsBlock } from '@/components/site/reviews-block';
 import {
@@ -13,7 +18,10 @@ import {
 import { buildPublicLocalizedPath, localeToOgLocale } from '@/lib/seo/locale-routing';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 import { TemplateSlot } from '@/components/site/themes/editorial-v1/template-slot';
-import type { PlannerPayload } from '@/components/site/themes/editorial-v1/pages/planner-detail';
+import type {
+  PlannerPayload,
+  RelatedPackage,
+} from '@/components/site/themes/editorial-v1/pages/planner-detail';
 
 // ISR: Revalidate every 5 minutes
 export const revalidate = 300;
@@ -70,6 +78,23 @@ export async function generateMetadata({ params }: PlannerPageProps): Promise<Me
       canonical,
       languages: buildLocaleAwareAlternateLanguages(baseUrl, path, localeContext),
     },
+  };
+}
+
+/**
+ * Map `PlannerPackageSummary` → editorial-v1 `RelatedPackage` shape used by
+ * the "Hallmarks" / "Otros paquetes que arma" grid. Price/currency omitted
+ * for now — `package_kits.pricing_tiers` is sparsely populated on the pilot
+ * dataset; the UI falls back cleanly when `price` is undefined.
+ */
+function toRelatedPackage(pkg: PlannerPackageSummary): RelatedPackage {
+  return {
+    id: pkg.id,
+    slug: pkg.slug,
+    title: pkg.title,
+    location: pkg.destination ?? undefined,
+    image: pkg.coverImageUrl,
+    badges: pkg.isFeatured ? ['Destacado'] : undefined,
   };
 }
 
@@ -170,6 +195,32 @@ export default async function PlannerProfilePage({ params }: PlannerPageProps) {
   const dbSpecialties = planner.specialties ?? undefined;
   const dbRegions = planner.regions ?? undefined;
   const dbLanguages = planner.languages ?? undefined;
+
+  // Signature trip — resolve `contacts.signature_package_id` → package_kits
+  // row. Only populate `payload.signature` when the FK resolves to a live
+  // package; ghost-pattern UI hides the card otherwise.
+  const isSynthetic = planner.id === slug;
+  const signaturePackage =
+    website.account_id && planner.signaturePackageId && !isSynthetic
+      ? await getPackageKitById(website.account_id, planner.signaturePackageId)
+      : null;
+
+  // Hallmarks grid — fetch package_kits authored by this planner via the
+  // `package_kits.planner_id` FK (migration 20260504110000). Limit 3 for the
+  // editorial card layout; exclude the signature package to avoid
+  // duplication. Skip when we synthesized the planner from section content
+  // (id === slug; not a valid contacts uuid).
+  const plannerPackages =
+    website.account_id && planner.id && !isSynthetic
+      ? await getPlannerPackages(website.account_id, planner.id, 6)
+      : [];
+  const filteredPlannerPackages = signaturePackage
+    ? plannerPackages.filter((p) => p.id !== signaturePackage.id)
+    : plannerPackages;
+  const relatedPackages: RelatedPackage[] = filteredPlannerPackages
+    .slice(0, 3)
+    .map(toRelatedPackage);
+
   const plannerPayload: PlannerPayload = {
     rating: sectionMatch?.rating ?? planner.ratingAvg ?? undefined,
     reviews: sectionMatch?.reviewCount ?? undefined,
@@ -183,6 +234,15 @@ export default async function PlannerProfilePage({ params }: PlannerPageProps) {
       ? dbLanguages.map((l) => l.toUpperCase())
       : undefined,
     base: planner.locationName ?? undefined,
+    signature: signaturePackage
+      ? {
+          title: signaturePackage.title,
+          note: signaturePackage.destination
+            ? `${signaturePackage.destination} — itinerario firma curado por ${planner.name}.`
+            : `Itinerario firma curado por ${planner.name}.`,
+          imageUrl: signaturePackage.coverImageUrl,
+        }
+      : undefined,
   };
 
   // Fetch the full planners list (for Otros planners strip).
@@ -192,7 +252,7 @@ export default async function PlannerProfilePage({ params }: PlannerPageProps) {
     planner,
     payload: plannerPayload,
     reviews: plannerReviews,
-    relatedPackages: [],
+    relatedPackages,
     otherPlanners: allPlanners,
   };
 
