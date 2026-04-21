@@ -156,7 +156,7 @@ export function HeroSplit({
           <div id="detail-sticky-sentinel" className="pointer-events-none mt-6 h-1 w-full" aria-hidden="true" />
         </div>
 
-        <aside className="w-full rounded-2xl border border-border/70 bg-background/90 p-4 shadow-sm backdrop-blur lg:max-w-sm" aria-label={detailUi.searchPanelAria}>
+        {productType !== 'activity' && productType !== 'transfer' ? <aside className="w-full rounded-2xl border border-border/70 bg-background/90 p-4 shadow-sm backdrop-blur lg:max-w-sm" aria-label={detailUi.searchPanelAria}>
           <h2 className="text-sm font-semibold text-foreground">{detailUi.searchTitle}</h2>
           <p className="mt-1 text-xs text-muted-foreground">{detailUi.searchSubtitle}</p>
 
@@ -205,7 +205,7 @@ export function HeroSplit({
               </Link>
             </div>
           </form>
-        </aside>
+        </aside> : null}
       </div>
     </section>
   );
