@@ -1,15 +1,14 @@
 -- Issue #276
--- Add per-locale translations storage for package kits and canonical products rows.
--- Additive + idempotent migration.
+-- Add locale overlay translation columns for package_kits/products names and copy.
 
-ALTER TABLE public.package_kits
-  ADD COLUMN IF NOT EXISTS translations jsonb NOT NULL DEFAULT '{}'::jsonb;
+alter table if exists public.package_kits
+  add column if not exists translations jsonb not null default '{}'::jsonb;
 
-ALTER TABLE public.products
-  ADD COLUMN IF NOT EXISTS translations jsonb NOT NULL DEFAULT '{}'::jsonb;
+comment on column public.package_kits.translations is
+  'Locale overlay map, e.g. {"en-US":{"name":"Cartagena 5-Day Package","description_short":"..."}}';
 
-COMMENT ON COLUMN public.package_kits.translations IS
-  'Per-locale translation payloads for package kits (jsonb map).';
+alter table if exists public.products
+  add column if not exists translations jsonb not null default '{}'::jsonb;
 
-COMMENT ON COLUMN public.products.translations IS
-  'Per-locale translation payloads for products (jsonb map).';
+comment on column public.products.translations is
+  'Locale overlay map for product fields, e.g. {"en-US":{"name":"Coffee Tour","description":"..."}}';
