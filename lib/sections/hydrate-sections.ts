@@ -345,11 +345,21 @@ export function hydrateSections(input: HydrationInput): WebsiteSection[] {
       if (!isHero && !isDestinations && !isExploreMap) continue;
       const content = (section.content as Record<string, unknown>) || {};
       if (content.featuredDestinations) continue;
+      const slidesFromFeatured = isHero && !Array.isArray(content.slides)
+        ? featuredDestinations
+            .map((dest) => ({
+              imageUrl: dest.heroImageUrl ?? undefined,
+              city: dest.headline ?? undefined,
+              region: dest.headline ?? undefined,
+              alt: dest.headline ?? undefined,
+            }))
+        : undefined;
       hydratedSections[i] = {
         ...section,
         content: {
           ...content,
           featuredDestinations,
+          ...(slidesFromFeatured ? { slides: slidesFromFeatured } : {}),
         },
       } as WebsiteSection;
     }
