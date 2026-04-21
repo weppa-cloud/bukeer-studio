@@ -1,5 +1,6 @@
 import {
   CATEGORY_CANONICAL_SEGMENT,
+  normalizeBlogLocale,
   resolveCategorySegment,
   resolveLocaleFromPublicPath,
   translateCategoryPathname,
@@ -191,5 +192,42 @@ describe('generateHreflangLinksForLocales — segment localization', () => {
       expect(map['es-CO']).toBe(`${baseUrl}${expectedEs}`);
       expect(map['en-US']).toBe(`${baseUrl}${expectedEn}`);
     }
+  });
+});
+
+describe('normalizeBlogLocale', () => {
+  it('maps legacy ISO-639 es to canonical es-CO', () => {
+    expect(normalizeBlogLocale('es')).toBe('es-CO');
+  });
+
+  it('maps legacy ISO-639 en to canonical en-US', () => {
+    expect(normalizeBlogLocale('en')).toBe('en-US');
+  });
+
+  it('returns null for null/undefined input', () => {
+    expect(normalizeBlogLocale(null)).toBeNull();
+    expect(normalizeBlogLocale(undefined)).toBeNull();
+  });
+
+  it('returns null for empty or whitespace-only input', () => {
+    expect(normalizeBlogLocale('')).toBeNull();
+    expect(normalizeBlogLocale('   ')).toBeNull();
+    expect(normalizeBlogLocale('\t\n')).toBeNull();
+  });
+
+  it('passes canonical BCP-47 through unchanged', () => {
+    expect(normalizeBlogLocale('es-CO')).toBe('es-CO');
+    expect(normalizeBlogLocale('en-US')).toBe('en-US');
+    expect(normalizeBlogLocale('pt-BR')).toBe('pt-BR');
+  });
+
+  it('passes unknown codes through unchanged (no silent mutation)', () => {
+    expect(normalizeBlogLocale('fr')).toBe('fr');
+    expect(normalizeBlogLocale('ZZ-XX')).toBe('ZZ-XX');
+  });
+
+  it('trims surrounding whitespace before lookup', () => {
+    expect(normalizeBlogLocale(' es ')).toBe('es-CO');
+    expect(normalizeBlogLocale('\ten\n')).toBe('en-US');
   });
 });
