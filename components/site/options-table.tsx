@@ -10,13 +10,15 @@ export interface OptionsTableProps {
   preferredCurrency?: string | null;
   currencyConfig?: CurrencyConfig | null;
   className?: string;
+  locale?: string;
 }
 
 /** Hide placeholder/sentinel date ranges that represent "always valid" in admin data. */
 const PLACEHOLDER_DATES = new Set(['2000-01-01', '2099-12-31', '1970-01-01', '9999-12-31']);
-const text = getPublicUiExtraTextGetter('es-CO');
 
-function formatValidityRange(from?: string | null, until?: string | null): string | null {
+type TextGetter = ReturnType<typeof getPublicUiExtraTextGetter>;
+
+function formatValidityRange(from: string | null | undefined, until: string | null | undefined, text: TextGetter): string | null {
   const fromValid = from && !PLACEHOLDER_DATES.has(from) ? from : null;
   const untilValid = until && !PLACEHOLDER_DATES.has(until) ? until : null;
   if (!fromValid && !untilValid) return null;
@@ -93,7 +95,9 @@ export function OptionsTable({
   preferredCurrency,
   currencyConfig,
   className = '',
+  locale = 'es-CO',
 }: OptionsTableProps) {
+  const text = getPublicUiExtraTextGetter(locale);
   const items = (options ?? [])
     .map(normalizeOption)
     .filter((item): item is ActivityOption => Boolean(item));
@@ -199,7 +203,7 @@ export function OptionsTable({
                   <td className="px-4 py-4 align-top">
                     <div className="space-y-2">
                       {option.prices.map((price, priceIndex) => {
-                        const validity = formatValidityRange(price.valid_from, price.valid_until);
+                        const validity = formatValidityRange(price.valid_from, price.valid_until, text);
                         const seasonLabel = formatSeason(price.season);
                         const unitLabel = formatUnitType(price.unit_type_code);
                         return (
