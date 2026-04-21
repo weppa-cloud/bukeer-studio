@@ -16,6 +16,12 @@ import { getWebsiteBySubdomain } from '@/lib/supabase/get-website';
 import { getPlanners } from '@/lib/supabase/get-planners';
 import { getBrandClaims } from '@/lib/supabase/get-brand-claims';
 import { TemplateSlot } from '@/components/site/themes/editorial-v1/template-slot';
+import {
+  buildLocaleAwareAlternateLanguages,
+  resolvePublicMetadataLocale,
+} from '@/lib/seo/public-metadata';
+import { localeToOgLocale } from '@/lib/seo/locale-routing';
+import { resolveOgImage } from '@/lib/seo/og-helpers';
 
 // ISR: Revalidate every 5 minutes
 export const revalidate = 300;
@@ -33,10 +39,28 @@ export async function generateMetadata({
 
   const siteName =
     website.content?.account?.name || website.content?.siteName || subdomain;
+  const baseUrl = website.custom_domain
+    ? `https://${website.custom_domain}`
+    : `https://${subdomain}.bukeer.com`;
+  const localeContext = await resolvePublicMetadataLocale(website, '/planners');
+  const canonical = `${baseUrl}${localeContext.localizedPathname}`;
+  const ogImage = resolveOgImage(website);
+
   return {
     title: `Nuestros travel planners — ${siteName}`,
     description:
       'Conoce al equipo de travel planners. Emparejamos tu viaje con la persona que más sabe de la región o experiencia que buscas.',
+    alternates: {
+      canonical,
+      languages: buildLocaleAwareAlternateLanguages(baseUrl, '/planners', localeContext),
+    },
+    openGraph: {
+      title: `Nuestros travel planners — ${siteName}`,
+      description: 'Conoce al equipo de travel planners. Emparejamos tu viaje con la persona que más sabe de la región o experiencia que buscas.',
+      type: 'website',
+      locale: localeToOgLocale(localeContext.resolvedLocale),
+      ...(ogImage && { images: [{ url: ogImage }] }),
+    },
   };
 }
 

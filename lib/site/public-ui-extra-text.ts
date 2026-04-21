@@ -431,6 +431,9 @@ const BASE_EXTRA_TEXTS = {
   editorialBreadcrumbActivities: 'Actividades',
   editorialBreadcrumbHotels: 'Hoteles',
   editorialBreadcrumbBlog: 'Blog',
+  editorialPackageDurationLabel: 'Duración',
+  editorialPackageDestinationsLabel: 'Destinos',
+  editorialPackageRatingLabel: 'Calificación',
   editorialPackageMapTitle: 'Ruta del viaje',
   editorialPackageStopsSuffix: 'paradas',
   editorialPackageTimelineEyebrow: 'Día a día',
@@ -573,6 +576,9 @@ const EN_US_OVERRIDES: Partial<Record<PublicUiExtraTextKey, string>> = {
   editorialTrustHumanReviewBody: 'every itinerary',
   editorialTrustAriaLabel: 'Trust and credibility',
   editorialTrustVerifiedSuffix: 'verified reviews',
+  editorialPackageDurationLabel: 'Duration',
+  editorialPackageDestinationsLabel: 'Destinations',
+  editorialPackageRatingLabel: 'Rating',
 };
 const PT_BR_OVERRIDES: Partial<Record<PublicUiExtraTextKey, string>> = {};
 

@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { getWebsiteBySubdomain } from '@/lib/supabase/get-website';
 import type { WebsiteData } from '@/lib/supabase/get-website';
 import {
@@ -9,6 +9,7 @@ import {
   getDestinationSeoOverride,
   getLocalizedProductOverlay,
   getPageBySlug,
+  getPageByTranslationGroup,
   getProductPage,
 } from '@/lib/supabase/get-pages';
 import { getReviewsForContext, type ReviewContext } from '@/lib/supabase/get-reviews';
@@ -609,9 +610,18 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
     resolvedLocale: localeContext.resolvedLocale,
   } as WebsiteData & { resolvedLocale?: string };
 
+  const resolvedLocale = localeContext.resolvedLocale;
+  const defaultLocale = localeContext.defaultLocale ?? 'es-CO';
+
   // Handle activities listing (/actividades)
   if (slug.length === 1 && (slug[0] === 'actividades' || slug[0] === 'activities')) {
-    const { items: activityProducts } = await getCategoryProducts(subdomain, 'activities', { limit: 100, offset: 0 });
+    const { items: activityProducts } = await getCategoryProducts(subdomain, 'activities', {
+      limit: 100,
+      offset: 0,
+      locale: resolvedLocale,
+      defaultLocale,
+      websiteId: String(website.id),
+    });
     return <ActivitiesListingPage website={websiteForRender} activities={activityProducts} />;
   }
 
@@ -619,7 +629,13 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
   // wraps the generic `PackagesListingPage` via TemplateSlot. Non-editorial
   // tenants keep the existing generic body unchanged.
   if (slug.length === 1 && (slug[0] === 'paquetes' || slug[0] === 'packages')) {
-    const { items: packageProducts } = await getCategoryProducts(subdomain, 'packages', { limit: 100, offset: 0 });
+    const { items: packageProducts } = await getCategoryProducts(subdomain, 'packages', {
+      limit: 100,
+      offset: 0,
+      locale: resolvedLocale,
+      defaultLocale,
+      websiteId: String(website.id),
+    });
     const paquetesListBody = (
       <PackagesListingPage website={websiteForRender} packages={packageProducts} />
     );
@@ -644,7 +660,13 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
   // generic packages-listing shell (shared filtering/grid) as a placeholder
   // until a dedicated hotels-listing generic body is built.
   if (slug.length === 1 && (slug[0] === 'hoteles' || slug[0] === 'hotels')) {
-    const { items: hotelProducts } = await getCategoryProducts(subdomain, 'hotels', { limit: 100, offset: 0 });
+    const { items: hotelProducts } = await getCategoryProducts(subdomain, 'hotels', {
+      limit: 100,
+      offset: 0,
+      locale: resolvedLocale,
+      defaultLocale,
+      websiteId: String(website.id),
+    });
     const hotelesListBody = (
       <PackagesListingPage website={websiteForRender} packages={hotelProducts} />
     );
@@ -742,6 +764,19 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
       const productPage = await getProductPage(subdomain, productType, productSlug);
 
       if (productPage?.product) {
+        // Non-default locale + no overlay → redirect to default locale URL.
+        if (resolvedLocale !== defaultLocale && website.id && typeof productPage.product.id === 'string') {
+          const overlay = await getLocalizedProductOverlay({
+            websiteId: String(website.id),
+            productType,
+            productId: String(productPage.product.id),
+            locale: resolvedLocale,
+          });
+          if (!overlay) {
+            redirect(`/site/${subdomain}/${slugPath}`);
+          }
+        }
+
         // Fetch relevant Google Reviews using contextual scoring (photo-priority)
         const accountContent = ((website.content as unknown as Record<string, unknown>)?.account as Record<string, unknown> | undefined);
         const googleEnabled = accountContent?.google_reviews_enabled === true;
@@ -856,6 +891,18 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
 
   if (!page || !page.is_published) {
     notFound();
+  }
+
+  // Non-default locale + page has a translation → redirect to translated slug.
+  if (resolvedLocale !== defaultLocale && page.translation_group_id && website.id) {
+    const localizedPage = await getPageByTranslationGroup(
+      website.id,
+      page.translation_group_id,
+      resolvedLocale,
+    );
+    if (localizedPage && localizedPage.slug !== page.slug) {
+      redirect(`/site/${subdomain}/${localizedPage.slug}`);
+    }
   }
 
   // Render based on page type

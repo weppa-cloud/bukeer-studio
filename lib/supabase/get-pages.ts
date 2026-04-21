@@ -235,6 +235,36 @@ export async function getPageBySlug(
 }
 
 /**
+ * Find the translated variant of a page by translation_group_id + locale.
+ * Returns a minimal shape (id, slug, locale) — enough to build a redirect URL.
+ */
+export async function getPageByTranslationGroup(
+  websiteId: string,
+  translationGroupId: string,
+  locale: string,
+): Promise<Pick<WebsitePage, 'id' | 'slug' | 'locale'> | null> {
+  try {
+    const { data, error } = await supabase
+      .from('website_pages')
+      .select('id, slug, locale')
+      .eq('website_id', websiteId)
+      .eq('translation_group_id', translationGroupId)
+      .eq('locale', locale)
+      .eq('is_published', true)
+      .maybeSingle();
+
+    if (error) {
+      console.error('[getPageByTranslationGroup] Error:', error);
+      return null;
+    }
+    return data as Pick<WebsitePage, 'id' | 'slug' | 'locale'> | null;
+  } catch (e) {
+    console.error('[getPageByTranslationGroup] Exception:', e);
+    return null;
+  }
+}
+
+/**
  * Get a product page with product data
  */
 export async function getProductPage(

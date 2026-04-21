@@ -40,6 +40,8 @@ export interface WebsitePage {
   parent_page_id?: string;
   header_mode?: HeaderMode;
   is_published: boolean;
+  locale?: string;
+  translation_group_id?: string;
 }
 
 export interface NavigationItem {
