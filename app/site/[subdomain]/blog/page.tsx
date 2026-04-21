@@ -77,8 +77,13 @@ export default async function BlogPage({ params, searchParams }: BlogPageProps) 
   const limit = 9;
   const offset = (pageNum - 1) * limit;
 
+  // Resolve locale before fetching so RPC filters by locale.
+  // Non-default locale → only posts that have a translation row for that locale.
+  const localeContextEarly = await resolvePublicMetadataLocale(website, '/blog');
+  const resolvedLocaleForFetch = localeContextEarly.resolvedLocale;
+
   const [postsData, categories] = await Promise.all([
-    getBlogPosts(website.id, { limit, offset, categorySlug: category }),
+    getBlogPosts(website.id, { limit, offset, categorySlug: category, locale: resolvedLocaleForFetch }),
     getBlogCategories(website.id),
   ]);
 
@@ -97,7 +102,7 @@ export default async function BlogPage({ params, searchParams }: BlogPageProps) 
   const baseUrl = website.custom_domain
     ? `https://${website.custom_domain}`
     : `https://${subdomain}.bukeer.com`;
-  const localeContext = await resolvePublicMetadataLocale(website, '/blog');
+  const localeContext = localeContextEarly;
   const messages = getPublicUiMessages(localeContext.resolvedLocale);
 
   // Generate JSON-LD schemas (CollectionPage, Breadcrumb, Organization)

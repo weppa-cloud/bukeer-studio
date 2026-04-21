@@ -57,7 +57,8 @@
     "lib/**/*.tsx",
     "next-env.d.ts",
     "packages/**/*.ts",
-    "packages/**/*.tsx"
+    "packages/**/*.tsx",
+    ".next-prod/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",

@@ -4,6 +4,7 @@ import { notFound, permanentRedirect } from 'next/navigation';
 import { ProductLandingPage } from '@/components/pages/product-landing-page';
 import { TemplateSlot } from '@/components/site/themes/editorial-v1/template-slot';
 import type { EditorialPackageDetailPayload } from '@/components/site/themes/editorial-v1/pages/package-detail';
+import { EditorialPackageOverlay } from '@/components/site/themes/editorial-v1/pages/editorial-package-overlay';
 import { getBasePath } from '@/lib/utils/base-path';
 import {
   getCategoryProducts,
@@ -216,6 +217,13 @@ export default async function PackageSlugPage({ params }: PackagePageProps) {
 
   const isEditorialTemplate = resolveTemplateSet(website) === 'editorial-v1';
 
+  const editorialAfterMain = isEditorialTemplate ? (
+    <EditorialPackageOverlay
+      product={productPage.product}
+      resolvedLocale={localeContext.resolvedLocale}
+    />
+  ) : undefined;
+
   return (
     <TemplateSlot name="package-detail" website={website} payload={editorialPayload}>
       <ProductLandingPage
@@ -228,6 +236,7 @@ export default async function PackageSlugPage({ params }: PackagePageProps) {
         resolvedLocale={localeContext.resolvedLocale}
         editorialMode={isEditorialTemplate}
         suppressEditorialSections={isEditorialTemplate}
+        renderAfterMain={editorialAfterMain}
       />
     </TemplateSlot>
   );

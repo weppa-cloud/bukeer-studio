@@ -1,9 +1,11 @@
 import './blog-typography.css';
 import { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import {
   getWebsiteBySubdomain,
   getBlogPostBySlug,
+  getBlogPostAnyLocale,
+  getBlogPostByTranslationGroup,
 } from '@/lib/supabase/get-website';
 import { JsonLd, generateBlogPostSchemas } from '@/lib/schema';
 import { BlogDetail } from '@/components/site/blog/blog-detail';
@@ -94,29 +96,59 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
     notFound();
   }
 
-  const post = await getBlogPostBySlug(website.id, slug);
+  // Resolve locale before slug lookup so we filter to the correct locale row.
+  const localeContextEarly = await resolvePublicMetadataLocale(website, `/blog/${slug}`);
+  const resolvedLocale = localeContextEarly.resolvedLocale;
+  const defaultLocale = localeContextEarly.defaultLocale ?? 'es-CO';
+
+  let post = await getBlogPostBySlug(website.id, slug, resolvedLocale);
 
   if (!post) {
+    // Slug not found for this locale. Try finding the post in any locale,
+    // then redirect to the default-locale counterpart via translation_group_id.
+    const anyLocalePost = await getBlogPostAnyLocale(website.id, slug);
+    if (anyLocalePost?.translation_group_id) {
+      const defaultPost = await getBlogPostByTranslationGroup(
+        website.id,
+        anyLocalePost.translation_group_id,
+        defaultLocale
+      );
+      if (defaultPost) {
+        redirect(`/site/${subdomain}/blog/${defaultPost.slug}`);
+      }
+    }
     notFound();
+  }
+
+  // If post exists but is in the wrong locale (e.g. ES slug served on /en/),
+  // redirect to the correct-locale counterpart if available.
+  if (post.locale !== resolvedLocale) {
+    const localizedPost = await getBlogPostByTranslationGroup(
+      website.id,
+      post.translation_group_id ?? post.id,
+      resolvedLocale
+    );
+    if (localizedPost) {
+      redirect(`/site/${subdomain}/blog/${localizedPost.slug}`);
+    }
+    // No localized version — serve the found post (fallback, will render as-is)
   }
 
   // Generate base URL for schema
   const baseUrl = website.custom_domain
     ? `https://${website.custom_domain}`
     : `https://${subdomain}.bukeer.com`;
-  const localeContext = await resolvePublicMetadataLocale(website, `/blog/${post.slug}`);
-
   // Generate JSON-LD schemas (Article, Breadcrumb, Organization)
-  const schemas = generateBlogPostSchemas(post, website, baseUrl, localeContext.resolvedLocale);
+  const schemas = generateBlogPostSchemas(post, website, baseUrl, resolvedLocale);
 
-  // Related posts — best-effort: same category first, fallback to recent.
+  // Related posts — same locale, same category first, fallback to recent.
   const { getBlogPosts } = await import('@/lib/supabase/get-website');
   const categorySlug = post.category?.slug ?? undefined;
   const [sameCategory, recent] = await Promise.all([
     categorySlug
-      ? getBlogPosts(website.id, { limit: 4, categorySlug })
+      ? getBlogPosts(website.id, { limit: 4, categorySlug, locale: resolvedLocale })
       : Promise.resolve({ posts: [], total: 0 }),
-    getBlogPosts(website.id, { limit: 4 }),
+    getBlogPosts(website.id, { limit: 4, locale: resolvedLocale }),
   ]);
   const relatedPool = [
     ...sameCategory.posts.filter((p) => p.id !== post.id),
@@ -138,14 +170,14 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         website={website}
         payload={{
           subdomain,
-          locale: localeContext.resolvedLocale,
+          locale: resolvedLocale,
           post,
           related,
         }}
       >
         <BlogDetail
           subdomain={subdomain}
-          locale={localeContext.resolvedLocale}
+          locale={resolvedLocale}
           post={post}
         />
       </TemplateSlot>

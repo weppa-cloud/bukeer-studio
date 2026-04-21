@@ -96,7 +96,9 @@ export async function getPlanners(
     : null;
 
   const data = primary.data ?? fallback?.data;
-  const error = primary.error ?? fallback?.error;
+  // Use fallback error only when we have no data at all — primary.error is
+  // expected when bio/specialty columns are pending migration.
+  const error = data ? null : (primary.error ?? fallback?.error);
   if (error || !data) return [];
 
   // For contacts without user_image, fetch avatar from auth.users metadata

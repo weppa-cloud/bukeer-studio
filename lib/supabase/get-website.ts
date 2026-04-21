@@ -260,6 +260,7 @@ export async function getBlogPosts(
     limit?: number;
     offset?: number;
     categorySlug?: string;
+    locale?: string;
   } = {}
 ): Promise<{ posts: BlogPost[]; total: number }> {
   try {
@@ -269,6 +270,7 @@ export async function getBlogPosts(
         p_limit: options.limit || 10,
         p_offset: options.offset || 0,
         p_category_slug: options.categorySlug || null,
+        p_locale: options.locale || null,
       });
 
     if (error) {
@@ -291,19 +293,21 @@ export async function getBlogPosts(
  */
 export async function getBlogPostBySlug(
   websiteId: string,
-  slug: string
+  slug: string,
+  locale?: string
 ): Promise<BlogPost | null> {
   try {
-    const { data, error } = await supabase
+    let query = supabase
       .from('website_blog_posts')
-      .select(`
-        *,
-        category:website_blog_categories(*)
-      `)
+      .select(`*, category:website_blog_categories(*)`)
       .eq('website_id', websiteId)
       .eq('slug', slug)
       .eq('status', 'published')
-      .is('deleted_at', null)
+      .is('deleted_at', null);
+
+    if (locale) query = query.eq('locale', locale);
+
+    const { data, error } = await query
       .order('published_at', { ascending: false, nullsFirst: false })
       .order('updated_at', { ascending: false, nullsFirst: false })
       .limit(1)
@@ -317,6 +321,60 @@ export async function getBlogPostBySlug(
     return data as BlogPost;
   } catch (e) {
     console.error('[getBlogPostBySlug] Exception:', e);
+    return null;
+  }
+}
+
+/**
+ * Find the default-locale counterpart of a blog post via translation_group_id.
+ * Used to redirect non-default-locale 404s to the canonical ES version.
+ */
+export async function getBlogPostByTranslationGroup(
+  websiteId: string,
+  translationGroupId: string,
+  locale: string
+): Promise<BlogPost | null> {
+  try {
+    const { data, error } = await supabase
+      .from('website_blog_posts')
+      .select(`*, category:website_blog_categories(*)`)
+      .eq('website_id', websiteId)
+      .eq('translation_group_id', translationGroupId)
+      .eq('locale', locale)
+      .eq('status', 'published')
+      .is('deleted_at', null)
+      .limit(1)
+      .maybeSingle();
+
+    if (error) return null;
+    return data as BlogPost;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Find a blog post by slug in ANY locale, then return its translation_group_id.
+ * Used to locate the default-locale version when a non-default slug 404s.
+ */
+export async function getBlogPostAnyLocale(
+  websiteId: string,
+  slug: string
+): Promise<Pick<BlogPost, 'id' | 'slug' | 'locale' | 'translation_group_id'> | null> {
+  try {
+    const { data, error } = await supabase
+      .from('website_blog_posts')
+      .select('id, slug, locale, translation_group_id')
+      .eq('website_id', websiteId)
+      .eq('slug', slug)
+      .eq('status', 'published')
+      .is('deleted_at', null)
+      .limit(1)
+      .maybeSingle();
+
+    if (error) return null;
+    return data as Pick<BlogPost, 'id' | 'slug' | 'locale' | 'translation_group_id'>;
+  } catch {
     return null;
   }
 }
