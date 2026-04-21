@@ -165,7 +165,6 @@ export function CtaSection({
     <section
       className="ev-section ev-cta"
       data-screen-label="CTA"
-      style={{ paddingTop: 0 }}
       aria-label={eyebrow || editorialText('editorialCtaAriaFallback')}
     >
       <div className="ev-container">

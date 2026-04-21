@@ -5479,9 +5479,12 @@
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 24px;
-  padding: 4px 24px 24px;
+  padding: 0 24px;
   align-items: start;
   min-height: 0;
+}
+:where([data-template-set="editorial-v1"]) .itinerary-day-content {
+  padding: 4px 0 24px;
 }
 :where([data-template-set="editorial-v1"]) .itinerary-day-content {
   display: flex;
@@ -5533,7 +5536,7 @@
   }
   :where([data-template-set="editorial-v1"]) .itinerary-day-inner {
     grid-template-columns: 1fr;
-    padding: 4px 16px 20px;
+    padding: 0 16px;
   }
   :where([data-template-set="editorial-v1"]) .itinerary-day-media {
     width: 100%;
