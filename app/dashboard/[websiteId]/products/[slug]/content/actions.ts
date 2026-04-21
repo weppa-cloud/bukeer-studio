@@ -120,7 +120,6 @@ async function upsertPage(
     website_id: websiteId,
     product_id: productId,
     product_type: pageProductTypeValue(productType),
-    translation_group_id: productId,
     custom_highlights: [],
     custom_faq: [],
     seo_highlights: [],

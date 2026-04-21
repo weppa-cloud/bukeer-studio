@@ -61,7 +61,6 @@ All ADRs accepted unless noted. Cross-cut by Principles P1–P10 (see [[ARCHITEC
 | [[ADR-023]] | [ADR-023](./architecture/ADR-023-qa-tooling-studio-editor.md) | QA Tooling: Playwright Component Testing + Visual Regression | [[testing]] [[CT]] [[visual-regression]] [[quality-gate]] |
 | [[ADR-024]] | [ADR-024](./architecture/ADR-024-booking-v1-pilot-scope.md) | Booking V1 Pilot Scope (Proposed — W3 decision meeting) | [[booking]] [[pilot-readiness]] [[leads]] |
 | [[ADR-025]] | [ADR-025](./architecture/ADR-025-studio-flutter-field-ownership.md) | Studio / Flutter Field Ownership Boundary (**Accepted 2026-04-19** — pkg+act Studio-editable, hotels Flutter-owner; Option A RPC expansion + activities parity) | [[studio-editor-v2]] [[package-kits]] [[pilot-readiness]] [[studio-editor-parity-audit]] |
-| [[ADR-027]] | [ADR-027](./architecture/ADR-027-designer-reference-theme-adoption.md) | Designer Reference Theme Adoption for Pilot (flag-gated + snapshot-backed rollback) | [[theme-v3]] [[theme-sdk]] [[pilot-readiness]] [[rollout]] |
 
 > **Note:** `ADR-022` and `ADR-032` referenced in specs are anchored in `weppa-cloud/bukeer-flutter`. Studio respects them but does not own them. See [[cross-repo-flutter]].
 
