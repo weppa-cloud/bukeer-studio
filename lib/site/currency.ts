@@ -14,7 +14,7 @@ export const SITE_MENU_LOCALES = [
   { code: 'en', label: 'English' },
 ] as const;
 
-export const SWITCHER_ALLOWED_LANGUAGE_CODES = new Set(
+export const SWITCHER_ALLOWED_LANGUAGE_CODES: ReadonlySet<string> = new Set(
   SITE_MENU_LOCALES.map((locale) => locale.code),
 );
 export const SWITCHER_ALLOWED_CURRENCIES = ['COP', 'USD'] as const;
@@ -129,10 +129,10 @@ export function resolveSiteMenuLocales(input: {
   const supportedLocales = Array.isArray(input.supportedLocales)
     ? input.supportedLocales
       .map((locale) => normalizeLanguageCode(locale))
-      .filter(
-        (locale): locale is string => Boolean(locale)
-          && SWITCHER_ALLOWED_LANGUAGE_CODES.has(locale),
-      )
+      .filter((locale): locale is string => {
+        if (!locale) return false;
+        return SWITCHER_ALLOWED_LANGUAGE_CODES.has(locale);
+      })
     : [];
 
   const fallbackLocales = SITE_MENU_LOCALES.map((locale) => locale.code);

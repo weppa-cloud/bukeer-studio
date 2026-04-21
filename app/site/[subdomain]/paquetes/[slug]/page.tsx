@@ -4,8 +4,6 @@ import { notFound, permanentRedirect, redirect } from 'next/navigation';
 import { ProductLandingPage } from '@/components/pages/product-landing-page';
 import { TemplateSlot } from '@/components/site/themes/editorial-v1/template-slot';
 import type { EditorialPackageDetailPayload } from '@/components/site/themes/editorial-v1/pages/package-detail';
-import { EditorialPackageOverlay } from '@/components/site/themes/editorial-v1/pages/editorial-package-overlay';
-import { EditorialPackageStatsBar } from '@/components/site/themes/editorial-v1/pages/editorial-package-stats-bar';
 import { getBasePath } from '@/lib/utils/base-path';
 import {
   getCategoryProducts,
@@ -23,6 +21,7 @@ import { buildPublicLocalizedPath, localeToOgLocale } from '@/lib/seo/locale-rou
 import { sanitizeProductCopy } from '@/lib/products/normalize-product';
 import { getPublicUiExtraText } from '@/lib/site/public-ui-extra-text';
 import { resolveTemplateSet } from '@/lib/sections/template-set';
+import { PACKAGE_FAQS_DEFAULT } from '@/lib/products/package-faqs-default';
 
 interface PackagePageProps {
   params: Promise<{ subdomain: string; slug: string }>;
@@ -239,23 +238,16 @@ export default async function PackageSlugPage({ params }: PackagePageProps) {
     basePath: getBasePath(website.subdomain, Boolean(website.custom_domain)),
     displayName,
     displayLocation,
+    resolvedLocale: localeContext.resolvedLocale,
+    googleReviews: packageReviews,
+    similarProducts: similarPackages,
+    faqs:
+      Array.isArray(productPage.page?.custom_faq) && productPage.page.custom_faq.length > 0
+        ? productPage.page.custom_faq
+        : PACKAGE_FAQS_DEFAULT,
   };
 
   const isEditorialTemplate = resolveTemplateSet(website) === 'editorial-v1';
-
-  const editorialAfterMain = isEditorialTemplate ? (
-    <EditorialPackageOverlay
-      product={productPage.product}
-      resolvedLocale={localeContext.resolvedLocale}
-    />
-  ) : undefined;
-
-  const editorialAfterHero = isEditorialTemplate ? (
-    <EditorialPackageStatsBar
-      product={productPage.product}
-      resolvedLocale={localeContext.resolvedLocale}
-    />
-  ) : undefined;
 
   return (
     <TemplateSlot name="package-detail" website={website} payload={editorialPayload}>
@@ -268,9 +260,6 @@ export default async function PackageSlugPage({ params }: PackagePageProps) {
         similarProducts={similarPackages}
         resolvedLocale={localeContext.resolvedLocale}
         editorialMode={isEditorialTemplate}
-        suppressEditorialSections={isEditorialTemplate}
-        renderAfterHero={editorialAfterHero}
-        renderAfterMain={editorialAfterMain}
       />
     </TemplateSlot>
   );
