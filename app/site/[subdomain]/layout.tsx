@@ -178,9 +178,10 @@ export default async function SiteLayout({ children, params }: SiteLayoutProps) 
   );
 
   return (
-    <M3ThemeProvider initialTheme={getInitialTheme(website.theme)}>
-      {/* Google Tag Manager and Analytics Scripts */}
-      <GoogleTagManager analytics={website.analytics} />
+    <WebsiteLocaleProvider locale={localeContext.resolvedLocale}>
+      <M3ThemeProvider initialTheme={initialTheme}>
+        {/* Google Tag Manager and Analytics Scripts */}
+        <GoogleTagManager analytics={website.analytics} />
 
         {templateSet ? (
           <div data-template-set={templateSet}>{templatedBody}</div>

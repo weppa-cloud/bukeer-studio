@@ -1,18 +1,24 @@
 /**
  * /site/[subdomain]/experiencias — editorial experiences page.
  *
- * The page pulls activities from the website's hydrated `activities` section
- * (see `lib/sections/hydrate-sections.ts`). If the website opts into the
- * editorial-v1 template set, `TemplateSlot` renders the editorial variant
- * from `components/site/themes/editorial-v1/pages/experiences.tsx`; otherwise
- * the fallback renders a minimal listing so non-editorial sites still return
- * a usable page.
+ * The page pulls activities via `getCategoryProducts` (same SSR RPC used by
+ * the home grid + `/actividades` listing), so it always reflects the full
+ * `website_product_pages` catalog instead of whatever was baked into the
+ * authored `activities` section payload. Authored overrides on
+ * `section.content.activities` still win when present (editorial seed).
+ *
+ * When the tenant opts into `editorial-v1`, `TemplateSlot` renders the
+ * editorial variant from `components/site/themes/editorial-v1/pages/experiences.tsx`.
+ * Otherwise the fallback renders a minimal listing so non-editorial sites
+ * still return a usable page.
  */
 
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
 import { getWebsiteBySubdomain } from '@/lib/supabase/get-website';
+import { getCategoryProducts } from '@/lib/supabase/get-pages';
+import { toActivityItems } from '@/lib/products/to-items';
 import {
   buildLocaleAwareAlternateLanguages,
   resolvePublicMetadataLocale,
@@ -139,17 +145,34 @@ export default async function ExperiencesPageRoute({
 
   const localeContext = await resolvePublicMetadataLocale(website, '/experiencias');
 
-  // Pull activities from the hydrated `activities` section (if any). The
-  // hydrate step runs during `getWebsiteBySubdomain`, so we just read.
+  // Prefer an authored override on the `activities` section (editorial seed
+  // with curated ordering/copy). Fall back to the full catalog via the same
+  // RPC used by the home grid + `/actividades` listing. This keeps the
+  // "Experiencias" route in parity with the DB even when the tenant never
+  // authored a section payload — previously we only read from the section
+  // which resulted in "0 de 0" for sites like ColombiaTours.
   const activitiesSection = (website.sections || []).find(
     (s) => s.section_type === 'activities' && s.is_enabled !== false,
   );
-  const activitiesRaw = Array.isArray(
+  const authoredActivities = Array.isArray(
     (activitiesSection?.content as Record<string, unknown> | undefined)?.activities,
   )
     ? ((activitiesSection!.content as Record<string, unknown>).activities as unknown[])
     : [];
-  const activities = normaliseActivities(activitiesRaw);
+
+  let activities: ExperienceItem[];
+  if (authoredActivities.length > 0) {
+    activities = normaliseActivities(authoredActivities);
+  } else {
+    const catalog = await getCategoryProducts(subdomain, 'activities', {
+      limit: 100,
+      offset: 0,
+    });
+    // toActivityItems returns the canonical editorial shape (name, image,
+    // duration, price, location, rating...), which normaliseActivities then
+    // narrows into `ExperienceItem` defensively.
+    activities = normaliseActivities(toActivityItems(catalog.items, 0));
+  }
 
   return (
     <TemplateSlot

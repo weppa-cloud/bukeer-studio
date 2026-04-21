@@ -163,7 +163,14 @@ export function StatsSection({
                 : numericValue % 1 !== 0
                 ? 1
                 : 0;
-            const suffix = metric.suffix ?? trailingSuffix ?? '';
+            // Example authored values:
+            //   { value: "12.4k", suffix: "+" }  → "12.4" (numeric) + "k+" (suffix)
+            //   { value: 4.9,     suffix: "/5" } → "4.9"  + "/5"
+            //   { value: "96",    suffix: "%"  } → "96"   + "%"
+            // Concatenate trailing chars captured from a string `value` with
+            // the authored `metric.suffix` so unit notation ("k", "M", "h")
+            // is not silently dropped.
+            const suffix = `${trailingSuffix ?? ''}${metric.suffix ?? ''}`;
 
             return (
               <div className="stat" role="listitem" key={`${metric.label}-${i}`}>
