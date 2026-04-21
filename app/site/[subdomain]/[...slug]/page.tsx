@@ -38,6 +38,8 @@ import { sanitizeProductCopy } from '@/lib/products/normalize-product';
 import { getBasePath } from '@/lib/utils/base-path';
 import dynamic from 'next/dynamic';
 import { applyContentTranslations } from '@/lib/sections/apply-content-translations';
+import { resolveTemplateSet } from '@/lib/sections/template-set';
+import { EditorialActivityStatsBar } from '@/components/site/themes/editorial-v1/pages/editorial-activity-stats-bar';
 
 const DestinationListingPage = dynamic(
   () => import('@/components/pages/destination-listing-page').then(m => m.DestinationListingPage)
@@ -203,7 +205,7 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
     const listingMeta = await resolveListingPageMeta(subdomain, ['actividades', 'activities']);
     const ogImage = resolveOgImage(website);
     const metadata: Metadata = {
-      title: `Actividades | ${siteName}`,
+      title: 'Actividades',
       description: `Descubre todas las actividades y experiencias disponibles con ${siteName}.`,
       openGraph: {
         title: `Actividades | ${siteName}`,
@@ -241,7 +243,7 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
     const listingMeta = await resolveListingPageMeta(subdomain, ['hoteles', 'hotels']);
     const ogImage = resolveOgImage(website);
     const metadata: Metadata = {
-      title: `Hoteles | ${siteName}`,
+      title: 'Hoteles',
       description: `Explora hoteles seleccionados por ${siteName} para tu proximo viaje.`,
       openGraph: {
         title: `Hoteles | ${siteName}`,
@@ -279,7 +281,7 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
     const listingMeta = await resolveListingPageMeta(subdomain, ['traslados', 'transfers']);
     const ogImage = resolveOgImage(website);
     const metadata: Metadata = {
-      title: `Traslados | ${siteName}`,
+      title: 'Traslados',
       description: `Reserva traslados privados y compartidos con ${siteName}.`,
       openGraph: {
         title: `Traslados | ${siteName}`,
@@ -317,7 +319,7 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
     const listingMeta = await resolveListingPageMeta(subdomain, ['paquetes', 'packages']);
     const ogImage = resolveOgImage(website);
     const metadata: Metadata = {
-      title: `Paquetes de Viaje | ${siteName}`,
+      title: 'Paquetes de Viaje',
       description: `Descubre los paquetes de viaje curados por ${siteName}. Experiencias únicas todo incluido.`,
       openGraph: {
         title: `Paquetes de Viaje | ${siteName}`,
@@ -355,7 +357,7 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
     const listingMeta = await resolveListingPageMeta(subdomain, ['destinos', 'destinations']);
     const ogImage = resolveOgImage(website);
     const metadata: Metadata = {
-      title: `Destinos | ${siteName}`,
+      title: 'Destinos',
       description: `Descubre los mejores destinos de viaje con ${siteName}. Hoteles, actividades y experiencias seleccionadas.`,
       openGraph: {
         title: `Destinos | ${siteName}`,
@@ -436,7 +438,9 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
     const productType = getCategoryProductType(categorySlug);
 
     if (productType) {
-      const productPage = await getProductPage(subdomain, productType, productSlug);
+      const productPage = await getProductPage(subdomain, productType, productSlug, {
+        locale: localeContext.resolvedLocale,
+      });
       if (productPage?.product) {
         // Bug 9 (Stage 6 2026-04-20): locale-aware overlay for /en/<seg>/<slug>
         // — see note in `app/site/[subdomain]/paquetes/[slug]/page.tsx`.
@@ -768,7 +772,9 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
     const productType = getCategoryProductType(categorySlug);
 
     if (productType) {
-      const productPage = await getProductPage(subdomain, productType, productSlug);
+      const productPage = await getProductPage(subdomain, productType, productSlug, {
+        locale: resolvedLocale,
+      });
 
       if (productPage?.product) {
         // Non-default locale + no overlay → redirect to default locale URL.
@@ -868,6 +874,14 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
           } satisfies EditorialHotelDetailPayload;
         }
 
+        const activeTemplateSet = resolveTemplateSet(websiteForRender);
+        const isEditorialV1 = activeTemplateSet === 'editorial-v1';
+
+        const activityStatsBar =
+          isEditorialV1 && productType === 'activity' ? (
+            <EditorialActivityStatsBar product={productPage.product} />
+          ) : null;
+
         const genericBody = (
           <ProductLandingPage
             website={websiteForRender}
@@ -878,6 +892,7 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
             activityCircuitStops={activityCircuitStops}
             similarProducts={similarProducts}
             resolvedLocale={productLocaleContext.resolvedLocale}
+            renderAfterHero={activityStatsBar}
           />
         );
 

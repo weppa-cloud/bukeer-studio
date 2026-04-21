@@ -40,18 +40,84 @@ function getInitialTheme(theme: { tokens: Record<string, unknown>; profile: Reco
   };
 }
 
-/** Generate a :root { } CSS block from theme tokens so CSS vars are available
- *  before any JS executes, preventing the mount-time style recalculation from
- *  blocking LCP paint. */
-function generateThemeCSS(themeInput: ThemeInput | undefined): string {
-  if (!themeInput) return '';
+interface ThemeOutput {
+  css: string;
+  fontUrls: string[];
+}
+
+/**
+ * Compute bridge CSS variables server-side by deriving them from the compiled
+ * light-mode token map, mirroring `applyBridgeVariables` in m3-theme-provider.
+ * Returns an array of `--name:value` strings ready to inject into `:root{}`.
+ */
+function computeBridgeVars(lightVars: Array<{ name: string; value: string }>): string[] {
+  const m = new Map(lightVars.map((v) => [v.name, v.value]));
+  const bg = m.get('background') || '';
+  const card = m.get('card') || '';
+  const fg = m.get('foreground') || '';
+  const primary = m.get('primary') || '';
+  const primaryFg = m.get('primary-foreground') || '';
+  const accent = m.get('accent') || '';
+  const accent2 = m.get('accent-2') || '';
+  const accent3 = m.get('accent-3') || '';
+  const mutedFg = m.get('muted-foreground') || '';
+  const border = m.get('border') || '';
+  if (!bg) return [];
+  return [
+    `--bg:hsl(${bg})`,
+    `--bg-card:hsl(${card})`,
+    `--accent:hsl(${primary})`,
+    `--accent-hover:hsl(${primary} / 0.8)`,
+    `--accent-text:hsl(${primaryFg})`,
+    `--text-heading:hsl(${fg})`,
+    `--text-primary:hsl(${fg})`,
+    `--text-secondary:hsl(${mutedFg})`,
+    `--text-muted:hsl(${mutedFg} / 0.7)`,
+    `--border-subtle:hsl(${border} / 0.5)`,
+    `--border-medium:hsl(${border})`,
+    `--card-badge-bg:hsl(${bg} / 0.7)`,
+    `--card-badge-border:hsl(${border} / 0.5)`,
+    `--card-badge-text:hsl(${mutedFg})`,
+    `--card-gradient:hsl(${card} / 0.6)`,
+    `--card-meta:hsl(${mutedFg} / 0.7)`,
+    `--nav-bg-scroll:hsl(${bg} / 0.8)`,
+    `--nav-link:hsl(${mutedFg})`,
+    `--nav-link-hover:hsl(${fg})`,
+    `--nav-link-hover-bg:hsl(${fg} / 0.06)`,
+    `--stat-border:hsl(${border} / 0.3)`,
+    `--spotlight-color:hsl(${primary} / 0.08)`,
+    `--c-primary:hsl(${primary})`,
+    `--c-primary-ink:hsl(${primaryFg})`,
+    `--c-accent:hsl(${accent || primary})`,
+    `--c-accent-2:hsl(${accent2 || accent || primary})`,
+    `--c-accent-3:hsl(${accent3 || accent || primary})`,
+    `--c-ink:hsl(${fg})`,
+    `--c-ink-2:hsl(${mutedFg})`,
+    `--c-line:hsl(${border})`,
+    `--c-surface:hsl(${card})`,
+    `--c-bg:hsl(${bg})`,
+    `--text-display-xl:clamp(3rem, 6vw, 6rem)`,
+    `--text-display-lg:clamp(2.25rem, 4vw, 4rem)`,
+    `--text-display-md:clamp(1.75rem, 3vw, 3rem)`,
+    `--font-mono:"DM Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace`,
+  ];
+}
+
+/**
+ * Compile theme tokens into CSS variables + font URLs for server-side injection.
+ * Includes invariant vars, light-mode color vars, and pre-computed bridge vars
+ * so the client never needs to call `getComputedStyle` or `setProperty` on mount.
+ * Also returns Google Fonts URLs so they're discoverable in the initial HTML parse.
+ */
+function generateThemeOutput(themeInput: ThemeInput | undefined): ThemeOutput {
+  if (!themeInput) return { css: '', fontUrls: [] };
   try {
     const compiled = compileTheme(
       themeInput.tokens as DesignTokens,
       themeInput.profile as ThemeProfile,
       { target: 'web' },
     );
-    if (!compiled.web) return '';
+    if (!compiled.web) return { css: '', fontUrls: [] };
     const vars: string[] = [];
     for (const v of [...compiled.web.invariant, ...compiled.web.light]) {
       vars.push(`--${v.name}:${v.value}`);
@@ -59,9 +125,12 @@ function generateThemeCSS(themeInput: ThemeInput | undefined): string {
     for (const [k, v] of Object.entries(compiled.web.dataAttributes)) {
       vars.push(`--data-${k}:${v}`);
     }
-    return vars.length ? `:root{${vars.join(';')}}` : '';
+    vars.push(...computeBridgeVars(compiled.web.light));
+    vars.push('--theme-ssr:1');
+    const css = vars.length ? `:root{${vars.join(';')}}` : '';
+    return { css, fontUrls: compiled.web.fontImports ?? [] };
   } catch {
-    return '';
+    return { css: '', fontUrls: [] };
   }
 }
 
@@ -148,7 +217,8 @@ export default async function SiteLayout({ children, params }: SiteLayoutProps) 
     effective_theme?: { tokens: Record<string, unknown>; profile: Record<string, unknown> };
   };
   const initialTheme = getInitialTheme(websiteWithEffectiveTheme.effective_theme ?? website.theme);
-  const themeCSS = generateThemeCSS(initialTheme);
+  const themeOutput = generateThemeOutput(initialTheme);
+  const themeCSS = themeOutput.css;
   // Wave 1.1 plumbing: resolve opt-in template set (editorial-v1). When null we
   // skip the wrapper entirely to preserve byte-identical HTML for generic sites.
   // Wave 1.2: swap header/footer for the editorial variants when opted in.
@@ -210,9 +280,11 @@ export default async function SiteLayout({ children, params }: SiteLayoutProps) 
       {/* Preconnect to common third-party origins */}
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-      {/* Inline theme CSS variables so they're available before JS, preventing
-          mount-time style recalculation from delaying LCP paint. */}
+      {/* Inline theme CSS variables (incl. bridge vars) so they're available
+          before JS, preventing mount-time style recalculation from delaying LCP. */}
       {themeCSS ? <style dangerouslySetInnerHTML={{ __html: themeCSS }} /> : null}
+      {/* SSR sentinel — client reads this to skip re-applying theme on mount */}
+      {themeCSS ? <meta name="x-theme-ssr" content="1" /> : null}
     <WebsiteLocaleProvider locale={localeContext.resolvedLocale}>
       <M3ThemeProvider initialTheme={initialTheme}>
         {/* Google Tag Manager and Analytics Scripts */}

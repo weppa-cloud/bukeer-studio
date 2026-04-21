@@ -270,7 +270,8 @@ export async function getPageByTranslationGroup(
 export async function getProductPage(
   subdomain: string,
   productType: string,
-  productSlug: string
+  productSlug: string,
+  options?: { locale?: string }
 ): Promise<ProductPageData | null> {
   try {
     const cacheKey = `${subdomain.toLowerCase()}::${productType.toLowerCase()}::${productSlug.toLowerCase()}`;
@@ -329,11 +330,10 @@ export async function getProductPage(
       // paths. Overlay `package_kits` values when resolvable by itinerary link.
       try {
         const packageReader = supabaseService ?? supabase;
+        const kitFields = 'id, name, description, program_highlights, program_inclusions, program_exclusions, program_gallery, cover_image_url, video_url, video_caption, translations';
         const byItinerary = await packageReader
           .from('package_kits')
-          .select(
-            'id, description, program_highlights, program_inclusions, program_exclusions, program_gallery, cover_image_url, video_url, video_caption',
-          )
+          .select(kitFields)
           .eq('source_itinerary_id', product.id)
           .maybeSingle();
 
@@ -341,9 +341,7 @@ export async function getProductPage(
         if ((!kit || byItinerary.error) && product.id) {
           const byId = await packageReader
             .from('package_kits')
-            .select(
-              'id, description, program_highlights, program_inclusions, program_exclusions, program_gallery, cover_image_url, video_url, video_caption',
-            )
+            .select(kitFields)
             .eq('id', product.id)
             .maybeSingle();
           if (!byId.error) kit = byId.data;
@@ -374,6 +372,25 @@ export async function getProductPage(
           }
           if (!product.social_image && typeof kit.cover_image_url === 'string') {
             product.social_image = kit.cover_image_url;
+          }
+
+          // Apply locale-specific content translations (name, description, highlights).
+          if (options?.locale) {
+            const localeOverlay = resolveTranslationOverlay(
+              (kit as unknown as Record<string, unknown>).translations,
+              options.locale,
+            );
+            if (localeOverlay) {
+              const tName = pickTranslatedString(localeOverlay, ['name', 'title']);
+              const tDesc = pickTranslatedString(localeOverlay, ['description', 'description_short']);
+              const tHighlights = Array.isArray(localeOverlay.program_highlights)
+                ? (localeOverlay.program_highlights as unknown[])
+                    .filter((h): h is string => typeof h === 'string')
+                : null;
+              if (tName) product.name = tName;
+              if (tDesc) product.description = tDesc;
+              if (tHighlights?.length) product.program_highlights = tHighlights;
+            }
           }
         }
       } catch {

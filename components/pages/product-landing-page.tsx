@@ -1053,17 +1053,18 @@ function ActivitySections({
   return (
     <>
       {recommendations.length > 0 && (
-        <section
-        >
-          <h2 className="text-2xl font-bold mb-6">Recomendaciones</h2>
-          <ul className="space-y-3">
-            {recommendations.map((item) => (
-              <li key={item} className="flex items-start gap-3">
-                <span className="mt-2 w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
-                <span className="text-sm text-muted-foreground leading-relaxed">{item}</span>
-              </li>
+        <section>
+          <h2 className="text-2xl font-bold mb-6">Recomendaciones para el día</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {recommendations.map((item, idx) => (
+              <div
+                key={`${idx}-${item}`}
+                className="rounded-xl border border-border bg-card px-5 py-4"
+              >
+                <p className="text-sm text-muted-foreground leading-relaxed">{item}</p>
+              </div>
             ))}
-          </ul>
+          </div>
         </section>
       )}
 

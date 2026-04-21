@@ -47,7 +47,7 @@ export async function generateMetadata({
   const ogImage = resolveOgImage(website);
 
   return {
-    title: `Nuestros travel planners — ${siteName}`,
+    title: 'Nuestros travel planners',
     description:
       'Conoce al equipo de travel planners. Emparejamos tu viaje con la persona que más sabe de la región o experiencia que buscas.',
     alternates: {

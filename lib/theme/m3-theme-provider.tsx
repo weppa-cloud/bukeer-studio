@@ -110,10 +110,19 @@ function mergeWithDefaults(partial: DesignTokens): DesignTokens {
   return deepMerge(partial, defaultTokens);
 }
 
+/**
+ * Applies the compiled theme to the DOM.
+ *
+ * When `ssrApplied` is true (layout injected theme CSS server-side via
+ * `<style>` + `<meta name="x-theme-ssr">`), we skip the expensive CSS
+ * variable setProperty loop and the `getComputedStyle` call in
+ * `applyBridgeVariables`. Data attributes and font links always run.
+ */
 function applyCompiledThemeToDOM(
   tokens: DesignTokens,
   profile: ThemeProfile,
   isDark: boolean,
+  ssrApplied = false,
 ) {
   const safeTokens = mergeWithDefaults(tokens);
   let compiled;
@@ -127,23 +136,22 @@ function applyCompiledThemeToDOM(
 
   const root = document.documentElement;
 
-  // Set data attributes
+  // Data attributes must always be set — they're not injectable server-side
+  // because nested layouts can't modify the <html> element.
   for (const [key, value] of Object.entries(compiled.web.dataAttributes)) {
     root.setAttribute(`data-${key}`, value);
   }
 
-  // Apply mode-dependent colors
-  const modeVars = isDark ? compiled.web.dark : compiled.web.light;
-  applyCssVariables(modeVars, root);
+  if (!ssrApplied) {
+    // Apply CSS vars only when SSR didn't inject them already. Skipping
+    // setProperty + getComputedStyle saves ~769 ms style recalculation.
+    const modeVars = isDark ? compiled.web.dark : compiled.web.light;
+    applyCssVariables(modeVars, root);
+    applyCssVariables(compiled.web.invariant, root);
+    applyBridgeVariables(root);
+  }
 
-  // Apply invariant variables (typography, shape, spacing, motion, layout)
-  applyCssVariables(compiled.web.invariant, root);
-
-  // Apply CSS variable bridge — maps shadcn tokens to theme-component variables
-  // so section variants from themed templates work pixel-perfect
-  applyBridgeVariables(root);
-
-  // Inject Google Fonts dynamically
+  // Font links always run — idempotent, safe to skip if already in <head>.
   injectFontLinks(compiled.web.fontImports);
 }
 
@@ -281,10 +289,9 @@ export function M3ThemeProvider({ children, initialTheme }: M3ThemeProviderProps
     if (!mounted) return;
 
     const colorMode = profile.colorMode === 'system' ? 'light' : profile.colorMode;
-
-    // Initial setup
     setIsDark(colorMode === 'dark');
-    applyCompiledThemeToDOM(tokens, profile, colorMode === 'dark');
+    const ssrApplied = !!document.querySelector('meta[name="x-theme-ssr"]');
+    applyCompiledThemeToDOM(tokens, profile, colorMode === 'dark', ssrApplied);
 
     return undefined;
   }, [tokens, profile, mounted]);
@@ -320,8 +327,9 @@ function ThemeBridgeSync({ tokens, profile }: { tokens: DesignTokens; profile: T
 
   useEffect(() => {
     if (!resolvedTheme) return;
+    const ssrApplied = !!document.querySelector('meta[name="x-theme-ssr"]');
     const dark = resolvedTheme === 'dark';
-    applyCompiledThemeToDOM(tokens, profile, dark);
+    applyCompiledThemeToDOM(tokens, profile, dark, ssrApplied);
   }, [resolvedTheme, tokens, profile]);
 
   return null;
