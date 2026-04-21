@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useCallback, useRef } from 'react';
+import { useEffect, useCallback, useRef, type TouchEvent } from 'react';
 import Image from 'next/image';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 import { useWebsiteLocale } from '@/lib/hooks/use-website-locale';
@@ -27,6 +27,7 @@ export type MediaLightboxProps = ImageLightboxProps | VideoLightboxProps;
 
 export function MediaLightbox(props: MediaLightboxProps) {
   const closeRef = useRef<HTMLButtonElement>(null);
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
   const locale = useWebsiteLocale();
   const text = getPublicUiExtraTextGetter(locale);
 
@@ -89,6 +90,31 @@ export function MediaLightbox(props: MediaLightboxProps) {
   }
 
   const { images, activeIndex, altPrefix, onClose, onNext, onPrev, onThumb } = props;
+  const handleTouchStart = useCallback((e: TouchEvent<HTMLDivElement>) => {
+    const touch = e.touches[0];
+    if (!touch) return;
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY };
+  }, []);
+
+  const handleTouchEnd = useCallback(
+    (e: TouchEvent<HTMLDivElement>) => {
+      const start = touchStartRef.current;
+      touchStartRef.current = null;
+      if (!start || images.length <= 1) return;
+
+      const touch = e.changedTouches[0];
+      if (!touch) return;
+
+      const deltaX = touch.clientX - start.x;
+      const deltaY = touch.clientY - start.y;
+      const threshold = 40;
+
+      if (Math.abs(deltaX) < threshold || Math.abs(deltaX) < Math.abs(deltaY)) return;
+      if (deltaX < 0) onNext?.();
+      else onPrev?.();
+    },
+    [images.length, onNext, onPrev],
+  );
 
   return (
     <div
@@ -128,7 +154,13 @@ export function MediaLightbox(props: MediaLightboxProps) {
       <div
         key={activeIndex}
         className="relative w-[90vw] h-[80vh]"
+        style={{ touchAction: 'pan-y' }}
         onClick={(e) => e.stopPropagation()}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={() => {
+          touchStartRef.current = null;
+        }}
       >
         <Image
           src={images[activeIndex]}

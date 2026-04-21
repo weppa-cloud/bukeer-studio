@@ -35,6 +35,7 @@ import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 import { Breadcrumbs } from '../primitives/breadcrumbs';
 import { Eyebrow } from '../primitives/eyebrow';
 import { Icons } from '../primitives/icons';
+import { ColombiaMapStandalone } from '../maps/colombia-map-standalone.client';
 
 // ----- types -----
 export interface EditorialDestinosListPagePayload {
@@ -56,6 +57,8 @@ interface NormalizedDestination {
   hotelCount: number;
   activityCount: number;
   total: number;
+  lat?: number;
+  lng?: number;
 }
 
 // ----- constants -----
@@ -130,6 +133,8 @@ function normalize(dest: DestinationData): NormalizedDestination {
     total:
       Number(dest.total ?? 0) ||
       Number(dest.hotel_count ?? 0) + Number(dest.activity_count ?? 0),
+    lat: Number.isFinite(Number(dest.lat)) ? Number(dest.lat) : undefined,
+    lng: Number.isFinite(Number(dest.lng)) ? Number(dest.lng) : undefined,
   };
 }
 
@@ -160,6 +165,16 @@ export function EditorialDestinosListPage({
 
   const normalized = dedupeBySlug(destinations.map(normalize));
   const hasDestinations = normalized.length > 0;
+
+  const mapPins = normalized
+    .filter((d) => typeof d.lat === 'number' && typeof d.lng === 'number')
+    .map((d) => ({
+      id: d.id,
+      label: d.name,
+      lat: d.lat as number,
+      lng: d.lng as number,
+      region: d.region,
+    }));
 
   const siteName =
     website.content?.account?.name ||
@@ -252,6 +267,19 @@ export function EditorialDestinosListPage({
           </div>
         </div>
       </section>
+
+      {/* Colombia map — all destinations as pins */}
+      {mapPins.length > 0 ? (
+        <section className="section" style={{ paddingTop: 0, paddingBottom: 0 }} data-testid="destinos-map">
+          <div className="ev-container">
+            <ColombiaMapStandalone
+              pins={mapPins}
+              height={420}
+              ariaLabel={editorialText('editorialDestinationsMapAriaFallback')}
+            />
+          </div>
+        </section>
+      ) : null}
 
       {/* Legend + grid */}
       <section className="section" style={{ paddingTop: 48 }}>

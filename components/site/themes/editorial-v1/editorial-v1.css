@@ -2739,13 +2739,32 @@
     right: 0;
     left: 0;
     width: 100%;
-    height: 92vh;
+    height: 100dvh;
     border-radius: 24px 24px 0 0;
     transform: translateY(100%);
     box-shadow: 0 -20px 60px rgba(0,0,0,.25);
   }
   :where([data-template-set="editorial-v1"]) .waf-drawer.on {
     transform: translateY(0);
+  }
+  :where([data-template-set="editorial-v1"]) .waf-chip,
+  :where([data-template-set="editorial-v1"]) .waf-btn-secondary,
+  :where([data-template-set="editorial-v1"]) .waf-submit {
+    min-height: 44px;
+  }
+  :where([data-template-set="editorial-v1"]) .waf-stepper-btn {
+    width: 44px;
+    height: 44px;
+  }
+  :where([data-template-set="editorial-v1"]) .waf-step-nav {
+    flex-direction: column;
+  }
+  :where([data-template-set="editorial-v1"]) .waf-btn-secondary,
+  :where([data-template-set="editorial-v1"]) .waf-submit {
+    width: 100%;
+  }
+  :where([data-template-set="editorial-v1"]) .waf-submit {
+    flex: 1 1 auto;
   }
 }
 
@@ -5976,6 +5995,208 @@
   }
   :where([data-template-set="editorial-v1"]) .display-md {
     font-size: clamp(28px, 7vw, 36px);
+  }
+
+  /* ── P2i/P3: Mobile section rails + touch targets ────────── */
+  :where([data-template-set="editorial-v1"]) .hero-search {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    align-items: stretch;
+  }
+  :where([data-template-set="editorial-v1"]) .hero-search .field:nth-of-type(n + 2) {
+    display: none;
+  }
+  :where([data-template-set="editorial-v1"]) .hero-search .field:first-of-type {
+    min-width: 0;
+  }
+  :where([data-template-set="editorial-v1"]) .hero-search .go {
+    white-space: nowrap;
+  }
+
+  :where([data-template-set="editorial-v1"]) .explore-map-grid {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  :where([data-template-set="editorial-v1"]) .explore-map-stage {
+    display: none;
+  }
+
+  [data-template-set="editorial-v1"][data-editorial-variant="package-detail"] {
+    padding-bottom: calc(80px + env(safe-area-inset-bottom));
+  }
+  :where([data-template-set="editorial-v1"]) [data-testid="hotel-card"][data-variant="card"] > div:first-child {
+    aspect-ratio: 4 / 3;
+  }
+
+  :where([data-template-set="editorial-v1"]) .exp-cats {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 12px;
+    margin-inline: calc(var(--gutter, 20px) * -1);
+    padding: 0 var(--gutter, 20px) 8px;
+  }
+  :where([data-template-set="editorial-v1"]) .exp-cats::-webkit-scrollbar {
+    display: none;
+  }
+  :where([data-template-set="editorial-v1"]) .exp-cat {
+    flex: 0 0 78%;
+    scroll-snap-align: start;
+  }
+
+  :where([data-template-set="editorial-v1"]) .view-toggle button:last-child {
+    display: none;
+  }
+
+  :where([data-template-set="editorial-v1"]) .blog-toolbar button,
+  :where([data-template-set="editorial-v1"]) .pl-toolbar button,
+  :where([data-template-set="editorial-v1"]) .pql-view-toggle button,
+  :where([data-template-set="editorial-v1"]) .view-toggle button,
+  :where([data-template-set="editorial-v1"]) .filter-bar .filter-tab,
+  :where([data-template-set="editorial-v1"]) .blog-cats .filter-tab {
+    min-height: 44px;
+  }
+  :where([data-template-set="editorial-v1"]) .blog-toolbar .filter-tab,
+  :where([data-template-set="editorial-v1"]) .blog-cats {
+    flex-wrap: nowrap;
+  }
+  :where([data-template-set="editorial-v1"]) .blog-cats {
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    margin-inline: calc(var(--gutter, 20px) * -1);
+    padding: 0 var(--gutter, 20px) 8px;
+  }
+  :where([data-template-set="editorial-v1"]) .blog-cats::-webkit-scrollbar {
+    display: none;
+  }
+  :where([data-template-set="editorial-v1"]) .blog-cats .filter-tab {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+  }
+  :where([data-template-set="editorial-v1"]) .blog-featured {
+    grid-template-columns: 1fr;
+  }
+  :where([data-template-set="editorial-v1"]) .blog-feat-media {
+    min-height: 240px;
+    aspect-ratio: 4 / 3;
+  }
+  :where([data-template-set="editorial-v1"]) .blog-feat-body {
+    padding: 24px;
+  }
+
+  :where([data-template-set="editorial-v1"]) .pl-toolbar {
+    align-items: flex-start;
+  }
+  :where([data-template-set="editorial-v1"]) .pl-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    margin-inline: calc(var(--gutter, 20px) * -1);
+    padding: 0 var(--gutter, 20px) 8px;
+  }
+  :where([data-template-set="editorial-v1"]) .pl-tabs::-webkit-scrollbar {
+    display: none;
+  }
+  :where([data-template-set="editorial-v1"]) .pl-tabs button {
+    flex: 0 0 auto;
+    min-height: 44px;
+    scroll-snap-align: start;
+  }
+
+  :where([data-template-set="editorial-v1"]) .hall-grid {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 12px;
+    margin-inline: calc(var(--gutter, 20px) * -1);
+    padding: 0 var(--gutter, 20px) 8px;
+  }
+  :where([data-template-set="editorial-v1"]) .hall-grid::-webkit-scrollbar {
+    display: none;
+  }
+  :where([data-template-set="editorial-v1"]) .hall-grid > .pack-card {
+    flex: 0 0 82%;
+    scroll-snap-align: start;
+  }
+  :where([data-template-set="editorial-v1"]) section:has(.review-card) > div:last-child {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 12px !important;
+    margin-inline: calc(var(--gutter, 20px) * -1);
+    padding: 0 var(--gutter, 20px) 8px;
+  }
+  :where([data-template-set="editorial-v1"]) section:has(.review-card) > div:last-child::-webkit-scrollbar {
+    display: none;
+  }
+  :where([data-template-set="editorial-v1"]) section:has(.review-card) .review-card {
+    flex: 0 0 82%;
+    scroll-snap-align: start;
+  }
+
+  :where([data-template-set="editorial-v1"]) [data-testid="section-program-timeline"],
+  :where([data-template-set="editorial-v1"]) [data-testid="section-options-table"] {
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  :where([data-template-set="editorial-v1"]) [data-testid="section-program-timeline"] > ol,
+  :where([data-template-set="editorial-v1"]) [data-testid="section-options-table"] > div {
+    min-width: 100%;
+  }
+  :where([data-template-set="editorial-v1"]) [data-testid="section-meeting-point-map"] .meeting-point-map-marker-pulse {
+    max-height: 280px;
+    overflow: hidden;
+  }
+  :where([data-template-set="editorial-v1"]) [data-testid="section-meeting-point-map"] .meeting-point-map-marker-pulse > * {
+    max-height: 280px;
+  }
+
+  :where([data-template-set="editorial-v1"]) [data-testid="section-program-timeline"] > ol {
+    display: flex;
+    flex-direction: row;
+    gap: 12px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    margin-inline: calc(var(--gutter, 20px) * -1);
+    padding: 0 var(--gutter, 20px) 8px;
+  }
+  :where([data-template-set="editorial-v1"]) [data-testid="section-program-timeline"] > ol::-webkit-scrollbar {
+    display: none;
+  }
+  :where([data-template-set="editorial-v1"]) [data-testid="section-program-timeline"] > ol > li {
+    flex: 0 0 84%;
+    scroll-snap-align: start;
+  }
+
+  :where([data-template-set="editorial-v1"]) .blog-toolbar,
+  :where([data-template-set="editorial-v1"]) .pl-toolbar,
+  :where([data-template-set="editorial-v1"]) .pql-listing-top,
+  :where([data-template-set="editorial-v1"]) .view-toggle {
+    gap: 12px;
+  }
+  :where([data-template-set="editorial-v1"]) .view-toggle {
+    width: fit-content;
+  }
+  :where([data-template-set="editorial-v1"]) .view-toggle button:first-child {
+    min-width: 0;
   }
 
   /* ── Scroll-snap padding correction ──────────────────────

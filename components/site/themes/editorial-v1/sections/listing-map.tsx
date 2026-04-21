@@ -21,11 +21,24 @@
  */
 
 import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
+import dynamic from 'next/dynamic';
 
-import { ColombiaMapClient } from '@/components/site/themes/editorial-v1/maps/colombia-map.client';
-import type { ColombiaMapPin } from '@/components/site/themes/editorial-v1/maps/colombia-map';
+import type { ColombiaMapPin } from '@/components/site/themes/editorial-v1/maps/colombia-maplibre.client';
 import type { EditorialRegion } from '@/components/site/themes/editorial-v1/maps/colombia-map-shared';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
+
+const ColombiaMapLibre = dynamic(
+  () =>
+    import('@/components/site/themes/editorial-v1/maps/colombia-maplibre.client').then(
+      (m) => ({ default: m.ColombiaMapLibre }),
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div style={{ width: '100%', height: '100%', minHeight: 480, background: '#F5F1E8', borderRadius: 16 }} />
+    ),
+  },
+);
 
 export interface ListingMapItem {
   id: string;
@@ -157,15 +170,11 @@ export function ListingMap<T extends ListingMapItem>({
         })}
       </div>
       <div className="listing-map-stage">
-        <ColombiaMapClient
+        <ColombiaMapLibre
           pins={pins}
           activePinId={activeId}
           onPinHover={handlePinHover}
           onPinClick={onItemClick ? handlePinClick : undefined}
-          showLabels={false}
-          showRidges
-          showRivers={false}
-          showCompass
           height={mapHeight}
           ariaLabel={resolvedAriaLabel}
         />

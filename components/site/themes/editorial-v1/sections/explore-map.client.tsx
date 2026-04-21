@@ -157,6 +157,7 @@ export function ExploreMapClient({
     null,
   );
   const [hoveredPinId, setHoveredPinId] = useState<string | null>(null);
+  const [showMobileList, setShowMobileList] = useState(false);
 
   // Debounce region analytics so mouse sweeps through the chips don't
   // push 4+ events to GA. 200ms matches the CSS transition timing.
@@ -177,6 +178,18 @@ export function ExploreMapClient({
   useEffect(() => {
     return () => {
       if (analyticsTimer.current) clearTimeout(analyticsTimer.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 767px)');
+    const sync = () => setShowMobileList(mediaQuery.matches);
+
+    sync();
+    mediaQuery.addEventListener('change', sync);
+
+    return () => {
+      mediaQuery.removeEventListener('change', sync);
     };
   }, []);
 
@@ -231,14 +244,43 @@ export function ExploreMapClient({
     [pinToDest],
   );
 
+  const trackDestinationCardCta = useCallback(
+    (dest: ExploreMapDestination | null | undefined) => {
+      if (!dest) return;
+      trackEvent('destination_card_click', {
+        destination_id: dest.id,
+        destination_slug: dest.slug ?? null,
+        surface: 'card_cta',
+      });
+    },
+    [],
+  );
+
   const handleCardCtaClick = useCallback(() => {
-    if (!hoveredDest) return;
-    trackEvent('destination_card_click', {
-      destination_id: hoveredDest.id,
-      destination_slug: hoveredDest.slug ?? null,
-      surface: 'card_cta',
-    });
-  }, [hoveredDest]);
+    trackDestinationCardCta(hoveredDest);
+  }, [hoveredDest, trackDestinationCardCta]);
+
+  const getDestinationHref = useCallback(
+    (dest: ExploreMapDestination) =>
+      dest.slug ? resolveDestinationHref(ctaHref, dest.slug) : ctaHref,
+    [ctaHref],
+  );
+
+  const getDestinationRegion = useCallback(
+    (dest: ExploreMapDestination) => pinToDest.get(dest.id)?.region ?? dest.region,
+    [pinToDest],
+  );
+
+  const handleMobileCardCtaClick = useCallback(
+    (dest: ExploreMapDestination) => {
+      trackDestinationCardCta(dest);
+    },
+    [trackDestinationCardCta],
+  );
+
+  const hoveredCardCtaHref = hoveredDest
+    ? getDestinationHref(hoveredDest)
+    : ctaHref;
 
   const highlightedRegions = useMemo<ColombiaRegion[]>(
     () => (hoveredRegion ? [hoveredRegion] : []),
@@ -248,10 +290,6 @@ export function ExploreMapClient({
   // Resolve the floating-card CTA href. When we have a slug, link to
   // the destination page; fall back to the section-level CTA href so
   // the card still leads somewhere.
-  const cardCtaHref = hoveredDest?.slug
-    ? resolveDestinationHref(ctaHref, hoveredDest.slug)
-    : ctaHref;
-
   return (
     <div className="explore-map-grid">
       {/* Left column — copy + chips + CTA */}
@@ -310,6 +348,91 @@ export function ExploreMapClient({
             {ctaLabel} <Icons.arrow size={14} />
           </Link>
         </div>
+
+        {showMobileList ? (
+          <div
+            className="explore-mobile-list"
+            data-testid="explore-mobile-list"
+            aria-label={editorialText('editorialExploreCardCta')}
+            style={{
+              display: 'flex',
+              gap: 12,
+              marginTop: 24,
+              overflowX: 'auto',
+              paddingBottom: 4,
+              WebkitOverflowScrolling: 'touch',
+            }}
+          >
+            {destinations.map((dest) => {
+              const region = getDestinationRegion(dest);
+              const href = getDestinationHref(dest);
+              return (
+                <article
+                  key={dest.id}
+                  id={`explore-mobile-list-item-${dest.id}`}
+                  data-testid={`explore-mobile-list-item-${dest.id}`}
+                  style={{
+                    flex: '0 0 240px',
+                    minWidth: 240,
+                    borderRadius: 18,
+                    border: '1px solid rgba(30, 30, 30, 0.08)',
+                    background: 'rgba(255, 255, 255, 0.9)',
+                    boxShadow: '0 8px 24px rgba(24, 31, 45, 0.08)',
+                    padding: 16,
+                    display: 'grid',
+                    gap: 10,
+                  }}
+                >
+                  <div>
+                    {region ? (
+                      <small
+                        style={{
+                          display: 'block',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.08em',
+                          color: 'rgba(24, 31, 45, 0.62)',
+                          marginBottom: 4,
+                        }}
+                      >
+                        {region}
+                      </small>
+                    ) : null}
+                    <b style={{ display: 'block', fontSize: 16, lineHeight: 1.25 }}>
+                      {dest.name}
+                    </b>
+                    {typeof dest.packagesCount === 'number' ? (
+                      <small style={{ display: 'block', marginTop: 4 }}>
+                        {dest.packagesCount}{' '}
+                        {dest.packagesCount === 1
+                          ? editorialText('editorialPackageWord')
+                          : editorialText('editorialPackagesWord')}
+                      </small>
+                    ) : null}
+                    {dest.tagline ? (
+                      <p
+                        className="body-sm"
+                        style={{ marginTop: 8, color: 'rgba(24, 31, 45, 0.74)' }}
+                      >
+                        {dest.tagline}
+                      </p>
+                    ) : null}
+                  </div>
+
+                  <div>
+                    <Link
+                      href={href}
+                      className="btn btn-ink btn-sm"
+                      onClick={() => handleMobileCardCtaClick(dest)}
+                    >
+                      {editorialText('editorialExploreCardCta')}{' '}
+                      <Icons.arrow size={12} />
+                    </Link>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        ) : null}
       </div>
 
       {/* Right column — map stage + floating hover card */}
@@ -349,7 +472,7 @@ export function ExploreMapClient({
               </div>
               <div className="ehc-right">
                 <Link
-                  href={cardCtaHref}
+                  href={hoveredCardCtaHref}
                   className="btn btn-ink btn-sm"
                   onClick={handleCardCtaClick}
                 >

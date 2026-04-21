@@ -86,13 +86,29 @@ export function HeroSplit({
           priority
           fetchPriority="high"
           sizes="100vw"
-          className="object-cover"
+          className="hidden object-cover sm:block"
         />
       ) : null}
 
-      <div className="absolute inset-0 bg-gradient-to-t from-background via-background/45 to-background/10" />
+      <div className="absolute inset-0 hidden bg-gradient-to-t from-background via-background/45 to-background/10 sm:block" />
 
-      <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-col gap-6 px-6 pb-12 pt-24 lg:flex-row lg:items-end lg:justify-between">
+      <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-col gap-6 px-6 pb-12 pt-6 sm:pt-24 lg:flex-row lg:items-end lg:justify-between">
+        {backgroundImage ? (
+          <div className="sm:hidden">
+            <div className="relative aspect-[4/3] overflow-hidden rounded-3xl border border-border/40 bg-muted">
+              <Image
+                src={backgroundImage}
+                alt={`${productTypeLabel} ${displayName}${displayLocation ? ` en ${displayLocation}` : ''}`}
+                fill
+                priority
+                fetchPriority="high"
+                sizes="100vw"
+                className="object-cover"
+              />
+            </div>
+          </div>
+        ) : null}
+
         <div className="max-w-3xl">
           <p className="mb-3 font-mono text-xs uppercase tracking-[0.2em] text-primary/90">{productTypeLabel}</p>
 

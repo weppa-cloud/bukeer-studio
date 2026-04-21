@@ -40,7 +40,7 @@ import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 import { Breadcrumbs } from '../primitives/breadcrumbs';
 import { Eyebrow } from '../primitives/eyebrow';
 import { Icons } from '../primitives/icons';
-import { ColombiaMap } from '../maps/colombia-map';
+import { ColombiaMapStandalone } from '../maps/colombia-map-standalone.client';
 
 // ----- payload -----
 export interface EditorialDestinoDetailPayload {
@@ -463,13 +463,11 @@ export function EditorialDestinoDetailPage({
                 {editorialText('editorialDestinoMapTitle')}{' '}
                 <em>{destination.name}.</em>
               </h2>
-              <ColombiaMap
+              <ColombiaMapStandalone
                 pins={pin}
                 activePinId={pin[0].id}
                 highlightedRegions={region ? [region] : []}
                 height={420}
-                showCompass={false}
-                showLabels={false}
                 ariaLabel={`Mapa de Colombia mostrando ${destination.name}`}
               />
             </section>
