@@ -205,7 +205,7 @@ async function getWebsiteBySubdomain(
 
   const statusFilter = includeUnpublished ? '' : '&status=eq.published';
   const data = await supabaseFetch<WebsiteLookup[]>(
-    `/rest/v1/websites?select=id,subdomain,account_id&subdomain=eq.${encodeURIComponent(subdomain)}${statusFilter}&deleted_at=is.null&limit=1`
+    `/rest/v1/websites?select=id,subdomain,account_id,default_locale,supported_locales&subdomain=eq.${encodeURIComponent(subdomain)}${statusFilter}&deleted_at=is.null&limit=1`
   );
   const result = data && data.length > 0 ? data[0] : null;
   setCached(cacheKey, result);
@@ -218,7 +218,7 @@ async function getWebsiteByCustomDomain(host: string): Promise<WebsiteLookup | n
   if (cached !== undefined) return cached;
 
   const data = await supabaseFetch<WebsiteLookup[]>(
-    `/rest/v1/websites?select=id,subdomain,account_id&custom_domain=eq.${encodeURIComponent(host)}&status=eq.published&deleted_at=is.null&limit=1`
+    `/rest/v1/websites?select=id,subdomain,account_id,default_locale,supported_locales&custom_domain=eq.${encodeURIComponent(host)}&status=eq.published&deleted_at=is.null&limit=1`
   );
   const result = data && data.length > 0 ? data[0] : null;
   setCached(cacheKey, result);
