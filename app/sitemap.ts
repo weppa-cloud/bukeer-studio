@@ -111,56 +111,82 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         });
       }
 
-      // 7. Add paquetes — default locale
-      try {
-        const { items: packages } = await getCategoryProducts(
-          website.subdomain,
-          'packages',
-          { limit: 500, offset: 0 },
-        );
-
-        for (const pkg of packages || []) {
-          if (!pkg.slug || pkg.slug.trim().length === 0) continue;
-          const pkgRecord = pkg as unknown as Record<string, unknown>;
-          const pkgUpdatedAt =
-            typeof pkgRecord.updated_at === 'string' ? pkgRecord.updated_at : null;
+      // 7. Listing pages for default locale
+      for (const listingSlug of ['paquetes', 'hoteles', 'actividades'] as const) {
+        sitemapEntries.push({
+          url: `${siteUrl}/${listingSlug}`,
+          lastModified: new Date(),
+          changeFrequency: 'weekly',
+          priority: 0.8,
+        });
+        for (const locale of nonDefaultLocales) {
           sitemapEntries.push({
-            url: `${siteUrl}/paquetes/${pkg.slug}`,
-            lastModified: pkgUpdatedAt ? new Date(pkgUpdatedAt) : new Date(),
+            url: `${siteUrl}/${localeToPathSegment(locale)}/${listingSlug}`,
+            lastModified: new Date(),
             changeFrequency: 'weekly',
-            priority: 0.8,
+            priority: 0.7,
           });
         }
+      }
 
-        // 8. For non-default locales: only packages with an overlay
-        for (const locale of nonDefaultLocales) {
-          const langSeg = localeToPathSegment(locale);
-          const { items: localizedPkgs } = await getCategoryProducts(
+      // 8. Product detail pages — paquetes, hoteles, actividades
+      const productCatalog: Array<{
+        categoryType: string;
+        urlSeg: string;
+        priority: number;
+      }> = [
+        { categoryType: 'packages',    urlSeg: 'paquetes',   priority: 0.8 },
+        { categoryType: 'hotels',      urlSeg: 'hoteles',    priority: 0.75 },
+        { categoryType: 'activities',  urlSeg: 'actividades', priority: 0.7 },
+      ];
+
+      for (const { categoryType, urlSeg, priority } of productCatalog) {
+        try {
+          const { items } = await getCategoryProducts(
             website.subdomain,
-            'packages',
-            {
-              limit: 500,
-              offset: 0,
-              locale,
-              defaultLocale,
-              websiteId: String(website.id),
-            },
+            categoryType,
+            { limit: 500, offset: 0 },
           );
-          for (const pkg of localizedPkgs || []) {
-            if (!pkg.slug || pkg.slug.trim().length === 0) continue;
+
+          for (const item of items || []) {
+            if (!item.slug || item.slug.trim().length === 0) continue;
+            const rec = item as unknown as Record<string, unknown>;
+            const updatedAt = typeof rec.updated_at === 'string' ? rec.updated_at : null;
             sitemapEntries.push({
-              url: `${siteUrl}/${langSeg}/paquetes/${pkg.slug}`,
-              lastModified: new Date(),
+              url: `${siteUrl}/${urlSeg}/${item.slug}`,
+              lastModified: updatedAt ? new Date(updatedAt) : new Date(),
               changeFrequency: 'weekly',
-              priority: 0.7,
+              priority,
             });
           }
+
+          // Non-default locales: only items with an overlay
+          for (const locale of nonDefaultLocales) {
+            const langSeg = localeToPathSegment(locale);
+            const { items: localizedItems } = await getCategoryProducts(
+              website.subdomain,
+              categoryType,
+              {
+                limit: 500,
+                offset: 0,
+                locale,
+                defaultLocale,
+                websiteId: String(website.id),
+              },
+            );
+            for (const item of localizedItems || []) {
+              if (!item.slug || item.slug.trim().length === 0) continue;
+              sitemapEntries.push({
+                url: `${siteUrl}/${langSeg}/${urlSeg}/${item.slug}`,
+                lastModified: new Date(),
+                changeFrequency: 'weekly',
+                priority: priority - 0.1,
+              });
+            }
+          }
+        } catch (err) {
+          console.error(`[sitemap] Error fetching ${categoryType} for ${website.subdomain}:`, err);
         }
-      } catch (packagesError) {
-        console.error(
-          `[sitemap] Error fetching packages for ${website.subdomain}:`,
-          packagesError,
-        );
       }
     }
   } catch (error) {
