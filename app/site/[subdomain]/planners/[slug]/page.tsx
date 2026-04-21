@@ -12,6 +12,8 @@ import {
 } from '@/lib/seo/public-metadata';
 import { buildPublicLocalizedPath, localeToOgLocale } from '@/lib/seo/locale-routing';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
+import { TemplateSlot } from '@/components/site/themes/editorial-v1/template-slot';
+import type { PlannerPayload } from '@/components/site/themes/editorial-v1/pages/planner-detail';
 
 // ISR: Revalidate every 5 minutes
 export const revalidate = 300;
@@ -118,6 +120,7 @@ export default async function PlannerProfilePage({ params }: PlannerPageProps) {
         position: sectionMatch.specialty || null,
         phone: null,
         slug,
+        quote: sectionMatch.quote ?? null,
       };
     }
   }
@@ -149,9 +152,36 @@ export default async function PlannerProfilePage({ params }: PlannerPageProps) {
   const rating = sectionMatch?.rating;
   const reviewCount = sectionMatch?.reviewCount;
 
-  return (
+  // Editorial-v1 payload — enriches planner with any author-authored
+  // overrides surfaced via the legacy `planners` section content (quote,
+  // rating, specialty). Extra editorial fields (bio, signature, regions,
+  // languages, funFacts) live under the per-planner entry when authored.
+  const plannerPayload: PlannerPayload | undefined = sectionMatch
+    ? {
+        bio: undefined,
+        rating: sectionMatch.rating,
+        reviews: sectionMatch.reviewCount,
+        specialties: sectionMatch.specialty
+          ? [sectionMatch.specialty]
+          : undefined,
+      }
+    : undefined;
+
+  // Fetch the full planners list (for Otros planners strip).
+  const allPlanners = website.account_id ? await getPlanners(website.account_id) : [];
+
+  const editorialPayload = {
+    planner,
+    payload: plannerPayload,
+    reviews: plannerReviews,
+    relatedPackages: [],
+    otherPlanners: allPlanners,
+  };
+
+  const genericBody = (
     <div className="section-padding">
       <div className="container max-w-4xl">
+        {/* Generic body — rendered when the website doesn't opt into editorial-v1. */}
         {/* Breadcrumb / Back link */}
         <nav className="mb-8">
           <Link
@@ -330,5 +360,15 @@ export default async function PlannerProfilePage({ params }: PlannerPageProps) {
         </section>
       </div>
     </div>
+  );
+
+  return (
+    <TemplateSlot
+      name="planner-detail"
+      website={website}
+      payload={editorialPayload}
+    >
+      {genericBody}
+    </TemplateSlot>
   );
 }

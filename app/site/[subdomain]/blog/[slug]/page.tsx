@@ -7,6 +7,7 @@ import {
 } from '@/lib/supabase/get-website';
 import { JsonLd, generateBlogPostSchemas } from '@/lib/schema';
 import { BlogDetail } from '@/components/site/blog/blog-detail';
+import { TemplateSlot } from '@/components/site/themes/editorial-v1/template-slot';
 import { resolveOgImage } from '@/lib/seo/og-helpers';
 import {
   buildLocaleAwareAlternateLanguages,
@@ -104,15 +105,46 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
   // Generate JSON-LD schemas (Article, Breadcrumb, Organization)
   const schemas = generateBlogPostSchemas(post, website, baseUrl, localeContext.resolvedLocale);
 
+  // Related posts — best-effort: same category first, fallback to recent.
+  const { getBlogPosts } = await import('@/lib/supabase/get-website');
+  const categorySlug = post.category?.slug ?? undefined;
+  const [sameCategory, recent] = await Promise.all([
+    categorySlug
+      ? getBlogPosts(website.id, { limit: 4, categorySlug })
+      : Promise.resolve({ posts: [], total: 0 }),
+    getBlogPosts(website.id, { limit: 4 }),
+  ]);
+  const relatedPool = [
+    ...sameCategory.posts.filter((p) => p.id !== post.id),
+    ...recent.posts.filter((p) => p.id !== post.id),
+  ];
+  const seen = new Set<string>();
+  const related = relatedPool.filter((p) => {
+    if (seen.has(p.id)) return false;
+    seen.add(p.id);
+    return true;
+  }).slice(0, 3);
+
   return (
     <>
       {/* JSON-LD Structured Data for SEO and AI crawlers */}
       <JsonLd data={schemas} />
-      <BlogDetail
-        subdomain={subdomain}
-        locale={localeContext.resolvedLocale}
-        post={post}
-      />
+      <TemplateSlot
+        name="blog-detail"
+        website={website}
+        payload={{
+          subdomain,
+          locale: localeContext.resolvedLocale,
+          post,
+          related,
+        }}
+      >
+        <BlogDetail
+          subdomain={subdomain}
+          locale={localeContext.resolvedLocale}
+          post={post}
+        />
+      </TemplateSlot>
     </>
   );
 }

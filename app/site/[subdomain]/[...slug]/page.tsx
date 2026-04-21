@@ -23,8 +23,13 @@ import { buildPublicLocalizedPath, localeToOgLocale, normalizeLocale } from '@/l
 import { CategoryPage } from '@/components/pages/category-page';
 import { StaticPage } from '@/components/pages/static-page';
 import { ProductLandingPage } from '@/components/pages/product-landing-page';
+import { TemplateSlot, type TemplateSlotName } from '@/components/site/themes/editorial-v1/template-slot';
+import type { EditorialPackageDetailPayload } from '@/components/site/themes/editorial-v1/pages/package-detail';
+import type { EditorialActivityDetailPayload } from '@/components/site/themes/editorial-v1/pages/activity-detail';
+import type { EditorialHotelDetailPayload } from '@/components/site/themes/editorial-v1/pages/hotel-detail';
 import { getActivityCircuitStops, type ActivityCircuitStop } from '@/lib/products/activity-circuit';
 import { sanitizeProductCopy } from '@/lib/products/normalize-product';
+import { getBasePath } from '@/lib/utils/base-path';
 import dynamic from 'next/dynamic';
 
 const DestinationListingPage = dynamic(
@@ -690,7 +695,51 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
           website,
           `/${slugPath}`,
         );
-        return (
+
+        // editorial-v1 dispatcher payload: lets the editorial overlay skip
+        // data re-fetches by reading product/basePath/display* directly.
+        const displayName = sanitizeProductCopy(
+          productPage.page?.custom_hero?.title || productPage.product.name
+        ) || productPage.product.name;
+        const displayLocation = sanitizeProductCopy(
+          productPage.page?.custom_hero?.subtitle
+            || productPage.product.location
+            || [productPage.product.city, productPage.product.country].filter(Boolean).join(', ')
+        ) || null;
+        const basePath = getBasePath(website.subdomain, Boolean(website.custom_domain));
+        let slotName: TemplateSlotName | null = null;
+        let editorialPayload:
+          | EditorialPackageDetailPayload
+          | EditorialActivityDetailPayload
+          | EditorialHotelDetailPayload
+          | null = null;
+        if (productType === 'package') {
+          slotName = 'package-detail';
+          editorialPayload = {
+            product: productPage.product,
+            basePath,
+            displayName,
+            displayLocation,
+          } satisfies EditorialPackageDetailPayload;
+        } else if (productType === 'activity') {
+          slotName = 'activity-detail';
+          editorialPayload = {
+            product: productPage.product,
+            basePath,
+            displayName,
+            displayLocation,
+          } satisfies EditorialActivityDetailPayload;
+        } else if (productType === 'hotel') {
+          slotName = 'hotel-detail';
+          editorialPayload = {
+            product: productPage.product,
+            basePath,
+            displayName,
+            displayLocation,
+          } satisfies EditorialHotelDetailPayload;
+        }
+
+        const genericBody = (
           <ProductLandingPage
             website={website}
             product={productPage.product}
@@ -702,6 +751,15 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
             resolvedLocale={productLocaleContext.resolvedLocale}
           />
         );
+
+        if (slotName && editorialPayload) {
+          return (
+            <TemplateSlot name={slotName} website={website} payload={editorialPayload}>
+              {genericBody}
+            </TemplateSlot>
+          );
+        }
+        return genericBody;
       }
     }
   }

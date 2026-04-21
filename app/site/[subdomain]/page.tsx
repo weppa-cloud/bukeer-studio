@@ -13,6 +13,8 @@ import { getWebsiteBySubdomain, getBlogPosts } from '@/lib/supabase/get-website'
 import { getCachedGoogleReviews, getCategoryProducts, getDestinations } from '@/lib/supabase/get-pages';
 import { getPlanners } from '@/lib/supabase/get-planners';
 import type { PlannerData } from '@/lib/supabase/get-planners';
+import { getBrandClaims } from '@/lib/supabase/get-brand-claims';
+import { getFeaturedDestinations } from '@/lib/supabase/get-featured-destinations';
 import { SECTION_TYPES } from '@bukeer/website-contract';
 import { hydrateSections } from '@/lib/sections/hydrate-sections';
 import { toPackageItems, toActivityItems, toHotelItems } from '@/lib/products/to-items';
@@ -155,7 +157,16 @@ export default async function SitePage({ params }: SitePageProps) {
     (s) => s.section_type === SECTION_BLOG
   );
 
-  const [dynamicDestinations, packagesCatalog, activitiesCatalog, hotelsCatalog, dbPlanners, blogResult] = await Promise.all([
+  const [
+    dynamicDestinations,
+    packagesCatalog,
+    activitiesCatalog,
+    hotelsCatalog,
+    dbPlanners,
+    blogResult,
+    brandClaims,
+    featuredDestinations,
+  ] = await Promise.all([
     getDestinations(subdomain),
     getCategoryProducts(subdomain, SECTION_PACKAGES, { limit: 8 }),
     getCategoryProducts(subdomain, SECTION_ACTIVITIES, { limit: 8 }),
@@ -166,6 +177,12 @@ export default async function SitePage({ params }: SitePageProps) {
     hasBlogSection && website.id
       ? getBlogPosts(website.id, { limit: 6 })
       : Promise.resolve({ posts: [], total: 0 }),
+    website.account_id
+      ? getBrandClaims(website.account_id)
+      : Promise.resolve(null),
+    website.id
+      ? getFeaturedDestinations(website.id, 4)
+      : Promise.resolve([]),
   ]);
 
   const seenSingletonTypes = new Set<string>();
@@ -212,6 +229,8 @@ export default async function SitePage({ params }: SitePageProps) {
     hotelItems,
     googleReviews,
     blogPosts: blogResult.posts.length > 0 ? blogResult.posts : undefined,
+    brandClaims,
+    featuredDestinations,
   });
 
   return (
