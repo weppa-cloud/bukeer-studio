@@ -55,6 +55,12 @@ export interface ColombiaMapProps {
   showRivers?: boolean;
   /** Whether to render pin labels next to each pin (default true). */
   showLabels?: boolean;
+  /**
+   * When true, pins render a sequential index (1, 2, 3...) inside each pin
+   * and draw a dashed polyline connecting them in the pin array order so
+   * users can read the route visually.
+   */
+  numberedRoute?: boolean;
   /** CSS height value — defaults to `540px`. */
   height?: string | number;
   /** Accessible label for the map (defaults to "Mapa de Colombia"). */
@@ -69,31 +75,47 @@ interface InternalPinProps {
   pin: ColombiaMapPin;
   active: boolean;
   showLabels: boolean;
+  /** 1-based stop index — when provided, rendered inside the pin dot. */
+  stopNumber?: number;
 }
 
 /**
  * Single pin rendered inside the SVG. Pure — no hover state, no handlers.
  * The client leaf composes its own interactive pin group around this.
  */
-export function ColombiaMapPin({ pin, active, showLabels }: InternalPinProps) {
+export function ColombiaMapPin({ pin, active, showLabels, stopNumber }: InternalPinProps) {
   const { x, y } = project(pin);
   const labelAnchor = x > MAP_BOX.w * 0.7 ? 'end' : 'start';
   const labelX = x > MAP_BOX.w * 0.7 ? -14 : 14;
+  const numbered = typeof stopNumber === 'number' && stopNumber > 0;
   return (
     <g
-      className={`co-pin${active ? ' on' : ''}`}
+      className={`co-pin${active ? ' on' : ''}${numbered ? ' numbered' : ''}`}
       transform={`translate(${x.toFixed(1)} ${y.toFixed(1)})`}
       data-pin-id={pin.id}
       data-region={pin.region}
+      data-stop-number={numbered ? stopNumber : undefined}
     >
       {active ? <circle r="22" className="co-pin-halo" /> : null}
-      <circle r="9" className="co-pin-core" />
-      <circle r="4" className="co-pin-dot" />
+      <circle r={numbered ? 14 : 9} className="co-pin-core" />
+      {numbered ? (
+        <text
+          className="co-pin-number"
+          x={0}
+          y={1}
+          textAnchor="middle"
+          dominantBaseline="central"
+        >
+          {stopNumber}
+        </text>
+      ) : (
+        <circle r="4" className="co-pin-dot" />
+      )}
       {showLabels ? (
         <text
           className="co-pin-label"
           x={labelX}
-          y={4}
+          y={numbered ? 6 : 4}
           textAnchor={labelAnchor}
         >
           {pin.label}
@@ -121,11 +143,21 @@ export function ColombiaMap({
   showRidges = true,
   showRivers = true,
   showLabels = true,
+  numberedRoute = false,
   height = 540,
   ariaLabel = 'Mapa de Colombia',
   description,
   children,
 }: ColombiaMapProps) {
+  const routePathD =
+    numberedRoute && pins.length > 1
+      ? pins
+          .map((pin, idx) => {
+            const { x, y } = project(pin);
+            return `${idx === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`;
+          })
+          .join(' ')
+      : null;
   const wrapperClass = ['co-map', 'co-map-editorial', className]
     .filter(Boolean)
     .join(' ');
@@ -259,13 +291,30 @@ export function ColombiaMap({
             ))
           : null}
 
+        {/* Route connector — dashed polyline linking pins in order.
+            Drawn before the pins so the pin circles overlay the line. */}
+        {routePathD ? (
+          <path
+            d={routePathD}
+            className="co-route-connector"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeDasharray="4 6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            opacity="0.55"
+          />
+        ) : null}
+
         {/* Pins */}
-        {pins.map((pin) => (
+        {pins.map((pin, idx) => (
           <ColombiaMapPin
             key={pin.id}
             pin={pin}
             active={pin.id === activePinId}
             showLabels={showLabels}
+            stopNumber={numberedRoute ? idx + 1 : undefined}
           />
         ))}
 
