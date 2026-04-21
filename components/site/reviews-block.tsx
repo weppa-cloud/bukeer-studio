@@ -175,7 +175,9 @@ export function ReviewsBlock({
   googleMapsUrl,
   title,
   variant = 'grid-3',
+  locale = 'es-CO',
 }: ReviewsBlockProps) {
+  const text = getPublicUiExtraTextGetter(locale);
   if (reviews.length === 0) return null;
 
   const gridCols =
