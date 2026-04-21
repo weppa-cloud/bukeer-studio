@@ -106,6 +106,8 @@ function makePlanner(overrides: Partial<PlannerData> = {}): PlannerData {
     phone: overrides.phone ?? '+573111111111',
     slug: overrides.slug ?? 'mariana-velez',
     quote: hasQuote ? (overrides.quote as string | null) : 'El Caribe es mi casa.',
+    bio: overrides.bio ?? null,
+    specialty: overrides.specialty ?? null,
     language: hasLanguage ? (overrides.language as string | null) : 'es',
     tripsCount: overrides.tripsCount ?? null,
     ratingAvg: overrides.ratingAvg ?? null,

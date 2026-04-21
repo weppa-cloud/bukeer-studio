@@ -102,6 +102,112 @@ function asGalleryUrlArray(value: unknown): string[] | null {
   return urls.length > 0 ? urls : null;
 }
 
+type TranslationOverlay = Record<string, unknown>;
+
+function resolveTranslationOverlay(
+  translations: unknown,
+  locale: string | null | undefined
+): TranslationOverlay | null {
+  if (!translations || typeof translations !== 'object' || !locale) return null;
+  const map = translations as Record<string, unknown>;
+  const exact = map[locale];
+  if (exact && typeof exact === 'object' && !Array.isArray(exact)) {
+    return exact as TranslationOverlay;
+  }
+
+  const lang = locale.split('-')[0]?.toLowerCase();
+  if (!lang) return null;
+  for (const [key, value] of Object.entries(map)) {
+    if (!key.toLowerCase().startsWith(`${lang}-`)) continue;
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      return value as TranslationOverlay;
+    }
+  }
+  return null;
+}
+
+function pickTranslatedString(overlay: TranslationOverlay | null, keys: string[]): string | null {
+  if (!overlay) return null;
+  for (const key of keys) {
+    const value = overlay[key];
+    if (typeof value === 'string' && value.trim().length > 0) {
+      return value.trim();
+    }
+  }
+  return null;
+}
+
+async function applyTranslationOverlayToProducts(
+  items: ProductData[],
+  categoryType: string,
+  locale: string | null | undefined
+): Promise<ProductData[]> {
+  if (!locale || items.length === 0) return items;
+
+  const ids = items
+    .map((item) => item.id)
+    .filter((id): id is string => typeof id === 'string' && id.length > 0);
+  if (ids.length === 0) return items;
+
+  const overlayByProductId = new Map<string, TranslationOverlay>();
+
+  if (categoryType === 'packages') {
+    const { data, error } = await supabase
+      .from('package_kits')
+      .select('id, source_itinerary_id, translations')
+      .or(`id.in.(${ids.join(',')}),source_itinerary_id.in.(${ids.join(',')})`);
+
+    if (error || !Array.isArray(data)) return items;
+
+    for (const row of data) {
+      const overlay = resolveTranslationOverlay(row.translations, locale);
+      if (!overlay) continue;
+      if (typeof row.id === 'string' && row.id.length > 0) {
+        overlayByProductId.set(row.id, overlay);
+      }
+      if (typeof row.source_itinerary_id === 'string' && row.source_itinerary_id.length > 0) {
+        overlayByProductId.set(row.source_itinerary_id, overlay);
+      }
+    }
+  } else {
+    const { data, error } = await supabase
+      .from('products')
+      .select('id, translations')
+      .in('id', ids);
+
+    if (error || !Array.isArray(data)) return items;
+
+    for (const row of data) {
+      const overlay = resolveTranslationOverlay(row.translations, locale);
+      if (!overlay) continue;
+      if (typeof row.id === 'string' && row.id.length > 0) {
+        overlayByProductId.set(row.id, overlay);
+      }
+    }
+  }
+
+  return items.map((item) => {
+    const overlay = overlayByProductId.get(item.id);
+    if (!overlay) return item;
+    const translatedName = pickTranslatedString(overlay, ['name', 'title']);
+    const translatedDescription = pickTranslatedString(overlay, [
+      'description_short',
+      'short_description',
+      'description',
+    ]);
+
+    return {
+      ...item,
+      name: translatedName ?? item.name,
+      description: translatedDescription ?? item.description,
+      translations: {
+        ...(item.translations ?? {}),
+        [locale]: overlay,
+      },
+    };
+  });
+}
+
 /**
  * Get a page by slug
  */
@@ -504,6 +610,7 @@ export async function getCategoryProducts(
     limit?: number;
     offset?: number;
     search?: string;
+    locale?: string;
   } = {}
 ): Promise<CategoryProducts> {
   try {
@@ -545,8 +652,13 @@ export async function getCategoryProducts(
 
     const parsed = CategoryProductsSchema.safeParse(normalizedPayload);
     if (parsed.success) {
+      const localizedItems = await applyTranslationOverlayToProducts(
+        parsed.data.items as ProductData[],
+        categoryType,
+        options.locale ?? null,
+      );
       const result = {
-        items: parsed.data.items as ProductData[],
+        items: localizedItems,
         total: Number(parsed.data.total),
       };
       if (ENABLE_IN_MEMORY_CACHE) {
@@ -568,7 +680,12 @@ export async function getCategoryProducts(
       ? payload.total
       : Number(payload.total) || 0;
 
-    const result = { items, total };
+    const localizedItems = await applyTranslationOverlayToProducts(
+      items,
+      categoryType,
+      options.locale ?? null,
+    );
+    const result = { items: localizedItems, total };
     if (ENABLE_IN_MEMORY_CACHE) {
       categoryProductsCache.set(cacheKey, {
         value: result,

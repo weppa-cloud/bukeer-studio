@@ -38,7 +38,11 @@ export async function generateMetadata({ params }: PlannerPageProps): Promise<Me
     return { title: 'Planner no encontrado' };
   }
 
-  const planners = website.account_id ? await getPlanners(website.account_id) : [];
+  const path = `/planners/${slug}`;
+  const localeContext = await resolvePublicMetadataLocale(website, path);
+  const planners = website.account_id
+    ? await getPlanners(website.account_id, { locale: localeContext.resolvedLocale })
+    : [];
   const planner = planners.find((p) => p.slug === slug);
 
   if (!planner) {
@@ -52,8 +56,6 @@ export async function generateMetadata({ params }: PlannerPageProps): Promise<Me
   const baseUrl = website.custom_domain
     ? `https://${website.custom_domain}`
     : `https://${subdomain}.bukeer.com`;
-  const path = `/planners/${slug}`;
-  const localeContext = await resolvePublicMetadataLocale(website, path);
   const canonical = `${baseUrl}${buildPublicLocalizedPath(path, localeContext.resolvedLocale, localeContext.defaultLocale)}`;
 
   return {
@@ -125,7 +127,10 @@ export default async function PlannerProfilePage({ params }: PlannerPageProps) {
   type SectionPlanner = { name: string; quote?: string; rating?: number; reviewCount?: number; specialty?: string };
   const sectionPlanners = (plannersSection?.content as { planners?: SectionPlanner[] })?.planners;
 
-  const dbPlanners = website.account_id ? await getPlanners(website.account_id) : [];
+  const localeContext = await resolvePublicMetadataLocale(website, `/planners/${slug}`);
+  const dbPlanners = website.account_id
+    ? await getPlanners(website.account_id, { locale: localeContext.resolvedLocale })
+    : [];
   let planner = dbPlanners.find((p) => p.slug === slug);
 
   // Fallback: resolve from section content planners when DB has no contacts
@@ -146,6 +151,8 @@ export default async function PlannerProfilePage({ params }: PlannerPageProps) {
         phone: null,
         slug,
         quote: sectionMatch.quote ?? null,
+        bio: null,
+        specialty: sectionMatch.specialty ?? null,
         language: null,
         tripsCount: null,
         ratingAvg: null,
@@ -179,9 +186,11 @@ export default async function PlannerProfilePage({ params }: PlannerPageProps) {
 
   const whatsappBase = website.content.social?.whatsapp || '';
   const whatsappNumber = (planner.phone || whatsappBase).replace(/[^0-9]/g, '');
-  const specialty = planner.position || mapRole(planner.role);
+  const specialty = planner.specialty || planner.position || mapRole(planner.role);
   const siteName = website.content?.account?.name || website.content?.siteName || subdomain;
-  const text = getPublicUiExtraTextGetter(website.content?.locale ?? 'es-CO');
+  const text = getPublicUiExtraTextGetter(
+    localeContext.resolvedLocale || website.default_locale || website.content?.locale || 'es-CO'
+  );
 
   const quote = sectionMatch?.quote;
   const rating = sectionMatch?.rating;
@@ -222,6 +231,7 @@ export default async function PlannerProfilePage({ params }: PlannerPageProps) {
     .map(toRelatedPackage);
 
   const plannerPayload: PlannerPayload = {
+    bio: planner.bio ?? undefined,
     rating: sectionMatch?.rating ?? planner.ratingAvg ?? undefined,
     reviews: sectionMatch?.reviewCount ?? undefined,
     trips: planner.tripsCount ?? undefined,
@@ -246,7 +256,9 @@ export default async function PlannerProfilePage({ params }: PlannerPageProps) {
   };
 
   // Fetch the full planners list (for Otros planners strip).
-  const allPlanners = website.account_id ? await getPlanners(website.account_id) : [];
+  const allPlanners = website.account_id
+    ? await getPlanners(website.account_id, { locale: localeContext.resolvedLocale })
+    : [];
 
   const editorialPayload = {
     planner,

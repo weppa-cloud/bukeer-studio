@@ -33,7 +33,11 @@ export function SearchPageClient({ subdomain, initialQuery, website }: SearchPag
   const [hasSearched, setHasSearched] = useState(false);
   const router = useRouter();
   const basePath = getBasePath(subdomain);
-  const locale = (website.content as { locale?: string } | undefined)?.locale ?? 'es-CO';
+  const locale =
+    (website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale
+    ?? website.default_locale
+    ?? website.content?.locale
+    ?? 'es-CO';
   const messages = getPublicUiMessages(locale);
 
   const getCategorySlug = (type: string) => {
@@ -80,6 +84,7 @@ export function SearchPageClient({ subdomain, initialQuery, website }: SearchPag
             limit: 6,
             offset: 0,
             search: query,
+            locale,
           });
           allResults.push(
             ...result.items.map((item) => ({
