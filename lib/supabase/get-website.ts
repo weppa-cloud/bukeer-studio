@@ -47,6 +47,61 @@ interface AccountCurrencyColumns {
   currency: AccountCurrencyRate[] | null;
 }
 
+interface WebsiteLocaleColumns {
+  default_locale: string | null;
+  supported_locales: string[] | null;
+}
+
+function normalizeLocaleList(locales: unknown): string[] | undefined {
+  if (!Array.isArray(locales)) return undefined;
+  const normalized = locales
+    .filter((locale): locale is string => typeof locale === 'string' && locale.trim().length > 0)
+    .map((locale) => locale.trim());
+  return normalized.length > 0 ? Array.from(new Set(normalized)) : undefined;
+}
+
+async function hydrateWebsiteLocaleColumns(
+  website: WebsiteData,
+  subdomain: string
+): Promise<WebsiteData> {
+  const hasDefaultLocale = typeof website.default_locale === 'string' && website.default_locale.trim().length > 0;
+  const hasSupportedLocales = Array.isArray(website.supported_locales) && website.supported_locales.length > 0;
+  if (hasDefaultLocale && hasSupportedLocales) {
+    return website;
+  }
+
+  let query = supabase
+    .from('websites')
+    .select('default_locale, supported_locales')
+    .limit(1);
+
+  if (typeof website.id === 'string' && website.id.trim().length > 0) {
+    query = query.eq('id', website.id);
+  } else {
+    query = query.eq('subdomain', subdomain);
+  }
+
+  const { data, error } = await query.maybeSingle<WebsiteLocaleColumns>();
+  if (error || !data) {
+    return website;
+  }
+
+  const defaultLocale = typeof data.default_locale === 'string' && data.default_locale.trim().length > 0
+    ? data.default_locale.trim()
+    : website.default_locale;
+  const supportedLocales = normalizeLocaleList(data.supported_locales) ?? normalizeLocaleList(website.supported_locales);
+
+  if (!defaultLocale && !supportedLocales) {
+    return website;
+  }
+
+  return {
+    ...website,
+    default_locale: defaultLocale,
+    supported_locales: supportedLocales,
+  };
+}
+
 async function getAccountCurrencyColumns(accountId: string): Promise<AccountCurrencyColumns | null> {
   const { data, error } = await supabase
     .from('accounts')
@@ -152,7 +207,7 @@ export async function getWebsiteBySubdomain(subdomain: string): Promise<WebsiteD
 
     if (!data) return null;
 
-    const website = data as WebsiteData;
+    const website = await hydrateWebsiteLocaleColumns(data as WebsiteData, subdomain);
     const featuredProducts = website.featured_products || {
       destinations: [],
       hotels: [],
