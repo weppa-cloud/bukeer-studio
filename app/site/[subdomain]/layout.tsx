@@ -295,6 +295,8 @@ export default async function SiteLayout({ children, params }: SiteLayoutProps) 
       {/* Preconnect to common third-party origins */}
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+      {/* Preconnect to Supabase storage — hero images / assets served from here */}
+      <link rel="preconnect" href="https://wzlxbpicdcdvxvdcvgas.supabase.co" crossOrigin="" />
       {/* Inline theme CSS variables (incl. bridge vars) so they're available
           before JS, preventing mount-time style recalculation from delaying LCP. */}
       {themeCSS ? <style dangerouslySetInnerHTML={{ __html: themeCSS }} /> : null}
