@@ -152,17 +152,7 @@ test.describe('@pilot-w6 Pilot W6 · matrix · blog', () => {
       `Translated blog URL server error (status=${response.status()}).`,
     );
 
-    const bodyHtml = await page.content();
-    if (bodyHtml.includes('NEXT_HTTP_ERROR_FALLBACK;404')) {
-      test.skip(
-        true,
-        `Translated en-US blog variant rendered notFound() via Turbopack dev (no dedicated /en/blog/{slug} route yet). W5 transcreate publishes the translated route; W6 documents the render gap.`,
-      );
-      return;
-    }
-
     await waitForDetailReady(page, 'blog');
-
     await freezeAnimations(page);
 
     const outcomes: MatrixRowOutcome[] = [];

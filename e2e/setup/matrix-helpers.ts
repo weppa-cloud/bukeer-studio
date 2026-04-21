@@ -22,10 +22,6 @@ import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import type { ContentType, MatrixBlock } from '../fixtures/product-matrix';
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 // --- Navigation / readiness -----------------------------------------------
 
 /**
@@ -62,10 +58,8 @@ export async function waitForDetailReady(
   contentType: ContentType,
   opts: { timeout?: number } = {},
 ): Promise<void> {
-  if (page.isClosed()) return;
   const { timeout = 15_000 } = opts;
   await page.waitForLoadState('domcontentloaded', { timeout });
-  if (page.isClosed()) return;
   const selector = DETAIL_ROOT_SELECTOR[contentType];
   await page.waitForSelector(selector, { state: 'visible', timeout });
 }
