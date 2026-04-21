@@ -274,7 +274,7 @@ export async function getProductPage(
   options?: { locale?: string }
 ): Promise<ProductPageData | null> {
   try {
-    const cacheKey = `${subdomain.toLowerCase()}::${productType.toLowerCase()}::${productSlug.toLowerCase()}`;
+    const cacheKey = `${subdomain.toLowerCase()}::${productType.toLowerCase()}::${productSlug.toLowerCase()}::${(options?.locale ?? '').toLowerCase()}`;
     if (ENABLE_IN_MEMORY_CACHE) {
       const cached = productPageCache.get(cacheKey);
       if (cached && cached.expiresAt > Date.now()) {
