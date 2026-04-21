@@ -1107,6 +1107,30 @@
   stroke-width: 3;
   stroke-linejoin: round;
 }
+/* Numbered route variant — stop circles show 1..N + dashed connector. */
+:where([data-template-set="editorial-v1"]) .co-pin.numbered .co-pin-core {
+  fill: var(--c-accent);
+  stroke: var(--c-surface);
+  stroke-width: 2;
+}
+:where([data-template-set="editorial-v1"]) .co-pin.numbered.on .co-pin-core {
+  fill: var(--c-ink);
+  stroke: var(--c-accent);
+}
+:where([data-template-set="editorial-v1"]) .co-pin-number {
+  fill: var(--c-surface);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 13px;
+  pointer-events: none;
+}
+:where([data-template-set="editorial-v1"]) .co-pin.numbered.on .co-pin-number {
+  fill: var(--c-accent);
+}
+:where([data-template-set="editorial-v1"]) .co-route-connector {
+  color: var(--c-accent);
+  pointer-events: none;
+}
 :where([data-template-set="editorial-v1"]) .co-compass-ring {
   stroke: var(--c-ink);
   stroke-width: 1;

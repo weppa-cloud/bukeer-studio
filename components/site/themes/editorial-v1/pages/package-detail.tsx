@@ -289,7 +289,7 @@ export function EditorialPackageDetail({
               <Eyebrow>{editorialText('editorialPackageMapTitle')}</Eyebrow>
               <small>{mapPins.length} {editorialText('editorialPackageStopsSuffix')}</small>
             </div>
-            <ColombiaMap pins={mapPins} height={460} />
+            <ColombiaMap pins={mapPins} height={460} numberedRoute />
           </section>
         ) : null}
 

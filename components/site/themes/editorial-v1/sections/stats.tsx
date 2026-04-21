@@ -163,7 +163,11 @@ export function StatsSection({
                 : numericValue % 1 !== 0
                 ? 1
                 : 0;
-            const suffix = metric.suffix ?? trailingSuffix ?? '';
+            // Concat trailing unit (e.g. "k" from "12.4k") with explicit suffix
+            // (e.g. "+"), so "12.4k+" renders correctly instead of dropping
+            // either piece.
+            const explicitSuffix = metric.suffix ?? '';
+            const suffix = `${trailingSuffix || ''}${explicitSuffix}`;
 
             return (
               <div className="stat" role="listitem" key={`${metric.label}-${i}`}>
