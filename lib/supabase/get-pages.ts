@@ -83,6 +83,26 @@ function asStringArray(value: unknown): string[] | null {
 }
 
 /**
+ * Normalize a `program_gallery`-shaped value (string[] | {url, alt?}[]) into a
+ * URL-only string[]. Returns `null` if no usable URLs are present so callers
+ * can preserve upstream fallbacks instead of overwriting with an empty array.
+ */
+function asGalleryUrlArray(value: unknown): string[] | null {
+  if (!Array.isArray(value)) return null;
+  const urls = value
+    .map((item) => {
+      if (typeof item === 'string') return item;
+      if (item && typeof item === 'object') {
+        const rec = item as Record<string, unknown>;
+        if (typeof rec.url === 'string') return rec.url;
+      }
+      return null;
+    })
+    .filter((url): url is string => Boolean(url));
+  return urls.length > 0 ? urls : null;
+}
+
+/**
  * Get a page by slug
  */
 export async function getPageBySlug(
@@ -206,7 +226,7 @@ export async function getProductPage(
           const exclusions = asStringArray(kit.program_exclusions);
           if (exclusions) product.program_exclusions = exclusions;
 
-          const gallery = asStringArray(kit.program_gallery);
+          const gallery = asGalleryUrlArray(kit.program_gallery);
           if (gallery) product.program_gallery = gallery;
 
           if (typeof kit.video_url === 'string' || kit.video_url === null) {
@@ -336,13 +356,18 @@ export async function getLocalizedProductOverlay(input: {
     // (`pp.product_id = v_product_id OR v_package_kit_id`) at the overlay
     // reader layer so applied EN transcreate rows surface regardless of which
     // id the apply path happened to store. See Stage 6 Cluster F — Bug F1.
+    //
+    // `package_kits` itself is not anon-readable (account-scoped RLS), but
+    // `itineraries.source_package_id` is anon-exposed and stores the kit id —
+    // reverse-lookup via the public `itineraries` row keeps us under the
+    // anon client's permission envelope.
     if (input.productType === 'package') {
-      const { data: kitRow } = await supabase
-        .from('package_kits')
-        .select('id')
-        .eq('source_itinerary_id', input.productId)
+      const { data: itinRow } = await supabase
+        .from('itineraries')
+        .select('source_package_id')
+        .eq('id', input.productId)
         .maybeSingle();
-      const kitId = kitRow?.id ? String(kitRow.id) : null;
+      const kitId = itinRow?.source_package_id ? String(itinRow.source_package_id) : null;
       if (kitId && kitId !== input.productId) {
         const fallback = await supabase
           .from('website_product_pages')

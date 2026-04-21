@@ -153,7 +153,12 @@ export interface ProductData {
   // Package aggregated + AI-generated fields (Gate B #172, Gate D #174)
   program_inclusions?: string[] | null;
   program_exclusions?: string[] | null;
-  program_gallery?: string[] | null;
+  /**
+   * May arrive as `string[]` (legacy / aggregated) or as
+   * `{url, alt?, caption?}[]` (current SSR activity & package branches).
+   * Renderer normalizes to `string[]` URLs via `normalizeGallery`.
+   */
+  program_gallery?: Array<string | { url: string; alt?: string; caption?: string }> | null;
   program_highlights?: string[] | null;
 }
 

@@ -355,10 +355,24 @@ function normalizeMeetingPoint(
   return null;
 }
 
-function normalizeGallery(product: ProductData & { program_gallery?: string[] | null }, logger: (event: ProductNormalizeLog) => void): string[] {
-  // program_gallery (Gate B — package aggregated, #172) takes highest precedence
+function normalizeGallery(product: ProductData & { program_gallery?: unknown }, logger: (event: ProductNormalizeLog) => void): string[] {
+  // program_gallery (Gate B — package aggregated, #172) takes highest precedence.
+  // Accepts either `string[]` (legacy) or `{url, alt?}[]` (current SSR shape —
+  // activity/package branch of `get_website_product_page` returns objects).
   if (Array.isArray(product.program_gallery) && product.program_gallery.length > 0) {
-    return product.program_gallery;
+    const urls = (product.program_gallery as unknown[])
+      .map((item) => {
+        if (typeof item === 'string') return item;
+        if (item && typeof item === 'object') {
+          const rec = item as Record<string, unknown>;
+          if (typeof rec.url === 'string') return rec.url;
+        }
+        return null;
+      })
+      .filter((url): url is string => Boolean(url));
+    if (urls.length > 0) {
+      return urls;
+    }
   }
 
   if (Array.isArray(product.photos) && product.photos.length > 0) {
@@ -490,7 +504,7 @@ export function normalizeProduct(
   product: ProductData & {
     program_inclusions?: string[] | null;
     program_exclusions?: string[] | null;
-    program_gallery?: string[] | null;
+    program_gallery?: Array<string | { url: string; alt?: string; caption?: string }> | null;
     program_highlights?: string[] | null;
   },
   options: NormalizeProductOptions = {}

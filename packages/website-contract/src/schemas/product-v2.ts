@@ -161,7 +161,21 @@ export const ProductDataSchema = z.object({
   // Package aggregated + AI-generated fields (Gate B F1 #172, Gate D F3 #174)
   program_inclusions: z.array(z.string()).optional(),
   program_exclusions: z.array(z.string()).optional(),
-  program_gallery: z.array(z.string()).optional(),
+  // `program_gallery` may arrive as `string[]` (legacy) or as
+  // `{url, alt?, caption?}[]` (current SSR — activity & package branches of
+  // `get_website_product_page`). Renderer normalizes both shapes.
+  program_gallery: z
+    .array(
+      z.union([
+        z.string(),
+        z.object({
+          url: z.string(),
+          alt: z.string().optional(),
+          caption: z.string().optional(),
+        }).passthrough(),
+      ])
+    )
+    .optional(),
   program_highlights: z.array(z.string()).optional(),
 });
 
