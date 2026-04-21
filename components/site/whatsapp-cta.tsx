@@ -1,3 +1,5 @@
+'use client';
+
 import type { ComponentPropsWithoutRef, MouseEvent } from 'react';
 import clsx from 'clsx';
 import { buildWhatsAppUrl } from './whatsapp-url';
