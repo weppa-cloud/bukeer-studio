@@ -17,13 +17,21 @@
  */
 
 import { useCallback, useState } from 'react';
+import dynamic from 'next/dynamic';
 import Image from 'next/image';
 
-import { ColombiaMapClient } from '@/components/site/themes/editorial-v1/maps/colombia-map.client';
-import type { ColombiaMapPin } from '@/components/site/themes/editorial-v1/maps/colombia-map';
+import type { ColombiaMapPin } from '@/components/site/themes/editorial-v1/maps/colombia-maplibre.client';
 import type { EditorialRegion } from '@/components/site/themes/editorial-v1/maps/colombia-map-shared';
 import { trackEvent } from '@/lib/analytics/track';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
+
+const ColombiaMapLibre = dynamic(
+  () =>
+    import('@/components/site/themes/editorial-v1/maps/colombia-maplibre.client').then(
+      (m) => ({ default: m.ColombiaMapLibre }),
+    ),
+  { ssr: false, loading: () => <div style={{ height: 660, borderRadius: 16, background: '#F5F1E8' }} /> },
+);
 
 export interface MapDestination {
   id: string;
@@ -120,14 +128,11 @@ export function DestinationsMapView({
   return (
     <div className="dest-map-view">
       <div className="dest-map-stage">
-        <ColombiaMapClient
+        <ColombiaMapLibre
           pins={pins}
           activePinId={activeId}
           onPinHover={handlePinHover}
           onPinClick={handlePinClick}
-          showLabels
-          showRidges
-          showRivers
           height={660}
           ariaLabel={resolvedAriaLabel}
         />

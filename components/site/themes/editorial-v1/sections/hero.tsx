@@ -386,7 +386,7 @@ export function HeroSection({
 
 // ---------- Inline styles (one-offs; keep trust chip visuals close to F1) ----
 const trustChipStyle: CSSProperties = {
-  display: 'inline-flex',
+  display: 'flex',
   alignItems: 'center',
   gap: 8,
   color: 'rgba(255,255,255,0.88)',

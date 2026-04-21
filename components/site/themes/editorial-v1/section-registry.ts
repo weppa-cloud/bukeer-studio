@@ -16,15 +16,25 @@ import type { PlannerData } from '@/lib/supabase/get-planners';
 import type { TemplateSet } from '@/lib/sections/template-set';
 
 import { CtaSection } from './sections/cta';
+import { CtaBannerSection } from './sections/cta-banner';
+import { ContactSection } from './sections/contact';
+import { CountdownTimerStaticSection } from './sections/countdown-timer-static';
 import { DestinationsSection } from './sections/destinations';
 import { ExploreMapSection } from './sections/explore-map';
 import { FaqSection } from './sections/faq';
+import { FeaturesGridSection } from './sections/features-grid';
+import { GuaranteeBadgesSection } from './sections/guarantee-badges';
 import { HeroSection } from './sections/hero';
+import { InclusionsExclusionsSection } from './sections/inclusions-exclusions';
+import { ItineraryAccordionSection } from './sections/itinerary-accordion';
 import { PackagesSection } from './sections/packages';
 import { PlannersSection } from './sections/planners';
+import { PricingSection } from './sections/pricing';
 import { PromiseSection } from './sections/promise';
 import { StatsSection } from './sections/stats';
+import { TestimonialsCarouselSection } from './sections/testimonials-carousel';
 import { TestimonialsSection } from './sections/testimonials';
+import { TextImageSection } from './sections/text-image';
 import { TrustBarSection } from './sections/trust-bar';
 import { BlogSection } from './sections/blog';
 
@@ -64,6 +74,17 @@ export const editorialV1SectionComponents: Record<
   faq: FaqSection as EditorialSectionComponent,
   cta: CtaSection as EditorialSectionComponent,
   blog: BlogSection as EditorialSectionComponent,
+  // Wave 3 — product detail + engagement sections
+  itinerary_accordion: ItineraryAccordionSection as EditorialSectionComponent,
+  pricing: PricingSection as EditorialSectionComponent,
+  text_image: TextImageSection as EditorialSectionComponent,
+  features_grid: FeaturesGridSection as EditorialSectionComponent,
+  inclusions_exclusions: InclusionsExclusionsSection as EditorialSectionComponent,
+  testimonials_carousel: TestimonialsCarouselSection as EditorialSectionComponent,
+  guarantee_badges: GuaranteeBadgesSection as EditorialSectionComponent,
+  cta_banner: CtaBannerSection as EditorialSectionComponent,
+  contact: ContactSection as EditorialSectionComponent,
+  countdown_timer: CountdownTimerStaticSection as EditorialSectionComponent,
 };
 
 /**

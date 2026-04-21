@@ -17,7 +17,6 @@
    Keyframes sit at file root (cannot scope).
    ========================================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap');
 
 /* ============ Token aliases (designer --c-* → theme-sdk tokens) ============ */
 [data-template-set="editorial-v1"] {
@@ -5133,8 +5132,12 @@
   }
 }
 
-/* ── Package Detail: suppress generic map section in editorial mode ── */
-[data-template-set="editorial-v1"][data-editorial-variant="package-detail"] [data-testid="detail-map"] {
+/* ── Package Detail: suppress generic sections replaced by editorial overlay ── */
+[data-template-set="editorial-v1"][data-editorial-variant="package-detail"] [data-testid="detail-map"],
+[data-template-set="editorial-v1"][data-editorial-variant="package-detail"] [data-testid="detail-highlights"],
+[data-template-set="editorial-v1"][data-editorial-variant="package-detail"] [data-testid="section-highlights-grid"],
+[data-template-set="editorial-v1"][data-editorial-variant="package-detail"] [data-testid="detail-gallery"],
+[data-template-set="editorial-v1"][data-editorial-variant="package-detail"] [data-testid="detail-itinerary"] {
   display: none;
 }
 
@@ -5188,4 +5191,205 @@
   font-weight: 700;
   margin-right: 0.5rem;
   flex-shrink: 0;
+}
+
+/* ============ Text + Image section (ev-text-image) ============ */
+:where([data-template-set="editorial-v1"]) .text-image-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(32px, 5vw, 80px);
+  align-items: center;
+}
+:where([data-template-set="editorial-v1"]) .ev-text-image--left .text-image-grid {
+  direction: rtl;
+}
+:where([data-template-set="editorial-v1"]) .ev-text-image--left .text-image-grid > * {
+  direction: ltr;
+}
+:where([data-template-set="editorial-v1"]) .text-image-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+:where([data-template-set="editorial-v1"]) .text-image-copy h2 {
+  margin: 0;
+}
+:where([data-template-set="editorial-v1"]) .text-image-media {
+  border-radius: var(--radius-lg, 20px);
+  overflow: hidden;
+  box-shadow: var(--shadow-2);
+  line-height: 0;
+}
+:where([data-template-set="editorial-v1"]) .text-image-img {
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius-lg, 20px);
+  display: block;
+  transition: transform .6s var(--ease);
+}
+:where([data-template-set="editorial-v1"]) .text-image-media:hover .text-image-img {
+  transform: scale(1.03);
+}
+@media (max-width: 768px) {
+  :where([data-template-set="editorial-v1"]) .text-image-grid {
+    grid-template-columns: 1fr;
+    direction: ltr;
+  }
+  :where([data-template-set="editorial-v1"]) .text-image-media {
+    order: -1;
+  }
+}
+
+/* ============ Itinerary Accordion section (ev-itinerary-accordion) ============ */
+:where([data-template-set="editorial-v1"]) .itinerary-day-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border-radius: var(--radius-md, 12px);
+  overflow: hidden;
+  border: 1px solid var(--c-line, rgba(0,0,0,.08));
+}
+:where([data-template-set="editorial-v1"]) .itinerary-day-card {
+  border-bottom: 1px solid var(--c-line, rgba(0,0,0,.08));
+  background: var(--c-surface, #fff);
+  transition: background .2s;
+}
+:where([data-template-set="editorial-v1"]) .itinerary-day-card:last-child {
+  border-bottom: none;
+}
+:where([data-template-set="editorial-v1"]) .itinerary-day-card.open {
+  background: var(--c-bg, #f6f1e8);
+}
+:where([data-template-set="editorial-v1"]) .itinerary-day-head {
+  display: grid;
+  grid-template-columns: 56px 1fr auto;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+  padding: 20px 24px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background .15s;
+}
+:where([data-template-set="editorial-v1"]) .itinerary-day-head:hover {
+  background: color-mix(in oklab, var(--c-ink) 4%, transparent);
+}
+:where([data-template-set="editorial-v1"]) .itinerary-day-num {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--c-primary, #0e5b5b);
+  color: var(--c-primary-ink, #fff);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  flex-shrink: 0;
+}
+:where([data-template-set="editorial-v1"]) .itinerary-day-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+:where([data-template-set="editorial-v1"]) .itinerary-day-loc {
+  color: var(--c-muted);
+}
+:where([data-template-set="editorial-v1"]) .itinerary-day-title {
+  margin: 0;
+  font-size: 17px;
+}
+:where([data-template-set="editorial-v1"]) .itinerary-day-chev {
+  color: var(--c-muted);
+  transition: transform .25s var(--ease);
+  flex-shrink: 0;
+}
+:where([data-template-set="editorial-v1"]) .itinerary-day-chev.rotated {
+  transform: rotate(180deg);
+}
+:where([data-template-set="editorial-v1"]) .itinerary-day-body {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows .3s var(--ease);
+  overflow: hidden;
+}
+:where([data-template-set="editorial-v1"]) .itinerary-day-card.open .itinerary-day-body {
+  grid-template-rows: 1fr;
+}
+:where([data-template-set="editorial-v1"]) .itinerary-day-inner {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 24px;
+  padding: 4px 24px 24px;
+  align-items: start;
+  min-height: 0;
+}
+:where([data-template-set="editorial-v1"]) .itinerary-day-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+:where([data-template-set="editorial-v1"]) .itinerary-day-summary {
+  margin: 0;
+  color: var(--c-ink-2);
+}
+:where([data-template-set="editorial-v1"]) .itinerary-activity-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+:where([data-template-set="editorial-v1"]) .itinerary-activity-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--c-ink-2);
+}
+:where([data-template-set="editorial-v1"]) .itinerary-activity-check {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--c-accent-3, #6ea842);
+}
+:where([data-template-set="editorial-v1"]) .itinerary-day-media {
+  position: relative;
+  width: 280px;
+  height: 180px;
+  border-radius: var(--radius-md, 12px);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+@media (max-width: 768px) {
+  :where([data-template-set="editorial-v1"]) .itinerary-day-head {
+    grid-template-columns: 44px 1fr auto;
+    padding: 16px;
+    gap: 12px;
+  }
+  :where([data-template-set="editorial-v1"]) .itinerary-day-num {
+    width: 40px;
+    height: 40px;
+    font-size: 14px;
+  }
+  :where([data-template-set="editorial-v1"]) .itinerary-day-inner {
+    grid-template-columns: 1fr;
+    padding: 4px 16px 20px;
+  }
+  :where([data-template-set="editorial-v1"]) .itinerary-day-media {
+    width: 100%;
+    height: 180px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  :where([data-template-set="editorial-v1"]) .itinerary-day-body {
+    transition: none;
+  }
+  :where([data-template-set="editorial-v1"]) .itinerary-day-chev {
+    transition: none;
+  }
 }
