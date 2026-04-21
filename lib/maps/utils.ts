@@ -5,6 +5,8 @@ const KIND_BASE_OFFSETS: Record<MapMarkerKind, { lat: number; lng: number }> = {
   hotel: { lat: 0.004, lng: -0.004 },
   activity: { lat: -0.004, lng: 0.004 },
   service: { lat: 0.003, lng: 0.003 },
+  stop: { lat: 0, lng: 0 },
+  pkg: { lat: 0, lng: 0 },
 };
 
 const KIND_LABELS: Record<MapMarkerKind, string> = {
@@ -12,6 +14,8 @@ const KIND_LABELS: Record<MapMarkerKind, string> = {
   hotel: 'Hotel',
   activity: 'Actividad',
   service: 'Servicio',
+  stop: 'Parada',
+  pkg: 'Paquete',
 };
 
 export function mapKindLabel(kind: MapMarkerKind): string {

@@ -25,6 +25,8 @@ export const SectionType = z.enum([
   // SEM landing page sections (2026 blueprint)
   'trust_bar', 'itinerary_accordion', 'inclusions_exclusions',
   'comparison_table', 'guarantee_badges', 'countdown_timer',
+  // editorial-v1 exclusive home section — hand-drawn Colombia map + region chips.
+  'explore_map',
 ]);
 
 export type SectionTypeValue = z.infer<typeof SectionType>;

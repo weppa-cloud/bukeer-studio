@@ -24,8 +24,32 @@ declare global {
 /** Event payload — flexible shape for per-CTA context (product id/type, tenant, etc.). */
 export type AnalyticsEventParams = Record<string, string | number | boolean | null | undefined>;
 
-/** Well-known event names — extend as new CTAs are wired. */
+/**
+ * Well-known event names — extend as new CTAs are wired.
+ *
+ * editorial-v1 template events (payload shapes documented below):
+ *  - `destination_card_click`   { destination_id | destinationSlug, region?, surface? | source? }
+ *  - `package_card_click`       { packageId, slug, source? }
+ *  - `activity_card_click`      { activitySlug, source? }                   (reserved)
+ *  - `hotel_card_click`         { hotelSlug, source? }                      (reserved)
+ *  - `itinerary_day_toggle`     { packageSlug, dayNumber, opened }          (reserved)
+ *  - `pricing_tier_select`      { packageSlug, tierKey }
+ *  - `region_filter_change`     { region, destinationId? }
+ *  - `explore_map_pin_click`    (merged into destination_card_click w/ surface='pin')
+ *  - `hero_search_submit`       { destino, from, to, pax }                  (reserved)
+ *  - `waflow_open`              { variant }
+ *  - `waflow_step_next`         { variant, from, to }
+ *  - `waflow_submit`            { variant }
+ *  - `matchmaker_submit`        { group, region, style }                    (reserved)
+ *  - `currency_switch`          { from, to, surface? }                      (surface: 'header' | 'footer')
+ *  - `locale_switch`            { from, to, surface? }                      (surface: 'header' | 'footer')
+ *
+ * Base catalogue (generic site) events retain the same shape across templates.
+ * Adding a new event name: prefer listing it here before firing so the
+ * `AnalyticsEventName` union keeps autocomplete useful.
+ */
 export type AnalyticsEventName =
+  // Generic site
   | 'whatsapp_cta_click'
   | 'cal_booking_click'
   | 'quote_form_submit'
@@ -34,6 +58,22 @@ export type AnalyticsEventName =
   | 'map_marker_click'
   | 'gallery_open'
   | 'sticky_cta_click'
+  // editorial-v1
+  | 'destination_card_click'
+  | 'package_card_click'
+  | 'activity_card_click'
+  | 'hotel_card_click'
+  | 'itinerary_day_toggle'
+  | 'pricing_tier_select'
+  | 'region_filter_change'
+  | 'explore_map_pin_click'
+  | 'hero_search_submit'
+  | 'waflow_open'
+  | 'waflow_step_next'
+  | 'waflow_submit'
+  | 'matchmaker_submit'
+  | 'currency_switch'
+  | 'locale_switch'
   | (string & {}); // allow other strings without losing autocomplete on the known ones
 
 /**

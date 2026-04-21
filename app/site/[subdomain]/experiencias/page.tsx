@@ -1,0 +1,197 @@
+/**
+ * /site/[subdomain]/experiencias — editorial experiences page.
+ *
+ * The page pulls activities from the website's hydrated `activities` section
+ * (see `lib/sections/hydrate-sections.ts`). If the website opts into the
+ * editorial-v1 template set, `TemplateSlot` renders the editorial variant
+ * from `components/site/themes/editorial-v1/pages/experiences.tsx`; otherwise
+ * the fallback renders a minimal listing so non-editorial sites still return
+ * a usable page.
+ */
+
+import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
+
+import { getWebsiteBySubdomain } from '@/lib/supabase/get-website';
+import {
+  buildLocaleAwareAlternateLanguages,
+  resolvePublicMetadataLocale,
+} from '@/lib/seo/public-metadata';
+import { localeToOgLocale } from '@/lib/seo/locale-routing';
+import { resolveOgImage } from '@/lib/seo/og-helpers';
+import { TemplateSlot } from '@/components/site/themes/editorial-v1/template-slot';
+import type { ExperienceItem } from '@/components/site/themes/editorial-v1/pages/experiences-grid.client';
+
+interface ExperiencesPageProps {
+  params: Promise<{ subdomain: string }>;
+  searchParams: Promise<{
+    level?: string;
+    region?: string;
+    category?: string;
+    duration?: string;
+    q?: string;
+  }>;
+}
+
+const PAGE_TITLE = 'Experiencias';
+const PAGE_DESCRIPTION =
+  'Actividades para sumar a tu viaje. Oficios, caminatas, cocina, mar, selva.';
+
+export async function generateMetadata({
+  params,
+}: ExperiencesPageProps): Promise<Metadata> {
+  const { subdomain } = await params;
+  const website = await getWebsiteBySubdomain(subdomain);
+  if (!website) {
+    return { title: PAGE_TITLE };
+  }
+  const siteName = website.content?.account?.name || website.content?.siteName || subdomain;
+  const baseUrl = website.custom_domain
+    ? `https://${website.custom_domain}`
+    : `https://${subdomain}.bukeer.com`;
+  const localeContext = await resolvePublicMetadataLocale(website, '/experiencias');
+  const canonical = `${baseUrl}${localeContext.localizedPathname}`;
+  const languages = buildLocaleAwareAlternateLanguages(
+    baseUrl,
+    '/experiencias',
+    localeContext,
+  );
+  const ogImage = resolveOgImage(website);
+
+  return {
+    title: `${PAGE_TITLE} — ${siteName}`,
+    description: PAGE_DESCRIPTION,
+    alternates: { canonical, languages },
+    openGraph: {
+      title: `${PAGE_TITLE} — ${siteName}`,
+      description: PAGE_DESCRIPTION,
+      url: canonical,
+      siteName,
+      locale: localeToOgLocale(localeContext.resolvedLocale),
+      type: 'website',
+      ...(ogImage && { images: [{ url: ogImage }] }),
+    },
+  };
+}
+
+function toArrayParam(raw: string | undefined): string[] {
+  if (!raw) return [];
+  return raw.split(',').map((s) => s.trim()).filter(Boolean);
+}
+
+function normaliseActivities(raw: unknown[]): ExperienceItem[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((r): ExperienceItem | null => {
+      if (!r || typeof r !== 'object') return null;
+      const obj = r as Record<string, unknown>;
+      const id = typeof obj.id === 'string' ? obj.id : null;
+      const name =
+        (typeof obj.name === 'string' && obj.name) ||
+        (typeof obj.title === 'string' && (obj.title as string)) ||
+        null;
+      if (!id || !name) return null;
+      return {
+        id,
+        slug: (obj.slug as string | undefined) ?? null,
+        name,
+        title: (obj.title as string | undefined) ?? null,
+        description: (obj.description as string | undefined) ?? null,
+        image:
+          (obj.image as string | undefined) ??
+          (Array.isArray(obj.images) && typeof obj.images[0] === 'string'
+            ? (obj.images[0] as string)
+            : null),
+        location: (obj.location as string | undefined) ?? null,
+        region:
+          (obj.region as string | undefined) ??
+          (obj.destination as string | undefined) ??
+          null,
+        category: (obj.category as string | undefined) ?? null,
+        categoryKey: (obj.categoryKey as string | undefined) ?? null,
+        level:
+          (obj.level as string | undefined) ??
+          (obj.difficulty as string | undefined) ??
+          null,
+        durationLabel: (obj.duration as string | undefined) ?? null,
+        durationBucket: (obj.durationBucket as string | undefined) ?? null,
+        price: (obj.price as string | undefined) ?? null,
+        rating: (obj.rating as number | undefined) ?? null,
+        reviewCount: (obj.reviewCount as number | undefined) ?? null,
+        lat: (obj.lat as number | undefined) ?? null,
+        lng: (obj.lng as number | undefined) ?? null,
+      };
+    })
+    .filter((item): item is ExperienceItem => item !== null);
+}
+
+export default async function ExperiencesPageRoute({
+  params,
+  searchParams,
+}: ExperiencesPageProps) {
+  const { subdomain } = await params;
+  const sp = await searchParams;
+  const website = await getWebsiteBySubdomain(subdomain);
+
+  if (!website || website.status !== 'published') {
+    notFound();
+  }
+
+  const localeContext = await resolvePublicMetadataLocale(website, '/experiencias');
+
+  // Pull activities from the hydrated `activities` section (if any). The
+  // hydrate step runs during `getWebsiteBySubdomain`, so we just read.
+  const activitiesSection = (website.sections || []).find(
+    (s) => s.section_type === 'activities' && s.is_enabled !== false,
+  );
+  const activitiesRaw = Array.isArray(
+    (activitiesSection?.content as Record<string, unknown> | undefined)?.activities,
+  )
+    ? ((activitiesSection!.content as Record<string, unknown>).activities as unknown[])
+    : [];
+  const activities = normaliseActivities(activitiesRaw);
+
+  return (
+    <TemplateSlot
+      name="experiences-page"
+      website={website}
+      payload={{
+        subdomain,
+        locale: localeContext.resolvedLocale,
+        activities,
+        initialFilters: {
+          level: toArrayParam(sp.level),
+          region: toArrayParam(sp.region),
+          category: sp.category || 'all',
+          duration: sp.duration || 'all',
+          q: sp.q || '',
+        },
+      }}
+    >
+      {/* Generic fallback for non-editorial sites — minimal listing so the
+          route always returns something sensible. */}
+      <section className="section-padding">
+        <div className="container">
+          <h1 className="text-3xl font-bold mb-4">{PAGE_TITLE}</h1>
+          <p className="text-muted-foreground mb-8">{PAGE_DESCRIPTION}</p>
+          {activities.length === 0 ? (
+            <p className="text-muted-foreground">Aún no hay experiencias publicadas.</p>
+          ) : (
+            <ul className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {activities.map((a) => (
+                <li key={a.id} className="rounded-lg border p-4">
+                  <h3 className="font-semibold">{a.name}</h3>
+                  {a.description ? (
+                    <p className="mt-2 text-sm text-muted-foreground">{a.description}</p>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </section>
+    </TemplateSlot>
+  );
+}
+
+export const revalidate = 300;

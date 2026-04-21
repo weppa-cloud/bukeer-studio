@@ -98,14 +98,6 @@ export function MeetingPointMap({
           {text('meetingPointGooglePlaceId')} {meetingPoint.google_place_id}
         </p>
       )}
-
-      <style jsx global>{`
-        @media (prefers-reduced-motion: reduce) {
-          [data-testid='section-meeting-point-map'] .meeting-point-map-marker-pulse [class*='animate-[pulse_'] {
-            animation: none !important;
-          }
-        }
-      `}</style>
     </section>
   );
 }

@@ -442,6 +442,15 @@ select.sort-select {
     color: hsl(var(--foreground));
     font-feature-settings: "rlig" 1, "calt" 1;
   }
+
+  /* Designer signature: em inside headings renders in serif italic accent-2 */
+  h1 em, h2 em, h3 em {
+    font-family: var(--font-serif, "Instrument Serif", ui-serif, Georgia, serif);
+    font-style: italic;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    color: hsl(var(--accent-2, var(--accent)));
+  }
 }
 
 /* ============================================

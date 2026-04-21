@@ -318,11 +318,11 @@ export function buildPublicLocalizedPath(
   const normalizedResolved = normalizeLocale(resolvedLocale);
   const normalizedDefault = normalizeLocale(defaultLocale);
 
-  if (normalizedResolved === normalizedDefault) {
+  const lang = localeToLanguage(normalizedResolved);
+
+  if (normalizedResolved === normalizedDefault || lang === localeToLanguage(normalizedDefault)) {
     return normalizedPathname;
   }
-
-  const lang = localeToLanguage(normalizedResolved);
   if (normalizedPathname === '/') {
     return `/${lang}`;
   }

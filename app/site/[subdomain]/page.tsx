@@ -10,12 +10,16 @@ import {
 import { localeToOgLocale } from '@/lib/seo/locale-routing';
 import { resolveOgImage } from '@/lib/seo/og-helpers';
 import { getWebsiteBySubdomain, getBlogPosts } from '@/lib/supabase/get-website';
+import type { WebsiteData } from '@/lib/supabase/get-website';
 import { getCachedGoogleReviews, getCategoryProducts, getDestinations } from '@/lib/supabase/get-pages';
 import { getPlanners } from '@/lib/supabase/get-planners';
 import type { PlannerData } from '@/lib/supabase/get-planners';
+import { getBrandClaims } from '@/lib/supabase/get-brand-claims';
+import { getFeaturedDestinations } from '@/lib/supabase/get-featured-destinations';
 import { SECTION_TYPES } from '@bukeer/website-contract';
 import { hydrateSections } from '@/lib/sections/hydrate-sections';
 import { toPackageItems, toActivityItems, toHotelItems } from '@/lib/products/to-items';
+import { resolveTemplateSet } from '@/lib/sections/template-set';
 
 const SECTION_DESTINATIONS = SECTION_TYPES.find((t) => t === 'destinations')!;
 const SECTION_TESTIMONIALS = SECTION_TYPES.find((t) => t === 'testimonials')!;
@@ -107,6 +111,7 @@ export default async function SitePage({ params }: SitePageProps) {
   const accountContent = ((website.content as unknown as Record<string, unknown>)?.account as Record<string, unknown> | undefined);
   const googleReviewsEnabled = accountContent?.google_reviews_enabled === true;
   const agencyName = (accountContent?.name as string | undefined) || website.content.siteName || '';
+  const templateSet = resolveTemplateSet(website);
 
   // Fetch Google reviews early — used for both JSON-LD photo[] and testimonials hydration
   let googleReviewsCache: Awaited<ReturnType<typeof getCachedGoogleReviews>> = null;
@@ -140,6 +145,10 @@ export default async function SitePage({ params }: SitePageProps) {
   }
 
   const localeContext = await resolvePublicMetadataLocale(website, '/');
+  const websiteForRender = {
+    ...website,
+    resolvedLocale: localeContext.resolvedLocale,
+  } as WebsiteData & { resolvedLocale?: string };
   const schemas = generateHomepageSchemas(
     website,
     baseUrl,
@@ -155,7 +164,16 @@ export default async function SitePage({ params }: SitePageProps) {
     (s) => s.section_type === SECTION_BLOG
   );
 
-  const [dynamicDestinations, packagesCatalog, activitiesCatalog, hotelsCatalog, dbPlanners, blogResult] = await Promise.all([
+  const [
+    dynamicDestinations,
+    packagesCatalog,
+    activitiesCatalog,
+    hotelsCatalog,
+    dbPlanners,
+    blogResult,
+    brandClaims,
+    featuredDestinations,
+  ] = await Promise.all([
     getDestinations(subdomain),
     getCategoryProducts(subdomain, SECTION_PACKAGES, { limit: 8 }),
     getCategoryProducts(subdomain, SECTION_ACTIVITIES, { limit: 8 }),
@@ -166,11 +184,29 @@ export default async function SitePage({ params }: SitePageProps) {
     hasBlogSection && website.id
       ? getBlogPosts(website.id, { limit: 6 })
       : Promise.resolve({ posts: [], total: 0 }),
+    website.account_id
+      ? getBrandClaims(website.account_id)
+      : Promise.resolve(null),
+    website.id
+      ? getFeaturedDestinations(website.id, 4)
+      : Promise.resolve([]),
   ]);
 
   const seenSingletonTypes = new Set<string>();
   const enabledSections = (website.sections || [])
     .filter((section) => section.section_type !== SECTION_CONTACT && section.section_type !== SECTION_CONTACT_FORM)
+    .filter((section) => {
+      // Editorial-v1 home canonical (F1) does not include standalone
+      // activities/hotels/blog blocks on homepage flow.
+      if (templateSet === 'editorial-v1') {
+        return (
+          section.section_type !== SECTION_ACTIVITIES &&
+          section.section_type !== SECTION_HOTELS &&
+          section.section_type !== SECTION_BLOG
+        );
+      }
+      return true;
+    })
     .sort((a, b) => a.display_order - b.display_order)
     .filter((section) => {
       if (!SINGLETON_SECTION_TYPES.has(section.section_type)) return true;
@@ -206,12 +242,15 @@ export default async function SitePage({ params }: SitePageProps) {
 
   const hydratedSections = hydrateSections({
     enabledSections,
+    templateSet,
     sectionDynamicDestinations,
     packageItems,
     activityItems,
     hotelItems,
     googleReviews,
     blogPosts: blogResult.posts.length > 0 ? blogResult.posts : undefined,
+    brandClaims,
+    featuredDestinations,
   });
 
   return (
@@ -222,7 +261,7 @@ export default async function SitePage({ params }: SitePageProps) {
         <SectionRenderer
           key={section.id}
           section={section}
-          website={website}
+          website={websiteForRender}
           dbPlanners={PLANNER_TYPES.has(section.section_type) ? dbPlanners : undefined}
         />
       ))}

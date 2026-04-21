@@ -11,10 +11,11 @@ import {
 } from '@/lib/seo/public-metadata';
 import { localeToOgLocale } from '@/lib/seo/locale-routing';
 import { formatPublicDate, getPublicUiMessages } from '@/lib/site/public-ui-messages';
+import { TemplateSlot } from '@/components/site/themes/editorial-v1/template-slot';
 
 interface BlogPageProps {
   params: Promise<{ subdomain: string }>;
-  searchParams: Promise<{ category?: string; page?: string }>;
+  searchParams: Promise<{ category?: string; page?: string; q?: string }>;
 }
 
 export async function generateMetadata({ params }: BlogPageProps): Promise<Metadata> {
@@ -64,7 +65,7 @@ export async function generateMetadata({ params }: BlogPageProps): Promise<Metad
 
 export default async function BlogPage({ params, searchParams }: BlogPageProps) {
   const { subdomain } = await params;
-  const { category, page } = await searchParams;
+  const { category, page, q } = await searchParams;
 
   const website = await getWebsiteBySubdomain(subdomain);
 
@@ -84,6 +85,14 @@ export default async function BlogPage({ params, searchParams }: BlogPageProps) 
   const { posts, total } = postsData;
   const totalPages = Math.ceil(total / limit);
 
+  // Editorial-v1 filter: optional client-side (q) — server still paginates.
+  const filteredPosts = q
+    ? posts.filter((p) => {
+        const hay = `${p.title} ${p.excerpt ?? ''}`.toLowerCase();
+        return hay.includes(q.toLowerCase());
+      })
+    : posts;
+
   // Generate base URL for schema
   const baseUrl = website.custom_domain
     ? `https://${website.custom_domain}`
@@ -99,6 +108,21 @@ export default async function BlogPage({ params, searchParams }: BlogPageProps) 
       {/* JSON-LD Structured Data for SEO and AI crawlers */}
       <JsonLd data={schemas} />
 
+      <TemplateSlot
+        name="blog-list"
+        website={website}
+        payload={{
+          subdomain,
+          locale: localeContext.resolvedLocale,
+          posts: filteredPosts,
+          categories,
+          total,
+          page: pageNum,
+          limit,
+          category: category ?? null,
+          query: q ?? null,
+        }}
+      >
       <div className="section-padding">
       <div className="container">
         {/* Header */}
@@ -260,6 +284,7 @@ export default async function BlogPage({ params, searchParams }: BlogPageProps) 
         )}
       </div>
     </div>
+    </TemplateSlot>
     </>
   );
 }

@@ -221,11 +221,8 @@ describe('compileTheme', () => {
     assert.ok(lightNames.has('accent-2'));
     assert.ok(lightNames.has('accent-3'));
     assert.ok(compiled.web!.fontImports.some((url) => url.includes('Bricolage+Grotesque:opsz,wght@8..144,200..800')));
-    // Body font (Inter) emitted via generic css2 family URL.
+    // Body font is Inter per designer reference default palette
     assert.ok(compiled.web!.fontImports.some((url) => url.includes('family=Inter')));
-    // NOTE: Instrument Serif loads via `next/font/google` in `app/layout.tsx`
-    // for italic accent class `.serif` — it is NOT part of theme-sdk
-    // fontImports because schema only covers display + body typefaces.
   });
 });
 

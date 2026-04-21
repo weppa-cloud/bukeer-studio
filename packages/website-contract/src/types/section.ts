@@ -72,7 +72,9 @@ export type SectionTypeValue =
   // Team / Planners
   | 'planners'
   | 'team'
-  | 'travel_planners';
+  | 'travel_planners'
+  // editorial-v1 exclusive home section — hand-drawn Colombia map + region chips.
+  | 'explore_map';
 
 export const SECTION_TYPES: SectionTypeValue[] = [
   'hero', 'hero_image', 'hero_video', 'hero_minimal',
@@ -85,4 +87,5 @@ export const SECTION_TYPES: SectionTypeValue[] = [
   'faq', 'faq_accordion', 'contact', 'contact_form',
   'blog', 'blog_grid',
   'planners', 'team', 'travel_planners',
+  'explore_map',
 ];

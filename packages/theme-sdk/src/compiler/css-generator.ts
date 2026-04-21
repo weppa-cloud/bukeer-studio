@@ -31,10 +31,10 @@ export function generateCssOutput(
   const invariantVars = generateInvariantVars(tokens, profile);
 
   const dataAttributes: Record<string, string> = {
-    'layout-variant': profile.layout.variant,
-    'hero-style': profile.layout.heroStyle,
-    'nav-style': profile.layout.navStyle,
-    'motion-preset': tokens.motion.preset,
+    'layout-variant': nonEmptyString(profile.layout?.variant, 'modern'),
+    'hero-style': nonEmptyString(profile.layout?.heroStyle, 'centered'),
+    'nav-style': nonEmptyString(profile.layout?.navStyle, 'sticky'),
+    'motion-preset': nonEmptyString(tokens.motion?.preset, 'subtle'),
   };
 
   const fontImports = buildFontImports(tokens);
@@ -87,12 +87,13 @@ function generateColorVars(
   vars.push({ name: 'muted-foreground', value: hexToHsl(scheme.onSurfaceVariant), category: cat });
   vars.push({ name: 'accent', value: hexToHsl(scheme.tertiaryContainer), category: cat });
   vars.push({ name: 'accent-foreground', value: hexToHsl(scheme.onTertiaryContainer), category: cat });
-  if (accents?.accent2) {
-    vars.push({ name: 'accent-2', value: hexToHsl(accents.accent2), category: cat });
-  }
-  if (accents?.accent3) {
-    vars.push({ name: 'accent-3', value: hexToHsl(accents.accent3), category: cat });
-  }
+
+  // Accent-2 / Accent-3: never emit empty. Fall back to secondary/tertiary/primary
+  // so consumers (Tailwind, inline styles) always resolve to a real color.
+  const accent2Source = pickHex(accents?.accent2, scheme.secondary, scheme.primary);
+  const accent3Source = pickHex(accents?.accent3, scheme.tertiary, scheme.secondary, scheme.primary);
+  vars.push({ name: 'accent-2', value: hexToHsl(accent2Source), category: cat });
+  vars.push({ name: 'accent-3', value: hexToHsl(accent3Source), category: cat });
   vars.push({ name: 'destructive', value: hexToHsl(scheme.error), category: cat });
   vars.push({ name: 'destructive-foreground', value: hexToHsl(scheme.onError), category: cat });
   vars.push({ name: 'border', value: hexToHsl(scheme.outlineVariant), category: cat });
@@ -156,34 +157,60 @@ function generateChartVars(chart: ChartColors | undefined): CssVariable[] {
 
 function generateInvariantVars(tokens: DesignTokens, profile: ThemeProfile): CssVariable[] {
   const vars: CssVariable[] = [];
-  const density = resolveSpacingDensity(tokens.spacing.density, tokens.spacing.scale);
+
+  // --- Spacing fallbacks (guard against missing/invalid values that produce NaNpx) ---
+  const spacing = tokens.spacing ?? ({} as DesignTokens['spacing']);
+  const baseUnit = sanitizeNumber(spacing.baseUnit, 4);
+  const scale = sanitizeSpacingScale(spacing.scale);
+  const sectionPaddingMultiplier = sanitizeNumber(spacing.sectionPaddingMultiplier, 2);
+  const density = resolveSpacingDensity(spacing.density, scale);
   const densityMultiplier = densityToMultiplier(density);
-  const spacingRamp = buildSpacingRamp(tokens.spacing.baseUnit, densityMultiplier);
-  const sectionPaddingPx = tokens.spacing.baseUnit * 8 * tokens.spacing.sectionPaddingMultiplier * densityMultiplier;
-  const containerPx = tokens.spacing.containerMaxPx ?? profile.layout.maxContentWidth;
-  const easingValue = customEasingToValue(tokens.motion.customEasing) ?? easingToValue(tokens.motion.easing);
+  const spacingRamp = buildSpacingRamp(baseUnit, densityMultiplier);
+  const sectionPaddingPx = baseUnit * 8 * sectionPaddingMultiplier * densityMultiplier;
+  const containerPx = sanitizeNumber(spacing.containerMaxPx, profile.layout.maxContentWidth);
+
+  // --- Motion fallbacks ---
+  const motion = tokens.motion ?? ({} as DesignTokens['motion']);
+  const easingValue = customEasingToValue(motion.customEasing) ?? easingToValue(motion.easing);
+  const durationMs = sanitizeNumber(motion.durationMs, 200);
+
+  // --- Typography fallbacks ---
+  const typography = tokens.typography ?? ({} as DesignTokens['typography']);
+  const display = typography.display ?? ({} as DesignTokens['typography']['display']);
+  const body = typography.body ?? ({} as DesignTokens['typography']['body']);
+  const displayFamily = nonEmptyString(display.family, 'system-ui');
+  const displayFallback = nonEmptyString(display.fallback, 'sans-serif');
+  const displayWeight = nonEmptyString(display.weight, '400');
+  const bodyFamily = nonEmptyString(body.family, 'system-ui');
+  const bodyFallback = nonEmptyString(body.fallback, 'sans-serif');
+  const bodyWeight = nonEmptyString(body.weight, '400');
+  const typeScale = nonEmptyString(typography.scale, 'default');
+  const bodyLineHeight = sanitizeNumber(typography.bodyLineHeight, 1.5);
+  const letterSpacing = sanitizeNumber(typography.letterSpacing, 0);
 
   // Typography
-  vars.push({ name: 'font-heading', value: `"${tokens.typography.display.family}", ${tokens.typography.display.fallback}`, category: 'typography' });
-  vars.push({ name: 'font-body', value: `"${tokens.typography.body.family}", ${tokens.typography.body.fallback}`, category: 'typography' });
-  vars.push({ name: 'font-heading-weight', value: tokens.typography.display.weight, category: 'typography' });
-  vars.push({ name: 'font-body-weight', value: tokens.typography.body.weight, category: 'typography' });
-  vars.push({ name: 'type-scale', value: typeScaleToValue(tokens.typography.scale), category: 'typography' });
-  vars.push({ name: 'body-line-height', value: String(tokens.typography.bodyLineHeight), category: 'typography' });
-  vars.push({ name: 'letter-spacing', value: `${tokens.typography.letterSpacing}em`, category: 'typography' });
+  vars.push({ name: 'font-heading', value: `"${displayFamily}", ${displayFallback}`, category: 'typography' });
+  vars.push({ name: 'font-body', value: `"${bodyFamily}", ${bodyFallback}`, category: 'typography' });
+  vars.push({ name: 'font-heading-weight', value: displayWeight, category: 'typography' });
+  vars.push({ name: 'font-body-weight', value: bodyWeight, category: 'typography' });
+  vars.push({ name: 'type-scale', value: typeScaleToValue(typeScale), category: 'typography' });
+  vars.push({ name: 'body-line-height', value: String(bodyLineHeight), category: 'typography' });
+  vars.push({ name: 'letter-spacing', value: `${letterSpacing}em`, category: 'typography' });
 
   // Shape
-  const radius = tokens.shape.radius;
+  const shape = tokens.shape ?? ({} as DesignTokens['shape']);
+  const radius = sanitizeRadius(shape.radius);
   vars.push({ name: 'radius', value: radiusToValue(radius), category: 'shape' });
-  vars.push({ name: 'radius-sm', value: radiusToValue(tokens.shape.inputRadius ?? shrinkRadius(radius)), category: 'shape' });
+  vars.push({ name: 'radius-sm', value: radiusToValue(shape.inputRadius ?? shrinkRadius(radius)), category: 'shape' });
   vars.push({ name: 'radius-md', value: radiusToValue(radius), category: 'shape' });
-  vars.push({ name: 'radius-lg', value: radiusToValue(tokens.shape.cardRadius ?? growRadius(radius)), category: 'shape' });
-  vars.push({ name: 'radius-button', value: radiusToValue(tokens.shape.buttonRadius ?? radius), category: 'shape' });
+  vars.push({ name: 'radius-lg', value: radiusToValue(shape.cardRadius ?? growRadius(radius)), category: 'shape' });
+  vars.push({ name: 'radius-button', value: radiusToValue(shape.buttonRadius ?? radius), category: 'shape' });
 
   // Elevation
-  vars.push({ name: 'elevation-card', value: elevationToShadow(tokens.elevation.cardElevation), category: 'elevation' });
-  vars.push({ name: 'elevation-nav', value: elevationToShadow(tokens.elevation.navElevation), category: 'elevation' });
-  vars.push({ name: 'elevation-hero', value: elevationToShadow(tokens.elevation.heroElevation), category: 'elevation' });
+  const elevation = tokens.elevation ?? ({} as DesignTokens['elevation']);
+  vars.push({ name: 'elevation-card', value: elevationToShadow(sanitizeElevation(elevation.cardElevation, 'subtle')), category: 'elevation' });
+  vars.push({ name: 'elevation-nav', value: elevationToShadow(sanitizeElevation(elevation.navElevation, 'raised')), category: 'elevation' });
+  vars.push({ name: 'elevation-hero', value: elevationToShadow(sanitizeElevation(elevation.heroElevation, 'flat')), category: 'elevation' });
 
   // Layout variant styles
   const variantConfig = layoutVariantConfig[profile.layout.variant] ?? layoutVariantConfig.modern;
@@ -193,12 +220,12 @@ function generateInvariantVars(tokens: DesignTokens, profile: ThemeProfile): Css
   vars.push({ name: 'max-content-width', value: `${containerPx}px`, category: 'layout' });
 
   // Motion
-  vars.push({ name: 'transition-duration', value: `${tokens.motion.durationMs}ms`, category: 'motion' });
+  vars.push({ name: 'transition-duration', value: `${durationMs}ms`, category: 'motion' });
   vars.push({ name: 'ease', value: easingValue, category: 'motion' });
   vars.push({ name: 'transition-easing', value: easingValue, category: 'motion' });
 
   // Spacing
-  vars.push({ name: 'spacing-unit', value: `${formatPx(tokens.spacing.baseUnit * densityMultiplier)}px`, category: 'spacing' });
+  vars.push({ name: 'spacing-unit', value: `${formatPx(baseUnit * densityMultiplier)}px`, category: 'spacing' });
   vars.push({ name: 'section-padding', value: `${formatPx(sectionPaddingPx)}px`, category: 'spacing' });
   vars.push({ name: 'section-py', value: `${formatPx(sectionPaddingPx)}px`, category: 'spacing' });
   vars.push({ name: 'card-pad', value: `${formatPx(spacingRamp[3])}px`, category: 'spacing' });
@@ -309,13 +336,17 @@ function easingToValue(easing: string): string {
 }
 
 function buildFontImports(tokens: DesignTokens): string[] {
-  const fonts = new Set<string>([
-    tokens.typography.display.family,
-    tokens.typography.body.family,
-  ]);
+  const typography = tokens.typography ?? ({} as DesignTokens['typography']);
+  const displayFamily = nonEmptyString(typography.display?.family, 'system-ui');
+  const bodyFamily = nonEmptyString(typography.body?.family, 'system-ui');
+  const fonts = new Set<string>([displayFamily, bodyFamily]);
   const urls = new Set<string>();
 
   for (const font of fonts) {
+    // Skip system-ui / generic CSS families — no Google Fonts URL to fetch.
+    if (!font || font === 'system-ui' || font === 'sans-serif' || font === 'serif' || font === 'monospace') {
+      continue;
+    }
     if (font === 'Bricolage Grotesque') {
       urls.add('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@8..144,200..800&display=swap');
       continue;
@@ -337,17 +368,21 @@ function customEasingToValue(customEasing: DesignTokens['motion']['customEasing'
   return `cubic-bezier(${x1}, ${y1}, ${x2}, ${y2})`;
 }
 
+const VALID_DENSITIES = new Set<SpacingDensity>(['snug', 'roomy', 'airy']);
+
 function resolveSpacingDensity(
-  density: SpacingDensity | undefined,
+  density: SpacingDensity | undefined | string,
   scale: DesignTokens['spacing']['scale'],
 ): SpacingDensity {
-  if (density) return density;
+  if (density && VALID_DENSITIES.has(density as SpacingDensity)) {
+    return density as SpacingDensity;
+  }
   const fallbackByScale: Record<DesignTokens['spacing']['scale'], SpacingDensity> = {
     compact: 'snug',
     default: 'roomy',
     relaxed: 'airy',
   };
-  return fallbackByScale[scale];
+  return fallbackByScale[scale] ?? 'roomy';
 }
 
 function densityToMultiplier(density: SpacingDensity): number {
@@ -356,7 +391,52 @@ function densityToMultiplier(density: SpacingDensity): number {
     roomy: 1,
     airy: 1.2,
   };
-  return multiplier[density];
+  return multiplier[density] ?? 1;
+}
+
+// ---------------------------------------------------------------------------
+// Defensive sanitizers (shield the compiler from missing/invalid token values)
+// ---------------------------------------------------------------------------
+
+function sanitizeNumber(value: unknown, fallback: number): number {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string') {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return fallback;
+}
+
+function nonEmptyString(value: unknown, fallback: string): string {
+  if (typeof value === 'string' && value.trim().length > 0) return value;
+  return fallback;
+}
+
+function sanitizeSpacingScale(value: unknown): DesignTokens['spacing']['scale'] {
+  return value === 'compact' || value === 'default' || value === 'relaxed'
+    ? value
+    : 'default';
+}
+
+function sanitizeRadius(value: unknown): RadiusValue {
+  const allowed: RadiusValue[] = ['none', 'xs', 'sm', 'md', 'lg', 'xl', 'full'];
+  return (allowed as string[]).includes(value as string) ? (value as RadiusValue) : 'md';
+}
+
+function sanitizeElevation(value: unknown, fallback: ElevationLevel): ElevationLevel {
+  const allowed: ElevationLevel[] = ['flat', 'subtle', 'raised', 'floating', 'dramatic'];
+  return (allowed as string[]).includes(value as string) ? (value as ElevationLevel) : fallback;
+}
+
+/** Return the first non-empty, hex-shaped string from the candidates. */
+function pickHex(...candidates: Array<string | undefined | null>): string {
+  for (const candidate of candidates) {
+    if (typeof candidate === 'string' && /^#[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$/.test(candidate)) {
+      return candidate;
+    }
+  }
+  // Last-resort neutral gray — prevents hexToHsl() from returning '0 0% 0%' noise.
+  return '#808080';
 }
 
 function buildSpacingRamp(baseUnit: number, densityMultiplier: number): number[] {

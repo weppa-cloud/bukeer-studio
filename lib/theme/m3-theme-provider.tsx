@@ -280,40 +280,26 @@ export function M3ThemeProvider({ children, initialTheme }: M3ThemeProviderProps
   useEffect(() => {
     if (!mounted) return;
 
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const colorMode = profile.colorMode;
-
-    const handleChange = (e: MediaQueryListEvent) => {
-      if (colorMode === 'system') {
-        setIsDark(e.matches);
-        applyCompiledThemeToDOM(tokens, profile, e.matches);
-      }
-    };
+    const colorMode = profile.colorMode === 'system' ? 'light' : profile.colorMode;
 
     // Initial setup
-    if (colorMode === 'system') {
-      setIsDark(mediaQuery.matches);
-      applyCompiledThemeToDOM(tokens, profile, mediaQuery.matches);
-    } else {
-      setIsDark(colorMode === 'dark');
-      applyCompiledThemeToDOM(tokens, profile, colorMode === 'dark');
-    }
+    setIsDark(colorMode === 'dark');
+    applyCompiledThemeToDOM(tokens, profile, colorMode === 'dark');
 
-    mediaQuery.addEventListener('change', handleChange);
-    return () => mediaQuery.removeEventListener('change', handleChange);
+    return undefined;
   }, [tokens, profile, mounted]);
 
   const resolvedColorScheme = (isDark ? tokens.colors?.dark : tokens.colors?.light)
     ?? defaultTokens.colors.light;
 
-  const nextThemeDefault = profile.colorMode === 'system' ? 'system' : profile.colorMode;
+  const nextThemeDefault = profile.colorMode === 'system' ? 'light' : profile.colorMode;
 
   return (
     <M3ThemeContext.Provider value={{ tokens, profile, setThemeInput, resolvedColorScheme }}>
       <NextThemesProvider
         attribute="class"
         defaultTheme={nextThemeDefault}
-        enableSystem={profile.colorMode === 'system'}
+        enableSystem={false}
         disableTransitionOnChange
       >
         <ThemeBridgeSync tokens={tokens} profile={profile} />

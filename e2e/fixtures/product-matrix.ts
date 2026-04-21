@@ -815,6 +815,125 @@ export const PRODUCT_MATRIX: MatrixBlock[] = [
     source: 'docs/product/product-detail-matrix.md#row-48',
   },
 
+  // ── Section I*. P2 Typed Timeline (SPEC #256) ──────────────────────────
+  // New typed itinerary timeline components under components/site/product-detail/p2/.
+  // `DayEventTimeline` emits `timeline-day-${day}` on its <section>; `TimelineEvent`
+  // emits `timeline-event-${eventType}` on each <li> (eventType ∈ transport | activity
+  // | meal | lodging | free_time | flight). Also sets `data-event-type` on the root
+  // ItineraryItemRenderer div (not a testid — informational only).
+  {
+    id: 'detail-timeline-day',
+    row: 49,
+    section: 'I*. P2 Typed Timeline',
+    block: 'Día agrupado (DayEventTimeline section)',
+    selectors: { primary: '[data-testid^="timeline-day-"]', fallback: '[data-testid="timeline-day"]' },
+    viewports: ['desktop', 'mobile'],
+    types: {
+      pkg: { status: 'conditional', condition: 'itinerary_items grouped by day' },
+      act: { status: 'conditional', condition: 'schedule grouped by day' },
+      hotel: NA,
+      blog: NA,
+    },
+    emptyStateExpected: true,
+    source: 'issues/256',
+  },
+  {
+    id: 'detail-timeline-event-flight',
+    row: 50,
+    section: 'I*. P2 Typed Timeline',
+    block: 'Evento vuelo (TimelineEvent flight)',
+    selectors: { primary: '[data-testid="timeline-event-flight"]' },
+    viewports: ['desktop', 'mobile'],
+    types: {
+      pkg: { status: 'conditional', condition: 'itinerary contains flight event_type' },
+      act: NA,
+      hotel: NA,
+      blog: NA,
+    },
+    emptyStateExpected: true,
+    source: 'issues/256',
+  },
+  {
+    id: 'detail-timeline-event-transport',
+    row: 51,
+    section: 'I*. P2 Typed Timeline',
+    block: 'Evento traslado (TimelineEvent transport)',
+    selectors: { primary: '[data-testid="timeline-event-transport"]' },
+    viewports: ['desktop', 'mobile'],
+    types: {
+      pkg: { status: 'conditional', condition: 'itinerary contains transport event_type' },
+      act: NA,
+      hotel: NA,
+      blog: NA,
+    },
+    emptyStateExpected: true,
+    source: 'issues/256',
+  },
+  {
+    id: 'detail-timeline-event-lodging',
+    row: 52,
+    section: 'I*. P2 Typed Timeline',
+    block: 'Evento alojamiento (TimelineEvent lodging)',
+    selectors: { primary: '[data-testid="timeline-event-lodging"]' },
+    viewports: ['desktop', 'mobile'],
+    types: {
+      pkg: { status: 'conditional', condition: 'itinerary contains lodging event_type' },
+      act: NA,
+      hotel: NA,
+      blog: NA,
+    },
+    emptyStateExpected: true,
+    source: 'issues/256',
+  },
+  {
+    id: 'detail-timeline-event-activity',
+    row: 53,
+    section: 'I*. P2 Typed Timeline',
+    block: 'Evento actividad (TimelineEvent activity)',
+    selectors: { primary: '[data-testid="timeline-event-activity"]' },
+    viewports: ['desktop', 'mobile'],
+    types: {
+      pkg: { status: 'conditional', condition: 'itinerary contains activity event_type' },
+      act: { status: 'conditional', condition: 'schedule contains activity event_type' },
+      hotel: NA,
+      blog: NA,
+    },
+    emptyStateExpected: true,
+    source: 'issues/256',
+  },
+  {
+    id: 'detail-timeline-event-meal',
+    row: 54,
+    section: 'I*. P2 Typed Timeline',
+    block: 'Evento comida (TimelineEvent meal)',
+    selectors: { primary: '[data-testid="timeline-event-meal"]' },
+    viewports: ['desktop', 'mobile'],
+    types: {
+      pkg: { status: 'conditional', condition: 'itinerary contains meal event_type' },
+      act: NA,
+      hotel: NA,
+      blog: NA,
+    },
+    emptyStateExpected: true,
+    source: 'issues/256',
+  },
+  {
+    id: 'detail-timeline-event-free-time',
+    row: 55,
+    section: 'I*. P2 Typed Timeline',
+    block: 'Evento tiempo libre (TimelineEvent free_time)',
+    selectors: { primary: '[data-testid="timeline-event-free_time"]' },
+    viewports: ['desktop', 'mobile'],
+    types: {
+      pkg: { status: 'conditional', condition: 'itinerary contains free_time event_type' },
+      act: NA,
+      hotel: NA,
+      blog: NA,
+    },
+    emptyStateExpected: true,
+    source: 'issues/256',
+  },
+
   // ── Section M. Booking / checkout (DEFER per ADR-024) ───────────────────
   {
     id: 'detail-booking-trigger',

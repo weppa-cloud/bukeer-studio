@@ -10,6 +10,11 @@ export interface PlannerData {
   position: string | null;
   phone: string | null;
   slug: string;
+  /**
+   * Editorial-v1 — per-planner editorial quote (nullable).
+   * Source: `contacts.quote` (added in migration 20260503000110).
+   */
+  quote: string | null;
 }
 
 /**
@@ -21,7 +26,7 @@ export async function getPlanners(accountId: string): Promise<PlannerData[]> {
   const supabase = createSupabaseServiceRoleClient();
   const { data, error } = await supabase
     .from('contacts')
-    .select('id, name, last_name, user_image, user_rol, position, phone, phone2, user_id')
+    .select('id, name, last_name, user_image, user_rol, position, phone, phone2, user_id, quote')
     .eq('account_id', accountId)
     .eq('show_on_website', true)
     .is('deleted_at', null)
@@ -58,6 +63,7 @@ export async function getPlanners(accountId: string): Promise<PlannerData[]> {
     position: contact.position,
     phone: contact.phone || contact.phone2 || null,
     slug: slugify(`${contact.name || ''} ${contact.last_name || ''}`),
+    quote: (contact as { quote?: string | null }).quote ?? null,
   }));
 }
 

@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getWebsiteBySubdomain } from '@/lib/supabase/get-website';
+import type { WebsiteData } from '@/lib/supabase/get-website';
 import {
   getCategoryProducts,
   getDestinations,
@@ -23,8 +24,17 @@ import { buildPublicLocalizedPath, localeToOgLocale, normalizeLocale } from '@/l
 import { CategoryPage } from '@/components/pages/category-page';
 import { StaticPage } from '@/components/pages/static-page';
 import { ProductLandingPage } from '@/components/pages/product-landing-page';
+import { TemplateSlot, type TemplateSlotName } from '@/components/site/themes/editorial-v1/template-slot';
+import type { EditorialPackageDetailPayload } from '@/components/site/themes/editorial-v1/pages/package-detail';
+import type { EditorialActivityDetailPayload } from '@/components/site/themes/editorial-v1/pages/activity-detail';
+import type { EditorialHotelDetailPayload } from '@/components/site/themes/editorial-v1/pages/hotel-detail';
+import type { EditorialDestinosListPagePayload } from '@/components/site/themes/editorial-v1/pages/destinos-list';
+import type { EditorialDestinoDetailPayload } from '@/components/site/themes/editorial-v1/pages/destino-detail';
+import type { EditorialPaquetesListPagePayload } from '@/components/site/themes/editorial-v1/pages/paquetes-list';
+import type { EditorialHotelesListPagePayload } from '@/components/site/themes/editorial-v1/pages/hoteles-list';
 import { getActivityCircuitStops, type ActivityCircuitStop } from '@/lib/products/activity-circuit';
 import { sanitizeProductCopy } from '@/lib/products/normalize-product';
+import { getBasePath } from '@/lib/utils/base-path';
 import dynamic from 'next/dynamic';
 
 const DestinationListingPage = dynamic(
@@ -590,23 +600,86 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
   }
 
   const slugPath = slug.join('/');
+  const localeContext = await resolvePublicMetadataLocale(
+    website,
+    slugPath ? `/${slugPath}` : '/',
+  );
+  const websiteForRender = {
+    ...website,
+    resolvedLocale: localeContext.resolvedLocale,
+  } as WebsiteData & { resolvedLocale?: string };
 
   // Handle activities listing (/actividades)
   if (slug.length === 1 && (slug[0] === 'actividades' || slug[0] === 'activities')) {
     const { items: activityProducts } = await getCategoryProducts(subdomain, 'activities', { limit: 100, offset: 0 });
-    return <ActivitiesListingPage website={website} activities={activityProducts} />;
+    return <ActivitiesListingPage website={websiteForRender} activities={activityProducts} />;
   }
 
-  // Handle packages listing (/paquetes)
+  // Handle packages listing (/paquetes) — editorial-v1 overlay (Wave 4)
+  // wraps the generic `PackagesListingPage` via TemplateSlot. Non-editorial
+  // tenants keep the existing generic body unchanged.
   if (slug.length === 1 && (slug[0] === 'paquetes' || slug[0] === 'packages')) {
     const { items: packageProducts } = await getCategoryProducts(subdomain, 'packages', { limit: 100, offset: 0 });
-    return <PackagesListingPage website={website} packages={packageProducts} />;
+    const paquetesListBody = (
+      <PackagesListingPage website={websiteForRender} packages={packageProducts} />
+    );
+    const paquetesListPayload: EditorialPaquetesListPagePayload = {
+      packages: packageProducts,
+    };
+    return (
+      <TemplateSlot
+        name="paquetes-list"
+        website={websiteForRender}
+        payload={paquetesListPayload}
+      >
+        {paquetesListBody}
+      </TemplateSlot>
+    );
+  }
+
+  // Handle hotels listing (/hoteles) — new route. Added here following the
+  // `/paquetes` + `/destinos` pattern because no dedicated `HotelsListingPage`
+  // exists in `components/pages/`. Editorial tenants get the overlay via the
+  // TemplateSlot; non-editorial tenants currently fall through to the
+  // generic packages-listing shell (shared filtering/grid) as a placeholder
+  // until a dedicated hotels-listing generic body is built.
+  if (slug.length === 1 && (slug[0] === 'hoteles' || slug[0] === 'hotels')) {
+    const { items: hotelProducts } = await getCategoryProducts(subdomain, 'hotels', { limit: 100, offset: 0 });
+    const hotelesListBody = (
+      <PackagesListingPage website={websiteForRender} packages={hotelProducts} />
+    );
+    const hotelesListPayload: EditorialHotelesListPagePayload = {
+      hotels: hotelProducts,
+    };
+    return (
+      <TemplateSlot
+        name="hoteles-list"
+        website={websiteForRender}
+        payload={hotelesListPayload}
+      >
+        {hotelesListBody}
+      </TemplateSlot>
+    );
   }
 
   // Handle destination listing (/destinos)
   if (slug.length === 1 && (slug[0] === 'destinos' || slug[0] === 'destinations')) {
     const destinations = await getDestinations(subdomain);
-    return <DestinationListingPage website={website} destinations={destinations} />;
+    const destinosListBody = (
+      <DestinationListingPage website={websiteForRender} destinations={destinations} />
+    );
+    const destinosListPayload: EditorialDestinosListPagePayload = {
+      destinations,
+    };
+    return (
+      <TemplateSlot
+        name="destinos-list"
+        website={websiteForRender}
+        payload={destinosListPayload}
+      >
+        {destinosListBody}
+      </TemplateSlot>
+    );
   }
 
   // Handle destination detail (/destinos/[slug])
@@ -614,28 +687,47 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
     const destinations = await getDestinations(subdomain);
     const dest = destinations.find(d => d.slug === slug[1]);
     if (dest) {
-      const [products, serpData, destReviews] = await Promise.all([
+      const [products, serpData, destReviews, seoOverride] = await Promise.all([
         getDestinationProducts(subdomain, dest.name),
         // Prevent slow external enrichment from blocking destination detail navigation.
         withTimeout(enrichDestinationFromSerpAPI(dest.name), 1200, null),
         website.account_id
           ? getReviewsForContext(website.account_id, { type: 'destination', name: dest.name }, 6)
           : Promise.resolve([]),
+        getDestinationSeoOverride(website.id, dest.slug),
       ]);
       // Issue #208: thread resolved request locale into JSON-LD `inLanguage`.
       const destLocaleContext = await resolvePublicMetadataLocale(
         website,
         `/destinos/${dest.slug}`,
       );
-      return (
+      const destinoDetailBody = (
         <DestinationDetailPage
-          website={website}
+          website={websiteForRender}
           destination={dest}
           products={products}
           serpEnrichment={serpData}
           googleReviews={destReviews}
           resolvedLocale={destLocaleContext.resolvedLocale}
         />
+      );
+      const whatsappNumber =
+        (website as unknown as { social?: { whatsapp?: string | null } }).social?.whatsapp || null;
+      const destinoDetailPayload: EditorialDestinoDetailPayload = {
+        destination: dest,
+        products,
+        relatedDestinations: destinations,
+        seoOverride,
+        whatsapp: whatsappNumber,
+      };
+      return (
+        <TemplateSlot
+          name="destino-detail"
+          website={websiteForRender}
+          payload={destinoDetailPayload}
+        >
+          {destinoDetailBody}
+        </TemplateSlot>
       );
     }
   }
@@ -690,9 +782,53 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
           website,
           `/${slugPath}`,
         );
-        return (
+
+        // editorial-v1 dispatcher payload: lets the editorial overlay skip
+        // data re-fetches by reading product/basePath/display* directly.
+        const displayName = sanitizeProductCopy(
+          productPage.page?.custom_hero?.title || productPage.product.name
+        ) || productPage.product.name;
+        const displayLocation = sanitizeProductCopy(
+          productPage.page?.custom_hero?.subtitle
+            || productPage.product.location
+            || [productPage.product.city, productPage.product.country].filter(Boolean).join(', ')
+        ) || null;
+        const basePath = getBasePath(website.subdomain, Boolean(website.custom_domain));
+        let slotName: TemplateSlotName | null = null;
+        let editorialPayload:
+          | EditorialPackageDetailPayload
+          | EditorialActivityDetailPayload
+          | EditorialHotelDetailPayload
+          | null = null;
+        if (productType === 'package') {
+          slotName = 'package-detail';
+          editorialPayload = {
+            product: productPage.product,
+            basePath,
+            displayName,
+            displayLocation,
+          } satisfies EditorialPackageDetailPayload;
+        } else if (productType === 'activity') {
+          slotName = 'activity-detail';
+          editorialPayload = {
+            product: productPage.product,
+            basePath,
+            displayName,
+            displayLocation,
+          } satisfies EditorialActivityDetailPayload;
+        } else if (productType === 'hotel') {
+          slotName = 'hotel-detail';
+          editorialPayload = {
+            product: productPage.product,
+            basePath,
+            displayName,
+            displayLocation,
+          } satisfies EditorialHotelDetailPayload;
+        }
+
+        const genericBody = (
           <ProductLandingPage
-            website={website}
+            website={websiteForRender}
             product={productPage.product}
             pageCustomization={productPage.page}
             productType={productType}
@@ -702,6 +838,15 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
             resolvedLocale={productLocaleContext.resolvedLocale}
           />
         );
+
+        if (slotName && editorialPayload) {
+          return (
+            <TemplateSlot name={slotName} website={websiteForRender} payload={editorialPayload}>
+              {genericBody}
+            </TemplateSlot>
+          );
+        }
+        return genericBody;
       }
     }
   }
@@ -718,7 +863,7 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
     case 'category':
       return (
         <CategoryPage
-          website={website}
+          website={websiteForRender}
           page={page}
           categoryType={page.category_type}
         />
@@ -729,7 +874,7 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
       const dynamicDestinations = await getDestinations(subdomain);
       return (
         <StaticPage
-          website={website}
+          website={websiteForRender}
           page={page}
           dynamicDestinations={dynamicDestinations}
         />

@@ -7,6 +7,8 @@ export const DEFAULT_MARKER_COLORS: Record<MapMarkerKind, string> = {
   hotel: '#2563eb',
   activity: '#16a34a',
   service: '#9333ea',
+  stop: '#0f766e',
+  pkg: '#0f766e',
 };
 
 export interface MapThemePalette {
@@ -91,6 +93,8 @@ export function buildMapThemePaletteFromRoot(root: HTMLElement): MapThemePalette
       hotel: hotelColor,
       activity: activityColor,
       service: serviceColor,
+      stop: destinationColor,
+      pkg: destinationColor,
     },
     colombiaFillColor: mapFillColor,
     colombiaLineColor: destinationColor,

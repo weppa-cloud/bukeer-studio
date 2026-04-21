@@ -18,6 +18,8 @@ import {
   getSectionComponent,
   isValidSectionType,
 } from './section-registry';
+import { resolveTemplateSet } from './template-set';
+import { getEditorialSectionComponent } from '@/components/site/themes/editorial-v1/section-registry';
 import type { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 import type { PlannerData } from '@/lib/supabase/get-planners';
 
@@ -214,6 +216,16 @@ export function renderSectionWithResult({
     return { element: null };
   }
 
+  // 4b. Template-set override (Wave 1.1): when website.theme.profile.metadata.templateSet
+  // resolves to a known set, consult its registry. If an override exists for this
+  // section type, use it; otherwise fall through to the generic Component.
+  // When templateSet is null, behavior is IDENTICAL to before — ResolvedComponent === Component.
+  const templateSet = resolveTemplateSet(website);
+  const editorialComponent = templateSet
+    ? getEditorialSectionComponent(templateSet, section.section_type)
+    : undefined;
+  const ResolvedComponent = editorialComponent ?? Component;
+
   // Create normalized section for component
   const normalizedSection: WebsiteSection = {
     ...section,
@@ -228,14 +240,14 @@ export function renderSectionWithResult({
 
   return {
     element: (
-      <section
+      <div
         id={section.section_type}
         key={section.id || section.section_type}
         data-section-id={section.id || section.section_type}
         data-section-type={section.section_type}
       >
-        <Component section={normalizedSection} website={website} {...extraProps} />
-      </section>
+        <ResolvedComponent section={normalizedSection} website={website} {...extraProps} />
+      </div>
     ),
   };
 }

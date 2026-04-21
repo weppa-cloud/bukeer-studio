@@ -2,6 +2,9 @@ import { Metadata } from 'next';
 import { notFound, permanentRedirect } from 'next/navigation';
 
 import { ProductLandingPage } from '@/components/pages/product-landing-page';
+import { TemplateSlot } from '@/components/site/themes/editorial-v1/template-slot';
+import type { EditorialPackageDetailPayload } from '@/components/site/themes/editorial-v1/pages/package-detail';
+import { getBasePath } from '@/lib/utils/base-path';
 import {
   getCategoryProducts,
   getLocalizedProductOverlay,
@@ -195,16 +198,33 @@ export default async function PackageSlugPage({ params }: PackagePageProps) {
     `/paquetes/${productPage.product.slug || slug}`,
   );
 
+  const displayName = sanitizeProductCopy(
+    productPage.page?.custom_hero?.title || productPage.product.name
+  ) || productPage.product.name;
+  const displayLocation = sanitizeProductCopy(
+    productPage.page?.custom_hero?.subtitle
+      || productPage.product.location
+      || [productPage.product.city, productPage.product.country].filter(Boolean).join(', ')
+  ) || null;
+  const editorialPayload: EditorialPackageDetailPayload = {
+    product: productPage.product,
+    basePath: getBasePath(website.subdomain, Boolean(website.custom_domain)),
+    displayName,
+    displayLocation,
+  };
+
   return (
-    <ProductLandingPage
-      website={website}
-      product={productPage.product}
-      pageCustomization={productPage.page}
-      productType="package"
-      googleReviews={packageReviews}
-      similarProducts={similarPackages}
-      resolvedLocale={localeContext.resolvedLocale}
-    />
+    <TemplateSlot name="package-detail" website={website} payload={editorialPayload}>
+      <ProductLandingPage
+        website={website}
+        product={productPage.product}
+        pageCustomization={productPage.page}
+        productType="package"
+        googleReviews={packageReviews}
+        similarProducts={similarPackages}
+        resolvedLocale={localeContext.resolvedLocale}
+      />
+    </TemplateSlot>
   );
 }
 
