@@ -167,29 +167,29 @@ export function HeroSplit({
                 type="text"
                 name="q"
                 defaultValue={searchableLabel}
-                className="rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground"
+                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground"
               />
             </label>
 
             <div className="grid grid-cols-2 gap-3">
               <label className="grid gap-1 text-xs text-muted-foreground">
                 {detailUi.checkInLabel}
-                <input type="date" name="checkIn" className="rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground" />
+                <input type="date" name="checkIn" className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground" />
               </label>
               <label className="grid gap-1 text-xs text-muted-foreground">
                 {detailUi.checkOutLabel}
-                <input type="date" name="checkOut" className="rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground" />
+                <input type="date" name="checkOut" className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground" />
               </label>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <label className="grid gap-1 text-xs text-muted-foreground">
                 {detailUi.adultsLabel}
-                <input type="number" min={1} name="adults" defaultValue={2} className="rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground" />
+                <input type="number" min={1} name="adults" defaultValue={2} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground" />
               </label>
               <label className="grid gap-1 text-xs text-muted-foreground">
                 {detailUi.childrenLabel}
-                <input type="number" min={0} name="children" defaultValue={0} className="rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground" />
+                <input type="number" min={0} name="children" defaultValue={0} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground" />
               </label>
             </div>
 

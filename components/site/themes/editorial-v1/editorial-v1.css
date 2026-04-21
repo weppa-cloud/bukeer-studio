@@ -65,6 +65,9 @@
 :where([data-template-set="editorial-v1"]) .border-border\/70 {
   border-color: color-mix(in srgb, var(--c-line-2) 70%, transparent);
 }
+:where([data-template-set="editorial-v1"]) .border-border\/50 {
+  border-color: color-mix(in srgb, var(--c-line-2) 50%, transparent);
+}
 
 /* ============ Base typography/link rules (scoped) ============ */
 :where([data-template-set="editorial-v1"]) img {
