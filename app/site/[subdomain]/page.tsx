@@ -10,6 +10,7 @@ import {
 import { localeToOgLocale } from '@/lib/seo/locale-routing';
 import { resolveOgImage } from '@/lib/seo/og-helpers';
 import { getWebsiteBySubdomain, getBlogPosts } from '@/lib/supabase/get-website';
+import type { WebsiteData } from '@/lib/supabase/get-website';
 import { getCachedGoogleReviews, getCategoryProducts, getDestinations } from '@/lib/supabase/get-pages';
 import { getPlanners } from '@/lib/supabase/get-planners';
 import type { PlannerData } from '@/lib/supabase/get-planners';
@@ -144,6 +145,10 @@ export default async function SitePage({ params }: SitePageProps) {
   }
 
   const localeContext = await resolvePublicMetadataLocale(website, '/');
+  const websiteForRender = {
+    ...website,
+    resolvedLocale: localeContext.resolvedLocale,
+  } as WebsiteData & { resolvedLocale?: string };
   const schemas = generateHomepageSchemas(
     website,
     baseUrl,
@@ -192,9 +197,13 @@ export default async function SitePage({ params }: SitePageProps) {
     .filter((section) => section.section_type !== SECTION_CONTACT && section.section_type !== SECTION_CONTACT_FORM)
     .filter((section) => {
       // Editorial-v1 home canonical (F1) does not include standalone
-      // activities/hotels blocks between packages and explore map.
+      // activities/hotels/blog blocks on homepage flow.
       if (templateSet === 'editorial-v1') {
-        return section.section_type !== SECTION_ACTIVITIES && section.section_type !== SECTION_HOTELS;
+        return (
+          section.section_type !== SECTION_ACTIVITIES &&
+          section.section_type !== SECTION_HOTELS &&
+          section.section_type !== SECTION_BLOG
+        );
       }
       return true;
     })
@@ -233,6 +242,7 @@ export default async function SitePage({ params }: SitePageProps) {
 
   const hydratedSections = hydrateSections({
     enabledSections,
+    templateSet,
     sectionDynamicDestinations,
     packageItems,
     activityItems,
@@ -251,7 +261,7 @@ export default async function SitePage({ params }: SitePageProps) {
         <SectionRenderer
           key={section.id}
           section={section}
-          website={website}
+          website={websiteForRender}
           dbPlanners={PLANNER_TYPES.has(section.section_type) ? dbPlanners : undefined}
         />
       ))}

@@ -108,6 +108,11 @@ export default async function SiteLayout({ children, params }: SiteLayoutProps) 
   // Fetch dynamic navigation (RPC), fallback to section-based defaults
   const navItems = await getWebsiteNavigation(subdomain);
   const localeContext = await resolvePublicMetadataLocale(website, '/');
+  const websiteForRender = {
+    ...website,
+    resolvedLocale: localeContext.resolvedLocale,
+    defaultLocale: localeContext.defaultLocale,
+  };
   const basePath = getBasePath(subdomain, false);
   const navigation = navItems.length > 0
     ? buildNavTree(navItems)
@@ -123,14 +128,14 @@ export default async function SiteLayout({ children, params }: SiteLayoutProps) 
   const isEditorial = templateSet === 'editorial-v1';
 
   const headerEl = isEditorial ? (
-    <EditorialSiteHeader website={website} navigation={navigation} />
+    <EditorialSiteHeader website={websiteForRender} navigation={navigation} />
   ) : (
-    <SiteHeader website={website} navigation={navigation} />
+    <SiteHeader website={websiteForRender} navigation={navigation} />
   );
   const footerEl = isEditorial ? (
-    <EditorialSiteFooter website={website} navigation={navigation} />
+    <EditorialSiteFooter website={websiteForRender} navigation={navigation} />
   ) : (
-    <SiteFooter website={website} navigation={navigation} />
+    <SiteFooter website={websiteForRender} navigation={navigation} />
   );
 
   const smoothScrollContent = (

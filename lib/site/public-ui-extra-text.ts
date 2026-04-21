@@ -487,7 +487,85 @@ const BASE_EXTRA_TEXTS = {
 
 export type PublicUiExtraTextKey = keyof typeof BASE_EXTRA_TEXTS;
 
-const EN_US_OVERRIDES: Partial<Record<PublicUiExtraTextKey, string>> = {};
+const EN_US_OVERRIDES: Partial<Record<PublicUiExtraTextKey, string>> = {
+  editorialHeaderQuoteCta: 'Get a quote',
+  editorialHeaderNavAria: 'Main',
+  editorialHeaderMobileMenuAria: 'Mobile menu',
+  editorialHeaderMenuOpen: 'Open menu',
+  editorialHeaderMenuClose: 'Close menu',
+
+  editorialFooterColDestinos: 'Destinations',
+  editorialFooterColViajar: 'Travel',
+  editorialFooterColAgencia: 'Agency',
+  editorialFooterColNewsletter: 'Get stories',
+  editorialFooterViewAll: 'View all',
+  editorialFooterSearch: 'Search',
+  editorialFooterEmailPlaceholder: 'you@email.com',
+  editorialFooterEmailLabel: 'Email',
+  editorialFooterSubscribe: 'Subscribe',
+  editorialFooterNewsletterHint:
+    'One monthly email with places we love and limited offers.',
+  editorialFooterTaglineFallback: 'Travel deeper.',
+  editorialFooterAboutFallback:
+    'We are a local operator. We design journeys with local guides and family-run stays.',
+  editorialFooterLegalPrivacy: 'Privacy',
+  editorialFooterLegalTerms: 'Terms',
+  editorialFooterLegalCancellation: 'Cancellation policy',
+
+  editorialSwitcherHeading: 'Customize your',
+  editorialSwitcherHeadingEmphasis: 'experience',
+  editorialSwitcherDescription: 'Site language and price currency.',
+  editorialSwitcherLanguageSubheading: 'Language',
+  editorialSwitcherCurrencySubheading: 'Currency',
+  editorialSwitcherSavedHint: 'Saved in this browser',
+  editorialSwitcherTriggerAria: 'Open language and currency preferences',
+  editorialSwitcherDialogAria: 'Customize your experience',
+  editorialSwitcherLanguageItemAria: 'Change language',
+  editorialSwitcherCurrencyItemAria: 'Change currency',
+  editorialSwitcherLoadingPrefix: 'Loading in',
+
+  editorialHeroEyebrowFallback: 'DISCOVER · FEEL · CONNECT',
+  editorialHeroSideListLabel: 'Destination of the month',
+  editorialHeroSlidesAria: 'Featured images',
+  editorialHeroPresenting: 'Now showing',
+  editorialHeroDotsAria: 'Select slide',
+  editorialHeroSlidePrefix: 'Slide',
+
+  editorialSearchPlaceholderDestino: 'Caribbean · Colombia',
+  editorialSearchPlaceholderFechas: 'October 2026 · 7 nights',
+  editorialSearchPlaceholderViajeros: '2 travelers',
+  editorialSearchSubmit: 'Search',
+  editorialSearchDestinoLabel: 'Destination',
+  editorialSearchWhenLabel: 'When',
+  editorialSearchFechasAria: 'Travel dates',
+  editorialSearchViajerosLabel: 'Travelers',
+
+  editorialPackagesEyebrowFallback: 'CURATED EXPERIENCES',
+  editorialPackagesTitleFallback: 'Packages',
+  editorialPackagesAllTab: 'All',
+  editorialPackagesPopular: 'POPULAR',
+  editorialPackagesFromPrefix: 'FROM',
+  editorialPackagesConsultPrice: 'Ask for price',
+  editorialPackagesCtaFallback: 'VIEW PACKAGE',
+  editorialPackagesEmpty: 'No packages available',
+  editorialPackagesFiltersAria: 'Package filters',
+  editorialPackagesRailAria: 'Packages carousel',
+  editorialPackagesWord: 'packages',
+  editorialPackageWord: 'package',
+
+  editorialTrustLiveLabel: 'Planners online',
+  editorialTrustResponsePrefix: 'reply in about ',
+  editorialTrustResponseFallback: 'reply soon',
+  editorialTrustCertified: 'certified local operator',
+  editorialTrustRatingAverage: 'average rating',
+  editorialTrustRecommendation: 'travelers would recommend us',
+  editorialTrustYearsSuffix: 'years',
+  editorialTrustSatisfactionSuffix: 'satisfaction',
+  editorialTrustHumanReview: 'Human-reviewed',
+  editorialTrustHumanReviewBody: 'every itinerary',
+  editorialTrustAriaLabel: 'Trust and credibility',
+  editorialTrustVerifiedSuffix: 'verified reviews',
+};
 const PT_BR_OVERRIDES: Partial<Record<PublicUiExtraTextKey, string>> = {};
 
 const EXTRA_TEXTS_BY_LOCALE: Record<

@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getWebsiteBySubdomain } from '@/lib/supabase/get-website';
+import type { WebsiteData } from '@/lib/supabase/get-website';
 import {
   getCategoryProducts,
   getDestinations,
@@ -599,11 +600,19 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
   }
 
   const slugPath = slug.join('/');
+  const localeContext = await resolvePublicMetadataLocale(
+    website,
+    slugPath ? `/${slugPath}` : '/',
+  );
+  const websiteForRender = {
+    ...website,
+    resolvedLocale: localeContext.resolvedLocale,
+  } as WebsiteData & { resolvedLocale?: string };
 
   // Handle activities listing (/actividades)
   if (slug.length === 1 && (slug[0] === 'actividades' || slug[0] === 'activities')) {
     const { items: activityProducts } = await getCategoryProducts(subdomain, 'activities', { limit: 100, offset: 0 });
-    return <ActivitiesListingPage website={website} activities={activityProducts} />;
+    return <ActivitiesListingPage website={websiteForRender} activities={activityProducts} />;
   }
 
   // Handle packages listing (/paquetes) — editorial-v1 overlay (Wave 4)
@@ -612,7 +621,7 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
   if (slug.length === 1 && (slug[0] === 'paquetes' || slug[0] === 'packages')) {
     const { items: packageProducts } = await getCategoryProducts(subdomain, 'packages', { limit: 100, offset: 0 });
     const paquetesListBody = (
-      <PackagesListingPage website={website} packages={packageProducts} />
+      <PackagesListingPage website={websiteForRender} packages={packageProducts} />
     );
     const paquetesListPayload: EditorialPaquetesListPagePayload = {
       packages: packageProducts,
@@ -620,7 +629,7 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
     return (
       <TemplateSlot
         name="paquetes-list"
-        website={website}
+        website={websiteForRender}
         payload={paquetesListPayload}
       >
         {paquetesListBody}
@@ -637,7 +646,7 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
   if (slug.length === 1 && (slug[0] === 'hoteles' || slug[0] === 'hotels')) {
     const { items: hotelProducts } = await getCategoryProducts(subdomain, 'hotels', { limit: 100, offset: 0 });
     const hotelesListBody = (
-      <PackagesListingPage website={website} packages={hotelProducts} />
+      <PackagesListingPage website={websiteForRender} packages={hotelProducts} />
     );
     const hotelesListPayload: EditorialHotelesListPagePayload = {
       hotels: hotelProducts,
@@ -645,7 +654,7 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
     return (
       <TemplateSlot
         name="hoteles-list"
-        website={website}
+        website={websiteForRender}
         payload={hotelesListPayload}
       >
         {hotelesListBody}
@@ -657,7 +666,7 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
   if (slug.length === 1 && (slug[0] === 'destinos' || slug[0] === 'destinations')) {
     const destinations = await getDestinations(subdomain);
     const destinosListBody = (
-      <DestinationListingPage website={website} destinations={destinations} />
+      <DestinationListingPage website={websiteForRender} destinations={destinations} />
     );
     const destinosListPayload: EditorialDestinosListPagePayload = {
       destinations,
@@ -665,7 +674,7 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
     return (
       <TemplateSlot
         name="destinos-list"
-        website={website}
+        website={websiteForRender}
         payload={destinosListPayload}
       >
         {destinosListBody}
@@ -694,7 +703,7 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
       );
       const destinoDetailBody = (
         <DestinationDetailPage
-          website={website}
+          website={websiteForRender}
           destination={dest}
           products={products}
           serpEnrichment={serpData}
@@ -714,7 +723,7 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
       return (
         <TemplateSlot
           name="destino-detail"
-          website={website}
+          website={websiteForRender}
           payload={destinoDetailPayload}
         >
           {destinoDetailBody}
@@ -819,7 +828,7 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
 
         const genericBody = (
           <ProductLandingPage
-            website={website}
+            website={websiteForRender}
             product={productPage.product}
             pageCustomization={productPage.page}
             productType={productType}
@@ -832,7 +841,7 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
 
         if (slotName && editorialPayload) {
           return (
-            <TemplateSlot name={slotName} website={website} payload={editorialPayload}>
+            <TemplateSlot name={slotName} website={websiteForRender} payload={editorialPayload}>
               {genericBody}
             </TemplateSlot>
           );
@@ -854,7 +863,7 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
     case 'category':
       return (
         <CategoryPage
-          website={website}
+          website={websiteForRender}
           page={page}
           categoryType={page.category_type}
         />
@@ -865,7 +874,7 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
       const dynamicDestinations = await getDestinations(subdomain);
       return (
         <StaticPage
-          website={website}
+          website={websiteForRender}
           page={page}
           dynamicDestinations={dynamicDestinations}
         />
