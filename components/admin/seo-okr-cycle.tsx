@@ -661,7 +661,7 @@ export function SeoOkrCycle({ websiteId, overview }: SeoOkrCycleProps) {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <Ciclo7D websiteId={websiteId} />
-        <Ciclo30D overview={overview} targets={targets} />
+        <Ciclo30D overview={overview} targets={null} />
         <Ciclo90D websiteId={websiteId} />
       </div>
     </div>

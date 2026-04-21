@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { StudioTabs, StudioButton, StudioBadge, StudioInput, StudioSelect, StudioTextarea } from '@/components/studio/ui/primitives';
