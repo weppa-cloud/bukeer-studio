@@ -27,8 +27,6 @@ import type { ColombiaMapPin } from '@/components/site/themes/editorial-v1/maps/
 import type { EditorialRegion } from '@/components/site/themes/editorial-v1/maps/colombia-map-shared';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 
-const editorialText = getPublicUiExtraTextGetter('es-CO');
-
 export interface ListingMapItem {
   id: string;
   slug?: string | null;
@@ -45,12 +43,14 @@ export interface ListingMapProps<T extends ListingMapItem> {
   renderCard: (item: T, context: { isActive: boolean }) => ReactNode;
   /** Optional click handler for a pin — fires the matching item. */
   onItemClick?: (item: T) => void;
-  /** Accessibility label for the map — defaults to "Mapa de listado". */
+  /** Accessibility label for the map — defaults to a locale-aware text key. */
   ariaLabel?: string;
   /** Extra classes tacked onto the outer wrapper. */
   className?: string;
   /** Height of the map stage — CSS length. Defaults to `720px`. */
   mapHeight?: string | number;
+  /** Locale used by fallback labels when `ariaLabel` is omitted. */
+  locale?: string;
 }
 
 function isPinnable(item: ListingMapItem): boolean {
@@ -76,10 +76,13 @@ export function ListingMap<T extends ListingMapItem>({
   items,
   renderCard,
   onItemClick,
-  ariaLabel = editorialText('editorialListingMapAriaFallback'),
+  ariaLabel,
   className,
   mapHeight = 720,
+  locale = 'es-CO',
 }: ListingMapProps<T>) {
+  const editorialText = getPublicUiExtraTextGetter(locale);
+  const resolvedAriaLabel = ariaLabel ?? editorialText('editorialListingMapAriaFallback');
   const [activeId, setActiveId] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
   const cardRefs = useRef<Map<string, HTMLDivElement | null>>(new Map());
@@ -164,7 +167,7 @@ export function ListingMap<T extends ListingMapItem>({
           showRivers={false}
           showCompass
           height={mapHeight}
-          ariaLabel={ariaLabel}
+          ariaLabel={resolvedAriaLabel}
         />
       </div>
     </div>

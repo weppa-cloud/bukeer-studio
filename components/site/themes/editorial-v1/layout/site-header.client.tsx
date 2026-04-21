@@ -11,9 +11,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { Icons } from '../primitives/icons';
-import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
-
-const editorialText = getPublicUiExtraTextGetter('es-CO');
 
 export interface MobileNavToggleProps {
   panelId: string;
@@ -66,8 +63,8 @@ export function HeaderScrollState({ headerId }: HeaderScrollStateProps) {
 
 export function MobileNavToggle({
   panelId,
-  openLabel = editorialText('editorialHeaderMenuOpen'),
-  closeLabel = editorialText('editorialHeaderMenuClose'),
+  openLabel = 'Open menu',
+  closeLabel = 'Close menu',
 }: MobileNavToggleProps) {
   const [open, setOpen] = useState(false);
 

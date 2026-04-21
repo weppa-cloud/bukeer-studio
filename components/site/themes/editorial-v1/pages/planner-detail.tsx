@@ -40,8 +40,6 @@ import { Icons } from '../primitives/icons';
 import { getBasePath } from '@/lib/utils/base-path';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 
-const editorialText = getPublicUiExtraTextGetter('es-CO');
-
 // ---------- Shape overrides authors can pass via sections content ----
 
 export interface PlannerPayload {
@@ -110,46 +108,46 @@ export interface EditorialPlannerDetailPageProps {
 
 // ---------- Copy (verbatim copy-catalog.md "Planner detail page") ----
 
-const SECTION_COPY = {
-  bio: editorialText('editorialPlannerDetailBio'),
-  differentiators: editorialText('editorialPlannerDetailDifferentiators'),
-  differentiatorsEm: editorialText('editorialPlannerDetailDifferentiatorsEm'),
-  specialtiesLabel: editorialText('editorialPlannerDetailSpecialtiesLabel'),
-  regionsLabel: editorialText('editorialPlannerDetailRegionsLabel'),
-  signature: editorialText('editorialPlannerDetailSignature'),
-  signatureEm: editorialText('editorialPlannerDetailSignatureEm'),
-  signatureSubLabel: editorialText('editorialPlannerDetailSignatureSubLabel'),
-  hallmarks: editorialText('editorialPlannerDetailHallmarks'),
-  hallmarksEm: editorialText('editorialPlannerDetailHallmarksEm'),
-  facts: editorialText('editorialPlannerDetailFacts'),
-  factsEm: editorialText('editorialPlannerDetailFactsEm'),
-  reviewsTitle: editorialText('editorialPlannerDetailReviewsTitle'),
-  reviewsEm: editorialText('editorialPlannerDetailReviewsEm'),
-  otherPlanners: editorialText('editorialPlannerDetailOtherPlanners'),
-  otherPlannersEm: editorialText('editorialPlannerDetailOtherPlannersEm'),
-  kpiExperience: editorialText('editorialPlannerDetailKpiExperience'),
-  kpiTrips: editorialText('editorialPlannerDetailKpiTrips'),
-  kpiRating: editorialText('editorialPlannerDetailKpiRating'),
-  kpiLanguages: editorialText('editorialPlannerDetailKpiLanguages'),
-  railSpeakWith: editorialText('editorialPlannerDetailRailSpeakWith'),
-  railResponseTime: editorialText('editorialPlannerDetailRailResponseTime'),
-  railFrom: editorialText('editorialPlannerDetailRailFrom'),
-  railLanguages: editorialText('editorialPlannerDetailRailLanguages'),
-  railPrimaryCta: editorialText('editorialPlannerDetailRailPrimaryCta'),
-  railSecondaryCta: editorialText('editorialPlannerDetailRailSecondaryCta'),
-  railFootnote: editorialText('editorialPlannerDetailRailFootnote'),
-  signaturePrimaryCta: editorialText('editorialPlannerDetailSignaturePrimaryCta'),
-  signatureSecondaryCta: editorialText('editorialPlannerDetailSignatureSecondaryCta'),
-  signatureChip: editorialText('editorialPlannerDetailSignatureChip'),
-} as const;
+type EditorialTextGetter = ReturnType<typeof getPublicUiExtraTextGetter>;
 
-const DEFAULT_AVAILABILITY = editorialText('editorialPlannersAvailable');
-const DEFAULT_RESPONSE = editorialText('editorialPlannerDetailDefaultResponse');
-const DEFAULT_BIO_FALLBACK = editorialText('editorialPlannerDetailBioFallback');
+function createSectionCopy(editorialText: EditorialTextGetter) {
+  return {
+    bio: editorialText('editorialPlannerDetailBio'),
+    differentiators: editorialText('editorialPlannerDetailDifferentiators'),
+    differentiatorsEm: editorialText('editorialPlannerDetailDifferentiatorsEm'),
+    specialtiesLabel: editorialText('editorialPlannerDetailSpecialtiesLabel'),
+    regionsLabel: editorialText('editorialPlannerDetailRegionsLabel'),
+    signature: editorialText('editorialPlannerDetailSignature'),
+    signatureEm: editorialText('editorialPlannerDetailSignatureEm'),
+    signatureSubLabel: editorialText('editorialPlannerDetailSignatureSubLabel'),
+    hallmarks: editorialText('editorialPlannerDetailHallmarks'),
+    hallmarksEm: editorialText('editorialPlannerDetailHallmarksEm'),
+    facts: editorialText('editorialPlannerDetailFacts'),
+    factsEm: editorialText('editorialPlannerDetailFactsEm'),
+    reviewsTitle: editorialText('editorialPlannerDetailReviewsTitle'),
+    reviewsEm: editorialText('editorialPlannerDetailReviewsEm'),
+    otherPlanners: editorialText('editorialPlannerDetailOtherPlanners'),
+    otherPlannersEm: editorialText('editorialPlannerDetailOtherPlannersEm'),
+    kpiExperience: editorialText('editorialPlannerDetailKpiExperience'),
+    kpiTrips: editorialText('editorialPlannerDetailKpiTrips'),
+    kpiRating: editorialText('editorialPlannerDetailKpiRating'),
+    kpiLanguages: editorialText('editorialPlannerDetailKpiLanguages'),
+    railSpeakWith: editorialText('editorialPlannerDetailRailSpeakWith'),
+    railResponseTime: editorialText('editorialPlannerDetailRailResponseTime'),
+    railFrom: editorialText('editorialPlannerDetailRailFrom'),
+    railLanguages: editorialText('editorialPlannerDetailRailLanguages'),
+    railPrimaryCta: editorialText('editorialPlannerDetailRailPrimaryCta'),
+    railSecondaryCta: editorialText('editorialPlannerDetailRailSecondaryCta'),
+    railFootnote: editorialText('editorialPlannerDetailRailFootnote'),
+    signaturePrimaryCta: editorialText('editorialPlannerDetailSignaturePrimaryCta'),
+    signatureSecondaryCta: editorialText('editorialPlannerDetailSignatureSecondaryCta'),
+    signatureChip: editorialText('editorialPlannerDetailSignatureChip'),
+  } as const;
+}
 
 // ---------- Helpers ----------
 
-function mapRole(role: string | null): string {
+function mapRole(role: string | null, editorialText: EditorialTextGetter): string {
   const roleMap: Record<string, string> = {
     agent: editorialText('editorialRoleAgent'),
     admin: editorialText('editorialRolePlanner'),
@@ -195,11 +193,21 @@ export function EditorialPlannerDetailPage({
   relatedPackages,
   otherPlanners,
 }: EditorialPlannerDetailPageProps) {
+  const resolvedLocale =
+    (website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale ??
+    website.content?.locale ??
+    website.default_locale ??
+    'es-CO';
+  const editorialText = getPublicUiExtraTextGetter(resolvedLocale);
+  const SECTION_COPY = createSectionCopy(editorialText);
+  const DEFAULT_AVAILABILITY = editorialText('editorialPlannersAvailable');
+  const DEFAULT_RESPONSE = editorialText('editorialPlannerDetailDefaultResponse');
+  const DEFAULT_BIO_FALLBACK = editorialText('editorialPlannerDetailBioFallback');
   const basePath = getBasePath(website.subdomain, false);
   const websiteWhatsapp = website.content?.social?.whatsapp;
   const { first, rest } = splitName(planner.fullName);
 
-  const role = planner.position || mapRole(planner.role);
+  const role = planner.position || mapRole(planner.role, editorialText);
   const quote =
     (planner.quote && planner.quote.trim()) ||
     DEFAULT_BIO_FALLBACK;
@@ -836,7 +844,7 @@ export function EditorialPlannerDetailPage({
                         <div className="who">
                           <b>{o.fullName}</b>
                           <div className="role">
-                            {o.position || mapRole(o.role)}
+                            {o.position || mapRole(o.role, editorialText)}
                           </div>
                         </div>
                       </div>

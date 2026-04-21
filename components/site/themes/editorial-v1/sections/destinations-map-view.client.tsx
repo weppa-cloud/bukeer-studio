@@ -25,8 +25,6 @@ import type { EditorialRegion } from '@/components/site/themes/editorial-v1/maps
 import { trackEvent } from '@/lib/analytics/track';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 
-const editorialText = getPublicUiExtraTextGetter('es-CO');
-
 export interface MapDestination {
   id: string;
   name: string;
@@ -45,6 +43,7 @@ export interface DestinationsMapViewProps {
   activitiesWord?: string;
   packagesWord?: string;
   ariaLabel?: string;
+  locale?: string | null;
 }
 
 function destinationHref(d: MapDestination, basePath: string): string {
@@ -55,10 +54,15 @@ function destinationHref(d: MapDestination, basePath: string): string {
 export function DestinationsMapView({
   destinations,
   basePath,
-  activitiesWord = editorialText('editorialActivitiesWord'),
-  packagesWord = editorialText('editorialPackagesWord'),
-  ariaLabel = editorialText('editorialDestinationsMapAriaFallback'),
+  activitiesWord,
+  packagesWord,
+  ariaLabel,
+  locale,
 }: DestinationsMapViewProps) {
+  const editorialText = getPublicUiExtraTextGetter(locale ?? 'es-CO');
+  const resolvedActivitiesWord = activitiesWord ?? editorialText('editorialActivitiesWord');
+  const resolvedPackagesWord = packagesWord ?? editorialText('editorialPackagesWord');
+  const resolvedAriaLabel = ariaLabel ?? editorialText('editorialDestinationsMapAriaFallback');
   const [activeId, setActiveId] = useState<string | null>(null);
 
   const pins: ColombiaMapPin[] = destinations
@@ -125,7 +129,7 @@ export function DestinationsMapView({
           showRidges
           showRivers
           height={660}
-          ariaLabel={ariaLabel}
+          ariaLabel={resolvedAriaLabel}
         />
       </div>
       <div className="dest-map-side" role="list">
@@ -134,10 +138,10 @@ export function DestinationsMapView({
           const active = activeId === d.id;
           const counts: string[] = [];
           if (d.activitiesCount > 0) {
-            counts.push(`${d.activitiesCount} ${activitiesWord}`);
+            counts.push(`${d.activitiesCount} ${resolvedActivitiesWord}`);
           }
           if (d.packagesCount > 0) {
-            counts.push(`${d.packagesCount} ${packagesWord}`);
+            counts.push(`${d.packagesCount} ${resolvedPackagesWord}`);
           }
           const summary = counts.join(' · ');
           return (

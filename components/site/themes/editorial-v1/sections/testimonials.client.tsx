@@ -21,8 +21,6 @@ import Image from 'next/image';
 import { Icons } from '@/components/site/themes/editorial-v1/primitives/icons';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 
-const editorialText = getPublicUiExtraTextGetter('es-CO');
-
 export interface TestimonialItem {
   id?: string;
   name: string;
@@ -37,6 +35,7 @@ export interface TestimonialItem {
 
 interface TestimonialsClientProps {
   testimonials: TestimonialItem[];
+  locale?: string;
 }
 
 function initials(name: string): string {
@@ -47,10 +46,10 @@ function initials(name: string): string {
     .join('');
 }
 
-function renderStars(rating: number) {
+function renderStars(rating: number, starsAriaSuffix: string) {
   const count = Math.max(1, Math.min(5, Math.round(rating || 5)));
   return (
-    <div className="stars" aria-label={`${count} ${editorialText('editorialTestimonialsStarsAriaSuffix')}`}>
+    <div className="stars" aria-label={`${count} ${starsAriaSuffix}`}>
       {Array.from({ length: count }).map((_, i) => (
         <span key={i}>{Icons.star({ size: 18 })}</span>
       ))}
@@ -80,7 +79,8 @@ function renderAvatar(t: TestimonialItem, size: number) {
   );
 }
 
-export function TestimonialsClient({ testimonials }: TestimonialsClientProps) {
+export function TestimonialsClient({ testimonials, locale = 'es-CO' }: TestimonialsClientProps) {
+  const editorialText = getPublicUiExtraTextGetter(locale);
   const [idx, setIdx] = useState(0);
   const featured = testimonials[idx] ?? testimonials[0];
   if (!featured) return null;
@@ -91,7 +91,7 @@ export function TestimonialsClient({ testimonials }: TestimonialsClientProps) {
         <span className="quote-mark" aria-hidden="true">
           &ldquo;
         </span>
-        {renderStars(featured.rating ?? 5)}
+        {renderStars(featured.rating ?? 5, editorialText('editorialTestimonialsStarsAriaSuffix'))}
         <blockquote>
           {featured.text ? <span dangerouslySetInnerHTML={{ __html: sanitizeQuote(featured.text) }} /> : null}
         </blockquote>

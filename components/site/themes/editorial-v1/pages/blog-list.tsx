@@ -27,20 +27,6 @@ import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 
 import { BlogListToolbar } from './blog-list-toolbar.client';
 
-const editorialText = getPublicUiExtraTextGetter('es-CO');
-
-const DEFAULT_EYEBROW = editorialText('editorialBlogListEyebrow');
-const DEFAULT_TITLE = editorialText('editorialBlogListTitle');
-const DEFAULT_EMPHASIS = editorialText('editorialBlogListEmphasis');
-const DEFAULT_SUBTITLE = editorialText('editorialBlogListSubtitle');
-const ALL_LABEL = editorialText('editorialBlogListAllTab');
-const EMPTY_HEADING = editorialText('editorialBlogEmptyHeading');
-const EMPTY_BODY = editorialText('editorialBlogEmptyBody');
-const LOAD_MORE = editorialText('editorialBlogLoadMore');
-const PREV_LABEL = editorialText('editorialBlogPrev');
-const NEXT_LABEL = editorialText('editorialBlogNext');
-const READ_CTA = editorialText('editorialBlogReadCta');
-
 export interface EditorialBlogListPageProps {
   website: WebsiteData;
   subdomain: string;
@@ -82,6 +68,7 @@ function buildHref(
 export function EditorialBlogListPage({
   website,
   subdomain,
+  locale,
   posts,
   categories,
   total,
@@ -91,6 +78,22 @@ export function EditorialBlogListPage({
   query,
 }: EditorialBlogListPageProps) {
   const basePath = `/site/${subdomain}`;
+  const resolvedLocale =
+    locale
+    || (website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale
+    || 'es-CO';
+  const editorialText = getPublicUiExtraTextGetter(resolvedLocale);
+  const DEFAULT_EYEBROW = editorialText('editorialBlogListEyebrow');
+  const DEFAULT_TITLE = editorialText('editorialBlogListTitle');
+  const DEFAULT_EMPHASIS = editorialText('editorialBlogListEmphasis');
+  const DEFAULT_SUBTITLE = editorialText('editorialBlogListSubtitle');
+  const ALL_LABEL = editorialText('editorialBlogListAllTab');
+  const EMPTY_HEADING = editorialText('editorialBlogEmptyHeading');
+  const EMPTY_BODY = editorialText('editorialBlogEmptyBody');
+  const LOAD_MORE = editorialText('editorialBlogLoadMore');
+  const PREV_LABEL = editorialText('editorialBlogPrev');
+  const NEXT_LABEL = editorialText('editorialBlogNext');
+  const READ_CTA = editorialText('editorialBlogReadCta');
   const totalPages = Math.max(1, Math.ceil(total / Math.max(limit, 1)));
   const hasPrev = page > 1;
   const hasNext = page < totalPages;
@@ -204,6 +207,7 @@ export function EditorialBlogListPage({
           {/* Toolbar (client leaf — URL-synced filters) */}
           <BlogListToolbar
             basePath={basePath}
+            locale={resolvedLocale}
             categories={categories}
             activeCategorySlug={category ?? null}
             initialQuery={query ?? ''}

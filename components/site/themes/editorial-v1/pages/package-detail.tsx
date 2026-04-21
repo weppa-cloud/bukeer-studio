@@ -44,8 +44,6 @@ import { sanitizeProductCopy } from '@/lib/products/normalize-product';
 import { getPackageCircuitStops, withCoords } from '@/lib/products/package-circuit';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 
-const editorialText = getPublicUiExtraTextGetter('es-CO');
-
 export interface EditorialPackageDetailPayload {
   product: ProductData;
   basePath: string;
@@ -230,10 +228,16 @@ function buildMapPins(product: ProductData): ColombiaMapPin[] {
 }
 
 export function EditorialPackageDetail({
-  website: _website,
+  website,
   payload,
   children,
 }: EditorialPackageDetailProps) {
+  const resolvedLocale =
+    (website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale ??
+    website.content?.locale ??
+    website.default_locale ??
+    'es-CO';
+  const editorialText = getPublicUiExtraTextGetter(resolvedLocale);
   const resolvedPayload = payload as EditorialPackageDetailPayload | undefined;
 
   if (!resolvedPayload || !resolvedPayload.product) {

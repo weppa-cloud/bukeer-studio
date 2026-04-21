@@ -45,8 +45,6 @@ import { editorialHtml } from '@/components/site/themes/editorial-v1/primitives/
 import { trackEvent } from '@/lib/analytics/track';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 
-const editorialText = getPublicUiExtraTextGetter('es-CO');
-
 // ---------- Public types ----------
 export interface ExploreMapRegionConfig {
   key: ColombiaRegion;
@@ -72,6 +70,7 @@ interface ExploreMapClientProps {
   ctaLabel: string;
   /** Already resolved by the server wrapper — ready to use as `href`. */
   ctaHref: string;
+  locale?: string | null;
 }
 
 // ---------- Helpers ----------
@@ -142,7 +141,9 @@ export function ExploreMapClient({
   destinations,
   ctaLabel,
   ctaHref,
+  locale,
 }: ExploreMapClientProps) {
+  const editorialText = getPublicUiExtraTextGetter(locale ?? 'es-CO');
   const [hoveredRegion, setHoveredRegion] = useState<ColombiaRegion | null>(
     null,
   );

@@ -37,9 +37,7 @@ import { getBasePath } from '@/lib/utils/base-path';
 import { Icons } from '../primitives/icons';
 import { HeroRotator, type HeroRotatorSlide } from './hero-rotator.client';
 import { HeroSearch, type HeroSearchPlaceholders } from './hero-search.client';
-import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
-
-const editorialText = getPublicUiExtraTextGetter('es-CO');
+import { getEditorialTextGetter, localizeEditorialText } from '../i18n';
 
 // ---------- Props ----------
 export interface EditorialHeroSectionProps {
@@ -98,8 +96,12 @@ interface HeroContent {
 
 // ---------- Constants ----------
 // Kept as module-level getters so the server component pays the lookup once.
-const DEFAULT_EYEBROW = editorialText('editorialHeroEyebrowFallback');
-const DEFAULT_SIDE_LIST_LABEL = editorialText('editorialHeroSideListLabel');
+const DEFAULT_FALLBACK_SLIDES: HeroRotatorSlide[] = [
+  { city: 'Cartagena', region: 'Caribe', imageUrl: null, alt: 'Cartagena · Colombia' },
+  { city: 'Tayrona', region: 'Sierra', imageUrl: null, alt: 'Tayrona · Colombia' },
+  { city: 'Eje Cafetero', region: 'Andes', imageUrl: null, alt: 'Eje Cafetero · Colombia' },
+  { city: 'Medellín', region: 'Antioquia', imageUrl: null, alt: 'Medellín · Colombia' },
+];
 
 // ---------- Markup sanitizer for headline ----------
 // Headlines come from the operator-controlled `section.content.headline` and
@@ -194,12 +196,15 @@ export function HeroSection({
   section,
   website,
 }: EditorialHeroSectionProps): ReactElement {
+  const editorialText = getEditorialTextGetter(website);
+  const defaultEyebrow = editorialText('editorialHeroEyebrowFallback');
+  const defaultSideListLabel = editorialText('editorialHeroSideListLabel');
   const content = (section.content || {}) as HeroContent;
   const basePath = getBasePath(website.subdomain, false);
 
-  const eyebrow = content.eyebrow?.trim() || DEFAULT_EYEBROW;
-  const sanitizedHeadline = sanitizeHeadline(content.headline);
-  const subtitle = content.subtitle?.trim() || '';
+  const eyebrow = localizeEditorialText(website, content.eyebrow?.trim() || defaultEyebrow);
+  const sanitizedHeadline = sanitizeHeadline(localizeEditorialText(website, content.headline));
+  const subtitle = localizeEditorialText(website, content.subtitle?.trim() || '');
   const trustChip = content.trustChip;
 
   const authoredSlides: HeroRotatorSlide[] = Array.isArray(content.slides)
@@ -231,10 +236,14 @@ export function HeroSection({
 
   const slides: HeroRotatorSlide[] = authoredSlides.length > 0
     ? authoredSlides
-    : featuredSlides;
+    : featuredSlides.length > 0
+      ? featuredSlides
+      : DEFAULT_FALLBACK_SLIDES;
 
   const ctas: HeroCtaContent[] = Array.isArray(content.ctas)
-    ? content.ctas.filter((c) => c && c.label)
+    ? content.ctas
+        .filter((c) => c && c.label)
+        .map((c) => ({ ...c, label: localizeEditorialText(website, c.label) }))
     : [];
 
   const authoredSideList: HeroSideListItem[] = Array.isArray(content.sideList)
@@ -263,7 +272,11 @@ export function HeroSection({
   return (
     <section className="hero" data-screen-label="Hero">
       {hasSlides ? (
-        <HeroRotator slides={slides} ariaLabel={editorialText('editorialHeroSlidesAria')} />
+        <HeroRotator
+          slides={slides}
+          ariaLabel={editorialText('editorialHeroSlidesAria')}
+          locale={(website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale ?? 'es-CO'}
+        />
       ) : (
         <div className="hero-media" aria-hidden="true">
           <div className="scenic" />
@@ -310,7 +323,11 @@ export function HeroSection({
 
           {searchEnabled ? (
             <div style={{ marginTop: 36, maxWidth: 720 }}>
-              <HeroSearch placeholders={placeholders} basePath={basePath} />
+              <HeroSearch
+                placeholders={placeholders}
+                basePath={basePath}
+                locale={(website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale ?? 'es-CO'}
+              />
             </div>
           ) : null}
         </div>
@@ -322,7 +339,7 @@ export function HeroSection({
                 className="eyebrow hero-eyebrow"
                 style={{ marginBottom: 12 }}
               >
-                {DEFAULT_SIDE_LIST_LABEL}
+                {defaultSideListLabel}
               </span>
               {sideList.map((item, i) => {
                 const index = String(i + 1).padStart(2, '0');

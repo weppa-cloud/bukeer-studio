@@ -25,6 +25,7 @@ import type { ProductData } from '@bukeer/website-contract';
 import { Breadcrumbs } from '../primitives/breadcrumbs';
 import { Eyebrow } from '../primitives/eyebrow';
 import { getBasePath } from '@/lib/utils/base-path';
+import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 
 import {
   HotelesListGrid,
@@ -43,12 +44,30 @@ export interface EditorialHotelesListPageProps {
 }
 
 // -------------------- Copy --------------------
-
-const HERO_EYEBROW = 'HOTELES';
-const HERO_TITLE = 'Estancias';
-const HERO_EMPHASIS = 'curadas por ciudad.';
-const HERO_SUBTITLE =
-  'Fincas, boutiques y resorts seleccionados por nuestros planners. Cambia de categoría sin reconstruir el viaje.';
+function getHeroCopy(localeLike: string): {
+  eyebrow: string;
+  title: string;
+  emphasis: string;
+  subtitle: string;
+} {
+  const locale = localeLike.toLowerCase();
+  if (locale.startsWith('en')) {
+    return {
+      eyebrow: 'HOTELS',
+      title: 'Stays',
+      emphasis: 'curated by city.',
+      subtitle:
+        'Fincas, boutiques, and resorts selected by our planners. Switch categories without rebuilding the whole trip.',
+    };
+  }
+  return {
+    eyebrow: 'HOTELES',
+    title: 'Estancias',
+    emphasis: 'curadas por ciudad.',
+    subtitle:
+      'Fincas, boutiques y resorts seleccionados por nuestros planners. Cambia de categoría sin reconstruir el viaje.',
+  };
+}
 
 // -------------------- Helpers --------------------
 
@@ -82,7 +101,11 @@ export function EditorialHotelesListPage({
   website,
   hotels,
 }: EditorialHotelesListPageProps) {
-  const basePath = getBasePath(website.subdomain, Boolean(website.custom_domain));
+  const resolvedLocale =
+    (website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale ?? 'es-CO';
+  const editorialText = getPublicUiExtraTextGetter(resolvedLocale);
+  const heroCopy = getHeroCopy(resolvedLocale);
+  const basePath = getBasePath(website.subdomain, false);
   const siteTitleTrail = website.content?.siteName || website.subdomain;
 
   const items = hotels.map(toListItem);
@@ -94,16 +117,16 @@ export function EditorialHotelesListPage({
           <Breadcrumbs
             items={[
               { label: siteTitleTrail, href: basePath || '/' },
-              { label: 'Hoteles' },
+              { label: editorialText('editorialBreadcrumbHotels') },
             ]}
           />
           <div style={{ marginTop: 24 }}>
-            <Eyebrow tone="light">{HERO_EYEBROW}</Eyebrow>
+            <Eyebrow tone="light">{heroCopy.eyebrow}</Eyebrow>
             <h1 className="display-lg" style={heroTitleStyle}>
-              {HERO_TITLE}{' '}
-              <em style={heroEmphasisStyle}>{HERO_EMPHASIS}</em>
+              {heroCopy.title}{' '}
+              <em style={heroEmphasisStyle}>{heroCopy.emphasis}</em>
             </h1>
-            <p style={heroSubtitleStyle}>{HERO_SUBTITLE}</p>
+            <p style={heroSubtitleStyle}>{heroCopy.subtitle}</p>
           </div>
         </div>
       </section>

@@ -21,6 +21,7 @@
 import type { ReactElement } from 'react';
 
 import type { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
+import type { PublicUiExtraTextKey } from '@/lib/site/public-ui-extra-text';
 
 import { Eyebrow } from '../primitives/eyebrow';
 import { editorialHtml } from '../primitives/rich-heading';
@@ -29,9 +30,7 @@ import {
   TestimonialsClient,
   type TestimonialItem,
 } from './testimonials.client';
-import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
-
-const editorialText = getPublicUiExtraTextGetter('es-CO');
+import { getEditorialTextGetter, localizeEditorialText } from '../i18n';
 
 export interface EditorialTestimonialsSectionProps {
   section: WebsiteSection;
@@ -47,10 +46,10 @@ interface TestimonialsContent {
   googleMapsUrl?: string | null;
 }
 
-const DEFAULT_EYEBROW = editorialText('editorialTestimonialsEyebrowFallback');
-const DEFAULT_TITLE = editorialText('editorialTestimonialsTitleFallback');
-
-function renderSingleFeatured(t: TestimonialItem): ReactElement {
+function renderSingleFeatured(
+  t: TestimonialItem,
+  editorialText: (key: PublicUiExtraTextKey) => string,
+): ReactElement {
   return (
     <article className="testi-big" style={{ maxWidth: 880, margin: '0 auto' }}>
       <span className="quote-mark" aria-hidden="true">
@@ -85,7 +84,10 @@ function renderSingleFeatured(t: TestimonialItem): ReactElement {
 
 export function TestimonialsSection({
   section,
+  website,
 }: EditorialTestimonialsSectionProps): ReactElement | null {
+  const editorialText = getEditorialTextGetter(website);
+  const locale = (website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale || 'es-CO';
   const content = (section.content || {}) as TestimonialsContent;
 
   const raw = Array.isArray(content.testimonials) ? content.testimonials : [];
@@ -95,19 +97,25 @@ export function TestimonialsSection({
 
   if (testimonials.length === 0) return null;
 
-  const eyebrow = content.eyebrow?.trim() || DEFAULT_EYEBROW;
-  const title = content.title?.trim() || DEFAULT_TITLE;
+  const eyebrow = localizeEditorialText(
+    website,
+    content.eyebrow?.trim() || editorialText('editorialTestimonialsEyebrowFallback'),
+  );
+  const title = localizeEditorialText(
+    website,
+    content.title?.trim() || editorialText('editorialTestimonialsTitleFallback'),
+  );
 
   const rating = typeof content.averageRating === 'number' ? content.averageRating : undefined;
   const total = typeof content.totalReviews === 'number' ? content.totalReviews : undefined;
 
   const ratingChipLabel =
     rating !== undefined && total !== undefined
-      ? `${rating.toFixed(1)} · ${total.toLocaleString('es-CO')} ${editorialText('editorialTestimonialsVerifiedSuffix')}`
+      ? `${rating.toFixed(1)} · ${total.toLocaleString(locale)} ${editorialText('editorialTestimonialsVerifiedSuffix')}`
       : rating !== undefined
       ? `${rating.toFixed(1)} ${editorialText('editorialTestimonialsAverage')}`
       : total !== undefined
-      ? `${total.toLocaleString('es-CO')} ${editorialText('editorialTestimonialsReviews')}`
+      ? `${total.toLocaleString(locale)} ${editorialText('editorialTestimonialsReviews')}`
       : null;
 
   return (
@@ -147,9 +155,9 @@ export function TestimonialsSection({
         </header>
 
         {testimonials.length >= 2 ? (
-          <TestimonialsClient testimonials={testimonials} />
+          <TestimonialsClient testimonials={testimonials} locale={locale} />
         ) : (
-          renderSingleFeatured(testimonials[0])
+          renderSingleFeatured(testimonials[0], editorialText)
         )}
       </div>
     </section>

@@ -14,10 +14,9 @@ import { Icons } from '@/components/site/themes/editorial-v1/primitives/icons';
 import type { BlogCategory } from '@/lib/supabase/get-website';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 
-const editorialText = getPublicUiExtraTextGetter('es-CO');
-
 export interface BlogListToolbarProps {
   basePath: string;
+  locale: string;
   categories: BlogCategory[];
   activeCategorySlug: string | null;
   initialQuery: string;
@@ -26,11 +25,13 @@ export interface BlogListToolbarProps {
 
 export function BlogListToolbar({
   basePath,
+  locale,
   categories,
   activeCategorySlug,
   initialQuery,
   allLabel,
 }: BlogListToolbarProps) {
+  const editorialText = getPublicUiExtraTextGetter(locale || 'es-CO');
   const router = useRouter();
   const searchParams = useSearchParams();
   const [query, setQuery] = useState(initialQuery);

@@ -18,20 +18,19 @@
 import { useCallback } from 'react';
 import type { WebsiteData } from '@/lib/supabase/get-website';
 import { trackEvent } from '@/lib/analytics/track';
-import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
+import { getEditorialTextGetter } from '../i18n';
 import {
   getCurrencySymbol,
   getLocaleFlag,
   useMarketPreferences,
 } from './use-market-preferences';
 
-const editorialText = getPublicUiExtraTextGetter('es-CO');
-
 export interface FooterSwitcherProps {
   website: WebsiteData;
 }
 
 export function FooterSwitcher({ website }: FooterSwitcherProps) {
+  const editorialText = getEditorialTextGetter(website);
   const {
     selectedLocale,
     selectedCurrency,

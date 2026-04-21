@@ -374,7 +374,7 @@ export function HotelesListGrid({ hotels, basePath }: HotelesListGridProps) {
  */
 function HotelesCardWrapper({
   hotel,
-  basePath: _basePath,
+  basePath,
 }: {
   hotel: HotelesListItem;
   basePath: string;
@@ -391,6 +391,7 @@ function HotelesCardWrapper({
         imageUrl={hotel.image ?? null}
         city={hotelCity(hotel) || null}
         category={hotel.category ?? null}
+        basePath={basePath}
       />
     </div>
   );

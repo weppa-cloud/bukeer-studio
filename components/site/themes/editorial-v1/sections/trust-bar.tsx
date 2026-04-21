@@ -26,11 +26,10 @@ import type { ReactElement } from 'react';
 import type { BrandClaims } from '@bukeer/website-contract';
 
 import type { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
-import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
+import type { PublicUiExtraTextKey } from '@/lib/site/public-ui-extra-text';
+import { getEditorialTextGetter } from '../i18n';
 
 import { Icons, type IconName } from '../primitives/icons';
-
-const editorialText = getPublicUiExtraTextGetter('es-CO');
 
 export interface EditorialTrustBarSectionProps {
   section: WebsiteSection;
@@ -54,6 +53,8 @@ interface TrustBarContent {
 function buildDefaultItems(
   claims: BrandClaims | null | undefined,
   content: TrustBarContent,
+  editorialText: (key: PublicUiExtraTextKey) => string,
+  locale: string,
 ): TrustBarItem[] {
   const items: TrustBarItem[] = [];
 
@@ -80,7 +81,7 @@ function buildDefaultItems(
     items.push({
       icon: 'star',
       bold: `${claims.avgRating.toFixed(1)}/5`,
-      body: `${claims.totalReviews.toLocaleString('es-CO')}+ ${editorialText('editorialTrustVerifiedSuffix')}`,
+      body: `${claims.totalReviews.toLocaleString(locale)}+ ${editorialText('editorialTrustVerifiedSuffix')}`,
     });
   } else if (claims?.avgRating) {
     items.push({
@@ -127,7 +128,10 @@ function renderItemIcon(item: TrustBarItem): ReactElement | null {
 
 export function TrustBarSection({
   section,
+  website,
 }: EditorialTrustBarSectionProps): ReactElement | null {
+  const editorialText = getEditorialTextGetter(website);
+  const locale = (website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale || 'es-CO';
   const content = (section.content || {}) as TrustBarContent;
 
   const authoredItems: TrustBarItem[] = Array.isArray(content.items)
@@ -139,7 +143,7 @@ export function TrustBarSection({
   const items =
     authoredItems.length > 0
       ? authoredItems
-      : buildDefaultItems(content.brandClaims, content);
+      : buildDefaultItems(content.brandClaims, content, editorialText, locale);
 
   if (items.length === 0) return null;
 

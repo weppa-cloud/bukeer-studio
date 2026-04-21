@@ -28,8 +28,6 @@ import {
 } from 'react';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 
-const editorialText = getPublicUiExtraTextGetter('es-CO');
-
 export interface HeroRotatorSlide {
   imageUrl?: string | null;
   city?: string;
@@ -42,6 +40,7 @@ export interface HeroRotatorProps {
   slides: HeroRotatorSlide[];
   intervalMs?: number;
   ariaLabel?: string;
+  locale?: string | null;
 }
 
 const DEFAULT_INTERVAL_MS = 6500;
@@ -55,7 +54,9 @@ export function HeroRotator({
   slides,
   intervalMs = DEFAULT_INTERVAL_MS,
   ariaLabel,
+  locale,
 }: HeroRotatorProps) {
+  const editorialText = getPublicUiExtraTextGetter(locale ?? 'es-CO');
   const total = slides.length;
   const [idx, setIdx] = useState(0);
   const [paused, setPaused] = useState(false);

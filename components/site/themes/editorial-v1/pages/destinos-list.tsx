@@ -36,8 +36,6 @@ import { Breadcrumbs } from '../primitives/breadcrumbs';
 import { Eyebrow } from '../primitives/eyebrow';
 import { Icons } from '../primitives/icons';
 
-const editorialText = getPublicUiExtraTextGetter('es-CO');
-
 // ----- types -----
 export interface EditorialDestinosListPagePayload {
   destinations: DestinationData[];
@@ -151,11 +149,14 @@ export function EditorialDestinosListPage({
   website,
   payload,
 }: EditorialDestinosListProps): ReactElement {
+  const resolvedLocale =
+    (website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale ?? 'es-CO';
+  const editorialText = getPublicUiExtraTextGetter(resolvedLocale);
   const resolved = payload as EditorialDestinosListPagePayload | undefined;
   const destinations = Array.isArray(resolved?.destinations)
     ? resolved!.destinations
     : [];
-  const basePath = getBasePath(website.subdomain, Boolean(website.custom_domain));
+  const basePath = getBasePath(website.subdomain, false);
 
   const normalized = dedupeBySlug(destinations.map(normalize));
   const hasDestinations = normalized.length > 0;

@@ -27,9 +27,7 @@ import { Logo } from '../primitives/logo';
 import { Icons } from '../primitives/icons';
 import { HeaderScrollState, MobileNavToggle } from './site-header.client';
 import { MarketSwitcher } from './market-switcher';
-import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
-
-const editorialText = getPublicUiExtraTextGetter('es-CO');
+import { getEditorialTextGetter } from '../i18n';
 
 export interface EditorialSiteHeaderProps {
   website: WebsiteData;
@@ -37,19 +35,14 @@ export interface EditorialSiteHeaderProps {
   isCustomDomain?: boolean;
 }
 
-const DEFAULT_NAV_LABELS = {
-  destinos: 'Destinos',
-  paquetes: 'Paquetes',
-  experiencias: 'Experiencias',
-  planners: 'Travel Planners',
-  blog: 'Blog',
-};
-
 export function EditorialSiteHeader({
   website,
   navigation,
   isCustomDomain = false,
 }: EditorialSiteHeaderProps) {
+  const editorialText = getEditorialTextGetter(website);
+  const resolvedLocale = (website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale ?? 'es-CO';
+  const isEnglish = resolvedLocale.startsWith('en');
   const { content, subdomain } = website;
   const basePath = getBasePath(subdomain, isCustomDomain);
   const siteName = content.account?.name || content.siteName;
@@ -57,13 +50,22 @@ export function EditorialSiteHeader({
 
   // Fallback to designer canonical nav labels if no navigation prop is passed.
   const fallbackNav: NavigationItem[] = [
-    { slug: 'destinations', label: DEFAULT_NAV_LABELS.destinos, page_type: 'anchor', href: `${basePath}/#destinations`, target: '_self' },
-    { slug: 'packages', label: DEFAULT_NAV_LABELS.paquetes, page_type: 'anchor', href: `${basePath}/#packages`, target: '_self' },
-    { slug: 'experiences', label: DEFAULT_NAV_LABELS.experiencias, page_type: 'anchor', href: `${basePath}/#activities`, target: '_self' },
-    { slug: 'planners', label: DEFAULT_NAV_LABELS.planners, page_type: 'custom', href: `${basePath}/planners`, target: '_self' },
-    { slug: 'blog', label: DEFAULT_NAV_LABELS.blog, page_type: 'custom', href: `${basePath}/blog`, target: '_self' },
+    { slug: 'destinations', label: isEnglish ? 'Destinations' : 'Destinos', page_type: 'anchor', href: `${basePath}/#destinations`, target: '_self' },
+    { slug: 'packages', label: isEnglish ? 'Packages' : 'Paquetes', page_type: 'anchor', href: `${basePath}/#packages`, target: '_self' },
+    { slug: 'experiences', label: isEnglish ? 'Experiences' : 'Experiencias', page_type: 'anchor', href: `${basePath}/#activities`, target: '_self' },
+    { slug: 'planners', label: 'Travel Planners', page_type: 'custom', href: `${basePath}/planners`, target: '_self' },
+    { slug: 'blog', label: 'Blog', page_type: 'custom', href: `${basePath}/blog`, target: '_self' },
   ];
   const navItems = navigation && navigation.length > 0 ? navigation : fallbackNav;
+  const navLabelForLocale = (label: string): string => {
+    if (!isEnglish) return label;
+    const normalized = label.trim().toLowerCase();
+    if (normalized === 'destinos') return 'Destinations';
+    if (normalized === 'paquetes') return 'Packages';
+    if (normalized === 'experiencias') return 'Experiences';
+    if (normalized === 'nosotros' || normalized === 'sobre nosotros') return 'About';
+    return label;
+  };
 
   // TODO(editorial-v1 wave 2): read `website.contact_whatsapp` once the
   // column ships. For now, reuse the existing `content.social.whatsapp`.
@@ -100,7 +102,7 @@ export function EditorialSiteHeader({
                   rel={link.target === '_blank' ? 'noopener noreferrer' : undefined}
                   className="nav-link"
                 >
-                  {link.label}
+                  {navLabelForLocale(link.label)}
                 </Link>
               );
             })}
@@ -140,7 +142,7 @@ export function EditorialSiteHeader({
                 target={link.target === '_blank' ? '_blank' : undefined}
                 className="nav-link"
               >
-                {link.label}
+                {navLabelForLocale(link.label)}
               </Link>
             );
           })}

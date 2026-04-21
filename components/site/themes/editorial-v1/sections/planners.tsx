@@ -33,9 +33,8 @@ import { Eyebrow } from '../primitives/eyebrow';
 import { Icons } from '../primitives/icons';
 import { editorialHtml } from '../primitives/rich-heading';
 import { getBasePath } from '@/lib/utils/base-path';
-import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
-
-const editorialText = getPublicUiExtraTextGetter('es-CO');
+import type { PublicUiExtraTextKey } from '@/lib/site/public-ui-extra-text';
+import { getEditorialTextGetter, localizeEditorialText } from '../i18n';
 
 // ---------- Types ----------
 
@@ -65,16 +64,9 @@ interface PlannersContent {
 
 // ---------- Constants ----------
 
-const DEFAULT_EYEBROW = editorialText('editorialPlannersEyebrowFallback');
-const DEFAULT_TITLE = editorialText('editorialPlannersTitleFallback');
-const DEFAULT_SUBTITLE = editorialText('editorialPlannersSubtitleFallback');
-const DEFAULT_VIEW_ALL = editorialText('editorialPlannersViewAll');
-const DEFAULT_QUOTE_FALLBACK = editorialText('editorialPlannersQuoteFallback');
-const DEFAULT_AVAILABILITY = editorialText('editorialPlannersAvailable');
-
 // ---------- Helpers ----------
 
-function mapRole(role: string | null): string {
+function mapRole(role: string | null, editorialText: (key: PublicUiExtraTextKey) => string): string {
   const roleMap: Record<string, string> = {
     agent: editorialText('editorialRoleAgent'),
     admin: editorialText('editorialRolePlanner'),
@@ -125,14 +117,27 @@ export function PlannersSection({
   website,
   dbPlanners,
 }: EditorialPlannersSectionProps) {
+  const editorialText = getEditorialTextGetter(website);
   const content = (section.content ?? {}) as PlannersContent;
   const basePath = getBasePath(website.subdomain, false);
 
-  const eyebrow = (content.eyebrow || '').trim() || DEFAULT_EYEBROW;
-  const title = (content.title || '').trim() || DEFAULT_TITLE;
-  const subtitle = (content.subtitle || '').trim() || DEFAULT_SUBTITLE;
+  const eyebrow = localizeEditorialText(
+    website,
+    (content.eyebrow || '').trim() || editorialText('editorialPlannersEyebrowFallback'),
+  );
+  const title = localizeEditorialText(
+    website,
+    (content.title || '').trim() || editorialText('editorialPlannersTitleFallback'),
+  );
+  const subtitle = localizeEditorialText(
+    website,
+    (content.subtitle || '').trim() || editorialText('editorialPlannersSubtitleFallback'),
+  );
   const viewAllLabel =
-    (content.viewAllLabel || '').trim() || DEFAULT_VIEW_ALL;
+    localizeEditorialText(
+      website,
+      (content.viewAllLabel || '').trim() || editorialText('editorialPlannersViewAll'),
+    );
   const viewAllHref =
     (content.viewAllHref || '').trim() || `${basePath}/planners`;
 
@@ -181,17 +186,22 @@ export function PlannersSection({
                 p.fullName,
                 firstName,
               );
-              const role = override?.specialty || mapRole(p.role);
+              const role = localizeEditorialText(
+                website,
+                override?.specialty || mapRole(p.role, editorialText),
+              );
               const specialties =
                 override?.specialties && override.specialties.length > 0
                   ? override.specialties
                   : override?.specialty
                     ? [override.specialty]
                     : [];
-              const quote =
-                (p.quote && p.quote.trim()) ||
-                (override?.quote && override.quote.trim()) ||
-                DEFAULT_QUOTE_FALLBACK;
+              const quote = localizeEditorialText(
+                website,
+                (p.quote && p.quote.trim())
+                  || (override?.quote && override.quote.trim())
+                  || editorialText('editorialPlannersQuoteFallback'),
+              );
               const waHref = resolveWhatsAppHref(
                 p.phone,
                 websiteWhatsapp,
@@ -236,7 +246,7 @@ export function PlannersSection({
                         <div className="tags">
                           {specialties.map((s) => (
                             <span key={s} className="tg">
-                              {s}
+                              {localizeEditorialText(website, s)}
                             </span>
                           ))}
                         </div>
@@ -246,7 +256,7 @@ export function PlannersSection({
                   <div className="foot">
                     <span className="avail">
                       <span className="dot" />
-                      {DEFAULT_AVAILABILITY}
+                      {editorialText('editorialPlannersAvailable')}
                     </span>
                     {waHref ? (
                       <a

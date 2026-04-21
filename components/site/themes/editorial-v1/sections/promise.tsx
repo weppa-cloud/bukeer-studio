@@ -33,9 +33,7 @@ import { getBasePath } from '@/lib/utils/base-path';
 
 import { Eyebrow } from '../primitives/eyebrow';
 import { Icons, type IconName } from '../primitives/icons';
-import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
-
-const editorialText = getPublicUiExtraTextGetter('es-CO');
+import { getEditorialTextGetter, localizeEditorialText } from '../i18n';
 
 export interface EditorialPromiseSectionProps {
   section: WebsiteSection;
@@ -57,8 +55,8 @@ interface PromiseContent {
   ctaUrl?: string;
 }
 
-const DEFAULT_EYEBROW = editorialText('editorialPromiseEyebrowFallback');
-const DEFAULT_TITLE = editorialText('editorialPromiseTitleFallback');
+const DEFAULT_EYEBROW_KEY = 'editorialPromiseEyebrowFallback';
+const DEFAULT_TITLE_KEY = 'editorialPromiseTitleFallback';
 const DEFAULT_FEATURE_ICONS: IconName[] = ['pin', 'shield', 'leaf', 'sparkle', 'users', 'award'];
 
 // Narrow allowlist to match hero sanitizer — only `<em>` and `<br>` are
@@ -111,12 +109,19 @@ export function PromiseSection({
   section,
   website,
 }: EditorialPromiseSectionProps): ReactElement {
+  const editorialText = getEditorialTextGetter(website);
   const content = (section.content || {}) as PromiseContent;
   const basePath = getBasePath(website.subdomain, false);
 
-  const eyebrow = content.eyebrow?.trim() || DEFAULT_EYEBROW;
-  const sanitizedTitle = sanitizeTitle(content.title) || sanitizeTitle(DEFAULT_TITLE);
-  const subtitle = content.subtitle?.trim() || '';
+  const eyebrow = localizeEditorialText(
+    website,
+    content.eyebrow?.trim() || editorialText(DEFAULT_EYEBROW_KEY),
+  );
+  const sanitizedTitle = sanitizeTitle(
+    localizeEditorialText(website, content.title)
+    || localizeEditorialText(website, editorialText(DEFAULT_TITLE_KEY)),
+  );
+  const subtitle = localizeEditorialText(website, content.subtitle?.trim() || '');
 
   const features: PromiseFeature[] = Array.isArray(content.features)
     ? content.features
@@ -124,7 +129,7 @@ export function PromiseSection({
         .slice(0, 6)
     : [];
 
-  const ctaLabel = content.ctaLabel?.trim() || '';
+  const ctaLabel = localizeEditorialText(website, content.ctaLabel?.trim() || '');
   const ctaHref = ctaLabel ? resolveCtaHref(content.ctaUrl, website, basePath) : '';
 
   return (
@@ -158,8 +163,8 @@ export function PromiseSection({
                   {renderIcon(f.icon, DEFAULT_FEATURE_ICONS[i] ?? 'sparkle')}
                 </div>
                 <div>
-                  <b>{f.title}</b>
-                  {f.description ? <p>{f.description}</p> : null}
+                  <b>{localizeEditorialText(website, f.title)}</b>
+                  {f.description ? <p>{localizeEditorialText(website, f.description)}</p> : null}
                 </div>
               </div>
             ))}

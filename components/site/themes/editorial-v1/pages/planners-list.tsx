@@ -29,7 +29,6 @@ import type { PlannerData } from '@/lib/supabase/get-planners';
 import type { BrandClaims } from '@bukeer/website-contract';
 
 import { Eyebrow } from '../primitives/eyebrow';
-import { Icons } from '../primitives/icons';
 import { Breadcrumbs } from '../primitives/breadcrumbs';
 import {
   PlannersMatchmaker,
@@ -39,8 +38,6 @@ import {
 import { getBasePath } from '@/lib/utils/base-path';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 
-const editorialText = getPublicUiExtraTextGetter('es-CO');
-
 // ---------- Props ----------
 
 export interface EditorialPlannersListPageProps {
@@ -49,87 +46,12 @@ export interface EditorialPlannersListPageProps {
   brandClaims?: BrandClaims | null;
 }
 
-// ---------- Copy (verbatim from copy-catalog.md "Planners list page") ----
-
-const HERO_EYEBROW = editorialText('editorialPlannersListHeroEyebrow');
-const HERO_TITLE = editorialText('editorialPlannersListHeroTitle');
-const HERO_EMPHASIS = editorialText('editorialPlannersListHeroEmphasis');
-const HERO_SUBTITLE = editorialText('editorialPlannersListHeroSubtitle');
-
-const INTRO_EYEBROW = editorialText('editorialPlannersListIntroEyebrow');
-const INTRO_TITLE_PART1 = editorialText('editorialPlannersListIntroTitlePart1');
-const INTRO_TITLE_EM = editorialText('editorialPlannersListIntroTitleEm');
-const INTRO_TITLE_PART2 = editorialText('editorialPlannersListIntroTitlePart2');
-const INTRO_BODY = editorialText('editorialPlannersListIntroBody');
-
-const STATS_LABEL_PLANNERS = editorialText('editorialPlannersListStatsPlanners');
-const STATS_LABEL_RATING = editorialText('editorialPlannersListStatsRating');
-const STATS_LABEL_TRIPS = editorialText('editorialPlannersListStatsTrips');
-
-// Tabs mix catalog region labels with designer-specific composite labels.
-const TABS: MatchmakerTab[] = [
-  { key: 'all', label: editorialText('editorialPackagesAllTab') },
-  { key: 'Caribe', label: editorialText('editorialRegionCaribe') },
-  { key: 'Eje Cafetero', label: 'Eje Cafetero' },
-  { key: 'Amazonas', label: 'Amazonas / Pacífico' },
-  { key: 'Aventura', label: 'Aventura' },
-  { key: 'Medellín', label: 'Medellín' },
-  { key: 'Cali', label: 'Pacífico Sur' },
-];
-
-const QUIZ_GROUPS = [
-  { key: 'solo', label: 'Solo' },
-  { key: 'pareja', label: 'Pareja' },
-  { key: 'familia', label: 'Familia' },
-  { key: 'grupo', label: 'Grupo' },
-];
-
-const QUIZ_REGIONS = [
-  { key: 'Caribe', label: editorialText('editorialRegionCaribe') },
-  { key: 'Andes', label: editorialText('editorialRegionAndes') },
-  { key: 'Amazonas', label: 'Amazonas' },
-  { key: 'Pacífico', label: editorialText('editorialRegionPacifico') },
-  { key: 'Aventura', label: 'Aventura' },
-];
-
-const QUIZ_STYLES = [
-  { key: 'cultura', label: 'Cultura' },
-  { key: 'aventura', label: 'Aventura' },
-  { key: 'naturaleza', label: 'Naturaleza' },
-  { key: 'gastronomia', label: 'Gastronomía' },
-  { key: 'boutique', label: 'Boutique' },
-];
-
-const MATCH_HEADING = {
-  eyebrow: editorialText('editorialMatchmakerHeadingEyebrow'),
-  title: editorialText('editorialMatchmakerHeadingTitle'),
-  titleEmphasis: editorialText('editorialMatchmakerHeadingTitleEm'),
-  body: editorialText('editorialMatchmakerHeadingBody'),
-  ctaLabel: editorialText('editorialMatchmakerHeadingCta'),
-  groupLabel: editorialText('editorialMatchmakerGroupQuestion'),
-  regionLabel: editorialText('editorialMatchmakerRegionQuestion'),
-  styleLabel: editorialText('editorialMatchmakerStyleQuestion'),
-  matchLabel: editorialText('editorialMatchmakerMatchLabel'),
-};
-
-const TOOLBAR_COPY = {
-  singular: editorialText('editorialPlannersListSingular'),
-  plural: editorialText('editorialPlannersListPlural'),
-  sortByLabel: editorialText('editorialPlannersListSortBy'),
-  sortByValue: editorialText('editorialPlannersListSortByValue'),
-};
-
-const CARD_COPY = {
-  viewProfile: editorialText('editorialPlannersListCardViewProfile'),
-  availableFallback: editorialText('editorialPlannersListCardAvailable'),
-  yearsSuffix: editorialText('editorialPlannersListCardYearsSuffix'),
-};
-
-const DEFAULT_QUOTE_FALLBACK = editorialText('editorialPlannersQuoteFallback');
-
 // ---------- Helpers ----------
 
-function mapRole(role: string | null): string {
+function mapRole(
+  role: string | null,
+  editorialText: ReturnType<typeof getPublicUiExtraTextGetter>,
+): string {
   const roleMap: Record<string, string> = {
     agent: editorialText('editorialRoleAgent'),
     admin: editorialText('editorialRolePlanner'),
@@ -144,20 +66,22 @@ function wa(
   phone: string | null | undefined,
   fallback: string | null | undefined,
   firstName: string,
+  template: string,
 ): string | null {
   const raw = (phone || fallback || '').trim();
   if (!raw) return null;
   const digits = raw.replace(/[^0-9]/g, '');
   if (!digits) return null;
-  return `https://wa.me/${digits}?text=${encodeURIComponent(
-    `Hola ${firstName}, quiero organizar un viaje`,
-  )}`;
+  return `https://wa.me/${digits}?text=${encodeURIComponent(template.replace('{name}', firstName))}`;
 }
 
 function toMatchmakerPlanner(
   p: PlannerData,
   basePath: string,
   websiteWhatsapp: string | undefined,
+  editorialText: ReturnType<typeof getPublicUiExtraTextGetter>,
+  defaultQuoteFallback: string,
+  waTemplate: string,
 ): MatchmakerPlanner {
   const firstName = p.name.split(' ')[0] || p.fullName;
   return {
@@ -165,8 +89,8 @@ function toMatchmakerPlanner(
     name: p.fullName,
     slug: p.slug,
     photo: p.photo,
-    role: p.position || mapRole(p.role),
-    quote: (p.quote && p.quote.trim()) || DEFAULT_QUOTE_FALLBACK,
+    role: p.position || mapRole(p.role, editorialText),
+    quote: (p.quote && p.quote.trim()) || defaultQuoteFallback,
     // No structured specialties column exists yet — we surface `position`
     // and `user_rol` as a low-fidelity match surface. The matchmaker uses
     // substring checks so a free-text "position" of "Planner Caribe,
@@ -180,7 +104,7 @@ function toMatchmakerPlanner(
     base: null,
     years: null,
     availability: null,
-    whatsappHref: wa(p.phone, websiteWhatsapp, firstName),
+    whatsappHref: wa(p.phone, websiteWhatsapp, firstName, waTemplate),
     profileHref: `${basePath}/planners/${p.slug}`,
   };
 }
@@ -199,8 +123,75 @@ export function EditorialPlannersListPage({
   dbPlanners,
   brandClaims,
 }: EditorialPlannersListPageProps) {
+  const resolvedLocale =
+    (website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale ?? 'es-CO';
+  const editorialText = getPublicUiExtraTextGetter(resolvedLocale);
+  const isEnglish = resolvedLocale.toLowerCase().startsWith('en');
   const basePath = getBasePath(website.subdomain, false);
   const websiteWhatsapp = website.content?.social?.whatsapp;
+  const waTemplate = isEnglish
+    ? 'Hi {name}, I want to plan a trip'
+    : 'Hola {name}, quiero organizar un viaje';
+
+  const tabs: MatchmakerTab[] = [
+    { key: 'all', label: editorialText('editorialPackagesAllTab') },
+    { key: 'Caribe', label: editorialText('editorialRegionCaribe') },
+    { key: 'Eje Cafetero', label: 'Eje Cafetero' },
+    { key: 'Amazonas', label: isEnglish ? 'Amazon / Pacific' : 'Amazonas / Pacífico' },
+    { key: 'Aventura', label: isEnglish ? 'Adventure' : 'Aventura' },
+    { key: 'Medellín', label: 'Medellín' },
+    { key: 'Cali', label: isEnglish ? 'South Pacific' : 'Pacífico Sur' },
+  ];
+
+  const quizGroups = [
+    { key: 'solo', label: isEnglish ? 'Solo' : 'Solo' },
+    { key: 'pareja', label: isEnglish ? 'Couple' : 'Pareja' },
+    { key: 'familia', label: isEnglish ? 'Family' : 'Familia' },
+    { key: 'grupo', label: isEnglish ? 'Group' : 'Grupo' },
+  ];
+
+  const quizRegions = [
+    { key: 'Caribe', label: editorialText('editorialRegionCaribe') },
+    { key: 'Andes', label: editorialText('editorialRegionAndes') },
+    { key: 'Amazonas', label: isEnglish ? 'Amazon' : 'Amazonas' },
+    { key: 'Pacífico', label: editorialText('editorialRegionPacifico') },
+    { key: 'Aventura', label: isEnglish ? 'Adventure' : 'Aventura' },
+  ];
+
+  const quizStyles = [
+    { key: 'cultura', label: isEnglish ? 'Culture' : 'Cultura' },
+    { key: 'aventura', label: isEnglish ? 'Adventure' : 'Aventura' },
+    { key: 'naturaleza', label: isEnglish ? 'Nature' : 'Naturaleza' },
+    { key: 'gastronomia', label: editorialText('editorialExperienceCategoryGastronomy') },
+    { key: 'boutique', label: 'Boutique' },
+  ];
+
+  const matchHeading = {
+    eyebrow: editorialText('editorialMatchmakerHeadingEyebrow'),
+    title: editorialText('editorialMatchmakerHeadingTitle'),
+    titleEmphasis: editorialText('editorialMatchmakerHeadingTitleEm'),
+    body: editorialText('editorialMatchmakerHeadingBody'),
+    ctaLabel: editorialText('editorialMatchmakerHeadingCta'),
+    groupLabel: editorialText('editorialMatchmakerGroupQuestion'),
+    regionLabel: editorialText('editorialMatchmakerRegionQuestion'),
+    styleLabel: editorialText('editorialMatchmakerStyleQuestion'),
+    matchLabel: editorialText('editorialMatchmakerMatchLabel'),
+  };
+
+  const toolbarCopy = {
+    singular: editorialText('editorialPlannersListSingular'),
+    plural: editorialText('editorialPlannersListPlural'),
+    sortByLabel: editorialText('editorialPlannersListSortBy'),
+    sortByValue: editorialText('editorialPlannersListSortByValue'),
+  };
+
+  const cardCopy = {
+    viewProfile: editorialText('editorialPlannersListCardViewProfile'),
+    availableFallback: editorialText('editorialPlannersListCardAvailable'),
+    yearsSuffix: editorialText('editorialPlannersListCardYearsSuffix'),
+  };
+
+  const defaultQuoteFallback = editorialText('editorialPlannersQuoteFallback');
 
   const totalPlanners =
     brandClaims?.totalPlanners ?? dbPlanners.length;
@@ -208,10 +199,17 @@ export function EditorialPlannersListPage({
   const totalReviews = brandClaims?.totalReviews ?? null;
 
   const matchmakerPlanners = dbPlanners.map((p) =>
-    toMatchmakerPlanner(p, basePath, websiteWhatsapp),
+    toMatchmakerPlanner(
+      p,
+      basePath,
+      websiteWhatsapp,
+      editorialText,
+      defaultQuoteFallback,
+      waTemplate,
+    ),
   );
 
-  const tabsWithCounts: MatchmakerTab[] = TABS.map((t) => {
+  const tabsWithCounts: MatchmakerTab[] = tabs.map((t) => {
     if (t.key === 'all') {
       return { ...t, count: matchmakerPlanners.length };
     }
@@ -231,13 +229,13 @@ export function EditorialPlannersListPage({
           <Breadcrumbs
             items={[
               { label: editorialText('editorialBreadcrumbHome'), href: basePath || '/' },
-              { label: 'Planners' },
+              { label: editorialText('sectionPlannersTitle') },
             ]}
           />
           <div style={{ marginTop: 24 }}>
-            <Eyebrow tone="light">{HERO_EYEBROW}</Eyebrow>
+            <Eyebrow tone="light">{editorialText('editorialPlannersListHeroEyebrow')}</Eyebrow>
             <h1 style={heroTitleStyle}>
-              {HERO_TITLE}{' '}
+              {editorialText('editorialPlannersListHeroTitle')}{' '}
               <em
                 style={{
                   fontFamily: 'var(--font-serif)',
@@ -246,10 +244,10 @@ export function EditorialPlannersListPage({
                   fontWeight: 400,
                 }}
               >
-                {HERO_EMPHASIS}
+                {editorialText('editorialPlannersListHeroEmphasis')}
               </em>
             </h1>
-            <p style={heroSubtitleStyle}>{HERO_SUBTITLE}</p>
+            <p style={heroSubtitleStyle}>{editorialText('editorialPlannersListHeroSubtitle')}</p>
           </div>
         </div>
       </section>
@@ -259,28 +257,29 @@ export function EditorialPlannersListPage({
         <div className="ev-container">
           <div className="pl-intro">
             <div>
-              <Eyebrow>{INTRO_EYEBROW}</Eyebrow>
+              <Eyebrow>{editorialText('editorialPlannersListIntroEyebrow')}</Eyebrow>
               <h2>
-                {INTRO_TITLE_PART1}{' '}
-                <em>{INTRO_TITLE_EM}</em> {INTRO_TITLE_PART2}
+                {editorialText('editorialPlannersListIntroTitlePart1')}{' '}
+                <em>{editorialText('editorialPlannersListIntroTitleEm')}</em>{' '}
+                {editorialText('editorialPlannersListIntroTitlePart2')}
               </h2>
-              <p>{INTRO_BODY}</p>
+              <p>{editorialText('editorialPlannersListIntroBody')}</p>
             </div>
             <div className="stats" role="group" aria-label="Aggregate stats">
               <div className="s">
                 <b>{totalPlanners}</b>
-                <small>{STATS_LABEL_PLANNERS}</small>
+                <small>{editorialText('editorialPlannersListStatsPlanners')}</small>
               </div>
               <div className="s">
                 <b>
                   {formatRating(avgRating)}
                   <em>/5</em>
                 </b>
-                <small>{STATS_LABEL_RATING}</small>
+                <small>{editorialText('editorialPlannersListStatsRating')}</small>
               </div>
               <div className="s">
                 <b>{totalReviews ?? '—'}</b>
-                <small>{STATS_LABEL_TRIPS}</small>
+                <small>{editorialText('editorialPlannersListStatsTrips')}</small>
               </div>
             </div>
           </div>
@@ -289,14 +288,14 @@ export function EditorialPlannersListPage({
           <PlannersMatchmaker
             planners={matchmakerPlanners}
             tabs={tabsWithCounts}
-            heading={MATCH_HEADING}
+            heading={matchHeading}
             options={{
-              groups: QUIZ_GROUPS,
-              regions: QUIZ_REGIONS,
-              styles: QUIZ_STYLES,
+              groups: quizGroups,
+              regions: quizRegions,
+              styles: quizStyles,
             }}
-            toolbarCopy={TOOLBAR_COPY}
-            cardCopy={CARD_COPY}
+            toolbarCopy={toolbarCopy}
+            cardCopy={cardCopy}
           />
         </div>
       </section>

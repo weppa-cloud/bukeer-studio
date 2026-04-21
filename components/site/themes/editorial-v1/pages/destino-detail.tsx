@@ -42,8 +42,6 @@ import { Eyebrow } from '../primitives/eyebrow';
 import { Icons } from '../primitives/icons';
 import { ColombiaMap } from '../maps/colombia-map';
 
-const editorialText = getPublicUiExtraTextGetter('es-CO');
-
 // ----- payload -----
 export interface EditorialDestinoDetailPayload {
   destination: DestinationData;
@@ -144,6 +142,12 @@ export function EditorialDestinoDetailPage({
   website,
   payload,
 }: EditorialDestinoDetailProps): ReactElement | null {
+  const resolvedLocale =
+    (website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale ??
+    website.content?.locale ??
+    website.default_locale ??
+    'es-CO';
+  const editorialText = getPublicUiExtraTextGetter(resolvedLocale);
   const resolved = payload as EditorialDestinoDetailPayload | undefined;
   if (!resolved || !resolved.destination) return null;
 

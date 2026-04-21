@@ -22,8 +22,6 @@ import {
   type ExperiencesInitialFilters,
 } from './experiences-grid.client';
 
-const editorialText = getPublicUiExtraTextGetter('es-CO');
-
 export interface EditorialExperiencesPageProps {
   website: WebsiteData;
   subdomain: string;
@@ -32,17 +30,18 @@ export interface EditorialExperiencesPageProps {
   initialFilters?: ExperiencesInitialFilters;
 }
 
-const EYEBROW = editorialText('editorialExperiencesEyebrow');
-const TITLE = editorialText('editorialExperiencesTitle');
-const EMPHASIS = editorialText('editorialExperiencesEmphasis');
-const SUBTITLE = editorialText('editorialExperiencesSubtitle');
-
 export function EditorialExperiencesPage({
   website,
   subdomain,
+  locale,
   activities,
   initialFilters,
 }: EditorialExperiencesPageProps) {
+  const resolvedLocale =
+    locale
+    || (website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale
+    || 'es-CO';
+  const editorialText = getPublicUiExtraTextGetter(resolvedLocale);
   const basePath = `/site/${subdomain}`;
   const siteTitleTrail = website.content?.siteName || subdomain;
 
@@ -53,13 +52,13 @@ export function EditorialExperiencesPage({
           <Breadcrumbs
             items={[
               { label: siteTitleTrail, href: basePath },
-              { label: 'Experiencias' },
+              { label: editorialText('editorialBreadcrumbActivities') },
             ]}
           />
           <div style={{ marginTop: 24, maxWidth: '52ch' }}>
-            <Eyebrow>{EYEBROW}</Eyebrow>
+            <Eyebrow>{editorialText('editorialExperiencesEyebrow')}</Eyebrow>
             <h1 className="display-lg" style={{ margin: '12px 0 12px' }}>
-              {TITLE}{' '}
+              {editorialText('editorialExperiencesTitle')}{' '}
               <em
                 style={{
                   fontFamily: 'var(--font-serif)',
@@ -68,10 +67,10 @@ export function EditorialExperiencesPage({
                   fontWeight: 400,
                 }}
               >
-                {EMPHASIS}
+                {editorialText('editorialExperiencesEmphasis')}
               </em>
             </h1>
-            <p className="body-lg">{SUBTITLE}</p>
+            <p className="body-lg">{editorialText('editorialExperiencesSubtitle')}</p>
           </div>
         </div>
       </section>
@@ -82,6 +81,7 @@ export function EditorialExperiencesPage({
             activities={activities}
             basePath={basePath}
             initialFilters={initialFilters}
+            locale={resolvedLocale}
           />
         </div>
       </section>

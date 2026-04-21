@@ -31,11 +31,9 @@ import Image from 'next/image';
 
 import type { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 import { getBasePath } from '@/lib/utils/base-path';
-import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
+import { getEditorialTextGetter, localizeEditorialText } from '../i18n';
 
 import { Icons } from '../primitives/icons';
-
-const editorialText = getPublicUiExtraTextGetter('es-CO');
 
 export interface EditorialCtaSectionProps {
   section: WebsiteSection;
@@ -62,7 +60,7 @@ interface CtaContent {
   secondaryButtonUrl?: string;
 }
 
-const DEFAULT_TITLE = editorialText('editorialCtaTitleFallback');
+const DEFAULT_TITLE_KEY = 'editorialCtaTitleFallback';
 
 const ALLOWED_TITLE_TAGS = new Set(['em', 'br']);
 function sanitizeTitle(raw: string | undefined | null): string {
@@ -146,13 +144,20 @@ export function CtaSection({
   section,
   website,
 }: EditorialCtaSectionProps): ReactElement {
+  const editorialText = getEditorialTextGetter(website);
   const content = (section.content || {}) as CtaContent;
   const basePath = getBasePath(website.subdomain, false);
 
-  const eyebrow = content.eyebrow?.trim() || '';
-  const sanitizedTitle = sanitizeTitle(content.title) || sanitizeTitle(DEFAULT_TITLE);
-  const subtitle = content.subtitle?.trim() || '';
-  const ctas = normalizeCtas(content);
+  const eyebrow = localizeEditorialText(website, content.eyebrow?.trim() || '');
+  const sanitizedTitle = sanitizeTitle(
+    localizeEditorialText(website, content.title)
+    || localizeEditorialText(website, editorialText(DEFAULT_TITLE_KEY)),
+  );
+  const subtitle = localizeEditorialText(website, content.subtitle?.trim() || '');
+  const ctas = normalizeCtas(content).map((cta) => ({
+    ...cta,
+    label: localizeEditorialText(website, cta.label),
+  }));
 
   const bgImage = content.backgroundImageUrl || content.backgroundImage || '';
 

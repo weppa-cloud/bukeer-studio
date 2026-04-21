@@ -31,21 +31,6 @@ import { Breadcrumbs } from '@/components/site/themes/editorial-v1/primitives/br
 import { Icons } from '@/components/site/themes/editorial-v1/primitives/icons';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 
-const editorialText = getPublicUiExtraTextGetter('es-CO');
-
-const SHARE_LABEL = editorialText('editorialBlogShare');
-const TAGS_LABEL = editorialText('editorialBlogTags');
-const AUTHOR_EYEBROW = editorialText('editorialBlogAuthorEyebrow');
-const CTA_EYEBROW = editorialText('editorialBlogCtaEyebrow');
-const CTA_TITLE_PREFIX = editorialText('editorialBlogCtaTitlePrefix');
-const CTA_TITLE_EM = editorialText('editorialBlogCtaTitleEm');
-const CTA_BODY = editorialText('editorialBlogCtaBody');
-const CTA_PRIMARY = editorialText('editorialBlogCtaPrimary');
-const CTA_WHATSAPP = editorialText('editorialBlogCtaWhatsapp');
-const RELATED_HEADING = editorialText('editorialBlogRelatedHeading');
-const RELATED_HEADING_EM = editorialText('editorialBlogRelatedHeadingEm');
-const RELATED_CTA = editorialText('editorialBlogRelatedCta');
-
 export interface EditorialBlogDetailPageProps {
   website: WebsiteData;
   subdomain: string;
@@ -95,10 +80,28 @@ function renderCategoryChip(category: BlogCategory | undefined) {
 export function EditorialBlogDetailPage({
   website,
   subdomain,
+  locale,
   post,
   related,
 }: EditorialBlogDetailPageProps) {
   const basePath = `/site/${subdomain}`;
+  const resolvedLocale =
+    locale
+    || (website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale
+    || 'es-CO';
+  const editorialText = getPublicUiExtraTextGetter(resolvedLocale);
+  const SHARE_LABEL = editorialText('editorialBlogShare');
+  const TAGS_LABEL = editorialText('editorialBlogTags');
+  const AUTHOR_EYEBROW = editorialText('editorialBlogAuthorEyebrow');
+  const CTA_EYEBROW = editorialText('editorialBlogCtaEyebrow');
+  const CTA_TITLE_PREFIX = editorialText('editorialBlogCtaTitlePrefix');
+  const CTA_TITLE_EM = editorialText('editorialBlogCtaTitleEm');
+  const CTA_BODY = editorialText('editorialBlogCtaBody');
+  const CTA_PRIMARY = editorialText('editorialBlogCtaPrimary');
+  const CTA_WHATSAPP = editorialText('editorialBlogCtaWhatsapp');
+  const RELATED_HEADING = editorialText('editorialBlogRelatedHeading');
+  const RELATED_HEADING_EM = editorialText('editorialBlogRelatedHeadingEm');
+  const RELATED_CTA = editorialText('editorialBlogRelatedCta');
   const publicBaseUrl = website.custom_domain
     ? `https://${website.custom_domain}`
     : `https://${subdomain}.bukeer.com`;

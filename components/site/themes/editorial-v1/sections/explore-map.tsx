@@ -21,15 +21,13 @@
  */
 
 import type { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
-import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
+import { getEditorialTextGetter, localizeEditorialText } from '../i18n';
 
 import {
   ExploreMapClient,
   type ExploreMapRegionConfig,
   type ExploreMapDestination,
 } from './explore-map.client';
-
-const editorialText = getPublicUiExtraTextGetter('es-CO');
 
 // ---------- Props ----------
 export interface ExploreMapSectionProps {
@@ -54,33 +52,10 @@ type ExploreMapContent = {
 };
 
 // ---------- Defaults (from copy-catalog.md + designer sections.jsx) ----------
-const DEFAULT_EYEBROW = editorialText('editorialExploreEyebrowFallback');
-const DEFAULT_TITLE = editorialText('editorialExploreTitleFallback');
-const DEFAULT_CTA_LABEL = editorialText('editorialExploreCtaFallback');
+const DEFAULT_EYEBROW_KEY = 'editorialExploreEyebrowFallback';
+const DEFAULT_TITLE_KEY = 'editorialExploreTitleFallback';
+const DEFAULT_CTA_LABEL_KEY = 'editorialExploreCtaFallback';
 const DEFAULT_CTA_HREF = '/destinos';
-
-const DEFAULT_REGIONS: ExploreMapRegionConfig[] = [
-  {
-    key: 'caribe',
-    label: editorialText('editorialRegionCaribe'),
-    highlight: editorialText('editorialRegionCaribeHighlight'),
-  },
-  {
-    key: 'andes',
-    label: editorialText('editorialRegionAndes'),
-    highlight: editorialText('editorialRegionAndesHighlight'),
-  },
-  {
-    key: 'selva',
-    label: editorialText('editorialRegionSelva'),
-    highlight: editorialText('editorialRegionSelvaHighlight'),
-  },
-  {
-    key: 'pacifico',
-    label: editorialText('editorialRegionPacifico'),
-    highlight: editorialText('editorialRegionPacificoHighlight'),
-  },
-];
 
 const VALID_REGION_KEYS = new Set<ExploreMapRegionConfig['key']>([
   'caribe',
@@ -91,8 +66,9 @@ const VALID_REGION_KEYS = new Set<ExploreMapRegionConfig['key']>([
 
 function coerceRegions(
   raw: ExploreMapContent['regions'],
+  defaults: ExploreMapRegionConfig[],
 ): ExploreMapRegionConfig[] {
-  if (!Array.isArray(raw) || raw.length === 0) return DEFAULT_REGIONS;
+  if (!Array.isArray(raw) || raw.length === 0) return defaults;
   const out: ExploreMapRegionConfig[] = [];
   for (const entry of raw) {
     if (!entry) continue;
@@ -106,7 +82,7 @@ function coerceRegions(
       highlight: (entry.highlight ?? '').toString().trim() || undefined,
     });
   }
-  return out.length > 0 ? out : DEFAULT_REGIONS;
+  return out.length > 0 ? out : defaults;
 }
 
 /**
@@ -163,17 +139,50 @@ export function ExploreMapSection({
   section,
   website,
 }: ExploreMapSectionProps) {
+  const editorialText = getEditorialTextGetter(website);
   const raw = (section.content ?? {}) as ExploreMapContent;
 
-  const eyebrow = (raw.eyebrow ?? '').toString().trim() || DEFAULT_EYEBROW;
-  const title = (raw.title ?? '').toString().trim() || DEFAULT_TITLE;
-  const subtitle = (raw.subtitle ?? '').toString().trim();
+  const defaultRegions: ExploreMapRegionConfig[] = [
+    {
+      key: 'caribe',
+      label: editorialText('editorialRegionCaribe'),
+      highlight: editorialText('editorialRegionCaribeHighlight'),
+    },
+    {
+      key: 'andes',
+      label: editorialText('editorialRegionAndes'),
+      highlight: editorialText('editorialRegionAndesHighlight'),
+    },
+    {
+      key: 'selva',
+      label: editorialText('editorialRegionSelva'),
+      highlight: editorialText('editorialRegionSelvaHighlight'),
+    },
+    {
+      key: 'pacifico',
+      label: editorialText('editorialRegionPacifico'),
+      highlight: editorialText('editorialRegionPacificoHighlight'),
+    },
+  ];
+
+  const eyebrow = localizeEditorialText(
+    website,
+    (raw.eyebrow ?? '').toString().trim() || editorialText(DEFAULT_EYEBROW_KEY),
+  );
+  const title = localizeEditorialText(
+    website,
+    (raw.title ?? '').toString().trim() || editorialText(DEFAULT_TITLE_KEY),
+  );
+  const subtitle = localizeEditorialText(website, (raw.subtitle ?? '').toString().trim());
   const ctaLabel =
-    (raw.ctaLabel ?? '').toString().trim() || DEFAULT_CTA_LABEL;
+    localizeEditorialText(
+      website,
+      (raw.ctaLabel ?? '').toString().trim() || editorialText(DEFAULT_CTA_LABEL_KEY),
+    );
   const ctaHrefRaw =
     (raw.ctaHref ?? '').toString().trim() || DEFAULT_CTA_HREF;
 
-  const regions = coerceRegions(raw.regions);
+  const regions = coerceRegions(raw.regions, defaultRegions);
 
   // Prefer explicit `destinations` if the author set it; otherwise use
   // the hydrated `featuredDestinations` (Wave 2.7). If neither is

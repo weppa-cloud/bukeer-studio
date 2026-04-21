@@ -34,8 +34,6 @@ import {
 import { Icons } from '@/components/site/themes/editorial-v1/primitives/icons';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 
-const editorialText = getPublicUiExtraTextGetter('es-CO');
-
 export type DestinationsViewMode = 'list' | 'map';
 
 const HASH_MAP = 'map';
@@ -64,6 +62,7 @@ export interface DestinationsViewToggleProps {
     list?: string;
     map?: string;
   };
+  locale?: string | null;
   /** Optional style for the right-column tools stack. */
   toolsStyle?: CSSProperties;
 }
@@ -75,8 +74,10 @@ export function DestinationsViewToggle({
   defaultView = 'list',
   syncHash = true,
   labels,
+  locale,
   toolsStyle,
 }: DestinationsViewToggleProps) {
+  const editorialText = getPublicUiExtraTextGetter(locale ?? 'es-CO');
   const [view, setView] = useState<DestinationsViewMode>(defaultView);
 
   // On mount, prefer the URL hash when present.

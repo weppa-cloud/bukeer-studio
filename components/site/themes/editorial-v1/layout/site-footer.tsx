@@ -25,9 +25,7 @@ import type { NavigationItem } from '@bukeer/website-contract';
 import { getBasePath } from '@/lib/utils/base-path';
 import { Icons } from '../primitives/icons';
 import { FooterSwitcher } from './footer-switcher';
-import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
-
-const editorialText = getPublicUiExtraTextGetter('es-CO');
+import { getEditorialTextGetter } from '../i18n';
 
 export interface EditorialSiteFooterProps {
   website: WebsiteData;
@@ -39,6 +37,7 @@ export function EditorialSiteFooter({
   website,
   isCustomDomain = false,
 }: EditorialSiteFooterProps) {
+  const editorialText = getEditorialTextGetter(website);
   const { content, subdomain } = website;
   const basePath = getBasePath(subdomain, isCustomDomain);
   const currentYear = new Date().getFullYear();

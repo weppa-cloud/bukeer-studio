@@ -29,14 +29,12 @@ import './market-switcher.css';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { WebsiteData } from '@/lib/supabase/get-website';
 import { trackEvent } from '@/lib/analytics/track';
-import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
+import { getEditorialTextGetter } from '../i18n';
 import {
   getCurrencySymbol,
   getLocaleFlag,
   useMarketPreferences,
 } from './use-market-preferences';
-
-const editorialText = getPublicUiExtraTextGetter('es-CO');
 
 export interface MarketSwitcherProps {
   website: WebsiteData;
@@ -45,6 +43,7 @@ export interface MarketSwitcherProps {
 }
 
 export function MarketSwitcher({ website, onDark = false }: MarketSwitcherProps) {
+  const editorialText = getEditorialTextGetter(website);
   const {
     selectedLocale,
     selectedCurrency,

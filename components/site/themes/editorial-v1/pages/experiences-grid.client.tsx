@@ -20,8 +20,6 @@ import Image from 'next/image';
 import { Icons } from '@/components/site/themes/editorial-v1/primitives/icons';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 
-const editorialText = getPublicUiExtraTextGetter('es-CO');
-
 export interface ExperienceItem {
   id: string;
   slug?: string | null;
@@ -59,36 +57,8 @@ interface ExperiencesGridProps {
   activities: ExperienceItem[];
   basePath: string;
   initialFilters?: ExperiencesInitialFilters;
+  locale?: string;
 }
-
-const LEVELS = [
-  { key: 'facil', label: editorialText('editorialExperienceLevelEasy') },
-  { key: 'moderado', label: editorialText('editorialExperienceLevelModerate') },
-  { key: 'exigente', label: editorialText('editorialExperienceLevelDemanding') },
-  { key: 'intenso', label: editorialText('editorialExperienceLevelIntense') },
-];
-
-const CATEGORIES = [
-  { key: 'all', label: editorialText('editorialExperienceCategoryAll') },
-  { key: 'aventura', label: editorialText('editorialExperienceCategoryAdventure') },
-  { key: 'gastronomia', label: editorialText('editorialExperienceCategoryGastronomy') },
-  { key: 'cultura', label: editorialText('editorialExperienceCategoryCulture') },
-  { key: 'naturaleza', label: editorialText('editorialExperienceCategoryNature') },
-  { key: 'mar', label: editorialText('editorialExperienceCategorySea') },
-  { key: 'bienestar', label: editorialText('editorialExperienceCategoryWellness') },
-];
-
-const DURATION_BUCKETS = [
-  { key: 'all', label: editorialText('editorialExperienceDurationAny') },
-  { key: 'short', label: editorialText('editorialExperienceDurationShort') },
-  { key: 'half-day', label: editorialText('editorialExperienceDurationHalfDay') },
-  { key: 'full-day', label: editorialText('editorialExperienceDurationFullDay') },
-  { key: 'multi-day', label: editorialText('editorialExperienceDurationMultiDay') },
-];
-
-const EMPTY_HEADING = editorialText('editorialExperiencesEmptyHeading');
-const EMPTY_BODY = editorialText('editorialExperiencesEmptyBody');
-const CLEAR_LABEL = editorialText('editorialExperiencesClearLabel');
 
 function normalise(value: string | null | undefined): string {
   return (value ?? '').toString().trim().toLowerCase();
@@ -112,9 +82,33 @@ export function ExperiencesGrid({
   activities,
   basePath,
   initialFilters,
+  locale,
 }: ExperiencesGridProps) {
+  const editorialText = getPublicUiExtraTextGetter(locale ?? 'es-CO');
   const router = useRouter();
   const searchParams = useSearchParams();
+  const levels = [
+    { key: 'facil', label: editorialText('editorialExperienceLevelEasy') },
+    { key: 'moderado', label: editorialText('editorialExperienceLevelModerate') },
+    { key: 'exigente', label: editorialText('editorialExperienceLevelDemanding') },
+    { key: 'intenso', label: editorialText('editorialExperienceLevelIntense') },
+  ];
+  const categories = [
+    { key: 'all', label: editorialText('editorialExperienceCategoryAll') },
+    { key: 'aventura', label: editorialText('editorialExperienceCategoryAdventure') },
+    { key: 'gastronomia', label: editorialText('editorialExperienceCategoryGastronomy') },
+    { key: 'cultura', label: editorialText('editorialExperienceCategoryCulture') },
+    { key: 'naturaleza', label: editorialText('editorialExperienceCategoryNature') },
+    { key: 'mar', label: editorialText('editorialExperienceCategorySea') },
+    { key: 'bienestar', label: editorialText('editorialExperienceCategoryWellness') },
+  ];
+  const durationBuckets = [
+    { key: 'all', label: editorialText('editorialExperienceDurationAny') },
+    { key: 'short', label: editorialText('editorialExperienceDurationShort') },
+    { key: 'half-day', label: editorialText('editorialExperienceDurationHalfDay') },
+    { key: 'full-day', label: editorialText('editorialExperienceDurationFullDay') },
+    { key: 'multi-day', label: editorialText('editorialExperienceDurationMultiDay') },
+  ];
 
   // Prefer URL params (bookmarkable); fall back to server-provided `initialFilters`.
   const levelFromUrl = toArray(searchParams?.get('level'));
@@ -211,7 +205,7 @@ export function ExperiencesGrid({
     <>
       {/* Category tiles */}
       <div className="exp-cats" data-testid="experiences-categories">
-        {CATEGORIES.map((c) => {
+        {categories.map((c) => {
           const isActive = normalise(categoryFilter) === c.key;
           return (
             <button
@@ -229,9 +223,9 @@ export function ExperiencesGrid({
 
       {/* Duration tabs + region/level chips */}
       <div className="exp-filterbar" data-testid="experiences-filterbar">
-        <div className="exp-filter-group">
-          <span className="label">{editorialText('editorialExperiencesDurationLabel')}</span>
-          {DURATION_BUCKETS.map((b) => {
+          <div className="exp-filter-group">
+            <span className="label">{editorialText('editorialExperiencesDurationLabel')}</span>
+            {durationBuckets.map((b) => {
             const isActive = normalise(durationFilter) === b.key;
             return (
               <button
@@ -269,7 +263,7 @@ export function ExperiencesGrid({
 
         <div className="exp-filter-group">
           <span className="label">{editorialText('editorialExperiencesLevelLabel')}</span>
-          {LEVELS.map((l) => {
+          {levels.map((l) => {
             const isOn = levelFilters.map(normalise).includes(normalise(l.key));
             return (
               <button
@@ -321,19 +315,24 @@ export function ExperiencesGrid({
               marginBottom: 10,
             }}
           >
-            {EMPTY_HEADING}
+            {editorialText('editorialExperiencesEmptyHeading')}
           </div>
           <p className="body-md" style={{ marginBottom: 20 }}>
-            {EMPTY_BODY}
+            {editorialText('editorialExperiencesEmptyBody')}
           </p>
           <button type="button" className="btn btn-ink" onClick={clearAll}>
-            {CLEAR_LABEL}
+            {editorialText('editorialExperiencesClearLabel')}
           </button>
         </div>
       ) : (
         <div className="exp-grid" data-testid="experiences-grid">
           {filtered.map((a) => (
-            <ExperienceCard key={a.id} activity={a} basePath={basePath} />
+            <ExperienceCard
+              key={a.id}
+              activity={a}
+              basePath={basePath}
+              fromPrefix={editorialText('editorialExperiencesFromPrefix')}
+            />
           ))}
         </div>
       )}
@@ -344,9 +343,10 @@ export function ExperiencesGrid({
 interface ExperienceCardProps {
   activity: ExperienceItem;
   basePath: string;
+  fromPrefix: string;
 }
 
-function ExperienceCard({ activity, basePath }: ExperienceCardProps): ReactNode {
+function ExperienceCard({ activity, basePath, fromPrefix }: ExperienceCardProps): ReactNode {
   const href = activity.slug
     ? `${basePath}/actividades/${encodeURIComponent(activity.slug)}`
     : `${basePath}/experiencias`;
@@ -415,7 +415,7 @@ function ExperienceCard({ activity, basePath }: ExperienceCardProps): ReactNode 
           <div className="exp-price">
             {price ? (
               <>
-                <small>{editorialText('editorialExperiencesFromPrefix')}</small>
+                <small>{fromPrefix}</small>
                 <b>{price}</b>
               </>
             ) : null}

@@ -30,8 +30,6 @@ import { Eyebrow } from '../primitives/eyebrow';
 import { sanitizeProductCopy } from '@/lib/products/normalize-product';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 
-const editorialText = getPublicUiExtraTextGetter('es-CO');
-
 export interface EditorialActivityDetailPayload {
   product: ProductData;
   basePath: string;
@@ -62,10 +60,16 @@ function normalizeHighlights(product: ProductData): string[] {
 }
 
 export function EditorialActivityDetail({
-  website: _website,
+  website,
   payload,
   children,
 }: EditorialActivityDetailProps) {
+  const resolvedLocale =
+    (website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale ??
+    website.content?.locale ??
+    website.default_locale ??
+    'es-CO';
+  const editorialText = getPublicUiExtraTextGetter(resolvedLocale);
   const resolvedPayload = payload as EditorialActivityDetailPayload | undefined;
 
   if (!resolvedPayload || !resolvedPayload.product) {

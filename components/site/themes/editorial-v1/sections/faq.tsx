@@ -31,9 +31,7 @@ import { getBasePath } from '@/lib/utils/base-path';
 import { Eyebrow } from '../primitives/eyebrow';
 import { Icons } from '../primitives/icons';
 import { FaqClient, type FaqItem } from './faq.client';
-import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
-
-const editorialText = getPublicUiExtraTextGetter('es-CO');
+import { getEditorialTextGetter, localizeEditorialText } from '../i18n';
 
 export interface EditorialFaqSectionProps {
   section: WebsiteSection;
@@ -50,8 +48,8 @@ interface FaqContent {
   questions?: FaqItem[];
 }
 
-const DEFAULT_EYEBROW = editorialText('editorialFaqEyebrowFallback');
-const DEFAULT_TITLE = editorialText('editorialFaqTitleFallback');
+const DEFAULT_EYEBROW_KEY = 'editorialFaqEyebrowFallback';
+const DEFAULT_TITLE_KEY = 'editorialFaqTitleFallback';
 
 const ALLOWED_TITLE_TAGS = new Set(['em', 'br']);
 function sanitizeTitle(raw: string | undefined | null): string {
@@ -92,6 +90,7 @@ export function FaqSection({
   section,
   website,
 }: EditorialFaqSectionProps): ReactElement | null {
+  const editorialText = getEditorialTextGetter(website);
   const content = (section.content || {}) as FaqContent;
 
   // Accept `faqs` or `questions` alias; normalize entries.
@@ -110,15 +109,24 @@ export function FaqSection({
         typeof f.answer === 'string' &&
         f.answer.trim().length > 0,
     )
-    .map((f) => ({ question: f.question.trim(), answer: f.answer.trim() }));
+    .map((f) => ({
+      question: localizeEditorialText(website, f.question.trim()),
+      answer: localizeEditorialText(website, f.answer.trim()),
+    }));
 
   if (faqs.length === 0) return null;
 
   const basePath = getBasePath(website.subdomain, false);
-  const eyebrow = content.eyebrow?.trim() || DEFAULT_EYEBROW;
-  const sanitizedTitle = sanitizeTitle(content.title) || sanitizeTitle(DEFAULT_TITLE);
-  const helperText = content.helperText?.trim() || '';
-  const ctaLabel = content.ctaLabel?.trim() || '';
+  const eyebrow = localizeEditorialText(
+    website,
+    content.eyebrow?.trim() || editorialText(DEFAULT_EYEBROW_KEY),
+  );
+  const sanitizedTitle = sanitizeTitle(
+    localizeEditorialText(website, content.title)
+    || localizeEditorialText(website, editorialText(DEFAULT_TITLE_KEY)),
+  );
+  const helperText = localizeEditorialText(website, content.helperText?.trim() || '');
+  const ctaLabel = localizeEditorialText(website, content.ctaLabel?.trim() || '');
   const ctaHref = ctaLabel ? resolveCtaHref(content.ctaUrl, website, basePath) : '';
 
   return (

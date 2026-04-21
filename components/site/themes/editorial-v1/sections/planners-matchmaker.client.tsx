@@ -45,8 +45,6 @@ import Image from 'next/image';
 import { Icons } from '@/components/site/themes/editorial-v1/primitives/icons';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 
-const editorialText = getPublicUiExtraTextGetter('es-CO');
-
 // ---------- Types ----------
 
 export interface MatchmakerPlanner {
@@ -108,6 +106,7 @@ export interface PlannersMatchmakerProps {
     availableFallback: string;
     yearsSuffix: string;
   };
+  locale?: string | null;
 }
 
 // ---------- Helpers ----------
@@ -145,7 +144,9 @@ export function PlannersMatchmaker({
   options,
   toolbarCopy,
   cardCopy,
+  locale,
 }: PlannersMatchmakerProps) {
+  const editorialText = getPublicUiExtraTextGetter(locale ?? 'es-CO');
   // Top tab filter (region-like umbrella).
   const [filter, setFilter] = useState<string>(tabs[0]?.key ?? 'all');
   // Quiz dimensions.

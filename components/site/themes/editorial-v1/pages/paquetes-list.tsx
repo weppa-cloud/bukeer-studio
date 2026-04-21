@@ -27,6 +27,7 @@ import { Breadcrumbs } from '../primitives/breadcrumbs';
 import { Eyebrow } from '../primitives/eyebrow';
 import { getBasePath } from '@/lib/utils/base-path';
 import { formatPrice } from '@/lib/products/format-price';
+import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 
 import {
   PaquetesListGrid,
@@ -44,13 +45,22 @@ export interface EditorialPaquetesListPageProps {
   packages: ProductData[];
 }
 
-// -------------------- Copy (verbatim from copy-catalog.md) --------------------
-
-const HERO_EYEBROW = 'Catálogo';
-const HERO_TITLE = 'Paquetes';
-const HERO_EMPHASIS = 'por toda Colombia.';
-const HERO_SUBTITLE =
-  'Itinerarios diseñados por planners locales. Ajustables, flexibles, punto de partida para tu viaje.';
+// -------------------- Copy --------------------
+function getHeroCopy(localeLike: string): { emphasis: string; subtitle: string } {
+  const locale = localeLike.toLowerCase();
+  if (locale.startsWith('en')) {
+    return {
+      emphasis: 'across Colombia.',
+      subtitle:
+        'Journeys designed by local planners. Flexible and adjustable as the starting point for your trip.',
+    };
+  }
+  return {
+    emphasis: 'por toda Colombia.',
+    subtitle:
+      'Itinerarios diseñados por planners locales. Ajustables, flexibles, punto de partida para tu viaje.',
+  };
+}
 
 // -------------------- Helpers --------------------
 
@@ -107,7 +117,11 @@ export function EditorialPaquetesListPage({
   website,
   packages,
 }: EditorialPaquetesListPageProps) {
-  const basePath = getBasePath(website.subdomain, Boolean(website.custom_domain));
+  const resolvedLocale =
+    (website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale ?? 'es-CO';
+  const editorialText = getPublicUiExtraTextGetter(resolvedLocale);
+  const heroCopy = getHeroCopy(resolvedLocale);
+  const basePath = getBasePath(website.subdomain, false);
   const siteTitleTrail = website.content?.siteName || website.subdomain;
 
   const items = packages.map(toListItem);
@@ -120,16 +134,16 @@ export function EditorialPaquetesListPage({
           <Breadcrumbs
             items={[
               { label: siteTitleTrail, href: basePath || '/' },
-              { label: 'Paquetes' },
+              { label: editorialText('editorialBreadcrumbPackages') },
             ]}
           />
           <div style={{ marginTop: 24 }}>
-            <Eyebrow tone="light">{HERO_EYEBROW}</Eyebrow>
+            <Eyebrow tone="light">{editorialText('editorialPackagesEyebrowFallback')}</Eyebrow>
             <h1 className="display-lg" style={heroTitleStyle}>
-              {HERO_TITLE}{' '}
-              <em style={heroEmphasisStyle}>{HERO_EMPHASIS}</em>
+              {editorialText('editorialPackagesTitleFallback')}{' '}
+              <em style={heroEmphasisStyle}>{heroCopy.emphasis}</em>
             </h1>
-            <p style={heroSubtitleStyle}>{HERO_SUBTITLE}</p>
+            <p style={heroSubtitleStyle}>{heroCopy.subtitle}</p>
           </div>
         </div>
       </section>

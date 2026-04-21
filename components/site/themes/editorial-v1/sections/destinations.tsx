@@ -36,11 +36,10 @@ import {
 
 import { Eyebrow } from '../primitives/eyebrow';
 import { Icons } from '../primitives/icons';
-import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
+import { getEditorialTextGetter, localizeEditorialText } from '../i18n';
 
 import { DestinationsViewToggle } from './destinations-view-toggle.client';
 
-const editorialText = getPublicUiExtraTextGetter('es-CO');
 import {
   DestinationsMapView,
   type MapDestination,
@@ -89,9 +88,7 @@ interface NormalizedDestination extends MapDestination {
 }
 
 // ---------- Defaults ----------
-const DEFAULT_EYEBROW = editorialText('editorialDestinationsEyebrowFallback');
-const DEFAULT_TITLE = editorialText('editorialDestinationsTitleFallback');
-const DEFAULT_EMPTY = editorialText('editorialDestinationsEmpty');
+const DEFAULT_EMPTY_KEY = 'editorialDestinationsEmpty';
 
 // Designer's feature layout — repeats after 8 slots so we can tile
 // arbitrary-length destination arrays without losing the rhythm.
@@ -105,13 +102,6 @@ const GRID_LAYOUT: readonly string[] = [
   'c-4',
   'c-4',
 ];
-
-const LABELS = {
-  viewList: editorialText('editorialDestinationsViewList'),
-  viewMap: editorialText('editorialDestinationsViewMap'),
-  activitiesWord: editorialText('editorialActivitiesWord'),
-  packagesWord: editorialText('editorialPackagesWord'),
-} as const;
 
 // ---------- Helpers ----------
 function firstString(...values: Array<string | null | undefined>): string {
@@ -217,12 +207,25 @@ export function DestinationsSection({
   section,
   website,
 }: DestinationsSectionProps): ReactElement {
+  const editorialText = getEditorialTextGetter(website);
   const content = (section.content || {}) as DestinationsContent;
   const basePath = getBasePath(website.subdomain, false);
 
-  const eyebrow = firstString(content.eyebrow) || DEFAULT_EYEBROW;
-  const title = firstString(content.title) || DEFAULT_TITLE;
-  const subtitle = firstString(content.subtitle);
+  const eyebrow = localizeEditorialText(
+    website,
+    firstString(content.eyebrow) || editorialText('editorialDestinationsEyebrowFallback'),
+  );
+  const title = localizeEditorialText(
+    website,
+    firstString(content.title) || editorialText('editorialDestinationsTitleFallback'),
+  );
+  const subtitle = localizeEditorialText(website, firstString(content.subtitle));
+  const labels = {
+    viewList: editorialText('editorialDestinationsViewList'),
+    viewMap: editorialText('editorialDestinationsViewMap'),
+    activitiesWord: editorialText('editorialActivitiesWord'),
+    packagesWord: editorialText('editorialPackagesWord'),
+  } as const;
 
   const rawList = Array.isArray(content.destinations)
     ? content.destinations.filter(
@@ -260,8 +263,8 @@ export function DestinationsSection({
     <DestinationsListView
       destinations={destinations}
       basePath={basePath}
-      activitiesWord={LABELS.activitiesWord}
-      packagesWord={LABELS.packagesWord}
+      activitiesWord={labels.activitiesWord}
+      packagesWord={labels.packagesWord}
     />
   ) : null;
 
@@ -269,8 +272,8 @@ export function DestinationsSection({
     <DestinationsMapView
       destinations={destinations}
       basePath={basePath}
-      activitiesWord={LABELS.activitiesWord}
-      packagesWord={LABELS.packagesWord}
+      activitiesWord={labels.activitiesWord}
+      packagesWord={labels.packagesWord}
     />
   ) : null;
 
@@ -286,7 +289,7 @@ export function DestinationsSection({
               <div>{headerNode}</div>
             </div>
             <p className="body-md" style={{ textAlign: 'center', opacity: 0.7 }}>
-              {DEFAULT_EMPTY}
+              {editorialText(DEFAULT_EMPTY_KEY)}
             </p>
           </>
         ) : enableToggle ? (
@@ -295,7 +298,7 @@ export function DestinationsSection({
             listView={listView}
             mapView={mapView}
             defaultView={defaultView}
-            labels={{ list: LABELS.viewList, map: LABELS.viewMap }}
+            labels={{ list: labels.viewList, map: labels.viewMap }}
           />
         ) : (
           <>

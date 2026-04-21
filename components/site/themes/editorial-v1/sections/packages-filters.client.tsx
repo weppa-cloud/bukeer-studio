@@ -23,14 +23,13 @@ import { Icons } from '@/components/site/themes/editorial-v1/primitives/icons';
 import { trackEvent } from '@/lib/analytics/track';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 
-const editorialText = getPublicUiExtraTextGetter('es-CO');
-
 export interface EditorialPackageItem {
   id: string;
   slug?: string | null;
   name: string;
   image?: string | null;
   description?: string | null;
+  category?: string | null;
   country?: string | null;
   destination?: string | null;
   duration?: string | null;
@@ -52,6 +51,7 @@ interface PackagesFiltersProps {
   tabs: EditorialFilterTab[];
   basePath: string;
   enableFilters: boolean;
+  locale?: string | null;
   labels: {
     allTab: string;
     popularBadge: string;
@@ -74,10 +74,13 @@ function matchesFilter(pkg: EditorialPackageItem, key: string): boolean {
   const tagPool = [
     ...(pkg.tags ?? []),
     ...(pkg.categoryKeys ?? []),
+    pkg.category ?? '',
+    pkg.destination ?? '',
+    pkg.country ?? '',
   ]
     .map(normalizeTag)
     .filter(Boolean);
-  return tagPool.includes(target);
+  return tagPool.includes(target) || tagPool.includes(target.replace(/-/g, ' '));
 }
 
 export function PackagesFilters({
@@ -85,8 +88,10 @@ export function PackagesFilters({
   tabs,
   basePath,
   enableFilters,
+  locale,
   labels,
 }: PackagesFiltersProps) {
+  const editorialText = getPublicUiExtraTextGetter(locale ?? 'es-CO');
   const effectiveTabs = useMemo<EditorialFilterTab[]>(() => {
     if (!enableFilters) return [];
     const hasAllTab = tabs.some((t) => t.filterKey.toLowerCase() === ALL_KEY);

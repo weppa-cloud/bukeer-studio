@@ -24,8 +24,6 @@ import { Eyebrow } from '../primitives/eyebrow';
 import { sanitizeProductCopy } from '@/lib/products/normalize-product';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 
-const editorialText = getPublicUiExtraTextGetter('es-CO');
-
 export interface EditorialHotelDetailPayload {
   product: ProductData;
   basePath: string;
@@ -56,10 +54,16 @@ function normalizeStringList(value: unknown, max: number): string[] {
 }
 
 export function EditorialHotelDetail({
-  website: _website,
+  website,
   payload,
   children,
 }: EditorialHotelDetailProps) {
+  const resolvedLocale =
+    (website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale ??
+    website.content?.locale ??
+    website.default_locale ??
+    'es-CO';
+  const editorialText = getPublicUiExtraTextGetter(resolvedLocale);
   const resolvedPayload = payload as EditorialHotelDetailPayload | undefined;
 
   if (!resolvedPayload || !resolvedPayload.product) {

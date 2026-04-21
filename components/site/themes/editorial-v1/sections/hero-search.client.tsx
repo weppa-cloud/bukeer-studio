@@ -32,26 +32,26 @@ export interface HeroSearchProps {
   basePath?: string;
   /** Where to send the user. Defaults to `/buscar`. */
   actionPath?: string;
+  /** UI locale (e.g. `en-US`) for labels/placeholders fallback. */
+  locale?: string | null;
 }
-
-// Catalog-sourced defaults. editorial-v1 ships as `es-CO`; when a future
-// locale-aware hero wants to override, pass `placeholders` from the server.
-const EDITORIAL_TEXT = getPublicUiExtraTextGetter('es-CO');
-const DEFAULT_PLACEHOLDERS: Required<HeroSearchPlaceholders> = {
-  destino: EDITORIAL_TEXT('editorialSearchPlaceholderDestino'),
-  fechas: EDITORIAL_TEXT('editorialSearchPlaceholderFechas'),
-  viajeros: EDITORIAL_TEXT('editorialSearchPlaceholderViajeros'),
-  cta: EDITORIAL_TEXT('editorialSearchSubmit'),
-};
 
 export function HeroSearch({
   placeholders,
   basePath = '',
   actionPath = '/buscar',
+  locale,
 }: HeroSearchProps) {
+  const editorialText = getPublicUiExtraTextGetter(locale ?? 'es-CO');
   const resolved = useMemo<Required<HeroSearchPlaceholders>>(
-    () => ({ ...DEFAULT_PLACEHOLDERS, ...(placeholders || {}) }),
-    [placeholders],
+    () => ({
+      destino: editorialText('editorialSearchPlaceholderDestino'),
+      fechas: editorialText('editorialSearchPlaceholderFechas'),
+      viajeros: editorialText('editorialSearchPlaceholderViajeros'),
+      cta: editorialText('editorialSearchSubmit'),
+      ...(placeholders || {}),
+    }),
+    [placeholders, editorialText],
   );
 
   const [q, setQ] = useState('');
@@ -79,29 +79,29 @@ export function HeroSearch({
   return (
     <form className="hero-search" role="search" onSubmit={onSubmit}>
       <label className="field">
-        <small>{EDITORIAL_TEXT('editorialSearchDestinoLabel')}</small>
+        <small>{editorialText('editorialSearchDestinoLabel')}</small>
         <input
           type="text"
           name="q"
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder={resolved.destino}
-          aria-label={EDITORIAL_TEXT('editorialSearchDestinoLabel')}
+          aria-label={editorialText('editorialSearchDestinoLabel')}
         />
       </label>
       <label className="field">
-        <small>{EDITORIAL_TEXT('editorialSearchWhenLabel')}</small>
+        <small>{editorialText('editorialSearchWhenLabel')}</small>
         <input
           type="text"
           name="from"
           value={from}
           onChange={(e) => setFrom(e.target.value)}
           placeholder={resolved.fechas}
-          aria-label={EDITORIAL_TEXT('editorialSearchFechasAria')}
+          aria-label={editorialText('editorialSearchFechasAria')}
         />
       </label>
       <label className="field">
-        <small>{EDITORIAL_TEXT('editorialSearchViajerosLabel')}</small>
+        <small>{editorialText('editorialSearchViajerosLabel')}</small>
         <input
           type="text"
           name="pax"
@@ -112,7 +112,7 @@ export function HeroSearch({
             setTo(to);
           }}
           placeholder={resolved.viajeros}
-          aria-label={EDITORIAL_TEXT('editorialSearchViajerosLabel')}
+          aria-label={editorialText('editorialSearchViajerosLabel')}
         />
       </label>
       <button type="submit" className="go" aria-label={resolved.cta}>
