@@ -109,6 +109,7 @@ function makePlanner(overrides: Partial<PlannerData> = {}): PlannerData {
     bio: overrides.bio ?? null,
     specialty: overrides.specialty ?? null,
     language: hasLanguage ? (overrides.language as string | null) : 'es',
+    tagline: overrides.tagline ?? null,
     tripsCount: overrides.tripsCount ?? null,
     ratingAvg: overrides.ratingAvg ?? null,
     yearsExperience: overrides.yearsExperience ?? null,
