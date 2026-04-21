@@ -236,6 +236,14 @@ export const sectionComponents: Record<string, SectionComponent> = {
   comparison_table: ComparisonTableSection,
   guarantee_badges: GuaranteeBadgesSection,
   countdown_timer: CountdownTimerSection,
+
+  // editorial-v1 exclusive section (Wave 2.8) — renders nothing unless the
+  // site's template-set resolves to `editorial-v1`, in which case the
+  // editorial override in `components/site/themes/editorial-v1/section-
+  // registry.ts` is used instead. Keeping a silent fallback here so the
+  // unified renderer accepts the section_type and the editorial override
+  // path in `render-section.tsx` can take over.
+  explore_map: () => null,
 };
 
 // ============================================================================

@@ -1,4 +1,10 @@
-export type MapMarkerKind = 'destination' | 'hotel' | 'activity' | 'service';
+export type MapMarkerKind =
+  | 'destination'
+  | 'hotel'
+  | 'activity'
+  | 'service'
+  | 'stop'
+  | 'pkg';
 
 export type MapViewportPreset = 'colombia' | 'destination-detail';
 export type MapRenderMode = 'auto' | 'croquis';

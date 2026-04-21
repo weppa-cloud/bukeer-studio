@@ -1,4 +1,9 @@
-import type { WebsiteSection, BlogPost } from '@bukeer/website-contract';
+import type {
+  WebsiteSection,
+  BlogPost,
+  BrandClaims,
+  FeaturedDestination,
+} from '@bukeer/website-contract';
 import { SECTION_TYPES } from '@bukeer/website-contract';
 
 const SECTION_DESTINATIONS = SECTION_TYPES.find((t) => t === 'destinations')!;
@@ -10,6 +15,20 @@ const SECTION_CTA = SECTION_TYPES.find((t) => t === 'cta')!;
 const SECTION_HERO = SECTION_TYPES.find((t) => t === 'hero')!;
 const SECTION_STATS = SECTION_TYPES.find((t) => t === 'stats')!;
 const SECTION_BLOG = SECTION_TYPES.find((t) => t === 'blog')!;
+
+// Editorial-v1 section types that consume dynamic brand claims.
+// `trust_bar`, `about`, `planners`, `team`, `travel_planners` aren't in the
+// `SECTION_TYPES` enum (they are custom/editorial variants), so we match by
+// string literal here without narrowing the enum.
+const EDITORIAL_BRAND_CLAIM_TARGETS = new Set<string>([
+  SECTION_HERO,
+  SECTION_STATS,
+  'trust_bar',
+  'about',
+  'planners',
+  'team',
+  'travel_planners',
+]);
 
 const PRODUCT_SECTION_ORDER = [SECTION_PACKAGES, SECTION_ACTIVITIES, SECTION_HOTELS] as const;
 type ProductSectionType = (typeof PRODUCT_SECTION_ORDER)[number];
@@ -37,6 +56,18 @@ export interface HydrationInput {
     business_name?: string;
   } | null;
   blogPosts?: BlogPost[];
+  /**
+   * Editorial v1 — dynamic brand claims injected into hero/trust_bar/about/
+   * stats/planners sections when the section content doesn't already define
+   * `brandClaims`. Pass `null` to skip injection.
+   */
+  brandClaims?: BrandClaims | null;
+  /**
+   * Editorial v1 — curated featured destinations (hero "Destino del mes").
+   * Injected into hero + destinations sections when `featuredDestinations`
+   * isn't already set in `section.content`.
+   */
+  featuredDestinations?: FeaturedDestination[];
 }
 
 function buildAutoProductSection(
@@ -197,7 +228,9 @@ export function hydrateSections(input: HydrationInput): WebsiteSection[] {
     .map((sectionType, index) => {
       const existing = sectionByType.get(sectionType);
       if (existing) return existing;
-      return buildAutoProductSection(sectionType, 100 + index, autoItemsByType[sectionType]);
+      const autoItems = autoItemsByType[sectionType];
+      if (!autoItems || autoItems.length === 0) return null;
+      return buildAutoProductSection(sectionType, 100 + index, autoItems);
     })
     .filter((section): section is WebsiteSection => Boolean(section));
 
@@ -276,6 +309,47 @@ export function hydrateSections(input: HydrationInput): WebsiteSection[] {
             publishedAt: p.published_at || undefined,
             category: undefined, // category_id only — no join in RPC
           })),
+        },
+      } as WebsiteSection;
+    }
+  }
+
+  // 5b. Editorial v1 — inject dynamic brand claims + featured destinations.
+  // Only fills the content keys when the section didn't set them explicitly,
+  // so authored content continues to win over the dynamic defaults.
+  const { brandClaims, featuredDestinations } = input;
+
+  if (brandClaims) {
+    for (let i = 0; i < hydratedSections.length; i++) {
+      const section = hydratedSections[i];
+      if (!EDITORIAL_BRAND_CLAIM_TARGETS.has(section.section_type)) continue;
+      const content = (section.content as Record<string, unknown>) || {};
+      if (content.brandClaims) continue;
+      hydratedSections[i] = {
+        ...section,
+        content: {
+          ...content,
+          brandClaims,
+        },
+      } as WebsiteSection;
+    }
+  }
+
+  if (featuredDestinations && featuredDestinations.length > 0) {
+    for (let i = 0; i < hydratedSections.length; i++) {
+      const section = hydratedSections[i];
+      const isHero = section.section_type === SECTION_HERO;
+      const isDestinations = section.section_type === SECTION_DESTINATIONS;
+      // editorial-v1 home "Explora Colombia" section — same featured list.
+      const isExploreMap = section.section_type === 'explore_map';
+      if (!isHero && !isDestinations && !isExploreMap) continue;
+      const content = (section.content as Record<string, unknown>) || {};
+      if (content.featuredDestinations) continue;
+      hydratedSections[i] = {
+        ...section,
+        content: {
+          ...content,
+          featuredDestinations,
         },
       } as WebsiteSection;
     }
