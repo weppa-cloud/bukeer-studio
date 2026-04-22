@@ -22,7 +22,7 @@ import { WAFLOW_COUNTRIES } from '@/components/site/themes/editorial-v1/waflow/t
 const CO = WAFLOW_COUNTRIES[0];
 
 describe('buildWaflowMessage', () => {
-  it('builds the Variant A template with all context lines', () => {
+  it('builds the Variant A template with reduced-field lines', () => {
     const msg = buildWaflowMessage({
       variant: 'A',
       name: 'Juan Pérez',
@@ -30,16 +30,12 @@ describe('buildWaflowMessage', () => {
       phone: '3001234567',
       destinationChoice: 'Cartagena',
       when: 'En 2–3 meses',
-      adults: 2,
-      children: 1,
-      interests: ['Relax', 'Gastronomía'],
       ref: 'HOME-1203-AB12',
     });
     expect(msg).toContain('¡Hola! Quiero planear un viaje por Colombia');
     expect(msg).toContain('📍 Destino: Cartagena');
     expect(msg).toContain('📅 Cuándo: En 2–3 meses');
-    expect(msg).toContain('👥 Viajeros: 2 adultos + 1 niño');
-    expect(msg).toContain('✨ Intereses: Relax, Gastronomía');
+    expect(msg).toContain('📲 Contacto: +573001234567');
     expect(msg).toContain('— Juan Pérez');
     expect(msg).toContain('#ref: HOME-1203-AB12');
   });
@@ -51,13 +47,10 @@ describe('buildWaflowMessage', () => {
       country: CO,
       phone: '3001234567',
       when: 'Flexible',
-      adults: 1,
-      children: 0,
-      interests: [],
       ref: 'HOME-0101-ZZZZ',
     });
     expect(msg).toContain('📍 Destino: por definir');
-    expect(msg).not.toContain('✨ Intereses');
+    expect(msg).not.toContain('👥 Viajeros');
   });
 
   it('builds the Variant B template with destination name', () => {
@@ -68,14 +61,11 @@ describe('buildWaflowMessage', () => {
       phone: '3001234567',
       destFull: 'San Andrés',
       when: 'Fin de año',
-      adults: 2,
-      children: 0,
-      interests: ['Playa'],
       ref: 'DEST-1001-QQQQ',
     });
     expect(msg).toContain('¡Hola! Quiero planear un viaje a San Andrés');
     expect(msg).toContain('📍 Destino: San Andrés');
-    expect(msg).toContain('✨ Me interesa: Playa');
+    expect(msg).not.toContain('✨ Me interesa');
   });
 
   it('builds the Variant D template with package metadata', () => {
@@ -85,10 +75,6 @@ describe('buildWaflowMessage', () => {
       country: CO,
       phone: '3001234567',
       when: 'Flexible',
-      adults: 2,
-      children: 0,
-      interests: [],
-      adjust: ['Agregar días', 'Cambiar hotel'],
       pkgTitle: 'Café y paisaje',
       pkgDays: 5,
       pkgNights: 4,
@@ -96,7 +82,7 @@ describe('buildWaflowMessage', () => {
     });
     expect(msg).toContain('¡Hola! Me interesa el paquete "Café y paisaje"');
     expect(msg).toContain('📦 Paquete: Café y paisaje · 5D/4N');
-    expect(msg).toContain('🛠️ Ajustes: Agregar días, Cambiar hotel');
+    expect(msg).not.toContain('🛠️ Ajustes');
   });
 });
 

@@ -40,9 +40,6 @@ describe('WAFlow submission — message + URL', () => {
       phone: '3001234567',
       destinationChoice: 'Cartagena',
       when: 'En 2–3 meses',
-      adults: 2,
-      children: 1,
-      interests: ['Relax', 'Gastronomía'],
       ref,
     });
     const url = buildWaflowUrl('573001234567', msg);
@@ -52,8 +49,7 @@ describe('WAFlow submission — message + URL', () => {
     expect(decoded).toContain('¡Hola! Quiero planear un viaje por Colombia');
     expect(decoded).toContain('📍 Destino: Cartagena');
     expect(decoded).toContain('📅 Cuándo: En 2–3 meses');
-    expect(decoded).toContain('👥 Viajeros: 2 adultos + 1 niño');
-    expect(decoded).toContain('✨ Intereses: Relax, Gastronomía');
+    expect(decoded).toContain('📲 Contacto: +573001234567');
     expect(decoded).toContain('— Juan Pérez');
     expect(decoded).toContain(`#ref: ${ref}`);
   });
@@ -67,10 +63,6 @@ describe('WAFlow submission — message + URL', () => {
         country: CO,
         phone: '3001234567',
         when: 'Flexible',
-        adults: 2,
-        children: 0,
-        interests: [],
-        adjust: ['Agregar días'],
         pkgTitle: 'Café y paisaje',
         pkgDays: 5,
         pkgNights: 4,
@@ -82,7 +74,7 @@ describe('WAFlow submission — message + URL', () => {
     );
     expect(decoded).toContain('Me interesa el paquete "Café y paisaje"');
     expect(decoded).toContain('📦 Paquete: Café y paisaje · 5D/4N');
-    expect(decoded).toContain('🛠️ Ajustes: Agregar días');
+    expect(decoded).toContain('📲 Contacto: +573001234567');
   });
 });
 

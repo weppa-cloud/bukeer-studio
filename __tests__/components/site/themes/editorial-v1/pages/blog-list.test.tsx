@@ -2,8 +2,7 @@
  * editorial-v1 — <EditorialBlogListPage /> SSR tests.
  *
  * Coverage:
- *  - Renders hero + breadcrumbs + at least N card titles for N mock posts
- *  - Featured card appears on page 1 with no query/category; hidden otherwise
+ *  - Renders hero + breadcrumbs + grid directly (no featured block)
  *  - Pagination controls appear only when totalPages > 1
  *  - Empty state shows when posts[] is empty
  */
@@ -79,7 +78,7 @@ const CATEGORIES: BlogCategory[] = [
 ];
 
 describe('<EditorialBlogListPage />', () => {
-  it('renders hero + grid with N posts and featured card on page 1', () => {
+  it('renders hero + grid with N posts and no featured block', () => {
     const posts = [1, 2, 3, 4].map(makePost);
     const markup = renderToStaticMarkup(
       <EditorialBlogListPage
@@ -96,13 +95,12 @@ describe('<EditorialBlogListPage />', () => {
     // Hero
     expect(markup).toContain('Historias');
     expect(markup).toContain('desde adentro.');
-    // Breadcrumbs
     expect(markup).toContain('Acme Travel');
-    // Featured is post 1
-    expect(markup).toContain('data-testid="blog-featured"');
-    expect(markup).toContain('Post 1 — Historia');
-    // Grid should render posts 2, 3, 4 (featured is excluded)
+    // No featured block
+    expect(markup).not.toContain('data-testid="blog-featured"');
+    // Grid renders all posts
     expect(markup).toContain('data-testid="blog-grid"');
+    expect(markup).toContain('Post 1 — Historia');
     expect(markup).toContain('Post 2 — Historia');
     expect(markup).toContain('Post 3 — Historia');
     expect(markup).toContain('Post 4 — Historia');
@@ -111,7 +109,7 @@ describe('<EditorialBlogListPage />', () => {
     expect(markup).toContain('>Aventura<');
   });
 
-  it('hides featured card when a search query is active', () => {
+  it('renders grid even when a search query is active (no featured mode)', () => {
     const posts = [1, 2].map(makePost);
     const markup = renderToStaticMarkup(
       <EditorialBlogListPage
