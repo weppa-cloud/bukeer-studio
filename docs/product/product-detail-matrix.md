@@ -445,6 +445,63 @@ Pointer commit-history: ver PR de W1 refresh (EPIC #214 Stage 1 W1, branch `stag
 
 ---
 
+## Flujo operativo de galerías (Paquetes · `editorial-v1`)
+
+Estado verificado en `main` (2026-04-21) contra:
+- `lib/supabase/get-pages.ts` (enrichment SSR de media por package items)
+- `components/site/themes/editorial-v1/pages/package-detail.client.tsx` (render hero/galería/hoteles/itinerario)
+
+### 1) Dónde curar en Studio (fuente de verdad operativa)
+
+- **Curador de galería de paquete:** `GalleryCurator` (`program_gallery` en `package_kits`).
+- **Imagen social/portada SEO:** `SocialImagePicker` (`products.social_image`).
+
+Para operación diaria, el orden recomendado es:
+1. Curar `program_gallery` con fotos reales del paquete (sin flyers).
+2. Definir `social_image` cuando se requiera portada específica de hero/OG.
+
+### 2) Prioridad de render en público (qué gana sobre qué)
+
+- **Hero principal (detalle paquete):**
+1. `products.social_image`
+2. `products.image`
+3. `program_gallery[0]`
+4. fallback restante de `images[]`
+
+- **Galería principal (mosaico + lightbox):**
+1. `program_gallery` (curada)
+2. `photos`
+3. `images`
+4. `image`
+
+Regla vigente: si existe `program_gallery`, el render evita contaminar la galería principal con media del `day-by-day` para preservar curaduría editorial.
+
+- **Itinerario día a día (`package_day_media`):**
+se arma por `itinerary_items` (`id_product`, `product_type`, `day_number/date`) y media real asociada a cada item (actividades/servicios + hoteles cuando hay relación disponible).
+
+- **Hoteles seleccionados (`package_hotel_items`):**
+nombre y metadatos desde `account_hotels` + `master_hotels`; imagen de card prioriza imagen del hotel y luego fallback de galería curada.
+
+### 3) Checklist para Operaciones (Studio/Bukeer)
+
+1. En `GalleryCurator`, subir 8–20 fotos reales del paquete (no assets promocionales/flyers).
+2. Verificar que cada item del programa tenga media en su ficha origen (actividad/hotel).
+3. Definir `social_image` solo cuando se quiera portada distinta al carrusel curado.
+4. Publicar y validar en URL pública:
+   - Hero coherente con el paquete.
+   - Mosaico con fotos reales del viaje.
+   - Día a día con fotos por etapa.
+   - Hoteles con nombre real + foto de hotel.
+
+### 4) Señales de data hygiene (cuando “se ve mal”)
+
+- Hero muestra ciudad genérica/no relacionada: falta o está mal `social_image`/`image`.
+- Mosaico repite imágenes o muestra promos: `program_gallery` incompleta o con activos no editoriales.
+- Día a día sin fotos: items del programa sin media asociada.
+- Hoteles con títulos genéricos: relación `itinerary_items.id_product` ↔ `account_hotels.id` incompleta.
+
+---
+
 ## Resumen visual por tipo de artefacto
 
 Agrupación por patrón visual (cuántos ítems usan cada patrón):
