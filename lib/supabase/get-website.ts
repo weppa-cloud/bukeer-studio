@@ -286,34 +286,50 @@ export async function getBlogPosts(
     const offset = options.offset || 0;
 
     // Locale-aware listing: include legacy + canonical locale variants of the
-    // same language in one paginated query (e.g., `es` + `es-CO`).
+    // same language (e.g., `es` + `es-CO`) using the public RPC path to avoid
+    // direct-table RLS differences in runtime.
     if (uniqueLocales.length > 1) {
-      const categorySelect = options.categorySlug
-        ? '*, category:website_blog_categories!inner(*)'
-        : '*, category:website_blog_categories(*)';
+      const perLocaleWindow = Math.max(limit + offset, limit);
+      const mergedById = new Map<string, BlogPost>();
+      let atLeastOneSuccess = false;
+      let totalAcrossLocales = 0;
 
-      let query = supabase
-        .from('website_blog_posts')
-        .select(categorySelect, { count: 'exact' })
-        .eq('website_id', websiteId)
-        .eq('status', 'published')
-        .is('deleted_at', null)
-        .in('locale', uniqueLocales)
-        .order('published_at', { ascending: false, nullsFirst: false })
-        .order('updated_at', { ascending: false, nullsFirst: false })
-        .range(offset, offset + limit - 1);
+      for (const localeCandidate of uniqueLocales) {
+        const { data, error } = await supabase
+          .rpc('get_website_blog_posts', {
+            p_website_id: websiteId,
+            p_limit: perLocaleWindow,
+            p_offset: 0,
+            p_category_slug: options.categorySlug || null,
+            p_locale: localeCandidate || null,
+          });
 
-      if (options.categorySlug) {
-        query = query.eq('category.slug', options.categorySlug);
+        if (error) continue;
+        atLeastOneSuccess = true;
+        const localePosts = (data?.posts || []) as BlogPost[];
+        totalAcrossLocales += Number(data?.total || 0);
+        for (const post of localePosts) {
+          if (!post?.id) continue;
+          if (!mergedById.has(post.id)) mergedById.set(post.id, post);
+        }
       }
 
-      const { data, error, count } = await query;
-      if (error) {
-        console.error('[getBlogPosts] Locale query error:', error);
-      } else {
+      if (atLeastOneSuccess) {
+        const merged = Array.from(mergedById.values()).sort((a, b) => {
+          const publishedA = a.published_at ? new Date(a.published_at).getTime() : 0;
+          const publishedB = b.published_at ? new Date(b.published_at).getTime() : 0;
+          if (publishedA !== publishedB) return publishedB - publishedA;
+
+          const updatedA = a.updated_at ? new Date(a.updated_at).getTime() : 0;
+          const updatedB = b.updated_at ? new Date(b.updated_at).getTime() : 0;
+          return updatedB - updatedA;
+        });
+
+        const paginated = merged.slice(offset, offset + limit);
+        const total = Math.max(totalAcrossLocales, mergedById.size);
         return {
-          posts: (data as BlogPost[]) || [],
-          total: count || 0,
+          posts: paginated,
+          total,
         };
       }
     }
@@ -351,11 +367,16 @@ export async function getBlogPostBySlug(
   locale?: string
 ): Promise<BlogPost | null> {
   try {
+    const normalizedSlug = typeof slug === 'string' ? slug.trim() : '';
+    if (!normalizedSlug) return null;
+
+    // Fast path: direct row lookup (without relation join to reduce chances of
+    // policy/join-induced query failures in public runtime).
     let query = supabase
       .from('website_blog_posts')
-      .select(`*, category:website_blog_categories(*)`)
+      .select('*')
       .eq('website_id', websiteId)
-      .eq('slug', slug)
+      .eq('slug', normalizedSlug)
       .eq('status', 'published')
       .is('deleted_at', null);
 
@@ -367,14 +388,65 @@ export async function getBlogPostBySlug(
       .limit(1)
       .maybeSingle();
 
-    if (error) {
-      console.error('[getBlogPostBySlug] Error:', error);
-      return null;
+    if (!error && data) {
+      const post = data as BlogPost & { category_id?: string | null };
+      if (post.category_id) {
+        const { data: category } = await supabase
+          .from('website_blog_categories')
+          .select('*')
+          .eq('id', post.category_id)
+          .maybeSingle();
+        if (category) {
+          post.category = category;
+        }
+      }
+      return post as BlogPost;
     }
 
-    return data as BlogPost;
+    // Fallback path: RPC locale-window lookup (legacy `es/en` + canonical
+    // `es-CO/en-US`) to avoid hard failures when direct query errors.
+    const localeCandidates: string[] = [];
+    const normalizedLocale = typeof locale === 'string' ? locale.trim() : '';
+    if (normalizedLocale) {
+      localeCandidates.push(normalizedLocale);
+      const lang = normalizedLocale.split('-')[0]?.toLowerCase();
+      if (lang && lang !== normalizedLocale) localeCandidates.push(lang);
+      if (normalizedLocale === 'es-CO') localeCandidates.push('es');
+      if (normalizedLocale === 'en-US') localeCandidates.push('en');
+      if (normalizedLocale === 'es') localeCandidates.push('es-CO');
+      if (normalizedLocale === 'en') localeCandidates.push('en-US');
+    } else {
+      localeCandidates.push('');
+    }
+
+    const uniqueLocales = [...new Set(localeCandidates)];
+    const perLocaleLimit = 1200;
+    const mergedById = new Map<string, BlogPost>();
+
+    for (const localeCandidate of uniqueLocales) {
+      const { data: rpcData, error: rpcError } = await supabase
+        .rpc('get_website_blog_posts', {
+          p_website_id: websiteId,
+          p_limit: perLocaleLimit,
+          p_offset: 0,
+          p_category_slug: null,
+          p_locale: localeCandidate || null,
+        });
+      if (rpcError) continue;
+      const posts = (rpcData?.posts || []) as BlogPost[];
+      for (const post of posts) {
+        if (post?.id && !mergedById.has(post.id)) mergedById.set(post.id, post);
+      }
+    }
+
+    for (const post of mergedById.values()) {
+      if (post.slug === normalizedSlug) return post;
+    }
+
+    return null;
   } catch (e) {
-    console.error('[getBlogPostBySlug] Exception:', e);
+    // Keep public blog detail resilient — do not raise noisy dev overlay logs
+    // for recoverable lookup failures.
     return null;
   }
 }

@@ -249,6 +249,138 @@ function pushUniqueUrls(target: string[], source: string[]): string[] {
   return target;
 }
 
+async function enrichPackageCategoryPricing(items: ProductData[]): Promise<ProductData[]> {
+  if (!Array.isArray(items) || items.length === 0) return items;
+
+  const packageReader = supabaseService ?? supabase;
+  const ids = Array.from(
+    new Set(
+      items
+        .map((item) => asOptionalString(item.id))
+        .filter((id): id is string => Boolean(id))
+    )
+  );
+  if (ids.length === 0) return items;
+
+  try {
+    const [kitsByIdRes, kitsBySourceRes] = await Promise.all([
+      packageReader
+        .from('package_kits')
+        .select('id, source_itinerary_id')
+        .in('id', ids),
+      packageReader
+        .from('package_kits')
+        .select('id, source_itinerary_id')
+        .in('source_itinerary_id', ids),
+    ]);
+
+    const kitRows = [
+      ...(Array.isArray(kitsByIdRes.data) ? kitsByIdRes.data : []),
+      ...(Array.isArray(kitsBySourceRes.data) ? kitsBySourceRes.data : []),
+    ];
+    if (kitRows.length === 0) return items;
+
+    const productToKitId = new Map<string, string>();
+    const kitIds = new Set<string>();
+
+    for (const raw of kitRows) {
+      if (!raw || typeof raw !== 'object') continue;
+      const row = raw as Record<string, unknown>;
+      const kitId = asOptionalString(row.id);
+      const sourceItineraryId = asOptionalString(row.source_itinerary_id);
+      if (!kitId) continue;
+      kitIds.add(kitId);
+      if (sourceItineraryId) {
+        productToKitId.set(sourceItineraryId, kitId);
+      }
+      if (ids.includes(kitId)) {
+        productToKitId.set(kitId, kitId);
+      }
+    }
+
+    if (kitIds.size === 0) return items;
+
+    const { data: rawVersions } = await packageReader
+      .from('package_kit_versions')
+      .select('package_kit_id, version_number, total_price, base_currency, price_per_person, is_base_version')
+      .in('package_kit_id', Array.from(kitIds))
+      .eq('is_active', true);
+
+    if (!Array.isArray(rawVersions) || rawVersions.length === 0) return items;
+
+    const versionsByKitId = new Map<
+      string,
+      Array<{
+        version_number: number;
+        total_price: number;
+        base_currency: string;
+        services_snapshot_summary: string;
+        passenger_count?: number;
+        version_label?: string;
+        price_per_person?: number;
+        is_base_version?: boolean;
+      }>
+    >();
+
+    for (const raw of rawVersions) {
+      if (!raw || typeof raw !== 'object') continue;
+      const row = raw as Record<string, unknown>;
+      const kitId = asOptionalString(row.package_kit_id);
+      const versionNumber = parsePositiveInt(row.version_number);
+      const totalPriceRaw = typeof row.total_price === 'number' ? row.total_price : Number(row.total_price);
+      const totalPrice = Number.isFinite(totalPriceRaw) && totalPriceRaw > 0 ? totalPriceRaw : null;
+      if (!kitId || !versionNumber || !totalPrice) continue;
+
+      const pricePerPersonRaw = typeof row.price_per_person === 'number'
+        ? row.price_per_person
+        : Number(row.price_per_person);
+      const pricePerPerson = Number.isFinite(pricePerPersonRaw) && pricePerPersonRaw > 0
+        ? pricePerPersonRaw
+        : undefined;
+
+      const version = {
+        version_number: versionNumber,
+        total_price: totalPrice,
+        base_currency: asOptionalString(row.base_currency) ?? 'COP',
+        services_snapshot_summary: 'Versión de paquete',
+        price_per_person: pricePerPerson,
+        is_base_version: row.is_base_version === true,
+      };
+      const current = versionsByKitId.get(kitId) ?? [];
+      current.push(version);
+      versionsByKitId.set(kitId, current);
+    }
+
+    if (versionsByKitId.size === 0) return items;
+
+    return items.map((item) => {
+      const productId = asOptionalString(item.id);
+      if (!productId) return item;
+      const kitId = productToKitId.get(productId);
+      if (!kitId) return item;
+      const versions = versionsByKitId.get(kitId);
+      if (!versions || versions.length === 0) return item;
+
+      const sortedVersions = [...versions].sort((a, b) => a.version_number - b.version_number);
+      const cheapest = sortedVersions.reduce((best, current) => {
+        const bestValue = best.price_per_person ?? best.total_price;
+        const currentValue = current.price_per_person ?? current.total_price;
+        return currentValue < bestValue ? current : best;
+      });
+      const cheapestValue = cheapest.price_per_person ?? cheapest.total_price;
+
+      return {
+        ...item,
+        package_versions: sortedVersions,
+        price: cheapestValue,
+        currency: cheapest.base_currency || item.currency,
+      };
+    });
+  } catch {
+    return items;
+  }
+}
+
 function resolvePackageItemDayMap(rows: Array<Record<string, unknown>>): Map<number, Array<Record<string, unknown>>> {
   const byDay = new Map<number, Array<Record<string, unknown>>>();
   if (rows.length === 0) return byDay;
@@ -512,6 +644,19 @@ export async function getProductPage(
       };
     }
 
+    // Defensive publication gate: if DB/RPC returns an unpublished row,
+    // treat it as non-existent for public routing.
+    const productPublished =
+      result.product && typeof (result.product as unknown as Record<string, unknown>).is_published === 'boolean'
+        ? (result.product as unknown as Record<string, unknown>).is_published
+        : undefined;
+    if (
+      (typeof productPublished === 'boolean' && productPublished === false) ||
+      (typeof result.page?.is_published === 'boolean' && result.page.is_published === false)
+    ) {
+      return null;
+    }
+
     if (productType === 'package' && result.product) {
       const product = result.product as ProductData & {
         program_inclusions?: string[] | null;
@@ -521,6 +666,16 @@ export async function getProductPage(
         video_url?: string | null;
         video_caption?: string | null;
         social_image?: string | null;
+        package_versions?: Array<{
+          version_number: number;
+          total_price: number;
+          base_currency: string;
+          services_snapshot_summary: string;
+          passenger_count?: number;
+          version_label?: string;
+          price_per_person?: number;
+          is_base_version?: boolean;
+        }>;
       };
 
       // Package SSR RPC still misses some kit-origin marketing fields on certain
@@ -590,6 +745,49 @@ export async function getProductPage(
             product.social_image = kit.cover_image_url;
           }
 
+          // Package versions by pax (real pricing totals) from package_kit_versions.
+          const kitId = asOptionalString((kit as Record<string, unknown>).id);
+          if (kitId) {
+            const { data: packageKitVersions } = await packageReader
+              .from('package_kit_versions')
+              .select('id, version_number, version_label, passenger_count, is_base_version, is_active, total_price, price_per_person, base_currency, pricing_notes')
+              .eq('package_kit_id', kitId)
+              .eq('is_active', true)
+              .order('version_number', { ascending: true });
+            if (Array.isArray(packageKitVersions) && packageKitVersions.length > 0) {
+              const versions = packageKitVersions
+                .map((raw) => raw as Record<string, unknown>)
+                .map((row) => {
+                  const versionNumber = parsePositiveInt(row.version_number);
+                  const totalPriceRaw = typeof row.total_price === 'number' ? row.total_price : Number(row.total_price);
+                  const totalPrice = Number.isFinite(totalPriceRaw) && totalPriceRaw > 0 ? totalPriceRaw : null;
+                  const baseCurrency = asOptionalString(row.base_currency) ?? asOptionalString(product.currency) ?? 'COP';
+                  const pax = parsePositiveInt(row.passenger_count);
+                  const label = asOptionalString(row.version_label);
+                  const notes = asOptionalString(row.pricing_notes);
+                  const pricePerPersonRaw = typeof row.price_per_person === 'number' ? row.price_per_person : Number(row.price_per_person);
+                  const pricePerPerson = Number.isFinite(pricePerPersonRaw) && pricePerPersonRaw > 0 ? pricePerPersonRaw : undefined;
+                  if (!versionNumber || !totalPrice) return null;
+                  return {
+                    version_number: versionNumber,
+                    total_price: totalPrice,
+                    base_currency: baseCurrency,
+                    services_snapshot_summary:
+                      notes
+                      ?? (pax ? `${pax} ${pax === 1 ? 'persona' : 'personas'}` : 'Versión de paquete'),
+                    passenger_count: pax ?? undefined,
+                    version_label: label ?? undefined,
+                    price_per_person: pricePerPerson,
+                    is_base_version: row.is_base_version === true,
+                  };
+                })
+                .filter((row): row is NonNullable<typeof row> => Boolean(row));
+              if (versions.length > 0) {
+                product.package_versions = versions;
+              }
+            }
+          }
+
           // Apply locale-specific content translations (name, description, highlights).
           if (options?.locale) {
             const localeOverlay = resolveTranslationOverlay(
@@ -624,6 +822,7 @@ export async function getProductPage(
         program_gallery?: string[] | null;
         package_day_media?: Record<number, string[]>;
         package_hotel_items?: Array<{
+          productId?: string | null;
           title: string;
           city?: string | null;
           category?: string | null;
@@ -815,6 +1014,7 @@ export async function getProductPage(
                   hotelCityByProductId.set(accountHotelId, resolvedCity);
                 }
                 return {
+                  productId: accountHotelId,
                   title: resolvedTitle,
                   city: resolvedCity,
                   category: starRating ? `${Math.round(starRating)}★` : 'Hotel seleccionado',
@@ -1376,7 +1576,10 @@ export async function getCategoryProducts(
 
     const parsed = CategoryProductsSchema.safeParse(normalizedPayload);
     if (parsed.success) {
-      let baseItems = parsed.data.items as ProductData[];
+      let baseItems = (parsed.data.items as ProductData[]).filter((item) => {
+        const isPublished = (item as unknown as Record<string, unknown>).is_published;
+        return isPublished !== false;
+      });
 
       // For non-default locale: filter to products that have an en overlay.
       const locale = options.locale;
@@ -1388,6 +1591,10 @@ export async function getCategoryProducts(
           options.websiteId, productType, productIds, locale
         );
         baseItems = baseItems.filter((i) => i.id && idsWithOverlay.has(i.id));
+      }
+
+      if (categoryType === 'packages' && baseItems.length > 0) {
+        baseItems = await enrichPackageCategoryPricing(baseItems);
       }
 
       const localizedItems = await applyTranslationOverlayToProducts(
@@ -1412,14 +1619,22 @@ export async function getCategoryProducts(
 
     const payload = normalizedPayload as { items?: unknown; total?: unknown };
     const items = Array.isArray(payload.items)
-      ? (payload.items as ProductData[])
+      ? (payload.items as ProductData[]).filter((item) => {
+        const isPublished = (item as unknown as Record<string, unknown>).is_published;
+        return isPublished !== false;
+      })
       : [];
     const total = typeof payload.total === 'number'
       ? payload.total
       : Number(payload.total) || 0;
 
+    const itemsWithPricing =
+      categoryType === 'packages' && items.length > 0
+        ? await enrichPackageCategoryPricing(items)
+        : items;
+
     const localizedItems = await applyTranslationOverlayToProducts(
-      items,
+      itemsWithPricing,
       categoryType,
       options.locale ?? null,
     );

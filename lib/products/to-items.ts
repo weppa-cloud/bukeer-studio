@@ -31,6 +31,85 @@ export function toDurationLabel(product: ProductData): string | undefined {
   return `${Math.max(1, Math.round(product.duration_minutes / 60))} h`;
 }
 
+interface ResolvedProductPrice {
+  amount: number | null;
+  currency: string | null;
+}
+
+function toFinitePositiveNumber(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value) && value > 0) return value;
+  return null;
+}
+
+function normalizeCurrency(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const code = value.trim().toUpperCase();
+  return code.length >= 3 ? code : null;
+}
+
+export function resolveLowestProductPrice(product: ProductData): ResolvedProductPrice {
+  const candidates: Array<{ amount: number; currency: string | null }> = [];
+
+  const directAmount = toFinitePositiveNumber(product.price);
+  if (directAmount !== null) {
+    candidates.push({ amount: directAmount, currency: normalizeCurrency(product.currency) });
+  }
+
+  const packageVersion = (product as ProductData & { package_version?: unknown }).package_version;
+  if (packageVersion && typeof packageVersion === 'object') {
+    const typed = packageVersion as ProductData['package_version'];
+    const amount =
+      toFinitePositiveNumber((typed as ProductData['package_version'] & { price_per_person?: unknown })?.price_per_person)
+      ?? toFinitePositiveNumber(typed?.total_price);
+    if (amount !== null) {
+      candidates.push({
+        amount,
+        currency: normalizeCurrency(typed?.base_currency) ?? normalizeCurrency(product.currency),
+      });
+    }
+  }
+
+  const packageVersions = (product as ProductData & { package_versions?: unknown }).package_versions;
+  if (Array.isArray(packageVersions)) {
+    for (const version of packageVersions) {
+      if (!version || typeof version !== 'object') continue;
+      const typed = version as NonNullable<ProductData['package_versions']>[number];
+      const amount =
+        toFinitePositiveNumber((typed as NonNullable<ProductData['package_versions']>[number] & { price_per_person?: unknown })?.price_per_person)
+        ?? toFinitePositiveNumber(typed?.total_price);
+      if (amount === null) continue;
+      candidates.push({
+        amount,
+        currency: normalizeCurrency(typed?.base_currency) ?? normalizeCurrency(product.currency),
+      });
+    }
+  }
+
+  if (Array.isArray(product.options)) {
+    for (const option of product.options) {
+      if (!option || !Array.isArray(option.prices)) continue;
+      for (const priceRow of option.prices) {
+        const amount = toFinitePositiveNumber(priceRow?.price);
+        if (amount === null) continue;
+        candidates.push({
+          amount,
+          currency: normalizeCurrency(priceRow?.currency) ?? normalizeCurrency(product.currency),
+        });
+      }
+    }
+  }
+
+  if (candidates.length === 0) {
+    return { amount: null, currency: normalizeCurrency(product.currency) };
+  }
+
+  const min = candidates.reduce((best, current) => (current.amount < best.amount ? current : best));
+  return {
+    amount: min.amount,
+    currency: min.currency,
+  };
+}
+
 export function toPackageItems(products: ProductData[], limit = 8): Array<Record<string, unknown>> {
   const seen = new Set<string>();
   const items: Array<Record<string, unknown>> = [];
@@ -42,6 +121,12 @@ export function toPackageItems(products: ProductData[], limit = 8): Array<Record
       ? (product as unknown as Record<string, unknown>).category as string
       : undefined;
     const category = dbCategory || 'Popular';
+    const lowestPrice = resolveLowestProductPrice(product);
+    const fallbackFormattedPrice = formatProductPrice(product.price, product.currency);
+    const displayPrice =
+      lowestPrice.amount !== null
+        ? formatProductPrice(lowestPrice.amount, lowestPrice.currency ?? product.currency)
+        : fallbackFormattedPrice;
 
     items.push({
       id: product.id,
@@ -50,9 +135,9 @@ export function toPackageItems(products: ProductData[], limit = 8): Array<Record
       image: product.image || product.images?.[0],
       destination: toProductLocation(product),
       duration: product.itinerary_items?.length ? `${product.itinerary_items.length} días` : toDurationLabel(product),
-      price: formatProductPrice(product.price, product.currency),
-      priceValue: typeof product.price === 'number' ? product.price : null,
-      priceCurrency: typeof product.currency === 'string' ? product.currency.toUpperCase() : null,
+      price: displayPrice,
+      priceValue: lowestPrice.amount,
+      priceCurrency: lowestPrice.currency,
       description: product.description,
       category,
       featured,
