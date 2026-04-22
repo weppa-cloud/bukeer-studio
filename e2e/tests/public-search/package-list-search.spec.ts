@@ -31,6 +31,35 @@ function pickKeyword(source: string): string {
   return tokens[0] ?? 'paquete';
 }
 
+async function resolvePackagesSubdomain(
+  page: Page,
+  seededSubdomain: string,
+): Promise<string | null> {
+  const forcedSubdomain = (process.env.E2E_SEARCH_SUBDOMAIN ?? '').trim().toLowerCase();
+  const candidates = forcedSubdomain
+    ? [forcedSubdomain]
+    : Array.from(
+        new Set(
+          [process.env.E2E_PUBLIC_SUBDOMAIN, seededSubdomain, 'colombiatours']
+            .map((value) => (value ?? '').trim().toLowerCase())
+            .filter(Boolean),
+        ),
+      );
+
+  for (const candidate of candidates) {
+    const response = await gotoRoute(page, `/site/${candidate}/paquetes`);
+    if (!response || response.status() >= 500 || response.status() === 404) continue;
+    try {
+      await page.waitForSelector('[data-testid="paquetes-count"]', { timeout: 7000 });
+      return candidate;
+    } catch {
+      continue;
+    }
+  }
+
+  return null;
+}
+
 async function getActivePackageTitles(page: Page): Promise<string[]> {
   const visibleTitles = await page.locator('.pack-title:visible').allTextContents();
   if (visibleTitles.length > 0) return visibleTitles.map((t) => t.trim()).filter(Boolean);
@@ -48,7 +77,10 @@ test.describe('@public-search package-list-search', () => {
   });
 
   test('keyword search filters package list and can be cleared', async ({ page }) => {
-    const route = `/site/${subdomain}/paquetes`;
+    const resolvedSubdomain = await resolvePackagesSubdomain(page, subdomain);
+    test.skip(!resolvedSubdomain, 'No tenant with package listing markers found');
+
+    const route = `/site/${resolvedSubdomain}/paquetes`;
     const response = await gotoRoute(page, route);
     test.skip(
       !response || response.status() === 404 || response.status() >= 500,
@@ -56,7 +88,11 @@ test.describe('@public-search package-list-search', () => {
     );
 
     const countBadge = page.getByTestId('paquetes-count');
-    test.skip((await countBadge.count()) === 0, 'Package count badge not rendered');
+    try {
+      await countBadge.waitFor({ state: 'visible', timeout: 7000 });
+    } catch {
+      test.skip(true, 'Package count badge not rendered');
+    }
 
     const listTab = page.getByRole('tab', { name: /lista/i }).first();
     if (await listTab.isVisible().catch(() => false)) {

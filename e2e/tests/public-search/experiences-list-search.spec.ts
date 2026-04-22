@@ -31,6 +31,35 @@ function pickKeyword(source: string): string {
   return tokens[0] ?? 'tour';
 }
 
+async function resolveExperiencesSubdomain(
+  page: Page,
+  seededSubdomain: string,
+): Promise<string | null> {
+  const forcedSubdomain = (process.env.E2E_SEARCH_SUBDOMAIN ?? '').trim().toLowerCase();
+  const candidates = forcedSubdomain
+    ? [forcedSubdomain]
+    : Array.from(
+        new Set(
+          [process.env.E2E_PUBLIC_SUBDOMAIN, seededSubdomain, 'colombiatours']
+            .map((value) => (value ?? '').trim().toLowerCase())
+            .filter(Boolean),
+        ),
+      );
+
+  for (const candidate of candidates) {
+    const response = await gotoRoute(page, `/site/${candidate}/experiencias`);
+    if (!response || response.status() >= 500 || response.status() === 404) continue;
+    try {
+      await page.waitForSelector('[data-testid="experiences-count"]', { timeout: 7000 });
+      return candidate;
+    } catch {
+      continue;
+    }
+  }
+
+  return null;
+}
+
 test.describe('@public-search experiences-list-search', () => {
   test.describe.configure({ timeout: 90_000 });
 
@@ -42,7 +71,10 @@ test.describe('@public-search experiences-list-search', () => {
   });
 
   test('keyword search filters experiences list and can be cleared', async ({ page }) => {
-    const route = `/site/${subdomain}/experiencias`;
+    const resolvedSubdomain = await resolveExperiencesSubdomain(page, subdomain);
+    test.skip(!resolvedSubdomain, 'No tenant with experiences listing markers found');
+
+    const route = `/site/${resolvedSubdomain}/experiencias`;
     const response = await gotoRoute(page, route);
     test.skip(
       !response || response.status() === 404 || response.status() >= 500,
@@ -50,7 +82,11 @@ test.describe('@public-search experiences-list-search', () => {
     );
 
     const countBadge = page.getByTestId('experiences-count');
-    test.skip((await countBadge.count()) === 0, 'Experiences count badge not rendered');
+    try {
+      await countBadge.waitFor({ state: 'visible', timeout: 7000 });
+    } catch {
+      test.skip(true, 'Experiences count badge not rendered');
+    }
 
     const initialCount = await getExperiencesCount(page);
     test.skip(initialCount === 0, 'No experience records available to validate search behavior');
@@ -83,14 +119,16 @@ test.describe('@public-search experiences-list-search', () => {
   });
 
   test('/actividades preserves q param when redirecting to /experiencias', async ({ page }) => {
+    const resolvedSubdomain = await resolveExperiencesSubdomain(page, subdomain);
+    test.skip(!resolvedSubdomain, 'No tenant with experiences listing markers found');
+
     const query = 'caribe';
-    const response = await gotoRoute(page, `/site/${subdomain}/actividades?q=${query}`);
+    const response = await gotoRoute(page, `/site/${resolvedSubdomain}/actividades?q=${query}`);
     test.skip(
       !response || response.status() === 404 || response.status() >= 500,
       `Legacy actividades route unreachable (status=${response?.status() ?? 'no-response'})`,
     );
 
-    await expect(page).toHaveURL(new RegExp(`/site/${subdomain}/experiencias\\?q=${query}$`));
+    await expect(page).toHaveURL(new RegExp(`/site/${resolvedSubdomain}/experiencias\\?q=${query}$`));
   });
 });
-
