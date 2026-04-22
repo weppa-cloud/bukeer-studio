@@ -25,11 +25,6 @@ import { Icons } from '../primitives/icons';
 import { Scenic } from '../primitives/scenic';
 
 import { useWaflow, useWaflowApi } from './provider';
-import { WaflowStepIntent } from './steps/intent';
-import { WaflowStepDates } from './steps/dates';
-import { WaflowStepParty } from './steps/party';
-import { WaflowStepInterests } from './steps/interests';
-import { WaflowStepCountry } from './steps/country';
 import { WaflowStepContact } from './steps/contact';
 import { WaflowStepConfirmation } from './steps/confirmation';
 import {
@@ -134,7 +129,7 @@ export function WaflowDrawer({
   responseTime,
   subdomain,
 }: WaflowDrawerProps) {
-  const { state, setStep } = useWaflowApi();
+  const { state } = useWaflowApi();
   const asideRef = useRef<HTMLElement | null>(null);
   const lastFocusedRef = useRef<HTMLElement | null>(null);
   const { close } = useWaflow();
@@ -244,13 +239,6 @@ export function WaflowDrawer({
           </div>
         ) : null}
 
-        {step === 'intent' ? <WaflowStepIntent /> : null}
-        {step === 'dates' ? <WaflowStepDates variant={config.variant} /> : null}
-        {step === 'party' ? <WaflowStepParty variant={config.variant} /> : null}
-        {step === 'interests' ? (
-          <WaflowStepInterests variant={config.variant} config={config} />
-        ) : null}
-        {step === 'country' ? <WaflowStepCountry variant={config.variant} /> : null}
         {step === 'contact' ? (
           <WaflowStepContact
             variant={config.variant}

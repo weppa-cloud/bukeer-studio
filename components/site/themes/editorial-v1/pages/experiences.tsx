@@ -50,6 +50,8 @@ export function EditorialExperiencesPage({
       <section className="page-hero" style={heroStyle}>
         <div className="ev-container" style={{ position: 'relative', zIndex: 1 }}>
           <Breadcrumbs
+            tone="inverse"
+            className="pkg-hero-breadcrumb"
             items={[
               { label: editorialText('editorialBreadcrumbHome'), href: basePath || '/' },
               { label: editorialText('editorialBreadcrumbActivities') },
@@ -86,7 +88,7 @@ export function EditorialExperiencesPage({
 export default EditorialExperiencesPage;
 
 const heroStyle: CSSProperties = {
-  background: 'var(--c-ink)',
+  background: 'linear-gradient(135deg, var(--ev-hero-green), var(--ev-hero-green-2))',
   color: '#fff',
   position: 'relative',
   overflow: 'hidden',

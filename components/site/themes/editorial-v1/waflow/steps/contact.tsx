@@ -3,17 +3,16 @@
 /**
  * editorial-v1 WAFlow — Step: Contact.
  *
- * Final data-entry step — name + phone (required), email + notes
- * (optional). On submit we POST to /api/waflow/lead which upserts the
- * lead + returns a referenceCode. We then build the WhatsApp URL
- * client-side (pure helper) and advance to the confirmation step.
+ * Single-step capture — date preference + name + country code + phone.
+ * On submit we POST to /api/waflow/lead and redirect to WhatsApp with
+ * a prefilled message that includes source URL + normalized phone.
  */
 
 import { useCallback, useMemo, useState } from 'react';
 
 import {
   WAFLOW_COUNTRIES,
-  WAFLOW_STEP_ORDER,
+  WAFLOW_WHEN_OPTIONS,
 } from '../types';
 import type { WaflowConfig, WaflowVariant } from '../types';
 import {
@@ -31,7 +30,7 @@ export interface WaflowStepContactProps {
   subdomain?: string;
 }
 
-type ContactErrors = Partial<Record<'name' | 'phone' | 'context', string>>;
+type ContactErrors = Partial<Record<'name' | 'phone', string>>;
 
 export function WaflowStepContact({
   variant,
@@ -50,10 +49,6 @@ export function WaflowStepContact({
     [state.countryCode],
   );
 
-  const order = WAFLOW_STEP_ORDER[variant];
-  const idx = order.indexOf('contact');
-  const prev = idx > 0 ? order[idx - 1] : null;
-
   const submitLabel = useMemo(() => {
     if (variant === 'A') return 'Continuar en WhatsApp';
     if (variant === 'B')
@@ -67,16 +62,7 @@ export function WaflowStepContact({
       errs.name = 'Escribe tu nombre';
     }
     if (!validateWaflowPhone(state.phone, country)) {
-      errs.phone = `Número de ${country.len} dígitos para ${country.name}`;
-    }
-    if (variant === 'A') {
-      const hasContext =
-        state.destinationChoice.trim() ||
-        state.interests.length > 0 ||
-        state.when !== 'Flexible';
-      if (!hasContext) {
-        errs.context = 'Cuéntanos algo: destino, fechas o un interés';
-      }
+      errs.phone = `Número inválido para ${country.name}. Revisa indicativo y número.`;
     }
     if (Object.keys(errs).length > 0) {
       setErrors(errs);
@@ -87,6 +73,8 @@ export function WaflowStepContact({
 
     const refPrefix = resolveRefPrefix(config);
     const ref = makeWaflowRef(refPrefix);
+    const sourceUrl =
+      typeof window !== 'undefined' ? window.location.href : null;
 
     const message = buildWaflowMessage({
       variant,
@@ -96,13 +84,13 @@ export function WaflowStepContact({
       destinationChoice: state.destinationChoice,
       destFull: config.destination?.name,
       when: state.when,
-      adults: state.adults,
-      children: state.children,
-      interests: state.interests,
-      adjust: state.adjust,
       pkgTitle: config.pkg?.title,
       pkgDays: config.pkg?.days ?? null,
       pkgNights: config.pkg?.nights ?? null,
+      adults: state.adults,
+      children: state.children,
+      notes: state.notes,
+      sourceUrl,
       ref,
     });
 
@@ -121,15 +109,13 @@ export function WaflowStepContact({
           submitted: true,
           payload: {
             name: state.name.trim(),
-            email: state.email.trim() || null,
             phone: `${country.code}${state.phone.replace(/\D/g, '')}`,
             country: country.c,
             when: state.when,
             adults: state.adults,
             children: state.children,
-            interests: state.interests,
-            adjust: state.adjust,
             notes: state.notes || null,
+            sourceUrl,
             destinationSlug: config.destination?.slug ?? null,
             destinationName: config.destination?.name ?? null,
             packageSlug: config.pkg?.slug ?? null,
@@ -174,6 +160,25 @@ export function WaflowStepContact({
   return (
     <div className="waf-body">
       <div className="waf-field">
+        <label className="waf-label">
+          <span>¿Cuándo te gustaría viajar?</span>
+          <span className="opt">Aprox</span>
+        </label>
+        <div className="waf-chip-row">
+          {WAFLOW_WHEN_OPTIONS.map((w) => (
+            <button
+              key={w}
+              type="button"
+              className={`waf-chip compact${state.when === w ? ' on' : ''}`}
+              onClick={() => patch({ when: w })}
+            >
+              {w}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="waf-field">
         <label className="waf-label" htmlFor="waf-name">
           <span>Tu nombre</span>
           <span className="req">Requerido</span>
@@ -201,10 +206,19 @@ export function WaflowStepContact({
           <span className="req">Requerido</span>
         </label>
         <div className={`waf-input-wrap${errors.phone ? ' error' : ''}`}>
-          <span className="waf-prefix" aria-hidden="true">
-            <span className="flag">{country.flag}</span>
-            <span>{country.code}</span>
-          </span>
+          <select
+            id="waf-country-inline"
+            className="waf-prefix-select"
+            value={state.countryCode}
+            onChange={(e) => patch({ countryCode: e.target.value, phone: '' })}
+            aria-label="Indicativo del país"
+          >
+            {WAFLOW_COUNTRIES.map((cn) => (
+              <option key={cn.c} value={cn.c}>
+                {cn.flag} {cn.code}
+              </option>
+            ))}
+          </select>
           <input
             id="waf-phone"
             className="waf-input"
@@ -222,41 +236,7 @@ export function WaflowStepContact({
         {errors.phone ? <div className="waf-error-msg">{errors.phone}</div> : null}
       </div>
 
-      <div className="waf-field">
-        <label className="waf-label" htmlFor="waf-email">
-          <span>Email</span>
-          <span className="opt">Opcional</span>
-        </label>
-        <div className="waf-input-wrap">
-          <input
-            id="waf-email"
-            className="waf-input"
-            type="email"
-            value={state.email}
-            onChange={(e) => patch({ email: e.target.value })}
-            placeholder="tu@email.com"
-            autoComplete="email"
-          />
-        </div>
-      </div>
-
-      {errors.context ? (
-        <div className="waf-error-msg" style={{ marginTop: -10, marginBottom: 12 }}>
-          {errors.context}
-        </div>
-      ) : null}
-
       <div className="waf-step-nav">
-        {prev ? (
-          <button
-            type="button"
-            className="waf-btn-secondary"
-            onClick={() => setStep(prev)}
-            disabled={loading}
-          >
-            Atrás
-          </button>
-        ) : null}
         <button
           type="button"
           className="waf-submit"

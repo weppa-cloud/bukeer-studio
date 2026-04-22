@@ -16,6 +16,7 @@
  * hero + grid can stay server-rendered. URL state keeps filters bookmarkable.
  */
 
+import type { CSSProperties } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -101,27 +102,23 @@ export function EditorialBlogListPage({
   const hasPrev = page > 1;
   const hasNext = page < totalPages;
 
-  // Featured: first post in the first page (per designer — featured flag not
-  // present on DB row, so we promote the first one).
-  const [featured, ...rest] = posts;
-  const showFeatured = page === 1 && !query && !category && !!featured;
-  const gridPosts = showFeatured ? rest : posts;
-
+  const gridPosts = posts;
   const siteTitleTrail = website.content?.siteName || subdomain;
 
   return (
     <div data-screen-label="BlogList" data-testid="editorial-blog-list">
-      {/* Hero */}
-      <section className="section ev-blog-hero" style={{ paddingTop: 72 }}>
+      <section className="section ev-blog-hero" style={heroStyle}>
         <div className="ev-container">
           <Breadcrumbs
+            tone="inverse"
+            className="pkg-hero-breadcrumb"
             items={[
               { label: siteTitleTrail, href: basePath },
               { label: 'Blog' },
             ]}
           />
           <div style={{ marginTop: 24, maxWidth: '52ch' }}>
-            <Eyebrow>{DEFAULT_EYEBROW}</Eyebrow>
+            <Eyebrow tone="light">{DEFAULT_EYEBROW}</Eyebrow>
             <h1 className="display-lg" style={{ margin: '12px 0 12px' }}>
               {DEFAULT_TITLE}{' '}
               <em
@@ -135,78 +132,13 @@ export function EditorialBlogListPage({
                 {DEFAULT_EMPHASIS}
               </em>
             </h1>
-            <p className="body-lg">{DEFAULT_SUBTITLE}</p>
+            <p style={heroSubtitleStyle}>{DEFAULT_SUBTITLE}</p>
           </div>
         </div>
       </section>
 
       <section className="section" style={{ paddingTop: 56 }}>
         <div className="ev-container">
-          {/* Featured */}
-          {showFeatured && featured ? (
-            <Link
-              href={`${basePath}/blog/${encodeURIComponent(featured.slug)}`}
-              className="blog-featured"
-              data-testid="blog-featured"
-            >
-              <div className="blog-feat-media">
-                {featured.featured_image ? (
-                  <Image
-                    src={featured.featured_image}
-                    alt={featured.featured_alt || featured.title}
-                    fill
-                    sizes="(max-width: 1100px) 100vw, 50vw"
-                    style={{ objectFit: 'cover' }}
-                    priority
-                  />
-                ) : (
-                  <div
-                    aria-hidden="true"
-                    style={{
-                      position: 'absolute',
-                      inset: 0,
-                      background:
-                        'linear-gradient(135deg, var(--c-ink), var(--c-primary) 60%, var(--c-ink-2))',
-                    }}
-                  />
-                )}
-              </div>
-              <div className="blog-feat-body">
-                {featured.category?.name ? (
-                  <span className="chip chip-accent">{featured.category.name}</span>
-                ) : null}
-                <h2 className="display-md" style={{ margin: '14px 0 12px' }}>
-                  {featured.title}
-                </h2>
-                {featured.excerpt ? (
-                  <p className="body-lg" style={{ maxWidth: '54ch' }}>
-                    {featured.excerpt}
-                  </p>
-                ) : null}
-                <div className="blog-meta">
-                  {featured.author_name ? <span>{featured.author_name}</span> : null}
-                  {featured.published_at ? (
-                    <>
-                      {featured.author_name ? <span aria-hidden="true">·</span> : null}
-                      <time dateTime={featured.published_at}>
-                        {formatDate(featured.published_at, resolvedLocale)}
-                      </time>
-                    </>
-                  ) : null}
-                  {featured.reading_time_minutes ? (
-                    <>
-                      <span aria-hidden="true">·</span>
-                      <span>{featured.reading_time_minutes} {editorialText('editorialBlogReadingSuffix')}</span>
-                    </>
-                  ) : null}
-                </div>
-                <span className="btn btn-ink btn-sm" style={{ marginTop: 20 }}>
-                  {READ_CTA} <Icons.arrow size={14} aria-hidden />
-                </span>
-              </div>
-            </Link>
-          ) : null}
-
           {/* Toolbar (client leaf — URL-synced filters) */}
           <BlogListToolbar
             basePath={basePath}
@@ -354,3 +286,20 @@ export function EditorialBlogListPage({
 }
 
 export default EditorialBlogListPage;
+
+const heroStyle: CSSProperties = {
+  background: 'linear-gradient(135deg, var(--ev-hero-green), var(--ev-hero-green-2))',
+  color: '#fff',
+  position: 'relative',
+  overflow: 'hidden',
+  padding: '72px 0 64px',
+  borderRadius: '0 0 32px 32px',
+};
+
+const heroSubtitleStyle: CSSProperties = {
+  color: 'rgba(255,255,255,.82)',
+  fontSize: 17,
+  lineHeight: 1.55,
+  maxWidth: '60ch',
+  margin: 0,
+};

@@ -29,6 +29,7 @@ import { Icons } from '../primitives/icons';
 import { HeaderScrollState, MobileNavToggle } from './site-header.client';
 import { MarketSwitcher } from './market-switcher';
 import { getEditorialTextGetter } from '../i18n';
+import { WaflowCTAButton } from '../waflow/cta-button';
 
 export interface EditorialSiteHeaderProps {
   website: WebsiteData;
@@ -58,25 +59,36 @@ export function EditorialSiteHeader({
     { slug: 'destinations', label: isEnglish ? 'Destinations' : 'Destinos', page_type: 'anchor', href: `${basePath}/#destinations`, target: '_self' },
     { slug: 'packages', label: isEnglish ? 'Packages' : 'Paquetes', page_type: 'anchor', href: `${basePath}/#packages`, target: '_self' },
     { slug: 'experiences', label: isEnglish ? 'Experiences' : 'Experiencias', page_type: 'anchor', href: `${basePath}/#activities`, target: '_self' },
-    { slug: 'about', label: isEnglish ? 'About' : 'Nosotros', page_type: 'custom', href: `${basePath}/nosotros`, target: '_self' },
+    { slug: 'blog', label: 'Blog', page_type: 'custom', href: `${basePath}/blog`, target: '_self' },
   ];
   const rawNavItems = navigation && navigation.length > 0 ? navigation : fallbackNav;
-  const navPriority = ['destinations', 'paquetes', 'packages', 'experiencias', 'experiences', 'nosotros', 'about'];
-  const navItems = rawNavItems
-    .map((item, idx) => ({ item, idx }))
-    .sort((a, b) => {
-      const aKey = `${a.item.slug} ${a.item.label}`.toLowerCase();
-      const bKey = `${b.item.slug} ${b.item.label}`.toLowerCase();
-      const aRank = navPriority.findIndex((k) => aKey.includes(k));
-      const bRank = navPriority.findIndex((k) => bKey.includes(k));
-      const ar = aRank === -1 ? 999 : aRank;
-      const br = bRank === -1 ? 999 : bRank;
-      if (ar !== br) return ar - br;
-      return a.idx - b.idx;
-    })
-    .map((entry) => entry.item)
-    .filter((item, index, arr) => arr.findIndex((x) => x.slug === item.slug) === index)
-    .slice(0, 4);
+  const canonicalOrder = ['destinations', 'packages', 'experiences', 'blog'] as const;
+  type CanonicalNavKey = (typeof canonicalOrder)[number];
+  const toCanonicalNavKey = (item: NavigationItem): CanonicalNavKey | null => {
+    const key = `${item.slug} ${item.label} ${item.href ?? ''}`.toLowerCase();
+    if (key.includes('destinations') || key.includes('destinos')) return 'destinations';
+    if (key.includes('packages') || key.includes('paquetes')) return 'packages';
+    if (
+      key.includes('experiences')
+      || key.includes('experiencias')
+      || key.includes('activities')
+      || key.includes('actividades')
+    ) return 'experiences';
+    if (key.includes('blog')) return 'blog';
+    return null;
+  };
+  const navByKey = new Map<CanonicalNavKey, NavigationItem>();
+  for (const item of rawNavItems) {
+    const key = toCanonicalNavKey(item);
+    if (key && !navByKey.has(key)) navByKey.set(key, item);
+  }
+  for (const item of fallbackNav) {
+    const key = toCanonicalNavKey(item);
+    if (key && !navByKey.has(key)) navByKey.set(key, item);
+  }
+  const navItems = canonicalOrder
+    .map((key) => navByKey.get(key))
+    .filter((item): item is NavigationItem => Boolean(item));
   const navLabelForLocale = (label: string): string => {
     if (!isEnglish) return label;
     const normalized = label.trim().toLowerCase();
@@ -106,6 +118,12 @@ export function EditorialSiteHeader({
       <HeaderScrollState headerId={headerId} />
       <div className="ev-container">
         <div className="nav nav-inner">
+          <MobileNavToggle
+            panelId={mobilePanelId}
+            openLabel={editorialText('editorialHeaderMenuOpen')}
+            closeLabel={editorialText('editorialHeaderMenuClose')}
+          />
+
           <Link href={`${basePath}/`} className="nav-logo" aria-label={siteName}>
             <Logo
               imageUrl={logoUrl}
@@ -132,22 +150,47 @@ export function EditorialSiteHeader({
           </nav>
 
           <div className="nav-cta">
-            <MarketSwitcher website={website} />
-            <a
-              href={whatsappHref}
-              target={whatsappExternal ? '_blank' : undefined}
-              rel={whatsappExternal ? 'noopener noreferrer' : undefined}
-              className="btn btn-ink btn-sm"
-            >
-              {whatsappExternal ? <Icons.whatsapp size={16} /> : null}
-              {headerCtaLabel}
-              <Icons.arrow size={14} />
-            </a>
-            <MobileNavToggle
-              panelId={mobilePanelId}
-              openLabel={editorialText('editorialHeaderMenuOpen')}
-              closeLabel={editorialText('editorialHeaderMenuClose')}
-            />
+            <div className="nav-market-desktop">
+              <MarketSwitcher website={website} />
+            </div>
+            {whatsappExternal ? (
+              <>
+                <WaflowCTAButton
+                  variant="A"
+                  fallbackHref={whatsappHref}
+                  className="btn btn-ink btn-sm nav-whatsapp-desktop"
+                >
+                  <Icons.whatsapp size={16} />
+                  {headerCtaLabel}
+                  <Icons.arrow size={14} />
+                </WaflowCTAButton>
+                <WaflowCTAButton
+                  variant="A"
+                  fallbackHref={whatsappHref}
+                  className="nav-whatsapp-mobile"
+                >
+                  <span className="sr-only">{headerCtaLabel}</span>
+                  <Icons.whatsapp size={20} />
+                </WaflowCTAButton>
+              </>
+            ) : (
+              <>
+                <a
+                  href={`${basePath}/#cta`}
+                  className="btn btn-ink btn-sm nav-whatsapp-desktop"
+                >
+                  {headerCtaLabel}
+                  <Icons.arrow size={14} />
+                </a>
+                <a
+                  href={`${basePath}/#cta`}
+                  className="nav-whatsapp-mobile"
+                  aria-label={headerCtaLabel}
+                >
+                  <Icons.whatsapp size={20} />
+                </a>
+              </>
+            )}
           </div>
         </div>
 
@@ -157,6 +200,9 @@ export function EditorialSiteHeader({
           className="nav-mobile-panel"
           aria-label={editorialText('editorialHeaderMobileMenuAria')}
         >
+          <div className="nav-mobile-market">
+            <MarketSwitcher website={website} />
+          </div>
           {navItems.map((link) => {
             const href = resolveNavHref(link, basePath);
             return (
@@ -170,16 +216,6 @@ export function EditorialSiteHeader({
               </Link>
             );
           })}
-          <a
-            href={whatsappHref}
-            target={whatsappExternal ? '_blank' : undefined}
-            rel={whatsappExternal ? 'noopener noreferrer' : undefined}
-            className="btn btn-accent btn-sm"
-            style={{ marginTop: 8, justifyContent: 'center' }}
-          >
-            <Icons.whatsapp size={16} />
-            {headerCtaLabel}
-          </a>
         </div>
       </div>
     </header>

@@ -20,6 +20,8 @@ import { Breadcrumbs } from '../primitives/breadcrumbs';
 import { Rating } from '../primitives/rating';
 import { Icons } from '../primitives/icons';
 import { EditorialGalleryMosaic } from '../primitives/editorial-gallery-mosaic';
+import { EditorialDateField } from '../primitives/editorial-date-field';
+import { WaflowCTAButton } from '../waflow/cta-button';
 
 interface GoogleReviewProp {
   author_name: string;
@@ -70,6 +72,7 @@ interface RouteStopItem {
 }
 
 interface PackageHotelItem {
+  productId?: string | null;
   title: string;
   city: string | null;
   category: string | null;
@@ -86,9 +89,31 @@ interface FlightItem {
   metaLabel: string;
 }
 
+interface PackageVersionLike {
+  version_number?: unknown;
+  version_label?: unknown;
+  passenger_count?: unknown;
+  total_price?: unknown;
+  base_currency?: unknown;
+  services_snapshot_summary?: unknown;
+  price_per_person?: unknown;
+  is_base_version?: unknown;
+}
+
 interface PackageMediaCollection {
   gallery: string[];
   byDay: Record<number, string[]>;
+}
+
+const CAL_SCHEDULE_URL = 'https://cal.com/colombiatours-travel/30min';
+
+function toSlug(value: string): string {
+  return value
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
 }
 
 function normalizeTextList(value: unknown): string[] {
@@ -293,6 +318,7 @@ function resolvePackageHotelItemsFromPayload(product: ProductData): PackageHotel
       const nights = parseMaybeNumber(row.nights);
       const imageUrl = extractImageUrls(row.imageUrl, 0)[0] ?? null;
       acc.push({
+        productId: sanitizeProductCopy(row.productId) || null,
         title,
         city,
         category,
@@ -329,12 +355,71 @@ function resolveDuration(product: ProductData): string {
 }
 
 function resolveGroup(product: ProductData): string {
+  const packageVersions = (product as ProductData & { package_versions?: unknown }).package_versions;
+  const versionPax = Array.isArray(packageVersions)
+    ? packageVersions
+        .map((version) => {
+          if (!version || typeof version !== 'object') return null;
+          return parseMaybeNumber((version as PackageVersionLike).passenger_count);
+        })
+        .filter((value): value is number => value !== null && value > 0)
+    : [];
+  if (versionPax.length > 0) return `Hasta ${Math.max(...versionPax)}`;
   const options = Array.isArray(product.options) ? product.options : [];
-  const max = options
+  const maxUnits = options
     .map((option) => (typeof option.max_units === 'number' ? option.max_units : null))
     .filter((value): value is number => value !== null);
-  if (max.length > 0) return `Hasta ${Math.max(...max)}`;
+  if (maxUnits.length > 0) return `Hasta ${Math.max(...maxUnits)}`;
   return 'Privado o compartido';
+}
+
+function resolvePackageVersionOptions(product: ProductData): ActivityOption[] {
+  const rawVersions = (product as ProductData & { package_versions?: unknown }).package_versions;
+  if (!Array.isArray(rawVersions) || rawVersions.length === 0) return [];
+
+  const mapped = rawVersions
+    .map((raw) => {
+      if (!raw || typeof raw !== 'object') return null;
+      const row = raw as PackageVersionLike;
+      const versionNumber = parseMaybeNumber(row.version_number);
+      const totalPrice = parseMaybeNumber(row.total_price);
+      if (!versionNumber || !totalPrice || totalPrice <= 0) return null;
+      const pax = parseMaybeNumber(row.passenger_count);
+      const label = sanitizeProductCopy(row.version_label) || `Versión ${versionNumber}`;
+      const summary = sanitizeProductCopy(row.services_snapshot_summary);
+      const currency = sanitizeProductCopy(row.base_currency) || sanitizeProductCopy(product.currency) || 'COP';
+      const id = `pkgv-${versionNumber}`;
+      const displayName = pax
+        ? `${label} · ${pax} ${pax === 1 ? 'persona' : 'personas'}`
+        : label;
+      const option: ActivityOption = {
+        id,
+        name: displayName,
+        pricing_per: 'BOOKING',
+        min_units: pax || undefined,
+        max_units: pax || undefined,
+        prices: [
+          {
+            unit_type_code: 'PACKAGE_VERSION',
+            season: summary || 'Total versión',
+            price: totalPrice,
+            currency,
+          },
+        ],
+      };
+      return option;
+    })
+    .filter((row): row is ActivityOption => Boolean(row));
+
+  return mapped.sort((a, b) => {
+    const aIsBase = /base/i.test(a.name);
+    const bIsBase = /base/i.test(b.name);
+    if (aIsBase !== bIsBase) return aIsBase ? -1 : 1;
+    const aPax = typeof a.max_units === 'number' ? a.max_units : Number.MAX_SAFE_INTEGER;
+    const bPax = typeof b.max_units === 'number' ? b.max_units : Number.MAX_SAFE_INTEGER;
+    if (aPax !== bPax) return aPax - bPax;
+    return a.name.localeCompare(b.name);
+  });
 }
 
 function mapTone(raw: unknown): TimelineItem['tone'] {
@@ -364,7 +449,10 @@ function inferLodgingFromRecord(entry: Record<string, unknown>): boolean {
 
 function inferFlightFromRecord(entry: Record<string, unknown>): boolean {
   if (entry.event_type === 'flight') return true;
-  const merged = `${sanitizeProductCopy(entry.title)} ${sanitizeProductCopy(entry.description)}`.toLowerCase();
+  const productType = sanitizeProductCopy(entry.product_type).toLowerCase();
+  if (productType.includes('vuelo') || productType.includes('flight')) return true;
+  if (typeof entry.flight_departure === 'string' || typeof entry.flight_arrival === 'string') return true;
+  const merged = `${sanitizeProductCopy(entry.title)} ${sanitizeProductCopy(entry.description)} ${sanitizeProductCopy(entry.product_name)}`.toLowerCase();
   return /\b(vuelo|flight|aeropuerto|airline|boarding)\b/.test(merged);
 }
 
@@ -375,6 +463,21 @@ function parseMaybeNumber(value: unknown): number | null {
     return Number.isFinite(n) ? n : null;
   }
   return null;
+}
+
+function looksLikeUuid(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
+function resolveFlightEndpoint(entry: Record<string, unknown>, kind: 'from' | 'to'): string {
+  const preferred = kind === 'from'
+    ? [entry.flight_departure, entry.from_location, entry.origin, entry.departure]
+    : [entry.flight_arrival, entry.to_location, entry.destination, entry.arrival];
+  for (const candidate of preferred) {
+    const value = sanitizeProductCopy(candidate);
+    if (value) return value;
+  }
+  return kind === 'from' ? 'Origen' : 'Destino';
 }
 
 function getTodayDateInputValue(): string {
@@ -533,7 +636,10 @@ export function EditorialPackageDetailClient({
   const [openFaq, setOpenFaq] = useState(0);
   const [openDay, setOpenDay] = useState<number | null>(null);
   const [reviewKeyword, setReviewKeyword] = useState('');
+  const initialPackageOptions = useMemo(() => resolvePackageVersionOptions(product), [product]);
   const [selectedOptionId, setSelectedOptionId] = useState<string>(() => {
+    const fromVersions = initialPackageOptions[0];
+    if (fromVersions?.id) return fromVersions.id;
     const option = Array.isArray(product.options) ? product.options[0] : null;
     return option?.id || 'base';
   });
@@ -596,8 +702,6 @@ export function EditorialPackageDetailClient({
         ? `https://${website.subdomain}.bukeer.com${basePath}`
         : undefined,
   });
-  const phone = website.content?.account?.phone || website.content?.contact?.phone;
-  const phoneHref = phone ? `tel:${phone.replace(/[^0-9+]/g, '')}` : null;
 
   const breadcrumbItems = [
     { label: 'Inicio', href: `${basePath}/` },
@@ -613,10 +717,47 @@ export function EditorialPackageDetailClient({
     return socialImage || coverFromProduct || null;
   }, [product]);
   const heroImage = explicitHeroImage || curatedPackageGallery[0] || images[0] || null;
-  const optionsForRail: ActivityOption[] = options.length > 0
-    ? options
-    : [{ id: 'base', name: 'Plan base', pricing_per: 'UNIT', prices: [] }];
+  const optionsForRail: ActivityOption[] = initialPackageOptions.length > 0
+    ? initialPackageOptions
+    : options.length > 0
+      ? options
+      : [{ id: 'base', name: 'Plan base', pricing_per: 'UNIT', prices: [] }];
   const selectedOption = optionsForRail.find((option) => option.id === selectedOptionId) || optionsForRail[0];
+  const waflowPrefill = useMemo(() => ({
+    when: datePref ? `Fecha exacta: ${datePref}` : 'Flexible',
+    adults: pax,
+    children: 0,
+    notes: [
+      `Paquete de interés: ${displayName}`,
+      datePref ? `Fecha tentativa: ${datePref}` : null,
+      `Personas: ${pax}`,
+      selectedOption?.name ? `Opción elegida: ${selectedOption.name}` : null,
+    ].filter(Boolean).join('\n'),
+  }), [datePref, pax, displayName, selectedOption?.name]);
+  const waflowPackageContext = useMemo(() => ({
+    slug: product.slug || toSlug(displayName) || 'paquete',
+    title: displayName,
+    days: typeof product.duration_days === 'number' ? product.duration_days : null,
+    nights: typeof product.duration_nights === 'number' ? product.duration_nights : null,
+    currency: sourceCurrency ?? 'COP',
+    price: sourcePrice,
+    tier: selectedOption?.name || null,
+    heroImageUrl: heroImage,
+    destinationSlug: toSlug(displayLocation || product.location || product.city || product.country || 'colombia'),
+  }), [
+    product.slug,
+    displayName,
+    product.duration_days,
+    product.duration_nights,
+    sourceCurrency,
+    sourcePrice,
+    selectedOption?.name,
+    heroImage,
+    displayLocation,
+    product.location,
+    product.city,
+    product.country,
+  ]);
 
   const routeStops = useMemo(() => {
     const itineraryItems = Array.isArray(product.itinerary_items) ? product.itinerary_items : [];
@@ -748,29 +889,21 @@ export function EditorialPackageDetailClient({
     const itinerary = Array.isArray(product.itinerary_items)
       ? (product.itinerary_items as Array<Record<string, unknown>>)
       : [];
-    const fromItinerary = itinerary
-      .filter((entry) => entry && typeof entry === 'object' && inferFlightFromRecord(entry))
-      .map((entry, index) => {
-        const from = sanitizeProductCopy(
-          typeof entry.from_location === 'string'
-            ? entry.from_location
-            : typeof entry.origin === 'string'
-              ? entry.origin
-              : 'Origen'
-        ) || 'Origen';
-        const to = sanitizeProductCopy(
-          typeof entry.to_location === 'string'
-            ? entry.to_location
-            : typeof entry.destination === 'string'
-              ? entry.destination
-              : 'Destino'
-        ) || 'Destino';
-        const day = parseMaybeNumber(entry.day);
+    const flightRows = itinerary.filter((entry) => entry && typeof entry === 'object' && inferFlightFromRecord(entry));
+    const timelineFlights = timeline.filter((entry) => entry.tone === 'vuelo');
+    const fromItinerary = flightRows.map((entry, index) => {
+        const from = resolveFlightEndpoint(entry, 'from');
+        const to = resolveFlightEndpoint(entry, 'to');
+        const dayFromItinerary = parseMaybeNumber(entry.day) ?? parseMaybeNumber(entry.day_number);
+        const dayFromTimeline = timelineFlights[index]?.day ?? null;
+        const day = dayFromItinerary || dayFromTimeline;
         const dateLabel = day ? `Día ${day}` : `Tramo ${index + 1}`;
-        const carrier = sanitizeProductCopy(entry.carrier);
+        const productName = sanitizeProductCopy(entry.product_name);
+        const carrierRaw = sanitizeProductCopy(entry.carrier);
+        const carrier = carrierRaw && !looksLikeUuid(carrierRaw) ? carrierRaw : '';
         const number = sanitizeProductCopy(entry.flight_number);
         const duration = sanitizeProductCopy(entry.duration);
-        const metaParts = [carrier, number, duration].filter(Boolean);
+        const metaParts = [productName, carrier, number, duration].filter(Boolean);
         return {
           from,
           to,
@@ -778,7 +911,11 @@ export function EditorialPackageDetailClient({
           metaLabel: metaParts.length > 0 ? metaParts.join(' · ') : 'Vuelo doméstico',
         } satisfies FlightItem;
       });
-    if (fromItinerary.length > 0) return fromItinerary.slice(0, 3);
+    if (fromItinerary.length > 0) {
+      return fromItinerary
+        .filter((flight) => flight.from !== 'Origen' || flight.to !== 'Destino')
+        .slice(0, 6);
+    }
 
     if (routeStopsWithNights.length >= 2) {
       return routeStopsWithNights.slice(0, 2).map((stop, index, arr) => ({
@@ -801,7 +938,7 @@ export function EditorialPackageDetailClient({
     }
 
     return [];
-  }, [product.itinerary_items, routeStopsWithNights, product.duration_days]);
+  }, [product.itinerary_items, routeStopsWithNights, product.duration_days, timeline]);
 
   return (
     <>
@@ -813,7 +950,10 @@ export function EditorialPackageDetailClient({
               <div className="pkg-detail-hero-wash absolute inset-0" />
             </div>
           ) : (
-            <div className="h-[520px] w-full bg-[var(--c-surface-2)]" />
+            <div
+              className="h-[520px] w-full"
+              style={{ background: 'linear-gradient(135deg, var(--ev-hero-green), var(--ev-hero-green-2))' }}
+            />
           )}
 
           <div className="absolute inset-x-0 bottom-12 z-10">
@@ -836,9 +976,15 @@ export function EditorialPackageDetailClient({
                   Desde {priceLabel}
                 </span>
                 {whatsappUrl ? (
-                  <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="btn btn-accent btn-sm">
-                    <Icons.whatsapp size={14} /> WhatsApp
-                  </a>
+                  <WaflowCTAButton
+                    variant="D"
+                    pkg={waflowPackageContext}
+                    prefill={waflowPrefill}
+                    fallbackHref={whatsappUrl || undefined}
+                    className="btn btn-accent btn-sm"
+                  >
+                    <Icons.whatsapp size={14} /> Personalizar por WhatsApp
+                  </WaflowCTAButton>
                 ) : null}
                 {product.video_url ? (
                   <ProductVideoHero
@@ -854,7 +1000,7 @@ export function EditorialPackageDetailClient({
           </div>
         </section>
 
-        <div className="mx-auto mt-[-28px] w-full max-w-7xl px-6">
+        <div className="mx-auto mt-[-10px] md:mt-[-28px] w-full max-w-7xl px-6">
           <div className="pkg-meta">
             <div className="ov-item"><small>Duración</small><strong>{resolveDuration(product)}</strong></div>
             <div className="ov-item"><small>Tipo</small><strong>Circuito editorial</strong></div>
@@ -1073,6 +1219,11 @@ export function EditorialPackageDetailClient({
                 <div className="price-table mt-5">
                   {optionsForRail.map((option) => {
                     const basePrice = option.prices?.[0];
+                    const fixedPax = typeof option.min_units === 'number'
+                      && typeof option.max_units === 'number'
+                      && option.min_units === option.max_units
+                      ? option.min_units
+                      : null;
                     return (
                       <button
                         key={option.id}
@@ -1082,10 +1233,12 @@ export function EditorialPackageDetailClient({
                       >
                         <h4>{option.name}</h4>
                         <div className="pr">{formatInPreferredCurrency(basePrice?.price ?? sourcePrice, basePrice?.currency ?? sourceCurrency)}</div>
-                        <div className="per">{option.pricing_per === 'UNIT' ? 'por persona' : 'por reserva'}</div>
+                        <div className="per">{option.pricing_per === 'UNIT' ? 'por persona' : 'total por versión'}</div>
                         <ul>
-                          {typeof option.min_units === 'number' ? <li>Mínimo {option.min_units}</li> : null}
-                          {typeof option.max_units === 'number' ? <li>Grupo hasta {option.max_units}</li> : null}
+                          {fixedPax ? <li>{fixedPax} {fixedPax === 1 ? 'persona' : 'personas'}</li> : null}
+                          {!fixedPax && typeof option.min_units === 'number' ? <li>Mínimo {option.min_units}</li> : null}
+                          {!fixedPax && typeof option.max_units === 'number' ? <li>Grupo hasta {option.max_units}</li> : null}
+                          {basePrice?.season ? <li>{basePrice.season}</li> : null}
                           {Array.isArray(option.start_times) && option.start_times.length > 0 ? <li>{option.start_times.length} salidas</li> : null}
                         </ul>
                       </button>
@@ -1211,7 +1364,7 @@ export function EditorialPackageDetailClient({
               </section>
 
               <section data-testid="detail-planner-assigned">
-                <h2 className="text-2xl font-bold">Tu planner <em>asignado</em></h2>
+                <h2 className="text-2xl font-bold">Tu travel planner para este <em>paquete</em></h2>
                 <div className="planner-detail mt-5">
                   <div className="av" />
                   <div>
@@ -1223,9 +1376,15 @@ export function EditorialPackageDetailClient({
                   </div>
                   <div className="planner-actions">
                     {whatsappUrl ? (
-                      <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="btn btn-accent btn-sm">
-                        <Icons.whatsapp size={14} /> WhatsApp
-                      </a>
+                      <WaflowCTAButton
+                        variant="D"
+                        pkg={waflowPackageContext}
+                        prefill={waflowPrefill}
+                        fallbackHref={whatsappUrl || undefined}
+                        className="btn btn-accent btn-sm"
+                      >
+                        <Icons.whatsapp size={14} /> Hablar por WhatsApp
+                      </WaflowCTAButton>
                     ) : null}
                     <Link href={`${basePath}/planners`} className="btn btn-outline btn-sm">
                       Ver perfil
@@ -1251,51 +1410,38 @@ export function EditorialPackageDetailClient({
                     Ver todos
                   </Link>
                 </div>
-                <div className="similar-layout">
-                  <aside className="similar-panel" aria-label="Resumen de experiencias relacionadas">
-                    <small>Relacionados</small>
-                    <p>
-                      Mostrando <b>{Math.max(similarProducts.length, 1)}</b> opciones afines a este itinerario.
-                    </p>
-                    <div className="similar-panel-actions">
-                      <button type="button" disabled aria-disabled="true">Anterior</button>
-                      <button type="button" disabled aria-disabled="true">Siguiente</button>
-                    </div>
-                  </aside>
-
-                  {similarProducts.length > 0 ? (
-                    <div className="similar-grid">
-                      {similarProducts.slice(0, 6).map((similar) => {
-                        const similarImage = resolveImages(similar)[0] || similar.image || null;
-                        const similarPrice = formatInPreferredCurrency(
-                          typeof similar.price === 'number' ? similar.price : null,
-                          similar.currency || sourceCurrency,
-                        );
-                        return (
-                          <article key={similar.id} className="similar-card">
-                            <Link href={`${basePath}/paquetes/${similar.slug}`}>
-                              <div className="similar-media">
-                                {similarImage ? <Image src={similarImage} alt={similar.name} fill className="object-cover" /> : null}
+                {similarProducts.length > 0 ? (
+                  <div className="similar-grid">
+                    {similarProducts.slice(0, 6).map((similar) => {
+                      const similarImage = resolveImages(similar)[0] || similar.image || null;
+                      const similarPrice = formatInPreferredCurrency(
+                        typeof similar.price === 'number' ? similar.price : null,
+                        similar.currency || sourceCurrency,
+                      );
+                      return (
+                        <article key={similar.id} className="similar-card">
+                          <Link href={`${basePath}/paquetes/${similar.slug}`}>
+                            <div className="similar-media">
+                              {similarImage ? <Image src={similarImage} alt={similar.name} fill className="object-cover" /> : null}
+                            </div>
+                            <div className="similar-body">
+                              <h3>{similar.name}</h3>
+                              <p>{similar.location || similar.city || 'Colombia'}</p>
+                              <div className="similar-foot">
+                                <span>{similarPrice}</span>
+                                <strong>Ver paquete</strong>
                               </div>
-                              <div className="similar-body">
-                                <h3>{similar.name}</h3>
-                                <p>{similar.location || similar.city || 'Colombia'}</p>
-                                <div className="similar-foot">
-                                  <span>{similarPrice}</span>
-                                  <strong>Consultar</strong>
-                                </div>
-                              </div>
-                            </Link>
-                          </article>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="similar-empty">
-                      Te sugeriremos experiencias similares cuando haya más opciones activas.
-                    </div>
-                  )}
-                </div>
+                            </div>
+                          </Link>
+                        </article>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="similar-empty">
+                    Te sugeriremos experiencias similares cuando haya más opciones activas.
+                  </div>
+                )}
               </section>
             </div>
 
@@ -1307,16 +1453,14 @@ export function EditorialPackageDetailClient({
               </div>
 
               <div className="rail-form grid gap-3">
-                <label className="fld grid gap-1 text-xs text-[var(--c-muted)]">
-                  Fecha
-                  <input
-                    type="date"
-                    value={datePref}
-                    min={minDate}
-                    onChange={(event) => setDatePref(event.target.value)}
-                    aria-label="Fecha tentativa"
-                  />
-                </label>
+                <EditorialDateField
+                  label="Fecha"
+                  value={datePref}
+                  min={minDate}
+                  ariaLabel="Fecha tentativa"
+                  helperText="Selecciona una fecha estimada"
+                  onChange={setDatePref}
+                />
                 <label className="fld grid gap-1 text-xs text-[var(--c-muted)]">
                   Personas
                   <select value={pax} onChange={(event) => setPax(Number(event.target.value))}>
@@ -1335,36 +1479,18 @@ export function EditorialPackageDetailClient({
                 </label>
               </div>
 
-              {whatsappUrl ? (
-                <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="btn btn-accent" style={{ justifyContent: 'center' }}>
-                  Reservar paquete <Icons.arrow size={14} />
-                </a>
-              ) : null}
-              <Link href={`${basePath}/experiencias`} className="btn btn-outline" style={{ justifyContent: 'center' }}>
-                Agregar experiencias
-              </Link>
+              <WaflowCTAButton
+                variant="D"
+                pkg={waflowPackageContext}
+                prefill={waflowPrefill}
+                fallbackHref={whatsappUrl || undefined}
+                className="btn btn-accent"
+              >
+                Personalizar este paquete <Icons.arrow size={14} />
+              </WaflowCTAButton>
               <div className="rail-share">
                 <button><Icons.heart size={14} /> Guardar</button>
                 <button><Icons.arrowUpRight size={14} /> Compartir</button>
-              </div>
-              <div className="rail-trust">
-                <div><Icons.check size={12} /> Confirmación inmediata</div>
-                <div><Icons.check size={12} /> Soporte local durante el viaje</div>
-                <div><Icons.check size={12} /> Asesoría personalizada</div>
-              </div>
-
-              <div className="rounded-2xl border border-[var(--c-line)] p-4">
-                <div className="mb-3 text-xs uppercase tracking-wider text-[var(--c-muted)]">Contacto</div>
-                {whatsappUrl ? (
-                  <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="btn btn-accent btn-sm w-full" style={{ justifyContent: 'center' }}>
-                    <Icons.whatsapp size={14} /> WhatsApp
-                  </a>
-                ) : null}
-                {phoneHref ? (
-                  <a href={phoneHref} className="btn btn-outline btn-sm mt-2 w-full" style={{ justifyContent: 'center' }}>
-                    Llamar
-                  </a>
-                ) : null}
               </div>
             </aside>
           </div>
@@ -1375,33 +1501,40 @@ export function EditorialPackageDetailClient({
             <h2 className="text-2xl md:text-3xl font-bold mb-4">¿Listo para vivir este paquete?</h2>
             <p className="text-muted-foreground mb-8">Te ayudamos a ajustar itinerario, fechas y servicios en minutos.</p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              {whatsappUrl ? (
-                <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="btn btn-accent">
-                  <Icons.whatsapp size={16} /> WhatsApp
-                </a>
-              ) : null}
-              {phoneHref ? (
-                <a href={phoneHref} className="btn btn-outline">
-                  Llamar ahora
-                </a>
-              ) : null}
+              <WaflowCTAButton
+                variant="D"
+                pkg={waflowPackageContext}
+                prefill={waflowPrefill}
+                fallbackHref={whatsappUrl || undefined}
+                className="btn btn-accent"
+              >
+                <Icons.whatsapp size={16} /> Personalizar por WhatsApp
+              </WaflowCTAButton>
+              <a
+                href={CAL_SCHEDULE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-outline"
+              >
+                Agendar llamada
+              </a>
             </div>
           </div>
         </section>
       </div>
 
-      {whatsappUrl ? (
-        <a
-          data-testid="mobile-sticky-bar"
-          href={whatsappUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="pkg-sticky-wa"
-        >
+      <WaflowCTAButton
+        variant="D"
+        pkg={waflowPackageContext}
+        prefill={waflowPrefill}
+        fallbackHref={whatsappUrl || undefined}
+        className="pkg-sticky-wa"
+      >
+        <span data-testid="mobile-sticky-bar" className="inline-flex items-center gap-2">
           <Icons.whatsapp size={16} />
-          <span>Reservar</span>
-        </a>
-      ) : null}
+          <span>Personalizar</span>
+        </span>
+      </WaflowCTAButton>
 
       {lightboxOpen && images.length > 0 ? (
         <MediaLightbox

@@ -12,8 +12,8 @@
  * stays well under the main-thread budget.
  */
 
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useMemo, type ReactNode } from 'react';
+import { useRouter, useSearchParams, type ReadonlyURLSearchParams } from 'next/navigation';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -81,21 +81,15 @@ function toArray(param: string | null | undefined): string[] {
     .filter(Boolean);
 }
 
-function parseDurationMinutes(item: ExperienceItem): number {
-  const label = normalise(item.durationLabel);
-  if (!label) return Number.MAX_SAFE_INTEGER;
-  const hourMatch = label.match(/(\d+(?:\.\d+)?)\s*h/);
-  const minuteMatch = label.match(/(\d+)\s*m/);
-  const h = hourMatch ? Number.parseFloat(hourMatch[1]) : 0;
-  const m = minuteMatch ? Number.parseInt(minuteMatch[1], 10) : 0;
-  const parsed = Math.round((h * 60) + m);
-  if (Number.isFinite(parsed) && parsed > 0) return parsed;
-  const bucket = normalise(item.durationBucket);
-  if (bucket === 'short') return 180;
-  if (bucket === 'half-day') return 300;
-  if (bucket === 'full-day') return 480;
-  if (bucket === 'multi-day') return 1440;
-  return Number.MAX_SAFE_INTEGER;
+function readParamList(searchParams: URLSearchParams | ReadonlyURLSearchParams | null | undefined, key: string): string[] {
+  if (!searchParams) return [];
+  const values = searchParams
+    .getAll(key)
+    .map((value) => value.trim())
+    .filter(Boolean);
+  if (values.length === 0) return [];
+  if (values.length === 1 && values[0]?.includes(',')) return toArray(values[0]);
+  return values;
 }
 
 export function ExperiencesGrid({
@@ -109,62 +103,14 @@ export function ExperiencesGrid({
   const router = useRouter();
   const searchParams = useSearchParams();
   void account;
-  const levels = [
-    { key: 'facil', label: editorialText('editorialExperienceLevelEasy') },
-    { key: 'moderado', label: editorialText('editorialExperienceLevelModerate') },
-    { key: 'exigente', label: editorialText('editorialExperienceLevelDemanding') },
-    { key: 'intenso', label: editorialText('editorialExperienceLevelIntense') },
-  ];
-  const categories = [
-    { key: 'all', label: editorialText('editorialExperienceCategoryAll') },
-    { key: 'aventura', label: editorialText('editorialExperienceCategoryAdventure') },
-    { key: 'gastronomia', label: editorialText('editorialExperienceCategoryGastronomy') },
-    { key: 'cultura', label: editorialText('editorialExperienceCategoryCulture') },
-    { key: 'naturaleza', label: editorialText('editorialExperienceCategoryNature') },
-    { key: 'mar', label: editorialText('editorialExperienceCategorySea') },
-    { key: 'bienestar', label: editorialText('editorialExperienceCategoryWellness') },
-  ];
-  const durationBuckets = [
-    { key: 'all', label: editorialText('editorialExperienceDurationAny') },
-    { key: 'short', label: editorialText('editorialExperienceDurationShort') },
-    { key: 'half-day', label: editorialText('editorialExperienceDurationHalfDay') },
-    { key: 'full-day', label: editorialText('editorialExperienceDurationFullDay') },
-    { key: 'multi-day', label: editorialText('editorialExperienceDurationMultiDay') },
-  ];
 
-  // Prefer URL params (bookmarkable); fall back to server-provided `initialFilters`.
-  const levelFromUrl = toArray(searchParams?.get('level'));
-  const regionFromUrl = toArray(searchParams?.get('region'));
-  const locationFromUrl = toArray(searchParams?.get('location'));
-  const levelFilters =
-    levelFromUrl.length > 0 ? levelFromUrl : initialFilters?.level ?? [];
-  const regionFilters =
-    regionFromUrl.length > 0 ? regionFromUrl : initialFilters?.region ?? [];
-  const locationFilters =
-    locationFromUrl.length > 0 ? locationFromUrl : initialFilters?.location ?? [];
-  const categoryFilter =
-    searchParams?.get('category') ?? initialFilters?.category ?? 'all';
-  const durationFilter =
-    searchParams?.get('duration') ?? initialFilters?.duration ?? 'all';
-  const sortParam = searchParams?.get('sort') ?? initialFilters?.sort ?? 'popular';
-  const sortFilter =
-    sortParam === 'priceAsc' || sortParam === 'priceDesc'
-      ? 'popular'
-      : sortParam;
+  // Keep only keyword + location filters active for now.
+  const locationFilters = useMemo(() => {
+    const fromUrl = readParamList(searchParams, 'location');
+    return fromUrl.length > 0 ? fromUrl : initialFilters?.location ?? [];
+  }, [initialFilters?.location, searchParams]);
   const q = searchParams?.get('q') ?? initialFilters?.q ?? '';
-  const sortOptions = [
-    { key: 'popular', label: editorialText('editorialExperiencesSortPopular') },
-    { key: 'rating', label: editorialText('editorialExperiencesSortRating') },
-    { key: 'duration', label: editorialText('editorialExperiencesSortDuration') },
-  ];
-
-  const regionOptions = useMemo(() => {
-    const set = new Set<string>();
-    for (const a of activities) {
-      if (a.region) set.add(a.region.toString());
-    }
-    return Array.from(set).sort();
-  }, [activities]);
+  const [keywordInput, setKeywordInput] = useState(q);
 
   const locationOptions = useMemo(() => {
     const set = new Set<string>();
@@ -179,15 +125,6 @@ export function ExperiencesGrid({
     return activities.filter((a) => {
       if (seen.has(a.id)) return false;
       seen.add(a.id);
-      if (categoryFilter && categoryFilter !== 'all') {
-        const key = normalise(a.categoryKey || a.category);
-        if (key !== normalise(categoryFilter)) return false;
-      }
-      if (durationFilter && durationFilter !== 'all') {
-        if (normalise(a.durationBucket) !== normalise(durationFilter)) return false;
-      }
-      if (!matchList(a.level, levelFilters)) return false;
-      if (regionFilters.length > 0 && !matchList(a.region, regionFilters)) return false;
       if (locationFilters.length > 0 && !matchList(a.location, locationFilters)) return false;
       if (q) {
         const hay = `${a.name} ${a.title ?? ''} ${a.description ?? ''} ${a.location ?? ''}`.toLowerCase();
@@ -195,25 +132,8 @@ export function ExperiencesGrid({
       }
       return true;
     });
-  }, [
-    activities,
-    categoryFilter,
-    durationFilter,
-    levelFilters,
-    locationFilters,
-    q,
-    regionFilters,
-  ]);
-  const filtered = useMemo(() => {
-    const arr = [...filteredByFilters];
-    if (sortFilter === 'rating') {
-      return arr.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
-    }
-    if (sortFilter === 'duration') {
-      return arr.sort((a, b) => parseDurationMinutes(a) - parseDurationMinutes(b));
-    }
-    return arr;
-  }, [filteredByFilters, sortFilter]);
+  }, [activities, locationFilters, q]);
+  const filtered = filteredByFilters;
 
   const updateParams = useCallback(
     (mutate: (params: URLSearchParams) => void) => {
@@ -228,18 +148,20 @@ export function ExperiencesGrid({
   const toggleList = useCallback(
     (key: 'level' | 'region' | 'location', value: string) => {
       updateParams((params) => {
-        const existing = toArray(params.get(key));
+        const existing = readParamList(params, key);
         const next = existing.includes(value)
           ? existing.filter((v) => v !== value)
           : [...existing, value];
-        if (next.length) params.set(key, next.join(','));
-        else params.delete(key);
+        params.delete(key);
+        for (const item of next) {
+          params.append(key, item);
+        }
       });
     },
     [updateParams],
   );
 
-  const setKeyword = useCallback(
+  const setKeywordParam = useCallback(
     (value: string) => {
       updateParams((params) => {
         const next = value.trim();
@@ -253,123 +175,55 @@ export function ExperiencesGrid({
     [updateParams],
   );
 
-  const setSingle = useCallback(
-    (key: 'category' | 'duration' | 'sort', value: string) => {
-      updateParams((params) => {
-        if (!value || (key !== 'sort' && value === 'all')) params.delete(key);
-        else params.set(key, value);
-      });
-    },
-    [updateParams],
-  );
+  useEffect(() => {
+    setKeywordInput(q);
+  }, [q]);
+
+  useEffect(() => {
+    const next = keywordInput.trim();
+    const current = q.trim();
+    if (next === current) return;
+    const timer = setTimeout(() => {
+      setKeywordParam(keywordInput);
+    }, 180);
+    return () => clearTimeout(timer);
+  }, [keywordInput, q, setKeywordParam]);
 
   const clearAll = useCallback(() => {
     updateParams((params) => {
+      params.delete('location');
+      params.delete('q');
+      // Defensive cleanup for old links/bookmarks that still include deprecated filters.
       params.delete('level');
       params.delete('region');
-      params.delete('location');
       params.delete('category');
       params.delete('duration');
       params.delete('sort');
-      params.delete('q');
     });
   }, [updateParams]);
 
   const hasActiveFilters =
-    (categoryFilter && categoryFilter !== 'all') ||
-    (durationFilter && durationFilter !== 'all') ||
-    (sortFilter && sortFilter !== 'popular') ||
-    levelFilters.length > 0 ||
-    regionFilters.length > 0 ||
     locationFilters.length > 0 ||
     !!q;
 
   return (
     <>
-      {/* Category tiles */}
-      <div className="exp-cats" data-testid="experiences-categories">
-        {categories.map((c) => {
-          const isActive = normalise(categoryFilter) === c.key;
-          return (
-            <button
-              key={c.key}
-              type="button"
-              className={`exp-cat${isActive ? ' active' : ''}`}
-              onClick={() => setSingle('category', c.key)}
-              aria-pressed={isActive}
-            >
-              <b>{c.label}</b>
-            </button>
-          );
-        })}
-      </div>
-
       <div className="exp-toolbar" data-testid="experiences-filterbar">
         <label className="exp-search" htmlFor="experiences-keyword">
           <Icons.search size={16} aria-hidden />
           <input
             id="experiences-keyword"
             type="text"
-            value={q}
-            onChange={(event) => setKeyword(event.target.value)}
+            value={keywordInput}
+            onChange={(event) => setKeywordInput(event.target.value)}
             className="listing-keyword-input"
             placeholder={editorialText('editorialExperiencesKeywordPlaceholder')}
             aria-label={editorialText('editorialExperiencesKeywordLabel')}
           />
         </label>
-
-        <div className="exp-dur-tabs" role="group" aria-label={editorialText('editorialExperiencesDurationLabel')}>
-          {durationBuckets.map((b) => {
-            const isActive = normalise(durationFilter) === b.key;
-            return (
-              <button
-                key={b.key}
-                type="button"
-                className={`filter-tab${isActive ? ' active' : ''}`}
-                onClick={() => setSingle('duration', b.key)}
-                aria-pressed={isActive}
-              >
-                {b.label}
-              </button>
-            );
-          })}
-        </div>
-
-        <select
-          className="sort-sel"
-          value={sortFilter}
-          onChange={(event) => setSingle('sort', event.target.value)}
-          aria-label={editorialText('editorialExperiencesSortLabel')}
-        >
-          {sortOptions.map((opt) => (
-            <option key={opt.key} value={opt.key}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
       </div>
 
       <div className="exp-filterbar">
-        {regionOptions.length > 0 ? (
-          <div className="exp-filter-group">
-            <span className="label">{editorialText('editorialExperiencesRegionLabel')}</span>
-            {regionOptions.map((region) => {
-              const isOn = regionFilters.map(normalise).includes(normalise(region));
-              return (
-                <button
-                  key={region}
-                  type="button"
-                  className={`chip-filter${isOn ? ' on' : ''}`}
-                  onClick={() => toggleList('region', region)}
-                  aria-pressed={isOn}
-                >
-                  {region}
-                </button>
-              );
-            })}
-          </div>
-        ) : null}
-
         {locationOptions.length > 0 ? (
           <div className="exp-filter-group">
             <span className="label">{editorialText('editorialExperiencesLocationLabel')}</span>
@@ -389,24 +243,6 @@ export function ExperiencesGrid({
             })}
           </div>
         ) : null}
-
-        <div className="exp-filter-group">
-          <span className="label">{editorialText('editorialExperiencesLevelLabel')}</span>
-          {levels.map((l) => {
-            const isOn = levelFilters.map(normalise).includes(normalise(l.key));
-            return (
-              <button
-                key={l.key}
-                type="button"
-                className={`chip-filter${isOn ? ' on' : ''}`}
-                onClick={() => toggleList('level', l.key)}
-                aria-pressed={isOn}
-              >
-                {l.label}
-              </button>
-            );
-          })}
-        </div>
       </div>
 
       <div className="listing-top pql-listing-top">

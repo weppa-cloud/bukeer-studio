@@ -15,8 +15,8 @@
  *  - Icons primitive (lucide-backed).
  */
 
-import { useMemo, useState, useCallback } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useMemo, useState, useCallback, useEffect } from 'react';
+import { useRouter, useSearchParams, type ReadonlyURLSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -106,6 +106,17 @@ function toArray(param: string | null | undefined): string[] {
   return param.split(',').map((s) => s.trim()).filter(Boolean);
 }
 
+function readParamList(searchParams: URLSearchParams | ReadonlyURLSearchParams | null | undefined, key: string): string[] {
+  if (!searchParams) return [];
+  const values = searchParams
+    .getAll(key)
+    .map((value) => value.trim())
+    .filter(Boolean);
+  if (values.length === 0) return [];
+  if (values.length === 1 && values[0]?.includes(',')) return toArray(values[0]);
+  return values;
+}
+
 function normalize(value: string | null | undefined): string {
   return (value ?? '').toString().trim().toLowerCase();
 }
@@ -145,13 +156,14 @@ export function PaquetesListGrid({ packages, basePath, account = null }: Paquete
   }, [packages]);
 
   // URL-synced state.
-  const activeCountries = toArray(searchParams?.get('country'));
-  const activeLocations = toArray(searchParams?.get('location'));
+  const activeCountries = readParamList(searchParams, 'country');
+  const activeLocations = readParamList(searchParams, 'location');
   const activeDuration = searchParams?.get('duration') ?? 'all';
   const query = searchParams?.get('q') ?? '';
   const view = searchParams?.get('view') === 'map' ? 'map' : 'list';
 
   const [page, setPage] = useState(1);
+  const [keywordInput, setKeywordInput] = useState(query);
 
   const updateParams = useCallback(
     (mutator: (params: URLSearchParams) => void) => {
@@ -167,12 +179,14 @@ export function PaquetesListGrid({ packages, basePath, account = null }: Paquete
   const toggleMulti = useCallback(
     (paramKey: 'country' | 'location', value: string) => {
       updateParams((p) => {
-        const current = toArray(p.get(paramKey));
+        const current = readParamList(p, paramKey);
         const next = current.includes(value)
           ? current.filter((v) => v !== value)
           : [...current, value];
-        if (next.length === 0) p.delete(paramKey);
-        else p.set(paramKey, next.join(','));
+        p.delete(paramKey);
+        for (const item of next) {
+          p.append(paramKey, item);
+        }
       });
     },
     [updateParams],
@@ -188,7 +202,7 @@ export function PaquetesListGrid({ packages, basePath, account = null }: Paquete
     [updateParams],
   );
 
-  const setKeyword = useCallback(
+  const setKeywordParam = useCallback(
     (value: string) => {
       updateParams((p) => {
         const next = value.trim();
@@ -201,6 +215,20 @@ export function PaquetesListGrid({ packages, basePath, account = null }: Paquete
     },
     [updateParams],
   );
+
+  useEffect(() => {
+    setKeywordInput(query);
+  }, [query]);
+
+  useEffect(() => {
+    const next = keywordInput.trim();
+    const current = query.trim();
+    if (next === current) return;
+    const timer = setTimeout(() => {
+      setKeywordParam(keywordInput);
+    }, 180);
+    return () => clearTimeout(timer);
+  }, [keywordInput, query, setKeywordParam]);
 
   const setView = useCallback(
     (v: 'list' | 'map') => {
@@ -340,8 +368,8 @@ export function PaquetesListGrid({ packages, basePath, account = null }: Paquete
           <input
             id="paquetes-keyword"
             type="text"
-            value={query}
-            onChange={(event) => setKeyword(event.target.value)}
+            value={keywordInput}
+            onChange={(event) => setKeywordInput(event.target.value)}
             className="listing-keyword-input"
             placeholder={COPY.keywordPlaceholder}
             aria-label={COPY.keywordLabel}

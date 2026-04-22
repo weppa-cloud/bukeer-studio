@@ -26,6 +26,7 @@ import { getBasePath } from '@/lib/utils/base-path';
 import { Icons } from '../primitives/icons';
 import { FooterSwitcher } from './footer-switcher';
 import { getEditorialTextGetter } from '../i18n';
+import { WaflowCTAButton } from '../waflow/cta-button';
 
 export interface EditorialSiteFooterProps {
   website: WebsiteData;
@@ -162,6 +163,19 @@ export function EditorialSiteFooter({
               <div className="footer-social">
                 {socialRow.map((item) => {
                   const IconComp = item.icon;
+                  if (item.label === 'WhatsApp') {
+                    return (
+                      <WaflowCTAButton
+                        key={item.label}
+                        variant="A"
+                        fallbackHref={item.href}
+                        className="icon-btn"
+                        ariaLabel={item.label}
+                      >
+                        <IconComp size={18} />
+                      </WaflowCTAButton>
+                    );
+                  }
                   return (
                     <a
                       key={item.label}

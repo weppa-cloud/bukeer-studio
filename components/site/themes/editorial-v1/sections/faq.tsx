@@ -32,6 +32,7 @@ import { Eyebrow } from '../primitives/eyebrow';
 import { Icons } from '../primitives/icons';
 import { FaqClient, type FaqItem } from './faq.client';
 import { getEditorialTextGetter, localizeEditorialText } from '../i18n';
+import { WaflowCTAButton } from '../waflow/cta-button';
 
 export interface EditorialFaqSectionProps {
   section: WebsiteSection;
@@ -128,6 +129,8 @@ export function FaqSection({
   const helperText = localizeEditorialText(website, content.helperText?.trim() || '');
   const ctaLabel = localizeEditorialText(website, content.ctaLabel?.trim() || '');
   const ctaHref = ctaLabel ? resolveCtaHref(content.ctaUrl, website, basePath) : '';
+  const isWhatsappCta =
+    content.ctaUrl === '{{whatsapp}}' || content.ctaUrl === 'whatsapp' || ctaHref.includes('wa.me');
 
   return (
     <section
@@ -150,14 +153,26 @@ export function FaqSection({
               </p>
             ) : null}
             {ctaLabel ? (
-              <a
-                href={ctaHref}
-                className="btn btn-outline"
-                style={{ marginTop: 16 }}
-              >
-                {Icons.whatsapp({ size: 16 })}
-                {ctaLabel}
-              </a>
+              <div style={{ marginTop: 16 }}>
+                {isWhatsappCta ? (
+                  <WaflowCTAButton
+                    variant="A"
+                    fallbackHref={ctaHref}
+                    className="btn btn-outline"
+                  >
+                    {Icons.whatsapp({ size: 16 })}
+                    {ctaLabel}
+                  </WaflowCTAButton>
+                ) : (
+                  <a
+                    href={ctaHref}
+                    className="btn btn-outline"
+                  >
+                    {Icons.whatsapp({ size: 16 })}
+                    {ctaLabel}
+                  </a>
+                )}
+              </div>
             ) : null}
           </div>
           <FaqClient faqs={faqs} />

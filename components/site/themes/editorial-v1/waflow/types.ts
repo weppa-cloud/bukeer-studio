@@ -9,6 +9,12 @@
  * the `config` object and drives which chips/headings/messages render.
  */
 
+import {
+  getCountries,
+  getCountryCallingCode,
+  type CountryCode,
+} from 'libphonenumber-js/min';
+
 export type WaflowVariant = 'A' | 'B' | 'D';
 
 export type WaflowStep =
@@ -21,11 +27,10 @@ export type WaflowStep =
   | 'confirmation';
 
 export interface WaflowCountry {
-  c: string;
+  c: CountryCode;
   name: string;
   code: string;
   flag: string;
-  len: number;
 }
 
 export interface WaflowDestinationContext {
@@ -89,10 +94,14 @@ export interface WaflowState {
   whatsappMessage?: string | null;
 }
 
+export type WaflowPrefill = Partial<
+  Pick<WaflowState, 'destinationChoice' | 'when' | 'adults' | 'children' | 'notes'>
+>;
+
 export interface WaflowOpenHandlers {
   openVariantA: () => void;
-  openVariantB: (ctx: WaflowDestinationContext) => void;
-  openVariantD: (ctx: WaflowPackageContext) => void;
+  openVariantB: (ctx: WaflowDestinationContext, prefill?: WaflowPrefill) => void;
+  openVariantD: (ctx: WaflowPackageContext, prefill?: WaflowPrefill) => void;
   close: () => void;
 }
 
@@ -168,27 +177,38 @@ export const WAFLOW_PKG_ADJUST = [
   'Cambiar fechas',
 ] as const;
 
-export const WAFLOW_COUNTRIES: WaflowCountry[] = [
-  { c: 'CO', name: 'Colombia', code: '+57', flag: '🇨🇴', len: 10 },
-  { c: 'US', name: 'Estados Unidos', code: '+1', flag: '🇺🇸', len: 10 },
-  { c: 'MX', name: 'México', code: '+52', flag: '🇲🇽', len: 10 },
-  { c: 'ES', name: 'España', code: '+34', flag: '🇪🇸', len: 9 },
-  { c: 'FR', name: 'Francia', code: '+33', flag: '🇫🇷', len: 9 },
-  { c: 'DE', name: 'Alemania', code: '+49', flag: '🇩🇪', len: 11 },
-  { c: 'AR', name: 'Argentina', code: '+54', flag: '🇦🇷', len: 10 },
-  { c: 'CL', name: 'Chile', code: '+56', flag: '🇨🇱', len: 9 },
-  { c: 'PE', name: 'Perú', code: '+51', flag: '🇵🇪', len: 9 },
-  { c: 'BR', name: 'Brasil', code: '+55', flag: '🇧🇷', len: 11 },
-  { c: 'CA', name: 'Canadá', code: '+1', flag: '🇨🇦', len: 10 },
-  { c: 'GB', name: 'Reino Unido', code: '+44', flag: '🇬🇧', len: 10 },
-  { c: 'IT', name: 'Italia', code: '+39', flag: '🇮🇹', len: 10 },
-];
+function countryFlag(code: string): string {
+  return code
+    .toUpperCase()
+    .replace(/./g, (char) => String.fromCodePoint(127397 + char.charCodeAt(0)));
+}
+
+function countryName(code: CountryCode): string {
+  if (typeof Intl === 'undefined' || typeof Intl.DisplayNames === 'undefined') {
+    return code;
+  }
+  const display = new Intl.DisplayNames(['es'], { type: 'region' });
+  return display.of(code) ?? code;
+}
+
+export const WAFLOW_COUNTRIES: WaflowCountry[] = getCountries()
+  .map((code) => ({
+    c: code,
+    name: countryName(code),
+    code: `+${getCountryCallingCode(code)}`,
+    flag: countryFlag(code),
+  }))
+  .sort((a, b) => {
+    if (a.c === 'CO') return -1;
+    if (b.c === 'CO') return 1;
+    return a.name.localeCompare(b.name, 'es');
+  });
 
 /** Wizard step order per variant. Confirmation always terminates. */
 export const WAFLOW_STEP_ORDER: Record<WaflowVariant, WaflowStep[]> = {
-  A: ['intent', 'dates', 'party', 'interests', 'country', 'contact', 'confirmation'],
-  B: ['dates', 'party', 'interests', 'country', 'contact', 'confirmation'],
-  D: ['dates', 'party', 'country', 'contact', 'confirmation'],
+  A: ['contact', 'confirmation'],
+  B: ['contact', 'confirmation'],
+  D: ['contact', 'confirmation'],
 };
 
 /** localStorage key factory. Keyed by a session uuid so parallel tabs don't collide. */

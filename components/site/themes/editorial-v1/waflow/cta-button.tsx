@@ -13,11 +13,12 @@
  * (SSR pre-hydration path + no-JS users).
  */
 
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 
 import { useWaflow } from './provider';
 import type {
   WaflowDestinationContext,
+  WaflowPrefill,
   WaflowPackageContext,
   WaflowVariant,
 } from './types';
@@ -26,8 +27,11 @@ export interface WaflowCTAButtonProps {
   variant: WaflowVariant;
   destination?: WaflowDestinationContext;
   pkg?: WaflowPackageContext;
+  prefill?: WaflowPrefill;
   className?: string;
   children?: ReactNode;
+  style?: CSSProperties;
+  ariaLabel?: string;
   /** Plain wa.me fallback rendered as an anchor when context is unavailable. */
   fallbackHref?: string;
 }
@@ -36,16 +40,19 @@ export function WaflowCTAButton({
   variant,
   destination,
   pkg,
+  prefill,
   className,
   children,
+  style,
+  ariaLabel,
   fallbackHref,
 }: WaflowCTAButtonProps) {
   const waflow = useWaflow();
 
   const onClick = () => {
     if (variant === 'A') waflow.openVariantA();
-    else if (variant === 'B' && destination) waflow.openVariantB(destination);
-    else if (variant === 'D' && pkg) waflow.openVariantD(pkg);
+    else if (variant === 'B' && destination) waflow.openVariantB(destination, prefill);
+    else if (variant === 'D' && pkg) waflow.openVariantD(pkg, prefill);
   };
 
   // When the context is missing (e.g. the provider wasn't mounted because
@@ -58,6 +65,8 @@ export function WaflowCTAButton({
         target="_blank"
         rel="noopener noreferrer"
         className={className}
+        style={style}
+        aria-label={ariaLabel}
       >
         {children}
       </a>
@@ -65,7 +74,7 @@ export function WaflowCTAButton({
   }
 
   return (
-    <button type="button" className={className} onClick={onClick}>
+    <button type="button" className={className} style={style} aria-label={ariaLabel} onClick={onClick}>
       {children}
     </button>
   );

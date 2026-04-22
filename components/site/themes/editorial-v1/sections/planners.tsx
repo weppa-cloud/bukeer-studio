@@ -35,6 +35,7 @@ import { editorialHtml } from '../primitives/rich-heading';
 import { getBasePath } from '@/lib/utils/base-path';
 import type { PublicUiExtraTextKey } from '@/lib/site/public-ui-extra-text';
 import { getEditorialTextGetter, localizeEditorialText } from '../i18n';
+import { WaflowCTAButton } from '../waflow/cta-button';
 
 // ---------- Types ----------
 
@@ -240,15 +241,14 @@ export function PlannersSection({
                       <Icons.arrow size={14} />
                     </Link>
                     {whatsappHref ? (
-                      <a
-                        href={whatsappHref}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                      <WaflowCTAButton
+                        variant="A"
+                        fallbackHref={whatsappHref}
                         className="planner-action planner-action-whatsapp"
                       >
                         <Icons.whatsapp size={14} />
                         {editorialText('editorialPlannersWhatsapp')}
-                      </a>
+                      </WaflowCTAButton>
                     ) : null}
                   </div>
                 </article>

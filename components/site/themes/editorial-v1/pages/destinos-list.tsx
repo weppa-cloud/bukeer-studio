@@ -246,6 +246,8 @@ export function EditorialDestinosListPage({
         <div className="ev-page-hero-wash" />
         <div className="ev-container">
           <Breadcrumbs
+            tone="inverse"
+            className="pkg-hero-breadcrumb"
             items={[
               {
                 label: editorialText('editorialBreadcrumbHome'),

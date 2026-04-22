@@ -16,6 +16,9 @@ import { Breadcrumbs } from '../primitives/breadcrumbs';
 import { Icons } from '../primitives/icons';
 import { Rating } from '../primitives/rating';
 import { EditorialGalleryMosaic } from '../primitives/editorial-gallery-mosaic';
+import { EditorialDateField } from '../primitives/editorial-date-field';
+import { WaflowCTAButton } from '../waflow/cta-button';
+import { useWaflow } from '../waflow/provider';
 import type { ActivityCircuitStop } from '@/lib/products/activity-circuit';
 
 interface GoogleReviewProp {
@@ -58,6 +61,8 @@ interface TrustSignalItem {
   icon: TrustSignalIcon;
 }
 
+const CAL_SCHEDULE_URL = 'https://cal.com/colombiatours-travel/30min';
+
 function normalizeTextList(value: unknown): string[] {
   if (Array.isArray(value)) {
     return value
@@ -81,10 +86,34 @@ function normalizeTextList(value: unknown): string[] {
   return [];
 }
 
+function normalizeImageList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  const seen = new Set<string>();
+  const images: string[] = [];
+
+  for (const item of value) {
+    const src = typeof item === 'string' ? item.trim() : '';
+    if (!src) continue;
+    const isLikelyImage =
+      src.startsWith('http://') ||
+      src.startsWith('https://') ||
+      src.startsWith('/');
+    if (!isLikelyImage) continue;
+    if (seen.has(src)) continue;
+    seen.add(src);
+    images.push(src);
+  }
+
+  return images;
+}
+
 function resolveImages(product: ProductData): string[] {
-  const candidates = Array.isArray(product.images) ? product.images : [];
+  const candidates = normalizeImageList(product.images);
   if (candidates.length > 0) return candidates;
-  return product.image ? [product.image] : [];
+  const single = typeof product.image === 'string' ? product.image.trim() : '';
+  if (!single) return [];
+  if (single.startsWith('http://') || single.startsWith('https://') || single.startsWith('/')) return [single];
+  return [];
 }
 
 function resolveProgramGalleryImages(product: ProductData): string[] {
@@ -95,8 +124,9 @@ function resolveProgramGalleryImages(product: ProductData): string[] {
       if (item && typeof item === 'object' && typeof item.url === 'string') return item.url.trim();
       return '';
     })
-    .filter(Boolean);
-  return normalized;
+    .filter(Boolean)
+    .filter((src) => src.startsWith('http://') || src.startsWith('https://') || src.startsWith('/'));
+  return Array.from(new Set(normalized));
 }
 
 function resolveDuration(product: ProductData): string {
@@ -174,6 +204,15 @@ function normalizeInclusionChips(inclusions: string[]): string[] {
     .map((entry) => entry.trim())
     .filter(Boolean)
     .slice(0, 3);
+}
+
+function toSlug(value: string): string {
+  return value
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
 }
 
 function formatTravelersCount(count: number, locale: string): string {
@@ -266,15 +305,38 @@ function buildTimeline(product: ProductData, fallbackImages: string[]): Timeline
         label,
         title: entry.title,
         note: entry.description,
-        image: typeof entry.image === 'string' && entry.image.trim().length > 0
+        image: typeof entry.image === 'string' && entry.image.trim().length > 0 &&
+          (entry.image.trim().startsWith('http://') || entry.image.trim().startsWith('https://') || entry.image.trim().startsWith('/'))
           ? entry.image.trim()
-          : fallbackImages[index],
+          : (fallbackImages.length > 0 ? fallbackImages[index % fallbackImages.length] : undefined),
         tone,
       };
     })
     .filter((row): row is TimelineItem => Boolean(row));
 
   return rows;
+}
+
+function TimelineEventImage({ src, alt }: { src: string; alt: string }) {
+  const [hasError, setHasError] = useState(false);
+  return (
+    <div className="evt-media">
+      {!hasError ? (
+        <Image
+          src={src}
+          alt={alt}
+          fill
+          sizes="(max-width: 768px) 100vw, 420px"
+          className="object-cover"
+          onError={() => setHasError(true)}
+        />
+      ) : (
+        <div className="absolute inset-0 grid place-items-center bg-[var(--c-surface)] text-xs text-[var(--c-muted)]">
+          Foto no disponible
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function EditorialActivityDetailClient({
@@ -294,6 +356,7 @@ export function EditorialActivityDetailClient({
   const [openFaq, setOpenFaq] = useState(0);
   const [pax, setPax] = useState(2);
   const [datePref, setDatePref] = useState('');
+  const waflow = useWaflow();
 
   const images = useMemo(() => resolveImages(product), [product]);
   const programGalleryImages = useMemo(() => resolveProgramGalleryImages(product), [product]);
@@ -329,19 +392,24 @@ export function EditorialActivityDetailClient({
     ref: product.id,
     url: productPageUrl,
   });
-  const phone = website.content?.account?.phone || website.content?.contact?.phone;
-  const phoneHref = phone ? `tel:${phone.replace(/[^0-9+]/g, '')}` : null;
 
   const breadcrumbItems = [
     { label: 'Inicio', href: `${basePath}/` },
     { label: 'Experiencias', href: `${basePath}/experiencias` },
     { label: displayName },
   ];
+  const waflowDestination = useMemo(() => {
+    const destinationName = displayLocation || product.location || product.city || product.country || 'Colombia';
+    const heroImageUrl = images[0] || product.image || null;
+    return {
+      slug: toSlug(destinationName) || 'colombia',
+      name: destinationName,
+      region: product.country || undefined,
+      heroImageUrl,
+    };
+  }, [displayLocation, images, product.location, product.city, product.country, product.image]);
   const heroChips = useMemo(() => {
     const chips: ReactNode[] = [<span key="type" className="chip chip-white">Experiencias</span>];
-    const duration = resolveDuration(product);
-    if (duration !== '—') chips.push(<span key="duration" className="chip chip-white">{duration}</span>);
-    if (displayLocation) chips.push(<span key="location" className="chip chip-white">{displayLocation}</span>);
     if (reviewRating) {
       chips.push(
         <span key="rating" className="chip chip-white">
@@ -349,19 +417,30 @@ export function EditorialActivityDetailClient({
         </span>
       );
     }
-    if (chips.length < 3 && inclusionChips.length > 0) {
+    if (chips.length < 2 && displayLocation) {
+      chips.push(<span key="location" className="chip chip-white">{displayLocation}</span>);
+    }
+    if (chips.length < 2 && inclusionChips.length > 0) {
       chips.push(
         <span key="inclusion" className="chip chip-white">
           <Icons.check size={13} /> {inclusionChips[0]}
         </span>
       );
     }
-    return chips.slice(0, 3);
-  }, [product, displayLocation, reviewRating, reviewCount, inclusionChips]);
+    return chips.slice(0, 2);
+  }, [displayLocation, reviewRating, reviewCount, inclusionChips]);
 
   const heroImage = images[0] || product.image || null;
   const formattedDatePref = formatSelectedDate(datePref, resolvedLocale);
   const minDate = getTodayDateInputValue();
+  const waflowPrefill = useMemo(() => ({
+    when: datePref ? `Fecha exacta: ${datePref}` : 'Flexible',
+    adults: pax,
+    children: 0,
+    notes: datePref
+      ? `Actividad de interés: ${displayName}\nFecha tentativa: ${formattedDatePref}\nPersonas: ${pax}`
+      : `Actividad de interés: ${displayName}\nPersonas: ${pax}`,
+  }), [datePref, pax, displayName, formattedDatePref]);
   const itineraryWhatsappUrl = buildWhatsAppUrl({
     phone: website.content?.social?.whatsapp,
     productName: displayName,
@@ -382,34 +461,49 @@ export function EditorialActivityDetailClient({
 
   return (
     <>
-      <div data-screen-label="ActivityDetail">
+      <div data-screen-label="ActivityDetail" data-editorial-variant="activity-detail">
         <section className="relative overflow-hidden rounded-b-[28px]">
           {heroImage ? (
-            <div className="relative h-[520px] w-full">
+            <div className="relative h-[410px] w-full md:h-[450px]">
               <Image src={heroImage} alt={displayName} fill sizes="100vw" className="object-cover" priority />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/30 to-black/5" />
+              <div
+                className="absolute inset-0"
+                style={{
+                  background:
+                    'linear-gradient(180deg, rgba(8, 44, 34, .2) 0%, rgba(8, 44, 34, .52) 56%, rgba(8, 44, 34, .88) 100%)',
+                }}
+              />
             </div>
           ) : (
-            <div className="h-[520px] w-full bg-[var(--c-surface-2)]" />
+            <div
+              className="h-[410px] w-full md:h-[450px]"
+              style={{ background: 'linear-gradient(135deg, var(--ev-hero-green), var(--ev-hero-green-2))' }}
+            />
           )}
 
-          <div className="absolute inset-x-0 bottom-8 z-10">
+          <div className="absolute inset-x-0 bottom-5 z-10 md:bottom-6">
             <div className="mx-auto w-full max-w-7xl px-6">
-              <Breadcrumbs items={breadcrumbItems} tone="inverse" className="pkg-hero-breadcrumb mb-3" />
-              <div className="hero-chip-row mb-3 flex flex-wrap items-center gap-2">
+              <Breadcrumbs items={breadcrumbItems} tone="inverse" className="pkg-hero-breadcrumb mb-2" />
+              <div className="hero-chip-row mb-3 flex flex-wrap items-center gap-2 md:mb-4">
                 {heroChips}
               </div>
-              <h1 className="display-lg text-white">
+              <h1 className="max-w-5xl text-balance text-white text-[clamp(2rem,4.7vw,4.4rem)] leading-[0.95] tracking-[-0.02em]">
                 {displayName}
               </h1>
-              <p className="mt-2 max-w-3xl text-base text-white/90">
+              <p className="mt-2 max-w-3xl text-sm leading-relaxed text-white/90 md:text-base">
                 {product.description?.slice(0, 150) || 'Experiencia diseñada por expertos locales con logística coordinada.'}
               </p>
               <div className="mt-4 flex flex-wrap items-center gap-3">
                 {whatsappUrl ? (
-                  <a href={itineraryWhatsappUrl || whatsappUrl} target="_blank" rel="noopener noreferrer" className="btn btn-accent btn-sm">
-                    <Icons.whatsapp size={14} /> Armar itinerario
-                  </a>
+                  <WaflowCTAButton
+                    variant="B"
+                    destination={waflowDestination}
+                    prefill={waflowPrefill}
+                    fallbackHref={itineraryWhatsappUrl || whatsappUrl || undefined}
+                    className="btn btn-accent btn-sm"
+                  >
+                    <Icons.whatsapp size={14} /> Agregar esta actividad por WhatsApp
+                  </WaflowCTAButton>
                 ) : null}
                 {product.video_url ? (
                   <ProductVideoHero
@@ -419,18 +513,21 @@ export function EditorialActivityDetailClient({
                     productName={displayName}
                   />
                 ) : null}
-                {phoneHref ? (
-                  <a href={phoneHref} className="btn btn-outline btn-sm text-white border-white/70 hover:bg-white/10">
-                    Llamar
-                  </a>
-                ) : null}
+                <a
+                  href={CAL_SCHEDULE_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-outline btn-sm text-white border-white/70 hover:bg-white/10"
+                >
+                  Agendar llamada
+                </a>
               </div>
-              <div id="detail-sticky-sentinel" className="pointer-events-none mt-4 h-1 w-full" aria-hidden="true" />
+              <div id="detail-sticky-sentinel" className="pointer-events-none mt-3 h-1 w-full md:mt-4" aria-hidden="true" />
             </div>
           </div>
         </section>
 
-        <div className="mx-auto mt-[-28px] w-full max-w-7xl px-6">
+        <div className="mx-auto mt-[-24px] w-full max-w-7xl px-6 md:mt-[-28px]">
           <div className="pkg-meta">
             <div className="ov-item"><small>Duración</small><strong>{resolveDuration(product)}</strong></div>
             <div className="ov-item"><small>Salida</small><strong>{resolveStartTime(product)}</strong></div>
@@ -487,17 +584,7 @@ export function EditorialActivityDetailClient({
                           <small>{event.label}</small>
                           <b>{event.title}</b>
                           {event.note ? <p>{event.note}</p> : null}
-                          {event.image ? (
-                            <div className="evt-media">
-                              <Image
-                                src={event.image}
-                                alt={`${displayName} · ${event.title}`}
-                                fill
-                                sizes="(max-width: 768px) 100vw, 420px"
-                                className="object-cover"
-                              />
-                            </div>
-                          ) : null}
+                          {event.image ? <TimelineEventImage src={event.image} alt={`${displayName} · ${event.title}`} /> : null}
                         </div>
                       </div>
                     ))}
@@ -640,18 +727,27 @@ export function EditorialActivityDetailClient({
 
               <section data-testid="detail-cta-final" className="text-center">
                 <h2 className="text-3xl font-bold">¿Listo para sumar esta experiencia a tu viaje?</h2>
-                <p className="mt-2 text-[var(--c-muted)]">Te ayudamos por WhatsApp a construir el itinerario completo</p>
+                <p className="mt-2 text-[var(--c-muted)]">Tu travel planner humano te ayuda a integrarla en un itinerario completo.</p>
                 <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
                   {whatsappUrl ? (
-                    <a href={itineraryWhatsappUrl || whatsappUrl} target="_blank" rel="noopener noreferrer" className="btn btn-accent">
-                      <Icons.whatsapp size={14} /> Agregar a mi viaje
-                    </a>
+                    <WaflowCTAButton
+                      variant="B"
+                      destination={waflowDestination}
+                      prefill={waflowPrefill}
+                      fallbackHref={itineraryWhatsappUrl || whatsappUrl || undefined}
+                      className="btn btn-accent"
+                    >
+                      <Icons.whatsapp size={14} /> Agregar esta actividad por WhatsApp
+                    </WaflowCTAButton>
                   ) : null}
-                  {phoneHref ? (
-                    <a href={phoneHref} className="btn btn-outline">
-                      Llamar ahora
-                    </a>
-                  ) : null}
+                  <a
+                    href={CAL_SCHEDULE_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-outline"
+                  >
+                    Agendar llamada
+                  </a>
                 </div>
               </section>
 
@@ -681,16 +777,14 @@ export function EditorialActivityDetailClient({
               </div>
 
               <div className="rail-form grid gap-3">
-                <label className="fld grid gap-1 text-xs text-[var(--c-muted)]">
-                  Fecha
-                  <input
-                    type="date"
-                    value={datePref}
-                    min={minDate}
-                    onChange={(event) => setDatePref(event.target.value)}
-                    aria-label="Fecha tentativa"
-                  />
-                </label>
+                <EditorialDateField
+                  label="Fecha"
+                  value={datePref}
+                  min={minDate}
+                  ariaLabel="Fecha tentativa"
+                  helperText="Selecciona una fecha estimada"
+                  onChange={setDatePref}
+                />
                 <label className="fld grid gap-1 text-xs text-[var(--c-muted)]">
                   Personas
                   <select value={pax} onChange={(event) => setPax(Number(event.target.value))}>
@@ -701,42 +795,26 @@ export function EditorialActivityDetailClient({
                 </label>
               </div>
 
-              <p className="text-xs text-[var(--c-muted)]">
-                No vendemos esta actividad por separado por ahora. La integramos en un itinerario completo a tu medida.
-              </p>
-
-              {itineraryWhatsappUrl || whatsappUrl ? (
-                <a href={itineraryWhatsappUrl || whatsappUrl || undefined} target="_blank" rel="noopener noreferrer" className="btn btn-accent" style={{ justifyContent: 'center' }}>
-                  Agregar a mi viaje <Icons.arrow size={14} />
-                </a>
-              ) : null}
-              {itineraryWhatsappUrl || whatsappUrl ? (
-                <a href={itineraryWhatsappUrl || whatsappUrl || undefined} target="_blank" rel="noopener noreferrer" className="btn btn-outline" style={{ justifyContent: 'center' }}>
-                  Hablar con un planner
-                </a>
-              ) : null}
-              <div className="rail-share">
-                <button><Icons.heart size={14} /> Guardar</button>
-                <button><Icons.arrowUpRight size={14} /> Compartir</button>
-              </div>
-              <div className="rail-trust">
-                <div><Icons.check size={12} /> Cancelación hasta 48h antes</div>
-                <div><Icons.check size={12} /> Guía bilingüe certificado</div>
-                <div><Icons.check size={12} /> Grupos pequeños</div>
-              </div>
-
               <div className="rounded-2xl border border-[var(--c-line)] p-4">
-                <div className="mb-3 text-xs uppercase tracking-wider text-[var(--c-muted)]">Contacto</div>
-                {itineraryWhatsappUrl || whatsappUrl ? (
-                  <a href={itineraryWhatsappUrl || whatsappUrl || undefined} target="_blank" rel="noopener noreferrer" className="btn btn-accent btn-sm w-full" style={{ justifyContent: 'center' }}>
-                    <Icons.whatsapp size={14} /> Continuar por WhatsApp
-                  </a>
-                ) : null}
-                {phoneHref ? (
-                  <a href={phoneHref} className="btn btn-outline btn-sm mt-2 w-full" style={{ justifyContent: 'center' }}>
-                    Llamar
-                  </a>
-                ) : null}
+                <div className="mb-3 text-xs uppercase tracking-wider text-[var(--c-muted)]">Tu travel planner</div>
+                <WaflowCTAButton
+                  variant="B"
+                  destination={waflowDestination}
+                  prefill={waflowPrefill}
+                  fallbackHref={itineraryWhatsappUrl || whatsappUrl || undefined}
+                  className="btn btn-accent btn-sm w-full"
+                >
+                  <Icons.whatsapp size={14} /> Hablar por WhatsApp
+                </WaflowCTAButton>
+                <a
+                  href={CAL_SCHEDULE_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-outline btn-sm mt-2 w-full"
+                  style={{ justifyContent: 'center' }}
+                >
+                  Agendar llamada
+                </a>
               </div>
             </aside>
           </div>
@@ -758,9 +836,11 @@ export function EditorialActivityDetailClient({
 
       <StickyCTABar
         whatsappUrl={itineraryWhatsappUrl || whatsappUrl}
-        whatsappLabel="Agregar a mi viaje"
+        onWhatsappClick={() => waflow.openVariantB(waflowDestination, waflowPrefill)}
+        whatsappLabel="Agregar actividad por WhatsApp"
         hidePrice={true}
-        phone={phone || null}
+        callUrl={CAL_SCHEDULE_URL}
+        callLabel="Agendar llamada"
         analyticsContext={{ product_id: product.id, product_type: 'activity', product_name: displayName }}
       />
     </>

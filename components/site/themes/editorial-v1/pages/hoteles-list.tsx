@@ -115,6 +115,8 @@ export function EditorialHotelesListPage({
       <section className="page-hero" style={heroStyle}>
         <div className="ev-container" style={{ position: 'relative', zIndex: 1 }}>
           <Breadcrumbs
+            tone="inverse"
+            className="pkg-hero-breadcrumb"
             items={[
               { label: siteTitleTrail, href: basePath || '/' },
               { label: editorialText('editorialBreadcrumbHotels') },

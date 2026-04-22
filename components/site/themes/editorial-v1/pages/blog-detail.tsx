@@ -29,6 +29,7 @@ import type {
 import { Eyebrow } from '@/components/site/themes/editorial-v1/primitives/eyebrow';
 import { Breadcrumbs } from '@/components/site/themes/editorial-v1/primitives/breadcrumbs';
 import { Icons } from '@/components/site/themes/editorial-v1/primitives/icons';
+import { WaflowCTAButton } from '@/components/site/themes/editorial-v1/waflow/cta-button';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 import { formatPublicDate } from '@/lib/site/public-ui-messages';
 
@@ -93,6 +94,7 @@ export function EditorialBlogDetailPage({
     || website.content?.locale
     || 'es-CO';
   const editorialText = getPublicUiExtraTextGetter(resolvedLocale);
+  const isEnglish = resolvedLocale.toLowerCase().startsWith('en');
   const SHARE_LABEL = editorialText('editorialBlogShare');
   const TAGS_LABEL = editorialText('editorialBlogTags');
   const AUTHOR_EYEBROW = editorialText('editorialBlogAuthorEyebrow');
@@ -101,7 +103,9 @@ export function EditorialBlogDetailPage({
   const CTA_TITLE_EM = editorialText('editorialBlogCtaTitleEm');
   const CTA_BODY = editorialText('editorialBlogCtaBody');
   const CTA_PRIMARY = editorialText('editorialBlogCtaPrimary');
-  const CTA_WHATSAPP = editorialText('editorialBlogCtaWhatsapp');
+  const CTA_WHATSAPP = isEnglish
+    ? 'Chat with a planner on WhatsApp'
+    : 'Hablar con un planner por WhatsApp';
   const RELATED_HEADING = editorialText('editorialBlogRelatedHeading');
   const RELATED_HEADING_EM = editorialText('editorialBlogRelatedHeadingEm');
   const RELATED_CTA = editorialText('editorialBlogRelatedCta');
@@ -116,6 +120,7 @@ export function EditorialBlogDetailPage({
 
   return (
     <div data-screen-label="BlogPost" data-testid="editorial-blog-detail">
+      <div data-testid="detail-blog">
       {/* Full-bleed hero */}
       <div className="post-hero" data-testid="blog-hero">
         {post.featured_image ? (
@@ -135,7 +140,7 @@ export function EditorialBlogDetailPage({
               position: 'absolute',
               inset: 0,
               background:
-                'linear-gradient(135deg, var(--c-ink), var(--c-primary) 60%, var(--c-ink-2))',
+                'linear-gradient(135deg, var(--ev-hero-green), var(--ev-hero-green-2))',
               opacity: 0.55,
             }}
           />
@@ -143,6 +148,8 @@ export function EditorialBlogDetailPage({
         <div className="wash" aria-hidden="true" />
         <div className="ev-container meta">
           <Breadcrumbs
+            tone="inverse"
+            className="pkg-hero-breadcrumb"
             items={[
               { label: siteTitleTrail, href: basePath },
               { label: 'Blog', href: `${basePath}/blog` },
@@ -281,15 +288,14 @@ export function EditorialBlogDetailPage({
                 <Link href={`${basePath}/#cta`} className="btn btn-accent">
                   {CTA_PRIMARY} <Icons.arrow size={14} aria-hidden />
                 </Link>
-                <a
-                  href={waHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <WaflowCTAButton
+                  variant="A"
+                  fallbackHref={waHref}
                   className="btn btn-ghost"
                   style={{ color: '#fff' }}
                 >
                   <Icons.whatsapp size={14} aria-hidden /> {CTA_WHATSAPP}
-                </a>
+                </WaflowCTAButton>
               </div>
             </aside>
 
@@ -403,6 +409,7 @@ export function EditorialBlogDetailPage({
             </div>
           </section>
         ) : null}
+      </div>
       </div>
     </div>
   );
