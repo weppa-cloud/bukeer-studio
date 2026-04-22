@@ -80,7 +80,6 @@ describe('<EditorialPaquetesListPage />', () => {
 
     // Hero
     expect(markup).toContain('data-testid="editorial-paquetes-list"');
-    expect(markup).toContain('Catálogo');
     expect(markup).toContain('Paquetes');
     expect(markup).toContain('por toda Colombia.');
     // Breadcrumbs
@@ -89,8 +88,11 @@ describe('<EditorialPaquetesListPage />', () => {
     // Filter toolbar
     expect(markup).toContain('data-testid="paquetes-filterbar"');
     expect(markup).toContain('País');
-    expect(markup).toContain('Destino');
+    expect(markup).toContain('Ubicación');
     expect(markup).toContain('Duración');
+    expect(markup).toContain('Cualquiera');
+    expect(markup).toContain('Palabra clave');
+    expect(markup).toContain('Buscar por palabra clave');
     expect(markup).toContain('>Colombia<');
     expect(markup).toContain('>México<');
 

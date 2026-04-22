@@ -61,6 +61,7 @@ const ACTIVITIES: ExperienceItem[] = [
     category: 'Aventura',
     categoryKey: 'aventura',
     region: 'Andes',
+    location: 'Salento',
     level: 'Moderado',
     durationBucket: 'half-day',
     durationLabel: '5h',
@@ -74,6 +75,7 @@ const ACTIVITIES: ExperienceItem[] = [
     category: 'Cultura',
     categoryKey: 'cultura',
     region: 'Caribe',
+    location: 'San Basilio de Palenque',
     level: 'Fácil',
     durationBucket: 'full-day',
     durationLabel: '8h',
@@ -87,6 +89,7 @@ const ACTIVITIES: ExperienceItem[] = [
     category: 'Gastronomía',
     categoryKey: 'gastronomia',
     region: 'Caribe',
+    location: 'Cartagena',
     level: 'Fácil',
     durationBucket: 'half-day',
     durationLabel: '4h',
@@ -116,6 +119,11 @@ describe('<EditorialExperiencesPage />', () => {
     // Region chips (derived from activities)
     expect(markup).toContain('>Andes<');
     expect(markup).toContain('>Caribe<');
+    // Location chips + keyword input
+    expect(markup).toContain('Ubicación');
+    expect(markup).toContain('>Salento<');
+    expect(markup).toContain('Palabra clave');
+    expect(markup).toContain('Buscar por palabra clave');
     // Level chips
     expect(markup).toContain('>Fácil<');
     // All 3 cards
