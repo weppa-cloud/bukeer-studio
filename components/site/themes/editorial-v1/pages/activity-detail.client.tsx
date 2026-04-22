@@ -307,7 +307,6 @@ export function EditorialActivityDetailClient({
     () => buildTimeline(product, programGalleryImages.length > 0 ? programGalleryImages : images),
     [product, programGalleryImages, images]
   );
-  const options = useMemo(() => (Array.isArray(product.options) ? product.options : []), [product.options]);
 
   const reviewRating = useMemo(() => {
     if (typeof product.rating === 'number' && product.rating > 0) return product.rating;
@@ -361,7 +360,6 @@ export function EditorialActivityDetailClient({
   }, [product, displayLocation, reviewRating, reviewCount, inclusionChips]);
 
   const heroImage = images[0] || product.image || null;
-  const selectedOption = options[0] ?? null;
   const formattedDatePref = formatSelectedDate(datePref, resolvedLocale);
   const minDate = getTodayDateInputValue();
   const itineraryWhatsappUrl = buildWhatsAppUrl({
@@ -376,7 +374,6 @@ export function EditorialActivityDetailClient({
       `Actividad: *${displayName}*`,
       `Fecha tentativa: ${formattedDatePref}`,
       `Personas: ${pax}`,
-      `Opción de referencia: ${selectedOption?.name || 'Regular'}`,
       '',
       '¿Me ayudan a construir un itinerario completo en Colombia incluyendo esta experiencia?',
       productPageUrl ? `Enlace: ${productPageUrl}` : '',
