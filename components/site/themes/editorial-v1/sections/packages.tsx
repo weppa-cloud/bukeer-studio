@@ -150,6 +150,7 @@ export function PackagesSection({ section, website }: PackagesSectionProps) {
           tabs={effectiveTabs}
           enableFilters={filtersEnabled && effectiveTabs.length > 0}
           basePath={basePath}
+          account={website.content.account ?? null}
           locale={(website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale ?? website.default_locale ?? website.content?.locale ?? 'es-CO'}
           labels={labels}
         />

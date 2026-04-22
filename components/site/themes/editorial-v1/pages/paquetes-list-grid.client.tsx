@@ -3,7 +3,7 @@
 /**
  * editorial-v1 — Packages listing grid + filter toolbar (client leaf).
  *
- * Filter state is URL-synced (`?country=&duration=&destination=&view=`) so it
+ * Filter state is URL-synced (`?country=&location=&duration=&q=&view=`) so it
  * stays bookmarkable and crawlable. Chip multi-select uses comma-separated
  * values. The "Cargar más" pagination is in-memory (PAGE_SIZE × n) — server
  * already returns up to 100 rows.
@@ -23,6 +23,10 @@ import Image from 'next/image';
 import { Icons } from '@/components/site/themes/editorial-v1/primitives/icons';
 import { ListingMap } from '@/components/site/themes/editorial-v1/sections/listing-map';
 import { trackEvent } from '@/lib/analytics/track';
+import { formatPriceOrConsult } from '@/lib/products/format-price';
+import { convertCurrencyAmount, type CurrencyConfig } from '@/lib/site/currency';
+import { usePreferredCurrency } from '@/lib/site/use-preferred-currency';
+import type { WebsiteData } from '@/lib/supabase/get-website';
 
 // -------------------- Types --------------------
 
@@ -32,11 +36,14 @@ export interface PaquetesListItem {
   name: string;
   image?: string | null;
   description?: string | null;
+  location?: string | null;
   country?: string | null;
   destination?: string | null;
   duration?: string | null;
   durationDays?: number | null;
   price?: string | null;
+  priceValue?: number | null;
+  priceCurrency?: string | null;
   featured?: boolean | null;
   lat?: number | null;
   lng?: number | null;
@@ -45,6 +52,7 @@ export interface PaquetesListItem {
 export interface PaquetesListGridProps {
   packages: PaquetesListItem[];
   basePath: string;
+  account?: WebsiteData['content']['account'] | null;
 }
 
 // -------------------- Constants --------------------
@@ -65,8 +73,11 @@ const COPY = {
   clearLabel: 'Limpiar',
   clearLink: 'limpiar filtros',
   countryLabel: 'País',
-  destinationLabel: 'Destino',
+  locationLabel: 'Ubicación',
+  keywordLabel: 'Palabra clave',
+  keywordPlaceholder: 'Buscar por palabra clave',
   durationLabel: 'Duración',
+  durationAny: 'Cualquiera',
   viewList: 'Lista',
   viewMap: 'Mapa',
   loadMore: 'Cargar más',
@@ -101,11 +112,12 @@ function normalize(value: string | null | undefined): string {
 
 // -------------------- Component --------------------
 
-export function PaquetesListGrid({ packages, basePath }: PaquetesListGridProps) {
+export function PaquetesListGrid({ packages, basePath, account = null }: PaquetesListGridProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { currencyConfig, preferredCurrency } = usePreferredCurrency(account);
 
-  // Unique country + destination chips (derived from data).
+  // Unique country chips (derived from data).
   const countries = useMemo(() => {
     const seen = new Set<string>();
     packages.forEach((p) => {
@@ -115,11 +127,11 @@ export function PaquetesListGrid({ packages, basePath }: PaquetesListGridProps) 
     return Array.from(seen).sort();
   }, [packages]);
 
-  const destinations = useMemo(() => {
+  const locations = useMemo(() => {
     const seen = new Set<string>();
     packages.forEach((p) => {
-      const d = (p.destination ?? '').toString().trim();
-      if (d) seen.add(d);
+      const value = (p.location ?? '').toString().trim();
+      if (value) seen.add(value);
     });
     return Array.from(seen).sort();
   }, [packages]);
@@ -134,8 +146,9 @@ export function PaquetesListGrid({ packages, basePath }: PaquetesListGridProps) 
 
   // URL-synced state.
   const activeCountries = toArray(searchParams?.get('country'));
-  const activeDestinations = toArray(searchParams?.get('destination'));
-  const activeDurations = toArray(searchParams?.get('duration'));
+  const activeLocations = toArray(searchParams?.get('location'));
+  const activeDuration = searchParams?.get('duration') ?? 'all';
+  const query = searchParams?.get('q') ?? '';
   const view = searchParams?.get('view') === 'map' ? 'map' : 'list';
 
   const [page, setPage] = useState(1);
@@ -152,7 +165,7 @@ export function PaquetesListGrid({ packages, basePath }: PaquetesListGridProps) 
   );
 
   const toggleMulti = useCallback(
-    (paramKey: 'country' | 'destination' | 'duration', value: string) => {
+    (paramKey: 'country' | 'location', value: string) => {
       updateParams((p) => {
         const current = toArray(p.get(paramKey));
         const next = current.includes(value)
@@ -160,6 +173,30 @@ export function PaquetesListGrid({ packages, basePath }: PaquetesListGridProps) 
           : [...current, value];
         if (next.length === 0) p.delete(paramKey);
         else p.set(paramKey, next.join(','));
+      });
+    },
+    [updateParams],
+  );
+
+  const setDuration = useCallback(
+    (value: string) => {
+      updateParams((p) => {
+        if (!value || value === 'all') p.delete('duration');
+        else p.set('duration', value);
+      });
+    },
+    [updateParams],
+  );
+
+  const setKeyword = useCallback(
+    (value: string) => {
+      updateParams((p) => {
+        const next = value.trim();
+        if (!next) {
+          p.delete('q');
+          return;
+        }
+        p.set('q', next);
       });
     },
     [updateParams],
@@ -178,8 +215,9 @@ export function PaquetesListGrid({ packages, basePath }: PaquetesListGridProps) 
   const clearFilters = useCallback(() => {
     updateParams((p) => {
       p.delete('country');
-      p.delete('destination');
+      p.delete('location');
       p.delete('duration');
+      p.delete('q');
     });
   }, [updateParams]);
 
@@ -189,26 +227,41 @@ export function PaquetesListGrid({ packages, basePath }: PaquetesListGridProps) 
       if (activeCountries.length > 0) {
         if (!activeCountries.some((c) => normalize(pkg.country) === normalize(c))) return false;
       }
-      if (activeDestinations.length > 0) {
-        if (!activeDestinations.some((d) => normalize(pkg.destination) === normalize(d))) return false;
+      if (activeLocations.length > 0) {
+        const location = normalize(pkg.location);
+        if (!activeLocations.some((l) => location === normalize(l))) return false;
       }
-      if (activeDurations.length > 0) {
+      if (activeDuration !== 'all') {
         const days = parseDurationDays(pkg);
         if (days === null) return false;
-        const matchesBucket = activeDurations.some((k) => {
-          const bucket = DURATION_BUCKETS.find((b) => b.key === k);
-          return bucket ? bucket.test(days) : false;
-        });
+        const bucket = DURATION_BUCKETS.find((b) => b.key === activeDuration);
+        const matchesBucket = bucket ? bucket.test(days) : false;
         if (!matchesBucket) return false;
+      }
+      if (query.trim()) {
+        const haystack = [
+          pkg.name,
+          pkg.description,
+          pkg.location,
+          pkg.destination,
+          pkg.country,
+          pkg.duration,
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+        if (!haystack.includes(query.trim().toLowerCase())) return false;
       }
       return true;
     });
-  }, [packages, activeCountries, activeDestinations, activeDurations]);
+  }, [packages, activeCountries, activeLocations, activeDuration, query]);
 
   const visible = useMemo(() => filtered.slice(0, page * PAGE_SIZE), [filtered, page]);
   const hasMore = visible.length < filtered.length;
   const anyFilterActive =
-    activeCountries.length + activeDestinations.length + activeDurations.length > 0;
+    activeCountries.length + activeLocations.length > 0
+    || activeDuration !== 'all'
+    || !!query.trim();
 
   return (
     <>
@@ -237,22 +290,21 @@ export function PaquetesListGrid({ packages, basePath }: PaquetesListGridProps) 
           </div>
         )}
 
-        {/* Destination chips */}
-        {destinations.length > 0 && (
+        {locations.length > 0 && (
           <div className="pql-filter-group">
-            <label className="pql-filter-label">{COPY.destinationLabel}</label>
-            <div className="pql-chip-row" role="group" aria-label={COPY.destinationLabel}>
-              {destinations.map((d) => {
-                const isOn = activeDestinations.map(normalize).includes(normalize(d));
+            <label className="pql-filter-label">{COPY.locationLabel}</label>
+            <div className="pql-chip-row" role="group" aria-label={COPY.locationLabel}>
+              {locations.map((location) => {
+                const isOn = activeLocations.map(normalize).includes(normalize(location));
                 return (
                   <button
-                    key={d}
+                    key={location}
                     type="button"
                     className={`chip-filter${isOn ? ' on' : ''}`}
                     aria-pressed={isOn}
-                    onClick={() => toggleMulti('destination', d)}
+                    onClick={() => toggleMulti('location', location)}
                   >
-                    {d}
+                    {location}
                   </button>
                 );
               })}
@@ -265,15 +317,15 @@ export function PaquetesListGrid({ packages, basePath }: PaquetesListGridProps) 
           <div className="pql-filter-group">
             <label className="pql-filter-label">{COPY.durationLabel}</label>
             <div className="pql-chip-row" role="group" aria-label={COPY.durationLabel}>
-              {durationChips.map((b) => {
-                const isOn = activeDurations.includes(b.key);
+              {[{ key: 'all', label: COPY.durationAny }, ...durationChips].map((b) => {
+                const isOn = activeDuration === b.key;
                 return (
                   <button
                     key={b.key}
                     type="button"
                     className={`chip-filter${isOn ? ' on' : ''}`}
                     aria-pressed={isOn}
-                    onClick={() => toggleMulti('duration', b.key)}
+                    onClick={() => setDuration(b.key)}
                   >
                     {b.label}
                   </button>
@@ -282,6 +334,19 @@ export function PaquetesListGrid({ packages, basePath }: PaquetesListGridProps) 
             </div>
           </div>
         )}
+
+        <div className="pql-filter-group">
+          <label htmlFor="paquetes-keyword" className="pql-filter-label">{COPY.keywordLabel}</label>
+          <input
+            id="paquetes-keyword"
+            type="text"
+            value={query}
+            onChange={(event) => setKeyword(event.target.value)}
+            className="listing-keyword-input"
+            placeholder={COPY.keywordPlaceholder}
+            aria-label={COPY.keywordLabel}
+          />
+        </div>
       </div>
 
       {/* ── LISTING TOP: count + view toggle ──────────────────────────── */}
@@ -292,12 +357,14 @@ export function PaquetesListGrid({ packages, basePath }: PaquetesListGridProps) 
           {anyFilterActive && (
             <>
               {' · '}
-              <a
+              <button
+                type="button"
                 onClick={clearFilters}
-                style={{ cursor: 'pointer', color: 'var(--c-accent)' }}
+                style={{ color: 'var(--c-accent)' }}
+                className="chip-filter"
               >
                 {COPY.clearLink}
-              </a>
+              </button>
             </>
           )}
         </div>
@@ -348,14 +415,27 @@ export function PaquetesListGrid({ packages, basePath }: PaquetesListGridProps) 
           renderCard={(item) => {
             const pkg = filtered.find((c) => c.id === item.id);
             if (!pkg) return null;
-            return <PackageListCard pkg={pkg} basePath={basePath} />;
+            return (
+              <PackageListCard
+                pkg={pkg}
+                basePath={basePath}
+                preferredCurrency={preferredCurrency}
+                currencyConfig={currencyConfig}
+              />
+            );
           }}
         />
       ) : (
         <>
           <div className="pack-grid" data-testid="paquetes-grid">
             {visible.map((pkg) => (
-              <PackageListCard key={pkg.id} pkg={pkg} basePath={basePath} />
+              <PackageListCard
+                key={pkg.id}
+                pkg={pkg}
+                basePath={basePath}
+                preferredCurrency={preferredCurrency}
+                currencyConfig={currencyConfig}
+              />
             ))}
           </div>
           {hasMore && (
@@ -381,15 +461,37 @@ export function PaquetesListGrid({ packages, basePath }: PaquetesListGridProps) 
 interface PackageListCardProps {
   pkg: PaquetesListItem;
   basePath: string;
+  preferredCurrency?: string | null;
+  currencyConfig?: CurrencyConfig | null;
 }
 
-function PackageListCard({ pkg, basePath }: PackageListCardProps) {
+function resolvePriceLabel(
+  pkg: PaquetesListItem,
+  preferredCurrency: string | null | undefined,
+  currencyConfig: CurrencyConfig | null | undefined,
+): string {
+  if (typeof pkg.priceValue === 'number' && Number.isFinite(pkg.priceValue) && pkg.priceValue > 0) {
+    const sourceCurrency = pkg.priceCurrency ?? null;
+    const targetCurrency = preferredCurrency ?? sourceCurrency;
+    const converted = convertCurrencyAmount(pkg.priceValue, sourceCurrency, targetCurrency, currencyConfig ?? null);
+    return formatPriceOrConsult(converted, targetCurrency ?? sourceCurrency, { fallback: COPY.consultPrice });
+  }
+  const label = (pkg.price ?? '').toString().trim();
+  return label || COPY.consultPrice;
+}
+
+function PackageListCard({
+  pkg,
+  basePath,
+  preferredCurrency,
+  currencyConfig,
+}: PackageListCardProps) {
   const slug = (pkg.slug ?? '').toString().trim();
   const href = slug
     ? `${basePath}/paquetes/${encodeURIComponent(slug)}`
     : `${basePath}/paquetes`;
   const showPopular = pkg.featured === true;
-  const priceLabel = (pkg.price ?? '').toString().trim();
+  const priceLabel = resolvePriceLabel(pkg, preferredCurrency, currencyConfig);
   const country = (pkg.country ?? pkg.destination ?? '').toString().trim();
 
   const onClick = () => {
@@ -454,7 +556,7 @@ function PackageListCard({ pkg, basePath }: PackageListCardProps) {
         <div className="pack-foot">
           <div className="pack-price">
             <small>{COPY.fromPrefix}</small>
-            <strong>{priceLabel || COPY.consultPrice}</strong>
+            <strong>{priceLabel}</strong>
           </div>
           <Link
             href={href}

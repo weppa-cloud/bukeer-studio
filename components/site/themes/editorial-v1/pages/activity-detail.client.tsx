@@ -1,18 +1,22 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import Link from 'next/link';
+import { useMemo, useState, type ReactNode } from 'react';
 import Image from 'next/image';
-import type { ProductData, ProductFAQ, ScheduleEntry } from '@bukeer/website-contract';
+import type { ProductData, ProductFAQ, TrustContent } from '@bukeer/website-contract';
 import type { WebsiteData } from '@/lib/supabase/get-website';
 import { sanitizeProductCopy } from '@/lib/products/normalize-product';
-import { formatPriceOrConsult } from '@/lib/products/format-price';
 import { buildWhatsAppUrl } from '@/components/site/whatsapp-url';
 import { MediaLightbox } from '@/components/site/media-lightbox';
+import { ProductVideoHero } from '@/components/site/product-video-hero';
+import { StickyCTABar } from '@/components/site/sticky-cta-bar';
+import { ActivityCircuitMap } from '@/components/site/activity-circuit-map';
+import { MeetingPointMap } from '@/components/site/meeting-point-map';
+import { RelatedCarousel } from '@/components/site/product-detail/p3/related-carousel.client';
 import { Breadcrumbs } from '../primitives/breadcrumbs';
-import { Eyebrow } from '../primitives/eyebrow';
 import { Icons } from '../primitives/icons';
 import { Rating } from '../primitives/rating';
+import { EditorialGalleryMosaic } from '../primitives/editorial-gallery-mosaic';
+import type { ActivityCircuitStop } from '@/lib/products/activity-circuit';
 
 interface GoogleReviewProp {
   author_name: string;
@@ -34,6 +38,7 @@ export interface EditorialActivityDetailClientProps {
   googleReviews: GoogleReviewProp[];
   similarProducts: ProductData[];
   faqs: ProductFAQ[];
+  activityCircuitStops: ActivityCircuitStop[];
 }
 
 interface TimelineItem {
@@ -41,7 +46,16 @@ interface TimelineItem {
   label: string;
   title: string;
   note?: string;
+  image?: string;
   tone: 'transporte' | 'actividad' | 'comida' | 'alojamiento' | 'libre';
+}
+
+type TrustSignalIcon = 'shield' | 'clock' | 'award' | 'check' | 'users';
+
+interface TrustSignalItem {
+  label: string;
+  description?: string | null;
+  icon: TrustSignalIcon;
 }
 
 function normalizeTextList(value: unknown): string[] {
@@ -71,6 +85,18 @@ function resolveImages(product: ProductData): string[] {
   const candidates = Array.isArray(product.images) ? product.images : [];
   if (candidates.length > 0) return candidates;
   return product.image ? [product.image] : [];
+}
+
+function resolveProgramGalleryImages(product: ProductData): string[] {
+  const gallery = Array.isArray(product.program_gallery) ? product.program_gallery : [];
+  const normalized = gallery
+    .map((item) => {
+      if (typeof item === 'string') return item.trim();
+      if (item && typeof item === 'object' && typeof item.url === 'string') return item.url.trim();
+      return '';
+    })
+    .filter(Boolean);
+  return normalized;
 }
 
 function resolveDuration(product: ProductData): string {
@@ -126,10 +152,95 @@ function resolveGroup(product: ProductData): string {
   return 'Hasta 10';
 }
 
-function buildTimeline(product: ProductData): TimelineItem[] {
+function getTodayDateInputValue(): string {
+  const now = new Date();
+  const offsetMs = now.getTimezoneOffset() * 60_000;
+  return new Date(now.getTime() - offsetMs).toISOString().slice(0, 10);
+}
+
+function formatSelectedDate(value: string, locale: string): string {
+  if (!value) return 'Próxima disponibilidad';
+  const parsed = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) return 'Próxima disponibilidad';
+  return new Intl.DateTimeFormat(locale || 'es-CO', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  }).format(parsed);
+}
+
+function normalizeInclusionChips(inclusions: string[]): string[] {
+  return inclusions
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+    .slice(0, 3);
+}
+
+function formatTravelersCount(count: number, locale: string): string {
+  try {
+    return new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(count);
+  } catch {
+    return new Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 }).format(count);
+  }
+}
+
+function resolveTrustSignals(website: WebsiteData, locale: string): TrustSignalItem[] {
+  const trust = (website.content?.trust ?? null) as TrustContent | null;
+  const signals: TrustSignalItem[] = [];
+
+  if (trust?.rnt_number) {
+    signals.push({
+      label: `RNT ${trust.rnt_number}`,
+      description: 'Operador turístico con registro activo',
+      icon: 'check',
+    });
+  }
+  if (typeof trust?.years_active === 'number' && trust.years_active > 0) {
+    signals.push({
+      label: `${trust.years_active} años activos`,
+      description: 'Equipo local con trayectoria comprobada',
+      icon: 'clock',
+    });
+  }
+  if (typeof trust?.travelers_count === 'number' && trust.travelers_count > 0) {
+    signals.push({
+      label: `${formatTravelersCount(trust.travelers_count, locale)}+ viajeros`,
+      description: 'Viajeros atendidos por nuestro equipo',
+      icon: 'users',
+    });
+  }
+  if (trust?.insurance_provider) {
+    signals.push({
+      label: `Asistencia ${trust.insurance_provider}`,
+      description: 'Cobertura y respaldo durante el viaje',
+      icon: 'shield',
+    });
+  }
+  if (Array.isArray(trust?.certifications) && trust.certifications.length > 0) {
+    signals.push({
+      label: trust.certifications.slice(0, 2).map((cert) => cert.label).join(' · '),
+      description: 'Alianzas y certificaciones del sector',
+      icon: 'award',
+    });
+  }
+
+  if (signals.length > 0) return signals.slice(0, 4);
+  return [
+    { label: 'RNT vigente', description: 'Operador turístico con registro activo', icon: 'shield' },
+    { label: 'Afiliados al sector', description: 'Alianzas con proveedores certificados', icon: 'award' },
+    { label: 'Protocolos de seguridad', description: 'Verificados en cada destino', icon: 'check' },
+    { label: 'Guías certificados', description: 'Equipo local y trayectoria comprobada', icon: 'users' },
+  ];
+}
+
+function buildTimeline(product: ProductData, fallbackImages: string[]): TimelineItem[] {
   const schedule = Array.isArray(product.schedule) ? product.schedule : [];
-  if (schedule.length > 0) {
-    return schedule.slice(0, 8).map((entry): TimelineItem => {
+  const rows = schedule
+    .slice(0, 8)
+    .map((entry, index): TimelineItem | null => {
+      if (!entry || typeof entry.title !== 'string' || entry.title.trim().length === 0) {
+        return null;
+      }
       const tone =
         entry.event_type === 'transport'
           ? 'transporte'
@@ -155,49 +266,15 @@ function buildTimeline(product: ProductData): TimelineItem[] {
         label,
         title: entry.title,
         note: entry.description,
+        image: typeof entry.image === 'string' && entry.image.trim().length > 0
+          ? entry.image.trim()
+          : fallbackImages[index],
         tone,
       };
-    });
-  }
+    })
+    .filter((row): row is TimelineItem => Boolean(row));
 
-  const highlights = normalizeTextList(product.highlights);
-  return [
-    {
-      time: resolveStartTime(product),
-      label: 'Transporte',
-      title: 'Recogida / meeting point',
-      note: 'Encuentro con el guía en el punto acordado.',
-      tone: 'transporte',
-    },
-    {
-      time: '+1h',
-      label: 'Actividad',
-      title: 'Primer segmento',
-      note: highlights[0] || 'Inicio del recorrido.',
-      tone: 'actividad',
-    },
-    {
-      time: 'Mediodía',
-      label: 'Comida',
-      title: 'Almuerzo',
-      note: 'Incluido — cocina regional.',
-      tone: 'comida',
-    },
-    {
-      time: 'Tarde',
-      label: 'Actividad',
-      title: 'Segmento principal',
-      note: highlights[1] || 'Punto destacado de la experiencia.',
-      tone: 'actividad',
-    },
-    {
-      time: 'Cierre',
-      label: 'Transporte',
-      title: 'Regreso',
-      note: 'Retorno al punto de encuentro.',
-      tone: 'transporte',
-    },
-  ];
+  return rows;
 }
 
 export function EditorialActivityDetailClient({
@@ -206,27 +283,30 @@ export function EditorialActivityDetailClient({
   product,
   displayName,
   displayLocation,
-  resolvedLocale: _resolvedLocale,
+  resolvedLocale,
   googleReviews,
   similarProducts,
   faqs,
+  activityCircuitStops,
 }: EditorialActivityDetailClientProps) {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [openFaq, setOpenFaq] = useState(0);
-  const [selectedOptionId, setSelectedOptionId] = useState<string>(() => {
-    const option = Array.isArray(product.options) ? product.options[0] : null;
-    return option?.id || 'base';
-  });
   const [pax, setPax] = useState(2);
-  const [datePref, setDatePref] = useState('Próxima disponibilidad');
+  const [datePref, setDatePref] = useState('');
 
   const images = useMemo(() => resolveImages(product), [product]);
+  const programGalleryImages = useMemo(() => resolveProgramGalleryImages(product), [product]);
   const highlights = useMemo(() => normalizeTextList(product.highlights), [product.highlights]);
   const recommendations = useMemo(() => normalizeTextList(product.recommendations), [product.recommendations]);
   const inclusions = useMemo(() => normalizeTextList(product.inclusions), [product.inclusions]);
   const exclusions = useMemo(() => normalizeTextList(product.exclusions), [product.exclusions]);
-  const timeline = useMemo(() => buildTimeline(product), [product]);
+  const inclusionChips = useMemo(() => normalizeInclusionChips(inclusions), [inclusions]);
+  const trustSignals = useMemo(() => resolveTrustSignals(website, resolvedLocale), [website, resolvedLocale]);
+  const timeline = useMemo(
+    () => buildTimeline(product, programGalleryImages.length > 0 ? programGalleryImages : images),
+    [product, programGalleryImages, images]
+  );
   const options = useMemo(() => (Array.isArray(product.options) ? product.options : []), [product.options]);
 
   const reviewRating = useMemo(() => {
@@ -238,32 +318,70 @@ export function EditorialActivityDetailClient({
     ? product.review_count
     : googleReviews.length;
 
-  const sourcePrice = typeof product.price === 'number' ? product.price : null;
-  const sourceCurrency = product.currency || 'COP';
-  const priceLabel = formatPriceOrConsult(sourcePrice, sourceCurrency);
+  const productPageUrl = website.custom_domain
+    ? `https://${website.custom_domain}${basePath}`
+    : website.subdomain
+      ? `https://${website.subdomain}.bukeer.com${basePath}`
+      : undefined;
   const whatsappUrl = buildWhatsAppUrl({
     phone: website.content?.social?.whatsapp,
     productName: displayName,
     location: displayLocation || product.location || product.city || product.country,
     ref: product.id,
-    url: website.custom_domain
-      ? `https://${website.custom_domain}${basePath}`
-      : website.subdomain
-        ? `https://${website.subdomain}.bukeer.com${basePath}`
-        : undefined,
+    url: productPageUrl,
   });
   const phone = website.content?.account?.phone || website.content?.contact?.phone;
   const phoneHref = phone ? `tel:${phone.replace(/[^0-9+]/g, '')}` : null;
 
   const breadcrumbItems = [
     { label: 'Inicio', href: `${basePath}/` },
-    { label: 'Experiencias', href: `${basePath}/actividades` },
+    { label: 'Experiencias', href: `${basePath}/experiencias` },
     { label: displayName },
   ];
+  const heroChips = useMemo(() => {
+    const chips: ReactNode[] = [<span key="type" className="chip chip-white">Experiencias</span>];
+    const duration = resolveDuration(product);
+    if (duration !== '—') chips.push(<span key="duration" className="chip chip-white">{duration}</span>);
+    if (displayLocation) chips.push(<span key="location" className="chip chip-white">{displayLocation}</span>);
+    if (reviewRating) {
+      chips.push(
+        <span key="rating" className="chip chip-white">
+          <Rating value={reviewRating} count={reviewCount} size={14} />
+        </span>
+      );
+    }
+    if (chips.length < 3 && inclusionChips.length > 0) {
+      chips.push(
+        <span key="inclusion" className="chip chip-white">
+          <Icons.check size={13} /> {inclusionChips[0]}
+        </span>
+      );
+    }
+    return chips.slice(0, 3);
+  }, [product, displayLocation, reviewRating, reviewCount, inclusionChips]);
 
   const heroImage = images[0] || product.image || null;
-  const optionsForRail = options.length > 0 ? options : [{ id: 'base', name: 'Regular', prices: [] }];
-  const selectedOption = optionsForRail.find((option) => option.id === selectedOptionId) || optionsForRail[0];
+  const selectedOption = options[0] ?? null;
+  const formattedDatePref = formatSelectedDate(datePref, resolvedLocale);
+  const minDate = getTodayDateInputValue();
+  const itineraryWhatsappUrl = buildWhatsAppUrl({
+    phone: website.content?.social?.whatsapp,
+    productName: displayName,
+    location: displayLocation || product.location || product.city || product.country,
+    ref: product.id,
+    url: productPageUrl,
+    customMessage: [
+      'Hola, quiero *agregar esta actividad a mi viaje*.',
+      '',
+      `Actividad: *${displayName}*`,
+      `Fecha tentativa: ${formattedDatePref}`,
+      `Personas: ${pax}`,
+      `Opción de referencia: ${selectedOption?.name || 'Regular'}`,
+      '',
+      '¿Me ayudan a construir un itinerario completo en Colombia incluyendo esta experiencia?',
+      productPageUrl ? `Enlace: ${productPageUrl}` : '',
+    ].filter(Boolean).join('\n'),
+  });
 
   return (
     <>
@@ -280,29 +398,37 @@ export function EditorialActivityDetailClient({
 
           <div className="absolute inset-x-0 bottom-8 z-10">
             <div className="mx-auto w-full max-w-7xl px-6">
-              <Breadcrumbs items={breadcrumbItems} className="mb-4" />
-              <div className="mb-3 flex flex-wrap items-center gap-2">
-                <span className="chip chip-white">Experiencias</span>
-                {displayLocation ? <span className="chip chip-white">{displayLocation}</span> : null}
-                {reviewRating ? (
-                  <span className="chip chip-white">
-                    <Rating value={reviewRating} count={reviewCount} size={14} />
-                  </span>
-                ) : null}
+              <Breadcrumbs items={breadcrumbItems} tone="inverse" className="pkg-hero-breadcrumb mb-3" />
+              <div className="hero-chip-row mb-3 flex flex-wrap items-center gap-2">
+                {heroChips}
               </div>
               <h1 className="display-lg text-white">
                 {displayName}
               </h1>
+              <p className="mt-2 max-w-3xl text-base text-white/90">
+                {product.description?.slice(0, 150) || 'Experiencia diseñada por expertos locales con logística coordinada.'}
+              </p>
               <div className="mt-4 flex flex-wrap items-center gap-3">
-                <span className="inline-flex items-center rounded-full bg-white/20 px-3 py-1 text-sm font-semibold text-white">
-                  Desde {priceLabel}
-                </span>
                 {whatsappUrl ? (
-                  <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="btn btn-accent btn-sm">
-                    <Icons.whatsapp size={14} /> WhatsApp
+                  <a href={itineraryWhatsappUrl || whatsappUrl} target="_blank" rel="noopener noreferrer" className="btn btn-accent btn-sm">
+                    <Icons.whatsapp size={14} /> Armar itinerario
+                  </a>
+                ) : null}
+                {product.video_url ? (
+                  <ProductVideoHero
+                    videoUrl={product.video_url}
+                    videoCaption={product.video_caption}
+                    productId={product.id}
+                    productName={displayName}
+                  />
+                ) : null}
+                {phoneHref ? (
+                  <a href={phoneHref} className="btn btn-outline btn-sm text-white border-white/70 hover:bg-white/10">
+                    Llamar
                   </a>
                 ) : null}
               </div>
+              <div id="detail-sticky-sentinel" className="pointer-events-none mt-4 h-1 w-full" aria-hidden="true" />
             </div>
           </div>
         </section>
@@ -322,32 +448,13 @@ export function EditorialActivityDetailClient({
 
           <div className="pkg-body mt-8">
             <div className="detail-main space-y-10">
-              {images.length > 0 ? (
-                <section className="border-none pt-0">
-                  <h2 className="mb-5 text-2xl font-bold">Galería</h2>
-                  <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-                    <button
-                      type="button"
-                      className="group relative aspect-[4/3] overflow-hidden rounded-2xl md:col-span-2"
-                      onClick={() => { setActiveImageIndex(0); setLightboxOpen(true); }}
-                    >
-                      <Image src={images[activeImageIndex] || images[0]} alt={displayName} fill className="object-cover transition-transform group-hover:scale-105" />
-                    </button>
-                    <div className="grid grid-cols-2 gap-3">
-                      {images.slice(0, 4).map((image, index) => (
-                        <button
-                          key={`${image}-${index}`}
-                          type="button"
-                          className="relative aspect-square overflow-hidden rounded-xl border border-[var(--c-line)]"
-                          onClick={() => { setActiveImageIndex(index); setLightboxOpen(true); }}
-                        >
-                          <Image src={image} alt={`${displayName} ${index + 1}`} fill className="object-cover" />
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </section>
-              ) : null}
+              <EditorialGalleryMosaic
+                images={images}
+                displayName={displayName}
+                activeImageIndex={activeImageIndex}
+                onSelectImage={setActiveImageIndex}
+                onOpenLightbox={() => setLightboxOpen(true)}
+              />
 
               <section>
                 <h2 className="text-2xl font-bold">Descripción</h2>
@@ -356,75 +463,78 @@ export function EditorialActivityDetailClient({
                 </p>
               </section>
 
-              <section>
-                <h2 className="text-2xl font-bold">Programa <em>paso a paso</em></h2>
-                <p className="body-md mt-2 text-[var(--c-muted)]">Tiempos aproximados — ajustables por clima y ritmo del grupo.</p>
-                <div className="act-timeline mt-5">
-                  {timeline.map((event, index) => (
-                    <div key={`${event.title}-${index}`} className={`evt evt-${event.tone}`}>
-                      <div className="evt-time">{event.time}</div>
-                      <div className="evt-dot"><span><Icons.sparkle size={14} /></span></div>
-                      <div className="evt-body">
-                        <small>{event.label}</small>
-                        <b>{event.title}</b>
-                        {event.note ? <p>{event.note}</p> : null}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </section>
-
-              <section>
-                <h2 className="text-2xl font-bold">Punto de <em>encuentro</em></h2>
-                <div className="meeting-map mt-5">
-                  <div className="mm-map">
-                    {heroImage ? <Image src={heroImage} alt={displayName} fill className="object-cover" /> : null}
-                    <div className="mm-pin">
-                      <div className="mm-pulse" />
-                      <div className="mm-dot"><Icons.pin size={16} /></div>
-                    </div>
-                    <div className="mm-chip">Meeting point</div>
-                  </div>
-                  <div className="mm-info">
-                    <small className="label">Dirección</small>
-                    <b>{displayLocation || product.location || product.city || 'Ubicación por confirmar'}</b>
-                    <p>Te enviamos la ubicación exacta con indicaciones al confirmar la reserva.</p>
-                    <div className="mm-details">
-                      <div><Icons.clock size={14} /> Llegada recomendada: 10 min antes</div>
-                      <div><Icons.compass size={14} /> Cómo llegar: taxi, Uber o caminando</div>
-                      <div><Icons.users size={14} /> Guía identificado de ColombiaTours</div>
-                    </div>
-                  </div>
-                </div>
-              </section>
-
-              {options.length > 0 ? (
+              {highlights.length > 0 ? (
                 <section>
-                  <h2 className="text-2xl font-bold">Opciones <em>disponibles</em></h2>
-                  <div className="price-table mt-5">
-                    {options.map((option) => {
-                      const basePrice = option.prices?.[0];
-                      return (
-                        <button
-                          key={option.id}
-                          type="button"
-                          onClick={() => setSelectedOptionId(option.id)}
-                          className={`price-col text-left ${selectedOptionId === option.id ? 'selected' : ''}`}
-                        >
-                          <h4>{option.name}</h4>
-                          <div className="pr">{formatPriceOrConsult(basePrice?.price ?? null, basePrice?.currency ?? sourceCurrency)}</div>
-                          <div className="per">{option.pricing_per === 'UNIT' ? 'por persona' : 'por reserva'}</div>
-                          <ul>
-                            {typeof option.min_units === 'number' ? <li>Mínimo {option.min_units}</li> : null}
-                            {typeof option.max_units === 'number' ? <li>Grupo hasta {option.max_units}</li> : null}
-                            {Array.isArray(option.start_times) && option.start_times.length > 0 ? <li>{option.start_times.length} horarios</li> : null}
-                          </ul>
-                        </button>
-                      );
-                    })}
+                  <h2 className="text-2xl font-bold">Qué esperar <em>de esta experiencia</em></h2>
+                  <div className="highlights-grid mt-5">
+                    {highlights.slice(0, 6).map((item, index) => (
+                      <article key={`${item}-${index}`} className="hl-card">
+                        <div className="ic"><Icons.sparkle size={18} /></div>
+                        <b>{item}</b>
+                      </article>
+                    ))}
                   </div>
                 </section>
               ) : null}
+
+              {timeline.length > 0 ? (
+                <section>
+                  <h2 className="text-2xl font-bold">Programa <em>paso a paso</em></h2>
+                  <p className="body-md mt-2 text-[var(--c-muted)]">Tiempos aproximados — ajustables por clima y ritmo del grupo.</p>
+                  <div className="act-timeline mt-5">
+                    {timeline.map((event, index) => (
+                      <div key={`${event.title}-${index}`} className={`evt evt-${event.tone}`}>
+                        <div className="evt-time">{event.time}</div>
+                        <div className="evt-dot"><span><Icons.sparkle size={14} /></span></div>
+                        <div className="evt-body">
+                          <small>{event.label}</small>
+                          <b>{event.title}</b>
+                          {event.note ? <p>{event.note}</p> : null}
+                          {event.image ? (
+                            <div className="evt-media">
+                              <Image
+                                src={event.image}
+                                alt={`${displayName} · ${event.title}`}
+                                fill
+                                sizes="(max-width: 768px) 100vw, 420px"
+                                className="object-cover"
+                              />
+                            </div>
+                          ) : null}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              ) : null}
+
+              {activityCircuitStops.length >= 2 ? (
+                <section>
+                  <ActivityCircuitMap
+                    stops={activityCircuitStops}
+                    analyticsContext={{ product_id: product.id, product_type: 'activity' }}
+                  />
+                </section>
+              ) : (
+                <section>
+                  <MeetingPointMap
+                    meetingPoint={product.meeting_point ?? (
+                      product.latitude !== undefined && product.longitude !== undefined
+                        ? {
+                            latitude: product.latitude,
+                            longitude: product.longitude,
+                            city: product.city,
+                            country: product.country,
+                            address: product.location,
+                          }
+                        : null
+                    )}
+                    title="Punto de encuentro"
+                    locale={resolvedLocale}
+                    className="rounded-2xl border border-[var(--c-line)] p-5"
+                  />
+                </section>
+              )}
 
               <section>
                 <h2 className="text-2xl font-bold">Incluye / No incluye</h2>
@@ -508,59 +618,81 @@ export function EditorialActivityDetailClient({
               <section>
                 <h2 className="text-2xl font-bold">Reserva con confianza</h2>
                 <div className="trust-row mt-5">
-                  <div className="trust-item"><div className="ic"><Icons.shield size={18} /></div><div><b>RNT vigente</b><small>Operador turístico con registro activo</small></div></div>
-                  <div className="trust-item"><div className="ic"><Icons.award size={18} /></div><div><b>Afiliados al sector</b><small>Alianzas con proveedores certificados</small></div></div>
-                  <div className="trust-item"><div className="ic"><Icons.check size={18} /></div><div><b>Protocolos de seguridad</b><small>Verificados en cada destino</small></div></div>
-                  <div className="trust-item"><div className="ic"><Icons.users size={18} /></div><div><b>Guías certificados</b><small>Equipo local y trayectoria comprobada</small></div></div>
+                  {trustSignals.map((signal) => {
+                    const Icon = signal.icon === 'award'
+                      ? Icons.award
+                      : signal.icon === 'check'
+                        ? Icons.check
+                        : signal.icon === 'users'
+                          ? Icons.users
+                          : signal.icon === 'clock'
+                            ? Icons.clock
+                            : Icons.shield;
+                    return (
+                      <div key={signal.label} className="trust-item">
+                        <div className="ic"><Icon size={18} /></div>
+                        <div>
+                          <b>{signal.label}</b>
+                          {signal.description ? <small>{signal.description}</small> : null}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+
+              <section data-testid="detail-cta-final" className="text-center">
+                <h2 className="text-3xl font-bold">¿Listo para sumar esta experiencia a tu viaje?</h2>
+                <p className="mt-2 text-[var(--c-muted)]">Te ayudamos por WhatsApp a construir el itinerario completo</p>
+                <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+                  {whatsappUrl ? (
+                    <a href={itineraryWhatsappUrl || whatsappUrl} target="_blank" rel="noopener noreferrer" className="btn btn-accent">
+                      <Icons.whatsapp size={14} /> Agregar a mi viaje
+                    </a>
+                  ) : null}
+                  {phoneHref ? (
+                    <a href={phoneHref} className="btn btn-outline">
+                      Llamar ahora
+                    </a>
+                  ) : null}
                 </div>
               </section>
 
               {similarProducts.length > 0 ? (
                 <section>
-                  <div className="mb-4 flex items-center justify-between">
-                    <h2 className="text-2xl font-bold">Experiencias similares</h2>
-                    <Link href={`${basePath}/actividades`} className="text-xs uppercase tracking-wider text-[var(--c-muted)] hover:text-[var(--c-accent)]">
-                      Ver todos
-                    </Link>
-                  </div>
-                  <div className="exp-grid">
-                    {similarProducts.slice(0, 3).map((similar) => {
-                      const similarImage = resolveImages(similar)[0] || similar.image || null;
-                      return (
-                        <article key={similar.id} className="rounded-2xl border border-[var(--c-line)] bg-[var(--c-surface)] overflow-hidden">
-                          <Link href={`${basePath}/actividades/${similar.slug}`}>
-                            <div className="relative aspect-[4/3]">
-                              {similarImage ? <Image src={similarImage} alt={similar.name} fill className="object-cover" /> : null}
-                            </div>
-                            <div className="p-4">
-                              <b className="block">{similar.name}</b>
-                              <small className="text-[var(--c-muted)]">{similar.location || similar.city || 'Colombia'}</small>
-                            </div>
-                          </Link>
-                        </article>
-                      );
-                    })}
-                  </div>
+                  <RelatedCarousel
+                    title="Experiencias similares"
+                    variant="cards-carousel"
+                    viewAllHref={`${basePath}/experiencias`}
+                    showPrice={false}
+                    items={similarProducts.slice(0, 6).map((similar) => ({
+                      id: similar.id,
+                      href: `${basePath}/actividades/${similar.slug}`,
+                      title: similar.name,
+                      location: similar.location || similar.city || 'Colombia',
+                      image: resolveImages(similar)[0] || similar.image || null,
+                    }))}
+                  />
                 </section>
               ) : null}
             </div>
 
             <aside className="detail-rail">
               <div>
-                <div className="mb-1 text-[11px] font-semibold uppercase tracking-[.14em] text-[var(--c-muted)]">Desde · por persona</div>
-                <div className="text-3xl font-semibold">{priceLabel}</div>
-                <div className="mt-1 text-xs text-[var(--c-muted)]">Opción {selectedOption?.name?.toLowerCase() || 'regular'}</div>
+                <div className="mb-1 text-[11px] font-semibold uppercase tracking-[.14em] text-[var(--c-muted)]">Itinerario · con asesoría</div>
+                <div className="mt-1 text-sm text-[var(--c-muted)]">Cuéntanos tu fecha y número de personas para diseñarlo contigo.</div>
               </div>
 
               <div className="rail-form grid gap-3">
                 <label className="fld grid gap-1 text-xs text-[var(--c-muted)]">
                   Fecha
-                  <select value={datePref} onChange={(event) => setDatePref(event.target.value)}>
-                    <option>Próxima disponibilidad</option>
-                    <option>Mañana</option>
-                    <option>Este fin de semana</option>
-                    <option>Próxima semana</option>
-                  </select>
+                  <input
+                    type="date"
+                    value={datePref}
+                    min={minDate}
+                    onChange={(event) => setDatePref(event.target.value)}
+                    aria-label="Fecha tentativa"
+                  />
                 </label>
                 <label className="fld grid gap-1 text-xs text-[var(--c-muted)]">
                   Personas
@@ -570,24 +702,22 @@ export function EditorialActivityDetailClient({
                     ))}
                   </select>
                 </label>
-                <label className="fld grid gap-1 text-xs text-[var(--c-muted)]">
-                  Opción
-                  <select value={selectedOptionId} onChange={(event) => setSelectedOptionId(event.target.value)}>
-                    {optionsForRail.map((option) => (
-                      <option key={option.id} value={option.id}>{option.name}</option>
-                    ))}
-                  </select>
-                </label>
               </div>
 
-              {whatsappUrl ? (
-                <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="btn btn-accent" style={{ justifyContent: 'center' }}>
-                  Reservar experiencia <Icons.arrow size={14} />
+              <p className="text-xs text-[var(--c-muted)]">
+                No vendemos esta actividad por separado por ahora. La integramos en un itinerario completo a tu medida.
+              </p>
+
+              {itineraryWhatsappUrl || whatsappUrl ? (
+                <a href={itineraryWhatsappUrl || whatsappUrl || undefined} target="_blank" rel="noopener noreferrer" className="btn btn-accent" style={{ justifyContent: 'center' }}>
+                  Agregar a mi viaje <Icons.arrow size={14} />
                 </a>
               ) : null}
-              <Link href={`${basePath}/paquetes`} className="btn btn-outline" style={{ justifyContent: 'center' }}>
-                Sumar a un paquete
-              </Link>
+              {itineraryWhatsappUrl || whatsappUrl ? (
+                <a href={itineraryWhatsappUrl || whatsappUrl || undefined} target="_blank" rel="noopener noreferrer" className="btn btn-outline" style={{ justifyContent: 'center' }}>
+                  Hablar con un planner
+                </a>
+              ) : null}
               <div className="rail-share">
                 <button><Icons.heart size={14} /> Guardar</button>
                 <button><Icons.arrowUpRight size={14} /> Compartir</button>
@@ -600,9 +730,9 @@ export function EditorialActivityDetailClient({
 
               <div className="rounded-2xl border border-[var(--c-line)] p-4">
                 <div className="mb-3 text-xs uppercase tracking-wider text-[var(--c-muted)]">Contacto</div>
-                {whatsappUrl ? (
-                  <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="btn btn-accent btn-sm w-full" style={{ justifyContent: 'center' }}>
-                    <Icons.whatsapp size={14} /> WhatsApp
+                {itineraryWhatsappUrl || whatsappUrl ? (
+                  <a href={itineraryWhatsappUrl || whatsappUrl || undefined} target="_blank" rel="noopener noreferrer" className="btn btn-accent btn-sm w-full" style={{ justifyContent: 'center' }}>
+                    <Icons.whatsapp size={14} /> Continuar por WhatsApp
                   </a>
                 ) : null}
                 {phoneHref ? (
@@ -628,6 +758,14 @@ export function EditorialActivityDetailClient({
           onThumb={(index) => setActiveImageIndex(index)}
         />
       ) : null}
+
+      <StickyCTABar
+        whatsappUrl={itineraryWhatsappUrl || whatsappUrl}
+        whatsappLabel="Agregar a mi viaje"
+        hidePrice={true}
+        phone={phone || null}
+        analyticsContext={{ product_id: product.id, product_type: 'activity', product_name: displayName }}
+      />
     </>
   );
 }

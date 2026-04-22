@@ -93,6 +93,11 @@ export function EditorialActivityDetail({
         googleReviews={Array.isArray(resolvedPayload.googleReviews) ? resolvedPayload.googleReviews : []}
         similarProducts={Array.isArray(resolvedPayload.similarProducts) ? resolvedPayload.similarProducts : []}
         faqs={faqSource}
+        activityCircuitStops={
+          Array.isArray(resolvedPayload.activityCircuitStops)
+            ? resolvedPayload.activityCircuitStops
+            : []
+        }
       />
     </div>
   );

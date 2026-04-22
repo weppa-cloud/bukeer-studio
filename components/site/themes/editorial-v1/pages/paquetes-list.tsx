@@ -87,11 +87,12 @@ function toListItem(product: ProductData): PaquetesListItem {
   const country = product.country || null;
 
   const priceAmount = typeof product.price === 'number' ? product.price : null;
+  const priceCurrency = typeof product.currency === 'string' ? product.currency.toUpperCase() : null;
   const price =
     typeof product.price === 'string' && product.price.trim().length > 0
       ? product.price.trim()
       : priceAmount !== null
-      ? formatPrice(priceAmount, (product.currency || 'USD').toUpperCase()) ?? null
+      ? formatPrice(priceAmount, priceCurrency || 'USD') ?? null
       : null;
 
   return {
@@ -100,11 +101,14 @@ function toListItem(product: ProductData): PaquetesListItem {
     name: product.name,
     image,
     description: product.description ?? null,
+    location: product.location ?? null,
     country,
     destination,
     duration,
     durationDays,
     price,
+    priceValue: priceAmount,
+    priceCurrency,
     featured: product.is_featured === true,
     lat: typeof product.latitude === 'number' ? product.latitude : null,
     lng: typeof product.longitude === 'number' ? product.longitude : null,
@@ -151,7 +155,7 @@ export function EditorialPaquetesListPage({
       {/* Listing body */}
       <section className="ev-section" style={{ paddingTop: 56 }}>
         <div className="ev-container">
-          <PaquetesListGrid packages={items} basePath={basePath} />
+          <PaquetesListGrid packages={items} basePath={basePath} account={website.content.account ?? null} />
         </div>
       </section>
     </div>

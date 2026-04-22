@@ -22,6 +22,10 @@ import type { CSSProperties } from 'react';
 import { Icons } from '@/components/site/themes/editorial-v1/primitives/icons';
 import { trackEvent } from '@/lib/analytics/track';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
+import { formatPriceOrConsult } from '@/lib/products/format-price';
+import { convertCurrencyAmount, type CurrencyConfig } from '@/lib/site/currency';
+import { usePreferredCurrency } from '@/lib/site/use-preferred-currency';
+import type { WebsiteData } from '@/lib/supabase/get-website';
 
 export interface EditorialPackageItem {
   id: string;
@@ -35,6 +39,8 @@ export interface EditorialPackageItem {
   duration?: string | null;
   stops?: string | null;
   price?: string | null;
+  priceValue?: number | null;
+  priceCurrency?: string | null;
   featured?: boolean | null;
   tags?: string[] | null;
   categoryKeys?: string[] | null;
@@ -50,6 +56,7 @@ interface PackagesFiltersProps {
   packages: EditorialPackageItem[];
   tabs: EditorialFilterTab[];
   basePath: string;
+  account?: WebsiteData['content']['account'] | null;
   enableFilters: boolean;
   locale?: string | null;
   labels: {
@@ -87,11 +94,13 @@ export function PackagesFilters({
   packages,
   tabs,
   basePath,
+  account = null,
   enableFilters,
   locale,
   labels,
 }: PackagesFiltersProps) {
   const editorialText = getPublicUiExtraTextGetter(locale ?? 'es-CO');
+  const { currencyConfig, preferredCurrency } = usePreferredCurrency(account);
   const effectiveTabs = useMemo<EditorialFilterTab[]>(() => {
     if (!enableFilters) return [];
     const hasAllTab = tabs.some((t) => t.filterKey.toLowerCase() === ALL_KEY);
@@ -176,6 +185,8 @@ export function PackagesFilters({
                 pkg={pkg}
                 basePath={basePath}
                 labels={labels}
+                preferredCurrency={preferredCurrency}
+                currencyConfig={currencyConfig}
               />
             ))}
           </div>
@@ -192,6 +203,8 @@ export function PackagesFilters({
                   pkg={pkg}
                   basePath={basePath}
                   labels={labels}
+                  preferredCurrency={preferredCurrency}
+                  currencyConfig={currencyConfig}
                 />
               </div>
             ))}
@@ -206,9 +219,42 @@ interface PackageCardProps {
   pkg: EditorialPackageItem;
   basePath: string;
   labels: PackagesFiltersProps['labels'];
+  preferredCurrency?: string | null;
+  currencyConfig?: CurrencyConfig | null;
 }
 
-function PackageCard({ pkg, basePath, labels }: PackageCardProps) {
+function resolvePackagePriceLabel(
+  pkg: EditorialPackageItem,
+  preferredCurrency: string | null | undefined,
+  currencyConfig: CurrencyConfig | null | undefined,
+  fallbackLabel: string,
+): string {
+  if (typeof pkg.priceValue === 'number' && Number.isFinite(pkg.priceValue) && pkg.priceValue > 0) {
+    const sourceCurrency = pkg.priceCurrency ?? null;
+    const targetCurrency = preferredCurrency ?? sourceCurrency;
+    const converted = convertCurrencyAmount(pkg.priceValue, sourceCurrency, targetCurrency, currencyConfig ?? null);
+    return formatPriceOrConsult(converted, targetCurrency ?? sourceCurrency, { fallback: fallbackLabel });
+  }
+
+  const rawPrice = (pkg as EditorialPackageItem & { price?: unknown }).price;
+  if (typeof rawPrice === 'number' && Number.isFinite(rawPrice) && rawPrice > 0) {
+    const sourceCurrency = pkg.priceCurrency ?? null;
+    const targetCurrency = preferredCurrency ?? sourceCurrency;
+    const converted = convertCurrencyAmount(rawPrice, sourceCurrency, targetCurrency, currencyConfig ?? null);
+    return formatPriceOrConsult(converted, targetCurrency ?? sourceCurrency, { fallback: fallbackLabel });
+  }
+
+  const stringLabel = (pkg.price ?? '').toString().trim();
+  return stringLabel || fallbackLabel;
+}
+
+function PackageCard({
+  pkg,
+  basePath,
+  labels,
+  preferredCurrency,
+  currencyConfig,
+}: PackageCardProps) {
   const slug = (pkg.slug ?? '').toString().trim();
   const href = slug
     ? `${basePath}/paquetes/${encodeURIComponent(slug)}`
@@ -223,7 +269,7 @@ function PackageCard({ pkg, basePath, labels }: PackageCardProps) {
     });
   };
 
-  const priceLabel = (pkg.price ?? '').toString().trim();
+  const priceLabel = resolvePackagePriceLabel(pkg, preferredCurrency, currencyConfig, labels.consultPrice);
 
   return (
     <article className="pack-card">

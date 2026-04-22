@@ -11,6 +11,7 @@
  * filter bar is a tiny client leaf so hero + grid shell stay server-rendered.
  */
 
+import type { CSSProperties } from 'react';
 import type { WebsiteData } from '@/lib/supabase/get-website';
 import { Eyebrow } from '@/components/site/themes/editorial-v1/primitives/eyebrow';
 import { Breadcrumbs } from '@/components/site/themes/editorial-v1/primitives/breadcrumbs';
@@ -43,34 +44,26 @@ export function EditorialExperiencesPage({
     || 'es-CO';
   const editorialText = getPublicUiExtraTextGetter(resolvedLocale);
   const basePath = `/site/${subdomain}`;
-  const siteTitleTrail = website.content?.siteName || subdomain;
 
   return (
     <div data-screen-label="Experiences" data-testid="editorial-experiences">
-      <section className="section ev-experiences-hero" style={{ paddingTop: 72 }}>
-        <div className="ev-container">
+      <section className="page-hero" style={heroStyle}>
+        <div className="ev-container" style={{ position: 'relative', zIndex: 1 }}>
           <Breadcrumbs
             items={[
-              { label: siteTitleTrail, href: basePath },
+              { label: editorialText('editorialBreadcrumbHome'), href: basePath || '/' },
               { label: editorialText('editorialBreadcrumbActivities') },
             ]}
           />
           <div style={{ marginTop: 24, maxWidth: '52ch' }}>
-            <Eyebrow>{editorialText('editorialExperiencesEyebrow')}</Eyebrow>
-            <h1 className="display-lg" style={{ margin: '12px 0 12px' }}>
+            <Eyebrow tone="light">{editorialText('editorialExperiencesEyebrow')}</Eyebrow>
+            <h1 className="display-lg" style={heroTitleStyle}>
               {editorialText('editorialExperiencesTitle')}{' '}
-              <em
-                style={{
-                  fontFamily: 'var(--font-serif)',
-                  fontStyle: 'italic',
-                  color: 'var(--c-accent)',
-                  fontWeight: 400,
-                }}
-              >
+              <em style={heroEmphasisStyle}>
                 {editorialText('editorialExperiencesEmphasis')}
               </em>
             </h1>
-            <p className="body-lg">{editorialText('editorialExperiencesSubtitle')}</p>
+            <p style={heroSubtitleStyle}>{editorialText('editorialExperiencesSubtitle')}</p>
           </div>
         </div>
       </section>
@@ -82,6 +75,7 @@ export function EditorialExperiencesPage({
             basePath={basePath}
             initialFilters={initialFilters}
             locale={resolvedLocale}
+            account={website.content.account ?? null}
           />
         </div>
       </section>
@@ -90,3 +84,31 @@ export function EditorialExperiencesPage({
 }
 
 export default EditorialExperiencesPage;
+
+const heroStyle: CSSProperties = {
+  background: 'var(--c-ink)',
+  color: '#fff',
+  position: 'relative',
+  overflow: 'hidden',
+  padding: '80px 0 64px',
+  borderRadius: '0 0 32px 32px',
+};
+
+const heroTitleStyle: CSSProperties = {
+  color: '#fff',
+  margin: '12px 0 14px',
+};
+
+const heroEmphasisStyle: CSSProperties = {
+  fontFamily: 'var(--font-serif)',
+  fontStyle: 'italic',
+  color: 'var(--c-accent-2)',
+  fontWeight: 400,
+};
+
+const heroSubtitleStyle: CSSProperties = {
+  color: 'rgba(255,255,255,.78)',
+  fontSize: 17,
+  lineHeight: 1.55,
+  margin: 0,
+};

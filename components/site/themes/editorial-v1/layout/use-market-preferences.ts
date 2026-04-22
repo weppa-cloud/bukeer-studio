@@ -29,7 +29,6 @@ import {
   resolveMarketExperienceConfig,
   resolvePreferredCurrency,
   resolveSiteMenuLocales,
-  SWITCHER_ALLOWED_CURRENCIES,
 } from '@/lib/site/currency';
 import {
   buildPublicLocalizedPath,
@@ -92,9 +91,7 @@ export function useMarketPreferences(website: WebsiteData): UseMarketPreferences
     [localeOptions],
   );
   const currencyOptions = useMemo(
-    () =>
-      (currencyConfig?.enabledCurrencies ?? []).filter((code) =>
-        SWITCHER_ALLOWED_CURRENCIES.includes(code as (typeof SWITCHER_ALLOWED_CURRENCIES)[number])),
+    () => currencyConfig?.enabledCurrencies ?? [],
     [currencyConfig],
   );
 

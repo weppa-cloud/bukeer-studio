@@ -58,10 +58,25 @@ export function EditorialSiteHeader({
     { slug: 'destinations', label: isEnglish ? 'Destinations' : 'Destinos', page_type: 'anchor', href: `${basePath}/#destinations`, target: '_self' },
     { slug: 'packages', label: isEnglish ? 'Packages' : 'Paquetes', page_type: 'anchor', href: `${basePath}/#packages`, target: '_self' },
     { slug: 'experiences', label: isEnglish ? 'Experiences' : 'Experiencias', page_type: 'anchor', href: `${basePath}/#activities`, target: '_self' },
-    { slug: 'planners', label: 'Travel Planners', page_type: 'custom', href: `${basePath}/planners`, target: '_self' },
-    { slug: 'blog', label: 'Blog', page_type: 'custom', href: `${basePath}/blog`, target: '_self' },
+    { slug: 'about', label: isEnglish ? 'About' : 'Nosotros', page_type: 'custom', href: `${basePath}/nosotros`, target: '_self' },
   ];
-  const navItems = navigation && navigation.length > 0 ? navigation : fallbackNav;
+  const rawNavItems = navigation && navigation.length > 0 ? navigation : fallbackNav;
+  const navPriority = ['destinations', 'paquetes', 'packages', 'experiencias', 'experiences', 'nosotros', 'about'];
+  const navItems = rawNavItems
+    .map((item, idx) => ({ item, idx }))
+    .sort((a, b) => {
+      const aKey = `${a.item.slug} ${a.item.label}`.toLowerCase();
+      const bKey = `${b.item.slug} ${b.item.label}`.toLowerCase();
+      const aRank = navPriority.findIndex((k) => aKey.includes(k));
+      const bRank = navPriority.findIndex((k) => bKey.includes(k));
+      const ar = aRank === -1 ? 999 : aRank;
+      const br = bRank === -1 ? 999 : bRank;
+      if (ar !== br) return ar - br;
+      return a.idx - b.idx;
+    })
+    .map((entry) => entry.item)
+    .filter((item, index, arr) => arr.findIndex((x) => x.slug === item.slug) === index)
+    .slice(0, 4);
   const navLabelForLocale = (label: string): string => {
     if (!isEnglish) return label;
     const normalized = label.trim().toLowerCase();
@@ -95,7 +110,7 @@ export function EditorialSiteHeader({
             <Logo
               imageUrl={logoUrl}
               name={siteName}
-              showTagline={true}
+              showTagline={false}
             />
           </Link>
 

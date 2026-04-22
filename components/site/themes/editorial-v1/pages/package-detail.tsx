@@ -33,6 +33,16 @@ export interface EditorialPackageDetailPayload {
   googleReviews: GoogleReviewProp[];
   similarProducts: ProductData[];
   faqs?: ProductFAQ[] | null;
+  package_parity_snapshot?: {
+    generated_at: string;
+    program_items_count: number;
+    generic_program_titles_count: number;
+    day_media_days_count: number;
+    day_media_images_count: number;
+    hotel_items_count: number;
+    gallery_images_count: number;
+    gallery_curated_count: number;
+  } | null;
 }
 
 interface EditorialPackageDetailProps {

@@ -15,10 +15,16 @@ export interface BreadcrumbItem {
 export interface BreadcrumbsProps {
   items: BreadcrumbItem[];
   className?: string;
+  tone?: 'default' | 'inverse';
 }
 
-export function Breadcrumbs({ items, className }: BreadcrumbsProps) {
+export function Breadcrumbs({ items, className, tone = 'default' }: BreadcrumbsProps) {
   if (!items.length) return null;
+  const isInverse = tone === 'inverse';
+  const navColor = isInverse ? 'rgba(255, 255, 255, 0.9)' : 'var(--c-ink-2)';
+  const currentColor = isInverse ? '#ffffff' : 'var(--c-ink)';
+  const separatorColor = isInverse ? 'rgba(255, 255, 255, 0.7)' : 'var(--c-accent)';
+
   return (
     <nav
       aria-label="Breadcrumb"
@@ -27,7 +33,7 @@ export function Breadcrumbs({ items, className }: BreadcrumbsProps) {
         display: 'inline-flex',
         alignItems: 'center',
         gap: 8,
-        color: 'var(--c-ink-2)',
+        color: navColor,
         fontSize: 13,
         lineHeight: 1.4,
       }}
@@ -52,7 +58,7 @@ export function Breadcrumbs({ items, className }: BreadcrumbsProps) {
             ) : (
               <span
                 style={{
-                  color: isLast ? 'var(--c-ink)' : 'inherit',
+                  color: isLast ? currentColor : 'inherit',
                   fontWeight: isLast ? 600 : 400,
                 }}
                 aria-current={isLast ? 'page' : undefined}
@@ -66,7 +72,7 @@ export function Breadcrumbs({ items, className }: BreadcrumbsProps) {
                 style={{
                   fontFamily: 'var(--font-serif)',
                   fontStyle: 'italic',
-                  color: 'var(--c-accent)',
+                  color: separatorColor,
                   opacity: 0.6,
                 }}
               >
