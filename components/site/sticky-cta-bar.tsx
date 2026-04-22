@@ -6,6 +6,7 @@ import { formatPriceOrConsult } from '@/lib/products/format-price';
 import { convertCurrencyAmount, type CurrencyConfig } from '@/lib/site/currency';
 import { trackEvent } from '@/lib/analytics/track';
 import { getPublicUiMessages } from '@/lib/site/public-ui-messages';
+import { WhatsAppIntentButton } from '@/components/site/whatsapp-intent-button';
 
 interface StickyCTABarProps {
   price?: number | string | null;
@@ -20,6 +21,13 @@ interface StickyCTABarProps {
   analyticsContext?: Record<string, string | number | boolean | null | undefined>;
   whatsappLabel?: string;
   hidePrice?: boolean;
+  onWhatsappClick?: (() => void) | null;
+  callUrl?: string | null;
+  callLabel?: string;
+  openWhatsappAsModal?: boolean;
+  whatsappProductName?: string | null;
+  whatsappLocation?: string | null;
+  whatsappRefCode?: string | number | null;
 }
 
 export function StickyCTABar({
@@ -34,18 +42,27 @@ export function StickyCTABar({
   analyticsContext,
   whatsappLabel,
   hidePrice = false,
+  onWhatsappClick = null,
+  callUrl = null,
+  callLabel,
+  openWhatsappAsModal = false,
+  whatsappProductName = null,
+  whatsappLocation = null,
+  whatsappRefCode = null,
 }: StickyCTABarProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const callHref = useMemo(() => {
+    if (callUrl && callUrl.trim().length > 0) return callUrl.trim();
     const cleanPhone = (phone ?? '').replace(/[^0-9+]/g, '');
     return cleanPhone ? `tel:${cleanPhone}` : null;
-  }, [phone]);
+  }, [phone, callUrl]);
   const effectiveCurrency = preferredCurrency ?? currency ?? null;
   const convertedPrice = convertCurrencyAmount(price, currency, effectiveCurrency, currencyConfig ?? null);
   const priceLabel = formatPriceOrConsult(convertedPrice, effectiveCurrency ?? currency);
   const uiMessages = getPublicUiMessages('es-CO');
   const resolvedWhatsappLabel = whatsappLabel?.trim() || uiMessages.stickyCta.whatsapp;
+  const resolvedCallLabel = callLabel?.trim() || uiMessages.stickyCta.call;
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -93,7 +110,7 @@ export function StickyCTABar({
     };
   }, []);
 
-  if (!whatsappUrl && !callHref) {
+  if (!whatsappUrl && !callHref && !onWhatsappClick) {
     return null;
   }
 
@@ -118,32 +135,60 @@ export function StickyCTABar({
           <div className="min-w-0 flex-1" />
         )}
 
-        {whatsappUrl ? (
-          <a
-            href={whatsappUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={() => {
-              trackEvent('sticky_cta_click', { ...(analyticsContext ?? {}), channel: 'whatsapp' });
-              trackEvent('whatsapp_cta_click', { ...(analyticsContext ?? {}), location_context: 'sticky_bar' });
-            }}
-            className="inline-flex items-center justify-center rounded-full px-3 py-2 text-xs font-semibold sm:px-5 sm:text-sm"
-            style={{ backgroundColor: 'hsl(var(--accent))', color: 'hsl(var(--accent-text))' }}
-          >
-            {resolvedWhatsappLabel}
-          </a>
+        {whatsappUrl || onWhatsappClick ? (
+          onWhatsappClick ? (
+            <button
+              type="button"
+              onClick={() => {
+                trackEvent('sticky_cta_click', { ...(analyticsContext ?? {}), channel: 'whatsapp' });
+                trackEvent('whatsapp_cta_click', { ...(analyticsContext ?? {}), location_context: 'sticky_bar' });
+                onWhatsappClick();
+              }}
+              className="inline-flex items-center justify-center rounded-full px-3 py-2 text-xs font-semibold sm:px-5 sm:text-sm"
+              style={{ backgroundColor: 'hsl(var(--accent))', color: 'hsl(var(--accent-text))' }}
+            >
+              {resolvedWhatsappLabel}
+            </button>
+          ) : openWhatsappAsModal ? (
+            <WhatsAppIntentButton
+              phone={phone}
+              productName={whatsappProductName}
+              location={whatsappLocation}
+              refCode={whatsappRefCode}
+              label={resolvedWhatsappLabel}
+              analyticsLocation="sticky_bar"
+              analyticsContext={analyticsContext}
+              className="inline-flex items-center justify-center rounded-full px-3 py-2 text-xs font-semibold sm:px-5 sm:text-sm"
+            />
+          ) : (
+            <a
+              href={whatsappUrl || undefined}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => {
+                trackEvent('sticky_cta_click', { ...(analyticsContext ?? {}), channel: 'whatsapp' });
+                trackEvent('whatsapp_cta_click', { ...(analyticsContext ?? {}), location_context: 'sticky_bar' });
+              }}
+              className="inline-flex items-center justify-center rounded-full px-3 py-2 text-xs font-semibold sm:px-5 sm:text-sm"
+              style={{ backgroundColor: 'hsl(var(--accent))', color: 'hsl(var(--accent-text))' }}
+            >
+              {resolvedWhatsappLabel}
+            </a>
+          )
         ) : null}
 
         {callHref ? (
           <a
             href={callHref}
+            target={callHref.startsWith('http') ? '_blank' : undefined}
+            rel={callHref.startsWith('http') ? 'noopener noreferrer' : undefined}
             onClick={() => {
               trackEvent('sticky_cta_click', { ...(analyticsContext ?? {}), channel: 'tel' });
               trackEvent('phone_cta_click', { ...(analyticsContext ?? {}), location_context: 'sticky_bar' });
             }}
             className="inline-flex items-center justify-center rounded-full border px-3 py-2 text-xs font-semibold hover:bg-muted sm:px-5 sm:text-sm"
           >
-            {uiMessages.stickyCta.call}
+            {resolvedCallLabel}
           </a>
         ) : null}
       </div>

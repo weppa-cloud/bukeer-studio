@@ -249,7 +249,7 @@ export default async function SiteLayout({ children, params }: SiteLayoutProps) 
 
   const smoothScrollContent = (
     <SmoothScroll>
-      <div className="min-h-screen flex flex-col overflow-x-hidden">
+      <div className="min-h-screen flex flex-col">
         {/* GTM NoScript fallback */}
         <GoogleTagManagerBody analytics={website.analytics} />
 
