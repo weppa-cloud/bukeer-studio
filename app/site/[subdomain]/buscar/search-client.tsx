@@ -95,7 +95,7 @@ export function SearchPageClient({ subdomain, initialQuery, website }: SearchPag
               image: item.image,
               location: item.location,
               description: item.description,
-              price: item.price,
+              price: item.type === 'activity' ? undefined : item.price,
             }))
           );
         }
@@ -261,7 +261,7 @@ export function SearchPageClient({ subdomain, initialQuery, website }: SearchPag
                         {result.description && (
                           <p className="text-sm text-muted-foreground line-clamp-2 mb-2">{result.description}</p>
                         )}
-                        {result.price && (
+                        {result.type !== 'activity' && result.price && (
                           <span className="font-semibold text-primary">{String(result.price)}</span>
                         )}
                       </div>

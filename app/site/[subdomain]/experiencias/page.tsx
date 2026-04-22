@@ -33,8 +33,10 @@ interface ExperiencesPageProps {
   searchParams: Promise<{
     level?: string;
     region?: string;
+    location?: string;
     category?: string;
     duration?: string;
+    sort?: string;
     q?: string;
   }>;
 }
@@ -188,8 +190,10 @@ export default async function ExperiencesPageRoute({
         initialFilters: {
           level: toArrayParam(sp.level),
           region: toArrayParam(sp.region),
+          location: toArrayParam(sp.location),
           category: sp.category || 'all',
           duration: sp.duration || 'all',
+          sort: sp.sort || 'popular',
           q: sp.q || '',
         },
       }}

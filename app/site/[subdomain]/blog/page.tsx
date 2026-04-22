@@ -106,7 +106,7 @@ export default async function BlogPage({ params, searchParams }: BlogPageProps) 
   const messages = getPublicUiMessages(localeContext.resolvedLocale);
 
   // Generate JSON-LD schemas (CollectionPage, Breadcrumb, Organization)
-  const schemas = generateBlogListingSchemas(posts, website, baseUrl, localeContext.resolvedLocale);
+  const schemas = generateBlogListingSchemas(filteredPosts, website, baseUrl, localeContext.resolvedLocale);
 
   return (
     <>
@@ -168,7 +168,7 @@ export default async function BlogPage({ params, searchParams }: BlogPageProps) 
         )}
 
         {/* Posts Grid */}
-        {posts.length === 0 ? (
+        {filteredPosts.length === 0 ? (
           <div className="text-center py-16">
             <p className="text-muted-foreground text-lg">
               {messages.blogListing.noPosts}
@@ -176,7 +176,7 @@ export default async function BlogPage({ params, searchParams }: BlogPageProps) 
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {posts.map((post) => (
+            {filteredPosts.map((post) => (
               <article
                 key={post.id}
                 className="group rounded-lg overflow-hidden bg-card border shadow-sm hover:shadow-lg transition-shadow"

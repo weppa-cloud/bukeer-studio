@@ -397,7 +397,7 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
       const siteName = website.content?.account?.name || website.content?.siteName || subdomain;
       const override = await getDestinationSeoOverride(website.id, dest.slug);
       const title = override?.custom_seo_title || `${dest.name} | ${siteName}`;
-      const description = override?.custom_seo_description || `Explora ${dest.name}: ${dest.hotel_count} hoteles y ${dest.activity_count} actividades${dest.min_price ? ` desde ${dest.min_price}` : ''}. Reserva con ${siteName}.`;
+      const description = override?.custom_seo_description || `Explora ${dest.name}: ${dest.hotel_count} hoteles y ${dest.activity_count} actividades. Reserva con ${siteName}.`;
       const pathname = `/destinos/${dest.slug}`;
       const metadata: Metadata = {
         title,
@@ -876,6 +876,7 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
             googleReviews: productReviews,
             similarProducts,
             faqs: packageFaqs,
+            package_parity_snapshot: ((productPage.product as unknown as Record<string, unknown>).package_parity_snapshot ?? null) as EditorialPackageDetailPayload['package_parity_snapshot'],
           } satisfies EditorialPackageDetailPayload;
         } else if (productType === 'activity') {
           slotName = 'activity-detail';
