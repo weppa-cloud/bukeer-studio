@@ -51,6 +51,8 @@ export function toPackageItems(products: ProductData[], limit = 8): Array<Record
       destination: toProductLocation(product),
       duration: product.itinerary_items?.length ? `${product.itinerary_items.length} días` : toDurationLabel(product),
       price: formatProductPrice(product.price, product.currency),
+      priceValue: typeof product.price === 'number' ? product.price : null,
+      priceCurrency: typeof product.currency === 'string' ? product.currency.toUpperCase() : null,
       description: product.description,
       category,
       featured,
@@ -72,6 +74,8 @@ export function toActivityItems(products: ProductData[], limit = 8): Array<Recor
       image: product.image || product.images?.[0],
       duration: toDurationLabel(product),
       price: formatProductPrice(product.price, product.currency),
+      priceValue: typeof product.price === 'number' ? product.price : null,
+      priceCurrency: typeof product.currency === 'string' ? product.currency.toUpperCase() : null,
       category: product.type === 'activity' ? 'Actividad' : 'Experiencia',
       location: toProductLocation(product),
       rating: product.rating,
@@ -99,6 +103,8 @@ export function toHotelItems(products: ProductData[], limit = 8): Array<Record<s
       reviewRating: product.rating,
       reviewCount: product.review_count,
       price: formatProductPrice(product.price, product.currency),
+      priceValue: typeof product.price === 'number' ? product.price : null,
+      priceCurrency: typeof product.currency === 'string' ? product.currency.toUpperCase() : null,
       badge: product.star_rating ? `${product.star_rating}★` : undefined,
     });
   }

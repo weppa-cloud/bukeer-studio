@@ -264,13 +264,67 @@ export async function getBlogPosts(
   } = {}
 ): Promise<{ posts: BlogPost[]; total: number }> {
   try {
+    const locale = typeof options.locale === 'string' ? options.locale.trim() : '';
+    const localeCandidates: string[] = [];
+
+    if (locale) {
+      localeCandidates.push(locale);
+      const lang = locale.split('-')[0]?.toLowerCase();
+      if (lang && lang !== locale) localeCandidates.push(lang);
+
+      // Legacy blog rows may still store ISO-639 locales (`es`, `en`).
+      if (locale === 'es') localeCandidates.push('es-CO');
+      if (locale === 'en') localeCandidates.push('en-US');
+      if (locale === 'es-CO') localeCandidates.push('es');
+      if (locale === 'en-US') localeCandidates.push('en');
+    } else {
+      localeCandidates.push('');
+    }
+
+    const uniqueLocales = [...new Set(localeCandidates.filter(Boolean))];
+    const limit = options.limit || 10;
+    const offset = options.offset || 0;
+
+    // Locale-aware listing: include legacy + canonical locale variants of the
+    // same language in one paginated query (e.g., `es` + `es-CO`).
+    if (uniqueLocales.length > 1) {
+      const categorySelect = options.categorySlug
+        ? '*, category:website_blog_categories!inner(*)'
+        : '*, category:website_blog_categories(*)';
+
+      let query = supabase
+        .from('website_blog_posts')
+        .select(categorySelect, { count: 'exact' })
+        .eq('website_id', websiteId)
+        .eq('status', 'published')
+        .is('deleted_at', null)
+        .in('locale', uniqueLocales)
+        .order('published_at', { ascending: false, nullsFirst: false })
+        .order('updated_at', { ascending: false, nullsFirst: false })
+        .range(offset, offset + limit - 1);
+
+      if (options.categorySlug) {
+        query = query.eq('category.slug', options.categorySlug);
+      }
+
+      const { data, error, count } = await query;
+      if (error) {
+        console.error('[getBlogPosts] Locale query error:', error);
+      } else {
+        return {
+          posts: (data as BlogPost[]) || [],
+          total: count || 0,
+        };
+      }
+    }
+
     const { data, error } = await supabase
       .rpc('get_website_blog_posts', {
         p_website_id: websiteId,
-        p_limit: options.limit || 10,
-        p_offset: options.offset || 0,
+        p_limit: limit,
+        p_offset: offset,
         p_category_slug: options.categorySlug || null,
-        p_locale: options.locale || null,
+        p_locale: locale || null,
       });
 
     if (error) {

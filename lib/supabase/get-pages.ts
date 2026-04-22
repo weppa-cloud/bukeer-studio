@@ -102,6 +102,203 @@ function asGalleryUrlArray(value: unknown): string[] | null {
   return urls.length > 0 ? urls : null;
 }
 
+function asOptionalString(value: unknown): string | null {
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
+}
+
+function normalizeAscii(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+}
+
+function isActivityLikeProductType(value: unknown): boolean {
+  if (typeof value !== 'string') return false;
+  const normalized = normalizeAscii(value);
+  return normalized === 'actividad' || normalized === 'actividades' || normalized === 'activity' || normalized === 'servicio' || normalized === 'servicios';
+}
+
+function isHotelLikeProductType(value: unknown): boolean {
+  if (typeof value !== 'string') return false;
+  const normalized = normalizeAscii(value);
+  return normalized === 'hotel' || normalized === 'hoteles' || normalized === 'lodging';
+}
+
+function parsePositiveInt(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+    return Math.trunc(value);
+  }
+  if (typeof value === 'string') {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed) && parsed > 0) {
+      return Math.trunc(parsed);
+    }
+  }
+  return null;
+}
+
+function isTransferLikeProductType(value: unknown): boolean {
+  if (typeof value !== 'string') return false;
+  const normalized = normalizeAscii(value);
+  return normalized === 'transporte' || normalized === 'transfer' || normalized === 'transfers';
+}
+
+function isFlightLikeProductType(value: unknown): boolean {
+  if (typeof value !== 'string') return false;
+  const normalized = normalizeAscii(value);
+  return normalized === 'vuelo' || normalized === 'vuelos' || normalized === 'flight' || normalized === 'flights';
+}
+
+function formatItineraryTimeLabel(value: unknown): string | null {
+  const raw = asOptionalString(value);
+  if (!raw) return null;
+  if (/^\d{1,2}:\d{2}/.test(raw)) return raw.slice(0, 5);
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) return raw;
+  const hh = `${parsed.getHours()}`.padStart(2, '0');
+  const mm = `${parsed.getMinutes()}`.padStart(2, '0');
+  return `${hh}:${mm}`;
+}
+
+function extractRpcImageUrls(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  const urls: string[] = [];
+  for (const row of value) {
+    if (!row || typeof row !== 'object') continue;
+    const rec = row as Record<string, unknown>;
+    const candidate =
+      asOptionalString(rec.image_url)
+      ?? asOptionalString(rec.main_image)
+      ?? asOptionalString(rec.url);
+    if (candidate && !urls.includes(candidate)) {
+      urls.push(candidate);
+    }
+  }
+  return urls;
+}
+
+function isGenericPackageProgramTitle(value: string): boolean {
+  const normalized = normalizeAscii(value);
+  if (!normalized) return true;
+  if (normalized.includes(' en un solo viaje')) return true;
+  if (/^(actividad|servicio|hotel|vuelo|transporte)$/.test(normalized)) return true;
+  if (/^(actividad|servicio|hotel|vuelo|transporte)( \+ (actividad|servicio|hotel|vuelo|transporte))+$/i.test(normalized)) {
+    return true;
+  }
+  return false;
+}
+
+function extractActivityMediaUrls(row: Record<string, unknown>): string[] {
+  const urls: string[] = [];
+  const add = (candidate: unknown) => {
+    const value = asOptionalString(candidate);
+    if (value && !urls.includes(value)) {
+      urls.push(value);
+    }
+  };
+
+  add(row.main_image);
+  add(row.social_image);
+  add(row.cover_image_url);
+
+  const gallery = asGalleryUrlArray(row.program_gallery);
+  if (gallery) {
+    for (const url of gallery) {
+      if (!urls.includes(url)) {
+        urls.push(url);
+      }
+    }
+  }
+
+  return urls;
+}
+
+function extractMasterHotelMediaUrls(row: Record<string, unknown>): string[] {
+  const urls: string[] = [];
+  const photos = asGalleryUrlArray(row.photos);
+  if (photos) {
+    for (const url of photos) {
+      if (!urls.includes(url)) {
+        urls.push(url);
+      }
+    }
+  }
+  const aiContent = row.ai_content;
+  if (aiContent && typeof aiContent === 'object' && !Array.isArray(aiContent)) {
+    const rec = aiContent as Record<string, unknown>;
+    const gallery = asGalleryUrlArray(rec.gallery);
+    if (gallery) {
+      for (const url of gallery) {
+        if (!urls.includes(url)) {
+          urls.push(url);
+        }
+      }
+    }
+  }
+  return urls;
+}
+
+function pushUniqueUrls(target: string[], source: string[]): string[] {
+  for (const url of source) {
+    if (!target.includes(url)) {
+      target.push(url);
+    }
+  }
+  return target;
+}
+
+function resolvePackageItemDayMap(rows: Array<Record<string, unknown>>): Map<number, Array<Record<string, unknown>>> {
+  const byDay = new Map<number, Array<Record<string, unknown>>>();
+  if (rows.length === 0) return byDay;
+
+  const datedRows = [...rows].sort((a, b) => {
+    const aDate = asOptionalString(a.date) ?? '';
+    const bDate = asOptionalString(b.date) ?? '';
+    return aDate.localeCompare(bDate);
+  });
+
+  const uniqueDates = Array.from(
+    new Set(
+      datedRows
+        .map((row) => asOptionalString(row.date))
+        .filter((value): value is string => Boolean(value))
+    )
+  );
+  const dateToDay = new Map<string, number>();
+  uniqueDates.forEach((dateValue, index) => {
+    dateToDay.set(dateValue, index + 1);
+  });
+
+  let fallbackDayCounter = 1;
+  for (const row of datedRows) {
+    const dayRaw = row.day_number;
+    const parsedDay = typeof dayRaw === 'number'
+      ? dayRaw
+      : typeof dayRaw === 'string'
+        ? Number(dayRaw)
+        : NaN;
+    let day = Number.isFinite(parsedDay) && parsedDay > 0 ? Math.trunc(parsedDay) : NaN;
+    if (!Number.isFinite(day)) {
+      const dateValue = asOptionalString(row.date);
+      if (dateValue && dateToDay.has(dateValue)) {
+        day = dateToDay.get(dateValue) as number;
+      } else {
+        day = fallbackDayCounter;
+        fallbackDayCounter += 1;
+      }
+    }
+
+    if (!byDay.has(day)) {
+      byDay.set(day, []);
+    }
+    byDay.get(day)?.push(row);
+  }
+
+  return byDay;
+}
+
 type TranslationOverlay = Record<string, unknown>;
 
 function resolveTranslationOverlay(
@@ -414,6 +611,396 @@ export async function getProductPage(
         }
       } catch {
         // Keep the base RPC payload if kit overlay lookup is unavailable.
+      }
+    }
+
+    // Package media enrichment: when kit/gallery sources are sparse, pull
+    // photos from activities associated to itinerary_items (Servicios /
+    // Actividades) so package detail gallery and day media reflect the real
+    // program components instead of only the cover image.
+    if (productType === 'package' && result.product) {
+      const prod = result.product as ProductData & {
+        images?: string[];
+        program_gallery?: string[] | null;
+        package_day_media?: Record<number, string[]>;
+        package_hotel_items?: Array<{
+          title: string;
+          city?: string | null;
+          category?: string | null;
+          starRating?: number | null;
+          amenities?: string[] | null;
+          nights?: number | null;
+          imageUrl?: string | null;
+        }>;
+        package_program_items?: Array<{
+          day: number;
+          time?: string | null;
+          label: string;
+          title: string;
+          note?: string | null;
+          tone: 'transporte' | 'actividad' | 'comida' | 'alojamiento' | 'libre' | 'vuelo';
+          imageUrl?: string | null;
+          location?: string | null;
+          productType?: string | null;
+          productId?: string | null;
+        }>;
+        package_parity_snapshot?: {
+          generated_at: string;
+          program_items_count: number;
+          generic_program_titles_count: number;
+          day_media_days_count: number;
+          day_media_images_count: number;
+          hotel_items_count: number;
+          gallery_images_count: number;
+          gallery_curated_count: number;
+        };
+      };
+
+      try {
+        const packageReader = supabaseService ?? supabase;
+        const itinerarySelect =
+          'id,id_product,product_type,day_number,date,start_time,end_time,destination,product_name,rate_name,personalized_message,hotel_nights,flight_departure,flight_arrival,departure_time,arrival_time,flight_number,airline,order';
+        let itineraryRows: Array<Record<string, unknown>> | null = null;
+        const { data: directRows, error: itineraryError } = await packageReader
+          .from('itinerary_items')
+          .select(itinerarySelect)
+          .or(`id_itinerary.eq.${prod.id},source_package_id.eq.${prod.id}`)
+          .not('id_product', 'is', null)
+          .limit(500);
+        if (!itineraryError && Array.isArray(directRows) && directRows.length > 0) {
+          itineraryRows = directRows as unknown as Array<Record<string, unknown>>;
+        }
+
+        // Some package routes resolve `prod.id` to package_kit id while
+        // itinerary_items links by itinerary id. Recover those rows through
+        // itineraries.source_package_id -> itineraries.id.
+        if (!itineraryRows || itineraryRows.length === 0) {
+          const { data: itineraryIds } = await packageReader
+            .from('itineraries')
+            .select('id')
+            .eq('source_package_id', prod.id)
+            .limit(50);
+          const ids = Array.isArray(itineraryIds)
+            ? itineraryIds
+                .map((row) => asOptionalString((row as Record<string, unknown>).id))
+                .filter((id): id is string => Boolean(id))
+            : [];
+          if (ids.length > 0) {
+            const { data: rowsByResolvedId, error: rowsByResolvedIdError } = await packageReader
+              .from('itinerary_items')
+              .select(itinerarySelect)
+              .in('id_itinerary', ids)
+              .not('id_product', 'is', null)
+              .limit(500);
+            if (!rowsByResolvedIdError && Array.isArray(rowsByResolvedId) && rowsByResolvedId.length > 0) {
+              itineraryRows = rowsByResolvedId as unknown as Array<Record<string, unknown>>;
+            }
+          }
+        }
+
+        if (Array.isArray(itineraryRows) && itineraryRows.length > 0) {
+          const mediaByProductId = new Map<string, string[]>();
+          const activityMetaById = new Map<string, { name: string | null; description: string | null }>();
+          const hotelNameByProductId = new Map<string, string>();
+          const hotelCityByProductId = new Map<string, string>();
+          const dayMap = resolvePackageItemDayMap(itineraryRows);
+          const sortedDayEntries = Array.from(dayMap.entries()).sort((a, b) => a[0] - b[0]);
+          const productIds = Array.from(
+            new Set(
+              itineraryRows
+                .map((row) => asOptionalString(row.id_product))
+                .filter((id): id is string => Boolean(id))
+            )
+          );
+          if (productIds.length > 0) {
+            const rpcRows = await Promise.all(
+              productIds.map(async (productId) => {
+                const { data, error } = await packageReader.rpc('function_get_images_and_main_image', { p_id: productId });
+                return { productId, data, error };
+              })
+            );
+            for (const rpcRow of rpcRows) {
+              if (rpcRow.error) continue;
+              const urls = extractRpcImageUrls(rpcRow.data);
+              if (urls.length > 0) {
+                mediaByProductId.set(rpcRow.productId, urls);
+              }
+            }
+          }
+
+          const activityIds = Array.from(
+            new Set(
+              itineraryRows
+                .filter((row) => isActivityLikeProductType(row.product_type))
+                .map((row) => asOptionalString(row.id_product))
+                .filter((id): id is string => Boolean(id))
+            )
+          );
+
+          const hotelRows = itineraryRows.filter((row) => isHotelLikeProductType(row.product_type));
+          if (hotelRows.length > 0) {
+            const accountHotelIds = Array.from(
+              new Set(
+                hotelRows
+                  .map((row) => asOptionalString(row.id_product))
+                  .filter((id): id is string => Boolean(id))
+              )
+            );
+
+            const accountHotelMap = new Map<string, Record<string, unknown>>();
+            if (accountHotelIds.length > 0) {
+              const { data: accountHotels } = await packageReader
+                .from('account_hotels')
+                .select('id, master_hotel_id, custom_name')
+                .in('id', accountHotelIds);
+              if (Array.isArray(accountHotels)) {
+                for (const row of accountHotels) {
+                  const rec = row as unknown as Record<string, unknown>;
+                  const id = asOptionalString(rec.id);
+                  if (id) accountHotelMap.set(id, rec);
+                }
+              }
+            }
+
+            const masterHotelIds = Array.from(
+              new Set(
+                Array.from(accountHotelMap.values())
+                  .map((row) => asOptionalString(row.master_hotel_id))
+                  .filter((id): id is string => Boolean(id))
+              )
+            );
+            const masterHotelMap = new Map<string, Record<string, unknown>>();
+            if (masterHotelIds.length > 0) {
+              const { data: masterHotels } = await packageReader
+                .from('master_hotels')
+                .select('id, name, city, star_rating, amenities, photos, ai_content')
+                .in('id', masterHotelIds);
+              if (Array.isArray(masterHotels)) {
+                for (const row of masterHotels) {
+                  const rec = row as unknown as Record<string, unknown>;
+                  const id = asOptionalString(rec.id);
+                  if (id) masterHotelMap.set(id, rec);
+                }
+              }
+            }
+
+            const hotelCards = hotelRows
+              .map((item) => {
+                const accountHotelId = asOptionalString(item.id_product);
+                if (!accountHotelId) return null;
+                const accountHotel = accountHotelMap.get(accountHotelId);
+                const masterId = asOptionalString(accountHotel?.master_hotel_id);
+                const masterHotel = masterId ? masterHotelMap.get(masterId) : null;
+                const starRatingRaw = masterHotel?.star_rating;
+                const starRating = typeof starRatingRaw === 'number' && Number.isFinite(starRatingRaw)
+                  ? starRatingRaw
+                  : null;
+                const amenities = Array.isArray(masterHotel?.amenities)
+                  ? (masterHotel?.amenities as unknown[])
+                      .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+                      .slice(0, 4)
+                  : [];
+                const media = masterHotel ? extractMasterHotelMediaUrls(masterHotel) : [];
+                if (media.length > 0) {
+                  mediaByProductId.set(accountHotelId, media);
+                }
+                const resolvedTitle =
+                  asOptionalString(accountHotel?.custom_name)
+                  || asOptionalString(item.product_name)
+                  || asOptionalString(masterHotel?.name)
+                  || 'Hotel seleccionado';
+                hotelNameByProductId.set(accountHotelId, resolvedTitle);
+                const resolvedCity = asOptionalString(item.destination) || asOptionalString(masterHotel?.city);
+                if (resolvedCity) {
+                  hotelCityByProductId.set(accountHotelId, resolvedCity);
+                }
+                return {
+                  title: resolvedTitle,
+                  city: resolvedCity,
+                  category: starRating ? `${Math.round(starRating)}★` : 'Hotel seleccionado',
+                  starRating,
+                  amenities,
+                  nights: parsePositiveInt(item.hotel_nights),
+                  imageUrl: media[0] ?? null,
+                };
+              })
+              .filter((row): row is NonNullable<typeof row> => Boolean(row));
+
+            if (hotelCards.length > 0) {
+              prod.package_hotel_items = hotelCards;
+            }
+          }
+
+          if (activityIds.length > 0) {
+            const { data: activities, error: activitiesError } = await packageReader
+              .from('activities')
+              .select('id, name, description, main_image, social_image, cover_image_url, program_gallery')
+              .in('id', activityIds);
+
+            if (!activitiesError && Array.isArray(activities) && activities.length > 0) {
+              for (const row of activities) {
+                const rec = row as unknown as Record<string, unknown>;
+                const id = asOptionalString(rec.id);
+                if (!id) continue;
+                activityMetaById.set(id, {
+                  name: asOptionalString(rec.name),
+                  description: asOptionalString(rec.description),
+                });
+                const activityMedia = extractActivityMediaUrls(rec);
+                if (activityMedia.length > 0) {
+                  mediaByProductId.set(id, activityMedia);
+                }
+              }
+            }
+          }
+
+          const packageProgramItems: NonNullable<typeof prod.package_program_items> = [];
+          for (const [day, rawItems] of sortedDayEntries) {
+            const dayItems = [...rawItems].sort((a, b) => {
+              const ao = parsePositiveInt(a.order) ?? Number.MAX_SAFE_INTEGER;
+              const bo = parsePositiveInt(b.order) ?? Number.MAX_SAFE_INTEGER;
+              if (ao !== bo) return ao - bo;
+              const at = formatItineraryTimeLabel(a.departure_time) ?? formatItineraryTimeLabel(a.start_time) ?? '';
+              const bt = formatItineraryTimeLabel(b.departure_time) ?? formatItineraryTimeLabel(b.start_time) ?? '';
+              return at.localeCompare(bt);
+            });
+            for (const item of dayItems) {
+              const productTypeRaw = asOptionalString(item.product_type);
+              const productType = productTypeRaw ? normalizeAscii(productTypeRaw) : '';
+              const productId = asOptionalString(item.id_product);
+              const activityMeta = productId ? activityMetaById.get(productId) : null;
+              const time =
+                formatItineraryTimeLabel(item.departure_time)
+                ?? formatItineraryTimeLabel(item.start_time)
+                ?? formatItineraryTimeLabel(item.arrival_time)
+                ?? formatItineraryTimeLabel(item.end_time);
+              const from = asOptionalString(item.flight_departure);
+              const to = asOptionalString(item.flight_arrival);
+              const flightRouteTitle = from && to ? `${from} → ${to}` : null;
+              const titleCandidates = [
+                productId ? hotelNameByProductId.get(productId) ?? null : null,
+                activityMeta?.name ?? null,
+                asOptionalString(item.product_name),
+                asOptionalString(item.rate_name),
+                flightRouteTitle,
+              ].filter((candidate): candidate is string => Boolean(candidate && candidate.trim().length > 0));
+              const personalizedMessage = asOptionalString(item.personalized_message);
+              const titleFromMessage = personalizedMessage
+                ? personalizedMessage.split(/\n|,|;| {2,}/g).map((part) => part.trim()).find((part) => part.length > 0) ?? null
+                : null;
+              const title =
+                titleCandidates.find((candidate) => !isGenericPackageProgramTitle(candidate))
+                ?? (titleFromMessage && !isGenericPackageProgramTitle(titleFromMessage) ? titleFromMessage : null)
+                ?? titleCandidates[0]
+                ?? (isHotelLikeProductType(productType) ? 'Hotel seleccionado' : null)
+                ?? (isTransferLikeProductType(productType) ? 'Traslado' : null)
+                ?? (isFlightLikeProductType(productType) ? 'Vuelo' : null)
+                ?? 'Actividad';
+              const tone: 'transporte' | 'actividad' | 'comida' | 'alojamiento' | 'libre' | 'vuelo' =
+                isHotelLikeProductType(productType)
+                  ? 'alojamiento'
+                  : isTransferLikeProductType(productType)
+                    ? 'transporte'
+                    : isFlightLikeProductType(productType)
+                      ? 'vuelo'
+                      : 'actividad';
+              const label =
+                tone === 'alojamiento'
+                  ? 'Alojamiento'
+                  : tone === 'transporte'
+                    ? 'Transporte'
+                    : tone === 'vuelo'
+                      ? 'Vuelo'
+                      : 'Actividad';
+              const location =
+                asOptionalString(item.destination)
+                || (productId ? hotelCityByProductId.get(productId) ?? null : null);
+              const note =
+                personalizedMessage
+                || activityMeta?.description
+                || null;
+              const imageUrl = productId ? (mediaByProductId.get(productId)?.[0] ?? null) : null;
+
+              packageProgramItems.push({
+                day,
+                time,
+                label,
+                title,
+                note,
+                tone,
+                imageUrl,
+                location,
+                productType: productTypeRaw,
+                productId,
+              });
+            }
+          }
+
+          if (packageProgramItems.length > 0) {
+            prod.package_program_items = packageProgramItems;
+          }
+
+          if (mediaByProductId.size > 0) {
+            const packageDayMedia: Record<number, string[]> = {};
+            for (const [day, items] of sortedDayEntries) {
+              const urls: string[] = [];
+              for (const item of items) {
+                const productId = asOptionalString(item.id_product);
+                if (!productId) continue;
+                const media = mediaByProductId.get(productId) ?? [];
+                pushUniqueUrls(urls, media);
+              }
+              if (urls.length > 0) {
+                packageDayMedia[day] = urls;
+              }
+            }
+            if (Object.keys(packageDayMedia).length > 0) {
+              prod.package_day_media = packageDayMedia;
+            }
+
+            const mediaFromItems = Array.from(new Set(Array.from(mediaByProductId.values()).flat()));
+            if (mediaFromItems.length > 0) {
+              const hasCuratedGallery = Array.isArray(prod.program_gallery) && prod.program_gallery.length > 0;
+              if (!hasCuratedGallery) {
+                prod.program_gallery = mediaFromItems;
+              }
+              const existingImages = Array.isArray(prod.images) ? prod.images : [];
+              const mergedImages = [...existingImages];
+              for (const url of mediaFromItems) {
+                if (!mergedImages.includes(url)) mergedImages.push(url);
+              }
+              if (mergedImages.length > 0) {
+                prod.images = mergedImages;
+              }
+            }
+          }
+
+          const payloadProgramItems = Array.isArray(prod.package_program_items) ? prod.package_program_items : [];
+          const genericProgramTitles = payloadProgramItems.filter((item) =>
+            typeof item?.title === 'string' && isGenericPackageProgramTitle(item.title)
+          );
+          const dayMedia = prod.package_day_media && typeof prod.package_day_media === 'object'
+            ? prod.package_day_media
+            : {};
+          const dayMediaImagesCount = Object.values(dayMedia).reduce((sum, urls) => {
+            return sum + (Array.isArray(urls) ? urls.length : 0);
+          }, 0);
+          const curatedGalleryCount = Array.isArray(prod.program_gallery) ? prod.program_gallery.length : 0;
+          const resolvedGalleryCount = Array.isArray(prod.images) ? prod.images.length : curatedGalleryCount;
+          prod.package_parity_snapshot = {
+            generated_at: new Date().toISOString(),
+            program_items_count: payloadProgramItems.length,
+            generic_program_titles_count: genericProgramTitles.length,
+            day_media_days_count: Object.keys(dayMedia).length,
+            day_media_images_count: dayMediaImagesCount,
+            hotel_items_count: Array.isArray(prod.package_hotel_items) ? prod.package_hotel_items.length : 0,
+            gallery_images_count: resolvedGalleryCount,
+            gallery_curated_count: curatedGalleryCount,
+          };
+        }
+      } catch {
+        // Best effort enrichment: keep base package payload when activity media
+        // lookup is unavailable.
       }
     }
 
