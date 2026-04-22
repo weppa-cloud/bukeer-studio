@@ -22,6 +22,8 @@ export interface ActivityItem {
   imageAlt?: LocalizableAlt;
   duration?: string;
   price?: string;
+  priceValue?: number | null;
+  priceCurrency?: string | null;
   category?: string;
   difficulty?: string;
   location?: string;
@@ -75,7 +77,13 @@ export function ActivitiesSection({ section, website }: ActivitiesSectionProps) 
 
         <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {activities.map((activity, index) => (
-            <ActivityCard key={activity.id} activity={activity} index={index} subdomain={website.subdomain} locale={locale} />
+            <ActivityCard
+              key={activity.id}
+              activity={activity}
+              index={index}
+              subdomain={website.subdomain}
+              locale={locale}
+            />
           ))}
         </div>
 
@@ -148,6 +156,8 @@ export function ActivityCard({
   subdomain: string;
   locale: string;
   basePath?: string;
+  preferredCurrency?: string | null;
+  currencyConfig?: unknown;
 }) {
   const text = getPublicUiExtraTextGetter(locale);
   const base = overrideBasePath ?? `/site/${subdomain}`;
@@ -252,14 +262,9 @@ export function ActivityCard({
 
           <div className="flex-1" />
 
-          {/* Footer: price left + duration right, CTA */}
+          {/* Footer: duration + CTA (activity prices hidden by business rule) */}
           <div className="pt-4 flex items-end justify-between gap-4" style={{ borderTop: '1px solid var(--border-subtle)' }}>
-            <div>
-              <p className="font-mono text-[11px] uppercase tracking-[0.16em]" style={{ color: 'var(--text-muted)' }}>{text('sectionFrom')}</p>
-              <p className="product-price mt-1" style={{ color: 'var(--accent)' }}>
-                {activity.price || 'Consultar'}
-              </p>
-            </div>
+            <div />
             <div className="flex flex-col items-end gap-1">
               {activity.duration && (
                 <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={{

@@ -10,6 +10,8 @@ import { toPackageItems } from '@/lib/products/to-items';
 import type { WebsiteData } from '@/lib/supabase/get-website';
 import type { ProductData } from '@bukeer/website-contract';
 import { localeToLanguage, normalizeLocale } from '@/lib/seo/locale-routing';
+import { convertCurrencyAmount } from '@/lib/site/currency';
+import { usePreferredCurrency } from '@/lib/site/use-preferred-currency';
 
 interface PackagesListingPageProps {
   website: WebsiteData;
@@ -18,7 +20,8 @@ interface PackagesListingPageProps {
 
 function parseNumericPrice(price?: string): number | null {
   if (!price) return null;
-  const cleaned = price.replace(/[^0-9.]/g, '');
+  const cleaned = price.replace(/[^0-9]/g, '');
+  if (!cleaned) return null;
   const n = parseFloat(cleaned);
   return Number.isFinite(n) ? n : null;
 }
@@ -39,6 +42,16 @@ export function PackagesListingPage({ website, packages }: PackagesListingPagePr
     () => toPackageItems(packages, 0) as unknown as PackageItem[],
     [packages]
   );
+  const { currencyConfig, preferredCurrency } = usePreferredCurrency(website.content.account);
+
+  const getComparablePrice = (item: PackageItem): number | null => {
+    if (typeof item.priceValue === 'number' && Number.isFinite(item.priceValue) && item.priceValue > 0) {
+      const sourceCurrency = item.priceCurrency ?? null;
+      const targetCurrency = preferredCurrency ?? sourceCurrency;
+      return convertCurrencyAmount(item.priceValue, sourceCurrency, targetCurrency, currencyConfig);
+    }
+    return parseNumericPrice(item.price);
+  };
 
   // Extract unique destinations
   const uniqueDestinations = useMemo(() => {
@@ -72,7 +85,7 @@ export function PackagesListingPage({ website, packages }: PackagesListingPagePr
   // Price range options
   const priceOptions = useMemo(() => {
     const prices = packageItems
-      .map((p) => parseNumericPrice(p.price))
+      .map((p) => getComparablePrice(p))
       .filter((n): n is number => n !== null && n > 0);
     if (prices.length === 0) return [];
 
@@ -81,7 +94,7 @@ export function PackagesListingPage({ website, packages }: PackagesListingPagePr
       { label: 'Medio', value: 'mid' },
       { label: 'Premium', value: 'premium' },
     ];
-  }, [packageItems]);
+  }, [packageItems, preferredCurrency, currencyConfig]);
 
   // Filter logic
   const filteredPackages = useMemo(() => {
@@ -93,7 +106,7 @@ export function PackagesListingPage({ website, packages }: PackagesListingPagePr
 
     if (activePriceRange !== 'all') {
       items = items.filter((p) => {
-        const n = parseNumericPrice(p.price);
+        const n = getComparablePrice(p);
         if (n === null) return false;
         switch (activePriceRange) {
           case 'budget': return n <= 500;
@@ -123,10 +136,10 @@ export function PackagesListingPage({ website, packages }: PackagesListingPagePr
     // Sort
     switch (sortBy) {
       case 'price-asc':
-        items.sort((a, b) => (parseNumericPrice(a.price) || 0) - (parseNumericPrice(b.price) || 0));
+        items.sort((a, b) => (getComparablePrice(a) || 0) - (getComparablePrice(b) || 0));
         break;
       case 'price-desc':
-        items.sort((a, b) => (parseNumericPrice(b.price) || 0) - (parseNumericPrice(a.price) || 0));
+        items.sort((a, b) => (getComparablePrice(b) || 0) - (getComparablePrice(a) || 0));
         break;
       case 'duration':
         items.sort((a, b) => {
@@ -150,7 +163,15 @@ export function PackagesListingPage({ website, packages }: PackagesListingPagePr
     }
 
     return items;
-  }, [packageItems, activeDestination, activePriceRange, activeDuration, sortBy]);
+  }, [
+    packageItems,
+    activeDestination,
+    activePriceRange,
+    activeDuration,
+    sortBy,
+    preferredCurrency,
+    currencyConfig,
+  ]);
 
   const anyFilterActive = activeDestination !== 'all' || activePriceRange !== 'all' || activeDuration !== 'all';
 
@@ -592,6 +613,8 @@ export function PackagesListingPage({ website, packages }: PackagesListingPagePr
                 index={i}
                 subdomain={website.subdomain}
                 basePath={basePath}
+                preferredCurrency={preferredCurrency}
+                currencyConfig={currencyConfig}
               />
             ))}
           </div>

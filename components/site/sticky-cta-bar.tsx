@@ -18,6 +18,8 @@ interface StickyCTABarProps {
   sentinelId?: string;
   /** Optional analytics dimensions merged into whatsapp_cta_click / phone_cta_click events. */
   analyticsContext?: Record<string, string | number | boolean | null | undefined>;
+  whatsappLabel?: string;
+  hidePrice?: boolean;
 }
 
 export function StickyCTABar({
@@ -30,6 +32,8 @@ export function StickyCTABar({
   className,
   sentinelId = 'detail-sticky-sentinel',
   analyticsContext,
+  whatsappLabel,
+  hidePrice = false,
 }: StickyCTABarProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
@@ -41,6 +45,7 @@ export function StickyCTABar({
   const convertedPrice = convertCurrencyAmount(price, currency, effectiveCurrency, currencyConfig ?? null);
   const priceLabel = formatPriceOrConsult(convertedPrice, effectiveCurrency ?? currency);
   const uiMessages = getPublicUiMessages('es-CO');
+  const resolvedWhatsappLabel = whatsappLabel?.trim() || uiMessages.stickyCta.whatsapp;
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -105,9 +110,13 @@ export function StickyCTABar({
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
       <div className="mx-auto flex max-w-screen-lg items-center gap-3 px-4 py-2 sm:px-6 sm:py-3">
-        <p className="min-w-0 flex-1 truncate text-xs font-semibold text-foreground sm:text-sm">
-          {uiMessages.stickyCta.fromLabel} <span className="text-primary">{priceLabel}</span>
-        </p>
+        {!hidePrice ? (
+          <p className="min-w-0 flex-1 truncate text-xs font-semibold text-foreground sm:text-sm">
+            {uiMessages.stickyCta.fromLabel} <span className="text-primary">{priceLabel}</span>
+          </p>
+        ) : (
+          <div className="min-w-0 flex-1" />
+        )}
 
         {whatsappUrl ? (
           <a
@@ -121,7 +130,7 @@ export function StickyCTABar({
             className="inline-flex items-center justify-center rounded-full px-3 py-2 text-xs font-semibold sm:px-5 sm:text-sm"
             style={{ backgroundColor: 'hsl(var(--accent))', color: 'hsl(var(--accent-text))' }}
           >
-            {uiMessages.stickyCta.whatsapp}
+            {resolvedWhatsappLabel}
           </a>
         ) : null}
 

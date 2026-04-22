@@ -30,6 +30,7 @@ import { SectionErrorBoundary } from '@/components/site/section-error-boundary';
 import { StickyCTABar } from '@/components/site/sticky-cta-bar';
 import { MediaLightbox } from '@/components/site/media-lightbox';
 import { ProductVideoHero } from '@/components/site/product-video-hero';
+import { OptionsTable } from '@/components/site/options-table';
 import { buildWhatsAppUrl } from '@/components/site/whatsapp-url';
 import { HeroSplit } from '@/components/site/product-detail/p1/hero-split';
 import { GalleryStrip } from '@/components/site/product-detail/p1/gallery-strip';
@@ -112,11 +113,6 @@ const ActivityCircuitMap = dynamic(
 
 const ProgramTimeline = dynamic(
   () => import('@/components/site/program-timeline').then((mod) => mod.ProgramTimeline),
-  { loading: () => <SectionSkeleton /> }
-);
-
-const OptionsTable = dynamic(
-  () => import('@/components/site/options-table').then((mod) => mod.OptionsTable),
   { loading: () => <SectionSkeleton /> }
 );
 
@@ -561,7 +557,7 @@ export function ProductLandingPage({
       title: sanitizeProductCopy(item.name) || item.name,
       location: item.location ?? null,
       image: item.image ?? null,
-      priceLabel: item.price
+      priceLabel: productType !== 'activity' && item.price
         ? formatPriceOrConsult(
             convertCurrencyAmount(item.price, item.currency, preferredCurrency ?? item.currency, currencyConfig ?? null),
             preferredCurrency ?? item.currency
@@ -610,7 +606,11 @@ export function ProductLandingPage({
         backgroundImage={customHero?.backgroundImage || images[0]}
         hotelStars={hotelStars}
         chips={heroChips}
-        priceLabel={normalizedProduct.price !== null ? formatPriceOrConsult(displayedBasePrice, displayedCurrency ?? sourceCurrency) : null}
+        priceLabel={
+          productType !== 'activity' && normalizedProduct.price !== null
+            ? formatPriceOrConsult(displayedBasePrice, displayedCurrency ?? sourceCurrency)
+            : null
+        }
         whatsappUrl={whatsappUrl}
         onWhatsAppClick={handleWhatsAppClick('hero')}
         videoAction={
@@ -629,13 +629,14 @@ export function ProductLandingPage({
 
       {showStickyCta ? (
         <StickyCTABar
-          price={normalizedProduct.price}
+          price={productType === 'activity' ? null : normalizedProduct.price}
           currency={sourceCurrency}
           preferredCurrency={displayedCurrency}
           currencyConfig={currencyConfig}
           whatsappUrl={whatsappUrl}
           phone={primaryPhone || website.content.social?.whatsapp || null}
           analyticsContext={analyticsContext}
+          hidePrice={productType === 'activity'}
         />
       ) : null}
 
@@ -818,7 +819,7 @@ export function ProductLandingPage({
               </SectionErrorBoundary>
             )}
 
-            {!isTransfer && (
+            {!isTransfer && productType !== 'activity' && (
               <SectionErrorBoundary sectionName="options-table">
                 <div data-testid="detail-options">
                   <OptionsTable
@@ -836,7 +837,7 @@ export function ProductLandingPage({
             <div data-testid="detail-sidebar" className="lg:col-span-1">
               <div className="lg:sticky lg:top-28">
                 <ProductSummarySidebar
-                  priceLabel={selectedTierPriceLabel}
+                  priceLabel={productType === 'activity' ? null : selectedTierPriceLabel}
                   facts={sidebarFacts}
                   whatsappUrl={whatsappUrl}
                   phoneHref={callHref}
