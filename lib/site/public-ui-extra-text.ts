@@ -123,6 +123,7 @@ const BASE_EXTRA_TEXTS = {
   // ---------------- editorial-v1 template set ----------------
   // Chrome / layout
   editorialHeaderQuoteCta: 'Cotizar viaje',
+  editorialHeaderWhatsappCta: 'Planear por WhatsApp',
   editorialHeaderNavAria: 'Principal',
   editorialHeaderMobileMenuAria: 'Menú móvil',
   editorialHeaderMenuOpen: 'Abrir menú',
@@ -165,6 +166,7 @@ const BASE_EXTRA_TEXTS = {
   editorialHeroPresenting: 'Presentando',
   editorialHeroDotsAria: 'Seleccionar slide',
   editorialHeroSlidePrefix: 'Slide',
+  editorialHeroWhatsappMeta: 'Responden en ~3 min · Planner humano',
 
   // Hero search
   editorialSearchPlaceholderDestino: 'Caribe · Colombia',
@@ -286,6 +288,7 @@ const BASE_EXTRA_TEXTS = {
   editorialTrustHumanReviewBody: 'cada itinerario',
   editorialTrustAriaLabel: 'Credibilidad y confianza',
   editorialTrustVerifiedSuffix: 'reseñas verificadas',
+  editorialTrustLogosLabel: 'Reconocidos por',
 
   // Listing map
   editorialListingMapAriaFallback: 'Mapa de listado',
@@ -334,8 +337,17 @@ const BASE_EXTRA_TEXTS = {
   editorialExperiencesSubtitle:
     'Oficios, caminatas, cocina, mar, selva. Reservables sueltas o como add-on a cualquier paquete.',
   editorialExperiencesDurationLabel: 'Duración',
+  editorialExperiencesSortLabel: 'Ordenar',
+  editorialExperiencesSortPopular: 'Más populares',
+  editorialExperiencesSortRating: 'Mejor calificadas',
+  editorialExperiencesSortPriceAsc: 'Precio · menor a mayor',
+  editorialExperiencesSortPriceDesc: 'Precio · mayor a menor',
+  editorialExperiencesSortDuration: 'Duración · más cortas',
   editorialExperiencesRegionLabel: 'Región',
+  editorialExperiencesLocationLabel: 'Ubicación',
   editorialExperiencesLevelLabel: 'Nivel',
+  editorialExperiencesKeywordLabel: 'Palabra clave',
+  editorialExperiencesKeywordPlaceholder: 'Buscar por palabra clave',
   editorialExperiencesClearAll: 'Limpiar todo',
   editorialExperiencesCountSuffix: 'experiencias',
   editorialExperiencesEmptyHeading: 'Nada con esos criterios',
@@ -500,6 +512,7 @@ export type PublicUiExtraTextKey = keyof typeof BASE_EXTRA_TEXTS;
 
 const EN_US_OVERRIDES: Partial<Record<PublicUiExtraTextKey, string>> = {
   editorialHeaderQuoteCta: 'Get a quote',
+  editorialHeaderWhatsappCta: 'Plan on WhatsApp',
   editorialHeaderNavAria: 'Main',
   editorialHeaderMobileMenuAria: 'Mobile menu',
   editorialHeaderMenuOpen: 'Open menu',
@@ -541,6 +554,7 @@ const EN_US_OVERRIDES: Partial<Record<PublicUiExtraTextKey, string>> = {
   editorialHeroPresenting: 'Now showing',
   editorialHeroDotsAria: 'Select slide',
   editorialHeroSlidePrefix: 'Slide',
+  editorialHeroWhatsappMeta: 'Replies in about 3 min · Human planner',
 
   editorialSearchPlaceholderDestino: 'Caribbean · Colombia',
   editorialSearchPlaceholderFechas: 'October 2026 · 7 nights',
@@ -563,6 +577,15 @@ const EN_US_OVERRIDES: Partial<Record<PublicUiExtraTextKey, string>> = {
   editorialPackagesRailAria: 'Packages carousel',
   editorialPackagesWord: 'packages',
   editorialPackageWord: 'package',
+  editorialExperiencesSortLabel: 'Sort by',
+  editorialExperiencesSortPopular: 'Most popular',
+  editorialExperiencesSortRating: 'Top rated',
+  editorialExperiencesSortPriceAsc: 'Price · low to high',
+  editorialExperiencesSortPriceDesc: 'Price · high to low',
+  editorialExperiencesSortDuration: 'Duration · shortest first',
+  editorialExperiencesLocationLabel: 'Location',
+  editorialExperiencesKeywordLabel: 'Keyword',
+  editorialExperiencesKeywordPlaceholder: 'Search by keyword',
 
   editorialTrustLiveLabel: 'Planners online',
   editorialTrustResponsePrefix: 'reply in about ',
@@ -576,6 +599,7 @@ const EN_US_OVERRIDES: Partial<Record<PublicUiExtraTextKey, string>> = {
   editorialTrustHumanReviewBody: 'every itinerary',
   editorialTrustAriaLabel: 'Trust and credibility',
   editorialTrustVerifiedSuffix: 'verified reviews',
+  editorialTrustLogosLabel: 'Recognized by',
   editorialPackageDurationLabel: 'Duration',
   editorialPackageDestinationsLabel: 'Destinations',
   editorialPackageRatingLabel: 'Rating',

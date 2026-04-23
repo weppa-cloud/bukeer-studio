@@ -34,6 +34,7 @@ import { getBasePath } from '@/lib/utils/base-path';
 import { getEditorialTextGetter, localizeEditorialText } from '../i18n';
 
 import { Icons } from '../primitives/icons';
+import { WaflowCTAButton } from '../waflow/cta-button';
 
 export interface EditorialCtaSectionProps {
   section: WebsiteSection;
@@ -195,21 +196,39 @@ export function CtaSection({
 
           {ctas.length > 0 ? (
             <div className="actions">
-              {ctas.map((cta, i) => (
-                <a
-                  key={`${cta.label}-${i}`}
-                  href={resolveCtaHref(cta.href, website, basePath)}
-                  className={ctaClassFor(cta.variant, i)}
-                  style={i > 0 && !cta.variant ? { color: '#fff' } : undefined}
-                >
-                  {cta.label}
-                  {cta.variant === 'ghost' ? (
-                    Icons.whatsapp({ size: 16 })
-                  ) : (
-                    Icons.arrow({ size: 14 })
-                  )}
-                </a>
-              ))}
+              {ctas.map((cta, i) => {
+                const resolvedHref = resolveCtaHref(cta.href, website, basePath);
+                const isWhatsApp =
+                  cta.href === '{{whatsapp}}' || cta.href === 'whatsapp' || resolvedHref.includes('wa.me');
+                if (isWhatsApp) {
+                  return (
+                    <WaflowCTAButton
+                      key={`${cta.label}-${i}`}
+                      variant="A"
+                      fallbackHref={resolvedHref}
+                      className={ctaClassFor(cta.variant, i)}
+                    >
+                      {cta.label}
+                      {Icons.whatsapp({ size: 16 })}
+                    </WaflowCTAButton>
+                  );
+                }
+                return (
+                  <a
+                    key={`${cta.label}-${i}`}
+                    href={resolvedHref}
+                    className={ctaClassFor(cta.variant, i)}
+                    style={i > 0 && !cta.variant ? { color: '#fff' } : undefined}
+                  >
+                    {cta.label}
+                    {cta.variant === 'ghost' ? (
+                      Icons.whatsapp({ size: 16 })
+                    ) : (
+                      Icons.arrow({ size: 14 })
+                    )}
+                  </a>
+                );
+              })}
             </div>
           ) : null}
         </div>

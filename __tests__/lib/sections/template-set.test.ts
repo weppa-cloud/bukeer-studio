@@ -130,3 +130,28 @@ describe('resolveTemplateSet — opt-in', () => {
     expect(resolveTemplateSet(website)).toBe('editorial-v1');
   });
 });
+
+describe('resolveTemplateSet — colombiatours fallback', () => {
+  it('returns editorial-v1 for colombiatours when metadata is missing', () => {
+    const website = {
+      subdomain: 'colombiatours',
+      theme: {
+        tokens: {},
+        profile: {},
+      },
+    };
+    expect(resolveTemplateSet(website)).toBe('editorial-v1');
+  });
+
+  it('returns editorial-v1 for colombiatours when metadata.templateSet is invalid', () => {
+    const website = {
+      custom_domain: 'colombiatours.travel',
+      theme: {
+        profile: {
+          metadata: { templateSet: 'editorial-v2' },
+        },
+      },
+    };
+    expect(resolveTemplateSet(website)).toBe('editorial-v1');
+  });
+});

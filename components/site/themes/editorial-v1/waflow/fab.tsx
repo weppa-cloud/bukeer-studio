@@ -8,9 +8,8 @@
  *   - A small "bocadillo" (tooltip bubble) that hides after 8s
  *
  * Visibility:
- *   - Hidden until the user scrolls past 50% of the first viewport
- *     (heuristic from the designer prototype)
- *   - Or until 20s have passed (failsafe for short pages)
+ *   - Hidden until the user scrolls past the first viewport
+ *     (we avoid competing with the primary hero CTA above the fold)
  *
  * Tapping it opens Variant A via the context.
  */
@@ -24,22 +23,22 @@ export function WaflowFab() {
   const { openVariantA, responseTime, isOpen } = useWaflow();
   const [show, setShow] = useState(false);
   const [bubble, setBubble] = useState(true);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hasShownRef = useRef(false);
 
-  // Show after scroll + failsafe 20s timer.
+  // Show only after the user goes past the first fold.
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const onScroll = () => {
-      if (window.scrollY > window.innerHeight * 0.5) {
+      if (hasShownRef.current) return;
+      if (window.scrollY > window.innerHeight * 1.05) {
+        hasShownRef.current = true;
         setShow(true);
       }
     };
-    timeoutRef.current = setTimeout(() => setShow(true), 20_000);
     window.addEventListener('scroll', onScroll, { passive: true });
     onScroll();
     return () => {
       window.removeEventListener('scroll', onScroll);
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
   }, []);
 

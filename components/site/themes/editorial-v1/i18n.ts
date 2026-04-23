@@ -25,6 +25,8 @@ const EN_EDITORIAL_COPY_OVERRIDES: Record<string, string> = {
   'Itinerarios diseñados con guías locales, fincas familiares y rincones que no salen en las guías. Desde el Caribe hasta la Amazonía.':
     'Journeys designed with local guides, family-run fincas, and places beyond guidebooks. From the Caribbean to the Amazon.',
   'Planea mi viaje': 'Plan my trip',
+  'Planea mi viaje por WhatsApp': 'Plan my trip on WhatsApp',
+  'Planear por WhatsApp': 'Plan on WhatsApp',
   'Ver experiencias': 'View experiences',
   'Ocho Colombias, <em>un mismo viaje.</em>': 'Eight Colombias, <em>one journey.</em>',
   'Ocho Colombias <em>en un mismo viaje.</em>': 'Eight Colombias <em>in one journey.</em>',
@@ -68,6 +70,7 @@ const EN_EDITORIAL_COPY_OVERRIDES: Record<string, string> = {
   'Cuéntanos qué buscas, recibe una propuesta en 24h con 2–3 rutas posibles, y ajusta con tu planner hasta que sea el viaje que quieres.':
     'Tell us what you are looking for, get a proposal in 24h with 2-3 route options, and fine-tune it with your planner.',
   'Chat WhatsApp': 'WhatsApp chat',
+  'Responden en ~3 min · Planner humano': 'Replies in about 3 min · Human planner',
 };
 
 const EN_EDITORIAL_FRAGMENT_OVERRIDES: Array<[from: string, to: string]> = [

@@ -227,6 +227,8 @@ export function EditorialPlannersListPage({
       <section style={heroStyle} className="planners-hero">
         <div className="ev-container" style={{ position: 'relative', zIndex: 1 }}>
           <Breadcrumbs
+            tone="inverse"
+            className="pkg-hero-breadcrumb"
             items={[
               { label: editorialText('editorialBreadcrumbHome'), href: basePath || '/' },
               { label: editorialText('sectionPlannersTitle') },

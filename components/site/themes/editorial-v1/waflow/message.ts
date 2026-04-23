@@ -8,6 +8,8 @@
  * server code (the /api/waflow/lead route) and unit-tested cheaply.
  */
 
+import { parsePhoneNumberFromString } from 'libphonenumber-js/min';
+
 import type {
   WaflowConfig,
   WaflowCountry,
@@ -22,13 +24,13 @@ export interface WaflowMessageInput {
   destinationChoice?: string;
   destFull?: string;
   when?: string;
-  adults: number;
-  children: number;
-  interests: string[];
-  adjust?: string[];
   pkgTitle?: string;
   pkgDays?: number | null;
   pkgNights?: number | null;
+  adults?: number | null;
+  children?: number | null;
+  notes?: string | null;
+  sourceUrl?: string | null;
   ref: string;
 }
 
@@ -44,20 +46,17 @@ export function buildWaflowMessage(input: WaflowMessageInput): string {
     destinationChoice,
     destFull,
     when,
-    adults,
-    children,
-    interests,
-    adjust,
+    country,
+    phone,
     pkgTitle,
     pkgDays,
     pkgNights,
+    adults,
+    children,
+    notes,
+    sourceUrl,
     ref,
   } = input;
-
-  const paxStr =
-    children > 0
-      ? `${adults} adulto${adults !== 1 ? 's' : ''} + ${children} niño${children !== 1 ? 's' : ''}`
-      : `${adults} adulto${adults !== 1 ? 's' : ''}`;
 
   const lines: Array<string | null> = [];
 
@@ -70,19 +69,11 @@ export function buildWaflowMessage(input: WaflowMessageInput): string {
         : '📍 Destino: por definir',
     );
     lines.push(`📅 Cuándo: ${when || 'Flexible'}`);
-    lines.push(`👥 Viajeros: ${paxStr}`);
-    if (interests.length > 0) {
-      lines.push(`✨ Intereses: ${interests.join(', ')}`);
-    }
   } else if (variant === 'B') {
     lines.push(`¡Hola! Quiero planear un viaje a ${destFull || 'Colombia'} 👋`);
     lines.push('');
     lines.push(`📍 Destino: ${destFull || 'Colombia'}`);
     lines.push(`📅 Cuándo: ${when || 'Flexible'}`);
-    lines.push(`👥 Viajeros: ${paxStr}`);
-    if (interests.length > 0) {
-      lines.push(`✨ Me interesa: ${interests.join(', ')}`);
-    }
   } else {
     // variant === 'D'
     lines.push(`¡Hola! Me interesa el paquete "${pkgTitle ?? ''}" 👋`);
@@ -95,12 +86,19 @@ export function buildWaflowMessage(input: WaflowMessageInput): string {
       .join(' · ');
     lines.push(`📦 Paquete: ${pkgMeta}`);
     lines.push(`📅 Cuándo: ${when || 'Flexible'}`);
-    lines.push(`👥 Viajeros: ${paxStr}`);
-    if (adjust && adjust.length > 0) {
-      lines.push(`🛠️ Ajustes: ${adjust.join(', ')}`);
-    }
   }
 
+  lines.push(`📲 Contacto: ${normalizeWaflowPhone(phone, country) ?? `${country.code}${phone.replace(/\D/g, '')}`}`);
+  if (typeof adults === 'number' && adults > 0) {
+    const kids = typeof children === 'number' && children > 0 ? ` + ${children} niños` : '';
+    lines.push(`👥 Viajeros: ${adults} adultos${kids}`);
+  }
+  if (notes && notes.trim().length > 0) {
+    lines.push(`📝 Nota: ${notes.trim()}`);
+  }
+  if (sourceUrl && sourceUrl.trim().length > 0) {
+    lines.push(`🔗 Origen: ${sourceUrl.trim()}`);
+  }
   lines.push('');
   lines.push(`— ${name.trim()}`);
   lines.push('');
@@ -138,8 +136,18 @@ export function makeWaflowRef(prefix: string): string {
 }
 
 export function validateWaflowPhone(phone: string, country: WaflowCountry): boolean {
+  return normalizeWaflowPhone(phone, country) !== null;
+}
+
+export function normalizeWaflowPhone(
+  phone: string,
+  country: WaflowCountry,
+): string | null {
   const clean = phone.replace(/\D/g, '');
-  return clean.length === country.len;
+  if (!clean) return null;
+  const parsed = parsePhoneNumberFromString(`${country.code}${clean}`);
+  if (!parsed || !parsed.isValid()) return null;
+  return parsed.number;
 }
 
 /**

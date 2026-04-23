@@ -10,6 +10,9 @@ import { useWebsiteLocale } from '@/lib/hooks/use-website-locale';
 import { buildEntityAlt } from '@/lib/utils/entity-alt';
 import { formatCircuitStops, getPackageCircuitStops, type PackageItineraryItem } from '@/lib/products/package-circuit';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
+import { formatPriceOrConsult } from '@/lib/products/format-price';
+import { convertCurrencyAmount, type CurrencyConfig } from '@/lib/site/currency';
+import { usePreferredCurrency } from '@/lib/site/use-preferred-currency';
 
 interface PackagesSectionProps {
   section: WebsiteSection;
@@ -24,6 +27,8 @@ export interface PackageItem {
   destination?: string;
   duration?: string;
   price?: string;
+  priceValue?: number | null;
+  priceCurrency?: string | null;
   description?: string;
   category?: string;
   highlights?: string[];
@@ -48,6 +53,7 @@ export function PackagesSection({ section, website }: PackagesSectionProps) {
   const subtitle = sectionContent.subtitle;
   const eyebrow = sectionContent.eyebrow || 'Experiencias Curadas';
   const packages = useMemo(() => sectionContent.packages ?? [], [sectionContent.packages]);
+  const { currencyConfig, preferredCurrency } = usePreferredCurrency(website.content.account);
 
   // Destination filter state
   const [activeDestination, setActiveDestination] = useState<string>(allDestinationsLabel);
@@ -88,12 +94,27 @@ export function PackagesSection({ section, website }: PackagesSectionProps) {
             ariaLabel="Carrusel de paquetes"
             getItemKey={(pkg) => pkg.id}
             itemWidthClassName="w-[88%] sm:w-[72%]"
-            renderItem={(pkg, index) => <PackageCard pkg={pkg} index={index} subdomain={website.subdomain} />}
+            renderItem={(pkg, index) => (
+              <PackageCard
+                pkg={pkg}
+                index={index}
+                subdomain={website.subdomain}
+                preferredCurrency={preferredCurrency}
+                currencyConfig={currencyConfig}
+              />
+            )}
           />
 
           <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredPackages.map((pkg, index) => (
-              <PackageCard key={pkg.id} pkg={pkg} index={index} subdomain={website.subdomain} />
+              <PackageCard
+                key={pkg.id}
+                pkg={pkg}
+                index={index}
+                subdomain={website.subdomain}
+                preferredCurrency={preferredCurrency}
+                currencyConfig={currencyConfig}
+              />
             ))}
           </div>
 
@@ -131,7 +152,14 @@ export function PackagesSection({ section, website }: PackagesSectionProps) {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredPackages.map((pkg, index) => (
-            <PackageCard key={pkg.id} pkg={pkg} index={index} subdomain={website.subdomain} />
+            <PackageCard
+              key={pkg.id}
+              pkg={pkg}
+              index={index}
+              subdomain={website.subdomain}
+              preferredCurrency={preferredCurrency}
+              currencyConfig={currencyConfig}
+            />
           ))}
         </div>
 
@@ -217,7 +245,35 @@ function isNew(createdAt?: string): boolean {
   return diffDays < 30;
 }
 
-export function PackageCard({ pkg, index, subdomain, basePath: overrideBasePath }: { pkg: PackageItem; index: number; subdomain: string; basePath?: string }) {
+function resolvePackagePriceLabel(
+  pkg: PackageItem,
+  preferredCurrency: string | null | undefined,
+  currencyConfig: CurrencyConfig | null | undefined
+): string {
+  if (typeof pkg.priceValue === 'number' && Number.isFinite(pkg.priceValue) && pkg.priceValue > 0) {
+    const sourceCurrency = pkg.priceCurrency ?? null;
+    const targetCurrency = preferredCurrency ?? sourceCurrency;
+    const converted = convertCurrencyAmount(pkg.priceValue, sourceCurrency, targetCurrency, currencyConfig ?? null);
+    return formatPriceOrConsult(converted, targetCurrency ?? sourceCurrency, { fallback: 'Consultar' });
+  }
+  return pkg.price || 'Consultar';
+}
+
+export function PackageCard({
+  pkg,
+  index,
+  subdomain,
+  basePath: overrideBasePath,
+  preferredCurrency,
+  currencyConfig,
+}: {
+  pkg: PackageItem;
+  index: number;
+  subdomain: string;
+  basePath?: string;
+  preferredCurrency?: string | null;
+  currencyConfig?: CurrencyConfig | null;
+}) {
   const locale = useWebsiteLocale();
   const text = getPublicUiExtraTextGetter(locale);
   const base = overrideBasePath ?? `/site/${subdomain}`;
@@ -234,6 +290,7 @@ export function PackageCard({ pkg, index, subdomain, basePath: overrideBasePath 
 
   const showPopular = pkg.featured === true || pkg.category === 'Popular';
   const showNew = !showPopular && isNew(pkg.created_at);
+  const displayPrice = resolvePackagePriceLabel(pkg, preferredCurrency, currencyConfig);
 
   return (
     <Link
@@ -363,7 +420,7 @@ export function PackageCard({ pkg, index, subdomain, basePath: overrideBasePath 
                 {text('sectionFrom')}
               </p>
               <p className="product-price mt-1" style={{ color: 'var(--accent)' }}>
-                {pkg.price || 'Consultar'}
+                {displayPrice}
               </p>
             </div>
             <span className="inline-flex items-center gap-1 font-mono text-xs uppercase tracking-wider" style={{ color: 'var(--accent)' }}>

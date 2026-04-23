@@ -26,7 +26,32 @@ function makeWebsite(templateSet: string | null): WebsiteData {
 }
 
 describe('editorial-v1 <TemplateSlot>', () => {
-  it('renders children when no editorial page variant exists for `package-detail`', () => {
+  it('renders editorial package-detail variant when payload is provided', () => {
+    const element = (
+      <TemplateSlot
+        name="package-detail"
+        website={makeWebsite('editorial-v1')}
+        payload={{
+          product: { id: 'p1', name: 'Caribe', slug: 'caribe', type: 'package' },
+          basePath: '/site/acme',
+          displayName: 'Caribe',
+          displayLocation: 'Cartagena',
+          resolvedLocale: 'es-CO',
+          googleReviews: [],
+          similarProducts: [],
+          faqs: [{ question: 'q', answer: 'a' }],
+        }}
+      >
+        <section data-testid="fallback">generic body</section>
+      </TemplateSlot>
+    );
+    const markup = renderToStaticMarkup(element);
+
+    expect(markup).toContain('data-editorial-variant="package-detail"');
+    expect(markup).toContain('data-screen-label="PackageDetail"');
+  });
+
+  it('falls back to children when package-detail payload is missing', () => {
     const element = (
       <TemplateSlot name="package-detail" website={makeWebsite('editorial-v1')}>
         <section data-testid="fallback">generic body</section>
@@ -35,7 +60,6 @@ describe('editorial-v1 <TemplateSlot>', () => {
     const markup = renderToStaticMarkup(element);
 
     expect(markup).toContain('data-testid="fallback"');
-    expect(markup).toContain('generic body');
   });
 
   it('renders children for websites with no template set', () => {

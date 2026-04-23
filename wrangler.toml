@@ -62,3 +62,31 @@ new_sqlite_classes = ["DOQueueHandler"]
 
 [env.staging.vars]
 NEXT_PUBLIC_MAIN_DOMAIN = "bukeer.com"
+
+# ── Development environment ────────────────────────────────────────────────
+
+[env.dev]
+name = "bukeer-web-public-dev"
+
+[[env.dev.services]]
+binding = "WORKER_SELF_REFERENCE"
+service = "bukeer-web-public-dev"
+
+[[env.dev.r2_buckets]]
+binding = "NEXT_INC_CACHE_R2_BUCKET"
+bucket_name = "bukeer-web-public-cache-dev"
+
+[[env.dev.durable_objects.bindings]]
+name = "NEXT_CACHE_DO_QUEUE"
+class_name = "DOQueueHandler"
+
+[[env.dev.migrations]]
+tag = "v1"
+new_sqlite_classes = ["DOQueueHandler"]
+
+[env.dev.vars]
+NEXT_PUBLIC_MAIN_DOMAIN = "bukeer.com"
+
+[[env.dev.routes]]
+pattern = "dev.studio.bukeer.com/*"
+zone_name = "bukeer.com"

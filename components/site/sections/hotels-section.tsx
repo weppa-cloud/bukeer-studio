@@ -8,6 +8,9 @@ import { MobileCardCarousel } from '@/components/ui/card-carousel';
 import { useWebsiteLocale } from '@/lib/hooks/use-website-locale';
 import { buildEntityAlt } from '@/lib/utils/entity-alt';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
+import { formatPriceOrConsult } from '@/lib/products/format-price';
+import { convertCurrencyAmount, type CurrencyConfig } from '@/lib/site/currency';
+import { usePreferredCurrency } from '@/lib/site/use-preferred-currency';
 
 interface HotelsSectionProps {
   section: WebsiteSection;
@@ -22,6 +25,8 @@ export interface HotelItem {
   location?: string;
   rating?: number;
   price?: string;
+  priceValue?: number | null;
+  priceCurrency?: string | null;
   reviewRating?: number;
   reviewCount?: number;
   badge?: string;
@@ -42,6 +47,7 @@ export function HotelsSection({ section, website }: HotelsSectionProps) {
   const title = sectionContent.title || text('sectionHotelsTitle');
   const subtitle = sectionContent.subtitle;
   const hotels = sectionContent.hotels || [];
+  const { currencyConfig, preferredCurrency } = usePreferredCurrency(website.content.account);
 
   if (hotels.length === 0) return null;
 
@@ -62,12 +68,27 @@ export function HotelsSection({ section, website }: HotelsSectionProps) {
           ariaLabel="Carrusel de hoteles"
           getItemKey={(hotel) => hotel.id}
           itemWidthClassName="w-[88%] sm:w-[72%]"
-          renderItem={(hotel, index) => <HotelCard hotel={hotel} index={index} subdomain={website.subdomain} />}
+          renderItem={(hotel, index) => (
+            <HotelCard
+              hotel={hotel}
+              index={index}
+              subdomain={website.subdomain}
+              preferredCurrency={preferredCurrency}
+              currencyConfig={currencyConfig}
+            />
+          )}
         />
 
         <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {hotels.map((hotel, index) => (
-            <HotelCard key={hotel.id} hotel={hotel} index={index} subdomain={website.subdomain} />
+            <HotelCard
+              key={hotel.id}
+              hotel={hotel}
+              index={index}
+              subdomain={website.subdomain}
+              preferredCurrency={preferredCurrency}
+              currencyConfig={currencyConfig}
+            />
           ))}
         </div>
 
@@ -154,9 +175,37 @@ function AmenityIcon({ type }: { type: string }) {
   );
 }
 
-export function HotelCard({ hotel, index, subdomain, basePath: overrideBasePath }: { hotel: HotelItem; index: number; subdomain: string; basePath?: string }) {
+export function HotelCard({
+  hotel,
+  index,
+  subdomain,
+  basePath: overrideBasePath,
+  preferredCurrency,
+  currencyConfig,
+}: {
+  hotel: HotelItem;
+  index: number;
+  subdomain: string;
+  basePath?: string;
+  preferredCurrency?: string | null;
+  currencyConfig?: CurrencyConfig | null;
+}) {
   const locale = useWebsiteLocale();
   const text = getPublicUiExtraTextGetter(locale);
+  const displayPrice =
+    typeof hotel.priceValue === 'number' && Number.isFinite(hotel.priceValue) && hotel.priceValue > 0
+      ? formatPriceOrConsult(
+          convertCurrencyAmount(
+            hotel.priceValue,
+            hotel.priceCurrency ?? null,
+            preferredCurrency ?? hotel.priceCurrency ?? null,
+            currencyConfig ?? null,
+          ),
+          preferredCurrency ?? hotel.priceCurrency ?? null,
+          { fallback: 'Consultar' },
+        )
+      : (hotel.price || 'Consultar');
+  const displayPriceWithUnit = displayPrice === 'Consultar' ? displayPrice : `${displayPrice} / noche`;
   const base = overrideBasePath ?? `/site/${subdomain}`;
   const detailSlug = (hotel.slug || '').trim();
   const detailHref = detailSlug
@@ -272,7 +321,7 @@ export function HotelCard({ hotel, index, subdomain, basePath: overrideBasePath 
                 {text('sectionFrom')}
               </p>
               <p className="product-price mt-1" style={{ color: 'var(--accent)' }}>
-                {hotel.price ? `${hotel.price} / noche` : 'Consultar'}
+                {displayPriceWithUnit}
               </p>
             </div>
             <span className="inline-flex items-center gap-1 font-mono text-xs uppercase tracking-wider" style={{ color: 'var(--accent)' }}>

@@ -6,7 +6,12 @@
  *
  * Resolution:
  *   website.theme.profile.metadata.templateSet → validated against
- *   KNOWN_TEMPLATE_SETS → returned, otherwise `null` (fall back to generic).
+ *   KNOWN_TEMPLATE_SETS → returned.
+ *
+ * Fallback (pilot safety net):
+ *   colombiatours tenant → `editorial-v1` even when metadata is missing.
+ *
+ * Otherwise returns `null` (fall back to generic).
  *
  * Wave 1.1 only adds plumbing; editorial-v1 is declared but its section
  * registry is empty. Later waves populate it without restructuring callers.
@@ -63,8 +68,27 @@ export function resolveTemplateSet(website: unknown): TemplateSet | null {
   if (!profile || typeof profile !== 'object') return null;
 
   const metadata = (profile as { metadata?: unknown }).metadata;
-  if (!metadata || typeof metadata !== 'object') return null;
+  if (!metadata || typeof metadata !== 'object') {
+    return isColombiaToursTenant(website) ? 'editorial-v1' : null;
+  }
 
   const templateSet = (metadata as { templateSet?: unknown }).templateSet;
-  return isKnownTemplateSet(templateSet) ? templateSet : null;
+  if (isKnownTemplateSet(templateSet)) return templateSet;
+
+  return isColombiaToursTenant(website) ? 'editorial-v1' : null;
+}
+
+function isColombiaToursTenant(website: unknown): boolean {
+  if (!website || typeof website !== 'object') return false;
+
+  const subdomain = (website as { subdomain?: unknown }).subdomain;
+  if (typeof subdomain === 'string' && subdomain.trim().toLowerCase() === 'colombiatours') {
+    return true;
+  }
+
+  const customDomain = (website as { custom_domain?: unknown }).custom_domain;
+  if (typeof customDomain !== 'string') return false;
+
+  const normalized = customDomain.trim().toLowerCase();
+  return normalized === 'colombiatours.travel' || normalized.endsWith('.colombiatours.travel');
 }

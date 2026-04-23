@@ -39,9 +39,8 @@ import { getBasePath } from '@/lib/utils/base-path';
 import dynamic from 'next/dynamic';
 import { applyContentTranslations } from '@/lib/sections/apply-content-translations';
 import { resolveTemplateSet } from '@/lib/sections/template-set';
-import { EditorialActivityStatsBar } from '@/components/site/themes/editorial-v1/pages/editorial-activity-stats-bar';
-import { EditorialPackageStatsBar } from '@/components/site/themes/editorial-v1/pages/editorial-package-stats-bar';
-import { EditorialPackageOverlay } from '@/components/site/themes/editorial-v1/pages/editorial-package-overlay';
+import { ACTIVITY_FAQS_DEFAULT } from '@/lib/products/activity-faqs-default';
+import { PACKAGE_FAQS_DEFAULT } from '@/lib/products/package-faqs-default';
 
 const DestinationListingPage = dynamic(
   () => import('@/components/pages/destination-listing-page').then(m => m.DestinationListingPage)
@@ -398,7 +397,7 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
       const siteName = website.content?.account?.name || website.content?.siteName || subdomain;
       const override = await getDestinationSeoOverride(website.id, dest.slug);
       const title = override?.custom_seo_title || `${dest.name} | ${siteName}`;
-      const description = override?.custom_seo_description || `Explora ${dest.name}: ${dest.hotel_count} hoteles y ${dest.activity_count} actividades${dest.min_price ? ` desde ${dest.min_price}` : ''}. Reserva con ${siteName}.`;
+      const description = override?.custom_seo_description || `Explora ${dest.name}: ${dest.hotel_count} hoteles y ${dest.activity_count} actividades. Reserva con ${siteName}.`;
       const pathname = `/destinos/${dest.slug}`;
       const metadata: Metadata = {
         title,
@@ -566,7 +565,19 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
   const description = page.seo_description || '';
   const canonicalUrl = buildCanonicalUrl(baseUrl, `/${slugPath}`, localeContext);
 
-  const ogImage = resolveOgImage(website);
+  // Prefer the page's own hero section backgroundImage as OG image.
+  // This also causes Next.js to emit <link rel="preload"> for the LCP image in <head>,
+  // fixing 5+ second Load Delay caused by the preload being discovered late in RSC payload.
+  const pageHeroSection = page.sections?.find((s) => {
+    const raw = s as unknown as Record<string, unknown>;
+    const t = s.type || (raw.sectionType as string) || (raw.section_type as string) || '';
+    return t.startsWith('hero');
+  });
+  const pageHeroImage =
+    (pageHeroSection?.content as Record<string, unknown> | undefined)?.backgroundImage as string | undefined
+    || page.hero_config?.backgroundImage as string | undefined;
+
+  const ogImage = resolveOgImage(website, pageHeroImage || null);
   const metadata: Metadata = {
     title,
     description,
@@ -851,20 +862,38 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
           | EditorialHotelDetailPayload
           | null = null;
         if (productType === 'package') {
+          const packageFaqs =
+            Array.isArray(productPage.page?.custom_faq) && productPage.page.custom_faq.length > 0
+              ? productPage.page.custom_faq
+              : PACKAGE_FAQS_DEFAULT;
           slotName = 'package-detail';
           editorialPayload = {
             product: productPage.product,
             basePath,
             displayName,
             displayLocation,
+            resolvedLocale: productLocaleContext.resolvedLocale,
+            googleReviews: productReviews,
+            similarProducts,
+            faqs: packageFaqs,
+            package_parity_snapshot: ((productPage.product as unknown as Record<string, unknown>).package_parity_snapshot ?? null) as EditorialPackageDetailPayload['package_parity_snapshot'],
           } satisfies EditorialPackageDetailPayload;
         } else if (productType === 'activity') {
           slotName = 'activity-detail';
+          const activityFaqs =
+            Array.isArray(productPage.page?.custom_faq) && productPage.page.custom_faq.length > 0
+              ? productPage.page.custom_faq
+              : ACTIVITY_FAQS_DEFAULT;
           editorialPayload = {
             product: productPage.product,
             basePath,
             displayName,
             displayLocation,
+            resolvedLocale: productLocaleContext.resolvedLocale,
+            googleReviews: productReviews,
+            similarProducts,
+            activityCircuitStops,
+            faqs: activityFaqs,
           } satisfies EditorialActivityDetailPayload;
         } else if (productType === 'hotel') {
           slotName = 'hotel-detail';
@@ -879,34 +908,6 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
         const activeTemplateSet = resolveTemplateSet(websiteForRender);
         const isEditorialV1 = activeTemplateSet === 'editorial-v1';
 
-        const activityStatsBar =
-          isEditorialV1 && productType === 'activity' ? (
-            <EditorialActivityStatsBar
-              product={productPage.product}
-              reviewRating={
-                productReviews.length > 0
-                  ? productReviews.reduce((sum, review) => sum + (review.rating || 0), 0) /
-                    productReviews.length
-                  : null
-              }
-              reviewCount={productReviews.length}
-            />
-          ) : null;
-        const packageStatsBar =
-          isEditorialV1 && productType === 'package' ? (
-            <EditorialPackageStatsBar
-              product={productPage.product}
-              resolvedLocale={productLocaleContext.resolvedLocale}
-            />
-          ) : null;
-        const packageOverlay =
-          isEditorialV1 && productType === 'package' ? (
-            <EditorialPackageOverlay
-              product={productPage.product}
-              resolvedLocale={productLocaleContext.resolvedLocale}
-            />
-          ) : null;
-
         const genericBody = (
           <ProductLandingPage
             website={websiteForRender}
@@ -917,8 +918,6 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
             activityCircuitStops={activityCircuitStops}
             similarProducts={similarProducts}
             resolvedLocale={productLocaleContext.resolvedLocale}
-            renderAfterHero={activityStatsBar ?? packageStatsBar}
-            renderAfterMain={packageOverlay}
             editorialMode={isEditorialV1 && productType === 'activity'}
           />
         );

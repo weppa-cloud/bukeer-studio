@@ -80,12 +80,12 @@ export function CategoryPage({ website, page, categoryType }: CategoryPageProps)
   });
 
   const sortedProducts = [...filteredProducts].sort((a, b) => {
-    if (sortBy === 'price_asc') {
+    if (!isActivity && sortBy === 'price_asc') {
       const pa = parseFloat(String(a.price ?? '0').replace(/[^0-9.]/g, '')) || 0;
       const pb = parseFloat(String(b.price ?? '0').replace(/[^0-9.]/g, '')) || 0;
       return pa - pb;
     }
-    if (sortBy === 'price_desc') {
+    if (!isActivity && sortBy === 'price_desc') {
       const pa = parseFloat(String(a.price ?? '0').replace(/[^0-9.]/g, '')) || 0;
       const pb = parseFloat(String(b.price ?? '0').replace(/[^0-9.]/g, '')) || 0;
       return pb - pa;
@@ -297,8 +297,8 @@ export function CategoryPage({ website, page, categoryType }: CategoryPageProps)
               style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-subtle)', color: 'var(--text-heading)' }}
             >
               <option value="popular">Popular</option>
-              <option value="price_asc">Precio ↑</option>
-              <option value="price_desc">Precio ↓</option>
+              {!isActivity ? <option value="price_asc">Precio ↑</option> : null}
+              {!isActivity ? <option value="price_desc">Precio ↓</option> : null}
               <option value="name_asc">A — Z</option>
             </select>
           </div>
@@ -371,7 +371,7 @@ export function CategoryPage({ website, page, categoryType }: CategoryPageProps)
   );
 }
 
-// Activity overlay card — 1:1 aspect ratio, image as background, name + price overlaid
+// Activity overlay card — 1:1 aspect ratio, image as background, name overlaid
 function ActivityCard({ product, index, basePath }: { product: ProductData; index: number; basePath: string }) {
   return (
     <motion.div
@@ -415,7 +415,6 @@ function ActivityCard({ product, index, basePath }: { product: ProductData; inde
         {/* Bottom info */}
         <div className="absolute bottom-0 left-0 right-0 p-5">
           <h3 className="text-xl leading-tight mb-1" style={{ color: '#fff' }}>{product.name}</h3>
-          {product.price && <span className="text-lg" style={{ color: 'var(--accent)' }}>{product.price}</span>}
         </div>
       </Link>
     </motion.div>

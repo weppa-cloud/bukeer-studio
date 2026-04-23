@@ -34,9 +34,7 @@ export function getDefaultNavigation(
   sections: Array<{ section_type: string; is_enabled: boolean }> | undefined,
   basePath: string,
 ): NavigationItem[] {
-  const nav: NavigationItem[] = [
-    { slug: '', label: 'Inicio', page_type: 'custom', href: `${basePath}/`, target: '_self' },
-  ];
+  const nav: NavigationItem[] = [];
 
   const sectionMap: Array<{ type: string; label: string; anchor: string }> = [
     { type: 'destinations', label: 'Destinos', anchor: 'destinations' },
@@ -58,10 +56,6 @@ export function getDefaultNavigation(
 
   // Blog is always available
   nav.push({ slug: 'blog', label: 'Blog', page_type: 'custom', href: `${basePath}/blog`, target: '_self' });
-
-  if (sections?.some((sec) => sec.section_type === 'cta' && sec.is_enabled)) {
-    nav.push({ slug: 'cta', label: 'Asesoría', page_type: 'anchor', href: `${basePath}/#cta`, target: '_self' });
-  }
 
   return nav;
 }

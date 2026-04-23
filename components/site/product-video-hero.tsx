@@ -12,6 +12,7 @@ interface ProductVideoHeroProps {
   videoCaption?: string | null;
   productId: string;
   productName: string;
+  className?: string;
 }
 
 export function ProductVideoHero({
@@ -19,6 +20,7 @@ export function ProductVideoHero({
   videoCaption,
   productId,
   productName,
+  className,
 }: ProductVideoHeroProps) {
   const [open, setOpen] = useState(false);
   const meta = parseVideoMeta(videoUrl);
@@ -37,7 +39,7 @@ export function ProductVideoHero({
         href={videoUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium backdrop-blur-sm bg-background/85 border border-border/70 text-foreground hover:bg-background/95 transition-colors"
+        className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium backdrop-blur-sm bg-background/85 border border-border/70 text-foreground hover:bg-background/95 transition-colors${className ? ` ${className}` : ''}`}
         aria-label={text('productVideoOpenAria')}
       >
         <PlayIcon />
@@ -50,7 +52,7 @@ export function ProductVideoHero({
     <>
       <button
         onClick={handlePlay}
-        className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium backdrop-blur-sm bg-background/85 border border-border/70 text-foreground hover:bg-background/95 transition-colors cursor-pointer"
+        className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium backdrop-blur-sm bg-background/85 border border-border/70 text-foreground hover:bg-background/95 transition-colors cursor-pointer${className ? ` ${className}` : ''}`}
         aria-label={text('productVideoAria')}
       >
         <PlayIcon />

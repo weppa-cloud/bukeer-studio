@@ -6,8 +6,8 @@ import { renderSection } from '@/lib/sections/render-section';
 import { SECTION_TYPES } from '@bukeer/website-contract';
 import { LandingPageSchema } from '@/components/seo/landing-page-schema';
 import { StickyCTABar } from '@/components/site/sticky-cta-bar';
-import { WhatsAppCTA } from '@/components/site/whatsapp-cta';
 import { buildWhatsAppUrl } from '@/components/site/whatsapp-url';
+import { WhatsAppIntentButton } from '@/components/site/whatsapp-intent-button';
 
 const HERO_SECTION_TYPES = SECTION_TYPES.filter((t) => t.startsWith('hero'));
 
@@ -98,6 +98,12 @@ export function StaticPage({ website, page, dynamicDestinations = [] }: StaticPa
         });
   const primaryCtaHref = heroConfig.ctaUrl || heroWhatsappUrl || '#contact';
   const secondaryCtaHref = heroConfig.secondaryCtaUrl || '#pricing';
+  const primaryCtaIsWhatsApp = Boolean(
+    rawWhatsApp && (
+      (heroConfig.ctaUrl && /wa\.me|whatsapp/i.test(heroConfig.ctaUrl))
+      || (!heroConfig.ctaUrl && heroWhatsappUrl)
+    )
+  );
 
   // Extract first pricing section's numeric price + currency for the sticky bar.
   const firstPricing = sections.find((s) => {
@@ -160,18 +166,36 @@ export function StaticPage({ website, page, dynamicDestinations = [] }: StaticPa
             {(heroConfig.ctaText || heroConfig.secondaryCtaText) && (
               <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
                 {heroConfig.ctaText && primaryCtaHref && (
-                  <a
-                    href={primaryCtaHref}
-                    target={primaryCtaHref.startsWith('http') ? '_blank' : undefined}
-                    rel={primaryCtaHref.startsWith('http') ? 'noopener noreferrer' : undefined}
-                    className="inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-sm md:text-base font-semibold text-white shadow-lg hover:opacity-90 transition-opacity"
-                    style={{ background: 'var(--accent)' }}
-                  >
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden>
-                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347" />
-                    </svg>
-                    {heroConfig.ctaText}
-                  </a>
+                  primaryCtaIsWhatsApp ? (
+                    <WhatsAppIntentButton
+                      phone={rawWhatsApp}
+                      productName={heroConfig.title || page.title}
+                      location="Colombia"
+                      refCode={page.slug}
+                      label={heroConfig.ctaText}
+                      analyticsLocation="hero_primary"
+                      analyticsContext={{ page_slug: page.slug || '', context: 'static_landing' }}
+                      className="inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-sm font-semibold text-white shadow-lg transition-opacity hover:opacity-90 md:text-base"
+                    >
+                      <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden>
+                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347" />
+                      </svg>
+                      {heroConfig.ctaText}
+                    </WhatsAppIntentButton>
+                  ) : (
+                    <a
+                      href={primaryCtaHref}
+                      target={primaryCtaHref.startsWith('http') ? '_blank' : undefined}
+                      rel={primaryCtaHref.startsWith('http') ? 'noopener noreferrer' : undefined}
+                      className="inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-sm font-semibold text-white shadow-lg transition-opacity hover:opacity-90 md:text-base"
+                      style={{ background: 'var(--accent)' }}
+                    >
+                      <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden>
+                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347" />
+                      </svg>
+                      {heroConfig.ctaText}
+                    </a>
+                  )
                 )}
                 {heroConfig.secondaryCtaText && (
                   <a
@@ -248,6 +272,10 @@ export function StaticPage({ website, page, dynamicDestinations = [] }: StaticPa
           currency={stickyCurrency}
           whatsappUrl={heroWhatsappUrl}
           phone={rawWhatsApp}
+          openWhatsappAsModal={true}
+          whatsappProductName={heroConfig.title || page.title}
+          whatsappLocation="Colombia"
+          whatsappRefCode={page.slug}
           analyticsContext={{ page_slug: page.slug || '', context: 'static_landing' }}
         />
       )}
@@ -255,7 +283,7 @@ export function StaticPage({ website, page, dynamicDestinations = [] }: StaticPa
       {/* Floating WhatsApp FAB — persistent */}
       {rawWhatsApp && (
         <div className="fixed bottom-5 right-5 z-40 hidden sm:block">
-          <WhatsAppCTA
+          <WhatsAppIntentButton
             phone={rawWhatsApp}
             productName={heroConfig.title || page.title}
             location="Colombia"
@@ -263,8 +291,10 @@ export function StaticPage({ website, page, dynamicDestinations = [] }: StaticPa
             label="WhatsApp"
             analyticsLocation="floating-fab"
             analyticsContext={{ page_slug: page.slug || '', context: 'static_landing' }}
-            className="shadow-xl"
-          />
+            className="inline-flex items-center justify-center rounded-full px-5 py-3 text-sm font-semibold shadow-xl transition-opacity hover:opacity-90"
+            >
+              WhatsApp
+          </WhatsAppIntentButton>
         </div>
       )}
     </div>

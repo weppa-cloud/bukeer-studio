@@ -34,6 +34,7 @@ import { getBasePath } from '@/lib/utils/base-path';
 import { Eyebrow } from '../primitives/eyebrow';
 import { Icons, type IconName } from '../primitives/icons';
 import { getEditorialTextGetter, localizeEditorialText } from '../i18n';
+import { WaflowCTAButton } from '../waflow/cta-button';
 
 export interface EditorialPromiseSectionProps {
   section: WebsiteSection;
@@ -131,6 +132,8 @@ export function PromiseSection({
 
   const ctaLabel = localizeEditorialText(website, content.ctaLabel?.trim() || '');
   const ctaHref = ctaLabel ? resolveCtaHref(content.ctaUrl, website, basePath) : '';
+  const isWhatsappCta =
+    content.ctaUrl === '{{whatsapp}}' || content.ctaUrl === 'whatsapp' || ctaHref.includes('wa.me');
 
   return (
     <section
@@ -149,10 +152,17 @@ export function PromiseSection({
             {subtitle ? <p className="lead">{subtitle}</p> : null}
             {ctaLabel ? (
               <div style={{ marginTop: 28 }}>
-                <a href={ctaHref} className="btn btn-accent">
-                  {ctaLabel}
-                  <Icons.arrow size={14} />
-                </a>
+                {isWhatsappCta ? (
+                  <WaflowCTAButton variant="A" fallbackHref={ctaHref} className="btn btn-accent">
+                    {ctaLabel}
+                    <Icons.arrow size={14} />
+                  </WaflowCTAButton>
+                ) : (
+                  <a href={ctaHref} className="btn btn-accent">
+                    {ctaLabel}
+                    <Icons.arrow size={14} />
+                  </a>
+                )}
               </div>
             ) : null}
           </div>

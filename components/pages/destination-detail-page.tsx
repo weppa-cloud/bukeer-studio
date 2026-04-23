@@ -23,6 +23,7 @@ import { toPackageItems, toActivityItems, toHotelItems } from '@/lib/products/to
 import type { ProductData as ContractProductData } from '@bukeer/website-contract';
 import type { WebsiteData } from '@/lib/supabase/get-website';
 import type { DestinationData, GoogleReviewData } from '@/lib/supabase/get-pages';
+import { usePreferredCurrency } from '@/lib/site/use-preferred-currency';
 
 export type ProductData = ContractProductData;
 
@@ -58,6 +59,7 @@ export function DestinationDetailPage({
   resolvedLocale,
 }: DestinationDetailPageProps) {
   const basePath = getBasePath(website.subdomain);
+  const { currencyConfig, preferredCurrency } = usePreferredCurrency(website.content.account);
   // Issue #208: request-scoped locale wins over website defaults. This is the
   // value threaded into JSON-LD `inLanguage`. `websiteLocale` below still
   // powers UI date/number formatting where the tenant default is the right
@@ -95,8 +97,7 @@ export function DestinationDetailPage({
     enrichment.description =
       `Descubre ${destination.name}${destination.state ? `, ${destination.state}` : ''}.` +
       ` Encuentra ${destination.hotel_count} hoteles y ${destination.activity_count} actividades` +
-      ` seleccionadas para tu viaje.` +
-      (destination.min_price ? ` Precios desde ${destination.min_price}.` : '');
+      ' seleccionadas para tu viaje.';
   }
 
   const packages = products.filter(
@@ -511,7 +512,15 @@ export function DestinationDetailPage({
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {packageItems.map((pkg, i) => (
-                <PackageCard key={pkg.id} pkg={pkg} index={i} subdomain={website.subdomain} basePath={basePath} />
+                <PackageCard
+                  key={pkg.id}
+                  pkg={pkg}
+                  index={i}
+                  subdomain={website.subdomain}
+                  basePath={basePath}
+                  preferredCurrency={preferredCurrency}
+                  currencyConfig={currencyConfig}
+                />
               ))}
             </div>
           </section>
@@ -537,6 +546,8 @@ export function DestinationDetailPage({
                   subdomain={website.subdomain}
                   locale={websiteLocale}
                   basePath={basePath}
+                  preferredCurrency={preferredCurrency}
+                  currencyConfig={currencyConfig}
                 />
               ))}
             </div>
@@ -556,7 +567,15 @@ export function DestinationDetailPage({
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {hotelItems.map((hotel, i) => (
-                <HotelCard key={hotel.id} hotel={hotel} index={i} subdomain={website.subdomain} basePath={basePath} />
+                <HotelCard
+                  key={hotel.id}
+                  hotel={hotel}
+                  index={i}
+                  subdomain={website.subdomain}
+                  basePath={basePath}
+                  preferredCurrency={preferredCurrency}
+                  currencyConfig={currencyConfig}
+                />
               ))}
             </div>
           </section>

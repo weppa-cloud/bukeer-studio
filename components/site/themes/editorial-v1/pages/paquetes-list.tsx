@@ -26,7 +26,7 @@ import type { ProductData } from '@bukeer/website-contract';
 import { Breadcrumbs } from '../primitives/breadcrumbs';
 import { Eyebrow } from '../primitives/eyebrow';
 import { getBasePath } from '@/lib/utils/base-path';
-import { formatPrice } from '@/lib/products/format-price';
+import { formatProductPrice, resolveLowestProductPrice } from '@/lib/products/to-items';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 
 import {
@@ -86,13 +86,15 @@ function toListItem(product: ProductData): PaquetesListItem {
 
   const country = product.country || null;
 
-  const priceAmount = typeof product.price === 'number' ? product.price : null;
-  const price =
+  const lowestPrice = resolveLowestProductPrice(product);
+  const fallbackFormattedPrice =
     typeof product.price === 'string' && product.price.trim().length > 0
       ? product.price.trim()
-      : priceAmount !== null
-      ? formatPrice(priceAmount, (product.currency || 'USD').toUpperCase()) ?? null
-      : null;
+      : formatProductPrice(product.price, product.currency) ?? null;
+  const price =
+    lowestPrice.amount !== null
+      ? formatProductPrice(lowestPrice.amount, lowestPrice.currency ?? product.currency) ?? null
+      : fallbackFormattedPrice;
 
   return {
     id: product.id,
@@ -100,11 +102,14 @@ function toListItem(product: ProductData): PaquetesListItem {
     name: product.name,
     image,
     description: product.description ?? null,
+    location: product.location ?? null,
     country,
     destination,
     duration,
     durationDays,
     price,
+    priceValue: lowestPrice.amount,
+    priceCurrency: lowestPrice.currency,
     featured: product.is_featured === true,
     lat: typeof product.latitude === 'number' ? product.latitude : null,
     lng: typeof product.longitude === 'number' ? product.longitude : null,
@@ -132,6 +137,8 @@ export function EditorialPaquetesListPage({
       <section className="page-hero" style={heroStyle}>
         <div className="ev-container" style={{ position: 'relative', zIndex: 1 }}>
           <Breadcrumbs
+            tone="inverse"
+            className="pkg-hero-breadcrumb"
             items={[
               { label: siteTitleTrail, href: basePath || '/' },
               { label: editorialText('editorialBreadcrumbPackages') },
@@ -151,7 +158,7 @@ export function EditorialPaquetesListPage({
       {/* Listing body */}
       <section className="ev-section" style={{ paddingTop: 56 }}>
         <div className="ev-container">
-          <PaquetesListGrid packages={items} basePath={basePath} />
+          <PaquetesListGrid packages={items} basePath={basePath} account={website.content.account ?? null} />
         </div>
       </section>
     </div>
@@ -161,7 +168,7 @@ export function EditorialPaquetesListPage({
 // -------------------- Styles --------------------
 
 const heroStyle: CSSProperties = {
-  background: 'var(--c-ink)',
+  background: 'linear-gradient(135deg, var(--ev-hero-green), var(--ev-hero-green-2))',
   color: '#fff',
   position: 'relative',
   overflow: 'hidden',

@@ -43,11 +43,12 @@ import { usePathname } from 'next/navigation';
 
 import { WaflowDrawer } from './drawer';
 import { WaflowFab } from './fab';
-import { WAFLOW_STORAGE_PREFIX } from './types';
+import { WAFLOW_STORAGE_PREFIX, WAFLOW_STEP_ORDER } from './types';
 import type {
   WaflowConfig,
   WaflowContextValue,
   WaflowDestinationContext,
+  WaflowPrefill,
   WaflowPackageContext,
   WaflowState,
   WaflowStep,
@@ -113,7 +114,7 @@ export function initialStateFor(variant: WaflowVariant): WaflowState {
   return {
     sessionKey: cryptoUuid(),
     variant,
-    step: variant === 'A' ? 'intent' : 'dates',
+    step: 'contact',
     name: '',
     phone: '',
     email: '',
@@ -204,17 +205,21 @@ export function WaflowProvider({
     }
   }, []);
 
-  const openWithConfig = useCallback((next: WaflowConfig) => {
+  const openWithConfig = useCallback((next: WaflowConfig, prefill?: WaflowPrefill) => {
     const persisted = readPersisted(next.variant);
     const base = persisted ?? initialStateFor(next.variant);
+    const validSteps = new Set(WAFLOW_STEP_ORDER[next.variant]);
+    const safeStep = validSteps.has(base.step) ? base.step : 'contact';
     // Pre-fill context-specific fields for B/D so the user sees them locked in.
     setState({
       ...base,
       variant: next.variant,
+      step: safeStep,
       destinationChoice:
         next.variant === 'B' && next.destination?.name
           ? next.destination.name
           : base.destinationChoice,
+      ...(prefill ?? {}),
     });
     setConfig(next);
     if (typeof document !== 'undefined') {
@@ -227,15 +232,15 @@ export function WaflowProvider({
   }, [openWithConfig]);
 
   const openVariantB = useCallback(
-    (ctx: WaflowDestinationContext) => {
-      openWithConfig({ variant: 'B', destination: ctx });
+    (ctx: WaflowDestinationContext, prefill?: WaflowPrefill) => {
+      openWithConfig({ variant: 'B', destination: ctx }, prefill);
     },
     [openWithConfig],
   );
 
   const openVariantD = useCallback(
-    (ctx: WaflowPackageContext) => {
-      openWithConfig({ variant: 'D', pkg: ctx });
+    (ctx: WaflowPackageContext, prefill?: WaflowPrefill) => {
+      openWithConfig({ variant: 'D', pkg: ctx }, prefill);
     },
     [openWithConfig],
   );

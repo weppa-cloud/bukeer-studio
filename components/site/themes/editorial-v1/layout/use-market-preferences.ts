@@ -109,7 +109,7 @@ export function useMarketPreferences(website: WebsiteData): UseMarketPreferences
 
   const [selectedLocale, setSelectedLocale] = useState<string>(fallbackLocale);
   const [selectedCurrency, setSelectedCurrency] = useState<string | null>(
-    currencyConfig?.baseCurrency ?? null,
+    currencyOptions[0] ?? null,
   );
 
   // --- Locale resolution (query → storage → fallback) ---
@@ -146,13 +146,21 @@ export function useMarketPreferences(website: WebsiteData): UseMarketPreferences
       queryCurrency,
       storedCurrency,
       config: currencyConfig,
-      fallbackCurrency: currencyConfig?.baseCurrency ?? null,
+      fallbackCurrency: currencyOptions[0] ?? null,
     });
-    setSelectedCurrency(preferred);
-    if (typeof window !== 'undefined' && preferred) {
-      window.localStorage.setItem(SITE_CURRENCY_STORAGE_KEY, preferred);
+    const nextPreferred =
+      preferred && currencyOptions.includes(preferred)
+        ? preferred
+        : (currencyOptions[0] ?? null);
+    setSelectedCurrency(nextPreferred);
+    if (typeof window !== 'undefined') {
+      if (nextPreferred) {
+        window.localStorage.setItem(SITE_CURRENCY_STORAGE_KEY, nextPreferred);
+      } else {
+        window.localStorage.removeItem(SITE_CURRENCY_STORAGE_KEY);
+      }
     }
-  }, [currencyConfig, enabledCurrencyKey, searchParamsString]);
+  }, [currencyConfig, currencyOptions, enabledCurrencyKey, searchParamsString]);
 
   // --- Apply actions ---
   const applyLocale = useCallback(
@@ -209,7 +217,7 @@ export function useMarketPreferences(website: WebsiteData): UseMarketPreferences
     (value: string) => {
       const next = normalizeCurrencyCode(value);
       if (!next) return;
-      if (currencyConfig && !currencyConfig.enabledCurrencies.includes(next)) return;
+      if (!currencyOptions.includes(next)) return;
       setSelectedCurrency(next);
       if (typeof window !== 'undefined') {
         window.localStorage.setItem(SITE_CURRENCY_STORAGE_KEY, next);
@@ -221,7 +229,7 @@ export function useMarketPreferences(website: WebsiteData): UseMarketPreferences
         scroll: false,
       });
     },
-    [currencyConfig, currentPathname, router, searchParamsString],
+    [currencyOptions, currentPathname, router, searchParamsString],
   );
 
   return {

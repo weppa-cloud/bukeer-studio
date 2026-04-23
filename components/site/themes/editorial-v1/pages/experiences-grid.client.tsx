@@ -3,7 +3,7 @@
 /**
  * Experiences page — filter bar + card grid (client leaf).
  *
- * Filters are synced to the URL (`?level=&region=&category=&duration=`) so
+ * Filters are synced to the URL (`?level=&region=&category=&duration=&sort=&q=`) so
  * the state survives reloads and is bookmarkable. We push via `router.replace`
  * without a scroll reset so hovering a chip doesn't jump the page.
  *
@@ -12,13 +12,14 @@
  * stays well under the main-thread budget.
  */
 
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useMemo, type ReactNode } from 'react';
+import { useRouter, useSearchParams, type ReadonlyURLSearchParams } from 'next/navigation';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 
 import { Icons } from '@/components/site/themes/editorial-v1/primitives/icons';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
+import type { WebsiteData } from '@/lib/supabase/get-website';
 
 export interface ExperienceItem {
   id: string;
@@ -47,6 +48,7 @@ export interface ExperienceItem {
 export type ExperiencesInitialFilters = {
   level?: string[];
   region?: string[];
+  location?: string[];
   category?: string;
   duration?: string;
   sort?: string;
@@ -58,6 +60,7 @@ interface ExperiencesGridProps {
   basePath: string;
   initialFilters?: ExperiencesInitialFilters;
   locale?: string;
+  account?: WebsiteData['content']['account'] | null;
 }
 
 function normalise(value: string | null | undefined): string {
@@ -78,80 +81,59 @@ function toArray(param: string | null | undefined): string[] {
     .filter(Boolean);
 }
 
+function readParamList(searchParams: URLSearchParams | ReadonlyURLSearchParams | null | undefined, key: string): string[] {
+  if (!searchParams) return [];
+  const values = searchParams
+    .getAll(key)
+    .map((value) => value.trim())
+    .filter(Boolean);
+  if (values.length === 0) return [];
+  if (values.length === 1 && values[0]?.includes(',')) return toArray(values[0]);
+  return values;
+}
+
 export function ExperiencesGrid({
   activities,
   basePath,
   initialFilters,
   locale,
+  account = null,
 }: ExperiencesGridProps) {
   const editorialText = getPublicUiExtraTextGetter(locale ?? 'es-CO');
   const router = useRouter();
   const searchParams = useSearchParams();
-  const levels = [
-    { key: 'facil', label: editorialText('editorialExperienceLevelEasy') },
-    { key: 'moderado', label: editorialText('editorialExperienceLevelModerate') },
-    { key: 'exigente', label: editorialText('editorialExperienceLevelDemanding') },
-    { key: 'intenso', label: editorialText('editorialExperienceLevelIntense') },
-  ];
-  const categories = [
-    { key: 'all', label: editorialText('editorialExperienceCategoryAll') },
-    { key: 'aventura', label: editorialText('editorialExperienceCategoryAdventure') },
-    { key: 'gastronomia', label: editorialText('editorialExperienceCategoryGastronomy') },
-    { key: 'cultura', label: editorialText('editorialExperienceCategoryCulture') },
-    { key: 'naturaleza', label: editorialText('editorialExperienceCategoryNature') },
-    { key: 'mar', label: editorialText('editorialExperienceCategorySea') },
-    { key: 'bienestar', label: editorialText('editorialExperienceCategoryWellness') },
-  ];
-  const durationBuckets = [
-    { key: 'all', label: editorialText('editorialExperienceDurationAny') },
-    { key: 'short', label: editorialText('editorialExperienceDurationShort') },
-    { key: 'half-day', label: editorialText('editorialExperienceDurationHalfDay') },
-    { key: 'full-day', label: editorialText('editorialExperienceDurationFullDay') },
-    { key: 'multi-day', label: editorialText('editorialExperienceDurationMultiDay') },
-  ];
+  void account;
 
-  // Prefer URL params (bookmarkable); fall back to server-provided `initialFilters`.
-  const levelFromUrl = toArray(searchParams?.get('level'));
-  const regionFromUrl = toArray(searchParams?.get('region'));
-  const levelFilters =
-    levelFromUrl.length > 0 ? levelFromUrl : initialFilters?.level ?? [];
-  const regionFilters =
-    regionFromUrl.length > 0 ? regionFromUrl : initialFilters?.region ?? [];
-  const categoryFilter =
-    searchParams?.get('category') ?? initialFilters?.category ?? 'all';
-  const durationFilter =
-    searchParams?.get('duration') ?? initialFilters?.duration ?? 'all';
+  // Keep only keyword + location filters active for now.
+  const locationFilters = useMemo(() => {
+    const fromUrl = readParamList(searchParams, 'location');
+    return fromUrl.length > 0 ? fromUrl : initialFilters?.location ?? [];
+  }, [initialFilters?.location, searchParams]);
   const q = searchParams?.get('q') ?? initialFilters?.q ?? '';
+  const [keywordInput, setKeywordInput] = useState(q);
 
-  const regionOptions = useMemo(() => {
+  const locationOptions = useMemo(() => {
     const set = new Set<string>();
     for (const a of activities) {
-      if (a.region) set.add(a.region.toString());
+      if (a.location) set.add(a.location.toString());
     }
     return Array.from(set).sort();
   }, [activities]);
 
-  const filtered = useMemo(() => {
+  const filteredByFilters = useMemo(() => {
     const seen = new Set<string>();
     return activities.filter((a) => {
       if (seen.has(a.id)) return false;
       seen.add(a.id);
-      if (categoryFilter && categoryFilter !== 'all') {
-        const key = normalise(a.categoryKey || a.category);
-        if (key !== normalise(categoryFilter)) return false;
-      }
-      if (durationFilter && durationFilter !== 'all') {
-        if (normalise(a.durationBucket) !== normalise(durationFilter)) return false;
-      }
-      if (!matchList(a.level, levelFilters)) return false;
-      if (regionFilters.length > 0 && !matchList(a.region, regionFilters)) return false;
+      if (locationFilters.length > 0 && !matchList(a.location, locationFilters)) return false;
       if (q) {
         const hay = `${a.name} ${a.title ?? ''} ${a.description ?? ''} ${a.location ?? ''}`.toLowerCase();
         if (!hay.includes(q.toLowerCase())) return false;
       }
       return true;
     });
-  }, [activities, categoryFilter, durationFilter, levelFilters, regionFilters, q]);
+  }, [activities, locationFilters, q]);
+  const filtered = filteredByFilters;
 
   const updateParams = useCallback(
     (mutate: (params: URLSearchParams) => void) => {
@@ -164,140 +146,124 @@ export function ExperiencesGrid({
   );
 
   const toggleList = useCallback(
-    (key: 'level' | 'region', value: string) => {
+    (key: 'level' | 'region' | 'location', value: string) => {
       updateParams((params) => {
-        const existing = toArray(params.get(key));
+        const existing = readParamList(params, key);
         const next = existing.includes(value)
           ? existing.filter((v) => v !== value)
           : [...existing, value];
-        if (next.length) params.set(key, next.join(','));
-        else params.delete(key);
+        params.delete(key);
+        for (const item of next) {
+          params.append(key, item);
+        }
       });
     },
     [updateParams],
   );
 
-  const setSingle = useCallback(
-    (key: 'category' | 'duration', value: string) => {
+  const setKeywordParam = useCallback(
+    (value: string) => {
       updateParams((params) => {
-        if (!value || value === 'all') params.delete(key);
-        else params.set(key, value);
+        const next = value.trim();
+        if (!next) {
+          params.delete('q');
+          return;
+        }
+        params.set('q', next);
       });
     },
     [updateParams],
   );
+
+  useEffect(() => {
+    setKeywordInput(q);
+  }, [q]);
+
+  useEffect(() => {
+    const next = keywordInput.trim();
+    const current = q.trim();
+    if (next === current) return;
+    const timer = setTimeout(() => {
+      setKeywordParam(keywordInput);
+    }, 180);
+    return () => clearTimeout(timer);
+  }, [keywordInput, q, setKeywordParam]);
 
   const clearAll = useCallback(() => {
     updateParams((params) => {
+      params.delete('location');
+      params.delete('q');
+      // Defensive cleanup for old links/bookmarks that still include deprecated filters.
       params.delete('level');
       params.delete('region');
       params.delete('category');
       params.delete('duration');
-      params.delete('q');
+      params.delete('sort');
     });
   }, [updateParams]);
 
   const hasActiveFilters =
-    (categoryFilter && categoryFilter !== 'all') ||
-    (durationFilter && durationFilter !== 'all') ||
-    levelFilters.length > 0 ||
-    regionFilters.length > 0 ||
+    locationFilters.length > 0 ||
     !!q;
 
   return (
     <>
-      {/* Category tiles */}
-      <div className="exp-cats" data-testid="experiences-categories">
-        {categories.map((c) => {
-          const isActive = normalise(categoryFilter) === c.key;
-          return (
-            <button
-              key={c.key}
-              type="button"
-              className={`exp-cat${isActive ? ' active' : ''}`}
-              onClick={() => setSingle('category', c.key)}
-              aria-pressed={isActive}
-            >
-              <b>{c.label}</b>
-            </button>
-          );
-        })}
+      <div className="exp-toolbar" data-testid="experiences-filterbar">
+        <label className="exp-search" htmlFor="experiences-keyword">
+          <Icons.search size={16} aria-hidden />
+          <input
+            id="experiences-keyword"
+            type="text"
+            value={keywordInput}
+            onChange={(event) => setKeywordInput(event.target.value)}
+            className="listing-keyword-input"
+            placeholder={editorialText('editorialExperiencesKeywordPlaceholder')}
+            aria-label={editorialText('editorialExperiencesKeywordLabel')}
+          />
+        </label>
       </div>
 
-      {/* Duration tabs + region/level chips */}
-      <div className="exp-filterbar" data-testid="experiences-filterbar">
+      <div className="exp-filterbar">
+        {locationOptions.length > 0 ? (
           <div className="exp-filter-group">
-            <span className="label">{editorialText('editorialExperiencesDurationLabel')}</span>
-            {durationBuckets.map((b) => {
-            const isActive = normalise(durationFilter) === b.key;
-            return (
-              <button
-                key={b.key}
-                type="button"
-                className={`filter-tab${isActive ? ' active' : ''}`}
-                onClick={() => setSingle('duration', b.key)}
-                aria-pressed={isActive}
-              >
-                {b.label}
-              </button>
-            );
-          })}
-        </div>
-
-        {regionOptions.length > 0 ? (
-          <div className="exp-filter-group">
-            <span className="label">{editorialText('editorialExperiencesRegionLabel')}</span>
-            {regionOptions.map((region) => {
-              const isOn = regionFilters.map(normalise).includes(normalise(region));
+            <span className="label">{editorialText('editorialExperiencesLocationLabel')}</span>
+            {locationOptions.map((location) => {
+              const isOn = locationFilters.map(normalise).includes(normalise(location));
               return (
                 <button
-                  key={region}
+                  key={location}
                   type="button"
                   className={`chip-filter${isOn ? ' on' : ''}`}
-                  onClick={() => toggleList('region', region)}
+                  onClick={() => toggleList('location', location)}
                   aria-pressed={isOn}
                 >
-                  {region}
+                  {location}
                 </button>
               );
             })}
           </div>
         ) : null}
-
-        <div className="exp-filter-group">
-          <span className="label">{editorialText('editorialExperiencesLevelLabel')}</span>
-          {levels.map((l) => {
-            const isOn = levelFilters.map(normalise).includes(normalise(l.key));
-            return (
-              <button
-                key={l.key}
-                type="button"
-                className={`chip-filter${isOn ? ' on' : ''}`}
-                onClick={() => toggleList('level', l.key)}
-                aria-pressed={isOn}
-              >
-                {l.label}
-              </button>
-            );
-          })}
-        </div>
-
-        {hasActiveFilters ? (
-          <button
-            type="button"
-            className="chip-filter"
-            onClick={clearAll}
-            style={{ color: 'var(--c-accent)' }}
-            data-testid="experiences-clear"
-          >
-            {editorialText('editorialExperiencesClearAll')}
-          </button>
-        ) : null}
       </div>
 
-      <div className="exp-count">
-        <b data-testid="experiences-count">{filtered.length}</b> de {activities.length}{' '}
-        {editorialText('editorialExperiencesCountSuffix')}
+      <div className="listing-top pql-listing-top">
+        <div className="count exp-count">
+          <b data-testid="experiences-count">{filtered.length}</b> de {activities.length}{' '}
+          {editorialText('editorialExperiencesCountSuffix')}
+          {hasActiveFilters ? (
+            <>
+              {' · '}
+              <button
+                type="button"
+                className="chip-filter"
+                onClick={clearAll}
+                style={{ color: 'var(--c-accent)' }}
+                data-testid="experiences-clear"
+              >
+                {editorialText('editorialExperiencesClearAll')}
+              </button>
+            </>
+          ) : null}
+        </div>
       </div>
 
       {filtered.length === 0 ? (
@@ -334,7 +300,6 @@ export function ExperiencesGrid({
               key={a.id}
               activity={a}
               basePath={basePath}
-              fromPrefix={editorialText('editorialExperiencesFromPrefix')}
             />
           ))}
         </div>
@@ -346,14 +311,15 @@ export function ExperiencesGrid({
 interface ExperienceCardProps {
   activity: ExperienceItem;
   basePath: string;
-  fromPrefix: string;
 }
 
-function ExperienceCard({ activity, basePath, fromPrefix }: ExperienceCardProps): ReactNode {
+function ExperienceCard({
+  activity,
+  basePath,
+}: ExperienceCardProps): ReactNode {
   const href = activity.slug
     ? `${basePath}/actividades/${encodeURIComponent(activity.slug)}`
     : `${basePath}/experiencias`;
-  const price = activity.price || '';
   return (
     <Link href={href} className="exp-card" aria-label={activity.name}>
       <div className="exp-media">
@@ -415,14 +381,7 @@ function ExperienceCard({ activity, basePath, fromPrefix }: ExperienceCardProps)
           ) : (
             <span />
           )}
-          <div className="exp-price">
-            {price ? (
-              <>
-                <small>{fromPrefix}</small>
-                <b>{price}</b>
-              </>
-            ) : null}
-          </div>
+          <div className="exp-price" />
         </div>
       </div>
     </Link>

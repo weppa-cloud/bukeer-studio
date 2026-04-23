@@ -30,6 +30,7 @@ import { SectionErrorBoundary } from '@/components/site/section-error-boundary';
 import { StickyCTABar } from '@/components/site/sticky-cta-bar';
 import { MediaLightbox } from '@/components/site/media-lightbox';
 import { ProductVideoHero } from '@/components/site/product-video-hero';
+import { OptionsTable } from '@/components/site/options-table';
 import { buildWhatsAppUrl } from '@/components/site/whatsapp-url';
 import { HeroSplit } from '@/components/site/product-detail/p1/hero-split';
 import { GalleryStrip } from '@/components/site/product-detail/p1/gallery-strip';
@@ -87,6 +88,8 @@ interface ProductLandingPageProps {
   suppressEditorialSections?: boolean;
 }
 
+const CAL_SCHEDULE_URL = 'https://cal.com/colombiatours-travel/30min';
+
 function MapSectionSkeleton() {
   return <div aria-hidden="true" className="h-[320px] w-full animate-pulse rounded-xl bg-muted/40" />;
 }
@@ -112,11 +115,6 @@ const ActivityCircuitMap = dynamic(
 
 const ProgramTimeline = dynamic(
   () => import('@/components/site/program-timeline').then((mod) => mod.ProgramTimeline),
-  { loading: () => <SectionSkeleton /> }
-);
-
-const OptionsTable = dynamic(
-  () => import('@/components/site/options-table').then((mod) => mod.OptionsTable),
   { loading: () => <SectionSkeleton /> }
 );
 
@@ -395,7 +393,13 @@ export function ProductLandingPage({
       ? `https://${website.subdomain}.bukeer.com${basePath}`
       : undefined;
   const primaryPhone = website.content.account?.phone || website.content.contact?.phone || null;
-  const callHref = primaryPhone ? `tel:${primaryPhone.replace(/[^0-9+]/g, '')}` : null;
+  const usesScheduleCall = productType === 'activity' || productType === 'package';
+  const callHref = usesScheduleCall
+    ? CAL_SCHEDULE_URL
+    : primaryPhone
+      ? `tel:${primaryPhone.replace(/[^0-9+]/g, '')}`
+      : null;
+  const callLabel = usesScheduleCall ? 'Agendar llamada' : 'Llamar ahora';
   const whatsappUrl = buildWhatsAppUrl({
     phone: website.content.social?.whatsapp,
     productName: displayName,
@@ -561,7 +565,7 @@ export function ProductLandingPage({
       title: sanitizeProductCopy(item.name) || item.name,
       location: item.location ?? null,
       image: item.image ?? null,
-      priceLabel: item.price
+      priceLabel: productType !== 'activity' && item.price
         ? formatPriceOrConsult(
             convertCurrencyAmount(item.price, item.currency, preferredCurrency ?? item.currency, currencyConfig ?? null),
             preferredCurrency ?? item.currency
@@ -610,7 +614,11 @@ export function ProductLandingPage({
         backgroundImage={customHero?.backgroundImage || images[0]}
         hotelStars={hotelStars}
         chips={heroChips}
-        priceLabel={normalizedProduct.price !== null ? formatPriceOrConsult(displayedBasePrice, displayedCurrency ?? sourceCurrency) : null}
+        priceLabel={
+          productType !== 'activity' && normalizedProduct.price !== null
+            ? formatPriceOrConsult(displayedBasePrice, displayedCurrency ?? sourceCurrency)
+            : null
+        }
         whatsappUrl={whatsappUrl}
         onWhatsAppClick={handleWhatsAppClick('hero')}
         videoAction={
@@ -629,13 +637,16 @@ export function ProductLandingPage({
 
       {showStickyCta ? (
         <StickyCTABar
-          price={normalizedProduct.price}
+          price={productType === 'activity' ? null : normalizedProduct.price}
           currency={sourceCurrency}
           preferredCurrency={displayedCurrency}
           currencyConfig={currencyConfig}
           whatsappUrl={whatsappUrl}
-          phone={primaryPhone || website.content.social?.whatsapp || null}
+          phone={usesScheduleCall ? null : (primaryPhone || website.content.social?.whatsapp || null)}
+          callUrl={usesScheduleCall ? CAL_SCHEDULE_URL : null}
+          callLabel={usesScheduleCall ? 'Agendar llamada' : undefined}
           analyticsContext={analyticsContext}
+          hidePrice={productType === 'activity'}
         />
       ) : null}
 
@@ -818,7 +829,7 @@ export function ProductLandingPage({
               </SectionErrorBoundary>
             )}
 
-            {!isTransfer && (
+            {!isTransfer && productType !== 'activity' && (
               <SectionErrorBoundary sectionName="options-table">
                 <div data-testid="detail-options">
                   <OptionsTable
@@ -836,7 +847,7 @@ export function ProductLandingPage({
             <div data-testid="detail-sidebar" className="lg:col-span-1">
               <div className="lg:sticky lg:top-28">
                 <ProductSummarySidebar
-                  priceLabel={selectedTierPriceLabel}
+                  priceLabel={productType === 'activity' ? null : selectedTierPriceLabel}
                   facts={sidebarFacts}
                   whatsappUrl={whatsappUrl}
                   phoneHref={callHref}
@@ -908,10 +919,12 @@ export function ProductLandingPage({
             {callHref && (
               <a
                 href={callHref}
+                target={callHref.startsWith('http') ? '_blank' : undefined}
+                rel={callHref.startsWith('http') ? 'noopener noreferrer' : undefined}
                 onClick={() => trackEvent('phone_cta_click', { ...analyticsContext, location_context: 'cta_section' })}
                 className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-primary text-primary-foreground rounded-full font-medium hover:bg-primary/90 transition-colors"
               >
-                Llamar ahora
+                {callLabel}
               </a>
             )}
           </div>
@@ -924,6 +937,7 @@ export function ProductLandingPage({
           viewAllHref={`${basePath}/${getCategorySlug(productType)}`}
           viewAllLabel="Ver todos"
           items={relatedCarouselItems}
+          showPrice={productType !== 'activity'}
         />
       ) : null}
 

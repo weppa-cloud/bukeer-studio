@@ -39,6 +39,7 @@ import { Breadcrumbs } from '../primitives/breadcrumbs';
 import { Icons } from '../primitives/icons';
 import { getBasePath } from '@/lib/utils/base-path';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
+import { WaflowCTAButton } from '../waflow/cta-button';
 
 // ---------- Shape overrides authors can pass via sections content ----
 
@@ -199,6 +200,7 @@ export function EditorialPlannerDetailPage({
     website.default_locale ??
     'es-CO';
   const editorialText = getPublicUiExtraTextGetter(resolvedLocale);
+  const isEnglish = resolvedLocale.toLowerCase().startsWith('en');
   const SECTION_COPY = createSectionCopy(editorialText);
   const DEFAULT_AVAILABILITY = editorialText('editorialPlannersAvailable');
   const DEFAULT_RESPONSE = editorialText('editorialPlannerDetailDefaultResponse');
@@ -206,6 +208,9 @@ export function EditorialPlannerDetailPage({
   const basePath = getBasePath(website.subdomain, false);
   const websiteWhatsapp = website.content?.social?.whatsapp;
   const { first, rest } = splitName(planner.fullName);
+  const primaryWhatsappLabel = isEnglish
+    ? `Chat with ${first} on WhatsApp`
+    : `Hablar con ${first} por WhatsApp`;
 
   const role = planner.position || mapRole(planner.role, editorialText);
   const quote =
@@ -303,6 +308,8 @@ export function EditorialPlannerDetailPage({
           style={{ position: 'relative', zIndex: 1 }}
         >
           <Breadcrumbs
+            tone="inverse"
+            className="pkg-hero-breadcrumb"
             items={[
               { label: editorialText('editorialBreadcrumbHome'), href: basePath || '/' },
               { label: 'Planners', href: `${basePath}/planners` },
@@ -528,15 +535,14 @@ export function EditorialPlannerDetailPage({
                         </Link>
                       )}
                       {signatureWa ? (
-                        <a
-                          href={signatureWa}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                        <WaflowCTAButton
+                          variant="A"
+                          fallbackHref={signatureWa}
                           className="btn btn-outline btn-sm"
                         >
-                          {SECTION_COPY.signatureSecondaryCta} {first}
+                          {primaryWhatsappLabel}
                           <Icons.whatsapp size={14} />
-                        </a>
+                        </WaflowCTAButton>
                       ) : null}
                     </div>
                   </div>
@@ -781,16 +787,15 @@ export function EditorialPlannerDetailPage({
               </div>
             </div>
             {waPrimary ? (
-              <a
-                href={waPrimary}
-                target="_blank"
-                rel="noopener noreferrer"
+              <WaflowCTAButton
+                variant="A"
+                fallbackHref={waPrimary}
                 className="btn btn-primary"
                 style={{ justifyContent: 'center' }}
               >
                 <Icons.whatsapp size={14} />
-                {SECTION_COPY.railPrimaryCta} {first}
-              </a>
+                {primaryWhatsappLabel}
+              </WaflowCTAButton>
             ) : null}
             <Link
               href={`${basePath}/#cta`}

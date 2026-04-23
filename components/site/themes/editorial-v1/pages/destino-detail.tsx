@@ -41,6 +41,7 @@ import { Breadcrumbs } from '../primitives/breadcrumbs';
 import { Eyebrow } from '../primitives/eyebrow';
 import { Icons } from '../primitives/icons';
 import { ColombiaMapStandalone } from '../maps/colombia-map-standalone.client';
+import { WaflowCTAButton } from '../waflow/cta-button';
 
 // ----- payload -----
 export interface EditorialDestinoDetailPayload {
@@ -253,6 +254,12 @@ export function EditorialDestinoDetailPage({
         `Hola! Quiero cotizar un viaje a ${destination.name}.`,
       )}`
     : null;
+  const waflowDestination = {
+    slug: destination.slug || destination.id,
+    name: destination.name,
+    region: destination.state || undefined,
+    heroImageUrl: heroImage,
+  };
 
   return (
     <div
@@ -288,6 +295,8 @@ export function EditorialDestinoDetailPage({
         <div className="ev-dest-hero-wash" />
         <div className="ev-container ev-dest-hero-meta">
           <Breadcrumbs
+            tone="inverse"
+            className="pkg-hero-breadcrumb"
             items={[
               {
                 label: editorialText('editorialBreadcrumbHome'),
@@ -519,15 +528,15 @@ export function EditorialDestinoDetailPage({
                 <Icons.arrow size={14} />
               </Link>
               {whatsappHref ? (
-                <a
-                  href={whatsappHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <WaflowCTAButton
+                  variant="B"
+                  destination={waflowDestination}
+                  fallbackHref={whatsappHref}
                   className="btn btn-outline"
                 >
                   <Icons.whatsapp size={14} />{' '}
                   {editorialText('editorialDestinoCtaSecondary')}
-                </a>
+                </WaflowCTAButton>
               ) : null}
             </div>
             <p style={{ marginTop: 18, fontSize: 12, color: 'var(--c-muted)' }}>

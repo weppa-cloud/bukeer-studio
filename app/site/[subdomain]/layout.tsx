@@ -219,6 +219,17 @@ export default async function SiteLayout({ children, params }: SiteLayoutProps) 
   const initialTheme = getInitialTheme(websiteWithEffectiveTheme.effective_theme ?? website.theme);
   const themeOutput = generateThemeOutput(initialTheme);
   const themeCSS = themeOutput.css;
+
+  // Extract hero section background image for early preload hint in <head>.
+  // Placing this preload early prevents 5+ second Load Delay caused by the
+  // browser discovering it late in the RSC streaming payload (~65% into doc).
+  const heroSection = website.sections?.find(
+    (s: { section_type: string; is_enabled: boolean }) =>
+      s.section_type?.startsWith('hero') && s.is_enabled
+  );
+  const heroImage = heroSection
+    ? ((heroSection.content as Record<string, unknown>)?.backgroundImage as string | undefined)
+    : undefined;
   // Wave 1.1 plumbing: resolve opt-in template set (editorial-v1). When null we
   // skip the wrapper entirely to preserve byte-identical HTML for generic sites.
   // Wave 1.2: swap header/footer for the editorial variants when opted in.
@@ -238,7 +249,7 @@ export default async function SiteLayout({ children, params }: SiteLayoutProps) 
 
   const smoothScrollContent = (
     <SmoothScroll>
-      <div className="min-h-screen flex flex-col overflow-x-hidden">
+      <div className="min-h-screen flex flex-col">
         {/* GTM NoScript fallback */}
         <GoogleTagManagerBody analytics={website.analytics} />
 
@@ -277,9 +288,15 @@ export default async function SiteLayout({ children, params }: SiteLayoutProps) 
 
   return (
     <>
+      {/* LCP hero image preload — must be first link in <head> to minimize Load Delay */}
+      {heroImage ? (
+        <link rel="preload" as="image" href={heroImage} fetchPriority="high" />
+      ) : null}
       {/* Preconnect to common third-party origins */}
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+      {/* Preconnect to Supabase storage — hero images / assets served from here */}
+      <link rel="preconnect" href="https://wzlxbpicdcdvxvdcvgas.supabase.co" crossOrigin="" />
       {/* Inline theme CSS variables (incl. bridge vars) so they're available
           before JS, preventing mount-time style recalculation from delaying LCP. */}
       {themeCSS ? <style dangerouslySetInnerHTML={{ __html: themeCSS }} /> : null}

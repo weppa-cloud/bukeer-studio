@@ -17,6 +17,7 @@ import type { ReactElement } from 'react';
 import type { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 import { Icons } from '../primitives/icons';
 import { getEditorialTextGetter, localizeEditorialText } from '../i18n';
+import { WaflowCTAButton } from '../waflow/cta-button';
 
 export interface EditorialContactSectionProps {
   section: WebsiteSection;
@@ -83,19 +84,20 @@ export function ContactSection({
             </p>
           ) : null}
 
-          <a
-            href={whatsappHref}
-            target="_blank"
-            rel="noopener noreferrer"
+          <WaflowCTAButton
+            variant="A"
+            fallbackHref={whatsappHref}
             className="btn btn-accent btn-lg"
-            style={{ gap: 8, display: 'inline-flex', alignItems: 'center' }}
-            aria-label={`Contact via WhatsApp${rawNumber ? ` ${rawNumber}` : ''}`}
+            ariaLabel={`Contact via WhatsApp${rawNumber ? ` ${rawNumber}` : ''}`}
+            // Keep visual parity with previous anchor.
+            // `WaflowCTAButton` renders a button when provider is mounted.
+            // Fallback remains an anchor if WAFlow is unavailable.
           >
             {Icons.whatsapp({ size: 20 })}
             {rawNumber
               ? rawNumber
               : editorialText('editorialCtaAriaFallback')}
-          </a>
+          </WaflowCTAButton>
         </div>
       </div>
     </section>

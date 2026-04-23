@@ -10,6 +10,7 @@ import { toActivityItems } from '@/lib/products/to-items';
 import type { WebsiteData } from '@/lib/supabase/get-website';
 import type { ProductData } from '@bukeer/website-contract';
 import { localeToLanguage, normalizeLocale } from '@/lib/seo/locale-routing';
+import { usePreferredCurrency } from '@/lib/site/use-preferred-currency';
 
 interface ActivitiesListingPageProps {
   website: WebsiteData;
@@ -18,6 +19,7 @@ interface ActivitiesListingPageProps {
 
 export function ActivitiesListingPage({ website, activities }: ActivitiesListingPageProps) {
   const basePath = getBasePath(website.subdomain);
+  const { currencyConfig, preferredCurrency } = usePreferredCurrency(website.content.account);
   const websiteLocale =
     (website as WebsiteData & { default_locale?: string; defaultLocale?: string }).default_locale ??
     (website as WebsiteData & { default_locale?: string; defaultLocale?: string }).defaultLocale ??
@@ -336,6 +338,8 @@ export function ActivitiesListingPage({ website, activities }: ActivitiesListing
                 subdomain={website.subdomain}
                 locale={websiteLocale}
                 basePath={basePath}
+                preferredCurrency={preferredCurrency}
+                currencyConfig={currencyConfig}
               />
             ))}
           </div>

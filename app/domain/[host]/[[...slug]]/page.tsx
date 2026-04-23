@@ -631,7 +631,7 @@ export async function generateMetadata({ params }: CustomDomainPageProps) {
     if (dest) {
       const siteName = website.content.account?.name || website.content.siteName;
       const title = `${dest.name} | ${siteName}`;
-      const description = `Explora ${dest.name}: ${dest.hotel_count} hoteles y ${dest.activity_count} actividades${dest.min_price ? ` desde ${dest.min_price}` : ''}. Reserva con ${siteName}.`;
+      const description = `Explora ${dest.name}: ${dest.hotel_count} hoteles y ${dest.activity_count} actividades. Reserva con ${siteName}.`;
       return {
         title,
         description,

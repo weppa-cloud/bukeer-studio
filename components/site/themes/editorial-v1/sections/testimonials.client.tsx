@@ -57,8 +57,19 @@ function renderStars(rating: number, starsAriaSuffix: string) {
   );
 }
 
-function renderAvatar(t: TestimonialItem, size: number) {
-  if (t.avatar) {
+function avatarKey(t: TestimonialItem, index: number): string {
+  return t.id ?? `${t.name}-${index}`;
+}
+
+function renderAvatar(
+  t: TestimonialItem,
+  size: number,
+  index: number,
+  brokenAvatars: Set<string>,
+  markBrokenAvatar: (key: string) => void,
+) {
+  const key = avatarKey(t, index);
+  if (t.avatar && !brokenAvatars.has(key)) {
     return (
       <span className="av" style={{ width: size, height: size }}>
         <Image
@@ -68,6 +79,7 @@ function renderAvatar(t: TestimonialItem, size: number) {
           height={size}
           unoptimized
           style={{ width: size, height: size, objectFit: 'cover' }}
+          onError={() => markBrokenAvatar(key)}
         />
       </span>
     );
@@ -82,8 +94,17 @@ function renderAvatar(t: TestimonialItem, size: number) {
 export function TestimonialsClient({ testimonials, locale = 'es-CO' }: TestimonialsClientProps) {
   const editorialText = getPublicUiExtraTextGetter(locale);
   const [idx, setIdx] = useState(0);
+  const [brokenAvatars, setBrokenAvatars] = useState<Set<string>>(new Set());
   const featured = testimonials[idx] ?? testimonials[0];
   if (!featured) return null;
+  const markBrokenAvatar = (key: string) => {
+    setBrokenAvatars((prev) => {
+      if (prev.has(key)) return prev;
+      const next = new Set(prev);
+      next.add(key);
+      return next;
+    });
+  };
 
   return (
     <div className="testi">
@@ -96,7 +117,7 @@ export function TestimonialsClient({ testimonials, locale = 'es-CO' }: Testimoni
           {featured.text ? <span dangerouslySetInnerHTML={{ __html: sanitizeQuote(featured.text) }} /> : null}
         </blockquote>
         <div className="testi-author">
-          {renderAvatar(featured, 48)}
+          {renderAvatar(featured, 48, idx, brokenAvatars, markBrokenAvatar)}
           <div>
             <b>{featured.name}</b>
             <small>
@@ -116,7 +137,7 @@ export function TestimonialsClient({ testimonials, locale = 'es-CO' }: Testimoni
             onClick={() => setIdx(i)}
           >
             <div className="hdr">
-              {renderAvatar(t, 32)}
+              {renderAvatar(t, 32, i, brokenAvatars, markBrokenAvatar)}
               <div>
                 <b>{t.name}</b>
                 {t.location ? (

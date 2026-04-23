@@ -66,6 +66,31 @@ function resolveActivityType(product: ProductData): string | null {
   return label.charAt(0).toUpperCase() + label.slice(1).toLowerCase();
 }
 
+function resolveDifficulty(product: ProductData): string | null {
+  if (typeof product.duration_minutes === 'number' && product.duration_minutes > 0) {
+    if (product.duration_minutes <= 240) return 'Fácil';
+    if (product.duration_minutes <= 420) return 'Moderada';
+    return 'Intensa';
+  }
+  return null;
+}
+
+function resolveLanguages(product: ProductData): string | null {
+  const record = product as ProductData & { languages?: unknown };
+  const raw = record.languages;
+  if (Array.isArray(raw)) {
+    const labels = raw
+      .map((entry) => (typeof entry === 'string' ? entry.trim() : ''))
+      .filter((entry) => entry.length > 0)
+      .slice(0, 3);
+    return labels.length > 0 ? labels.join(' · ') : null;
+  }
+  if (typeof raw === 'string' && raw.trim().length > 0) {
+    return raw.trim();
+  }
+  return null;
+}
+
 export function EditorialActivityStatsBar({
   product,
   reviewRating = null,
@@ -75,6 +100,8 @@ export function EditorialActivityStatsBar({
   const startTime = resolveFirstStartTime(product.options) ?? resolveFirstScheduleTime(product);
   const groupSize = resolveGroupSize(product.options);
   const activityType = resolveActivityType(product) ?? 'Actividad';
+  const difficulty = resolveDifficulty(product);
+  const languages = resolveLanguages(product);
   const location = product.location || product.city || null;
   const rating = typeof product.rating === 'number' && product.rating > 0 ? product.rating : null;
   const ratingSource = rating ?? reviewRating;
@@ -85,12 +112,9 @@ export function EditorialActivityStatsBar({
         ? reviewCount
         : null;
 
-  const hasStats = duration || startTime || groupSize || activityType || location || ratingSource;
-  if (!hasStats) return null;
-
   const ratingLabel = ratingSource
     ? `${ratingSource.toFixed(1)} ★${ratingCount ? ` · ${ratingCount}` : ''}`
-    : null;
+    : '—';
 
   return (
     <section
@@ -98,42 +122,30 @@ export function EditorialActivityStatsBar({
       className="pt-4"
     >
       <div className="pkg-meta" style={{ marginTop: 0 }}>
-        {duration ? (
-          <div className="ov-item">
-            <small>Duración</small>
-            <strong>{duration}</strong>
-          </div>
-        ) : null}
-        {startTime ? (
-          <div className="ov-item">
-            <small>Salida</small>
-            <strong>{startTime}</strong>
-          </div>
-        ) : null}
-        {activityType ? (
-          <div className="ov-item">
-            <small>Tipo</small>
-            <strong>{activityType}</strong>
-          </div>
-        ) : null}
-        {groupSize ? (
-          <div className="ov-item">
-            <small>Grupo</small>
-            <strong>{groupSize}</strong>
-          </div>
-        ) : null}
-        {location ? (
-          <div className="ov-item">
-            <small>Ubicación</small>
-            <strong>{location}</strong>
-          </div>
-        ) : null}
-        {ratingLabel ? (
-          <div className="ov-item">
-            <small>Calificación</small>
-            <strong>{ratingLabel}</strong>
-          </div>
-        ) : null}
+        <div className="ov-item">
+          <small>Duración</small>
+          <strong>{duration ?? '—'}</strong>
+        </div>
+        <div className="ov-item">
+          <small>Salida</small>
+          <strong>{startTime ?? '—'}</strong>
+        </div>
+        <div className="ov-item">
+          <small>Nivel</small>
+          <strong>{difficulty ?? '—'}</strong>
+        </div>
+        <div className="ov-item">
+          <small>Idiomas</small>
+          <strong>{languages ?? '—'}</strong>
+        </div>
+        <div className="ov-item">
+          <small>Grupo</small>
+          <strong>{groupSize ?? location ?? activityType}</strong>
+        </div>
+        <div className="ov-item">
+          <small>Reseñas</small>
+          <strong>{ratingLabel}</strong>
+        </div>
       </div>
     </section>
   );

@@ -27,14 +27,17 @@ import { localeToOgLocale } from '@/lib/seo/locale-routing';
 import { resolveOgImage } from '@/lib/seo/og-helpers';
 import { TemplateSlot } from '@/components/site/themes/editorial-v1/template-slot';
 import type { ExperienceItem } from '@/components/site/themes/editorial-v1/pages/experiences-grid.client';
+import { ExperiencesFallbackClient } from './experiences-fallback.client';
 
 interface ExperiencesPageProps {
   params: Promise<{ subdomain: string }>;
   searchParams: Promise<{
     level?: string;
     region?: string;
+    location?: string;
     category?: string;
     duration?: string;
+    sort?: string;
     q?: string;
   }>;
 }
@@ -188,8 +191,10 @@ export default async function ExperiencesPageRoute({
         initialFilters: {
           level: toArrayParam(sp.level),
           region: toArrayParam(sp.region),
+          location: toArrayParam(sp.location),
           category: sp.category || 'all',
           duration: sp.duration || 'all',
+          sort: sp.sort || 'popular',
           q: sp.q || '',
         },
       }}
@@ -200,20 +205,7 @@ export default async function ExperiencesPageRoute({
         <div className="container">
           <h1 className="text-3xl font-bold mb-4">{PAGE_TITLE}</h1>
           <p className="text-muted-foreground mb-8">{PAGE_DESCRIPTION}</p>
-          {activities.length === 0 ? (
-            <p className="text-muted-foreground">Aún no hay experiencias publicadas.</p>
-          ) : (
-            <ul className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {activities.map((a) => (
-                <li key={a.id} className="rounded-lg border p-4">
-                  <h3 className="font-semibold">{a.name}</h3>
-                  {a.description ? (
-                    <p className="mt-2 text-sm text-muted-foreground">{a.description}</p>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
-          )}
+          <ExperiencesFallbackClient activities={activities} />
         </div>
       </section>
     </TemplateSlot>
