@@ -16,6 +16,7 @@ import type { WebsiteData } from '@/lib/supabase/get-website';
 import { Eyebrow } from '@/components/site/themes/editorial-v1/primitives/eyebrow';
 import { Breadcrumbs } from '@/components/site/themes/editorial-v1/primitives/breadcrumbs';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
+import { editorialHtml } from '@/components/site/themes/editorial-v1/primitives/rich-heading';
 
 import {
   ExperiencesGrid,
@@ -59,13 +60,12 @@ export function EditorialExperiencesPage({
           />
           <div style={{ marginTop: 24, maxWidth: '52ch' }}>
             <Eyebrow tone="light">{editorialText('editorialExperiencesEyebrow')}</Eyebrow>
-            <h1 className="display-lg" style={heroTitleStyle}>
-              {editorialText('editorialExperiencesTitle')}{' '}
-              <em style={heroEmphasisStyle}>
-                {editorialText('editorialExperiencesEmphasis')}
-              </em>
-            </h1>
-            <p style={heroSubtitleStyle}>{editorialText('editorialExperiencesSubtitle')}</p>
+            <h1
+              className="display-lg"
+              style={heroTitleStyle}
+              dangerouslySetInnerHTML={editorialHtml(editorialText('editorialExperiencesTitle'))}
+            />
+            <p style={heroSubtitleStyle} dangerouslySetInnerHTML={editorialHtml(editorialText('editorialExperiencesSubtitle'))} />
           </div>
         </div>
       </section>

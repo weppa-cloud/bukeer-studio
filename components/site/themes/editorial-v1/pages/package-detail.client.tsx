@@ -22,6 +22,7 @@ import { Icons } from '../primitives/icons';
 import { EditorialGalleryMosaic } from '../primitives/editorial-gallery-mosaic';
 import { EditorialDateField } from '../primitives/editorial-date-field';
 import { WaflowCTAButton } from '../waflow/cta-button';
+import { editorialHtml } from '../primitives/rich-heading';
 
 interface GoogleReviewProp {
   author_name: string;
@@ -956,7 +957,7 @@ export function EditorialPackageDetailClient({
             />
           )}
 
-          <div className="absolute inset-x-0 bottom-12 z-10">
+          <div className="absolute inset-x-0 bottom-12 z-10 page-hero">
             <div className="pkg-detail-hero-content mx-auto w-full max-w-7xl px-6">
               <div data-testid="detail-breadcrumb" className="mb-4">
                 <Breadcrumbs items={breadcrumbItems} tone="inverse" className="pkg-hero-breadcrumb" />
@@ -970,7 +971,7 @@ export function EditorialPackageDetailClient({
                   </span>
                 ) : null}
               </div>
-              <h1 className="display-lg text-white">{displayName}</h1>
+              <h1 className="display-lg text-white" dangerouslySetInnerHTML={editorialHtml(displayName) || { __html: displayName }} />
               <div className="pkg-detail-hero-actions mt-4 flex flex-wrap items-center gap-3">
                 <span className="pkg-detail-hero-price inline-flex items-center rounded-full bg-white/20 px-3 py-1 text-sm font-semibold text-white">
                   Desde {priceLabel}

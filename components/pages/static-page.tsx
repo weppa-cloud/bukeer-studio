@@ -3,6 +3,8 @@ import Link from 'next/link';
 import type { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 import type { WebsitePage, PageSection, DestinationData } from '@/lib/supabase/get-pages';
 import { renderSection } from '@/lib/sections/render-section';
+import { resolveTemplateSet } from '@/lib/sections/template-set';
+import { editorialHtml } from '../site/themes/editorial-v1/primitives/rich-heading';
 import { SECTION_TYPES } from '@bukeer/website-contract';
 import { LandingPageSchema } from '@/components/seo/landing-page-schema';
 import { StickyCTABar } from '@/components/site/sticky-cta-bar';
@@ -119,8 +121,11 @@ export function StaticPage({ website, page, dynamicDestinations = [] }: StaticPa
   const stickyPrice = firstTier?.price ?? null;
   const stickyCurrency = firstTier?.currency ?? pricingContent.currency ?? 'USD';
 
+  const templateSet = resolveTemplateSet(website);
+  const isEditorial = templateSet === 'editorial-v1';
+
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen" data-template-set={templateSet}>
       {/* Landing page structured data (TouristTrip, FAQPage, AggregateRating, BreadcrumbList) */}
       <LandingPageSchema
         sections={sections}
@@ -155,13 +160,15 @@ export function StaticPage({ website, page, dynamicDestinations = [] }: StaticPa
                 {heroConfig.eyebrow}
               </span>
             )}
-            <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold mb-5 drop-shadow-sm">
-              {heroConfig.title || page.title}
-            </h1>
+            <h1
+              className={isEditorial ? "display-xl mb-5" : "text-3xl md:text-5xl lg:text-6xl font-bold mb-5 drop-shadow-sm"}
+              dangerouslySetInnerHTML={editorialHtml(heroConfig.title || page.title) || { __html: heroConfig.title || page.title }}
+            />
             {heroConfig.subtitle && (
-              <p className="text-base md:text-xl max-w-3xl mx-auto opacity-95 mb-7 leading-relaxed">
-                {heroConfig.subtitle}
-              </p>
+              <p
+                className={isEditorial ? "lead max-w-3xl mx-auto mb-7" : "text-base md:text-xl max-w-3xl mx-auto opacity-95 mb-7 leading-relaxed"}
+                dangerouslySetInnerHTML={editorialHtml(heroConfig.subtitle) || { __html: heroConfig.subtitle }}
+              />
             )}
             {(heroConfig.ctaText || heroConfig.secondaryCtaText) && (
               <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
@@ -245,13 +252,15 @@ export function StaticPage({ website, page, dynamicDestinations = [] }: StaticPa
       {ctaConfig.title && (
         <section className="py-16 px-4 bg-primary-container">
           <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-2xl md:text-3xl font-bold text-on-primary-container mb-4">
-              {ctaConfig.title}
-            </h2>
+            <h2
+              className="text-2xl md:text-3xl font-bold text-on-primary-container mb-4"
+              dangerouslySetInnerHTML={editorialHtml(ctaConfig.title) || { __html: ctaConfig.title }}
+            />
             {ctaConfig.subtitle && (
-              <p className="text-on-primary-container/80 mb-8">
-                {ctaConfig.subtitle}
-              </p>
+              <p
+                className="text-on-primary-container/80 mb-8"
+                dangerouslySetInnerHTML={editorialHtml(ctaConfig.subtitle) || { __html: ctaConfig.subtitle }}
+              />
             )}
             {ctaConfig.buttonText && (
               <Link

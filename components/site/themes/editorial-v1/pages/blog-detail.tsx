@@ -21,6 +21,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 
 import { SafeHtml } from '@/lib/sanitize';
+import { editorialHtml } from '../primitives/rich-heading';
 import type {
   WebsiteData,
   BlogPost,
@@ -166,9 +167,7 @@ export function EditorialBlogDetailPage({
             ]}
           />
           {renderCategoryChip(post.category)}
-          <h1 className="display-lg" style={{ maxWidth: '22ch' }}>
-            {post.title}
-          </h1>
+          <h1 className="display-lg" style={{ maxWidth: '22ch' }} dangerouslySetInnerHTML={editorialHtml(post.title) || { __html: post.title }} />
           <div className="post-author-line">
             {post.author_avatar ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -266,17 +265,7 @@ export function EditorialBlogDetailPage({
                   {CTA_EYEBROW}
                 </div>
                 <h3>
-                  {CTA_TITLE_PREFIX}{' '}
-                  <em
-                    style={{
-                      fontFamily: 'var(--font-serif)',
-                      fontStyle: 'italic',
-                      color: 'var(--c-accent-2)',
-                      fontWeight: 400,
-                    }}
-                  >
-                    {CTA_TITLE_EM}
-                  </em>
+                  {CTA_TITLE_PREFIX} <em>{CTA_TITLE_EM}</em>
                 </h3>
                 <p>
                   {post.author_name
@@ -341,17 +330,7 @@ export function EditorialBlogDetailPage({
               }}
             >
               <h2 className="display-md">
-                {RELATED_HEADING}{' '}
-                <span
-                  style={{
-                    fontFamily: 'var(--font-serif)',
-                    fontStyle: 'italic',
-                    color: 'var(--c-accent)',
-                    fontWeight: 400,
-                  }}
-                >
-                  {RELATED_HEADING_EM}
-                </span>
+                {RELATED_HEADING} <em>{RELATED_HEADING_EM}</em>
               </h2>
               <Link href={`${basePath}/blog`} className="btn btn-ghost btn-sm">
                 {RELATED_CTA} <Icons.arrow size={14} aria-hidden />

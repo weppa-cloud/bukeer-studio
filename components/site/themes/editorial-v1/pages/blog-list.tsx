@@ -23,6 +23,7 @@ import Image from 'next/image';
 import type { WebsiteData, BlogPost, BlogCategory } from '@/lib/supabase/get-website';
 import { Eyebrow } from '@/components/site/themes/editorial-v1/primitives/eyebrow';
 import { Breadcrumbs } from '@/components/site/themes/editorial-v1/primitives/breadcrumbs';
+import { editorialHtml } from '@/components/site/themes/editorial-v1/primitives/rich-heading';
 import { Icons } from '@/components/site/themes/editorial-v1/primitives/icons';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 import { formatPublicDate } from '@/lib/site/public-ui-messages';
@@ -107,7 +108,7 @@ export function EditorialBlogListPage({
 
   return (
     <div data-screen-label="BlogList" data-testid="editorial-blog-list">
-      <section className="section ev-blog-hero" style={heroStyle}>
+      <section className="page-hero" style={heroStyle}>
         <div className="ev-container">
           <Breadcrumbs
             tone="inverse"
@@ -119,20 +120,11 @@ export function EditorialBlogListPage({
           />
           <div style={{ marginTop: 24, maxWidth: '52ch' }}>
             <Eyebrow tone="light">{DEFAULT_EYEBROW}</Eyebrow>
-            <h1 className="display-lg" style={{ margin: '12px 0 12px' }}>
-              {DEFAULT_TITLE}{' '}
-              <em
-                style={{
-                  fontFamily: 'var(--font-serif)',
-                  fontStyle: 'italic',
-                  color: 'var(--c-accent)',
-                  fontWeight: 400,
-                }}
-              >
-                {DEFAULT_EMPHASIS}
-              </em>
-            </h1>
-            <p style={heroSubtitleStyle}>{DEFAULT_SUBTITLE}</p>
+            <h1
+              className="display-lg"
+              dangerouslySetInnerHTML={editorialHtml(editorialText('editorialBlogListTitle'))}
+            />
+            <p style={heroSubtitleStyle} dangerouslySetInnerHTML={editorialHtml(editorialText('editorialBlogListSubtitle'))} />
           </div>
         </div>
       </section>

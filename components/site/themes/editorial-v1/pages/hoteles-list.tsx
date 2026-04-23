@@ -26,6 +26,7 @@ import { Breadcrumbs } from '../primitives/breadcrumbs';
 import { Eyebrow } from '../primitives/eyebrow';
 import { getBasePath } from '@/lib/utils/base-path';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
+import { editorialHtml } from '../primitives/rich-heading';
 
 import {
   HotelesListGrid,
@@ -44,30 +45,7 @@ export interface EditorialHotelesListPageProps {
 }
 
 // -------------------- Copy --------------------
-function getHeroCopy(localeLike: string): {
-  eyebrow: string;
-  title: string;
-  emphasis: string;
-  subtitle: string;
-} {
-  const locale = localeLike.toLowerCase();
-  if (locale.startsWith('en')) {
-    return {
-      eyebrow: 'HOTELS',
-      title: 'Stays',
-      emphasis: 'curated by city.',
-      subtitle:
-        'Fincas, boutiques, and resorts selected by our planners. Switch categories without rebuilding the whole trip.',
-    };
-  }
-  return {
-    eyebrow: 'HOTELES',
-    title: 'Estancias',
-    emphasis: 'curadas por ciudad.',
-    subtitle:
-      'Fincas, boutiques y resorts seleccionados por nuestros planners. Cambia de categoría sin reconstruir el viaje.',
-  };
-}
+
 
 // -------------------- Helpers --------------------
 
@@ -104,11 +82,14 @@ export function EditorialHotelesListPage({
   const resolvedLocale =
     (website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale ?? website.default_locale ?? website.content?.locale ?? 'es-CO';
   const editorialText = getPublicUiExtraTextGetter(resolvedLocale);
-  const heroCopy = getHeroCopy(resolvedLocale);
   const basePath = getBasePath(website.subdomain, false);
   const siteTitleTrail = website.content?.siteName || website.subdomain;
 
   const items = hotels.map(toListItem);
+
+  const eyebrow = editorialText('editorialHotelsEyebrow');
+  const title = editorialText('editorialHotelsTitle');
+  const subtitle = editorialText('editorialHotelsSubtitle');
 
   return (
     <div data-screen-label="HotelesList" data-testid="editorial-hoteles-list">
@@ -123,12 +104,9 @@ export function EditorialHotelesListPage({
             ]}
           />
           <div style={{ marginTop: 24 }}>
-            <Eyebrow tone="light">{heroCopy.eyebrow}</Eyebrow>
-            <h1 className="display-lg" style={heroTitleStyle}>
-              {heroCopy.title}{' '}
-              <em style={heroEmphasisStyle}>{heroCopy.emphasis}</em>
-            </h1>
-            <p style={heroSubtitleStyle}>{heroCopy.subtitle}</p>
+            <Eyebrow tone="light">{eyebrow}</Eyebrow>
+            <h1 className="display-lg" style={heroTitleStyle} dangerouslySetInnerHTML={editorialHtml(title)} />
+            <p style={heroSubtitleStyle} dangerouslySetInnerHTML={editorialHtml(subtitle)} />
           </div>
         </div>
       </section>

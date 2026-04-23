@@ -40,6 +40,7 @@ import { Icons } from '../primitives/icons';
 import { getBasePath } from '@/lib/utils/base-path';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 import { WaflowCTAButton } from '../waflow/cta-button';
+import { editorialHtml } from '../primitives/rich-heading';
 
 // ---------- Shape overrides authors can pass via sections content ----
 
@@ -282,7 +283,7 @@ export function EditorialPlannerDetailPage({
     <div data-screen-label="PlannerDetail">
       {/* Hero */}
       <div
-        className="pld-hero"
+        className="pld-hero page-hero"
         style={{
           ...pldHeroWrapperStyle,
           ...(planner.photo
@@ -355,19 +356,7 @@ export function EditorialPlannerDetailPage({
                 {base ? ` · ${base}` : ''}
               </span>
               <h1>
-                {first}{' '}
-                {rest ? (
-                  <em
-                    style={{
-                      fontFamily: 'var(--font-serif)',
-                      fontStyle: 'italic',
-                      color: 'var(--c-accent-2)',
-                      fontWeight: 400,
-                    }}
-                  >
-                    {rest}
-                  </em>
-                ) : null}
+                {first} {rest ? <em>{rest}</em> : null}
               </h1>
               <div
                 style={{

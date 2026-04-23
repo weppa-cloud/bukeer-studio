@@ -646,7 +646,23 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
       defaultLocale,
       websiteId: String(website.id),
     });
-    return <ActivitiesListingPage website={websiteForRender} activities={activityProducts} />;
+    const activitiesBody = (
+      <ActivitiesListingPage website={websiteForRender} activities={activityProducts} />
+    );
+    const activitiesPayload = {
+      subdomain,
+      locale: resolvedLocale,
+      activities: activityProducts,
+    };
+    return (
+      <TemplateSlot
+        name="experiences-page"
+        website={websiteForRender}
+        payload={activitiesPayload}
+      >
+        {activitiesBody}
+      </TemplateSlot>
+    );
   }
 
   // Handle packages listing (/paquetes) — editorial-v1 overlay (Wave 4)

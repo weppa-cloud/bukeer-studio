@@ -19,7 +19,7 @@
  * `app/site/[subdomain]/[...slug]/page.tsx` — no additional RPCs.
  */
 
-import type { ReactElement } from 'react';
+import type { ReactElement, CSSProperties } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -36,6 +36,7 @@ import { Breadcrumbs } from '../primitives/breadcrumbs';
 import { Eyebrow } from '../primitives/eyebrow';
 import { Icons } from '../primitives/icons';
 import { ColombiaMapStandalone } from '../maps/colombia-map-standalone.client';
+import { editorialHtml } from '../primitives/rich-heading';
 
 // ----- types -----
 export interface EditorialDestinosListPagePayload {
@@ -242,7 +243,7 @@ export function EditorialDestinosListPage({
       ) : null}
 
       {/* Hero */}
-      <section className="ev-page-hero" data-testid="destinos-list-hero">
+      <section className="page-hero" style={heroStyle} data-testid="destinos-list-hero">
         <div className="ev-page-hero-wash" />
         <div className="ev-container">
           <Breadcrumbs
@@ -262,10 +263,11 @@ export function EditorialDestinosListPage({
             <Eyebrow tone="light" className="ev-page-hero-eyebrow">
               {editorialText('editorialDestinosListEyebrow')}
             </Eyebrow>
-            <h1 className="display-lg">
-              {editorialText('editorialDestinosListTitle')}
-            </h1>
-            <p>{editorialText('editorialDestinosListSubtitle')}</p>
+            <h1
+              className="display-lg"
+              dangerouslySetInnerHTML={editorialHtml(editorialText('editorialDestinosListTitle'))}
+            />
+            <p style={heroSubtitleStyle} dangerouslySetInnerHTML={editorialHtml(editorialText('editorialDestinosListSubtitle'))} />
           </div>
         </div>
       </section>
@@ -389,5 +391,22 @@ export function EditorialDestinosListPage({
     </div>
   );
 }
+
+const heroStyle: CSSProperties = {
+  background: 'var(--c-ink)',
+  color: '#fff',
+  position: 'relative',
+  overflow: 'hidden',
+  padding: '80px 0 64px',
+  borderRadius: '0 0 32px 32px',
+};
+
+const heroSubtitleStyle: CSSProperties = {
+  color: 'rgba(255,255,255,.78)',
+  fontSize: 17,
+  lineHeight: 1.55,
+  maxWidth: '60ch',
+  margin: 0,
+};
 
 export default EditorialDestinosListPage;

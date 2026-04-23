@@ -42,6 +42,7 @@ import { Eyebrow } from '../primitives/eyebrow';
 import { Icons } from '../primitives/icons';
 import { ColombiaMapStandalone } from '../maps/colombia-map-standalone.client';
 import { WaflowCTAButton } from '../waflow/cta-button';
+import { editorialHtml } from '../primitives/rich-heading';
 
 // ----- payload -----
 export interface EditorialDestinoDetailPayload {
@@ -280,7 +281,7 @@ export function EditorialDestinoDetailPage({
       />
 
       {/* Hero */}
-      <section className="ev-dest-hero" data-testid="destino-hero">
+      <section className="page-hero" data-testid="destino-hero">
         <div className="ev-dest-hero-media" aria-hidden="true">
           {heroImage ? (
             <Image
@@ -310,7 +311,7 @@ export function EditorialDestinoDetailPage({
             ]}
           />
           <h1 className="display-lg">
-            {destination.name}
+            <span dangerouslySetInnerHTML={editorialHtml(destination.name) || { __html: destination.name }} />
             {destination.state ? (
               <>
                 {' '}
