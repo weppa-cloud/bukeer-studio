@@ -110,24 +110,7 @@ const DEFAULT_FALLBACK_SLIDES: HeroRotatorSlide[] = [
 // verbatim from the designer copy catalog. We trust the source but still
 // enforce a very narrow allowlist — anything outside `<em>` / `<br>` is
 // stripped. Comments and CDATA are rejected outright.
-const ALLOWED_HEADLINE_TAGS = new Set(['em', 'br']);
-
-function sanitizeHeadline(raw: string | undefined | null): string {
-  if (!raw) return '';
-  // Drop comments + CDATA wholesale.
-  const noComments = raw
-    .replace(/<!--[\s\S]*?-->/g, '')
-    .replace(/<!\[CDATA\[[\s\S]*?\]\]>/g, '');
-  // Replace any tag that isn't in the allowlist with nothing. Attributes on
-  // the allowed tags are stripped: `<em class="x">` → `<em>`, `<br/>` → `<br>`.
-  return noComments.replace(/<\/?([a-zA-Z][a-zA-Z0-9]*)[^>]*>/g, (match, name) => {
-    const tag = String(name).toLowerCase();
-    if (!ALLOWED_HEADLINE_TAGS.has(tag)) return '';
-    const isClosing = match.startsWith('</');
-    if (tag === 'br') return '<br>';
-    return isClosing ? `</${tag}>` : `<${tag}>`;
-  });
-}
+import { editorialHtml } from '../primitives/rich-heading';
 
 function humanizeSlug(slug: string | undefined | null): string {
   if (!slug) return '';
@@ -207,8 +190,14 @@ export function HeroSection({
   const basePath = getBasePath(website.subdomain, false);
 
   const eyebrow = localizeEditorialText(website, content.eyebrow?.trim() || defaultEyebrow);
-  const sanitizedHeadline = sanitizeHeadline(localizeEditorialText(website, content.headline));
-  const subtitle = localizeEditorialText(website, content.subtitle?.trim() || '');
+  const headlineHtml = editorialHtml(
+    localizeEditorialText(website, content.headline) ||
+      localizeEditorialText(website, editorialText('editorialHeroHeadlineFallback')),
+  );
+  const subtitleHtml = editorialHtml(
+    localizeEditorialText(website, content.subtitle?.trim() || '') ||
+      localizeEditorialText(website, editorialText('editorialHeroSubtitleFallback')),
+  );
   const trustChipLabel = localizeEditorialText(website, content.trustChip?.label);
   const trustChip = content.trustChip
     ? { ...content.trustChip, label: trustChipLabel }
@@ -308,14 +297,16 @@ export function HeroSection({
 
           <span className="eyebrow hero-eyebrow">{eyebrow}</span>
 
-          {sanitizedHeadline ? (
+          {headlineHtml ? (
             <h1
               className="display-xl"
-              dangerouslySetInnerHTML={{ __html: sanitizedHeadline }}
+              dangerouslySetInnerHTML={headlineHtml}
             />
           ) : null}
 
-          {subtitle ? <p className="lead">{subtitle}</p> : null}
+          {subtitleHtml ? (
+            <p className="lead" dangerouslySetInnerHTML={subtitleHtml} />
+          ) : null}
 
           {ctas.length > 0 ? (
             <div className="hero-cta">

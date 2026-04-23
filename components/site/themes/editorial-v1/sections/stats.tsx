@@ -28,7 +28,7 @@ import type { BrandClaims } from '@bukeer/website-contract';
 
 import type { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 import { NumberTicker } from '@/components/ui/number-ticker';
-
+import { editorialHtml } from '../primitives/rich-heading';
 import { Eyebrow } from '../primitives/eyebrow';
 
 export interface EditorialStatsSectionProps {
@@ -147,9 +147,8 @@ export function StatsSection({
               <h2
                 className="display-md"
                 style={{ margin: '12px auto 0', maxWidth: '20ch' }}
-              >
-                {title}
-              </h2>
+                dangerouslySetInnerHTML={editorialHtml(title)}
+              />
             ) : null}
           </header>
         ) : null}

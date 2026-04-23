@@ -24,6 +24,7 @@ import { Eyebrow } from '@/components/site/themes/editorial-v1/primitives/eyebro
 import { Icons } from '@/components/site/themes/editorial-v1/primitives/icons';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 import { formatPublicDate } from '@/lib/site/public-ui-messages';
+import { editorialHtml } from '../primitives/rich-heading';
 
 export interface BlogTeaserPost {
   id: string;
@@ -104,16 +105,17 @@ export function BlogSection({ section, website }: EditorialBlogSectionProps) {
         <header className="ev-blog-teaser-head">
           <div>
             <Eyebrow>{eyebrow}</Eyebrow>
-            <h2 className="display-md" style={{ margin: '12px 0 0', maxWidth: '24ch' }}>
-              {title}
-            </h2>
+            <h2
+              className="display-md"
+              style={{ margin: '12px 0 0', maxWidth: '24ch' }}
+              dangerouslySetInnerHTML={editorialHtml(title)}
+            />
             {subtitle ? (
               <p
                 className="body-md"
                 style={{ margin: '12px 0 0', maxWidth: '52ch', color: 'var(--c-ink-2)' }}
-              >
-                {subtitle}
-              </p>
+                dangerouslySetInnerHTML={editorialHtml(subtitle)}
+              />
             ) : null}
           </div>
           <Link href={viewAllHref} className="ev-blog-teaser-viewall">

@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useMemo } from 'react';
 import { getPublicUiMessages } from '@/lib/site/public-ui-messages';
+import { editorialHtml } from '@/components/site/themes/editorial-v1/primitives/rich-heading';
 
 interface HeroSplitChip {
   id: string;
@@ -80,7 +81,7 @@ export function HeroSplit({
   return (
     <section
       data-testid="detail-hero"
-      className={`relative ${isActivity ? 'detail-hero-activity' : ''}`}
+      className={`relative page-hero ${isActivity ? 'detail-hero-activity' : ''}`}
       style={{ minHeight: 560 }}
     >
       {backgroundImage ? (
@@ -141,7 +142,10 @@ export function HeroSplit({
             </div>
           ) : null}
 
-          <h1 className={`text-balance font-bold ${isActivity ? 'display-lg text-white' : 'text-4xl md:text-5xl'}`}>{displayName}</h1>
+          <h1
+            className={`text-balance font-bold ${isActivity ? 'display-lg text-white' : 'text-4xl md:text-5xl'}`}
+            dangerouslySetInnerHTML={editorialHtml(displayName) || { __html: displayName }}
+          />
 
           {displayLocation && productType !== 'activity' ? (
             <p className="mt-2 flex items-center gap-2 text-lg text-foreground/90">

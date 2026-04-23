@@ -17,6 +17,7 @@ import type { ReactElement } from 'react';
 import type { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 import { localizeEditorialText } from '../i18n';
 import { Icons, type IconName } from '../primitives/icons';
+import { editorialHtml } from '../primitives/rich-heading';
 
 export interface EditorialFeaturesGridSectionProps {
   section: WebsiteSection;
@@ -116,7 +117,7 @@ export function FeaturesGridSection({
       <div className="ev-container">
         {title ? (
           <div className="ev-section-head">
-            <h2 className="headline-md">{title}</h2>
+            <h2 className="headline-md" dangerouslySetInnerHTML={editorialHtml(title)} />
           </div>
         ) : null}
 
@@ -133,10 +134,10 @@ export function FeaturesGridSection({
                   {IconFn({ size: 28 })}
                 </span>
                 {itemTitle ? (
-                  <h3 className="title-lg">{itemTitle}</h3>
+                  <h3 className="title-lg" dangerouslySetInnerHTML={editorialHtml(itemTitle)} />
                 ) : null}
                 {description ? (
-                  <p className="body-md">{description}</p>
+                  <p className="body-md" dangerouslySetInnerHTML={editorialHtml(description)} />
                 ) : null}
               </div>
             );

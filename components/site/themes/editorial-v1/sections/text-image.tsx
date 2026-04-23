@@ -25,6 +25,7 @@ import Image from 'next/image';
 import type { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 import { localizeEditorialText } from '../i18n';
 import { Eyebrow } from '../primitives/eyebrow';
+import { editorialHtml } from '../primitives/rich-heading';
 
 export interface EditorialTextImageSectionProps {
   section: WebsiteSection;
@@ -69,9 +70,11 @@ export function TextImageSection({
           <div className="text-image-copy">
             {eyebrow ? <Eyebrow>{eyebrow}</Eyebrow> : null}
             {headline ? (
-              <h2 className="headline-lg">{headline}</h2>
+              <h2 className="headline-lg" dangerouslySetInnerHTML={editorialHtml(headline)} />
             ) : null}
-            {body ? <p className="body-lg">{body}</p> : null}
+            {body ? (
+              <p className="body-lg" dangerouslySetInnerHTML={editorialHtml(body)} />
+            ) : null}
             {ctaText ? (
               <a href={ctaUrl} className="btn btn-primary">
                 {ctaText}

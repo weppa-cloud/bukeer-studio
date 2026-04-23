@@ -40,6 +40,7 @@ import type { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 import { Eyebrow } from '../primitives/eyebrow';
 import { Icons } from '../primitives/icons';
 import { getEditorialTextGetter, localizeEditorialText } from '../i18n';
+import { editorialHtml } from '../primitives/rich-heading';
 
 export interface EditorialPricingSectionProps {
   section: WebsiteSection;
@@ -122,9 +123,7 @@ export function PricingSection({
         <div className="pricing-header" style={{ marginBottom: 40 }}>
           <Eyebrow>{eyebrow}</Eyebrow>
           {title ? (
-            <h2 className="headline-lg" style={{ marginTop: 12 }}>
-              {title}
-            </h2>
+            <h2 className="headline-lg" style={{ marginTop: 12 }} dangerouslySetInnerHTML={editorialHtml(title)} />
           ) : null}
           {subtitle ? (
             <p className="body-md" style={{ marginTop: 16, maxWidth: '56ch' }}>
@@ -178,9 +177,7 @@ export function PricingSection({
                   background: isHighlighted
                     ? 'var(--ev-ink, var(--c-ink))'
                     : 'var(--ev-surface, var(--c-surface, #fff))',
-                  color: isHighlighted
-                    ? 'var(--ev-ink-inv, #fff)'
-                    : 'inherit',
+                  color: isHighlighted ? '#ffffff' : 'inherit',
                   position: 'relative',
                 }}
               >
@@ -195,19 +192,15 @@ export function PricingSection({
                 ) : null}
 
                 {/* Tier name */}
-                <h3 className="headline-md" style={{ margin: 0 }}>
-                  {tierName}
-                </h3>
+                <h3 className="headline-md" style={{ margin: 0 }} dangerouslySetInnerHTML={editorialHtml(tierName)} />
 
                 {/* Price block */}
                 <div className="pricing-price-block">
                   <div
                     style={{
                       fontSize: 11,
-                      letterSpacing: '.14em',
-                      textTransform: 'uppercase',
-                      fontWeight: 600,
-                      opacity: 0.65,
+                      color: isHighlighted ? '#ffffff' : 'inherit',
+                      opacity: isHighlighted ? 1.0 : 0.65,
                       marginBottom: 4,
                     }}
                   >
@@ -236,7 +229,7 @@ export function PricingSection({
                   {tierPeriod ? (
                     <div
                       className="label"
-                      style={{ marginTop: 4, opacity: 0.7 }}
+                      style={{ marginTop: 4, color: isHighlighted ? '#ffffff' : 'inherit', opacity: isHighlighted ? 1.0 : 0.7 }}
                     >
                       {tierPeriod}
                       {perPerson ? ' · por persona' : null}
@@ -244,7 +237,7 @@ export function PricingSection({
                   ) : perPerson ? (
                     <div
                       className="label"
-                      style={{ marginTop: 4, opacity: 0.7 }}
+                      style={{ marginTop: 4, color: isHighlighted ? '#ffffff' : 'inherit', opacity: isHighlighted ? 1.0 : 0.7 }}
                     >
                       por persona
                     </div>
@@ -252,7 +245,7 @@ export function PricingSection({
                   {tierInstallments ? (
                     <div
                       className="body-md"
-                      style={{ marginTop: 6, fontSize: 12, opacity: 0.75 }}
+                      style={{ marginTop: 6, fontSize: 12, color: isHighlighted ? '#ffffff' : 'inherit', opacity: isHighlighted ? 1.0 : 0.75 }}
                     >
                       {tierInstallments}
                     </div>
@@ -261,7 +254,7 @@ export function PricingSection({
 
                 {/* Description */}
                 {tierDescription ? (
-                  <p className="body-md" style={{ margin: 0, opacity: 0.85 }}>
+                  <p className="body-md" style={{ margin: 0, color: isHighlighted ? '#ffffff' : 'inherit', opacity: isHighlighted ? 1.0 : 0.85 }}>
                     {tierDescription}
                   </p>
                 ) : null}
@@ -302,7 +295,11 @@ export function PricingSection({
                           >
                             {Icons.check({ size: 15 })}
                           </span>
-                          <span className="body-md">{featText}</span>
+                          <span
+                            className="body-md"
+                            style={{ color: isHighlighted ? '#ffffff' : 'inherit', opacity: isHighlighted ? 1.0 : 0.8 }}
+                            dangerouslySetInnerHTML={editorialHtml(featText)}
+                          />
                         </li>
                       );
                     })}
