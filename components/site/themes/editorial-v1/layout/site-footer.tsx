@@ -32,11 +32,13 @@ export interface EditorialSiteFooterProps {
   website: WebsiteData;
   navigation?: NavigationItem[];
   isCustomDomain?: boolean;
+  isLanding?: boolean;
 }
 
 export function EditorialSiteFooter({
   website,
   isCustomDomain = false,
+  isLanding = false,
 }: EditorialSiteFooterProps) {
   const editorialText = getEditorialTextGetter(website);
   const { content, subdomain } = website;
@@ -193,81 +195,85 @@ export function EditorialSiteFooter({
             ) : null}
           </div>
 
-          <div className="footer-col">
-            <h5>{editorialText('editorialFooterColDestinos')}</h5>
-            <ul>
-              {destinosLinks.map((link) => (
-                <li key={link.label}>
-                  <Link href={link.href}>{link.label}</Link>
-                </li>
-              ))}
-            </ul>
-          </div>
+          {!isLanding && (
+            <>
+              <div className="footer-col">
+                <h5>{editorialText('editorialFooterColDestinos')}</h5>
+                <ul>
+                  {destinosLinks.map((link) => (
+                    <li key={link.label}>
+                      <Link href={link.href}>{link.label}</Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
 
-          <div className="footer-col">
-            <h5>{editorialText('editorialFooterColViajar')}</h5>
-            <ul>
-              {viajarLinks.map((link) => (
-                <li key={link.label}>
-                  <Link href={link.href}>{link.label}</Link>
-                </li>
-              ))}
-            </ul>
-          </div>
+              <div className="footer-col">
+                <h5>{editorialText('editorialFooterColViajar')}</h5>
+                <ul>
+                  {viajarLinks.map((link) => (
+                    <li key={link.label}>
+                      <Link href={link.href}>{link.label}</Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
 
-          <div className="footer-col">
-            <h5>{editorialText('editorialFooterColAgencia')}</h5>
-            <ul>
-              {agenciaLinks.map((link) => (
-                <li key={link.label}>
-                  <Link href={link.href}>{link.label}</Link>
-                </li>
-              ))}
-            </ul>
-          </div>
+              <div className="footer-col">
+                <h5>{editorialText('editorialFooterColAgencia')}</h5>
+                <ul>
+                  {agenciaLinks.map((link) => (
+                    <li key={link.label}>
+                      <Link href={link.href}>{link.label}</Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
 
-          <div className="footer-col">
-            <h5>{editorialText('editorialFooterColNewsletter')}</h5>
-            <p
-              style={{
-                fontSize: 13,
-                color: 'rgba(255,255,255,.6)',
-                marginBottom: 14,
-              }}
-            >
-              {editorialText('editorialFooterNewsletterHint')}
-            </p>
-            {/* Newsletter stub — wiring in Wave 4+ */}
-            <form
-              method="post"
-              action={`${basePath}/api/newsletter`}
-              style={{ display: 'flex', flexDirection: 'column', gap: 8 }}
-            >
-              <label className="sr-only" htmlFor="ev-footer-email">
-                {editorialText('editorialFooterEmailLabel')}
-              </label>
-              <input
-                id="ev-footer-email"
-                type="email"
-                name="email"
-                required
-                placeholder={editorialText('editorialFooterEmailPlaceholder')}
-                style={{
-                  width: '100%',
-                  padding: '12px 14px',
-                  borderRadius: 12,
-                  border: '1px solid rgba(255,255,255,.16)',
-                  background: 'rgba(255,255,255,.06)',
-                  color: '#fff',
-                  fontSize: 14,
-                }}
-              />
-              <button type="submit" className="btn btn-accent">
-                {editorialText('editorialFooterSubscribe')}
-                <Icons.arrow size={14} />
-              </button>
-            </form>
-          </div>
+              <div className="footer-col">
+                <h5>{editorialText('editorialFooterColNewsletter')}</h5>
+                <p
+                  style={{
+                    fontSize: 13,
+                    color: 'rgba(255,255,255,.6)',
+                    marginBottom: 14,
+                  }}
+                >
+                  {editorialText('editorialFooterNewsletterHint')}
+                </p>
+                {/* Newsletter stub — wiring in Wave 4+ */}
+                <form
+                  method="post"
+                  action={`${basePath}/api/newsletter`}
+                  style={{ display: 'flex', flexDirection: 'column', gap: 8 }}
+                >
+                  <label className="sr-only" htmlFor="ev-footer-email">
+                    {editorialText('editorialFooterEmailLabel')}
+                  </label>
+                  <input
+                    id="ev-footer-email"
+                    type="email"
+                    name="email"
+                    required
+                    placeholder={editorialText('editorialFooterEmailPlaceholder')}
+                    style={{
+                      width: '100%',
+                      padding: '12px 14px',
+                      borderRadius: 12,
+                      border: '1px solid rgba(255,255,255,.16)',
+                      background: 'rgba(255,255,255,.06)',
+                      color: '#fff',
+                      fontSize: 14,
+                    }}
+                  />
+                  <button type="submit" className="btn btn-accent">
+                    {editorialText('editorialFooterSubscribe')}
+                    <Icons.arrow size={14} />
+                  </button>
+                </form>
+              </div>
+            </>
+          )}
         </div>
 
         <div className="footer-bottom">

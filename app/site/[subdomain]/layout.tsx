@@ -17,6 +17,8 @@ import { resolvePublicMetadataLocale } from '@/lib/seo/public-metadata';
 import { localeToOgLocale } from '@/lib/seo/locale-routing';
 import { WebsiteLocaleProvider } from '@/components/site/website-locale-provider';
 import { resolveTemplateSet } from '@/lib/sections/template-set';
+import { headers } from 'next/headers';
+import { isLandingPage } from '@/lib/utils/landing-pages';
 import {
   EditorialSiteHeader,
   EditorialSiteFooter,
@@ -233,16 +235,37 @@ export default async function SiteLayout({ children, params }: SiteLayoutProps) 
   // Wave 1.1 plumbing: resolve opt-in template set (editorial-v1). When null we
   // skip the wrapper entirely to preserve byte-identical HTML for generic sites.
   // Wave 1.2: swap header/footer for the editorial variants when opted in.
-  const templateSet = resolveTemplateSet(website);
+
+  // Detect if current route is a landing page to apply minimalist header/footer
+  const headerList = await headers();
+  const originalPathname = headerList.get('x-public-original-pathname') || '';
+  const isLanding = isLandingPage(originalPathname);
+
+  // Wave 1.1 plumbing: resolve opt-in template set (editorial-v1). When null we
+  // skip the wrapper entirely to preserve byte-identical HTML for generic sites.
+  // Wave 1.2: swap header/footer for the editorial variants when opted in.
+  const templateSet = resolveTemplateSet(website) || (subdomain.toLowerCase().includes('colombiatours') ? 'editorial-v1' : null);
   const isEditorial = templateSet === 'editorial-v1';
 
+  const editorialFonts = [
+    'https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&display=swap'
+  ];
+
   const headerEl = isEditorial ? (
-    <EditorialSiteHeader website={websiteForRender} navigation={navigation} />
+    <EditorialSiteHeader
+      website={websiteForRender}
+      navigation={navigation}
+      isLanding={isLanding}
+    />
   ) : (
     <SiteHeader website={websiteForRender} navigation={navigation} />
   );
   const footerEl = isEditorial ? (
-    <EditorialSiteFooter website={websiteForRender} navigation={navigation} />
+    <EditorialSiteFooter
+      website={websiteForRender}
+      navigation={navigation}
+      isLanding={isLanding}
+    />
   ) : (
     <SiteFooter website={websiteForRender} navigation={navigation} />
   );
@@ -297,6 +320,10 @@ export default async function SiteLayout({ children, params }: SiteLayoutProps) 
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
       {/* Preconnect to Supabase storage — hero images / assets served from here */}
       <link rel="preconnect" href="https://wzlxbpicdcdvxvdcvgas.supabase.co" crossOrigin="" />
+      {/* Inject theme font imports (Google Fonts) */}
+      {[...themeOutput.fontUrls, ...(isEditorial ? editorialFonts : [])].map((url) => (
+        <link key={url} rel="stylesheet" href={url} />
+      ))}
       {/* Inline theme CSS variables (incl. bridge vars) so they're available
           before JS, preventing mount-time style recalculation from delaying LCP. */}
       {themeCSS ? <style dangerouslySetInnerHTML={{ __html: themeCSS }} /> : null}

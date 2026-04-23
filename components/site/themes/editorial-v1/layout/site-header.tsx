@@ -35,12 +35,14 @@ export interface EditorialSiteHeaderProps {
   website: WebsiteData;
   navigation?: NavigationItem[];
   isCustomDomain?: boolean;
+  isLanding?: boolean;
 }
 
 export function EditorialSiteHeader({
   website,
   navigation,
   isCustomDomain = false,
+  isLanding = false,
 }: EditorialSiteHeaderProps) {
   const editorialText = getEditorialTextGetter(website);
   const localeSettings = extractWebsiteLocaleSettings(website);
@@ -118,13 +120,15 @@ export function EditorialSiteHeader({
       <HeaderScrollState headerId={headerId} />
       <div className="ev-container">
         <div className="nav nav-inner">
-          <MobileNavToggle
-            panelId={mobilePanelId}
-            openLabel={editorialText('editorialHeaderMenuOpen')}
-            closeLabel={editorialText('editorialHeaderMenuClose')}
-          />
+          {!isLanding && (
+            <MobileNavToggle
+              panelId={mobilePanelId}
+              openLabel={editorialText('editorialHeaderMenuOpen')}
+              closeLabel={editorialText('editorialHeaderMenuClose')}
+            />
+          )}
 
-          <Link href={`${basePath}/`} className="nav-logo" aria-label={siteName}>
+          <Link href={isLanding ? '#top' : `${basePath}/`} className="nav-logo" aria-label={siteName}>
             <Logo
               imageUrl={logoUrl}
               name={siteName}
@@ -132,22 +136,24 @@ export function EditorialSiteHeader({
             />
           </Link>
 
-          <nav className="nav-links" aria-label={editorialText('editorialHeaderNavAria')}>
-            {navItems.map((link) => {
-              const href = resolveNavHref(link, basePath);
-              return (
-                <Link
-                  key={link.slug}
-                  href={href}
-                  target={link.target === '_blank' ? '_blank' : undefined}
-                  rel={link.target === '_blank' ? 'noopener noreferrer' : undefined}
-                  className="nav-link"
-                >
-                  {navLabelForLocale(link.label)}
-                </Link>
-              );
-            })}
-          </nav>
+          {!isLanding && (
+            <nav className="nav-links" aria-label={editorialText('editorialHeaderNavAria')}>
+              {navItems.map((link) => {
+                const href = resolveNavHref(link, basePath);
+                return (
+                  <Link
+                    key={link.slug}
+                    href={href}
+                    target={link.target === '_blank' ? '_blank' : undefined}
+                    rel={link.target === '_blank' ? 'noopener noreferrer' : undefined}
+                    className="nav-link"
+                  >
+                    {navLabelForLocale(link.label)}
+                  </Link>
+                );
+              })}
+            </nav>
+          )}
 
           <div className="nav-cta">
             <div className="nav-market-desktop">
@@ -195,28 +201,30 @@ export function EditorialSiteHeader({
         </div>
 
         {/* Mobile menu panel — toggled by MobileNavToggle via .open class */}
-        <div
-          id={mobilePanelId}
-          className="nav-mobile-panel"
-          aria-label={editorialText('editorialHeaderMobileMenuAria')}
-        >
-          <div className="nav-mobile-market">
-            <MarketSwitcher website={website} />
+        {!isLanding && (
+          <div
+            id={mobilePanelId}
+            className="nav-mobile-panel"
+            aria-label={editorialText('editorialHeaderMobileMenuAria')}
+          >
+            <div className="nav-mobile-market">
+              <MarketSwitcher website={website} />
+            </div>
+            {navItems.map((link) => {
+              const href = resolveNavHref(link, basePath);
+              return (
+                <Link
+                  key={`m-${link.slug}`}
+                  href={href}
+                  target={link.target === '_blank' ? '_blank' : undefined}
+                  className="nav-link"
+                >
+                  {navLabelForLocale(link.label)}
+                </Link>
+              );
+            })}
           </div>
-          {navItems.map((link) => {
-            const href = resolveNavHref(link, basePath);
-            return (
-              <Link
-                key={`m-${link.slug}`}
-                href={href}
-                target={link.target === '_blank' ? '_blank' : undefined}
-                className="nav-link"
-              >
-                {navLabelForLocale(link.label)}
-              </Link>
-            );
-          })}
-        </div>
+        )}
       </div>
     </header>
   );
