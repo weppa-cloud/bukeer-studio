@@ -90,13 +90,31 @@
   color: var(--c-primary-ink);
 }
 
-/* Designer signature: em inside headings renders serif italic accent-2.
-   Already emitted globally in app/globals.css — duplicated inside the
-   scope so specificity wins over cascading component styles that strip
-   italic. Keep BOTH rules in sync. */
+/* Designer signature: em inside headings = Instrument Serif italic.
+   COLOR RULE (intentional split):
+   - h2/h3 em: color: inherit  → same dark ink as the heading (section titles)
+   - h1 em in hero/banner contexts: color: var(--c-accent-2) → golden accent
+   Both rules are mirrored in app/globals.css. Keep them in sync. */
 :where([data-template-set="editorial-v1"]) h1 em,
 :where([data-template-set="editorial-v1"]) h2 em,
 :where([data-template-set="editorial-v1"]) h3 em {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  color: inherit;  /* section titles keep the same ink color as the heading */
+}
+
+/* Hero/banner contexts: restore golden accent on h1 em only */
+:where([data-template-set="editorial-v1"]) .hero-copy h1 em,
+:where([data-template-set="editorial-v1"]) .ev-page-hero h1 em,
+:where([data-template-set="editorial-v1"]) .ev-dest-hero h1 em,
+:where([data-template-set="editorial-v1"]) .page-hero h1 em {
+  color: var(--c-accent-2);  /* golden yellow — banner emphasis only */
+}
+
+/* Utility class for new pages: apply hero em styling to any inline <em> */
+:where([data-template-set="editorial-v1"]) .ev-hero-em {
   font-family: var(--font-serif);
   font-style: italic;
   font-weight: 400;
@@ -3703,7 +3721,36 @@
    Page hero (listing / detail) — port of designer `.page-hero`
    Scoped to editorial-v1; the ink-filled hero band used by
    /destinos, /destinos/[slug] and (shared) other listing pages.
+
+   TYPOGRAPHIC SYSTEM — banners / page heroes:
+   ┌──────────────────────────────────────────────────────────────┐
+   │  <span class="eyebrow hero-eyebrow">ETIQUETA</span>          │
+   │  <h1 class="display-lg">                                     │
+   │    Texto principal                                            │
+   │    <em class="ev-hero-em">énfasis en cursiva.</em>           │
+   │  </h1>                                                        │
+   │  <p class="hero-lead">Subtítulo descriptivo.</p>             │
+   └──────────────────────────────────────────────────────────────┘
+   - .ev-hero-em  → Instrument Serif italic + color accent-2 (dorado)
+   - .display-lg  → Bricolage Grotesque, weight 500, clamp(44–84px)
+   - Section h2/h3 em: serif italic pero color:inherit (sin accent)
    ============================================================ */
+
+/* Canonical banner class for internal listing pages (paquetes, experiencias,
+   hoteles, blog, planners). Visual details (bg, padding) remain as inline
+   styles per-page to allow per-route customization; this class anchors the
+   typographic contract. */
+:where([data-template-set="editorial-v1"]) .page-hero {
+  position: relative;
+  overflow: hidden;
+  color: #fff;
+  border-radius: 0 0 32px 32px;
+}
+:where([data-template-set="editorial-v1"]) .page-hero h1 {
+  color: #fff;
+  margin: 12px 0 14px;
+}
+
 :where([data-template-set="editorial-v1"]) .ev-page-hero {
   position: relative;
   overflow: hidden;
