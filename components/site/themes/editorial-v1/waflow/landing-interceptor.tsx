@@ -1,6 +1,6 @@
 'use client';
 
-import { type MouseEvent, type ReactNode } from 'react';
+import { type MouseEvent, type ReactNode, useEffect, useRef } from 'react';
 
 import { useWaflow } from './provider';
 import type { WaflowPackageContext, WaflowPrefill } from './types';
@@ -15,7 +15,7 @@ function shouldOpenWaflow(anchor: HTMLAnchorElement): boolean {
   if (anchor.dataset.noWaflow === 'true' || anchor.dataset.noWaModal === 'true') {
     return false;
   }
-  const href = (anchor.getAttribute('href') || '').trim().toLowerCase();
+  const href = (anchor.dataset.waflowHref || anchor.getAttribute('href') || '').trim().toLowerCase();
   const text = (anchor.textContent || '').trim().toLowerCase();
   return (
     href.startsWith('tel:') ||
@@ -31,6 +31,31 @@ export function WaflowLandingInterceptor({
   children,
 }: WaflowLandingInterceptorProps) {
   const waflow = useWaflow();
+  const rootRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root || !waflow.businessNumber) return;
+
+    const normalizeAnchors = () => {
+      const anchors = Array.from(root.querySelectorAll<HTMLAnchorElement>('a[href]'));
+      for (const anchor of anchors) {
+        if (!shouldOpenWaflow(anchor)) continue;
+        const originalHref = anchor.dataset.waflowHref || anchor.getAttribute('href');
+        if (!originalHref) continue;
+        anchor.dataset.waflowHref = originalHref;
+        anchor.setAttribute('href', '#waflow');
+        anchor.removeAttribute('target');
+        anchor.removeAttribute('rel');
+      }
+    };
+
+    normalizeAnchors();
+
+    const observer = new MutationObserver(normalizeAnchors);
+    observer.observe(root, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, [waflow.businessNumber]);
 
   const onClickCapture = (event: MouseEvent<HTMLDivElement>) => {
     if (!waflow.businessNumber) return;
@@ -44,5 +69,9 @@ export function WaflowLandingInterceptor({
     waflow.openVariantD(pkg, prefill);
   };
 
-  return <div onClickCapture={onClickCapture}>{children}</div>;
+  return (
+    <div ref={rootRef} onClickCapture={onClickCapture}>
+      {children}
+    </div>
+  );
 }

@@ -36,6 +36,10 @@ export interface EditorialSiteFooterProps {
   isLanding?: boolean;
 }
 
+function legalHref(basePath: string, slug: 'privacy' | 'terms' | 'cancellation'): string {
+  return `${basePath}/${slug}`;
+}
+
 export function EditorialSiteFooter({
   website,
   isCustomDomain = false,
@@ -122,28 +126,11 @@ export function EditorialSiteFooter({
   const legalPrivacy = editorialText('editorialFooterLegalPrivacy');
   const legalTerms = editorialText('editorialFooterLegalTerms');
   const legalCancellation = editorialText('editorialFooterLegalCancellation');
-  const legalLinks: Array<{ label: string; href: string }> = [];
-  if (legal?.privacy_policy) {
-    legalLinks.push({ label: legalPrivacy, href: legal.privacy_policy });
-  } else {
-    legalLinks.push({ label: legalPrivacy, href: `${basePath}/privacy` });
-  }
-  if (legal?.terms_conditions) {
-    legalLinks.push({ label: legalTerms, href: legal.terms_conditions });
-  } else {
-    legalLinks.push({ label: legalTerms, href: `${basePath}/terms` });
-  }
-  if (legal?.cancellation_policy) {
-    legalLinks.push({
-      label: legalCancellation,
-      href: legal.cancellation_policy,
-    });
-  } else {
-    legalLinks.push({
-      label: legalCancellation,
-      href: `${basePath}/cancellation`,
-    });
-  }
+  const legalLinks: Array<{ label: string; href: string }> = [
+    { label: legalPrivacy, href: legalHref(basePath, 'privacy') },
+    { label: legalTerms, href: legalHref(basePath, 'terms') },
+    { label: legalCancellation, href: legalHref(basePath, 'cancellation') },
+  ];
 
   return (
     <footer className="ev-footer" data-screen-label="Footer">
