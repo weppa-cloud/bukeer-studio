@@ -11,7 +11,8 @@
  *  - Each tier card: name, badge, price (large), period, description,
  *    features list with checkmarks, installments text, CTA button
  *
- * Pure SSR — no interactivity, no client leaf needed.
+ * CTAs open the editorial WhatsApp Flow and keep the stored wa.me URL as a
+ * no-provider fallback.
  *
  * Content contract:
  *   title?:       string
@@ -41,6 +42,7 @@ import { Eyebrow } from '../primitives/eyebrow';
 import { Icons } from '../primitives/icons';
 import { getEditorialTextGetter, localizeEditorialText } from '../i18n';
 import { editorialHtml } from '../primitives/rich-heading';
+import { WaflowCTAButton } from '../waflow/cta-button';
 
 export interface EditorialPricingSectionProps {
   section: WebsiteSection;
@@ -75,6 +77,11 @@ function formatPrice(raw: string): string {
   const num = Number(raw.replace(/[^0-9.]/g, ''));
   if (Number.isNaN(num)) return raw;
   return num.toLocaleString('es-CO');
+}
+
+function parsePrice(raw: string): number | null {
+  const num = Number(raw.replace(/[^0-9.]/g, ''));
+  return Number.isNaN(num) ? null : num;
 }
 
 export function PricingSection({
@@ -160,6 +167,13 @@ export function PricingSection({
             const ctaText = localizeEditorialText(website, tier.ctaText.trim());
             const ctaUrl = tier.ctaUrl.trim() || '#';
             const perPerson = tier.perPerson !== false; // default true
+            const packageTitle = title || tierName || 'Viaje a Colombia';
+            const packageSlug = `${section.id || 'pricing'}-${tier.name}`
+              .toLowerCase()
+              .normalize('NFD')
+              .replace(/[\u0300-\u036f]/g, '')
+              .replace(/[^a-z0-9]+/g, '-')
+              .replace(/^-+|-+$/g, '') || 'pricing-tier';
 
             return (
               <div
@@ -308,13 +322,22 @@ export function PricingSection({
                 ) : null}
 
                 {/* CTA */}
-                <a
-                  href={ctaUrl}
+                <WaflowCTAButton
+                  variant="D"
+                  pkg={{
+                    slug: packageSlug,
+                    title: packageTitle,
+                    currency,
+                    price: parsePrice(tier.price),
+                    tier: tierName,
+                    destinationSlug: 'colombia',
+                  }}
+                  fallbackHref={ctaUrl}
                   className={`pricing-cta btn${isHighlighted ? ' btn-accent' : ' btn-outline'}`}
                   style={{ justifyContent: 'center', marginTop: 'auto' }}
                 >
                   {ctaText}
-                </a>
+                </WaflowCTAButton>
               </div>
             );
           })}
