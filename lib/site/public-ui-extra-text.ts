@@ -201,9 +201,6 @@ const BASE_EXTRA_TEXTS = {
   editorialHotelsEyebrow: 'HOTELES',
   editorialHotelsTitle: 'Estancias <em>curadas por ciudad.</em>',
   editorialHotelsSubtitle: 'Fincas, boutiques y resorts seleccionados por nuestros planners. Cambia de categoría sin reconstruir el viaje.',
-  editorialExperiencesEyebrow: 'ACTIVIDADES',
-  editorialExperiencesTitle: 'Actividades <em>para sumar a tu viaje.</em>',
-  editorialExperiencesSubtitle: 'Oficios, caminatas, cocina, mar, selva. Reservables sueltas o como add-on a cualquier paquete.',
   editorialExperiencesEyebrowFallback: 'ACTIVIDADES',
   editorialDestinationsEmpty: 'Sin destinos disponibles.',
   editorialDestinationsViewList: 'Lista',
@@ -307,6 +304,7 @@ const BASE_EXTRA_TEXTS = {
   // Blog list page
   editorialBlogListEyebrow: 'Blog',
   editorialBlogListTitle: 'Historias <em>desde adentro.</em>',
+  editorialBlogListEmphasis: 'desde adentro.',
   editorialBlogListSubtitle:
     'Escrito por los planners que caminan Colombia todos los meses. Guías, itinerarios, oficios y rincones.',
   editorialBlogListAllTab: 'Todo',
@@ -342,6 +340,7 @@ const BASE_EXTRA_TEXTS = {
   // Experiences page
   editorialExperiencesEyebrow: 'Experiencias',
   editorialExperiencesTitle: 'Actividades <em>para sumar a tu viaje.</em>',
+  editorialExperiencesEmphasis: 'para sumar a tu viaje.',
   editorialExperiencesSubtitle:
     'Oficios, caminatas, cocina, mar, selva. Reservables sueltas o como add-on a cualquier paquete.',
   editorialExperiencesDurationLabel: 'Duración',
@@ -382,6 +381,7 @@ const BASE_EXTRA_TEXTS = {
   // Planners list page
   editorialPlannersListHeroEyebrow: 'Nuestros planners',
   editorialPlannersListHeroTitle: 'Una persona <em>que conoce su tierra.</em>',
+  editorialPlannersListHeroEmphasis: 'que conoce su tierra.',
   editorialPlannersListHeroSubtitle:
     'Seis especialistas locales. Cada uno con una región, un oficio y 5–11 años diseñando viajes a medida por Colombia.',
   editorialPlannersListIntroEyebrow: 'Por qué un planner local',
@@ -577,6 +577,7 @@ const EN_US_OVERRIDES: Partial<Record<PublicUiExtraTextKey, string>> = {
   editorialHotelsSubtitle: 'Fincas, boutiques, and resorts selected by our planners. Switch categories without rebuilding the whole trip.',
   editorialExperiencesEyebrow: 'ACTIVITIES',
   editorialExperiencesTitle: 'Activities <em>to add to your trip.</em>',
+  editorialExperiencesEmphasis: 'to add to your trip.',
   editorialExperiencesSubtitle: 'Crafts, hikes, cooking, sea, jungle. Bookable individually or as an add-on to any package.',
   editorialExperiencesEyebrowFallback: 'ACTIVITIES',
 

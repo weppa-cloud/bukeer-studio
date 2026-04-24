@@ -10,6 +10,7 @@ import { resolveAlt, type LocalizableAlt } from '@bukeer/website-contract';
 import { useWebsiteLocale } from '@/lib/hooks/use-website-locale';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 import { WhatsAppIntentButton } from '@/components/site/whatsapp-intent-button';
+import { resolveTemplateSet } from '@/lib/sections/template-set';
 import { editorialHtml } from '../themes/editorial-v1/primitives/rich-heading';
 
 interface HeroSectionProps {

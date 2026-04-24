@@ -6985,9 +6985,11 @@
      Hide the side list (destination index) — it stacks below
      the copy and pushes the hero off screen. */
   :where([data-template-set="editorial-v1"]) .hero {
-    height: calc(100dvh - 77px);
+    width: calc(100% - 24px);
+    height: calc(100dvh - 89px);
     min-height: unset;
-    border-radius: 0 0 24px 24px;
+    margin: 0 12px 12px;
+    border-radius: 22px;
   }
   :where([data-template-set="editorial-v1"]) .hero-inner {
     padding: 32px 0 72px;
