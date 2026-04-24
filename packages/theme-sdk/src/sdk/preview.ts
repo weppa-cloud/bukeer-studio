@@ -37,6 +37,7 @@ export interface ThemePreview {
   typography: {
     headingFont: string;
     bodyFont: string;
+    editorialSerif: string;
     scale: string;
   };
   /** Layout summary */
@@ -88,6 +89,7 @@ export function previewTheme(
     typography: {
       headingFont: tokens.typography.display.family,
       bodyFont: tokens.typography.body.family,
+      editorialSerif: tokens.typography.editorialSerif?.family ?? 'Instrument Serif',
       scale: tokens.typography.scale,
     },
     layout: {

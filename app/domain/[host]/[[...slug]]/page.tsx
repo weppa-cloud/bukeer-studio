@@ -15,6 +15,7 @@ import { generateHreflangLinks } from '@/lib/seo/hreflang';
 import { getDefaultLegalContent } from '@/lib/legal-defaults';
 import Image from 'next/image';
 import type { ThemeInput } from '@/lib/theme/m3-theme-provider';
+import { normalizeThemeInput } from '@/lib/theme/normalize-theme';
 
 interface CustomDomainPageProps {
   params: Promise<{ host: string; slug?: string[] }>;
@@ -22,11 +23,7 @@ interface CustomDomainPageProps {
 }
 
 function getInitialTheme(theme: WebsiteData['theme'] | null | undefined): ThemeInput | undefined {
-  if (!theme?.tokens || !theme?.profile) return undefined;
-  return {
-    tokens: theme.tokens as ThemeInput['tokens'],
-    profile: theme.profile as ThemeInput['profile'],
-  };
+  return normalizeThemeInput(theme);
 }
 
 async function getWebsiteByCustomDomain(customDomain: string): Promise<WebsiteData | null> {

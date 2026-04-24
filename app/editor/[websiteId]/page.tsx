@@ -9,6 +9,7 @@ import { EditableSection } from '@/components/editor/editable-section';
 import { EditorShell } from '@/components/editor/editor-shell';
 import type { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 import type { ThemeInput } from '@/lib/theme/m3-theme-provider';
+import { normalizeThemeInput } from '@/lib/theme/normalize-theme';
 
 // ============================================================================
 // Legacy Editor Page — Puck removed (#569)
@@ -47,11 +48,7 @@ interface WebsiteSnapshot {
 }
 
 function getInitialTheme(theme: WebsiteSnapshot['website']['theme'] | null | undefined): ThemeInput | undefined {
-  if (!theme?.tokens || !theme?.profile) return undefined;
-  return {
-    tokens: theme.tokens as ThemeInput['tokens'],
-    profile: theme.profile as ThemeInput['profile'],
-  };
+  return normalizeThemeInput(theme);
 }
 
 export default function EditorPage({ params }: EditorPageProps) {

@@ -19,6 +19,7 @@ import { WebsiteLocaleProvider } from '@/components/site/website-locale-provider
 import { resolveTemplateSet } from '@/lib/sections/template-set';
 import { headers } from 'next/headers';
 import { isLandingPage } from '@/lib/utils/landing-pages';
+import { normalizeThemeInput } from '@/lib/theme/normalize-theme';
 import {
   EditorialSiteHeader,
   EditorialSiteFooter,
@@ -32,14 +33,6 @@ import '@/components/site/themes/editorial-v1/editorial-v1.css';
 interface SiteLayoutProps {
   children: React.ReactNode;
   params: Promise<{ subdomain: string }>;
-}
-
-function getInitialTheme(theme: { tokens: Record<string, unknown>; profile: Record<string, unknown> } | null | undefined): ThemeInput | undefined {
-  if (!theme?.tokens || !theme?.profile) return undefined;
-  return {
-    tokens: theme.tokens as ThemeInput['tokens'],
-    profile: theme.profile as ThemeInput['profile'],
-  };
 }
 
 interface ThemeOutput {
@@ -218,7 +211,10 @@ export default async function SiteLayout({ children, params }: SiteLayoutProps) 
   const websiteWithEffectiveTheme = website as typeof website & {
     effective_theme?: { tokens: Record<string, unknown>; profile: Record<string, unknown> };
   };
-  const initialTheme = getInitialTheme(websiteWithEffectiveTheme.effective_theme ?? website.theme);
+  const initialTheme = normalizeThemeInput(
+    websiteWithEffectiveTheme.effective_theme ?? website.theme,
+    { brandName: website.content?.siteName || website.subdomain },
+  );
   const themeOutput = generateThemeOutput(initialTheme);
   const themeCSS = themeOutput.css;
 
@@ -246,10 +242,6 @@ export default async function SiteLayout({ children, params }: SiteLayoutProps) 
   // Wave 1.2: swap header/footer for the editorial variants when opted in.
   const templateSet = resolveTemplateSet(website) || (subdomain.toLowerCase().includes('colombiatours') ? 'editorial-v1' : null);
   const isEditorial = templateSet === 'editorial-v1';
-
-  const editorialFonts = [
-    'https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&display=swap'
-  ];
 
   const headerEl = isEditorial ? (
     <EditorialSiteHeader
@@ -321,7 +313,7 @@ export default async function SiteLayout({ children, params }: SiteLayoutProps) 
       {/* Preconnect to Supabase storage — hero images / assets served from here */}
       <link rel="preconnect" href="https://wzlxbpicdcdvxvdcvgas.supabase.co" crossOrigin="" />
       {/* Inject theme font imports (Google Fonts) */}
-      {[...themeOutput.fontUrls, ...(isEditorial ? editorialFonts : [])].map((url) => (
+      {themeOutput.fontUrls.map((url) => (
         <link key={url} rel="stylesheet" href={url} />
       ))}
       {/* Inline theme CSS variables (incl. bridge vars) so they're available

@@ -26,6 +26,7 @@ import { CanvasFrame } from './canvas-frame';
 import { CopilotBar, type CopilotPlan } from './copilot-bar';
 import { createAuthClient } from '@/lib/auth/require-auth';
 import type { ThemeInput } from '@/lib/theme/m3-theme-provider';
+import { normalizeThemeInput } from '@/lib/theme/normalize-theme';
 import type { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 
 interface EditorSection {
@@ -422,9 +423,9 @@ export function EditorShell({ websiteId, initialToken }: EditorShellProps) {
 
   const websiteForRender = buildWebsiteForRender();
   if (!websiteForRender) return null;
-  const initialTheme: ThemeInput | undefined = data.website.theme?.tokens && data.website.theme?.profile
-    ? ({ tokens: data.website.theme.tokens, profile: data.website.theme.profile } as unknown as ThemeInput)
-    : undefined;
+  const initialTheme: ThemeInput | undefined = normalizeThemeInput(data.website.theme, {
+    brandName: websiteForRender.content.siteName || websiteForRender.subdomain,
+  });
 
   return (
     <div className="h-screen flex flex-col">

@@ -112,6 +112,8 @@ export const TypographyTokensSchema = z.object({
   display: TypefaceSchema,
   /** Body / paragraph typeface */
   body: TypefaceSchema,
+  /** Optional editorial serif / emphasis typeface */
+  editorialSerif: TypefaceSchema.optional(),
   /** Type scale multiplier */
   scale: TypeScaleEnum.default('default'),
   /** Line height multiplier for body text (1.0 – 2.0) */

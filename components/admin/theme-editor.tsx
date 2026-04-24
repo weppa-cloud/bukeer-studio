@@ -1,10 +1,24 @@
 'use client';
 
+import type { CSSProperties } from 'react';
 import { useState } from 'react';
 import { useAutosave } from '@/lib/hooks/use-autosave';
+import { createDraftTheme, normalizeThemeInput } from '@/lib/theme/normalize-theme';
+import type { NormalizedThemeInput } from '@/lib/theme/normalize-theme';
 import type { WebsiteData } from '@bukeer/website-contract';
+import {
+  compileTheme,
+  FONT_ALLOWLIST,
+  previewTheme,
+} from '@bukeer/theme-sdk';
+import type {
+  BrandMood,
+  FontWeight,
+  RadiusValue,
+  TypeScale,
+} from '@bukeer/theme-sdk';
 
-const PRESETS = [
+const PRESETS: Array<{ id: string; name: string; mood: BrandMood; color: string }> = [
   { id: 'adventure', name: 'Adventure', mood: 'adventurous', color: '#E65100' },
   { id: 'luxury', name: 'Luxury', mood: 'luxurious', color: '#1A237E' },
   { id: 'tropical', name: 'Tropical', mood: 'tropical', color: '#00897B' },
@@ -15,14 +29,10 @@ const PRESETS = [
   { id: 'romantic', name: 'Romantic', mood: 'romantic', color: '#AD1457' },
 ];
 
-const FONT_PAIRS = [
-  { heading: 'Playfair Display', body: 'Inter', label: 'Classic' },
-  { heading: 'Montserrat', body: 'Open Sans', label: 'Modern' },
-  { heading: 'Lora', body: 'Source Sans Pro', label: 'Elegant' },
-  { heading: 'Poppins', body: 'Roboto', label: 'Clean' },
-];
-
+const FONT_WEIGHTS: FontWeight[] = ['300', '400', '500', '600', '700', '800', '900'];
+const TYPE_SCALES: TypeScale[] = ['compact', 'default', 'large'];
 const LAYOUT_VARIANTS = ['modern', 'classic', 'minimal', 'bold'] as const;
+const FONT_OPTIONS = Array.from(FONT_ALLOWLIST).sort((a, b) => a.localeCompare(b));
 
 interface ThemeEditorProps {
   website: WebsiteData;
@@ -30,226 +40,483 @@ interface ThemeEditorProps {
 }
 
 export function ThemeEditor({ website, onSave }: ThemeEditorProps) {
-  const theme = website.theme || { tokens: { colors: { seedColor: '#1976D2' } }, profile: {} };
-  const tokens = theme.tokens ?? {};
-  const profile = theme.profile ?? {};
-  const colors =
-    tokens.colors && typeof tokens.colors === 'object'
-      ? (tokens.colors as Record<string, unknown>)
-      : {};
-  const typography =
-    profile.typography && typeof profile.typography === 'object'
-      ? (profile.typography as Record<string, unknown>)
-      : {};
-  const layout =
-    profile.layout && typeof profile.layout === 'object'
-      ? (profile.layout as Record<string, unknown>)
-      : {};
+  const brandName =
+    website.content?.siteName?.trim()
+    || website.content?.account?.name?.trim()
+    || website.subdomain
+    || 'Bukeer Website';
 
-  const [seedColor, setSeedColor] = useState(typeof colors.seedColor === 'string' ? colors.seedColor : '#1976D2');
-  const [brandMood, setBrandMood] = useState(typeof profile.brandMood === 'string' ? profile.brandMood : 'corporate');
-  const [headingFont, setHeadingFont] = useState(
-    typeof typography.headingFont === 'string' ? typography.headingFont : 'Montserrat'
-  );
-  const [bodyFont, setBodyFont] = useState(
-    typeof typography.bodyFont === 'string' ? typography.bodyFont : 'Open Sans'
-  );
-  const [radius, setRadius] = useState(typeof profile.radius === 'number' ? profile.radius : 12);
-  const [layoutVariant, setLayoutVariant] = useState(typeof layout.variant === 'string' ? layout.variant : 'modern');
+  const initialTheme = normalizeThemeInput(website.theme, { brandName })
+    ?? createDraftTheme({
+      brandName,
+      brandMood: 'corporate',
+      seedColor: '#1976D2',
+    });
 
-  const themeData = {
-    tokens: { ...tokens, colors: { ...colors, seedColor } },
+  const [seedColor, setSeedColor] = useState(initialTheme.tokens.colors.seedColor);
+  const [brandMood, setBrandMood] = useState<BrandMood>(initialTheme.profile.brand.mood);
+  const [displayFamily, setDisplayFamily] = useState(initialTheme.tokens.typography.display.family);
+  const [displayWeight, setDisplayWeight] = useState<FontWeight>(initialTheme.tokens.typography.display.weight);
+  const [bodyFamily, setBodyFamily] = useState(initialTheme.tokens.typography.body.family);
+  const [bodyWeight, setBodyWeight] = useState<FontWeight>(initialTheme.tokens.typography.body.weight);
+  const [editorialSerifFamily, setEditorialSerifFamily] = useState(
+    initialTheme.tokens.typography.editorialSerif?.family ?? 'Instrument Serif',
+  );
+  const [typeScale, setTypeScale] = useState<TypeScale>(initialTheme.tokens.typography.scale);
+  const [bodyLineHeight, setBodyLineHeight] = useState(initialTheme.tokens.typography.bodyLineHeight);
+  const [letterSpacing, setLetterSpacing] = useState(initialTheme.tokens.typography.letterSpacing);
+  const [radiusPx, setRadiusPx] = useState(radiusValueToPx(initialTheme.tokens.shape.radius));
+  const [layoutVariant, setLayoutVariant] = useState(initialTheme.profile.layout.variant);
+
+  const themeData: NormalizedThemeInput = {
+    tokens: {
+      ...initialTheme.tokens,
+      colors: {
+        ...initialTheme.tokens.colors,
+        seedColor,
+      },
+      typography: {
+        ...initialTheme.tokens.typography,
+        display: {
+          ...initialTheme.tokens.typography.display,
+          family: displayFamily,
+          weight: displayWeight,
+          fallback: inferFallback(displayFamily),
+        },
+        body: {
+          ...initialTheme.tokens.typography.body,
+          family: bodyFamily,
+          weight: bodyWeight,
+          fallback: inferFallback(bodyFamily),
+        },
+        editorialSerif: {
+          family: editorialSerifFamily,
+          fallback: 'serif',
+          weight: '400' as const,
+        },
+        scale: typeScale,
+        bodyLineHeight: roundTo(bodyLineHeight, 2),
+        letterSpacing: roundTo(letterSpacing, 2),
+      },
+      shape: {
+        ...initialTheme.tokens.shape,
+        radius: pxToRadius(radiusPx),
+      },
+    },
     profile: {
-      ...profile,
-      brandMood,
-      typography: { headingFont, bodyFont },
-      radius,
-      layout: { ...layout, variant: layoutVariant },
+      ...initialTheme.profile,
+      brand: {
+        ...initialTheme.profile.brand,
+        name: brandName,
+        mood: brandMood,
+      },
+      layout: {
+        ...initialTheme.profile.layout,
+        variant: layoutVariant,
+      },
     },
   };
+
+  const compiled = compileTheme(themeData.tokens, themeData.profile, { target: 'web' });
+  const preview = previewTheme(themeData.tokens, themeData.profile);
+  const previewVars = buildCssVarStyle([
+    ...(compiled.web?.invariant ?? []),
+    ...(compiled.web?.light ?? []),
+  ]);
 
   const { status } = useAutosave({
     data: themeData,
     onSave: async (data) => {
-      await onSave({ theme: data });
+      await onSave({
+        theme: {
+          tokens: data.tokens as unknown as Record<string, unknown>,
+          profile: data.profile as unknown as Record<string, unknown>,
+        },
+      });
     },
     debounceMs: 1500,
   });
 
-  function applyPreset(preset: typeof PRESETS[0]) {
+  const displayWarning = buildFontWarning(displayFamily, 'Display');
+  const bodyWarning = buildFontWarning(bodyFamily, 'Body');
+  const editorialWarning = buildFontWarning(editorialSerifFamily, 'Editorial serif');
+  const displayOptions = buildFontOptions(displayFamily);
+  const bodyOptions = buildFontOptions(bodyFamily);
+  const editorialOptions = buildFontOptions(editorialSerifFamily);
+
+  function applyPreset(preset: typeof PRESETS[number]) {
     setSeedColor(preset.color);
     setBrandMood(preset.mood);
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8">
-      {/* Controls */}
+    <div className="grid grid-cols-1 gap-4 md:gap-8 xl:grid-cols-[minmax(0,1.1fr)_minmax(340px,0.9fr)]">
       <div className="space-y-8">
-        {/* Save status */}
         <div className="flex items-center gap-2 text-sm text-slate-500">
           {status === 'saving' && <span>Saving...</span>}
           {status === 'saved' && <span className="text-green-500">Saved</span>}
           {status === 'error' && <span className="text-red-500">Save failed</span>}
         </div>
 
-        {/* Presets */}
-        <div>
-          <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-3">Presets</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {PRESETS.map((p) => (
+        <section>
+          <h3 className="mb-3 text-sm font-semibold text-slate-900 dark:text-white">Presets</h3>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {PRESETS.map((preset) => (
               <button
-                key={p.id}
-                onClick={() => applyPreset(p)}
-                className={`p-3 rounded-xl border-2 text-left transition-all ${
-                  brandMood === p.mood
+                key={preset.id}
+                onClick={() => applyPreset(preset)}
+                className={`rounded-xl border-2 p-3 text-left transition-all ${
+                  brandMood === preset.mood
                     ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                    : 'border-slate-200 dark:border-slate-700 hover:border-slate-300'
+                    : 'border-slate-200 hover:border-slate-300 dark:border-slate-700'
                 }`}
               >
-                <div className="w-6 h-6 rounded-full mb-2" style={{ backgroundColor: p.color }} />
-                <div className="text-xs font-medium text-slate-700 dark:text-slate-300">{p.name}</div>
+                <div className="mb-2 h-6 w-6 rounded-full" style={{ backgroundColor: preset.color }} />
+                <div className="text-xs font-medium text-slate-700 dark:text-slate-300">{preset.name}</div>
               </button>
             ))}
           </div>
-        </div>
+        </section>
 
-        {/* Seed Color */}
-        <div>
-          <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-3">Primary Color</h3>
+        <section>
+          <h3 className="mb-3 text-sm font-semibold text-slate-900 dark:text-white">Primary Color</h3>
           <div className="flex items-center gap-3">
             <input
               type="color"
               value={seedColor}
-              onChange={(e) => setSeedColor(e.target.value)}
-              className="w-12 h-12 rounded-xl cursor-pointer border-0"
+              onChange={(event) => setSeedColor(event.target.value)}
+              className="h-12 w-12 cursor-pointer rounded-xl border-0"
             />
             <input
               value={seedColor}
-              onChange={(e) => {
-                if (/^#[0-9A-Fa-f]{0,6}$/.test(e.target.value)) setSeedColor(e.target.value);
+              onChange={(event) => {
+                if (/^#[0-9A-Fa-f]{0,6}$/.test(event.target.value)) {
+                  setSeedColor(event.target.value);
+                }
               }}
-              className="px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 w-28 font-mono"
+              className="w-28 rounded-lg border border-slate-200 bg-white px-3 py-2 font-mono text-sm dark:border-slate-600 dark:bg-slate-700"
               maxLength={7}
             />
           </div>
-        </div>
+        </section>
 
-        {/* Typography */}
-        <div>
-          <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-3">Typography</h3>
-          <div className="grid grid-cols-2 gap-2">
-            {FONT_PAIRS.map((pair) => (
-              <button
-                key={pair.label}
-                onClick={() => { setHeadingFont(pair.heading); setBodyFont(pair.body); }}
-                className={`p-3 rounded-xl border-2 transition-all ${
-                  headingFont === pair.heading
-                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                    : 'border-slate-200 dark:border-slate-700 hover:border-slate-300'
-                }`}
-              >
-                <div className="font-bold text-lg text-slate-900 dark:text-white" style={{ fontFamily: pair.heading }}>
-                  Aa Bb
-                </div>
-                <div className="text-xs text-slate-500 mt-1">{pair.label}</div>
-              </button>
-            ))}
+        <section className="space-y-4">
+          <div>
+            <h3 className="mb-3 text-sm font-semibold text-slate-900 dark:text-white">Typography</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              El tema ahora se guarda en `theme.tokens.typography` y esta preview usa el compilador real del sitio.
+            </p>
           </div>
-        </div>
 
-        {/* Border Radius */}
-        <div>
-          <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-3">
-            Border Radius: {radius}px
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field label="Display Family">
+              <select
+                value={displayFamily}
+                onChange={(event) => setDisplayFamily(event.target.value)}
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700"
+              >
+                {displayOptions.map((font) => (
+                  <option key={font} value={font}>{font}</option>
+                ))}
+              </select>
+              {displayWarning ? <WarningText>{displayWarning}</WarningText> : null}
+            </Field>
+
+            <Field label="Display Weight">
+              <select
+                value={displayWeight}
+                onChange={(event) => setDisplayWeight(event.target.value as FontWeight)}
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700"
+              >
+                {FONT_WEIGHTS.map((weight) => (
+                  <option key={weight} value={weight}>{weight}</option>
+                ))}
+              </select>
+            </Field>
+
+            <Field label="Body Family">
+              <select
+                value={bodyFamily}
+                onChange={(event) => setBodyFamily(event.target.value)}
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700"
+              >
+                {bodyOptions.map((font) => (
+                  <option key={font} value={font}>{font}</option>
+                ))}
+              </select>
+              {bodyWarning ? <WarningText>{bodyWarning}</WarningText> : null}
+            </Field>
+
+            <Field label="Body Weight">
+              <select
+                value={bodyWeight}
+                onChange={(event) => setBodyWeight(event.target.value as FontWeight)}
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700"
+              >
+                {FONT_WEIGHTS.map((weight) => (
+                  <option key={weight} value={weight}>{weight}</option>
+                ))}
+              </select>
+            </Field>
+
+            <Field label="Editorial Serif">
+              <select
+                value={editorialSerifFamily}
+                onChange={(event) => setEditorialSerifFamily(event.target.value)}
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700"
+              >
+                {editorialOptions.map((font) => (
+                  <option key={font} value={font}>{font}</option>
+                ))}
+              </select>
+              {editorialWarning ? <WarningText>{editorialWarning}</WarningText> : null}
+            </Field>
+
+            <Field label="Type Scale">
+              <select
+                value={typeScale}
+                onChange={(event) => setTypeScale(event.target.value as TypeScale)}
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm capitalize dark:border-slate-600 dark:bg-slate-700"
+              >
+                {TYPE_SCALES.map((scale) => (
+                  <option key={scale} value={scale} className="capitalize">{scale}</option>
+                ))}
+              </select>
+            </Field>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field label={`Body Line Height: ${bodyLineHeight.toFixed(2)}`}>
+              <input
+                type="range"
+                min="1.2"
+                max="2"
+                step="0.05"
+                value={bodyLineHeight}
+                onChange={(event) => setBodyLineHeight(Number(event.target.value))}
+                className="w-full"
+              />
+            </Field>
+
+            <Field label={`Letter Spacing: ${letterSpacing.toFixed(2)}em`}>
+              <input
+                type="range"
+                min="-0.05"
+                max="0.1"
+                step="0.01"
+                value={letterSpacing}
+                onChange={(event) => setLetterSpacing(Number(event.target.value))}
+                className="w-full"
+              />
+            </Field>
+          </div>
+        </section>
+
+        <section>
+          <h3 className="mb-3 text-sm font-semibold text-slate-900 dark:text-white">
+            Border Radius: {radiusPx}px
           </h3>
           <input
             type="range"
             min="0"
             max="28"
-            value={radius}
-            onChange={(e) => setRadius(Number(e.target.value))}
+            step="2"
+            value={radiusPx}
+            onChange={(event) => setRadiusPx(Number(event.target.value))}
             className="w-full"
           />
-          <div className="flex justify-between text-xs text-slate-400 mt-1">
+          <div className="mt-1 flex justify-between text-xs text-slate-400">
             <span>Sharp</span>
             <span>Rounded</span>
             <span>Full</span>
           </div>
-        </div>
+        </section>
 
-        {/* Layout Variant */}
-        <div>
-          <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-3">Layout</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {LAYOUT_VARIANTS.map((v) => (
+        <section>
+          <h3 className="mb-3 text-sm font-semibold text-slate-900 dark:text-white">Layout</h3>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {LAYOUT_VARIANTS.map((variant) => (
               <button
-                key={v}
-                onClick={() => setLayoutVariant(v)}
-                className={`p-3 rounded-xl border-2 text-center capitalize text-sm ${
-                  layoutVariant === v
+                key={variant}
+                onClick={() => setLayoutVariant(variant)}
+                className={`rounded-xl border-2 p-3 text-center text-sm capitalize ${
+                  layoutVariant === variant
                     ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
                     : 'border-slate-200 dark:border-slate-700'
                 }`}
               >
-                {v}
+                {variant}
               </button>
             ))}
           </div>
-        </div>
+        </section>
       </div>
 
-      {/* Live Preview */}
-      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-        <div className="p-4 border-b border-slate-200 dark:border-slate-700 text-xs text-slate-500">
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
+        {compiled.web?.fontImports?.length ? (
+          <style>{compiled.web.fontImports.map((url) => `@import url("${url}");`).join('\n')}</style>
+        ) : null}
+        <div className="border-b border-slate-200 p-4 text-xs text-slate-500 dark:border-slate-700">
           Live Preview
         </div>
-        <div className="p-6 space-y-4" style={{ fontFamily: bodyFont }}>
-          {/* Header mockup */}
-          <div className="flex items-center justify-between pb-4 border-b" style={{ borderColor: seedColor + '30' }}>
-            <div className="font-bold text-lg" style={{ fontFamily: headingFont, color: seedColor }}>
-              Your Agency
-            </div>
-            <div className="flex gap-2">
-              <span className="px-3 py-1 text-sm" style={{ borderRadius: radius, border: `1px solid ${seedColor}40` }}>
-                About
-              </span>
-              <span className="px-3 py-1 text-sm text-white" style={{ borderRadius: radius, backgroundColor: seedColor }}>
-                Contact
-              </span>
-            </div>
-          </div>
-
-          {/* Hero mockup */}
-          <div
-            className="p-8 text-center text-white"
-            style={{ borderRadius: radius, backgroundColor: seedColor, fontFamily: headingFont }}
-          >
-            <h2 className="text-2xl font-bold mb-2">Discover Amazing Places</h2>
-            <p className="text-sm opacity-80" style={{ fontFamily: bodyFont }}>
-              Your next adventure starts here
-            </p>
-          </div>
-
-          {/* Cards mockup */}
-          <div className="grid grid-cols-3 gap-3">
-            {['Paris', 'Tokyo', 'Rio'].map((city) => (
-              <div
-                key={city}
-                className="bg-slate-50 dark:bg-slate-700 overflow-hidden"
-                style={{ borderRadius: radius }}
-              >
-                <div className="h-20 bg-slate-200 dark:bg-slate-600" />
-                <div className="p-3">
-                  <div className="text-sm font-medium" style={{ fontFamily: headingFont }}>
-                    {city}
-                  </div>
-                  <div className="text-xs text-slate-400 mt-1">From $299</div>
-                </div>
+        <div className="space-y-5 p-6" style={previewVars}>
+          <div className="rounded-2xl border border-border/70 bg-background p-5 shadow-sm">
+            <div className="mb-5 flex items-center justify-between border-b border-border/60 pb-4">
+              <div>
+                <p className="label text-[11px]" style={{ color: 'hsl(var(--muted-foreground))' }}>
+                  {preview.mood}
+                </p>
+                <p className="display-md mt-2" style={{ color: 'hsl(var(--primary))' }}>
+                  {preview.name}
+                </p>
               </div>
-            ))}
+              <div className="flex gap-2">
+                <span
+                  className="rounded-full border border-border/60 px-3 py-1 text-xs body"
+                  style={{ color: 'hsl(var(--foreground))' }}
+                >
+                  About
+                </span>
+                <span
+                  className="rounded-full px-3 py-1 text-xs body"
+                  style={{ backgroundColor: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' }}
+                >
+                  Contact
+                </span>
+              </div>
+            </div>
+
+            <div
+              className="rounded-[var(--radius-lg)] px-6 py-8"
+              style={{
+                background: 'linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--secondary)) 100%)',
+                color: 'hsl(var(--primary-foreground))',
+              }}
+            >
+              <p className="label mb-3 text-[11px]" style={{ color: 'hsl(var(--primary-foreground) / 0.78)' }}>
+                Theme preview
+              </p>
+              <h2 className="display-lg mb-3">
+                Discover journeys <em className="serif">designed around your brand.</em>
+              </h2>
+              <p className="body max-w-xl text-sm" style={{ color: 'hsl(var(--primary-foreground) / 0.82)' }}>
+                This hero uses the same compiled theme variables as the public site: font families, weights, radius,
+                color roles, and typography scale.
+              </p>
+            </div>
+
+            <div className="mt-5 grid grid-cols-3 gap-3">
+              {['Cartagena', 'Bogota', 'Medellin'].map((city, index) => (
+                <div
+                  key={city}
+                  className="overflow-hidden rounded-[var(--radius-lg)] border border-border/60 bg-card"
+                  style={{ boxShadow: 'var(--elevation-card)' }}
+                >
+                  <div
+                    className="h-20"
+                    style={{
+                      background:
+                        index === 0
+                          ? 'hsl(var(--primary))'
+                          : index === 1
+                            ? 'hsl(var(--accent-2))'
+                            : 'hsl(var(--accent-3))',
+                    }}
+                  />
+                  <div className="space-y-1 p-3">
+                    <div className="section-title text-base" style={{ color: 'hsl(var(--foreground))' }}>
+                      {city}
+                    </div>
+                    <div className="section-subtitle text-xs" style={{ color: 'hsl(var(--muted-foreground))' }}>
+                      From $299
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-5 rounded-[var(--radius-lg)] border border-border/60 bg-muted/40 p-4">
+              <p className="section-title text-lg">Editorial rhythm</p>
+              <p className="section-subtitle mt-2">
+                The emphasis serif is <span className="serif">“{preview.typography.editorialSerif}”</span>, while body
+                copy follows the compiled line-height and letter-spacing values.
+              </p>
+            </div>
           </div>
         </div>
       </div>
     </div>
   );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block space-y-2">
+      <span className="text-xs font-medium uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">{label}</span>
+      {children}
+    </label>
+  );
+}
+
+function WarningText({ children }: { children: React.ReactNode }) {
+  return <p className="text-[11px] text-amber-600 dark:text-amber-400">{children}</p>;
+}
+
+function buildFontOptions(currentValue: string): string[] {
+  return currentValue && !FONT_ALLOWLIST.has(currentValue)
+    ? [currentValue, ...FONT_OPTIONS]
+    : FONT_OPTIONS;
+}
+
+function buildFontWarning(font: string, label: string): string | null {
+  if (!font || FONT_ALLOWLIST.has(font)) return null;
+  return `${label} font "${font}" is outside the allowlist. Saving will preserve it, but the theme system recommends switching to an approved font.`;
+}
+
+function inferFallback(font: string): 'sans-serif' | 'serif' | 'monospace' {
+  if (font === 'Instrument Serif' || font === 'Playfair Display' || font === 'Merriweather' || font === 'Lora' || font === 'Cormorant Garamond' || font === 'Libre Baskerville' || font === 'DM Serif Display' || font === 'Fraunces' || font === 'Crimson Pro') {
+    return 'serif';
+  }
+  if (font === 'JetBrains Mono' || font === 'Fira Code') {
+    return 'monospace';
+  }
+  return 'sans-serif';
+}
+
+function roundTo(value: number, digits: number): number {
+  const factor = 10 ** digits;
+  return Math.round(value * factor) / factor;
+}
+
+function radiusValueToPx(radius: RadiusValue): number {
+  const map: Record<RadiusValue, number> = {
+    none: 0,
+    xs: 2,
+    sm: 4,
+    md: 8,
+    lg: 12,
+    xl: 16,
+    full: 28,
+  };
+  return map[radius] ?? 8;
+}
+
+function pxToRadius(px: number): RadiusValue {
+  if (px <= 0) return 'none';
+  if (px <= 2) return 'xs';
+  if (px <= 4) return 'sm';
+  if (px <= 8) return 'md';
+  if (px <= 12) return 'lg';
+  if (px <= 16) return 'xl';
+  return 'full';
+}
+
+function buildCssVarStyle(vars: Array<{ name: string; value: string }>): CSSProperties {
+  const style: Record<string, string> = {};
+  for (const item of vars) {
+    style[`--${item.name}`] = item.value;
+  }
+  style.background = 'hsl(var(--background))';
+  style.color = 'hsl(var(--foreground))';
+  return style as CSSProperties;
 }

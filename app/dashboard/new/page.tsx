@@ -5,8 +5,10 @@ import { createSupabaseBrowserClient } from '@/lib/supabase/browser-client';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getDashboardUserContext } from '@/lib/admin/user-context';
+import { createDraftTheme } from '@/lib/theme/normalize-theme';
+import type { BrandMood } from '@bukeer/theme-sdk';
 
-const PRESETS = [
+const PRESETS: Array<{ id: string; name: string; mood: BrandMood; color: string; desc: string }> = [
   { id: 'blank', name: 'Blank', mood: 'corporate', color: '#1976D2', desc: 'Start from scratch' },
   { id: 'adventure', name: 'Adventure', mood: 'adventurous', color: '#E65100', desc: 'Bold & dynamic' },
   { id: 'luxury', name: 'Luxury', mood: 'luxurious', color: '#1A237E', desc: 'Refined elegance' },
@@ -81,10 +83,11 @@ export default function NewWebsitePage() {
         subdomain,
         status: 'draft',
         template_id: preset.id,
-        theme: {
-          tokens: { colors: { seedColor: preset.color } },
-          profile: { brandMood: preset.mood },
-        },
+        theme: createDraftTheme({
+          brandName: name,
+          brandMood: preset.mood,
+          seedColor: preset.color,
+        }),
         content: {
           siteName: name,
           tagline: '',
