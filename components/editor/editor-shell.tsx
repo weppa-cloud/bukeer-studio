@@ -262,9 +262,27 @@ export function EditorShell({ websiteId, initialToken }: EditorShellProps) {
   }, [websiteId, getSupabase, loadData]);
 
   // Preview
-  const handlePreview = useCallback(() => {
+  const handlePreview = useCallback(async () => {
     if (!data?.website.subdomain) return;
-    window.open(`https://${data.website.subdomain}.bukeer.com`, '_blank');
+    const previewWindow = window.open('about:blank', '_blank', 'noopener,noreferrer');
+    const tokenRes = await fetch('/api/preview-token', { cache: 'no-store' });
+    if (!tokenRes.ok) {
+      previewWindow?.close();
+      return;
+    }
+    const tokenData = (await tokenRes.json()) as { token?: string };
+    if (!tokenData.token) {
+      previewWindow?.close();
+      return;
+    }
+
+    const previewUrl = new URL(`/site/${data.website.subdomain}`, window.location.origin);
+    previewUrl.searchParams.set('preview_token', tokenData.token);
+    if (previewWindow) {
+      previewWindow.location.href = previewUrl.toString();
+    } else {
+      window.location.href = previewUrl.toString();
+    }
   }, [data]);
 
   // Save as Template

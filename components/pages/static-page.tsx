@@ -9,7 +9,7 @@ import { SECTION_TYPES } from '@bukeer/website-contract';
 import { LandingPageSchema } from '@/components/seo/landing-page-schema';
 import { StickyCTABar } from '@/components/site/sticky-cta-bar';
 import { buildWhatsAppUrl } from '@/components/site/whatsapp-url';
-import { WhatsAppIntentButton } from '@/components/site/whatsapp-intent-button';
+import { WhatsAppIntentButton, WhatsAppIntentInterceptor } from '@/components/site/whatsapp-intent-button';
 
 const HERO_SECTION_TYPES = SECTION_TYPES.filter((t) => t.startsWith('hero'));
 
@@ -100,9 +100,12 @@ export function StaticPage({ website, page, dynamicDestinations = [] }: StaticPa
         });
   const primaryCtaHref = heroConfig.ctaUrl || heroWhatsappUrl || '#contact';
   const secondaryCtaHref = heroConfig.secondaryCtaUrl || '#pricing';
+  const primaryCtaText = (heroConfig.ctaText || '').toLowerCase();
   const primaryCtaIsWhatsApp = Boolean(
     rawWhatsApp && (
       (heroConfig.ctaUrl && /wa\.me|whatsapp/i.test(heroConfig.ctaUrl))
+      || (heroConfig.ctaUrl && /^tel:/i.test(heroConfig.ctaUrl))
+      || /asesor|whatsapp|llamar/i.test(primaryCtaText)
       || (!heroConfig.ctaUrl && heroWhatsappUrl)
     )
   );
@@ -125,6 +128,13 @@ export function StaticPage({ website, page, dynamicDestinations = [] }: StaticPa
   const isEditorial = templateSet === 'editorial-v1';
 
   return (
+    <WhatsAppIntentInterceptor
+      phone={rawWhatsApp}
+      productName={heroConfig.title || page.title}
+      location="Colombia"
+      refCode={page.slug}
+      analyticsContext={{ page_slug: page.slug || '', context: 'static_landing' }}
+    >
     <div className="min-h-screen" data-template-set={templateSet}>
       {/* Landing page structured data (TouristTrip, FAQPage, AggregateRating, BreadcrumbList) */}
       <LandingPageSchema
@@ -285,6 +295,7 @@ export function StaticPage({ website, page, dynamicDestinations = [] }: StaticPa
           whatsappProductName={heroConfig.title || page.title}
           whatsappLocation="Colombia"
           whatsappRefCode={page.slug}
+          openCallAsWhatsappModal={true}
           analyticsContext={{ page_slug: page.slug || '', context: 'static_landing' }}
         />
       )}
@@ -307,5 +318,6 @@ export function StaticPage({ website, page, dynamicDestinations = [] }: StaticPa
         </div>
       )}
     </div>
+    </WhatsAppIntentInterceptor>
   );
 }
