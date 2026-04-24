@@ -51,6 +51,10 @@ zone_name = "colombiatours.travel"
 pattern = "www.colombiatours.travel/*"
 zone_name = "colombiatours.travel"
 
+[[routes]]
+pattern = "en.colombiatours.travel/*"
+zone_name = "colombiatours.travel"
+
 # ── Staging environment ──────────────────────────────────────────────────────
 
 [env.staging]

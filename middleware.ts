@@ -27,6 +27,22 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const SITE_PREVIEW_TOKEN = process.env.SITE_PREVIEW_TOKEN || process.env.REVALIDATE_SECRET;
 const SITE_PREVIEW_PARAM = 'preview_token';
 const SITE_PREVIEW_COOKIE = '__bukeer_site_preview';
+const COLOMBIA_TOURS_EN_HOST = 'en.colombiatours.travel';
+const COLOMBIA_TOURS_CANONICAL_HOST = 'colombiatours.travel';
+
+const COLOMBIA_TOURS_EN_REDIRECTS: Record<string, string> = {
+  '/': '/en',
+  '/tipos-de-mamas': '/en/blog',
+  '/tipos-de-mamas/': '/en/blog',
+  '/los-10-mejores-lugares-turisticos': '/en/blog/los-10-mejores-lugares-turisticos-de-colombia',
+  '/los-10-mejores-lugares-turisticos/': '/en/blog/los-10-mejores-lugares-turisticos-de-colombia',
+  '/10-destinos-para-visitar-con-mama': '/en/blog/10-destinos-para-visitar-con-mama',
+  '/10-destinos-para-visitar-con-mama/': '/en/blog/10-destinos-para-visitar-con-mama',
+  '/es-seguro-viajar-a-isla-margarita': '/en/blog',
+  '/es-seguro-viajar-a-isla-margarita/': '/en/blog',
+  '/nombres-de-empresas-de-turismo': '/en/blog',
+  '/nombres-de-empresas-de-turismo/': '/en/blog',
+};
 
 const CATEGORY_TO_PRODUCT_TYPE: Record<string, string> = {
   destinos: 'destination',
@@ -93,6 +109,23 @@ function resolveWebsiteLocaleSettingsForMiddleware(
 function getRequestHost(request: NextRequest): string {
   const hostHeader = request.headers.get('host') || '';
   return hostHeader.split(':')[0].toLowerCase().replace(/\.$/, '');
+}
+
+function redirectColombiaToursEnSubdomain(request: NextRequest): NextResponse {
+  const currentPathname = request.nextUrl.pathname || '/';
+  const normalizedPathname =
+    currentPathname.length > 1
+      ? currentPathname.replace(/\/+$/, '')
+      : '/';
+  const mappedPathname =
+    COLOMBIA_TOURS_EN_REDIRECTS[currentPathname] ||
+    COLOMBIA_TOURS_EN_REDIRECTS[normalizedPathname] ||
+    `/en${currentPathname === '/' ? '' : currentPathname}`;
+
+  const target = new URL(request.url);
+  target.hostname = COLOMBIA_TOURS_CANONICAL_HOST;
+  target.pathname = mappedPathname;
+  return NextResponse.redirect(target, 301);
 }
 
 /**
@@ -467,6 +500,10 @@ export async function middleware(request: NextRequest) {
   const url = request.nextUrl;
   const host = getRequestHost(request);
   const pathname = url.pathname;
+
+  if (host === COLOMBIA_TOURS_EN_HOST) {
+    return redirectColombiaToursEnSubdomain(request);
+  }
 
   const studioHost = `studio.${MAIN_DOMAIN}`;
   if (host === studioHost && pathname === '/') {
