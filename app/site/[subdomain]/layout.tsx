@@ -207,7 +207,9 @@ export default async function SiteLayout({ children, params }: SiteLayoutProps) 
     resolvedLocale: localeContext.resolvedLocale,
     defaultLocale: localeContext.defaultLocale,
   };
-  const basePath = getBasePath(subdomain, false);
+  const headerList = await headers();
+  const isCustomDomain = Boolean(headerList.get('x-custom-domain'));
+  const basePath = getBasePath(subdomain, isCustomDomain);
   const navigation = navItems.length > 0
     ? buildNavTree(navItems)
     : getDefaultNavigation(website.sections, basePath);
@@ -236,7 +238,6 @@ export default async function SiteLayout({ children, params }: SiteLayoutProps) 
   // Wave 1.2: swap header/footer for the editorial variants when opted in.
 
   // Detect if current route is a landing page to apply minimalist header/footer
-  const headerList = await headers();
   const originalPathname = headerList.get('x-public-original-pathname') || '';
   const isLanding = isLandingPage(originalPathname);
 
@@ -250,19 +251,21 @@ export default async function SiteLayout({ children, params }: SiteLayoutProps) 
     <EditorialSiteHeader
       website={websiteForRender}
       navigation={navigation}
+      isCustomDomain={isCustomDomain}
       isLanding={isLanding}
     />
   ) : (
-    <SiteHeader website={websiteForRender} navigation={navigation} />
+    <SiteHeader website={websiteForRender} navigation={navigation} isCustomDomain={isCustomDomain} />
   );
   const footerEl = isEditorial ? (
     <EditorialSiteFooter
       website={websiteForRender}
       navigation={navigation}
+      isCustomDomain={isCustomDomain}
       isLanding={isLanding}
     />
   ) : (
-    <SiteFooter website={websiteForRender} navigation={navigation} />
+    <SiteFooter website={websiteForRender} navigation={navigation} isCustomDomain={isCustomDomain} />
   );
 
   const smoothScrollContent = (
