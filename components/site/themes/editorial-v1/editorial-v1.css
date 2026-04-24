@@ -3727,7 +3727,7 @@
 :where([data-template-set="editorial-v1"]) .wa-fab-f1 {
   position: fixed;
   right: 22px;
-  bottom: 22px;
+  bottom: calc(96px + env(safe-area-inset-bottom));
   z-index: 60;
   display: flex;
   align-items: center;
@@ -4902,6 +4902,16 @@
 :where([data-template-set="editorial-v1"]) .excl-col li .mark { color: var(--c-muted); }
 
 /* -------- Pricing table columns -------- */
+:where([data-template-set="editorial-v1"]) .pricing-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+}
+:where([data-template-set="editorial-v1"]) .pricing-card {
+  min-width: 0;
+}
+:where([data-template-set="editorial-v1"]) .pricing-price {
+  min-width: 0;
+  flex-wrap: wrap;
+}
 :where([data-template-set="editorial-v1"]) .price-table {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -7166,6 +7176,56 @@
   :where([data-template-set="editorial-v1"]) .promise {
     padding: 28px 24px;
     border-radius: 20px;
+  }
+
+  /* ── Pricing cards — swipeable comparison rail ───────────
+     Campaign landings can have 3+ price cards. A desktop grid causes
+     clipped columns on mobile, so use one readable card with a peek next. */
+  :where([data-template-set="editorial-v1"]) .ev-pricing .pricing-header {
+    margin-bottom: 24px !important;
+  }
+  :where([data-template-set="editorial-v1"]) .ev-pricing .pricing-grid {
+    display: flex !important;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 14px !important;
+    margin-inline: calc(var(--gutter, 20px) * -1);
+    padding: 0 var(--gutter, 20px) 18px;
+  }
+  :where([data-template-set="editorial-v1"]) .ev-pricing .pricing-grid::-webkit-scrollbar {
+    display: none;
+  }
+  :where([data-template-set="editorial-v1"]) .ev-pricing .pricing-card {
+    flex: 0 0 min(82vw, 360px);
+    scroll-snap-align: start;
+    padding: 24px 22px !important;
+    border-radius: 16px !important;
+  }
+  :where([data-template-set="editorial-v1"]) .ev-pricing .pricing-card .headline-md {
+    font-size: clamp(30px, 9vw, 42px);
+    line-height: 1.08;
+  }
+  :where([data-template-set="editorial-v1"]) .ev-pricing .pricing-card .display-md {
+    font-size: clamp(42px, 12vw, 58px);
+    line-height: .95;
+  }
+  :where([data-template-set="editorial-v1"]) .ev-pricing .pricing-card .label {
+    overflow-wrap: anywhere;
+    line-height: 1.35;
+  }
+  :where([data-template-set="editorial-v1"]) .ev-pricing .pricing-card ul {
+    gap: 12px !important;
+  }
+  :where([data-template-set="editorial-v1"]) .ev-pricing .pricing-cta {
+    order: 5;
+    min-height: 48px;
+    margin-top: 4px !important;
+  }
+  :where([data-template-set="editorial-v1"]) .ev-pricing .pricing-features {
+    order: 6;
   }
 
   /* ── P2g: Section headers — remove 2-col layout ──────────

@@ -7,6 +7,8 @@ import { convertCurrencyAmount, type CurrencyConfig } from '@/lib/site/currency'
 import { trackEvent } from '@/lib/analytics/track';
 import { getPublicUiMessages } from '@/lib/site/public-ui-messages';
 import { WhatsAppIntentButton } from '@/components/site/whatsapp-intent-button';
+import { WaflowCTAButton } from '@/components/site/themes/editorial-v1/waflow/cta-button';
+import type { WaflowPackageContext, WaflowPrefill } from '@/components/site/themes/editorial-v1/waflow/types';
 
 interface StickyCTABarProps {
   price?: number | string | null;
@@ -29,6 +31,9 @@ interface StickyCTABarProps {
   whatsappLocation?: string | null;
   whatsappRefCode?: string | number | null;
   openCallAsWhatsappModal?: boolean;
+  openWhatsappAsWaflow?: boolean;
+  waflowPackage?: WaflowPackageContext | null;
+  waflowPrefill?: WaflowPrefill | null;
 }
 
 export function StickyCTABar({
@@ -51,6 +56,9 @@ export function StickyCTABar({
   whatsappLocation = null,
   whatsappRefCode = null,
   openCallAsWhatsappModal = false,
+  openWhatsappAsWaflow = false,
+  waflowPackage = null,
+  waflowPrefill = null,
 }: StickyCTABarProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
@@ -151,6 +159,16 @@ export function StickyCTABar({
             >
               {resolvedWhatsappLabel}
             </button>
+          ) : openWhatsappAsWaflow && waflowPackage ? (
+            <WaflowCTAButton
+              variant="D"
+              pkg={waflowPackage}
+              prefill={waflowPrefill ?? undefined}
+              fallbackHref={whatsappUrl ?? undefined}
+              className="inline-flex items-center justify-center rounded-full px-3 py-2 text-xs font-semibold sm:px-5 sm:text-sm"
+            >
+              {resolvedWhatsappLabel}
+            </WaflowCTAButton>
           ) : openWhatsappAsModal ? (
             <WhatsAppIntentButton
               phone={phone}
@@ -180,7 +198,17 @@ export function StickyCTABar({
         ) : null}
 
         {callHref ? (
-          openCallAsWhatsappModal ? (
+          openWhatsappAsWaflow && waflowPackage ? (
+            <WaflowCTAButton
+              variant="D"
+              pkg={waflowPackage}
+              prefill={waflowPrefill ?? undefined}
+              fallbackHref={whatsappUrl ?? undefined}
+              className="inline-flex items-center justify-center rounded-full border px-3 py-2 text-xs font-semibold hover:bg-muted sm:px-5 sm:text-sm"
+            >
+              {resolvedCallLabel}
+            </WaflowCTAButton>
+          ) : openCallAsWhatsappModal ? (
             <WhatsAppIntentButton
               phone={phone}
               productName={whatsappProductName}

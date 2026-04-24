@@ -294,6 +294,7 @@ export default async function SiteLayout({ children, params }: SiteLayoutProps) 
       businessNumber={waflowBusinessNumber}
       subdomain={subdomain}
       responseTime="3 min"
+      showFab={!isLanding}
     >
       {smoothScrollContent}
     </WaflowProvider>

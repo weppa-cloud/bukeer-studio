@@ -15,12 +15,15 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
+import { usePathname } from 'next/navigation';
 
 import { Icons } from '../primitives/icons';
 import { useWaflow } from './provider';
+import { isLandingPage } from '@/lib/utils/landing-pages';
 
 export function WaflowFab() {
   const { openVariantA, responseTime, isOpen } = useWaflow();
+  const pathname = usePathname();
   const [show, setShow] = useState(false);
   const [bubble, setBubble] = useState(true);
   const hasShownRef = useRef(false);
@@ -51,7 +54,7 @@ export function WaflowFab() {
 
   // Hide the FAB while the drawer is open (the drawer already has its own
   // close control).
-  if (isOpen) return null;
+  if (isOpen || isLandingPage(pathname)) return null;
 
   return (
     <div className={`wa-fab-f1${show ? ' on' : ''}`}>

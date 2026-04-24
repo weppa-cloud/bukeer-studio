@@ -137,10 +137,10 @@ export function PricingSection({
           className="pricing-grid"
           style={{
             display: 'grid',
-            gridTemplateColumns: `repeat(${Math.min(tiers.length, 3)}, 1fr)`,
             gap: 24,
             alignItems: 'start',
           }}
+          data-tier-count={tiers.length}
         >
           {tiers.map((tier, i) => {
             const isHighlighted = tier.highlighted === true;
@@ -262,6 +262,7 @@ export function PricingSection({
                 {/* Features list */}
                 {tier.features.length > 0 ? (
                   <ul
+                    className="pricing-features"
                     style={{
                       listStyle: 'none',
                       padding: 0,
@@ -309,7 +310,7 @@ export function PricingSection({
                 {/* CTA */}
                 <a
                   href={ctaUrl}
-                  className={`btn${isHighlighted ? ' btn-accent' : ' btn-outline'}`}
+                  className={`pricing-cta btn${isHighlighted ? ' btn-accent' : ' btn-outline'}`}
                   style={{ justifyContent: 'center', marginTop: 'auto' }}
                 >
                   {ctaText}

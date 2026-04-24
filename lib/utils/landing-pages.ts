@@ -22,5 +22,7 @@ export function isLandingPage(pathname: string | null | undefined): boolean {
     .replace(/^\/+|\/+$/g, '') // Remove leading/trailing slashes
     .replace(/^[a-z]{2}\//, ''); // Remove locale segment if present (e.g., "en/slug" -> "slug")
 
-  return LANDING_PAGE_SLUGS.includes(normalized);
+  const lastSegment = normalized.split('/').filter(Boolean).at(-1) || normalized;
+
+  return LANDING_PAGE_SLUGS.includes(normalized) || LANDING_PAGE_SLUGS.includes(lastSegment);
 }
