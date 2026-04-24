@@ -128,6 +128,43 @@ function redirectColombiaToursEnSubdomain(request: NextRequest): NextResponse {
   return NextResponse.redirect(target, 301);
 }
 
+async function redirectCustomDomainInternalSitePath(
+  request: NextRequest,
+  host: string,
+  pathname: string,
+): Promise<NextResponse | null> {
+  if (
+    host === MAIN_DOMAIN ||
+    host.endsWith(`.${MAIN_DOMAIN}`) ||
+    host.includes('localhost') ||
+    host.includes('127.0.0.1')
+  ) {
+    return null;
+  }
+
+  const internalMatch = parseInternalSitePath(pathname);
+  if (!internalMatch) return null;
+
+  let canonicalHost = host;
+  let website = await getWebsiteByCustomDomain(host);
+
+  if (!website && host.startsWith('www.')) {
+    canonicalHost = host.slice(4);
+    website = await getWebsiteByCustomDomain(canonicalHost);
+  }
+
+  if (!website?.subdomain) return null;
+
+  if (website.subdomain.toLowerCase() !== internalMatch.subdomain) {
+    return null;
+  }
+
+  const target = new URL(request.url);
+  target.hostname = canonicalHost;
+  target.pathname = internalMatch.innerPathname;
+  return NextResponse.redirect(target, 301);
+}
+
 /**
  * Parse an already-internal `/site/<subdomain>/<rest>` pathname into its
  * component parts. Returns null if the pathname is not in the expected
@@ -584,6 +621,17 @@ export async function middleware(request: NextRequest) {
     pathname.match(/\.(ico|png|jpg|jpeg|svg|css|js|woff2?)$/)
   ) {
     return NextResponse.next();
+  }
+
+  if (pathname.startsWith('/site/')) {
+    const customDomainRedirect = await redirectCustomDomainInternalSitePath(
+      request,
+      host,
+      pathname,
+    );
+    if (customDomainRedirect) {
+      return customDomainRedirect;
+    }
   }
 
   // Already-internal tenant routes normally pass through untouched. One
