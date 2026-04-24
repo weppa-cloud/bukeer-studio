@@ -12,6 +12,7 @@ import { getBlogPosts, getBlogPostBySlug, getBlogCategories } from '@/lib/supaba
 import { JsonLd, generateBlogListingSchemas, generateBlogPostSchemas } from '@/lib/schema';
 import { SafeHtml } from '@/lib/sanitize';
 import { generateHreflangLinks } from '@/lib/seo/hreflang';
+import { resolveSiteIcons } from '@/lib/seo/site-icons';
 import { getDefaultLegalContent } from '@/lib/legal-defaults';
 import Image from 'next/image';
 import type { ThemeInput } from '@/lib/theme/m3-theme-provider';
@@ -543,6 +544,7 @@ export async function generateMetadata({ params }: CustomDomainPageProps) {
   }
 
   const slugPath = slug?.join('/') || '';
+  const icons = resolveSiteIcons(website);
 
   // Legal page metadata
   const legalMeta: Record<string, { title: string; description: string }> = {
@@ -556,6 +558,7 @@ export async function generateMetadata({ params }: CustomDomainPageProps) {
       title: legalMeta[slugPath].title,
       description: legalMeta[slugPath].description,
       robots: { index: false, follow: false },
+      ...(icons ? { icons } : {}),
     };
   }
 
@@ -564,6 +567,7 @@ export async function generateMetadata({ params }: CustomDomainPageProps) {
     return {
       title: 'Blog',
       description: `Lee las últimas publicaciones de ${website.content.siteName}`,
+      ...(icons ? { icons } : {}),
     };
   }
 
@@ -602,6 +606,7 @@ export async function generateMetadata({ params }: CustomDomainPageProps) {
           description: post.seo_description || post.excerpt,
           images: post.featured_image ? [post.featured_image] : undefined,
         },
+        ...(icons ? { icons } : {}),
       };
     }
   }
@@ -616,6 +621,7 @@ export async function generateMetadata({ params }: CustomDomainPageProps) {
         title: `Destinos | ${siteName}`,
         description: `Descubre los mejores destinos de viaje con ${siteName}.`,
       },
+      ...(icons ? { icons } : {}),
     };
   }
 
@@ -637,6 +643,7 @@ export async function generateMetadata({ params }: CustomDomainPageProps) {
           description,
           images: dest.image ? [dest.image] : undefined,
         },
+        ...(icons ? { icons } : {}),
       };
     }
   }
@@ -666,5 +673,6 @@ export async function generateMetadata({ params }: CustomDomainPageProps) {
       description,
       images: ogImage ? [ogImage] : undefined,
     },
+    ...(icons ? { icons } : {}),
   };
 }

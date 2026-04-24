@@ -72,6 +72,9 @@ colombiatours-full.png
 reports/
 *.png
 !__tests__/visual/studio-editor-baselines/**/*.png
+!public/
+!public/tenant-icons/
+!public/tenant-icons/**/*.png
 
 # Lighthouse CI reports
 .lighthouseci/

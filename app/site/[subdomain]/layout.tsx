@@ -15,6 +15,7 @@ import { compileTheme } from '@bukeer/theme-sdk';
 import type { DesignTokens, ThemeProfile } from '@bukeer/theme-sdk';
 import { resolvePublicMetadataLocale } from '@/lib/seo/public-metadata';
 import { localeToOgLocale } from '@/lib/seo/locale-routing';
+import { resolveSiteIcons } from '@/lib/seo/site-icons';
 import { WebsiteLocaleProvider } from '@/components/site/website-locale-provider';
 import { resolveTemplateSet } from '@/lib/sections/template-set';
 import { headers } from 'next/headers';
@@ -156,6 +157,7 @@ export async function generateMetadata({ params }: SiteLayoutProps): Promise<Met
     (seoContent?.image as string | undefined) ||
     (heroSection?.content as Record<string, unknown>)?.backgroundImage ||
     content.account?.logo;
+  const icons = resolveSiteIcons(website);
 
   return {
     title: {
@@ -184,6 +186,7 @@ export async function generateMetadata({ params }: SiteLayoutProps): Promise<Met
       index: website.status === 'published',
       follow: website.status === 'published',
     },
+    ...(icons ? { icons } : {}),
   };
 }
 
