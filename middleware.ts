@@ -13,6 +13,7 @@ const RESERVED_SUBDOMAINS = [
   'app',
   'api',
   'admin',
+  'studio',
   'canvas',
   'staging',
   'dev',
@@ -23,6 +24,9 @@ const MAIN_DOMAIN = process.env.NEXT_PUBLIC_MAIN_DOMAIN || 'bukeer.com';
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SITE_PREVIEW_TOKEN = process.env.SITE_PREVIEW_TOKEN || process.env.REVALIDATE_SECRET;
+const SITE_PREVIEW_PARAM = 'preview_token';
+const SITE_PREVIEW_COOKIE = '__bukeer_site_preview';
 
 const CATEGORY_TO_PRODUCT_TYPE: Record<string, string> = {
   destinos: 'destination',
@@ -451,10 +455,23 @@ function applyLocaleAwareTenantRewrite(input: LocaleAwareRoutingInput): NextResp
   return response;
 }
 
+function applySitePreviewHeaders(response: NextResponse): NextResponse {
+  if (process.env.LHCI_ALLOW_INDEX !== '1') {
+    response.headers.set('X-Robots-Tag', 'noindex, nofollow, noarchive, nosnippet');
+  }
+  response.headers.set('Cache-Control', 'private, no-store, max-age=0, must-revalidate');
+  return response;
+}
+
 export async function middleware(request: NextRequest) {
   const url = request.nextUrl;
   const host = getRequestHost(request);
   const pathname = url.pathname;
+
+  const studioHost = `studio.${MAIN_DOMAIN}`;
+  if (host === studioHost && pathname === '/') {
+    return NextResponse.redirect(new URL('/dashboard', request.url), 307);
+  }
 
   // Editor routes — handle SSO token if present, otherwise pass through
   if (pathname.startsWith('/editor')) {
@@ -540,6 +557,30 @@ export async function middleware(request: NextRequest) {
   // contains a translated-locale segment. See [[ADR-019]] + Cluster-E of
   // Stage 6 (#213) for the handoff from PR #243.
   if (pathname.startsWith('/site/')) {
+    const queryToken = url.searchParams.get(SITE_PREVIEW_PARAM);
+    const cookieToken = request.cookies.get(SITE_PREVIEW_COOKIE)?.value;
+    const tokenFromRequest = queryToken || cookieToken;
+
+    if (!SITE_PREVIEW_TOKEN || tokenFromRequest !== SITE_PREVIEW_TOKEN) {
+      return applySitePreviewHeaders(
+        new NextResponse('Preview token required', { status: 401 }),
+      );
+    }
+
+    if (queryToken === SITE_PREVIEW_TOKEN) {
+      const cleanUrl = new URL(url);
+      cleanUrl.searchParams.delete(SITE_PREVIEW_PARAM);
+      const redirectResponse = NextResponse.redirect(cleanUrl, 307);
+      redirectResponse.cookies.set(SITE_PREVIEW_COOKIE, SITE_PREVIEW_TOKEN, {
+        path: '/site',
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 60 * 60 * 6, // 6h preview session
+      });
+      return applySitePreviewHeaders(redirectResponse);
+    }
+
     const internalMatch = parseInternalSitePath(pathname);
     if (
       internalMatch &&
@@ -561,7 +602,7 @@ export async function middleware(request: NextRequest) {
         localeResolution.hasLanguageSegment &&
         localeResolution.resolvedLocale !== localeResolution.defaultLocale
       ) {
-        return applyLocaleAwareTenantRewrite({
+        return applySitePreviewHeaders(applyLocaleAwareTenantRewrite({
           request,
           sourceUrl: url,
           pathnameWithoutLang: localeResolution.pathnameWithoutLang,
@@ -572,11 +613,19 @@ export async function middleware(request: NextRequest) {
           defaultLocale: localeResolution.defaultLocale,
           resolvedLanguage: localeResolution.resolvedLanguage,
           hasLanguageSegment: localeResolution.hasLanguageSegment,
-        });
+        }));
       }
     }
 
-    return NextResponse.next();
+    const passThrough = NextResponse.next();
+    passThrough.cookies.set(SITE_PREVIEW_COOKIE, SITE_PREVIEW_TOKEN, {
+      path: '/site',
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 60 * 60 * 6,
+    });
+    return applySitePreviewHeaders(passThrough);
   }
 
   if (pathname.startsWith('/domain/')) {
