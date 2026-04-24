@@ -129,7 +129,7 @@ For component-only PRs (no page/flow change), skip E2E. CT + unit + tsc + lint i
 
 | Workflow | File | Trigger |
 |----------|------|---------|
-| Deploy + quality gates | `.github/workflows/deploy.yml` | Push to `main` |
+| Deploy + quality gates | `.github/workflows/deploy.yml` | Push to `main` or `dev` |
 | CT + visual regression | `.github/workflows/ct-visual.yml` | PR touching `components/**`, CT tests, or visual baselines |
 
 Both use chromium only. Cross-browser tests run via `workflow_dispatch` if needed.
