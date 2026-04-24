@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import {
   Bricolage_Grotesque,
   Instrument_Serif,
@@ -69,6 +70,9 @@ export default function RootLayout({
       )}
     >
       <body className="font-sans antialiased">
+        <Script id="global-name-helper" strategy="beforeInteractive">
+          {`window.__name=window.__name||function(fn){return fn};`}
+        </Script>
         {children}
       </body>
     </html>

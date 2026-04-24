@@ -329,11 +329,6 @@ export default async function SiteLayout({ children, params }: SiteLayoutProps) 
       {themeCSS ? <style dangerouslySetInnerHTML={{ __html: themeCSS }} /> : null}
       {/* SSR sentinel — client reads this to skip re-applying theme on mount */}
       {themeCSS ? <meta name="x-theme-ssr" content="1" /> : null}
-      <script
-        dangerouslySetInnerHTML={{
-          __html: 'window.__name=window.__name||function(fn){return fn};',
-        }}
-      />
     <WebsiteLocaleProvider locale={localeContext.resolvedLocale}>
       <M3ThemeProvider initialTheme={initialTheme}>
         {/* Google Tag Manager and Analytics Scripts */}
