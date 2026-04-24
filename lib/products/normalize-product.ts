@@ -39,8 +39,9 @@ export interface NormalizeProductOptions {
   logger?: (event: ProductNormalizeLog) => void;
 }
 
-const defaultLogger = (event: ProductNormalizeLog) => {
-  console.warn('[product.normalize] fallback', event);
+const defaultLogger = (_event: ProductNormalizeLog) => {
+  // Fallbacks are expected while legacy catalog rows are progressively
+  // normalized. Callers can pass a logger when they need diagnostics.
 };
 
 const INTERNAL_COPY_PATTERNS: RegExp[] = [

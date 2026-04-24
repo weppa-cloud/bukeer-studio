@@ -17,6 +17,13 @@ export interface ColombiaCityEntry {
   region?: ColombiaRegion;
 }
 
+export const COLOMBIA_BOUNDS = {
+  minLat: -4.9,
+  maxLat: 13.6,
+  minLng: -81.9,
+  maxLng: -66.8,
+} as const;
+
 export const COLOMBIA_CITIES: Record<string, ColombiaCityEntry> = {
   // Andes
   'Bogotá': { lat: 4.711, lng: -74.072, region: 'andes' },
@@ -32,6 +39,9 @@ export const COLOMBIA_CITIES: Record<string, ColombiaCityEntry> = {
   'Filandia': { lat: 4.676, lng: -75.658, region: 'andes' },
   'Valle de Cocora': { lat: 4.637, lng: -75.486, region: 'andes' },
   'San Gil': { lat: 6.555, lng: -73.134, region: 'andes' },
+  'Quimbaya': { lat: 4.625, lng: -75.762, region: 'andes' },
+  'Pueblo Tapao': { lat: 4.546, lng: -75.733, region: 'andes' },
+  'Puerto Triunfo': { lat: 5.878, lng: -74.640, region: 'andes' },
 
   // Caribe
   'Cartagena': { lat: 10.393, lng: -75.483, region: 'caribe' },
@@ -82,6 +92,72 @@ export const CITIES_BY_REGION: Record<ColombiaRegion, RoutePoint[]> = (() => {
   return grouped;
 })();
 
+function normalizeText(value: string): string {
+  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+}
+
+function normalizeRegion(value: string): ColombiaRegion | undefined {
+  const normalized = normalizeText(value);
+  if (normalized === 'caribe') return 'caribe';
+  if (normalized === 'andes') return 'andes';
+  if (normalized === 'selva' || normalized === 'amazonia' || normalized === 'amazonia colombiana') return 'selva';
+  if (normalized === 'pacifico' || normalized === 'region pacifica') return 'pacifico';
+  return undefined;
+}
+
+export function isWithinColombiaBounds(lat: number, lng: number): boolean {
+  return (
+    Number.isFinite(lat) &&
+    Number.isFinite(lng) &&
+    lat >= COLOMBIA_BOUNDS.minLat &&
+    lat <= COLOMBIA_BOUNDS.maxLat &&
+    lng >= COLOMBIA_BOUNDS.minLng &&
+    lng <= COLOMBIA_BOUNDS.maxLng
+  );
+}
+
+export function inferColombiaRegionFromCoords(
+  lat: number | null | undefined,
+  lng: number | null | undefined,
+): ColombiaRegion | undefined {
+  if (typeof lat !== 'number' || typeof lng !== 'number') return undefined;
+  if (!isWithinColombiaBounds(lat, lng)) return undefined;
+
+  // Caribbean north belt.
+  if (lat >= 9.0) return 'caribe';
+  // Pacific coast strip.
+  if (lng <= -77.1 && lat >= 0.8 && lat <= 8.8) return 'pacifico';
+  // Southern rainforest / amazon basin.
+  if (lat <= 1.8 && lng >= -75.6) return 'selva';
+  // Fallback for the central corridor.
+  return 'andes';
+}
+
+export function resolveColombiaRegion(input: {
+  region?: string | null;
+  state?: string | null;
+  name?: string | null;
+  lat?: number | null;
+  lng?: number | null;
+}): ColombiaRegion | undefined {
+  const fromRegion = input.region ? normalizeRegion(input.region) : undefined;
+  if (fromRegion) return fromRegion;
+  const fromState = input.state ? normalizeRegion(input.state) : undefined;
+  if (fromState) return fromState;
+
+  const name = typeof input.name === 'string' ? input.name.trim() : '';
+  if (name) {
+    const direct = COLOMBIA_CITIES[name];
+    if (direct?.region) return direct.region;
+    const normalizedName = normalizeText(name);
+    for (const [city, entry] of Object.entries(COLOMBIA_CITIES)) {
+      if (normalizeText(city) === normalizedName && entry.region) return entry.region;
+    }
+  }
+
+  return inferColombiaRegionFromCoords(input.lat, input.lng);
+}
+
 /**
  * Extract route points from a free-text name by matching known city names.
  * Accent-insensitive, preserves the order found in the source map.
@@ -89,10 +165,10 @@ export const CITIES_BY_REGION: Record<ColombiaRegion, RoutePoint[]> = (() => {
 export function parseRouteFromName(name: string): RoutePoint[] {
   const points: RoutePoint[] = [];
   const seen = new Set<string>();
-  const nameNorm = name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const nameNorm = normalizeText(name);
 
   for (const [city, coords] of Object.entries(COLOMBIA_CITIES)) {
-    const normalized = city.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    const normalized = normalizeText(city);
 
     if (!nameNorm.includes(normalized) || seen.has(city)) continue;
 
