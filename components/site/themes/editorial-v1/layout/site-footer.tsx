@@ -25,6 +25,7 @@ import type { NavigationItem } from '@bukeer/website-contract';
 import { getBasePath } from '@/lib/utils/base-path';
 import { Icons } from '../primitives/icons';
 import { FooterSwitcher } from './footer-switcher';
+import { FooterNewsletterForm } from './footer-newsletter-form';
 import { getEditorialTextGetter } from '../i18n';
 import { WaflowCTAButton } from '../waflow/cta-button';
 
@@ -241,36 +242,12 @@ export function EditorialSiteFooter({
                 >
                   {editorialText('editorialFooterNewsletterHint')}
                 </p>
-                {/* Newsletter stub — wiring in Wave 4+ */}
-                <form
-                  method="post"
+                <FooterNewsletterForm
                   action={`${basePath}/api/newsletter`}
-                  style={{ display: 'flex', flexDirection: 'column', gap: 8 }}
-                >
-                  <label className="sr-only" htmlFor="ev-footer-email">
-                    {editorialText('editorialFooterEmailLabel')}
-                  </label>
-                  <input
-                    id="ev-footer-email"
-                    type="email"
-                    name="email"
-                    required
-                    placeholder={editorialText('editorialFooterEmailPlaceholder')}
-                    style={{
-                      width: '100%',
-                      padding: '12px 14px',
-                      borderRadius: 12,
-                      border: '1px solid rgba(255,255,255,.16)',
-                      background: 'rgba(255,255,255,.06)',
-                      color: '#fff',
-                      fontSize: 14,
-                    }}
-                  />
-                  <button type="submit" className="btn btn-accent">
-                    {editorialText('editorialFooterSubscribe')}
-                    <Icons.arrow size={14} />
-                  </button>
-                </form>
+                  emailLabel={editorialText('editorialFooterEmailLabel')}
+                  emailPlaceholder={editorialText('editorialFooterEmailPlaceholder')}
+                  submitLabel={editorialText('editorialFooterSubscribe')}
+                />
               </div>
             </>
           )}

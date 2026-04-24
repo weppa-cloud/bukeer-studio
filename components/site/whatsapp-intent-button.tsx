@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState, type MouseEvent, type ReactNode } from 'react';
 import { trackEvent } from '@/lib/analytics/track';
 import { buildWhatsAppUrl } from '@/components/site/whatsapp-url';
 
@@ -14,6 +14,15 @@ interface WhatsAppIntentButtonProps {
   children?: ReactNode;
   analyticsLocation?: string;
   analyticsContext?: Record<string, string | number | boolean | null | undefined>;
+}
+
+interface WhatsAppIntentInterceptorProps {
+  phone?: string | null;
+  productName?: string | null;
+  location?: string | null;
+  refCode?: string | number | null;
+  analyticsContext?: Record<string, string | number | boolean | null | undefined>;
+  children: ReactNode;
 }
 
 function getTodayDateInputValue(): string {
@@ -162,6 +171,151 @@ export function WhatsAppIntentButton({
               style={{ backgroundColor: 'hsl(var(--accent))', color: 'hsl(var(--accent-text))' }}
             >
               {label}
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </>
+  );
+}
+
+export function WhatsAppIntentInterceptor({
+  phone,
+  productName,
+  location,
+  refCode,
+  analyticsContext,
+  children,
+}: WhatsAppIntentInterceptorProps) {
+  const [open, setOpen] = useState(false);
+  const [date, setDate] = useState('');
+  const [pax, setPax] = useState(2);
+  const [notes, setNotes] = useState('');
+  const minDate = useMemo(() => getTodayDateInputValue(), []);
+
+  const openModalFrom = (source: string) => {
+    trackEvent('whatsapp_cta_click', {
+      product_name: productName ?? null,
+      location_context: source,
+      ref: refCode ? String(refCode) : null,
+      ...(analyticsContext ?? {}),
+    });
+    setOpen(true);
+  };
+
+  const onClickCapture = (event: MouseEvent<HTMLDivElement>) => {
+    if (!phone) return;
+    const target = event.target as HTMLElement | null;
+    if (!target) return;
+    const anchor = target.closest('a') as HTMLAnchorElement | null;
+    if (!anchor) return;
+    if (anchor.dataset.noWaModal === 'true') return;
+    const href = (anchor.getAttribute('href') || '').trim().toLowerCase();
+    const text = (anchor.textContent || '').trim().toLowerCase();
+    const shouldIntercept =
+      href.startsWith('tel:')
+      || href.includes('wa.me/')
+      || href.includes('api.whatsapp.com/')
+      || /whatsapp|habla con asesor|llamar/.test(text);
+    if (!shouldIntercept) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    openModalFrom('landing_interceptor');
+  };
+
+  const onSubmit = () => {
+    if (!phone) return;
+    const sourceUrl = typeof window !== 'undefined' ? window.location.href : '';
+    const message = [
+      'Hola, quiero planear este viaje por WhatsApp.',
+      '',
+      productName ? `Interés: *${productName}*` : null,
+      location ? `Destino: ${location}` : null,
+      `Fecha tentativa: ${formatSelectedDate(date)}`,
+      `Personas: ${pax}`,
+      notes.trim().length > 0 ? `Notas: ${notes.trim()}` : null,
+      sourceUrl ? `Enlace: ${sourceUrl}` : null,
+      refCode ? `Referencia: ${String(refCode)}` : null,
+    ].filter(Boolean).join('\n');
+
+    const url = buildWhatsAppUrl({
+      phone,
+      productName,
+      location,
+      ref: refCode,
+      customMessage: message,
+    });
+    if (url && typeof window !== 'undefined') {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+    setOpen(false);
+  };
+
+  return (
+    <>
+      <div onClickCapture={onClickCapture}>{children}</div>
+      {open ? (
+        <div className="fixed inset-0 z-[90]">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setOpen(false)} aria-hidden="true" />
+          <div className="absolute left-1/2 top-1/2 w-[min(92vw,520px)] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border bg-background p-5 shadow-2xl">
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-lg font-semibold">Planear por WhatsApp</h3>
+                <p className="mt-1 text-sm text-muted-foreground">Cuéntanos fecha y personas para prepararte una propuesta.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border text-sm"
+                aria-label="Cerrar modal"
+              >
+                ×
+              </button>
+            </div>
+            <div className="grid gap-3">
+              <label className="grid gap-1 text-sm">
+                <span className="text-muted-foreground">Fecha</span>
+                <input
+                  type="date"
+                  min={minDate}
+                  value={date}
+                  onChange={(event) => setDate(event.target.value)}
+                  className="h-11 rounded-xl border border-border bg-background px-3"
+                />
+              </label>
+              <label className="grid gap-1 text-sm">
+                <span className="text-muted-foreground">Personas</span>
+                <select
+                  value={pax}
+                  onChange={(event) => setPax(Number(event.target.value))}
+                  className="h-11 rounded-xl border border-border bg-background px-3"
+                >
+                  {[1, 2, 3, 4, 5, 6, 8, 10].map((value) => (
+                    <option key={value} value={value}>
+                      {value} {value === 1 ? 'persona' : 'personas'}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="grid gap-1 text-sm">
+                <span className="text-muted-foreground">Notas (opcional)</span>
+                <textarea
+                  rows={3}
+                  value={notes}
+                  onChange={(event) => setNotes(event.target.value)}
+                  placeholder="Ej: viaje en familia, interés en hoteles boutique"
+                  className="rounded-xl border border-border bg-background px-3 py-2"
+                />
+              </label>
+            </div>
+            <button
+              type="button"
+              onClick={onSubmit}
+              className="mt-4 inline-flex w-full items-center justify-center rounded-full px-4 py-3 text-sm font-semibold"
+              style={{ backgroundColor: 'hsl(var(--accent))', color: 'hsl(var(--accent-text))' }}
+            >
+              Continuar por WhatsApp
             </button>
           </div>
         </div>

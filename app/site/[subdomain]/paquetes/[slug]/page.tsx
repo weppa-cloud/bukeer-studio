@@ -9,6 +9,7 @@ import {
   getCategoryProducts,
   getLocalizedProductOverlay,
   getProductPage,
+  getProductSlugRedirect,
 } from '@/lib/supabase/get-pages';
 import { getReviewsForContext, type ReviewContext } from '@/lib/supabase/get-reviews';
 import { getWebsiteBySubdomain } from '@/lib/supabase/get-website';
@@ -196,6 +197,12 @@ export default async function PackageSlugPage({ params }: PackagePageProps) {
     locale: resolvedLocale,
   });
   if (!productPage?.product) {
+    const redirectedSlug = website.account_id
+      ? await getProductSlugRedirect(String(website.account_id), 'package', slug)
+      : null;
+    if (redirectedSlug) {
+      permanentRedirect(`/site/${subdomain}/paquetes/${redirectedSlug}`);
+    }
     notFound();
   }
 
@@ -235,7 +242,9 @@ export default async function PackageSlugPage({ params }: PackagePageProps) {
   ) || null;
   const editorialPayload: EditorialPackageDetailPayload = {
     product: productPage.product,
-    basePath: getBasePath(website.subdomain, Boolean(website.custom_domain)),
+    // This page is mounted under `/site/[subdomain]`, so links must remain
+    // prefixed in local/site rendering regardless of custom domain settings.
+    basePath: getBasePath(website.subdomain, false),
     displayName,
     displayLocation,
     resolvedLocale: localeContext.resolvedLocale,

@@ -2,9 +2,8 @@
  * SEO Content Sanitizer
  * ---------------------
  * XSS-safe HTML sanitization for transcreate / auto-inject / user-pasted HTML
- * flows. Uses `isomorphic-dompurify` (already a dependency — see package.json)
- * so the same helper works in Node (App Router route handlers) and Edge
- * runtimes (Cloudflare Worker).
+ * flows. Uses a server-safe allowlist sanitizer (no `jsdom`) so it can run
+ * in Cloudflare Worker runtime.
  *
  * The schema is intentionally narrower than `lib/sanitize.tsx` — we only
  * allow the whitelist requested for blog-body content so auto-injected
@@ -13,7 +12,7 @@
  *
  * @see issue #145 — internal linking suggest endpoint + XSS sanitization
  */
-import DOMPurify from 'isomorphic-dompurify';
+import { sanitizeHtmlWithAllowlist } from '@/lib/security/simple-html-sanitize';
 
 export interface SanitizeOptions {
   /** Allow `<a href rel target>` anchors. Default: true. */
@@ -111,14 +110,11 @@ export function sanitizeContentHtml(html: string, options: SanitizeOptions = {})
     allowedAttrs.push(...IMG_ATTRS);
   }
 
-  const clean = DOMPurify.sanitize(html, {
-    ALLOWED_TAGS: allowedTags,
-    ALLOWED_ATTR: allowedAttrs,
-    ALLOW_DATA_ATTR: false,
-    FORBID_TAGS: BASE_FORBID_TAGS,
-    FORBID_ATTR: BASE_FORBID_ATTRS,
-    // Reject `javascript:` / `data:` URLs in href/src via default schema
-    // filtering (DOMPurify blocks these out of the box).
+  const clean = sanitizeHtmlWithAllowlist(html, {
+    allowedTags,
+    allowedAttrs,
+    forbidTags: BASE_FORBID_TAGS,
+    forbidAttrs: BASE_FORBID_ATTRS,
   });
 
   return enforceMaxLinks(clean, maxLinks);

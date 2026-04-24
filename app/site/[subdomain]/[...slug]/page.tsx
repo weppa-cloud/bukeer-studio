@@ -870,7 +870,9 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
             || productPage.product.location
             || [productPage.product.city, productPage.product.country].filter(Boolean).join(', ')
         ) || null;
-        const basePath = getBasePath(website.subdomain, Boolean(website.custom_domain));
+        // `/site/[subdomain]` routes must keep the `/site/<subdomain>` prefix
+        // even if the tenant has a custom domain configured in DB.
+        const basePath = getBasePath(website.subdomain, false);
         let slotName: TemplateSlotName | null = null;
         let editorialPayload:
           | EditorialPackageDetailPayload

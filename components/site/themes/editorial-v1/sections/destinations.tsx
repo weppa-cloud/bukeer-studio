@@ -31,6 +31,7 @@ import type { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 import { getBasePath } from '@/lib/utils/base-path';
 import {
   COLOMBIA_CITIES,
+  resolveColombiaRegion,
   type ColombiaRegion,
 } from '@/lib/maps/colombia-cities';
 
@@ -118,21 +119,6 @@ function firstNumber(...values: Array<number | null | undefined>): number {
   return 0;
 }
 
-function normalizeRegion(
-  raw: string | null | undefined,
-): ColombiaRegion | undefined {
-  if (!raw) return undefined;
-  const normalized = raw
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .trim();
-  if (['caribe', 'andes', 'selva', 'pacifico'].includes(normalized)) {
-    return normalized as ColombiaRegion;
-  }
-  return undefined;
-}
-
 function coordsFromName(
   name: string,
 ): { lat: number; lng: number; region?: ColombiaRegion } | undefined {
@@ -152,7 +138,6 @@ function normalizeDestination(
   const name = firstString(raw.name) || `Destino ${index + 1}`;
   const slug = firstString(raw.slug);
   const imageUrl = firstString(raw.imageUrl, raw.image) || null;
-  const declaredRegion = normalizeRegion(raw.region ?? raw.state);
 
   const activitiesCount = firstNumber(
     raw.activitiesCount,
@@ -176,7 +161,13 @@ function normalizeDestination(
     typeof raw.lng === 'number' && Number.isFinite(raw.lng)
       ? raw.lng
       : lookup?.lng;
-  const region = declaredRegion ?? lookup?.region;
+  const region = resolveColombiaRegion({
+    region: raw.region,
+    state: raw.state,
+    name,
+    lat: typeof lat === 'number' ? lat : null,
+    lng: typeof lng === 'number' ? lng : null,
+  }) ?? lookup?.region;
 
   return {
     id: firstString(raw.id, slug) || `destination-${index}`,

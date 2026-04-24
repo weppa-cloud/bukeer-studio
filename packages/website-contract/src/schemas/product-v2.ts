@@ -123,7 +123,7 @@ export const ProductDataSchema = z.object({
   instructions: z.string().optional(),
 
   duration_minutes: NumericSchema.optional(),
-  duration: z.string().optional(),
+  duration: z.string().nullish(),
   from_location: z.string().optional(),
   to_location: z.string().optional(),
   itinerary_items: z.array(ItineraryItemSchema).optional(),

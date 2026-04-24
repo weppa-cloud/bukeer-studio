@@ -1,5 +1,5 @@
-import DOMPurify from 'isomorphic-dompurify';
 import { marked } from 'marked';
+import { sanitizeHtmlWithAllowlist } from '@/lib/security/simple-html-sanitize';
 
 const PURIFY_CONFIG = {
   ALLOWED_TAGS: [
@@ -23,7 +23,12 @@ const PURIFY_CONFIG = {
  */
 export function sanitizeHtml(html: string): string {
   if (!html) return '';
-  return DOMPurify.sanitize(html, PURIFY_CONFIG);
+  return sanitizeHtmlWithAllowlist(html, {
+    allowedTags: PURIFY_CONFIG.ALLOWED_TAGS,
+    allowedAttrs: PURIFY_CONFIG.ALLOWED_ATTR,
+    forbidTags: PURIFY_CONFIG.FORBID_TAGS,
+    forbidAttrs: PURIFY_CONFIG.FORBID_ATTR,
+  });
 }
 
 /**

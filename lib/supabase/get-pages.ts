@@ -14,6 +14,7 @@ import {
   ProductDataSchema,
   PackageAggregatedDataSchema,
 } from '@bukeer/website-contract';
+import { isWithinColombiaBounds } from '@/lib/maps/colombia-cities';
 
 // Re-export types from contract (Strangler migration)
 export type {
@@ -1260,6 +1261,34 @@ export async function getProductPage(
 // Alias kept for backwards compatibility with callers that still use "BySlug" naming.
 export const getProductPageBySlug = getProductPage;
 
+export async function getProductSlugRedirect(
+  accountId: string,
+  productType: string,
+  oldSlug: string,
+): Promise<string | null> {
+  try {
+    const { data, error } = await supabase
+      .from('slug_redirects')
+      .select('new_slug')
+      .eq('account_id', accountId)
+      .eq('product_type', productType)
+      .eq('old_slug', oldSlug)
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      console.error('[getProductSlugRedirect] Error:', error);
+      return null;
+    }
+
+    const redirectedSlug = typeof data?.new_slug === 'string' ? data.new_slug.trim() : '';
+    return redirectedSlug && redirectedSlug !== oldSlug ? redirectedSlug : null;
+  } catch (e) {
+    console.error('[getProductSlugRedirect] Exception:', e);
+    return null;
+  }
+}
+
 /**
  * Locale-aware overlay fetch for product pages (pkg / activity / hotel /
  * transfer). The base `get_website_product_page` RPC resolves the default
@@ -1693,18 +1722,32 @@ export async function getDestinations(
     const payload = data as { destinations?: Omit<DestinationData, 'id'>[] };
     const destinations = payload?.destinations || [];
 
-    return destinations.map((destination, index) => ({
-      ...destination,
-      // Defensive: coerce package_count to a number (RPC always returns int,
-      // but some environments may surface null on fuzzy-match misses).
-      package_count:
-        typeof destination.package_count === 'number'
-          ? destination.package_count
-          : 0,
-      id:
-        (typeof destination.slug === 'string' && destination.slug) ||
-        `${destination.name}-${index}`,
-    }));
+    return destinations
+      .map((destination, index) => ({
+        ...destination,
+        // Defensive: coerce package_count to a number (RPC always returns int,
+        // but some environments may surface null on fuzzy-match misses).
+        package_count:
+          typeof destination.package_count === 'number'
+            ? destination.package_count
+            : 0,
+        id:
+          (typeof destination.slug === 'string' && destination.slug) ||
+          `${destination.name}-${index}`,
+      }))
+      .filter((destination) => {
+        // Exclude clear out-of-country destinations that leak from free-text
+        // inventory locations (e.g. "Punta Cana").
+        if (
+          typeof destination.lat === 'number' &&
+          typeof destination.lng === 'number' &&
+          Number.isFinite(destination.lat) &&
+          Number.isFinite(destination.lng)
+        ) {
+          return isWithinColombiaBounds(destination.lat, destination.lng);
+        }
+        return true;
+      });
   } catch (e) {
     console.error('[getDestinations] Exception:', e);
     return [];

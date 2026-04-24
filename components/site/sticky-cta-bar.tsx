@@ -28,6 +28,7 @@ interface StickyCTABarProps {
   whatsappProductName?: string | null;
   whatsappLocation?: string | null;
   whatsappRefCode?: string | number | null;
+  openCallAsWhatsappModal?: boolean;
 }
 
 export function StickyCTABar({
@@ -49,6 +50,7 @@ export function StickyCTABar({
   whatsappProductName = null,
   whatsappLocation = null,
   whatsappRefCode = null,
+  openCallAsWhatsappModal = false,
 }: StickyCTABarProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
@@ -178,18 +180,31 @@ export function StickyCTABar({
         ) : null}
 
         {callHref ? (
-          <a
-            href={callHref}
-            target={callHref.startsWith('http') ? '_blank' : undefined}
-            rel={callHref.startsWith('http') ? 'noopener noreferrer' : undefined}
-            onClick={() => {
-              trackEvent('sticky_cta_click', { ...(analyticsContext ?? {}), channel: 'tel' });
-              trackEvent('phone_cta_click', { ...(analyticsContext ?? {}), location_context: 'sticky_bar' });
-            }}
-            className="inline-flex items-center justify-center rounded-full border px-3 py-2 text-xs font-semibold hover:bg-muted sm:px-5 sm:text-sm"
-          >
-            {resolvedCallLabel}
-          </a>
+          openCallAsWhatsappModal ? (
+            <WhatsAppIntentButton
+              phone={phone}
+              productName={whatsappProductName}
+              location={whatsappLocation}
+              refCode={whatsappRefCode}
+              label={resolvedCallLabel}
+              analyticsLocation="sticky_bar_call"
+              analyticsContext={analyticsContext}
+              className="inline-flex items-center justify-center rounded-full border px-3 py-2 text-xs font-semibold hover:bg-muted sm:px-5 sm:text-sm"
+            />
+          ) : (
+            <a
+              href={callHref}
+              target={callHref.startsWith('http') ? '_blank' : undefined}
+              rel={callHref.startsWith('http') ? 'noopener noreferrer' : undefined}
+              onClick={() => {
+                trackEvent('sticky_cta_click', { ...(analyticsContext ?? {}), channel: 'tel' });
+                trackEvent('phone_cta_click', { ...(analyticsContext ?? {}), location_context: 'sticky_bar' });
+              }}
+              className="inline-flex items-center justify-center rounded-full border px-3 py-2 text-xs font-semibold hover:bg-muted sm:px-5 sm:text-sm"
+            >
+              {resolvedCallLabel}
+            </a>
+          )
         ) : null}
       </div>
     </aside>

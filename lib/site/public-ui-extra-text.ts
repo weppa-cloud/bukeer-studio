@@ -471,7 +471,7 @@ const BASE_EXTRA_TEXTS = {
 
   // Destinos listing / detail (editorial-v1 pages)
   editorialDestinosListEyebrow: 'EXPLORA',
-  editorialDestinosListTitle: 'Ocho Colombias, ocho <em>ritmos.</em>',
+  editorialDestinosListTitle: 'Ocho Colombias, <em>ocho ritmos.</em>',
   editorialDestinosListSubtitle:
     'Del mar de siete colores al desierto de La Guajira. Cada región con sus guías, sus sabores y su ritmo.',
   editorialDestinosListEmpty: 'No hay destinos disponibles en este momento.',
@@ -619,6 +619,7 @@ const EN_US_OVERRIDES: Partial<Record<PublicUiExtraTextKey, string>> = {
   editorialPackageDurationLabel: 'Duration',
   editorialPackageDestinationsLabel: 'Destinations',
   editorialPackageRatingLabel: 'Rating',
+  editorialDestinosListTitle: 'Eight Colombias, <em>eight rhythms.</em>',
 };
 const PT_BR_OVERRIDES: Partial<Record<PublicUiExtraTextKey, string>> = {};
 

@@ -32,7 +32,7 @@ import type { DestinationData } from '@/lib/supabase/get-pages';
 import type { ProductData } from '@bukeer/website-contract';
 import { getBasePath } from '@/lib/utils/base-path';
 import {
-  COLOMBIA_CITIES,
+  resolveColombiaRegion,
   type ColombiaRegion,
 } from '@/lib/maps/colombia-cities';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
@@ -65,30 +65,13 @@ interface EditorialDestinoDetailProps {
 }
 
 // ----- helpers -----
-function normalizeRegion(
-  raw: string | null | undefined,
-): ColombiaRegion | undefined {
-  if (!raw) return undefined;
-  const normalized = raw
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .trim();
-  if (['caribe', 'andes', 'selva', 'pacifico'].includes(normalized)) {
-    return normalized as ColombiaRegion;
-  }
-  return undefined;
-}
-
 function resolveRegion(dest: DestinationData): ColombiaRegion | undefined {
-  const fromState = normalizeRegion(dest.state);
-  if (fromState) return fromState;
-  const entry =
-    COLOMBIA_CITIES[dest.name] ??
-    Object.entries(COLOMBIA_CITIES).find(
-      ([city]) => city.toLowerCase() === dest.name.trim().toLowerCase(),
-    )?.[1];
-  return entry?.region;
+  return resolveColombiaRegion({
+    state: dest.state,
+    name: dest.name,
+    lat: Number.isFinite(dest.lat) ? dest.lat : null,
+    lng: Number.isFinite(dest.lng) ? dest.lng : null,
+  });
 }
 
 function interpolate(template: string, vars: Record<string, string>): string {
