@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import Script from "next/script";
 import {
   Bricolage_Grotesque,
@@ -10,6 +11,7 @@ import {
 } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
+import { localeToLanguage, PUBLIC_LOCALE_HEADER_NAMES } from "@/lib/seo/locale-routing";
 
 // Optimized font loading with next/font (automatic swap, self-hosted)
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
@@ -50,14 +52,19 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const headerList = await headers();
+  const htmlLang =
+    headerList.get(PUBLIC_LOCALE_HEADER_NAMES.lang) ||
+    localeToLanguage(headerList.get(PUBLIC_LOCALE_HEADER_NAMES.resolvedLocale) || 'es-CO');
+
   return (
     <html
-      lang="es"
+      lang={htmlLang}
       suppressHydrationWarning
       className={cn(
         bricolage.variable,
