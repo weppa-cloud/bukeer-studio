@@ -41,21 +41,11 @@ export const CustomSectionSpacerSchema = z.object({
   }),
 });
 
-export const StrictCustomSectionSchema = z.discriminatedUnion('type', [
+export const CustomSectionSchema = z.discriminatedUnion('type', [
   CustomSectionTextSchema,
   CustomSectionImageTextSchema,
   CustomSectionCtaSchema,
   CustomSectionSpacerSchema,
-]);
-
-const CustomSectionExtensionSchema = z.object({
-  id: z.string().uuid().or(z.string().min(1)),
-  type: z.string().min(1),
-}).passthrough();
-
-export const CustomSectionSchema = z.union([
-  StrictCustomSectionSchema,
-  CustomSectionExtensionSchema,
 ]);
 
 export const CustomSectionsArraySchema = z.array(CustomSectionSchema).max(20);

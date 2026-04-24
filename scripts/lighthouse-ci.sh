@@ -43,7 +43,7 @@ claim_free_session() {
   done
 
   echo "[lighthouse-ci] ERROR: no free session port available" >&2
-  for skipped in "${SKIPPED_SESSIONS[@]}"; do
+  for skipped in "${SKIPPED_SESSIONS[@]+"${SKIPPED_SESSIONS[@]}"}"; do
     bash scripts/session-release.sh "$skipped" >/dev/null 2>&1 || true
   done
   return 1
@@ -61,7 +61,7 @@ cleanup() {
   if [[ -n "${_ACQUIRED_SESSION:-}" ]]; then
     bash scripts/session-release.sh "$_ACQUIRED_SESSION" 2>/dev/null || true
   fi
-  for skipped in "${SKIPPED_SESSIONS[@]}"; do
+  for skipped in "${SKIPPED_SESSIONS[@]+"${SKIPPED_SESSIONS[@]}"}"; do
     bash scripts/session-release.sh "$skipped" 2>/dev/null || true
   done
 }
@@ -69,6 +69,7 @@ trap cleanup EXIT INT TERM
 
 echo "[lighthouse-ci] Claimed slot $SESSION_NAME on port $PORT"
 export LHCI_ALLOW_INDEX="${LHCI_ALLOW_INDEX:-1}"
+export LHCI_BLOCK_STREAMING_METADATA="${LHCI_BLOCK_STREAMING_METADATA:-1}"
 
 # --- Start server ------------------------------------------------------------
 SERVER_MODE="${LHCI_SERVER_MODE:-prod}"

@@ -24,6 +24,12 @@ const nextConfig: NextConfig = {
   // Allow isolated build caches per local session to avoid .next collisions
   distDir: process.env.NEXT_DIST_DIR || '.next',
 
+  // LHCI reads SEO tags from the initial HTML. Keep normal metadata streaming
+  // in runtime builds, but force blocking metadata in Lighthouse builds.
+  ...(process.env.LHCI_BLOCK_STREAMING_METADATA === '1'
+    ? { htmlLimitedBots: /.*/ }
+    : {}),
+
   // Skip ESLint during build — lint runs as a separate CI step
   eslint: { ignoreDuringBuilds: true },
 
