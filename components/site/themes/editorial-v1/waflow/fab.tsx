@@ -10,20 +10,19 @@
  * Visibility:
  *   - Hidden until the user scrolls past the first viewport
  *     (we avoid competing with the primary hero CTA above the fold)
+ *   - Also available on campaign landings; it opens the standard modal and
+ *     sits above the sticky CTA bar.
  *
  * Tapping it opens Variant A via the context.
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { usePathname } from 'next/navigation';
 
 import { Icons } from '../primitives/icons';
 import { useWaflow } from './provider';
-import { isLandingPage } from '@/lib/utils/landing-pages';
 
 export function WaflowFab() {
   const { openVariantA, responseTime, isOpen } = useWaflow();
-  const pathname = usePathname();
   const [show, setShow] = useState(false);
   const [bubble, setBubble] = useState(true);
   const hasShownRef = useRef(false);
@@ -54,7 +53,7 @@ export function WaflowFab() {
 
   // Hide the FAB while the drawer is open (the drawer already has its own
   // close control).
-  if (isOpen || isLandingPage(pathname)) return null;
+  if (isOpen) return null;
 
   return (
     <div className={`wa-fab-f1${show ? ' on' : ''}`}>
