@@ -21,7 +21,12 @@ jest.mock('next/navigation', () => ({
 }));
 
 import { WaflowProvider } from '@/components/site/themes/editorial-v1/waflow/provider';
-import { WaflowStepContact } from '@/components/site/themes/editorial-v1/waflow/steps/contact';
+import {
+  filterWaflowCountries,
+  getWaflowCountryOptions,
+  parseWaflowInternationalPhone,
+  WaflowStepContact,
+} from '@/components/site/themes/editorial-v1/waflow/steps/contact';
 import {
   buildWaflowMessage,
   buildWaflowUrl,
@@ -121,5 +126,29 @@ describe('WAFlow submission — UI label', () => {
       </WaflowProvider>,
     );
     expect(html).toContain('Tu número se usa solo para este viaje');
+  });
+});
+
+describe('WAFlow contact country selector helpers', () => {
+  it('puts ColombiaTours frequent markets first', () => {
+    expect(getWaflowCountryOptions().slice(0, 4).map((country) => country.c)).toEqual([
+      'CO',
+      'US',
+      'MX',
+      'ES',
+    ]);
+  });
+
+  it('searches by country name, calling code, and aliases', () => {
+    expect(filterWaflowCountries('mex')[0]).toMatchObject({ c: 'MX', code: '+52' });
+    expect(filterWaflowCountries('+1').some((country) => country.c === 'US')).toBe(true);
+    expect(filterWaflowCountries('eeuu')[0]).toMatchObject({ c: 'US', code: '+1' });
+  });
+
+  it('detects international pasted numbers and returns the national number', () => {
+    expect(parseWaflowInternationalPhone('+52 55 1234 5678')).toEqual({
+      countryCode: 'MX',
+      nationalNumber: '5512345678',
+    });
   });
 });
