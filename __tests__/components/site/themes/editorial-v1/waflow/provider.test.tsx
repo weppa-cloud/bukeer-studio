@@ -29,10 +29,10 @@ import {
 import { WAFLOW_STORAGE_PREFIX } from '@/components/site/themes/editorial-v1/waflow/types';
 
 describe('initialStateFor', () => {
-  it('starts variant A on the "intent" step', () => {
+  it('starts variant A on the "contact" step', () => {
     const s = initialStateFor('A');
     expect(s.variant).toBe('A');
-    expect(s.step).toBe('intent');
+    expect(s.step).toBe('contact');
     expect(s.adults).toBe(2);
     expect(s.children).toBe(0);
     expect(s.when).toBe('Flexible');
@@ -42,9 +42,9 @@ describe('initialStateFor', () => {
     expect(s.sessionKey.length).toBeGreaterThan(4);
   });
 
-  it('starts variants B and D on the "dates" step (no intent)', () => {
-    expect(initialStateFor('B').step).toBe('dates');
-    expect(initialStateFor('D').step).toBe('dates');
+  it('starts variants B and D on the "contact" step', () => {
+    expect(initialStateFor('B').step).toBe('contact');
+    expect(initialStateFor('D').step).toBe('contact');
   });
 });
 

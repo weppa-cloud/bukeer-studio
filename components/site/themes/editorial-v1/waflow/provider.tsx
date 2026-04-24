@@ -207,7 +207,9 @@ export function WaflowProvider({
 
   const openWithConfig = useCallback((next: WaflowConfig, prefill?: WaflowPrefill) => {
     const persisted = readPersisted(next.variant);
-    const base = persisted ?? initialStateFor(next.variant);
+    const base = persisted?.step === 'confirmation'
+      ? initialStateFor(next.variant)
+      : persisted ?? initialStateFor(next.variant);
     const validSteps = new Set(WAFLOW_STEP_ORDER[next.variant]);
     const safeStep = validSteps.has(base.step) ? base.step : 'contact';
     // Pre-fill context-specific fields for B/D so the user sees them locked in.
@@ -215,6 +217,9 @@ export function WaflowProvider({
       ...base,
       variant: next.variant,
       step: safeStep,
+      referenceCode: null,
+      whatsappUrl: null,
+      whatsappMessage: null,
       destinationChoice:
         next.variant === 'B' && next.destination?.name
           ? next.destination.name
