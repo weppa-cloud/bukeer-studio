@@ -33,9 +33,10 @@ describe('buildWaflowMessage', () => {
       ref: 'HOME-1203-AB12',
     });
     expect(msg).toContain('¡Hola! Quiero planear un viaje por Colombia');
-    expect(msg).toContain('📍 Destino: Cartagena');
-    expect(msg).toContain('📅 Cuándo: En 2–3 meses');
-    expect(msg).toContain('📲 Contacto: +573001234567');
+    expect(msg).toContain('Destino: Cartagena');
+    expect(msg).toContain('Cuándo: En 2–3 meses');
+    expect(msg).not.toContain('Contacto:');
+    expect(msg).not.toContain('+573001234567');
     expect(msg).toContain('— Juan Pérez');
     expect(msg).toContain('#ref: HOME-1203-AB12');
   });
@@ -49,8 +50,8 @@ describe('buildWaflowMessage', () => {
       when: 'Flexible',
       ref: 'HOME-0101-ZZZZ',
     });
-    expect(msg).toContain('📍 Destino: por definir');
-    expect(msg).not.toContain('👥 Viajeros');
+    expect(msg).toContain('Destino: por definir');
+    expect(msg).not.toContain('Viajeros');
   });
 
   it('builds the Variant B template with destination name', () => {
@@ -64,7 +65,7 @@ describe('buildWaflowMessage', () => {
       ref: 'DEST-1001-QQQQ',
     });
     expect(msg).toContain('¡Hola! Quiero planear un viaje a San Andrés');
-    expect(msg).toContain('📍 Destino: San Andrés');
+    expect(msg).toContain('Destino: San Andrés');
     expect(msg).not.toContain('✨ Me interesa');
   });
 
@@ -81,7 +82,7 @@ describe('buildWaflowMessage', () => {
       ref: 'CAFE-0803-WWWW',
     });
     expect(msg).toContain('¡Hola! Me interesa el paquete "Café y paisaje"');
-    expect(msg).toContain('📦 Paquete: Café y paisaje · 5D/4N');
+    expect(msg).toContain('Paquete: Café y paisaje · 5D/4N');
     expect(msg).not.toContain('🛠️ Ajustes');
   });
 });

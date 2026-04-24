@@ -5,7 +5,7 @@
  *
  * Single-step capture — date preference + name + country code + phone.
  * On submit we POST to /api/waflow/lead and redirect to WhatsApp with
- * a prefilled message that includes source URL + normalized phone.
+ * a prefilled message. The customer's phone stays in the lead record.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';

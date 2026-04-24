@@ -3,7 +3,7 @@
  *
  * Exercises the submission pipeline at the pure-helper level:
  *   - Given the user's filled state, buildWaflowMessage produces the
- *     designer-spec template lines.
+ *     plain WhatsApp template lines.
  *   - buildWaflowUrl encodes the message correctly for wa.me.
  *   - The contact step component renders the expected submit button label
  *     per variant (SSR smoke test).
@@ -52,9 +52,10 @@ describe('WAFlow submission — message + URL', () => {
     const encoded = url.slice('https://wa.me/573001234567?text='.length);
     const decoded = decodeURIComponent(encoded);
     expect(decoded).toContain('¡Hola! Quiero planear un viaje por Colombia');
-    expect(decoded).toContain('📍 Destino: Cartagena');
-    expect(decoded).toContain('📅 Cuándo: En 2–3 meses');
-    expect(decoded).toContain('📲 Contacto: +573001234567');
+    expect(decoded).toContain('Destino: Cartagena');
+    expect(decoded).toContain('Cuándo: En 2–3 meses');
+    expect(decoded).not.toContain('Contacto:');
+    expect(decoded).not.toContain('+573001234567');
     expect(decoded).toContain('— Juan Pérez');
     expect(decoded).toContain(`#ref: ${ref}`);
   });
@@ -78,8 +79,9 @@ describe('WAFlow submission — message + URL', () => {
       url.slice('https://wa.me/573001234567?text='.length),
     );
     expect(decoded).toContain('Me interesa el paquete "Café y paisaje"');
-    expect(decoded).toContain('📦 Paquete: Café y paisaje · 5D/4N');
-    expect(decoded).toContain('📲 Contacto: +573001234567');
+    expect(decoded).toContain('Paquete: Café y paisaje · 5D/4N');
+    expect(decoded).not.toContain('Contacto:');
+    expect(decoded).not.toContain('+573001234567');
   });
 });
 
