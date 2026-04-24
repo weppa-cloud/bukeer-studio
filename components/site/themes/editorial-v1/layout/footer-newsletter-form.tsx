@@ -1,87 +1,50 @@
 'use client';
 
-import type { FormEvent } from 'react';
-import { useState } from 'react';
+import { NewsletterSignupForm } from '@/components/site/newsletter-signup-form';
 import { Icons } from '../primitives/icons';
 
 interface FooterNewsletterFormProps {
   action: string;
+  subdomain: string;
+  locale?: string | null;
   emailLabel: string;
   emailPlaceholder: string;
   submitLabel: string;
+  submittingLabel?: string;
+  successLabel?: string;
+  errorLabel?: string;
 }
 
 export function FooterNewsletterForm({
   action,
+  subdomain,
+  locale = null,
   emailLabel,
   emailPlaceholder,
   submitLabel,
+  submittingLabel = 'Enviando...',
+  successLabel = 'Listo. Te contactaremos con novedades de viaje.',
+  errorLabel = 'No pudimos registrar el correo. Intenta de nuevo.',
 }: FooterNewsletterFormProps) {
-  const [email, setEmail] = useState('');
-  const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
-
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setStatus('submitting');
-
-    try {
-      const response = await fetch(action, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Newsletter request failed: ${response.status}`);
-      }
-
-      setEmail('');
-      setStatus('success');
-    } catch {
-      setStatus('error');
-    }
-  }
-
   return (
-    <form
-      onSubmit={handleSubmit}
-      style={{ display: 'flex', flexDirection: 'column', gap: 8 }}
+    <NewsletterSignupForm
+      action={action}
+      subdomain={subdomain}
+      locale={locale}
+      placement="footer"
+      inputId="ev-footer-email"
+      inputClassName="w-full rounded-[12px] border border-white/16 bg-white/6 px-[14px] py-3 text-[14px] text-white placeholder:text-white/55"
+      buttonClassName="btn btn-accent inline-flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-70"
+      successClassName="text-[13px] text-white/78"
+      errorClassName="text-[13px] text-[#f7b7b2]"
+      placeholder={emailPlaceholder}
+      emailLabel={emailLabel}
+      submitLabel={submitLabel}
+      submittingLabel={submittingLabel}
+      successLabel={successLabel}
+      genericErrorLabel={errorLabel}
     >
-      <label className="sr-only" htmlFor="ev-footer-email">
-        {emailLabel}
-      </label>
-      <input
-        id="ev-footer-email"
-        type="email"
-        name="email"
-        value={email}
-        onChange={(event) => setEmail(event.target.value)}
-        required
-        placeholder={emailPlaceholder}
-        style={{
-          width: '100%',
-          padding: '12px 14px',
-          borderRadius: 12,
-          border: '1px solid rgba(255,255,255,.16)',
-          background: 'rgba(255,255,255,.06)',
-          color: '#fff',
-          fontSize: 14,
-        }}
-      />
-      <button type="submit" className="btn btn-accent" disabled={status === 'submitting'}>
-        {status === 'submitting' ? 'Enviando...' : submitLabel}
-        <Icons.arrow size={14} />
-      </button>
-      {status === 'success' ? (
-        <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,.72)' }}>
-          Listo. Te contactaremos con novedades de viaje.
-        </p>
-      ) : null}
-      {status === 'error' ? (
-        <p style={{ margin: 0, fontSize: 12, color: '#fca5a5' }}>
-          No pudimos registrar el correo. Intenta de nuevo.
-        </p>
-      ) : null}
-    </form>
+      <Icons.arrow size={14} />
+    </NewsletterSignupForm>
   );
 }

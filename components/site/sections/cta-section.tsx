@@ -5,6 +5,7 @@ import { BlurFade } from '@/components/ui/blur-fade';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 import { WhatsAppIntentButton } from '@/components/site/whatsapp-intent-button';
 import { useWebsiteLocale } from '@/lib/hooks/use-website-locale';
+import { ContextualCtaLink } from '@/components/site/contextual-cta-link';
 
 interface CtaSectionProps {
   section: WebsiteSection;
@@ -86,15 +87,19 @@ export function CtaSection({ section, website }: CtaSectionProps) {
           <BlurFade delay={0.3}>
             <div className="mt-8 flex flex-wrap gap-4 justify-center">
               {sectionContent.ctaText && sectionContent.ctaUrl && (
-                <a
+                <ContextualCtaLink
                   href={sectionContent.ctaUrl}
+                  phone={content.social?.whatsapp || content.contact?.phone || (content as any)?.account?.phone || null}
+                  productName={title}
+                  label={sectionContent.ctaText}
+                  analyticsLocation="cta_section_primary"
                   className="group relative px-8 py-4 font-semibold rounded-full transition-all duration-300 hover:scale-[1.03] active:scale-[0.97]"
                   style={{ backgroundColor: 'var(--bg)', color: 'var(--accent)' }}
                 >
                   {/* Pulsing ring */}
                   <span className="absolute inset-0 rounded-full animate-ping opacity-20" style={{ backgroundColor: 'var(--bg)' }} />
                   <span className="relative">{sectionContent.ctaText}</span>
-                </a>
+                </ContextualCtaLink>
               )}
               {(() => {
                 const rawWhatsApp =

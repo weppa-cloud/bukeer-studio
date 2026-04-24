@@ -10,8 +10,9 @@ import { resolveAlt, type LocalizableAlt } from '@bukeer/website-contract';
 import { useWebsiteLocale } from '@/lib/hooks/use-website-locale';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 import { WhatsAppIntentButton } from '@/components/site/whatsapp-intent-button';
-import { resolveTemplateSet } from '@/lib/sections/template-set';
 import { editorialHtml } from '../themes/editorial-v1/primitives/rich-heading';
+import { ContextualCtaLink } from '@/components/site/contextual-cta-link';
+import { resolveTemplateSet } from '@/lib/sections/template-set';
 
 interface HeroSectionProps {
   section: WebsiteSection;
@@ -357,8 +358,12 @@ export function HeroSection({ section, website }: HeroSectionProps) {
             )}
             <div className="flex gap-3 shrink-0">
               {sectionContent.ctaText && sectionContent.ctaUrl && (
-                <a
+                <ContextualCtaLink
                   href={sectionContent.ctaUrl}
+                  phone={content.social?.whatsapp || content.contact?.phone || (content as any)?.account?.phone || null}
+                  productName={title}
+                  label={sectionContent.ctaText}
+                  analyticsLocation="hero_primary"
                   className="px-7 py-3.5 rounded-full font-semibold text-sm tracking-wide transition-all duration-300 hover:scale-[1.04] active:scale-[0.97] shadow-lg"
                   style={{
                     background: 'var(--accent, hsl(var(--primary)))',
@@ -367,17 +372,21 @@ export function HeroSection({ section, website }: HeroSectionProps) {
                   }}
                 >
                   {sectionContent.ctaText}
-                </a>
+                </ContextualCtaLink>
               )}
               {immersiveContent.secondaryCtaText &&
                 immersiveContent.secondaryCtaUrl &&
                 immersiveContent.secondaryCtaText !== sectionContent.ctaText && (
-                <a
+                <ContextualCtaLink
                   href={immersiveContent.secondaryCtaUrl}
+                  phone={content.social?.whatsapp || content.contact?.phone || (content as any)?.account?.phone || null}
+                  productName={title}
+                  label={immersiveContent.secondaryCtaText}
+                  analyticsLocation="hero_secondary"
                   className="px-7 py-3.5 rounded-full font-semibold text-sm tracking-wide border-2 border-white/30 text-white backdrop-blur-md hover:border-white/60 hover:bg-white/15 transition-all duration-300"
                 >
                   {immersiveContent.secondaryCtaText}
-                </a>
+                </ContextualCtaLink>
               )}
             </div>
           </motion.div>
@@ -543,15 +552,19 @@ export function HeroSection({ section, website }: HeroSectionProps) {
             className="mt-8 flex flex-wrap gap-4"
           >
             {sectionContent.ctaText && sectionContent.ctaUrl && (
-              <a
+              <ContextualCtaLink
                 href={sectionContent.ctaUrl}
+                phone={content.social?.whatsapp || content.contact?.phone || (content as any)?.account?.phone || null}
+                productName={title}
+                label={sectionContent.ctaText}
+                analyticsLocation="hero_primary"
                 className="inline-flex items-center gap-2 px-8 py-4 bg-white text-primary font-semibold rounded-lg hover:bg-white/90 transition-colors shadow-lg"
               >
                 {sectionContent.ctaText}
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                 </svg>
-              </a>
+              </ContextualCtaLink>
             )}
 
             {(() => {

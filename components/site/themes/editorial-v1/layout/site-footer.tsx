@@ -15,7 +15,7 @@
  *   - WhatsApp href from `content.social.whatsapp`
  *   - legal links from `content.account.legal`
  *
- * Newsletter form is a stub — submission wiring deferred to Wave 4+.
+ * Newsletter form persists signups through the site newsletter route.
  */
 
 import type { ReactElement } from 'react';
@@ -244,9 +244,14 @@ export function EditorialSiteFooter({
                 </p>
                 <FooterNewsletterForm
                   action={`${basePath}/api/newsletter`}
+                  subdomain={subdomain}
+                  locale={(website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale ?? content.locale ?? null}
                   emailLabel={editorialText('editorialFooterEmailLabel')}
                   emailPlaceholder={editorialText('editorialFooterEmailPlaceholder')}
                   submitLabel={editorialText('editorialFooterSubscribe')}
+                  submittingLabel="Enviando..."
+                  successLabel="Gracias. Ya guardamos tu correo."
+                  errorLabel="No pudimos guardar tu correo. Intenta de nuevo."
                 />
               </div>
             </>

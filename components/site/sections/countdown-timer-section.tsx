@@ -6,6 +6,7 @@ import { BlurFade } from '@/components/ui/blur-fade';
 import { Clock } from 'lucide-react';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 import { useWebsiteLocale } from '@/lib/hooks/use-website-locale';
+import { ContextualCtaLink } from '@/components/site/contextual-cta-link';
 
 interface CountdownTimerContent {
   title: string;
@@ -58,7 +59,7 @@ function TimeUnit({ value, label }: { value: number; label: string }) {
   );
 }
 
-export function CountdownTimerSection({ section }: CountdownTimerSectionProps) {
+export function CountdownTimerSection({ section, website }: CountdownTimerSectionProps) {
   const locale = useWebsiteLocale();
   const text = getPublicUiExtraTextGetter(locale);
   const content = (section.content as unknown as CountdownTimerContent | null) || {
@@ -133,13 +134,17 @@ export function CountdownTimerSection({ section }: CountdownTimerSectionProps) {
             )}
 
             {ctaUrl && !expired && (
-              <a
+              <ContextualCtaLink
                 href={ctaUrl}
+                phone={website.content?.social?.whatsapp || website.content?.contact?.phone || website.content?.account?.phone || null}
+                productName={title}
+                label={ctaText || 'Reservar mi cupo'}
+                analyticsLocation="countdown_cta"
                 className="rounded-xl bg-white px-8 py-3 text-sm font-bold transition-opacity hover:opacity-90"
                 style={{ color: 'var(--accent)' }}
               >
                 {ctaText || 'Reservar mi cupo'}
-              </a>
+              </ContextualCtaLink>
             )}
           </div>
         </BlurFade>
