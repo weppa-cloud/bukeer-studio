@@ -77,6 +77,17 @@ SUPABASE_SERVICE_ROLE_KEY=...
 REVALIDATE_SECRET=...
 ```
 
+Bootstrap from a local shell after creating a CircleCI personal API token:
+
+```bash
+export CIRCLE_TOKEN=...
+export CLOUDFLARE_API_TOKEN=...
+export CLOUDFLARE_ACCOUNT_ID=...
+./scripts/bootstrap-circleci.sh
+```
+
+The script creates or verifies the CircleCI project, loads `.env.local`/`.dev.vars`, maps `NEXT_PUBLIC_SUPABASE_URL` to `SUPABASE_URL`, sets `CI_QUALITY_PROVIDER=circleci` and `CI_DEPLOY_PROVIDER=circleci` by default, and writes project environment variables without printing secret values.
+
 Set `CI_DEPLOY_PROVIDER=github` to make CircleCI halt the deploy job and let GitHub Actions be the deployment provider instead.
 
 ## Optional Component Test Job
