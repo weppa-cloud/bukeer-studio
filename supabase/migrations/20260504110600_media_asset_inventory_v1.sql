@@ -511,7 +511,7 @@ begin
       execute $sql$
         insert into _media_asset_candidates
           (account_id, website_id, public_url, entity_type, entity_id, usage_context, source_table, source_field)
-        select coalesce(i.account_id, pk.account_id, a.account_id, h.account_id, t.account_id),
+        select i.account_id,
                null::uuid,
                btrim(i.url),
                'gallery_item',
@@ -520,34 +520,65 @@ begin
                'images',
                'url'
         from public.images i
-        left join public.package_kits pk on pk.id::text = i.entity_id::text
-        left join public.activities a on a.id::text = i.entity_id::text
-        left join public.hotels h on h.id::text = i.entity_id::text
-        left join public.transfers t on t.id::text = i.entity_id::text
-        where coalesce(i.account_id, pk.account_id, a.account_id, h.account_id, t.account_id) is not null
-          and ($1 is null or coalesce(i.account_id, pk.account_id, a.account_id, h.account_id, t.account_id) = $1)
+        where i.account_id is not null
+          and ($1 is null or i.account_id = $1)
           and coalesce(btrim(i.url), '') <> ''
       $sql$ using p_account_id;
-    else
+    end if;
+
+    if to_regclass('public.package_kits') is not null then
       execute $sql$
-      insert into _media_asset_candidates
-        (account_id, website_id, public_url, entity_type, entity_id, usage_context, source_table, source_field)
-      select coalesce(pk.account_id, a.account_id, h.account_id, t.account_id),
-             null::uuid,
-             btrim(i.url),
-             'gallery_item',
-             i.entity_id::text,
-             'gallery',
-             'images',
-             'url'
-      from public.images i
-      left join public.package_kits pk on pk.id::text = i.entity_id::text
-      left join public.activities a on a.id::text = i.entity_id::text
-      left join public.hotels h on h.id::text = i.entity_id::text
-      left join public.transfers t on t.id::text = i.entity_id::text
-      where coalesce(pk.account_id, a.account_id, h.account_id, t.account_id) is not null
-        and ($1 is null or coalesce(pk.account_id, a.account_id, h.account_id, t.account_id) = $1)
-        and coalesce(btrim(i.url), '') <> ''
+        insert into _media_asset_candidates
+          (account_id, website_id, public_url, entity_type, entity_id, usage_context, source_table, source_field)
+        select pk.account_id, null::uuid, btrim(i.url), 'gallery_item', i.entity_id::text, 'gallery',
+               'images', 'url'
+        from public.images i
+        join public.package_kits pk on pk.id::text = i.entity_id::text
+        where pk.account_id is not null
+          and ($1 is null or pk.account_id = $1)
+          and coalesce(btrim(i.url), '') <> ''
+      $sql$ using p_account_id;
+    end if;
+
+    if to_regclass('public.activities') is not null then
+      execute $sql$
+        insert into _media_asset_candidates
+          (account_id, website_id, public_url, entity_type, entity_id, usage_context, source_table, source_field)
+        select a.account_id, null::uuid, btrim(i.url), 'gallery_item', i.entity_id::text, 'gallery',
+               'images', 'url'
+        from public.images i
+        join public.activities a on a.id::text = i.entity_id::text
+        where a.account_id is not null
+          and ($1 is null or a.account_id = $1)
+          and coalesce(btrim(i.url), '') <> ''
+      $sql$ using p_account_id;
+    end if;
+
+    if to_regclass('public.hotels') is not null then
+      execute $sql$
+        insert into _media_asset_candidates
+          (account_id, website_id, public_url, entity_type, entity_id, usage_context, source_table, source_field)
+        select h.account_id, null::uuid, btrim(i.url), 'gallery_item', i.entity_id::text, 'gallery',
+               'images', 'url'
+        from public.images i
+        join public.hotels h on h.id::text = i.entity_id::text
+        where h.account_id is not null
+          and ($1 is null or h.account_id = $1)
+          and coalesce(btrim(i.url), '') <> ''
+      $sql$ using p_account_id;
+    end if;
+
+    if to_regclass('public.transfers') is not null then
+      execute $sql$
+        insert into _media_asset_candidates
+          (account_id, website_id, public_url, entity_type, entity_id, usage_context, source_table, source_field)
+        select t.account_id, null::uuid, btrim(i.url), 'gallery_item', i.entity_id::text, 'gallery',
+               'images', 'url'
+        from public.images i
+        join public.transfers t on t.id::text = i.entity_id::text
+        where t.account_id is not null
+          and ($1 is null or t.account_id = $1)
+          and coalesce(btrim(i.url), '') <> ''
       $sql$ using p_account_id;
     end if;
   end if;
