@@ -61,6 +61,11 @@ function buildWebsiteUrl(website: WebsiteData, basePath: string): string | undef
   return undefined;
 }
 
+function buildPageUrl(websiteUrl: string | undefined, product: ProductData): string | undefined {
+  if (!websiteUrl || !product.slug) return websiteUrl;
+  return `${websiteUrl}/paquetes/${product.slug}`;
+}
+
 export function EditorialPackageDetail({
   website,
   payload,
@@ -75,6 +80,7 @@ export function EditorialPackageDetail({
     ? resolvedPayload.faqs
     : PACKAGE_FAQS_DEFAULT;
   const websiteUrl = buildWebsiteUrl(website, resolvedPayload.basePath);
+  const pageUrl = buildPageUrl(websiteUrl, resolvedPayload.product);
 
   return (
     <div
@@ -86,6 +92,7 @@ export function EditorialPackageDetail({
         product={resolvedPayload.product}
         productType="package"
         websiteUrl={websiteUrl}
+        pageUrl={pageUrl}
         language={resolvedPayload.resolvedLocale}
         faqs={faqSource}
       />

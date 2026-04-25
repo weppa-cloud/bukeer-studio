@@ -35,7 +35,8 @@ describe('ProductSchema JSON-LD', () => {
       <ProductSchema
         product={product}
         productType="package"
-        websiteUrl="https://colombiatours.travel/paquetes/cartagena-tayrona-7-days"
+        websiteUrl="https://colombiatours.travel"
+        pageUrl="https://colombiatours.travel/paquetes/cartagena-tayrona-7-days"
         organizationName="ColombiaTours"
         language="es-CO"
       />
@@ -45,6 +46,7 @@ describe('ProductSchema JSON-LD', () => {
     const commercialProduct = schemas.find((schema) => schema['@type'] === 'Product') as Record<string, any>;
 
     expect(trip).toBeDefined();
+    expect(trip.url).toBe('https://colombiatours.travel/paquetes/cartagena-tayrona-7-days');
     expect(trip.offers).toMatchObject({
       '@type': 'Offer',
       price: 1800,
@@ -56,6 +58,7 @@ describe('ProductSchema JSON-LD', () => {
     expect(trip.itinerary.itemListElement).toHaveLength(2);
 
     expect(commercialProduct).toBeDefined();
+    expect(commercialProduct.url).toBe('https://colombiatours.travel/paquetes/cartagena-tayrona-7-days');
     expect(commercialProduct.additionalType).toBe('https://schema.org/TouristTrip');
     expect(commercialProduct.offers.hasMerchantReturnPolicy).toMatchObject({
       '@type': 'MerchantReturnPolicy',
@@ -66,6 +69,10 @@ describe('ProductSchema JSON-LD', () => {
       expect.arrayContaining([expect.objectContaining({ '@type': 'Place', name: 'Cartagena' })])
     );
     expect(commercialProduct.aggregateRating).toBeUndefined();
+
+    const breadcrumb = schemas.find((schema) => schema['@type'] === 'BreadcrumbList') as Record<string, any>;
+    expect(breadcrumb.itemListElement[0].item).toBe('https://colombiatours.travel');
+    expect(breadcrumb.itemListElement.at(-2).item).toBe('https://colombiatours.travel/paquetes');
   });
 
   it('omits Offer when price exists without a verifiable currency', () => {

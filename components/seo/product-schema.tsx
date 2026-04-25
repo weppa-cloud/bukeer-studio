@@ -6,6 +6,7 @@ interface ProductSchemaProps {
   product: ProductData;
   productType: string;
   websiteUrl?: string;
+  pageUrl?: string;
   organizationName?: string | null;
   language?: string | null;
   faqs?: ProductFAQ[] | null;
@@ -15,13 +16,14 @@ export function ProductSchema({
   product,
   productType,
   websiteUrl,
+  pageUrl,
   organizationName,
   language,
   faqs,
 }: ProductSchemaProps) {
   if (!product?.name) return null;
 
-  const schemas = generateSchemas(product, productType, websiteUrl, organizationName, language, faqs);
+  const schemas = generateSchemas(product, productType, websiteUrl, pageUrl, organizationName, language, faqs);
   if (schemas.length === 0) return null;
 
   return (
@@ -41,13 +43,15 @@ function generateSchemas(
   product: ProductData,
   productType: string,
   websiteUrl?: string,
+  pageUrl?: string,
   organizationName?: string | null,
   language?: string | null,
   faqs?: ProductFAQ[] | null,
 ): Record<string, unknown>[] {
   const inLanguage = normalizeLanguage(language);
-  const productSchema = buildProductSchema(product, productType, websiteUrl, organizationName, inLanguage);
-  const commercialSchema = buildCommercialProductSchema(product, productType, websiteUrl, organizationName, inLanguage);
+  const entityUrl = pageUrl || websiteUrl;
+  const productSchema = buildProductSchema(product, productType, entityUrl, websiteUrl, organizationName, inLanguage);
+  const commercialSchema = buildCommercialProductSchema(product, productType, entityUrl, websiteUrl, organizationName, inLanguage);
   const breadcrumb = buildBreadcrumbSchema(product, productType, websiteUrl, inLanguage);
   const faqSchema = buildFaqSchema(faqs, inLanguage);
   const videoSchema = buildVideoObjectSchema(product);
@@ -64,21 +68,22 @@ function generateSchemas(
 function buildProductSchema(
   product: ProductData,
   productType: string,
+  entityUrl: string | undefined,
   websiteUrl: string | undefined,
   organizationName: string | null | undefined,
   inLanguage: string,
 ): Record<string, unknown> | null {
   switch (productType) {
     case 'hotel':
-      return clean(buildHotelSchema(product, websiteUrl, organizationName, inLanguage));
+      return clean(buildHotelSchema(product, entityUrl, organizationName, inLanguage));
     case 'activity':
-      return clean(buildActivitySchema(product, websiteUrl, organizationName, inLanguage));
+      return clean(buildActivitySchema(product, entityUrl, websiteUrl, organizationName, inLanguage));
     case 'transfer':
-      return clean(buildTransferSchema(product, websiteUrl, inLanguage));
+      return clean(buildTransferSchema(product, entityUrl, inLanguage));
     case 'destination':
-      return clean(buildDestinationSchema(product, websiteUrl, inLanguage));
+      return clean(buildDestinationSchema(product, entityUrl, inLanguage));
     case 'package':
-      return clean(buildPackageSchema(product, websiteUrl, organizationName, inLanguage));
+      return clean(buildPackageSchema(product, entityUrl, websiteUrl, organizationName, inLanguage));
     default:
       return null;
   }
@@ -123,11 +128,12 @@ function buildHotelSchema(
 
 function buildActivitySchema(
   product: ProductData,
+  entityUrl: string | undefined,
   websiteUrl: string | undefined,
   organizationName: string | null | undefined,
   inLanguage: string
 ) {
-  const offer = buildOffer(product, websiteUrl, organizationName);
+  const offer = buildOffer(product, entityUrl, organizationName);
   const aggregateRating = buildAggregateRating(product);
   const place = buildPlace(product);
 
@@ -137,7 +143,7 @@ function buildActivitySchema(
     name: product.name,
     description: product.description,
     image: getPrimaryImage(product),
-    url: websiteUrl,
+    url: entityUrl,
     inLanguage,
     address: buildAddress(product),
     location: place,
@@ -194,6 +200,7 @@ function buildDestinationSchema(product: ProductData, websiteUrl: string | undef
 
 function buildPackageSchema(
   product: ProductData,
+  entityUrl: string | undefined,
   websiteUrl: string | undefined,
   organizationName: string | null | undefined,
   inLanguage: string
@@ -209,12 +216,12 @@ function buildPackageSchema(
     name: product.name,
     description: product.description,
     image: getPrimaryImage(product),
-    url: websiteUrl,
+    url: entityUrl,
     inLanguage,
     touristType: 'Leisure',
     provider: buildTravelAgencyRef(websiteUrl, organizationName),
     organizer: buildTravelAgencyRef(websiteUrl, organizationName),
-    offers: buildOffer(product, websiteUrl, organizationName),
+    offers: buildOffer(product, entityUrl, organizationName),
     aggregateRating,
     itinerary: itinerary.length
       ? {
@@ -245,6 +252,7 @@ function buildPackageSchema(
 function buildCommercialProductSchema(
   product: ProductData,
   productType: string,
+  entityUrl: string | undefined,
   websiteUrl: string | undefined,
   organizationName: string | null | undefined,
   inLanguage: string,
@@ -253,7 +261,7 @@ function buildCommercialProductSchema(
     return null;
   }
 
-  const offer = buildOffer(product, websiteUrl, organizationName);
+  const offer = buildOffer(product, entityUrl, organizationName);
   if (!offer) {
     return null;
   }
@@ -270,7 +278,7 @@ function buildCommercialProductSchema(
     name: product.name,
     description: product.description,
     image: allImages.length > 0 ? allImages : undefined,
-    url: websiteUrl,
+    url: entityUrl,
     inLanguage,
     category,
     brand: {
