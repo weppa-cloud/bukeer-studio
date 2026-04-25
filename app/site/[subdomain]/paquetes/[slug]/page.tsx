@@ -13,6 +13,7 @@ import {
   getProductSlugRedirect,
 } from '@/lib/supabase/get-pages';
 import { getReviewsForContext, type ReviewContext } from '@/lib/supabase/get-reviews';
+import { getPlanners } from '@/lib/supabase/get-planners';
 import { getWebsiteBySubdomain } from '@/lib/supabase/get-website';
 import { resolveOgImage } from '@/lib/seo/og-helpers';
 import {
@@ -217,6 +218,13 @@ export default async function PackageSlugPage({ params }: PackagePageProps) {
     ? await getReviewsForContext(website.account_id, reviewContext, 3)
     : [];
   const { items: similarPackages } = await getCategoryProducts(subdomain, 'packages', { limit: 8, offset: 0 });
+  const plannerId = typeof productPage.product.planner_id === 'string'
+    ? productPage.product.planner_id
+    : null;
+  const assignedPlanner = plannerId && website.account_id
+    ? (await getPlanners(String(website.account_id), { locale: resolvedLocale }))
+        .find((planner) => planner.id === plannerId) ?? null
+    : null;
   const defaultLocale = localeContext.defaultLocale ?? 'es-CO';
 
   // Non-default locale + no EN overlay → redirect to default locale URL.
@@ -257,6 +265,7 @@ export default async function PackageSlugPage({ params }: PackagePageProps) {
     resolvedLocale: localeContext.resolvedLocale,
     googleReviews: packageReviews,
     similarProducts: similarPackages,
+    planner: assignedPlanner,
     faqs:
       Array.isArray(productPage.page?.custom_faq) && productPage.page.custom_faq.length > 0
         ? productPage.page.custom_faq

@@ -8,6 +8,7 @@
 
 import type { ReactNode } from 'react';
 import type { WebsiteData } from '@/lib/supabase/get-website';
+import type { PlannerData } from '@/lib/supabase/get-planners';
 import type { ProductData, ProductFAQ } from '@bukeer/website-contract';
 import { ProductSchema } from '@/components/seo/product-schema';
 import { OrganizationSchema } from '@/components/seo/organization-schema';
@@ -32,6 +33,7 @@ export interface EditorialPackageDetailPayload {
   resolvedLocale: string;
   googleReviews: GoogleReviewProp[];
   similarProducts: ProductData[];
+  planner?: PlannerData | null;
   faqs?: ProductFAQ[] | null;
   package_parity_snapshot?: {
     generated_at: string;
@@ -107,6 +109,7 @@ export function EditorialPackageDetail({
         resolvedLocale={resolvedPayload.resolvedLocale || 'es-CO'}
         googleReviews={Array.isArray(resolvedPayload.googleReviews) ? resolvedPayload.googleReviews : []}
         similarProducts={Array.isArray(resolvedPayload.similarProducts) ? resolvedPayload.similarProducts : []}
+        planner={resolvedPayload.planner ?? null}
         faqs={faqSource}
       />
     </div>

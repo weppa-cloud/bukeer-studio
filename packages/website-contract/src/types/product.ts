@@ -92,6 +92,7 @@ export interface ProductData {
 
   // Package-specific flags
   is_featured?: boolean;
+  planner_id?: string | null;
 
   // Activity/Transfer shared
   inclusions?: string | string[] | Record<string, unknown>[];

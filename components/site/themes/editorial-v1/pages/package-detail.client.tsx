@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { supabaseImageUrl } from '@/lib/images/supabase-transform';
 import type { ActivityOption, ProductData, ProductFAQ, ScheduleEventType } from '@bukeer/website-contract';
 import type { WebsiteData } from '@/lib/supabase/get-website';
+import type { PlannerData } from '@/lib/supabase/get-planners';
 import { sanitizeProductCopy } from '@/lib/products/normalize-product';
 import { formatPriceOrConsult } from '@/lib/products/format-price';
 import { convertCurrencyAmount } from '@/lib/site/currency';
@@ -44,6 +45,7 @@ interface EditorialPackageDetailClientProps {
   resolvedLocale: string;
   googleReviews: GoogleReviewProp[];
   similarProducts: ProductData[];
+  planner?: PlannerData | null;
   faqs: ProductFAQ[];
 }
 
@@ -116,6 +118,15 @@ function toSlug(value: string): string {
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
+}
+
+function getInitials(value: string): string {
+  return value
+    .split(/\s+/)
+    .map((part) => part[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
 }
 
 function normalizeTextList(value: unknown): string[] {
@@ -631,6 +642,7 @@ export function EditorialPackageDetailClient({
   resolvedLocale: _resolvedLocale,
   googleReviews,
   similarProducts,
+  planner,
   faqs,
 }: EditorialPackageDetailClientProps) {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
@@ -941,6 +953,21 @@ export function EditorialPackageDetailClient({
 
     return [];
   }, [product.itinerary_items, routeStopsWithNights, product.duration_days, timeline]);
+
+  const plannerName = planner?.fullName?.trim() || null;
+  const plannerRole = planner
+    ? planner.specialty || planner.position || planner.role || 'Travel planner'
+    : null;
+  const plannerMeta = planner
+    ? [
+        planner.locationName,
+        ...(planner.regions ?? []).slice(0, 2),
+        ...(planner.languages ?? []).slice(0, 2),
+      ]
+        .filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+        .join(' · ')
+    : null;
+  const plannerProfileHref = planner?.slug ? `${basePath}/planners/${planner.slug}` : `${basePath}/planners`;
 
   return (
     <>
@@ -1373,35 +1400,57 @@ export function EditorialPackageDetailClient({
                 </div>
               </section>
 
-              <section data-testid="detail-planner-assigned">
-                <h2 className="text-2xl font-bold">Tu travel planner para este <em>paquete</em></h2>
-                <div className="planner-detail mt-5">
-                  <div className="av" />
-                  <div>
-                    <b>{website.content?.account?.name || website.content?.siteName || 'Planner local'}</b>
-                    <small>Travel planner · Soporte local · ES · EN</small>
-                    <p>
-                      Ajustamos fechas, ritmo y alojamientos según tu estilo de viaje. Te acompañamos antes y durante la experiencia.
-                    </p>
+              {plannerName ? (
+                <section data-testid="detail-planner-assigned">
+                  <h2 className="text-2xl font-bold">Tu travel planner para este <em>paquete</em></h2>
+                  <div className="planner-detail mt-5">
+                    <div
+                      className="av"
+                      style={{
+                        position: 'relative',
+                        overflow: 'hidden',
+                        display: 'grid',
+                        placeItems: 'center',
+                      }}
+                    >
+                      {planner?.photo ? (
+                        <Image
+                          src={planner.photo}
+                          alt={plannerName}
+                          fill
+                          sizes="72px"
+                          style={{ objectFit: 'cover' }}
+                        />
+                      ) : (
+                        <span aria-hidden="true">{getInitials(plannerName)}</span>
+                      )}
+                    </div>
+                    <div>
+                      <b>{plannerName}</b>
+                      <small>{[plannerRole, plannerMeta].filter(Boolean).join(' · ')}</small>
+                      <p>
+                        {planner?.tagline || planner?.quote || planner?.bio || 'Ajusta fechas, ritmo y alojamientos según tu estilo de viaje. Te acompaña antes y durante la experiencia.'}
+                      </p>
+                    </div>
+                    <div className="planner-actions">
+                      {whatsappUrl ? (
+                        <WaflowCTAButton
+                          variant="D"
+                          pkg={waflowPackageContext}
+                          prefill={waflowPrefill}
+                          fallbackHref={whatsappUrl || undefined}
+                          className="btn btn-accent btn-sm"
+                        >
+                          <Icons.whatsapp size={14} /> Hablar por WhatsApp
+                        </WaflowCTAButton>
+                      ) : null}
+                      <Link href={plannerProfileHref} className="btn btn-outline btn-sm">
+                        Ver perfil
+                      </Link>
+                    </div>
                   </div>
-                  <div className="planner-actions">
-                    {whatsappUrl ? (
-                      <WaflowCTAButton
-                        variant="D"
-                        pkg={waflowPackageContext}
-                        prefill={waflowPrefill}
-                        fallbackHref={whatsappUrl || undefined}
-                        className="btn btn-accent btn-sm"
-                      >
-                        <Icons.whatsapp size={14} /> Hablar por WhatsApp
-                      </WaflowCTAButton>
-                    ) : null}
-                    <Link href={`${basePath}/planners`} className="btn btn-outline btn-sm">
-                      Ver perfil
-                    </Link>
-                  </div>
-                </div>
-              </section>
+                </section>
+              ) : null}
 
               <section data-testid="detail-trust">
                 <h2 className="text-2xl font-bold">Reserva con confianza</h2>

@@ -683,7 +683,7 @@ export async function getProductPage(
       // paths. Overlay `package_kits` values when resolvable by itinerary link.
       try {
         const packageReader = supabaseService ?? supabase;
-        const kitFields = 'id, name, description, program_highlights, program_inclusions, program_exclusions, program_gallery, cover_image_url, video_url, video_caption, translations';
+        const kitFields = 'id, name, description, planner_id, program_highlights, program_inclusions, program_exclusions, program_gallery, cover_image_url, video_url, video_caption, translations';
         const byItinerary = await packageReader
           .from('package_kits')
           .select(kitFields)
@@ -722,6 +722,11 @@ export async function getProductPage(
         if (kit) {
           if (typeof kit.description === 'string') {
             product.description = kit.description;
+          }
+
+          const plannerId = asOptionalString((kit as Record<string, unknown>).planner_id);
+          if (plannerId) {
+            product.planner_id = plannerId;
           }
 
           const highlights = asStringArray(kit.program_highlights);

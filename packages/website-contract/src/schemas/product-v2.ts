@@ -126,6 +126,7 @@ export const ProductDataSchema = z.object({
   amenities: z.array(z.string()).optional(),
   star_rating: NumericSchema.optional(),
   is_featured: z.boolean().optional(),
+  planner_id: z.string().uuid().or(z.string()).nullable().optional(),
 
   inclusions: z.union([z.string(), RichTextListSchema]).optional(),
   exclusions: z.union([z.string(), RichTextListSchema]).optional(),
