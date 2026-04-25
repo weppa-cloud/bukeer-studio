@@ -13,6 +13,8 @@ import { ContextualCtaLink } from '@/components/site/contextual-cta-link';
 import { WaflowCTAButton } from '@/components/site/themes/editorial-v1/waflow/cta-button';
 import { WaflowLandingInterceptor } from '@/components/site/themes/editorial-v1/waflow/landing-interceptor';
 import type { WaflowPrefill } from '@/components/site/themes/editorial-v1/waflow/types';
+import { MexicoTravelFunnelBlock } from '@/components/site/growth/mexico-travel-funnel-block';
+import { getBasePath } from '@/lib/utils/base-path';
 
 const HERO_SECTION_TYPES = SECTION_TYPES.filter((t) => t.startsWith('hero'));
 
@@ -121,6 +123,10 @@ export function StaticPage({ website, page, dynamicDestinations = [] }: StaticPa
 
   const templateSet = resolveTemplateSet(website);
   const isEditorial = templateSet === 'editorial-v1';
+  const basePath = getBasePath(
+    (website as unknown as Record<string, unknown>).subdomain as string,
+    Boolean((website as unknown as Record<string, unknown>).isCustomDomain),
+  );
   const landingTitle = heroConfig.title || page.title;
   const landingWaflowPackage = {
     slug: page.slug || 'landing',
@@ -264,6 +270,12 @@ export function StaticPage({ website, page, dynamicDestinations = [] }: StaticPa
           </div>
         );
       })}
+
+      <MexicoTravelFunnelBlock
+        basePath={basePath}
+        slug={page.slug}
+        fallbackWhatsappHref={heroWhatsappUrl}
+      />
 
       {/* CTA Section */}
       {ctaConfig.title && (

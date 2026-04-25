@@ -34,6 +34,7 @@ import { WaflowCTAButton } from '@/components/site/themes/editorial-v1/waflow/ct
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 import { formatPublicDate } from '@/lib/site/public-ui-messages';
 import { getBasePath } from '@/lib/utils/base-path';
+import { MexicoTravelFunnelBlock } from '@/components/site/growth/mexico-travel-funnel-block';
 
 export interface EditorialBlogDetailPageProps {
   website: WebsiteData;
@@ -258,6 +259,12 @@ export function EditorialBlogDetailPage({
               content={post.content}
               fallbackAlt={post.title}
               className="blog-prose"
+            />
+
+            <MexicoTravelFunnelBlock
+              basePath={basePath}
+              slug={post.slug}
+              fallbackWhatsappHref={waHref}
             />
 
             {/* Inline CTA */}
