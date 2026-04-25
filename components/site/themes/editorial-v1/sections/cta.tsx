@@ -135,7 +135,7 @@ export function CtaSection({
 }: EditorialCtaSectionProps): ReactElement {
   const editorialText = getEditorialTextGetter(website);
   const content = (section.content || {}) as CtaContent;
-  const basePath = getBasePath(website.subdomain, false);
+  const basePath = getBasePath(website.subdomain, Boolean((website as { isCustomDomain?: boolean }).isCustomDomain));
 
   const eyebrow = localizeEditorialText(website, content.eyebrow?.trim() || '');
   const titleHtml = editorialHtml(

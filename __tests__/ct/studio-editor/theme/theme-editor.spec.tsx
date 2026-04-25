@@ -2,6 +2,11 @@ import { test, expect } from '@playwright/experimental-ct-react';
 import { ThemeEditor } from '@/components/admin/theme-editor';
 import type { WebsiteData } from '@bukeer/website-contract';
 
+function getSavedMood(saved: Record<string, unknown> | null): string | null {
+  const profile = (saved?.theme as { profile?: { brand?: { mood?: string }; brandMood?: string } } | null)?.profile;
+  return profile?.brand?.mood ?? profile?.brandMood ?? null;
+}
+
 const BASE_WEBSITE: WebsiteData = {
   id: 'ct-theme',
   subdomain: 'ct-theme',
@@ -47,9 +52,7 @@ test.describe('<ThemeEditor>', () => {
       />,
     );
     await c.getByRole('button', { name: /Tropical/ }).first().click();
-    await expect.poll(() => (saved?.theme as { profile?: { brandMood?: string } } | null)?.profile?.brandMood ?? null, {
-      timeout: 3000,
-    }).toBe('tropical');
+    await expect.poll(() => getSavedMood(saved), { timeout: 3000 }).toBe('tropical');
   });
 
   test('visual — luxury preset', async ({ mount }) => {

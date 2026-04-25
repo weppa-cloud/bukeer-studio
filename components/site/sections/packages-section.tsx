@@ -13,6 +13,7 @@ import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 import { formatPriceOrConsult } from '@/lib/products/format-price';
 import { convertCurrencyAmount, type CurrencyConfig } from '@/lib/site/currency';
 import { usePreferredCurrency } from '@/lib/site/use-preferred-currency';
+import { supabaseImageUrl } from '@/lib/images/supabase-transform';
 
 interface PackagesSectionProps {
   section: WebsiteSection;
@@ -319,9 +320,10 @@ export function PackageCard({
         <div className="relative aspect-[16/9] overflow-hidden">
           {pkg.image ? (
             <Image
-              src={pkg.image}
+              src={supabaseImageUrl(pkg.image, { width: index < 3 ? 720 : 520, quality: 74 })}
               alt={buildEntityAlt('package', pkg.name, locale)}
               fill
+              sizes="(max-width: 768px) 88vw, (max-width: 1024px) 50vw, 33vw"
               draggable={false}
               className="object-cover transition-transform duration-700 group-hover:scale-105"
             />

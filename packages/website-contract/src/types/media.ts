@@ -19,7 +19,20 @@ export interface MediaAsset {
   alt: MediaAssetAlt;
   title: MediaAssetAlt;
   caption: MediaAssetAlt;
-  entityType: 'blog_post' | 'page' | 'package' | 'activity' | 'brand' | 'review' | 'gallery_item' | null;
+  entityType:
+    | 'blog_post'
+    | 'page'
+    | 'package'
+    | 'activity'
+    | 'hotel'
+    | 'transfer'
+    | 'destination'
+    | 'website'
+    | 'section'
+    | 'brand'
+    | 'review'
+    | 'gallery_item'
+    | null;
   entityId: string | null;
   usageContext: 'hero' | 'gallery' | 'featured' | 'og' | 'avatar' | 'body' | null;
   aiGenerated: boolean;

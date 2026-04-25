@@ -20,25 +20,14 @@
  *   themes/references/claude design 1/project/maps.css  (.listing-map-*)
  */
 
-import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
-import dynamic from 'next/dynamic';
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from 'react';
 
-import type { ColombiaMapPin } from '@/components/site/themes/editorial-v1/maps/colombia-maplibre.client';
+import type {
+  ColombiaMapLibreProps,
+  ColombiaMapPin,
+} from '@/components/site/themes/editorial-v1/maps/colombia-maplibre.client';
 import type { EditorialRegion } from '@/components/site/themes/editorial-v1/maps/colombia-map-shared';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
-
-const ColombiaMapLibre = dynamic(
-  () =>
-    import('@/components/site/themes/editorial-v1/maps/colombia-maplibre.client').then(
-      (m) => ({ default: m.ColombiaMapLibre }),
-    ),
-  {
-    ssr: false,
-    loading: () => (
-      <div style={{ width: '100%', height: '100%', minHeight: 480, background: '#F5F1E8', borderRadius: 16 }} />
-    ),
-  },
-);
 
 export interface ListingMapItem {
   id: string;
@@ -97,8 +86,47 @@ export function ListingMap<T extends ListingMapItem>({
   const editorialText = getPublicUiExtraTextGetter(locale);
   const resolvedAriaLabel = ariaLabel ?? editorialText('editorialListingMapAriaFallback');
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [mapVisible, setMapVisible] = useState(false);
+  const [MapComponent, setMapComponent] = useState<ComponentType<ColombiaMapLibreProps> | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
+  const mapStageRef = useRef<HTMLDivElement | null>(null);
   const cardRefs = useRef<Map<string, HTMLDivElement | null>>(new Map());
+
+  useEffect(() => {
+    const stage = mapStageRef.current;
+    if (!stage || mapVisible) return;
+
+    const reveal = () => setMapVisible(true);
+    if (!('IntersectionObserver' in window)) {
+      const id = setTimeout(reveal, 3500);
+      return () => clearTimeout(id);
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          reveal();
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '240px 0px' },
+    );
+    observer.observe(stage);
+    return () => observer.disconnect();
+  }, [mapVisible]);
+
+  useEffect(() => {
+    if (!mapVisible || MapComponent) return;
+    let cancelled = false;
+    import('@/components/site/themes/editorial-v1/maps/colombia-maplibre.client').then((mod) => {
+      if (!cancelled) {
+        setMapComponent(() => mod.ColombiaMapLibre);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [mapVisible, MapComponent]);
 
   const pinnableItems = useMemo(
     () => items.filter((item) => isPinnable(item)),
@@ -169,15 +197,19 @@ export function ListingMap<T extends ListingMapItem>({
           );
         })}
       </div>
-      <div className="listing-map-stage">
-        <ColombiaMapLibre
-          pins={pins}
-          activePinId={activeId}
-          onPinHover={handlePinHover}
-          onPinClick={onItemClick ? handlePinClick : undefined}
-          height={mapHeight}
-          ariaLabel={resolvedAriaLabel}
-        />
+      <div ref={mapStageRef} className="listing-map-stage">
+        {MapComponent ? (
+          <MapComponent
+            pins={pins}
+            activePinId={activeId}
+            onPinHover={handlePinHover}
+            onPinClick={onItemClick ? handlePinClick : undefined}
+            height={mapHeight}
+            ariaLabel={resolvedAriaLabel}
+          />
+        ) : (
+          <div style={{ width: '100%', height: '100%', minHeight: 480, background: '#F5F1E8', borderRadius: 16 }} />
+        )}
       </div>
     </div>
   );

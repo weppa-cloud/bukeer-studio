@@ -3,6 +3,7 @@
 import { type ReactNode, useMemo, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { supabaseImageUrl } from '@/lib/images/supabase-transform';
 import type { ActivityOption, ProductData, ProductFAQ, ScheduleEventType } from '@bukeer/website-contract';
 import type { WebsiteData } from '@/lib/supabase/get-website';
 import { sanitizeProductCopy } from '@/lib/products/normalize-product';
@@ -947,7 +948,14 @@ export function EditorialPackageDetailClient({
         <section data-testid="detail-hero" className="pkg-detail-hero relative overflow-hidden rounded-b-[28px]">
           {heroImage ? (
             <div className="relative h-[520px] w-full">
-              <Image src={heroImage} alt={displayName} fill sizes="100vw" className="object-cover" priority />
+              <Image
+                src={supabaseImageUrl(heroImage, { width: 1200, quality: 74 })}
+                alt={displayName}
+                fill
+                sizes="100vw"
+                className="object-cover"
+                priority
+              />
               <div className="pkg-detail-hero-wash absolute inset-0" />
             </div>
           ) : (

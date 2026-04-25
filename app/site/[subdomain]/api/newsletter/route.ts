@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
@@ -48,6 +47,14 @@ async function parseBody(request: NextRequest): Promise<unknown> {
   };
 }
 
+async function sha256Hex(input: string): Promise<string> {
+  const bytes = new TextEncoder().encode(input);
+  const digest = await crypto.subtle.digest('SHA-256', bytes);
+  return Array.from(new Uint8Array(digest), (byte) =>
+    byte.toString(16).padStart(2, '0'),
+  ).join('');
+}
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ subdomain: string }> },
@@ -62,9 +69,7 @@ export async function POST(
     const body = parsed.data;
     const subdomain = body.subdomain || routeParams.subdomain;
     const email = body.email.toLowerCase();
-    const emailHash = createHash('sha256')
-      .update(`${subdomain}:${body.placement}:${email}`)
-      .digest('hex');
+    const emailHash = await sha256Hex(`${subdomain}:${body.placement}:${email}`);
     const ip = extractClientIp(request.headers);
 
     const rate = await checkRateLimit(

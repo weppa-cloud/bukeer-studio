@@ -45,7 +45,20 @@ async function convertToWebP(
 
 const UploadMetadataSchema = z.object({
   websiteId: z.string().uuid(),
-  entityType: z.enum(['blog_post', 'package', 'activity', 'page', 'brand', 'review', 'gallery_item']).default('blog_post'),
+  entityType: z.enum([
+    'blog_post',
+    'package',
+    'activity',
+    'hotel',
+    'transfer',
+    'destination',
+    'website',
+    'section',
+    'page',
+    'brand',
+    'review',
+    'gallery_item',
+  ]).default('blog_post'),
   entityId: z.string().uuid().optional(),
   entitySlug: z.string().min(1).max(120).optional(),
   usageContext: z.enum(['featured', 'body', 'hero', 'gallery', 'avatar', 'og']).default('body'),

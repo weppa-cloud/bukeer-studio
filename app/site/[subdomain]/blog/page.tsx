@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import { headers } from 'next/headers';
 import Link from 'next/link';
 import Image from 'next/image';
 import { getWebsiteBySubdomain, getBlogPosts, getBlogCategories } from '@/lib/supabase/get-website';
@@ -12,6 +13,7 @@ import {
 import { localeToOgLocale } from '@/lib/seo/locale-routing';
 import { formatPublicDate, getPublicUiMessages } from '@/lib/site/public-ui-messages';
 import { TemplateSlot } from '@/components/site/themes/editorial-v1/template-slot';
+import { getBasePath } from '@/lib/utils/base-path';
 
 interface BlogPageProps {
   params: Promise<{ subdomain: string }>;
@@ -107,6 +109,15 @@ export default async function BlogPage({ params, searchParams }: BlogPageProps) 
 
   // Generate JSON-LD schemas (CollectionPage, Breadcrumb, Organization)
   const schemas = generateBlogListingSchemas(filteredPosts, website, baseUrl, localeContext.resolvedLocale);
+  const headerList = await headers();
+  const isCustomDomain = Boolean(headerList.get('x-custom-domain'));
+  const basePath = getBasePath(subdomain, isCustomDomain);
+  const websiteForRender = {
+    ...website,
+    resolvedLocale: localeContext.resolvedLocale,
+    defaultLocale: localeContext.defaultLocale,
+    isCustomDomain,
+  };
 
   return (
     <>
@@ -115,7 +126,7 @@ export default async function BlogPage({ params, searchParams }: BlogPageProps) 
 
       <TemplateSlot
         name="blog-list"
-        website={website}
+        website={websiteForRender}
         payload={{
           subdomain,
           locale: localeContext.resolvedLocale,
@@ -142,7 +153,7 @@ export default async function BlogPage({ params, searchParams }: BlogPageProps) 
         {categories.length > 0 && (
           <div className="flex flex-wrap justify-center gap-2 mb-12">
             <Link
-              href={`/site/${subdomain}/blog`}
+              href={`${basePath}/blog`}
               className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                 !category
                   ? 'bg-primary text-primary-foreground'
@@ -154,7 +165,7 @@ export default async function BlogPage({ params, searchParams }: BlogPageProps) 
             {categories.map((cat) => (
               <Link
                 key={cat.id}
-                href={`/site/${subdomain}/blog?category=${cat.slug}`}
+                href={`${basePath}/blog?category=${cat.slug}`}
                 className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                   category === cat.slug
                     ? 'bg-primary text-primary-foreground'
@@ -182,7 +193,7 @@ export default async function BlogPage({ params, searchParams }: BlogPageProps) 
                 className="group rounded-lg overflow-hidden bg-card border shadow-sm hover:shadow-lg transition-shadow"
               >
                 {/* Featured Image */}
-                <Link href={`/site/${subdomain}/blog/${post.slug}`}>
+                <Link href={`${basePath}/blog/${post.slug}`}>
                   <div className="relative aspect-[16/9] overflow-hidden">
                     {post.featured_image ? (
                       <Image
@@ -218,7 +229,7 @@ export default async function BlogPage({ params, searchParams }: BlogPageProps) 
                   {/* Category */}
                   {post.category && (
                     <Link
-                      href={`/site/${subdomain}/blog?category=${post.category.slug}`}
+                      href={`${basePath}/blog?category=${post.category.slug}`}
                       className="text-xs font-medium text-primary uppercase tracking-wider"
                     >
                       {post.category.name}
@@ -228,7 +239,7 @@ export default async function BlogPage({ params, searchParams }: BlogPageProps) 
                   {/* Title */}
                   <h2 className="mt-2 text-xl font-semibold line-clamp-2">
                     <Link
-                      href={`/site/${subdomain}/blog/${post.slug}`}
+                      href={`${basePath}/blog/${post.slug}`}
                       className="hover:text-primary transition-colors"
                     >
                       {post.title}
@@ -266,7 +277,7 @@ export default async function BlogPage({ params, searchParams }: BlogPageProps) 
           <div className="flex justify-center gap-2 mt-12">
             {pageNum > 1 && (
               <Link
-                href={`/site/${subdomain}/blog?page=${pageNum - 1}${category ? `&category=${category}` : ''}`}
+                href={`${basePath}/blog?page=${pageNum - 1}${category ? `&category=${category}` : ''}`}
                 className="px-4 py-2 rounded-lg bg-muted hover:bg-muted/80 transition-colors"
               >
                 {messages.blogListing.previous}
@@ -279,7 +290,7 @@ export default async function BlogPage({ params, searchParams }: BlogPageProps) 
 
             {pageNum < totalPages && (
               <Link
-                href={`/site/${subdomain}/blog?page=${pageNum + 1}${category ? `&category=${category}` : ''}`}
+                href={`${basePath}/blog?page=${pageNum + 1}${category ? `&category=${category}` : ''}`}
                 className="px-4 py-2 rounded-lg bg-muted hover:bg-muted/80 transition-colors"
               >
                 {messages.blogListing.next}

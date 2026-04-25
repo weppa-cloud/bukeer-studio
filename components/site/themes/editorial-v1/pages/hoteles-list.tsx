@@ -82,7 +82,7 @@ export function EditorialHotelesListPage({
   const resolvedLocale =
     (website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale ?? website.default_locale ?? website.content?.locale ?? 'es-CO';
   const editorialText = getPublicUiExtraTextGetter(resolvedLocale);
-  const basePath = getBasePath(website.subdomain, false);
+  const basePath = getBasePath(website.subdomain, Boolean((website as { isCustomDomain?: boolean }).isCustomDomain));
   const siteTitleTrail = website.content?.siteName || website.subdomain;
 
   const items = hotels.map(toListItem);

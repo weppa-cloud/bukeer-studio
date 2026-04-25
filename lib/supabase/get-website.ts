@@ -52,6 +52,10 @@ interface WebsiteLocaleColumns {
   supported_locales: string[] | null;
 }
 
+interface WebsiteAnalyticsColumns {
+  analytics: AnalyticsConfig | null;
+}
+
 function normalizeLocaleList(locales: unknown): string[] | undefined {
   if (!Array.isArray(locales)) return undefined;
   const normalized = locales
@@ -99,6 +103,36 @@ async function hydrateWebsiteLocaleColumns(
     ...website,
     default_locale: defaultLocale,
     supported_locales: supportedLocales,
+  };
+}
+
+async function hydrateWebsiteAnalyticsColumns(
+  website: WebsiteData,
+  subdomain: string
+): Promise<WebsiteData> {
+  if (website.analytics && Object.keys(website.analytics).length > 0) {
+    return website;
+  }
+
+  let query = supabase
+    .from('websites')
+    .select('analytics')
+    .limit(1);
+
+  if (typeof website.id === 'string' && website.id.trim().length > 0) {
+    query = query.eq('id', website.id);
+  } else {
+    query = query.eq('subdomain', subdomain);
+  }
+
+  const { data, error } = await query.maybeSingle<WebsiteAnalyticsColumns>();
+  if (error || !data?.analytics) {
+    return website;
+  }
+
+  return {
+    ...website,
+    analytics: data.analytics,
   };
 }
 
@@ -207,7 +241,8 @@ export async function getWebsiteBySubdomain(subdomain: string): Promise<WebsiteD
 
     if (!data) return null;
 
-    const website = await hydrateWebsiteLocaleColumns(data as WebsiteData, subdomain);
+    let website = await hydrateWebsiteLocaleColumns(data as WebsiteData, subdomain);
+    website = await hydrateWebsiteAnalyticsColumns(website, subdomain);
     const featuredProducts = website.featured_products || {
       destinations: [],
       hotels: [],

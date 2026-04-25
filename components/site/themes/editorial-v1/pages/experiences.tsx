@@ -17,6 +17,7 @@ import { Eyebrow } from '@/components/site/themes/editorial-v1/primitives/eyebro
 import { Breadcrumbs } from '@/components/site/themes/editorial-v1/primitives/breadcrumbs';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 import { editorialHtml } from '@/components/site/themes/editorial-v1/primitives/rich-heading';
+import { getBasePath } from '@/lib/utils/base-path';
 
 import {
   ExperiencesGrid,
@@ -44,7 +45,8 @@ export function EditorialExperiencesPage({
     || (website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale
     || 'es-CO';
   const editorialText = getPublicUiExtraTextGetter(resolvedLocale);
-  const basePath = `/site/${subdomain}`;
+  const isCustomDomain = Boolean((website as WebsiteData & { isCustomDomain?: boolean }).isCustomDomain);
+  const basePath = getBasePath(subdomain, isCustomDomain);
 
   return (
     <div data-screen-label="Experiences" data-testid="editorial-experiences">

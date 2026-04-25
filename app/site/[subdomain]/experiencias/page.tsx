@@ -14,6 +14,7 @@
  */
 
 import type { Metadata } from 'next';
+import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 
 import { getWebsiteBySubdomain } from '@/lib/supabase/get-website';
@@ -147,6 +148,14 @@ export default async function ExperiencesPageRoute({
   }
 
   const localeContext = await resolvePublicMetadataLocale(website, '/experiencias');
+  const headerList = await headers();
+  const isCustomDomain = Boolean(headerList.get('x-custom-domain'));
+  const websiteForRender = {
+    ...website,
+    resolvedLocale: localeContext.resolvedLocale,
+    defaultLocale: localeContext.defaultLocale,
+    isCustomDomain,
+  };
 
   // Prefer an authored override on the `activities` section (editorial seed
   // with curated ordering/copy). Fall back to the full catalog via the same
@@ -183,7 +192,7 @@ export default async function ExperiencesPageRoute({
   return (
     <TemplateSlot
       name="experiences-page"
-      website={website}
+      website={websiteForRender}
       payload={{
         subdomain,
         locale: localeContext.resolvedLocale,

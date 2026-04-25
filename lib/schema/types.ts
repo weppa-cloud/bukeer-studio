@@ -131,6 +131,9 @@ export interface Article {
   keywords?: string[];
   articleSection?: string;
   inLanguage?: string;
+  reviewedBy?: Organization | Person;
+  about?: Thing | Thing[];
+  mentions?: Thing[];
 }
 
 export interface BlogPosting extends Article {

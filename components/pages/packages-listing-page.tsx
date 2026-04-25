@@ -2,7 +2,6 @@
 
 import React, { useState, useMemo } from 'react';
 import Image from 'next/image';
-import { motion, AnimatePresence } from 'framer-motion';
 import { getBasePath } from '@/lib/utils/base-path';
 import { PackageCard } from '@/components/site/sections/packages-section';
 import type { PackageItem } from '@/components/site/sections/packages-section';
@@ -12,6 +11,7 @@ import type { ProductData } from '@bukeer/website-contract';
 import { localeToLanguage, normalizeLocale } from '@/lib/seo/locale-routing';
 import { convertCurrencyAmount } from '@/lib/site/currency';
 import { usePreferredCurrency } from '@/lib/site/use-preferred-currency';
+import { supabaseImageUrl } from '@/lib/images/supabase-transform';
 
 interface PackagesListingPageProps {
   website: WebsiteData;
@@ -29,7 +29,8 @@ function parseNumericPrice(price?: string): number | null {
 type SortOption = 'popular' | 'price-asc' | 'price-desc' | 'duration' | 'newest';
 
 export function PackagesListingPage({ website, packages }: PackagesListingPageProps) {
-  const basePath = getBasePath(website.subdomain);
+  const isCustomDomain = Boolean((website as WebsiteData & { isCustomDomain?: boolean }).isCustomDomain);
+  const basePath = getBasePath(website.subdomain, isCustomDomain);
   const siteName = website.content?.account?.name || website.content?.siteName || website.subdomain;
 
   const [activeDestination, setActiveDestination] = useState<string>('all');
@@ -237,6 +238,13 @@ export function PackagesListingPage({ website, packages }: PackagesListingPagePr
         { '@type': 'ListItem', position: 2, name: packagesLabel },
       ],
     },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'TravelAgency',
+      name: siteName,
+      url: baseUrl,
+      inLanguage: normalizedSchemaLocale,
+    },
   ];
 
   return (
@@ -258,11 +266,7 @@ export function PackagesListingPage({ website, packages }: PackagesListingPagePr
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-16 lg:pt-32 lg:pb-20">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
             {/* Left: Editorial text */}
-            <motion.div
-              initial={{ opacity: 0, x: -30 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.7 }}
-            >
+            <div>
               <span
                 className="font-mono text-xs tracking-[0.25em] uppercase"
                 style={{ color: 'var(--accent)' }}
@@ -288,21 +292,19 @@ export function PackagesListingPage({ website, packages }: PackagesListingPagePr
                 Descubre itinerarios diseñados por expertos locales. Cada paquete combina lo mejor de
                 cada destino en una experiencia completa y sin complicaciones.
               </p>
-            </motion.div>
+            </div>
 
             {/* Right: Hero image + editorial card */}
-            <motion.div
-              initial={{ opacity: 0, x: 30 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.7, delay: 0.15 }}
+            <div
               className="relative pb-10"
             >
               {heroImage && (
                 <div className="relative aspect-[4/3] rounded-2xl overflow-hidden shadow-2xl">
                   <Image
-                    src={heroImage}
+                    src={supabaseImageUrl(heroImage, { width: 900, quality: 74 })}
                     alt={heroPackage?.name || 'Paquete destacado'}
                     fill
+                    sizes="(max-width: 1024px) 100vw, 50vw"
                     className="object-cover"
                     priority
                   />
@@ -314,10 +316,7 @@ export function PackagesListingPage({ website, packages }: PackagesListingPagePr
               )}
 
               {/* Floating editorial card */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.4 }}
+              <div
                 className="absolute -bottom-6 -left-4 sm:left-6 max-w-xs p-5 rounded-xl shadow-xl"
                 style={{
                   backgroundColor: 'var(--bg-card)',
@@ -339,8 +338,8 @@ export function PackagesListingPage({ website, packages }: PackagesListingPagePr
                     </p>
                   </div>
                 </div>
-              </motion.div>
-            </motion.div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -516,19 +515,28 @@ export function PackagesListingPage({ website, packages }: PackagesListingPagePr
             </div>
 
             {/* Mobile expanded filters */}
-            <AnimatePresence>
-              {showFilters && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="overflow-hidden"
-                >
-                  <div className="pt-4 grid grid-cols-1 gap-3">
+            {showFilters && (
+              <div className="overflow-hidden">
+                <div className="pt-4 grid grid-cols-1 gap-3">
+                  <select
+                    value={activeDestination}
+                    onChange={(e) => setActiveDestination(e.target.value)}
+                    className="w-full px-3 py-2.5 rounded-lg text-sm"
+                    style={{
+                      backgroundColor: 'var(--bg-card)',
+                      color: 'var(--text-heading)',
+                      border: '1px solid var(--border-medium)',
+                    }}
+                  >
+                    <option value="all">Todos los destinos</option>
+                    {uniqueDestinations.map((dest) => (
+                      <option key={dest} value={dest}>{dest}</option>
+                    ))}
+                  </select>
+                  {priceOptions.length > 0 && (
                     <select
-                      value={activeDestination}
-                      onChange={(e) => setActiveDestination(e.target.value)}
+                      value={activePriceRange}
+                      onChange={(e) => setActivePriceRange(e.target.value)}
                       className="w-full px-3 py-2.5 rounded-lg text-sm"
                       style={{
                         backgroundColor: 'var(--bg-card)',
@@ -536,58 +544,41 @@ export function PackagesListingPage({ website, packages }: PackagesListingPagePr
                         border: '1px solid var(--border-medium)',
                       }}
                     >
-                      <option value="all">Todos los destinos</option>
-                      {uniqueDestinations.map((dest) => (
-                        <option key={dest} value={dest}>{dest}</option>
+                      <option value="all">Cualquier precio</option>
+                      {priceOptions.map((opt) => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
                       ))}
                     </select>
-                    {priceOptions.length > 0 && (
-                      <select
-                        value={activePriceRange}
-                        onChange={(e) => setActivePriceRange(e.target.value)}
-                        className="w-full px-3 py-2.5 rounded-lg text-sm"
-                        style={{
-                          backgroundColor: 'var(--bg-card)',
-                          color: 'var(--text-heading)',
-                          border: '1px solid var(--border-medium)',
-                        }}
-                      >
-                        <option value="all">Cualquier precio</option>
-                        {priceOptions.map((opt) => (
-                          <option key={opt.value} value={opt.value}>{opt.label}</option>
-                        ))}
-                      </select>
-                    )}
-                    {durationOptions.length > 0 && (
-                      <select
-                        value={activeDuration}
-                        onChange={(e) => setActiveDuration(e.target.value)}
-                        className="w-full px-3 py-2.5 rounded-lg text-sm"
-                        style={{
-                          backgroundColor: 'var(--bg-card)',
-                          color: 'var(--text-heading)',
-                          border: '1px solid var(--border-medium)',
-                        }}
-                      >
-                        <option value="all">Cualquier duración</option>
-                        {durationOptions.map((opt) => (
-                          <option key={opt.value} value={opt.value}>{opt.label}</option>
-                        ))}
-                      </select>
-                    )}
-                    {anyFilterActive && (
-                      <button
-                        onClick={clearFilters}
-                        className="text-sm font-medium py-2"
-                        style={{ color: 'var(--accent)' }}
-                      >
-                        Limpiar filtros ×
-                      </button>
-                    )}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                  )}
+                  {durationOptions.length > 0 && (
+                    <select
+                      value={activeDuration}
+                      onChange={(e) => setActiveDuration(e.target.value)}
+                      className="w-full px-3 py-2.5 rounded-lg text-sm"
+                      style={{
+                        backgroundColor: 'var(--bg-card)',
+                        color: 'var(--text-heading)',
+                        border: '1px solid var(--border-medium)',
+                      }}
+                    >
+                      <option value="all">Cualquier duración</option>
+                      {durationOptions.map((opt) => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                  )}
+                  {anyFilterActive && (
+                    <button
+                      onClick={clearFilters}
+                      className="text-sm font-medium py-2"
+                      style={{ color: 'var(--accent)' }}
+                    >
+                      Limpiar filtros ×
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -630,11 +621,7 @@ export function PackagesListingPage({ website, packages }: PackagesListingPagePr
           <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle at 20% 50%, white 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
         </div>
         <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-20 text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-          >
+          <div>
             <h2
               className="text-3xl sm:text-4xl font-bold mb-4"
               style={{ color: 'var(--accent-text)' }}
@@ -661,7 +648,7 @@ export function PackagesListingPage({ website, packages }: PackagesListingPagePr
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
               </svg>
             </a>
-          </motion.div>
+          </div>
         </div>
       </section>
     </div>

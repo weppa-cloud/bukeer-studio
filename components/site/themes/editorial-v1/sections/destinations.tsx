@@ -29,6 +29,7 @@ import Image from 'next/image';
 
 import type { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 import { getBasePath } from '@/lib/utils/base-path';
+import { supabaseImageUrl } from '@/lib/images/supabase-transform';
 import {
   COLOMBIA_CITIES,
   resolveColombiaRegion,
@@ -200,7 +201,7 @@ export function DestinationsSection({
 }: DestinationsSectionProps): ReactElement {
   const editorialText = getEditorialTextGetter(website);
   const content = (section.content || {}) as DestinationsContent;
-  const basePath = getBasePath(website.subdomain, false);
+  const basePath = getBasePath(website.subdomain, Boolean((website as { isCustomDomain?: boolean }).isCustomDomain));
 
   const eyebrow = localizeEditorialText(
     website,
@@ -342,10 +343,14 @@ function DestinationsListView({
             <div className="dest-media" aria-hidden="true">
               {dest.imageUrl ? (
                 <Image
-                  src={dest.imageUrl}
+                  src={supabaseImageUrl(dest.imageUrl, {
+                    width: isPrimary ? 720 : 420,
+                    quality: 70,
+                  })}
                   alt=""
                   fill
-                  priority={isPrimary}
+                  loading="lazy"
+                  fetchPriority="low"
                   sizes={
                     isPrimary
                       ? '(max-width: 720px) 100vw, (max-width: 1100px) 100vw, 720px'

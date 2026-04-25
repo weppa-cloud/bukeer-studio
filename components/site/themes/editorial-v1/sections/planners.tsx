@@ -120,7 +120,7 @@ export function PlannersSection({
 }: EditorialPlannersSectionProps) {
   const editorialText = getEditorialTextGetter(website);
   const content = (section.content ?? {}) as PlannersContent;
-  const basePath = getBasePath(website.subdomain, false);
+  const basePath = getBasePath(website.subdomain, Boolean((website as { isCustomDomain?: boolean }).isCustomDomain));
 
   const eyebrow = localizeEditorialText(
     website,
@@ -223,7 +223,7 @@ export function PlannersSection({
                       )}
                     </div>
                     <div>
-                      <h4>{p.fullName}</h4>
+                      <h3>{p.fullName}</h3>
                       <div className="planner-role">{role}</div>
                     </div>
                     <p className="planner-quote">{experienceText}</p>

@@ -117,7 +117,7 @@ export function FaqSection({
 
   if (faqs.length === 0) return null;
 
-  const basePath = getBasePath(website.subdomain, false);
+  const basePath = getBasePath(website.subdomain, Boolean((website as { isCustomDomain?: boolean }).isCustomDomain));
   const eyebrow = localizeEditorialText(
     website,
     content.eyebrow?.trim() || editorialText(DEFAULT_EYEBROW_KEY),

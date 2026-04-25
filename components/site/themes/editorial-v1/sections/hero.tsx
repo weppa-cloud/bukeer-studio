@@ -31,8 +31,10 @@
  * the DOM — users just see the button).
  */
 
+import Image from 'next/image';
 import type { CSSProperties, ReactElement } from 'react';
 import type { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
+import { supabaseImageUrl } from '@/lib/images/supabase-transform';
 import { getBasePath } from '@/lib/utils/base-path';
 import { Icons } from '../primitives/icons';
 import { HeroRotator, type HeroRotatorSlide } from './hero-rotator.client';
@@ -103,6 +105,8 @@ const DEFAULT_FALLBACK_SLIDES: HeroRotatorSlide[] = [
   { city: 'Eje Cafetero', region: 'Andes', imageUrl: null, alt: 'Eje Cafetero · Colombia' },
   { city: 'Medellín', region: 'Antioquia', imageUrl: null, alt: 'Medellín · Colombia' },
 ];
+const HERO_IMAGE_WIDTH = 1000;
+const HERO_IMAGE_QUALITY = 70;
 
 // ---------- Markup sanitizer for headline ----------
 // Headlines come from the operator-controlled `section.content.headline` and
@@ -187,7 +191,7 @@ export function HeroSection({
     editorialText('editorialHeroSideListLabel'),
   );
   const content = (section.content || {}) as HeroContent;
-  const basePath = getBasePath(website.subdomain, false);
+  const basePath = getBasePath(website.subdomain, Boolean((website as { isCustomDomain?: boolean }).isCustomDomain));
 
   const eyebrow = localizeEditorialText(website, content.eyebrow?.trim() || defaultEyebrow);
   const headlineHtml = editorialHtml(
@@ -268,15 +272,37 @@ export function HeroSection({
   const placeholders = searchPlaceholders(content.search);
 
   const hasSlides = slides.length > 0;
+  const firstSlide = slides[0];
 
   return (
     <section className="hero" data-screen-label="Hero">
       {hasSlides ? (
-        <HeroRotator
-          slides={slides}
-          ariaLabel={editorialText('editorialHeroSlidesAria')}
-          locale={(website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale ?? website.default_locale ?? website.content?.locale ?? 'es-CO'}
-        />
+        <>
+          <div
+            className="hero-media"
+            data-ssr-hero-frame="true"
+            aria-label={editorialText('editorialHeroSlidesAria')}
+          >
+            {firstSlide?.imageUrl ? (
+              <Image
+                src={supabaseImageUrl(firstSlide.imageUrl, { width: HERO_IMAGE_WIDTH, quality: HERO_IMAGE_QUALITY })}
+                alt={firstSlide.alt || firstSlide.city || ''}
+                fill
+                sizes="100vw"
+                priority
+                fetchPriority="high"
+                style={{ objectFit: 'cover' }}
+              />
+            ) : (
+              <div className="scenic" />
+            )}
+          </div>
+          <HeroRotator
+            slides={slides}
+            ariaLabel={editorialText('editorialHeroSlidesAria')}
+            locale={(website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale ?? website.default_locale ?? website.content?.locale ?? 'es-CO'}
+          />
+        </>
       ) : (
         <div className="hero-media" aria-hidden="true">
           <div className="scenic" />

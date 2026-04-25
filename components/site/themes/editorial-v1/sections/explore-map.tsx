@@ -22,6 +22,7 @@
 
 import type { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 import { getEditorialTextGetter, localizeEditorialText } from '../i18n';
+import { getBasePath } from '@/lib/utils/base-path';
 
 import {
   ExploreMapClient,
@@ -196,9 +197,10 @@ export function ExploreMapSection({
   // - absolute URL / mailto / tel → pass-through
   // - starts with '#' → pass-through
   // - starts with '/' → prefix with /site/{subdomain} when NOT a custom domain
+  const basePath = getBasePath(website.subdomain, Boolean((website as { isCustomDomain?: boolean }).isCustomDomain));
   let ctaHref = ctaHrefRaw;
   if (ctaHrefRaw.startsWith('/')) {
-    ctaHref = `/site/${website.subdomain}${ctaHrefRaw}`;
+    ctaHref = `${basePath}${ctaHrefRaw}`;
   }
 
   return (

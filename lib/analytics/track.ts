@@ -18,6 +18,12 @@ declare global {
   interface Window {
     gtag?: (...args: unknown[]) => void;
     dataLayer?: unknown[];
+    fbq?: (...args: unknown[]) => void;
+    BukeerAnalytics?: {
+      load?: () => void;
+      loaded?: boolean;
+      loaders?: Array<() => void>;
+    };
   }
 }
 
@@ -76,6 +82,43 @@ export type AnalyticsEventName =
   | 'locale_switch'
   | (string & {}); // allow other strings without losing autocomplete on the known ones
 
+const META_STANDARD_EVENTS: Partial<Record<string, 'Contact' | 'Lead' | 'Schedule'>> = {
+  whatsapp_cta_click: 'Contact',
+  phone_cta_click: 'Contact',
+  email_cta_click: 'Contact',
+  cal_booking_click: 'Schedule',
+  quote_form_submit: 'Lead',
+  waflow_submit: 'Lead',
+  matchmaker_submit: 'Lead',
+};
+
+function sendAnalyticsEvent(
+  name: AnalyticsEventName,
+  params: Record<string, string | number | boolean>
+): boolean {
+  let sent = false;
+
+  if (typeof window.gtag === 'function') {
+    window.gtag('event', name, params);
+    sent = true;
+  } else if (Array.isArray(window.dataLayer)) {
+    // Fallback to pushing a GTM-style event when gtag isn't exposed but dataLayer exists.
+    window.dataLayer.push({ event: name, ...params });
+    sent = true;
+  }
+
+  if (typeof window.fbq === 'function') {
+    const standardEvent = META_STANDARD_EVENTS[name];
+    if (standardEvent) {
+      window.fbq('track', standardEvent, params);
+    }
+    window.fbq('trackCustom', name, params);
+    sent = true;
+  }
+
+  return sent;
+}
+
 /**
  * Fire an analytics event.
  *
@@ -97,11 +140,18 @@ export function trackEvent(
       cleaned[key] = value;
     }
 
-    if (typeof window.gtag === 'function') {
-      window.gtag('event', name, cleaned);
-    } else if (Array.isArray(window.dataLayer)) {
-      // Fallback to pushing a GTM-style event when gtag isn't exposed but dataLayer exists.
-      window.dataLayer.push({ event: name, ...cleaned });
+    let sent = sendAnalyticsEvent(name, cleaned);
+    if (!sent && window.BukeerAnalytics?.load) {
+      window.BukeerAnalytics.load();
+
+      const retry = () => {
+        if (sent) return;
+        sent = sendAnalyticsEvent(name, cleaned);
+      };
+
+      window.setTimeout(retry, 0);
+      window.setTimeout(retry, 350);
+      window.setTimeout(retry, 1200);
     }
 
     if (process.env.NODE_ENV !== 'production') {

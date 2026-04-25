@@ -2,7 +2,7 @@
 
 > Next.js 15 / React 19 / Cloudflare Workers / Supabase
 
-Last updated: 2026-04-16
+Last updated: 2026-04-25
 
 ---
 
@@ -199,6 +199,17 @@ Content-Security-Policy: frame-ancestors 'self' https://app.bukeer.com (/editor/
 | [ADR-013](./ADR-013-tech-validator-quality-gate.md) | Automated Tech Validator Quality Gate | Accepted |
 | [ADR-014](./ADR-014-delta-typescript-quality-gate.md) | Delta TypeScript Quality Gate for Tech Validator | Accepted |
 | [ADR-015](./ADR-015-resilient-map-rendering-and-marker-media-fallback.md) | Resilient Map Rendering and Marker Media Fallback | Accepted |
+| [ADR-016](./ADR-016-seo-intelligence-caching.md) | SEO Content Intelligence Caching and Revalidation | Accepted |
+| [ADR-017](./ADR-017-geocoding-activity-circuits.md) | Geocoding for Activity Circuit Maps | Accepted |
+| [ADR-018](./ADR-018-webhook-idempotency.md) | Webhook Idempotency and Replay Protection | Accepted |
+| [ADR-019](./ADR-019-multi-locale-url-routing.md) | Multi-locale URL Routing | Accepted |
+| [ADR-020](./ADR-020-hreflang-emission-policy.md) | hreflang Emission Policy and x-default Strategy | Accepted |
+| [ADR-021](./ADR-021-translation-memory-transcreation-pipeline.md) | Translation Memory and AI Transcreation Pipeline | Accepted |
+| [ADR-023](./ADR-023-qa-tooling-studio-editor.md) | QA Tooling: Playwright Component Testing and Visual Regression | Accepted |
+| [ADR-024](./ADR-024-booking-v1-pilot-scope.md) | Booking V1 Pilot Scope | Accepted |
+| [ADR-025](./ADR-025-studio-flutter-field-ownership.md) | Studio / Flutter Field Ownership Boundary | Accepted |
+| [ADR-027](./ADR-027-designer-reference-theme-adoption.md) | Designer Reference Theme Adoption for Pilot | Accepted |
+| [ADR-028](./ADR-028-media-assets-canonical-registry.md) | Media Assets Canonical Registry | Accepted |
 
 ---
 
