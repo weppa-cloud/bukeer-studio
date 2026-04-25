@@ -75,6 +75,63 @@ describe('ProductSchema JSON-LD', () => {
     expect(breadcrumb.itemListElement.at(-2).item).toBe('https://colombiatours.travel/paquetes');
   });
 
+  it('emits AggregateOffer when package versions provide multiple verified prices', () => {
+    const product: ProductData & { availability: string; cancellation_policy: unknown } = {
+      id: 'pkg-versions',
+      name: 'Colombia 9 days',
+      slug: 'colombia-9-days',
+      type: 'package',
+      description: 'A package with selectable service versions.',
+      location: 'Colombia',
+      country: 'Colombia',
+      availability: 'available',
+      image: 'https://example.com/package.jpg',
+      package_versions: [
+        {
+          version_number: 1,
+          total_price: 1500,
+          base_currency: 'USD',
+          services_snapshot_summary: 'Standard hotels and transfers',
+        },
+        {
+          version_number: 2,
+          total_price: 2300,
+          base_currency: 'USD',
+          services_snapshot_summary: 'Premium hotels and private transfers',
+        },
+      ],
+      cancellation_policy: {
+        tiers: [{ days_before: 10, refund_pct: 50, label: '50% refund up to 10 days before travel' }],
+      },
+    };
+
+    const schemas = extractJsonLd(renderToStaticMarkup(
+      <ProductSchema
+        product={product}
+        productType="package"
+        websiteUrl="https://colombiatours.travel"
+        pageUrl="https://colombiatours.travel/paquetes/colombia-9-days"
+        organizationName="ColombiaTours"
+      />
+    ));
+
+    const commercialProduct = schemas.find((schema) => schema['@type'] === 'Product') as Record<string, any>;
+    expect(commercialProduct.offers).toMatchObject({
+      '@type': 'AggregateOffer',
+      lowPrice: 1500,
+      highPrice: 2300,
+      priceCurrency: 'USD',
+      offerCount: 2,
+      url: 'https://colombiatours.travel/paquetes/colombia-9-days',
+    });
+    expect(commercialProduct.offers.offers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ '@type': 'Offer', name: 'Version 1', price: 1500, priceCurrency: 'USD' }),
+        expect.objectContaining({ '@type': 'Offer', name: 'Version 2', price: 2300, priceCurrency: 'USD' }),
+      ])
+    );
+  });
+
   it('omits Offer when price exists without a verifiable currency', () => {
     const product: ProductData = {
       id: 'act-001',

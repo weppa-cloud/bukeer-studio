@@ -473,64 +473,141 @@ function buildOffer(
   url?: string,
   organizationName?: string | null
 ): Record<string, unknown> | undefined {
-  const optionMinPrice = Array.isArray(product.options)
-    ? product.options
-        .flatMap((option) => option?.prices ?? [])
-        .map((p) => ({
-          value: normalizeNumber(p?.price),
-          currency: typeof p?.currency === 'string' ? p.currency.toUpperCase() : null,
-        }))
-        .filter((row): row is { value: number; currency: string | null } => row.value !== null && row.value > 0)
-        .reduce<{ value: number; currency: string | null } | null>(
-          (min, row) => (min === null || row.value < min.value ? row : min),
-          null
-        )
-    : null;
-
-  const fallbackPrice = normalizeNumber(product.price);
-  const packageVersionPrice = normalizeNumber(product.package_version?.total_price);
-  const packageVersionsMinPrice = Array.isArray(product.package_versions)
-    ? product.package_versions
-        .map((version) => normalizeNumber(version?.total_price))
-        .filter((value): value is number => value !== null && value > 0)
-        .reduce<number | null>((min, value) => (min === null || value < min ? value : min), null)
-    : null;
-  const price = optionMinPrice?.value ?? fallbackPrice ?? packageVersionPrice ?? packageVersionsMinPrice;
-  if (price === null) {
+  const rows = collectOfferRows(product);
+  if (rows.length === 0) {
     return undefined;
   }
 
-  const currency = optionMinPrice?.currency
-    || (typeof product.currency === 'string' ? product.currency.toUpperCase() : null)
-    || (typeof product.package_version?.base_currency === 'string' ? product.package_version.base_currency.toUpperCase() : null)
-    || (Array.isArray(product.package_versions)
-      ? product.package_versions.find((version) => typeof version?.base_currency === 'string')?.base_currency.toUpperCase()
-      : null);
-  if (!currency) {
-    return undefined;
+  const currencies = new Set(rows.map((row) => row.currency));
+  if (rows.length > 1 && currencies.size === 1) {
+    return buildAggregateOffer(rows, product, url, organizationName);
   }
 
+  const row = rows.reduce((min, current) => (current.price < min.price ? current : min), rows[0]);
+  return buildSingleOffer(row, product, url, organizationName);
+}
+
+interface OfferRow {
+  price: number;
+  currency: string;
+  name?: string;
+  validUntil?: string;
+}
+
+function buildAggregateOffer(
+  rows: OfferRow[],
+  product: ProductData,
+  url?: string,
+  organizationName?: string | null,
+): Record<string, unknown> | undefined {
+  const currency = rows[0]?.currency;
+  if (!currency) return undefined;
+
+  const prices = rows.map((row) => row.price);
   const availability = resolveAvailability(product);
-  const validUntil = resolveOfferValidUntil(product);
+  const validUntil = resolveOfferValidUntil(product, rows);
   const returnPolicy = buildMerchantReturnPolicy(product);
+  const seller = buildSeller(url, organizationName);
 
-  return {
-    '@type': 'Offer',
+  return clean({
+    '@type': 'AggregateOffer',
     url,
-    price,
+    lowPrice: Math.min(...prices),
+    highPrice: Math.max(...prices),
     priceCurrency: currency,
+    offerCount: rows.length,
     availability,
     priceValidUntil: validUntil,
     itemCondition: 'https://schema.org/NewCondition',
     category: 'Travel',
     hasMerchantReturnPolicy: returnPolicy,
-    seller: url
-      ? {
-          '@type': 'TravelAgency',
-          ...(organizationName && { name: organizationName }),
-          url: new URL(url).origin,
-        }
-      : undefined,
+    seller,
+    offers: rows.slice(0, 12).map((row) => buildSingleOffer(row, product, url, organizationName)),
+  });
+}
+
+function buildSingleOffer(
+  row: OfferRow,
+  product: ProductData,
+  url?: string,
+  organizationName?: string | null,
+): Record<string, unknown> | undefined {
+  const availability = resolveAvailability(product);
+  const validUntil = row.validUntil || resolveOfferValidUntil(product);
+  const returnPolicy = buildMerchantReturnPolicy(product);
+
+  return {
+    '@type': 'Offer',
+    name: row.name,
+    url,
+    price: row.price,
+    priceCurrency: row.currency,
+    availability,
+    priceValidUntil: validUntil,
+    itemCondition: 'https://schema.org/NewCondition',
+    category: 'Travel',
+    hasMerchantReturnPolicy: returnPolicy,
+    seller: buildSeller(url, organizationName),
+  };
+}
+
+function collectOfferRows(product: ProductData): OfferRow[] {
+  const rows: OfferRow[] = [];
+  const push = (price: unknown, currency: unknown, name?: string, validUntil?: string) => {
+    const value = normalizeNumber(price);
+    const normalizedCurrency = typeof currency === 'string' ? currency.toUpperCase() : null;
+    if (value === null || value <= 0 || !normalizedCurrency) return;
+    rows.push({
+      price: value,
+      currency: normalizedCurrency,
+      name,
+      validUntil: validUntil && isDateLike(validUntil) ? validUntil.slice(0, 10) : undefined,
+    });
+  };
+
+  if (Array.isArray(product.options)) {
+    for (const option of product.options) {
+      for (const price of option?.prices ?? []) {
+        push(price?.price, price?.currency, option?.name, price?.valid_until);
+      }
+    }
+  }
+
+  push(product.price, product.currency);
+  push(product.package_version?.total_price, product.package_version?.base_currency, buildPackageVersionName(product.package_version));
+
+  if (Array.isArray(product.package_versions)) {
+    for (const version of product.package_versions) {
+      push(version?.total_price, version?.base_currency, buildPackageVersionName(version));
+    }
+  }
+
+  return dedupeOfferRows(rows);
+}
+
+function buildPackageVersionName(version: ProductData['package_version']): string | undefined {
+  if (!version) return undefined;
+  return `Version ${version.version_number}`;
+}
+
+function dedupeOfferRows(rows: OfferRow[]): OfferRow[] {
+  const seen = new Set<string>();
+  const unique: OfferRow[] = [];
+  for (const row of rows) {
+    const key = `${row.name || ''}|${row.price}|${row.currency}|${row.validUntil || ''}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    unique.push(row);
+  }
+  return unique;
+}
+
+function buildSeller(url?: string, organizationName?: string | null): Record<string, unknown> | undefined {
+  if (!url) return undefined;
+  return {
+    '@type': 'TravelAgency',
+    ...(organizationName && { name: organizationName }),
+    url: new URL(url).origin,
   };
 }
 
@@ -639,9 +716,15 @@ function resolveAvailability(product: ProductData): string | undefined {
   return undefined;
 }
 
-function resolveOfferValidUntil(product: ProductData): string | undefined {
+function resolveOfferValidUntil(product: ProductData, rows: OfferRow[] = []): string | undefined {
   const explicit = getStringField(product, ['price_valid_until', 'valid_until']);
   if (explicit && isDateLike(explicit)) return explicit.slice(0, 10);
+
+  const rowValues = rows
+    .map((row) => row.validUntil)
+    .filter((value): value is string => typeof value === 'string' && isDateLike(value))
+    .sort();
+  if (rowValues[0]) return rowValues[0].slice(0, 10);
 
   if (!Array.isArray(product.options)) return undefined;
   const validUntilValues = product.options

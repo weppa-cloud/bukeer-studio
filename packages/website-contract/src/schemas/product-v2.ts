@@ -144,6 +144,13 @@ export const ProductDataSchema = z.object({
   review_count: NumericSchema.optional(),
   price: z.union([NumericSchema, z.string()]).optional(),
   currency: z.string().optional(),
+  availability: z.string().optional(),
+  availability_status: z.string().optional(),
+  price_valid_until: z.string().optional(),
+  valid_until: z.string().optional(),
+  is_refundable: z.boolean().optional(),
+  refundable: z.boolean().optional(),
+  cancellation_policy: JsonValueSchema.optional(),
   includes: StringOrStringArraySchema.optional(),
   excludes: StringOrStringArraySchema.optional(),
 

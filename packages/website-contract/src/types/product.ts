@@ -126,6 +126,13 @@ export interface ProductData {
   // Pricing (from RPC — hotel_rates / activities_rates / itineraries.total)
   price?: number | string;
   currency?: string;
+  availability?: string;
+  availability_status?: string;
+  price_valid_until?: string;
+  valid_until?: string;
+  is_refundable?: boolean;
+  refundable?: boolean;
+  cancellation_policy?: JsonValue;
   includes?: string[] | string;
   excludes?: string[] | string;
 
