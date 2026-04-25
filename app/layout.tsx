@@ -40,7 +40,7 @@ const montserrat = Montserrat({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_URL || 'https://colombiatours.com'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_URL || 'https://studio.bukeer.com'),
   title: "Colombia Tours - Descubre la Magia de Colombia",
   description: "Explora Colombia con nosotros. Tours personalizados, experiencias únicas y los mejores destinos del país.",
   keywords: "tours colombia, viajes colombia, paquetes turísticos, cartagena, bogotá, medellín",

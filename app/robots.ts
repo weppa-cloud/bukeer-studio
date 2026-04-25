@@ -18,7 +18,7 @@
 import { MetadataRoute } from 'next';
 
 export default function robots(): MetadataRoute.Robots {
-  const baseUrl = process.env.NEXT_PUBLIC_URL || 'https://bukeer.com';
+  const baseUrl = process.env.NEXT_PUBLIC_URL || 'https://studio.bukeer.com';
 
   return {
     rules: [

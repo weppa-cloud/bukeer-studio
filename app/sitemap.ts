@@ -26,7 +26,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const sitemapEntries: MetadataRoute.Sitemap = [];
 
   // 1. Add main marketing site pages
-  const baseUrl = process.env.NEXT_PUBLIC_URL || 'https://bukeer.com';
+  const baseUrl = process.env.NEXT_PUBLIC_URL || 'https://studio.bukeer.com';
 
   sitemapEntries.push({
     url: baseUrl,
