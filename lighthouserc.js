@@ -15,16 +15,25 @@
 
 const PORT = process.env.LHCI_PORT || process.env.PORT || '3001';
 const TENANT = process.env.LHCI_TENANT || 'colombiatours';
+const PREVIEW_TOKEN =
+  process.env.LHCI_PREVIEW_TOKEN ||
+  process.env.SITE_PREVIEW_TOKEN ||
+  process.env.REVALIDATE_SECRET ||
+  '';
 
 const baseUrl = `http://localhost:${PORT}`;
+const siteUrl = (path) => `${baseUrl}${path}`;
 
 module.exports = {
   ci: {
     collect: {
       url: [
-        `${baseUrl}/site/${TENANT}/actividades/4x1-adventure`,
-        `${baseUrl}/site/${TENANT}/hoteles/aloft-bogota-airport`,
-        `${baseUrl}/site/${TENANT}/paquetes/paquete-bogot-4-d-as`,
+        siteUrl(`/site/${TENANT}/actividades/4x1-adventure`),
+        siteUrl(`/site/${TENANT}/hoteles/aloft-bogota-airport`),
+        siteUrl(`/site/${TENANT}/paquetes/bogota-esencial-cultura-y-sal-4-dias`),
+        siteUrl(`/site/${TENANT}/paquetes/colombia-en-familia-15-dias-aventura-y-confort`),
+        siteUrl(`/site/${TENANT}/blog/viajar-por-colombia-en-15-dias`),
+        siteUrl(`/site/${TENANT}/blog/guia-completa-para-viajar-a-colombia`),
       ],
       numberOfRuns: 2,
       // Server is started separately via scripts/lighthouse-ci.sh using the
@@ -33,6 +42,11 @@ module.exports = {
       startServerCommand: undefined,
       settings: {
         preset: 'desktop',
+        extraHeaders: PREVIEW_TOKEN
+          ? {
+              Cookie: `__bukeer_site_preview=${PREVIEW_TOKEN}`,
+            }
+          : {},
       },
     },
     assert: {

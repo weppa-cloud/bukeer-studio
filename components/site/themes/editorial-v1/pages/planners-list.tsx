@@ -30,6 +30,7 @@ import type { BrandClaims } from '@bukeer/website-contract';
 
 import { Eyebrow } from '../primitives/eyebrow';
 import { Breadcrumbs } from '../primitives/breadcrumbs';
+import { editorialHtml } from '../primitives/rich-heading';
 import {
   PlannersMatchmaker,
   type MatchmakerPlanner,
@@ -127,7 +128,7 @@ export function EditorialPlannersListPage({
     (website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale ?? website.default_locale ?? website.content?.locale ?? 'es-CO';
   const editorialText = getPublicUiExtraTextGetter(resolvedLocale);
   const isEnglish = resolvedLocale.toLowerCase().startsWith('en');
-  const basePath = getBasePath(website.subdomain, false);
+  const basePath = getBasePath(website.subdomain, Boolean((website as { isCustomDomain?: boolean }).isCustomDomain));
   const websiteWhatsapp = website.content?.social?.whatsapp;
   const waTemplate = isEnglish
     ? 'Hi {name}, I want to plan a trip'
@@ -224,7 +225,7 @@ export function EditorialPlannersListPage({
   return (
     <div data-screen-label="PlannersList">
       {/* Hero */}
-      <section style={heroStyle} className="planners-hero">
+      <section className="page-hero" style={heroStyle}>
         <div className="ev-container" style={{ position: 'relative', zIndex: 1 }}>
           <Breadcrumbs
             tone="inverse"
@@ -236,20 +237,11 @@ export function EditorialPlannersListPage({
           />
           <div style={{ marginTop: 24 }}>
             <Eyebrow tone="light">{editorialText('editorialPlannersListHeroEyebrow')}</Eyebrow>
-            <h1 style={heroTitleStyle}>
-              {editorialText('editorialPlannersListHeroTitle')}{' '}
-              <em
-                style={{
-                  fontFamily: 'var(--font-serif)',
-                  fontStyle: 'italic',
-                  color: 'var(--c-accent-2)',
-                  fontWeight: 400,
-                }}
-              >
-                {editorialText('editorialPlannersListHeroEmphasis')}
-              </em>
-            </h1>
-            <p style={heroSubtitleStyle}>{editorialText('editorialPlannersListHeroSubtitle')}</p>
+            <h1
+              className="display-lg"
+              dangerouslySetInnerHTML={editorialHtml(editorialText('editorialPlannersListHeroTitle'))}
+            />
+            <p style={heroSubtitleStyle} dangerouslySetInnerHTML={editorialHtml(editorialText('editorialPlannersListHeroSubtitle'))} />
           </div>
         </div>
       </section>
@@ -321,11 +313,6 @@ const heroStyle: CSSProperties = {
 };
 
 const heroTitleStyle: CSSProperties = {
-  fontFamily: 'var(--font-display)',
-  fontWeight: 500,
-  fontSize: 'clamp(40px, 6vw, 64px)',
-  letterSpacing: '-0.025em',
-  lineHeight: 1.02,
   color: '#fff',
   margin: '12px 0 16px',
 };

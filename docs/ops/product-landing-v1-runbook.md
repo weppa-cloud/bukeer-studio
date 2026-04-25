@@ -77,9 +77,9 @@ Push to `main` triggers `.github/workflows/deploy.yml`:
 
 1. `quality` job — lint, typecheck, unit tests.
 2. `e2e-smoke` job — `public-runtime.smoke.spec.ts` against a fresh build.
-3. `deploy-staging` job — `npx opennextjs-cloudflare deploy` → Worker `bukeer-web-public-staging`.
+3. `deploy-production` job — `npx opennextjs-cloudflare deploy --env ""` → Worker `bukeer-web-public`.
 
-Health check: the workflow curls `https://bukeer.com` after 15 s; non-2xx does **not** currently fail the job — verify manually.
+Health check: the workflow curls `https://studio.bukeer.com` after 15 s. `https://bukeer.com` is reserved for the Bukeer public website and must not be treated as the Studio Worker host.
 
 ### 3.2 48-hour soak on staging
 
@@ -107,7 +107,7 @@ Execute these in order, starting at T+0 (moment prod deploy completes):
 Run the bundled script. This loops every active `websites.subdomain` and POSTs to `/api/revalidate`:
 
 ```bash
-REVALIDATE_URL="https://bukeer.com/api/revalidate" \
+REVALIDATE_URL="https://studio.bukeer.com/api/revalidate" \
 REVALIDATE_SECRET="<from-1password>" \
 SUPABASE_URL="<NEXT_PUBLIC_SUPABASE_URL>" \
 SUPABASE_SERVICE_ROLE_KEY="<SUPABASE_SERVICE_ROLE_KEY>" \
@@ -315,7 +315,7 @@ npx wrangler tail bukeer-web-public --status=error
 npx wrangler deployments list --name bukeer-web-public
 
 # Revalidate a single tenant (manual)
-curl -X POST https://bukeer.com/api/revalidate \
+curl -X POST https://studio.bukeer.com/api/revalidate \
   -H "Authorization: Bearer $REVALIDATE_SECRET" \
   -H "Content-Type: application/json" \
   -d '{"subdomain":"colombiatours"}'

@@ -60,24 +60,7 @@ const DEFAULT_EYEBROW_KEY = 'editorialPromiseEyebrowFallback';
 const DEFAULT_TITLE_KEY = 'editorialPromiseTitleFallback';
 const DEFAULT_FEATURE_ICONS: IconName[] = ['pin', 'shield', 'leaf', 'sparkle', 'users', 'award'];
 
-// Narrow allowlist to match hero sanitizer — only `<em>` and `<br>` are
-// preserved inside the h2 so authors can ship the designer's italic-serif
-// emphasis without risking arbitrary HTML injection.
-const ALLOWED_TITLE_TAGS = new Set(['em', 'br']);
-
-function sanitizeTitle(raw: string | undefined | null): string {
-  if (!raw) return '';
-  const noComments = raw
-    .replace(/<!--[\s\S]*?-->/g, '')
-    .replace(/<!\[CDATA\[[\s\S]*?\]\]>/g, '');
-  return noComments.replace(/<\/?([a-zA-Z][a-zA-Z0-9]*)[^>]*>/g, (match, name) => {
-    const tag = String(name).toLowerCase();
-    if (!ALLOWED_TITLE_TAGS.has(tag)) return '';
-    const isClosing = match.startsWith('</');
-    if (tag === 'br') return '<br>';
-    return isClosing ? `</${tag}>` : `<${tag}>`;
-  });
-}
+import { editorialHtml } from '../primitives/rich-heading';
 
 function resolveWhatsAppHref(website: WebsiteData, fallback: string): string {
   const raw = website.content?.social?.whatsapp || '';
@@ -112,17 +95,17 @@ export function PromiseSection({
 }: EditorialPromiseSectionProps): ReactElement {
   const editorialText = getEditorialTextGetter(website);
   const content = (section.content || {}) as PromiseContent;
-  const basePath = getBasePath(website.subdomain, false);
+  const basePath = getBasePath(website.subdomain, Boolean((website as { isCustomDomain?: boolean }).isCustomDomain));
 
   const eyebrow = localizeEditorialText(
     website,
     content.eyebrow?.trim() || editorialText(DEFAULT_EYEBROW_KEY),
   );
-  const sanitizedTitle = sanitizeTitle(
+  const sanitizedTitle = editorialHtml(
     localizeEditorialText(website, content.title)
     || localizeEditorialText(website, editorialText(DEFAULT_TITLE_KEY)),
   );
-  const subtitle = localizeEditorialText(website, content.subtitle?.trim() || '');
+  const subtitleHtml = editorialHtml(localizeEditorialText(website, content.subtitle?.trim() || ''));
 
   const features: PromiseFeature[] = Array.isArray(content.features)
     ? content.features
@@ -145,11 +128,15 @@ export function PromiseSection({
         <div className="promise">
           <div>
             <Eyebrow tone="light">{eyebrow}</Eyebrow>
-            <h2
-              className="display-md"
-              dangerouslySetInnerHTML={{ __html: sanitizedTitle }}
-            />
-            {subtitle ? <p className="lead">{subtitle}</p> : null}
+            {sanitizedTitle ? (
+              <h2
+                className="display-md"
+                dangerouslySetInnerHTML={sanitizedTitle}
+              />
+            ) : null}
+            {subtitleHtml ? (
+              <p className="lead" dangerouslySetInnerHTML={subtitleHtml} />
+            ) : null}
             {ctaLabel ? (
               <div style={{ marginTop: 28 }}>
                 {isWhatsappCta ? (

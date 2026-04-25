@@ -8,8 +8,6 @@ name: Nightly Worker preview — @p0-seo
 # docs/ops/ci-seo-i18n-gate.md §"Required repository secrets").
 
 on:
-  schedule:
-    - cron: '0 7 * * *' # 07:00 UTC daily
   workflow_dispatch:
 
 concurrency:
@@ -80,7 +78,7 @@ jobs:
           OPENROUTER_BASE_URL: https://openrouter.ai/api/v1
           OPENROUTER_MODEL: anthropic/claude-sonnet-4-5
           REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET }}
-          NEXT_PUBLIC_URL: https://bukeer.com
+          NEXT_PUBLIC_URL: https://studio.bukeer.com
           NEXT_PUBLIC_MAIN_DOMAIN: bukeer.com
 
       - name: Start Worker preview (background)
@@ -123,7 +121,7 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET }}
           E2E_WEBSITE_ID: ${{ secrets.E2E_WEBSITE_ID }}
-          NEXT_PUBLIC_URL: https://bukeer.com
+          NEXT_PUBLIC_URL: https://studio.bukeer.com
           NEXT_PUBLIC_MAIN_DOMAIN: bukeer.com
 
       - name: Generate SEO i18n gate report

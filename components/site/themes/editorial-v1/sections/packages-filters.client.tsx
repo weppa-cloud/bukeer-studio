@@ -26,6 +26,7 @@ import { formatPriceOrConsult } from '@/lib/products/format-price';
 import { convertCurrencyAmount, type CurrencyConfig } from '@/lib/site/currency';
 import { usePreferredCurrency } from '@/lib/site/use-preferred-currency';
 import type { WebsiteData } from '@/lib/supabase/get-website';
+import { supabaseImageUrl } from '@/lib/images/supabase-transform';
 
 export interface EditorialPackageItem {
   id: string;
@@ -276,9 +277,11 @@ function PackageCard({
       <div className="pack-media">
         {pkg.image ? (
           <Image
-            src={pkg.image}
+            src={supabaseImageUrl(pkg.image, { width: 560, quality: 70 })}
             alt={pkg.name}
             fill
+            loading="lazy"
+            fetchPriority="low"
             sizes="(max-width: 720px) 88vw, (max-width: 1100px) 50vw, 33vw"
             style={{ objectFit: 'cover' }}
           />

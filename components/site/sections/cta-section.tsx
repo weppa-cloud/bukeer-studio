@@ -3,7 +3,9 @@
 import { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 import { BlurFade } from '@/components/ui/blur-fade';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
+import { WhatsAppIntentButton } from '@/components/site/whatsapp-intent-button';
 import { useWebsiteLocale } from '@/lib/hooks/use-website-locale';
+import { ContextualCtaLink } from '@/components/site/contextual-cta-link';
 
 interface CtaSectionProps {
   section: WebsiteSection;
@@ -85,27 +87,37 @@ export function CtaSection({ section, website }: CtaSectionProps) {
           <BlurFade delay={0.3}>
             <div className="mt-8 flex flex-wrap gap-4 justify-center">
               {sectionContent.ctaText && sectionContent.ctaUrl && (
-                <a
+                <ContextualCtaLink
                   href={sectionContent.ctaUrl}
+                  phone={content.social?.whatsapp || content.contact?.phone || (content as any)?.account?.phone || null}
+                  productName={title}
+                  label={sectionContent.ctaText}
+                  analyticsLocation="cta_section_primary"
                   className="group relative px-8 py-4 font-semibold rounded-full transition-all duration-300 hover:scale-[1.03] active:scale-[0.97]"
                   style={{ backgroundColor: 'var(--bg)', color: 'var(--accent)' }}
                 >
                   {/* Pulsing ring */}
                   <span className="absolute inset-0 rounded-full animate-ping opacity-20" style={{ backgroundColor: 'var(--bg)' }} />
                   <span className="relative">{sectionContent.ctaText}</span>
-                </a>
+                </ContextualCtaLink>
               )}
-              {content.social?.whatsapp && (
-                <a
-                  href={`https://wa.me/${content.social.whatsapp.replace(/[^0-9]/g, '')}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-8 py-4 border-2 font-semibold rounded-full hover:bg-white/10 transition-all duration-300"
-                  style={{ borderColor: 'var(--accent-text)', color: 'var(--accent-text)' }}
-                >
-                  {text('sectionWhatsapp')}
-                </a>
-              )}
+              {(() => {
+                const rawWhatsApp =
+                  content.social?.whatsapp ||
+                  content.contact?.phone ||
+                  (content as any)?.account?.phone ||
+                  null;
+                if (!rawWhatsApp) return null;
+                return (
+                  <WhatsAppIntentButton
+                    phone={rawWhatsApp}
+                    productName={title}
+                    analyticsLocation="cta_section"
+                    label={text('sectionWhatsapp')}
+                    className="px-8 py-4 border-2 font-semibold rounded-full hover:bg-white/10 transition-all duration-300 text-[var(--accent-text)] border-[var(--accent-text)]"
+                  />
+                );
+              })()}
             </div>
           </BlurFade>
         </div>

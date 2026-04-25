@@ -5,16 +5,19 @@
  *
  * Single-step capture — date preference + name + country code + phone.
  * On submit we POST to /api/waflow/lead and redirect to WhatsApp with
- * a prefilled message that includes source URL + normalized phone.
+ * a prefilled message. The customer's phone stays in the lead record.
  */
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { parsePhoneNumberFromString } from 'libphonenumber-js/min';
+
+import { trackEvent } from '@/lib/analytics/track';
 
 import {
   WAFLOW_COUNTRIES,
   WAFLOW_WHEN_OPTIONS,
 } from '../types';
-import type { WaflowConfig, WaflowVariant } from '../types';
+import type { WaflowConfig, WaflowCountry, WaflowVariant } from '../types';
 import {
   buildWaflowMessage,
   buildWaflowUrl,
@@ -31,6 +34,170 @@ export interface WaflowStepContactProps {
 }
 
 type ContactErrors = Partial<Record<'name' | 'phone', string>>;
+
+const FREQUENT_COUNTRY_CODES = ['CO', 'US', 'MX', 'ES', 'PA', 'EC', 'PE', 'CL'];
+
+const COUNTRY_ALIASES: Record<string, readonly string[]> = {
+  US: ['usa', 'eeuu', 'ee.uu', 'estados unidos', 'united states', 'estados unidos de america'],
+  GB: ['uk', 'reino unido', 'gran bretana', 'great britain', 'united kingdom', 'inglaterra'],
+  MX: ['mexico', 'méxico'],
+};
+
+function normalizeCountrySearch(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}+]+/gu, ' ')
+    .trim();
+}
+
+function countrySearchText(country: WaflowCountry): string {
+  const aliases = COUNTRY_ALIASES[country.c] ?? [];
+  return normalizeCountrySearch([
+    country.name,
+    country.c,
+    country.code,
+    country.code.replace('+', ''),
+    ...aliases,
+  ].join(' '));
+}
+
+export function getWaflowCountryOptions(
+  countries: readonly WaflowCountry[] = WAFLOW_COUNTRIES,
+): WaflowCountry[] {
+  const frequent = FREQUENT_COUNTRY_CODES
+    .map((code) => countries.find((country) => country.c === code))
+    .filter((country): country is WaflowCountry => Boolean(country));
+  const frequentSet = new Set(frequent.map((country) => country.c));
+  const rest = countries.filter((country) => !frequentSet.has(country.c));
+  return [...frequent, ...rest];
+}
+
+export function filterWaflowCountries(
+  query: string,
+  countries: readonly WaflowCountry[] = getWaflowCountryOptions(),
+): WaflowCountry[] {
+  const normalized = normalizeCountrySearch(query);
+  if (!normalized) return [...countries];
+  return countries.filter((country) => countrySearchText(country).includes(normalized));
+}
+
+export function parseWaflowInternationalPhone(value: string): {
+  countryCode: string;
+  nationalNumber: string;
+} | null {
+  if (!value.trim().startsWith('+')) return null;
+  const parsed = parsePhoneNumberFromString(value);
+  if (!parsed?.country) return null;
+  return {
+    countryCode: parsed.country,
+    nationalNumber: parsed.nationalNumber,
+  };
+}
+
+interface CountryPhoneComboboxProps {
+  selected: WaflowCountry;
+  onSelect: (country: WaflowCountry) => void;
+  disabled?: boolean;
+}
+
+function CountryPhoneCombobox({ selected, onSelect, disabled }: CountryPhoneComboboxProps) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const searchRef = useRef<HTMLInputElement | null>(null);
+  const countries = useMemo(() => getWaflowCountryOptions(), []);
+  const filtered = useMemo(() => filterWaflowCountries(query, countries), [countries, query]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (event: MouseEvent | TouchEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('touchstart', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('touchstart', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const id = window.setTimeout(() => searchRef.current?.focus(), 0);
+    return () => window.clearTimeout(id);
+  }, [open]);
+
+  return (
+    <div className="waf-country" ref={rootRef}>
+      <button
+        type="button"
+        className="waf-country-trigger"
+        aria-label={`Cambiar país, seleccionado ${selected.name} ${selected.code}`}
+        aria-expanded={open}
+        aria-haspopup="listbox"
+        onClick={() => {
+          setOpen((current) => !current);
+          setQuery('');
+        }}
+        disabled={disabled}
+      >
+        <span className="waf-country-flag" aria-hidden="true">{selected.flag}</span>
+        <span className="waf-country-name">{selected.name}</span>
+        <span className="waf-country-code">{selected.code}</span>
+        <span className="waf-country-caret" aria-hidden="true">▾</span>
+      </button>
+      {open ? (
+        <div className="waf-country-popover">
+          <label className="sr-only" htmlFor="waf-country-search">
+            Buscar país o indicativo
+          </label>
+          <input
+            id="waf-country-search"
+            ref={searchRef}
+            className="waf-country-search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Buscar país o indicativo"
+            autoComplete="off"
+          />
+          <div className="waf-country-list" role="listbox" aria-label="Países">
+            {filtered.length > 0 ? (
+              filtered.map((country) => (
+                <button
+                  key={country.c}
+                  type="button"
+                  className={`waf-country-option${country.c === selected.c ? ' selected' : ''}`}
+                  role="option"
+                  aria-selected={country.c === selected.c}
+                  onClick={() => {
+                    onSelect(country);
+                    setOpen(false);
+                    setQuery('');
+                  }}
+                >
+                  <span className="waf-country-option-main">
+                    <span aria-hidden="true">{country.flag}</span>
+                    <span>{country.name}</span>
+                  </span>
+                  <span className="waf-country-option-code">{country.code}</span>
+                </button>
+              ))
+            ) : (
+              <div className="waf-country-empty">No encontramos ese país</div>
+            )}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 export function WaflowStepContact({
   variant,
@@ -62,7 +229,7 @@ export function WaflowStepContact({
       errs.name = 'Escribe tu nombre';
     }
     if (!validateWaflowPhone(state.phone, country)) {
-      errs.phone = `Número inválido para ${country.name}. Revisa indicativo y número.`;
+      errs.phone = `Revisa el número para ${country.name} (${country.code}).`;
     }
     if (Object.keys(errs).length > 0) {
       setErrors(errs);
@@ -134,6 +301,24 @@ export function WaflowStepContact({
       whatsappUrl: url,
       whatsappMessage: message,
     });
+    trackEvent('waflow_submit', {
+      variant,
+      reference_code: ref,
+      destination_slug: config.destination?.slug ?? null,
+      destination_name: config.destination?.name ?? null,
+      package_slug: config.pkg?.slug ?? null,
+      package_title: config.pkg?.title ?? null,
+      country: country.c,
+      adults: state.adults,
+      children: state.children,
+    });
+    trackEvent('whatsapp_cta_click', {
+      variant,
+      reference_code: ref,
+      location_context: 'waflow_submit',
+      destination_slug: config.destination?.slug ?? null,
+      package_slug: config.pkg?.slug ?? null,
+    });
     setLoading(false);
     setStep('confirmation');
 
@@ -156,6 +341,22 @@ export function WaflowStepContact({
   ]);
 
   const phoneFmt = state.phone.replace(/\D/g, '').replace(/(\d{3})(?=\d)/g, '$1 ').trim();
+
+  const handlePhoneChange = useCallback(
+    (value: string) => {
+      const parsed = parseWaflowInternationalPhone(value);
+      if (parsed) {
+        patch({
+          countryCode: parsed.countryCode,
+          phone: parsed.nationalNumber,
+        });
+      } else {
+        patch({ phone: value });
+      }
+      if (errors.phone) setErrors((p) => ({ ...p, phone: undefined }));
+    },
+    [errors.phone, patch],
+  );
 
   return (
     <div className="waf-body">
@@ -205,29 +406,21 @@ export function WaflowStepContact({
           <span>Tu WhatsApp</span>
           <span className="req">Requerido</span>
         </label>
-        <div className={`waf-input-wrap${errors.phone ? ' error' : ''}`}>
-          <select
-            id="waf-country-inline"
-            className="waf-prefix-select"
-            value={state.countryCode}
-            onChange={(e) => patch({ countryCode: e.target.value, phone: '' })}
-            aria-label="Indicativo del país"
-          >
-            {WAFLOW_COUNTRIES.map((cn) => (
-              <option key={cn.c} value={cn.c}>
-                {cn.flag} {cn.code}
-              </option>
-            ))}
-          </select>
+        <div className={`waf-input-wrap waf-phone-wrap${errors.phone ? ' error' : ''}`}>
+          <CountryPhoneCombobox
+            selected={country}
+            onSelect={(nextCountry) => {
+              patch({ countryCode: nextCountry.c });
+              if (errors.phone) setErrors((p) => ({ ...p, phone: undefined }));
+            }}
+            disabled={loading}
+          />
           <input
             id="waf-phone"
             className="waf-input"
             type="tel"
             value={phoneFmt}
-            onChange={(e) => {
-              patch({ phone: e.target.value });
-              if (errors.phone) setErrors((p) => ({ ...p, phone: undefined }));
-            }}
+            onChange={(e) => handlePhoneChange(e.target.value)}
             placeholder={country.c === 'CO' ? '300 123 4567' : 'número'}
             inputMode="numeric"
             autoComplete="tel"

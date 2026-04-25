@@ -160,6 +160,13 @@ describe('compileTheme', () => {
     assert.ok(result.web!.fontImports[0].includes('fonts.googleapis.com'));
   });
 
+  it('emits a font-serif invariant variable', () => {
+    const result = compileTheme(makeValidTokens(), makeValidProfile(), { target: 'web' });
+    const invariantVars = new Map(result.web!.invariant.map((entry) => [entry.name, entry.value]));
+    assert.equal(invariantVars.has('font-serif'), true);
+    assert.match(invariantVars.get('font-serif')!, /Instrument Serif|serif/);
+  });
+
   it('generates data attributes', () => {
     const result = compileTheme(makeValidTokens(), makeValidProfile(), { target: 'web' });
     assert.ok(result.web!.dataAttributes['layout-variant']);
@@ -238,6 +245,7 @@ describe('previewTheme', () => {
     assert.ok(preview.colors.light.primary);
     assert.ok(preview.colors.dark.primary);
     assert.ok(preview.typography.headingFont);
+    assert.ok(preview.typography.editorialSerif);
     assert.ok(preview.previewCss);
   });
 });

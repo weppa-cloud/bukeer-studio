@@ -1,13 +1,20 @@
 import Image from 'next/image';
-import Link from 'next/link';
 import type { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 import type { WebsitePage, PageSection, DestinationData } from '@/lib/supabase/get-pages';
 import { renderSection } from '@/lib/sections/render-section';
+import { resolveTemplateSet } from '@/lib/sections/template-set';
+import { editorialHtml } from '../site/themes/editorial-v1/primitives/rich-heading';
 import { SECTION_TYPES } from '@bukeer/website-contract';
 import { LandingPageSchema } from '@/components/seo/landing-page-schema';
 import { StickyCTABar } from '@/components/site/sticky-cta-bar';
 import { buildWhatsAppUrl } from '@/components/site/whatsapp-url';
-import { WhatsAppIntentButton } from '@/components/site/whatsapp-intent-button';
+import { WhatsAppIntentButton, WhatsAppIntentInterceptor } from '@/components/site/whatsapp-intent-button';
+import { ContextualCtaLink } from '@/components/site/contextual-cta-link';
+import { WaflowCTAButton } from '@/components/site/themes/editorial-v1/waflow/cta-button';
+import { WaflowLandingInterceptor } from '@/components/site/themes/editorial-v1/waflow/landing-interceptor';
+import type { WaflowPrefill } from '@/components/site/themes/editorial-v1/waflow/types';
+import { MexicoTravelFunnelBlock } from '@/components/site/growth/mexico-travel-funnel-block';
+import { getBasePath } from '@/lib/utils/base-path';
 
 const HERO_SECTION_TYPES = SECTION_TYPES.filter((t) => t.startsWith('hero'));
 
@@ -98,12 +105,7 @@ export function StaticPage({ website, page, dynamicDestinations = [] }: StaticPa
         });
   const primaryCtaHref = heroConfig.ctaUrl || heroWhatsappUrl || '#contact';
   const secondaryCtaHref = heroConfig.secondaryCtaUrl || '#pricing';
-  const primaryCtaIsWhatsApp = Boolean(
-    rawWhatsApp && (
-      (heroConfig.ctaUrl && /wa\.me|whatsapp/i.test(heroConfig.ctaUrl))
-      || (!heroConfig.ctaUrl && heroWhatsappUrl)
-    )
-  );
+  const primaryCtaIsWhatsApp = /wa\.me|whatsapp/i.test(primaryCtaHref);
 
   // Extract first pricing section's numeric price + currency for the sticky bar.
   const firstPricing = sections.find((s) => {
@@ -119,8 +121,26 @@ export function StaticPage({ website, page, dynamicDestinations = [] }: StaticPa
   const stickyPrice = firstTier?.price ?? null;
   const stickyCurrency = firstTier?.currency ?? pricingContent.currency ?? 'USD';
 
-  return (
-    <div className="min-h-screen">
+  const templateSet = resolveTemplateSet(website);
+  const isEditorial = templateSet === 'editorial-v1';
+  const basePath = getBasePath(
+    (website as unknown as Record<string, unknown>).subdomain as string,
+    Boolean((website as unknown as Record<string, unknown>).isCustomDomain),
+  );
+  const landingTitle = heroConfig.title || page.title;
+  const landingWaflowPackage = {
+    slug: page.slug || 'landing',
+    title: landingTitle,
+    heroImageUrl: heroConfig.backgroundImage || null,
+    destinationSlug: 'colombia',
+  };
+  const landingWaflowPrefill: WaflowPrefill = {
+    destinationChoice: 'Colombia',
+    notes: page.slug ? `Landing: /${page.slug}` : undefined,
+  };
+
+  const pageContent = (
+    <div className="min-h-screen" data-template-set={templateSet}>
       {/* Landing page structured data (TouristTrip, FAQPage, AggregateRating, BreadcrumbList) */}
       <LandingPageSchema
         sections={sections}
@@ -155,21 +175,37 @@ export function StaticPage({ website, page, dynamicDestinations = [] }: StaticPa
                 {heroConfig.eyebrow}
               </span>
             )}
-            <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold mb-5 drop-shadow-sm">
-              {heroConfig.title || page.title}
-            </h1>
+            <h1
+              className={isEditorial ? "display-xl mb-5" : "text-3xl md:text-5xl lg:text-6xl font-bold mb-5 drop-shadow-sm"}
+              dangerouslySetInnerHTML={editorialHtml(heroConfig.title || page.title) || { __html: heroConfig.title || page.title }}
+            />
             {heroConfig.subtitle && (
-              <p className="text-base md:text-xl max-w-3xl mx-auto opacity-95 mb-7 leading-relaxed">
-                {heroConfig.subtitle}
-              </p>
+              <p
+                className={isEditorial ? "lead max-w-3xl mx-auto mb-7" : "text-base md:text-xl max-w-3xl mx-auto opacity-95 mb-7 leading-relaxed"}
+                dangerouslySetInnerHTML={editorialHtml(heroConfig.subtitle) || { __html: heroConfig.subtitle }}
+              />
             )}
             {(heroConfig.ctaText || heroConfig.secondaryCtaText) && (
               <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
                 {heroConfig.ctaText && primaryCtaHref && (
-                  primaryCtaIsWhatsApp ? (
-                    <WhatsAppIntentButton
+                  primaryCtaIsWhatsApp && isEditorial ? (
+                    <WaflowCTAButton
+                      variant="D"
+                      pkg={landingWaflowPackage}
+                      prefill={landingWaflowPrefill}
+                      fallbackHref={heroWhatsappUrl ?? primaryCtaHref}
+                      className="inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-sm font-semibold text-white shadow-lg transition-opacity hover:opacity-90 md:text-base"
+                    >
+                      <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden>
+                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347" />
+                      </svg>
+                      {heroConfig.ctaText}
+                    </WaflowCTAButton>
+                  ) : (
+                    <ContextualCtaLink
+                      href={primaryCtaHref}
                       phone={rawWhatsApp}
-                      productName={heroConfig.title || page.title}
+                      productName={landingTitle}
                       location="Colombia"
                       refCode={page.slug}
                       label={heroConfig.ctaText}
@@ -181,32 +217,26 @@ export function StaticPage({ website, page, dynamicDestinations = [] }: StaticPa
                         <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347" />
                       </svg>
                       {heroConfig.ctaText}
-                    </WhatsAppIntentButton>
-                  ) : (
-                    <a
-                      href={primaryCtaHref}
-                      target={primaryCtaHref.startsWith('http') ? '_blank' : undefined}
-                      rel={primaryCtaHref.startsWith('http') ? 'noopener noreferrer' : undefined}
-                      className="inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-sm font-semibold text-white shadow-lg transition-opacity hover:opacity-90 md:text-base"
-                      style={{ background: 'var(--accent)' }}
-                    >
-                      <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden>
-                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347" />
-                      </svg>
-                      {heroConfig.ctaText}
-                    </a>
+                    </ContextualCtaLink>
                   )
                 )}
                 {heroConfig.secondaryCtaText && (
-                  <a
+                  <ContextualCtaLink
                     href={secondaryCtaHref}
+                    phone={rawWhatsApp}
+                    productName={heroConfig.title || page.title}
+                    location="Colombia"
+                    refCode={page.slug}
+                    label={heroConfig.secondaryCtaText}
+                    analyticsLocation="hero_secondary"
+                    analyticsContext={{ page_slug: page.slug || '', context: 'static_landing' }}
                     className="inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm md:text-base font-semibold text-white bg-white/10 hover:bg-white/20 backdrop-blur transition-colors border border-white/30"
                   >
                     {heroConfig.secondaryCtaText}
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
                     </svg>
-                  </a>
+                  </ContextualCtaLink>
                 )}
               </div>
             )}
@@ -241,25 +271,54 @@ export function StaticPage({ website, page, dynamicDestinations = [] }: StaticPa
         );
       })}
 
+      <MexicoTravelFunnelBlock
+        basePath={basePath}
+        slug={page.slug}
+        fallbackWhatsappHref={heroWhatsappUrl}
+      />
+
       {/* CTA Section */}
       {ctaConfig.title && (
         <section className="py-16 px-4 bg-primary-container">
           <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-2xl md:text-3xl font-bold text-on-primary-container mb-4">
-              {ctaConfig.title}
-            </h2>
+            <h2
+              className="text-2xl md:text-3xl font-bold text-on-primary-container mb-4"
+              dangerouslySetInnerHTML={editorialHtml(ctaConfig.title) || { __html: ctaConfig.title }}
+            />
             {ctaConfig.subtitle && (
-              <p className="text-on-primary-container/80 mb-8">
-                {ctaConfig.subtitle}
-              </p>
+              <p
+                className="text-on-primary-container/80 mb-8"
+                dangerouslySetInnerHTML={editorialHtml(ctaConfig.subtitle) || { __html: ctaConfig.subtitle }}
+              />
             )}
             {ctaConfig.buttonText && (
-              <Link
-                href={ctaConfig.buttonLink || '/contacto'}
-                className="inline-flex items-center gap-2 px-8 py-4 bg-primary text-on-primary rounded-full font-medium hover:bg-primary/90 transition-colors"
-              >
-                {ctaConfig.buttonText}
-              </Link>
+              isEditorial && rawWhatsApp && /wa\.me|whatsapp|tel:|asesor|llamar|cotizar|reservar/i.test(
+                `${ctaConfig.buttonLink || ''} ${ctaConfig.buttonText}`,
+              ) ? (
+                <WaflowCTAButton
+                  variant="D"
+                  pkg={landingWaflowPackage}
+                  prefill={landingWaflowPrefill}
+                  fallbackHref={heroWhatsappUrl ?? undefined}
+                  className="inline-flex items-center gap-2 px-8 py-4 bg-primary text-on-primary rounded-full font-medium hover:bg-primary/90 transition-colors"
+                >
+                  {ctaConfig.buttonText}
+                </WaflowCTAButton>
+              ) : (
+                <ContextualCtaLink
+                  href={ctaConfig.buttonLink || '/contacto'}
+                  phone={rawWhatsApp}
+                  productName={ctaConfig.title || page.title}
+                  location="Colombia"
+                  refCode={page.slug}
+                  label={ctaConfig.buttonText}
+                  analyticsLocation="page_cta"
+                  analyticsContext={{ page_slug: page.slug || '', context: 'static_landing' }}
+                  className="inline-flex items-center gap-2 px-8 py-4 bg-primary text-on-primary rounded-full font-medium hover:bg-primary/90 transition-colors"
+                >
+                  {ctaConfig.buttonText}
+                </ContextualCtaLink>
+              )
             )}
           </div>
         </section>
@@ -273,19 +332,23 @@ export function StaticPage({ website, page, dynamicDestinations = [] }: StaticPa
           whatsappUrl={heroWhatsappUrl}
           phone={rawWhatsApp}
           openWhatsappAsModal={true}
-          whatsappProductName={heroConfig.title || page.title}
+          whatsappProductName={landingTitle}
           whatsappLocation="Colombia"
           whatsappRefCode={page.slug}
+          openCallAsWhatsappModal={true}
+          openWhatsappAsWaflow={isEditorial}
+          waflowPackage={landingWaflowPackage}
+          waflowPrefill={landingWaflowPrefill}
           analyticsContext={{ page_slug: page.slug || '', context: 'static_landing' }}
         />
       )}
 
-      {/* Floating WhatsApp FAB — persistent */}
-      {rawWhatsApp && (
+      {/* Floating WhatsApp FAB — legacy templates only. Editorial uses WaflowProvider's global FAB. */}
+      {!isEditorial && rawWhatsApp && (
         <div className="fixed bottom-5 right-5 z-40 hidden sm:block">
           <WhatsAppIntentButton
             phone={rawWhatsApp}
-            productName={heroConfig.title || page.title}
+            productName={landingTitle}
             location="Colombia"
             refCode={page.slug}
             label="WhatsApp"
@@ -298,5 +361,25 @@ export function StaticPage({ website, page, dynamicDestinations = [] }: StaticPa
         </div>
       )}
     </div>
+  );
+
+  if (isEditorial) {
+    return (
+      <WaflowLandingInterceptor pkg={landingWaflowPackage} prefill={landingWaflowPrefill}>
+        {pageContent}
+      </WaflowLandingInterceptor>
+    );
+  }
+
+  return (
+    <WhatsAppIntentInterceptor
+      phone={rawWhatsApp}
+      productName={landingTitle}
+      location="Colombia"
+      refCode={page.slug}
+      analyticsContext={{ page_slug: page.slug || '', context: 'static_landing' }}
+    >
+      {pageContent}
+    </WhatsAppIntentInterceptor>
   );
 }

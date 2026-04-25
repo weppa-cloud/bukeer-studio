@@ -1,4 +1,3 @@
-import { createHash } from 'crypto';
 import { generateObject } from 'ai';
 import type { NextRequest } from 'next/server';
 import { z } from 'zod';
@@ -10,7 +9,19 @@ import { requireWebsiteAccess } from '@/lib/seo/server-auth';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/service-role';
 
 export type BatchEntityType = 'all' | 'blog_post' | 'package' | 'activity';
-export type MediaEntityType = 'blog_post' | 'package' | 'activity' | 'page' | 'brand' | 'review' | 'gallery_item';
+export type MediaEntityType =
+  | 'blog_post'
+  | 'package'
+  | 'activity'
+  | 'hotel'
+  | 'transfer'
+  | 'destination'
+  | 'website'
+  | 'section'
+  | 'page'
+  | 'brand'
+  | 'review'
+  | 'gallery_item';
 export type MediaUsageContext = 'featured' | 'body' | 'hero' | 'gallery' | 'avatar' | 'og';
 
 const MAX_BATCH_SIZE = 50;
@@ -117,7 +128,21 @@ function mapMimeToFormat(mimeType: string): UploadImageMetadata['format'] {
 }
 
 function hashUrl(url: string): string {
-  return createHash('sha1').update(url).digest('hex').slice(0, 24);
+  let hashA = 0x811c9dc5;
+  let hashB = 0x01000193;
+
+  for (let index = 0; index < url.length; index += 1) {
+    const code = url.charCodeAt(index);
+    hashA ^= code;
+    hashA = Math.imul(hashA, 0x01000193);
+    hashB ^= code + index;
+    hashB = Math.imul(hashB, 0x85ebca6b);
+  }
+
+  const partA = (hashA >>> 0).toString(16).padStart(8, '0');
+  const partB = (hashB >>> 0).toString(16).padStart(8, '0');
+  const partC = (url.length >>> 0).toString(16).padStart(8, '0');
+  return `${partA}${partB}${partC}`.slice(0, 24);
 }
 
 function decodeStoragePath(path: string): string {

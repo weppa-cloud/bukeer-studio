@@ -843,14 +843,28 @@ export function PageEditor({ websiteId, pageId, onBack }: PageEditorProps) {
     }
   }, [sections, saveSections, isHomepage, websiteId, pageId, supabase, loadData]);
 
-  const handlePreview = useCallback(() => {
+  const handlePreview = useCallback(async () => {
     if (!websiteData?.subdomain) return;
-    // Use local dev server for preview during development, production URL otherwise
-    const baseUrl = typeof window !== 'undefined' && window.location.hostname === 'localhost'
-      ? `${window.location.origin}/site/${websiteData.subdomain}`
-      : `https://${websiteData.subdomain}.bukeer.com`;
+    const previewWindow = window.open('about:blank', '_blank', 'noopener,noreferrer');
+    const tokenRes = await fetch('/api/preview-token', { cache: 'no-store' });
+    if (!tokenRes.ok) {
+      previewWindow?.close();
+      return;
+    }
+    const tokenData = (await tokenRes.json()) as { token?: string };
+    if (!tokenData.token) {
+      previewWindow?.close();
+      return;
+    }
+
     const slugPath = !isHomepage && pageData?.slug ? `/${pageData.slug}` : '';
-    window.open(`${baseUrl}${slugPath}`, '_blank');
+    const previewUrl = new URL(`/site/${websiteData.subdomain}${slugPath}`, window.location.origin);
+    previewUrl.searchParams.set('preview_token', tokenData.token);
+    if (previewWindow) {
+      previewWindow.location.href = previewUrl.toString();
+    } else {
+      window.location.href = previewUrl.toString();
+    }
   }, [websiteData, pageData, isHomepage]);
 
   // refreshExactPreview removed — no iframe to refresh

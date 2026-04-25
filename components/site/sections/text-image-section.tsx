@@ -5,13 +5,14 @@ import { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 import { BlurFade } from '@/components/ui/blur-fade';
 import { resolveAlt, type LocalizableAlt } from '@bukeer/website-contract';
 import { useWebsiteLocale } from '@/lib/hooks/use-website-locale';
+import { ContextualCtaLink } from '@/components/site/contextual-cta-link';
 
 interface TextImageSectionProps {
   section: WebsiteSection;
   website: WebsiteData;
 }
 
-export function TextImageSection({ section }: TextImageSectionProps) {
+export function TextImageSection({ section, website }: TextImageSectionProps) {
   const locale = useWebsiteLocale();
   const content = (section.content as {
     title?: string;
@@ -59,8 +60,12 @@ export function TextImageSection({ section }: TextImageSectionProps) {
                 </p>
               )}
               {ctaText && ctaUrl && (
-                <a
+                <ContextualCtaLink
                   href={ctaUrl}
+                  phone={website.content?.social?.whatsapp || website.content?.contact?.phone || website.content?.account?.phone || null}
+                  productName={title}
+                  label={ctaText}
+                  analyticsLocation="text_image_cta"
                   className="inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90"
                   style={{ background: 'var(--accent)' }}
                 >
@@ -68,7 +73,7 @@ export function TextImageSection({ section }: TextImageSectionProps) {
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                   </svg>
-                </a>
+                </ContextualCtaLink>
               )}
             </div>
           </BlurFade>

@@ -22,6 +22,7 @@ import type { ReactElement } from 'react';
 import type { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 import { localizeEditorialText, getEditorialTextGetter } from '../i18n';
 import { Icons } from '../primitives/icons';
+import { editorialHtml } from '../primitives/rich-heading';
 
 export interface EditorialInclusionsExclusionsSectionProps {
   section: WebsiteSection;
@@ -67,7 +68,7 @@ export function InclusionsExclusionsSection({
       <div className="ev-container">
         {title ? (
           <div className="ev-section-head">
-            <h2 className="headline-md">{title}</h2>
+            <h2 className="headline-md" dangerouslySetInnerHTML={editorialHtml(title)} />
           </div>
         ) : null}
 
@@ -87,7 +88,7 @@ export function InclusionsExclusionsSection({
                     <span className="inclusions-item-icon inclusions-item-icon--yes" aria-hidden="true">
                       {Icons.check({ size: 14 })}
                     </span>
-                    <span className="body-md">{localizeEditorialText(website, item)}</span>
+                    <span className="body-md" dangerouslySetInnerHTML={editorialHtml(localizeEditorialText(website, item))} />
                   </li>
                 ))}
               </ul>
@@ -109,7 +110,7 @@ export function InclusionsExclusionsSection({
                     <span className="inclusions-item-icon inclusions-item-icon--no" aria-hidden="true">
                       {Icons.close({ size: 14 })}
                     </span>
-                    <span className="body-md">{localizeEditorialText(website, item)}</span>
+                    <span className="body-md" dangerouslySetInnerHTML={editorialHtml(localizeEditorialText(website, item))} />
                   </li>
                 ))}
               </ul>

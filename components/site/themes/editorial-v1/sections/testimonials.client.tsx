@@ -49,7 +49,7 @@ function initials(name: string): string {
 function renderStars(rating: number, starsAriaSuffix: string) {
   const count = Math.max(1, Math.min(5, Math.round(rating || 5)));
   return (
-    <div className="stars" aria-label={`${count} ${starsAriaSuffix}`}>
+    <div className="stars" role="img" aria-label={`${count} ${starsAriaSuffix}`}>
       {Array.from({ length: count }).map((_, i) => (
         <span key={i}>{Icons.star({ size: 18 })}</span>
       ))}
@@ -77,6 +77,8 @@ function renderAvatar(
           alt=""
           width={size}
           height={size}
+          loading="lazy"
+          fetchPriority="low"
           unoptimized
           style={{ width: size, height: size, objectFit: 'cover' }}
           onError={() => markBrokenAvatar(key)}
@@ -127,7 +129,7 @@ export function TestimonialsClient({ testimonials, locale = 'es-CO' }: Testimoni
         </div>
       </article>
 
-      <div className="testi-list" role="tablist" aria-label={editorialText('editorialTestimonialsListAria')}>
+      <div className="testi-list" role="group" aria-label={editorialText('editorialTestimonialsListAria')}>
         {testimonials.map((t, i) => (
           <button
             type="button"

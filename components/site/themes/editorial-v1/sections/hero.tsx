@@ -31,8 +31,10 @@
  * the DOM — users just see the button).
  */
 
+import Image from 'next/image';
 import type { CSSProperties, ReactElement } from 'react';
 import type { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
+import { supabaseImageUrl } from '@/lib/images/supabase-transform';
 import { getBasePath } from '@/lib/utils/base-path';
 import { Icons } from '../primitives/icons';
 import { HeroRotator, type HeroRotatorSlide } from './hero-rotator.client';
@@ -103,6 +105,8 @@ const DEFAULT_FALLBACK_SLIDES: HeroRotatorSlide[] = [
   { city: 'Eje Cafetero', region: 'Andes', imageUrl: null, alt: 'Eje Cafetero · Colombia' },
   { city: 'Medellín', region: 'Antioquia', imageUrl: null, alt: 'Medellín · Colombia' },
 ];
+const HERO_IMAGE_WIDTH = 1000;
+const HERO_IMAGE_QUALITY = 70;
 
 // ---------- Markup sanitizer for headline ----------
 // Headlines come from the operator-controlled `section.content.headline` and
@@ -110,24 +114,7 @@ const DEFAULT_FALLBACK_SLIDES: HeroRotatorSlide[] = [
 // verbatim from the designer copy catalog. We trust the source but still
 // enforce a very narrow allowlist — anything outside `<em>` / `<br>` is
 // stripped. Comments and CDATA are rejected outright.
-const ALLOWED_HEADLINE_TAGS = new Set(['em', 'br']);
-
-function sanitizeHeadline(raw: string | undefined | null): string {
-  if (!raw) return '';
-  // Drop comments + CDATA wholesale.
-  const noComments = raw
-    .replace(/<!--[\s\S]*?-->/g, '')
-    .replace(/<!\[CDATA\[[\s\S]*?\]\]>/g, '');
-  // Replace any tag that isn't in the allowlist with nothing. Attributes on
-  // the allowed tags are stripped: `<em class="x">` → `<em>`, `<br/>` → `<br>`.
-  return noComments.replace(/<\/?([a-zA-Z][a-zA-Z0-9]*)[^>]*>/g, (match, name) => {
-    const tag = String(name).toLowerCase();
-    if (!ALLOWED_HEADLINE_TAGS.has(tag)) return '';
-    const isClosing = match.startsWith('</');
-    if (tag === 'br') return '<br>';
-    return isClosing ? `</${tag}>` : `<${tag}>`;
-  });
-}
+import { editorialHtml } from '../primitives/rich-heading';
 
 function humanizeSlug(slug: string | undefined | null): string {
   if (!slug) return '';
@@ -204,11 +191,17 @@ export function HeroSection({
     editorialText('editorialHeroSideListLabel'),
   );
   const content = (section.content || {}) as HeroContent;
-  const basePath = getBasePath(website.subdomain, false);
+  const basePath = getBasePath(website.subdomain, Boolean((website as { isCustomDomain?: boolean }).isCustomDomain));
 
   const eyebrow = localizeEditorialText(website, content.eyebrow?.trim() || defaultEyebrow);
-  const sanitizedHeadline = sanitizeHeadline(localizeEditorialText(website, content.headline));
-  const subtitle = localizeEditorialText(website, content.subtitle?.trim() || '');
+  const headlineHtml = editorialHtml(
+    localizeEditorialText(website, content.headline) ||
+      localizeEditorialText(website, editorialText('editorialHeroHeadlineFallback')),
+  );
+  const subtitleHtml = editorialHtml(
+    localizeEditorialText(website, content.subtitle?.trim() || '') ||
+      localizeEditorialText(website, editorialText('editorialHeroSubtitleFallback')),
+  );
   const trustChipLabel = localizeEditorialText(website, content.trustChip?.label);
   const trustChip = content.trustChip
     ? { ...content.trustChip, label: trustChipLabel }
@@ -279,15 +272,37 @@ export function HeroSection({
   const placeholders = searchPlaceholders(content.search);
 
   const hasSlides = slides.length > 0;
+  const firstSlide = slides[0];
 
   return (
     <section className="hero" data-screen-label="Hero">
       {hasSlides ? (
-        <HeroRotator
-          slides={slides}
-          ariaLabel={editorialText('editorialHeroSlidesAria')}
-          locale={(website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale ?? website.default_locale ?? website.content?.locale ?? 'es-CO'}
-        />
+        <>
+          <div
+            className="hero-media"
+            data-ssr-hero-frame="true"
+            aria-label={editorialText('editorialHeroSlidesAria')}
+          >
+            {firstSlide?.imageUrl ? (
+              <Image
+                src={supabaseImageUrl(firstSlide.imageUrl, { width: HERO_IMAGE_WIDTH, quality: HERO_IMAGE_QUALITY })}
+                alt={firstSlide.alt || firstSlide.city || ''}
+                fill
+                sizes="100vw"
+                priority
+                fetchPriority="high"
+                style={{ objectFit: 'cover' }}
+              />
+            ) : (
+              <div className="scenic" />
+            )}
+          </div>
+          <HeroRotator
+            slides={slides}
+            ariaLabel={editorialText('editorialHeroSlidesAria')}
+            locale={(website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale ?? website.default_locale ?? website.content?.locale ?? 'es-CO'}
+          />
+        </>
       ) : (
         <div className="hero-media" aria-hidden="true">
           <div className="scenic" />
@@ -308,14 +323,16 @@ export function HeroSection({
 
           <span className="eyebrow hero-eyebrow">{eyebrow}</span>
 
-          {sanitizedHeadline ? (
+          {headlineHtml ? (
             <h1
               className="display-xl"
-              dangerouslySetInnerHTML={{ __html: sanitizedHeadline }}
+              dangerouslySetInnerHTML={headlineHtml}
             />
           ) : null}
 
-          {subtitle ? <p className="lead">{subtitle}</p> : null}
+          {subtitleHtml ? (
+            <p className="lead" dangerouslySetInnerHTML={subtitleHtml} />
+          ) : null}
 
           {ctas.length > 0 ? (
             <div className="hero-cta">

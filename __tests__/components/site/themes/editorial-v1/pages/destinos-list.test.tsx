@@ -83,7 +83,7 @@ describe('<EditorialDestinosListPage />', () => {
     expect(markup).toContain('data-testid="editorial-destinos-list"');
     expect(markup).toContain('data-testid="destinos-list-hero"');
     expect(markup).toContain('EXPLORA');
-    expect(markup).toContain('Ocho Colombias, ocho ritmos.');
+    expect(markup).toContain('Ocho Colombias, <em>ocho ritmos.</em>');
     // Legend — all 4 regions
     expect(markup).toContain('data-testid="destinos-legend"');
     expect(markup).toContain('>Caribe<');

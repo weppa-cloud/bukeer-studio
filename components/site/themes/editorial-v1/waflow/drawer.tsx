@@ -21,6 +21,8 @@
 
 import { useCallback, useEffect, useRef } from 'react';
 
+import { trackEvent } from '@/lib/analytics/track';
+
 import { Icons } from '../primitives/icons';
 import { Scenic } from '../primitives/scenic';
 
@@ -141,6 +143,12 @@ export function WaflowDrawer({
     const ref = makeWaflowRef(resolveRefPrefix(config));
     const msg = buildQuickSkipMessage(config, ref);
     const url = buildWaflowUrl(businessNumber || '', msg);
+    trackEvent('whatsapp_cta_click', {
+      location_context: 'waflow_quick_skip',
+      variant: config.variant,
+      destination_slug: config.destination?.slug ?? null,
+      package_slug: config.pkg?.slug ?? null,
+    });
     if (typeof window !== 'undefined') {
       window.open(url, '_blank', 'noopener');
     }

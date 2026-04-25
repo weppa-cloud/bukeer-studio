@@ -18,6 +18,7 @@ concurrency:
 
 jobs:
   ct:
+    if: vars.CI_QUALITY_PROVIDER != 'circleci'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:

@@ -386,12 +386,16 @@ export function ProductLandingPage({
     setActiveImageIndex((i) => (i - 1 + images.length) % images.length);
   }, [images.length]);
   const customHero = pageCustomization?.custom_hero;
-  const basePath = getBasePath(website.subdomain);
+  const isCustomDomain = Boolean((website as WebsiteData & { isCustomDomain?: boolean }).isCustomDomain);
+  const basePath = getBasePath(website.subdomain, isCustomDomain);
   const websiteUrl = website.custom_domain
     ? `https://${website.custom_domain}${basePath}`
     : website.subdomain
       ? `https://${website.subdomain}.bukeer.com${basePath}`
       : undefined;
+  const productPageUrl = websiteUrl && product.slug
+    ? `${websiteUrl}/${getCategorySlug(productType)}/${product.slug}`
+    : websiteUrl;
   const primaryPhone = website.content.account?.phone || website.content.contact?.phone || null;
   const usesScheduleCall = productType === 'activity' || productType === 'package';
   const callHref = usesScheduleCall
@@ -592,6 +596,8 @@ export function ProductLandingPage({
       product={schemaProduct}
       productType={productType}
       websiteUrl={websiteUrl}
+      pageUrl={productPageUrl}
+      organizationName={website.content.account?.name || website.content.siteName}
       language={
         // Issue #208: request-scoped locale (from middleware `x-public-resolved-locale`)
         // wins over website defaults so `/en/paquetes/X` emits `inLanguage: 'en-US'`

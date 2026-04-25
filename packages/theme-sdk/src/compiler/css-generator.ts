@@ -178,12 +178,16 @@ function generateInvariantVars(tokens: DesignTokens, profile: ThemeProfile): Css
   const typography = tokens.typography ?? ({} as DesignTokens['typography']);
   const display = typography.display ?? ({} as DesignTokens['typography']['display']);
   const body = typography.body ?? ({} as DesignTokens['typography']['body']);
+  const editorialSerif = typography.editorialSerif ?? ({} as NonNullable<DesignTokens['typography']['editorialSerif']>);
   const displayFamily = nonEmptyString(display.family, 'system-ui');
   const displayFallback = nonEmptyString(display.fallback, 'sans-serif');
   const displayWeight = nonEmptyString(display.weight, '400');
   const bodyFamily = nonEmptyString(body.family, 'system-ui');
   const bodyFallback = nonEmptyString(body.fallback, 'sans-serif');
   const bodyWeight = nonEmptyString(body.weight, '400');
+  const serifFamily = nonEmptyString(editorialSerif.family, 'Instrument Serif');
+  const serifFallback = nonEmptyString(editorialSerif.fallback, 'serif');
+  const serifWeight = nonEmptyString(editorialSerif.weight, '400');
   const typeScale = nonEmptyString(typography.scale, 'default');
   const bodyLineHeight = sanitizeNumber(typography.bodyLineHeight, 1.5);
   const letterSpacing = sanitizeNumber(typography.letterSpacing, 0);
@@ -191,8 +195,10 @@ function generateInvariantVars(tokens: DesignTokens, profile: ThemeProfile): Css
   // Typography
   vars.push({ name: 'font-heading', value: `"${displayFamily}", ${displayFallback}`, category: 'typography' });
   vars.push({ name: 'font-body', value: `"${bodyFamily}", ${bodyFallback}`, category: 'typography' });
+  vars.push({ name: 'font-serif', value: `"${serifFamily}", ${serifFallback}`, category: 'typography' });
   vars.push({ name: 'font-heading-weight', value: displayWeight, category: 'typography' });
   vars.push({ name: 'font-body-weight', value: bodyWeight, category: 'typography' });
+  vars.push({ name: 'font-serif-weight', value: serifWeight, category: 'typography' });
   vars.push({ name: 'type-scale', value: typeScaleToValue(typeScale), category: 'typography' });
   vars.push({ name: 'body-line-height', value: String(bodyLineHeight), category: 'typography' });
   vars.push({ name: 'letter-spacing', value: `${letterSpacing}em`, category: 'typography' });
@@ -339,7 +345,8 @@ function buildFontImports(tokens: DesignTokens): string[] {
   const typography = tokens.typography ?? ({} as DesignTokens['typography']);
   const displayFamily = nonEmptyString(typography.display?.family, 'system-ui');
   const bodyFamily = nonEmptyString(typography.body?.family, 'system-ui');
-  const fonts = new Set<string>([displayFamily, bodyFamily]);
+  const serifFamily = nonEmptyString(typography.editorialSerif?.family, '');
+  const fonts = new Set<string>([displayFamily, bodyFamily, serifFamily]);
   const urls = new Set<string>();
 
   for (const font of fonts) {
@@ -352,7 +359,6 @@ function buildFontImports(tokens: DesignTokens): string[] {
       continue;
     }
     if (font === 'Instrument Serif') {
-      urls.add('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap');
       continue;
     }
     const encoded = font.replace(/ /g, '+');

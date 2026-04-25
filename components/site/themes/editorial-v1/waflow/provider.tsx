@@ -41,6 +41,8 @@ import {
 } from 'react';
 import { usePathname } from 'next/navigation';
 
+import { trackEvent } from '@/lib/analytics/track';
+
 import { WaflowDrawer } from './drawer';
 import { WaflowFab } from './fab';
 import { WAFLOW_STORAGE_PREFIX, WAFLOW_STEP_ORDER } from './types';
@@ -207,7 +209,9 @@ export function WaflowProvider({
 
   const openWithConfig = useCallback((next: WaflowConfig, prefill?: WaflowPrefill) => {
     const persisted = readPersisted(next.variant);
-    const base = persisted ?? initialStateFor(next.variant);
+    const base = persisted?.step === 'confirmation'
+      ? initialStateFor(next.variant)
+      : persisted ?? initialStateFor(next.variant);
     const validSteps = new Set(WAFLOW_STEP_ORDER[next.variant]);
     const safeStep = validSteps.has(base.step) ? base.step : 'contact';
     // Pre-fill context-specific fields for B/D so the user sees them locked in.
@@ -215,6 +219,9 @@ export function WaflowProvider({
       ...base,
       variant: next.variant,
       step: safeStep,
+      referenceCode: null,
+      whatsappUrl: null,
+      whatsappMessage: null,
       destinationChoice:
         next.variant === 'B' && next.destination?.name
           ? next.destination.name
@@ -222,6 +229,13 @@ export function WaflowProvider({
       ...(prefill ?? {}),
     });
     setConfig(next);
+    trackEvent('waflow_open', {
+      variant: next.variant,
+      destination_slug: next.destination?.slug ?? null,
+      destination_name: next.destination?.name ?? null,
+      package_slug: next.pkg?.slug ?? null,
+      package_title: next.pkg?.title ?? null,
+    });
     if (typeof document !== 'undefined') {
       document.body.style.overflow = 'hidden';
     }

@@ -63,19 +63,7 @@ interface CtaContent {
 
 const DEFAULT_TITLE_KEY = 'editorialCtaTitleFallback';
 
-const ALLOWED_TITLE_TAGS = new Set(['em', 'br']);
-function sanitizeTitle(raw: string | undefined | null): string {
-  if (!raw) return '';
-  return raw
-    .replace(/<!--[\s\S]*?-->/g, '')
-    .replace(/<\/?([a-zA-Z][a-zA-Z0-9]*)[^>]*>/g, (match, name) => {
-      const tag = String(name).toLowerCase();
-      if (!ALLOWED_TITLE_TAGS.has(tag)) return '';
-      const isClosing = match.startsWith('</');
-      if (tag === 'br') return '<br>';
-      return isClosing ? `</${tag}>` : `<${tag}>`;
-    });
-}
+import { editorialHtml } from '../primitives/rich-heading';
 
 function resolveWhatsAppHref(website: WebsiteData, fallback: string): string {
   const raw = website.content?.social?.whatsapp || '';
@@ -147,14 +135,14 @@ export function CtaSection({
 }: EditorialCtaSectionProps): ReactElement {
   const editorialText = getEditorialTextGetter(website);
   const content = (section.content || {}) as CtaContent;
-  const basePath = getBasePath(website.subdomain, false);
+  const basePath = getBasePath(website.subdomain, Boolean((website as { isCustomDomain?: boolean }).isCustomDomain));
 
   const eyebrow = localizeEditorialText(website, content.eyebrow?.trim() || '');
-  const sanitizedTitle = sanitizeTitle(
+  const titleHtml = editorialHtml(
     localizeEditorialText(website, content.title)
     || localizeEditorialText(website, editorialText(DEFAULT_TITLE_KEY)),
   );
-  const subtitle = localizeEditorialText(website, content.subtitle?.trim() || '');
+  const subtitleHtml = editorialHtml(localizeEditorialText(website, content.subtitle?.trim() || ''));
   const ctas = normalizeCtas(content).map((cta) => ({
     ...cta,
     label: localizeEditorialText(website, cta.label),
@@ -187,11 +175,15 @@ export function CtaSection({
             {eyebrow ? (
               <span className="eyebrow cta-eyebrow">{eyebrow}</span>
             ) : null}
-            <h2
-              className="display-md"
-              dangerouslySetInnerHTML={{ __html: sanitizedTitle }}
-            />
-            {subtitle ? <p className="body-lg">{subtitle}</p> : null}
+            {titleHtml ? (
+              <h2
+                className="display-md"
+                dangerouslySetInnerHTML={titleHtml}
+              />
+            ) : null}
+            {subtitleHtml ? (
+              <p className="body-lg" dangerouslySetInnerHTML={subtitleHtml} />
+            ) : null}
           </div>
 
           {ctas.length > 0 ? (

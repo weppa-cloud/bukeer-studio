@@ -10,6 +10,8 @@
  * Visibility:
  *   - Hidden until the user scrolls past the first viewport
  *     (we avoid competing with the primary hero CTA above the fold)
+ *   - Also available on campaign landings; it opens the standard modal and
+ *     sits above the sticky CTA bar.
  *
  * Tapping it opens Variant A via the context.
  */

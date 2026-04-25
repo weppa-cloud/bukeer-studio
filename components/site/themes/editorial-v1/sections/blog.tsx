@@ -23,7 +23,10 @@ import type { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 import { Eyebrow } from '@/components/site/themes/editorial-v1/primitives/eyebrow';
 import { Icons } from '@/components/site/themes/editorial-v1/primitives/icons';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
+import { getBasePath } from '@/lib/utils/base-path';
 import { formatPublicDate } from '@/lib/site/public-ui-messages';
+import { supabaseImageUrl } from '@/lib/images/supabase-transform';
+import { editorialHtml } from '../primitives/rich-heading';
 
 export interface BlogTeaserPost {
   id: string;
@@ -90,7 +93,7 @@ export function BlogSection({ section, website }: EditorialBlogSectionProps) {
   const subtitle = (raw.subtitle ?? '').toString().trim();
   const posts = Array.isArray(raw.posts) ? raw.posts.slice(0, 3) : [];
 
-  const basePath = `/site/${website.subdomain}`;
+  const basePath = getBasePath(website.subdomain, Boolean((website as { isCustomDomain?: boolean }).isCustomDomain));
   const viewAllHref =
     (raw.viewAllHref ?? '').toString().trim() || `${basePath}/blog`;
 
@@ -104,16 +107,17 @@ export function BlogSection({ section, website }: EditorialBlogSectionProps) {
         <header className="ev-blog-teaser-head">
           <div>
             <Eyebrow>{eyebrow}</Eyebrow>
-            <h2 className="display-md" style={{ margin: '12px 0 0', maxWidth: '24ch' }}>
-              {title}
-            </h2>
+            <h2
+              className="display-md"
+              style={{ margin: '12px 0 0', maxWidth: '24ch' }}
+              dangerouslySetInnerHTML={editorialHtml(title)}
+            />
             {subtitle ? (
               <p
                 className="body-md"
                 style={{ margin: '12px 0 0', maxWidth: '52ch', color: 'var(--c-ink-2)' }}
-              >
-                {subtitle}
-              </p>
+                dangerouslySetInnerHTML={editorialHtml(subtitle)}
+              />
             ) : null}
           </div>
           <Link href={viewAllHref} className="ev-blog-teaser-viewall">
@@ -149,9 +153,11 @@ export function BlogSection({ section, website }: EditorialBlogSectionProps) {
                   >
                     {post.featuredImage ? (
                       <Image
-                        src={post.featuredImage}
+                        src={supabaseImageUrl(post.featuredImage, { width: 560, quality: 70 })}
                         alt={post.title}
                         fill
+                        loading="lazy"
+                        fetchPriority="low"
                         sizes="(max-width: 720px) 88vw, (max-width: 1100px) 45vw, 33vw"
                         style={{ objectFit: 'cover' }}
                       />

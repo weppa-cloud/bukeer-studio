@@ -16,22 +16,16 @@
  * without a pin highlight.
  */
 
-import { useCallback, useState } from 'react';
-import dynamic from 'next/dynamic';
+import { useCallback, useEffect, useRef, useState, type ComponentType } from 'react';
 import Image from 'next/image';
 
-import type { ColombiaMapPin } from '@/components/site/themes/editorial-v1/maps/colombia-maplibre.client';
+import type {
+  ColombiaMapLibreProps,
+  ColombiaMapPin,
+} from '@/components/site/themes/editorial-v1/maps/colombia-maplibre.client';
 import type { EditorialRegion } from '@/components/site/themes/editorial-v1/maps/colombia-map-shared';
 import { trackEvent } from '@/lib/analytics/track';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
-
-const ColombiaMapLibre = dynamic(
-  () =>
-    import('@/components/site/themes/editorial-v1/maps/colombia-maplibre.client').then(
-      (m) => ({ default: m.ColombiaMapLibre }),
-    ),
-  { ssr: false, loading: () => <div style={{ height: 660, borderRadius: 16, background: '#F5F1E8' }} /> },
-);
 
 export interface MapDestination {
   id: string;
@@ -72,6 +66,45 @@ export function DestinationsMapView({
   const resolvedPackagesWord = packagesWord ?? editorialText('editorialPackagesWord');
   const resolvedAriaLabel = ariaLabel ?? editorialText('editorialDestinationsMapAriaFallback');
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [mapVisible, setMapVisible] = useState(false);
+  const [MapComponent, setMapComponent] = useState<ComponentType<ColombiaMapLibreProps> | null>(null);
+  const mapStageRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const stage = mapStageRef.current;
+    if (!stage || mapVisible) return;
+
+    const reveal = () => setMapVisible(true);
+    if (!('IntersectionObserver' in window)) {
+      const id = setTimeout(reveal, 3500);
+      return () => clearTimeout(id);
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          reveal();
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '240px 0px' },
+    );
+    observer.observe(stage);
+    return () => observer.disconnect();
+  }, [mapVisible]);
+
+  useEffect(() => {
+    if (!mapVisible || MapComponent) return;
+    let cancelled = false;
+    import('@/components/site/themes/editorial-v1/maps/colombia-maplibre.client').then((mod) => {
+      if (!cancelled) {
+        setMapComponent(() => mod.ColombiaMapLibre);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [mapVisible, MapComponent]);
 
   const pins: ColombiaMapPin[] = destinations
     .filter((d) => typeof d.lat === 'number' && typeof d.lng === 'number')
@@ -127,15 +160,19 @@ export function DestinationsMapView({
 
   return (
     <div className="dest-map-view">
-      <div className="dest-map-stage">
-        <ColombiaMapLibre
-          pins={pins}
-          activePinId={activeId}
-          onPinHover={handlePinHover}
-          onPinClick={handlePinClick}
-          height={660}
-          ariaLabel={resolvedAriaLabel}
-        />
+      <div ref={mapStageRef} className="dest-map-stage">
+        {MapComponent ? (
+          <MapComponent
+            pins={pins}
+            activePinId={activeId}
+            onPinHover={handlePinHover}
+            onPinClick={handlePinClick}
+            height={660}
+            ariaLabel={resolvedAriaLabel}
+          />
+        ) : (
+          <div style={{ height: 660, borderRadius: 16, background: '#F5F1E8' }} />
+        )}
       </div>
       <div className="dest-map-side" role="list">
         {destinations.map((d, i) => {

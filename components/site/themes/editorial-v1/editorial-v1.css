@@ -33,7 +33,9 @@
   --c-muted: hsl(var(--input));           /* outline: #7a8a84 gray-green — for subdued text */
   --c-line: color-mix(in srgb, hsl(var(--border)) 80%, transparent); /* lighter warm beige dividers */
   --c-line-2: hsl(var(--border));         /* outlineVariant: #d6c9ad warm beige — for card borders */
-  --c-hero-wash: linear-gradient(180deg, hsl(var(--primary) / 0) 0%, hsl(var(--primary) / 0.55) 100%);
+  --c-hero-wash:
+    linear-gradient(90deg, hsl(var(--primary) / 0.58) 0%, hsl(var(--primary) / 0.38) 42%, hsl(var(--primary) / 0.10) 76%, hsl(var(--primary) / 0.03) 100%),
+    linear-gradient(180deg, hsl(var(--primary) / 0.32) 0%, hsl(var(--primary) / 0.08) 44%, hsl(var(--primary) / 0.54) 100%);
   --font-display: var(--font-heading);
   --font-serif: 'Instrument Serif', ui-serif, Georgia, serif;
   --font-body: var(--font-body);
@@ -90,13 +92,31 @@
   color: var(--c-primary-ink);
 }
 
-/* Designer signature: em inside headings renders serif italic accent-2.
-   Already emitted globally in app/globals.css — duplicated inside the
-   scope so specificity wins over cascading component styles that strip
-   italic. Keep BOTH rules in sync. */
+/* Designer signature: em inside headings = Instrument Serif italic.
+   COLOR RULE (intentional split):
+   - h2/h3 em: color: inherit  → same dark ink as the heading (section titles)
+   - h1 em in hero/banner contexts: color: var(--c-accent-2) → golden accent
+   Both rules are mirrored in app/globals.css. Keep them in sync. */
 :where([data-template-set="editorial-v1"]) h1 em,
 :where([data-template-set="editorial-v1"]) h2 em,
 :where([data-template-set="editorial-v1"]) h3 em {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  color: inherit;  /* section titles keep the same ink color as the heading */
+}
+
+/* Hero/banner contexts: restore golden accent on h1 em only */
+:where([data-template-set="editorial-v1"]) .hero-copy h1 em,
+:where([data-template-set="editorial-v1"]) .ev-page-hero h1 em,
+:where([data-template-set="editorial-v1"]) .ev-dest-hero h1 em,
+:where([data-template-set="editorial-v1"]) .page-hero h1 em {
+  color: var(--c-accent-2);  /* golden yellow — banner emphasis only */
+}
+
+/* Utility class for new pages: apply hero em styling to any inline <em> */
+:where([data-template-set="editorial-v1"]) .ev-hero-em {
   font-family: var(--font-serif);
   font-style: italic;
   font-weight: 400;
@@ -181,6 +201,14 @@
   padding: var(--section-py, 112px) 0;
   position: relative;
 }
+
+@supports (content-visibility: auto) {
+  :where([data-template-set="editorial-v1"]) .ev-section {
+    content-visibility: auto;
+    contain-intrinsic-size: 900px;
+  }
+}
+
 :where([data-template-set="editorial-v1"]) .ev-section-head {
   display: grid;
   grid-template-columns: 1.2fr 1fr;
@@ -230,7 +258,7 @@
 }
 :where([data-template-set="editorial-v1"]) .btn-accent {
   background: var(--c-accent);
-  color: #fff;
+  color: #0b1f1d;
   box-shadow: var(--shadow-2);
 }
 :where([data-template-set="editorial-v1"]) .btn-ink {
@@ -324,7 +352,7 @@
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  color: var(--c-muted);
+  color: var(--c-ink-2);
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.18em;
@@ -728,13 +756,14 @@
   grid-template-columns: 1.4fr 1fr 1fr 1fr 1.2fr;
   gap: 40px;
 }
-:where([data-template-set="editorial-v1"]) .footer-brand h4 {
+:where([data-template-set="editorial-v1"]) .footer-brand .footer-tagline {
   font-family: var(--font-display);
   font-weight: 500;
   font-size: 24px;
   color: #fff;
   margin: 18px 0 10px;
   letter-spacing: -0.015em;
+  line-height: 1.15;
 }
 :where([data-template-set="editorial-v1"]) .footer-brand p {
   font-size: 14px;
@@ -742,7 +771,7 @@
   color: color-mix(in oklab, var(--c-primary-ink) 65%, transparent);
   max-width: 34ch;
 }
-:where([data-template-set="editorial-v1"]) .footer-col h5 {
+:where([data-template-set="editorial-v1"]) .footer-col .footer-col-title {
   font-family: var(--font-display);
   font-weight: 600;
   font-size: 13px;
@@ -1000,7 +1029,7 @@
   font-size: 11px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--c-muted);
+  color: var(--c-ink-2);
   font-weight: 600;
 }
 :where([data-template-set="editorial-v1"]) .pack-price strong {
@@ -1762,7 +1791,7 @@
   font-size: 10px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--c-muted, #7a8a84);
+  color: var(--c-ink-2, #41564f);
   white-space: nowrap;
   flex-shrink: 0;
   padding-right: 8px;
@@ -1892,7 +1921,7 @@
   font-weight: 600;
 }
 :where([data-template-set="editorial-v1"]) .testi-author small {
-  color: var(--c-muted);
+  color: var(--c-ink-2);
   font-size: 12px;
 }
 :where([data-template-set="editorial-v1"]) .testi-list {
@@ -1950,7 +1979,7 @@
   font-weight: 600;
 }
 :where([data-template-set="editorial-v1"]) .testi-mini small {
-  color: var(--c-muted);
+  color: var(--c-ink-2);
   font-size: 11px;
 }
 :where([data-template-set="editorial-v1"]) .testi-mini p {
@@ -2632,7 +2661,7 @@
   font-size: 11px;
   letter-spacing: .14em;
   text-transform: uppercase;
-  color: var(--c-muted);
+  color: var(--c-ink-2);
   font-weight: 600;
 }
 :where([data-template-set="editorial-v1"]) .chip-filter {
@@ -2733,7 +2762,7 @@
   font-size: 12px;
   letter-spacing: .08em;
   text-transform: uppercase;
-  color: var(--c-muted);
+  color: var(--c-ink-2);
   font-weight: 600;
   display: inline-flex;
   align-items: center;
@@ -3239,6 +3268,141 @@
 :where([data-template-set="editorial-v1"]) .waf-prefix-select:focus {
   outline: none;
 }
+:where([data-template-set="editorial-v1"]) .waf-phone-wrap {
+  overflow: visible;
+}
+:where([data-template-set="editorial-v1"]) .waf-country {
+  position: relative;
+  display: flex;
+  min-width: 168px;
+}
+:where([data-template-set="editorial-v1"]) .waf-country-trigger {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  min-height: 49px;
+  border: 0;
+  border-right: 1px solid rgba(0,0,0,.08);
+  background: rgba(0,0,0,.03);
+  color: var(--c-ink, #1a1a1a);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 0 12px;
+  cursor: pointer;
+}
+:where([data-template-set="editorial-v1"]) .waf-country-trigger:disabled {
+  cursor: not-allowed;
+  opacity: .65;
+}
+:where([data-template-set="editorial-v1"]) .waf-country-trigger:focus-visible {
+  outline: 2px solid var(--c-ink, #1a1a1a);
+  outline-offset: -2px;
+}
+:where([data-template-set="editorial-v1"]) .waf-country-flag {
+  font-size: 16px;
+  line-height: 1;
+}
+:where([data-template-set="editorial-v1"]) .waf-country-name {
+  overflow: hidden;
+  min-width: 0;
+  max-width: 86px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+:where([data-template-set="editorial-v1"]) .waf-country-code {
+  white-space: nowrap;
+}
+:where([data-template-set="editorial-v1"]) .waf-country-caret {
+  margin-left: auto;
+  color: rgba(0,0,0,.45);
+  font-size: 11px;
+}
+:where([data-template-set="editorial-v1"]) .waf-country-popover {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 8px);
+  z-index: 60;
+  width: min(330px, calc(100vw - 48px));
+  border: 1px solid rgba(0,0,0,.12);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 18px 42px rgba(0,0,0,.16);
+  padding: 8px;
+}
+:where([data-template-set="editorial-v1"]) .waf-country-search {
+  width: 100%;
+  border: 1px solid rgba(0,0,0,.12);
+  border-radius: 9px;
+  background: #fff;
+  color: var(--c-ink, #1a1a1a);
+  font-family: inherit;
+  font-size: 14px;
+  outline: none;
+  padding: 10px 11px;
+}
+:where([data-template-set="editorial-v1"]) .waf-country-search:focus {
+  border-color: var(--c-ink, #1a1a1a);
+  box-shadow: 0 0 0 3px rgba(0,0,0,.06);
+}
+:where([data-template-set="editorial-v1"]) .waf-country-list {
+  display: grid;
+  gap: 2px;
+  max-height: 238px;
+  margin-top: 8px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+:where([data-template-set="editorial-v1"]) .waf-country-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--c-ink, #1a1a1a);
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.2;
+  padding: 10px 9px;
+  text-align: left;
+  cursor: pointer;
+}
+:where([data-template-set="editorial-v1"]) .waf-country-option:hover,
+:where([data-template-set="editorial-v1"]) .waf-country-option:focus-visible {
+  background: rgba(0,0,0,.05);
+  outline: none;
+}
+:where([data-template-set="editorial-v1"]) .waf-country-option.selected {
+  background: rgba(13,47,43,.09);
+  font-weight: 700;
+}
+:where([data-template-set="editorial-v1"]) .waf-country-option-main {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+:where([data-template-set="editorial-v1"]) .waf-country-option-main span:last-child {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+:where([data-template-set="editorial-v1"]) .waf-country-option-code {
+  color: rgba(0,0,0,.58);
+  font-weight: 700;
+  white-space: nowrap;
+}
+:where([data-template-set="editorial-v1"]) .waf-country-empty {
+  padding: 16px 10px 12px;
+  color: rgba(0,0,0,.58);
+  font-size: 13px;
+  text-align: center;
+}
 :where([data-template-set="editorial-v1"]) .waf-error-msg {
   font-size: 12px;
   color: #c24b3c;
@@ -3261,6 +3425,18 @@
   outline: none;
   border-color: var(--c-ink, #1a1a1a);
   box-shadow: 0 0 0 3px rgba(0,0,0,.06);
+}
+
+@media (max-width: 520px) {
+  :where([data-template-set="editorial-v1"]) .waf-country {
+    min-width: 112px;
+  }
+  :where([data-template-set="editorial-v1"]) .waf-country-name {
+    display: none;
+  }
+  :where([data-template-set="editorial-v1"]) .waf-country-popover {
+    width: min(300px, calc(100vw - 32px));
+  }
 }
 
 /* ---------- Stepper ---------- */
@@ -3560,7 +3736,7 @@
 :where([data-template-set="editorial-v1"]) .wa-fab-f1 {
   position: fixed;
   right: 22px;
-  bottom: 22px;
+  bottom: calc(96px + env(safe-area-inset-bottom));
   z-index: 60;
   display: flex;
   align-items: center;
@@ -3637,11 +3813,20 @@
   display: grid;
   place-items: center;
   box-shadow: 0 14px 32px rgba(37,211,102,.38);
+  animation: editorial-v1-waf-fab-wiggle 4s infinite;
   transition: transform .2s;
   position: relative;
 }
 :where([data-template-set="editorial-v1"]) .wa-fab-btn:hover {
   transform: scale(1.08);
+}
+:where([data-template-set="editorial-v1"]) .wa-fab-btn::before {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid rgba(37,211,102,.4);
+  animation: editorial-v1-waf-fab-ring 2s infinite;
 }
 @media (max-width: 720px) {
   :where([data-template-set="editorial-v1"]) .wa-fab-f1 .wa-fab-bubble {
@@ -3656,7 +3841,8 @@
   :where([data-template-set="editorial-v1"]) .wa-fab-f1,
   :where([data-template-set="editorial-v1"]) .waf-success-ic,
   :where([data-template-set="editorial-v1"]) .waf-head-eyebrow .dot,
-  :where([data-template-set="editorial-v1"]) .wa-fab-btn {
+  :where([data-template-set="editorial-v1"]) .wa-fab-btn,
+  :where([data-template-set="editorial-v1"]) .wa-fab-btn::before {
     animation: none !important;
     transition: none !important;
   }
@@ -3673,6 +3859,16 @@
 @keyframes editorial-v1-waf-float-in {
   from { opacity: 0; transform: translateX(8px); }
   to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes editorial-v1-waf-fab-ring {
+  0% { transform: scale(.8); opacity: 1; }
+  100% { transform: scale(1.4); opacity: 0; }
+}
+@keyframes editorial-v1-waf-fab-wiggle {
+  0%, 90%, 100% { transform: rotate(0); }
+  92% { transform: rotate(-6deg); }
+  95% { transform: rotate(6deg); }
+  97% { transform: rotate(-3deg); }
 }
 
 @keyframes editorial-v1-co-halo {
@@ -3703,7 +3899,36 @@
    Page hero (listing / detail) — port of designer `.page-hero`
    Scoped to editorial-v1; the ink-filled hero band used by
    /destinos, /destinos/[slug] and (shared) other listing pages.
+
+   TYPOGRAPHIC SYSTEM — banners / page heroes:
+   ┌──────────────────────────────────────────────────────────────┐
+   │  <span class="eyebrow hero-eyebrow">ETIQUETA</span>          │
+   │  <h1 class="display-lg">                                     │
+   │    Texto principal                                            │
+   │    <em class="ev-hero-em">énfasis en cursiva.</em>           │
+   │  </h1>                                                        │
+   │  <p class="hero-lead">Subtítulo descriptivo.</p>             │
+   └──────────────────────────────────────────────────────────────┘
+   - .ev-hero-em  → Instrument Serif italic + color accent-2 (dorado)
+   - .display-lg  → Bricolage Grotesque, weight 500, clamp(44–84px)
+   - Section h2/h3 em: serif italic pero color:inherit (sin accent)
    ============================================================ */
+
+/* Canonical banner class for internal listing pages (paquetes, experiencias,
+   hoteles, blog, planners). Visual details (bg, padding) remain as inline
+   styles per-page to allow per-route customization; this class anchors the
+   typographic contract. */
+:where([data-template-set="editorial-v1"]) .page-hero {
+  position: relative;
+  overflow: hidden;
+  color: #fff;
+  border-radius: 0 0 32px 32px;
+}
+:where([data-template-set="editorial-v1"]) .page-hero h1 {
+  color: #fff;
+  margin: 12px 0 14px;
+}
+
 :where([data-template-set="editorial-v1"]) .ev-page-hero {
   position: relative;
   overflow: hidden;
@@ -4706,6 +4931,16 @@
 :where([data-template-set="editorial-v1"]) .excl-col li .mark { color: var(--c-muted); }
 
 /* -------- Pricing table columns -------- */
+:where([data-template-set="editorial-v1"]) .pricing-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+}
+:where([data-template-set="editorial-v1"]) .pricing-card {
+  min-width: 0;
+}
+:where([data-template-set="editorial-v1"]) .pricing-price {
+  min-width: 0;
+  flex-wrap: wrap;
+}
 :where([data-template-set="editorial-v1"]) .price-table {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -5455,7 +5690,7 @@
   overflow: hidden;
   position: relative;
 }
-:where([data-template-set="editorial-v1"]) .planner h4 {
+:where([data-template-set="editorial-v1"]) .planner h3 {
   font-family: var(--font-display);
   font-weight: 500;
   font-size: 20px;
@@ -5463,7 +5698,7 @@
   letter-spacing: -0.01em;
 }
 :where([data-template-set="editorial-v1"]) .planner .planner-role {
-  color: var(--c-muted);
+  color: var(--c-ink-2);
   font-size: 12px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -5513,7 +5748,7 @@
   color: var(--c-ink);
 }
 :where([data-template-set="editorial-v1"]) .planner .planner-action-whatsapp {
-  color: #25D366;
+  color: #087a38;
 }
 
 /* LIST: toolbar */
@@ -6791,12 +7026,14 @@
      Hide the side list (destination index) — it stacks below
      the copy and pushes the hero off screen. */
   :where([data-template-set="editorial-v1"]) .hero {
+    width: 100%;
     height: calc(100dvh - 77px);
     min-height: unset;
+    margin: 0;
     border-radius: 0 0 24px 24px;
   }
   :where([data-template-set="editorial-v1"]) .hero-inner {
-    padding: 32px 0 72px;
+    padding: 32px var(--gutter, 20px) 72px;
     gap: 0;
     align-items: start;
   }
@@ -6968,6 +7205,56 @@
   :where([data-template-set="editorial-v1"]) .promise {
     padding: 28px 24px;
     border-radius: 20px;
+  }
+
+  /* ── Pricing cards — swipeable comparison rail ───────────
+     Campaign landings can have 3+ price cards. A desktop grid causes
+     clipped columns on mobile, so use one readable card with a peek next. */
+  :where([data-template-set="editorial-v1"]) .ev-pricing .pricing-header {
+    margin-bottom: 24px !important;
+  }
+  :where([data-template-set="editorial-v1"]) .ev-pricing .pricing-grid {
+    display: flex !important;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 14px !important;
+    margin-inline: calc(var(--gutter, 20px) * -1);
+    padding: 0 var(--gutter, 20px) 18px;
+  }
+  :where([data-template-set="editorial-v1"]) .ev-pricing .pricing-grid::-webkit-scrollbar {
+    display: none;
+  }
+  :where([data-template-set="editorial-v1"]) .ev-pricing .pricing-card {
+    flex: 0 0 min(82vw, 360px);
+    scroll-snap-align: start;
+    padding: 24px 22px !important;
+    border-radius: 16px !important;
+  }
+  :where([data-template-set="editorial-v1"]) .ev-pricing .pricing-card .headline-md {
+    font-size: clamp(30px, 9vw, 42px);
+    line-height: 1.08;
+  }
+  :where([data-template-set="editorial-v1"]) .ev-pricing .pricing-card .display-md {
+    font-size: clamp(42px, 12vw, 58px);
+    line-height: .95;
+  }
+  :where([data-template-set="editorial-v1"]) .ev-pricing .pricing-card .label {
+    overflow-wrap: anywhere;
+    line-height: 1.35;
+  }
+  :where([data-template-set="editorial-v1"]) .ev-pricing .pricing-card ul {
+    gap: 12px !important;
+  }
+  :where([data-template-set="editorial-v1"]) .ev-pricing .pricing-cta {
+    order: 5;
+    min-height: 48px;
+    margin-top: 4px !important;
+  }
+  :where([data-template-set="editorial-v1"]) .ev-pricing .pricing-features {
+    order: 6;
   }
 
   /* ── P2g: Section headers — remove 2-col layout ──────────

@@ -33,20 +33,13 @@
  *     and pin halo animation (handled in editorial-v1.css).
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import dynamic from 'next/dynamic';
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType } from 'react';
 import Link from 'next/link';
 
-import type { ColombiaMapPin } from '@/components/site/themes/editorial-v1/maps/colombia-maplibre.client';
-
-// Dynamic import — maplibre-gl requires window (no SSR)
-const ColombiaMapLibre = dynamic(
-  () =>
-    import('@/components/site/themes/editorial-v1/maps/colombia-maplibre.client').then(
-      (m) => ({ default: m.ColombiaMapLibre }),
-    ),
-  { ssr: false, loading: () => <div style={{ height: 580, borderRadius: 16, background: '#F5F1E8' }} /> },
-);
+import type {
+  ColombiaMapLibreProps,
+  ColombiaMapPin,
+} from '@/components/site/themes/editorial-v1/maps/colombia-maplibre.client';
 import { COLOMBIA_CITIES } from '@/lib/maps/colombia-cities';
 import type { ColombiaRegion } from '@/lib/maps/colombia-cities';
 import { Icons } from '@/components/site/themes/editorial-v1/primitives/icons';
@@ -158,6 +151,9 @@ export function ExploreMapClient({
   );
   const [hoveredPinId, setHoveredPinId] = useState<string | null>(null);
   const [showMobileList, setShowMobileList] = useState(false);
+  const [mapVisible, setMapVisible] = useState(false);
+  const [MapComponent, setMapComponent] = useState<ComponentType<ColombiaMapLibreProps> | null>(null);
+  const mapStageRef = useRef<HTMLDivElement | null>(null);
 
   // Debounce region analytics so mouse sweeps through the chips don't
   // push 4+ events to GA. 200ms matches the CSS transition timing.
@@ -192,6 +188,42 @@ export function ExploreMapClient({
       mediaQuery.removeEventListener('change', sync);
     };
   }, []);
+
+  useEffect(() => {
+    const stage = mapStageRef.current;
+    if (!stage || mapVisible) return;
+
+    const reveal = () => setMapVisible(true);
+    if (!('IntersectionObserver' in window)) {
+      const id = setTimeout(reveal, 3500);
+      return () => clearTimeout(id);
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          reveal();
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '240px 0px' },
+    );
+    observer.observe(stage);
+    return () => observer.disconnect();
+  }, [mapVisible]);
+
+  useEffect(() => {
+    if (!mapVisible || MapComponent) return;
+    let cancelled = false;
+    import('@/components/site/themes/editorial-v1/maps/colombia-maplibre.client').then((mod) => {
+      if (!cancelled) {
+        setMapComponent(() => mod.ColombiaMapLibre);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [mapVisible, MapComponent]);
 
   // Build the stable pin set from the destinations prop. We derive
   // `region` from either the explicit prop or the lookup table so the
@@ -436,19 +468,23 @@ export function ExploreMapClient({
       </div>
 
       {/* Right column — map stage + floating hover card */}
-      <div className="explore-map-stage">
-        <ColombiaMapLibre
-          highlightedRegions={highlightedRegions}
-          pins={pins}
-          activePinId={hoveredPinId}
-          onPinHover={setHoveredPinId}
-          onPinClick={handlePinClick}
-          showLabels={true}
-          showRidges={true}
-          showRivers={true}
-          height={580}
-          ariaLabel={editorialText('editorialExploreMapAria')}
-        />
+      <div ref={mapStageRef} className="explore-map-stage">
+        {MapComponent ? (
+          <MapComponent
+            highlightedRegions={highlightedRegions}
+            pins={pins}
+            activePinId={hoveredPinId}
+            onPinHover={setHoveredPinId}
+            onPinClick={handlePinClick}
+            showLabels={true}
+            showRidges={true}
+            showRivers={true}
+            height={580}
+            ariaLabel={editorialText('editorialExploreMapAria')}
+          />
+        ) : (
+          <div style={{ height: 580, borderRadius: 16, background: '#F5F1E8' }} />
+        )}
 
         <div
           className={`explore-hover-card${hoveredDest ? ' on' : ''}`}

@@ -160,7 +160,9 @@ const BASE_EXTRA_TEXTS = {
   editorialSwitcherLoadingPrefix: 'Cargando en',
 
   // Hero
-  editorialHeroEyebrowFallback: 'DESCUBRE · VIVE · CONECTA',
+  editorialHeroEyebrowFallback: 'VIAJA · VIVE · CONECTA',
+  editorialHeroHeadlineFallback: 'Diseñamos viajes <em>a tu medida</em> por toda Colombia.',
+  editorialHeroSubtitleFallback: 'Diseñamos experiencias auténticas con expertos locales.',
   editorialHeroSideListLabel: 'Destino del mes',
   editorialHeroSlidesAria: 'Imágenes destacadas',
   editorialHeroPresenting: 'Presentando',
@@ -179,8 +181,9 @@ const BASE_EXTRA_TEXTS = {
   editorialSearchViajerosLabel: 'Viajeros',
 
   // Packages
-  editorialPackagesEyebrowFallback: 'EXPERIENCIAS CURADAS',
-  editorialPackagesTitleFallback: 'Paquetes',
+  editorialPackagesEyebrowFallback: 'PAQUETES',
+  editorialPackagesTitleFallback: 'Planes <em>por toda Colombia.</em>',
+  editorialPackagesSubtitleFallback: 'Itinerarios diseñados por planners locales. Ajustables, flexibles, punto de partida para tu viaje.',
   editorialPackagesAllTab: 'Todos',
   editorialPackagesPopular: 'POPULAR',
   editorialPackagesFromPrefix: 'DESDE',
@@ -192,9 +195,13 @@ const BASE_EXTRA_TEXTS = {
   editorialPackagesWord: 'paquetes',
   editorialPackageWord: 'paquete',
 
-  // Destinations
   editorialDestinationsEyebrowFallback: 'RUTAS INCONFUNDIBLES',
   editorialDestinationsTitleFallback: 'Destinos',
+  editorialDestinationsSubtitle: 'Lugares mágicos que capturan la esencia de Colombia. Desde playas vírgenes hasta cumbres nevadas.',
+  editorialHotelsEyebrow: 'HOTELES',
+  editorialHotelsTitle: 'Estancias <em>curadas por ciudad.</em>',
+  editorialHotelsSubtitle: 'Fincas, boutiques y resorts seleccionados por nuestros planners. Cambia de categoría sin reconstruir el viaje.',
+  editorialExperiencesEyebrowFallback: 'ACTIVIDADES',
   editorialDestinationsEmpty: 'Sin destinos disponibles.',
   editorialDestinationsViewList: 'Lista',
   editorialDestinationsViewMap: 'Mapa',
@@ -233,7 +240,7 @@ const BASE_EXTRA_TEXTS = {
 
   // Blog teaser (section)
   editorialBlogEyebrowFallback: 'BLOG',
-  editorialBlogTitleFallback: 'Historias desde adentro.',
+  editorialBlogTitleFallback: 'Historias <em>desde adentro.</em>',
   editorialBlogViewAll: 'Ver todo el blog',
   editorialBlogNoPosts: 'Aún no hay historias.',
 
@@ -266,7 +273,7 @@ const BASE_EXTRA_TEXTS = {
   // Promise / CTA / Testimonials / Trust
   editorialPromiseEyebrowFallback: 'Por qué nosotros',
   editorialPromiseTitleFallback: 'Un viaje bien hecho <em>se nota.</em>',
-  editorialCtaTitleFallback: 'Empieza hoy <em>tu viaje.</em>',
+  editorialCtaTitleFallback: 'Empieza hoy <em>tu gran viaje.</em>',
   editorialCtaAriaFallback: 'Llamado a la acción',
   editorialTestimonialsEyebrowFallback: 'Testimonios',
   editorialTestimonialsTitleFallback: 'El recuerdo después del viaje.',
@@ -296,7 +303,7 @@ const BASE_EXTRA_TEXTS = {
 
   // Blog list page
   editorialBlogListEyebrow: 'Blog',
-  editorialBlogListTitle: 'Historias',
+  editorialBlogListTitle: 'Historias <em>desde adentro.</em>',
   editorialBlogListEmphasis: 'desde adentro.',
   editorialBlogListSubtitle:
     'Escrito por los planners que caminan Colombia todos los meses. Guías, itinerarios, oficios y rincones.',
@@ -332,7 +339,7 @@ const BASE_EXTRA_TEXTS = {
 
   // Experiences page
   editorialExperiencesEyebrow: 'Experiencias',
-  editorialExperiencesTitle: 'Actividades',
+  editorialExperiencesTitle: 'Actividades <em>para sumar a tu viaje.</em>',
   editorialExperiencesEmphasis: 'para sumar a tu viaje.',
   editorialExperiencesSubtitle:
     'Oficios, caminatas, cocina, mar, selva. Reservables sueltas o como add-on a cualquier paquete.',
@@ -373,7 +380,7 @@ const BASE_EXTRA_TEXTS = {
 
   // Planners list page
   editorialPlannersListHeroEyebrow: 'Nuestros planners',
-  editorialPlannersListHeroTitle: 'Una persona',
+  editorialPlannersListHeroTitle: 'Una persona <em>que conoce su tierra.</em>',
   editorialPlannersListHeroEmphasis: 'que conoce su tierra.',
   editorialPlannersListHeroSubtitle:
     'Seis especialistas locales. Cada uno con una región, un oficio y 5–11 años diseñando viajes a medida por Colombia.',
@@ -464,7 +471,7 @@ const BASE_EXTRA_TEXTS = {
 
   // Destinos listing / detail (editorial-v1 pages)
   editorialDestinosListEyebrow: 'EXPLORA',
-  editorialDestinosListTitle: 'Ocho Colombias, ocho ritmos.',
+  editorialDestinosListTitle: 'Ocho Colombias, <em>ocho ritmos.</em>',
   editorialDestinosListSubtitle:
     'Del mar de siete colores al desierto de La Guajira. Cada región con sus guías, sus sabores y su ritmo.',
   editorialDestinosListEmpty: 'No hay destinos disponibles en este momento.',
@@ -564,9 +571,19 @@ const EN_US_OVERRIDES: Partial<Record<PublicUiExtraTextKey, string>> = {
   editorialSearchWhenLabel: 'When',
   editorialSearchFechasAria: 'Travel dates',
   editorialSearchViajerosLabel: 'Travelers',
+  editorialDestinationsSubtitle: 'Magical places that capture the essence of Colombia. From pristine beaches to snow-capped peaks.',
+  editorialHotelsEyebrow: 'HOTELS',
+  editorialHotelsTitle: 'Stays <em>curated by city.</em>',
+  editorialHotelsSubtitle: 'Fincas, boutiques, and resorts selected by our planners. Switch categories without rebuilding the whole trip.',
+  editorialExperiencesEyebrow: 'ACTIVITIES',
+  editorialExperiencesTitle: 'Activities <em>to add to your trip.</em>',
+  editorialExperiencesEmphasis: 'to add to your trip.',
+  editorialExperiencesSubtitle: 'Crafts, hikes, cooking, sea, jungle. Bookable individually or as an add-on to any package.',
+  editorialExperiencesEyebrowFallback: 'ACTIVITIES',
 
-  editorialPackagesEyebrowFallback: 'CURATED EXPERIENCES',
-  editorialPackagesTitleFallback: 'Packages',
+  editorialPackagesEyebrowFallback: 'PACKAGES',
+  editorialPackagesTitleFallback: 'Trips <em>across Colombia.</em>',
+  editorialPackagesSubtitleFallback: 'Journeys designed by local planners. Flexible and adjustable as the starting point for your trip.',
   editorialPackagesAllTab: 'All',
   editorialPackagesPopular: 'POPULAR',
   editorialPackagesFromPrefix: 'FROM',
@@ -603,6 +620,7 @@ const EN_US_OVERRIDES: Partial<Record<PublicUiExtraTextKey, string>> = {
   editorialPackageDurationLabel: 'Duration',
   editorialPackageDestinationsLabel: 'Destinations',
   editorialPackageRatingLabel: 'Rating',
+  editorialDestinosListTitle: 'Eight Colombias, <em>eight rhythms.</em>',
 };
 const PT_BR_OVERRIDES: Partial<Record<PublicUiExtraTextKey, string>> = {};
 

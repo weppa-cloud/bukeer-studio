@@ -6,6 +6,7 @@ import { NumberTicker } from '@/components/ui/number-ticker';
 import { Check, Star } from 'lucide-react';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 import { useWebsiteLocale } from '@/lib/hooks/use-website-locale';
+import { ContextualCtaLink } from '@/components/site/contextual-cta-link';
 
 interface PricingTier {
   name: string;
@@ -42,7 +43,21 @@ function extractNumericPrice(price: string): number | null {
   return isNaN(parsed) ? null : parsed;
 }
 
-function PricingCard({ tier, currency, delay, text }: { tier: PricingTier; currency?: string; delay: number; text: TextGetter }) {
+function PricingCard({
+  tier,
+  currency,
+  delay,
+  text,
+  phone,
+  productName,
+}: {
+  tier: PricingTier;
+  currency?: string;
+  delay: number;
+  text: TextGetter;
+  phone?: string | null;
+  productName?: string;
+}) {
   const numericPrice = extractNumericPrice(tier.price);
 
   return (
@@ -114,8 +129,12 @@ function PricingCard({ tier, currency, delay, text }: { tier: PricingTier; curre
         )}
 
         {tier.ctaUrl && (
-          <a
+          <ContextualCtaLink
             href={tier.ctaUrl}
+            phone={phone}
+            productName={productName}
+            label={tier.ctaText || 'Cotizar'}
+            analyticsLocation="pricing_tier"
             className={`mt-auto block w-full rounded-xl py-3 px-4 text-center text-sm font-semibold transition-colors ${
               tier.highlighted
                 ? 'text-white hover:opacity-90'
@@ -124,20 +143,26 @@ function PricingCard({ tier, currency, delay, text }: { tier: PricingTier; curre
             style={tier.highlighted ? { background: 'var(--accent)' } : undefined}
           >
             {tier.ctaText || 'Cotizar'}
-          </a>
+          </ContextualCtaLink>
         )}
       </div>
     </BlurFade>
   );
 }
 
-export function PricingSection({ section }: PricingSectionProps) {
+export function PricingSection({ section, website }: PricingSectionProps) {
   const locale = useWebsiteLocale();
   const text = getPublicUiExtraTextGetter(locale);
   const content = (section.content as unknown as PricingContent | null) || { tiers: [] };
   const { title, subtitle, currency, anchorLabel, tiers = [] } = content;
   const variant = section.variant || 'tiered_anchor';
   const isSingle = variant === 'single_highlight' || tiers.length === 1;
+  const phone =
+    website.content?.social?.whatsapp ||
+    website.content?.contact?.phone ||
+    website.content?.account?.phone ||
+    null;
+  const productName = title || text('sectionPricingTitle');
 
   return (
     <section className="section-padding" aria-label={text('sectionPricingTitle')}>
@@ -170,7 +195,15 @@ export function PricingSection({ section }: PricingSectionProps) {
           }
         >
           {tiers.map((tier, i) => (
-            <PricingCard key={i} tier={tier} currency={currency} delay={0.08 * i + 0.05} text={text} />
+            <PricingCard
+              key={i}
+              tier={tier}
+              currency={currency}
+              delay={0.08 * i + 0.05}
+              text={text}
+              phone={phone}
+              productName={productName}
+            />
           ))}
         </div>
       </div>

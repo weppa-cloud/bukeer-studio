@@ -15,9 +15,10 @@ OPENROUTER_MODEL=anthropic/claude-sonnet-4-5
 
 # ISR
 REVALIDATE_SECRET=change-me-to-a-random-string
+SITE_PREVIEW_TOKEN=change-me-to-a-random-string
 
 # Public
-NEXT_PUBLIC_URL=https://bukeer.com
+NEXT_PUBLIC_URL=https://studio.bukeer.com
 NEXT_PUBLIC_MAIN_DOMAIN=bukeer.com
 
 # Maps — MapTiler free-tier. See .env.local.example for setup steps.

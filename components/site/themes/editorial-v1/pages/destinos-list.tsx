@@ -19,7 +19,7 @@
  * `app/site/[subdomain]/[...slug]/page.tsx` — no additional RPCs.
  */
 
-import type { ReactElement } from 'react';
+import type { ReactElement, CSSProperties } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -27,7 +27,7 @@ import type { WebsiteData } from '@/lib/supabase/get-website';
 import type { DestinationData } from '@/lib/supabase/get-pages';
 import { getBasePath } from '@/lib/utils/base-path';
 import {
-  COLOMBIA_CITIES,
+  resolveColombiaRegion,
   type ColombiaRegion,
 } from '@/lib/maps/colombia-cities';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
@@ -35,6 +35,7 @@ import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 import { Breadcrumbs } from '../primitives/breadcrumbs';
 import { Eyebrow } from '../primitives/eyebrow';
 import { Icons } from '../primitives/icons';
+import { editorialHtml } from '../primitives/rich-heading';
 import { ColombiaMapStandalone } from '../maps/colombia-map-standalone.client';
 
 // ----- types -----
@@ -90,35 +91,6 @@ const REGION_LEGEND: ReadonlyArray<{
   { key: 'pacifico', labelKey: 'editorialDestinosRegionPacifico', swatch: '#6b7f9e' },
 ];
 
-// ----- helpers -----
-function normalizeRegion(
-  raw: string | null | undefined,
-): ColombiaRegion | undefined {
-  if (!raw) return undefined;
-  const normalized = raw
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .trim();
-  if (['caribe', 'andes', 'selva', 'pacifico'].includes(normalized)) {
-    return normalized as ColombiaRegion;
-  }
-  return undefined;
-}
-
-function resolveRegion(dest: DestinationData): ColombiaRegion | undefined {
-  // DestinationData doesn't carry a region field — fall back to state + city
-  // lookup against our editorial cities catalog.
-  const fromState = normalizeRegion(dest.state);
-  if (fromState) return fromState;
-  const entry =
-    COLOMBIA_CITIES[dest.name] ??
-    Object.entries(COLOMBIA_CITIES).find(
-      ([city]) => city.toLowerCase() === dest.name.trim().toLowerCase(),
-    )?.[1];
-  return entry?.region;
-}
-
 function normalize(dest: DestinationData): NormalizedDestination {
   const slug = (dest.slug ?? '').trim() || dest.id;
   return {
@@ -126,7 +98,12 @@ function normalize(dest: DestinationData): NormalizedDestination {
     name: dest.name,
     slug,
     state: dest.state ?? null,
-    region: resolveRegion(dest),
+    region: resolveColombiaRegion({
+      state: dest.state,
+      name: dest.name,
+      lat: Number.isFinite(Number(dest.lat)) ? Number(dest.lat) : null,
+      lng: Number.isFinite(Number(dest.lng)) ? Number(dest.lng) : null,
+    }),
     image: dest.image ?? null,
     hotelCount: Number(dest.hotel_count ?? 0),
     activityCount: Number(dest.activity_count ?? 0),
@@ -161,10 +138,11 @@ export function EditorialDestinosListPage({
   const destinations = Array.isArray(resolved?.destinations)
     ? resolved!.destinations
     : [];
-  const basePath = getBasePath(website.subdomain, false);
+  const basePath = getBasePath(website.subdomain, Boolean((website as { isCustomDomain?: boolean }).isCustomDomain));
 
   const normalized = dedupeBySlug(destinations.map(normalize));
   const hasDestinations = normalized.length > 0;
+  const titleHtml = editorialHtml(editorialText('editorialDestinosListTitle'));
 
   const mapPins = normalized
     .filter((d) => typeof d.lat === 'number' && typeof d.lng === 'number')
@@ -242,7 +220,7 @@ export function EditorialDestinosListPage({
       ) : null}
 
       {/* Hero */}
-      <section className="ev-page-hero" data-testid="destinos-list-hero">
+      <section className="page-hero" style={heroStyle} data-testid="destinos-list-hero">
         <div className="ev-page-hero-wash" />
         <div className="ev-container">
           <Breadcrumbs
@@ -262,10 +240,13 @@ export function EditorialDestinosListPage({
             <Eyebrow tone="light" className="ev-page-hero-eyebrow">
               {editorialText('editorialDestinosListEyebrow')}
             </Eyebrow>
-            <h1 className="display-lg">
-              {editorialText('editorialDestinosListTitle')}
-            </h1>
-            <p>{editorialText('editorialDestinosListSubtitle')}</p>
+            {titleHtml ? (
+              <h1
+                className="display-lg"
+                dangerouslySetInnerHTML={titleHtml}
+              />
+            ) : null}
+            <p style={heroSubtitleStyle} dangerouslySetInnerHTML={editorialHtml(editorialText('editorialDestinosListSubtitle'))} />
           </div>
         </div>
       </section>
@@ -389,5 +370,22 @@ export function EditorialDestinosListPage({
     </div>
   );
 }
+
+const heroStyle: CSSProperties = {
+  background: 'var(--c-ink)',
+  color: '#fff',
+  position: 'relative',
+  overflow: 'hidden',
+  padding: '80px 0 64px',
+  borderRadius: '0 0 32px 32px',
+};
+
+const heroSubtitleStyle: CSSProperties = {
+  color: 'rgba(255,255,255,.78)',
+  fontSize: 17,
+  lineHeight: 1.55,
+  maxWidth: '60ch',
+  margin: 0,
+};
 
 export default EditorialDestinosListPage;

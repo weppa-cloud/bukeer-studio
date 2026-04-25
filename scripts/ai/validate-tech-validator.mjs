@@ -245,6 +245,10 @@ function checkNodeOnlyApis(content, filePath) {
     return { ok: true, skipped: true };
   }
 
+  if (/\.(test|spec)\.[cm]?[jt]sx?$/.test(relativePath)) {
+    return { ok: true, skipped: true };
+  }
+
   const nodeOnlyPattern = /from\s+['"]node:|require\(\s*['"]node:|from\s+['"](fs|path|crypto|child_process|net|tls|dns|http2|zlib|cluster|worker_threads)['"]/;
   return {
     ok: !nodeOnlyPattern.test(content),
@@ -255,6 +259,88 @@ function checkNodeOnlyApis(content, filePath) {
 function checkCacheConfig(content) {
   const hasCacheDirective = /export\s+const\s+(revalidate|dynamic|fetchCache|runtime)\s*=/.test(content);
   return { ok: hasCacheDirective, skipped: false };
+}
+
+function checkEditorialHeroSsrContract(heroContent, rotatorContent) {
+  const hasServerFrame = /data-ssr-hero-frame=["']true["']/.test(heroContent);
+  const hasPriorityServerImage = /<Image[\s\S]{0,800}\bpriority\b/.test(heroContent);
+  const heroUsesFramerMotion = /from\s+['"]framer-motion['"]|motion\.|AnimatePresence/.test(heroContent);
+  const rotatorUsesFramerMotion = /from\s+['"]framer-motion['"]|motion\.|AnimatePresence/.test(rotatorContent);
+  const rotatorDefersAfterPaint =
+    /hasHydratedAfterPaint/.test(rotatorContent) &&
+    /requestAnimationFrame/.test(rotatorContent) &&
+    /return\s+null\s*;/.test(rotatorContent);
+  const rotatorStillPriorityLoads = /<Image[\s\S]{0,800}\bpriority\b/.test(rotatorContent);
+
+  const errors = [];
+  if (!hasServerFrame) {
+    errors.push('Editorial hero must render the LCP first frame on the server with data-ssr-hero-frame="true"');
+  }
+  if (!hasPriorityServerImage) {
+    errors.push('Editorial hero SSR first frame must own the priority image');
+  }
+  if (!rotatorDefersAfterPaint) {
+    errors.push('Editorial hero rotator must defer client rendering until after first paint');
+  }
+  if (rotatorStillPriorityLoads) {
+    errors.push('Editorial hero rotator must not priority-load client overlay images');
+  }
+  if (heroUsesFramerMotion || rotatorUsesFramerMotion) {
+    errors.push('Editorial hero and rotator must not import framer-motion on public critical routes');
+  }
+
+  return errors;
+}
+
+function checkCriticalPublicRouteMotionBudget(content) {
+  if (/from\s+['"]framer-motion['"]|motion\.|AnimatePresence/.test(content)) {
+    return ['Critical public listing route must not import framer-motion'];
+  }
+
+  return [];
+}
+
+function checkPublicLayoutPerformanceContract(content) {
+  const errors = [];
+  const defersHeadAnalytics = /<GoogleTagManager\s+analytics=\{website\.analytics\}\s+defer\s*\/>/.test(content);
+  const defersBodyAnalytics = /<GoogleTagManagerBody\s+analytics=\{website\.analytics\}\s+defer\s*\/>/.test(content);
+  const hasEditorialFontGate = /shouldInjectThemeFontStyles\s*=\s*!isEditorial/.test(content);
+  const gatesThemeFontLinks =
+    /shouldInjectThemeFontStyles\s+&&\s+themeOutput\.fontUrls\.map/.test(content) ||
+    /shouldInjectThemeFontStyles\s+&&\s*\(\s*themeOutput\.fontUrls\.map/.test(content);
+
+  if (!defersHeadAnalytics || !defersBodyAnalytics) {
+    errors.push('Public site layout must pass defer to analytics head and body scripts');
+  }
+  if (!hasEditorialFontGate || !gatesThemeFontLinks) {
+    errors.push('Editorial public layout must not inject theme Google Font stylesheets as render-blocking links');
+  }
+
+  return errors;
+}
+
+function checkPublicHomeStreamingContract(content) {
+  const errors = [];
+  const hasSuspense = /<Suspense\s+fallback=\{null\}>[\s\S]{0,600}<DeferredHomeSections/.test(content);
+  const hasCriticalPlan =
+    /buildHomeSectionPlan\s*\(\s*enabledSections\s*\)/.test(content) &&
+    /criticalSections\.map/.test(content) &&
+    /criticalSectionIds/.test(content);
+  const hasDeferredComponent = /async\s+function\s+DeferredHomeSections/.test(content);
+  const hasTopLevelHeavyAwait =
+    /export\s+default\s+async\s+function\s+SitePage[\s\S]*?const\s+\[[\s\S]*?Promise\.all\s*\(\s*\[/.test(content);
+
+  if (!hasSuspense || !hasDeferredComponent) {
+    errors.push('Public home must defer below-the-fold data behind Suspense/DeferredHomeSections');
+  }
+  if (!hasCriticalPlan) {
+    errors.push('Public home must render critical sections before deferred sections');
+  }
+  if (hasTopLevelHeavyAwait) {
+    errors.push('Public home must not await the heavy below-the-fold Promise.all before returning the critical shell');
+  }
+
+  return errors;
 }
 
 function parseTscDiagnostics(output, changedFiles) {
@@ -448,6 +534,63 @@ async function runPolicyScans(changedFiles) {
   if (!allFiles && targetViews.length === 0) {
     addFinding('warning', 'ADR-011', 'No changed app/site or app/domain page/layout files found; cache check skipped', null);
   }
+
+  const heroPath = join(ROOT, 'components/site/themes/editorial-v1/sections/hero.tsx');
+  const rotatorPath = join(ROOT, 'components/site/themes/editorial-v1/sections/hero-rotator.client.tsx');
+  const shouldCheckHero =
+    allFiles ||
+    changedFiles.includes(rel(heroPath)) ||
+    changedFiles.includes(rel(rotatorPath)) ||
+    changedFiles.some((file) => file.startsWith('components/site/themes/editorial-v1/sections/'));
+
+  if (shouldCheckHero && existsSync(heroPath) && existsSync(rotatorPath)) {
+    const heroContent = await readFile(heroPath, 'utf-8');
+    const rotatorContent = await readFile(rotatorPath, 'utf-8');
+    const heroErrors = checkEditorialHeroSsrContract(heroContent, rotatorContent);
+    for (const message of heroErrors) {
+      addFinding('error', 'PERF-SSR-HERO', message, rel(heroPath));
+    }
+  }
+
+  const criticalPublicRoutes = [
+    join(ROOT, 'components/pages/packages-listing-page.tsx'),
+    join(ROOT, 'components/pages/activities-listing-page.tsx'),
+  ];
+  for (const routePath of criticalPublicRoutes) {
+    const routeRel = rel(routePath);
+    if (!allFiles && !changedFiles.includes(routeRel)) {
+      continue;
+    }
+    if (!existsSync(routePath)) {
+      continue;
+    }
+
+    const routeContent = await readFile(routePath, 'utf-8');
+    const routeErrors = checkCriticalPublicRouteMotionBudget(routeContent);
+    for (const message of routeErrors) {
+      addFinding('error', 'PERF-PUBLIC-JS', message, routeRel);
+    }
+  }
+
+  const publicLayoutPath = join(ROOT, 'app/site/[subdomain]/layout.tsx');
+  const publicLayoutRel = rel(publicLayoutPath);
+  if ((allFiles || changedFiles.includes(publicLayoutRel)) && existsSync(publicLayoutPath)) {
+    const publicLayoutContent = await readFile(publicLayoutPath, 'utf-8');
+    const publicLayoutErrors = checkPublicLayoutPerformanceContract(publicLayoutContent);
+    for (const message of publicLayoutErrors) {
+      addFinding('error', 'PERF-PUBLIC-LAYOUT', message, publicLayoutRel);
+    }
+  }
+
+  const publicHomePath = join(ROOT, 'app/site/[subdomain]/page.tsx');
+  const publicHomeRel = rel(publicHomePath);
+  if ((allFiles || changedFiles.includes(publicHomeRel)) && existsSync(publicHomePath)) {
+    const publicHomeContent = await readFile(publicHomePath, 'utf-8');
+    const publicHomeErrors = checkPublicHomeStreamingContract(publicHomeContent);
+    for (const message of publicHomeErrors) {
+      addFinding('error', 'PERF-HOME-STREAMING', message, publicHomeRel);
+    }
+  }
 }
 
 function collectChangedFiles() {
@@ -526,7 +669,12 @@ async function main() {
   await checkAdrRegistration();
   await runPolicyScans(changedFiles);
 
+  const mediaGuardrailPassed = runGate('Media asset guardrail (ADR-028)', 'node', [
+    'scripts/ai/check-media-asset-guardrails.mjs',
+  ]);
+
   const gates = {
+    media_assets: mediaGuardrailPassed ? 'pass' : 'fail',
     typecheck: skipTypecheck ? 'skipped' : 'pending',
     lint: skipLint ? 'skipped' : 'pending',
     build: skipBuild ? 'skipped' : 'pending',

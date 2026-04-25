@@ -13,12 +13,38 @@ const TABS = [
 ];
 
 function WebsiteHeader({ websiteId, websiteName }: { websiteId: string; websiteName: string }) {
+  const { website } = useWebsite();
   const pathname = usePathname() ?? '';
   const inferredTab = (() => {
     if (pathname.includes('/contenido') || pathname.includes('/seo/') || pathname.endsWith('/seo') || pathname.includes('/blog/') || pathname.includes('/products/')) return 'contenido';
     return TABS.find((t) => pathname.includes(`/${t.href}`))?.slug;
   })();
   const activeTab = inferredTab || 'pages';
+
+  async function handlePreviewClick() {
+    const subdomain = website?.subdomain || websiteName.toLowerCase().replace(/\s+/g, '-');
+    if (!subdomain) return;
+
+    const previewWindow = window.open('about:blank', '_blank', 'noopener,noreferrer');
+    const res = await fetch('/api/preview-token', { cache: 'no-store' });
+    if (!res.ok) {
+      previewWindow?.close();
+      return;
+    }
+    const data = (await res.json()) as { token?: string };
+    if (!data.token) {
+      previewWindow?.close();
+      return;
+    }
+
+    const previewUrl = new URL(`/site/${subdomain}`, window.location.origin);
+    previewUrl.searchParams.set('preview_token', data.token);
+    if (previewWindow) {
+      previewWindow.location.href = previewUrl.toString();
+    } else {
+      window.location.href = previewUrl.toString();
+    }
+  }
 
   return (
     <div className="bg-[var(--studio-bg-elevated)] border-b border-[var(--studio-border)]">
@@ -38,14 +64,13 @@ function WebsiteHeader({ websiteId, websiteName }: { websiteId: string; websiteN
         </div>
 
         <div className="flex items-center gap-1 md:gap-2 shrink-0">
-          <a
-            href={`/?subdomain=${websiteName.toLowerCase().replace(/\s+/g, '-')}`}
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            type="button"
+            onClick={handlePreviewClick}
             className="hidden sm:inline-flex studio-btn studio-btn-ghost studio-btn-md"
           >
             Preview
-          </a>
+          </button>
           <PublishButton />
         </div>
       </div>

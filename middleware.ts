@@ -13,6 +13,7 @@ const RESERVED_SUBDOMAINS = [
   'app',
   'api',
   'admin',
+  'studio',
   'canvas',
   'staging',
   'dev',
@@ -23,6 +24,25 @@ const MAIN_DOMAIN = process.env.NEXT_PUBLIC_MAIN_DOMAIN || 'bukeer.com';
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SITE_PREVIEW_TOKEN = process.env.SITE_PREVIEW_TOKEN || process.env.REVALIDATE_SECRET;
+const SITE_PREVIEW_PARAM = 'preview_token';
+const SITE_PREVIEW_COOKIE = '__bukeer_site_preview';
+const COLOMBIA_TOURS_EN_HOST = 'en.colombiatours.travel';
+const COLOMBIA_TOURS_CANONICAL_HOST = 'colombiatours.travel';
+
+const COLOMBIA_TOURS_EN_REDIRECTS: Record<string, string> = {
+  '/': '/en',
+  '/tipos-de-mamas': '/en/blog',
+  '/tipos-de-mamas/': '/en/blog',
+  '/los-10-mejores-lugares-turisticos': '/en/blog/los-10-mejores-lugares-turisticos-de-colombia',
+  '/los-10-mejores-lugares-turisticos/': '/en/blog/los-10-mejores-lugares-turisticos-de-colombia',
+  '/10-destinos-para-visitar-con-mama': '/en/blog/10-destinos-para-visitar-con-mama',
+  '/10-destinos-para-visitar-con-mama/': '/en/blog/10-destinos-para-visitar-con-mama',
+  '/es-seguro-viajar-a-isla-margarita': '/en/blog',
+  '/es-seguro-viajar-a-isla-margarita/': '/en/blog',
+  '/nombres-de-empresas-de-turismo': '/en/blog',
+  '/nombres-de-empresas-de-turismo/': '/en/blog',
+};
 
 const CATEGORY_TO_PRODUCT_TYPE: Record<string, string> = {
   destinos: 'destination',
@@ -89,6 +109,60 @@ function resolveWebsiteLocaleSettingsForMiddleware(
 function getRequestHost(request: NextRequest): string {
   const hostHeader = request.headers.get('host') || '';
   return hostHeader.split(':')[0].toLowerCase().replace(/\.$/, '');
+}
+
+function redirectColombiaToursEnSubdomain(request: NextRequest): NextResponse {
+  const currentPathname = request.nextUrl.pathname || '/';
+  const normalizedPathname =
+    currentPathname.length > 1
+      ? currentPathname.replace(/\/+$/, '')
+      : '/';
+  const mappedPathname =
+    COLOMBIA_TOURS_EN_REDIRECTS[currentPathname] ||
+    COLOMBIA_TOURS_EN_REDIRECTS[normalizedPathname] ||
+    `/en${currentPathname === '/' ? '' : currentPathname}`;
+
+  const target = new URL(request.url);
+  target.hostname = COLOMBIA_TOURS_CANONICAL_HOST;
+  target.pathname = mappedPathname;
+  return NextResponse.redirect(target, 301);
+}
+
+async function redirectCustomDomainInternalSitePath(
+  request: NextRequest,
+  host: string,
+  pathname: string,
+): Promise<NextResponse | null> {
+  if (
+    host === MAIN_DOMAIN ||
+    host.endsWith(`.${MAIN_DOMAIN}`) ||
+    host.includes('localhost') ||
+    host.includes('127.0.0.1')
+  ) {
+    return null;
+  }
+
+  const internalMatch = parseInternalSitePath(pathname);
+  if (!internalMatch) return null;
+
+  let canonicalHost = host;
+  let website = await getWebsiteByCustomDomain(host);
+
+  if (!website && host.startsWith('www.')) {
+    canonicalHost = host.slice(4);
+    website = await getWebsiteByCustomDomain(canonicalHost);
+  }
+
+  if (!website?.subdomain) return null;
+
+  if (website.subdomain.toLowerCase() !== internalMatch.subdomain) {
+    return null;
+  }
+
+  const target = new URL(request.url);
+  target.hostname = canonicalHost;
+  target.pathname = internalMatch.innerPathname;
+  return NextResponse.redirect(target, 301);
 }
 
 /**
@@ -451,10 +525,27 @@ function applyLocaleAwareTenantRewrite(input: LocaleAwareRoutingInput): NextResp
   return response;
 }
 
+function applySitePreviewHeaders(response: NextResponse): NextResponse {
+  if (process.env.LHCI_ALLOW_INDEX !== '1') {
+    response.headers.set('X-Robots-Tag', 'noindex, nofollow, noarchive, nosnippet');
+  }
+  response.headers.set('Cache-Control', 'private, no-store, max-age=0, must-revalidate');
+  return response;
+}
+
 export async function middleware(request: NextRequest) {
   const url = request.nextUrl;
   const host = getRequestHost(request);
   const pathname = url.pathname;
+
+  if (host === COLOMBIA_TOURS_EN_HOST) {
+    return redirectColombiaToursEnSubdomain(request);
+  }
+
+  const studioHost = `studio.${MAIN_DOMAIN}`;
+  if (host === studioHost && pathname === '/') {
+    return NextResponse.redirect(new URL('/dashboard', request.url), 307);
+  }
 
   // Editor routes — handle SSO token if present, otherwise pass through
   if (pathname.startsWith('/editor')) {
@@ -532,6 +623,17 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  if (pathname.startsWith('/site/')) {
+    const customDomainRedirect = await redirectCustomDomainInternalSitePath(
+      request,
+      host,
+      pathname,
+    );
+    if (customDomainRedirect) {
+      return customDomainRedirect;
+    }
+  }
+
   // Already-internal tenant routes normally pass through untouched. One
   // exception: direct requests to `/site/<subdomain>/<lang>/...` (used by
   // E2E specs and internal tooling) must still receive the locale headers
@@ -540,6 +642,30 @@ export async function middleware(request: NextRequest) {
   // contains a translated-locale segment. See [[ADR-019]] + Cluster-E of
   // Stage 6 (#213) for the handoff from PR #243.
   if (pathname.startsWith('/site/')) {
+    const queryToken = url.searchParams.get(SITE_PREVIEW_PARAM);
+    const cookieToken = request.cookies.get(SITE_PREVIEW_COOKIE)?.value;
+    const tokenFromRequest = queryToken || cookieToken;
+
+    if (!SITE_PREVIEW_TOKEN || tokenFromRequest !== SITE_PREVIEW_TOKEN) {
+      return applySitePreviewHeaders(
+        new NextResponse('Preview token required', { status: 401 }),
+      );
+    }
+
+    if (queryToken === SITE_PREVIEW_TOKEN) {
+      const cleanUrl = new URL(url);
+      cleanUrl.searchParams.delete(SITE_PREVIEW_PARAM);
+      const redirectResponse = NextResponse.redirect(cleanUrl, 307);
+      redirectResponse.cookies.set(SITE_PREVIEW_COOKIE, SITE_PREVIEW_TOKEN, {
+        path: '/site',
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 60 * 60 * 6, // 6h preview session
+      });
+      return applySitePreviewHeaders(redirectResponse);
+    }
+
     const internalMatch = parseInternalSitePath(pathname);
     if (
       internalMatch &&
@@ -561,7 +687,7 @@ export async function middleware(request: NextRequest) {
         localeResolution.hasLanguageSegment &&
         localeResolution.resolvedLocale !== localeResolution.defaultLocale
       ) {
-        return applyLocaleAwareTenantRewrite({
+        return applySitePreviewHeaders(applyLocaleAwareTenantRewrite({
           request,
           sourceUrl: url,
           pathnameWithoutLang: localeResolution.pathnameWithoutLang,
@@ -572,11 +698,19 @@ export async function middleware(request: NextRequest) {
           defaultLocale: localeResolution.defaultLocale,
           resolvedLanguage: localeResolution.resolvedLanguage,
           hasLanguageSegment: localeResolution.hasLanguageSegment,
-        });
+        }));
       }
     }
 
-    return NextResponse.next();
+    const passThrough = NextResponse.next();
+    passThrough.cookies.set(SITE_PREVIEW_COOKIE, SITE_PREVIEW_TOKEN, {
+      path: '/site',
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 60 * 60 * 6,
+    });
+    return applySitePreviewHeaders(passThrough);
   }
 
   if (pathname.startsWith('/domain/')) {

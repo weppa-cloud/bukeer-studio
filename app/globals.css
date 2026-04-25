@@ -443,13 +443,16 @@ select.sort-select {
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 
-  /* Designer signature: em inside headings renders in serif italic accent-2 */
+  /* Designer signature: em inside headings = Instrument Serif italic.
+     COLOR SPLIT (mirror of editorial-v1.css):
+     - h2/h3 em → color: inherit (section titles keep their ink color)
+     - h1 em in hero contexts → accent color applied via editorial-v1 scoped rules */
   h1 em, h2 em, h3 em {
     font-family: var(--font-serif, "Instrument Serif", ui-serif, Georgia, serif);
     font-style: italic;
     font-weight: 400;
     letter-spacing: -0.01em;
-    color: hsl(var(--accent-2, var(--accent)));
+    color: inherit;  /* section headings: no color change on <em> */
   }
 }
 

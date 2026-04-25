@@ -6,6 +6,8 @@ interface ProductSchemaProps {
   product: ProductData;
   productType: string;
   websiteUrl?: string;
+  pageUrl?: string;
+  organizationName?: string | null;
   language?: string | null;
   faqs?: ProductFAQ[] | null;
 }
@@ -14,12 +16,14 @@ export function ProductSchema({
   product,
   productType,
   websiteUrl,
+  pageUrl,
+  organizationName,
   language,
   faqs,
 }: ProductSchemaProps) {
   if (!product?.name) return null;
 
-  const schemas = generateSchemas(product, productType, websiteUrl, language, faqs);
+  const schemas = generateSchemas(product, productType, websiteUrl, pageUrl, organizationName, language, faqs);
   if (schemas.length === 0) return null;
 
   return (
@@ -39,17 +43,22 @@ function generateSchemas(
   product: ProductData,
   productType: string,
   websiteUrl?: string,
+  pageUrl?: string,
+  organizationName?: string | null,
   language?: string | null,
   faqs?: ProductFAQ[] | null,
 ): Record<string, unknown>[] {
   const inLanguage = normalizeLanguage(language);
-  const productSchema = buildProductSchema(product, productType, websiteUrl, inLanguage);
+  const entityUrl = pageUrl || websiteUrl;
+  const productSchema = buildProductSchema(product, productType, entityUrl, websiteUrl, organizationName, inLanguage);
+  const commercialSchema = buildCommercialProductSchema(product, productType, entityUrl, websiteUrl, organizationName, inLanguage);
   const breadcrumb = buildBreadcrumbSchema(product, productType, websiteUrl, inLanguage);
   const faqSchema = buildFaqSchema(faqs, inLanguage);
   const videoSchema = buildVideoObjectSchema(product);
 
   const schemas: Record<string, unknown>[] = [];
   if (productSchema) schemas.push(productSchema);
+  if (commercialSchema) schemas.push(commercialSchema);
   if (breadcrumb) schemas.push(breadcrumb);
   if (faqSchema) schemas.push(faqSchema);
   if (videoSchema) schemas.push(videoSchema);
@@ -59,28 +68,35 @@ function generateSchemas(
 function buildProductSchema(
   product: ProductData,
   productType: string,
+  entityUrl: string | undefined,
   websiteUrl: string | undefined,
+  organizationName: string | null | undefined,
   inLanguage: string,
 ): Record<string, unknown> | null {
   switch (productType) {
     case 'hotel':
-      return clean(buildHotelSchema(product, websiteUrl, inLanguage));
+      return clean(buildHotelSchema(product, entityUrl, organizationName, inLanguage));
     case 'activity':
-      return clean(buildActivitySchema(product, websiteUrl, inLanguage));
+      return clean(buildActivitySchema(product, entityUrl, websiteUrl, organizationName, inLanguage));
     case 'transfer':
-      return clean(buildTransferSchema(product, websiteUrl, inLanguage));
+      return clean(buildTransferSchema(product, entityUrl, inLanguage));
     case 'destination':
-      return clean(buildDestinationSchema(product, websiteUrl, inLanguage));
+      return clean(buildDestinationSchema(product, entityUrl, inLanguage));
     case 'package':
-      return clean(buildPackageSchema(product, websiteUrl, inLanguage));
+      return clean(buildPackageSchema(product, entityUrl, websiteUrl, organizationName, inLanguage));
     default:
       return null;
   }
 }
 
-function buildHotelSchema(product: ProductData, websiteUrl: string | undefined, inLanguage: string) {
+function buildHotelSchema(
+  product: ProductData,
+  websiteUrl: string | undefined,
+  organizationName: string | null | undefined,
+  inLanguage: string
+) {
   const aggregateRating = buildAggregateRating(product);
-  const offer = buildOffer(product);
+  const offer = buildOffer(product, websiteUrl, organizationName);
   const place = buildPlace(product);
 
   return {
@@ -110,8 +126,14 @@ function buildHotelSchema(product: ProductData, websiteUrl: string | undefined, 
   };
 }
 
-function buildActivitySchema(product: ProductData, websiteUrl: string | undefined, inLanguage: string) {
-  const offer = buildOffer(product);
+function buildActivitySchema(
+  product: ProductData,
+  entityUrl: string | undefined,
+  websiteUrl: string | undefined,
+  organizationName: string | null | undefined,
+  inLanguage: string
+) {
+  const offer = buildOffer(product, entityUrl, organizationName);
   const aggregateRating = buildAggregateRating(product);
   const place = buildPlace(product);
 
@@ -121,17 +143,19 @@ function buildActivitySchema(product: ProductData, websiteUrl: string | undefine
     name: product.name,
     description: product.description,
     image: getPrimaryImage(product),
-    url: websiteUrl,
+    url: entityUrl,
     inLanguage,
     address: buildAddress(product),
     location: place,
+    touristType: product.experience_type || product.activity_type,
+    provider: buildTravelAgencyRef(websiteUrl, organizationName),
     aggregateRating,
     offers: offer,
   };
 }
 
 function buildTransferSchema(product: ProductData, websiteUrl: string | undefined, inLanguage: string) {
-  const offer = buildOffer(product);
+  const offer = buildOffer(product, websiteUrl);
   const place = buildPlace(product);
 
   return {
@@ -174,8 +198,14 @@ function buildDestinationSchema(product: ProductData, websiteUrl: string | undef
   };
 }
 
-function buildPackageSchema(product: ProductData, websiteUrl: string | undefined, inLanguage: string) {
-  const itinerary = (product.itinerary_items ?? []).filter((item) => item && typeof item.title === 'string' && item.title.trim());
+function buildPackageSchema(
+  product: ProductData,
+  entityUrl: string | undefined,
+  websiteUrl: string | undefined,
+  organizationName: string | null | undefined,
+  inLanguage: string
+) {
+  const itinerary = getItineraryItems(product);
   const aggregateRating = buildAggregateRating(product);
   const language = localeToLanguage(normalizeLocale(inLanguage, 'es-CO'));
   const dayLabel = language === 'en' ? 'Day' : 'Día';
@@ -186,10 +216,12 @@ function buildPackageSchema(product: ProductData, websiteUrl: string | undefined
     name: product.name,
     description: product.description,
     image: getPrimaryImage(product),
-    url: websiteUrl,
+    url: entityUrl,
     inLanguage,
     touristType: 'Leisure',
-    offers: buildOffer(product),
+    provider: buildTravelAgencyRef(websiteUrl, organizationName),
+    organizer: buildTravelAgencyRef(websiteUrl, organizationName),
+    offers: buildOffer(product, entityUrl, organizationName),
     aggregateRating,
     itinerary: itinerary.length
       ? {
@@ -198,6 +230,12 @@ function buildPackageSchema(product: ProductData, websiteUrl: string | undefined
             '@type': 'ListItem',
             position: i + 1,
             name: item.title || `${dayLabel} ${i + 1}`,
+            description: item.description || undefined,
+            item: {
+              '@type': 'TouristDestination',
+              name: item.title || `${dayLabel} ${i + 1}`,
+              description: item.description || undefined,
+            },
           })),
         }
       : undefined,
@@ -209,6 +247,68 @@ function buildPackageSchema(product: ProductData, websiteUrl: string | undefined
         }))
       : undefined,
   };
+}
+
+function buildCommercialProductSchema(
+  product: ProductData,
+  productType: string,
+  entityUrl: string | undefined,
+  websiteUrl: string | undefined,
+  organizationName: string | null | undefined,
+  inLanguage: string,
+): Record<string, unknown> | null {
+  if (productType !== 'package' && productType !== 'activity') {
+    return null;
+  }
+
+  const offer = buildOffer(product, entityUrl, organizationName);
+  if (!offer) {
+    return null;
+  }
+
+  const place = buildPlace(product);
+  const category = productType === 'package' ? 'Travel package' : 'Tour activity';
+  const allImages = getProductImages(product);
+  const itinerary = productType === 'package' ? buildItineraryList(product, inLanguage) : undefined;
+  const places = buildProductPlaces(product);
+
+  return clean({
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: product.name,
+    description: product.description,
+    image: allImages.length > 0 ? allImages : undefined,
+    url: entityUrl,
+    inLanguage,
+    category,
+    brand: {
+      '@type': 'Brand',
+      name: organizationName || category,
+    },
+    additionalType: productType === 'package'
+      ? 'https://schema.org/TouristTrip'
+      : 'https://schema.org/TouristAttraction',
+    areaServed: place
+      ? {
+          '@type': 'Place',
+          name: place.name,
+          geo: place.geo,
+        }
+      : product.location || product.city || product.country
+      ? {
+          '@type': 'Place',
+          name: product.location || product.city || product.country,
+        }
+      : undefined,
+    provider: buildTravelAgencyRef(websiteUrl, organizationName),
+    organizer: productType === 'package' ? buildTravelAgencyRef(websiteUrl, organizationName) : undefined,
+    hasPart: itinerary,
+    itinerary,
+    subjectOf: itinerary,
+    spatialCoverage: places.length > 0 ? places : undefined,
+    offers: offer,
+    aggregateRating: buildAggregateRating(product),
+  });
 }
 
 function buildFaqSchema(faqs: ProductFAQ[] | null | undefined, inLanguage: string): Record<string, unknown> | null {
@@ -368,41 +468,146 @@ function buildAddress(product: ProductData) {
   };
 }
 
-function buildOffer(product: ProductData): Record<string, unknown> | undefined {
-  const optionMinPrice = Array.isArray(product.options)
-    ? product.options
-        .flatMap((option) => option?.prices ?? [])
-        .map((p) => ({
-          value: normalizeNumber(p?.price),
-          currency: typeof p?.currency === 'string' ? p.currency.toUpperCase() : null,
-        }))
-        .filter((row): row is { value: number; currency: string | null } => row.value !== null && row.value > 0)
-        .reduce<{ value: number; currency: string | null } | null>(
-          (min, row) => (min === null || row.value < min.value ? row : min),
-          null
-        )
-    : null;
-
-  const fallbackPrice = normalizeNumber(product.price);
-  const price = optionMinPrice?.value ?? fallbackPrice;
-  if (price === null) {
+function buildOffer(
+  product: ProductData,
+  url?: string,
+  organizationName?: string | null
+): Record<string, unknown> | undefined {
+  const rows = collectOfferRows(product);
+  if (rows.length === 0) {
     return undefined;
   }
 
-  const currency = optionMinPrice?.currency
-    || (typeof product.currency === 'string' ? product.currency.toUpperCase() : null)
-    || 'USD';
+  const currencies = new Set(rows.map((row) => row.currency));
+  if (rows.length > 1 && currencies.size === 1) {
+    return buildAggregateOffer(rows, product, url, organizationName);
+  }
 
-  const validUntil = new Date(Date.now() + 1000 * 60 * 60 * 24 * 365)
-    .toISOString()
-    .split('T')[0];
+  const row = rows.reduce((min, current) => (current.price < min.price ? current : min), rows[0]);
+  return buildSingleOffer(row, product, url, organizationName);
+}
+
+interface OfferRow {
+  price: number;
+  currency: string;
+  name?: string;
+  validUntil?: string;
+}
+
+function buildAggregateOffer(
+  rows: OfferRow[],
+  product: ProductData,
+  url?: string,
+  organizationName?: string | null,
+): Record<string, unknown> | undefined {
+  const currency = rows[0]?.currency;
+  if (!currency) return undefined;
+
+  const prices = rows.map((row) => row.price);
+  const availability = resolveAvailability(product);
+  const validUntil = resolveOfferValidUntil(product, rows);
+  const returnPolicy = buildMerchantReturnPolicy(product);
+  const seller = buildSeller(url, organizationName);
+
+  return clean({
+    '@type': 'AggregateOffer',
+    url,
+    lowPrice: Math.min(...prices),
+    highPrice: Math.max(...prices),
+    priceCurrency: currency,
+    offerCount: rows.length,
+    availability,
+    priceValidUntil: validUntil,
+    itemCondition: 'https://schema.org/NewCondition',
+    category: 'Travel',
+    hasMerchantReturnPolicy: returnPolicy,
+    seller,
+    offers: rows.slice(0, 12).map((row) => buildSingleOffer(row, product, url, organizationName)),
+  });
+}
+
+function buildSingleOffer(
+  row: OfferRow,
+  product: ProductData,
+  url?: string,
+  organizationName?: string | null,
+): Record<string, unknown> | undefined {
+  const availability = resolveAvailability(product);
+  const validUntil = row.validUntil || resolveOfferValidUntil(product);
+  const returnPolicy = buildMerchantReturnPolicy(product);
 
   return {
     '@type': 'Offer',
-    price,
-    priceCurrency: currency,
-    availability: 'https://schema.org/InStock',
+    name: row.name,
+    url,
+    price: row.price,
+    priceCurrency: row.currency,
+    availability,
     priceValidUntil: validUntil,
+    itemCondition: 'https://schema.org/NewCondition',
+    category: 'Travel',
+    hasMerchantReturnPolicy: returnPolicy,
+    seller: buildSeller(url, organizationName),
+  };
+}
+
+function collectOfferRows(product: ProductData): OfferRow[] {
+  const rows: OfferRow[] = [];
+  const push = (price: unknown, currency: unknown, name?: string, validUntil?: string) => {
+    const value = normalizeNumber(price);
+    const normalizedCurrency = typeof currency === 'string' ? currency.toUpperCase() : null;
+    if (value === null || value <= 0 || !normalizedCurrency) return;
+    rows.push({
+      price: value,
+      currency: normalizedCurrency,
+      name,
+      validUntil: validUntil && isDateLike(validUntil) ? validUntil.slice(0, 10) : undefined,
+    });
+  };
+
+  if (Array.isArray(product.options)) {
+    for (const option of product.options) {
+      for (const price of option?.prices ?? []) {
+        push(price?.price, price?.currency, option?.name, price?.valid_until);
+      }
+    }
+  }
+
+  push(product.price, product.currency);
+  push(product.package_version?.total_price, product.package_version?.base_currency, buildPackageVersionName(product.package_version));
+
+  if (Array.isArray(product.package_versions)) {
+    for (const version of product.package_versions) {
+      push(version?.total_price, version?.base_currency, buildPackageVersionName(version));
+    }
+  }
+
+  return dedupeOfferRows(rows);
+}
+
+function buildPackageVersionName(version: ProductData['package_version']): string | undefined {
+  if (!version) return undefined;
+  return `Version ${version.version_number}`;
+}
+
+function dedupeOfferRows(rows: OfferRow[]): OfferRow[] {
+  const seen = new Set<string>();
+  const unique: OfferRow[] = [];
+  for (const row of rows) {
+    const key = `${row.name || ''}|${row.price}|${row.currency}|${row.validUntil || ''}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    unique.push(row);
+  }
+  return unique;
+}
+
+function buildSeller(url?: string, organizationName?: string | null): Record<string, unknown> | undefined {
+  if (!url) return undefined;
+  return {
+    '@type': 'TravelAgency',
+    ...(organizationName && { name: organizationName }),
+    url: new URL(url).origin,
   };
 }
 
@@ -451,6 +656,166 @@ function buildPlace(product: ProductData): { name?: string; geo?: Record<string,
   };
 }
 
+function buildTravelAgencyRef(url: string | undefined, organizationName: string | null | undefined): Record<string, unknown> | undefined {
+  if (!url && !organizationName) return undefined;
+  return {
+    '@type': 'TravelAgency',
+    ...(organizationName && { name: organizationName }),
+    ...(url && { url: new URL(url).origin }),
+  };
+}
+
+function getItineraryItems(product: ProductData): NonNullable<ProductData['itinerary_items']> {
+  return (product.itinerary_items ?? []).filter((item) => item && typeof item.title === 'string' && item.title.trim());
+}
+
+function buildItineraryList(product: ProductData, inLanguage: string): Record<string, unknown> | undefined {
+  const itinerary = getItineraryItems(product);
+  if (itinerary.length === 0) return undefined;
+
+  const language = localeToLanguage(normalizeLocale(inLanguage, 'es-CO'));
+  const dayLabel = language === 'en' ? 'Day' : 'Día';
+  return {
+    '@type': 'ItemList',
+    itemListElement: itinerary.map((item, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      name: item.title || `${dayLabel} ${i + 1}`,
+      description: item.description || undefined,
+      item: {
+        '@type': 'TouristDestination',
+        name: item.title || `${dayLabel} ${i + 1}`,
+        description: item.description || undefined,
+      },
+    })),
+  };
+}
+
+function buildProductPlaces(product: ProductData): Array<Record<string, unknown>> {
+  const names = new Set<string>();
+  for (const value of [product.location, product.city, product.country, product.region]) {
+    if (typeof value === 'string' && value.trim().length > 0) names.add(value.trim());
+  }
+  for (const item of getItineraryItems(product)) {
+    if (item.title?.trim()) names.add(item.title.trim());
+  }
+  return Array.from(names).slice(0, 12).map((name) => ({
+    '@type': 'Place',
+    name,
+  }));
+}
+
+function resolveAvailability(product: ProductData): string | undefined {
+  const raw = getStringField(product, ['availability', 'availability_status']);
+  if (!raw) return undefined;
+  const normalized = raw.toLowerCase().replace(/[\s_-]+/g, '');
+  if (['instock', 'available', 'active', 'published'].includes(normalized)) return 'https://schema.org/InStock';
+  if (['soldout', 'unavailable', 'outofstock'].includes(normalized)) return 'https://schema.org/OutOfStock';
+  if (['preorder', 'preventa'].includes(normalized)) return 'https://schema.org/PreOrder';
+  if (['limited', 'limitedavailability'].includes(normalized)) return 'https://schema.org/LimitedAvailability';
+  return undefined;
+}
+
+function resolveOfferValidUntil(product: ProductData, rows: OfferRow[] = []): string | undefined {
+  const explicit = getStringField(product, ['price_valid_until', 'valid_until']);
+  if (explicit && isDateLike(explicit)) return explicit.slice(0, 10);
+
+  const rowValues = rows
+    .map((row) => row.validUntil)
+    .filter((value): value is string => typeof value === 'string' && isDateLike(value))
+    .sort();
+  if (rowValues[0]) return rowValues[0].slice(0, 10);
+
+  if (!Array.isArray(product.options)) return undefined;
+  const validUntilValues = product.options
+    .flatMap((option) => option?.prices ?? [])
+    .map((price) => price?.valid_until)
+    .filter((value): value is string => typeof value === 'string' && isDateLike(value))
+    .sort();
+
+  return validUntilValues[0]?.slice(0, 10);
+}
+
+function buildMerchantReturnPolicy(product: ProductData): Record<string, unknown> | undefined {
+  const policy = getRecordField(product, 'cancellation_policy');
+  if (policy) {
+    const tiers = Array.isArray(policy.tiers) ? policy.tiers : [];
+    const normalizedTiers = tiers
+      .map((tier) => {
+        if (!tier || typeof tier !== 'object') return null;
+        const row = tier as Record<string, unknown>;
+        const daysBefore = normalizeNumber(row.days_before);
+        const refundPct = normalizeNumber(row.refund_pct);
+        const label = typeof row.label === 'string' ? row.label.trim() : '';
+        if (daysBefore === null || refundPct === null) return null;
+        return { daysBefore, refundPct, label };
+      })
+      .filter((tier): tier is { daysBefore: number; refundPct: number; label: string } => tier !== null);
+
+    if (normalizedTiers.length > 0) {
+      const maxRefund = Math.max(...normalizedTiers.map((tier) => tier.refundPct));
+      const maxDays = Math.max(...normalizedTiers.map((tier) => tier.daysBefore));
+      return {
+        '@type': 'MerchantReturnPolicy',
+        returnPolicyCategory: maxRefund > 0
+          ? 'https://schema.org/MerchantReturnFiniteReturnWindow'
+          : 'https://schema.org/MerchantReturnNotPermitted',
+        ...(maxRefund > 0 && { merchantReturnDays: maxDays }),
+        refundType: maxRefund >= 100
+          ? 'https://schema.org/FullRefund'
+          : maxRefund > 0
+            ? 'https://schema.org/PartialRefund'
+            : undefined,
+        description: normalizedTiers.map((tier) => tier.label).filter(Boolean).join('; ') || undefined,
+      };
+    }
+  }
+
+  const explicitRefundable = getBooleanField(product, ['is_refundable', 'refundable']);
+  const optionRefundable = Array.isArray(product.options)
+    ? product.options.find((option) => typeof option?.is_refundable === 'boolean')?.is_refundable
+    : undefined;
+  const isRefundable = explicitRefundable ?? optionRefundable;
+  if (typeof isRefundable !== 'boolean') return undefined;
+
+  return {
+    '@type': 'MerchantReturnPolicy',
+    returnPolicyCategory: isRefundable
+      ? 'https://schema.org/MerchantReturnFiniteReturnWindow'
+      : 'https://schema.org/MerchantReturnNotPermitted',
+  };
+}
+
+function getStringField(product: ProductData, keys: string[]): string | undefined {
+  const record = product as unknown as Record<string, unknown>;
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === 'string' && value.trim().length > 0) return value.trim();
+  }
+  return undefined;
+}
+
+function getBooleanField(product: ProductData, keys: string[]): boolean | undefined {
+  const record = product as unknown as Record<string, unknown>;
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === 'boolean') return value;
+  }
+  return undefined;
+}
+
+function getRecordField(product: ProductData, key: string): Record<string, unknown> | undefined {
+  const value = (product as unknown as Record<string, unknown>)[key];
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : undefined;
+}
+
+function isDateLike(value: string): boolean {
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed);
+}
+
 function getPrimaryImage(product: ProductData): string | undefined {
   if (typeof product.social_image === 'string' && product.social_image.trim()) {
     return product.social_image;
@@ -471,6 +836,34 @@ function getPrimaryImage(product: ProductData): string | undefined {
   }
 
   return undefined;
+}
+
+function getProductImages(product: ProductData): string[] {
+  const urls: string[] = [];
+  const add = (value: unknown) => {
+    if (typeof value === 'string' && value.trim() && !urls.includes(value.trim())) {
+      urls.push(value.trim());
+    }
+  };
+
+  add(product.social_image);
+  add(product.image);
+
+  if (Array.isArray(product.photos)) {
+    for (const photo of product.photos) {
+      if (typeof photo === 'string') {
+        add(photo);
+      } else if (photo && typeof photo === 'object') {
+        add((photo as { url?: unknown }).url);
+      }
+    }
+  }
+
+  if (Array.isArray(product.images)) {
+    product.images.forEach(add);
+  }
+
+  return urls;
 }
 
 function normalizeNumber(value: unknown): number | null {

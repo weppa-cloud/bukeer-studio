@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import { headers } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 import { getWebsiteBySubdomain } from '@/lib/supabase/get-website';
 import type { WebsiteData } from '@/lib/supabase/get-website';
@@ -21,10 +22,11 @@ import {
   resolvePublicMetadataLocale,
   type PublicMetadataLocaleContext,
 } from '@/lib/seo/public-metadata';
-import { buildPublicLocalizedPath, localeToOgLocale, normalizeLocale } from '@/lib/seo/locale-routing';
+import { buildPublicLocalizedPath, localeToLanguage, localeToOgLocale, normalizeLocale } from '@/lib/seo/locale-routing';
 import { CategoryPage } from '@/components/pages/category-page';
 import { StaticPage } from '@/components/pages/static-page';
 import { ProductLandingPage } from '@/components/pages/product-landing-page';
+import { ActivitiesListingPage } from '@/components/pages/activities-listing-page';
 import { TemplateSlot, type TemplateSlotName } from '@/components/site/themes/editorial-v1/template-slot';
 import type { EditorialPackageDetailPayload } from '@/components/site/themes/editorial-v1/pages/package-detail';
 import type { EditorialActivityDetailPayload } from '@/components/site/themes/editorial-v1/pages/activity-detail';
@@ -47,9 +49,6 @@ const DestinationListingPage = dynamic(
 );
 const DestinationDetailPage = dynamic(
   () => import('@/components/pages/destination-detail-page').then(m => m.DestinationDetailPage)
-);
-const ActivitiesListingPage = dynamic(
-  () => import('@/components/pages/activities-listing-page').then(m => m.ActivitiesListingPage)
 );
 const PackagesListingPage = dynamic(
   () => import('@/components/pages/packages-listing-page').then(m => m.PackagesListingPage)
@@ -625,6 +624,8 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
   );
   const resolvedLocale = localeContext.resolvedLocale;
   const defaultLocale = localeContext.defaultLocale ?? 'es-CO';
+  const headerList = await headers();
+  const isCustomDomain = Boolean(headerList.get('x-custom-domain'));
 
   const translatedSections = applyContentTranslations(
     website.sections || [],
@@ -635,6 +636,8 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
     ...website,
     sections: translatedSections,
     resolvedLocale,
+    defaultLocale,
+    isCustomDomain,
   } as WebsiteData & { resolvedLocale?: string };
 
   // Handle activities listing (/actividades)
@@ -646,7 +649,23 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
       defaultLocale,
       websiteId: String(website.id),
     });
-    return <ActivitiesListingPage website={websiteForRender} activities={activityProducts} />;
+    const activitiesBody = (
+      <ActivitiesListingPage website={websiteForRender} activities={activityProducts} />
+    );
+    const activitiesPayload = {
+      subdomain,
+      locale: resolvedLocale,
+      activities: activityProducts,
+    };
+    return (
+      <TemplateSlot
+        name="experiences-page"
+        website={websiteForRender}
+        payload={activitiesPayload}
+      >
+        {activitiesBody}
+      </TemplateSlot>
+    );
   }
 
   // Handle packages listing (/paquetes) — editorial-v1 overlay (Wave 4)
@@ -666,14 +685,70 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
     const paquetesListPayload: EditorialPaquetesListPagePayload = {
       packages: packageProducts,
     };
+    const siteName = website.content?.account?.name || website.content?.siteName || subdomain;
+    const baseUrl = website.custom_domain
+      ? `https://${website.custom_domain}`
+      : `https://${subdomain}.bukeer.com`;
+    const schemaLanguage = localeToLanguage(normalizeLocale(resolvedLocale, 'es-CO'));
+    const isEnglishSchema = schemaLanguage === 'en';
+    const packagesSegment = isEnglishSchema ? 'packages' : 'paquetes';
+    const packagesLabel = isEnglishSchema ? 'Packages' : 'Paquetes';
+    const homeLabel = isEnglishSchema ? 'Home' : 'Inicio';
+    const paquetesSchemas = [
+      {
+        '@context': 'https://schema.org',
+        '@type': 'CollectionPage',
+        inLanguage: normalizeLocale(resolvedLocale, 'es-CO'),
+        name: `${packagesLabel} | ${siteName}`,
+        description: isEnglishSchema
+          ? `Discover curated travel packages by ${siteName}.`
+          : `Descubre paquetes de viaje curados por ${siteName}.`,
+        url: `${baseUrl}/${packagesSegment}`,
+        mainEntity: {
+          '@type': 'ItemList',
+          numberOfItems: packageProducts.length,
+          itemListElement: packageProducts.slice(0, 20).map((product, index) => ({
+            '@type': 'ListItem',
+            position: index + 1,
+            name: product.name,
+            url: product.slug ? `${baseUrl}/${packagesSegment}/${product.slug}` : undefined,
+          })),
+        },
+      },
+      {
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        inLanguage: normalizeLocale(resolvedLocale, 'es-CO'),
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: homeLabel, item: baseUrl },
+          { '@type': 'ListItem', position: 2, name: packagesLabel },
+        ],
+      },
+      {
+        '@context': 'https://schema.org',
+        '@type': 'TravelAgency',
+        name: siteName,
+        url: baseUrl,
+        inLanguage: normalizeLocale(resolvedLocale, 'es-CO'),
+      },
+    ];
     return (
-      <TemplateSlot
-        name="paquetes-list"
-        website={websiteForRender}
-        payload={paquetesListPayload}
-      >
-        {paquetesListBody}
-      </TemplateSlot>
+      <>
+        {paquetesSchemas.map((schema, index) => (
+          <script
+            key={index}
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+          />
+        ))}
+        <TemplateSlot
+          name="paquetes-list"
+          website={websiteForRender}
+          payload={paquetesListPayload}
+        >
+          {paquetesListBody}
+        </TemplateSlot>
+      </>
     );
   }
 
@@ -854,7 +929,9 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
             || productPage.product.location
             || [productPage.product.city, productPage.product.country].filter(Boolean).join(', ')
         ) || null;
-        const basePath = getBasePath(website.subdomain, Boolean(website.custom_domain));
+        // `/site/[subdomain]` routes must keep the `/site/<subdomain>` prefix
+        // even if the tenant has a custom domain configured in DB.
+        const basePath = getBasePath(website.subdomain, isCustomDomain);
         let slotName: TemplateSlotName | null = null;
         let editorialPayload:
           | EditorialPackageDetailPayload

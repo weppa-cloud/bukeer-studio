@@ -2,6 +2,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { SafeHtml } from '@/lib/sanitize';
 import { formatPublicDate, getPublicUiMessages } from '@/lib/site/public-ui-messages';
+import { getBasePath } from '@/lib/utils/base-path';
 
 interface BlogCategory {
   slug?: string | null;
@@ -23,10 +24,12 @@ export interface BlogDetailProps {
   subdomain: string;
   locale: string;
   post: BlogDetailPost;
+  isCustomDomain?: boolean;
 }
 
-export function BlogDetail({ subdomain, locale, post }: BlogDetailProps) {
+export function BlogDetail({ subdomain, locale, post, isCustomDomain = false }: BlogDetailProps) {
   const messages = getPublicUiMessages(locale);
+  const basePath = getBasePath(subdomain, isCustomDomain);
 
   return (
     <article data-testid="detail-blog" className="section-padding">
@@ -34,13 +37,13 @@ export function BlogDetail({ subdomain, locale, post }: BlogDetailProps) {
         <nav className="mb-8">
           <ol className="flex items-center gap-2 text-sm text-muted-foreground">
             <li>
-              <Link href={`/site/${subdomain}`} className="transition-colors hover:text-foreground">
+              <Link href={basePath || '/'} className="transition-colors hover:text-foreground">
                 {messages.blogPost.breadcrumbHome}
               </Link>
             </li>
             <li>/</li>
             <li>
-              <Link href={`/site/${subdomain}/blog`} className="transition-colors hover:text-foreground">
+              <Link href={`${basePath}/blog`} className="transition-colors hover:text-foreground">
                 {messages.blogPost.breadcrumbBlog}
               </Link>
             </li>
@@ -52,7 +55,7 @@ export function BlogDetail({ subdomain, locale, post }: BlogDetailProps) {
         <header className="mb-8">
           {post.category?.slug && post.category?.name ? (
             <Link
-              href={`/site/${subdomain}/blog?category=${post.category.slug}`}
+              href={`${basePath}/blog?category=${post.category.slug}`}
               className="mb-4 inline-block rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary"
             >
               {post.category.name}
@@ -104,7 +107,7 @@ export function BlogDetail({ subdomain, locale, post }: BlogDetailProps) {
 
         <div className="mt-12 border-t pt-8">
           <div className="flex items-center justify-between">
-            <Link href={`/site/${subdomain}/blog`} className="inline-flex items-center gap-2 text-primary hover:underline">
+            <Link href={`${basePath}/blog`} className="inline-flex items-center gap-2 text-primary hover:underline">
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>

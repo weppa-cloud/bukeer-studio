@@ -17,8 +17,39 @@
 
 set -euo pipefail
 
+if [[ -f ".env.local" ]]; then
+  set -a
+  # shellcheck disable=SC1091
+  source ".env.local"
+  set +a
+fi
+
 # --- Claim session pool slot -------------------------------------------------
-eval "$(bash scripts/session-acquire.sh)"
+SKIPPED_SESSIONS=()
+
+claim_free_session() {
+  local attempts=0
+  while (( attempts < 4 )); do
+    eval "$(bash scripts/session-acquire.sh)"
+    echo "$$" > ".sessions/locks/${_ACQUIRED_SESSION}/pid"
+    if command -v lsof >/dev/null 2>&1 && lsof -nP -iTCP:"$PORT" -sTCP:LISTEN >/dev/null 2>&1; then
+      echo "[lighthouse-ci] Claimed slot $SESSION_NAME but port $PORT is already listening; holding lock and trying next slot" >&2
+      SKIPPED_SESSIONS+=("$_ACQUIRED_SESSION")
+      unset SESSION_NAME PORT _ACQUIRED_SESSION
+      attempts=$((attempts + 1))
+      continue
+    fi
+    return 0
+  done
+
+  echo "[lighthouse-ci] ERROR: no free session port available" >&2
+  for skipped in "${SKIPPED_SESSIONS[@]+"${SKIPPED_SESSIONS[@]}"}"; do
+    bash scripts/session-release.sh "$skipped" >/dev/null 2>&1 || true
+  done
+  return 1
+}
+
+claim_free_session
 
 DEV_PID=""
 
@@ -30,10 +61,15 @@ cleanup() {
   if [[ -n "${_ACQUIRED_SESSION:-}" ]]; then
     bash scripts/session-release.sh "$_ACQUIRED_SESSION" 2>/dev/null || true
   fi
+  for skipped in "${SKIPPED_SESSIONS[@]+"${SKIPPED_SESSIONS[@]}"}"; do
+    bash scripts/session-release.sh "$skipped" 2>/dev/null || true
+  done
 }
 trap cleanup EXIT INT TERM
 
 echo "[lighthouse-ci] Claimed slot $SESSION_NAME on port $PORT"
+export LHCI_ALLOW_INDEX="${LHCI_ALLOW_INDEX:-1}"
+export LHCI_BLOCK_STREAMING_METADATA="${LHCI_BLOCK_STREAMING_METADATA:-1}"
 
 # --- Start server ------------------------------------------------------------
 SERVER_MODE="${LHCI_SERVER_MODE:-prod}"
@@ -74,14 +110,22 @@ echo "[lighthouse-ci] Server up. Running Lighthouse CI..."
 # Optional prewarm to stabilize data/cache before measurements.
 if [[ "${LHCI_PREWARM:-1}" == "1" ]]; then
   TENANT="${LHCI_TENANT:-colombiatours}"
+  PREVIEW_TOKEN="${LHCI_PREVIEW_TOKEN:-${SITE_PREVIEW_TOKEN:-${REVALIDATE_SECRET:-}}}"
+  PREVIEW_COOKIE=()
+  if [[ -n "$PREVIEW_TOKEN" ]]; then
+    PREVIEW_COOKIE=(--cookie "__bukeer_site_preview=${PREVIEW_TOKEN}")
+  fi
   echo "[lighthouse-ci] Prewarming audited URLs for tenant '$TENANT'..."
   prewarm_urls=(
     "http://localhost:${PORT}/site/${TENANT}/actividades/4x1-adventure"
     "http://localhost:${PORT}/site/${TENANT}/hoteles/aloft-bogota-airport"
-    "http://localhost:${PORT}/site/${TENANT}/paquetes/paquete-bogot-4-d-as"
+    "http://localhost:${PORT}/site/${TENANT}/paquetes/bogota-esencial-cultura-y-sal-4-dias"
+    "http://localhost:${PORT}/site/${TENANT}/paquetes/colombia-en-familia-15-dias-aventura-y-confort"
+    "http://localhost:${PORT}/site/${TENANT}/blog/viajar-por-colombia-en-15-dias"
+    "http://localhost:${PORT}/site/${TENANT}/blog/guia-completa-para-viajar-a-colombia"
   )
   for prewarm_url in "${prewarm_urls[@]}"; do
-    curl -sf "$prewarm_url" > /dev/null || true
+    curl -sf "${PREVIEW_COOKIE[@]}" "$prewarm_url" > /dev/null || true
   done
 fi
 

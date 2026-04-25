@@ -85,59 +85,7 @@ function InitialsAvatar({ name }: { name: string }): ReactElement {
   );
 }
 
-function VideoThumbnail({
-  youtubeUrl,
-  title,
-}: {
-  youtubeUrl: string;
-  title: string;
-}): ReactElement | null {
-  const videoId = extractYouTubeId(youtubeUrl);
-  if (!videoId) return null;
-  const thumbSrc = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
-
-  return (
-    <a
-      href={youtubeUrl}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="tc-video-thumb"
-      aria-label={`Watch video from ${title}`}
-      style={{ display: 'block', position: 'relative', borderRadius: 8, overflow: 'hidden', marginBottom: 12 }}
-    >
-      <Image
-        src={thumbSrc}
-        alt={`Video testimonial from ${title}`}
-        width={480}
-        height={270}
-        style={{ width: '100%', height: 'auto', display: 'block' }}
-      />
-      {/* Static play button overlay */}
-      <span
-        aria-hidden="true"
-        style={{
-          position: 'absolute',
-          inset: 0,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: 'rgba(0,0,0,0.35)',
-        }}
-      >
-        <svg
-          viewBox="0 0 48 48"
-          width={48}
-          height={48}
-          fill="white"
-          aria-hidden="true"
-        >
-          <circle cx="24" cy="24" r="24" fill="rgba(0,0,0,0.55)" />
-          <polygon points="19,15 36,24 19,33" fill="white" />
-        </svg>
-      </span>
-    </a>
-  );
-}
+import { VideoThumbnailClient } from './video-thumbnail.client';
 
 function ReviewCard({
   item,
@@ -161,7 +109,7 @@ function ReviewCard({
       }}
     >
       {item.youtubeUrl ? (
-        <VideoThumbnail youtubeUrl={item.youtubeUrl} title={item.name} />
+        <VideoThumbnailClient youtubeUrl={item.youtubeUrl} title={item.name} />
       ) : null}
 
       {hasRating ? <StarRow rating={item.rating!} /> : null}

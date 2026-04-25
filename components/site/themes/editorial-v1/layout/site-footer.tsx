@@ -15,7 +15,7 @@
  *   - WhatsApp href from `content.social.whatsapp`
  *   - legal links from `content.account.legal`
  *
- * Newsletter form is a stub — submission wiring deferred to Wave 4+.
+ * Newsletter form persists signups through the site newsletter route.
  */
 
 import type { ReactElement } from 'react';
@@ -25,6 +25,7 @@ import type { NavigationItem } from '@bukeer/website-contract';
 import { getBasePath } from '@/lib/utils/base-path';
 import { Icons } from '../primitives/icons';
 import { FooterSwitcher } from './footer-switcher';
+import { FooterNewsletterForm } from './footer-newsletter-form';
 import { getEditorialTextGetter } from '../i18n';
 import { WaflowCTAButton } from '../waflow/cta-button';
 
@@ -32,11 +33,17 @@ export interface EditorialSiteFooterProps {
   website: WebsiteData;
   navigation?: NavigationItem[];
   isCustomDomain?: boolean;
+  isLanding?: boolean;
+}
+
+function legalHref(basePath: string, slug: 'privacy' | 'terms' | 'cancellation'): string {
+  return `${basePath}/${slug}`;
 }
 
 export function EditorialSiteFooter({
   website,
   isCustomDomain = false,
+  isLanding = false,
 }: EditorialSiteFooterProps) {
   const editorialText = getEditorialTextGetter(website);
   const { content, subdomain } = website;
@@ -119,28 +126,11 @@ export function EditorialSiteFooter({
   const legalPrivacy = editorialText('editorialFooterLegalPrivacy');
   const legalTerms = editorialText('editorialFooterLegalTerms');
   const legalCancellation = editorialText('editorialFooterLegalCancellation');
-  const legalLinks: Array<{ label: string; href: string }> = [];
-  if (legal?.privacy_policy) {
-    legalLinks.push({ label: legalPrivacy, href: legal.privacy_policy });
-  } else {
-    legalLinks.push({ label: legalPrivacy, href: `${basePath}/privacy` });
-  }
-  if (legal?.terms_conditions) {
-    legalLinks.push({ label: legalTerms, href: legal.terms_conditions });
-  } else {
-    legalLinks.push({ label: legalTerms, href: `${basePath}/terms` });
-  }
-  if (legal?.cancellation_policy) {
-    legalLinks.push({
-      label: legalCancellation,
-      href: legal.cancellation_policy,
-    });
-  } else {
-    legalLinks.push({
-      label: legalCancellation,
-      href: `${basePath}/cancellation`,
-    });
-  }
+  const legalLinks: Array<{ label: string; href: string }> = [
+    { label: legalPrivacy, href: legalHref(basePath, 'privacy') },
+    { label: legalTerms, href: legalHref(basePath, 'terms') },
+    { label: legalCancellation, href: legalHref(basePath, 'cancellation') },
+  ];
 
   return (
     <footer className="ev-footer" data-screen-label="Footer">
@@ -157,7 +147,7 @@ export function EditorialSiteFooter({
                 />
               </div>
             ) : null}
-            <h4>{tagline}</h4>
+            <p className="footer-tagline">{tagline}</p>
             <p>{aboutBlurb}</p>
             {socialRow.length > 0 ? (
               <div className="footer-social">
@@ -193,81 +183,66 @@ export function EditorialSiteFooter({
             ) : null}
           </div>
 
-          <div className="footer-col">
-            <h5>{editorialText('editorialFooterColDestinos')}</h5>
-            <ul>
-              {destinosLinks.map((link) => (
-                <li key={link.label}>
-                  <Link href={link.href}>{link.label}</Link>
-                </li>
-              ))}
-            </ul>
-          </div>
+          {!isLanding && (
+            <>
+              <div className="footer-col">
+                <div className="footer-col-title">{editorialText('editorialFooterColDestinos')}</div>
+                <ul>
+                  {destinosLinks.map((link) => (
+                    <li key={link.label}>
+                      <Link href={link.href}>{link.label}</Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
 
-          <div className="footer-col">
-            <h5>{editorialText('editorialFooterColViajar')}</h5>
-            <ul>
-              {viajarLinks.map((link) => (
-                <li key={link.label}>
-                  <Link href={link.href}>{link.label}</Link>
-                </li>
-              ))}
-            </ul>
-          </div>
+              <div className="footer-col">
+                <div className="footer-col-title">{editorialText('editorialFooterColViajar')}</div>
+                <ul>
+                  {viajarLinks.map((link) => (
+                    <li key={link.label}>
+                      <Link href={link.href}>{link.label}</Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
 
-          <div className="footer-col">
-            <h5>{editorialText('editorialFooterColAgencia')}</h5>
-            <ul>
-              {agenciaLinks.map((link) => (
-                <li key={link.label}>
-                  <Link href={link.href}>{link.label}</Link>
-                </li>
-              ))}
-            </ul>
-          </div>
+              <div className="footer-col">
+                <div className="footer-col-title">{editorialText('editorialFooterColAgencia')}</div>
+                <ul>
+                  {agenciaLinks.map((link) => (
+                    <li key={link.label}>
+                      <Link href={link.href}>{link.label}</Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
 
-          <div className="footer-col">
-            <h5>{editorialText('editorialFooterColNewsletter')}</h5>
-            <p
-              style={{
-                fontSize: 13,
-                color: 'rgba(255,255,255,.6)',
-                marginBottom: 14,
-              }}
-            >
-              {editorialText('editorialFooterNewsletterHint')}
-            </p>
-            {/* Newsletter stub — wiring in Wave 4+ */}
-            <form
-              method="post"
-              action={`${basePath}/api/newsletter`}
-              style={{ display: 'flex', flexDirection: 'column', gap: 8 }}
-            >
-              <label className="sr-only" htmlFor="ev-footer-email">
-                {editorialText('editorialFooterEmailLabel')}
-              </label>
-              <input
-                id="ev-footer-email"
-                type="email"
-                name="email"
-                required
-                placeholder={editorialText('editorialFooterEmailPlaceholder')}
-                style={{
-                  width: '100%',
-                  padding: '12px 14px',
-                  borderRadius: 12,
-                  border: '1px solid rgba(255,255,255,.16)',
-                  background: 'rgba(255,255,255,.06)',
-                  color: '#fff',
-                  fontSize: 14,
-                }}
-              />
-              <button type="submit" className="btn btn-accent">
-                {editorialText('editorialFooterSubscribe')}
-                <Icons.arrow size={14} />
-              </button>
-            </form>
-          </div>
+              <div className="footer-col">
+                <div className="footer-col-title">{editorialText('editorialFooterColNewsletter')}</div>
+                <p
+                  style={{
+                    fontSize: 13,
+                    color: 'rgba(255,255,255,.6)',
+                    marginBottom: 14,
+                  }}
+                >
+                  {editorialText('editorialFooterNewsletterHint')}
+                </p>
+                <FooterNewsletterForm
+                  action={`${basePath}/api/newsletter`}
+                  subdomain={subdomain}
+                  locale={(website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale ?? content.locale ?? null}
+                  emailLabel={editorialText('editorialFooterEmailLabel')}
+                  emailPlaceholder={editorialText('editorialFooterEmailPlaceholder')}
+                  submitLabel={editorialText('editorialFooterSubscribe')}
+                  submittingLabel="Enviando..."
+                  successLabel="Gracias. Ya guardamos tu correo."
+                  errorLabel="No pudimos guardar tu correo. Intenta de nuevo."
+                />
+              </div>
+            </>
+          )}
         </div>
 
         <div className="footer-bottom">

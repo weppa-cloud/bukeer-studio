@@ -18,6 +18,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 
 import { Icons } from '@/components/site/themes/editorial-v1/primitives/icons';
+import { supabaseImageUrl } from '@/lib/images/supabase-transform';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 import type { WebsiteData } from '@/lib/supabase/get-website';
 
@@ -321,13 +322,15 @@ function ExperienceCard({
     ? `${basePath}/actividades/${encodeURIComponent(activity.slug)}`
     : `${basePath}/experiencias`;
   return (
-    <Link href={href} className="exp-card" aria-label={activity.name}>
+    <Link href={href} className="exp-card">
       <div className="exp-media">
         {activity.image ? (
           <Image
-            src={activity.image}
+            src={supabaseImageUrl(activity.image, { width: 560, quality: 70 })}
             alt={activity.name}
             fill
+            loading="lazy"
+            fetchPriority="low"
             sizes="(max-width: 720px) 88vw, (max-width: 1100px) 45vw, 33vw"
             style={{ objectFit: 'cover' }}
           />
@@ -364,7 +367,7 @@ function ExperienceCard({
             <Icons.pin size={12} aria-hidden /> {activity.location}
           </div>
         ) : null}
-        <h3 className="exp-title">{activity.name}</h3>
+        <h2 className="exp-title">{activity.name}</h2>
         {activity.title && activity.title !== activity.name ? (
           <p className="exp-sub">
             <em>— {activity.title}.</em>

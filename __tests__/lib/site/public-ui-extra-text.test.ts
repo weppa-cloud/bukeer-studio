@@ -319,10 +319,10 @@ describe('public-ui-extra-text (editorial-v1 catalog)', () => {
     );
   });
 
-  it('resolves the same string for en-US and pt-BR until overrides land', () => {
+  it('resolves en-US overrides and falls back to es-CO for unsupported locales', () => {
     const esValue = getPublicUiExtraText('es-CO', 'editorialPackagesCtaFallback');
     expect(getPublicUiExtraText('en-US', 'editorialPackagesCtaFallback')).toBe(
-      esValue,
+      'VIEW PACKAGE',
     );
     expect(getPublicUiExtraText('pt-BR', 'editorialPackagesCtaFallback')).toBe(
       esValue,

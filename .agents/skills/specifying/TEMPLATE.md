@@ -48,6 +48,19 @@ Migration path: [forward-only | requires backfill | none]
 |---------------------|--------|---------|-------|
 | ... | ... | ... | ... |
 
+## Media / Images Impact
+
+- [ ] No toca imágenes/media.
+- [ ] Usa assets existentes registrados en `media_assets`.
+- [ ] Sube/importa/genera nuevas imágenes y registra en `media_assets`.
+- [ ] Mantiene campo legacy por compatibilidad.
+- [ ] Define `account_id`, `website_id` si aplica, `entity_type`, `entity_id`, `usage_context`.
+- [ ] Incluye validación de broken/external/missing-alt/non-WebP.
+
+If this feature uploads, imports, generates, selects, or references an image,
+reference [[ADR-028]] and document the write path to
+`public.register_media_asset_reference(...)` or an explicit backfill path.
+
 ## Permissions (RBAC)
 
 | Role | View | Create | Edit | Delete |

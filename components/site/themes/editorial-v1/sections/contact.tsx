@@ -18,6 +18,7 @@ import type { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 import { Icons } from '../primitives/icons';
 import { getEditorialTextGetter, localizeEditorialText } from '../i18n';
 import { WaflowCTAButton } from '../waflow/cta-button';
+import { editorialHtml } from '../primitives/rich-heading';
 
 export interface EditorialContactSectionProps {
   section: WebsiteSection;
@@ -74,14 +75,17 @@ export function ContactSection({
             gap: 16,
           }}
         >
-          <h2 className="display-md" style={{ margin: 0 }}>
-            {title}
-          </h2>
-
+          <h2
+            className="display-md"
+            style={{ margin: 0 }}
+            dangerouslySetInnerHTML={editorialHtml(title)}
+          />
           {subtitle ? (
-            <p className="body-lg" style={{ margin: 0, color: 'var(--c-ink-2, #6b7280)' }}>
-              {subtitle}
-            </p>
+            <p
+              className="body-lg"
+              style={{ margin: 0, color: 'var(--c-ink-2, #6b7280)' }}
+              dangerouslySetInnerHTML={editorialHtml(subtitle)}
+            />
           ) : null}
 
           <WaflowCTAButton

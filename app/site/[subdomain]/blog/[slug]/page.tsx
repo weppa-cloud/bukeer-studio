@@ -1,5 +1,6 @@
 import './blog-typography.css';
 import { Metadata } from 'next';
+import { headers } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 import {
   getWebsiteBySubdomain,
@@ -32,7 +33,7 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
   const localeContext = await resolvePublicMetadataLocale(website, `/blog/${slug}`);
   const messages = getPublicUiMessages(localeContext.resolvedLocale);
 
-  const post = await getBlogPostBySlug(website.id, slug);
+  const post = await getBlogPostBySlug(website.id, slug, localeContext.resolvedLocale);
 
   if (!post) {
     return { title: messages.blogPost.notFoundTitle };
@@ -51,7 +52,14 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
   const languages = buildLocaleAwareAlternateLanguages(baseUrl, blogPath, localizedLocaleContext);
   const siteName = website.content?.account?.name || website.content?.siteName || subdomain;
   const title = post.seo_title || post.title || localizedMessages.blogPost.notFoundTitle;
-  const description = post.seo_description || post.excerpt;
+  const description = (
+    post.seo_description ||
+    post.excerpt ||
+    post.content?.replace(/<[^>]*>/g, ' ')
+  )
+    ?.replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 160);
 
   const ogImage = resolveOgImage(website, post.featured_image);
   const metadata: Metadata = {
@@ -160,6 +168,14 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
     seen.add(p.id);
     return true;
   }).slice(0, 3);
+  const headerList = await headers();
+  const isCustomDomain = Boolean(headerList.get('x-custom-domain'));
+  const websiteForRender = {
+    ...website,
+    resolvedLocale,
+    defaultLocale,
+    isCustomDomain,
+  };
 
   return (
     <>
@@ -167,7 +183,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
       <JsonLd data={schemas} />
       <TemplateSlot
         name="blog-detail"
-        website={website}
+        website={websiteForRender}
         payload={{
           subdomain,
           locale: resolvedLocale,
@@ -179,6 +195,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
           subdomain={subdomain}
           locale={resolvedLocale}
           post={post}
+          isCustomDomain={isCustomDomain}
         />
       </TemplateSlot>
     </>

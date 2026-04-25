@@ -39,6 +39,22 @@ NEXT_PUBLIC_MAIN_DOMAIN = "bukeer.com"
 pattern = "colombiatours.bukeer.com/*"
 zone_name = "bukeer.com"
 
+[[routes]]
+pattern = "studio.bukeer.com/*"
+zone_name = "bukeer.com"
+
+[[routes]]
+pattern = "colombiatours.travel/*"
+zone_name = "colombiatours.travel"
+
+[[routes]]
+pattern = "www.colombiatours.travel/*"
+zone_name = "colombiatours.travel"
+
+[[routes]]
+pattern = "en.colombiatours.travel/*"
+zone_name = "colombiatours.travel"
+
 # ── Staging environment ──────────────────────────────────────────────────────
 
 [env.staging]

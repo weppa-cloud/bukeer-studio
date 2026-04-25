@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import { headers } from 'next/headers';
 import { notFound, permanentRedirect, redirect } from 'next/navigation';
 
 import { ProductLandingPage } from '@/components/pages/product-landing-page';
@@ -9,8 +10,10 @@ import {
   getCategoryProducts,
   getLocalizedProductOverlay,
   getProductPage,
+  getProductSlugRedirect,
 } from '@/lib/supabase/get-pages';
 import { getReviewsForContext, type ReviewContext } from '@/lib/supabase/get-reviews';
+import { getPlanners } from '@/lib/supabase/get-planners';
 import { getWebsiteBySubdomain } from '@/lib/supabase/get-website';
 import { resolveOgImage } from '@/lib/seo/og-helpers';
 import {
@@ -196,6 +199,12 @@ export default async function PackageSlugPage({ params }: PackagePageProps) {
     locale: resolvedLocale,
   });
   if (!productPage?.product) {
+    const redirectedSlug = website.account_id
+      ? await getProductSlugRedirect(String(website.account_id), 'package', slug)
+      : null;
+    if (redirectedSlug) {
+      permanentRedirect(`/site/${subdomain}/paquetes/${redirectedSlug}`);
+    }
     notFound();
   }
 
@@ -209,6 +218,13 @@ export default async function PackageSlugPage({ params }: PackagePageProps) {
     ? await getReviewsForContext(website.account_id, reviewContext, 3)
     : [];
   const { items: similarPackages } = await getCategoryProducts(subdomain, 'packages', { limit: 8, offset: 0 });
+  const plannerId = typeof productPage.product.planner_id === 'string'
+    ? productPage.product.planner_id
+    : null;
+  const assignedPlanner = plannerId && website.account_id
+    ? (await getPlanners(String(website.account_id), { locale: resolvedLocale }))
+        .find((planner) => planner.id === plannerId) ?? null
+    : null;
   const defaultLocale = localeContext.defaultLocale ?? 'es-CO';
 
   // Non-default locale + no EN overlay → redirect to default locale URL.
@@ -233,26 +249,35 @@ export default async function PackageSlugPage({ params }: PackagePageProps) {
       || productPage.product.location
       || [productPage.product.city, productPage.product.country].filter(Boolean).join(', ')
   ) || null;
+  const headerList = await headers();
+  const isCustomDomain = Boolean(headerList.get('x-custom-domain'));
+  const websiteForRender = {
+    ...website,
+    resolvedLocale: localeContext.resolvedLocale,
+    defaultLocale,
+    isCustomDomain,
+  };
   const editorialPayload: EditorialPackageDetailPayload = {
     product: productPage.product,
-    basePath: getBasePath(website.subdomain, Boolean(website.custom_domain)),
+    basePath: getBasePath(website.subdomain, isCustomDomain),
     displayName,
     displayLocation,
     resolvedLocale: localeContext.resolvedLocale,
     googleReviews: packageReviews,
     similarProducts: similarPackages,
+    planner: assignedPlanner,
     faqs:
       Array.isArray(productPage.page?.custom_faq) && productPage.page.custom_faq.length > 0
         ? productPage.page.custom_faq
         : PACKAGE_FAQS_DEFAULT,
   };
 
-  const isEditorialTemplate = resolveTemplateSet(website) === 'editorial-v1';
+  const isEditorialTemplate = resolveTemplateSet(websiteForRender) === 'editorial-v1';
 
   return (
-    <TemplateSlot name="package-detail" website={website} payload={editorialPayload}>
+    <TemplateSlot name="package-detail" website={websiteForRender} payload={editorialPayload}>
       <ProductLandingPage
-        website={website}
+        website={websiteForRender}
         product={productPage.product}
         pageCustomization={productPage.page}
         productType="package"

@@ -101,6 +101,16 @@ const ItineraryItemSchema = z.object({
   event_type: ScheduleEventTypeSchema.optional(),
 });
 
+const ProductPageCustomSectionSchema = z.union([
+  CustomSectionSchema,
+  z.object({
+    id: z.string().uuid().or(z.string().min(1)),
+    type: z.string().min(1),
+    position: z.number().int().nonnegative().default(0),
+    content: z.record(z.string(), z.unknown()).optional(),
+  }).passthrough(),
+]);
+
 export const ProductDataSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -116,6 +126,7 @@ export const ProductDataSchema = z.object({
   amenities: z.array(z.string()).optional(),
   star_rating: NumericSchema.optional(),
   is_featured: z.boolean().optional(),
+  planner_id: z.string().uuid().or(z.string()).nullable().optional(),
 
   inclusions: z.union([z.string(), RichTextListSchema]).optional(),
   exclusions: z.union([z.string(), RichTextListSchema]).optional(),
@@ -123,7 +134,7 @@ export const ProductDataSchema = z.object({
   instructions: z.string().optional(),
 
   duration_minutes: NumericSchema.optional(),
-  duration: z.string().optional(),
+  duration: z.string().nullish(),
   from_location: z.string().optional(),
   to_location: z.string().optional(),
   itinerary_items: z.array(ItineraryItemSchema).optional(),
@@ -134,6 +145,13 @@ export const ProductDataSchema = z.object({
   review_count: NumericSchema.optional(),
   price: z.union([NumericSchema, z.string()]).optional(),
   currency: z.string().optional(),
+  availability: z.string().optional(),
+  availability_status: z.string().optional(),
+  price_valid_until: z.string().optional(),
+  valid_until: z.string().optional(),
+  is_refundable: z.boolean().optional(),
+  refundable: z.boolean().optional(),
+  cancellation_policy: JsonValueSchema.optional(),
   includes: StringOrStringArraySchema.optional(),
   excludes: StringOrStringArraySchema.optional(),
 
@@ -186,7 +204,7 @@ export const ProductPageCustomizationSchema = z.object({
     subtitle: z.string().nullish(),
     backgroundImage: z.string().nullish(),
   }).nullish(),
-  custom_sections: z.array(CustomSectionSchema).max(20).nullish(),
+  custom_sections: z.array(ProductPageCustomSectionSchema).max(20).nullish(),
   sections_order: z.array(z.string()).nullish(),
   hidden_sections: z.array(z.string()).nullish(),
   custom_seo_title: z.string().nullish(),

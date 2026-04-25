@@ -3,7 +3,9 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { useAutosave } from '@/lib/hooks/use-autosave';
+import { createDraftTheme, normalizeThemeInput } from '@/lib/theme/normalize-theme';
 import type { WebsiteData } from '@bukeer/website-contract';
+import type { BrandMood } from '@bukeer/theme-sdk';
 
 interface BrandKitEditorProps {
   website: WebsiteData;
@@ -12,16 +14,21 @@ interface BrandKitEditorProps {
 
 export function BrandKitEditor({ website, onSave }: BrandKitEditorProps) {
   const content = website.content;
-  const profile = website.theme?.profile ?? {};
-  const initialBrandMood =
-    typeof profile.brandMood === 'string' ? profile.brandMood : 'corporate';
+  const normalizedTheme = normalizeThemeInput(website.theme, {
+    brandName: content.siteName || website.subdomain,
+  }) ?? createDraftTheme({
+    brandName: content.siteName || website.subdomain || 'Bukeer Website',
+    brandMood: 'corporate',
+    seedColor: '#1976D2',
+  });
+  const initialBrandMood = normalizedTheme.profile.brand.mood;
 
   const [logo, setLogo] = useState(content.logo || '');
   const [logoLight, setLogoLight] = useState(content.logoLight || '');
   const [logoDark, setLogoDark] = useState(content.logoDark || '');
-  const [brandMood, setBrandMood] = useState(initialBrandMood);
+  const [brandMood, setBrandMood] = useState<BrandMood>(initialBrandMood);
 
-  const MOODS = [
+  const MOODS: Array<{ id: BrandMood; label: string; desc: string }> = [
     { id: 'adventurous', label: 'Adventurous', desc: 'Bold & dynamic' },
     { id: 'luxurious', label: 'Luxurious', desc: 'Refined elegance' },
     { id: 'tropical', label: 'Tropical', desc: 'Warm & vibrant' },
@@ -39,7 +46,15 @@ export function BrandKitEditor({ website, onSave }: BrandKitEditorProps) {
         content: { ...content, logo: data.logo, logoLight: data.logoLight, logoDark: data.logoDark },
         theme: {
           ...website.theme,
-          profile: { ...profile, brandMood: data.brandMood },
+          tokens: normalizedTheme.tokens as unknown as Record<string, unknown>,
+          profile: {
+            ...normalizedTheme.profile,
+            brand: {
+              ...normalizedTheme.profile.brand,
+              name: content.siteName || website.subdomain || normalizedTheme.profile.brand.name,
+              mood: data.brandMood,
+            },
+          } as unknown as Record<string, unknown>,
         },
       });
     },

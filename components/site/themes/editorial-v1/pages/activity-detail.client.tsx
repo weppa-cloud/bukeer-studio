@@ -2,6 +2,7 @@
 
 import { useMemo, useState, type ReactNode } from 'react';
 import Image from 'next/image';
+import { supabaseImageUrl } from '@/lib/images/supabase-transform';
 import type { ProductData, ProductFAQ, TrustContent } from '@bukeer/website-contract';
 import type { WebsiteData } from '@/lib/supabase/get-website';
 import { sanitizeProductCopy } from '@/lib/products/normalize-product';
@@ -19,6 +20,7 @@ import { EditorialGalleryMosaic } from '../primitives/editorial-gallery-mosaic';
 import { EditorialDateField } from '../primitives/editorial-date-field';
 import { WaflowCTAButton } from '../waflow/cta-button';
 import { useWaflow } from '../waflow/provider';
+import { editorialHtml } from '../primitives/rich-heading';
 import type { ActivityCircuitStop } from '@/lib/products/activity-circuit';
 
 interface GoogleReviewProp {
@@ -462,10 +464,17 @@ export function EditorialActivityDetailClient({
   return (
     <>
       <div data-screen-label="ActivityDetail" data-editorial-variant="activity-detail">
-        <section className="relative overflow-hidden rounded-b-[28px]">
+        <section className="relative overflow-hidden rounded-b-[28px] page-hero">
           {heroImage ? (
             <div className="relative h-[410px] w-full md:h-[450px]">
-              <Image src={heroImage} alt={displayName} fill sizes="100vw" className="object-cover" priority />
+              <Image
+                src={supabaseImageUrl(heroImage, { width: 1200, quality: 74 })}
+                alt={displayName}
+                fill
+                sizes="100vw"
+                className="object-cover"
+                priority
+              />
               <div
                 className="absolute inset-0"
                 style={{
@@ -487,9 +496,10 @@ export function EditorialActivityDetailClient({
               <div className="hero-chip-row mb-3 flex flex-wrap items-center gap-2 md:mb-4">
                 {heroChips}
               </div>
-              <h1 className="max-w-5xl text-balance text-white text-[clamp(2rem,4.7vw,4.4rem)] leading-[0.95] tracking-[-0.02em]">
-                {displayName}
-              </h1>
+              <h1 
+                className="display-lg text-white"
+                dangerouslySetInnerHTML={editorialHtml(displayName) || { __html: displayName }}
+              />
               <p className="mt-2 max-w-3xl text-sm leading-relaxed text-white/90 md:text-base">
                 {product.description?.slice(0, 150) || 'Experiencia diseñada por expertos locales con logística coordinada.'}
               </p>

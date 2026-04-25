@@ -3,7 +3,7 @@
  *
  * Exercises the submission pipeline at the pure-helper level:
  *   - Given the user's filled state, buildWaflowMessage produces the
- *     designer-spec template lines.
+ *     plain WhatsApp template lines.
  *   - buildWaflowUrl encodes the message correctly for wa.me.
  *   - The contact step component renders the expected submit button label
  *     per variant (SSR smoke test).
@@ -21,7 +21,12 @@ jest.mock('next/navigation', () => ({
 }));
 
 import { WaflowProvider } from '@/components/site/themes/editorial-v1/waflow/provider';
-import { WaflowStepContact } from '@/components/site/themes/editorial-v1/waflow/steps/contact';
+import {
+  filterWaflowCountries,
+  getWaflowCountryOptions,
+  parseWaflowInternationalPhone,
+  WaflowStepContact,
+} from '@/components/site/themes/editorial-v1/waflow/steps/contact';
 import {
   buildWaflowMessage,
   buildWaflowUrl,
@@ -47,9 +52,10 @@ describe('WAFlow submission — message + URL', () => {
     const encoded = url.slice('https://wa.me/573001234567?text='.length);
     const decoded = decodeURIComponent(encoded);
     expect(decoded).toContain('¡Hola! Quiero planear un viaje por Colombia');
-    expect(decoded).toContain('📍 Destino: Cartagena');
-    expect(decoded).toContain('📅 Cuándo: En 2–3 meses');
-    expect(decoded).toContain('📲 Contacto: +573001234567');
+    expect(decoded).toContain('Destino: Cartagena');
+    expect(decoded).toContain('Cuándo: En 2–3 meses');
+    expect(decoded).not.toContain('Contacto:');
+    expect(decoded).not.toContain('+573001234567');
     expect(decoded).toContain('— Juan Pérez');
     expect(decoded).toContain(`#ref: ${ref}`);
   });
@@ -73,8 +79,9 @@ describe('WAFlow submission — message + URL', () => {
       url.slice('https://wa.me/573001234567?text='.length),
     );
     expect(decoded).toContain('Me interesa el paquete "Café y paisaje"');
-    expect(decoded).toContain('📦 Paquete: Café y paisaje · 5D/4N');
-    expect(decoded).toContain('📲 Contacto: +573001234567');
+    expect(decoded).toContain('Paquete: Café y paisaje · 5D/4N');
+    expect(decoded).not.toContain('Contacto:');
+    expect(decoded).not.toContain('+573001234567');
   });
 });
 
@@ -121,5 +128,29 @@ describe('WAFlow submission — UI label', () => {
       </WaflowProvider>,
     );
     expect(html).toContain('Tu número se usa solo para este viaje');
+  });
+});
+
+describe('WAFlow contact country selector helpers', () => {
+  it('puts ColombiaTours frequent markets first', () => {
+    expect(getWaflowCountryOptions().slice(0, 4).map((country) => country.c)).toEqual([
+      'CO',
+      'US',
+      'MX',
+      'ES',
+    ]);
+  });
+
+  it('searches by country name, calling code, and aliases', () => {
+    expect(filterWaflowCountries('mex')[0]).toMatchObject({ c: 'MX', code: '+52' });
+    expect(filterWaflowCountries('+1').some((country) => country.c === 'US')).toBe(true);
+    expect(filterWaflowCountries('eeuu')[0]).toMatchObject({ c: 'US', code: '+1' });
+  });
+
+  it('detects international pasted numbers and returns the national number', () => {
+    expect(parseWaflowInternationalPhone('+52 55 1234 5678')).toEqual({
+      countryCode: 'MX',
+      nationalNumber: '5512345678',
+    });
   });
 });

@@ -28,6 +28,7 @@ import { Eyebrow } from '../primitives/eyebrow';
 import { getBasePath } from '@/lib/utils/base-path';
 import { formatProductPrice, resolveLowestProductPrice } from '@/lib/products/to-items';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
+import { editorialHtml } from '../primitives/rich-heading';
 
 import {
   PaquetesListGrid,
@@ -46,21 +47,7 @@ export interface EditorialPaquetesListPageProps {
 }
 
 // -------------------- Copy --------------------
-function getHeroCopy(localeLike: string): { emphasis: string; subtitle: string } {
-  const locale = localeLike.toLowerCase();
-  if (locale.startsWith('en')) {
-    return {
-      emphasis: 'across Colombia.',
-      subtitle:
-        'Journeys designed by local planners. Flexible and adjustable as the starting point for your trip.',
-    };
-  }
-  return {
-    emphasis: 'por toda Colombia.',
-    subtitle:
-      'Itinerarios diseñados por planners locales. Ajustables, flexibles, punto de partida para tu viaje.',
-  };
-}
+
 
 // -------------------- Helpers --------------------
 
@@ -125,11 +112,15 @@ export function EditorialPaquetesListPage({
   const resolvedLocale =
     (website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale ?? website.default_locale ?? website.content?.locale ?? 'es-CO';
   const editorialText = getPublicUiExtraTextGetter(resolvedLocale);
-  const heroCopy = getHeroCopy(resolvedLocale);
-  const basePath = getBasePath(website.subdomain, false);
+  const isCustomDomain = Boolean((website as WebsiteData & { isCustomDomain?: boolean }).isCustomDomain);
+  const basePath = getBasePath(website.subdomain, isCustomDomain);
   const siteTitleTrail = website.content?.siteName || website.subdomain;
 
   const items = packages.map(toListItem);
+
+  const eyebrow = editorialText('editorialPackagesEyebrowFallback');
+  const title = editorialText('editorialPackagesTitleFallback');
+  const subtitle = editorialText('editorialPackagesSubtitleFallback');
 
   return (
     <div data-screen-label="PaquetesList" data-testid="editorial-paquetes-list">
@@ -145,12 +136,9 @@ export function EditorialPaquetesListPage({
             ]}
           />
           <div style={{ marginTop: 24 }}>
-            <Eyebrow tone="light">{editorialText('editorialPackagesEyebrowFallback')}</Eyebrow>
-            <h1 className="display-lg" style={heroTitleStyle}>
-              {editorialText('editorialPackagesTitleFallback')}{' '}
-              <em style={heroEmphasisStyle}>{heroCopy.emphasis}</em>
-            </h1>
-            <p style={heroSubtitleStyle}>{heroCopy.subtitle}</p>
+            <Eyebrow tone="light">{eyebrow}</Eyebrow>
+            <h1 className="display-lg" style={heroTitleStyle} dangerouslySetInnerHTML={editorialHtml(title)} />
+            <p style={heroSubtitleStyle} dangerouslySetInnerHTML={editorialHtml(subtitle)} />
           </div>
         </div>
       </section>

@@ -26,6 +26,7 @@ import { CanvasFrame } from './canvas-frame';
 import { CopilotBar, type CopilotPlan } from './copilot-bar';
 import { createAuthClient } from '@/lib/auth/require-auth';
 import type { ThemeInput } from '@/lib/theme/m3-theme-provider';
+import { normalizeThemeInput } from '@/lib/theme/normalize-theme';
 import type { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 
 interface EditorSection {
@@ -262,9 +263,27 @@ export function EditorShell({ websiteId, initialToken }: EditorShellProps) {
   }, [websiteId, getSupabase, loadData]);
 
   // Preview
-  const handlePreview = useCallback(() => {
+  const handlePreview = useCallback(async () => {
     if (!data?.website.subdomain) return;
-    window.open(`https://${data.website.subdomain}.bukeer.com`, '_blank');
+    const previewWindow = window.open('about:blank', '_blank', 'noopener,noreferrer');
+    const tokenRes = await fetch('/api/preview-token', { cache: 'no-store' });
+    if (!tokenRes.ok) {
+      previewWindow?.close();
+      return;
+    }
+    const tokenData = (await tokenRes.json()) as { token?: string };
+    if (!tokenData.token) {
+      previewWindow?.close();
+      return;
+    }
+
+    const previewUrl = new URL(`/site/${data.website.subdomain}`, window.location.origin);
+    previewUrl.searchParams.set('preview_token', tokenData.token);
+    if (previewWindow) {
+      previewWindow.location.href = previewUrl.toString();
+    } else {
+      window.location.href = previewUrl.toString();
+    }
   }, [data]);
 
   // Save as Template
@@ -404,9 +423,9 @@ export function EditorShell({ websiteId, initialToken }: EditorShellProps) {
 
   const websiteForRender = buildWebsiteForRender();
   if (!websiteForRender) return null;
-  const initialTheme: ThemeInput | undefined = data.website.theme?.tokens && data.website.theme?.profile
-    ? ({ tokens: data.website.theme.tokens, profile: data.website.theme.profile } as unknown as ThemeInput)
-    : undefined;
+  const initialTheme: ThemeInput | undefined = normalizeThemeInput(data.website.theme, {
+    brandName: websiteForRender.content.siteName || websiteForRender.subdomain,
+  });
 
   return (
     <div className="h-screen flex flex-col">

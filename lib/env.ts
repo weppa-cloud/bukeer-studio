@@ -27,7 +27,7 @@ const serverEnvSchema = z.object({
   REVALIDATE_SECRET: z.string().min(1, 'REVALIDATE_SECRET is required'),
 
   // Public URL
-  NEXT_PUBLIC_URL: z.string().url().default('https://bukeer.com'),
+  NEXT_PUBLIC_URL: z.string().url().default('https://studio.bukeer.com'),
   NEXT_PUBLIC_MAIN_DOMAIN: z.string().default('bukeer.com'),
 
   // Maps (MapLibre)

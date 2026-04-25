@@ -29,6 +29,7 @@ const EN_EDITORIAL_COPY_OVERRIDES: Record<string, string> = {
   'Planear por WhatsApp': 'Plan on WhatsApp',
   'Ver experiencias': 'View experiences',
   'Ocho Colombias, <em>un mismo viaje.</em>': 'Eight Colombias, <em>one journey.</em>',
+  'Ocho Colombias, <em>ocho ritmos.</em>': 'Eight Colombias, <em>eight rhythms.</em>',
   'Ocho Colombias <em>en un mismo viaje.</em>': 'Eight Colombias <em>in one journey.</em>',
   'Ocho Colombias <em>un mismo viaje.</em>': 'Eight Colombias <em>one journey.</em>',
   'Del mar de siete colores al desierto de La Guajira. Cada región con sus guías, sus sabores y su ritmo.':

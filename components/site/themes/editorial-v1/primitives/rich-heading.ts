@@ -37,10 +37,10 @@ export function sanitizeEditorialHtml(raw: string | undefined | null): string {
 }
 
 /**
- * Returns `{ __html }` ready for `dangerouslySetInnerHTML`, or `null` when
+ * Returns `{ __html }` ready for `dangerouslySetInnerHTML`, or `undefined` when
  * the input sanitizes to empty.
  */
-export function editorialHtml(raw: string | undefined | null): { __html: string } | null {
+export function editorialHtml(raw: string | undefined | null): { __html: string } | undefined {
   const html = sanitizeEditorialHtml(raw);
-  return html ? { __html: html } : null;
+  return html ? { __html: html } : undefined;
 }

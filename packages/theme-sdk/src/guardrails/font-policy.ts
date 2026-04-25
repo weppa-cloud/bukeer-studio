@@ -82,6 +82,7 @@ export interface FontViolation {
 
 export function validateFonts(tokens: DesignTokens): FontViolation[] {
   const violations: FontViolation[] = [];
+  const editorialSerif = tokens.typography.editorialSerif;
 
   // Check display font
   if (!FONT_ALLOWLIST.has(tokens.typography.display.family)) {
@@ -103,6 +104,15 @@ export function validateFonts(tokens: DesignTokens): FontViolation[] {
     });
   }
 
+  if (editorialSerif && !FONT_ALLOWLIST.has(editorialSerif.family)) {
+    violations.push({
+      code: 'not-allowlisted',
+      severity: 'warning',
+      message: `Editorial serif font "${editorialSerif.family}" is not in the allowlist. Allowed: ${Array.from(FONT_ALLOWLIST).slice(0, 5).join(', ')}...`,
+      path: 'tokens.typography.editorialSerif.family',
+    });
+  }
+
   // Check fallback stacks
   if (!VALID_FALLBACKS.has(tokens.typography.display.fallback)) {
     violations.push({
@@ -119,6 +129,15 @@ export function validateFonts(tokens: DesignTokens): FontViolation[] {
       severity: 'error',
       message: `Body font fallback "${tokens.typography.body.fallback}" is not valid. Use: ${Array.from(VALID_FALLBACKS).join(', ')}`,
       path: 'tokens.typography.body.fallback',
+    });
+  }
+
+  if (editorialSerif && !VALID_FALLBACKS.has(editorialSerif.fallback)) {
+    violations.push({
+      code: 'invalid-fallback',
+      severity: 'error',
+      message: `Editorial serif fallback "${editorialSerif.fallback}" is not valid. Use: ${Array.from(VALID_FALLBACKS).join(', ')}`,
+      path: 'tokens.typography.editorialSerif.fallback',
     });
   }
 

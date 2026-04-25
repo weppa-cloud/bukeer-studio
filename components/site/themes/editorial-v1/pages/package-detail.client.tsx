@@ -3,8 +3,10 @@
 import { type ReactNode, useMemo, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { supabaseImageUrl } from '@/lib/images/supabase-transform';
 import type { ActivityOption, ProductData, ProductFAQ, ScheduleEventType } from '@bukeer/website-contract';
 import type { WebsiteData } from '@/lib/supabase/get-website';
+import type { PlannerData } from '@/lib/supabase/get-planners';
 import { sanitizeProductCopy } from '@/lib/products/normalize-product';
 import { formatPriceOrConsult } from '@/lib/products/format-price';
 import { convertCurrencyAmount } from '@/lib/site/currency';
@@ -22,6 +24,7 @@ import { Icons } from '../primitives/icons';
 import { EditorialGalleryMosaic } from '../primitives/editorial-gallery-mosaic';
 import { EditorialDateField } from '../primitives/editorial-date-field';
 import { WaflowCTAButton } from '../waflow/cta-button';
+import { editorialHtml } from '../primitives/rich-heading';
 
 interface GoogleReviewProp {
   author_name: string;
@@ -42,6 +45,7 @@ interface EditorialPackageDetailClientProps {
   resolvedLocale: string;
   googleReviews: GoogleReviewProp[];
   similarProducts: ProductData[];
+  planner?: PlannerData | null;
   faqs: ProductFAQ[];
 }
 
@@ -114,6 +118,15 @@ function toSlug(value: string): string {
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
+}
+
+function getInitials(value: string): string {
+  return value
+    .split(/\s+/)
+    .map((part) => part[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
 }
 
 function normalizeTextList(value: unknown): string[] {
@@ -629,6 +642,7 @@ export function EditorialPackageDetailClient({
   resolvedLocale: _resolvedLocale,
   googleReviews,
   similarProducts,
+  planner,
   faqs,
 }: EditorialPackageDetailClientProps) {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
@@ -940,13 +954,35 @@ export function EditorialPackageDetailClient({
     return [];
   }, [product.itinerary_items, routeStopsWithNights, product.duration_days, timeline]);
 
+  const plannerName = planner?.fullName?.trim() || null;
+  const plannerRole = planner
+    ? planner.specialty || planner.position || planner.role || 'Travel planner'
+    : null;
+  const plannerMeta = planner
+    ? [
+        planner.locationName,
+        ...(planner.regions ?? []).slice(0, 2),
+        ...(planner.languages ?? []).slice(0, 2),
+      ]
+        .filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+        .join(' · ')
+    : null;
+  const plannerProfileHref = planner?.slug ? `${basePath}/planners/${planner.slug}` : `${basePath}/planners`;
+
   return (
     <>
       <div data-screen-label="PackageDetail">
         <section data-testid="detail-hero" className="pkg-detail-hero relative overflow-hidden rounded-b-[28px]">
           {heroImage ? (
             <div className="relative h-[520px] w-full">
-              <Image src={heroImage} alt={displayName} fill sizes="100vw" className="object-cover" priority />
+              <Image
+                src={supabaseImageUrl(heroImage, { width: 1200, quality: 74 })}
+                alt={displayName}
+                fill
+                sizes="100vw"
+                className="object-cover"
+                priority
+              />
               <div className="pkg-detail-hero-wash absolute inset-0" />
             </div>
           ) : (
@@ -956,7 +992,7 @@ export function EditorialPackageDetailClient({
             />
           )}
 
-          <div className="absolute inset-x-0 bottom-12 z-10">
+          <div className="absolute inset-x-0 bottom-12 z-10 page-hero">
             <div className="pkg-detail-hero-content mx-auto w-full max-w-7xl px-6">
               <div data-testid="detail-breadcrumb" className="mb-4">
                 <Breadcrumbs items={breadcrumbItems} tone="inverse" className="pkg-hero-breadcrumb" />
@@ -970,7 +1006,7 @@ export function EditorialPackageDetailClient({
                   </span>
                 ) : null}
               </div>
-              <h1 className="display-lg text-white">{displayName}</h1>
+              <h1 className="display-lg text-white" dangerouslySetInnerHTML={editorialHtml(displayName) || { __html: displayName }} />
               <div className="pkg-detail-hero-actions mt-4 flex flex-wrap items-center gap-3">
                 <span className="pkg-detail-hero-price inline-flex items-center rounded-full bg-white/20 px-3 py-1 text-sm font-semibold text-white">
                   Desde {priceLabel}
@@ -1145,11 +1181,12 @@ export function EditorialPackageDetailClient({
                           <div className="day-media">
                             {(entries.some((entry) => Boolean(entry.imageUrl)) || media.byDay[day]?.length || images.length > 0) ? (
                               <Image
-                                src={
+                                src={supabaseImageUrl(
                                   entries.find((entry) => Boolean(entry.imageUrl))?.imageUrl
                                   || (media.byDay[day]?.[0])
-                                  || images[(Math.max(day, 1) - 1) % images.length]
-                                }
+                                  || images[(Math.max(day, 1) - 1) % images.length],
+                                  { width: 420, quality: 70 },
+                                )}
                                 alt={`${displayName} día ${day}`}
                                 fill
                                 sizes="(max-width: 1024px) 100vw, 300px"
@@ -1363,35 +1400,57 @@ export function EditorialPackageDetailClient({
                 </div>
               </section>
 
-              <section data-testid="detail-planner-assigned">
-                <h2 className="text-2xl font-bold">Tu travel planner para este <em>paquete</em></h2>
-                <div className="planner-detail mt-5">
-                  <div className="av" />
-                  <div>
-                    <b>{website.content?.account?.name || website.content?.siteName || 'Planner local'}</b>
-                    <small>Travel planner · Soporte local · ES · EN</small>
-                    <p>
-                      Ajustamos fechas, ritmo y alojamientos según tu estilo de viaje. Te acompañamos antes y durante la experiencia.
-                    </p>
+              {plannerName ? (
+                <section data-testid="detail-planner-assigned">
+                  <h2 className="text-2xl font-bold">Tu travel planner para este <em>paquete</em></h2>
+                  <div className="planner-detail mt-5">
+                    <div
+                      className="av"
+                      style={{
+                        position: 'relative',
+                        overflow: 'hidden',
+                        display: 'grid',
+                        placeItems: 'center',
+                      }}
+                    >
+                      {planner?.photo ? (
+                        <Image
+                          src={planner.photo}
+                          alt={plannerName}
+                          fill
+                          sizes="72px"
+                          style={{ objectFit: 'cover' }}
+                        />
+                      ) : (
+                        <span aria-hidden="true">{getInitials(plannerName)}</span>
+                      )}
+                    </div>
+                    <div>
+                      <b>{plannerName}</b>
+                      <small>{[plannerRole, plannerMeta].filter(Boolean).join(' · ')}</small>
+                      <p>
+                        {planner?.tagline || planner?.quote || planner?.bio || 'Ajusta fechas, ritmo y alojamientos según tu estilo de viaje. Te acompaña antes y durante la experiencia.'}
+                      </p>
+                    </div>
+                    <div className="planner-actions">
+                      {whatsappUrl ? (
+                        <WaflowCTAButton
+                          variant="D"
+                          pkg={waflowPackageContext}
+                          prefill={waflowPrefill}
+                          fallbackHref={whatsappUrl || undefined}
+                          className="btn btn-accent btn-sm"
+                        >
+                          <Icons.whatsapp size={14} /> Hablar por WhatsApp
+                        </WaflowCTAButton>
+                      ) : null}
+                      <Link href={plannerProfileHref} className="btn btn-outline btn-sm">
+                        Ver perfil
+                      </Link>
+                    </div>
                   </div>
-                  <div className="planner-actions">
-                    {whatsappUrl ? (
-                      <WaflowCTAButton
-                        variant="D"
-                        pkg={waflowPackageContext}
-                        prefill={waflowPrefill}
-                        fallbackHref={whatsappUrl || undefined}
-                        className="btn btn-accent btn-sm"
-                      >
-                        <Icons.whatsapp size={14} /> Hablar por WhatsApp
-                      </WaflowCTAButton>
-                    ) : null}
-                    <Link href={`${basePath}/planners`} className="btn btn-outline btn-sm">
-                      Ver perfil
-                    </Link>
-                  </div>
-                </div>
-              </section>
+                </section>
+              ) : null}
 
               <section data-testid="detail-trust">
                 <h2 className="text-2xl font-bold">Reserva con confianza</h2>
@@ -1422,7 +1481,14 @@ export function EditorialPackageDetailClient({
                         <article key={similar.id} className="similar-card">
                           <Link href={`${basePath}/paquetes/${similar.slug}`}>
                             <div className="similar-media">
-                              {similarImage ? <Image src={similarImage} alt={similar.name} fill className="object-cover" /> : null}
+                              {similarImage ? (
+                                <Image
+                                  src={supabaseImageUrl(similarImage, { width: 520, quality: 70 })}
+                                  alt={similar.name}
+                                  fill
+                                  className="object-cover"
+                                />
+                              ) : null}
                             </div>
                             <div className="similar-body">
                               <h3>{similar.name}</h3>

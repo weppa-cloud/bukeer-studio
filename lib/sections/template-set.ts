@@ -82,7 +82,13 @@ function isColombiaToursTenant(website: unknown): boolean {
   if (!website || typeof website !== 'object') return false;
 
   const subdomain = (website as { subdomain?: unknown }).subdomain;
-  if (typeof subdomain === 'string' && subdomain.trim().toLowerCase() === 'colombiatours') {
+  if (typeof subdomain === 'string' && subdomain.trim().toLowerCase().includes('colombiatours')) {
+    return true;
+  }
+
+  const content = (website as { content?: any }).content;
+  const siteName = content?.siteName || content?.account?.name || '';
+  if (typeof siteName === 'string' && siteName.toLowerCase().includes('colombiatours')) {
     return true;
   }
 

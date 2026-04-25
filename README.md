@@ -6,7 +6,8 @@ Next.js 15 application serving agency websites, visual editor, and AI copilot. D
 
 | Environment | URL |
 |-------------|-----|
-| Production | `https://bukeer.com`, `https://*.bukeer.com` |
+| Studio production | `https://studio.bukeer.com` |
+| Public websites | `https://*.bukeer.com`, custom tenant domains |
 | Staging | `https://bukeer-web-public-staging.<account>.workers.dev` |
 | Local dev | `http://localhost:3000` |
 

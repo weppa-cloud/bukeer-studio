@@ -35,9 +35,11 @@ export interface WaflowMessageInput {
 }
 
 /**
- * Build the pre-constructed WhatsApp message (one per variant). Kept
- * byte-identical to the designer prototype so operators recognise the
- * shape.
+ * Build the pre-constructed WhatsApp message (one per variant).
+ *
+ * Keep this text plain: some WhatsApp preview clients render emojis as
+ * replacement glyphs, and the customer's phone is already captured in the
+ * lead record, so it does not need to be repeated in the outbound message.
  */
 export function buildWaflowMessage(input: WaflowMessageInput): string {
   const {
@@ -46,8 +48,6 @@ export function buildWaflowMessage(input: WaflowMessageInput): string {
     destinationChoice,
     destFull,
     when,
-    country,
-    phone,
     pkgTitle,
     pkgDays,
     pkgNights,
@@ -61,22 +61,22 @@ export function buildWaflowMessage(input: WaflowMessageInput): string {
   const lines: Array<string | null> = [];
 
   if (variant === 'A') {
-    lines.push('¡Hola! Quiero planear un viaje por Colombia 👋');
+    lines.push('¡Hola! Quiero planear un viaje por Colombia.');
     lines.push('');
     lines.push(
       destinationChoice && destinationChoice.trim().length > 0
-        ? `📍 Destino: ${destinationChoice.trim()}`
-        : '📍 Destino: por definir',
+        ? `Destino: ${destinationChoice.trim()}`
+        : 'Destino: por definir',
     );
-    lines.push(`📅 Cuándo: ${when || 'Flexible'}`);
+    lines.push(`Cuándo: ${when || 'Flexible'}`);
   } else if (variant === 'B') {
-    lines.push(`¡Hola! Quiero planear un viaje a ${destFull || 'Colombia'} 👋`);
+    lines.push(`¡Hola! Quiero planear un viaje a ${destFull || 'Colombia'}.`);
     lines.push('');
-    lines.push(`📍 Destino: ${destFull || 'Colombia'}`);
-    lines.push(`📅 Cuándo: ${when || 'Flexible'}`);
+    lines.push(`Destino: ${destFull || 'Colombia'}`);
+    lines.push(`Cuándo: ${when || 'Flexible'}`);
   } else {
     // variant === 'D'
-    lines.push(`¡Hola! Me interesa el paquete "${pkgTitle ?? ''}" 👋`);
+    lines.push(`¡Hola! Me interesa el paquete "${pkgTitle ?? ''}".`);
     lines.push('');
     const pkgMeta = [
       pkgTitle ?? '',
@@ -84,20 +84,19 @@ export function buildWaflowMessage(input: WaflowMessageInput): string {
     ]
       .filter((s): s is string => !!s && s.trim().length > 0)
       .join(' · ');
-    lines.push(`📦 Paquete: ${pkgMeta}`);
-    lines.push(`📅 Cuándo: ${when || 'Flexible'}`);
+    lines.push(`Paquete: ${pkgMeta}`);
+    lines.push(`Cuándo: ${when || 'Flexible'}`);
   }
 
-  lines.push(`📲 Contacto: ${normalizeWaflowPhone(phone, country) ?? `${country.code}${phone.replace(/\D/g, '')}`}`);
   if (typeof adults === 'number' && adults > 0) {
     const kids = typeof children === 'number' && children > 0 ? ` + ${children} niños` : '';
-    lines.push(`👥 Viajeros: ${adults} adultos${kids}`);
+    lines.push(`Viajeros: ${adults} adultos${kids}`);
   }
   if (notes && notes.trim().length > 0) {
-    lines.push(`📝 Nota: ${notes.trim()}`);
+    lines.push(`Nota: ${notes.trim()}`);
   }
   if (sourceUrl && sourceUrl.trim().length > 0) {
-    lines.push(`🔗 Origen: ${sourceUrl.trim()}`);
+    lines.push(`Origen: ${sourceUrl.trim()}`);
   }
   lines.push('');
   lines.push(`— ${name.trim()}`);
@@ -113,12 +112,12 @@ export function buildWaflowMessage(input: WaflowMessageInput): string {
  */
 export function buildQuickSkipMessage(config: WaflowConfig, ref: string): string {
   if (config.variant === 'A') {
-    return `¡Hola! Quiero planear un viaje por Colombia 👋\n\n#ref: ${ref}`;
+    return `¡Hola! Quiero planear un viaje por Colombia.\n\n#ref: ${ref}`;
   }
   if (config.variant === 'B') {
-    return `¡Hola! Quiero planear un viaje a ${config.destination?.name || ''} 👋\n\n#ref: ${ref}`;
+    return `¡Hola! Quiero planear un viaje a ${config.destination?.name || ''}.\n\n#ref: ${ref}`;
   }
-  return `¡Hola! Me interesa el paquete "${config.pkg?.title || ''}" 👋\n\n#ref: ${ref}`;
+  return `¡Hola! Me interesa el paquete "${config.pkg?.title || ''}".\n\n#ref: ${ref}`;
 }
 
 /**
