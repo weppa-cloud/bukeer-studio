@@ -138,6 +138,8 @@ export function EditorialBlogDetailPage({
     ? `https://${website.custom_domain}`
     : `https://${subdomain}.bukeer.com`;
   const siteTitleTrail = website.content?.siteName || subdomain;
+  const authorDisplayName = post.author_name || website.content?.account?.name || website.content?.siteName || null;
+  const hasPersonAuthor = Boolean(post.author_name);
   const dateLabel = formatDate(post.published_at, resolvedLocale);
   const updatedDateLabel = formatDate(post.updated_at || post.published_at, resolvedLocale);
   const showUpdatedDate = Boolean(updatedDateLabel && updatedDateLabel !== dateLabel);
@@ -222,7 +224,7 @@ export function EditorialBlogDetailPage({
               />
             )}
             <div>
-              {post.author_name ? <b>{post.author_name}</b> : null}
+              {authorDisplayName ? <b>{authorDisplayName}</b> : null}
               <small>
                 {dateLabel}
                 {showUpdatedDate ? ` · Actualizado ${updatedDateLabel}` : ''}
@@ -355,6 +357,22 @@ export function EditorialBlogDetailPage({
                   <p>{editorialText('editorialBlogAuthorBioFallback')}</p>
                 </div>
               </aside>
+            ) : authorDisplayName ? (
+              <aside className="post-author-card" data-testid="blog-author-card">
+                <span
+                  className="av"
+                  aria-hidden="true"
+                  style={{
+                    background:
+                      'linear-gradient(135deg, var(--c-accent), var(--c-accent-2))',
+                  }}
+                />
+                <div>
+                  <Eyebrow>{isEnglish ? 'Editorial team' : 'Equipo editorial'}</Eyebrow>
+                  <b>{authorDisplayName}</b>
+                  <p>{editorialText('editorialBlogAuthorBioFallback')}</p>
+                </div>
+              </aside>
             ) : null}
 
             <aside className="post-author-card" data-testid="blog-editorial-facts">
@@ -364,7 +382,9 @@ export function EditorialBlogDetailPage({
                 <p>
                   {dateLabel ? `${isEnglish ? 'Published' : 'Publicado'}: ${dateLabel}. ` : ''}
                   {updatedDateLabel ? `${isEnglish ? 'Updated' : 'Actualizado'}: ${updatedDateLabel}. ` : ''}
-                  {post.author_name ? `${isEnglish ? 'Author' : 'Autor'}: ${post.author_name}. ` : ''}
+                  {authorDisplayName
+                    ? `${isEnglish ? 'Author' : 'Autor'}: ${authorDisplayName}${hasPersonAuthor ? '' : ` (${isEnglish ? 'organization' : 'organización'})`}. `
+                    : ''}
                   {reviewer ? `${isEnglish ? 'Reviewed by' : 'Revisado por'}: ${reviewer.name}. ` : ''}
                   {editorialTopics.length > 0
                     ? `${isEnglish ? 'Topics' : 'Temas'}: ${editorialTopics.join(', ')}.`

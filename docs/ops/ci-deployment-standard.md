@@ -20,6 +20,8 @@ Use a shared provider flag to switch quality gates without changing workflow fil
 CI_QUALITY_PROVIDER=circleci
 CI_QUALITY_PROVIDER=github
 CI_QUALITY_PROVIDER=both
+CI_DEPLOY_PROVIDER=circleci
+CI_DEPLOY_PROVIDER=github
 ```
 
 Provider modes:
@@ -37,21 +39,32 @@ Set the same value in:
 
 CircleCI is configured to halt early when `CI_QUALITY_PROVIDER=github`, which preserves CircleCI credits. Expensive GitHub quality workflows can be configured to skip when `CI_QUALITY_PROVIDER=circleci`, while GitHub deployment workflows remain available for `main`.
 
+Deploy provider modes:
+
+| Value | Meaning | Use case |
+|-------|---------|----------|
+| `circleci` | CircleCI deploys production from `main` | Default while GitHub Actions billing is constrained |
+| `github` | GitHub Actions deploys production from `main` | Use when CircleCI credits are exhausted |
+
+CircleCI deploy jobs halt early when `CI_DEPLOY_PROVIDER=github`. GitHub deployment jobs skip when `CI_DEPLOY_PROVIDER=circleci`. This prevents duplicate production deployments.
+
 ## Failover Procedure
 
 ### CircleCI Primary
 
 1. Set `CI_QUALITY_PROVIDER=circleci` in CircleCI and GitHub repository variables.
-2. Make CircleCI `quality` required in branch protection.
-3. Unrequire expensive GitHub quality checks while GitHub billing is constrained.
-4. Keep GitHub deployment workflows active for `main`.
+2. Set `CI_DEPLOY_PROVIDER=circleci` in CircleCI and GitHub repository variables.
+3. Make CircleCI `quality` required in branch protection.
+4. Unrequire expensive GitHub quality checks while GitHub billing is constrained.
+5. Let CircleCI deploy production from `main`.
 
 ### GitHub Primary
 
 1. Set `CI_QUALITY_PROVIDER=github` in CircleCI and GitHub repository variables.
-2. CircleCI jobs halt after checkout and do not consume the full pipeline.
-3. Make the GitHub quality checks required in branch protection.
-4. Keep GitHub deployment workflows active for `main`.
+2. Set `CI_DEPLOY_PROVIDER=github` in CircleCI and GitHub repository variables.
+3. CircleCI jobs halt after checkout and do not consume the full pipeline.
+4. Make the GitHub quality checks required in branch protection.
+5. Let GitHub Actions deploy production from `main`.
 
 ### Both Providers
 
@@ -64,8 +77,8 @@ CircleCI is configured to halt early when `CI_QUALITY_PROVIDER=github`, which pr
 
 | Workflow | Current role | Deployment target | Standard |
 |----------|--------------|-------------------|----------|
-| `.circleci/config.yml` | Primary off-GitHub quality gate | None | Run on PR/dev/main as CI only |
-| `.github/workflows/deploy.yml` | Studio quality, smoke, and production deployment | Cloudflare Worker via OpenNext on `studio.bukeer.com` | Run on `main`; no `dev` Worker deploy |
+| `.circleci/config.yml` | Primary off-GitHub quality and production deploy runtime | Cloudflare Worker via OpenNext on `studio.bukeer.com` when `CI_DEPLOY_PROVIDER=circleci` | Run quality on PR/dev/main; deploy only on `main` |
+| `.github/workflows/deploy.yml` | GitHub fallback quality, smoke, and production deployment | Cloudflare Worker via OpenNext on `studio.bukeer.com` when `CI_DEPLOY_PROVIDER=github` | Run on `main`; no `dev` Worker deploy |
 | `.github/workflows/nightly-worker-preview.yml` | Worker preview + `@p0-seo` validation | Local Worker preview only | Manual only while conserving resources |
 | `.github/workflows/ct-visual.yml` | Playwright component/visual tests | None | Skips when `CI_QUALITY_PROVIDER=circleci`; fallback when `CI_QUALITY_PROVIDER=github` or `both` |
 | `.github/workflows/ai-sync-autofix.yml` | AI artifact sync commit | Repository files | Main-only maintenance automation |
@@ -86,7 +99,7 @@ CircleCI is configured to halt early when `CI_QUALITY_PROVIDER=github`, which pr
 
 ### Pull Request
 
-1. CircleCI runs the default quality gate.
+1. CircleCI runs the default quality gate when `CI_QUALITY_PROVIDER=circleci`.
 2. GitHub deployment workflows do not publish previews by default.
 3. Heavy E2E, visual regression, Lighthouse, or Worker preview jobs are manual unless explicitly needed.
 
@@ -101,8 +114,8 @@ CircleCI is configured to halt early when `CI_QUALITY_PROVIDER=github`, which pr
 
 1. Merging to `main` is a production release decision.
 2. CI gates must pass.
-3. Bukeer Flutter deploys to Cloudflare Pages production.
-4. Bukeer Studio deploys to Cloudflare Workers production on `studio.bukeer.com`.
+3. Bukeer Flutter deploys to Cloudflare Pages production through the active deploy provider.
+4. Bukeer Studio deploys to Cloudflare Workers production on `studio.bukeer.com` through the active deploy provider.
 5. Post-deploy verification runs against production URLs.
 
 ## Production Targets
