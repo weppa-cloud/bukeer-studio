@@ -46,7 +46,7 @@ Deploy provider modes:
 | `circleci` | CircleCI deploys production from `main` | Default while GitHub Actions billing is constrained |
 | `github` | GitHub Actions deploys production from `main` | Use when CircleCI credits are exhausted |
 
-CircleCI deploy jobs halt early when `CI_DEPLOY_PROVIDER=github`. GitHub deployment jobs skip when `CI_DEPLOY_PROVIDER=circleci`. This prevents duplicate production deployments.
+CircleCI deploy jobs halt early when `CI_DEPLOY_PROVIDER=github`. GitHub deployment jobs run only when `CI_DEPLOY_PROVIDER=github` is set explicitly. If the flag is unset, CircleCI remains the default deployment provider and GitHub-hosted minutes are preserved.
 
 ## Failover Procedure
 
