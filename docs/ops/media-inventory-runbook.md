@@ -21,6 +21,15 @@ objects, or rewrite legacy URL fields.
 
 ## Preflight
 
+Production-only note:
+
+- If no staging database exists, run the migration first but keep backfill in
+  `p_dry_run := true` until candidate counts are reviewed.
+- Capture `count(*)` from `public.media_assets` before apply.
+- Apply globally only when `candidate_unique_locations <= p_limit`; otherwise
+  run account-scoped batches.
+- Capture post-apply dry-run and duplicate key counts as evidence.
+
 1. Confirm migrations are applied:
 
 ```sql

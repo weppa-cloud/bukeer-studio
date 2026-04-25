@@ -15,6 +15,7 @@
     "ai:audit": "node scripts/ai/audit-skills.mjs",
     "tech-validator:code": "node scripts/ai/validate-tech-validator.mjs",
     "tech-validator:code:quick": "node scripts/ai/validate-tech-validator.mjs --quick",
+    "media:guardrails": "node scripts/ai/check-media-asset-guardrails.mjs",
     "dev": "npm run check:node && npm run dev:node",
     "dev:node": "bash scripts/start-dev-node.sh",
     "dev:session": "bash scripts/start-dev-node.sh",

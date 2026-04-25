@@ -94,6 +94,20 @@ Any new image-enabled feature must document:
 - Compatibility field: any legacy/public URL field that still needs to be written.
 - Remediation: how broken, external, missing-alt, duplicate or heavy assets are surfaced.
 
+## Guardrails
+
+The operational guardrails live in [[media-asset-guardrails]].
+
+Required enforcement points:
+
+- Specs and GitHub issues include a Media / Images Impact checklist.
+- PRs that touch image/media fields reference this ADR and the `media_assets`
+  registration or backfill path.
+- `npm run media:guardrails` scans changed lines for image/media signals and is
+  executed by `npm run tech-validator:code`.
+- MLLM/Website Creator operations must use existing registered assets or register
+  newly introduced URLs with account, entity and usage context.
+
 ## Alternatives Considered
 
 1. Keep URLs only in business tables.
