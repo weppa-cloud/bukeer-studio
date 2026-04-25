@@ -381,6 +381,7 @@ export function EditorialActivityDetailClient({
   const reviewCount = typeof product.review_count === 'number' && product.review_count > 0
     ? product.review_count
     : googleReviews.length;
+  const providerName = website.content?.account?.name || website.content?.siteName || null;
 
   const productPageUrl = website.custom_domain
     ? `https://${website.custom_domain}${basePath}`
@@ -712,6 +713,15 @@ export function EditorialActivityDetailClient({
               <section>
                 <h2 className="text-2xl font-bold">Reserva con confianza</h2>
                 <div className="trust-row mt-5">
+                  {providerName ? (
+                    <div className="trust-item" data-testid="activity-provider-signal">
+                      <div className="ic"><Icons.users size={18} /></div>
+                      <div>
+                        <b>Proveedor local</b>
+                        <small>{providerName}</small>
+                      </div>
+                    </div>
+                  ) : null}
                   {trustSignals.map((signal) => {
                     const Icon = signal.icon === 'award'
                       ? Icons.award

@@ -82,6 +82,27 @@ function renderCategoryChip(category: BlogCategory | undefined) {
   return <span className="chip chip-accent">{category.name}</span>;
 }
 
+function getBlogReviewer(post: BlogPost): { name: string; url?: string } | null {
+  const postRecord = post as unknown as Record<string, unknown>;
+  const name = [
+    postRecord.reviewed_by_name,
+    postRecord.reviewer_name,
+    postRecord.planner_name,
+  ].find((value): value is string => typeof value === 'string' && value.trim().length > 0);
+  if (!name) return null;
+
+  const url = [
+    postRecord.reviewed_by_url,
+    postRecord.reviewer_url,
+    postRecord.planner_url,
+  ].find((value): value is string => typeof value === 'string' && value.trim().length > 0);
+
+  return {
+    name: name.trim(),
+    ...(url ? { url: url.trim() } : {}),
+  };
+}
+
 export function EditorialBlogDetailPage({
   website,
   subdomain,
@@ -118,7 +139,16 @@ export function EditorialBlogDetailPage({
     : `https://${subdomain}.bukeer.com`;
   const siteTitleTrail = website.content?.siteName || subdomain;
   const dateLabel = formatDate(post.published_at, resolvedLocale);
+  const updatedDateLabel = formatDate(post.updated_at || post.published_at, resolvedLocale);
+  const showUpdatedDate = Boolean(updatedDateLabel && updatedDateLabel !== dateLabel);
   const categoryName = post.category?.name ?? undefined;
+  const reviewer = getBlogReviewer(post);
+  const editorialTopics = [
+    post.category?.name,
+    ...(Array.isArray(post.seo_keywords) ? post.seo_keywords : []),
+  ]
+    .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+    .slice(0, 6);
   const shares = shareHrefs(post, publicBaseUrl);
   const waHref = resolveWhatsAppHref(website);
 
@@ -195,6 +225,7 @@ export function EditorialBlogDetailPage({
               {post.author_name ? <b>{post.author_name}</b> : null}
               <small>
                 {dateLabel}
+                {showUpdatedDate ? ` · Actualizado ${updatedDateLabel}` : ''}
                 {post.reading_time_minutes
                   ? ` · ${post.reading_time_minutes} ${editorialText('editorialBlogReadingSuffix')}`
                   : ''}
@@ -325,6 +356,22 @@ export function EditorialBlogDetailPage({
                 </div>
               </aside>
             ) : null}
+
+            <aside className="post-author-card" data-testid="blog-editorial-facts">
+              <div>
+                <Eyebrow>{isEnglish ? 'Editorial facts' : 'Ficha editorial'}</Eyebrow>
+                <b>{isEnglish ? 'Publication signals' : 'Señales de publicación'}</b>
+                <p>
+                  {dateLabel ? `${isEnglish ? 'Published' : 'Publicado'}: ${dateLabel}. ` : ''}
+                  {updatedDateLabel ? `${isEnglish ? 'Updated' : 'Actualizado'}: ${updatedDateLabel}. ` : ''}
+                  {post.author_name ? `${isEnglish ? 'Author' : 'Autor'}: ${post.author_name}. ` : ''}
+                  {reviewer ? `${isEnglish ? 'Reviewed by' : 'Revisado por'}: ${reviewer.name}. ` : ''}
+                  {editorialTopics.length > 0
+                    ? `${isEnglish ? 'Topics' : 'Temas'}: ${editorialTopics.join(', ')}.`
+                    : ''}
+                </p>
+              </div>
+            </aside>
           </article>
         </div>
 
