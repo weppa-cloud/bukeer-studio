@@ -120,7 +120,10 @@ Feature requests formalized. Status tracked inline. GitHub Issues = source of tr
 | [[lighthouse-ci]] | [file](./ops/lighthouse-ci.md) | Core Web Vitals gate (perf/a11y/SEO). |
 | [[issue-103-media-closure-checklist]] | [file](./ops/issue-103-media-closure-checklist.md) | Formal SQL/runtime closure validation for media (#176/#177/#179) and residual legacy-bucket risk gate. |
 | [[media-inventory-runbook]] | [file](./ops/media-inventory-runbook.md) | Operational inventory and characterization process for `media_assets` across Storage and legacy media URL fields. |
+| [[media-asset-guardrails]] | [file](./ops/media-asset-guardrails.md) | Guardrails for Studio, Flutter and MLLM-assisted work so new image/media features comply with ADR-028 and `media_assets`. |
 | [[github-actions-billing-incident]] | [file](./ops/github-actions-billing-incident.md) | Runbook: CI fails in 3-4s → GitHub billing/spending-limit issue, not code. |
+| [[circleci-runbook]] | [file](./ops/circleci-runbook.md) | Off-GitHub CI fallback for Node/Next.js quality gates when GitHub Actions billing blocks hosted checks. |
+| [[ci-deployment-standard]] | [file](./ops/ci-deployment-standard.md) | Cross-repo CI/CD branch model, deployment inventory, and cost-control standard. |
 | [[transcreate-website-content-runbook]] | [file](./ops/transcreate-website-content-runbook.md) | End-to-end flow: traducir todo el contenido de un sitio (glossary → AI draft → review → apply → verify). |
 | [[studio-editor-v2-rollback]] | [file](./ops/studio-editor-v2-rollback.md) | Rollback runbook for #190 Studio Editor v2 — 4 levels (field / website / account / data restore) + pre-flight re-enable gate. |
 | [[pilot-theme-designer-v1-rollout]] | [file](./ops/pilot-theme-designer-v1-rollout.md) | Pilot designer-reference theme rollout + rollback (`theme_designer_v1_enabled` + `pilot_theme_snapshots` + revalidate). |
@@ -186,6 +189,8 @@ Feature requests formalized. Status tracked inline. GitHub Issues = source of tr
 | [[epic190-certification-checklist]] | [file](./qa/studio-unified-product-editor/epic-190-certification-checklist.md) | Executable QA certification checklist for EPIC #190 (D0-D2, commands, SQL/RPC checks, evidence template). |
 | [[epic190-certification-run-2026-04-18]] | [file](./evidence/epic190/certification-run-2026-04-18.md) | EPIC #190 certification execution report: automated gates, SQL/RPC validations, RLS checks, Go/No-Go decision. |
 | [[epic190-certification-rerun-2026-04-19]] | [file](./evidence/epic190/certification-rerun-2026-04-19.md) | EPIC #190 remediation rerun report: P0 permission hardening verified, gates re-run, final GO decision. |
+| [[media-inventory-production-run-2026-04-25]] | [file](./evidence/media-inventory-production-run-2026-04-25.md) | Production execution evidence for Media Asset Inventory v1: migration, dry-run, apply counts and characterization summary. |
+| [[media-remediation-backlog-2026-04-25]] | [file](./evidence/media-remediation-backlog-2026-04-25.md) | Actionable media remediation backlog for broken, external, missing-alt and non-WebP assets. |
 | [[ai-routes-cost-recording]] | [file](./audits/ai-routes-cost-recording.md) | AI routes cost-tracking audit — 13 routes mapped, recordCost wire patterns (D1, 2026-04-18). Basis for #195 R9 impl. |
 | [[epic86-walkthrough]] | [file](./evidence/epic86/walkthrough.md) | EPIC 86 evidence (Issue #122). |
 | [[epic128-lighthouse-summary]] | [file](./evidence/epic128/lighthouse-summary.md) | EPIC 128 Lighthouse/CWV summary. |
@@ -260,6 +265,9 @@ Each concept below lists the ADRs/SPECs/ops docs that touch it. Use this to find
 - [[ADR-028]] — canonical media registry decision for account-managed assets across Studio and Flutter.
 - [[SPEC_MEDIA_ASSET_INVENTORY]] — v1 canonical inventory and characterization across Storage + legacy URL fields.
 - [[media-inventory-runbook]] — dry-run/apply/report/remediation workflow for media inventory operations.
+- [[media-asset-guardrails]] — PR/spec/agent/MLLM guardrails that prevent new URL-only image drift.
+- [[media-inventory-production-run-2026-04-25]] — production execution evidence because this backend has no staging database.
+- [[media-remediation-backlog-2026-04-25]] — actionable remediation backlog from the first production inventory.
 - [[issue-103-media-closure-checklist]] — storage/RLS hardening baseline for `images`, `site-media`, `review-*`, and legacy buckets.
 - Registry: `public.media_assets`, keyed by `(storage_bucket, storage_path)`.
 - Cross-repo: Flutter continues writing legacy URL fields in v1; follow-up issue registers new Flutter uploads into `media_assets` per [[ADR-028]].
@@ -461,6 +469,7 @@ Obsidian resolves `[[ADR-005]]` by filename stem or alias. Claude Code / Codex g
 | `[[SEO-BLOG-EXECUTION-FRAMEWORK-2026]]` | `docs/seo/SEO-BLOG-EXECUTION-FRAMEWORK-2026.md` |
 | `[[cross-repo-flutter]]` | `.claude/rules/cross-repo-flutter.md` |
 | `[[issue-103-media-closure-checklist]]` | `docs/ops/issue-103-media-closure-checklist.md` |
+| `[[media-asset-guardrails]]` | `docs/ops/media-asset-guardrails.md` |
 | `[[package-detail-anatomy]]` | `docs/product/package-detail-anatomy.md` |
 | `[[product-detail-inventory]]` | `docs/product/product-detail-inventory.md` |
 | `[[product-detail-matrix]]` | `docs/product/product-detail-matrix.md` |
@@ -482,6 +491,8 @@ Obsidian resolves `[[ADR-005]]` by filename stem or alias. Claude Code / Codex g
 | `[[#173]]` | GitHub Issue — F2 `ItineraryItemRenderer` per-type variants |
 | `[[#174]]` | GitHub Issue — F3 AI highlights + description (`/api/ai/generate-package-content`) |
 | `[[SPEC #187]]` | GitHub Issue — Multi-locale translation + SEO migration EPIC |
+| `[[media-inventory-production-run-2026-04-25]]` | `docs/evidence/media-inventory-production-run-2026-04-25.md` |
+| `[[media-remediation-backlog-2026-04-25]]` | `docs/evidence/media-remediation-backlog-2026-04-25.md` |
 | `[[epic128-lighthouse-summary]]` | `docs/evidence/epic128/lighthouse-summary.md` |
 | `[[epic128-production-ready-attestation-v2]]` | `docs/evidence/epic128/production-ready-attestation-v2.md` |
 | `[[epic128-ux-fluency]]` | `docs/evidence/epic128/ux-fluency.md` |

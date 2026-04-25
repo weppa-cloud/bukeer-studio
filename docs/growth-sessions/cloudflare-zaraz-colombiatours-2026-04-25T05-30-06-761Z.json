@@ -1,0 +1,53 @@
+{
+  "dataLayer": true,
+  "debugKey": "d7m52niq97fs73ceqk0g",
+  "dlp": [],
+  "historyChange": true,
+  "settings": {
+    "autoInjectScript": true
+  },
+  "tools": {},
+  "triggers": {
+    "AllTracks": {
+      "description": "All zaraz.track() calls",
+      "excludeRules": [],
+      "loadRules": [
+        {
+          "id": "rul1",
+          "match": "{{ client.__zarazTrack }}",
+          "op": "NOT_MATCH_REGEX",
+          "value": "^__zaraz.*"
+        },
+        {
+          "id": "rul2",
+          "match": "{{ client.__zarazEcommerce }}",
+          "op": "NOT_MATCH_REGEX",
+          "value": "true"
+        },
+        {
+          "id": "pgv2",
+          "match": "{{ client.__zarazTrack }}",
+          "op": "NOT_MATCH_REGEX",
+          "value": "^Pageview$"
+        }
+      ],
+      "name": "All Tracks"
+    },
+    "Pageview": {
+      "clientRules": [],
+      "description": "All page loads",
+      "excludeRules": [],
+      "loadRules": [
+        {
+          "match": "{{ client.__zarazTrack }}",
+          "op": "EQUALS",
+          "value": "Pageview"
+        }
+      ],
+      "name": "Pageview",
+      "system": "pageload"
+    }
+  },
+  "variables": {},
+  "zarazVersion": 64
+}
