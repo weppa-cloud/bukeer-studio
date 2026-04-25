@@ -1,0 +1,133 @@
+version: 2.1
+
+executors:
+  node:
+    docker:
+      - image: cimg/node:22.13-browsers
+    resource_class: medium
+    working_directory: ~/project
+
+commands:
+  halt_when_github_ci_is_primary:
+    steps:
+      - run:
+          name: Check CI provider failover flag
+          command: |
+            set -euo pipefail
+            PROVIDER="${CI_QUALITY_PROVIDER:-circleci}"
+            echo "CI_QUALITY_PROVIDER=$PROVIDER"
+            if [ "$PROVIDER" = "github" ]; then
+              echo "GitHub is the active quality-gate provider. Halting CircleCI job."
+              circleci-agent step halt
+            fi
+
+  restore_node_cache:
+    steps:
+      - restore_cache:
+          keys:
+            - node-v1-{{ arch }}-{{ checksum "package-lock.json" }}-{{ checksum "packages/theme-sdk/package-lock.json" }}-{{ checksum "packages/website-contract/package-lock.json" }}
+            - node-v1-{{ arch }}-
+
+  save_node_cache:
+    steps:
+      - save_cache:
+          key: node-v1-{{ arch }}-{{ checksum "package-lock.json" }}-{{ checksum "packages/theme-sdk/package-lock.json" }}-{{ checksum "packages/website-contract/package-lock.json" }}
+          paths:
+            - ~/.npm
+            - node_modules
+            - packages/theme-sdk/node_modules
+            - packages/website-contract/node_modules
+            - .next/cache
+
+  install_and_build_packages:
+    steps:
+      - run:
+          name: Build internal packages
+          command: |
+            set -euo pipefail
+
+            npm run check:node
+
+            if [ ! -d packages/theme-sdk/node_modules ]; then
+              npm ci --prefix packages/theme-sdk
+            fi
+            npm run build --prefix packages/theme-sdk
+
+            if [ ! -d packages/website-contract/node_modules ]; then
+              npm ci --prefix packages/website-contract
+            fi
+            npm run build --prefix packages/website-contract
+
+            if [ ! -d node_modules ]; then
+              npm ci
+            fi
+
+jobs:
+  quality:
+    executor: node
+    steps:
+      - checkout
+      - halt_when_github_ci_is_primary
+      - restore_node_cache
+      - install_and_build_packages
+      - save_node_cache
+
+      - run:
+          name: Verify AI sync artifacts
+          command: |
+            set -euo pipefail
+            if [ -f .mcp.json ]; then
+              npm run ai:check
+            else
+              echo ".mcp.json is not present; skipping ai:check in CircleCI fallback."
+            fi
+
+      - run:
+          name: Lint
+          command: npm run lint
+
+      - run:
+          name: Type check
+          command: npm run typecheck
+
+      - run:
+          name: Unit tests
+          command: npm test -- --ci --passWithNoTests
+
+      - run:
+          name: Tech validator
+          command: npm run tech-validator:code
+
+      - store_artifacts:
+          path: reports/tech-validator
+          destination: tech-validator
+
+  component_tests:
+    executor: node
+    steps:
+      - checkout
+      - halt_when_github_ci_is_primary
+      - restore_node_cache
+      - install_and_build_packages
+      - save_node_cache
+
+      - run:
+          name: Install Playwright Chromium
+          command: npx playwright install --with-deps chromium
+
+      - run:
+          name: Component tests and visual regression
+          command: npm run test:ct
+
+      - store_artifacts:
+          path: playwright-report
+          destination: playwright-report
+
+      - store_artifacts:
+          path: test-results
+          destination: test-results
+
+workflows:
+  ci:
+    jobs:
+      - quality
