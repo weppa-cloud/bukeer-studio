@@ -11,6 +11,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { parsePhoneNumberFromString } from 'libphonenumber-js/min';
 
+import { trackEvent } from '@/lib/analytics/track';
+
 import {
   WAFLOW_COUNTRIES,
   WAFLOW_WHEN_OPTIONS,
@@ -298,6 +300,24 @@ export function WaflowStepContact({
       referenceCode: ref,
       whatsappUrl: url,
       whatsappMessage: message,
+    });
+    trackEvent('waflow_submit', {
+      variant,
+      reference_code: ref,
+      destination_slug: config.destination?.slug ?? null,
+      destination_name: config.destination?.name ?? null,
+      package_slug: config.pkg?.slug ?? null,
+      package_title: config.pkg?.title ?? null,
+      country: country.c,
+      adults: state.adults,
+      children: state.children,
+    });
+    trackEvent('whatsapp_cta_click', {
+      variant,
+      reference_code: ref,
+      location_context: 'waflow_submit',
+      destination_slug: config.destination?.slug ?? null,
+      package_slug: config.pkg?.slug ?? null,
     });
     setLoading(false);
     setStep('confirmation');

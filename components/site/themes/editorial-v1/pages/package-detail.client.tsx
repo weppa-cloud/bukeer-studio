@@ -1154,11 +1154,12 @@ export function EditorialPackageDetailClient({
                           <div className="day-media">
                             {(entries.some((entry) => Boolean(entry.imageUrl)) || media.byDay[day]?.length || images.length > 0) ? (
                               <Image
-                                src={
+                                src={supabaseImageUrl(
                                   entries.find((entry) => Boolean(entry.imageUrl))?.imageUrl
                                   || (media.byDay[day]?.[0])
-                                  || images[(Math.max(day, 1) - 1) % images.length]
-                                }
+                                  || images[(Math.max(day, 1) - 1) % images.length],
+                                  { width: 420, quality: 70 },
+                                )}
                                 alt={`${displayName} día ${day}`}
                                 fill
                                 sizes="(max-width: 1024px) 100vw, 300px"
@@ -1431,7 +1432,14 @@ export function EditorialPackageDetailClient({
                         <article key={similar.id} className="similar-card">
                           <Link href={`${basePath}/paquetes/${similar.slug}`}>
                             <div className="similar-media">
-                              {similarImage ? <Image src={similarImage} alt={similar.name} fill className="object-cover" /> : null}
+                              {similarImage ? (
+                                <Image
+                                  src={supabaseImageUrl(similarImage, { width: 520, quality: 70 })}
+                                  alt={similar.name}
+                                  fill
+                                  className="object-cover"
+                                />
+                              ) : null}
                             </div>
                             <div className="similar-body">
                               <h3>{similar.name}</h3>

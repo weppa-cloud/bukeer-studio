@@ -41,6 +41,8 @@ import {
 } from 'react';
 import { usePathname } from 'next/navigation';
 
+import { trackEvent } from '@/lib/analytics/track';
+
 import { WaflowDrawer } from './drawer';
 import { WaflowFab } from './fab';
 import { WAFLOW_STORAGE_PREFIX, WAFLOW_STEP_ORDER } from './types';
@@ -227,6 +229,13 @@ export function WaflowProvider({
       ...(prefill ?? {}),
     });
     setConfig(next);
+    trackEvent('waflow_open', {
+      variant: next.variant,
+      destination_slug: next.destination?.slug ?? null,
+      destination_name: next.destination?.name ?? null,
+      package_slug: next.pkg?.slug ?? null,
+      package_title: next.pkg?.title ?? null,
+    });
     if (typeof document !== 'undefined') {
       document.body.style.overflow = 'hidden';
     }

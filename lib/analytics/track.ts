@@ -119,6 +119,17 @@ function sendAnalyticsEvent(
   return sent;
 }
 
+function getDefaultPageContext(): Record<string, string> {
+  if (typeof window === 'undefined') return {};
+
+  return {
+    page_location: window.location.href,
+    page_path: `${window.location.pathname}${window.location.search}`,
+    page_title: document.title || '',
+    page_referrer: document.referrer || '',
+  };
+}
+
 /**
  * Fire an analytics event.
  *
@@ -134,7 +145,7 @@ export function trackEvent(
     if (typeof window === 'undefined') return;
 
     // Strip null/undefined keys so GA4 doesn't record "null"-valued dimensions.
-    const cleaned: Record<string, string | number | boolean> = {};
+    const cleaned: Record<string, string | number | boolean> = getDefaultPageContext();
     for (const [key, value] of Object.entries(params)) {
       if (value === null || value === undefined) continue;
       cleaned[key] = value;

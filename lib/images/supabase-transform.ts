@@ -7,6 +7,9 @@ interface SupabaseImageOptions {
 const SUPABASE_PUBLIC_OBJECT = '/storage/v1/object/public/';
 const SUPABASE_PUBLIC_RENDER = '/storage/v1/render/image/public/';
 const TRANSFORMABLE_EXTENSIONS = /\.(avif|jpe?g|jfif|png|webp)(?:$|\?)/i;
+const BROKEN_RENDER_PATHS = new Set([
+  '/storage/v1/object/public/images/9fc24733-b127-4184-aa22-12f03b98927a/products/activities/1743209763172000_1.jpg',
+]);
 
 export function supabaseImageUrl(
   src: string | null | undefined,
@@ -26,6 +29,7 @@ export function supabaseImageUrl(
 
     if (!src.includes(SUPABASE_PUBLIC_OBJECT)) return src;
     if (!TRANSFORMABLE_EXTENSIONS.test(src)) return src;
+    if (BROKEN_RENDER_PATHS.has(url.pathname)) return url.toString();
 
     // Some LCP-critical assets are already resized and compressed at upload
     // time. Serving them directly avoids per-request transform latency.

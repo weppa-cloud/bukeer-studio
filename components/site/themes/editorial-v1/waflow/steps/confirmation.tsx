@@ -9,6 +9,7 @@
  */
 
 import { Icons } from '../../primitives/icons';
+import { trackEvent } from '@/lib/analytics/track';
 import { useWaflow, useWaflowApi } from '../provider';
 
 export function WaflowStepConfirmation() {
@@ -31,7 +32,17 @@ export function WaflowStepConfirmation() {
       </p>
       {message ? <div className="waf-success-preview">{message}</div> : null}
       <div className="waf-success-actions">
-        <a href={url} target="_blank" rel="noopener noreferrer" className="btn-wa">
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="btn-wa"
+          onClick={() => trackEvent('whatsapp_cta_click', {
+            location_context: 'waflow_confirmation',
+            reference_code: ref,
+            variant: state.variant,
+          })}
+        >
           <Icons.whatsapp size={16} /> Abrir WhatsApp
         </a>
         <button type="button" className="btn-sec" onClick={close}>
