@@ -669,7 +669,12 @@ async function main() {
   await checkAdrRegistration();
   await runPolicyScans(changedFiles);
 
+  const mediaGuardrailPassed = runGate('Media asset guardrail (ADR-028)', 'node', [
+    'scripts/ai/check-media-asset-guardrails.mjs',
+  ]);
+
   const gates = {
+    media_assets: mediaGuardrailPassed ? 'pass' : 'fail',
     typecheck: skipTypecheck ? 'skipped' : 'pending',
     lint: skipLint ? 'skipped' : 'pending',
     build: skipBuild ? 'skipped' : 'pending',
