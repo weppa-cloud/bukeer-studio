@@ -8,6 +8,19 @@ executors:
     working_directory: ~/project
 
 commands:
+  halt_when_github_deploy_is_primary:
+    steps:
+      - run:
+          name: Check deploy provider failover flag
+          command: |
+            set -euo pipefail
+            PROVIDER="${CI_DEPLOY_PROVIDER:-circleci}"
+            echo "CI_DEPLOY_PROVIDER=$PROVIDER"
+            if [ "$PROVIDER" = "github" ]; then
+              echo "GitHub is the active deployment provider. Halting CircleCI deploy job."
+              circleci-agent step halt
+            fi
+
   halt_when_github_ci_is_primary:
     steps:
       - run:
@@ -127,7 +140,68 @@ jobs:
           path: test-results
           destination: test-results
 
+  deploy_production:
+    executor: node
+    steps:
+      - checkout
+      - halt_when_github_deploy_is_primary
+      - restore_node_cache
+      - install_and_build_packages
+      - save_node_cache
+
+      - run:
+          name: Build Cloudflare Worker
+          command: |
+            set -euo pipefail
+            NEXT_PUBLIC_SUPABASE_URL="${SUPABASE_URL}" \
+            NEXT_PUBLIC_SUPABASE_ANON_KEY="${SUPABASE_ANON_KEY}" \
+            NEXT_PUBLIC_URL="https://studio.bukeer.com" \
+            NEXT_PUBLIC_MAIN_DOMAIN="bukeer.com" \
+            npm run build:worker
+
+      - run:
+          name: Check Worker bundle size
+          command: |
+            set -euo pipefail
+            WORKER_FILE="$(find .open-next -name "*.js" -path "*/worker/*" | head -1)"
+            if [ -z "$WORKER_FILE" ]; then
+              echo "Warning: Could not find worker bundle to check size"
+              exit 0
+            fi
+            WORKER_SIZE="$(stat -c%s "$WORKER_FILE" 2>/dev/null || stat -f%z "$WORKER_FILE")"
+            MAX_SIZE=$((8 * 1024 * 1024))
+            SIZE_KB=$((WORKER_SIZE / 1024))
+            echo "Worker bundle size: ${SIZE_KB} KiB"
+            if [ "$WORKER_SIZE" -gt "$MAX_SIZE" ]; then
+              echo "Worker bundle exceeds 8 MiB limit (${SIZE_KB} KiB). Cloudflare limit is 10 MiB."
+              exit 1
+            fi
+
+      - run:
+          name: Deploy to Cloudflare Workers
+          command: |
+            set -euo pipefail
+            npx opennextjs-cloudflare deploy --env ""
+
+      - run:
+          name: Verify Studio production
+          command: |
+            set -euo pipefail
+            sleep 15
+            HTTP_STATUS="$(curl -s -o /dev/null -w "%{http_code}" "https://studio.bukeer.com")"
+            echo "studio.bukeer.com HTTP $HTTP_STATUS"
+            if [ "$HTTP_STATUS" -lt 200 ] || [ "$HTTP_STATUS" -ge 400 ]; then
+              exit 1
+            fi
+
 workflows:
   ci:
     jobs:
       - quality
+      - deploy_production:
+          requires:
+            - quality
+          filters:
+            branches:
+              only:
+                - main

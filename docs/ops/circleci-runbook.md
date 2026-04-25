@@ -4,13 +4,13 @@
 
 ## Purpose
 
-CircleCI is the off-GitHub CI fallback for `bukeer-studio`. GitHub remains the source repository, while CircleCI runs the Node/Next.js quality gate from `.circleci/config.yml`.
+CircleCI is the off-GitHub CI/CD runtime for `bukeer-studio`. GitHub remains the source repository, while CircleCI runs the Node/Next.js quality gate and can deploy production from `.circleci/config.yml`.
 
 Use CircleCI when:
 
 - GitHub Actions fails immediately because of billing or spending limits.
 - The team needs to keep pull request validation running without consuming GitHub-hosted runner minutes.
-- GitHub deployment workflows must remain paused, but code quality checks still need a required status.
+- GitHub deployment workflows must remain paused, but code quality checks and production deploys still need to run.
 
 ## Configuration File
 
@@ -51,6 +51,33 @@ tech-validator
 ```
 
 CircleCI skips `npm run ai:check` when `.mcp.json` is absent because that file can be local-environment specific. GitHub Actions may continue enforcing AI sync separately when the repository provides the required MCP config.
+
+## Production Deploy Job
+
+The `deploy_production` job runs only on `main` and requires `quality` to pass first.
+
+It runs:
+
+```bash
+npm run build:worker
+npx opennextjs-cloudflare deploy --env ""
+curl https://studio.bukeer.com
+```
+
+Required CircleCI environment variables:
+
+```text
+CI_QUALITY_PROVIDER=circleci
+CI_DEPLOY_PROVIDER=circleci
+CLOUDFLARE_API_TOKEN=...
+CLOUDFLARE_ACCOUNT_ID=...
+SUPABASE_URL=...
+SUPABASE_ANON_KEY=...
+SUPABASE_SERVICE_ROLE_KEY=...
+REVALIDATE_SECRET=...
+```
+
+Set `CI_DEPLOY_PROVIDER=github` to make CircleCI halt the deploy job and let GitHub Actions be the deployment provider instead.
 
 ## Optional Component Test Job
 
@@ -102,8 +129,8 @@ Recommended modes:
 | Mode | Use Case | Action |
 |------|----------|--------|
 | Coexistence | GitHub billing is healthy | Keep GitHub Actions and CircleCI enabled temporarily |
-| CircleCI quality primary | GitHub billing blocks hosted checks | Require CircleCI `quality`, unrequire heavy GitHub quality checks |
-| GitHub deploy only | GitHub quality checks are too expensive, but deploy works | Keep GitHub deploy workflows manual or protected, use CircleCI for PR checks |
+| CircleCI primary | GitHub billing blocks hosted checks or deploys | Require CircleCI `quality`, set `CI_DEPLOY_PROVIDER=circleci` |
+| GitHub primary | CircleCI credits are exhausted | Set `CI_QUALITY_PROVIDER=github` and `CI_DEPLOY_PROVIDER=github` |
 
 Do not delete GitHub workflows until CircleCI has produced stable green runs for `dev` and `main`.
 
