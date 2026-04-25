@@ -27,6 +27,7 @@ import { editorialHtml } from '@/components/site/themes/editorial-v1/primitives/
 import { Icons } from '@/components/site/themes/editorial-v1/primitives/icons';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 import { formatPublicDate } from '@/lib/site/public-ui-messages';
+import { getBasePath } from '@/lib/utils/base-path';
 
 import { BlogListToolbar } from './blog-list-toolbar.client';
 
@@ -80,7 +81,8 @@ export function EditorialBlogListPage({
   category,
   query,
 }: EditorialBlogListPageProps) {
-  const basePath = `/site/${subdomain}`;
+  const isCustomDomain = Boolean((website as WebsiteData & { isCustomDomain?: boolean }).isCustomDomain);
+  const basePath = getBasePath(subdomain, isCustomDomain);
   const resolvedLocale =
     locale
     || (website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale

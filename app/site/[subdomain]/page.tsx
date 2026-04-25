@@ -1,8 +1,9 @@
 import { Metadata } from 'next';
+import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
+import { Suspense } from 'react';
 import { SectionRenderer } from '@/components/site/section-renderer';
 import { JsonLd, generateHomepageSchemas } from '@/lib/schema';
-import type { ImageObject } from '@/lib/schema/types';
 import {
   buildLocaleAwareAlternateLanguages,
   resolvePublicMetadataLocale,
@@ -18,32 +19,19 @@ import { getBrandClaims } from '@/lib/supabase/get-brand-claims';
 import { getFeaturedDestinations } from '@/lib/supabase/get-featured-destinations';
 import { SECTION_TYPES } from '@bukeer/website-contract';
 import { hydrateSections } from '@/lib/sections/hydrate-sections';
-import { applyContentTranslations } from '@/lib/sections/apply-content-translations';
 import { toPackageItems, toActivityItems, toHotelItems } from '@/lib/products/to-items';
 import { resolveTemplateSet } from '@/lib/sections/template-set';
+import {
+  buildHomeSectionPlan,
+  resolveHomeEnabledSections,
+  type DeferredHomeDataInput,
+} from '@/lib/site/home-rendering';
 
 const SECTION_DESTINATIONS = SECTION_TYPES.find((t) => t === 'destinations')!;
-const SECTION_TESTIMONIALS = SECTION_TYPES.find((t) => t === 'testimonials')!;
 const SECTION_PACKAGES = SECTION_TYPES.find((t) => t === 'packages')!;
 const SECTION_ACTIVITIES = SECTION_TYPES.find((t) => t === 'activities')!;
 const SECTION_HOTELS = SECTION_TYPES.find((t) => t === 'hotels')!;
-const SECTION_CTA = SECTION_TYPES.find((t) => t === 'cta')!;
-const SECTION_HERO = SECTION_TYPES.find((t) => t === 'hero')!;
-const SECTION_STATS = SECTION_TYPES.find((t) => t === 'stats')!;
-const SECTION_CONTACT = SECTION_TYPES.find((t) => t === 'contact')!;
-const SECTION_CONTACT_FORM = SECTION_TYPES.find((t) => t === 'contact_form')!;
 const SECTION_BLOG = SECTION_TYPES.find((t) => t === 'blog')!;
-
-const SINGLETON_SECTION_TYPES = new Set<string>([
-  SECTION_HERO,
-  SECTION_DESTINATIONS,
-  SECTION_PACKAGES,
-  SECTION_ACTIVITIES,
-  SECTION_HOTELS,
-  SECTION_TESTIMONIALS,
-  SECTION_STATS,
-  SECTION_CTA,
-]);
 
 // ISR: Revalidate every 5 minutes for fresh content with edge caching
 export const revalidate = 300;
@@ -51,6 +39,8 @@ export const revalidate = 300;
 interface SitePageProps {
   params: Promise<{ subdomain: string }>;
 }
+
+const PLANNER_TYPES = new Set(['planners', 'team', 'travel_planners']);
 
 export async function generateMetadata({ params }: SitePageProps): Promise<Metadata> {
   const { subdomain } = await params;
@@ -97,75 +87,26 @@ export async function generateMetadata({ params }: SitePageProps): Promise<Metad
   };
 }
 
-export default async function SitePage({ params }: SitePageProps) {
-  const { subdomain } = await params;
-  const website = await getWebsiteBySubdomain(subdomain);
-
-  if (!website || website.status !== 'published') {
-    notFound();
-  }
-
-  const baseUrl = website.custom_domain
-    ? `https://${website.custom_domain}`
-    : `https://${subdomain}.bukeer.com`;
-
+async function DeferredHomeSections({
+  website,
+  websiteForRender,
+  subdomain,
+  locale,
+  enabledSections,
+  criticalSectionIds,
+  templateSet,
+}: DeferredHomeDataInput) {
   const accountContent = ((website.content as unknown as Record<string, unknown>)?.account as Record<string, unknown> | undefined);
   const googleReviewsEnabled = accountContent?.google_reviews_enabled === true;
-  const agencyName = (accountContent?.name as string | undefined) || website.content.siteName || '';
-  const templateSet = resolveTemplateSet(website);
-
-  // Fetch Google reviews early — used for both JSON-LD photo[] and testimonials hydration
-  let googleReviewsCache: Awaited<ReturnType<typeof getCachedGoogleReviews>> = null;
-  if (googleReviewsEnabled && website.account_id) {
-    googleReviewsCache = await getCachedGoogleReviews(website.account_id);
-  }
-
-  // Build review ImageObjects for JSON-LD TravelAgency.photo[]
-  // Prefer Supabase Storage URLs (stable), also accept Google review photo CDN (geougc-cs).
-  // Profile thumbnails (lh3.googleusercontent.com/a-/) are excluded — too small for schema.
-  const reviewImages: ImageObject[] = [];
-  if (googleReviewsCache?.reviews?.length) {
-    for (const review of googleReviewsCache.reviews.filter((r) => r.is_visible !== false)) {
-      for (const img of (review.images || []).slice(0, 3)) {
-        if (!img?.url) continue;
-        const isCached = img.url.includes('supabase.co/storage');
-        const isGoogleReviewPhoto = img.url.includes('googleusercontent.com/geougc-cs');
-        if (!isCached && !isGoogleReviewPhoto) continue;
-        reviewImages.push({
-          '@type': 'ImageObject',
-          url: img.url,
-          name: `${review.author_name} · ${agencyName}`,
-          description: (review.text || '').slice(0, 120).trim() || undefined,
-          author: { '@type': 'Person', name: review.author_name },
-          contentLocation: { '@type': 'Place', name: 'Colombia' },
-        });
-        if (reviewImages.length >= 10) break;
-      }
-      if (reviewImages.length >= 10) break;
-    }
-  }
-
-  const localeContext = await resolvePublicMetadataLocale(website, '/');
-  const websiteForRender = {
-    ...website,
-    resolvedLocale: localeContext.resolvedLocale,
-  } as WebsiteData & { resolvedLocale?: string };
-  const schemas = generateHomepageSchemas(
-    website,
-    baseUrl,
-    reviewImages.length > 0 ? reviewImages : undefined,
-    localeContext.resolvedLocale,
-  );
-
-  const PLANNER_TYPES = new Set(['planners', 'team', 'travel_planners']);
-  const hasPlannersSection = (website.sections || []).some(
+  const hasPlannersSection = enabledSections.some(
     (s) => PLANNER_TYPES.has(s.section_type)
   );
-  const hasBlogSection = (website.sections || []).some(
+  const hasBlogSection = enabledSections.some(
     (s) => s.section_type === SECTION_BLOG
   );
 
   const [
+    googleReviewsCache,
     dynamicDestinations,
     packagesCatalog,
     activitiesCatalog,
@@ -175,12 +116,15 @@ export default async function SitePage({ params }: SitePageProps) {
     brandClaims,
     featuredDestinations,
   ] = await Promise.all([
+    googleReviewsEnabled && website.account_id
+      ? getCachedGoogleReviews(website.account_id)
+      : Promise.resolve(null),
     getDestinations(subdomain),
-    getCategoryProducts(subdomain, SECTION_PACKAGES, { limit: 8, locale: localeContext.resolvedLocale }),
-    getCategoryProducts(subdomain, SECTION_ACTIVITIES, { limit: 8, locale: localeContext.resolvedLocale }),
-    getCategoryProducts(subdomain, SECTION_HOTELS, { limit: 8, locale: localeContext.resolvedLocale }),
+    getCategoryProducts(subdomain, SECTION_PACKAGES, { limit: 8, locale }),
+    getCategoryProducts(subdomain, SECTION_ACTIVITIES, { limit: 8, locale }),
+    getCategoryProducts(subdomain, SECTION_HOTELS, { limit: 8, locale }),
     hasPlannersSection && website.account_id
-      ? getPlanners(website.account_id, { locale: localeContext.resolvedLocale })
+      ? getPlanners(website.account_id, { locale })
       : Promise.resolve<PlannerData[]>([]),
     hasBlogSection && website.id
       ? getBlogPosts(website.id, { limit: 6 })
@@ -192,34 +136,6 @@ export default async function SitePage({ params }: SitePageProps) {
       ? getFeaturedDestinations(website.id, 4)
       : Promise.resolve([]),
   ]);
-
-  const seenSingletonTypes = new Set<string>();
-  const localeAwareSections = applyContentTranslations(
-    website.sections || [],
-    localeContext.resolvedLocale,
-    localeContext.defaultLocale,
-  );
-  const enabledSections = localeAwareSections
-    .filter((section) => section.section_type !== SECTION_CONTACT && section.section_type !== SECTION_CONTACT_FORM)
-    .filter((section) => {
-      // Editorial-v1 home canonical (F1) does not include standalone
-      // activities/hotels/blog blocks on homepage flow.
-      if (templateSet === 'editorial-v1') {
-        return (
-          section.section_type !== SECTION_ACTIVITIES &&
-          section.section_type !== SECTION_HOTELS &&
-          section.section_type !== SECTION_BLOG
-        );
-      }
-      return true;
-    })
-    .sort((a, b) => a.display_order - b.display_order)
-    .filter((section) => {
-      if (!SINGLETON_SECTION_TYPES.has(section.section_type)) return true;
-      if (seenSingletonTypes.has(section.section_type)) return false;
-      seenSingletonTypes.add(section.section_type);
-      return true;
-    });
 
   const curatedDynamicDestinations = dynamicDestinations.filter((d) => d.total > 1);
   const sectionDynamicDestinations = (
@@ -257,12 +173,10 @@ export default async function SitePage({ params }: SitePageProps) {
     blogPosts: blogResult.posts.length > 0 ? blogResult.posts : undefined,
     brandClaims,
     featuredDestinations,
-  });
+  }).filter((section) => !criticalSectionIds.has(section.id));
 
   return (
     <>
-      <JsonLd data={schemas} />
-
       {hydratedSections.map((section) => (
         <SectionRenderer
           key={section.id}
@@ -271,6 +185,70 @@ export default async function SitePage({ params }: SitePageProps) {
           dbPlanners={PLANNER_TYPES.has(section.section_type) ? dbPlanners : undefined}
         />
       ))}
+    </>
+  );
+}
+
+export default async function SitePage({ params }: SitePageProps) {
+  const { subdomain } = await params;
+  const website = await getWebsiteBySubdomain(subdomain);
+
+  if (!website || website.status !== 'published') {
+    notFound();
+  }
+
+  const baseUrl = website.custom_domain
+    ? `https://${website.custom_domain}`
+    : `https://${subdomain}.bukeer.com`;
+
+  const templateSet = resolveTemplateSet(website);
+  const localeContext = await resolvePublicMetadataLocale(website, '/');
+  const headerList = await headers();
+  const isCustomDomain = Boolean(headerList.get('x-custom-domain'));
+  const websiteForRender = {
+    ...website,
+    resolvedLocale: localeContext.resolvedLocale,
+    defaultLocale: localeContext.defaultLocale,
+    isCustomDomain,
+  } as WebsiteData & { resolvedLocale?: string; isCustomDomain?: boolean };
+  const schemas = generateHomepageSchemas(
+    website,
+    baseUrl,
+    undefined,
+    localeContext.resolvedLocale,
+  );
+  const enabledSections = resolveHomeEnabledSections({
+    website,
+    templateSet,
+    locale: localeContext.resolvedLocale,
+    defaultLocale: localeContext.defaultLocale,
+  });
+  const { criticalSections, criticalSectionIds } = buildHomeSectionPlan(enabledSections);
+
+  return (
+    <>
+      <JsonLd data={schemas} />
+
+      {criticalSections.map((section) => (
+        <SectionRenderer
+          key={section.id}
+          section={section}
+          website={websiteForRender}
+        />
+      ))}
+
+      <Suspense fallback={null}>
+        <DeferredHomeSections
+          website={website}
+          websiteForRender={websiteForRender}
+          subdomain={subdomain}
+          locale={localeContext.resolvedLocale}
+          defaultLocale={localeContext.defaultLocale}
+          enabledSections={enabledSections}
+          criticalSectionIds={criticalSectionIds}
+          templateSet={templateSet}
+        />
+      </Suspense>
     </>
   );
 }

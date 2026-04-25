@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import { headers } from 'next/headers';
 import { notFound, permanentRedirect, redirect } from 'next/navigation';
 
 import { ProductLandingPage } from '@/components/pages/product-landing-page';
@@ -240,11 +241,17 @@ export default async function PackageSlugPage({ params }: PackagePageProps) {
       || productPage.product.location
       || [productPage.product.city, productPage.product.country].filter(Boolean).join(', ')
   ) || null;
+  const headerList = await headers();
+  const isCustomDomain = Boolean(headerList.get('x-custom-domain'));
+  const websiteForRender = {
+    ...website,
+    resolvedLocale: localeContext.resolvedLocale,
+    defaultLocale,
+    isCustomDomain,
+  };
   const editorialPayload: EditorialPackageDetailPayload = {
     product: productPage.product,
-    // This page is mounted under `/site/[subdomain]`, so links must remain
-    // prefixed in local/site rendering regardless of custom domain settings.
-    basePath: getBasePath(website.subdomain, false),
+    basePath: getBasePath(website.subdomain, isCustomDomain),
     displayName,
     displayLocation,
     resolvedLocale: localeContext.resolvedLocale,
@@ -256,12 +263,12 @@ export default async function PackageSlugPage({ params }: PackagePageProps) {
         : PACKAGE_FAQS_DEFAULT,
   };
 
-  const isEditorialTemplate = resolveTemplateSet(website) === 'editorial-v1';
+  const isEditorialTemplate = resolveTemplateSet(websiteForRender) === 'editorial-v1';
 
   return (
-    <TemplateSlot name="package-detail" website={website} payload={editorialPayload}>
+    <TemplateSlot name="package-detail" website={websiteForRender} payload={editorialPayload}>
       <ProductLandingPage
-        website={website}
+        website={websiteForRender}
         product={productPage.product}
         pageCustomization={productPage.page}
         productType="package"

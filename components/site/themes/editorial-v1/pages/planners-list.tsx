@@ -128,7 +128,7 @@ export function EditorialPlannersListPage({
     (website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale ?? website.default_locale ?? website.content?.locale ?? 'es-CO';
   const editorialText = getPublicUiExtraTextGetter(resolvedLocale);
   const isEnglish = resolvedLocale.toLowerCase().startsWith('en');
-  const basePath = getBasePath(website.subdomain, false);
+  const basePath = getBasePath(website.subdomain, Boolean((website as { isCustomDomain?: boolean }).isCustomDomain));
   const websiteWhatsapp = website.content?.social?.whatsapp;
   const waTemplate = isEnglish
     ? 'Hi {name}, I want to plan a trip'

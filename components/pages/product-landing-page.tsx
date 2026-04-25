@@ -386,7 +386,8 @@ export function ProductLandingPage({
     setActiveImageIndex((i) => (i - 1 + images.length) % images.length);
   }, [images.length]);
   const customHero = pageCustomization?.custom_hero;
-  const basePath = getBasePath(website.subdomain);
+  const isCustomDomain = Boolean((website as WebsiteData & { isCustomDomain?: boolean }).isCustomDomain);
+  const basePath = getBasePath(website.subdomain, isCustomDomain);
   const websiteUrl = website.custom_domain
     ? `https://${website.custom_domain}${basePath}`
     : website.subdomain
@@ -592,6 +593,7 @@ export function ProductLandingPage({
       product={schemaProduct}
       productType={productType}
       websiteUrl={websiteUrl}
+      organizationName={website.content.account?.name || website.content.siteName}
       language={
         // Issue #208: request-scoped locale (from middleware `x-public-resolved-locale`)
         // wins over website defaults so `/en/paquetes/X` emits `inLanguage: 'en-US'`

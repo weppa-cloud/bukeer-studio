@@ -206,7 +206,7 @@ export function EditorialPlannerDetailPage({
   const DEFAULT_AVAILABILITY = editorialText('editorialPlannersAvailable');
   const DEFAULT_RESPONSE = editorialText('editorialPlannerDetailDefaultResponse');
   const DEFAULT_BIO_FALLBACK = editorialText('editorialPlannerDetailBioFallback');
-  const basePath = getBasePath(website.subdomain, false);
+  const basePath = getBasePath(website.subdomain, Boolean((website as { isCustomDomain?: boolean }).isCustomDomain));
   const websiteWhatsapp = website.content?.social?.whatsapp;
   const { first, rest } = splitName(planner.fullName);
   const primaryWhatsappLabel = isEnglish

@@ -55,7 +55,7 @@ function renderSingleFeatured(
       <span className="quote-mark" aria-hidden="true">
         &ldquo;
       </span>
-      <div className="stars" aria-label={`${t.rating ?? 5} ${editorialText('editorialTestimonialsStarsAriaSuffix')}`}>
+      <div className="stars" role="img" aria-label={`${t.rating ?? 5} ${editorialText('editorialTestimonialsStarsAriaSuffix')}`}>
         {Array.from({ length: Math.max(1, Math.min(5, Math.round(t.rating ?? 5))) }).map((_, i) => (
           <span key={i}>{Icons.star({ size: 18 })}</span>
         ))}

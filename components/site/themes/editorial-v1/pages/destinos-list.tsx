@@ -138,7 +138,7 @@ export function EditorialDestinosListPage({
   const destinations = Array.isArray(resolved?.destinations)
     ? resolved!.destinations
     : [];
-  const basePath = getBasePath(website.subdomain, false);
+  const basePath = getBasePath(website.subdomain, Boolean((website as { isCustomDomain?: boolean }).isCustomDomain));
 
   const normalized = dedupeBySlug(destinations.map(normalize));
   const hasDestinations = normalized.length > 0;

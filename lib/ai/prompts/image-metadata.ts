@@ -8,7 +8,19 @@ export interface ImageMetadataContext {
   plannerName?: string;
   agencyName: string;
   locale?: string; // e.g. 'es-CO', 'en-US', 'pt-BR'
-  entityType?: 'blog_post' | 'package' | 'activity' | 'page' | 'brand' | 'review' | 'gallery_item';
+  entityType?:
+    | 'blog_post'
+    | 'package'
+    | 'activity'
+    | 'hotel'
+    | 'transfer'
+    | 'destination'
+    | 'website'
+    | 'section'
+    | 'page'
+    | 'brand'
+    | 'review'
+    | 'gallery_item';
   usageContext?: 'featured' | 'body' | 'hero' | 'gallery' | 'avatar' | 'og';
   entityName?: string;
 }

@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
+import { preload } from 'react-dom';
 import { getWebsiteBySubdomain, type WebsiteData } from '@/lib/supabase/get-website';
 import { getWebsiteNavigation } from '@/lib/supabase/get-pages';
 import { M3ThemeProvider } from '@/lib/theme/m3-theme-provider';
@@ -21,11 +22,10 @@ import { resolveTemplateSet } from '@/lib/sections/template-set';
 import { headers } from 'next/headers';
 import { isLandingPage } from '@/lib/utils/landing-pages';
 import { normalizeThemeInput } from '@/lib/theme/normalize-theme';
-import {
-  EditorialSiteHeader,
-  EditorialSiteFooter,
-  WaflowProvider,
-} from '@/components/site/themes/editorial-v1';
+import { supabaseImageUrl } from '@/lib/images/supabase-transform';
+import { EditorialSiteHeader } from '@/components/site/themes/editorial-v1/layout/site-header';
+import { EditorialSiteFooter } from '@/components/site/themes/editorial-v1/layout/site-footer';
+import { WaflowProvider } from '@/components/site/themes/editorial-v1/waflow/provider';
 import '@/app/globals.css';
 // Editorial-v1 scoped CSS loads alongside globals but only emits rules under
 // `[data-template-set="editorial-v1"]`, so generic sites stay untouched.
@@ -202,13 +202,14 @@ export default async function SiteLayout({ children, params }: SiteLayoutProps) 
   // Fetch dynamic navigation (RPC), fallback to section-based defaults
   const navItems = await getWebsiteNavigation(subdomain);
   const localeContext = await resolvePublicMetadataLocale(website, '/');
+  const headerList = await headers();
+  const isCustomDomain = Boolean(headerList.get('x-custom-domain'));
   const websiteForRender = {
     ...website,
     resolvedLocale: localeContext.resolvedLocale,
     defaultLocale: localeContext.defaultLocale,
+    isCustomDomain,
   };
-  const headerList = await headers();
-  const isCustomDomain = Boolean(headerList.get('x-custom-domain'));
   const basePath = getBasePath(subdomain, isCustomDomain);
   const navigation = navItems.length > 0
     ? buildNavTree(navItems)
@@ -230,9 +231,24 @@ export default async function SiteLayout({ children, params }: SiteLayoutProps) 
     (s: { section_type: string; is_enabled: boolean }) =>
       s.section_type?.startsWith('hero') && s.is_enabled
   );
-  const heroImage = heroSection
-    ? ((heroSection.content as Record<string, unknown>)?.backgroundImage as string | undefined)
+  const heroContent = heroSection?.content as Record<string, unknown> | undefined;
+  const heroSlides = Array.isArray(heroContent?.slides) ? heroContent.slides : [];
+  const firstHeroSlide = heroSlides.find((slide): slide is Record<string, unknown> =>
+    Boolean(slide && typeof slide === 'object' && 'imageUrl' in slide),
+  );
+  const heroImage = (
+    (heroContent?.backgroundImage as string | undefined) ||
+    (firstHeroSlide?.imageUrl as string | undefined)
+  );
+  const heroPreloadImage = heroImage
+    ? supabaseImageUrl(heroImage, { width: 1000, quality: 70 })
     : undefined;
+  if (heroPreloadImage) {
+    preload(heroPreloadImage, {
+      as: 'image',
+      fetchPriority: 'high',
+    });
+  }
   // Wave 1.1 plumbing: resolve opt-in template set (editorial-v1). When null we
   // skip the wrapper entirely to preserve byte-identical HTML for generic sites.
   // Wave 1.2: swap header/footer for the editorial variants when opted in.
@@ -246,6 +262,7 @@ export default async function SiteLayout({ children, params }: SiteLayoutProps) 
   // Wave 1.2: swap header/footer for the editorial variants when opted in.
   const templateSet = resolveTemplateSet(website) || (subdomain.toLowerCase().includes('colombiatours') ? 'editorial-v1' : null);
   const isEditorial = templateSet === 'editorial-v1';
+  const shouldInjectThemeFontStyles = !isEditorial;
 
   const headerEl = isEditorial ? (
     <EditorialSiteHeader
@@ -273,7 +290,7 @@ export default async function SiteLayout({ children, params }: SiteLayoutProps) 
       <div className="min-h-screen flex flex-col">
         <span id="top" aria-hidden="true" />
         {/* GTM NoScript fallback */}
-        <GoogleTagManagerBody analytics={website.analytics} />
+        <GoogleTagManagerBody analytics={website.analytics} defer />
 
         <Suspense fallback={null}>
           {headerEl}
@@ -312,16 +329,17 @@ export default async function SiteLayout({ children, params }: SiteLayoutProps) 
   return (
     <>
       {/* LCP hero image preload — must be first link in <head> to minimize Load Delay */}
-      {heroImage ? (
-        <link rel="preload" as="image" href={heroImage} fetchPriority="high" />
+      {heroPreloadImage ? (
+        <link rel="preload" as="image" href={heroPreloadImage} fetchPriority="high" />
       ) : null}
       {/* Preconnect to common third-party origins */}
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+      {!isEditorial ? <link rel="preconnect" href="https://images.unsplash.com" crossOrigin="" /> : null}
       {/* Preconnect to Supabase storage — hero images / assets served from here */}
       <link rel="preconnect" href="https://wzlxbpicdcdvxvdcvgas.supabase.co" crossOrigin="" />
-      {/* Inject theme font imports (Google Fonts) */}
-      {themeOutput.fontUrls.map((url) => (
+      {/* Generic sites keep theme font imports; editorial-v1 relies on self-hosted next/font variables. */}
+      {shouldInjectThemeFontStyles && themeOutput.fontUrls.map((url) => (
         <link key={url} rel="stylesheet" href={url} />
       ))}
       {/* Inline theme CSS variables (incl. bridge vars) so they're available
@@ -332,7 +350,7 @@ export default async function SiteLayout({ children, params }: SiteLayoutProps) 
     <WebsiteLocaleProvider locale={localeContext.resolvedLocale}>
       <M3ThemeProvider initialTheme={initialTheme}>
         {/* Google Tag Manager and Analytics Scripts */}
-        <GoogleTagManager analytics={website.analytics} />
+        <GoogleTagManager analytics={website.analytics} defer />
 
         {templateSet ? (
           <div data-template-set={templateSet}>{templatedBody}</div>

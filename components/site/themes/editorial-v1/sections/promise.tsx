@@ -95,7 +95,7 @@ export function PromiseSection({
 }: EditorialPromiseSectionProps): ReactElement {
   const editorialText = getEditorialTextGetter(website);
   const content = (section.content || {}) as PromiseContent;
-  const basePath = getBasePath(website.subdomain, false);
+  const basePath = getBasePath(website.subdomain, Boolean((website as { isCustomDomain?: boolean }).isCustomDomain));
 
   const eyebrow = localizeEditorialText(
     website,

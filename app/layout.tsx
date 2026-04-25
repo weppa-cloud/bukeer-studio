@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
-import Script from "next/script";
 import {
   Bricolage_Grotesque,
   Instrument_Serif,
@@ -77,9 +76,12 @@ export default async function RootLayout({
       )}
     >
       <body className="font-sans antialiased">
-        <Script id="global-name-helper" strategy="beforeInteractive">
-          {`window.__name=window.__name||function(fn){return fn};`}
-        </Script>
+        <script
+          id="global-name-helper"
+          dangerouslySetInnerHTML={{
+            __html: `window.__name=window.__name||function(fn){return fn};`,
+          }}
+        />
         {children}
       </body>
     </html>

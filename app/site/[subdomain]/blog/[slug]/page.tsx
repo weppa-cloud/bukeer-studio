@@ -1,5 +1,6 @@
 import './blog-typography.css';
 import { Metadata } from 'next';
+import { headers } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 import {
   getWebsiteBySubdomain,
@@ -167,6 +168,14 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
     seen.add(p.id);
     return true;
   }).slice(0, 3);
+  const headerList = await headers();
+  const isCustomDomain = Boolean(headerList.get('x-custom-domain'));
+  const websiteForRender = {
+    ...website,
+    resolvedLocale,
+    defaultLocale,
+    isCustomDomain,
+  };
 
   return (
     <>
@@ -174,7 +183,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
       <JsonLd data={schemas} />
       <TemplateSlot
         name="blog-detail"
-        website={website}
+        website={websiteForRender}
         payload={{
           subdomain,
           locale: resolvedLocale,
@@ -186,6 +195,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
           subdomain={subdomain}
           locale={resolvedLocale}
           post={post}
+          isCustomDomain={isCustomDomain}
         />
       </TemplateSlot>
     </>

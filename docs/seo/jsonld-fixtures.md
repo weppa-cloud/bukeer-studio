@@ -20,7 +20,18 @@ Representative live URLs (replace with actual subdomain/slug when testing):
 - `aggregateRating` appears ONLY when the catalog row has both `user_rating` (number) and `review_count > 0`. Activity fixture demonstrates this; transfer fixture omits it because no real rating exists.
 - `inLanguage` reads from `websites.language` via `normalizeLanguage()`; default fallback `"es"`.
 - `priceValidUntil` is ISO `YYYY-MM-DD`, 1 year from emission.
-- Each page emits up to three schemas: the product schema, a `BreadcrumbList`, and optionally `FAQPage`.
+- Sellable package/activity detail pages emit a tourism schema (`TouristTrip` or `TouristAttraction`) plus complementary `Product` + `Offer`, a `BreadcrumbList`, and optionally `FAQPage`.
+- Category listing pages emit `CollectionPage` + `ItemList`, `BreadcrumbList`, and `TravelAgency`.
+
+## Current ColombiaTours smoke targets
+
+Deployed 2026-04-24 on Worker `41756f91-34b1-4b93-bc82-1993a325b4c0`:
+
+- Activity listing: <https://search.google.com/test/rich-results?url=https%3A%2F%2Fcolombiatours.travel%2Factividades>
+- Activity detail: <https://search.google.com/test/rich-results?url=https%3A%2F%2Fcolombiatours.travel%2Factividades%2F4x1-adventure>
+- Package listing: <https://search.google.com/test/rich-results?url=https%3A%2F%2Fcolombiatours.travel%2Fpaquetes>
+- Package detail: <https://search.google.com/test/rich-results?url=https%3A%2F%2Fcolombiatours.travel%2Fpaquetes%2Fbogota-esencial-cultura-y-sal-4-dias>
+- Blog detail: <https://search.google.com/test/rich-results?url=https%3A%2F%2Fcolombiatours.travel%2Fblog%2Flos-10-mejores-lugares-turisticos-de-colombia>
 
 ---
 

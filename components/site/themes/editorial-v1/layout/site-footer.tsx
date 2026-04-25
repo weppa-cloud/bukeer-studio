@@ -147,7 +147,7 @@ export function EditorialSiteFooter({
                 />
               </div>
             ) : null}
-            <h4>{tagline}</h4>
+            <p className="footer-tagline">{tagline}</p>
             <p>{aboutBlurb}</p>
             {socialRow.length > 0 ? (
               <div className="footer-social">
@@ -186,7 +186,7 @@ export function EditorialSiteFooter({
           {!isLanding && (
             <>
               <div className="footer-col">
-                <h5>{editorialText('editorialFooterColDestinos')}</h5>
+                <div className="footer-col-title">{editorialText('editorialFooterColDestinos')}</div>
                 <ul>
                   {destinosLinks.map((link) => (
                     <li key={link.label}>
@@ -197,7 +197,7 @@ export function EditorialSiteFooter({
               </div>
 
               <div className="footer-col">
-                <h5>{editorialText('editorialFooterColViajar')}</h5>
+                <div className="footer-col-title">{editorialText('editorialFooterColViajar')}</div>
                 <ul>
                   {viajarLinks.map((link) => (
                     <li key={link.label}>
@@ -208,7 +208,7 @@ export function EditorialSiteFooter({
               </div>
 
               <div className="footer-col">
-                <h5>{editorialText('editorialFooterColAgencia')}</h5>
+                <div className="footer-col-title">{editorialText('editorialFooterColAgencia')}</div>
                 <ul>
                   {agenciaLinks.map((link) => (
                     <li key={link.label}>
@@ -219,7 +219,7 @@ export function EditorialSiteFooter({
               </div>
 
               <div className="footer-col">
-                <h5>{editorialText('editorialFooterColNewsletter')}</h5>
+                <div className="footer-col-title">{editorialText('editorialFooterColNewsletter')}</div>
                 <p
                   style={{
                     fontSize: 13,

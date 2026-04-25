@@ -24,6 +24,7 @@ import { Icons } from '@/components/site/themes/editorial-v1/primitives/icons';
 import { ListingMap } from '@/components/site/themes/editorial-v1/sections/listing-map';
 import { trackEvent } from '@/lib/analytics/track';
 import { formatPriceOrConsult } from '@/lib/products/format-price';
+import { supabaseImageUrl } from '@/lib/images/supabase-transform';
 import { convertCurrencyAmount, type CurrencyConfig } from '@/lib/site/currency';
 import { usePreferredCurrency } from '@/lib/site/use-preferred-currency';
 import type { WebsiteData } from '@/lib/supabase/get-website';
@@ -534,9 +535,11 @@ function PackageListCard({
       <div className="pack-media">
         {pkg.image ? (
           <Image
-            src={pkg.image}
+            src={supabaseImageUrl(pkg.image, { width: 560, quality: 70 })}
             alt={pkg.name}
             fill
+            loading="lazy"
+            fetchPriority="low"
             sizes="(max-width: 720px) 88vw, (max-width: 1100px) 50vw, 33vw"
             style={{ objectFit: 'cover' }}
           />

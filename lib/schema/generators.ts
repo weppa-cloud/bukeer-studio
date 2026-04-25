@@ -84,6 +84,58 @@ function schemaLabel(labelKey: 'home' | 'blog' | 'blogCollectionDescription', lo
   return 'Artículos y noticias de';
 }
 
+function buildArticleEntityTerms(post: BlogPost): string[] {
+  const terms = new Set<string>();
+  if (post.category?.name) terms.add(post.category.name);
+  if (Array.isArray(post.seo_keywords)) {
+    for (const keyword of post.seo_keywords) {
+      if (typeof keyword === 'string' && keyword.trim().length > 0) {
+        terms.add(keyword.trim());
+      }
+    }
+  }
+  return Array.from(terms).slice(0, 8);
+}
+
+function resolveBlogAuthor(post: BlogPost, website: WebsiteData, baseUrl: string): BlogPosting['author'] {
+  if (post.author_name && post.author_name.trim().length > 0) {
+    return {
+      '@type': 'Person',
+      name: post.author_name.trim(),
+      ...(post.author_avatar && { image: post.author_avatar }),
+    };
+  }
+
+  return {
+    '@type': 'Organization',
+    name: website.content.account?.name || website.content.siteName,
+    url: baseUrl,
+  };
+}
+
+function resolveBlogReviewer(post: BlogPost, baseUrl: string): BlogPosting['reviewedBy'] | undefined {
+  const postRecord = post as unknown as Record<string, unknown>;
+  const reviewerName = [
+    postRecord.reviewed_by_name,
+    postRecord.reviewer_name,
+    postRecord.planner_name,
+  ].find((value): value is string => typeof value === 'string' && value.trim().length > 0);
+
+  if (!reviewerName) return undefined;
+
+  const reviewerUrl = [
+    postRecord.reviewed_by_url,
+    postRecord.reviewer_url,
+    postRecord.planner_url,
+  ].find((value): value is string => typeof value === 'string' && value.trim().length > 0);
+
+  return {
+    '@type': 'Person',
+    name: reviewerName.trim(),
+    ...(reviewerUrl ? { url: reviewerUrl.trim() } : { url: baseUrl }),
+  };
+}
+
 /**
  * Extract user-generated travel photos from the testimonials section.
  *
@@ -254,7 +306,27 @@ export function generateArticleSchema(
     ? post.content.replace(/<[^>]*>/g, '').split(/\s+/).length
     : undefined;
 
-  const authorName = website.content.account?.name || website.content.siteName;
+  const publisherName = website.content.account?.name || website.content.siteName;
+  const author = resolveBlogAuthor(post, website, baseUrl);
+  const reviewedBy = resolveBlogReviewer(post, baseUrl);
+  const articleTerms = buildArticleEntityTerms(post);
+  const about = post.category?.name
+    ? {
+        '@type': 'Thing',
+        name: post.category.name,
+      }
+    : articleTerms.length > 0
+      ? {
+          '@type': 'TouristDestination',
+          name: articleTerms[0],
+        }
+      : undefined;
+  const mentions = articleTerms
+    .filter((term) => term !== post.category?.name)
+    .map((term) => ({
+      '@type': 'Thing',
+      name: term,
+    }));
 
   return {
     '@context': 'https://schema.org',
@@ -265,19 +337,20 @@ export function generateArticleSchema(
       image: {
         '@type': 'ImageObject',
         url: post.featured_image,
+        ...(post.featured_alt && { caption: post.featured_alt }),
+        ...(post.featured_alt && { name: post.featured_alt }),
       },
     }),
     ...(post.published_at && { datePublished: post.published_at }),
-    dateModified: post.updated_at || post.published_at || new Date().toISOString(),
-    author: {
-      '@type': 'Organization',
-      name: authorName,
-      url: baseUrl,
-    },
+    ...(post.updated_at || post.published_at
+      ? { dateModified: post.updated_at || post.published_at || undefined }
+      : {}),
+    author,
+    ...(reviewedBy && { reviewedBy }),
     publisher: {
       '@context': 'https://schema.org',
       '@type': 'Organization',
-      name: authorName,
+      name: publisherName,
       url: baseUrl,
     },
     mainEntityOfPage: {
@@ -287,6 +360,8 @@ export function generateArticleSchema(
     ...(wordCount && { wordCount }),
     ...(keywords && { keywords }),
     ...(post.category && { articleSection: post.category.name }),
+    ...(about && { about }),
+    ...(mentions.length > 0 && { mentions }),
     inLanguage: resolveSchemaLanguage(post, website, requestLocale),
   };
 }

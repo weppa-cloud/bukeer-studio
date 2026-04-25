@@ -8,6 +8,7 @@ import { MobileCardCarousel } from '@/components/ui/card-carousel';
 import { resolveAlt, type LocalizableAlt } from '@bukeer/website-contract';
 import { useWebsiteLocale } from '@/lib/hooks/use-website-locale';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
+import { supabaseImageUrl } from '@/lib/images/supabase-transform';
 
 interface ActivitiesSectionProps {
   section: WebsiteSection;
@@ -186,9 +187,10 @@ export function ActivityCard({
         <div className="relative aspect-[16/9] overflow-hidden">
           {activity.image ? (
             <Image
-              src={activity.image}
+              src={supabaseImageUrl(activity.image, { width: index < 3 ? 720 : 520, quality: 74 })}
               alt={resolveAlt(activity.imageAlt, locale) || activity.name || `Activity image ${index + 1}`}
               fill
+              sizes="(max-width: 768px) 88vw, (max-width: 1024px) 50vw, 33vw"
               draggable={false}
               className="object-cover transition-transform duration-700 group-hover:scale-105"
             />

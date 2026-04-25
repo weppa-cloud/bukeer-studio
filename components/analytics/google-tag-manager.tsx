@@ -27,25 +27,68 @@ export interface AnalyticsConfig {
 
 interface GoogleTagManagerProps {
   analytics?: AnalyticsConfig;
+  defer?: boolean;
+}
+
+function afterInteraction(script: string): string {
+  return `
+    (function(){
+      window.BukeerAnalytics = window.BukeerAnalytics || {};
+      var manager = window.BukeerAnalytics;
+      manager.loaders = manager.loaders || [];
+      var fired = false;
+      function run(){
+        if (fired) return;
+        fired = true;
+        ${script}
+      }
+      manager.loaders.push(run);
+      manager.load = manager.load || function(){
+        if (manager.loaded) return;
+        manager.loaded = true;
+        var loaders = manager.loaders || [];
+        for (var i = 0; i < loaders.length; i++) {
+          try { loaders[i](); } catch (e) {}
+        }
+      };
+      if (!manager._consentListenerAttached) {
+        manager._consentListenerAttached = true;
+        window.addEventListener('bukeer:analytics-consent', function(){
+          manager.load();
+        });
+      }
+      if (manager.loaded) {
+        window.setTimeout(run, 0);
+      }
+    })();
+  `;
 }
 
 /**
  * GTM Head Script - Goes in <head>
  */
-export function GTMHead({ analytics }: GoogleTagManagerProps) {
+export function GTMHead({ analytics, defer }: GoogleTagManagerProps) {
   if (!analytics?.gtm_id) return null;
+
+  const loadGtm = `
+    (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+    })(window,document,'script','dataLayer','${analytics.gtm_id}');
+  `;
 
   return (
     <Script
       id="gtm-head"
-      strategy="afterInteractive"
+      strategy="lazyOnload"
       dangerouslySetInnerHTML={{
-        __html: `
-          (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-          new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-          j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-          'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-          })(window,document,'script','dataLayer','${analytics.gtm_id}');
+        __html: defer ? afterInteraction(loadGtm) : `
+          window.requestIdleCallback ? requestIdleCallback(function(){
+          ${loadGtm}
+          }, {timeout: 2500}) : setTimeout(function(){
+          ${loadGtm}
+          }, 2500);
         `,
       }}
     />
@@ -74,19 +117,40 @@ export function GTMBody({ analytics }: GoogleTagManagerProps) {
 /**
  * Google Analytics 4 Standalone (when not using GTM)
  */
-export function GA4Script({ analytics }: GoogleTagManagerProps) {
+export function GA4Script({ analytics, defer }: GoogleTagManagerProps) {
   // Skip if using GTM (GA4 should be configured in GTM)
   if (!analytics?.ga4_id || analytics?.gtm_id) return null;
+
+  if (defer) {
+    const loadGa4 = `
+      var j=document.createElement('script');
+      j.async=true;
+      j.src='https://www.googletagmanager.com/gtag/js?id=${analytics.ga4_id}';
+      document.head.appendChild(j);
+      window.dataLayer = window.dataLayer || [];
+      window.gtag = window.gtag || function(){dataLayer.push(arguments);};
+      gtag('js', new Date());
+      gtag('config', '${analytics.ga4_id}');
+    `;
+
+    return (
+      <Script
+        id="ga4-deferred"
+        strategy="lazyOnload"
+        dangerouslySetInnerHTML={{ __html: afterInteraction(loadGa4) }}
+      />
+    );
+  }
 
   return (
     <>
       <Script
         src={`https://www.googletagmanager.com/gtag/js?id=${analytics.ga4_id}`}
-        strategy="afterInteractive"
+        strategy="lazyOnload"
       />
       <Script
         id="ga4-config"
-        strategy="afterInteractive"
+        strategy="lazyOnload"
         dangerouslySetInnerHTML={{
           __html: `
             window.dataLayer = window.dataLayer || [];
@@ -103,27 +167,35 @@ export function GA4Script({ analytics }: GoogleTagManagerProps) {
 /**
  * Facebook Pixel Standalone (when not using GTM)
  */
-export function FacebookPixelScript({ analytics }: GoogleTagManagerProps) {
+export function FacebookPixelScript({ analytics, defer }: GoogleTagManagerProps) {
   // Skip if using GTM (Pixel should be configured in GTM)
   if (!analytics?.facebook_pixel_id || analytics?.gtm_id) return null;
+
+  const loadPixel = `
+    !function(f,b,e,v,n,t,s)
+    {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+    n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+    if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+    n.queue=[];t=b.createElement(e);t.async=!0;
+    t.src=v;s=b.getElementsByTagName(e)[0];
+    s.parentNode.insertBefore(t,s)}(window, document,'script',
+    'https://connect.facebook.net/en_US/fbevents.js');
+    fbq('init', '${analytics.facebook_pixel_id}');
+    fbq('track', 'PageView');
+  `;
 
   return (
     <>
       <Script
         id="fb-pixel"
-        strategy="afterInteractive"
+        strategy="lazyOnload"
         dangerouslySetInnerHTML={{
-          __html: `
-            !function(f,b,e,v,n,t,s)
-            {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-            n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-            if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-            n.queue=[];t=b.createElement(e);t.async=!0;
-            t.src=v;s=b.getElementsByTagName(e)[0];
-            s.parentNode.insertBefore(t,s)}(window, document,'script',
-            'https://connect.facebook.net/en_US/fbevents.js');
-            fbq('init', '${analytics.facebook_pixel_id}');
-            fbq('track', 'PageView');
+          __html: defer ? afterInteraction(loadPixel) : `
+            window.requestIdleCallback ? requestIdleCallback(function(){
+            ${loadPixel}
+            }, {timeout: 3000}) : setTimeout(function(){
+            ${loadPixel}
+            }, 3000);
           `,
         }}
       />
@@ -144,14 +216,14 @@ export function FacebookPixelScript({ analytics }: GoogleTagManagerProps) {
 /**
  * Custom Head Scripts
  */
-export function CustomHeadScripts({ analytics }: GoogleTagManagerProps) {
+export function CustomHeadScripts({ analytics, defer }: GoogleTagManagerProps) {
   if (!analytics?.custom_head_scripts) return null;
 
   return (
     <Script
       id="custom-head-scripts"
-      strategy="afterInteractive"
-      dangerouslySetInnerHTML={{ __html: analytics.custom_head_scripts }}
+      strategy="lazyOnload"
+      dangerouslySetInnerHTML={{ __html: defer ? afterInteraction(analytics.custom_head_scripts) : analytics.custom_head_scripts }}
     />
   );
 }
@@ -159,14 +231,14 @@ export function CustomHeadScripts({ analytics }: GoogleTagManagerProps) {
 /**
  * Custom Body Scripts
  */
-export function CustomBodyScripts({ analytics }: GoogleTagManagerProps) {
+export function CustomBodyScripts({ analytics, defer }: GoogleTagManagerProps) {
   if (!analytics?.custom_body_scripts) return null;
 
   return (
     <Script
       id="custom-body-scripts"
       strategy="lazyOnload"
-      dangerouslySetInnerHTML={{ __html: analytics.custom_body_scripts }}
+      dangerouslySetInnerHTML={{ __html: defer ? afterInteraction(analytics.custom_body_scripts) : analytics.custom_body_scripts }}
     />
   );
 }
@@ -175,22 +247,22 @@ export function CustomBodyScripts({ analytics }: GoogleTagManagerProps) {
  * Combined Analytics Component
  * Use this single component to include all analytics scripts
  */
-export function GoogleTagManager({ analytics }: GoogleTagManagerProps) {
+export function GoogleTagManager({ analytics, defer }: GoogleTagManagerProps) {
   if (!analytics) return null;
 
   return (
     <>
       {/* GTM - Primary analytics solution */}
-      <GTMHead analytics={analytics} />
+      <GTMHead analytics={analytics} defer={defer} />
 
       {/* Standalone GA4 (only if GTM not configured) */}
-      <GA4Script analytics={analytics} />
+      <GA4Script analytics={analytics} defer={defer} />
 
       {/* Standalone Facebook Pixel (only if GTM not configured) */}
-      <FacebookPixelScript analytics={analytics} />
+      <FacebookPixelScript analytics={analytics} defer={defer} />
 
       {/* Custom scripts */}
-      <CustomHeadScripts analytics={analytics} />
+      <CustomHeadScripts analytics={analytics} defer={defer} />
     </>
   );
 }
@@ -199,13 +271,13 @@ export function GoogleTagManager({ analytics }: GoogleTagManagerProps) {
  * GTM Body Component - Must be placed right after <body> tag
  * Use this in layout.tsx body section
  */
-export function GoogleTagManagerBody({ analytics }: GoogleTagManagerProps) {
+export function GoogleTagManagerBody({ analytics, defer }: GoogleTagManagerProps) {
   if (!analytics) return null;
 
   return (
     <>
       <GTMBody analytics={analytics} />
-      <CustomBodyScripts analytics={analytics} />
+      <CustomBodyScripts analytics={analytics} defer={defer} />
     </>
   );
 }

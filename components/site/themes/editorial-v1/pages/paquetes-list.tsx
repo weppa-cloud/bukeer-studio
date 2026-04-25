@@ -112,7 +112,8 @@ export function EditorialPaquetesListPage({
   const resolvedLocale =
     (website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale ?? website.default_locale ?? website.content?.locale ?? 'es-CO';
   const editorialText = getPublicUiExtraTextGetter(resolvedLocale);
-  const basePath = getBasePath(website.subdomain, false);
+  const isCustomDomain = Boolean((website as WebsiteData & { isCustomDomain?: boolean }).isCustomDomain);
+  const basePath = getBasePath(website.subdomain, isCustomDomain);
   const siteTitleTrail = website.content?.siteName || website.subdomain;
 
   const items = packages.map(toListItem);

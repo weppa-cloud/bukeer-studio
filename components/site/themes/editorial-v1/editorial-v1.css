@@ -201,6 +201,14 @@
   padding: var(--section-py, 112px) 0;
   position: relative;
 }
+
+@supports (content-visibility: auto) {
+  :where([data-template-set="editorial-v1"]) .ev-section {
+    content-visibility: auto;
+    contain-intrinsic-size: 900px;
+  }
+}
+
 :where([data-template-set="editorial-v1"]) .ev-section-head {
   display: grid;
   grid-template-columns: 1.2fr 1fr;
@@ -250,7 +258,7 @@
 }
 :where([data-template-set="editorial-v1"]) .btn-accent {
   background: var(--c-accent);
-  color: #fff;
+  color: #0b1f1d;
   box-shadow: var(--shadow-2);
 }
 :where([data-template-set="editorial-v1"]) .btn-ink {
@@ -344,7 +352,7 @@
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  color: var(--c-muted);
+  color: var(--c-ink-2);
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.18em;
@@ -748,13 +756,14 @@
   grid-template-columns: 1.4fr 1fr 1fr 1fr 1.2fr;
   gap: 40px;
 }
-:where([data-template-set="editorial-v1"]) .footer-brand h4 {
+:where([data-template-set="editorial-v1"]) .footer-brand .footer-tagline {
   font-family: var(--font-display);
   font-weight: 500;
   font-size: 24px;
   color: #fff;
   margin: 18px 0 10px;
   letter-spacing: -0.015em;
+  line-height: 1.15;
 }
 :where([data-template-set="editorial-v1"]) .footer-brand p {
   font-size: 14px;
@@ -762,7 +771,7 @@
   color: color-mix(in oklab, var(--c-primary-ink) 65%, transparent);
   max-width: 34ch;
 }
-:where([data-template-set="editorial-v1"]) .footer-col h5 {
+:where([data-template-set="editorial-v1"]) .footer-col .footer-col-title {
   font-family: var(--font-display);
   font-weight: 600;
   font-size: 13px;
@@ -1020,7 +1029,7 @@
   font-size: 11px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--c-muted);
+  color: var(--c-ink-2);
   font-weight: 600;
 }
 :where([data-template-set="editorial-v1"]) .pack-price strong {
@@ -1782,7 +1791,7 @@
   font-size: 10px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--c-muted, #7a8a84);
+  color: var(--c-ink-2, #41564f);
   white-space: nowrap;
   flex-shrink: 0;
   padding-right: 8px;
@@ -1912,7 +1921,7 @@
   font-weight: 600;
 }
 :where([data-template-set="editorial-v1"]) .testi-author small {
-  color: var(--c-muted);
+  color: var(--c-ink-2);
   font-size: 12px;
 }
 :where([data-template-set="editorial-v1"]) .testi-list {
@@ -1970,7 +1979,7 @@
   font-weight: 600;
 }
 :where([data-template-set="editorial-v1"]) .testi-mini small {
-  color: var(--c-muted);
+  color: var(--c-ink-2);
   font-size: 11px;
 }
 :where([data-template-set="editorial-v1"]) .testi-mini p {
@@ -2652,7 +2661,7 @@
   font-size: 11px;
   letter-spacing: .14em;
   text-transform: uppercase;
-  color: var(--c-muted);
+  color: var(--c-ink-2);
   font-weight: 600;
 }
 :where([data-template-set="editorial-v1"]) .chip-filter {
@@ -2753,7 +2762,7 @@
   font-size: 12px;
   letter-spacing: .08em;
   text-transform: uppercase;
-  color: var(--c-muted);
+  color: var(--c-ink-2);
   font-weight: 600;
   display: inline-flex;
   align-items: center;
@@ -5681,7 +5690,7 @@
   overflow: hidden;
   position: relative;
 }
-:where([data-template-set="editorial-v1"]) .planner h4 {
+:where([data-template-set="editorial-v1"]) .planner h3 {
   font-family: var(--font-display);
   font-weight: 500;
   font-size: 20px;
@@ -5689,7 +5698,7 @@
   letter-spacing: -0.01em;
 }
 :where([data-template-set="editorial-v1"]) .planner .planner-role {
-  color: var(--c-muted);
+  color: var(--c-ink-2);
   font-size: 12px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -5739,7 +5748,7 @@
   color: var(--c-ink);
 }
 :where([data-template-set="editorial-v1"]) .planner .planner-action-whatsapp {
-  color: #25D366;
+  color: #087a38;
 }
 
 /* LIST: toolbar */

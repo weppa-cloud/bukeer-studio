@@ -8,6 +8,7 @@ const outputDir = `test-results/${sessionName}-ct`;
 export default defineConfig({
   testDir: './__tests__/ct',
   snapshotDir: './__tests__/visual/studio-editor-baselines',
+  snapshotPathTemplate: '{snapshotDir}/{testFilePath}-snapshots/{arg}-{projectName}-darwin{ext}',
   outputDir,
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
@@ -22,6 +23,8 @@ export default defineConfig({
       resolve: {
         alias: {
           '@': resolve(__dirname, '.'),
+          '@bukeer/theme-sdk': resolve(__dirname, 'packages/theme-sdk/src'),
+          '@bukeer/website-contract': resolve(__dirname, 'packages/website-contract/src'),
         },
       },
     },

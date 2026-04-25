@@ -33,6 +33,7 @@ import { Icons } from '@/components/site/themes/editorial-v1/primitives/icons';
 import { WaflowCTAButton } from '@/components/site/themes/editorial-v1/waflow/cta-button';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 import { formatPublicDate } from '@/lib/site/public-ui-messages';
+import { getBasePath } from '@/lib/utils/base-path';
 
 export interface EditorialBlogDetailPageProps {
   website: WebsiteData;
@@ -87,7 +88,8 @@ export function EditorialBlogDetailPage({
   post,
   related,
 }: EditorialBlogDetailPageProps) {
-  const basePath = `/site/${subdomain}`;
+  const isCustomDomain = Boolean((website as WebsiteData & { isCustomDomain?: boolean }).isCustomDomain);
+  const basePath = getBasePath(subdomain, isCustomDomain);
   const resolvedLocale =
     locale
     || (website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale

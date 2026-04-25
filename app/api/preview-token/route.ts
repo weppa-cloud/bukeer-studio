@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { apiInternalError, apiSuccess, apiUnauthorized } from '@/lib/api';
 import { createSupabaseServerClient } from '@/lib/supabase/server-client';
 
 export async function GET() {
@@ -6,13 +6,13 @@ export async function GET() {
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return apiUnauthorized('Unauthorized');
   }
 
   const token = process.env.SITE_PREVIEW_TOKEN || process.env.REVALIDATE_SECRET;
   if (!token) {
-    return NextResponse.json({ error: 'Preview token is not configured' }, { status: 500 });
+    return apiInternalError('Preview token is not configured');
   }
 
-  return NextResponse.json({ token });
+  return apiSuccess({ token });
 }

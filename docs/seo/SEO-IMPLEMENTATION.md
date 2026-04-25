@@ -1,7 +1,7 @@
 # SEO Implementation Reference — Current Product State
 
-**Status**: Partially shipped
-**Last updated**: 2026-04-17
+**Status**: Partially shipped; ColombiaTours public SEO/GEO technical hardening deployed
+**Last updated**: 2026-04-24
 **Audience**: Product, engineering, SEO operations
 
 ---
@@ -53,6 +53,8 @@ It should **not** be described today as:
 | Site architecture view | Shipped | Internal graph / click depth support exists |
 | Hreflang utilities | Shipped | `lib/seo/hreflang.ts` + `lib/seo/locale-routing.ts` + `lib/seo/slug-locale.ts` merged 2026-04-17 |
 | Schema manager | Partial | Editing / validation UI exists, but not all checks are runtime-backed |
+| Public category/detail schema | Shipped | ColombiaTours deploy 2026-04-24: `/actividades`, `/actividades/[slug]`, `/paquetes`, package/activity detail and blog detail emit parseable JSON-LD on the custom domain |
+| Custom-domain crawlable link hygiene | Shipped | Critical ColombiaTours public routes validated with 0 raw `/site/colombiatours` links after Worker `41756f91-34b1-4b93-bc82-1993a325b4c0` |
 | Technical audit | Partial | Health tab exists, but PageSpeed route currently returns derived values |
 | Backlinks dashboard | Exploratory | UI exists, but current summary is derived from stored API-call history |
 | AI visibility dashboard | Exploratory | UI and persistence hooks exist, but current tracking is not a reliable source of truth |
@@ -64,6 +66,38 @@ It should **not** be described today as:
 ---
 
 ## Shipped Surface
+
+### Public Renderer SEO/GEO
+
+Current public rendering capabilities include:
+
+- Homepage JSON-LD: `TravelAgency`, `WebSite`, `BreadcrumbList`.
+- Blog listing JSON-LD: `CollectionPage`, `BreadcrumbList`, `TravelAgency`.
+- Blog detail JSON-LD: `BlogPosting`, `BreadcrumbList`, `TravelAgency`; `BlogPosting` includes `reviewedBy`, `about`, and `mentions` when real category/keyword data is available.
+- Package listing JSON-LD: `CollectionPage`, `ItemList`, `BreadcrumbList`, `TravelAgency`.
+- Package detail JSON-LD: `TouristTrip`, complementary `Product` + `Offer`, `BreadcrumbList`, optional `FAQPage`, `TravelAgency`.
+- Activities listing JSON-LD: `CollectionPage`, `ItemList`, `BreadcrumbList`, `TravelAgency`.
+- Activity detail JSON-LD: `TouristAttraction`, complementary `Product` + `Offer`, `BreadcrumbList`, optional `FAQPage`, `TravelAgency`.
+- Custom-domain public links avoid internal tenant paths (`/site/{subdomain}`) on the critical crawl matrix.
+
+ColombiaTours production smoke after deploy `41756f91-34b1-4b93-bc82-1993a325b4c0` verified:
+
+| URL | Status | H1 | Canonical | hreflang | JSON-LD | `/site` leaks |
+|---|---:|---:|---|---:|---|---:|
+| `/` | 200 | 1 | yes | 3 | `TravelAgency`, `WebSite`, `BreadcrumbList` | 0 |
+| `/actividades` | 200 | 1 | yes | 3 | `CollectionPage`, `BreadcrumbList`, `TravelAgency` | 0 |
+| `/actividades/4x1-adventure` | 200 | 1 | yes | 3 | `TouristAttraction`, `Product`, `BreadcrumbList`, `FAQPage`, `TravelAgency` | 0 |
+| `/paquetes` | 200 | 1 | yes | 2 | `CollectionPage`, `BreadcrumbList`, `TravelAgency` | 0 |
+| `/paquetes/bogota-esencial-cultura-y-sal-4-dias` | 200 | 1 | yes | 3 | `TouristTrip`, `Product`, `BreadcrumbList`, `FAQPage`, `TravelAgency` | 0 |
+| `/blog` | 200 | 1 | yes | 3 | `CollectionPage`, `BreadcrumbList`, `TravelAgency` | 0 |
+| `/blog/los-10-mejores-lugares-turisticos-de-colombia` | 200 | 1 | yes | 3 | `BlogPosting`, `BreadcrumbList`, `TravelAgency` | 0 |
+
+Remaining validation required before calling this 95+:
+
+- Manual Rich Results Test for package detail, activity detail, blog detail, package listing and activity listing.
+- Lighthouse/PageSpeed mobile performance pass on the same route family.
+- Full sitemap recrawl after ISR/cache propagation.
+- Content-level E-E-A-T: visible planner/reviewer blocks, sources and editorial methodology on priority blogs/packages.
 
 ### Pages
 
@@ -325,4 +359,3 @@ For future product design and implementation direction, use:
 
 - [SEO Playbook](./SEO-PLAYBOOK.md)
 - [SEO Content Intelligence Spec](../specs/SPEC_SEO_CONTENT_INTELLIGENCE.md)
-

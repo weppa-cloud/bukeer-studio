@@ -9,9 +9,9 @@
  * is disabled — the first slide stays visible).
  *
  * Because this leaf renders the actual slide stack, it has to mount
- * client-side. Parent server component passes the full slide list + an
- * optional `ariaLabel`. Each slide is rendered as a layer; only the active
- * one is visible via CSS opacity.
+ * after first paint. Parent server component owns the first-frame SSR image
+ * (`data-ssr-hero-frame`) so LCP stays crawlable and paintable without JS.
+ * After hydration this leaf overlays the rotating layers and controls.
  *
  * It also renders the dot indicators + the `NN / NN` counter inside the
  * `.hero-meta` strip so the same state drives both the image layer and the
@@ -26,6 +26,7 @@ import {
   useState,
   type CSSProperties,
 } from 'react';
+import { supabaseImageUrl } from '@/lib/images/supabase-transform';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 
 export interface HeroRotatorSlide {
@@ -58,9 +59,15 @@ export function HeroRotator({
 }: HeroRotatorProps) {
   const editorialText = getPublicUiExtraTextGetter(locale ?? 'es-CO');
   const total = slides.length;
+  const [hasHydratedAfterPaint, setHasHydratedAfterPaint] = useState(false);
   const [idx, setIdx] = useState(0);
   const [paused, setPaused] = useState(false);
   const reducedRef = useRef(false);
+
+  useEffect(() => {
+    const id = window.requestAnimationFrame(() => setHasHydratedAfterPaint(true));
+    return () => window.cancelAnimationFrame(id);
+  }, []);
 
   useEffect(() => {
     reducedRef.current = prefersReducedMotion();
@@ -87,12 +94,8 @@ export function HeroRotator({
   const onEnter = useCallback(() => setPaused(true), []);
   const onLeave = useCallback(() => setPaused(false), []);
 
-  if (total === 0) {
-    return (
-      <div className="hero-media" aria-hidden="true">
-        <div className="scenic" />
-      </div>
-    );
+  if (!hasHydratedAfterPaint || total === 0) {
+    return null;
   }
 
   const activeSlide = slides[idx];
@@ -107,35 +110,25 @@ export function HeroRotator({
         onBlur={onLeave}
         aria-label={ariaLabel}
       >
-        {slides.map((slide, i) => {
-          const visible = i === idx;
-          const layerStyle: CSSProperties = {
-            position: 'absolute',
-            inset: 0,
-            opacity: visible ? 1 : 0,
-            transition: 'opacity 900ms ease',
-            pointerEvents: 'none',
-          };
-          if (slide.imageUrl) {
-            return (
-              <div key={i} style={layerStyle} aria-hidden={!visible}>
-                <Image
-                  src={slide.imageUrl}
-                  alt={slide.alt || slide.city || ''}
-                  fill
-                  sizes="100vw"
-                  priority={i === 0}
-                  style={{ objectFit: 'cover' }}
-                />
-              </div>
-            );
-          }
-          return (
-            <div key={i} style={layerStyle} aria-hidden={!visible}>
-              <div className="scenic" />
-            </div>
-          );
-        })}
+        <div
+          key={idx}
+          style={heroLayerStyle}
+          aria-hidden="false"
+        >
+          {activeSlide?.imageUrl ? (
+            <Image
+              src={supabaseImageUrl(activeSlide.imageUrl, { width: 1000, quality: 70 })}
+              alt={activeSlide.alt || activeSlide.city || ''}
+              fill
+              loading="lazy"
+              fetchPriority="low"
+              sizes="100vw"
+              style={{ objectFit: 'cover' }}
+            />
+          ) : (
+            <div className="scenic" />
+          )}
+        </div>
       </div>
       <div className="hero-meta" aria-live="polite">
         <span className="hero-meta-label">
@@ -163,3 +156,11 @@ export function HeroRotator({
     </>
   );
 }
+
+const heroLayerStyle: CSSProperties = {
+  position: 'absolute',
+  inset: 0,
+  opacity: 1,
+  transition: 'opacity 900ms ease',
+  pointerEvents: 'none',
+};

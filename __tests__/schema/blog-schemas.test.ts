@@ -85,7 +85,7 @@ describe('generateBlogPostSchemas', () => {
   it('uses post.locale for inLanguage (F2 fix)', () => {
     const schemas = generateBlogPostSchemas(mockPostWithFAQ, mockWebsite, BASE_URL);
     const article = schemas.find((s: any) => s['@type'] === 'BlogPosting');
-    expect((article as any).inLanguage).toBe('es');
+    expect((article as any).inLanguage).toBe('es-CO');
   });
 
   it('defaults inLanguage to es-CO when no locale', () => {
@@ -137,8 +137,8 @@ describe('generateBlogPostSchemas', () => {
         'not-a-locale!',
       );
       const article = schemas.find((s: any) => s['@type'] === 'BlogPosting');
-      // Malformed request locale is rejected → post.locale ('es') wins.
-      expect((article as any).inLanguage).toBe('es');
+      // Malformed request locale is rejected -> normalized post.locale ('es' -> 'es-CO') wins.
+      expect((article as any).inLanguage).toBe('es-CO');
     });
 
     it('falls back through the full chain when resolvedLocale is undefined', () => {

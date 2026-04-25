@@ -41,7 +41,7 @@ export function Logo({
     >
       {imageUrl ? (
         /* eslint-disable-next-line @next/next/no-img-element */
-        <img src={imageUrl} alt={name} />
+        <img src={imageUrl} alt={name} fetchPriority="low" decoding="async" />
       ) : (
         <span className="logo-wordmark" style={{ color: wordmarkColor }}>
           {name}

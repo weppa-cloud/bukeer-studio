@@ -21,6 +21,7 @@ import type { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 import { Eyebrow } from '@/components/site/themes/editorial-v1/primitives/eyebrow';
 import { editorialHtml } from '@/components/site/themes/editorial-v1/primitives/rich-heading';
 import { getEditorialTextGetter, localizeEditorialText } from '../i18n';
+import { getBasePath } from '@/lib/utils/base-path';
 
 import {
   PackagesFilters,
@@ -113,7 +114,7 @@ export function PackagesSection({ section, website }: PackagesSectionProps) {
       ? legacyTabs
       : derivedTabs;
 
-  const basePath = `/site/${website.subdomain}`;
+  const basePath = getBasePath(website.subdomain, Boolean((website as { isCustomDomain?: boolean }).isCustomDomain));
 
   return (
     <section

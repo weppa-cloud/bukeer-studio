@@ -145,9 +145,9 @@ export default async function CustomDomainPage({ params, searchParams }: CustomD
 
     return (
       <M3ThemeProvider initialTheme={getInitialTheme(website.theme)}>
-        <GoogleTagManager analytics={website.analytics} />
+        <GoogleTagManager analytics={website.analytics} defer />
         <div className="min-h-screen flex flex-col">
-          <GoogleTagManagerBody analytics={website.analytics} />
+          <GoogleTagManagerBody analytics={website.analytics} defer />
           <SiteHeader website={website} isCustomDomain={true} />
           <main className="flex-1">
             <JsonLd data={schemas} />
@@ -298,9 +298,9 @@ export default async function CustomDomainPage({ params, searchParams }: CustomD
 
     return (
       <M3ThemeProvider initialTheme={getInitialTheme(website.theme)}>
-        <GoogleTagManager analytics={website.analytics} />
+        <GoogleTagManager analytics={website.analytics} defer />
         <div className="min-h-screen flex flex-col">
-          <GoogleTagManagerBody analytics={website.analytics} />
+          <GoogleTagManagerBody analytics={website.analytics} defer />
           <SiteHeader website={website} isCustomDomain={true} />
           <main className="flex-1">
             <JsonLd data={schemas} />
@@ -449,9 +449,9 @@ export default async function CustomDomainPage({ params, searchParams }: CustomD
 
     return (
       <M3ThemeProvider initialTheme={getInitialTheme(website.theme)}>
-        <GoogleTagManager analytics={website.analytics} />
+        <GoogleTagManager analytics={website.analytics} defer />
         <div className="min-h-screen flex flex-col">
-          <GoogleTagManagerBody analytics={website.analytics} />
+          <GoogleTagManagerBody analytics={website.analytics} defer />
           <SiteHeader website={website} isCustomDomain={true} />
           <main className="flex-1">
             <article className="section-padding">
@@ -512,11 +512,11 @@ export default async function CustomDomainPage({ params, searchParams }: CustomD
   return (
     <M3ThemeProvider initialTheme={getInitialTheme(website.theme)}>
       {/* Google Tag Manager and Analytics Scripts */}
-      <GoogleTagManager analytics={website.analytics} />
+      <GoogleTagManager analytics={website.analytics} defer />
 
       <div className="min-h-screen flex flex-col">
         {/* GTM NoScript fallback */}
-        <GoogleTagManagerBody analytics={website.analytics} />
+        <GoogleTagManagerBody analytics={website.analytics} defer />
 
         <SiteHeader website={website} isCustomDomain={true} />
         <main className="flex-1">

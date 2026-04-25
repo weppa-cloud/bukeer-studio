@@ -2,6 +2,11 @@ import { test, expect } from '@playwright/experimental-ct-react';
 import { BrandKitEditor } from '@/components/admin/brand-kit-editor';
 import type { WebsiteData } from '@bukeer/website-contract';
 
+function getSavedMood(saved: Record<string, unknown> | null): string | null {
+  const profile = (saved?.theme as { profile?: { brand?: { mood?: string }; brandMood?: string } } | null)?.profile;
+  return profile?.brand?.mood ?? profile?.brandMood ?? null;
+}
+
 const BASE_WEBSITE: WebsiteData = {
   id: 'ct-brand',
   subdomain: 'ct-brand',
@@ -43,10 +48,7 @@ test.describe('<BrandKitEditor>', () => {
       />,
     );
     await c.getByRole('button', { name: /Luxurious/i }).first().click();
-    await expect.poll(
-      () => (saved?.theme as { profile?: { brandMood?: string } } | null)?.profile?.brandMood ?? null,
-      { timeout: 3000 },
-    ).toBe('luxurious');
+    await expect.poll(() => getSavedMood(saved), { timeout: 3000 }).toBe('luxurious');
   });
 
   test('visual — tropical defaults', async ({ mount }) => {
