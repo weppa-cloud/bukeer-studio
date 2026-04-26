@@ -9,7 +9,6 @@ ENV_FILES=(".env.local" ".dev.vars")
 required_vars=(
   CI_QUALITY_PROVIDER
   CI_DEPLOY_PROVIDER
-  CLOUDFLARE_API_TOKEN
   CLOUDFLARE_ACCOUNT_ID
   SUPABASE_URL
   SUPABASE_ANON_KEY
@@ -18,6 +17,9 @@ required_vars=(
 )
 
 optional_vars=(
+  CLOUDFLARE_API_TOKEN
+  CLOUDFLARE_API_KEY
+  CLOUDFLARE_EMAIL
   E2E_WEBSITE_ID
 )
 
@@ -87,6 +89,11 @@ for name in "${required_vars[@]}"; do
     missing=1
   fi
 done
+
+if [ -z "${CLOUDFLARE_API_TOKEN:-}" ] && { [ -z "${CLOUDFLARE_API_KEY:-}" ] || [ -z "${CLOUDFLARE_EMAIL:-}" ]; }; then
+  echo "Missing Cloudflare credentials: set CLOUDFLARE_API_TOKEN or CLOUDFLARE_API_KEY + CLOUDFLARE_EMAIL" >&2
+  missing=1
+fi
 
 if [ "$missing" -ne 0 ]; then
   echo "Load the missing variables into the shell and run again. Values are not printed by this script." >&2
