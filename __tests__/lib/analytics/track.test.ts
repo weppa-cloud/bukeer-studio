@@ -17,9 +17,23 @@ function setWindow(stub: MockWindow | undefined) {
   if (stub === undefined) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (globalThis as any).window = undefined;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (globalThis as any).document = undefined;
   } else {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (globalThis as any).window = stub;
+    (globalThis as any).window = {
+      location: {
+        href: 'https://demo.bukeer.com/current?x=1',
+        pathname: '/current',
+        search: '?x=1',
+      },
+      ...stub,
+    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (globalThis as any).document = {
+      title: 'Demo page',
+      referrer: 'https://referrer.example/',
+    };
   }
 }
 
@@ -47,13 +61,18 @@ describe('trackEvent', () => {
     });
 
     expect(gtagMock).toHaveBeenCalledTimes(1);
-    expect(gtagMock).toHaveBeenCalledWith('event', 'whatsapp_cta_click', {
-      product_id: 'p1',
-      product_type: 'activity',
-      product_name: 'City Tour',
-      tenant_subdomain: 'demo',
-      location_context: 'hero',
-    });
+    expect(gtagMock).toHaveBeenCalledWith(
+      'event',
+      'whatsapp_cta_click',
+      expect.objectContaining({
+        product_id: 'p1',
+        product_type: 'activity',
+        product_name: 'City Tour',
+        tenant_subdomain: 'demo',
+        location_context: 'hero',
+        page_path: '/current?x=1',
+      }),
+    );
   });
 
   it('strips null and undefined values before dispatching', () => {
@@ -64,10 +83,14 @@ describe('trackEvent', () => {
       active: true,
     });
 
-    expect(gtagMock).toHaveBeenCalledWith('event', 'cal_booking_click', {
-      product_id: 'p1',
-      active: true,
-    });
+    expect(gtagMock).toHaveBeenCalledWith(
+      'event',
+      'cal_booking_click',
+      expect.objectContaining({
+        product_id: 'p1',
+        active: true,
+      }),
+    );
   });
 
   it('falls back to dataLayer.push when gtag is absent', () => {
@@ -77,7 +100,11 @@ describe('trackEvent', () => {
     trackEvent('whatsapp_cta_click', { product_id: 'p2' });
 
     expect(dataLayer).toHaveLength(1);
-    expect(dataLayer[0]).toEqual({ event: 'whatsapp_cta_click', product_id: 'p2' });
+    expect(dataLayer[0]).toEqual(expect.objectContaining({
+      event: 'whatsapp_cta_click',
+      product_id: 'p2',
+      page_path: '/current?x=1',
+    }));
   });
 
   it('never throws when gtag throws internally', () => {
@@ -92,7 +119,11 @@ describe('trackEvent', () => {
 
   it('is safe when params are omitted entirely', () => {
     expect(() => trackEvent('whatsapp_cta_click')).not.toThrow();
-    expect(gtagMock).toHaveBeenCalledWith('event', 'whatsapp_cta_click', {});
+    expect(gtagMock).toHaveBeenCalledWith(
+      'event',
+      'whatsapp_cta_click',
+      expect.objectContaining({ page_path: '/current?x=1' }),
+    );
   });
 
   describe('safeTrack', () => {
@@ -100,7 +131,11 @@ describe('trackEvent', () => {
       const handler = safeTrack('phone_cta_click', { product_id: 'p3' });
       expect(gtagMock).not.toHaveBeenCalled();
       handler();
-      expect(gtagMock).toHaveBeenCalledWith('event', 'phone_cta_click', { product_id: 'p3' });
+      expect(gtagMock).toHaveBeenCalledWith(
+        'event',
+        'phone_cta_click',
+        expect.objectContaining({ product_id: 'p3' }),
+      );
     });
   });
 });
