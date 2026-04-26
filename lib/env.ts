@@ -41,6 +41,13 @@ const serverEnvSchema = z.object({
 
   // Optional
   NEXT_PUBLIC_GA_ID: z.string().optional(),
+
+  // Meta Conversions API (server-only)
+  META_CHATWOOT_CONVERSIONS_ENABLED: z.string().optional(),
+  META_PIXEL_ID: z.string().optional(),
+  META_ACCESS_TOKEN: z.string().optional(),
+  META_API_VERSION: z.string().optional(),
+  META_TEST_EVENT_CODE: z.string().optional(),
 })
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>
