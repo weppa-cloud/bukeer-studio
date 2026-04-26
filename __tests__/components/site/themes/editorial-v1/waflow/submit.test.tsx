@@ -22,6 +22,7 @@ jest.mock('next/navigation', () => ({
 
 import { WaflowProvider } from '@/components/site/themes/editorial-v1/waflow/provider';
 import {
+  collectWaflowAttributionContext,
   filterWaflowCountries,
   getWaflowCountryOptions,
   parseWaflowInternationalPhone,
@@ -128,6 +129,87 @@ describe('WAFlow submission — UI label', () => {
       </WaflowProvider>,
     );
     expect(html).toContain('Tu número se usa solo para este viaje');
+  });
+});
+
+describe('WAFlow attribution context', () => {
+  const originalWindow = globalThis.window;
+  const originalDocument = globalThis.document;
+
+  afterEach(() => {
+    Object.defineProperty(globalThis, 'window', {
+      configurable: true,
+      writable: true,
+      value: originalWindow,
+    });
+    Object.defineProperty(globalThis, 'document', {
+      configurable: true,
+      writable: true,
+      value: originalDocument,
+    });
+  });
+
+  it('captures Meta cookies, fbclid, UTM values, and page context', () => {
+    Object.defineProperty(globalThis, 'window', {
+      configurable: true,
+      writable: true,
+      value: {
+        location: {
+          href: 'https://demo.bukeer.com/cartagena?fbclid=FB123&utm_source=meta&utm_medium=cpc&utm_campaign=spring',
+          pathname: '/cartagena',
+          search: '?fbclid=FB123&utm_source=meta&utm_medium=cpc&utm_campaign=spring',
+        },
+      },
+    });
+    Object.defineProperty(globalThis, 'document', {
+      configurable: true,
+      writable: true,
+      value: {
+        cookie: '_fbp=fb.1.1700000000.abc; other=value',
+        title: 'Cartagena trips',
+        referrer: 'https://facebook.com/',
+      },
+    });
+
+    expect(collectWaflowAttributionContext(1_700_000_123_000)).toEqual({
+      fbp: 'fb.1.1700000000.abc',
+      fbc: 'fb.1.1700000123.FB123',
+      fbclid: 'FB123',
+      utm_source: 'meta',
+      utm_medium: 'cpc',
+      utm_campaign: 'spring',
+      source_url: 'https://demo.bukeer.com/cartagena?fbclid=FB123&utm_source=meta&utm_medium=cpc&utm_campaign=spring',
+      page_path: '/cartagena?fbclid=FB123&utm_source=meta&utm_medium=cpc&utm_campaign=spring',
+      page_title: 'Cartagena trips',
+      referrer: 'https://facebook.com/',
+    });
+  });
+
+  it('prefers an existing _fbc cookie over constructing one from fbclid', () => {
+    Object.defineProperty(globalThis, 'window', {
+      configurable: true,
+      writable: true,
+      value: {
+        location: {
+          href: 'https://demo.bukeer.com/?fbclid=NEW',
+          pathname: '/',
+          search: '?fbclid=NEW',
+        },
+      },
+    });
+    Object.defineProperty(globalThis, 'document', {
+      configurable: true,
+      writable: true,
+      value: {
+        cookie: '_fbc=fb.1.1699999999.EXISTING',
+        title: '',
+        referrer: '',
+      },
+    });
+
+    expect(collectWaflowAttributionContext(1_700_000_123_000).fbc).toBe(
+      'fb.1.1699999999.EXISTING',
+    );
   });
 });
 
