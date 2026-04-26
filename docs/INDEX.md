@@ -4,7 +4,7 @@
 >
 > **Convention:** `[[ADR-XXX]]` or `[[SPEC_NAME]]` = wikilink resolved below. `[text](path.md)` = regular markdown link. Both coexist.
 
-Last updated: 2026-04-25 (ADR-028 media assets canonical registry for account-managed media); 2026-04-24 (ColombiaTours SEO/GEO P1 production audit — sitemap PASS, JSON-LD PASS, Lighthouse perf debt, console fix deployed `b1d022e4-8148-40f7-adf1-b98115b761e2`); 2026-04-24 (ColombiaTours SEO/GEO public renderer hardening deployed — activities listing/detail, package listing schema, product/offer schema, custom-domain `/site` leak cleanup); 2026-04-24 (tenant favicons runbook + ColombiaTours favicon wiring); 2026-04-23 (ColombiaTours cutover rerun — SOFT-BLOCK, critical content/redirect/legal issues resolved, Lighthouse SEO/a11y pass with performance warnings); 2026-04-23 (ColombiaTours content classification implemented — blogs preserved, legal pages migrated local, Bogotá package redirects fixed); 2026-04-23 (ColombiaTours cutover audit — NO-GO, public route matrix + screenshots + Lighthouse 401 gate failure); 2026-04-20 (EPIC #250 #259/#260 — ADR-027 + pilot theme rollout/rollback runbook + theme-designer-v1 flag/snapshot docs sync); 2026-04-20 (EPIC #214 Stage 6 autonomous — #213 Flow 2 + Flow 3 + Lighthouse AC-A5 executed on pilot seed; matrix + sign-off stubs published to `docs/qa/pilot/`; partner + QA-lead human sign-off still pending per AC-X4a/b); 2026-04-20 (EPIC #214 Stage 5 W7-b — training onboarding extended with Flows 6/7/8 + cutover checklist Stage map + FAQ expansion); 2026-04-19 (EPIC #214 Stage 2 W7-a — training onboarding ColombiaTours + pilot runbook + cutover checklist); 2026-04-19 (EPIC #214 Stage 1 W1 — matrix refresh pkg+act editable + blog Section P + hotels as-is + Section M booking DEFER; pilot-readiness concept section expanded with matrix/ADR wikilinks); 2026-04-19 (ADR-025 priority-v2 alignment: Activities target Studio ownership with W2 pending); 2026-04-19 (EPIC #214 client priority change v2 — pilot-readiness concept scope notes); 2026-04-19 (EPIC #214 Stage 0 — ADR-024 + ADR-025 skeletons + pilot-readiness-deps); 2026-04-19 (EPIC #190 certification rerun evidence); 2026-04-18 (EPIC #190 certification run evidence + checklist); 2026-04-17 (WIKI full-refresh + #103 media closure checklist); 2026-04-17 wiki-patch (epic128 evidence + issue resolution rows)
+Last updated: 2026-04-25 (SPEC_COLOMBIATOURS_GROWTH_OS_2026 — ColombiaTours Growth Operating System for #310); 2026-04-25 (SPEC_META_CHATWOOT_CONVERSIONS — Meta CAPI + Chatwoot conversion tracking spec); 2026-04-25 (ADR-028 media assets canonical registry for account-managed media); 2026-04-24 (ColombiaTours SEO/GEO P1 production audit — sitemap PASS, JSON-LD PASS, Lighthouse perf debt, console fix deployed `b1d022e4-8148-40f7-adf1-b98115b761e2`); 2026-04-24 (ColombiaTours SEO/GEO public renderer hardening deployed — activities listing/detail, package listing schema, product/offer schema, custom-domain `/site` leak cleanup); 2026-04-24 (tenant favicons runbook + ColombiaTours favicon wiring); 2026-04-23 (ColombiaTours cutover rerun — SOFT-BLOCK, critical content/redirect/legal issues resolved, Lighthouse SEO/a11y pass with performance warnings); 2026-04-23 (ColombiaTours content classification implemented — blogs preserved, legal pages migrated local, Bogotá package redirects fixed); 2026-04-23 (ColombiaTours cutover audit — NO-GO, public route matrix + screenshots + Lighthouse 401 gate failure); 2026-04-20 (EPIC #250 #259/#260 — ADR-027 + pilot theme rollout/rollback runbook + theme-designer-v1 flag/snapshot docs sync); 2026-04-20 (EPIC #214 Stage 6 autonomous — #213 Flow 2 + Flow 3 + Lighthouse AC-A5 executed on pilot seed; matrix + sign-off stubs published to `docs/qa/pilot/`; partner + QA-lead human sign-off still pending per AC-X4a/b); 2026-04-20 (EPIC #214 Stage 5 W7-b — training onboarding extended with Flows 6/7/8 + cutover checklist Stage map + FAQ expansion); 2026-04-19 (EPIC #214 Stage 2 W7-a — training onboarding ColombiaTours + pilot runbook + cutover checklist); 2026-04-19 (EPIC #214 Stage 1 W1 — matrix refresh pkg+act editable + blog Section P + hotels as-is + Section M booking DEFER; pilot-readiness concept section expanded with matrix/ADR wikilinks); 2026-04-19 (ADR-025 priority-v2 alignment: Activities target Studio ownership with W2 pending); 2026-04-19 (EPIC #214 client priority change v2 — pilot-readiness concept scope notes); 2026-04-19 (EPIC #214 Stage 0 — ADR-024 + ADR-025 skeletons + pilot-readiness-deps); 2026-04-19 (EPIC #190 certification rerun evidence); 2026-04-18 (EPIC #190 certification run evidence + checklist); 2026-04-17 (WIKI full-refresh + #103 media closure checklist); 2026-04-17 wiki-patch (epic128 evidence + issue resolution rows)
 
 ---
 
@@ -83,6 +83,8 @@ Feature requests formalized. Status tracked inline. GitHub Issues = source of tr
 | [[SPEC_MEDIA_ASSET_INVENTORY]] | [file](./specs/SPEC_MEDIA_ASSET_INVENTORY.md) | [[media-assets]] [[storage]] [[cross-repo-flutter]] |
 | [[SPEC_SECTION_ENTITY_TRANSLATION_LAYER]] | [file](./specs/SPEC_SECTION_ENTITY_TRANSLATION_LAYER.md) | [[i18n]] [[website_sections]] [[package_kits]] [[contacts]] [[translation-overlay]] Epic #273 (infra #274-#278 implemented in code, content population pending) |
 | [[SPEC_PACKAGE_DETAIL_CONVERSION_V2]] | [file](./specs/SPEC_PACKAGE_DETAIL_CONVERSION_V2.md) | [[package-landing]] [[package-kits]] [[maps]] [[conversion]] |
+| [[SPEC_COLOMBIATOURS_GROWTH_OS_2026]] | [file](./specs/SPEC_COLOMBIATOURS_GROWTH_OS_2026.md) | [[growth-os]] [[SEO]] [[conversion]] [[paid-media]] [[WAFlow]] [[Chatwoot]] |
+| [[SPEC_META_CHATWOOT_CONVERSIONS]] | [file](./specs/SPEC_META_CHATWOOT_CONVERSIONS.md) | [[conversion]] [[leads]] [[webhook]] [[analytics]] [[Chatwoot]] [[Meta-CAPI]] |
 | [[SPEC_SEO_CONTENT_INTELLIGENCE]] | [file](./specs/SPEC_SEO_CONTENT_INTELLIGENCE.md) | [[SEO]] [[AI]] [[keyword-research]] |
 | [[SPEC_SEO_CONTENT_INTELLIGENCE_INTEGRAL]] | [file](./specs/SPEC_SEO_CONTENT_INTELLIGENCE_INTEGRAL.md) | [[SEO]] [[AI]] [[content-ops]] |
 | [[SPEC_SEO_DASHBOARD_PRODUCT_INTEGRATION]] | [file](./specs/SPEC_SEO_DASHBOARD_PRODUCT_INTEGRATION.md) | [[SEO]] [[product-landing]] [[catalog-v2]] |
@@ -209,6 +211,7 @@ Persisted state pre-#148 (`seo_website_okrs`). Post-#148 these stay as human-rea
 | [[growth-okrs-active]] | [file](./growth-okrs/active.md) | Active OKRs (7D/30D/90D). |
 | [[growth-okrs-budget]] | [file](./growth-okrs/budget.md) | Provider budget counter (pre-#130). |
 | [[growth-sessions-readme]] | [file](./growth-sessions/README.md) | Per-session audit trail. |
+| [[colombiatours-growth-os-2026]] | [file](./specs/SPEC_COLOMBIATOURS_GROWTH_OS_2026.md) | ColombiaTours Growth Operating System: North Star, AARRR funnel, cross-channel governance, Growth Inventory contract, event/attribution contract and 90-day roadmap for #310. |
 | [[colombiatours-seo-geo-deploy-2026-04-24]] | [file](./growth-sessions/2026-04-24-2045-seo-geo-colombiatours-deploy.md) | ColombiaTours SEO/GEO technical hardening: activities listing/detail, listing schema, Product/Offer schema, custom-domain link hygiene, Worker deploy `41756f91-34b1-4b93-bc82-1993a325b4c0`. |
 | [[colombiatours-seo-geo-p1-audit-2026-04-24]] | [file](./growth-sessions/2026-04-24-2120-seo-geo-p1-audit-colombiatours.md) | ColombiaTours #293 P1 production audit: JSON-LD/crawl PASS, sitemap PASS, Lighthouse performance debt, console/title fixes deployed `b1d022e4-8148-40f7-adf1-b98115b761e2`. |
 | [[growth-weekly-readme]] | [file](./growth-weekly/README.md) | Weekly quick-wins planning. |
@@ -341,7 +344,7 @@ Each concept below lists the ADRs/SPECs/ops docs that touch it. Use this to find
 ### [[SEO]]
 - [[ADR-016]] — caching + revalidation
 - [[SEO-PLAYBOOK]] [[SEO-IMPLEMENTATION]] [[SEO-FLUJOS-STUDIO]] [[jsonld-fixtures]]
-- Specs: [[SPEC_SEO_CONTENT_INTELLIGENCE]] [[SPEC_SEO_CONTENT_INTELLIGENCE_INTEGRAL]] [[SPEC_SEO_DASHBOARD_PRODUCT_INTEGRATION]] [[SPEC_SEO_DESTINATIONS_PRODUCTS]] [[SPEC_SEO_BLOG_EXECUTION_FRAMEWORK_2026]] [[SPEC_SEO_OPTIMIZATION_TOOLKIT]]
+- Specs: [[SPEC_COLOMBIATOURS_GROWTH_OS_2026]] [[SPEC_SEO_CONTENT_INTELLIGENCE]] [[SPEC_SEO_CONTENT_INTELLIGENCE_INTEGRAL]] [[SPEC_SEO_DASHBOARD_PRODUCT_INTEGRATION]] [[SPEC_SEO_DESTINATIONS_PRODUCTS]] [[SPEC_SEO_BLOG_EXECUTION_FRAMEWORK_2026]] [[SPEC_SEO_OPTIMIZATION_TOOLKIT]]
 - Meta: [[EPIC_SEO_CONTENT_INTELLIGENCE_GITHUB]] [[ROADMAP_SEO_CONTENT_INTELLIGENCE]] [[ISSUE_MAP_SEO_CONTENT_INTELLIGENCE]]
 - QA: [[link-validation-colombiatours]]
 - Shipped APIs (2026-04-17): serp-snapshot, nlp-score, transcreate, objectives-90d, okrs, translations, weekly-tasks — see [[SEO-IMPLEMENTATION]]
@@ -387,6 +390,18 @@ Each concept below lists the ADRs/SPECs/ops docs that touch it. Use this to find
 - Schemas in `@bukeer/website-contract`: `schemas/{bookings,cancellation,leads,wompi}.ts`
 - No dedicated ADR yet — data flows Flutter → Supabase → Studio read-only
 - Wompi = payment provider integration schema
+- [[SPEC_META_CHATWOOT_CONVERSIONS]] — WAFlow/WhatsApp → Chatwoot → qualified lead → purchase attribution for Meta CAPI.
+
+### [[growth-os]] + [[paid-media]] + [[WAFlow]]
+- [[SPEC_COLOMBIATOURS_GROWTH_OS_2026]] — ColombiaTours #310 operating system: North Star, AARRR funnel, Growth Council, inventory contract, event/attribution contract, and 90-day roadmap.
+- [[SPEC_META_CHATWOOT_CONVERSIONS]] — Meta + Chatwoot conversion path for WAFlow/WhatsApp to qualified lead, quote, and purchase.
+- [[ADR-024]] — booking/date-picker remains deferred for pilot; WAFlow/WhatsApp is primary conversion.
+
+### [[conversion]] + [[analytics]] + [[webhook]]
+- [[SPEC_PACKAGE_DETAIL_CONVERSION_V2]] — package detail conversion surface.
+- [[SPEC_COLOMBIATOURS_GROWTH_OS_2026]] — cross-channel conversion governance and event contract for ColombiaTours Growth OS.
+- [[SPEC_META_CHATWOOT_CONVERSIONS]] — Meta Pixel/CAPI event contract, Chatwoot webhook lifecycle tracking, and purchase attribution.
+- [[ADR-018]] — webhook idempotency baseline for Chatwoot and payment-provider callbacks.
 
 ### [[trust]] + [[organization-schema]]
 - `packages/website-contract/src/schemas/trust.ts` — trust content contract
@@ -466,6 +481,16 @@ Obsidian resolves `[[ADR-005]]` by filename stem or alias. Claude Code / Codex g
 | `[[ONBOARDING-ARCHITECTURE]]` | `docs/architecture/ONBOARDING-ARCHITECTURE.md` |
 | `[[AI-AGENT-DEVELOPMENT]]` | `docs/architecture/AI-AGENT-DEVELOPMENT.md` |
 | `[[SPEC_*]]` | `docs/specs/SPEC_*.md` (filename stem match) |
+| `[[SPEC_COLOMBIATOURS_GROWTH_OS_2026]]` | `docs/specs/SPEC_COLOMBIATOURS_GROWTH_OS_2026.md` |
+| `[[colombiatours-growth-os-2026]]` | `docs/specs/SPEC_COLOMBIATOURS_GROWTH_OS_2026.md` |
+| `[[growth-os]]` | `docs/specs/SPEC_COLOMBIATOURS_GROWTH_OS_2026.md` (concept alias) |
+| `[[paid-media]]` | `docs/specs/SPEC_COLOMBIATOURS_GROWTH_OS_2026.md` (concept alias) |
+| `[[WAFlow]]` | `docs/specs/SPEC_COLOMBIATOURS_GROWTH_OS_2026.md` + `docs/specs/SPEC_META_CHATWOOT_CONVERSIONS.md` (concept alias) |
+| `[[SPEC_META_CHATWOOT_CONVERSIONS]]` | `docs/specs/SPEC_META_CHATWOOT_CONVERSIONS.md` |
+| `[[conversion]]` | `docs/specs/SPEC_META_CHATWOOT_CONVERSIONS.md` + `docs/specs/SPEC_PACKAGE_DETAIL_CONVERSION_V2.md` (concept alias) |
+| `[[analytics]]` | `docs/specs/SPEC_META_CHATWOOT_CONVERSIONS.md` (concept alias) |
+| `[[Chatwoot]]` | `docs/specs/SPEC_META_CHATWOOT_CONVERSIONS.md` (concept alias) |
+| `[[Meta-CAPI]]` | `docs/specs/SPEC_META_CHATWOOT_CONVERSIONS.md` (concept alias) |
 | `[[SEO-BLOG-EXECUTION-FRAMEWORK-2026]]` | `docs/seo/SEO-BLOG-EXECUTION-FRAMEWORK-2026.md` |
 | `[[cross-repo-flutter]]` | `.claude/rules/cross-repo-flutter.md` |
 | `[[issue-103-media-closure-checklist]]` | `docs/ops/issue-103-media-closure-checklist.md` |
