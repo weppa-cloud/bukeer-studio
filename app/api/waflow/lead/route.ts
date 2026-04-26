@@ -44,6 +44,23 @@ import { createLogger } from '@/lib/logger';
 
 const log = createLogger('api.waflow.lead');
 
+const AttributionSchema = z
+  .object({
+    fbp: z.string().trim().max(255).optional(),
+    fbc: z.string().trim().max(512).optional(),
+    fbclid: z.string().trim().max(512).optional(),
+    utm_source: z.string().trim().max(255).optional(),
+    utm_medium: z.string().trim().max(255).optional(),
+    utm_campaign: z.string().trim().max(255).optional(),
+    utm_term: z.string().trim().max(255).optional(),
+    utm_content: z.string().trim().max(255).optional(),
+    source_url: z.string().trim().max(2048).optional(),
+    page_path: z.string().trim().max(2048).optional(),
+    page_title: z.string().trim().max(512).optional(),
+    referrer: z.string().trim().max(2048).optional(),
+  })
+  .strict();
+
 const RequestSchema = z.object({
   sessionKey: z.string().trim().min(6).max(80),
   subdomain: z.string().trim().min(1).optional(),
@@ -59,6 +76,7 @@ const RequestSchema = z.object({
   ]),
   referenceCode: z.string().trim().min(4).max(40).optional().nullable(),
   submitted: z.boolean().optional(),
+  attribution: AttributionSchema.optional(),
   payload: z.record(z.string(), z.unknown()).default({}),
 });
 
@@ -104,6 +122,17 @@ async function upsertLead(
   const submittedAt = body.submitted ? new Date().toISOString() : null;
   const ip = extractClientIp(request.headers);
   const ua = request.headers.get('user-agent');
+  const payload = body.attribution
+    ? {
+        ...body.payload,
+        attribution: {
+          ...(typeof body.payload.attribution === 'object' && body.payload.attribution !== null
+            ? body.payload.attribution
+            : {}),
+          ...body.attribution,
+        },
+      }
+    : body.payload;
 
   const { data, error } = await supabase
     .from('waflow_leads')
@@ -114,7 +143,7 @@ async function upsertLead(
         subdomain: body.subdomain ?? null,
         variant: body.variant,
         step: body.step,
-        payload: body.payload,
+        payload,
         session_key: body.sessionKey,
         reference_code: body.referenceCode ?? null,
         submitted_at: submittedAt,

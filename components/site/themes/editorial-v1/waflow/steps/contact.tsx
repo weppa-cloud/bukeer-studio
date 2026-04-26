@@ -36,6 +36,28 @@ export interface WaflowStepContactProps {
 type ContactErrors = Partial<Record<'name' | 'phone', string>>;
 
 const FREQUENT_COUNTRY_CODES = ['CO', 'US', 'MX', 'ES', 'PA', 'EC', 'PE', 'CL'];
+const UTM_KEYS = [
+  'utm_source',
+  'utm_medium',
+  'utm_campaign',
+  'utm_term',
+  'utm_content',
+] as const;
+
+export interface WaflowAttributionContext {
+  fbp?: string;
+  fbc?: string;
+  fbclid?: string;
+  utm_source?: string;
+  utm_medium?: string;
+  utm_campaign?: string;
+  utm_term?: string;
+  utm_content?: string;
+  source_url?: string;
+  page_path?: string;
+  page_title?: string;
+  referrer?: string;
+}
 
 const COUNTRY_ALIASES: Record<string, readonly string[]> = {
   US: ['usa', 'eeuu', 'ee.uu', 'estados unidos', 'united states', 'estados unidos de america'],
@@ -61,6 +83,56 @@ function countrySearchText(country: WaflowCountry): string {
     country.code.replace('+', ''),
     ...aliases,
   ].join(' '));
+}
+
+function readCookie(name: string): string | undefined {
+  if (typeof document === 'undefined') return undefined;
+  const prefix = `${name}=`;
+  return document.cookie
+    .split(';')
+    .map((part) => part.trim())
+    .find((part) => part.startsWith(prefix))
+    ?.slice(prefix.length) || undefined;
+}
+
+function cleanAttributionValue(value: string | null | undefined): string | undefined {
+  const normalized = value?.trim();
+  return normalized ? normalized.slice(0, 2048) : undefined;
+}
+
+export function collectWaflowAttributionContext(now = Date.now()): WaflowAttributionContext {
+  if (typeof window === 'undefined') return {};
+
+  const search = new URLSearchParams(window.location.search);
+  const fbclid = cleanAttributionValue(search.get('fbclid'));
+  const context: WaflowAttributionContext = {};
+
+  const fbp = cleanAttributionValue(readCookie('_fbp'));
+  if (fbp) context.fbp = fbp;
+
+  const fbc = cleanAttributionValue(readCookie('_fbc'));
+  if (fbc) {
+    context.fbc = fbc;
+  } else if (fbclid) {
+    context.fbc = `fb.1.${Math.floor(now / 1000)}.${fbclid}`;
+  }
+
+  if (fbclid) context.fbclid = fbclid;
+
+  for (const key of UTM_KEYS) {
+    const value = cleanAttributionValue(search.get(key));
+    if (value) context[key] = value;
+  }
+
+  context.source_url = window.location.href;
+  context.page_path = `${window.location.pathname}${window.location.search}`;
+
+  if (typeof document !== 'undefined') {
+    context.page_title = cleanAttributionValue(document.title);
+    context.referrer = cleanAttributionValue(document.referrer);
+  }
+
+  return context;
 }
 
 export function getWaflowCountryOptions(
@@ -242,6 +314,11 @@ export function WaflowStepContact({
     const ref = makeWaflowRef(refPrefix);
     const sourceUrl =
       typeof window !== 'undefined' ? window.location.href : null;
+    const attribution = collectWaflowAttributionContext();
+    const eventIds = {
+      contact: `${ref}:contact`,
+      lead: `${ref}:lead`,
+    };
 
     const message = buildWaflowMessage({
       variant,
@@ -274,6 +351,7 @@ export function WaflowStepContact({
           step: 'confirmation',
           referenceCode: ref,
           submitted: true,
+          attribution,
           payload: {
             name: state.name.trim(),
             phone: `${country.code}${state.phone.replace(/\D/g, '')}`,
@@ -283,6 +361,8 @@ export function WaflowStepContact({
             children: state.children,
             notes: state.notes || null,
             sourceUrl,
+            attribution,
+            eventIds,
             destinationSlug: config.destination?.slug ?? null,
             destinationName: config.destination?.name ?? null,
             packageSlug: config.pkg?.slug ?? null,
@@ -311,6 +391,7 @@ export function WaflowStepContact({
       country: country.c,
       adults: state.adults,
       children: state.children,
+      lead_event_id: eventIds.lead,
     });
     trackEvent('whatsapp_cta_click', {
       variant,
@@ -318,6 +399,7 @@ export function WaflowStepContact({
       location_context: 'waflow_submit',
       destination_slug: config.destination?.slug ?? null,
       package_slug: config.pkg?.slug ?? null,
+      contact_event_id: eventIds.contact,
     });
     setLoading(false);
     setStep('confirmation');
