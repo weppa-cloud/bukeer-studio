@@ -479,7 +479,7 @@ export async function getBlogPostBySlug(
     }
 
     return null;
-  } catch (e) {
+  } catch {
     // Keep public blog detail resilient — do not raise noisy dev overlay logs
     // for recoverable lookup failures.
     return null;

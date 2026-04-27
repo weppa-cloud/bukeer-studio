@@ -390,7 +390,7 @@ async function buildExpectedView(args: {
   similarCount: number;
   whatsappExists: boolean;
 }): Promise<PackageParityView> {
-  const { product, productSlug, subdomain, faqSource, similarCount, whatsappExists } = args;
+  const { product, productSlug, faqSource, similarCount, whatsappExists } = args;
   const supabase = createSupabaseServiceRoleClient();
   const packageId = String(product.id ?? '');
   const itinerarySelect =

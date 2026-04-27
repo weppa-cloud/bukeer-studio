@@ -39,7 +39,7 @@ export interface NormalizeProductOptions {
   logger?: (event: ProductNormalizeLog) => void;
 }
 
-const defaultLogger = (_event: ProductNormalizeLog) => {
+const defaultLogger = () => {
   // Fallbacks are expected while legacy catalog rows are progressively
   // normalized. Callers can pass a logger when they need diagnostics.
 };

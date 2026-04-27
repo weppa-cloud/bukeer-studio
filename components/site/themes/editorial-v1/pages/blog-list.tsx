@@ -91,16 +91,12 @@ export function EditorialBlogListPage({
     || 'es-CO';
   const editorialText = getPublicUiExtraTextGetter(resolvedLocale);
   const DEFAULT_EYEBROW = editorialText('editorialBlogListEyebrow');
-  const DEFAULT_TITLE = editorialText('editorialBlogListTitle');
-  const DEFAULT_EMPHASIS = editorialText('editorialBlogListEmphasis');
-  const DEFAULT_SUBTITLE = editorialText('editorialBlogListSubtitle');
   const ALL_LABEL = editorialText('editorialBlogListAllTab');
   const EMPTY_HEADING = editorialText('editorialBlogEmptyHeading');
   const EMPTY_BODY = editorialText('editorialBlogEmptyBody');
   const LOAD_MORE = editorialText('editorialBlogLoadMore');
   const PREV_LABEL = editorialText('editorialBlogPrev');
   const NEXT_LABEL = editorialText('editorialBlogNext');
-  const READ_CTA = editorialText('editorialBlogReadCta');
   const totalPages = Math.max(1, Math.ceil(total / Math.max(limit, 1)));
   const hasPrev = page > 1;
   const hasNext = page < totalPages;
