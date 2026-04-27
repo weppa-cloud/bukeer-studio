@@ -38,7 +38,19 @@ description: |
 
 # Tech Validator Skill
 
-Technical validation engine with **three operational modes** that ensures all development artifacts — plans, tasks, and code — align with Bukeer Studio's architecture, ADRs, design token system, and reusability principles.
+Technical validation engine with **three operational modes** that ensures all development artifacts — plans, tasks, and code — align with Bukeer Studio's architecture, ADRs, design token system, media governance, and reusability principles.
+
+## Cross-Agent Sync
+
+This skill is maintained from the repository's configured source-of-truth agent directory and synchronized to the paired agent directory for the other tool.
+
+After editing agent instructions, run:
+
+```bash
+npm run ai:sync
+```
+
+The sync command applies repository replacements such as the active agent guide filename, so both agents enforce the same architecture rules without manual drift.
 
 ## Mode Selection
 
@@ -87,6 +99,9 @@ The developer can also explicitly request a mode:
 | ADR-010 | Observability Strategy | Does it include logging/monitoring where appropriate? |
 | ADR-011 | Middleware Cache | Does it respect middleware caching strategy? |
 | ADR-012 | API Response Envelope | Do API routes use standard response envelope format? |
+| ADR-013 | Tech Validator Quality Gate | Does the work run the automated CODE gate before commit/PR? |
+| ADR-014 | Delta TypeScript Quality Gate | Does new code avoid introducing new TypeScript diagnostics while legacy debt is isolated? |
+| ADR-028 | Media Assets Canonical Registry | Do image/media features register assets in `media_assets` or document an approved backfill path? |
 
 ## Validation Tools
 
@@ -100,8 +115,11 @@ npm run lint
 # Production build (catches RSC boundary issues, import errors)
 npm run build
 
-# E2E tests
-npm run test:e2e
+# Media asset governance
+npm run media:guardrails
+
+# E2E tests must use the session pool, never direct Playwright/dev commands
+npm run session:run
 ```
 
 ## Reference Files
@@ -114,6 +132,16 @@ When reviewing code, check:
 - Dashboard UI: English only (no i18n required)
 - Public site: `website.locale` or `website.language` should drive `inLanguage` in JSON-LD
 - Hardcoded `'es'` in JSON-LD generators is a known bug (see CLAUDE.md SEO gaps)
+
+## Media / Images Check (ADR-028)
+
+When reviewing any feature that uploads, imports, generates, selects, renders, or stores image URLs:
+
+- Confirm `public.media_assets` is the canonical registry for the asset.
+- Confirm the write path registers or upserts the media asset after upload/import, or references a documented backfill path.
+- Confirm account, website, entity, and usage context are captured whenever known.
+- Confirm legacy public URL fields remain compatible during v1 transition.
+- Run `npm run media:guardrails` or `npm run tech-validator:code:quick -- --no-typecheck`.
 
 ## Delegate To
 

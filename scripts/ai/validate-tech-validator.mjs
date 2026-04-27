@@ -5,7 +5,7 @@
  *
  * Automated CODE-mode gate for tech-validator:
  * - Skill structure checks
- * - ADR alignment checks (ADR-003, ADR-007, ADR-011, ADR-012, ADR-013, ADR-014)
+ * - ADR alignment checks (ADR-003, ADR-007, ADR-011, ADR-012, ADR-013, ADR-014, ADR-028)
  * - Static analysis gates (delta TypeScript, lint, build)
  *
  * Usage:
@@ -21,10 +21,14 @@ import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import { isAbsolute, join, relative, resolve } from 'node:path';
 
 const ROOT = resolve(import.meta.dirname, '../..');
-const TECH_VALIDATOR_DIR = join(ROOT, '.claude/skills/tech-validator');
+const TECH_VALIDATOR_DIRS = [
+  join(ROOT, '.claude/skills/tech-validator'),
+  join(ROOT, '.agents/skills/tech-validator'),
+];
 const ARCHITECTURE_DOC = join(ROOT, 'docs/architecture/ARCHITECTURE.md');
 const ADR_013_DOC = join(ROOT, 'docs/architecture/ADR-013-tech-validator-quality-gate.md');
 const ADR_014_DOC = join(ROOT, 'docs/architecture/ADR-014-delta-typescript-quality-gate.md');
+const ADR_028_DOC = join(ROOT, 'docs/architecture/ADR-028-media-assets-canonical-registry.md');
 
 const args = new Set(process.argv.slice(2));
 const quick = args.has('--quick');
@@ -78,6 +82,25 @@ function runCapture(command, commandArgs) {
   }
 
   return result.stdout.trim();
+}
+
+function resolveGitBaseRef() {
+  const explicitBase =
+    process.env.TECH_VALIDATOR_BASE_REF ||
+    process.env.BASE_BRANCH ||
+    process.env.GITHUB_BASE_REF ||
+    process.env.CIRCLE_PR_BASE_BRANCH;
+
+  if (explicitBase) {
+    return explicitBase;
+  }
+
+  const upstream = runCapture('git', ['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{u}']);
+  if (upstream) {
+    return upstream;
+  }
+
+  return 'main';
 }
 
 function runGate(label, command, commandArgs) {
@@ -141,38 +164,57 @@ async function checkTechValidatorStructure() {
     'REFERENCE_FILES.md',
   ];
 
-  for (const file of requiredFiles) {
-    const fullPath = join(TECH_VALIDATOR_DIR, file);
-    if (!existsSync(fullPath)) {
-      addFinding('error', 'SKILL_STRUCTURE', `Missing required skill file: ${file}`, rel(fullPath));
-    }
-  }
-
-  const skillPath = join(TECH_VALIDATOR_DIR, 'SKILL.md');
-  if (!existsSync(skillPath)) {
+  const existingDirs = TECH_VALIDATOR_DIRS.filter((dir) => existsSync(dir));
+  if (existingDirs.length === 0) {
+    addFinding('error', 'SKILL_STRUCTURE', 'No tech-validator skill directory found in .claude or .agents', null);
     return;
   }
 
-  const skillContent = await readFile(skillPath, 'utf-8');
-  const requiredTokens = ['MODE: PLAN', 'MODE: TASK', 'MODE: CODE', 'ADR-003', 'ADR-007', 'ADR-011', 'ADR-012'];
+  for (const techValidatorDir of existingDirs) {
+    for (const file of requiredFiles) {
+      const fullPath = join(techValidatorDir, file);
+      if (!existsSync(fullPath)) {
+        addFinding('error', 'SKILL_STRUCTURE', `Missing required skill file: ${file}`, rel(fullPath));
+      }
+    }
 
-  for (const token of requiredTokens) {
-    if (!skillContent.includes(token)) {
-      addFinding('error', 'SKILL_CONTENT', `SKILL.md is missing required token: ${token}`, rel(skillPath));
+    const skillPath = join(techValidatorDir, 'SKILL.md');
+    if (!existsSync(skillPath)) {
+      continue;
     }
-  }
 
-  const codeModePath = join(TECH_VALIDATOR_DIR, 'CODE_MODE.md');
-  if (existsSync(codeModePath)) {
-    const codeMode = await readFile(codeModePath, 'utf-8');
-    if (!codeMode.includes('npx tsc --noEmit')) {
-      addFinding('warning', 'SKILL_CONTENT', 'CODE_MODE.md should include tsc quality gate command', rel(codeModePath));
+    const skillContent = await readFile(skillPath, 'utf-8');
+    const requiredTokens = [
+      'MODE: PLAN',
+      'MODE: TASK',
+      'MODE: CODE',
+      'ADR-003',
+      'ADR-007',
+      'ADR-011',
+      'ADR-012',
+      'ADR-013',
+      'ADR-014',
+      'ADR-028',
+    ];
+
+    for (const token of requiredTokens) {
+      if (!skillContent.includes(token)) {
+        addFinding('error', 'SKILL_CONTENT', `SKILL.md is missing required token: ${token}`, rel(skillPath));
+      }
     }
-    if (!codeMode.includes('npm run lint')) {
-      addFinding('warning', 'SKILL_CONTENT', 'CODE_MODE.md should include lint quality gate command', rel(codeModePath));
-    }
-    if (!codeMode.includes('npm run build')) {
-      addFinding('warning', 'SKILL_CONTENT', 'CODE_MODE.md should include build quality gate command', rel(codeModePath));
+
+    const codeModePath = join(techValidatorDir, 'CODE_MODE.md');
+    if (existsSync(codeModePath)) {
+      const codeMode = await readFile(codeModePath, 'utf-8');
+      if (!codeMode.includes('npx tsc --noEmit')) {
+        addFinding('warning', 'SKILL_CONTENT', 'CODE_MODE.md should include tsc quality gate command', rel(codeModePath));
+      }
+      if (!codeMode.includes('npm run lint')) {
+        addFinding('warning', 'SKILL_CONTENT', 'CODE_MODE.md should include lint quality gate command', rel(codeModePath));
+      }
+      if (!codeMode.includes('npm run build')) {
+        addFinding('warning', 'SKILL_CONTENT', 'CODE_MODE.md should include build quality gate command', rel(codeModePath));
+      }
     }
   }
 }
@@ -186,6 +228,10 @@ async function checkAdrRegistration() {
     addFinding('error', 'ADR_REGISTRY', 'ADR-014 file is missing', rel(ADR_014_DOC));
   }
 
+  if (!existsSync(ADR_028_DOC)) {
+    addFinding('error', 'ADR_REGISTRY', 'ADR-028 file is missing', rel(ADR_028_DOC));
+  }
+
   if (!existsSync(ARCHITECTURE_DOC)) {
     addFinding('error', 'ADR_REGISTRY', 'ARCHITECTURE.md is missing', rel(ARCHITECTURE_DOC));
     return;
@@ -197,6 +243,9 @@ async function checkAdrRegistration() {
   }
   if (!architecture.includes('ADR-014')) {
     addFinding('error', 'ADR_REGISTRY', 'ARCHITECTURE.md ADR index is missing ADR-014 entry', rel(ARCHITECTURE_DOC));
+  }
+  if (!architecture.includes('ADR-028')) {
+    addFinding('error', 'ADR_REGISTRY', 'ARCHITECTURE.md ADR index is missing ADR-028 entry', rel(ARCHITECTURE_DOC));
   }
 }
 
@@ -213,8 +262,12 @@ function checkApiEnvelope(content) {
 
   const hasSuccessHelper = /apiSuccess\s*\(/.test(content);
   const hasErrorHelper = /api(Error|ValidationError|Unauthorized|NotFound|RateLimited|InternalError)\s*\(/.test(content);
-  const hasSuccessLiteral = /success\s*:\s*true/.test(content);
-  const hasErrorLiteral = /success\s*:\s*false/.test(content);
+  const hasSuccessLiteral =
+    /NextResponse\.json\s*\(\s*\{[\s\S]{0,120}success\s*:\s*true[\s\S]{0,240}(data|message)\s*:/.test(content) ||
+    /apiResponse\s*\([\s\S]{0,120}success\s*:\s*true/.test(content);
+  const hasErrorLiteral =
+    /NextResponse\.json\s*\(\s*\{[\s\S]{0,120}success\s*:\s*false[\s\S]{0,240}error\s*:/.test(content) ||
+    /apiResponse\s*\([\s\S]{0,120}success\s*:\s*false/.test(content);
 
   return {
     ok: (hasSuccessHelper || hasSuccessLiteral) && (hasErrorHelper || hasErrorLiteral),
@@ -230,13 +283,24 @@ function checkBoundaryValidation(content) {
     return { ok: true, skipped: true };
   }
 
-  const hasZodValidation =
-    /safeParse\s*\(/.test(content) ||
-    /\.parse\s*\(/.test(content) ||
-    /z\.object\s*\(/.test(content) ||
-    /zod/i.test(content);
+  if (/(?:safeParse|parse)\s*\(\s*await\s+request\.json\s*\(\s*\)/.test(content)) {
+    return { ok: true, skipped: false };
+  }
 
-  return { ok: hasZodValidation, skipped: false };
+  const bodyVars = [...content.matchAll(/(?:const|let)\s+([A-Za-z_$][\w$]*)\s*=\s*await\s+request\.json\s*\(\s*\)/g)].map(
+    (match) => match[1],
+  );
+
+  if (bodyVars.length === 0) {
+    return { ok: false, skipped: false };
+  }
+
+  const hasValidatedBody = bodyVars.some((bodyVar) => {
+    const escaped = bodyVar.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return new RegExp(`(?:safeParse|parse)\\s*\\([\\s\\S]{0,240}\\b${escaped}\\b`).test(content);
+  });
+
+  return { ok: hasValidatedBody, skipped: false };
 }
 
 function checkNodeOnlyApis(content, filePath) {
@@ -387,6 +451,18 @@ function parseTscDiagnostics(output, changedFiles) {
   return diagnostics;
 }
 
+function changedFilesAffectSharedContracts(changedFiles) {
+  return [...changedFiles].some(
+    (file) =>
+      file.startsWith('packages/website-contract/src/') ||
+      file.startsWith('packages/theme-sdk/src/') ||
+      file === 'tsconfig.json' ||
+      file === 'next.config.ts' ||
+      file === 'package.json' ||
+      file === 'package-lock.json',
+  );
+}
+
 function summarizeTscOutput(mode, diagnostics) {
   const total = diagnostics.length;
   const legacy = diagnostics.filter((diag) => diag.scope === 'legacy').length;
@@ -447,7 +523,10 @@ async function runTypecheck(changedFiles) {
   });
 
   const output = `${result.stdout ?? ''}\n${result.stderr ?? ''}`.trim();
-  const diagnostics = parseTscDiagnostics(output, changedFiles);
+  let diagnostics = parseTscDiagnostics(output, changedFiles);
+  if (mode === 'delta' && changedFilesAffectSharedContracts(changedFiles)) {
+    diagnostics = diagnostics.map((diag) => ({ ...diag, scope: 'new' }));
+  }
   const typecheck = summarizeTscOutput(mode, diagnostics);
 
   if (mode === 'strict-global' || mode === 'legacy-global-only') {
@@ -594,9 +673,10 @@ async function runPolicyScans(changedFiles) {
 }
 
 function collectChangedFiles() {
+  const baseRef = resolveGitBaseRef();
   const unstaged = parseGitPaths(runCapture('git', ['diff', '--name-only', '--diff-filter=ACMRTUXB']));
   const staged = parseGitPaths(runCapture('git', ['diff', '--cached', '--name-only', '--diff-filter=ACMRTUXB']));
-  const branch = parseGitPaths(runCapture('git', ['diff', '--name-only', '--diff-filter=ACMRTUXB', 'main...HEAD']));
+  const branch = parseGitPaths(runCapture('git', ['diff', '--name-only', '--diff-filter=ACMRTUXB', `${baseRef}...HEAD`]));
 
   return [...new Set([...unstaged, ...staged, ...branch])];
 }
@@ -659,6 +739,7 @@ async function main() {
   console.log('\n🔍 Running Tech Validator CODE gate...');
   console.log(`Mode: ${quick ? 'quick' : 'full'}`);
   console.log(`Scope: ${allFiles ? 'all files' : 'changed files + quality gates'}\n`);
+  console.log(`Git base: ${resolveGitBaseRef()}\n`);
 
   const changedFiles = collectChangedFiles();
   if (!allFiles && changedFiles.length === 0) {

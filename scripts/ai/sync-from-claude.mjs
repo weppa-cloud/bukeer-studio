@@ -9,6 +9,7 @@ const AUTOGEN_HEADER = '<!-- AUTO-GENERATED FROM CLAUDE.md. Run `npm run ai:sync
 
 const args = new Set(process.argv.slice(2))
 const checkMode = args.has('--check')
+const strictMcp = args.has('--strict-mcp')
 
 function readConfig(filePath) {
   const raw = fs.readFileSync(filePath, 'utf8')
@@ -247,9 +248,16 @@ function syncRules(state, manifest, replacementSet) {
 }
 
 function validateMcp(manifest) {
+  if (!manifest.mcp) return
+
   const mcpConfigPath = path.join(ROOT, manifest.mcp.configFile)
   if (!fs.existsSync(mcpConfigPath)) {
-    throw new Error(`MCP config missing: ${manifest.mcp.configFile}`)
+    const message = `MCP config missing: ${manifest.mcp.configFile}`
+    if (strictMcp) {
+      throw new Error(message)
+    }
+    console.warn(`AI sync: ${message}; skipping MCP validation. Use --strict-mcp to require it.`)
+    return
   }
 
   const mcpRaw = fs.readFileSync(mcpConfigPath, 'utf8')
