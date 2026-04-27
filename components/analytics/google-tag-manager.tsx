@@ -64,6 +64,42 @@ function afterInteraction(script: string): string {
   `;
 }
 
+function ga4PageviewScript(measurementId: string): string {
+  return `
+    window.dataLayer = window.dataLayer || [];
+    window.gtag = window.gtag || function(){dataLayer.push(arguments);};
+    gtag('js', new Date());
+    gtag('consent', 'default', {
+      analytics_storage: 'granted',
+      ad_storage: 'denied',
+      ad_user_data: 'denied',
+      ad_personalization: 'denied',
+      functionality_storage: 'denied',
+      personalization_storage: 'denied',
+      security_storage: 'granted'
+    });
+    gtag('set', 'ads_data_redaction', true);
+    gtag('config', '${measurementId}', {
+      send_page_view: false,
+      allow_google_signals: false,
+      allow_ad_personalization_signals: false
+    });
+    if (!window.__bukeerGa4PageviewSent) {
+      window.__bukeerGa4PageviewSent = true;
+      gtag('event', 'page_view', {
+        page_location: window.location.href,
+        page_path: window.location.pathname + window.location.search,
+        page_title: document.title || '',
+        page_referrer: document.referrer || ''
+      });
+      window.dataLayer.push({
+        event: 'bukeer_ga4_pageview_sent',
+        bukeer_ga4_pageview_sent: true
+      });
+    }
+  `;
+}
+
 /**
  * GTM Head Script - Goes in <head>
  */
@@ -115,49 +151,27 @@ export function GTMBody({ analytics }: GoogleTagManagerProps) {
 }
 
 /**
- * Google Analytics 4 Standalone (when not using GTM)
+ * Google Analytics 4 lightweight pageview.
+ *
+ * GTM can still be configured for heavier tags and intent events, but the
+ * first GA4 page_view must not depend on consent/interactions.
  */
 export function GA4Script({ analytics, defer }: GoogleTagManagerProps) {
-  // Skip if using GTM (GA4 should be configured in GTM)
-  if (!analytics?.ga4_id || analytics?.gtm_id) return null;
+  if (!analytics?.ga4_id) return null;
 
-  if (defer) {
-    const loadGa4 = `
-      var j=document.createElement('script');
-      j.async=true;
-      j.src='https://www.googletagmanager.com/gtag/js?id=${analytics.ga4_id}';
-      document.head.appendChild(j);
-      window.dataLayer = window.dataLayer || [];
-      window.gtag = window.gtag || function(){dataLayer.push(arguments);};
-      gtag('js', new Date());
-      gtag('config', '${analytics.ga4_id}');
-    `;
-
-    return (
-      <Script
-        id="ga4-deferred"
-        strategy="lazyOnload"
-        dangerouslySetInnerHTML={{ __html: afterInteraction(loadGa4) }}
-      />
-    );
-  }
+  const strategy: 'afterInteractive' | 'lazyOnload' = defer ? 'afterInteractive' : 'lazyOnload';
 
   return (
     <>
       <Script
         src={`https://www.googletagmanager.com/gtag/js?id=${analytics.ga4_id}`}
-        strategy="lazyOnload"
+        strategy={strategy}
       />
       <Script
-        id="ga4-config"
-        strategy="lazyOnload"
+        id="ga4-lightweight-pageview"
+        strategy={strategy}
         dangerouslySetInnerHTML={{
-          __html: `
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', '${analytics.ga4_id}');
-          `,
+          __html: ga4PageviewScript(analytics.ga4_id),
         }}
       />
     </>
