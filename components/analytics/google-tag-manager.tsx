@@ -68,7 +68,6 @@ function ga4PageviewScript(measurementId: string): string {
   return `
     window.dataLayer = window.dataLayer || [];
     window.gtag = window.gtag || function(){dataLayer.push(arguments);};
-    gtag('js', new Date());
     gtag('consent', 'default', {
       analytics_storage: 'granted',
       ad_storage: 'denied',
@@ -79,24 +78,76 @@ function ga4PageviewScript(measurementId: string): string {
       security_storage: 'granted'
     });
     gtag('set', 'ads_data_redaction', true);
-    gtag('config', '${measurementId}', {
-      send_page_view: false,
-      allow_google_signals: false,
-      allow_ad_personalization_signals: false
-    });
     if (!window.__bukeerGa4PageviewSent) {
       window.__bukeerGa4PageviewSent = true;
-      gtag('event', 'page_view', {
-        page_location: window.location.href,
-        page_path: window.location.pathname + window.location.search,
-        page_title: document.title || '',
-        page_referrer: document.referrer || ''
+      var cid = '';
+      var sid = '';
+      try {
+        cid = window.localStorage.getItem('__bukeer_ga4_cid') || '';
+        if (!cid) {
+          cid = String(Math.floor(Math.random() * 2147483647)) + '.' + String(Math.floor(Date.now() / 1000));
+          window.localStorage.setItem('__bukeer_ga4_cid', cid);
+        }
+        sid = window.sessionStorage.getItem('__bukeer_ga4_sid') || '';
+        if (!sid) {
+          sid = String(Math.floor(Date.now() / 1000));
+          window.sessionStorage.setItem('__bukeer_ga4_sid', sid);
+        }
+      } catch (e) {
+        cid = String(Math.floor(Math.random() * 2147483647)) + '.' + String(Math.floor(Date.now() / 1000));
+        sid = String(Math.floor(Date.now() / 1000));
+      }
+      var params = new URLSearchParams({
+        v: '2',
+        tid: '${measurementId}',
+        cid: cid,
+        sid: sid,
+        sct: '1',
+        seg: '0',
+        en: 'page_view',
+        dl: window.location.href,
+        dp: window.location.pathname + window.location.search,
+        dt: document.title || '',
+        dr: document.referrer || '',
+        _s: '1',
+        _ss: '1',
+        _fv: '1',
+        npa: '1',
+        gcd: '13p3t3p3p7l1',
+        gcs: 'G101'
       });
+      try {
+        fetch('https://www.google-analytics.com/g/collect?' + params.toString(), {
+          method: 'GET',
+          mode: 'no-cors',
+          keepalive: true,
+          credentials: 'omit'
+        });
+      } catch (e) {
+        var img = new Image();
+        img.src = 'https://www.google-analytics.com/g/collect?' + params.toString();
+      }
       window.dataLayer.push({
         event: 'bukeer_ga4_pageview_sent',
         bukeer_ga4_pageview_sent: true
       });
     }
+    (function(){
+      window.BukeerAnalytics = window.BukeerAnalytics || {};
+      var manager = window.BukeerAnalytics;
+      manager.loaders = manager.loaders || [];
+      manager.loaders.push(function(){
+        if (window.__bukeerGa4Configured) return;
+        window.__bukeerGa4Configured = true;
+        gtag('js', new Date());
+        gtag('config', '${measurementId}', {
+          send_page_view: false,
+          groups: 'bukeer_ga4',
+          allow_google_signals: false,
+          allow_ad_personalization_signals: false
+        });
+      });
+    })();
   `;
 }
 
