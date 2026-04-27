@@ -269,7 +269,7 @@ export function GoogleTagManager({ analytics, defer }: GoogleTagManagerProps) {
       {/* GTM - Primary analytics solution */}
       <GTMHead analytics={analytics} defer={defer} />
 
-      {/* Standalone GA4 (only if GTM not configured) */}
+      {/* Lightweight GA4 pageview, independent from deferred GTM */}
       <GA4Script analytics={analytics} defer={defer} />
 
       {/* Standalone Facebook Pixel (only if GTM not configured) */}
