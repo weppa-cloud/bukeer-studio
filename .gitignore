@@ -18,7 +18,7 @@
 /coverage
 /test-results/
 /playwright-report/
-/.sessions/locks/
+/.sessions/
 
 # parallel next.js build caches (session isolation)
 /.next-*/
