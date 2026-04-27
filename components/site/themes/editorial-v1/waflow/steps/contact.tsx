@@ -280,6 +280,7 @@ export function WaflowStepContact({
   const { businessNumber } = useWaflow();
   const [errors, setErrors] = useState<ContactErrors>({});
   const [loading, setLoading] = useState(false);
+  const submittingRef = useRef(false);
 
   const country = useMemo(
     () =>
@@ -296,6 +297,8 @@ export function WaflowStepContact({
   }, [variant, config]);
 
   const handleSubmit = useCallback(async () => {
+    if (submittingRef.current) return;
+
     const errs: ContactErrors = {};
     if (!state.name.trim() || state.name.trim().length < 2) {
       errs.name = 'Escribe tu nombre';
@@ -308,10 +311,11 @@ export function WaflowStepContact({
       return;
     }
     setErrors({});
+    submittingRef.current = true;
     setLoading(true);
 
     const refPrefix = resolveRefPrefix(config);
-    const ref = makeWaflowRef(refPrefix);
+    const ref = state.referenceCode || makeWaflowRef(refPrefix);
     const sourceUrl =
       typeof window !== 'undefined' ? window.location.href : null;
     const attribution = collectWaflowAttributionContext();
@@ -402,6 +406,7 @@ export function WaflowStepContact({
       contact_event_id: eventIds.contact,
     });
     setLoading(false);
+    submittingRef.current = false;
     setStep('confirmation');
 
     // Auto-open WhatsApp in a new tab after a short beat. The user can

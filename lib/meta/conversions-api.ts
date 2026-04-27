@@ -90,13 +90,10 @@ export interface SendMetaConversionResult {
 }
 
 interface SupabaseLike {
-  from: (table: string) => {
-    insert?: (payload: Record<string, unknown>) => SupabaseQueryLike | unknown;
-    update?: (payload: Record<string, unknown>) => SupabaseQueryLike | unknown;
-    select?: (...args: unknown[]) => SupabaseQueryLike | unknown;
-    eq?: (...args: unknown[]) => SupabaseQueryLike | unknown;
-    maybeSingle?: () => Promise<{ data: unknown; error: SupabaseErrorLike | null }>;
-  };
+  // Supabase query builders are generic and chainable; keep this narrow at
+  // usage sites instead of trying to mirror the full PostgREST type surface.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  from: (table: string) => any;
 }
 
 interface SupabaseQueryLike {

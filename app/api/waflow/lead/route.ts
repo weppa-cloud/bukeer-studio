@@ -41,6 +41,7 @@ import {
 } from '@/lib/api';
 import { checkRateLimit, extractClientIp } from '@/lib/booking/rate-limit';
 import { createLogger } from '@/lib/logger';
+import { sendMetaConversionEvent } from '@/lib/meta/conversions-api';
 
 const log = createLogger('api.waflow.lead');
 
@@ -81,6 +82,7 @@ const RequestSchema = z.object({
 });
 
 type WaflowLeadBody = z.infer<typeof RequestSchema>;
+type JsonRecord = Record<string, unknown>;
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -170,6 +172,96 @@ async function upsertLead(
   return data ?? null;
 }
 
+function isRecord(value: unknown): value is JsonRecord {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function readString(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+function readNestedString(record: JsonRecord, key: string, nestedKey: string): string | null {
+  const nested = record[key];
+  if (!isRecord(nested)) return null;
+  return readString(nested[nestedKey]);
+}
+
+function resolveLeadEventId(body: WaflowLeadBody): string | null {
+  const fromPayload = readNestedString(body.payload, 'eventIds', 'lead');
+  if (fromPayload) return fromPayload;
+  return body.referenceCode ? `${body.referenceCode}:lead` : null;
+}
+
+function resolveAttribution(body: WaflowLeadBody): JsonRecord {
+  if (body.attribution) return body.attribution;
+  const attribution = body.payload.attribution;
+  return isRecord(attribution) ? attribution : {};
+}
+
+async function sendWaflowLeadConversion(
+  body: WaflowLeadBody,
+  tenant: { accountId: string | null; websiteId: string | null },
+  leadId: string,
+  request: NextRequest,
+): Promise<void> {
+  if (!body.submitted || body.step !== 'confirmation') return;
+
+  const eventId = resolveLeadEventId(body);
+  if (!eventId) return;
+
+  const attribution = resolveAttribution(body);
+  const ip = extractClientIp(request.headers);
+  const ua = request.headers.get('user-agent');
+  const name = readString(body.payload.name);
+  const [firstName, ...lastNameParts] = name?.split(/\s+/) ?? [];
+  const phone = readString(body.payload.phone);
+  const sourceUrl =
+    readString(attribution.source_url) ??
+    readString(body.payload.sourceUrl) ??
+    null;
+
+  await sendMetaConversionEvent(
+    {
+      eventName: 'Lead',
+      eventId,
+      actionSource: 'website',
+      eventSourceUrl: sourceUrl,
+      userData: {
+        phone,
+        firstName: firstName ?? null,
+        lastName: lastNameParts.join(' ') || null,
+        externalId: body.referenceCode ?? body.sessionKey,
+        fbp: readString(attribution.fbp),
+        fbc: readString(attribution.fbc),
+        clientIpAddress: ip,
+        clientUserAgent: ua,
+      },
+      customData: {
+        content_name:
+          readString(body.payload.packageTitle) ??
+          readString(body.payload.destinationName) ??
+          'WAFlow Lead',
+        content_category: readString(body.payload.packageTier) ?? body.variant,
+        destination_slug: readString(body.payload.destinationSlug),
+        package_slug: readString(body.payload.packageSlug),
+        reference_code: body.referenceCode ?? null,
+        session_key: body.sessionKey,
+        subdomain: body.subdomain ?? null,
+      },
+      accountId: tenant.accountId,
+      websiteId: tenant.websiteId,
+      waflowLeadId: leadId,
+      trace: {
+        reference_code: body.referenceCode ?? null,
+        session_key: body.sessionKey,
+        variant: body.variant,
+        source: 'waflow_submit',
+      },
+    },
+    { supabase: createSupabaseAdmin() },
+  );
+}
+
 export async function POST(request: NextRequest) {
   try {
     const parsed = RequestSchema.safeParse(await request.json());
@@ -211,6 +303,15 @@ export async function POST(request: NextRequest) {
     const lead = await upsertLead(body, tenant ?? { accountId: null, websiteId: null }, request);
     if (!lead) {
       return apiInternalError('Failed to persist waflow lead');
+    }
+
+    try {
+      await sendWaflowLeadConversion(body, tenant ?? { accountId: null, websiteId: null }, lead.id, request);
+    } catch (error) {
+      log.warn('meta_lead_conversion_failed', {
+        reference_code: body.referenceCode ?? null,
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
 
     return apiSuccess({ id: lead.id, step: body.step }, 201);

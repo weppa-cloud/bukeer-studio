@@ -7,8 +7,18 @@ jest.mock('@/lib/booking/rate-limit', () => ({
   extractClientIp: jest.fn(() => '203.0.113.10'),
 }));
 
+jest.mock('@/lib/meta/conversions-api', () => ({
+  sendMetaConversionEvent: jest.fn().mockResolvedValue({
+    status: 'skipped',
+    eventName: 'Lead',
+    eventId: 'HOME-2504-ABCD:lead',
+    request: { data: [] },
+  }),
+}));
+
 import { createClient } from '@supabase/supabase-js';
 import { checkRateLimit } from '@/lib/booking/rate-limit';
+import { sendMetaConversionEvent } from '@/lib/meta/conversions-api';
 
 function request(body: Record<string, unknown>) {
   return {
@@ -90,6 +100,10 @@ describe('/api/waflow/lead', () => {
         },
         payload: {
           name: 'Juan',
+          phone: '+573001234567',
+          eventIds: {
+            lead: 'HOME-2504-ABCD:lead',
+          },
           attribution: {
             source_url: 'https://legacy.example/',
           },
@@ -108,6 +122,10 @@ describe('/api/waflow/lead', () => {
     });
     expect(upsertPayload?.payload as Record<string, unknown>).toMatchObject({
       name: 'Juan',
+      phone: '+573001234567',
+      eventIds: {
+        lead: 'HOME-2504-ABCD:lead',
+      },
       attribution: {
         fbp: 'fb.1.1700000000.abc',
         fbc: 'fb.1.1700000123.FB123',
@@ -119,6 +137,31 @@ describe('/api/waflow/lead', () => {
         page_path: '/?fbclid=FB123&utm_source=meta',
       },
     });
+    expect(sendMetaConversionEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventName: 'Lead',
+        eventId: 'HOME-2504-ABCD:lead',
+        eventSourceUrl: 'https://demo.bukeer.com/?fbclid=FB123&utm_source=meta',
+        userData: expect.objectContaining({
+          phone: '+573001234567',
+          firstName: 'Juan',
+          externalId: 'HOME-2504-ABCD',
+          fbp: 'fb.1.1700000000.abc',
+          fbc: 'fb.1.1700000123.FB123',
+          clientIpAddress: '203.0.113.10',
+          clientUserAgent: 'jest-agent',
+        }),
+        customData: expect.objectContaining({
+          reference_code: 'HOME-2504-ABCD',
+          session_key: 'session-123',
+          subdomain: 'colombiatours',
+        }),
+        accountId: 'account-1',
+        websiteId: 'website-1',
+        waflowLeadId: 'lead-1',
+      }),
+      expect.objectContaining({ supabase: expect.any(Object) }),
+    );
   });
 
   it('rejects malformed attribution fields before persistence', async () => {
@@ -137,5 +180,6 @@ describe('/api/waflow/lead', () => {
 
     expect(response.status).toBe(400);
     expect(upsertPayload).toBeNull();
+    expect(sendMetaConversionEvent).not.toHaveBeenCalled();
   });
 });

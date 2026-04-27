@@ -92,6 +92,28 @@ const META_STANDARD_EVENTS: Partial<Record<string, 'Contact' | 'Lead' | 'Schedul
   matchmaker_submit: 'Lead',
 };
 
+function resolveMetaEventId(
+  name: AnalyticsEventName,
+  standardEvent: string,
+  params: Record<string, string | number | boolean>,
+): string | undefined {
+  const direct = params.meta_event_id ?? params.event_id;
+  if (typeof direct === 'string' && direct.trim()) return direct.trim();
+
+  const eventKey = `${standardEvent.toLowerCase()}_event_id`;
+  const standardSpecific = params[eventKey];
+  if (typeof standardSpecific === 'string' && standardSpecific.trim()) {
+    return standardSpecific.trim();
+  }
+
+  const namedSpecific = params[`${name}_event_id`];
+  if (typeof namedSpecific === 'string' && namedSpecific.trim()) {
+    return namedSpecific.trim();
+  }
+
+  return undefined;
+}
+
 function sendAnalyticsEvent(
   name: AnalyticsEventName,
   params: Record<string, string | number | boolean>
@@ -110,7 +132,12 @@ function sendAnalyticsEvent(
   if (typeof window.fbq === 'function') {
     const standardEvent = META_STANDARD_EVENTS[name];
     if (standardEvent) {
-      window.fbq('track', standardEvent, params);
+      const eventId = resolveMetaEventId(name, standardEvent, params);
+      if (eventId) {
+        window.fbq('track', standardEvent, params, { eventID: eventId });
+      } else {
+        window.fbq('track', standardEvent, params);
+      }
     }
     window.fbq('trackCustom', name, params);
     sent = true;
