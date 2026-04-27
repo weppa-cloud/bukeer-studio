@@ -4,7 +4,7 @@
 >
 > **Convention:** `[[ADR-XXX]]` or `[[SPEC_NAME]]` = wikilink resolved below. `[text](path.md)` = regular markdown link. Both coexist.
 
-Last updated: 2026-04-25 (ADR-028 media assets canonical registry for account-managed media); 2026-04-24 (ColombiaTours SEO/GEO P1 production audit — sitemap PASS, JSON-LD PASS, Lighthouse perf debt, console fix deployed `b1d022e4-8148-40f7-adf1-b98115b761e2`); 2026-04-24 (ColombiaTours SEO/GEO public renderer hardening deployed — activities listing/detail, package listing schema, product/offer schema, custom-domain `/site` leak cleanup); 2026-04-24 (tenant favicons runbook + ColombiaTours favicon wiring); 2026-04-23 (ColombiaTours cutover rerun — SOFT-BLOCK, critical content/redirect/legal issues resolved, Lighthouse SEO/a11y pass with performance warnings); 2026-04-23 (ColombiaTours content classification implemented — blogs preserved, legal pages migrated local, Bogotá package redirects fixed); 2026-04-23 (ColombiaTours cutover audit — NO-GO, public route matrix + screenshots + Lighthouse 401 gate failure); 2026-04-20 (EPIC #250 #259/#260 — ADR-027 + pilot theme rollout/rollback runbook + theme-designer-v1 flag/snapshot docs sync); 2026-04-20 (EPIC #214 Stage 6 autonomous — #213 Flow 2 + Flow 3 + Lighthouse AC-A5 executed on pilot seed; matrix + sign-off stubs published to `docs/qa/pilot/`; partner + QA-lead human sign-off still pending per AC-X4a/b); 2026-04-20 (EPIC #214 Stage 5 W7-b — training onboarding extended with Flows 6/7/8 + cutover checklist Stage map + FAQ expansion); 2026-04-19 (EPIC #214 Stage 2 W7-a — training onboarding ColombiaTours + pilot runbook + cutover checklist); 2026-04-19 (EPIC #214 Stage 1 W1 — matrix refresh pkg+act editable + blog Section P + hotels as-is + Section M booking DEFER; pilot-readiness concept section expanded with matrix/ADR wikilinks); 2026-04-19 (ADR-025 priority-v2 alignment: Activities target Studio ownership with W2 pending); 2026-04-19 (EPIC #214 client priority change v2 — pilot-readiness concept scope notes); 2026-04-19 (EPIC #214 Stage 0 — ADR-024 + ADR-025 skeletons + pilot-readiness-deps); 2026-04-19 (EPIC #190 certification rerun evidence); 2026-04-18 (EPIC #190 certification run evidence + checklist); 2026-04-17 (WIKI full-refresh + #103 media closure checklist); 2026-04-17 wiki-patch (epic128 evidence + issue resolution rows)
+Last updated: 2026-04-27 (public analytics standard + ColombiaTours GA4 recovery production smoke for #321/#336); 2026-04-26 (ColombiaTours Growth OS #310/#337 marketing infographics added); 2026-04-25 (SPEC_COLOMBIATOURS_GROWTH_OS_2026 stub -> canonical GitHub SPEC #337; Epic #310 renamed ColombiaTours Growth Operating System 2026); 2026-04-25 (SPEC_META_CHATWOOT_CONVERSIONS stub -> canonical GitHub Epic #322); 2026-04-25 (ADR-028 media assets canonical registry for account-managed media); 2026-04-24 (ColombiaTours SEO/GEO P1 production audit — sitemap PASS, JSON-LD PASS, Lighthouse perf debt, console fix deployed `b1d022e4-8148-40f7-adf1-b98115b761e2`); 2026-04-24 (ColombiaTours SEO/GEO public renderer hardening deployed — activities listing/detail, package listing schema, product/offer schema, custom-domain `/site` leak cleanup); 2026-04-24 (tenant favicons runbook + ColombiaTours favicon wiring); 2026-04-23 (ColombiaTours cutover rerun — SOFT-BLOCK, critical content/redirect/legal issues resolved, Lighthouse SEO/a11y pass with performance warnings); 2026-04-23 (ColombiaTours content classification implemented — blogs preserved, legal pages migrated local, Bogotá package redirects fixed); 2026-04-23 (ColombiaTours cutover audit — NO-GO, public route matrix + screenshots + Lighthouse 401 gate failure); 2026-04-20 (EPIC #250 #259/#260 — ADR-027 + pilot theme rollout/rollback runbook + theme-designer-v1 flag/snapshot docs sync); 2026-04-20 (EPIC #214 Stage 6 autonomous — #213 Flow 2 + Flow 3 + Lighthouse AC-A5 executed on pilot seed; matrix + sign-off stubs published to `docs/qa/pilot/`; partner + QA-lead human sign-off still pending per AC-X4a/b); 2026-04-20 (EPIC #214 Stage 5 W7-b — training onboarding extended with Flows 6/7/8 + cutover checklist Stage map + FAQ expansion); 2026-04-19 (EPIC #214 Stage 2 W7-a — training onboarding ColombiaTours + pilot runbook + cutover checklist); 2026-04-19 (EPIC #214 Stage 1 W1 — matrix refresh pkg+act editable + blog Section P + hotels as-is + Section M booking DEFER; pilot-readiness concept section expanded with matrix/ADR wikilinks); 2026-04-19 (ADR-025 priority-v2 alignment: Activities target Studio ownership with W2 pending); 2026-04-19 (EPIC #214 client priority change v2 — pilot-readiness concept scope notes); 2026-04-19 (EPIC #214 Stage 0 — ADR-024 + ADR-025 skeletons + pilot-readiness-deps); 2026-04-19 (EPIC #190 certification rerun evidence); 2026-04-18 (EPIC #190 certification run evidence + checklist); 2026-04-17 (WIKI full-refresh + #103 media closure checklist); 2026-04-17 wiki-patch (epic128 evidence + issue resolution rows)
 
 ---
 
@@ -132,6 +132,7 @@ Feature requests formalized. Status tracked inline. GitHub Issues = source of tr
 | [[cutover-checklist]] | [file](./ops/cutover-checklist.md) | Standalone reusable cutover checklist imported into pilot runbook §5.1 (preflight / cutover / post-cutover / rollback criteria + sequence). |
 | [[release-gate-checklist]] | [file](./ops/release-gate-checklist.md) | Go/No-Go automated gate checklist for prod deploys (EPIC #207 certification). |
 | [[ci-seo-i18n-gate]] | [file](./ops/ci-seo-i18n-gate.md) | CI gate `@p0-seo` + nightly Worker preview (ADR-013). |
+| [[public-analytics-standard]] | [file](./ops/public-analytics-standard.md) | Public tracking standard: lightweight GA4 pageview, deferred GTM/Meta/Ads/custom scripts, production smoke and #336 Ads residual. |
 | [[product-landing-rollout-runbook]] | [file](./runbooks/product-landing-rollout-runbook.md) | Rollout for public site rendering / ISR changes. |
 
 ---
@@ -387,6 +388,19 @@ Each concept below lists the ADRs/SPECs/ops docs that touch it. Use this to find
 - Schemas in `@bukeer/website-contract`: `schemas/{bookings,cancellation,leads,wompi}.ts`
 - No dedicated ADR yet — data flows Flutter → Supabase → Studio read-only
 - Wompi = payment provider integration schema
+- [[SPEC_META_CHATWOOT_CONVERSIONS]] — stub for canonical #322: WAFlow/WhatsApp → Chatwoot → qualified lead → purchase attribution for Meta CAPI.
+
+### [[growth-os]] + [[paid-media]] + [[WAFlow]]
+- [[SPEC_COLOMBIATOURS_GROWTH_OS_2026]] — stub for canonical #337 / execution #310: North Star, AARRR funnel, Growth Council, inventory contract, event/attribution contract, and 90-day roadmap.
+- [[SPEC_META_CHATWOOT_CONVERSIONS]] — stub for canonical #322: Meta + Chatwoot conversion path for WAFlow/WhatsApp to qualified lead, quote, and purchase.
+- [[ADR-024]] — booking/date-picker remains deferred for pilot; WAFlow/WhatsApp is primary conversion.
+
+### [[conversion]] + [[analytics]] + [[webhook]]
+- [[SPEC_PACKAGE_DETAIL_CONVERSION_V2]] — package detail conversion surface.
+- [[SPEC_COLOMBIATOURS_GROWTH_OS_2026]] — stub for canonical #337: cross-channel conversion governance and event contract for ColombiaTours Growth OS.
+- [[SPEC_META_CHATWOOT_CONVERSIONS]] — stub for canonical #322: Meta Pixel/CAPI event contract, Chatwoot webhook lifecycle tracking, and purchase attribution.
+- [[public-analytics-standard]] — public-site runtime tracking policy: early GA4 pageview, deferred GTM/Meta/Ads/custom scripts, GA4/GSC reporting rule.
+- [[ADR-018]] — webhook idempotency baseline for Chatwoot and payment-provider callbacks.
 
 ### [[trust]] + [[organization-schema]]
 - `packages/website-contract/src/schemas/trust.ts` — trust content contract
@@ -460,6 +474,7 @@ Obsidian resolves `[[ADR-005]]` by filename stem or alias. Claude Code / Codex g
 | `[[cutover-checklist]]` | `docs/ops/cutover-checklist.md` |
 | `[[release-gate-checklist]]` | `docs/ops/release-gate-checklist.md` |
 | `[[ci-seo-i18n-gate]]` | `docs/ops/ci-seo-i18n-gate.md` |
+| `[[public-analytics-standard]]` | `docs/ops/public-analytics-standard.md` |
 | `[[ADR-022]]` | Flutter repo — auth token boundary |
 | `[[ADR-032]]` | Flutter repo — catalog v2 |
 | `[[ARCHITECTURE]]` | `docs/architecture/ARCHITECTURE.md` |

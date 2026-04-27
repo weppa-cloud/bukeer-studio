@@ -126,6 +126,7 @@ export default function AnalyticsPage() {
   const [gtmId, setGtmId] = useState(analytics.gtm_id || '');
   const [ga4Id, setGa4Id] = useState(analytics.ga4_id || '');
   const [pixelId, setPixelId] = useState(analytics.facebook_pixel_id || '');
+  const googleAdsId = analytics.google_ads_id || '';
   const [includeDataForSeo, setIncludeDataForSeo] = useState(false);
   const [syncing, setSyncing] = useState(false);
 
@@ -720,18 +721,40 @@ export default function AnalyticsPage() {
               <h3 className="text-sm font-semibold text-[var(--studio-text)]">Tracking IDs</h3>
               <p className="text-xs text-[var(--studio-text-muted)]">Autosave: {autosaveStatus}</p>
             </div>
-            <div>
-              <label className="block text-xs text-[var(--studio-text-muted)] mb-1">Google Tag Manager</label>
-              <StudioInput value={gtmId} onChange={(e) => setGtmId(e.target.value)} placeholder="GTM-XXXXXXX" />
+            <div className="studio-panel p-3 text-xs text-[var(--studio-text-muted)] space-y-1">
+              <p className="font-medium text-[var(--studio-text)]">Public loading standard</p>
+              <p>GA4 is the base measurement tag: it sends one lightweight page_view early with URL, path, title and referrer.</p>
+              <p>GTM, Meta Pixel, Google Ads and custom scripts are marketing tags and must wait for consent or a real intent event.</p>
             </div>
             <div>
-              <label className="block text-xs text-[var(--studio-text-muted)] mb-1">Google Analytics 4 ID</label>
+              <label className="block text-xs text-[var(--studio-text-muted)] mb-1">Google Analytics 4 ID · base measurement</label>
               <StudioInput value={ga4Id} onChange={(e) => setGa4Id(e.target.value)} placeholder="G-XXXXXXXXXX" />
+              <p className="mt-1 text-xs text-[var(--studio-text-muted)]">
+                Required for reliable organic pageviews. The public renderer disables automatic pageview duplicates.
+              </p>
             </div>
             <div>
-              <label className="block text-xs text-[var(--studio-text-muted)] mb-1">Facebook Pixel ID</label>
-              <StudioInput value={pixelId} onChange={(e) => setPixelId(e.target.value)} placeholder="1234567890" />
+              <label className="block text-xs text-[var(--studio-text-muted)] mb-1">Google Tag Manager · advanced container</label>
+              <StudioInput value={gtmId} onChange={(e) => setGtmId(e.target.value)} placeholder="GTM-XXXXXXX" />
+              <p className="mt-1 text-xs text-[var(--studio-text-muted)]">
+                Loads only after consent or intent. Do not rely on GTM for the first organic page_view.
+              </p>
             </div>
+            <div>
+              <label className="block text-xs text-[var(--studio-text-muted)] mb-1">Facebook Pixel ID · marketing</label>
+              <StudioInput value={pixelId} onChange={(e) => setPixelId(e.target.value)} placeholder="1234567890" />
+              <p className="mt-1 text-xs text-[var(--studio-text-muted)]">
+                Browser pixel is deferred. Prefer server-side CAPI for lead quality once conversion governance is complete.
+              </p>
+            </div>
+            {googleAdsId && (
+              <div className="studio-panel p-3 text-xs text-[var(--studio-text-muted)]">
+                <p className="font-medium text-[var(--studio-text)]">Google Ads destination detected: {googleAdsId}</p>
+                <p>
+                  Ads destinations are governed by GA4/Google tag settings. Keep paid tags out of first render unless the privacy gate allows it.
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="studio-card p-4">
