@@ -35,9 +35,7 @@ This command operates on **Supabase data only**. All repo files remain untouched
 3. Validate content with Zod schemas from `@bukeer/website-contract` before inserting into DB
 4. Use `SECTION_TYPES` from `@bukeer/website-contract` — section types come from the registry
 5. Write themes as `{ tokens: DesignTokens, profile: ThemeProfile }` (the nested contract shape)
-6. Media rule per [[ADR-028]]: when adding/changing images in website, section, page, blog or product content, use already registered assets or register/request registration in `media_assets` with account, website, entity and usage context.
-7. Do not introduce URL-only image references without documenting the backfill path.
-8. When a component is broken or needs code changes, stop and report for Rol 1 escalation
+6. When a component is broken or needs code changes, stop and report for Rol 1 escalation
 
 ## Allowed Tools
 
@@ -108,10 +106,9 @@ This command operates on **Supabase data only**. All repo files remain untouched
    → If not registered: STOP → report to Rol 1 (needs code change)
 3. READ the Zod schema for the section type
 4. PREPARE content that matches the schema
-5. For any image/media URL, verify it is already represented in `media_assets` or call/request the approved registration path
-6. INSERT/UPDATE section data in Supabase
-7. SCREENSHOT to verify rendering
-8. If rendering is broken: STOP → report to Rol 1 (debugger skill)
+5. INSERT/UPDATE section data in Supabase
+6. SCREENSHOT to verify rendering
+7. If rendering is broken: STOP → report to Rol 1 (debugger skill)
 ```
 
 ### 4. Performance Audit

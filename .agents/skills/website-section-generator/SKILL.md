@@ -44,16 +44,6 @@ Generates production-ready Next.js section components for Bukeer tourism website
 - Section registry integration
 - Variant system implementation (default + showcase + immersive, etc.)
 
-**Media Rule (ADR-028):**
-- If a generated section introduces image fields, galleries, hero backgrounds,
-  avatars, OG/social images, or uploaded/generated media, document the
-  `media_assets` registration path.
-- Section content may keep legacy URL fields for rendering compatibility, but
-  new upload/import/generation flows must register the asset with `account_id`,
-  optional `website_id`, `entity_type`, `entity_id`, and `usage_context`.
-- Do not add URL-only image fields without updating the spec/issue with a
-  `media_assets` registration or backfill plan.
-
 **Delegate To:**
 - `website-designer`: Design decisions, theme tokens, variant selection
 - `website-quality-gate`: Lighthouse, accessibility validation
