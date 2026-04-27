@@ -1,0 +1,4 @@
+interface:
+  display_name: "Codex Visual Testing"
+  short_description: "Run isolated visual QA in Codex Desktop"
+  default_prompt: "Use Codex visual testing to open a local session and validate the requested flow."
