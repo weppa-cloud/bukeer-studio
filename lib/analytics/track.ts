@@ -192,11 +192,58 @@ export function trackEvent(
       window.setTimeout(retry, 1200);
     }
 
+    // SPEC #337 — first-party server beacon for `whatsapp_cta_click`. Fires
+    // independently of GA4/Meta consent so the funnel always has a record,
+    // and gives Meta CAPI a stable event_id (sha256 contract) to dedupe on.
+    // STRICT_ADS_ZERO=1 unaffected: this targets /api/growth/events/* (first
+    // party), the smoke only tallies pings to googleadservices/facebook.
+    if (name === 'whatsapp_cta_click') {
+      void emitWhatsAppCtaBeacon(cleaned);
+    }
+
     if (process.env.NODE_ENV !== 'production') {
       console.log(`[analytics.${name}]`, cleaned);
     }
   } catch {
     // Never let analytics failure break a user action.
+  }
+}
+
+/**
+ * Lazy-load the whatsapp-beacon module so the analytics bundle stays small
+ * for pages that never trigger a WhatsApp CTA. The dynamic import is awaited
+ * inside a `void` expression so the redirect that immediately follows the
+ * click is never blocked.
+ */
+async function emitWhatsAppCtaBeacon(
+  params: Record<string, string | number | boolean>,
+): Promise<void> {
+  try {
+    const mod = await import('./whatsapp-beacon');
+    const referenceCode = (params.reference_code ?? params.ref) as
+      | string
+      | number
+      | boolean
+      | undefined;
+    const market = typeof params.market === 'string' ? params.market : undefined;
+    mod.sendWhatsAppCtaBeacon({
+      reference_code:
+        typeof referenceCode === 'string' && referenceCode.length >= 8
+          ? referenceCode
+          : null,
+      location_context:
+        typeof params.location_context === 'string'
+          ? params.location_context
+          : null,
+      variant: typeof params.variant === 'string' ? params.variant : null,
+      destination_slug:
+        typeof params.destination_slug === 'string' ? params.destination_slug : null,
+      package_slug:
+        typeof params.package_slug === 'string' ? params.package_slug : null,
+      market: market === 'CO' || market === 'MX' || market === 'US' || market === 'CA' || market === 'EU' || market === 'OTHER' ? market : null,
+    });
+  } catch {
+    // Module load can fail in extreme network conditions — never bubble.
   }
 }
 
