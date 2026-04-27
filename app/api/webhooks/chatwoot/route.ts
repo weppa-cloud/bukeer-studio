@@ -1,0 +1,521 @@
+/**
+ * POST /api/webhooks/chatwoot
+ *
+ * Chatwoot lifecycle webhook for Meta conversion tracking. The handler follows
+ * ADR-018: HMAC verification, replay window, provider idempotency ledger, Zod
+ * parsing, then business logic.
+ */
+
+import { createClient } from '@supabase/supabase-js';
+import { NextRequest } from 'next/server';
+import { z } from 'zod';
+
+import {
+  apiError,
+  apiInternalError,
+  apiSuccess,
+  apiValidationError,
+} from '@/lib/api';
+import { createLogger } from '@/lib/logger';
+import { sendMetaConversionEvent } from '@/lib/meta/conversions-api';
+
+export const runtime = 'nodejs';
+
+const log = createLogger('api.webhooks.chatwoot');
+const PROVIDER = 'chatwoot';
+const REPLAY_PAST_SECONDS = 5 * 60;
+const REPLAY_FUTURE_SECONDS = 60;
+const REF_PATTERN = /#ref:\s*([A-Z0-9][A-Z0-9-]{3,39})/i;
+
+const JsonValueSchema: z.ZodType<unknown> = z.lazy(() =>
+  z.union([
+    z.string(),
+    z.number(),
+    z.boolean(),
+    z.null(),
+    z.array(JsonValueSchema),
+    z.record(z.string(), JsonValueSchema),
+  ]),
+);
+
+const ChatwootEventSchema = z
+  .object({
+    event: z.string().trim().min(1),
+    id: z.union([z.string(), z.number()]).optional(),
+    timestamp: z.union([z.string(), z.number()]).optional(),
+    conversation: z.record(z.string(), JsonValueSchema).optional(),
+    message: z.record(z.string(), JsonValueSchema).optional(),
+    messages: z.array(z.record(z.string(), JsonValueSchema)).optional(),
+    custom_attributes: z.record(z.string(), JsonValueSchema).optional(),
+    meta: z.record(z.string(), JsonValueSchema).optional(),
+    content: z.string().optional(),
+  })
+  .passthrough();
+
+type ChatwootPayload = z.infer<typeof ChatwootEventSchema>;
+type JsonRecord = Record<string, unknown>;
+type LifecycleEvent =
+  | 'ConversationCreated'
+  | 'ConversationContinued'
+  | 'QualifiedLead'
+  | 'QuoteSent';
+
+interface WaflowLeadRow {
+  id: string;
+  account_id: string | null;
+  website_id: string | null;
+  reference_code: string | null;
+  session_key: string | null;
+  payload: JsonRecord | null;
+  source_ip: string | null;
+  source_user_agent: string | null;
+}
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+function createSupabaseAdmin() {
+  if (!supabaseUrl || !serviceRoleKey) {
+    throw new Error('Missing Supabase environment variables for Chatwoot webhook API');
+  }
+  return createClient(supabaseUrl, serviceRoleKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
+
+function cleanString(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+function readRecord(value: unknown): JsonRecord {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? (value as JsonRecord)
+    : {};
+}
+
+function readId(value: unknown): string | null {
+  if (typeof value === 'string' && value.trim()) return value.trim();
+  if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+  return null;
+}
+
+function readNestedRecord(record: JsonRecord, key: string): JsonRecord {
+  return readRecord(record[key]);
+}
+
+function readNestedString(record: JsonRecord, key: string): string | null {
+  return cleanString(record[key]) ?? readId(record[key]);
+}
+
+function extractCustomAttributes(payload: ChatwootPayload): JsonRecord {
+  const conversation = extractConversation(payload);
+  return {
+    ...readNestedRecord(conversation, 'custom_attributes'),
+    ...readNestedRecord(payload.message ?? {}, 'custom_attributes'),
+    ...readRecord(payload.custom_attributes),
+  };
+}
+
+function extractConversation(payload: ChatwootPayload): JsonRecord {
+  return {
+    ...readRecord(payload.conversation),
+    ...readNestedRecord(payload.message ?? {}, 'conversation'),
+  };
+}
+
+function extractConversationId(payload: ChatwootPayload): string | null {
+  const conversation = extractConversation(payload);
+  return (
+    readNestedString(conversation, 'id') ??
+    readNestedString(payload.message ?? {}, 'conversation_id') ??
+    readNestedString(payload as JsonRecord, 'conversation_id')
+  );
+}
+
+function extractContact(payload: ChatwootPayload): JsonRecord {
+  const conversation = extractConversation(payload);
+  return {
+    ...readNestedRecord(conversation, 'contact'),
+    ...readNestedRecord(payload.message ?? {}, 'sender'),
+  };
+}
+
+function extractMessageText(payload: ChatwootPayload): string {
+  const textParts = [
+    payload.content,
+    cleanString(payload.message?.content),
+    cleanString(payload.message?.processed_message_content),
+    ...(payload.messages ?? []).map((message) => cleanString(message.content)),
+  ];
+  return textParts.filter(Boolean).join('\n');
+}
+
+function extractReferenceCode(payload: ChatwootPayload): string | null {
+  const attrs = extractCustomAttributes(payload);
+  const direct =
+    cleanString(attrs.reference_code) ??
+    cleanString(attrs.referenceCode) ??
+    cleanString(attrs.waflow_reference_code) ??
+    cleanString(attrs.waflow_ref);
+  if (direct) return direct.toUpperCase();
+
+  const match = extractMessageText(payload).match(REF_PATTERN);
+  return match?.[1]?.toUpperCase() ?? null;
+}
+
+function parseWebhookTimestamp(payload: ChatwootPayload, headerValue: string | null): number | null {
+  const raw = headerValue ?? payload.timestamp;
+  if (typeof raw === 'number' && Number.isFinite(raw)) {
+    return raw > 10_000_000_000 ? Math.floor(raw / 1000) : Math.floor(raw);
+  }
+  if (typeof raw === 'string' && raw.trim()) {
+    const numeric = Number(raw);
+    if (Number.isFinite(numeric)) {
+      return numeric > 10_000_000_000 ? Math.floor(numeric / 1000) : Math.floor(numeric);
+    }
+    const parsed = Date.parse(raw);
+    if (!Number.isNaN(parsed)) return Math.floor(parsed / 1000);
+  }
+  return null;
+}
+
+function resolveProviderEventId(payload: ChatwootPayload, conversationId: string | null): string {
+  const messageId = readNestedString(payload.message ?? {}, 'id');
+  const payloadId = readId(payload.id);
+  return payloadId ?? [payload.event, conversationId, messageId].filter(Boolean).join(':');
+}
+
+function isQualified(attrs: JsonRecord, payload: ChatwootPayload): boolean {
+  const conversation = extractConversation(payload);
+  const conversationLabels = conversation.labels;
+  const payloadLabels = (payload as JsonRecord).labels;
+  const labels = [
+    ...(Array.isArray(conversationLabels) ? conversationLabels : []),
+    ...(Array.isArray(payloadLabels) ? payloadLabels : []),
+  ].map((label) => String(label).toLowerCase());
+  const status = [
+    attrs.qualification_status,
+    attrs.lead_status,
+    attrs.lifecycle_stage,
+    attrs.stage,
+    attrs.qualified,
+  ]
+    .map((value) => String(value ?? '').toLowerCase())
+    .filter(Boolean);
+  return [...labels, ...status].some((value) =>
+    ['qualified', 'qualified_lead', 'lead_qualified', 'sql'].includes(value),
+  );
+}
+
+function isQuoteSent(attrs: JsonRecord, payload: ChatwootPayload): boolean {
+  const flags = [
+    attrs.quote_sent,
+    attrs.quote_status,
+    attrs.lifecycle_stage,
+    attrs.stage,
+  ]
+    .map((value) => String(value ?? '').toLowerCase())
+    .filter(Boolean);
+  if (flags.some((value) => ['true', 'sent', 'quote_sent', 'quoted'].includes(value))) {
+    return true;
+  }
+  return /\b(cotizaci[oó]n|quote|proposal|propuesta)\b/i.test(extractMessageText(payload));
+}
+
+function mapLifecycleEvents(payload: ChatwootPayload): LifecycleEvent[] {
+  const attrs = extractCustomAttributes(payload);
+  const events = new Set<LifecycleEvent>();
+  const eventName = payload.event.toLowerCase();
+
+  if (eventName === 'conversation_created') {
+    events.add('ConversationCreated');
+  }
+
+  if (
+    eventName === 'conversation_updated' ||
+    eventName === 'conversation_status_changed' ||
+    eventName === 'message_created'
+  ) {
+    events.add('ConversationContinued');
+  }
+
+  if (isQualified(attrs, payload)) events.add('QualifiedLead');
+  if (isQuoteSent(attrs, payload)) events.add('QuoteSent');
+
+  return [...events];
+}
+
+function timingSafeEqual(a: string, b: string): boolean {
+  const left = new TextEncoder().encode(a);
+  const right = new TextEncoder().encode(b);
+  if (left.length !== right.length) return false;
+  let diff = 0;
+  for (let i = 0; i < left.length; i += 1) diff |= left[i] ^ right[i];
+  return diff === 0;
+}
+
+async function hmacHex(secret: string, value: string): Promise<string> {
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign'],
+  );
+  const signature = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(signature))
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+async function verifySignature(rawBody: string, signature: string, secret: string): Promise<boolean> {
+  const normalized = signature.replace(/^sha256=/i, '').trim();
+  const expectedRaw = await hmacHex(secret, rawBody);
+  if (timingSafeEqual(normalized, expectedRaw)) return true;
+
+  // Some webhook relays sign the conventional "timestamp.body" payload.
+  return false;
+}
+
+async function insertWebhookEvent(
+  supabase: ReturnType<typeof createSupabaseAdmin>,
+  payload: ChatwootPayload,
+  eventId: string,
+  signature: string,
+): Promise<'inserted' | 'duplicate'> {
+  const { error } = await supabase.from('webhook_events').insert({
+    provider: PROVIDER,
+    event_id: eventId,
+    event_type: payload.event,
+    signature,
+    payload,
+  });
+
+  if (!error) return 'inserted';
+  if (error.code === '23505') return 'duplicate';
+  throw new Error(error.message);
+}
+
+async function markWebhookEvent(
+  supabase: ReturnType<typeof createSupabaseAdmin>,
+  eventId: string,
+  status: 'processed' | 'failed',
+  error?: string,
+): Promise<void> {
+  await supabase
+    .from('webhook_events')
+    .update({
+      status,
+      processed_at: new Date().toISOString(),
+      error: error ?? null,
+    })
+    .eq('provider', PROVIDER)
+    .eq('event_id', eventId);
+}
+
+async function findWaflowLead(
+  supabase: ReturnType<typeof createSupabaseAdmin>,
+  referenceCode: string | null,
+  conversationId: string | null,
+): Promise<WaflowLeadRow | null> {
+  if (referenceCode) {
+    const { data, error } = await supabase
+      .from('waflow_leads')
+      .select('id,account_id,website_id,reference_code,session_key,payload,source_ip,source_user_agent')
+      .eq('reference_code', referenceCode)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle<WaflowLeadRow>();
+    if (error) throw new Error(error.message);
+    if (data) return data;
+  }
+
+  if (conversationId) {
+    const { data, error } = await supabase
+      .from('waflow_leads')
+      .select('id,account_id,website_id,reference_code,session_key,payload,source_ip,source_user_agent')
+      .eq('chatwoot_conversation_id', conversationId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle<WaflowLeadRow>();
+    if (error) throw new Error(error.message);
+    return data ?? null;
+  }
+
+  return null;
+}
+
+async function updateWaflowLeadLink(
+  supabase: ReturnType<typeof createSupabaseAdmin>,
+  leadId: string,
+  conversationId: string | null,
+  lifecycleEvents: LifecycleEvent[],
+  attrs: JsonRecord,
+): Promise<void> {
+  const lastEvent = lifecycleEvents.at(-1) ?? null;
+  await supabase
+    .from('waflow_leads')
+    .update({
+      ...(conversationId && { chatwoot_conversation_id: conversationId }),
+      chatwoot_last_event: lastEvent,
+      chatwoot_last_event_at: new Date().toISOString(),
+      chatwoot_custom_attributes: attrs,
+    })
+    .eq('id', leadId);
+}
+
+async function sendLifecycleConversions(
+  supabase: ReturnType<typeof createSupabaseAdmin>,
+  lead: WaflowLeadRow,
+  payload: ChatwootPayload,
+  conversationId: string,
+  lifecycleEvents: LifecycleEvent[],
+): Promise<number> {
+  const leadPayload = readRecord(lead.payload);
+  const attribution = readRecord(leadPayload.attribution);
+  const contact = extractContact(payload);
+  const referenceCode = lead.reference_code;
+  if (!referenceCode) return 0;
+
+  let sent = 0;
+  for (const lifecycleEvent of lifecycleEvents) {
+    await sendMetaConversionEvent(
+      {
+        eventName: lifecycleEvent,
+        eventId: `${referenceCode}:chatwoot:${lifecycleEvent}:${conversationId}`,
+        actionSource: 'business_messaging',
+        eventSourceUrl: cleanString(attribution.source_url),
+        userData: {
+          email: cleanString(contact.email),
+          phone: cleanString(contact.phone_number) ?? cleanString(leadPayload.phone),
+          firstName: cleanString(contact.name) ?? cleanString(leadPayload.name),
+          externalId: referenceCode,
+          fbp: cleanString(attribution.fbp),
+          fbc: cleanString(attribution.fbc),
+          clientIpAddress: lead.source_ip,
+          clientUserAgent: lead.source_user_agent,
+        },
+        customData: {
+          reference_code: referenceCode,
+          session_key: lead.session_key,
+          chatwoot_event: payload.event,
+          chatwoot_conversation_id: conversationId,
+        },
+        accountId: lead.account_id,
+        websiteId: lead.website_id,
+        waflowLeadId: lead.id,
+        chatwootConversationId: conversationId,
+        trace: {
+          source: 'chatwoot_webhook',
+          provider_event: payload.event,
+          reference_code: referenceCode,
+        },
+      },
+      { supabase },
+    );
+    sent += 1;
+  }
+
+  return sent;
+}
+
+export async function POST(request: NextRequest) {
+  const secret = process.env.CHATWOOT_WEBHOOK_SECRET;
+  if (!secret) {
+    log.error('missing_secret');
+    return apiInternalError('Chatwoot webhook secret is not configured');
+  }
+
+  const signature =
+    request.headers.get('x-chatwoot-signature') ??
+    request.headers.get('x-bukeer-signature') ??
+    request.headers.get('x-signature');
+  if (!signature) {
+    return apiError('INVALID_SIGNATURE', 'Missing Chatwoot webhook signature', 401);
+  }
+
+  const rawBody = await request.text();
+  if (!(await verifySignature(rawBody, signature, secret))) {
+    return apiError('INVALID_SIGNATURE', 'Invalid Chatwoot webhook signature', 401);
+  }
+
+  let json: unknown;
+  try {
+    json = JSON.parse(rawBody);
+  } catch {
+    return apiError('INVALID_JSON', 'Invalid JSON payload', 400);
+  }
+
+  const parsed = ChatwootEventSchema.safeParse(json);
+  if (!parsed.success) return apiValidationError(parsed.error);
+
+  const payload = parsed.data;
+  const timestamp = parseWebhookTimestamp(
+    payload,
+    request.headers.get('x-chatwoot-timestamp') ?? request.headers.get('x-timestamp'),
+  );
+  if (!timestamp) return apiError('REPLAY_REJECTED', 'Missing webhook timestamp', 400);
+
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  if (timestamp < nowSeconds - REPLAY_PAST_SECONDS || timestamp > nowSeconds + REPLAY_FUTURE_SECONDS) {
+    return apiError('REPLAY_REJECTED', 'Webhook timestamp outside replay window', 400);
+  }
+
+  const conversationId = extractConversationId(payload);
+  const providerEventId = resolveProviderEventId(payload, conversationId);
+  const supabase = createSupabaseAdmin();
+
+  try {
+    const insertStatus = await insertWebhookEvent(supabase, payload, providerEventId, signature);
+    if (insertStatus === 'duplicate') {
+      return apiSuccess({ ok: true, deduped: true });
+    }
+
+    const lifecycleEvents = mapLifecycleEvents(payload);
+    const referenceCode = extractReferenceCode(payload);
+    const lead = await findWaflowLead(supabase, referenceCode, conversationId);
+    if (!lead || !conversationId || lifecycleEvents.length === 0) {
+      log.warn('orphan_or_unsupported_event', {
+        provider_event_id: providerEventId,
+        chatwoot_event: payload.event,
+        conversation_id: conversationId,
+        reference_code: referenceCode,
+        matched: Boolean(lead),
+        lifecycle_events: lifecycleEvents,
+      });
+      await markWebhookEvent(supabase, providerEventId, 'processed');
+      return apiSuccess({
+        ok: true,
+        matched: Boolean(lead),
+        lifecycleEvents,
+        conversionsSent: 0,
+      });
+    }
+
+    const attrs = extractCustomAttributes(payload);
+    await updateWaflowLeadLink(supabase, lead.id, conversationId, lifecycleEvents, attrs);
+    const conversionsSent = await sendLifecycleConversions(
+      supabase,
+      lead,
+      payload,
+      conversationId,
+      lifecycleEvents,
+    );
+
+    await markWebhookEvent(supabase, providerEventId, 'processed');
+    return apiSuccess({
+      ok: true,
+      matched: true,
+      lifecycleEvents,
+      conversionsSent,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    log.error('processing_failed', {
+      provider_event_id: providerEventId,
+      error: message,
+    });
+    await markWebhookEvent(supabase, providerEventId, 'failed', message).catch(() => undefined);
+    return apiInternalError('Failed to process Chatwoot webhook');
+  }
+}

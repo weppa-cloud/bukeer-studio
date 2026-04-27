@@ -48,6 +48,9 @@ const serverEnvSchema = z.object({
   META_ACCESS_TOKEN: z.string().optional(),
   META_API_VERSION: z.string().optional(),
   META_TEST_EVENT_CODE: z.string().optional(),
+
+  // Chatwoot webhooks (server-only)
+  CHATWOOT_WEBHOOK_SECRET: z.string().optional(),
 })
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>
