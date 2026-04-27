@@ -88,3 +88,6 @@ reports/
 .claude/mcp-servers/dataforseo/budget.json.*.bak
 .claude/worktrees/
 artifacts/
+
+# Supabase CLI local project metadata
+supabase/.temp/
