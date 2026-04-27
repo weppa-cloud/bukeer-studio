@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>#337 · SPEC: ColombiaTours Growth Operating System 2026</title>
+<link rel="stylesheet" href="_estilos.css" />
+</head>
+<body>
+<div class="wrap">
+
+<a class="back" href="index.html">← Volver al índice</a>
+
+<header class="hero">
+  <span class="id">#337 · SPEC</span>
+  <h1>SPEC: ColombiaTours Growth Operating System 2026</h1>
+  <span class="role role-pill spec" style="margin-top:6px">Fuente de verdad · Documento canónico</span>
+  <p class="lede">El SPEC canónico del Growth OS. Es la <b>única referencia válida</b> sobre alcance, capas, dependencias y fronteras entre issues. Cuando haya dudas, este documento manda.</p>
+  <div class="meta">
+    <span class="pill"><span class="dot spec"></span>Canónico</span>
+    <span class="pill"><span class="dot engine"></span>Referenciado por #310</span>
+    <span class="pill"><span class="dot gov"></span>Gate · #336</span>
+  </div>
+</header>
+
+<section>
+  <h2><span class="num">1</span>Qué es</h2>
+  <p class="sub">Un documento de especificación oficial que reemplaza a los specs locales previos. Establece el modelo de Growth OS y cómo se relacionan sus piezas.</p>
+  <div class="grid-3">
+    <div class="tile"><h4>Tipo</h4><p>SPEC canónico (no un ADR ni un runbook).</p></div>
+    <div class="tile"><h4>Reemplaza</h4><p>Specs locales convertidos a stubs que apuntan aquí.</p></div>
+    <div class="tile"><h4>Ámbito</h4><p>Estrategia, capas, dependencias y fronteras.</p></div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="num">2</span>Por qué importa</h2>
+  <p class="sub">Sin un SPEC canónico, los equipos discuten alcance en cada reunión. Con él, las decisiones se anclan a un único documento.</p>
+  <div class="callout spec">
+    <b>Regla de oro:</b> cualquier issue ejecutable del Growth OS debe citar #337. Si no se puede citar, el alcance probablemente está fuera del modelo.
+  </div>
+</section>
+
+<section>
+  <h2><span class="num">3</span>Qué define el SPEC</h2>
+  <div class="grid-2">
+    <div class="tile"><h4>Las 3 capas</h4><p>Técnica pre-scale, motor 90D y gobernanza de datos y atribución.</p></div>
+    <div class="tile"><h4>Dependencias</h4><p>Quién bloquea a quién: #293 → motor; #336 → #322; #310 contiene a todos.</p></div>
+    <div class="tile"><h4>Fronteras</h4><p>#293 es solo técnica; #322 es dependencia externa; #336 es gate de control.</p></div>
+    <div class="tile"><h4>Anti-patrones</h4><p>Especificaciones locales duplicadas, alcance confuso entre issues.</p></div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="num">4</span>Lo que reemplaza</h2>
+  <p class="sub">Ahora son stubs que apuntan al SPEC canónico:</p>
+  <ul class="ck">
+    <li><code>SPEC_COLOMBIATOURS_GROWTH_OS_2026.md</code> — antes intentaba describir el modelo localmente; hoy es stub.</li>
+    <li><code>SPEC_META_CHATWOOT_CONVERSIONS.md</code> — antes mezclaba atribución con ejecución; hoy es stub.</li>
+  </ul>
+</section>
+
+<section>
+  <h2><span class="num">5</span>Cómo se usa en el día a día</h2>
+  <div class="flow">
+    <div class="step"><b>1</b>Issue nuevo</div>
+    <div class="step"><b>2</b>Cita SPEC #337</div>
+    <div class="step"><b>3</b>Identifica capa</div>
+    <div class="step"><b>4</b>Declara dependencias</div>
+    <div class="step"><b>5</b>Entra al milestone</div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="num">6</span>Riesgos si se ignora</h2>
+  <div class="grid-3">
+    <div class="tile"><h4>Riesgo 1</h4><p>Volver a tener specs locales contradictorios.</p></div>
+    <div class="tile"><h4>Riesgo 2</h4><p>Issues con alcance solapado o duplicado.</p></div>
+    <div class="tile"><h4>Riesgo 3</h4><p>Decisiones tomadas sin marco común.</p></div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="num">7</span>Mensaje al equipo</h2>
+  <div class="callout spec">
+    Antes de crear o cerrar un issue del Growth OS, abre <b>#337</b>. Si tu trabajo no encaja en una de sus capas, probablemente no pertenece al milestone.
+  </div>
+</section>
+
+<footer>ColombiaTours · Growth OS 2026 · Infografía #337</footer>
+</div>
+</body>
+</html>
