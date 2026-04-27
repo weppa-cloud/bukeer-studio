@@ -15,7 +15,6 @@
 - [ ] No inline styles (use Tailwind classes)
 - [ ] No hardcoded Supabase URLs or keys
 - [ ] Imports use `@/` paths (not relative `../../`)
-- [ ] Image/media changes satisfy [[ADR-028]]: upload/import/generated/selected assets register in `media_assets` or document a backfill path
 
 ## For AI routes
 
@@ -25,7 +24,6 @@
 - [ ] `recordCost()` tracks spend
 - [ ] Input validation with Zod schemas
 - [ ] Error responses use standard format `{ error: string }`
-- [ ] If the route generates or selects images, it records `account_id`, `website_id` when applicable, `entity_type`, `entity_id`, `usage_context`, and registers via `media_assets`
 
 ## For section editor
 
@@ -34,7 +32,6 @@
 - [ ] Content normalized via `normalizeContent()`
 - [ ] Section types validated via `isValidSectionType()`
 - [ ] Drag-and-drop uses `@dnd-kit` with 8px activation distance
-- [ ] Section image fields keep legacy content compatible and register/associate assets through the `media_assets` contract
 
 ## For components
 

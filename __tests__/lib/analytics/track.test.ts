@@ -11,6 +11,7 @@ type GtagFn = (...args: unknown[]) => void;
 interface MockWindow {
   gtag?: GtagFn;
   dataLayer?: unknown[];
+  fbq?: GtagFn;
 }
 
 function setWindow(stub: MockWindow | undefined) {
@@ -105,6 +106,42 @@ describe('trackEvent', () => {
       product_id: 'p2',
       page_path: '/current?x=1',
     }));
+  });
+
+  it('passes Meta eventID to Pixel standard events without breaking GA/GTM params', () => {
+    const fbqMock = jest.fn();
+    setWindow({ gtag: gtagMock, fbq: fbqMock, dataLayer: [] });
+
+    trackEvent('waflow_submit', {
+      reference_code: 'HOME-2504-ABCD',
+      lead_event_id: 'HOME-2504-ABCD:lead',
+    });
+
+    expect(gtagMock).toHaveBeenCalledWith(
+      'event',
+      'waflow_submit',
+      expect.objectContaining({
+        reference_code: 'HOME-2504-ABCD',
+        lead_event_id: 'HOME-2504-ABCD:lead',
+      }),
+    );
+    expect(fbqMock).toHaveBeenCalledWith(
+      'track',
+      'Lead',
+      expect.objectContaining({
+        reference_code: 'HOME-2504-ABCD',
+        lead_event_id: 'HOME-2504-ABCD:lead',
+      }),
+      { eventID: 'HOME-2504-ABCD:lead' },
+    );
+    expect(fbqMock).toHaveBeenCalledWith(
+      'trackCustom',
+      'waflow_submit',
+      expect.objectContaining({
+        reference_code: 'HOME-2504-ABCD',
+        lead_event_id: 'HOME-2504-ABCD:lead',
+      }),
+    );
   });
 
   it('never throws when gtag throws internally', () => {

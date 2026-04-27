@@ -22,7 +22,7 @@
 git diff --cached --name-only
 
 # If reviewing all changes since branch diverged
-git diff main...HEAD --name-only
+git diff "$(git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null || echo main)"...HEAD --name-only
 
 # If specific files provided
 [use provided file paths]
@@ -36,6 +36,9 @@ npm run tech-validator:code
 # Fast local loop (skips lint/build)
 npm run tech-validator:code:quick
 
+# Fast local loop without TypeScript while iterating on docs/scripts
+npm run tech-validator:code:quick -- --no-typecheck
+
 # TypeScript type checking
 npx tsc --noEmit
 
@@ -44,6 +47,9 @@ npm run lint
 
 # Production build (catches RSC boundary errors, missing imports)
 npm run build
+
+# Media/image governance guardrail from ADR-028
+npm run media:guardrails
 ```
 
 ### Step 3: Pattern Violation Scan
@@ -64,6 +70,7 @@ For each changed file, scan for these violations:
 | Missing `'use client'` | React hooks used without directive | Add `'use client'` at top of file |
 | Flat theme shape | `{ seedColor: ... }` at root of theme object | Use `{ tokens: DesignTokens, profile: ThemeProfile }` |
 | Node-only API | `fs`, `path`, `crypto` (Node module) in edge runtime | Use Web APIs or Cloudflare-compatible alternatives |
+| Media URL-only write | New image/media field writes URL but does not register `media_assets` | Register after upload/import or document approved backfill path |
 
 **WARNING (should fix):**
 
@@ -74,6 +81,7 @@ For each changed file, scan for these violations:
 | Missing loading state | Async component without loading.tsx or Suspense | Add loading.tsx or wrap in Suspense boundary |
 | Large component | Single component file >300 LOC | Split into composition of smaller components |
 | Missing Zod validation | API route without input validation | Add Zod schema for request body/params |
+| Missing media context | Upload/import lacks account, website, entity, or usage context when known | Pass context to registry/RPC/API write |
 | Unused import | Import present but not referenced | Remove unused import |
 | DRY violation | Code block duplicated 2+ times | Extract to shared utility or component |
 
@@ -103,7 +111,17 @@ File: [path]
 - [ ] JSON-LD `inLanguage` reads from DB (not hardcoded `'es'`)
 - [ ] Test selectors use `data-testid`, not text content
 
-### Step 6: Generate Code Review Report
+### Step 6: Media Assets Compliance Check
+
+For changed files with image/media signals (`image`, `media`, `upload`, `storage`, `avatar`, `gallery`, `main_image`, `featured_image`, `cover_image_url`, `social_image`):
+
+- [ ] References ADR-028, `media_assets`, or an approved inventory/backfill path.
+- [ ] Uses `storage_bucket`, `storage_path`, `public_url`, `account_id`, `website_id`, `entity_type`, `entity_id`, and `usage_context` when available.
+- [ ] Preserves legacy public URL fields during v1 compatibility.
+- [ ] Handles registry failure as observable/retryable when the end-user upload should not be blocked.
+- [ ] Runs `npm run media:guardrails`.
+
+### Step 7: Generate Code Review Report
 
 ```
 ══════════════════════════════════════════════════════════
@@ -136,6 +154,11 @@ File: [path]
 ## ADR Compliance
  ✅ [ADR-XXX compliant]
  ❌ [ADR-XXX violated at file:line]
+
+## Media Assets Compliance
+ ✅/❌ ADR-028: [registered in media_assets / documented backfill / violation]
+ ✅/❌ Context: [account/website/entity/usage captured when known]
+ ✅/❌ Compatibility: [legacy URL fields preserved where required]
 
 ## Quality Gate Results
  □ tsc --noEmit: [0 issues / N issues]

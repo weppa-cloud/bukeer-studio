@@ -122,8 +122,8 @@ Required enforcement points:
 ## Rollout
 
 1. Ship [[SPEC_MEDIA_ASSET_INVENTORY]] migration and verification SQL.
-2. Run dry-run inventory per account in staging.
-3. Apply backfill in staging and validate idempotency.
+2. Work from the `dev` branch and validate SQL with dry-run mode before any production write. Bukeer does not currently have a separate staging database for this shared Supabase backend.
+3. Apply production backfills only through idempotent RPCs/scripts with explicit limits, dry-run evidence, and post-run verification.
 4. Remediate high-priority assets: broken, external hero/OG, missing alt, heavy non-WebP.
 5. Integrate Flutter upload registration in the follow-up issue tracked from the spec.
 6. Only after registry quality stabilizes, consider Asset Library UI and optional media ID references in render contracts.

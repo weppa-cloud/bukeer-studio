@@ -183,23 +183,51 @@ across production tables (cost).
 
 ## MCPs available today
 
-| MCP                  | Purpose                                    | Notes                                   |
-|----------------------|--------------------------------------------|-----------------------------------------|
-| `supabase`           | Query / mutate DB                          | Always preferred over raw HTTP          |
-| `search-console`     | GSC analytics, anomalies, striking distance, cannibalization, sitemaps, inspection | ~150 tools |
-| `google-analytics`   | GA4 reports (sessions, conversions)        | `run_report`, `run_realtime_report`     |
-| `chrome-devtools`    | Live browser inspection / screenshots      | Reuse from `debugger` skill             |
-| `playwright`         | E2E / visual checks                        | Respect session pool                    |
+| MCP                  | Purpose                                    | Key tools                                   |
+|----------------------|--------------------------------------------|--------------------------------------------|
+| `supabase`           | Query / mutate DB                          | `execute_sql`, `list_tables`               |
+| `search-console`     | GSC analytics, anomalies, striking distance, cannibalization | `analytics_anomalies`, `analytics_top_queries`, `analytics_top_pages`, `seo_striking_distance`, `seo_cannibalization`, `analytics_compare_periods` |
+| `google-analytics`   | GA4 reports (sessions, conversions)        | `run_report`, `run_realtime_report`        |
+| `dataforseo`         | SERP + keyword metrics (metered, **Tier 1 — use freely**) | `dataforseo_labs_google_keyword_overview`, `dataforseo_labs_google_keyword_ideas`, `dataforseo_labs_google_ranked_keywords`, `dataforseo_labs_google_competitors_domain`, `serp_organic_live_advanced`, `backlinks_summary`, `dataforseo_labs_google_domain_rank_overview` |
+| `chrome-devtools`    | Live browser inspection / screenshots      | Reuse from `debugger` skill                |
+| `playwright`         | E2E / visual checks                        | Respect session pool                       |
 
-### Planned Tier 1 (not yet shipped)
+### DataForSEO — primary keyword tool
+
+No budget gate — use freely for SEO/growth work. Key flows:
+
+```
+# Keyword overview (volume, difficulty, intent)
+mcp__dataforseo__dataforseo_labs_google_keyword_overview
+  keywords: ["mejor época cartagena"]
+  location_code: 2170  # Colombia
+  language_code: "es"
+
+# Keyword ideas from seed
+mcp__dataforseo__dataforseo_labs_google_keyword_ideas
+  keywords: ["tour cartagena"]
+  location_code: 2840  # US for en-US research
+  language_code: "en"
+
+# SERP live (check who ranks)
+mcp__dataforseo__serp_organic_live_advanced
+  keyword: "colombia tour packages"
+  location_code: 2840
+  language_code: "en"
+  depth: 10
+
+# Domain rank overview
+mcp__dataforseo__dataforseo_labs_google_domain_rank_overview
+  target: "colombiatours.travel"
+  location_code: 2840
+  language_code: "en"
+```
+
+### Planned (not yet shipped)
 
 | MCP                  | Issue | Purpose                                        |
 |----------------------|-------|------------------------------------------------|
 | `mcp-bukeer-studio`  | #158  | Tool-level access to Studio SEO endpoints      |
-| `mcp-dataforseo`     | #159  | SERP + keyword metrics (metered)               |
-
-Until these ship, invoke the equivalent HTTP routes or DataForSEO via
-WebFetch + auth header (count cost against budget).
 
 ---
 

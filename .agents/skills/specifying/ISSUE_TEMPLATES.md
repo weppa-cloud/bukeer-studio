@@ -25,17 +25,6 @@ docs/specs/SPEC_<name>.md
 ## Cross-repo impact
 <none | bukeer-flutter: tables X, Y | shared: package_kits>
 
-## Media / Images Impact
-- [ ] No toca imágenes/media
-- [ ] Usa assets existentes registrados en `media_assets`
-- [ ] Sube/importa/genera nuevas imágenes y registra en `media_assets`
-- [ ] Mantiene campo legacy por compatibilidad
-- [ ] Define `account_id`, `website_id`, `entity_type`, `entity_id`, `usage_context`
-- [ ] Incluye validación de broken/external/missing-alt/non-WebP
-
-Required if any box except "No toca" applies: reference [[ADR-028]] and document
-the `media_assets` registration or backfill path.
-
 ## Scope (child issues)
 - [ ] #<n> — <child 1 title>
 - [ ] #<n> — <child 2 title>
@@ -85,7 +74,6 @@ Spec section: §<section number>
 - [ ] <E2E test covers flow X>
 - [ ] tech-validator MODE:CODE clean (no blockers)
 - [ ] <specific AC from spec>
-- [ ] If images/media are touched, [[ADR-028]] is satisfied and `media_assets` registration/backfill is documented
 
 ## Affected files (estimated)
 - <path 1>

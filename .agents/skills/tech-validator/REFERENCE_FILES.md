@@ -5,7 +5,10 @@
 | Document | Path | Use For |
 |----------|------|---------|
 | Architecture | `docs/architecture/ARCHITECTURE.md` | Overall architecture, principles P1-P10 |
-| ADR Decisions | `docs/architecture/ADR-001` through `ADR-013` | All architectural decisions |
+| ADR Decisions | `docs/architecture/ADR-001` through current ADR index | All architectural decisions |
+| ADR-013 | `docs/architecture/ADR-013-tech-validator-quality-gate.md` | Automated tech-validator quality gate |
+| ADR-014 | `docs/architecture/ADR-014-delta-typescript-quality-gate.md` | Delta TypeScript quality gate |
+| ADR-028 | `docs/architecture/ADR-028-media-assets-canonical-registry.md` | Canonical media asset registry for Studio and Flutter |
 | Onboarding | `docs/architecture/ONBOARDING-ARCHITECTURE.md` | Developer onboarding guide |
 | AI Agent Dev | `docs/architecture/AI-AGENT-DEVELOPMENT.md` | AI agent development patterns |
 
@@ -41,3 +44,5 @@
 | Env Validation | `lib/env.ts` | Zod-validated environment variables |
 | Studio Utils | `lib/studio/` | Studio-specific utilities |
 | CODE Gate Script | `scripts/ai/validate-tech-validator.mjs` | Automated tech-validator CODE checks and report generation |
+| Media Guardrail Script | `scripts/ai/check-media-asset-guardrails.mjs` | ADR-028 changed-file scan for image/media governance |
+| Media Guardrails Runbook | `docs/ops/media-asset-guardrails.md` | Process rules for Studio, Flutter and MLLM media work |
