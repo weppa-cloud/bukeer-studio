@@ -992,7 +992,7 @@ export function EditorialPackageDetailClient({
             />
           )}
 
-          <div className="absolute inset-x-0 bottom-12 z-10 page-hero">
+          <div className="absolute inset-x-0 bottom-12 z-10">
             <div className="pkg-detail-hero-content mx-auto w-full max-w-7xl px-6">
               <div data-testid="detail-breadcrumb" className="mb-4">
                 <Breadcrumbs items={breadcrumbItems} tone="inverse" className="pkg-hero-breadcrumb" />

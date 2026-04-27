@@ -264,7 +264,7 @@ export function EditorialDestinoDetailPage({
       />
 
       {/* Hero */}
-      <section className="page-hero" data-testid="destino-hero">
+      <section className="ev-dest-hero" data-testid="destino-hero">
         <div className="ev-dest-hero-media" aria-hidden="true">
           {heroImage ? (
             <Image
