@@ -40,8 +40,11 @@ import {
   apiValidationError,
 } from '@/lib/api';
 import { checkRateLimit, extractClientIp } from '@/lib/booking/rate-limit';
+import { buildEventId } from '@/lib/growth/event-id';
+import { insertFunnelEvent } from '@/lib/growth/funnel-events';
 import { createLogger } from '@/lib/logger';
 import { sendMetaConversionEvent } from '@/lib/meta/conversions-api';
+import type { GrowthMarket, FunnelEventIngest } from '@bukeer/website-contract';
 
 const log = createLogger('api.waflow.lead');
 
@@ -78,6 +81,8 @@ const RequestSchema = z.object({
   referenceCode: z.string().trim().min(4).max(40).optional().nullable(),
   submitted: z.boolean().optional(),
   attribution: AttributionSchema.optional(),
+  locale: z.string().regex(/^[a-z]{2}(-[A-Z]{2})?$/).optional(),
+  market: z.enum(['CO', 'MX', 'US', 'CA', 'EU', 'OTHER']).optional(),
   payload: z.record(z.string(), z.unknown()).default({}),
 });
 
@@ -198,6 +203,77 @@ function resolveAttribution(body: WaflowLeadBody): JsonRecord {
   return isRecord(attribution) ? attribution : {};
 }
 
+function deriveMarket(body: WaflowLeadBody): GrowthMarket {
+  if (body.market) return body.market;
+  const country =
+    readString(body.payload.country) ?? readString(body.payload.market);
+  const upper = country?.toUpperCase();
+  if (upper === 'CO' || upper === 'MX' || upper === 'US' || upper === 'CA' || upper === 'EU') {
+    return upper;
+  }
+  return 'CO';
+}
+
+function deriveLocale(body: WaflowLeadBody): string {
+  if (body.locale) return body.locale;
+  const candidate = readString(body.payload.locale) ?? readString(body.payload.lang);
+  if (candidate && /^[a-z]{2}(-[A-Z]{2})?$/.test(candidate)) return candidate;
+  return 'es-CO';
+}
+
+async function emitWaflowSubmitFunnelEvent(
+  body: WaflowLeadBody,
+  tenant: { accountId: string | null; websiteId: string | null },
+): Promise<void> {
+  if (!body.submitted || body.step !== 'confirmation') return;
+  if (!tenant.accountId || !tenant.websiteId) return;
+  if (!body.referenceCode) return;
+
+  const occurredAt = new Date();
+  const attribution = resolveAttribution(body);
+  const sourceUrl = readString(attribution.source_url);
+  const pagePath = readString(attribution.page_path);
+
+  const eventId = await buildEventId({
+    reference_code: body.referenceCode,
+    event_name: 'waflow_submit',
+    occurred_at: occurredAt,
+  });
+
+  const ingest: FunnelEventIngest = {
+    event_id: eventId,
+    event_name: 'waflow_submit',
+    stage: 'activation',
+    channel: 'waflow',
+    reference_code: body.referenceCode,
+    account_id: tenant.accountId,
+    website_id: tenant.websiteId,
+    locale: deriveLocale(body),
+    market: deriveMarket(body),
+    occurred_at: occurredAt.toISOString(),
+    source_url: sourceUrl ?? null,
+    page_path: pagePath ?? null,
+    payload: {
+      variant: body.variant,
+      session_key: body.sessionKey,
+      subdomain: body.subdomain ?? null,
+      package_slug: readString(body.payload.packageSlug),
+      destination_slug: readString(body.payload.destinationSlug),
+      package_tier: readString(body.payload.packageTier),
+    },
+  };
+
+  try {
+    await insertFunnelEvent(createSupabaseAdmin(), ingest);
+  } catch (error) {
+    log.warn('funnel_event_insert_failed', {
+      event_id: eventId,
+      reference_code: body.referenceCode,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
+
 async function sendWaflowLeadConversion(
   body: WaflowLeadBody,
   tenant: { accountId: string | null; websiteId: string | null },
@@ -309,6 +385,15 @@ export async function POST(request: NextRequest) {
       await sendWaflowLeadConversion(body, tenant ?? { accountId: null, websiteId: null }, lead.id, request);
     } catch (error) {
       log.warn('meta_lead_conversion_failed', {
+        reference_code: body.referenceCode ?? null,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
+    try {
+      await emitWaflowSubmitFunnelEvent(body, tenant ?? { accountId: null, websiteId: null });
+    } catch (error) {
+      log.warn('funnel_event_emit_failed', {
         reference_code: body.referenceCode ?? null,
         error: error instanceof Error ? error.message : String(error),
       });

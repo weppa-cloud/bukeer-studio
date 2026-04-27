@@ -16,8 +16,15 @@ import {
   apiSuccess,
   apiValidationError,
 } from '@/lib/api';
+import { buildEventId } from '@/lib/growth/event-id';
+import { insertFunnelEvent } from '@/lib/growth/funnel-events';
 import { createLogger } from '@/lib/logger';
 import { sendMetaConversionEvent } from '@/lib/meta/conversions-api';
+import type {
+  FunnelEventIngest,
+  FunnelEventName,
+  GrowthMarket,
+} from '@bukeer/website-contract';
 
 export const runtime = 'nodejs';
 
@@ -364,6 +371,99 @@ async function updateWaflowLeadLink(
     .eq('id', leadId);
 }
 
+const LIFECYCLE_TO_FUNNEL_EVENT: Partial<Record<LifecycleEvent, FunnelEventName>> = {
+  QualifiedLead: 'qualified_lead',
+  QuoteSent: 'quote_sent',
+};
+
+const FUNNEL_EVENT_STAGE: Record<FunnelEventName, FunnelEventIngest['stage']> = {
+  waflow_open: 'acquisition',
+  waflow_step_next: 'activation',
+  waflow_submit: 'activation',
+  whatsapp_cta_click: 'activation',
+  qualified_lead: 'qualified_lead',
+  quote_sent: 'quote_sent',
+  booking_confirmed: 'booking',
+  review_submitted: 'review_referral',
+  referral_lead: 'review_referral',
+};
+
+function deriveLeadMarket(leadPayload: JsonRecord): GrowthMarket {
+  const country = cleanString(leadPayload.country) ?? cleanString(leadPayload.market);
+  const upper = country?.toUpperCase();
+  if (upper === 'CO' || upper === 'MX' || upper === 'US' || upper === 'CA' || upper === 'EU') {
+    return upper;
+  }
+  return 'CO';
+}
+
+function deriveLeadLocale(leadPayload: JsonRecord): string {
+  const candidate = cleanString(leadPayload.locale) ?? cleanString(leadPayload.lang);
+  if (candidate && /^[a-z]{2}(-[A-Z]{2})?$/.test(candidate)) return candidate;
+  return 'es-CO';
+}
+
+async function emitLifecycleFunnelEvents(
+  supabase: ReturnType<typeof createSupabaseAdmin>,
+  lead: WaflowLeadRow,
+  conversationId: string,
+  lifecycleEvents: LifecycleEvent[],
+  payload: ChatwootPayload,
+): Promise<void> {
+  if (!lead.account_id || !lead.website_id || !lead.reference_code) return;
+
+  const leadPayload = readRecord(lead.payload);
+  const attribution = readRecord(leadPayload.attribution);
+  const sourceUrl = cleanString(attribution.source_url);
+  const pagePath = cleanString(attribution.page_path);
+  const locale = deriveLeadLocale(leadPayload);
+  const market = deriveLeadMarket(leadPayload);
+  const occurredAt = new Date();
+
+  for (const lifecycleEvent of lifecycleEvents) {
+    const funnelEventName = LIFECYCLE_TO_FUNNEL_EVENT[lifecycleEvent];
+    if (!funnelEventName) continue;
+
+    try {
+      const eventId = await buildEventId({
+        reference_code: lead.reference_code,
+        event_name: funnelEventName,
+        occurred_at: occurredAt,
+      });
+
+      const ingest: FunnelEventIngest = {
+        event_id: eventId,
+        event_name: funnelEventName,
+        stage: FUNNEL_EVENT_STAGE[funnelEventName],
+        channel: 'chatwoot',
+        reference_code: lead.reference_code,
+        account_id: lead.account_id,
+        website_id: lead.website_id,
+        locale,
+        market,
+        occurred_at: occurredAt.toISOString(),
+        source_url: sourceUrl ?? null,
+        page_path: pagePath ?? null,
+        payload: {
+          chatwoot_event: payload.event,
+          chatwoot_conversation_id: conversationId,
+          waflow_lead_id: lead.id,
+          session_key: lead.session_key,
+        },
+      };
+
+      await insertFunnelEvent(supabase, ingest);
+    } catch (error) {
+      log.warn('funnel_event_insert_failed', {
+        lifecycle_event: lifecycleEvent,
+        funnel_event: funnelEventName,
+        reference_code: lead.reference_code,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+}
+
 async function sendLifecycleConversions(
   supabase: ReturnType<typeof createSupabaseAdmin>,
   lead: WaflowLeadRow,
@@ -501,6 +601,15 @@ export async function POST(request: NextRequest) {
       conversationId,
       lifecycleEvents,
     );
+
+    try {
+      await emitLifecycleFunnelEvents(supabase, lead, conversationId, lifecycleEvents, payload);
+    } catch (error) {
+      log.warn('funnel_event_emit_failed', {
+        provider_event_id: providerEventId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
 
     await markWebhookEvent(supabase, providerEventId, 'processed');
     return apiSuccess({
