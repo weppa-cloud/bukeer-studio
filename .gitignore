@@ -45,6 +45,10 @@ yarn-error.log*
 !.env.local.example
 !.dev.vars.example
 
+# MCP config — contains tokens, never commit
+.mcp.json
+.mcp.local.json
+
 # Cloudflare Workers (OpenNext build output)
 .open-next/
 .dev.vars
