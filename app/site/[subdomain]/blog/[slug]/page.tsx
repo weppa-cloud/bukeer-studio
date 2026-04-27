@@ -109,7 +109,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
   const resolvedLocale = localeContextEarly.resolvedLocale;
   const defaultLocale = localeContextEarly.defaultLocale ?? 'es-CO';
 
-  let post = await getBlogPostBySlug(website.id, slug, resolvedLocale);
+  const post = await getBlogPostBySlug(website.id, slug, resolvedLocale);
 
   if (!post) {
     // Slug not found for this locale. Try finding the post in any locale,

@@ -27,7 +27,6 @@ import {
   type DeferredHomeDataInput,
 } from '@/lib/site/home-rendering';
 
-const SECTION_DESTINATIONS = SECTION_TYPES.find((t) => t === 'destinations')!;
 const SECTION_PACKAGES = SECTION_TYPES.find((t) => t === 'packages')!;
 const SECTION_ACTIVITIES = SECTION_TYPES.find((t) => t === 'activities')!;
 const SECTION_HOTELS = SECTION_TYPES.find((t) => t === 'hotels')!;

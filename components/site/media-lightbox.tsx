@@ -50,6 +50,36 @@ export function MediaLightbox(props: MediaLightboxProps) {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyDown]);
 
+  const imagesForTouch = props.type === 'image' ? props.images : null;
+  const onNextForTouch = props.type === 'image' ? props.onNext : undefined;
+  const onPrevForTouch = props.type === 'image' ? props.onPrev : undefined;
+
+  const handleTouchStart = useCallback((e: TouchEvent<HTMLDivElement>) => {
+    const touch = e.touches[0];
+    if (!touch) return;
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY };
+  }, []);
+
+  const handleTouchEnd = useCallback(
+    (e: TouchEvent<HTMLDivElement>) => {
+      const start = touchStartRef.current;
+      touchStartRef.current = null;
+      if (!start || !imagesForTouch || imagesForTouch.length <= 1) return;
+
+      const touch = e.changedTouches[0];
+      if (!touch) return;
+
+      const deltaX = touch.clientX - start.x;
+      const deltaY = touch.clientY - start.y;
+      const threshold = 40;
+
+      if (Math.abs(deltaX) < threshold || Math.abs(deltaX) < Math.abs(deltaY)) return;
+      if (deltaX < 0) onNextForTouch?.();
+      else onPrevForTouch?.();
+    },
+    [imagesForTouch, onNextForTouch, onPrevForTouch],
+  );
+
   if (props.type === 'video') {
     return (
       <div
@@ -90,31 +120,6 @@ export function MediaLightbox(props: MediaLightboxProps) {
   }
 
   const { images, activeIndex, altPrefix, onClose, onNext, onPrev, onThumb } = props;
-  const handleTouchStart = useCallback((e: TouchEvent<HTMLDivElement>) => {
-    const touch = e.touches[0];
-    if (!touch) return;
-    touchStartRef.current = { x: touch.clientX, y: touch.clientY };
-  }, []);
-
-  const handleTouchEnd = useCallback(
-    (e: TouchEvent<HTMLDivElement>) => {
-      const start = touchStartRef.current;
-      touchStartRef.current = null;
-      if (!start || images.length <= 1) return;
-
-      const touch = e.changedTouches[0];
-      if (!touch) return;
-
-      const deltaX = touch.clientX - start.x;
-      const deltaY = touch.clientY - start.y;
-      const threshold = 40;
-
-      if (Math.abs(deltaX) < threshold || Math.abs(deltaX) < Math.abs(deltaY)) return;
-      if (deltaX < 0) onNext?.();
-      else onPrev?.();
-    },
-    [images.length, onNext, onPrev],
-  );
 
   return (
     <div

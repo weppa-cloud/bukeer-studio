@@ -46,15 +46,6 @@ interface TestimonialsCarouselContent {
   items?: TestimonialsCarouselItem[];
 }
 
-/** Extract YouTube video ID from standard watch URLs and short youtu.be URLs. */
-function extractYouTubeId(url: string): string | null {
-  const watchMatch = url.match(/[?&]v=([a-zA-Z0-9_-]+)/);
-  if (watchMatch) return watchMatch[1];
-  const shortMatch = url.match(/youtu\.be\/([a-zA-Z0-9_-]+)/);
-  if (shortMatch) return shortMatch[1];
-  return null;
-}
-
 function StarRow({ rating }: { rating: number }): ReactElement {
   const clamped = Math.max(1, Math.min(5, Math.round(rating)));
   return (

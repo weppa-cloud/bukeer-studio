@@ -89,7 +89,7 @@ export function CtaSection({ section, website }: CtaSectionProps) {
               {sectionContent.ctaText && sectionContent.ctaUrl && (
                 <ContextualCtaLink
                   href={sectionContent.ctaUrl}
-                  phone={content.social?.whatsapp || content.contact?.phone || (content as any)?.account?.phone || null}
+                  phone={content.social?.whatsapp || content.contact?.phone || (content as { account?: { phone?: string | null } })?.account?.phone || null}
                   productName={title}
                   label={sectionContent.ctaText}
                   analyticsLocation="cta_section_primary"
@@ -105,7 +105,7 @@ export function CtaSection({ section, website }: CtaSectionProps) {
                 const rawWhatsApp =
                   content.social?.whatsapp ||
                   content.contact?.phone ||
-                  (content as any)?.account?.phone ||
+                  (content as { account?: { phone?: string | null } })?.account?.phone ||
                   null;
                 if (!rawWhatsApp) return null;
                 return (

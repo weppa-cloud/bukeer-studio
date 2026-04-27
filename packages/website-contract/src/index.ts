@@ -518,6 +518,69 @@ export type {
   AiFlagsUpdateRequest,
 } from './schemas/content-health';
 
+// Growth OS — SPEC #337 (#310)
+export {
+  GrowthChannelSchema,
+  GrowthMarketSchema,
+  GrowthLocaleSchema,
+  GrowthTenantScopeSchema,
+  GrowthUtmSchema,
+  GrowthClickIdsSchema,
+  GrowthAttributionSchema,
+  GrowthAttributionInputSchema,
+} from './schemas/growth-attribution';
+export type {
+  GrowthChannel,
+  GrowthMarket,
+  GrowthLocale,
+  GrowthTenantScope,
+  GrowthUtm,
+  GrowthClickIds,
+  GrowthAttribution,
+  GrowthAttributionInput,
+} from './schemas/growth-attribution';
+
+export {
+  FunnelEventNameSchema,
+  FunnelStageSchema,
+  ProviderEventStatusSchema,
+  FunnelEventProviderSchema,
+  FunnelEventProviderRecordSchema,
+  FunnelEventSchema,
+  FunnelEventIngestSchema,
+  EVENT_NAME_TO_STAGE,
+} from './schemas/growth-events';
+export type {
+  FunnelEventName,
+  FunnelStage,
+  ProviderEventStatus,
+  FunnelEventProvider,
+  FunnelEventProviderRecord,
+  FunnelEvent,
+  FunnelEventIngest,
+} from './schemas/growth-events';
+
+export {
+  ExperimentResultSchema,
+  InventoryStatusSchema,
+  InventorySubStatusSchema,
+  TemplateTypeSchema,
+  SearchIntentSchema,
+  GrowthInventoryRowSchema,
+  GrowthInventoryQuerySchema,
+  READY_FOR_IN_PROGRESS_FIELDS,
+  isReadyForInProgress,
+} from './schemas/growth-inventory';
+export type {
+  ExperimentResult,
+  InventoryStatus,
+  InventorySubStatus,
+  TemplateType,
+  SearchIntent,
+  GrowthInventoryRow,
+  GrowthInventoryQuery,
+} from './schemas/growth-inventory';
+
 // Validation
 export {
   validateSection,

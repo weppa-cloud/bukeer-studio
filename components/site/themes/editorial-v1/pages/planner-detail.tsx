@@ -40,7 +40,6 @@ import { Icons } from '../primitives/icons';
 import { getBasePath } from '@/lib/utils/base-path';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 import { WaflowCTAButton } from '../waflow/cta-button';
-import { editorialHtml } from '../primitives/rich-heading';
 
 // ---------- Shape overrides authors can pass via sections content ----
 
@@ -826,7 +825,6 @@ export function EditorialPlannerDetailPage({
             </h2>
             <div className="pl-grid">
               {otherFiltered.slice(0, 3).map((o) => {
-                const oFirst = o.name.split(' ')[0] || o.fullName;
                 const oQuote =
                   (o.quote && o.quote.trim()) ||
                   DEFAULT_BIO_FALLBACK;

@@ -86,7 +86,7 @@ function isColombiaToursTenant(website: unknown): boolean {
     return true;
   }
 
-  const content = (website as { content?: any }).content;
+  const content = (website as { content?: { siteName?: string; account?: { name?: string } } }).content;
   const siteName = content?.siteName || content?.account?.name || '';
   if (typeof siteName === 'string' && siteName.toLowerCase().includes('colombiatours')) {
     return true;

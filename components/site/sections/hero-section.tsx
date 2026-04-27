@@ -360,7 +360,7 @@ export function HeroSection({ section, website }: HeroSectionProps) {
               {sectionContent.ctaText && sectionContent.ctaUrl && (
                 <ContextualCtaLink
                   href={sectionContent.ctaUrl}
-                  phone={content.social?.whatsapp || content.contact?.phone || (content as any)?.account?.phone || null}
+                  phone={content.social?.whatsapp || content.contact?.phone || (content as { account?: { phone?: string | null } })?.account?.phone || null}
                   productName={title}
                   label={sectionContent.ctaText}
                   analyticsLocation="hero_primary"
@@ -379,7 +379,7 @@ export function HeroSection({ section, website }: HeroSectionProps) {
                 immersiveContent.secondaryCtaText !== sectionContent.ctaText && (
                 <ContextualCtaLink
                   href={immersiveContent.secondaryCtaUrl}
-                  phone={content.social?.whatsapp || content.contact?.phone || (content as any)?.account?.phone || null}
+                  phone={content.social?.whatsapp || content.contact?.phone || (content as { account?: { phone?: string | null } })?.account?.phone || null}
                   productName={title}
                   label={immersiveContent.secondaryCtaText}
                   analyticsLocation="hero_secondary"
@@ -554,7 +554,7 @@ export function HeroSection({ section, website }: HeroSectionProps) {
             {sectionContent.ctaText && sectionContent.ctaUrl && (
               <ContextualCtaLink
                 href={sectionContent.ctaUrl}
-                phone={content.social?.whatsapp || content.contact?.phone || (content as any)?.account?.phone || null}
+                phone={content.social?.whatsapp || content.contact?.phone || (content as { account?: { phone?: string | null } })?.account?.phone || null}
                 productName={title}
                 label={sectionContent.ctaText}
                 analyticsLocation="hero_primary"
@@ -571,7 +571,7 @@ export function HeroSection({ section, website }: HeroSectionProps) {
               const rawWhatsApp =
                 content.social?.whatsapp ||
                 content.contact?.phone ||
-                (content as any)?.account?.phone ||
+                (content as { account?: { phone?: string | null } })?.account?.phone ||
                 null;
               if (!rawWhatsApp) return null;
               return (

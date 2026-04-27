@@ -169,13 +169,6 @@ const heroTitleStyle: CSSProperties = {
   margin: '12px 0 14px',
 };
 
-const heroEmphasisStyle: CSSProperties = {
-  fontFamily: 'var(--font-serif)',
-  fontStyle: 'italic',
-  color: 'var(--c-accent-2)',
-  fontWeight: 400,
-};
-
 const heroSubtitleStyle: CSSProperties = {
   color: 'rgba(255,255,255,.78)',
   fontSize: 17,

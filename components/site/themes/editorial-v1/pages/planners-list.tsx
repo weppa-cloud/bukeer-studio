@@ -312,11 +312,6 @@ const heroStyle: CSSProperties = {
   borderRadius: '0 0 32px 32px',
 };
 
-const heroTitleStyle: CSSProperties = {
-  color: '#fff',
-  margin: '12px 0 16px',
-};
-
 const heroSubtitleStyle: CSSProperties = {
   color: 'rgba(255,255,255,.78)',
   fontSize: 17,
