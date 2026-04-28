@@ -23,10 +23,15 @@ export async function generateMetadata({ params }: TermsPageProps): Promise<Meta
   const siteName = website.content.account?.name || website.content.siteName;
   const localeContext = await resolvePublicMetadataLocale(website, '/terms');
   const messages = getPublicUiMessages(localeContext.resolvedLocale);
+  const baseUrl = website.custom_domain
+    ? `https://${website.custom_domain}`
+    : `https://${subdomain}.bukeer.com`;
+  const canonical = `${baseUrl}${localeContext.localizedPathname}`;
 
   return {
     title: messages.legalPages.termsTitle,
     description: `${messages.legalPages.termsDescriptionPrefix} ${siteName}`,
+    alternates: { canonical },
     robots: { index: false, follow: false },
   };
 }

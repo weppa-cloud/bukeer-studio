@@ -23,10 +23,15 @@ export async function generateMetadata({ params }: CancellationPageProps): Promi
   const siteName = website.content.account?.name || website.content.siteName;
   const localeContext = await resolvePublicMetadataLocale(website, '/cancellation');
   const messages = getPublicUiMessages(localeContext.resolvedLocale);
+  const baseUrl = website.custom_domain
+    ? `https://${website.custom_domain}`
+    : `https://${subdomain}.bukeer.com`;
+  const canonical = `${baseUrl}${localeContext.localizedPathname}`;
 
   return {
     title: messages.legalPages.cancellationTitle,
     description: `${messages.legalPages.cancellationDescriptionPrefix} ${siteName}`,
+    alternates: { canonical },
     robots: { index: false, follow: false },
   };
 }
