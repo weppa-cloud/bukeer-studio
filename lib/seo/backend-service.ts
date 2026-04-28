@@ -266,6 +266,7 @@ export async function getIntegrationStatus(websiteId: string): Promise<Integrati
 
   const gsc = creds.get('gsc');
   const ga4 = creds.get('ga4');
+  const hasDataForSeo = hasDataForSeoCredentials();
 
   return {
     websiteId,
@@ -284,8 +285,8 @@ export async function getIntegrationStatus(websiteId: string): Promise<Integrati
       lastError: ga4?.last_error ?? null,
     },
     dataforseo: {
-      connected: hasDataForSeoCredentials(),
-      enabled: process.env.DATAFORSEO_ENABLED === 'true' || Boolean(process.env.DATAFORSEO_CREDENTIALS),
+      connected: hasDataForSeo,
+      enabled: process.env.DATAFORSEO_ENABLED === 'true' || hasDataForSeo,
     },
   };
 }
