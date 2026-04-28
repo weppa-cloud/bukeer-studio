@@ -16,6 +16,7 @@ import { getReviewsForContext, type ReviewContext } from '@/lib/supabase/get-rev
 import { getPlanners } from '@/lib/supabase/get-planners';
 import { getWebsiteBySubdomain } from '@/lib/supabase/get-website';
 import { resolveOgImage } from '@/lib/seo/og-helpers';
+import { normalizePublicMetadataTitle } from '@/lib/seo/metadata-title';
 import {
   buildLocaleAwareAlternateLanguages,
   resolvePublicMetadataLocale,
@@ -129,7 +130,10 @@ export async function generateMetadata({ params }: PackagePageProps): Promise<Me
     || (isDefaultLocale ? productPage.page?.custom_seo_description : null)
     || productPage.product.description
     || '';
-  const title = sanitizeProductCopy(rawTitle) || getPublicUiExtraText(localeContext.resolvedLocale, 'productPackageFallbackTitle');
+  const title = normalizePublicMetadataTitle(
+    sanitizeProductCopy(rawTitle) || getPublicUiExtraText(localeContext.resolvedLocale, 'productPackageFallbackTitle'),
+    siteName,
+  );
   const productFallbackDescription = `Descubre ${title} con itinerario detallado, experiencias locales y asistencia personalizada durante todo tu viaje en Colombia.`;
   const description = ensureSeoDescription(rawDescription, productFallbackDescription);
   const ogImage = resolveOgImage(website, productPage.product.social_image || productPage.product.image);
