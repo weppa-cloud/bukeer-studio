@@ -16,6 +16,7 @@ _Updated every session that invokes paid provider._
 | Date | Operation | Cost USD | Session | Note |
 |------|-----------|----------|---------|------|
 | 2026-04-25 | ColombiaTours beta growth batch: keyword overview, SERP competitors, ranked keywords, related keywords | TBD | `docs/growth-sessions/2026-04-25-1027-colombiatours-growth-dataforseo-batch.md` | User approved no budget restriction for beta partner growth; MCP did not return exact cost |
+| 2026-04-28 | ColombiaTours full OnPage crawl via DataForSEO, sitemap-respecting, max 1000 pages | TBD | `artifacts/seo/2026-04-28-dataforseo-onpage-full` | User requested full URL audit; ColombiaTours beta usage remains waived, final API cost logged from task summary |
 
 **Subtotal: TBD / waived for ColombiaTours beta growth**
 
