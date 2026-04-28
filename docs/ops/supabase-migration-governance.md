@@ -118,14 +118,14 @@ Checked from Studio `dev` against local
 
 | Migration | Flutter status | Action |
 |---|---|---|
-| `20260418000100_growth_ops_tables.sql` | Missing | Mirror or create Flutter-equivalent before applying `growth_cache_tables`; required for `seo_provider_usage`. |
-| `20260504110700_meta_conversion_events.sql` | Missing | Mirror from Studio before #322/#332 smoke. |
+| `20260418000100_growth_ops_tables.sql` | Mirrored locally, identical | Commit in Flutter migration branch before applying; required for `seo_provider_usage`. |
+| `20260504110700_meta_conversion_events.sql` | Mirrored locally, identical | Commit in Flutter migration branch before #322/#332 smoke. |
 | `20260504110900_funnel_events.sql` | Present, identical | Can be included in Flutter migration PR. |
-| `20260504111000_funnel_events_backfill.sql` | Present, differs | Decide canonical copy before applying. Flutter uses `extensions.digest(...)`; Studio uses unqualified `digest(...)`. Prefer Flutter if `pgcrypto` is installed under `extensions`. |
+| `20260504111000_funnel_events_backfill.sql` | Present, identical | Studio was aligned to Flutter's `extensions.digest(...)` form. |
 | `20260504111100_growth_cache_tables.sql` | Present, identical | Can be included in Flutter migration PR after `seo_provider_usage` is confirmed. |
 
-Do not apply the #310 migration set until the missing files and backfill drift
-are resolved in `bukeer-flutter`.
+Do not apply the #310 migration set until the mirrored Flutter files are
+committed/reviewed in `bukeer-flutter`.
 
 ## pg_cron Cache Purge
 
