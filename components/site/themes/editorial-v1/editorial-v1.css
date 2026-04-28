@@ -6955,8 +6955,7 @@
     padding: 0 16px;
   }
   :where([data-template-set="editorial-v1"]) .itinerary-day-media {
-    width: 100%;
-    height: 180px;
+    display: none;
   }
 }
 @media (prefers-reduced-motion: reduce) {
