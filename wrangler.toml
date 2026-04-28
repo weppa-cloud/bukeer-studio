@@ -59,6 +59,9 @@ zone_name = "colombiatours.travel"
 
 [env.staging]
 name = "bukeer-web-public-staging"
+workers_dev = true
+preview_urls = true
+routes = []
 
 [[env.staging.services]]
 binding = "WORKER_SELF_REFERENCE"
