@@ -1,0 +1,526 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Growth OS 2026 — ColombiaTours · Infografía ejecutiva</title>
+<style>
+  :root{
+    --bg:#0b1020;
+    --bg-2:#11162b;
+    --panel:#161c34;
+    --panel-2:#1c2342;
+    --line:#2a3358;
+    --text:#eef1ff;
+    --muted:#aab2d5;
+    --accent:#7cf0c2;       /* teal */
+    --tech:#5aa9ff;         /* azul: capa técnica */
+    --engine:#7cf0c2;       /* teal: motor 90D */
+    --gov:#f5b454;          /* ámbar: gobernanza */
+    --danger:#ff7b7b;
+    --soft:#b29bff;         /* lila: spec/canónico */
+    --shadow: 0 12px 40px rgba(0,0,0,.35);
+    --radius: 14px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.55;-webkit-font-smoothing:antialiased}
+  a{color:var(--accent);text-decoration:none}
+  .wrap{max-width:1180px;margin:0 auto;padding:48px 28px 80px}
+  header.hero{
+    position:relative;padding:56px 36px;border-radius:24px;overflow:hidden;
+    background:
+      radial-gradient(900px 380px at 110% -10%, rgba(124,240,194,.18), transparent 60%),
+      radial-gradient(700px 360px at -10% 0%, rgba(90,169,255,.18), transparent 60%),
+      linear-gradient(180deg,#141a33,#0f1530);
+    border:1px solid var(--line);
+    box-shadow:var(--shadow);
+  }
+  .eyebrow{
+    display:inline-flex;gap:10px;align-items:center;font-size:12px;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--muted);
+    background:rgba(255,255,255,.04);border:1px solid var(--line);
+    padding:8px 12px;border-radius:999px;
+  }
+  h1{font-size:clamp(30px,4.2vw,48px);line-height:1.1;margin:18px 0 8px;letter-spacing:-.02em}
+  h1 .accent{background:linear-gradient(90deg,var(--tech),var(--engine));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .lede{color:var(--muted);max-width:820px;font-size:17px}
+  .hero-meta{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}
+  .pill{display:inline-flex;gap:8px;align-items:center;padding:6px 12px;border-radius:999px;
+    border:1px solid var(--line);background:rgba(255,255,255,.03);font-size:12px;color:var(--muted)}
+  .pill .dot{width:8px;height:8px;border-radius:50%}
+  .dot.tech{background:var(--tech)}
+  .dot.engine{background:var(--engine)}
+  .dot.gov{background:var(--gov)}
+  .dot.spec{background:var(--soft)}
+
+  nav.toc{
+    display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:28px 0 8px;
+  }
+  nav.toc a{
+    display:block;padding:12px 14px;border:1px solid var(--line);border-radius:12px;
+    background:var(--panel);color:var(--text);font-size:13px;
+  }
+  nav.toc a:hover{border-color:var(--accent)}
+  @media(max-width:780px){nav.toc{grid-template-columns:repeat(2,1fr)}}
+
+  section{margin-top:56px}
+  section h2{
+    font-size:clamp(22px,2.6vw,30px);margin:0 0 8px;letter-spacing:-.01em;
+    display:flex;align-items:center;gap:14px;
+  }
+  section h2 .num{
+    display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;
+    border-radius:10px;background:rgba(124,240,194,.12);color:var(--accent);
+    border:1px solid rgba(124,240,194,.35);font-size:14px;font-weight:700;
+  }
+  section .sub{color:var(--muted);max-width:880px;margin-bottom:22px}
+
+  /* 3 capas */
+  .layers{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+  @media(max-width:920px){.layers{grid-template-columns:1fr}}
+  .layer{
+    position:relative;padding:24px;border-radius:var(--radius);border:1px solid var(--line);
+    background:linear-gradient(180deg,var(--panel),var(--panel-2));
+    overflow:hidden;
+  }
+  .layer::before{
+    content:"";position:absolute;inset:0 0 auto 0;height:4px;
+  }
+  .layer.tech::before{background:linear-gradient(90deg,var(--tech),transparent)}
+  .layer.engine::before{background:linear-gradient(90deg,var(--engine),transparent)}
+  .layer.gov::before{background:linear-gradient(90deg,var(--gov),transparent)}
+  .layer h3{margin:6px 0 8px;font-size:18px}
+  .layer p{margin:0;color:var(--muted);font-size:14px}
+  .layer .tag{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+  .layer ul{margin:14px 0 0;padding-left:18px;color:var(--muted);font-size:13.5px}
+  .layer li{margin:4px 0}
+
+  /* Flujo lógico */
+  .flow{
+    display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:8px;
+  }
+  @media(max-width:920px){.flow{grid-template-columns:1fr}}
+  .step{
+    position:relative;padding:16px 14px;border-radius:12px;border:1px solid var(--line);
+    background:var(--panel);font-size:13.5px;color:var(--text);
+  }
+  .step b{display:block;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+  .step::after{
+    content:"→";position:absolute;right:-14px;top:50%;transform:translateY(-50%);
+    color:var(--muted);font-weight:700;
+  }
+  @media(max-width:920px){.step::after{content:"↓";right:50%;top:auto;bottom:-18px;transform:translateX(50%)}}
+  .step:last-child::after{content:""}
+
+  /* EPIC card */
+  .epic{
+    margin-top:8px;padding:28px;border-radius:18px;border:1px solid var(--line);
+    background:
+      radial-gradient(600px 220px at 100% 0%, rgba(124,240,194,.12), transparent 60%),
+      linear-gradient(180deg,var(--panel),var(--panel-2));
+    box-shadow:var(--shadow);
+  }
+  .epic-head{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .epic-head .id{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--accent);font-size:13px}
+  .epic-head .title{font-size:22px;font-weight:700}
+  .epic-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:24px;margin-top:18px}
+  @media(max-width:920px){.epic-grid{grid-template-columns:1fr}}
+  .epic-grid h4{margin:0 0 10px;font-size:13px;color:var(--muted);letter-spacing:.14em;text-transform:uppercase}
+  .epic-grid p{margin:0 0 10px;color:var(--text);font-size:14.5px}
+  .epic-grid .box{border:1px solid var(--line);border-radius:12px;padding:16px;background:rgba(255,255,255,.02)}
+  .kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px}
+  .kpi div{border:1px solid var(--line);background:rgba(255,255,255,.02);padding:12px;border-radius:10px}
+  .kpi b{display:block;font-size:18px}
+  .kpi span{color:var(--muted);font-size:12px}
+
+  /* Issue cards */
+  .cards{display:grid;grid-template-columns:repeat(2,1fr);gap:18px}
+  @media(max-width:920px){.cards{grid-template-columns:1fr}}
+  .card{
+    position:relative;padding:22px;border-radius:16px;border:1px solid var(--line);
+    background:linear-gradient(180deg,var(--panel),var(--panel-2));
+    overflow:hidden;transition:transform .2s ease, border-color .2s ease;
+  }
+  .card:hover{transform:translateY(-2px);border-color:var(--accent)}
+  .card .top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px}
+  .card .id{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:var(--muted)}
+  .card .role{
+    font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+    padding:4px 10px;border-radius:999px;border:1px solid var(--line);color:var(--muted);
+  }
+  .card.tech .role{color:var(--tech);border-color:rgba(90,169,255,.4)}
+  .card.engine .role{color:var(--engine);border-color:rgba(124,240,194,.4)}
+  .card.gov .role{color:var(--gov);border-color:rgba(245,180,84,.4)}
+  .card.spec .role{color:var(--soft);border-color:rgba(178,155,255,.4)}
+  .card h3{margin:6px 0 8px;font-size:18px}
+  .card .why{color:var(--muted);font-size:14px;margin:0 0 12px}
+  .card .meta{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
+  .card .meta .m{
+    border:1px solid var(--line);background:rgba(255,255,255,.02);
+    padding:10px 12px;border-radius:10px;font-size:13px
+  }
+  .card .meta .m b{display:block;font-size:11px;color:var(--muted);letter-spacing:.14em;text-transform:uppercase;margin-bottom:4px}
+  .card .ribbon{
+    position:absolute;top:0;right:0;padding:6px 12px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+    border-bottom-left-radius:12px;border:1px solid var(--line);border-top:0;border-right:0;color:var(--muted)
+  }
+  .card.tech .ribbon{background:rgba(90,169,255,.12);color:var(--tech)}
+  .card.engine .ribbon{background:rgba(124,240,194,.12);color:var(--engine)}
+  .card.gov .ribbon{background:rgba(245,180,84,.12);color:var(--gov)}
+  .card.spec .ribbon{background:rgba(178,155,255,.12);color:var(--soft)}
+
+  /* lista compacta dentro de tarjeta */
+  .ck{margin:8px 0 0;padding:0;list-style:none;display:grid;gap:6px}
+  .ck li{position:relative;padding-left:22px;color:var(--muted);font-size:13.5px}
+  .ck li::before{
+    content:"";position:absolute;left:0;top:6px;width:14px;height:14px;border-radius:4px;
+    border:1px solid var(--line);background:rgba(255,255,255,.04)
+  }
+  .ck li::after{
+    content:"";position:absolute;left:3px;top:9px;width:8px;height:4px;border:2px solid var(--accent);
+    border-top:0;border-right:0;transform:rotate(-45deg);opacity:.85
+  }
+
+  /* ciclo semanal */
+  .week{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-top:8px}
+  @media(max-width:920px){.week{grid-template-columns:repeat(2,1fr)}}
+  .week .d{
+    border:1px solid var(--line);border-radius:12px;padding:14px;background:var(--panel);
+  }
+  .week .d b{display:block;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+  .week .d span{font-size:13.5px;color:var(--text)}
+
+  /* problemas */
+  .probs{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:8px}
+  @media(max-width:920px){.probs{grid-template-columns:1fr}}
+  .prob{border:1px solid var(--line);background:linear-gradient(180deg,#1a1230,#15102a);
+    border-radius:14px;padding:18px}
+  .prob h4{margin:0 0 6px;color:var(--danger);font-size:15px}
+  .prob p{margin:0;color:var(--muted);font-size:14px}
+
+  /* leyenda */
+  .legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+  .legend .pill b{color:var(--text);font-weight:600;margin-right:4px}
+
+  footer{margin-top:64px;color:var(--muted);font-size:12px;text-align:center}
+  .quote{
+    margin:18px 0 0;padding:18px 20px;border-left:3px solid var(--accent);
+    background:rgba(124,240,194,.06);border-radius:0 12px 12px 0;color:var(--text);font-size:15px
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <span class="eyebrow">Growth OS · 90 días · Marketing 2026</span>
+  <h1>ColombiaTours <span class="accent">Growth Operating System 2026</span></h1>
+  <p class="lede">No es una estrategia de SEO suelta. Es un sistema operativo de crecimiento con tres capas: <b>base técnica sana</b>, <b>motor de ejecución 90 días</b> y <b>gobernanza de atribución y datos</b>. Esta infografía explica el modelo y cada issue clave para alinear al equipo de marketing.</p>
+  <div class="hero-meta">
+    <span class="pill"><span class="dot tech"></span>Capa 1 · Salud técnica pre-scale</span>
+    <span class="pill"><span class="dot engine"></span>Capa 2 · Motor de crecimiento 90D</span>
+    <span class="pill"><span class="dot gov"></span>Capa 3 · Gobernanza y atribución</span>
+    <span class="pill"><span class="dot spec"></span>SPEC canónico</span>
+  </div>
+  <nav class="toc">
+    <a href="#modelo">1 · El modelo en 3 capas</a>
+    <a href="#flujo">2 · Flujo lógico</a>
+    <a href="#epic">3 · EPIC #310 (vista general)</a>
+    <a href="#issues">4 · Issues clave</a>
+    <a href="#ciclo">5 · Ciclo semanal</a>
+    <a href="#errores">6 · Qué evitamos</a>
+    <a href="#mensaje">7 · Mensaje al equipo</a>
+    <a href="#leyenda">8 · Leyenda</a>
+  </nav>
+</header>
+
+<!-- 1. Modelo en 3 capas -->
+<section id="modelo">
+  <h2><span class="num">1</span>El modelo en 3 capas</h2>
+  <p class="sub">El Growth OS organiza el crecimiento como un sistema, no como una lista de tareas. Cada capa tiene un objetivo distinto y orden de prioridad: primero base, luego ejecución, y en paralelo gobernanza.</p>
+  <div class="layers">
+    <div class="layer tech">
+      <span class="tag">Capa 1 · Pre-scale</span>
+      <h3>Salud técnica</h3>
+      <p>Asegurar que el sitio pueda ser <b>rastreado, indexado, medido y entendido</b> por Google y por LLMs antes de invertir más fuerte en contenido o campañas.</p>
+      <ul>
+        <li>Crawlabilidad e indexación</li>
+        <li>Core Web Vitals y rendimiento</li>
+        <li>Schema, sitemap, hreflang</li>
+        <li>Accesibilidad técnica (WCAG AA)</li>
+      </ul>
+    </div>
+    <div class="layer engine">
+      <span class="tag">Capa 2 · Ejecución 90 días</span>
+      <h3>Motor de crecimiento</h3>
+      <p>Frentes operativos del milestone <b>ColombiaTours Growth OS 90D</b>: SEO/GEO, contenido, conversión, medición, automatización, experimentos y reporting.</p>
+      <ul>
+        <li>Contenido y autoridad temática</li>
+        <li>GEO / visibilidad en LLMs</li>
+        <li>CRO y embudos de conversión</li>
+        <li>Automatización y reporting</li>
+      </ul>
+    </div>
+    <div class="layer gov">
+      <span class="tag">Capa 3 · Gobernanza</span>
+      <h3>Atribución y datos</h3>
+      <p>Reglas claras de privacidad, consentimiento y atribución. Permite medir bien <b>sin riesgo legal</b> y sin mezclar tráctica con decisiones de inversión.</p>
+      <ul>
+        <li>Política de privacidad y consentimiento</li>
+        <li>Modelo de atribución acordado</li>
+        <li>Calidad y custodia de datos</li>
+        <li>Decisiones de inversión por canal</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 2. Flujo lógico -->
+<section id="flujo">
+  <h2><span class="num">2</span>Flujo lógico del Growth OS</h2>
+  <p class="sub">La lógica correcta para evitar invertir sobre una base débil. Cada paso desbloquea al siguiente.</p>
+  <div class="flow">
+    <div class="step"><b>Paso 1</b>Base técnica sana</div>
+    <div class="step"><b>Paso 2</b>Contenido y GEO escalables</div>
+    <div class="step"><b>Paso 3</b>Conversión y tracking confiables</div>
+    <div class="step"><b>Paso 4</b>Atribución gobernada</div>
+    <div class="step"><b>Paso 5</b>Decisiones semanales de crecimiento</div>
+  </div>
+</section>
+
+<!-- 3. EPIC #310 vista general -->
+<section id="epic">
+  <h2><span class="num">3</span>EPIC #310 · Vista general del Growth OS</h2>
+  <p class="sub">El epic principal es la <b>visión completa del Growth OS 2026</b>. No es un proyecto de SEO; es el contenedor estratégico de todo el sistema operativo de crecimiento.</p>
+
+  <div class="epic">
+    <div class="epic-head">
+      <span class="id">#310</span>
+      <span class="title">EPIC: ColombiaTours Growth Operating System 2026</span>
+      <span class="pill"><span class="dot engine"></span>Milestone · Growth OS 90D</span>
+    </div>
+
+    <div class="epic-grid">
+      <div>
+        <h4>Qué es</h4>
+        <p>El epic limpio que reemplaza el alcance anterior. Ahora representa la vista completa del modelo, con frontera explícita frente a #293 (solo técnica) y #322 (dependencia externa de atribución).</p>
+
+        <h4>Qué incluye</h4>
+        <p>SPEC canónico <b>#337</b>, gate de privacidad <b>#336</b>, técnica pre-scale <b>#293</b>, dependencia de atribución <b>#322</b>, y los bloques ejecutables <b>#311–#321</b> y <b>#329–#335</b>.</p>
+
+        <h4>Qué resuelve</h4>
+        <p>Convierte marketing en un proceso medible. Da a la operación un único <b>tablero de 90 días</b> para alinear contenido, conversión, medición y atribución.</p>
+      </div>
+      <div class="box">
+        <h4>Estructura</h4>
+        <p style="font-size:13.5px;color:var(--muted);margin:0 0 10px">
+          <b style="color:var(--text)">EPIC #310</b> → SPEC #337 (verdad) · Gate #336 (gobernanza) · Técnica #293 · Atribución externa #322 · Ejecución #311–#321 · Soporte #329–#335
+        </p>
+        <h4 style="margin-top:14px">Indicadores macro</h4>
+        <div class="kpi">
+          <div><b>3</b><span>capas operativas</span></div>
+          <div><b>90</b><span>días por ciclo</span></div>
+          <div><b>1</b><span>SPEC canónico</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 4. Issues clave -->
+<section id="issues">
+  <h2><span class="num">4</span>Issues clave a profundidad</h2>
+  <p class="sub">Mismo modelo, distintas piezas. Cada tarjeta explica <b>qué es</b>, <b>por qué importa</b> y <b>cómo encaja</b> en el Growth OS para que el equipo de marketing lo entienda en una sola pasada.</p>
+
+  <div class="cards">
+
+    <!-- SPEC 337 -->
+    <article class="card spec">
+      <div class="ribbon">SPEC canónico</div>
+      <div class="top">
+        <span class="id">#337</span>
+        <span class="role">Fuente de verdad</span>
+      </div>
+      <h3>SPEC: ColombiaTours Growth Operating System 2026</h3>
+      <p class="why">Documento canónico del modelo. Cuando haya dudas sobre alcance, prioridades o frontera entre issues, este SPEC manda. Antes existían specs locales — ahora quedan como stubs y todo apunta aquí.</p>
+      <ul class="ck">
+        <li>Define las 3 capas: técnica, motor 90D, gobernanza.</li>
+        <li>Establece dependencias entre #310, #293, #322 y #336.</li>
+        <li>Es la referencia que cita cada issue ejecutable.</li>
+      </ul>
+      <div class="meta">
+        <div class="m"><b>Rol</b>Estrategia y alcance</div>
+        <div class="m"><b>Vive en</b>GitHub (canónico)</div>
+      </div>
+    </article>
+
+    <!-- 293 -->
+    <article class="card tech">
+      <div class="ribbon">Capa 1 · Técnica</div>
+      <div class="top">
+        <span class="id">#293</span>
+        <span class="role">Salud técnica pre-scale</span>
+      </div>
+      <h3>Pre-scale SEO/GEO technical health</h3>
+      <p class="why">No es “todo SEO”. Es la <b>frontera técnica</b>: dejar el sitio rastreable, indexable, rápido y entendible por LLMs antes de escalar contenido y campañas. Sin esta capa, lo demás se desperdicia.</p>
+      <ul class="ck">
+        <li>Crawl, indexación, sitemap y robots.</li>
+        <li>Core Web Vitals y rendimiento.</li>
+        <li>Schema, datos estructurados y GEO básico.</li>
+      </ul>
+      <div class="meta">
+        <div class="m"><b>Bloquea a</b>Capas 2 y 3</div>
+        <div class="m"><b>Riesgo si se omite</b>Inversión sobre base débil</div>
+      </div>
+    </article>
+
+    <!-- 336 -->
+    <article class="card gov">
+      <div class="ribbon">Capa 3 · Gobernanza</div>
+      <div class="top">
+        <span class="id">#336</span>
+        <span class="role">Privacy & data governance gate</span>
+      </div>
+      <h3>Attribution privacy and data governance gate</h3>
+      <p class="why">Es un <b>gate</b>, no burocracia. Impide avanzar en atribución sin reglas claras de privacidad, consentimiento y custodia de datos. Protege al negocio y permite medir bien.</p>
+      <ul class="ck">
+        <li>Política de consentimiento y bases legales.</li>
+        <li>Inventario de datos y propósito de uso.</li>
+        <li>Reglas mínimas para activar #322.</li>
+      </ul>
+      <div class="meta">
+        <div class="m"><b>Habilita</b>#322 (atribución)</div>
+        <div class="m"><b>Naturaleza</b>Gate de control</div>
+      </div>
+    </article>
+
+    <!-- 322 -->
+    <article class="card gov">
+      <div class="ribbon">Dependencia externa</div>
+      <div class="top">
+        <span class="id">#322</span>
+        <span class="role">Atribución (externa)</span>
+      </div>
+      <h3>Meta · Chatwoot · Conversiones &amp; atribución</h3>
+      <p class="why">Ya <b>no se duplica como child de #310</b>. Funciona como dependencia externa porque toca datos, privacidad y operación comercial, no solo marketing. Solo avanza cuando #336 está aprobado.</p>
+      <ul class="ck">
+        <li>Conversiones de Meta y Chatwoot conectadas.</li>
+        <li>Modelo de atribución acordado por canal.</li>
+        <li>Decisiones de inversión basadas en datos gobernados.</li>
+      </ul>
+      <div class="meta">
+        <div class="m"><b>Depende de</b>#336</div>
+        <div class="m"><b>Alimenta</b>Decisiones semanales</div>
+      </div>
+    </article>
+
+    <!-- 311-321 grupo -->
+    <article class="card engine">
+      <div class="ribbon">Capa 2 · Motor 90D</div>
+      <div class="top">
+        <span class="id">#311 — #321</span>
+        <span class="role">Bloques ejecutables</span>
+      </div>
+      <h3>Frentes operativos de crecimiento</h3>
+      <p class="why">Es el corazón del milestone <b>ColombiaTours Growth OS 90D</b>. Son los entregables semanales que producen contenido, autoridad, conversiones y experimentos. Aquí se ejecuta marketing.</p>
+      <ul class="ck">
+        <li>SEO/GEO de páginas comerciales y editoriales.</li>
+        <li>Producción de contenido y autoridad temática.</li>
+        <li>CRO en embudos clave y formularios.</li>
+        <li>Experimentos y aprendizajes documentados.</li>
+      </ul>
+      <div class="meta">
+        <div class="m"><b>Bloqueado por</b>#293 (técnica)</div>
+        <div class="m"><b>Cadencia</b>Semanal · 90 días</div>
+      </div>
+    </article>
+
+    <!-- 329-335 grupo -->
+    <article class="card engine">
+      <div class="ribbon">Capa 2 · Soporte 90D</div>
+      <div class="top">
+        <span class="id">#329 — #335</span>
+        <span class="role">Soporte y medición</span>
+      </div>
+      <h3>Medición, automatización y reporting</h3>
+      <p class="why">Las piezas que sostienen al motor: tracking confiable, automatizaciones operativas y reporting semanal. Sin esta franja, el motor #311–#321 ejecuta a ciegas.</p>
+      <ul class="ck">
+        <li>Tracking, eventos y QA de medición.</li>
+        <li>Automatizaciones de leads y handoff a ventas.</li>
+        <li>Reporting semanal con señales accionables.</li>
+      </ul>
+      <div class="meta">
+        <div class="m"><b>Conecta con</b>#322 (atribución)</div>
+        <div class="m"><b>Salida</b>Tablero semanal</div>
+      </div>
+    </article>
+
+  </div>
+</section>
+
+<!-- 5. Ciclo semanal -->
+<section id="ciclo">
+  <h2><span class="num">5</span>Ciclo semanal de operación</h2>
+  <p class="sub">Cada semana, marketing revisa estos cinco frentes en este orden. Si algo se rompe arriba, no se invierte abajo.</p>
+  <div class="week">
+    <div class="d"><b>Lunes</b><span>Salud técnica del sitio (crawl, vitals, errores).</span></div>
+    <div class="d"><b>Martes</b><span>Producción de contenido y señales GEO.</span></div>
+    <div class="d"><b>Miércoles</b><span>Conversiones, embudos y QA de medición.</span></div>
+    <div class="d"><b>Jueves</b><span>Aprendizajes y bloqueos de datos / atribución.</span></div>
+    <div class="d"><b>Viernes</b><span>Decisiones de inversión y plan de la próxima semana.</span></div>
+  </div>
+</section>
+
+<!-- 6. Qué evitamos -->
+<section id="errores">
+  <h2><span class="num">6</span>Tres problemas que este modelo evita</h2>
+  <p class="sub">El equipo debe entender que el Growth OS existe precisamente para no repetir estos errores.</p>
+  <div class="probs">
+    <div class="prob">
+      <h4>1 · Contenido sin base técnica</h4>
+      <p>Producir páginas y campañas cuando el sitio aún no es rastreable, indexable o rápido. Inversión que no se capitaliza.</p>
+    </div>
+    <div class="prob">
+      <h4>2 · Medir sin gobernanza</h4>
+      <p>Activar conversiones y atribución sin política de privacidad ni consentimiento. Riesgo legal y datos no confiables.</p>
+    </div>
+    <div class="prob">
+      <h4>3 · Iniciativas desconectadas</h4>
+      <p>Muchos frentes sueltos sin un milestone común. Imposible priorizar, comparar resultados o aprender entre semanas.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 7. Mensaje al equipo -->
+<section id="mensaje">
+  <h2><span class="num">7</span>Mensaje para el equipo de marketing</h2>
+  <p class="sub">Una forma corta de explicar el modelo en una reunión de 30–40 minutos.</p>
+  <div class="quote">
+    No estamos creando solo una estrategia de SEO. Estamos montando un <b>sistema operativo de crecimiento</b> para ColombiaTours: primero dejamos la base técnica lista, luego ejecutamos un ciclo de 90 días con contenido, conversión y medición, y en paralelo protegemos la atribución y los datos con un gate de privacidad.
+  </div>
+  <div class="quote" style="border-left-color:var(--gov);background:rgba(245,180,84,.08)">
+    Cierre con el equipo: <b>“Este Growth OS convierte marketing en un proceso medible: primero aseguramos la base, luego ejecutamos el milestone de 90 días, y finalmente usamos atribución gobernada para decidir qué escalar.”</b>
+  </div>
+</section>
+
+<!-- 8. Leyenda -->
+<section id="leyenda">
+  <h2><span class="num">8</span>Leyenda visual</h2>
+  <p class="sub">Cómo leer los colores y etiquetas en esta infografía.</p>
+  <div class="legend">
+    <span class="pill"><span class="dot tech"></span><b>Azul</b> Capa técnica · #293</span>
+    <span class="pill"><span class="dot engine"></span><b>Teal</b> Motor 90D · #310 · #311–#321 · #329–#335</span>
+    <span class="pill"><span class="dot gov"></span><b>Ámbar</b> Gobernanza · #336 · #322</span>
+    <span class="pill"><span class="dot spec"></span><b>Lila</b> SPEC canónico · #337</span>
+  </div>
+</section>
+
+<footer>
+  ColombiaTours · Growth Operating System 2026 — Infografía ejecutiva para alineación con marketing.
+</footer>
+
+</div>
+</body>
+</html>
