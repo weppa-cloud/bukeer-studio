@@ -7,15 +7,32 @@ const KNOWN_CITIES = [
   'San Andres',
   'San Andrés',
   'Santa Marta',
+  'Bahía Concha',
+  'Bahia Concha',
+  'Tayrona',
+  'Taganga',
+  'Minca',
   'Medellin',
   'Medellín',
   'Cartagena',
+  'Barú',
+  'Baru',
+  'Islas del Rosario',
+  'Playa Blanca',
+  'Playa Tranquila',
   'Bogota',
   'Bogotá',
+  'Nemocón',
+  'Nemocon',
   'Pereira',
   'Salento',
+  'Filandia',
+  'Valle del Cocora',
+  'Eje Cafetero',
   'Guatape',
   'Guatapé',
+  'Jardín',
+  'Jardin',
   'Barichara',
   'Zipaquira',
   'Zipaquirá',
@@ -47,7 +64,10 @@ function normalize(value: string): string {
   return value
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase();
+    .toLowerCase()
+    .replace(/\b(de indias|d\.c\.|dc)\b/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
 }
 
 function dedupePreservingOrder(values: string[]): string[] {
@@ -71,8 +91,15 @@ function extractCitiesFromText(input: string): string[] {
   const found: Array<{ city: string; pos: number }> = [];
 
   for (const city of KNOWN_CITIES) {
-    const pos = normalizedText.indexOf(normalize(city));
-    if (pos >= 0) found.push({ city, pos });
+    const normalizedCity = normalize(city);
+    if (normalizedCity === 'jardin' && /\bjardin botanico\b/.test(normalizedText)) {
+      continue;
+    }
+    const escaped = normalizedCity.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const match = normalizedText.match(new RegExp(`(^|[^a-z0-9])${escaped}([^a-z0-9]|$)`));
+    if (match?.index !== undefined) {
+      found.push({ city, pos: match.index });
+    }
   }
 
   found.sort((a, b) => a.pos - b.pos);
@@ -85,17 +112,17 @@ export function getPackageCircuitStops({
   destination,
   fallbackStops = [],
 }: PackageCircuitInput): string[] {
+  const fromDestination = extractCitiesFromText(destination || '');
+  if (fromDestination.length > 0) return fromDestination;
+
+  const fromName = extractCitiesFromText(name || '');
+  if (fromName.length > 0) return fromName;
+
   const fromItinerary = dedupePreservingOrder(
     (itineraryItems || [])
       .flatMap((item) => extractCitiesFromText(`${item.title || ''} ${item.description || ''}`))
   );
   if (fromItinerary.length > 0) return fromItinerary;
-
-  const fromName = extractCitiesFromText(name || '');
-  if (fromName.length > 0) return fromName;
-
-  const fromDestination = extractCitiesFromText(destination || '');
-  if (fromDestination.length > 0) return fromDestination;
 
   return dedupePreservingOrder(fallbackStops);
 }
