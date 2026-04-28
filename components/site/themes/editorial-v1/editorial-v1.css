@@ -1835,10 +1835,138 @@
   color: var(--c-ink, #152029);
 }
 
+/* ============ Features Grid ============ */
+:where([data-template-set="editorial-v1"]) .ev-features-grid {
+  background: var(--c-surface);
+}
+
+:where([data-template-set="editorial-v1"]) .features-grid-layout {
+  display: grid;
+  grid-template-columns: minmax(520px, 0.82fr) minmax(420px, 0.72fr);
+  gap: clamp(28px, 3.5vw, 48px);
+  align-items: center;
+  justify-content: center;
+}
+
+:where([data-template-set="editorial-v1"]) .features-grid-copy {
+  display: grid;
+  gap: clamp(28px, 3vw, 44px);
+  width: min(100%, 860px);
+  justify-self: end;
+}
+
+:where([data-template-set="editorial-v1"]) .features-grid-head {
+  max-width: 560px;
+}
+
+:where([data-template-set="editorial-v1"]) .features-grid-head .headline-md {
+  margin: 0;
+}
+
+:where([data-template-set="editorial-v1"]) .features-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 34px 42px;
+}
+
+:where([data-template-set="editorial-v1"]) .feature-card {
+  display: grid;
+  gap: 8px;
+}
+
+:where([data-template-set="editorial-v1"]) .feature-card-icon {
+  color: var(--c-ink);
+  display: inline-flex;
+  line-height: 1;
+}
+
+:where([data-template-set="editorial-v1"]) .feature-card .title-lg {
+  margin: 0;
+}
+
+:where([data-template-set="editorial-v1"]) .feature-card .body-md {
+  margin: 0;
+  color: var(--c-muted);
+}
+
+:where([data-template-set="editorial-v1"]) .features-grid-media {
+  position: relative;
+  min-height: 520px;
+  overflow: hidden;
+  border-radius: 8px;
+  justify-self: start;
+}
+
+:where([data-template-set="editorial-v1"]) .features-grid-img {
+  width: 100%;
+  height: 100%;
+  min-height: 520px;
+  display: block;
+  object-fit: cover;
+}
+
+@media (max-width: 768px) {
+  :where([data-template-set="editorial-v1"]) .features-grid-layout {
+    grid-template-columns: 1fr;
+  }
+
+  :where([data-template-set="editorial-v1"]) .features-grid-copy {
+    gap: 28px;
+  }
+
+  :where([data-template-set="editorial-v1"]) .features-grid {
+    grid-template-columns: 1fr;
+  }
+
+  :where([data-template-set="editorial-v1"]) .features-grid-media,
+  :where([data-template-set="editorial-v1"]) .features-grid-img {
+    min-height: 280px;
+  }
+}
+
 /* ============ Testimonials ============ */
 :where([data-template-set="editorial-v1"]) .ev-testimonials {
   background: var(--c-surface);
 }
+
+:where([data-template-set="editorial-v1"]) .ev-testimonials-carousel .tc-track {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
+  gap: 20px;
+}
+
+:where([data-template-set="editorial-v1"]) .ev-testimonials-carousel .tc-track--videos {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(360px, 31vw);
+  grid-template-columns: none;
+  gap: 20px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: 2px;
+  padding: 0 2px 12px;
+}
+
+:where([data-template-set="editorial-v1"]) .ev-testimonials-carousel .tc-track::-webkit-scrollbar {
+  height: 8px;
+}
+
+:where([data-template-set="editorial-v1"]) .ev-testimonials-carousel .tc-track::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--c-ink) 20%, transparent);
+  border-radius: 999px;
+}
+
+:where([data-template-set="editorial-v1"]) .ev-testimonials-carousel .tc-card {
+  scroll-snap-align: start;
+}
+
+@media (max-width: 768px) {
+  :where([data-template-set="editorial-v1"]) .ev-testimonials-carousel .tc-track--videos {
+    grid-auto-columns: minmax(292px, 86vw);
+  }
+}
+
 :where([data-template-set="editorial-v1"]) .testi {
   display: grid;
   grid-template-columns: 1.3fr 1fr;

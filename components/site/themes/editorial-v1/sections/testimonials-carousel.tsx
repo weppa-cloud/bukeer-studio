@@ -177,6 +177,7 @@ export function TestimonialsCarouselSection({
 
   const title = localizeEditorialText(website, content.title?.trim() || '');
   const subtitle = localizeEditorialText(website, content.subtitle?.trim() || '');
+  const hasVideos = items.some((item) => !!item.youtubeUrl);
 
   return (
     <section
@@ -195,13 +196,7 @@ export function TestimonialsCarouselSection({
           </header>
         ) : null}
 
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 360px), 1fr))',
-            gap: 20,
-          }}
-        >
+        <div className={hasVideos ? 'tc-track tc-track--videos' : 'tc-track'}>
           {items.map((item, i) => (
             <ReviewCard key={`${item.name}-${i}`} item={item} />
           ))}

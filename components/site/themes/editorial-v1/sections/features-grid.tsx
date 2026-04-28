@@ -6,13 +6,16 @@
  * Unknown icon names fall back to `Icons.shield`.
  *
  * Content contract:
- *   title?:   string
- *   items:    Array<{ icon: string; title: string; description: string }>
+ *   title?:    string
+ *   image?:    string
+ *   imageAlt?: string
+ *   items:     Array<{ icon: string; title: string; description: string }>
  *
  * Server component. No state, no interactivity.
  */
 
 import type { ReactElement } from 'react';
+import Image from 'next/image';
 
 import type { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 import { localizeEditorialText } from '../i18n';
@@ -32,6 +35,8 @@ interface FeatureItem {
 
 interface FeaturesGridContent {
   title?: string;
+  image?: string;
+  imageAlt?: string;
   items?: FeatureItem[];
 }
 
@@ -108,6 +113,8 @@ export function FeaturesGridSection({
   if (items.length === 0) return null;
 
   const title = localizeEditorialText(website, content.title?.trim() || '');
+  const image = content.image?.trim() || '';
+  const imageAlt = localizeEditorialText(website, content.imageAlt?.trim() || title);
 
   return (
     <section
@@ -115,33 +122,56 @@ export function FeaturesGridSection({
       data-screen-label="FeaturesGrid"
     >
       <div className="ev-container">
-        {title ? (
+        {title && !image ? (
           <div className="ev-section-head">
             <h2 className="headline-md" dangerouslySetInnerHTML={editorialHtml(title)} />
           </div>
         ) : null}
 
-        <div className="features-grid">
-          {items.map((item, i) => {
-            const iconKey = resolveIcon(item.icon);
-            const IconFn = Icons[iconKey];
-            const itemTitle = localizeEditorialText(website, item.title?.trim() || '');
-            const description = localizeEditorialText(website, item.description?.trim() || '');
-
-            return (
-              <div key={`${itemTitle}-${i}`} className="feature-card">
-                <span className="feature-card-icon" aria-hidden="true">
-                  {IconFn({ size: 28 })}
-                </span>
-                {itemTitle ? (
-                  <h3 className="title-lg" dangerouslySetInnerHTML={editorialHtml(itemTitle)} />
-                ) : null}
-                {description ? (
-                  <p className="body-md" dangerouslySetInnerHTML={editorialHtml(description)} />
-                ) : null}
+        <div className={image ? 'features-grid-layout' : undefined}>
+          <div className={image ? 'features-grid-copy' : undefined}>
+            {title && image ? (
+              <div className="features-grid-head">
+                <h2 className="headline-md" dangerouslySetInnerHTML={editorialHtml(title)} />
               </div>
-            );
-          })}
+            ) : null}
+
+            <div className="features-grid">
+              {items.map((item, i) => {
+                const iconKey = resolveIcon(item.icon);
+                const IconFn = Icons[iconKey];
+                const itemTitle = localizeEditorialText(website, item.title?.trim() || '');
+                const description = localizeEditorialText(website, item.description?.trim() || '');
+
+                return (
+                  <div key={`${itemTitle}-${i}`} className="feature-card">
+                    <span className="feature-card-icon" aria-hidden="true">
+                      {IconFn({ size: 28 })}
+                    </span>
+                    {itemTitle ? (
+                      <h3 className="title-lg" dangerouslySetInnerHTML={editorialHtml(itemTitle)} />
+                    ) : null}
+                    {description ? (
+                      <p className="body-md" dangerouslySetInnerHTML={editorialHtml(description)} />
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {image ? (
+            <div className="features-grid-media">
+              <Image
+                src={image}
+                alt={imageAlt}
+                width={720}
+                height={720}
+                className="features-grid-img"
+                sizes="(max-width: 768px) 100vw, 44vw"
+              />
+            </div>
+          ) : null}
         </div>
       </div>
     </section>

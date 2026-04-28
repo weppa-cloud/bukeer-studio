@@ -88,6 +88,8 @@ export const HeroContentSchema = z.object({
 export const FeaturesContentSchema = z.object({
   title: SafeTitle.optional(),
   subtitle: SafeString.optional(),
+  image: z.string().url().optional(),
+  imageAlt: LocalizableAltSchema.optional(),
   items: z.array(z.object({
     icon: z.string().max(50).optional(),
     title: SafeTitle,
