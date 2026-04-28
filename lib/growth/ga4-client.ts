@@ -103,9 +103,6 @@ function isFresh(fetchedAtRaw: string | null | undefined): boolean {
 
 async function loadGa4Integration(scope: Ga4TenantScope): Promise<Ga4IntegrationRow | null> {
   const admin = createSupabaseServiceRoleClient();
-  // TODO: wire live credentials via env — same `seo_integrations` table the
-  // SEO dashboard uses, scoped to provider='ga4'. Service-account fallback via
-  // GOOGLE_GA4_CREDENTIALS_JSON env when refresh_token absent.
   const { data, error } = await admin
     .from('seo_integrations')
     .select('account_id,website_id,property_id,refresh_token,access_token,access_token_expires_at')
@@ -179,7 +176,6 @@ export async function runGa4Report(input: Ga4ReportInput): Promise<Ga4ReportResu
 
   const integration = await loadGa4Integration(input);
   if (!integration?.property_id || !integration.refresh_token) {
-    // TODO: wire live credentials via env
     return {
       rows: [],
       metricHeaders: input.metrics,

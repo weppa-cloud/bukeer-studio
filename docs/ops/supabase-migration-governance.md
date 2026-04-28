@@ -106,6 +106,7 @@ providing the contracts, API implementation and verification evidence.
 | Capability | Canonical migration | Notes |
 |---|---|---|
 | Provider budget caps | `20260418000100_growth_ops_tables.sql` | Creates `seo_provider_usage`; verify Flutter has an equivalent or import it before applying Growth cache tables. |
+| Growth provider integrations | `20260428131601_seo_integrations_growth_contract.sql` | Creates `seo_integrations` and backfills GSC/GA4 from `seo_gsc_credentials`; required by Growth GSC/GA4 clients. |
 | Meta CAPI event log | `20260504110700_meta_conversion_events.sql` | Required by #322/#332 smoke. If missing in Flutter, mirror from Studio before applying tracking smoke. |
 | Funnel event ledger | `20260504110900_funnel_events.sql` | Required by WAFlow/Chatwoot/WhatsApp CTA tracking. |
 | Historical funnel seed | `20260504111000_funnel_events_backfill.sql` | Optional for production history; requires `funnel_events` and `meta_conversion_events`. |
@@ -119,6 +120,7 @@ Checked from Studio `dev` against local
 | Migration | Flutter status | Action |
 |---|---|---|
 | `20260418000100_growth_ops_tables.sql` | Mirrored locally, identical | Commit in Flutter migration branch before applying; required for `seo_provider_usage`. |
+| `20260428131601_seo_integrations_growth_contract.sql` | Mirrored locally, identical | Commit in Flutter migration branch before Growth ingestion; required by GSC/GA4 clients. |
 | `20260504110700_meta_conversion_events.sql` | Mirrored locally, identical | Commit in Flutter migration branch before #322/#332 smoke. |
 | `20260504110900_funnel_events.sql` | Present, identical | Can be included in Flutter migration PR. |
 | `20260504111000_funnel_events_backfill.sql` | Present, identical | Studio was aligned to Flutter's `extensions.digest(...)` form. |

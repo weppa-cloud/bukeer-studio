@@ -124,9 +124,6 @@ interface GscIntegrationRow {
 
 async function loadGscIntegration(scope: GscTenantScope): Promise<GscIntegrationRow | null> {
   const admin = createSupabaseServiceRoleClient();
-  // TODO: wire live credentials via env — table `seo_integrations` is the
-  // existing per-website OAuth ledger used by lib/seo. If absent, fall back to
-  // service-account JSON in env (GOOGLE_SEARCH_CONSOLE_CREDENTIALS_JSON).
   const { data, error } = await admin
     .from('seo_integrations')
     .select('account_id,website_id,refresh_token,access_token,access_token_expires_at,site_url')
@@ -210,7 +207,6 @@ export async function queryGscSearchAnalytics(input: GscQueryInput): Promise<Gsc
 
   const integration = await loadGscIntegration(input);
   if (!integration?.refresh_token || !integration.site_url) {
-    // TODO: wire live credentials via env — return typed mock so dashboard renders
     return {
       rows: [],
       fetchedAt: new Date().toISOString(),
