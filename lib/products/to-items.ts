@@ -41,6 +41,11 @@ function toFinitePositiveNumber(value: unknown): number | null {
   return null;
 }
 
+function toWholePositiveNumber(value: unknown): number | null {
+  const amount = toFinitePositiveNumber(value);
+  return amount === null ? null : Math.floor(amount);
+}
+
 function normalizeCurrency(value: unknown): string | null {
   if (typeof value !== 'string') return null;
   const code = value.trim().toUpperCase();
@@ -59,7 +64,7 @@ export function resolveLowestProductPrice(product: ProductData): ResolvedProduct
   if (packageVersion && typeof packageVersion === 'object') {
     const typed = packageVersion as ProductData['package_version'];
     const amount =
-      toFinitePositiveNumber((typed as ProductData['package_version'] & { price_per_person?: unknown })?.price_per_person)
+      toWholePositiveNumber((typed as ProductData['package_version'] & { price_per_person?: unknown })?.price_per_person)
       ?? toFinitePositiveNumber(typed?.total_price);
     if (amount !== null) {
       candidates.push({
@@ -75,7 +80,7 @@ export function resolveLowestProductPrice(product: ProductData): ResolvedProduct
       if (!version || typeof version !== 'object') continue;
       const typed = version as NonNullable<ProductData['package_versions']>[number];
       const amount =
-        toFinitePositiveNumber((typed as NonNullable<ProductData['package_versions']>[number] & { price_per_person?: unknown })?.price_per_person)
+        toWholePositiveNumber((typed as NonNullable<ProductData['package_versions']>[number] & { price_per_person?: unknown })?.price_per_person)
         ?? toFinitePositiveNumber(typed?.total_price);
       if (amount === null) continue;
       candidates.push({

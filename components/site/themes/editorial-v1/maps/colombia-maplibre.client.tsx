@@ -32,6 +32,7 @@ export interface ColombiaMapLibreProps {
   activePinId?: string | null;
   onPinClick?: (id: string) => void;
   onPinHover?: (id: string | null) => void;
+  routePath?: Array<[number, number]>;
   height?: string | number;
   ariaLabel?: string;
   showLabels?: boolean;
@@ -194,10 +195,19 @@ export function ColombiaMapLibre({
   activePinId = null,
   onPinClick,
   onPinHover,
+  routePath,
   height = 580,
   ariaLabel = 'Mapa interactivo de Colombia',
 }: ColombiaMapLibreProps) {
   const highlighted = useMemo(() => new Set(highlightedRegions), [highlightedRegions]);
+  const routeFeature = useMemo<GeoJSON.Feature<GeoJSON.LineString> | null>(() => {
+    if (!routePath || routePath.length < 2) return null;
+    return {
+      type: 'Feature',
+      geometry: { type: 'LineString', coordinates: routePath.map(([lng, lat]) => [lng, lat]) },
+      properties: {},
+    };
+  }, [routePath]);
 
   const handlePinClick = useCallback(
     (id: string) => onPinClick?.(id),
@@ -244,6 +254,38 @@ export function ColombiaMapLibre({
           <Layer {...colombiaFillLayer} />
           <Layer {...colombiaOutlineLayer} />
         </Source>
+
+        {routeFeature ? (
+          <Source id="package-route-line" type="geojson" data={routeFeature}>
+            <Layer
+              id="package-route-line-casing"
+              type="line"
+              paint={{
+                'line-color': '#ffffff',
+                'line-width': 6,
+                'line-opacity': 0.78,
+              }}
+              layout={{
+                'line-cap': 'round',
+                'line-join': 'round',
+              }}
+            />
+            <Layer
+              id="package-route-line-stroke"
+              type="line"
+              paint={{
+                'line-color': '#E8611A',
+                'line-width': 3,
+                'line-dasharray': [2, 1.4],
+                'line-opacity': 0.95,
+              }}
+              layout={{
+                'line-cap': 'round',
+                'line-join': 'round',
+              }}
+            />
+          </Source>
+        ) : null}
 
         {/* Destination pins */}
         {pins.map((pin) => {

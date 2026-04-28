@@ -336,7 +336,7 @@ async function enrichPackageCategoryPricing(items: ProductData[]): Promise<Produ
         ? row.price_per_person
         : Number(row.price_per_person);
       const pricePerPerson = Number.isFinite(pricePerPersonRaw) && pricePerPersonRaw > 0
-        ? pricePerPersonRaw
+        ? Math.floor(pricePerPersonRaw)
         : undefined;
 
       const version = {
@@ -683,7 +683,7 @@ export async function getProductPage(
       // paths. Overlay `package_kits` values when resolvable by itinerary link.
       try {
         const packageReader = supabaseService ?? supabase;
-        const kitFields = 'id, name, description, planner_id, program_highlights, program_inclusions, program_exclusions, program_gallery, cover_image_url, video_url, video_caption, translations';
+        const kitFields = 'id, name, description, destination, planner_id, program_highlights, program_inclusions, program_exclusions, program_gallery, cover_image_url, video_url, video_caption, translations';
         const byItinerary = await packageReader
           .from('package_kits')
           .select(kitFields)
@@ -722,6 +722,12 @@ export async function getProductPage(
         if (kit) {
           if (typeof kit.description === 'string') {
             product.description = kit.description;
+          }
+
+          const kitDestination = asOptionalString((kit as Record<string, unknown>).destination);
+          if (kitDestination) {
+            (product as ProductData & { destination?: string }).destination = kitDestination;
+            product.location = kitDestination;
           }
 
           const plannerId = asOptionalString((kit as Record<string, unknown>).planner_id);
@@ -772,7 +778,7 @@ export async function getProductPage(
                   const label = asOptionalString(row.version_label);
                   const notes = asOptionalString(row.pricing_notes);
                   const pricePerPersonRaw = typeof row.price_per_person === 'number' ? row.price_per_person : Number(row.price_per_person);
-                  const pricePerPerson = Number.isFinite(pricePerPersonRaw) && pricePerPersonRaw > 0 ? pricePerPersonRaw : undefined;
+                  const pricePerPerson = Number.isFinite(pricePerPersonRaw) && pricePerPersonRaw > 0 ? Math.floor(pricePerPersonRaw) : undefined;
                   if (!versionNumber || !totalPrice) return null;
                   return {
                     version_number: versionNumber,
@@ -1164,11 +1170,23 @@ export async function getProductPage(
               prod.package_day_media = packageDayMedia;
             }
 
+            const galleryProductIds = new Set(
+              itineraryRows
+                .filter((row) => isActivityLikeProductType(row.product_type))
+                .map((row) => asOptionalString(row.id_product))
+                .filter((id): id is string => Boolean(id))
+            );
+            const mediaFromGalleryItems = Array.from(
+              new Set(
+                Array.from(galleryProductIds)
+                  .flatMap((productId) => mediaByProductId.get(productId) ?? [])
+              )
+            );
             const mediaFromItems = Array.from(new Set(Array.from(mediaByProductId.values()).flat()));
             if (mediaFromItems.length > 0) {
               const hasCuratedGallery = Array.isArray(prod.program_gallery) && prod.program_gallery.length > 0;
-              if (!hasCuratedGallery) {
-                prod.program_gallery = mediaFromItems;
+              if (!hasCuratedGallery && mediaFromGalleryItems.length > 0) {
+                prod.program_gallery = mediaFromGalleryItems;
               }
               const existingImages = Array.isArray(prod.images) ? prod.images : [];
               const mergedImages = [...existingImages];

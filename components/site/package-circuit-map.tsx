@@ -1,15 +1,16 @@
 'use client';
 
 import { useMemo } from 'react';
-import { CircuitMap, type CircuitMapStop } from '@/components/site/circuit-map';
+import { RouteMap } from '@/components/ui/route-map';
+import { ColombiaMapStandalone } from '@/components/site/themes/editorial-v1/maps/colombia-map-standalone.client';
 import { trackEvent } from '@/lib/analytics/track';
 import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 import { useWebsiteLocale } from '@/lib/hooks/use-website-locale';
 
 /**
  * Public shape used by the package landing flow.
- * Kept for backwards compatibility with existing consumers; adapted to the
- * shared `<CircuitMap>` primitive inside this wrapper.
+ * Kept for backwards compatibility with existing consumers; rendered through
+ * the editorial Colombia MapLibre surface used by the Home explore map.
  */
 export interface PackageCircuitStop {
   city: string;
@@ -34,9 +35,8 @@ function orderByDay(stops: PackageCircuitStop[]): PackageCircuitStop[] {
 }
 
 /**
- * Adapts the package-specific stop shape (day-based ordering) to the shared
- * `<CircuitMap>` primitive. Zero behavioral regression — existing package
- * pages render identically.
+ * Adapts the package-specific stop shape (day-based ordering) to `<RouteMap>`
+ * while swapping the map surface for the editorial Home map renderer.
  */
 export function PackageCircuitMap({
   stops,
@@ -47,28 +47,45 @@ export function PackageCircuitMap({
   const text = getPublicUiExtraTextGetter(locale);
   const orderedStops = useMemo(() => orderByDay(stops), [stops]);
 
-  const circuitStops = useMemo<CircuitMapStop[]>(
+  const routePoints = useMemo(
     () =>
       orderedStops.map((stop, index) => ({
-        id: `${stop.city}-${stop.day ?? index + 1}`,
+        city: stop.city,
         lat: stop.lat,
         lng: stop.lng,
-        label: stop.city,
         order: typeof stop.day === 'number' ? stop.day : index + 1,
       })),
     [orderedStops]
   );
 
-  if (circuitStops.length === 0) {
+  if (routePoints.length === 0) {
     return null;
   }
 
   return (
     <section data-testid="section-package-circuit-map" className={className}>
       <h2 className="text-2xl font-bold mb-4">{text('packageCircuitMapTitle')}</h2>
-      <CircuitMap
-        stops={circuitStops}
-        onPinClick={(index) => {
+      <RouteMap
+        points={routePoints}
+        className="circuit-map w-full max-sm:aspect-[4/3]"
+        height={360}
+        numberedLabels
+        connectorStyle="dashed"
+        renderMap={({ points, routePath }) => (
+          <ColombiaMapStandalone
+            pins={points.map((point, index) => ({
+              id: `route-${index}`,
+              label: `${index + 1}. ${point.city}`,
+              lat: point.lat,
+              lng: point.lng,
+            }))}
+            routePath={routePath}
+            height={360}
+            ariaLabel={text('packageCircuitMapTitle')}
+            showLabels
+          />
+        )}
+        onPointClick={(_point, index) => {
           const stop = orderedStops[index];
           if (!stop) return;
           trackEvent('map_marker_click', {

@@ -44,6 +44,7 @@ yarn-error.log*
 .env*
 !.env.local.example
 !.dev.vars.example
+!.claude/mcp-servers/*/.env.example
 
 # MCP config — contains tokens, never commit
 .mcp.json

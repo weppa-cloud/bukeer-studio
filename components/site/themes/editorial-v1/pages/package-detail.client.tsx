@@ -1,6 +1,6 @@
 'use client';
 
-import { type ReactNode, useMemo, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { supabaseImageUrl } from '@/lib/images/supabase-transform';
@@ -11,7 +11,7 @@ import { sanitizeProductCopy } from '@/lib/products/normalize-product';
 import { formatPriceOrConsult } from '@/lib/products/format-price';
 import { convertCurrencyAmount } from '@/lib/site/currency';
 import { usePreferredCurrency } from '@/lib/site/use-preferred-currency';
-import { getPackageCircuitStops, withCoords } from '@/lib/products/package-circuit';
+import { getPackageCircuitStops, withCoords, type PackageCircuitStopWithCoords } from '@/lib/products/package-circuit';
 import { buildWhatsAppUrl } from '@/components/site/whatsapp-url';
 import { MediaLightbox } from '@/components/site/media-lightbox';
 import { ProductVideoHero } from '@/components/site/product-video-hero';
@@ -102,6 +102,10 @@ interface PackageVersionLike {
   services_snapshot_summary?: unknown;
   price_per_person?: unknown;
   is_base_version?: unknown;
+}
+
+interface PackageVersionOption extends ActivityOption {
+  price_per_person?: number;
 }
 
 interface PackageMediaCollection {
@@ -275,9 +279,11 @@ function resolvePackageMedia(product: ProductData): PackageMediaCollection {
     && !Array.isArray(packageDayMediaRaw)
     && Object.keys(packageDayMediaRaw as Record<string, unknown>).length > 0;
   programGalleryUrls.forEach(addGallery);
-  filterEditorialImageUrls(extractImageUrls(product.photos)).forEach(addGallery);
-  filterEditorialImageUrls(extractImageUrls(product.images)).forEach(addGallery);
-  filterEditorialImageUrls(extractImageUrls(product.image)).forEach(addGallery);
+  if (!hasCuratedPackageGallery) {
+    filterEditorialImageUrls(extractImageUrls(product.photos)).forEach(addGallery);
+    filterEditorialImageUrls(extractImageUrls(product.images)).forEach(addGallery);
+    filterEditorialImageUrls(extractImageUrls(product.image)).forEach(addGallery);
+  }
 
   const itinerary = Array.isArray(product.itinerary_items)
     ? (product.itinerary_items as Array<Record<string, unknown>>)
@@ -386,7 +392,7 @@ function resolveGroup(product: ProductData): string {
   return 'Privado o compartido';
 }
 
-function resolvePackageVersionOptions(product: ProductData): ActivityOption[] {
+function resolvePackageVersionOptions(product: ProductData): PackageVersionOption[] {
   const rawVersions = (product as ProductData & { package_versions?: unknown }).package_versions;
   if (!Array.isArray(rawVersions) || rawVersions.length === 0) return [];
 
@@ -398,6 +404,7 @@ function resolvePackageVersionOptions(product: ProductData): ActivityOption[] {
       const totalPrice = parseMaybeNumber(row.total_price);
       if (!versionNumber || !totalPrice || totalPrice <= 0) return null;
       const pax = parseMaybeNumber(row.passenger_count);
+      const pricePerPerson = parseMaybeNumber(row.price_per_person);
       const label = sanitizeProductCopy(row.version_label) || `Versión ${versionNumber}`;
       const summary = sanitizeProductCopy(row.services_snapshot_summary);
       const currency = sanitizeProductCopy(row.base_currency) || sanitizeProductCopy(product.currency) || 'COP';
@@ -405,12 +412,13 @@ function resolvePackageVersionOptions(product: ProductData): ActivityOption[] {
       const displayName = pax
         ? `${label} · ${pax} ${pax === 1 ? 'persona' : 'personas'}`
         : label;
-      const option: ActivityOption = {
+      const option: PackageVersionOption = {
         id,
         name: displayName,
         pricing_per: 'BOOKING',
         min_units: pax || undefined,
         max_units: pax || undefined,
+        price_per_person: pricePerPerson && pricePerPerson > 0 ? Math.floor(pricePerPerson) : undefined,
         prices: [
           {
             unit_type_code: 'PACKAGE_VERSION',
@@ -435,6 +443,38 @@ function resolvePackageVersionOptions(product: ProductData): ActivityOption[] {
   });
 }
 
+function getOptionPerPersonPrice(option: ActivityOption | null | undefined): number | null {
+  const explicitPerPerson = parseMaybeNumber((option as { price_per_person?: unknown } | null | undefined)?.price_per_person);
+  if (explicitPerPerson && explicitPerPerson > 0) return Math.floor(explicitPerPerson);
+
+  const total = parseMaybeNumber(option?.prices?.[0]?.price);
+  if (!total || total <= 0) return null;
+
+  const fixedPax = getOptionFixedPax(option);
+
+  if (!fixedPax || fixedPax <= 0) return total;
+  return total / fixedPax;
+}
+
+function getOptionFixedPax(option: ActivityOption | null | undefined): number | null {
+  return typeof option?.min_units === 'number'
+    && typeof option.max_units === 'number'
+    && option.min_units === option.max_units
+    ? option.min_units
+    : null;
+}
+
+function resolveCheapestPerPersonOption(options: ActivityOption[]): ActivityOption | null {
+  return options.reduce<ActivityOption | null>((best, current) => {
+    const currentPrice = getOptionPerPersonPrice(current);
+    if (currentPrice === null) return best;
+    if (!best) return current;
+
+    const bestPrice = getOptionPerPersonPrice(best);
+    return bestPrice === null || currentPrice < bestPrice ? current : best;
+  }, null);
+}
+
 function mapTone(raw: unknown): TimelineItem['tone'] {
   const event = typeof raw === 'string' ? raw : 'activity';
   if (event === 'transport') return 'transporte';
@@ -452,6 +492,120 @@ function mapLabel(tone: TimelineItem['tone']): string {
   if (tone === 'libre') return 'Tiempo libre';
   if (tone === 'vuelo') return 'Vuelo';
   return 'Actividad';
+}
+
+function normalizeRouteCity(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/\b(de indias|d\.c\.|dc)\b/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+function pushRouteStopsFromText(target: string[], text: string | null | undefined): void {
+  const value = sanitizeProductCopy(text);
+  if (!value) return;
+
+  const stops = getPackageCircuitStops({ destination: value, name: value });
+  for (const stop of stops) {
+    const key = normalizeRouteCity(stop);
+    if (!key || target.some((existing) => normalizeRouteCity(existing) === key)) continue;
+    target.push(stop);
+  }
+}
+
+function insertRouteStop(target: string[], stop: string, afterStop?: string | null, beforeStop?: string | null): void {
+  const key = normalizeRouteCity(stop);
+  if (!key || target.some((existing) => normalizeRouteCity(existing) === key)) return;
+
+  const afterIndex = afterStop
+    ? target.findIndex((existing) => normalizeRouteCity(existing) === normalizeRouteCity(afterStop))
+    : -1;
+  if (afterIndex >= 0) {
+    target.splice(afterIndex + 1, 0, stop);
+    return;
+  }
+
+  const beforeIndex = beforeStop
+    ? target.findIndex((existing) => normalizeRouteCity(existing) === normalizeRouteCity(beforeStop))
+    : -1;
+  if (beforeIndex >= 0) {
+    target.splice(beforeIndex, 0, stop);
+    return;
+  }
+
+  target.push(stop);
+}
+
+function resolveRouteStopNamesFromProgram(product: ProductData, timeline: TimelineItem[], destinationHint: string | null): string[] {
+  const mainStops: string[] = [];
+  pushRouteStopsFromText(mainStops, destinationHint);
+  pushRouteStopsFromText(mainStops, product.name ?? null);
+
+  const timelineStops: string[] = [];
+  const addTimelineText = (value: string | null | undefined) => pushRouteStopsFromText(timelineStops, value);
+
+  for (const item of timeline) {
+    if (item.tone === 'transporte' || item.tone === 'vuelo' || item.tone === 'comida') continue;
+    addTimelineText(item.location);
+    addTimelineText(item.title);
+  }
+
+  const rawItinerary = Array.isArray(product.itinerary_items)
+    ? (product.itinerary_items as Array<Record<string, unknown>>)
+    : [];
+  for (const item of rawItinerary) {
+    const productType = sanitizeProductCopy(item.product_type).toLowerCase();
+    if (productType.includes('transporte') || productType.includes('transfer') || productType.includes('vuelo') || productType.includes('flight')) {
+      continue;
+    }
+    addTimelineText(sanitizeProductCopy(item.destination));
+    addTimelineText(sanitizeProductCopy(item.product_name));
+  }
+
+  const ordered = [...mainStops];
+  if (ordered.length === 0) {
+    return timelineStops;
+  }
+
+  timelineStops.forEach((stop, index) => {
+    if (ordered.some((existing) => normalizeRouteCity(existing) === normalizeRouteCity(stop))) return;
+    const previousMain = [...timelineStops.slice(0, index)]
+      .reverse()
+      .find((candidate) => mainStops.some((mainStop) => normalizeRouteCity(mainStop) === normalizeRouteCity(candidate)));
+    const nextMain = timelineStops.slice(index + 1)
+      .find((candidate) => mainStops.some((mainStop) => normalizeRouteCity(mainStop) === normalizeRouteCity(candidate)));
+    insertRouteStop(ordered, stop, previousMain, nextMain);
+  });
+
+  return ordered;
+}
+
+function readHotelNightsByRouteStop(product: ProductData, stops: PackageCircuitStopWithCoords[]): Map<string, number> {
+  const itinerary = Array.isArray(product.itinerary_items)
+    ? (product.itinerary_items as Array<Record<string, unknown>>)
+    : [];
+  const nightsByStop = new Map<string, number>();
+
+  for (const entry of itinerary) {
+    const productType = sanitizeProductCopy(entry.product_type).toLowerCase();
+    const nights = parseMaybeNumber(entry.hotel_nights);
+    const destination = sanitizeProductCopy(entry.destination);
+    if (!productType.includes('hotel') || !nights || nights <= 0 || !destination) continue;
+
+    const destinationKey = normalizeRouteCity(destination);
+    const stop = stops.find((candidate) => {
+      const stopKey = normalizeRouteCity(candidate.city);
+      return destinationKey === stopKey || destinationKey.includes(stopKey) || stopKey.includes(destinationKey);
+    });
+    if (!stop) continue;
+
+    nightsByStop.set(stop.city, (nightsByStop.get(stop.city) ?? 0) + nights);
+  }
+
+  return nightsByStop;
 }
 
 function inferLodgingFromRecord(entry: Record<string, unknown>): boolean {
@@ -651,13 +805,17 @@ export function EditorialPackageDetailClient({
   const [openDay, setOpenDay] = useState<number | null>(null);
   const [reviewKeyword, setReviewKeyword] = useState('');
   const initialPackageOptions = useMemo(() => resolvePackageVersionOptions(product), [product]);
+  const options = useMemo(() => (Array.isArray(product.options) ? product.options : []), [product.options]);
+  const initialSelectedOption = useMemo(() => {
+    if (initialPackageOptions.length > 0) {
+      return resolveCheapestPerPersonOption(initialPackageOptions) ?? initialPackageOptions[0] ?? null;
+    }
+    return options[0] ?? null;
+  }, [initialPackageOptions, options]);
   const [selectedOptionId, setSelectedOptionId] = useState<string>(() => {
-    const fromVersions = initialPackageOptions[0];
-    if (fromVersions?.id) return fromVersions.id;
-    const option = Array.isArray(product.options) ? product.options[0] : null;
-    return option?.id || 'base';
+    return initialSelectedOption?.id || 'base';
   });
-  const [pax, setPax] = useState(2);
+  const [pax, setPax] = useState(() => getOptionFixedPax(initialSelectedOption) ?? 2);
   const [datePref, setDatePref] = useState('');
   const minDate = getTodayDateInputValue();
 
@@ -675,7 +833,6 @@ export function EditorialPackageDetailClient({
   const exclusions = useMemo(() => normalizeTextList(product.exclusions), [product.exclusions]);
   const programItems = useMemo(() => resolvePackageProgramItemsFromPayload(product), [product]);
   const timeline = useMemo(() => buildTimeline(product, programItems), [product, programItems]);
-  const options = useMemo(() => (Array.isArray(product.options) ? product.options : []), [product.options]);
   const { currencyConfig, preferredCurrency } = usePreferredCurrency(website.content.account);
 
   const reviewRating = useMemo(() => {
@@ -698,8 +855,6 @@ export function EditorialPackageDetailClient({
   const sourcePrice = typeof product.price === 'number' ? product.price : null;
   const sourceCurrency = product.currency || 'COP';
   const displayCurrency = preferredCurrency ?? sourceCurrency;
-  const displayPrice = convertCurrencyAmount(sourcePrice, sourceCurrency, displayCurrency, currencyConfig);
-  const priceLabel = formatPriceOrConsult(displayPrice, displayCurrency);
   const formatInPreferredCurrency = (amount: number | null | undefined, fromCurrency: string | null | undefined) => {
     const targetCurrency = preferredCurrency ?? fromCurrency ?? sourceCurrency;
     const converted = convertCurrencyAmount(amount, fromCurrency ?? sourceCurrency, targetCurrency, currencyConfig);
@@ -737,6 +892,21 @@ export function EditorialPackageDetailClient({
       ? options
       : [{ id: 'base', name: 'Plan base', pricing_per: 'UNIT', prices: [] }];
   const selectedOption = optionsForRail.find((option) => option.id === selectedOptionId) || optionsForRail[0];
+  useEffect(() => {
+    const fixedPax = getOptionFixedPax(selectedOption);
+    if (fixedPax && fixedPax !== pax) {
+      setPax(fixedPax);
+    }
+  }, [pax, selectedOption]);
+  const selectedOptionBasePrice = selectedOption?.prices?.[0];
+  const selectedPerPersonPrice = getOptionPerPersonPrice(selectedOption);
+  const displayPrice = convertCurrencyAmount(
+    selectedPerPersonPrice ?? sourcePrice,
+    selectedOptionBasePrice?.currency ?? sourceCurrency,
+    displayCurrency,
+    currencyConfig,
+  );
+  const priceLabel = formatPriceOrConsult(displayPrice, displayCurrency);
   const waflowPrefill = useMemo(() => ({
     when: datePref ? `Fecha exacta: ${datePref}` : 'Flexible',
     adults: pax,
@@ -779,13 +949,14 @@ export function EditorialPackageDetailClient({
       typeof (product as unknown as Record<string, unknown>).destination === 'string'
         ? String((product as unknown as Record<string, unknown>).destination)
         : product.location ?? null;
-    const stops = getPackageCircuitStops({
+    const stopsFromProgram = resolveRouteStopNamesFromProgram(product, timeline, destinationHint);
+    const stops = stopsFromProgram.length > 0 ? stopsFromProgram : getPackageCircuitStops({
       itineraryItems,
       name: product.name ?? null,
       destination: destinationHint,
     });
     return withCoords(stops);
-  }, [product]);
+  }, [product, timeline]);
 
   const groupedTimeline = useMemo(() => {
     const groups = new Map<number, TimelineItem[]>();
@@ -800,6 +971,14 @@ export function EditorialPackageDetailClient({
 
   const routeStopsWithNights = useMemo<RouteStopItem[]>(() => {
     if (routeStops.length === 0) return [];
+    const curatedNights = readHotelNightsByRouteStop(product, routeStops);
+    if (curatedNights.size > 0) {
+      return routeStops.map((stop, index) => {
+        const stopName = stop.city || `Parada ${index + 1}`;
+        return { name: stopName, nights: Math.max(1, curatedNights.get(stopName) ?? 1) };
+      });
+    }
+
     const totalNights = typeof product.duration_nights === 'number' && product.duration_nights > 0
       ? product.duration_nights
       : Math.max(routeStops.length, 1);
@@ -817,7 +996,7 @@ export function EditorialPackageDetailClient({
           : `Parada ${index + 1}`;
       return { name: stopName, nights };
     });
-  }, [routeStops, product.duration_nights]);
+  }, [routeStops, product]);
 
   const packageHotels = useMemo<PackageHotelItem[]>(() => {
     const galleryForHotels = curatedPackageGallery.length > 0 ? curatedPackageGallery : images;
@@ -992,7 +1171,7 @@ export function EditorialPackageDetailClient({
             />
           )}
 
-          <div className="absolute inset-x-0 bottom-12 z-10">
+          <div className="absolute inset-x-0 bottom-20 z-10 md:bottom-24">
             <div className="pkg-detail-hero-content mx-auto w-full max-w-7xl px-6">
               <div data-testid="detail-breadcrumb" className="mb-4">
                 <Breadcrumbs items={breadcrumbItems} tone="inverse" className="pkg-hero-breadcrumb" />
@@ -1131,7 +1310,7 @@ export function EditorialPackageDetailClient({
               <section data-testid="detail-itinerary">
                 <h2 className="text-2xl font-bold">Programa <em>día a día</em></h2>
                 <p className="body-md mt-2 mb-6 text-[var(--c-ink-2)]">
-                  Cada día con horario, transporte, comidas y alojamiento. Todo ajustable por tu planner.
+                  Cada día con horario, transporte, actividades y alojamiento. Todo ajustable por tu planner.
                 </p>
                 <div className="day-list day-list-v2">
                   {groupedTimeline.map(([day, entries]) => (
