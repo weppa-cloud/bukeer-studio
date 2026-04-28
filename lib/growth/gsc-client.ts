@@ -157,8 +157,10 @@ async function ensureFreshAccessToken(integration: GscIntegrationRow): Promise<s
     await admin
       .from('seo_integrations')
       .update({
+        status: 'connected',
         access_token: refreshed.access_token,
         access_token_expires_at: newExpiresAt,
+        last_error: null,
       })
       .eq('account_id', integration.account_id)
       .eq('website_id', integration.website_id)

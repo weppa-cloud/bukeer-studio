@@ -153,6 +153,76 @@ async function upsertCredential(websiteId: string, provider: 'gsc' | 'ga4', patc
   if (error) {
     throw new SeoApiError('INTERNAL_ERROR', `Failed to persist ${provider} credentials`, 500, error.message);
   }
+
+  await upsertGrowthIntegration(websiteId, provider, {
+    ...payload,
+    refresh_token: payload.refresh_token,
+    access_token: payload.access_token,
+    token_expiry: payload.token_expiry,
+    site_url: payload.site_url,
+    property_id: payload.property_id,
+    scopes: payload.scopes,
+    last_error: payload.last_error,
+  });
+}
+
+async function upsertGrowthIntegration(
+  websiteId: string,
+  provider: 'gsc' | 'ga4',
+  patch: Partial<CredentialRow>
+) {
+  const supabase = createSupabaseServiceRoleClient();
+  const { data: website, error: websiteError } = await supabase
+    .from('websites')
+    .select('account_id')
+    .eq('id', websiteId)
+    .single();
+
+  if (websiteError || !website?.account_id) {
+    throw new SeoApiError(
+      'INTERNAL_ERROR',
+      `Failed to resolve website account for ${provider} integration`,
+      500,
+      websiteError?.message
+    );
+  }
+
+  const expiresAt = patch.token_expiry ? new Date(patch.token_expiry).getTime() : 0;
+  const status = patch.last_error
+    ? 'error'
+    : patch.access_token && expiresAt > Date.now()
+      ? 'connected'
+      : patch.refresh_token
+        ? 'expired'
+        : 'configured';
+
+  const { error } = await supabase
+    .from('seo_integrations')
+    .upsert(
+      {
+        account_id: website.account_id,
+        website_id: websiteId,
+        provider,
+        status,
+        access_token: patch.access_token ?? null,
+        refresh_token: patch.refresh_token ?? null,
+        access_token_expires_at: patch.token_expiry ?? null,
+        site_url: patch.site_url ?? null,
+        property_id: patch.property_id ?? null,
+        scopes: patch.scopes ?? [],
+        metadata: {
+          source_table: 'seo_gsc_credentials',
+          synced_by: 'seo_backend_service',
+        },
+        last_error: patch.last_error ?? null,
+        connected_at: patch.access_token ? new Date().toISOString() : null,
+      },
+      { onConflict: 'website_id,provider' }
+    );
+
+  if (error) {
+    throw new SeoApiError('INTERNAL_ERROR', `Failed to persist ${provider} growth integration`, 500, error.message);
+  }
 }
 
 async function ensureFreshToken(websiteId: string, credential: CredentialRow): Promise<CredentialRow> {
