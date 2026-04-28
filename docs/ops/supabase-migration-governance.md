@@ -111,6 +111,7 @@ providing the contracts, API implementation and verification evidence.
 | Funnel event ledger | `20260504110900_funnel_events.sql` | Required by WAFlow/Chatwoot/WhatsApp CTA tracking. |
 | Historical funnel seed | `20260504111000_funnel_events_backfill.sql` | Optional for production history; requires `funnel_events` and `meta_conversion_events`. |
 | Growth inventory and caches | `20260504111100_growth_cache_tables.sql` | Creates GSC/GA4/DataForSEO caches, `growth_inventory`, and `growth_cache_purge_expired()`. |
+| Public rate-limit contract repair | `20260504111200_public_rate_limits_request_count_contract.sql` | Adds missing `request_count` when `public_rate_limits` pre-existed; fixes WAFlow/newsletter rate-limit fail-open observed during #322 smoke. |
 
 ### Current Cross-Repo Audit — 2026-04-28
 
@@ -125,6 +126,7 @@ Checked from Studio `dev` against local
 | `20260504110900_funnel_events.sql` | Present, identical | Can be included in Flutter migration PR. |
 | `20260504111000_funnel_events_backfill.sql` | Present, identical | Studio was aligned to Flutter's `extensions.digest(...)` form. |
 | `20260504111100_growth_cache_tables.sql` | Present, identical | Can be included in Flutter migration PR after `seo_provider_usage` is confirmed. |
+| `20260504111200_public_rate_limits_request_count_contract.sql` | Pending mirror | Mirror to Flutter before applying; smoke found `public_rate_limits.request_count` missing and API rate-limit failing open. |
 
 Do not apply the #310 migration set until the mirrored Flutter files are
 committed/reviewed in `bukeer-flutter`.
