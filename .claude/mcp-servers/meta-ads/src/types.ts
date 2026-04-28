@@ -17,6 +17,10 @@ export interface MetaAdsConfig {
   auditDir: string;
   supabaseUrl?: string;
   supabaseServiceRoleKey?: string;
+  requestTimeoutMs: number;
+  maxRetries: number;
+  retryBaseDelayMs: number;
+  rateLimitPerMinute: number;
 }
 
 export interface MetaApiClient {

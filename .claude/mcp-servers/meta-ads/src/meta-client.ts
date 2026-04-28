@@ -21,6 +21,8 @@ export function createAppSecretProof(accessToken: string, appSecret: string): st
 }
 
 export class HttpMetaApiClient implements MetaApiClient {
+  private readonly requestTimestamps: number[] = [];
+
   constructor(
     private readonly config: MetaAdsConfig,
     private readonly fetchImpl: FetchLike = fetch,
@@ -55,7 +57,7 @@ export class HttpMetaApiClient implements MetaApiClient {
       init.body = JSON.stringify(payload);
     }
 
-    const response = await this.fetchImpl(url, init);
+    const response = await this.fetchWithPolicy(url, init);
     const text = await response.text();
     const data = text ? (JSON.parse(text) as unknown) : {};
     if (!response.ok) {
@@ -63,4 +65,58 @@ export class HttpMetaApiClient implements MetaApiClient {
     }
     return sanitizeSecrets(data);
   }
+
+  private async fetchWithPolicy(url: URL, init: RequestInit): Promise<Response> {
+    let lastError: unknown;
+    for (let attempt = 0; attempt <= this.config.maxRetries; attempt += 1) {
+      await this.waitForRateLimitSlot();
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), this.config.requestTimeoutMs);
+      try {
+        const response = await this.fetchImpl(url, { ...init, signal: controller.signal });
+        if (!this.shouldRetry(response.status) || attempt === this.config.maxRetries) {
+          return response;
+        }
+        lastError = new MetaApiError(`Meta API retryable status ${response.status}`, response.status, {});
+      } catch (error) {
+        lastError = error;
+        if (attempt === this.config.maxRetries || !this.isRetryableError(error)) {
+          throw error;
+        }
+      } finally {
+        clearTimeout(timeout);
+      }
+      await sleep(this.retryDelay(attempt));
+    }
+    throw lastError instanceof Error ? lastError : new Error(String(lastError));
+  }
+
+  private async waitForRateLimitSlot(): Promise<void> {
+    const windowMs = 60_000;
+    const now = Date.now();
+    while (this.requestTimestamps.length > 0 && now - this.requestTimestamps[0] >= windowMs) {
+      this.requestTimestamps.shift();
+    }
+    if (this.requestTimestamps.length >= this.config.rateLimitPerMinute) {
+      const waitMs = windowMs - (now - this.requestTimestamps[0]);
+      await sleep(Math.max(waitMs, 0));
+    }
+    this.requestTimestamps.push(Date.now());
+  }
+
+  private shouldRetry(status: number): boolean {
+    return status === 408 || status === 409 || status === 429 || status >= 500;
+  }
+
+  private isRetryableError(error: unknown): boolean {
+    return error instanceof Error && error.name === 'AbortError';
+  }
+
+  private retryDelay(attempt: number): number {
+    return this.config.retryBaseDelayMs * 2 ** attempt + Math.floor(Math.random() * 50);
+  }
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }

@@ -19,4 +19,22 @@ describe('meta client', () => {
     expect(requested).toContain('appsecret_proof=');
     await expect(client.get('https://evil.test')).rejects.toThrow(/Absolute URLs/);
   });
+
+  it('retries retryable Meta API responses', async () => {
+    const config = loadConfig({
+      META_ACCESS_TOKEN_READ: 'read-token',
+      META_AD_ACCOUNT_ALLOWLIST: 'act_1',
+      META_MCP_MAX_RETRIES: '2',
+      META_MCP_RETRY_BASE_DELAY_MS: '1',
+    });
+    let calls = 0;
+    const client = new HttpMetaApiClient(config, async () => {
+      calls += 1;
+      if (calls === 1) return new Response(JSON.stringify({ error: { message: 'rate limited' } }), { status: 429 });
+      return new Response(JSON.stringify({ ok: true }), { status: 200 });
+    });
+
+    await expect(client.get('act_1/campaigns')).resolves.toEqual({ ok: true });
+    expect(calls).toBe(2);
+  });
 });

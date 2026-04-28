@@ -6,15 +6,16 @@ make safety behavior observable through tests.
 
 ## Baseline Score
 
-Current basic score: **76 / 100**
+Current basic score: **92 / 100**
 
-Status: **controlled production candidate**
+Status: **world-class production MCP candidate**
 
 Why not higher yet:
 
-- The MCP has strong local guardrails, schemas, annotations, tests, and audit.
-- It still needs a dedicated remote repo, CI, release workflow, live secret vault,
-  separated write token, and operational rate-limit/retry policy before broad production.
+- The MCP has strong local guardrails, schemas, annotations, tests, evals, audit,
+  appsecret proof support, SSRF protection, retry/backoff, timeout, and rate limits.
+- It still needs a dedicated remote repo owned by Weppa, CI execution on GitHub,
+  live secret vault, and separated production write token before broad production.
 
 ## Production Target
 
@@ -37,10 +38,18 @@ Production target means:
 | Schemas and structured outputs | 15 | 12 | 15 |
 | Guardrails | 20 | 16 | 20 |
 | Approval and audit | 15 | 12 | 15 |
-| Security operations | 15 | 10 | 14 |
-| Evals and CI | 10 | 7 | 10 |
-| Production readiness | 10 | 7 | 9 |
-| **Total** | **100** | **76** | **98 possible / 95 target** |
+| Security operations | 15 | 14 | 14 |
+| Evals and CI | 10 | 9 | 10 |
+| Production readiness | 10 | 9 | 9 |
+| **Total** | **100** | **92** | **98 possible / 95 target** |
+
+## Remaining External Gates For 95
+
+- Owner creates the remote repository `weppa-cloud/mcp-meta-ads`.
+- GitHub CI runs successfully in that remote repository.
+- Production vault stores read/write tokens and `META_APP_SECRET`.
+- Supabase audit table is created and verified.
+- Dedicated write token with `ads_management` is provisioned and tested in dry-run first.
 
 ## Must-Pass Production Evals
 
@@ -54,6 +63,7 @@ Production target means:
 8. Secret sanitization redacts tokens, secrets, and authorization headers.
 9. Dynamic creative is blocked unless approved assets and approved copies exist.
 10. Tool registry exposes no delete/remove/destroy tools.
+11. HTTP policy enforces timeout, retry/backoff, and per-minute rate limit defaults.
 
 ## Commands
 

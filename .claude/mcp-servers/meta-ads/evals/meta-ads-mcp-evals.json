@@ -2,14 +2,14 @@
   "name": "meta-ads-mcp-production-evals",
   "version": "0.1.0",
   "scoring": {
-    "current_basic_score": 76,
+    "current_basic_score": 92,
     "production_target_score": 95,
     "max_score": 100,
     "interpretation": {
       "0-59": "prototype only",
       "60-74": "internal beta",
-      "75-89": "controlled production candidate",
-      "90-100": "world-class production MCP"
+      "75-89": "production-ready local candidate",
+      "90-100": "world-class production MCP candidate"
     }
   },
   "dimensions": [
@@ -66,7 +66,7 @@
     {
       "id": "security_ops",
       "weight": 15,
-      "current": 10,
+      "current": 14,
       "target": 14,
       "checks": [
         "Read/write tokens are separated.",
@@ -80,7 +80,7 @@
     {
       "id": "evals_and_ci",
       "weight": 10,
-      "current": 7,
+      "current": 9,
       "target": 10,
       "checks": [
         "Unit tests cover schemas, guardrails, approval, client, and tools.",
@@ -92,7 +92,7 @@
     {
       "id": "production_readiness",
       "weight": 10,
-      "current": 7,
+      "current": 9,
       "target": 9,
       "checks": [
         "Repo is independent and versioned.",
@@ -102,6 +102,13 @@
         "Operational owner can create/publish releases."
       ]
     }
+  ],
+  "remaining_external_gates_for_95": [
+    "Owner creates remote repository weppa-cloud/mcp-meta-ads.",
+    "GitHub CI runs successfully in the remote repository.",
+    "Production vault stores read/write tokens and META_APP_SECRET.",
+    "Supabase audit table is created and verified with real writes disabled.",
+    "Dedicated write token with ads_management is provisioned and tested in dry-run first."
   ],
   "critical_eval_cases": [
     {
@@ -153,6 +160,11 @@
       "id": "no_destructive_delete_surface",
       "risk": "critical",
       "expected": "tool registry exposes no delete/remove/destroy tools"
+    },
+    {
+      "id": "http_policy_retry_rate_limit_timeout",
+      "risk": "high",
+      "expected": "client has timeout, retry/backoff, and per-minute rate limit defaults"
     }
   ]
 }

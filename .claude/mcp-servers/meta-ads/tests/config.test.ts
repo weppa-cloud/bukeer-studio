@@ -9,6 +9,9 @@ describe('config', () => {
     expect(config.writesEnabled).toBe(false);
     expect(config.adAccountAllowlist).toEqual(['act_123', 'act_456']);
     expect(isAccountAllowed(config, '456')).toBe(true);
+    expect(config.requestTimeoutMs).toBe(30000);
+    expect(config.maxRetries).toBe(2);
+    expect(config.rateLimitPerMinute).toBe(60);
   });
 
   it('requires read token', () => {

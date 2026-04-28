@@ -16,6 +16,10 @@ const EnvSchema = z.object({
   META_MCP_CAMPAIGN_BUDGET_CAP_COP: z.coerce.number().positive().optional(),
   META_MCP_ALLOWED_LANDING_DOMAINS: z.string().default(''),
   META_MCP_AUDIT_DIR: z.string().default('.mcp-meta-ads/audit'),
+  META_MCP_REQUEST_TIMEOUT_MS: z.coerce.number().int().positive().default(30000),
+  META_MCP_MAX_RETRIES: z.coerce.number().int().min(0).max(5).default(2),
+  META_MCP_RETRY_BASE_DELAY_MS: z.coerce.number().int().positive().default(500),
+  META_MCP_RATE_LIMIT_PER_MINUTE: z.coerce.number().int().positive().default(60),
   SUPABASE_URL: z.string().url().optional(),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1).optional(),
 });
@@ -54,6 +58,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): MetaAdsConfig 
     auditDir: parsed.data.META_MCP_AUDIT_DIR,
     supabaseUrl: parsed.data.SUPABASE_URL,
     supabaseServiceRoleKey: parsed.data.SUPABASE_SERVICE_ROLE_KEY,
+    requestTimeoutMs: parsed.data.META_MCP_REQUEST_TIMEOUT_MS,
+    maxRetries: parsed.data.META_MCP_MAX_RETRIES,
+    retryBaseDelayMs: parsed.data.META_MCP_RETRY_BASE_DELAY_MS,
+    rateLimitPerMinute: parsed.data.META_MCP_RATE_LIMIT_PER_MINUTE,
   };
 }
 

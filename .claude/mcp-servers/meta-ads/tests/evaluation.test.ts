@@ -202,6 +202,13 @@ describe('production evaluation gate', () => {
     });
   });
 
+  it('requires production HTTP policy defaults', () => {
+    const ctx = makeContext();
+    expect(ctx.config.requestTimeoutMs).toBeLessThanOrEqual(30000);
+    expect(ctx.config.maxRetries).toBeGreaterThanOrEqual(2);
+    expect(ctx.config.rateLimitPerMinute).toBeGreaterThan(0);
+  });
+
   it('blocks Advantage dynamic creative without approved assets and copies', async () => {
     const t = tool('meta_create_dynamic_creative_test');
     const input = t.inputSchema.parse({
