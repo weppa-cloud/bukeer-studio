@@ -17,6 +17,7 @@ import {
 } from '@/lib/supabase/get-pages';
 import { getReviewsForContext, type ReviewContext } from '@/lib/supabase/get-reviews';
 import { getWebsiteBySubdomain } from '@/lib/supabase/get-website';
+import { normalizePublicMetadataTitle } from '@/lib/seo/metadata-title';
 import { buildLocaleAwareAlternateLanguages, resolvePublicMetadataLocale } from '@/lib/seo/public-metadata';
 import { buildPublicLocalizedPath, localeToOgLocale } from '@/lib/seo/locale-routing';
 import { resolveOgImage } from '@/lib/seo/og-helpers';
@@ -91,7 +92,10 @@ export async function generateMetadata({ params }: ActivityPageProps): Promise<M
     localizedOverlayTitle ||
     (isDefaultLocale ? productPage.page?.custom_seo_title : null) ||
     productPage.product.name;
-  const title = sanitizeProductCopy(rawTitle) || productPage.product.name;
+  const title = normalizePublicMetadataTitle(
+    sanitizeProductCopy(rawTitle) || productPage.product.name,
+    siteName,
+  );
   const locationHint = sanitizeProductCopy(
     productPage.product.location ||
       productPage.product.city ||

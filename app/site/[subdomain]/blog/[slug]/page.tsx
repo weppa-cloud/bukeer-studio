@@ -17,6 +17,7 @@ import {
   resolvePublicMetadataLocale,
 } from '@/lib/seo/public-metadata';
 import { localeToOgLocale } from '@/lib/seo/locale-routing';
+import { normalizePublicMetadataTitle } from '@/lib/seo/metadata-title';
 import { getPublicUiMessages } from '@/lib/site/public-ui-messages';
 
 interface BlogPostPageProps {
@@ -51,7 +52,10 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
   const canonical = `${baseUrl}${localizedBlogPath}`;
   const languages = buildLocaleAwareAlternateLanguages(baseUrl, blogPath, localizedLocaleContext);
   const siteName = website.content?.account?.name || website.content?.siteName || subdomain;
-  const title = post.seo_title || post.title || localizedMessages.blogPost.notFoundTitle;
+  const title = normalizePublicMetadataTitle(
+    post.seo_title || post.title || localizedMessages.blogPost.notFoundTitle,
+    siteName,
+  );
   const description = (
     post.seo_description ||
     post.excerpt ||

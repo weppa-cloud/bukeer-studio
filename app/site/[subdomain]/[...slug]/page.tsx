@@ -17,6 +17,7 @@ import { getReviewsForContext, type ReviewContext } from '@/lib/supabase/get-rev
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/service-role';
 import { enrichDestinationFromSerpAPI } from '@/lib/services/serpapi-enrichment';
 import { resolveOgImage } from '@/lib/seo/og-helpers';
+import { normalizePublicMetadataTitle } from '@/lib/seo/metadata-title';
 import {
   buildLocaleAwareAlternateLanguages,
   resolvePublicMetadataLocale,
@@ -395,7 +396,10 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
     if (dest) {
       const siteName = website.content?.account?.name || website.content?.siteName || subdomain;
       const override = await getDestinationSeoOverride(website.id, dest.slug);
-      const title = override?.custom_seo_title || `${dest.name} | ${siteName}`;
+      const title = normalizePublicMetadataTitle(
+        override?.custom_seo_title || dest.name,
+        siteName,
+      );
       const description = override?.custom_seo_description || `Explora ${dest.name}: ${dest.hotel_count} hoteles y ${dest.activity_count} actividades. Reserva con ${siteName}.`;
       const pathname = `/destinos/${dest.slug}`;
       const metadata: Metadata = {
@@ -465,9 +469,12 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
             localizedOverlayNoindex = overlay.robots_noindex ?? null;
           }
         }
-        const title = sanitizeProductCopy(
-          localizedOverlayTitle || productPage.page?.custom_seo_title || productPage.product.name
-        ) || productPage.product.name;
+        const title = normalizePublicMetadataTitle(
+          sanitizeProductCopy(
+            localizedOverlayTitle || productPage.page?.custom_seo_title || productPage.product.name
+          ) || productPage.product.name,
+          siteName,
+        );
         const rawDescription = sanitizeProductCopy(
           localizedOverlayDescription || productPage.page?.custom_seo_description || productPage.product.description || ''
         );
@@ -560,7 +567,7 @@ export async function generateMetadata({ params }: DynamicPageProps): Promise<Me
     };
   }
 
-  const title = page.seo_title || page.title;
+  const title = normalizePublicMetadataTitle(page.seo_title || page.title, siteName);
   const description = page.seo_description || '';
   const canonicalUrl = buildCanonicalUrl(baseUrl, `/${slugPath}`, localeContext);
 
