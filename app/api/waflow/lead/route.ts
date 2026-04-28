@@ -40,11 +40,17 @@ import {
   apiValidationError,
 } from '@/lib/api';
 import { checkRateLimit, extractClientIp } from '@/lib/booking/rate-limit';
+import { parseAttribution } from '@/lib/growth/attribution-parser';
 import { buildEventId } from '@/lib/growth/event-id';
 import { insertFunnelEvent } from '@/lib/growth/funnel-events';
 import { createLogger } from '@/lib/logger';
 import { sendMetaConversionEvent } from '@/lib/meta/conversions-api';
-import type { GrowthMarket, FunnelEventIngest } from '@bukeer/website-contract';
+import {
+  GrowthAttributionSchema,
+  type GrowthAttribution,
+  type GrowthMarket,
+  type FunnelEventIngest,
+} from '@bukeer/website-contract';
 
 const log = createLogger('api.waflow.lead');
 
@@ -91,6 +97,8 @@ type JsonRecord = Record<string, unknown>;
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const UUID_PATTERN =
+  /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/;
 
 function createSupabaseAdmin() {
   if (!supabaseUrl || !serviceRoleKey) {
@@ -124,7 +132,7 @@ async function upsertLead(
   body: WaflowLeadBody,
   tenant: { accountId: string | null; websiteId: string | null },
   request: NextRequest,
-): Promise<{ id: string } | null> {
+): Promise<{ id: string; created_at: string } | null> {
   const supabase = createSupabaseAdmin();
   const submittedAt = body.submitted ? new Date().toISOString() : null;
   const ip = extractClientIp(request.headers);
@@ -162,8 +170,8 @@ async function upsertLead(
         ignoreDuplicates: false,
       },
     )
-    .select('id')
-    .maybeSingle<{ id: string }>();
+    .select('id,created_at')
+    .maybeSingle<{ id: string; created_at: string }>();
 
   if (error) {
     log.error('lead_upsert_failed', {
@@ -221,18 +229,68 @@ function deriveLocale(body: WaflowLeadBody): string {
   return 'es-CO';
 }
 
+function buildFunnelAttribution(
+  body: WaflowLeadBody,
+  tenant: { accountId: string; websiteId: string },
+  capturedAt: Date,
+): GrowthAttribution | null {
+  if (!UUID_PATTERN.test(tenant.accountId) || !UUID_PATTERN.test(tenant.websiteId)) return null;
+
+  const raw = resolveAttribution(body);
+  const existing = GrowthAttributionSchema.safeParse(raw);
+  if (existing.success) return existing.data;
+
+  const sourceUrl = readString(raw.source_url);
+  if (!sourceUrl || !body.referenceCode) return null;
+
+  try {
+    const url = new URL(sourceUrl);
+    for (const key of ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'fbclid'] as const) {
+      const value = readString(raw[key]);
+      if (value && !url.searchParams.has(key)) url.searchParams.set(key, value);
+    }
+
+    return GrowthAttributionSchema.parse(
+      parseAttribution({
+        url,
+        referrer: readString(raw.referrer),
+        account_id: tenant.accountId,
+        website_id: tenant.websiteId,
+        locale: deriveLocale(body),
+        market: deriveMarket(body),
+        reference_code: body.referenceCode,
+        session_key: body.sessionKey,
+        capturedAt,
+      }),
+    );
+  } catch (error) {
+    log.warn('attribution_parse_failed', {
+      reference_code: body.referenceCode,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return null;
+  }
+}
+
 async function emitWaflowSubmitFunnelEvent(
   body: WaflowLeadBody,
   tenant: { accountId: string | null; websiteId: string | null },
+  lead: { created_at: string },
 ): Promise<void> {
   if (!body.submitted || body.step !== 'confirmation') return;
   if (!tenant.accountId || !tenant.websiteId) return;
   if (!body.referenceCode) return;
 
-  const occurredAt = new Date();
+  const createdAt = new Date(lead.created_at);
+  const occurredAt = Number.isNaN(createdAt.getTime()) ? new Date(0) : createdAt;
   const attribution = resolveAttribution(body);
   const sourceUrl = readString(attribution.source_url);
   const pagePath = readString(attribution.page_path);
+  const funnelAttribution = buildFunnelAttribution(
+    body,
+    { accountId: tenant.accountId, websiteId: tenant.websiteId },
+    occurredAt,
+  );
 
   const eventId = await buildEventId({
     reference_code: body.referenceCode,
@@ -253,6 +311,7 @@ async function emitWaflowSubmitFunnelEvent(
     occurred_at: occurredAt.toISOString(),
     source_url: sourceUrl ?? null,
     page_path: pagePath ?? null,
+    attribution: funnelAttribution,
     payload: {
       variant: body.variant,
       session_key: body.sessionKey,
@@ -391,7 +450,7 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      await emitWaflowSubmitFunnelEvent(body, tenant ?? { accountId: null, websiteId: null });
+      await emitWaflowSubmitFunnelEvent(body, tenant ?? { accountId: null, websiteId: null }, lead);
     } catch (error) {
       log.warn('funnel_event_emit_failed', {
         reference_code: body.referenceCode ?? null,

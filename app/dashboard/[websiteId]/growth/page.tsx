@@ -65,7 +65,9 @@ const InventoryEnvelopeSchema = z.object({
   success: z.literal(true),
   data: z.object({
     rows: z.array(GrowthInventoryRowSchema),
-    total: z.number().int().nonnegative(),
+    meta: z.object({
+      total: z.number().int().nonnegative(),
+    }),
   }),
 });
 
@@ -133,7 +135,7 @@ async function fetchInventory(
     }
     return {
       rows: parsed.data.data.rows,
-      total: parsed.data.data.total,
+      total: parsed.data.data.meta.total,
       apiMissing: false,
       errored: false,
     };

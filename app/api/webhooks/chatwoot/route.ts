@@ -16,11 +16,14 @@ import {
   apiSuccess,
   apiValidationError,
 } from '@/lib/api';
+import { parseAttribution } from '@/lib/growth/attribution-parser';
 import { buildEventId } from '@/lib/growth/event-id';
 import { insertFunnelEvent } from '@/lib/growth/funnel-events';
 import { createLogger } from '@/lib/logger';
 import { sendMetaConversionEvent } from '@/lib/meta/conversions-api';
+import { GrowthAttributionSchema } from '@bukeer/website-contract';
 import type {
+  GrowthAttribution,
   FunnelEventIngest,
   FunnelEventName,
   GrowthMarket,
@@ -33,6 +36,8 @@ const PROVIDER = 'chatwoot';
 const REPLAY_PAST_SECONDS = 5 * 60;
 const REPLAY_FUTURE_SECONDS = 60;
 const REF_PATTERN = /#ref:\s*([A-Z0-9][A-Z0-9-]{3,39})/i;
+const UUID_PATTERN =
+  /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/;
 
 const JsonValueSchema: z.ZodType<unknown> = z.lazy(() =>
   z.union([
@@ -403,6 +408,50 @@ function deriveLeadLocale(leadPayload: JsonRecord): string {
   return 'es-CO';
 }
 
+function buildLeadAttribution(
+  lead: WaflowLeadRow,
+  leadPayload: JsonRecord,
+  locale: string,
+  market: GrowthMarket,
+): GrowthAttribution | null {
+  if (!lead.account_id || !lead.website_id || !lead.reference_code || !lead.session_key) return null;
+  if (!UUID_PATTERN.test(lead.account_id) || !UUID_PATTERN.test(lead.website_id)) return null;
+
+  const raw = readRecord(leadPayload.attribution);
+  const existing = GrowthAttributionSchema.safeParse(raw);
+  if (existing.success) return existing.data;
+
+  const sourceUrl = cleanString(raw.source_url);
+  if (!sourceUrl) return null;
+
+  try {
+    const url = new URL(sourceUrl);
+    for (const key of ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'fbclid'] as const) {
+      const value = cleanString(raw[key]);
+      if (value && !url.searchParams.has(key)) url.searchParams.set(key, value);
+    }
+
+    return GrowthAttributionSchema.parse(
+      parseAttribution({
+        url,
+        referrer: cleanString(raw.referrer),
+        account_id: lead.account_id,
+        website_id: lead.website_id,
+        locale,
+        market,
+        reference_code: lead.reference_code,
+        session_key: lead.session_key,
+      }),
+    );
+  } catch (error) {
+    log.warn('attribution_parse_failed', {
+      reference_code: lead.reference_code,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return null;
+  }
+}
+
 async function emitLifecycleFunnelEvents(
   supabase: ReturnType<typeof createSupabaseAdmin>,
   lead: WaflowLeadRow,
@@ -418,6 +467,7 @@ async function emitLifecycleFunnelEvents(
   const pagePath = cleanString(attribution.page_path);
   const locale = deriveLeadLocale(leadPayload);
   const market = deriveLeadMarket(leadPayload);
+  const funnelAttribution = buildLeadAttribution(lead, leadPayload, locale, market);
   const occurredAt = new Date();
 
   for (const lifecycleEvent of lifecycleEvents) {
@@ -444,6 +494,7 @@ async function emitLifecycleFunnelEvents(
         occurred_at: occurredAt.toISOString(),
         source_url: sourceUrl ?? null,
         page_path: pagePath ?? null,
+        attribution: funnelAttribution,
         payload: {
           chatwoot_event: payload.event,
           chatwoot_conversation_id: conversationId,
