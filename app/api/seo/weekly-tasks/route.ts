@@ -66,6 +66,12 @@ function startOfIsoWeek(input?: string | null): string {
   return utcDate.toISOString().slice(0, 10);
 }
 
+function toIsoDateTime(value: string | null): string | null {
+  if (!value) return null;
+  const time = new Date(value).getTime();
+  return Number.isFinite(time) ? new Date(time).toISOString() : value;
+}
+
 function mapWeeklyTaskRow(row: WeeklyTaskDbRow) {
   return WeeklyTaskSchema.parse({
     id: row.id,
@@ -80,10 +86,10 @@ function mapWeeklyTaskRow(row: WeeklyTaskDbRow) {
     relatedEntityId: row.related_entity_id,
     assigneeUserId: row.assignee_user_id,
     status: row.status,
-    dueAt: row.due_at,
-    completedAt: row.completed_at,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
+    dueAt: toIsoDateTime(row.due_at),
+    completedAt: toIsoDateTime(row.completed_at),
+    createdAt: toIsoDateTime(row.created_at) ?? row.created_at,
+    updatedAt: toIsoDateTime(row.updated_at) ?? row.updated_at,
   });
 }
 

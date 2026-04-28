@@ -49,6 +49,12 @@ type ObjectiveDbRow = {
   updated_at: string;
 };
 
+function toIsoDateTime(value: string | null): string | null {
+  if (!value) return null;
+  const time = new Date(value).getTime();
+  return Number.isFinite(time) ? new Date(time).toISOString() : value;
+}
+
 function mapObjectiveRow(row: ObjectiveDbRow) {
   return Objective90dSchema.parse({
     id: row.id,
@@ -60,8 +66,8 @@ function mapObjectiveRow(row: ObjectiveDbRow) {
     status: row.status,
     startsOn: row.starts_on,
     endsOn: row.ends_on,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
+    createdAt: toIsoDateTime(row.created_at) ?? row.created_at,
+    updatedAt: toIsoDateTime(row.updated_at) ?? row.updated_at,
   });
 }
 
