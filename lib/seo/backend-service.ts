@@ -373,7 +373,7 @@ async function upsertGscKeywords(websiteId: string, locale: string, rows: Search
         {
           keyword_id: keywordRow.id,
           snapshot_date: date,
-          position: row.position ?? null,
+          position: toSmallintPosition(row.position),
           search_volume: null,
         },
         { onConflict: 'keyword_id,snapshot_date' }
@@ -383,6 +383,13 @@ async function upsertGscKeywords(websiteId: string, locale: string, rows: Search
       throw new SeoApiError('INTERNAL_ERROR', 'Failed to upsert SEO keyword snapshot', 500, snapshotError.message);
     }
   }
+}
+
+function toSmallintPosition(position: number | null | undefined): number | null {
+  if (typeof position !== 'number' || !Number.isFinite(position)) {
+    return null;
+  }
+  return Math.max(-32768, Math.min(32767, Math.round(position)));
 }
 
 function parseNumber(value: string | undefined, fallback = 0): number {
