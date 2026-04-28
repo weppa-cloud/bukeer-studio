@@ -21,6 +21,10 @@ const withBundleAnalyzer = bundleAnalyzer({
 });
 
 const nextConfig: NextConfig = {
+  // Avoid automatic slash canonicalization redirects that create redirect chains
+  // for legacy WordPress URLs (/l/*/, /cat/*/) before middleware redirects run.
+  skipTrailingSlashRedirect: true,
+
   // Allow isolated build caches per local session to avoid .next collisions
   distDir: process.env.NEXT_DIST_DIR || '.next',
 
