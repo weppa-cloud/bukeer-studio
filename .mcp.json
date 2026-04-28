@@ -69,6 +69,13 @@
         "-lc",
         "set -a; [ -f .env.local ] && source .env.local; [ -f .env.mcp ] && source .env.mcp; set +a; export SUPABASE_URL=\"${SUPABASE_URL:-$NEXT_PUBLIC_SUPABASE_URL}\"; export BUKEER_SERVICE_ROLE_KEY=\"${BUKEER_SERVICE_ROLE_KEY:-$SUPABASE_SERVICE_ROLE_KEY}\"; export BUKEER_BASE_URL=\"${BUKEER_BASE_URL:-http://localhost:${PORT:-3000}}\"; exec node .claude/mcp-servers/bukeer-studio/dist/index.js"
       ]
+    },
+    "meta-ads": {
+      "command": "bash",
+      "args": [
+        "-lc",
+        "set -a; [ -f .env.local ] && source .env.local; [ -f .env.mcp ] && source .env.mcp; set +a; exec node .claude/mcp-servers/meta-ads/dist/index.js"
+      ]
     }
   }
 }

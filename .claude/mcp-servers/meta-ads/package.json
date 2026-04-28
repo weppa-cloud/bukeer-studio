@@ -1,0 +1,32 @@
+{
+  "name": "@weppa-cloud/mcp-meta-ads",
+  "version": "0.1.0",
+  "private": true,
+  "description": "First-party Meta Ads MCP server for Bukeer Growth with read-only analytics, guarded writes, and audit logs.",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "mcp-meta-ads": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p .",
+    "start": "node dist/index.js",
+    "test": "vitest run",
+    "eval": "vitest run tests/evaluation.test.ts",
+    "clean": "rm -rf dist coverage"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "@supabase/supabase-js": "^2.49.4",
+    "zod": "^3.23.8",
+    "zod-to-json-schema": "^3.23.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.8"
+  }
+}

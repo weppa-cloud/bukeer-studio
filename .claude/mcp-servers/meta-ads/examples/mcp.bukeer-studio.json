@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "meta-ads": {
+      "command": "node",
+      "args": [".claude/mcp-servers/meta-ads/dist/index.js"],
+      "env": {
+        "META_ACCESS_TOKEN_READ": "${META_ACCESS_TOKEN_READ}",
+        "META_ACCESS_TOKEN_WRITE": "${META_ACCESS_TOKEN_WRITE}",
+        "META_APP_SECRET": "${META_APP_SECRET}",
+        "META_BUSINESS_ID": "${META_BUSINESS_ID}",
+        "META_AD_ACCOUNT_ALLOWLIST": "act_1234567890",
+        "META_MCP_MODE": "dry-run",
+        "META_MCP_WRITES_ENABLED": "false",
+        "META_MCP_ALLOWED_LANDING_DOMAINS": "colombiatours.travel,bukeer.com"
+      }
+    }
+  }
+}

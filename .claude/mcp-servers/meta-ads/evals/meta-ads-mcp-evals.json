@@ -1,0 +1,158 @@
+{
+  "name": "meta-ads-mcp-production-evals",
+  "version": "0.1.0",
+  "scoring": {
+    "current_basic_score": 76,
+    "production_target_score": 95,
+    "max_score": 100,
+    "interpretation": {
+      "0-59": "prototype only",
+      "60-74": "internal beta",
+      "75-89": "controlled production candidate",
+      "90-100": "world-class production MCP"
+    }
+  },
+  "dimensions": [
+    {
+      "id": "tool_design",
+      "weight": 15,
+      "current": 12,
+      "target": 15,
+      "checks": [
+        "Tools are workflow-oriented, not raw CRUD-only.",
+        "Tool names describe agent intent.",
+        "Tool descriptions say when to use the tool and mention safety boundaries.",
+        "No delete tools exist in v1."
+      ]
+    },
+    {
+      "id": "schemas_and_outputs",
+      "weight": 15,
+      "current": 12,
+      "target": 15,
+      "checks": [
+        "Every tool has inputSchema.",
+        "Every tool has outputSchema.",
+        "Every tool returns structuredContent-compatible JSON.",
+        "Errors are machine-readable and actionable."
+      ]
+    },
+    {
+      "id": "guardrails",
+      "weight": 20,
+      "current": 16,
+      "target": 20,
+      "checks": [
+        "Ad account allowlist is mandatory.",
+        "Roles are enforced: read, draft, operator, admin.",
+        "Budget caps block oversized writes.",
+        "Landing domains are allowlisted.",
+        "All creates force PAUSED.",
+        "Activation requires admin, approval, live mode, and recent health check."
+      ]
+    },
+    {
+      "id": "approval_and_audit",
+      "weight": 15,
+      "current": 12,
+      "target": 15,
+      "checks": [
+        "Writes are two-step with approval token.",
+        "Payload changes invalidate approval.",
+        "Audit logs sanitize secrets.",
+        "Audit writes local JSONL and optionally Supabase."
+      ]
+    },
+    {
+      "id": "security_ops",
+      "weight": 15,
+      "current": 10,
+      "target": 14,
+      "checks": [
+        "Read/write tokens are separated.",
+        "appsecret_proof is supported.",
+        "No token passthrough to prompts.",
+        "Secrets are kept in env/vault.",
+        "Rate limits and retry policy are defined.",
+        "SSRF protection blocks absolute Meta API URLs."
+      ]
+    },
+    {
+      "id": "evals_and_ci",
+      "weight": 10,
+      "current": 7,
+      "target": 10,
+      "checks": [
+        "Unit tests cover schemas, guardrails, approval, client, and tools.",
+        "Eval scenarios cover realistic agent workflows.",
+        "CI runs build, tests, and evals before release.",
+        "Fixtures never include live secrets."
+      ]
+    },
+    {
+      "id": "production_readiness",
+      "weight": 10,
+      "current": 7,
+      "target": 9,
+      "checks": [
+        "Repo is independent and versioned.",
+        "Submodule integration is documented.",
+        "Runbook covers token rotation and kill switch.",
+        "Live write token is provisioned separately.",
+        "Operational owner can create/publish releases."
+      ]
+    }
+  ],
+  "critical_eval_cases": [
+    {
+      "id": "readonly_insights_allowed_account",
+      "risk": "low",
+      "expected": "meta_get_insights succeeds with dryRun=true and never uses write token"
+    },
+    {
+      "id": "blocked_non_allowlisted_account",
+      "risk": "critical",
+      "expected": "any read/write against an account outside allowlist is blocked"
+    },
+    {
+      "id": "campaign_create_requires_approval",
+      "risk": "critical",
+      "expected": "first call returns approvalRequired=true and proposedPayload.status=PAUSED"
+    },
+    {
+      "id": "payload_change_invalidates_approval",
+      "risk": "critical",
+      "expected": "approval token cannot be reused with modified payload"
+    },
+    {
+      "id": "writes_blocked_by_default",
+      "risk": "critical",
+      "expected": "confirm=true and valid token still cannot write unless mode=live and writesEnabled=true"
+    },
+    {
+      "id": "budget_cap_blocks_write",
+      "risk": "high",
+      "expected": "dailyBudgetCop above configured cap returns META_DAILY_BUDGET_CAP_EXCEEDED"
+    },
+    {
+      "id": "activation_admin_only",
+      "risk": "critical",
+      "expected": "activation is blocked unless role=admin and latestHealthCheckAt is provided"
+    },
+    {
+      "id": "secret_sanitization",
+      "risk": "critical",
+      "expected": "tokens, secrets, authorization headers, and Meta token-shaped values are redacted"
+    },
+    {
+      "id": "advantage_dynamic_creative_requires_assets",
+      "risk": "high",
+      "expected": "dynamic creative is blocked unless approved assets and approved copies are present"
+    },
+    {
+      "id": "no_destructive_delete_surface",
+      "risk": "critical",
+      "expected": "tool registry exposes no delete/remove/destroy tools"
+    }
+  ]
+}

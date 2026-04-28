@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "dist-test",
+    "rootDir": "."
+  },
+  "include": ["src/config.ts", "src/meta-client.ts", "src/types.ts", "tests/config.test.ts", "tests/meta-client.test.ts"],
+  "exclude": ["dist", "dist-test", "node_modules"]
+}
