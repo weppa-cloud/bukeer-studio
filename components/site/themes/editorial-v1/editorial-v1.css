@@ -4865,7 +4865,7 @@
   border: 1px solid var(--c-line);
   border-radius: 16px;
   background: var(--c-surface);
-  padding: 14px 16px;
+  padding: 22px 28px;
 }
 :where([data-template-set="editorial-v1"]) .rm-head {
   display: flex;
@@ -7102,6 +7102,9 @@
   color: var(--c-muted);
 }
 @media (max-width: 640px) {
+  :where([data-template-set="editorial-v1"]) .route-map {
+    padding: 22px;
+  }
   :where([data-template-set="editorial-v1"]) .rm-track {
     flex-direction: column;
     align-items: stretch;
