@@ -16,6 +16,7 @@ import {
   type SearchConsoleRow,
 } from '@/lib/seo/google-client';
 import { logSeoApiCall } from '@/lib/seo/api-call-logger';
+import { callDataForSeo } from '@/lib/growth/dataforseo-client';
 
 interface CredentialRow {
   id: string;
@@ -340,6 +341,21 @@ async function resolveWebsiteDefaultLocale(websiteId: string): Promise<string> {
   return 'es-CO';
 }
 
+async function resolveWebsiteAccountId(websiteId: string): Promise<string> {
+  const supabase = createSupabaseServiceRoleClient();
+  const { data, error } = await supabase
+    .from('websites')
+    .select('account_id')
+    .eq('id', websiteId)
+    .single();
+
+  if (error || !data?.account_id) {
+    throw new SeoApiError('INTERNAL_ERROR', 'Failed to resolve website account', 500, error?.message);
+  }
+
+  return data.account_id;
+}
+
 async function upsertGscKeywords(websiteId: string, locale: string, rows: SearchConsoleRow[]) {
   if (!rows.length) return;
   const supabase = createSupabaseServiceRoleClient();
@@ -407,6 +423,52 @@ function getSearchConsoleRowLimit(): number {
   return Math.min(Math.floor(parsed), 25000);
 }
 
+function pickDataForSeoKeywords(rows: SearchConsoleRow[]): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+
+  for (const row of rows) {
+    const keyword = row.keys?.[0]?.trim().toLowerCase();
+    if (!keyword || seen.has(keyword)) continue;
+    seen.add(keyword);
+    out.push(keyword);
+    if (out.length >= 10) break;
+  }
+
+  return out.length > 0 ? out : ['colombia tours'];
+}
+
+async function syncOptionalDataForSeo(
+  websiteId: string,
+  accountId: string,
+  gscRows: SearchConsoleRow[],
+): Promise<{ status: string; rows: number; cacheHit: boolean | null; source: string | null }> {
+  const endpoint = '/v3/keywords_data/google_ads/search_volume/live';
+  const keywords = pickDataForSeoKeywords(gscRows);
+  const result = await callDataForSeo<{ tasks?: Array<{ result?: unknown[] }> }>({
+    account_id: accountId,
+    website_id: websiteId,
+    endpoint,
+    body: [
+      {
+        keywords,
+        location_code: 2170,
+        language_code: 'es',
+      },
+    ],
+    cacheKey: `search-volume|es-CO|${keywords.join('|')}`,
+    estimatedCostUsd: 0.01,
+  });
+
+  const rows = result.data.tasks?.reduce((total, task) => total + (task.result?.length ?? 0), 0) ?? 0;
+  return {
+    status: result.source,
+    rows,
+    cacheHit: result.cacheHit,
+    source: result.source,
+  };
+}
+
 export async function syncSeoData(
   websiteId: string,
   requestId: string,
@@ -415,6 +477,7 @@ export async function syncSeoData(
   const startedAt = Date.now();
   const { from, to } = parseDateRange(params.from, params.to);
   const defaultLocale = await resolveWebsiteDefaultLocale(websiteId);
+  const accountId = await resolveWebsiteAccountId(websiteId);
   const credentials = await getCredentialMap(websiteId);
 
   const gscCredential = credentials.get('gsc');
@@ -491,6 +554,21 @@ export async function syncSeoData(
 
   await upsertGa4Metrics(websiteId, metricsPayload);
 
+  let dataforseo: Awaited<ReturnType<typeof syncOptionalDataForSeo>> | { status: string; rows: number; cacheHit: boolean | null; source: string | null } =
+    { status: 'disabled', rows: 0, cacheHit: null, source: null };
+  if (params.includeDataForSeo) {
+    try {
+      dataforseo = await syncOptionalDataForSeo(websiteId, accountId, gscRows);
+    } catch (error) {
+      dataforseo = {
+        status: error instanceof Error ? `error:${error.message}` : 'error',
+        rows: 0,
+        cacheHit: null,
+        source: null,
+      };
+    }
+  }
+
   const durationMs = Date.now() - startedAt;
   await logSeoApiCall({
     websiteId,
@@ -508,6 +586,7 @@ export async function syncSeoData(
       locale: defaultLocale,
       gscRows: gscRows.length,
       ga4Rows: metricsPayload.length,
+      dataforseo,
     },
   });
 
@@ -517,7 +596,7 @@ export async function syncSeoData(
     gscRows: gscRows.length,
     ga4Rows: metricsPayload.length,
     locale: defaultLocale,
-    dataforseo: params.includeDataForSeo ? 'skipped_optional' : 'disabled',
+    dataforseo,
     durationMs,
   };
 }
