@@ -23,10 +23,15 @@ export async function generateMetadata({ params }: PrivacyPageProps): Promise<Me
   const siteName = website.content.account?.name || website.content.siteName;
   const localeContext = await resolvePublicMetadataLocale(website, '/privacy');
   const messages = getPublicUiMessages(localeContext.resolvedLocale);
+  const baseUrl = website.custom_domain
+    ? `https://${website.custom_domain}`
+    : `https://${subdomain}.bukeer.com`;
+  const canonical = `${baseUrl}${localeContext.localizedPathname}`;
 
   return {
     title: messages.legalPages.privacyTitle,
     description: `${messages.legalPages.privacyDescriptionPrefix} ${siteName}`,
+    alternates: { canonical },
     robots: { index: false, follow: false },
   };
 }
