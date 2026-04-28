@@ -32,7 +32,8 @@
  *     500 { success: false, error: { code: 'INTERNAL_ERROR', ... } }
  *
  * Guarantees:
- *   - Edge-compatible (ADR-007): Web Crypto only, no Node APIs.
+ *   - OpenNext-compatible: this endpoint runs in the default Worker function
+ *     because OpenNext cannot bundle this API route as an Edge runtime route.
  *   - Idempotent (ADR-018): event_id is sha256(reference_code:event_name:occurred_at_s);
  *     duplicate POSTs (e.g. Beacon + onClick double-fire) dedupe at the DB layer
  *     via funnel_events.event_id PK + ON CONFLICT DO NOTHING.
@@ -69,8 +70,6 @@ import {
   type GrowthAttribution,
   type GrowthMarket,
 } from '@bukeer/website-contract';
-
-export const runtime = 'edge';
 
 const log = createLogger('api.growth.events.whatsapp-cta');
 
