@@ -3,6 +3,12 @@ jest.mock('@supabase/supabase-js', () => ({
 }));
 
 jest.mock('@/lib/meta/conversions-api', () => ({
+  sha256Hex: jest.fn(async (value: string) => {
+    const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
+    return Array.from(new Uint8Array(digest))
+      .map((byte) => byte.toString(16).padStart(2, '0'))
+      .join('');
+  }),
   sendMetaConversionEvent: jest.fn().mockResolvedValue({
     status: 'skipped',
     eventName: 'ConversationCreated',
@@ -45,6 +51,7 @@ describe('/api/webhooks/chatwoot', () => {
   let webhookRows: Record<string, unknown>[];
   let webhookUpdates: Record<string, unknown>[];
   let leadUpdates: Record<string, unknown>[];
+  let funnelRows: Record<string, unknown>[];
   let leadRow: Record<string, unknown> | null;
   let duplicateWebhook = false;
 
@@ -96,6 +103,24 @@ describe('/api/webhooks/chatwoot', () => {
             }),
           };
         }
+        if (table === 'funnel_events') {
+          const funnelQuery: {
+            insert: jest.Mock;
+            select: jest.Mock;
+            maybeSingle: jest.Mock;
+          } = {
+            insert: jest.fn((row: Record<string, unknown>) => {
+              funnelRows.push(row);
+              return funnelQuery;
+            }),
+            select: jest.fn().mockReturnThis(),
+            maybeSingle: jest.fn().mockResolvedValue({
+              data: { event_id: 'event-1' },
+              error: null,
+            }),
+          };
+          return funnelQuery;
+        }
         throw new Error(`Unexpected table ${table}`);
       }),
     };
@@ -110,11 +135,12 @@ describe('/api/webhooks/chatwoot', () => {
     webhookRows = [];
     webhookUpdates = [];
     leadUpdates = [];
+    funnelRows = [];
     duplicateWebhook = false;
     leadRow = {
       id: 'lead-1',
-      account_id: '11111111-1111-1111-1111-111111111111',
-      website_id: '22222222-2222-2222-2222-222222222222',
+      account_id: '11111111-1111-4111-8111-111111111111',
+      website_id: '22222222-2222-4222-8222-222222222222',
       reference_code: 'HOME-2504-ABCD',
       session_key: 'session-123',
       payload: {
@@ -264,12 +290,34 @@ describe('/api/webhooks/chatwoot', () => {
           fbp: 'fb.1.1700000000.abc',
           fbc: 'fb.1.1700000123.FB123',
         }),
-        accountId: '11111111-1111-1111-1111-111111111111',
-        websiteId: '22222222-2222-2222-2222-222222222222',
+        accountId: '11111111-1111-4111-8111-111111111111',
+        websiteId: '22222222-2222-4222-8222-222222222222',
         waflowLeadId: 'lead-1',
         chatwootConversationId: '123',
       }),
       expect.objectContaining({ supabase: expect.any(Object) }),
     );
+    expect(funnelRows).toHaveLength(2);
+    expect(funnelRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          event_name: 'qualified_lead',
+          stage: 'qualified_lead',
+          channel: 'chatwoot',
+          reference_code: 'HOME-2504-ABCD',
+          account_id: '11111111-1111-4111-8111-111111111111',
+          website_id: '22222222-2222-4222-8222-222222222222',
+        }),
+        expect.objectContaining({
+          event_name: 'quote_sent',
+          stage: 'quote_sent',
+          channel: 'chatwoot',
+          reference_code: 'HOME-2504-ABCD',
+          account_id: '11111111-1111-4111-8111-111111111111',
+          website_id: '22222222-2222-4222-8222-222222222222',
+        }),
+      ]),
+    );
+    expect(funnelRows.every((row) => /^[0-9a-f]{64}$/.test(String(row.event_id)))).toBe(true);
   });
 });

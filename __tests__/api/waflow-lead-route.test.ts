@@ -8,6 +8,12 @@ jest.mock('@/lib/booking/rate-limit', () => ({
 }));
 
 jest.mock('@/lib/meta/conversions-api', () => ({
+  sha256Hex: jest.fn(async (value: string) => {
+    const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
+    return Array.from(new Uint8Array(digest))
+      .map((byte) => byte.toString(16).padStart(2, '0'))
+      .join('');
+  }),
   sendMetaConversionEvent: jest.fn().mockResolvedValue({
     status: 'skipped',
     eventName: 'Lead',
@@ -29,13 +35,17 @@ function request(body: Record<string, unknown>) {
 
 describe('/api/waflow/lead', () => {
   let upsertPayload: Record<string, unknown> | null;
+  let funnelRows: Record<string, unknown>[];
 
   function buildSupabaseMock() {
     const websitesQuery = {
       select: jest.fn().mockReturnThis(),
       eq: jest.fn().mockReturnThis(),
       maybeSingle: jest.fn().mockResolvedValue({
-        data: { id: 'website-1', account_id: 'account-1' },
+        data: {
+          id: '22222222-2222-4222-8222-222222222222',
+          account_id: '11111111-1111-4111-8111-111111111111',
+        },
         error: null,
       }),
     };
@@ -51,7 +61,23 @@ describe('/api/waflow/lead', () => {
       }),
       select: jest.fn().mockReturnThis(),
       maybeSingle: jest.fn().mockResolvedValue({
-        data: { id: 'lead-1' },
+        data: { id: 'lead-1', created_at: '2026-04-25T12:00:00.000Z' },
+        error: null,
+      }),
+    };
+
+    const funnelQuery: {
+      insert: jest.Mock;
+      select: jest.Mock;
+      maybeSingle: jest.Mock;
+    } = {
+      insert: jest.fn((payload: Record<string, unknown>) => {
+        funnelRows.push(payload);
+        return funnelQuery;
+      }),
+      select: jest.fn().mockReturnThis(),
+      maybeSingle: jest.fn().mockResolvedValue({
+        data: { event_id: 'event-1' },
         error: null,
       }),
     };
@@ -60,6 +86,7 @@ describe('/api/waflow/lead', () => {
       from: jest.fn((table: string) => {
         if (table === 'websites') return websitesQuery;
         if (table === 'waflow_leads') return leadsQuery;
+        if (table === 'funnel_events') return funnelQuery;
         throw new Error(`Unexpected table ${table}`);
       }),
     };
@@ -68,6 +95,7 @@ describe('/api/waflow/lead', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     upsertPayload = null;
+    funnelRows = [];
     process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://example.supabase.co';
     process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-role-key';
     (checkRateLimit as jest.Mock).mockResolvedValue({
@@ -113,8 +141,8 @@ describe('/api/waflow/lead', () => {
 
     expect(response.status).toBe(201);
     expect(upsertPayload).toMatchObject({
-      account_id: 'account-1',
-      website_id: 'website-1',
+      account_id: '11111111-1111-4111-8111-111111111111',
+      website_id: '22222222-2222-4222-8222-222222222222',
       subdomain: 'colombiatours',
       reference_code: 'HOME-2504-ABCD',
       source_ip: '203.0.113.10',
@@ -156,12 +184,25 @@ describe('/api/waflow/lead', () => {
           session_key: 'session-123',
           subdomain: 'colombiatours',
         }),
-        accountId: 'account-1',
-        websiteId: 'website-1',
+        accountId: '11111111-1111-4111-8111-111111111111',
+        websiteId: '22222222-2222-4222-8222-222222222222',
         waflowLeadId: 'lead-1',
       }),
       expect.objectContaining({ supabase: expect.any(Object) }),
     );
+    expect(funnelRows).toHaveLength(1);
+    expect(funnelRows[0]).toMatchObject({
+      event_name: 'waflow_submit',
+      stage: 'activation',
+      channel: 'waflow',
+      reference_code: 'HOME-2504-ABCD',
+      account_id: '11111111-1111-4111-8111-111111111111',
+      website_id: '22222222-2222-4222-8222-222222222222',
+      locale: 'es-CO',
+      market: 'CO',
+      occurred_at: '2026-04-25T12:00:00.000Z',
+    });
+    expect(funnelRows[0].event_id).toMatch(/^[0-9a-f]{64}$/);
   });
 
   it('rejects malformed attribution fields before persistence', async () => {

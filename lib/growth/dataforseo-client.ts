@@ -290,7 +290,7 @@ export async function callDataForSeo<T = unknown>(
         payload: json,
         fetched_at: fetchedAt,
       },
-      { onConflict: 'website_id,cache_key' },
+      { onConflict: 'website_id,endpoint,cache_key' },
     );
   } catch {
     // ignore

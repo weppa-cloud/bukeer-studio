@@ -16,6 +16,7 @@ import {
   type SearchConsoleRow,
 } from '@/lib/seo/google-client';
 import { logSeoApiCall } from '@/lib/seo/api-call-logger';
+import { callDataForSeo } from '@/lib/growth/dataforseo-client';
 
 interface CredentialRow {
   id: string;
@@ -153,6 +154,76 @@ async function upsertCredential(websiteId: string, provider: 'gsc' | 'ga4', patc
   if (error) {
     throw new SeoApiError('INTERNAL_ERROR', `Failed to persist ${provider} credentials`, 500, error.message);
   }
+
+  await upsertGrowthIntegration(websiteId, provider, {
+    ...payload,
+    refresh_token: payload.refresh_token,
+    access_token: payload.access_token,
+    token_expiry: payload.token_expiry,
+    site_url: payload.site_url,
+    property_id: payload.property_id,
+    scopes: payload.scopes,
+    last_error: payload.last_error,
+  });
+}
+
+async function upsertGrowthIntegration(
+  websiteId: string,
+  provider: 'gsc' | 'ga4',
+  patch: Partial<CredentialRow>
+) {
+  const supabase = createSupabaseServiceRoleClient();
+  const { data: website, error: websiteError } = await supabase
+    .from('websites')
+    .select('account_id')
+    .eq('id', websiteId)
+    .single();
+
+  if (websiteError || !website?.account_id) {
+    throw new SeoApiError(
+      'INTERNAL_ERROR',
+      `Failed to resolve website account for ${provider} integration`,
+      500,
+      websiteError?.message
+    );
+  }
+
+  const expiresAt = patch.token_expiry ? new Date(patch.token_expiry).getTime() : 0;
+  const status = patch.last_error
+    ? 'error'
+    : patch.access_token && expiresAt > Date.now()
+      ? 'connected'
+      : patch.refresh_token
+        ? 'expired'
+        : 'configured';
+
+  const { error } = await supabase
+    .from('seo_integrations')
+    .upsert(
+      {
+        account_id: website.account_id,
+        website_id: websiteId,
+        provider,
+        status,
+        access_token: patch.access_token ?? null,
+        refresh_token: patch.refresh_token ?? null,
+        access_token_expires_at: patch.token_expiry ?? null,
+        site_url: patch.site_url ?? null,
+        property_id: patch.property_id ?? null,
+        scopes: patch.scopes ?? [],
+        metadata: {
+          source_table: 'seo_gsc_credentials',
+          synced_by: 'seo_backend_service',
+        },
+        last_error: patch.last_error ?? null,
+        connected_at: patch.access_token ? new Date().toISOString() : null,
+      },
+      { onConflict: 'website_id,provider' }
+    );
+
+  if (error) {
+    throw new SeoApiError('INTERNAL_ERROR', `Failed to persist ${provider} growth integration`, 500, error.message);
+  }
 }
 
 async function ensureFreshToken(websiteId: string, credential: CredentialRow): Promise<CredentialRow> {
@@ -195,6 +266,7 @@ export async function getIntegrationStatus(websiteId: string): Promise<Integrati
 
   const gsc = creds.get('gsc');
   const ga4 = creds.get('ga4');
+  const hasDataForSeo = hasDataForSeoCredentials();
 
   return {
     websiteId,
@@ -213,8 +285,8 @@ export async function getIntegrationStatus(websiteId: string): Promise<Integrati
       lastError: ga4?.last_error ?? null,
     },
     dataforseo: {
-      connected: hasDataForSeoCredentials(),
-      enabled: process.env.DATAFORSEO_ENABLED === 'true' || Boolean(process.env.DATAFORSEO_CREDENTIALS),
+      connected: hasDataForSeo,
+      enabled: process.env.DATAFORSEO_ENABLED === 'true' || hasDataForSeo,
     },
   };
 }
@@ -270,6 +342,21 @@ async function resolveWebsiteDefaultLocale(websiteId: string): Promise<string> {
   return 'es-CO';
 }
 
+async function resolveWebsiteAccountId(websiteId: string): Promise<string> {
+  const supabase = createSupabaseServiceRoleClient();
+  const { data, error } = await supabase
+    .from('websites')
+    .select('account_id')
+    .eq('id', websiteId)
+    .single();
+
+  if (error || !data?.account_id) {
+    throw new SeoApiError('INTERNAL_ERROR', 'Failed to resolve website account', 500, error?.message);
+  }
+
+  return data.account_id;
+}
+
 async function upsertGscKeywords(websiteId: string, locale: string, rows: SearchConsoleRow[]) {
   if (!rows.length) return;
   const supabase = createSupabaseServiceRoleClient();
@@ -303,7 +390,7 @@ async function upsertGscKeywords(websiteId: string, locale: string, rows: Search
         {
           keyword_id: keywordRow.id,
           snapshot_date: date,
-          position: row.position ?? null,
+          position: toSmallintPosition(row.position),
           search_volume: null,
         },
         { onConflict: 'keyword_id,snapshot_date' }
@@ -313,6 +400,13 @@ async function upsertGscKeywords(websiteId: string, locale: string, rows: Search
       throw new SeoApiError('INTERNAL_ERROR', 'Failed to upsert SEO keyword snapshot', 500, snapshotError.message);
     }
   }
+}
+
+function toSmallintPosition(position: number | null | undefined): number | null {
+  if (typeof position !== 'number' || !Number.isFinite(position)) {
+    return null;
+  }
+  return Math.max(-32768, Math.min(32767, Math.round(position)));
 }
 
 function parseNumber(value: string | undefined, fallback = 0): number {
@@ -330,6 +424,52 @@ function getSearchConsoleRowLimit(): number {
   return Math.min(Math.floor(parsed), 25000);
 }
 
+function pickDataForSeoKeywords(rows: SearchConsoleRow[]): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+
+  for (const row of rows) {
+    const keyword = row.keys?.[0]?.trim().toLowerCase();
+    if (!keyword || seen.has(keyword)) continue;
+    seen.add(keyword);
+    out.push(keyword);
+    if (out.length >= 10) break;
+  }
+
+  return out.length > 0 ? out : ['colombia tours'];
+}
+
+async function syncOptionalDataForSeo(
+  websiteId: string,
+  accountId: string,
+  gscRows: SearchConsoleRow[],
+): Promise<{ status: string; rows: number; cacheHit: boolean | null; source: string | null }> {
+  const endpoint = '/v3/keywords_data/google_ads/search_volume/live';
+  const keywords = pickDataForSeoKeywords(gscRows);
+  const result = await callDataForSeo<{ tasks?: Array<{ result?: unknown[] }> }>({
+    account_id: accountId,
+    website_id: websiteId,
+    endpoint,
+    body: [
+      {
+        keywords,
+        location_code: 2170,
+        language_code: 'es',
+      },
+    ],
+    cacheKey: `search-volume|es-CO|${keywords.join('|')}`,
+    estimatedCostUsd: 0.01,
+  });
+
+  const rows = result.data.tasks?.reduce((total, task) => total + (task.result?.length ?? 0), 0) ?? 0;
+  return {
+    status: result.source,
+    rows,
+    cacheHit: result.cacheHit,
+    source: result.source,
+  };
+}
+
 export async function syncSeoData(
   websiteId: string,
   requestId: string,
@@ -338,6 +478,7 @@ export async function syncSeoData(
   const startedAt = Date.now();
   const { from, to } = parseDateRange(params.from, params.to);
   const defaultLocale = await resolveWebsiteDefaultLocale(websiteId);
+  const accountId = await resolveWebsiteAccountId(websiteId);
   const credentials = await getCredentialMap(websiteId);
 
   const gscCredential = credentials.get('gsc');
@@ -414,6 +555,21 @@ export async function syncSeoData(
 
   await upsertGa4Metrics(websiteId, metricsPayload);
 
+  let dataforseo: Awaited<ReturnType<typeof syncOptionalDataForSeo>> | { status: string; rows: number; cacheHit: boolean | null; source: string | null } =
+    { status: 'disabled', rows: 0, cacheHit: null, source: null };
+  if (params.includeDataForSeo) {
+    try {
+      dataforseo = await syncOptionalDataForSeo(websiteId, accountId, gscRows);
+    } catch (error) {
+      dataforseo = {
+        status: error instanceof Error ? `error:${error.message}` : 'error',
+        rows: 0,
+        cacheHit: null,
+        source: null,
+      };
+    }
+  }
+
   const durationMs = Date.now() - startedAt;
   await logSeoApiCall({
     websiteId,
@@ -431,6 +587,7 @@ export async function syncSeoData(
       locale: defaultLocale,
       gscRows: gscRows.length,
       ga4Rows: metricsPayload.length,
+      dataforseo,
     },
   });
 
@@ -440,7 +597,7 @@ export async function syncSeoData(
     gscRows: gscRows.length,
     ga4Rows: metricsPayload.length,
     locale: defaultLocale,
-    dataforseo: params.includeDataForSeo ? 'skipped_optional' : 'disabled',
+    dataforseo,
     durationMs,
   };
 }

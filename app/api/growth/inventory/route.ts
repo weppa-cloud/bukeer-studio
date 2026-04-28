@@ -23,6 +23,8 @@ import {
   type GrowthInventoryRow,
 } from '@bukeer/website-contract';
 import { apiError, apiInternalError, apiSuccess, apiValidationError } from '@/lib/api/response';
+import { requireWebsiteAccess } from '@/lib/seo/server-auth';
+import { SeoApiError } from '@/lib/seo/errors';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/service-role';
 import { createLogger } from '@/lib/logger';
 
@@ -60,12 +62,17 @@ export async function GET(request: NextRequest): Promise<Response> {
   let source: InventoryMeta['source'] = 'live';
 
   try {
+    const access = await requireWebsiteAccess(query.website_id);
+    if (query.account_id !== access.accountId) {
+      return apiError('FORBIDDEN', 'Insufficient permissions for this account', 403);
+    }
+
     const admin = createSupabaseServiceRoleClient();
     let q = admin
       .from('growth_inventory')
       .select('*', { count: 'exact' })
-      .eq('account_id', query.account_id)
-      .eq('website_id', query.website_id);
+      .eq('account_id', access.accountId)
+      .eq('website_id', access.websiteId);
 
     if (query.locale) q = q.eq('locale', query.locale);
     if (query.market) q = q.eq('market', query.market);
@@ -111,6 +118,9 @@ export async function GET(request: NextRequest): Promise<Response> {
       total = count ?? parsedRows.length;
     }
   } catch (e) {
+    if (e instanceof SeoApiError) {
+      return apiError(e.code, e.message, e.status, e.details);
+    }
     log.error('growth inventory unexpected error', { error: e instanceof Error ? e.message : String(e) });
     return apiInternalError('Unexpected error reading growth inventory');
   }

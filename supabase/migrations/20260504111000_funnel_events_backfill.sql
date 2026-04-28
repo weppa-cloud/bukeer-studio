@@ -4,7 +4,7 @@
 -- Idempotent: every INSERT uses ON CONFLICT (event_id) DO NOTHING.
 --
 -- Strategy:
---   event_id is computed inside SQL as encode(digest(payload, 'sha256'), 'hex')
+--   event_id is computed inside SQL as encode(extensions.digest(payload, 'sha256'), 'hex')
 --   to mirror the browser/server contract:
 --     event_id = lowercase(sha256(reference_code:event_name:occurred_at_s))
 --
@@ -59,7 +59,7 @@ insert into public.funnel_events (
 )
 select
   encode(
-    digest(
+    extensions.digest(
       ws.reference_code || ':waflow_submit:' || floor(extract(epoch from ws.occurred_at))::bigint,
       'sha256'
     ),
@@ -146,7 +146,7 @@ insert into public.funnel_events (
 )
 select
   encode(
-    digest(
+    extensions.digest(
       cs.reference_code || ':' || cs.funnel_event_name || ':' || floor(extract(epoch from cs.occurred_at))::bigint,
       'sha256'
     ),
