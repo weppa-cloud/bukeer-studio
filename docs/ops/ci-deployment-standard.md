@@ -80,7 +80,7 @@ CircleCI deploy jobs wait for the GitHub `deploy-production` check when `CI_DEPL
 | Workflow | Current role | Deployment target | Standard |
 |----------|--------------|-------------------|----------|
 | `.circleci/config.yml` | Off-GitHub fallback quality and production deploy runtime | Cloudflare Worker via OpenNext on `studio.bukeer.com` when GitHub does not deploy the SHA | Run quality on `main`; deploy only on `main` after GitHub wait/takeover |
-| `.github/workflows/deploy.yml` | Primary quality, smoke, and production deployment | Cloudflare Worker via OpenNext on `studio.bukeer.com` when `CI_DEPLOY_PROVIDER=github` | Run on `main`; no `dev` Worker deploy |
+| `.github/workflows/deploy.yml` | Primary quality, smoke, and production deployment | Cloudflare Worker via OpenNext on `studio.bukeer.com` when `CI_DEPLOY_PROVIDER=github` | Run on `main`; no `dev` Worker deploy; unit tests are non-fatal until the baseline is cleaned |
 | `.github/workflows/nightly-worker-preview.yml` | Worker preview + `@p0-seo` validation | Local Worker preview only | Manual only while conserving resources |
 | `.github/workflows/ct-visual.yml` | Playwright component/visual tests | None | Skips when `CI_QUALITY_PROVIDER=circleci`; fallback when `CI_QUALITY_PROVIDER=github` or `both` |
 | `.github/workflows/ai-sync-autofix.yml` | AI artifact sync commit | Repository files | Main-only maintenance automation |
