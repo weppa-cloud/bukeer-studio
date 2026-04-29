@@ -1,24 +1,29 @@
 #!/usr/bin/env node
 
-import fs from 'node:fs/promises';
-import path from 'node:path';
-import process from 'node:process';
-import { createClient } from '@supabase/supabase-js';
-import dotenv from 'dotenv';
+import fs from "node:fs/promises";
+import path from "node:path";
+import process from "node:process";
+import { createClient } from "@supabase/supabase-js";
+import dotenv from "dotenv";
 
-dotenv.config({ path: '.env.local' });
+dotenv.config({ path: ".env.local" });
 
-const WEBSITE_ID = '894545b7-73ca-4dae-b76a-da5b6a3f8441';
-const DEFAULT_RUN_ID = '04290125-1574-0216-0000-00a1195b1ba0';
-const OUT_DIR = 'artifacts/seo/2026-04-29-growth-audit-diff';
+const WEBSITE_ID = "894545b7-73ca-4dae-b76a-da5b6a3f8441";
+const DEFAULT_RUN_ID = "04290125-1574-0216-0000-00a1195b1ba0";
+const OUT_DIR = "artifacts/seo/2026-04-29-growth-audit-diff";
 
 const args = parseArgs(process.argv.slice(2));
 const currentRun = args.current ?? DEFAULT_RUN_ID;
 const previousRun = args.previous ?? currentRun;
+const outDir = args.outDir ?? OUT_DIR;
 
-const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
-  auth: { persistSession: false, autoRefreshToken: false },
-});
+const sb = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY,
+  {
+    auth: { persistSession: false, autoRefreshToken: false },
+  },
+);
 
 main().catch((error) => {
   console.error(error);
@@ -26,11 +31,11 @@ main().catch((error) => {
 });
 
 async function main() {
-  await fs.mkdir(OUT_DIR, { recursive: true });
-  const supportsFindingRunColumns = await supportsColumns('seo_audit_findings', [
-    'crawl_task_id',
-    'finding_fingerprint',
-  ]);
+  await fs.mkdir(outDir, { recursive: true });
+  const supportsFindingRunColumns = await supportsColumns(
+    "seo_audit_findings",
+    ["crawl_task_id", "finding_fingerprint"],
+  );
   const current = await loadRun(currentRun, supportsFindingRunColumns);
   const previous = await loadRun(previousRun, supportsFindingRunColumns);
   const diff = compare(current, previous);
@@ -40,8 +45,8 @@ async function main() {
     current_run: currentRun,
     previous_run: previousRun,
     identity_source: supportsFindingRunColumns
-      ? 'physical columns preferred; evidence fallback enabled'
-      : 'evidence fallback only',
+      ? "physical columns preferred; evidence fallback enabled"
+      : "evidence fallback only",
     counts: {
       current: current.size,
       previous: previous.size,
@@ -58,41 +63,58 @@ async function main() {
       watch: diff.watch.slice(0, 20),
     },
   };
-  await fs.writeFile(path.join(OUT_DIR, 'growth-audit-diff.json'), JSON.stringify(report, null, 2));
-  await fs.writeFile(path.join(OUT_DIR, 'growth-audit-diff.md'), toMarkdown(report));
+  await fs.writeFile(
+    path.join(outDir, "growth-audit-diff.json"),
+    JSON.stringify(report, null, 2),
+  );
+  await fs.writeFile(
+    path.join(outDir, "growth-audit-diff.md"),
+    toMarkdown(report),
+  );
   console.log(JSON.stringify(report.counts, null, 2));
 }
 
 async function loadRun(runId, supportsFindingRunColumns) {
   const columns = [
-    'public_url',
-    'finding_type',
-    'severity',
-    'status',
-    'evidence',
-    'source',
-    ...(supportsFindingRunColumns ? ['crawl_task_id', 'finding_fingerprint'] : []),
+    "public_url",
+    "finding_type",
+    "severity",
+    "status",
+    "evidence",
+    "source",
+    ...(supportsFindingRunColumns
+      ? ["crawl_task_id", "finding_fingerprint"]
+      : []),
   ];
-  const data = await fetchFindingRows(columns, runId, supportsFindingRunColumns);
+  const data = await fetchFindingRows(
+    columns,
+    runId,
+    supportsFindingRunColumns,
+  );
   const map = new Map();
   for (const row of data ?? []) {
     const evidence = row.evidence ?? {};
     const crawlTaskId = supportsFindingRunColumns
-      ? row.crawl_task_id ?? evidence.crawl_task_id
+      ? (row.crawl_task_id ?? evidence.crawl_task_id)
       : evidence.crawl_task_id;
     if (crawlTaskId !== runId) continue;
     const fingerprint = supportsFindingRunColumns
-      ? row.finding_fingerprint ?? evidence.finding_fingerprint ?? `${row.public_url}|${row.finding_type}|${row.source}`
-      : evidence.finding_fingerprint ?? `${row.public_url}|${row.finding_type}|${row.source}`;
+      ? (row.finding_fingerprint ??
+        evidence.finding_fingerprint ??
+        `${row.public_url}|${row.finding_type}|${row.source}`)
+      : (evidence.finding_fingerprint ??
+        `${row.public_url}|${row.finding_type}|${row.source}`);
     map.set(fingerprint, {
       url: row.public_url,
       finding_type: row.finding_type,
       severity: row.severity,
       status: row.status,
       identity_source:
-        supportsFindingRunColumns && row.crawl_task_id && row.finding_fingerprint
-          ? 'columns'
-          : 'evidence',
+        supportsFindingRunColumns &&
+        row.crawl_task_id &&
+        row.finding_fingerprint
+          ? "columns"
+          : "evidence",
     });
   }
   return map;
@@ -103,13 +125,13 @@ async function fetchFindingRows(columns, runId, supportsFindingRunColumns) {
   const pageSize = 1000;
   for (let from = 0; ; from += pageSize) {
     let query = sb
-      .from('seo_audit_findings')
-      .select(columns.join(','))
-      .eq('website_id', WEBSITE_ID)
-      .eq('source', 'dataforseo:on_page')
+      .from("seo_audit_findings")
+      .select(columns.join(","))
+      .eq("website_id", WEBSITE_ID)
+      .eq("source", "dataforseo:on_page")
       .range(from, from + pageSize - 1);
     if (supportsFindingRunColumns) {
-      query = query.eq('crawl_task_id', runId);
+      query = query.eq("crawl_task_id", runId);
     }
     const { data, error } = await query;
     if (error) throw new Error(error.message);
@@ -120,14 +142,14 @@ async function fetchFindingRows(columns, runId, supportsFindingRunColumns) {
 }
 
 async function supportsColumns(table, columns) {
-  const { error } = await sb.from(table).select(columns.join(',')).limit(1);
+  const { error } = await sb.from(table).select(columns.join(",")).limit(1);
   return !error;
 }
 
 function compare(current, previous) {
   const out = { new: [], open: [], resolved: [], regressed: [], watch: [] };
   for (const [key, value] of current.entries()) {
-    if (value.severity === 'info') out.watch.push(value);
+    if (value.severity === "info") out.watch.push(value);
     if (previous.has(key)) out.open.push(value);
     else out.new.push(value);
   }
@@ -164,11 +186,11 @@ function parseArgs(argv) {
   const parsed = {};
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
-    if (!arg.startsWith('--')) continue;
+    if (!arg.startsWith("--")) continue;
     const key = arg.slice(2);
     const next = argv[i + 1];
-    parsed[key] = next && !next.startsWith('--') ? next : 'true';
-    if (next && !next.startsWith('--')) i += 1;
+    parsed[key] = next && !next.startsWith("--") ? next : "true";
+    if (next && !next.startsWith("--")) i += 1;
   }
   return parsed;
 }
