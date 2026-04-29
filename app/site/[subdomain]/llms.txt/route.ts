@@ -29,7 +29,9 @@ export async function GET(
     getCategoryProducts(subdomain, 'packages', { limit: 12, offset: 0 }),
     getCategoryProducts(subdomain, 'activities', { limit: 12, offset: 0 }),
   ]);
-  const baseUrl = `https://${subdomain}.bukeer.com`;
+  const baseUrl = website.custom_domain
+    ? `https://${website.custom_domain}`
+    : `https://${subdomain}.bukeer.com`;
 
   const llmsTxt = generateLlmsTxt(website, posts, baseUrl, {
     destinations,
