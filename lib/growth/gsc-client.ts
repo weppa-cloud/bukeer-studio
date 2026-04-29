@@ -40,7 +40,7 @@ export interface GscQueryInput extends GscTenantScope {
   /** ISO date YYYY-MM-DD inclusive */
   endDate: string;
   /** Search Console dimensions, e.g. ['page'], ['query','page'] */
-  dimensions?: Array<'query' | 'page' | 'country' | 'device' | 'date'>;
+  dimensions?: Array<'query' | 'page' | 'country' | 'device' | 'date' | 'searchAppearance'>;
   /** Optional country filter (ISO-3166 alpha-3 lowercase, e.g. 'col') */
   country?: string;
   /** Force a refetch ignoring cache */

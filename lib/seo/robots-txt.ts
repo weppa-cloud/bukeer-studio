@@ -7,36 +7,34 @@
  */
 
 export function generateRobotsTxt(baseUrl: string): string {
+  const internalDisallow = `Disallow: /editor/
+Disallow: /api/`;
+
+  const aiCrawlers = [
+    ['OAI-SearchBot', 'OpenAI search visibility'],
+    ['ChatGPT-User', 'OpenAI user-requested fetch'],
+    ['GPTBot', 'OpenAI model improvement / training'],
+    ['Claude-SearchBot', 'Anthropic search visibility'],
+    ['Claude-User', 'Anthropic user-requested fetch'],
+    ['ClaudeBot', 'Anthropic model improvement / training'],
+    ['anthropic-ai', 'Legacy Anthropic crawler token'],
+    ['PerplexityBot', 'Perplexity search index'],
+    ['Google-Extended', 'Google Gemini / Vertex AI control token'],
+  ];
+
+  const aiGroups = aiCrawlers
+    .map(([agent, purpose]) => `# ${purpose}
+User-agent: ${agent}
+Allow: /
+${internalDisallow}`)
+    .join('\n\n');
+
   return `User-agent: *
 Allow: /
+${internalDisallow}
+
+${aiGroups}
 
 Sitemap: ${baseUrl}/sitemap.xml
-
-# AI Crawlers — allowed for AI search optimization (AEO)
-User-agent: GPTBot
-Allow: /
-
-User-agent: ChatGPT-User
-Allow: /
-
-User-agent: OAI-SearchBot
-Allow: /
-
-User-agent: ClaudeBot
-Allow: /
-
-User-agent: anthropic-ai
-Allow: /
-
-User-agent: PerplexityBot
-Allow: /
-
-User-agent: Google-Extended
-Allow: /
-
-# Disallow internal routes
-Disallow: /editor/
-Disallow: /api/
-Disallow: /_next/
 `;
 }

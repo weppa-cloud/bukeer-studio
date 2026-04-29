@@ -4,7 +4,7 @@
 >
 > **Convention:** `[[ADR-XXX]]` or `[[SPEC_NAME]]` = wikilink resolved below. `[text](path.md)` = regular markdown link. Both coexist.
 
-Last updated: 2026-04-28 (Meta Ads MCP scaffold/runbook for Epic #341); 2026-04-28 (Supabase migration governance runbook: Flutter is operational SSOT for shared DB migrations); 2026-04-27 (growth attribution governance runbook for #336); 2026-04-27 (public analytics standard + ColombiaTours GA4 recovery production smoke for #321/#336); 2026-04-26 (ColombiaTours Growth OS #310/#337 marketing infographics added); 2026-04-25 (SPEC_COLOMBIATOURS_GROWTH_OS_2026 stub -> canonical GitHub SPEC #337; Epic #310 renamed ColombiaTours Growth Operating System 2026); 2026-04-25 (SPEC_META_CHATWOOT_CONVERSIONS stub -> canonical GitHub Epic #322); 2026-04-25 (ADR-028 media assets canonical registry for account-managed media); 2026-04-24 (ColombiaTours SEO/GEO P1 production audit — sitemap PASS, JSON-LD PASS, Lighthouse perf debt, console fix deployed `b1d022e4-8148-40f7-adf1-b98115b761e2`); 2026-04-24 (ColombiaTours SEO/GEO public renderer hardening deployed — activities listing/detail, package listing schema, Product/Offer schema, custom-domain `/site` leak cleanup); 2026-04-24 (tenant favicons runbook + ColombiaTours favicon wiring); 2026-04-23 (ColombiaTours cutover rerun — SOFT-BLOCK, critical content/redirect/legal issues resolved, Lighthouse SEO/a11y pass with performance warnings); 2026-04-23 (ColombiaTours content classification implemented — blogs preserved, legal pages migrated local, Bogotá package redirects fixed); 2026-04-23 (ColombiaTours cutover audit — NO-GO, public route matrix + screenshots + Lighthouse 401 gate failure); 2026-04-20 (EPIC #250 #259/#260 — ADR-027 + pilot theme rollout/rollback runbook + theme-designer-v1 flag/snapshot docs sync); 2026-04-20 (EPIC #214 Stage 6 autonomous — #213 Flow 2 + Flow 3 + Lighthouse AC-A5 executed on pilot seed; matrix + sign-off stubs published to `docs/qa/pilot/`; partner + QA-lead human sign-off still pending per AC-X4a/b); 2026-04-20 (EPIC #214 Stage 5 W7-b — training onboarding extended with Flows 6/7/8 + cutover checklist Stage map + FAQ expansion); 2026-04-19 (EPIC #214 Stage 2 W7-a — training onboarding ColombiaTours + pilot runbook + cutover checklist); 2026-04-19 (EPIC #214 Stage 1 W1 — matrix refresh pkg+act editable + blog Section P + hotels as-is + Section M booking DEFER; pilot-readiness concept section expanded with matrix/ADR wikilinks); 2026-04-19 (ADR-025 priority-v2 alignment: Activities target Studio ownership with W2 pending); 2026-04-19 (EPIC #214 client priority change v2 — pilot-readiness concept scope notes); 2026-04-19 (EPIC #214 Stage 0 — ADR-024 + ADR-025 skeletons + pilot-readiness-deps); 2026-04-19 (EPIC #190 certification rerun evidence); 2026-04-18 (EPIC #190 certification run evidence + checklist); 2026-04-17 (WIKI full-refresh + #103 media closure checklist); 2026-04-17 wiki-patch (epic128 evidence + issue resolution rows)
+Last updated: 2026-04-29 (Growth Translation Quality Gate for Epic #310: `seo_translation_quality_checks`, localized content quality -> `growth_inventory` -> Growth Council); 2026-04-29 (AI Search / GEO profile for Epic #310: crawler readiness, DataForSEO AI Optimization facts, and `growth_inventory.channel = ai_search`); 2026-04-29 (Growth data automation cadence for Epic #310: provider cache refresh, normalization, inventory backlog and approval gates); 2026-04-29 (Growth provider profiles for Epic #310: DataForSEO crawl, GSC and GA4 extraction profiles); 2026-04-29 (Growth Intelligence DataForSEO flows for Epic #310: provider raw -> normalized facts -> `growth_inventory` Council matrix); 2026-04-28 (Meta Ads MCP scaffold/runbook for Epic #341); 2026-04-28 (Supabase migration governance runbook: Flutter is operational SSOT for shared DB migrations); 2026-04-27 (growth attribution governance runbook for #336); 2026-04-27 (public analytics standard + ColombiaTours GA4 recovery production smoke for #321/#336); 2026-04-26 (ColombiaTours Growth OS #310/#337 marketing infographics added); 2026-04-25 (SPEC_COLOMBIATOURS_GROWTH_OS_2026 stub -> canonical GitHub SPEC #337; Epic #310 renamed ColombiaTours Growth Operating System 2026); 2026-04-25 (SPEC_META_CHATWOOT_CONVERSIONS stub -> canonical GitHub Epic #322); 2026-04-25 (ADR-028 media assets canonical registry for account-managed media); 2026-04-24 (ColombiaTours SEO/GEO P1 production audit — sitemap PASS, JSON-LD PASS, Lighthouse perf debt, console fix deployed `b1d022e4-8148-40f7-adf1-b98115b761e2`); 2026-04-24 (ColombiaTours SEO/GEO public renderer hardening deployed — activities listing/detail, listing schema, Product/Offer schema, custom-domain `/site` leak cleanup); 2026-04-24 (tenant favicons runbook + ColombiaTours favicon wiring); 2026-04-23 (ColombiaTours cutover rerun — SOFT-BLOCK, critical content/redirect/legal issues resolved, Lighthouse SEO/a11y pass with performance warnings); 2026-04-23 (ColombiaTours content classification implemented — blogs preserved, legal pages migrated local, Bogotá package redirects fixed); 2026-04-23 (ColombiaTours cutover audit — NO-GO, public route matrix + screenshots + Lighthouse 401 gate failure); 2026-04-20 (EPIC #250 #259/#260 — ADR-027 + pilot theme rollout/rollback runbook + theme-designer-v1 flag/snapshot docs sync); 2026-04-20 (EPIC #214 Stage 6 autonomous — #213 Flow 2 + Flow 3 + Lighthouse AC-A5 executed on pilot seed; matrix + sign-off stubs published to `docs/qa/pilot/`; partner + QA-lead human sign-off still pending per AC-X4a/b); 2026-04-20 (EPIC #214 Stage 5 W7-b — training onboarding extended with Flows 6/7/8 + cutover checklist Stage map + FAQ expansion); 2026-04-19 (EPIC #214 Stage 2 W7-a — training onboarding ColombiaTours + pilot runbook + cutover checklist); 2026-04-19 (EPIC #214 Stage 1 W1 — matrix refresh pkg+act editable + blog Section P + hotels as-is + Section M booking DEFER; pilot-readiness concept section expanded with matrix/ADR wikilinks); 2026-04-19 (ADR-025 priority-v2 alignment: Activities target Studio ownership with W2 pending); 2026-04-19 (EPIC #214 client priority change v2 — pilot-readiness concept scope notes); 2026-04-19 (EPIC #214 Stage 0 — ADR-024 + ADR-025 skeletons + pilot-readiness-deps); 2026-04-19 (EPIC #190 certification rerun evidence); 2026-04-18 (EPIC #190 certification run evidence + checklist); 2026-04-17 (WIKI full-refresh + #103 media closure checklist); 2026-04-17 wiki-patch (epic128 evidence + issue resolution rows)
 
 ---
 
@@ -18,16 +18,16 @@ Last updated: 2026-04-28 (Meta Ads MCP scaffold/runbook for Epic #341); 2026-04-
 
 ## Agent entry points
 
-| Artifact | Path | Purpose |
-|----------|------|---------|
-| Root manifest | `CLAUDE.md` | Primary context for Claude Code. Tech stack, scripts, skills registry. |
-| E2E pool rules | `.claude/rules/e2e-sessions.md` | Mandatory for any agent running dev server / Playwright. |
-| Cross-repo bridge | `.claude/rules/cross-repo-flutter.md` | Shared DB + decisions with `weppa-cloud/bukeer-flutter`. |
-| Skills | `.claude/skills/*/SKILL.md` | 11 skills: nextjs-developer, backend-dev, tech-validator, specifying, docs-keeper, debugger, website-designer, website-section-generator, website-quality-gate, prompt-optimiser. |
-| Commands | `.claude/commands/*.md` | `/qa-nextjs`, `/website-creator`, `/design-session`. |
-| Auto-memory | `~/.claude/projects/.../memory/MEMORY.md` | Cross-session persistent memory index. Not a repo file — lives in user home. |
-| MCP servers | `.claude/mcp-servers/` | `bukeer-studio/` (Studio API) + `dataforseo/` (SEO data) + `meta-ads/` (Meta Ads scaffold). READMEs in each subfolder. |
-| Agent setup | [agent-setup](./development/agent-setup.md) | How to configure Codex/Opencode/Claude Code for this repo. |
+| Artifact          | Path                                        | Purpose                                                                                                                                                                           |
+| ----------------- | ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Root manifest     | `CLAUDE.md`                                 | Primary context for Claude Code. Tech stack, scripts, skills registry.                                                                                                            |
+| E2E pool rules    | `.claude/rules/e2e-sessions.md`             | Mandatory for any agent running dev server / Playwright.                                                                                                                          |
+| Cross-repo bridge | `.claude/rules/cross-repo-flutter.md`       | Shared DB + decisions with `weppa-cloud/bukeer-flutter`.                                                                                                                          |
+| Skills            | `.claude/skills/*/SKILL.md`                 | 11 skills: nextjs-developer, backend-dev, tech-validator, specifying, docs-keeper, debugger, website-designer, website-section-generator, website-quality-gate, prompt-optimiser. |
+| Commands          | `.claude/commands/*.md`                     | `/qa-nextjs`, `/website-creator`, `/design-session`.                                                                                                                              |
+| Auto-memory       | `~/.claude/projects/.../memory/MEMORY.md`   | Cross-session persistent memory index. Not a repo file — lives in user home.                                                                                                      |
+| MCP servers       | `.claude/mcp-servers/`                      | `bukeer-studio/` (Studio API) + `dataforseo/` (SEO data) + `meta-ads/` (Meta Ads scaffold). READMEs in each subfolder.                                                            |
+| Agent setup       | [agent-setup](./development/agent-setup.md) | How to configure Codex/Opencode/Claude Code for this repo.                                                                                                                        |
 
 ---
 
@@ -35,33 +35,33 @@ Last updated: 2026-04-28 (Meta Ads MCP scaffold/runbook for Epic #341); 2026-04-
 
 All ADRs accepted unless noted. Cross-cut by Principles P1–P10 (see [[ARCHITECTURE]]).
 
-| Wikilink | File | Topic | Concepts touched |
-|----------|------|-------|------------------|
-| [[ADR-001]] | [ADR-001](./architecture/ADR-001-server-first-rendering.md) | Server-First Rendering with ISR and PPR | [[SSR]] [[ISR]] [[PPR]] |
-| [[ADR-002]] | [ADR-002](./architecture/ADR-002-error-handling-strategy.md) | Three-Tier Error Handling | [[error-handling]] [[observability]] |
-| [[ADR-003]] | [ADR-003](./architecture/ADR-003-contract-first-validation.md) | Contract-First Validation with Zod | [[website-contract]] [[validation]] |
-| [[ADR-004]] | [ADR-004](./architecture/ADR-004-state-management.md) | State Management without Global Store | [[state]] [[server-components]] |
-| [[ADR-005]] | [ADR-005](./architecture/ADR-005-security-defense-in-depth.md) | Defense-in-Depth Security | [[auth]] [[RLS]] [[rate-limiting]] |
-| [[ADR-006]] | [ADR-006](./architecture/ADR-006-ai-streaming-architecture.md) | Streaming-First AI Integration | [[AI]] [[openrouter]] [[streaming]] |
-| [[ADR-007]] | [ADR-007](./architecture/ADR-007-edge-first-delivery.md) | Edge-First Delivery on Cloudflare Workers | [[edge]] [[cloudflare]] [[pagination]] |
-| [[ADR-008]] | [ADR-008](./architecture/ADR-008-monorepo-packages.md) | Internal Package Architecture | [[theme-sdk]] [[website-contract]] [[monorepo]] |
-| [[ADR-009]] | [ADR-009](./architecture/ADR-009-multi-tenant-subdomain-routing.md) | Multi-Tenant Subdomain Routing | [[multi-tenant]] [[subdomain]] [[middleware]] |
-| [[ADR-010]] | [ADR-010](./architecture/ADR-010-observability-strategy.md) | Observability Strategy | [[logging]] [[observability]] |
-| [[ADR-011]] | [ADR-011](./architecture/ADR-011-middleware-cache.md) | Middleware In-Memory Cache | [[middleware]] [[cache]] [[edge]] |
-| [[ADR-012]] | [ADR-012](./architecture/ADR-012-api-response-envelope.md) | Standard API Response Envelope | [[API]] [[validation]] |
-| [[ADR-013]] | [ADR-013](./architecture/ADR-013-tech-validator-quality-gate.md) | Automated Tech Validator Quality Gate | [[tech-validator]] [[quality-gate]] |
-| [[ADR-014]] | [ADR-014](./architecture/ADR-014-delta-typescript-quality-gate.md) | Delta TypeScript Quality Gate | [[tech-validator]] [[typescript]] |
-| [[ADR-015]] | [ADR-015](./architecture/ADR-015-resilient-map-rendering-and-marker-media-fallback.md) | Resilient Map Rendering and Marker Media Fallback | [[maps]] [[webgl]] [[fallback]] |
-| [[ADR-016]] | [ADR-016](./architecture/ADR-016-seo-intelligence-caching.md) | SEO Content Intelligence Caching and Revalidation | [[SEO]] [[cache]] [[ISR]] [[places-cache]] |
-| [[ADR-017]] | [ADR-017](./architecture/ADR-017-geocoding-activity-circuits.md) | Geocoding for Activity Circuit Maps (MapTiler + places_cache) | [[geocoding]] [[maps]] [[places-cache]] |
-| [[ADR-018]] | [ADR-018](./architecture/ADR-018-webhook-idempotency.md) | Webhook Idempotency + Replay Protection (HMAC + 5min window + dedup) | [[webhook]] [[idempotency]] [[wompi]] [[booking]] |
-| [[ADR-019]] | [ADR-019](./architecture/ADR-019-multi-locale-url-routing.md) | Multi-locale URL Routing (path-prefix strategy) | [[multi-locale]] [[routing]] [[middleware]] [[i18n]] |
-| [[ADR-020]] | [ADR-020](./architecture/ADR-020-hreflang-emission-policy.md) | hreflang Emission Policy and x-default Strategy | [[SEO]] [[hreflang]] [[multi-locale]] [[sitemap]] |
-| [[ADR-021]] | [ADR-021](./architecture/ADR-021-translation-memory-transcreation-pipeline.md) | Translation Memory + AI Transcreation Pipeline | [[translation]] [[TM]] [[AI]] [[transcreation]] [[multi-locale]] |
-| [[ADR-023]] | [ADR-023](./architecture/ADR-023-qa-tooling-studio-editor.md) | QA Tooling: Playwright Component Testing + Visual Regression | [[testing]] [[CT]] [[visual-regression]] [[quality-gate]] |
-| [[ADR-024]] | [ADR-024](./architecture/ADR-024-booking-v1-pilot-scope.md) | Booking V1 Pilot Scope (Proposed — W3 decision meeting) | [[booking]] [[pilot-readiness]] [[leads]] |
-| [[ADR-025]] | [ADR-025](./architecture/ADR-025-studio-flutter-field-ownership.md) | Studio / Flutter Field Ownership Boundary (**Accepted 2026-04-19** — pkg+act Studio-editable, hotels Flutter-owner; Option A RPC expansion + activities parity) | [[studio-editor-v2]] [[package-kits]] [[pilot-readiness]] [[studio-editor-parity-audit]] |
-| [[ADR-028]] | [ADR-028](./architecture/ADR-028-media-assets-canonical-registry.md) | Media Assets Canonical Registry | [[media-assets]] [[storage]] [[cross-repo-flutter]] |
+| Wikilink    | File                                                                                   | Topic                                                                                                                                                           | Concepts touched                                                                         |
+| ----------- | -------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| [[ADR-001]] | [ADR-001](./architecture/ADR-001-server-first-rendering.md)                            | Server-First Rendering with ISR and PPR                                                                                                                         | [[SSR]] [[ISR]] [[PPR]]                                                                  |
+| [[ADR-002]] | [ADR-002](./architecture/ADR-002-error-handling-strategy.md)                           | Three-Tier Error Handling                                                                                                                                       | [[error-handling]] [[observability]]                                                     |
+| [[ADR-003]] | [ADR-003](./architecture/ADR-003-contract-first-validation.md)                         | Contract-First Validation with Zod                                                                                                                              | [[website-contract]] [[validation]]                                                      |
+| [[ADR-004]] | [ADR-004](./architecture/ADR-004-state-management.md)                                  | State Management without Global Store                                                                                                                           | [[state]] [[server-components]]                                                          |
+| [[ADR-005]] | [ADR-005](./architecture/ADR-005-security-defense-in-depth.md)                         | Defense-in-Depth Security                                                                                                                                       | [[auth]] [[RLS]] [[rate-limiting]]                                                       |
+| [[ADR-006]] | [ADR-006](./architecture/ADR-006-ai-streaming-architecture.md)                         | Streaming-First AI Integration                                                                                                                                  | [[AI]] [[openrouter]] [[streaming]]                                                      |
+| [[ADR-007]] | [ADR-007](./architecture/ADR-007-edge-first-delivery.md)                               | Edge-First Delivery on Cloudflare Workers                                                                                                                       | [[edge]] [[cloudflare]] [[pagination]]                                                   |
+| [[ADR-008]] | [ADR-008](./architecture/ADR-008-monorepo-packages.md)                                 | Internal Package Architecture                                                                                                                                   | [[theme-sdk]] [[website-contract]] [[monorepo]]                                          |
+| [[ADR-009]] | [ADR-009](./architecture/ADR-009-multi-tenant-subdomain-routing.md)                    | Multi-Tenant Subdomain Routing                                                                                                                                  | [[multi-tenant]] [[subdomain]] [[middleware]]                                            |
+| [[ADR-010]] | [ADR-010](./architecture/ADR-010-observability-strategy.md)                            | Observability Strategy                                                                                                                                          | [[logging]] [[observability]]                                                            |
+| [[ADR-011]] | [ADR-011](./architecture/ADR-011-middleware-cache.md)                                  | Middleware In-Memory Cache                                                                                                                                      | [[middleware]] [[cache]] [[edge]]                                                        |
+| [[ADR-012]] | [ADR-012](./architecture/ADR-012-api-response-envelope.md)                             | Standard API Response Envelope                                                                                                                                  | [[API]] [[validation]]                                                                   |
+| [[ADR-013]] | [ADR-013](./architecture/ADR-013-tech-validator-quality-gate.md)                       | Automated Tech Validator Quality Gate                                                                                                                           | [[tech-validator]] [[quality-gate]]                                                      |
+| [[ADR-014]] | [ADR-014](./architecture/ADR-014-delta-typescript-quality-gate.md)                     | Delta TypeScript Quality Gate                                                                                                                                   | [[tech-validator]] [[typescript]]                                                        |
+| [[ADR-015]] | [ADR-015](./architecture/ADR-015-resilient-map-rendering-and-marker-media-fallback.md) | Resilient Map Rendering and Marker Media Fallback                                                                                                               | [[maps]] [[webgl]] [[fallback]]                                                          |
+| [[ADR-016]] | [ADR-016](./architecture/ADR-016-seo-intelligence-caching.md)                          | SEO Content Intelligence Caching and Revalidation                                                                                                               | [[SEO]] [[cache]] [[ISR]] [[places-cache]]                                               |
+| [[ADR-017]] | [ADR-017](./architecture/ADR-017-geocoding-activity-circuits.md)                       | Geocoding for Activity Circuit Maps (MapTiler + places_cache)                                                                                                   | [[geocoding]] [[maps]] [[places-cache]]                                                  |
+| [[ADR-018]] | [ADR-018](./architecture/ADR-018-webhook-idempotency.md)                               | Webhook Idempotency + Replay Protection (HMAC + 5min window + dedup)                                                                                            | [[webhook]] [[idempotency]] [[wompi]] [[booking]]                                        |
+| [[ADR-019]] | [ADR-019](./architecture/ADR-019-multi-locale-url-routing.md)                          | Multi-locale URL Routing (path-prefix strategy)                                                                                                                 | [[multi-locale]] [[routing]] [[middleware]] [[i18n]]                                     |
+| [[ADR-020]] | [ADR-020](./architecture/ADR-020-hreflang-emission-policy.md)                          | hreflang Emission Policy and x-default Strategy                                                                                                                 | [[SEO]] [[hreflang]] [[multi-locale]] [[sitemap]]                                        |
+| [[ADR-021]] | [ADR-021](./architecture/ADR-021-translation-memory-transcreation-pipeline.md)         | Translation Memory + AI Transcreation Pipeline                                                                                                                  | [[translation]] [[TM]] [[AI]] [[transcreation]] [[multi-locale]]                         |
+| [[ADR-023]] | [ADR-023](./architecture/ADR-023-qa-tooling-studio-editor.md)                          | QA Tooling: Playwright Component Testing + Visual Regression                                                                                                    | [[testing]] [[CT]] [[visual-regression]] [[quality-gate]]                                |
+| [[ADR-024]] | [ADR-024](./architecture/ADR-024-booking-v1-pilot-scope.md)                            | Booking V1 Pilot Scope (Proposed — W3 decision meeting)                                                                                                         | [[booking]] [[pilot-readiness]] [[leads]]                                                |
+| [[ADR-025]] | [ADR-025](./architecture/ADR-025-studio-flutter-field-ownership.md)                    | Studio / Flutter Field Ownership Boundary (**Accepted 2026-04-19** — pkg+act Studio-editable, hotels Flutter-owner; Option A RPC expansion + activities parity) | [[studio-editor-v2]] [[package-kits]] [[pilot-readiness]] [[studio-editor-parity-audit]] |
+| [[ADR-028]] | [ADR-028](./architecture/ADR-028-media-assets-canonical-registry.md)                   | Media Assets Canonical Registry                                                                                                                                 | [[media-assets]] [[storage]] [[cross-repo-flutter]]                                      |
 
 > **Note:** `ADR-022` and `ADR-032` referenced in specs are anchored in `weppa-cloud/bukeer-flutter`. Studio respects them but does not own them. See [[cross-repo-flutter]].
 
@@ -77,129 +77,134 @@ All ADRs accepted unless noted. Cross-cut by Principles P1–P10 (see [[ARCHITEC
 
 Feature requests formalized. Status tracked inline. GitHub Issues = source of truth ([[specs-source-of-truth]]).
 
-| Wikilink | File | Concepts |
-|----------|------|----------|
-| [[SPEC_MULTI_LOCALE_REMEDIATION]] | [file](./specs/SPEC_MULTI_LOCALE_REMEDIATION.md) | [[i18n]] [[SEO]] [[growth-ops]] |
-| [[SPEC_MEDIA_ASSET_INVENTORY]] | [file](./specs/SPEC_MEDIA_ASSET_INVENTORY.md) | [[media-assets]] [[storage]] [[cross-repo-flutter]] |
-| [[SPEC_SECTION_ENTITY_TRANSLATION_LAYER]] | [file](./specs/SPEC_SECTION_ENTITY_TRANSLATION_LAYER.md) | [[i18n]] [[website_sections]] [[package_kits]] [[contacts]] [[translation-overlay]] Epic #273 (infra #274-#278 implemented in code, content population pending) |
-| [[SPEC_PACKAGE_DETAIL_CONVERSION_V2]] | [file](./specs/SPEC_PACKAGE_DETAIL_CONVERSION_V2.md) | [[package-landing]] [[package-kits]] [[maps]] [[conversion]] |
-| [[SPEC_SEO_CONTENT_INTELLIGENCE]] | [file](./specs/SPEC_SEO_CONTENT_INTELLIGENCE.md) | [[SEO]] [[AI]] [[keyword-research]] |
-| [[SPEC_SEO_CONTENT_INTELLIGENCE_INTEGRAL]] | [file](./specs/SPEC_SEO_CONTENT_INTELLIGENCE_INTEGRAL.md) | [[SEO]] [[AI]] [[content-ops]] |
-| [[SPEC_SEO_DASHBOARD_PRODUCT_INTEGRATION]] | [file](./specs/SPEC_SEO_DASHBOARD_PRODUCT_INTEGRATION.md) | [[SEO]] [[product-landing]] [[catalog-v2]] |
-| [[SPEC_SEO_DESTINATIONS_PRODUCTS]] | [file](./specs/SPEC_SEO_DESTINATIONS_PRODUCTS.md) | [[SEO]] [[destinations]] [[product-landing]] |
-| [[SPEC_SEO_BLOG_EXECUTION_FRAMEWORK_2026]] | [file](./specs/SPEC_SEO_BLOG_EXECUTION_FRAMEWORK_2026.md) | [[SEO]] [[content-ops]] [[quality-gate]] |
-| [[SPEC_SEO_OPTIMIZATION_TOOLKIT]] | [file](./specs/SPEC_SEO_OPTIMIZATION_TOOLKIT.md) | [[SEO]] [[AI]] [[bulk-actions]] |
-| [[SPEC_SKILL_NEXTJS_DEVELOPER_AUDIT]] | [file](./specs/SPEC_SKILL_NEXTJS_DEVELOPER_AUDIT.md) | [[skills]] [[nextjs-developer]] |
-| [[SPEC_UX_IA_AUDIT_BUKEER_STUDIO]] | [file](./specs/SPEC_UX_IA_AUDIT_BUKEER_STUDIO.md) | [[UX]] [[information-architecture]] |
-| [[SPEC_BOOKINGS_STUDIO]] | [file](./specs/SPEC_BOOKINGS_STUDIO.md) | Stub — booking flows in Studio | [[bookings]] [[leads]] |
-| [[pilot-readiness-deps]] | [file](./specs/pilot-readiness-deps.md) | EPIC #214 dependency gate (hard deps + parallel gates across W1-W7) | [[pilot-readiness]] [[EPIC-214]] |
-| [[SPEC_MARKET_EXPERIENCE_SWITCHER]] | [file](./specs/SPEC_MARKET_EXPERIENCE_SWITCHER.md) | [[market-ux]] [[i18n]] [[currency]] |
-| [[SECTION_TYPES_REGISTRY]] | [file](./specs/SECTION_TYPES_REGISTRY.md) | Stub — section types table | [[sections]] [[website-contract]] |
-| [[EPIC_SEO_CONTENT_INTELLIGENCE_GITHUB]] | [file](./specs/EPIC_SEO_CONTENT_INTELLIGENCE_GITHUB.md) | [[SEO]] [[EPIC]] |
-| [[ISSUE_MAP_SEO_CONTENT_INTELLIGENCE]] | [file](./specs/ISSUE_MAP_SEO_CONTENT_INTELLIGENCE.md) | [[SEO]] [[issue-tracking]] |
-| [[ROADMAP_SEO_CONTENT_INTELLIGENCE]] | [file](./specs/ROADMAP_SEO_CONTENT_INTELLIGENCE.md) | [[SEO]] [[roadmap]] |
+| Wikilink                                   | File                                                      | Concepts                                                                                                                                                        |
+| ------------------------------------------ | --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
+| [[SPEC_MULTI_LOCALE_REMEDIATION]]          | [file](./specs/SPEC_MULTI_LOCALE_REMEDIATION.md)          | [[i18n]] [[SEO]] [[growth-ops]]                                                                                                                                 |
+| [[SPEC_MEDIA_ASSET_INVENTORY]]             | [file](./specs/SPEC_MEDIA_ASSET_INVENTORY.md)             | [[media-assets]] [[storage]] [[cross-repo-flutter]]                                                                                                             |
+| [[SPEC_SECTION_ENTITY_TRANSLATION_LAYER]]  | [file](./specs/SPEC_SECTION_ENTITY_TRANSLATION_LAYER.md)  | [[i18n]] [[website_sections]] [[package_kits]] [[contacts]] [[translation-overlay]] Epic #273 (infra #274-#278 implemented in code, content population pending) |
+| [[SPEC_PACKAGE_DETAIL_CONVERSION_V2]]      | [file](./specs/SPEC_PACKAGE_DETAIL_CONVERSION_V2.md)      | [[package-landing]] [[package-kits]] [[maps]] [[conversion]]                                                                                                    |
+| [[SPEC_SEO_CONTENT_INTELLIGENCE]]          | [file](./specs/SPEC_SEO_CONTENT_INTELLIGENCE.md)          | [[SEO]] [[AI]] [[keyword-research]]                                                                                                                             |
+| [[SPEC_SEO_CONTENT_INTELLIGENCE_INTEGRAL]] | [file](./specs/SPEC_SEO_CONTENT_INTELLIGENCE_INTEGRAL.md) | [[SEO]] [[AI]] [[content-ops]]                                                                                                                                  |
+| [[SPEC_SEO_DASHBOARD_PRODUCT_INTEGRATION]] | [file](./specs/SPEC_SEO_DASHBOARD_PRODUCT_INTEGRATION.md) | [[SEO]] [[product-landing]] [[catalog-v2]]                                                                                                                      |
+| [[SPEC_SEO_DESTINATIONS_PRODUCTS]]         | [file](./specs/SPEC_SEO_DESTINATIONS_PRODUCTS.md)         | [[SEO]] [[destinations]] [[product-landing]]                                                                                                                    |
+| [[SPEC_SEO_BLOG_EXECUTION_FRAMEWORK_2026]] | [file](./specs/SPEC_SEO_BLOG_EXECUTION_FRAMEWORK_2026.md) | [[SEO]] [[content-ops]] [[quality-gate]]                                                                                                                        |
+| [[SPEC_SEO_OPTIMIZATION_TOOLKIT]]          | [file](./specs/SPEC_SEO_OPTIMIZATION_TOOLKIT.md)          | [[SEO]] [[AI]] [[bulk-actions]]                                                                                                                                 |
+| [[SPEC_SKILL_NEXTJS_DEVELOPER_AUDIT]]      | [file](./specs/SPEC_SKILL_NEXTJS_DEVELOPER_AUDIT.md)      | [[skills]] [[nextjs-developer]]                                                                                                                                 |
+| [[SPEC_UX_IA_AUDIT_BUKEER_STUDIO]]         | [file](./specs/SPEC_UX_IA_AUDIT_BUKEER_STUDIO.md)         | [[UX]] [[information-architecture]]                                                                                                                             |
+| [[SPEC_BOOKINGS_STUDIO]]                   | [file](./specs/SPEC_BOOKINGS_STUDIO.md)                   | Stub — booking flows in Studio                                                                                                                                  | [[bookings]] [[leads]]            |
+| [[pilot-readiness-deps]]                   | [file](./specs/pilot-readiness-deps.md)                   | EPIC #214 dependency gate (hard deps + parallel gates across W1-W7)                                                                                             | [[pilot-readiness]] [[EPIC-214]]  |
+| [[SPEC_MARKET_EXPERIENCE_SWITCHER]]        | [file](./specs/SPEC_MARKET_EXPERIENCE_SWITCHER.md)        | [[market-ux]] [[i18n]] [[currency]]                                                                                                                             |
+| [[SECTION_TYPES_REGISTRY]]                 | [file](./specs/SECTION_TYPES_REGISTRY.md)                 | Stub — section types table                                                                                                                                      | [[sections]] [[website-contract]] |
+| [[EPIC_SEO_CONTENT_INTELLIGENCE_GITHUB]]   | [file](./specs/EPIC_SEO_CONTENT_INTELLIGENCE_GITHUB.md)   | [[SEO]] [[EPIC]]                                                                                                                                                |
+| [[ISSUE_MAP_SEO_CONTENT_INTELLIGENCE]]     | [file](./specs/ISSUE_MAP_SEO_CONTENT_INTELLIGENCE.md)     | [[SEO]] [[issue-tracking]]                                                                                                                                      |
+| [[ROADMAP_SEO_CONTENT_INTELLIGENCE]]       | [file](./specs/ROADMAP_SEO_CONTENT_INTELLIGENCE.md)       | [[SEO]] [[roadmap]]                                                                                                                                             |
 
 ---
 
 ## Product
 
-| Wikilink | File | Purpose |
-|----------|------|---------|
-| [[package-detail-anatomy]] | [file](./product/package-detail-anatomy.md) | Package landing anatomy: sections, fields, hygiene checklist, gaps. |
-| [[product-detail-inventory]] | [file](./product/product-detail-inventory.md) | Activity + package inventory with editability matrix (Flutter / Studio / AI / Computed). |
-| [[product-detail-matrix]] | [file](./product/product-detail-matrix.md) | Full product-design matrix: all fields/sections, origin, generation type, artifact, Act/Pkg presence. |
-| [[schema-parity-audit]] | [file](./product/schema-parity-audit.md) | activities + hotels vs package_kits schema parity audit (F1, 2026-04-18). Informs #204 F2 migrations. |
+| Wikilink                     | File                                          | Purpose                                                                                               |
+| ---------------------------- | --------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| [[package-detail-anatomy]]   | [file](./product/package-detail-anatomy.md)   | Package landing anatomy: sections, fields, hygiene checklist, gaps.                                   |
+| [[product-detail-inventory]] | [file](./product/product-detail-inventory.md) | Activity + package inventory with editability matrix (Flutter / Studio / AI / Computed).              |
+| [[product-detail-matrix]]    | [file](./product/product-detail-matrix.md)    | Full product-design matrix: all fields/sections, origin, generation type, artifact, Act/Pkg presence. |
+| [[schema-parity-audit]]      | [file](./product/schema-parity-audit.md)      | activities + hotels vs package_kits schema parity audit (F1, 2026-04-18). Informs #204 F2 migrations. |
 
 ---
 
 ## Ops, runbooks, CI
 
-| Wikilink | File | Purpose |
-|----------|------|---------|
-| [[product-landing-v1-runbook]] | [file](./ops/product-landing-v1-runbook.md) | EPIC 7 rollout + monitoring. |
-| [[lighthouse-ci]] | [file](./ops/lighthouse-ci.md) | Core Web Vitals gate (perf/a11y/SEO). |
-| [[issue-103-media-closure-checklist]] | [file](./ops/issue-103-media-closure-checklist.md) | Formal SQL/runtime closure validation for media (#176/#177/#179) and residual legacy-bucket risk gate. |
-| [[media-inventory-runbook]] | [file](./ops/media-inventory-runbook.md) | Operational inventory and characterization process for `media_assets` across Storage and legacy media URL fields. |
-| [[media-asset-guardrails]] | [file](./ops/media-asset-guardrails.md) | Guardrails for Studio, Flutter and MLLM-assisted work so new image/media features comply with ADR-028 and `media_assets`. |
-| [[github-actions-billing-incident]] | [file](./ops/github-actions-billing-incident.md) | Runbook: CI fails in 3-4s → GitHub billing/spending-limit issue, not code. |
-| [[circleci-runbook]] | [file](./ops/circleci-runbook.md) | Off-GitHub CI fallback for Node/Next.js quality gates when GitHub Actions billing blocks hosted checks. |
-| [[ci-deployment-standard]] | [file](./ops/ci-deployment-standard.md) | Cross-repo CI/CD branch model, deployment inventory, and cost-control standard. |
-| [[transcreate-website-content-runbook]] | [file](./ops/transcreate-website-content-runbook.md) | End-to-end flow: traducir todo el contenido de un sitio (glossary → AI draft → review → apply → verify). |
-| [[studio-editor-v2-rollback]] | [file](./ops/studio-editor-v2-rollback.md) | Rollback runbook for #190 Studio Editor v2 — 4 levels (field / website / account / data restore) + pre-flight re-enable gate. |
-| [[pilot-theme-designer-v1-rollout]] | [file](./ops/pilot-theme-designer-v1-rollout.md) | Pilot designer-reference theme rollout + rollback (`theme_designer_v1_enabled` + `pilot_theme_snapshots` + revalidate). |
-| [[pilot-runbook-colombiatours]] | [file](./ops/pilot-runbook-colombiatours.md) | EPIC #214 pilot cutover runbook (cross-links 4 existing runbooks; DNS TTL / ±24 h Flutter rule / SLA / post-cutover cadence). |
-| [[tenant-favicons]] | [file](./ops/tenant-favicons.md) | Per-tenant browser tab icons: metadata resolver, data contract, and ColombiaTours asset notes. |
-| [[cutover-checklist]] | [file](./ops/cutover-checklist.md) | Standalone reusable cutover checklist imported into pilot runbook §5.1 (preflight / cutover / post-cutover / rollback criteria + sequence). |
-| [[release-gate-checklist]] | [file](./ops/release-gate-checklist.md) | Go/No-Go automated gate checklist for prod deploys (EPIC #207 certification). |
-| [[ci-seo-i18n-gate]] | [file](./ops/ci-seo-i18n-gate.md) | CI gate `@p0-seo` + nightly Worker preview (ADR-013). |
-| [[public-analytics-standard]] | [file](./ops/public-analytics-standard.md) | Public tracking standard: lightweight GA4 pageview, deferred GTM/Meta/Ads/custom scripts, production smoke and #336 Ads residual. |
-| [[growth-attribution-governance]] | [file](./ops/growth-attribution-governance.md) | Privacy/data-governance gate for Growth OS attribution: ad ids, contact data, provider responses, RLS boundaries and platform payload rules. |
-| [[supabase-migration-governance]] | [file](./ops/supabase-migration-governance.md) | Cross-repo migration governance: Studio may originate shared DB migrations, Flutter is the operational SSOT for applying them. |
-| [[meta-ads-mcp]] | [file](./ops/meta-ads-mcp.md) | Epic #341 local MCP package scaffold for Meta Ads: env, safe modes, kill switch, ColombiaTours defaults. |
-| [[product-landing-rollout-runbook]] | [file](./runbooks/product-landing-rollout-runbook.md) | Rollout for public site rendering / ISR changes. |
+| Wikilink                                 | File                                                  | Purpose                                                                                                                                      |
+| ---------------------------------------- | ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| [[product-landing-v1-runbook]]           | [file](./ops/product-landing-v1-runbook.md)           | EPIC 7 rollout + monitoring.                                                                                                                 |
+| [[lighthouse-ci]]                        | [file](./ops/lighthouse-ci.md)                        | Core Web Vitals gate (perf/a11y/SEO).                                                                                                        |
+| [[issue-103-media-closure-checklist]]    | [file](./ops/issue-103-media-closure-checklist.md)    | Formal SQL/runtime closure validation for media (#176/#177/#179) and residual legacy-bucket risk gate.                                       |
+| [[media-inventory-runbook]]              | [file](./ops/media-inventory-runbook.md)              | Operational inventory and characterization process for `media_assets` across Storage and legacy media URL fields.                            |
+| [[media-asset-guardrails]]               | [file](./ops/media-asset-guardrails.md)               | Guardrails for Studio, Flutter and MLLM-assisted work so new image/media features comply with ADR-028 and `media_assets`.                    |
+| [[github-actions-billing-incident]]      | [file](./ops/github-actions-billing-incident.md)      | Runbook: CI fails in 3-4s → GitHub billing/spending-limit issue, not code.                                                                   |
+| [[circleci-runbook]]                     | [file](./ops/circleci-runbook.md)                     | Off-GitHub CI fallback for Node/Next.js quality gates when GitHub Actions billing blocks hosted checks.                                      |
+| [[ci-deployment-standard]]               | [file](./ops/ci-deployment-standard.md)               | Cross-repo CI/CD branch model, deployment inventory, and cost-control standard.                                                              |
+| [[transcreate-website-content-runbook]]  | [file](./ops/transcreate-website-content-runbook.md)  | End-to-end flow: traducir todo el contenido de un sitio (glossary → AI draft → review → apply → verify).                                     |
+| [[studio-editor-v2-rollback]]            | [file](./ops/studio-editor-v2-rollback.md)            | Rollback runbook for #190 Studio Editor v2 — 4 levels (field / website / account / data restore) + pre-flight re-enable gate.                |
+| [[pilot-theme-designer-v1-rollout]]      | [file](./ops/pilot-theme-designer-v1-rollout.md)      | Pilot designer-reference theme rollout + rollback (`theme_designer_v1_enabled` + `pilot_theme_snapshots` + revalidate).                      |
+| [[pilot-runbook-colombiatours]]          | [file](./ops/pilot-runbook-colombiatours.md)          | EPIC #214 pilot cutover runbook (cross-links 4 existing runbooks; DNS TTL / ±24 h Flutter rule / SLA / post-cutover cadence).                |
+| [[tenant-favicons]]                      | [file](./ops/tenant-favicons.md)                      | Per-tenant browser tab icons: metadata resolver, data contract, and ColombiaTours asset notes.                                               |
+| [[cutover-checklist]]                    | [file](./ops/cutover-checklist.md)                    | Standalone reusable cutover checklist imported into pilot runbook §5.1 (preflight / cutover / post-cutover / rollback criteria + sequence).  |
+| [[release-gate-checklist]]               | [file](./ops/release-gate-checklist.md)               | Go/No-Go automated gate checklist for prod deploys (EPIC #207 certification).                                                                |
+| [[ci-seo-i18n-gate]]                     | [file](./ops/ci-seo-i18n-gate.md)                     | CI gate `@p0-seo` + nightly Worker preview (ADR-013).                                                                                        |
+| [[public-analytics-standard]]            | [file](./ops/public-analytics-standard.md)            | Public tracking standard: lightweight GA4 pageview, deferred GTM/Meta/Ads/custom scripts, production smoke and #336 Ads residual.            |
+| [[growth-attribution-governance]]        | [file](./ops/growth-attribution-governance.md)        | Privacy/data-governance gate for Growth OS attribution: ad ids, contact data, provider responses, RLS boundaries and platform payload rules. |
+| [[growth-intelligence-dataforseo-flows]] | [file](./ops/growth-intelligence-dataforseo-flows.md) | Epic #310 runbook: DataForSEO modules, raw/cache storage, normalization into SEO facts, and `growth_inventory` Council matrix.               |
+| [[growth-provider-profiles]]             | [file](./ops/growth-provider-profiles.md)             | Epic #310 provider profiles: DataForSEO crawl v2, GSC minimum pulls, GA4 minimum pulls and normalization rules.                              |
+| [[growth-ai-search-geo-profile]]         | [file](./ops/growth-ai-search-geo-profile.md)         | Epic #310 AI Search / GEO profile: crawler readiness, DataForSEO AI Optimization, normalized visibility facts and `ai_search` inventory rows. |
+| [[growth-translation-quality-gate]]       | [file](./ops/growth-translation-quality-gate.md)      | Epic #310 localized content gate: translation quality checks, QA findings, `growth_inventory` content status and Council approval rules.      |
+| [[growth-data-automation-cadence]]       | [file](./ops/growth-data-automation-cadence.md)       | Epic #310 automation contract: provider cadence, approval gates, follow-up polling, normalization and `growth_inventory` backlog refresh.    |
+| [[supabase-migration-governance]]        | [file](./ops/supabase-migration-governance.md)        | Cross-repo migration governance: Studio may originate shared DB migrations, Flutter is the operational SSOT for applying them.               |
+| [[meta-ads-mcp]]                         | [file](./ops/meta-ads-mcp.md)                         | Epic #341 local MCP package scaffold for Meta Ads: env, safe modes, kill switch, ColombiaTours defaults.                                     |
+| [[product-landing-rollout-runbook]]      | [file](./runbooks/product-landing-rollout-runbook.md) | Rollout for public site rendering / ISR changes.                                                                                             |
 
 ---
 
 ## Training
 
-| Wikilink | File | Audience | Purpose |
-|----------|------|----------|---------|
+| Wikilink                     | File                                           | Audience                      | Purpose                                                                                                                                                                                                                              |
+| ---------------------------- | ---------------------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | [[colombiatours-onboarding]] | [file](./training/colombiatours-onboarding.md) | Partner Rol 2 (ColombiaTours) | Pilot onboarding: Flows 1-8 (mkt / booking-DEFER / layout / SEO / translation / activity Variant A / hotel Variant B handoff / transcreate technical) + FAQ + what-NOT-to-do + cheat-sheet. Spanish-first. Screencasts pending W7-c. |
 
 ---
 
 ## QA / Pilot sign-off
 
-| Wikilink | File | Purpose |
-|----------|------|---------|
-| [[colombiatours-cutover-rerun-2026-04-23]] | [file](./qa/pilot/colombiatours-cutover-rerun-2026-04-23.md) | Cutover rerun after content/SEO harness fixes: critical routes pass, 15D product+blog separation retained, Lighthouse SEO/a11y pass with performance warnings. |
-| [[colombiatours-content-classification-2026-04-23]] | [file](./qa/pilot/colombiatours-content-classification-2026-04-23.md) | Classification + data operation report: WordPress real URLs mapped to blog/page/package, legal pages migrated local, redirects fixed. |
-| [[colombiatours-cutover-audit-2026-04-23]] | [file](./qa/pilot/colombiatours-cutover-audit-2026-04-23.md) | Full cutover audit on local ColombiaTours preview: NO-GO due detail routes rendering 404 content with HTTP 200, Lighthouse preview-token failure, and link/schema findings. |
-| [[colombiatours-matrix-2026-04-20]] | [file](./qa/pilot/colombiatours-matrix-2026-04-20.md) | EPIC #214 #213 Flow 2 — 48-row matrix status on pilot seed (pkg/act/hotel/blog × chromium/firefox/mobile-chrome). Deterministic failures + owners. |
-| [[sign-off-2026-04-20]] | [file](./qa/pilot/sign-off-2026-04-20.md) | Stage 6 autonomous sign-off stub (Flow 2 + Flow 3 + Lighthouse AC-A5). Partner + QA-lead human sign-off still pending per AC-X4a/b. |
-| [[matrix-playbook]] | [file](./qa/pilot/matrix-playbook.md) | W6 playbook for matrix visual E2E + Lighthouse. |
-| [[transcreate-playbook]] | [file](./qa/pilot/transcreate-playbook.md) | W5 playbook for transcreate lifecycle (pkg + act + blog). |
-| [[editor-to-render-playbook]] | [file](./qa/pilot/editor-to-render-playbook.md) | W4 playbook for pilot editor→render flows. |
+| Wikilink                                            | File                                                                  | Purpose                                                                                                                                                                     |
+| --------------------------------------------------- | --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [[colombiatours-cutover-rerun-2026-04-23]]          | [file](./qa/pilot/colombiatours-cutover-rerun-2026-04-23.md)          | Cutover rerun after content/SEO harness fixes: critical routes pass, 15D product+blog separation retained, Lighthouse SEO/a11y pass with performance warnings.              |
+| [[colombiatours-content-classification-2026-04-23]] | [file](./qa/pilot/colombiatours-content-classification-2026-04-23.md) | Classification + data operation report: WordPress real URLs mapped to blog/page/package, legal pages migrated local, redirects fixed.                                       |
+| [[colombiatours-cutover-audit-2026-04-23]]          | [file](./qa/pilot/colombiatours-cutover-audit-2026-04-23.md)          | Full cutover audit on local ColombiaTours preview: NO-GO due detail routes rendering 404 content with HTTP 200, Lighthouse preview-token failure, and link/schema findings. |
+| [[colombiatours-matrix-2026-04-20]]                 | [file](./qa/pilot/colombiatours-matrix-2026-04-20.md)                 | EPIC #214 #213 Flow 2 — 48-row matrix status on pilot seed (pkg/act/hotel/blog × chromium/firefox/mobile-chrome). Deterministic failures + owners.                          |
+| [[sign-off-2026-04-20]]                             | [file](./qa/pilot/sign-off-2026-04-20.md)                             | Stage 6 autonomous sign-off stub (Flow 2 + Flow 3 + Lighthouse AC-A5). Partner + QA-lead human sign-off still pending per AC-X4a/b.                                         |
+| [[matrix-playbook]]                                 | [file](./qa/pilot/matrix-playbook.md)                                 | W6 playbook for matrix visual E2E + Lighthouse.                                                                                                                             |
+| [[transcreate-playbook]]                            | [file](./qa/pilot/transcreate-playbook.md)                            | W5 playbook for transcreate lifecycle (pkg + act + blog).                                                                                                                   |
+| [[editor-to-render-playbook]]                       | [file](./qa/pilot/editor-to-render-playbook.md)                       | W4 playbook for pilot editor→render flows.                                                                                                                                  |
 
 ---
 
 ## SEO
 
-| Wikilink | File | Purpose |
-|----------|------|---------|
+| Wikilink                                      | File                                                       | Purpose                                                                                                  |
+| --------------------------------------------- | ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
 | [[multi-locale-transcreation-infrastructure]] | [file](./seo/multi-locale-transcreation-infrastructure.md) | Multi-locale transcreation: shipped state + target post-EPIC #198 (architecture, pipeline, flows, KPIs). |
-| [[SEO-IMPLEMENTATION]] | [file](./seo/SEO-IMPLEMENTATION.md) | Current shipped product state. |
-| [[SEO-PLAYBOOK]] | [file](./seo/SEO-PLAYBOOK.md) | Target operating model. |
-| [[SEO-FLUJOS-STUDIO]] | [file](./seo/SEO-FLUJOS-STUDIO.md) | Shipped user flows. |
-| [[SEO-BLOG-EXECUTION-FRAMEWORK-2026]] | [file](./seo/SEO-BLOG-EXECUTION-FRAMEWORK-2026.md) | Dual-dimension operating checklist and phased backlog model for blog SEO execution. |
-| [[jsonld-fixtures]] | [file](./seo/jsonld-fixtures.md) | JSON-LD rich-results validation samples. |
+| [[SEO-IMPLEMENTATION]]                        | [file](./seo/SEO-IMPLEMENTATION.md)                        | Current shipped product state.                                                                           |
+| [[SEO-PLAYBOOK]]                              | [file](./seo/SEO-PLAYBOOK.md)                              | Target operating model.                                                                                  |
+| [[SEO-FLUJOS-STUDIO]]                         | [file](./seo/SEO-FLUJOS-STUDIO.md)                         | Shipped user flows.                                                                                      |
+| [[SEO-BLOG-EXECUTION-FRAMEWORK-2026]]         | [file](./seo/SEO-BLOG-EXECUTION-FRAMEWORK-2026.md)         | Dual-dimension operating checklist and phased backlog model for blog SEO execution.                      |
+| [[jsonld-fixtures]]                           | [file](./seo/jsonld-fixtures.md)                           | JSON-LD rich-results validation samples.                                                                 |
 
 ---
 
 ## Theming
 
-| Wikilink | File | Purpose |
-|----------|------|---------|
+| Wikilink               | File                                    | Purpose                                |
+| ---------------------- | --------------------------------------- | -------------------------------------- |
 | [[dark-mode-behavior]] | [file](./theming/dark-mode-behavior.md) | Dark mode reference for QA/design/dev. |
 
 ---
 
 ## QA & evidence
 
-| Wikilink | File | Purpose |
-|----------|------|---------|
-| [[product-landing-qa-matrix]] | [file](./qa/product-landing-qa-matrix.md) | QA matrix for 3 release tenants. |
-| [[link-validation-colombiatours]] | [file](./qa/link-validation-colombiatours.md) | Link validation report (2026-04-15). |
-| [[epic190-certification-checklist]] | [file](./qa/studio-unified-product-editor/epic-190-certification-checklist.md) | Executable QA certification checklist for EPIC #190 (D0-D2, commands, SQL/RPC checks, evidence template). |
-| [[epic190-certification-run-2026-04-18]] | [file](./evidence/epic190/certification-run-2026-04-18.md) | EPIC #190 certification execution report: automated gates, SQL/RPC validations, RLS checks, Go/No-Go decision. |
-| [[epic190-certification-rerun-2026-04-19]] | [file](./evidence/epic190/certification-rerun-2026-04-19.md) | EPIC #190 remediation rerun report: P0 permission hardening verified, gates re-run, final GO decision. |
-| [[media-inventory-production-run-2026-04-25]] | [file](./evidence/media-inventory-production-run-2026-04-25.md) | Production execution evidence for Media Asset Inventory v1: migration, dry-run, apply counts and characterization summary. |
-| [[media-remediation-backlog-2026-04-25]] | [file](./evidence/media-remediation-backlog-2026-04-25.md) | Actionable media remediation backlog for broken, external, missing-alt and non-WebP assets. |
-| [[ai-routes-cost-recording]] | [file](./audits/ai-routes-cost-recording.md) | AI routes cost-tracking audit — 13 routes mapped, recordCost wire patterns (D1, 2026-04-18). Basis for #195 R9 impl. |
-| [[epic86-walkthrough]] | [file](./evidence/epic86/walkthrough.md) | EPIC 86 evidence (Issue #122). |
-| [[epic128-lighthouse-summary]] | [file](./evidence/epic128/lighthouse-summary.md) | EPIC 128 Lighthouse/CWV summary. |
-| [[epic128-production-ready-attestation-v2]] | [file](./evidence/epic128/production-ready-attestation-v2.md) | EPIC 128 production-ready attestation v2. |
-| [[epic128-ux-fluency]] | [file](./evidence/epic128/ux-fluency.md) | EPIC 128 UX fluency evidence. |
+| Wikilink                                      | File                                                                           | Purpose                                                                                                                    |
+| --------------------------------------------- | ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- |
+| [[product-landing-qa-matrix]]                 | [file](./qa/product-landing-qa-matrix.md)                                      | QA matrix for 3 release tenants.                                                                                           |
+| [[link-validation-colombiatours]]             | [file](./qa/link-validation-colombiatours.md)                                  | Link validation report (2026-04-15).                                                                                       |
+| [[epic190-certification-checklist]]           | [file](./qa/studio-unified-product-editor/epic-190-certification-checklist.md) | Executable QA certification checklist for EPIC #190 (D0-D2, commands, SQL/RPC checks, evidence template).                  |
+| [[epic190-certification-run-2026-04-18]]      | [file](./evidence/epic190/certification-run-2026-04-18.md)                     | EPIC #190 certification execution report: automated gates, SQL/RPC validations, RLS checks, Go/No-Go decision.             |
+| [[epic190-certification-rerun-2026-04-19]]    | [file](./evidence/epic190/certification-rerun-2026-04-19.md)                   | EPIC #190 remediation rerun report: P0 permission hardening verified, gates re-run, final GO decision.                     |
+| [[media-inventory-production-run-2026-04-25]] | [file](./evidence/media-inventory-production-run-2026-04-25.md)                | Production execution evidence for Media Asset Inventory v1: migration, dry-run, apply counts and characterization summary. |
+| [[media-remediation-backlog-2026-04-25]]      | [file](./evidence/media-remediation-backlog-2026-04-25.md)                     | Actionable media remediation backlog for broken, external, missing-alt and non-WebP assets.                                |
+| [[ai-routes-cost-recording]]                  | [file](./audits/ai-routes-cost-recording.md)                                   | AI routes cost-tracking audit — 13 routes mapped, recordCost wire patterns (D1, 2026-04-18). Basis for #195 R9 impl.       |
+| [[epic86-walkthrough]]                        | [file](./evidence/epic86/walkthrough.md)                                       | EPIC 86 evidence (Issue #122).                                                                                             |
+| [[epic128-lighthouse-summary]]                | [file](./evidence/epic128/lighthouse-summary.md)                               | EPIC 128 Lighthouse/CWV summary.                                                                                           |
+| [[epic128-production-ready-attestation-v2]]   | [file](./evidence/epic128/production-ready-attestation-v2.md)                  | EPIC 128 production-ready attestation v2.                                                                                  |
+| [[epic128-ux-fluency]]                        | [file](./evidence/epic128/ux-fluency.md)                                       | EPIC 128 UX fluency evidence.                                                                                              |
 
 ---
 
@@ -207,39 +212,39 @@ Feature requests formalized. Status tracked inline. GitHub Issues = source of tr
 
 Persisted state pre-#148 (`seo_website_okrs`). Post-#148 these stay as human-readable exports.
 
-| Wikilink | File | Purpose |
-|----------|------|---------|
-| [[growth-okrs-readme]] | [file](./growth-okrs/README.md) | Growth OKRs directory README (structure + template). |
-| [[growth-okrs-active]] | [file](./growth-okrs/active.md) | Active OKRs (7D/30D/90D). |
-| [[growth-okrs-budget]] | [file](./growth-okrs/budget.md) | Provider budget counter (pre-#130). |
-| [[growth-sessions-readme]] | [file](./growth-sessions/README.md) | Per-session audit trail. |
-| [[colombiatours-seo-geo-deploy-2026-04-24]] | [file](./growth-sessions/2026-04-24-2045-seo-geo-colombiatours-deploy.md) | ColombiaTours SEO/GEO technical hardening: activities listing/detail, listing schema, Product/Offer schema, custom-domain link hygiene, Worker deploy `41756f91-34b1-4b93-bc82-1993a325b4c0`. |
-| [[colombiatours-seo-geo-p1-audit-2026-04-24]] | [file](./growth-sessions/2026-04-24-2120-seo-geo-p1-audit-colombiatours.md) | ColombiaTours #293 P1 production audit: JSON-LD/crawl PASS, sitemap PASS, Lighthouse performance debt, console/title fixes deployed `b1d022e4-8148-40f7-adf1-b98115b761e2`. |
-| [[growth-weekly-readme]] | [file](./growth-weekly/README.md) | Weekly quick-wins planning. |
+| Wikilink                                      | File                                                                        | Purpose                                                                                                                                                                                       |
+| --------------------------------------------- | --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [[growth-okrs-readme]]                        | [file](./growth-okrs/README.md)                                             | Growth OKRs directory README (structure + template).                                                                                                                                          |
+| [[growth-okrs-active]]                        | [file](./growth-okrs/active.md)                                             | Active OKRs (7D/30D/90D).                                                                                                                                                                     |
+| [[growth-okrs-budget]]                        | [file](./growth-okrs/budget.md)                                             | Provider budget counter (pre-#130).                                                                                                                                                           |
+| [[growth-sessions-readme]]                    | [file](./growth-sessions/README.md)                                         | Per-session audit trail.                                                                                                                                                                      |
+| [[colombiatours-seo-geo-deploy-2026-04-24]]   | [file](./growth-sessions/2026-04-24-2045-seo-geo-colombiatours-deploy.md)   | ColombiaTours SEO/GEO technical hardening: activities listing/detail, listing schema, Product/Offer schema, custom-domain link hygiene, Worker deploy `41756f91-34b1-4b93-bc82-1993a325b4c0`. |
+| [[colombiatours-seo-geo-p1-audit-2026-04-24]] | [file](./growth-sessions/2026-04-24-2120-seo-geo-p1-audit-colombiatours.md) | ColombiaTours #293 P1 production audit: JSON-LD/crawl PASS, sitemap PASS, Lighthouse performance debt, console/title fixes deployed `b1d022e4-8148-40f7-adf1-b98115b761e2`.                   |
+| [[growth-weekly-readme]]                      | [file](./growth-weekly/README.md)                                           | Weekly quick-wins planning.                                                                                                                                                                   |
 
 ---
 
 ## Research
 
-| Wikilink | File | Purpose |
-|----------|------|---------|
+| Wikilink                           | File                                                 | Purpose                                     |
+| ---------------------------------- | ---------------------------------------------------- | ------------------------------------------- |
 | [[whatsapp-site-audit-2026-04-14]] | [file](./research/whatsapp-site-audit-2026-04-14.md) | WhatsApp IA/UI audit → ColombiaTours theme. |
 
 ---
 
 ## Development
 
-| Wikilink | File | Purpose |
-|----------|------|---------|
+| Wikilink           | File                                    | Purpose                                                    |
+| ------------------ | --------------------------------------- | ---------------------------------------------------------- |
 | [[local-sessions]] | [file](./development/local-sessions.md) | Parallel-safe local dev + Playwright (session pool s1–s4). |
-| [[agent-setup]] | [file](./development/agent-setup.md) | Configure Codex/Opencode/Claude Code for this repo. |
+| [[agent-setup]]    | [file](./development/agent-setup.md)    | Configure Codex/Opencode/Claude Code for this repo.        |
 
 ---
 
 ## Guides
 
-| Wikilink | File | Purpose |
-|----------|------|---------|
+| Wikilink                      | File                                          | Purpose                                         |
+| ----------------------------- | --------------------------------------------- | ----------------------------------------------- |
 | [[WEBSITE-CREATION-WORKFLOW]] | [file](./guides/WEBSITE-CREATION-WORKFLOW.md) | Zero → production site using skills + commands. |
 
 ---
@@ -260,6 +265,7 @@ Shared Supabase project. Flutter writes data; Studio reads via SSR.
 Each concept below lists the ADRs/SPECs/ops docs that touch it. Use this to find all surfaces affected by a concept.
 
 ### [[auth]] + [[RLS]] + [[multi-tenant]]
+
 - [[ADR-005]] — defense in depth
 - [[ADR-009]] — subdomain routing + account_id isolation
 - [[ADR-022]] — auth token boundary (Flutter-owned)
@@ -267,6 +273,7 @@ Each concept below lists the ADRs/SPECs/ops docs that touch it. Use this to find
 - Ops gate: [[issue-103-media-closure-checklist]] (media storage/write hardening verification)
 
 ### [[media-assets]] + [[storage]]
+
 - [[ADR-028]] — canonical media registry decision for account-managed assets across Studio and Flutter.
 - [[SPEC_MEDIA_ASSET_INVENTORY]] — v1 canonical inventory and characterization across Storage + legacy URL fields.
 - [[media-inventory-runbook]] — dry-run/apply/report/remediation workflow for media inventory operations.
@@ -278,18 +285,21 @@ Each concept below lists the ADRs/SPECs/ops docs that touch it. Use this to find
 - Cross-repo: Flutter continues writing legacy URL fields in v1; follow-up issue registers new Flutter uploads into `media_assets` per [[ADR-028]].
 
 ### [[middleware]] + [[cache]] + [[edge]]
+
 - [[ADR-007]] — Cloudflare Workers delivery
 - [[ADR-011]] — middleware in-memory cache
 - [[ADR-009]] — subdomain routing via middleware
 - [[ADR-016]] — SEO content caching (ISR interplay)
 
 ### [[SSR]] + [[ISR]] + [[PPR]]
+
 - [[ADR-001]] — server-first rendering (primary)
 - [[ADR-016]] — SEO caching revalidation
 - [[product-landing-v1-runbook]]
 - Sites: `/site/[subdomain]/paquetes/[slug]` (see [[SPEC_PACKAGE_DETAIL_CONVERSION_V2]])
 
 ### [[theme-v3]] + [[theme-sdk]]
+
 - [[ADR-008]] — monorepo packages (`@bukeer/theme-sdk`)
 - [[ADR-027]] — pilot adoption strategy for designer-reference theme (flag-gated, snapshot-backed rollback)
 - [[dark-mode-behavior]]
@@ -298,6 +308,7 @@ Each concept below lists the ADRs/SPECs/ops docs that touch it. Use this to find
 - Pilot rollout controls: `account_feature_flags.theme_designer_v1_enabled` + `pilot_theme_snapshots` + [[pilot-theme-designer-v1-rollout]]
 
 ### [[multi-locale]] + [[i18n]] + [[routing]]
+
 - [[ADR-019]] — path-prefix URL routing (`/en/...`, default locale has no prefix)
 - [[ADR-020]] — hreflang emission for `defaultLocale` + translated locales (`applied|published`); `x-default` → default locale
 - [[ADR-021]] — TM + glossary + AI transcreation pipeline; job lifecycle draft→reviewed→applied→published
@@ -307,11 +318,13 @@ Each concept below lists the ADRs/SPECs/ops docs that touch it. Use this to find
 - Open: [[SPEC #188]] (AI wiring), [[SPEC #189]] (fallback strategy)
 
 ### [[market-ux]] + [[currency]]
+
 - [[SPEC_MARKET_EXPERIENCE_SWITCHER]] — control unificado de idioma/moneda en header + configuración en Studio.
 - Runtime: `components/site/site-header.tsx`, `components/site/site-footer.tsx`, `lib/site/currency.ts`.
 - Studio: `app/dashboard/[websiteId]/design/page.tsx`, `components/admin/market-experience-editor.tsx`.
 
 ### [[studio-unified-product-editor]] + [[#190]] + [[editor-v2]]
+
 - EPIC: [#190](https://github.com/weppa-cloud/bukeer-studio/issues/190) — Studio Unified Product Editor
 - Phase 0 [[#191]] + Phase 0.5 [[#192]] + QA infra [[#193]] — all closed 2026-04-17
 - Phase 1 RFCs: [[#194]] R7 migration plan, [[#195]] R9 AI cost tracking, [[#197]] W3 edit history
@@ -334,6 +347,7 @@ Each concept below lists the ADRs/SPECs/ops docs that touch it. Use this to find
 - Multi-front strategy: `.claude/plans/generic-crafting-sketch.md`
 
 ### [[package-kits]] + [[package-landing]]
+
 - [[SPEC_PACKAGE_DETAIL_CONVERSION_V2]] — Shipped (partial) 2026-04-17; F1/F2/F3 merged
 - F1: `PackageAggregatedDataSchema` + `get_package_aggregated_data` RPC — `lib/supabase/get-pages.ts`
 - F2: `ItineraryItemRenderer` + `ActivityScheduleInline` — day-by-day specialized render
@@ -344,6 +358,7 @@ Each concept below lists the ADRs/SPECs/ops docs that touch it. Use this to find
 - Shared DB: see [[cross-repo-flutter]] (Flutter admin owns catalog)
 
 ### [[SEO]]
+
 - [[ADR-016]] — caching + revalidation
 - [[SEO-PLAYBOOK]] [[SEO-IMPLEMENTATION]] [[SEO-FLUJOS-STUDIO]] [[jsonld-fixtures]]
 - Specs: [[SPEC_SEO_CONTENT_INTELLIGENCE]] [[SPEC_SEO_CONTENT_INTELLIGENCE_INTEGRAL]] [[SPEC_SEO_DASHBOARD_PRODUCT_INTEGRATION]] [[SPEC_SEO_DESTINATIONS_PRODUCTS]] [[SPEC_SEO_BLOG_EXECUTION_FRAMEWORK_2026]] [[SPEC_SEO_OPTIMIZATION_TOOLKIT]]
@@ -353,6 +368,7 @@ Each concept below lists the ADRs/SPECs/ops docs that touch it. Use this to find
 - Trust / JSON-LD: [[trust]] + [[organization-schema]] concepts
 
 ### [[AI]] + [[openrouter]] + [[streaming]]
+
 - [[ADR-006]] — streaming-first AI integration
 - Specs: [[SPEC_SEO_CONTENT_INTELLIGENCE]] [[SPEC_SEO_OPTIMIZATION_TOOLKIT]] [[SPEC_SEO_DASHBOARD_PRODUCT_INTEGRATION]]
 - Env: `OPENROUTER_AUTH_TOKEN`, `OPENROUTER_BASE_URL`, `OPENROUTER_MODEL`
@@ -361,21 +377,25 @@ Each concept below lists the ADRs/SPECs/ops docs that touch it. Use this to find
 - Pipeline double-counting avoided via header gate (`x-internal-call`) and/or inline-only accounting
 
 ### [[validation]] + [[website-contract]]
+
 - [[ADR-003]] — contract-first validation with Zod
 - [[ADR-012]] — standard API response envelope
 - [[ADR-008]] — `@bukeer/website-contract` package
 
 ### [[error-handling]] + [[observability]] + [[logging]]
+
 - [[ADR-002]] — three-tier error handling
 - [[ADR-010]] — observability strategy
 - Gap: logger adoption at 6%, no Sentry yet (see [[ARCHITECTURE]])
 
 ### [[tech-validator]] + [[quality-gate]]
+
 - [[ADR-013]] — tech-validator automated quality gate
 - [[ADR-014]] — delta TypeScript quality gate
 - Skill: `.claude/skills/tech-validator/SKILL.md`
 
 ### [[maps]] + [[webgl]] + [[fallback]] + [[geocoding]]
+
 - [[ADR-015]] — resilient map + marker media fallback (destinations, destination pins)
 - [[ADR-017]] — geocoding pipeline for activity circuits (MapTiler + `places_cache`)
 - [[SPEC_PACKAGE_DETAIL_CONVERSION_V2]] — `<PackageCircuitMap>` + `<ActivityCircuitMap>` respect both ADRs
@@ -383,24 +403,29 @@ Each concept below lists the ADRs/SPECs/ops docs that touch it. Use this to find
 - Shared map primitive: `components/site/circuit-map.tsx`
 
 ### [[i18n]] + [[locale]]
+
 - [[SPEC_MULTI_LOCALE_REMEDIATION]] — Shipped (partial) 2026-04-17
 - `lib/seo/locale-routing.ts`, `lib/seo/slug-locale.ts`, `lib/seo/hreflang.ts` — shipped
 - Migration `20260418000000_multi_locale_content.sql` — multi-locale content schema
 - Remaining gap: `inLanguage` hardcoded `'es'` in keyword persistence (see [[cross-repo-flutter]])
 
 ### [[bookings]] + [[payments]] + [[leads]]
+
 - Schemas in `@bukeer/website-contract`: `schemas/{bookings,cancellation,leads,wompi}.ts`
 - No dedicated ADR yet — data flows Flutter → Supabase → Studio read-only
 - Wompi = payment provider integration schema
 - [[SPEC_META_CHATWOOT_CONVERSIONS]] — stub for canonical #322: WAFlow/WhatsApp → Chatwoot → qualified lead → purchase attribution for Meta CAPI.
 
 ### [[growth-os]] + [[paid-media]] + [[WAFlow]]
+
 - [[SPEC_COLOMBIATOURS_GROWTH_OS_2026]] — stub for canonical #337 / execution #310: North Star, AARRR funnel, Growth Council, inventory contract, event/attribution contract, and 90-day roadmap.
 - [[SPEC_META_CHATWOOT_CONVERSIONS]] — stub for canonical #322: Meta + Chatwoot conversion path for WAFlow/WhatsApp to qualified lead, quote, and purchase.
 - [[ADR-024]] — booking/date-picker remains deferred for pilot; WAFlow/WhatsApp is primary conversion.
 - [[supabase-migration-governance]] — #310 DB migration path: canonical application via `bukeer-flutter`, Studio owns API/contracts/evidence.
+- [[growth-translation-quality-gate]] — localized content cannot scale into EN-US/MX without quality check or Council exception.
 
 ### [[conversion]] + [[analytics]] + [[webhook]]
+
 - [[SPEC_PACKAGE_DETAIL_CONVERSION_V2]] — package detail conversion surface.
 - [[SPEC_COLOMBIATOURS_GROWTH_OS_2026]] — stub for canonical #337: cross-channel conversion governance and event contract for ColombiaTours Growth OS.
 - [[SPEC_META_CHATWOOT_CONVERSIONS]] — stub for canonical #322: Meta Pixel/CAPI event contract, Chatwoot webhook lifecycle tracking, and purchase attribution.
@@ -408,17 +433,20 @@ Each concept below lists the ADRs/SPECs/ops docs that touch it. Use this to find
 - [[ADR-018]] — webhook idempotency baseline for Chatwoot and payment-provider callbacks.
 
 ### [[trust]] + [[organization-schema]]
+
 - `packages/website-contract/src/schemas/trust.ts` — trust content contract
 - `components/seo/organization-schema.tsx` — Organization JSON-LD (guards against UUID leak)
 - `components/site/trust-badges.tsx` — trust badge UI
 - Related: [[SEO]] (JSON-LD), [[SPEC_PACKAGE_DETAIL_CONVERSION_V2]] (trust section on landing)
 
 ### [[skills]] + [[specifying]] + [[debugging]]
+
 - [[AI-AGENT-DEVELOPMENT]] — AI-assisted dev principles
 - [[SPEC_SKILL_NEXTJS_DEVELOPER_AUDIT]] — skill audit
 - Skills registry: `.claude/skills/`
 
 ### [[pilot-readiness]] + [[EPIC-214]] + [[ColombiaTours]]
+
 - EPIC: [#214](https://github.com/weppa-cloud/bukeer-studio/issues/214) — Pilot Readiness (work layer for #213)
 - Children (W1-W7): [#215](https://github.com/weppa-cloud/bukeer-studio/issues/215) W1 matrix+testids · [#216](https://github.com/weppa-cloud/bukeer-studio/issues/216) W2 parity · [#217](https://github.com/weppa-cloud/bukeer-studio/issues/217) W3 booking decision · [#218](https://github.com/weppa-cloud/bukeer-studio/issues/218) W4 E2E editor→render · [#219](https://github.com/weppa-cloud/bukeer-studio/issues/219) W5 transcreate · [#220](https://github.com/weppa-cloud/bukeer-studio/issues/220) W6 matrix+Lighthouse · [#221](https://github.com/weppa-cloud/bukeer-studio/issues/221) W7 training
 - Acceptance sibling: [#213](https://github.com/weppa-cloud/bukeer-studio/issues/213)
@@ -439,84 +467,84 @@ Each concept below lists the ADRs/SPECs/ops docs that touch it. Use this to find
 
 Obsidian resolves `[[ADR-005]]` by filename stem or alias. Claude Code / Codex grep for the literal token. Use this map when a wikilink does not resolve automatically.
 
-| Wikilink | Resolves to |
-|----------|-------------|
-| `[[ADR-001]]` | `docs/architecture/ADR-001-server-first-rendering.md` |
-| `[[ADR-002]]` | `docs/architecture/ADR-002-error-handling-strategy.md` |
-| `[[ADR-003]]` | `docs/architecture/ADR-003-contract-first-validation.md` |
-| `[[ADR-004]]` | `docs/architecture/ADR-004-state-management.md` |
-| `[[ADR-005]]` | `docs/architecture/ADR-005-security-defense-in-depth.md` |
-| `[[ADR-006]]` | `docs/architecture/ADR-006-ai-streaming-architecture.md` |
-| `[[ADR-007]]` | `docs/architecture/ADR-007-edge-first-delivery.md` |
-| `[[ADR-008]]` | `docs/architecture/ADR-008-monorepo-packages.md` |
-| `[[ADR-009]]` | `docs/architecture/ADR-009-multi-tenant-subdomain-routing.md` |
-| `[[ADR-010]]` | `docs/architecture/ADR-010-observability-strategy.md` |
-| `[[ADR-011]]` | `docs/architecture/ADR-011-middleware-cache.md` |
-| `[[ADR-012]]` | `docs/architecture/ADR-012-api-response-envelope.md` |
-| `[[ADR-013]]` | `docs/architecture/ADR-013-tech-validator-quality-gate.md` |
-| `[[ADR-014]]` | `docs/architecture/ADR-014-delta-typescript-quality-gate.md` |
-| `[[ADR-015]]` | `docs/architecture/ADR-015-resilient-map-rendering-and-marker-media-fallback.md` |
-| `[[ADR-016]]` | `docs/architecture/ADR-016-seo-intelligence-caching.md` |
-| `[[ADR-017]]` | `docs/architecture/ADR-017-geocoding-activity-circuits.md` |
-| `[[ADR-018]]` | `docs/architecture/ADR-018-webhook-idempotency.md` |
-| `[[ADR-019]]` | `docs/architecture/ADR-019-multi-locale-url-routing.md` |
-| `[[ADR-020]]` | `docs/architecture/ADR-020-hreflang-emission-policy.md` |
-| `[[ADR-021]]` | `docs/architecture/ADR-021-translation-memory-transcreation-pipeline.md` |
-| `[[ADR-023]]` | `docs/architecture/ADR-023-qa-tooling-studio-editor.md` |
-| `[[ADR-024]]` | `docs/architecture/ADR-024-booking-v1-pilot-scope.md` |
-| `[[ADR-024-booking-v1-pilot-scope]]` | `docs/architecture/ADR-024-booking-v1-pilot-scope.md` |
-| `[[ADR-025]]` | `docs/architecture/ADR-025-studio-flutter-field-ownership.md` |
-| `[[ADR-025-studio-flutter-field-ownership]]` | `docs/architecture/ADR-025-studio-flutter-field-ownership.md` |
-| `[[ADR-027]]` | `docs/architecture/ADR-027-designer-reference-theme-adoption.md` |
-| `[[ADR-028]]` | `docs/architecture/ADR-028-media-assets-canonical-registry.md` |
-| `[[ADR-028-media-assets-canonical-registry]]` | `docs/architecture/ADR-028-media-assets-canonical-registry.md` |
-| `[[field-ownership]]` | `docs/architecture/ADR-025-studio-flutter-field-ownership.md` (concept alias) |
-| `[[booking-defer]]` | `docs/architecture/ADR-024-booking-v1-pilot-scope.md` (concept alias) |
-| `[[pilot-readiness-deps]]` | `docs/specs/pilot-readiness-deps.md` |
-| `[[colombiatours-onboarding]]` | `docs/training/colombiatours-onboarding.md` |
-| `[[pilot-runbook-colombiatours]]` | `docs/ops/pilot-runbook-colombiatours.md` |
-| `[[pilot-theme-designer-v1-rollout]]` | `docs/ops/pilot-theme-designer-v1-rollout.md` |
-| `[[cutover-checklist]]` | `docs/ops/cutover-checklist.md` |
-| `[[release-gate-checklist]]` | `docs/ops/release-gate-checklist.md` |
-| `[[ci-seo-i18n-gate]]` | `docs/ops/ci-seo-i18n-gate.md` |
-| `[[public-analytics-standard]]` | `docs/ops/public-analytics-standard.md` |
-| `[[ADR-022]]` | Flutter repo — auth token boundary |
-| `[[ADR-032]]` | Flutter repo — catalog v2 |
-| `[[ARCHITECTURE]]` | `docs/architecture/ARCHITECTURE.md` |
-| `[[ONBOARDING-ARCHITECTURE]]` | `docs/architecture/ONBOARDING-ARCHITECTURE.md` |
-| `[[AI-AGENT-DEVELOPMENT]]` | `docs/architecture/AI-AGENT-DEVELOPMENT.md` |
-| `[[SPEC_*]]` | `docs/specs/SPEC_*.md` (filename stem match) |
-| `[[SEO-BLOG-EXECUTION-FRAMEWORK-2026]]` | `docs/seo/SEO-BLOG-EXECUTION-FRAMEWORK-2026.md` |
-| `[[cross-repo-flutter]]` | `.claude/rules/cross-repo-flutter.md` |
-| `[[issue-103-media-closure-checklist]]` | `docs/ops/issue-103-media-closure-checklist.md` |
-| `[[media-asset-guardrails]]` | `docs/ops/media-asset-guardrails.md` |
-| `[[package-detail-anatomy]]` | `docs/product/package-detail-anatomy.md` |
-| `[[product-detail-inventory]]` | `docs/product/product-detail-inventory.md` |
-| `[[product-detail-matrix]]` | `docs/product/product-detail-matrix.md` |
-| `[[studio-editor-parity-audit]]` | `docs/product/studio-editor-parity-audit.md` |
-| `[[schema-parity-audit]]` | `docs/product/schema-parity-audit.md` |
-| `[[e2e-sessions]]` | `.claude/rules/e2e-sessions.md` |
-| `[[colombiatours-content-classification-2026-04-23]]` | `docs/qa/pilot/colombiatours-content-classification-2026-04-23.md` |
-| `[[colombiatours-cutover-rerun-2026-04-23]]` | `docs/qa/pilot/colombiatours-cutover-rerun-2026-04-23.md` |
-| `[[colombiatours-cutover-audit-2026-04-23]]` | `docs/qa/pilot/colombiatours-cutover-audit-2026-04-23.md` |
-| `[[colombiatours-matrix-2026-04-20]]` | `docs/qa/pilot/colombiatours-matrix-2026-04-20.md` |
-| `[[sign-off-2026-04-20]]` | `docs/qa/pilot/sign-off-2026-04-20.md` |
-| `[[matrix-playbook]]` | `docs/qa/pilot/matrix-playbook.md` |
-| `[[transcreate-playbook]]` | `docs/qa/pilot/transcreate-playbook.md` |
-| `[[editor-to-render-playbook]]` | `docs/qa/pilot/editor-to-render-playbook.md` |
-| `[[#127]]` | GitHub Issue — Package Detail Conversion v2 (hero chips, WhatsApp CTA) |
-| `[[#165]]` | GitHub Issue — Product Video Field (video_url + hero lightbox) |
-| `[[#171]]` | GitHub Issue — Package Content Population (epic parent F1/F2/F3) |
-| `[[#172]]` | GitHub Issue — F1 `get_package_aggregated_data` RPC |
-| `[[#173]]` | GitHub Issue — F2 `ItineraryItemRenderer` per-type variants |
-| `[[#174]]` | GitHub Issue — F3 AI highlights + description (`/api/ai/generate-package-content`) |
-| `[[SPEC #187]]` | GitHub Issue — Multi-locale translation + SEO migration EPIC |
-| `[[media-inventory-production-run-2026-04-25]]` | `docs/evidence/media-inventory-production-run-2026-04-25.md` |
-| `[[media-remediation-backlog-2026-04-25]]` | `docs/evidence/media-remediation-backlog-2026-04-25.md` |
-| `[[epic128-lighthouse-summary]]` | `docs/evidence/epic128/lighthouse-summary.md` |
-| `[[epic128-production-ready-attestation-v2]]` | `docs/evidence/epic128/production-ready-attestation-v2.md` |
-| `[[epic128-ux-fluency]]` | `docs/evidence/epic128/ux-fluency.md` |
-| Any unresolved concept | Search this INDEX with `grep "[[concept]]" docs/INDEX.md`. |
+| Wikilink                                              | Resolves to                                                                        |
+| ----------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `[[ADR-001]]`                                         | `docs/architecture/ADR-001-server-first-rendering.md`                              |
+| `[[ADR-002]]`                                         | `docs/architecture/ADR-002-error-handling-strategy.md`                             |
+| `[[ADR-003]]`                                         | `docs/architecture/ADR-003-contract-first-validation.md`                           |
+| `[[ADR-004]]`                                         | `docs/architecture/ADR-004-state-management.md`                                    |
+| `[[ADR-005]]`                                         | `docs/architecture/ADR-005-security-defense-in-depth.md`                           |
+| `[[ADR-006]]`                                         | `docs/architecture/ADR-006-ai-streaming-architecture.md`                           |
+| `[[ADR-007]]`                                         | `docs/architecture/ADR-007-edge-first-delivery.md`                                 |
+| `[[ADR-008]]`                                         | `docs/architecture/ADR-008-monorepo-packages.md`                                   |
+| `[[ADR-009]]`                                         | `docs/architecture/ADR-009-multi-tenant-subdomain-routing.md`                      |
+| `[[ADR-010]]`                                         | `docs/architecture/ADR-010-observability-strategy.md`                              |
+| `[[ADR-011]]`                                         | `docs/architecture/ADR-011-middleware-cache.md`                                    |
+| `[[ADR-012]]`                                         | `docs/architecture/ADR-012-api-response-envelope.md`                               |
+| `[[ADR-013]]`                                         | `docs/architecture/ADR-013-tech-validator-quality-gate.md`                         |
+| `[[ADR-014]]`                                         | `docs/architecture/ADR-014-delta-typescript-quality-gate.md`                       |
+| `[[ADR-015]]`                                         | `docs/architecture/ADR-015-resilient-map-rendering-and-marker-media-fallback.md`   |
+| `[[ADR-016]]`                                         | `docs/architecture/ADR-016-seo-intelligence-caching.md`                            |
+| `[[ADR-017]]`                                         | `docs/architecture/ADR-017-geocoding-activity-circuits.md`                         |
+| `[[ADR-018]]`                                         | `docs/architecture/ADR-018-webhook-idempotency.md`                                 |
+| `[[ADR-019]]`                                         | `docs/architecture/ADR-019-multi-locale-url-routing.md`                            |
+| `[[ADR-020]]`                                         | `docs/architecture/ADR-020-hreflang-emission-policy.md`                            |
+| `[[ADR-021]]`                                         | `docs/architecture/ADR-021-translation-memory-transcreation-pipeline.md`           |
+| `[[ADR-023]]`                                         | `docs/architecture/ADR-023-qa-tooling-studio-editor.md`                            |
+| `[[ADR-024]]`                                         | `docs/architecture/ADR-024-booking-v1-pilot-scope.md`                              |
+| `[[ADR-024-booking-v1-pilot-scope]]`                  | `docs/architecture/ADR-024-booking-v1-pilot-scope.md`                              |
+| `[[ADR-025]]`                                         | `docs/architecture/ADR-025-studio-flutter-field-ownership.md`                      |
+| `[[ADR-025-studio-flutter-field-ownership]]`          | `docs/architecture/ADR-025-studio-flutter-field-ownership.md`                      |
+| `[[ADR-027]]`                                         | `docs/architecture/ADR-027-designer-reference-theme-adoption.md`                   |
+| `[[ADR-028]]`                                         | `docs/architecture/ADR-028-media-assets-canonical-registry.md`                     |
+| `[[ADR-028-media-assets-canonical-registry]]`         | `docs/architecture/ADR-028-media-assets-canonical-registry.md`                     |
+| `[[field-ownership]]`                                 | `docs/architecture/ADR-025-studio-flutter-field-ownership.md` (concept alias)      |
+| `[[booking-defer]]`                                   | `docs/architecture/ADR-024-booking-v1-pilot-scope.md` (concept alias)              |
+| `[[pilot-readiness-deps]]`                            | `docs/specs/pilot-readiness-deps.md`                                               |
+| `[[colombiatours-onboarding]]`                        | `docs/training/colombiatours-onboarding.md`                                        |
+| `[[pilot-runbook-colombiatours]]`                     | `docs/ops/pilot-runbook-colombiatours.md`                                          |
+| `[[pilot-theme-designer-v1-rollout]]`                 | `docs/ops/pilot-theme-designer-v1-rollout.md`                                      |
+| `[[cutover-checklist]]`                               | `docs/ops/cutover-checklist.md`                                                    |
+| `[[release-gate-checklist]]`                          | `docs/ops/release-gate-checklist.md`                                               |
+| `[[ci-seo-i18n-gate]]`                                | `docs/ops/ci-seo-i18n-gate.md`                                                     |
+| `[[public-analytics-standard]]`                       | `docs/ops/public-analytics-standard.md`                                            |
+| `[[ADR-022]]`                                         | Flutter repo — auth token boundary                                                 |
+| `[[ADR-032]]`                                         | Flutter repo — catalog v2                                                          |
+| `[[ARCHITECTURE]]`                                    | `docs/architecture/ARCHITECTURE.md`                                                |
+| `[[ONBOARDING-ARCHITECTURE]]`                         | `docs/architecture/ONBOARDING-ARCHITECTURE.md`                                     |
+| `[[AI-AGENT-DEVELOPMENT]]`                            | `docs/architecture/AI-AGENT-DEVELOPMENT.md`                                        |
+| `[[SPEC_*]]`                                          | `docs/specs/SPEC_*.md` (filename stem match)                                       |
+| `[[SEO-BLOG-EXECUTION-FRAMEWORK-2026]]`               | `docs/seo/SEO-BLOG-EXECUTION-FRAMEWORK-2026.md`                                    |
+| `[[cross-repo-flutter]]`                              | `.claude/rules/cross-repo-flutter.md`                                              |
+| `[[issue-103-media-closure-checklist]]`               | `docs/ops/issue-103-media-closure-checklist.md`                                    |
+| `[[media-asset-guardrails]]`                          | `docs/ops/media-asset-guardrails.md`                                               |
+| `[[package-detail-anatomy]]`                          | `docs/product/package-detail-anatomy.md`                                           |
+| `[[product-detail-inventory]]`                        | `docs/product/product-detail-inventory.md`                                         |
+| `[[product-detail-matrix]]`                           | `docs/product/product-detail-matrix.md`                                            |
+| `[[studio-editor-parity-audit]]`                      | `docs/product/studio-editor-parity-audit.md`                                       |
+| `[[schema-parity-audit]]`                             | `docs/product/schema-parity-audit.md`                                              |
+| `[[e2e-sessions]]`                                    | `.claude/rules/e2e-sessions.md`                                                    |
+| `[[colombiatours-content-classification-2026-04-23]]` | `docs/qa/pilot/colombiatours-content-classification-2026-04-23.md`                 |
+| `[[colombiatours-cutover-rerun-2026-04-23]]`          | `docs/qa/pilot/colombiatours-cutover-rerun-2026-04-23.md`                          |
+| `[[colombiatours-cutover-audit-2026-04-23]]`          | `docs/qa/pilot/colombiatours-cutover-audit-2026-04-23.md`                          |
+| `[[colombiatours-matrix-2026-04-20]]`                 | `docs/qa/pilot/colombiatours-matrix-2026-04-20.md`                                 |
+| `[[sign-off-2026-04-20]]`                             | `docs/qa/pilot/sign-off-2026-04-20.md`                                             |
+| `[[matrix-playbook]]`                                 | `docs/qa/pilot/matrix-playbook.md`                                                 |
+| `[[transcreate-playbook]]`                            | `docs/qa/pilot/transcreate-playbook.md`                                            |
+| `[[editor-to-render-playbook]]`                       | `docs/qa/pilot/editor-to-render-playbook.md`                                       |
+| `[[#127]]`                                            | GitHub Issue — Package Detail Conversion v2 (hero chips, WhatsApp CTA)             |
+| `[[#165]]`                                            | GitHub Issue — Product Video Field (video_url + hero lightbox)                     |
+| `[[#171]]`                                            | GitHub Issue — Package Content Population (epic parent F1/F2/F3)                   |
+| `[[#172]]`                                            | GitHub Issue — F1 `get_package_aggregated_data` RPC                                |
+| `[[#173]]`                                            | GitHub Issue — F2 `ItineraryItemRenderer` per-type variants                        |
+| `[[#174]]`                                            | GitHub Issue — F3 AI highlights + description (`/api/ai/generate-package-content`) |
+| `[[SPEC #187]]`                                       | GitHub Issue — Multi-locale translation + SEO migration EPIC                       |
+| `[[media-inventory-production-run-2026-04-25]]`       | `docs/evidence/media-inventory-production-run-2026-04-25.md`                       |
+| `[[media-remediation-backlog-2026-04-25]]`            | `docs/evidence/media-remediation-backlog-2026-04-25.md`                            |
+| `[[epic128-lighthouse-summary]]`                      | `docs/evidence/epic128/lighthouse-summary.md`                                      |
+| `[[epic128-production-ready-attestation-v2]]`         | `docs/evidence/epic128/production-ready-attestation-v2.md`                         |
+| `[[epic128-ux-fluency]]`                              | `docs/evidence/epic128/ux-fluency.md`                                              |
+| Any unresolved concept                                | Search this INDEX with `grep "[[concept]]" docs/INDEX.md`.                         |
 
 ---
 

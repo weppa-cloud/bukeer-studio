@@ -11,16 +11,30 @@
  * tags plus an x-default, per Google's localized-versions spec.
  */
 
-import { getBlogPosts } from '@/lib/supabase/get-website';
-import { getAllPageSlugs, getIndexablePageSlugs, getCategoryProducts, getDestinations, getNoindexProductSlugs, getNoindexDestinationSlugs } from '@/lib/supabase/get-pages';
-import { generateHreflangLinksForLocales, type HreflangLink } from '@/lib/seo/hreflang';
-import { normalizeWebsiteLocales, type WebsiteLocaleSettings } from '@/lib/seo/locale-routing';
+import { getPublishedBlogPostSitemapRows } from "@/lib/supabase/get-website";
+import {
+  getAllPageSlugs,
+  getIndexablePageSlugs,
+  getCategoryProducts,
+  getDestinations,
+  getNoindexProductSlugs,
+  getNoindexDestinationSlugs,
+} from "@/lib/supabase/get-pages";
+import {
+  generateHreflangLinksForLocales,
+  type HreflangLink,
+} from "@/lib/seo/hreflang";
+import {
+  normalizeWebsiteLocales,
+  type WebsiteLocaleSettings,
+} from "@/lib/seo/locale-routing";
 
 export interface SitemapUrl {
   loc: string;
   lastmod?: string;
   changefreq: string;
   priority: string;
+  translatedLocales?: string[];
 }
 
 export interface SitemapLocaleContext {
@@ -29,14 +43,19 @@ export interface SitemapLocaleContext {
 }
 
 /** Category slug → RPC category type mapping (only types supported by get_website_category_products) */
-const PRODUCT_CATEGORIES = ['hotels', 'activities', 'transfers', 'packages'] as const;
+const PRODUCT_CATEGORIES = [
+  "hotels",
+  "activities",
+  "transfers",
+  "packages",
+] as const;
 
 /** Slug mappings for category pages (Spanish → English variants) */
 const CATEGORY_SLUG_MAP: Record<string, string> = {
-  hotels: 'hoteles',
-  activities: 'actividades',
-  transfers: 'traslados',
-  packages: 'paquetes',
+  hotels: "hoteles",
+  activities: "actividades",
+  transfers: "traslados",
+  packages: "paquetes",
 };
 
 /**
@@ -59,9 +78,9 @@ export async function buildSitemapUrls(
   // 1. Homepage
   urls.push({
     loc: baseUrl,
-    lastmod: new Date().toISOString().split('T')[0],
-    changefreq: 'weekly',
-    priority: '1.0',
+    lastmod: new Date().toISOString().split("T")[0],
+    changefreq: "weekly",
+    priority: "1.0",
   });
 
   // 2. Static pages (from website_pages, excluding noindex)
@@ -74,44 +93,34 @@ export async function buildSitemapUrls(
   for (const slug of pageSlugs) {
     urls.push({
       loc: `${baseUrl}/${slug}`,
-      changefreq: 'weekly',
-      priority: '0.8',
+      changefreq: "weekly",
+      priority: "0.8",
     });
   }
 
-  // 3. Blog listing + blog posts (paginated, ADR-035 pattern)
-  const PAGE_SIZE = 100;
-  let offset = 0;
-  let hasMore = true;
-  let hasBlogPosts = false;
-
-  while (hasMore) {
-    const { posts } = await getBlogPosts(websiteId, {
-      limit: PAGE_SIZE,
-      offset,
-    });
-
-    for (const post of posts) {
-      if (!hasBlogPosts) hasBlogPosts = true;
-      urls.push({
-        loc: `${baseUrl}/blog/${post.slug}`,
-        lastmod: (post.published_at ?? post.updated_at)?.split('T')[0],
-        changefreq: 'monthly',
-        priority: '0.6',
-      });
-    }
-
-    hasMore = posts.length >= PAGE_SIZE;
-    offset += PAGE_SIZE;
-  }
+  // 3. Blog listing + blog posts. Emit only default-locale URLs as sitemap
+  // <loc> entries, and attach locale alternates only for translations that
+  // actually exist as published rows.
+  const blogRows = await getPublishedBlogPostSitemapRows(websiteId);
+  const blogGroups = groupBlogRowsForSitemap(blogRows);
 
   // Add blog listing page if there are any published posts
-  if (hasBlogPosts) {
+  if (blogGroups.length > 0) {
     urls.splice(1, 0, {
       loc: `${baseUrl}/blog`,
-      lastmod: new Date().toISOString().split('T')[0],
-      changefreq: 'daily',
-      priority: '0.7',
+      lastmod: new Date().toISOString().split("T")[0],
+      changefreq: "daily",
+      priority: "0.7",
+    });
+  }
+
+  for (const group of blogGroups) {
+    urls.push({
+      loc: `${baseUrl}/blog/${group.slug}`,
+      lastmod: group.lastmod,
+      changefreq: "monthly",
+      priority: "0.6",
+      translatedLocales: group.translatedLocales,
     });
   }
 
@@ -127,20 +136,29 @@ export async function buildSitemapUrls(
     }
 
     // Use whichever slug exists as a page
-    const categorySlug = allPageSlugSet.has(spanishSlug) ? spanishSlug : category;
+    const categorySlug = allPageSlugSet.has(spanishSlug)
+      ? spanishSlug
+      : category;
 
     // Fetch product items for this category
-    const { items } = await getCategoryProducts(subdomain, category, { limit: 100 });
+    const { items } = await getCategoryProducts(subdomain, category, {
+      limit: 100,
+    });
 
     for (const item of items) {
       if (item.slug && !noindexProducts.has(item.slug)) {
-        const itemMeta = item as { updated_at?: string; last_modified?: string };
-        const lastmod = (itemMeta.updated_at || itemMeta.last_modified)?.split('T')[0];
+        const itemMeta = item as {
+          updated_at?: string;
+          last_modified?: string;
+        };
+        const lastmod = (itemMeta.updated_at || itemMeta.last_modified)?.split(
+          "T",
+        )[0];
         urls.push({
           loc: `${baseUrl}/${categorySlug}/${item.slug}`,
           ...(lastmod ? { lastmod } : {}),
-          changefreq: 'weekly',
-          priority: '0.5',
+          changefreq: "weekly",
+          priority: "0.5",
         });
       }
     }
@@ -153,12 +171,14 @@ export async function buildSitemapUrls(
 
     if (destinations.length > 0) {
       // Destination listing page
-      const destSlug = allPageSlugSet.has('destinos') ? 'destinos' : 'destinations';
+      const destSlug = allPageSlugSet.has("destinos")
+        ? "destinos"
+        : "destinations";
       urls.push({
         loc: `${baseUrl}/${destSlug}`,
-        lastmod: new Date().toISOString().split('T')[0],
-        changefreq: 'weekly',
-        priority: '0.7',
+        lastmod: new Date().toISOString().split("T")[0],
+        changefreq: "weekly",
+        priority: "0.7",
       });
 
       // Individual destination pages (excluding noindex)
@@ -166,14 +186,14 @@ export async function buildSitemapUrls(
         if (dest.slug && !noindexDestinations.has(dest.slug)) {
           urls.push({
             loc: `${baseUrl}/${destSlug}/${dest.slug}`,
-            changefreq: 'weekly',
-            priority: '0.6',
+            changefreq: "weekly",
+            priority: "0.6",
           });
         }
       }
     }
   } catch (e) {
-    console.error('[buildSitemapUrls] Error fetching destinations:', e);
+    console.error("[buildSitemapUrls] Error fetching destinations:", e);
   }
 
   return urls;
@@ -184,15 +204,15 @@ export async function buildSitemapUrls(
  * "/" if the URL equals baseUrl, or to the raw URL if parsing fails.
  */
 function extractPathname(url: string, baseUrl: string): string {
-  if (url === baseUrl) return '/';
+  if (url === baseUrl) return "/";
   if (url.startsWith(baseUrl)) {
     const rest = url.slice(baseUrl.length);
-    return rest.startsWith('/') ? rest : `/${rest}`;
+    return rest.startsWith("/") ? rest : `/${rest}`;
   }
   try {
-    return new URL(url).pathname || '/';
+    return new URL(url).pathname || "/";
   } catch {
-    return '/';
+    return "/";
   }
 }
 
@@ -213,7 +233,8 @@ export function generateSitemapXml(
     : null;
 
   const multiLocale =
-    normalizedSettings !== null && normalizedSettings.supportedLocales.length > 1;
+    normalizedSettings !== null &&
+    normalizedSettings.supportedLocales.length > 1;
 
   const urlsetOpen = multiLocale
     ? '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">'
@@ -223,7 +244,7 @@ export function generateSitemapXml(
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 ${urlsetOpen}
-${rendered.join('\n')}
+${rendered.join("\n")}
 </urlset>`;
 }
 
@@ -233,7 +254,7 @@ function renderUrlEntry(
   multiLocale: boolean,
 ): string {
   const parts: string[] = [];
-  parts.push('  <url>');
+  parts.push("  <url>");
   parts.push(`    <loc>${escapeXml(url.loc)}</loc>`);
   if (url.lastmod) parts.push(`    <lastmod>${url.lastmod}</lastmod>`);
   parts.push(`    <changefreq>${url.changefreq}</changefreq>`);
@@ -241,7 +262,12 @@ function renderUrlEntry(
 
   if (multiLocale && locale) {
     const pathname = extractPathname(url.loc, locale.baseUrl);
-    const alternates = buildAlternateLinks(locale.baseUrl, pathname, locale.settings);
+    const alternates = buildAlternateLinks(
+      locale.baseUrl,
+      pathname,
+      locale.settings,
+      url.translatedLocales,
+    );
     for (const link of alternates) {
       parts.push(
         `    <xhtml:link rel="alternate" hreflang="${escapeXml(link.hreflang)}" href="${escapeXml(link.href)}"/>`,
@@ -249,26 +275,96 @@ function renderUrlEntry(
     }
   }
 
-  parts.push('  </url>');
-  return parts.join('\n');
+  parts.push("  </url>");
+  return parts.join("\n");
 }
 
 function buildAlternateLinks(
   baseUrl: string,
   pathname: string,
   settings: WebsiteLocaleSettings,
+  translatedLocales?: string[],
 ): HreflangLink[] {
-  return generateHreflangLinksForLocales(baseUrl, pathname, {
-    defaultLocale: settings.defaultLocale,
-    supportedLocales: settings.supportedLocales,
-  });
+  return generateHreflangLinksForLocales(
+    baseUrl,
+    pathname,
+    {
+      defaultLocale: settings.defaultLocale,
+      supportedLocales: settings.supportedLocales,
+    },
+    translatedLocales,
+  );
+}
+
+interface BlogSitemapRow {
+  id: string;
+  slug: string;
+  locale: string | null;
+  translation_group_id: string | null;
+  published_at: string | null;
+  updated_at: string | null;
+}
+
+interface BlogSitemapGroup {
+  slug: string;
+  lastmod?: string;
+  translatedLocales: string[];
+}
+
+function groupBlogRowsForSitemap(rows: BlogSitemapRow[]): BlogSitemapGroup[] {
+  const groups = new Map<string, BlogSitemapRow[]>();
+
+  for (const row of rows) {
+    if (!row.slug) continue;
+    const key = row.translation_group_id || row.id;
+    const current = groups.get(key) ?? [];
+    current.push(row);
+    groups.set(key, current);
+  }
+
+  const out: BlogSitemapGroup[] = [];
+  for (const groupRows of groups.values()) {
+    const defaultRow = groupRows.find((row) => isDefaultBlogLocale(row.locale));
+    if (!defaultRow?.slug) continue;
+
+    const translatedLocales = groupRows
+      .map((row) => normalizeBlogLocaleForSitemap(row.locale))
+      .filter((locale): locale is string => Boolean(locale));
+
+    const lastmodSource = groupRows
+      .map((row) => row.published_at ?? row.updated_at)
+      .filter((value): value is string => Boolean(value))
+      .sort()
+      .at(-1);
+
+    out.push({
+      slug: defaultRow.slug,
+      lastmod: lastmodSource?.split("T")[0],
+      translatedLocales: [...new Set(translatedLocales)],
+    });
+  }
+
+  return out.sort((a, b) => a.slug.localeCompare(b.slug));
+}
+
+function normalizeBlogLocaleForSitemap(
+  locale: string | null | undefined,
+): string | null {
+  if (!locale) return null;
+  if (locale === "es") return "es-CO";
+  if (locale === "en") return "en-US";
+  return locale;
+}
+
+function isDefaultBlogLocale(locale: string | null | undefined): boolean {
+  return ["es", "es-CO", null, undefined].includes(locale);
 }
 
 function escapeXml(str: string): string {
   return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
 }

@@ -4,7 +4,7 @@ website_id: 894545b7-73ca-4dae-b76a-da5b6a3f8441
 epic: 310
 spec: 337
 issue: 321
-last_updated: 2026-04-27
+last_updated: 2026-04-29
 council_date: 2026-04-27
 chair: A5 (Growth Ops)
 status: template
@@ -12,7 +12,7 @@ status: template
 
 # Growth Council — 2026-04-27 (Week 18) — Template
 
-> Template for every Monday Growth Council. Copy to `docs/growth-weekly/YYYY-MM-DD-council.md` each week and fill. Cross-reference: [active OKRs](../growth-okrs/active.md), [UTM convention](../ops/utm-convention.md), [governance](../ops/growth-attribution-governance.md), [SPEC #337](https://github.com/weppa-cloud/bukeer-website-public/issues/337).
+> Template for every Monday Growth Council. Copy to `docs/growth-weekly/YYYY-MM-DD-council.md` each week and fill. Cross-reference: [active OKRs](../growth-okrs/active.md), [UTM convention](../ops/utm-convention.md), [governance](../ops/growth-attribution-governance.md), [Growth Intelligence DataForSEO flows](../ops/growth-intelligence-dataforseo-flows.md), [SPEC #337](https://github.com/weppa-cloud/bukeer-website-public/issues/337).
 
 ## Attendance
 
@@ -28,6 +28,25 @@ status: template
 | Paid agency (opt) |  | ☐ |
 
 Quorum reached (3/5 incl. A5): ☐ yes ☐ no — if no, async fallback (24h objection window).
+
+---
+
+## 0. Data intake — Growth Intelligence matrix
+
+> Required before approving experiments. Raw provider payloads stay in provider caches; this section records the normalized facts that feed `growth_inventory`.
+
+| Pillar | Latest source/run | Key delta | Decision impact |
+|---|---|---|---|
+| Technical health | DataForSEO OnPage task / `seo_audit_results` / `seo_audit_findings` | P0 `__`, P1 `__`, new `__`, resolved `__`, regressed `__` | PASS / WATCH / BLOCK |
+| Search demand | GSC + DataForSEO Labs | queries/pages/clusters with movement |  |
+| Visibility | GSC + DataForSEO ranked keywords/domain overview | ranking, impressions, ETV or visibility movement |  |
+| SERP/competition | DataForSEO SERP Advanced / competitors / intersections | competitor gaps, features, PAA, AI/map/local elements |  |
+| Authority/brand | DataForSEO Backlinks / Content Analysis | referring domains, new/lost, anchors, mentions |  |
+| Local SEO | Business Data/Listings | reviews, rating, categories, local competitors |  |
+| AI/GEO | AI Optimization / LLM Mentions | mentions, source domains, top pages, AI search volume |  |
+| Conversion | GA4 + `funnel_events` + `itinerary_confirmed` | activation, qualified lead, itinerary confirmed |  |
+
+Rejected by default: experiments without a source row, baseline and success metric, unless a strategic exception is logged in Decisions.
 
 ---
 

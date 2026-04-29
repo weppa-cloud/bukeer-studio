@@ -1,0 +1,117 @@
+{
+  "version": "geo_ai_visibility_v1_20260429",
+  "target_domain": "colombiatours.travel",
+  "target_brand": "ColombiaTours",
+  "prompts": [
+    {
+      "prompt_id": "us_en_10d_itinerary",
+      "prompt": "best Colombia itinerary for 10 days with a local travel agency",
+      "locale": "en-US",
+      "market": "US",
+      "language_code": "en",
+      "location_code": 2840,
+      "intent": "commercial",
+      "funnel_stage": "acquisition",
+      "keyword_cluster": "colombia itinerary"
+    },
+    {
+      "prompt_id": "us_en_tour_companies_couples",
+      "prompt": "best Colombia tour companies for couples",
+      "locale": "en-US",
+      "market": "US",
+      "language_code": "en",
+      "location_code": 2840,
+      "intent": "commercial",
+      "funnel_stage": "acquisition",
+      "keyword_cluster": "tour operator comparison"
+    },
+    {
+      "prompt_id": "us_en_family_safety",
+      "prompt": "is Colombia safe for family travel with a tour operator",
+      "locale": "en-US",
+      "market": "US",
+      "language_code": "en",
+      "location_code": 2840,
+      "intent": "mixed",
+      "funnel_stage": "acquisition",
+      "keyword_cluster": "safety trust"
+    },
+    {
+      "prompt_id": "us_en_cartagena_3_days",
+      "prompt": "what to do in Cartagena Colombia in 3 days with guided tours",
+      "locale": "en-US",
+      "market": "US",
+      "language_code": "en",
+      "location_code": 2840,
+      "intent": "commercial",
+      "funnel_stage": "acquisition",
+      "keyword_cluster": "cartagena"
+    },
+    {
+      "prompt_id": "us_en_coffee_region",
+      "prompt": "Colombia coffee region tour with local guide",
+      "locale": "en-US",
+      "market": "US",
+      "language_code": "en",
+      "location_code": 2840,
+      "intent": "commercial",
+      "funnel_stage": "acquisition",
+      "keyword_cluster": "coffee region"
+    },
+    {
+      "prompt_id": "co_es_san_andres_all_inclusive",
+      "prompt": "paquetes turísticos a San Andrés todo incluido",
+      "locale": "es-CO",
+      "market": "CO",
+      "language_code": "es",
+      "location_code": 2170,
+      "intent": "transactional",
+      "funnel_stage": "acquisition",
+      "keyword_cluster": "san andres"
+    },
+    {
+      "prompt_id": "co_es_eje_cafetero",
+      "prompt": "tour al eje cafetero desde Bogotá con agencia de viajes",
+      "locale": "es-CO",
+      "market": "CO",
+      "language_code": "es",
+      "location_code": 2170,
+      "intent": "commercial",
+      "funnel_stage": "acquisition",
+      "keyword_cluster": "eje cafetero"
+    },
+    {
+      "prompt_id": "co_es_cartagena_planes",
+      "prompt": "planes turísticos en Cartagena para parejas",
+      "locale": "es-CO",
+      "market": "CO",
+      "language_code": "es",
+      "location_code": 2170,
+      "intent": "commercial",
+      "funnel_stage": "acquisition",
+      "keyword_cluster": "cartagena"
+    },
+    {
+      "prompt_id": "mx_es_colombia_agencia",
+      "prompt": "viajes a Colombia desde México agencias recomendadas",
+      "locale": "es-MX",
+      "market": "MX",
+      "language_code": "es",
+      "location_code": 2484,
+      "intent": "commercial",
+      "funnel_stage": "acquisition",
+      "keyword_cluster": "mexico expansion"
+    },
+    {
+      "prompt_id": "brand_es_reviews",
+      "prompt": "ColombiaTours agencia de viajes opiniones y paquetes",
+      "locale": "es-CO",
+      "market": "CO",
+      "language_code": "es",
+      "location_code": 2170,
+      "intent": "navigational",
+      "funnel_stage": "acquisition",
+      "keyword_cluster": "brand"
+    }
+  ]
+}

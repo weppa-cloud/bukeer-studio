@@ -2,12 +2,15 @@
 
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { createClient } from '@supabase/supabase-js';
 
 const API_BASE = 'https://api.dataforseo.com/v3';
 const DEFAULT_TARGET = 'colombiatours.travel';
 const DEFAULT_START_URL = 'https://colombiatours.travel/';
 const DEFAULT_MAX_PAGES = 1000;
 const DEFAULT_OUT_DIR = path.join('artifacts', 'seo', `${todayIso()}-dataforseo-onpage`);
+const DEFAULT_WEBSITE_ID = '894545b7-73ca-4dae-b76a-da5b6a3f8441';
+const DEFAULT_ACCOUNT_ID = '9fc24733-b127-4184-aa22-12f03b98927a';
 
 const args = parseArgs(process.argv.slice(2));
 const target = args.target ?? DEFAULT_TARGET;
@@ -17,6 +20,13 @@ const outDir = args.outDir ?? DEFAULT_OUT_DIR;
 const poll = args.poll !== 'false';
 const pollSeconds = Number.parseInt(args.pollSeconds ?? '30', 10);
 const maxWaitSeconds = Number.parseInt(args.maxWaitSeconds ?? '900', 10);
+const respectSitemap = parseBooleanArg(args.respectSitemap, true);
+const loadResources = parseBooleanArg(args.loadResources, false);
+const enableJavascript = parseBooleanArg(args.enableJavascript, false);
+const enableBrowserRendering = parseBooleanArg(args.enableBrowserRendering, false);
+const websiteId = args.websiteId ?? DEFAULT_WEBSITE_ID;
+const accountId = args.accountId ?? DEFAULT_ACCOUNT_ID;
+const persist = args.persist !== 'false';
 
 const login = process.env.DATAFORSEO_LOGIN?.trim();
 const password = process.env.DATAFORSEO_PASSWORD?.trim();
@@ -44,10 +54,10 @@ async function main() {
     target,
     start_url: startUrl,
     max_crawl_pages: maxCrawlPages,
-    respect_sitemap: true,
-    load_resources: false,
-    enable_javascript: false,
-    enable_browser_rendering: false,
+    respect_sitemap: respectSitemap,
+    load_resources: loadResources,
+    enable_javascript: enableJavascript,
+    enable_browser_rendering: enableBrowserRendering,
     return_despite_timeout: true,
     tag,
   }];
@@ -64,6 +74,7 @@ async function main() {
   console.log(`DataForSEO OnPage task submitted: ${taskId}`);
   console.log(`Tag: ${tag}`);
   console.log(`Output: ${outDir}`);
+  await persistDataForSeoPayload('/v3/on_page/task_post', `epic310-onpage|${taskId}|task-post-response`, taskResponse, taskId, tag, task?.cost ?? 0);
 
   if (!poll) return;
 
@@ -75,6 +86,7 @@ async function main() {
     await writeFile(path.join(outDir, 'summary-latest.json'), JSON.stringify(redactResponse(summaryResponse), null, 2));
 
     const summary = extractSummary(summaryResponse);
+    await persistDataForSeoPayload('/v3/on_page/summary', `epic310-onpage|${taskId}|summary-latest`, summaryResponse, taskId, tag, summary.cost ?? 0);
     console.log(`[poll] progress=${summary.crawlProgress} crawled=${summary.pagesCrawled} queue=${summary.pagesInQueue} cost=${summary.cost ?? 'n/a'}`);
     if (summary.crawlProgress === 'finished') {
       await fetchPages(taskId, outDir);
@@ -91,6 +103,7 @@ async function pollExistingTask(taskId, outputDir) {
   await writeFile(path.join(outputDir, 'summary-latest.json'), JSON.stringify(redactResponse(summaryResponse), null, 2));
 
   const summary = extractSummary(summaryResponse);
+  await persistDataForSeoPayload('/v3/on_page/summary', `epic310-onpage|${taskId}|summary-latest`, summaryResponse, taskId, args.tag ?? null, summary.cost ?? 0);
   console.log(`[summary] progress=${summary.crawlProgress} crawled=${summary.pagesCrawled} queue=${summary.pagesInQueue} cost=${summary.cost ?? 'n/a'}`);
   if (summary.crawlProgress === 'finished' || args.fetchPages === 'true') {
     await fetchPages(taskId, outputDir);
@@ -113,6 +126,7 @@ async function fetchPages(taskId, outputDir) {
   }
   await writeFile(path.join(outputDir, 'pages-all.json'), JSON.stringify(allItems, null, 2));
   await writeFile(path.join(outputDir, 'pages-summary.csv'), pagesToCsv(allItems));
+  await persistDataForSeoPayload('/v3/on_page/pages', `epic310-onpage|${taskId}|pages-all`, allItems, taskId, args.tag ?? null, 0, { row_count: allItems.length });
 }
 
 async function dataForSeoPost(endpoint, body) {
@@ -233,6 +247,88 @@ function redactResponse(value) {
   return value;
 }
 
+async function persistDataForSeoPayload(endpoint, cacheKey, payload, taskId, tag, cost = 0, extraMetadata = {}) {
+  if (!persist) return;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!supabaseUrl || !serviceRole) return;
+
+  const now = new Date().toISOString();
+  const admin = createClient(supabaseUrl, serviceRole, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const cacheTag = `growth:dataforseo:website:${websiteId}:onpage`;
+  const { error: cacheError } = await admin.from('growth_dataforseo_cache').upsert(
+    {
+      account_id: accountId,
+      website_id: websiteId,
+      endpoint,
+      cache_key: cacheKey,
+      cache_tag: cacheTag,
+      payload,
+      fetched_at: now,
+      expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+    },
+    { onConflict: 'website_id,endpoint,cache_key' },
+  );
+  if (cacheError) {
+    console.warn(`[persist] growth_dataforseo_cache failed: ${cacheError.message}`);
+  }
+
+  const billingMonth = `${now.slice(0, 7)}-01`;
+  const { data: existing, error: existingError } = await admin
+    .from('seo_provider_usage')
+    .select('request_count,total_cost_usd,metadata')
+    .eq('website_id', websiteId)
+    .eq('provider', 'dataforseo')
+    .eq('endpoint', endpoint)
+    .eq('billing_month', billingMonth)
+    .maybeSingle();
+  if (existingError) {
+    console.warn(`[persist] seo_provider_usage read failed: ${existingError.message}`);
+    return;
+  }
+
+  const metadata = {
+    ...(existing?.metadata ?? {}),
+    epic: 310,
+    profile: 'dfs_onpage_full_v2',
+    task_id: taskId,
+    tag,
+    last_cache_key: cacheKey,
+    last_artifact_dir: outDir,
+    ...extraMetadata,
+  };
+  const accountedCacheKeys = Array.isArray(existing?.metadata?.accounted_cache_keys)
+    ? existing.metadata.accounted_cache_keys
+    : [];
+  const alreadyAccounted = accountedCacheKeys.includes(cacheKey);
+  metadata.accounted_cache_keys = alreadyAccounted
+    ? accountedCacheKeys
+    : [...accountedCacheKeys, cacheKey].slice(-200);
+
+  const usageRow = {
+    website_id: websiteId,
+    provider: 'dataforseo',
+    endpoint,
+    billing_month: billingMonth,
+    request_count: Number(existing?.request_count ?? 0) + (alreadyAccounted ? 0 : 1),
+    total_cost_usd: Number(existing?.total_cost_usd ?? 0) + (alreadyAccounted ? 0 : Number(cost ?? 0)),
+    metadata,
+    first_called_at: existing ? undefined : now,
+    last_called_at: now,
+    updated_at: now,
+  };
+  Object.keys(usageRow).forEach((key) => usageRow[key] === undefined && delete usageRow[key]);
+  const { error: usageError } = await admin.from('seo_provider_usage').upsert(
+    usageRow,
+    { onConflict: 'website_id,provider,endpoint,billing_month' },
+  );
+  if (usageError) {
+    console.warn(`[persist] seo_provider_usage failed: ${usageError.message}`);
+  }
+}
+
 function parseArgs(argv) {
   const parsed = {};
   for (let index = 0; index < argv.length; index += 1) {
@@ -244,6 +340,11 @@ function parseArgs(argv) {
     if (next && !next.startsWith('--')) index += 1;
   }
   return parsed;
+}
+
+function parseBooleanArg(value, fallback) {
+  if (value === undefined) return fallback;
+  return value === true || value === 'true' || value === '1' || value === 'yes';
 }
 
 function csvCell(value) {
