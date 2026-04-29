@@ -29,7 +29,7 @@ Provider modes:
 | Value | Meaning | Use case |
 |-------|---------|----------|
 | `circleci` | CircleCI is the primary quality gate | Default while GitHub Actions billing is constrained |
-| `github` | GitHub Actions is the primary quality gate | Use when CircleCI credits are exhausted |
+| `github` | GitHub Actions is the primary quality gate; CircleCI still runs `main` quality as standby | Default for GitHub-primary with CircleCI fallback |
 | `both` | Run both providers | Temporary migration, audit, or confidence window |
 
 Set the same value in:
@@ -37,16 +37,16 @@ Set the same value in:
 - CircleCI project environment variable: `CI_QUALITY_PROVIDER`
 - GitHub repository variable: `CI_QUALITY_PROVIDER`
 
-CircleCI is configured to halt early when `CI_QUALITY_PROVIDER=github`, which preserves CircleCI credits. Expensive GitHub quality workflows can be configured to skip when `CI_QUALITY_PROVIDER=circleci`, while GitHub deployment workflows remain available for `main`.
+CircleCI is configured to halt early on non-`main` branches when `CI_QUALITY_PROVIDER=github`, while still running `main` quality as standby for deployment failover. Expensive GitHub quality workflows can be configured to skip when `CI_QUALITY_PROVIDER=circleci`, while GitHub deployment workflows remain available for `main`.
 
 Deploy provider modes:
 
 | Value | Meaning | Use case |
 |-------|---------|----------|
 | `circleci` | CircleCI deploys production from `main` | Default while GitHub Actions billing is constrained |
-| `github` | GitHub Actions deploys production from `main` | Use when CircleCI credits are exhausted |
+| `github` | GitHub Actions deploys production from `main`; CircleCI waits and takes over only if GitHub does not deploy the SHA | Default for GitHub-primary with CircleCI fallback |
 
-CircleCI deploy jobs halt early when `CI_DEPLOY_PROVIDER=github`. GitHub deployment jobs run only when `CI_DEPLOY_PROVIDER=github` is set explicitly. If the flag is unset, CircleCI remains the default deployment provider and GitHub-hosted minutes are preserved.
+CircleCI deploy jobs wait for the GitHub `deploy-production` check when `CI_DEPLOY_PROVIDER=github`. If GitHub succeeds, CircleCI halts before deployment. If GitHub fails, is cancelled, is skipped, or never starts before the wait window, CircleCI deploys the same SHA. GitHub deployment jobs run only when `CI_DEPLOY_PROVIDER=github` is set explicitly.
 
 ## Failover Procedure
 
@@ -58,13 +58,15 @@ CircleCI deploy jobs halt early when `CI_DEPLOY_PROVIDER=github`. GitHub deploym
 4. Unrequire expensive GitHub quality checks while GitHub billing is constrained.
 5. Let CircleCI deploy production from `main`.
 
-### GitHub Primary
+### GitHub Primary With CircleCI Fallback
 
 1. Set `CI_QUALITY_PROVIDER=github` in CircleCI and GitHub repository variables.
 2. Set `CI_DEPLOY_PROVIDER=github` in CircleCI and GitHub repository variables.
-3. CircleCI jobs halt after checkout and do not consume the full pipeline.
-4. Make the GitHub quality checks required in branch protection.
-5. Let GitHub Actions deploy production from `main`.
+3. Set `CI_DEPLOY_FALLBACK_PROVIDER=circleci` in GitHub repository variables.
+4. Store `CIRCLE_TOKEN` as a GitHub secret so GitHub can trigger CircleCI when its deploy job fails after starting.
+5. Confirm CircleCI receives push webhooks for `main`; this covers the case where GitHub Actions cannot start because of billing or hosted-runner limits.
+6. Make the GitHub quality checks required in branch protection.
+7. Let GitHub Actions deploy production from `main`, with CircleCI waiting as the takeover path.
 
 ### Both Providers
 
@@ -77,8 +79,8 @@ CircleCI deploy jobs halt early when `CI_DEPLOY_PROVIDER=github`. GitHub deploym
 
 | Workflow | Current role | Deployment target | Standard |
 |----------|--------------|-------------------|----------|
-| `.circleci/config.yml` | Primary off-GitHub quality and production deploy runtime | Cloudflare Worker via OpenNext on `studio.bukeer.com` when `CI_DEPLOY_PROVIDER=circleci` | Run quality on PR/dev/main; deploy only on `main` |
-| `.github/workflows/deploy.yml` | GitHub fallback quality, smoke, and production deployment | Cloudflare Worker via OpenNext on `studio.bukeer.com` when `CI_DEPLOY_PROVIDER=github` | Run on `main`; no `dev` Worker deploy |
+| `.circleci/config.yml` | Off-GitHub fallback quality and production deploy runtime | Cloudflare Worker via OpenNext on `studio.bukeer.com` when GitHub does not deploy the SHA | Run quality on `main`; deploy only on `main` after GitHub wait/takeover |
+| `.github/workflows/deploy.yml` | Primary quality, smoke, and production deployment | Cloudflare Worker via OpenNext on `studio.bukeer.com` when `CI_DEPLOY_PROVIDER=github` | Run on `main`; no `dev` Worker deploy |
 | `.github/workflows/nightly-worker-preview.yml` | Worker preview + `@p0-seo` validation | Local Worker preview only | Manual only while conserving resources |
 | `.github/workflows/ct-visual.yml` | Playwright component/visual tests | None | Skips when `CI_QUALITY_PROVIDER=circleci`; fallback when `CI_QUALITY_PROVIDER=github` or `both` |
 | `.github/workflows/ai-sync-autofix.yml` | AI artifact sync commit | Repository files | Main-only maintenance automation |
@@ -99,14 +101,15 @@ CircleCI deploy jobs halt early when `CI_DEPLOY_PROVIDER=github`. GitHub deploym
 
 ### Pull Request
 
-1. CircleCI runs the default quality gate when `CI_QUALITY_PROVIDER=circleci`.
-2. GitHub deployment workflows do not publish previews by default.
-3. Heavy E2E, visual regression, Lighthouse, or Worker preview jobs are manual unless explicitly needed.
+1. GitHub runs the default quality gate when `CI_QUALITY_PROVIDER=github`.
+2. CircleCI halts early on non-`main` branches when GitHub is primary.
+3. GitHub deployment workflows do not publish previews by default.
+4. Heavy E2E, visual regression, Lighthouse, or Worker preview jobs are manual unless explicitly needed.
 
 ### Dev
 
 1. Merging to `dev` validates integration.
-2. CircleCI quality checks run.
+2. GitHub quality checks run when GitHub is primary; CircleCI halts early unless configured as primary.
 3. No Flutter Web deploy.
 4. No Studio Worker deploy.
 

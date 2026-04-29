@@ -359,3 +359,36 @@ jobs:
         run: |
           echo "Deploy failed. To rollback:"
           echo "  cd bukeer-studio && npx wrangler rollback"
+
+  # ── CircleCI fallback — triggered only when GitHub deploy itself fails ─
+  # If GitHub Actions cannot start at all because of billing/minutes, CircleCI
+  # must receive the GitHub push webhook and its own config will take over after
+  # waiting for the GitHub deploy check.
+  trigger-circleci-fallback:
+    needs: [quality, e2e-smoke, deploy-production]
+    if: >
+      always() &&
+      github.ref == 'refs/heads/main' &&
+      vars.CI_DEPLOY_PROVIDER == 'github' &&
+      vars.CI_DEPLOY_FALLBACK_PROVIDER == 'circleci' &&
+      needs.quality.result == 'success' &&
+      needs.e2e-smoke.result == 'success' &&
+      (needs.deploy-production.result == 'failure' || needs.deploy-production.result == 'cancelled')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger CircleCI production fallback
+        env:
+          CIRCLE_TOKEN: ${{ secrets.CIRCLE_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${CIRCLE_TOKEN:-}" ]; then
+            echo "::error::CIRCLE_TOKEN secret is required to trigger CircleCI fallback."
+            exit 1
+          fi
+
+          curl -fsS \
+            --request POST \
+            --url "https://circleci.com/api/v2/project/gh/weppa-cloud/bukeer-studio/pipeline" \
+            --header "Circle-Token: ${CIRCLE_TOKEN}" \
+            --header "Content-Type: application/json" \
+            --data '{"branch":"main","parameters":{"force_deploy":true}}'

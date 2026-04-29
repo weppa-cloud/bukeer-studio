@@ -4,7 +4,7 @@
 
 ## Purpose
 
-CircleCI is the off-GitHub CI/CD runtime for `bukeer-studio`. GitHub remains the source repository, while CircleCI runs the Node/Next.js quality gate and can deploy production from `.circleci/config.yml`.
+CircleCI is the off-GitHub CI/CD runtime for `bukeer-studio`. GitHub remains the source repository and the primary deploy runtime. CircleCI runs the Node/Next.js quality gate on `main` as a standby and can take over production deployment from `.circleci/config.yml` when GitHub Actions cannot deploy.
 
 Use CircleCI when:
 
@@ -30,7 +30,7 @@ This matches the repository requirement of Node 22+ and includes browser depende
 
 ## Default Quality Gate
 
-The default `ci` workflow runs only the `quality` job to preserve CircleCI free-tier credits.
+The default `ci` workflow runs `quality` on `main` even when GitHub is the primary provider, so CircleCI can safely take over if GitHub Actions is blocked by billing or runner limits. On non-`main` branches, CircleCI halts early when `CI_QUALITY_PROVIDER=github`.
 
 | Step | Command | Blocking |
 |------|---------|----------|
@@ -54,7 +54,11 @@ CircleCI skips `npm run ai:check` when `.mcp.json` is absent because that file c
 
 ## Production Deploy Job
 
-The `deploy_production` job runs only on `main` and requires `quality` to pass first.
+The `deploy_production` job runs only on `main` and requires `quality` to pass first. When `CI_DEPLOY_PROVIDER=github`, CircleCI first watches the GitHub `deploy-production` check for the same SHA:
+
+- If GitHub deploy succeeds, CircleCI halts before deploying.
+- If GitHub deploy fails, is cancelled, is skipped, or does not appear before `GITHUB_DEPLOY_WAIT_SECONDS` (default `900`), CircleCI deploys production.
+- If GitHub Actions starts successfully but its deploy job fails, `.github/workflows/deploy.yml` can also trigger CircleCI explicitly with the `force_deploy` pipeline parameter.
 
 It runs:
 
@@ -67,8 +71,10 @@ curl https://studio.bukeer.com
 Required CircleCI environment variables:
 
 ```text
-CI_QUALITY_PROVIDER=circleci
-CI_DEPLOY_PROVIDER=circleci
+CI_QUALITY_PROVIDER=github
+CI_DEPLOY_PROVIDER=github
+GITHUB_DEPLOY_WAIT_SECONDS=900
+GITHUB_DEPLOY_POLL_SECONDS=30
 CLOUDFLARE_API_TOKEN=...
 CLOUDFLARE_API_KEY=...
 CLOUDFLARE_EMAIL=...
@@ -91,9 +97,9 @@ export CLOUDFLARE_ACCOUNT_ID=...
 ./scripts/bootstrap-circleci.sh
 ```
 
-The script creates or verifies the CircleCI project, loads `.env.local`/`.dev.vars`, maps `NEXT_PUBLIC_SUPABASE_URL` to `SUPABASE_URL`, sets `CI_QUALITY_PROVIDER=circleci` and `CI_DEPLOY_PROVIDER=circleci` by default, accepts either `CLOUDFLARE_API_TOKEN` or `CLOUDFLARE_API_KEY` + `CLOUDFLARE_EMAIL`, and writes project environment variables without printing secret values.
+The script creates or verifies the CircleCI project, loads `.env.local`/`.dev.vars`, maps `NEXT_PUBLIC_SUPABASE_URL` to `SUPABASE_URL`, sets `CI_QUALITY_PROVIDER=github` and `CI_DEPLOY_PROVIDER=github` by default, accepts either `CLOUDFLARE_API_TOKEN` or `CLOUDFLARE_API_KEY` + `CLOUDFLARE_EMAIL`, and writes project environment variables without printing secret values.
 
-Set `CI_DEPLOY_PROVIDER=github` to make CircleCI halt the deploy job and let GitHub Actions be the deployment provider instead.
+Set `CI_DEPLOY_PROVIDER=circleci` only when CircleCI should deploy immediately without waiting for GitHub.
 
 ## Optional Component Test Job
 
@@ -144,9 +150,9 @@ Recommended modes:
 
 | Mode | Use Case | Action |
 |------|----------|--------|
-| Coexistence | GitHub billing is healthy | Keep GitHub Actions and CircleCI enabled temporarily |
+| GitHub primary + CircleCI fallback | Normal production flow | Set both provider flags to `github`; keep CircleCI push webhooks enabled |
 | CircleCI primary | GitHub billing blocks hosted checks or deploys | Require CircleCI `quality`, set `CI_DEPLOY_PROVIDER=circleci` |
-| GitHub primary | CircleCI credits are exhausted | Set `CI_QUALITY_PROVIDER=github` and `CI_DEPLOY_PROVIDER=github` |
+| CircleCI disabled | CircleCI credits are exhausted | Disable CircleCI project or set branch filters outside repo |
 
 Do not delete GitHub workflows until CircleCI has produced stable green runs for `dev` and `main`.
 
@@ -185,6 +191,7 @@ Check:
 - The project is enabled in CircleCI.
 - `.circleci/config.yml` exists on the pushed branch.
 - CircleCI project settings are not ignoring the branch.
+- A push to `main` creates a CircleCI pipeline without using the API. This is required for billing-failure failover because GitHub Actions cannot trigger fallback jobs when GitHub-hosted runners do not start.
 
 ### Dependency Install Fails
 
