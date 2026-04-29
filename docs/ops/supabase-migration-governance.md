@@ -112,6 +112,7 @@ providing the contracts, API implementation and verification evidence.
 | Historical funnel seed | `20260504111000_funnel_events_backfill.sql` | Optional for production history; requires `funnel_events` and `meta_conversion_events`. |
 | Growth inventory and caches | `20260504111100_growth_cache_tables.sql` | Creates GSC/GA4/DataForSEO caches, `growth_inventory`, and `growth_cache_purge_expired()`. |
 | Public rate-limit contract repair | `20260504111200_public_rate_limits_request_count_contract.sql` | Adds missing `request_count` when `public_rate_limits` pre-existed; fixes WAFlow/newsletter rate-limit fail-open observed during #322 smoke. |
+| AI Search / GEO visibility facts | `20260429192000_geo_ai_visibility_facts.sql` | Adds `seo_ai_visibility_runs`, `seo_ai_visibility_facts`, and `growth_inventory.channel = 'ai_search'`; raw DataForSEO AI payloads stay in `growth_dataforseo_cache`. |
 
 ### Current Cross-Repo Audit — 2026-04-28
 

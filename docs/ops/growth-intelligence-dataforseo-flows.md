@@ -116,7 +116,26 @@ site performance.
 3. Feed #335 and Council experiments for local pages, GBP work or review
    acquisition.
 
-## Flow 6: Conversion Join
+## Flow 6: AI Search / GEO Visibility
+
+1. Start from a stable prompt set by market, locale, intent and funnel stage.
+2. Run DataForSEO AI Optimization in a controlled profile:
+   LLM Mentions, Top Pages, Top Domains, AI Keyword Data and selected
+   LLM Responses/Scraper or Google AI Mode samples.
+3. Store raw provider responses in `growth_dataforseo_cache` and usage/cost in
+   `seo_provider_usage`.
+4. Normalize comparable run metadata into `seo_ai_visibility_runs`.
+5. Normalize prompt/platform facts into `seo_ai_visibility_facts`.
+6. Promote only decision-grade rows to `growth_inventory`, using
+   `channel = 'ai_search'`.
+7. Use Council to decide whether the next action is content, authority, local
+   SEO, technical cleanup or CRO.
+
+Do not store AI/GEO observations in `seo_audit_findings`; those remain for
+technical OnPage findings. See
+[growth-ai-search-geo-profile](./growth-ai-search-geo-profile.md).
+
+## Flow 7: Conversion Join
 
 1. Read GSC/GA4 for acquisition and engagement.
 2. Read `funnel_events` for WAFlow, WhatsApp, Chatwoot and
@@ -158,9 +177,8 @@ Every Growth Council must include a short data intake section:
 | SERP | Competitor/feature observations for priority keywords. |
 | Authority | Backlinks/referring domains/new-lost summary when monthly. |
 | Local | Listings/reviews/categories when local SEO is in scope. |
-| AI/GEO | LLM mentions or AI keyword data when entity/E-E-A-T is in scope. |
+| AI/GEO | LLM mentions, cited pages, source domains, AI keyword data and prompt facts when entity/E-E-A-T is in scope. |
 | Conversion | GA4 + `funnel_events` + `itinerary_confirmed` summary. |
 
 An experiment without a source row or baseline is rejected unless the Council
 records an explicit strategic exception.
-
