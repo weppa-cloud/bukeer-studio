@@ -71,6 +71,16 @@ jobs:
       # and EPIC #207 W5.1.
       - name: Tech validator (CODE mode, delta)
         run: npm run tech-validator:code
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          OPENROUTER_AUTH_TOKEN: ci-openrouter-token
+          OPENROUTER_BASE_URL: https://openrouter.ai/api/v1
+          OPENROUTER_MODEL: anthropic/claude-sonnet-4-5
+          REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET || 'ci-revalidate-secret' }}
+          NEXT_PUBLIC_URL: https://studio.bukeer.com
+          NEXT_PUBLIC_MAIN_DOMAIN: bukeer.com
 
       - name: Upload tech-validator report
         if: always()
