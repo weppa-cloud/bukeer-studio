@@ -156,6 +156,25 @@ function normalizeTextList(value: unknown): string[] {
   return [];
 }
 
+const INTERNAL_FLIGHT_LABEL = 'Vuelos Internos';
+const AIRLINE_NAME_PATTERN = /\b(avianca|wingo|latam|latam airlines|jetsmart|jet ?smart|satena|easyfly|clic air|copa airlines|copa)\b/i;
+
+function normalizeInclusionList(value: unknown): string[] {
+  const normalized = normalizeTextList(value);
+  const result: string[] = [];
+  let hasInternalFlights = false;
+
+  for (const item of normalized) {
+    if (AIRLINE_NAME_PATTERN.test(item) || /^vuelos?\s+(internos?|dom[eé]sticos?)$/i.test(item)) {
+      hasInternalFlights = true;
+      continue;
+    }
+    result.push(item);
+  }
+
+  return hasInternalFlights ? [...result, INTERNAL_FLIGHT_LABEL] : result;
+}
+
 function looksLikeImageUrl(value: string): boolean {
   const url = value.trim();
   if (!url) return false;
@@ -829,7 +848,7 @@ export function EditorialPackageDetailClient({
   const images = media.gallery;
   const highlights = useMemo(() => normalizeTextList(product.highlights), [product.highlights]);
   const recommendations = useMemo(() => normalizeTextList(product.recommendations), [product.recommendations]);
-  const inclusions = useMemo(() => normalizeTextList(product.inclusions), [product.inclusions]);
+  const inclusions = useMemo(() => normalizeInclusionList(product.inclusions), [product.inclusions]);
   const exclusions = useMemo(() => normalizeTextList(product.exclusions), [product.exclusions]);
   const programItems = useMemo(() => resolvePackageProgramItemsFromPayload(product), [product]);
   const timeline = useMemo(() => buildTimeline(product, programItems), [product, programItems]);
