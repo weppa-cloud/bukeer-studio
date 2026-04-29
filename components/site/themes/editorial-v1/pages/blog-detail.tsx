@@ -35,6 +35,7 @@ import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 import { formatPublicDate } from '@/lib/site/public-ui-messages';
 import { getBasePath } from '@/lib/utils/base-path';
 import { MexicoTravelFunnelBlock } from '@/components/site/growth/mexico-travel-funnel-block';
+import { buildPublicLocalizedPath, normalizeLocale } from '@/lib/seo/locale-routing';
 
 export interface EditorialBlogDetailPageProps {
   website: WebsiteData;
@@ -67,8 +68,17 @@ function resolveWhatsAppHref(website: WebsiteData): string {
   return digits ? `https://wa.me/${digits}` : '#cta';
 }
 
-function shareHrefs(post: BlogPost, baseUrl: string) {
-  const url = `${baseUrl}/blog/${post.slug}`;
+function shareHrefs(
+  post: BlogPost,
+  baseUrl: string,
+  resolvedLocale: string,
+  defaultLocale: string,
+) {
+  const url = `${baseUrl}${buildPublicLocalizedPath(
+    `/blog/${post.slug}`,
+    resolvedLocale,
+    defaultLocale,
+  )}`;
   const text = post.title;
   return {
     whatsapp: `https://wa.me/?text=${encodeURIComponent(`${text} - ${url}`)}`,
@@ -118,6 +128,7 @@ export function EditorialBlogDetailPage({
     || website.default_locale
     || website.content?.locale
     || 'es-CO';
+  const defaultLocale = normalizeLocale(website.default_locale || website.content?.locale || 'es-CO');
   const editorialText = getPublicUiExtraTextGetter(resolvedLocale);
   const isEnglish = resolvedLocale.toLowerCase().startsWith('en');
   const SHARE_LABEL = editorialText('editorialBlogShare');
@@ -151,7 +162,7 @@ export function EditorialBlogDetailPage({
   ]
     .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
     .slice(0, 6);
-  const shares = shareHrefs(post, publicBaseUrl);
+  const shares = shareHrefs(post, publicBaseUrl, resolvedLocale, defaultLocale);
   const waHref = resolveWhatsAppHref(website);
 
   return (

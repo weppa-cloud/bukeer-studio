@@ -11,6 +11,11 @@
 
 import type { WebsiteData, BlogPost } from '../supabase/get-website';
 import type { ProductData } from '@bukeer/website-contract';
+import {
+  buildPublicLocalizedPath,
+  normalizeBlogLocale,
+  normalizeLocale,
+} from '@/lib/seo/locale-routing';
 
 interface Destination {
   name: string;
@@ -26,6 +31,28 @@ interface LlmsTxtOptions {
 function getPostViewCount(post: BlogPost): number {
   const postWithViews = post as BlogPost & { view_count?: unknown };
   return typeof postWithViews.view_count === 'number' ? postWithViews.view_count : 0;
+}
+
+function getWebsiteDefaultLocale(website: WebsiteData): string {
+  const websiteWithDefaultLocale = website as WebsiteData & {
+    defaultLocale?: string | null;
+  };
+
+  return normalizeLocale(
+    websiteWithDefaultLocale.default_locale ??
+      websiteWithDefaultLocale.defaultLocale ??
+      website.content?.locale ??
+      'es-CO',
+  );
+}
+
+function buildPostUrl(baseUrl: string, website: WebsiteData, post: BlogPost): string {
+  const locale = normalizeBlogLocale(post.locale) ?? getWebsiteDefaultLocale(website);
+  return `${baseUrl}${buildPublicLocalizedPath(
+    `/blog/${post.slug}`,
+    locale,
+    getWebsiteDefaultLocale(website),
+  )}`;
 }
 
 export function generateLlmsTxt(
@@ -125,7 +152,7 @@ export function generateLlmsTxt(
   if (publishedPosts.length > 0) {
     for (const post of publishedPosts) {
       const excerpt = post.excerpt ? `: ${post.excerpt.slice(0, 120)}` : '';
-      lines.push(`- [${post.title}](${baseUrl}/blog/${post.slug})${excerpt}`);
+      lines.push(`- [${post.title}](${buildPostUrl(baseUrl, website, post)})${excerpt}`);
     }
   } else {
     lines.push(`- [Travel Guides Index](${baseUrl}/blog)`);

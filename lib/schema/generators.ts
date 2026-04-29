@@ -18,7 +18,12 @@ import type {
   ImageObject,
 } from './types';
 import type { WebsiteData, BlogPost, WebsiteSection } from '../supabase/get-website';
-import { localeToLanguage, normalizeBlogLocale, normalizeLocale } from '@/lib/seo/locale-routing';
+import {
+  buildPublicLocalizedPath,
+  localeToLanguage,
+  normalizeBlogLocale,
+  normalizeLocale,
+} from '@/lib/seo/locale-routing';
 
 const VALID_LOCALE_PATTERN = /^[a-z]{2}(-[A-Z]{2})?$/;
 
@@ -64,6 +69,29 @@ function resolveSchemaLanguage(
   }
 
   return normalizeLocale('es-CO');
+}
+
+function resolveSchemaDefaultLocale(website: WebsiteData): string {
+  const websiteWithLocale = website as unknown as Record<string, unknown>;
+  const defaultLocale =
+    websiteWithLocale.default_locale ??
+    websiteWithLocale.defaultLocale ??
+    websiteWithLocale.locale ??
+    'es-CO';
+
+  return normalizeLocale(typeof defaultLocale === 'string' ? defaultLocale : 'es-CO');
+}
+
+function buildSchemaBlogPath(
+  post: BlogPost,
+  website: WebsiteData,
+  requestLocale?: string | null,
+): string {
+  return buildPublicLocalizedPath(
+    `/blog/${post.slug}`,
+    resolveSchemaLanguage(post, website, requestLocale),
+    resolveSchemaDefaultLocale(website),
+  );
 }
 
 function resolveSchemaUiLanguage(localeLike: string | null | undefined): 'es' | 'en' {
@@ -294,7 +322,7 @@ export function generateArticleSchema(
   baseUrl: string,
   requestLocale?: string | null,
 ): BlogPosting {
-  const articleUrl = `${baseUrl}/blog/${post.slug}`;
+  const articleUrl = `${baseUrl}${buildSchemaBlogPath(post, website, requestLocale)}`;
 
   // seo_keywords is TEXT[] in DB — use directly, no split needed
   const keywords = post.seo_keywords && post.seo_keywords.length > 0
@@ -434,12 +462,13 @@ export function generateCollectionPageSchema(
   baseUrl: string,
   resolvedLocale?: string | null,
 ): CollectionPage {
-  const blogUrl = `${baseUrl}/blog`;
+  const defaultLocale = resolveSchemaDefaultLocale(website);
+  const blogUrl = `${baseUrl}${buildPublicLocalizedPath('/blog', resolvedLocale ?? defaultLocale, defaultLocale)}`;
 
   const itemListElement: ListItem[] = posts.slice(0, 10).map((post, index) => ({
     '@type': 'ListItem',
     position: index + 1,
-    url: `${baseUrl}/blog/${post.slug}`,
+    url: `${baseUrl}${buildSchemaBlogPath(post, website, resolvedLocale)}`,
     name: post.title,
   }));
 
@@ -534,9 +563,13 @@ export function generateBlogPostSchemas(
   }
 
   // 3. Breadcrumb schema
+  const defaultLocale = resolveSchemaDefaultLocale(website);
   schemas.push(generateBreadcrumbSchema([
     { name: schemaLabel('home', resolvedLocale), url: baseUrl },
-    { name: schemaLabel('blog', resolvedLocale), url: `${baseUrl}/blog` },
+    {
+      name: schemaLabel('blog', resolvedLocale),
+      url: `${baseUrl}${buildPublicLocalizedPath('/blog', resolvedLocale ?? defaultLocale, defaultLocale)}`,
+    },
     { name: post.title },
   ]));
 
