@@ -719,7 +719,16 @@ export async function middleware(request: NextRequest) {
 
   // === BLOG SEO PIPELINE — AI crawler headers ===
   const userAgent = request.headers.get('user-agent') || '';
-  const AI_CRAWLERS = ['GPTBot', 'ChatGPT-User', 'OAI-SearchBot', 'ClaudeBot', 'anthropic-ai', 'PerplexityBot'];
+  const AI_CRAWLERS = [
+    'OAI-SearchBot',
+    'ChatGPT-User',
+    'GPTBot',
+    'Claude-SearchBot',
+    'Claude-User',
+    'ClaudeBot',
+    'anthropic-ai',
+    'PerplexityBot',
+  ];
   if (AI_CRAWLERS.some(bot => userAgent.includes(bot))) {
     const response = NextResponse.next();
     response.headers.set('X-Robots-Tag', 'index, follow');

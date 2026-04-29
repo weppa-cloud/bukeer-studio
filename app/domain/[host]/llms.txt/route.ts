@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getBlogPosts } from '@/lib/supabase/get-website';
+import { getCategoryProducts, getDestinations } from '@/lib/supabase/get-pages';
 import { generateLlmsTxt } from '@/lib/seo/llms-txt';
 import type { WebsiteData } from '@/lib/supabase/get-website';
 
@@ -35,10 +36,20 @@ export async function GET(
     return new NextResponse('Not found', { status: 404 });
   }
 
-  const { posts } = await getBlogPosts(website.id, { limit: 20 });
+  const subdomain = typeof website.subdomain === 'string' ? website.subdomain : '';
+  const [{ posts }, destinations, packages, activities] = await Promise.all([
+    getBlogPosts(website.id, { limit: 20 }),
+    subdomain ? getDestinations(subdomain) : Promise.resolve([]),
+    subdomain ? getCategoryProducts(subdomain, 'packages', { limit: 12, offset: 0 }) : Promise.resolve({ items: [], total: 0 }),
+    subdomain ? getCategoryProducts(subdomain, 'activities', { limit: 12, offset: 0 }) : Promise.resolve({ items: [], total: 0 }),
+  ]);
   const baseUrl = `https://${host}`;
 
-  const llmsTxt = generateLlmsTxt(website as WebsiteData, posts, baseUrl);
+  const llmsTxt = generateLlmsTxt(website as WebsiteData, posts, baseUrl, {
+    destinations,
+    packages: packages.items,
+    activities: activities.items,
+  });
 
   return new NextResponse(llmsTxt, {
     headers: {
