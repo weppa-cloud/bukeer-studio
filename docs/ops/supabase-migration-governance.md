@@ -1,7 +1,7 @@
 # Supabase Migration Governance
 
 Status: accepted for Growth OS #310 operations.
-Last updated: 2026-04-28.
+Last updated: 2026-04-29.
 
 ## Decision
 
@@ -113,8 +113,9 @@ providing the contracts, API implementation and verification evidence.
 | Growth inventory and caches | `20260504111100_growth_cache_tables.sql` | Creates GSC/GA4/DataForSEO caches, `growth_inventory`, and `growth_cache_purge_expired()`. |
 | Public rate-limit contract repair | `20260504111200_public_rate_limits_request_count_contract.sql` | Adds missing `request_count` when `public_rate_limits` pre-existed; fixes WAFlow/newsletter rate-limit fail-open observed during #322 smoke. |
 | AI Search / GEO visibility facts | `20260429192000_geo_ai_visibility_facts.sql` | Adds `seo_ai_visibility_runs`, `seo_ai_visibility_facts`, and `growth_inventory.channel = 'ai_search'`; raw DataForSEO AI payloads stay in `growth_dataforseo_cache`. |
+| Translation quality gate | `20260429203000_translation_quality_gate.sql` | Adds `seo_translation_quality_checks`; summaries feed `growth_inventory.content_status`, detailed issues stay in `seo_translation_qa_findings`. |
 
-### Current Cross-Repo Audit — 2026-04-28
+### Current Cross-Repo Audit — 2026-04-29
 
 Checked from Studio `dev` against local
 `/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer_flutter`.
@@ -128,9 +129,11 @@ Checked from Studio `dev` against local
 | `20260504111000_funnel_events_backfill.sql` | Present, identical | Studio was aligned to Flutter's `extensions.digest(...)` form. |
 | `20260504111100_growth_cache_tables.sql` | Present, identical | Can be included in Flutter migration PR after `seo_provider_usage` is confirmed. |
 | `20260504111200_public_rate_limits_request_count_contract.sql` | Pending mirror | Mirror to Flutter before applying; smoke found `public_rate_limits.request_count` missing and API rate-limit failing open. |
+| `20260429203000_translation_quality_gate.sql` | Mirrored locally, identical; applied in Supabase as `20260429183445 translation_quality_gate` | Ready for scoring/normalizer implementation. |
 
-Do not apply the #310 migration set until the mirrored Flutter files are
-committed/reviewed in `bukeer-flutter`.
+Do not apply future #310 shared migrations until the mirrored Flutter files are
+committed/reviewed in `bukeer-flutter`, unless the relevant issue records an
+explicit exception and the migration is already mirrored byte-for-byte.
 
 ## pg_cron Cache Purge
 
@@ -170,7 +173,8 @@ select
   to_regclass('public.growth_gsc_cache') as growth_gsc_cache,
   to_regclass('public.growth_ga4_cache') as growth_ga4_cache,
   to_regclass('public.growth_dataforseo_cache') as growth_dataforseo_cache,
-  to_regclass('public.seo_provider_usage') as seo_provider_usage;
+  to_regclass('public.seo_provider_usage') as seo_provider_usage,
+  to_regclass('public.seo_translation_quality_checks') as seo_translation_quality_checks;
 ```
 
 Counts:
@@ -185,6 +189,8 @@ union all
 select 'growth_gsc_cache', count(*) from public.growth_gsc_cache
 union all
 select 'growth_ga4_cache', count(*) from public.growth_ga4_cache
+union all
+select 'seo_translation_quality_checks', count(*) from public.seo_translation_quality_checks
 union all
 select 'growth_dataforseo_cache', count(*) from public.growth_dataforseo_cache
 union all
@@ -203,7 +209,8 @@ where relname in (
   'growth_gsc_cache',
   'growth_ga4_cache',
   'growth_dataforseo_cache',
-  'seo_provider_usage'
+  'seo_provider_usage',
+  'seo_translation_quality_checks'
 )
 order by relname;
 ```

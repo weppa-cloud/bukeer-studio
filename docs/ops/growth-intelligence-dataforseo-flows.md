@@ -17,6 +17,17 @@ The operating rule is:
 Raw provider payloads stay provider-specific for traceability. The executive
 matrix stores only comparable metrics, statuses and next actions.
 
+The broader Growth OS flow is:
+
+```text
+DataForSEO / GSC / GA4 / tracking / translation quality
+  -> growth_*_cache / seo_audit_* / funnel_events / seo_translation_quality_checks
+  -> normalizers
+  -> growth_inventory
+  -> Growth Council #321
+  -> experiments, fixes, content, CRO, authority
+```
+
 ## Storage Model
 
 | Layer | Tables | Purpose |
@@ -24,6 +35,7 @@ matrix stores only comparable metrics, statuses and next actions.
 | Raw/cache | `growth_dataforseo_cache`, `growth_gsc_cache`, `growth_ga4_cache` | Preserve provider responses, task ids, endpoint payloads and cache TTL. |
 | Usage | `seo_provider_usage` | Track provider, endpoint, cost, task id, website/account scope and run metadata. |
 | SEO facts | `seo_audit_results`, `seo_audit_findings` | Normalize per-URL crawl results and per-finding evidence from DataForSEO OnPage. |
+| Translation quality facts | `seo_translation_quality_checks`, `seo_translation_qa_findings` | Normalize localized content quality summaries and detailed issues before EN-US/MX scale. |
 | Conversion facts | `funnel_events`, `meta_conversion_events` | Normalize user and server-side conversion events. |
 | Executive matrix | `growth_inventory` | Join signals by URL, cluster, market or experiment for prioritization and Council decisions. |
 
@@ -146,6 +158,22 @@ technical OnPage findings. See
 For now, `itinerary_confirmed` is the operational conversion event. Wompi
 Purchase remains outside this flow until explicitly implemented.
 
+## Flow 8: Translation Quality Gate
+
+1. Start from `seo_transcreation_jobs` for target locales such as `en-US` and
+   `es-MX`.
+2. Score fluency, accuracy, brand glossary compliance, SEO preservation and
+   locale adaptation.
+3. Store one comparable summary in `seo_translation_quality_checks`.
+4. Store detailed issues in `seo_translation_qa_findings`.
+5. Allow apply/publish only when the job has required human review and the
+   quality status is not `blocked`, unless Council records an exception.
+6. Promote only blocked/watch/pass-with-action rows to `growth_inventory`.
+7. Use the result to govern #314-#320 content scale and #321 Council approval.
+
+Full contract:
+[Growth Translation Quality Gate](./growth-translation-quality-gate.md).
+
 ## Comparison Rules
 
 Each normalized run must carry a stable run id:
@@ -178,6 +206,7 @@ Every Growth Council must include a short data intake section:
 | Authority | Backlinks/referring domains/new-lost summary when monthly. |
 | Local | Listings/reviews/categories when local SEO is in scope. |
 | AI/GEO | LLM mentions, cited pages, source domains, AI keyword data and prompt facts when entity/E-E-A-T is in scope. |
+| Translation quality | Target-locale quality coverage, blocked/watch counts, glossary risks and URLs ready for scale. |
 | Conversion | GA4 + `funnel_events` + `itinerary_confirmed` summary. |
 
 An experiment without a source row or baseline is rejected unless the Council

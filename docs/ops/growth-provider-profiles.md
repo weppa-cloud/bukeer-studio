@@ -23,6 +23,7 @@ window or task id, raw/cache target, normalized target, and Council use.
 | Search Console             | `growth_gsc_cache`         | future GSC URL/query facts or summarized inventory fields     | demand, market, device, CTR, position               |
 | GA4                        | `growth_ga4_cache`         | future GA4 landing/event facts or summarized inventory fields | acquisition quality, engagement, events, conversion |
 | Tracking                   | n/a or event provider logs | `funnel_events`, `meta_conversion_events`                     | activation/conversion status                        |
+| Translation quality        | n/a                        | `seo_translation_quality_checks`, `seo_translation_qa_findings` | `growth_inventory` content/localization rows        |
 
 `growth_inventory` must not store provider raw JSON. It stores only
 decision-grade summaries with source, window, fallback and owner issue.
@@ -204,6 +205,7 @@ Promote only rows that can drive a decision:
 | Landing sessions + low activation        | CRO or offer-messaging row                             |
 | Event/page drop-off                      | tracking/CRO row                                       |
 | Campaign traffic without conversion path | paid governance/watch row                              |
+| Translation quality blocked/watch        | content/localization remediation row by locale/market  |
 
 Every promoted row needs:
 
@@ -230,6 +232,7 @@ Every promoted row needs:
 | `gsc_growth_minimum_v1`         | weekly before Growth Council                                | #321           |
 | `ga4_growth_minimum_v1`         | weekly before Growth Council                                | #321           |
 | `geo_ai_visibility_v1`          | monthly baseline; weekly only for active AI/GEO experiments | #321/#334/#335 |
+| translation quality gate        | before localized content scale or Council approval          | #314/#315/#321 |
 | tracking facts                  | continuous/smoke weekly                                     | #322/#330      |
 
 Automation and approval rules are defined in
@@ -248,6 +251,7 @@ persisted, normalized and diffed automatically.
 - GA4 Data API overview: https://developers.google.com/analytics/devguides/reporting/data/v1
 - GA4 API dimensions and metrics: https://developers.google.com/analytics/devguides/reporting/data/v1/api-schema
 - Growth AI Search / GEO profile: ./growth-ai-search-geo-profile.md
+- Growth Translation Quality Gate: ./growth-translation-quality-gate.md
 - DataForSEO AI Optimization API: https://dataforseo.com/apis/ai-optimization-api
 - DataForSEO LLM Mentions API: https://docs.dataforseo.com/v3/ai_optimization/llm_mentions/overview/
 - DataForSEO AI Keyword Data API: https://docs.dataforseo.com/v3/ai_optimization/ai_keyword_data/overview/
