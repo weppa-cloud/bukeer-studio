@@ -101,14 +101,19 @@ async function persist(endpoint, cacheKey, payload, cost, metadata) {
     .maybeSingle();
   if (readError) throw new Error(`seo_provider_usage read failed: ${readError.message}`);
 
+  const accountedCacheKeys = Array.isArray(existing?.metadata?.accounted_cache_keys)
+    ? existing.metadata.accounted_cache_keys
+    : [];
+  const alreadyAccounted = accountedCacheKeys.includes(cacheKey);
+
   const { error: usageError } = await sb.from('seo_provider_usage').upsert(
     {
       website_id: websiteId,
       provider: 'dataforseo',
       endpoint,
       billing_month: billingMonth,
-      request_count: Number(existing?.request_count ?? 0) + 1,
-      total_cost_usd: Number(existing?.total_cost_usd ?? 0) + Number(cost ?? 0),
+      request_count: Number(existing?.request_count ?? 0) + (alreadyAccounted ? 0 : 1),
+      total_cost_usd: Number(existing?.total_cost_usd ?? 0) + (alreadyAccounted ? 0 : Number(cost ?? 0)),
       metadata: {
         ...(existing?.metadata ?? {}),
         epic: 310,
@@ -117,6 +122,7 @@ async function persist(endpoint, cacheKey, payload, cost, metadata) {
         tag,
         last_cache_key: cacheKey,
         last_artifact_dir: artifactDir,
+        accounted_cache_keys: alreadyAccounted ? accountedCacheKeys : [...accountedCacheKeys, cacheKey].slice(-200),
         ...metadata,
       },
       first_called_at: existing?.first_called_at ?? now,

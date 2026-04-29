@@ -299,13 +299,21 @@ async function persistDataForSeoPayload(endpoint, cacheKey, payload, taskId, tag
     last_artifact_dir: outDir,
     ...extraMetadata,
   };
+  const accountedCacheKeys = Array.isArray(existing?.metadata?.accounted_cache_keys)
+    ? existing.metadata.accounted_cache_keys
+    : [];
+  const alreadyAccounted = accountedCacheKeys.includes(cacheKey);
+  metadata.accounted_cache_keys = alreadyAccounted
+    ? accountedCacheKeys
+    : [...accountedCacheKeys, cacheKey].slice(-200);
+
   const usageRow = {
     website_id: websiteId,
     provider: 'dataforseo',
     endpoint,
     billing_month: billingMonth,
-    request_count: Number(existing?.request_count ?? 0) + 1,
-    total_cost_usd: Number(existing?.total_cost_usd ?? 0) + Number(cost ?? 0),
+    request_count: Number(existing?.request_count ?? 0) + (alreadyAccounted ? 0 : 1),
+    total_cost_usd: Number(existing?.total_cost_usd ?? 0) + (alreadyAccounted ? 0 : Number(cost ?? 0)),
     metadata,
     first_called_at: existing ? undefined : now,
     last_called_at: now,
