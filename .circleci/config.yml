@@ -1,5 +1,10 @@
 version: 2.1
 
+parameters:
+  force_deploy:
+    type: boolean
+    default: false
+
 executors:
   node:
     docker:
@@ -8,29 +13,101 @@ executors:
     working_directory: ~/project
 
 commands:
-  halt_when_github_deploy_is_primary:
+  wait_for_github_deploy_or_takeover:
     steps:
       - run:
-          name: Check deploy provider failover flag
+          name: Wait for GitHub deploy or take over
           command: |
             set -euo pipefail
             PROVIDER="${CI_DEPLOY_PROVIDER:-circleci}"
+            FORCE_DEPLOY="<< pipeline.parameters.force_deploy >>"
             echo "CI_DEPLOY_PROVIDER=$PROVIDER"
-            if [ "$PROVIDER" = "github" ]; then
-              echo "GitHub is the active deployment provider. Halting CircleCI deploy job."
-              circleci-agent step halt
+
+            if [ "$FORCE_DEPLOY" = "true" ]; then
+              echo "Forced CircleCI fallback deploy requested."
+              exit 0
             fi
 
-  halt_when_github_ci_is_primary:
+            if [ "$PROVIDER" != "github" ]; then
+              echo "CircleCI is allowed to deploy for provider=$PROVIDER."
+              exit 0
+            fi
+
+            REPO="${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}"
+            SHA="${CIRCLE_SHA1}"
+            WAIT_SECONDS="${GITHUB_DEPLOY_WAIT_SECONDS:-900}"
+            POLL_SECONDS="${GITHUB_DEPLOY_POLL_SECONDS:-30}"
+            API_URL="https://api.github.com/repos/${REPO}/commits/${SHA}/check-runs"
+            AUTH_ARGS=()
+
+            if [ -n "${GITHUB_TOKEN:-}" ]; then
+              AUTH_ARGS=(-H "Authorization: Bearer ${GITHUB_TOKEN}")
+            fi
+
+            echo "GitHub is primary. Watching deploy-production for ${SHA} before CircleCI fallback."
+
+            elapsed=0
+            while [ "$elapsed" -le "$WAIT_SECONDS" ]; do
+              CHECKS_JSON="$(curl -fsS \
+                -H "Accept: application/vnd.github+json" \
+                "${AUTH_ARGS[@]}" \
+                "$API_URL")"
+
+              RESULT="$(printf '%s' "$CHECKS_JSON" | node -e '
+                const fs = require("fs");
+                const payload = JSON.parse(fs.readFileSync(0, "utf8"));
+                const runs = (payload.check_runs || [])
+                  .filter((run) => run.name === "deploy-production")
+                  .sort((a, b) => new Date(b.started_at || b.created_at || 0) - new Date(a.started_at || a.created_at || 0));
+                const run = runs[0];
+                if (!run) {
+                  console.log("missing::");
+                } else {
+                  console.log(`${run.status}:${run.conclusion || ""}:${run.html_url || ""}`);
+                }
+              ')"
+
+              STATUS="${RESULT%%:*}"
+              REST="${RESULT#*:}"
+              CONCLUSION="${REST%%:*}"
+              URL="${REST#*:}"
+
+              echo "GitHub deploy-production status=${STATUS} conclusion=${CONCLUSION:-none}"
+
+              if [ "$STATUS" = "completed" ] && [ "$CONCLUSION" = "success" ]; then
+                echo "GitHub already deployed this commit. Halting CircleCI deploy to avoid duplicate production deploy."
+                circleci-agent step halt
+              fi
+
+              if [ "$STATUS" = "completed" ] && [ "$CONCLUSION" != "success" ]; then
+                echo "GitHub deploy did not succeed (${CONCLUSION:-unknown}). CircleCI will take over. ${URL}"
+                exit 0
+              fi
+
+              sleep "$POLL_SECONDS"
+              elapsed=$((elapsed + POLL_SECONDS))
+            done
+
+            echo "GitHub deploy did not complete within ${WAIT_SECONDS}s. CircleCI will take over."
+            exit 0
+
+  halt_non_main_when_github_ci_is_primary:
     steps:
       - run:
           name: Check CI provider failover flag
           command: |
             set -euo pipefail
             PROVIDER="${CI_QUALITY_PROVIDER:-circleci}"
+            FORCE_DEPLOY="<< pipeline.parameters.force_deploy >>"
             echo "CI_QUALITY_PROVIDER=$PROVIDER"
-            if [ "$PROVIDER" = "github" ]; then
-              echo "GitHub is the active quality-gate provider. Halting CircleCI job."
+
+            if [ "$FORCE_DEPLOY" = "true" ]; then
+              echo "Forced CircleCI fallback run requested."
+              exit 0
+            fi
+
+            if [ "$PROVIDER" = "github" ] && [ "${CIRCLE_BRANCH:-}" != "main" ]; then
+              echo "GitHub is the active quality provider for non-main branches. Halting CircleCI quality job."
               circleci-agent step halt
             fi
 
@@ -80,7 +157,7 @@ jobs:
     executor: node
     steps:
       - checkout
-      - halt_when_github_ci_is_primary
+      - halt_non_main_when_github_ci_is_primary
       - restore_node_cache
       - install_and_build_packages
       - save_node_cache
@@ -122,7 +199,7 @@ jobs:
     executor: node
     steps:
       - checkout
-      - halt_when_github_ci_is_primary
+      - halt_non_main_when_github_ci_is_primary
       - restore_node_cache
       - install_and_build_packages
       - save_node_cache
@@ -147,7 +224,7 @@ jobs:
     executor: node
     steps:
       - checkout
-      - halt_when_github_deploy_is_primary
+      - wait_for_github_deploy_or_takeover
       - restore_node_cache
       - install_and_build_packages
       - save_node_cache

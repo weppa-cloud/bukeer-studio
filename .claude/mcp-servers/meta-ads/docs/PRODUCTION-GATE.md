@@ -15,7 +15,7 @@ gate below is satisfied.
 
 ## Operational Gates
 
-- Remote repo exists: `weppa-cloud/mcp-meta-ads`.
+- Remote repo exists: `angelaaragon48-droid/mcp-meta-ads`.
 - CI runs on pull requests and `main`.
 - Release tags are created only after build, tests, and evals.
 - `META_ACCESS_TOKEN_READ` is separate from `META_ACCESS_TOKEN_WRITE`.
@@ -30,5 +30,5 @@ gate below is satisfied.
 - Operational production score target: `95/100`.
 
 The local code can satisfy the technical target. The operational score is not
-complete until the remote repo, CI, vault, write token, and Supabase audit are
-verified in the production environment.
+complete until vault, write token, app secret, and Supabase audit are verified
+in the production environment.

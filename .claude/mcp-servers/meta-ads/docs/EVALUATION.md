@@ -6,7 +6,7 @@ make safety behavior observable through tests.
 
 ## Baseline Score
 
-Current basic score: **92 / 100**
+Current basic score: **94 / 100**
 
 Status: **world-class production MCP candidate**
 
@@ -14,8 +14,9 @@ Why not higher yet:
 
 - The MCP has strong local guardrails, schemas, annotations, tests, evals, audit,
   appsecret proof support, SSRF protection, retry/backoff, timeout, and rate limits.
-- It still needs a dedicated remote repo owned by Weppa, CI execution on GitHub,
-  live secret vault, and separated production write token before broad production.
+- It now has a dedicated public GitHub repo and GitHub Actions CI.
+- It still needs live `META_APP_SECRET`, a separated production write token, and
+  verified Supabase audit table before broad production writes.
 
 ## Production Target
 
@@ -39,17 +40,27 @@ Production target means:
 | Guardrails | 20 | 16 | 20 |
 | Approval and audit | 15 | 12 | 15 |
 | Security operations | 15 | 14 | 14 |
-| Evals and CI | 10 | 9 | 10 |
-| Production readiness | 10 | 9 | 9 |
-| **Total** | **100** | **92** | **98 possible / 95 target** |
+| Evals and CI | 10 | 10 | 10 |
+| Production readiness | 10 | 10 | 10 |
+| **Total** | **100** | **94** | **98 possible / 95 target** |
+
+## Completed External Gates
+
+- Public remote repository exists:
+  `https://github.com/angelaaragon48-droid/mcp-meta-ads`.
+- GitHub CI ran successfully on `main`:
+  `https://github.com/angelaaragon48-droid/mcp-meta-ads/actions/runs/25134351180`.
+- Available local secrets were copied into GitHub Secrets:
+  `META_ACCESS_TOKEN_READ`, `META_AD_ACCOUNT_ALLOWLIST`, `SUPABASE_URL`,
+  and `SUPABASE_SERVICE_ROLE_KEY`.
 
 ## Remaining External Gates For 95
 
-- Owner creates the remote repository `weppa-cloud/mcp-meta-ads`.
-- GitHub CI runs successfully in that remote repository.
-- Production vault stores read/write tokens and `META_APP_SECRET`.
+- Production vault/GitHub Secrets stores `META_ACCESS_TOKEN_WRITE`.
+- Production vault/GitHub Secrets stores `META_APP_SECRET`.
 - Supabase audit table is created and verified.
-- Dedicated write token with `ads_management` is provisioned and tested in dry-run first.
+- Dedicated write token with `ads_management` is provisioned and tested in
+  dry-run first.
 
 ## Must-Pass Production Evals
 

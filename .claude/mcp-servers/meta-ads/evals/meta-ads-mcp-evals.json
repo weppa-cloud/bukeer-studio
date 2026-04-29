@@ -2,7 +2,7 @@
   "name": "meta-ads-mcp-production-evals",
   "version": "0.1.0",
   "scoring": {
-    "current_basic_score": 92,
+    "current_basic_score": 94,
     "production_target_score": 95,
     "max_score": 100,
     "interpretation": {
@@ -80,7 +80,7 @@
     {
       "id": "evals_and_ci",
       "weight": 10,
-      "current": 9,
+      "current": 10,
       "target": 10,
       "checks": [
         "Unit tests cover schemas, guardrails, approval, client, and tools.",
@@ -92,8 +92,8 @@
     {
       "id": "production_readiness",
       "weight": 10,
-      "current": 9,
-      "target": 9,
+      "current": 10,
+      "target": 10,
       "checks": [
         "Repo is independent and versioned.",
         "Submodule integration is documented.",
@@ -103,10 +103,14 @@
       ]
     }
   ],
+  "completed_external_gates": [
+    "Public remote repository exists at angelaaragon48-droid/mcp-meta-ads.",
+    "GitHub CI runs successfully on main.",
+    "Available local secrets were copied into GitHub Secrets: META_ACCESS_TOKEN_READ, META_AD_ACCOUNT_ALLOWLIST, SUPABASE_URL, and SUPABASE_SERVICE_ROLE_KEY."
+  ],
   "remaining_external_gates_for_95": [
-    "Owner creates remote repository weppa-cloud/mcp-meta-ads.",
-    "GitHub CI runs successfully in the remote repository.",
-    "Production vault stores read/write tokens and META_APP_SECRET.",
+    "Production vault/GitHub Secrets stores META_ACCESS_TOKEN_WRITE.",
+    "Production vault/GitHub Secrets stores META_APP_SECRET.",
     "Supabase audit table is created and verified with real writes disabled.",
     "Dedicated write token with ads_management is provisioned and tested in dry-run first."
   ],

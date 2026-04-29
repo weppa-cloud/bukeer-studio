@@ -66,7 +66,13 @@ bukeer-studio/
 └── .claude/mcp-servers/meta-ads  ->  weppa-cloud/mcp-meta-ads
 ```
 
-Once an owner creates `weppa-cloud/mcp-meta-ads`, move this implementation there and connect it with:
+The first public remote is:
+
+```txt
+https://github.com/angelaaragon48-droid/mcp-meta-ads
+```
+
+If this package later moves to `weppa-cloud/mcp-meta-ads`, connect it with:
 
 ```bash
 git submodule add https://github.com/weppa-cloud/mcp-meta-ads.git .claude/mcp-servers/meta-ads
