@@ -87,6 +87,8 @@ function classifyTriageCohorts(rootPatterns) {
     technical_watch: "A4 SEO",
   };
   const nextActionByPattern = {
+    redirect_cleanup:
+      "Remove legacy redirect URLs from sitemap/internal links; validate destination is final public 200 before keeping any reference.",
     status_or_soft_404:
       "Classify URLs as restore, 301, remove links/sitemap, 404/410, or watch; invalid EN stays hidden.",
     metadata_template_or_content:
@@ -153,11 +155,33 @@ function hasCheck(page, checkName) {
   return page?.checks?.[checkName] === true;
 }
 
+function isRedirectPage(page) {
+  const statusCode = Number(page?.status_code ?? 0);
+  return (
+    hasCheck(page, "is_redirect") ||
+    (statusCode >= 300 && statusCode < 400) ||
+    typeof page?.location === "string"
+  );
+}
+
+function isFinalHtmlPage(page) {
+  const statusCode = Number(page?.status_code ?? 0);
+  return (
+    page?.is_resource === false && statusCode === 200 && !isRedirectPage(page)
+  );
+}
+
 function classifyPageRootPatterns(page) {
   const patterns = [];
   const statusCode = Number(page.status_code ?? 0);
+  const isRedirect = isRedirectPage(page);
+  const isFinalHtml = isFinalHtmlPage(page);
+  if (isRedirect) {
+    patterns.push("redirect_cleanup");
+  }
   if (
     page.is_resource === false &&
+    !isRedirect &&
     (page.broken_links === true ||
       page.broken_resources === true ||
       hasCheck(page, "is_broken") ||
@@ -182,12 +206,13 @@ function classifyPageRootPatterns(page) {
     patterns.push("metadata_template_or_content");
   }
   if (
-    hasCheck(page, "canonical") === false ||
-    hasCheck(page, "canonical_to_redirect") ||
-    hasCheck(page, "canonical_to_broken") ||
-    hasCheck(page, "canonical_chain") ||
-    hasCheck(page, "recursive_canonical") ||
-    hasCheck(page, "is_link_relation_conflict")
+    isFinalHtml &&
+    (hasCheck(page, "canonical") === false ||
+      hasCheck(page, "canonical_to_redirect") ||
+      hasCheck(page, "canonical_to_broken") ||
+      hasCheck(page, "canonical_chain") ||
+      hasCheck(page, "recursive_canonical") ||
+      hasCheck(page, "is_link_relation_conflict"))
   ) {
     patterns.push("canonical");
   }
@@ -216,8 +241,10 @@ function classifyPageRootPatterns(page) {
 
 function recommendedTechnicalStatus(patterns, url) {
   const pathname = new URL(url).pathname;
+  if (patterns.includes("redirect_cleanup")) return "redirect_cleanup";
   if (patterns.includes("status_or_soft_404")) {
     if (pathname.startsWith("/en/blog/")) return "content_blocked";
+    if (patterns.includes("canonical")) return "canonical_fix";
     if (
       /\/blog\/[a-z0-9-]*(airlines|travel|best|family|tour|mexico|colombia)[a-z0-9-]*/.test(
         pathname,
@@ -248,6 +275,8 @@ function buildTechnicalUrlActions(pages) {
         issue: "#313",
         url: page.url,
         status_code: page.status_code ?? "",
+        is_redirect: isRedirectPage(page),
+        redirect_location: page.location ?? page.redirect_to ?? "",
         root_patterns: patterns.join("|"),
         recommended_status: recommendedTechnicalStatus(patterns, page.url),
         title: page.meta?.title ?? "",
@@ -266,6 +295,7 @@ function buildTechnicalUrlActions(pages) {
     .filter(Boolean)
     .sort((a, b) => {
       const score = (row) =>
+        (row.root_patterns.includes("redirect_cleanup") ? 90 : 0) +
         (row.root_patterns.includes("status_or_soft_404") ? 1000 : 0) +
         (row.root_patterns.includes("metadata_template_or_content") ? 100 : 0) +
         (row.root_patterns.includes("canonical") ? 80 : 0) +
@@ -315,6 +345,11 @@ function buildSprintPlan({ triage, enAudit, pages }) {
   const technicalCohorts = classifyTriageCohorts(triage.root_patterns ?? []);
   const enRows = enAudit.rows ?? [];
   const technicalUrlActions = buildTechnicalUrlActions(pages);
+  const technicalActionSummary = technicalUrlActions.reduce((summary, row) => {
+    summary[row.recommended_status] =
+      (summary[row.recommended_status] ?? 0) + 1;
+    return summary;
+  }, {});
   const enUrlActions = buildEnUrlActions(enRows);
   const enBacklog = [
     {
@@ -405,6 +440,12 @@ function buildSprintPlan({ triage, enAudit, pages }) {
       technical_blog_urls: enAudit.issue_owner_counts?.["#313"] ?? 0,
     },
     technical_cohorts: technicalCohorts,
+    technical_action_summary: Object.entries(technicalActionSummary)
+      .sort(([, a], [, b]) => b - a)
+      .map(([recommended_status, urls]) => ({
+        recommended_status,
+        urls,
+      })),
     technical_url_actions: technicalUrlActions,
     en_backlog: enBacklog,
     en_url_actions: enUrlActions,
@@ -443,6 +484,16 @@ function renderMarkdown(plan) {
       (row) =>
         `| ${row.severity} | ${row.root_pattern} | ${row.findings} | ${row.urls} | ${row.owner} | ${row.next_action} | ${row.sample_url} |`,
     ),
+    "",
+    "## #313 Technical URL Action Summary",
+    "",
+    "| Recommended status | URLs |",
+    "|---|---:|",
+    ...plan.technical_action_summary.map(
+      (row) => `| ${row.recommended_status} | ${row.urls} |`,
+    ),
+    "",
+    "Note: `redirect_cleanup` rows are legacy redirect URLs. They should be removed from sitemap/internal links or validated against their final destination; they are not canonical-template fixes.",
     "",
     "## #314/#315 EN Backlog",
     "",
@@ -518,6 +569,8 @@ function main() {
       "issue",
       "url",
       "status_code",
+      "is_redirect",
+      "redirect_location",
       "root_patterns",
       "recommended_status",
       "title",
