@@ -8,12 +8,15 @@ const TRIAGE_PATH =
   "artifacts/seo/2026-04-29-dataforseo-v2-triage/dataforseo-v2-triage.json";
 const EN_AUDIT_PATH =
   "artifacts/seo/2026-04-29-en-blog-findings-audit/en-blog-findings-audit.json";
+const PAGES_PATH =
+  "artifacts/seo/2026-04-29-dataforseo-onpage-full-v2/pages-all.json";
 const DEFAULT_OUT_DIR = "artifacts/seo/2026-04-29-epic310-remediation-sprint";
 
 function parseArgs(argv) {
   const args = {
     triage: TRIAGE_PATH,
     enAudit: EN_AUDIT_PATH,
+    pages: PAGES_PATH,
     outDir: DEFAULT_OUT_DIR,
   };
 
@@ -25,6 +28,9 @@ function parseArgs(argv) {
       i += 1;
     } else if (token === "--en-audit" && next) {
       args.enAudit = next;
+      i += 1;
+    } else if (token === "--pages" && next) {
+      args.pages = next;
       i += 1;
     } else if (token === "--out-dir" && next) {
       args.outDir = next;
@@ -143,9 +149,173 @@ function summarizeRows(rows, predicate) {
   };
 }
 
-function buildSprintPlan({ triage, enAudit }) {
+function hasCheck(page, checkName) {
+  return page?.checks?.[checkName] === true;
+}
+
+function classifyPageRootPatterns(page) {
+  const patterns = [];
+  const statusCode = Number(page.status_code ?? 0);
+  if (
+    page.is_resource === false &&
+    (page.broken_links === true ||
+      page.broken_resources === true ||
+      hasCheck(page, "is_broken") ||
+      hasCheck(page, "is_4xx_code") ||
+      hasCheck(page, "is_5xx_code") ||
+      statusCode === 0 ||
+      statusCode >= 400 ||
+      page.meta?.title === "Post not found" ||
+      page.meta?.title === "Post no encontrado")
+  ) {
+    patterns.push("status_or_soft_404");
+  }
+  if (
+    hasCheck(page, "no_title") ||
+    hasCheck(page, "no_description") ||
+    hasCheck(page, "no_h1_tag") ||
+    hasCheck(page, "title_too_long") ||
+    hasCheck(page, "title_too_short") ||
+    hasCheck(page, "duplicate_title") ||
+    hasCheck(page, "duplicate_description")
+  ) {
+    patterns.push("metadata_template_or_content");
+  }
+  if (
+    hasCheck(page, "canonical") === false ||
+    hasCheck(page, "canonical_to_redirect") ||
+    hasCheck(page, "canonical_to_broken") ||
+    hasCheck(page, "canonical_chain") ||
+    hasCheck(page, "recursive_canonical") ||
+    hasCheck(page, "is_link_relation_conflict")
+  ) {
+    patterns.push("canonical");
+  }
+  if (
+    hasCheck(page, "is_orphan_page") ||
+    hasCheck(page, "has_links_to_redirects")
+  ) {
+    patterns.push("internal_linking");
+  }
+  if (
+    page.broken_resources === true ||
+    hasCheck(page, "no_image_alt") ||
+    hasCheck(page, "no_image_title")
+  ) {
+    patterns.push("media_assets");
+  }
+  if (
+    hasCheck(page, "high_loading_time") ||
+    hasCheck(page, "high_waiting_time") ||
+    hasCheck(page, "has_render_blocking_resources")
+  ) {
+    patterns.push("performance");
+  }
+  return [...new Set(patterns)];
+}
+
+function recommendedTechnicalStatus(patterns, url) {
+  const pathname = new URL(url).pathname;
+  if (patterns.includes("status_or_soft_404")) {
+    if (pathname.startsWith("/en/blog/")) return "content_blocked";
+    if (
+      /\/blog\/[a-z0-9-]*(airlines|travel|best|family|tour|mexico|colombia)[a-z0-9-]*/.test(
+        pathname,
+      )
+    ) {
+      return "watch_manual_validation";
+    }
+    return "fixed_or_404_candidate";
+  }
+  if (patterns.includes("metadata_template_or_content"))
+    return "template_or_content_fix";
+  if (patterns.includes("canonical")) return "canonical_fix";
+  if (patterns.includes("internal_linking")) return "link_or_remove";
+  if (patterns.includes("media_assets")) return "repair_asset_or_fallback";
+  if (patterns.includes("performance")) return "performance_sample";
+  return "watch";
+}
+
+function buildTechnicalUrlActions(pages) {
+  return pages
+    .filter(
+      (page) => page?.is_resource === false && typeof page.url === "string",
+    )
+    .map((page) => {
+      const patterns = classifyPageRootPatterns(page);
+      if (patterns.length === 0) return null;
+      return {
+        issue: "#313",
+        url: page.url,
+        status_code: page.status_code ?? "",
+        root_patterns: patterns.join("|"),
+        recommended_status: recommendedTechnicalStatus(patterns, page.url),
+        title: page.meta?.title ?? "",
+        description_length: page.meta?.description_length ?? "",
+        canonical: page.meta?.canonical ?? "",
+        no_title: hasCheck(page, "no_title"),
+        no_description: hasCheck(page, "no_description"),
+        no_h1_tag: hasCheck(page, "no_h1_tag"),
+        canonical_missing: hasCheck(page, "canonical") === false,
+        canonical_to_redirect: hasCheck(page, "canonical_to_redirect"),
+        orphan: hasCheck(page, "is_orphan_page"),
+        broken_resources: page.broken_resources === true,
+        high_loading_time: hasCheck(page, "high_loading_time"),
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => {
+      const score = (row) =>
+        (row.root_patterns.includes("status_or_soft_404") ? 1000 : 0) +
+        (row.root_patterns.includes("metadata_template_or_content") ? 100 : 0) +
+        (row.root_patterns.includes("canonical") ? 80 : 0) +
+        (row.root_patterns.includes("internal_linking") ? 40 : 0) +
+        (row.root_patterns.includes("media_assets") ? 20 : 0) +
+        (row.root_patterns.includes("performance") ? 10 : 0);
+      return score(b) - score(a);
+    });
+}
+
+function mapEnFinalStatus(row) {
+  if (row.action === "translate_later_hide_now") return "translate_from_es";
+  if (row.action === "en_only_hide_now") {
+    if (row.wp_en) return "restore_from_wp_en";
+    return "do_not_publish";
+  }
+  if (row.action === "ready") return "review_quality";
+  if (row.action === "watch_manual_validation") return "watch";
+  return "remove_or_404";
+}
+
+function buildEnUrlActions(enRows) {
+  return enRows
+    .filter((row) => row.issue_owner === "#314/#315")
+    .map((row) => ({
+      issue: "#314/#315",
+      url: row.url,
+      slug: row.slug,
+      action: row.action,
+      final_status: mapEnFinalStatus(row),
+      operational_severity: row.operational_severity,
+      findings: row.findings,
+      priority_score: row.priority_score,
+      studio_locales: Array.isArray(row.studio_locales)
+        ? row.studio_locales.join("|")
+        : "",
+      has_wp_en: Boolean(row.wp_en),
+      has_wp_es: Boolean(row.wp_es),
+      next_action:
+        row.action === "ready"
+          ? "Run manual EN QA for title/meta/H1/canonical before exposing."
+          : "Keep hidden from sitemap/hreflang until final status is resolved.",
+    }));
+}
+
+function buildSprintPlan({ triage, enAudit, pages }) {
   const technicalCohorts = classifyTriageCohorts(triage.root_patterns ?? []);
   const enRows = enAudit.rows ?? [];
+  const technicalUrlActions = buildTechnicalUrlActions(pages);
+  const enUrlActions = buildEnUrlActions(enRows);
   const enBacklog = [
     {
       issue: "#314/#315",
@@ -235,7 +405,9 @@ function buildSprintPlan({ triage, enAudit }) {
       technical_blog_urls: enAudit.issue_owner_counts?.["#313"] ?? 0,
     },
     technical_cohorts: technicalCohorts,
+    technical_url_actions: technicalUrlActions,
     en_backlog: enBacklog,
+    en_url_actions: enUrlActions,
     milestones,
     recrawl_policy:
       "Do not launch DataForSEO recrawl until P0/P1 fixes are complete and cost is explicitly approved.",
@@ -260,6 +432,8 @@ function renderMarkdown(plan) {
     `| WATCH | ${plan.counts.watch} |`,
     `| #313 technical blog URLs | ${plan.counts.technical_blog_urls} |`,
     `| #314/#315 EN URLs | ${plan.counts.en_urls_total} |`,
+    `| #313 URL actions exported | ${plan.technical_url_actions.length} |`,
+    `| #314/#315 URL actions exported | ${plan.en_url_actions.length} |`,
     "",
     "## #313 Technical Cohorts",
     "",
@@ -300,7 +474,8 @@ function main() {
   const args = parseArgs(process.argv.slice(2));
   const triage = readJson(args.triage);
   const enAudit = readJson(args.enAudit);
-  const plan = buildSprintPlan({ triage, enAudit });
+  const pages = readJson(args.pages);
+  const plan = buildSprintPlan({ triage, enAudit, pages });
 
   ensureDir(args.outDir);
   fs.writeFileSync(
@@ -336,6 +511,42 @@ function main() {
     "watch",
     "next_action",
   ]);
+  writeCsv(
+    path.join(args.outDir, "technical-url-actions.csv"),
+    plan.technical_url_actions,
+    [
+      "issue",
+      "url",
+      "status_code",
+      "root_patterns",
+      "recommended_status",
+      "title",
+      "description_length",
+      "canonical",
+      "no_title",
+      "no_description",
+      "no_h1_tag",
+      "canonical_missing",
+      "canonical_to_redirect",
+      "orphan",
+      "broken_resources",
+      "high_loading_time",
+    ],
+  );
+  writeCsv(path.join(args.outDir, "en-url-actions.csv"), plan.en_url_actions, [
+    "issue",
+    "url",
+    "slug",
+    "action",
+    "final_status",
+    "operational_severity",
+    "findings",
+    "priority_score",
+    "studio_locales",
+    "has_wp_en",
+    "has_wp_es",
+    "next_action",
+  ]);
 
   console.log(
     JSON.stringify(
@@ -344,6 +555,8 @@ function main() {
         counts: plan.counts,
         technical_cohorts: plan.technical_cohorts.length,
         en_backlog: plan.en_backlog.length,
+        technical_url_actions: plan.technical_url_actions.length,
+        en_url_actions: plan.en_url_actions.length,
       },
       null,
       2,

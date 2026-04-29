@@ -384,6 +384,10 @@ async function publishedBlogPostExistsForLocale(
     const data = await supabaseFetch<Array<{ id: string }>>(
       `/rest/v1/website_blog_posts?select=id&website_id=eq.${encodeURIComponent(websiteId)}&slug=eq.${encodeURIComponent(slug)}&locale=eq.${encodeURIComponent(candidate)}&status=eq.published&deleted_at=is.null&limit=1`,
     );
+    if (data === null) {
+      setCached(cacheKey, true);
+      return true;
+    }
     if (data && data.length > 0) {
       setCached(cacheKey, true);
       return true;
@@ -394,14 +398,11 @@ async function publishedBlogPostExistsForLocale(
   return false;
 }
 
-async function tryMissingLocalizedBlogNotFound(
+async function tryMissingBlogNotFound(
   website: WebsiteLookup | null,
   localeResolution: PublicLocalePathResolution,
 ): Promise<NextResponse | null> {
   if (!website?.id) return null;
-  if (!localeResolution.hasLanguageSegment) return null;
-  if (localeResolution.resolvedLocale === localeResolution.defaultLocale)
-    return null;
 
   const match = localeResolution.pathnameWithoutLang.match(/^\/blog\/([^/]+)$/);
   if (!match?.[1]) return null;
@@ -889,10 +890,12 @@ export async function middleware(request: NextRequest) {
         return legacyRedirectResponse;
       }
 
-      const missingLocalizedBlogResponse =
-        await tryMissingLocalizedBlogNotFound(website, localeResolution);
-      if (missingLocalizedBlogResponse) {
-        return missingLocalizedBlogResponse;
+      const missingBlogResponse = await tryMissingBlogNotFound(
+        website,
+        localeResolution,
+      );
+      if (missingBlogResponse) {
+        return missingBlogResponse;
       }
 
       if (potentialProductRoute) {
@@ -963,12 +966,12 @@ export async function middleware(request: NextRequest) {
       return legacyRedirectResponse;
     }
 
-    const missingLocalizedBlogResponse = await tryMissingLocalizedBlogNotFound(
+    const missingBlogResponse = await tryMissingBlogNotFound(
       website,
       localeResolution,
     );
-    if (missingLocalizedBlogResponse) {
-      return missingLocalizedBlogResponse;
+    if (missingBlogResponse) {
+      return missingBlogResponse;
     }
 
     if (potentialProductRoute) {
@@ -1030,12 +1033,12 @@ export async function middleware(request: NextRequest) {
       return legacyRedirectResponse;
     }
 
-    const missingLocalizedBlogResponse = await tryMissingLocalizedBlogNotFound(
+    const missingBlogResponse = await tryMissingBlogNotFound(
       website,
       localeResolution,
     );
-    if (missingLocalizedBlogResponse) {
-      return missingLocalizedBlogResponse;
+    if (missingBlogResponse) {
+      return missingBlogResponse;
     }
 
     if (potentialProductRoute) {
