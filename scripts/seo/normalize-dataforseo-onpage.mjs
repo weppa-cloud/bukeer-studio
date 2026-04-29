@@ -129,7 +129,7 @@ function buildReportFromPages(pages) {
 
 async function deleteExistingRun(runId) {
   await sb.from('seo_audit_results').delete().eq('website_id', websiteId).eq('crawl_task_id', runId);
-  await sb.from('seo_render_snapshots').delete().eq('website_id', websiteId).eq('source', 'dataforseo:on_page');
+  await sb.from('seo_audit_findings').delete().eq('website_id', websiteId).eq('crawl_task_id', runId);
 
   const { data: existing } = await sb
     .from('seo_audit_findings')
@@ -177,7 +177,7 @@ async function insertSnapshots(pages, fetchedAt, summary) {
 }
 
 async function insertAuditResults(rows) {
-  await insertChunks('seo_audit_results', rows);
+  await upsertChunks('seo_audit_results', rows, 'website_id,page_url,audit_date,crawl_task_id,source');
 }
 
 async function insertFindings(findings, snapshotByUrl, supportsRunColumns, fetchedAt) {
@@ -230,6 +230,18 @@ async function insertChunks(table, rows, selectColumns = null) {
     if (selectColumns) query = query.select(selectColumns);
     const { data, error } = await query;
     if (error) throw new Error(`${table} insert failed: ${error.message}`);
+    if (data) out.push(data);
+  }
+  return out;
+}
+
+async function upsertChunks(table, rows, onConflict, selectColumns = null) {
+  const out = [];
+  for (const chunk of chunks(rows, 100)) {
+    let query = sb.from(table).upsert(chunk, { onConflict });
+    if (selectColumns) query = query.select(selectColumns);
+    const { data, error } = await query;
+    if (error) throw new Error(`${table} upsert failed: ${error.message}`);
     if (data) out.push(data);
   }
   return out;

@@ -73,13 +73,7 @@ async function loadRun(runId, supportsFindingRunColumns) {
     'source',
     ...(supportsFindingRunColumns ? ['crawl_task_id', 'finding_fingerprint'] : []),
   ];
-  const { data, error } = await sb
-    .from('seo_audit_findings')
-    .select(columns.join(','))
-    .eq('website_id', WEBSITE_ID)
-    .eq('source', 'dataforseo:on_page')
-    .limit(5000);
-  if (error) throw new Error(error.message);
+  const data = await fetchFindingRows(columns, runId, supportsFindingRunColumns);
   const map = new Map();
   for (const row of data ?? []) {
     const evidence = row.evidence ?? {};
@@ -102,6 +96,27 @@ async function loadRun(runId, supportsFindingRunColumns) {
     });
   }
   return map;
+}
+
+async function fetchFindingRows(columns, runId, supportsFindingRunColumns) {
+  const out = [];
+  const pageSize = 1000;
+  for (let from = 0; ; from += pageSize) {
+    let query = sb
+      .from('seo_audit_findings')
+      .select(columns.join(','))
+      .eq('website_id', WEBSITE_ID)
+      .eq('source', 'dataforseo:on_page')
+      .range(from, from + pageSize - 1);
+    if (supportsFindingRunColumns) {
+      query = query.eq('crawl_task_id', runId);
+    }
+    const { data, error } = await query;
+    if (error) throw new Error(error.message);
+    out.push(...(data ?? []));
+    if (!data || data.length < pageSize) break;
+  }
+  return out;
 }
 
 async function supportsColumns(table, columns) {
