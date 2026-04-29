@@ -720,6 +720,11 @@ export async function getProductPage(
         }
 
         if (kit) {
+          const kitName = asOptionalString((kit as Record<string, unknown>).name);
+          if (kitName) {
+            product.name = kitName;
+          }
+
           if (typeof kit.description === 'string') {
             product.description = kit.description;
           }
