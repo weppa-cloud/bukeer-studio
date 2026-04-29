@@ -159,7 +159,7 @@ jobs:
         run: |
           npx playwright test \
             e2e/tests/public-runtime.smoke.spec.ts \
-            --grep "@p0-seo" \
+            --grep "@smoke|@p0-seo" \
             --project=chromium --no-deps \
             --reporter=list,json,html
         env:
