@@ -5,7 +5,6 @@ import { notFound, redirect } from "next/navigation";
 import {
   getWebsiteBySubdomain,
   getBlogPostBySlug,
-  getBlogPostAnyLocale,
   getBlogPostByTranslationGroup,
   getBlogPostTranslationLocales,
   normalizeBlogPublicLocale,
@@ -18,7 +17,10 @@ import {
   buildLocaleAwareAlternateLanguages,
   resolvePublicMetadataLocale,
 } from "@/lib/seo/public-metadata";
-import { localeToOgLocale } from "@/lib/seo/locale-routing";
+import {
+  buildPublicLocalizedPath,
+  localeToOgLocale,
+} from "@/lib/seo/locale-routing";
 import { normalizePublicMetadataTitle } from "@/lib/seo/metadata-title";
 import { getPublicUiMessages } from "@/lib/site/public-ui-messages";
 
@@ -39,7 +41,6 @@ export async function generateMetadata({
     website,
     `/blog/${slug}`,
   );
-  const messages = getPublicUiMessages(localeContext.resolvedLocale);
 
   const post = await getBlogPostBySlug(
     website.id,
@@ -48,7 +49,7 @@ export async function generateMetadata({
   );
 
   if (!post) {
-    return { title: messages.blogPost.notFoundTitle };
+    notFound();
   }
 
   const baseUrl = website.custom_domain
@@ -146,32 +147,30 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
   const post = await getBlogPostBySlug(website.id, slug, resolvedLocale);
 
   if (!post) {
-    // Slug not found for this locale. Try finding the post in any locale,
-    // then redirect to the default-locale counterpart via translation_group_id.
-    const anyLocalePost = await getBlogPostAnyLocale(website.id, slug);
-    if (anyLocalePost?.translation_group_id) {
-      const defaultPost = await getBlogPostByTranslationGroup(
-        website.id,
-        anyLocalePost.translation_group_id,
-        defaultLocale,
-      );
-      if (defaultPost) {
-        redirect(`/site/${subdomain}/blog/${defaultPost.slug}`);
-      }
-    }
+    // A locale-prefixed blog URL is only valid when that locale has a
+    // published Studio post. Falling back to another locale creates soft-404
+    // surfaces for crawlers, especially `/en/blog/*` rows hidden by the EN
+    // quality gate.
     notFound();
   }
 
   // If post exists but is in the wrong locale (e.g. ES slug served on /en/),
   // redirect to the correct-locale counterpart if available.
-  if (post.locale !== resolvedLocale) {
+  const postLocale = normalizeBlogPublicLocale(post.locale);
+  if (postLocale && postLocale !== resolvedLocale) {
     const localizedPost = await getBlogPostByTranslationGroup(
       website.id,
       post.translation_group_id ?? post.id,
       resolvedLocale,
     );
     if (localizedPost) {
-      redirect(`/site/${subdomain}/blog/${localizedPost.slug}`);
+      redirect(
+        buildPublicLocalizedPath(
+          `/blog/${localizedPost.slug}`,
+          resolvedLocale,
+          defaultLocale,
+        ),
+      );
     }
     // No localized version — serve the found post (fallback, will render as-is)
   }

@@ -1,60 +1,66 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { refreshAuthSession } from '@/lib/supabase/middleware-client';
+import { NextRequest, NextResponse } from "next/server";
+import { refreshAuthSession } from "@/lib/supabase/middleware-client";
 import {
   PUBLIC_LOCALE_HEADER_NAMES,
   extractWebsiteLocaleSettings,
   resolveLocaleFromPublicPath,
+  type PublicLocalePathResolution,
   type WebsiteLocaleSettings,
-} from '@/lib/seo/locale-routing';
+} from "@/lib/seo/locale-routing";
 
 // Subdomains that should NOT be treated as tenant sites
 const RESERVED_SUBDOMAINS = [
-  'www',
-  'app',
-  'api',
-  'admin',
-  'studio',
-  'canvas',
-  'staging',
-  'dev',
+  "www",
+  "app",
+  "api",
+  "admin",
+  "studio",
+  "canvas",
+  "staging",
+  "dev",
 ];
 
 // Main domain - update for production
-const MAIN_DOMAIN = process.env.NEXT_PUBLIC_MAIN_DOMAIN || 'bukeer.com';
+const MAIN_DOMAIN = process.env.NEXT_PUBLIC_MAIN_DOMAIN || "bukeer.com";
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const SITE_PREVIEW_TOKEN = process.env.SITE_PREVIEW_TOKEN || process.env.REVALIDATE_SECRET;
-const SITE_PREVIEW_PARAM = 'preview_token';
-const SITE_PREVIEW_COOKIE = '__bukeer_site_preview';
-const COLOMBIA_TOURS_EN_HOST = 'en.colombiatours.travel';
-const COLOMBIA_TOURS_CANONICAL_HOST = 'colombiatours.travel';
+const SITE_PREVIEW_TOKEN =
+  process.env.SITE_PREVIEW_TOKEN || process.env.REVALIDATE_SECRET;
+const SITE_PREVIEW_PARAM = "preview_token";
+const SITE_PREVIEW_COOKIE = "__bukeer_site_preview";
+const COLOMBIA_TOURS_EN_HOST = "en.colombiatours.travel";
+const COLOMBIA_TOURS_CANONICAL_HOST = "colombiatours.travel";
 
 const COLOMBIA_TOURS_EN_REDIRECTS: Record<string, string> = {
-  '/': '/en',
-  '/tipos-de-mamas': '/en/blog',
-  '/tipos-de-mamas/': '/en/blog',
-  '/los-10-mejores-lugares-turisticos': '/en/blog/los-10-mejores-lugares-turisticos-de-colombia',
-  '/los-10-mejores-lugares-turisticos/': '/en/blog/los-10-mejores-lugares-turisticos-de-colombia',
-  '/10-destinos-para-visitar-con-mama': '/en/blog/10-destinos-para-visitar-con-mama',
-  '/10-destinos-para-visitar-con-mama/': '/en/blog/10-destinos-para-visitar-con-mama',
-  '/es-seguro-viajar-a-isla-margarita': '/en/blog',
-  '/es-seguro-viajar-a-isla-margarita/': '/en/blog',
-  '/nombres-de-empresas-de-turismo': '/en/blog',
-  '/nombres-de-empresas-de-turismo/': '/en/blog',
+  "/": "/en",
+  "/tipos-de-mamas": "/en/blog",
+  "/tipos-de-mamas/": "/en/blog",
+  "/los-10-mejores-lugares-turisticos":
+    "/en/blog/los-10-mejores-lugares-turisticos-de-colombia",
+  "/los-10-mejores-lugares-turisticos/":
+    "/en/blog/los-10-mejores-lugares-turisticos-de-colombia",
+  "/10-destinos-para-visitar-con-mama":
+    "/en/blog/10-destinos-para-visitar-con-mama",
+  "/10-destinos-para-visitar-con-mama/":
+    "/en/blog/10-destinos-para-visitar-con-mama",
+  "/es-seguro-viajar-a-isla-margarita": "/en/blog",
+  "/es-seguro-viajar-a-isla-margarita/": "/en/blog",
+  "/nombres-de-empresas-de-turismo": "/en/blog",
+  "/nombres-de-empresas-de-turismo/": "/en/blog",
 };
 
 const CATEGORY_TO_PRODUCT_TYPE: Record<string, string> = {
-  destinos: 'destination',
-  destinations: 'destination',
-  hoteles: 'hotel',
-  hotels: 'hotel',
-  actividades: 'activity',
-  activities: 'activity',
-  traslados: 'transfer',
-  transfers: 'transfer',
-  paquetes: 'package',
-  packages: 'package',
+  destinos: "destination",
+  destinations: "destination",
+  hoteles: "hotel",
+  hotels: "hotel",
+  actividades: "activity",
+  activities: "activity",
+  traslados: "transfer",
+  transfers: "transfer",
+  paquetes: "package",
+  packages: "package",
 };
 
 interface WebsiteLookup {
@@ -84,10 +90,11 @@ function resolveWebsiteLocaleSettingsForMiddleware(
 ): WebsiteLocaleSettings {
   const settings = extractWebsiteLocaleSettings(website);
   const hasExplicitLocaleColumns = Boolean(
-    website && (
-      (typeof website.default_locale === 'string' && website.default_locale.length > 0) ||
-      (Array.isArray(website.supported_locales) && website.supported_locales.length > 0)
-    ),
+    website &&
+    ((typeof website.default_locale === "string" &&
+      website.default_locale.length > 0) ||
+      (Array.isArray(website.supported_locales) &&
+        website.supported_locales.length > 0)),
   );
 
   if (hasExplicitLocaleColumns) {
@@ -96,9 +103,9 @@ function resolveWebsiteLocaleSettingsForMiddleware(
 
   // Backward-compatible fallback for schemas where websites table doesn't
   // expose locale columns. Keep default locale and allow EN aliases.
-  const supportedLocales = settings.supportedLocales.includes('en-US')
+  const supportedLocales = settings.supportedLocales.includes("en-US")
     ? settings.supportedLocales
-    : [...settings.supportedLocales, 'en-US'];
+    : [...settings.supportedLocales, "en-US"];
 
   return {
     ...settings,
@@ -107,20 +114,18 @@ function resolveWebsiteLocaleSettingsForMiddleware(
 }
 
 function getRequestHost(request: NextRequest): string {
-  const hostHeader = request.headers.get('host') || '';
-  return hostHeader.split(':')[0].toLowerCase().replace(/\.$/, '');
+  const hostHeader = request.headers.get("host") || "";
+  return hostHeader.split(":")[0].toLowerCase().replace(/\.$/, "");
 }
 
 function redirectColombiaToursEnSubdomain(request: NextRequest): NextResponse {
-  const currentPathname = request.nextUrl.pathname || '/';
+  const currentPathname = request.nextUrl.pathname || "/";
   const normalizedPathname =
-    currentPathname.length > 1
-      ? currentPathname.replace(/\/+$/, '')
-      : '/';
+    currentPathname.length > 1 ? currentPathname.replace(/\/+$/, "") : "/";
   const mappedPathname =
     COLOMBIA_TOURS_EN_REDIRECTS[currentPathname] ||
     COLOMBIA_TOURS_EN_REDIRECTS[normalizedPathname] ||
-    `/en${currentPathname === '/' ? '' : currentPathname}`;
+    `/en${currentPathname === "/" ? "" : currentPathname}`;
 
   const target = new URL(request.url);
   target.hostname = COLOMBIA_TOURS_CANONICAL_HOST;
@@ -136,8 +141,8 @@ async function redirectCustomDomainInternalSitePath(
   if (
     host === MAIN_DOMAIN ||
     host.endsWith(`.${MAIN_DOMAIN}`) ||
-    host.includes('localhost') ||
-    host.includes('127.0.0.1')
+    host.includes("localhost") ||
+    host.includes("127.0.0.1")
   ) {
     return null;
   }
@@ -148,7 +153,7 @@ async function redirectCustomDomainInternalSitePath(
   let canonicalHost = host;
   let website = await getWebsiteByCustomDomain(host);
 
-  if (!website && host.startsWith('www.')) {
+  if (!website && host.startsWith("www.")) {
     canonicalHost = host.slice(4);
     website = await getWebsiteByCustomDomain(canonicalHost);
   }
@@ -179,12 +184,12 @@ export function parseInternalSitePath(pathname: string): {
   subdomain: string;
   innerPathname: string;
 } | null {
-  if (!pathname.startsWith('/site/')) return null;
-  const segments = pathname.split('/').filter(Boolean);
+  if (!pathname.startsWith("/site/")) return null;
+  const segments = pathname.split("/").filter(Boolean);
   if (segments.length < 2) return null;
   const [marker, subdomainRaw, ...rest] = segments;
-  if (marker !== 'site' || !subdomainRaw) return null;
-  const innerPathname = rest.length > 0 ? `/${rest.join('/')}` : '/';
+  if (marker !== "site" || !subdomainRaw) return null;
+  const innerPathname = rest.length > 0 ? `/${rest.join("/")}` : "/";
   return {
     subdomain: subdomainRaw.toLowerCase(),
     innerPathname,
@@ -196,9 +201,9 @@ function getPotentialProductRoute(pathname: string): {
   productType: string;
   productSlug: string;
 } | null {
-  const segments = pathname.split('/').filter(Boolean);
+  const segments = pathname.split("/").filter(Boolean);
   if (segments.length < 2) return null;
-  if (segments[0] === 'site' || segments[0] === 'domain') return null;
+  if (segments[0] === "site" || segments[0] === "domain") return null;
 
   const categorySlug = segments[0].toLowerCase();
   const productType = CATEGORY_TO_PRODUCT_TYPE[categorySlug];
@@ -208,7 +213,7 @@ function getPotentialProductRoute(pathname: string): {
   return {
     categorySlug,
     productType,
-    productSlug: segments.slice(1).join('/').toLowerCase(),
+    productSlug: segments.slice(1).join("/").toLowerCase(),
   };
 }
 
@@ -244,7 +249,10 @@ function setCached<T>(key: string, data: T): void {
   _middlewareCache.set(key, { data, expiry: Date.now() + CACHE_TTL_MS });
 }
 
-async function supabaseFetch<T>(path: string, init?: RequestInit): Promise<T | null> {
+async function supabaseFetch<T>(
+  path: string,
+  init?: RequestInit,
+): Promise<T | null> {
   const supabaseKey = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY;
   if (!SUPABASE_URL || !supabaseKey) {
     return null;
@@ -255,10 +263,10 @@ async function supabaseFetch<T>(path: string, init?: RequestInit): Promise<T | n
     headers: {
       apikey: supabaseKey,
       Authorization: `Bearer ${supabaseKey}`,
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
       ...(init?.headers || {}),
     },
-    cache: 'no-store',
+    cache: "no-store",
   });
 
   if (!response.ok) {
@@ -273,26 +281,28 @@ async function getWebsiteBySubdomain(
   options?: { includeUnpublished?: boolean },
 ): Promise<WebsiteLookup | null> {
   const includeUnpublished = options?.includeUnpublished === true;
-  const cacheKey = `sub:${includeUnpublished ? 'all' : 'published'}:${subdomain}`;
+  const cacheKey = `sub:${includeUnpublished ? "all" : "published"}:${subdomain}`;
   const cached = getCached<WebsiteLookup | null>(cacheKey);
   if (cached !== undefined) return cached;
 
-  const statusFilter = includeUnpublished ? '' : '&status=eq.published';
+  const statusFilter = includeUnpublished ? "" : "&status=eq.published";
   const data = await supabaseFetch<WebsiteLookup[]>(
-    `/rest/v1/websites?select=id,subdomain,account_id,default_locale,supported_locales&subdomain=eq.${encodeURIComponent(subdomain)}${statusFilter}&deleted_at=is.null&limit=1`
+    `/rest/v1/websites?select=id,subdomain,account_id,default_locale,supported_locales&subdomain=eq.${encodeURIComponent(subdomain)}${statusFilter}&deleted_at=is.null&limit=1`,
   );
   const result = data && data.length > 0 ? data[0] : null;
   setCached(cacheKey, result);
   return result;
 }
 
-async function getWebsiteByCustomDomain(host: string): Promise<WebsiteLookup | null> {
+async function getWebsiteByCustomDomain(
+  host: string,
+): Promise<WebsiteLookup | null> {
   const cacheKey = `domain:${host}`;
   const cached = getCached<WebsiteLookup | null>(cacheKey);
   if (cached !== undefined) return cached;
 
   const data = await supabaseFetch<WebsiteLookup[]>(
-    `/rest/v1/websites?select=id,subdomain,account_id,default_locale,supported_locales&custom_domain=eq.${encodeURIComponent(host)}&status=eq.published&deleted_at=is.null&limit=1`
+    `/rest/v1/websites?select=id,subdomain,account_id,default_locale,supported_locales&custom_domain=eq.${encodeURIComponent(host)}&status=eq.published&deleted_at=is.null&limit=1`,
   );
   const result = data && data.length > 0 ? data[0] : null;
   setCached(cacheKey, result);
@@ -302,24 +312,26 @@ async function getWebsiteByCustomDomain(host: string): Promise<WebsiteLookup | n
 async function productExists(
   subdomain: string,
   productType: string,
-  productSlug: string
+  productSlug: string,
 ): Promise<boolean> {
   const cacheKey = `prod:${subdomain}:${productType}:${productSlug}`;
   const cached = getCached<boolean>(cacheKey);
   if (cached !== undefined) return cached;
 
   const data = await supabaseFetch<{ product?: unknown } | null>(
-    '/rest/v1/rpc/get_website_product_page',
+    "/rest/v1/rpc/get_website_product_page",
     {
-      method: 'POST',
+      method: "POST",
       body: JSON.stringify({
         p_subdomain: subdomain,
         p_product_type: productType,
         p_product_slug: productSlug,
       }),
-    }
+    },
   );
-  const result = Boolean(data && typeof data === 'object' && 'product' in data && data.product);
+  const result = Boolean(
+    data && typeof data === "object" && "product" in data && data.product,
+  );
   setCached(cacheKey, result);
   return result;
 }
@@ -327,18 +339,87 @@ async function productExists(
 async function getRedirectedSlug(
   accountId: string,
   productType: string,
-  oldSlug: string
+  oldSlug: string,
 ): Promise<string | null> {
   const cacheKey = `redir:${accountId}:${productType}:${oldSlug}`;
   const cached = getCached<string | null>(cacheKey);
   if (cached !== undefined) return cached;
 
   const data = await supabaseFetch<Array<{ new_slug: string }>>(
-    `/rest/v1/slug_redirects?select=new_slug&account_id=eq.${encodeURIComponent(accountId)}&product_type=eq.${encodeURIComponent(productType)}&old_slug=eq.${encodeURIComponent(oldSlug)}&limit=1`
+    `/rest/v1/slug_redirects?select=new_slug&account_id=eq.${encodeURIComponent(accountId)}&product_type=eq.${encodeURIComponent(productType)}&old_slug=eq.${encodeURIComponent(oldSlug)}&limit=1`,
   );
-  const result = data && data.length > 0 ? (data[0].new_slug || '').toLowerCase().trim() || null : null;
+  const result =
+    data && data.length > 0
+      ? (data[0].new_slug || "").toLowerCase().trim() || null
+      : null;
   setCached(cacheKey, result);
   return result;
+}
+
+function localeLookupCandidates(locale: string): string[] {
+  const normalized = locale.trim();
+  if (!normalized) return [];
+
+  const language = normalized.split("-")[0]?.toLowerCase();
+  const candidates = [normalized];
+  if (language) candidates.push(language);
+  if (normalized === "es-CO") candidates.push("es");
+  if (normalized === "en-US") candidates.push("en");
+  if (normalized === "es") candidates.push("es-CO");
+  if (normalized === "en") candidates.push("en-US");
+
+  return [...new Set(candidates)];
+}
+
+async function publishedBlogPostExistsForLocale(
+  websiteId: string,
+  slug: string,
+  locale: string,
+): Promise<boolean> {
+  const cacheKey = `blog-locale:${websiteId}:${slug}:${locale}`;
+  const cached = getCached<boolean>(cacheKey);
+  if (cached !== undefined) return cached;
+
+  for (const candidate of localeLookupCandidates(locale)) {
+    const data = await supabaseFetch<Array<{ id: string }>>(
+      `/rest/v1/website_blog_posts?select=id&website_id=eq.${encodeURIComponent(websiteId)}&slug=eq.${encodeURIComponent(slug)}&locale=eq.${encodeURIComponent(candidate)}&status=eq.published&deleted_at=is.null&limit=1`,
+    );
+    if (data && data.length > 0) {
+      setCached(cacheKey, true);
+      return true;
+    }
+  }
+
+  setCached(cacheKey, false);
+  return false;
+}
+
+async function tryMissingLocalizedBlogNotFound(
+  website: WebsiteLookup | null,
+  localeResolution: PublicLocalePathResolution,
+): Promise<NextResponse | null> {
+  if (!website?.id) return null;
+  if (!localeResolution.hasLanguageSegment) return null;
+  if (localeResolution.resolvedLocale === localeResolution.defaultLocale)
+    return null;
+
+  const match = localeResolution.pathnameWithoutLang.match(/^\/blog\/([^/]+)$/);
+  if (!match?.[1]) return null;
+
+  const exists = await publishedBlogPostExistsForLocale(
+    website.id,
+    decodeURIComponent(match[1]),
+    localeResolution.resolvedLocale,
+  );
+  if (exists) return null;
+
+  return new NextResponse("Not found", {
+    status: 404,
+    headers: {
+      "X-Robots-Tag": "noindex, nofollow",
+      "Cache-Control": "public, max-age=60, stale-while-revalidate=300",
+    },
+  });
 }
 
 async function trySlugRedirect(
@@ -351,7 +432,11 @@ async function trySlugRedirect(
     return null;
   }
 
-  const exists = await productExists(website.subdomain, route.productType, route.productSlug);
+  const exists = await productExists(
+    website.subdomain,
+    route.productType,
+    route.productSlug,
+  );
   if (exists) {
     return null;
   }
@@ -359,7 +444,7 @@ async function trySlugRedirect(
   const redirectedSlug = await getRedirectedSlug(
     website.account_id,
     route.productType,
-    route.productSlug
+    route.productSlug,
   );
 
   if (!redirectedSlug || redirectedSlug === route.productSlug) {
@@ -379,12 +464,14 @@ interface LegacyRedirectRow {
 }
 
 function buildLegacyPathCandidates(pathname: string): string[] {
-  const ensuredLeadingSlash = pathname.startsWith('/') ? pathname : `/${pathname}`;
+  const ensuredLeadingSlash = pathname.startsWith("/")
+    ? pathname
+    : `/${pathname}`;
   const normalized =
     ensuredLeadingSlash.length > 1
-      ? ensuredLeadingSlash.replace(/\/+$/, '')
+      ? ensuredLeadingSlash.replace(/\/+$/, "")
       : ensuredLeadingSlash;
-  const withTrailingSlash = normalized === '/' ? '/' : `${normalized}/`;
+  const withTrailingSlash = normalized === "/" ? "/" : `${normalized}/`;
   const candidates = [
     ensuredLeadingSlash,
     normalized,
@@ -406,7 +493,7 @@ function coerceRedirectStatusCode(value: number): 301 | 302 | 307 | 308 {
 
 async function getLegacyRedirect(
   websiteId: string,
-  pathname: string
+  pathname: string,
 ): Promise<LegacyRedirectRow | null> {
   const cacheKey = `legacy:${websiteId}:${pathname}`;
   const cached = getCached<LegacyRedirectRow | null>(cacheKey);
@@ -416,7 +503,7 @@ async function getLegacyRedirect(
 
   for (const candidate of candidates) {
     const data = await supabaseFetch<LegacyRedirectRow[]>(
-      `/rest/v1/website_legacy_redirects?select=new_path,status_code&website_id=eq.${encodeURIComponent(websiteId)}&old_path=eq.${encodeURIComponent(candidate)}&limit=1`
+      `/rest/v1/website_legacy_redirects?select=new_path,status_code&website_id=eq.${encodeURIComponent(websiteId)}&old_path=eq.${encodeURIComponent(candidate)}&limit=1`,
     );
     if (data && data.length > 0 && data[0].new_path) {
       const result = data[0];
@@ -443,12 +530,16 @@ async function tryLegacyRedirect(
     return null;
   }
 
-  const target = legacy.new_path.startsWith('http://') || legacy.new_path.startsWith('https://')
-    ? new URL(legacy.new_path)
-    : new URL(
-        legacy.new_path.startsWith('/') ? legacy.new_path : `/${legacy.new_path}`,
-        request.url
-      );
+  const target =
+    legacy.new_path.startsWith("http://") ||
+    legacy.new_path.startsWith("https://")
+      ? new URL(legacy.new_path)
+      : new URL(
+          legacy.new_path.startsWith("/")
+            ? legacy.new_path
+            : `/${legacy.new_path}`,
+          request.url,
+        );
 
   // Preserve query params from original URL when redirect target does not define its own query
   if (!target.search && request.nextUrl.search) {
@@ -465,10 +556,15 @@ async function tryLegacyRedirect(
     return null;
   }
 
-  return NextResponse.redirect(target, coerceRedirectStatusCode(legacy.status_code));
+  return NextResponse.redirect(
+    target,
+    coerceRedirectStatusCode(legacy.status_code),
+  );
 }
 
-function applyLocaleAwareTenantRewrite(input: LocaleAwareRoutingInput): NextResponse {
+function applyLocaleAwareTenantRewrite(
+  input: LocaleAwareRoutingInput,
+): NextResponse {
   const {
     request,
     sourceUrl,
@@ -491,16 +587,16 @@ function applyLocaleAwareTenantRewrite(input: LocaleAwareRoutingInput): NextResp
   rewriteUrl.pathname = `/site/${subdomain}${internalPathname}`;
 
   const requestHeaders = new Headers(request.headers);
-  requestHeaders.set('x-subdomain', subdomain);
+  requestHeaders.set("x-subdomain", subdomain);
   requestHeaders.set(PUBLIC_LOCALE_HEADER_NAMES.resolvedLocale, resolvedLocale);
   requestHeaders.set(PUBLIC_LOCALE_HEADER_NAMES.defaultLocale, defaultLocale);
   requestHeaders.set(PUBLIC_LOCALE_HEADER_NAMES.lang, resolvedLanguage);
   requestHeaders.set(
     PUBLIC_LOCALE_HEADER_NAMES.localeSegment,
-    hasLanguageSegment ? resolvedLanguage : '',
+    hasLanguageSegment ? resolvedLanguage : "",
   );
   if (host) {
-    requestHeaders.set('x-custom-domain', host);
+    requestHeaders.set("x-custom-domain", host);
   }
 
   const response = NextResponse.rewrite(rewriteUrl, {
@@ -509,27 +605,36 @@ function applyLocaleAwareTenantRewrite(input: LocaleAwareRoutingInput): NextResp
     },
   });
 
-  response.headers.set('x-subdomain', subdomain);
-  response.headers.set(PUBLIC_LOCALE_HEADER_NAMES.resolvedLocale, resolvedLocale);
+  response.headers.set("x-subdomain", subdomain);
+  response.headers.set(
+    PUBLIC_LOCALE_HEADER_NAMES.resolvedLocale,
+    resolvedLocale,
+  );
   response.headers.set(PUBLIC_LOCALE_HEADER_NAMES.defaultLocale, defaultLocale);
   response.headers.set(PUBLIC_LOCALE_HEADER_NAMES.lang, resolvedLanguage);
   response.headers.set(
     PUBLIC_LOCALE_HEADER_NAMES.localeSegment,
-    hasLanguageSegment ? resolvedLanguage : '',
+    hasLanguageSegment ? resolvedLanguage : "",
   );
-  response.headers.set('x-public-original-pathname', originalPathname);
+  response.headers.set("x-public-original-pathname", originalPathname);
   if (host) {
-    response.headers.set('x-custom-domain', host);
+    response.headers.set("x-custom-domain", host);
   }
 
   return response;
 }
 
 function applySitePreviewHeaders(response: NextResponse): NextResponse {
-  if (process.env.LHCI_ALLOW_INDEX !== '1') {
-    response.headers.set('X-Robots-Tag', 'noindex, nofollow, noarchive, nosnippet');
+  if (process.env.LHCI_ALLOW_INDEX !== "1") {
+    response.headers.set(
+      "X-Robots-Tag",
+      "noindex, nofollow, noarchive, nosnippet",
+    );
   }
-  response.headers.set('Cache-Control', 'private, no-store, max-age=0, must-revalidate');
+  response.headers.set(
+    "Cache-Control",
+    "private, no-store, max-age=0, must-revalidate",
+  );
   return response;
 }
 
@@ -543,20 +648,20 @@ export async function middleware(request: NextRequest) {
   }
 
   const studioHost = `studio.${MAIN_DOMAIN}`;
-  if (host === studioHost && pathname === '/') {
-    return NextResponse.redirect(new URL('/dashboard', request.url), 307);
+  if (host === studioHost && pathname === "/") {
+    return NextResponse.redirect(new URL("/dashboard", request.url), 307);
   }
 
   // Editor routes — handle SSO token if present, otherwise pass through
-  if (pathname.startsWith('/editor')) {
-    const token = url.searchParams.get('token');
+  if (pathname.startsWith("/editor")) {
+    const token = url.searchParams.get("token");
     if (token && SUPABASE_URL && SUPABASE_ANON_KEY) {
       // Set token as cookie for client-side auth, then redirect to clean URL
       const cleanUrl = new URL(url);
-      cleanUrl.searchParams.delete('token');
+      cleanUrl.searchParams.delete("token");
       const redirectResponse = NextResponse.redirect(cleanUrl);
-      redirectResponse.cookies.set('sb-auth-token', token, {
-        path: '/',
+      redirectResponse.cookies.set("sb-auth-token", token, {
+        path: "/",
         httpOnly: false,
         maxAge: 3600,
       });
@@ -566,17 +671,17 @@ export async function middleware(request: NextRequest) {
   }
 
   // Auth guard for dashboard routes
-  if (pathname.startsWith('/dashboard')) {
+  if (pathname.startsWith("/dashboard")) {
     if (SUPABASE_URL && SUPABASE_ANON_KEY) {
       // Handle one-time JWT token from Flutter
-      const token = url.searchParams.get('token');
+      const token = url.searchParams.get("token");
       if (token) {
         // Set token as cookie for client-side auth, then redirect to clean URL
         const cleanUrl = new URL(url);
-        cleanUrl.searchParams.delete('token');
+        cleanUrl.searchParams.delete("token");
         const redirectResponse = NextResponse.redirect(cleanUrl);
-        redirectResponse.cookies.set('sb-auth-token', token, {
-          path: '/',
+        redirectResponse.cookies.set("sb-auth-token", token, {
+          path: "/",
           httpOnly: false,
           maxAge: 3600,
         });
@@ -585,13 +690,13 @@ export async function middleware(request: NextRequest) {
 
       // Check for any Supabase auth cookie
       const allCookies = request.cookies.getAll();
-      const hasAuthCookie = allCookies.some(c =>
-        c.name.startsWith('sb-') && c.name.endsWith('-auth-token')
+      const hasAuthCookie = allCookies.some(
+        (c) => c.name.startsWith("sb-") && c.name.endsWith("-auth-token"),
       );
 
       if (!hasAuthCookie) {
-        const loginUrl = new URL('/login', request.url);
-        loginUrl.searchParams.set('redirect', pathname);
+        const loginUrl = new URL("/login", request.url);
+        loginUrl.searchParams.set("redirect", pathname);
         return NextResponse.redirect(loginUrl);
       }
 
@@ -610,20 +715,24 @@ export async function middleware(request: NextRequest) {
   }
 
   // Auth pages — no rewrite needed
-  if (pathname.startsWith('/login') || pathname.startsWith('/forgot-password') || pathname.startsWith('/reset-password')) {
+  if (
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/forgot-password") ||
+    pathname.startsWith("/reset-password")
+  ) {
     return NextResponse.next();
   }
 
   // Skip static files and API routes
   if (
-    pathname.startsWith('/_next') ||
-    pathname.startsWith('/api') ||
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/api") ||
     pathname.match(/\.(ico|png|jpg|jpeg|svg|css|js|woff2?)$/)
   ) {
     return NextResponse.next();
   }
 
-  if (pathname.startsWith('/site/')) {
+  if (pathname.startsWith("/site/")) {
     const customDomainRedirect = await redirectCustomDomainInternalSitePath(
       request,
       host,
@@ -641,14 +750,14 @@ export async function middleware(request: NextRequest) {
   // this, SSR falls back to the tenant default locale even though the URL
   // contains a translated-locale segment. See [[ADR-019]] + Cluster-E of
   // Stage 6 (#213) for the handoff from PR #243.
-  if (pathname.startsWith('/site/')) {
+  if (pathname.startsWith("/site/")) {
     const queryToken = url.searchParams.get(SITE_PREVIEW_PARAM);
     const cookieToken = request.cookies.get(SITE_PREVIEW_COOKIE)?.value;
     const tokenFromRequest = queryToken || cookieToken;
 
     if (!SITE_PREVIEW_TOKEN || tokenFromRequest !== SITE_PREVIEW_TOKEN) {
       return applySitePreviewHeaders(
-        new NextResponse('Preview token required', { status: 401 }),
+        new NextResponse("Preview token required", { status: 401 }),
       );
     }
 
@@ -657,10 +766,10 @@ export async function middleware(request: NextRequest) {
       cleanUrl.searchParams.delete(SITE_PREVIEW_PARAM);
       const redirectResponse = NextResponse.redirect(cleanUrl, 307);
       redirectResponse.cookies.set(SITE_PREVIEW_COOKIE, SITE_PREVIEW_TOKEN, {
-        path: '/site',
+        path: "/site",
         httpOnly: true,
-        sameSite: 'lax',
-        secure: process.env.NODE_ENV === 'production',
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
         maxAge: 60 * 60 * 6, // 6h preview session
       });
       return applySitePreviewHeaders(redirectResponse);
@@ -669,8 +778,10 @@ export async function middleware(request: NextRequest) {
     const internalMatch = parseInternalSitePath(pathname);
     if (
       internalMatch &&
-      internalMatch.innerPathname !== '/' &&
-      /^[a-z]{2}$/.test(internalMatch.innerPathname.split('/').filter(Boolean)[0] || '')
+      internalMatch.innerPathname !== "/" &&
+      /^[a-z]{2}$/.test(
+        internalMatch.innerPathname.split("/").filter(Boolean)[0] || "",
+      )
     ) {
       const website = await getWebsiteBySubdomain(internalMatch.subdomain);
       const localeSettings = extractWebsiteLocaleSettings(website);
@@ -687,51 +798,53 @@ export async function middleware(request: NextRequest) {
         localeResolution.hasLanguageSegment &&
         localeResolution.resolvedLocale !== localeResolution.defaultLocale
       ) {
-        return applySitePreviewHeaders(applyLocaleAwareTenantRewrite({
-          request,
-          sourceUrl: url,
-          pathnameWithoutLang: localeResolution.pathnameWithoutLang,
-          canonicalPathname: localeResolution.canonicalPathname,
-          originalPathname: localeResolution.originalPathname,
-          subdomain: internalMatch.subdomain,
-          resolvedLocale: localeResolution.resolvedLocale,
-          defaultLocale: localeResolution.defaultLocale,
-          resolvedLanguage: localeResolution.resolvedLanguage,
-          hasLanguageSegment: localeResolution.hasLanguageSegment,
-        }));
+        return applySitePreviewHeaders(
+          applyLocaleAwareTenantRewrite({
+            request,
+            sourceUrl: url,
+            pathnameWithoutLang: localeResolution.pathnameWithoutLang,
+            canonicalPathname: localeResolution.canonicalPathname,
+            originalPathname: localeResolution.originalPathname,
+            subdomain: internalMatch.subdomain,
+            resolvedLocale: localeResolution.resolvedLocale,
+            defaultLocale: localeResolution.defaultLocale,
+            resolvedLanguage: localeResolution.resolvedLanguage,
+            hasLanguageSegment: localeResolution.hasLanguageSegment,
+          }),
+        );
       }
     }
 
     const passThrough = NextResponse.next();
     passThrough.cookies.set(SITE_PREVIEW_COOKIE, SITE_PREVIEW_TOKEN, {
-      path: '/site',
+      path: "/site",
       httpOnly: true,
-      sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production',
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
       maxAge: 60 * 60 * 6,
     });
     return applySitePreviewHeaders(passThrough);
   }
 
-  if (pathname.startsWith('/domain/')) {
+  if (pathname.startsWith("/domain/")) {
     return NextResponse.next();
   }
 
   // === BLOG SEO PIPELINE — AI crawler headers ===
-  const userAgent = request.headers.get('user-agent') || '';
+  const userAgent = request.headers.get("user-agent") || "";
   const AI_CRAWLERS = [
-    'OAI-SearchBot',
-    'ChatGPT-User',
-    'GPTBot',
-    'Claude-SearchBot',
-    'Claude-User',
-    'ClaudeBot',
-    'anthropic-ai',
-    'PerplexityBot',
+    "OAI-SearchBot",
+    "ChatGPT-User",
+    "GPTBot",
+    "Claude-SearchBot",
+    "Claude-User",
+    "ClaudeBot",
+    "anthropic-ai",
+    "PerplexityBot",
   ];
-  if (AI_CRAWLERS.some(bot => userAgent.includes(bot))) {
+  if (AI_CRAWLERS.some((bot) => userAgent.includes(bot))) {
     const response = NextResponse.next();
-    response.headers.set('X-Robots-Tag', 'index, follow');
+    response.headers.set("X-Robots-Tag", "index, follow");
     return response;
   }
   // === END BLOG SEO PIPELINE ===
@@ -740,28 +853,32 @@ export async function middleware(request: NextRequest) {
   const isBukeerDomain =
     host.endsWith(`.${MAIN_DOMAIN}`) ||
     host === MAIN_DOMAIN ||
-    host.includes('localhost') ||
-    host.includes('127.0.0.1');
+    host.includes("localhost") ||
+    host.includes("127.0.0.1");
 
   if (isBukeerDomain) {
     // Handle development environment
-    if (host.includes('localhost') || host.includes('127.0.0.1')) {
+    if (host.includes("localhost") || host.includes("127.0.0.1")) {
       // Development: Check for subdomain in query param or custom header
       const subdomain =
-        url.searchParams.get('subdomain') ||
-        request.headers.get('x-subdomain') ||
+        url.searchParams.get("subdomain") ||
+        request.headers.get("x-subdomain") ||
         null;
 
       if (!subdomain) {
         return NextResponse.next();
       }
 
-      const website = await getWebsiteBySubdomain(subdomain, { includeUnpublished: true });
+      const website = await getWebsiteBySubdomain(subdomain, {
+        includeUnpublished: true,
+      });
       const localeResolution = resolveLocaleFromPublicPath(
         pathname,
         resolveWebsiteLocaleSettingsForMiddleware(website),
       );
-      const potentialProductRoute = getPotentialProductRoute(localeResolution.pathnameWithoutLang);
+      const potentialProductRoute = getPotentialProductRoute(
+        localeResolution.pathnameWithoutLang,
+      );
 
       const legacyRedirectResponse = await tryLegacyRedirect(
         request,
@@ -770,6 +887,12 @@ export async function middleware(request: NextRequest) {
       );
       if (legacyRedirectResponse) {
         return legacyRedirectResponse;
+      }
+
+      const missingLocalizedBlogResponse =
+        await tryMissingLocalizedBlogNotFound(website, localeResolution);
+      if (missingLocalizedBlogResponse) {
+        return missingLocalizedBlogResponse;
       }
 
       if (potentialProductRoute) {
@@ -806,15 +929,15 @@ export async function middleware(request: NextRequest) {
 
     if (host === MAIN_DOMAIN) {
       // bukeer.com → treat as 'bukeer' subdomain (corporate site)
-      subdomain = 'bukeer';
+      subdomain = "bukeer";
     } else {
       // miagencia.bukeer.com → extract 'miagencia'
-      subdomain = host.replace(`.${MAIN_DOMAIN}`, '').split('.')[0];
+      subdomain = host.replace(`.${MAIN_DOMAIN}`, "").split(".")[0];
     }
 
     // Staging alias: web-public.bukeer.com → corporate site
-    if (subdomain === 'web-public') {
-      subdomain = 'bukeer';
+    if (subdomain === "web-public") {
+      subdomain = "bukeer";
     }
 
     // Check if subdomain is reserved
@@ -827,7 +950,9 @@ export async function middleware(request: NextRequest) {
       pathname,
       resolveWebsiteLocaleSettingsForMiddleware(website),
     );
-    const potentialProductRoute = getPotentialProductRoute(localeResolution.pathnameWithoutLang);
+    const potentialProductRoute = getPotentialProductRoute(
+      localeResolution.pathnameWithoutLang,
+    );
 
     const legacyRedirectResponse = await tryLegacyRedirect(
       request,
@@ -836,6 +961,14 @@ export async function middleware(request: NextRequest) {
     );
     if (legacyRedirectResponse) {
       return legacyRedirectResponse;
+    }
+
+    const missingLocalizedBlogResponse = await tryMissingLocalizedBlogNotFound(
+      website,
+      localeResolution,
+    );
+    if (missingLocalizedBlogResponse) {
+      return missingLocalizedBlogResponse;
     }
 
     if (potentialProductRoute) {
@@ -868,7 +1001,7 @@ export async function middleware(request: NextRequest) {
   } else {
     let website = await getWebsiteByCustomDomain(host);
 
-    if (!website && host.startsWith('www.')) {
+    if (!website && host.startsWith("www.")) {
       const canonicalHost = host.slice(4);
       website = await getWebsiteByCustomDomain(canonicalHost);
 
@@ -884,7 +1017,9 @@ export async function middleware(request: NextRequest) {
       pathname,
       resolveWebsiteLocaleSettingsForMiddleware(website),
     );
-    const potentialProductRoute = getPotentialProductRoute(localeResolution.pathnameWithoutLang);
+    const potentialProductRoute = getPotentialProductRoute(
+      localeResolution.pathnameWithoutLang,
+    );
 
     const legacyRedirectResponse = await tryLegacyRedirect(
       request,
@@ -893,6 +1028,14 @@ export async function middleware(request: NextRequest) {
     );
     if (legacyRedirectResponse) {
       return legacyRedirectResponse;
+    }
+
+    const missingLocalizedBlogResponse = await tryMissingLocalizedBlogNotFound(
+      website,
+      localeResolution,
+    );
+    if (missingLocalizedBlogResponse) {
+      return missingLocalizedBlogResponse;
     }
 
     if (potentialProductRoute) {
@@ -932,7 +1075,7 @@ export async function middleware(request: NextRequest) {
     const newUrl = new URL(url);
     newUrl.pathname = `/domain/${encodeURIComponent(host)}${pathname}`;
     const response = NextResponse.rewrite(newUrl);
-    response.headers.set('x-custom-domain', host);
+    response.headers.set("x-custom-domain", host);
     return response;
   }
 }
@@ -948,6 +1091,6 @@ export const config = {
      * - favicon.ico (favicon file)
      * - public folder files
      */
-    '/((?!api|_next/static|_next/image|favicon.ico|.*\\.png$|.*\\.jpg$|.*\\.svg$).*)',
+    "/((?!api|_next/static|_next/image|favicon.ico|.*\\.png$|.*\\.jpg$|.*\\.svg$).*)",
   ],
 };
