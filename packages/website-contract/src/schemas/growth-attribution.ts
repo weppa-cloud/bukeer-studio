@@ -20,6 +20,7 @@ export const GrowthChannelSchema = z.enum([
   'direct',
   'referral',
   'email',
+  'ai_search',
   'unknown',
 ]);
 export type GrowthChannel = z.infer<typeof GrowthChannelSchema>;
