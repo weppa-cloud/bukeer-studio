@@ -1,28 +1,69 @@
-import { marked } from 'marked';
-import { sanitizeHtmlWithAllowlist } from '@/lib/security/simple-html-sanitize';
+import { marked } from "marked";
+import { sanitizeHtmlWithAllowlist } from "@/lib/security/simple-html-sanitize";
 
 const PURIFY_CONFIG = {
   ALLOWED_TAGS: [
-    'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-    'p', 'br', 'hr', 'ul', 'ol', 'li',
-    'strong', 'em', 'b', 'i', 'u',
-    'code', 'pre', 'blockquote',
-    'a', 'img',
-    'table', 'thead', 'tbody', 'tr', 'th', 'td',
-    'div', 'span',
-    'figure', 'figcaption',
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6",
+    "p",
+    "br",
+    "hr",
+    "ul",
+    "ol",
+    "li",
+    "strong",
+    "em",
+    "b",
+    "i",
+    "u",
+    "code",
+    "pre",
+    "blockquote",
+    "a",
+    "img",
+    "table",
+    "thead",
+    "tbody",
+    "tr",
+    "th",
+    "td",
+    "div",
+    "span",
+    "figure",
+    "figcaption",
   ],
-  ALLOWED_ATTR: ['href', 'src', 'alt', 'title', 'class', 'id', 'loading', 'decoding'],
+  ALLOWED_ATTR: [
+    "href",
+    "src",
+    "alt",
+    "title",
+    "class",
+    "id",
+    "loading",
+    "decoding",
+  ],
   ALLOW_DATA_ATTR: false,
-  FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed', 'form', 'input'],
-  FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover'],
+  FORBID_TAGS: [
+    "script",
+    "style",
+    "iframe",
+    "object",
+    "embed",
+    "form",
+    "input",
+  ],
+  FORBID_ATTR: ["onerror", "onload", "onclick", "onmouseover"],
 };
 
 /**
  * Sanitizes HTML content, removing potentially dangerous elements and attributes.
  */
 export function sanitizeHtml(html: string): string {
-  if (!html) return '';
+  if (!html) return "";
   return sanitizeHtmlWithAllowlist(html, {
     allowedTags: PURIFY_CONFIG.ALLOWED_TAGS,
     allowedAttrs: PURIFY_CONFIG.ALLOWED_ATTR,
@@ -36,7 +77,7 @@ export function sanitizeHtml(html: string): string {
  * If content already looks like HTML, it just sanitizes it.
  */
 export function renderMarkdown(content: string): string {
-  if (!content) return '';
+  if (!content) return "";
 
   // Check if content looks like HTML (has HTML tags)
   const looksLikeHtml = /<[a-z][\s\S]*>/i.test(content);
@@ -61,10 +102,13 @@ function wrapImagesToFigures(html: string): string {
     /<p>\s*(<img([^>]*)>)\s*<\/p>/gi,
     (_, imgTag: string, imgAttrs: string) => {
       const altMatch = imgAttrs.match(/alt="([^"]*)"/i);
-      const alt = altMatch ? altMatch[1].trim() : '';
-      const caption = alt && alt !== '' ? `\n  <figcaption class="blog-figure__caption">${alt}</figcaption>` : '';
+      const alt = altMatch ? altMatch[1].trim() : "";
+      const caption =
+        alt && alt !== ""
+          ? `\n  <figcaption class="blog-figure__caption">${alt}</figcaption>`
+          : "";
       return `<figure class="blog-figure">\n  ${imgTag}${caption}\n</figure>`;
-    }
+    },
   );
 }
 
@@ -76,7 +120,7 @@ function addLazyLoading(html: string): string {
   return html.replace(/<img([^>]*)>/g, (match, attrs: string) => {
     count++;
     if (count === 1) return match; // Keep first image eager for LCP
-    if (attrs.includes('loading=')) return match;
+    if (attrs.includes("loading=")) return match;
     return `<img${attrs} loading="lazy" decoding="async">`;
   });
 }
@@ -85,11 +129,68 @@ function addLazyLoading(html: string): string {
  * Add fallback alt text to images missing the alt attribute.
  */
 function addAltFallback(html: string, fallback: string): string {
-  const safe = fallback.replace(/"/g, '&quot;');
+  const safe = fallback.replace(/"/g, "&quot;");
   return html.replace(/<img([^>]*)>/g, (match, attrs: string) => {
-    if (attrs.includes('alt=')) return match;
+    if (attrs.includes("alt=")) return match;
     return `<img${attrs} alt="${safe}">`;
   });
+}
+
+/**
+ * Normalize legacy internal links before rendering editorial HTML.
+ *
+ * WordPress imports can contain `/site/<tenant>/...` preview URLs or absolute
+ * tenant URLs with trailing slashes. Those are valid for users, but crawlers
+ * count them as "links to redirects". Keep external links untouched.
+ */
+function normalizeInternalAnchorHrefs(html: string): string {
+  return html.replace(
+    /\shref=(["'])([^"']+)\1/gi,
+    (match, quote: string, rawHref: string) => {
+      const href = normalizeInternalHref(rawHref);
+      if (href === rawHref) return match;
+      return ` href=${quote}${href}${quote}`;
+    },
+  );
+}
+
+function normalizeInternalHref(rawHref: string): string {
+  if (
+    !rawHref ||
+    rawHref.startsWith("#") ||
+    rawHref.startsWith("mailto:") ||
+    rawHref.startsWith("tel:") ||
+    rawHref.startsWith("whatsapp:")
+  ) {
+    return rawHref;
+  }
+
+  try {
+    if (rawHref.startsWith("/")) {
+      return normalizeInternalPath(rawHref);
+    }
+
+    const url = new URL(rawHref);
+    const host = url.hostname.toLowerCase();
+    const isKnownPublicHost =
+      host === "colombiatours.travel" ||
+      host.endsWith(".bukeer.com") ||
+      host.endsWith(".bukeer.travel");
+    if (!isKnownPublicHost) return rawHref;
+
+    url.pathname = normalizeInternalPath(url.pathname);
+    return url.toString();
+  } catch {
+    return rawHref;
+  }
+}
+
+function normalizeInternalPath(pathname: string): string {
+  let normalized = pathname.replace(/^\/site\/[^/]+(?=\/|$)/, "") || "/";
+  if (normalized !== "/" && normalized.endsWith("/")) {
+    normalized = normalized.slice(0, -1);
+  }
+  return normalized;
 }
 
 interface SafeHtmlProps {
@@ -109,10 +210,8 @@ export function SafeHtml({ content, className, fallbackAlt }: SafeHtmlProps) {
   html = wrapImagesToFigures(html);
   html = addLazyLoading(html);
   if (fallbackAlt) html = addAltFallback(html, fallbackAlt);
+  html = normalizeInternalAnchorHrefs(html);
   return (
-    <div
-      className={className}
-      dangerouslySetInnerHTML={{ __html: html }}
-    />
+    <div className={className} dangerouslySetInnerHTML={{ __html: html }} />
   );
 }

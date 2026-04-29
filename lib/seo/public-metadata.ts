@@ -1,11 +1,12 @@
-import { headers } from 'next/headers';
-import { z } from 'zod';
+import { headers } from "next/headers";
+import { z } from "zod";
 import {
   buildPublicLocalizedPath,
   extractWebsiteLocaleSettings,
   resolveLocaleFromRequestHeaders,
-} from '@/lib/seo/locale-routing';
-import { generateHreflangLinksForLocales } from '@/lib/seo/hreflang';
+  translateCategoryPathname,
+} from "@/lib/seo/locale-routing";
+import { generateHreflangLinksForLocales } from "@/lib/seo/hreflang";
 
 export interface PublicMetadataLocaleContext {
   defaultLocale: string;
@@ -49,11 +50,16 @@ export async function resolvePublicMetadataLocale(
     ? resolved.resolvedLocale
     : resolved.defaultLocale;
 
+  const publicPathname = translateCategoryPathname(
+    pathname,
+    resolved.resolvedLanguage,
+  );
+
   return {
     ...resolved,
     resolvedLocale,
     localizedPathname: buildPublicLocalizedPath(
-      pathname,
+      publicPathname,
       resolvedLocale,
       resolved.defaultLocale,
     ),
@@ -73,15 +79,23 @@ export function hreflangLinksToLanguageRecord(
 export function buildLocaleAwareAlternateLanguages(
   baseUrl: string,
   pathname: string,
-  localeContext: Pick<PublicMetadataLocaleContext, 'defaultLocale' | 'supportedLocales'>,
+  localeContext: Pick<
+    PublicMetadataLocaleContext,
+    "defaultLocale" | "supportedLocales"
+  >,
   options?: {
     translatedLocales?: string[];
   },
 ): Record<string, string> {
   return hreflangLinksToLanguageRecord(
-    generateHreflangLinksForLocales(baseUrl, pathname, {
-      defaultLocale: localeContext.defaultLocale,
-      supportedLocales: localeContext.supportedLocales,
-    }, options?.translatedLocales),
+    generateHreflangLinksForLocales(
+      baseUrl,
+      pathname,
+      {
+        defaultLocale: localeContext.defaultLocale,
+        supportedLocales: localeContext.supportedLocales,
+      },
+      options?.translatedLocales,
+    ),
   );
 }

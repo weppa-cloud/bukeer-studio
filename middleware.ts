@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { refreshAuthSession } from "@/lib/supabase/middleware-client";
 import {
   PUBLIC_LOCALE_HEADER_NAMES,
+  buildPublicLocalizedPath,
   extractWebsiteLocaleSettings,
   resolveLocaleFromPublicPath,
+  translateCategoryPathname,
   type PublicLocalePathResolution,
   type WebsiteLocaleSettings,
 } from "@/lib/seo/locale-routing";
@@ -584,6 +586,20 @@ function applyLocaleAwareTenantRewrite(
   // single route file per category serves all locales. The browser URL is
   // preserved (response.url unchanged) — see [[ADR-019]] amendment.
   const internalPathname = canonicalPathname || pathnameWithoutLang;
+
+  if (!sourceUrl.pathname.startsWith("/site/")) {
+    const publicPathname = buildPublicLocalizedPath(
+      translateCategoryPathname(pathnameWithoutLang, resolvedLanguage),
+      resolvedLocale,
+      defaultLocale,
+    );
+    if (publicPathname !== originalPathname) {
+      const redirectUrl = new URL(sourceUrl);
+      redirectUrl.pathname = publicPathname;
+      return NextResponse.redirect(redirectUrl, 301);
+    }
+  }
+
   const rewriteUrl = new URL(sourceUrl);
   rewriteUrl.pathname = `/site/${subdomain}${internalPathname}`;
 

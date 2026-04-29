@@ -6,35 +6,39 @@
  * deterministic for the public /paquetes URL.
  */
 
-import type { Metadata } from 'next';
-import { headers } from 'next/headers';
-import { notFound } from 'next/navigation';
+import type { Metadata } from "next";
+import { headers } from "next/headers";
+import { notFound } from "next/navigation";
 
-import { PackagesListingPage } from '@/components/pages/packages-listing-page';
-import { TemplateSlot } from '@/components/site/themes/editorial-v1/template-slot';
-import type { EditorialPaquetesListPagePayload } from '@/components/site/themes/editorial-v1/pages/paquetes-list';
-import { getCategoryProducts } from '@/lib/supabase/get-pages';
-import { getWebsiteBySubdomain } from '@/lib/supabase/get-website';
+import { PackagesListingPage } from "@/components/pages/packages-listing-page";
+import { TemplateSlot } from "@/components/site/themes/editorial-v1/template-slot";
+import type { EditorialPaquetesListPagePayload } from "@/components/site/themes/editorial-v1/pages/paquetes-list";
+import { getCategoryProducts } from "@/lib/supabase/get-pages";
+import { getWebsiteBySubdomain } from "@/lib/supabase/get-website";
 import {
   buildLocaleAwareAlternateLanguages,
   resolvePublicMetadataLocale,
-} from '@/lib/seo/public-metadata';
+} from "@/lib/seo/public-metadata";
 import {
-  buildPublicLocalizedPath,
   localeToLanguage,
   localeToOgLocale,
   normalizeLocale,
-} from '@/lib/seo/locale-routing';
-import { resolveOgImage } from '@/lib/seo/og-helpers';
+} from "@/lib/seo/locale-routing";
+import { resolveOgImage } from "@/lib/seo/og-helpers";
 
 interface PaquetesPageProps {
   params: Promise<{ subdomain: string }>;
 }
 
-const PAGE_PATH = '/paquetes';
+const PAGE_PATH = "/paquetes";
 
-function getSiteName(website: Awaited<ReturnType<typeof getWebsiteBySubdomain>>, subdomain: string): string {
-  return website?.content?.account?.name || website?.content?.siteName || subdomain;
+function getSiteName(
+  website: Awaited<ReturnType<typeof getWebsiteBySubdomain>>,
+  subdomain: string,
+): string {
+  return (
+    website?.content?.account?.name || website?.content?.siteName || subdomain
+  );
 }
 
 function buildPackagesDescription(siteName: string): string {
@@ -47,47 +51,54 @@ function buildPackagesSchemas(input: {
   locale: string;
   packages: Array<{ name?: string | null; slug?: string | null }>;
 }) {
-  const normalizedLocale = normalizeLocale(input.locale, 'es-CO');
+  const normalizedLocale = normalizeLocale(input.locale, "es-CO");
   const language = localeToLanguage(normalizedLocale);
-  const isEnglish = language === 'en';
-  const packagesSegment = isEnglish ? 'packages' : 'paquetes';
-  const packagesLabel = isEnglish ? 'Packages' : 'Paquetes';
-  const homeLabel = isEnglish ? 'Home' : 'Inicio';
+  const isEnglish = language === "en";
+  const packagesSegment = isEnglish ? "packages" : "paquetes";
+  const packagesLabel = isEnglish ? "Packages" : "Paquetes";
+  const homeLabel = isEnglish ? "Home" : "Inicio";
   const description = isEnglish
     ? `Discover curated travel packages by ${input.siteName}. All-in-one unique experiences.`
     : buildPackagesDescription(input.siteName);
 
   return [
     {
-      '@context': 'https://schema.org',
-      '@type': 'CollectionPage',
+      "@context": "https://schema.org",
+      "@type": "CollectionPage",
       inLanguage: normalizedLocale,
       name: `${packagesLabel} | ${input.siteName}`,
       description,
       url: `${input.baseUrl}/${packagesSegment}`,
       mainEntity: {
-        '@type': 'ItemList',
+        "@type": "ItemList",
         numberOfItems: input.packages.length,
         itemListElement: input.packages.slice(0, 20).map((product, index) => ({
-          '@type': 'ListItem',
+          "@type": "ListItem",
           position: index + 1,
           name: product.name,
-          url: product.slug ? `${input.baseUrl}/${packagesSegment}/${product.slug}` : undefined,
+          url: product.slug
+            ? `${input.baseUrl}/${packagesSegment}/${product.slug}`
+            : undefined,
         })),
       },
     },
     {
-      '@context': 'https://schema.org',
-      '@type': 'BreadcrumbList',
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
       inLanguage: normalizedLocale,
       itemListElement: [
-        { '@type': 'ListItem', position: 1, name: homeLabel, item: input.baseUrl },
-        { '@type': 'ListItem', position: 2, name: packagesLabel },
+        {
+          "@type": "ListItem",
+          position: 1,
+          name: homeLabel,
+          item: input.baseUrl,
+        },
+        { "@type": "ListItem", position: 2, name: packagesLabel },
       ],
     },
     {
-      '@context': 'https://schema.org',
-      '@type': 'TravelAgency',
+      "@context": "https://schema.org",
+      "@type": "TravelAgency",
       name: input.siteName,
       url: input.baseUrl,
       inLanguage: normalizedLocale,
@@ -95,7 +106,9 @@ function buildPackagesSchemas(input: {
   ];
 }
 
-export async function generateMetadata({ params }: PaquetesPageProps): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: PaquetesPageProps): Promise<Metadata> {
   const { subdomain } = await params;
   const website = await getWebsiteBySubdomain(subdomain);
   const siteName = getSiteName(website, subdomain);
@@ -103,7 +116,7 @@ export async function generateMetadata({ params }: PaquetesPageProps): Promise<M
 
   if (!website) {
     return {
-      title: 'Paquetes de Viaje',
+      title: "Paquetes de Viaje",
       description,
     };
   }
@@ -112,20 +125,19 @@ export async function generateMetadata({ params }: PaquetesPageProps): Promise<M
     ? `https://${website.custom_domain}`
     : `https://${subdomain}.bukeer.com`;
   const localeContext = await resolvePublicMetadataLocale(website, PAGE_PATH);
-  const canonicalPath = buildPublicLocalizedPath(
-    PAGE_PATH,
-    localeContext.resolvedLocale,
-    localeContext.defaultLocale,
-  );
-  const canonical = `${baseUrl}${canonicalPath}`;
+  const canonical = `${baseUrl}${localeContext.localizedPathname}`;
   const ogImage = resolveOgImage(website);
 
   return {
-    title: 'Paquetes de Viaje',
+    title: "Paquetes de Viaje",
     description,
     alternates: {
       canonical,
-      languages: buildLocaleAwareAlternateLanguages(baseUrl, PAGE_PATH, localeContext),
+      languages: buildLocaleAwareAlternateLanguages(
+        baseUrl,
+        PAGE_PATH,
+        localeContext,
+      ),
     },
     openGraph: {
       title: `Paquetes de Viaje | ${siteName}`,
@@ -133,11 +145,11 @@ export async function generateMetadata({ params }: PaquetesPageProps): Promise<M
       url: canonical,
       siteName,
       locale: localeToOgLocale(localeContext.resolvedLocale),
-      type: 'website',
+      type: "website",
       ...(ogImage && { images: [{ url: ogImage }] }),
     },
     twitter: {
-      card: 'summary_large_image',
+      card: "summary_large_image",
       title: `Paquetes de Viaje | ${siteName}`,
       description,
       ...(ogImage && { images: [ogImage] }),
@@ -149,20 +161,24 @@ export default async function PaquetesPage({ params }: PaquetesPageProps) {
   const { subdomain } = await params;
   const website = await getWebsiteBySubdomain(subdomain);
 
-  if (!website || website.status !== 'published') {
+  if (!website || website.status !== "published") {
     notFound();
   }
 
   const headerList = await headers();
-  const isCustomDomain = Boolean(headerList.get('x-custom-domain'));
+  const isCustomDomain = Boolean(headerList.get("x-custom-domain"));
   const localeContext = await resolvePublicMetadataLocale(website, PAGE_PATH);
-  const { items: packageProducts } = await getCategoryProducts(subdomain, 'packages', {
-    limit: 100,
-    offset: 0,
-    locale: localeContext.resolvedLocale,
-    defaultLocale: localeContext.defaultLocale ?? 'es-CO',
-    websiteId: String(website.id),
-  });
+  const { items: packageProducts } = await getCategoryProducts(
+    subdomain,
+    "packages",
+    {
+      limit: 100,
+      offset: 0,
+      locale: localeContext.resolvedLocale,
+      defaultLocale: localeContext.defaultLocale ?? "es-CO",
+      websiteId: String(website.id),
+    },
+  );
 
   const websiteForRender = {
     ...website,
@@ -198,7 +214,10 @@ export default async function PaquetesPage({ params }: PaquetesPageProps) {
         website={websiteForRender}
         payload={payload}
       >
-        <PackagesListingPage website={websiteForRender} packages={packageProducts} />
+        <PackagesListingPage
+          website={websiteForRender}
+          packages={packageProducts}
+        />
       </TemplateSlot>
     </>
   );
