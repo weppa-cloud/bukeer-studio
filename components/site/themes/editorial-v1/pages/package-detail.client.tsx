@@ -1405,7 +1405,7 @@ export function EditorialPackageDetailClient({
                 <section data-testid="detail-hotels">
                   <h2 className="text-2xl font-bold">Alojamientos <em>seleccionados</em></h2>
                   <p className="body-md mt-2 mb-6 text-[var(--c-muted)]">
-                    Hoteles boutique y fincas curadas por tu planner. Se pueden ajustar por categoría sin cambiar el resto del viaje.
+                    Hoteles seleccionados por tu planner. Se pueden ajustar por categoría sin cambiar el resto del viaje.
                   </p>
                   <div className="hotels-grid">
                     {packageHotels.map((hotel, index) => (
