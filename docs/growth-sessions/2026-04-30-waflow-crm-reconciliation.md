@@ -460,3 +460,61 @@ Production activation checklist:
    automations, or migrate its responsibilities deliberately.
 5. Run one more real message and confirm it appears in `webhook_events` without
    local replay.
+
+## Addendum - Studio Chatwoot webhook activated
+
+Updated: 2026-04-30T20:20Z.
+
+Production changes applied:
+
+- Deployed Worker version `d54d03e7-e1b7-4dc0-a0ab-4fd40d86cd50`.
+- Set/rotated Cloudflare `CHATWOOT_WEBHOOK_SECRET`.
+- Created Chatwoot account webhook:
+  - `webhook_id=59`
+  - account: ColombiaTours `account_id=11`
+  - name: `Bukeer Studio Growth OS`
+  - URL: `https://colombiatours.travel/api/webhooks/chatwoot?token=***`
+  - subscriptions:
+    - `conversation_created`
+    - `conversation_updated`
+    - `conversation_status_changed`
+    - `message_created`
+    - `message_updated`
+- Left legacy Supabase Edge Function webhook in place to avoid breaking existing
+  automations while migration is reviewed.
+
+Implementation note:
+
+- Native Chatwoot account webhooks do not send custom HMAC headers.
+- Studio endpoint now supports either HMAC for controlled tests/relays or a
+  secret URL token for native Chatwoot webhooks.
+- Token mode skips replay timestamp checks because native Chatwoot payloads do
+  not provide a signed timestamp; ADR-018 idempotency still applies through
+  `webhook_events(provider,event_id)`.
+
+Native Chatwoot smoke:
+
+- Triggered Chatwoot `WebhookJob` against real message `10790307`.
+- Studio processed event via token auth.
+
+Post-smoke verification:
+
+| Check                                          | Result             |
+| ---------------------------------------------- | ------------------ |
+| `webhook_events.event_id`                      | `10790307`         |
+| `webhook_events.status`                        | `processed`        |
+| auth mode                                      | `token`            |
+| `waflow_leads.chatwoot_conversation_id`        | `34883`            |
+| CRM request                                    | `SOL-1002`         |
+| `requests.chatwoot_conversation_id`            | `34883`            |
+| `requests.custom_fields.growth_reference_code` | `PAQUET-3004-9NGK` |
+| `requests.lead_source`                         | `facebook_ads`     |
+
+Cleanup note:
+
+- `SOL-1935` was created by the earlier local replay using Chatwoot internal DB
+  id `557019`.
+- Native Chatwoot payloads use display id `34883`; the valid production request
+  is `SOL-1002`.
+- `SOL-1935` was marked as a Growth test artifact with
+  `growth_duplicate_of_request_short_id=SOL-1002`.
