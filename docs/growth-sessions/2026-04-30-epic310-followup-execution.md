@@ -194,3 +194,12 @@ Production smoke after deploy:
   `/blog/amazonia-colombia-heartbeat-of-the-planet` -> `308`
   `/en/blog/amazonia-colombia-heartbeat-of-the-planet`;
   `/blog/capurgana-colombia` -> `308` `/en/blog/capurgana-colombia`.
+- CI deploy run for the locale-mismatch fix: `25175968591`, branch `main`,
+  commit `b4a04c4d`, status `success`.
+- Production smoke after locale-mismatch deploy:
+  `/blog/amazonia-colombia-heartbeat-of-the-planet` -> `308`
+  `/en/blog/amazonia-colombia-heartbeat-of-the-planet`;
+  `/blog/capurgana-colombia` -> `308` `/en/blog/capurgana-colombia`;
+  `/en/blog/amazonia-colombia-heartbeat-of-the-planet` remains
+  `index, follow` with canonical
+  `https://colombiatours.travel/en/blog/amazonia-colombia-heartbeat-of-the-planet`.
