@@ -152,7 +152,9 @@ Production smoke after deploy:
 ## Remaining Watch
 
 - WhatsApp CTA custom-domain event persistence is fixed and production-smoke
-  proven. Full WAFlow-to-booking chain still needs a live business reference.
+  proven. Controlled WAFlow-to-booking continuity is complete for
+  `SMK-0428-150408`; repeat with a fresh live business reference before
+  declaring full attribution `PASS`.
 - `page_search_appearance` remains WATCH because GSC rejected the combined
   page/searchAppearance query; standalone discovery works.
 - Panaca remains a cache/payload watch.

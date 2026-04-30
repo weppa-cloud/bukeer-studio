@@ -1,0 +1,325 @@
+{
+  "mode": "apply",
+  "generated_at": "2026-04-30T18:21:59.677Z",
+  "run_tag": "epic310-max-matrix-smoke-20260430",
+  "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+  "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+  "domain": "colombiatours.travel",
+  "brand": "ColombiaTours",
+  "seed": {
+    "keywords": [
+      "viajes a colombia",
+      "tours en colombia",
+      "paquetes turisticos colombia",
+      "tour eje cafetero",
+      "tour cartagena",
+      "tour medellin",
+      "amazonas colombia tour",
+      "ciudad perdida colombia"
+    ],
+    "topics": [
+      "ColombiaTours",
+      "turismo en Colombia",
+      "viajes organizados Colombia",
+      "paquetes turisticos Colombia"
+    ],
+    "competitors": [
+      "impulse.travel",
+      "colombia.travel",
+      "tourguidescolombia.com",
+      "gran-colombia-tours.com",
+      "colombiatours.co"
+    ],
+    "localQueries": [
+      "agencia de viajes colombia tours",
+      "tours colombia bogota",
+      "agencia de viajes colombia"
+    ],
+    "locations": [
+      {
+        "name": "Colombia",
+        "location_code": 2170,
+        "language_code": "es"
+      },
+      {
+        "name": "United States",
+        "location_code": 2840,
+        "language_code": "en"
+      }
+    ],
+    "locale": "es-CO",
+    "location_code": 2170,
+    "language_code": "es"
+  },
+  "profiles": [
+    {
+      "id": "dfs_labs_demand_cluster_v1",
+      "family": "labs",
+      "feature": "DataForSEO Labs demand and clusters",
+      "priority": "P0",
+      "cadence": "monthly",
+      "approval": "profile_approved_seed_set_required",
+      "raw_cache": "growth_dataforseo_cache",
+      "usage_table": "seo_provider_usage",
+      "endpoints": [
+        {
+          "slug": "labs-keyword-ideas-colombia",
+          "endpoint": "/v3/dataforseo_labs/google/keyword_ideas/live",
+          "body": [
+            {
+              "keywords": [
+                "viajes a colombia",
+                "tours en colombia"
+              ],
+              "location_code": 2170,
+              "language_code": "es",
+              "include_serp_info": true,
+              "limit": 100,
+              "tag": "epic310-max-matrix-smoke-20260430|labs|keyword_ideas"
+            }
+          ],
+          "dry_run_only_reason": null
+        }
+      ]
+    },
+    {
+      "id": "dfs_labs_competitor_visibility_v1",
+      "family": "labs",
+      "feature": "Competitor visibility",
+      "priority": "P1",
+      "cadence": "monthly",
+      "approval": "profile_approved_competitors_required",
+      "raw_cache": "growth_dataforseo_cache",
+      "usage_table": "seo_provider_usage",
+      "endpoints": [
+        {
+          "slug": "labs-ranked-keywords-domain",
+          "endpoint": "/v3/dataforseo_labs/google/ranked_keywords/live",
+          "body": [
+            {
+              "target": "colombiatours.travel",
+              "location_code": 2170,
+              "language_code": "es",
+              "limit": 100,
+              "tag": "epic310-max-matrix-smoke-20260430|labs|ranked_keywords|colombiatours.travel"
+            }
+          ],
+          "dry_run_only_reason": null
+        }
+      ]
+    },
+    {
+      "id": "dfs_labs_gap_intersections_v1",
+      "family": "labs",
+      "feature": "Domain/page intersections",
+      "priority": "P1",
+      "cadence": "monthly",
+      "approval": "profile_approved_competitors_required",
+      "raw_cache": "growth_dataforseo_cache",
+      "usage_table": "seo_provider_usage",
+      "endpoints": [
+        {
+          "slug": "labs-domain-intersection",
+          "endpoint": "/v3/dataforseo_labs/google/domain_intersection/live",
+          "body": [
+            {
+              "target1": "colombiatours.travel",
+              "target2": "impulse.travel",
+              "location_code": 2170,
+              "language_code": "es",
+              "limit": 100,
+              "tag": "epic310-max-matrix-smoke-20260430|labs|domain_intersection"
+            }
+          ],
+          "dry_run_only_reason": null
+        }
+      ]
+    },
+    {
+      "id": "dfs_serp_priority_keywords_v1",
+      "family": "serp",
+      "feature": "SERP Advanced priority keyword intelligence",
+      "priority": "P1",
+      "cadence": "biweekly",
+      "approval": "profile_approved_keywords_required",
+      "raw_cache": "growth_dataforseo_cache",
+      "usage_table": "seo_provider_usage",
+      "endpoints": [
+        {
+          "slug": "serp-organic-1",
+          "endpoint": "/v3/serp/google/organic/live/advanced",
+          "body": [
+            {
+              "keyword": "viajes a colombia",
+              "location_code": 2170,
+              "language_code": "es",
+              "device": "desktop",
+              "depth": 20,
+              "tag": "epic310-max-matrix-smoke-20260430|serp|organic|1"
+            }
+          ],
+          "dry_run_only_reason": null
+        }
+      ]
+    },
+    {
+      "id": "dfs_serp_local_pack_v1",
+      "family": "serp",
+      "feature": "Google Maps / Local Finder SERP",
+      "priority": "P1",
+      "cadence": "monthly",
+      "approval": "profile_approved_locations_required",
+      "raw_cache": "growth_dataforseo_cache",
+      "usage_table": "seo_provider_usage",
+      "endpoints": [
+        {
+          "slug": "serp-maps-1",
+          "endpoint": "/v3/serp/google/maps/live/advanced",
+          "body": [
+            {
+              "keyword": "agencia de viajes colombia tours",
+              "location_code": 2170,
+              "language_code": "es",
+              "device": "desktop",
+              "depth": 20,
+              "tag": "epic310-max-matrix-smoke-20260430|serp|maps|1"
+            }
+          ],
+          "dry_run_only_reason": null
+        }
+      ]
+    },
+    {
+      "id": "dfs_backlinks_authority_v1",
+      "family": "backlinks",
+      "feature": "Backlinks authority baseline",
+      "priority": "P1",
+      "cadence": "monthly",
+      "approval": "profile_approved_competitors_required",
+      "raw_cache": "growth_dataforseo_cache",
+      "usage_table": "seo_provider_usage",
+      "endpoints": [
+        {
+          "slug": "backlinks-summary-domain",
+          "endpoint": "/v3/backlinks/summary/live",
+          "body": [
+            {
+              "target": "colombiatours.travel",
+              "include_subdomains": true,
+              "tag": "epic310-max-matrix-smoke-20260430|backlinks|summary|colombiatours.travel"
+            }
+          ],
+          "dry_run_only_reason": null
+        }
+      ]
+    },
+    {
+      "id": "dfs_backlinks_competitor_gap_v1",
+      "family": "backlinks",
+      "feature": "Backlinks competitor gap",
+      "priority": "P1",
+      "cadence": "monthly",
+      "approval": "profile_approved_competitors_required",
+      "raw_cache": "growth_dataforseo_cache",
+      "usage_table": "seo_provider_usage",
+      "endpoints": [
+        {
+          "slug": "backlinks-competitor-summary-impulse.travel",
+          "endpoint": "/v3/backlinks/summary/live",
+          "body": [
+            {
+              "target": "impulse.travel",
+              "include_subdomains": true,
+              "tag": "epic310-max-matrix-smoke-20260430|backlinks|summary|impulse.travel|vs|colombiatours.travel"
+            }
+          ],
+          "dry_run_only_reason": null
+        }
+      ]
+    },
+    {
+      "id": "dfs_business_local_v1",
+      "family": "business_data",
+      "feature": "Business Data and Google local baseline",
+      "priority": "P1",
+      "cadence": "monthly",
+      "approval": "profile_approved_locations_required",
+      "raw_cache": "growth_dataforseo_cache",
+      "usage_table": "seo_provider_usage",
+      "endpoints": [
+        {
+          "slug": "business-my-business-info-1",
+          "endpoint": "/v3/business_data/google/my_business_info/live",
+          "body": [
+            {
+              "keyword": "agencia de viajes colombia tours",
+              "location_code": 2170,
+              "language_code": "es",
+              "depth": 20,
+              "tag": "epic310-max-matrix-smoke-20260430|business_data|my_business_info|ColombiaTours|1"
+            }
+          ],
+          "dry_run_only_reason": null
+        }
+      ]
+    },
+    {
+      "id": "dfs_reviews_sentiment_v1",
+      "family": "reviews",
+      "feature": "Reviews sentiment",
+      "priority": "P2",
+      "cadence": "monthly",
+      "approval": "profile_approved_locations_required",
+      "raw_cache": "growth_dataforseo_cache",
+      "usage_table": "seo_provider_usage",
+      "endpoints": []
+    },
+    {
+      "id": "dfs_content_brand_sentiment_v1",
+      "family": "content_analysis",
+      "feature": "Content Analysis brand/topic sentiment",
+      "priority": "P2",
+      "cadence": "monthly",
+      "approval": "profile_approved_topics_required",
+      "raw_cache": "growth_dataforseo_cache",
+      "usage_table": "seo_provider_usage",
+      "endpoints": [
+        {
+          "slug": "content-analysis-brand-summary",
+          "endpoint": "/v3/content_analysis/summary/live",
+          "body": [
+            {
+              "keyword": "ColombiaTours",
+              "language_code": "es",
+              "tag": "epic310-max-matrix-smoke-20260430|content_analysis|summary|brand"
+            }
+          ],
+          "dry_run_only_reason": null
+        }
+      ]
+    },
+    {
+      "id": "dfs_domain_competitive_baseline_v1",
+      "family": "domain_analytics",
+      "feature": "Domain Analytics competitive baseline",
+      "priority": "P2",
+      "cadence": "quarterly",
+      "approval": "profile_approved_competitors_required",
+      "raw_cache": "growth_dataforseo_cache",
+      "usage_table": "seo_provider_usage",
+      "endpoints": [
+        {
+          "slug": "domain-whois-colombiatours.travel",
+          "endpoint": "/v3/domain_analytics/whois/overview/live",
+          "body": [
+            {
+              "target": "colombiatours.travel",
+              "tag": "epic310-max-matrix-smoke-20260430|domain_analytics|whois|colombiatours.travel"
+            }
+          ],
+          "dry_run_only_reason": null
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,89 @@
+{
+  "generated_at": "2026-04-30T16:53:18.718Z",
+  "mode": "dry-run",
+  "current_run": "04291924-1574-0216-0000-e2085593ce67",
+  "previous_run": "04290125-1574-0216-0000-00a1195b1ba0",
+  "status": "PASS",
+  "steps": [
+    {
+      "name": "gsc_inventory_normalizer",
+      "command": "node scripts/seo/normalize-growth-gsc-cache.mjs --limit 100",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0,
+      "duration_ms": 2093,
+      "stdout_tail": "{\n  \"mode\": \"dry-run\",\n  \"cacheSets\": {\n    \"queryPage\": [\n      {\n        \"cache_key\": \"2026-04-02|2026-04-29|query,page|*|es|25000\",\n        \"cache_tag\": \"growth:gsc:website:894545b7-73ca-4dae-b76a-da5b6a3f8441:locale:es\",\n        \"window\": \"2026-04-02..2026-04-29\",\n        \"rows\": 14789,\n        \"fetched_at\": \"2026-04-30T14:37:50.251+00:00\"\n      }\n    ],\n    \"pageCountry\": [\n      {\n        \"cache_key\": \"2026-04-02|2026-04-29|page,country|*|es|25000\",\n        \"cache_tag\": \"growth:gsc:website:894545b7-73ca-4dae-b76a-da5b6a3f8441:locale:es\",\n        \"window\": \"2026-04-02..2026-04-29\",\n        \"rows\": 5186,\n        \"fetched_at\": \"2026-04-30T14:37:52.805+00:00\"\n      }\n    ],\n    \"pageDevice\": [\n      {\n        \"cache_key\": \"2026-04-02|2026-04-29|page,device|*|es|25000\",\n        \"cache_tag\": \"growth:gsc:website:894545b7-73ca-4dae-b76a-da5b6a3f8441:locale:es\",\n        \"window\": \"2026-04-02..2026-04-29\",\n        \"rows\": 1765,\n        \"fetched_at\": \"2026-04-30T14:37:54.431+00:00\"\n      }\n    ],\n    \"datePage\": [\n      {\n        \"cache_key\": \"2026-04-02|2026-04-29|date,page|*|es|25000\",\n        \"cache_tag\": \"growth:gsc:website:894545b7-73ca-4dae-b76a-da5b6a3f8441:locale:es\",\n        \"window\": \"2026-04-02..2026-04-29\",\n        \"rows\": 12022,\n        \"fetched_at\": \"2026-04-30T14:37:55.852+00:00\"\n      }\n    ]\n  },\n  \"opportunityCounts\": {\n    \"page_country_market\": 455,\n    \"page_device_mobile\": 96,\n    \"query_page_poor_position\": 39,\n    \"query_page_low_ctr\": 178,\n    \"date_page_trend_watch\": 149\n  },\n  \"inventoryRows\": 100,\n  \"applied\": false,\n  \"outDir\": \"artifacts/seo/2026-04-29-growth-gsc-inventory-normalization\"\n}",
+      "stderr_tail": ""
+    },
+    {
+      "name": "ga4_inventory_normalizer",
+      "command": "node scripts/seo/normalize-growth-ga4-cache.mjs --limit 100",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0,
+      "duration_ms": 1116,
+      "stdout_tail": "{\n  \"mode\": \"dry-run\",\n  \"window\": {\n    \"from\": \"2026-04-02\",\n    \"to\": \"2026-04-29\"\n  },\n  \"counts\": {\n    \"growth_ga4_cache\": 4,\n    \"ga4_reports\": 4,\n    \"ga4_rows\": 13940,\n    \"funnel_events\": 10,\n    \"meta_conversion_events\": 10,\n    \"candidates\": 491,\n    \"inventory_rows\": 100\n  },\n  \"candidate_buckets\": {\n    \"campaign_traffic_watch\": 18,\n    \"event_page_dropoff\": 324,\n    \"source_medium_page_opportunity\": 95,\n    \"landing_low_activation\": 54\n  },\n  \"applied\": false,\n  \"outDir\": \"artifacts/seo/2026-04-29-growth-ga4-inventory-normalization\"\n}",
+      "stderr_tail": ""
+    },
+    {
+      "name": "dataforseo_v2_triage",
+      "command": "node scripts/seo/triage-dataforseo-findings.mjs --current 04291924-1574-0216-0000-e2085593ce67 --previous 04290125-1574-0216-0000-00a1195b1ba0 --limit 200",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0,
+      "duration_ms": 1456,
+      "stdout_tail": "{\n  \"mode\": \"dry-run\",\n  \"counts\": {\n    \"current_findings\": 1528,\n    \"previous_findings\": 851,\n    \"classified_findings\": 1528,\n    \"root_patterns\": 12,\n    \"inventory_updates\": 145,\n    \"experiments\": 5,\n    \"rejected_experiments\": 7\n  },\n  \"classification_counts\": {\n    \"validity\": {\n      \"v2_profile_discovery\": 242,\n      \"real_persistent\": 599,\n      \"needs_manual_validation\": 22,\n      \"new_needs_validation\": 351,\n      \"real_likely_batch\": 314\n    },\n    \"operational_severity\": {\n      \"P0\": 203,\n      \"WATCH\": 889,\n      \"P1\": 436\n    },\n    \"root_pattern\": {\n      \"status_or_soft_404\": 203,\n      \"performance\": 84,\n      \"canonical\": 173,\n      \"internal_linking\": 287,\n      \"metadata_template_or_content\": 549,\n      \"media_assets\": 190,\n      \"technical_watch\": 42\n    },\n    \"gate\": {\n      \"blocks_scale\": 203,\n      \"watch\": 1065,\n      \"blocks_content_scale\": 143,\n      \"blocks_targeted_scale\": 117\n    }\n  },\n  \"top_artifact\": \"artifacts/seo/2026-04-29-dataforseo-v2-triage/dataforseo-v2-triage.md\",\n  \"applied\": false\n}",
+      "stderr_tail": ""
+    },
+    {
+      "name": "dataforseo_diff",
+      "command": "node scripts/seo/diff-growth-audit-runs.mjs --current 04291924-1574-0216-0000-e2085593ce67 --previous 04290125-1574-0216-0000-00a1195b1ba0",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0,
+      "duration_ms": 2298,
+      "stdout_tail": "{\n  \"current\": 1528,\n  \"previous\": 851,\n  \"new\": 929,\n  \"open\": 599,\n  \"resolved\": 252,\n  \"regressed\": 0,\n  \"watch\": 51\n}",
+      "stderr_tail": ""
+    },
+    {
+      "name": "cache_health",
+      "command": "node scripts/seo/growth-cache-health-report.mjs",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0,
+      "duration_ms": 18681,
+      "stdout_tail": "{\n  \"outDir\": \"artifacts/seo/2026-04-30-growth-cache-health\",\n  \"status\": \"PASS\",\n  \"tables\": [\n    {\n      \"table\": \"growth_gsc_cache\",\n      \"status\": \"PASS\",\n      \"row_count\": 6,\n      \"latest_at\": \"2026-04-30T14:37:57.635+00:00\",\n      \"age_hours\": 2.25\n    },\n    {\n      \"table\": \"growth_ga4_cache\",\n      \"status\": \"PASS\",\n      \"row_count\": 4,\n      \"latest_at\": \"2026-04-30T14:38:06.201+00:00\",\n      \"age_hours\": 2.24\n    },\n    {\n      \"table\": \"growth_dataforseo_cache\",\n      \"status\": \"PASS\",\n      \"row_count\": 32,\n      \"latest_at\": \"2026-04-30T15:49:40.775+00:00\",\n      \"age_hours\": 1.05\n    },\n    {\n      \"table\": \"seo_audit_findings\",\n      \"status\": \"PASS\",\n      \"row_count\": 3133,\n      \"latest_at\": \"2026-04-30T15:50:47.628+00:00\",\n      \"age_hours\": 1.03\n    },\n    {\n      \"table\": \"seo_audit_results\",\n      \"status\": \"PASS\",\n      \"row_count\": 4618,\n      \"latest_at\": \"2026-04-30\",\n      \"age_hours\": 16.88\n    },\n    {\n      \"table\": \"funnel_events\",\n      \"status\": \"PASS\",\n      \"row_count\": 20,\n      \"latest_at\": \"2026-04-30T16:32:00.13+00:00\",\n      \"age_hours\": 0.35\n    },\n    {\n      \"table\": \"meta_conversion_events\",\n      \"status\": \"PASS\",\n      \"row_count\": 14,\n      \"latest_at\": \"2026-04-30T16:31:55+00:00\",\n      \"age_hours\": 0.35\n    }\n  ],\n  \"gsc_search_appearance_discovery\": \"PASS\",\n  \"max_matrix_status\": \"BLOCKED\",\n  \"max_matrix_profiles\": {\n    \"WATCH\": 16,\n    \"BLOCKED\": 22,\n    \"PASS\": 7\n  }\n}",
+      "stderr_tail": ""
+    },
+    {
+      "name": "max_matrix_orchestrator",
+      "command": "node scripts/seo/run-growth-max-matrix-orchestrator.mjs --cadence weekly",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0,
+      "duration_ms": 45,
+      "stdout_tail": "{\n  \"status\": \"WATCH\",\n  \"mode\": \"dry-run\",\n  \"cadence\": \"weekly\",\n  \"outDir\": \"artifacts/seo/2026-04-30-growth-max-matrix-orchestrator\",\n  \"selected_profiles\": 25,\n  \"runnable_now\": 14,\n  \"blocked\": 0,\n  \"watch\": 11\n}",
+      "stderr_tail": ""
+    },
+    {
+      "name": "max_matrix_coverage",
+      "command": "node scripts/seo/audit-growth-max-matrix-coverage.mjs",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0,
+      "duration_ms": 18741,
+      "stdout_tail": "{\n  \"outDir\": \"artifacts/seo/2026-04-30-growth-max-matrix-coverage\",\n  \"source\": \"scripts/seo/growth-provider-profile-registry.mjs\",\n  \"profiles\": 45,\n  \"summary\": {\n    \"total_profiles\": 45,\n    \"registry_present\": true,\n    \"registry_loaded\": true,\n    \"supabase_enabled\": true,\n    \"by_status\": {\n      \"partial\": 43,\n      \"excluded/watch\": 2\n    },\n    \"by_priority\": {\n      \"P0\": 14,\n      \"P1\": 24,\n      \"P2\": 5,\n      \"P3\": 2\n    },\n    \"p0_p1_open_gaps\": 38\n  },\n  \"supabase\": {\n    \"enabled\": true,\n    \"tables_inspected\": 42\n  }\n}",
+      "stderr_tail": ""
+    },
+    {
+      "name": "max_matrix_council_enforcement",
+      "command": "node scripts/seo/generate-growth-max-matrix-council-artifact.mjs",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0,
+      "duration_ms": 686,
+      "stdout_tail": "{\n  \"status\": \"BLOCKED\",\n  \"outDir\": \"artifacts/seo/2026-04-30-growth-max-matrix-council\",\n  \"counts\": {\n    \"inputs_found\": 2,\n    \"candidates\": 50,\n    \"approved_active\": 0,\n    \"blocked\": 50,\n    \"rejected\": 0\n  }\n}",
+      "stderr_tail": ""
+    }
+  ]
+}

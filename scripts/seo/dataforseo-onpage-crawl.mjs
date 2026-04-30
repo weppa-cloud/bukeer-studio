@@ -3,6 +3,9 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { createClient } from '@supabase/supabase-js';
+import dotenv from 'dotenv';
+
+dotenv.config({ path: '.env.local' });
 
 const API_BASE = 'https://api.dataforseo.com/v3';
 const DEFAULT_TARGET = 'colombiatours.travel';

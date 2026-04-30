@@ -1,0 +1,1239 @@
+{
+  "generated_at": "2026-04-30T20:40:07.334Z",
+  "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+  "status": "PASS",
+  "max_matrix_status": "WATCH",
+  "tables": [
+    {
+      "table": "growth_gsc_cache",
+      "provider": "gsc",
+      "status": "PASS",
+      "row_count": 10,
+      "freshness_sla_hours": 24,
+      "latest_at": "2026-04-30T18:22:24.741+00:00",
+      "latest_time_column": "fetched_at",
+      "age_hours": 2.29,
+      "expired_rows": 0,
+      "available_identity_columns": [],
+      "recent": [
+        {
+          "cache_key": "profile|gsc_brand_nonbrand_v1|nonbrand_query_page|2026-04-02|2026-04-29|query,page|web|query%3AexcludingRegex%3Abukeer%7Ccolombia%5Cs*tours%3F%7Ccolombiatours|nonbrand|es|25000",
+          "cache_tag": "growth:gsc:website:894545b7-73ca-4dae-b76a-da5b6a3f8441:locale:es:profile:gsc_brand_nonbrand_v1",
+          "fetched_at": "2026-04-30T18:22:24.741+00:00",
+          "expires_at": "2026-05-01T18:22:25.808555+00:00",
+          "row_count": 14553
+        },
+        {
+          "cache_key": "profile|gsc_brand_nonbrand_v1|brand_query_page|2026-04-02|2026-04-29|query,page|web|query%3AincludingRegex%3Abukeer%7Ccolombia%5Cs*tours%3F%7Ccolombiatours|brand|es|25000",
+          "cache_tag": "growth:gsc:website:894545b7-73ca-4dae-b76a-da5b6a3f8441:locale:es:profile:gsc_brand_nonbrand_v1",
+          "fetched_at": "2026-04-30T18:22:23.077+00:00",
+          "expires_at": "2026-05-01T18:22:23.573112+00:00",
+          "row_count": 236
+        },
+        {
+          "cache_key": "profile|gsc_locale_path_v1|locale_path|2026-04-02|2026-04-29|page,query,country|web|page%3AincludingRegex%3A%5C%2F(en%7Cmx)(%5C%2F%7C%24)|*|es|25000",
+          "cache_tag": "growth:gsc:website:894545b7-73ca-4dae-b76a-da5b6a3f8441:locale:es:profile:gsc_locale_path_v1",
+          "fetched_at": "2026-04-30T18:22:22.288+00:00",
+          "expires_at": "2026-05-01T18:22:22.518683+00:00",
+          "row_count": 208
+        },
+        {
+          "cache_key": "profile|gsc_daily_complete_image_v1|daily_complete_image|2026-04-29|2026-04-29|date,page,query,country,device|image|*|*|es|25000",
+          "cache_tag": "growth:gsc:website:894545b7-73ca-4dae-b76a-da5b6a3f8441:locale:es:profile:gsc_daily_complete_image_v1",
+          "fetched_at": "2026-04-30T18:22:21.601+00:00",
+          "expires_at": "2026-05-01T18:22:21.816483+00:00",
+          "row_count": 0
+        },
+        {
+          "cache_key": "profile|gsc_daily_complete_web_v1|daily_complete_web|2026-04-29|2026-04-29|date,page,query,country,device|web|*|*|es|25000",
+          "cache_tag": "growth:gsc:website:894545b7-73ca-4dae-b76a-da5b6a3f8441:locale:es:profile:gsc_daily_complete_web_v1",
+          "fetched_at": "2026-04-30T18:22:21.024+00:00",
+          "expires_at": "2026-05-01T18:22:21.250428+00:00",
+          "row_count": 0
+        }
+      ]
+    },
+    {
+      "table": "growth_ga4_cache",
+      "provider": "ga4",
+      "status": "PASS",
+      "row_count": 9,
+      "freshness_sla_hours": 6,
+      "latest_at": "2026-04-30T18:22:33.172+00:00",
+      "latest_time_column": "fetched_at",
+      "age_hours": 2.29,
+      "expired_rows": 4,
+      "available_identity_columns": [],
+      "recent": [
+        {
+          "cache_key": "2026-04-02|2026-04-29|eventCount,totalUsers|eventName,pagePath|es|1|{\"filter\":{\"fieldName\":\"eventName\",\"inListFilter\":{\"values\":[\"file_download\",\"click\",\"scroll\"],\"caseSensitive\":false}}}",
+          "cache_tag": "growth:ga4:website:894545b7-73ca-4dae-b76a-da5b6a3f8441:locale:es",
+          "fetched_at": "2026-04-30T18:22:33.172+00:00",
+          "expires_at": "2026-05-01T00:22:33.386468+00:00",
+          "row_count": 1
+        },
+        {
+          "cache_key": "2026-04-02|2026-04-29|eventCount,totalUsers|eventName,pagePath|es|1|{\"filter\":{\"fieldName\":\"eventName\",\"inListFilter\":{\"values\":[\"view_search_results\",\"search\"],\"caseSensitive\":false}}}",
+          "cache_tag": "growth:ga4:website:894545b7-73ca-4dae-b76a-da5b6a3f8441:locale:es",
+          "fetched_at": "2026-04-30T18:22:32.367+00:00",
+          "expires_at": "2026-05-01T00:22:32.587277+00:00",
+          "row_count": 1
+        },
+        {
+          "cache_key": "2026-04-02|2026-04-29|sessions,totalUsers,engagementRate,keyEvents|hostname,landingPagePlusQueryString,sessionDefaultChannelGroup|es|1|*",
+          "cache_tag": "growth:ga4:website:894545b7-73ca-4dae-b76a-da5b6a3f8441:locale:es",
+          "fetched_at": "2026-04-30T18:22:31.41+00:00",
+          "expires_at": "2026-05-01T00:22:31.633024+00:00",
+          "row_count": 1
+        },
+        {
+          "cache_key": "2026-04-02|2026-04-29|sessions,totalUsers,engagementRate,bounceRate,averageSessionDuration,keyEvents|deviceCategory,landingPagePlusQueryString|es|1|*",
+          "cache_tag": "growth:ga4:website:894545b7-73ca-4dae-b76a-da5b6a3f8441:locale:es",
+          "fetched_at": "2026-04-30T18:22:30.632+00:00",
+          "expires_at": "2026-05-01T00:22:30.850368+00:00",
+          "row_count": 1
+        },
+        {
+          "cache_key": "2026-04-02|2026-04-29|sessions,totalUsers,screenPageViews,engagementRate,bounceRate,averageSessionDuration|landingPagePlusQueryString,sessionDefaultChannelGroup|es|1|*",
+          "cache_tag": "growth:ga4:website:894545b7-73ca-4dae-b76a-da5b6a3f8441:locale:es",
+          "fetched_at": "2026-04-30T18:22:28.371+00:00",
+          "expires_at": "2026-05-01T00:22:28.59257+00:00",
+          "row_count": 1
+        }
+      ]
+    },
+    {
+      "table": "growth_dataforseo_cache",
+      "provider": "dataforseo",
+      "status": "PASS",
+      "row_count": 45,
+      "freshness_sla_hours": 168,
+      "latest_at": "2026-04-30T20:39:03.779+00:00",
+      "latest_time_column": "fetched_at",
+      "age_hours": 0.01,
+      "expired_rows": 0,
+      "available_identity_columns": [],
+      "recent": [
+        {
+          "cache_key": "epic310-onpage|04302257-1574-0216-0000-3f30b406bb51|pages-all",
+          "cache_tag": "growth:dataforseo:website:894545b7-73ca-4dae-b76a-da5b6a3f8441:onpage",
+          "endpoint": "/v3/on_page/pages",
+          "fetched_at": "2026-04-30T20:39:03.779+00:00",
+          "expires_at": "2026-05-07T20:39:03.78+00:00",
+          "row_count": 1000
+        },
+        {
+          "cache_key": "epic310-onpage|04302257-1574-0216-0000-3f30b406bb51|summary-latest",
+          "cache_tag": "growth:dataforseo:website:894545b7-73ca-4dae-b76a-da5b6a3f8441:onpage",
+          "endpoint": "/v3/on_page/summary",
+          "fetched_at": "2026-04-30T20:38:58.71+00:00",
+          "expires_at": "2026-05-07T20:38:58.725+00:00",
+          "row_count": 1
+        },
+        {
+          "cache_key": "epic310-onpage|04302257-1574-0216-0000-3f30b406bb51|task-post-response",
+          "cache_tag": "growth:dataforseo:website:894545b7-73ca-4dae-b76a-da5b6a3f8441:onpage",
+          "endpoint": "/v3/on_page/task_post",
+          "fetched_at": "2026-04-30T19:57:06.804+00:00",
+          "expires_at": "2026-05-07T19:57:06.815+00:00",
+          "row_count": 1
+        },
+        {
+          "cache_key": "epic310-max-matrix-smoke-20260430|dfs_domain_competitive_baseline_v1|domain-whois-colombiatours.travel|58793b1e284c133b",
+          "cache_tag": "growth:dataforseo:website:894545b7-73ca-4dae-b76a-da5b6a3f8441:domain_analytics",
+          "endpoint": "/v3/domain_analytics/whois/overview/live",
+          "fetched_at": "2026-04-30T18:23:09.232+00:00",
+          "expires_at": "2026-05-30T18:23:09.232+00:00",
+          "row_count": 1
+        },
+        {
+          "cache_key": "epic310-max-matrix-smoke-20260430|dfs_content_brand_sentiment_v1|content-analysis-brand-summary|6a26975aace32a10",
+          "cache_tag": "growth:dataforseo:website:894545b7-73ca-4dae-b76a-da5b6a3f8441:content_analysis",
+          "endpoint": "/v3/content_analysis/summary/live",
+          "fetched_at": "2026-04-30T18:22:57.79+00:00",
+          "expires_at": "2026-05-30T18:22:57.79+00:00",
+          "row_count": 1
+        }
+      ]
+    },
+    {
+      "table": "seo_audit_findings",
+      "provider": "dataforseo-normalized",
+      "status": "PASS",
+      "row_count": 3183,
+      "freshness_sla_hours": 168,
+      "latest_at": "2026-04-30T20:39:14.564+00:00",
+      "latest_time_column": "fetched_at",
+      "age_hours": 0.01,
+      "expired_rows": null,
+      "available_identity_columns": [
+        "crawl_task_id",
+        "finding_fingerprint"
+      ],
+      "recent": [
+        {
+          "fetched_at": "2026-04-30T20:39:14.564+00:00",
+          "public_url": "https://colombiatours.travel/actividades/bora-bora-vip",
+          "finding_type": "technical_watch",
+          "severity": "info",
+          "source": "dataforseo:on_page",
+          "status": "open",
+          "crawl_task_id": "04302257-1574-0216-0000-3f30b406bb51",
+          "finding_fingerprint": "821a5173c036b532d0d363ba547e3031e32db283aa6de3e81ce1ded4b54aa2ab",
+          "row_count": null
+        },
+        {
+          "fetched_at": "2026-04-30T20:39:14.564+00:00",
+          "public_url": "https://colombiatours.travel/actividades/city-tour-por-bogot-duraci-n-de-6-horas-grupal--c5e58907-be49-4185-9c26-fcee67322074",
+          "finding_type": "technical_watch",
+          "severity": "info",
+          "source": "dataforseo:on_page",
+          "status": "open",
+          "crawl_task_id": "04302257-1574-0216-0000-3f30b406bb51",
+          "finding_fingerprint": "403f08b46b94fa7c856e40a284e84feb705ecd0ad2a8ca36786c8d9bc715eecf",
+          "row_count": null
+        },
+        {
+          "fetched_at": "2026-04-30T20:39:14.564+00:00",
+          "public_url": "https://colombiatours.travel/actividades/4x1-adventure",
+          "finding_type": "technical_watch",
+          "severity": "info",
+          "source": "dataforseo:on_page",
+          "status": "open",
+          "crawl_task_id": "04302257-1574-0216-0000-3f30b406bb51",
+          "finding_fingerprint": "1152306eea34190310f0172412b44cc27f51130238d7ad467fe6096442523d28",
+          "row_count": null
+        },
+        {
+          "fetched_at": "2026-04-30T20:39:14.564+00:00",
+          "public_url": "https://colombiatours.travel/actividades/bora-bora-area-club",
+          "finding_type": "technical_watch",
+          "severity": "info",
+          "source": "dataforseo:on_page",
+          "status": "open",
+          "crawl_task_id": "04302257-1574-0216-0000-3f30b406bb51",
+          "finding_fingerprint": "d20bb1fdc9b2c6f8fcf5d23d7c4b78c232481ebe12aca5f75b01553cfad64f5c",
+          "row_count": null
+        },
+        {
+          "fetched_at": "2026-04-30T20:39:14.564+00:00",
+          "public_url": "https://colombiatours.travel/actividades/city-tour-de-ciudad-y-comuna-13-grupal",
+          "finding_type": "technical_watch",
+          "severity": "info",
+          "source": "dataforseo:on_page",
+          "status": "open",
+          "crawl_task_id": "04302257-1574-0216-0000-3f30b406bb51",
+          "finding_fingerprint": "950d82881abbf66e757b5b0cf3046cbb8a51219c975042838882359498ee704a",
+          "row_count": null
+        }
+      ]
+    },
+    {
+      "table": "seo_audit_results",
+      "provider": "dataforseo-normalized",
+      "status": "PASS",
+      "row_count": 5617,
+      "freshness_sla_hours": 168,
+      "latest_at": "2026-04-30",
+      "latest_time_column": "audit_date",
+      "age_hours": 20.67,
+      "expired_rows": null,
+      "available_identity_columns": [
+        "crawl_task_id"
+      ],
+      "recent": [
+        {
+          "page_url": "https://colombiatours.travel/blog/valle-cercano-a-la-localidad-de-salento",
+          "source": "dataforseo:on_page",
+          "crawl_task_id": "04300334-1574-0216-0000-c57a3723c41d",
+          "row_count": null
+        },
+        {
+          "page_url": "https://colombiatours.travel/blog?page=6",
+          "source": "dataforseo:on_page",
+          "crawl_task_id": "04302257-1574-0216-0000-3f30b406bb51",
+          "row_count": null
+        },
+        {
+          "page_url": "https://colombiatours.travel/blog/un-viaje-por-la-cultura-paisa",
+          "source": "dataforseo:on_page",
+          "crawl_task_id": "04300334-1574-0216-0000-c57a3723c41d",
+          "row_count": null
+        },
+        {
+          "page_url": "https://colombiatours.travel/blog/vale-la-pena-visitar-el-volcan-del-totumo",
+          "source": "dataforseo:on_page",
+          "crawl_task_id": "04300334-1574-0216-0000-c57a3723c41d",
+          "row_count": null
+        },
+        {
+          "page_url": "https://colombiatours.travel/destinos/quindio",
+          "source": "dataforseo:on_page",
+          "crawl_task_id": "04300334-1574-0216-0000-c57a3723c41d",
+          "row_count": null
+        }
+      ]
+    },
+    {
+      "table": "funnel_events",
+      "provider": "tracking",
+      "status": "PASS",
+      "row_count": 35,
+      "freshness_sla_hours": 168,
+      "latest_at": "2026-04-30T19:33:48.068+00:00",
+      "latest_time_column": "occurred_at",
+      "age_hours": 1.1,
+      "expired_rows": null,
+      "available_identity_columns": [],
+      "recent": [
+        {
+          "event_name": "whatsapp_cta_click",
+          "stage": "activation",
+          "channel": "whatsapp",
+          "occurred_at": "2026-04-30T19:33:48.068+00:00",
+          "row_count": null
+        },
+        {
+          "event_name": "whatsapp_cta_click",
+          "stage": "activation",
+          "channel": "whatsapp",
+          "occurred_at": "2026-04-30T19:33:26.165+00:00",
+          "row_count": null
+        },
+        {
+          "event_name": "waflow_submit",
+          "stage": "activation",
+          "channel": "waflow",
+          "occurred_at": "2026-04-30T19:33:25.531+00:00",
+          "row_count": null
+        },
+        {
+          "event_name": "whatsapp_cta_click",
+          "stage": "activation",
+          "channel": "whatsapp",
+          "occurred_at": "2026-04-30T18:50:28.571+00:00",
+          "row_count": null
+        },
+        {
+          "event_name": "waflow_submit",
+          "stage": "activation",
+          "channel": "waflow",
+          "occurred_at": "2026-04-30T18:50:28.338+00:00",
+          "row_count": null
+        }
+      ]
+    },
+    {
+      "table": "meta_conversion_events",
+      "provider": "tracking",
+      "status": "PASS",
+      "row_count": 24,
+      "freshness_sla_hours": 168,
+      "latest_at": "2026-04-30T19:33:56+00:00",
+      "latest_time_column": "event_time",
+      "age_hours": 1.1,
+      "expired_rows": null,
+      "available_identity_columns": [],
+      "recent": [
+        {
+          "status": "failed",
+          "event_name": "ConversationContinued",
+          "event_time": "2026-04-30T19:33:56+00:00",
+          "row_count": null
+        },
+        {
+          "status": "sent",
+          "event_name": "Lead",
+          "event_time": "2026-04-30T19:33:25+00:00",
+          "row_count": null
+        },
+        {
+          "status": "failed",
+          "event_name": "ConversationContinued",
+          "event_time": "2026-04-30T19:15:49+00:00",
+          "row_count": null
+        },
+        {
+          "status": "failed",
+          "event_name": "ConversationContinued",
+          "event_time": "2026-04-30T19:01:29+00:00",
+          "row_count": null
+        },
+        {
+          "status": "skipped",
+          "event_name": "Lead",
+          "event_time": "2026-04-30T18:50:28+00:00",
+          "row_count": null
+        }
+      ]
+    }
+  ],
+  "gsc_search_appearance_discovery": {
+    "status": "PASS",
+    "implementation": "standalone cache key present",
+    "cache_key": "2026-04-02|2026-04-29|searchAppearance|*|es|1000",
+    "row_count": 2,
+    "note": "Standalone GSC searchAppearance discovery is persisted in growth_gsc_cache."
+  },
+  "max_matrix_profiles": [
+    {
+      "id": "dfs_onpage_full_comparable_v3",
+      "provider": "dataforseo",
+      "family": "onpage",
+      "priority": "P0",
+      "cadence": "weekly",
+      "implementation_status": "implemented",
+      "status": "WATCH",
+      "cache_status": "PASS",
+      "fact_statuses": [
+        {
+          "table": "seo_audit_results",
+          "status": "PASS",
+          "row_count": 5617
+        },
+        {
+          "table": "seo_audit_findings",
+          "status": "PASS",
+          "row_count": 3183
+        }
+      ],
+      "owner_issues": [
+        "#312",
+        "#313"
+      ],
+      "blockers": [],
+      "watches": [
+        "Approval gate: required_to_start."
+      ]
+    },
+    {
+      "id": "dfs_onpage_rendered_sample_v1",
+      "provider": "dataforseo",
+      "family": "onpage",
+      "priority": "P1",
+      "cadence": "on_approval",
+      "implementation_status": "partial",
+      "status": "WATCH",
+      "cache_status": "PASS",
+      "fact_statuses": [
+        {
+          "table": "seo_audit_results",
+          "status": "PASS",
+          "row_count": 5617
+        },
+        {
+          "table": "seo_audit_findings",
+          "status": "PASS",
+          "row_count": 3183
+        }
+      ],
+      "owner_issues": [
+        "#312",
+        "#313"
+      ],
+      "blockers": [],
+      "watches": [
+        "Approval gate: required_every_run."
+      ]
+    },
+    {
+      "id": "dfs_serp_priority_keywords_v1",
+      "provider": "dataforseo",
+      "family": "serp",
+      "priority": "P1",
+      "cadence": "biweekly",
+      "implementation_status": "partial",
+      "status": "WATCH",
+      "cache_status": "PASS",
+      "fact_statuses": [],
+      "owner_issues": [
+        "#381",
+        "#321"
+      ],
+      "blockers": [],
+      "watches": [
+        "Approval gate: profile_approved_keywords_required."
+      ]
+    },
+    {
+      "id": "dfs_serp_local_pack_v1",
+      "provider": "dataforseo",
+      "family": "serp",
+      "priority": "P1",
+      "cadence": "monthly",
+      "implementation_status": "partial",
+      "status": "WATCH",
+      "cache_status": "PASS",
+      "fact_statuses": [],
+      "owner_issues": [
+        "#381",
+        "#335"
+      ],
+      "blockers": [],
+      "watches": [
+        "Approval gate: profile_approved_locations_required."
+      ]
+    },
+    {
+      "id": "dfs_keyword_volume_trends_v1",
+      "provider": "dataforseo",
+      "family": "keyword_data",
+      "priority": "P1",
+      "cadence": "monthly",
+      "implementation_status": "partial",
+      "status": "WATCH",
+      "cache_status": "PASS",
+      "fact_statuses": [],
+      "owner_issues": [
+        "#380",
+        "#314"
+      ],
+      "blockers": [],
+      "watches": [
+        "Approval gate: profile_approved_seed_set_required."
+      ]
+    },
+    {
+      "id": "dfs_labs_demand_cluster_v1",
+      "provider": "dataforseo",
+      "family": "labs",
+      "priority": "P0",
+      "cadence": "monthly",
+      "implementation_status": "partial",
+      "status": "WATCH",
+      "cache_status": "PASS",
+      "fact_statuses": [],
+      "owner_issues": [
+        "#380",
+        "#314",
+        "#315",
+        "#316",
+        "#317",
+        "#318",
+        "#319",
+        "#320"
+      ],
+      "blockers": [],
+      "watches": [
+        "Approval gate: profile_approved_seed_set_required."
+      ]
+    },
+    {
+      "id": "dfs_labs_competitor_visibility_v1",
+      "provider": "dataforseo",
+      "family": "labs",
+      "priority": "P1",
+      "cadence": "monthly",
+      "implementation_status": "partial",
+      "status": "WATCH",
+      "cache_status": "PASS",
+      "fact_statuses": [],
+      "owner_issues": [
+        "#380",
+        "#381",
+        "#334"
+      ],
+      "blockers": [],
+      "watches": [
+        "Approval gate: profile_approved_competitors_required."
+      ]
+    },
+    {
+      "id": "dfs_labs_gap_intersections_v1",
+      "provider": "dataforseo",
+      "family": "labs",
+      "priority": "P1",
+      "cadence": "monthly",
+      "implementation_status": "partial",
+      "status": "WATCH",
+      "cache_status": "PASS",
+      "fact_statuses": [],
+      "owner_issues": [
+        "#380",
+        "#334"
+      ],
+      "blockers": [],
+      "watches": [
+        "Approval gate: profile_approved_competitors_required."
+      ]
+    },
+    {
+      "id": "dfs_backlinks_authority_v1",
+      "provider": "dataforseo",
+      "family": "backlinks",
+      "priority": "P1",
+      "cadence": "monthly",
+      "implementation_status": "partial",
+      "status": "WATCH",
+      "cache_status": "PASS",
+      "fact_statuses": [],
+      "owner_issues": [
+        "#382",
+        "#334"
+      ],
+      "blockers": [],
+      "watches": [
+        "Approval gate: profile_approved_competitors_required."
+      ]
+    },
+    {
+      "id": "dfs_backlinks_competitor_gap_v1",
+      "provider": "dataforseo",
+      "family": "backlinks",
+      "priority": "P1",
+      "cadence": "monthly",
+      "implementation_status": "partial",
+      "status": "WATCH",
+      "cache_status": "PASS",
+      "fact_statuses": [],
+      "owner_issues": [
+        "#382",
+        "#334"
+      ],
+      "blockers": [],
+      "watches": [
+        "Approval gate: profile_approved_competitors_required."
+      ]
+    },
+    {
+      "id": "dfs_business_local_v1",
+      "provider": "dataforseo",
+      "family": "business_data",
+      "priority": "P1",
+      "cadence": "monthly",
+      "implementation_status": "partial",
+      "status": "WATCH",
+      "cache_status": "PASS",
+      "fact_statuses": [],
+      "owner_issues": [
+        "#383",
+        "#335"
+      ],
+      "blockers": [],
+      "watches": [
+        "Approval gate: profile_approved_locations_required."
+      ]
+    },
+    {
+      "id": "dfs_reviews_sentiment_v1",
+      "provider": "dataforseo",
+      "family": "reviews",
+      "priority": "P2",
+      "cadence": "monthly",
+      "implementation_status": "partial",
+      "status": "WATCH",
+      "cache_status": "PASS",
+      "fact_statuses": [],
+      "owner_issues": [
+        "#383",
+        "#335"
+      ],
+      "blockers": [],
+      "watches": [
+        "Approval gate: profile_approved_locations_required."
+      ]
+    },
+    {
+      "id": "dfs_ai_geo_visibility_v1",
+      "provider": "dataforseo",
+      "family": "ai_optimization",
+      "priority": "P1",
+      "cadence": "monthly",
+      "implementation_status": "partial",
+      "status": "WATCH",
+      "cache_status": "PASS",
+      "fact_statuses": [],
+      "owner_issues": [
+        "#384",
+        "#321",
+        "#334",
+        "#335"
+      ],
+      "blockers": [],
+      "watches": [
+        "Approval gate: required_every_run."
+      ]
+    },
+    {
+      "id": "dfs_content_brand_sentiment_v1",
+      "provider": "dataforseo",
+      "family": "content_analysis",
+      "priority": "P2",
+      "cadence": "monthly",
+      "implementation_status": "partial",
+      "status": "WATCH",
+      "cache_status": "PASS",
+      "fact_statuses": [],
+      "owner_issues": [
+        "#384",
+        "#321"
+      ],
+      "blockers": [],
+      "watches": [
+        "Approval gate: profile_approved_topics_required."
+      ]
+    },
+    {
+      "id": "dfs_domain_competitive_baseline_v1",
+      "provider": "dataforseo",
+      "family": "domain_analytics",
+      "priority": "P2",
+      "cadence": "quarterly",
+      "implementation_status": "partial",
+      "status": "WATCH",
+      "cache_status": "PASS",
+      "fact_statuses": [],
+      "owner_issues": [
+        "#384",
+        "#334"
+      ],
+      "blockers": [],
+      "watches": [
+        "Approval gate: profile_approved_competitors_required."
+      ]
+    },
+    {
+      "id": "dfs_merchant_watch_v1",
+      "provider": "dataforseo",
+      "family": "merchant",
+      "priority": "P3",
+      "cadence": "no_default",
+      "implementation_status": "excluded",
+      "status": "WATCH",
+      "cache_status": "PASS",
+      "fact_statuses": [],
+      "owner_issues": [
+        "#376"
+      ],
+      "blockers": [],
+      "watches": [
+        "Approval gate: specific_business_case_required."
+      ]
+    },
+    {
+      "id": "dfs_app_data_watch_v1",
+      "provider": "dataforseo",
+      "family": "app_data",
+      "priority": "P3",
+      "cadence": "no_default",
+      "implementation_status": "excluded",
+      "status": "WATCH",
+      "cache_status": "PASS",
+      "fact_statuses": [],
+      "owner_issues": [
+        "#376"
+      ],
+      "blockers": [],
+      "watches": [
+        "Approval gate: specific_business_case_required."
+      ]
+    },
+    {
+      "id": "gsc_daily_complete_web_v1",
+      "provider": "gsc",
+      "family": "search_console",
+      "priority": "P0",
+      "cadence": "daily",
+      "implementation_status": "partial",
+      "status": "WATCH",
+      "cache_status": "PASS",
+      "fact_statuses": [],
+      "owner_issues": [
+        "#378",
+        "#321"
+      ],
+      "blockers": [],
+      "watches": []
+    },
+    {
+      "id": "gsc_daily_complete_image_v1",
+      "provider": "gsc",
+      "family": "search_console",
+      "priority": "P1",
+      "cadence": "weekly",
+      "implementation_status": "partial",
+      "status": "WATCH",
+      "cache_status": "PASS",
+      "fact_statuses": [],
+      "owner_issues": [
+        "#378",
+        "#314"
+      ],
+      "blockers": [],
+      "watches": []
+    },
+    {
+      "id": "gsc_council_28d_query_page_v1",
+      "provider": "gsc",
+      "family": "search_console",
+      "priority": "P0",
+      "cadence": "weekly",
+      "implementation_status": "implemented",
+      "status": "PASS",
+      "cache_status": "PASS",
+      "fact_statuses": [],
+      "owner_issues": [
+        "#378",
+        "#311",
+        "#321"
+      ],
+      "blockers": [],
+      "watches": []
+    },
+    {
+      "id": "gsc_council_28d_page_market_v1",
+      "provider": "gsc",
+      "family": "search_console",
+      "priority": "P0",
+      "cadence": "weekly",
+      "implementation_status": "implemented",
+      "status": "PASS",
+      "cache_status": "PASS",
+      "fact_statuses": [],
+      "owner_issues": [
+        "#378",
+        "#311",
+        "#321"
+      ],
+      "blockers": [],
+      "watches": []
+    },
+    {
+      "id": "gsc_council_28d_page_device_v1",
+      "provider": "gsc",
+      "family": "search_console",
+      "priority": "P1",
+      "cadence": "weekly",
+      "implementation_status": "implemented",
+      "status": "PASS",
+      "cache_status": "PASS",
+      "fact_statuses": [],
+      "owner_issues": [
+        "#378",
+        "#311",
+        "#321"
+      ],
+      "blockers": [],
+      "watches": []
+    },
+    {
+      "id": "gsc_trend_90d_page_v1",
+      "provider": "gsc",
+      "family": "search_console",
+      "priority": "P1",
+      "cadence": "weekly",
+      "implementation_status": "partial",
+      "status": "WATCH",
+      "cache_status": "PASS",
+      "fact_statuses": [],
+      "owner_issues": [
+        "#378",
+        "#312",
+        "#321"
+      ],
+      "blockers": [],
+      "watches": []
+    },
+    {
+      "id": "gsc_search_appearance_v1",
+      "provider": "gsc",
+      "family": "search_console",
+      "priority": "P1",
+      "cadence": "weekly",
+      "implementation_status": "partial",
+      "status": "WATCH",
+      "cache_status": "PASS",
+      "fact_statuses": [],
+      "owner_issues": [
+        "#378",
+        "#321"
+      ],
+      "blockers": [],
+      "watches": []
+    },
+    {
+      "id": "gsc_locale_path_v1",
+      "provider": "gsc",
+      "family": "search_console",
+      "priority": "P1",
+      "cadence": "weekly",
+      "implementation_status": "partial",
+      "status": "WATCH",
+      "cache_status": "PASS",
+      "fact_statuses": [],
+      "owner_issues": [
+        "#378",
+        "#314",
+        "#315",
+        "#316"
+      ],
+      "blockers": [],
+      "watches": []
+    },
+    {
+      "id": "gsc_brand_nonbrand_v1",
+      "provider": "gsc",
+      "family": "search_console",
+      "priority": "P1",
+      "cadence": "weekly",
+      "implementation_status": "partial",
+      "status": "WATCH",
+      "cache_status": "PASS",
+      "fact_statuses": [],
+      "owner_issues": [
+        "#378",
+        "#321"
+      ],
+      "blockers": [],
+      "watches": []
+    },
+    {
+      "id": "ga4_daily_landing_channel_v1",
+      "provider": "ga4",
+      "family": "analytics",
+      "priority": "P0",
+      "cadence": "daily",
+      "implementation_status": "partial",
+      "status": "WATCH",
+      "cache_status": "PASS",
+      "fact_statuses": [],
+      "owner_issues": [
+        "#379",
+        "#321"
+      ],
+      "blockers": [],
+      "watches": []
+    },
+    {
+      "id": "ga4_council_landing_channel_28d_v1",
+      "provider": "ga4",
+      "family": "analytics",
+      "priority": "P0",
+      "cadence": "weekly",
+      "implementation_status": "implemented",
+      "status": "PASS",
+      "cache_status": "PASS",
+      "fact_statuses": [],
+      "owner_issues": [
+        "#379",
+        "#311",
+        "#321"
+      ],
+      "blockers": [],
+      "watches": []
+    },
+    {
+      "id": "ga4_page_source_medium_28d_v1",
+      "provider": "ga4",
+      "family": "analytics",
+      "priority": "P0",
+      "cadence": "weekly",
+      "implementation_status": "implemented",
+      "status": "PASS",
+      "cache_status": "PASS",
+      "fact_statuses": [],
+      "owner_issues": [
+        "#379",
+        "#321"
+      ],
+      "blockers": [],
+      "watches": []
+    },
+    {
+      "id": "ga4_event_page_28d_v1",
+      "provider": "ga4",
+      "family": "analytics",
+      "priority": "P0",
+      "cadence": "weekly",
+      "implementation_status": "implemented",
+      "status": "PASS",
+      "cache_status": "PASS",
+      "fact_statuses": [],
+      "owner_issues": [
+        "#379",
+        "#322",
+        "#321"
+      ],
+      "blockers": [],
+      "watches": []
+    },
+    {
+      "id": "ga4_campaign_source_medium_28d_v1",
+      "provider": "ga4",
+      "family": "analytics",
+      "priority": "P0",
+      "cadence": "weekly",
+      "implementation_status": "implemented",
+      "status": "PASS",
+      "cache_status": "PASS",
+      "fact_statuses": [],
+      "owner_issues": [
+        "#379",
+        "#322",
+        "#332",
+        "#333"
+      ],
+      "blockers": [],
+      "watches": []
+    },
+    {
+      "id": "ga4_geo_landing_28d_v1",
+      "provider": "ga4",
+      "family": "analytics",
+      "priority": "P1",
+      "cadence": "weekly",
+      "implementation_status": "partial",
+      "status": "WATCH",
+      "cache_status": "PASS",
+      "fact_statuses": [],
+      "owner_issues": [
+        "#379",
+        "#321"
+      ],
+      "blockers": [],
+      "watches": []
+    },
+    {
+      "id": "ga4_device_landing_28d_v1",
+      "provider": "ga4",
+      "family": "analytics",
+      "priority": "P1",
+      "cadence": "weekly",
+      "implementation_status": "partial",
+      "status": "WATCH",
+      "cache_status": "PASS",
+      "fact_statuses": [],
+      "owner_issues": [
+        "#379",
+        "#321"
+      ],
+      "blockers": [],
+      "watches": []
+    },
+    {
+      "id": "ga4_hostname_locale_28d_v1",
+      "provider": "ga4",
+      "family": "analytics",
+      "priority": "P1",
+      "cadence": "weekly",
+      "implementation_status": "partial",
+      "status": "WATCH",
+      "cache_status": "PASS",
+      "fact_statuses": [],
+      "owner_issues": [
+        "#379",
+        "#314",
+        "#315"
+      ],
+      "blockers": [],
+      "watches": []
+    },
+    {
+      "id": "ga4_internal_search_v1",
+      "provider": "ga4",
+      "family": "analytics",
+      "priority": "P2",
+      "cadence": "weekly",
+      "implementation_status": "partial",
+      "status": "WATCH",
+      "cache_status": "PASS",
+      "fact_statuses": [],
+      "owner_issues": [
+        "#379",
+        "#314"
+      ],
+      "blockers": [],
+      "watches": []
+    },
+    {
+      "id": "ga4_file_outbound_engagement_v1",
+      "provider": "ga4",
+      "family": "analytics",
+      "priority": "P2",
+      "cadence": "monthly",
+      "implementation_status": "partial",
+      "status": "WATCH",
+      "cache_status": "PASS",
+      "fact_statuses": [],
+      "owner_issues": [
+        "#379",
+        "#321"
+      ],
+      "blockers": [],
+      "watches": []
+    },
+    {
+      "id": "tracking_conversion_facts_v1",
+      "provider": "tracking",
+      "family": "conversion",
+      "priority": "P0",
+      "cadence": "continuous",
+      "implementation_status": "partial",
+      "status": "WATCH",
+      "cache_status": "n/a",
+      "fact_statuses": [
+        {
+          "table": "funnel_events",
+          "status": "PASS",
+          "row_count": 35
+        },
+        {
+          "table": "meta_conversion_events",
+          "status": "PASS",
+          "row_count": 24
+        }
+      ],
+      "owner_issues": [
+        "#322",
+        "#330",
+        "#332",
+        "#333"
+      ],
+      "blockers": [],
+      "watches": []
+    },
+    {
+      "id": "growth_search_to_activation_v1",
+      "provider": "joint",
+      "family": "joint",
+      "priority": "P0",
+      "cadence": "weekly",
+      "implementation_status": "partial",
+      "status": "WATCH",
+      "cache_status": "n/a",
+      "fact_statuses": [],
+      "owner_issues": [
+        "#385",
+        "#321"
+      ],
+      "blockers": [],
+      "watches": []
+    },
+    {
+      "id": "growth_market_fit_v1",
+      "provider": "joint",
+      "family": "joint",
+      "priority": "P1",
+      "cadence": "weekly",
+      "implementation_status": "partial",
+      "status": "WATCH",
+      "cache_status": "n/a",
+      "fact_statuses": [],
+      "owner_issues": [
+        "#385",
+        "#321"
+      ],
+      "blockers": [],
+      "watches": []
+    },
+    {
+      "id": "growth_mobile_seo_cro_v1",
+      "provider": "joint",
+      "family": "joint",
+      "priority": "P1",
+      "cadence": "weekly",
+      "implementation_status": "partial",
+      "status": "WATCH",
+      "cache_status": "n/a",
+      "fact_statuses": [],
+      "owner_issues": [
+        "#385",
+        "#321"
+      ],
+      "blockers": [],
+      "watches": []
+    },
+    {
+      "id": "growth_post_fix_validation_v1",
+      "provider": "joint",
+      "family": "joint",
+      "priority": "P0",
+      "cadence": "weekly",
+      "implementation_status": "partial",
+      "status": "WATCH",
+      "cache_status": "n/a",
+      "fact_statuses": [],
+      "owner_issues": [
+        "#385",
+        "#312",
+        "#313"
+      ],
+      "blockers": [],
+      "watches": []
+    },
+    {
+      "id": "growth_locale_launch_readiness_v1",
+      "provider": "joint",
+      "family": "joint",
+      "priority": "P1",
+      "cadence": "weekly",
+      "implementation_status": "partial",
+      "status": "WATCH",
+      "cache_status": "n/a",
+      "fact_statuses": [],
+      "owner_issues": [
+        "#385",
+        "#314",
+        "#315",
+        "#316"
+      ],
+      "blockers": [],
+      "watches": []
+    },
+    {
+      "id": "growth_paid_governance_v1",
+      "provider": "joint",
+      "family": "joint",
+      "priority": "P0",
+      "cadence": "weekly",
+      "implementation_status": "partial",
+      "status": "WATCH",
+      "cache_status": "n/a",
+      "fact_statuses": [],
+      "owner_issues": [
+        "#385",
+        "#322",
+        "#332",
+        "#333"
+      ],
+      "blockers": [],
+      "watches": []
+    },
+    {
+      "id": "growth_authority_content_fit_v1",
+      "provider": "joint",
+      "family": "joint",
+      "priority": "P1",
+      "cadence": "monthly",
+      "implementation_status": "partial",
+      "status": "WATCH",
+      "cache_status": "n/a",
+      "fact_statuses": [],
+      "owner_issues": [
+        "#385",
+        "#334",
+        "#314"
+      ],
+      "blockers": [],
+      "watches": []
+    },
+    {
+      "id": "growth_ai_geo_conversion_fit_v1",
+      "provider": "joint",
+      "family": "joint",
+      "priority": "P1",
+      "cadence": "monthly",
+      "implementation_status": "partial",
+      "status": "WATCH",
+      "cache_status": "n/a",
+      "fact_statuses": [],
+      "owner_issues": [
+        "#385",
+        "#384",
+        "#321"
+      ],
+      "blockers": [],
+      "watches": []
+    }
+  ]
+}

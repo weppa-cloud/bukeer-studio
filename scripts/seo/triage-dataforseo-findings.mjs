@@ -20,6 +20,7 @@ const currentRun = args.current ?? CURRENT_RUN;
 const previousRun = args.previous ?? PREVIOUS_RUN;
 const limit = Number(args.limit ?? 200);
 const outDir = args.outDir ?? OUT_DIR;
+const acceptedRedirectsFile = args.acceptedRedirects ?? null;
 
 const sb = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -37,10 +38,11 @@ main().catch((error) => {
 async function main() {
   await fs.mkdir(outDir, { recursive: true });
 
-  const [current, previous, inventory] = await Promise.all([
+  const [current, previous, inventory, acceptedRedirects] = await Promise.all([
     fetchFindings(currentRun),
     fetchFindings(previousRun),
     fetchInventory(),
+    fetchAcceptedRedirects(acceptedRedirectsFile),
   ]);
 
   const previousFingerprints = new Set(
@@ -50,7 +52,12 @@ async function main() {
     inventory.map((row) => [normalizeUrl(row.source_url), row]),
   );
   const classified = current.map((finding) =>
-    classifyFinding(finding, previousFingerprints, inventoryByUrl),
+    classifyFinding(
+      finding,
+      previousFingerprints,
+      inventoryByUrl,
+      acceptedRedirects,
+    ),
   );
   const grouped = groupByRootPattern(classified, inventoryByUrl);
   const topUrlRows = buildInventoryUpdates(grouped).slice(0, limit);
@@ -85,6 +92,10 @@ async function main() {
       root_pattern: countBy(classified, (item) => item.root_pattern),
       gate: countBy(classified, (item) => item.gate),
     },
+    accepted_redirects: {
+      source: acceptedRedirectsFile,
+      urls: acceptedRedirects.size,
+    },
     root_patterns: grouped.map(toPatternReport),
     top_inventory_rows: topUrlRows.map(toInventoryReport),
     council_experiments: experiments,
@@ -113,6 +124,24 @@ async function main() {
       2,
     ),
   );
+}
+
+async function fetchAcceptedRedirects(filePath) {
+  if (!filePath) return new Set();
+  try {
+    const parsed = JSON.parse(await fs.readFile(filePath, "utf8"));
+    const rows = Array.isArray(parsed?.results) ? parsed.results : [];
+    return new Set(
+      rows
+        .filter((row) => row?.pass === true && row?.source)
+        .map((row) => normalizeUrl(row.source)),
+    );
+  } catch (error) {
+    console.warn(
+      `[triage] Accepted redirects file ignored: ${filePath}: ${error.message}`,
+    );
+    return new Set();
+  }
 }
 
 async function fetchFindings(runId) {
@@ -170,12 +199,22 @@ function normalizeFinding(row) {
   };
 }
 
-function classifyFinding(finding, previousFingerprints, inventoryByUrl) {
+function classifyFinding(
+  finding,
+  previousFingerprints,
+  inventoryByUrl,
+  acceptedRedirects,
+) {
   const inventory = inventoryByUrl.get(finding.public_url) ?? {};
   const root = rootPattern(finding);
   const persisted = previousFingerprints.has(finding.finding_fingerprint);
-  const validity = validityFor(finding, persisted);
-  const operationalSeverity = operationalSeverityFor(finding, inventory);
+  const acceptedRedirect = acceptedRedirects.has(finding.public_url);
+  const validity = acceptedRedirect
+    ? "accepted_redirect_smoke"
+    : validityFor(finding, persisted);
+  const operationalSeverity = acceptedRedirect
+    ? "WATCH"
+    : operationalSeverityFor(finding, inventory);
   const businessImpact = businessImpactFor(finding.public_url, inventory);
   const effort = effortFor(root);
   const gate = gateFor(operationalSeverity, businessImpact, root);
@@ -195,7 +234,10 @@ function classifyFinding(finding, previousFingerprints, inventoryByUrl) {
       effort,
       persisted,
     ),
-    recommended_action: recommendedAction(root, operationalSeverity, gate),
+    accepted_redirect_smoke: acceptedRedirect,
+    recommended_action: acceptedRedirect
+      ? "Accepted by live smoke: wrong-locale blog URL redirects to canonical localized URL. Confirm in next comparable crawl."
+      : recommendedAction(root, operationalSeverity, gate),
   };
 }
 

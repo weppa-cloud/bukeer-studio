@@ -1,0 +1,204 @@
+{
+  "mode": "apply",
+  "generated_at": "2026-04-30T18:23:09.976Z",
+  "run_tag": "epic310-max-matrix-smoke-20260430",
+  "out_dir": "artifacts/seo/2026-04-30-dataforseo-max-performance-profiles",
+  "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+  "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+  "domain": "colombiatours.travel",
+  "brand": "ColombiaTours",
+  "profile_count": 11,
+  "call_count": 10,
+  "complete_calls": 7,
+  "provider_error_calls": 3,
+  "failed_calls": 0,
+  "cost_usd": 0.56186,
+  "results": [
+    {
+      "profile_id": "dfs_labs_demand_cluster_v1",
+      "family": "labs",
+      "status": "complete",
+      "calls": [
+        {
+          "slug": "labs-keyword-ideas-colombia",
+          "endpoint": "/v3/dataforseo_labs/google/keyword_ideas/live",
+          "cache_key": "epic310-max-matrix-smoke-20260430|dfs_labs_demand_cluster_v1|labs-keyword-ideas-colombia|707f86e24fa045f1",
+          "status": "complete",
+          "cost_usd": 0.04,
+          "artifact": "artifacts/seo/2026-04-30-dataforseo-max-performance-profiles/dfs_labs_demand_cluster_v1-labs-keyword-ideas-colombia.json",
+          "started_at": "2026-04-30T18:21:59.740Z",
+          "finished_at": "2026-04-30T18:22:30.751Z",
+          "error": null
+        }
+      ]
+    },
+    {
+      "profile_id": "dfs_labs_competitor_visibility_v1",
+      "family": "labs",
+      "status": "complete",
+      "calls": [
+        {
+          "slug": "labs-ranked-keywords-domain",
+          "endpoint": "/v3/dataforseo_labs/google/ranked_keywords/live",
+          "cache_key": "epic310-max-matrix-smoke-20260430|dfs_labs_competitor_visibility_v1|labs-ranked-keywords-domain|9d7942ef77bd2fb1",
+          "status": "complete",
+          "cost_usd": 0.04,
+          "artifact": "artifacts/seo/2026-04-30-dataforseo-max-performance-profiles/dfs_labs_competitor_visibility_v1-labs-ranked-keywords-domain.json",
+          "started_at": "2026-04-30T18:22:30.752Z",
+          "finished_at": "2026-04-30T18:22:32.958Z",
+          "error": null
+        }
+      ]
+    },
+    {
+      "profile_id": "dfs_labs_gap_intersections_v1",
+      "family": "labs",
+      "status": "complete",
+      "calls": [
+        {
+          "slug": "labs-domain-intersection",
+          "endpoint": "/v3/dataforseo_labs/google/domain_intersection/live",
+          "cache_key": "epic310-max-matrix-smoke-20260430|dfs_labs_gap_intersections_v1|labs-domain-intersection|afe7ac29025b8cf5",
+          "status": "complete",
+          "cost_usd": 0.02,
+          "artifact": "artifacts/seo/2026-04-30-dataforseo-max-performance-profiles/dfs_labs_gap_intersections_v1-labs-domain-intersection.json",
+          "started_at": "2026-04-30T18:22:32.958Z",
+          "finished_at": "2026-04-30T18:22:34.034Z",
+          "error": null
+        }
+      ]
+    },
+    {
+      "profile_id": "dfs_serp_priority_keywords_v1",
+      "family": "serp",
+      "status": "complete",
+      "calls": [
+        {
+          "slug": "serp-organic-1",
+          "endpoint": "/v3/serp/google/organic/live/advanced",
+          "cache_key": "epic310-max-matrix-smoke-20260430|dfs_serp_priority_keywords_v1|serp-organic-1|3e64f8e649490107",
+          "status": "complete",
+          "cost_usd": 0.007,
+          "artifact": "artifacts/seo/2026-04-30-dataforseo-max-performance-profiles/dfs_serp_priority_keywords_v1-serp-organic-1.json",
+          "started_at": "2026-04-30T18:22:34.034Z",
+          "finished_at": "2026-04-30T18:22:38.089Z",
+          "error": null
+        }
+      ]
+    },
+    {
+      "profile_id": "dfs_serp_local_pack_v1",
+      "family": "serp",
+      "status": "complete",
+      "calls": [
+        {
+          "slug": "serp-maps-1",
+          "endpoint": "/v3/serp/google/maps/live/advanced",
+          "cache_key": "epic310-max-matrix-smoke-20260430|dfs_serp_local_pack_v1|serp-maps-1|ef3a52735dc3535d",
+          "status": "complete",
+          "cost_usd": 0.004,
+          "artifact": "artifacts/seo/2026-04-30-dataforseo-max-performance-profiles/dfs_serp_local_pack_v1-serp-maps-1.json",
+          "started_at": "2026-04-30T18:22:38.089Z",
+          "finished_at": "2026-04-30T18:22:42.372Z",
+          "error": null
+        }
+      ]
+    },
+    {
+      "profile_id": "dfs_backlinks_authority_v1",
+      "family": "backlinks",
+      "status": "provider_error",
+      "calls": [
+        {
+          "slug": "backlinks-summary-domain",
+          "endpoint": "/v3/backlinks/summary/live",
+          "cache_key": "epic310-max-matrix-smoke-20260430|dfs_backlinks_authority_v1|backlinks-summary-domain|c5abc3b435b69bf4",
+          "status": "provider_error",
+          "cost_usd": 0,
+          "artifact": "artifacts/seo/2026-04-30-dataforseo-max-performance-profiles/dfs_backlinks_authority_v1-backlinks-summary-domain.json",
+          "started_at": "2026-04-30T18:22:42.373Z",
+          "finished_at": "2026-04-30T18:22:43.207Z",
+          "error": "20000: Ok.; 40204: Access denied. Visit Plans and Subscriptions to activate your subscription and get access to this API: https://app.dataforseo.com/backlinks-subscription ."
+        }
+      ]
+    },
+    {
+      "profile_id": "dfs_backlinks_competitor_gap_v1",
+      "family": "backlinks",
+      "status": "provider_error",
+      "calls": [
+        {
+          "slug": "backlinks-competitor-summary-impulse.travel",
+          "endpoint": "/v3/backlinks/summary/live",
+          "cache_key": "epic310-max-matrix-smoke-20260430|dfs_backlinks_competitor_gap_v1|backlinks-competitor-summary-impulse.travel|2bc64d6303e7537d",
+          "status": "provider_error",
+          "cost_usd": 0,
+          "artifact": "artifacts/seo/2026-04-30-dataforseo-max-performance-profiles/dfs_backlinks_competitor_gap_v1-backlinks-competitor-summary-impulse.travel.json",
+          "started_at": "2026-04-30T18:22:43.207Z",
+          "finished_at": "2026-04-30T18:22:44.027Z",
+          "error": "20000: Ok.; 40204: Access denied. Visit Plans and Subscriptions to activate your subscription and get access to this API: https://app.dataforseo.com/backlinks-subscription ."
+        }
+      ]
+    },
+    {
+      "profile_id": "dfs_business_local_v1",
+      "family": "business_data",
+      "status": "provider_error",
+      "calls": [
+        {
+          "slug": "business-my-business-info-1",
+          "endpoint": "/v3/business_data/google/my_business_info/live",
+          "cache_key": "epic310-max-matrix-smoke-20260430|dfs_business_local_v1|business-my-business-info-1|6dc3fa477f1b6fec",
+          "status": "provider_error",
+          "cost_usd": 0.0108,
+          "artifact": "artifacts/seo/2026-04-30-dataforseo-max-performance-profiles/dfs_business_local_v1-business-my-business-info-1.json",
+          "started_at": "2026-04-30T18:22:44.027Z",
+          "finished_at": "2026-04-30T18:22:53.889Z",
+          "error": "20000: Ok.; 40102: No Search Results."
+        }
+      ]
+    },
+    {
+      "profile_id": "dfs_reviews_sentiment_v1",
+      "family": "reviews",
+      "status": "skipped",
+      "calls": []
+    },
+    {
+      "profile_id": "dfs_content_brand_sentiment_v1",
+      "family": "content_analysis",
+      "status": "complete",
+      "calls": [
+        {
+          "slug": "content-analysis-brand-summary",
+          "endpoint": "/v3/content_analysis/summary/live",
+          "cache_key": "epic310-max-matrix-smoke-20260430|dfs_content_brand_sentiment_v1|content-analysis-brand-summary|6a26975aace32a10",
+          "status": "complete",
+          "cost_usd": 0.04006,
+          "artifact": "artifacts/seo/2026-04-30-dataforseo-max-performance-profiles/dfs_content_brand_sentiment_v1-content-analysis-brand-summary.json",
+          "started_at": "2026-04-30T18:22:53.889Z",
+          "finished_at": "2026-04-30T18:22:58.341Z",
+          "error": null
+        }
+      ]
+    },
+    {
+      "profile_id": "dfs_domain_competitive_baseline_v1",
+      "family": "domain_analytics",
+      "status": "complete",
+      "calls": [
+        {
+          "slug": "domain-whois-colombiatours.travel",
+          "endpoint": "/v3/domain_analytics/whois/overview/live",
+          "cache_key": "epic310-max-matrix-smoke-20260430|dfs_domain_competitive_baseline_v1|domain-whois-colombiatours.travel|58793b1e284c133b",
+          "status": "complete",
+          "cost_usd": 0.4,
+          "artifact": "artifacts/seo/2026-04-30-dataforseo-max-performance-profiles/dfs_domain_competitive_baseline_v1-domain-whois-colombiatours.travel.json",
+          "started_at": "2026-04-30T18:22:58.341Z",
+          "finished_at": "2026-04-30T18:23:09.976Z",
+          "error": null
+        }
+      ]
+    }
+  ]
+}

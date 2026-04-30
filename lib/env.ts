@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from "zod";
 
 /**
  * Server-side environment variable validation.
@@ -10,30 +10,39 @@ import { z } from 'zod'
 
 const serverEnvSchema = z.object({
   // Supabase (shared with bukeer-flutter)
-  NEXT_PUBLIC_SUPABASE_URL: z.string().url('NEXT_PUBLIC_SUPABASE_URL must be a valid URL'),
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1, 'NEXT_PUBLIC_SUPABASE_ANON_KEY is required'),
+  NEXT_PUBLIC_SUPABASE_URL: z
+    .string()
+    .url("NEXT_PUBLIC_SUPABASE_URL must be a valid URL"),
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: z
+    .string()
+    .min(1, "NEXT_PUBLIC_SUPABASE_ANON_KEY is required"),
 
   // Service role — required in production, optional in dev
-  SUPABASE_SERVICE_ROLE_KEY: process.env.NODE_ENV === 'production'
-    ? z.string().min(1, 'SUPABASE_SERVICE_ROLE_KEY is required in production')
-    : z.string().optional(),
+  SUPABASE_SERVICE_ROLE_KEY:
+    process.env.NODE_ENV === "production"
+      ? z.string().min(1, "SUPABASE_SERVICE_ROLE_KEY is required in production")
+      : z.string().optional(),
 
   // AI integration
-  OPENROUTER_AUTH_TOKEN: z.string().min(1, 'OPENROUTER_AUTH_TOKEN is required'),
-  OPENROUTER_BASE_URL: z.string().url().default('https://openrouter.ai/api/v1'),
-  OPENROUTER_MODEL: z.string().default('anthropic/claude-sonnet-4-5'),
+  OPENROUTER_AUTH_TOKEN: z.string().min(1, "OPENROUTER_AUTH_TOKEN is required"),
+  OPENROUTER_BASE_URL: z.string().url().default("https://openrouter.ai/api/v1"),
+  OPENROUTER_MODEL: z.string().default("anthropic/claude-sonnet-4-5"),
 
   // ISR revalidation
-  REVALIDATE_SECRET: z.string().min(1, 'REVALIDATE_SECRET is required'),
+  REVALIDATE_SECRET: z.string().min(1, "REVALIDATE_SECRET is required"),
 
   // Public URL
-  NEXT_PUBLIC_URL: z.string().url().default('https://studio.bukeer.com'),
-  NEXT_PUBLIC_MAIN_DOMAIN: z.string().default('bukeer.com'),
+  NEXT_PUBLIC_URL: z.string().url().default("https://studio.bukeer.com"),
+  NEXT_PUBLIC_MAIN_DOMAIN: z.string().default("bukeer.com"),
 
   // Maps (MapLibre)
-  NEXT_PUBLIC_MAP_STYLE_URL: process.env.NODE_ENV === 'production'
-    ? z.string().url('NEXT_PUBLIC_MAP_STYLE_URL is required in production')
-    : z.string().url('NEXT_PUBLIC_MAP_STYLE_URL must be a valid URL').optional(),
+  NEXT_PUBLIC_MAP_STYLE_URL:
+    process.env.NODE_ENV === "production"
+      ? z.string().url("NEXT_PUBLIC_MAP_STYLE_URL is required in production")
+      : z
+          .string()
+          .url("NEXT_PUBLIC_MAP_STYLE_URL must be a valid URL")
+          .optional(),
   NEXT_PUBLIC_MAP_STYLE_TOKEN: z.string().optional(),
 
   // MapTiler Geocoding (server-only; fills places_cache misses)
@@ -51,11 +60,13 @@ const serverEnvSchema = z.object({
 
   // Chatwoot webhooks (server-only)
   CHATWOOT_WEBHOOK_SECRET: z.string().optional(),
-})
+  CHATWOOT_BASE_URL: z.string().url().optional(),
+  CHATWOOT_API_ACCESS_TOKEN: z.string().optional(),
+});
 
-export type ServerEnv = z.infer<typeof serverEnvSchema>
+export type ServerEnv = z.infer<typeof serverEnvSchema>;
 
-let _validatedEnv: ServerEnv | null = null
+let _validatedEnv: ServerEnv | null = null;
 
 /**
  * Validate and return server environment variables.
@@ -63,21 +74,21 @@ let _validatedEnv: ServerEnv | null = null
  * Throws with a descriptive error if required vars are missing.
  */
 export function getServerEnv(): ServerEnv {
-  if (_validatedEnv) return _validatedEnv
+  if (_validatedEnv) return _validatedEnv;
 
-  const result = serverEnvSchema.safeParse(process.env)
+  const result = serverEnvSchema.safeParse(process.env);
 
   if (!result.success) {
     const missing = result.error.issues
-      .map((issue) => `  - ${issue.path.join('.')}: ${issue.message}`)
-      .join('\n')
+      .map((issue) => `  - ${issue.path.join(".")}: ${issue.message}`)
+      .join("\n");
 
     throw new Error(
       `[env] Missing or invalid environment variables:\n${missing}\n\n` +
-      'Check your .env.local file or CI/CD secrets configuration.'
-    )
+        "Check your .env.local file or CI/CD secrets configuration.",
+    );
   }
 
-  _validatedEnv = result.data
-  return _validatedEnv
+  _validatedEnv = result.data;
+  return _validatedEnv;
 }

@@ -1,51 +1,59 @@
 #!/usr/bin/env node
-import crypto from 'node:crypto';
-import fs from 'node:fs/promises';
-import path from 'node:path';
-import process from 'node:process';
-import { createClient } from '@supabase/supabase-js';
-import dotenv from 'dotenv';
+import crypto from "node:crypto";
+import fs from "node:fs/promises";
+import path from "node:path";
+import process from "node:process";
+import { createClient } from "@supabase/supabase-js";
+import dotenv from "dotenv";
+import {
+  dataForSeoAccessForEndpoint,
+  isAccessRunnable,
+} from "./dataforseo-feature-access.mjs";
 
-dotenv.config({ path: '.env.local' });
+dotenv.config({ path: ".env.local" });
 
-const API_BASE = 'https://api.dataforseo.com/v3';
-const DEFAULT_WEBSITE_ID = '894545b7-73ca-4dae-b76a-da5b6a3f8441';
-const DEFAULT_ACCOUNT_ID = '9fc24733-b127-4184-aa22-12f03b98927a';
-const DEFAULT_PROMPT_SET = 'docs/ops/growth-ai-search-prompts-v1.json';
+const API_BASE = "https://api.dataforseo.com/v3";
+const DEFAULT_WEBSITE_ID = "894545b7-73ca-4dae-b76a-da5b6a3f8441";
+const DEFAULT_ACCOUNT_ID = "9fc24733-b127-4184-aa22-12f03b98927a";
+const DEFAULT_PROMPT_SET = "docs/ops/growth-ai-search-prompts-v1.json";
 const DEFAULT_OUT_DIR = `artifacts/seo/${todayIso()}-dataforseo-ai-visibility`;
-const TARGET_DOMAIN = 'colombiatours.travel';
-const TARGET_BRAND = 'ColombiaTours';
+const TARGET_DOMAIN = "colombiatours.travel";
+const TARGET_BRAND = "ColombiaTours";
 
 const args = parseArgs(process.argv.slice(2));
-const apply = args.apply === 'true';
+const apply = args.apply === "true";
 const dryRun = !apply;
 const websiteId = args.websiteId ?? DEFAULT_WEBSITE_ID;
 const accountId = args.accountId ?? DEFAULT_ACCOUNT_ID;
 const promptSetPath = args.promptSet ?? DEFAULT_PROMPT_SET;
 const outDir = args.outDir ?? DEFAULT_OUT_DIR;
-const maxPrompts = Number.parseInt(args.maxPrompts ?? '10', 10);
+const maxPrompts = Number.parseInt(args.maxPrompts ?? "10", 10);
 const runTag = args.runTag ?? `epic310-geo-ai-visibility-v1-${todayCompact()}`;
-const profile = args.profile ?? 'geo_ai_visibility_v1';
-const platform = args.platform ?? 'google_ai_mode';
-const includeDomainMentions = args.includeDomainMentions !== 'false';
+const profile = args.profile ?? "dfs_ai_geo_visibility_v1";
+const platform = args.platform ?? "google_ai_mode";
+const llmMentionsAccess = dataForSeoAccessForEndpoint(
+  "/v3/ai_optimization/llm_mentions/top_pages/live",
+);
+const includeDomainMentionsRequested = args.includeDomainMentions !== "false";
+const includeDomainMentions =
+  includeDomainMentionsRequested && isAccessRunnable(llmMentionsAccess);
+const accessSkips =
+  includeDomainMentionsRequested && !includeDomainMentions
+    ? [
+        {
+          feature: "ai_optimization_llm_mentions",
+          status: llmMentionsAccess.status,
+          reason: llmMentionsAccess.evidence,
+        },
+      ]
+    : [];
 
 const login = process.env.DATAFORSEO_LOGIN?.trim();
 const password = process.env.DATAFORSEO_PASSWORD?.trim();
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-if (!login || !password) {
-  console.error('Missing DATAFORSEO_LOGIN or DATAFORSEO_PASSWORD');
-  process.exit(1);
-}
-if (!supabaseUrl || !serviceRole) {
-  console.error('Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
-  process.exit(1);
-}
-
-const sb = createClient(supabaseUrl, serviceRole, {
-  auth: { persistSession: false, autoRefreshToken: false },
-});
+const runIssues = ["#384", "#310"];
+let sb;
 
 main().catch((error) => {
   console.error(error);
@@ -54,55 +62,75 @@ main().catch((error) => {
 
 async function main() {
   await fs.mkdir(outDir, { recursive: true });
-  const promptSet = JSON.parse(await fs.readFile(promptSetPath, 'utf8'));
+  const promptSet = JSON.parse(await fs.readFile(promptSetPath, "utf8"));
   const prompts = promptSet.prompts.slice(0, maxPrompts);
   const startedAt = new Date().toISOString();
 
   const run = {
     account_id: accountId,
     website_id: websiteId,
-    provider: 'dataforseo',
+    provider: "dataforseo",
     profile,
     run_tag: runTag,
     target_domain: promptSet.target_domain ?? TARGET_DOMAIN,
     target_brand: promptSet.target_brand ?? TARGET_BRAND,
-    locale: 'multi',
-    market: 'multi',
-    platforms: [platform, ...(includeDomainMentions ? ['llm_mentions'] : [])],
+    locale: "multi",
+    market: "multi",
+    platforms: [platform, ...(includeDomainMentions ? ["llm_mentions"] : [])],
     prompt_set_version: promptSet.version,
-    status: dryRun ? 'pending' : 'running',
+    status: dryRun ? "pending" : "running",
     started_at: startedAt,
     raw_cache_keys: [],
     cost_usd: 0,
     metadata: {
       epic: 310,
-      issue: 363,
+      owner_issue: "#384",
+      epic_issue: "#310",
+      linked_issues: runIssues,
       prompt_set_path: promptSetPath,
       max_prompts: maxPrompts,
-      mode: dryRun ? 'dry-run' : 'apply',
+      mode: dryRun ? "dry-run" : "apply",
+      access_skips: accessSkips,
     },
   };
 
   if (dryRun) {
-    console.log(JSON.stringify({
-      mode: 'dry-run',
+    const summary = {
+      mode: "dry-run",
       run_tag: runTag,
       profile,
+      linked_issues: runIssues,
+      status: "dry-run",
       prompt_set_version: promptSet.version,
       prompts: prompts.length,
       platform,
       include_domain_mentions: includeDomainMentions,
+      access_skips: accessSkips,
       endpoints: plannedEndpoints(prompts, includeDomainMentions),
-    }, null, 2));
+      artifact_dir: outDir,
+      operational_status: "WATCH",
+      watch_reason:
+        "Dry-run only; no DataForSEO paid calls or database writes were executed.",
+    };
+    await writeSummary(summary);
+    console.log(JSON.stringify(summary, null, 2));
     return;
   }
 
+  requireApplyEnv();
+  sb = createClient(supabaseUrl, serviceRole, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+
   const { data: insertedRun, error: runError } = await sb
-    .from('seo_ai_visibility_runs')
-    .upsert(run, { onConflict: 'website_id,run_tag' })
-    .select('id')
+    .from("seo_ai_visibility_runs")
+    .upsert(run, { onConflict: "website_id,run_tag" })
+    .select("id")
     .single();
-  if (runError) throw new Error(`seo_ai_visibility_runs upsert failed: ${runError.message}`);
+  if (runError)
+    throw new Error(
+      `seo_ai_visibility_runs upsert failed: ${runError.message}`,
+    );
 
   const runId = insertedRun.id;
   const facts = [];
@@ -111,76 +139,150 @@ async function main() {
   const failures = [];
 
   for (const prompt of prompts) {
-    const endpoint = '/v3/serp/google/ai_mode/live/advanced';
-    const payload = [{
-      keyword: prompt.prompt,
-      location_code: prompt.location_code,
-      language_code: prompt.language_code,
-      device: 'desktop',
-      tag: `${runTag}|${prompt.prompt_id}`,
-    }];
+    const endpoint = "/v3/serp/google/ai_mode/live/advanced";
+    const payload = [
+      {
+        keyword: prompt.prompt,
+        location_code: prompt.location_code,
+        language_code: prompt.language_code,
+        device: "desktop",
+        tag: `${runTag}|${prompt.prompt_id}`,
+      },
+    ];
     const cacheKey = `${runTag}|google_ai_mode|${prompt.prompt_id}`;
     try {
       const response = await dataForSeoPost(endpoint, payload);
       await writeArtifact(`${prompt.prompt_id}-google-ai-mode.json`, response);
-      await persistCache(endpoint, cacheKey, response, 'ai_visibility');
-      await recordUsage(endpoint, response.tasks?.[0]?.cost ?? response.cost ?? 0, cacheKey, {
-        run_tag: runTag,
-        prompt_id: prompt.prompt_id,
-        profile,
-      });
+      await persistCache(endpoint, cacheKey, response, "ai_visibility");
+      await recordUsage(
+        endpoint,
+        response.tasks?.[0]?.cost ?? response.cost ?? 0,
+        cacheKey,
+        {
+          run_tag: runTag,
+          prompt_id: prompt.prompt_id,
+          profile,
+        },
+      );
       rawCacheKeys.push(cacheKey);
       totalCost += Number(response.tasks?.[0]?.cost ?? response.cost ?? 0);
-      facts.push(...factsFromGoogleAiMode(runId, prompt, response, cacheKey, run.target_domain, run.target_brand));
+      facts.push(
+        ...factsFromGoogleAiMode(
+          runId,
+          prompt,
+          response,
+          cacheKey,
+          run.target_domain,
+          run.target_brand,
+        ),
+      );
     } catch (error) {
-      failures.push({ endpoint, prompt_id: prompt.prompt_id, message: error.message });
+      failures.push({
+        endpoint,
+        prompt_id: prompt.prompt_id,
+        message: error.message,
+      });
     }
   }
 
   if (includeDomainMentions) {
-    for (const endpointType of ['top_pages', 'top_domains']) {
+    for (const endpointType of ["top_pages", "top_domains"]) {
       const endpoint = `/v3/ai_optimization/llm_mentions/${endpointType}/live`;
-      const payload = [{
-        language_code: 'en',
-        location_code: 2840,
-        platform: 'google',
-        target: [{ keyword: run.target_domain, search_scope: ['answer'], match_type: 'partial_match' }],
-        limit: 20,
-        tag: `${runTag}|${endpointType}`,
-      }];
+      const payload = [
+        {
+          language_code: "en",
+          location_code: 2840,
+          platform: "google",
+          target: [
+            {
+              keyword: run.target_domain,
+              search_scope: ["answer"],
+              match_type: "partial_match",
+            },
+          ],
+          limit: 20,
+          tag: `${runTag}|${endpointType}`,
+        },
+      ];
       const cacheKey = `${runTag}|llm_mentions|${endpointType}`;
       try {
         const response = await dataForSeoPost(endpoint, payload);
         await writeArtifact(`llm-mentions-${endpointType}.json`, response);
-        await persistCache(endpoint, cacheKey, response, 'ai_visibility');
-        await recordUsage(endpoint, response.tasks?.[0]?.cost ?? response.cost ?? 0, cacheKey, {
-          run_tag: runTag,
-          endpoint_type: endpointType,
-          profile,
-        });
+        await persistCache(endpoint, cacheKey, response, "ai_visibility");
+        await recordUsage(
+          endpoint,
+          response.tasks?.[0]?.cost ?? response.cost ?? 0,
+          cacheKey,
+          {
+            run_tag: runTag,
+            endpoint_type: endpointType,
+            profile,
+          },
+        );
         rawCacheKeys.push(cacheKey);
         totalCost += Number(response.tasks?.[0]?.cost ?? response.cost ?? 0);
-        facts.push(...factsFromLlmMentions(runId, endpointType, response, cacheKey, run.target_domain, run.target_brand));
+        facts.push(
+          ...factsFromLlmMentions(
+            runId,
+            endpointType,
+            response,
+            cacheKey,
+            run.target_domain,
+            run.target_brand,
+          ),
+        );
       } catch (error) {
-        failures.push({ endpoint, endpoint_type: endpointType, message: error.message });
+        failures.push({
+          endpoint,
+          endpoint_type: endpointType,
+          message: error.message,
+        });
       }
     }
   }
 
-  const uniqueFacts = uniqueBy(facts, (fact) => fact.fact_fingerprint);
+  let uniqueFacts = uniqueBy(facts, (fact) => fact.fact_fingerprint);
+  let persistedFacts = 0;
+  let factsPersistenceFailed = false;
   if (uniqueFacts.length > 0) {
     for (const chunk of chunks(uniqueFacts, 100)) {
-      const { error } = await sb
-        .from('seo_ai_visibility_facts')
-        .upsert(chunk, { onConflict: 'run_id,fact_fingerprint' });
-      if (error) throw new Error(`seo_ai_visibility_facts upsert failed: ${error.message}`);
+      try {
+        const { error } = await sb
+          .from("seo_ai_visibility_facts")
+          .upsert(chunk, { onConflict: "run_id,fact_fingerprint" });
+        if (error)
+          throw new Error(
+            `seo_ai_visibility_facts upsert failed: ${error.message}`,
+          );
+        persistedFacts += chunk.length;
+      } catch (error) {
+        failures.push({
+          stage: "persist_facts",
+          message: error.message,
+          attempted_facts: chunk.length,
+          persisted_facts_before_failure: persistedFacts,
+        });
+        factsPersistenceFailed = true;
+        break;
+      }
     }
   }
 
   const finishedAt = new Date().toISOString();
-  const status = failures.length === 0 ? 'complete' : uniqueFacts.length > 0 ? 'partial' : 'failed';
+  if (factsPersistenceFailed) {
+    uniqueFacts = uniqueFacts.slice(0, persistedFacts);
+  }
+  const partialDataExists = uniqueFacts.length > 0 || rawCacheKeys.length > 0;
+  const status =
+    failures.length === 0
+      ? "complete"
+      : partialDataExists
+        ? "partial"
+        : "failed";
+  let operationalStatus =
+    failures.length > 0 || accessSkips.length > 0 ? "WATCH" : "PASS";
   const { error: finishError } = await sb
-    .from('seo_ai_visibility_runs')
+    .from("seo_ai_visibility_runs")
     .update({
       status,
       finished_at: finishedAt,
@@ -189,40 +291,78 @@ async function main() {
       metadata: {
         ...run.metadata,
         facts_count: uniqueFacts.length,
+        persisted_facts_count: persistedFacts,
+        operational_status: operationalStatus,
+        access_skips: accessSkips,
         failures,
       },
     })
-    .eq('id', runId);
-  if (finishError) throw new Error(`seo_ai_visibility_runs finish failed: ${finishError.message}`);
+    .eq("id", runId);
+  if (finishError && !partialDataExists)
+    throw new Error(
+      `seo_ai_visibility_runs finish failed: ${finishError.message}`,
+    );
+  if (finishError) {
+    failures.push({
+      stage: "finish_run",
+      message: `seo_ai_visibility_runs finish failed: ${finishError.message}`,
+    });
+    operationalStatus = "WATCH";
+  }
 
   const summary = {
-    mode: 'apply',
+    mode: "apply",
     run_id: runId,
     run_tag: runTag,
+    profile,
+    linked_issues: runIssues,
     status,
+    operational_status: operationalStatus,
     prompts: prompts.length,
     facts: uniqueFacts.length,
+    persisted_facts: persistedFacts,
     raw_cache_keys: rawCacheKeys.length,
     cost_usd: totalCost,
+    access_skips: accessSkips,
     failures,
   };
-  await fs.writeFile(path.join(outDir, 'ai-visibility-summary.json'), `${JSON.stringify(summary, null, 2)}\n`);
-  await fs.writeFile(path.join(outDir, 'ai-visibility-summary.md'), summaryMarkdown(summary));
+  await writeSummary(summary);
   console.log(JSON.stringify(summary, null, 2));
+
+  if (failures.length > 0 && !partialDataExists) {
+    process.exitCode = 1;
+  }
 }
 
-function factsFromGoogleAiMode(runId, prompt, response, cacheKey, targetDomain, targetBrand) {
+function factsFromGoogleAiMode(
+  runId,
+  prompt,
+  response,
+  cacheKey,
+  targetDomain,
+  targetBrand,
+) {
   const task = response.tasks?.[0] ?? {};
   const result = task.result?.[0] ?? {};
   const text = JSON.stringify(result);
   const urls = extractUrls(text);
-  const domains = uniqueBy(urls.map(domainFromUrl).filter(Boolean), (domain) => domain);
-  const ownedUrls = urls.filter((url) => domainFromUrl(url)?.endsWith(targetDomain));
+  const domains = uniqueBy(
+    urls.map(domainFromUrl).filter(Boolean),
+    (domain) => domain,
+  );
+  const ownedUrls = urls.filter((url) =>
+    domainFromUrl(url)?.endsWith(targetDomain),
+  );
   const mentioned = includesTarget(text, targetDomain, targetBrand);
   const cited = ownedUrls.length > 0;
-  const competitorDomains = domains.filter((domain) => !domain.endsWith(targetDomain) && !isNoiseDomain(domain)).slice(0, 20);
+  const competitorDomains = domains
+    .filter(
+      (domain) => !domain.endsWith(targetDomain) && !isNoiseDomain(domain),
+    )
+    .slice(0, 20);
   const excerpt = extractExcerpt(text, targetDomain, targetBrand);
-  const observedAt = normalizeProviderDate(result.datetime) ?? new Date().toISOString();
+  const observedAt =
+    normalizeProviderDate(result.datetime) ?? new Date().toISOString();
 
   const sourceUrls = urls.length > 0 ? urls.slice(0, 25) : [null];
   return sourceUrls.map((sourceUrl, index) => {
@@ -230,22 +370,33 @@ function factsFromGoogleAiMode(runId, prompt, response, cacheKey, targetDomain, 
     return baseFact({
       runId,
       prompt,
-      provider: 'dataforseo',
-      platform: 'google_ai_mode',
+      provider: "dataforseo",
+      platform: "google_ai_mode",
       modelName: null,
-      endpointType: 'google_ai_mode',
+      endpointType: "google_ai_mode",
       targetDomain,
       targetBrand,
       sourceUrl,
       sourceDomain,
-      ownedUrl: sourceUrl && domainFromUrl(sourceUrl)?.endsWith(targetDomain) ? sourceUrl : null,
+      ownedUrl:
+        sourceUrl && domainFromUrl(sourceUrl)?.endsWith(targetDomain)
+          ? sourceUrl
+          : null,
       mentioned,
-      cited: Boolean(sourceUrl && domainFromUrl(sourceUrl)?.endsWith(targetDomain)) || (index === 0 && cited),
+      cited:
+        Boolean(
+          sourceUrl && domainFromUrl(sourceUrl)?.endsWith(targetDomain),
+        ) ||
+        (index === 0 && cited),
       mentionsCount: mentioned ? 1 : 0,
       citationsCount: sourceUrl ? 1 : 0,
       aiSearchVolume: null,
       impressions: null,
-      visibilityScore: scoreVisibility(mentioned, cited, competitorDomains.length),
+      visibilityScore: scoreVisibility(
+        mentioned,
+        cited,
+        competitorDomains.length,
+      ),
       rankPosition: index + 1,
       answerExcerpt: excerpt,
       competitorDomains,
@@ -260,40 +411,51 @@ function factsFromGoogleAiMode(runId, prompt, response, cacheKey, targetDomain, 
   });
 }
 
-function factsFromLlmMentions(runId, endpointType, response, cacheKey, targetDomain, targetBrand) {
+function factsFromLlmMentions(
+  runId,
+  endpointType,
+  response,
+  cacheKey,
+  targetDomain,
+  targetBrand,
+) {
   const task = response.tasks?.[0] ?? {};
   const result = task.result?.[0] ?? {};
   const items = Array.isArray(result.items) ? result.items : [];
   const observedAt = new Date().toISOString();
   return items.slice(0, 50).map((item, index) => {
-    const key = typeof item.key === 'string' ? item.key : null;
-    const sourceDomain = endpointType === 'top_domains'
-      ? key
-      : key ? domainFromUrl(key) : null;
+    const key = typeof item.key === "string" ? item.key : null;
+    const sourceDomain =
+      endpointType === "top_domains" ? key : key ? domainFromUrl(key) : null;
     const metrics = flattenMetrics(item);
-    const mentioned = metrics.mentions > 0 || includesTarget(JSON.stringify(item), targetDomain, targetBrand);
-    const cited = Boolean(key && (key.includes(targetDomain) || sourceDomain?.endsWith(targetDomain)));
+    const mentioned =
+      metrics.mentions > 0 ||
+      includesTarget(JSON.stringify(item), targetDomain, targetBrand);
+    const cited = Boolean(
+      key &&
+      (key.includes(targetDomain) || sourceDomain?.endsWith(targetDomain)),
+    );
     return baseFact({
       runId,
       prompt: {
         prompt_id: `domain_${endpointType}_${index + 1}`,
         prompt: targetDomain,
-        intent: 'mixed',
-        keyword_cluster: 'brand ai visibility',
-        locale: 'en-US',
-        market: 'US',
+        intent: "mixed",
+        keyword_cluster: "brand ai visibility",
+        locale: "en-US",
+        market: "US",
         location_code: 2840,
-        language_code: 'en',
+        language_code: "en",
       },
-      provider: 'dataforseo',
-      platform: 'llm_mentions_google',
+      provider: "dataforseo",
+      platform: "llm_mentions_google",
       modelName: null,
       endpointType: `llm_mentions_${endpointType}`,
       targetDomain,
       targetBrand,
-      sourceUrl: endpointType === 'top_pages' ? key : null,
+      sourceUrl: endpointType === "top_pages" ? key : null,
       sourceDomain,
-      ownedUrl: cited && endpointType === 'top_pages' ? key : null,
+      ownedUrl: cited && endpointType === "top_pages" ? key : null,
       mentioned,
       cited,
       mentionsCount: metrics.mentions,
@@ -303,7 +465,10 @@ function factsFromLlmMentions(runId, endpointType, response, cacheKey, targetDom
       visibilityScore: scoreVisibility(mentioned, cited, 0),
       rankPosition: index + 1,
       answerExcerpt: null,
-      competitorDomains: sourceDomain && !sourceDomain.endsWith(targetDomain) ? [sourceDomain] : [],
+      competitorDomains:
+        sourceDomain && !sourceDomain.endsWith(targetDomain)
+          ? [sourceDomain]
+          : [],
       evidence: {
         cache_key: cacheKey,
         task_id: task.id ?? null,
@@ -319,9 +484,9 @@ function baseFact(input) {
     input.endpointType,
     input.platform,
     input.prompt.prompt_id,
-    input.sourceUrl ?? input.sourceDomain ?? 'no-source',
-    input.ownedUrl ?? 'no-owned-url',
-  ].join('|');
+    input.sourceUrl ?? input.sourceDomain ?? "no-source",
+    input.ownedUrl ?? "no-owned-url",
+  ].join("|");
   return {
     run_id: input.runId,
     account_id: accountId,
@@ -352,7 +517,7 @@ function baseFact(input) {
     visibility_score: input.visibilityScore,
     rank_position: input.rankPosition,
     answer_excerpt: input.answerExcerpt,
-    sentiment: 'unknown',
+    sentiment: "unknown",
     competitor_domains: input.competitorDomains,
     brand_entities: [input.targetBrand, input.targetDomain],
     evidence: input.evidence,
@@ -363,8 +528,10 @@ function baseFact(input) {
 
 async function persistCache(endpoint, cacheKey, payload, cacheNamespace) {
   const now = new Date().toISOString();
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-  const { error } = await sb.from('growth_dataforseo_cache').upsert(
+  const expiresAt = new Date(
+    Date.now() + 7 * 24 * 60 * 60 * 1000,
+  ).toISOString();
+  const { error } = await sb.from("growth_dataforseo_cache").upsert(
     {
       account_id: accountId,
       website_id: websiteId,
@@ -375,28 +542,30 @@ async function persistCache(endpoint, cacheKey, payload, cacheNamespace) {
       fetched_at: now,
       expires_at: expiresAt,
     },
-    { onConflict: 'website_id,endpoint,cache_key' },
+    { onConflict: "website_id,endpoint,cache_key" },
   );
-  if (error) throw new Error(`growth_dataforseo_cache upsert failed: ${error.message}`);
+  if (error)
+    throw new Error(`growth_dataforseo_cache upsert failed: ${error.message}`);
 }
 
 async function recordUsage(endpoint, cost, cacheKey, metadata) {
   const now = new Date().toISOString();
   const billingMonth = `${now.slice(0, 7)}-01`;
   const { data: existing, error: readError } = await sb
-    .from('seo_provider_usage')
-    .select('request_count,total_cost_usd,metadata,first_called_at')
-    .eq('website_id', websiteId)
-    .eq('provider', 'dataforseo')
-    .eq('endpoint', endpoint)
-    .eq('billing_month', billingMonth)
+    .from("seo_provider_usage")
+    .select("request_count,total_cost_usd,metadata,first_called_at")
+    .eq("website_id", websiteId)
+    .eq("provider", "dataforseo")
+    .eq("endpoint", endpoint)
+    .eq("billing_month", billingMonth)
     .maybeSingle();
-  if (readError) throw new Error(`seo_provider_usage read failed: ${readError.message}`);
+  if (readError)
+    throw new Error(`seo_provider_usage read failed: ${readError.message}`);
 
-  const { error } = await sb.from('seo_provider_usage').upsert(
+  const { error } = await sb.from("seo_provider_usage").upsert(
     {
       website_id: websiteId,
-      provider: 'dataforseo',
+      provider: "dataforseo",
       endpoint,
       billing_month: billingMonth,
       request_count: Number(existing?.request_count ?? 0) + 1,
@@ -411,38 +580,66 @@ async function recordUsage(endpoint, cost, cacheKey, metadata) {
       last_called_at: now,
       updated_at: now,
     },
-    { onConflict: 'website_id,provider,endpoint,billing_month' },
+    { onConflict: "website_id,provider,endpoint,billing_month" },
   );
-  if (error) throw new Error(`seo_provider_usage upsert failed: ${error.message}`);
+  if (error)
+    throw new Error(`seo_provider_usage upsert failed: ${error.message}`);
 }
 
 async function dataForSeoPost(endpoint, body) {
-  const response = await fetch(`${API_BASE}${endpoint.replace(/^\/v3/, '')}`, {
-    method: 'POST',
+  const response = await fetch(`${API_BASE}${endpoint.replace(/^\/v3/, "")}`, {
+    method: "POST",
     headers: {
-      authorization: `Basic ${Buffer.from(`${login}:${password}`).toString('base64')}`,
-      'content-type': 'application/json',
+      authorization: `Basic ${Buffer.from(`${login}:${password}`).toString("base64")}`,
+      "content-type": "application/json",
     },
     body: JSON.stringify(body),
   });
   const json = await response.json();
   if (!response.ok || json.status_code >= 30000 || json.tasks_error > 0) {
-    throw new Error(`DataForSEO API error ${response.status}: ${JSON.stringify(json).slice(0, 2000)}`);
+    throw new Error(
+      `DataForSEO API error ${response.status}: ${JSON.stringify(json).slice(0, 2000)}`,
+    );
   }
   return json;
 }
 
 async function writeArtifact(name, payload) {
-  await fs.writeFile(path.join(outDir, name), `${JSON.stringify(payload, null, 2)}\n`);
+  await fs.writeFile(
+    path.join(outDir, name),
+    `${JSON.stringify(payload, null, 2)}\n`,
+  );
+}
+
+async function writeSummary(summary) {
+  await fs.writeFile(
+    path.join(outDir, "ai-visibility-summary.json"),
+    `${JSON.stringify(summary, null, 2)}\n`,
+  );
+  await fs.writeFile(
+    path.join(outDir, "ai-visibility-summary.md"),
+    summaryMarkdown(summary),
+  );
 }
 
 function plannedEndpoints(prompts, withMentions) {
   return [
-    ...prompts.map((prompt) => ({ endpoint: '/v3/serp/google/ai_mode/live/advanced', prompt_id: prompt.prompt_id })),
-    ...(withMentions ? [
-      { endpoint: '/v3/ai_optimization/llm_mentions/top_pages/live', target: TARGET_DOMAIN },
-      { endpoint: '/v3/ai_optimization/llm_mentions/top_domains/live', target: TARGET_DOMAIN },
-    ] : []),
+    ...prompts.map((prompt) => ({
+      endpoint: "/v3/serp/google/ai_mode/live/advanced",
+      prompt_id: prompt.prompt_id,
+    })),
+    ...(withMentions
+      ? [
+          {
+            endpoint: "/v3/ai_optimization/llm_mentions/top_pages/live",
+            target: TARGET_DOMAIN,
+          },
+          {
+            endpoint: "/v3/ai_optimization/llm_mentions/top_domains/live",
+            target: TARGET_DOMAIN,
+          },
+        ]
+      : []),
   ];
 }
 
@@ -451,35 +648,44 @@ function extractUrls(value) {
   const pattern = /https?:\/\/[^\s"'<>),\\\]]+/g;
   const matches = String(value).match(pattern) ?? [];
   for (const match of matches) {
-    urls.add(match.replace(/[).,;]+$/, ''));
+    urls.add(match.replace(/[).,;]+$/, ""));
   }
   return [...urls];
 }
 
 function domainFromUrl(url) {
   try {
-    return new URL(url).hostname.replace(/^www\./, '').toLowerCase();
+    return new URL(url).hostname.replace(/^www\./, "").toLowerCase();
   } catch {
-    if (typeof url === 'string' && /^[a-z0-9.-]+\.[a-z]{2,}$/i.test(url)) return url.replace(/^www\./, '').toLowerCase();
+    if (typeof url === "string" && /^[a-z0-9.-]+\.[a-z]{2,}$/i.test(url))
+      return url.replace(/^www\./, "").toLowerCase();
     return null;
   }
 }
 
 function includesTarget(text, targetDomain, targetBrand) {
   const lower = String(text).toLowerCase();
-  return lower.includes(targetDomain.toLowerCase()) || lower.includes(targetBrand.toLowerCase());
+  return (
+    lower.includes(targetDomain.toLowerCase()) ||
+    lower.includes(targetBrand.toLowerCase())
+  );
 }
 
 function extractExcerpt(text, targetDomain, targetBrand) {
   const lower = String(text).toLowerCase();
   const targets = [targetDomain.toLowerCase(), targetBrand.toLowerCase()];
-  const index = targets.map((target) => lower.indexOf(target)).find((value) => value >= 0);
+  const index = targets
+    .map((target) => lower.indexOf(target))
+    .find((value) => value >= 0);
   if (index == null || index < 0) return null;
-  return String(text).slice(Math.max(0, index - 180), Math.min(String(text).length, index + 320));
+  return String(text).slice(
+    Math.max(0, index - 180),
+    Math.min(String(text).length, index + 320),
+  );
 }
 
 function flattenMetrics(item) {
-  const groups = ['platform', 'location', 'language', 'sources_domain'];
+  const groups = ["platform", "location", "language", "sources_domain"];
   let mentions = Number(item.mentions ?? 0);
   let aiSearchVolume = Number(item.ai_search_volume ?? 0);
   let impressions = Number(item.impressions ?? 0);
@@ -505,7 +711,9 @@ function scoreVisibility(mentioned, cited, competitorCount) {
 }
 
 function isNoiseDomain(domain) {
-  return ['google.com', 'gstatic.com', 'dataforseo.com', 'schema.org'].some((noise) => domain.endsWith(noise));
+  return ["google.com", "gstatic.com", "dataforseo.com", "schema.org"].some(
+    (noise) => domain.endsWith(noise),
+  );
 }
 
 function normalizeProviderDate(value) {
@@ -525,12 +733,13 @@ function uniqueBy(items, keyFn) {
 
 function chunks(items, size) {
   const out = [];
-  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+  for (let i = 0; i < items.length; i += size)
+    out.push(items.slice(i, i + size));
   return out;
 }
 
 function sha256(value) {
-  return crypto.createHash('sha256').update(value).digest('hex');
+  return crypto.createHash("sha256").update(value).digest("hex");
 }
 
 function todayIso() {
@@ -538,7 +747,7 @@ function todayIso() {
 }
 
 function todayCompact() {
-  return new Date().toISOString().slice(0, 10).replaceAll('-', '');
+  return new Date().toISOString().slice(0, 10).replaceAll("-", "");
 }
 
 function summaryMarkdown(summary) {
@@ -546,29 +755,55 @@ function summaryMarkdown(summary) {
 
 | Field | Value |
 |---|---|
-| Run id | ${summary.run_id} |
+| Mode | ${summary.mode} |
+| Run id | ${summary.run_id ?? "n/a"} |
 | Run tag | ${summary.run_tag} |
+| Profile | ${summary.profile} |
+| Linked issues | ${summary.linked_issues?.join(", ") ?? "n/a"} |
 | Status | ${summary.status} |
+| Operational status | ${summary.operational_status} |
 | Prompts | ${summary.prompts} |
-| Facts | ${summary.facts} |
-| Raw cache keys | ${summary.raw_cache_keys} |
-| Cost USD | ${summary.cost_usd} |
+| Facts | ${summary.facts ?? "n/a"} |
+| Persisted facts | ${summary.persisted_facts ?? "n/a"} |
+| Raw cache keys | ${summary.raw_cache_keys ?? "n/a"} |
+| Cost USD | ${summary.cost_usd ?? 0} |
+| Artifact dir | ${summary.artifact_dir ?? "n/a"} |
 
 ## Failures
 
-${summary.failures.length ? summary.failures.map((failure) => `- ${failure.endpoint}: ${failure.message}`).join('\n') : '- none'}
+${summary.failures?.length ? summary.failures.map(formatFailure).join("\n") : "- none"}
+
+${summary.watch_reason ? `## Watch Reason\n\n${summary.watch_reason}\n` : ""}
 `;
+}
+
+function formatFailure(failure) {
+  const location = failure.endpoint ?? failure.stage ?? "unknown";
+  return `- ${location}: ${failure.message}`;
+}
+
+function requireApplyEnv() {
+  const missing = [];
+  if (!login) missing.push("DATAFORSEO_LOGIN");
+  if (!password) missing.push("DATAFORSEO_PASSWORD");
+  if (!supabaseUrl) missing.push("NEXT_PUBLIC_SUPABASE_URL");
+  if (!serviceRole) missing.push("SUPABASE_SERVICE_ROLE_KEY");
+  if (missing.length > 0) {
+    throw new Error(
+      `Missing required apply environment variables: ${missing.join(", ")}`,
+    );
+  }
 }
 
 function parseArgs(argv) {
   const parsed = {};
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
-    if (!arg.startsWith('--')) continue;
+    if (!arg.startsWith("--")) continue;
     const key = arg.slice(2);
     const next = argv[i + 1];
-    parsed[key] = next && !next.startsWith('--') ? next : 'true';
-    if (next && !next.startsWith('--')) i += 1;
+    parsed[key] = next && !next.startsWith("--") ? next : "true";
+    if (next && !next.startsWith("--")) i += 1;
   }
   return parsed;
 }
