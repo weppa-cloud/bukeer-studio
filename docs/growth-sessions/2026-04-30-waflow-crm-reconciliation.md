@@ -339,3 +339,124 @@ Post-apply verification:
 - all six rows mirror the same value in
   `requests.custom_fields.growth_lead_source`;
 - all six rows have matching `growth_lead_source_detail` for audit.
+
+## Addendum - fresh WAFlow source test
+
+Updated: 2026-04-30T19:55Z.
+
+Manual production test URL:
+
+```text
+https://colombiatours.travel/paquetes-a-colombia-todo-incluido-en-9-dias?utm_source=fb&utm_medium=paid&utm_campaign=epic310_source_test&utm_content=manual_qa
+```
+
+Captured WAFlow lead:
+
+| Field          | Value                  |
+| -------------- | ---------------------- |
+| reference_code | `PAQUET-3004-9NGK`     |
+| created_at     | `2026-04-30T18:50:28Z` |
+| utm_source     | `fb`                   |
+| utm_medium     | `paid`                 |
+| utm_campaign   | `epic310_source_test`  |
+
+Funnel ledger result:
+
+| Event                | Result |
+| -------------------- | ------ |
+| `waflow_submit`      | PASS   |
+| `whatsapp_cta_click` | PASS   |
+
+CRM result:
+
+| Check                                      | Result  |
+| ------------------------------------------ | ------- |
+| `waflow_leads.chatwoot_conversation_id`    | MISSING |
+| matching `requests` row                    | MISSING |
+| recent `webhook_events(provider=chatwoot)` | MISSING |
+
+Interpretation:
+
+- The public-site WAFlow capture and funnel ledger are working.
+- The test did not reach the CRM source alignment code because no new Chatwoot
+  webhook arrived.
+- Latest `webhook_events(provider=chatwoot)` entries remain from
+  `2026-04-28`, so this is a Chatwoot webhook/config/deployment gap, not a
+  WAFlow submit gap.
+
+Next blocker to clear for #322:
+
+- confirm the WhatsApp inbox used by the test is connected to Chatwoot;
+- confirm Chatwoot webhook points to the deployed Studio endpoint;
+- confirm `CHATWOOT_WEBHOOK_SECRET` is configured in the deployed environment;
+- repeat one message with the `#ref` preserved so the webhook can link
+  `waflow_leads -> requests -> lead_source`.
+
+## Addendum - Chatwoot diagnosis and controlled endpoint E2E
+
+Updated: 2026-04-30T20:05Z.
+
+Server diagnosis:
+
+- Chatwoot host: `Chatia-CapRover`
+- Chatwoot URL: `https://web.chatia.app`
+- ColombiaTours account: `account_id=11`
+- ColombiaTours WhatsApp inbox: `WA-3206129003`, `inbox_id=32`
+- Current ColombiaTours Chatwoot webhook URL:
+  `https://wzlxbpicdcdvxvdcvgas.supabase.co/functions/v1/chatwoot-webhook`
+
+The fresh WhatsApp message did reach Chatwoot:
+
+| Field           | Value                  |
+| --------------- | ---------------------- |
+| conversation_id | `557019`               |
+| message_id      | `10790307`             |
+| inbox_id        | `32`                   |
+| reference_code  | `PAQUET-3004-9NGK`     |
+| message time    | `2026-04-30T18:50:46Z` |
+
+Why production webhook did not run Studio code:
+
+- Chatwoot is configured to call the legacy Supabase Edge Function.
+- It is not configured to call Studio `/api/webhooks/chatwoot`.
+- Therefore the new Studio CRM source alignment code cannot run in production
+  until the Studio endpoint is deployed and Chatwoot points to it.
+
+Controlled E2E:
+
+- Started local Studio session on port `3001`.
+- Replayed the real Chatwoot `message_created` payload with a valid local HMAC
+  signature.
+- Endpoint returned `200` with:
+  - `matched=true`
+  - `lifecycleEvents=["ConversationContinued"]`
+  - `crmRequestId=430c9668-93c6-4d0a-b5e7-3913bf3e9ecd`
+
+Post-E2E Supabase verification:
+
+| Check                                          | Result             |
+| ---------------------------------------------- | ------------------ |
+| `waflow_leads.chatwoot_conversation_id`        | `557019`           |
+| CRM request                                    | `SOL-1935`         |
+| `requests.chatwoot_conversation_id`            | `557019`           |
+| `requests.custom_fields.growth_reference_code` | `PAQUET-3004-9NGK` |
+| `requests.lead_source`                         | `facebook_ads`     |
+| `requests.custom_fields.growth_lead_source`    | `facebook_ads`     |
+| `webhook_events.status`                        | `processed`        |
+
+Conclusion:
+
+- Code path is validated end-to-end.
+- WAFlow -> WhatsApp -> Chatwoot -> Studio webhook -> CRM request source works.
+- Remaining production task is deployment/configuration, not application logic.
+
+Production activation checklist:
+
+1. Deploy the Studio webhook code.
+2. Configure `CHATWOOT_WEBHOOK_SECRET` in the deployed Studio environment.
+3. Add or update ColombiaTours Chatwoot webhook to call the deployed Studio
+   `/api/webhooks/chatwoot` endpoint.
+4. Preserve the existing legacy Edge Function only if still needed for other
+   automations, or migrate its responsibilities deliberately.
+5. Run one more real message and confirm it appears in `webhook_events` without
+   local replay.
