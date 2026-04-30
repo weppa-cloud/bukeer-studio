@@ -701,6 +701,7 @@ async function findOrCreateCrmRequest(
     p_contact_email:
       cleanString(contact.email) ?? cleanString(leadPayload.email),
     p_contact_name: cleanString(contact.name) ?? cleanString(leadPayload.name),
+    p_growth_reference_code: lead.reference_code,
   });
 
   if (rpc.error) throw new Error(rpc.error.message);
