@@ -87,6 +87,8 @@ interface CrmRequestRow {
   id: string;
   short_id: string | null;
   custom_fields: JsonRecord | null;
+  lead_source: string | null;
+  lead_source_detail: string | null;
 }
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -426,6 +428,100 @@ function readCrmRequestId(value: unknown): string | null {
   return requestId && UUID_PATTERN.test(requestId) ? requestId : null;
 }
 
+function deriveCrmLeadSource(leadPayload: JsonRecord): string {
+  const attribution = readRecord(leadPayload.attribution);
+  const utm = readRecord(attribution.utm);
+  const clickIds = readRecord(attribution.click_ids);
+  const channel = cleanString(attribution.channel)?.toLowerCase();
+  const utmSource =
+    cleanString(utm.utm_source)?.toLowerCase() ??
+    cleanString(attribution.utm_source)?.toLowerCase();
+  const utmMedium =
+    cleanString(utm.utm_medium)?.toLowerCase() ??
+    cleanString(attribution.utm_medium)?.toLowerCase();
+  const referrer = cleanString(attribution.referrer)?.toLowerCase();
+
+  if (
+    cleanString(clickIds.gclid) ||
+    cleanString(clickIds.gbraid) ||
+    cleanString(clickIds.wbraid) ||
+    channel === "google_ads" ||
+    (utmSource?.includes("google") &&
+      ["cpc", "paid", "paidsearch", "ppc"].includes(utmMedium ?? ""))
+  ) {
+    return "google_ads";
+  }
+
+  if (
+    cleanString(clickIds.fbclid) ||
+    channel === "meta" ||
+    (utmSource &&
+      ["facebook", "fb", "meta"].some((source) => utmSource.includes(source)))
+  ) {
+    return "facebook_ads";
+  }
+
+  if (
+    channel === "tiktok" ||
+    cleanString(clickIds.ttclid) ||
+    utmSource?.includes("tiktok")
+  ) {
+    return "organic_social";
+  }
+
+  if (utmSource?.includes("instagram") || utmSource === "ig") {
+    return ["cpc", "paid", "paid_social"].includes(utmMedium ?? "")
+      ? "instagram_ads"
+      : "organic_social";
+  }
+
+  if (channel === "seo" || utmMedium === "organic") return "organic_search";
+  if (channel === "email" || utmMedium === "email") return "email_campaign";
+  if (channel === "referral" || utmMedium === "referral") return "referral";
+  if (channel === "whatsapp" || utmSource === "whatsapp") return "whatsapp";
+  if (referrer) return "referral";
+  return "direct";
+}
+
+function shouldUpdateLeadSource(
+  existingLeadSource: string | null,
+  derivedLeadSource: string,
+): boolean {
+  const existing = cleanString(existingLeadSource)?.toLowerCase();
+  if (!existing || existing === "unknown") return true;
+  if (existing === "direct" && derivedLeadSource !== "direct") return true;
+  return false;
+}
+
+function buildCrmLeadSourceDetail(
+  lead: WaflowLeadRow,
+  leadPayload: JsonRecord,
+): string {
+  const attribution = readRecord(leadPayload.attribution);
+  const utm = readRecord(attribution.utm);
+  const parts = [
+    "Growth",
+    lead.reference_code ? `ref=${lead.reference_code}` : null,
+    cleanString(attribution.channel)
+      ? `channel=${cleanString(attribution.channel)}`
+      : null,
+    cleanString(attribution.page_path)
+      ? `page=${cleanString(attribution.page_path)}`
+      : null,
+    cleanString(utm.utm_source)
+      ? `utm_source=${cleanString(utm.utm_source)}`
+      : null,
+    cleanString(utm.utm_medium)
+      ? `utm_medium=${cleanString(utm.utm_medium)}`
+      : null,
+    cleanString(utm.utm_campaign)
+      ? `utm_campaign=${cleanString(utm.utm_campaign)}`
+      : null,
+  ].filter(Boolean);
+
+  return parts.join(" | ").slice(0, 500);
+}
+
 async function findOrCreateCrmRequest(
   supabase: ReturnType<typeof createSupabaseAdmin>,
   lead: WaflowLeadRow,
@@ -439,7 +535,7 @@ async function findOrCreateCrmRequest(
 
   const existing = await supabase
     .from("requests")
-    .select("id,short_id,custom_fields")
+    .select("id,short_id,custom_fields,lead_source,lead_source_detail")
     .eq("account_id", lead.account_id)
     .eq("chatwoot_conversation_id", conversationNumericId)
     .order("created_at", { ascending: false })
@@ -477,7 +573,7 @@ async function findOrCreateCrmRequest(
 
   const created = await supabase
     .from("requests")
-    .select("id,short_id,custom_fields")
+    .select("id,short_id,custom_fields,lead_source,lead_source_detail")
     .eq("id", requestId)
     .maybeSingle<CrmRequestRow>();
 
@@ -520,6 +616,8 @@ async function linkWaflowLeadToCrmRequest(
 
   const leadPayload = readRecord(lead.payload);
   const attribution = readRecord(leadPayload.attribution);
+  const derivedLeadSource = deriveCrmLeadSource(leadPayload);
+  const leadSourceDetail = buildCrmLeadSourceDetail(lead, leadPayload);
   const nextCustomFields = {
     ...customFields,
     growth_reference_code: lead.reference_code,
@@ -528,14 +626,30 @@ async function linkWaflowLeadToCrmRequest(
     growth_session_key: lead.session_key,
     growth_source_url: cleanString(attribution.source_url),
     growth_page_path: cleanString(attribution.page_path),
+    growth_lead_source: derivedLeadSource,
+    growth_lead_source_detail: leadSourceDetail,
     growth_link_method: "chatwoot_webhook_reference",
     growth_linked_at: new Date().toISOString(),
     growth_last_chatwoot_event: lifecycleEvents.at(-1) ?? null,
   };
+  const requestUpdate: Record<string, unknown> = {
+    custom_fields: nextCustomFields,
+  };
+  const existingLeadSourceDetail = cleanString(request.lead_source_detail);
+
+  if (shouldUpdateLeadSource(request.lead_source, derivedLeadSource)) {
+    requestUpdate.lead_source = derivedLeadSource;
+  }
+  if (
+    !existingLeadSourceDetail ||
+    existingLeadSourceDetail.startsWith("Growth")
+  ) {
+    requestUpdate.lead_source_detail = leadSourceDetail;
+  }
 
   const update = await supabase
     .from("requests")
-    .update({ custom_fields: nextCustomFields })
+    .update(requestUpdate)
     .eq("id", request.id);
 
   if (update.error) throw new Error(update.error.message);
