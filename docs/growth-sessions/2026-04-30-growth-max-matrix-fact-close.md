@@ -46,6 +46,17 @@ Scope: EPIC #310 sprint close for Max Performance Matrix facts, inventory and Co
 - Max Matrix status: `WATCH`.
 - Coverage summary: 45 profiles, 13 covered, 28 partial, 2 provider-access-blocked, 2 excluded/watch.
 
+## Future Implementation Backlog
+
+These items are explicitly moved out of the current sprint close. They should
+not block #310 from remaining `PASS-WITH-WATCH operativo`.
+
+| Item                    | Current state                         | Future trigger                                                                                   | Target issues |
+| ----------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------ | ------------- |
+| LLM Mentions            | `WATCH`; not executed in this close.  | Decide whether to pay/enable LLM Mentions access and define stable prompts, markets and cadence. | #384, #321    |
+| Backlinks               | `BLOCKED` by DataForSEO subscription. | Enable Backlinks API access or approve fallback provider/manual import for authority facts.      | #382, #334    |
+| Business Data / Reviews | `WATCH`; needs CID/place id.          | Obtain ColombiaTours CID/place id and approved competitor/local places for real smoke.           | #383, #335    |
+
 ## Artifacts
 
 - `artifacts/seo/2026-04-30-growth-max-matrix-fact-normalization/growth-max-matrix-fact-normalization.md`
