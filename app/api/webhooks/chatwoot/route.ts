@@ -1,9 +1,11 @@
 /**
  * POST /api/webhooks/chatwoot
  *
- * Chatwoot lifecycle webhook for Meta conversion tracking. The handler follows
- * ADR-018: HMAC verification, replay window, provider idempotency ledger, Zod
- * parsing, then business logic.
+ * Chatwoot lifecycle webhook for Meta conversion tracking. Native Chatwoot
+ * account webhooks cannot send custom HMAC headers, so production uses a
+ * secret URL token while tests/relays can still use HMAC + replay checks.
+ * After auth, the handler follows ADR-018 provider idempotency, Zod parsing,
+ * then business logic.
  */
 
 import { createClient } from "@supabase/supabase-js";
@@ -344,6 +346,33 @@ async function verifySignature(
 
   // Some webhook relays sign the conventional "timestamp.body" payload.
   return false;
+}
+
+async function resolveWebhookAuth(
+  request: NextRequest,
+  rawBody: string,
+  secret: string,
+): Promise<
+  { ok: true; method: "hmac" | "token"; signature: string } | { ok: false }
+> {
+  const signature =
+    request.headers.get("x-chatwoot-signature") ??
+    request.headers.get("x-bukeer-signature") ??
+    request.headers.get("x-signature");
+  if (signature) {
+    const ok = await verifySignature(rawBody, signature, secret);
+    return ok ? { ok: true, method: "hmac", signature } : { ok: false };
+  }
+
+  const token =
+    request.nextUrl.searchParams.get("token") ??
+    request.headers.get("x-chatwoot-webhook-token") ??
+    request.headers.get("x-bukeer-webhook-token");
+  if (token && timingSafeEqual(token, secret)) {
+    return { ok: true, method: "token", signature: "token" };
+  }
+
+  return { ok: false };
 }
 
 async function insertWebhookEvent(
@@ -910,23 +939,12 @@ export async function POST(request: NextRequest) {
     return apiInternalError("Chatwoot webhook secret is not configured");
   }
 
-  const signature =
-    request.headers.get("x-chatwoot-signature") ??
-    request.headers.get("x-bukeer-signature") ??
-    request.headers.get("x-signature");
-  if (!signature) {
-    return apiError(
-      "INVALID_SIGNATURE",
-      "Missing Chatwoot webhook signature",
-      401,
-    );
-  }
-
   const rawBody = await request.text();
-  if (!(await verifySignature(rawBody, signature, secret))) {
+  const auth = await resolveWebhookAuth(request, rawBody, secret);
+  if (!auth.ok) {
     return apiError(
       "INVALID_SIGNATURE",
-      "Invalid Chatwoot webhook signature",
+      "Invalid Chatwoot webhook signature or token",
       401,
     );
   }
@@ -942,24 +960,26 @@ export async function POST(request: NextRequest) {
   if (!parsed.success) return apiValidationError(parsed.error);
 
   const payload = parsed.data;
-  const timestamp = parseWebhookTimestamp(
-    payload,
-    request.headers.get("x-chatwoot-timestamp") ??
-      request.headers.get("x-timestamp"),
-  );
-  if (!timestamp)
-    return apiError("REPLAY_REJECTED", "Missing webhook timestamp", 400);
-
-  const nowSeconds = Math.floor(Date.now() / 1000);
-  if (
-    timestamp < nowSeconds - REPLAY_PAST_SECONDS ||
-    timestamp > nowSeconds + REPLAY_FUTURE_SECONDS
-  ) {
-    return apiError(
-      "REPLAY_REJECTED",
-      "Webhook timestamp outside replay window",
-      400,
+  if (auth.method === "hmac") {
+    const timestamp = parseWebhookTimestamp(
+      payload,
+      request.headers.get("x-chatwoot-timestamp") ??
+        request.headers.get("x-timestamp"),
     );
+    if (!timestamp)
+      return apiError("REPLAY_REJECTED", "Missing webhook timestamp", 400);
+
+    const nowSeconds = Math.floor(Date.now() / 1000);
+    if (
+      timestamp < nowSeconds - REPLAY_PAST_SECONDS ||
+      timestamp > nowSeconds + REPLAY_FUTURE_SECONDS
+    ) {
+      return apiError(
+        "REPLAY_REJECTED",
+        "Webhook timestamp outside replay window",
+        400,
+      );
+    }
   }
 
   const conversationId = extractConversationId(payload);
@@ -971,7 +991,7 @@ export async function POST(request: NextRequest) {
       supabase,
       payload,
       providerEventId,
-      signature,
+      auth.signature,
     );
     if (insertStatus === "duplicate") {
       return apiSuccess({ ok: true, deduped: true });
