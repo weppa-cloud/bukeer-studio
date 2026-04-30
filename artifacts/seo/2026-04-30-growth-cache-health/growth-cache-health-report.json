@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-30T19:18:46.442Z",
+  "generated_at": "2026-04-30T20:40:07.334Z",
   "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
   "status": "PASS",
   "max_matrix_status": "WATCH",
@@ -12,7 +12,7 @@
       "freshness_sla_hours": 24,
       "latest_at": "2026-04-30T18:22:24.741+00:00",
       "latest_time_column": "fetched_at",
-      "age_hours": 0.94,
+      "age_hours": 2.29,
       "expired_rows": 0,
       "available_identity_columns": [],
       "recent": [
@@ -61,8 +61,8 @@
       "freshness_sla_hours": 6,
       "latest_at": "2026-04-30T18:22:33.172+00:00",
       "latest_time_column": "fetched_at",
-      "age_hours": 0.93,
-      "expired_rows": 0,
+      "age_hours": 2.29,
+      "expired_rows": 4,
       "available_identity_columns": [],
       "recent": [
         {
@@ -106,14 +106,38 @@
       "table": "growth_dataforseo_cache",
       "provider": "dataforseo",
       "status": "PASS",
-      "row_count": 42,
+      "row_count": 45,
       "freshness_sla_hours": 168,
-      "latest_at": "2026-04-30T18:23:09.232+00:00",
+      "latest_at": "2026-04-30T20:39:03.779+00:00",
       "latest_time_column": "fetched_at",
-      "age_hours": 0.92,
+      "age_hours": 0.01,
       "expired_rows": 0,
       "available_identity_columns": [],
       "recent": [
+        {
+          "cache_key": "epic310-onpage|04302257-1574-0216-0000-3f30b406bb51|pages-all",
+          "cache_tag": "growth:dataforseo:website:894545b7-73ca-4dae-b76a-da5b6a3f8441:onpage",
+          "endpoint": "/v3/on_page/pages",
+          "fetched_at": "2026-04-30T20:39:03.779+00:00",
+          "expires_at": "2026-05-07T20:39:03.78+00:00",
+          "row_count": 1000
+        },
+        {
+          "cache_key": "epic310-onpage|04302257-1574-0216-0000-3f30b406bb51|summary-latest",
+          "cache_tag": "growth:dataforseo:website:894545b7-73ca-4dae-b76a-da5b6a3f8441:onpage",
+          "endpoint": "/v3/on_page/summary",
+          "fetched_at": "2026-04-30T20:38:58.71+00:00",
+          "expires_at": "2026-05-07T20:38:58.725+00:00",
+          "row_count": 1
+        },
+        {
+          "cache_key": "epic310-onpage|04302257-1574-0216-0000-3f30b406bb51|task-post-response",
+          "cache_tag": "growth:dataforseo:website:894545b7-73ca-4dae-b76a-da5b6a3f8441:onpage",
+          "endpoint": "/v3/on_page/task_post",
+          "fetched_at": "2026-04-30T19:57:06.804+00:00",
+          "expires_at": "2026-05-07T19:57:06.815+00:00",
+          "row_count": 1
+        },
         {
           "cache_key": "epic310-max-matrix-smoke-20260430|dfs_domain_competitive_baseline_v1|domain-whois-colombiatours.travel|58793b1e284c133b",
           "cache_tag": "growth:dataforseo:website:894545b7-73ca-4dae-b76a-da5b6a3f8441:domain_analytics",
@@ -129,30 +153,6 @@
           "fetched_at": "2026-04-30T18:22:57.79+00:00",
           "expires_at": "2026-05-30T18:22:57.79+00:00",
           "row_count": 1
-        },
-        {
-          "cache_key": "epic310-max-matrix-smoke-20260430|dfs_business_local_v1|business-my-business-info-1|6dc3fa477f1b6fec",
-          "cache_tag": "growth:dataforseo:website:894545b7-73ca-4dae-b76a-da5b6a3f8441:business_data",
-          "endpoint": "/v3/business_data/google/my_business_info/live",
-          "fetched_at": "2026-04-30T18:22:53.319+00:00",
-          "expires_at": "2026-05-30T18:22:53.319+00:00",
-          "row_count": 1
-        },
-        {
-          "cache_key": "epic310-max-matrix-smoke-20260430|dfs_backlinks_competitor_gap_v1|backlinks-competitor-summary-impulse.travel|2bc64d6303e7537d",
-          "cache_tag": "growth:dataforseo:website:894545b7-73ca-4dae-b76a-da5b6a3f8441:backlinks",
-          "endpoint": "/v3/backlinks/summary/live",
-          "fetched_at": "2026-04-30T18:22:43.41+00:00",
-          "expires_at": "2026-05-30T18:22:43.41+00:00",
-          "row_count": 1
-        },
-        {
-          "cache_key": "epic310-max-matrix-smoke-20260430|dfs_backlinks_authority_v1|backlinks-summary-domain|c5abc3b435b69bf4",
-          "cache_tag": "growth:dataforseo:website:894545b7-73ca-4dae-b76a-da5b6a3f8441:backlinks",
-          "endpoint": "/v3/backlinks/summary/live",
-          "fetched_at": "2026-04-30T18:22:42.608+00:00",
-          "expires_at": "2026-05-30T18:22:42.608+00:00",
-          "row_count": 1
         }
       ]
     },
@@ -160,11 +160,11 @@
       "table": "seo_audit_findings",
       "provider": "dataforseo-normalized",
       "status": "PASS",
-      "row_count": 3133,
+      "row_count": 3183,
       "freshness_sla_hours": 168,
-      "latest_at": "2026-04-30T15:50:47.628+00:00",
+      "latest_at": "2026-04-30T20:39:14.564+00:00",
       "latest_time_column": "fetched_at",
-      "age_hours": 3.46,
+      "age_hours": 0.01,
       "expired_rows": null,
       "available_identity_columns": [
         "crawl_task_id",
@@ -172,58 +172,58 @@
       ],
       "recent": [
         {
-          "fetched_at": "2026-04-30T15:50:47.628+00:00",
-          "public_url": "https://colombiatours.travel/blog/guatape-y-la-piedra-del-penol",
-          "finding_type": "http_4xx",
-          "severity": "critical",
+          "fetched_at": "2026-04-30T20:39:14.564+00:00",
+          "public_url": "https://colombiatours.travel/actividades/bora-bora-vip",
+          "finding_type": "technical_watch",
+          "severity": "info",
           "source": "dataforseo:on_page",
           "status": "open",
-          "crawl_task_id": "04301808-1574-0216-0000-1e0a9d846a5f",
-          "finding_fingerprint": "e7e51cb5ca95ffb1c7f2480f694d0a227dbae65fcd7370054ffcf6a068e6b65e",
+          "crawl_task_id": "04302257-1574-0216-0000-3f30b406bb51",
+          "finding_fingerprint": "821a5173c036b532d0d363ba547e3031e32db283aa6de3e81ce1ded4b54aa2ab",
           "row_count": null
         },
         {
-          "fetched_at": "2026-04-30T15:50:47.628+00:00",
-          "public_url": "https://colombiatours.travel/blog/guia-turistica-eje-cafetero",
-          "finding_type": "http_4xx",
-          "severity": "critical",
+          "fetched_at": "2026-04-30T20:39:14.564+00:00",
+          "public_url": "https://colombiatours.travel/actividades/city-tour-por-bogot-duraci-n-de-6-horas-grupal--c5e58907-be49-4185-9c26-fcee67322074",
+          "finding_type": "technical_watch",
+          "severity": "info",
           "source": "dataforseo:on_page",
           "status": "open",
-          "crawl_task_id": "04301808-1574-0216-0000-1e0a9d846a5f",
-          "finding_fingerprint": "691f8f6c7df4317ed8785431c4e5863d7075ac38c7b7391a4e8d185fbb5c67cb",
+          "crawl_task_id": "04302257-1574-0216-0000-3f30b406bb51",
+          "finding_fingerprint": "403f08b46b94fa7c856e40a284e84feb705ecd0ad2a8ca36786c8d9bc715eecf",
           "row_count": null
         },
         {
-          "fetched_at": "2026-04-30T15:50:47.628+00:00",
-          "public_url": "https://colombiatours.travel/blog/colombian-phrases-you-need-to-know",
-          "finding_type": "http_4xx",
-          "severity": "critical",
+          "fetched_at": "2026-04-30T20:39:14.564+00:00",
+          "public_url": "https://colombiatours.travel/actividades/4x1-adventure",
+          "finding_type": "technical_watch",
+          "severity": "info",
           "source": "dataforseo:on_page",
           "status": "open",
-          "crawl_task_id": "04301808-1574-0216-0000-1e0a9d846a5f",
-          "finding_fingerprint": "8f0617d14178a2cfef7563e7232902fc24452521d0eff11fc54e42a4f911ee2d",
+          "crawl_task_id": "04302257-1574-0216-0000-3f30b406bb51",
+          "finding_fingerprint": "1152306eea34190310f0172412b44cc27f51130238d7ad467fe6096442523d28",
           "row_count": null
         },
         {
-          "fetched_at": "2026-04-30T15:50:47.628+00:00",
-          "public_url": "https://colombiatours.travel/blog/capurgana-colombia",
-          "finding_type": "broken_fetch",
-          "severity": "critical",
+          "fetched_at": "2026-04-30T20:39:14.564+00:00",
+          "public_url": "https://colombiatours.travel/actividades/bora-bora-area-club",
+          "finding_type": "technical_watch",
+          "severity": "info",
           "source": "dataforseo:on_page",
           "status": "open",
-          "crawl_task_id": "04301808-1574-0216-0000-1e0a9d846a5f",
-          "finding_fingerprint": "d649f3c20cf4f3cab28828546495fb72113fde46a0dc33482b233d896eb27e8a",
+          "crawl_task_id": "04302257-1574-0216-0000-3f30b406bb51",
+          "finding_fingerprint": "d20bb1fdc9b2c6f8fcf5d23d7c4b78c232481ebe12aca5f75b01553cfad64f5c",
           "row_count": null
         },
         {
-          "fetched_at": "2026-04-30T15:50:47.628+00:00",
-          "public_url": "https://colombiatours.travel/blog/guatape-y-la-piedra-del-penol",
-          "finding_type": "broken_fetch",
-          "severity": "critical",
+          "fetched_at": "2026-04-30T20:39:14.564+00:00",
+          "public_url": "https://colombiatours.travel/actividades/city-tour-de-ciudad-y-comuna-13-grupal",
+          "finding_type": "technical_watch",
+          "severity": "info",
           "source": "dataforseo:on_page",
           "status": "open",
-          "crawl_task_id": "04301808-1574-0216-0000-1e0a9d846a5f",
-          "finding_fingerprint": "491ea2435f72ef7960bb6d4e1e4bfb4dbbdcd08f3ce70d5f62c25c9c0bf6cff6",
+          "crawl_task_id": "04302257-1574-0216-0000-3f30b406bb51",
+          "finding_fingerprint": "950d82881abbf66e757b5b0cf3046cbb8a51219c975042838882359498ee704a",
           "row_count": null
         }
       ]
@@ -232,11 +232,11 @@
       "table": "seo_audit_results",
       "provider": "dataforseo-normalized",
       "status": "PASS",
-      "row_count": 4618,
+      "row_count": 5617,
       "freshness_sla_hours": 168,
       "latest_at": "2026-04-30",
       "latest_time_column": "audit_date",
-      "age_hours": 19.31,
+      "age_hours": 20.67,
       "expired_rows": null,
       "available_identity_columns": [
         "crawl_task_id"
@@ -249,9 +249,9 @@
           "row_count": null
         },
         {
-          "page_url": "https://colombiatours.travel/destinos/salento",
+          "page_url": "https://colombiatours.travel/blog?page=6",
           "source": "dataforseo:on_page",
-          "crawl_task_id": "04300334-1574-0216-0000-c57a3723c41d",
+          "crawl_task_id": "04302257-1574-0216-0000-3f30b406bb51",
           "row_count": null
         },
         {
@@ -278,14 +278,35 @@
       "table": "funnel_events",
       "provider": "tracking",
       "status": "PASS",
-      "row_count": 32,
+      "row_count": 35,
       "freshness_sla_hours": 168,
-      "latest_at": "2026-04-30T18:50:28.571+00:00",
+      "latest_at": "2026-04-30T19:33:48.068+00:00",
       "latest_time_column": "occurred_at",
-      "age_hours": 0.47,
+      "age_hours": 1.1,
       "expired_rows": null,
       "available_identity_columns": [],
       "recent": [
+        {
+          "event_name": "whatsapp_cta_click",
+          "stage": "activation",
+          "channel": "whatsapp",
+          "occurred_at": "2026-04-30T19:33:48.068+00:00",
+          "row_count": null
+        },
+        {
+          "event_name": "whatsapp_cta_click",
+          "stage": "activation",
+          "channel": "whatsapp",
+          "occurred_at": "2026-04-30T19:33:26.165+00:00",
+          "row_count": null
+        },
+        {
+          "event_name": "waflow_submit",
+          "stage": "activation",
+          "channel": "waflow",
+          "occurred_at": "2026-04-30T19:33:25.531+00:00",
+          "row_count": null
+        },
         {
           "event_name": "whatsapp_cta_click",
           "stage": "activation",
@@ -299,27 +320,6 @@
           "channel": "waflow",
           "occurred_at": "2026-04-30T18:50:28.338+00:00",
           "row_count": null
-        },
-        {
-          "event_name": "whatsapp_cta_click",
-          "stage": "activation",
-          "channel": "whatsapp",
-          "occurred_at": "2026-04-30T18:48:18.808+00:00",
-          "row_count": null
-        },
-        {
-          "event_name": "waflow_submit",
-          "stage": "activation",
-          "channel": "waflow",
-          "occurred_at": "2026-04-30T18:48:16.698+00:00",
-          "row_count": null
-        },
-        {
-          "event_name": "whatsapp_cta_click",
-          "stage": "activation",
-          "channel": "whatsapp",
-          "occurred_at": "2026-04-30T18:38:12.741+00:00",
-          "row_count": null
         }
       ]
     },
@@ -327,14 +327,26 @@
       "table": "meta_conversion_events",
       "provider": "tracking",
       "status": "PASS",
-      "row_count": 22,
+      "row_count": 24,
       "freshness_sla_hours": 168,
-      "latest_at": "2026-04-30T19:15:49+00:00",
+      "latest_at": "2026-04-30T19:33:56+00:00",
       "latest_time_column": "event_time",
-      "age_hours": 0.05,
+      "age_hours": 1.1,
       "expired_rows": null,
       "available_identity_columns": [],
       "recent": [
+        {
+          "status": "failed",
+          "event_name": "ConversationContinued",
+          "event_time": "2026-04-30T19:33:56+00:00",
+          "row_count": null
+        },
+        {
+          "status": "sent",
+          "event_name": "Lead",
+          "event_time": "2026-04-30T19:33:25+00:00",
+          "row_count": null
+        },
         {
           "status": "failed",
           "event_name": "ConversationContinued",
@@ -351,18 +363,6 @@
           "status": "skipped",
           "event_name": "Lead",
           "event_time": "2026-04-30T18:50:28+00:00",
-          "row_count": null
-        },
-        {
-          "status": "skipped",
-          "event_name": "Lead",
-          "event_time": "2026-04-30T18:48:16+00:00",
-          "row_count": null
-        },
-        {
-          "status": "skipped",
-          "event_name": "Lead",
-          "event_time": "2026-04-30T18:38:10+00:00",
           "row_count": null
         }
       ]
@@ -389,12 +389,12 @@
         {
           "table": "seo_audit_results",
           "status": "PASS",
-          "row_count": 4618
+          "row_count": 5617
         },
         {
           "table": "seo_audit_findings",
           "status": "PASS",
-          "row_count": 3133
+          "row_count": 3183
         }
       ],
       "owner_issues": [
@@ -419,12 +419,12 @@
         {
           "table": "seo_audit_results",
           "status": "PASS",
-          "row_count": 4618
+          "row_count": 5617
         },
         {
           "table": "seo_audit_findings",
           "status": "PASS",
-          "row_count": 3133
+          "row_count": 3183
         }
       ],
       "owner_issues": [
@@ -1075,12 +1075,12 @@
         {
           "table": "funnel_events",
           "status": "PASS",
-          "row_count": 32
+          "row_count": 35
         },
         {
           "table": "meta_conversion_events",
           "status": "PASS",
-          "row_count": 22
+          "row_count": 24
         }
       ],
       "owner_issues": [
