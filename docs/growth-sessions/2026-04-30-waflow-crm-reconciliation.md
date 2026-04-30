@@ -518,3 +518,70 @@ Cleanup note:
   is `SOL-1002`.
 - `SOL-1935` was marked as a Growth test artifact with
   `growth_duplicate_of_request_short_id=SOL-1002`.
+
+## Addendum - live webhook test after activation
+
+Updated: 2026-04-30T20:40Z.
+
+Manual production test URL:
+
+```text
+https://colombiatours.travel/paquetes-a-colombia-todo-incluido-en-9-dias?utm_source=fb&utm_medium=paid&utm_campaign=epic310_webhook_live_test&utm_content=manual_qa_2
+```
+
+Captured WAFlow lead:
+
+| Field          | Value                       |
+| -------------- | --------------------------- |
+| reference_code | `HOME-3004-ZL6T`            |
+| created_at     | `2026-04-30T19:33:25Z`      |
+| utm_source     | `fb`                        |
+| utm_medium     | `paid`                      |
+| utm_campaign   | `epic310_webhook_live_test` |
+| utm_content    | `manual_qa_2`               |
+
+Funnel ledger:
+
+| Event                | Result |
+| -------------------- | ------ |
+| `waflow_submit`      | PASS   |
+| `whatsapp_cta_click` | PASS   |
+
+Chatwoot webhook:
+
+| Field                     | Value            |
+| ------------------------- | ---------------- |
+| `webhook_events.event_id` | `10790421`       |
+| status                    | `processed`      |
+| auth mode                 | `token`          |
+| conversation id           | `34883`          |
+| payload `#ref`            | `HOME-3004-ZL6T` |
+
+CRM result:
+
+| Check                                     | Result             |
+| ----------------------------------------- | ------------------ |
+| matching new request for `HOME-3004-ZL6T` | WATCH              |
+| existing request in conversation `34883`  | `SOL-1002`         |
+| existing request reference                | `PAQUET-3004-9NGK` |
+
+Interpretation:
+
+- Native Chatwoot webhook is now working in production.
+- The incoming WhatsApp message preserved the new `#ref`.
+- The CRM link is blocked by repeat-lead semantics: the same WhatsApp
+  conversation `34883` already has request `SOL-1002` linked to previous ref
+  `PAQUET-3004-9NGK`.
+- Current webhook code correctly avoids overwriting an existing different
+  Growth reference.
+
+Next product gap:
+
+- Support multiple WAFlow requests inside one long-running Chatwoot
+  conversation.
+- Required behavior: when a new `#ref` arrives on a conversation that already
+  has a request with another `growth_reference_code`, create or select a new
+  CRM request for the new reference instead of treating the conversation as a
+  single immutable request.
+- Until that lands, clean E2E for `lead_source` should use a fresh WhatsApp
+  contact/conversation.
