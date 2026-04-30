@@ -6434,10 +6434,32 @@
   border-top: 1px solid var(--c-line);
 }
 :where([data-template-set="editorial-v1"]) .review-card .who .av {
+  position: relative;
+  flex: 0 0 32px;
   width: 32px;
   height: 32px;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--c-accent-2), var(--c-accent));
+  color: var(--c-surface);
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  overflow: hidden;
+}
+:where([data-template-set="editorial-v1"]) .review-card .who .av span {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+:where([data-template-set="editorial-v1"]) .review-card .who .av img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 :where([data-template-set="editorial-v1"]) .review-card .who b {
   font-family: var(--font-display);

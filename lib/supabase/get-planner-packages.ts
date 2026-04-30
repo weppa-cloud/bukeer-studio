@@ -16,6 +16,24 @@ export interface PlannerPackageSummary {
 
 const DEFAULT_LIMIT = 6;
 
+function firstGalleryImageUrl(gallery: unknown): string | null {
+  if (!Array.isArray(gallery)) return null;
+
+  for (const item of gallery) {
+    if (typeof item === 'string' && item.trim()) {
+      return item;
+    }
+    if (item && typeof item === 'object') {
+      const url = (item as { url?: unknown }).url;
+      if (typeof url === 'string' && url.trim()) {
+        return url;
+      }
+    }
+  }
+
+  return null;
+}
+
 /**
  * Fetch package_kits authored by a single planner.
  *
@@ -42,7 +60,7 @@ export async function getPlannerPackages(
   const supabase = createSupabaseServiceRoleClient();
   const { data, error } = await supabase
     .from('package_kits')
-    .select('id, name, slug, destination, cover_image_url, is_featured, status, updated_at')
+    .select('id, name, slug, destination, cover_image_url, program_gallery, is_featured, status, updated_at')
     .eq('account_id', accountId)
     .eq('planner_id', plannerId)
     .in('status', ['active', 'published'])
@@ -57,7 +75,7 @@ export async function getPlannerPackages(
     slug: row.slug,
     title: row.name,
     destination: row.destination ?? null,
-    coverImageUrl: row.cover_image_url ?? null,
+    coverImageUrl: row.cover_image_url ?? firstGalleryImageUrl(row.program_gallery),
     isFeatured: Boolean(row.is_featured),
   }));
 }
@@ -75,7 +93,7 @@ export async function getPackageKitById(
   const supabase = createSupabaseServiceRoleClient();
   const { data, error } = await supabase
     .from('package_kits')
-    .select('id, name, slug, destination, cover_image_url, is_featured')
+    .select('id, name, slug, destination, cover_image_url, program_gallery, is_featured')
     .eq('account_id', accountId)
     .eq('id', packageKitId)
     .maybeSingle();
@@ -87,7 +105,7 @@ export async function getPackageKitById(
     slug: data.slug,
     title: data.name,
     destination: data.destination ?? null,
-    coverImageUrl: data.cover_image_url ?? null,
+    coverImageUrl: data.cover_image_url ?? firstGalleryImageUrl(data.program_gallery),
     isFeatured: Boolean(data.is_featured),
   };
 }

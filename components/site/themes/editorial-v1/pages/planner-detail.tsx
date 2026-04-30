@@ -184,6 +184,20 @@ function splitName(fullName: string): { first: string; rest: string } {
   return { first: parts[0], rest: parts.slice(1).join(' ') };
 }
 
+function getReviewInitials(name: string | null | undefined): string {
+  const parts = (name || '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  if (parts.length === 0) return '?';
+
+  return parts
+    .slice(0, 2)
+    .map((part) => part.charAt(0).toUpperCase())
+    .join('');
+}
+
 // ---------- Page ----------
 
 export function EditorialPlannerDetailPage({
@@ -595,10 +609,7 @@ export function EditorialPlannerDetailPage({
                             </div>
                           ) : null}
                         </div>
-                        <div
-                          className="pack-body"
-                          style={{ padding: '12px 0 4px' }}
-                        >
+                        <div className="pack-body">
                           {pk.location ? (
                             <div
                               className="pack-loc"
@@ -694,7 +705,20 @@ export function EditorialPlannerDetailPage({
                       </div>
                       <p>&ldquo;{r.text}&rdquo;</p>
                       <div className="who">
-                        <div className="av" />
+                        <div className="av" aria-hidden="true">
+                          <span>{getReviewInitials(r.author_name)}</span>
+                          {r.author_photo ? (
+                            <Image
+                              src={r.author_photo}
+                              alt=""
+                              width={32}
+                              height={32}
+                              sizes="32px"
+                              loading="lazy"
+                              referrerPolicy="no-referrer"
+                            />
+                          ) : null}
+                        </div>
                         <div>
                           <b>{r.author_name}</b>
                           {r.relative_time ? (
