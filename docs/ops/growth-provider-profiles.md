@@ -7,9 +7,10 @@ Last updated: 2026-04-30
 
 ## Purpose
 
-Define repeatable extraction profiles for the Growth OS provider layer:
+Define repeatable extraction profiles for the Growth OS Max Performance provider
+layer:
 
-`provider raw -> provider cache -> normalized facts -> growth_inventory -> Council`
+`provider raw -> provider cache -> normalized facts -> joint facts -> growth_inventory -> Council`
 
 These profiles prevent ad-hoc pulls. Every run must have a profile name, time
 window or task id, raw/cache target, normalized target, and Council use.
@@ -27,6 +28,28 @@ window or task id, raw/cache target, normalized target, and Council use.
 
 `growth_inventory` must not store provider raw JSON. It stores only
 decision-grade summaries with source, window, fallback and owner issue.
+
+## Profile Frequency And Approval Matrix
+
+| Provider / profile                          | Frequency                                                   | Approval mode                                                             | Paid-call risk | Normalized output                                                | Council output                                        |
+| ------------------------------------------- | ----------------------------------------------------------- | ------------------------------------------------------------------------- | -------------- | ---------------------------------------------------------------- | ----------------------------------------------------- |
+| `dfs_onpage_full_v2`                        | Weekly while #312/#313 are blocked/watch.                   | Approval required for every new crawl unless issue authorizes recurrence. | High           | `seo_audit_results`, `seo_audit_findings`, usage rows.           | Technical P0/P1 candidate/watch/block rows.           |
+| `dfs_onpage_rendered_sample_v1`             | On demand for priority URLs.                                | Approval required per sample scope.                                       | Medium         | Render/performance evidence and resource findings.               | Performance WATCH/candidate rows.                     |
+| `gsc_daily_complete_web_v1`                 | Daily, one completed day, paginated.                        | Automatic after profile approval.                                         | None           | Durable GSC fact base or cache-backed summaries.                 | WATCH only unless rolled into weekly baseline.        |
+| `gsc_growth_minimum_v1` / Council 28d pulls | Weekly before Council.                                      | Automatic.                                                                | None           | GSC opportunity facts/summaries.                                 | Search demand, CTR, market, device candidates.        |
+| `gsc_search_appearance_v1`                  | Weekly discovery; filtered detail if supported.             | Automatic discovery; detail filters automatic after profile succeeds.     | None           | Rich-result/search appearance facts.                             | Structured-data/rich-result WATCH/candidates.         |
+| `ga4_daily_landing_channel_v1`              | Daily completed day.                                        | Automatic.                                                                | None           | Landing/channel trend facts or cache-backed summaries.           | WATCH only unless rolled into weekly baseline.        |
+| `ga4_growth_minimum_v1` / Council 28d pulls | Weekly before Council.                                      | Automatic.                                                                | None           | GA4 behavior, event and campaign facts/summaries.                | CRO, activation, attribution and paid-readiness rows. |
+| Tracking facts                              | Continuous where configured; daily freshness; weekly smoke. | Automatic after integration approval.                                     | None/read-only | `funnel_events`, `meta_conversion_events`, lifecycle facts.      | Conversion-truth health, paid/CRO WATCH/BLOCKED/PASS. |
+| `geo_ai_visibility_v1`                      | Monthly baseline; weekly only for active experiments.       | Approval required for pilot/full run and prompt set.                      | High           | `seo_ai_visibility_runs`, `seo_ai_visibility_facts`.             | `channel = 'ai_search'` WATCH/candidate rows.         |
+| Translation quality gate                    | Before localized content scale; weekly during locale push.  | Automatic scoring; publish/scale approval remains human.                  | None           | `seo_translation_quality_checks`, `seo_translation_qa_findings`. | Content/localization PASS/WATCH/BLOCKED rows.         |
+| Joint normalizers                           | Weekly after provider facts; daily only for health/watch.   | Automatic; no provider calls.                                             | None           | Derived joint facts from cached/fact tables.                     | Ranked Council candidates and blockers.               |
+
+Paid-call approval details and freshness rules live in
+[Growth Data Automation Cadence](./growth-data-automation-cadence.md). The
+short rule: read-only GSC/GA4/tracking refreshes may run on schedule; expensive
+DataForSEO, AI/GEO, broad SERP, rendered crawl and paid-platform mutation work
+requires explicit owner approval before the provider call starts.
 
 ## DataForSEO Crawl Profile
 
@@ -288,6 +311,37 @@ new provider calls.
 | `growth_locale_launch_readiness_v1` | GSC locale path + GA4 hostname/landing + EN quality | Weekly during EN/MX | P1       | Decide if localized content can enter sitemap/hreflang/campaigns.             |
 | `growth_paid_governance_v1`         | GA4 campaign/source + funnel + Meta CAPI            | Weekly before spend | P0       | Approve, watch or block paid spend based on traceability.                     |
 
+### Joint fact contract
+
+Joint facts are derived records, not another raw-provider cache. They must keep
+links to the source provider facts or cache keys used to compute them.
+
+| Field                      | Requirement                                                                                       |
+| -------------------------- | ------------------------------------------------------------------------------------------------- |
+| `tenant_id` / `website_id` | Required for every row; never aggregate across tenants.                                           |
+| `profile`                  | One of the joint profiles above, versioned with `_v1`.                                            |
+| `entity_key`               | Canonical URL/path, market, device, campaign, query cluster or locale batch key.                  |
+| `source_refs`              | Cache keys or fact ids for GSC, GA4, DataForSEO, tracking, translation or AI/GEO inputs.          |
+| `window`                   | Completed date window, crawl task id, or localized content batch id.                              |
+| `score_components`         | Demand, visibility gap, engagement gap, conversion gap, strategic fit and confidence inputs.      |
+| `health_status`            | `pass`, `watch` or `blocked` based on cache freshness, join completeness and tracking continuity. |
+| `inventory_fingerprint`    | Stable dedupe key for the eventual `growth_inventory` row.                                        |
+
+Joint facts become `growth_inventory` only when they are decision-grade. A
+single joint fact may update an existing inventory row instead of creating a new
+one when the same URL/market/device/campaign and issue type already exists.
+
+### Joint fact outputs
+
+| Joint profile                       | Fact produced                                                    | Inventory behavior                                                                                |
+| ----------------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `growth_search_to_activation_v1`    | URL/query demand with GA4 landing quality and funnel activation. | Promote high-demand/low-activation rows; block if tracking continuity is missing.                 |
+| `growth_market_fit_v1`              | Country or city opportunity with search demand and behavior.     | Promote market-specific rows for CO/MX/US; never merge markets silently.                          |
+| `growth_mobile_seo_cro_v1`          | Device-specific search and behavior delta.                       | Promote mobile candidate/watch rows when both visibility or engagement trails desktop materially. |
+| `growth_post_fix_validation_v1`     | Before/after crawl, GSC and GA4 validation.                      | Close/archive fixed rows, keep WATCH if behavior did not recover, or create follow-up candidate.  |
+| `growth_locale_launch_readiness_v1` | Locale path readiness from GSC, GA4 hostname/path and QA gate.   | PASS/WATCH/BLOCK localized sitemap, hreflang, content scale and campaign readiness.               |
+| `growth_paid_governance_v1`         | Campaign/source continuity from GA4, funnel and Meta CAPI.       | PASS/WATCH/BLOCK paid spend; approval requires traceable events and no critical attribution gap.  |
+
 ### Joint scoring model
 
 Use the same executive score pattern across GSC/GA4:
@@ -304,6 +358,16 @@ Use the same executive score pattern across GSC/GA4:
 Only rows above the Council threshold become `growth_inventory` candidates.
 WATCH rows stay out of experiments until they have baseline, owner, metric and
 evaluation date.
+
+Default thresholds:
+
+| Score / health                            | Inventory action                                                            |
+| ----------------------------------------- | --------------------------------------------------------------------------- |
+| Score >= 75 and health `pass`             | Create/update `candidate` row for Council review.                           |
+| Score 50-74 or health `watch`             | Create/update `watch` row with missing evidence or next validation step.    |
+| Health `blocked`                          | Create/update `blocked` row when the blocker affects measurement or launch. |
+| Score < 50 with no strategic override     | Keep in fact tables/cache only; do not promote.                             |
+| Duplicate with newer accepted source refs | Update existing row, archive superseded fingerprint if needed.              |
 
 ## AI Search / GEO Profile
 
@@ -368,6 +432,12 @@ Every promoted row needs:
 - owner issue;
 - next action;
 - evaluation date when converted into an experiment.
+
+For Max Performance Council intake, promoted rows must also identify whether
+they came from a provider fact or a joint fact. Joint rows should include source
+refs for every provider that materially changed the score, so Council can see
+whether the candidate is driven by demand, behavior, conversion, technical
+health, localization quality or paid-governance continuity.
 
 ### Not promoted
 

@@ -1,0 +1,1701 @@
+{
+  "generated_at": "2026-04-30T16:52:59.286Z",
+  "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+  "mode": "dry-run",
+  "cadence": "weekly",
+  "include_approval_required": false,
+  "include_no_default": false,
+  "summary": {
+    "profile_count": 45,
+    "by_status": {
+      "implemented": 8,
+      "partial": 13,
+      "planned": 22,
+      "excluded": 2
+    },
+    "by_provider": {
+      "dataforseo": 17,
+      "gsc": 9,
+      "ga4": 10,
+      "tracking": 1,
+      "joint": 8
+    },
+    "by_priority": {
+      "P0": 14,
+      "P1": 24,
+      "P2": 5,
+      "P3": 2
+    },
+    "by_cadence": {
+      "weekly": 23,
+      "on_approval": 1,
+      "biweekly": 1,
+      "monthly": 14,
+      "quarterly": 1,
+      "no_default": 2,
+      "daily": 2,
+      "continuous": 1
+    }
+  },
+  "selected_summary": {
+    "profile_count": 25,
+    "by_status": {
+      "planned": 11,
+      "implemented": 7,
+      "partial": 7
+    },
+    "by_provider": {
+      "gsc": 9,
+      "ga4": 9,
+      "tracking": 1,
+      "joint": 6
+    },
+    "by_priority": {
+      "P0": 12,
+      "P1": 12,
+      "P2": 1
+    },
+    "by_cadence": {
+      "daily": 2,
+      "weekly": 22,
+      "continuous": 1
+    }
+  },
+  "status": "WATCH",
+  "profiles": [
+    {
+      "docs": [
+        "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md",
+        "docs/ops/growth-provider-profiles.md"
+      ],
+      "extractionScripts": [
+        "scripts/seo/dataforseo-onpage-crawl.mjs",
+        "scripts/seo/persist-dataforseo-onpage-artifact.mjs"
+      ],
+      "normalizerScripts": [
+        "scripts/seo/normalize-dataforseo-onpage.mjs",
+        "scripts/seo/triage-dataforseo-findings.mjs",
+        "scripts/seo/diff-growth-audit-runs.mjs"
+      ],
+      "factTargets": [
+        "seo_audit_results",
+        "seo_audit_findings"
+      ],
+      "inventoryOutputs": [
+        "technical_remediation",
+        "post_fix_validation"
+      ],
+      "ownerIssues": [
+        "#312",
+        "#313"
+      ],
+      "usageTable": "seo_provider_usage",
+      "runPolicy": "Do not start a new crawl unless approved; follow-up/persist/normalize approved tasks automatically.",
+      "id": "dfs_onpage_full_comparable_v3",
+      "provider": "dataforseo",
+      "family": "onpage",
+      "feature": "OnPage full crawl",
+      "priority": "P0",
+      "cadence": "weekly",
+      "costClass": "paid_normal",
+      "approval": "required_to_start",
+      "rawCache": "growth_dataforseo_cache",
+      "status": "implemented",
+      "due_for_selected_cadence": false,
+      "run_decision": {
+        "status": "SKIP",
+        "reason": "Not due for selected cadence or excluded by flags."
+      }
+    },
+    {
+      "docs": [
+        "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
+      ],
+      "extractionScripts": [
+        "scripts/seo/dataforseo-onpage-crawl.mjs"
+      ],
+      "normalizerScripts": [
+        "scripts/seo/normalize-dataforseo-onpage.mjs"
+      ],
+      "factTargets": [
+        "seo_audit_results",
+        "seo_audit_findings"
+      ],
+      "inventoryOutputs": [
+        "render_performance_watch"
+      ],
+      "ownerIssues": [
+        "#312",
+        "#313"
+      ],
+      "usageTable": "seo_provider_usage",
+      "runPolicy": "Rendered crawl is a sampled diagnostic, not the comparable baseline.",
+      "id": "dfs_onpage_rendered_sample_v1",
+      "provider": "dataforseo",
+      "family": "onpage",
+      "feature": "OnPage rendered sample",
+      "priority": "P1",
+      "cadence": "on_approval",
+      "costClass": "paid_heavy",
+      "approval": "required_every_run",
+      "rawCache": "growth_dataforseo_cache",
+      "status": "partial",
+      "due_for_selected_cadence": false,
+      "run_decision": {
+        "status": "SKIP",
+        "reason": "Not due for selected cadence or excluded by flags."
+      }
+    },
+    {
+      "docs": [
+        "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
+      ],
+      "extractionScripts": [
+        "lib/seo/serp-snapshot.ts"
+      ],
+      "normalizerScripts": [],
+      "factTargets": [
+        "seo_serp_snapshots",
+        "seo_serp_features"
+      ],
+      "inventoryOutputs": [
+        "ctr_snippet_schema_competitor"
+      ],
+      "ownerIssues": [
+        "#381",
+        "#321"
+      ],
+      "usageTable": "seo_provider_usage",
+      "runPolicy": "Run only for approved priority keyword set; costly SERP options require per-run approval.",
+      "id": "dfs_serp_priority_keywords_v1",
+      "provider": "dataforseo",
+      "family": "serp",
+      "feature": "SERP Advanced priority keyword intelligence",
+      "priority": "P1",
+      "cadence": "biweekly",
+      "costClass": "paid_normal",
+      "approval": "profile_approved_keywords_required",
+      "rawCache": "growth_dataforseo_cache",
+      "status": "partial",
+      "due_for_selected_cadence": false,
+      "run_decision": {
+        "status": "SKIP",
+        "reason": "Not due for selected cadence or excluded by flags."
+      }
+    },
+    {
+      "docs": [
+        "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
+      ],
+      "extractionScripts": [],
+      "normalizerScripts": [],
+      "factTargets": [
+        "seo_local_serp_facts"
+      ],
+      "inventoryOutputs": [
+        "local_visibility"
+      ],
+      "ownerIssues": [
+        "#381",
+        "#335"
+      ],
+      "usageTable": "seo_provider_usage",
+      "runPolicy": "",
+      "id": "dfs_serp_local_pack_v1",
+      "provider": "dataforseo",
+      "family": "serp",
+      "feature": "Google Maps / Local Finder SERP",
+      "priority": "P1",
+      "cadence": "monthly",
+      "costClass": "paid_normal",
+      "approval": "profile_approved_locations_required",
+      "rawCache": "growth_dataforseo_cache",
+      "status": "planned",
+      "due_for_selected_cadence": false,
+      "run_decision": {
+        "status": "SKIP",
+        "reason": "Not due for selected cadence or excluded by flags."
+      }
+    },
+    {
+      "docs": [
+        "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
+      ],
+      "extractionScripts": [],
+      "normalizerScripts": [],
+      "factTargets": [
+        "seo_keyword_opportunities"
+      ],
+      "inventoryOutputs": [
+        "demand_paid_readiness"
+      ],
+      "ownerIssues": [
+        "#380",
+        "#314"
+      ],
+      "usageTable": "seo_provider_usage",
+      "runPolicy": "",
+      "id": "dfs_keyword_volume_trends_v1",
+      "provider": "dataforseo",
+      "family": "keyword_data",
+      "feature": "Keyword Data volume, CPC, trend",
+      "priority": "P1",
+      "cadence": "monthly",
+      "costClass": "paid_normal",
+      "approval": "profile_approved_seed_set_required",
+      "rawCache": "growth_dataforseo_cache",
+      "status": "partial",
+      "due_for_selected_cadence": false,
+      "run_decision": {
+        "status": "SKIP",
+        "reason": "Not due for selected cadence or excluded by flags."
+      }
+    },
+    {
+      "docs": [
+        "docs/growth-sessions/2026-05-04-en-us-keyword-universe.md"
+      ],
+      "extractionScripts": [],
+      "normalizerScripts": [],
+      "factTargets": [
+        "seo_keyword_opportunities",
+        "seo_topic_clusters"
+      ],
+      "inventoryOutputs": [
+        "content_cluster_backlog"
+      ],
+      "ownerIssues": [
+        "#380",
+        "#314",
+        "#315",
+        "#316",
+        "#317",
+        "#318",
+        "#319",
+        "#320"
+      ],
+      "usageTable": "seo_provider_usage",
+      "runPolicy": "",
+      "id": "dfs_labs_demand_cluster_v1",
+      "provider": "dataforseo",
+      "family": "labs",
+      "feature": "DataForSEO Labs demand and clusters",
+      "priority": "P0",
+      "cadence": "monthly",
+      "costClass": "paid_normal",
+      "approval": "profile_approved_seed_set_required",
+      "rawCache": "growth_dataforseo_cache",
+      "status": "partial",
+      "due_for_selected_cadence": false,
+      "run_decision": {
+        "status": "SKIP",
+        "reason": "Not due for selected cadence or excluded by flags."
+      }
+    },
+    {
+      "docs": [
+        "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
+      ],
+      "extractionScripts": [],
+      "normalizerScripts": [],
+      "factTargets": [
+        "seo_competitor_visibility"
+      ],
+      "inventoryOutputs": [
+        "competitor_content_authority"
+      ],
+      "ownerIssues": [
+        "#380",
+        "#381",
+        "#334"
+      ],
+      "usageTable": "seo_provider_usage",
+      "runPolicy": "",
+      "id": "dfs_labs_competitor_visibility_v1",
+      "provider": "dataforseo",
+      "family": "labs",
+      "feature": "Competitor visibility",
+      "priority": "P1",
+      "cadence": "monthly",
+      "costClass": "paid_normal",
+      "approval": "profile_approved_competitors_required",
+      "rawCache": "growth_dataforseo_cache",
+      "status": "partial",
+      "due_for_selected_cadence": false,
+      "run_decision": {
+        "status": "SKIP",
+        "reason": "Not due for selected cadence or excluded by flags."
+      }
+    },
+    {
+      "docs": [
+        "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
+      ],
+      "extractionScripts": [],
+      "normalizerScripts": [],
+      "factTargets": [
+        "seo_keyword_gap_facts"
+      ],
+      "inventoryOutputs": [
+        "content_authority_gap"
+      ],
+      "ownerIssues": [
+        "#380",
+        "#334"
+      ],
+      "usageTable": "seo_provider_usage",
+      "runPolicy": "",
+      "id": "dfs_labs_gap_intersections_v1",
+      "provider": "dataforseo",
+      "family": "labs",
+      "feature": "Domain/page intersections",
+      "priority": "P1",
+      "cadence": "monthly",
+      "costClass": "paid_normal",
+      "approval": "profile_approved_competitors_required",
+      "rawCache": "growth_dataforseo_cache",
+      "status": "planned",
+      "due_for_selected_cadence": false,
+      "run_decision": {
+        "status": "SKIP",
+        "reason": "Not due for selected cadence or excluded by flags."
+      }
+    },
+    {
+      "docs": [
+        "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
+      ],
+      "extractionScripts": [],
+      "normalizerScripts": [],
+      "factTargets": [
+        "seo_backlink_facts"
+      ],
+      "inventoryOutputs": [
+        "authority_backlog"
+      ],
+      "ownerIssues": [
+        "#382",
+        "#334"
+      ],
+      "usageTable": "seo_provider_usage",
+      "runPolicy": "",
+      "id": "dfs_backlinks_authority_v1",
+      "provider": "dataforseo",
+      "family": "backlinks",
+      "feature": "Backlinks authority baseline",
+      "priority": "P1",
+      "cadence": "monthly",
+      "costClass": "paid_normal",
+      "approval": "profile_approved_competitors_required",
+      "rawCache": "growth_dataforseo_cache",
+      "status": "planned",
+      "due_for_selected_cadence": false,
+      "run_decision": {
+        "status": "SKIP",
+        "reason": "Not due for selected cadence or excluded by flags."
+      }
+    },
+    {
+      "docs": [
+        "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
+      ],
+      "extractionScripts": [],
+      "normalizerScripts": [],
+      "factTargets": [
+        "seo_backlink_gap_facts"
+      ],
+      "inventoryOutputs": [
+        "outreach_pr_gap"
+      ],
+      "ownerIssues": [
+        "#382",
+        "#334"
+      ],
+      "usageTable": "seo_provider_usage",
+      "runPolicy": "",
+      "id": "dfs_backlinks_competitor_gap_v1",
+      "provider": "dataforseo",
+      "family": "backlinks",
+      "feature": "Backlinks competitor gap",
+      "priority": "P1",
+      "cadence": "monthly",
+      "costClass": "paid_normal",
+      "approval": "profile_approved_competitors_required",
+      "rawCache": "growth_dataforseo_cache",
+      "status": "planned",
+      "due_for_selected_cadence": false,
+      "run_decision": {
+        "status": "SKIP",
+        "reason": "Not due for selected cadence or excluded by flags."
+      }
+    },
+    {
+      "docs": [
+        "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
+      ],
+      "extractionScripts": [],
+      "normalizerScripts": [],
+      "factTargets": [
+        "seo_local_reputation_facts"
+      ],
+      "inventoryOutputs": [
+        "local_reputation_backlog"
+      ],
+      "ownerIssues": [
+        "#383",
+        "#335"
+      ],
+      "usageTable": "seo_provider_usage",
+      "runPolicy": "",
+      "id": "dfs_business_local_v1",
+      "provider": "dataforseo",
+      "family": "business_data",
+      "feature": "Business Data and Google local baseline",
+      "priority": "P1",
+      "cadence": "monthly",
+      "costClass": "paid_normal",
+      "approval": "profile_approved_locations_required",
+      "rawCache": "growth_dataforseo_cache",
+      "status": "planned",
+      "due_for_selected_cadence": false,
+      "run_decision": {
+        "status": "SKIP",
+        "reason": "Not due for selected cadence or excluded by flags."
+      }
+    },
+    {
+      "docs": [
+        "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
+      ],
+      "extractionScripts": [],
+      "normalizerScripts": [],
+      "factTargets": [
+        "seo_review_facts"
+      ],
+      "inventoryOutputs": [
+        "trust_reputation_backlog"
+      ],
+      "ownerIssues": [
+        "#383",
+        "#335"
+      ],
+      "usageTable": "seo_provider_usage",
+      "runPolicy": "",
+      "id": "dfs_reviews_sentiment_v1",
+      "provider": "dataforseo",
+      "family": "reviews",
+      "feature": "Reviews sentiment",
+      "priority": "P2",
+      "cadence": "monthly",
+      "costClass": "paid_normal",
+      "approval": "profile_approved_locations_required",
+      "rawCache": "growth_dataforseo_cache",
+      "status": "planned",
+      "due_for_selected_cadence": false,
+      "run_decision": {
+        "status": "SKIP",
+        "reason": "Not due for selected cadence or excluded by flags."
+      }
+    },
+    {
+      "docs": [
+        "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
+      ],
+      "extractionScripts": [
+        "scripts/seo/run-dataforseo-ai-visibility.mjs"
+      ],
+      "normalizerScripts": [
+        "scripts/seo/normalize-ai-visibility-inventory.mjs"
+      ],
+      "factTargets": [
+        "seo_ai_visibility_runs",
+        "seo_ai_visibility_facts"
+      ],
+      "inventoryOutputs": [
+        "ai_geo_backlog"
+      ],
+      "ownerIssues": [
+        "#384",
+        "#321",
+        "#334",
+        "#335"
+      ],
+      "usageTable": "seo_provider_usage",
+      "runPolicy": "Monthly pilot only; stable prompt set and baseline required before Council activation.",
+      "id": "dfs_ai_geo_visibility_v1",
+      "provider": "dataforseo",
+      "family": "ai_optimization",
+      "feature": "AI Optimization visibility",
+      "priority": "P1",
+      "cadence": "monthly",
+      "costClass": "paid_heavy",
+      "approval": "required_every_run",
+      "rawCache": "growth_dataforseo_cache",
+      "status": "partial",
+      "due_for_selected_cadence": false,
+      "run_decision": {
+        "status": "SKIP",
+        "reason": "Not due for selected cadence or excluded by flags."
+      }
+    },
+    {
+      "docs": [
+        "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
+      ],
+      "extractionScripts": [],
+      "normalizerScripts": [],
+      "factTargets": [
+        "seo_content_sentiment_facts"
+      ],
+      "inventoryOutputs": [
+        "brand_pr_content"
+      ],
+      "ownerIssues": [
+        "#384",
+        "#321"
+      ],
+      "usageTable": "seo_provider_usage",
+      "runPolicy": "",
+      "id": "dfs_content_brand_sentiment_v1",
+      "provider": "dataforseo",
+      "family": "content_analysis",
+      "feature": "Content Analysis brand/topic sentiment",
+      "priority": "P2",
+      "cadence": "monthly",
+      "costClass": "paid_normal",
+      "approval": "profile_approved_topics_required",
+      "rawCache": "growth_dataforseo_cache",
+      "status": "planned",
+      "due_for_selected_cadence": false,
+      "run_decision": {
+        "status": "SKIP",
+        "reason": "Not due for selected cadence or excluded by flags."
+      }
+    },
+    {
+      "docs": [
+        "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
+      ],
+      "extractionScripts": [],
+      "normalizerScripts": [],
+      "factTargets": [
+        "seo_domain_competitive_facts"
+      ],
+      "inventoryOutputs": [
+        "competitive_benchmark"
+      ],
+      "ownerIssues": [
+        "#384",
+        "#334"
+      ],
+      "usageTable": "seo_provider_usage",
+      "runPolicy": "",
+      "id": "dfs_domain_competitive_baseline_v1",
+      "provider": "dataforseo",
+      "family": "domain_analytics",
+      "feature": "Domain Analytics competitive baseline",
+      "priority": "P2",
+      "cadence": "quarterly",
+      "costClass": "paid_normal",
+      "approval": "profile_approved_competitors_required",
+      "rawCache": "growth_dataforseo_cache",
+      "status": "planned",
+      "due_for_selected_cadence": false,
+      "run_decision": {
+        "status": "SKIP",
+        "reason": "Not due for selected cadence or excluded by flags."
+      }
+    },
+    {
+      "docs": [
+        "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
+      ],
+      "extractionScripts": [],
+      "normalizerScripts": [],
+      "factTargets": [],
+      "inventoryOutputs": [],
+      "ownerIssues": [
+        "#376"
+      ],
+      "usageTable": "seo_provider_usage",
+      "runPolicy": "Excluded for travel agency Growth OS unless product feed strategy changes.",
+      "id": "dfs_merchant_watch_v1",
+      "provider": "dataforseo",
+      "family": "merchant",
+      "feature": "Merchant data watch",
+      "priority": "P3",
+      "cadence": "no_default",
+      "costClass": "paid_normal",
+      "approval": "specific_business_case_required",
+      "rawCache": "growth_dataforseo_cache",
+      "status": "excluded",
+      "due_for_selected_cadence": false,
+      "run_decision": {
+        "status": "SKIP",
+        "reason": "Not due for selected cadence or excluded by flags."
+      }
+    },
+    {
+      "docs": [
+        "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
+      ],
+      "extractionScripts": [],
+      "normalizerScripts": [],
+      "factTargets": [],
+      "inventoryOutputs": [],
+      "ownerIssues": [
+        "#376"
+      ],
+      "usageTable": "seo_provider_usage",
+      "runPolicy": "Excluded until app-store visibility is a Growth OS objective.",
+      "id": "dfs_app_data_watch_v1",
+      "provider": "dataforseo",
+      "family": "app_data",
+      "feature": "App Data watch",
+      "priority": "P3",
+      "cadence": "no_default",
+      "costClass": "paid_normal",
+      "approval": "specific_business_case_required",
+      "rawCache": "growth_dataforseo_cache",
+      "status": "excluded",
+      "due_for_selected_cadence": false,
+      "run_decision": {
+        "status": "SKIP",
+        "reason": "Not due for selected cadence or excluded by flags."
+      }
+    },
+    {
+      "docs": [
+        "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
+      ],
+      "extractionScripts": [],
+      "normalizerScripts": [],
+      "factTargets": [
+        "seo_gsc_daily_facts"
+      ],
+      "inventoryOutputs": [
+        "trend_decay_recovery"
+      ],
+      "ownerIssues": [
+        "#378",
+        "#321"
+      ],
+      "usageTable": null,
+      "runPolicy": "",
+      "id": "gsc_daily_complete_web_v1",
+      "provider": "gsc",
+      "family": "search_console",
+      "feature": "Daily complete web export",
+      "priority": "P0",
+      "cadence": "daily",
+      "costClass": "free",
+      "approval": "automatic",
+      "rawCache": "growth_gsc_cache",
+      "status": "planned",
+      "due_for_selected_cadence": true,
+      "run_decision": {
+        "status": "WATCH",
+        "reason": "Profile is specified but extractor/normalizer is not implemented."
+      }
+    },
+    {
+      "docs": [
+        "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
+      ],
+      "extractionScripts": [],
+      "normalizerScripts": [],
+      "factTargets": [
+        "seo_gsc_image_facts"
+      ],
+      "inventoryOutputs": [
+        "image_destination_opportunities"
+      ],
+      "ownerIssues": [
+        "#378",
+        "#314"
+      ],
+      "usageTable": null,
+      "runPolicy": "",
+      "id": "gsc_daily_complete_image_v1",
+      "provider": "gsc",
+      "family": "search_console",
+      "feature": "Daily/weekly image search export",
+      "priority": "P1",
+      "cadence": "weekly",
+      "costClass": "free",
+      "approval": "automatic",
+      "rawCache": "growth_gsc_cache",
+      "status": "planned",
+      "due_for_selected_cadence": true,
+      "run_decision": {
+        "status": "WATCH",
+        "reason": "Profile is specified but extractor/normalizer is not implemented."
+      }
+    },
+    {
+      "docs": [
+        "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
+      ],
+      "extractionScripts": [
+        "scripts/seo/populate-growth-google-cache.ts"
+      ],
+      "normalizerScripts": [
+        "scripts/seo/normalize-growth-gsc-cache.mjs"
+      ],
+      "factTargets": [
+        "seo_gsc_query_page_facts"
+      ],
+      "inventoryOutputs": [
+        "ctr_intent_cannibalization"
+      ],
+      "ownerIssues": [
+        "#378",
+        "#311",
+        "#321"
+      ],
+      "usageTable": null,
+      "runPolicy": "",
+      "id": "gsc_council_28d_query_page_v1",
+      "provider": "gsc",
+      "family": "search_console",
+      "feature": "Council query/page",
+      "priority": "P0",
+      "cadence": "weekly",
+      "costClass": "free",
+      "approval": "automatic",
+      "rawCache": "growth_gsc_cache",
+      "status": "implemented",
+      "due_for_selected_cadence": true,
+      "run_decision": {
+        "status": "RUNNABLE",
+        "reason": "Dry-run only; profile-specific execution is listed in next_commands."
+      }
+    },
+    {
+      "docs": [
+        "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
+      ],
+      "extractionScripts": [
+        "scripts/seo/populate-growth-google-cache.ts"
+      ],
+      "normalizerScripts": [
+        "scripts/seo/normalize-growth-gsc-cache.mjs"
+      ],
+      "factTargets": [
+        "seo_gsc_market_facts"
+      ],
+      "inventoryOutputs": [
+        "market_opportunity"
+      ],
+      "ownerIssues": [
+        "#378",
+        "#311",
+        "#321"
+      ],
+      "usageTable": null,
+      "runPolicy": "",
+      "id": "gsc_council_28d_page_market_v1",
+      "provider": "gsc",
+      "family": "search_console",
+      "feature": "Council page/country",
+      "priority": "P0",
+      "cadence": "weekly",
+      "costClass": "free",
+      "approval": "automatic",
+      "rawCache": "growth_gsc_cache",
+      "status": "implemented",
+      "due_for_selected_cadence": true,
+      "run_decision": {
+        "status": "RUNNABLE",
+        "reason": "Dry-run only; profile-specific execution is listed in next_commands."
+      }
+    },
+    {
+      "docs": [
+        "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
+      ],
+      "extractionScripts": [
+        "scripts/seo/populate-growth-google-cache.ts"
+      ],
+      "normalizerScripts": [
+        "scripts/seo/normalize-growth-gsc-cache.mjs"
+      ],
+      "factTargets": [
+        "seo_gsc_device_facts"
+      ],
+      "inventoryOutputs": [
+        "mobile_seo_cro"
+      ],
+      "ownerIssues": [
+        "#378",
+        "#311",
+        "#321"
+      ],
+      "usageTable": null,
+      "runPolicy": "",
+      "id": "gsc_council_28d_page_device_v1",
+      "provider": "gsc",
+      "family": "search_console",
+      "feature": "Council page/device",
+      "priority": "P1",
+      "cadence": "weekly",
+      "costClass": "free",
+      "approval": "automatic",
+      "rawCache": "growth_gsc_cache",
+      "status": "implemented",
+      "due_for_selected_cadence": true,
+      "run_decision": {
+        "status": "RUNNABLE",
+        "reason": "Dry-run only; profile-specific execution is listed in next_commands."
+      }
+    },
+    {
+      "docs": [
+        "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
+      ],
+      "extractionScripts": [
+        "scripts/seo/populate-growth-google-cache.ts"
+      ],
+      "normalizerScripts": [
+        "scripts/seo/normalize-growth-gsc-cache.mjs"
+      ],
+      "factTargets": [
+        "seo_gsc_trend_facts"
+      ],
+      "inventoryOutputs": [
+        "post_fix_validation_decay"
+      ],
+      "ownerIssues": [
+        "#378",
+        "#312",
+        "#321"
+      ],
+      "usageTable": null,
+      "runPolicy": "",
+      "id": "gsc_trend_90d_page_v1",
+      "provider": "gsc",
+      "family": "search_console",
+      "feature": "90d page trend",
+      "priority": "P1",
+      "cadence": "weekly",
+      "costClass": "free",
+      "approval": "automatic",
+      "rawCache": "growth_gsc_cache",
+      "status": "partial",
+      "due_for_selected_cadence": true,
+      "run_decision": {
+        "status": "RUNNABLE",
+        "reason": "Dry-run only; profile-specific execution is listed in next_commands."
+      }
+    },
+    {
+      "docs": [
+        "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
+      ],
+      "extractionScripts": [
+        "scripts/seo/populate-growth-google-cache.ts"
+      ],
+      "normalizerScripts": [],
+      "factTargets": [
+        "seo_gsc_appearance_facts"
+      ],
+      "inventoryOutputs": [
+        "rich_result_opportunities"
+      ],
+      "ownerIssues": [
+        "#378",
+        "#321"
+      ],
+      "usageTable": null,
+      "runPolicy": "",
+      "id": "gsc_search_appearance_v1",
+      "provider": "gsc",
+      "family": "search_console",
+      "feature": "Search appearance discovery and detail",
+      "priority": "P1",
+      "cadence": "weekly",
+      "costClass": "free",
+      "approval": "automatic",
+      "rawCache": "growth_gsc_cache",
+      "status": "partial",
+      "due_for_selected_cadence": true,
+      "run_decision": {
+        "status": "RUNNABLE",
+        "reason": "Dry-run only; profile-specific execution is listed in next_commands."
+      }
+    },
+    {
+      "docs": [
+        "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
+      ],
+      "extractionScripts": [],
+      "normalizerScripts": [],
+      "factTargets": [
+        "seo_gsc_locale_facts"
+      ],
+      "inventoryOutputs": [
+        "locale_launch_readiness"
+      ],
+      "ownerIssues": [
+        "#378",
+        "#314",
+        "#315",
+        "#316"
+      ],
+      "usageTable": null,
+      "runPolicy": "",
+      "id": "gsc_locale_path_v1",
+      "provider": "gsc",
+      "family": "search_console",
+      "feature": "Locale path visibility",
+      "priority": "P1",
+      "cadence": "weekly",
+      "costClass": "free",
+      "approval": "automatic",
+      "rawCache": "growth_gsc_cache",
+      "status": "planned",
+      "due_for_selected_cadence": true,
+      "run_decision": {
+        "status": "WATCH",
+        "reason": "Profile is specified but extractor/normalizer is not implemented."
+      }
+    },
+    {
+      "docs": [
+        "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
+      ],
+      "extractionScripts": [],
+      "normalizerScripts": [],
+      "factTargets": [
+        "seo_gsc_brand_facts"
+      ],
+      "inventoryOutputs": [
+        "brand_nonbrand_health"
+      ],
+      "ownerIssues": [
+        "#378",
+        "#321"
+      ],
+      "usageTable": null,
+      "runPolicy": "",
+      "id": "gsc_brand_nonbrand_v1",
+      "provider": "gsc",
+      "family": "search_console",
+      "feature": "Brand/non-brand split",
+      "priority": "P1",
+      "cadence": "weekly",
+      "costClass": "free",
+      "approval": "automatic",
+      "rawCache": "growth_gsc_cache",
+      "status": "planned",
+      "due_for_selected_cadence": true,
+      "run_decision": {
+        "status": "WATCH",
+        "reason": "Profile is specified but extractor/normalizer is not implemented."
+      }
+    },
+    {
+      "docs": [
+        "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
+      ],
+      "extractionScripts": [],
+      "normalizerScripts": [],
+      "factTargets": [
+        "seo_ga4_landing_daily_facts"
+      ],
+      "inventoryOutputs": [
+        "channel_quality_trend"
+      ],
+      "ownerIssues": [
+        "#379",
+        "#321"
+      ],
+      "usageTable": null,
+      "runPolicy": "",
+      "id": "ga4_daily_landing_channel_v1",
+      "provider": "ga4",
+      "family": "analytics",
+      "feature": "Daily landing/channel",
+      "priority": "P0",
+      "cadence": "daily",
+      "costClass": "free",
+      "approval": "automatic",
+      "rawCache": "growth_ga4_cache",
+      "status": "planned",
+      "due_for_selected_cadence": true,
+      "run_decision": {
+        "status": "WATCH",
+        "reason": "Profile is specified but extractor/normalizer is not implemented."
+      }
+    },
+    {
+      "docs": [
+        "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
+      ],
+      "extractionScripts": [
+        "scripts/seo/populate-growth-google-cache.ts"
+      ],
+      "normalizerScripts": [
+        "scripts/seo/normalize-growth-ga4-cache.mjs"
+      ],
+      "factTargets": [
+        "seo_ga4_landing_facts"
+      ],
+      "inventoryOutputs": [
+        "cro_acquisition_quality"
+      ],
+      "ownerIssues": [
+        "#379",
+        "#311",
+        "#321"
+      ],
+      "usageTable": null,
+      "runPolicy": "",
+      "id": "ga4_council_landing_channel_28d_v1",
+      "provider": "ga4",
+      "family": "analytics",
+      "feature": "Council landing/channel",
+      "priority": "P0",
+      "cadence": "weekly",
+      "costClass": "free",
+      "approval": "automatic",
+      "rawCache": "growth_ga4_cache",
+      "status": "implemented",
+      "due_for_selected_cadence": true,
+      "run_decision": {
+        "status": "RUNNABLE",
+        "reason": "Dry-run only; profile-specific execution is listed in next_commands."
+      }
+    },
+    {
+      "docs": [
+        "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
+      ],
+      "extractionScripts": [
+        "scripts/seo/populate-growth-google-cache.ts"
+      ],
+      "normalizerScripts": [
+        "scripts/seo/normalize-growth-ga4-cache.mjs"
+      ],
+      "factTargets": [
+        "seo_ga4_source_facts"
+      ],
+      "inventoryOutputs": [
+        "source_medium_leakage"
+      ],
+      "ownerIssues": [
+        "#379",
+        "#321"
+      ],
+      "usageTable": null,
+      "runPolicy": "",
+      "id": "ga4_page_source_medium_28d_v1",
+      "provider": "ga4",
+      "family": "analytics",
+      "feature": "Page/source-medium",
+      "priority": "P0",
+      "cadence": "weekly",
+      "costClass": "free",
+      "approval": "automatic",
+      "rawCache": "growth_ga4_cache",
+      "status": "implemented",
+      "due_for_selected_cadence": true,
+      "run_decision": {
+        "status": "RUNNABLE",
+        "reason": "Dry-run only; profile-specific execution is listed in next_commands."
+      }
+    },
+    {
+      "docs": [
+        "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
+      ],
+      "extractionScripts": [
+        "scripts/seo/populate-growth-google-cache.ts"
+      ],
+      "normalizerScripts": [
+        "scripts/seo/normalize-growth-ga4-cache.mjs"
+      ],
+      "factTargets": [
+        "seo_ga4_event_facts"
+      ],
+      "inventoryOutputs": [
+        "activation_dropoff"
+      ],
+      "ownerIssues": [
+        "#379",
+        "#322",
+        "#321"
+      ],
+      "usageTable": null,
+      "runPolicy": "",
+      "id": "ga4_event_page_28d_v1",
+      "provider": "ga4",
+      "family": "analytics",
+      "feature": "Event/page",
+      "priority": "P0",
+      "cadence": "weekly",
+      "costClass": "free",
+      "approval": "automatic",
+      "rawCache": "growth_ga4_cache",
+      "status": "implemented",
+      "due_for_selected_cadence": true,
+      "run_decision": {
+        "status": "RUNNABLE",
+        "reason": "Dry-run only; profile-specific execution is listed in next_commands."
+      }
+    },
+    {
+      "docs": [
+        "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
+      ],
+      "extractionScripts": [
+        "scripts/seo/populate-growth-google-cache.ts"
+      ],
+      "normalizerScripts": [
+        "scripts/seo/normalize-growth-ga4-cache.mjs"
+      ],
+      "factTargets": [
+        "seo_ga4_campaign_facts"
+      ],
+      "inventoryOutputs": [
+        "paid_governance"
+      ],
+      "ownerIssues": [
+        "#379",
+        "#322",
+        "#332",
+        "#333"
+      ],
+      "usageTable": null,
+      "runPolicy": "",
+      "id": "ga4_campaign_source_medium_28d_v1",
+      "provider": "ga4",
+      "family": "analytics",
+      "feature": "Campaign/source-medium",
+      "priority": "P0",
+      "cadence": "weekly",
+      "costClass": "free",
+      "approval": "automatic",
+      "rawCache": "growth_ga4_cache",
+      "status": "implemented",
+      "due_for_selected_cadence": true,
+      "run_decision": {
+        "status": "RUNNABLE",
+        "reason": "Dry-run only; profile-specific execution is listed in next_commands."
+      }
+    },
+    {
+      "docs": [
+        "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
+      ],
+      "extractionScripts": [],
+      "normalizerScripts": [],
+      "factTargets": [
+        "seo_ga4_geo_facts"
+      ],
+      "inventoryOutputs": [
+        "market_conversion_gap"
+      ],
+      "ownerIssues": [
+        "#379",
+        "#321"
+      ],
+      "usageTable": null,
+      "runPolicy": "",
+      "id": "ga4_geo_landing_28d_v1",
+      "provider": "ga4",
+      "family": "analytics",
+      "feature": "Geo/landing",
+      "priority": "P1",
+      "cadence": "weekly",
+      "costClass": "free",
+      "approval": "automatic",
+      "rawCache": "growth_ga4_cache",
+      "status": "planned",
+      "due_for_selected_cadence": true,
+      "run_decision": {
+        "status": "WATCH",
+        "reason": "Profile is specified but extractor/normalizer is not implemented."
+      }
+    },
+    {
+      "docs": [
+        "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
+      ],
+      "extractionScripts": [],
+      "normalizerScripts": [],
+      "factTargets": [
+        "seo_ga4_device_facts"
+      ],
+      "inventoryOutputs": [
+        "mobile_cro"
+      ],
+      "ownerIssues": [
+        "#379",
+        "#321"
+      ],
+      "usageTable": null,
+      "runPolicy": "",
+      "id": "ga4_device_landing_28d_v1",
+      "provider": "ga4",
+      "family": "analytics",
+      "feature": "Device/landing",
+      "priority": "P1",
+      "cadence": "weekly",
+      "costClass": "free",
+      "approval": "automatic",
+      "rawCache": "growth_ga4_cache",
+      "status": "planned",
+      "due_for_selected_cadence": true,
+      "run_decision": {
+        "status": "WATCH",
+        "reason": "Profile is specified but extractor/normalizer is not implemented."
+      }
+    },
+    {
+      "docs": [
+        "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
+      ],
+      "extractionScripts": [],
+      "normalizerScripts": [],
+      "factTargets": [
+        "seo_ga4_locale_facts"
+      ],
+      "inventoryOutputs": [
+        "locale_measurement_gap"
+      ],
+      "ownerIssues": [
+        "#379",
+        "#314",
+        "#315"
+      ],
+      "usageTable": null,
+      "runPolicy": "",
+      "id": "ga4_hostname_locale_28d_v1",
+      "provider": "ga4",
+      "family": "analytics",
+      "feature": "Hostname/locale",
+      "priority": "P1",
+      "cadence": "weekly",
+      "costClass": "free",
+      "approval": "automatic",
+      "rawCache": "growth_ga4_cache",
+      "status": "planned",
+      "due_for_selected_cadence": true,
+      "run_decision": {
+        "status": "WATCH",
+        "reason": "Profile is specified but extractor/normalizer is not implemented."
+      }
+    },
+    {
+      "docs": [
+        "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
+      ],
+      "extractionScripts": [],
+      "normalizerScripts": [],
+      "factTargets": [
+        "seo_ga4_search_facts"
+      ],
+      "inventoryOutputs": [
+        "onsite_demand"
+      ],
+      "ownerIssues": [
+        "#379",
+        "#314"
+      ],
+      "usageTable": null,
+      "runPolicy": "",
+      "id": "ga4_internal_search_v1",
+      "provider": "ga4",
+      "family": "analytics",
+      "feature": "Internal search",
+      "priority": "P2",
+      "cadence": "weekly",
+      "costClass": "free",
+      "approval": "automatic_if_event_exists",
+      "rawCache": "growth_ga4_cache",
+      "status": "planned",
+      "due_for_selected_cadence": true,
+      "run_decision": {
+        "status": "WATCH",
+        "reason": "Profile is specified but extractor/normalizer is not implemented."
+      }
+    },
+    {
+      "docs": [
+        "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
+      ],
+      "extractionScripts": [],
+      "normalizerScripts": [],
+      "factTargets": [
+        "seo_ga4_engagement_facts"
+      ],
+      "inventoryOutputs": [
+        "engagement_depth"
+      ],
+      "ownerIssues": [
+        "#379",
+        "#321"
+      ],
+      "usageTable": null,
+      "runPolicy": "",
+      "id": "ga4_file_outbound_engagement_v1",
+      "provider": "ga4",
+      "family": "analytics",
+      "feature": "File/outbound/scroll engagement",
+      "priority": "P2",
+      "cadence": "monthly",
+      "costClass": "free",
+      "approval": "automatic",
+      "rawCache": "growth_ga4_cache",
+      "status": "planned",
+      "due_for_selected_cadence": false,
+      "run_decision": {
+        "status": "SKIP",
+        "reason": "Not due for selected cadence or excluded by flags."
+      }
+    },
+    {
+      "docs": [
+        "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
+      ],
+      "extractionScripts": [],
+      "normalizerScripts": [],
+      "factTargets": [
+        "funnel_events",
+        "meta_conversion_events"
+      ],
+      "inventoryOutputs": [
+        "attribution_conversion_rows"
+      ],
+      "ownerIssues": [
+        "#322",
+        "#330",
+        "#332",
+        "#333"
+      ],
+      "usageTable": null,
+      "runPolicy": "itinerary_confirmed/booking_confirmed is the operating conversion; Wompi Purchase remains out of scope.",
+      "id": "tracking_conversion_facts_v1",
+      "provider": "tracking",
+      "family": "conversion",
+      "feature": "Funnel + Meta CAPI facts",
+      "priority": "P0",
+      "cadence": "continuous",
+      "costClass": "free",
+      "approval": "automatic_where_configured",
+      "rawCache": null,
+      "status": "partial",
+      "due_for_selected_cadence": true,
+      "run_decision": {
+        "status": "RUNNABLE",
+        "reason": "Dry-run only; profile-specific execution is listed in next_commands."
+      }
+    },
+    {
+      "docs": [
+        "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
+      ],
+      "extractionScripts": [],
+      "normalizerScripts": [
+        "scripts/seo/normalize-growth-gsc-cache.mjs",
+        "scripts/seo/normalize-growth-ga4-cache.mjs"
+      ],
+      "factTargets": [
+        "growth_inventory"
+      ],
+      "inventoryOutputs": [
+        "cro_rows"
+      ],
+      "ownerIssues": [
+        "#385",
+        "#321"
+      ],
+      "usageTable": null,
+      "runPolicy": "",
+      "id": "growth_search_to_activation_v1",
+      "provider": "joint",
+      "family": "joint",
+      "feature": "Search demand to activation",
+      "priority": "P0",
+      "cadence": "weekly",
+      "costClass": "free",
+      "approval": "automatic_after_sources_pass",
+      "rawCache": null,
+      "status": "partial",
+      "due_for_selected_cadence": true,
+      "run_decision": {
+        "status": "RUNNABLE",
+        "reason": "Dry-run only; profile-specific execution is listed in next_commands."
+      }
+    },
+    {
+      "docs": [
+        "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
+      ],
+      "extractionScripts": [],
+      "normalizerScripts": [],
+      "factTargets": [
+        "growth_inventory"
+      ],
+      "inventoryOutputs": [
+        "market_rows"
+      ],
+      "ownerIssues": [
+        "#385",
+        "#321"
+      ],
+      "usageTable": null,
+      "runPolicy": "",
+      "id": "growth_market_fit_v1",
+      "provider": "joint",
+      "family": "joint",
+      "feature": "Market fit",
+      "priority": "P1",
+      "cadence": "weekly",
+      "costClass": "free",
+      "approval": "automatic_after_sources_pass",
+      "rawCache": null,
+      "status": "planned",
+      "due_for_selected_cadence": true,
+      "run_decision": {
+        "status": "WATCH",
+        "reason": "Profile is specified but extractor/normalizer is not implemented."
+      }
+    },
+    {
+      "docs": [
+        "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
+      ],
+      "extractionScripts": [],
+      "normalizerScripts": [],
+      "factTargets": [
+        "growth_inventory"
+      ],
+      "inventoryOutputs": [
+        "mobile_rows"
+      ],
+      "ownerIssues": [
+        "#385",
+        "#321"
+      ],
+      "usageTable": null,
+      "runPolicy": "",
+      "id": "growth_mobile_seo_cro_v1",
+      "provider": "joint",
+      "family": "joint",
+      "feature": "Mobile SEO/CRO",
+      "priority": "P1",
+      "cadence": "weekly",
+      "costClass": "free",
+      "approval": "automatic_after_sources_pass",
+      "rawCache": null,
+      "status": "planned",
+      "due_for_selected_cadence": true,
+      "run_decision": {
+        "status": "WATCH",
+        "reason": "Profile is specified but extractor/normalizer is not implemented."
+      }
+    },
+    {
+      "docs": [
+        "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
+      ],
+      "extractionScripts": [],
+      "normalizerScripts": [
+        "scripts/seo/diff-growth-audit-runs.mjs",
+        "scripts/seo/triage-dataforseo-findings.mjs"
+      ],
+      "factTargets": [
+        "growth_inventory"
+      ],
+      "inventoryOutputs": [
+        "validation_rows"
+      ],
+      "ownerIssues": [
+        "#385",
+        "#312",
+        "#313"
+      ],
+      "usageTable": null,
+      "runPolicy": "",
+      "id": "growth_post_fix_validation_v1",
+      "provider": "joint",
+      "family": "joint",
+      "feature": "Post-fix validation",
+      "priority": "P0",
+      "cadence": "weekly",
+      "costClass": "free",
+      "approval": "automatic_after_sources_pass",
+      "rawCache": null,
+      "status": "partial",
+      "due_for_selected_cadence": true,
+      "run_decision": {
+        "status": "RUNNABLE",
+        "reason": "Dry-run only; profile-specific execution is listed in next_commands."
+      }
+    },
+    {
+      "docs": [
+        "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
+      ],
+      "extractionScripts": [],
+      "normalizerScripts": [
+        "scripts/seo/audit-en-blog-findings.mjs"
+      ],
+      "factTargets": [
+        "growth_inventory"
+      ],
+      "inventoryOutputs": [
+        "locale_rows"
+      ],
+      "ownerIssues": [
+        "#385",
+        "#314",
+        "#315",
+        "#316"
+      ],
+      "usageTable": null,
+      "runPolicy": "",
+      "id": "growth_locale_launch_readiness_v1",
+      "provider": "joint",
+      "family": "joint",
+      "feature": "Locale launch readiness",
+      "priority": "P1",
+      "cadence": "weekly",
+      "costClass": "free",
+      "approval": "automatic_after_sources_pass",
+      "rawCache": null,
+      "status": "partial",
+      "due_for_selected_cadence": true,
+      "run_decision": {
+        "status": "RUNNABLE",
+        "reason": "Dry-run only; profile-specific execution is listed in next_commands."
+      }
+    },
+    {
+      "docs": [
+        "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
+      ],
+      "extractionScripts": [],
+      "normalizerScripts": [],
+      "factTargets": [
+        "growth_inventory"
+      ],
+      "inventoryOutputs": [
+        "paid_governance_rows"
+      ],
+      "ownerIssues": [
+        "#385",
+        "#322",
+        "#332",
+        "#333"
+      ],
+      "usageTable": null,
+      "runPolicy": "",
+      "id": "growth_paid_governance_v1",
+      "provider": "joint",
+      "family": "joint",
+      "feature": "Paid governance",
+      "priority": "P0",
+      "cadence": "weekly",
+      "costClass": "free",
+      "approval": "automatic_after_sources_pass",
+      "rawCache": null,
+      "status": "partial",
+      "due_for_selected_cadence": true,
+      "run_decision": {
+        "status": "RUNNABLE",
+        "reason": "Dry-run only; profile-specific execution is listed in next_commands."
+      }
+    },
+    {
+      "docs": [
+        "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
+      ],
+      "extractionScripts": [],
+      "normalizerScripts": [],
+      "factTargets": [
+        "growth_inventory"
+      ],
+      "inventoryOutputs": [
+        "authority_content_rows"
+      ],
+      "ownerIssues": [
+        "#385",
+        "#334",
+        "#314"
+      ],
+      "usageTable": null,
+      "runPolicy": "",
+      "id": "growth_authority_content_fit_v1",
+      "provider": "joint",
+      "family": "joint",
+      "feature": "Authority/content fit",
+      "priority": "P1",
+      "cadence": "monthly",
+      "costClass": "free",
+      "approval": "automatic_after_sources_pass",
+      "rawCache": null,
+      "status": "planned",
+      "due_for_selected_cadence": false,
+      "run_decision": {
+        "status": "SKIP",
+        "reason": "Not due for selected cadence or excluded by flags."
+      }
+    },
+    {
+      "docs": [
+        "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
+      ],
+      "extractionScripts": [],
+      "normalizerScripts": [],
+      "factTargets": [
+        "growth_inventory"
+      ],
+      "inventoryOutputs": [
+        "ai_geo_rows"
+      ],
+      "ownerIssues": [
+        "#385",
+        "#384",
+        "#321"
+      ],
+      "usageTable": null,
+      "runPolicy": "",
+      "id": "growth_ai_geo_conversion_fit_v1",
+      "provider": "joint",
+      "family": "joint",
+      "feature": "AI/GEO conversion fit",
+      "priority": "P1",
+      "cadence": "monthly",
+      "costClass": "free",
+      "approval": "automatic_after_sources_pass",
+      "rawCache": null,
+      "status": "planned",
+      "due_for_selected_cadence": false,
+      "run_decision": {
+        "status": "SKIP",
+        "reason": "Not due for selected cadence or excluded by flags."
+      }
+    }
+  ],
+  "next_commands": [
+    {
+      "purpose": "Refresh free first-party caches",
+      "command": "npx tsx scripts/seo/populate-growth-google-cache.ts --apply --force",
+      "approval": "automatic"
+    },
+    {
+      "purpose": "Normalize first-party caches into growth_inventory",
+      "command": "node scripts/seo/run-growth-weekly-intake.mjs --apply true --skipGoogleRefresh true",
+      "approval": "automatic"
+    },
+    {
+      "purpose": "Generate health and Council enforcement artifacts",
+      "command": "node scripts/seo/growth-cache-health-report.mjs && node scripts/seo/audit-growth-max-matrix-coverage.mjs && node scripts/seo/generate-growth-max-matrix-council-artifact.mjs",
+      "approval": "automatic"
+    }
+  ],
+  "note": "This orchestrator does not call paid providers. It plans/schedules profiles and leaves provider execution to approved profile-specific scripts."
+}

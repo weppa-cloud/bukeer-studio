@@ -57,6 +57,21 @@ async function main() {
       previousRun,
     ]),
     nodeStep("cache_health", "scripts/seo/growth-cache-health-report.mjs", []),
+    nodeStep(
+      "max_matrix_orchestrator",
+      "scripts/seo/run-growth-max-matrix-orchestrator.mjs",
+      ["--cadence", "weekly"],
+    ),
+    nodeStep(
+      "max_matrix_coverage",
+      "scripts/seo/audit-growth-max-matrix-coverage.mjs",
+      [],
+    ),
+    nodeStep(
+      "max_matrix_council_enforcement",
+      "scripts/seo/generate-growth-max-matrix-council-artifact.mjs",
+      [],
+    ),
   ].filter(Boolean);
 
   const results = [];

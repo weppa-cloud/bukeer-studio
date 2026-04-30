@@ -118,13 +118,13 @@ limit 10;
 
 ## Findings
 
-| Surface                                 | Status  | Evidence                                                                                                                                                                                                                                                                                                   | Readout                                                                                                                                                                                                                                  |
-| --------------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Lead / WAFlow                           | WATCH   | `waflow_leads`: 9 submitted rows since `2026-04-28`. `funnel_events.waflow_submit`: 6 rows in the same window. Recent live refs include `SANTA--3004-P5A3` and `HOME-2904-VOQB`; smoke refs include `SMOKE-STG-20260428215328`, `SMOKE-RL-20260428211226`, `SMOKE-META-20260428205932`, `SMK-0428-150408`. | Lead persistence is live, but Growth OS ledger parity is not clean: 9 submitted leads vs 6 `waflow_submit` funnel rows. Treat as usable with watch until the missing 3-row gap is reconciled.                                            |
-| WhatsApp CTA                            | BLOCKED | `funnel_events.whatsapp_cta_click`: 0 rows since `2026-04-28`. Code exists in `lib/analytics/track.ts`, `lib/analytics/whatsapp-beacon.ts`, and `app/api/growth/events/whatsapp-cta/route.ts`.                                                                                                             | The first-party beacon path is implemented, but there is no durable DB evidence that public CTA clicks are being recorded. This blocks #330 activation baselines that rely on WhatsApp CTA clicks.                                       |
-| itinerary_confirmed / booking_confirmed | PASS    | `funnel_events.booking_confirmed`: controlled chain now exists for `SMK-0428-150408` via real confirmed itinerary `1-11438` / `118f4f2a-3918-4779-a171-61d00a507399`. Event id: `aa879e2260ef98ff27486d664b8f84812ced13e77433338791acaae5e7e9da0c`. Earlier synthetic refs remain as legacy evidence. | The non-Wompi booking signal is idempotent through `emit_itinerary_booking_confirmed(uuid)`. The `SMK-0428-150408` chain now carries non-null attribution from WAFlow/Chatwoot into `booking_confirmed`; note the booking keeps the itinerary's real historical `confirmed_at` date. |
-| Meta CAPI log                           | WATCH   | `meta_conversion_events` since `2026-04-28`: `Lead:sent = 3`, `Lead:skipped = 6`, `ConversationContinued:skipped = 1`, `QualifiedLead:skipped = 1`, `QuoteSent:skipped = 1`. Skipped reason: `Meta CAPI is disabled or missing META_PIXEL_ID/META_ACCESS_TOKEN`.                                           | The idempotency ledger is working and smoke `Lead` sends reached `sent`, but current live rows are still `skipped`. Do not call this paid-scale ready until worker/staging/prod Meta env is consistent and lifecycle events send.        |
-| Chatwoot lifecycle                      | PASS    | `webhook_events`: 2 processed Chatwoot messages for `SMK-0428-150408`. `funnel_events`: 1 `qualified_lead` and 1 `quote_sent`, both channel `chatwoot`. `meta_conversion_events`: matching `ConversationContinued`, `QualifiedLead`, and `QuoteSent` ledger rows exist, but skipped due Meta env.          | Lifecycle ingestion, webhook idempotency, WAFlow linkage, and funnel writes are proven by smoke. Watch item: only smoke evidence was found in this window; production Chatwoot webhook traffic still needs a live sample.                |
+| Surface                                 | Status  | Evidence                                                                                                                                                                                                                                                                                                   | Readout                                                                                                                                                                                                                                                                              |
+| --------------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Lead / WAFlow                           | WATCH   | `waflow_leads`: 9 submitted rows since `2026-04-28`. `funnel_events.waflow_submit`: 6 rows in the same window. Recent live refs include `SANTA--3004-P5A3` and `HOME-2904-VOQB`; smoke refs include `SMOKE-STG-20260428215328`, `SMOKE-RL-20260428211226`, `SMOKE-META-20260428205932`, `SMK-0428-150408`. | Lead persistence is live, but Growth OS ledger parity is not clean: 9 submitted leads vs 6 `waflow_submit` funnel rows. Treat as usable with watch until the missing 3-row gap is reconciled.                                                                                        |
+| WhatsApp CTA                            | BLOCKED | `funnel_events.whatsapp_cta_click`: 0 rows since `2026-04-28`. Code exists in `lib/analytics/track.ts`, `lib/analytics/whatsapp-beacon.ts`, and `app/api/growth/events/whatsapp-cta/route.ts`.                                                                                                             | The first-party beacon path is implemented, but there is no durable DB evidence that public CTA clicks are being recorded. This blocks #330 activation baselines that rely on WhatsApp CTA clicks.                                                                                   |
+| itinerary_confirmed / booking_confirmed | PASS    | `funnel_events.booking_confirmed`: controlled chain now exists for `SMK-0428-150408` via real confirmed itinerary `1-11438` / `118f4f2a-3918-4779-a171-61d00a507399`. Event id: `aa879e2260ef98ff27486d664b8f84812ced13e77433338791acaae5e7e9da0c`. Earlier synthetic refs remain as legacy evidence.      | The non-Wompi booking signal is idempotent through `emit_itinerary_booking_confirmed(uuid)`. The `SMK-0428-150408` chain now carries non-null attribution from WAFlow/Chatwoot into `booking_confirmed`; note the booking keeps the itinerary's real historical `confirmed_at` date. |
+| Meta CAPI log                           | WATCH   | `meta_conversion_events` since `2026-04-28`: `Lead:sent = 3`, `Lead:skipped = 6`, `ConversationContinued:skipped = 1`, `QualifiedLead:skipped = 1`, `QuoteSent:skipped = 1`. Skipped reason: `Meta CAPI is disabled or missing META_PIXEL_ID/META_ACCESS_TOKEN`.                                           | The idempotency ledger is working and smoke `Lead` sends reached `sent`, but current live rows are still `skipped`. Do not call this paid-scale ready until worker/staging/prod Meta env is consistent and lifecycle events send.                                                    |
+| Chatwoot lifecycle                      | PASS    | `webhook_events`: 2 processed Chatwoot messages for `SMK-0428-150408`. `funnel_events`: 1 `qualified_lead` and 1 `quote_sent`, both channel `chatwoot`. `meta_conversion_events`: matching `ConversationContinued`, `QualifiedLead`, and `QuoteSent` ledger rows exist, but skipped due Meta env.          | Lifecycle ingestion, webhook idempotency, WAFlow linkage, and funnel writes are proven by smoke. Watch item: only smoke evidence was found in this window; production Chatwoot webhook traffic still needs a live sample.                                                            |
 
 ## Issue next actions
 
@@ -155,3 +155,32 @@ Growth OS tracking is partially operational:
   `booking_confirmed`.
 - Meta CAPI ledger: live, mixed `sent`/`skipped`, not paid-scale ready.
 - Chatwoot lifecycle: smoke PASS, needs production sample.
+
+## Addendum - WAFlow parity reconciled
+
+Updated: 2026-04-30.
+
+The WAFlow ledger gap has been reconciled after the readout above.
+
+| Metric                                                | Before | After |
+| ----------------------------------------------------- | -----: | ----: |
+| Submitted `waflow_leads` since `2026-04-28T00:00:00Z` |     11 |    11 |
+| Matching `funnel_events.waflow_submit`                |      8 |    11 |
+| Gap                                                   |      3 |     0 |
+
+The three missing rows were classified as `legacy_pre_deploy_endpoint_gap`,
+not `missing_reference_code`, not `no_submitted`, and not current live endpoint
+failure. Backfilled references:
+
+- `AGENCI-2904-JPZ9`
+- `HOME-2904-9R79`
+- `HOME-2904-B3B7`
+
+Canonical lifecycle contract and CRM alignment are now documented in
+[[waflow-crm-lifecycle-parity]] / `docs/ops/waflow-crm-lifecycle-parity.md`.
+
+Status change for #322: WAFlow ledger parity moves from WATCH to PASS. The
+remaining certification item is the scalable CRM linkage: WAFlow/Chatwoot must
+idempotently create or link the shared `requests` record, carry
+`reference_code` through request/itinerary metadata, and repeat a fresh
+production chain without backfill.
