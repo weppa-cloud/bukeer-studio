@@ -637,9 +637,15 @@ function inferFlightFromRecord(entry: Record<string, unknown>): boolean {
   if (entry.event_type === 'flight') return true;
   const productType = sanitizeProductCopy(entry.product_type).toLowerCase();
   if (productType.includes('vuelo') || productType.includes('flight')) return true;
-  if (typeof entry.flight_departure === 'string' || typeof entry.flight_arrival === 'string') return true;
+  const flightFields = [
+    entry.flight_departure,
+    entry.flight_arrival,
+    entry.flight_number,
+    entry.airline,
+  ];
+  if (flightFields.some((value) => typeof value === 'string' && value.trim().length > 0)) return true;
   const merged = `${sanitizeProductCopy(entry.title)} ${sanitizeProductCopy(entry.description)} ${sanitizeProductCopy(entry.product_name)}`.toLowerCase();
-  return /\b(vuelo|flight|aeropuerto|airline|boarding)\b/.test(merged);
+  return /\b(vuelo|flight|airline|boarding)\b/.test(merged);
 }
 
 function parseMaybeNumber(value: unknown): number | null {
@@ -1127,26 +1133,6 @@ export function EditorialPackageDetailClient({
       return fromItinerary
         .filter((flight) => flight.from !== 'Origen' || flight.to !== 'Destino')
         .slice(0, 6);
-    }
-
-    if (routeStopsWithNights.length >= 2) {
-      return routeStopsWithNights.slice(0, 2).map((stop, index, arr) => ({
-        from: index === 0 ? 'Internacional' : arr[index - 1].name,
-        to: stop.name,
-        dateLabel: `Día ${index + 1}`,
-        metaLabel: 'Vuelo doméstico',
-      }));
-    }
-
-    if (routeStopsWithNights.length === 1 && typeof product.duration_days === 'number' && product.duration_days >= 4) {
-      return [
-        {
-          from: 'Internacional',
-          to: routeStopsWithNights[0].name,
-          dateLabel: 'Día 1',
-          metaLabel: 'Vuelo de llegada',
-        },
-      ];
     }
 
     return [];
