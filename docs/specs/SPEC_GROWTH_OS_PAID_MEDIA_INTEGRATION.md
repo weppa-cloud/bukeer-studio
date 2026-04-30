@@ -249,6 +249,98 @@ Allowed paid row types:
 - `seo_paid_cannibalization_watch`;
 - `retargeting_opportunity`.
 
+## Provider Profile Registry V1
+
+The implementation registry in #388 must convert the profile descriptions below
+into executable profile records. Each record must include:
+
+```text
+profile_id
+platform
+api_version
+account_scope
+endpoint_or_resource
+level
+dimensions
+metrics
+breakdowns
+action_breakdowns
+date_window
+cadence
+query_limits
+cache_target
+facts_target
+normalizer
+freshness_sla
+compatibility_smoke
+status
+```
+
+Current API baseline:
+
+- Google Ads API: use latest supported version at implementation time. As of
+  2026-04-30, v24 was released on 2026-04-22 and sunsets in May 2027.
+- Google Ads reporting: prefer `GoogleAdsService.SearchStream` for production
+  reporting pulls; reduce selected fields or date windows if response size risks
+  the 64 MB response limit.
+- Google lead conversion uploads: prefer Google Data Manager API for new
+  offline/enhanced conversion workflows; fallback to Google Ads API only if
+  Data Manager does not fit the account setup.
+- Meta Marketing API: use the current Graph/Marketing API version available to
+  the app at implementation time. Insights pulls must run compatibility smokes
+  because Meta breakdown/action-breakdown combinations can be rejected.
+
+References:
+
+- Google Ads API release/sunset:
+  <https://developers.google.com/google-ads/api/docs/sunset-dates?hl=en>
+- Google Ads reporting streaming:
+  <https://developers.google.com/google-ads/api/docs/reporting/streaming>
+- Google Ads API quotas:
+  <https://developers.google.com/google-ads/api/docs/best-practices/quotas>
+- Google Data Manager events:
+  <https://developers.google.com/data-manager/api/devguides/events>
+- Meta Business SDK:
+  <https://github.com/facebook/facebook-nodejs-business-sdk>
+- Meta Insights API Postman collection:
+  <https://www.postman.com/meta/facebook-marketing-api/folder/zzd6d5p/insights-api>
+
+### P0 Registry Profiles
+
+| Profile                                    | Priority | API/resource                                                         | Dimensions                                                                                                                                                                                               | Metrics / status fields                                                                                                                                                             | Target                           |
+| ------------------------------------------ | -------- | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
+| `google_ads_campaign_daily_v1`             | P0       | Google Ads API `campaign` via `GoogleAdsService.SearchStream`        | `customer.id`, `campaign.id`, `campaign.name`, `campaign.status`, `campaign.advertising_channel_type`, `segments.date`                                                                                   | `metrics.cost_micros`, `metrics.impressions`, `metrics.clicks`, `metrics.ctr`, `metrics.average_cpc`, `metrics.conversions`, `metrics.conversions_value`, `metrics.all_conversions` | `paid_campaign_facts`            |
+| `google_ads_search_terms_v1`               | P0       | `campaign_search_term_view`                                          | `campaign.id/name`, `ad_group.id/name`, `campaign_search_term_view.search_term`, `segments.date`, `segments.device`                                                                                      | `cost_micros`, `impressions`, `clicks`, `ctr`, `average_cpc`, `conversions`, `conversions_value`                                                                                    | `paid_search_term_facts`         |
+| `google_ads_landing_page_v1`               | P0       | `expanded_landing_page_view`                                         | `expanded_landing_page_view.expanded_final_url`, `campaign.id/name`, `ad_group.id/name`, `segments.date`, `segments.device`, `segments.ad_network_type`                                                  | cost/click/conversion metrics plus available landing page speed/validity metrics                                                                                                    | `paid_landing_page_facts`        |
+| `google_data_manager_conversion_import_v1` | P0       | Google Data Manager API events                                       | tenant, destination, event/stage, run/job, conversion action, date                                                                                                                                       | upload/import status, error class, `gclid`/`gbraid`/`wbraid` presence flags, hashed user-data presence flags                                                                        | `paid_conversion_upload_facts`   |
+| `meta_ads_campaign_daily_v1`               | P0       | Meta Insights `/{ad_account_id}/insights`, `level=campaign`          | `account_id`, `campaign_id`, `campaign_name`, `objective`, `date_start`, `date_stop`                                                                                                                     | `spend`, `impressions`, `reach`, `frequency`, `clicks`, `ctr`, `cpc`, `cpm`, `actions`, `cost_per_action_type`, `conversions`, `conversion_values` when available                   | `paid_campaign_facts`            |
+| `meta_ads_adset_audience_v1`               | P0       | Meta Insights `level=adset`                                          | `adset_id`, `adset_name`, `campaign_id`, `date_start`, `date_stop`; one compatible breakdown set per run: `country`, `publisher_platform`, `platform_position`, `device_platform` or `impression_device` | `spend`, `impressions`, `reach`, `frequency`, `clicks`, `ctr`, `cpc`, `cpm`, `actions`, `cost_per_action_type`                                                                      | `paid_adset_facts`               |
+| `meta_ads_creative_v1`                     | P0       | Meta Insights `level=ad` + ad creative edge                          | `ad_id`, `ad_name`, `adset_id`, `campaign_id`, `creative_id`, `creative_media_type`, `effective_object_story_id`, date                                                                                   | `spend`, `impressions`, `clicks`, `inline_link_clicks`, `outbound_clicks`, `outbound_clicks_ctr`, `cpc`, `cpm`, `ctr`, `actions`, `cost_per_action_type`                            | `paid_ad_creative_facts`         |
+| `meta_capi_quality_v1`                     | P0       | `meta_conversion_events` + provider status / Events Manager evidence | event name, event id, campaign/landing when joinable, date                                                                                                                                               | sent/skipped/failed, deduped, missing `_fbp`, `_fbc`, `fbclid`, email hash, phone hash, sanitized error class                                                                       | `paid_attribution_quality_facts` |
+
+### P1 Registry Profiles
+
+| Profile                         | Priority | API/resource                                      | Dimensions                                                                                  | Metrics / status fields                                                                    | Target                              |
+| ------------------------------- | -------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ | ----------------------------------- |
+| `google_ads_keyword_quality_v1` | P1       | `keyword_view` / `ad_group_criterion`             | keyword text, match type, campaign, ad group, date                                          | quality score components, cost, clicks, conversions                                        | `paid_keyword_facts`                |
+| `google_ads_geo_device_v1`      | P1       | campaign/ad group report with geo/device segments | campaign, ad group, country/region where available, device, date                            | spend, clicks, conversions, first-party qualified lead joins                               | `paid_campaign_facts` + joint facts |
+| `google_ads_pmax_demandgen_v1`  | P1       | campaign / asset group reports where accessible   | campaign channel/subtype, asset group when available, date, network/device where compatible | cost, conversions, conversion value, platform-comparable conversions, asset/channel health | `paid_campaign_facts`               |
+| `meta_ads_landing_page_v1`      | P1       | Meta Insights + creative URL extraction           | ad/campaign/adset, link URL or `link_url_asset` where available, date                       | outbound clicks, inline link clicks, spend, joined GA4/WAFlow/CRM activation               | `paid_landing_page_facts`           |
+| `meta_advantage_governance_v1`  | P1       | campaign/adset config + Insights                  | objective, optimization goal, automation setting where available, campaign/adset, date      | conversion signal quality, creative volume, first-party qualified lead rate                | `paid_attribution_quality_facts`    |
+
+### Registry Limits And Smokes
+
+- Each profile must define selected accounts before running.
+- Each Meta profile must include a `compatibility_smoke` that tests the exact
+  field + breakdown + action_breakdown combination for a small date window.
+- Each Google report must use a bounded field set and date window; split the run
+  if response size approaches Google Ads API gRPC limits.
+- Extractors must support `dry-run` and `apply`.
+- Extractors must report `created`, `updated`, `skipped`, `errors`,
+  `provider_status`, `row_count`, `last_success_at` and `stale_after`.
+- TikTok remains `future_watch` in the registry: UTM and `ttclid`
+  contract-compatible, no active extractor in the first implementation.
+
 ## Meta Ads Profiles
 
 ### `meta_ads_campaign_daily_v1`
