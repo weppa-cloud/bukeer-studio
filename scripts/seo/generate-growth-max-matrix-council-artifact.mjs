@@ -134,9 +134,11 @@ async function main() {
   await fs.mkdir(outDir, { recursive: true });
 
   const inputs = await discoverLatestInputs(artifactRoot);
+  const jointFactsInput = await fetchJointFactCandidates();
   const inventoryInput = await fetchGrowthInventoryCandidates();
   const candidates = [
     ...inputs.flatMap((input) => extractCandidates(input)),
+    ...jointFactsInput.candidates,
     ...inventoryInput.candidates,
   ];
   const rows =
@@ -160,6 +162,7 @@ async function main() {
         "local artifact only; no DB mutations and no paid/provider calls",
     },
     inputs: inputs.map(stripDataForReport),
+    joint_facts_input: jointFactsInput.summary,
     inventory_input: inventoryInput.summary,
     counts: {
       inputs_found: inputs.filter((input) => input.status === "found").length,
@@ -191,6 +194,125 @@ async function main() {
       2,
     ),
   );
+}
+
+async function fetchJointFactCandidates() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !serviceRole || args.includeJointFacts === "false") {
+    return {
+      summary: {
+        status: "skipped",
+        reason:
+          args.includeJointFacts === "false"
+            ? "Disabled by --include-joint-facts false."
+            : "Missing Supabase env.",
+        row_count: 0,
+      },
+      candidates: [],
+    };
+  }
+
+  try {
+    const sb = createClient(url, serviceRole, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { data, error } = await sb
+      .from("seo_joint_growth_facts")
+      .select("*")
+      .eq("website_id", websiteId)
+      .eq("council_ready", true)
+      .order("priority_score", { ascending: false })
+      .limit(Number(args.jointFactLimit ?? 50));
+    if (error) throw error;
+    const rows = (data ?? []).map((row, index) =>
+      normalizeJointFactCandidate(row, index),
+    );
+    return {
+      summary: {
+        status: "found",
+        website_id: websiteId,
+        row_count: rows.length,
+        source: "seo_joint_growth_facts",
+      },
+      candidates: rows,
+    };
+  } catch (error) {
+    return {
+      summary: {
+        status: "error",
+        website_id: websiteId,
+        row_count: 0,
+        error: error.message,
+      },
+      candidates: [],
+    };
+  }
+}
+
+function normalizeJointFactCandidate(row, index) {
+  const recommendation = row.recommendation ?? {};
+  const baseline = jointFactBaseline(row.baseline, row.metrics);
+  const sourceRows = Array.isArray(row.source_rows) ? row.source_rows : [];
+  const sourceRow = sourceRows[0] ?? row.source_url ?? row.id;
+  return {
+    id: `joint_${row.joint_profile}_${String(row.fact_fingerprint ?? row.id ?? index).slice(0, 10)}`,
+    title:
+      recommendation.hypothesis ??
+      recommendation.next_action ??
+      `Joint fact ${row.joint_profile} for ${row.source_url ?? `row ${index + 1}`}`,
+    source_row: sourceRow,
+    baseline,
+    owner: recommendation.owner ?? recommendation.owner_issue,
+    success_metric: recommendation.success_metric,
+    evaluation_date: recommendation.evaluation_date,
+    status: normalizeStatus(recommendation.status ?? "queued"),
+    priority: numericValue(row.priority_score),
+    is_active: true,
+    input_kind: "seo_joint_growth_facts",
+    input_path: "supabase:seo_joint_growth_facts",
+    missing_fields: REQUIRED_FIELDS.filter((field) => {
+      const value = {
+        source_row: sourceRow,
+        baseline,
+        owner: recommendation.owner ?? recommendation.owner_issue,
+        success_metric: recommendation.success_metric,
+        evaluation_date: recommendation.evaluation_date,
+      }[field.key];
+      return isBlank(value);
+    }).map((field) => field.label),
+    raw: {
+      id: row.id,
+      source_profile: row.source_profile,
+      joint_profile: row.joint_profile,
+      source_url: row.source_url,
+      market: row.market,
+      locale: row.locale,
+      source_rows: sourceRows,
+      priority_score: row.priority_score,
+    },
+  };
+}
+
+function jointFactBaseline(baseline, metrics) {
+  const parts = [
+    baseline?.window_start && baseline?.window_end
+      ? `${baseline.window_start}..${baseline.window_end}`
+      : null,
+    Number(baseline?.gsc_impressions_28d ?? metrics?.gsc_impressions_28d ?? 0) >
+    0
+      ? `GSC ${baseline?.gsc_impressions_28d ?? metrics?.gsc_impressions_28d} impressions / ${baseline?.gsc_clicks_28d ?? metrics?.gsc_clicks_28d ?? 0} clicks`
+      : null,
+    Number(baseline?.ga4_sessions_28d ?? metrics?.ga4_sessions_28d ?? 0) > 0
+      ? `GA4 ${baseline?.ga4_sessions_28d ?? metrics?.ga4_sessions_28d} sessions`
+      : null,
+    Number(baseline?.whatsapp_clicks ?? metrics?.whatsapp_clicks ?? 0) +
+      Number(baseline?.waflow_submits ?? metrics?.waflow_submits ?? 0) >
+    0
+      ? `Funnel WA ${baseline?.whatsapp_clicks ?? metrics?.whatsapp_clicks ?? 0}, submit ${baseline?.waflow_submits ?? metrics?.waflow_submits ?? 0}`
+      : null,
+  ].filter(Boolean);
+  return parts.join("; ") || null;
 }
 
 async function fetchGrowthInventoryCandidates() {
@@ -657,6 +779,8 @@ Status: ${report.status}
 - Side effects: ${report.rules.side_effects}
 
 ## Inputs
+
+Joint facts input: ${report.joint_facts_input.status} (${report.joint_facts_input.row_count} rows)${report.joint_facts_input.error ? ` — ${report.joint_facts_input.error}` : ""}
 
 Growth inventory input: ${report.inventory_input.status} (${report.inventory_input.row_count} rows)${report.inventory_input.error ? ` — ${report.inventory_input.error}` : ""}
 

@@ -40,6 +40,14 @@ Scope: EPIC #310 sprint close for Max Performance Matrix facts, inventory and Co
 - Rejected rows: 3.
 - Primary rejection reasons: missing evaluation date or active experiment cap exceeded.
 
+## Fact Quality And Council From Facts
+
+- Fact quality audit status: `PASS`.
+- All sampled facts have `source_profile`, `fact_fingerprint`, `priority_score` and `evidence`.
+- Joint facts with Council-ready metadata: 13.
+- Council regenerated from `seo_joint_growth_facts`: 5 approved, 0 blocked, 8 rejected only because the active experiment cap is 5.
+- Decision: do not run more provider calls before the next work cycle; current facts are usable for backlog generation and Council selection.
+
 ## Health
 
 - Core cache health: `PASS`.
@@ -63,3 +71,5 @@ not block #310 from remaining `PASS-WITH-WATCH operativo`.
 - `artifacts/seo/2026-04-30-growth-cache-health/growth-cache-health-report.md`
 - `artifacts/seo/2026-04-30-growth-max-matrix-coverage-close/growth-max-matrix-coverage.json`
 - `artifacts/seo/2026-04-30-growth-max-matrix-council-close/growth-max-matrix-council.md`
+- `artifacts/seo/2026-04-30-growth-max-matrix-fact-quality/growth-max-matrix-fact-quality.md`
+- `artifacts/seo/2026-04-30-growth-max-matrix-council-joint-facts/growth-max-matrix-council.md`
