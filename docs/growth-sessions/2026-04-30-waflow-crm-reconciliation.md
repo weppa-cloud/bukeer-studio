@@ -276,3 +276,66 @@ Remaining permanent link:
 - when Flutter creates/links an itinerary from a request, it should inherit
   `growth_reference_code` into `itineraries.custom_fields` so
   `booking_confirmed` joins without manual smoke setup.
+
+## Addendum - CRM lead source alignment
+
+Updated: 2026-04-30T19:05Z.
+
+The CRM already has a first-class source field:
+
+- `requests.lead_source`
+- `requests.lead_source_detail`
+
+Flutter uses that field in the new conversation form and CRM panel. The shared
+SOT in `bukeer_flutter` allows the normalized values:
+
+- `facebook_ads`
+- `google_ads`
+- `instagram_ads`
+- `organic_search`
+- `organic_social`
+- `referral`
+- `direct`
+- `email_campaign`
+- `partner`
+- `unknown`
+- legacy compatibility: `whatsapp`, `telegram`, `website`, `manual`, `email`,
+  `facebook`, `instagram`
+
+Studio webhook alignment:
+
+- WAFlow/Chatwoot now derives `requests.lead_source` from the captured Growth
+  attribution, not from Chatwoot routing metadata.
+- It writes `lead_source` only when the existing value is blank, `unknown`, or
+  default `direct` and the Growth source is more specific.
+- It writes `lead_source_detail` with a compact Growth trace when the field is
+  blank or already Growth-owned.
+- It also mirrors the derived value in `requests.custom_fields.growth_lead_source`
+  and `growth_lead_source_detail` for audit/debug.
+
+This keeps the CRM source field usable by Booker Studio and Booker Flutter while
+preserving manual CRM corrections.
+
+## Addendum - historical exact Growth links source backfill
+
+Updated: 2026-04-30T19:15Z.
+
+Applied a narrow source alignment backfill to the six exact CRM requests already
+linked by `growth_reference_code`. This was not a timestamp bulk update.
+
+| Request    | reference_code     | lead_source    |
+| ---------- | ------------------ | -------------- |
+| `SOL-1927` | `HOME-2904-9R79`   | `referral`     |
+| `SOL-1928` | `HOME-2904-B3B7`   | `facebook_ads` |
+| `SOL-1929` | `HOME-2904-VOQB`   | `referral`     |
+| `SOL-1932` | `SANTA--3004-P5A3` | `referral`     |
+| `SOL-1933` | `HOME-3004-63R7`   | `referral`     |
+| `SOL-1934` | `HOME-3004-534R`   | `direct`       |
+
+Post-apply verification:
+
+- all six rows have `requests.lead_source`;
+- all six rows have `requests.lead_source_detail`;
+- all six rows mirror the same value in
+  `requests.custom_fields.growth_lead_source`;
+- all six rows have matching `growth_lead_source_detail` for audit.
