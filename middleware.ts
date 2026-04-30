@@ -400,7 +400,37 @@ async function publishedBlogPostExistsForLocale(
   return false;
 }
 
+function normalizeBlogPublicLocale(
+  locale: string | null | undefined,
+): string | null {
+  if (!locale) return null;
+  if (locale === "es") return "es-CO";
+  if (locale === "en") return "en-US";
+  return locale;
+}
+
+async function findPublishedBlogPostAnyLocale(
+  websiteId: string,
+  slug: string,
+): Promise<{ slug: string; locale: string | null } | null> {
+  const cacheKey = `blog-any-locale:${websiteId}:${slug}`;
+  const cached = getCached<{ slug: string; locale: string | null } | null>(
+    cacheKey,
+  );
+  if (cached !== undefined) return cached;
+
+  const data = await supabaseFetch<
+    Array<{ slug: string; locale: string | null }>
+  >(
+    `/rest/v1/website_blog_posts?select=slug,locale&website_id=eq.${encodeURIComponent(websiteId)}&slug=eq.${encodeURIComponent(slug)}&status=eq.published&deleted_at=is.null&limit=1`,
+  );
+  const result = data && data.length > 0 ? data[0] : null;
+  setCached(cacheKey, result);
+  return result;
+}
+
 async function tryMissingBlogNotFound(
+  request: NextRequest,
   website: WebsiteLookup | null,
   localeResolution: PublicLocalePathResolution,
 ): Promise<NextResponse | null> {
@@ -415,6 +445,33 @@ async function tryMissingBlogNotFound(
     localeResolution.resolvedLocale,
   );
   if (exists) return null;
+
+  const resolvedLocale = normalizeBlogPublicLocale(
+    localeResolution.resolvedLocale,
+  );
+  const defaultLocale = normalizeBlogPublicLocale(
+    localeResolution.defaultLocale,
+  );
+  if (resolvedLocale && defaultLocale && resolvedLocale === defaultLocale) {
+    const postInAnotherLocale = await findPublishedBlogPostAnyLocale(
+      website.id,
+      decodeURIComponent(match[1]),
+    );
+    const postLocale = normalizeBlogPublicLocale(postInAnotherLocale?.locale);
+    if (postInAnotherLocale && postLocale && postLocale !== resolvedLocale) {
+      return NextResponse.redirect(
+        new URL(
+          buildPublicLocalizedPath(
+            `/blog/${postInAnotherLocale.slug}`,
+            postLocale,
+            localeResolution.defaultLocale,
+          ),
+          request.url,
+        ),
+        308,
+      );
+    }
+  }
 
   return new NextResponse("Not found", {
     status: 404,
@@ -907,6 +964,7 @@ export async function middleware(request: NextRequest) {
       }
 
       const missingBlogResponse = await tryMissingBlogNotFound(
+        request,
         website,
         localeResolution,
       );
@@ -983,6 +1041,7 @@ export async function middleware(request: NextRequest) {
     }
 
     const missingBlogResponse = await tryMissingBlogNotFound(
+      request,
       website,
       localeResolution,
     );
@@ -1050,6 +1109,7 @@ export async function middleware(request: NextRequest) {
     }
 
     const missingBlogResponse = await tryMissingBlogNotFound(
+      request,
       website,
       localeResolution,
     );

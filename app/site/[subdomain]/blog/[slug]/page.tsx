@@ -5,6 +5,7 @@ import { notFound, redirect } from "next/navigation";
 import {
   getWebsiteBySubdomain,
   getBlogPostBySlug,
+  getBlogPostAnyLocale,
   getBlogPostByTranslationGroup,
   getBlogPostTranslationLocales,
   normalizeBlogPublicLocale,
@@ -50,6 +51,12 @@ export async function generateMetadata({
   );
 
   if (!post) {
+    await redirectLocaleMismatchedBlogSlug({
+      websiteId: website.id,
+      slug,
+      resolvedLocale: localeContext.resolvedLocale,
+      defaultLocale: localeContext.defaultLocale ?? "es-CO",
+    });
     notFound();
   }
 
@@ -151,6 +158,12 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
   const post = await getBlogPostBySlug(website.id, slug, resolvedLocale);
 
   if (!post) {
+    await redirectLocaleMismatchedBlogSlug({
+      websiteId: website.id,
+      slug,
+      resolvedLocale,
+      defaultLocale,
+    });
     // A locale-prefixed blog URL is only valid when that locale has a
     // published Studio post. Falling back to another locale creates soft-404
     // surfaces for crawlers, especially `/en/blog/*` rows hidden by the EN
@@ -251,6 +264,40 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         />
       </TemplateSlot>
     </>
+  );
+}
+
+async function redirectLocaleMismatchedBlogSlug({
+  websiteId,
+  slug,
+  resolvedLocale,
+  defaultLocale,
+}: {
+  websiteId: string;
+  slug: string;
+  resolvedLocale: string;
+  defaultLocale: string;
+}) {
+  const resolvedBlogLocale = normalizeBlogPublicLocale(resolvedLocale);
+  const defaultBlogLocale = normalizeBlogPublicLocale(defaultLocale);
+  if (!resolvedBlogLocale || resolvedBlogLocale !== defaultBlogLocale) return;
+
+  const postInAnotherLocale = await getBlogPostAnyLocale(websiteId, slug);
+  const postLocale = normalizeBlogPublicLocale(postInAnotherLocale?.locale);
+  if (
+    !postInAnotherLocale ||
+    !postLocale ||
+    postLocale === resolvedBlogLocale
+  ) {
+    return;
+  }
+
+  redirect(
+    buildPublicLocalizedPath(
+      `/blog/${postInAnotherLocale.slug}`,
+      postLocale,
+      defaultLocale,
+    ),
   );
 }
 
