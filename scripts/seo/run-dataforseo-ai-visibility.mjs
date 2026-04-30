@@ -5,6 +5,10 @@ import path from "node:path";
 import process from "node:process";
 import { createClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
+import {
+  dataForSeoAccessForEndpoint,
+  isAccessRunnable,
+} from "./dataforseo-feature-access.mjs";
 
 dotenv.config({ path: ".env.local" });
 
@@ -27,7 +31,22 @@ const maxPrompts = Number.parseInt(args.maxPrompts ?? "10", 10);
 const runTag = args.runTag ?? `epic310-geo-ai-visibility-v1-${todayCompact()}`;
 const profile = args.profile ?? "dfs_ai_geo_visibility_v1";
 const platform = args.platform ?? "google_ai_mode";
-const includeDomainMentions = args.includeDomainMentions !== "false";
+const llmMentionsAccess = dataForSeoAccessForEndpoint(
+  "/v3/ai_optimization/llm_mentions/top_pages/live",
+);
+const includeDomainMentionsRequested = args.includeDomainMentions !== "false";
+const includeDomainMentions =
+  includeDomainMentionsRequested && isAccessRunnable(llmMentionsAccess);
+const accessSkips =
+  includeDomainMentionsRequested && !includeDomainMentions
+    ? [
+        {
+          feature: "ai_optimization_llm_mentions",
+          status: llmMentionsAccess.status,
+          reason: llmMentionsAccess.evidence,
+        },
+      ]
+    : [];
 
 const login = process.env.DATAFORSEO_LOGIN?.trim();
 const password = process.env.DATAFORSEO_PASSWORD?.trim();
@@ -71,6 +90,7 @@ async function main() {
       prompt_set_path: promptSetPath,
       max_prompts: maxPrompts,
       mode: dryRun ? "dry-run" : "apply",
+      access_skips: accessSkips,
     },
   };
 
@@ -85,6 +105,7 @@ async function main() {
       prompts: prompts.length,
       platform,
       include_domain_mentions: includeDomainMentions,
+      access_skips: accessSkips,
       endpoints: plannedEndpoints(prompts, includeDomainMentions),
       artifact_dir: outDir,
       operational_status: "WATCH",
@@ -258,7 +279,8 @@ async function main() {
       : partialDataExists
         ? "partial"
         : "failed";
-  let operationalStatus = failures.length > 0 ? "WATCH" : "PASS";
+  let operationalStatus =
+    failures.length > 0 || accessSkips.length > 0 ? "WATCH" : "PASS";
   const { error: finishError } = await sb
     .from("seo_ai_visibility_runs")
     .update({
@@ -271,6 +293,7 @@ async function main() {
         facts_count: uniqueFacts.length,
         persisted_facts_count: persistedFacts,
         operational_status: operationalStatus,
+        access_skips: accessSkips,
         failures,
       },
     })
@@ -300,6 +323,7 @@ async function main() {
     persisted_facts: persistedFacts,
     raw_cache_keys: rawCacheKeys.length,
     cost_usd: totalCost,
+    access_skips: accessSkips,
     failures,
   };
   await writeSummary(summary);

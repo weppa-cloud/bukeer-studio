@@ -12,6 +12,10 @@ import {
   DEFAULT_WEBSITE_ID,
   getProfile,
 } from "./growth-provider-profile-registry.mjs";
+import {
+  dataForSeoAccessForEndpoint,
+  isAccessRunnable,
+} from "./dataforseo-feature-access.mjs";
 
 dotenv.config({ path: ".env.local" });
 
@@ -613,7 +617,25 @@ function domainCompetitiveBaselineEndpoints({
 }
 
 function maybeLimitEndpoints(endpoints, limit) {
-  const runnable = endpoints.filter(
+  const accessTagged = endpoints.map((endpointPlan) => {
+    const endpointAccess = dataForSeoAccessForEndpoint(endpointPlan.endpoint);
+    if (isAccessRunnable(endpointAccess)) {
+      return {
+        ...endpointPlan,
+        access_status: endpointAccess.status,
+        access_evidence: endpointAccess.evidence,
+      };
+    }
+    return {
+      ...endpointPlan,
+      access_status: endpointAccess.status,
+      access_evidence: endpointAccess.evidence,
+      dryRunOnlyReason:
+        endpointPlan.dryRunOnlyReason ??
+        `DataForSEO feature access ${endpointAccess.status}: ${endpointAccess.evidence}`,
+    };
+  });
+  const runnable = accessTagged.filter(
     (endpointPlan) => !endpointPlan.dryRunOnlyReason || !apply,
   );
   if (!limit) return runnable;
@@ -814,6 +836,8 @@ function planProfile(profilePlan) {
     endpoints: profilePlan.endpoints.map((endpointPlan) => ({
       slug: endpointPlan.slug,
       endpoint: endpointPlan.endpoint,
+      access_status: endpointPlan.access_status ?? null,
+      access_evidence: endpointPlan.access_evidence ?? null,
       body: endpointPlan.body,
       dry_run_only_reason: endpointPlan.dryRunOnlyReason ?? null,
     })),
@@ -887,7 +911,7 @@ function planMarkdown(plan) {
     }
     for (const endpointPlan of profileItem.endpoints) {
       lines.push(
-        `- ${endpointPlan.slug}: \`${endpointPlan.endpoint}\`${endpointPlan.dry_run_only_reason ? ` (${endpointPlan.dry_run_only_reason})` : ""}`,
+        `- ${endpointPlan.slug}: \`${endpointPlan.endpoint}\` — access: ${endpointPlan.access_status ?? "n/a"}${endpointPlan.dry_run_only_reason ? ` (${endpointPlan.dry_run_only_reason})` : ""}`,
       );
     }
     lines.push("");

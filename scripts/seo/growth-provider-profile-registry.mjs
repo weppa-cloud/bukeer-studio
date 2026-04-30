@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+import { dataForSeoAccessForProfile } from "./dataforseo-feature-access.mjs";
+
 export const DEFAULT_WEBSITE_ID = "894545b7-73ca-4dae-b76a-da5b6a3f8441";
 export const DEFAULT_ACCOUNT_ID = "9fc24733-b127-4184-aa22-12f03b98927a";
 export const DEFAULT_DOMAIN = "colombiatours.travel";
@@ -906,7 +908,7 @@ export function profileHealthSeed(profileItem) {
 }
 
 function profile(input) {
-  return {
+  const base = {
     docs: ["docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"],
     extractionScripts: [],
     normalizerScripts: [],
@@ -917,6 +919,16 @@ function profile(input) {
     runPolicy: "",
     ...input,
   };
+  if (base.provider === "dataforseo") {
+    const access = dataForSeoAccessForProfile(base);
+    return {
+      ...base,
+      accessStatus: access.status,
+      accessEvidence: access.evidence,
+      accessFallback: access.fallback,
+    };
+  }
+  return base;
 }
 
 function countBy(rows, key) {

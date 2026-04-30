@@ -51,6 +51,35 @@ short rule: read-only GSC/GA4/tracking refreshes may run on schedule; expensive
 DataForSEO, AI/GEO, broad SERP, rendered crawl and paid-platform mutation work
 requires explicit owner approval before the provider call starts.
 
+## DataForSEO Feature Access States
+
+Do not infer access from the existence of a profile. DataForSEO access is
+tracked separately in `scripts/seo/dataforseo-feature-access.mjs` and enforced
+by the Max Matrix orchestrator and DataForSEO runners.
+
+| API family                      | Current state             | Operational rule                                                                                  |
+| ------------------------------- | ------------------------- | ------------------------------------------------------------------------------------------------- |
+| OnPage                          | `enabled_confirmed`       | Run only under approved crawl profiles; follow-up/persist/normalize existing tasks automatically. |
+| SERP                            | `enabled_confirmed`       | Run only for approved keyword/location sets.                                                      |
+| Keyword Data / DataForSEO Labs  | `enabled_confirmed`       | Run monthly for demand, clusters, competitor visibility and intersections.                        |
+| Business Data                   | `partial_confirmed`       | Retry with refined place/query/CID before marking blocked.                                        |
+| Reviews                         | `watch_needs_smoke`       | Needs verified Google CID/place identifier before paid calls.                                     |
+| Backlinks                       | `blocked_no_subscription` | Do not call `/v3/backlinks/*`; use Labs + Domain Analytics fallback until access is enabled.      |
+| AI Optimization: Google AI Mode | `enabled_confirmed`       | Can run as AI/GEO pilot with prompt-set approval.                                                 |
+| AI Optimization: LLM Mentions   | `blocked_no_subscription` | Do not call `/v3/ai_optimization/llm_mentions/*`; keep AI/GEO as WATCH for mentions coverage.     |
+| Content Analysis                | `enabled_confirmed`       | Run as P2 brand/topic sentiment input.                                                            |
+| Domain Analytics                | `enabled_confirmed`       | Run as P2 competitive baseline input.                                                             |
+| Merchant / App Data             | `excluded_by_scope`       | No default run for ColombiaTours Growth OS.                                                       |
+
+When a subscription changes in DataForSEO, update the access registry, run:
+
+```bash
+node scripts/seo/dataforseo-feature-access.mjs
+node scripts/seo/run-growth-max-matrix-orchestrator.mjs --cadence monthly --includeApprovalRequired true
+```
+
+Then execute a one-endpoint smoke before enabling the profile in Council.
+
 ## DataForSEO Crawl Profile
 
 ### `dfs_onpage_full_v2`

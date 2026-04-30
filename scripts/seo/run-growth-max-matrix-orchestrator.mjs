@@ -10,6 +10,7 @@ import {
   requiresApproval,
   summarizeRegistry,
 } from "./growth-provider-profile-registry.mjs";
+import { accessDecision } from "./dataforseo-feature-access.mjs";
 
 const DEFAULT_OUT_DIR = `artifacts/seo/${todayIso()}-growth-max-matrix-orchestrator`;
 
@@ -106,6 +107,19 @@ function runDecision(profile, dueProfiles) {
       reason: "Excluded by Growth OS scope.",
     };
   }
+  if (profile.provider === "dataforseo") {
+    const decision = accessDecision({
+      status: profile.accessStatus,
+      evidence: profile.accessEvidence,
+      fallback: profile.accessFallback,
+    });
+    if (decision.status === "BLOCKED" || decision.status === "SKIP") {
+      return decision;
+    }
+    if (decision.status === "WATCH" && profile.status !== "implemented") {
+      return decision;
+    }
+  }
   if (requiresApproval(profile) && !includeApprovalRequired) {
     return {
       status: "BLOCKED",
@@ -200,7 +214,7 @@ function toMarkdown(report) {
     .filter((profile) => profile.due_for_selected_cadence)
     .map(
       (profile) =>
-        `| ${profile.run_decision.status} | ${profile.priority} | ${profile.provider} | ${profile.id} | ${profile.cadence} | ${profile.status} | ${profile.approval} | ${profile.rawCache ?? "n/a"} | ${profile.factTargets.join(", ") || "n/a"} | ${profile.ownerIssues.join(", ")} | ${profile.run_decision.reason} |`,
+        `| ${profile.run_decision.status} | ${profile.priority} | ${profile.provider} | ${profile.id} | ${profile.cadence} | ${profile.status} | ${profile.accessStatus ?? "n/a"} | ${profile.approval} | ${profile.rawCache ?? "n/a"} | ${profile.factTargets.join(", ") || "n/a"} | ${profile.ownerIssues.join(", ")} | ${profile.run_decision.reason} |`,
     )
     .join("\n");
   const commandRows = report.next_commands
@@ -230,9 +244,9 @@ Status: ${report.status}
 
 ## Selected Profiles
 
-| Decision | Priority | Provider | Profile | Cadence | Implementation | Approval | Raw/cache | Facts | Owner issues | Reason |
-|---|---|---|---|---|---|---|---|---|---|---|
-${rows || "| n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | No profiles selected |"}
+| Decision | Priority | Provider | Profile | Cadence | Implementation | Feature access | Approval | Raw/cache | Facts | Owner issues | Reason |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+${rows || "| n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | No profiles selected |"}
 
 ## Next Commands
 

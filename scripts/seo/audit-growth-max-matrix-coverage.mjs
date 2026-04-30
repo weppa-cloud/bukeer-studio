@@ -191,6 +191,8 @@ function profileFromObject(input) {
       ) ?? "",
     priority: clean(input.priority) ?? inferPriority(profile),
     registry_status: clean(input.status) ?? "",
+    access_status: clean(input.accessStatus ?? input.access_status) ?? "",
+    access_evidence: clean(input.accessEvidence ?? input.access_evidence) ?? "",
     extraction_scripts: splitCsvLike(
       input.extractionScripts ?? input.extraction_scripts,
     ),
@@ -264,6 +266,9 @@ function normalizeProfiles(profiles) {
       cadence: clean(profile.cadence) ?? "",
       priority: clean(profile.priority) ?? inferPriority(profile.profile),
       registry_status: clean(profile.registry_status) ?? "",
+      access_status: clean(profile.access_status ?? profile.accessStatus) ?? "",
+      access_evidence:
+        clean(profile.access_evidence ?? profile.accessEvidence) ?? "",
       extraction_scripts: splitCsvLike(profile.extraction_scripts),
       normalizer_scripts: splitCsvLike(profile.normalizer_scripts),
       docs: splitCsvLike(profile.docs),
@@ -517,6 +522,7 @@ function buildCoverageRow(profile, scanIndex, supabase) {
     "normalized/facts": normalizedFacts,
     growth_inventory_used: growthInventoryUsed,
     council_used: councilUsed,
+    access_status: profile.access_status,
     status: statusFor(
       {
         documented,
@@ -732,6 +738,8 @@ function gapsFor(flags, profile) {
 }
 
 function statusFor(flags, profile) {
+  if (profile.access_status === "blocked_no_subscription")
+    return "provider_access_blocked";
   if (isExcluded(profile)) return "excluded/watch";
   if (
     flags.documented &&
@@ -777,6 +785,7 @@ function toMarkdown(report) {
     row.provider,
     row.family,
     row.profile,
+    row.access_status || "n/a",
     yesNo(row.available),
     yesNo(row.documented),
     yesNo(row.extracted),
@@ -808,11 +817,12 @@ Supabase counts: ${report.supabase.enabled ? "enabled" : `skipped (${report.supa
 | Partial | ${report.summary.by_status.partial ?? 0} |
 | Not started | ${report.summary.by_status.not_started ?? 0} |
 | Excluded/watch | ${report.summary.by_status["excluded/watch"] ?? 0} |
+| Provider access blocked | ${report.summary.by_status.provider_access_blocked ?? 0} |
 
 ## Matrix
 
-| Provider | Family | Profile | Available | Documented | Extracted | Persisted/cache | Normalized/facts | Growth inventory used | Council used | Status | Priority | Gaps |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Provider | Family | Profile | Feature access | Available | Documented | Extracted | Persisted/cache | Normalized/facts | Growth inventory used | Council used | Status | Priority | Gaps |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 ${rows.map((row) => `| ${row.map(escapeMarkdownCell).join(" | ")} |`).join("\n")}
 `;
 }

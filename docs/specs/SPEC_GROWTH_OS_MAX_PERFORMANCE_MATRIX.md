@@ -67,6 +67,37 @@ provider raw/cache
 | GA4        | Event/page/key events               | `ga4_event_page_v1`                  | Where do events fail to become leads?                                | `growth_ga4_cache`                        | `seo_ga4_event_facts`                                            | Activation/drop-off rows                             | Weekly                    | P0       |
 | Tracking   | Funnel + Meta CAPI                  | `tracking_conversion_facts_v1`       | Are leads/quotes/bookings traceable?                                 | `funnel_events`, `meta_conversion_events` | `funnel_events`, `meta_conversion_events`                        | Attribution rows                                     | Continuous + weekly smoke | P0       |
 
+## DataForSEO Feature Access Gate
+
+DataForSEO profiles have two separate states:
+
+1. **Implementation status**: whether Growth OS has a profile, extractor,
+   cache target, facts target and normalizer path.
+2. **Provider access status**: whether the current DataForSEO account can call
+   the underlying API family.
+
+The orchestrator must evaluate provider access before any paid call. A profile
+can be well specified and still be `BLOCKED` if the account subscription does
+not include that API. Current account evidence:
+
+| Feature/API                    | Access status             | Evidence                                                                                | Growth OS action                                                                             |
+| ------------------------------ | ------------------------- | --------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| OnPage                         | `enabled_confirmed`       | Full and post-fix crawls have completed and normalized.                                 | Runnable under crawl approval rules.                                                         |
+| SERP                           | `enabled_confirmed`       | 2026-04-30 max-performance smoke completed organic and maps SERP calls.                 | Runnable for approved keyword/location sets.                                                 |
+| Keyword Data / Labs            | `enabled_confirmed`       | Labs demand, competitors and intersections completed in smoke runs.                     | Runnable monthly for demand/content backlog.                                                 |
+| Business Data                  | `partial_confirmed`       | Endpoint reachable; latest smoke returned `No Search Results`, not subscription denial. | Use query/place/CID refinement before marking blocked.                                       |
+| Reviews                        | `watch_needs_smoke`       | Requires verified Google CID/place identifier.                                          | Do not schedule until CID is known.                                                          |
+| Backlinks                      | `blocked_no_subscription` | Provider returned `40204 Access denied` for `/v3/backlinks/*`.                          | Block #334 authority facts from Backlinks; use Labs/Domain Analytics fallback until enabled. |
+| AI Optimization Google AI Mode | `enabled_confirmed`       | 2026-04-29 AI visibility pilot produced raw cache and 213 facts.                        | Runnable as AI/GEO pilot under approval rules.                                               |
+| AI Optimization LLM Mentions   | `blocked_no_subscription` | Provider returned `40204 Access denied` for `/v3/ai_optimization/llm_mentions/*`.       | Skip LLM Mentions endpoints; keep AI/GEO as `PASS-WITH-WATCH` with Google AI Mode only.      |
+| Content Analysis               | `enabled_confirmed`       | 2026-04-30 smoke completed Content Analysis summary/search.                             | Runnable monthly for PR/brand/content signals.                                               |
+| Domain Analytics               | `enabled_confirmed`       | 2026-04-30 smoke completed Whois/Technologies.                                          | Runnable monthly/quarterly for competitive baseline.                                         |
+| Merchant / App Data            | `excluded_by_scope`       | Not relevant to the current travel-agency Growth OS objective.                          | Do not run by default.                                                                       |
+
+Canonical runtime source:
+`scripts/seo/dataforseo-feature-access.mjs`. If the DataForSEO plan changes,
+update that file first, then rerun the orchestrator and coverage audit.
+
 ## DataForSEO Feature Profiles
 
 ### `dfs_onpage_full_comparable_v3`
