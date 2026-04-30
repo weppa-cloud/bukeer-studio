@@ -1,6 +1,6 @@
 # Growth Cache Health Report
 
-Generated: 2026-04-30T18:26:57.826Z
+Generated: 2026-04-30T19:18:46.442Z
 Website: 894545b7-73ca-4dae-b76a-da5b6a3f8441
 Status: PASS
 Max matrix status: WATCH
@@ -9,13 +9,13 @@ Max matrix status: WATCH
 
 | Table | Status | Rows | Latest | Age hours | Expired rows | Error |
 |---|---|---:|---|---:|---:|---|
-| growth_gsc_cache | PASS | 10 | 2026-04-30T18:22:24.741+00:00 | 0.07 | 0 |  |
-| growth_ga4_cache | PASS | 9 | 2026-04-30T18:22:33.172+00:00 | 0.07 | 0 |  |
-| growth_dataforseo_cache | PASS | 42 | 2026-04-30T18:23:09.232+00:00 | 0.06 | 0 |  |
-| seo_audit_findings | PASS | 3133 | 2026-04-30T15:50:47.628+00:00 | 2.6 | n/a |  |
-| seo_audit_results | PASS | 4618 | 2026-04-30 | 18.45 | n/a |  |
-| funnel_events | PASS | 24 | 2026-04-30T17:45:01.214+00:00 | 0.7 | n/a |  |
-| meta_conversion_events | PASS | 16 | 2026-04-30T17:44:58+00:00 | 0.7 | n/a |  |
+| growth_gsc_cache | PASS | 10 | 2026-04-30T18:22:24.741+00:00 | 0.94 | 0 |  |
+| growth_ga4_cache | PASS | 9 | 2026-04-30T18:22:33.172+00:00 | 0.93 | 0 |  |
+| growth_dataforseo_cache | PASS | 42 | 2026-04-30T18:23:09.232+00:00 | 0.92 | 0 |  |
+| seo_audit_findings | PASS | 3133 | 2026-04-30T15:50:47.628+00:00 | 3.46 | n/a |  |
+| seo_audit_results | PASS | 4618 | 2026-04-30 | 19.31 | n/a |  |
+| funnel_events | PASS | 32 | 2026-04-30T18:50:28.571+00:00 | 0.47 | n/a |  |
+| meta_conversion_events | PASS | 22 | 2026-04-30T19:15:49+00:00 | 0.05 | n/a |  |
 
 ## GSC Search Appearance Discovery
 

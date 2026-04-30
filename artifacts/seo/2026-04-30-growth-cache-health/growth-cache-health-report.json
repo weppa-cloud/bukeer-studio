@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-30T18:26:57.826Z",
+  "generated_at": "2026-04-30T19:18:46.442Z",
   "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
   "status": "PASS",
   "max_matrix_status": "WATCH",
@@ -12,7 +12,7 @@
       "freshness_sla_hours": 24,
       "latest_at": "2026-04-30T18:22:24.741+00:00",
       "latest_time_column": "fetched_at",
-      "age_hours": 0.07,
+      "age_hours": 0.94,
       "expired_rows": 0,
       "available_identity_columns": [],
       "recent": [
@@ -61,7 +61,7 @@
       "freshness_sla_hours": 6,
       "latest_at": "2026-04-30T18:22:33.172+00:00",
       "latest_time_column": "fetched_at",
-      "age_hours": 0.07,
+      "age_hours": 0.93,
       "expired_rows": 0,
       "available_identity_columns": [],
       "recent": [
@@ -110,7 +110,7 @@
       "freshness_sla_hours": 168,
       "latest_at": "2026-04-30T18:23:09.232+00:00",
       "latest_time_column": "fetched_at",
-      "age_hours": 0.06,
+      "age_hours": 0.92,
       "expired_rows": 0,
       "available_identity_columns": [],
       "recent": [
@@ -164,7 +164,7 @@
       "freshness_sla_hours": 168,
       "latest_at": "2026-04-30T15:50:47.628+00:00",
       "latest_time_column": "fetched_at",
-      "age_hours": 2.6,
+      "age_hours": 3.46,
       "expired_rows": null,
       "available_identity_columns": [
         "crawl_task_id",
@@ -236,7 +236,7 @@
       "freshness_sla_hours": 168,
       "latest_at": "2026-04-30",
       "latest_time_column": "audit_date",
-      "age_hours": 18.45,
+      "age_hours": 19.31,
       "expired_rows": null,
       "available_identity_columns": [
         "crawl_task_id"
@@ -278,11 +278,11 @@
       "table": "funnel_events",
       "provider": "tracking",
       "status": "PASS",
-      "row_count": 24,
+      "row_count": 32,
       "freshness_sla_hours": 168,
-      "latest_at": "2026-04-30T17:45:01.214+00:00",
+      "latest_at": "2026-04-30T18:50:28.571+00:00",
       "latest_time_column": "occurred_at",
-      "age_hours": 0.7,
+      "age_hours": 0.47,
       "expired_rows": null,
       "available_identity_columns": [],
       "recent": [
@@ -290,35 +290,35 @@
           "event_name": "whatsapp_cta_click",
           "stage": "activation",
           "channel": "whatsapp",
-          "occurred_at": "2026-04-30T17:45:01.214+00:00",
+          "occurred_at": "2026-04-30T18:50:28.571+00:00",
           "row_count": null
         },
         {
           "event_name": "waflow_submit",
           "stage": "activation",
           "channel": "waflow",
-          "occurred_at": "2026-04-30T17:44:58.923+00:00",
+          "occurred_at": "2026-04-30T18:50:28.338+00:00",
           "row_count": null
         },
         {
           "event_name": "whatsapp_cta_click",
           "stage": "activation",
           "channel": "whatsapp",
-          "occurred_at": "2026-04-30T16:55:44.106+00:00",
+          "occurred_at": "2026-04-30T18:48:18.808+00:00",
           "row_count": null
         },
         {
           "event_name": "waflow_submit",
           "stage": "activation",
           "channel": "waflow",
-          "occurred_at": "2026-04-30T16:55:41.87+00:00",
+          "occurred_at": "2026-04-30T18:48:16.698+00:00",
           "row_count": null
         },
         {
           "event_name": "whatsapp_cta_click",
           "stage": "activation",
           "channel": "whatsapp",
-          "occurred_at": "2026-04-30T16:32:00.13+00:00",
+          "occurred_at": "2026-04-30T18:38:12.741+00:00",
           "row_count": null
         }
       ]
@@ -327,42 +327,42 @@
       "table": "meta_conversion_events",
       "provider": "tracking",
       "status": "PASS",
-      "row_count": 16,
+      "row_count": 22,
       "freshness_sla_hours": 168,
-      "latest_at": "2026-04-30T17:44:58+00:00",
+      "latest_at": "2026-04-30T19:15:49+00:00",
       "latest_time_column": "event_time",
-      "age_hours": 0.7,
+      "age_hours": 0.05,
       "expired_rows": null,
       "available_identity_columns": [],
       "recent": [
         {
-          "status": "skipped",
-          "event_name": "Lead",
-          "event_time": "2026-04-30T17:44:58+00:00",
+          "status": "failed",
+          "event_name": "ConversationContinued",
+          "event_time": "2026-04-30T19:15:49+00:00",
+          "row_count": null
+        },
+        {
+          "status": "failed",
+          "event_name": "ConversationContinued",
+          "event_time": "2026-04-30T19:01:29+00:00",
           "row_count": null
         },
         {
           "status": "skipped",
           "event_name": "Lead",
-          "event_time": "2026-04-30T16:55:41+00:00",
+          "event_time": "2026-04-30T18:50:28+00:00",
           "row_count": null
         },
         {
           "status": "skipped",
           "event_name": "Lead",
-          "event_time": "2026-04-30T16:31:55+00:00",
+          "event_time": "2026-04-30T18:48:16+00:00",
           "row_count": null
         },
         {
           "status": "skipped",
           "event_name": "Lead",
-          "event_time": "2026-04-30T15:10:11+00:00",
-          "row_count": null
-        },
-        {
-          "status": "skipped",
-          "event_name": "Lead",
-          "event_time": "2026-04-30T13:45:09+00:00",
+          "event_time": "2026-04-30T18:38:10+00:00",
           "row_count": null
         }
       ]
@@ -1075,12 +1075,12 @@
         {
           "table": "funnel_events",
           "status": "PASS",
-          "row_count": 24
+          "row_count": 32
         },
         {
           "table": "meta_conversion_events",
           "status": "PASS",
-          "row_count": 16
+          "row_count": 22
         }
       ],
       "owner_issues": [
