@@ -1,55 +1,55 @@
 {
-  "generated_at": "2026-04-30T16:52:59.235Z",
+  "generated_at": "2026-04-30T18:26:57.826Z",
   "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
   "status": "PASS",
-  "max_matrix_status": "BLOCKED",
+  "max_matrix_status": "WATCH",
   "tables": [
     {
       "table": "growth_gsc_cache",
       "provider": "gsc",
       "status": "PASS",
-      "row_count": 6,
+      "row_count": 10,
       "freshness_sla_hours": 24,
-      "latest_at": "2026-04-30T14:37:57.635+00:00",
+      "latest_at": "2026-04-30T18:22:24.741+00:00",
       "latest_time_column": "fetched_at",
-      "age_hours": 2.25,
-      "expired_rows": 1,
+      "age_hours": 0.07,
+      "expired_rows": 0,
       "available_identity_columns": [],
       "recent": [
         {
-          "cache_key": "2026-04-02|2026-04-29|searchAppearance|*|es|1000",
-          "cache_tag": "growth:gsc:website:894545b7-73ca-4dae-b76a-da5b6a3f8441:locale:es",
-          "fetched_at": "2026-04-30T14:37:57.635+00:00",
-          "expires_at": "2026-05-01T14:37:57.804066+00:00",
-          "row_count": 2
+          "cache_key": "profile|gsc_brand_nonbrand_v1|nonbrand_query_page|2026-04-02|2026-04-29|query,page|web|query%3AexcludingRegex%3Abukeer%7Ccolombia%5Cs*tours%3F%7Ccolombiatours|nonbrand|es|25000",
+          "cache_tag": "growth:gsc:website:894545b7-73ca-4dae-b76a-da5b6a3f8441:locale:es:profile:gsc_brand_nonbrand_v1",
+          "fetched_at": "2026-04-30T18:22:24.741+00:00",
+          "expires_at": "2026-05-01T18:22:25.808555+00:00",
+          "row_count": 14553
         },
         {
-          "cache_key": "2026-04-02|2026-04-29|date,page|*|es|25000",
-          "cache_tag": "growth:gsc:website:894545b7-73ca-4dae-b76a-da5b6a3f8441:locale:es",
-          "fetched_at": "2026-04-30T14:37:55.852+00:00",
-          "expires_at": "2026-05-01T14:37:56.901145+00:00",
-          "row_count": 12022
+          "cache_key": "profile|gsc_brand_nonbrand_v1|brand_query_page|2026-04-02|2026-04-29|query,page|web|query%3AincludingRegex%3Abukeer%7Ccolombia%5Cs*tours%3F%7Ccolombiatours|brand|es|25000",
+          "cache_tag": "growth:gsc:website:894545b7-73ca-4dae-b76a-da5b6a3f8441:locale:es:profile:gsc_brand_nonbrand_v1",
+          "fetched_at": "2026-04-30T18:22:23.077+00:00",
+          "expires_at": "2026-05-01T18:22:23.573112+00:00",
+          "row_count": 236
         },
         {
-          "cache_key": "2026-04-02|2026-04-29|page,device|*|es|25000",
-          "cache_tag": "growth:gsc:website:894545b7-73ca-4dae-b76a-da5b6a3f8441:locale:es",
-          "fetched_at": "2026-04-30T14:37:54.431+00:00",
-          "expires_at": "2026-05-01T14:37:54.926521+00:00",
-          "row_count": 1765
+          "cache_key": "profile|gsc_locale_path_v1|locale_path|2026-04-02|2026-04-29|page,query,country|web|page%3AincludingRegex%3A%5C%2F(en%7Cmx)(%5C%2F%7C%24)|*|es|25000",
+          "cache_tag": "growth:gsc:website:894545b7-73ca-4dae-b76a-da5b6a3f8441:locale:es:profile:gsc_locale_path_v1",
+          "fetched_at": "2026-04-30T18:22:22.288+00:00",
+          "expires_at": "2026-05-01T18:22:22.518683+00:00",
+          "row_count": 208
         },
         {
-          "cache_key": "2026-04-02|2026-04-29|page,country|*|es|25000",
-          "cache_tag": "growth:gsc:website:894545b7-73ca-4dae-b76a-da5b6a3f8441:locale:es",
-          "fetched_at": "2026-04-30T14:37:52.805+00:00",
-          "expires_at": "2026-05-01T14:37:53.64907+00:00",
-          "row_count": 5186
+          "cache_key": "profile|gsc_daily_complete_image_v1|daily_complete_image|2026-04-29|2026-04-29|date,page,query,country,device|image|*|*|es|25000",
+          "cache_tag": "growth:gsc:website:894545b7-73ca-4dae-b76a-da5b6a3f8441:locale:es:profile:gsc_daily_complete_image_v1",
+          "fetched_at": "2026-04-30T18:22:21.601+00:00",
+          "expires_at": "2026-05-01T18:22:21.816483+00:00",
+          "row_count": 0
         },
         {
-          "cache_key": "2026-04-02|2026-04-29|query,page|*|es|25000",
-          "cache_tag": "growth:gsc:website:894545b7-73ca-4dae-b76a-da5b6a3f8441:locale:es",
-          "fetched_at": "2026-04-30T14:37:50.251+00:00",
-          "expires_at": "2026-05-01T14:37:51.782366+00:00",
-          "row_count": 14789
+          "cache_key": "profile|gsc_daily_complete_web_v1|daily_complete_web|2026-04-29|2026-04-29|date,page,query,country,device|web|*|*|es|25000",
+          "cache_tag": "growth:gsc:website:894545b7-73ca-4dae-b76a-da5b6a3f8441:locale:es:profile:gsc_daily_complete_web_v1",
+          "fetched_at": "2026-04-30T18:22:21.024+00:00",
+          "expires_at": "2026-05-01T18:22:21.250428+00:00",
+          "row_count": 0
         }
       ]
     },
@@ -57,41 +57,48 @@
       "table": "growth_ga4_cache",
       "provider": "ga4",
       "status": "PASS",
-      "row_count": 4,
+      "row_count": 9,
       "freshness_sla_hours": 6,
-      "latest_at": "2026-04-30T14:38:06.201+00:00",
+      "latest_at": "2026-04-30T18:22:33.172+00:00",
       "latest_time_column": "fetched_at",
-      "age_hours": 2.24,
+      "age_hours": 0.07,
       "expired_rows": 0,
       "available_identity_columns": [],
       "recent": [
         {
-          "cache_key": "2026-04-02|2026-04-29|sessions,totalUsers,conversions|sessionCampaignName,sessionSource,sessionMedium|es|10000|*",
+          "cache_key": "2026-04-02|2026-04-29|eventCount,totalUsers|eventName,pagePath|es|1|{\"filter\":{\"fieldName\":\"eventName\",\"inListFilter\":{\"values\":[\"file_download\",\"click\",\"scroll\"],\"caseSensitive\":false}}}",
           "cache_tag": "growth:ga4:website:894545b7-73ca-4dae-b76a-da5b6a3f8441:locale:es",
-          "fetched_at": "2026-04-30T14:38:06.201+00:00",
-          "expires_at": "2026-04-30T20:38:06.402032+00:00",
-          "row_count": 65
+          "fetched_at": "2026-04-30T18:22:33.172+00:00",
+          "expires_at": "2026-05-01T00:22:33.386468+00:00",
+          "row_count": 1
         },
         {
-          "cache_key": "2026-04-02|2026-04-29|eventCount,conversions|eventName,pagePath|es|10000|*",
+          "cache_key": "2026-04-02|2026-04-29|eventCount,totalUsers|eventName,pagePath|es|1|{\"filter\":{\"fieldName\":\"eventName\",\"inListFilter\":{\"values\":[\"view_search_results\",\"search\"],\"caseSensitive\":false}}}",
           "cache_tag": "growth:ga4:website:894545b7-73ca-4dae-b76a-da5b6a3f8441:locale:es",
-          "fetched_at": "2026-04-30T14:38:03.897+00:00",
-          "expires_at": "2026-04-30T20:38:04.805498+00:00",
-          "row_count": 6827
+          "fetched_at": "2026-04-30T18:22:32.367+00:00",
+          "expires_at": "2026-05-01T00:22:32.587277+00:00",
+          "row_count": 1
         },
         {
-          "cache_key": "2026-04-02|2026-04-29|sessions,totalUsers,screenPageViews,engagementRate,conversions|pagePath,sessionSourceMedium|es|10000|*",
+          "cache_key": "2026-04-02|2026-04-29|sessions,totalUsers,engagementRate,keyEvents|hostname,landingPagePlusQueryString,sessionDefaultChannelGroup|es|1|*",
           "cache_tag": "growth:ga4:website:894545b7-73ca-4dae-b76a-da5b6a3f8441:locale:es",
-          "fetched_at": "2026-04-30T14:38:02.426+00:00",
-          "expires_at": "2026-04-30T20:38:02.889666+00:00",
-          "row_count": 1934
+          "fetched_at": "2026-04-30T18:22:31.41+00:00",
+          "expires_at": "2026-05-01T00:22:31.633024+00:00",
+          "row_count": 1
         },
         {
-          "cache_key": "2026-04-02|2026-04-29|sessions,totalUsers,screenPageViews,engagementRate,conversions|landingPagePlusQueryString,sessionDefaultChannelGroup|es|10000|*",
+          "cache_key": "2026-04-02|2026-04-29|sessions,totalUsers,engagementRate,bounceRate,averageSessionDuration,keyEvents|deviceCategory,landingPagePlusQueryString|es|1|*",
           "cache_tag": "growth:ga4:website:894545b7-73ca-4dae-b76a-da5b6a3f8441:locale:es",
-          "fetched_at": "2026-04-30T14:38:00.601+00:00",
-          "expires_at": "2026-04-30T20:38:01.481857+00:00",
-          "row_count": 5114
+          "fetched_at": "2026-04-30T18:22:30.632+00:00",
+          "expires_at": "2026-05-01T00:22:30.850368+00:00",
+          "row_count": 1
+        },
+        {
+          "cache_key": "2026-04-02|2026-04-29|sessions,totalUsers,screenPageViews,engagementRate,bounceRate,averageSessionDuration|landingPagePlusQueryString,sessionDefaultChannelGroup|es|1|*",
+          "cache_tag": "growth:ga4:website:894545b7-73ca-4dae-b76a-da5b6a3f8441:locale:es",
+          "fetched_at": "2026-04-30T18:22:28.371+00:00",
+          "expires_at": "2026-05-01T00:22:28.59257+00:00",
+          "row_count": 1
         }
       ]
     },
@@ -99,53 +106,53 @@
       "table": "growth_dataforseo_cache",
       "provider": "dataforseo",
       "status": "PASS",
-      "row_count": 32,
+      "row_count": 42,
       "freshness_sla_hours": 168,
-      "latest_at": "2026-04-30T15:49:40.775+00:00",
+      "latest_at": "2026-04-30T18:23:09.232+00:00",
       "latest_time_column": "fetched_at",
-      "age_hours": 1.05,
+      "age_hours": 0.06,
       "expired_rows": 0,
       "available_identity_columns": [],
       "recent": [
         {
-          "cache_key": "epic310-onpage|04301808-1574-0216-0000-1e0a9d846a5f|pages-all",
-          "cache_tag": "growth:dataforseo:website:894545b7-73ca-4dae-b76a-da5b6a3f8441:onpage",
-          "endpoint": "/v3/on_page/pages",
-          "fetched_at": "2026-04-30T15:49:40.775+00:00",
-          "expires_at": "2026-05-07T15:49:40.775+00:00",
-          "row_count": 957
-        },
-        {
-          "cache_key": "epic310-onpage|04301808-1574-0216-0000-1e0a9d846a5f|summary-latest",
-          "cache_tag": "growth:dataforseo:website:894545b7-73ca-4dae-b76a-da5b6a3f8441:onpage",
-          "endpoint": "/v3/on_page/summary",
-          "fetched_at": "2026-04-30T15:49:36.805+00:00",
-          "expires_at": "2026-05-07T15:49:36.808+00:00",
+          "cache_key": "epic310-max-matrix-smoke-20260430|dfs_domain_competitive_baseline_v1|domain-whois-colombiatours.travel|58793b1e284c133b",
+          "cache_tag": "growth:dataforseo:website:894545b7-73ca-4dae-b76a-da5b6a3f8441:domain_analytics",
+          "endpoint": "/v3/domain_analytics/whois/overview/live",
+          "fetched_at": "2026-04-30T18:23:09.232+00:00",
+          "expires_at": "2026-05-30T18:23:09.232+00:00",
           "row_count": 1
         },
         {
-          "cache_key": "epic310-onpage|04301808-1574-0216-0000-1e0a9d846a5f|task-post-response",
-          "cache_tag": "growth:dataforseo:website:894545b7-73ca-4dae-b76a-da5b6a3f8441:onpage",
-          "endpoint": "/v3/on_page/task_post",
-          "fetched_at": "2026-04-30T15:08:52.597+00:00",
-          "expires_at": "2026-05-07T15:08:52.601+00:00",
+          "cache_key": "epic310-max-matrix-smoke-20260430|dfs_content_brand_sentiment_v1|content-analysis-brand-summary|6a26975aace32a10",
+          "cache_tag": "growth:dataforseo:website:894545b7-73ca-4dae-b76a-da5b6a3f8441:content_analysis",
+          "endpoint": "/v3/content_analysis/summary/live",
+          "fetched_at": "2026-04-30T18:22:57.79+00:00",
+          "expires_at": "2026-05-30T18:22:57.79+00:00",
           "row_count": 1
         },
         {
-          "cache_key": "epic310-onpage-instant|epic310-residual-instant-post-p1-20260430|residual",
-          "cache_tag": "growth:dataforseo:website:894545b7-73ca-4dae-b76a-da5b6a3f8441:onpage",
-          "endpoint": "/v3/on_page/instant_pages",
-          "fetched_at": "2026-04-30T13:55:59.11+00:00",
-          "expires_at": "2026-05-07T13:55:59.11+00:00",
-          "row_count": 22
+          "cache_key": "epic310-max-matrix-smoke-20260430|dfs_business_local_v1|business-my-business-info-1|6dc3fa477f1b6fec",
+          "cache_tag": "growth:dataforseo:website:894545b7-73ca-4dae-b76a-da5b6a3f8441:business_data",
+          "endpoint": "/v3/business_data/google/my_business_info/live",
+          "fetched_at": "2026-04-30T18:22:53.319+00:00",
+          "expires_at": "2026-05-30T18:22:53.319+00:00",
+          "row_count": 1
         },
         {
-          "cache_key": "epic310-onpage|04300334-1574-0216-0000-c57a3723c41d|pages-all",
-          "cache_tag": "growth:dataforseo:website:894545b7-73ca-4dae-b76a-da5b6a3f8441:onpage",
-          "endpoint": "/v3/on_page/pages",
-          "fetched_at": "2026-04-30T13:32:08.988+00:00",
-          "expires_at": "2026-05-07T13:32:08.989+00:00",
-          "row_count": 952
+          "cache_key": "epic310-max-matrix-smoke-20260430|dfs_backlinks_competitor_gap_v1|backlinks-competitor-summary-impulse.travel|2bc64d6303e7537d",
+          "cache_tag": "growth:dataforseo:website:894545b7-73ca-4dae-b76a-da5b6a3f8441:backlinks",
+          "endpoint": "/v3/backlinks/summary/live",
+          "fetched_at": "2026-04-30T18:22:43.41+00:00",
+          "expires_at": "2026-05-30T18:22:43.41+00:00",
+          "row_count": 1
+        },
+        {
+          "cache_key": "epic310-max-matrix-smoke-20260430|dfs_backlinks_authority_v1|backlinks-summary-domain|c5abc3b435b69bf4",
+          "cache_tag": "growth:dataforseo:website:894545b7-73ca-4dae-b76a-da5b6a3f8441:backlinks",
+          "endpoint": "/v3/backlinks/summary/live",
+          "fetched_at": "2026-04-30T18:22:42.608+00:00",
+          "expires_at": "2026-05-30T18:22:42.608+00:00",
+          "row_count": 1
         }
       ]
     },
@@ -157,7 +164,7 @@
       "freshness_sla_hours": 168,
       "latest_at": "2026-04-30T15:50:47.628+00:00",
       "latest_time_column": "fetched_at",
-      "age_hours": 1.03,
+      "age_hours": 2.6,
       "expired_rows": null,
       "available_identity_columns": [
         "crawl_task_id",
@@ -229,7 +236,7 @@
       "freshness_sla_hours": 168,
       "latest_at": "2026-04-30",
       "latest_time_column": "audit_date",
-      "age_hours": 16.88,
+      "age_hours": 18.45,
       "expired_rows": null,
       "available_identity_columns": [
         "crawl_task_id"
@@ -271,11 +278,11 @@
       "table": "funnel_events",
       "provider": "tracking",
       "status": "PASS",
-      "row_count": 20,
+      "row_count": 24,
       "freshness_sla_hours": 168,
-      "latest_at": "2026-04-30T16:32:00.13+00:00",
+      "latest_at": "2026-04-30T17:45:01.214+00:00",
       "latest_time_column": "occurred_at",
-      "age_hours": 0.35,
+      "age_hours": 0.7,
       "expired_rows": null,
       "available_identity_columns": [],
       "recent": [
@@ -283,35 +290,35 @@
           "event_name": "whatsapp_cta_click",
           "stage": "activation",
           "channel": "whatsapp",
+          "occurred_at": "2026-04-30T17:45:01.214+00:00",
+          "row_count": null
+        },
+        {
+          "event_name": "waflow_submit",
+          "stage": "activation",
+          "channel": "waflow",
+          "occurred_at": "2026-04-30T17:44:58.923+00:00",
+          "row_count": null
+        },
+        {
+          "event_name": "whatsapp_cta_click",
+          "stage": "activation",
+          "channel": "whatsapp",
+          "occurred_at": "2026-04-30T16:55:44.106+00:00",
+          "row_count": null
+        },
+        {
+          "event_name": "waflow_submit",
+          "stage": "activation",
+          "channel": "waflow",
+          "occurred_at": "2026-04-30T16:55:41.87+00:00",
+          "row_count": null
+        },
+        {
+          "event_name": "whatsapp_cta_click",
+          "stage": "activation",
+          "channel": "whatsapp",
           "occurred_at": "2026-04-30T16:32:00.13+00:00",
-          "row_count": null
-        },
-        {
-          "event_name": "waflow_submit",
-          "stage": "activation",
-          "channel": "waflow",
-          "occurred_at": "2026-04-30T16:31:55.759+00:00",
-          "row_count": null
-        },
-        {
-          "event_name": "whatsapp_cta_click",
-          "stage": "activation",
-          "channel": "whatsapp",
-          "occurred_at": "2026-04-30T15:12:00+00:00",
-          "row_count": null
-        },
-        {
-          "event_name": "whatsapp_cta_click",
-          "stage": "activation",
-          "channel": "whatsapp",
-          "occurred_at": "2026-04-30T15:10:11.938+00:00",
-          "row_count": null
-        },
-        {
-          "event_name": "waflow_submit",
-          "stage": "activation",
-          "channel": "waflow",
-          "occurred_at": "2026-04-30T15:10:11.51+00:00",
           "row_count": null
         }
       ]
@@ -320,14 +327,26 @@
       "table": "meta_conversion_events",
       "provider": "tracking",
       "status": "PASS",
-      "row_count": 14,
+      "row_count": 16,
       "freshness_sla_hours": 168,
-      "latest_at": "2026-04-30T16:31:55+00:00",
+      "latest_at": "2026-04-30T17:44:58+00:00",
       "latest_time_column": "event_time",
-      "age_hours": 0.35,
+      "age_hours": 0.7,
       "expired_rows": null,
       "available_identity_columns": [],
       "recent": [
+        {
+          "status": "skipped",
+          "event_name": "Lead",
+          "event_time": "2026-04-30T17:44:58+00:00",
+          "row_count": null
+        },
+        {
+          "status": "skipped",
+          "event_name": "Lead",
+          "event_time": "2026-04-30T16:55:41+00:00",
+          "row_count": null
+        },
         {
           "status": "skipped",
           "event_name": "Lead",
@@ -344,18 +363,6 @@
           "status": "skipped",
           "event_name": "Lead",
           "event_time": "2026-04-30T13:45:09+00:00",
-          "row_count": null
-        },
-        {
-          "status": "skipped",
-          "event_name": "Lead",
-          "event_time": "2026-04-30T04:16:13+00:00",
-          "row_count": null
-        },
-        {
-          "status": "skipped",
-          "event_name": "Lead",
-          "event_time": "2026-04-29T19:25:24+00:00",
           "row_count": null
         }
       ]
@@ -454,17 +461,15 @@
       "family": "serp",
       "priority": "P1",
       "cadence": "monthly",
-      "implementation_status": "planned",
-      "status": "BLOCKED",
+      "implementation_status": "partial",
+      "status": "WATCH",
       "cache_status": "PASS",
       "fact_statuses": [],
       "owner_issues": [
         "#381",
         "#335"
       ],
-      "blockers": [
-        "Profile is planned."
-      ],
+      "blockers": [],
       "watches": [
         "Approval gate: profile_approved_locations_required."
       ]
@@ -539,17 +544,15 @@
       "family": "labs",
       "priority": "P1",
       "cadence": "monthly",
-      "implementation_status": "planned",
-      "status": "BLOCKED",
+      "implementation_status": "partial",
+      "status": "WATCH",
       "cache_status": "PASS",
       "fact_statuses": [],
       "owner_issues": [
         "#380",
         "#334"
       ],
-      "blockers": [
-        "Profile is planned."
-      ],
+      "blockers": [],
       "watches": [
         "Approval gate: profile_approved_competitors_required."
       ]
@@ -560,17 +563,15 @@
       "family": "backlinks",
       "priority": "P1",
       "cadence": "monthly",
-      "implementation_status": "planned",
-      "status": "BLOCKED",
+      "implementation_status": "partial",
+      "status": "WATCH",
       "cache_status": "PASS",
       "fact_statuses": [],
       "owner_issues": [
         "#382",
         "#334"
       ],
-      "blockers": [
-        "Profile is planned."
-      ],
+      "blockers": [],
       "watches": [
         "Approval gate: profile_approved_competitors_required."
       ]
@@ -581,17 +582,15 @@
       "family": "backlinks",
       "priority": "P1",
       "cadence": "monthly",
-      "implementation_status": "planned",
-      "status": "BLOCKED",
+      "implementation_status": "partial",
+      "status": "WATCH",
       "cache_status": "PASS",
       "fact_statuses": [],
       "owner_issues": [
         "#382",
         "#334"
       ],
-      "blockers": [
-        "Profile is planned."
-      ],
+      "blockers": [],
       "watches": [
         "Approval gate: profile_approved_competitors_required."
       ]
@@ -602,17 +601,15 @@
       "family": "business_data",
       "priority": "P1",
       "cadence": "monthly",
-      "implementation_status": "planned",
-      "status": "BLOCKED",
+      "implementation_status": "partial",
+      "status": "WATCH",
       "cache_status": "PASS",
       "fact_statuses": [],
       "owner_issues": [
         "#383",
         "#335"
       ],
-      "blockers": [
-        "Profile is planned."
-      ],
+      "blockers": [],
       "watches": [
         "Approval gate: profile_approved_locations_required."
       ]
@@ -623,17 +620,15 @@
       "family": "reviews",
       "priority": "P2",
       "cadence": "monthly",
-      "implementation_status": "planned",
-      "status": "BLOCKED",
+      "implementation_status": "partial",
+      "status": "WATCH",
       "cache_status": "PASS",
       "fact_statuses": [],
       "owner_issues": [
         "#383",
         "#335"
       ],
-      "blockers": [
-        "Profile is planned."
-      ],
+      "blockers": [],
       "watches": [
         "Approval gate: profile_approved_locations_required."
       ]
@@ -665,17 +660,15 @@
       "family": "content_analysis",
       "priority": "P2",
       "cadence": "monthly",
-      "implementation_status": "planned",
-      "status": "BLOCKED",
+      "implementation_status": "partial",
+      "status": "WATCH",
       "cache_status": "PASS",
       "fact_statuses": [],
       "owner_issues": [
         "#384",
         "#321"
       ],
-      "blockers": [
-        "Profile is planned."
-      ],
+      "blockers": [],
       "watches": [
         "Approval gate: profile_approved_topics_required."
       ]
@@ -686,17 +679,15 @@
       "family": "domain_analytics",
       "priority": "P2",
       "cadence": "quarterly",
-      "implementation_status": "planned",
-      "status": "BLOCKED",
+      "implementation_status": "partial",
+      "status": "WATCH",
       "cache_status": "PASS",
       "fact_statuses": [],
       "owner_issues": [
         "#384",
         "#334"
       ],
-      "blockers": [
-        "Profile is planned."
-      ],
+      "blockers": [],
       "watches": [
         "Approval gate: profile_approved_competitors_required."
       ]
@@ -743,17 +734,15 @@
       "family": "search_console",
       "priority": "P0",
       "cadence": "daily",
-      "implementation_status": "planned",
-      "status": "BLOCKED",
+      "implementation_status": "partial",
+      "status": "WATCH",
       "cache_status": "PASS",
       "fact_statuses": [],
       "owner_issues": [
         "#378",
         "#321"
       ],
-      "blockers": [
-        "Profile is P0 but only planned."
-      ],
+      "blockers": [],
       "watches": []
     },
     {
@@ -762,17 +751,15 @@
       "family": "search_console",
       "priority": "P1",
       "cadence": "weekly",
-      "implementation_status": "planned",
-      "status": "BLOCKED",
+      "implementation_status": "partial",
+      "status": "WATCH",
       "cache_status": "PASS",
       "fact_statuses": [],
       "owner_issues": [
         "#378",
         "#314"
       ],
-      "blockers": [
-        "Profile is planned."
-      ],
+      "blockers": [],
       "watches": []
     },
     {
@@ -870,8 +857,8 @@
       "family": "search_console",
       "priority": "P1",
       "cadence": "weekly",
-      "implementation_status": "planned",
-      "status": "BLOCKED",
+      "implementation_status": "partial",
+      "status": "WATCH",
       "cache_status": "PASS",
       "fact_statuses": [],
       "owner_issues": [
@@ -880,9 +867,7 @@
         "#315",
         "#316"
       ],
-      "blockers": [
-        "Profile is planned."
-      ],
+      "blockers": [],
       "watches": []
     },
     {
@@ -891,17 +876,15 @@
       "family": "search_console",
       "priority": "P1",
       "cadence": "weekly",
-      "implementation_status": "planned",
-      "status": "BLOCKED",
+      "implementation_status": "partial",
+      "status": "WATCH",
       "cache_status": "PASS",
       "fact_statuses": [],
       "owner_issues": [
         "#378",
         "#321"
       ],
-      "blockers": [
-        "Profile is planned."
-      ],
+      "blockers": [],
       "watches": []
     },
     {
@@ -910,17 +893,15 @@
       "family": "analytics",
       "priority": "P0",
       "cadence": "daily",
-      "implementation_status": "planned",
-      "status": "BLOCKED",
+      "implementation_status": "partial",
+      "status": "WATCH",
       "cache_status": "PASS",
       "fact_statuses": [],
       "owner_issues": [
         "#379",
         "#321"
       ],
-      "blockers": [
-        "Profile is P0 but only planned."
-      ],
+      "blockers": [],
       "watches": []
     },
     {
@@ -1001,17 +982,15 @@
       "family": "analytics",
       "priority": "P1",
       "cadence": "weekly",
-      "implementation_status": "planned",
-      "status": "BLOCKED",
+      "implementation_status": "partial",
+      "status": "WATCH",
       "cache_status": "PASS",
       "fact_statuses": [],
       "owner_issues": [
         "#379",
         "#321"
       ],
-      "blockers": [
-        "Profile is planned."
-      ],
+      "blockers": [],
       "watches": []
     },
     {
@@ -1020,17 +999,15 @@
       "family": "analytics",
       "priority": "P1",
       "cadence": "weekly",
-      "implementation_status": "planned",
-      "status": "BLOCKED",
+      "implementation_status": "partial",
+      "status": "WATCH",
       "cache_status": "PASS",
       "fact_statuses": [],
       "owner_issues": [
         "#379",
         "#321"
       ],
-      "blockers": [
-        "Profile is planned."
-      ],
+      "blockers": [],
       "watches": []
     },
     {
@@ -1039,8 +1016,8 @@
       "family": "analytics",
       "priority": "P1",
       "cadence": "weekly",
-      "implementation_status": "planned",
-      "status": "BLOCKED",
+      "implementation_status": "partial",
+      "status": "WATCH",
       "cache_status": "PASS",
       "fact_statuses": [],
       "owner_issues": [
@@ -1048,9 +1025,7 @@
         "#314",
         "#315"
       ],
-      "blockers": [
-        "Profile is planned."
-      ],
+      "blockers": [],
       "watches": []
     },
     {
@@ -1059,17 +1034,15 @@
       "family": "analytics",
       "priority": "P2",
       "cadence": "weekly",
-      "implementation_status": "planned",
-      "status": "BLOCKED",
+      "implementation_status": "partial",
+      "status": "WATCH",
       "cache_status": "PASS",
       "fact_statuses": [],
       "owner_issues": [
         "#379",
         "#314"
       ],
-      "blockers": [
-        "Profile is planned."
-      ],
+      "blockers": [],
       "watches": []
     },
     {
@@ -1078,17 +1051,15 @@
       "family": "analytics",
       "priority": "P2",
       "cadence": "monthly",
-      "implementation_status": "planned",
-      "status": "BLOCKED",
+      "implementation_status": "partial",
+      "status": "WATCH",
       "cache_status": "PASS",
       "fact_statuses": [],
       "owner_issues": [
         "#379",
         "#321"
       ],
-      "blockers": [
-        "Profile is planned."
-      ],
+      "blockers": [],
       "watches": []
     },
     {
@@ -1104,12 +1075,12 @@
         {
           "table": "funnel_events",
           "status": "PASS",
-          "row_count": 20
+          "row_count": 24
         },
         {
           "table": "meta_conversion_events",
           "status": "PASS",
-          "row_count": 14
+          "row_count": 16
         }
       ],
       "owner_issues": [
@@ -1144,17 +1115,15 @@
       "family": "joint",
       "priority": "P1",
       "cadence": "weekly",
-      "implementation_status": "planned",
-      "status": "BLOCKED",
+      "implementation_status": "partial",
+      "status": "WATCH",
       "cache_status": "n/a",
       "fact_statuses": [],
       "owner_issues": [
         "#385",
         "#321"
       ],
-      "blockers": [
-        "Profile is planned."
-      ],
+      "blockers": [],
       "watches": []
     },
     {
@@ -1163,17 +1132,15 @@
       "family": "joint",
       "priority": "P1",
       "cadence": "weekly",
-      "implementation_status": "planned",
-      "status": "BLOCKED",
+      "implementation_status": "partial",
+      "status": "WATCH",
       "cache_status": "n/a",
       "fact_statuses": [],
       "owner_issues": [
         "#385",
         "#321"
       ],
-      "blockers": [
-        "Profile is planned."
-      ],
+      "blockers": [],
       "watches": []
     },
     {
@@ -1238,8 +1205,8 @@
       "family": "joint",
       "priority": "P1",
       "cadence": "monthly",
-      "implementation_status": "planned",
-      "status": "BLOCKED",
+      "implementation_status": "partial",
+      "status": "WATCH",
       "cache_status": "n/a",
       "fact_statuses": [],
       "owner_issues": [
@@ -1247,9 +1214,7 @@
         "#334",
         "#314"
       ],
-      "blockers": [
-        "Profile is planned."
-      ],
+      "blockers": [],
       "watches": []
     },
     {
@@ -1258,8 +1223,8 @@
       "family": "joint",
       "priority": "P1",
       "cadence": "monthly",
-      "implementation_status": "planned",
-      "status": "BLOCKED",
+      "implementation_status": "partial",
+      "status": "WATCH",
       "cache_status": "n/a",
       "fact_statuses": [],
       "owner_issues": [
@@ -1267,9 +1232,7 @@
         "#384",
         "#321"
       ],
-      "blockers": [
-        "Profile is planned."
-      ],
+      "blockers": [],
       "watches": []
     }
   ]

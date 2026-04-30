@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-30T16:53:18.019Z",
+  "generated_at": "2026-04-30T18:27:15.937Z",
   "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
   "source": "scripts/seo/growth-provider-profile-registry.mjs",
   "registry": {
@@ -14,22 +14,22 @@
       "funnel_events": {
         "exists": true,
         "scoped_by_website_id": true,
-        "row_count": 20
+        "row_count": 24
       },
       "growth_dataforseo_cache": {
         "exists": true,
         "scoped_by_website_id": true,
-        "row_count": 32
+        "row_count": 42
       },
       "growth_ga4_cache": {
         "exists": true,
         "scoped_by_website_id": true,
-        "row_count": 4
+        "row_count": 9
       },
       "growth_gsc_cache": {
         "exists": true,
         "scoped_by_website_id": true,
-        "row_count": 6
+        "row_count": 10
       },
       "growth_inventory": {
         "exists": true,
@@ -39,7 +39,7 @@
       "meta_conversion_events": {
         "exists": true,
         "scoped_by_website_id": true,
-        "row_count": 14
+        "row_count": 16
       },
       "seo_ai_visibility_facts": {
         "exists": true,
@@ -250,12 +250,11 @@
       "extracted": true,
       "persisted/cache": true,
       "normalized/facts": true,
-      "growth_inventory_used": false,
+      "growth_inventory_used": true,
       "council_used": false,
       "status": "partial",
       "priority": "P0",
       "gaps": [
-        "No clear growth_inventory promotion/use evidence.",
         "No Council/session use evidence found for this priority profile."
       ],
       "evidence": {
@@ -359,6 +358,13 @@
             "matched": [
               "keyword_ideas"
             ]
+          },
+          {
+            "file": "scripts/seo/run-dataforseo-max-performance-profiles.mjs",
+            "matched": [
+              "dfs_labs_demand_cluster_v1",
+              "keyword_ideas"
+            ]
           }
         ],
         "raw_cache": [
@@ -423,13 +429,13 @@
             ]
           },
           {
-            "file": "artifacts/seo/2026-04-30-growth-cache-health/growth-cache-health-report.json",
+            "file": "artifacts/seo/2026-04-30-dataforseo-max-performance-profiles/dataforseo-max-performance-plan.json",
             "matched": [
               "growth_dataforseo_cache"
             ]
           },
           {
-            "file": "artifacts/seo/2026-04-30-growth-cache-health/growth-cache-health-report.md",
+            "file": "artifacts/seo/2026-04-30-growth-cache-health/growth-cache-health-report.json",
             "matched": [
               "growth_dataforseo_cache"
             ]
@@ -517,7 +523,7 @@
               "table": "growth_dataforseo_cache",
               "exists": true,
               "scoped_by_website_id": true,
-              "row_count": 32
+              "row_count": 42
             }
           ],
           "normalized_facts": [
@@ -791,13 +797,13 @@
             ]
           },
           {
-            "file": "artifacts/seo/2026-04-30-growth-cache-health/growth-cache-health-report.json",
+            "file": "artifacts/seo/2026-04-30-dataforseo-max-performance-profiles/dataforseo-max-performance-plan.json",
             "matched": [
               "growth_dataforseo_cache"
             ]
           },
           {
-            "file": "artifacts/seo/2026-04-30-growth-cache-health/growth-cache-health-report.md",
+            "file": "artifacts/seo/2026-04-30-growth-cache-health/growth-cache-health-report.json",
             "matched": [
               "growth_dataforseo_cache"
             ]
@@ -963,7 +969,7 @@
               "table": "growth_dataforseo_cache",
               "exists": true,
               "scoped_by_website_id": true,
-              "row_count": 32
+              "row_count": 42
             }
           ],
           "normalized_facts": [
@@ -997,7 +1003,7 @@
       "extracted": true,
       "persisted/cache": true,
       "normalized/facts": true,
-      "growth_inventory_used": false,
+      "growth_inventory_used": true,
       "council_used": false,
       "status": "partial",
       "priority": "P0",
@@ -1098,7 +1104,8 @@
           {
             "file": "scripts/seo/populate-growth-google-cache.ts",
             "matched": [
-              "declared"
+              "declared",
+              "ga4_campaign_source_medium_28d_v1"
             ]
           }
         ],
@@ -1265,7 +1272,7 @@
               "table": "growth_ga4_cache",
               "exists": true,
               "scoped_by_website_id": true,
-              "row_count": 4
+              "row_count": 9
             }
           ],
           "normalized_facts": [
@@ -1293,7 +1300,7 @@
       "extracted": true,
       "persisted/cache": true,
       "normalized/facts": true,
-      "growth_inventory_used": false,
+      "growth_inventory_used": true,
       "council_used": false,
       "status": "partial",
       "priority": "P0",
@@ -1389,7 +1396,8 @@
           {
             "file": "scripts/seo/populate-growth-google-cache.ts",
             "matched": [
-              "declared"
+              "declared",
+              "ga4_council_landing_channel_28d_v1"
             ]
           }
         ],
@@ -1556,7 +1564,7 @@
               "table": "growth_ga4_cache",
               "exists": true,
               "scoped_by_website_id": true,
-              "row_count": 4
+              "row_count": 9
             }
           ],
           "normalized_facts": [
@@ -1581,15 +1589,14 @@
       "profile": "ga4_daily_landing_channel_v1",
       "available": true,
       "documented": true,
-      "extracted": false,
+      "extracted": true,
       "persisted/cache": true,
       "normalized/facts": true,
-      "growth_inventory_used": false,
+      "growth_inventory_used": true,
       "council_used": false,
       "status": "partial",
       "priority": "P0",
       "gaps": [
-        "No extraction runner/client evidence found.",
         "No Council/session use evidence found for this priority profile."
       ],
       "evidence": {
@@ -1677,7 +1684,15 @@
             ]
           }
         ],
-        "extraction": [],
+        "extraction": [
+          {
+            "file": "scripts/seo/populate-growth-google-cache.ts",
+            "matched": [
+              "declared",
+              "ga4_daily_landing_channel_v1"
+            ]
+          }
+        ],
         "raw_cache": [
           {
             "file": "artifacts/seo/2026-04-29-growth-cache-health/growth-cache-health-report.json",
@@ -1752,7 +1767,14 @@
             ]
           }
         ],
-        "normalized_facts": [],
+        "normalized_facts": [
+          {
+            "file": "scripts/seo/normalize-growth-ga4-cache.mjs",
+            "matched": [
+              "declared"
+            ]
+          }
+        ],
         "growth_inventory": [
           {
             "file": "docs/growth-sessions/2026-04-28-1213-epic310-multiagent-certification.md",
@@ -1834,7 +1856,7 @@
               "table": "growth_ga4_cache",
               "exists": true,
               "scoped_by_website_id": true,
-              "row_count": 4
+              "row_count": 9
             }
           ],
           "normalized_facts": [
@@ -1959,7 +1981,8 @@
           {
             "file": "scripts/seo/populate-growth-google-cache.ts",
             "matched": [
-              "declared"
+              "declared",
+              "ga4_event_page_28d_v1"
             ]
           }
         ],
@@ -2127,7 +2150,7 @@
               "table": "growth_ga4_cache",
               "exists": true,
               "scoped_by_website_id": true,
-              "row_count": 4
+              "row_count": 9
             }
           ],
           "normalized_facts": [
@@ -2155,7 +2178,7 @@
       "extracted": true,
       "persisted/cache": true,
       "normalized/facts": true,
-      "growth_inventory_used": false,
+      "growth_inventory_used": true,
       "council_used": false,
       "status": "partial",
       "priority": "P0",
@@ -2249,7 +2272,8 @@
           {
             "file": "scripts/seo/populate-growth-google-cache.ts",
             "matched": [
-              "declared"
+              "declared",
+              "ga4_page_source_medium_28d_v1"
             ]
           }
         ],
@@ -2416,7 +2440,7 @@
               "table": "growth_ga4_cache",
               "exists": true,
               "scoped_by_website_id": true,
-              "row_count": 4
+              "row_count": 9
             }
           ],
           "normalized_facts": [
@@ -2705,7 +2729,7 @@
               "table": "growth_gsc_cache",
               "exists": true,
               "scoped_by_website_id": true,
-              "row_count": 6
+              "row_count": 10
             }
           ],
           "normalized_facts": [
@@ -3009,7 +3033,7 @@
               "table": "growth_gsc_cache",
               "exists": true,
               "scoped_by_website_id": true,
-              "row_count": 6
+              "row_count": 10
             }
           ],
           "normalized_facts": [
@@ -3034,15 +3058,14 @@
       "profile": "gsc_daily_complete_web_v1",
       "available": true,
       "documented": true,
-      "extracted": false,
+      "extracted": true,
       "persisted/cache": true,
       "normalized/facts": true,
-      "growth_inventory_used": false,
+      "growth_inventory_used": true,
       "council_used": false,
       "status": "partial",
       "priority": "P0",
       "gaps": [
-        "No extraction runner/client evidence found.",
         "No Council/session use evidence found for this priority profile."
       ],
       "evidence": {
@@ -3135,7 +3158,15 @@
             ]
           }
         ],
-        "extraction": [],
+        "extraction": [
+          {
+            "file": "scripts/seo/populate-growth-google-cache.ts",
+            "matched": [
+              "declared",
+              "gsc_daily_complete_web_v1"
+            ]
+          }
+        ],
         "raw_cache": [
           {
             "file": "artifacts/seo/2026-04-29-growth-cache-health/growth-cache-health-report.json",
@@ -3210,7 +3241,14 @@
             ]
           }
         ],
-        "normalized_facts": [],
+        "normalized_facts": [
+          {
+            "file": "scripts/seo/normalize-growth-gsc-cache.mjs",
+            "matched": [
+              "declared"
+            ]
+          }
+        ],
         "growth_inventory": [
           {
             "file": "docs/growth-sessions/2026-04-28-1213-epic310-multiagent-certification.md",
@@ -3292,7 +3330,7 @@
               "table": "growth_gsc_cache",
               "exists": true,
               "scoped_by_website_id": true,
-              "row_count": 6
+              "row_count": 10
             }
           ],
           "normalized_facts": [
@@ -3317,16 +3355,14 @@
       "profile": "growth_paid_governance_v1",
       "available": true,
       "documented": true,
-      "extracted": false,
+      "extracted": true,
       "persisted/cache": false,
       "normalized/facts": true,
-      "growth_inventory_used": false,
+      "growth_inventory_used": true,
       "council_used": false,
       "status": "partial",
       "priority": "P0",
       "gaps": [
-        "No extraction runner/client evidence found.",
-        "No clear growth_inventory promotion/use evidence.",
         "No Council/session use evidence found for this priority profile."
       ],
       "evidence": {
@@ -3414,7 +3450,14 @@
             ]
           }
         ],
-        "extraction": [],
+        "extraction": [
+          {
+            "file": "scripts/seo/run-growth-joint-normalizers.mjs",
+            "matched": [
+              "growth_paid_governance_v1"
+            ]
+          }
+        ],
         "raw_cache": [],
         "normalized_facts": [
           {
@@ -3472,6 +3515,12 @@
             ]
           },
           {
+            "file": "scripts/seo/run-growth-joint-normalizers.mjs",
+            "matched": [
+              "growth_inventory"
+            ]
+          },
+          {
             "file": "scripts/seo/run-growth-max-matrix-orchestrator.mjs",
             "matched": [
               "growth_inventory"
@@ -3479,12 +3528,6 @@
           },
           {
             "file": "scripts/seo/triage-dataforseo-findings.mjs",
-            "matched": [
-              "growth_inventory"
-            ]
-          },
-          {
-            "file": "supabase/migrations/20260429192000_geo_ai_visibility_facts.sql",
             "matched": [
               "growth_inventory"
             ]
@@ -3589,16 +3632,14 @@
       "profile": "growth_post_fix_validation_v1",
       "available": true,
       "documented": true,
-      "extracted": false,
+      "extracted": true,
       "persisted/cache": false,
       "normalized/facts": true,
-      "growth_inventory_used": false,
+      "growth_inventory_used": true,
       "council_used": false,
       "status": "partial",
       "priority": "P0",
       "gaps": [
-        "No extraction runner/client evidence found.",
-        "No clear growth_inventory promotion/use evidence.",
         "No Council/session use evidence found for this priority profile."
       ],
       "evidence": {
@@ -3691,7 +3732,14 @@
             ]
           }
         ],
-        "extraction": [],
+        "extraction": [
+          {
+            "file": "scripts/seo/run-growth-joint-normalizers.mjs",
+            "matched": [
+              "growth_post_fix_validation_v1"
+            ]
+          }
+        ],
         "raw_cache": [],
         "normalized_facts": [
           {
@@ -3755,15 +3803,14 @@
             ]
           },
           {
-            "file": "scripts/seo/run-growth-max-matrix-orchestrator.mjs",
+            "file": "scripts/seo/run-growth-joint-normalizers.mjs",
             "matched": [
               "growth_inventory"
             ]
           },
           {
-            "file": "scripts/seo/triage-dataforseo-findings.mjs",
+            "file": "scripts/seo/run-growth-max-matrix-orchestrator.mjs",
             "matched": [
-              "declared",
               "growth_inventory"
             ]
           }
@@ -3867,16 +3914,14 @@
       "profile": "growth_search_to_activation_v1",
       "available": true,
       "documented": true,
-      "extracted": false,
+      "extracted": true,
       "persisted/cache": false,
       "normalized/facts": true,
-      "growth_inventory_used": false,
+      "growth_inventory_used": true,
       "council_used": false,
       "status": "partial",
       "priority": "P0",
       "gaps": [
-        "No extraction runner/client evidence found.",
-        "No clear growth_inventory promotion/use evidence.",
         "No Council/session use evidence found for this priority profile."
       ],
       "evidence": {
@@ -3963,7 +4008,14 @@
             ]
           }
         ],
-        "extraction": [],
+        "extraction": [
+          {
+            "file": "scripts/seo/run-growth-joint-normalizers.mjs",
+            "matched": [
+              "growth_search_to_activation_v1"
+            ]
+          }
+        ],
         "raw_cache": [],
         "normalized_facts": [
           {
@@ -4023,6 +4075,13 @@
             ]
           },
           {
+            "file": "scripts/seo/run-growth-joint-normalizers.mjs",
+            "matched": [
+              "declared",
+              "growth_inventory"
+            ]
+          },
+          {
             "file": "scripts/seo/run-growth-max-matrix-orchestrator.mjs",
             "matched": [
               "growth_inventory"
@@ -4030,12 +4089,6 @@
           },
           {
             "file": "scripts/seo/triage-dataforseo-findings.mjs",
-            "matched": [
-              "growth_inventory"
-            ]
-          },
-          {
-            "file": "supabase/migrations/20260429192000_geo_ai_visibility_facts.sql",
             "matched": [
               "growth_inventory"
             ]
@@ -4280,6 +4333,19 @@
               "funnel_events",
               "meta_conversion_events"
             ]
+          },
+          {
+            "file": "scripts/seo/reconcile-waflow-crm-funnel.mjs",
+            "matched": [
+              "funnel_events"
+            ]
+          },
+          {
+            "file": "scripts/seo/run-growth-joint-normalizers.mjs",
+            "matched": [
+              "funnel_events",
+              "meta_conversion_events"
+            ]
           }
         ],
         "raw_cache": [],
@@ -4329,6 +4395,19 @@
             ]
           },
           {
+            "file": "scripts/seo/reconcile-waflow-crm-funnel.mjs",
+            "matched": [
+              "funnel_events"
+            ]
+          },
+          {
+            "file": "scripts/seo/run-growth-joint-normalizers.mjs",
+            "matched": [
+              "funnel_events",
+              "meta_conversion_events"
+            ]
+          },
+          {
             "file": "supabase/migrations/20260428161000_itinerary_confirmed_funnel_event.sql",
             "matched": [
               "funnel_events"
@@ -4344,13 +4423,6 @@
             "file": "supabase/migrations/20260504110900_funnel_events.sql",
             "matched": [
               "funnel_events"
-            ]
-          },
-          {
-            "file": "supabase/migrations/20260504111000_funnel_events_backfill.sql",
-            "matched": [
-              "funnel_events",
-              "meta_conversion_events"
             ]
           }
         ],
@@ -4436,13 +4508,13 @@
               "table": "funnel_events",
               "exists": true,
               "scoped_by_website_id": true,
-              "row_count": 20
+              "row_count": 24
             },
             {
               "table": "meta_conversion_events",
               "exists": true,
               "scoped_by_website_id": true,
-              "row_count": 14
+              "row_count": 16
             }
           ],
           "growth_inventory": {
@@ -4567,7 +4639,7 @@
             "file": "scripts/seo/run-dataforseo-ai-visibility.mjs",
             "matched": [
               "declared",
-              "geo_ai_visibility_v1",
+              "dfs_ai_geo_visibility_v1",
               "ai visibility",
               "seo_ai_visibility_facts"
             ]
@@ -4647,13 +4719,13 @@
             ]
           },
           {
-            "file": "artifacts/seo/2026-04-30-growth-cache-health/growth-cache-health-report.json",
+            "file": "artifacts/seo/2026-04-30-dataforseo-max-performance-profiles/dataforseo-max-performance-plan.json",
             "matched": [
               "growth_dataforseo_cache"
             ]
           },
           {
-            "file": "artifacts/seo/2026-04-30-growth-cache-health/growth-cache-health-report.md",
+            "file": "artifacts/seo/2026-04-30-growth-cache-health/growth-cache-health-report.json",
             "matched": [
               "growth_dataforseo_cache"
             ]
@@ -4764,7 +4836,7 @@
               "table": "growth_dataforseo_cache",
               "exists": true,
               "scoped_by_website_id": true,
-              "row_count": 32
+              "row_count": 42
             }
           ],
           "normalized_facts": [
@@ -4795,16 +4867,14 @@
       "profile": "dfs_backlinks_authority_v1",
       "available": true,
       "documented": true,
-      "extracted": false,
+      "extracted": true,
       "persisted/cache": true,
       "normalized/facts": true,
-      "growth_inventory_used": false,
+      "growth_inventory_used": true,
       "council_used": false,
       "status": "partial",
       "priority": "P1",
       "gaps": [
-        "No extraction runner/client evidence found.",
-        "No clear growth_inventory promotion/use evidence.",
         "No Council/session use evidence found for this priority profile."
       ],
       "evidence": {
@@ -4892,7 +4962,16 @@
             ]
           }
         ],
-        "extraction": [],
+        "extraction": [
+          {
+            "file": "scripts/seo/run-dataforseo-max-performance-profiles.mjs",
+            "matched": [
+              "declared",
+              "dfs_backlinks_authority_v1",
+              "backlinks_authority"
+            ]
+          }
+        ],
         "raw_cache": [
           {
             "file": "artifacts/seo/2026-04-29-growth-cache-health/growth-cache-health-report.json",
@@ -4955,13 +5034,13 @@
             ]
           },
           {
-            "file": "artifacts/seo/2026-04-30-growth-cache-health/growth-cache-health-report.json",
+            "file": "artifacts/seo/2026-04-30-dataforseo-max-performance-profiles/dataforseo-max-performance-plan.json",
             "matched": [
               "growth_dataforseo_cache"
             ]
           },
           {
-            "file": "artifacts/seo/2026-04-30-growth-cache-health/growth-cache-health-report.md",
+            "file": "artifacts/seo/2026-04-30-growth-cache-health/growth-cache-health-report.json",
             "matched": [
               "growth_dataforseo_cache"
             ]
@@ -5049,7 +5128,7 @@
               "table": "growth_dataforseo_cache",
               "exists": true,
               "scoped_by_website_id": true,
-              "row_count": 32
+              "row_count": 42
             }
           ],
           "normalized_facts": [
@@ -5074,15 +5153,14 @@
       "profile": "dfs_backlinks_competitor_gap_v1",
       "available": true,
       "documented": true,
-      "extracted": false,
+      "extracted": true,
       "persisted/cache": true,
       "normalized/facts": true,
-      "growth_inventory_used": false,
+      "growth_inventory_used": true,
       "council_used": false,
       "status": "partial",
       "priority": "P1",
       "gaps": [
-        "No extraction runner/client evidence found.",
         "No Council/session use evidence found for this priority profile."
       ],
       "evidence": {
@@ -5170,7 +5248,15 @@
             ]
           }
         ],
-        "extraction": [],
+        "extraction": [
+          {
+            "file": "scripts/seo/run-dataforseo-max-performance-profiles.mjs",
+            "matched": [
+              "declared",
+              "dfs_backlinks_competitor_gap_v1"
+            ]
+          }
+        ],
         "raw_cache": [
           {
             "file": "artifacts/seo/2026-04-29-growth-cache-health/growth-cache-health-report.json",
@@ -5233,13 +5319,13 @@
             ]
           },
           {
-            "file": "artifacts/seo/2026-04-30-growth-cache-health/growth-cache-health-report.json",
+            "file": "artifacts/seo/2026-04-30-dataforseo-max-performance-profiles/dataforseo-max-performance-plan.json",
             "matched": [
               "growth_dataforseo_cache"
             ]
           },
           {
-            "file": "artifacts/seo/2026-04-30-growth-cache-health/growth-cache-health-report.md",
+            "file": "artifacts/seo/2026-04-30-growth-cache-health/growth-cache-health-report.json",
             "matched": [
               "growth_dataforseo_cache"
             ]
@@ -5327,7 +5413,7 @@
               "table": "growth_dataforseo_cache",
               "exists": true,
               "scoped_by_website_id": true,
-              "row_count": 32
+              "row_count": 42
             }
           ],
           "normalized_facts": [
@@ -5352,16 +5438,14 @@
       "profile": "dfs_business_local_v1",
       "available": true,
       "documented": true,
-      "extracted": false,
+      "extracted": true,
       "persisted/cache": true,
       "normalized/facts": true,
-      "growth_inventory_used": false,
+      "growth_inventory_used": true,
       "council_used": false,
       "status": "partial",
       "priority": "P1",
       "gaps": [
-        "No extraction runner/client evidence found.",
-        "No clear growth_inventory promotion/use evidence.",
         "No Council/session use evidence found for this priority profile."
       ],
       "evidence": {
@@ -5450,7 +5534,16 @@
             ]
           }
         ],
-        "extraction": [],
+        "extraction": [
+          {
+            "file": "scripts/seo/run-dataforseo-max-performance-profiles.mjs",
+            "matched": [
+              "declared",
+              "dfs_business_local_v1",
+              "business_local"
+            ]
+          }
+        ],
         "raw_cache": [
           {
             "file": "artifacts/seo/2026-04-29-growth-cache-health/growth-cache-health-report.json",
@@ -5513,13 +5606,13 @@
             ]
           },
           {
-            "file": "artifacts/seo/2026-04-30-growth-cache-health/growth-cache-health-report.json",
+            "file": "artifacts/seo/2026-04-30-dataforseo-max-performance-profiles/dataforseo-max-performance-plan.json",
             "matched": [
               "growth_dataforseo_cache"
             ]
           },
           {
-            "file": "artifacts/seo/2026-04-30-growth-cache-health/growth-cache-health-report.md",
+            "file": "artifacts/seo/2026-04-30-growth-cache-health/growth-cache-health-report.json",
             "matched": [
               "growth_dataforseo_cache"
             ]
@@ -5607,7 +5700,7 @@
               "table": "growth_dataforseo_cache",
               "exists": true,
               "scoped_by_website_id": true,
-              "row_count": 32
+              "row_count": 42
             }
           ],
           "normalized_facts": [
@@ -5789,13 +5882,13 @@
             ]
           },
           {
-            "file": "artifacts/seo/2026-04-30-growth-cache-health/growth-cache-health-report.json",
+            "file": "artifacts/seo/2026-04-30-dataforseo-max-performance-profiles/dataforseo-max-performance-plan.json",
             "matched": [
               "growth_dataforseo_cache"
             ]
           },
           {
-            "file": "artifacts/seo/2026-04-30-growth-cache-health/growth-cache-health-report.md",
+            "file": "artifacts/seo/2026-04-30-growth-cache-health/growth-cache-health-report.json",
             "matched": [
               "growth_dataforseo_cache"
             ]
@@ -5883,7 +5976,7 @@
               "table": "growth_dataforseo_cache",
               "exists": true,
               "scoped_by_website_id": true,
-              "row_count": 32
+              "row_count": 42
             }
           ],
           "normalized_facts": [
@@ -5908,15 +6001,14 @@
       "profile": "dfs_labs_competitor_visibility_v1",
       "available": true,
       "documented": true,
-      "extracted": false,
+      "extracted": true,
       "persisted/cache": true,
       "normalized/facts": true,
-      "growth_inventory_used": false,
+      "growth_inventory_used": true,
       "council_used": false,
       "status": "partial",
       "priority": "P1",
       "gaps": [
-        "No extraction runner/client evidence found.",
         "No Council/session use evidence found for this priority profile."
       ],
       "evidence": {
@@ -6004,7 +6096,15 @@
             ]
           }
         ],
-        "extraction": [],
+        "extraction": [
+          {
+            "file": "scripts/seo/run-dataforseo-max-performance-profiles.mjs",
+            "matched": [
+              "dfs_labs_competitor_visibility_v1",
+              "competitors_domain"
+            ]
+          }
+        ],
         "raw_cache": [
           {
             "file": "artifacts/seo/2026-04-29-growth-cache-health/growth-cache-health-report.json",
@@ -6067,13 +6167,13 @@
             ]
           },
           {
-            "file": "artifacts/seo/2026-04-30-growth-cache-health/growth-cache-health-report.json",
+            "file": "artifacts/seo/2026-04-30-dataforseo-max-performance-profiles/dataforseo-max-performance-plan.json",
             "matched": [
               "growth_dataforseo_cache"
             ]
           },
           {
-            "file": "artifacts/seo/2026-04-30-growth-cache-health/growth-cache-health-report.md",
+            "file": "artifacts/seo/2026-04-30-growth-cache-health/growth-cache-health-report.json",
             "matched": [
               "growth_dataforseo_cache"
             ]
@@ -6161,7 +6261,7 @@
               "table": "growth_dataforseo_cache",
               "exists": true,
               "scoped_by_website_id": true,
-              "row_count": 32
+              "row_count": 42
             }
           ],
           "normalized_facts": [
@@ -6186,15 +6286,14 @@
       "profile": "dfs_labs_gap_intersections_v1",
       "available": true,
       "documented": true,
-      "extracted": false,
+      "extracted": true,
       "persisted/cache": true,
       "normalized/facts": true,
-      "growth_inventory_used": false,
+      "growth_inventory_used": true,
       "council_used": false,
       "status": "partial",
       "priority": "P1",
       "gaps": [
-        "No extraction runner/client evidence found.",
         "No Council/session use evidence found for this priority profile."
       ],
       "evidence": {
@@ -6286,7 +6385,15 @@
             ]
           }
         ],
-        "extraction": [],
+        "extraction": [
+          {
+            "file": "scripts/seo/run-dataforseo-max-performance-profiles.mjs",
+            "matched": [
+              "declared",
+              "dfs_labs_gap_intersections_v1"
+            ]
+          }
+        ],
         "raw_cache": [
           {
             "file": "artifacts/seo/2026-04-29-growth-cache-health/growth-cache-health-report.json",
@@ -6349,13 +6456,13 @@
             ]
           },
           {
-            "file": "artifacts/seo/2026-04-30-growth-cache-health/growth-cache-health-report.json",
+            "file": "artifacts/seo/2026-04-30-dataforseo-max-performance-profiles/dataforseo-max-performance-plan.json",
             "matched": [
               "growth_dataforseo_cache"
             ]
           },
           {
-            "file": "artifacts/seo/2026-04-30-growth-cache-health/growth-cache-health-report.md",
+            "file": "artifacts/seo/2026-04-30-growth-cache-health/growth-cache-health-report.json",
             "matched": [
               "growth_dataforseo_cache"
             ]
@@ -6443,7 +6550,7 @@
               "table": "growth_dataforseo_cache",
               "exists": true,
               "scoped_by_website_id": true,
-              "row_count": 32
+              "row_count": 42
             }
           ],
           "normalized_facts": [
@@ -6639,13 +6746,13 @@
             ]
           },
           {
-            "file": "artifacts/seo/2026-04-30-growth-cache-health/growth-cache-health-report.json",
+            "file": "artifacts/seo/2026-04-30-dataforseo-max-performance-profiles/dataforseo-max-performance-plan.json",
             "matched": [
               "growth_dataforseo_cache"
             ]
           },
           {
-            "file": "artifacts/seo/2026-04-30-growth-cache-health/growth-cache-health-report.md",
+            "file": "artifacts/seo/2026-04-30-growth-cache-health/growth-cache-health-report.json",
             "matched": [
               "growth_dataforseo_cache"
             ]
@@ -6809,7 +6916,7 @@
               "table": "growth_dataforseo_cache",
               "exists": true,
               "scoped_by_website_id": true,
-              "row_count": 32
+              "row_count": 42
             }
           ],
           "normalized_facts": [
@@ -6840,15 +6947,14 @@
       "profile": "dfs_serp_local_pack_v1",
       "available": true,
       "documented": true,
-      "extracted": false,
+      "extracted": true,
       "persisted/cache": true,
       "normalized/facts": true,
-      "growth_inventory_used": false,
+      "growth_inventory_used": true,
       "council_used": false,
       "status": "partial",
       "priority": "P1",
       "gaps": [
-        "No extraction runner/client evidence found.",
         "No Council/session use evidence found for this priority profile."
       ],
       "evidence": {
@@ -6937,7 +7043,15 @@
             ]
           }
         ],
-        "extraction": [],
+        "extraction": [
+          {
+            "file": "scripts/seo/run-dataforseo-max-performance-profiles.mjs",
+            "matched": [
+              "declared",
+              "dfs_serp_local_pack_v1"
+            ]
+          }
+        ],
         "raw_cache": [
           {
             "file": "artifacts/seo/2026-04-29-growth-cache-health/growth-cache-health-report.json",
@@ -7000,13 +7114,13 @@
             ]
           },
           {
-            "file": "artifacts/seo/2026-04-30-growth-cache-health/growth-cache-health-report.json",
+            "file": "artifacts/seo/2026-04-30-dataforseo-max-performance-profiles/dataforseo-max-performance-plan.json",
             "matched": [
               "growth_dataforseo_cache"
             ]
           },
           {
-            "file": "artifacts/seo/2026-04-30-growth-cache-health/growth-cache-health-report.md",
+            "file": "artifacts/seo/2026-04-30-growth-cache-health/growth-cache-health-report.json",
             "matched": [
               "growth_dataforseo_cache"
             ]
@@ -7094,7 +7208,7 @@
               "table": "growth_dataforseo_cache",
               "exists": true,
               "scoped_by_website_id": true,
-              "row_count": 32
+              "row_count": 42
             }
           ],
           "normalized_facts": [
@@ -7122,7 +7236,7 @@
       "extracted": true,
       "persisted/cache": true,
       "normalized/facts": true,
-      "growth_inventory_used": false,
+      "growth_inventory_used": true,
       "council_used": false,
       "status": "partial",
       "priority": "P1",
@@ -7255,6 +7369,13 @@
               "serp snapshot",
               "serp-snapshot"
             ]
+          },
+          {
+            "file": "scripts/seo/run-dataforseo-max-performance-profiles.mjs",
+            "matched": [
+              "declared",
+              "dfs_serp_priority_keywords_v1"
+            ]
           }
         ],
         "raw_cache": [
@@ -7319,13 +7440,13 @@
             ]
           },
           {
-            "file": "artifacts/seo/2026-04-30-growth-cache-health/growth-cache-health-report.json",
+            "file": "artifacts/seo/2026-04-30-dataforseo-max-performance-profiles/dataforseo-max-performance-plan.json",
             "matched": [
               "growth_dataforseo_cache"
             ]
           },
           {
-            "file": "artifacts/seo/2026-04-30-growth-cache-health/growth-cache-health-report.md",
+            "file": "artifacts/seo/2026-04-30-growth-cache-health/growth-cache-health-report.json",
             "matched": [
               "growth_dataforseo_cache"
             ]
@@ -7413,7 +7534,7 @@
               "table": "growth_dataforseo_cache",
               "exists": true,
               "scoped_by_website_id": true,
-              "row_count": 32
+              "row_count": 42
             }
           ],
           "normalized_facts": [
@@ -7444,15 +7565,14 @@
       "profile": "ga4_device_landing_28d_v1",
       "available": true,
       "documented": true,
-      "extracted": false,
+      "extracted": true,
       "persisted/cache": true,
       "normalized/facts": true,
-      "growth_inventory_used": false,
+      "growth_inventory_used": true,
       "council_used": false,
       "status": "partial",
       "priority": "P1",
       "gaps": [
-        "No extraction runner/client evidence found.",
         "No Council/session use evidence found for this priority profile."
       ],
       "evidence": {
@@ -7541,7 +7661,15 @@
             ]
           }
         ],
-        "extraction": [],
+        "extraction": [
+          {
+            "file": "scripts/seo/populate-growth-google-cache.ts",
+            "matched": [
+              "declared",
+              "ga4_device_landing_28d_v1"
+            ]
+          }
+        ],
         "raw_cache": [
           {
             "file": "artifacts/seo/2026-04-29-growth-cache-health/growth-cache-health-report.json",
@@ -7616,7 +7744,14 @@
             ]
           }
         ],
-        "normalized_facts": [],
+        "normalized_facts": [
+          {
+            "file": "scripts/seo/normalize-growth-ga4-cache.mjs",
+            "matched": [
+              "declared"
+            ]
+          }
+        ],
         "growth_inventory": [
           {
             "file": "docs/growth-sessions/2026-04-28-1213-epic310-multiagent-certification.md",
@@ -7698,7 +7833,7 @@
               "table": "growth_ga4_cache",
               "exists": true,
               "scoped_by_website_id": true,
-              "row_count": 4
+              "row_count": 9
             }
           ],
           "normalized_facts": [
@@ -7723,15 +7858,14 @@
       "profile": "ga4_geo_landing_28d_v1",
       "available": true,
       "documented": true,
-      "extracted": false,
+      "extracted": true,
       "persisted/cache": true,
       "normalized/facts": true,
-      "growth_inventory_used": false,
+      "growth_inventory_used": true,
       "council_used": false,
       "status": "partial",
       "priority": "P1",
       "gaps": [
-        "No extraction runner/client evidence found.",
         "No Council/session use evidence found for this priority profile."
       ],
       "evidence": {
@@ -7817,7 +7951,15 @@
             ]
           }
         ],
-        "extraction": [],
+        "extraction": [
+          {
+            "file": "scripts/seo/populate-growth-google-cache.ts",
+            "matched": [
+              "declared",
+              "ga4_geo_landing_28d_v1"
+            ]
+          }
+        ],
         "raw_cache": [
           {
             "file": "artifacts/seo/2026-04-29-growth-cache-health/growth-cache-health-report.json",
@@ -7892,7 +8034,14 @@
             ]
           }
         ],
-        "normalized_facts": [],
+        "normalized_facts": [
+          {
+            "file": "scripts/seo/normalize-growth-ga4-cache.mjs",
+            "matched": [
+              "declared"
+            ]
+          }
+        ],
         "growth_inventory": [
           {
             "file": "docs/growth-sessions/2026-04-28-1213-epic310-multiagent-certification.md",
@@ -7974,7 +8123,7 @@
               "table": "growth_ga4_cache",
               "exists": true,
               "scoped_by_website_id": true,
-              "row_count": 4
+              "row_count": 9
             }
           ],
           "normalized_facts": [
@@ -7999,15 +8148,14 @@
       "profile": "ga4_hostname_locale_28d_v1",
       "available": true,
       "documented": true,
-      "extracted": false,
+      "extracted": true,
       "persisted/cache": true,
       "normalized/facts": true,
-      "growth_inventory_used": false,
+      "growth_inventory_used": true,
       "council_used": false,
       "status": "partial",
       "priority": "P1",
       "gaps": [
-        "No extraction runner/client evidence found.",
         "No Council/session use evidence found for this priority profile."
       ],
       "evidence": {
@@ -8093,7 +8241,15 @@
             ]
           }
         ],
-        "extraction": [],
+        "extraction": [
+          {
+            "file": "scripts/seo/populate-growth-google-cache.ts",
+            "matched": [
+              "declared",
+              "ga4_hostname_locale_28d_v1"
+            ]
+          }
+        ],
         "raw_cache": [
           {
             "file": "artifacts/seo/2026-04-29-growth-cache-health/growth-cache-health-report.json",
@@ -8168,7 +8324,14 @@
             ]
           }
         ],
-        "normalized_facts": [],
+        "normalized_facts": [
+          {
+            "file": "scripts/seo/normalize-growth-ga4-cache.mjs",
+            "matched": [
+              "declared"
+            ]
+          }
+        ],
         "growth_inventory": [
           {
             "file": "docs/growth-sessions/2026-04-28-1213-epic310-multiagent-certification.md",
@@ -8250,7 +8413,7 @@
               "table": "growth_ga4_cache",
               "exists": true,
               "scoped_by_website_id": true,
-              "row_count": 4
+              "row_count": 9
             }
           ],
           "normalized_facts": [
@@ -8275,15 +8438,14 @@
       "profile": "gsc_brand_nonbrand_v1",
       "available": true,
       "documented": true,
-      "extracted": false,
+      "extracted": true,
       "persisted/cache": true,
       "normalized/facts": true,
-      "growth_inventory_used": false,
+      "growth_inventory_used": true,
       "council_used": false,
       "status": "partial",
       "priority": "P1",
       "gaps": [
-        "No extraction runner/client evidence found.",
         "No Council/session use evidence found for this priority profile."
       ],
       "evidence": {
@@ -8372,7 +8534,15 @@
             ]
           }
         ],
-        "extraction": [],
+        "extraction": [
+          {
+            "file": "scripts/seo/populate-growth-google-cache.ts",
+            "matched": [
+              "declared",
+              "gsc_brand_nonbrand_v1"
+            ]
+          }
+        ],
         "raw_cache": [
           {
             "file": "artifacts/seo/2026-04-29-growth-cache-health/growth-cache-health-report.json",
@@ -8447,7 +8617,14 @@
             ]
           }
         ],
-        "normalized_facts": [],
+        "normalized_facts": [
+          {
+            "file": "scripts/seo/normalize-growth-gsc-cache.mjs",
+            "matched": [
+              "declared"
+            ]
+          }
+        ],
         "growth_inventory": [
           {
             "file": "docs/growth-sessions/2026-04-28-1213-epic310-multiagent-certification.md",
@@ -8529,7 +8706,7 @@
               "table": "growth_gsc_cache",
               "exists": true,
               "scoped_by_website_id": true,
-              "row_count": 6
+              "row_count": 10
             }
           ],
           "normalized_facts": [
@@ -8818,7 +8995,7 @@
               "table": "growth_gsc_cache",
               "exists": true,
               "scoped_by_website_id": true,
-              "row_count": 6
+              "row_count": 10
             }
           ],
           "normalized_facts": [
@@ -8843,15 +9020,14 @@
       "profile": "gsc_daily_complete_image_v1",
       "available": true,
       "documented": true,
-      "extracted": false,
+      "extracted": true,
       "persisted/cache": true,
       "normalized/facts": true,
-      "growth_inventory_used": false,
+      "growth_inventory_used": true,
       "council_used": false,
       "status": "partial",
       "priority": "P1",
       "gaps": [
-        "No extraction runner/client evidence found.",
         "No Council/session use evidence found for this priority profile."
       ],
       "evidence": {
@@ -8939,7 +9115,15 @@
             ]
           }
         ],
-        "extraction": [],
+        "extraction": [
+          {
+            "file": "scripts/seo/populate-growth-google-cache.ts",
+            "matched": [
+              "declared",
+              "gsc_daily_complete_image_v1"
+            ]
+          }
+        ],
         "raw_cache": [
           {
             "file": "artifacts/seo/2026-04-29-growth-cache-health/growth-cache-health-report.json",
@@ -9014,7 +9198,14 @@
             ]
           }
         ],
-        "normalized_facts": [],
+        "normalized_facts": [
+          {
+            "file": "scripts/seo/normalize-growth-gsc-cache.mjs",
+            "matched": [
+              "declared"
+            ]
+          }
+        ],
         "growth_inventory": [
           {
             "file": "docs/growth-sessions/2026-04-28-1213-epic310-multiagent-certification.md",
@@ -9096,7 +9287,7 @@
               "table": "growth_gsc_cache",
               "exists": true,
               "scoped_by_website_id": true,
-              "row_count": 6
+              "row_count": 10
             }
           ],
           "normalized_facts": [
@@ -9121,15 +9312,14 @@
       "profile": "gsc_locale_path_v1",
       "available": true,
       "documented": true,
-      "extracted": false,
+      "extracted": true,
       "persisted/cache": true,
       "normalized/facts": true,
-      "growth_inventory_used": false,
+      "growth_inventory_used": true,
       "council_used": false,
       "status": "partial",
       "priority": "P1",
       "gaps": [
-        "No extraction runner/client evidence found.",
         "No Council/session use evidence found for this priority profile."
       ],
       "evidence": {
@@ -9220,7 +9410,15 @@
             ]
           }
         ],
-        "extraction": [],
+        "extraction": [
+          {
+            "file": "scripts/seo/populate-growth-google-cache.ts",
+            "matched": [
+              "declared",
+              "gsc_locale_path_v1"
+            ]
+          }
+        ],
         "raw_cache": [
           {
             "file": "artifacts/seo/2026-04-29-growth-cache-health/growth-cache-health-report.json",
@@ -9295,7 +9493,14 @@
             ]
           }
         ],
-        "normalized_facts": [],
+        "normalized_facts": [
+          {
+            "file": "scripts/seo/normalize-growth-gsc-cache.mjs",
+            "matched": [
+              "declared"
+            ]
+          }
+        ],
         "growth_inventory": [
           {
             "file": "docs/growth-sessions/2026-04-28-1213-epic310-multiagent-certification.md",
@@ -9377,7 +9582,7 @@
               "table": "growth_gsc_cache",
               "exists": true,
               "scoped_by_website_id": true,
-              "row_count": 6
+              "row_count": 10
             }
           ],
           "normalized_facts": [
@@ -9667,7 +9872,7 @@
               "table": "growth_gsc_cache",
               "exists": true,
               "scoped_by_website_id": true,
-              "row_count": 6
+              "row_count": 10
             }
           ],
           "normalized_facts": [
@@ -9956,7 +10161,7 @@
               "table": "growth_gsc_cache",
               "exists": true,
               "scoped_by_website_id": true,
-              "row_count": 6
+              "row_count": 10
             }
           ],
           "normalized_facts": [
@@ -9981,16 +10186,14 @@
       "profile": "growth_ai_geo_conversion_fit_v1",
       "available": true,
       "documented": true,
-      "extracted": false,
+      "extracted": true,
       "persisted/cache": false,
       "normalized/facts": true,
-      "growth_inventory_used": false,
+      "growth_inventory_used": true,
       "council_used": false,
       "status": "partial",
       "priority": "P1",
       "gaps": [
-        "No extraction runner/client evidence found.",
-        "No clear growth_inventory promotion/use evidence.",
         "No Council/session use evidence found for this priority profile."
       ],
       "evidence": {
@@ -10076,7 +10279,14 @@
             ]
           }
         ],
-        "extraction": [],
+        "extraction": [
+          {
+            "file": "scripts/seo/run-growth-joint-normalizers.mjs",
+            "matched": [
+              "growth_ai_geo_conversion_fit_v1"
+            ]
+          }
+        ],
         "raw_cache": [],
         "normalized_facts": [
           {
@@ -10134,6 +10344,13 @@
             ]
           },
           {
+            "file": "scripts/seo/run-growth-joint-normalizers.mjs",
+            "matched": [
+              "declared",
+              "growth_inventory"
+            ]
+          },
+          {
             "file": "scripts/seo/run-growth-max-matrix-orchestrator.mjs",
             "matched": [
               "growth_inventory"
@@ -10141,12 +10358,6 @@
           },
           {
             "file": "scripts/seo/triage-dataforseo-findings.mjs",
-            "matched": [
-              "growth_inventory"
-            ]
-          },
-          {
-            "file": "supabase/migrations/20260429192000_geo_ai_visibility_facts.sql",
             "matched": [
               "growth_inventory"
             ]
@@ -10251,16 +10462,14 @@
       "profile": "growth_authority_content_fit_v1",
       "available": true,
       "documented": true,
-      "extracted": false,
+      "extracted": true,
       "persisted/cache": false,
       "normalized/facts": true,
-      "growth_inventory_used": false,
+      "growth_inventory_used": true,
       "council_used": false,
       "status": "partial",
       "priority": "P1",
       "gaps": [
-        "No extraction runner/client evidence found.",
-        "No clear growth_inventory promotion/use evidence.",
         "No Council/session use evidence found for this priority profile."
       ],
       "evidence": {
@@ -10346,7 +10555,14 @@
             ]
           }
         ],
-        "extraction": [],
+        "extraction": [
+          {
+            "file": "scripts/seo/run-growth-joint-normalizers.mjs",
+            "matched": [
+              "growth_authority_content_fit_v1"
+            ]
+          }
+        ],
         "raw_cache": [],
         "normalized_facts": [
           {
@@ -10404,6 +10620,13 @@
             ]
           },
           {
+            "file": "scripts/seo/run-growth-joint-normalizers.mjs",
+            "matched": [
+              "declared",
+              "growth_inventory"
+            ]
+          },
+          {
             "file": "scripts/seo/run-growth-max-matrix-orchestrator.mjs",
             "matched": [
               "growth_inventory"
@@ -10411,12 +10634,6 @@
           },
           {
             "file": "scripts/seo/triage-dataforseo-findings.mjs",
-            "matched": [
-              "growth_inventory"
-            ]
-          },
-          {
-            "file": "supabase/migrations/20260429192000_geo_ai_visibility_facts.sql",
             "matched": [
               "growth_inventory"
             ]
@@ -10680,13 +10897,13 @@
             ]
           },
           {
-            "file": "scripts/seo/run-growth-max-matrix-orchestrator.mjs",
+            "file": "scripts/seo/run-growth-joint-normalizers.mjs",
             "matched": [
               "growth_inventory"
             ]
           },
           {
-            "file": "scripts/seo/triage-dataforseo-findings.mjs",
+            "file": "scripts/seo/run-growth-max-matrix-orchestrator.mjs",
             "matched": [
               "growth_inventory"
             ]
@@ -10791,7 +11008,7 @@
       "profile": "growth_market_fit_v1",
       "available": true,
       "documented": true,
-      "extracted": false,
+      "extracted": true,
       "persisted/cache": false,
       "normalized/facts": true,
       "growth_inventory_used": true,
@@ -10799,7 +11016,7 @@
       "status": "partial",
       "priority": "P1",
       "gaps": [
-        "No extraction runner/client evidence found."
+        "No coverage gap detected by static/read-only audit."
       ],
       "evidence": {
         "docs": [
@@ -10884,7 +11101,14 @@
             ]
           }
         ],
-        "extraction": [],
+        "extraction": [
+          {
+            "file": "scripts/seo/run-growth-joint-normalizers.mjs",
+            "matched": [
+              "growth_market_fit_v1"
+            ]
+          }
+        ],
         "raw_cache": [],
         "normalized_facts": [
           {
@@ -10942,6 +11166,13 @@
             ]
           },
           {
+            "file": "scripts/seo/run-growth-joint-normalizers.mjs",
+            "matched": [
+              "declared",
+              "growth_inventory"
+            ]
+          },
+          {
             "file": "scripts/seo/run-growth-max-matrix-orchestrator.mjs",
             "matched": [
               "growth_inventory"
@@ -10949,12 +11180,6 @@
           },
           {
             "file": "scripts/seo/triage-dataforseo-findings.mjs",
-            "matched": [
-              "growth_inventory"
-            ]
-          },
-          {
-            "file": "supabase/migrations/20260429192000_geo_ai_visibility_facts.sql",
             "matched": [
               "growth_inventory"
             ]
@@ -11067,16 +11292,14 @@
       "profile": "growth_mobile_seo_cro_v1",
       "available": true,
       "documented": true,
-      "extracted": false,
+      "extracted": true,
       "persisted/cache": false,
       "normalized/facts": true,
-      "growth_inventory_used": false,
+      "growth_inventory_used": true,
       "council_used": false,
       "status": "partial",
       "priority": "P1",
       "gaps": [
-        "No extraction runner/client evidence found.",
-        "No clear growth_inventory promotion/use evidence.",
         "No Council/session use evidence found for this priority profile."
       ],
       "evidence": {
@@ -11162,7 +11385,14 @@
             ]
           }
         ],
-        "extraction": [],
+        "extraction": [
+          {
+            "file": "scripts/seo/run-growth-joint-normalizers.mjs",
+            "matched": [
+              "growth_mobile_seo_cro_v1"
+            ]
+          }
+        ],
         "raw_cache": [],
         "normalized_facts": [
           {
@@ -11220,6 +11450,13 @@
             ]
           },
           {
+            "file": "scripts/seo/run-growth-joint-normalizers.mjs",
+            "matched": [
+              "declared",
+              "growth_inventory"
+            ]
+          },
+          {
             "file": "scripts/seo/run-growth-max-matrix-orchestrator.mjs",
             "matched": [
               "growth_inventory"
@@ -11227,12 +11464,6 @@
           },
           {
             "file": "scripts/seo/triage-dataforseo-findings.mjs",
-            "matched": [
-              "growth_inventory"
-            ]
-          },
-          {
-            "file": "supabase/migrations/20260429192000_geo_ai_visibility_facts.sql",
             "matched": [
               "growth_inventory"
             ]
@@ -11337,15 +11568,15 @@
       "profile": "dfs_content_brand_sentiment_v1",
       "available": true,
       "documented": true,
-      "extracted": false,
+      "extracted": true,
       "persisted/cache": true,
       "normalized/facts": true,
-      "growth_inventory_used": false,
+      "growth_inventory_used": true,
       "council_used": false,
       "status": "partial",
       "priority": "P2",
       "gaps": [
-        "No extraction runner/client evidence found."
+        "No coverage gap detected by static/read-only audit."
       ],
       "evidence": {
         "docs": [
@@ -11432,7 +11663,16 @@
             ]
           }
         ],
-        "extraction": [],
+        "extraction": [
+          {
+            "file": "scripts/seo/run-dataforseo-max-performance-profiles.mjs",
+            "matched": [
+              "declared",
+              "dfs_content_brand_sentiment_v1",
+              "content_brand_sentiment"
+            ]
+          }
+        ],
         "raw_cache": [
           {
             "file": "artifacts/seo/2026-04-29-growth-cache-health/growth-cache-health-report.json",
@@ -11495,13 +11735,13 @@
             ]
           },
           {
-            "file": "artifacts/seo/2026-04-30-growth-cache-health/growth-cache-health-report.json",
+            "file": "artifacts/seo/2026-04-30-dataforseo-max-performance-profiles/dataforseo-max-performance-plan.json",
             "matched": [
               "growth_dataforseo_cache"
             ]
           },
           {
-            "file": "artifacts/seo/2026-04-30-growth-cache-health/growth-cache-health-report.md",
+            "file": "artifacts/seo/2026-04-30-growth-cache-health/growth-cache-health-report.json",
             "matched": [
               "growth_dataforseo_cache"
             ]
@@ -11589,7 +11829,7 @@
               "table": "growth_dataforseo_cache",
               "exists": true,
               "scoped_by_website_id": true,
-              "row_count": 32
+              "row_count": 42
             }
           ],
           "normalized_facts": [
@@ -11614,15 +11854,15 @@
       "profile": "dfs_domain_competitive_baseline_v1",
       "available": true,
       "documented": true,
-      "extracted": false,
+      "extracted": true,
       "persisted/cache": true,
       "normalized/facts": true,
-      "growth_inventory_used": false,
+      "growth_inventory_used": true,
       "council_used": false,
       "status": "partial",
       "priority": "P2",
       "gaps": [
-        "No extraction runner/client evidence found."
+        "No coverage gap detected by static/read-only audit."
       ],
       "evidence": {
         "docs": [
@@ -11710,7 +11950,16 @@
             ]
           }
         ],
-        "extraction": [],
+        "extraction": [
+          {
+            "file": "scripts/seo/run-dataforseo-max-performance-profiles.mjs",
+            "matched": [
+              "declared",
+              "dfs_domain_competitive_baseline_v1",
+              "domain_competitive"
+            ]
+          }
+        ],
         "raw_cache": [
           {
             "file": "artifacts/seo/2026-04-29-growth-cache-health/growth-cache-health-report.json",
@@ -11773,13 +12022,13 @@
             ]
           },
           {
-            "file": "artifacts/seo/2026-04-30-growth-cache-health/growth-cache-health-report.json",
+            "file": "artifacts/seo/2026-04-30-dataforseo-max-performance-profiles/dataforseo-max-performance-plan.json",
             "matched": [
               "growth_dataforseo_cache"
             ]
           },
           {
-            "file": "artifacts/seo/2026-04-30-growth-cache-health/growth-cache-health-report.md",
+            "file": "artifacts/seo/2026-04-30-growth-cache-health/growth-cache-health-report.json",
             "matched": [
               "growth_dataforseo_cache"
             ]
@@ -11867,7 +12116,7 @@
               "table": "growth_dataforseo_cache",
               "exists": true,
               "scoped_by_website_id": true,
-              "row_count": 32
+              "row_count": 42
             }
           ],
           "normalized_facts": [
@@ -11892,16 +12141,15 @@
       "profile": "dfs_reviews_sentiment_v1",
       "available": true,
       "documented": true,
-      "extracted": false,
+      "extracted": true,
       "persisted/cache": true,
       "normalized/facts": true,
-      "growth_inventory_used": false,
+      "growth_inventory_used": true,
       "council_used": false,
       "status": "partial",
       "priority": "P2",
       "gaps": [
-        "No extraction runner/client evidence found.",
-        "No clear growth_inventory promotion/use evidence."
+        "No coverage gap detected by static/read-only audit."
       ],
       "evidence": {
         "docs": [
@@ -11986,7 +12234,16 @@
             ]
           }
         ],
-        "extraction": [],
+        "extraction": [
+          {
+            "file": "scripts/seo/run-dataforseo-max-performance-profiles.mjs",
+            "matched": [
+              "declared",
+              "dfs_reviews_sentiment_v1",
+              "reviews_sentiment"
+            ]
+          }
+        ],
         "raw_cache": [
           {
             "file": "artifacts/seo/2026-04-29-growth-cache-health/growth-cache-health-report.json",
@@ -12049,13 +12306,13 @@
             ]
           },
           {
-            "file": "artifacts/seo/2026-04-30-growth-cache-health/growth-cache-health-report.json",
+            "file": "artifacts/seo/2026-04-30-dataforseo-max-performance-profiles/dataforseo-max-performance-plan.json",
             "matched": [
               "growth_dataforseo_cache"
             ]
           },
           {
-            "file": "artifacts/seo/2026-04-30-growth-cache-health/growth-cache-health-report.md",
+            "file": "artifacts/seo/2026-04-30-growth-cache-health/growth-cache-health-report.json",
             "matched": [
               "growth_dataforseo_cache"
             ]
@@ -12143,7 +12400,7 @@
               "table": "growth_dataforseo_cache",
               "exists": true,
               "scoped_by_website_id": true,
-              "row_count": 32
+              "row_count": 42
             }
           ],
           "normalized_facts": [
@@ -12168,15 +12425,15 @@
       "profile": "ga4_file_outbound_engagement_v1",
       "available": true,
       "documented": true,
-      "extracted": false,
+      "extracted": true,
       "persisted/cache": true,
       "normalized/facts": true,
-      "growth_inventory_used": false,
+      "growth_inventory_used": true,
       "council_used": false,
       "status": "partial",
       "priority": "P2",
       "gaps": [
-        "No extraction runner/client evidence found."
+        "No coverage gap detected by static/read-only audit."
       ],
       "evidence": {
         "docs": [
@@ -12261,7 +12518,15 @@
             ]
           }
         ],
-        "extraction": [],
+        "extraction": [
+          {
+            "file": "scripts/seo/populate-growth-google-cache.ts",
+            "matched": [
+              "declared",
+              "ga4_file_outbound_engagement_v1"
+            ]
+          }
+        ],
         "raw_cache": [
           {
             "file": "artifacts/seo/2026-04-29-growth-cache-health/growth-cache-health-report.json",
@@ -12336,7 +12601,14 @@
             ]
           }
         ],
-        "normalized_facts": [],
+        "normalized_facts": [
+          {
+            "file": "scripts/seo/normalize-growth-ga4-cache.mjs",
+            "matched": [
+              "declared"
+            ]
+          }
+        ],
         "growth_inventory": [
           {
             "file": "docs/growth-sessions/2026-04-28-1213-epic310-multiagent-certification.md",
@@ -12418,7 +12690,7 @@
               "table": "growth_ga4_cache",
               "exists": true,
               "scoped_by_website_id": true,
-              "row_count": 4
+              "row_count": 9
             }
           ],
           "normalized_facts": [
@@ -12443,15 +12715,15 @@
       "profile": "ga4_internal_search_v1",
       "available": true,
       "documented": true,
-      "extracted": false,
+      "extracted": true,
       "persisted/cache": true,
       "normalized/facts": true,
-      "growth_inventory_used": false,
+      "growth_inventory_used": true,
       "council_used": false,
       "status": "partial",
       "priority": "P2",
       "gaps": [
-        "No extraction runner/client evidence found."
+        "No coverage gap detected by static/read-only audit."
       ],
       "evidence": {
         "docs": [
@@ -12539,7 +12811,15 @@
             ]
           }
         ],
-        "extraction": [],
+        "extraction": [
+          {
+            "file": "scripts/seo/populate-growth-google-cache.ts",
+            "matched": [
+              "declared",
+              "ga4_internal_search_v1"
+            ]
+          }
+        ],
         "raw_cache": [
           {
             "file": "artifacts/seo/2026-04-29-growth-cache-health/growth-cache-health-report.json",
@@ -12614,7 +12894,14 @@
             ]
           }
         ],
-        "normalized_facts": [],
+        "normalized_facts": [
+          {
+            "file": "scripts/seo/normalize-growth-ga4-cache.mjs",
+            "matched": [
+              "declared"
+            ]
+          }
+        ],
         "growth_inventory": [
           {
             "file": "docs/growth-sessions/2026-04-28-1213-epic310-multiagent-certification.md",
@@ -12696,7 +12983,7 @@
               "table": "growth_ga4_cache",
               "exists": true,
               "scoped_by_website_id": true,
-              "row_count": 4
+              "row_count": 9
             }
           ],
           "normalized_facts": [
@@ -12877,13 +13164,13 @@
             ]
           },
           {
-            "file": "artifacts/seo/2026-04-30-growth-cache-health/growth-cache-health-report.json",
+            "file": "artifacts/seo/2026-04-30-dataforseo-max-performance-profiles/dataforseo-max-performance-plan.json",
             "matched": [
               "growth_dataforseo_cache"
             ]
           },
           {
-            "file": "artifacts/seo/2026-04-30-growth-cache-health/growth-cache-health-report.md",
+            "file": "artifacts/seo/2026-04-30-growth-cache-health/growth-cache-health-report.json",
             "matched": [
               "growth_dataforseo_cache"
             ]
@@ -12971,7 +13258,7 @@
               "table": "growth_dataforseo_cache",
               "exists": true,
               "scoped_by_website_id": true,
-              "row_count": 32
+              "row_count": 42
             }
           ],
           "normalized_facts": [],
@@ -13145,13 +13432,13 @@
             ]
           },
           {
-            "file": "artifacts/seo/2026-04-30-growth-cache-health/growth-cache-health-report.json",
+            "file": "artifacts/seo/2026-04-30-dataforseo-max-performance-profiles/dataforseo-max-performance-plan.json",
             "matched": [
               "growth_dataforseo_cache"
             ]
           },
           {
-            "file": "artifacts/seo/2026-04-30-growth-cache-health/growth-cache-health-report.md",
+            "file": "artifacts/seo/2026-04-30-growth-cache-health/growth-cache-health-report.json",
             "matched": [
               "growth_dataforseo_cache"
             ]
@@ -13239,7 +13526,7 @@
               "table": "growth_dataforseo_cache",
               "exists": true,
               "scoped_by_website_id": true,
-              "row_count": 32
+              "row_count": 42
             }
           ],
           "normalized_facts": [],

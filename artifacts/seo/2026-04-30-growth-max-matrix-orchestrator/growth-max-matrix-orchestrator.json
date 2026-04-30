@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-30T16:52:59.286Z",
+  "generated_at": "2026-04-30T18:26:59.701Z",
   "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
   "mode": "dry-run",
   "cadence": "weekly",
@@ -9,8 +9,7 @@
     "profile_count": 45,
     "by_status": {
       "implemented": 8,
-      "partial": 13,
-      "planned": 22,
+      "partial": 35,
       "excluded": 2
     },
     "by_provider": {
@@ -40,9 +39,8 @@
   "selected_summary": {
     "profile_count": 25,
     "by_status": {
-      "planned": 11,
-      "implemented": 7,
-      "partial": 7
+      "partial": 18,
+      "implemented": 7
     },
     "by_provider": {
       "gsc": 9,
@@ -61,7 +59,7 @@
       "continuous": 1
     }
   },
-  "status": "WATCH",
+  "status": "PASS",
   "profiles": [
     {
       "docs": [
@@ -151,6 +149,7 @@
         "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
       ],
       "extractionScripts": [
+        "scripts/seo/run-dataforseo-max-performance-profiles.mjs",
         "lib/seo/serp-snapshot.ts"
       ],
       "normalizerScripts": [],
@@ -187,7 +186,9 @@
       "docs": [
         "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
       ],
-      "extractionScripts": [],
+      "extractionScripts": [
+        "scripts/seo/run-dataforseo-max-performance-profiles.mjs"
+      ],
       "normalizerScripts": [],
       "factTargets": [
         "seo_local_serp_facts"
@@ -210,7 +211,7 @@
       "costClass": "paid_normal",
       "approval": "profile_approved_locations_required",
       "rawCache": "growth_dataforseo_cache",
-      "status": "planned",
+      "status": "partial",
       "due_for_selected_cadence": false,
       "run_decision": {
         "status": "SKIP",
@@ -331,7 +332,9 @@
       "docs": [
         "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
       ],
-      "extractionScripts": [],
+      "extractionScripts": [
+        "scripts/seo/run-dataforseo-max-performance-profiles.mjs"
+      ],
       "normalizerScripts": [],
       "factTargets": [
         "seo_keyword_gap_facts"
@@ -354,7 +357,7 @@
       "costClass": "paid_normal",
       "approval": "profile_approved_competitors_required",
       "rawCache": "growth_dataforseo_cache",
-      "status": "planned",
+      "status": "partial",
       "due_for_selected_cadence": false,
       "run_decision": {
         "status": "SKIP",
@@ -365,7 +368,9 @@
       "docs": [
         "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
       ],
-      "extractionScripts": [],
+      "extractionScripts": [
+        "scripts/seo/run-dataforseo-max-performance-profiles.mjs"
+      ],
       "normalizerScripts": [],
       "factTargets": [
         "seo_backlink_facts"
@@ -388,7 +393,7 @@
       "costClass": "paid_normal",
       "approval": "profile_approved_competitors_required",
       "rawCache": "growth_dataforseo_cache",
-      "status": "planned",
+      "status": "partial",
       "due_for_selected_cadence": false,
       "run_decision": {
         "status": "SKIP",
@@ -399,7 +404,9 @@
       "docs": [
         "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
       ],
-      "extractionScripts": [],
+      "extractionScripts": [
+        "scripts/seo/run-dataforseo-max-performance-profiles.mjs"
+      ],
       "normalizerScripts": [],
       "factTargets": [
         "seo_backlink_gap_facts"
@@ -422,7 +429,7 @@
       "costClass": "paid_normal",
       "approval": "profile_approved_competitors_required",
       "rawCache": "growth_dataforseo_cache",
-      "status": "planned",
+      "status": "partial",
       "due_for_selected_cadence": false,
       "run_decision": {
         "status": "SKIP",
@@ -433,7 +440,9 @@
       "docs": [
         "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
       ],
-      "extractionScripts": [],
+      "extractionScripts": [
+        "scripts/seo/run-dataforseo-max-performance-profiles.mjs"
+      ],
       "normalizerScripts": [],
       "factTargets": [
         "seo_local_reputation_facts"
@@ -456,7 +465,7 @@
       "costClass": "paid_normal",
       "approval": "profile_approved_locations_required",
       "rawCache": "growth_dataforseo_cache",
-      "status": "planned",
+      "status": "partial",
       "due_for_selected_cadence": false,
       "run_decision": {
         "status": "SKIP",
@@ -467,7 +476,9 @@
       "docs": [
         "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
       ],
-      "extractionScripts": [],
+      "extractionScripts": [
+        "scripts/seo/run-dataforseo-max-performance-profiles.mjs"
+      ],
       "normalizerScripts": [],
       "factTargets": [
         "seo_review_facts"
@@ -490,7 +501,7 @@
       "costClass": "paid_normal",
       "approval": "profile_approved_locations_required",
       "rawCache": "growth_dataforseo_cache",
-      "status": "planned",
+      "status": "partial",
       "due_for_selected_cadence": false,
       "run_decision": {
         "status": "SKIP",
@@ -542,7 +553,9 @@
       "docs": [
         "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
       ],
-      "extractionScripts": [],
+      "extractionScripts": [
+        "scripts/seo/run-dataforseo-max-performance-profiles.mjs"
+      ],
       "normalizerScripts": [],
       "factTargets": [
         "seo_content_sentiment_facts"
@@ -565,7 +578,7 @@
       "costClass": "paid_normal",
       "approval": "profile_approved_topics_required",
       "rawCache": "growth_dataforseo_cache",
-      "status": "planned",
+      "status": "partial",
       "due_for_selected_cadence": false,
       "run_decision": {
         "status": "SKIP",
@@ -576,7 +589,9 @@
       "docs": [
         "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
       ],
-      "extractionScripts": [],
+      "extractionScripts": [
+        "scripts/seo/run-dataforseo-max-performance-profiles.mjs"
+      ],
       "normalizerScripts": [],
       "factTargets": [
         "seo_domain_competitive_facts"
@@ -599,7 +614,7 @@
       "costClass": "paid_normal",
       "approval": "profile_approved_competitors_required",
       "rawCache": "growth_dataforseo_cache",
-      "status": "planned",
+      "status": "partial",
       "due_for_selected_cadence": false,
       "run_decision": {
         "status": "SKIP",
@@ -668,8 +683,12 @@
       "docs": [
         "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
       ],
-      "extractionScripts": [],
-      "normalizerScripts": [],
+      "extractionScripts": [
+        "scripts/seo/populate-growth-google-cache.ts"
+      ],
+      "normalizerScripts": [
+        "scripts/seo/normalize-growth-gsc-cache.mjs"
+      ],
       "factTargets": [
         "seo_gsc_daily_facts"
       ],
@@ -691,19 +710,23 @@
       "costClass": "free",
       "approval": "automatic",
       "rawCache": "growth_gsc_cache",
-      "status": "planned",
+      "status": "partial",
       "due_for_selected_cadence": true,
       "run_decision": {
-        "status": "WATCH",
-        "reason": "Profile is specified but extractor/normalizer is not implemented."
+        "status": "RUNNABLE",
+        "reason": "Dry-run only; profile-specific execution is listed in next_commands."
       }
     },
     {
       "docs": [
         "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
       ],
-      "extractionScripts": [],
-      "normalizerScripts": [],
+      "extractionScripts": [
+        "scripts/seo/populate-growth-google-cache.ts"
+      ],
+      "normalizerScripts": [
+        "scripts/seo/normalize-growth-gsc-cache.mjs"
+      ],
       "factTargets": [
         "seo_gsc_image_facts"
       ],
@@ -725,11 +748,11 @@
       "costClass": "free",
       "approval": "automatic",
       "rawCache": "growth_gsc_cache",
-      "status": "planned",
+      "status": "partial",
       "due_for_selected_cadence": true,
       "run_decision": {
-        "status": "WATCH",
-        "reason": "Profile is specified but extractor/normalizer is not implemented."
+        "status": "RUNNABLE",
+        "reason": "Dry-run only; profile-specific execution is listed in next_commands."
       }
     },
     {
@@ -928,8 +951,12 @@
       "docs": [
         "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
       ],
-      "extractionScripts": [],
-      "normalizerScripts": [],
+      "extractionScripts": [
+        "scripts/seo/populate-growth-google-cache.ts"
+      ],
+      "normalizerScripts": [
+        "scripts/seo/normalize-growth-gsc-cache.mjs"
+      ],
       "factTargets": [
         "seo_gsc_locale_facts"
       ],
@@ -953,19 +980,23 @@
       "costClass": "free",
       "approval": "automatic",
       "rawCache": "growth_gsc_cache",
-      "status": "planned",
+      "status": "partial",
       "due_for_selected_cadence": true,
       "run_decision": {
-        "status": "WATCH",
-        "reason": "Profile is specified but extractor/normalizer is not implemented."
+        "status": "RUNNABLE",
+        "reason": "Dry-run only; profile-specific execution is listed in next_commands."
       }
     },
     {
       "docs": [
         "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
       ],
-      "extractionScripts": [],
-      "normalizerScripts": [],
+      "extractionScripts": [
+        "scripts/seo/populate-growth-google-cache.ts"
+      ],
+      "normalizerScripts": [
+        "scripts/seo/normalize-growth-gsc-cache.mjs"
+      ],
       "factTargets": [
         "seo_gsc_brand_facts"
       ],
@@ -987,19 +1018,23 @@
       "costClass": "free",
       "approval": "automatic",
       "rawCache": "growth_gsc_cache",
-      "status": "planned",
+      "status": "partial",
       "due_for_selected_cadence": true,
       "run_decision": {
-        "status": "WATCH",
-        "reason": "Profile is specified but extractor/normalizer is not implemented."
+        "status": "RUNNABLE",
+        "reason": "Dry-run only; profile-specific execution is listed in next_commands."
       }
     },
     {
       "docs": [
         "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
       ],
-      "extractionScripts": [],
-      "normalizerScripts": [],
+      "extractionScripts": [
+        "scripts/seo/populate-growth-google-cache.ts"
+      ],
+      "normalizerScripts": [
+        "scripts/seo/normalize-growth-ga4-cache.mjs"
+      ],
       "factTargets": [
         "seo_ga4_landing_daily_facts"
       ],
@@ -1021,11 +1056,11 @@
       "costClass": "free",
       "approval": "automatic",
       "rawCache": "growth_ga4_cache",
-      "status": "planned",
+      "status": "partial",
       "due_for_selected_cadence": true,
       "run_decision": {
-        "status": "WATCH",
-        "reason": "Profile is specified but extractor/normalizer is not implemented."
+        "status": "RUNNABLE",
+        "reason": "Dry-run only; profile-specific execution is listed in next_commands."
       }
     },
     {
@@ -1188,8 +1223,12 @@
       "docs": [
         "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
       ],
-      "extractionScripts": [],
-      "normalizerScripts": [],
+      "extractionScripts": [
+        "scripts/seo/populate-growth-google-cache.ts"
+      ],
+      "normalizerScripts": [
+        "scripts/seo/normalize-growth-ga4-cache.mjs"
+      ],
       "factTargets": [
         "seo_ga4_geo_facts"
       ],
@@ -1211,19 +1250,23 @@
       "costClass": "free",
       "approval": "automatic",
       "rawCache": "growth_ga4_cache",
-      "status": "planned",
+      "status": "partial",
       "due_for_selected_cadence": true,
       "run_decision": {
-        "status": "WATCH",
-        "reason": "Profile is specified but extractor/normalizer is not implemented."
+        "status": "RUNNABLE",
+        "reason": "Dry-run only; profile-specific execution is listed in next_commands."
       }
     },
     {
       "docs": [
         "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
       ],
-      "extractionScripts": [],
-      "normalizerScripts": [],
+      "extractionScripts": [
+        "scripts/seo/populate-growth-google-cache.ts"
+      ],
+      "normalizerScripts": [
+        "scripts/seo/normalize-growth-ga4-cache.mjs"
+      ],
       "factTargets": [
         "seo_ga4_device_facts"
       ],
@@ -1245,19 +1288,23 @@
       "costClass": "free",
       "approval": "automatic",
       "rawCache": "growth_ga4_cache",
-      "status": "planned",
+      "status": "partial",
       "due_for_selected_cadence": true,
       "run_decision": {
-        "status": "WATCH",
-        "reason": "Profile is specified but extractor/normalizer is not implemented."
+        "status": "RUNNABLE",
+        "reason": "Dry-run only; profile-specific execution is listed in next_commands."
       }
     },
     {
       "docs": [
         "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
       ],
-      "extractionScripts": [],
-      "normalizerScripts": [],
+      "extractionScripts": [
+        "scripts/seo/populate-growth-google-cache.ts"
+      ],
+      "normalizerScripts": [
+        "scripts/seo/normalize-growth-ga4-cache.mjs"
+      ],
       "factTargets": [
         "seo_ga4_locale_facts"
       ],
@@ -1280,19 +1327,23 @@
       "costClass": "free",
       "approval": "automatic",
       "rawCache": "growth_ga4_cache",
-      "status": "planned",
+      "status": "partial",
       "due_for_selected_cadence": true,
       "run_decision": {
-        "status": "WATCH",
-        "reason": "Profile is specified but extractor/normalizer is not implemented."
+        "status": "RUNNABLE",
+        "reason": "Dry-run only; profile-specific execution is listed in next_commands."
       }
     },
     {
       "docs": [
         "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
       ],
-      "extractionScripts": [],
-      "normalizerScripts": [],
+      "extractionScripts": [
+        "scripts/seo/populate-growth-google-cache.ts"
+      ],
+      "normalizerScripts": [
+        "scripts/seo/normalize-growth-ga4-cache.mjs"
+      ],
       "factTargets": [
         "seo_ga4_search_facts"
       ],
@@ -1314,19 +1365,23 @@
       "costClass": "free",
       "approval": "automatic_if_event_exists",
       "rawCache": "growth_ga4_cache",
-      "status": "planned",
+      "status": "partial",
       "due_for_selected_cadence": true,
       "run_decision": {
-        "status": "WATCH",
-        "reason": "Profile is specified but extractor/normalizer is not implemented."
+        "status": "RUNNABLE",
+        "reason": "Dry-run only; profile-specific execution is listed in next_commands."
       }
     },
     {
       "docs": [
         "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
       ],
-      "extractionScripts": [],
-      "normalizerScripts": [],
+      "extractionScripts": [
+        "scripts/seo/populate-growth-google-cache.ts"
+      ],
+      "normalizerScripts": [
+        "scripts/seo/normalize-growth-ga4-cache.mjs"
+      ],
       "factTargets": [
         "seo_ga4_engagement_facts"
       ],
@@ -1348,7 +1403,7 @@
       "costClass": "free",
       "approval": "automatic",
       "rawCache": "growth_ga4_cache",
-      "status": "planned",
+      "status": "partial",
       "due_for_selected_cadence": false,
       "run_decision": {
         "status": "SKIP",
@@ -1398,6 +1453,7 @@
       ],
       "extractionScripts": [],
       "normalizerScripts": [
+        "scripts/seo/run-growth-joint-normalizers.mjs",
         "scripts/seo/normalize-growth-gsc-cache.mjs",
         "scripts/seo/normalize-growth-ga4-cache.mjs"
       ],
@@ -1434,7 +1490,9 @@
         "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
       ],
       "extractionScripts": [],
-      "normalizerScripts": [],
+      "normalizerScripts": [
+        "scripts/seo/run-growth-joint-normalizers.mjs"
+      ],
       "factTargets": [
         "growth_inventory"
       ],
@@ -1456,11 +1514,11 @@
       "costClass": "free",
       "approval": "automatic_after_sources_pass",
       "rawCache": null,
-      "status": "planned",
+      "status": "partial",
       "due_for_selected_cadence": true,
       "run_decision": {
-        "status": "WATCH",
-        "reason": "Profile is specified but extractor/normalizer is not implemented."
+        "status": "RUNNABLE",
+        "reason": "Dry-run only; profile-specific execution is listed in next_commands."
       }
     },
     {
@@ -1468,7 +1526,9 @@
         "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
       ],
       "extractionScripts": [],
-      "normalizerScripts": [],
+      "normalizerScripts": [
+        "scripts/seo/run-growth-joint-normalizers.mjs"
+      ],
       "factTargets": [
         "growth_inventory"
       ],
@@ -1490,11 +1550,11 @@
       "costClass": "free",
       "approval": "automatic_after_sources_pass",
       "rawCache": null,
-      "status": "planned",
+      "status": "partial",
       "due_for_selected_cadence": true,
       "run_decision": {
-        "status": "WATCH",
-        "reason": "Profile is specified but extractor/normalizer is not implemented."
+        "status": "RUNNABLE",
+        "reason": "Dry-run only; profile-specific execution is listed in next_commands."
       }
     },
     {
@@ -1614,7 +1674,9 @@
         "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
       ],
       "extractionScripts": [],
-      "normalizerScripts": [],
+      "normalizerScripts": [
+        "scripts/seo/run-growth-joint-normalizers.mjs"
+      ],
       "factTargets": [
         "growth_inventory"
       ],
@@ -1637,7 +1699,7 @@
       "costClass": "free",
       "approval": "automatic_after_sources_pass",
       "rawCache": null,
-      "status": "planned",
+      "status": "partial",
       "due_for_selected_cadence": false,
       "run_decision": {
         "status": "SKIP",
@@ -1649,7 +1711,9 @@
         "docs/specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md"
       ],
       "extractionScripts": [],
-      "normalizerScripts": [],
+      "normalizerScripts": [
+        "scripts/seo/run-growth-joint-normalizers.mjs"
+      ],
       "factTargets": [
         "growth_inventory"
       ],
@@ -1672,7 +1736,7 @@
       "costClass": "free",
       "approval": "automatic_after_sources_pass",
       "rawCache": null,
-      "status": "planned",
+      "status": "partial",
       "due_for_selected_cadence": false,
       "run_decision": {
         "status": "SKIP",

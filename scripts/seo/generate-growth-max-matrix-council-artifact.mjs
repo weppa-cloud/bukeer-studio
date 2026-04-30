@@ -86,6 +86,7 @@ const REQUIRED_FIELDS = [
 const ACTIVE_STATUSES = new Set([
   "active",
   "approved",
+  "queued",
   "ready",
   "ready-with-tracking-gap",
   "running",
@@ -102,7 +103,6 @@ const INACTIVE_STATUSES = new Set([
   "failed",
   "loss",
   "idea",
-  "queued",
   "candidate",
   "rejected",
   "stop",
@@ -540,7 +540,9 @@ function firstValue(source, aliases) {
 }
 
 function evaluateCandidates(candidates, activeLimit) {
-  const activeCandidates = candidates.filter((row) => row.is_active);
+  const activeCandidates = candidates.filter(
+    (row) => row.is_active && row.missing_fields.length === 0,
+  );
   const activeOrder = new Map(
     [...activeCandidates]
       .sort((left, right) => {
@@ -618,6 +620,12 @@ function missingInputRow(inputs) {
 
 function rollupStatus(rows) {
   if (rows.some((row) => row.decision === "rejected")) return "REJECTED";
+  if (
+    rows.some((row) => row.decision === "approved") &&
+    rows.some((row) => row.decision === "blocked")
+  ) {
+    return "PASS-WITH-WATCH";
+  }
   if (rows.some((row) => row.decision === "blocked")) return "BLOCKED";
   return "PASS";
 }

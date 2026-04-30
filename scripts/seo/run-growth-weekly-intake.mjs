@@ -58,6 +58,11 @@ async function main() {
     ]),
     nodeStep("cache_health", "scripts/seo/growth-cache-health-report.mjs", []),
     nodeStep(
+      "joint_normalizers",
+      "scripts/seo/run-growth-joint-normalizers.mjs",
+      apply ? ["--apply", "true"] : [],
+    ),
+    nodeStep(
       "max_matrix_orchestrator",
       "scripts/seo/run-growth-max-matrix-orchestrator.mjs",
       ["--cadence", "weekly"],
@@ -123,7 +128,12 @@ async function main() {
 
 function googleRefreshStep() {
   if (skipGoogleRefresh) return null;
-  const stepArgs = ["tsx", "scripts/seo/populate-growth-google-cache.ts"];
+  const stepArgs = [
+    "tsx",
+    "scripts/seo/populate-growth-google-cache.ts",
+    "--expanded",
+    "--locale",
+  ];
   if (apply) stepArgs.push("--apply");
   if (forceGoogle) stepArgs.push("--force");
   if (args.from) stepArgs.push(`--from=${args.from}`);

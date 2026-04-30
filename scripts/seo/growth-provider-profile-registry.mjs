@@ -95,7 +95,10 @@ export const GROWTH_PROVIDER_PROFILES = [
     inventoryOutputs: ["ctr_snippet_schema_competitor"],
     ownerIssues: ["#381", "#321"],
     status: "partial",
-    extractionScripts: ["lib/seo/serp-snapshot.ts"],
+    extractionScripts: [
+      "scripts/seo/run-dataforseo-max-performance-profiles.mjs",
+      "lib/seo/serp-snapshot.ts",
+    ],
     normalizerScripts: [],
     runPolicy:
       "Run only for approved priority keyword set; costly SERP options require per-run approval.",
@@ -114,7 +117,10 @@ export const GROWTH_PROVIDER_PROFILES = [
     factTargets: ["seo_local_serp_facts"],
     inventoryOutputs: ["local_visibility"],
     ownerIssues: ["#381", "#335"],
-    status: "planned",
+    status: "partial",
+    extractionScripts: [
+      "scripts/seo/run-dataforseo-max-performance-profiles.mjs",
+    ],
   }),
   profile({
     id: "dfs_keyword_volume_trends_v1",
@@ -188,7 +194,10 @@ export const GROWTH_PROVIDER_PROFILES = [
     factTargets: ["seo_keyword_gap_facts"],
     inventoryOutputs: ["content_authority_gap"],
     ownerIssues: ["#380", "#334"],
-    status: "planned",
+    status: "partial",
+    extractionScripts: [
+      "scripts/seo/run-dataforseo-max-performance-profiles.mjs",
+    ],
   }),
   profile({
     id: "dfs_backlinks_authority_v1",
@@ -204,7 +213,10 @@ export const GROWTH_PROVIDER_PROFILES = [
     factTargets: ["seo_backlink_facts"],
     inventoryOutputs: ["authority_backlog"],
     ownerIssues: ["#382", "#334"],
-    status: "planned",
+    status: "partial",
+    extractionScripts: [
+      "scripts/seo/run-dataforseo-max-performance-profiles.mjs",
+    ],
   }),
   profile({
     id: "dfs_backlinks_competitor_gap_v1",
@@ -220,7 +232,10 @@ export const GROWTH_PROVIDER_PROFILES = [
     factTargets: ["seo_backlink_gap_facts"],
     inventoryOutputs: ["outreach_pr_gap"],
     ownerIssues: ["#382", "#334"],
-    status: "planned",
+    status: "partial",
+    extractionScripts: [
+      "scripts/seo/run-dataforseo-max-performance-profiles.mjs",
+    ],
   }),
   profile({
     id: "dfs_business_local_v1",
@@ -236,7 +251,10 @@ export const GROWTH_PROVIDER_PROFILES = [
     factTargets: ["seo_local_reputation_facts"],
     inventoryOutputs: ["local_reputation_backlog"],
     ownerIssues: ["#383", "#335"],
-    status: "planned",
+    status: "partial",
+    extractionScripts: [
+      "scripts/seo/run-dataforseo-max-performance-profiles.mjs",
+    ],
   }),
   profile({
     id: "dfs_reviews_sentiment_v1",
@@ -252,7 +270,10 @@ export const GROWTH_PROVIDER_PROFILES = [
     factTargets: ["seo_review_facts"],
     inventoryOutputs: ["trust_reputation_backlog"],
     ownerIssues: ["#383", "#335"],
-    status: "planned",
+    status: "partial",
+    extractionScripts: [
+      "scripts/seo/run-dataforseo-max-performance-profiles.mjs",
+    ],
   }),
   profile({
     id: "dfs_ai_geo_visibility_v1",
@@ -288,7 +309,10 @@ export const GROWTH_PROVIDER_PROFILES = [
     factTargets: ["seo_content_sentiment_facts"],
     inventoryOutputs: ["brand_pr_content"],
     ownerIssues: ["#384", "#321"],
-    status: "planned",
+    status: "partial",
+    extractionScripts: [
+      "scripts/seo/run-dataforseo-max-performance-profiles.mjs",
+    ],
   }),
   profile({
     id: "dfs_domain_competitive_baseline_v1",
@@ -304,7 +328,10 @@ export const GROWTH_PROVIDER_PROFILES = [
     factTargets: ["seo_domain_competitive_facts"],
     inventoryOutputs: ["competitive_benchmark"],
     ownerIssues: ["#384", "#334"],
-    status: "planned",
+    status: "partial",
+    extractionScripts: [
+      "scripts/seo/run-dataforseo-max-performance-profiles.mjs",
+    ],
   }),
   profile({
     id: "dfs_merchant_watch_v1",
@@ -354,7 +381,9 @@ export const GROWTH_PROVIDER_PROFILES = [
     factTargets: ["seo_gsc_daily_facts"],
     inventoryOutputs: ["trend_decay_recovery"],
     ownerIssues: ["#378", "#321"],
-    status: "planned",
+    status: "partial",
+    extractionScripts: ["scripts/seo/populate-growth-google-cache.ts"],
+    normalizerScripts: ["scripts/seo/normalize-growth-gsc-cache.mjs"],
   }),
   profile({
     id: "gsc_daily_complete_image_v1",
@@ -369,7 +398,9 @@ export const GROWTH_PROVIDER_PROFILES = [
     factTargets: ["seo_gsc_image_facts"],
     inventoryOutputs: ["image_destination_opportunities"],
     ownerIssues: ["#378", "#314"],
-    status: "planned",
+    status: "partial",
+    extractionScripts: ["scripts/seo/populate-growth-google-cache.ts"],
+    normalizerScripts: ["scripts/seo/normalize-growth-gsc-cache.mjs"],
   }),
   profile({
     id: "gsc_council_28d_query_page_v1",
@@ -468,7 +499,9 @@ export const GROWTH_PROVIDER_PROFILES = [
     factTargets: ["seo_gsc_locale_facts"],
     inventoryOutputs: ["locale_launch_readiness"],
     ownerIssues: ["#378", "#314", "#315", "#316"],
-    status: "planned",
+    status: "partial",
+    extractionScripts: ["scripts/seo/populate-growth-google-cache.ts"],
+    normalizerScripts: ["scripts/seo/normalize-growth-gsc-cache.mjs"],
   }),
   profile({
     id: "gsc_brand_nonbrand_v1",
@@ -483,7 +516,9 @@ export const GROWTH_PROVIDER_PROFILES = [
     factTargets: ["seo_gsc_brand_facts"],
     inventoryOutputs: ["brand_nonbrand_health"],
     ownerIssues: ["#378", "#321"],
-    status: "planned",
+    status: "partial",
+    extractionScripts: ["scripts/seo/populate-growth-google-cache.ts"],
+    normalizerScripts: ["scripts/seo/normalize-growth-gsc-cache.mjs"],
   }),
   profile({
     id: "ga4_daily_landing_channel_v1",
@@ -498,7 +533,9 @@ export const GROWTH_PROVIDER_PROFILES = [
     factTargets: ["seo_ga4_landing_daily_facts"],
     inventoryOutputs: ["channel_quality_trend"],
     ownerIssues: ["#379", "#321"],
-    status: "planned",
+    status: "partial",
+    extractionScripts: ["scripts/seo/populate-growth-google-cache.ts"],
+    normalizerScripts: ["scripts/seo/normalize-growth-ga4-cache.mjs"],
   }),
   profile({
     id: "ga4_council_landing_channel_28d_v1",
@@ -581,7 +618,9 @@ export const GROWTH_PROVIDER_PROFILES = [
     factTargets: ["seo_ga4_geo_facts"],
     inventoryOutputs: ["market_conversion_gap"],
     ownerIssues: ["#379", "#321"],
-    status: "planned",
+    status: "partial",
+    extractionScripts: ["scripts/seo/populate-growth-google-cache.ts"],
+    normalizerScripts: ["scripts/seo/normalize-growth-ga4-cache.mjs"],
   }),
   profile({
     id: "ga4_device_landing_28d_v1",
@@ -596,7 +635,9 @@ export const GROWTH_PROVIDER_PROFILES = [
     factTargets: ["seo_ga4_device_facts"],
     inventoryOutputs: ["mobile_cro"],
     ownerIssues: ["#379", "#321"],
-    status: "planned",
+    status: "partial",
+    extractionScripts: ["scripts/seo/populate-growth-google-cache.ts"],
+    normalizerScripts: ["scripts/seo/normalize-growth-ga4-cache.mjs"],
   }),
   profile({
     id: "ga4_hostname_locale_28d_v1",
@@ -611,7 +652,9 @@ export const GROWTH_PROVIDER_PROFILES = [
     factTargets: ["seo_ga4_locale_facts"],
     inventoryOutputs: ["locale_measurement_gap"],
     ownerIssues: ["#379", "#314", "#315"],
-    status: "planned",
+    status: "partial",
+    extractionScripts: ["scripts/seo/populate-growth-google-cache.ts"],
+    normalizerScripts: ["scripts/seo/normalize-growth-ga4-cache.mjs"],
   }),
   profile({
     id: "ga4_internal_search_v1",
@@ -626,7 +669,9 @@ export const GROWTH_PROVIDER_PROFILES = [
     factTargets: ["seo_ga4_search_facts"],
     inventoryOutputs: ["onsite_demand"],
     ownerIssues: ["#379", "#314"],
-    status: "planned",
+    status: "partial",
+    extractionScripts: ["scripts/seo/populate-growth-google-cache.ts"],
+    normalizerScripts: ["scripts/seo/normalize-growth-ga4-cache.mjs"],
   }),
   profile({
     id: "ga4_file_outbound_engagement_v1",
@@ -641,7 +686,9 @@ export const GROWTH_PROVIDER_PROFILES = [
     factTargets: ["seo_ga4_engagement_facts"],
     inventoryOutputs: ["engagement_depth"],
     ownerIssues: ["#379", "#321"],
-    status: "planned",
+    status: "partial",
+    extractionScripts: ["scripts/seo/populate-growth-google-cache.ts"],
+    normalizerScripts: ["scripts/seo/normalize-growth-ga4-cache.mjs"],
   }),
   profile({
     id: "tracking_conversion_facts_v1",
@@ -676,6 +723,7 @@ export const GROWTH_PROVIDER_PROFILES = [
     ownerIssues: ["#385", "#321"],
     status: "partial",
     normalizerScripts: [
+      "scripts/seo/run-growth-joint-normalizers.mjs",
       "scripts/seo/normalize-growth-gsc-cache.mjs",
       "scripts/seo/normalize-growth-ga4-cache.mjs",
     ],
@@ -693,7 +741,8 @@ export const GROWTH_PROVIDER_PROFILES = [
     factTargets: ["growth_inventory"],
     inventoryOutputs: ["market_rows"],
     ownerIssues: ["#385", "#321"],
-    status: "planned",
+    status: "partial",
+    normalizerScripts: ["scripts/seo/run-growth-joint-normalizers.mjs"],
   }),
   profile({
     id: "growth_mobile_seo_cro_v1",
@@ -708,7 +757,8 @@ export const GROWTH_PROVIDER_PROFILES = [
     factTargets: ["growth_inventory"],
     inventoryOutputs: ["mobile_rows"],
     ownerIssues: ["#385", "#321"],
-    status: "planned",
+    status: "partial",
+    normalizerScripts: ["scripts/seo/run-growth-joint-normalizers.mjs"],
   }),
   profile({
     id: "growth_post_fix_validation_v1",
@@ -773,7 +823,8 @@ export const GROWTH_PROVIDER_PROFILES = [
     factTargets: ["growth_inventory"],
     inventoryOutputs: ["authority_content_rows"],
     ownerIssues: ["#385", "#334", "#314"],
-    status: "planned",
+    status: "partial",
+    normalizerScripts: ["scripts/seo/run-growth-joint-normalizers.mjs"],
   }),
   profile({
     id: "growth_ai_geo_conversion_fit_v1",
@@ -788,7 +839,8 @@ export const GROWTH_PROVIDER_PROFILES = [
     factTargets: ["growth_inventory"],
     inventoryOutputs: ["ai_geo_rows"],
     ownerIssues: ["#385", "#384", "#321"],
-    status: "planned",
+    status: "partial",
+    normalizerScripts: ["scripts/seo/run-growth-joint-normalizers.mjs"],
   }),
 ];
 

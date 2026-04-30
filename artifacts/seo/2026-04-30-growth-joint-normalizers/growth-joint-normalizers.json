@@ -1,0 +1,215 @@
+{
+  "generated_at": "2026-04-30T18:26:59.637Z",
+  "mode": "dry-run",
+  "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+  "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+  "run_date": "2026-04-30",
+  "rules": {
+    "max_council_rows": 5,
+    "evaluation_days": 14,
+    "side_effects": "dry-run only; no DB mutations",
+    "backlog_mass_policy": "All eligible backlog rows are scored and reported, but only the top Council-ready rows are promoted."
+  },
+  "input_counts": {
+    "growth_inventory": 500,
+    "growth_gsc_cache": 10,
+    "growth_ga4_cache": 9,
+    "funnel_events": 24,
+    "meta_conversion_events": 16
+  },
+  "source_health": {
+    "growth_gsc_cache": "PASS",
+    "growth_ga4_cache": "PASS",
+    "funnel_events": "PASS",
+    "meta_conversion_events": "PASS"
+  },
+  "counts": {
+    "candidates": 278,
+    "council_ready": 278,
+    "council_promoted": 5,
+    "backlog_rows": 0,
+    "apply_updated": 0,
+    "apply_skipped": 0
+  },
+  "council_rows": [
+    {
+      "id": "baae439b-19ef-4b2c-8520-c0bf3ab054e1",
+      "source_url": "https://en.colombiatours.travel/",
+      "status": "queued",
+      "council_ready": true,
+      "missing_fields": [],
+      "priority_score": 33593,
+      "profiles": [
+        "growth_mobile_seo_cro_v1",
+        "growth_market_fit_v1"
+      ],
+      "baseline": "Window 2026-04-02..2026-04-29; GSC 29485 impressions / 138 clicks / 0.5% CTR / pos 45.0; source row baae439b-19ef-4b2c-8520-c0bf3ab054e1",
+      "owner": "A5 Growth Ops",
+      "owner_issue": "#310",
+      "success_metric": "Improve organic CTR, clicks, or average position on the next 28d GSC window",
+      "evaluation_date": "2026-05-14T00:00:00.000Z",
+      "experiment_id": "gm_mobile_seo_cro_baae439b19",
+      "next_action": "GSC date_page_trend_watch, query_page_poor_position, page_device_mobile, page_country_market. trend: late 37 clicks/6647 impr vs early 32/6535; pos 37.9 -> 43.4 | colombia tours: 2256 impr at avg pos 34.7 | mobile: 2239 impr, 0.7% CTR, pos 43.5 | mobile: 2200 impr, 0.7% CTR, pos 44.0 | GBR: 1326 impr, 0.1% CTR, pos 55.8 | GBR: 1298 impr, 0.1% CTR, pos 56.0 | USA: 1334 impr, 0.4% CTR, pos 42.5 | USA: 1302 impr, 0.4% CTR, pos 42.7. Source cache/window: date_page_trend_watch:2026-04-02..2026-04-29:2026-04-02|2026-04-29|date,page|*|es|25000 ; query_page_poor_position:2026-04-02..2026-04-29:2026-04-02|2026-04-29|query,page|*|es|25000 ; page_device_mobile:2026-04-02..2026-04-29:2026-04-02|2026-04-29|page,device|*|es|25000 ; page_country_market:2026-04-01..2026-04-28:2026-04-01|2026-04-28|page,country|*|es|25000. Next: brief SEO/content owner on title/snippet, ranking gap, market/device, or trend action before next Growth Council.",
+      "source_refs": {
+        "gsc": [
+          "query,page:2026-04-02|2026-04-29|query,page|*|es|25000",
+          "page,country:2026-04-02|2026-04-29|page,country|*|es|25000",
+          "page,device:2026-04-02|2026-04-29|page,device|*|es|25000",
+          "date,page:2026-04-02|2026-04-29|date,page|*|es|25000",
+          "query,page:profile|gsc_brand_nonbrand_v1|brand_query_page|2026-04-02|2026-04-29|query,page|web|query%3AincludingRegex%3Abukeer%7Ccolombia%5Cs*tours%3F%7Ccolombiatours|brand|es|25000",
+          "query,page:profile|gsc_brand_nonbrand_v1|nonbrand_query_page|2026-04-02|2026-04-29|query,page|web|query%3AexcludingRegex%3Abukeer%7Ccolombia%5Cs*tours%3F%7Ccolombiatours|nonbrand|es|25000"
+        ],
+        "ga4": [],
+        "funnel": [],
+        "meta": []
+      }
+    },
+    {
+      "id": "bc7cf7f7-c976-4cf9-9986-931ea6c5e2e4",
+      "source_url": "https://en.colombiatours.travel/los-10-mejores-destinos-para-conocer-colombia",
+      "status": "queued",
+      "council_ready": true,
+      "missing_fields": [],
+      "priority_score": 29412,
+      "profiles": [
+        "growth_mobile_seo_cro_v1",
+        "growth_market_fit_v1"
+      ],
+      "baseline": "Window 2026-04-02..2026-04-29; GSC 30611 impressions / 56 clicks / 0.2% CTR / pos 5.1; source row bc7cf7f7-c976-4cf9-9986-931ea6c5e2e4",
+      "owner": "A5 Growth Ops",
+      "owner_issue": "#310",
+      "success_metric": "Improve organic CTR, clicks, or average position on the next 28d GSC window",
+      "evaluation_date": "2026-05-14T00:00:00.000Z",
+      "experiment_id": "gm_mobile_seo_cro_bc7cf7f7c9",
+      "next_action": "GSC date_page_trend_watch, page_device_mobile, page_country_market, query_page_low_ctr. trend: late 10 clicks/6506 impr vs early 23/9964; pos 4.5 -> 5.3 | mobile: 4446 impr, 0.2% CTR, pos 3.5 | mobile: 4222 impr, 0.2% CTR, pos 3.5 | COL: 2424 impr, 0.2% CTR, pos 4.8 | COL: 2290 impr, 0.2% CTR, pos 5.0 | MEX: 974 impr, 0.0% CTR, pos 3.4 | MEX: 947 impr, 0.0% CTR, pos 3.4 | USA: 520 impr, 0.2% CTR, pos 8.5. Source cache/window: date_page_trend_watch:2026-04-02..2026-04-29:2026-04-02|2026-04-29|date,page|*|es|25000 ; page_device_mobile:2026-04-02..2026-04-29:2026-04-02|2026-04-29|page,device|*|es|25000 ; page_country_market:2026-04-02..2026-04-29:2026-04-02|2026-04-29|page,country|*|es|25000 ; query_page_low_ctr:2026-04-01..2026-04-28:2026-04-01|2026-04-28|query,page|*|es|25000. Next: brief SEO/content owner on title/snippet, ranking gap, market/device, or trend action before next Growth Council.",
+      "source_refs": {
+        "gsc": [
+          "query,page:2026-04-02|2026-04-29|query,page|*|es|25000",
+          "page,country:2026-04-02|2026-04-29|page,country|*|es|25000",
+          "page,device:2026-04-02|2026-04-29|page,device|*|es|25000",
+          "date,page:2026-04-02|2026-04-29|date,page|*|es|25000",
+          "query,page:profile|gsc_brand_nonbrand_v1|nonbrand_query_page|2026-04-02|2026-04-29|query,page|web|query%3AexcludingRegex%3Abukeer%7Ccolombia%5Cs*tours%3F%7Ccolombiatours|nonbrand|es|25000"
+        ],
+        "ga4": [],
+        "funnel": [],
+        "meta": []
+      }
+    },
+    {
+      "id": "d3327fb6-1440-430d-90d8-b6c7f1adc23f",
+      "source_url": "https://en.colombiatours.travel/los-10-mejores-lugares-turisticos-de-colombia",
+      "status": "queued",
+      "council_ready": true,
+      "missing_fields": [],
+      "priority_score": 14353,
+      "profiles": [
+        "growth_mobile_seo_cro_v1",
+        "growth_market_fit_v1"
+      ],
+      "baseline": "Window 2026-04-02..2026-04-29; GSC 14994 impressions / 57 clicks / 0.4% CTR / pos 6.8; source row d3327fb6-1440-430d-90d8-b6c7f1adc23f",
+      "owner": "A5 Growth Ops",
+      "owner_issue": "#310",
+      "success_metric": "Improve organic CTR, clicks, or average position on the next 28d GSC window",
+      "evaluation_date": "2026-05-14T00:00:00.000Z",
+      "experiment_id": "gm_mobile_seo_cro_d3327fb614",
+      "next_action": "GSC date_page_trend_watch, page_device_mobile, page_country_market, query_page_low_ctr. trend: late 12 clicks/3368 impr vs early 23/5597; pos 5.1 -> 8.0 | mobile: 1928 impr, 0.4% CTR, pos 2.6 | mobile: 1876 impr, 0.4% CTR, pos 2.6 | COL: 1176 impr, 0.4% CTR, pos 4.6 | COL: 1153 impr, 0.4% CTR, pos 4.6 | USA: 412 impr, 0.0% CTR, pos 11.9 | ESP: 41 impr, 0.0% CTR, pos 55.7 | ESP: 40 impr, 0.0% CTR, pos 55.6. Source cache/window: date_page_trend_watch:2026-04-02..2026-04-29:2026-04-02|2026-04-29|date,page|*|es|25000 ; page_device_mobile:2026-04-02..2026-04-29:2026-04-02|2026-04-29|page,device|*|es|25000 ; page_country_market:2026-04-02..2026-04-29:2026-04-02|2026-04-29|page,country|*|es|25000 ; query_page_low_ctr:2026-04-01..2026-04-28:2026-04-01|2026-04-28|query,page|*|es|25000. Next: brief SEO/content owner on title/snippet, ranking gap, market/device, or trend action before next Growth Council.",
+      "source_refs": {
+        "gsc": [
+          "query,page:2026-04-02|2026-04-29|query,page|*|es|25000",
+          "page,country:2026-04-02|2026-04-29|page,country|*|es|25000",
+          "page,device:2026-04-02|2026-04-29|page,device|*|es|25000",
+          "date,page:2026-04-02|2026-04-29|date,page|*|es|25000",
+          "query,page:profile|gsc_brand_nonbrand_v1|nonbrand_query_page|2026-04-02|2026-04-29|query,page|web|query%3AexcludingRegex%3Abukeer%7Ccolombia%5Cs*tours%3F%7Ccolombiatours|nonbrand|es|25000"
+        ],
+        "ga4": [],
+        "funnel": [],
+        "meta": []
+      }
+    },
+    {
+      "id": "5a17bfc9-3df2-4957-944c-3514250ed7dd",
+      "source_url": "https://colombiatours.travel/guia-completa-lada-a-colombia",
+      "status": "queued",
+      "council_ready": true,
+      "missing_fields": [],
+      "priority_score": 12482,
+      "profiles": [
+        "growth_search_to_activation_v1",
+        "growth_mobile_seo_cro_v1",
+        "growth_market_fit_v1"
+      ],
+      "baseline": "Window 2026-04-02..2026-04-29; GSC 8703 impressions / 0 clicks / 0.0% CTR / pos 11.9; GA4 12 sessions / 20.0% engagement; source row 5a17bfc9-3df2-4957-944c-3514250ed7dd",
+      "owner": "A5 Growth Ops",
+      "owner_issue": "#310",
+      "success_metric": "Improve organic CTR, clicks, or average position on the next 28d GSC window",
+      "evaluation_date": "2026-05-14T00:00:00.000Z",
+      "experiment_id": "gm_search_to_activation_5a17bfc93d",
+      "next_action": "GSC date_page_trend_watch, page_country_market, page_device_mobile, query_page_low_ctr. trend: late 0 clicks/2238 impr vs early 0/2740; pos 6.5 -> 19.7 | MEX: 1382 impr, 0.0% CTR, pos 4.1 | MEX: 1213 impr, 0.0% CTR, pos 4.3 | mobile: 1403 impr, 0.0% CTR, pos 3.7 | mobile: 1246 impr, 0.0% CTR, pos 3.8 | USA: 187 impr, 0.0% CTR, pos 46.9 | USA: 170 impr, 0.0% CTR, pos 47.7 | COL: 48 impr, 0.0% CTR, pos 28.9. Source cache/window: date_page_trend_watch:2026-04-02..2026-04-29:2026-04-02|2026-04-29|date,page|*|es|25000 ; page_country_market:2026-04-01..2026-04-28:2026-04-01|2026-04-28|page,country|*|es|25000 ; page_device_mobile:2026-04-02..2026-04-29:2026-04-02|2026-04-29|page,device|*|es|25000 ; query_page_low_ctr:2026-04-01..2026-04-28:2026-04-01|2026-04-28|query,page|*|es|25000. Next: brief SEO/content owner on title/snippet, ranking gap, market/device, or trend action before next Growth Council.",
+      "source_refs": {
+        "gsc": [
+          "query,page:2026-04-02|2026-04-29|query,page|*|es|25000",
+          "page,country:2026-04-02|2026-04-29|page,country|*|es|25000",
+          "page,device:2026-04-02|2026-04-29|page,device|*|es|25000",
+          "date,page:2026-04-02|2026-04-29|date,page|*|es|25000",
+          "query,page:profile|gsc_brand_nonbrand_v1|nonbrand_query_page|2026-04-02|2026-04-29|query,page|web|query%3AexcludingRegex%3Abukeer%7Ccolombia%5Cs*tours%3F%7Ccolombiatours|nonbrand|es|25000"
+        ],
+        "ga4": [
+          "2026-04-02|2026-04-29|sessions,totalUsers,screenPageViews,engagementRate,conversions|landingPagePlusQueryString,sessionDefaultChannelGroup|es|10000|*",
+          "2026-04-02|2026-04-29|sessions,totalUsers,screenPageViews,engagementRate,conversions|pagePath,sessionSourceMedium|es|10000|*",
+          "2026-04-02|2026-04-29|eventCount,conversions|eventName,pagePath|es|10000|*"
+        ],
+        "funnel": [],
+        "meta": []
+      }
+    },
+    {
+      "id": "83c48669-bee8-4961-bcb0-d414069083df",
+      "source_url": "https://colombiatours.travel/las-mejores-agencias-de-viaje-en-colombia",
+      "status": "queued",
+      "council_ready": true,
+      "missing_fields": [],
+      "priority_score": 9106,
+      "profiles": [
+        "growth_search_to_activation_v1",
+        "growth_mobile_seo_cro_v1",
+        "growth_market_fit_v1"
+      ],
+      "baseline": "Window 2026-04-02..2026-04-29; GSC 8356 impressions / 6 clicks / 0.1% CTR / pos 17.8; GA4 31 sessions / 52.3% engagement; source row 83c48669-bee8-4961-bcb0-d414069083df",
+      "owner": "A5 Growth Ops",
+      "owner_issue": "#310",
+      "success_metric": "Improve organic CTR, clicks, or average position on the next 28d GSC window",
+      "evaluation_date": "2026-05-14T00:00:00.000Z",
+      "experiment_id": "gm_search_to_activation_83c48669be",
+      "next_action": "GSC page_country_market, date_page_trend_watch, page_device_mobile, query_page_poor_position, query_page_low_ctr. COL: 1309 impr, 0.1% CTR, pos 16.0 | COL: 1294 impr, 0.1% CTR, pos 16.0 | trend: late 2 clicks/3243 impr vs early 2/1936; pos 14.0 -> 12.4 | mobile: 1108 impr, 0.1% CTR, pos 9.3 | mobile: 1091 impr, 0.1% CTR, pos 9.2 | ESP: 98 impr, 0.0% CTR, pos 32.9 | ESP: 99 impr, 0.0% CTR, pos 32.7 | agencias de viajes confiables en bogotá: 192 impr at avg pos 11.9. Source cache/window: page_country_market:2026-04-01..2026-04-28:2026-04-01|2026-04-28|page,country|*|es|25000 ; date_page_trend_watch:2026-04-02..2026-04-29:2026-04-02|2026-04-29|date,page|*|es|25000 ; page_device_mobile:2026-04-02..2026-04-29:2026-04-02|2026-04-29|page,device|*|es|25000 ; query_page_poor_position:2026-04-02..2026-04-29:2026-04-02|2026-04-29|query,page|*|es|25000 ; query_page_low_ctr:2026-04-01..2026-04-28:2026-04-01|2026-04-28|query,page|*|es|25000. Next: brief SEO/content owner on title/snippet, ranking gap, market/device, or trend action before next Growth Council.",
+      "source_refs": {
+        "gsc": [
+          "query,page:2026-04-02|2026-04-29|query,page|*|es|25000",
+          "page,country:2026-04-02|2026-04-29|page,country|*|es|25000",
+          "page,device:2026-04-02|2026-04-29|page,device|*|es|25000",
+          "date,page:2026-04-02|2026-04-29|date,page|*|es|25000",
+          "query,page:profile|gsc_brand_nonbrand_v1|brand_query_page|2026-04-02|2026-04-29|query,page|web|query%3AincludingRegex%3Abukeer%7Ccolombia%5Cs*tours%3F%7Ccolombiatours|brand|es|25000",
+          "query,page:profile|gsc_brand_nonbrand_v1|nonbrand_query_page|2026-04-02|2026-04-29|query,page|web|query%3AexcludingRegex%3Abukeer%7Ccolombia%5Cs*tours%3F%7Ccolombiatours|nonbrand|es|25000"
+        ],
+        "ga4": [
+          "2026-04-02|2026-04-29|sessions,totalUsers,screenPageViews,engagementRate,conversions|landingPagePlusQueryString,sessionDefaultChannelGroup|es|10000|*",
+          "2026-04-02|2026-04-29|sessions,totalUsers,screenPageViews,engagementRate,conversions|pagePath,sessionSourceMedium|es|10000|*",
+          "2026-04-02|2026-04-29|eventCount,conversions|eventName,pagePath|es|10000|*"
+        ],
+        "funnel": [],
+        "meta": []
+      }
+    }
+  ],
+  "backlog_summary": {
+    "count": 0,
+    "by_missing_field": {},
+    "by_profile": {},
+    "by_status": {}
+  },
+  "backlog_top_rows": [],
+  "apply_result": {
+    "applied": false,
+    "updated": [],
+    "skipped": []
+  }
+}
