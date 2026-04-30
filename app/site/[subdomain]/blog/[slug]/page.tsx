@@ -21,6 +21,7 @@ import {
   buildPublicLocalizedPath,
   localeToOgLocale,
 } from "@/lib/seo/locale-routing";
+import { isEnBlogQualityBlocked } from "@/lib/seo/en-quality-gate";
 import { normalizePublicMetadataTitle } from "@/lib/seo/metadata-title";
 import { getPublicUiMessages } from "@/lib/site/public-ui-messages";
 
@@ -121,7 +122,10 @@ export async function generateMetadata({
   };
 
   // F2: Blog post noindex support
-  if ((post as unknown as { robots_noindex?: boolean }).robots_noindex) {
+  if (
+    (post as unknown as { robots_noindex?: boolean }).robots_noindex ||
+    isEnBlogQualityBlocked(localizedLocaleContext.resolvedLocale, post.slug)
+  ) {
     metadata.robots = { index: false, follow: true };
   }
 

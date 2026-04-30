@@ -51,27 +51,27 @@
  * @see app/api/waflow/lead/route.ts (pattern reference)
  */
 
-import { createClient } from '@supabase/supabase-js';
-import { NextRequest } from 'next/server';
-import { z } from 'zod';
+import { createClient } from "@supabase/supabase-js";
+import { NextRequest } from "next/server";
+import { z } from "zod";
 
 import {
   apiInternalError,
   apiSuccess,
   apiValidationError,
-} from '@/lib/api/response';
-import { buildEventId } from '@/lib/growth/event-id';
-import { insertFunnelEvent } from '@/lib/growth/funnel-events';
-import { parseAttribution } from '@/lib/growth/attribution-parser';
-import { createLogger } from '@/lib/logger';
+} from "@/lib/api/response";
+import { buildEventId } from "@/lib/growth/event-id";
+import { insertFunnelEvent } from "@/lib/growth/funnel-events";
+import { parseAttribution } from "@/lib/growth/attribution-parser";
+import { createLogger } from "@/lib/logger";
 import {
   GrowthAttributionSchema,
   type FunnelEventIngest,
   type GrowthAttribution,
   type GrowthMarket,
-} from '@bukeer/website-contract';
+} from "@bukeer/website-contract";
 
-const log = createLogger('api.growth.events.whatsapp-cta');
+const log = createLogger("api.growth.events.whatsapp-cta");
 
 const RequestSchema = z.object({
   reference_code: z.string().trim().min(8).max(64),
@@ -84,7 +84,7 @@ const RequestSchema = z.object({
     .regex(/^[a-z]{2}(-[A-Z]{2})?$/)
     .optional()
     .nullable(),
-  market: z.enum(['CO', 'MX', 'US', 'CA', 'EU', 'OTHER']).optional().nullable(),
+  market: z.enum(["CO", "MX", "US", "CA", "EU", "OTHER"]).optional().nullable(),
   location_context: z.string().trim().max(80).optional().nullable(),
   variant: z.string().trim().max(8).optional().nullable(),
   destination_slug: z.string().trim().max(160).optional().nullable(),
@@ -100,7 +100,7 @@ const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 function createSupabaseAdmin() {
   if (!supabaseUrl || !serviceRoleKey) {
     throw new Error(
-      'Missing Supabase environment variables for whatsapp-cta beacon API',
+      "Missing Supabase environment variables for whatsapp-cta beacon API",
     );
   }
   return createClient(supabaseUrl, serviceRoleKey, {
@@ -110,29 +110,83 @@ function createSupabaseAdmin() {
 
 async function resolveTenant(
   subdomain: string | null | undefined,
+  sourceUrl: string | null | undefined,
+  requestHost: string | null,
 ): Promise<{ accountId: string | null; websiteId: string | null }> {
-  if (!subdomain) return { accountId: null, websiteId: null };
+  const tenantLookup = normalizeTenantLookup(subdomain, sourceUrl, requestHost);
+  if (!tenantLookup) return { accountId: null, websiteId: null };
+
   try {
     const supabase = createSupabaseAdmin();
-    const { data, error } = await supabase
-      .from('websites')
-      .select('id,account_id')
-      .eq('subdomain', subdomain)
-      .eq('status', 'published')
-      .maybeSingle<{ id: string; account_id: string | null }>();
+    let query = supabase
+      .from("websites")
+      .select("id,account_id")
+      .eq("status", "published");
+    query =
+      tenantLookup.kind === "subdomain"
+        ? query.eq("subdomain", tenantLookup.value)
+        : query.eq("custom_domain", tenantLookup.value);
+
+    const { data, error } = await query.maybeSingle<{
+      id: string;
+      account_id: string | null;
+    }>();
     if (error) {
-      log.warn('tenant_lookup_failed', { subdomain, error: error.message });
+      log.warn("tenant_lookup_failed", {
+        lookup: tenantLookup,
+        error: error.message,
+      });
       return { accountId: null, websiteId: null };
     }
     if (!data) return { accountId: null, websiteId: null };
     return { accountId: data.account_id, websiteId: data.id };
   } catch (error) {
-    log.warn('tenant_lookup_threw', {
-      subdomain,
+    log.warn("tenant_lookup_threw", {
+      lookup: tenantLookup,
       error: error instanceof Error ? error.message : String(error),
     });
     return { accountId: null, websiteId: null };
   }
+}
+
+function normalizeTenantLookup(
+  subdomain: string | null | undefined,
+  sourceUrl: string | null | undefined,
+  requestHost: string | null,
+): { kind: "subdomain" | "custom_domain"; value: string } | null {
+  const explicitSubdomain = normalizeHostToken(subdomain);
+  if (explicitSubdomain) {
+    return { kind: "subdomain", value: explicitSubdomain };
+  }
+
+  const host = normalizeHostToken(extractHost(sourceUrl) ?? requestHost);
+  if (!host) return null;
+  if (host === "localhost" || /^\d+\.\d+\.\d+\.\d+$/.test(host)) return null;
+
+  if (host.endsWith(".bukeer.com")) {
+    const [firstLabel] = host.split(".");
+    return firstLabel ? { kind: "subdomain", value: firstLabel } : null;
+  }
+
+  return { kind: "custom_domain", value: host };
+}
+
+function extractHost(value: string | null | undefined): string | null {
+  if (!value) return null;
+  try {
+    return new URL(value).hostname;
+  } catch {
+    return null;
+  }
+}
+
+function normalizeHostToken(value: string | null | undefined): string | null {
+  const text = String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/^www\./, "")
+    .replace(/\.$/, "");
+  return text || null;
 }
 
 function safeAttribution(
@@ -147,8 +201,8 @@ function safeAttribution(
       referrer: body.referrer ?? null,
       account_id: tenant.accountId,
       website_id: tenant.websiteId,
-      locale: body.locale ?? 'es-CO',
-      market: (body.market ?? 'CO') as GrowthMarket,
+      locale: body.locale ?? "es-CO",
+      market: (body.market ?? "CO") as GrowthMarket,
       reference_code: body.reference_code,
       // session_key has its own contract; the CTA beacon doesn't carry the
       // WAFlow session uuid so we use the reference_code as a stable surrogate.
@@ -158,7 +212,7 @@ function safeAttribution(
     // `GrowthAttribution` shape FunnelEventSchema expects.
     return GrowthAttributionSchema.parse(candidate);
   } catch (error) {
-    log.warn('attribution_parse_failed', {
+    log.warn("attribution_parse_failed", {
       error: error instanceof Error ? error.message : String(error),
     });
     return null;
@@ -175,26 +229,30 @@ export async function POST(request: NextRequest) {
     return apiValidationError(
       new z.ZodError([
         {
-          code: 'custom',
+          code: "custom",
           path: [],
-          message: 'Invalid JSON body',
+          message: "Invalid JSON body",
           input: undefined,
         },
       ]),
     );
   }
 
-  const tenant = await resolveTenant(body.subdomain);
+  const tenant = await resolveTenant(
+    body.subdomain,
+    body.source_url,
+    request.headers.get("host"),
+  );
 
   // Orphan beacon (no tenant resolved) — drop silently. The redirect to wa.me
   // already happened on the client; failing here would be noise without
   // signal. We still return 200 so sendBeacon() doesn't surface as an error.
   if (!tenant.accountId || !tenant.websiteId) {
-    log.warn('orphan_beacon_dropped', {
+    log.warn("orphan_beacon_dropped", {
       subdomain: body.subdomain ?? null,
       reference_code: body.reference_code,
     });
-    return apiSuccess({ event_id: null, deduped: false, dropped: 'no_tenant' });
+    return apiSuccess({ event_id: null, deduped: false, dropped: "no_tenant" });
   }
 
   const occurredAt = body.occurred_at ? new Date(body.occurred_at) : new Date();
@@ -202,10 +260,10 @@ export async function POST(request: NextRequest) {
     return apiValidationError(
       new z.ZodError([
         {
-          code: 'invalid_type',
-          path: ['occurred_at'],
-          message: 'occurred_at is not a valid ISO datetime',
-          expected: 'string',
+          code: "invalid_type",
+          path: ["occurred_at"],
+          message: "occurred_at is not a valid ISO datetime",
+          expected: "string",
           input: body.occurred_at,
         } as z.core.$ZodIssue,
       ]),
@@ -215,7 +273,7 @@ export async function POST(request: NextRequest) {
   try {
     const eventId = await buildEventId({
       reference_code: body.reference_code,
-      event_name: 'whatsapp_cta_click',
+      event_name: "whatsapp_cta_click",
       occurred_at: occurredAt,
     });
 
@@ -223,14 +281,14 @@ export async function POST(request: NextRequest) {
 
     const ingest: FunnelEventIngest = {
       event_id: eventId,
-      event_name: 'whatsapp_cta_click',
-      stage: 'activation',
-      channel: 'whatsapp',
+      event_name: "whatsapp_cta_click",
+      stage: "activation",
+      channel: "whatsapp",
       reference_code: body.reference_code,
       account_id: tenant.accountId,
       website_id: tenant.websiteId,
-      locale: body.locale ?? 'es-CO',
-      market: (body.market ?? 'CO') as GrowthMarket,
+      locale: body.locale ?? "es-CO",
+      market: (body.market ?? "CO") as GrowthMarket,
       occurred_at: occurredAt.toISOString(),
       source_url: body.source_url ?? null,
       page_path: body.page_path ?? null,
@@ -247,10 +305,10 @@ export async function POST(request: NextRequest) {
     const result = await insertFunnelEvent(createSupabaseAdmin(), ingest);
     return apiSuccess({ event_id: result.event_id, deduped: result.deduped });
   } catch (error) {
-    log.error('emit_failed', {
+    log.error("emit_failed", {
       reference_code: body.reference_code,
       error: error instanceof Error ? error.message : String(error),
     });
-    return apiInternalError('Failed to record whatsapp_cta_click event');
+    return apiInternalError("Failed to record whatsapp_cta_click event");
   }
 }
