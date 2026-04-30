@@ -73,6 +73,7 @@ type LifecycleEvent =
   | "ConversationContinued"
   | "QualifiedLead"
   | "QuoteSent";
+type ChatwootGrowthAttributeValue = string | number | boolean | null;
 
 interface WaflowLeadRow {
   id: string;
@@ -91,6 +92,12 @@ interface CrmRequestRow {
   custom_fields: JsonRecord | null;
   lead_source: string | null;
   lead_source_detail: string | null;
+}
+
+interface CrmRequestLinkResult {
+  requestId: string | null;
+  shortId: string | null;
+  status: "linked" | "conflict" | "not_found";
 }
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -147,6 +154,11 @@ function extractConversation(payload: ChatwootPayload): JsonRecord {
   };
 }
 
+function extractConversationMessages(payload: ChatwootPayload): JsonRecord[] {
+  const messages = extractConversation(payload).messages;
+  return Array.isArray(messages) ? messages.map(readRecord) : [];
+}
+
 function extractConversationId(payload: ChatwootPayload): string | null {
   const conversation = extractConversation(payload);
   return (
@@ -181,11 +193,16 @@ function extractContact(payload: ChatwootPayload): JsonRecord {
 }
 
 function extractMessageText(payload: ChatwootPayload): string {
+  const conversationMessages = extractConversationMessages(payload);
   const textParts = [
     payload.content,
     cleanString(payload.message?.content),
     cleanString(payload.message?.processed_message_content),
     ...(payload.messages ?? []).map((message) => cleanString(message.content)),
+    ...conversationMessages.map((message) => cleanString(message.content)),
+    ...conversationMessages.map((message) =>
+      cleanString(message.processed_message_content),
+    ),
   ];
   return textParts.filter(Boolean).join("\n");
 }
@@ -195,9 +212,48 @@ function extractReferenceCode(payload: ChatwootPayload): string | null {
   const direct =
     cleanString(attrs.reference_code) ??
     cleanString(attrs.referenceCode) ??
+    cleanString(attrs.growth_current_reference_code) ??
+    cleanString(attrs.growth_last_reference_code) ??
+    cleanString(attrs.growth_reference_code) ??
     cleanString(attrs.waflow_reference_code) ??
     cleanString(attrs.waflow_ref);
   if (direct) return direct.toUpperCase();
+
+  const history = attrs.growth_reference_history;
+  if (Array.isArray(history)) {
+    const latest = history
+      .map((item) =>
+        typeof item === "string"
+          ? item
+          : cleanString(readRecord(item).reference_code),
+      )
+      .filter(Boolean)
+      .at(-1);
+    if (latest) return latest.toUpperCase();
+  }
+  if (typeof history === "string" && history.trim()) {
+    try {
+      const parsed = JSON.parse(history) as unknown;
+      if (Array.isArray(parsed)) {
+        const latest = parsed
+          .map((item) =>
+            typeof item === "string"
+              ? item
+              : cleanString(readRecord(item).reference_code),
+          )
+          .filter(Boolean)
+          .at(-1);
+        if (latest) return latest.toUpperCase();
+      }
+    } catch {
+      const latest = history
+        .split(/[,\n]/)
+        .map((item) => item.trim())
+        .filter(Boolean)
+        .at(-1);
+      if (latest) return latest.toUpperCase();
+    }
+  }
 
   const match = extractMessageText(payload).match(REF_PATTERN);
   return match?.[1]?.toUpperCase() ?? null;
@@ -551,6 +607,35 @@ function buildCrmLeadSourceDetail(
   return parts.join(" | ").slice(0, 500);
 }
 
+function readGrowthReference(customFields: JsonRecord | null): string | null {
+  const fields = customFields ?? {};
+  const reference =
+    cleanString(fields.growth_reference_code) ??
+    cleanString(fields.reference_code) ??
+    cleanString(fields.waflow_reference_code) ??
+    cleanString(readNestedRecord(fields, "waflow").reference_code);
+  return reference?.toUpperCase() ?? null;
+}
+
+async function findCrmRequestByGrowthReference(
+  supabase: ReturnType<typeof createSupabaseAdmin>,
+  lead: WaflowLeadRow,
+): Promise<CrmRequestRow | null> {
+  if (!lead.account_id || !lead.reference_code) return null;
+
+  const { data, error } = await supabase
+    .from("requests")
+    .select("id,short_id,custom_fields,lead_source,lead_source_detail")
+    .eq("account_id", lead.account_id)
+    .eq("custom_fields->>growth_reference_code", lead.reference_code)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle<CrmRequestRow>();
+
+  if (error) throw new Error(error.message);
+  return data ?? null;
+}
+
 async function findOrCreateCrmRequest(
   supabase: ReturnType<typeof createSupabaseAdmin>,
   lead: WaflowLeadRow,
@@ -558,6 +643,12 @@ async function findOrCreateCrmRequest(
   conversationId: string,
 ): Promise<CrmRequestRow | null> {
   if (!lead.account_id) return null;
+
+  const existingByReference = await findCrmRequestByGrowthReference(
+    supabase,
+    lead,
+  );
+  if (existingByReference) return existingByReference;
 
   const conversationNumericId = parsePositiveInteger(conversationId);
   if (!conversationNumericId) return null;
@@ -572,7 +663,24 @@ async function findOrCreateCrmRequest(
     .maybeSingle<CrmRequestRow>();
 
   if (existing.error) throw new Error(existing.error.message);
-  if (existing.data) return existing.data;
+  if (existing.data) {
+    const existingReference = readGrowthReference(existing.data.custom_fields);
+    if (
+      existingReference &&
+      lead.reference_code &&
+      existingReference !== lead.reference_code
+    ) {
+      log.warn("crm_request_conversation_reference_conflict", {
+        request_id: existing.data.id,
+        short_id: existing.data.short_id,
+        conversation_id: conversationId,
+        existing_reference: existingReference,
+        incoming_reference: lead.reference_code,
+      });
+      return null;
+    }
+    return existing.data;
+  }
 
   const inboxId = extractConversationInboxId(payload);
   if (!inboxId) return null;
@@ -616,8 +724,10 @@ async function linkWaflowLeadToCrmRequest(
   payload: ChatwootPayload,
   conversationId: string,
   lifecycleEvents: LifecycleEvent[],
-): Promise<string | null> {
-  if (!lead.reference_code) return null;
+): Promise<CrmRequestLinkResult> {
+  if (!lead.reference_code) {
+    return { requestId: null, shortId: null, status: "not_found" };
+  }
 
   const request = await findOrCreateCrmRequest(
     supabase,
@@ -625,13 +735,10 @@ async function linkWaflowLeadToCrmRequest(
     payload,
     conversationId,
   );
-  if (!request) return null;
+  if (!request) return { requestId: null, shortId: null, status: "not_found" };
 
   const customFields = request.custom_fields ?? {};
-  const existingReference =
-    cleanString(customFields.growth_reference_code) ??
-    cleanString(customFields.reference_code) ??
-    cleanString(customFields.waflow_reference_code);
+  const existingReference = readGrowthReference(customFields);
 
   if (existingReference && existingReference !== lead.reference_code) {
     log.warn("crm_request_reference_conflict", {
@@ -640,7 +747,11 @@ async function linkWaflowLeadToCrmRequest(
       existing_reference: existingReference,
       incoming_reference: lead.reference_code,
     });
-    return request.id;
+    return {
+      requestId: request.id,
+      shortId: request.short_id,
+      status: "conflict",
+    };
   }
 
   const leadPayload = readRecord(lead.payload);
@@ -682,7 +793,93 @@ async function linkWaflowLeadToCrmRequest(
     .eq("id", request.id);
 
   if (update.error) throw new Error(update.error.message);
-  return request.id;
+  return { requestId: request.id, shortId: request.short_id, status: "linked" };
+}
+
+function extractChatwootAccountId(payload: ChatwootPayload): string | null {
+  const conversation = extractConversation(payload);
+  const conversationMessages = extractConversationMessages(payload);
+  return (
+    readNestedString(
+      readNestedRecord(payload as JsonRecord, "account"),
+      "id",
+    ) ??
+    readNestedString(conversation, "account_id") ??
+    readNestedString(conversationMessages[0] ?? {}, "account_id")
+  );
+}
+
+function buildChatwootGrowthAttributes(
+  lead: WaflowLeadRow,
+  lifecycleEvents: LifecycleEvent[],
+  linkResult: CrmRequestLinkResult,
+): Record<string, ChatwootGrowthAttributeValue> {
+  const leadPayload = readRecord(lead.payload);
+  const attribution = readRecord(leadPayload.attribution);
+  const utm = readRecord(attribution.utm);
+
+  return {
+    growth_current_reference_code: lead.reference_code,
+    growth_last_reference_code: lead.reference_code,
+    growth_last_waflow_lead_id: lead.id,
+    growth_last_session_key: lead.session_key,
+    growth_last_source_url: cleanString(attribution.source_url),
+    growth_last_page_path: cleanString(attribution.page_path),
+    growth_last_utm_source:
+      cleanString(utm.utm_source) ?? cleanString(attribution.utm_source),
+    growth_last_utm_medium:
+      cleanString(utm.utm_medium) ?? cleanString(attribution.utm_medium),
+    growth_last_utm_campaign:
+      cleanString(utm.utm_campaign) ?? cleanString(attribution.utm_campaign),
+    growth_last_lead_source: deriveCrmLeadSource(leadPayload),
+    growth_last_crm_request_id: linkResult.requestId,
+    growth_last_crm_request_short_id: linkResult.shortId,
+    growth_last_crm_link_status: linkResult.status,
+    growth_last_chatwoot_event: lifecycleEvents.at(-1) ?? null,
+    growth_last_linked_at: new Date().toISOString(),
+  };
+}
+
+async function syncChatwootGrowthAttributes(
+  payload: ChatwootPayload,
+  conversationId: string,
+  lead: WaflowLeadRow,
+  lifecycleEvents: LifecycleEvent[],
+  linkResult: CrmRequestLinkResult,
+): Promise<"updated" | "not_configured" | "skipped"> {
+  const baseUrl = cleanString(process.env.CHATWOOT_BASE_URL);
+  const apiToken = cleanString(process.env.CHATWOOT_API_ACCESS_TOKEN);
+  if (!baseUrl || !apiToken) return "not_configured";
+
+  const accountId = extractChatwootAccountId(payload);
+  if (!accountId || !parsePositiveInteger(accountId)) return "skipped";
+
+  const url = new URL(
+    `/api/v1/accounts/${accountId}/conversations/${conversationId}/custom_attributes`,
+    baseUrl,
+  );
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      api_access_token: apiToken,
+    },
+    body: JSON.stringify({
+      custom_attributes: buildChatwootGrowthAttributes(
+        lead,
+        lifecycleEvents,
+        linkResult,
+      ),
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      `Chatwoot custom attributes update failed: ${response.status}`,
+    );
+  }
+
+  return "updated";
 }
 
 async function updateWaflowLeadLink(
@@ -1026,9 +1223,13 @@ export async function POST(request: NextRequest) {
       lifecycleEvents,
       attrs,
     );
-    let crmRequestId: string | null = null;
+    let crmLinkResult: CrmRequestLinkResult = {
+      requestId: null,
+      shortId: null,
+      status: "not_found",
+    };
     try {
-      crmRequestId = await linkWaflowLeadToCrmRequest(
+      crmLinkResult = await linkWaflowLeadToCrmRequest(
         supabase,
         lead,
         payload,
@@ -1037,6 +1238,30 @@ export async function POST(request: NextRequest) {
       );
     } catch (error) {
       log.warn("crm_request_link_failed", {
+        provider_event_id: providerEventId,
+        conversation_id: conversationId,
+        reference_code: lead.reference_code,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+    try {
+      const chatwootAttributeStatus = await syncChatwootGrowthAttributes(
+        payload,
+        conversationId,
+        lead,
+        lifecycleEvents,
+        crmLinkResult,
+      );
+      if (chatwootAttributeStatus !== "updated") {
+        log.info("chatwoot_growth_attributes_not_updated", {
+          provider_event_id: providerEventId,
+          conversation_id: conversationId,
+          reference_code: lead.reference_code,
+          status: chatwootAttributeStatus,
+        });
+      }
+    } catch (error) {
+      log.warn("chatwoot_growth_attributes_sync_failed", {
         provider_event_id: providerEventId,
         conversation_id: conversationId,
         reference_code: lead.reference_code,
@@ -1072,7 +1297,8 @@ export async function POST(request: NextRequest) {
       matched: true,
       lifecycleEvents,
       conversionsSent,
-      crmRequestId,
+      crmRequestId: crmLinkResult.requestId,
+      crmLinkStatus: crmLinkResult.status,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

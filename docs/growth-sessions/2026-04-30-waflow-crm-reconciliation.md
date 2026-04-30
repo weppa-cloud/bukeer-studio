@@ -219,6 +219,50 @@ CRM request stage inventory:
 | `closed_won`    |    20 |
 | `closed_lost`   |   910 |
 
+## Addendum - Chatwoot traceability hardening
+
+Updated: 2026-04-30T20:10Z.
+
+Live webhook testing confirmed that Chatwoot events are delivered and processed,
+but a long-running WhatsApp conversation can contain more than one WAFlow
+reference. The second test reference `HOME-3004-ZL6T` was correctly captured as
+`waflow_submit` and `whatsapp_cta_click`, and Chatwoot delivered message event
+`10790421`; however, the same Chatwoot conversation was already linked to
+request `SOL-1002` with reference `PAQUET-3004-9NGK`.
+
+Decision:
+
+- do not overwrite an existing CRM request when its Growth reference conflicts;
+- prefer exact `requests.custom_fields.growth_reference_code` over conversation
+  id when linking Chatwoot lifecycle events;
+- use Chatwoot custom attributes as the durable reference fallback when the
+  customer deletes `#ref` from the message;
+- keep `webhook_events`, `waflow_leads`, `funnel_events`, `requests` and
+  `meta_conversion_events` as the internal source of truth;
+- leave GA4 Measurement Protocol as a future enhancement, because current GA4
+  coverage is client-side only.
+
+Implementation:
+
+- `app/api/webhooks/chatwoot/route.ts` now reads Growth reference attributes,
+  `growth_reference_history` and nested Chatwoot conversation messages.
+- The CRM link step now refuses conversation-level matches that already carry a
+  different Growth reference.
+- If `CHATWOOT_BASE_URL` and `CHATWOOT_API_ACCESS_TOKEN` are configured, the
+  webhook mirrors Growth trace attributes back into Chatwoot conversation custom
+  attributes. If not configured, ingest still passes.
+
+Runbook:
+
+- `docs/ops/chatwoot-growth-traceability.md`
+
+Residual WATCH:
+
+- shared backend request creation still needs a reference-first contract for the
+  case "same Chatwoot conversation, new WAFlow request". The Studio webhook now
+  protects attribution integrity, but it does not force-create a second request
+  when the shared RPC returns an existing conversation-level request.
+
 CRM request source inventory:
 
 | Source     | Count |
