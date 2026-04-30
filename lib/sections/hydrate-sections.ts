@@ -279,7 +279,7 @@ export function hydrateSections(input: HydrationInput): WebsiteSection[] {
         ...hydratedSections[i],
         content: {
           ...(hydratedSections[i].content as Record<string, unknown>),
-          testimonials: sorted.map((r) => ({
+          testimonials: sorted.slice(0, 20).map((r) => ({
             name: r.author_name,
             avatar: r.author_photo,
             text: r.text,

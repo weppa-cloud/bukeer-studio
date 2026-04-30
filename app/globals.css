@@ -4,6 +4,9 @@
 @import "shadcn/tailwind.css";
 @import "maplibre-gl/dist/maplibre-gl.css";
 @plugin "@tailwindcss/typography";
+@source "../app/**/*.{ts,tsx}";
+@source "../components/**/*.{ts,tsx}";
+@source "../lib/**/*.{ts,tsx}";
 
 @custom-variant dark (&:is(.dark *));
 
