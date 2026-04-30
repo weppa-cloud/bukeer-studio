@@ -15,23 +15,59 @@ const log = createLogger('api.reviews');
 
 interface GoogleReview {
   review_id: string;
+  position: number | null;
+  link: string | null;
   author_name: string;
   author_photo: string | null;
+  author_photo_original: string | null;
   author_link: string | null;
+  author_contributor_id: string | null;
+  author_local_guide: boolean | null;
   author_reviews_count: number | null;
   author_photos_count: number | null;
   rating: number;
   text: string;
+  text_original: string | null;
+  text_translated: string | null;
   date: string;
   iso_date: string | null;
+  iso_date_of_last_edit: string | null;
   relative_time: string | null;
   likes: number;
   language: string | null;
-  images: Array<{ url: string; thumbnail?: string }>;
-  response: { text: string; date: string; iso_date?: string } | null;
+  details: Record<string, unknown> | null;
+  translated_details: Record<string, unknown> | null;
+  images: Array<{
+    url: string;
+    thumbnail?: string;
+    original_url?: string;
+    storage_bucket?: string;
+    storage_path?: string;
+    cached_at?: string;
+  }>;
+  response: {
+    text: string;
+    text_original?: string | null;
+    text_translated?: string | null;
+    date: string;
+    iso_date?: string;
+    iso_date_of_last_edit?: string | null;
+  } | null;
   source: 'google_reviews';
   is_visible: boolean;
   tags: string[];
+}
+
+interface SerpApiReviewFetchStats {
+  pagesFetched: number;
+  duplicateReviews: number;
+  stoppedByPageLimit: boolean;
+}
+
+interface CachedImageStats {
+  cached: number;
+  failed: number;
+  skipped: number;
 }
 
 // ─── Tag Extraction ──────────────────────────────────────────────────
@@ -68,12 +104,98 @@ function extractTags(text: string): string[] {
 
 // ─── SerpAPI Fetch ───────────────────────────────────────────────────
 
+function intFromEnv(name: string, fallback: number): number {
+  const value = Number.parseInt(process.env[name] || '', 10);
+  return Number.isFinite(value) && value > 0 ? value : fallback;
+}
+
+function stringOrNull(value: unknown): string | null {
+  return typeof value === 'string' && value.trim().length > 0 ? value : null;
+}
+
+function normalizeReviewId(value: string): string {
+  return toSlug(value || 'review') || 'review';
+}
+
+function transformSerpApiReview(r: Record<string, unknown>): GoogleReview {
+  const user = (r.user as Record<string, unknown>) || {};
+  const responseObj = r.response as Record<string, unknown> | undefined;
+  const extractedSnippet = r.extracted_snippet as Record<string, unknown> | undefined;
+  const responseExtractedSnippet = responseObj?.extracted_snippet as Record<string, unknown> | undefined;
+  // SerpAPI returns images as plain string URLs in most responses, but keep
+  // support for object entries so future API shape changes do not drop data.
+  const rawImages = r.images as Array<string | Record<string, unknown>> | undefined;
+  const text =
+    stringOrNull(r.snippet) ||
+    stringOrNull(extractedSnippet?.translated) ||
+    stringOrNull(extractedSnippet?.original) ||
+    stringOrNull(r.text) ||
+    '';
+
+  return {
+    review_id: stringOrNull(r.review_id) || `${stringOrNull(user.name) || 'anon'}-${r.rating}-${r.date}`,
+    position: typeof r.position === 'number' ? r.position : null,
+    link: stringOrNull(r.link),
+    author_name: stringOrNull(user.name) || 'Anónimo',
+    author_photo: stringOrNull(user.thumbnail),
+    author_photo_original: stringOrNull(user.thumbnail),
+    author_link: stringOrNull(user.link),
+    author_contributor_id: stringOrNull(user.contributor_id),
+    author_local_guide: typeof user.local_guide === 'boolean' ? user.local_guide : null,
+    author_reviews_count: (user.reviews as number) ?? null,
+    author_photos_count: (user.photos as number) ?? null,
+    rating: (r.rating as number) || 5,
+    text,
+    text_original: stringOrNull(extractedSnippet?.original),
+    text_translated: stringOrNull(extractedSnippet?.translated),
+    date: stringOrNull(r.date) || '',
+    iso_date: stringOrNull(r.iso_date),
+    iso_date_of_last_edit: stringOrNull(r.iso_date_of_last_edit),
+    relative_time: stringOrNull(r.relative_time_description) || stringOrNull(r.date),
+    likes: (r.likes as number) || 0,
+    language: stringOrNull(r.language),
+    details: (r.details as Record<string, unknown>) || null,
+    translated_details: (r.translated_details as Record<string, unknown>) || null,
+    images: rawImages
+      ? rawImages.map((img) => {
+          if (typeof img === 'string') return { url: img, original_url: img };
+          const url = stringOrNull(img.image) || stringOrNull(img.url) || '';
+          return {
+            url,
+            original_url: url,
+            thumbnail: stringOrNull(img.thumbnail) || undefined,
+          };
+        }).filter((img) => img.url)
+      : [],
+    response: responseObj
+      ? {
+          text:
+            stringOrNull(responseObj.snippet) ||
+            stringOrNull(responseExtractedSnippet?.translated) ||
+            stringOrNull(responseExtractedSnippet?.original) ||
+            stringOrNull(responseObj.text) ||
+            '',
+          text_original: stringOrNull(responseExtractedSnippet?.original),
+          text_translated: stringOrNull(responseExtractedSnippet?.translated),
+          date: stringOrNull(responseObj.date) || '',
+          iso_date: stringOrNull(responseObj.iso_date) || undefined,
+          iso_date_of_last_edit: stringOrNull(responseObj.iso_date_of_last_edit),
+        }
+      : null,
+    source: 'google_reviews' as const,
+    is_visible: true,
+    tags: extractTags(text),
+  };
+}
+
 async function fetchReviewsFromSerpAPI(placeId: string): Promise<{
   reviews: GoogleReview[];
   businessName: string | null;
   averageRating: number | null;
   totalReviews: number | null;
   googleMapsUrl: string | null;
+  topics: Array<{ keyword: string; mentions: number; id: string }>;
+  stats: SerpApiReviewFetchStats;
 } | null> {
   const SERPAPI_KEY = process.env.SERPAPI_KEY;
   if (!SERPAPI_KEY) {
@@ -112,72 +234,74 @@ async function fetchReviewsFromSerpAPI(placeId: string): Promise<{
       ? `https://www.google.com/maps/place/?q=place_id:${placeId}`
       : null;
 
-    // Step 2: Fetch reviews using data_id
-    const reviewsUrl = new URL('https://serpapi.com/search.json');
-    reviewsUrl.searchParams.set('engine', 'google_maps_reviews');
-    reviewsUrl.searchParams.set('data_id', dataId);
-    reviewsUrl.searchParams.set('hl', 'es');
-    reviewsUrl.searchParams.set('sort_by', 'qualityScore');
-    reviewsUrl.searchParams.set('api_key', SERPAPI_KEY);
+    // Step 2: Fetch every review page using next_page_token.
+    // First page is fixed by Google at 8 results; subsequent pages can use
+    // `num` (SerpAPI supports 1..20) to reduce API calls.
+    const maxPages = intFromEnv('SERPAPI_REVIEWS_MAX_PAGES', 40);
+    const reviewsById = new Map<string, GoogleReview>();
+    let nextPageToken: string | null = null;
+    let pagesFetched = 0;
+    let duplicateReviews = 0;
+    let stoppedByPageLimit = false;
+    let topics: Array<{ keyword: string; mentions: number; id: string }> = [];
 
-    const reviewsRes = await fetch(reviewsUrl.toString());
-    if (!reviewsRes.ok) {
-      log.error('SerpAPI reviews error', { status: reviewsRes.status });
-      return null;
-    }
+    do {
+      const reviewsUrl = new URL('https://serpapi.com/search.json');
+      reviewsUrl.searchParams.set('engine', 'google_maps_reviews');
+      reviewsUrl.searchParams.set('data_id', dataId);
+      reviewsUrl.searchParams.set('hl', 'es');
+      reviewsUrl.searchParams.set('sort_by', 'qualityScore');
+      reviewsUrl.searchParams.set('api_key', SERPAPI_KEY);
 
-    const reviewsData = await reviewsRes.json();
-    const rawReviews = reviewsData.reviews || [];
+      if (nextPageToken) {
+        reviewsUrl.searchParams.set('next_page_token', nextPageToken);
+        reviewsUrl.searchParams.set('num', '20');
+      }
 
-    // Transform SerpAPI response to our schema — capture EVERYTHING
-    const reviews: GoogleReview[] = rawReviews.map((r: Record<string, unknown>) => {
-      const user = (r.user as Record<string, unknown>) || {};
-      const responseObj = r.response as Record<string, unknown> | undefined;
-      // SerpAPI returns images as plain string URLs (not objects)
-      const rawImages = r.images as Array<string | Record<string, unknown>> | undefined;
+      const reviewsRes = await fetch(reviewsUrl.toString());
+      if (!reviewsRes.ok) {
+        log.error('SerpAPI reviews error', { status: reviewsRes.status, page: pagesFetched + 1 });
+        return null;
+      }
 
-      return {
-        review_id: (r.review_id as string) || `${user.name}-${r.rating}-${r.date}`,
-        author_name: (user.name as string) || 'Anónimo',
-        author_photo: (user.thumbnail as string) || null,
-        author_link: (user.link as string) || null,
-        author_reviews_count: (user.reviews as number) ?? null,
-        author_photos_count: (user.photos as number) ?? null,
-        rating: (r.rating as number) || 5,
-        text: (r.snippet as string) || (r.text as string) || '',
-        date: (r.date as string) || '',
-        iso_date: (r.iso_date as string) || (r.iso_date_of_last_edit as string) || null,
-        relative_time: (r.relative_time_description as string) || (r.date as string) || null,
-        likes: (r.likes as number) || 0,
-        language: (r.language as string) || null,
-        images: rawImages
-          ? rawImages.map((img) => {
-              if (typeof img === 'string') return { url: img };
-              return {
-                url: (img.image as string) || (img.url as string) || '',
-                thumbnail: (img.thumbnail as string) || undefined,
-              };
-            }).filter((img) => img.url)
-          : [],
-        response: responseObj
-          ? {
-              text: (responseObj.snippet as string) || (responseObj.text as string) || '',
-              date: (responseObj.date as string) || '',
-              iso_date: (responseObj.iso_date as string) || undefined,
-            }
-          : null,
-        source: 'google_reviews' as const,
-        is_visible: true,
-        tags: extractTags((r.snippet as string) || (r.text as string) || ''),
-      };
-    });
+      const reviewsData = await reviewsRes.json();
+      pagesFetched += 1;
+
+      if (pagesFetched === 1 && Array.isArray(reviewsData.topics)) {
+        topics = reviewsData.topics;
+      }
+
+      const rawReviews = (reviewsData.reviews || []) as Array<Record<string, unknown>>;
+      for (const rawReview of rawReviews) {
+        const review = transformSerpApiReview(rawReview);
+        if (reviewsById.has(review.review_id)) {
+          duplicateReviews += 1;
+        }
+        reviewsById.set(review.review_id, review);
+      }
+
+      nextPageToken =
+        stringOrNull(reviewsData.serpapi_pagination?.next_page_token) ||
+        null;
+
+      if (nextPageToken && pagesFetched >= maxPages) {
+        stoppedByPageLimit = true;
+        break;
+      }
+    } while (nextPageToken);
 
     return {
-      reviews,
+      reviews: Array.from(reviewsById.values()),
       businessName,
       averageRating,
       totalReviews,
       googleMapsUrl,
+      topics,
+      stats: {
+        pagesFetched,
+        duplicateReviews,
+        stoppedByPageLimit,
+      },
     };
   } catch (error) {
     log.error('SerpAPI fetch error', { error: error instanceof Error ? error.message : String(error) });
@@ -202,58 +326,144 @@ async function cacheReviewPhotos(
   websiteId: string,
   accountId: string,
   reviews: GoogleReview[]
-): Promise<void> {
+): Promise<{ reviews: GoogleReview[]; stats: CachedImageStats }> {
   const srClient = createSupabaseServiceRoleClient();
 
   const updatedReviews = [...reviews];
-  let anyUpdated = false;
+  const stats: CachedImageStats = { cached: 0, failed: 0, skipped: 0 };
+  const maxImagesPerReview = intFromEnv('SERPAPI_REVIEW_IMAGES_PER_REVIEW', 20);
 
-  await Promise.allSettled(
-    reviews.map(async (review, idx) => {
-      if (!review.author_photo || !GOOGLE_PHOTO_RE.test(review.author_photo)) return;
+  async function cacheUrl(
+    url: string | null | undefined,
+    bucket: 'review-avatars' | 'review-images',
+    path: string,
+    review: GoogleReview,
+    usageContext: 'avatar' | 'gallery',
+  ): Promise<{ publicUrl: string; storagePath: string } | null> {
+    if (!url || !GOOGLE_PHOTO_RE.test(url)) {
+      stats.skipped += 1;
+      return null;
+    }
 
-      try {
-        const res = await fetch(review.author_photo);
-        if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
+    try {
+      const res = await fetch(url, {
+        redirect: 'follow',
+        headers: { 'User-Agent': 'Bukeer-Bot/1.0' },
+      });
+      if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
 
-        const buffer = await res.arrayBuffer();
-        const slug = toSlug(review.author_name || review.review_id);
-        const path = `${websiteId}/${slug}.jpg`;
+      const buffer = await res.arrayBuffer();
+      const contentType = res.headers.get('content-type') || 'image/jpeg';
 
-        const { error: uploadErr } = await srClient.storage
-          .from('review-avatars')
-          .upload(path, buffer, {
-            contentType: 'image/jpeg',
-            upsert: true,
-          });
-
-        if (uploadErr) throw new Error(`Upload failed: ${uploadErr.message}`);
-
-        const { data: urlData } = srClient.storage
-          .from('review-avatars')
-          .getPublicUrl(path);
-
-        updatedReviews[idx] = { ...review, author_photo: urlData.publicUrl };
-        anyUpdated = true;
-      } catch (err) {
-        log.error('Photo cache failed for review', {
-          review_id: review.review_id,
-          error: err instanceof Error ? err.message : String(err),
+      const { error: uploadErr } = await srClient.storage
+        .from(bucket)
+        .upload(path, buffer, {
+          contentType,
+          upsert: true,
         });
-      }
-    })
-  );
 
-  if (!anyUpdated) return;
+      if (uploadErr) throw new Error(`Upload failed: ${uploadErr.message}`);
 
-  const { error: updateErr } = await srClient
-    .from('account_google_reviews')
-    .update({ reviews: updatedReviews, updated_at: new Date().toISOString() })
-    .eq('account_id', accountId);
+      const { data: urlData } = srClient.storage
+        .from(bucket)
+        .getPublicUrl(path);
 
-  if (updateErr) {
-    log.error('Failed to update reviews with cached photos', { error: updateErr.message });
+      await srClient
+        .from('media_assets')
+        .upsert(
+          {
+            account_id: accountId,
+            website_id: websiteId,
+            storage_bucket: bucket,
+            storage_path: path,
+            public_url: urlData.publicUrl,
+            alt: {
+              es: usageContext === 'avatar'
+                ? `Foto de perfil de ${review.author_name}, reseña de ColombiaTours.Travel`
+                : `Foto de experiencia publicada por ${review.author_name} en una reseña de ColombiaTours.Travel`,
+            },
+            title: { es: `${review.author_name} · Google Review` },
+            caption: { es: review.text.slice(0, 180) },
+            entity_type: 'review',
+            entity_id: review.review_id,
+            usage_context: usageContext,
+            http_status: 200,
+            file_size_bytes: buffer.byteLength,
+            format: contentType.split('/')[1]?.replace('jpeg', 'jpg') || 'jpg',
+            last_verified_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'storage_bucket,storage_path' },
+        );
+
+      stats.cached += 1;
+      return { publicUrl: urlData.publicUrl, storagePath: path };
+    } catch (err) {
+      stats.failed += 1;
+      log.error('Review image cache failed', {
+        review_id: review.review_id,
+        url,
+        bucket,
+        error: err instanceof Error ? err.message : String(err),
+      });
+      return null;
+    }
   }
+
+  for (let idx = 0; idx < reviews.length; idx += 1) {
+    const review = reviews[idx];
+    const reviewSlug = normalizeReviewId(review.review_id);
+    const authorSlug = toSlug(review.author_name || review.review_id);
+    const cachedAuthor = await cacheUrl(
+      review.author_photo_original || review.author_photo,
+      'review-avatars',
+      `${websiteId}/${reviewSlug}-${authorSlug}/avatar.jpg`,
+      review,
+      'avatar',
+    );
+
+    let nextReview = cachedAuthor
+      ? { ...review, author_photo: cachedAuthor.publicUrl }
+      : review;
+
+    if (review.images.length > 0) {
+      const cachedImages = [];
+      for (let imgIdx = 0; imgIdx < review.images.length; imgIdx += 1) {
+        const image = review.images[imgIdx];
+        if (imgIdx >= maxImagesPerReview) {
+          stats.skipped += 1;
+          cachedImages.push(image);
+          continue;
+        }
+
+        const cached = await cacheUrl(
+          image.original_url || image.url,
+          'review-images',
+          `${websiteId}/${reviewSlug}-${authorSlug}/experience-${imgIdx + 1}.jpg`,
+          review,
+          'gallery',
+        );
+        cachedImages.push(
+          cached
+            ? {
+                ...image,
+                url: cached.publicUrl,
+                original_url: image.original_url || image.url,
+                storage_bucket: 'review-images',
+                storage_path: cached.storagePath,
+                cached_at: new Date().toISOString(),
+              }
+            : image,
+        );
+      }
+
+      nextReview = { ...nextReview, images: cachedImages };
+    }
+
+    updatedReviews[idx] = nextReview;
+  }
+
+  return { reviews: updatedReviews, stats };
 }
 
 // ─── GET: Return cached reviews ──────────────────────────────────────
@@ -344,6 +554,11 @@ export async function POST(
     return apiError('UPSTREAM_ERROR', 'Failed to fetch reviews from Google', 502);
   }
 
+  // Cache Google profile photos + review experience photos into Supabase
+  // Storage before persisting the JSONB payload. This keeps render-time
+  // assets on our CDN instead of relying on volatile Google CDN URLs.
+  const cached = await cacheReviewPhotos(websiteId, website.account_id, result.reviews);
+
   // Upsert cache
   const { error: upsertErr } = await supabase
     .from('account_google_reviews')
@@ -355,7 +570,7 @@ export async function POST(
         average_rating: result.averageRating,
         total_reviews: result.totalReviews,
         google_maps_url: result.googleMapsUrl,
-        reviews: result.reviews,
+        reviews: cached.reviews,
         fetched_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       },
@@ -367,22 +582,18 @@ export async function POST(
     return apiInternalError('Failed to cache reviews');
   }
 
-  // Cache Google profile photos to Supabase Storage in the background.
-  // This replaces volatile googleusercontent.com URLs with permanent Supabase Storage URLs.
-  // Run after responding — don't await full completion before returning.
-  void cacheReviewPhotos(websiteId, website.account_id, result.reviews).catch((err) => {
-    log.error('Background photo caching error', {
-      error: err instanceof Error ? err.message : String(err),
-    });
-  });
-
   return apiSuccess({
-    reviews: result.reviews,
+    reviews: cached.reviews,
     business_name: result.businessName,
     average_rating: result.averageRating,
     total_reviews: result.totalReviews,
     google_maps_url: result.googleMapsUrl,
     fetched_at: new Date().toISOString(),
-    count: result.reviews.length,
+    count: cached.reviews.length,
+    serpapi: {
+      topics: result.topics,
+      ...result.stats,
+    },
+    media_cache: cached.stats,
   });
 }

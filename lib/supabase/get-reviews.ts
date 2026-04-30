@@ -24,6 +24,23 @@ function reviewScore(r: GoogleReviewData): number {
   return (r.author_photo ? 2 : 0) + ((r.images?.length ?? 0) > 0 ? 1 : 0) + (r.rating ?? 0);
 }
 
+function exactSlugTokenPattern(token: string): RegExp | null {
+  const slug = slugify(token);
+  return slug.length >= 3 ? new RegExp(`(^|-)${slug}($|-)`) : null;
+}
+
+function reviewMentionsPlanner(r: GoogleReviewData, plannerName: string): boolean {
+  const text = slugify(r.text || '');
+  if (!text) return false;
+
+  const fullNameSlug = slugify(plannerName);
+  if (fullNameSlug.length >= 3 && text.includes(fullNameSlug)) return true;
+
+  const firstName = plannerName.trim().split(/\s+/)[0] || '';
+  const firstNamePattern = exactSlugTokenPattern(firstName);
+  return firstNamePattern ? firstNamePattern.test(text) : false;
+}
+
 export async function getReviewsForContext(
   accountId: string,
   context: ReviewContext,
@@ -62,14 +79,9 @@ export async function getReviewsForContext(
       break;
     }
     case 'planner': {
-      const nameLower = context.name.toLowerCase();
-      // Match first name at minimum
-      const firstName = nameLower.split(' ')[0];
       filtered = visible.filter((r) =>
-        r.text?.toLowerCase().includes(firstName)
+        reviewMentionsPlanner(r, context.name)
       );
-      // fallback to general if no reviews mention this planner's name
-      if (filtered.length < 2) filtered = visible;
       break;
     }
     case 'general':

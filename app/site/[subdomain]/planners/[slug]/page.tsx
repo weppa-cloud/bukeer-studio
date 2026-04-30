@@ -182,7 +182,7 @@ export default async function PlannerProfilePage({ params }: PlannerPageProps) {
   }
 
   const plannerReviews = website.account_id
-    ? await getReviewsForContext(website.account_id, { type: 'planner', name: planner.fullName }, 4)
+    ? await getReviewsForContext(website.account_id, { type: 'planner', name: planner.fullName }, 50)
     : [];
 
   const whatsappBase = website.content.social?.whatsapp || '';

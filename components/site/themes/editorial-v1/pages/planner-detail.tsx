@@ -683,7 +683,7 @@ export function EditorialPlannerDetailPage({
                     gap: 16,
                   }}
                 >
-                  {reviews.slice(0, 4).map((r, i) => (
+                  {reviews.map((r, i) => (
                     <div key={i} className="review-card">
                       <div className="stars">
                         {Array.from({ length: Math.round(r.rating ?? 5) }).map(
