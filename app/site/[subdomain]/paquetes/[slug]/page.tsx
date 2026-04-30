@@ -30,6 +30,7 @@ import {
   translateCategoryPathname,
 } from "@/lib/seo/locale-routing";
 import { sanitizeProductCopy } from "@/lib/products/normalize-product";
+import { toSimilarProductSummaries } from "@/lib/products/similar-product-summary";
 import { getPublicUiExtraText } from "@/lib/site/public-ui-extra-text";
 import { resolveTemplateSet } from "@/lib/sections/template-set";
 import { PACKAGE_FAQS_DEFAULT } from "@/lib/products/package-faqs-default";
@@ -282,6 +283,7 @@ export default async function PackageSlugPage({ params }: PackagePageProps) {
     "packages",
     { limit: 8, offset: 0 },
   );
+  const similarPackageSummaries = toSimilarProductSummaries(similarPackages);
   const plannerId =
     typeof productPage.product.planner_id === "string"
       ? productPage.product.planner_id
@@ -343,7 +345,7 @@ export default async function PackageSlugPage({ params }: PackagePageProps) {
     displayLocation,
     resolvedLocale: localeContext.resolvedLocale,
     googleReviews: packageReviews,
-    similarProducts: similarPackages,
+    similarProducts: similarPackageSummaries,
     planner: assignedPlanner,
     faqs:
       Array.isArray(productPage.page?.custom_faq) &&
@@ -361,13 +363,16 @@ export default async function PackageSlugPage({ params }: PackagePageProps) {
       website={websiteForRender}
       payload={editorialPayload}
     >
+      <h1 className="sr-only" aria-hidden="true">
+        {displayName}
+      </h1>
       <ProductLandingPage
         website={websiteForRender}
         product={productPage.product}
         pageCustomization={productPage.page}
         productType="package"
         googleReviews={packageReviews}
-        similarProducts={similarPackages}
+        similarProducts={similarPackageSummaries}
         resolvedLocale={localeContext.resolvedLocale}
         editorialMode={isEditorialTemplate}
       />

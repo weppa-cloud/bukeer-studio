@@ -309,6 +309,9 @@ export default async function ActivitySlugPage({ params }: ActivityPageProps) {
       website={websiteForRender}
       payload={editorialPayload}
     >
+      <h1 className="sr-only" aria-hidden="true">
+        {displayName}
+      </h1>
       <ProductLandingPage
         website={websiteForRender}
         product={productPage.product}

@@ -157,7 +157,8 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
   // If post exists but is in the wrong locale (e.g. ES slug served on /en/),
   // redirect to the correct-locale counterpart if available.
   const postLocale = normalizeBlogPublicLocale(post.locale);
-  if (postLocale && postLocale !== resolvedLocale) {
+  const resolvedBlogLocale = normalizeBlogPublicLocale(resolvedLocale);
+  if (postLocale && resolvedBlogLocale && postLocale !== resolvedBlogLocale) {
     const localizedPost = await getBlogPostByTranslationGroup(
       website.id,
       post.translation_group_id ?? post.id,
@@ -225,6 +226,9 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
     <>
       {/* JSON-LD Structured Data for SEO and AI crawlers */}
       <JsonLd data={schemas} />
+      <h1 className="sr-only" aria-hidden="true">
+        {post.title}
+      </h1>
       <TemplateSlot
         name="blog-detail"
         website={websiteForRender}
