@@ -48,6 +48,64 @@ The design follows current provider direction:
 - Google Data Manager API supports conversion and audience delivery across
   Google products: <https://developers.google.com/data-manager/api>
 
+## Flyweel MCP And Similar-Product Learnings
+
+Public Flyweel documentation is useful as a benchmark for agentic paid-media
+operations, but it should not be copied as-is. Flyweel's public posture is
+read-only campaign intelligence first: it connects Google Ads, Meta Ads and
+TikTok Ads to AI tools through MCP, exposes setup/status/sync/query tools,
+auto-syncs stale data, limits query shape, and explicitly says the AI cannot
+pause, start, edit or delete campaigns.
+
+References:
+
+- Flyweel MCP quickstart: <https://www.flyweel.co/docs/mcp/setup>
+- Flyweel AdGrid Campaign Manager:
+  <https://www.flyweel.co/docs/features/adgrid-campaign-manager>
+- Flyweel AI Agent Chat: <https://www.flyweel.co/docs/features/ai-agent-chat>
+- Flyweel Reports & Analytics:
+  <https://www.flyweel.co/docs/features/reports-analytics>
+- Flyweel Google Ads integration:
+  <https://www.flyweel.co/docs/integrations/google-ads>
+- Flyweel Meta Ads integration:
+  <https://www.flyweel.co/docs/integrations/meta-ads>
+- Flyweel Pipedrive integration:
+  <https://www.flyweel.co/docs/integrations/pipedrive>
+
+Learnings to adopt:
+
+| Flyweel / market pattern                      | Growth OS decision                                                                                                                                                               |
+| --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| MCP should start read-only for safety.        | Keep Phase 2 read-only reporting before any campaign mutation. Campaign creation stays manual-first.                                                                             |
+| One unified grid reduces Google/Meta debate.  | Add a `paid_performance_grid` artifact from normalized facts: platform, account, campaign, spend, clicks, conversions, first-party lead stages, status and owner.                |
+| Natural-language analysis needs query limits. | Add profile query limits: max dimensions, max metrics, max rows and account scope per run. Long explorations must become scheduled profiles, not open-ended agent questions.     |
+| Sync freshness is part of trust.              | Add health/freshness rows for paid profiles: last sync, provider delay, row count, selected accounts, blocked accounts and stale-data status.                                    |
+| Read-only tools still need account selection. | Add selected-account registry per tenant so agents cannot accidentally mix ad accounts or markets.                                                                               |
+| AI reports are shareable decision artifacts.  | Council should receive reproducible artifacts, not only chat answers: saved prompt, input run ids, tables, charts where available, conclusion, rejected rows and next decisions. |
+| CRM connection creates true ROI.              | Our differentiator must be WAFlow/CRM/itinerary truth. Do not optimize only on platform conversions or GA4 key events.                                                           |
+| Native platforms remain the mutation surface. | Initial campaign/budget changes happen in Google Ads / Meta Ads UI. Growth OS validates, observes and recommends; mutation automation requires a later approval/rollback design. |
+| Similar MCP products are moving to drafts.    | Future automation can generate drafts and preflight checks, but activation requires human approval and explicit Council state.                                                   |
+
+SPEC impact:
+
+- Add a paid profile registry with account selection, sync mode, query limits,
+  cache target, normalizer and health contract.
+- Add `paid_performance_grid` as the daily SEM operating view.
+- Add read-only MCP/provider integration as an optional input path, separate
+  from direct Google/Meta APIs.
+- Add report artifacts as Council evidence.
+- Keep mutation automation behind Phase 6 and require manual approval.
+
+What Growth OS should do differently from Flyweel:
+
+- Join ads with GSC/DataForSEO SEO demand to detect cannibalization and content
+  opportunities.
+- Join ads with GA4 behavior and first-party funnel events to measure real
+  qualified leads.
+- Use `growth_inventory` and Council to enforce baseline, owner, success metric,
+  evaluation date and kill rules.
+- Preserve GitHub as SSOT for execution state and audit trail.
+
 ## Non-Goals
 
 - Do not create campaigns directly from code in the first implementation.

@@ -84,6 +84,89 @@ const COLOMBIA_TOURS_SEEDS = {
   ],
 };
 
+const SEED_PROFILES = {
+  "co-es": {
+    locale: "es-CO",
+    location_code: 2170,
+    language_code: "es",
+    keywords: COLOMBIA_TOURS_SEEDS.keywords,
+    topics: COLOMBIA_TOURS_SEEDS.topics,
+    competitors: COLOMBIA_TOURS_SEEDS.competitors,
+    localQueries: COLOMBIA_TOURS_SEEDS.localQueries,
+  },
+  "en-us-content": {
+    locale: "en-US",
+    location_code: 2840,
+    language_code: "en",
+    keywords: [
+      "is colombia safe to travel",
+      "best time to visit colombia",
+      "colombia tour packages",
+      "colombia tours from us",
+      "colombia itinerary",
+      "cartagena colombia travel",
+      "coffee triangle colombia",
+      "colombia vacation packages",
+      "colombia trip cost",
+      "colombia travel agency",
+    ],
+    topics: [
+      "ColombiaTours",
+      "Colombia travel agency",
+      "Colombia tour packages",
+      "Colombia itinerary",
+      "Colombia destination guides",
+    ],
+    competitors: [
+      "gate1travel.com",
+      "goway.com",
+      "exoticca.com",
+      "landedtravel.com",
+      "kensingtontours.com",
+    ],
+    localQueries: [
+      "colombia tours agency",
+      "colombia travel agency",
+      "cartagena tours agency",
+    ],
+  },
+  "mx-es-content": {
+    locale: "es-MX",
+    location_code: 2484,
+    language_code: "es",
+    keywords: [
+      "viajes a colombia desde mexico",
+      "paquetes a colombia desde mexico",
+      "cartagena colombia desde mexico",
+      "colombia todo incluido desde mexico",
+      "requisitos para viajar a colombia desde mexico",
+      "colombia tour paquetes",
+      "viajes a cartagena desde mexico",
+      "cafe colombiano tour",
+      "tour eje cafetero colombia",
+      "colombia viaje familiar",
+    ],
+    topics: [
+      "viajes a Colombia desde Mexico",
+      "paquetes a Colombia desde Mexico",
+      "Cartagena Colombia desde Mexico",
+      "requisitos para viajar a Colombia desde Mexico",
+    ],
+    competitors: [
+      "despegar.com.mx",
+      "viajeselcorteingles.com.mx",
+      "bestday.com.mx",
+      "expedia.mx",
+      "tripadvisor.com.mx",
+    ],
+    localQueries: [
+      "agencia de viajes colombia mexico",
+      "tours colombia desde mexico",
+      "paquetes colombia mexico",
+    ],
+  },
+};
+
 const PROFILE_ENDPOINTS = {
   dfs_labs_demand_cluster_v1: labsDemandEndpoints,
   dfs_labs_competitor_visibility_v1: labsCompetitorVisibilityEndpoints,
@@ -109,6 +192,15 @@ const runTag = args.runTag ?? `dfs-max-performance-${todayCompact()}`;
 const endpointLimit = parsePositiveInt(args.endpointLimit, 0);
 const keywordLimit = parsePositiveInt(args.keywordLimit, 5);
 const competitorLimit = parsePositiveInt(args.competitorLimit, 4);
+const seedProfileId = args.seedProfile ?? "co-es";
+const seedProfile = SEED_PROFILES[seedProfileId] ?? SEED_PROFILES["co-es"];
+const locationCode = parsePositiveInt(
+  args.locationCode,
+  seedProfile.location_code ?? DEFAULT_LOCATION_CODE,
+);
+const languageCode =
+  args.languageCode ?? seedProfile.language_code ?? DEFAULT_LANGUAGE_CODE;
+const locale = args.locale ?? seedProfile.locale ?? DEFAULT_LOCALE;
 const profileIds = parseList(args.profiles, DEFAULT_PROFILE_IDS);
 const seed = buildSeed(args);
 
@@ -319,8 +411,8 @@ function labsDemandEndpoints({ runTag: tag, seed: seedInput }) {
       body: [
         {
           keywords: seedInput.keywords.slice(0, keywordLimit),
-          location_code: DEFAULT_LOCATION_CODE,
-          language_code: DEFAULT_LANGUAGE_CODE,
+          location_code: seedInput.location_code,
+          language_code: seedInput.language_code,
           include_serp_info: true,
           limit: 100,
           tag: `${tag}|labs|keyword_ideas`,
@@ -333,8 +425,8 @@ function labsDemandEndpoints({ runTag: tag, seed: seedInput }) {
       body: [
         {
           keyword,
-          location_code: DEFAULT_LOCATION_CODE,
-          language_code: DEFAULT_LANGUAGE_CODE,
+          location_code: seedInput.location_code,
+          language_code: seedInput.language_code,
           include_serp_info: true,
           limit: 100,
           tag: `${tag}|labs|keyword_suggestions`,
@@ -356,8 +448,8 @@ function labsCompetitorVisibilityEndpoints({
       body: [
         {
           target: targetDomain,
-          location_code: DEFAULT_LOCATION_CODE,
-          language_code: DEFAULT_LANGUAGE_CODE,
+          location_code: seedInput.location_code,
+          language_code: seedInput.language_code,
           limit: 100,
           tag: `${tag}|labs|ranked_keywords|${targetDomain}`,
         },
@@ -369,8 +461,8 @@ function labsCompetitorVisibilityEndpoints({
       body: [
         {
           target: targetDomain,
-          location_code: DEFAULT_LOCATION_CODE,
-          language_code: DEFAULT_LANGUAGE_CODE,
+          location_code: seedInput.location_code,
+          language_code: seedInput.language_code,
           limit: 50,
           tag: `${tag}|labs|competitors_domain|${targetDomain}`,
         },
@@ -382,8 +474,8 @@ function labsCompetitorVisibilityEndpoints({
       body: [
         {
           target: competitor,
-          location_code: DEFAULT_LOCATION_CODE,
-          language_code: DEFAULT_LANGUAGE_CODE,
+          location_code: seedInput.location_code,
+          language_code: seedInput.language_code,
           limit: 50,
           tag: `${tag}|labs|ranked_keywords|${competitor}`,
         },
@@ -405,8 +497,8 @@ function labsGapIntersectionEndpoints({
         {
           target1: targetDomain,
           target2: seedInput.competitors[0],
-          location_code: DEFAULT_LOCATION_CODE,
-          language_code: DEFAULT_LANGUAGE_CODE,
+          location_code: seedInput.location_code,
+          language_code: seedInput.language_code,
           limit: 100,
           tag: `${tag}|labs|domain_intersection`,
         },
@@ -422,8 +514,8 @@ function serpPriorityKeywordEndpoints({ runTag: tag, seed: seedInput }) {
     body: [
       {
         keyword,
-        location_code: DEFAULT_LOCATION_CODE,
-        language_code: DEFAULT_LANGUAGE_CODE,
+        location_code: seedInput.location_code,
+        language_code: seedInput.language_code,
         device: "desktop",
         depth: 20,
         tag: `${tag}|serp|organic|${index + 1}`,
@@ -439,8 +531,8 @@ function serpLocalPackEndpoints({ runTag: tag, seed: seedInput }) {
     body: [
       {
         keyword,
-        location_code: DEFAULT_LOCATION_CODE,
-        language_code: DEFAULT_LANGUAGE_CODE,
+        location_code: seedInput.location_code,
+        language_code: seedInput.language_code,
         device: "desktop",
         depth: 20,
         tag: `${tag}|serp|maps|${index + 1}`,
@@ -506,8 +598,8 @@ function businessLocalEndpoints({
     body: [
       {
         keyword,
-        location_code: DEFAULT_LOCATION_CODE,
-        language_code: DEFAULT_LANGUAGE_CODE,
+        location_code: seedInput.location_code,
+        language_code: seedInput.language_code,
         depth: 20,
         tag: `${tag}|business_data|my_business_info|${targetBrand}|${index + 1}`,
       },
@@ -515,7 +607,7 @@ function businessLocalEndpoints({
   }));
 }
 
-function reviewsSentimentEndpoints({ runTag: tag }) {
+function reviewsSentimentEndpoints({ runTag: tag, seed: seedInput }) {
   const cid = args.reviewCid ?? args.cid ?? null;
   if (!cid) {
     return [
@@ -525,7 +617,7 @@ function reviewsSentimentEndpoints({ runTag: tag }) {
         body: [
           {
             cid: "REQUIRED_REVIEW_CID",
-            language_code: DEFAULT_LANGUAGE_CODE,
+            language_code: seedInput.language_code,
             tag: `${tag}|business_data|reviews|missing_cid`,
           },
         ],
@@ -541,7 +633,7 @@ function reviewsSentimentEndpoints({ runTag: tag }) {
       body: [
         {
           cid,
-          language_code: DEFAULT_LANGUAGE_CODE,
+          language_code: seedInput.language_code,
           depth: 50,
           sort_by: "newest",
           tag: `${tag}|business_data|reviews|${cid}`,
@@ -564,7 +656,7 @@ function contentBrandSentimentEndpoints({
       body: [
         {
           keyword: targetBrand,
-          language_code: DEFAULT_LANGUAGE_CODE,
+          language_code: seedInput.language_code,
           tag: `${tag}|content_analysis|summary|brand`,
         },
       ],
@@ -575,7 +667,7 @@ function contentBrandSentimentEndpoints({
       body: [
         {
           keyword: seedInput.topics[1] ?? targetDomain,
-          language_code: DEFAULT_LANGUAGE_CODE,
+          language_code: seedInput.language_code,
           limit: 50,
           tag: `${tag}|content_analysis|search|topic`,
         },
@@ -798,20 +890,27 @@ function profileStatus(calls) {
 
 function buildSeed(parsedArgs) {
   return {
-    keywords: parseList(parsedArgs.keywords, COLOMBIA_TOURS_SEEDS.keywords),
-    topics: parseList(parsedArgs.topics, COLOMBIA_TOURS_SEEDS.topics),
+    seed_profile: seedProfileId,
+    keywords: parseList(
+      parsedArgs.keywords,
+      seedProfile.keywords ?? COLOMBIA_TOURS_SEEDS.keywords,
+    ),
+    topics: parseList(
+      parsedArgs.topics,
+      seedProfile.topics ?? COLOMBIA_TOURS_SEEDS.topics,
+    ),
     competitors: parseList(
       parsedArgs.competitors,
-      COLOMBIA_TOURS_SEEDS.competitors,
+      seedProfile.competitors ?? COLOMBIA_TOURS_SEEDS.competitors,
     ).map(normalizeDomain),
     localQueries: parseList(
       parsedArgs.localQueries,
-      COLOMBIA_TOURS_SEEDS.localQueries,
+      seedProfile.localQueries ?? COLOMBIA_TOURS_SEEDS.localQueries,
     ),
     locations: COLOMBIA_TOURS_SEEDS.locations,
-    locale: DEFAULT_LOCALE,
-    location_code: DEFAULT_LOCATION_CODE,
-    language_code: DEFAULT_LANGUAGE_CODE,
+    locale,
+    location_code: locationCode,
+    language_code: languageCode,
   };
 }
 

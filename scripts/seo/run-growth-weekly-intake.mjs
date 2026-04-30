@@ -13,6 +13,15 @@ const args = parseArgs(process.argv.slice(2));
 const apply = args.apply === "true";
 const forceGoogle = args.forceGoogle === "true";
 const skipGoogleRefresh = args.skipGoogleRefresh === "true";
+const runApprovedDataForSeoProfiles =
+  args.runApprovedDataForSeoProfiles === "true";
+const approvedDataForSeoProfiles =
+  args.approvedDataForSeoProfiles ??
+  "dfs_labs_demand_cluster_v1,dfs_labs_competitor_visibility_v1,dfs_labs_gap_intersections_v1,dfs_serp_priority_keywords_v1,dfs_serp_local_pack_v1";
+const approvedDataForSeoSeedProfiles = parseList(
+  args.approvedDataForSeoSeedProfiles,
+  [],
+);
 const currentRun = args.current ?? DEFAULT_CURRENT_RUN;
 const previousRun = args.previous ?? DEFAULT_PREVIOUS_RUN;
 const outDir = args.outDir ?? OUT_DIR;
@@ -27,6 +36,7 @@ async function main() {
 
   const steps = [
     googleRefreshStep(),
+    ...approvedDataForSeoSteps(),
     nodeStep(
       "gsc_inventory_normalizer",
       "scripts/seo/normalize-growth-gsc-cache.mjs",
@@ -57,6 +67,11 @@ async function main() {
       previousRun,
     ]),
     nodeStep("cache_health", "scripts/seo/growth-cache-health-report.mjs", []),
+    nodeStep(
+      "max_matrix_fact_normalizer",
+      "scripts/seo/normalize-growth-max-matrix-facts.mjs",
+      apply ? ["--apply=true", "--limit=1500"] : ["--limit=1500"],
+    ),
     nodeStep(
       "joint_normalizers",
       "scripts/seo/run-growth-joint-normalizers.mjs",
@@ -147,6 +162,36 @@ function googleRefreshStep() {
   };
 }
 
+function approvedDataForSeoSteps() {
+  if (!runApprovedDataForSeoProfiles) return [];
+  const seedProfiles =
+    approvedDataForSeoSeedProfiles.length > 0
+      ? approvedDataForSeoSeedProfiles
+      : ["co-es"];
+  return seedProfiles.map((seedProfile) =>
+    nodeStep(
+      `approved_dataforseo_${seedProfile}`,
+      "scripts/seo/run-dataforseo-max-performance-profiles.mjs",
+      [
+        "--apply",
+        String(apply),
+        "--profiles",
+        approvedDataForSeoProfiles,
+        "--seedProfile",
+        seedProfile,
+        "--keywordLimit",
+        "10",
+        "--competitorLimit",
+        "5",
+        "--runTag",
+        `weekly-intake-${seedProfile}-${todayCompact()}`,
+        "--outDir",
+        path.join(outDir, `dataforseo-${seedProfile}`),
+      ],
+    ),
+  );
+}
+
 function nodeStep(name, script, stepArgs) {
   return {
     name,
@@ -233,4 +278,16 @@ function parseArgs(argv) {
     if (next && !next.startsWith("--")) index += 1;
   }
   return parsed;
+}
+
+function parseList(value, fallback) {
+  if (!value) return fallback;
+  return String(value)
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function todayCompact() {
+  return new Date().toISOString().slice(0, 10).replaceAll("-", "");
 }

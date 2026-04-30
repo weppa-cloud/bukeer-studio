@@ -22,14 +22,16 @@ Execute the next #310 operating loop after the technical pass-candidate close:
 
 ## Actions
 
-| Area         | Action                                                                                  | Result               |
-| ------------ | --------------------------------------------------------------------------------------- | -------------------- |
-| Full funnel  | Ran `scripts/seo/reconcile-waflow-crm-funnel.mjs` read-only from `2026-04-28T00:00:00Z` | `WATCH`              |
-| WATCH triage | Reviewed `dataforseo-v2-triage.json` for task `04302257-1574-0216-0000-3f30b406bb51`    | `PASS-WITH-WATCH`    |
-| DataForSEO   | Ran Labs/SERP next batch with 5 profiles and 21 calls                                   | `PASS`, cost `0.348` |
-| Facts        | Re-ran `normalize-growth-max-matrix-facts.mjs --apply=true --limit=1000`                | `PASS`               |
-| Joint facts  | Re-ran `run-growth-joint-normalizers.mjs --apply=true --maxCouncil=5 --limit=1000`      | `PASS`               |
-| Council      | Regenerated Max Matrix Council artifact                                                 | `PASS-WITH-WATCH`    |
+| Area         | Action                                                                                  | Result                |
+| ------------ | --------------------------------------------------------------------------------------- | --------------------- |
+| Full funnel  | Ran `scripts/seo/reconcile-waflow-crm-funnel.mjs` read-only from `2026-04-28T00:00:00Z` | `WATCH`               |
+| WATCH triage | Reviewed `dataforseo-v2-triage.json` for task `04302257-1574-0216-0000-3f30b406bb51`    | `PASS-WITH-WATCH`     |
+| DataForSEO   | Ran Labs/SERP next batch with 5 profiles and 21 calls                                   | `PASS`, cost `0.348`  |
+| DataForSEO   | Ran controlled EN-US and MX Labs/SERP content-scale batches                             | `PASS`, cost `0.8152` |
+| Facts        | Re-ran `normalize-growth-max-matrix-facts.mjs --apply=true --limit=1000`                | `PASS`                |
+| Content      | Generated source-backed content scale batch for EN-US, MX and ES optimization           | `READY-WITH-GATES`    |
+| Joint facts  | Re-ran `run-growth-joint-normalizers.mjs --apply=true --maxCouncil=5 --limit=1000`      | `PASS`                |
+| Council      | Regenerated Max Matrix Council artifact                                                 | `PASS-WITH-WATCH`     |
 
 ## Full-Funnel Tracking
 
@@ -103,7 +105,74 @@ Fact quality after the batch: `PASS`.
 
 Known gap:
 
-- The current runner is configured for the Colombia/Spanish operating profile. EN-US deep demand needs a runner enhancement to expose `location_code=2840` and `language_code=en` overrides before executing a true EN-US demand batch.
+- The runner now supports market seed profiles and location/language overrides. EN-US and MX deep demand can run through reproducible seed profiles instead of ad-hoc keyword lists.
+
+## DataForSEO EN-US / MX Content Scale Batch
+
+Artifacts:
+
+- `artifacts/seo/2026-04-30-dataforseo-content-en-us-apply/`
+- `artifacts/seo/2026-04-30-dataforseo-content-mx-apply/`
+- `artifacts/seo/2026-04-30-growth-content-scale-batch/`
+- `artifacts/seo/2026-04-30-content-scale-fact-quality/`
+
+| Market | Profiles                                                                              | Calls | Cost USD | Result                          |
+| ------ | ------------------------------------------------------------------------------------- | ----: | -------: | ------------------------------- |
+| EN-US  | Labs demand, competitor visibility, gap intersections, SERP priority, SERP local pack |    23 |   0.4100 | raw cached and facts normalized |
+| MX     | Labs demand, competitor visibility, gap intersections, SERP priority, SERP local pack |    23 |   0.4052 | raw cached and facts normalized |
+
+Post-normalization facts after EN-US/MX:
+
+| Fact table                  | Rows |
+| --------------------------- | ---: |
+| `seo_keyword_opportunities` |  627 |
+| `seo_serp_snapshots`        |   59 |
+| `seo_joint_growth_facts`    | 1077 |
+
+Content scale batch:
+
+| Lane                     | Selected | Decision                                                                                 |
+| ------------------------ | -------: | ---------------------------------------------------------------------------------------- |
+| EN-US new content briefs |        5 | queue briefs only; no publish until EN quality gate and baseline are complete            |
+| MX new content briefs    |        5 | queue briefs only; no publish until market reviewer and tracking source row are complete |
+| ES optimization          |       10 | optimize existing pages with GSC/GA4 baseline; not all are active experiments            |
+
+Selected EN-US topics:
+
+- `what to do in Cartagena Colombia in 3 days with guided tours`
+- `cartagena colombia travel`
+- `coffee triangle colombia`
+- `colombia tours from us`
+- `colombia travel agency`
+
+Selected MX topics:
+
+- `cartagena colombia desde mexico`
+- `tour eje cafetero colombia`
+- `tours colombia desde mexico`
+- `paquetes colombia mexico`
+- `viajes a Colombia desde México agencias recomendadas`
+
+Decision:
+
+- This batch is backlog/cohort work, not publication.
+- Council keeps at most 5 active measured experiments; content production may proceed as a separate backlog lane if it does not interfere with active measurement.
+- Rows without source row, baseline, owner, success metric and evaluation date remain blocked.
+
+## Automation Update
+
+Implemented script support for systematic future runs:
+
+- `scripts/seo/run-dataforseo-max-performance-profiles.mjs` now supports `--seedProfile co-es|en-us-content|mx-es-content` plus explicit `--locationCode`, `--languageCode` and `--locale`.
+- `scripts/seo/run-growth-weekly-intake.mjs` now supports optional approved provider runs:
+  - `--runApprovedDataForSeoProfiles true`
+  - `--approvedDataForSeoSeedProfiles en-us-content,mx-es-content`
+  - `--approvedDataForSeoProfiles <profile ids>`
+- The intake now runs `normalize-growth-max-matrix-facts.mjs` before joint normalizers, so new provider cache can become facts and Council candidates in the same operating loop.
+
+Operational rule:
+
+`approved provider profile -> raw/cache -> max matrix facts -> joint facts -> growth_inventory -> Council`
 
 ## Council Execution
 
@@ -145,7 +214,7 @@ Active 5 for execution:
 ## Next Steps
 
 1. Run fresh business full-funnel smoke when Sales has a real quote-to-confirmed itinerary.
-2. Add EN-US override support to `run-dataforseo-max-performance-profiles.mjs` before the EN-US deep demand batch.
+2. Execute the fresh business full-funnel smoke using an exact CRM request reference; do not close tracking on timestamp reconciliation.
 3. Keep 50 technical WATCH findings out of Council until they persist with traffic/conversion baseline.
-4. Execute the 5 Council experiments with owners above.
-5. Update #310/#311/#313/#321/#322 with this closeout.
+4. Use the content scale artifact to prepare briefs manually, then publish only after quality/tracking gates pass.
+5. Continue approved profile runs through weekly intake; DataForSEO Backlinks and LLM Mentions stay future/WATCH until subscription access changes.

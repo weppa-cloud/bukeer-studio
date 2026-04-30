@@ -31,19 +31,20 @@ decision-grade summaries with source, window, fallback and owner issue.
 
 ## Profile Frequency And Approval Matrix
 
-| Provider / profile                          | Frequency                                                   | Approval mode                                                             | Paid-call risk | Normalized output                                                | Council output                                        |
-| ------------------------------------------- | ----------------------------------------------------------- | ------------------------------------------------------------------------- | -------------- | ---------------------------------------------------------------- | ----------------------------------------------------- |
-| `dfs_onpage_full_v2`                        | Weekly while #312/#313 are blocked/watch.                   | Approval required for every new crawl unless issue authorizes recurrence. | High           | `seo_audit_results`, `seo_audit_findings`, usage rows.           | Technical P0/P1 candidate/watch/block rows.           |
-| `dfs_onpage_rendered_sample_v1`             | On demand for priority URLs.                                | Approval required per sample scope.                                       | Medium         | Render/performance evidence and resource findings.               | Performance WATCH/candidate rows.                     |
-| `gsc_daily_complete_web_v1`                 | Daily, one completed day, paginated.                        | Automatic after profile approval.                                         | None           | Durable GSC fact base or cache-backed summaries.                 | WATCH only unless rolled into weekly baseline.        |
-| `gsc_growth_minimum_v1` / Council 28d pulls | Weekly before Council.                                      | Automatic.                                                                | None           | GSC opportunity facts/summaries.                                 | Search demand, CTR, market, device candidates.        |
-| `gsc_search_appearance_v1`                  | Weekly discovery; filtered detail if supported.             | Automatic discovery; detail filters automatic after profile succeeds.     | None           | Rich-result/search appearance facts.                             | Structured-data/rich-result WATCH/candidates.         |
-| `ga4_daily_landing_channel_v1`              | Daily completed day.                                        | Automatic.                                                                | None           | Landing/channel trend facts or cache-backed summaries.           | WATCH only unless rolled into weekly baseline.        |
-| `ga4_growth_minimum_v1` / Council 28d pulls | Weekly before Council.                                      | Automatic.                                                                | None           | GA4 behavior, event and campaign facts/summaries.                | CRO, activation, attribution and paid-readiness rows. |
-| Tracking facts                              | Continuous where configured; daily freshness; weekly smoke. | Automatic after integration approval.                                     | None/read-only | `funnel_events`, `meta_conversion_events`, lifecycle facts.      | Conversion-truth health, paid/CRO WATCH/BLOCKED/PASS. |
-| `geo_ai_visibility_v1`                      | Monthly baseline; weekly only for active experiments.       | Approval required for pilot/full run and prompt set.                      | High           | `seo_ai_visibility_runs`, `seo_ai_visibility_facts`.             | `channel = 'ai_search'` WATCH/candidate rows.         |
-| Translation quality gate                    | Before localized content scale; weekly during locale push.  | Automatic scoring; publish/scale approval remains human.                  | None           | `seo_translation_quality_checks`, `seo_translation_qa_findings`. | Content/localization PASS/WATCH/BLOCKED rows.         |
-| Joint normalizers                           | Weekly after provider facts; daily only for health/watch.   | Automatic; no provider calls.                                             | None           | Derived joint facts from cached/fact tables.                     | Ranked Council candidates and blockers.               |
+| Provider / profile                          | Frequency                                                    | Approval mode                                                             | Paid-call risk | Normalized output                                                | Council output                                        |
+| ------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------- | -------------- | ---------------------------------------------------------------- | ----------------------------------------------------- |
+| `dfs_onpage_full_v2`                        | Weekly while #312/#313 are blocked/watch.                    | Approval required for every new crawl unless issue authorizes recurrence. | High           | `seo_audit_results`, `seo_audit_findings`, usage rows.           | Technical P0/P1 candidate/watch/block rows.           |
+| `dfs_onpage_rendered_sample_v1`             | On demand for priority URLs.                                 | Approval required per sample scope.                                       | Medium         | Render/performance evidence and resource findings.               | Performance WATCH/candidate rows.                     |
+| `dfs_content_scale_labs_serp_v1`            | Monthly or Council-approved sprint batch for target markets. | Approval required per market/profile set.                                 | Medium         | Keyword opportunity, SERP snapshot and competitor facts.         | Content backlog and selected brief candidates.        |
+| `gsc_daily_complete_web_v1`                 | Daily, one completed day, paginated.                         | Automatic after profile approval.                                         | None           | Durable GSC fact base or cache-backed summaries.                 | WATCH only unless rolled into weekly baseline.        |
+| `gsc_growth_minimum_v1` / Council 28d pulls | Weekly before Council.                                       | Automatic.                                                                | None           | GSC opportunity facts/summaries.                                 | Search demand, CTR, market, device candidates.        |
+| `gsc_search_appearance_v1`                  | Weekly discovery; filtered detail if supported.              | Automatic discovery; detail filters automatic after profile succeeds.     | None           | Rich-result/search appearance facts.                             | Structured-data/rich-result WATCH/candidates.         |
+| `ga4_daily_landing_channel_v1`              | Daily completed day.                                         | Automatic.                                                                | None           | Landing/channel trend facts or cache-backed summaries.           | WATCH only unless rolled into weekly baseline.        |
+| `ga4_growth_minimum_v1` / Council 28d pulls | Weekly before Council.                                       | Automatic.                                                                | None           | GA4 behavior, event and campaign facts/summaries.                | CRO, activation, attribution and paid-readiness rows. |
+| Tracking facts                              | Continuous where configured; daily freshness; weekly smoke.  | Automatic after integration approval.                                     | None/read-only | `funnel_events`, `meta_conversion_events`, lifecycle facts.      | Conversion-truth health, paid/CRO WATCH/BLOCKED/PASS. |
+| `geo_ai_visibility_v1`                      | Monthly baseline; weekly only for active experiments.        | Approval required for pilot/full run and prompt set.                      | High           | `seo_ai_visibility_runs`, `seo_ai_visibility_facts`.             | `channel = 'ai_search'` WATCH/candidate rows.         |
+| Translation quality gate                    | Before localized content scale; weekly during locale push.   | Automatic scoring; publish/scale approval remains human.                  | None           | `seo_translation_quality_checks`, `seo_translation_qa_findings`. | Content/localization PASS/WATCH/BLOCKED rows.         |
+| Joint normalizers                           | Weekly after provider facts; daily only for health/watch.    | Automatic; no provider calls.                                             | None           | Derived joint facts from cached/fact tables.                     | Ranked Council candidates and blockers.               |
 
 Paid-call approval details and freshness rules live in
 [Growth Data Automation Cadence](./growth-data-automation-cadence.md). The
@@ -140,6 +141,77 @@ performance evidence is needed:
 
 The full weekly crawl remains the comparable technical baseline. Rendered
 samples enrich it; they do not replace the full crawl.
+
+## DataForSEO Content Scale Profiles
+
+Use these profiles when Growth Council approves a content-scale sprint. They
+are designed to maximize DataForSEO Labs and SERP value without publishing
+content automatically.
+
+### `dfs_content_scale_labs_serp_v1`
+
+Runner:
+
+```bash
+node scripts/seo/run-dataforseo-max-performance-profiles.mjs \
+  --apply true \
+  --profiles dfs_labs_demand_cluster_v1,dfs_labs_competitor_visibility_v1,dfs_labs_gap_intersections_v1,dfs_serp_priority_keywords_v1,dfs_serp_local_pack_v1 \
+  --seedProfile en-us-content \
+  --keywordLimit 10 \
+  --competitorLimit 5
+```
+
+Supported seed profiles:
+
+| Seed profile    | Locale | Location code | Language | Purpose                                                                                       |
+| --------------- | ------ | ------------: | -------- | --------------------------------------------------------------------------------------------- |
+| `co-es`         | es-CO  |          2170 | es       | Colombia Spanish demand, SERP and local pack.                                                 |
+| `en-us-content` | en-US  |          2840 | en       | US English demand for Colombia travel packages, Cartagena, Coffee Triangle and agency intent. |
+| `mx-es-content` | es-MX  |          2484 | es       | Mexico Spanish demand for travel to Colombia, Cartagena, Eje Cafetero and package intent.     |
+
+Output contract:
+
+| Layer            | Target                                                                                             |
+| ---------------- | -------------------------------------------------------------------------------------------------- |
+| Raw/cache        | `growth_dataforseo_cache`                                                                          |
+| Cost/usage       | `seo_provider_usage`                                                                               |
+| Normalized facts | `seo_keyword_opportunities`, `seo_serp_snapshots`, `seo_domain_competitive_facts` where applicable |
+| Backlog artifact | `scripts/seo/prepare-growth-content-scale-batch.mjs`                                               |
+| Council use      | backlog/cohort only until source row, baseline, owner, metric and evaluation date are complete     |
+
+Current controlled run on 2026-04-30:
+
+| Market | Artifact                                                   | Calls | Cost USD | Result                          |
+| ------ | ---------------------------------------------------------- | ----: | -------: | ------------------------------- |
+| EN-US  | `artifacts/seo/2026-04-30-dataforseo-content-en-us-apply/` |    23 |   0.4100 | raw cached and facts normalized |
+| MX     | `artifacts/seo/2026-04-30-dataforseo-content-mx-apply/`    |    23 |   0.4052 | raw cached and facts normalized |
+
+Content batch generator:
+
+```bash
+node scripts/seo/prepare-growth-content-scale-batch.mjs \
+  --outDir artifacts/seo/$(date +%F)-growth-content-scale-batch
+```
+
+The generator must filter out broad/non-Colombia keywords and keep publication
+blocked until EN/MX quality gates and tracking baselines are complete.
+
+### Weekly intake integration
+
+Approved DataForSEO profiles can be attached to the weekly intake, but the
+default is off:
+
+```bash
+node scripts/seo/run-growth-weekly-intake.mjs \
+  --apply true \
+  --runApprovedDataForSeoProfiles true \
+  --approvedDataForSeoSeedProfiles en-us-content,mx-es-content
+```
+
+This runs approved provider profiles, normalizes Max Matrix facts, then
+executes joint normalizers and Council enforcement in the same operating loop.
+Do not use this flag for Backlinks or LLM Mentions until subscription access is
+enabled.
 
 ## Search Console Profile
 
