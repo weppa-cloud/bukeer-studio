@@ -242,3 +242,37 @@ Do not bulk-update all historical `requests` by timestamp. Most old records are
 legacy Chatwoot/CRM data without a Growth `reference_code`; those should be
 classified as `legacy_no_attribution` unless an exact conversation/request/
 itinerary key exists.
+
+## Addendum - productized Chatwoot -> CRM request link
+
+Updated: 2026-04-30T18:40Z.
+
+Implemented the first permanent backend link in Studio-owned webhook code:
+
+- file: `app/api/webhooks/chatwoot/route.ts`
+- trigger: matched Chatwoot webhook with WAFlow lead and `conversationId`
+- behavior:
+  - find existing `requests` row by `account_id + chatwoot_conversation_id`;
+  - if missing and inbox data is present, call shared RPC `find_or_create_request`;
+  - write Growth metadata into `requests.custom_fields`:
+    - `growth_reference_code`
+    - `growth_source_website_id`
+    - `growth_waflow_lead_id`
+    - `growth_session_key`
+    - `growth_source_url`
+    - `growth_page_path`
+    - `growth_link_method = chatwoot_webhook_reference`
+    - `growth_linked_at`
+    - `growth_last_chatwoot_event`
+  - do not overwrite a conflicting existing reference;
+  - do not mutate `request_stage` from Studio.
+
+This keeps Flutter CRM as the operational source of truth for pipeline stage
+movement while making future `WAFlow -> Chatwoot -> requests` linkage durable
+without timestamp reconciliation.
+
+Remaining permanent link:
+
+- when Flutter creates/links an itinerary from a request, it should inherit
+  `growth_reference_code` into `itineraries.custom_fields` so
+  `booking_confirmed` joins without manual smoke setup.
