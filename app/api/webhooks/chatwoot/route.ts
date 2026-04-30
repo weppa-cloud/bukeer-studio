@@ -1110,6 +1110,7 @@ async function sendLifecycleConversions(
           session_key: lead.session_key,
           chatwoot_event: payload.event,
           chatwoot_conversation_id: conversationId,
+          messaging_channel: "whatsapp",
         },
         accountId: lead.account_id,
         websiteId: lead.website_id,

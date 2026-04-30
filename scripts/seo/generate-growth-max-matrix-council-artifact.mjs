@@ -662,30 +662,44 @@ function firstValue(source, aliases) {
 }
 
 function evaluateCandidates(candidates, activeLimit) {
-  const activeCandidates = candidates.filter(
-    (row) => row.is_active && row.missing_fields.length === 0,
-  );
+  const sortedActiveCandidates = candidates
+    .filter((row) => row.is_active && row.missing_fields.length === 0)
+    .sort(compareCandidatePriority);
+  const seenSurfaces = new Map();
+  const duplicateActiveRows = new Map();
+  const uniqueActiveCandidates = [];
+  for (const candidate of sortedActiveCandidates) {
+    const surfaceKey = candidateSurfaceKey(candidate);
+    const firstCandidate = surfaceKey ? seenSurfaces.get(surfaceKey) : null;
+    if (firstCandidate) {
+      duplicateActiveRows.set(candidate, firstCandidate);
+      continue;
+    }
+    if (surfaceKey) seenSurfaces.set(surfaceKey, candidate);
+    uniqueActiveCandidates.push(candidate);
+  }
   const activeOrder = new Map(
-    [...activeCandidates]
-      .sort((left, right) => {
-        const priorityDelta =
-          (right.priority ?? -Infinity) - (left.priority ?? -Infinity);
-        if (priorityDelta !== 0) return priorityDelta;
-        return String(left.id).localeCompare(String(right.id));
-      })
-      .map((row, index) => [row, index + 1]),
+    uniqueActiveCandidates.map((row, index) => [row, index + 1]),
   );
 
   return candidates.map((candidate) => {
     const activeRank = activeOrder.get(candidate) ?? null;
+    const duplicateOf = duplicateActiveRows.get(candidate);
     const capExceeded = activeRank != null && activeRank > activeLimit;
     const missingFields = candidate.missing_fields;
-    const decision = capExceeded
+    const decision = duplicateOf
       ? "rejected"
-      : missingFields.length > 0 || !candidate.is_active
-        ? "blocked"
-        : "approved";
+      : capExceeded
+        ? "rejected"
+        : missingFields.length > 0 || !candidate.is_active
+          ? "blocked"
+          : "approved";
     const reasons = [
+      ...(duplicateOf
+        ? [
+            `duplicate experiment surface: already represented by ${stringValue(duplicateOf.id) ?? "higher priority candidate"}`,
+          ]
+        : []),
       ...(capExceeded
         ? [
             `active experiment cap exceeded: rank ${activeRank} > ${activeLimit}`,
@@ -715,6 +729,46 @@ function evaluateCandidates(candidates, activeLimit) {
   });
 }
 
+function compareCandidatePriority(left, right) {
+  const priorityDelta =
+    (right.priority ?? -Infinity) - (left.priority ?? -Infinity);
+  if (priorityDelta !== 0) return priorityDelta;
+  return String(left.id).localeCompare(String(right.id));
+}
+
+function candidateSurfaceKey(candidate) {
+  const raw = candidate.raw ?? {};
+  const sourceRows = Array.isArray(raw.source_rows) ? raw.source_rows : [];
+  const values = [
+    raw.source_url,
+    raw.canonical_url,
+    raw.url,
+    candidate.source_url,
+    candidate.source_row,
+    ...sourceRows,
+  ];
+  for (const value of values) {
+    const normalized = normalizeSurfaceValue(value);
+    if (normalized) return normalized;
+  }
+  return null;
+}
+
+function normalizeSurfaceValue(value) {
+  const text = stringValue(value);
+  if (!text) return null;
+  try {
+    const parsed = new URL(text);
+    parsed.hash = "";
+    parsed.search = "";
+    const pathname =
+      parsed.pathname.length > 1 ? parsed.pathname.replace(/\/+$/u, "") : "/";
+    return `${parsed.hostname.toLowerCase()}${pathname.toLowerCase()}`;
+  } catch {
+    return text.trim().toLowerCase();
+  }
+}
+
 function missingInputRow(inputs) {
   const missingKinds = inputs
     .filter((input) => input.status === "missing")
@@ -741,14 +795,14 @@ function missingInputRow(inputs) {
 }
 
 function rollupStatus(rows) {
-  if (rows.some((row) => row.decision === "rejected")) return "REJECTED";
   if (
     rows.some((row) => row.decision === "approved") &&
-    rows.some((row) => row.decision === "blocked")
+    rows.some((row) => ["blocked", "rejected"].includes(row.decision))
   ) {
     return "PASS-WITH-WATCH";
   }
   if (rows.some((row) => row.decision === "blocked")) return "BLOCKED";
+  if (rows.some((row) => row.decision === "rejected")) return "REJECTED";
   return "PASS";
 }
 
