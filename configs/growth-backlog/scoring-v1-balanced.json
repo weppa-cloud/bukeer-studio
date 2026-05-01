@@ -1,0 +1,79 @@
+{
+  "version": "scoring-v1-balanced",
+  "weights": {
+    "business_impact": 0.25,
+    "source_diversity": 0.2,
+    "freshness": 0.15,
+    "baseline_strength": 0.15,
+    "confidence": 0.15,
+    "effort_penalty": 0.05,
+    "dependency_penalty": 0.05
+  },
+  "thresholds": {
+    "ready_for_council": 82,
+    "queued": 65,
+    "watch": 40
+  },
+  "caps": {
+    "max_backlog_items": 100,
+    "min_backlog_items": 50,
+    "max_ready_for_council": 20,
+    "max_per_work_type": 20,
+    "max_per_independence_key": 1,
+    "max_active_experiments": 5
+  },
+  "work_type_defaults": {
+    "technical_remediation": {
+      "owner_role": "A4",
+      "owner_issue": "#313",
+      "success_metric": "Technical finding resolved in next comparable crawl"
+    },
+    "seo_demand": {
+      "owner_role": "A5",
+      "owner_issue": "#321",
+      "success_metric": "Improve organic CTR, clicks, or average position in next 28d GSC window"
+    },
+    "cro_activation": {
+      "owner_role": "A3",
+      "owner_issue": "#322",
+      "success_metric": "Improve WAFlow submit or qualified lead rate"
+    },
+    "content_opportunity": {
+      "owner_role": "A5",
+      "owner_issue": "#314",
+      "success_metric": "Publish or update content and measure 28d organic demand"
+    },
+    "serp_competitor_opportunity": {
+      "owner_role": "A5",
+      "owner_issue": "#381",
+      "success_metric": "Improve SERP feature coverage, snippet CTR, or competitor gap"
+    },
+    "tracking_attribution": {
+      "owner_role": "A3",
+      "owner_issue": "#322",
+      "success_metric": "Tracking chain emits expected event with source attribution"
+    },
+    "legacy_growth_inventory": {
+      "owner_role": "A5",
+      "owner_issue": "#311",
+      "success_metric": "Validated Growth OS backlog item reaches Council-ready state"
+    },
+    "growth_opportunity": {
+      "owner_role": "A5",
+      "owner_issue": "#311",
+      "success_metric": "Selected Growth OS metric improves in next evaluation window"
+    }
+  },
+  "penalties": {
+    "watch_freshness": 20,
+    "blocked_freshness": 60,
+    "watch_correlation": 15,
+    "blocked_quality": 70,
+    "zero_baseline": 35,
+    "legacy_only": 15,
+    "generic_next_action": 20,
+    "en_quality_or_translation": 20,
+    "tracking_or_paid_gate": 25,
+    "technical_no_traffic": 30
+  }
+}
