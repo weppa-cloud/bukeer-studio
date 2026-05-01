@@ -75,6 +75,12 @@ type LifecycleEvent =
   | "QuoteSent";
 type ChatwootGrowthAttributeValue = string | number | boolean | null;
 
+function mapLifecycleToMetaEvent(lifecycleEvent: LifecycleEvent): string {
+  // Meta business_messaging CAPI accepts a constrained event-name set.
+  // Keep Bukeer's lifecycle in custom_data/trace and send a valid Meta name.
+  return "LeadSubmitted";
+}
+
 interface WaflowLeadRow {
   id: string;
   account_id: string | null;
@@ -1092,10 +1098,11 @@ async function sendLifecycleConversions(
 
   let sent = 0;
   for (const lifecycleEvent of lifecycleEvents) {
+    const metaEventName = mapLifecycleToMetaEvent(lifecycleEvent);
     await sendMetaConversionEvent(
       {
-        eventName: lifecycleEvent,
-        eventId: `${referenceCode}:chatwoot:${lifecycleEvent}:${conversationId}`,
+        eventName: metaEventName,
+        eventId: `${referenceCode}:chatwoot:${metaEventName}:${lifecycleEvent}:${conversationId}`,
         actionSource: "business_messaging",
         messagingChannel: "whatsapp",
         eventSourceUrl: cleanString(attribution.source_url),
@@ -1114,6 +1121,7 @@ async function sendLifecycleConversions(
           reference_code: referenceCode,
           session_key: lead.session_key,
           chatwoot_event: payload.event,
+          chatwoot_lifecycle_event: lifecycleEvent,
           chatwoot_conversation_id: conversationId,
         },
         accountId: lead.account_id,
@@ -1123,6 +1131,7 @@ async function sendLifecycleConversions(
         trace: {
           source: "chatwoot_webhook",
           provider_event: payload.event,
+          lifecycle_event: lifecycleEvent,
           reference_code: referenceCode,
         },
       },
