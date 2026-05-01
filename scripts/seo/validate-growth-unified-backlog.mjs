@@ -60,6 +60,9 @@ async function main() {
       .map((row) => normalizeKey(row.independence_key))
       .filter(Boolean),
   );
+  const activeBacklogItemIds = new Set(
+    activeExperiments.map((row) => row.backlog_item_id).filter(Boolean),
+  );
   const readyItemKeyCounts = countKeys(
     items.rows
       .filter((row) =>
@@ -73,7 +76,7 @@ async function main() {
 
   const candidateResults = candidates.rows.map((row) => classifyCandidate(row));
   const itemResults = items.rows.map((row) =>
-    classifyItem(row, activeKeys, readyItemKeyCounts),
+    classifyItem(row, activeKeys, readyItemKeyCounts, activeBacklogItemIds),
   );
   const experimentResults = experiments.rows.map((row) =>
     classifyExperiment(row, activeExperiments),
@@ -204,10 +207,19 @@ function classifyCandidate(row) {
   });
 }
 
-function classifyItem(row, activeKeys, readyItemKeyCounts) {
+function classifyItem(
+  row,
+  activeKeys,
+  readyItemKeyCounts,
+  activeBacklogItemIds,
+) {
   const reasons = [];
   const status = normalizeStatus(row.status);
   const independenceKey = normalizeKey(row.independence_key);
+  const councilEligible = [
+    "ready_for_council",
+    "approved_for_execution",
+  ].includes(status);
 
   if (!hasValue(row.baseline)) reasons.push("missing_baseline");
   if (!hasValue(row.hypothesis)) reasons.push("missing_hypothesis");
@@ -216,7 +228,12 @@ function classifyItem(row, activeKeys, readyItemKeyCounts) {
   if (!hasValue(row.success_metric)) reasons.push("missing_success_metric");
   if (!hasValue(row.evaluation_date)) reasons.push("missing_evaluation_date");
   if (!independenceKey) reasons.push("missing_independence_key");
-  if (independenceKey && activeKeys.has(independenceKey))
+  if (
+    councilEligible &&
+    independenceKey &&
+    activeKeys.has(independenceKey) &&
+    !activeBacklogItemIds.has(row.id)
+  )
     reasons.push("active_experiment_collision");
   if (independenceKey && (readyItemKeyCounts.get(independenceKey) ?? 0) > 1) {
     reasons.push("backlog_item_collision");

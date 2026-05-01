@@ -69,9 +69,12 @@ async function main() {
       .map((row) => normalizeKey(row.independence_key))
       .filter(Boolean),
   );
+  const activeBacklogItemIds = new Set(
+    activeExperiments.map((row) => row.backlog_item_id).filter(Boolean),
+  );
   const activeCollisions = collisionRows(activeExperiments);
   const itemEvaluations = items.rows.map((row) =>
-    evaluateBacklogItem(row, activeKeys),
+    evaluateBacklogItem(row, activeKeys, activeBacklogItemIds),
   );
   const slotsAvailable = Math.max(0, maxActive - activeExperiments.length);
   const proposedExperiments = selectProposedExperiments(
@@ -152,10 +155,11 @@ async function main() {
   );
 }
 
-function evaluateBacklogItem(row, activeKeys) {
+function evaluateBacklogItem(row, activeKeys, activeBacklogItemIds) {
   const status = normalizeStatus(row.status);
   const reasons = [];
   const independenceKey = normalizeKey(row.independence_key);
+  const councilEligible = COUNCIL_READY_STATUSES.has(status);
 
   if (!hasValue(row.baseline)) reasons.push("missing_baseline");
   if (!hasValue(row.hypothesis)) reasons.push("missing_hypothesis");
@@ -164,7 +168,12 @@ function evaluateBacklogItem(row, activeKeys) {
   if (!hasValue(row.success_metric)) reasons.push("missing_success_metric");
   if (!hasValue(row.evaluation_date)) reasons.push("missing_evaluation_date");
   if (!independenceKey) reasons.push("missing_independence_key");
-  if (independenceKey && activeKeys.has(independenceKey))
+  if (
+    councilEligible &&
+    independenceKey &&
+    activeKeys.has(independenceKey) &&
+    !activeBacklogItemIds.has(row.id)
+  )
     reasons.push("active_experiment_collision");
   if (!asArray(row.source_fact_refs).length && !hasValue(row.candidate_id))
     reasons.push("missing_source_reference");
@@ -235,6 +244,7 @@ function inferPacketStatus({
   if (activeCollisions.length) return "BLOCKED";
   if (itemEvaluations.some((row) => row.decision === "collision"))
     return "WATCH";
+  if (activeExperimentCount > 0) return "PASS";
   if (proposedExperiments.length) return "PASS";
   return "WATCH";
 }
