@@ -91,6 +91,43 @@ explicitly blocks it as `content_quality`.
 
 ## Lane Contracts
 
+## Automation Approval Policy
+
+Agents may prepare and validate work, but automatic mutation is intentionally
+narrow.
+
+Official policy:
+
+```text
+Agents may auto-apply only low-risk, reversible or smoke-verifiable operational
+optimizations when confidence >= 0.90.
+
+Agents may prepare content, transcreation and experiment material, but
+human/Curator/Council approval is required before publish, hreflang/sitemap
+exposure, paid/campaign mutation or experiment activation.
+```
+
+Allowed actions:
+
+| Allowed action      | Meaning                                                                                               | Who can advance it                                    |
+| ------------------- | ----------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| `auto_apply`        | Safe operational optimization can be applied automatically after smoke/verifiable checks.             | Agent/script, only when `automation_eligible = true`. |
+| `prepare_for_human` | Agent prepares draft, brief, task, QA checklist, evidence or proposal, but does not publish/activate. | Human Curator or Council.                             |
+| `watch`             | Useful signal, not enough evidence for action.                                                        | Orchestrator or future data refresh.                  |
+| `block`             | Missing evidence, dependency or unacceptable risk.                                                    | Owning lane resolves blocker.                         |
+| `reject`            | Invalid, duplicate or not worth pursuing.                                                             | Reviewer/Council records rationale.                   |
+
+Rules:
+
+- Default confidence threshold is `0.90`.
+- `auto_apply` is limited to technical or operational cleanup that is
+  reversible or smoke-verifiable.
+- Content, transcreation, experiment activation and paid/campaign mutation are
+  always `prepare_for_human`, even when confidence is high.
+- `growth_ai_reviews.evidence` must store `automation_eligible`,
+  `allowed_action`, `required_human_review`, threshold and rationale.
+- Council remains the only approver for active experiments.
+
 ### Growth Orchestrator / Blocked Router
 
 - Classifies `blocked` items into `locale_gate_required`,

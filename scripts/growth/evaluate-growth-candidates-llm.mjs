@@ -13,6 +13,8 @@ import {
   writeArtifacts,
 } from "../seo/growth-unified-backlog-lib.mjs";
 import {
+  DEFAULT_AUTOMATION_CONFIDENCE_THRESHOLD,
+  automationPolicyFor,
   classifyAgentLane,
   contentQualityGate,
   isContentLike,
@@ -29,6 +31,9 @@ const websiteId = args.websiteId ?? DEFAULT_WEBSITE_ID;
 const accountId = args.accountId ?? DEFAULT_ACCOUNT_ID;
 const limit = Number(args.limit ?? 20);
 const useLlm = args.llm !== "false";
+const automationThreshold = Number(
+  args.automationConfidenceThreshold ?? DEFAULT_AUTOMATION_CONFIDENCE_THRESHOLD,
+);
 const outDir =
   args.outDir ?? path.join("artifacts/seo", `${today()}-growth-ai-reviews`);
 const sb = getSupabase();
@@ -75,6 +80,7 @@ async function main() {
     prompt_version: PROMPT_VERSION,
     config_version: CONFIG_VERSION,
     llm_enabled: useLlm,
+    automation_confidence_threshold: automationThreshold,
     table_status: tableStatus,
     counts: {
       reviewed: reviews.length,
@@ -84,6 +90,13 @@ async function main() {
       reject: reviews.filter((row) => row.decision === "reject").length,
       requires_human_review: reviews.filter((row) => row.required_human_review)
         .length,
+      automation_eligible: reviews.filter((row) => row.automation_eligible)
+        .length,
+      auto_apply: reviews.filter((row) => row.allowed_action === "auto_apply")
+        .length,
+      prepare_for_human: reviews.filter(
+        (row) => row.allowed_action === "prepare_for_human",
+      ).length,
       llm: reviews.filter((row) => row.mode === "llm").length,
       heuristic: reviews.filter((row) => row.mode === "heuristic").length,
     },
@@ -150,14 +163,21 @@ async function evaluateSource(source) {
   };
 
   if (!useLlm || !process.env.OPENROUTER_AUTH_TOKEN) {
-    return { ...base, ...heuristicReview(source, routing, contentGate) };
+    return withAutomationPolicy({
+      ...base,
+      ...heuristicReview(source, routing, contentGate),
+    });
   }
 
   try {
     const llm = await callLlm(source, routing, contentGate);
-    return { ...base, mode: "llm", ...normalizeReview(llm, source) };
+    return withAutomationPolicy({
+      ...base,
+      mode: "llm",
+      ...normalizeReview(llm, source),
+    });
   } catch (error) {
-    return {
+    return withAutomationPolicy({
       ...base,
       ...heuristicReview(source, routing, contentGate),
       mode: "heuristic",
@@ -165,7 +185,7 @@ async function evaluateSource(source) {
         ...heuristicReview(source, routing, contentGate).risks,
         `llm_error:${error.message}`,
       ],
-    };
+    });
   }
 }
 
@@ -181,12 +201,16 @@ function heuristicReview(source, routing, contentGate) {
   if (risks.includes("missing_baseline")) decision = "block";
   else if (contentGate?.missing.length) decision = "block";
   else if (routing.blocker_type === "provider_or_access") decision = "watch";
-  else if (Number(source.confidence_score ?? 0) >= 0.75) decision = "promote";
+  else if (Number(source.confidence_score ?? 0) >= automationThreshold)
+    decision = "promote";
 
   return {
     mode: "heuristic",
     decision,
-    confidence: decision === "promote" ? 0.72 : 0.58,
+    confidence:
+      decision === "promote"
+        ? Math.min(0.95, Number(source.confidence_score ?? automationThreshold))
+        : 0.58,
     competitive_advantage:
       contentGate && !contentGate.missing.length
         ? "Content evidence passes deterministic competitive gate; Curator should still validate before Council."
@@ -229,6 +253,9 @@ async function callLlm(source, routing, contentGate) {
                 decision: "promote | watch | block | reject",
                 agent_lane: "string",
                 confidence: "number 0..1",
+                automation_eligible: "boolean",
+                allowed_action:
+                  "auto_apply | prepare_for_human | watch | block | reject",
                 competitive_advantage: "string",
                 risks: ["string"],
                 next_action: "string",
@@ -236,7 +263,8 @@ async function callLlm(source, routing, contentGate) {
               },
               rules: [
                 "Block content without project preference fit, SERP intent, competitor coverage, ColombiaTours added value, E-E-A-T, Who/How/Why, scaled-content risk review or Curator review.",
-                "Promote only when source evidence, baseline, next action and measurement path are coherent.",
+                `Only low-risk, reversible or smoke-verifiable technical optimizations may be auto_apply, and only when confidence >= ${automationThreshold}.`,
+                "Content, transcreation, experiment activation and paid/campaign mutation must be prepare_for_human even if confidence is high.",
                 "Never treat AI-generated content as approved without Curator review.",
               ],
               source: sanitizeSource(source),
@@ -275,6 +303,28 @@ function normalizeReview(review, source) {
     risks: Array.isArray(review?.risks) ? review.risks : [],
     next_action: review?.next_action ?? source.next_action ?? "Human review.",
     required_human_review: review?.required_human_review !== false,
+    automation_eligible: Boolean(review?.automation_eligible),
+    allowed_action: review?.allowed_action ?? "prepare_for_human",
+  };
+}
+
+function withAutomationPolicy(review) {
+  const policy = automationPolicyFor({
+    decision: review.decision,
+    confidence: review.confidence,
+    agentLane: review.agent_lane,
+    blockerType: review.blocker_type,
+    requiredHumanReview: review.required_human_review,
+    contentGate: review.content_gate,
+    threshold: automationThreshold,
+  });
+  return {
+    ...review,
+    ...policy,
+    required_human_review:
+      policy.allowed_action === "auto_apply"
+        ? false
+        : review.required_human_review !== false,
   };
 }
 
@@ -343,6 +393,10 @@ function toAiReviewRow(review) {
       competitive_advantage: review.competitive_advantage,
       next_action: review.next_action,
       required_human_review: review.required_human_review,
+      automation_eligible: review.automation_eligible,
+      allowed_action: review.allowed_action,
+      automation_reason: review.automation_reason,
+      automation_confidence_threshold: automationThreshold,
       content_gate: review.content_gate,
     },
   };
@@ -380,6 +434,7 @@ function renderMarkdown(report) {
 Mode: \`${report.mode}\`  
 Generated: ${report.generated_at}  
 LLM enabled: \`${report.llm_enabled}\`
+Automation threshold: \`${report.automation_confidence_threshold}\`
 
 ## Counts
 
@@ -395,6 +450,7 @@ ${renderTable(
 
 ${renderTable(report.reviews, [
   { label: "Decision", value: (row) => row.decision },
+  { label: "Allowed", value: (row) => row.allowed_action },
   { label: "Lane", value: (row) => row.agent_lane_label },
   { label: "Confidence", value: (row) => row.confidence },
   { label: "Source", value: (row) => row.source_table },

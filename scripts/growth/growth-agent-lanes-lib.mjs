@@ -15,6 +15,8 @@ export const CONTENT_WORK_TYPES = new Set([
   "locale_content",
 ]);
 
+export const DEFAULT_AUTOMATION_CONFIDENCE_THRESHOLD = 0.9;
+
 export function classifyAgentLane(row, options = {}) {
   const text = searchableText(row);
   const workType = String(row.work_type ?? row.task_type ?? "").toLowerCase();
@@ -287,6 +289,78 @@ export function laneLabel(value) {
     value ??
     "Unrouted"
   );
+}
+
+export function automationPolicyFor({
+  decision,
+  confidence,
+  agentLane,
+  blockerType,
+  requiredHumanReview,
+  contentGate,
+  threshold = DEFAULT_AUTOMATION_CONFIDENCE_THRESHOLD,
+}) {
+  if (decision === "reject") {
+    return {
+      automation_eligible: false,
+      allowed_action: "reject",
+      automation_reason: "Reviewer rejected the row.",
+    };
+  }
+  if (decision === "block") {
+    return {
+      automation_eligible: false,
+      allowed_action: "block",
+      automation_reason: "Row is blocked by missing evidence or risk.",
+    };
+  }
+  if (decision === "watch") {
+    return {
+      automation_eligible: false,
+      allowed_action: "watch",
+      automation_reason: "Row is useful for monitoring but not automation.",
+    };
+  }
+
+  const protectedWork =
+    agentLane === AGENT_LANES.TRANSCREATION ||
+    agentLane === AGENT_LANES.CREATOR ||
+    agentLane === AGENT_LANES.CURATOR ||
+    blockerType === "content_quality" ||
+    blockerType === "locale_gate_required" ||
+    blockerType === "experiment_readiness" ||
+    blockerType === "provider_or_access" ||
+    blockerType === "tracking_or_attribution" ||
+    Boolean(contentGate?.missing?.length);
+
+  if (protectedWork || requiredHumanReview) {
+    return {
+      automation_eligible: false,
+      allowed_action: "prepare_for_human",
+      automation_reason:
+        "Protected work can be prepared by agents, but requires human or Council approval before publish, activation or mutation.",
+    };
+  }
+
+  if (
+    agentLane === AGENT_LANES.TECHNICAL &&
+    confidence >= threshold &&
+    decision === "promote"
+  ) {
+    return {
+      automation_eligible: true,
+      allowed_action: "auto_apply",
+      automation_reason:
+        "Low-risk technical remediation is smoke-verifiable and meets confidence threshold.",
+    };
+  }
+
+  return {
+    automation_eligible: false,
+    allowed_action: "prepare_for_human",
+    automation_reason:
+      "Confidence threshold or safe-action criteria were not met.",
+  };
 }
 
 function route(value) {

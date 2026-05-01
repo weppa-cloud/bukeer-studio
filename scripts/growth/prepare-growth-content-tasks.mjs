@@ -144,6 +144,10 @@ function toContentTask(row) {
     content_gate: contentGate,
     content_standard: contentStandard,
     competitive_content: competitiveContent,
+    automation_eligible: false,
+    allowed_action: "prepare_for_human",
+    automation_reason:
+      "Content tasks may be prepared by agents, but require Curator/human review before publish, sitemap/hreflang exposure or experiment activation.",
     qa_checks: [
       ...(brief.required_checks ?? []),
       "Curator records competitive advantage before ready_for_seo_qa.",
@@ -307,6 +311,9 @@ function toBriefRow(task) {
       content_standard: task.content_standard,
       competitive_content: task.competitive_content,
       content_gate: task.content_gate,
+      automation_eligible: task.automation_eligible,
+      allowed_action: task.allowed_action,
+      automation_reason: task.automation_reason,
     },
   };
 }
@@ -339,6 +346,9 @@ function toTaskRow(task, briefId) {
       content_standard: task.content_standard,
       competitive_content: task.competitive_content,
       content_gate: task.content_gate,
+      automation_eligible: task.automation_eligible,
+      allowed_action: task.allowed_action,
+      automation_reason: task.automation_reason,
     },
   };
 }
@@ -365,6 +375,7 @@ ${renderTable(
 
 ${renderTable(report.tasks, [
   { label: "Status", value: (row) => row.task_status },
+  { label: "Allowed", value: (row) => row.allowed_action },
   { label: "Locale gate", value: (row) => row.locale_gate_required },
   { label: "URL", value: (row) => row.entity_key },
   { label: "Artifact", value: (row) => row.brief_artifact },

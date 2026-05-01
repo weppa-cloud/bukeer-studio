@@ -6,6 +6,8 @@ import process from "node:process";
 import { createClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
 import {
+  DEFAULT_AUTOMATION_CONFIDENCE_THRESHOLD,
+  automationPolicyFor,
   classifyAgentLane,
   contentQualityGate,
   isContentLike,
@@ -50,6 +52,9 @@ const args = parseArgs(process.argv.slice(2));
 const websiteId = args.websiteId ?? DEFAULT_WEBSITE_ID;
 const limit = Number(args.limit ?? 1000);
 const maxActive = Number(args.maxActive ?? DEFAULT_MAX_ACTIVE);
+const automationThreshold = Number(
+  args.automationConfidenceThreshold ?? DEFAULT_AUTOMATION_CONFIDENCE_THRESHOLD,
+);
 const packetDate = args.date ?? todayIso();
 const outDir =
   args.outDir ??
@@ -105,6 +110,7 @@ async function main() {
       slots_available: slotsAvailable,
       active_experiment_statuses: [...ACTIVE_EXPERIMENT_STATUSES],
       source_of_truth: "growth_backlog_items + growth_experiments",
+      automation_confidence_threshold: automationThreshold,
       council_policy:
         "Council may approve at most the proposed independent items that fit remaining slots.",
     },
@@ -197,6 +203,16 @@ function evaluateBacklogItem(row, activeKeys, activeBacklogItemIds) {
   else if (COUNCIL_READY_STATUSES.has(status)) decision = "candidate";
   else if (WATCH_STATUSES.has(status)) decision = "watch";
 
+  const policy = automationPolicyFor({
+    decision: decision === "candidate" ? "promote" : decision,
+    confidence: Number(row.confidence_score ?? 0),
+    agentLane: routing.agent_lane,
+    blockerType: routing.blocker_type,
+    requiredHumanReview: true,
+    contentGate,
+    threshold: automationThreshold,
+  });
+
   return {
     id: row.id,
     item_key: row.item_key,
@@ -216,6 +232,9 @@ function evaluateBacklogItem(row, activeKeys, activeBacklogItemIds) {
     agent_lane_label: laneLabel(routing.agent_lane),
     blocker_type: routing.blocker_type,
     routing_confidence: routing.routing_confidence,
+    automation_eligible: policy.automation_eligible,
+    allowed_action: policy.allowed_action,
+    automation_reason: policy.automation_reason,
     source_fact_refs: redact(row.source_fact_refs ?? []),
     evidence: redact(row.evidence ?? {}),
   };
@@ -335,6 +354,7 @@ Website: \`${report.website_id}\`
 
 Active independent experiments: ${report.counts.active_experiments}/${report.rules.max_active_independent_experiments}  
 Available slots: ${report.rules.slots_available}
+Automation threshold: ${report.rules.automation_confidence_threshold}
 
 ## Counts
 
@@ -361,6 +381,7 @@ ${renderTable(report.lane_counts, [
 
 ${renderTable(report.proposed_experiments, [
   { label: "Lane", value: (row) => row.agent_lane_label },
+  { label: "Allowed", value: (row) => row.allowed_action },
   { label: "Item", value: (row) => row.title },
   { label: "Owner", value: (row) => row.owner_issue },
   { label: "Metric", value: (row) => row.success_metric },
@@ -386,6 +407,7 @@ ${renderTable(
     .slice(0, 50),
   [
     { label: "Lane", value: (row) => row.agent_lane_label },
+    { label: "Allowed", value: (row) => row.allowed_action },
     { label: "Decision", value: (row) => row.decision },
     { label: "Item", value: (row) => row.title },
     { label: "Reasons", value: (row) => row.reasons.join(", ") },

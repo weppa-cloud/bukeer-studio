@@ -385,6 +385,36 @@ confidence_score >= configured threshold
 
 or an explicit Council exception recorded in `evidence`.
 
+### Automation eligibility
+
+`confidence_score` does not automatically authorize mutation. Agent decisions
+must also produce an explicit automation policy.
+
+Default threshold:
+
+```text
+automation_confidence_threshold = 0.90
+```
+
+Required review/evidence fields:
+
+| Field                   | Rule                                                                                          |
+| ----------------------- | --------------------------------------------------------------------------------------------- |
+| `automation_eligible`   | `true` only for low-risk, reversible or smoke-verifiable operational optimizations.           |
+| `allowed_action`        | One of `auto_apply`, `prepare_for_human`, `watch`, `block`, `reject`.                         |
+| `required_human_review` | `true` for content, transcreation, experiments, paid/campaign mutation and any uncertain row. |
+| `automation_reason`     | Short rationale explaining why the row can or cannot be automated.                            |
+| `confidence_score`      | Must be `>= 0.90` before any `auto_apply`.                                                    |
+
+Rules:
+
+- Content and transcreation can be drafted and QA-prepared by agents, but not
+  published or exposed in sitemap/hreflang without Curator/human approval.
+- Experiments can be prepared by agents, but only Council can activate them.
+- Paid/campaign mutation remains manual-first.
+- Technical or operational cleanup can be `auto_apply` only when confidence is
+  high enough and the change is reversible or smoke-verifiable.
+
 ## Promotion Rules
 
 ### Candidate generation
