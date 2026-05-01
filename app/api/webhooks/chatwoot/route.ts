@@ -670,16 +670,19 @@ async function findOrCreateCrmRequest(
       lead.reference_code &&
       existingReference !== lead.reference_code
     ) {
-      log.warn("crm_request_conversation_reference_conflict", {
+      log.info("crm_request_conversation_reference_mismatch_reference_first", {
         request_id: existing.data.id,
         short_id: existing.data.short_id,
         conversation_id: conversationId,
         existing_reference: existingReference,
         incoming_reference: lead.reference_code,
       });
-      return null;
+      // One WhatsApp thread can legitimately contain multiple WAFlow requests.
+      // Keep the old conversation-linked request intact and delegate to the
+      // reference-first RPC so it can find/create the request for this ref.
+    } else {
+      return existing.data;
     }
-    return existing.data;
   }
 
   const inboxId = extractConversationInboxId(payload);
