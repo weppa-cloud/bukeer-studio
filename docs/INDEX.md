@@ -8,6 +8,8 @@ Last updated: 2026-04-30 (Growth mass execution vs experiments runbook added for
 
 ---
 
+Latest update: 2026-05-01 (SPEC_GROWTH_OS_SSOT_MODEL added for #310: GitHub is implementation SSOT, Supabase/Bukeer Studio is operational Growth SSOT).
+
 ## How to read this index
 
 - **Agents:** grep `[[concept]]` to find every document that touches a concept.
@@ -92,6 +94,7 @@ Feature requests formalized. Status tracked inline. GitHub Issues = source of tr
 | [[SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX]]                 | [file](./specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md)                 | [[growth-os]] [[SEO]] [[analytics]] [[DataForSEO]]                                                                                                              |
 | [[SPEC_GROWTH_OS_PAID_MEDIA_INTEGRATION]]                 | [file](./specs/SPEC_GROWTH_OS_PAID_MEDIA_INTEGRATION.md)                 | [[growth-os]] [[paid-media]] [[analytics]] [[conversion]]                                                                                                       |
 | [[SPEC_GROWTH_OS_UNIFIED_BACKLOG_AND_PROFILE_RUN_LEDGER]] | [file](./specs/SPEC_GROWTH_OS_UNIFIED_BACKLOG_AND_PROFILE_RUN_LEDGER.md) | [[growth-os]] [[backlog]] [[analytics]] [[paid-media]] [[DataForSEO]]                                                                                           |
+| [[SPEC_GROWTH_OS_SSOT_MODEL]]                             | [file](./specs/SPEC_GROWTH_OS_SSOT_MODEL.md)                             | [[growth-os]] [[SSOT]] [[Supabase]] [[GitHub]]                                                                                                                  |
 | [[SPEC_SKILL_NEXTJS_DEVELOPER_AUDIT]]                     | [file](./specs/SPEC_SKILL_NEXTJS_DEVELOPER_AUDIT.md)                     | [[skills]] [[nextjs-developer]]                                                                                                                                 |
 | [[SPEC_UX_IA_AUDIT_BUKEER_STUDIO]]                        | [file](./specs/SPEC_UX_IA_AUDIT_BUKEER_STUDIO.md)                        | [[UX]] [[information-architecture]]                                                                                                                             |
 | [[SPEC_BOOKINGS_STUDIO]]                                  | [file](./specs/SPEC_BOOKINGS_STUDIO.md)                                  | Stub — booking flows in Studio                                                                                                                                  | [[bookings]] [[leads]]            |
@@ -441,6 +444,7 @@ Each concept below lists the ADRs/SPECs/ops docs that touch it. Use this to find
 - [[SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX]] — executable matrix for maximum provider coverage: all DataForSEO features, expanded GSC/GA4 profiles, joint normalizers, cadence and backlog rules.
 - [[SPEC_GROWTH_OS_PAID_MEDIA_INTEGRATION]] — implementable SEM layer for #310: Meta Ads + Google Ads profiles, measurement gates, paid facts, Council governance and manual-first campaign lifecycle.
 - [[SPEC_GROWTH_OS_UNIFIED_BACKLOG_AND_PROFILE_RUN_LEDGER]] — durable backlog architecture for #310: profile run ledger, candidate/backlog/experiment lifecycle, freshness, correlation, confounders, agent review and Council promotion.
+- [[SPEC_GROWTH_OS_SSOT_MODEL]] — governance layer for #310: GitHub tracks implementation state while Supabase/Bukeer Studio stores operational Growth backlog, tasks, experiments and learning.
 - [[SPEC_META_CHATWOOT_CONVERSIONS]] — stub for canonical #322: Meta + Chatwoot conversion path for WAFlow/WhatsApp to qualified lead, quote, and purchase.
 - [[ADR-024]] — booking/date-picker remains deferred for pilot; WAFlow/WhatsApp is primary conversion.
 - [[supabase-migration-governance]] — #310 DB migration path: canonical application via `bukeer-flutter`, Studio owns API/contracts/evidence.
