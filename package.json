@@ -37,6 +37,8 @@
     "session:list": "bash scripts/session-list.sh",
     "session:release": "bash scripts/session-release.sh",
     "seo:validate-blog-work-items": "node scripts/seo/validate-blog-work-items.mjs",
+    "growth:ssot-health": "node scripts/growth/check-growth-operational-ssot.mjs",
+    "growth:ssot-repair-trace": "node scripts/growth/repair-growth-operational-ssot-trace.mjs",
     "test:watch": "jest --watch",
     "build:worker": "npm run check:node && opennextjs-cloudflare build",
     "preview:worker": "npm run check:node && opennextjs-cloudflare build && opennextjs-cloudflare preview",

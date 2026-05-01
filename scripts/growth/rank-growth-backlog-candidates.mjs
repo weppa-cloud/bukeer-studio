@@ -5,6 +5,7 @@ import path from "node:path";
 import process from "node:process";
 import {
   DEFAULT_WEBSITE_ID,
+  chunks,
   fetchRows,
   fingerprint,
   getSupabase,
@@ -59,6 +60,10 @@ async function main() {
         "website_id,item_key",
       )
     : { mode: "dry-run", rows: itemRows.length };
+  if (apply) {
+    applyResult.candidate_promotion_trace =
+      await markPromotedCandidates(selected);
+  }
 
   const report = {
     generated_at: new Date().toISOString(),
@@ -330,8 +335,96 @@ function toBacklogItem(row) {
     evaluation_date: row.evaluation_date,
     status: row.recommended_status,
     blocked_reason: null,
-    evidence: row.evidence,
+    evidence: {
+      ...row.evidence,
+      source_candidate_ids: row.candidate_ids,
+      promotion_trace: {
+        generated_at: new Date().toISOString(),
+        mode: "rank-growth-backlog-candidates",
+        scoring_config: row.evidence?.scoring_config,
+        selected_status: row.recommended_status,
+        source_candidate_count: row.candidate_ids.length,
+      },
+    },
   };
+}
+
+async function markPromotedCandidates(selected) {
+  const itemKeys = selected.map((row) => row.item_key);
+  const itemsByKey = new Map();
+  for (const keys of chunks(itemKeys, 100)) {
+    const { data, error } = await sb
+      .from("growth_backlog_items")
+      .select("id,item_key,status")
+      .eq("website_id", websiteId)
+      .in("item_key", keys);
+    if (error)
+      throw new Error(
+        `growth_backlog_items trace read failed: ${error.message}`,
+      );
+    for (const row of data ?? []) itemsByKey.set(row.item_key, row);
+  }
+
+  const candidateIds = [
+    ...new Set(selected.flatMap((row) => row.candidate_ids).filter(Boolean)),
+  ];
+  const candidatesById = new Map();
+  for (const ids of chunks(candidateIds, 100)) {
+    const { data, error } = await sb
+      .from("growth_backlog_candidates")
+      .select("id,evidence,status")
+      .eq("website_id", websiteId)
+      .in("id", ids);
+    if (error)
+      throw new Error(
+        `growth_backlog_candidates trace read failed: ${error.message}`,
+      );
+    for (const row of data ?? []) candidatesById.set(row.id, row);
+  }
+
+  const rowsByCandidateId = new Map();
+  for (const row of selected) {
+    const item = itemsByKey.get(row.item_key);
+    for (const candidateId of row.candidate_ids) {
+      rowsByCandidateId.set(candidateId, { row, item });
+    }
+  }
+
+  const result = {
+    requested_updates: rowsByCandidateId.size,
+    updated: 0,
+    errors: [],
+  };
+  for (const [candidateId, { row, item }] of rowsByCandidateId) {
+    const candidate = candidatesById.get(candidateId);
+    const nextEvidence = {
+      ...(candidate?.evidence ?? {}),
+      promotion_trace: {
+        generated_at: new Date().toISOString(),
+        mode: "rank-growth-backlog-candidates",
+        backlog_item_id: item?.id ?? null,
+        backlog_item_key: row.item_key,
+        backlog_item_status: item?.status ?? row.recommended_status,
+        selected_status: row.recommended_status,
+        scoring_config: row.evidence?.scoring_config,
+        final_score: row.final_score,
+        reason_codes: row.reason_codes,
+      },
+    };
+    const { error } = await sb
+      .from("growth_backlog_candidates")
+      .update({
+        status: "promoted",
+        evidence: nextEvidence,
+      })
+      .eq("id", candidateId);
+    if (error) {
+      result.errors.push({ candidate_id: candidateId, message: error.message });
+    } else {
+      result.updated += 1;
+    }
+  }
+  return result;
 }
 
 function businessImpactScore(group) {

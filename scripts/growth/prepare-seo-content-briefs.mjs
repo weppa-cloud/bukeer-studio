@@ -146,6 +146,7 @@ function toBrief(row) {
       "Do not change URL/canonical without SEO owner approval.",
       "Do not enter active experiments unless Council approves the row.",
     ],
+    existing_evidence: row.evidence ?? {},
   };
 }
 
@@ -162,9 +163,12 @@ async function applyBriefStatus(sb, briefs) {
       .update({
         status: "brief_in_progress",
         evidence: {
+          ...brief.existing_evidence,
           content_brief: {
             generated_at: new Date().toISOString(),
             artifact: `${outDir}/briefs/${brief.slug}.md`,
+            backlog_item_id: brief.id,
+            item_key: brief.item_key,
             brief_type: brief.brief_type,
             target_locale: brief.target_locale,
             locale_gate_required: brief.locale_gate_required,
