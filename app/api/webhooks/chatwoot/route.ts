@@ -1097,6 +1097,7 @@ async function sendLifecycleConversions(
         eventName: lifecycleEvent,
         eventId: `${referenceCode}:chatwoot:${lifecycleEvent}:${conversationId}`,
         actionSource: "business_messaging",
+        messagingChannel: "whatsapp",
         eventSourceUrl: cleanString(attribution.source_url),
         userData: {
           email: cleanString(contact.email),
@@ -1114,7 +1115,6 @@ async function sendLifecycleConversions(
           session_key: lead.session_key,
           chatwoot_event: payload.event,
           chatwoot_conversation_id: conversationId,
-          messaging_channel: "whatsapp",
         },
         accountId: lead.account_id,
         websiteId: lead.website_id,

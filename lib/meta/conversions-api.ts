@@ -42,6 +42,7 @@ export interface MetaConversionEventInput {
   eventName: string;
   eventId: string;
   actionSource?: MetaActionSource;
+  messagingChannel?: 'messenger' | 'whatsapp' | 'instagram' | null;
   eventTime?: Date | number;
   eventSourceUrl?: string | null;
   userData?: MetaUserDataInput;
@@ -62,6 +63,7 @@ export interface MetaCapiEvent {
   event_time: number;
   event_id: string;
   action_source: MetaActionSource;
+  messaging_channel?: 'messenger' | 'whatsapp' | 'instagram';
   event_source_url?: string;
   user_data: Record<string, unknown>;
   custom_data?: Record<string, unknown>;
@@ -195,6 +197,9 @@ export async function buildMetaCapiEvent(input: MetaConversionEventInput): Promi
     event_time: eventTime,
     event_id: input.eventId,
     action_source: input.actionSource ?? 'website',
+    ...(input.messagingChannel && {
+      messaging_channel: input.messagingChannel,
+    }),
     ...(cleanString(input.eventSourceUrl) && {
       event_source_url: cleanString(input.eventSourceUrl),
     }),
