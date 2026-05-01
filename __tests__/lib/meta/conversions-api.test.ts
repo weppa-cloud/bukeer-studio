@@ -79,7 +79,11 @@ describe('Meta Conversions API helpers', () => {
       actionSource: 'business_messaging',
       messagingChannel: 'whatsapp',
       eventSourceUrl: 'https://demo.bukeer.com/',
-      userData: { phone: '+57 300 123 4567' },
+      userData: {
+        phone: '+57 300 123 4567',
+        clientIpAddress: '203.0.113.10',
+        clientUserAgent: 'jest-agent',
+      },
       customData: { reference_code: 'HOME-2504-ABCD' },
     });
 
@@ -90,6 +94,9 @@ describe('Meta Conversions API helpers', () => {
       messaging_channel: 'whatsapp',
       custom_data: { reference_code: 'HOME-2504-ABCD' },
     });
+    expect(request.data[0]).not.toHaveProperty('event_source_url');
+    expect(request.data[0].user_data).not.toHaveProperty('client_ip_address');
+    expect(request.data[0].user_data).not.toHaveProperty('client_user_agent');
     expect(request.data[0].custom_data).not.toHaveProperty('messaging_channel');
   });
 

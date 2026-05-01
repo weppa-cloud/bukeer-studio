@@ -191,19 +191,25 @@ export async function buildMetaCapiEvent(input: MetaConversionEventInput): Promi
       : typeof input.eventTime === 'number'
         ? input.eventTime
         : Math.floor(Date.now() / 1000);
+  const actionSource = input.actionSource ?? 'website';
+  const userData = await buildMetaUserData(input.userData);
+  if (actionSource === 'business_messaging') {
+    delete userData.client_ip_address;
+    delete userData.client_user_agent;
+  }
 
   return {
     event_name: input.eventName,
     event_time: eventTime,
     event_id: input.eventId,
-    action_source: input.actionSource ?? 'website',
+    action_source: actionSource,
     ...(input.messagingChannel && {
       messaging_channel: input.messagingChannel,
     }),
-    ...(cleanString(input.eventSourceUrl) && {
+    ...(actionSource !== 'business_messaging' && cleanString(input.eventSourceUrl) && {
       event_source_url: cleanString(input.eventSourceUrl),
     }),
-    user_data: await buildMetaUserData(input.userData),
+    user_data: userData,
     ...(input.customData && Object.keys(input.customData).length > 0 && {
       custom_data: input.customData,
     }),
