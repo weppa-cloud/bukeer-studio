@@ -14,7 +14,7 @@ import {
   writeArtifacts,
 } from "../seo/growth-unified-backlog-lib.mjs";
 
-const DEFAULT_CONFIG = "configs/growth-backlog/scoring-v1-balanced.json";
+const DEFAULT_CONFIG = "configs/growth-backlog/scoring-v2-council-gated.json";
 const DEFAULT_OUT_DIR = `artifacts/seo/${today()}-growth-backlog-ranking`;
 const PAGE_SIZE = 1000;
 
@@ -327,10 +327,7 @@ function toBacklogItem(row) {
     owner_issue: row.owner_issue,
     next_action: row.next_action,
     success_metric: row.success_metric,
-    evaluation_date:
-      row.recommended_status === "ready_for_council"
-        ? row.evaluation_date
-        : null,
+    evaluation_date: row.evaluation_date,
     status: row.recommended_status,
     blocked_reason: null,
     evidence: row.evidence,

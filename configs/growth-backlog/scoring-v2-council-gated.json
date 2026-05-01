@@ -1,0 +1,79 @@
+{
+  "version": "scoring-v2-council-gated",
+  "weights": {
+    "business_impact": 0.24,
+    "source_diversity": 0.22,
+    "freshness": 0.14,
+    "baseline_strength": 0.17,
+    "confidence": 0.16,
+    "effort_penalty": 0.03,
+    "dependency_penalty": 0.04
+  },
+  "thresholds": {
+    "ready_for_council": 83,
+    "queued": 68,
+    "watch": 45
+  },
+  "caps": {
+    "max_backlog_items": 80,
+    "min_backlog_items": 50,
+    "max_ready_for_council": 17,
+    "max_per_work_type": 20,
+    "max_per_independence_key": 1,
+    "max_active_experiments": 5
+  },
+  "work_type_defaults": {
+    "technical_remediation": {
+      "owner_role": "A4",
+      "owner_issue": "#313",
+      "success_metric": "Technical finding resolved in next comparable crawl"
+    },
+    "seo_demand": {
+      "owner_role": "A5",
+      "owner_issue": "#321",
+      "success_metric": "Improve organic CTR, clicks, or average position in next 28d GSC window"
+    },
+    "cro_activation": {
+      "owner_role": "A3",
+      "owner_issue": "#322",
+      "success_metric": "Improve WAFlow submit or qualified lead rate"
+    },
+    "content_opportunity": {
+      "owner_role": "A5",
+      "owner_issue": "#314",
+      "success_metric": "Publish or update content and measure 28d organic demand"
+    },
+    "serp_competitor_opportunity": {
+      "owner_role": "A5",
+      "owner_issue": "#381",
+      "success_metric": "Improve SERP feature coverage, snippet CTR, or competitor gap"
+    },
+    "tracking_attribution": {
+      "owner_role": "A3",
+      "owner_issue": "#322",
+      "success_metric": "Tracking chain emits expected event with source attribution"
+    },
+    "legacy_growth_inventory": {
+      "owner_role": "A5",
+      "owner_issue": "#311",
+      "success_metric": "Validated Growth OS backlog item reaches Council-ready state"
+    },
+    "growth_opportunity": {
+      "owner_role": "A5",
+      "owner_issue": "#311",
+      "success_metric": "Selected Growth OS metric improves in next evaluation window"
+    }
+  },
+  "penalties": {
+    "watch_freshness": 22,
+    "blocked_freshness": 65,
+    "watch_correlation": 18,
+    "blocked_quality": 75,
+    "zero_baseline": 45,
+    "legacy_only": 20,
+    "generic_next_action": 25,
+    "en_quality_or_translation": 22,
+    "tracking_or_paid_gate": 25,
+    "technical_no_traffic": 35
+  }
+}
