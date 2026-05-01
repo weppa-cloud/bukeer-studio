@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import fs from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 import dotenv from "dotenv";
@@ -23,14 +24,15 @@ import {
 
 dotenv.config({ path: ".env.local" });
 
-const PROMPT_VERSION = "growth-agent-evaluator-v1";
-const CONFIG_VERSION = "agent-lanes-2026-content-standard-v1";
+const PROMPT_VERSION = "growth-agent-evaluator-v2";
+const CONFIG_VERSION = "agent-lanes-2026-content-standard-v2";
 const args = parseArgs(process.argv.slice(2));
 const apply = args.apply === "true";
 const websiteId = args.websiteId ?? DEFAULT_WEBSITE_ID;
 const accountId = args.accountId ?? DEFAULT_ACCOUNT_ID;
 const limit = Number(args.limit ?? 20);
 const useLlm = args.llm !== "false";
+const inputArtifact = args.inputArtifact ?? null;
 const automationThreshold = Number(
   args.automationConfidenceThreshold ?? DEFAULT_AUTOMATION_CONFIDENCE_THRESHOLD,
 );
@@ -44,23 +46,14 @@ main().catch((error) => {
 });
 
 async function main() {
-  const [candidates, items, tableStatus] = await Promise.all([
-    fetchSourceRows("growth_backlog_candidates", [
-      "candidate",
-      "watch",
-      "blocked",
-    ]),
-    fetchSourceRows("growth_backlog_items", [
-      "ready_for_brief",
-      "brief_in_progress",
-      "ready_for_council",
-      "blocked",
-      "watch",
-    ]),
-    detectTable("growth_ai_reviews"),
-  ]);
+  const [defaultSourceRows, artifactSourceRows, tableStatus] =
+    await Promise.all([
+      inputArtifact ? Promise.resolve([]) : fetchDefaultSourceRows(),
+      inputArtifact ? fetchSourceRowsFromArtifact(inputArtifact) : [],
+      detectTable("growth_ai_reviews"),
+    ]);
 
-  const sourceRows = [...candidates, ...items]
+  const sourceRows = (inputArtifact ? artifactSourceRows : defaultSourceRows)
     .sort(
       (a, b) => Number(b.priority_score ?? 0) - Number(a.priority_score ?? 0),
     )
@@ -80,6 +73,7 @@ async function main() {
     prompt_version: PROMPT_VERSION,
     config_version: CONFIG_VERSION,
     llm_enabled: useLlm,
+    input_artifact: inputArtifact,
     automation_confidence_threshold: automationThreshold,
     table_status: tableStatus,
     counts: {
@@ -133,6 +127,54 @@ async function fetchSourceRows(table, statuses) {
     .limit(limit * 2);
   if (error) return [];
   return (data ?? []).map((row) => ({ ...row, source_table: table }));
+}
+
+async function fetchDefaultSourceRows() {
+  const [candidates, items] = await Promise.all([
+    fetchSourceRows("growth_backlog_candidates", [
+      "candidate",
+      "watch",
+      "blocked",
+    ]),
+    fetchSourceRows("growth_backlog_items", [
+      "ready_for_brief",
+      "brief_in_progress",
+      "ready_for_council",
+      "blocked",
+      "watch",
+    ]),
+  ]);
+  return [...candidates, ...items];
+}
+
+async function fetchSourceRowsFromArtifact(artifactPath) {
+  const raw = await fs.readFile(artifactPath, "utf8");
+  const artifact = JSON.parse(raw);
+  const sample = Array.isArray(artifact.sample) ? artifact.sample : [];
+  const rows = [];
+
+  for (const sampleRow of sample) {
+    if (!sampleRow.source_table || !sampleRow.id) continue;
+    const { data, error } = await sb
+      .from(sampleRow.source_table)
+      .select("*")
+      .eq("id", sampleRow.id)
+      .maybeSingle();
+    if (error || !data) {
+      rows.push({
+        ...sampleRow,
+        source_table: sampleRow.source_table,
+        evidence: {
+          ...(sampleRow.evidence ?? {}),
+          artifact_lookup_error: error?.message ?? "row_not_found",
+        },
+      });
+      continue;
+    }
+    rows.push({ ...data, source_table: sampleRow.source_table });
+  }
+
+  return rows;
 }
 
 async function evaluateSource(source) {
@@ -220,6 +262,20 @@ function heuristicReview(source, routing, contentGate) {
       decision === "promote"
         ? "Curator reviews evidence and decides promotion to Council or execution."
         : routing.next_action,
+    missing_evidence: risks,
+    specific_next_action:
+      decision === "promote"
+        ? "Curator validates baseline, source refs, owner, success metric, evaluation date and competitive evidence before promotion."
+        : routing.next_action,
+    why_not_promote:
+      decision === "promote"
+        ? ""
+        : `Not promotable until these gaps are resolved: ${risks.join(", ") || routing.blocker_type}.`,
+    human_review_focus:
+      decision === "promote"
+        ? "Confirm evidence quality and independence before Council."
+        : "Resolve missing evidence and rerun evaluator.",
+    would_auto_apply_if_allowed: false,
     required_human_review: true,
   };
 }
@@ -228,6 +284,8 @@ async function callLlm(source, routing, contentGate) {
   const baseUrl =
     process.env.OPENROUTER_BASE_URL || "https://openrouter.ai/api/v1";
   const model = process.env.OPENROUTER_MODEL || "anthropic/claude-sonnet-4-5";
+  const sourceContext = sourceContextFor(source, contentGate);
+  const rubric = laneRubric(routing.agent_lane, routing.blocker_type);
   const response = await fetch(
     `${baseUrl.replace(/\/$/, "")}/chat/completions`,
     {
@@ -257,18 +315,38 @@ async function callLlm(source, routing, contentGate) {
                 allowed_action:
                   "auto_apply | prepare_for_human | watch | block | reject",
                 competitive_advantage: "string",
+                missing_evidence: ["string"],
                 risks: ["string"],
                 next_action: "string",
+                specific_next_action: "string",
+                why_not_promote: "string",
+                human_review_focus: "string",
+                would_auto_apply_if_allowed: "boolean",
                 required_human_review: "boolean",
               },
+              evaluator_goal:
+                "Judge whether this row has enough evidence to move to the next Growth OS state. Prefer precise missing evidence over generic advice.",
               rules: [
+                "Use the lane rubric. Do not promote rows that fail mandatory lane evidence.",
+                "Avoid generic actions like 'review setup'. Name the exact table/profile/fact/baseline/URL/content evidence missing.",
                 "Block content without project preference fit, SERP intent, competitor coverage, ColombiaTours added value, E-E-A-T, Who/How/Why, scaled-content risk review or Curator review.",
                 `Only low-risk, reversible or smoke-verifiable technical optimizations may be auto_apply, and only when confidence >= ${automationThreshold}.`,
                 "Content, transcreation, experiment activation and paid/campaign mutation must be prepare_for_human even if confidence is high.",
                 "Never treat AI-generated content as approved without Curator review.",
+                "If deterministic routing is wrong, return the corrected agent_lane and explain the evidence.",
+                "If decision is watch or block, why_not_promote must be specific and actionable.",
               ],
+              automation_policy: {
+                threshold: automationThreshold,
+                auto_apply_scope:
+                  "Only low-risk, reversible or smoke-verifiable operational optimizations.",
+                always_human:
+                  "content, transcreation, experiment activation, paid/campaign mutation and provider access decisions",
+              },
               source: sanitizeSource(source),
+              source_context: sourceContext,
               deterministic_routing: routing,
+              lane_rubric: rubric,
               content_gate: contentGate,
             }),
           },
@@ -300,11 +378,163 @@ function normalizeReview(review, source) {
     confidence,
     competitive_advantage:
       review?.competitive_advantage ?? "No competitive advantage stated.",
+    missing_evidence: Array.isArray(review?.missing_evidence)
+      ? review.missing_evidence
+      : [],
     risks: Array.isArray(review?.risks) ? review.risks : [],
     next_action: review?.next_action ?? source.next_action ?? "Human review.",
+    specific_next_action:
+      review?.specific_next_action ??
+      review?.next_action ??
+      source.next_action ??
+      "Human review.",
+    why_not_promote: review?.why_not_promote ?? "",
+    human_review_focus:
+      review?.human_review_focus ??
+      "Validate source evidence, baseline, owner, metric and action quality.",
+    would_auto_apply_if_allowed: Boolean(review?.would_auto_apply_if_allowed),
     required_human_review: review?.required_human_review !== false,
     automation_eligible: Boolean(review?.automation_eligible),
     allowed_action: review?.allowed_action ?? "prepare_for_human",
+  };
+}
+
+function sourceContextFor(source, contentGate) {
+  const evidence = source.evidence ?? {};
+  return {
+    source_table: source.source_table,
+    source_id: source.id,
+    status: source.status,
+    work_type: source.work_type ?? source.task_type ?? null,
+    entity_key: source.entity_key ?? null,
+    baseline_present: Boolean(source.baseline),
+    baseline: source.baseline ?? null,
+    has_next_action: Boolean(source.next_action),
+    next_action: source.next_action ?? null,
+    source_profiles: source.source_profiles ?? [],
+    source_fact_refs: source.source_fact_refs ?? [],
+    owner_issue: source.owner_issue ?? evidence.owner_issue ?? null,
+    success_metric: source.success_metric ?? evidence.success_metric ?? null,
+    evaluation_date: source.evaluation_date ?? evidence.evaluation_date ?? null,
+    independence_key:
+      source.independence_key ?? evidence.independence_key ?? null,
+    evidence_keys: Object.keys(evidence).sort(),
+    content_gate_status: contentGate?.status ?? null,
+    content_gate_missing: contentGate?.missing ?? [],
+    has_competitive_content: Boolean(
+      evidence.competitive_content ??
+      evidence.content_brief?.competitive_content ??
+      evidence.content_task?.competitive_content,
+    ),
+    has_content_standard: Boolean(
+      evidence.content_standard ??
+      evidence.content_brief?.content_standard ??
+      evidence.content_task?.content_standard,
+    ),
+    has_curator_review: Boolean(
+      evidence.curator_review ??
+      evidence.content_curator_review ??
+      evidence.content_brief?.curator_review ??
+      evidence.content_task?.curator_review,
+    ),
+  };
+}
+
+function laneRubric(agentLane, blockerType) {
+  const common = [
+    "source facts are traceable",
+    "baseline is present and measurable",
+    "next action is specific",
+    "owner/evaluation path is clear before execution",
+  ];
+  const rubrics = {
+    growth_orchestrator_blocked_router: {
+      lane: "Growth Orchestrator / Blocked Router",
+      promote_requires: [
+        ...common,
+        "blocker type is explicit",
+        "provider/access/tracking dependency has a clear owner or fallback",
+        "row can move to another lane or Council without ambiguity",
+      ],
+      block_if_missing: [
+        "unknown provider account/access",
+        "no baseline",
+        "no source refs",
+        "no owner for external dependency",
+      ],
+    },
+    technical_remediation_agent: {
+      lane: "Technical Remediation Agent",
+      promote_requires: [
+        ...common,
+        "URL or route is actionable",
+        "smoke evidence can verify HTTP status/canonical/sitemap/hreflang/CTA",
+        "fix is reversible or has recrawl validation path",
+      ],
+      block_if_missing: [
+        "no affected URL",
+        "no technical finding or fact",
+        "no smoke plan",
+        "content/locale dependency masquerading as technical fix",
+      ],
+    },
+    transcreation_growth_agent: {
+      lane: "Transcreation Growth Agent",
+      promote_requires: [
+        ...common,
+        "target locale and market intent are explicit",
+        "existing EN/locale quality is known",
+        "SERP/GSC/GA4 evidence supports localization demand",
+        "sitemap/hreflang/canonical policy is safe until quality passes",
+      ],
+      block_if_missing: [
+        "no locale/market",
+        "no transcreation brief",
+        "no quality gate",
+        "no Curator review",
+      ],
+    },
+    content_creator_agent: {
+      lane: "Content Creator Agent",
+      promote_requires: [
+        ...common,
+        "SERP intent and competitor coverage are present",
+        "ColombiaTours added value is explicit",
+        "E-E-A-T and Who/How/Why are documented",
+        "scaled-content risk is reviewed",
+        "Creator output is ready for Curator, not publication",
+      ],
+      block_if_missing: [
+        "missing project preference fit",
+        "missing SERP intent",
+        "missing competitor coverage",
+        "missing ColombiaTours added value",
+        "missing E-E-A-T / Who-How-Why",
+        "missing Curator review for publish/readiness",
+      ],
+    },
+    content_curator_council_operator_agent: {
+      lane: "Content Curator + Council Operator Agent",
+      promote_requires: [
+        ...common,
+        "baseline, source row, owner, success metric and evaluation date are present",
+        "independence key proves experiment does not corrupt another active test",
+        "content has Curator approval when applicable",
+        "Council action is one of active/planned/watch/reject",
+      ],
+      block_if_missing: [
+        "missing baseline",
+        "missing owner",
+        "missing success metric",
+        "missing evaluation date",
+        "missing independence key",
+        "Creator approved own content",
+      ],
+    },
+  };
+  return {
+    ...(rubrics[agentLane] ?? rubrics.growth_orchestrator_blocked_router),
+    deterministic_blocker_type: blockerType,
   };
 }
 
@@ -391,7 +621,12 @@ function toAiReviewRow(review) {
       agent_lane_label: review.agent_lane_label,
       blocker_type: review.blocker_type,
       competitive_advantage: review.competitive_advantage,
+      missing_evidence: review.missing_evidence,
       next_action: review.next_action,
+      specific_next_action: review.specific_next_action,
+      why_not_promote: review.why_not_promote,
+      human_review_focus: review.human_review_focus,
+      would_auto_apply_if_allowed: review.would_auto_apply_if_allowed,
       required_human_review: review.required_human_review,
       automation_eligible: review.automation_eligible,
       allowed_action: review.allowed_action,
@@ -456,6 +691,11 @@ ${renderTable(report.reviews, [
   { label: "Source", value: (row) => row.source_table },
   { label: "Title", value: (row) => row.title },
   { label: "Risks", value: (row) => row.risks.join(", ") },
+  {
+    label: "Missing",
+    value: (row) => (row.missing_evidence ?? []).join(", "),
+  },
+  { label: "Specific next action", value: (row) => row.specific_next_action },
 ])}
 `;
 }
