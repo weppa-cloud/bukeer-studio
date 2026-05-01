@@ -4,7 +4,7 @@ Status: operating runbook for Epic #310 / SPEC #337
 Tenant: ColombiaTours (`colombiatours.travel`)  
 Website id: `894545b7-73ca-4dae-b76a-da5b6a3f8441`  
 Created: 2026-04-30  
-Related: [SPEC_GROWTH_OS_UNIFIED_BACKLOG_AND_PROFILE_RUN_LEDGER](../specs/SPEC_GROWTH_OS_UNIFIED_BACKLOG_AND_PROFILE_RUN_LEDGER.md), [SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX](../specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md), [growth-data-automation-cadence](./growth-data-automation-cadence.md)
+Related: [SPEC_GROWTH_OS_UNIFIED_BACKLOG_AND_PROFILE_RUN_LEDGER](../specs/SPEC_GROWTH_OS_UNIFIED_BACKLOG_AND_PROFILE_RUN_LEDGER.md), [SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX](../specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md), [SPEC_GROWTH_OS_AGENT_LANES](../specs/SPEC_GROWTH_OS_AGENT_LANES.md), [growth-data-automation-cadence](./growth-data-automation-cadence.md)
 
 ## Purpose
 
@@ -129,6 +129,19 @@ Then split by work type:
 | `seo_demand`, `content_opportunity`, `serp_competitor_opportunity` | Brief/content batch with quality and locale gates.                                                            |
 | `cro_activation`, `tracking_attribution`                           | CRO/tracking batch with funnel smoke and measurement guard.                                                   |
 | `growth_opportunity`                                               | Refine into a concrete work type or reject as too generic.                                                    |
+
+### Agent Lane Routing
+
+Use [SPEC_GROWTH_OS_AGENT_LANES](../specs/SPEC_GROWTH_OS_AGENT_LANES.md) to
+assign every blocked or queued item to one accountable lane before execution.
+
+| Blocker or work type                                                        | Agent lane                               | Operating rule                                                                                         |
+| --------------------------------------------------------------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `locale_gate_required` or EN/MX quality issue                               | Transcreation Growth Agent               | Keep out of sitemap/hreflang until quality gate passes or Council records an exception.                |
+| `technical_or_route_mapping`, soft-404, canonical, sitemap, metadata, media | Technical Remediation Agent              | Can execute in bulk with smoke and recrawl evidence; does not consume experiment slots.                |
+| `content_quality`, content updates, new briefs                              | Content Creator Agent -> Content Curator | Creator drafts; Curator validates before apply/publish or Council promotion.                           |
+| `experiment_readiness`                                                      | Content Curator + Council Operator       | Reject rows without source row, baseline, owner, success metric, evaluation date and independence key. |
+| `provider_or_access`, stale profiles or ambiguous blockers                  | Growth Orchestrator / Blocked Router     | Decide unblock, WATCH, reject or owner escalation; publish aggregate evidence only.                    |
 
 ### 3. Execute In Separate Batches
 

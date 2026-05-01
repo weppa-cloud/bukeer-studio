@@ -8,7 +8,7 @@ Last updated: 2026-04-30 (Growth mass execution vs experiments runbook added for
 
 ---
 
-Latest update: 2026-05-01 (SPEC_GROWTH_OS_SSOT_MODEL added for #310: GitHub is implementation SSOT, Supabase/Bukeer Studio is operational Growth SSOT).
+Latest update: 2026-05-01 (SPEC_GROWTH_OS_AGENT_LANES added for #310: five core Growth OS agent lanes, blocked routing, transcreation/content separation and Council governance); 2026-05-01 (SPEC_GROWTH_OS_SSOT_MODEL added for #310: GitHub is implementation SSOT, Supabase/Bukeer Studio is operational Growth SSOT).
 
 ## How to read this index
 
@@ -95,6 +95,7 @@ Feature requests formalized. Status tracked inline. GitHub Issues = source of tr
 | [[SPEC_GROWTH_OS_PAID_MEDIA_INTEGRATION]]                 | [file](./specs/SPEC_GROWTH_OS_PAID_MEDIA_INTEGRATION.md)                 | [[growth-os]] [[paid-media]] [[analytics]] [[conversion]]                                                                                                       |
 | [[SPEC_GROWTH_OS_UNIFIED_BACKLOG_AND_PROFILE_RUN_LEDGER]] | [file](./specs/SPEC_GROWTH_OS_UNIFIED_BACKLOG_AND_PROFILE_RUN_LEDGER.md) | [[growth-os]] [[backlog]] [[analytics]] [[paid-media]] [[DataForSEO]]                                                                                           |
 | [[SPEC_GROWTH_OS_SSOT_MODEL]]                             | [file](./specs/SPEC_GROWTH_OS_SSOT_MODEL.md)                             | [[growth-os]] [[SSOT]] [[Supabase]] [[GitHub]]                                                                                                                  |
+| [[SPEC_GROWTH_OS_AGENT_LANES]]                            | [file](./specs/SPEC_GROWTH_OS_AGENT_LANES.md)                            | [[growth-os]] [[agents]] [[backlog]] [[Council]]                                                                                                                |
 | [[SPEC_SKILL_NEXTJS_DEVELOPER_AUDIT]]                     | [file](./specs/SPEC_SKILL_NEXTJS_DEVELOPER_AUDIT.md)                     | [[skills]] [[nextjs-developer]]                                                                                                                                 |
 | [[SPEC_UX_IA_AUDIT_BUKEER_STUDIO]]                        | [file](./specs/SPEC_UX_IA_AUDIT_BUKEER_STUDIO.md)                        | [[UX]] [[information-architecture]]                                                                                                                             |
 | [[SPEC_BOOKINGS_STUDIO]]                                  | [file](./specs/SPEC_BOOKINGS_STUDIO.md)                                  | Stub — booking flows in Studio                                                                                                                                  | [[bookings]] [[leads]]            |
@@ -143,7 +144,7 @@ Feature requests formalized. Status tracked inline. GitHub Issues = source of tr
 | [[growth-intelligence-dataforseo-flows]] | [file](./ops/growth-intelligence-dataforseo-flows.md) | Epic #310 runbook: DataForSEO modules, raw/cache storage, normalization into SEO facts, and `growth_inventory` Council matrix.                          |
 | [[growth-provider-profiles]]             | [file](./ops/growth-provider-profiles.md)             | Epic #310 Max Performance provider profiles: DataForSEO, GSC, GA4, tracking, AI/GEO, translation cadence, paid-call approvals and joint facts.          |
 | [[growth-ai-search-geo-profile]]         | [file](./ops/growth-ai-search-geo-profile.md)         | Epic #310 AI Search / GEO profile: crawler readiness, DataForSEO AI Optimization, normalized visibility facts and `ai_search` inventory rows.           |
-| [[growth-translation-quality-gate]]      | [file](./ops/growth-translation-quality-gate.md)      | Epic #310 localized content gate: translation quality checks, QA findings, `growth_inventory` content status and Council approval rules.                |
+| [[growth-translation-quality-gate]]      | [file](./ops/growth-translation-quality-gate.md)      | Epic #310 transcreation lane gate: translation quality checks, QA findings, Growth backlog content status and Council approval rules.                   |
 | [[growth-data-automation-cadence]]       | [file](./ops/growth-data-automation-cadence.md)       | Epic #310 Max Performance automation contract: raw/cache -> normalized facts -> joint facts -> `growth_inventory` -> Council, health and backlog rules. |
 | [[growth-mass-execution-vs-experiments]] | [file](./ops/growth-mass-execution-vs-experiments.md) | Epic #310 operating runbook: execute large backlog batches while Council keeps only five active measurable readouts.                                    |
 | [[waflow-crm-lifecycle-parity]]          | [file](./ops/waflow-crm-lifecycle-parity.md)          | Epic #310/#322 WAFlow parity and shared CRM lifecycle contract: WAFlow -> `requests` -> Chatwoot -> itinerary -> `funnel_events`.                       |
@@ -445,6 +446,7 @@ Each concept below lists the ADRs/SPECs/ops docs that touch it. Use this to find
 - [[SPEC_GROWTH_OS_PAID_MEDIA_INTEGRATION]] — implementable SEM layer for #310: Meta Ads + Google Ads profiles, measurement gates, paid facts, Council governance and manual-first campaign lifecycle.
 - [[SPEC_GROWTH_OS_UNIFIED_BACKLOG_AND_PROFILE_RUN_LEDGER]] — durable backlog architecture for #310: profile run ledger, candidate/backlog/experiment lifecycle, freshness, correlation, confounders, agent review and Council promotion.
 - [[SPEC_GROWTH_OS_SSOT_MODEL]] — governance layer for #310: GitHub tracks implementation state while Supabase/Bukeer Studio stores operational Growth backlog, tasks, experiments and learning.
+- [[SPEC_GROWTH_OS_AGENT_LANES]] — operating layer for #310: five core agent lanes, blocked routing, technical/transcreation/content/Council responsibilities and evidence rules.
 - [[SPEC_META_CHATWOOT_CONVERSIONS]] — stub for canonical #322: Meta + Chatwoot conversion path for WAFlow/WhatsApp to qualified lead, quote, and purchase.
 - [[ADR-024]] — booking/date-picker remains deferred for pilot; WAFlow/WhatsApp is primary conversion.
 - [[supabase-migration-governance]] — #310 DB migration path: canonical application via `bukeer-flutter`, Studio owns API/contracts/evidence.
