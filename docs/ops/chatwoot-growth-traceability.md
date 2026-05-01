@@ -190,6 +190,8 @@ Result:
 - CRM/request reference-first contract: `PASS`.
 - Ledger parity: `PASS`.
 - Same conversation with two requests: `PASS`.
+- Controlled `booking_confirmed`: `PASS` for `E2E-202605011344-A` via QA
+  itinerary `QA-E2E-202605011344-A12543`.
 - WAFlow lead conversation mirror: `WATCH` until the legacy unique index is
   removed.
 
