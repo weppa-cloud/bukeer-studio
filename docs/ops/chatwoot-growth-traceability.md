@@ -233,11 +233,16 @@ Result:
 - same Chatwoot conversation produced two distinct CRM requests;
 - `waflow_leads.chatwoot_conversation_id` stored `34883` for both rows;
 - Chatwoot custom attributes were empty before Flutter #792 deploy.
+- Flutter `process-chatwoot-message` was deployed as Supabase Edge Function
+  version `182`.
+- Conversation `34883` was backfilled and now exposes:
+  - `growth_current_reference_code=HOME-0105-FG0F`;
+  - `growth_reference_history` with both live refs;
+  - `growth_last_crm_request_short_id=SOL-1950`.
 
-Next verification after Flutter deploy:
+Next automatic verification:
 
-1. replay or receive a Chatwoot message containing the latest `#ref`;
-2. confirm `growth_current_reference_code=HOME-0105-FG0F`;
-3. confirm `growth_reference_history` includes both `HOME-0105-K3CT` and
-   `HOME-0105-FG0F`;
-4. confirm `growth_last_crm_request_short_id=SOL-1950`.
+1. receive a new organic Chatwoot message containing a fresh `#ref`;
+2. confirm the Edge Function mirrors attributes without manual backfill;
+3. confirm `growth_reference_history` appends the new ref without overwriting
+   prior requests.

@@ -128,13 +128,13 @@ Apply status:
 | Reference-first CRM request       | PASS             | two refs in same conversation created two requests                   |
 | `booking_confirmed`               | PASS             | controlled QA itinerary emitted booking for ref A                    |
 | WAFlow lead conversation mirror   | PASS             | post-migration smoke stored same conversation id on both WAFlow rows |
-| Chatwoot custom attributes mirror | IMPLEMENTED, pending deploy | Flutter #792 patch ready; production conversation still empty before deploy |
+| Chatwoot custom attributes mirror | PASS-WITH-WATCH | Flutter #792 deployed as Edge Function v182; conversation `34883` backfilled |
 | Meta business messaging CAPI      | WATCH            | requires real CTWA `ctwa_clid`                                       |
 
 ## Next
 
-1. Deploy Flutter/Supabase `process-chatwoot-message` mirror patch and replay a
-   message or webhook event for the latest live conversation.
+1. Let the next organic Chatwoot inbound message prove automatic mirror without
+   manual backfill.
 2. Apply a real business itinerary confirmation later to replace the controlled
    QA booking evidence for production reporting.
 
@@ -176,4 +176,10 @@ Result:
   conversation;
 - `waflow_leads.chatwoot_conversation_id=34883` stored for both rows;
 - Chatwoot conversation custom attributes were empty before Flutter mirror
-  deploy, confirming the remaining #792 deployment/verification step.
+  deploy.
+- Flutter `process-chatwoot-message` was deployed to Supabase as version `182`.
+- Conversation `34883` was backfilled after deploy:
+  - `growth_current_reference_code=HOME-0105-FG0F`;
+  - `growth_reference_history` includes `HOME-0105-K3CT` and
+    `HOME-0105-FG0F`;
+  - `growth_last_crm_request_short_id=SOL-1950`.
