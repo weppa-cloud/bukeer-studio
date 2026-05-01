@@ -298,6 +298,7 @@ describe("/api/webhooks/chatwoot", () => {
         eventName: "QuoteSent",
         eventId: "HOME-2504-ABCD:chatwoot:QuoteSent:123",
         actionSource: "business_messaging",
+        messagingChannel: "whatsapp",
         userData: expect.objectContaining({
           email: "juan@example.com",
           phone: "+573001234567",
@@ -306,7 +307,6 @@ describe("/api/webhooks/chatwoot", () => {
           fbc: "fb.1.1700000123.FB123",
         }),
         customData: expect.objectContaining({
-          messaging_channel: "whatsapp",
           reference_code: "HOME-2504-ABCD",
         }),
         accountId: "11111111-1111-4111-8111-111111111111",
