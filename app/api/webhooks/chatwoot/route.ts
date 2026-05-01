@@ -78,7 +78,13 @@ type ChatwootGrowthAttributeValue = string | number | boolean | null;
 function mapLifecycleToMetaEvent(lifecycleEvent: LifecycleEvent): string {
   // Meta business_messaging CAPI accepts a constrained event-name set.
   // Keep Bukeer's lifecycle in custom_data/trace and send a valid Meta name.
-  return "LeadSubmitted";
+  switch (lifecycleEvent) {
+    case "ConversationCreated":
+    case "ConversationContinued":
+    case "QualifiedLead":
+    case "QuoteSent":
+      return "LeadSubmitted";
+  }
 }
 
 interface WaflowLeadRow {
