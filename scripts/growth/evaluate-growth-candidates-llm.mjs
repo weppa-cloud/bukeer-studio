@@ -33,12 +33,23 @@ const accountId = args.accountId ?? DEFAULT_ACCOUNT_ID;
 const limit = Number(args.limit ?? 20);
 const useLlm = args.llm !== "false";
 const inputArtifact = args.inputArtifact ?? null;
+const contextMode = args.contextMode ?? "standard";
+const agreementArtifact = args.agreementArtifact ?? null;
 const automationThreshold = Number(
   args.automationConfidenceThreshold ?? DEFAULT_AUTOMATION_CONFIDENCE_THRESHOLD,
 );
+const automationPolicyVersion = "agent-automation-policy-2026-05-v1";
 const outDir =
   args.outDir ?? path.join("artifacts/seo", `${today()}-growth-ai-reviews`);
 const sb = getSupabase();
+let automationAgreementGate = {
+  status: "not_provided",
+  allow_auto_apply: true,
+  agreement_score: null,
+  eval_set_version: null,
+  threshold: null,
+  artifact_path: null,
+};
 
 main().catch((error) => {
   console.error(error);
@@ -46,6 +57,8 @@ main().catch((error) => {
 });
 
 async function main() {
+  automationAgreementGate =
+    await loadAutomationAgreementGate(agreementArtifact);
   const [defaultSourceRows, artifactSourceRows, tableStatus] =
     await Promise.all([
       inputArtifact ? Promise.resolve([]) : fetchDefaultSourceRows(),
@@ -74,6 +87,9 @@ async function main() {
     config_version: CONFIG_VERSION,
     llm_enabled: useLlm,
     input_artifact: inputArtifact,
+    context_mode: contextMode,
+    agreement_artifact: agreementArtifact,
+    automation_agreement_gate: automationAgreementGate,
     automation_confidence_threshold: automationThreshold,
     table_status: tableStatus,
     counts: {
@@ -284,7 +300,10 @@ async function callLlm(source, routing, contentGate) {
   const baseUrl =
     process.env.OPENROUTER_BASE_URL || "https://openrouter.ai/api/v1";
   const model = process.env.OPENROUTER_MODEL || "anthropic/claude-sonnet-4-5";
-  const sourceContext = sourceContextFor(source, contentGate);
+  const sourceContext =
+    contextMode === "enriched"
+      ? await enrichedSourceContextFor(source, contentGate)
+      : sourceContextFor(source, contentGate);
   const rubric = laneRubric(routing.agent_lane, routing.blocker_type);
   const response = await fetch(
     `${baseUrl.replace(/\/$/, "")}/chat/completions`,
@@ -335,9 +354,14 @@ async function callLlm(source, routing, contentGate) {
                 "Never treat AI-generated content as approved without Curator review.",
                 "If deterministic routing is wrong, return the corrected agent_lane and explain the evidence.",
                 "If decision is watch or block, why_not_promote must be specific and actionable.",
+                "If you list mandatory missing_evidence such as smoke evidence, attribution evidence, Curator review, SERP intent or content quality gates, decision must not be promote.",
+                "If source_context shows an existing Growth Council approval or an approved/planned/active experiment with baseline, metric and evaluation date, evaluate it as promote/readiness, while keeping allowed_action prepare_for_human.",
+                "Do not require a generic next_action for already-approved experiments when decision_log, baseline, success_metric and evaluation_date are present.",
               ],
               automation_policy: {
+                version: automationPolicyVersion,
                 threshold: automationThreshold,
+                agreement_gate: automationAgreementGate,
                 auto_apply_scope:
                   "Only low-risk, reversible or smoke-verifiable operational optimizations.",
                 always_human:
@@ -418,6 +442,14 @@ function sourceContextFor(source, contentGate) {
     evaluation_date: source.evaluation_date ?? evidence.evaluation_date ?? null,
     independence_key:
       source.independence_key ?? evidence.independence_key ?? null,
+    owner_role: source.owner_role ?? null,
+    experiment_status: source.status ?? null,
+    decision_log: source.decision_log ?? evidence.council_approval ?? null,
+    council_approved: Boolean(
+      source.decision_log?.approved_at ?? evidence.council_approval,
+    ),
+    guardrail_metric: source.guardrail_metric ?? null,
+    start_date: source.start_date ?? null,
     evidence_keys: Object.keys(evidence).sort(),
     content_gate_status: contentGate?.status ?? null,
     content_gate_missing: contentGate?.missing ?? [],
@@ -437,6 +469,125 @@ function sourceContextFor(source, contentGate) {
       evidence.content_brief?.curator_review ??
       evidence.content_task?.curator_review,
     ),
+  };
+}
+
+async function enrichedSourceContextFor(source, contentGate) {
+  const base = sourceContextFor(source, contentGate);
+  const [humanReviews, sourceFacts] = await Promise.all([
+    fetchHumanReviewContext(source),
+    fetchSourceFactContext(source),
+  ]);
+  return {
+    ...base,
+    context_mode: "enriched",
+    human_reviews: humanReviews,
+    source_fact_samples: sourceFacts,
+  };
+}
+
+async function fetchHumanReviewContext(source) {
+  const filters = [];
+  if (source.source_table === "growth_backlog_items") {
+    filters.push({ column: "backlog_item_id", value: source.id });
+  }
+  if (source.source_table === "growth_backlog_candidates") {
+    filters.push({ column: "candidate_id", value: source.id });
+  }
+  if (source.source_table === "growth_experiments") {
+    filters.push({ column: "experiment_id", value: source.id });
+  }
+  if (source.backlog_item_id) {
+    filters.push({ column: "backlog_item_id", value: source.backlog_item_id });
+  }
+  if (!filters.length) return [];
+
+  const reviews = [];
+  for (const filter of filters.slice(0, 2)) {
+    const { data, error } = await sb
+      .from("growth_human_reviews")
+      .select(
+        "id,review_key,reviewer_role,decision,rationale,status,evidence,created_at",
+      )
+      .eq("website_id", websiteId)
+      .eq(filter.column, filter.value)
+      .order("created_at", { ascending: false })
+      .limit(3);
+    if (!error && data?.length) {
+      reviews.push(
+        ...data.map((row) => ({
+          reviewer_role: row.reviewer_role,
+          decision: row.decision,
+          rationale: row.rationale,
+          status: row.status,
+          created_at: row.created_at,
+          evidence_keys: Object.keys(row.evidence ?? {}).sort(),
+        })),
+      );
+    }
+  }
+  return reviews.slice(0, 5);
+}
+
+async function fetchSourceFactContext(source) {
+  const refs = Array.isArray(source.source_fact_refs)
+    ? source.source_fact_refs
+    : [];
+  const facts = [];
+  for (const ref of refs.slice(0, 5)) {
+    if (!ref?.table || !ref?.id) {
+      facts.push({
+        table: ref?.table ?? null,
+        id: ref?.id ?? null,
+        status: "unfetchable_ref",
+        key: ref?.key ?? null,
+      });
+      continue;
+    }
+    const { data, error } = await sb
+      .from(ref.table)
+      .select("*")
+      .eq("id", ref.id)
+      .maybeSingle();
+    if (error || !data) {
+      facts.push({
+        table: ref.table,
+        id: ref.id,
+        status: "unavailable",
+        error: error?.message ?? "not_found",
+      });
+      continue;
+    }
+    facts.push(summarizeFact(ref.table, data));
+  }
+  return facts;
+}
+
+function summarizeFact(table, row) {
+  return {
+    table,
+    id: row.id ?? null,
+    profile_id: row.profile_id ?? row.source_profile ?? row.profile ?? null,
+    run_id: row.run_id ?? row.crawl_task_id ?? null,
+    url:
+      row.source_url ??
+      row.page_url ??
+      row.landing_page ??
+      row.canonical_url ??
+      null,
+    query: row.query ?? row.keyword ?? null,
+    market: row.market ?? row.country ?? null,
+    device: row.device ?? null,
+    channel: row.channel ?? row.session_default_channel_group ?? null,
+    clicks: row.clicks ?? null,
+    impressions: row.impressions ?? null,
+    sessions: row.sessions ?? null,
+    conversions: row.conversions ?? row.key_events ?? null,
+    severity: row.severity ?? row.operational_severity ?? null,
+    status: row.status ?? row.finding_status ?? null,
+    observed_at:
+      row.observed_at ?? row.created_at ?? row.updated_at ?? row.fetched_at,
+    evidence_keys: Object.keys(row.evidence ?? {}).sort(),
   };
 }
 
@@ -548,14 +699,66 @@ function withAutomationPolicy(review) {
     contentGate: review.content_gate,
     threshold: automationThreshold,
   });
+  const gatedPolicy =
+    policy.allowed_action === "auto_apply" &&
+    !automationAgreementGate.allow_auto_apply
+      ? {
+          ...policy,
+          automation_eligible: false,
+          allowed_action: "prepare_for_human",
+          automation_reason: `Auto-apply blocked by evaluator agreement gate: ${automationAgreementGate.status}.`,
+        }
+      : policy;
   return {
     ...review,
-    ...policy,
+    ...gatedPolicy,
     required_human_review:
-      policy.allowed_action === "auto_apply"
+      gatedPolicy.allowed_action === "auto_apply"
         ? false
         : review.required_human_review !== false,
   };
+}
+
+async function loadAutomationAgreementGate(artifactPath) {
+  if (!artifactPath) {
+    return {
+      status: "not_provided",
+      allow_auto_apply: true,
+      agreement_score: null,
+      eval_set_version: null,
+      threshold: null,
+      artifact_path: null,
+    };
+  }
+  try {
+    const report = JSON.parse(await fs.readFile(artifactPath, "utf8"));
+    const score = Number(
+      report.scores?.decision_accuracy ??
+        report.scores?.core_decision_accuracy ??
+        report.counts?.accuracy ??
+        report.accuracy,
+    );
+    const threshold = Number(report.threshold ?? 0.9);
+    const pass = Number.isFinite(score) && score >= threshold;
+    return {
+      status: pass ? "PASS" : "BLOCKED",
+      allow_auto_apply: pass,
+      agreement_score: Number.isFinite(score) ? score : null,
+      eval_set_version: report.eval_set_version ?? report.expected_version,
+      threshold,
+      artifact_path: artifactPath,
+    };
+  } catch (error) {
+    return {
+      status: "BLOCKED",
+      allow_auto_apply: false,
+      agreement_score: null,
+      eval_set_version: null,
+      threshold: null,
+      artifact_path: artifactPath,
+      error: error.message,
+    };
+  }
 }
 
 async function detectTable(table) {
@@ -632,6 +835,12 @@ function toAiReviewRow(review) {
       allowed_action: review.allowed_action,
       automation_reason: review.automation_reason,
       automation_confidence_threshold: automationThreshold,
+      automation_policy_version: automationPolicyVersion,
+      eval_set_version: automationAgreementGate.eval_set_version,
+      agreement_score: automationAgreementGate.agreement_score,
+      agreement_gate_status: automationAgreementGate.status,
+      agreement_artifact: automationAgreementGate.artifact_path,
+      context_mode: contextMode,
       content_gate: review.content_gate,
     },
   };
@@ -669,7 +878,9 @@ function renderMarkdown(report) {
 Mode: \`${report.mode}\`  
 Generated: ${report.generated_at}  
 LLM enabled: \`${report.llm_enabled}\`
+Context mode: \`${report.context_mode}\`
 Automation threshold: \`${report.automation_confidence_threshold}\`
+Agreement gate: \`${report.automation_agreement_gate.status}\`
 
 ## Counts
 
