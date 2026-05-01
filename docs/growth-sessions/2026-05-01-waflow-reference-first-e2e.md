@@ -110,11 +110,13 @@ indexes by conversation and conversation/reference.
 
 Apply status:
 
-- not applied yet;
-- `supabase db push --dry-run --linked --workdir bukeer_flutter` failed with
-  pooler SCRAM auth;
-- no SQL admin RPC exists in PostgREST (`exec_sql`, `execute_sql`, `run_sql`,
-  `sql` not found).
+- applied 2026-05-01 from the Flutter/SSOT migration through the Supabase
+  Management API after confirming the Supabase MCP server was configured but not
+  loaded as an active Codex tool in this thread;
+- verification query returned:
+  - `waflow_leads_chatwoot_conversation_idx`
+  - `waflow_leads_chatwoot_conversation_reference_idx`
+- `waflow_leads_chatwoot_conversation_uidx` is no longer present.
 
 ## Gate Decisions
 
@@ -125,15 +127,14 @@ Apply status:
 | Chatwoot webhook delivery         | PASS             | processed events and lifecycle mapping                      |
 | Reference-first CRM request       | PASS             | two refs in same conversation created two requests          |
 | `booking_confirmed`               | PASS             | controlled QA itinerary emitted booking for ref A           |
-| WAFlow lead conversation mirror   | WATCH            | blocked by legacy unique index until SSOT migration applies |
+| WAFlow lead conversation mirror   | WATCH            | migration applied; repeat double-reference smoke to certify |
 | Chatwoot custom attributes mirror | P1 Flutter-owned | #792                                                        |
 | Meta business messaging CAPI      | WATCH            | requires real CTWA `ctwa_clid`                              |
 
 ## Next
 
-1. Apply the Flutter/SSOT migration.
-2. Repeat the two-reference smoke and verify both `waflow_leads` rows can store
+1. Repeat the two-reference smoke and verify both `waflow_leads` rows can store
    the same `chatwoot_conversation_id`.
-3. Run a fresh live WhatsApp WAFlow test from production UI.
-4. Apply a real business itinerary confirmation later to replace the controlled
+2. Run a fresh live WhatsApp WAFlow test from production UI.
+3. Apply a real business itinerary confirmation later to replace the controlled
    QA booking evidence for production reporting.

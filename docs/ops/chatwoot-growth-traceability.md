@@ -194,19 +194,24 @@ Result:
 - Same conversation with two requests: `PASS`.
 - Controlled `booking_confirmed`: `PASS` for `E2E-202605011344-A` via QA
   itinerary `QA-E2E-202605011344-A12543`.
-- WAFlow lead conversation mirror: `WATCH` until the legacy unique index is
-  removed.
+- WAFlow lead conversation mirror: migration applied 2026-05-01; post-migration
+  double-reference smoke pending.
 
 Legacy schema gap:
 
 - `waflow_leads_chatwoot_conversation_uidx` assumes one conversation maps to one
   WAFlow lead.
+- Fixed 2026-05-01 by applying Flutter/SSOT migration
+  `20260504111600_waflow_reference_first_conversation_index.sql` through the
+  Supabase Management API. Verification shows only the two non-unique lookup
+  indexes remain:
+  - `waflow_leads_chatwoot_conversation_idx`
+  - `waflow_leads_chatwoot_conversation_reference_idx`
 
 Mitigation:
 
 - the webhook catches duplicate-key conflicts and keeps lifecycle traceability
   in `chatwoot_custom_attributes`;
 - it marks `chatwoot_conversation_unique_conflict = true`;
-- Flutter/SSOT migration
-  `20260504111600_waflow_reference_first_conversation_index.sql` drops the
-  unique index and adds non-unique lookup indexes.
+- Flutter/SSOT migration is applied; repeat the double-reference smoke to move
+  the mirror gate from `WATCH` to `PASS`.
