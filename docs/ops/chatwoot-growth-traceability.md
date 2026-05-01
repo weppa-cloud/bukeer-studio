@@ -175,6 +175,8 @@ Known WATCH state:
   request model that can create or select a request by Growth reference, not only
   by conversation id. The Studio webhook now avoids corrupt overwrites, but the
   definitive shared contract belongs in the Flutter/Supabase backend.
+- Flutter canonical contract:
+  `bukeer_flutter/docs/05-business-systems/chatwoot/GROWTH_REFERENCE_FIRST_CONTRACT.md`.
 
 ### Reference-first double-request smoke
 
