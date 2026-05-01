@@ -41,6 +41,7 @@
     "growth:ssot-repair-trace": "node scripts/growth/repair-growth-operational-ssot-trace.mjs",
     "growth:council-approve": "node scripts/growth/approve-growth-council-experiments.mjs",
     "growth:content-tasks": "node scripts/growth/prepare-growth-content-tasks.mjs",
+    "growth:human-reviews": "node scripts/growth/materialize-growth-human-reviews.mjs",
     "growth:blocked-classify": "node scripts/growth/classify-growth-blocked-items.mjs",
     "test:watch": "jest --watch",
     "build:worker": "npm run check:node && opennextjs-cloudflare build",
