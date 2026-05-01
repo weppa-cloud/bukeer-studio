@@ -295,8 +295,8 @@ describe("/api/webhooks/chatwoot", () => {
     expect(sendMetaConversionEvent).toHaveBeenCalledTimes(3);
     expect(sendMetaConversionEvent).toHaveBeenCalledWith(
       expect.objectContaining({
-        eventName: "QuoteSent",
-        eventId: "HOME-2504-ABCD:chatwoot:QuoteSent:123",
+        eventName: "LeadSubmitted",
+        eventId: "HOME-2504-ABCD:chatwoot:LeadSubmitted:QuoteSent:123",
         actionSource: "business_messaging",
         messagingChannel: "whatsapp",
         userData: expect.objectContaining({
@@ -308,6 +308,10 @@ describe("/api/webhooks/chatwoot", () => {
         }),
         customData: expect.objectContaining({
           reference_code: "HOME-2504-ABCD",
+          chatwoot_lifecycle_event: "QuoteSent",
+        }),
+        trace: expect.objectContaining({
+          lifecycle_event: "QuoteSent",
         }),
         accountId: "11111111-1111-4111-8111-111111111111",
         websiteId: "22222222-2222-4222-8222-222222222222",

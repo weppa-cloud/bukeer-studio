@@ -73,8 +73,8 @@ describe('Meta Conversions API helpers', () => {
 
   it('adds messaging_channel at top level for business messaging events', async () => {
     const request = await buildMetaCapiRequest({
-      eventName: 'ConversationContinued',
-      eventId: 'HOME-2504-ABCD:chatwoot:ConversationContinued:123',
+      eventName: 'LeadSubmitted',
+      eventId: 'HOME-2504-ABCD:chatwoot:LeadSubmitted:ConversationContinued:123',
       eventTime: new Date('2026-04-25T12:00:00Z'),
       actionSource: 'business_messaging',
       messagingChannel: 'whatsapp',
@@ -88,8 +88,8 @@ describe('Meta Conversions API helpers', () => {
     });
 
     expect(request.data[0]).toMatchObject({
-      event_name: 'ConversationContinued',
-      event_id: 'HOME-2504-ABCD:chatwoot:ConversationContinued:123',
+      event_name: 'LeadSubmitted',
+      event_id: 'HOME-2504-ABCD:chatwoot:LeadSubmitted:ConversationContinued:123',
       action_source: 'business_messaging',
       messaging_channel: 'whatsapp',
       custom_data: { reference_code: 'HOME-2504-ABCD' },
