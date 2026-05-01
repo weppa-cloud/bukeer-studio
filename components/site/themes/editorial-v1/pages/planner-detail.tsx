@@ -46,6 +46,10 @@ import { WaflowCTAButton } from '../waflow/cta-button';
 export interface PlannerPayload {
   /** Optional longer bio text. Falls back to `contacts.position` + fluff. */
   bio?: string;
+  /** Optional hero background image. Falls back to `contacts.user_image`. */
+  heroImageUrl?: string;
+  /** CSS background-position for hero image, e.g. "bottom center". */
+  heroImagePosition?: string;
   /** Years in operation (per planner). */
   years?: number;
   /** Trips designed counter. */
@@ -253,6 +257,8 @@ export function EditorialPlannerDetailPage({
     typeof payload?.reviews === 'number' ? payload.reviews : null;
   const trips = payload?.trips ?? null;
   const years = payload?.years ?? null;
+  const heroImageUrl = payload?.heroImageUrl || planner.photo;
+  const heroImagePosition = payload?.heroImagePosition || 'bottom center';
 
   // Ghost pattern: only render a KPI when we actually have the number.
   // The whole KPI grid hides when every cell would be empty (prevents
@@ -299,11 +305,11 @@ export function EditorialPlannerDetailPage({
         className="pld-hero page-hero"
         style={{
           ...pldHeroWrapperStyle,
-          ...(planner.photo
+          ...(heroImageUrl
             ? {
-                backgroundImage: `url(${planner.photo})`,
+                backgroundImage: `url(${heroImageUrl})`,
                 backgroundSize: 'cover',
-                backgroundPosition: 'center top',
+                backgroundPosition: heroImagePosition,
               }
             : {}),
         }}

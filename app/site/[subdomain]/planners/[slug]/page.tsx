@@ -205,6 +205,13 @@ export default async function PlannerProfilePage({ params }: PlannerPageProps) {
   const dbSpecialties = planner.specialties ?? undefined;
   const dbRegions = planner.regions ?? undefined;
   const dbLanguages = planner.languages ?? undefined;
+  const personalDetails = planner.personalDetails as
+    | {
+        heroImageUrl?: string | null;
+        bannerImageUrl?: string | null;
+        heroImagePosition?: string | null;
+      }
+    | null;
 
   // Signature trip — resolve `contacts.signature_package_id` → package_kits
   // row. Only populate `payload.signature` when the FK resolves to a live
@@ -233,6 +240,8 @@ export default async function PlannerProfilePage({ params }: PlannerPageProps) {
 
   const plannerPayload: PlannerPayload = {
     bio: planner.bio ?? undefined,
+    heroImageUrl: personalDetails?.heroImageUrl ?? personalDetails?.bannerImageUrl ?? undefined,
+    heroImagePosition: personalDetails?.heroImagePosition ?? undefined,
     rating: sectionMatch?.rating ?? planner.ratingAvg ?? undefined,
     reviews: sectionMatch?.reviewCount ?? undefined,
     trips: planner.tripsCount ?? undefined,
