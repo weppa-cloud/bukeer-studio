@@ -217,3 +217,27 @@ Mitigation:
   lifecycle traceability in `chatwoot_custom_attributes`;
 - Flutter/SSOT migration is applied and certified by the 2026-05-01
   post-migration smoke.
+
+### Live production WAFlow smoke
+
+Production UI smoke, 2026-05-01:
+
+| Reference        | Conversation | Request    | Chain                                     |
+| ---------------- | ------------ | ---------- | ----------------------------------------- |
+| `HOME-0105-K3CT` | `34883`      | `SOL-1949` | `waflow_submit -> whatsapp_cta_click`     |
+| `HOME-0105-FG0F` | `34883`      | `SOL-1950` | `waflow_submit -> whatsapp_cta_click`     |
+
+Result:
+
+- same real WhatsApp conversation produced two WAFlow references;
+- same Chatwoot conversation produced two distinct CRM requests;
+- `waflow_leads.chatwoot_conversation_id` stored `34883` for both rows;
+- Chatwoot custom attributes were empty before Flutter #792 deploy.
+
+Next verification after Flutter deploy:
+
+1. replay or receive a Chatwoot message containing the latest `#ref`;
+2. confirm `growth_current_reference_code=HOME-0105-FG0F`;
+3. confirm `growth_reference_history` includes both `HOME-0105-K3CT` and
+   `HOME-0105-FG0F`;
+4. confirm `growth_last_crm_request_short_id=SOL-1950`.

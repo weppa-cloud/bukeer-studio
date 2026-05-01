@@ -128,12 +128,13 @@ Apply status:
 | Reference-first CRM request       | PASS             | two refs in same conversation created two requests                   |
 | `booking_confirmed`               | PASS             | controlled QA itinerary emitted booking for ref A                    |
 | WAFlow lead conversation mirror   | PASS             | post-migration smoke stored same conversation id on both WAFlow rows |
-| Chatwoot custom attributes mirror | P1 Flutter-owned | #792                                                                 |
+| Chatwoot custom attributes mirror | IMPLEMENTED, pending deploy | Flutter #792 patch ready; production conversation still empty before deploy |
 | Meta business messaging CAPI      | WATCH            | requires real CTWA `ctwa_clid`                                       |
 
 ## Next
 
-1. Run a fresh live WhatsApp WAFlow test from production UI.
+1. Deploy Flutter/Supabase `process-chatwoot-message` mirror patch and replay a
+   message or webhook event for the latest live conversation.
 2. Apply a real business itinerary confirmation later to replace the controlled
    QA booking evidence for production reporting.
 
@@ -153,3 +154,26 @@ Events:
 - each reference has `quote_sent`.
 
 Decision: `WAFlow lead conversation mirror = PASS`.
+
+## Live WhatsApp Production Smoke
+
+Run: 2026-05-01 15:01-15:03 UTC.
+
+Executed from production `https://colombiatours.travel` with UTM campaign
+`epic310_live_waflow_two_refs`.
+
+| Reference        | Conversation | Request    | Evidence                                                         |
+| ---------------- | ------------ | ---------- | ---------------------------------------------------------------- |
+| `HOME-0105-K3CT` | `34883`      | `SOL-1949` | `waflow_leads`, `waflow_submit`, `whatsapp_cta_click`, CRM link  |
+| `HOME-0105-FG0F` | `34883`      | `SOL-1950` | `waflow_leads`, `waflow_submit`, `whatsapp_cta_click`, CRM link  |
+
+Result:
+
+- production WAFlow generated and stored both lead rows;
+- both WhatsApp messages were delivered from WhatsApp Desktop;
+- both references emitted activation events;
+- both references linked to distinct CRM requests in the same Chatwoot
+  conversation;
+- `waflow_leads.chatwoot_conversation_id=34883` stored for both rows;
+- Chatwoot conversation custom attributes were empty before Flutter mirror
+  deploy, confirming the remaining #792 deployment/verification step.
