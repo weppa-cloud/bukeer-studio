@@ -1,11 +1,11 @@
 # SPEC: Growth OS Agent Lanes
 
-Status: Accepted operating layer for EPIC #310 / SPEC #337  
-Tenant: ColombiaTours (`colombiatours.travel`)  
-Website id: `894545b7-73ca-4dae-b76a-da5b6a3f8441`  
-Created: 2026-05-01  
-Owner: Growth OS Orchestrator + Council  
-Canonical execution: [#310](https://github.com/weppa-cloud/bukeer-studio/issues/310)  
+Status: Accepted operating layer for EPIC #310 / SPEC #337
+Tenant: ColombiaTours (`colombiatours.travel`)
+Website id: `894545b7-73ca-4dae-b76a-da5b6a3f8441`
+Created: 2026-05-01
+Owner: Growth OS Orchestrator + Council
+Canonical execution: [#310](https://github.com/weppa-cloud/bukeer-studio/issues/310)
 Related SPECs: [SPEC_GROWTH_OS_SSOT_MODEL](./SPEC_GROWTH_OS_SSOT_MODEL.md), [SPEC_GROWTH_OS_UNIFIED_BACKLOG_AND_PROFILE_RUN_LEDGER](./SPEC_GROWTH_OS_UNIFIED_BACKLOG_AND_PROFILE_RUN_LEDGER.md), [SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX](./SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md)
 
 ## Purpose
