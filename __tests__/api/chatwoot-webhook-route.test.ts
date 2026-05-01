@@ -143,6 +143,7 @@ describe("/api/webhooks/chatwoot", () => {
     process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
     process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
     process.env.CHATWOOT_WEBHOOK_SECRET = "chatwoot-secret";
+    process.env.META_PAGE_ID = "1234567890";
     webhookRows = [];
     webhookUpdates = [];
     leadUpdates = [];
@@ -160,6 +161,7 @@ describe("/api/webhooks/chatwoot", () => {
         attribution: {
           fbp: "fb.1.1700000000.abc",
           fbc: "fb.1.1700000123.FB123",
+          ctwa_clid: "ctwa-test-123",
           source_url: "https://demo.bukeer.com/?fbclid=FB123",
         },
       },
@@ -171,6 +173,7 @@ describe("/api/webhooks/chatwoot", () => {
 
   afterEach(() => {
     Date.now = originalDateNow;
+    delete process.env.META_PAGE_ID;
   });
 
   it("rejects invalid signatures before persistence", async () => {
@@ -303,6 +306,8 @@ describe("/api/webhooks/chatwoot", () => {
           email: "juan@example.com",
           phone: "+573001234567",
           externalId: "HOME-2504-ABCD",
+          pageId: "1234567890",
+          ctwaClid: "ctwa-test-123",
           fbp: "fb.1.1700000000.abc",
           fbc: "fb.1.1700000123.FB123",
         }),

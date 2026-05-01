@@ -32,6 +32,8 @@ export interface MetaUserDataInput {
   firstName?: string | null;
   lastName?: string | null;
   externalId?: string | null;
+  pageId?: string | null;
+  ctwaClid?: string | null;
   fbp?: string | null;
   fbc?: string | null;
   clientIpAddress?: string | null;
@@ -173,6 +175,8 @@ export async function buildMetaUserData(input: MetaUserDataInput = {}): Promise<
     ...(firstName && { fn: firstName }),
     ...(lastName && { ln: lastName }),
     ...(externalId && { external_id: externalId }),
+    ...(cleanString(input.pageId) && { page_id: cleanString(input.pageId) }),
+    ...(cleanString(input.ctwaClid) && { ctwa_clid: cleanString(input.ctwaClid) }),
     ...(cleanString(input.fbp) && { fbp: cleanString(input.fbp) }),
     ...(cleanString(input.fbc) && { fbc: cleanString(input.fbc) }),
     ...(cleanString(input.clientIpAddress) && {

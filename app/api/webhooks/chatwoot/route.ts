@@ -87,6 +87,13 @@ function mapLifecycleToMetaEvent(lifecycleEvent: LifecycleEvent): string {
   }
 }
 
+function resolveMetaWhatsAppPageId(): string | null {
+  return (
+    cleanString(process.env.META_WHATSAPP_PAGE_ID) ??
+    cleanString(process.env.META_PAGE_ID)
+  );
+}
+
 interface WaflowLeadRow {
   id: string;
   account_id: string | null;
@@ -148,6 +155,34 @@ function readNestedRecord(record: JsonRecord, key: string): JsonRecord {
 
 function readNestedString(record: JsonRecord, key: string): string | null {
   return cleanString(record[key]) ?? readId(record[key]);
+}
+
+function findNestedString(record: JsonRecord, keys: string[]): string | null {
+  const wanted = new Set(keys.map((key) => key.toLowerCase()));
+  const stack: unknown[] = [record];
+  while (stack.length > 0) {
+    const current = stack.pop();
+    if (Array.isArray(current)) {
+      stack.push(...current);
+      continue;
+    }
+    if (typeof current !== "object" || current === null) continue;
+    for (const [key, value] of Object.entries(current as JsonRecord)) {
+      if (wanted.has(key.toLowerCase())) {
+        const found = cleanString(value) ?? readId(value);
+        if (found) return found;
+      }
+      if (typeof value === "object" && value !== null) stack.push(value);
+    }
+  }
+  return null;
+}
+
+function extractCtwaClid(payload: ChatwootPayload, leadPayload: JsonRecord): string | null {
+  return (
+    findNestedString(readRecord(payload), ["ctwa_clid", "ctwaClid"]) ??
+    findNestedString(leadPayload, ["ctwa_clid", "ctwaClid"])
+  );
 }
 
 function extractCustomAttributes(payload: ChatwootPayload): JsonRecord {
@@ -1101,6 +1136,17 @@ async function sendLifecycleConversions(
   const contact = extractContact(payload);
   const referenceCode = lead.reference_code;
   if (!referenceCode) return 0;
+  const pageId = resolveMetaWhatsAppPageId();
+  const ctwaClid = extractCtwaClid(payload, leadPayload);
+  if (!pageId || !ctwaClid) {
+    log.warn("meta_business_messaging_skipped", {
+      conversation_id: conversationId,
+      reference_code: referenceCode,
+      missing_page_id: !pageId,
+      missing_ctwa_clid: !ctwaClid,
+    });
+    return 0;
+  }
 
   let sent = 0;
   for (const lifecycleEvent of lifecycleEvents) {
@@ -1118,6 +1164,8 @@ async function sendLifecycleConversions(
             cleanString(contact.phone_number) ?? cleanString(leadPayload.phone),
           firstName: cleanString(contact.name) ?? cleanString(leadPayload.name),
           externalId: referenceCode,
+          pageId,
+          ctwaClid,
           fbp: cleanString(attribution.fbp),
           fbc: cleanString(attribution.fbc),
           clientIpAddress: lead.source_ip,
