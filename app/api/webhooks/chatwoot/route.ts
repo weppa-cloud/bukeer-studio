@@ -517,7 +517,6 @@ async function markWebhookEvent(
 async function findWaflowLead(
   supabase: ReturnType<typeof createSupabaseAdmin>,
   referenceCode: string | null,
-  conversationId: string | null,
 ): Promise<WaflowLeadRow | null> {
   if (referenceCode) {
     const { data, error } = await supabase
@@ -531,20 +530,6 @@ async function findWaflowLead(
       .maybeSingle<WaflowLeadRow>();
     if (error) throw new Error(error.message);
     if (data) return data;
-  }
-
-  if (conversationId) {
-    const { data, error } = await supabase
-      .from("waflow_leads")
-      .select(
-        "id,account_id,website_id,reference_code,session_key,payload,source_ip,source_user_agent",
-      )
-      .eq("chatwoot_conversation_id", conversationId)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle<WaflowLeadRow>();
-    if (error) throw new Error(error.message);
-    return data ?? null;
   }
 
   return null;
@@ -1264,7 +1249,7 @@ export async function POST(request: NextRequest) {
 
     const lifecycleEvents = mapLifecycleEvents(payload);
     const referenceCode = extractReferenceCode(payload);
-    const lead = await findWaflowLead(supabase, referenceCode, conversationId);
+    const lead = await findWaflowLead(supabase, referenceCode);
     if (!lead || !conversationId || lifecycleEvents.length === 0) {
       log.warn("orphan_or_unsupported_event", {
         provider_event_id: providerEventId,

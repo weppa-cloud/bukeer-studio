@@ -4,7 +4,7 @@ set -euo pipefail
 usage() {
   cat <<'USAGE' >&2
 Usage:
-  CHATWOOT_WEBHOOK_SECRET=... bash scripts/chatwoot-webhook-simulate.sh <qualified_lead|quote_sent> <conversation_id> <reference_code>
+  CHATWOOT_WEBHOOK_SECRET=... bash scripts/chatwoot-webhook-simulate.sh <qualified_lead|quote_sent|missing_ref> <conversation_id> [reference_code]
 
 Optional:
   CHATWOOT_WEBHOOK_URL=http://localhost:3000/api/webhooks/chatwoot
@@ -12,7 +12,7 @@ Optional:
 USAGE
 }
 
-if [[ $# -ne 3 ]]; then
+if [[ $# -lt 2 || $# -gt 3 ]]; then
   usage
   exit 64
 fi
@@ -24,20 +24,27 @@ fi
 
 event_kind="$1"
 conversation_id="$2"
-reference_code="$3"
+reference_code="${3:-}"
 url="${CHATWOOT_WEBHOOK_URL:-http://localhost:${PORT:-3000}/api/webhooks/chatwoot}"
 timestamp="$(date +%s)"
 
 case "$event_kind" in
   qualified_lead)
+    if [[ -z "$reference_code" ]]; then usage; exit 64; fi
     label="qualified"
     stage="qualified_lead"
     content="Lead qualified #ref: ${reference_code}"
     ;;
   quote_sent)
+    if [[ -z "$reference_code" ]]; then usage; exit 64; fi
     label="quote_sent"
     stage="quote_sent"
     content="Quote sent #ref: ${reference_code}"
+    ;;
+  missing_ref)
+    label="missing_ref"
+    stage="conversation_continued"
+    content="Hola, quiero más información"
     ;;
   *)
     usage
@@ -56,15 +63,20 @@ body="$(
   node -e '
 const payload = {
   event: "message_created",
-  id: `${process.env.EVENT_KIND}:${process.env.CONVERSATION_ID}:${process.env.REFERENCE_CODE}:${process.env.TIMESTAMP}`,
+  id: `${process.env.EVENT_KIND}:${process.env.CONVERSATION_ID}:${process.env.REFERENCE_CODE || "missing-ref"}:${process.env.TIMESTAMP}`,
   timestamp: Number(process.env.TIMESTAMP),
   conversation: {
     id: process.env.CONVERSATION_ID,
     labels: [process.env.LABEL],
-    custom_attributes: {
-      reference_code: process.env.REFERENCE_CODE,
-      lifecycle_stage: process.env.STAGE,
-    },
+    custom_attributes:
+      process.env.REFERENCE_CODE
+        ? {
+            reference_code: process.env.REFERENCE_CODE,
+            lifecycle_stage: process.env.STAGE,
+          }
+        : {
+            lifecycle_stage: process.env.STAGE,
+          },
   },
   message: {
     id: `sim-${process.env.TIMESTAMP}`,
