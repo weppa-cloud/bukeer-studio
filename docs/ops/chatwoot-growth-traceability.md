@@ -182,10 +182,12 @@ Known WATCH state:
 
 Controlled smoke, 2026-05-01:
 
-| Reference            | Conversation | Request    | Chain                                           |
-| -------------------- | ------------ | ---------- | ----------------------------------------------- |
-| `E2E-202605011344-A` | `939902`     | `SOL-1942` | `waflow_submit -> qualified_lead -> quote_sent` |
-| `E2E-202605011344-B` | `939902`     | `SOL-1943` | `waflow_submit -> qualified_lead -> quote_sent` |
+| Reference               | Conversation | Request    | Chain                                           |
+| ----------------------- | ------------ | ---------- | ----------------------------------------------- |
+| `E2E-202605011344-A`    | `939902`     | `SOL-1942` | `waflow_submit -> qualified_lead -> quote_sent` |
+| `E2E-202605011344-B`    | `939902`     | `SOL-1943` | `waflow_submit -> qualified_lead -> quote_sent` |
+| `E2E-20260501143733-M1` | `968696`     | `SOL-1945` | `waflow_submit -> qualified_lead -> quote_sent` |
+| `E2E-20260501143733-M2` | `968696`     | `SOL-1946` | `waflow_submit -> qualified_lead -> quote_sent` |
 
 Result:
 
@@ -194,8 +196,9 @@ Result:
 - Same conversation with two requests: `PASS`.
 - Controlled `booking_confirmed`: `PASS` for `E2E-202605011344-A` via QA
   itinerary `QA-E2E-202605011344-A12543`.
-- WAFlow lead conversation mirror: migration applied 2026-05-01; post-migration
-  double-reference smoke pending.
+- WAFlow lead conversation mirror: `PASS` after post-migration smoke confirmed
+  both WAFlow rows can share `chatwoot_conversation_id=968696` with no unique
+  conflict.
 
 Legacy schema gap:
 
@@ -210,8 +213,7 @@ Legacy schema gap:
 
 Mitigation:
 
-- the webhook catches duplicate-key conflicts and keeps lifecycle traceability
-  in `chatwoot_custom_attributes`;
-- it marks `chatwoot_conversation_unique_conflict = true`;
-- Flutter/SSOT migration is applied; repeat the double-reference smoke to move
-  the mirror gate from `WATCH` to `PASS`.
+- the webhook still catches duplicate-key conflicts defensively and keeps
+  lifecycle traceability in `chatwoot_custom_attributes`;
+- Flutter/SSOT migration is applied and certified by the 2026-05-01
+  post-migration smoke.

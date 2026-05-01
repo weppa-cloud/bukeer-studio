@@ -120,21 +120,36 @@ Apply status:
 
 ## Gate Decisions
 
-| Gate                              | Status           | Notes                                                       |
-| --------------------------------- | ---------------- | ----------------------------------------------------------- |
-| WAFlow parity                     | PASS             | 28 submitted vs 28 `waflow_submit` since 2026-04-28         |
-| Missing ref guardrail             | PASS             | orphan/watch only, no funnel/Meta pollution                 |
-| Chatwoot webhook delivery         | PASS             | processed events and lifecycle mapping                      |
-| Reference-first CRM request       | PASS             | two refs in same conversation created two requests          |
-| `booking_confirmed`               | PASS             | controlled QA itinerary emitted booking for ref A           |
-| WAFlow lead conversation mirror   | WATCH            | migration applied; repeat double-reference smoke to certify |
-| Chatwoot custom attributes mirror | P1 Flutter-owned | #792                                                        |
-| Meta business messaging CAPI      | WATCH            | requires real CTWA `ctwa_clid`                              |
+| Gate                              | Status           | Notes                                                                |
+| --------------------------------- | ---------------- | -------------------------------------------------------------------- |
+| WAFlow parity                     | PASS             | 28 submitted vs 28 `waflow_submit` since 2026-04-28                  |
+| Missing ref guardrail             | PASS             | orphan/watch only, no funnel/Meta pollution                          |
+| Chatwoot webhook delivery         | PASS             | processed events and lifecycle mapping                               |
+| Reference-first CRM request       | PASS             | two refs in same conversation created two requests                   |
+| `booking_confirmed`               | PASS             | controlled QA itinerary emitted booking for ref A                    |
+| WAFlow lead conversation mirror   | PASS             | post-migration smoke stored same conversation id on both WAFlow rows |
+| Chatwoot custom attributes mirror | P1 Flutter-owned | #792                                                                 |
+| Meta business messaging CAPI      | WATCH            | requires real CTWA `ctwa_clid`                                       |
 
 ## Next
 
-1. Repeat the two-reference smoke and verify both `waflow_leads` rows can store
-   the same `chatwoot_conversation_id`.
-2. Run a fresh live WhatsApp WAFlow test from production UI.
-3. Apply a real business itinerary confirmation later to replace the controlled
+1. Run a fresh live WhatsApp WAFlow test from production UI.
+2. Apply a real business itinerary confirmation later to replace the controlled
    QA booking evidence for production reporting.
+
+## Post-Migration Mirror Smoke
+
+Run: 2026-05-01 14:37 UTC.
+
+| Reference               | Conversation | Request    | Mirror                                         |
+| ----------------------- | ------------ | ---------- | ---------------------------------------------- |
+| `E2E-20260501143733-M1` | `968696`     | `SOL-1945` | `chatwoot_conversation_id=968696`, no conflict |
+| `E2E-20260501143733-M2` | `968696`     | `SOL-1946` | `chatwoot_conversation_id=968696`, no conflict |
+
+Events:
+
+- each reference has `waflow_submit`;
+- each reference has `qualified_lead`;
+- each reference has `quote_sent`.
+
+Decision: `WAFlow lead conversation mirror = PASS`.
