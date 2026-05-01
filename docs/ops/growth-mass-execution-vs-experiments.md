@@ -96,6 +96,21 @@ Before changing production behavior, capture:
 Record the baseline artifact or run id in the owner issue, usually #310/#311/#321
 and the affected child issue.
 
+Generate the operational packet:
+
+```bash
+node scripts/growth/prepare-growth-mass-execution-packet.mjs
+```
+
+The packet writes:
+
+- `growth-mass-execution-packet.md`;
+- `growth-mass-execution-packet.json`;
+- `blocked-cleanup.csv`;
+- `queued-operational-batches.csv`;
+- `ready-for-council-readouts.csv`;
+- `proposed-five-readouts.csv`.
+
 ### 2. Split The Backlog
 
 Treat the backlog by state first:
