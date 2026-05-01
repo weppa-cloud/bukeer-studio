@@ -44,11 +44,24 @@ Reference discovery order:
    - `waflow_ref`
 2. `growth_reference_history`, as JSON array or comma/newline string.
 3. Message text regex: `#ref: <REFERENCE>`.
-4. Existing `waflow_leads.chatwoot_conversation_id`, only as fallback.
+
+The webhook does **not** use `chatwoot_conversation_id` alone to recover a
+Growth reference. A WhatsApp thread can contain multiple business requests, so
+conversation-only matching can corrupt attribution by linking a new message to a
+previous request.
 
 This means that if a customer deletes `#ref`, the system can still recover the
 latest reference as long as Chatwoot custom attributes have been written at least
 once for that conversation.
+
+If no reference is present in custom attributes, history or message text, the
+event is processed as an orphan/watch event:
+
+- store raw payload in `webhook_events`;
+- do not update `waflow_leads`;
+- do not create or update `requests`;
+- do not emit `funnel_events`;
+- do not send Meta lifecycle CAPI.
 
 ## Internal Storage
 
@@ -67,9 +80,9 @@ The webhook first searches `requests.custom_fields->>growth_reference_code`.
 That is the strongest key because one Chatwoot conversation can contain multiple
 business requests over time.
 
-If no exact reference exists, it searches by `chatwoot_conversation_id`. This is
-allowed only when the existing request has no conflicting Growth reference or has
-the same reference.
+If no exact reference exists, the webhook may inspect `chatwoot_conversation_id`
+only after a recoverable Growth reference has selected a WAFlow lead. The
+conversation id is never the primary attribution key.
 
 If the conversation is already linked to a different Growth reference, the
 webhook records a conflict and does not overwrite the previous request. This
@@ -134,6 +147,27 @@ Use this sequence to diagnose E2E:
 5. Confirm `requests.custom_fields.growth_reference_code` matches the same ref.
 6. Confirm `meta_conversion_events` contains the WAFlow/Chatwoot provider events
    when Meta CAPI is configured.
+
+### Missing-reference smoke
+
+Use this smoke to prove that a WhatsApp message without any recoverable
+reference does not overwrite the active CRM request for the conversation:
+
+```bash
+CHATWOOT_WEBHOOK_SECRET=... \
+CHATWOOT_WEBHOOK_URL=https://colombiatours.travel/api/webhooks/chatwoot \
+bash scripts/chatwoot-webhook-simulate.sh missing_ref 34883
+```
+
+Expected:
+
+- API returns `matched=false`, `conversionsSent=0`.
+- `webhook_events` has one processed row for the provider event.
+- `waflow_leads` is not updated.
+- `requests.custom_fields.growth_reference_code` for the existing conversation
+  is not changed.
+- No new `funnel_events` or Chatwoot lifecycle `meta_conversion_events` rows are
+  created for the missing-reference event.
 
 Known WATCH state:
 

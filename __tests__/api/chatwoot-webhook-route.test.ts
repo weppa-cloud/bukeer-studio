@@ -245,6 +245,43 @@ describe("/api/webhooks/chatwoot", () => {
     expect(sendMetaConversionEvent).not.toHaveBeenCalled();
   });
 
+  it("does not fallback to conversation id when no reference is recoverable", async () => {
+    const mod = await import("@/app/api/webhooks/chatwoot/route");
+    const response = await mod.POST(
+      await signedRequest({
+        id: "evt-missing-ref",
+        event: "message_created",
+        timestamp: 1777118400,
+        conversation: {
+          id: 123,
+          custom_attributes: {},
+        },
+        message: {
+          id: 789,
+          content: "Hola, quiero más información",
+          conversation_id: 123,
+        },
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      success: true,
+      data: {
+        matched: false,
+        lifecycleEvents: ["ConversationContinued"],
+        conversionsSent: 0,
+      },
+    });
+    expect(leadUpdates).toHaveLength(0);
+    expect(funnelRows).toHaveLength(0);
+    expect(sendMetaConversionEvent).not.toHaveBeenCalled();
+    expect(webhookUpdates[0]).toMatchObject({
+      status: "processed",
+      error: null,
+    });
+  });
+
   it("links a Chatwoot conversation to a WAFlow lead and sends lifecycle conversions", async () => {
     const mod = await import("@/app/api/webhooks/chatwoot/route");
     const response = await mod.POST(
