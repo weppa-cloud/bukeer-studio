@@ -165,14 +165,26 @@ function stateLaneFor(status) {
   if (status === "blocked") return "blocked";
   if (status === "ready_for_council" || status === "approved_for_execution")
     return "ready_for_council";
+  if (["ready_for_brief", "brief_in_progress"].includes(status)) return status;
   if (status === "rejected") return "rejected";
   if (status === "watch") return "watch";
+  if (
+    ["done", "done_pending_measurement", "done_pending_recrawl"].includes(
+      status,
+    )
+  )
+    return "done";
+  if (status === "measuring") return "measuring";
   return "queued";
 }
 
 function executionLaneFor(workType, stateLane) {
   if (stateLane === "blocked") return "blocked_cleanup";
   if (stateLane === "ready_for_council") return "council_readout";
+  if (stateLane === "done") return "done_closeout";
+  if (stateLane === "measuring") return "measurement_readout";
+  if (["ready_for_brief", "brief_in_progress"].includes(stateLane))
+    return "seo_content_batch";
   if (workType === "technical_remediation") return "technical_fix_batch";
   if (
     [
@@ -195,6 +207,18 @@ function recommendedActionFor(row, { stateLane, executionLane, missing }) {
   }
   if (stateLane === "ready_for_council") {
     return "Council reviews for one of the max five independent active readouts.";
+  }
+  if (stateLane === "done") {
+    return "Closed by operational QA; keep evidence and wait for next provider/facts refresh if applicable.";
+  }
+  if (stateLane === "measuring") {
+    return "Do not change scope; wait for the configured measurement window.";
+  }
+  if (stateLane === "ready_for_brief") {
+    return "Create the content brief; publishing still requires quality, locale and SEO gates.";
+  }
+  if (stateLane === "brief_in_progress") {
+    return "Finish draft/review; do not publish until quality, locale and SEO gates pass.";
   }
   if (executionLane === "technical_fix_batch") {
     return "Execute technical remediation directly; validate with smoke and next DataForSEO recrawl/diff.";
