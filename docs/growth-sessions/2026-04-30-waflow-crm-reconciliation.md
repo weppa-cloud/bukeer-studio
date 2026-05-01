@@ -263,6 +263,54 @@ Residual WATCH:
   protects attribution integrity, but it does not force-create a second request
   when the shared RPC returns an existing conversation-level request.
 
+## Addendum - conversation 35772 production check
+
+Updated: 2026-05-01T04:46Z.
+
+Input:
+
+- Bukeer conversation: `https://app.bukeer.com/conversation/35772`
+- Chatwoot conversation id: `35772`
+
+MCP note:
+
+- Supabase MCP was requested first, but the tool returned unavailable in this
+  turn. Validation was completed with the local Supabase service-role client.
+
+Result:
+
+| Check                                          | Result                                              |
+| ---------------------------------------------- | --------------------------------------------------- |
+| `requests` for conversation `35772`            | 1                                                   |
+| Request                                        | `SOL-1936` / `d7c3e1f7-2c2e-47e4-8aff-6d160a40f437` |
+| Request created_at                             | `2026-05-01T03:14:17.321622+00:00`                  |
+| Request stage/status                           | `new_lead` / `ready`                                |
+| Request lead_source                            | `direct`                                            |
+| `requests.custom_fields.growth_reference_code` | missing                                             |
+| `waflow_leads` linked to conversation `35772`  | 0                                                   |
+| `funnel_events` linked to conversation `35772` | 0                                                   |
+| Chatwoot webhook events sampled                | 20 processed `message_created` events               |
+
+Interpretation:
+
+- Conversation `35772` proves Chatwoot webhook delivery is working.
+- It does not prove WAFlow Growth attribution because no WAFlow reference reached
+  the conversation or ledger.
+- The request was created by the existing Chatwoot/CRM flow, not by WAFlow
+  reference-first Growth linking.
+- Next E2E must start from a new WAFlow submit that generates a visible `#ref`,
+  then send that exact message into WhatsApp. Only then can we validate
+  `waflow_leads -> funnel_events.waflow_submit -> Chatwoot webhook -> request.growth_reference_code`.
+
+Current gate status:
+
+- WAFlow parity: `PASS` from previous ledger reconciliation.
+- Chatwoot webhook delivery: `PASS` for conversation `35772`.
+- Reference-first CRM contract: `PASS` from rollback SQL test.
+- Fresh WAFlow-to-request E2E on conversation `35772`: `NOT TESTED` because no
+  WAFlow reference exists on that conversation.
+- Chatwoot custom attributes mirror: `P1 Flutter-owned`, not Studio-owned.
+
 CRM request source inventory:
 
 | Source     | Count |
