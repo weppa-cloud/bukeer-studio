@@ -58,6 +58,32 @@ can be indexed, measured and scaled.
 Creator and Curator are separate responsibilities: the same agent may draft a
 transcreation, but a curator or reviewer must validate it before apply/publish.
 
+## 2026 Content And Competitive Standard
+
+Transcreation must follow the same content standard as the Growth OS Creator and
+Curator lanes:
+
+- people-first purpose for a defined traveler and market;
+- ColombiaTours project preferences, offer fit, tone, CTA model and trust proof;
+- E-E-A-T signals through real travel expertise, source evidence and reviewer
+  accountability;
+- AI-assisted content allowed only with review, factual validation and added
+  value;
+- no thin scaled locale pages, duplicated translations or literal keyword
+  swaps.
+
+For EN-US, Mexico and future locales, the agent must compare the target SERP and
+document why the localized page will be more useful than the current ranking
+competitors. Required evidence:
+
+- target query/market and dominant SERP intent;
+- top competitor coverage patterns;
+- ColombiaTours added value: local expertise, itinerary insight, planning
+  detail, trust proof or conversion fit;
+- title/meta/H1/FAQ/schema opportunity;
+- CTA and measurement path;
+- quality risks and final curator decision.
+
 ## Quality Dimensions
 
 | Dimension         | What it checks                                                                    | Blocking examples                                                               |
