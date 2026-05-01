@@ -11,6 +11,11 @@ import {
   renderTable,
   writeArtifacts,
 } from "../seo/growth-unified-backlog-lib.mjs";
+import {
+  contentQualityGate,
+  competitiveContentDraft,
+  contentStandardDraft,
+} from "./growth-agent-lanes-lib.mjs";
 
 const args = parseArgs(process.argv.slice(2));
 const apply = args.apply === "true";
@@ -55,7 +60,13 @@ async function main() {
       locale_gate_required: tasks.filter((row) => row.locale_gate_required)
         .length,
       seo_ready_without_locale_gate: tasks.filter(
-        (row) => !row.locale_gate_required,
+        (row) => row.task_status === "ready_for_seo_qa",
+      ).length,
+      drafting_requires_curator: tasks.filter(
+        (row) => row.task_status === "drafting",
+      ).length,
+      blocked_missing_content_evidence: tasks.filter(
+        (row) => row.task_status === "blocked",
       ).length,
     },
     apply_result: applyResult,
@@ -86,6 +97,22 @@ function toContentTask(row) {
   const brief = row.evidence.content_brief;
   const localeGateRequired = Boolean(brief.locale_gate_required);
   const targetLocale = brief.target_locale ?? row.locale ?? null;
+  const contentStandard =
+    brief.content_standard ?? contentStandardDraft(row, brief);
+  const competitiveContent =
+    brief.competitive_content ?? competitiveContentDraft(row, brief);
+  const contentGate = contentQualityGate({
+    ...row,
+    evidence: {
+      ...(row.evidence ?? {}),
+      content_brief: {
+        ...brief,
+        content_standard: contentStandard,
+        competitive_content: competitiveContent,
+      },
+    },
+  });
+  const taskStatus = inferTaskStatus({ localeGateRequired, contentGate });
   const briefKey = fingerprint(
     "growth-content-brief",
     websiteId,
@@ -113,17 +140,42 @@ function toContentTask(row) {
     brief_type: brief.brief_type,
     target_locale: targetLocale,
     locale_gate_required: localeGateRequired,
-    task_status: localeGateRequired ? "locale_qa_required" : "ready_for_seo_qa",
+    task_status: taskStatus,
+    content_gate: contentGate,
+    content_standard: contentStandard,
+    competitive_content: competitiveContent,
     qa_checks: [
       ...(brief.required_checks ?? []),
+      "Curator records competitive advantage before ready_for_seo_qa.",
+      "Curator validates E-E-A-T, Who/How/Why and scaled-content risk.",
       "Smoke final URL status/canonical before publishing.",
       "Verify CTA/WAFlow path after content update.",
       "Re-run Growth Council packet after apply.",
     ],
-    next_action: localeGateRequired
-      ? "Run EN/locale quality gate before any sitemap/hreflang or publish action."
-      : "Prepare Studio content update draft, then run SEO/canonical/CTA smoke.",
+    next_action: nextActionForTask({ localeGateRequired, taskStatus }),
   };
+}
+
+function inferTaskStatus({ localeGateRequired, contentGate }) {
+  if (localeGateRequired) return "locale_qa_required";
+  const missing = contentGate.missing ?? [];
+  if (!missing.length) return "ready_for_seo_qa";
+  if (missing.length === 1 && missing.includes("missing_curator_review"))
+    return "drafting";
+  return "blocked";
+}
+
+function nextActionForTask({ localeGateRequired, taskStatus }) {
+  if (localeGateRequired) {
+    return "Run EN/locale quality gate before any sitemap/hreflang or publish action.";
+  }
+  if (taskStatus === "drafting") {
+    return "Creator brief is prepared; Curator must validate competitive advantage and 2026 content gate before SEO QA.";
+  }
+  if (taskStatus === "blocked") {
+    return "Resolve missing competitive/content-standard evidence before SEO QA.";
+  }
+  return "Prepare Studio content update draft, then run SEO/canonical/CTA smoke.";
 }
 
 async function detectDurableTables() {
@@ -252,6 +304,9 @@ function toBriefRow(task) {
       item_key: task.item_key,
       priority_score: task.priority_score,
       owner_issue: task.owner_issue,
+      content_standard: task.content_standard,
+      competitive_content: task.competitive_content,
+      content_gate: task.content_gate,
     },
   };
 }
@@ -281,6 +336,9 @@ function toTaskRow(task, briefId) {
       baseline: task.baseline,
       priority_score: task.priority_score,
       success_metric: task.success_metric,
+      content_standard: task.content_standard,
+      competitive_content: task.competitive_content,
+      content_gate: task.content_gate,
     },
   };
 }

@@ -5,6 +5,12 @@ import path from "node:path";
 import process from "node:process";
 import { createClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
+import {
+  classifyAgentLane,
+  contentQualityGate,
+  isContentLike,
+  laneLabel,
+} from "../growth/growth-agent-lanes-lib.mjs";
 
 dotenv.config({ path: ".env.local" });
 
@@ -26,6 +32,16 @@ const CLOSED_EXPERIMENT_STATUSES = new Set([
   "stopped",
   "scaled",
 ]);
+const CONTENT_STANDARD_BLOCKING_REASONS = [
+  "missing_project_preference_fit",
+  "missing_serp_intent",
+  "missing_competitor_coverage",
+  "missing_colombiatours_added_value",
+  "missing_eeat_evidence",
+  "missing_who_how_why",
+  "missing_scaled_content_risk_review",
+  "missing_curator_review",
+];
 
 const args = parseArgs(process.argv.slice(2));
 const apply = args.apply === "true";
@@ -164,6 +180,8 @@ function classifyCandidate(row) {
   const status = normalizeStatus(row.status);
   const sourceRefs = asArray(row.source_fact_refs);
   const sourceProfiles = asArray(row.source_profiles);
+  const routing = classifyAgentLane(row);
+  const contentGate = isContentLike(row) ? contentQualityGate(row) : null;
 
   if (!sourceRefs.length) reasons.push("missing_source_fact_refs");
   if (!sourceProfiles.length) reasons.push("missing_source_profiles");
@@ -182,6 +200,7 @@ function classifyCandidate(row) {
   if (["BLOCKED", "blocked"].includes(row.correlation_status))
     reasons.push("correlation_blocked");
   if (isStale(row)) reasons.push("stale_evidence");
+  if (contentGate?.missing.length) reasons.push(...contentGate.missing);
   if (status === "rejected") reasons.push("already_rejected");
   if (status === "blocked") reasons.push("already_blocked");
 
@@ -196,6 +215,7 @@ function classifyCandidate(row) {
       "freshness_blocked",
       "quality_blocked",
       "correlation_blocked",
+      ...CONTENT_STANDARD_BLOCKING_REASONS,
     ],
   });
 
@@ -204,6 +224,7 @@ function classifyCandidate(row) {
     key: row.candidate_key,
     decision,
     reasons,
+    routing,
   });
 }
 
@@ -216,6 +237,8 @@ function classifyItem(
   const reasons = [];
   const status = normalizeStatus(row.status);
   const independenceKey = normalizeKey(row.independence_key);
+  const routing = classifyAgentLane(row);
+  const contentGate = isContentLike(row) ? contentQualityGate(row) : null;
   const councilEligible = [
     "ready_for_council",
     "approved_for_execution",
@@ -240,6 +263,8 @@ function classifyItem(
   }
   if (!asArray(row.source_fact_refs).length && !hasValue(row.candidate_id))
     reasons.push("missing_source_reference");
+  if (contentGate?.missing.length && councilEligible)
+    reasons.push(...contentGate.missing);
   if (isStale(row)) reasons.push("stale_evidence");
   if (status === "rejected") reasons.push("already_rejected");
   if (status === "blocked") reasons.push("already_blocked");
@@ -256,6 +281,7 @@ function classifyItem(
       "missing_evaluation_date",
       "missing_independence_key",
       "missing_source_reference",
+      ...CONTENT_STANDARD_BLOCKING_REASONS,
     ],
   });
 
@@ -264,6 +290,7 @@ function classifyItem(
     key: row.item_key,
     decision,
     reasons,
+    routing,
   });
 }
 
@@ -271,6 +298,8 @@ function classifyExperiment(row, activeExperiments) {
   const reasons = [];
   const status = normalizeStatus(row.status);
   const independenceKey = normalizeKey(row.independence_key);
+  const routing = classifyAgentLane(row);
+  const contentGate = isContentLike(row) ? contentQualityGate(row) : null;
   const collisionCount = activeExperiments.filter(
     (experiment) =>
       normalizeKey(experiment.independence_key) === independenceKey,
@@ -285,6 +314,7 @@ function classifyExperiment(row, activeExperiments) {
   if (!independenceKey) reasons.push("missing_independence_key");
   if (independenceKey && isActiveExperiment(row) && collisionCount > 1)
     reasons.push("active_experiment_collision");
+  if (contentGate?.missing.length) reasons.push(...contentGate.missing);
 
   let decision = "watch";
   if (CLOSED_EXPERIMENT_STATUSES.has(status)) decision = "closed";
@@ -299,6 +329,7 @@ function classifyExperiment(row, activeExperiments) {
     key: row.experiment_key ?? row.experiment_id,
     decision,
     reasons,
+    routing,
   });
 }
 
@@ -458,7 +489,7 @@ ${renderTable(decisionRows(report.counts.experiments), [
 
 ## Gate
 
-Rows missing baseline, source refs, owner, success metric, evaluation date, or independence key are not Council-ready. Independence collisions block promotion. Stale evidence is WATCH until refreshed.
+Rows missing baseline, source refs, owner, success metric, evaluation date, or independence key are not Council-ready. Independence collisions block promotion. Stale evidence is WATCH until refreshed. Content rows also require project preferences, SERP intent, competitor coverage, ColombiaTours added value, E-E-A-T / Who-How-Why, scaled-content risk review and Curator review.
 
 ## Top Issues
 
@@ -468,6 +499,7 @@ ${renderTable(
     .slice(0, 50),
   [
     { label: "Type", value: (row) => row.type },
+    { label: "Lane", value: (row) => row.agent_lane_label },
     { label: "Decision", value: (row) => row.decision },
     { label: "Title", value: (row) => row.title },
     { label: "Reasons", value: (row) => row.reasons.join(", ") },
@@ -477,6 +509,7 @@ ${renderTable(
 }
 
 function compactResult(row, overrides) {
+  const routing = overrides.routing ?? classifyAgentLane(row);
   return {
     type: overrides.type,
     id: row.id,
@@ -492,6 +525,10 @@ function compactResult(row, overrides) {
     priority_score: row.priority_score,
     confidence_score: row.confidence_score,
     independence_key: row.independence_key,
+    agent_lane: routing.agent_lane,
+    agent_lane_label: laneLabel(routing.agent_lane),
+    blocker_type: routing.blocker_type,
+    routing_confidence: routing.routing_confidence,
     decision: overrides.decision,
     reasons: overrides.reasons,
     updated_at: row.updated_at,

@@ -9,6 +9,7 @@ import {
   renderTable,
   writeArtifacts,
 } from "../seo/growth-unified-backlog-lib.mjs";
+import { classifyAgentLane, laneLabel } from "./growth-agent-lanes-lib.mjs";
 
 const args = parseArgs(process.argv.slice(2));
 const apply = args.apply === "true";
@@ -23,15 +24,19 @@ main().catch((error) => {
 });
 
 async function main() {
-  const { data, error } = await sb
+  const { data: backlogItems, error } = await sb
     .from("growth_backlog_items")
     .select("*")
     .eq("website_id", websiteId)
     .eq("status", "blocked")
     .limit(100);
   if (error) throw new Error(error.message);
+  const contentTasks = await fetchBlockedContentTasks();
 
-  const classifications = (data ?? []).map(classify);
+  const classifications = [
+    ...(backlogItems ?? []).map((row) => classify(row, "growth_backlog_items")),
+    ...contentTasks.map((row) => classify(row, "growth_content_tasks")),
+  ];
   const applyResult = apply
     ? await applyClassifications(classifications)
     : { mode: "dry-run", rows: classifications.length };
@@ -49,6 +54,15 @@ async function main() {
       ).length,
       provider_or_access: classifications.filter(
         (row) => row.blocker_type === "provider_or_access",
+      ).length,
+      technical_or_route_mapping: classifications.filter(
+        (row) => row.blocker_type === "technical_or_route_mapping",
+      ).length,
+      content_quality: classifications.filter(
+        (row) => row.blocker_type === "content_quality",
+      ).length,
+      experiment_readiness: classifications.filter(
+        (row) => row.blocker_type === "experiment_readiness",
       ).length,
       needs_manual_review: classifications.filter(
         (row) => row.blocker_type === "needs_manual_review",
@@ -78,54 +92,22 @@ async function main() {
   );
 }
 
-function classify(row) {
-  const text = JSON.stringify({
-    entity_key: row.entity_key,
-    title: row.title,
-    next_action: row.next_action,
-    evidence: row.evidence,
-    source_profiles: row.source_profiles,
-  }).toLowerCase();
-  let blockerType = "needs_manual_review";
-  let reason =
-    "Blocked row needs human review before promotion to Council or execution.";
-  let nextAction =
-    "Review source facts and either unblock with evidence, move to watch, or keep blocked with owner.";
-
-  if (
-    /en\.colombiatours|\/en\/|translation|locale|hreflang|quality/.test(text)
-  ) {
-    blockerType = "locale_gate_required";
-    reason =
-      "EN/localized page has demand but requires translation/locale quality gate before Council or publish action.";
-    nextAction =
-      "Route to #314/#315 EN quality backlog; keep hidden or watch until title/meta/H1/canonical/content quality pass.";
-  } else if (/tracking|waflow|attribution|conversion|paid|utm/.test(text)) {
-    blockerType = "tracking_or_attribution";
-    reason =
-      "Tracking or attribution evidence is insufficient for a measurable experiment.";
-    nextAction =
-      "Resolve first-party funnel/CRM attribution before Council promotion.";
-  } else if (
-    /backlink|llm|provider|access|subscription|dataforseo/.test(text)
-  ) {
-    blockerType = "provider_or_access";
-    reason =
-      "Provider access or paid data dependency is unavailable or incomplete.";
-    nextAction =
-      "Keep as WATCH/BLOCKED until provider access or fallback profile exists.";
-  }
-
+function classify(row, sourceTable) {
+  const classification = classifyAgentLane(row);
   return {
+    source_table: sourceTable,
     id: row.id,
-    item_key: row.item_key,
+    item_key: row.item_key ?? row.task_key,
     title: row.title,
     entity_key: row.entity_key,
-    work_type: row.work_type,
+    work_type: row.work_type ?? row.task_type,
     owner_issue: row.owner_issue,
-    blocker_type: blockerType,
-    blocked_reason: reason,
-    next_action: nextAction,
+    agent_lane: classification.agent_lane,
+    agent_lane_label: laneLabel(classification.agent_lane),
+    blocker_type: classification.blocker_type,
+    routing_confidence: classification.routing_confidence,
+    blocked_reason: classification.blocked_reason,
+    next_action: classification.next_action,
     evidence: row.evidence ?? {},
   };
 }
@@ -138,25 +120,54 @@ async function applyClassifications(classifications) {
     errors: [],
   };
   for (const row of classifications) {
-    const { error } = await sb
-      .from("growth_backlog_items")
-      .update({
-        blocked_reason: row.blocked_reason,
-        evidence: {
-          ...row.evidence,
-          blocked_classification: {
-            classified_at: new Date().toISOString(),
-            blocker_type: row.blocker_type,
+    const table = row.source_table;
+    const patch =
+      table === "growth_backlog_items"
+        ? {
             blocked_reason: row.blocked_reason,
+            evidence: {
+              ...row.evidence,
+              blocked_classification: blockedClassification(row),
+            },
+          }
+        : {
             next_action: row.next_action,
-          },
-        },
-      })
-      .eq("id", row.id);
-    if (error) result.errors.push({ id: row.id, message: error.message });
+            evidence: {
+              ...row.evidence,
+              blocked_classification: blockedClassification(row),
+            },
+          };
+    const { error } = await sb.from(table).update(patch).eq("id", row.id);
+    if (error)
+      result.errors.push({ table, id: row.id, message: error.message });
     else result.updated += 1;
   }
   return result;
+}
+
+function blockedClassification(row) {
+  return {
+    classified_at: new Date().toISOString(),
+    agent_lane: row.agent_lane,
+    agent_lane_label: row.agent_lane_label,
+    blocker_type: row.blocker_type,
+    routing_confidence: row.routing_confidence,
+    blocked_reason: row.blocked_reason,
+    next_action: row.next_action,
+  };
+}
+
+async function fetchBlockedContentTasks() {
+  const { error, data } = await sb
+    .from("growth_content_tasks")
+    .select("*")
+    .eq("website_id", websiteId)
+    .eq("status", "blocked")
+    .limit(100);
+  if (error) {
+    return [];
+  }
+  return data ?? [];
 }
 
 function renderMarkdown(report) {
@@ -178,7 +189,9 @@ ${renderTable(
 ## Classifications
 
 ${renderTable(report.classifications, [
+  { label: "Lane", value: (row) => row.agent_lane_label },
   { label: "Type", value: (row) => row.blocker_type },
+  { label: "Source", value: (row) => row.source_table },
   { label: "Issue", value: (row) => row.owner_issue },
   { label: "URL", value: (row) => row.entity_key },
   { label: "Reason", value: (row) => row.blocked_reason },

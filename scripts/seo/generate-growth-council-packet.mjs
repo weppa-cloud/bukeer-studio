@@ -5,6 +5,12 @@ import path from "node:path";
 import process from "node:process";
 import { createClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
+import {
+  classifyAgentLane,
+  contentQualityGate,
+  isContentLike,
+  laneLabel,
+} from "../growth/growth-agent-lanes-lib.mjs";
 
 dotenv.config({ path: ".env.local" });
 
@@ -123,6 +129,7 @@ async function main() {
         CLOSED_EXPERIMENT_STATUSES.has(normalizeStatus(row.status)),
       ).length,
     },
+    lane_counts: countByLane(itemEvaluations),
     active_experiments: activeExperiments.map(packetExperiment),
     proposed_experiments: proposedExperiments,
     backlog_items: itemEvaluations,
@@ -159,6 +166,8 @@ function evaluateBacklogItem(row, activeKeys, activeBacklogItemIds) {
   const status = normalizeStatus(row.status);
   const reasons = [];
   const independenceKey = normalizeKey(row.independence_key);
+  const routing = classifyAgentLane(row);
+  const contentGate = isContentLike(row) ? contentQualityGate(row) : null;
   const councilEligible = COUNCIL_READY_STATUSES.has(status);
 
   if (!hasValue(row.baseline)) reasons.push("missing_baseline");
@@ -177,6 +186,8 @@ function evaluateBacklogItem(row, activeKeys, activeBacklogItemIds) {
     reasons.push("active_experiment_collision");
   if (!asArray(row.source_fact_refs).length && !hasValue(row.candidate_id))
     reasons.push("missing_source_reference");
+  if (contentGate?.missing.length && councilEligible)
+    reasons.push(...contentGate.missing);
 
   let decision = "watch";
   if (status === "rejected") decision = "rejected";
@@ -201,6 +212,10 @@ function evaluateBacklogItem(row, activeKeys, activeBacklogItemIds) {
     success_metric: row.success_metric,
     evaluation_date: row.evaluation_date,
     independence_key: row.independence_key,
+    agent_lane: routing.agent_lane,
+    agent_lane_label: laneLabel(routing.agent_lane),
+    blocker_type: routing.blocker_type,
+    routing_confidence: routing.routing_confidence,
     source_fact_refs: redact(row.source_fact_refs ?? []),
     evidence: redact(row.evidence ?? {}),
   };
@@ -331,9 +346,21 @@ ${renderTable(
   ],
 )}
 
+## Agent Lanes
+
+${renderTable(report.lane_counts, [
+  { label: "Lane", value: (row) => row.lane },
+  { label: "Candidate", value: (row) => row.candidate },
+  { label: "Watch", value: (row) => row.watch },
+  { label: "Blocked", value: (row) => row.blocked },
+  { label: "Rejected", value: (row) => row.rejected },
+  { label: "Collision", value: (row) => row.collision },
+])}
+
 ## Proposed Experiments
 
 ${renderTable(report.proposed_experiments, [
+  { label: "Lane", value: (row) => row.agent_lane_label },
   { label: "Item", value: (row) => row.title },
   { label: "Owner", value: (row) => row.owner_issue },
   { label: "Metric", value: (row) => row.success_metric },
@@ -358,6 +385,7 @@ ${renderTable(
     .filter((row) => row.decision !== "candidate")
     .slice(0, 50),
   [
+    { label: "Lane", value: (row) => row.agent_lane_label },
     { label: "Decision", value: (row) => row.decision },
     { label: "Item", value: (row) => row.title },
     { label: "Reasons", value: (row) => row.reasons.join(", ") },
@@ -410,6 +438,24 @@ function asArray(value) {
   if (Array.isArray(value)) return value;
   if (value === null || value === undefined) return [];
   return [value];
+}
+
+function countByLane(rows) {
+  const byLane = new Map();
+  for (const row of rows) {
+    const label = row.agent_lane_label ?? "Unrouted";
+    const current = byLane.get(label) ?? {
+      lane: label,
+      candidate: 0,
+      watch: 0,
+      blocked: 0,
+      rejected: 0,
+      collision: 0,
+    };
+    if (current[row.decision] !== undefined) current[row.decision] += 1;
+    byLane.set(label, current);
+  }
+  return [...byLane.values()];
 }
 
 function hasValue(value) {

@@ -11,6 +11,10 @@ import {
   renderTable,
   writeArtifacts,
 } from "../seo/growth-unified-backlog-lib.mjs";
+import {
+  competitiveContentDraft,
+  contentStandardDraft,
+} from "./growth-agent-lanes-lib.mjs";
 
 const args = parseArgs(process.argv.slice(2));
 const apply = args.apply === "true";
@@ -111,6 +115,12 @@ function toBrief(row) {
   const title = titleFromUrl(url);
   const targetAudience = audienceFor(row.market, inferredLocale, url);
   const sections = sectionPlan({ title, intent, briefType, isEnUrl });
+  const draftContext = {
+    intent,
+    target_locale: inferredLocale,
+  };
+  const contentStandard = contentStandardDraft(row, draftContext);
+  const competitiveContent = competitiveContentDraft(row, draftContext);
 
   return {
     id: row.id,
@@ -141,6 +151,8 @@ function toBrief(row) {
     brief_objective: objectiveFor({ title, briefType, baseline, isEnUrl }),
     required_checks: requiredChecks({ isEnUrl, briefType }),
     recommended_sections: sections,
+    content_standard: contentStandard,
+    competitive_content: competitiveContent,
     non_goals: [
       "Do not publish from this artifact alone.",
       "Do not change URL/canonical without SEO owner approval.",
@@ -173,6 +185,8 @@ async function applyBriefStatus(sb, briefs) {
             target_locale: brief.target_locale,
             locale_gate_required: brief.locale_gate_required,
             required_checks: brief.required_checks,
+            content_standard: brief.content_standard,
+            competitive_content: brief.competitive_content,
             note: "Brief generated only; publishing requires quality, locale, SEO and tracking gates.",
           },
         },
@@ -249,6 +263,22 @@ ${brief.hypothesis ?? "If we improve content fit, search intent coverage and con
 - Audience: ${brief.target_audience}
 - Intent: ${brief.intent}
 - Primary metric: ${brief.primary_metric}
+
+## Competitive Content Standard
+
+- SERP intent: ${brief.competitive_content.serp_intent}
+- Competitor coverage required: ${brief.competitive_content.competitor_coverage}
+- ColombiaTours added value: ${brief.competitive_content.colombiatours_added_value}
+- Snippet opportunity: ${brief.competitive_content.snippet_opportunity}
+- Conversion fit: ${brief.competitive_content.conversion_fit}
+
+## 2026 Content Gate
+
+- Project preference fit: ${brief.content_standard.project_preference_fit}
+- E-E-A-T evidence: ${brief.content_standard.eeat_evidence}
+- Who/How/Why: ${brief.content_standard.who_how_why}
+- Scaled-content risk: ${brief.content_standard.scaled_content_risk_review}
+- Curator review required: ${brief.content_standard.curator_review_required}
 
 ## Recommended Structure
 
