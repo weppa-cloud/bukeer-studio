@@ -62,6 +62,9 @@ describe("/api/webhooks/chatwoot", () => {
   let webhookRows: Record<string, unknown>[];
   let webhookUpdates: Record<string, unknown>[];
   let leadUpdates: Record<string, unknown>[];
+  let leadUpdateResults: Array<{
+    error: { code?: string; message: string } | null;
+  }>;
   let funnelRows: Record<string, unknown>[];
   let leadRow: Record<string, unknown> | null;
   let duplicateWebhook = false;
@@ -75,7 +78,9 @@ describe("/api/webhooks/chatwoot", () => {
       eq: jest.fn().mockReturnThis(),
     });
     const leadsUpdateQuery = chain({
-      eq: jest.fn().mockReturnThis(),
+      eq: jest.fn(() =>
+        Promise.resolve(leadUpdateResults.shift() ?? { error: null }),
+      ),
     });
     const leadsSelectQuery = chain({
       eq: jest.fn().mockReturnThis(),
@@ -147,6 +152,7 @@ describe("/api/webhooks/chatwoot", () => {
     webhookRows = [];
     webhookUpdates = [];
     leadUpdates = [];
+    leadUpdateResults = [];
     funnelRows = [];
     duplicateWebhook = false;
     leadRow = {
@@ -386,5 +392,59 @@ describe("/api/webhooks/chatwoot", () => {
     expect(
       funnelRows.every((row) => /^[0-9a-f]{64}$/.test(String(row.event_id))),
     ).toBe(true);
+  });
+
+  it("keeps lifecycle trace when legacy conversation uniqueness blocks the mirror", async () => {
+    leadUpdateResults = [
+      {
+        error: {
+          code: "23505",
+          message:
+            'duplicate key value violates unique constraint "waflow_leads_chatwoot_conversation_uidx"',
+        },
+      },
+      { error: null },
+    ];
+    const mod = await import("@/app/api/webhooks/chatwoot/route");
+    const response = await mod.POST(
+      await signedRequest({
+        id: "evt-duplicate-conversation",
+        event: "message_created",
+        timestamp: 1777118400,
+        conversation: {
+          id: 123,
+          custom_attributes: {
+            reference_code: "HOME-2504-ABCD",
+            quote_sent: true,
+          },
+        },
+        message: {
+          id: 456,
+          content: "Cotización reenviada #ref: HOME-2504-ABCD",
+          conversation_id: 123,
+        },
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      success: true,
+      data: {
+        matched: true,
+        lifecycleEvents: ["ConversationContinued", "QuoteSent"],
+      },
+    });
+    expect(leadUpdates).toHaveLength(2);
+    expect(leadUpdates[0]).toMatchObject({
+      chatwoot_conversation_id: "123",
+      chatwoot_last_event: "QuoteSent",
+    });
+    expect(leadUpdates[1]).toMatchObject({
+      chatwoot_last_event: "QuoteSent",
+      chatwoot_custom_attributes: expect.objectContaining({
+        chatwoot_conversation_id_unstored: "123",
+        chatwoot_conversation_unique_conflict: true,
+      }),
+    });
   });
 });

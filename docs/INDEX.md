@@ -8,7 +8,7 @@ Last updated: 2026-04-30 (Growth mass execution vs experiments runbook added for
 
 ---
 
-Latest update: 2026-05-01 (SPEC_GROWTH_OS_AGENT_LANES added for #310: five core Growth OS agent lanes, blocked routing, transcreation/content separation and Council governance); 2026-05-01 (SPEC_GROWTH_OS_SSOT_MODEL added for #310: GitHub is implementation SSOT, Supabase/Bukeer Studio is operational Growth SSOT).
+Latest update: 2026-05-01 (WAFlow reference-first E2E for #310/#322: missing-ref guardrail PASS, two references in one Chatwoot conversation create two CRM requests, legacy `waflow_leads.chatwoot_conversation_id` unique index moved to WATCH with Flutter/SSOT migration prepared); 2026-05-01 (SPEC_GROWTH_OS_AGENT_LANES added for #310: five core Growth OS agent lanes, blocked routing, transcreation/content separation and Council governance); 2026-05-01 (SPEC_GROWTH_OS_SSOT_MODEL added for #310: GitHub is implementation SSOT, Supabase/Bukeer Studio is operational Growth SSOT).
 
 ## How to read this index
 

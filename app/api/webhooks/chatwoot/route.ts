@@ -178,7 +178,10 @@ function findNestedString(record: JsonRecord, keys: string[]): string | null {
   return null;
 }
 
-function extractCtwaClid(payload: ChatwootPayload, leadPayload: JsonRecord): string | null {
+function extractCtwaClid(
+  payload: ChatwootPayload,
+  leadPayload: JsonRecord,
+): string | null {
   return (
     findNestedString(readRecord(payload), ["ctwa_clid", "ctwaClid"]) ??
     findNestedString(leadPayload, ["ctwa_clid", "ctwaClid"])
@@ -926,7 +929,7 @@ async function updateWaflowLeadLink(
   attrs: JsonRecord,
 ): Promise<void> {
   const lastEvent = lifecycleEvents.at(-1) ?? null;
-  await supabase
+  const update = await supabase
     .from("waflow_leads")
     .update({
       ...(conversationId && { chatwoot_conversation_id: conversationId }),
@@ -935,6 +938,32 @@ async function updateWaflowLeadLink(
       chatwoot_custom_attributes: attrs,
     })
     .eq("id", leadId);
+
+  if (!update.error) return;
+
+  if (conversationId && update.error.code === "23505") {
+    log.warn("waflow_lead_conversation_unique_conflict", {
+      lead_id: leadId,
+      conversation_id: conversationId,
+      error: update.error.message,
+    });
+    const fallback = await supabase
+      .from("waflow_leads")
+      .update({
+        chatwoot_last_event: lastEvent,
+        chatwoot_last_event_at: new Date().toISOString(),
+        chatwoot_custom_attributes: {
+          ...attrs,
+          chatwoot_conversation_id_unstored: conversationId,
+          chatwoot_conversation_unique_conflict: true,
+        },
+      })
+      .eq("id", leadId);
+    if (fallback.error) throw new Error(fallback.error.message);
+    return;
+  }
+
+  throw new Error(update.error.message);
 }
 
 const LIFECYCLE_TO_FUNNEL_EVENT: Partial<

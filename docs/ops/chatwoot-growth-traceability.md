@@ -175,3 +175,34 @@ Known WATCH state:
   request model that can create or select a request by Growth reference, not only
   by conversation id. The Studio webhook now avoids corrupt overwrites, but the
   definitive shared contract belongs in the Flutter/Supabase backend.
+
+### Reference-first double-request smoke
+
+Controlled smoke, 2026-05-01:
+
+| Reference            | Conversation | Request    | Chain                                           |
+| -------------------- | ------------ | ---------- | ----------------------------------------------- |
+| `E2E-202605011344-A` | `939902`     | `SOL-1942` | `waflow_submit -> qualified_lead -> quote_sent` |
+| `E2E-202605011344-B` | `939902`     | `SOL-1943` | `waflow_submit -> qualified_lead -> quote_sent` |
+
+Result:
+
+- CRM/request reference-first contract: `PASS`.
+- Ledger parity: `PASS`.
+- Same conversation with two requests: `PASS`.
+- WAFlow lead conversation mirror: `WATCH` until the legacy unique index is
+  removed.
+
+Legacy schema gap:
+
+- `waflow_leads_chatwoot_conversation_uidx` assumes one conversation maps to one
+  WAFlow lead.
+
+Mitigation:
+
+- the webhook catches duplicate-key conflicts and keeps lifecycle traceability
+  in `chatwoot_custom_attributes`;
+- it marks `chatwoot_conversation_unique_conflict = true`;
+- Flutter/SSOT migration
+  `20260504111600_waflow_reference_first_conversation_index.sql` drops the
+  unique index and adds non-unique lookup indexes.
