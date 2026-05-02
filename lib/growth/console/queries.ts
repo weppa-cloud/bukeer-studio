@@ -169,6 +169,13 @@ interface RawAgentDefinitionRow {
   updated_at: string;
 }
 
+function toIsoDateTime(value: unknown): unknown {
+  if (typeof value !== 'string') return value;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toISOString();
+}
+
 function isMissingRelation(error: { code?: string | null } | null): boolean {
   return error?.code === POSTGRES_MISSING_RELATION;
 }
@@ -198,7 +205,11 @@ async function fetchAgents(
   const rows = (data ?? []) as RawAgentDefinitionRow[];
   const parsed: GrowthAgentDefinition[] = [];
   for (const row of rows) {
-    const candidate = GrowthAgentDefinitionSchema.safeParse(row);
+    const candidate = GrowthAgentDefinitionSchema.safeParse({
+      ...row,
+      created_at: toIsoDateTime(row.created_at),
+      updated_at: toIsoDateTime(row.updated_at),
+    });
     if (candidate.success) parsed.push(candidate.data);
   }
   return { agents: parsed, missingTable: false, errored: false };

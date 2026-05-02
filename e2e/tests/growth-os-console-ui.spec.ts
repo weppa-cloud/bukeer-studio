@@ -196,8 +196,11 @@ test.describe('Growth OS console UI contract @growth-os-ui', () => {
     await signInAs(page, usersByRole.viewer.role);
     await page.goto(growthConsoleUrl(tenantA));
     await page.getByRole('link', { name: /reviews & runs/i }).click();
+    await page.waitForURL(/\/growth\/runs$/);
     await page
       .getByTestId(/^growth-run-row-/)
+      .first()
+      .getByRole('link')
       .first()
       .click();
 
@@ -215,8 +218,11 @@ test.describe('Growth OS console UI contract @growth-os-ui', () => {
     await signInAs(page, usersByRole.curator.role);
     await page.goto(growthConsoleUrl(tenantA));
     await page.getByRole('link', { name: /reviews & runs/i }).click();
+    await page.waitForURL(/\/growth\/runs$/);
     await page
       .getByTestId(/^growth-run-row-/)
+      .first()
+      .getByRole('link')
       .first()
       .click();
 
@@ -229,6 +235,7 @@ test.describe('Growth OS console UI contract @growth-os-ui', () => {
   }) => {
     await page.goto(growthConsoleUrl(tenantA));
     await page.getByRole('link', { name: /reviews & runs/i }).click();
+    await page.waitForURL(/\/growth\/runs$/);
 
     // If there are no runs yet, the empty state is acceptable — there is
     // nothing to mutate, which trivially satisfies append-only.
@@ -236,7 +243,7 @@ test.describe('Growth OS console UI contract @growth-os-ui', () => {
     const hasRun = await firstRun.isVisible().catch(() => false);
     test.skip(!hasRun, 'No runs available to inspect for append-only guarantees.');
 
-    await firstRun.click();
+    await firstRun.getByRole('link').first().click();
 
     const events = page.getByTestId(/^growth-run-event-row-/);
     await expect(events.first()).toBeVisible();

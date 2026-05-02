@@ -90,6 +90,32 @@ function deriveAgreementState(run: GrowthAgentRun): AgentRunListRow['agreementSt
   return 'unknown';
 }
 
+function toIsoDateTime(value: unknown): unknown {
+  if (typeof value !== 'string') return value;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toISOString();
+}
+
+function normalizeRunRow<T extends Record<string, unknown>>(row: T): T {
+  return {
+    ...row,
+    heartbeat_at: row.heartbeat_at == null ? null : toIsoDateTime(row.heartbeat_at),
+    started_at: row.started_at == null ? null : toIsoDateTime(row.started_at),
+    finished_at: row.finished_at == null ? null : toIsoDateTime(row.finished_at),
+    created_at: toIsoDateTime(row.created_at),
+    updated_at: toIsoDateTime(row.updated_at),
+  };
+}
+
+function normalizeEventRow<T extends Record<string, unknown>>(row: T): T {
+  return {
+    ...row,
+    occurred_at: toIsoDateTime(row.occurred_at),
+    created_at: toIsoDateTime(row.created_at),
+  };
+}
+
 export async function getAgentRuns(
   websiteId: string,
   opts: GetAgentRunsOpts
@@ -104,7 +130,7 @@ export async function getAgentRuns(
   let query = supabase
     .from('growth_agent_runs')
     .select(
-      'account_id, website_id, run_id, agent_id, lane, source_table, source_id, profile_run_id, claim_id, workspace_path, status, heartbeat_at, attempts, artifact_path, error_class, error_message, evidence, started_at, finished_at, created_at, updated_at',
+      'account_id, website_id, locale, market, run_id, agent_id, lane, source_table, source_id, profile_run_id, claim_id, workspace_path, status, heartbeat_at, attempts, artifact_path, error_class, error_message, evidence, started_at, finished_at, created_at, updated_at',
       { count: 'exact' }
     )
     .eq('account_id', opts.accountId)
@@ -140,7 +166,9 @@ export async function getAgentRuns(
     };
   }
 
-  const rawRows = data ?? [];
+  const rawRows = (data ?? []).map((row) =>
+    normalizeRunRow(row as Record<string, unknown>),
+  );
   const parsed = z.array(GrowthAgentRunSchema).safeParse(rawRows);
   if (!parsed.success) {
     return {
@@ -226,7 +254,7 @@ export async function getAgentRunDetail(
   const { data: runRow, error: runErr } = await supabase
     .from('growth_agent_runs')
     .select(
-      'account_id, website_id, run_id, agent_id, lane, source_table, source_id, profile_run_id, claim_id, workspace_path, status, heartbeat_at, attempts, artifact_path, error_class, error_message, evidence, started_at, finished_at, created_at, updated_at'
+      'account_id, website_id, locale, market, run_id, agent_id, lane, source_table, source_id, profile_run_id, claim_id, workspace_path, status, heartbeat_at, attempts, artifact_path, error_class, error_message, evidence, started_at, finished_at, created_at, updated_at'
     )
     .eq('account_id', accountId)
     .eq('website_id', websiteId)
@@ -241,13 +269,15 @@ export async function getAgentRunDetail(
   }
   if (!runRow) return null;
 
-  const runParsed = GrowthAgentRunSchema.safeParse(runRow);
+  const runParsed = GrowthAgentRunSchema.safeParse(
+    normalizeRunRow(runRow as Record<string, unknown>),
+  );
   if (!runParsed.success) return null;
   const run = runParsed.data;
 
   const { data: eventRows, error: eventsErr } = await supabase
     .from('growth_agent_run_events')
-    .select('account_id, website_id, event_id, run_id, event_type, severity, payload, message, occurred_at, created_at')
+    .select('account_id, website_id, locale, market, event_id, run_id, event_type, severity, payload, message, occurred_at, created_at')
     .eq('account_id', accountId)
     .eq('website_id', websiteId)
     .eq('run_id', runId)
@@ -260,7 +290,13 @@ export async function getAgentRunDetail(
       tablesMissing = true;
     }
   } else if (eventRows) {
-    const parsed = z.array(GrowthAgentRunEventSchema).safeParse(eventRows);
+    const parsed = z
+      .array(GrowthAgentRunEventSchema)
+      .safeParse(
+        eventRows.map((row) =>
+          normalizeEventRow(row as Record<string, unknown>),
+        ),
+      );
     if (parsed.success) events = parsed.data;
   }
 

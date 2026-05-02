@@ -249,6 +249,7 @@ export default async function GrowthRunsListPage({
                 ({ run, agentName, hasArtifact, agreementState }) => (
                   <tr
                     key={run.run_id}
+                    data-testid={`growth-run-row-${run.run_id}`}
                     className="border-b border-[var(--studio-border)]/60 hover:bg-[var(--studio-surface-hover)]"
                   >
                     <td className="px-3 py-2 font-mono text-xs">
