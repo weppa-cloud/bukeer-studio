@@ -126,7 +126,7 @@ async function claimLane(supabase, opts, lane) {
 
   if (error) throw new Error(`claim RPC failed lane=${lane}: ${error.message}`);
   const run = Array.isArray(data) ? data[0] : data;
-  if (!run) {
+  if (!run?.run_id) {
     log("info", "no eligible row", { lane });
     return { claimed: false };
   }
