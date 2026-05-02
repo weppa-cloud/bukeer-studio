@@ -18,16 +18,16 @@
  *   - ADR-009 (account_id + website_id scoping)
  */
 
-import 'server-only';
-import { redirect } from 'next/navigation';
-import { createSupabaseServerClient } from '@/lib/supabase/server-client';
+import "server-only";
+import { redirect } from "next/navigation";
+import { createSupabaseServerClient } from "@/lib/supabase/server-client";
 
 export type GrowthRole =
-  | 'viewer'
-  | 'growth_operator'
-  | 'curator'
-  | 'council_admin'
-  | 'account_admin';
+  | "viewer"
+  | "growth_operator"
+  | "curator"
+  | "council_admin"
+  | "account_admin";
 
 const ROLE_RANK: Record<GrowthRole, number> = {
   viewer: 0,
@@ -36,6 +36,13 @@ const ROLE_RANK: Record<GrowthRole, number> = {
   council_admin: 3,
   account_admin: 4,
 };
+
+export function hasGrowthRole(
+  actual: GrowthRole,
+  required: GrowthRole,
+): boolean {
+  return ROLE_RANK[actual] >= ROLE_RANK[required];
+}
 
 export interface GrowthAuthContext {
   userId: string;
@@ -73,50 +80,50 @@ interface GlobalAdminRow {
  * Recognised exact growth roles (already in the enum) pass through.
  */
 function mapAppRoleToGrowthRole(roleName: string | null): GrowthRole {
-  if (!roleName) return 'viewer';
+  if (!roleName) return "viewer";
   const normalized = roleName.trim().toLowerCase();
   if (
-    normalized === 'viewer' ||
-    normalized === 'growth_operator' ||
-    normalized === 'curator' ||
-    normalized === 'council_admin' ||
-    normalized === 'account_admin'
+    normalized === "viewer" ||
+    normalized === "growth_operator" ||
+    normalized === "curator" ||
+    normalized === "council_admin" ||
+    normalized === "account_admin"
   ) {
     return normalized;
   }
   if (
-    normalized === 'admin' ||
-    normalized === 'owner' ||
-    normalized === 'agency_admin' ||
-    normalized === 'super_admin'
+    normalized === "admin" ||
+    normalized === "owner" ||
+    normalized === "agency_admin" ||
+    normalized === "super_admin"
   ) {
-    return 'account_admin';
+    return "account_admin";
   }
   if (
-    normalized === 'manager' ||
-    normalized === 'supervisor' ||
-    normalized === 'council'
+    normalized === "manager" ||
+    normalized === "supervisor" ||
+    normalized === "council"
   ) {
-    return 'council_admin';
+    return "council_admin";
   }
   if (
-    normalized === 'editor' ||
-    normalized === 'qa' ||
-    normalized === 'reviewer'
+    normalized === "editor" ||
+    normalized === "qa" ||
+    normalized === "reviewer"
   ) {
-    return 'curator';
+    return "curator";
   }
   if (
-    normalized === 'operator' ||
-    normalized === 'planner' ||
-    normalized === 'agent'
+    normalized === "operator" ||
+    normalized === "planner" ||
+    normalized === "agent"
   ) {
-    return 'growth_operator';
+    return "growth_operator";
   }
-  return 'viewer';
+  return "viewer";
 }
 
-function extractRoleName(value: UserRoleJoin['roles']): string | null {
+function extractRoleName(value: UserRoleJoin["roles"]): string | null {
   if (!value) return null;
   if (Array.isArray(value)) {
     return value[0]?.role_name ?? null;
@@ -141,7 +148,7 @@ function extractRoleName(value: UserRoleJoin['roles']): string | null {
  */
 export async function requireGrowthRole(
   websiteId: string,
-  requiredRole: GrowthRole = 'viewer',
+  requiredRole: GrowthRole = "viewer",
 ): Promise<GrowthAuthContext> {
   const supabase = await createSupabaseServerClient();
 
@@ -150,41 +157,41 @@ export async function requireGrowthRole(
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect('/login');
+    redirect("/login");
   }
 
   // Tenant membership: RLS-scoped websites read.
   const { data: website, error: websiteErr } = await supabase
-    .from('websites')
-    .select('id, account_id')
-    .eq('id', websiteId)
+    .from("websites")
+    .select("id, account_id")
+    .eq("id", websiteId)
     .maybeSingle();
 
   if (websiteErr || !website) {
-    redirect('/dashboard');
+    redirect("/dashboard");
   }
 
   const accountId = website.account_id as string;
 
   // 1) Platform admin?
   const { data: globalRow } = await supabase
-    .from('global_admins')
-    .select('user_id, is_active, role')
-    .eq('user_id', user.id)
-    .eq('is_active', true)
+    .from("global_admins")
+    .select("user_id, is_active, role")
+    .eq("user_id", user.id)
+    .eq("is_active", true)
     .maybeSingle<GlobalAdminRow>();
 
   let role: GrowthRole;
   if (globalRow?.is_active) {
-    role = 'account_admin';
+    role = "account_admin";
   } else {
     // 2) Tenant-scoped role lookup.
     const { data: roleRows } = await supabase
-      .from('user_roles')
-      .select('account_id, roles(role_name)')
-      .eq('user_id', user.id)
-      .eq('is_active', true)
-      .eq('account_id', accountId)
+      .from("user_roles")
+      .select("account_id, roles(role_name)")
+      .eq("user_id", user.id)
+      .eq("is_active", true)
+      .eq("account_id", accountId)
       .limit(5)
       .returns<UserRoleJoin[]>();
 
@@ -193,11 +200,11 @@ export async function requireGrowthRole(
     role = appRole
       ? mapAppRoleToGrowthRole(appRole)
       : // 3) Fallback for tenant members without an explicit role row.
-        'viewer';
+        "viewer";
   }
 
   if (ROLE_RANK[role] < ROLE_RANK[requiredRole]) {
-    redirect('/dashboard');
+    redirect("/dashboard");
   }
 
   return {

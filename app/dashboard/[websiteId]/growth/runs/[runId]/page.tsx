@@ -1,25 +1,17 @@
-import { notFound, redirect } from 'next/navigation';
-import Link from 'next/link';
+import { notFound } from "next/navigation";
+import Link from "next/link";
 import {
   type AgentRunStatus,
   type GrowthAgentRunEvent,
-} from '@bukeer/website-contract';
+} from "@bukeer/website-contract";
 import {
   StudioPage,
   StudioSectionHeader,
   StudioBadge,
-} from '@/components/studio/ui/primitives';
-import { createSupabaseServerClient } from '@/lib/supabase/server-client';
-import { getAgentRunDetail } from '@/lib/growth/console/queries-runs';
-import {
-  getGrowthRoleStub,
-  hasGrowthRole,
-} from '@/lib/growth/console/role-stub';
-import {
-  approveRun,
-  rejectRun,
-  downloadArtifactAction,
-} from './actions';
+} from "@/components/studio/ui/primitives";
+import { getAgentRunDetail } from "@/lib/growth/console/queries-runs";
+import { hasGrowthRole, requireGrowthRole } from "@/lib/growth/console/auth";
+import { approveRun, rejectRun, downloadArtifactAction } from "./actions";
 
 /**
  * Reviews & Agent Runs — detail view (#407).
@@ -35,29 +27,31 @@ import {
  * of `artifact_path` plus a TODO note; the signed URL is derived
  * server-side and only returned through the action.
  *
- * Roles: Approve / Reject require `curator+`. Until #405 lands the
- * role-stub returns `viewer` for everyone, so the buttons render disabled
- * with an explanation; the Server Actions also re-check before mutating.
+ * Roles: Approve / Reject require `curator+`. The Server Actions also
+ * re-check before mutating.
  */
 
-const STATUS_TONE: Record<AgentRunStatus, 'neutral' | 'success' | 'warning' | 'danger' | 'info'> = {
-  claimed: 'info',
-  running: 'info',
-  review_required: 'warning',
-  failed: 'danger',
-  completed: 'success',
-  stalled: 'danger',
+const STATUS_TONE: Record<
+  AgentRunStatus,
+  "neutral" | "success" | "warning" | "danger" | "info"
+> = {
+  claimed: "info",
+  running: "info",
+  review_required: "warning",
+  failed: "danger",
+  completed: "success",
+  stalled: "danger",
 };
 
 function fmtDate(iso: string | null | undefined): string {
-  if (!iso) return '—';
+  if (!iso) return "—";
   try {
-    return new Date(iso).toLocaleString('es-CO', {
-      dateStyle: 'medium',
-      timeStyle: 'short',
+    return new Date(iso).toLocaleString("es-CO", {
+      dateStyle: "medium",
+      timeStyle: "short",
     });
   } catch {
-    return '—';
+    return "—";
   }
 }
 
@@ -65,7 +59,11 @@ interface PageProps {
   params: Promise<{ websiteId: string; runId: string }>;
 }
 
-function EvidenceBlock({ evidence }: { evidence: Record<string, unknown> | null }) {
+function EvidenceBlock({
+  evidence,
+}: {
+  evidence: Record<string, unknown> | null;
+}) {
   if (!evidence || Object.keys(evidence).length === 0) {
     return (
       <p className="text-xs text-[var(--studio-text-muted)]">
@@ -98,6 +96,7 @@ function EventTimeline({ events }: { events: GrowthAgentRunEvent[] }) {
       {events.map((ev) => (
         <li
           key={ev.event_id}
+          data-testid={`growth-run-event-row-${ev.event_id}`}
           className="studio-panel border border-[var(--studio-border)] p-3"
         >
           <div className="flex items-center gap-2 text-xs">
@@ -106,24 +105,24 @@ function EventTimeline({ events }: { events: GrowthAgentRunEvent[] }) {
             </span>
             <StudioBadge
               tone={
-                ev.severity === 'error'
-                  ? 'danger'
-                  : ev.severity === 'warn'
-                    ? 'warning'
-                    : 'neutral'
+                ev.severity === "error"
+                  ? "danger"
+                  : ev.severity === "warn"
+                    ? "warning"
+                    : "neutral"
               }
             >
               {ev.event_type}
             </StudioBadge>
-            {ev.severity !== 'info' ? (
-              <StudioBadge tone={ev.severity === 'error' ? 'danger' : 'warning'}>
+            {ev.severity !== "info" ? (
+              <StudioBadge
+                tone={ev.severity === "error" ? "danger" : "warning"}
+              >
                 {ev.severity}
               </StudioBadge>
             ) : null}
           </div>
-          {ev.message ? (
-            <p className="text-sm mt-1">{ev.message}</p>
-          ) : null}
+          {ev.message ? <p className="text-sm mt-1">{ev.message}</p> : null}
           {ev.payload && Object.keys(ev.payload).length > 0 ? (
             <details className="mt-1 text-xs">
               <summary className="cursor-pointer text-[var(--studio-text-muted)]">
@@ -143,38 +142,33 @@ function EventTimeline({ events }: { events: GrowthAgentRunEvent[] }) {
 export default async function GrowthRunDetailPage({ params }: PageProps) {
   const { websiteId, runId } = await params;
 
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
-
-  // Tenant guard.
-  const { data: website, error: websiteError } = await supabase
-    .from('websites')
-    .select('id, account_id')
-    .eq('id', websiteId)
-    .single();
-  if (websiteError || !website) redirect('/dashboard');
-  const accountId = website.account_id as string;
-
-  // TODO(roles): replace with `requireGrowthRole` once #405 lands.
-  const { role } = getGrowthRoleStub(accountId, user.id);
-  const canCurate = hasGrowthRole(role, 'curator');
+  const auth = await requireGrowthRole(websiteId, "viewer");
+  const accountId = auth.accountId;
+  const { role } = auth;
+  const canCurate = hasGrowthRole(role, "curator");
 
   const detail = await getAgentRunDetail(websiteId, runId, accountId);
   if (!detail) notFound();
 
-  const { run, events, agentName, agreementForLane, hasArtifact, artifactPathTail } = detail;
+  const {
+    run,
+    events,
+    agentName,
+    agreementForLane,
+    hasArtifact,
+    artifactPathTail,
+  } = detail;
 
   return (
     <StudioPage className="max-w-5xl">
       <StudioSectionHeader
         title={`Run ${run.run_id.slice(-8)}`}
-        subtitle={`Lane ${run.lane} · ${agentName ?? 'agent: —'}`}
+        subtitle={`Lane ${run.lane} · ${agentName ?? "agent: —"}`}
         actions={
           <div className="flex items-center gap-2">
-            <StudioBadge tone={STATUS_TONE[run.status]}>{run.status}</StudioBadge>
+            <StudioBadge tone={STATUS_TONE[run.status]}>
+              {run.status}
+            </StudioBadge>
             <Link
               href={`/dashboard/${websiteId}/growth/runs`}
               className="text-xs underline text-[var(--studio-text-muted)]"
@@ -212,9 +206,11 @@ export default async function GrowthRunDetailPage({ params }: PageProps) {
           <dd>{fmtDate(run.heartbeat_at)}</dd>
         </div>
         <div>
-          <dt className="text-[var(--studio-text-muted)]">agreement_threshold</dt>
+          <dt className="text-[var(--studio-text-muted)]">
+            agreement_threshold
+          </dt>
           <dd>
-            {agreementForLane != null ? agreementForLane.toFixed(2) : '—'}
+            {agreementForLane != null ? agreementForLane.toFixed(2) : "—"}
           </dd>
         </div>
         {run.error_class ? (
@@ -229,10 +225,7 @@ export default async function GrowthRunDetailPage({ params }: PageProps) {
       </dl>
 
       {/* Approve / Reject */}
-      <section
-        aria-labelledby="run-review-heading"
-        className="space-y-3 mt-6"
-      >
+      <section aria-labelledby="run-review-heading" className="space-y-3 mt-6">
         <header>
           <h2
             id="run-review-heading"
@@ -242,10 +235,8 @@ export default async function GrowthRunDetailPage({ params }: PageProps) {
           </h2>
           {!canCurate ? (
             <p className="text-xs text-[var(--studio-text-muted)]">
-              Tu rol actual ({role}) no puede aprobar/rechazar runs. Se
-              requiere <code>curator</code> o superior. Hasta que #405 aterrice
-              el helper completo de roles, todos los usuarios son tratados como
-              <code> viewer</code>.
+              Tu rol actual ({role}) no puede aprobar/rechazar runs. Se requiere{" "}
+              <code>curator</code> o superior.
             </p>
           ) : null}
         </header>
@@ -255,11 +246,11 @@ export default async function GrowthRunDetailPage({ params }: PageProps) {
             <input type="hidden" name="runId" value={run.run_id} />
             <button
               type="submit"
-              disabled={!canCurate || run.status !== 'review_required'}
+              disabled={!canCurate || run.status !== "review_required"}
               className="studio-button studio-button--primary disabled:opacity-50 disabled:cursor-not-allowed"
               title={
-                run.status !== 'review_required'
-                  ? 'Solo runs en review_required pueden aprobarse.'
+                run.status !== "review_required"
+                  ? "Solo runs en review_required pueden aprobarse."
                   : undefined
               }
             >
@@ -270,18 +261,20 @@ export default async function GrowthRunDetailPage({ params }: PageProps) {
             <input type="hidden" name="websiteId" value={websiteId} />
             <input type="hidden" name="runId" value={run.run_id} />
             <label className="flex flex-col gap-1 text-xs">
-              <span className="text-[var(--studio-text-muted)]">Notas (opcional)</span>
+              <span className="text-[var(--studio-text-muted)]">
+                Notas (opcional)
+              </span>
               <input
                 type="text"
                 name="notes"
                 maxLength={500}
-                disabled={!canCurate || run.status !== 'review_required'}
+                disabled={!canCurate || run.status !== "review_required"}
                 className="studio-input"
               />
             </label>
             <button
               type="submit"
-              disabled={!canCurate || run.status !== 'review_required'}
+              disabled={!canCurate || run.status !== "review_required"}
               className="studio-button studio-button--danger disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Reject
@@ -323,8 +316,8 @@ export default async function GrowthRunDetailPage({ params }: PageProps) {
               </button>
             </form>
             <span className="text-xs text-[var(--studio-text-muted)]">
-              TODO(#404): some artifacts live in the orchestrator workspace
-              (not Storage). Signed-URL transport for those is TBD.
+              TODO(#404): some artifacts live in the orchestrator workspace (not
+              Storage). Signed-URL transport for those is TBD.
             </span>
           </div>
         ) : (
@@ -353,6 +346,7 @@ export default async function GrowthRunDetailPage({ params }: PageProps) {
       {/* Events timeline (append-only) */}
       <section
         aria-labelledby="run-events-heading"
+        data-testid="growth-run-events-panel"
         className="space-y-2 mt-6"
       >
         <header>

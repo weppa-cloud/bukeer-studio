@@ -18,17 +18,13 @@
  *   - ADR-018 (idempotent claims)
  */
 
-import type { SupabaseClient } from '@supabase/supabase-js';
-import type {
-  AgentLane,
-  GrowthAgentRun,
-} from '@bukeer/website-contract';
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { AgentLane, GrowthAgentRun } from "@bukeer/website-contract";
 
-import { asTyped } from '@/lib/supabase/typed-client';
-import { checkConcurrency } from './concurrency';
-import { writeRunEvent } from './event-writer';
-import { assertTenantScope } from './tenant-guard';
-import type { ConcurrencyCaps } from './types';
+import { asTyped } from "@/lib/supabase/typed-client";
+import { checkConcurrency } from "./concurrency";
+import { assertTenantScope } from "./tenant-guard";
+import type { ConcurrencyCaps } from "./types";
 
 export interface ClaimNextEligibleRowOptions {
   supabase: SupabaseClient;
@@ -47,7 +43,7 @@ export interface ClaimNextEligibleRowOptions {
 
 export type ClaimNextEligibleRowResult =
   | { run: GrowthAgentRun }
-  | { reason: 'no_eligible_rows' | 'concurrency_full'; detail?: string };
+  | { reason: "no_eligible_rows" | "concurrency_full"; detail?: string };
 
 /**
  * Try to claim one eligible row for `lane` within the given tenant.
@@ -59,15 +55,8 @@ export type ClaimNextEligibleRowResult =
 export async function claimNextEligibleRow(
   opts: ClaimNextEligibleRowOptions,
 ): Promise<ClaimNextEligibleRowResult> {
-  const {
-    supabase,
-    accountId,
-    websiteId,
-    lane,
-    claimId,
-    workspacePath,
-    caps,
-  } = opts;
+  const { supabase, accountId, websiteId, lane, claimId, workspacePath, caps } =
+    opts;
 
   // 1. Pre-check three-layer concurrency. The RPC will re-validate inside the
   // transaction; this just avoids the round-trip when we know we are full.
@@ -81,7 +70,7 @@ export async function claimNextEligibleRow(
     });
     if (!cc.allowed) {
       return {
-        reason: 'concurrency_full',
+        reason: "concurrency_full",
         detail: `level=${cc.level} counts=${JSON.stringify(cc.counts)}`,
       };
     }
@@ -100,7 +89,7 @@ export async function claimNextEligibleRow(
   // against the per-lane source table and for inserting into
   // `growth_agent_runs` with `claim_id` as a unique key (idempotency).
   const { data, error } = await asTyped(supabase).rpc(
-    'claim_growth_agent_run',
+    "claim_growth_agent_run",
     {
       p_account_id: accountId,
       p_website_id: websiteId,
@@ -120,7 +109,7 @@ export async function claimNextEligibleRow(
   // there's nothing to claim. Normalize.
   const claimedRow = Array.isArray(data) ? data[0] : data;
   if (!claimedRow) {
-    return { reason: 'no_eligible_rows' };
+    return { reason: "no_eligible_rows" };
   }
 
   const run = claimedRow as GrowthAgentRun;
@@ -130,26 +119,6 @@ export async function claimNextEligibleRow(
     { account_id: accountId, website_id: websiteId },
     { account_id: run.account_id, website_id: run.website_id },
   );
-
-  // 4. Append the lifecycle `claimed` event. The RPC may already have done
-  // this inside its transaction (#403 will decide); writing here is
-  // idempotent at the event level only if the DB enforces a uniqueness
-  // constraint on (run_id, event_type='claimed') — until then we keep this
-  // as the single writer to avoid duplicates.
-  //
-  // TODO(spec): once #403 finalizes whether the RPC writes the `claimed`
-  // event itself, drop this block or guard it on a return flag.
-  await writeRunEvent({
-    supabase,
-    run,
-    event_type: 'claimed',
-    severity: 'info',
-    message: `Claimed by orchestrator for lane=${lane}`,
-    payload: {
-      claim_id: claimId,
-      workspace_path: workspacePath,
-    },
-  });
 
   return { run };
 }

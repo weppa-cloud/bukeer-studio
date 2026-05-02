@@ -23,12 +23,9 @@
  *   - packages/website-contract/src/schemas/growth-agent-definitions.ts
  */
 
-import type { SupabaseClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from "@supabase/supabase-js";
 
-import {
-  AgentLaneSchema,
-  type AgentLane,
-} from '@bukeer/website-contract';
+import { type AgentLane } from "@bukeer/website-contract";
 
 // ---------------------------------------------------------------------------
 // Status enums (loose — backlog/content_tasks columns may evolve under
@@ -48,20 +45,23 @@ import {
  *   done    → status IN ('done', 'shipped', 'evaluated')
  */
 export const BACKLOG_STATUS_BUCKETS = [
-  'blocked',
-  'ready',
-  'watch',
-  'active',
-  'done',
+  "blocked",
+  "ready",
+  "watch",
+  "active",
+  "done",
 ] as const;
 export type BacklogStatusBucket = (typeof BACKLOG_STATUS_BUCKETS)[number];
 
-const STATUS_BUCKET_TO_DB: Record<BacklogStatusBucket, ReadonlyArray<string>> = {
-  blocked: ['blocked', 'rejected'],
-  ready: ['queued', 'ready_for_brief', 'ready_for_council'],
-  watch: ['watch'],
-  active: ['brief_in_progress', 'approved_for_execution', 'in_progress'],
-  done: ['done', 'shipped', 'evaluated'],
+const STATUS_BUCKET_TO_DB: Record<
+  BacklogStatusBucket,
+  ReadonlyArray<string>
+> = {
+  blocked: ["blocked", "rejected"],
+  ready: ["queued", "ready_for_brief", "ready_for_council"],
+  watch: ["watch"],
+  active: ["brief_in_progress", "approved_for_execution", "in_progress"],
+  done: ["done", "shipped", "evaluated"],
 };
 
 // TODO(backlog-schema): Tighten typing once #395/#396 land Zod schemas for
@@ -82,6 +82,32 @@ export interface BacklogRow {
   human_review_state: string | null;
   updated_at: string | null;
 }
+
+const BACKLOG_WORK_TYPE_TO_LANE: Record<string, AgentLane> = {
+  technical_remediation: "technical_remediation",
+  transcreation: "transcreation",
+  translate: "transcreation",
+  locale_content: "transcreation",
+  seo_demand: "content_creator",
+  growth_opportunity: "content_creator",
+  content_opportunity: "content_creator",
+  serp_competitor_opportunity: "content_creator",
+  content_update: "content_creator",
+  seo_content: "content_creator",
+  cro_activation: "content_curator",
+  experiment_readiness: "content_curator",
+};
+
+const CONTENT_TASK_TYPE_TO_LANE: Record<string, AgentLane> = {
+  transcreation: "transcreation",
+  translate: "transcreation",
+  locale_qa: "transcreation",
+  content_brief: "content_creator",
+  seo_content: "content_creator",
+  content_update: "content_creator",
+  seo_qa: "content_curator",
+  curator_review: "content_curator",
+};
 
 export interface BacklogQueryOpts {
   /** Tenant guard — REQUIRED. */
@@ -126,18 +152,20 @@ const EMPTY_STATUS_TOTALS: Record<BacklogStatusBucket, number> = {
 };
 
 function isMissingTableError(err: unknown): boolean {
-  if (!err || typeof err !== 'object') return false;
+  if (!err || typeof err !== "object") return false;
   const e = err as { code?: string; message?: string };
   // Postgres "undefined_table" + PostgREST schema cache error.
   return (
-    e.code === '42P01' ||
-    e.code === 'PGRST205' ||
-    /relation .* does not exist/i.test(e.message ?? '') ||
-    /could not find the table/i.test(e.message ?? '')
+    e.code === "42P01" ||
+    e.code === "PGRST205" ||
+    /relation .* does not exist/i.test(e.message ?? "") ||
+    /could not find the table/i.test(e.message ?? "")
   );
 }
 
-function bucketize(rawStatus: string | null | undefined): BacklogStatusBucket | null {
+function bucketize(
+  rawStatus: string | null | undefined,
+): BacklogStatusBucket | null {
   if (!rawStatus) return null;
   for (const bucket of BACKLOG_STATUS_BUCKETS) {
     if (STATUS_BUCKET_TO_DB[bucket].includes(rawStatus)) return bucket;
@@ -145,15 +173,47 @@ function bucketize(rawStatus: string | null | undefined): BacklogStatusBucket | 
   return null;
 }
 
-function normaliseLane(value: unknown): AgentLane | null {
-  const parsed = AgentLaneSchema.safeParse(value);
-  return parsed.success ? parsed.data : null;
+function laneForBacklogWorkType(value: unknown): AgentLane {
+  const key = String(value ?? "").toLowerCase();
+  return BACKLOG_WORK_TYPE_TO_LANE[key] ?? "orchestrator";
+}
+
+function laneForContentTaskType(value: unknown): AgentLane {
+  const key = String(value ?? "").toLowerCase();
+  return CONTENT_TASK_TYPE_TO_LANE[key] ?? "content_creator";
+}
+
+function isCouncilReady(status: unknown): boolean {
+  return ["ready_for_council", "approved_for_execution"].includes(
+    String(status ?? "").toLowerCase(),
+  );
+}
+
+function evidenceValue(value: unknown, keys: string[]): string | null {
+  if (!value || typeof value !== "object") return null;
+  const evidence = value as Record<string, unknown>;
+  for (const key of keys) {
+    const candidate = evidence[key];
+    if (typeof candidate === "string" && candidate.trim()) {
+      return candidate;
+    }
+    if (candidate && typeof candidate === "object") {
+      const nested = candidate as Record<string, unknown>;
+      for (const nestedKey of ["state", "status", "decision"]) {
+        const nestedValue = nested[nestedKey];
+        if (typeof nestedValue === "string" && nestedValue.trim()) {
+          return nestedValue;
+        }
+      }
+    }
+  }
+  return null;
 }
 
 function emptyResult(
   page: number,
   pageSize: number,
-  flag: 'missing' | 'error' | 'ok',
+  flag: "missing" | "error" | "ok",
 ): BacklogQueryResult {
   return {
     items: [],
@@ -162,8 +222,8 @@ function emptyResult(
     page,
     pageSize,
     total: 0,
-    tableMissing: flag === 'missing',
-    errored: flag === 'error',
+    tableMissing: flag === "missing",
+    errored: flag === "error",
   };
 }
 
@@ -189,7 +249,7 @@ export async function getBacklogByLane(
 
   if (!opts.accountId) {
     // Defensive — page must always pass accountId.
-    return emptyResult(page, pageSize, 'error');
+    return emptyResult(page, pageSize, "error");
   }
 
   // We run two queries in parallel:
@@ -201,23 +261,27 @@ export async function getBacklogByLane(
   // pre-aggregated lane/status counts when #397 lands.
   try {
     let listQuery = supabase
-      .from('growth_backlog_items')
+      .from("growth_backlog_items")
       .select(
-        // We select the union of fields documented in the SPEC. Some columns
-        // may not exist yet (council_ready, lane, source_table) — Supabase
-        // returns them as undefined which we coerce to null below.
-        'id, website_id, account_id, title, lane, source_table, status, council_ready, next_action, blocked_reason, ai_review_state, human_review_state, updated_at',
-        { count: 'exact' },
+        "id, website_id, account_id, title, work_type, status, next_action, blocked_reason, evidence, updated_at",
+        { count: "exact" },
       )
-      .eq('website_id', websiteId)
-      .eq('account_id', opts.accountId)
-      .order('updated_at', { ascending: false, nullsFirst: false });
+      .eq("website_id", websiteId)
+      .eq("account_id", opts.accountId)
+      .order("updated_at", { ascending: false, nullsFirst: false });
 
     if (opts.lane) {
-      listQuery = listQuery.eq('lane', opts.lane);
+      const workTypes = Object.entries(BACKLOG_WORK_TYPE_TO_LANE)
+        .filter(([, mappedLane]) => mappedLane === opts.lane)
+        .map(([workType]) => workType);
+      if (workTypes.length > 0) {
+        listQuery = listQuery.in("work_type", workTypes);
+      } else {
+        listQuery = listQuery.eq("work_type", "__no_matching_work_type__");
+      }
     }
     if (opts.statusBucket) {
-      listQuery = listQuery.in('status', [
+      listQuery = listQuery.in("status", [
         ...STATUS_BUCKET_TO_DB[opts.statusBucket],
       ]);
     }
@@ -231,14 +295,14 @@ export async function getBacklogByLane(
       if (isMissingTableError(error)) {
         // eslint-disable-next-line no-console
         console.warn(
-          '[growth-console] growth_backlog_items table missing — empty state',
+          "[growth-console] growth_backlog_items table missing — empty state",
           { code: error.code },
         );
-        return emptyResult(page, pageSize, 'missing');
+        return emptyResult(page, pageSize, "missing");
       }
       // eslint-disable-next-line no-console
-      console.error('[growth-console] backlog read error', error);
-      return emptyResult(page, pageSize, 'error');
+      console.error("[growth-console] backlog read error", error);
+      return emptyResult(page, pageSize, "error");
     }
 
     const rows = (data ?? []) as Array<Record<string, unknown>>;
@@ -250,10 +314,13 @@ export async function getBacklogByLane(
         (r.account_id !== undefined && r.account_id !== opts.accountId)
       ) {
         // eslint-disable-next-line no-console
-        console.error('[growth-console] tenant scope violation in backlog row', {
-          rowId: r.id,
-        });
-        return emptyResult(page, pageSize, 'error');
+        console.error(
+          "[growth-console] tenant scope violation in backlog row",
+          {
+            rowId: r.id,
+          },
+        );
+        return emptyResult(page, pageSize, "error");
       }
     }
 
@@ -262,20 +329,31 @@ export async function getBacklogByLane(
       website_id: String(r.website_id),
       account_id: (r.account_id as string | null | undefined) ?? null,
       title: (r.title as string | null | undefined) ?? null,
-      lane: normaliseLane(r.lane),
-      source_table: (r.source_table as string | null | undefined) ?? null,
+      lane: laneForBacklogWorkType(r.work_type),
+      source_table: "growth_backlog_items",
       status: (r.status as string | null | undefined) ?? null,
-      council_ready: (r.council_ready as boolean | null | undefined) ?? null,
+      council_ready: isCouncilReady(r.status),
       next_action: (r.next_action as string | null | undefined) ?? null,
       blocked_reason: (r.blocked_reason as string | null | undefined) ?? null,
-      ai_review_state: (r.ai_review_state as string | null | undefined) ?? null,
-      human_review_state:
-        (r.human_review_state as string | null | undefined) ?? null,
+      ai_review_state: evidenceValue(r.evidence, [
+        "ai_review_state",
+        "ai_review",
+        "llm_review",
+      ]),
+      human_review_state: evidenceValue(r.evidence, [
+        "human_review_state",
+        "human_review",
+        "curator_review",
+      ]),
       updated_at: (r.updated_at as string | null | undefined) ?? null,
     }));
 
     // Aggregates from a wider sample (separate light query).
-    const aggregates = await readBacklogAggregates(supabase, websiteId, opts.accountId);
+    const aggregates = await readBacklogAggregates(
+      supabase,
+      websiteId,
+      opts.accountId,
+    );
 
     return {
       items,
@@ -289,11 +367,11 @@ export async function getBacklogByLane(
     };
   } catch (err) {
     if (isMissingTableError(err)) {
-      return emptyResult(page, pageSize, 'missing');
+      return emptyResult(page, pageSize, "missing");
     }
     // eslint-disable-next-line no-console
-    console.error('[growth-console] backlog read threw', err);
-    return emptyResult(page, pageSize, 'error');
+    console.error("[growth-console] backlog read threw", err);
+    return emptyResult(page, pageSize, "error");
   }
 }
 
@@ -311,10 +389,10 @@ async function readBacklogAggregates(
     // TODO(backlog-schema): replace with a SQL view that returns counts
     // pre-aggregated. Reading up to 1000 rows is acceptable for MVP.
     const { data, error } = await supabase
-      .from('growth_backlog_items')
-      .select('lane, status, account_id, website_id')
-      .eq('website_id', websiteId)
-      .eq('account_id', accountId)
+      .from("growth_backlog_items")
+      .select("work_type, status, account_id, website_id")
+      .eq("website_id", websiteId)
+      .eq("account_id", accountId)
       .limit(1000);
     if (error || !data) return { totalByLane, totalByStatus };
 
@@ -326,8 +404,8 @@ async function readBacklogAggregates(
       ) {
         continue;
       }
-      const lane = normaliseLane(r.lane);
-      if (lane) totalByLane[lane] += 1;
+      const lane = laneForBacklogWorkType(r.work_type);
+      totalByLane[lane] += 1;
       const bucket = bucketize(r.status as string | null);
       if (bucket) totalByStatus[bucket] += 1;
     }
@@ -356,27 +434,32 @@ export async function getContentTasksByLane(
   const offset = (page - 1) * pageSize;
 
   if (!opts.accountId) {
-    return emptyResult(page, pageSize, 'error');
+    return emptyResult(page, pageSize, "error");
   }
 
   try {
     let listQuery = supabase
-      .from('growth_content_tasks')
+      .from("growth_content_tasks")
       .select(
-        // TODO(backlog-schema): align selected columns with the final schema
-        // from #396 once it lands. Fields below are loosely typed.
-        'id, website_id, account_id, title, lane, status, council_ready, next_action, blocked_reason, ai_review_state, human_review_state, updated_at',
-        { count: 'exact' },
+        "id, website_id, account_id, title, task_type, status, next_action, evidence, updated_at",
+        { count: "exact" },
       )
-      .eq('website_id', websiteId)
-      .eq('account_id', opts.accountId)
-      .order('updated_at', { ascending: false, nullsFirst: false });
+      .eq("website_id", websiteId)
+      .eq("account_id", opts.accountId)
+      .order("updated_at", { ascending: false, nullsFirst: false });
 
     if (opts.lane) {
-      listQuery = listQuery.eq('lane', opts.lane);
+      const taskTypes = Object.entries(CONTENT_TASK_TYPE_TO_LANE)
+        .filter(([, mappedLane]) => mappedLane === opts.lane)
+        .map(([taskType]) => taskType);
+      if (taskTypes.length > 0) {
+        listQuery = listQuery.in("task_type", taskTypes);
+      } else {
+        listQuery = listQuery.eq("task_type", "__no_matching_task_type__");
+      }
     }
     if (opts.statusBucket) {
-      listQuery = listQuery.in('status', [
+      listQuery = listQuery.in("status", [
         ...STATUS_BUCKET_TO_DB[opts.statusBucket],
       ]);
     }
@@ -390,14 +473,14 @@ export async function getContentTasksByLane(
       if (isMissingTableError(error)) {
         // eslint-disable-next-line no-console
         console.warn(
-          '[growth-console] growth_content_tasks table missing — empty state',
+          "[growth-console] growth_content_tasks table missing — empty state",
           { code: error.code },
         );
-        return emptyResult(page, pageSize, 'missing');
+        return emptyResult(page, pageSize, "missing");
       }
       // eslint-disable-next-line no-console
-      console.error('[growth-console] content_tasks read error', error);
-      return emptyResult(page, pageSize, 'error');
+      console.error("[growth-console] content_tasks read error", error);
+      return emptyResult(page, pageSize, "error");
     }
 
     const rows = (data ?? []) as Array<Record<string, unknown>>;
@@ -409,10 +492,10 @@ export async function getContentTasksByLane(
       ) {
         // eslint-disable-next-line no-console
         console.error(
-          '[growth-console] tenant scope violation in content_task row',
+          "[growth-console] tenant scope violation in content_task row",
           { rowId: r.id },
         );
-        return emptyResult(page, pageSize, 'error');
+        return emptyResult(page, pageSize, "error");
       }
     }
 
@@ -421,16 +504,26 @@ export async function getContentTasksByLane(
       website_id: String(r.website_id),
       account_id: (r.account_id as string | null | undefined) ?? null,
       title: (r.title as string | null | undefined) ?? null,
-      lane: normaliseLane(r.lane),
+      lane: laneForContentTaskType(r.task_type),
       // Content tasks always come from the content_tasks table.
-      source_table: 'growth_content_tasks',
+      source_table: "growth_content_tasks",
       status: (r.status as string | null | undefined) ?? null,
-      council_ready: (r.council_ready as boolean | null | undefined) ?? null,
+      council_ready: isCouncilReady(r.status),
       next_action: (r.next_action as string | null | undefined) ?? null,
-      blocked_reason: (r.blocked_reason as string | null | undefined) ?? null,
-      ai_review_state: (r.ai_review_state as string | null | undefined) ?? null,
-      human_review_state:
-        (r.human_review_state as string | null | undefined) ?? null,
+      blocked_reason: evidenceValue(r.evidence, [
+        "blocked_reason",
+        "blocker_type",
+      ]),
+      ai_review_state: evidenceValue(r.evidence, [
+        "ai_review_state",
+        "ai_review",
+        "llm_review",
+      ]),
+      human_review_state: evidenceValue(r.evidence, [
+        "human_review_state",
+        "human_review",
+        "curator_review",
+      ]),
       updated_at: (r.updated_at as string | null | undefined) ?? null,
     }));
 
@@ -452,11 +545,11 @@ export async function getContentTasksByLane(
     };
   } catch (err) {
     if (isMissingTableError(err)) {
-      return emptyResult(page, pageSize, 'missing');
+      return emptyResult(page, pageSize, "missing");
     }
     // eslint-disable-next-line no-console
-    console.error('[growth-console] content_tasks read threw', err);
-    return emptyResult(page, pageSize, 'error');
+    console.error("[growth-console] content_tasks read threw", err);
+    return emptyResult(page, pageSize, "error");
   }
 }
 
@@ -472,10 +565,10 @@ async function readContentTaskAggregates(
   const totalByStatus = { ...EMPTY_STATUS_TOTALS };
   try {
     const { data, error } = await supabase
-      .from('growth_content_tasks')
-      .select('lane, status, account_id, website_id')
-      .eq('website_id', websiteId)
-      .eq('account_id', accountId)
+      .from("growth_content_tasks")
+      .select("task_type, status, account_id, website_id")
+      .eq("website_id", websiteId)
+      .eq("account_id", accountId)
       .limit(1000);
     if (error || !data) return { totalByLane, totalByStatus };
 
@@ -486,8 +579,8 @@ async function readContentTaskAggregates(
       ) {
         continue;
       }
-      const lane = normaliseLane(r.lane);
-      if (lane) totalByLane[lane] += 1;
+      const lane = laneForContentTaskType(r.task_type);
+      totalByLane[lane] += 1;
       const bucket = bucketize(r.status as string | null);
       if (bucket) totalByStatus[bucket] += 1;
     }

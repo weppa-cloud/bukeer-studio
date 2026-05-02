@@ -1,24 +1,23 @@
-import { redirect } from 'next/navigation';
-import Link from 'next/link';
-import { z } from 'zod';
+import Link from "next/link";
+import { z } from "zod";
 import {
   AgentLaneSchema,
   AgentRunStatusSchema,
   type AgentLane,
   type AgentRunStatus,
-} from '@bukeer/website-contract';
+} from "@bukeer/website-contract";
 import {
   StudioPage,
   StudioSectionHeader,
   StudioBadge,
   StudioEmptyState,
-} from '@/components/studio/ui/primitives';
-import { createSupabaseServerClient } from '@/lib/supabase/server-client';
+} from "@/components/studio/ui/primitives";
+import { requireGrowthRole } from "@/lib/growth/console/auth";
 import {
   getAgentRuns,
   AGENT_LANE_OPTIONS,
   AGENT_RUN_STATUS_OPTIONS,
-} from '@/lib/growth/console/queries-runs';
+} from "@/lib/growth/console/queries-runs";
 
 /**
  * Reviews & Agent Runs — list view (#407).
@@ -29,8 +28,7 @@ import {
  * detail page and are never UPDATE/DELETE-able from the UI.
  *
  * Roles: read access for `viewer`+. Approve/Reject (curator+) live on the
- * detail page. Until #405 lands, every viewer is treated as `viewer`
- * (see lib/growth/console/role-stub.ts).
+ * detail page.
  */
 
 const SearchParamsSchema = z.object({
@@ -45,41 +43,52 @@ interface PageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
-const STATUS_TONE: Record<AgentRunStatus, 'neutral' | 'success' | 'warning' | 'danger' | 'info'> = {
-  claimed: 'info',
-  running: 'info',
-  review_required: 'warning',
-  failed: 'danger',
-  completed: 'success',
-  stalled: 'danger',
+const STATUS_TONE: Record<
+  AgentRunStatus,
+  "neutral" | "success" | "warning" | "danger" | "info"
+> = {
+  claimed: "info",
+  running: "info",
+  review_required: "warning",
+  failed: "danger",
+  completed: "success",
+  stalled: "danger",
 };
 
 function fmtDate(iso: string | null | undefined): string {
-  if (!iso) return '—';
+  if (!iso) return "—";
   try {
-    return new Date(iso).toLocaleString('es-CO', {
-      dateStyle: 'short',
-      timeStyle: 'short',
+    return new Date(iso).toLocaleString("es-CO", {
+      dateStyle: "short",
+      timeStyle: "short",
     });
   } catch {
-    return '—';
+    return "—";
   }
 }
 
 function buildHref(
   websiteId: string,
-  params: { status?: AgentRunStatus; lane?: AgentLane; page?: number; pageSize?: number }
+  params: {
+    status?: AgentRunStatus;
+    lane?: AgentLane;
+    page?: number;
+    pageSize?: number;
+  },
 ): string {
   const usp = new URLSearchParams();
-  if (params.status) usp.set('status', params.status);
-  if (params.lane) usp.set('lane', params.lane);
-  if (params.page && params.page > 1) usp.set('page', String(params.page));
-  if (params.pageSize) usp.set('pageSize', String(params.pageSize));
+  if (params.status) usp.set("status", params.status);
+  if (params.lane) usp.set("lane", params.lane);
+  if (params.page && params.page > 1) usp.set("page", String(params.page));
+  if (params.pageSize) usp.set("pageSize", String(params.pageSize));
   const qs = usp.toString();
-  return `/dashboard/${websiteId}/growth/runs${qs ? `?${qs}` : ''}`;
+  return `/dashboard/${websiteId}/growth/runs${qs ? `?${qs}` : ""}`;
 }
 
-export default async function GrowthRunsListPage({ params, searchParams }: PageProps) {
+export default async function GrowthRunsListPage({
+  params,
+  searchParams,
+}: PageProps) {
   const { websiteId } = await params;
   const rawSearch = await searchParams;
 
@@ -90,21 +99,8 @@ export default async function GrowthRunsListPage({ params, searchParams }: PageP
     pageSize: rawSearch.pageSize,
   });
 
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
-
-  // Tenant guard: derive account_id from the (RLS-protected) websites row.
-  const { data: website, error: websiteError } = await supabase
-    .from('websites')
-    .select('id, account_id')
-    .eq('id', websiteId)
-    .single();
-  if (websiteError || !website) redirect('/dashboard');
-
-  const accountId = website.account_id as string;
+  const auth = await requireGrowthRole(websiteId, "viewer");
+  const accountId = auth.accountId;
 
   const result = await getAgentRuns(websiteId, {
     accountId,
@@ -133,10 +129,10 @@ export default async function GrowthRunsListPage({ params, searchParams }: PageP
           className="studio-panel border border-[var(--studio-warning)]/40 text-[var(--studio-warning)] p-3 text-sm mt-4"
           role="status"
         >
-          Las tablas <code>growth_agent_runs</code> /{' '}
+          Las tablas <code>growth_agent_runs</code> /{" "}
           <code>growth_agent_run_events</code> aún no existen en este entorno.
-          Cuando #404 (orchestrator runtime) las cree, este listado se
-          hidrata automáticamente.
+          Cuando #404 (orchestrator runtime) las cree, este listado se hidrata
+          automáticamente.
         </div>
       ) : null}
 
@@ -160,7 +156,7 @@ export default async function GrowthRunsListPage({ params, searchParams }: PageP
           <span className="text-[var(--studio-text-muted)]">Status</span>
           <select
             name="status"
-            defaultValue={filters.status ?? ''}
+            defaultValue={filters.status ?? ""}
             className="studio-input"
           >
             <option value="">Todos</option>
@@ -175,7 +171,7 @@ export default async function GrowthRunsListPage({ params, searchParams }: PageP
           <span className="text-[var(--studio-text-muted)]">Lane</span>
           <select
             name="lane"
-            defaultValue={filters.lane ?? ''}
+            defaultValue={filters.lane ?? ""}
             className="studio-input"
           >
             <option value="">Todas</option>
@@ -249,33 +245,53 @@ export default async function GrowthRunsListPage({ params, searchParams }: PageP
               </tr>
             </thead>
             <tbody>
-              {result.runs.map(({ run, agentName, hasArtifact, agreementState }) => (
-                <tr
-                  key={run.run_id}
-                  className="border-b border-[var(--studio-border)]/60 hover:bg-[var(--studio-surface-hover)]"
-                >
-                  <td className="px-3 py-2 font-mono text-xs">
-                    <Link
-                      href={`/dashboard/${websiteId}/growth/runs/${run.run_id}`}
-                      className="underline text-[var(--studio-text)]"
-                    >
-                      {run.run_id.slice(-8)}
-                    </Link>
-                  </td>
-                  <td className="px-3 py-2">{agentName ?? <span className="text-[var(--studio-text-muted)]">—</span>}</td>
-                  <td className="px-3 py-2 text-xs">{run.lane}</td>
-                  <td className="px-3 py-2">
-                    <StudioBadge tone={STATUS_TONE[run.status]}>{run.status}</StudioBadge>
-                  </td>
-                  <td className="px-3 py-2 text-xs">{run.attempts}</td>
-                  <td className="px-3 py-2 text-xs">{fmtDate(run.started_at)}</td>
-                  <td className="px-3 py-2 text-xs">{fmtDate(run.finished_at)}</td>
-                  <td className="px-3 py-2 text-xs">
-                    {hasArtifact ? <span aria-label="has artifact">yes</span> : <span className="text-[var(--studio-text-muted)]">no</span>}
-                  </td>
-                  <td className="px-3 py-2 text-xs">{agreementState}</td>
-                </tr>
-              ))}
+              {result.runs.map(
+                ({ run, agentName, hasArtifact, agreementState }) => (
+                  <tr
+                    key={run.run_id}
+                    className="border-b border-[var(--studio-border)]/60 hover:bg-[var(--studio-surface-hover)]"
+                  >
+                    <td className="px-3 py-2 font-mono text-xs">
+                      <Link
+                        href={`/dashboard/${websiteId}/growth/runs/${run.run_id}`}
+                        className="underline text-[var(--studio-text)]"
+                      >
+                        {run.run_id.slice(-8)}
+                      </Link>
+                    </td>
+                    <td className="px-3 py-2">
+                      {agentName ?? (
+                        <span className="text-[var(--studio-text-muted)]">
+                          —
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2 text-xs">{run.lane}</td>
+                    <td className="px-3 py-2">
+                      <StudioBadge tone={STATUS_TONE[run.status]}>
+                        {run.status}
+                      </StudioBadge>
+                    </td>
+                    <td className="px-3 py-2 text-xs">{run.attempts}</td>
+                    <td className="px-3 py-2 text-xs">
+                      {fmtDate(run.started_at)}
+                    </td>
+                    <td className="px-3 py-2 text-xs">
+                      {fmtDate(run.finished_at)}
+                    </td>
+                    <td className="px-3 py-2 text-xs">
+                      {hasArtifact ? (
+                        <span aria-label="has artifact">yes</span>
+                      ) : (
+                        <span className="text-[var(--studio-text-muted)]">
+                          no
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2 text-xs">{agreementState}</td>
+                  </tr>
+                ),
+              )}
             </tbody>
           </table>
         </div>
