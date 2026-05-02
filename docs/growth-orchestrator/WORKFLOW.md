@@ -5,6 +5,7 @@ control_plane: supabase_bukeer_studio
 runtime: vps_docker
 epic: https://github.com/weppa-cloud/bukeer-studio/issues/310
 spec: ../specs/SPEC_GROWTH_OS_SYMPHONY_ORCHESTRATOR.md
+model_registry_spec: ../specs/SPEC_GROWTH_OS_AGENT_MODEL_AND_WORKFLOW_REGISTRY.md
 ---
 
 # Growth OS Symphony Workflow
@@ -124,7 +125,7 @@ version: <semver string>
 lanes:
   <lane>:
     mode: observe_only | prepare_only | auto_apply_safe
-    model: <model id, e.g. anthropic/claude-sonnet-4-7>
+    model: <OpenAI model id, e.g. gpt-5.5>
     prompt_version: <pinned prompt version, e.g. v1>
 concurrency:
   global: <int> # cluster-wide cap
@@ -140,24 +141,29 @@ version: "1.0.0"
 lanes:
   orchestrator:
     mode: observe_only
-    model: anthropic/claude-sonnet-4-7
-    prompt_version: v1
+    model: gpt-5.4-mini
+    prompt_version: colombiatours-agent-v1
+    workflow_version: orchestrator.v1
   technical_remediation:
     mode: prepare_only
-    model: anthropic/claude-sonnet-4-7
-    prompt_version: v1
+    model: gpt-5-codex
+    prompt_version: colombiatours-agent-v1
+    workflow_version: technical-remediation.v1
   transcreation:
     mode: prepare_only
-    model: anthropic/claude-sonnet-4-7
-    prompt_version: v1
+    model: gpt-5.5
+    prompt_version: colombiatours-agent-v1
+    workflow_version: transcreation.v1
   content_creator:
     mode: prepare_only
-    model: anthropic/claude-sonnet-4-7
-    prompt_version: v1
+    model: gpt-5.5
+    prompt_version: colombiatours-agent-v1
+    workflow_version: content-creator.v1
   content_curator:
     mode: prepare_only
-    model: anthropic/claude-sonnet-4-7
-    prompt_version: v1
+    model: gpt-5.5
+    prompt_version: colombiatours-agent-v1
+    workflow_version: content-curator.v1
 concurrency:
   global: 8
   per_tenant: 4
@@ -169,7 +175,9 @@ Notes:
 
 - This block is the runtime default. Per-tenant overrides come from
   `growth_agent_definitions` (mode, model, prompt_version,
-  agreement_threshold, max_concurrent_runs).
+  workflow_version, agreement_threshold, max_concurrent_runs). Workflow files
+  live under `docs/growth-orchestrator/workflows/` and are loaded by
+  `workflow_version`.
 - The VPS runtime feeds the Bukeer Studio Review Queue by claiming eligible
   rows into `growth_agent_runs`, appending `growth_agent_run_events`, writing an
   artifact, and leaving unsafe work in `review_required` for human/Curator

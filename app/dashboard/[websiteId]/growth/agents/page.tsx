@@ -138,6 +138,12 @@ export default async function GrowthAgentsPage({ params }: AgentsPageProps) {
                   </span>
                 </div>
                 <dl className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                  <div className="col-span-2">
+                    <dt className="text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                      Model
+                    </dt>
+                    <dd className="font-mono font-medium">{agent.model}</dd>
+                  </div>
                   <div>
                     <dt className="text-[var(--studio-text-muted,theme(colors.zinc.500))]">
                       Mode
@@ -165,6 +171,22 @@ export default async function GrowthAgentsPage({ params }: AgentsPageProps) {
                       Locale
                     </dt>
                     <dd className="font-medium">{agent.locale}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                      Workflow
+                    </dt>
+                    <dd className="font-mono font-medium">
+                      {agent.workflow_version}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                      Prompt
+                    </dt>
+                    <dd className="font-mono font-medium">
+                      {agent.prompt_version}
+                    </dd>
                   </div>
                 </dl>
                 <p className="mt-3 rounded-md bg-[var(--studio-surface-muted,theme(colors.zinc.50))] p-2 text-xs text-[var(--studio-text-muted,theme(colors.zinc.600))]">
