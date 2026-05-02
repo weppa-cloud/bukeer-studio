@@ -581,6 +581,74 @@ export type {
   GrowthInventoryQuery,
 } from './schemas/growth-inventory';
 
+// Growth OS Symphony — agent runtime contracts (SPEC #403, EPIC #310)
+export {
+  AgentLaneSchema,
+  AgentModeSchema,
+  GrowthAgentDefinitionSchema,
+  GrowthAgentDefinitionInputSchema,
+} from './schemas/growth-agent-definitions';
+export type {
+  AgentLane,
+  AgentMode,
+  GrowthAgentDefinition,
+  GrowthAgentDefinitionInput,
+} from './schemas/growth-agent-definitions';
+
+export {
+  AgentToolIdSchema,
+  AgentToolModeSchema,
+  AgentToolBudgetPeriodSchema,
+  GrowthAgentToolPermissionSchema,
+  GrowthAgentToolPermissionInputSchema,
+} from './schemas/growth-agent-tool-permissions';
+export type {
+  AgentToolId,
+  AgentToolMode,
+  AgentToolBudgetPeriod,
+  GrowthAgentToolPermission,
+  GrowthAgentToolPermissionInput,
+} from './schemas/growth-agent-tool-permissions';
+
+export {
+  ContextPackVersionSchema,
+  ContextPackExampleSchema,
+  ContextPackLearnedDecisionSchema,
+  GrowthAgentContextPackSchema,
+  GrowthAgentContextPackInputSchema,
+} from './schemas/growth-agent-context-packs';
+export type {
+  ContextPackVersion,
+  ContextPackExample,
+  ContextPackLearnedDecision,
+  GrowthAgentContextPack,
+  GrowthAgentContextPackInput,
+} from './schemas/growth-agent-context-packs';
+
+export {
+  AgentRunStatusSchema,
+  GrowthAgentRunSchema,
+  GrowthAgentRunInputSchema,
+} from './schemas/growth-agent-runs';
+export type {
+  AgentRunStatus,
+  GrowthAgentRun,
+  GrowthAgentRunInput,
+} from './schemas/growth-agent-runs';
+
+export {
+  AgentRunEventTypeSchema,
+  AgentRunEventSeveritySchema,
+  GrowthAgentRunEventSchema,
+  GrowthAgentRunEventInputSchema,
+} from './schemas/growth-agent-run-events';
+export type {
+  AgentRunEventType,
+  AgentRunEventSeverity,
+  GrowthAgentRunEvent,
+  GrowthAgentRunEventInput,
+} from './schemas/growth-agent-run-events';
+
 // Validation
 export {
   validateSection,
