@@ -11,6 +11,7 @@ services:
       - /opt/growth-os/workspaces:/workspaces
       - /opt/growth-os/artifacts:/artifacts
       - /opt/growth-os/logs:/logs
+      - /opt/growth-os/codex:/root/.codex
     working_dir: /app
     command:
       - node
