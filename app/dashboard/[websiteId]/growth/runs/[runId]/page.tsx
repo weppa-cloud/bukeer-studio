@@ -162,7 +162,7 @@ export default async function GrowthRunDetailPage({ params }: PageProps) {
   return (
     <StudioPage className="max-w-5xl">
       <StudioSectionHeader
-        title={`Run ${run.run_id.slice(-8)}`}
+        title={`Agent work ${run.run_id.slice(-8)}`}
         subtitle={`Lane ${run.lane} · ${agentName ?? "agent: —"}`}
         actions={
           <div className="flex items-center gap-2">
@@ -173,7 +173,7 @@ export default async function GrowthRunDetailPage({ params }: PageProps) {
               href={`/dashboard/${websiteId}/growth/runs`}
               className="text-xs underline text-[var(--studio-text-muted)]"
             >
-              ← Volver
+              ← Volver a Review Queue
             </Link>
           </div>
         }
@@ -231,12 +231,12 @@ export default async function GrowthRunDetailPage({ params }: PageProps) {
             id="run-review-heading"
             className="text-base font-semibold text-[var(--studio-text)]"
           >
-            Review
+            Decision requerida
           </h2>
           {!canCurate ? (
             <p className="text-xs text-[var(--studio-text-muted)]">
-              Tu rol actual ({role}) no puede aprobar/rechazar runs. Se requiere{" "}
-              <code>curator</code> o superior.
+              Tu rol actual ({role}) no puede aprobar/rechazar trabajo de
+              agentes. Se requiere <code>curator</code> o superior.
             </p>
           ) : null}
         </header>
@@ -250,7 +250,7 @@ export default async function GrowthRunDetailPage({ params }: PageProps) {
               className="studio-button studio-button--primary disabled:opacity-50 disabled:cursor-not-allowed"
               title={
                 run.status !== "review_required"
-                  ? "Solo runs en review_required pueden aprobarse."
+                  ? "Solo trabajo en review_required puede aprobarse."
                   : undefined
               }
             >
@@ -337,7 +337,7 @@ export default async function GrowthRunDetailPage({ params }: PageProps) {
             id="run-evidence-heading"
             className="text-base font-semibold text-[var(--studio-text)]"
           >
-            Evidence
+            Evidencia explicable
           </h2>
         </header>
         <EvidenceBlock evidence={run.evidence} />

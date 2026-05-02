@@ -7,7 +7,7 @@ Last revised: 2026-05-01 (post-audit — added contract-first gate, SSOT relatio
 Owner: Growth OS Orchestrator + Council  
 Canonical execution: [#310](https://github.com/weppa-cloud/bukeer-studio/issues/310)  
 Child issues: [#402](https://github.com/weppa-cloud/bukeer-studio/issues/402) · [#403](https://github.com/weppa-cloud/bukeer-studio/issues/403) · [#404](https://github.com/weppa-cloud/bukeer-studio/issues/404) · [#405](https://github.com/weppa-cloud/bukeer-studio/issues/405) · [#406](https://github.com/weppa-cloud/bukeer-studio/issues/406) · [#407](https://github.com/weppa-cloud/bukeer-studio/issues/407) · [#408](https://github.com/weppa-cloud/bukeer-studio/issues/408) · [#409](https://github.com/weppa-cloud/bukeer-studio/issues/409)  
-Related SPECs: [SPEC_GROWTH_OS_SSOT_MODEL](./SPEC_GROWTH_OS_SSOT_MODEL.md), [SPEC_GROWTH_OS_AGENT_LANES](./SPEC_GROWTH_OS_AGENT_LANES.md), [SPEC_GROWTH_OS_UNIFIED_BACKLOG_AND_PROFILE_RUN_LEDGER](./SPEC_GROWTH_OS_UNIFIED_BACKLOG_AND_PROFILE_RUN_LEDGER.md), [SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX](./SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md)
+Related SPECs: [SPEC_GROWTH_OS_SSOT_MODEL](./SPEC_GROWTH_OS_SSOT_MODEL.md), [SPEC_GROWTH_OS_AGENT_LANES](./SPEC_GROWTH_OS_AGENT_LANES.md), [SPEC_GROWTH_OS_UNIFIED_BACKLOG_AND_PROFILE_RUN_LEDGER](./SPEC_GROWTH_OS_UNIFIED_BACKLOG_AND_PROFILE_RUN_LEDGER.md), [SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX](./SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md), [SPEC_GROWTH_OS_CONTROL_PLANE_UX](./SPEC_GROWTH_OS_CONTROL_PLANE_UX.md)
 
 ## Purpose
 
@@ -40,7 +40,7 @@ queue; GitHub receives implementation summaries and gate decisions.
 | D5       | `auto_apply` is computed and locked **per lane**. A lane unlocks for `auto_apply_safe` only when (a) lane-level evaluator agreement `>= 0.90`, (b) policy version current, (c) smoke contract passes. |
 | D6       | Content, transcreation, paid mutation and experiment activation are **always** human/Curator/Council gated, regardless of agreement score.                                                            |
 | D7       | Shared DB migrations are traced through `bukeer-flutter` as the operational SSOT for Supabase schema.                                                                                                 |
-| D8       | No child issue (#402–#409) moves to `in_progress` until the matching Zod schema in `@bukeer/website-contract/src/growth/agent-*.ts` is published (ADR-003 + ADR-008).                                  |
+| D8       | No child issue (#402–#409) moves to `in_progress` until the matching Zod schema in `@bukeer/website-contract/src/growth/agent-*.ts` is published (ADR-003 + ADR-008).                                 |
 | D9       | `growth_agent_runs` is the **runtime ledger** for agent execution; `growth_profile_runs` remains the **profile ledger** for Unified Backlog refresh cycles. Both coexist (see SSOT Relationship).     |
 | D10      | Sprint completion = Symphony `OPERATIONAL`. It does **not** by itself move #310 to `PASS`; #310 PASS still requires #312/#313/#322/#336 outcomes.                                                     |
 
@@ -48,13 +48,13 @@ queue; GitHub receives implementation summaries and gate decisions.
 
 Per [#310](https://github.com/weppa-cloud/bukeer-studio/issues/310) Epic acceptance criteria, no child issue moves to `in_progress` until its matching Zod schema is published in `@bukeer/website-contract/src/growth/`. Symphony introduces five new shared schemas:
 
-| Zod schema file                                            | Owner issue | Consumers                                                |
-| ---------------------------------------------------------- | ----------- | -------------------------------------------------------- |
-| `schemas/growth-agent-definitions.ts`                      | #403        | Orchestrator (#404), Studio UI Agents tab (#405)         |
-| `schemas/growth-agent-tool-permissions.ts`                 | #403        | Orchestrator (#404), tool wrappers, budget enforcement   |
-| `schemas/growth-agent-context-packs.ts`                    | #403        | Prompt assembly (#404), Studio context inspector (#405)  |
-| `schemas/growth-agent-runs.ts`                             | #403        | Orchestrator (#404), Studio Reviews & Runs (#407), E2E   |
-| `schemas/growth-agent-run-events.ts`                       | #403        | Orchestrator (#404), Studio Reviews & Runs (#407), E2E   |
+| Zod schema file                            | Owner issue | Consumers                                               |
+| ------------------------------------------ | ----------- | ------------------------------------------------------- |
+| `schemas/growth-agent-definitions.ts`      | #403        | Orchestrator (#404), Studio UI Agents tab (#405)        |
+| `schemas/growth-agent-tool-permissions.ts` | #403        | Orchestrator (#404), tool wrappers, budget enforcement  |
+| `schemas/growth-agent-context-packs.ts`    | #403        | Prompt assembly (#404), Studio context inspector (#405) |
+| `schemas/growth-agent-runs.ts`             | #403        | Orchestrator (#404), Studio Reviews & Runs (#407), E2E  |
+| `schemas/growth-agent-run-events.ts`       | #403        | Orchestrator (#404), Studio Reviews & Runs (#407), E2E  |
 
 > Path convention: existing growth schemas (`growth-attribution.ts`, `growth-events.ts`, `growth-inventory.ts`) live as flat files under `packages/website-contract/src/schemas/` with a `growth-` prefix. New Symphony schemas follow the same pattern.
 
@@ -119,11 +119,11 @@ Existing operational tables remain in use:
 
 The Unified Backlog workstream ([#394](https://github.com/weppa-cloud/bukeer-studio/issues/394) Profile Run Ledger, [#395](https://github.com/weppa-cloud/bukeer-studio/issues/395), [#396](https://github.com/weppa-cloud/bukeer-studio/issues/396), [#397](https://github.com/weppa-cloud/bukeer-studio/issues/397), [#398](https://github.com/weppa-cloud/bukeer-studio/issues/398), [#399](https://github.com/weppa-cloud/bukeer-studio/issues/399)) already introduces `growth_profile_runs` as a refresh-cycle ledger. To avoid double SSOT, this SPEC fixes the boundary:
 
-| Ledger                | Records                                                                                          | Granularity                            | Owner                |
-| --------------------- | ------------------------------------------------------------------------------------------------ | -------------------------------------- | -------------------- |
-| `growth_profile_runs` | Backlog profile refresh cycles (Generator/Validator passes that materialize backlog candidates). | One row per profile refresh.           | Unified Backlog (#394) |
-| `growth_agent_runs`   | Single agent invocation against a source row (claim, workspace, prompt, artifact, status).       | One row per claim by an agent.         | Symphony (#403)      |
-| `growth_agent_run_events` | Append-only events for one `growth_agent_runs` row.                                          | Many rows per agent run.               | Symphony (#403)      |
+| Ledger                    | Records                                                                                          | Granularity                    | Owner                  |
+| ------------------------- | ------------------------------------------------------------------------------------------------ | ------------------------------ | ---------------------- |
+| `growth_profile_runs`     | Backlog profile refresh cycles (Generator/Validator passes that materialize backlog candidates). | One row per profile refresh.   | Unified Backlog (#394) |
+| `growth_agent_runs`       | Single agent invocation against a source row (claim, workspace, prompt, artifact, status).       | One row per claim by an agent. | Symphony (#403)        |
+| `growth_agent_run_events` | Append-only events for one `growth_agent_runs` row.                                              | Many rows per agent run.       | Symphony (#403)        |
 
 Linkage rule:
 
@@ -158,13 +158,13 @@ max_active_experiments = 5
 
 ### Lanes (canonical, 5)
 
-| Lane                       | At `agreement >= 0.90`                       | Always gated (action classes)                                              |
-| -------------------------- | -------------------------------------------- | -------------------------------------------------------------------------- |
-| `orchestrator`             | `observe_only` (routing + gates only)        | All mutations — orchestrator never mutates business surfaces directly.     |
-| `technical_remediation`    | `auto_apply_safe` (reversible, smoke-tested) | Schema/canonical/hreflang batch deletes — Curator required.                |
-| `transcreation`            | `prepare_only` only                          | Locale merge / publish — Curator required.                                 |
-| `content_creator`          | `prepare_only` only                          | Publish — Curator required.                                                |
-| `content_curator`          | `prepare_only` only                          | Council promotion / experiment activation — Council required.              |
+| Lane                    | At `agreement >= 0.90`                       | Always gated (action classes)                                          |
+| ----------------------- | -------------------------------------------- | ---------------------------------------------------------------------- |
+| `orchestrator`          | `observe_only` (routing + gates only)        | All mutations — orchestrator never mutates business surfaces directly. |
+| `technical_remediation` | `auto_apply_safe` (reversible, smoke-tested) | Schema/canonical/hreflang batch deletes — Curator required.            |
+| `transcreation`         | `prepare_only` only                          | Locale merge / publish — Curator required.                             |
+| `content_creator`       | `prepare_only` only                          | Publish — Curator required.                                            |
+| `content_curator`       | `prepare_only` only                          | Council promotion / experiment activation — Council required.          |
 
 ### Cross-cutting action classes (always Council/Curator gated)
 
@@ -216,6 +216,13 @@ global concurrency cap
 
 ## Bukeer Studio UI Scope
 
+The runtime console is the technical substrate. The human-facing product
+contract lives in
+[SPEC_GROWTH_OS_CONTROL_PLANE_UX](./SPEC_GROWTH_OS_CONTROL_PLANE_UX.md). Studio
+must translate agent ledgers and backlog rows into operator language: what needs
+attention, why it matters, what evidence exists, who owns the next action and
+what is safe to approve.
+
 Route:
 
 ```text
@@ -224,14 +231,16 @@ Route:
 
 **Interlock with [#250](https://github.com/weppa-cloud/bukeer-studio/issues/250) / [#256](https://github.com/weppa-cloud/bukeer-studio/issues/256):** the Growth console ships under the Designer Reference Theme surface. While #256 remains BLOQUEANTE, the Growth console may be developed behind a feature flag (`GROWTH_OS_UI_ENABLED=false` in production) but cannot be exposed on the ColombiaTours pilot UI surface until #256 unblocks. Internal staging access for council/curator/admin roles is allowed.
 
-MVP tabs:
+MVP tabs evolve into human control-plane surfaces:
 
-| Tab             | Reads                                             | Purpose                                                                          |
-| --------------- | ------------------------------------------------- | -------------------------------------------------------------------------------- |
-| Overview        | agent definitions, runs, backlog, provider health | Show operational health, counts, agreement score and blockers.                   |
-| Agents          | definitions, permissions, context packs           | Enable/disable agents and inspect mode, tools, thresholds and workflow versions. |
-| Backlog by Lane | backlog items, content tasks, experiments         | Operate work by lane, status, next action and Council readiness.                 |
-| Reviews & Runs  | agent runs/events, AI reviews, human reviews      | Compare AI vs human decisions and inspect artifacts/logs.                        |
+| Tab            | Reads                                             | Purpose                                                                       |
+| -------------- | ------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Command Center | agent definitions, runs, backlog, provider health | Show what needs attention now, blocked work, stale data and Council status.   |
+| Agent Team     | definitions, permissions, context packs           | Inspect mission, mode, heartbeat, thresholds, work queue and safety rules.    |
+| Opportunities  | backlog items, content tasks, experiments         | Operate reviewed opportunities by lane, status, blocker and next action.      |
+| Review Queue   | agent runs/events, AI reviews, human reviews      | Decide review-required runs with explainable evidence and role-gated actions. |
+| Experiments    | experiments, Council-ready backlog                | Separate active measured readouts from operational batches.                   |
+| Data Health    | provider cache, profile usage, run health         | Inspect freshness, provider status, spend context and access blockers.        |
 
 MVP actions:
 
@@ -282,20 +291,20 @@ The contract validates:
 
 ## ADR Compliance
 
-| ADR                                  | Verdict | Notes                                                                                                       |
-| ------------------------------------ | ------- | ----------------------------------------------------------------------------------------------------------- |
-| ADR-001 Server-First Rendering       | PASS    | Growth console uses Server Components for initial reads.                                                    |
-| ADR-002 Error Handling               | PASS    | Orchestrator errors map to `error.code` envelope; `retryable` honored.                                      |
-| ADR-003 Contract-First Validation    | PASS    | Five Zod schemas listed in Contract-First Gate; children blocked until merged.                              |
-| ADR-008 Monorepo Packages            | PASS    | Schemas land in `@bukeer/website-contract` per cross-repo decision rule.                                    |
-| ADR-009 Multi-Tenant Routing         | PASS    | `account_id + website_id` mandatory on every table, query and tool call.                                    |
-| ADR-010 Observability                | PASS    | `growth_agent_run_events` is the canonical observability stream.                                            |
-| ADR-012 API Response Envelope        | PASS    | All Studio API routes for the console use the standard `{ ok, data, meta }` / `{ ok, error }` envelope.     |
-| ADR-013 Tech Validator Quality Gate  | TODO    | TVB (`tech-validator` MODE:TASK) required for #402–#409 before implementation.                              |
-| ADR-016 SEO Intelligence Caching     | PASS    | Studio console reads from cache layer; no render-path calls to GSC/GA4/DataForSEO.                          |
-| ADR-018 Webhook Idempotency          | PASS    | `growth_agent_runs.claim_id` is idempotency key for orchestrator restarts.                                  |
-| ADR-022 Auth/JWT                     | PASS    | UI uses Supabase SSR client; no direct JWT access.                                                          |
-| ADR-027 Designer Reference Theme     | INTERLOCK | #256 BLOQUEANTE prevents pilot UI exposure; staging-only until unblock.                                  |
+| ADR                                 | Verdict   | Notes                                                                                                   |
+| ----------------------------------- | --------- | ------------------------------------------------------------------------------------------------------- |
+| ADR-001 Server-First Rendering      | PASS      | Growth console uses Server Components for initial reads.                                                |
+| ADR-002 Error Handling              | PASS      | Orchestrator errors map to `error.code` envelope; `retryable` honored.                                  |
+| ADR-003 Contract-First Validation   | PASS      | Five Zod schemas listed in Contract-First Gate; children blocked until merged.                          |
+| ADR-008 Monorepo Packages           | PASS      | Schemas land in `@bukeer/website-contract` per cross-repo decision rule.                                |
+| ADR-009 Multi-Tenant Routing        | PASS      | `account_id + website_id` mandatory on every table, query and tool call.                                |
+| ADR-010 Observability               | PASS      | `growth_agent_run_events` is the canonical observability stream.                                        |
+| ADR-012 API Response Envelope       | PASS      | All Studio API routes for the console use the standard `{ ok, data, meta }` / `{ ok, error }` envelope. |
+| ADR-013 Tech Validator Quality Gate | TODO      | TVB (`tech-validator` MODE:TASK) required for #402–#409 before implementation.                          |
+| ADR-016 SEO Intelligence Caching    | PASS      | Studio console reads from cache layer; no render-path calls to GSC/GA4/DataForSEO.                      |
+| ADR-018 Webhook Idempotency         | PASS      | `growth_agent_runs.claim_id` is idempotency key for orchestrator restarts.                              |
+| ADR-022 Auth/JWT                    | PASS      | UI uses Supabase SSR client; no direct JWT access.                                                      |
+| ADR-027 Designer Reference Theme    | INTERLOCK | #256 BLOQUEANTE prevents pilot UI exposure; staging-only until unblock.                                 |
 
 ## Sprint Scope vs #310 PASS
 

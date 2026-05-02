@@ -1,18 +1,15 @@
-import { redirect } from 'next/navigation';
-import Link from 'next/link';
-import { z } from 'zod';
+import { redirect } from "next/navigation";
+import Link from "next/link";
+import { z } from "zod";
 
-import {
-  AgentLaneSchema,
-  type AgentLane,
-} from '@bukeer/website-contract';
+import { AgentLaneSchema, type AgentLane } from "@bukeer/website-contract";
 import {
   StudioPage,
   StudioSectionHeader,
   StudioBadge,
   StudioEmptyState,
-} from '@/components/studio/ui/primitives';
-import { createSupabaseServerClient } from '@/lib/supabase/server-client';
+} from "@/components/studio/ui/primitives";
+import { createSupabaseServerClient } from "@/lib/supabase/server-client";
 import {
   getBacklogByLane,
   getContentTasksByLane,
@@ -20,10 +17,10 @@ import {
   type BacklogQueryResult,
   type BacklogRow,
   type BacklogStatusBucket,
-} from '@/lib/growth/console/queries-backlog';
+} from "@/lib/growth/console/queries-backlog";
 
 /**
- * Growth Console — Backlog by Lane (SPEC #403, Issue #406).
+ * Growth Console — Opportunities (SPEC #403, Issue #406).
  *
  * Server Component (ADR-001). Read-only view of `growth_backlog_items` and
  * `growth_content_tasks`, grouped by canonical agent lane (5 lanes, see
@@ -40,19 +37,19 @@ import {
  */
 
 const LANES: ReadonlyArray<AgentLane> = [
-  'orchestrator',
-  'technical_remediation',
-  'transcreation',
-  'content_creator',
-  'content_curator',
+  "orchestrator",
+  "technical_remediation",
+  "transcreation",
+  "content_creator",
+  "content_curator",
 ];
 
 const LANE_LABELS: Record<AgentLane, string> = {
-  orchestrator: 'Orchestrator',
-  technical_remediation: 'Technical remediation',
-  transcreation: 'Transcreation',
-  content_creator: 'Content creator',
-  content_curator: 'Content curator',
+  orchestrator: "Orchestrator",
+  technical_remediation: "Technical remediation",
+  transcreation: "Transcreation",
+  content_creator: "Content creator",
+  content_curator: "Content curator",
 };
 
 const SearchParamsSchema = z.object({
@@ -69,39 +66,53 @@ interface BacklogPageProps {
 
 function buildHref(
   websiteId: string,
-  current: { lane?: AgentLane; status?: BacklogStatusBucket; page?: number; pageSize?: number },
-  override: Partial<{ lane?: AgentLane | null; status?: BacklogStatusBucket | null; page?: number; pageSize?: number }>,
+  current: {
+    lane?: AgentLane;
+    status?: BacklogStatusBucket;
+    page?: number;
+    pageSize?: number;
+  },
+  override: Partial<{
+    lane?: AgentLane | null;
+    status?: BacklogStatusBucket | null;
+    page?: number;
+    pageSize?: number;
+  }>,
 ): string {
   const params = new URLSearchParams();
-  const lane = 'lane' in override ? override.lane : current.lane;
-  const status = 'status' in override ? override.status : current.status;
-  const page = 'page' in override ? override.page : current.page;
-  const pageSize = 'pageSize' in override ? override.pageSize : current.pageSize;
-  if (lane) params.set('lane', lane);
-  if (status) params.set('status', status);
-  if (page && page > 1) params.set('page', String(page));
-  if (pageSize && pageSize !== 25) params.set('pageSize', String(pageSize));
+  const lane = "lane" in override ? override.lane : current.lane;
+  const status = "status" in override ? override.status : current.status;
+  const page = "page" in override ? override.page : current.page;
+  const pageSize =
+    "pageSize" in override ? override.pageSize : current.pageSize;
+  if (lane) params.set("lane", lane);
+  if (status) params.set("status", status);
+  if (page && page > 1) params.set("page", String(page));
+  if (pageSize && pageSize !== 25) params.set("pageSize", String(pageSize));
   const qs = params.toString();
-  return `/dashboard/${websiteId}/growth/backlog${qs ? `?${qs}` : ''}`;
+  return `/dashboard/${websiteId}/growth/backlog${qs ? `?${qs}` : ""}`;
 }
 
 function StatusPill({ status }: { status: string | null }) {
   if (!status) return <StudioBadge tone="neutral">—</StudioBadge>;
-  let tone: 'neutral' | 'info' | 'success' | 'warning' | 'danger' = 'neutral';
-  if (status === 'blocked' || status === 'rejected') tone = 'danger';
-  else if (status === 'watch') tone = 'warning';
-  else if (status === 'done' || status === 'shipped' || status === 'evaluated') tone = 'success';
-  else if (status.startsWith('ready')) tone = 'info';
-  else if (status.includes('progress') || status === 'approved_for_execution') tone = 'info';
+  let tone: "neutral" | "info" | "success" | "warning" | "danger" = "neutral";
+  if (status === "blocked" || status === "rejected") tone = "danger";
+  else if (status === "watch") tone = "warning";
+  else if (status === "done" || status === "shipped" || status === "evaluated")
+    tone = "success";
+  else if (status.startsWith("ready")) tone = "info";
+  else if (status.includes("progress") || status === "approved_for_execution")
+    tone = "info";
   return <StudioBadge tone={tone}>{status}</StudioBadge>;
 }
 
 function ReviewPill({ value }: { value: string | null }) {
-  if (!value) return <span className="text-xs text-[var(--studio-text-muted)]">—</span>;
-  let tone: 'neutral' | 'info' | 'success' | 'warning' | 'danger' = 'neutral';
-  if (/approve|pass|success/i.test(value)) tone = 'success';
-  else if (/reject|fail|block/i.test(value)) tone = 'danger';
-  else if (/watch|pending|review/i.test(value)) tone = 'warning';
+  if (!value)
+    return <span className="text-xs text-[var(--studio-text-muted)]">—</span>;
+  let tone: "neutral" | "info" | "success" | "warning" | "danger" = "neutral";
+  if (/approve|pass|success/i.test(value)) tone = "success";
+  else if (/reject|fail|block/i.test(value)) tone = "danger";
+  else if (/watch|pending|review/i.test(value)) tone = "warning";
   return <StudioBadge tone={tone}>{value}</StudioBadge>;
 }
 
@@ -118,12 +129,12 @@ function BacklogTable({ rows }: { rows: BacklogRow[] }) {
       <table className="w-full text-sm border-collapse">
         <thead>
           <tr className="text-left text-xs uppercase tracking-wide text-[var(--studio-text-muted)] border-b border-[var(--studio-border)]">
-            <th className="py-2 pr-3 font-medium">Title</th>
-            <th className="py-2 pr-3 font-medium">Source</th>
+            <th className="py-2 pr-3 font-medium">Opportunity</th>
+            <th className="py-2 pr-3 font-medium">Evidence</th>
             <th className="py-2 pr-3 font-medium">Status</th>
-            <th className="py-2 pr-3 font-medium">Council ready</th>
+            <th className="py-2 pr-3 font-medium">Council</th>
             <th className="py-2 pr-3 font-medium">Next action</th>
-            <th className="py-2 pr-3 font-medium">Blocked reason</th>
+            <th className="py-2 pr-3 font-medium">Blocker</th>
             <th className="py-2 pr-3 font-medium">AI review</th>
             <th className="py-2 pr-3 font-medium">Human review</th>
           </tr>
@@ -136,14 +147,16 @@ function BacklogTable({ rows }: { rows: BacklogRow[] }) {
             >
               <td className="py-2 pr-3 max-w-[320px]">
                 <div className="font-medium text-[var(--studio-text)]">
-                  {row.title ?? <span className="italic opacity-70">untitled</span>}
+                  {row.title ?? (
+                    <span className="italic opacity-70">untitled</span>
+                  )}
                 </div>
                 <div className="text-xs text-[var(--studio-text-muted)] font-mono">
                   {row.id}
                 </div>
               </td>
               <td className="py-2 pr-3 font-mono text-xs">
-                {row.source_table ?? '—'}
+                {row.source_table ?? "—"}
               </td>
               <td className="py-2 pr-3">
                 <StatusPill status={row.status} />
@@ -154,14 +167,16 @@ function BacklogTable({ rows }: { rows: BacklogRow[] }) {
                 ) : row.council_ready === false ? (
                   <StudioBadge tone="neutral">no</StudioBadge>
                 ) : (
-                  <span className="text-xs text-[var(--studio-text-muted)]">—</span>
+                  <span className="text-xs text-[var(--studio-text-muted)]">
+                    —
+                  </span>
                 )}
               </td>
               <td className="py-2 pr-3 max-w-[280px] text-xs">
-                {row.next_action ?? '—'}
+                {row.next_action ?? "—"}
               </td>
               <td className="py-2 pr-3 max-w-[240px] text-xs">
-                {row.blocked_reason ?? '—'}
+                {row.blocked_reason ?? "—"}
               </td>
               <td className="py-2 pr-3">
                 <ReviewPill value={row.ai_review_state} />
@@ -181,11 +196,22 @@ interface LaneSectionProps {
   lane: AgentLane;
   websiteId: string;
   result: BacklogQueryResult;
-  current: { lane?: AgentLane; status?: BacklogStatusBucket; page?: number; pageSize?: number };
+  current: {
+    lane?: AgentLane;
+    status?: BacklogStatusBucket;
+    page?: number;
+    pageSize?: number;
+  };
   selectedLane?: AgentLane;
 }
 
-function LaneSection({ lane, websiteId, result, current, selectedLane }: LaneSectionProps) {
+function LaneSection({
+  lane,
+  websiteId,
+  result,
+  current,
+  selectedLane,
+}: LaneSectionProps) {
   // When a lane filter is active, only render that lane's section.
   if (selectedLane && selectedLane !== lane) return null;
 
@@ -280,7 +306,12 @@ function FilterBar({
   current,
 }: {
   websiteId: string;
-  current: { lane?: AgentLane; status?: BacklogStatusBucket; page?: number; pageSize?: number };
+  current: {
+    lane?: AgentLane;
+    status?: BacklogStatusBucket;
+    page?: number;
+    pageSize?: number;
+  };
 }) {
   return (
     <div className="flex flex-wrap items-center gap-3 mt-2">
@@ -292,8 +323,8 @@ function FilterBar({
           href={buildHref(websiteId, current, { lane: null, page: 1 })}
           className={`text-xs px-2 py-1 rounded border ${
             !current.lane
-              ? 'bg-[var(--studio-text)] text-[var(--studio-bg)] border-transparent'
-              : 'border-[var(--studio-border)] hover:border-[var(--studio-text)]'
+              ? "bg-[var(--studio-text)] text-[var(--studio-bg)] border-transparent"
+              : "border-[var(--studio-border)] hover:border-[var(--studio-text)]"
           }`}
         >
           all
@@ -304,8 +335,8 @@ function FilterBar({
             href={buildHref(websiteId, current, { lane, page: 1 })}
             className={`text-xs px-2 py-1 rounded border ${
               current.lane === lane
-                ? 'bg-[var(--studio-text)] text-[var(--studio-bg)] border-transparent'
-                : 'border-[var(--studio-border)] hover:border-[var(--studio-text)]'
+                ? "bg-[var(--studio-text)] text-[var(--studio-bg)] border-transparent"
+                : "border-[var(--studio-border)] hover:border-[var(--studio-text)]"
             }`}
           >
             {LANE_LABELS[lane]}
@@ -320,8 +351,8 @@ function FilterBar({
           href={buildHref(websiteId, current, { status: null, page: 1 })}
           className={`text-xs px-2 py-1 rounded border ${
             !current.status
-              ? 'bg-[var(--studio-text)] text-[var(--studio-bg)] border-transparent'
-              : 'border-[var(--studio-border)] hover:border-[var(--studio-text)]'
+              ? "bg-[var(--studio-text)] text-[var(--studio-bg)] border-transparent"
+              : "border-[var(--studio-border)] hover:border-[var(--studio-text)]"
           }`}
         >
           all
@@ -332,8 +363,8 @@ function FilterBar({
             href={buildHref(websiteId, current, { status: bucket, page: 1 })}
             className={`text-xs px-2 py-1 rounded border ${
               current.status === bucket
-                ? 'bg-[var(--studio-text)] text-[var(--studio-bg)] border-transparent'
-                : 'border-[var(--studio-border)] hover:border-[var(--studio-text)]'
+                ? "bg-[var(--studio-text)] text-[var(--studio-bg)] border-transparent"
+                : "border-[var(--studio-border)] hover:border-[var(--studio-text)]"
             }`}
           >
             {bucket}
@@ -370,26 +401,26 @@ export default async function BacklogByLanePage({
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    redirect('/login');
+    redirect("/login");
   }
 
   // Tenant guard — resolve account_id from the website row (RLS scoped to the
   // user). If the user can't see this website, RLS returns no row and we
   // redirect to the dashboard root instead of leaking existence.
   const { data: website, error: websiteError } = await supabase
-    .from('websites')
-    .select('id, account_id')
-    .eq('id', websiteId)
+    .from("websites")
+    .select("id, account_id")
+    .eq("id", websiteId)
     .single();
 
   if (websiteError || !website) {
-    redirect('/dashboard');
+    redirect("/dashboard");
   }
 
   const accountId = website.account_id as string;
   if (!accountId) {
     // Defensive — every website row must carry account_id (ADR-009).
-    redirect('/dashboard');
+    redirect("/dashboard");
   }
 
   // Two parallel reads, each tenant-scoped.
@@ -421,8 +452,8 @@ export default async function BacklogByLanePage({
   return (
     <StudioPage className="max-w-7xl">
       <StudioSectionHeader
-        title="Backlog by Lane"
-        subtitle="Operate work by canonical agent lane, status and Council readiness. Read-only MVP."
+        title="Opportunities"
+        subtitle="Backlog priorizado en lenguaje operativo: evidencia, owner lane, blocker y siguiente accion."
         actions={
           <div className="flex items-center gap-2">
             <StudioBadge tone="info">SPEC #403 · Issue #406</StudioBadge>
@@ -435,8 +466,8 @@ export default async function BacklogByLanePage({
         See SPEC_GROWTH_OS_SYMPHONY_ORCHESTRATOR.md §"Bukeer Studio UI Scope".
       */}
       <p className="text-xs text-[var(--studio-text-muted)] mt-1">
-        Read-only view. Approve / reject / promote actions ship in a follow-up
-        per the Symphony Orchestrator MVP scope.
+        Read-only view. Las oportunidades pueden ejecutarse como batch
+        operativo; solo Council convierte una propuesta en experimento medible.
       </p>
 
       {anyError ? (
@@ -455,7 +486,7 @@ export default async function BacklogByLanePage({
         <div data-testid="growth-backlog-empty-state" className="mt-6">
           <StudioEmptyState
             title="No backlog yet"
-            description="Run the backlog generator (#397) or the Council packet generator (#399) to populate this view. While the migrations are still pending the underlying tables may not exist in this environment."
+            description="Corre el backlog generator (#397) o el Council packet (#399) para poblar oportunidades. La vista sigue estable aunque las tablas esten vacias."
           />
         </div>
       ) : null}
@@ -472,10 +503,11 @@ export default async function BacklogByLanePage({
                   id="backlog-items-heading"
                   className="text-lg font-semibold text-[var(--studio-text)]"
                 >
-                  Backlog items
+                  Backlog priorizado
                 </h2>
                 <p className="text-xs text-[var(--studio-text-muted)]">
-                  Source: <code>growth_backlog_items</code> · {backlog.total} items match
+                  Fuente operativa: <code>growth_backlog_items</code> ·{" "}
+                  {backlog.total} items match
                 </p>
               </div>
             </header>
@@ -511,7 +543,8 @@ export default async function BacklogByLanePage({
                 Content tasks
               </h2>
               <p className="text-xs text-[var(--studio-text-muted)]">
-                Source: <code>growth_content_tasks</code> · {contentTasks.total} items match
+                Source: <code>growth_content_tasks</code> · {contentTasks.total}{" "}
+                items match
               </p>
             </header>
 

@@ -1,5 +1,8 @@
-import type { AgentLane } from '@bukeer/website-contract';
-import { CANONICAL_LANES, getGrowthOverview } from '@/lib/growth/console/queries';
+import type { AgentLane } from "@bukeer/website-contract";
+import {
+  CANONICAL_LANES,
+  getGrowthOverview,
+} from "@/lib/growth/console/queries";
 
 /**
  * Growth OS Console — Overview tab (#405).
@@ -21,17 +24,25 @@ interface OverviewPageProps {
 }
 
 const LANE_LABELS: Record<AgentLane, string> = {
-  orchestrator: 'Orchestrator',
-  technical_remediation: 'Technical Remediation',
-  transcreation: 'Transcreation',
-  content_creator: 'Content Creator',
-  content_curator: 'Content Curator',
+  orchestrator: "Orchestrator",
+  technical_remediation: "Technical Remediation",
+  transcreation: "Transcreation",
+  content_creator: "Content Creator",
+  content_curator: "Content Curator",
+};
+
+const LANE_MISSIONS: Record<AgentLane, string> = {
+  orchestrator: "Clasifica bloqueos, asigna lanes y protege el SSOT.",
+  technical_remediation: "Prepara fixes SEO tecnicos y smoke verificable.",
+  transcreation: "Prepara locale/transcreacion sin publicar sin Curator.",
+  content_creator: "Crea briefs y updates, pero no se auto-aprueba.",
+  content_curator: "Revisa evidencia y prepara decisiones de Council.",
 };
 
 const MODE_LABELS: Record<string, string> = {
-  observe_only: 'Observe',
-  prepare_only: 'Prepare',
-  auto_apply_safe: 'Auto-apply (safe)',
+  observe_only: "Observe",
+  prepare_only: "Prepare",
+  auto_apply_safe: "Auto-apply (safe)",
 };
 
 interface MetricCardProps {
@@ -63,18 +74,20 @@ function MetricCard({ testId, label, value, hint }: MetricCardProps) {
 }
 
 function formatDate(iso: string | null | undefined): string {
-  if (!iso) return 'n/a';
+  if (!iso) return "n/a";
   try {
-    return new Date(iso).toLocaleString('es-CO', {
-      dateStyle: 'medium',
-      timeStyle: 'short',
+    return new Date(iso).toLocaleString("es-CO", {
+      dateStyle: "medium",
+      timeStyle: "short",
     });
   } catch {
     return iso;
   }
 }
 
-export default async function GrowthOverviewPage({ params }: OverviewPageProps) {
+export default async function GrowthOverviewPage({
+  params,
+}: OverviewPageProps) {
   const { websiteId } = await params;
 
   let overview: Awaited<ReturnType<typeof getGrowthOverview>>;
@@ -88,25 +101,50 @@ export default async function GrowthOverviewPage({ params }: OverviewPageProps) 
       >
         <p className="font-medium">Could not load Growth Overview.</p>
         <p className="mt-1 text-xs">
-          {err instanceof Error ? err.message : 'Unknown error.'}
+          {err instanceof Error ? err.message : "Unknown error."}
         </p>
       </section>
     );
   }
 
   const inFlight =
-    overview.runCounts.claimed
-    + overview.runCounts.running
-    + overview.runCounts.review_required;
+    overview.runCounts.claimed +
+    overview.runCounts.running +
+    overview.runCounts.review_required;
+  const attentionItems = [
+    {
+      label: "Revisar trabajo de agentes",
+      value: overview.runCounts.review_required,
+      detail: "runs en review_required antes de aplicar o descartar",
+    },
+    {
+      label: "Backlog listo para decision",
+      value: overview.backlogCounts.ready,
+      detail: "items listos para Council o Curator",
+    },
+    {
+      label: "Fuentes sin filas frescas",
+      value: overview.providerFreshness.length === 0 ? 1 : 0,
+      detail: "revisar Data Health si GSC/GA4/DataForSEO no aparecen",
+    },
+    {
+      label: "Agentes apagados",
+      value: Math.max(
+        0,
+        overview.agentCounts.total - overview.agentCounts.enabled,
+      ),
+      detail: "validar Agent Team si alguna lane no esta cubierta",
+    },
+  ].filter((item) => item.value > 0);
 
   const agreementValue = overview.agreement
     ? overview.agreement.lanes.length === 0
-      ? 'pending'
+      ? "pending"
       : `${(
-        overview.agreement.lanes.reduce((acc, l) => acc + l.agreement, 0)
-        / overview.agreement.lanes.length
-      ).toFixed(2)}`
-    : 'pending';
+          overview.agreement.lanes.reduce((acc, l) => acc + l.agreement, 0) /
+          overview.agreement.lanes.length
+        ).toFixed(2)}`
+    : "pending";
 
   const lanesByName = new Map(
     (overview.agreement?.lanes ?? []).map((l) => [l.lane, l] as const),
@@ -119,14 +157,16 @@ export default async function GrowthOverviewPage({ params }: OverviewPageProps) 
   return (
     <div className="flex flex-col gap-6">
       {/* Warnings — keep concise; do not block render. */}
-      {(overview.warnings.agentsTableMissing
-        || overview.warnings.runsTableMissing
-        || overview.warnings.backlogTableMissing) ? (
+      {overview.warnings.agentsTableMissing ||
+      overview.warnings.runsTableMissing ||
+      overview.warnings.backlogTableMissing ? (
         <div
           role="status"
           className="rounded-md border border-[var(--studio-warning,theme(colors.amber.300))] bg-[var(--studio-warning-surface,theme(colors.amber.50))] p-3 text-xs text-[var(--studio-warning,theme(colors.amber.800))]"
         >
-          Some Growth OS tables are not yet provisioned (#403 migration pending). The console renders empty defaults until the schema is in place.
+          Some Growth OS tables are not yet provisioned (#403 migration
+          pending). The console renders empty defaults until the schema is in
+          place.
         </div>
       ) : null}
 
@@ -145,37 +185,85 @@ export default async function GrowthOverviewPage({ params }: OverviewPageProps) 
           hint={
             overview.agentCounts.autoApplySafe > 0
               ? `${overview.agentCounts.autoApplySafe} on auto-apply (safe)`
-              : 'All in observe/prepare mode'
+              : "All in observe/prepare mode"
           }
         />
         <MetricCard
           testId="growth-overview-metric-runs"
-          label="Runs in flight"
+          label="Needs review / in flight"
           value={String(inFlight)}
           hint={`${overview.runCounts.review_required} awaiting review`}
         />
         <MetricCard
           testId="growth-overview-metric-backlog"
-          label="Backlog ready"
+          label="Decision-ready backlog"
           value={String(overview.backlogCounts.ready)}
           hint={`${overview.backlogCounts.total} total items`}
         />
         <MetricCard
           testId="growth-overview-metric-agreement"
-          label="Agreement score"
+          label="Autonomy agreement"
           value={agreementValue}
           hint={
             overview.agreement
               ? `policy ${overview.agreement.policy_version}${
-                overview.agreement.isPlaceholder ? ' (baseline placeholder)' : ''
-              }`
-              : 'No artifact yet'
+                  overview.agreement.isPlaceholder
+                    ? " (baseline placeholder)"
+                    : ""
+                }`
+              : "No artifact yet"
           }
         />
       </section>
 
+      <section
+        aria-labelledby="attention-heading"
+        data-testid="growth-command-center-attention"
+        className="rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] bg-[var(--studio-surface,theme(colors.white))] p-4"
+      >
+        <header>
+          <h2
+            id="attention-heading"
+            className="text-base font-semibold text-[var(--studio-text-strong,theme(colors.zinc.900))]"
+          >
+            Que necesita atencion ahora
+          </h2>
+          <p className="text-sm text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+            Estado EPIC #310: PASS-WITH-WATCH operativo. El sistema prepara
+            trabajo, pero contenido, transcreacion, paid y experimentos siguen
+            con aprobacion humana/Council.
+          </p>
+        </header>
+        {attentionItems.length === 0 ? (
+          <p className="mt-3 text-sm text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+            No hay acciones urgentes detectadas en la consola. Revisa Data
+            Health antes del siguiente Council.
+          </p>
+        ) : (
+          <ul className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-2">
+            {attentionItems.map((item) => (
+              <li
+                key={item.label}
+                className="rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] p-3"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <span className="font-medium">{item.label}</span>
+                  <span className="text-lg font-semibold">{item.value}</span>
+                </div>
+                <p className="mt-1 text-xs text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                  {item.detail}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
       {/* Lane status table */}
-      <section aria-labelledby="lane-status-heading" className="flex flex-col gap-2">
+      <section
+        aria-labelledby="lane-status-heading"
+        className="flex flex-col gap-2"
+      >
         <header>
           <h2
             id="lane-status-heading"
@@ -184,7 +272,7 @@ export default async function GrowthOverviewPage({ params }: OverviewPageProps) 
             Lane status
           </h2>
           <p className="text-sm text-[var(--studio-text-muted,theme(colors.zinc.500))]">
-            One row per canonical lane (SPEC_GROWTH_OS_AGENT_LANES.md).
+            Equipo Growth OS por lane: mision, modo, acuerdo y evidencia.
           </p>
         </header>
         <div className="overflow-x-auto rounded-md border border-[var(--studio-border,theme(colors.zinc.200))]">
@@ -194,11 +282,24 @@ export default async function GrowthOverviewPage({ params }: OverviewPageProps) 
           >
             <thead className="bg-[var(--studio-surface-muted,theme(colors.zinc.50))] text-xs uppercase tracking-wide text-[var(--studio-text-muted,theme(colors.zinc.500))]">
               <tr>
-                <th scope="col" className="px-3 py-2 text-left">Lane</th>
-                <th scope="col" className="px-3 py-2 text-left">Mode</th>
-                <th scope="col" className="px-3 py-2 text-left">Agreement</th>
-                <th scope="col" className="px-3 py-2 text-left">Sample</th>
-                <th scope="col" className="px-3 py-2 text-left">Computed</th>
+                <th scope="col" className="px-3 py-2 text-left">
+                  Lane
+                </th>
+                <th scope="col" className="px-3 py-2 text-left">
+                  Mission
+                </th>
+                <th scope="col" className="px-3 py-2 text-left">
+                  Mode
+                </th>
+                <th scope="col" className="px-3 py-2 text-left">
+                  Agreement
+                </th>
+                <th scope="col" className="px-3 py-2 text-left">
+                  Sample
+                </th>
+                <th scope="col" className="px-3 py-2 text-left">
+                  Computed
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -214,17 +315,20 @@ export default async function GrowthOverviewPage({ params }: OverviewPageProps) 
                     <th scope="row" className="px-3 py-2 text-left font-medium">
                       {LANE_LABELS[lane]}
                     </th>
-                    <td className="px-3 py-2">
-                      {agent ? (MODE_LABELS[agent.mode] ?? agent.mode) : '—'}
+                    <td className="px-3 py-2 max-w-[260px] text-xs text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                      {LANE_MISSIONS[lane]}
                     </td>
                     <td className="px-3 py-2">
-                      {agreement ? agreement.agreement.toFixed(2) : 'pending'}
+                      {agent ? (MODE_LABELS[agent.mode] ?? agent.mode) : "—"}
                     </td>
                     <td className="px-3 py-2">
-                      {agreement ? String(agreement.sample_size) : '—'}
+                      {agreement ? agreement.agreement.toFixed(2) : "pending"}
+                    </td>
+                    <td className="px-3 py-2">
+                      {agreement ? String(agreement.sample_size) : "—"}
                     </td>
                     <td className="px-3 py-2 text-xs text-[var(--studio-text-muted,theme(colors.zinc.500))]">
-                      {agreement ? formatDate(agreement.computed_at) : '—'}
+                      {agreement ? formatDate(agreement.computed_at) : "—"}
                     </td>
                   </tr>
                 );

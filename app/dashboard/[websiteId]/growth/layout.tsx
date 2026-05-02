@@ -1,5 +1,5 @@
-import Link from 'next/link';
-import { requireGrowthRole } from '@/lib/growth/console/auth';
+import Link from "next/link";
+import { requireGrowthRole } from "@/lib/growth/console/auth";
 
 /**
  * Growth Console layout — SPEC_GROWTH_OS_SYMPHONY_ORCHESTRATOR.md
@@ -21,12 +21,41 @@ interface GrowthLayoutProps {
   params: Promise<{ websiteId: string }>;
 }
 
-const TABS: ReadonlyArray<{ slug: string; label: string; href: (id: string) => string }> = [
-  { slug: 'inventory', label: 'Inventory (#311)', href: (id) => `/dashboard/${id}/growth` },
-  { slug: 'overview', label: 'Symphony Overview', href: (id) => `/dashboard/${id}/growth/overview` },
-  { slug: 'agents', label: 'Agents', href: (id) => `/dashboard/${id}/growth/agents` },
-  { slug: 'backlog', label: 'Backlog', href: (id) => `/dashboard/${id}/growth/backlog` },
-  { slug: 'runs', label: 'Reviews & Runs', href: (id) => `/dashboard/${id}/growth/runs` },
+const TABS: ReadonlyArray<{
+  slug: string;
+  label: string;
+  href: (id: string) => string;
+}> = [
+  {
+    slug: "overview",
+    label: "Command Center",
+    href: (id) => `/dashboard/${id}/growth/overview`,
+  },
+  {
+    slug: "agents",
+    label: "Agent Team",
+    href: (id) => `/dashboard/${id}/growth/agents`,
+  },
+  {
+    slug: "backlog",
+    label: "Opportunities",
+    href: (id) => `/dashboard/${id}/growth/backlog`,
+  },
+  {
+    slug: "runs",
+    label: "Review Queue",
+    href: (id) => `/dashboard/${id}/growth/runs`,
+  },
+  {
+    slug: "experiments",
+    label: "Experiments",
+    href: (id) => `/dashboard/${id}/growth/experiments`,
+  },
+  {
+    slug: "data-health",
+    label: "Data Health",
+    href: (id) => `/dashboard/${id}/growth/data-health`,
+  },
 ];
 
 function FeatureGatedPlaceholder() {
@@ -37,7 +66,7 @@ function FeatureGatedPlaceholder() {
           Growth OS Console
         </h1>
         <p className="mt-2 text-sm text-[var(--studio-text-muted,theme(colors.zinc.600))]">
-          Coming soon — gated by{' '}
+          Coming soon — gated by{" "}
           <a
             href="https://github.com/weppa-cloud/bukeer-studio/issues/256"
             className="underline underline-offset-2"
@@ -46,7 +75,8 @@ function FeatureGatedPlaceholder() {
           >
             #256
           </a>
-          . Internal staging access is enabled for council, curator and admin roles.
+          . Internal staging access is enabled for council, curator and admin
+          roles.
         </p>
       </div>
     </div>
@@ -60,12 +90,12 @@ export default async function GrowthLayout({
   const { websiteId } = await params;
 
   // Tenant membership (server-side). Throws via redirect on mismatch.
-  await requireGrowthRole(websiteId, 'viewer');
+  await requireGrowthRole(websiteId, "viewer");
 
   // Feature flag gate. Staging/dev always render; production requires the
   // explicit opt-in env var (per SPEC §"Bukeer Studio UI Scope").
-  const flagEnabled = process.env.GROWTH_OS_UI_ENABLED === 'true';
-  const isProduction = process.env.NODE_ENV === 'production';
+  const flagEnabled = process.env.GROWTH_OS_UI_ENABLED === "true";
+  const isProduction = process.env.NODE_ENV === "production";
   if (isProduction && !flagEnabled) {
     return <FeatureGatedPlaceholder />;
   }
@@ -78,7 +108,8 @@ export default async function GrowthLayout({
             Growth OS
           </h1>
           <p className="text-sm text-[var(--studio-text-muted,theme(colors.zinc.600))]">
-            Symphony Orchestrator console — observe, prepare, and gate agent runs across the five canonical lanes.
+            Human control plane for ColombiaTours Growth OS — review agent work,
+            inspect evidence, and gate Council decisions.
           </p>
         </div>
         <nav

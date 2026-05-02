@@ -32,7 +32,7 @@ import {
  */
 
 const SearchParamsSchema = z.object({
-  status: AgentRunStatusSchema.optional(),
+  status: z.union([AgentRunStatusSchema, z.literal("all")]).optional(),
   lane: AgentLaneSchema.optional(),
   page: z.coerce.number().int().min(1).max(1000).optional(),
   pageSize: z.coerce.number().int().min(1).max(100).optional(),
@@ -101,10 +101,14 @@ export default async function GrowthRunsListPage({
 
   const auth = await requireGrowthRole(websiteId, "viewer");
   const accountId = auth.accountId;
+  const statusFilter =
+    filters.status === "all"
+      ? undefined
+      : (filters.status ?? "review_required");
 
   const result = await getAgentRuns(websiteId, {
     accountId,
-    status: filters.status,
+    status: statusFilter,
     lane: filters.lane,
     page: filters.page,
     pageSize: filters.pageSize,
@@ -115,8 +119,8 @@ export default async function GrowthRunsListPage({
   return (
     <StudioPage className="max-w-7xl">
       <StudioSectionHeader
-        title="Reviews & Agent Runs"
-        subtitle="Symphony Orchestrator — agent run ledger por tenant. Append-only."
+        title="Review Queue"
+        subtitle="Trabajo de agentes que requiere decision humana. Append-only y tenant-scoped."
         actions={
           <div className="flex items-center gap-2">
             <StudioBadge tone="info">Issue #407</StudioBadge>
@@ -156,10 +160,10 @@ export default async function GrowthRunsListPage({
           <span className="text-[var(--studio-text-muted)]">Status</span>
           <select
             name="status"
-            defaultValue={filters.status ?? ""}
+            defaultValue={statusFilter ?? "all"}
             className="studio-input"
           >
-            <option value="">Todos</option>
+            <option value="all">Todos</option>
             {AGENT_RUN_STATUS_OPTIONS.map((s) => (
               <option key={s} value={s}>
                 {s}
@@ -204,7 +208,7 @@ export default async function GrowthRunsListPage({
             href={`/dashboard/${websiteId}/growth/runs`}
             className="text-xs underline text-[var(--studio-text-muted)]"
           >
-            Limpiar
+            Volver a review_required
           </Link>
         ) : null}
       </form>
@@ -233,7 +237,7 @@ export default async function GrowthRunsListPage({
           <table data-testid="growth-runs-list" className="w-full text-sm">
             <thead>
               <tr className="text-left text-[var(--studio-text-muted)] border-b border-[var(--studio-border)]">
-                <th className="px-3 py-2 font-medium">Run</th>
+                <th className="px-3 py-2 font-medium">Trabajo</th>
                 <th className="px-3 py-2 font-medium">Agent</th>
                 <th className="px-3 py-2 font-medium">Lane</th>
                 <th className="px-3 py-2 font-medium">Status</th>
@@ -241,7 +245,7 @@ export default async function GrowthRunsListPage({
                 <th className="px-3 py-2 font-medium">Started</th>
                 <th className="px-3 py-2 font-medium">Finished</th>
                 <th className="px-3 py-2 font-medium">Artifact</th>
-                <th className="px-3 py-2 font-medium">Agreement</th>
+                <th className="px-3 py-2 font-medium">Decision</th>
               </tr>
             </thead>
             <tbody>
@@ -311,7 +315,7 @@ export default async function GrowthRunsListPage({
             {result.page > 1 ? (
               <Link
                 href={buildHref(websiteId, {
-                  status: filters.status,
+                  status: statusFilter,
                   lane: filters.lane,
                   page: result.page - 1,
                   pageSize: result.pageSize,
@@ -324,7 +328,7 @@ export default async function GrowthRunsListPage({
             {result.page < totalPages ? (
               <Link
                 href={buildHref(websiteId, {
-                  status: filters.status,
+                  status: statusFilter,
                   lane: filters.lane,
                   page: result.page + 1,
                   pageSize: result.pageSize,

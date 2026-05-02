@@ -127,9 +127,9 @@ lanes:
     model: <model id, e.g. anthropic/claude-sonnet-4-7>
     prompt_version: <pinned prompt version, e.g. v1>
 concurrency:
-  global: <int>      # cluster-wide cap
-  per_tenant: <int>  # cap per (account_id, website_id)
-  per_lane: <int>    # cap per (account_id, website_id, lane)
+  global: <int> # cluster-wide cap
+  per_tenant: <int> # cap per (account_id, website_id)
+  per_lane: <int> # cap per (account_id, website_id, lane)
 heartbeat_ttl_seconds: <int>
 ```
 
@@ -170,6 +170,11 @@ Notes:
 - This block is the runtime default. Per-tenant overrides come from
   `growth_agent_definitions` (mode, model, prompt_version,
   agreement_threshold, max_concurrent_runs).
+- The VPS runtime feeds the Bukeer Studio Review Queue by claiming eligible
+  rows into `growth_agent_runs`, appending `growth_agent_run_events`, writing an
+  artifact, and leaving unsafe work in `review_required` for human/Curator
+  approval. The human-facing copy and tab model are defined in
+  `docs/specs/SPEC_GROWTH_OS_CONTROL_PLANE_UX.md`.
 - The legacy "Lane Limits" section above (long lane names) predates the
   canonical-5 lane finalization in `SPEC_GROWTH_OS_AGENT_LANES.md`. The
   orchestrator runtime reads the **canonical-5** schema in this section.

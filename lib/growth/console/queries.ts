@@ -21,34 +21,33 @@
  *   - SPEC_GROWTH_OS_UNIFIED_BACKLOG_AND_PROFILE_RUN_LEDGER.md
  */
 
-import 'server-only';
-import fs from 'node:fs/promises';
-import path from 'node:path';
-import { z } from 'zod';
+import "server-only";
+import fs from "node:fs/promises";
+import path from "node:path";
+import { z } from "zod";
 
 import {
   AgentLaneSchema,
   GrowthAgentDefinitionSchema,
   type AgentLane,
   type GrowthAgentDefinition,
-} from '@bukeer/website-contract';
+} from "@bukeer/website-contract";
 import {
   AgentRunStatusSchema,
   type AgentRunStatus,
-} from '@bukeer/website-contract';
+} from "@bukeer/website-contract";
 
-import { createSupabaseServerClient } from '@/lib/supabase/server-client';
-import { asTyped } from '@/lib/supabase/typed-client';
-import { requireGrowthRole } from './auth';
+import { createSupabaseServerClient } from "@/lib/supabase/server-client";
+import { asTyped } from "@/lib/supabase/typed-client";
+import { requireGrowthRole } from "./auth";
 
-const POSTGRES_MISSING_RELATION = '42P01';
+const POSTGRES_MISSING_RELATION = "42P01";
 
 /**
  * The five canonical lanes from SPEC_GROWTH_OS_AGENT_LANES.md.
  * Used to seed empty status rows in the Overview lane table.
  */
-export const CANONICAL_LANES: readonly AgentLane[] =
-  AgentLaneSchema.options;
+export const CANONICAL_LANES: readonly AgentLane[] = AgentLaneSchema.options;
 
 export interface RunStatusCounts {
   claimed: number;
@@ -69,12 +68,12 @@ const ZERO_RUN_COUNTS: RunStatusCounts = {
 };
 
 const BacklogStatusSchema = z.enum([
-  'idea',
-  'queued',
-  'in_progress',
-  'shipped',
-  'evaluated',
-  'archived',
+  "idea",
+  "queued",
+  "in_progress",
+  "shipped",
+  "evaluated",
+  "archived",
   // Tolerant fallthrough — backlog statuses may evolve before #406 ships.
 ]);
 type BacklogStatus = z.infer<typeof BacklogStatusSchema>;
@@ -149,6 +148,15 @@ export interface GrowthOverview {
   };
 }
 
+export interface GrowthDataHealth {
+  providerFreshness: ProviderFreshnessRow[];
+  runCounts: RunStatusCounts;
+  warnings: {
+    providerCacheMissing: boolean;
+    runsTableMissing: boolean;
+  };
+}
+
 interface RawAgentDefinitionRow {
   account_id: string;
   website_id: string;
@@ -170,7 +178,7 @@ interface RawAgentDefinitionRow {
 }
 
 function toIsoDateTime(value: unknown): unknown {
-  if (typeof value !== 'string') return value;
+  if (typeof value !== "string") return value;
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toISOString();
@@ -187,13 +195,13 @@ async function fetchAgents(
   const supabase = await createSupabaseServerClient();
 
   const { data, error } = await asTyped(supabase)
-    .from('growth_agent_definitions')
+    .from("growth_agent_definitions")
     .select(
-      'account_id, website_id, agent_id, lane, name, enabled, mode, model, prompt_version, workflow_version, agreement_threshold, max_concurrent_runs, max_active_experiments, locale, market, created_at, updated_at',
+      "account_id, website_id, agent_id, lane, name, enabled, mode, model, prompt_version, workflow_version, agreement_threshold, max_concurrent_runs, max_active_experiments, locale, market, created_at, updated_at",
     )
-    .eq('account_id', accountId)
-    .eq('website_id', websiteId)
-    .order('lane', { ascending: true });
+    .eq("account_id", accountId)
+    .eq("website_id", websiteId)
+    .order("lane", { ascending: true });
 
   if (error) {
     if (isMissingRelation(error)) {
@@ -218,20 +226,32 @@ async function fetchAgents(
 async function fetchRunCounts(
   websiteId: string,
   accountId: string,
-): Promise<{ counts: RunStatusCounts; missingTable: boolean; errored: boolean }> {
+): Promise<{
+  counts: RunStatusCounts;
+  missingTable: boolean;
+  errored: boolean;
+}> {
   const supabase = await createSupabaseServerClient();
 
   const { data, error } = await asTyped(supabase)
-    .from('growth_agent_runs')
-    .select('status')
-    .eq('account_id', accountId)
-    .eq('website_id', websiteId);
+    .from("growth_agent_runs")
+    .select("status")
+    .eq("account_id", accountId)
+    .eq("website_id", websiteId);
 
   if (error) {
     if (isMissingRelation(error)) {
-      return { counts: { ...ZERO_RUN_COUNTS }, missingTable: true, errored: false };
+      return {
+        counts: { ...ZERO_RUN_COUNTS },
+        missingTable: true,
+        errored: false,
+      };
     }
-    return { counts: { ...ZERO_RUN_COUNTS }, missingTable: false, errored: true };
+    return {
+      counts: { ...ZERO_RUN_COUNTS },
+      missingTable: false,
+      errored: true,
+    };
   }
 
   const rows = (data ?? []) as Array<{ status: string }>;
@@ -256,10 +276,10 @@ async function fetchBacklogCounts(
   const supabase = await createSupabaseServerClient();
 
   const { data, error } = await asTyped(supabase)
-    .from('growth_backlog_items')
-    .select('status')
-    .eq('account_id', accountId)
-    .eq('website_id', websiteId);
+    .from("growth_backlog_items")
+    .select("status")
+    .eq("account_id", accountId)
+    .eq("website_id", websiteId);
 
   if (error) {
     if (isMissingRelation(error)) {
@@ -285,7 +305,7 @@ async function fetchBacklogCounts(
     // `approved_for_execution`, `queued`, `brief_in_progress`, `done`,
     // `blocked`. Map to the BacklogStatus enum where it overlaps; treat
     // `ready_for_council` as the "ready" bucket.
-    if (row.status === 'ready_for_council') {
+    if (row.status === "ready_for_council") {
       counts.ready += 1;
       continue;
     }
@@ -301,7 +321,11 @@ async function fetchBacklogCounts(
 async function fetchProviderFreshness(
   websiteId: string,
   accountId: string,
-): Promise<{ rows: ProviderFreshnessRow[]; missingTable: boolean; errored: boolean }> {
+): Promise<{
+  rows: ProviderFreshnessRow[];
+  missingTable: boolean;
+  errored: boolean;
+}> {
   const supabase = await createSupabaseServerClient();
 
   // `seo_provider_cache` is the single source of truth for provider
@@ -309,13 +333,15 @@ async function fetchProviderFreshness(
   // The relation may not exist in every environment yet (provisioned
   // out-of-band). Cast to bypass the literal-table-name check; missing
   // relation surfaces as 42P01 below.
-  const { data, error } = await (asTyped(supabase).from as unknown as (
-    table: string,
-  ) => ReturnType<typeof supabase.from>)('seo_provider_cache')
-    .select('provider, last_synced_at, status, message')
-    .eq('account_id', accountId)
-    .eq('website_id', websiteId)
-    .order('provider', { ascending: true });
+  const { data, error } = await (
+    asTyped(supabase).from as unknown as (
+      table: string,
+    ) => ReturnType<typeof supabase.from>
+  )("seo_provider_cache")
+    .select("provider, last_synced_at, status, message")
+    .eq("account_id", accountId)
+    .eq("website_id", websiteId)
+    .order("provider", { ascending: true });
 
   if (error) {
     if (isMissingRelation(error)) {
@@ -364,7 +390,7 @@ export async function getLaneAgreement(
   // ship a single account-wide file in MVP.
   void websiteId;
 
-  const dir = path.join(process.cwd(), 'evidence', 'growth');
+  const dir = path.join(process.cwd(), "evidence", "growth");
   let entries: string[];
   try {
     entries = await fs.readdir(dir);
@@ -373,7 +399,7 @@ export async function getLaneAgreement(
   }
 
   const files = entries
-    .filter((f) => f.startsWith('agreement-lane-') && f.endsWith('.json'))
+    .filter((f) => f.startsWith("agreement-lane-") && f.endsWith(".json"))
     .sort()
     .reverse();
 
@@ -382,7 +408,7 @@ export async function getLaneAgreement(
   const target = path.join(dir, files[0]);
   let raw: string;
   try {
-    raw = await fs.readFile(target, 'utf-8');
+    raw = await fs.readFile(target, "utf-8");
   } catch {
     return null;
   }
@@ -397,8 +423,9 @@ export async function getLaneAgreement(
   const parsed = AgreementFileSchema.safeParse(json);
   if (!parsed.success) return null;
 
-  const isPlaceholder = typeof parsed.data._comment === 'string'
-    && parsed.data._comment.toLowerCase().includes('placeholder');
+  const isPlaceholder =
+    typeof parsed.data._comment === "string" &&
+    parsed.data._comment.toLowerCase().includes("placeholder");
 
   // Roll-up: if multiple rows per lane, keep the highest sample_size.
   const byLane = new Map<AgentLane, LaneAgreementEntry>();
@@ -430,7 +457,7 @@ export async function getLaneAgreement(
 export async function getGrowthOverview(
   websiteId: string,
 ): Promise<GrowthOverview> {
-  const ctx = await requireGrowthRole(websiteId, 'viewer');
+  const ctx = await requireGrowthRole(websiteId, "viewer");
 
   const [agentsResult, runsResult, backlogResult, providerResult, agreement] =
     await Promise.all([
@@ -443,7 +470,7 @@ export async function getGrowthOverview(
 
   const enabled = agentsResult.agents.filter((a) => a.enabled).length;
   const autoApplySafe = agentsResult.agents.filter(
-    (a) => a.mode === 'auto_apply_safe',
+    (a) => a.mode === "auto_apply_safe",
   ).length;
 
   return {
@@ -472,6 +499,25 @@ export async function getGrowthOverview(
 export async function getGrowthAgents(
   websiteId: string,
 ): Promise<AgentDefinitionsResult> {
-  const ctx = await requireGrowthRole(websiteId, 'viewer');
+  const ctx = await requireGrowthRole(websiteId, "viewer");
   return fetchAgents(ctx.websiteId, ctx.accountId);
+}
+
+export async function getGrowthDataHealth(
+  websiteId: string,
+): Promise<GrowthDataHealth> {
+  const ctx = await requireGrowthRole(websiteId, "viewer");
+  const [providerResult, runsResult] = await Promise.all([
+    fetchProviderFreshness(ctx.websiteId, ctx.accountId),
+    fetchRunCounts(ctx.websiteId, ctx.accountId),
+  ]);
+
+  return {
+    providerFreshness: providerResult.rows,
+    runCounts: runsResult.counts,
+    warnings: {
+      providerCacheMissing: providerResult.missingTable,
+      runsTableMissing: runsResult.missingTable,
+    },
+  };
 }
