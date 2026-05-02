@@ -452,7 +452,7 @@ export default async function BacklogByLanePage({
       <FilterBar websiteId={websiteId} current={current} />
 
       {bothMissing || totalAcross === 0 ? (
-        <div className="mt-6">
+        <div data-testid="growth-backlog-empty-state" className="mt-6">
           <StudioEmptyState
             title="No backlog yet"
             description="Run the backlog generator (#397) or the Council packet generator (#399) to populate this view. While the migrations are still pending the underlying tables may not exist in this environment."
@@ -461,7 +461,7 @@ export default async function BacklogByLanePage({
       ) : null}
 
       {!bothMissing && totalAcross > 0 ? (
-        <>
+        <div data-testid="growth-backlog-table">
           <section
             aria-labelledby="backlog-items-heading"
             className="space-y-2 mt-6"
@@ -533,7 +533,7 @@ export default async function BacklogByLanePage({
               ))
             )}
           </section>
-        </>
+        </div>
       ) : null}
     </StudioPage>
   );

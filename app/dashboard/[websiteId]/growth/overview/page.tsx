@@ -35,14 +35,18 @@ const MODE_LABELS: Record<string, string> = {
 };
 
 interface MetricCardProps {
+  testId: string;
   label: string;
   value: string;
   hint?: string;
 }
 
-function MetricCard({ label, value, hint }: MetricCardProps) {
+function MetricCard({ testId, label, value, hint }: MetricCardProps) {
   return (
-    <article className="rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] bg-[var(--studio-surface,theme(colors.white))] p-4">
+    <article
+      data-testid={testId}
+      className="rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] bg-[var(--studio-surface,theme(colors.white))] p-4"
+    >
       <div className="text-xs font-medium uppercase tracking-wide text-[var(--studio-text-muted,theme(colors.zinc.500))]">
         {label}
       </div>
@@ -135,6 +139,7 @@ export default async function GrowthOverviewPage({ params }: OverviewPageProps) 
           Operational metrics
         </h2>
         <MetricCard
+          testId="growth-overview-metric-agents"
           label="Agents enabled"
           value={`${overview.agentCounts.enabled} / ${overview.agentCounts.total || 0}`}
           hint={
@@ -144,16 +149,19 @@ export default async function GrowthOverviewPage({ params }: OverviewPageProps) 
           }
         />
         <MetricCard
+          testId="growth-overview-metric-runs"
           label="Runs in flight"
           value={String(inFlight)}
           hint={`${overview.runCounts.review_required} awaiting review`}
         />
         <MetricCard
+          testId="growth-overview-metric-backlog"
           label="Backlog ready"
           value={String(overview.backlogCounts.ready)}
           hint={`${overview.backlogCounts.total} total items`}
         />
         <MetricCard
+          testId="growth-overview-metric-agreement"
           label="Agreement score"
           value={agreementValue}
           hint={
@@ -180,7 +188,10 @@ export default async function GrowthOverviewPage({ params }: OverviewPageProps) 
           </p>
         </header>
         <div className="overflow-x-auto rounded-md border border-[var(--studio-border,theme(colors.zinc.200))]">
-          <table className="w-full text-sm">
+          <table
+            data-testid="growth-overview-lane-table"
+            className="w-full text-sm"
+          >
             <thead className="bg-[var(--studio-surface-muted,theme(colors.zinc.50))] text-xs uppercase tracking-wide text-[var(--studio-text-muted,theme(colors.zinc.500))]">
               <tr>
                 <th scope="col" className="px-3 py-2 text-left">Lane</th>
@@ -197,6 +208,7 @@ export default async function GrowthOverviewPage({ params }: OverviewPageProps) 
                 return (
                   <tr
                     key={lane}
+                    data-testid={`growth-overview-lane-row-${lane}`}
                     className="border-t border-[var(--studio-border,theme(colors.zinc.200))]"
                   >
                     <th scope="row" className="px-3 py-2 text-left font-medium">

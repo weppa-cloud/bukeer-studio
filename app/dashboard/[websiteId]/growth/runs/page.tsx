@@ -226,13 +226,15 @@ export default async function GrowthRunsListPage({ params, searchParams }: PageP
       </div>
 
       {result.runs.length === 0 ? (
-        <StudioEmptyState
-          title="No runs yet for this tenant."
-          description="Orchestrator will populate this list once #404 starts claiming work."
-        />
+        <div data-testid="growth-runs-empty-state">
+          <StudioEmptyState
+            title="No runs yet for this tenant."
+            description="Orchestrator will populate this list once #404 starts claiming work."
+          />
+        </div>
       ) : (
         <div className="studio-panel overflow-x-auto">
-          <table className="w-full text-sm">
+          <table data-testid="growth-runs-list" className="w-full text-sm">
             <thead>
               <tr className="text-left text-[var(--studio-text-muted)] border-b border-[var(--studio-border)]">
                 <th className="px-3 py-2 font-medium">Run</th>

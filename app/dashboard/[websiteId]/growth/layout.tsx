@@ -101,6 +101,13 @@ export default async function GrowthLayout({
         </nav>
       </header>
       <main>{children}</main>
+      <span
+        data-testid="growth-current-website-id"
+        className="sr-only"
+        aria-hidden="true"
+      >
+        {websiteId}
+      </span>
     </div>
   );
 }

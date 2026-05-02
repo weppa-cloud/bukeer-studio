@@ -85,13 +85,9 @@ export default async function GrowthAgentsPage({ params }: AgentsPageProps) {
         >
           Failed to read agent registry. Check Supabase logs.
         </div>
-      ) : result.agents.length === 0 ? (
-        <div className="rounded-md border border-dashed border-[var(--studio-border,theme(colors.zinc.300))] p-6 text-center text-sm text-[var(--studio-text-muted,theme(colors.zinc.500))]">
-          No agents configured for this tenant yet.
-        </div>
       ) : (
         <div className="overflow-x-auto rounded-md border border-[var(--studio-border,theme(colors.zinc.200))]">
-          <table className="w-full text-sm">
+          <table data-testid="growth-agents-table" className="w-full text-sm">
             <caption className="sr-only">
               Agent registry for the active website
             </caption>
@@ -103,46 +99,57 @@ export default async function GrowthAgentsPage({ params }: AgentsPageProps) {
                 <th scope="col" className="px-3 py-2 text-left">Model</th>
                 <th scope="col" className="px-3 py-2 text-left">Prompt</th>
                 <th scope="col" className="px-3 py-2 text-left">Workflow</th>
-                <th scope="col" className="px-3 py-2 text-left">Threshold</th>
+                <th scope="col" className="px-3 py-2 text-left">Agreement Threshold</th>
                 <th scope="col" className="px-3 py-2 text-left">Enabled</th>
               </tr>
             </thead>
             <tbody>
-              {result.agents.map((agent) => (
-                <tr
-                  key={agent.agent_id}
-                  className="border-t border-[var(--studio-border,theme(colors.zinc.200))]"
-                >
-                  <th scope="row" className="px-3 py-2 text-left font-medium">
-                    {agent.name}
-                  </th>
-                  <td className="px-3 py-2">{LANE_LABELS[agent.lane]}</td>
-                  <td className="px-3 py-2">
-                    {MODE_LABELS[agent.mode] ?? agent.mode}
-                  </td>
-                  <td className="px-3 py-2 font-mono text-xs">{agent.model}</td>
-                  <td className="px-3 py-2 font-mono text-xs">
-                    {agent.prompt_version}
-                  </td>
-                  <td className="px-3 py-2 font-mono text-xs">
-                    {agent.workflow_version}
-                  </td>
-                  <td className="px-3 py-2">
-                    {agent.agreement_threshold.toFixed(2)}
-                  </td>
-                  <td className="px-3 py-2">
-                    <span
-                      className={
-                        agent.enabled
-                          ? 'inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800'
-                          : 'inline-flex items-center rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-700'
-                      }
-                    >
-                      {agent.enabled ? 'enabled' : 'disabled'}
-                    </span>
+              {result.agents.length === 0 ? (
+                <tr className="border-t border-[var(--studio-border,theme(colors.zinc.200))]">
+                  <td
+                    colSpan={8}
+                    className="px-3 py-6 text-center text-sm text-[var(--studio-text-muted,theme(colors.zinc.500))]"
+                  >
+                    No agents configured for this tenant yet.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                result.agents.map((agent) => (
+                  <tr
+                    key={agent.agent_id}
+                    className="border-t border-[var(--studio-border,theme(colors.zinc.200))]"
+                  >
+                    <th scope="row" className="px-3 py-2 text-left font-medium">
+                      {agent.name}
+                    </th>
+                    <td className="px-3 py-2">{LANE_LABELS[agent.lane]}</td>
+                    <td className="px-3 py-2">
+                      {MODE_LABELS[agent.mode] ?? agent.mode}
+                    </td>
+                    <td className="px-3 py-2 font-mono text-xs">{agent.model}</td>
+                    <td className="px-3 py-2 font-mono text-xs">
+                      {agent.prompt_version}
+                    </td>
+                    <td className="px-3 py-2 font-mono text-xs">
+                      {agent.workflow_version}
+                    </td>
+                    <td className="px-3 py-2">
+                      {agent.agreement_threshold.toFixed(2)}
+                    </td>
+                    <td className="px-3 py-2">
+                      <span
+                        className={
+                          agent.enabled
+                            ? 'inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800'
+                            : 'inline-flex items-center rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-700'
+                        }
+                      >
+                        {agent.enabled ? 'enabled' : 'disabled'}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
