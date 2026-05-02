@@ -1,0 +1,67 @@
+{
+  "_comment": "BASELINE PLACEHOLDER — replace with real evaluator output post #404 ships.",
+  "policy_version": "2026-05-01",
+  "computed_at": "2026-05-01T00:00:00.000Z",
+  "lanes": [
+    {
+      "account_id": "colombiatours",
+      "website_id": "colombiatours-travel",
+      "lane": "orchestrator",
+      "agreement": 0.0,
+      "policy_version": "2026-05-01",
+      "computed_at": "2026-05-01T00:00:00.000Z",
+      "sample_size": 0,
+      "window_start": "2026-04-01T00:00:00.000Z",
+      "window_end": "2026-05-01T00:00:00.000Z",
+      "ai_human_disagreements": []
+    },
+    {
+      "account_id": "colombiatours",
+      "website_id": "colombiatours-travel",
+      "lane": "technical_remediation",
+      "agreement": 0.0,
+      "policy_version": "2026-05-01",
+      "computed_at": "2026-05-01T00:00:00.000Z",
+      "sample_size": 0,
+      "window_start": "2026-04-01T00:00:00.000Z",
+      "window_end": "2026-05-01T00:00:00.000Z",
+      "ai_human_disagreements": []
+    },
+    {
+      "account_id": "colombiatours",
+      "website_id": "colombiatours-travel",
+      "lane": "transcreation",
+      "agreement": 0.0,
+      "policy_version": "2026-05-01",
+      "computed_at": "2026-05-01T00:00:00.000Z",
+      "sample_size": 0,
+      "window_start": "2026-04-01T00:00:00.000Z",
+      "window_end": "2026-05-01T00:00:00.000Z",
+      "ai_human_disagreements": []
+    },
+    {
+      "account_id": "colombiatours",
+      "website_id": "colombiatours-travel",
+      "lane": "content_creator",
+      "agreement": 0.0,
+      "policy_version": "2026-05-01",
+      "computed_at": "2026-05-01T00:00:00.000Z",
+      "sample_size": 0,
+      "window_start": "2026-04-01T00:00:00.000Z",
+      "window_end": "2026-05-01T00:00:00.000Z",
+      "ai_human_disagreements": []
+    },
+    {
+      "account_id": "colombiatours",
+      "website_id": "colombiatours-travel",
+      "lane": "content_curator",
+      "agreement": 0.0,
+      "policy_version": "2026-05-01",
+      "computed_at": "2026-05-01T00:00:00.000Z",
+      "sample_size": 0,
+      "window_start": "2026-04-01T00:00:00.000Z",
+      "window_end": "2026-05-01T00:00:00.000Z",
+      "ai_human_disagreements": []
+    }
+  ]
+}

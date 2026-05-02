@@ -110,3 +110,71 @@ Each run must write:
 - `growth_ai_reviews` when model judgment is used;
 - `growth_human_reviews` handoff when approval is required;
 - aggregate GitHub evidence only when implementation gate changes.
+
+## Runtime Schema (parsed by `lib/growth/orchestrator`, issue #404)
+
+The orchestrator binary parses a normalized config conforming to the schema
+below. The five canonical lanes (per
+`SPEC_GROWTH_OS_AGENT_LANES.md` §"Agent Lanes V1") are:
+`orchestrator`, `technical_remediation`, `transcreation`,
+`content_creator`, `content_curator`. All five must be present in `lanes:`.
+
+```yaml
+version: <semver string>
+lanes:
+  <lane>:
+    mode: observe_only | prepare_only | auto_apply_safe
+    model: <model id, e.g. anthropic/claude-sonnet-4-7>
+    prompt_version: <pinned prompt version, e.g. v1>
+concurrency:
+  global: <int>      # cluster-wide cap
+  per_tenant: <int>  # cap per (account_id, website_id)
+  per_lane: <int>    # cap per (account_id, website_id, lane)
+heartbeat_ttl_seconds: <int>
+```
+
+### Default v1.0.0
+
+```yaml
+version: "1.0.0"
+lanes:
+  orchestrator:
+    mode: observe_only
+    model: anthropic/claude-sonnet-4-7
+    prompt_version: v1
+  technical_remediation:
+    mode: prepare_only
+    model: anthropic/claude-sonnet-4-7
+    prompt_version: v1
+  transcreation:
+    mode: prepare_only
+    model: anthropic/claude-sonnet-4-7
+    prompt_version: v1
+  content_creator:
+    mode: prepare_only
+    model: anthropic/claude-sonnet-4-7
+    prompt_version: v1
+  content_curator:
+    mode: prepare_only
+    model: anthropic/claude-sonnet-4-7
+    prompt_version: v1
+concurrency:
+  global: 8
+  per_tenant: 4
+  per_lane: 2
+heartbeat_ttl_seconds: 120
+```
+
+Notes:
+
+- This block is the runtime default. Per-tenant overrides come from
+  `growth_agent_definitions` (mode, model, prompt_version,
+  agreement_threshold, max_concurrent_runs).
+- The legacy "Lane Limits" section above (long lane names) predates the
+  canonical-5 lane finalization in `SPEC_GROWTH_OS_AGENT_LANES.md`. The
+  orchestrator runtime reads the **canonical-5** schema in this section.
+  The legacy section is kept for historical context until #408 lands.
+- `heartbeat_ttl_seconds` should be ≥ 2× the per-agent heartbeat cadence so
+  brief network blips do not trigger spurious stalls.
+- Bumping `version` requires a runbook entry (`docs/ops/...`) describing
+  the rollout and rollback path.

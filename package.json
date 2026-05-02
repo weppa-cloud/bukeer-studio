@@ -43,6 +43,7 @@
     "growth:content-tasks": "node scripts/growth/prepare-growth-content-tasks.mjs",
     "growth:human-reviews": "node scripts/growth/materialize-growth-human-reviews.mjs",
     "growth:blocked-classify": "node scripts/growth/classify-growth-blocked-items.mjs",
+    "growth:agreement:baseline": "tsx scripts/growth-agreement-baseline.ts",
     "test:watch": "jest --watch",
     "build:worker": "npm run check:node && opennextjs-cloudflare build",
     "preview:worker": "npm run check:node && opennextjs-cloudflare build && opennextjs-cloudflare preview",

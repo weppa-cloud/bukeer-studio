@@ -1,54 +1,247 @@
-import { expect, test } from "@playwright/test";
+/**
+ * Growth OS console UI E2E contract — issue #409.
+ *
+ * GATING: every test in this file is skipped unless
+ *   GROWTH_OS_UI_E2E_ENABLED === "true"
+ * is set in the environment. The Growth OS UI is not yet shipped at the
+ * `/dashboard/[websiteId]/growth` route — these tests describe the contract
+ * the future UI must satisfy. Enable explicitly when wiring up the UI.
+ *
+ * SESSION POOL (CRITICAL):
+ *   Run with: SESSION_NAME=s2 PORT=3002 GROWTH_OS_UI_E2E_ENABLED=true \
+ *     npm run test:e2e:session -- --grep "growth-os"
+ *   Or via session-run: GROWTH_OS_UI_E2E_ENABLED=true \
+ *     npm run session:run -- --grep "growth-os"
+ *
+ * NEVER run on port 3000. Port + baseURL must come from the acquired session
+ * slot via PORT and PLAYWRIGHT_BASE_URL env vars; this spec must not hardcode
+ * either. See `.claude/rules/e2e-sessions.md`.
+ *
+ * TODO(playwright-config): the project-level playwright.config.ts currently
+ * defaults baseURL to `http://localhost:3000` when neither E2E_BASE_URL nor
+ * PLAYWRIGHT_BASE_URL is set. The `npm run test:e2e:session` script wires
+ * PORT through to E2E_BASE_URL, so this is a no-op when invoked correctly.
+ * Do not edit the config from this spec.
+ */
+import { test, expect } from '@playwright/test';
+import {
+  CANONICAL_LANES,
+  growthConsoleUrl,
+  rolesProvisioned,
+  signInAs,
+  tenantA,
+  tenantB,
+  usersByRole,
+} from '../fixtures/growth-os-fixtures';
 
-const growthUiEnabled = process.env.GROWTH_OS_UI_E2E_ENABLED === "true";
-const websiteId =
-  process.env.E2E_WEBSITE_ID ?? "894545b7-73ca-4dae-b76a-da5b6a3f8441";
+const growthUiEnabled = process.env.GROWTH_OS_UI_E2E_ENABLED === 'true';
 
-test.describe("Growth OS console UI contract @growth-os-ui", () => {
+// Resolve PORT / baseURL from env, never hardcode. Playwright already honors
+// `use.baseURL`, but we expose this for log lines and any explicit URL build.
+const PORT = process.env.PORT ?? process.env.E2E_PORT ?? '3001';
+const BASE_URL =
+  process.env.PLAYWRIGHT_BASE_URL ??
+  process.env.E2E_BASE_URL ??
+  `http://localhost:${PORT}`;
+
+test.describe('Growth OS console UI contract @growth-os-ui', () => {
   test.skip(
     !growthUiEnabled,
-    "Growth OS UI is not shipped yet. Enable with GROWTH_OS_UI_E2E_ENABLED=true when implementing /dashboard/[websiteId]/growth.",
+    'Growth OS UI is not shipped yet. Enable with GROWTH_OS_UI_E2E_ENABLED=true when implementing /dashboard/[websiteId]/growth.',
   );
 
-  test("loads the tenant-scoped Growth console shell", async ({ page }) => {
-    await page.goto(`/dashboard/${websiteId}/growth`);
-
-    await expect(
-      page.getByRole("heading", { name: /growth os/i }),
-    ).toBeVisible();
-    await expect(page.getByRole("tab", { name: /overview/i })).toBeVisible();
-    await expect(page.getByRole("tab", { name: /agents/i })).toBeVisible();
-    await expect(page.getByRole("tab", { name: /backlog/i })).toBeVisible();
-    await expect(
-      page.getByRole("tab", { name: /reviews|runs/i }),
-    ).toBeVisible();
+  test.beforeAll(() => {
+    // Surface the resolved base URL in test output so reviewers can confirm
+    // the session pool was honored (no port-3000 hardcoding).
+    // eslint-disable-next-line no-console
+    console.log(`[growth-os-ui] baseURL=${BASE_URL} tenantA=${tenantA.websiteId}`);
   });
 
-  test("shows agent mode, agreement gate and protected actions", async ({
+  test('Overview tab loads with metric cards and 5-lane status table', async ({
     page,
   }) => {
-    await page.goto(`/dashboard/${websiteId}/growth`);
-    await page.getByRole("tab", { name: /agents/i }).click();
+    await page.goto(growthConsoleUrl(tenantA));
 
-    await expect(page.getByText(/technical remediation/i)).toBeVisible();
     await expect(
-      page.getByText(/prepare only|observe only|auto-safe/i),
+      page.getByRole('heading', { name: /growth os/i }),
     ).toBeVisible();
-    await expect(page.getByText(/agreement/i)).toBeVisible();
-    await expect(page.getByText(/0\.90|90%/i)).toBeVisible();
-    await expect(
-      page.getByText(/auto-apply.*locked|auto apply.*locked/i),
-    ).toBeVisible();
+
+    const overviewTab = page.getByRole('tab', { name: /overview/i });
+    await expect(overviewTab).toBeVisible();
+    await overviewTab.click();
+
+    // Four canonical metric cards (counts may be zero on a fresh tenant —
+    // we only assert presence, not values).
+    const metricCards = page.getByTestId(/^growth-overview-metric-/);
+    await expect(metricCards).toHaveCount(4);
+
+    // Lane status table renders exactly the 5 canonical lanes.
+    const laneTable = page.getByTestId('growth-overview-lane-table');
+    await expect(laneTable).toBeVisible();
+    for (const lane of CANONICAL_LANES) {
+      await expect(
+        laneTable.getByTestId(`growth-overview-lane-row-${lane}`),
+      ).toBeVisible();
+    }
+    await expect(laneTable.getByRole('row')).toHaveCount(
+      CANONICAL_LANES.length + 1, // +1 for the header row
+    );
   });
 
-  test("keeps backlog rows scoped to the selected tenant", async ({ page }) => {
-    await page.goto(`/dashboard/${websiteId}/growth`);
-    await page.getByRole("tab", { name: /backlog/i }).click();
+  test('Agents tab loads with required column headers', async ({ page }) => {
+    await page.goto(growthConsoleUrl(tenantA));
+    await page.getByRole('tab', { name: /agents/i }).click();
 
-    await expect(page.getByTestId("growth-current-website-id")).toContainText(
-      websiteId,
+    const agentsTable = page.getByTestId('growth-agents-table');
+    await expect(agentsTable).toBeVisible();
+
+    for (const header of [
+      /^name$/i,
+      /^lane$/i,
+      /^mode$/i,
+      /^model$/i,
+      /agreement[_ ]threshold/i,
+    ]) {
+      await expect(
+        agentsTable.getByRole('columnheader', { name: header }),
+      ).toBeVisible();
+    }
+  });
+
+  test('Backlog tab loads (empty state OR populated list)', async ({ page }) => {
+    await page.goto(growthConsoleUrl(tenantA));
+    await page.getByRole('tab', { name: /backlog/i }).click();
+
+    // Tenant scope indicator stays accurate.
+    await expect(page.getByTestId('growth-current-website-id')).toContainText(
+      tenantA.websiteId,
     );
-    await expect(page.getByTestId("growth-backlog-table")).toBeVisible();
-    await expect(page.getByText(/source row|next action|lane/i)).toBeVisible();
+
+    const emptyState = page.getByTestId('growth-backlog-empty-state');
+    const backlogTable = page.getByTestId('growth-backlog-table');
+
+    // Either the empty state OR the table is visible; exactly one of them.
+    const emptyVisible = await emptyState.isVisible().catch(() => false);
+    const tableVisible = await backlogTable.isVisible().catch(() => false);
+    expect(emptyVisible || tableVisible).toBe(true);
+    expect(emptyVisible && tableVisible).toBe(false);
+  });
+
+  test('Runs tab loads (empty state OK)', async ({ page }) => {
+    await page.goto(growthConsoleUrl(tenantA));
+    // The MVP names this tab "Reviews & Runs" per SPEC; accept either label.
+    await page.getByRole('tab', { name: /reviews|runs/i }).click();
+
+    const runsList = page.getByTestId('growth-runs-list');
+    const runsEmpty = page.getByTestId('growth-runs-empty-state');
+
+    await expect(runsList.or(runsEmpty)).toBeVisible();
+  });
+
+  test('Cross-tenant guard: tenant A user cannot read tenant B Growth data', async ({
+    page,
+  }) => {
+    const response = await page.goto(growthConsoleUrl(tenantB), {
+      waitUntil: 'domcontentloaded',
+    });
+
+    const status = response?.status() ?? 0;
+    const finalUrl = page.url();
+
+    const redirectedAway =
+      finalUrl.includes('/dashboard') &&
+      !finalUrl.includes(`/${tenantB.websiteId}/growth`);
+    const isNotFound = status === 404;
+    const isForbidden =
+      status === 403 ||
+      (await page
+        .getByText(/forbidden|no autorizado|access denied/i)
+        .isVisible()
+        .catch(() => false));
+
+    expect(
+      redirectedAway || isNotFound || isForbidden,
+      `Expected cross-tenant access to tenantB (${tenantB.websiteId}) to be denied. Got status=${status} url=${finalUrl}`,
+    ).toBe(true);
+
+    // Whatever the rejection mechanism, tenant B's id must NOT appear in the
+    // tenant-scope indicator if it renders at all.
+    const scopeIndicator = page.getByTestId('growth-current-website-id');
+    if (await scopeIndicator.isVisible().catch(() => false)) {
+      await expect(scopeIndicator).not.toContainText(tenantB.websiteId);
+    }
+  });
+
+  test('Role-gated actions: Approve/Reject hidden or disabled for viewer; enabled for curator', async ({
+    page,
+  }) => {
+    test.skip(
+      !rolesProvisioned(),
+      'Role-aware fixtures not provisioned (set E2E_GROWTH_ROLE_FIXTURES_READY=true). TODO(auth-fixture).',
+    );
+
+    // Viewer: open Run detail, expect Approve/Reject hidden OR disabled.
+    await signInAs(page, usersByRole.viewer.role);
+    await page.goto(growthConsoleUrl(tenantA));
+    await page.getByRole('tab', { name: /reviews|runs/i }).click();
+    await page
+      .getByTestId(/^growth-run-row-/)
+      .first()
+      .click();
+
+    const approveBtn = page.getByRole('button', { name: /approve/i });
+    const rejectBtn = page.getByRole('button', { name: /reject/i });
+
+    for (const btn of [approveBtn, rejectBtn]) {
+      const visible = await btn.isVisible().catch(() => false);
+      if (visible) {
+        await expect(btn).toBeDisabled();
+      }
+    }
+
+    // Curator: same Run detail, Approve/Reject must be enabled.
+    await signInAs(page, usersByRole.curator.role);
+    await page.goto(growthConsoleUrl(tenantA));
+    await page.getByRole('tab', { name: /reviews|runs/i }).click();
+    await page
+      .getByTestId(/^growth-run-row-/)
+      .first()
+      .click();
+
+    await expect(page.getByRole('button', { name: /approve/i })).toBeEnabled();
+    await expect(page.getByRole('button', { name: /reject/i })).toBeEnabled();
+  });
+
+  test('Append-only events: Run detail exposes no event-mutation affordances', async ({
+    page,
+  }) => {
+    await page.goto(growthConsoleUrl(tenantA));
+    await page.getByRole('tab', { name: /reviews|runs/i }).click();
+
+    // If there are no runs yet, the empty state is acceptable — there is
+    // nothing to mutate, which trivially satisfies append-only.
+    const firstRun = page.getByTestId(/^growth-run-row-/).first();
+    const hasRun = await firstRun.isVisible().catch(() => false);
+    test.skip(!hasRun, 'No runs available to inspect for append-only guarantees.');
+
+    await firstRun.click();
+
+    const events = page.getByTestId(/^growth-run-event-row-/);
+    await expect(events.first()).toBeVisible();
+
+    // No delete/edit/remove affordance may exist on any event row.
+    const forbiddenAffordances = page
+      .getByTestId(/^growth-run-event-row-/)
+      .getByRole('button', { name: /delete|remove|edit|undo|revert/i });
+    await expect(forbiddenAffordances).toHaveCount(0);
+
+    // Defense-in-depth: no destructive icon buttons on the events panel.
+    const eventsPanel = page.getByTestId('growth-run-events-panel');
+    if (await eventsPanel.isVisible().catch(() => false)) {
+      const destructiveByLabel = eventsPanel.getByRole('button', {
+        name: /trash|delete event|remove event/i,
+      });
+      await expect(destructiveByLabel).toHaveCount(0);
+    }
   });
 });
