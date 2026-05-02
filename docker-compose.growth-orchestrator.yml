@@ -1,0 +1,28 @@
+services:
+  growth-orchestrator:
+    build:
+      context: /opt/growth-os/app/bukeer-studio
+      dockerfile: Dockerfile.growth-orchestrator
+    container_name: growth-orchestrator
+    restart: unless-stopped
+    env_file:
+      - /opt/growth-os/secrets/growth-orchestrator.env
+    volumes:
+      - /opt/growth-os/workspaces:/workspaces
+      - /opt/growth-os/artifacts:/artifacts
+      - /opt/growth-os/logs:/logs
+    working_dir: /app
+    command:
+      - node
+      - scripts/growth/run-growth-symphony-orchestrator.mjs
+      - --accountId
+      - ${GROWTH_ACCOUNT_ID}
+      - --websiteId
+      - ${GROWTH_WEBSITE_ID}
+      - --intervalMs
+      - ${GROWTH_ORCHESTRATOR_INTERVAL_MS:-30000}
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
