@@ -22,6 +22,7 @@ import type {
   GrowthAgentRun,
 } from '@bukeer/website-contract';
 
+import { asTyped, toJson } from '@/lib/supabase/typed-client';
 import { assertTenantScope } from './tenant-guard';
 
 export interface WriteRunEventOptions {
@@ -57,18 +58,14 @@ export async function writeRunEvent(opts: WriteRunEventOptions): Promise<void> {
     run_id: run.run_id,
     event_type,
     severity: severity ?? 'info',
-    payload: payload ?? null,
+    payload: payload ? toJson(payload) : null,
     message: message ?? null,
     occurred_at: new Date().toISOString(),
   };
 
-  // TODO(types): regenerate Supabase Database types after #403 migration
-  // applies — `growth_agent_run_events` is not yet present in the generated
-  // types, so we cast through `as any` only for the table reference.
-  // The row shape itself is typed.
-  const { error } = await (supabase.from as any)(
-    'growth_agent_run_events',
-  ).insert(row);
+  const { error } = await asTyped(supabase)
+    .from('growth_agent_run_events')
+    .insert(row);
 
   if (error) {
     throw new Error(

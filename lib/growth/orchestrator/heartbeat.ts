@@ -14,6 +14,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { GrowthAgentRun } from '@bukeer/website-contract';
 
+import { asTyped } from '@/lib/supabase/typed-client';
 import { writeRunEvent } from './event-writer';
 
 /**
@@ -27,8 +28,8 @@ export async function markHeartbeat(
 ): Promise<void> {
   const heartbeat_at = new Date().toISOString();
 
-  // TODO(types): regenerate Supabase Database types after #403 applies.
-  const { error } = await (supabase.from as any)('growth_agent_runs')
+  const { error } = await asTyped(supabase)
+    .from('growth_agent_runs')
     .update({ heartbeat_at })
     .eq('run_id', runId);
 
@@ -67,8 +68,8 @@ export async function detectStalled(
 
   const cutoff = new Date(Date.now() - ttlSeconds * 1000).toISOString();
 
-  // TODO(types): regenerate after #403 applies.
-  const { data, error } = await (supabase.from as any)('growth_agent_runs')
+  const { data, error } = await asTyped(supabase)
+    .from('growth_agent_runs')
     .select('*')
     .in('status', ['claimed', 'running'])
     .lt('heartbeat_at', cutoff);
@@ -83,8 +84,8 @@ export async function detectStalled(
   const flipped: string[] = [];
 
   for (const run of candidates) {
-    // TODO(types): regenerate after #403 applies.
-    const { error: updErr } = await (supabase.from as any)('growth_agent_runs')
+    const { error: updErr } = await asTyped(supabase)
+      .from('growth_agent_runs')
       .update({ status: 'stalled', finished_at: new Date().toISOString() })
       .eq('run_id', run.run_id)
       .in('status', ['claimed', 'running']);

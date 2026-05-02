@@ -24,6 +24,7 @@ import type {
   GrowthAgentRun,
 } from '@bukeer/website-contract';
 
+import { asTyped } from '@/lib/supabase/typed-client';
 import { checkConcurrency } from './concurrency';
 import { writeRunEvent } from './event-writer';
 import { assertTenantScope } from './tenant-guard';
@@ -98,11 +99,7 @@ export async function claimNextEligibleRow(
   // The function is responsible for the `SELECT … FOR UPDATE SKIP LOCKED`
   // against the per-lane source table and for inserting into
   // `growth_agent_runs` with `claim_id` as a unique key (idempotency).
-  //
-  // TODO(types): regenerate Supabase Database types after #403 applies so
-  // that `.rpc('claim_growth_agent_run', …)` returns `GrowthAgentRun`
-  // directly instead of `unknown`.
-  const { data, error } = await (supabase.rpc as any)(
+  const { data, error } = await asTyped(supabase).rpc(
     'claim_growth_agent_run',
     {
       p_account_id: accountId,

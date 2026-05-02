@@ -20,6 +20,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { AgentLane } from '@bukeer/website-contract';
 
+import { asTyped } from '@/lib/supabase/typed-client';
 import type { ConcurrencyCaps } from './types';
 
 export interface ConcurrencyCheckRequest {
@@ -63,14 +64,10 @@ export async function checkConcurrency(
 ): Promise<ConcurrencyCheckResult> {
   const { supabase, account_id, website_id, lane, caps } = req;
 
-  // TODO(types): regenerate Supabase Database types after #403 migration
-  // applies — `growth_agent_runs` is not yet in the generated schema.
-  const baseQuery = (supabase.from as any)('growth_agent_runs').select(
-    'account_id, website_id, lane, status',
-    { head: false },
-  );
-
-  const { data, error } = await baseQuery.in('status', [...ACTIVE_STATUSES]);
+  const { data, error } = await asTyped(supabase)
+    .from('growth_agent_runs')
+    .select('account_id, website_id, lane, status')
+    .in('status', [...ACTIVE_STATUSES]);
 
   if (error) {
     throw new Error(

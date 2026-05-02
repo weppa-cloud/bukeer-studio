@@ -38,6 +38,7 @@ import {
 } from '@bukeer/website-contract';
 
 import { createSupabaseServerClient } from '@/lib/supabase/server-client';
+import { asTyped } from '@/lib/supabase/typed-client';
 import { requireGrowthRole } from './auth';
 
 const POSTGRES_MISSING_RELATION = '42P01';
@@ -178,11 +179,8 @@ async function fetchAgents(
 ): Promise<AgentDefinitionsResult> {
   const supabase = await createSupabaseServerClient();
 
-  // TODO(types): regenerate Supabase Database types after #403 migration
-  // applies — `growth_agent_definitions` is not yet in the generated schema.
-  const { data, error } = await (supabase.from as unknown as (
-    table: string,
-  ) => ReturnType<typeof supabase.from>)('growth_agent_definitions')
+  const { data, error } = await asTyped(supabase)
+    .from('growth_agent_definitions')
     .select(
       'account_id, website_id, agent_id, lane, name, enabled, mode, model, prompt_version, workflow_version, agreement_threshold, max_concurrent_runs, max_active_experiments, locale, market, created_at, updated_at',
     )
@@ -212,11 +210,8 @@ async function fetchRunCounts(
 ): Promise<{ counts: RunStatusCounts; missingTable: boolean; errored: boolean }> {
   const supabase = await createSupabaseServerClient();
 
-  // TODO(types): regenerate Supabase Database types after #403 migration
-  // applies — `growth_agent_runs` is not yet in the generated schema.
-  const { data, error } = await (supabase.from as unknown as (
-    table: string,
-  ) => ReturnType<typeof supabase.from>)('growth_agent_runs')
+  const { data, error } = await asTyped(supabase)
+    .from('growth_agent_runs')
     .select('status')
     .eq('account_id', accountId)
     .eq('website_id', websiteId);
@@ -249,12 +244,9 @@ async function fetchBacklogCounts(
 }> {
   const supabase = await createSupabaseServerClient();
 
-  // TODO(types): regenerate Supabase Database types after the unified
-  // backlog migration lands — `growth_backlog_items` is not yet generated.
-  const { data, error } = await (supabase.from as unknown as (
-    table: string,
-  ) => ReturnType<typeof supabase.from>)('growth_backlog_items')
-    .select('status, council_ready')
+  const { data, error } = await asTyped(supabase)
+    .from('growth_backlog_items')
+    .select('status')
     .eq('account_id', accountId)
     .eq('website_id', websiteId);
 
@@ -273,19 +265,24 @@ async function fetchBacklogCounts(
     };
   }
 
-  const rows = (data ?? []) as Array<{
-    status: string;
-    council_ready?: boolean | null;
-  }>;
+  const rows = (data ?? []) as Array<{ status: string | null }>;
   const counts: BacklogStatusCounts = { ...ZERO_BACKLOG_COUNTS };
   for (const row of rows) {
     counts.total += 1;
+    if (!row.status) continue;
+    // Real growth_backlog_items.status values include `ready_for_council`,
+    // `approved_for_execution`, `queued`, `brief_in_progress`, `done`,
+    // `blocked`. Map to the BacklogStatus enum where it overlaps; treat
+    // `ready_for_council` as the "ready" bucket.
+    if (row.status === 'ready_for_council') {
+      counts.ready += 1;
+      continue;
+    }
     const parsed = BacklogStatusSchema.safeParse(row.status);
     if (parsed.success) {
       const status: BacklogStatus = parsed.data;
       counts[status] += 1;
     }
-    if (row.council_ready === true) counts.ready += 1;
   }
   return { counts, missingTable: false, errored: false };
 }
@@ -296,10 +293,12 @@ async function fetchProviderFreshness(
 ): Promise<{ rows: ProviderFreshnessRow[]; missingTable: boolean; errored: boolean }> {
   const supabase = await createSupabaseServerClient();
 
-  // TODO(types): `seo_provider_cache` is provisioned out-of-band. ADR-016
-  // forbids direct provider calls in the render path; this row is the
-  // single source of truth for "freshness".
-  const { data, error } = await (supabase.from as unknown as (
+  // `seo_provider_cache` is the single source of truth for provider
+  // freshness — ADR-016 forbids direct provider calls in the render path.
+  // The relation may not exist in every environment yet (provisioned
+  // out-of-band). Cast to bypass the literal-table-name check; missing
+  // relation surfaces as 42P01 below.
+  const { data, error } = await (asTyped(supabase).from as unknown as (
     table: string,
   ) => ReturnType<typeof supabase.from>)('seo_provider_cache')
     .select('provider, last_synced_at, status, message')
