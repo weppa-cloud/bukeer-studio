@@ -538,6 +538,7 @@ export async function runCodexAgentTask(input, options = {}) {
           "--json",
           "--sandbox",
           "read-only",
+          "--skip-git-repo-check",
           "--cd",
           options.repoRoot ?? process.cwd(),
           "--output-schema",
