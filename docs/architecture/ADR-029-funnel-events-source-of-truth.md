@@ -88,8 +88,7 @@ Both extensions (`pg_net`, `pg_cron`) are confirmed enabled on the Bukeer Supaba
 
 | Column | Type | Notes |
 |--------|------|-------|
-| `id` | `uuid` PK | `gen_random_uuid()` |
-| `event_id` | `text` UNIQUE NOT NULL | Internal dedup key (sha256 hash of submit context); used as PK only |
+| `event_id` | `text` PRIMARY KEY | Internal dedup key (sha256 hash of submit context). **No surrogate `id uuid`** — `event_id` is the canonical row identifier. Decision recorded 2026-05-03 (D1 of F1 kickoff). Mirrors the keying pattern of `meta_conversion_events` (which uses `(provider, event_name, event_id)` as logical key, no surrogate). |
 | `pixel_event_id` | `text` | The id sent to browser Pixel via `fbq` `eventID` AND to Meta CAPI for dedup. Browser-originated events: minted client-side (UUIDv4) and forwarded server-side. Server-originated events (chatwoot lifecycle): minted server-side. The dispatcher uses THIS field when writing to platform destinations, NOT `event_id`. |
 | `event_name` | `text` NOT NULL | Enum-checked against mapping table |
 | `event_time` | `timestamptz` NOT NULL | Wall-clock when event happened (not insert time) |
@@ -118,8 +117,8 @@ Both extensions (`pg_net`, `pg_cron`) are confirmed enabled on the Bukeer Supaba
 | `dispatch_attempt_count` | `integer` DEFAULT `0` | Increment per attempt; cap at 5 then mark `failed` permanently |
 
 Constraints:
-- `UNIQUE (event_id)`
-- `event_name CHECK` against the canonical event-name set (NOT the mapping table — mapping is config, names are schema-level invariant)
+- `event_id` is PRIMARY KEY (no separate UNIQUE needed)
+- `event_name CHECK` against the canonical event-name set (NOT the mapping table — mapping is config, names are schema-level invariant). During F1→F3 transition the CHECK accepts both ADR-029 names AND legacy aliases (`qualified_lead`, `quote_sent`, `booking_confirmed`); aliases are dropped post-F3 per follow-up issue D3.
 - RLS service-role-only for mutation
 - Read RLS by tenant for reporting
 - Indexes: `event_id` (UNIQUE, implicit from constraint), `(event_time DESC)`, `(tenant_id)`, `(event_name, event_time)` for monitoring queries, `(dispatch_status, dispatch_attempted_at)` partial index `WHERE dispatch_status='pending'` for the re-dispatch job hot path
