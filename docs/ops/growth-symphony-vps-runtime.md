@@ -21,13 +21,19 @@ Validated host: `growth-os-vps-prod` (`87.99.153.174`).
 
 ```text
 /opt/growth-os/
-├── app/bukeer-studio
+├── releases/{git_sha}
+├── current -> releases/{git_sha}
 ├── workspaces/{account_id}/{website_id}/{run_id}
 ├── artifacts/{account_id}/{website_id}/{run_id}
 ├── logs
+├── codex
 ├── secrets/growth-orchestrator.env
 └── docker-compose.yml
 ```
+
+`/opt/growth-os/current` is the only application path Docker Compose builds
+from. Releases are immutable git archives keyed by commit SHA. Rollback is a
+symlink move plus `docker compose up -d --build`.
 
 ## Dockerfile Contract
 
@@ -57,7 +63,7 @@ CMD ["node", "scripts/growth/run-growth-symphony-orchestrator.mjs"]
 services:
   growth-orchestrator:
     build:
-      context: /opt/growth-os/app/bukeer-studio
+      context: /opt/growth-os/current
       dockerfile: Dockerfile.growth-orchestrator
     container_name: growth-orchestrator
     restart: unless-stopped
@@ -67,6 +73,7 @@ services:
       - /opt/growth-os/workspaces:/workspaces
       - /opt/growth-os/artifacts:/artifacts
       - /opt/growth-os/logs:/logs
+      - /opt/growth-os/codex:/root/.codex
     working_dir: /app
     command: >
       node scripts/growth/run-growth-symphony-orchestrator.mjs
@@ -100,12 +107,34 @@ GROWTH_ORCHESTRATOR_AGREEMENT_THRESHOLD=0.90
 1. Validate the VPS host and SSH key.
 2. Install Docker, Compose plugin, UFW and fail2ban.
 3. Create `/opt/growth-os` folder tree.
-4. Clone `weppa-cloud/bukeer-studio`.
-5. Check out `dev` for staging runtime or a release tag for production.
-6. Create env file with `chmod 600`.
-7. Build and start Compose.
-8. Verify logs and Supabase run/event writes.
-9. Confirm `auto_apply` remains disabled.
+4. Create env file with `chmod 600`.
+5. Deploy an immutable git archive by commit SHA:
+
+   ```bash
+   scripts/growth/deploy-runtime-vps.sh <sha>
+   ```
+
+6. Verify logs and Supabase run/event writes.
+7. Confirm `auto_apply` remains disabled.
+
+The deployment script:
+
+- validates that `<sha>` is reachable from `origin/dev`;
+- creates `/opt/growth-os/releases/<sha>`;
+- updates `/opt/growth-os/current`;
+- copies the repo compose file to `/opt/growth-os/docker-compose.yml`;
+- rebuilds/restarts `growth-orchestrator`;
+- runs Node syntax checks, `codex login status` and `--configSmoke`.
+
+Rollback:
+
+```bash
+ssh -t -i ~/Documents/Proyectos/ssh/id_rsa1 bukeer@87.99.153.174
+cd /opt/growth-os
+ln -sfn /opt/growth-os/releases/<previous_sha> current
+cp current/docker-compose.growth-orchestrator.yml docker-compose.yml
+docker compose up -d --build growth-orchestrator
+```
 
 ## Safety Defaults
 

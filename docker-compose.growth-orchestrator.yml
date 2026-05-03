@@ -1,7 +1,7 @@
 services:
   growth-orchestrator:
     build:
-      context: /opt/growth-os/app/bukeer-studio
+      context: /opt/growth-os/current
       dockerfile: Dockerfile.growth-orchestrator
     container_name: growth-orchestrator
     restart: unless-stopped
