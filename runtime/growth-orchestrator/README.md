@@ -9,9 +9,17 @@ runtime/growth-orchestrator/
 ├── bin/
 │   ├── deploy-vps.sh
 │   └── run.mjs
+├── fixtures/
+├── skills/
 └── src/
     ├── codex-executor.mjs
-    └── orchestrator.mjs
+    ├── memory.mjs
+    ├── metrics.mjs
+    ├── orchestrator.mjs
+    ├── replay.mjs
+    ├── skills.mjs
+    ├── tool-gateway.mjs
+    └── toolsets.mjs
 ```
 
 Compatibility wrappers remain in `scripts/growth/` because existing runbooks,

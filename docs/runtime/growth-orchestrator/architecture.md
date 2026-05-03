@@ -11,7 +11,13 @@ runtime/growth-orchestrator/
 ├── bin/run.mjs                 # executable entrypoint
 ├── bin/deploy-vps.sh           # release-by-SHA deploy script
 ├── src/orchestrator.mjs        # claim, registry/context load, event writes
-└── src/codex-executor.mjs      # codex exec adapter and artifact envelope
+├── src/codex-executor.mjs      # codex exec adapter and artifact envelope
+├── src/toolsets.mjs            # lane-level tool permissions
+├── src/tool-gateway.mjs        # policy verdicts for tool calls
+├── src/memory.mjs              # memory candidate normalization
+├── src/skills.mjs              # skill update candidate normalization
+├── src/replay.mjs              # replay seed construction
+└── src/metrics.mjs             # failure and completeness helpers
 ```
 
 Compatibility wrappers:

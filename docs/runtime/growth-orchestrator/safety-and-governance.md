@@ -9,6 +9,9 @@ Always gated action classes:
 - paid mutation
 - experiment activation
 
+The source of truth for these classes is
+`runtime/growth-orchestrator/src/toolsets.mjs`.
+
 Memory and skill learning is proposal-only:
 
 - Codex may produce `memory_candidates`.

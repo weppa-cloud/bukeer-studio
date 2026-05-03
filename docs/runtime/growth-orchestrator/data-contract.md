@@ -39,3 +39,9 @@ Minimum Codex output:
   "requires_human_review": true
 }
 ```
+
+Local fixture:
+
+```text
+runtime/growth-orchestrator/fixtures/smoke-run.json
+```

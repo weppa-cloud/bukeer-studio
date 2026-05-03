@@ -1,0 +1,44 @@
+{
+  "tenant": {
+    "account_id": "00000000-0000-0000-0000-000000000001",
+    "website_id": "00000000-0000-0000-0000-000000000002",
+    "locale": "es-CO",
+    "market": "CO"
+  },
+  "run": {
+    "run_id": "00000000-0000-0000-0000-000000000003",
+    "lane": "orchestrator",
+    "source_table": "growth_backlog_items",
+    "source_id": "00000000-0000-0000-0000-000000000004",
+    "source_ref": "growth_backlog_items:00000000-0000-0000-0000-000000000004"
+  },
+  "agent": {
+    "agent_id": "00000000-0000-0000-0000-000000000005",
+    "lane": "orchestrator",
+    "model": "gpt-5.4-mini",
+    "prompt_version": "fixture",
+    "workflow_version": "orchestrator.v1"
+  },
+  "workflow": {
+    "loaded": true,
+    "path": "docs/growth-orchestrator/workflows/orchestrator.v1.md"
+  },
+  "workflow_text": "Route work and require human review.",
+  "context_pack": {
+    "version": "1.0.0",
+    "content_rules": ["No publish", "Human review required"]
+  },
+  "context_pack_summary": {
+    "version": "1.0.0"
+  },
+  "source_row": {
+    "id": "00000000-0000-0000-0000-000000000004",
+    "title": "Runtime smoke row",
+    "status": "blocked",
+    "work_type": "provider_access",
+    "next_action": "Decide WATCH or access request",
+    "evidence": {
+      "source_fact_refs": ["growth_backlog_items:smoke"]
+    }
+  }
+}

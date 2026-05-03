@@ -6,6 +6,16 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
+import { artifactCompleteness } from "./metrics.mjs";
+import { normalizeMemoryCandidates } from "./memory.mjs";
+import { buildReplaySeed } from "./replay.mjs";
+import { normalizeSkillUpdateCandidates } from "./skills.mjs";
+import {
+  ACTION_CLASSES,
+  ALWAYS_GATED_ACTION_CLASSES,
+  toolsetForLane,
+} from "./toolsets.mjs";
+import { evaluateToolCalls, evaluateToolPolicy } from "./tool-gateway.mjs";
 
 const DECISIONS = new Set([
   "promote",
@@ -21,13 +31,6 @@ const ALLOWED_ACTIONS = new Set([
   "block",
   "reject",
 ]);
-const ALWAYS_GATED_ACTION_CLASSES = new Set([
-  "content_publish",
-  "transcreation_merge",
-  "paid_mutation",
-  "experiment_activation",
-]);
-
 export const CODEX_ARTIFACT_SCHEMA = {
   type: "object",
   additionalProperties: false,
@@ -288,9 +291,13 @@ function normalizeArtifact(candidate, fallback = {}) {
       typeof value.next_action === "string"
         ? value.next_action
         : "Curator must inspect the artifact before any business mutation.",
-    memory_candidates: normalizeMemoryCandidates(value.memory_candidates),
-    skill_update_candidates: normalizeSkillCandidates(
+    memory_candidates: normalizeMemoryCandidates(
+      value.memory_candidates,
+      fallback.lane,
+    ),
+    skill_update_candidates: normalizeSkillUpdateCandidates(
       value.skill_update_candidates,
+      fallback.lane,
     ),
     tool_calls: normalizeToolCalls(value.tool_calls),
     replay_seed: normalizeReplaySeed(value.replay_seed),
@@ -318,69 +325,37 @@ function normalizeStringArray(value) {
     : [];
 }
 
-function normalizeMemoryCandidates(value) {
-  if (!Array.isArray(value)) return [];
-  return value
-    .slice(0, 10)
-    .map((item) => {
-      const object = safeObject(item);
-      return {
-        lane: String(object.lane ?? "").trim(),
-        memory: String(object.memory ?? "").trim(),
-        reason: String(object.reason ?? "").trim(),
-        confidence: clampConfidence(object.confidence),
-      };
-    })
-    .filter((item) => item.lane && item.memory && item.reason);
-}
-
-function normalizeSkillCandidates(value) {
-  if (!Array.isArray(value)) return [];
-  return value
-    .slice(0, 10)
-    .map((item) => {
-      const object = safeObject(item);
-      return {
-        lane: String(object.lane ?? "").trim(),
-        skill_name: String(object.skill_name ?? "").trim(),
-        change: String(object.change ?? "").trim(),
-        reason: String(object.reason ?? "").trim(),
-      };
-    })
-    .filter((item) => item.lane && item.skill_name && item.change);
-}
-
 function normalizeToolCalls(value) {
   if (!Array.isArray(value)) return [];
-  return value.slice(0, 100).map((item) => {
-    const object = safeObject(item);
-    const actionClass = String(object.action_class ?? "runtime_execution");
-    const alwaysGated = ALWAYS_GATED_ACTION_CLASSES.has(actionClass);
-    return {
-      tool: String(object.tool ?? "unknown").trim() || "unknown",
-      action_class: actionClass,
-      policy_verdict: alwaysGated
-        ? "blocked_always_gated"
-        : String(object.policy_verdict ?? "allowed_prepare_only"),
-      allowed: alwaysGated ? false : Boolean(object.allowed),
-      reason:
-        String(object.reason ?? "").trim() ||
-        "Runtime v1 records tool intent for human review.",
-    };
-  });
+  return evaluateToolCalls(
+    value.slice(0, 100).map((item) => {
+      const object = safeObject(item);
+      return {
+        tool: String(object.tool ?? "unknown").trim() || "unknown",
+        action_class: String(
+          object.action_class ?? ACTION_CLASSES.RUNTIME_EXECUTION,
+        ),
+        policy_verdict: String(object.policy_verdict ?? "allowed_prepare_only"),
+        allowed: Boolean(object.allowed),
+        reason:
+          String(object.reason ?? "").trim() ||
+          "Runtime v1 records tool intent for human review.",
+      };
+    }),
+  );
 }
 
 function withCodexExecToolCall(toolCalls) {
   if (toolCalls.some((call) => call.tool === "codex_exec")) return toolCalls;
   return [
-    {
+    evaluateToolPolicy({
       tool: "codex_exec",
-      action_class: "runtime_execution",
+      action_class: ACTION_CLASSES.RUNTIME_EXECUTION,
       policy_verdict: "allowed_prepare_only",
       allowed: true,
       reason:
         "Executor may analyze source facts and produce a structured artifact; business mutation remains blocked.",
-    },
+    }),
     ...toolCalls,
   ];
 }
@@ -515,6 +490,7 @@ export async function runCodexAgentTask(input, options = {}) {
   const eventsPath = path.join(outDir, "codex-events.jsonl");
   const artifactPath = path.join(outDir, "codex-runtime-artifact.json");
   const prompt = buildPrompt(input);
+  const toolset = toolsetForLane(input.run?.lane);
 
   await fs.writeFile(
     schemaPath,
@@ -592,6 +568,7 @@ export async function runCodexAgentTask(input, options = {}) {
   const codexEvents = parseCodexJsonl(execution.stdout);
   const observedToolCalls = summarizeCodexEvents(codexEvents);
   const artifact = normalizeArtifact(parsed, {
+    lane: input.run?.lane,
     source_refs: [input.run?.source_ref].filter(Boolean),
     evidence_summary:
       parseError ??
@@ -610,7 +587,10 @@ export async function runCodexAgentTask(input, options = {}) {
     timed_out: execution.timedOut,
     dry_run: Boolean(options.dryRun),
     artifact_complete: Boolean(
-      parsed && !parseError && execution.exitCode === 0,
+      parsed &&
+      !parseError &&
+      execution.exitCode === 0 &&
+      artifactCompleteness(artifact),
     ),
     parse_error: parseError,
     stdout_sha256: createHash("sha256")
@@ -642,6 +622,7 @@ export async function runCodexAgentTask(input, options = {}) {
       policy: {
         sandbox: "read-only",
         forced_human_review: true,
+        lane_toolset: toolset,
         always_gated_action_classes: [...ALWAYS_GATED_ACTION_CLASSES],
       },
     },
@@ -649,14 +630,7 @@ export async function runCodexAgentTask(input, options = {}) {
     memory_candidates: artifact.memory_candidates,
     skill_update_candidates: artifact.skill_update_candidates,
     tool_calls: artifact.tool_calls,
-    replay_seed: {
-      ...artifact.replay_seed,
-      source_table: input.run?.source_table ?? null,
-      source_id: input.run?.source_id ?? null,
-      lane: input.run?.lane ?? null,
-      decision: artifact.decision,
-      allowed_action: artifact.allowed_action,
-    },
+    replay_seed: buildReplaySeed(input.run, artifact),
     metrics,
   };
 
