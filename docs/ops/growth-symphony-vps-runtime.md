@@ -70,9 +70,6 @@ services:
     working_dir: /app
     command: >
       node scripts/growth/run-growth-symphony-orchestrator.mjs
-      --workflow docs/growth-orchestrator/WORKFLOW.md
-      --artifactsRoot /artifacts
-      --workspaceRoot /workspaces
     logging:
       driver: json-file
       options:

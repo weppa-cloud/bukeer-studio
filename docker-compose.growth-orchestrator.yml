@@ -16,12 +16,6 @@ services:
     command:
       - node
       - scripts/growth/run-growth-symphony-orchestrator.mjs
-      - --accountId
-      - ${GROWTH_ACCOUNT_ID}
-      - --websiteId
-      - ${GROWTH_WEBSITE_ID}
-      - --intervalMs
-      - ${GROWTH_ORCHESTRATOR_INTERVAL_MS:-30000}
     logging:
       driver: json-file
       options:
