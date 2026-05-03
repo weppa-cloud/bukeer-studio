@@ -359,6 +359,58 @@ async function updateRun(supabase, runId, patch) {
   if (error) throw new Error(`updateRun(${runId}) failed: ${error.message}`);
 }
 
+async function claimSeededRun(supabase, opts, lane, claimId, workspacePath) {
+  const { data, error } = await supabase
+    .from("growth_agent_runs")
+    .select("*")
+    .eq("account_id", opts.accountId)
+    .eq("website_id", opts.websiteId)
+    .eq("lane", lane)
+    .eq("status", "claimed")
+    .eq("attempts", 0)
+    .is("started_at", null)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`claimSeededRun(${lane}) failed: ${error.message}`);
+  }
+  if (!data?.run_id) return null;
+
+  await updateRun(supabase, data.run_id, {
+    claim_id: claimId,
+    workspace_path: workspacePath,
+    heartbeat_at: new Date().toISOString(),
+    evidence: {
+      ...safeObject(data.evidence),
+      claim_source: "preseeded_growth_agent_run",
+    },
+  });
+
+  const run = {
+    ...data,
+    claim_id: claimId,
+    workspace_path: workspacePath,
+    evidence: {
+      ...safeObject(data.evidence),
+      claim_source: "preseeded_growth_agent_run",
+    },
+  };
+
+  await writeRunEvent(supabase, run, "claimed", {
+    message: `Claimed preseeded growth_agent_runs row for lane=${lane}`,
+    payload: {
+      claim_id: claimId,
+      workspace_path: workspacePath,
+      source_table: run.source_table,
+      source_id: run.source_id,
+    },
+  });
+
+  return run;
+}
+
 async function createArtifact(artifactsRoot, run, runtimeContext) {
   const dir = path.join(
     artifactsRoot,
@@ -629,10 +681,13 @@ async function claimLane(supabase, opts, lane) {
   });
 
   if (error) throw new Error(`claim RPC failed lane=${lane}: ${error.message}`);
-  const run = Array.isArray(data) ? data[0] : data;
+  let run = Array.isArray(data) ? data[0] : data;
   if (!run?.run_id) {
-    log("info", "no eligible row", { lane });
-    return { claimed: false };
+    run = await claimSeededRun(supabase, opts, lane, claimId, workspacePath);
+    if (!run?.run_id) {
+      log("info", "no eligible row", { lane });
+      return { claimed: false };
+    }
   }
 
   log("info", "claimed run", {
