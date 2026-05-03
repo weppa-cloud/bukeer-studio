@@ -50,6 +50,9 @@ yarn-error.log*
 .mcp.json
 .mcp.local.json
 
+# Credentials (service account JSONs, OAuth keys, etc.) — never commit
+.credentials/
+
 # Cloudflare Workers (OpenNext build output)
 .open-next/
 .dev.vars

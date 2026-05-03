@@ -76,6 +76,13 @@
         "-lc",
         "set -a; [ -f .env.local ] && source .env.local; [ -f .env.mcp ] && source .env.mcp; set +a; exec node .claude/mcp-servers/meta-ads/dist/index.js"
       ]
+    },
+    "google-ads": {
+      "command": "bash",
+      "args": [
+        "-lc",
+        "set -a; [ -f .env.local ] && source .env.local; [ -f .env.mcp ] && source .env.mcp; set +a; export GOOGLE_APPLICATION_CREDENTIALS=\"$PWD/.credentials/claude-dev-434502-cf8836f5cc5e.json\"; export GOOGLE_PROJECT_ID=\"${GOOGLE_PROJECT_ID:-claude-dev-434502}\"; exec pipx run --spec git+https://github.com/googleads/google-ads-mcp.git google-ads-mcp"
+      ]
     }
   }
 }
