@@ -220,6 +220,81 @@ function CandidateReviewButtons({
   );
 }
 
+function HumanRunDecisionActions({
+  websiteId,
+  runId,
+  status,
+  canCurate,
+  role,
+  showNotes = true,
+}: {
+  websiteId: string;
+  runId: string;
+  status: AgentRunStatus;
+  canCurate: boolean;
+  role: string;
+  showNotes?: boolean;
+}) {
+  const canDecide = canCurate && status === "review_required";
+  const disabledReason = !canCurate
+    ? `Tu rol actual (${role}) no puede aprobar ni rechazar. Se requiere curator o superior.`
+    : status !== "review_required"
+      ? "Este trabajo ya no está pendiente de revisión."
+      : null;
+
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-wrap gap-2">
+        <form action={approveRun}>
+          <input type="hidden" name="websiteId" value={websiteId} />
+          <input type="hidden" name="runId" value={runId} />
+          <button
+            type="submit"
+            disabled={!canDecide}
+            aria-label="Approve / Aprobar trabajo del agente"
+            className="studio-button studio-button--primary disabled:opacity-50 disabled:cursor-not-allowed"
+            title={disabledReason ?? undefined}
+          >
+            Aprobar trabajo
+          </button>
+        </form>
+        <form action={rejectRun} className="flex flex-wrap items-end gap-2">
+          <input type="hidden" name="websiteId" value={websiteId} />
+          <input type="hidden" name="runId" value={runId} />
+          {showNotes ? (
+            <label className="flex flex-col gap-1 text-xs">
+              <span className="text-[var(--studio-text-muted)]">
+                Notas (opcional)
+              </span>
+              <input
+                type="text"
+                name="notes"
+                maxLength={500}
+                disabled={!canDecide}
+                className="studio-input"
+              />
+            </label>
+          ) : null}
+          <button
+            type="submit"
+            disabled={!canDecide}
+            aria-label="Reject / Rechazar trabajo del agente"
+            className="studio-button studio-button--danger disabled:opacity-50 disabled:cursor-not-allowed"
+            title={disabledReason ?? undefined}
+          >
+            Rechazar
+          </button>
+        </form>
+      </div>
+      {disabledReason ? (
+        <p className="text-xs text-[var(--studio-text-muted)]">
+          {disabledReason}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 interface PageProps {
   params: Promise<{ websiteId: string; runId: string }>;
 }
@@ -489,6 +564,18 @@ export default async function GrowthRunDetailPage({ params }: PageProps) {
             </p>
           </article>
         </div>
+
+        <div className="mt-4 rounded-md border border-[var(--studio-border)] bg-[var(--studio-surface)] p-3">
+          <div className="mb-2 text-sm font-semibold">Decisión del equipo</div>
+          <HumanRunDecisionActions
+            websiteId={websiteId}
+            runId={run.run_id}
+            status={run.status}
+            canCurate={canCurate}
+            role={role}
+            showNotes={false}
+          />
+        </div>
       </section>
 
       <details className="mt-4 rounded-md border border-[var(--studio-border)] bg-[var(--studio-surface)] p-3 text-xs">
@@ -574,49 +661,13 @@ export default async function GrowthRunDetailPage({ params }: PageProps) {
             </p>
           ) : null}
         </header>
-        <div className="flex flex-wrap gap-2">
-          <form action={approveRun}>
-            <input type="hidden" name="websiteId" value={websiteId} />
-            <input type="hidden" name="runId" value={run.run_id} />
-            <button
-              type="submit"
-              disabled={!canCurate || run.status !== "review_required"}
-              aria-label="Approve / Aprobar trabajo del agente"
-              className="studio-button studio-button--primary disabled:opacity-50 disabled:cursor-not-allowed"
-              title={
-                run.status !== "review_required"
-                  ? "Solo trabajo en review_required puede aprobarse."
-                  : undefined
-              }
-            >
-              Aprobar trabajo
-            </button>
-          </form>
-          <form action={rejectRun} className="flex items-end gap-2">
-            <input type="hidden" name="websiteId" value={websiteId} />
-            <input type="hidden" name="runId" value={run.run_id} />
-            <label className="flex flex-col gap-1 text-xs">
-              <span className="text-[var(--studio-text-muted)]">
-                Notas (opcional)
-              </span>
-              <input
-                type="text"
-                name="notes"
-                maxLength={500}
-                disabled={!canCurate || run.status !== "review_required"}
-                className="studio-input"
-              />
-            </label>
-            <button
-              type="submit"
-              disabled={!canCurate || run.status !== "review_required"}
-              aria-label="Reject / Rechazar trabajo del agente"
-              className="studio-button studio-button--danger disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Rechazar
-            </button>
-          </form>
-        </div>
+        <HumanRunDecisionActions
+          websiteId={websiteId}
+          runId={run.run_id}
+          status={run.status}
+          canCurate={canCurate}
+          role={role}
+        />
       </section>
 
       <section
