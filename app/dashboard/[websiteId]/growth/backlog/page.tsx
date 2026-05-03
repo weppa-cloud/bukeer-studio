@@ -45,11 +45,59 @@ const LANES: ReadonlyArray<AgentLane> = [
 ];
 
 const LANE_LABELS: Record<AgentLane, string> = {
-  orchestrator: "Orchestrator",
-  technical_remediation: "Technical remediation",
-  transcreation: "Transcreation",
-  content_creator: "Content creator",
-  content_curator: "Content curator",
+  orchestrator: "Orquestador",
+  technical_remediation: "Corrección técnica",
+  transcreation: "Transcreación",
+  content_creator: "Creación de contenido",
+  content_curator: "Curaduría",
+};
+
+const LANE_HELP: Record<AgentLane, string> = {
+  orchestrator: "Ordena prioridades y decide qué debe revisar cada agente.",
+  technical_remediation:
+    "Detecta ajustes técnicos SEO/CRO antes de tocar el sitio.",
+  transcreation:
+    "Prepara adaptación por idioma o mercado sin publicar automáticamente.",
+  content_creator:
+    "Convierte demanda SEO en briefs, mejoras o borradores revisables.",
+  content_curator:
+    "Valida evidencia, riesgos y si una propuesta puede pasar a Council.",
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  blocked: "Bloqueada",
+  rejected: "Rechazada",
+  watch: "En observación",
+  queued: "En cola",
+  ready_for_brief: "Lista para brief",
+  ready_for_council: "Lista para Council",
+  brief_in_progress: "Brief en progreso",
+  approved_for_execution: "Aprobada para ejecutar",
+  in_progress: "En progreso",
+  done: "Completada",
+  shipped: "Entregada",
+  evaluated: "Evaluada",
+  applied: "Aplicada",
+  ready_for_seo_qa: "Lista para QA SEO",
+};
+
+const WORK_TYPE_LABELS: Record<string, string> = {
+  technical_remediation: "Ajuste técnico",
+  transcreation: "Transcreación",
+  translate: "Traducción",
+  locale_content: "Contenido por mercado",
+  seo_demand: "Demanda SEO",
+  growth_opportunity: "Oportunidad de growth",
+  content_opportunity: "Oportunidad de contenido",
+  serp_competitor_opportunity: "Brecha vs competencia",
+  content_update: "Actualización de contenido",
+  seo_content: "Contenido SEO",
+  cro_activation: "Activación CRO",
+  experiment_readiness: "Preparación de experimento",
+  refresh: "Refresco de contenido",
+  create_or_expand: "Crear o expandir",
+  cro_support: "Soporte CRO",
+  locale_quality_or_translation: "Calidad de idioma",
 };
 
 const SearchParamsSchema = z.object({
@@ -103,7 +151,9 @@ function StatusPill({ status }: { status: string | null }) {
   else if (status.startsWith("ready")) tone = "info";
   else if (status.includes("progress") || status === "approved_for_execution")
     tone = "info";
-  return <StudioBadge tone={tone}>{status}</StudioBadge>;
+  return (
+    <StudioBadge tone={tone}>{STATUS_LABELS[status] ?? status}</StudioBadge>
+  );
 }
 
 function ReviewPill({ value }: { value: string | null }) {
@@ -116,78 +166,339 @@ function ReviewPill({ value }: { value: string | null }) {
   return <StudioBadge tone={tone}>{value}</StudioBadge>;
 }
 
-function BacklogTable({ rows }: { rows: BacklogRow[] }) {
+function fmtDate(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  try {
+    return new Date(iso).toLocaleString("es-CO", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    });
+  } catch {
+    return "—";
+  }
+}
+
+function humanizeToken(value: string | null | undefined): string {
+  if (!value) return "—";
+  return WORK_TYPE_LABELS[value] ?? value.replace(/_/g, " ");
+}
+
+function displayTitle(row: BacklogRow): string {
+  const raw = row.title?.trim();
+  if (!raw) return "Tarea sin título";
+  const withoutPrefix = raw.replace(/^[A-Z][A-Za-z ]+:\s*/i, "").trim();
+  if (row.page_url && withoutPrefix.includes(row.page_url)) {
+    const path = row.page_url
+      .replace(/^https?:\/\/(www\.)?/i, "")
+      .replace(/^colombiatours\.travel\/?/i, "")
+      .replace(/^en\.colombiatours\.travel\/?/i, "en/");
+    return path || row.page_url;
+  }
+  return withoutPrefix.length > 150
+    ? `${withoutPrefix.slice(0, 147)}...`
+    : withoutPrefix;
+}
+
+function pageKind(url: string | null): string {
+  if (!url) return "Referencia";
+  const parsed = url.toLowerCase();
+  if (parsed.includes("/blog/")) return "Blog / artículo";
+  if (parsed.includes("/l/")) return "Landing";
+  if (parsed.includes("/en.")) return "Página en inglés";
+  return "Página";
+}
+
+function marketingNextAction(value: string | null): string {
+  if (!value) {
+    return "Revisar evidencia, decidir prioridad y enviar a ejecución solo si el impacto es claro.";
+  }
+  const lower = value.toLowerCase();
+  if (lower.includes("ga4 event/page drop-off")) {
+    return "Hay visitas o eventos, pero no conversiones registradas. Marketing debe revisar si el CTA, formulario o medición están impidiendo que el tráfico se convierta en lead.";
+  }
+  if (lower.includes("review joint fact")) {
+    return "Revisar si la evidencia combinada de búsqueda/analytics justifica convertir esta oportunidad en brief o experimento.";
+  }
+  if (lower.includes("review ctr/demand opportunity")) {
+    return "Revisar si conviene mejorar título, descripción, snippet o enlaces internos para capturar mejor la demanda de búsqueda.";
+  }
+  if (lower.includes("run en/locale quality gate")) {
+    return "Validar calidad de idioma, intención de mercado y SEO antes de publicar o conectar esta versión en inglés.";
+  }
+  if (lower.includes("prepare studio content update draft")) {
+    return "Preparar un borrador de mejora de contenido en Studio y después validar SEO, canonical y CTA antes de aprobar.";
+  }
+  return value;
+}
+
+interface ExecutionCoverageRun {
+  run_id: string;
+  status: string;
+  source_table: string | null;
+  source_id: string | null;
+  updated_at: string | null;
+}
+
+type ExecutionCoverage = Record<
+  AgentLane,
+  {
+    total: number;
+    distinctSources: number;
+    reviewRequired: number;
+    samples: ExecutionCoverageRun[];
+  }
+>;
+
+function emptyExecutionCoverage(): ExecutionCoverage {
+  return LANES.reduce(
+    (acc, lane) => ({
+      ...acc,
+      [lane]: {
+        total: 0,
+        distinctSources: 0,
+        reviewRequired: 0,
+        samples: [],
+      },
+    }),
+    {} as ExecutionCoverage,
+  );
+}
+
+function buildExecutionCoverage(
+  rows: Array<Record<string, unknown>>,
+): ExecutionCoverage {
+  const coverage = emptyExecutionCoverage();
+  const sourcesByLane = new Map<AgentLane, Set<string>>();
+  for (const lane of LANES) sourcesByLane.set(lane, new Set());
+
+  for (const row of rows) {
+    const parsedLane = AgentLaneSchema.safeParse(row.lane);
+    if (!parsedLane.success) continue;
+    const lane = parsedLane.data;
+    const status = String(row.status ?? "");
+    const sourceKey = `${row.source_table ?? "unknown"}:${row.source_id ?? row.run_id}`;
+    coverage[lane].total += 1;
+    if (status === "review_required") coverage[lane].reviewRequired += 1;
+    sourcesByLane.get(lane)?.add(sourceKey);
+    if (
+      coverage[lane].samples.length < 2 &&
+      !coverage[lane].samples.some(
+        (sample) => sample.source_id === row.source_id,
+      )
+    ) {
+      coverage[lane].samples.push({
+        run_id: String(row.run_id),
+        status,
+        source_table: (row.source_table as string | null | undefined) ?? null,
+        source_id: (row.source_id as string | null | undefined) ?? null,
+        updated_at: (row.updated_at as string | null | undefined) ?? null,
+      });
+    }
+  }
+
+  for (const lane of LANES) {
+    coverage[lane].distinctSources = sourcesByLane.get(lane)?.size ?? 0;
+  }
+
+  return coverage;
+}
+
+function ExecutionCoveragePanel({
+  websiteId,
+  coverage,
+}: {
+  websiteId: string;
+  coverage: ExecutionCoverage;
+}) {
+  return (
+    <section className="mt-4 rounded-md border border-[var(--studio-border)] bg-[var(--studio-surface)] p-4">
+      <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+        <div>
+          <h2 className="text-base font-semibold text-[var(--studio-text)]">
+            Ejecución real por agente
+          </h2>
+          <p className="text-sm text-[var(--studio-text-muted)]">
+            Para la prueba beta, cada lane debe tener al menos dos tareas
+            ejecutadas y trazables antes de pedir aprobación humana.
+          </p>
+        </div>
+        <Link
+          href={`/dashboard/${websiteId}/growth/runs`}
+          className="studio-button studio-button--outline"
+        >
+          Ver Review Queue
+        </Link>
+      </div>
+      <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-5">
+        {LANES.map((lane) => {
+          const item = coverage[lane];
+          const ready = item.distinctSources >= 2;
+          return (
+            <article
+              key={lane}
+              className="rounded-md border border-[var(--studio-border)] p-3"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="text-sm font-semibold">{LANE_LABELS[lane]}</h3>
+                <StudioBadge tone={ready ? "success" : "warning"}>
+                  {ready ? "2+ listas" : "Falta"}
+                </StudioBadge>
+              </div>
+              <p className="mt-1 text-xs text-[var(--studio-text-muted)]">
+                {item.distinctSources} tareas distintas · {item.reviewRequired}{" "}
+                en revisión
+              </p>
+              <div className="mt-2 space-y-1">
+                {item.samples.length > 0 ? (
+                  item.samples.map((sample) => (
+                    <Link
+                      key={sample.run_id}
+                      href={`/dashboard/${websiteId}/growth/runs/${sample.run_id}`}
+                      className="block rounded border border-[var(--studio-border)] px-2 py-1 text-xs hover:border-[var(--studio-text)]"
+                    >
+                      Resultado {sample.run_id.slice(-8)} ·{" "}
+                      {STATUS_LABELS[sample.status] ?? sample.status}
+                    </Link>
+                  ))
+                ) : (
+                  <span className="text-xs text-[var(--studio-text-muted)]">
+                    Sin runs todavía
+                  </span>
+                )}
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function BacklogCards({
+  rows,
+  websiteId,
+}: {
+  rows: BacklogRow[];
+  websiteId: string;
+}) {
   if (rows.length === 0) {
     return (
       <p className="text-sm text-[var(--studio-text-muted)] px-1 py-3">
-        No items in this lane for the selected filters.
+        No hay tareas en este lane con los filtros actuales.
       </p>
     );
   }
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm border-collapse">
-        <thead>
-          <tr className="text-left text-xs uppercase tracking-wide text-[var(--studio-text-muted)] border-b border-[var(--studio-border)]">
-            <th className="py-2 pr-3 font-medium">Opportunity</th>
-            <th className="py-2 pr-3 font-medium">Evidence</th>
-            <th className="py-2 pr-3 font-medium">Status</th>
-            <th className="py-2 pr-3 font-medium">Council</th>
-            <th className="py-2 pr-3 font-medium">Next action</th>
-            <th className="py-2 pr-3 font-medium">Blocker</th>
-            <th className="py-2 pr-3 font-medium">AI review</th>
-            <th className="py-2 pr-3 font-medium">Human review</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => (
-            <tr
-              key={row.id}
-              className="border-b border-[var(--studio-border)]/50 align-top"
-            >
-              <td className="py-2 pr-3 max-w-[320px]">
-                <div className="font-medium text-[var(--studio-text)]">
-                  {row.title ?? (
-                    <span className="italic opacity-70">untitled</span>
-                  )}
-                </div>
-                <div className="text-xs text-[var(--studio-text-muted)] font-mono">
-                  {row.id}
-                </div>
-              </td>
-              <td className="py-2 pr-3 font-mono text-xs">
-                {row.source_table ?? "—"}
-              </td>
-              <td className="py-2 pr-3">
+    <div className="grid grid-cols-1 gap-3">
+      {rows.map((row) => (
+        <article
+          key={row.id}
+          className="rounded-md border border-[var(--studio-border)] bg-[var(--studio-surface)] p-4"
+        >
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
                 <StatusPill status={row.status} />
-              </td>
-              <td className="py-2 pr-3">
-                {row.council_ready === true ? (
-                  <StudioBadge tone="success">yes</StudioBadge>
-                ) : row.council_ready === false ? (
-                  <StudioBadge tone="neutral">no</StudioBadge>
-                ) : (
-                  <span className="text-xs text-[var(--studio-text-muted)]">
-                    —
+                {row.council_ready ? (
+                  <StudioBadge tone="info">Lista para Council</StudioBadge>
+                ) : null}
+                <span className="text-xs text-[var(--studio-text-muted)]">
+                  {humanizeToken(row.work_type)}
+                </span>
+              </div>
+              <h4 className="mt-2 text-base font-semibold text-[var(--studio-text)]">
+                {displayTitle(row)}
+              </h4>
+              <p className="mt-1 text-xs text-[var(--studio-text-muted)]">
+                Equipo responsable: {row.lane ? LANE_LABELS[row.lane] : "—"} ·
+                Fuente:{" "}
+                {row.source_table === "growth_content_tasks"
+                  ? "Tarea de contenido"
+                  : "Backlog Growth"}
+              </p>
+            </div>
+
+            <div className="flex flex-wrap gap-2 lg:justify-end">
+              {row.page_url ? (
+                <a
+                  href={row.page_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="studio-button studio-button--outline"
+                >
+                  Ver {pageKind(row.page_url)}
+                </a>
+              ) : null}
+              {row.latest_run_id ? (
+                <Link
+                  href={`/dashboard/${websiteId}/growth/runs/${row.latest_run_id}`}
+                  className="studio-button studio-button--primary"
+                >
+                  Revisar resultado
+                </Link>
+              ) : (
+                <span className="rounded border border-[var(--studio-border)] px-3 py-2 text-xs text-[var(--studio-text-muted)]">
+                  Sin ejecución todavía
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+            <div className="rounded-md bg-[var(--studio-surface-muted,theme(colors.zinc.50))] p-3">
+              <div className="text-xs uppercase tracking-wide text-[var(--studio-text-muted)]">
+                Qué debe revisar marketing
+              </div>
+              <p className="mt-1 text-sm">
+                {marketingNextAction(row.next_action)}
+              </p>
+            </div>
+            <div className="rounded-md bg-[var(--studio-surface-muted,theme(colors.zinc.50))] p-3">
+              <div className="text-xs uppercase tracking-wide text-[var(--studio-text-muted)]">
+                Riesgo o bloqueo
+              </div>
+              <p className="mt-1 text-sm">
+                {row.blocked_reason ??
+                  "Sin bloqueo explícito. Validar que no publique ni cambie campañas sin aprobación."}
+              </p>
+            </div>
+            <div className="rounded-md bg-[var(--studio-surface-muted,theme(colors.zinc.50))] p-3">
+              <div className="text-xs uppercase tracking-wide text-[var(--studio-text-muted)]">
+                Resultado del agente
+              </div>
+              {row.latest_run_id ? (
+                <p className="mt-1 text-sm">
+                  Última ejecución:{" "}
+                  <span className="font-medium">
+                    {STATUS_LABELS[row.latest_run_status ?? ""] ??
+                      row.latest_run_status}
                   </span>
-                )}
-              </td>
-              <td className="py-2 pr-3 max-w-[280px] text-xs">
-                {row.next_action ?? "—"}
-              </td>
-              <td className="py-2 pr-3 max-w-[240px] text-xs">
-                {row.blocked_reason ?? "—"}
-              </td>
-              <td className="py-2 pr-3">
-                <ReviewPill value={row.ai_review_state} />
-              </td>
-              <td className="py-2 pr-3">
-                <ReviewPill value={row.human_review_state} />
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+                  <br />
+                  <span className="text-xs text-[var(--studio-text-muted)]">
+                    {fmtDate(row.latest_run_updated_at)}
+                  </span>
+                </p>
+              ) : (
+                <p className="mt-1 text-sm text-[var(--studio-text-muted)]">
+                  Aún no hay artifact ni revisión para esta tarea.
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-3 flex flex-wrap items-center gap-3 text-xs">
+            <span className="text-[var(--studio-text-muted)]">AI review</span>
+            <ReviewPill value={row.ai_review_state} />
+            <span className="text-[var(--studio-text-muted)]">
+              Revisión humana
+            </span>
+            <ReviewPill value={row.human_review_state} />
+            <span className="font-mono text-[var(--studio-text-muted)]">
+              {row.id.slice(0, 8)}
+            </span>
+          </div>
+        </article>
+      ))}
     </div>
   );
 }
@@ -243,7 +554,8 @@ function LaneSection({
             {LANE_LABELS[lane]}
           </h3>
           <p className="text-xs text-[var(--studio-text-muted)]">
-            {laneTotal} total · showing {rowsForLane.length}
+            {laneTotal} total · mostrando {rowsForLane.length}.{" "}
+            {LANE_HELP[lane]}
           </p>
         </div>
         {!selectedLane ? (
@@ -251,19 +563,19 @@ function LaneSection({
             href={buildHref(websiteId, current, { lane, page: 1 })}
             className="text-xs underline text-[var(--studio-text-muted)] hover:text-[var(--studio-text)]"
           >
-            Filter to lane →
+            Ver solo este lane →
           </Link>
         ) : (
           <Link
             href={buildHref(websiteId, current, { lane: null, page: 1 })}
             className="text-xs underline text-[var(--studio-text-muted)] hover:text-[var(--studio-text)]"
           >
-            Clear lane filter
+            Limpiar filtro
           </Link>
         )}
       </header>
 
-      <BacklogTable rows={rowsForLane} />
+      <BacklogCards rows={rowsForLane} websiteId={websiteId} />
 
       {isPaginated && totalPages > 1 ? (
         <nav
@@ -271,7 +583,7 @@ function LaneSection({
           className="flex items-center justify-between text-xs text-[var(--studio-text-muted)] mt-2"
         >
           <span>
-            Page {currentPage} of {totalPages} · {result.total} items
+            Página {currentPage} de {totalPages} · {result.total} tareas
           </span>
           <div className="flex items-center gap-2">
             {currentPage > 1 ? (
@@ -279,20 +591,20 @@ function LaneSection({
                 href={buildHref(websiteId, current, { page: currentPage - 1 })}
                 className="underline hover:text-[var(--studio-text)]"
               >
-                ← Prev
+                ← Anterior
               </Link>
             ) : (
-              <span className="opacity-50">← Prev</span>
+              <span className="opacity-50">← Anterior</span>
             )}
             {currentPage < totalPages ? (
               <Link
                 href={buildHref(websiteId, current, { page: currentPage + 1 })}
                 className="underline hover:text-[var(--studio-text)]"
               >
-                Next →
+                Siguiente →
               </Link>
             ) : (
-              <span className="opacity-50">Next →</span>
+              <span className="opacity-50">Siguiente →</span>
             )}
           </div>
         </nav>
@@ -317,7 +629,7 @@ function FilterBar({
     <div className="flex flex-wrap items-center gap-3 mt-2">
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-xs uppercase tracking-wide text-[var(--studio-text-muted)]">
-          Lane:
+          Equipo:
         </span>
         <Link
           href={buildHref(websiteId, current, { lane: null, page: 1 })}
@@ -327,7 +639,7 @@ function FilterBar({
               : "border-[var(--studio-border)] hover:border-[var(--studio-text)]"
           }`}
         >
-          all
+          todos
         </Link>
         {LANES.map((lane) => (
           <Link
@@ -345,7 +657,7 @@ function FilterBar({
       </div>
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-xs uppercase tracking-wide text-[var(--studio-text-muted)]">
-          Status:
+          Estado:
         </span>
         <Link
           href={buildHref(websiteId, current, { status: null, page: 1 })}
@@ -355,7 +667,7 @@ function FilterBar({
               : "border-[var(--studio-border)] hover:border-[var(--studio-text)]"
           }`}
         >
-          all
+          todos
         </Link>
         {BACKLOG_STATUS_BUCKETS.map((bucket) => (
           <Link
@@ -424,7 +736,7 @@ export default async function BacklogByLanePage({
   }
 
   // Two parallel reads, each tenant-scoped.
-  const [backlog, contentTasks] = await Promise.all([
+  const [backlog, contentTasks, executionRows] = await Promise.all([
     getBacklogByLane(supabase, websiteId, {
       accountId,
       lane,
@@ -439,7 +751,19 @@ export default async function BacklogByLanePage({
       page,
       pageSize,
     }),
+    supabase
+      .from("growth_agent_runs")
+      .select("run_id, lane, status, source_table, source_id, updated_at")
+      .eq("website_id", websiteId)
+      .eq("account_id", accountId)
+      .order("updated_at", { ascending: false, nullsFirst: false })
+      .limit(100),
   ]);
+  const executionCoverage = buildExecutionCoverage(
+    executionRows.data
+      ? (executionRows.data as Array<Record<string, unknown>>)
+      : [],
+  );
 
   const current = { lane, status: statusBucket, page, pageSize };
 
@@ -452,8 +776,8 @@ export default async function BacklogByLanePage({
   return (
     <StudioPage className="max-w-7xl">
       <StudioSectionHeader
-        title="Opportunities"
-        subtitle="Backlog priorizado en lenguaje operativo: evidencia, owner lane, blocker y siguiente accion."
+        title="Tareas de Growth"
+        subtitle="Trabajo priorizado para marketing: evidencia, responsable, resultado del agente y siguiente paso."
         actions={
           <div className="flex items-center gap-2">
             <StudioBadge tone="info">SPEC #403 · Issue #406</StudioBadge>
@@ -466,8 +790,9 @@ export default async function BacklogByLanePage({
         See SPEC_GROWTH_OS_SYMPHONY_ORCHESTRATOR.md §"Bukeer Studio UI Scope".
       */}
       <p className="text-xs text-[var(--studio-text-muted)] mt-1">
-        Read-only view. Las oportunidades pueden ejecutarse como batch
-        operativo; solo Council convierte una propuesta en experimento medible.
+        Vista de operación. Cada tarea muestra su referencia, estado y último
+        resultado del agente; publicar, unir transcreación, activar experimentos
+        o tocar pauta sigue bloqueado por aprobación humana.
       </p>
 
       {anyError ? (
@@ -482,11 +807,16 @@ export default async function BacklogByLanePage({
 
       <FilterBar websiteId={websiteId} current={current} />
 
+      <ExecutionCoveragePanel
+        websiteId={websiteId}
+        coverage={executionCoverage}
+      />
+
       {bothMissing || totalAcross === 0 ? (
         <div data-testid="growth-backlog-empty-state" className="mt-6">
           <StudioEmptyState
-            title="No backlog yet"
-            description="Corre el backlog generator (#397) o el Council packet (#399) para poblar oportunidades. La vista sigue estable aunque las tablas esten vacias."
+            title="Aún no hay tareas"
+            description="Corre el generador de backlog (#397) o el Council packet (#399) para poblar oportunidades. La vista sigue estable aunque las tablas estén vacías."
           />
         </div>
       ) : null}
@@ -507,7 +837,7 @@ export default async function BacklogByLanePage({
                 </h2>
                 <p className="text-xs text-[var(--studio-text-muted)]">
                   Fuente operativa: <code>growth_backlog_items</code> ·{" "}
-                  {backlog.total} items match
+                  {backlog.total} tareas coinciden
                 </p>
               </div>
             </header>
@@ -540,11 +870,11 @@ export default async function BacklogByLanePage({
                 id="content-tasks-heading"
                 className="text-lg font-semibold text-[var(--studio-text)]"
               >
-                Content tasks
+                Tareas de contenido
               </h2>
               <p className="text-xs text-[var(--studio-text-muted)]">
-                Source: <code>growth_content_tasks</code> · {contentTasks.total}{" "}
-                items match
+                Fuente: <code>growth_content_tasks</code> · {contentTasks.total}{" "}
+                tareas coinciden
               </p>
             </header>
 

@@ -152,6 +152,13 @@ test.describe("Growth OS console UI contract @growth-os-ui", () => {
     const tableVisible = await backlogTable.isVisible().catch(() => false);
     expect(emptyVisible || tableVisible).toBe(true);
     expect(emptyVisible && tableVisible).toBe(false);
+
+    if (tableVisible) {
+      await expect(page.getByText("Ejecución real por agente")).toBeVisible();
+      await expect(
+        page.getByText("QUÉ DEBE REVISAR MARKETING").first(),
+      ).toBeVisible();
+    }
   });
 
   test("Runs tab loads (empty state OK)", async ({ page }) => {
@@ -296,7 +303,10 @@ test.describe("Growth OS console UI contract @growth-os-ui", () => {
       "No runs available to inspect for append-only guarantees.",
     );
 
-    await firstRun.getByRole("link").first().click();
+    await Promise.all([
+      page.waitForURL(/\/growth\/runs\/[0-9a-f-]+$/),
+      firstRun.getByRole("link").first().click(),
+    ]);
 
     await expect(page.getByTestId("growth-run-learning-panel")).toBeVisible();
 

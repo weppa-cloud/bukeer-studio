@@ -74,12 +74,17 @@ export interface BacklogRow {
   title: string | null;
   lane: AgentLane | null;
   source_table: string | null;
+  work_type: string | null;
   status: string | null;
   council_ready: boolean | null;
   next_action: string | null;
   blocked_reason: string | null;
   ai_review_state: string | null;
   human_review_state: string | null;
+  page_url: string | null;
+  latest_run_id: string | null;
+  latest_run_status: string | null;
+  latest_run_updated_at: string | null;
   updated_at: string | null;
 }
 
@@ -210,6 +215,81 @@ function evidenceValue(value: unknown, keys: string[]): string | null {
   return null;
 }
 
+function urlFromText(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const match = value.match(/https?:\/\/[^\s),]+/i);
+  return match?.[0] ?? null;
+}
+
+function pageUrlFromRow(row: Record<string, unknown>): string | null {
+  return (
+    urlFromText(row.title) ??
+    urlFromText(row.next_action) ??
+    urlFromText(evidenceValue(row.evidence, ["url", "page_url", "source_url"]))
+  );
+}
+
+async function latestRunsBySource(
+  supabase: SupabaseClient,
+  accountId: string,
+  websiteId: string,
+  sourceTable: "growth_backlog_items" | "growth_content_tasks",
+  sourceIds: string[],
+): Promise<
+  Map<
+    string,
+    {
+      run_id: string;
+      status: string;
+      updated_at: string | null;
+      lane: AgentLane | null;
+    }
+  >
+> {
+  const bySource = new Map<
+    string,
+    {
+      run_id: string;
+      status: string;
+      updated_at: string | null;
+      lane: AgentLane | null;
+    }
+  >();
+  if (sourceIds.length === 0) return bySource;
+
+  try {
+    const { data, error } = await supabase
+      .from("growth_agent_runs")
+      .select("run_id, source_id, lane, status, updated_at")
+      .eq("account_id", accountId)
+      .eq("website_id", websiteId)
+      .eq("source_table", sourceTable)
+      .in("source_id", sourceIds)
+      .order("updated_at", { ascending: false, nullsFirst: false })
+      .limit(sourceIds.length * 5);
+
+    if (error || !data) return bySource;
+
+    for (const row of data as Array<Record<string, unknown>>) {
+      const sourceId = String(row.source_id ?? "");
+      const lane = (row.lane as AgentLane | null | undefined) ?? null;
+      const key = lane ? `${sourceId}:${lane}` : `${sourceId}:*`;
+      if (!sourceId || bySource.has(key)) continue;
+      bySource.set(sourceId, {
+        run_id: String(row.run_id),
+        status: String(row.status ?? ""),
+        updated_at: (row.updated_at as string | null | undefined) ?? null,
+        lane,
+      });
+      bySource.set(key, bySource.get(sourceId)!);
+    }
+  } catch {
+    return bySource;
+  }
+
+  return bySource;
+}
+
 function emptyResult(
   page: number,
   pageSize: number,
@@ -324,29 +404,48 @@ export async function getBacklogByLane(
       }
     }
 
-    const items: BacklogRow[] = rows.map((r) => ({
-      id: String(r.id),
-      website_id: String(r.website_id),
-      account_id: (r.account_id as string | null | undefined) ?? null,
-      title: (r.title as string | null | undefined) ?? null,
-      lane: laneForBacklogWorkType(r.work_type),
-      source_table: "growth_backlog_items",
-      status: (r.status as string | null | undefined) ?? null,
-      council_ready: isCouncilReady(r.status),
-      next_action: (r.next_action as string | null | undefined) ?? null,
-      blocked_reason: (r.blocked_reason as string | null | undefined) ?? null,
-      ai_review_state: evidenceValue(r.evidence, [
-        "ai_review_state",
-        "ai_review",
-        "llm_review",
-      ]),
-      human_review_state: evidenceValue(r.evidence, [
-        "human_review_state",
-        "human_review",
-        "curator_review",
-      ]),
-      updated_at: (r.updated_at as string | null | undefined) ?? null,
-    }));
+    const latestRuns = await latestRunsBySource(
+      supabase,
+      opts.accountId,
+      websiteId,
+      "growth_backlog_items",
+      rows.map((r) => String(r.id)).filter(Boolean),
+    );
+
+    const items: BacklogRow[] = rows.map((r) => {
+      const lane = laneForBacklogWorkType(r.work_type);
+      const latestRun =
+        latestRuns.get(`${String(r.id)}:${lane}`) ??
+        latestRuns.get(String(r.id));
+      return {
+        id: String(r.id),
+        website_id: String(r.website_id),
+        account_id: (r.account_id as string | null | undefined) ?? null,
+        title: (r.title as string | null | undefined) ?? null,
+        lane,
+        source_table: "growth_backlog_items",
+        work_type: (r.work_type as string | null | undefined) ?? null,
+        status: (r.status as string | null | undefined) ?? null,
+        council_ready: isCouncilReady(r.status),
+        next_action: (r.next_action as string | null | undefined) ?? null,
+        blocked_reason: (r.blocked_reason as string | null | undefined) ?? null,
+        ai_review_state: evidenceValue(r.evidence, [
+          "ai_review_state",
+          "ai_review",
+          "llm_review",
+        ]),
+        human_review_state: evidenceValue(r.evidence, [
+          "human_review_state",
+          "human_review",
+          "curator_review",
+        ]),
+        page_url: pageUrlFromRow(r),
+        latest_run_id: latestRun?.run_id ?? null,
+        latest_run_status: latestRun?.status ?? null,
+        latest_run_updated_at: latestRun?.updated_at ?? null,
+        updated_at: (r.updated_at as string | null | undefined) ?? null,
+      };
+    });
 
     // Aggregates from a wider sample (separate light query).
     const aggregates = await readBacklogAggregates(
@@ -499,33 +598,52 @@ export async function getContentTasksByLane(
       }
     }
 
-    const items: BacklogRow[] = rows.map((r) => ({
-      id: String(r.id),
-      website_id: String(r.website_id),
-      account_id: (r.account_id as string | null | undefined) ?? null,
-      title: (r.title as string | null | undefined) ?? null,
-      lane: laneForContentTaskType(r.task_type),
-      // Content tasks always come from the content_tasks table.
-      source_table: "growth_content_tasks",
-      status: (r.status as string | null | undefined) ?? null,
-      council_ready: isCouncilReady(r.status),
-      next_action: (r.next_action as string | null | undefined) ?? null,
-      blocked_reason: evidenceValue(r.evidence, [
-        "blocked_reason",
-        "blocker_type",
-      ]),
-      ai_review_state: evidenceValue(r.evidence, [
-        "ai_review_state",
-        "ai_review",
-        "llm_review",
-      ]),
-      human_review_state: evidenceValue(r.evidence, [
-        "human_review_state",
-        "human_review",
-        "curator_review",
-      ]),
-      updated_at: (r.updated_at as string | null | undefined) ?? null,
-    }));
+    const latestRuns = await latestRunsBySource(
+      supabase,
+      opts.accountId,
+      websiteId,
+      "growth_content_tasks",
+      rows.map((r) => String(r.id)).filter(Boolean),
+    );
+
+    const items: BacklogRow[] = rows.map((r) => {
+      const lane = laneForContentTaskType(r.task_type);
+      const latestRun =
+        latestRuns.get(`${String(r.id)}:${lane}`) ??
+        latestRuns.get(String(r.id));
+      return {
+        id: String(r.id),
+        website_id: String(r.website_id),
+        account_id: (r.account_id as string | null | undefined) ?? null,
+        title: (r.title as string | null | undefined) ?? null,
+        lane,
+        // Content tasks always come from the content_tasks table.
+        source_table: "growth_content_tasks",
+        work_type: (r.task_type as string | null | undefined) ?? null,
+        status: (r.status as string | null | undefined) ?? null,
+        council_ready: isCouncilReady(r.status),
+        next_action: (r.next_action as string | null | undefined) ?? null,
+        blocked_reason: evidenceValue(r.evidence, [
+          "blocked_reason",
+          "blocker_type",
+        ]),
+        ai_review_state: evidenceValue(r.evidence, [
+          "ai_review_state",
+          "ai_review",
+          "llm_review",
+        ]),
+        human_review_state: evidenceValue(r.evidence, [
+          "human_review_state",
+          "human_review",
+          "curator_review",
+        ]),
+        page_url: pageUrlFromRow(r),
+        latest_run_id: latestRun?.run_id ?? null,
+        latest_run_status: latestRun?.status ?? null,
+        latest_run_updated_at: latestRun?.updated_at ?? null,
+        updated_at: (r.updated_at as string | null | undefined) ?? null,
+      };
+    });
 
     const aggregates = await readContentTaskAggregates(
       supabase,
