@@ -115,7 +115,9 @@ function emptyRuntimeByLane(): Record<AgentLane, LaneRuntimeSummary> {
         review_required: 0,
         metrics_complete: 0,
         tool_calls: 0,
+        blocked_tool_calls: 0,
         replay_candidates: 0,
+        active_replay_cases: 0,
         active_memories: 0,
         draft_memories: 0,
         active_skills: 0,
@@ -136,10 +138,15 @@ function emptyRuntimeHealth(
     toolCalls: 0,
     blockedToolCalls: 0,
     replayCandidates: 0,
+    activeReplayCases: 0,
     activeMemories: 0,
     draftMemories: 0,
     activeSkills: 0,
     draftSkills: 0,
+    stalledRuns: 0,
+    totalCostUsd: 0,
+    tokensInput: 0,
+    tokensOutput: 0,
     missingTables,
   };
 }
@@ -180,7 +187,9 @@ export interface LaneRuntimeSummary {
   review_required: number;
   metrics_complete: number;
   tool_calls: number;
+  blocked_tool_calls: number;
   replay_candidates: number;
+  active_replay_cases: number;
   active_memories: number;
   draft_memories: number;
   active_skills: number;
@@ -194,10 +203,15 @@ export interface RuntimeHealthSummary {
   toolCalls: number;
   blockedToolCalls: number;
   replayCandidates: number;
+  activeReplayCases: number;
   activeMemories: number;
   draftMemories: number;
   activeSkills: number;
   draftSkills: number;
+  stalledRuns: number;
+  totalCostUsd: number;
+  tokensInput: number;
+  tokensOutput: number;
   missingTables: string[];
 }
 
@@ -402,10 +416,10 @@ async function fetchRuntimeByLane(
         websiteId,
         accountId,
       ),
-      readRuntimeRows<{ lane: string }>(
+      readRuntimeRows<{ lane: string; allowed: boolean }>(
         supabase,
         "growth_agent_tool_calls",
-        "lane",
+        "lane, allowed",
         websiteId,
         accountId,
       ),
@@ -448,12 +462,16 @@ async function fetchRuntimeByLane(
   }
   for (const row of toolCalls.rows) {
     const lane = AgentLaneSchema.safeParse(row.lane);
-    if (lane.success) runtime[lane.data].tool_calls += 1;
+    if (!lane.success) continue;
+    runtime[lane.data].tool_calls += 1;
+    if (!row.allowed) runtime[lane.data].blocked_tool_calls += 1;
   }
   for (const row of replayCases.rows) {
     const lane = AgentLaneSchema.safeParse(row.lane);
-    if (lane.success && row.status === "candidate") {
-      runtime[lane.data].replay_candidates += 1;
+    if (!lane.success) continue;
+    if (row.status === "candidate") runtime[lane.data].replay_candidates += 1;
+    if (row.status === "active") {
+      runtime[lane.data].active_replay_cases += 1;
     }
   }
   for (const row of memories.rows) {
@@ -483,10 +501,13 @@ async function fetchRuntimeHealth(
         artifact_complete: boolean;
         exit_code: number | null;
         error_class: string | null;
+        cost_usd: number | null;
+        tokens_input: number | null;
+        tokens_output: number | null;
       }>(
         supabase,
         "growth_agent_run_metrics",
-        "artifact_complete, exit_code, error_class",
+        "artifact_complete, exit_code, error_class, cost_usd, tokens_input, tokens_output",
         websiteId,
         accountId,
       ),
@@ -543,11 +564,26 @@ async function fetchRuntimeHealth(
     replayCandidates: replayCases.rows.filter(
       (row) => row.status === "candidate",
     ).length,
+    activeReplayCases: replayCases.rows.filter((row) => row.status === "active")
+      .length,
     activeMemories: memories.rows.filter((row) => row.status === "active")
       .length,
     draftMemories: memories.rows.filter((row) => row.status === "draft").length,
     activeSkills: skills.rows.filter((row) => row.status === "active").length,
     draftSkills: skills.rows.filter((row) => row.status === "draft").length,
+    stalledRuns: 0,
+    totalCostUsd: metrics.rows.reduce(
+      (sum, row) => sum + (Number(row.cost_usd) || 0),
+      0,
+    ),
+    tokensInput: metrics.rows.reduce(
+      (sum, row) => sum + (Number(row.tokens_input) || 0),
+      0,
+    ),
+    tokensOutput: metrics.rows.reduce(
+      (sum, row) => sum + (Number(row.tokens_output) || 0),
+      0,
+    ),
     missingTables,
   };
 }
@@ -803,7 +839,10 @@ export async function getGrowthDataHealth(
   return {
     providerFreshness: providerResult.rows,
     runCounts: runsResult.counts,
-    runtimeHealth,
+    runtimeHealth: {
+      ...runtimeHealth,
+      stalledRuns: runsResult.counts.stalled,
+    },
     warnings: {
       providerCacheMissing: providerResult.missingTable,
       runsTableMissing: runsResult.missingTable,

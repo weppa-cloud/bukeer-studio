@@ -324,6 +324,7 @@ export interface RuntimeToolCall {
 }
 
 export interface RuntimeReplayCase {
+  id: string;
   expected_decision: string;
   expected_allowed_action: string | null;
   rationale: string | null;
@@ -333,6 +334,7 @@ export interface RuntimeReplayCase {
 }
 
 export interface RuntimeMemory {
+  id: string;
   memory_key: string;
   status: string;
   content: Record<string, unknown>;
@@ -342,6 +344,7 @@ export interface RuntimeMemory {
 }
 
 export interface RuntimeSkill {
+  id: string;
   skill_key: string;
   version: number;
   status: string;
@@ -485,7 +488,12 @@ async function fetchRuntimeAiReview(
     )
     .eq("account_id", accountId)
     .eq("website_id", websiteId)
-    .eq("review_key", `codex-runtime-8-5:${runId}`)
+    .in("review_key", [
+      `codex-runtime-score-8-5:${runId}`,
+      `codex-runtime-8-5:${runId}`,
+    ])
+    .order("created_at", { ascending: false })
+    .limit(1)
     .maybeSingle();
 
   if (error || !data) return null;
@@ -585,7 +593,7 @@ async function fetchRuntimeReplayCases(
     "growth_agent_replay_cases",
   )
     .select(
-      "expected_decision, expected_allowed_action, rationale, status, evidence, created_at",
+      "id, expected_decision, expected_allowed_action, rationale, status, evidence, created_at",
     )
     .eq("account_id", accountId)
     .eq("website_id", websiteId)
@@ -594,6 +602,7 @@ async function fetchRuntimeReplayCases(
 
   if (error || !data) return [];
   return (data as Record<string, unknown>[]).map((row) => ({
+    id: String(row.id ?? ""),
     expected_decision: String(row.expected_decision ?? ""),
     expected_allowed_action:
       row.expected_allowed_action == null
@@ -613,7 +622,9 @@ async function fetchRuntimeMemories(
   runId: string,
 ): Promise<RuntimeMemory[]> {
   const { data, error } = await runtimeTable(supabase, "growth_agent_memories")
-    .select("memory_key, status, content, evidence, approved_at, created_at")
+    .select(
+      "id, memory_key, status, content, evidence, approved_at, created_at",
+    )
     .eq("account_id", accountId)
     .eq("website_id", websiteId)
     .eq("source_run_id", runId)
@@ -621,6 +632,7 @@ async function fetchRuntimeMemories(
 
   if (error || !data) return [];
   return (data as Record<string, unknown>[]).map((row) => ({
+    id: String(row.id ?? ""),
     memory_key: String(row.memory_key ?? ""),
     status: String(row.status ?? ""),
     content: safeRecord(row.content) ?? {},
@@ -639,7 +651,7 @@ async function fetchRuntimeSkills(
 ): Promise<RuntimeSkill[]> {
   const { data, error } = await runtimeTable(supabase, "growth_agent_skills")
     .select(
-      "skill_key, version, status, title, instructions, evidence, approved_at, created_at",
+      "id, skill_key, version, status, title, instructions, evidence, approved_at, created_at",
     )
     .eq("account_id", accountId)
     .eq("website_id", websiteId)
@@ -648,6 +660,7 @@ async function fetchRuntimeSkills(
 
   if (error || !data) return [];
   return (data as Record<string, unknown>[]).map((row) => ({
+    id: String(row.id ?? ""),
     skill_key: String(row.skill_key ?? ""),
     version: nullableNumber(row.version) ?? 1,
     status: String(row.status ?? ""),

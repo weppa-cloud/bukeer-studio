@@ -6,6 +6,10 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 import { runCodexAgentTask } from "./codex-executor.mjs";
+import { memoryContent } from "./memory.mjs";
+import { buildReplaySeed } from "./replay.mjs";
+import { skillInstructions } from "./skills.mjs";
+import { evaluateToolPolicy } from "./tool-gateway.mjs";
 
 const LANES = [
   "orchestrator",
@@ -33,6 +37,12 @@ function parseArgs(argv) {
     codexDisableMcp: process.env.GROWTH_CODEX_DISABLE_MCP !== "0",
     codexTimeoutMs: Number(process.env.GROWTH_CODEX_TIMEOUT_MS ?? 900_000),
     codexDryRun: process.env.GROWTH_CODEX_DRY_RUN === "1",
+    stallTtlSeconds: Number(process.env.GROWTH_STALL_TTL_SECONDS ?? 900),
+    tenantAutoApplyEnabled:
+      process.env.GROWTH_TENANT_AUTO_APPLY_ENABLED === "1",
+    smokePass: process.env.GROWTH_SMOKE_PASS === "1",
+    policyVersion:
+      process.env.GROWTH_POLICY_VERSION ?? "growth-runtime-score-8-5-v1",
     workflowRoot:
       process.env.GROWTH_WORKFLOW_ROOT ??
       path.join(process.cwd(), "docs/growth-orchestrator/workflows"),
@@ -60,6 +70,13 @@ function parseArgs(argv) {
     else if (arg === "--codexTimeoutMs")
       args.codexTimeoutMs = Number(argv[++i]);
     else if (arg === "--codexDryRun") args.codexDryRun = true;
+    else if (arg === "--stallTtlSeconds")
+      args.stallTtlSeconds = Number(argv[++i]);
+    else if (arg === "--tenantAutoApplyEnabled")
+      args.tenantAutoApplyEnabled = true;
+    else if (arg === "--smokePass") args.smokePass = true;
+    else if (arg === "--policyVersion")
+      args.policyVersion = argv[++i] ?? args.policyVersion;
     else if (arg === "--workflowRoot") args.workflowRoot = argv[++i] ?? "";
   }
   return args;
@@ -298,6 +315,112 @@ async function bestEffortUpsert(supabase, table, row, options) {
   const { error } = await supabase.from(table).upsert(row, options);
   if (error) return { skipped: false, error: error.message };
   return { skipped: false, upserted: true };
+}
+
+function stableKey(...parts) {
+  return createHash("sha256")
+    .update(parts.map((part) => String(part ?? "")).join("\n"))
+    .digest("hex")
+    .slice(0, 20);
+}
+
+function normalizeKeySegment(value) {
+  return String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "")
+    .slice(0, 48);
+}
+
+async function loadLaneAgreement(opts, lane) {
+  const dir = path.join(process.cwd(), "evidence", "growth");
+  let entries = [];
+  try {
+    entries = await fs.readdir(dir);
+  } catch {
+    return null;
+  }
+  const files = entries
+    .filter(
+      (file) => file.startsWith("agreement-lane-") && file.endsWith(".json"),
+    )
+    .sort()
+    .reverse();
+  for (const file of files) {
+    try {
+      const raw = await fs.readFile(path.join(dir, file), "utf8");
+      const parsed = JSON.parse(raw);
+      const row = Array.isArray(parsed?.lanes)
+        ? parsed.lanes.find(
+            (item) =>
+              item?.lane === lane &&
+              (!item?.account_id || item.account_id === opts.accountId) &&
+              (!item?.website_id || item.website_id === opts.websiteId),
+          )
+        : null;
+      if (row) return row;
+    } catch {
+      continue;
+    }
+  }
+  return null;
+}
+
+async function detectStalledRuns(supabase, opts) {
+  if (!Number.isFinite(opts.stallTtlSeconds) || opts.stallTtlSeconds <= 0) {
+    return { stalled: 0, run_ids: [] };
+  }
+
+  const cutoff = new Date(
+    Date.now() - opts.stallTtlSeconds * 1000,
+  ).toISOString();
+  const { data, error } = await supabase
+    .from("growth_agent_runs")
+    .select("*")
+    .eq("account_id", opts.accountId)
+    .eq("website_id", opts.websiteId)
+    .in("status", ["claimed", "running"])
+    .lt("heartbeat_at", cutoff);
+
+  if (error) {
+    log("warn", "stall detection skipped", { error: error.message });
+    return { stalled: 0, run_ids: [] };
+  }
+
+  const stalled = [];
+  for (const run of data ?? []) {
+    const finishedAt = new Date().toISOString();
+    const { error: updateError } = await supabase
+      .from("growth_agent_runs")
+      .update({
+        status: "stalled",
+        finished_at: finishedAt,
+        error_class: "heartbeat_stalled",
+        error_message: `No heartbeat for ${opts.stallTtlSeconds}s.`,
+      })
+      .eq("account_id", opts.accountId)
+      .eq("website_id", opts.websiteId)
+      .eq("run_id", run.run_id)
+      .in("status", ["claimed", "running"]);
+    if (updateError) {
+      log("warn", "stalled run update failed", {
+        run_id: run.run_id,
+        error: updateError.message,
+      });
+      continue;
+    }
+    await writeRunEvent(supabase, run, "stalled", {
+      severity: "warn",
+      message: `No heartbeat for ${opts.stallTtlSeconds}s; marked stalled.`,
+      payload: {
+        ttl_seconds: opts.stallTtlSeconds,
+        last_heartbeat_at: run.heartbeat_at,
+      },
+    });
+    stalled.push(run.run_id);
+  }
+  return { stalled: stalled.length, run_ids: stalled };
 }
 
 async function fetchSourceRow(supabase, run) {
@@ -555,6 +678,17 @@ async function createCodexArtifact(supabase, opts, run, runtimeContext) {
   });
 
   const output = result.output;
+  const laneAgreement = await loadLaneAgreement(opts, run.lane);
+  output.tool_calls = output.tool_calls.map((toolCall) =>
+    evaluateToolPolicy(toolCall, {
+      laneAgreement,
+      policyVersion: opts.policyVersion,
+      tenantAutoApplyEnabled: opts.tenantAutoApplyEnabled,
+      smokePass: opts.smokePass,
+    }),
+  );
+  result.artifact.tool_calls = output.tool_calls;
+  result.artifact.replay_seed = buildReplaySeed(run, output);
   const evidence = {
     runtime: "vps",
     runtime_mode: "codex_exec",
@@ -574,6 +708,10 @@ async function createCodexArtifact(supabase, opts, run, runtimeContext) {
       artifact_complete: result.metrics.artifact_complete,
       exit_code: result.metrics.exit_code,
       parse_error: result.metrics.parse_error,
+      usage: result.metrics.usage ?? null,
+      usage_note: result.metrics.usage
+        ? "usage_available"
+        : "usage_unavailable_from_current_codex_cli",
     },
     decision: output.decision,
     allowed_action: output.allowed_action,
@@ -622,15 +760,20 @@ async function createCodexArtifact(supabase, opts, run, runtimeContext) {
       exit_code: result.metrics.exit_code,
       retries: run.attempts ?? 0,
       artifact_complete: result.metrics.artifact_complete,
-      cost_usd: null,
-      tokens_input: null,
-      tokens_output: null,
+      cost_usd: result.metrics.cost_usd ?? null,
+      tokens_input: result.metrics.tokens_input ?? null,
+      tokens_output: result.metrics.tokens_output ?? null,
       error_class: result.metrics.parse_error
         ? "artifact_parse_error"
         : result.metrics.exit_code === 0
           ? null
           : "codex_exec_failed",
-      evidence: result.metrics,
+      evidence: {
+        ...result.metrics,
+        usage_note: result.metrics.usage
+          ? "usage_available"
+          : "usage_unavailable_from_current_codex_cli",
+      },
       created_at: new Date().toISOString(),
     }),
     replay_case: output.replay_seed.eligible
@@ -650,6 +793,78 @@ async function createCodexArtifact(supabase, opts, run, runtimeContext) {
         })
       : { skipped: true, reason: "replay_seed_not_eligible" },
   };
+
+  const memoryResults = [];
+  for (const candidate of output.memory_candidates) {
+    const memoryKey = `${candidate.lane}:${stableKey(
+      run.website_id,
+      candidate.lane,
+      candidate.memory,
+    )}`;
+    memoryResults.push(
+      await bestEffortUpsert(
+        supabase,
+        "growth_agent_memories",
+        {
+          account_id: run.account_id,
+          website_id: run.website_id,
+          lane: candidate.lane,
+          memory_key: memoryKey,
+          status: "draft",
+          content: memoryContent(candidate),
+          evidence: {
+            source: "codex_runtime_artifact",
+            run_id: run.run_id,
+            reason: candidate.reason,
+          },
+          source_run_id: run.run_id,
+          proposed_by: "codex_runtime",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "website_id,memory_key" },
+      ),
+    );
+  }
+  storageResults.memories = memoryResults;
+
+  const skillResults = [];
+  for (const candidate of output.skill_update_candidates) {
+    const skillSlug = normalizeKeySegment(candidate.skill_name) || "skill";
+    const skillKey = `${candidate.lane}:${skillSlug}:${stableKey(
+      run.website_id,
+      candidate.lane,
+      candidate.skill_name,
+      candidate.change,
+    )}`;
+    skillResults.push(
+      await bestEffortUpsert(
+        supabase,
+        "growth_agent_skills",
+        {
+          account_id: run.account_id,
+          website_id: run.website_id,
+          lane: candidate.lane,
+          skill_key: skillKey,
+          version: 1,
+          status: "draft",
+          title: candidate.skill_name,
+          instructions: skillInstructions(candidate),
+          evidence: {
+            source: "codex_runtime_artifact",
+            run_id: run.run_id,
+            reason: candidate.reason,
+          },
+          source_run_id: run.run_id,
+          proposed_by: "codex_runtime",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "website_id,skill_key,version" },
+      ),
+    );
+  }
+  storageResults.skills = skillResults;
 
   let toolCallIndex = 0;
   const toolLedgerResults = [];
@@ -674,7 +889,14 @@ async function createCodexArtifact(supabase, opts, run, runtimeContext) {
         reason: toolCall.reason,
         cost_usd: null,
         result_status: toolCall.allowed ? "recorded" : "blocked",
-        evidence: toolCall,
+        evidence: {
+          ...toolCall,
+          gate_reason: toolCall.gate_reason ?? null,
+          required_approval: toolCall.required_approval ?? null,
+          policy_version: toolCall.policy_version ?? opts.policyVersion,
+          lane_agreement: toolCall.lane_agreement ?? laneAgreement,
+          smoke_pass: Boolean(toolCall.smoke_pass),
+        },
         created_at: new Date().toISOString(),
       }),
     );
@@ -823,6 +1045,10 @@ async function claimLane(supabase, opts, lane) {
 }
 
 async function tick(supabase, opts) {
+  const stalled = await detectStalledRuns(supabase, opts);
+  if (stalled.stalled > 0) {
+    log("warn", "stalled runs detected", stalled);
+  }
   let claimed = 0;
   for (const lane of LANES) {
     const result = await claimLane(supabase, opts, lane);

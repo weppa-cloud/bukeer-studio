@@ -11,7 +11,17 @@ import {
 } from "@/components/studio/ui/primitives";
 import { getAgentRunDetail } from "@/lib/growth/console/queries-runs";
 import { hasGrowthRole, requireGrowthRole } from "@/lib/growth/console/auth";
-import { approveRun, rejectRun, downloadArtifactAction } from "./actions";
+import {
+  activateReplayCandidate,
+  approveMemoryCandidate,
+  approveRun,
+  approveSkillCandidate,
+  downloadArtifactAction,
+  rejectMemoryCandidate,
+  rejectReplayCandidate,
+  rejectRun,
+  rejectSkillCandidate,
+} from "./actions";
 
 /**
  * Reviews & Agent Runs — detail view (#407).
@@ -60,6 +70,55 @@ function compactPathTail(value: string | null | undefined): string {
   const parts = value.split("/").filter(Boolean);
   const tail = parts.at(-1) ?? value;
   return tail.length > 12 ? `…${tail.slice(-12)}` : tail;
+}
+
+function CandidateReviewButtons({
+  websiteId,
+  runId,
+  candidateId,
+  canCurate,
+  disabled,
+  approveAction,
+  rejectAction,
+  approveLabel = "Approve",
+}: {
+  websiteId: string;
+  runId: string;
+  candidateId: string;
+  canCurate: boolean;
+  disabled: boolean;
+  approveAction: (formData: FormData) => Promise<void>;
+  rejectAction: (formData: FormData) => Promise<void>;
+  approveLabel?: string;
+}) {
+  return (
+    <div className="mt-2 flex flex-wrap gap-2">
+      <form action={approveAction}>
+        <input type="hidden" name="websiteId" value={websiteId} />
+        <input type="hidden" name="runId" value={runId} />
+        <input type="hidden" name="candidateId" value={candidateId} />
+        <button
+          type="submit"
+          disabled={!canCurate || disabled}
+          className="studio-button studio-button--primary disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {approveLabel}
+        </button>
+      </form>
+      <form action={rejectAction}>
+        <input type="hidden" name="websiteId" value={websiteId} />
+        <input type="hidden" name="runId" value={runId} />
+        <input type="hidden" name="candidateId" value={candidateId} />
+        <button
+          type="submit"
+          disabled={!canCurate || disabled}
+          className="studio-button studio-button--danger disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Reject
+        </button>
+      </form>
+    </div>
+  );
 }
 
 interface PageProps {
@@ -499,6 +558,140 @@ export default async function GrowthRunDetailPage({ params }: PageProps) {
             ) : (
               <p className="mt-2 text-xs text-[var(--studio-text-muted)]">
                 Sin replay case persistido.
+              </p>
+            )}
+          </article>
+        </div>
+      </section>
+
+      <section
+        aria-labelledby="run-learning-heading"
+        className="space-y-3 mt-6"
+        data-testid="growth-run-learning-panel"
+      >
+        <header>
+          <h2
+            id="run-learning-heading"
+            className="text-base font-semibold text-[var(--studio-text)]"
+          >
+            Memory, skills y eval approvals
+          </h2>
+          <p className="text-xs text-[var(--studio-text-muted)]">
+            Aprobación por candidato. Nada se activa automáticamente desde el
+            artifact.
+          </p>
+        </header>
+
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+          <article className="studio-panel border border-[var(--studio-border)] p-3">
+            <h3 className="text-sm font-semibold">
+              Memory drafts ({memories.length})
+            </h3>
+            {memories.length > 0 ? (
+              <ul className="mt-2 space-y-2 text-xs">
+                {memories.map((memory) => (
+                  <li
+                    key={memory.id}
+                    className="rounded-md bg-[var(--studio-surface)] p-2"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-mono">{memory.status}</span>
+                      <span className="font-mono text-[var(--studio-text-muted)]">
+                        {memory.memory_key.split(":").at(0)}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-[var(--studio-text)]">
+                      {String(memory.content.memory ?? "Sin contenido.")}
+                    </p>
+                    <CandidateReviewButtons
+                      websiteId={websiteId}
+                      runId={run.run_id}
+                      candidateId={memory.id}
+                      canCurate={canCurate}
+                      disabled={memory.status !== "draft"}
+                      approveAction={approveMemoryCandidate}
+                      rejectAction={rejectMemoryCandidate}
+                    />
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-2 text-xs text-[var(--studio-text-muted)]">
+                Sin memory drafts persistidos.
+              </p>
+            )}
+          </article>
+
+          <article className="studio-panel border border-[var(--studio-border)] p-3">
+            <h3 className="text-sm font-semibold">
+              Skill drafts ({skills.length})
+            </h3>
+            {skills.length > 0 ? (
+              <ul className="mt-2 space-y-2 text-xs">
+                {skills.map((skill) => (
+                  <li
+                    key={skill.id}
+                    className="rounded-md bg-[var(--studio-surface)] p-2"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-mono">{skill.status}</span>
+                      <span>v{skill.version}</span>
+                    </div>
+                    <p className="mt-1 font-medium">{skill.title}</p>
+                    <p className="mt-1 text-[var(--studio-text-muted)]">
+                      {String(skill.instructions.change ?? "Sin cambio.")}
+                    </p>
+                    <CandidateReviewButtons
+                      websiteId={websiteId}
+                      runId={run.run_id}
+                      candidateId={skill.id}
+                      canCurate={canCurate}
+                      disabled={skill.status !== "draft"}
+                      approveAction={approveSkillCandidate}
+                      rejectAction={rejectSkillCandidate}
+                    />
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-2 text-xs text-[var(--studio-text-muted)]">
+                Sin skill drafts persistidos.
+              </p>
+            )}
+          </article>
+
+          <article className="studio-panel border border-[var(--studio-border)] p-3">
+            <h3 className="text-sm font-semibold">
+              Replay approvals ({replayCases.length})
+            </h3>
+            {replayCases.length > 0 ? (
+              <ul className="mt-2 space-y-2 text-xs">
+                {replayCases.map((replay) => (
+                  <li
+                    key={replay.id}
+                    className="rounded-md bg-[var(--studio-surface)] p-2"
+                  >
+                    <div className="font-mono">{replay.status}</div>
+                    <div>
+                      expected: {replay.expected_decision} ·{" "}
+                      {replay.expected_allowed_action ?? "—"}
+                    </div>
+                    <CandidateReviewButtons
+                      websiteId={websiteId}
+                      runId={run.run_id}
+                      candidateId={replay.id}
+                      canCurate={canCurate}
+                      disabled={replay.status !== "candidate"}
+                      approveAction={activateReplayCandidate}
+                      rejectAction={rejectReplayCandidate}
+                      approveLabel="Activate"
+                    />
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-2 text-xs text-[var(--studio-text-muted)]">
+                Sin replay candidates persistidos.
               </p>
             )}
           </article>

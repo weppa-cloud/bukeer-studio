@@ -26,3 +26,11 @@ export function normalizeMemoryCandidates(
     .map((candidate) => normalizeMemoryCandidate(candidate, fallbackLane))
     .filter(Boolean);
 }
+
+export function memoryContent(candidate) {
+  return {
+    memory: candidate.memory,
+    reason: candidate.reason,
+    confidence: candidate.confidence,
+  };
+}

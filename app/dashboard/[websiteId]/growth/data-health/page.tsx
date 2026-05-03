@@ -107,7 +107,7 @@ export default async function GrowthDataHealthPage({
             id="runtime-health-heading"
             className="text-base font-semibold text-[var(--studio-text)]"
           >
-            Runtime 8.5
+            Runtime Maturity Score
           </h2>
           <p className="text-sm text-[var(--studio-text-muted)]">
             Evidencia operativa del loop execute, artifact, review, learning,
@@ -159,7 +159,8 @@ export default async function GrowthDataHealthPage({
               {runtimeHealth.replayCandidates}
             </div>
             <p className="mt-1 text-xs text-[var(--studio-text-muted)]">
-              Candidate cases waiting for eval curation.
+              Candidate cases waiting for eval curation;{" "}
+              {runtimeHealth.activeReplayCases} active.
             </p>
           </article>
           <article className="rounded-md border border-[var(--studio-border)] p-4">
@@ -170,7 +171,44 @@ export default async function GrowthDataHealthPage({
               {runtimeHealth.failedExecutions}
             </div>
             <p className="mt-1 text-xs text-[var(--studio-text-muted)]">
-              Non-zero exits or classified runtime errors.
+              Non-zero exits or classified runtime errors;{" "}
+              {runtimeHealth.stalledRuns} stalled runs.
+            </p>
+          </article>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+          <article className="rounded-md border border-[var(--studio-border)] p-4">
+            <div className="text-xs uppercase tracking-wide text-[var(--studio-text-muted)]">
+              Cost
+            </div>
+            <div className="mt-1 text-2xl font-semibold">
+              ${runtimeHealth.totalCostUsd.toFixed(4)}
+            </div>
+            <p className="mt-1 text-xs text-[var(--studio-text-muted)]">
+              Current Codex CLI may not expose usage; nulls count as zero.
+            </p>
+          </article>
+          <article className="rounded-md border border-[var(--studio-border)] p-4">
+            <div className="text-xs uppercase tracking-wide text-[var(--studio-text-muted)]">
+              Input tokens
+            </div>
+            <div className="mt-1 text-2xl font-semibold">
+              {runtimeHealth.tokensInput}
+            </div>
+            <p className="mt-1 text-xs text-[var(--studio-text-muted)]">
+              Aggregated from runtime metrics when available.
+            </p>
+          </article>
+          <article className="rounded-md border border-[var(--studio-border)] p-4">
+            <div className="text-xs uppercase tracking-wide text-[var(--studio-text-muted)]">
+              Output tokens
+            </div>
+            <div className="mt-1 text-2xl font-semibold">
+              {runtimeHealth.tokensOutput}
+            </div>
+            <p className="mt-1 text-xs text-[var(--studio-text-muted)]">
+              Aggregated from runtime metrics when available.
             </p>
           </article>
         </div>

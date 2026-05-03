@@ -15,7 +15,11 @@ import {
   ALWAYS_GATED_ACTION_CLASSES,
   toolsetForLane,
 } from "./toolsets.mjs";
-import { evaluateToolCalls, evaluateToolPolicy } from "./tool-gateway.mjs";
+import {
+  evaluateToolCalls,
+  evaluateToolPolicy,
+  normalizeActionClass,
+} from "./tool-gateway.mjs";
 
 const DECISIONS = new Set([
   "promote",
@@ -314,7 +318,7 @@ function normalizeArtifact(candidate, fallback = {}) {
   if (normalized.allowed_action === "auto_apply") {
     normalized.allowed_action = "prepare_for_human";
     normalized.risks.push(
-      "auto_apply_requested_but_runtime_8_5_v1_forces_human_review",
+      "auto_apply_requested_but_runtime_score_v1_forces_human_review",
     );
   }
   normalized.decision =
@@ -337,14 +341,12 @@ function normalizeToolCalls(value) {
   return evaluateToolCalls(
     value.slice(0, 100).map((item) => {
       const object = safeObject(item);
-      const actionClass = String(
-        object.action_class ?? ACTION_CLASSES.RUNTIME_EXECUTION,
-      );
+      const actionClass = normalizeActionClass(object.action_class);
       return {
         tool: String(object.tool ?? "unknown").trim() || "unknown",
         action_class: ACTION_CLASS_VALUES.has(actionClass)
           ? actionClass
-          : ACTION_CLASSES.RUNTIME_EXECUTION,
+          : ACTION_CLASSES.PREPARE,
         policy_verdict:
           String(object.policy_verdict ?? "").trim() || "allowed_prepare_only",
         allowed: Boolean(object.allowed),
@@ -361,7 +363,7 @@ function withCodexExecToolCall(toolCalls) {
   return [
     evaluateToolPolicy({
       tool: "codex_exec",
-      action_class: ACTION_CLASSES.RUNTIME_EXECUTION,
+      action_class: ACTION_CLASSES.PREPARE,
       policy_verdict: "allowed_prepare_only",
       allowed: true,
       reason:

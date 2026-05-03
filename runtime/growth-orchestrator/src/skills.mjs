@@ -31,3 +31,10 @@ export function normalizeSkillUpdateCandidates(
     .map((candidate) => normalizeSkillUpdateCandidate(candidate, fallbackLane))
     .filter(Boolean);
 }
+
+export function skillInstructions(candidate) {
+  return {
+    change: candidate.change,
+    reason: candidate.reason,
+  };
+}

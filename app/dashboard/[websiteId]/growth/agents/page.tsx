@@ -219,14 +219,20 @@ export default async function GrowthAgentsPage({ params }: AgentsPageProps) {
                       <dt className="text-[var(--studio-text-muted,theme(colors.zinc.500))]">
                         Tools
                       </dt>
-                      <dd className="font-semibold">{runtime.tool_calls}</dd>
+                      <dd className="font-semibold">
+                        {runtime.tool_calls}
+                        {runtime.blocked_tool_calls > 0
+                          ? `/${runtime.blocked_tool_calls} blocked`
+                          : ""}
+                      </dd>
                     </div>
                     <div>
                       <dt className="text-[var(--studio-text-muted,theme(colors.zinc.500))]">
                         Replay
                       </dt>
                       <dd className="font-semibold">
-                        {runtime.replay_candidates}
+                        {runtime.active_replay_cases} active ·{" "}
+                        {runtime.replay_candidates} draft
                       </dd>
                     </div>
                     <div>
@@ -325,7 +331,8 @@ export default async function GrowthAgentsPage({ params }: AgentsPageProps) {
                         </td>
                         <td className="px-3 py-2 text-xs">
                           {runtime.runs} runs · {runtime.metrics_complete}{" "}
-                          artifacts · {runtime.replay_candidates} replay
+                          artifacts · {runtime.active_replay_cases} active
+                          replay · {runtime.blocked_tool_calls} blocked tools
                         </td>
                         <td className="px-3 py-2">
                           <span

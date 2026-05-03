@@ -1,14 +1,12 @@
 export const ACTION_CLASSES = {
-  RUNTIME_EXECUTION: "runtime_execution",
-  SOURCE_READ: "source_read",
-  ARTIFACT_WRITE: "artifact_write",
-  REVIEW_WRITE: "review_write",
-  MEMORY_PROPOSAL: "memory_proposal",
-  SKILL_PROPOSAL: "skill_proposal",
+  OBSERVE: "observe",
+  PREPARE: "prepare",
+  SAFE_APPLY: "safe_apply",
   CONTENT_PUBLISH: "content_publish",
   TRANSCREATION_MERGE: "transcreation_merge",
   PAID_MUTATION: "paid_mutation",
   EXPERIMENT_ACTIVATION: "experiment_activation",
+  OUTREACH_SEND: "outreach_send",
 };
 
 export const ALWAYS_GATED_ACTION_CLASSES = new Set([
@@ -16,6 +14,7 @@ export const ALWAYS_GATED_ACTION_CLASSES = new Set([
   ACTION_CLASSES.TRANSCREATION_MERGE,
   ACTION_CLASSES.PAID_MUTATION,
   ACTION_CLASSES.EXPERIMENT_ACTIVATION,
+  ACTION_CLASSES.OUTREACH_SEND,
 ]);
 
 export const LANE_TOOLSETS = {

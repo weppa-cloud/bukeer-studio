@@ -169,6 +169,10 @@ test.describe("Growth OS console UI contract @growth-os-ui", () => {
       page.getByRole("heading", { name: "Data Health", exact: true }),
     ).toBeVisible();
     await expect(page.getByTestId("growth-data-health-summary")).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: /runtime maturity score/i }),
+    ).toBeVisible();
+    await expect(page.getByTestId("growth-runtime-health")).toBeVisible();
   });
 
   test("Cross-tenant guard: tenant A user cannot read tenant B Growth data", async ({
@@ -279,6 +283,8 @@ test.describe("Growth OS console UI contract @growth-os-ui", () => {
     );
 
     await firstRun.getByRole("link").first().click();
+
+    await expect(page.getByTestId("growth-run-learning-panel")).toBeVisible();
 
     const events = page.getByTestId(/^growth-run-event-row-/);
     await expect(events.first()).toBeVisible();

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server-client";
+import { createSupabaseServiceRoleClient } from "@/lib/supabase/service-role";
 import { hasGrowthRole, requireGrowthRole } from "@/lib/growth/console/auth";
 
 /**
@@ -158,6 +159,121 @@ async function writeHumanReview(opts: {
   return { ok: true, message: `Run ${opts.decision}.` };
 }
 
+type CandidateKind = "memory" | "skill" | "replay";
+type CandidateDecision = "approve" | "reject";
+
+const CANDIDATE_TABLE: Record<CandidateKind, string> = {
+  memory: "growth_agent_memories",
+  skill: "growth_agent_skills",
+  replay: "growth_agent_replay_cases",
+};
+
+function candidateStatus(kind: CandidateKind, decision: CandidateDecision) {
+  if (decision === "reject") return "rejected";
+  if (kind === "replay") return "active";
+  return "active";
+}
+
+async function reviewRuntimeCandidate(opts: {
+  websiteId: string;
+  runId: string;
+  candidateId: string;
+  kind: CandidateKind;
+  decision: CandidateDecision;
+}): Promise<ReviewActionResult> {
+  const { accountId, userId, role } = await getTenantAndRole(opts.websiteId);
+  if (!hasGrowthRole(role, "curator")) {
+    return { ok: false, message: "Forbidden: curator role required." };
+  }
+
+  const admin = createSupabaseServiceRoleClient();
+  const table = CANDIDATE_TABLE[opts.kind];
+  const status = candidateStatus(opts.kind, opts.decision);
+  const now = new Date().toISOString();
+
+  const updatePayload: Record<string, unknown> = {
+    status,
+    updated_at: now,
+  };
+  if (opts.decision === "approve" && opts.kind !== "replay") {
+    updatePayload.approved_by = userId;
+    updatePayload.approved_at = now;
+  }
+
+  let query = (
+    admin.from as unknown as (
+      tableName: string,
+    ) => ReturnType<typeof admin.from>
+  )(table)
+    .update(updatePayload)
+    .eq("account_id", accountId)
+    .eq("website_id", opts.websiteId)
+    .eq("id", opts.candidateId);
+
+  query =
+    opts.kind === "replay"
+      ? query.eq("run_id", opts.runId)
+      : query.eq("source_run_id", opts.runId);
+
+  const { error: updateErr } = await query;
+  if (updateErr) {
+    return {
+      ok: false,
+      message: `Could not ${opts.decision} ${opts.kind} candidate.`,
+    };
+  }
+
+  const { error: reviewErr } = await admin.from("growth_human_reviews").insert({
+    account_id: accountId,
+    website_id: opts.websiteId,
+    review_key: `runtime-candidate:${opts.kind}:${opts.candidateId}:${opts.decision}`,
+    reviewer_role: role,
+    decision: opts.decision,
+    status: "recorded",
+    evidence: {
+      run_id: opts.runId,
+      reviewer_id: userId,
+      candidate_kind: opts.kind,
+      candidate_id: opts.candidateId,
+      candidate_status: status,
+    },
+  });
+
+  if (reviewErr) {
+    return {
+      ok: false,
+      message: "Candidate updated, but could not record human review.",
+    };
+  }
+
+  revalidatePath(`/dashboard/${opts.websiteId}/growth/runs/${opts.runId}`);
+  revalidatePath(`/dashboard/${opts.websiteId}/growth/runs`);
+  revalidatePath(`/dashboard/${opts.websiteId}/growth/agents`);
+  revalidatePath(`/dashboard/${opts.websiteId}/growth/data-health`);
+  return {
+    ok: true,
+    message: `${opts.kind} candidate ${opts.decision}d.`,
+  };
+}
+
+async function candidateAction(
+  formData: FormData,
+  kind: CandidateKind,
+  decision: CandidateDecision,
+): Promise<void> {
+  const websiteId = String(formData.get("websiteId") ?? "");
+  const runId = String(formData.get("runId") ?? "");
+  const candidateId = String(formData.get("candidateId") ?? "");
+  if (!websiteId || !runId || !candidateId) return;
+  await reviewRuntimeCandidate({
+    websiteId,
+    runId,
+    candidateId,
+    kind,
+    decision,
+  });
+}
+
 export async function approveRun(formData: FormData): Promise<void> {
   const websiteId = String(formData.get("websiteId") ?? "");
   const runId = String(formData.get("runId") ?? "");
@@ -176,6 +292,34 @@ export async function rejectRun(formData: FormData): Promise<void> {
     decision: "reject",
     notes: typeof notes === "string" && notes.length > 0 ? notes : undefined,
   });
+}
+
+export async function approveMemoryCandidate(
+  formData: FormData,
+): Promise<void> {
+  await candidateAction(formData, "memory", "approve");
+}
+
+export async function rejectMemoryCandidate(formData: FormData): Promise<void> {
+  await candidateAction(formData, "memory", "reject");
+}
+
+export async function approveSkillCandidate(formData: FormData): Promise<void> {
+  await candidateAction(formData, "skill", "approve");
+}
+
+export async function rejectSkillCandidate(formData: FormData): Promise<void> {
+  await candidateAction(formData, "skill", "reject");
+}
+
+export async function activateReplayCandidate(
+  formData: FormData,
+): Promise<void> {
+  await candidateAction(formData, "replay", "approve");
+}
+
+export async function rejectReplayCandidate(formData: FormData): Promise<void> {
+  await candidateAction(formData, "replay", "reject");
 }
 
 export async function downloadArtifactAction(
