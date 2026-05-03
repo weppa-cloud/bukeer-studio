@@ -107,7 +107,9 @@ async function writeHumanReview(opts: {
   // Re-verify the run is in this tenant before recording a review.
   const { data: runRow, error: runErr } = await supabase
     .from("growth_agent_runs")
-    .select("run_id")
+    .select(
+      "account_id, website_id, locale, market, run_id, lane, source_table, source_id, status, evidence",
+    )
     .eq("account_id", accountId)
     .eq("website_id", opts.websiteId)
     .eq("run_id", opts.runId)
@@ -116,20 +118,58 @@ async function writeHumanReview(opts: {
     return { ok: false, message: "Run not found in this tenant." };
   }
 
-  const { error: insertErr } = await supabase
+  const run = runRow as {
+    account_id: string;
+    website_id: string;
+    locale: string;
+    market: string;
+    run_id: string;
+    lane: string;
+    source_table: string | null;
+    source_id: string | null;
+    status: string;
+    evidence: Record<string, unknown> | null;
+  };
+
+  if (run.status !== "review_required") {
+    return {
+      ok: false,
+      message: "Run is not pending human review.",
+    };
+  }
+
+  const now = new Date().toISOString();
+  const sourceForeignKeys = {
+    backlog_item_id:
+      run.source_table === "growth_backlog_items" ? run.source_id : null,
+    task_id: run.source_table === "growth_content_tasks" ? run.source_id : null,
+  };
+
+  const admin = createSupabaseServiceRoleClient();
+  const { data: reviewRow, error: insertErr } = await admin
     .from("growth_human_reviews")
     .insert({
       account_id: accountId,
       website_id: opts.websiteId,
-      review_key: `agent-run:${opts.runId}:${opts.decision}`,
+      ...sourceForeignKeys,
+      review_key: `agent-run:${opts.runId}:${opts.decision}:${Date.now()}`,
       reviewer_role: role,
       decision: opts.decision,
       rationale: opts.notes ?? null,
       evidence: {
         run_id: opts.runId,
         reviewer_id: userId,
+        lane: run.lane,
+        source_table: run.source_table,
+        source_id: run.source_id,
+        applied_to_runtime: true,
+        business_mutation_applied: false,
+        business_mutation_reason:
+          "Growth OS v1 closes the run and records governance evidence; content publish, paid mutation, transcreation merge and experiment activation remain separately gated.",
       },
-    });
+    })
+    .select("id, created_at")
+    .single();
 
   if (insertErr) {
     const msg = (insertErr.message ?? "").toLowerCase();
@@ -154,9 +194,91 @@ async function writeHumanReview(opts: {
     return { ok: false, message: "Could not record review." };
   }
 
+  const existingEvidence =
+    run.evidence && typeof run.evidence === "object" && !Array.isArray(run.evidence)
+      ? run.evidence
+      : {};
+  const finalEvidence = {
+    ...existingEvidence,
+    human_review: {
+      decision: opts.decision,
+      reviewed_by: userId,
+      reviewer_role: role,
+      reviewed_at: now,
+      review_id: reviewRow?.id ?? null,
+      rationale: opts.notes ?? null,
+    },
+    applied_reality: {
+      runtime_status_applied: true,
+      run_status: "completed",
+      business_mutation_applied: false,
+      requires_separate_apply_gate: [
+        "content_publish",
+        "transcreation_merge",
+        "paid_mutation",
+        "experiment_activation",
+      ],
+    },
+  };
+
+  const { error: updateErr } = await admin
+    .from("growth_agent_runs")
+    .update({
+      status: "completed",
+      finished_at: now,
+      heartbeat_at: now,
+      evidence: finalEvidence,
+      updated_at: now,
+    })
+    .eq("account_id", accountId)
+    .eq("website_id", opts.websiteId)
+    .eq("run_id", opts.runId)
+    .eq("status", "review_required");
+
+  if (updateErr) {
+    return {
+      ok: false,
+      message: "Human review recorded, but run closeout failed.",
+    };
+  }
+
+  const { error: eventErr } = await admin.from("growth_agent_run_events").insert({
+    account_id: accountId,
+    website_id: opts.websiteId,
+    locale: run.locale,
+    market: run.market,
+    run_id: opts.runId,
+    event_type: "completed",
+    severity: opts.decision === "approve" ? "info" : "warn",
+    message:
+      opts.decision === "approve"
+        ? "Human approved the agent run; runtime closeout applied."
+        : "Human rejected the agent run; runtime closeout applied without business mutation.",
+    payload: {
+      decision: opts.decision,
+      reviewer_id: userId,
+      reviewer_role: role,
+      review_id: reviewRow?.id ?? null,
+      business_mutation_applied: false,
+    },
+    occurred_at: now,
+  });
+
+  if (eventErr) {
+    return {
+      ok: false,
+      message: "Run closed, but event trace could not be recorded.",
+    };
+  }
+
   revalidatePath(`/dashboard/${opts.websiteId}/growth/runs/${opts.runId}`);
   revalidatePath(`/dashboard/${opts.websiteId}/growth/runs`);
-  return { ok: true, message: `Run ${opts.decision}.` };
+  revalidatePath(`/dashboard/${opts.websiteId}/growth/overview`);
+  revalidatePath(`/dashboard/${opts.websiteId}/growth/backlog`);
+  return {
+    ok: true,
+    message: `Run ${opts.decision}; runtime closeout applied.`,
+  };
 }
 
 type CandidateKind = "memory" | "skill" | "replay";
