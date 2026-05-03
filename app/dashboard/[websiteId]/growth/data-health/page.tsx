@@ -42,6 +42,7 @@ export default async function GrowthDataHealthPage({
     health.runCounts.claimed +
     health.runCounts.running +
     health.runCounts.review_required;
+  const runtimeHealth = health.runtimeHealth;
 
   return (
     <StudioPage className="max-w-6xl">
@@ -90,6 +91,126 @@ export default async function GrowthDataHealthPage({
             Claimed, running or review-required work.
           </p>
         </article>
+      </section>
+
+      <section
+        aria-labelledby="runtime-health-heading"
+        data-testid="growth-runtime-health"
+        className="mt-6 space-y-3"
+      >
+        <header>
+          <h2
+            id="runtime-health-heading"
+            className="text-base font-semibold text-[var(--studio-text)]"
+          >
+            Runtime 8.5
+          </h2>
+          <p className="text-sm text-[var(--studio-text-muted)]">
+            Evidencia operativa del loop execute, artifact, review, learning,
+            gateway y replay. Esta vista no activa memoria, skills ni
+            mutaciones.
+          </p>
+        </header>
+
+        {runtimeHealth.missingTables.length > 0 ? (
+          <div
+            role="status"
+            className="rounded-md border border-[var(--studio-warning,theme(colors.amber.300))] bg-[var(--studio-warning-surface,theme(colors.amber.50))] p-3 text-sm text-[var(--studio-warning,theme(colors.amber.800))]"
+          >
+            <p className="font-medium">Runtime learning tables missing.</p>
+            <p className="mt-1 text-xs">
+              Pending tables: {runtimeHealth.missingTables.join(", ")}
+            </p>
+          </div>
+        ) : null}
+
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <article className="rounded-md border border-[var(--studio-border)] p-4">
+            <div className="text-xs uppercase tracking-wide text-[var(--studio-text-muted)]">
+              Artifacts
+            </div>
+            <div className="mt-1 text-2xl font-semibold">
+              {runtimeHealth.completeArtifacts}/{runtimeHealth.metricsRows}
+            </div>
+            <p className="mt-1 text-xs text-[var(--studio-text-muted)]">
+              Complete structured artifacts over metric rows.
+            </p>
+          </article>
+          <article className="rounded-md border border-[var(--studio-border)] p-4">
+            <div className="text-xs uppercase tracking-wide text-[var(--studio-text-muted)]">
+              Tool gateway
+            </div>
+            <div className="mt-1 text-2xl font-semibold">
+              {runtimeHealth.toolCalls}
+            </div>
+            <p className="mt-1 text-xs text-[var(--studio-text-muted)]">
+              {runtimeHealth.blockedToolCalls} blocked by policy ledger.
+            </p>
+          </article>
+          <article className="rounded-md border border-[var(--studio-border)] p-4">
+            <div className="text-xs uppercase tracking-wide text-[var(--studio-text-muted)]">
+              Replay
+            </div>
+            <div className="mt-1 text-2xl font-semibold">
+              {runtimeHealth.replayCandidates}
+            </div>
+            <p className="mt-1 text-xs text-[var(--studio-text-muted)]">
+              Candidate cases waiting for eval curation.
+            </p>
+          </article>
+          <article className="rounded-md border border-[var(--studio-border)] p-4">
+            <div className="text-xs uppercase tracking-wide text-[var(--studio-text-muted)]">
+              Failures
+            </div>
+            <div className="mt-1 text-2xl font-semibold">
+              {runtimeHealth.failedExecutions}
+            </div>
+            <p className="mt-1 text-xs text-[var(--studio-text-muted)]">
+              Non-zero exits or classified runtime errors.
+            </p>
+          </article>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <article className="rounded-md border border-[var(--studio-border)] p-4">
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="font-semibold">Memory</h3>
+              <StudioBadge tone="info">
+                {runtimeHealth.activeMemories} active
+              </StudioBadge>
+            </div>
+            <dl className="mt-3 grid grid-cols-2 gap-2 text-xs">
+              <div>
+                <dt className="text-[var(--studio-text-muted)]">Draft</dt>
+                <dd className="font-semibold">{runtimeHealth.draftMemories}</dd>
+              </div>
+              <div>
+                <dt className="text-[var(--studio-text-muted)]">Active</dt>
+                <dd className="font-semibold">
+                  {runtimeHealth.activeMemories}
+                </dd>
+              </div>
+            </dl>
+          </article>
+          <article className="rounded-md border border-[var(--studio-border)] p-4">
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="font-semibold">Skills</h3>
+              <StudioBadge tone="info">
+                {runtimeHealth.activeSkills} active
+              </StudioBadge>
+            </div>
+            <dl className="mt-3 grid grid-cols-2 gap-2 text-xs">
+              <div>
+                <dt className="text-[var(--studio-text-muted)]">Draft</dt>
+                <dd className="font-semibold">{runtimeHealth.draftSkills}</dd>
+              </div>
+              <div>
+                <dt className="text-[var(--studio-text-muted)]">Active</dt>
+                <dd className="font-semibold">{runtimeHealth.activeSkills}</dd>
+              </div>
+            </dl>
+          </article>
+        </div>
       </section>
 
       <section

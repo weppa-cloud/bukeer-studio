@@ -113,87 +113,138 @@ export default async function GrowthAgentsPage({ params }: AgentsPageProps) {
             <h3 id="agent-team-heading" className="sr-only">
               Agent team cards
             </h3>
-            {result.agents.map((agent) => (
-              <article
-                key={agent.agent_id}
-                className="rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] bg-[var(--studio-surface,theme(colors.white))] p-4"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h3 className="font-semibold text-[var(--studio-text-strong,theme(colors.zinc.900))]">
-                      {LANE_LABELS[agent.lane]}
-                    </h3>
-                    <p className="mt-1 text-xs text-[var(--studio-text-muted,theme(colors.zinc.500))]">
-                      {LANE_MISSIONS[agent.lane]}
-                    </p>
+            {result.agents.map((agent) => {
+              const runtime = result.runtimeByLane[agent.lane];
+
+              return (
+                <article
+                  key={agent.agent_id}
+                  className="rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] bg-[var(--studio-surface,theme(colors.white))] p-4"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h3 className="font-semibold text-[var(--studio-text-strong,theme(colors.zinc.900))]">
+                        {LANE_LABELS[agent.lane]}
+                      </h3>
+                      <p className="mt-1 text-xs text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                        {LANE_MISSIONS[agent.lane]}
+                      </p>
+                    </div>
+                    <span
+                      className={
+                        agent.enabled
+                          ? "inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800"
+                          : "inline-flex items-center rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-700"
+                      }
+                    >
+                      {agent.enabled ? "enabled" : "disabled"}
+                    </span>
                   </div>
-                  <span
-                    className={
-                      agent.enabled
-                        ? "inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800"
-                        : "inline-flex items-center rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-700"
-                    }
-                  >
-                    {agent.enabled ? "enabled" : "disabled"}
-                  </span>
-                </div>
-                <dl className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                  <div className="col-span-2">
-                    <dt className="text-[var(--studio-text-muted,theme(colors.zinc.500))]">
-                      Model
-                    </dt>
-                    <dd className="font-mono font-medium">{agent.model}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-[var(--studio-text-muted,theme(colors.zinc.500))]">
-                      Mode
-                    </dt>
-                    <dd className="font-medium">
-                      {MODE_LABELS[agent.mode] ?? agent.mode}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-[var(--studio-text-muted,theme(colors.zinc.500))]">
-                      Agreement
-                    </dt>
-                    <dd className="font-medium">
-                      {agent.agreement_threshold.toFixed(2)}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-[var(--studio-text-muted,theme(colors.zinc.500))]">
-                      Market
-                    </dt>
-                    <dd className="font-medium">{agent.market}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-[var(--studio-text-muted,theme(colors.zinc.500))]">
-                      Locale
-                    </dt>
-                    <dd className="font-medium">{agent.locale}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-[var(--studio-text-muted,theme(colors.zinc.500))]">
-                      Workflow
-                    </dt>
-                    <dd className="font-mono font-medium">
-                      {agent.workflow_version}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-[var(--studio-text-muted,theme(colors.zinc.500))]">
-                      Prompt
-                    </dt>
-                    <dd className="font-mono font-medium">
-                      {agent.prompt_version}
-                    </dd>
-                  </div>
-                </dl>
-                <p className="mt-3 rounded-md bg-[var(--studio-surface-muted,theme(colors.zinc.50))] p-2 text-xs text-[var(--studio-text-muted,theme(colors.zinc.600))]">
-                  {LANE_SAFETY[agent.lane]}
-                </p>
-              </article>
-            ))}
+                  <dl className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                    <div className="col-span-2">
+                      <dt className="text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                        Model
+                      </dt>
+                      <dd className="font-mono font-medium">{agent.model}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                        Mode
+                      </dt>
+                      <dd className="font-medium">
+                        {MODE_LABELS[agent.mode] ?? agent.mode}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                        Agreement
+                      </dt>
+                      <dd className="font-medium">
+                        {agent.agreement_threshold.toFixed(2)}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                        Market
+                      </dt>
+                      <dd className="font-medium">{agent.market}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                        Locale
+                      </dt>
+                      <dd className="font-medium">{agent.locale}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                        Workflow
+                      </dt>
+                      <dd className="font-mono font-medium">
+                        {agent.workflow_version}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                        Prompt
+                      </dt>
+                      <dd className="font-mono font-medium">
+                        {agent.prompt_version}
+                      </dd>
+                    </div>
+                  </dl>
+                  <dl className="mt-3 grid grid-cols-3 gap-2 rounded-md bg-[var(--studio-surface-muted,theme(colors.zinc.50))] p-2 text-xs">
+                    <div>
+                      <dt className="text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                        Runs
+                      </dt>
+                      <dd className="font-semibold">{runtime.runs}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                        Review
+                      </dt>
+                      <dd className="font-semibold">
+                        {runtime.review_required}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                        Artifacts
+                      </dt>
+                      <dd className="font-semibold">
+                        {runtime.metrics_complete}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                        Tools
+                      </dt>
+                      <dd className="font-semibold">{runtime.tool_calls}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                        Replay
+                      </dt>
+                      <dd className="font-semibold">
+                        {runtime.replay_candidates}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                        Learning
+                      </dt>
+                      <dd className="font-semibold">
+                        {runtime.active_memories + runtime.draft_memories}/
+                        {runtime.active_skills + runtime.draft_skills}
+                      </dd>
+                    </div>
+                  </dl>
+                  <p className="mt-3 rounded-md bg-[var(--studio-surface-muted,theme(colors.zinc.50))] p-2 text-xs text-[var(--studio-text-muted,theme(colors.zinc.600))]">
+                    {LANE_SAFETY[agent.lane]}
+                  </p>
+                </article>
+              );
+            })}
           </section>
           <div className="overflow-x-auto rounded-md border border-[var(--studio-border,theme(colors.zinc.200))]">
             <table data-testid="growth-agents-table" className="w-full text-sm">
@@ -224,6 +275,9 @@ export default async function GrowthAgentsPage({ params }: AgentsPageProps) {
                     Agreement Threshold
                   </th>
                   <th scope="col" className="px-3 py-2 text-left">
+                    Runtime
+                  </th>
+                  <th scope="col" className="px-3 py-2 text-left">
                     Enabled
                   </th>
                 </tr>
@@ -232,53 +286,61 @@ export default async function GrowthAgentsPage({ params }: AgentsPageProps) {
                 {result.agents.length === 0 ? (
                   <tr className="border-t border-[var(--studio-border,theme(colors.zinc.200))]">
                     <td
-                      colSpan={8}
+                      colSpan={9}
                       className="px-3 py-6 text-center text-sm text-[var(--studio-text-muted,theme(colors.zinc.500))]"
                     >
                       No agents configured for this tenant yet.
                     </td>
                   </tr>
                 ) : (
-                  result.agents.map((agent) => (
-                    <tr
-                      key={agent.agent_id}
-                      className="border-t border-[var(--studio-border,theme(colors.zinc.200))]"
-                    >
-                      <th
-                        scope="row"
-                        className="px-3 py-2 text-left font-medium"
+                  result.agents.map((agent) => {
+                    const runtime = result.runtimeByLane[agent.lane];
+
+                    return (
+                      <tr
+                        key={agent.agent_id}
+                        className="border-t border-[var(--studio-border,theme(colors.zinc.200))]"
                       >
-                        {agent.name}
-                      </th>
-                      <td className="px-3 py-2">{LANE_LABELS[agent.lane]}</td>
-                      <td className="px-3 py-2">
-                        {MODE_LABELS[agent.mode] ?? agent.mode}
-                      </td>
-                      <td className="px-3 py-2 font-mono text-xs">
-                        {agent.model}
-                      </td>
-                      <td className="px-3 py-2 font-mono text-xs">
-                        {agent.prompt_version}
-                      </td>
-                      <td className="px-3 py-2 font-mono text-xs">
-                        {agent.workflow_version}
-                      </td>
-                      <td className="px-3 py-2">
-                        {agent.agreement_threshold.toFixed(2)}
-                      </td>
-                      <td className="px-3 py-2">
-                        <span
-                          className={
-                            agent.enabled
-                              ? "inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800"
-                              : "inline-flex items-center rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-700"
-                          }
+                        <th
+                          scope="row"
+                          className="px-3 py-2 text-left font-medium"
                         >
-                          {agent.enabled ? "enabled" : "disabled"}
-                        </span>
-                      </td>
-                    </tr>
-                  ))
+                          {agent.name}
+                        </th>
+                        <td className="px-3 py-2">{LANE_LABELS[agent.lane]}</td>
+                        <td className="px-3 py-2">
+                          {MODE_LABELS[agent.mode] ?? agent.mode}
+                        </td>
+                        <td className="px-3 py-2 font-mono text-xs">
+                          {agent.model}
+                        </td>
+                        <td className="px-3 py-2 font-mono text-xs">
+                          {agent.prompt_version}
+                        </td>
+                        <td className="px-3 py-2 font-mono text-xs">
+                          {agent.workflow_version}
+                        </td>
+                        <td className="px-3 py-2">
+                          {agent.agreement_threshold.toFixed(2)}
+                        </td>
+                        <td className="px-3 py-2 text-xs">
+                          {runtime.runs} runs · {runtime.metrics_complete}{" "}
+                          artifacts · {runtime.replay_candidates} replay
+                        </td>
+                        <td className="px-3 py-2">
+                          <span
+                            className={
+                              agent.enabled
+                                ? "inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800"
+                                : "inline-flex items-center rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-700"
+                            }
+                          >
+                            {agent.enabled ? "enabled" : "disabled"}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>

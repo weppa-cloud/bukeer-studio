@@ -157,7 +157,39 @@ export default async function GrowthRunDetailPage({ params }: PageProps) {
     agreementForLane,
     hasArtifact,
     artifactPathTail,
+    aiReview,
+    metrics,
+    toolCalls,
+    replayCases,
+    memories,
+    skills,
   } = detail;
+
+  const evidence =
+    run.evidence &&
+    typeof run.evidence === "object" &&
+    !Array.isArray(run.evidence)
+      ? (run.evidence as Record<string, unknown>)
+      : {};
+  const risks = aiReview?.risks.length
+    ? aiReview.risks
+    : Array.isArray(evidence.risks)
+      ? evidence.risks.map((risk) => String(risk ?? "")).filter(Boolean)
+      : [];
+  const evidenceSummary =
+    typeof evidence.evidence_summary === "string"
+      ? evidence.evidence_summary
+      : null;
+  const nextAction =
+    typeof evidence.next_action === "string" ? evidence.next_action : null;
+  const memoryCandidateCount =
+    typeof evidence.memory_candidates_count === "number"
+      ? evidence.memory_candidates_count
+      : memories.length;
+  const skillCandidateCount =
+    typeof evidence.skill_update_candidates_count === "number"
+      ? evidence.skill_update_candidates_count
+      : skills.length;
 
   return (
     <StudioPage className="max-w-5xl">
@@ -280,6 +312,179 @@ export default async function GrowthRunDetailPage({ params }: PageProps) {
               Reject
             </button>
           </form>
+        </div>
+      </section>
+
+      <section
+        aria-labelledby="run-runtime-heading"
+        className="space-y-3 mt-6"
+        data-testid="growth-run-runtime-panel"
+      >
+        <header>
+          <h2
+            id="run-runtime-heading"
+            className="text-base font-semibold text-[var(--studio-text)]"
+          >
+            Runtime output
+          </h2>
+          <p className="text-xs text-[var(--studio-text-muted)]">
+            Lectura operable del artifact, reviews, métricas, tool gateway y
+            replay. Nada de esto activa memoria, skills ni mutaciones de
+            negocio.
+          </p>
+        </header>
+
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+          <article className="studio-panel border border-[var(--studio-border)] p-3">
+            <div className="text-xs uppercase tracking-wide text-[var(--studio-text-muted)]">
+              Recommendation
+            </div>
+            <div className="mt-1 font-semibold">
+              {aiReview?.recommendation ??
+                (evidence.decision == null ? "—" : String(evidence.decision))}
+            </div>
+            <p className="mt-1 text-xs text-[var(--studio-text-muted)]">
+              allowed_action:{" "}
+              <span className="font-mono">
+                {evidence.allowed_action == null
+                  ? "—"
+                  : String(evidence.allowed_action)}
+              </span>
+            </p>
+          </article>
+          <article className="studio-panel border border-[var(--studio-border)] p-3">
+            <div className="text-xs uppercase tracking-wide text-[var(--studio-text-muted)]">
+              Artifact health
+            </div>
+            <div className="mt-1 font-semibold">
+              {metrics
+                ? metrics.artifact_complete
+                  ? "complete"
+                  : "incomplete"
+                : "unknown"}
+            </div>
+            <p className="mt-1 text-xs text-[var(--studio-text-muted)]">
+              exit_code:{" "}
+              <span className="font-mono">{metrics?.exit_code ?? "—"}</span>
+            </p>
+          </article>
+          <article className="studio-panel border border-[var(--studio-border)] p-3">
+            <div className="text-xs uppercase tracking-wide text-[var(--studio-text-muted)]">
+              Learning proposals
+            </div>
+            <div className="mt-1 font-semibold">
+              {memoryCandidateCount} memory · {skillCandidateCount} skill
+            </div>
+            <p className="mt-1 text-xs text-[var(--studio-text-muted)]">
+              Draft only. Curator approval required.
+            </p>
+          </article>
+        </div>
+
+        {evidenceSummary ? (
+          <article className="studio-panel border border-[var(--studio-border)] p-3">
+            <h3 className="text-sm font-semibold">Evidence summary</h3>
+            <p className="mt-2 text-sm text-[var(--studio-text)]">
+              {evidenceSummary}
+            </p>
+          </article>
+        ) : null}
+
+        {risks.length > 0 || nextAction ? (
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <article className="studio-panel border border-[var(--studio-border)] p-3">
+              <h3 className="text-sm font-semibold">Risks</h3>
+              {risks.length > 0 ? (
+                <ul className="mt-2 list-disc space-y-1 pl-5 text-sm">
+                  {risks.map((risk, index) => (
+                    <li key={`${risk}-${index}`}>{risk}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-2 text-xs text-[var(--studio-text-muted)]">
+                  Sin riesgos estructurados.
+                </p>
+              )}
+            </article>
+            <article className="studio-panel border border-[var(--studio-border)] p-3">
+              <h3 className="text-sm font-semibold">Next action</h3>
+              <p className="mt-2 text-sm text-[var(--studio-text-muted)]">
+                {nextAction ?? "Sin siguiente acción estructurada."}
+              </p>
+            </article>
+          </div>
+        ) : null}
+      </section>
+
+      <section aria-labelledby="run-ledger-heading" className="space-y-3 mt-6">
+        <header>
+          <h2
+            id="run-ledger-heading"
+            className="text-base font-semibold text-[var(--studio-text)]"
+          >
+            Tool gateway y replay
+          </h2>
+        </header>
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+          <article className="studio-panel border border-[var(--studio-border)] p-3">
+            <h3 className="text-sm font-semibold">
+              Tool calls ({toolCalls.length})
+            </h3>
+            {toolCalls.length > 0 ? (
+              <div className="mt-2 overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead className="text-left text-[var(--studio-text-muted)]">
+                    <tr>
+                      <th className="py-1 pr-2">Tool</th>
+                      <th className="py-1 pr-2">Policy</th>
+                      <th className="py-1 pr-2">Result</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {toolCalls.map((call, index) => (
+                      <tr
+                        key={`${call.tool}-${index}`}
+                        className="border-t border-[var(--studio-border)]"
+                      >
+                        <td className="py-1 pr-2 font-mono">{call.tool}</td>
+                        <td className="py-1 pr-2">{call.policy_verdict}</td>
+                        <td className="py-1 pr-2">{call.result_status}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="mt-2 text-xs text-[var(--studio-text-muted)]">
+                Sin tool ledger persistido.
+              </p>
+            )}
+          </article>
+          <article className="studio-panel border border-[var(--studio-border)] p-3">
+            <h3 className="text-sm font-semibold">
+              Replay cases ({replayCases.length})
+            </h3>
+            {replayCases.length > 0 ? (
+              <ul className="mt-2 space-y-2 text-xs">
+                {replayCases.map((replay, index) => (
+                  <li
+                    key={`${replay.expected_decision}-${index}`}
+                    className="rounded-md bg-[var(--studio-surface)] p-2"
+                  >
+                    <div className="font-mono">{replay.status}</div>
+                    <div>
+                      expected: {replay.expected_decision} ·{" "}
+                      {replay.expected_allowed_action ?? "—"}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-2 text-xs text-[var(--studio-text-muted)]">
+                Sin replay case persistido.
+              </p>
+            )}
+          </article>
         </div>
       </section>
 

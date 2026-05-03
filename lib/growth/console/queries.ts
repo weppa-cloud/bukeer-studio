@@ -42,6 +42,11 @@ import { asTyped } from "@/lib/supabase/typed-client";
 import { requireGrowthRole } from "./auth";
 
 const POSTGRES_MISSING_RELATION = "42P01";
+const POSTGREST_MISSING_TABLE_CODES = new Set([
+  POSTGRES_MISSING_RELATION,
+  "PGRST205",
+  "PGRST204",
+]);
 
 /**
  * The five canonical lanes from SPEC_GROWTH_OS_AGENT_LANES.md.
@@ -100,6 +105,45 @@ const ZERO_BACKLOG_COUNTS: BacklogStatusCounts = {
   total: 0,
 };
 
+function emptyRuntimeByLane(): Record<AgentLane, LaneRuntimeSummary> {
+  return CANONICAL_LANES.reduce(
+    (acc, lane) => ({
+      ...acc,
+      [lane]: {
+        lane,
+        runs: 0,
+        review_required: 0,
+        metrics_complete: 0,
+        tool_calls: 0,
+        replay_candidates: 0,
+        active_memories: 0,
+        draft_memories: 0,
+        active_skills: 0,
+        draft_skills: 0,
+      },
+    }),
+    {} as Record<AgentLane, LaneRuntimeSummary>,
+  );
+}
+
+function emptyRuntimeHealth(
+  missingTables: string[] = [],
+): RuntimeHealthSummary {
+  return {
+    metricsRows: 0,
+    completeArtifacts: 0,
+    failedExecutions: 0,
+    toolCalls: 0,
+    blockedToolCalls: 0,
+    replayCandidates: 0,
+    activeMemories: 0,
+    draftMemories: 0,
+    activeSkills: 0,
+    draftSkills: 0,
+    missingTables,
+  };
+}
+
 export interface LaneAgreementEntry {
   lane: AgentLane;
   agreement: number;
@@ -125,8 +169,36 @@ export interface ProviderFreshnessRow {
 
 export interface AgentDefinitionsResult {
   agents: GrowthAgentDefinition[];
+  runtimeByLane: Record<AgentLane, LaneRuntimeSummary>;
   missingTable: boolean;
   errored: boolean;
+}
+
+export interface LaneRuntimeSummary {
+  lane: AgentLane;
+  runs: number;
+  review_required: number;
+  metrics_complete: number;
+  tool_calls: number;
+  replay_candidates: number;
+  active_memories: number;
+  draft_memories: number;
+  active_skills: number;
+  draft_skills: number;
+}
+
+export interface RuntimeHealthSummary {
+  metricsRows: number;
+  completeArtifacts: number;
+  failedExecutions: number;
+  toolCalls: number;
+  blockedToolCalls: number;
+  replayCandidates: number;
+  activeMemories: number;
+  draftMemories: number;
+  activeSkills: number;
+  draftSkills: number;
+  missingTables: string[];
 }
 
 export interface GrowthOverview {
@@ -151,6 +223,7 @@ export interface GrowthOverview {
 export interface GrowthDataHealth {
   providerFreshness: ProviderFreshnessRow[];
   runCounts: RunStatusCounts;
+  runtimeHealth: RuntimeHealthSummary;
   warnings: {
     providerCacheMissing: boolean;
     runsTableMissing: boolean;
@@ -185,7 +258,7 @@ function toIsoDateTime(value: unknown): unknown {
 }
 
 function isMissingRelation(error: { code?: string | null } | null): boolean {
-  return error?.code === POSTGRES_MISSING_RELATION;
+  return Boolean(error?.code && POSTGREST_MISSING_TABLE_CODES.has(error.code));
 }
 
 async function fetchAgents(
@@ -205,9 +278,19 @@ async function fetchAgents(
 
   if (error) {
     if (isMissingRelation(error)) {
-      return { agents: [], missingTable: true, errored: false };
+      return {
+        agents: [],
+        runtimeByLane: emptyRuntimeByLane(),
+        missingTable: true,
+        errored: false,
+      };
     }
-    return { agents: [], missingTable: false, errored: true };
+    return {
+      agents: [],
+      runtimeByLane: emptyRuntimeByLane(),
+      missingTable: false,
+      errored: true,
+    };
   }
 
   const rows = (data ?? []) as RawAgentDefinitionRow[];
@@ -220,7 +303,12 @@ async function fetchAgents(
     });
     if (candidate.success) parsed.push(candidate.data);
   }
-  return { agents: parsed, missingTable: false, errored: false };
+  return {
+    agents: parsed,
+    runtimeByLane: await fetchRuntimeByLane(supabase, websiteId, accountId),
+    missingTable: false,
+    errored: false,
+  };
 }
 
 async function fetchRunCounts(
@@ -263,6 +351,205 @@ async function fetchRunCounts(
     counts[status] += 1;
   }
   return { counts, missingTable: false, errored: false };
+}
+
+type GrowthSupabase = Awaited<ReturnType<typeof createSupabaseServerClient>>;
+
+function runtimeTable(supabase: GrowthSupabase, table: string) {
+  return (
+    supabase.from as unknown as (
+      tableName: string,
+    ) => ReturnType<typeof supabase.from>
+  )(table);
+}
+
+async function readRuntimeRows<T extends Record<string, unknown>>(
+  supabase: GrowthSupabase,
+  table: string,
+  select: string,
+  websiteId: string,
+  accountId: string,
+): Promise<{ rows: T[]; missing: boolean }> {
+  const { data, error } = await runtimeTable(supabase, table)
+    .select(select)
+    .eq("account_id", accountId)
+    .eq("website_id", websiteId);
+
+  if (error) return { rows: [], missing: isMissingRelation(error) };
+  return { rows: (data ?? []) as unknown as T[], missing: false };
+}
+
+async function fetchRuntimeByLane(
+  supabase: GrowthSupabase,
+  websiteId: string,
+  accountId: string,
+): Promise<Record<AgentLane, LaneRuntimeSummary>> {
+  const runtime = emptyRuntimeByLane();
+
+  const [runs, metrics, toolCalls, replayCases, memories, skills] =
+    await Promise.all([
+      readRuntimeRows<{ lane: string; status: string }>(
+        supabase,
+        "growth_agent_runs",
+        "lane, status",
+        websiteId,
+        accountId,
+      ),
+      readRuntimeRows<{ lane: string; artifact_complete: boolean }>(
+        supabase,
+        "growth_agent_run_metrics",
+        "lane, artifact_complete",
+        websiteId,
+        accountId,
+      ),
+      readRuntimeRows<{ lane: string }>(
+        supabase,
+        "growth_agent_tool_calls",
+        "lane",
+        websiteId,
+        accountId,
+      ),
+      readRuntimeRows<{ lane: string; status: string }>(
+        supabase,
+        "growth_agent_replay_cases",
+        "lane, status",
+        websiteId,
+        accountId,
+      ),
+      readRuntimeRows<{ lane: string; status: string }>(
+        supabase,
+        "growth_agent_memories",
+        "lane, status",
+        websiteId,
+        accountId,
+      ),
+      readRuntimeRows<{ lane: string; status: string }>(
+        supabase,
+        "growth_agent_skills",
+        "lane, status",
+        websiteId,
+        accountId,
+      ),
+    ]);
+
+  for (const row of runs.rows) {
+    const lane = AgentLaneSchema.safeParse(row.lane);
+    if (!lane.success) continue;
+    runtime[lane.data].runs += 1;
+    if (row.status === "review_required") {
+      runtime[lane.data].review_required += 1;
+    }
+  }
+  for (const row of metrics.rows) {
+    const lane = AgentLaneSchema.safeParse(row.lane);
+    if (lane.success && row.artifact_complete) {
+      runtime[lane.data].metrics_complete += 1;
+    }
+  }
+  for (const row of toolCalls.rows) {
+    const lane = AgentLaneSchema.safeParse(row.lane);
+    if (lane.success) runtime[lane.data].tool_calls += 1;
+  }
+  for (const row of replayCases.rows) {
+    const lane = AgentLaneSchema.safeParse(row.lane);
+    if (lane.success && row.status === "candidate") {
+      runtime[lane.data].replay_candidates += 1;
+    }
+  }
+  for (const row of memories.rows) {
+    const lane = AgentLaneSchema.safeParse(row.lane);
+    if (!lane.success) continue;
+    if (row.status === "active") runtime[lane.data].active_memories += 1;
+    if (row.status === "draft") runtime[lane.data].draft_memories += 1;
+  }
+  for (const row of skills.rows) {
+    const lane = AgentLaneSchema.safeParse(row.lane);
+    if (!lane.success) continue;
+    if (row.status === "active") runtime[lane.data].active_skills += 1;
+    if (row.status === "draft") runtime[lane.data].draft_skills += 1;
+  }
+
+  return runtime;
+}
+
+async function fetchRuntimeHealth(
+  websiteId: string,
+  accountId: string,
+): Promise<RuntimeHealthSummary> {
+  const supabase = await createSupabaseServerClient();
+  const [metrics, toolCalls, replayCases, memories, skills] = await Promise.all(
+    [
+      readRuntimeRows<{
+        artifact_complete: boolean;
+        exit_code: number | null;
+        error_class: string | null;
+      }>(
+        supabase,
+        "growth_agent_run_metrics",
+        "artifact_complete, exit_code, error_class",
+        websiteId,
+        accountId,
+      ),
+      readRuntimeRows<{ allowed: boolean }>(
+        supabase,
+        "growth_agent_tool_calls",
+        "allowed",
+        websiteId,
+        accountId,
+      ),
+      readRuntimeRows<{ status: string }>(
+        supabase,
+        "growth_agent_replay_cases",
+        "status",
+        websiteId,
+        accountId,
+      ),
+      readRuntimeRows<{ status: string }>(
+        supabase,
+        "growth_agent_memories",
+        "status",
+        websiteId,
+        accountId,
+      ),
+      readRuntimeRows<{ status: string }>(
+        supabase,
+        "growth_agent_skills",
+        "status",
+        websiteId,
+        accountId,
+      ),
+    ],
+  );
+
+  const missingTables = [
+    metrics.missing ? "growth_agent_run_metrics" : null,
+    toolCalls.missing ? "growth_agent_tool_calls" : null,
+    replayCases.missing ? "growth_agent_replay_cases" : null,
+    memories.missing ? "growth_agent_memories" : null,
+    skills.missing ? "growth_agent_skills" : null,
+  ].filter(Boolean) as string[];
+
+  if (missingTables.length > 0) return emptyRuntimeHealth(missingTables);
+
+  return {
+    metricsRows: metrics.rows.length,
+    completeArtifacts: metrics.rows.filter((row) => row.artifact_complete)
+      .length,
+    failedExecutions: metrics.rows.filter(
+      (row) => row.exit_code !== 0 || row.error_class,
+    ).length,
+    toolCalls: toolCalls.rows.length,
+    blockedToolCalls: toolCalls.rows.filter((row) => !row.allowed).length,
+    replayCandidates: replayCases.rows.filter(
+      (row) => row.status === "candidate",
+    ).length,
+    activeMemories: memories.rows.filter((row) => row.status === "active")
+      .length,
+    draftMemories: memories.rows.filter((row) => row.status === "draft").length,
+    activeSkills: skills.rows.filter((row) => row.status === "active").length,
+    draftSkills: skills.rows.filter((row) => row.status === "draft").length,
+    missingTables,
+  };
 }
 
 async function fetchBacklogCounts(
@@ -507,14 +794,16 @@ export async function getGrowthDataHealth(
   websiteId: string,
 ): Promise<GrowthDataHealth> {
   const ctx = await requireGrowthRole(websiteId, "viewer");
-  const [providerResult, runsResult] = await Promise.all([
+  const [providerResult, runsResult, runtimeHealth] = await Promise.all([
     fetchProviderFreshness(ctx.websiteId, ctx.accountId),
     fetchRunCounts(ctx.websiteId, ctx.accountId),
+    fetchRuntimeHealth(ctx.websiteId, ctx.accountId),
   ]);
 
   return {
     providerFreshness: providerResult.rows,
     runCounts: runsResult.counts,
+    runtimeHealth,
     warnings: {
       providerCacheMissing: providerResult.missingTable,
       runsTableMissing: runsResult.missingTable,

@@ -250,7 +250,13 @@ export default async function GrowthRunsListPage({
             </thead>
             <tbody>
               {result.runs.map(
-                ({ run, agentName, hasArtifact, agreementState }) => (
+                ({
+                  run,
+                  agentName,
+                  hasArtifact,
+                  artifactComplete,
+                  agreementState,
+                }) => (
                   <tr
                     key={run.run_id}
                     data-testid={`growth-run-row-${run.run_id}`}
@@ -286,7 +292,13 @@ export default async function GrowthRunsListPage({
                     </td>
                     <td className="px-3 py-2 text-xs">
                       {hasArtifact ? (
-                        <span aria-label="has artifact">yes</span>
+                        <span aria-label="has artifact">
+                          {artifactComplete === true
+                            ? "complete"
+                            : artifactComplete === false
+                              ? "incomplete"
+                              : "yes"}
+                        </span>
                       ) : (
                         <span className="text-[var(--studio-text-muted)]">
                           no
