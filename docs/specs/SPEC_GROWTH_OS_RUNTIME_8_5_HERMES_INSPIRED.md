@@ -1,17 +1,28 @@
-# SPEC: Growth OS Runtime 8.5 — Hermes-Inspired Execution And Learning
+# SPEC: Growth OS Runtime Maturity Score 8.5/10 — Hermes-Inspired Execution And Learning
 
-Status: Accepted implementation scope for EPIC #310 / Symphony Runtime  
-Tenant baseline: ColombiaTours (`colombiatours.travel`)  
-Created: 2026-05-03  
-Owner: Growth OS Orchestrator + Studio Platform  
-Canonical execution: [#310](https://github.com/weppa-cloud/bukeer-studio/issues/310)  
+Status: Accepted maturity target for EPIC #310 / Symphony Runtime
+Tenant baseline: ColombiaTours (`colombiatours.travel`)
+Created: 2026-05-03
+Owner: Growth OS Orchestrator + Studio Platform
+Canonical execution: [#310](https://github.com/weppa-cloud/bukeer-studio/issues/310)
 Related: [SPEC_GROWTH_OS_SYMPHONY_ORCHESTRATOR](./SPEC_GROWTH_OS_SYMPHONY_ORCHESTRATOR.md), [SPEC_GROWTH_OS_AGENT_MODEL_AND_WORKFLOW_REGISTRY](./SPEC_GROWTH_OS_AGENT_MODEL_AND_WORKFLOW_REGISTRY.md), [SPEC_GROWTH_OS_AGENT_LANES](./SPEC_GROWTH_OS_AGENT_LANES.md), [SPEC_GROWTH_OS_CONTROL_PLANE_UX](./SPEC_GROWTH_OS_CONTROL_PLANE_UX.md), [SPEC_GROWTH_OS_SSOT_MODEL](./SPEC_GROWTH_OS_SSOT_MODEL.md)
 
 ## Purpose
 
 Raise the Growth OS Symphony runtime from the current `7/10` operational base
-to an `8.5/10` runtime by adopting the useful runtime patterns from
-Hermes Agent without replacing the Bukeer control plane.
+to a `8.5/10` maturity score by adopting the useful runtime patterns from
+Hermes Agent without replacing the Bukeer control plane. In this SPEC, `8.5`
+is a benchmark score, not a runtime version or product name.
+
+Naming convention:
+
+```text
+System: Bukeer Growth OS Runtime
+Benchmark reference: Hermes-inspired runtime capabilities
+Metric: Growth OS Runtime Maturity Score
+Current estimate: 7.0/10
+Target: 8.5/10
+```
 
 Official rule:
 
@@ -24,9 +35,9 @@ External reference: [NousResearch/hermes-agent](https://github.com/NousResearch/
 The relevant ideas are persistent execution, skills, memory, toolsets,
 scheduled/background work, terminal backends and a closed learning loop.
 
-## Runtime 8.5 Scorecard
+## Runtime Maturity Scorecard
 
-| Capability         | Current                     | Target 8.5 requirement                                                    |
+| Capability         | Current                     | Target for 8.5/10 maturity score                                          |
 | ------------------ | --------------------------- | ------------------------------------------------------------------------- |
 | Persistent runtime | VPS + Docker + polling      | Codex executor runs per claimed row and survives restarts.                |
 | Agent execution    | Observe-only handoff        | `codex exec` produces structured artifacts for each lane.                 |
@@ -102,13 +113,13 @@ Default safety:
 
 ## Implementation Workstreams
 
-1. **Scorecard + Benchmark** — publish runtime 8.5 matrix and pass/fail report.
+1. **Scorecard + Benchmark** — publish the maturity matrix and pass/fail report for reaching `8.5/10`.
 2. **Codex Executor Adapter** — implement `codex exec` task runner and artifact parser.
 3. **Memory + Skill Learning Loop** — store approved memories and active lane skills.
 4. **Tool Gateway + Permission Ledger** — record every tool call and enforce policy.
 5. **Replay/Eval Harness** — replay 30-50 historical cases and compute lane agreement.
 6. **Observability + Failure Ops** — metrics, retries, stalls, errors, cost and alerts.
-7. **Studio UI 8.5 Surfaces** — show memory, skills, tool calls, replay health and score.
+7. **Studio UI Maturity Surfaces** — show memory, skills, tool calls, replay health and score.
 
 ## Acceptance Criteria
 

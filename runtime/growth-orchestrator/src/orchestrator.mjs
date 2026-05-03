@@ -598,11 +598,12 @@ async function createCodexArtifact(supabase, opts, run, runtimeContext) {
         account_id: run.account_id,
         website_id: run.website_id,
         ...aiReviewForeignKeys(run),
-        review_key: `codex-runtime-8-5:${run.run_id}`,
+        review_key: `codex-runtime-score-8-5:${run.run_id}`,
         model: opts.codexModel || "codex-cli-default",
         prompt_version:
-          runtimeContext.agentDefinition?.prompt_version ?? "runtime-8.5",
-        config_version: "growth-runtime-8.5-codex-v1",
+          runtimeContext.agentDefinition?.prompt_version ??
+          "runtime-maturity-score-8.5",
+        config_version: "growth-runtime-score-8-5-codex-v1",
         confidence_score: output.confidence,
         recommendation: output.decision,
         risks: output.risks,

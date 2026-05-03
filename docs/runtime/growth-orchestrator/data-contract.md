@@ -9,7 +9,9 @@ Existing runtime tables:
 - `growth_ai_reviews`
 - `growth_human_reviews`
 
-Runtime 8.5 tables written best-effort until Flutter/SSOT migrations exist:
+Runtime maturity-score tables written best-effort until Flutter/SSOT
+migrations exist. These tables support the target `8.5/10` Growth OS Runtime
+Maturity Score; `8.5` is a benchmark score, not a schema version:
 
 - `growth_agent_memories`
 - `growth_agent_skills`

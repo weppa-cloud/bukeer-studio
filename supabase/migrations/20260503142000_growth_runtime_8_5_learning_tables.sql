@@ -1,9 +1,11 @@
 -- ============================================================================
--- Growth OS Runtime 8.5 — Hermes-inspired learning/eval/observability tables
+-- Growth OS Runtime Maturity Score 8.5/10 — Hermes-inspired learning/eval/observability tables
 -- ============================================================================
 -- Purpose:
 --   Add the append-only/approval-gated tables used by the Codex executor
---   adapter (#413) and the Runtime 8.5 learning loop (#414-#417).
+--   adapter (#413) and the learning loop required to reach the Runtime
+--   Maturity Score target of 8.5/10 (#414-#417). The 8.5 label is a
+--   benchmark score, not a schema version.
 --
 -- Safety:
 --   - Additive, forward-only and idempotent.

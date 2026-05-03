@@ -457,8 +457,8 @@ Each concept below lists the ADRs/SPECs/ops docs that touch it. Use this to find
 - [[SPEC_GROWTH_OS_SYMPHONY_ORCHESTRATOR]] — orchestration layer for #310: multi-tenant Supabase/Bukeer control plane, VPS Docker runtime, agent run ledger/events, Growth UI contract and opt-in E2E coverage.
 - [[SPEC_GROWTH_OS_CONTROL_PLANE_UX]] — human control plane for #310: Paperclip-inspired agent team UX, review queue, opportunity language, Data Health and Council surfaces in Bukeer Studio.
 - [[SPEC_GROWTH_OS_AGENT_MODEL_AND_WORKFLOW_REGISTRY]] — runtime registry for #310: OpenAI model map, prompt/workflow versions, context packs and artifact-level transport readiness for the VPS Symphony worker.
-- [[SPEC_GROWTH_OS_RUNTIME_8_5_HERMES_INSPIRED]] — Runtime 8.5 scope for #310: Codex executor, memory/skills, tool gateway, replay/evals, observability and Studio learning surfaces inspired by Hermes.
-- [[growth-orchestrator-runtime]] — operational docs for the Runtime 8.5 execution plane: code layout, deploys by SHA, Codex executor, data contract, safety gates and troubleshooting.
+- [[SPEC_GROWTH_OS_RUNTIME_8_5_HERMES_INSPIRED]] — Runtime maturity score target for #310: raise Bukeer Growth OS Runtime from ~7.0/10 to 8.5/10 using Hermes-inspired execution, memory/skills, tool gateway, replay/evals, observability and Studio learning surfaces.
+- [[growth-orchestrator-runtime]] — operational docs for the Growth OS runtime execution plane: code layout, deploys by SHA, Codex executor, data contract, safety gates and troubleshooting.
 - [[SPEC_META_CHATWOOT_CONVERSIONS]] — stub for canonical #322: Meta + Chatwoot conversion path for WAFlow/WhatsApp to qualified lead, quote, and purchase.
 - [[ADR-024]] — booking/date-picker remains deferred for pilot; WAFlow/WhatsApp is primary conversion.
 - [[supabase-migration-governance]] — #310 DB migration path: canonical application via `bukeer-flutter`, Studio owns API/contracts/evidence.

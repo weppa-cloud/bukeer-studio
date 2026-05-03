@@ -625,7 +625,7 @@ export async function runCodexAgentTask(input, options = {}) {
 
   const envelope = {
     generated_at: nowIso(),
-    artifact_version: "growth-runtime-8.5-codex-v1",
+    artifact_version: "growth-runtime-score-8-5-codex-v1",
     run_id: input.run?.run_id ?? null,
     lane: input.run?.lane ?? null,
     source_table: input.run?.source_table ?? null,
