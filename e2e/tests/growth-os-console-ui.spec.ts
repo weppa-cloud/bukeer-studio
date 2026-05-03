@@ -106,6 +106,20 @@ test.describe("Growth OS console UI contract @growth-os-ui", () => {
     const agentsTable = page.getByTestId("growth-agents-table");
     await expect(agentsTable).toBeVisible();
 
+    const toolMatrix = page.getByTestId("growth-agent-tool-matrix");
+    await expect(toolMatrix).toBeVisible();
+    for (const actionClass of [
+      "content_publish",
+      "transcreation_merge",
+      "paid_mutation",
+      "experiment_activation",
+      "outreach_send",
+    ]) {
+      await expect(toolMatrix).toContainText(actionClass);
+    }
+    await expect(toolMatrix.getByText("Human").first()).toBeVisible();
+    await expect(toolMatrix.getByText("Blocked").first()).toBeVisible();
+
     for (const header of [
       /^name$/i,
       /^lane$/i,

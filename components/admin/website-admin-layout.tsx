@@ -96,24 +96,34 @@ function WebsiteHeader({
           <DirtyDot />
         </div>
 
-        {isGrowthRoute ? (
-          <div className="flex items-center gap-2 shrink-0">
-            <span className="inline-flex min-h-[36px] items-center rounded-md border border-[var(--studio-border)] px-3 text-xs font-medium text-[var(--studio-text-muted)]">
-              Human review mode
-            </span>
-          </div>
-        ) : (
-          <div className="flex items-center gap-1 md:gap-2 shrink-0">
-            <button
-              type="button"
-              onClick={handlePreviewClick}
-              className="hidden sm:inline-flex studio-btn studio-btn-ghost studio-btn-md"
-            >
-              Preview
-            </button>
+        <div
+          suppressHydrationWarning
+          className="flex items-center gap-1 md:gap-2 shrink-0"
+        >
+          <span
+            className={
+              isGrowthRoute
+                ? "inline-flex min-h-[36px] items-center rounded-md border border-[var(--studio-border)] px-3 text-xs font-medium text-[var(--studio-text-muted)]"
+                : "hidden"
+            }
+          >
+            Human review mode
+          </span>
+          <button
+            type="button"
+            onClick={handlePreviewClick}
+            className={
+              isGrowthRoute
+                ? "hidden"
+                : "hidden sm:inline-flex studio-btn studio-btn-ghost studio-btn-md"
+            }
+          >
+            Preview
+          </button>
+          <span className={isGrowthRoute ? "hidden" : "contents"}>
             <PublishButton />
-          </div>
-        )}
+          </span>
+        </div>
       </div>
 
       {/* Tab navigation — scrollable on mobile */}
