@@ -3,7 +3,7 @@
 > **Versión:** 2.0 — Aplica todas las mejoras de la [auditoría de growth hacking](file:///Users/angelaaragon/.gemini/antigravity/brain/a1c93aeb-8c81-4869-bfa3-dc9b58ed73d6/audit_meta_ads_spain.md)  
 > **Presupuesto total:** $2.000.000 COP (~$476 USD / ~€440)  
 > **Duración:** 21 días (14 días aprendizaje + 7 días optimización)  
-> **Metodología:** Matriz 3:2:2 con Dynamic Creative Optimization
+> **Metodología:** Matriz 3:2:2:2 con Dynamic Creative Optimization (3 Creativos, 2 Textos, 2 Titulares, 2 Descripciones)
 
 ---
 
@@ -33,7 +33,9 @@
 ## ⚙️ Configuración General de la Campaña
 
 - **Objetivo de Campaña:** Clientes Potenciales (Lead Generation) optimizado para mensajes en WhatsApp.
-- **Estructura:** Advantage+ Campaign Budget (CBO) — 1 campaña por fase, 1 ad set con Dynamic Creative cada una.
+- **Estructura: 2 Campañas** (optimizado para presupuesto ajustado):
+  - **Campaña 1 — "Descubrimiento Colombia" (TOFU):** Objetivo Tráfico/Awareness. 1 ad set con Dynamic Creative.
+  - **Campaña 2 — "Conversión Colombia" (MOFU + BOFU):** Objetivo Leads (WA). 2 ad sets bajo CBO — el algoritmo distribuye presupuesto dinámicamente entre MOFU y BOFU según cuál convierta mejor. Esto evita que BOFU (~$3.40/día) quede atrapado en learning phase.
 - **Segmentación Geográfica:**
   - 🔵 **Prioridad 1 (70% del gasto):** Área Metropolitana de Madrid (MAD)
   - 🟠 **Prioridad 2 (30% del gasto):** Área Metropolitana de Barcelona (BCN)
@@ -114,6 +116,13 @@
 1. **"7 noches en Colombia desde Madrid. Todo incluido."** ← Dato concreto + propuesta clara
 2. **"73% de los viajeros repiten Colombia. Descubre por qué."** ← Prueba social numérica
 
+### 📄 2 Descripciones (Descriptions)
+
+> Aparecen debajo del titular en el feed. Máximo ~30 palabras. Refuerzan el headline con un beneficio secundario o dato de confianza.
+
+1. **"Vuelos directos desde Madrid y Barcelona. Transporte privado y guías locales en todo el recorrido."**
+2. **"Paquetes premium con logística blindada. Más de 500 viajeros nos han elegido."**
+
 ---
 
 ## 🟡 FASE 2: MOFU (Consideración e Intención)
@@ -172,6 +181,11 @@
 
 1. **"Habla con un asesor local por WhatsApp."** ← CTA directo, canal claro
 2. **"Tu viaje a Colombia, diseñado a medida en euros."** ← Propuesta de valor + moneda local
+
+### 📄 2 Descripciones (Descriptions)
+
+1. **"Cotización en euros sin sorpresas. Alojamiento boutique + traslados privados incluidos."**
+2. **"Corredores turísticos seguros y acompañamiento 24/7 desde tu llegada."**
 
 ---
 
@@ -233,6 +247,11 @@
 1. **"Últimas 4 plazas VIP. Reserva hoy."** ← Número concreto genera urgencia real
 2. **"Tu tarifa preferencial expira pronto. Asegúrala."** ← Urgencia temporal
 
+### 📄 2 Descripciones (Descriptions)
+
+1. **"Upgrade en alojamiento boutique + traslados privados incluidos en tu tarifa."**
+2. **"Confirma hoy y asegura la mejor tarifa de temporada. Plazas extremadamente limitadas."**
+
 ---
 
 ## 📋 Instrucciones Operativas para Meta Ads Manager
@@ -249,7 +268,9 @@
 
 ### 2. Dynamic Creative (Contenido Dinámico)
 
-Subir los 3 creativos + 2 textos + 2 titulares en **un solo Anuncio Dinámico por fase**. El algoritmo encuentra la combinación ganadora en 48-72 horas. NO crear anuncios individuales — con $23/día no hay presupuesto para fragmentar.
+Subir los 3 creativos + 2 textos + 2 titulares + 2 descripciones en **un solo Anuncio Dinámico por ad set**. El algoritmo encuentra la combinación ganadora en 48-72 horas. NO crear anuncios individuales — con $23/día no hay presupuesto para fragmentar.
+
+> **Combinaciones posibles por ad set:** 3 × 2 × 2 × 2 = **24 variaciones** que Meta prueba automáticamente.
 
 ### 3. Públicos a Construir para Retargeting
 
@@ -318,3 +339,5 @@ Cada lunes revisar en Meta Ads Manager + Events Manager:
 | Tagline | Ausente en creativos | Integrado orgánicamente ("Abre tu ventana...") |
 | Revisión semanal | No existía | Protocolo con checklist de 6 puntos |
 | Calendario | No existía | 4 fases de 21 días con activación escalonada |
+| Descripciones | No existían | 2 descripciones por fase (campo debajo del headline) |
+| Arquitectura | 3 campañas (1 por fase) | 2 campañas (TOFU separada + MOFU/BOFU bajo CBO) |
