@@ -722,7 +722,7 @@ async function claimLane(supabase, opts, lane) {
     llmTransport,
   };
 
-  await writeRunEvent(supabase, run, "runtime_config_loaded", {
+  await writeRunEvent(supabase, run, "heartbeat", {
     severity: agentDefinition && workflow.loaded ? "info" : "warn",
     message: agentDefinition
       ? "Runtime loaded agent registry, workflow and context pack."
