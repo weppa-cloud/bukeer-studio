@@ -5,6 +5,9 @@ Este plan de acción operativo está estructurado para llevar la estrategia de a
 **Mercado objetivo:** Madrid y Barcelona (España)
 **Perfil del viajero:** Alto valor / High-Ticket
 **Eje de confianza:** "La ventana que abre Colombia al mundo"
+**Presupuesto inicial:** 50 USD/día
+**Estructura inicial:** 30 USD prospecting / 15 USD retargeting / 5 USD reserva táctica
+**Objetivo de negocio:** ROAS por reserva confirmada (`booking_confirmed`)
 
 ---
 
@@ -16,7 +19,8 @@ Este plan de acción operativo está estructurado para llevar la estrategia de a
     *   [ ] Verificar y auditar la implementación del Píxel de Meta en todo el ecosistema web.
     *   [ ] Implementar/Auditar la **API de Conversiones de Meta (CAPI)** en el servidor web y el CRM.
     *   [ ] Revisar la Puntuación de Calidad de Coincidencia de Eventos (Event Match Quality Score) en el administrador de eventos (objetivo > 7/10).
-    *   [ ] Configurar los eventos clave: *ViewContent*, *Lead* (Click-to-WhatsApp), *InitiateCheckout*, y *Purchase* (Reserva).
+    *   [ ] Validar los eventos clave actuales: *ViewContent*, *Contact* (Click-to-WhatsApp), *Lead* (WAFlow) y *booking_confirmed* como métrica interna de ROAS.
+    *   [ ] Mantener *Purchase* fuera del go-live hasta certificar la fuente real de booking/revenue y su deduplicación.
 
 ---
 
@@ -86,10 +90,11 @@ Este plan de acción operativo está estructurado para llevar la estrategia de a
 **Objetivo:** Dejar las campañas parametrizadas en la plataforma listas para revisión.
 
 *   **Acciones:**
-    *   [ ] Crear la Campaña **TOFU (Awareness/Traffic)**: Configurar segmentación amplia (Broad Targeting) en Madrid/Barcelona + Advantage+. Cargar los creativos bajo estructura dinámica 3:2:2.
-    *   [ ] Crear la Campaña **MOFU (Lead Generation/Engagement)**: Configurar objetivo de Click-to-WhatsApp. Audiencias: Retargeting de video 50%+ y Lookalikes.
-    *   [ ] Crear la Campaña **BOFU (Sales/Conversión Directa)**: Configurar retargeting de visitantes de landings (14-30 días) y abandono de flujo.
-    *   [ ] Asignar presupuestos (Sugerido arranque: 45% TOFU, 35% MOFU, 20% BOFU).
+    *   [ ] Crear una campaña unificada **ES | Colombia Tours | High-Ticket | WhatsApp + Sales Proxy | Madrid-Barcelona**.
+    *   [ ] Configurar **Prospecting / TOFU-MOFU** con 30 USD/día: broad Madrid + Barcelona, Advantage+, placements automáticos y matriz 3:2:2.
+    *   [ ] Configurar **Retargeting / MOFU-BOFU** con 15 USD/día: visitantes 30-180 días, video 50%+, engagers IG/FB y clics WhatsApp sin lead.
+    *   [ ] Reservar 5 USD/día para duplicar ganadores, probar urgencia BOFU o reforzar la audiencia con mejor señal.
+    *   [ ] Diferenciar Madrid/Barcelona por copy, creatividad y `utm_content`; no separar campañas al inicio para no romper aprendizaje.
 
 ---
 

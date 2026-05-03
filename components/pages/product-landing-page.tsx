@@ -13,6 +13,11 @@ import { PACKAGE_FAQS_DEFAULT } from '@/lib/products/package-faqs-default';
 import { ACTIVITY_FAQS_DEFAULT } from '@/lib/products/activity-faqs-default';
 import { trackEvent } from '@/lib/analytics/track';
 import {
+  getSpainCampaignLandingContent,
+  mergeSpainCampaignFaqs,
+  type SpainCampaignLandingContent,
+} from '@/lib/growth/meta-ads-spain-campaign';
+import {
   SITE_CURRENCY_QUERY_PARAM,
   SITE_CURRENCY_STORAGE_KEY,
   buildCurrencyConfig,
@@ -127,6 +132,74 @@ const TrustBadges = dynamic(
   () => import('@/components/site/trust-badges').then((mod) => mod.TrustBadges),
   { loading: () => <SectionSkeleton /> }
 );
+
+function SpainMetaAdsCampaignPanel({
+  content,
+  whatsappUrl,
+  onWhatsAppClick,
+}: {
+  content: SpainCampaignLandingContent;
+  whatsappUrl: string | null;
+  onWhatsAppClick: () => void;
+}) {
+  return (
+    <section
+      data-testid="spain-meta-ads-campaign"
+      className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-950 text-white shadow-sm"
+    >
+      <div className="grid gap-0 lg:grid-cols-[1.05fr_0.95fr]">
+        <div className="space-y-6 p-6 md:p-8">
+          <div>
+            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.24em] text-emerald-300">
+              {content.eyebrow}
+            </p>
+            <h2 className="text-2xl font-bold md:text-3xl">{content.title}</h2>
+            <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-200 md:text-base">
+              {content.body}
+            </p>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-3">
+            {content.pillars.map((pillar) => (
+              <div key={pillar.title} className="rounded-xl border border-white/10 bg-white/5 p-4">
+                <h3 className="text-sm font-semibold text-white">{pillar.title}</h3>
+                <p className="mt-2 text-sm leading-5 text-slate-300">{pillar.body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex flex-col justify-between border-t border-white/10 bg-white/[0.04] p-6 md:p-8 lg:border-l lg:border-t-0">
+          <div className="space-y-4">
+            <div className="rounded-xl bg-white p-4 text-slate-950">
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Madrid</p>
+              <p className="mt-2 text-sm leading-5">{content.madridRoute}</p>
+            </div>
+            <div className="rounded-xl bg-white p-4 text-slate-950">
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Barcelona</p>
+              <p className="mt-2 text-sm leading-5">{content.barcelonaRoute}</p>
+            </div>
+          </div>
+
+          <div className="mt-6">
+            <p className="mb-3 text-xs uppercase tracking-[0.2em] text-slate-400">{content.ctaMeta}</p>
+            {whatsappUrl ? (
+              <a
+                href={whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={onWhatsAppClick}
+                className="inline-flex w-full items-center justify-center rounded-full bg-emerald-500 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-emerald-400 sm:w-auto"
+              >
+                {content.ctaLabel}
+              </a>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
 
 function DeferredRender({
   children,
@@ -417,6 +490,33 @@ export function ProductLandingPage({
     product_name: displayName,
     tenant_subdomain: website.subdomain ?? null,
   };
+  const destinationSlug = (product as ProductData & { destination_slug?: string | null }).destination_slug ?? null;
+
+  useEffect(() => {
+    trackEvent('product_view', {
+      product_id: product.id,
+      product_type: productType,
+      product_name: displayName,
+      tenant_subdomain: website.subdomain ?? null,
+      content_ids: product.id,
+      content_name: displayName,
+      content_type: productType,
+      package_slug: productType === 'package' ? product.slug ?? null : null,
+      destination_slug: destinationSlug,
+      value: typeof normalizedProduct.price === 'number' ? normalizedProduct.price : null,
+      currency: normalizeCurrencyCode(normalizedProduct.priceCurrency ?? product.currency) ?? null,
+    });
+  }, [
+    product.id,
+    product.slug,
+    destinationSlug,
+    product.currency,
+    productType,
+    displayName,
+    website.subdomain,
+    normalizedProduct.price,
+    normalizedProduct.priceCurrency,
+  ]);
   const currencyConfig = useMemo(
     () => buildCurrencyConfig(website.content.account),
     [website.content.account]
@@ -482,6 +582,10 @@ export function ProductLandingPage({
   const faqCandidate = normalizedProduct.faq
     ?? (Array.isArray(pageCustomization?.custom_faq) && pageCustomization.custom_faq.length > 0 ? pageCustomization.custom_faq : null);
   const faqSource = faqCandidate ?? defaultFaqForType;
+  const campaignFaqSource = mergeSpainCampaignFaqs(faqSource, product.slug);
+  const spainCampaignContent = productType === 'package'
+    ? getSpainCampaignLandingContent(product.slug)
+    : null;
   const packageDuration = productType === 'package' ? resolvePackageDuration(product) : null;
   const packageGroupSize = productType === 'package' ? resolveGroupSizeLabel(product) : null;
   const reviewRating = googleReviews.length > 0
@@ -608,7 +712,7 @@ export function ProductLandingPage({
         (website as unknown as { defaultLocale?: string }).defaultLocale ||
         'es-CO'
       }
-      faqs={faqSource}
+      faqs={campaignFaqSource}
     />
     <OrganizationSchema website={website} websiteUrl={websiteUrl} />
     <div className="min-h-screen">
@@ -744,6 +848,14 @@ export function ProductLandingPage({
                 </div>
               </section>
             )}
+
+            {spainCampaignContent ? (
+              <SpainMetaAdsCampaignPanel
+                content={spainCampaignContent}
+                whatsappUrl={whatsappUrl}
+                onWhatsAppClick={handleWhatsAppClick('spain_campaign_panel')}
+              />
+            ) : null}
 
             {!isTransfer && pricingTiers.length > 0 ? (
               <SectionErrorBoundary sectionName="pricing-tiers">
@@ -881,7 +993,7 @@ export function ProductLandingPage({
             <div data-testid="detail-faq">
               <ProductFAQ
                 title="Preguntas frecuentes"
-                faqs={faqSource}
+                faqs={campaignFaqSource}
                 website={website}
               />
             </div>

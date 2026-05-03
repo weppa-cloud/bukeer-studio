@@ -1,6 +1,6 @@
 'use client';
 
-import { type ReactNode, useEffect, useMemo, useState } from 'react';
+import { type ComponentProps, type ReactNode, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { supabaseImageUrl } from '@/lib/images/supabase-transform';
@@ -13,6 +13,11 @@ import { convertCurrencyAmount } from '@/lib/site/currency';
 import { usePreferredCurrency } from '@/lib/site/use-preferred-currency';
 import { getPackageCircuitStops, withCoords, type PackageCircuitStopWithCoords } from '@/lib/products/package-circuit';
 import { buildWhatsAppUrl } from '@/components/site/whatsapp-url';
+import { trackEvent } from '@/lib/analytics/track';
+import {
+  getSpainCampaignLandingContent,
+  type SpainCampaignLandingContent,
+} from '@/lib/growth/meta-ads-spain-campaign';
 import { MediaLightbox } from '@/components/site/media-lightbox';
 import { ProductVideoHero } from '@/components/site/product-video-hero';
 import { PackageCircuitMap } from '@/components/site/package-circuit-map';
@@ -106,6 +111,68 @@ interface PackageVersionLike {
 
 interface PackageVersionOption extends ActivityOption {
   price_per_person?: number;
+}
+
+type WaflowButtonProps = ComponentProps<typeof WaflowCTAButton>;
+
+function SpainMetaAdsEditorialPanel({
+  content,
+  whatsappUrl,
+  waflowPackageContext,
+  waflowPrefill,
+}: {
+  content: SpainCampaignLandingContent;
+  whatsappUrl: string | null;
+  waflowPackageContext: WaflowButtonProps['pkg'];
+  waflowPrefill: WaflowButtonProps['prefill'];
+}) {
+  return (
+    <section data-testid="spain-meta-ads-campaign" className="rounded-[24px] border border-[var(--c-line)] bg-[var(--c-ink)] p-5 text-white md:p-7">
+      <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+        <div>
+          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.24em] text-[var(--c-accent)]">
+            {content.eyebrow}
+          </p>
+          <h2 className="text-3xl font-bold">
+            Colombia, diseñada para viajar <em>tranquilo</em>
+          </h2>
+          <p className="mt-4 max-w-2xl text-sm leading-6 text-white/75">{content.body}</p>
+
+          <div className="mt-5 grid gap-3 md:grid-cols-3">
+            {content.pillars.map((pillar) => (
+              <article key={pillar.title} className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                <b className="text-sm">{pillar.title}</b>
+                <p className="mt-2 text-sm leading-5 text-white/70">{pillar.body}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          <article className="rounded-2xl bg-white p-4 text-[var(--c-ink)]">
+            <small className="text-xs font-semibold uppercase tracking-wider text-[var(--c-muted)]">Madrid</small>
+            <p className="mt-2 text-sm leading-5">{content.madridRoute}</p>
+          </article>
+          <article className="rounded-2xl bg-white p-4 text-[var(--c-ink)]">
+            <small className="text-xs font-semibold uppercase tracking-wider text-[var(--c-muted)]">Barcelona</small>
+            <p className="mt-2 text-sm leading-5">{content.barcelonaRoute}</p>
+          </article>
+          <div className="pt-2">
+            <p className="mb-3 text-xs uppercase tracking-[0.2em] text-white/45">{content.ctaMeta}</p>
+            <WaflowCTAButton
+              variant="D"
+              pkg={waflowPackageContext}
+              prefill={waflowPrefill}
+              fallbackHref={whatsappUrl || undefined}
+              className="btn btn-accent"
+            >
+              <Icons.whatsapp size={16} /> {content.ctaLabel}
+            </WaflowCTAButton>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
 }
 
 interface PackageMediaCollection {
@@ -896,6 +963,33 @@ export function EditorialPackageDetailClient({
         ? `https://${website.subdomain}.bukeer.com${basePath}`
         : undefined,
   });
+  const spainCampaignContent = getSpainCampaignLandingContent(product.slug);
+  useEffect(() => {
+    trackEvent('product_view', {
+      product_id: product.id,
+      product_type: 'package',
+      product_name: displayName,
+      tenant_subdomain: website.subdomain ?? null,
+      content_ids: product.id,
+      content_name: displayName,
+      content_type: 'package',
+      package_slug: product.slug ?? null,
+      destination_slug: toSlug(displayLocation || product.location || product.city || product.country || 'colombia'),
+      value: sourcePrice,
+      currency: sourceCurrency,
+    });
+  }, [
+    product.id,
+    product.slug,
+    product.location,
+    product.city,
+    product.country,
+    displayName,
+    displayLocation,
+    website.subdomain,
+    sourcePrice,
+    sourceCurrency,
+  ]);
 
   const breadcrumbItems = [
     { label: 'Inicio', href: `${basePath}/` },
@@ -1251,6 +1345,15 @@ export function EditorialPackageDetailClient({
                   {product.description || 'Paquete diseñado por expertos locales con logística coordinada y soporte personalizado.'}
                 </p>
               </section>
+
+              {spainCampaignContent ? (
+                <SpainMetaAdsEditorialPanel
+                  content={spainCampaignContent}
+                  whatsappUrl={whatsappUrl}
+                  waflowPackageContext={waflowPackageContext}
+                  waflowPrefill={waflowPrefill}
+                />
+              ) : null}
 
               <section data-testid="detail-highlights">
                 <div className="highlights-grid">

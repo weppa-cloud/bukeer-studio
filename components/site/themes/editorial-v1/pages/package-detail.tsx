@@ -13,6 +13,7 @@ import type { ProductData, ProductFAQ } from '@bukeer/website-contract';
 import { ProductSchema } from '@/components/seo/product-schema';
 import { OrganizationSchema } from '@/components/seo/organization-schema';
 import { PACKAGE_FAQS_DEFAULT } from '@/lib/products/package-faqs-default';
+import { mergeSpainCampaignFaqs } from '@/lib/growth/meta-ads-spain-campaign';
 import { EditorialPackageDetailClient } from './package-detail.client';
 
 interface GoogleReviewProp {
@@ -81,6 +82,7 @@ export function EditorialPackageDetail({
   const faqSource = Array.isArray(resolvedPayload.faqs) && resolvedPayload.faqs.length > 0
     ? resolvedPayload.faqs
     : PACKAGE_FAQS_DEFAULT;
+  const campaignFaqSource = mergeSpainCampaignFaqs(faqSource, resolvedPayload.product.slug);
   const websiteUrl = buildWebsiteUrl(website, resolvedPayload.basePath);
   const pageUrl = buildPageUrl(websiteUrl, resolvedPayload.product);
 
@@ -96,7 +98,7 @@ export function EditorialPackageDetail({
         websiteUrl={websiteUrl}
         pageUrl={pageUrl}
         language={resolvedPayload.resolvedLocale}
-        faqs={faqSource}
+        faqs={campaignFaqSource}
       />
       <OrganizationSchema website={website} websiteUrl={websiteUrl} />
 
@@ -110,7 +112,7 @@ export function EditorialPackageDetail({
         googleReviews={Array.isArray(resolvedPayload.googleReviews) ? resolvedPayload.googleReviews : []}
         similarProducts={Array.isArray(resolvedPayload.similarProducts) ? resolvedPayload.similarProducts : []}
         planner={resolvedPayload.planner ?? null}
-        faqs={faqSource}
+        faqs={campaignFaqSource}
       />
     </div>
   );

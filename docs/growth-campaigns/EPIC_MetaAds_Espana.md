@@ -5,6 +5,9 @@ Lanzar una campaña de Meta Ads orientada al mercado español (Madrid y Barcelon
 **Plazo estimado:** 8 días para go-live
 **Mercados:** Madrid y Barcelona (España)
 **Perfil:** Alto valor / High-Ticket
+**Presupuesto inicial:** 50 USD/día (sube desde 10 USD/día)
+**Campaña inicial:** ES | Colombia Tours | High-Ticket | WhatsApp + Sales Proxy | Madrid-Barcelona
+**Objetivo de negocio:** ROAS por `booking_confirmed` / reserva confirmada
 
 **Landings en uso:**
 - [Bogotá Esencial 4D](https://colombiatours.travel/paquetes/bogota-esencial-cultura-y-sal-4-dias)
@@ -28,7 +31,8 @@ Los archivos de investigación y el plan de acción completo están en `docs/gro
 ### Día 1-2 — Datos e Infraestructura
 - [ ] Auditar Píxel de Meta + CAPI en todo el ecosistema web
 - [ ] Verificar Event Match Quality Score mayor a 7/10
-- [ ] Configurar eventos clave: ViewContent, Lead, InitiateCheckout, Purchase
+- [ ] Validar eventos actuales: ViewContent, Contact (`whatsapp_cta_click`), Lead (`waflow_submit`)
+- [ ] Usar `booking_confirmed` como métrica interna de ROAS hasta certificar Meta Purchase
 - [ ] Sincronizar First-Party Data (CRM) con Meta Custom Audiences
 - [ ] Crear Value-Based Lookalikes 1%, 2%, 3% (Madrid + Barcelona)
 - [ ] Configurar exclusiones de clientes recientes (últimos 30 días)
@@ -48,10 +52,11 @@ Los archivos de investigación y el plan de acción completo están en `docs/gro
 - [ ] Redactar CTAs directos hacia Click-to-WhatsApp
 
 ### Día 6 — Montaje en Meta Ads Manager
-- [ ] Crear campaña TOFU (Broad + Advantage+, estructura 3:2:2)
-- [ ] Crear campaña MOFU (Click-to-WhatsApp, retargeting video 50%+ y Lookalikes)
-- [ ] Crear campaña BOFU (retargeting visitantes landings 14-30 días)
-- [ ] Asignar presupuestos: 45% TOFU / 35% MOFU / 20% BOFU
+- [ ] Crear campaña unificada Madrid + Barcelona con aprendizaje concentrado
+- [ ] Asignar 30 USD/día a Prospecting / TOFU-MOFU (Broad + Advantage+, estructura 3:2:2)
+- [ ] Asignar 15 USD/día a Retargeting / MOFU-BOFU (visitantes, video 50%+, engagers, clics WhatsApp)
+- [ ] Mantener 5 USD/día como reserva táctica para ganadores, urgencia o refuerzo BOFU
+- [ ] Diferenciar ángulos por `utm_content`, no por campañas separadas de ciudad
 
 ### Día 7 — QA y Pruebas
 - [ ] Pruebas de Click-to-WhatsApp en mobile y desktop
@@ -75,6 +80,7 @@ Los archivos de investigación y el plan de acción completo están en `docs/gro
 | Outbound CTR | Mayor a 1.8% |
 | Costo por Lead WhatsApp | Menos de 12 EUR |
 | Tasa de Apertura de Conversación | Mayor a 40% |
+| ROAS | Reserva confirmada atribuida a `booking_confirmed` |
 
 ---
 
