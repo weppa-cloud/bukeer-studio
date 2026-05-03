@@ -63,15 +63,19 @@ See [[ADR-029]] for full context. Three concrete pains this spec resolves:
 
 ### Phase 1 — `funnel_events` SOT + dispatcher skeleton (Sprint 1)
 
-- [ ] **AC1.1** `funnel_events` table exists with canonical schema (per ADR-029 schema section). Migration applied to dev, staging, prod.
-- [ ] **AC1.2** `event_destination_mapping` table seeded with all 14 events from ADR-029 matrix.
-- [ ] **AC1.3** Supabase RPC `record_funnel_event(payload jsonb)` exists, validates against mapping, idempotent on `event_id`. RLS: service-role write, tenant-scoped read.
-- [ ] **AC1.4** Existing waflow lead path migrated: `app/api/waflow/lead/route.ts` writes to `funnel_events` instead of calling `sendMetaEvent` directly.
-- [ ] **AC1.5** Existing chatwoot webhook migrated: `app/api/webhooks/chatwoot/route.ts` writes to `funnel_events`.
-- [ ] **AC1.6** Existing whatsapp-cta beacon migrated: `app/api/growth/events/whatsapp-cta/route.ts` writes to `funnel_events`.
-- [ ] **AC1.7** Dispatcher Edge Function `dispatch-funnel-event` deployed; subscribes to `funnel_events` INSERT (via Supabase Realtime or DB trigger + `pg_net`). For Meta destination, invokes existing `lib/meta/conversions-api.ts` logic. Writes outcome to `meta_conversion_events`.
-- [ ] **AC1.8** Volume parity verified: count of Meta CAPI events sent in 24h post-cutover ≥ 95% of count in 24h pre-cutover (allow drift for pure noise / bot traffic).
-- [ ] **AC1.9** Monitoring dashboard shows daily event counts per `event_name` and per `source`. Alerting on >50% drop day-over-day.
+> **Reality check (2026-05-03 post-TVB)**: `funnel_events` already exists (`20260504110900_funnel_events.sql`) and the 3 routes already write to it via `lib/growth/funnel-events.ts`. F1 is **schema reconciliation + dispatcher extraction**, not greenfield. Estimate adjusted from L (4-5d) → 5-6d. See ADR-029 §"Implementation reality check".
+
+- [ ] **AC1.1** `funnel_events` schema reconciled to canonical ADR-029 spec: add `pixel_event_id`, `dispatch_status`, `dispatch_attempted_at`, `dispatch_attempt_count`, missing attribution columns (`gclid`, `gbraid`, `wbraid`, `fbp`, `fbc`, `ctwa_clid`, UTM_*), value columns. Widen `funnel_events_event_name_chk` CHECK constraint to cover full ADR-029 event matrix. Migration applied dev/staging/prod.
+- [ ] **AC1.2** `event_destination_mapping` table created and seeded with all 14 events from ADR-029 matrix.
+- [ ] **AC1.3** Supabase RPC `record_funnel_event(payload jsonb)` exists, validates `event_name` against the schema-level CHECK, idempotent on `event_id` (returns existing row if duplicate). RLS: service-role write, tenant-scoped read.
+- [ ] **AC1.4** `app/api/waflow/lead/route.ts` migrated: writes to `funnel_events` via the new `pixel_event_id` contract. The existing Pixel-paired id (e.g. `${referenceCode}:lead`) populates `pixel_event_id`, NOT `event_id` (which stays the sha256 PK). Verify dispatcher reads `pixel_event_id` when forwarding to Meta CAPI.
+- [ ] **AC1.5** `app/api/webhooks/chatwoot/route.ts` migrated; `pixel_event_id` minted server-side (UUIDv4) since browser doesn't supply one.
+- [ ] **AC1.6** `app/api/growth/events/whatsapp-cta/route.ts` migrated.
+- [ ] **AC1.7** Dispatcher Edge Function `dispatch-funnel-event` deployed; invoked via DB trigger AFTER INSERT on `funnel_events` calling `pg_net.http_post`. For Meta destination, invokes existing `lib/meta/conversions-api.ts` logic with `pixel_event_id` as the `event_id` field. Writes outcome to `meta_conversion_events`. **Updates `funnel_events.dispatch_status` to `dispatched` or `failed`.**
+- [ ] **AC1.7b** `pg_cron` re-dispatch job: every 60s, selects `funnel_events WHERE dispatch_status='pending' AND dispatch_attempted_at < now()-30s LIMIT 100`, re-invokes dispatcher. Caps at `dispatch_attempt_count=5` then marks `failed`. Closes the `pg_net` no-retry gap.
+- [ ] **AC1.8** Volume parity verified: count of Meta CAPI events sent in 24h post-cutover ≥ 95% of count in 24h pre-cutover. Feature flag `funnel_events_dispatcher_v1` allows quick rollback.
+- [ ] **AC1.9** Monitoring dashboard shows daily event counts per `event_name` and per `source`. Alert on >50% drop day-over-day. Additional alert on `dispatch_status='failed' count > 10/hour`.
+- [ ] **AC1.10** (added) Existing direct-call code path in `lib/meta/conversions-api.ts` removed (or stubbed to no-op) once feature flag is permanently on. No two writers to Meta from any code path.
 
 ### Phase 2 — Google Ads dispatcher branch (Sprint 2, integrates #332)
 
@@ -210,7 +214,8 @@ No user-visible strings introduced.
 
 ## Open Questions
 
-1. **Edge Function vs DB trigger + pg_net**: which deployment model for the dispatcher? Recommendation: Edge Function for portability + observability; DB trigger fires `pg_net` POST to the Edge Function URL.
+1. **Edge Function vs DB trigger + pg_net**: ~~which deployment model~~ **RESOLVED 2026-05-03**: DB trigger AFTER INSERT calls `pg_net.http_post` to Edge Function URL. PLUS `pg_cron` re-dispatch loop every 60s for `dispatch_status='pending'` rows (since `pg_net` does not retry). See AC1.7 + AC1.7b.
 2. **Identity merge** (Phase 4 AC4.3): exact algorithm — match on email AND phone? Email OR phone? Defer to Phase 4 design doc.
-3. **Booking value definition** (Phase 3 AC3.2): is "Purchase" the deposit, the full payment, or the contract signed? Requires Product + Growth alignment before Phase 3 starts.
+3. **Booking value definition** (Phase 3 AC3.2): ~~is "Purchase" the deposit, the full payment, or the contract signed?~~ **RESOLVED 2026-05-03**: `crm_booking_confirmed` fires when `itineraries.status` transitions to `'Confirmado'` (auto-flips on first deposit via existing trigger `fn_payment_confirms_request`). `value_amount = itineraries.total_amount`, `value_currency = itineraries.currency_type`. Maps to Meta `Purchase` + Google Ads `booking_confirmed`. `payment_received` fires per `transactions.type='ingreso'` row, maps to Google Ads `payment_received` only (revenue reporting, not bidding). Sign-off requested on issue #422. Cancellation/refund event tracked as a separate follow-up issue.
 4. **Tenant scope in dispatch_log tables**: include `tenant_id` directly, or join via `funnel_events`? Recommendation: include directly for query performance.
+5. **Bug #424 (business_messaging payload)**: Meta CAPI Chatwoot lifecycle path is broken in production today (HTTP 400 on every event). F1 dispatcher will inherit the corrected payload builder once #424 ships. Coordinate with #424 fix before F1 dispatcher cutover.
