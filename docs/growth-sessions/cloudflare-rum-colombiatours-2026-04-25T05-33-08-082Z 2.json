@@ -1,0 +1,28 @@
+{
+  "id_please_delete": 0,
+  "site_tag": "a83fcc365372423580083232711f5a59",
+  "site_token": "5b4deac3da574101b10fceaf4aab8ab0",
+  "created": "2025-09-25T22:47:17.817091Z",
+  "snippet": "<!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{\"token\": \"5b4deac3da574101b10fceaf4aab8ab0\"}'></script><!-- End Cloudflare Web Analytics -->",
+  "auto_install": true,
+  "ruleset": {
+    "zone_tag": "a8a9263e2de5192d0db16a10ed3bfa80",
+    "zone_name": "colombiatours.travel",
+    "enabled": true,
+    "id": "7bd53640-f009-48e5-abc1-f05f4740c17b",
+    "lite": true
+  },
+  "rules": [
+    {
+      "host": "*",
+      "paths": [
+        "*"
+      ],
+      "inclusive": true,
+      "created": "2025-09-25T22:47:17.815474Z",
+      "is_paused": false,
+      "priority": 1000,
+      "id": "c50a24eb-f71a-4307-b7b3-f015c7c76cba"
+    }
+  ]
+}

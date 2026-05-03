@@ -14,6 +14,8 @@
  *   onClick={() => trackEvent('whatsapp_cta_click', { product_id: '123' })}
  */
 
+import { getOrCreateReferenceCode } from './reference-code';
+
 declare global {
   interface Window {
     gtag?: (...args: unknown[]) => void;
@@ -64,6 +66,7 @@ export type AnalyticsEventName =
   | 'map_marker_click'
   | 'gallery_open'
   | 'sticky_cta_click'
+  | 'product_view'
   // editorial-v1
   | 'destination_card_click'
   | 'package_card_click'
@@ -82,11 +85,12 @@ export type AnalyticsEventName =
   | 'locale_switch'
   | (string & {}); // allow other strings without losing autocomplete on the known ones
 
-const META_STANDARD_EVENTS: Partial<Record<string, 'Contact' | 'Lead' | 'Schedule'>> = {
+const META_STANDARD_EVENTS: Partial<Record<string, 'Contact' | 'Lead' | 'Schedule' | 'ViewContent'>> = {
   whatsapp_cta_click: 'Contact',
   phone_cta_click: 'Contact',
   email_cta_click: 'Contact',
   cal_booking_click: 'Schedule',
+  product_view: 'ViewContent',
   quote_form_submit: 'Lead',
   waflow_submit: 'Lead',
   matchmaker_submit: 'Lead',
@@ -157,6 +161,24 @@ function getDefaultPageContext(): Record<string, string> {
   };
 }
 
+function enrichMetaDedupeContext(
+  name: AnalyticsEventName,
+  params: Record<string, string | number | boolean>,
+): void {
+  if (name !== 'whatsapp_cta_click') return;
+
+  const referenceCode =
+    typeof params.reference_code === 'string' && params.reference_code.trim()
+      ? params.reference_code.trim()
+      : getOrCreateReferenceCode();
+  if (!referenceCode) return;
+
+  params.reference_code = referenceCode;
+  if (typeof params.contact_event_id !== 'string' || !params.contact_event_id.trim()) {
+    params.contact_event_id = `${referenceCode}:contact`;
+  }
+}
+
 /**
  * Fire an analytics event.
  *
@@ -177,6 +199,7 @@ export function trackEvent(
       if (value === null || value === undefined) continue;
       cleaned[key] = value;
     }
+    enrichMetaDedupeContext(name, cleaned);
 
     let sent = sendAnalyticsEvent(name, cleaned);
     if (!sent && window.BukeerAnalytics?.load) {
@@ -240,6 +263,8 @@ async function emitWhatsAppCtaBeacon(
         typeof params.destination_slug === 'string' ? params.destination_slug : null,
       package_slug:
         typeof params.package_slug === 'string' ? params.package_slug : null,
+      contact_event_id:
+        typeof params.contact_event_id === 'string' ? params.contact_event_id : null,
       market: market === 'CO' || market === 'MX' || market === 'US' || market === 'CA' || market === 'EU' || market === 'OTHER' ? market : null,
     });
   } catch {

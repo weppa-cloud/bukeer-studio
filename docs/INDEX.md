@@ -245,6 +245,8 @@ Persisted state pre-#148 (`seo_website_okrs`). Post-#148 these stay as human-rea
 | [[waflow-crm-reconciliation-2026-04-30]]        | [file](./growth-sessions/2026-04-30-waflow-crm-reconciliation.md)           | Epic #310/#322 WAFlow CRM dry-run reconciliation: clean event parity, six high-confidence request candidates, CRM lifecycle link still WATCH.                                                 |
 | [[epic310-followup-execution-2026-04-30]]       | [file](./growth-sessions/2026-04-30-epic310-followup-execution.md)          | Epic #310 follow-up execution: WhatsApp CTA custom-domain smoke, GSC/GA4 refresh apply, EN noindex guard, Council update and remaining WATCH items.                                           |
 | [[growth-weekly-readme]]                        | [file](./growth-weekly/README.md)                                           | Weekly quick-wins planning.                                                                                                                                                                   |
+| [[meta-us-highticket-estrategia]]               | [file](./growth-campaigns/meta-us-highticket-fase1/01-estrategia-y-estructura.md)| Meta Ads US Highticket Fase 1: Estrategia Full-Funnel (TOFU/MOFU/BOFU) y segmentación geográfica. |
+| [[meta-us-highticket-plan]]                     | [file](./growth-campaigns/meta-us-highticket-fase1/02-plan-de-accion-30-dias.md) | Meta Ads US Highticket Fase 1: Plan de acción a 30 días, hitos de configuración y monitoreo. |
 
 ---
 
@@ -587,6 +589,8 @@ Obsidian resolves `[[ADR-005]]` by filename stem or alias. Claude Code / Codex g
 | `[[epic128-lighthouse-summary]]`                      | `docs/evidence/epic128/lighthouse-summary.md`                                      |
 | `[[epic128-production-ready-attestation-v2]]`         | `docs/evidence/epic128/production-ready-attestation-v2.md`                         |
 | `[[epic128-ux-fluency]]`                              | `docs/evidence/epic128/ux-fluency.md`                                              |
+| `[[meta-us-highticket-estrategia]]`                   | `docs/growth-campaigns/meta-us-highticket-fase1/01-estrategia-y-estructura.md`     |
+| `[[meta-us-highticket-plan]]`                         | `docs/growth-campaigns/meta-us-highticket-fase1/02-plan-de-accion-30-dias.md`      |
 | Any unresolved concept                                | Search this INDEX with `grep "[[concept]]" docs/INDEX.md`.                         |
 
 ---

@@ -10,6 +10,7 @@ import {
 
 describe('Meta Conversions API helpers', () => {
   beforeEach(() => {
+    delete process.env.META_CONVERSIONS_API_ENABLED;
     delete process.env.META_CHATWOOT_CONVERSIONS_ENABLED;
     delete process.env.META_PIXEL_ID;
     delete process.env.META_ACCESS_TOKEN;
@@ -105,7 +106,7 @@ describe('Meta Conversions API helpers', () => {
   });
 
   it('resolves server-only Meta config from environment', () => {
-    process.env.META_CHATWOOT_CONVERSIONS_ENABLED = 'true';
+    process.env.META_CONVERSIONS_API_ENABLED = 'true';
     process.env.META_PIXEL_ID = 'pixel-123';
     process.env.META_ACCESS_TOKEN = 'token-123';
     process.env.META_API_VERSION = 'v99.0';
@@ -117,6 +118,14 @@ describe('Meta Conversions API helpers', () => {
       accessToken: 'token-123',
       apiVersion: 'v99.0',
       testEventCode: 'TEST999',
+    });
+  });
+
+  it('keeps the legacy Chatwoot enable flag as a fallback', () => {
+    process.env.META_CHATWOOT_CONVERSIONS_ENABLED = 'true';
+
+    expect(resolveMetaCapiConfig()).toMatchObject({
+      enabled: true,
     });
   });
 

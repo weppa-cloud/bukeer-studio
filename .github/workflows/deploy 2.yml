@@ -1,0 +1,361 @@
+name: Deploy bukeer-studio to Cloudflare Workers
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+      - '.github/ISSUE_TEMPLATE/**'
+      - 'qa-screenshots/**'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── Quality gates — required before production deploy ──────────────
+  quality:
+    if: vars.CI_QUALITY_PROVIDER == 'github' || vars.CI_QUALITY_PROVIDER == 'both'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Cache workspace node_modules
+        id: cache-deps
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            packages/theme-sdk/node_modules
+            packages/website-contract/node_modules
+          key: deps-${{ runner.os }}-node22-${{ hashFiles('package-lock.json', 'packages/*/package-lock.json') }}
+
+      - name: Verify AI sync artifacts
+        run: npm run ai:check
+
+      - name: Build theme-sdk
+        working-directory: packages/theme-sdk
+        run: |
+          if [ ! -d node_modules ]; then npm ci; fi
+          npm run build
+
+      - name: Build website-contract
+        working-directory: packages/website-contract
+        run: |
+          if [ ! -d node_modules ]; then npm ci; fi
+          npm run build
+
+      - name: Install dependencies
+        if: steps.cache-deps.outputs.cache-hit != 'true'
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm test -- --ci --passWithNoTests
+
+      # ADR-013/014 — single-gate contract. Delta-TS + ADR policy scans
+      # performed by tech-validator:code. See docs/ops/ci-seo-i18n-gate.md
+      # and EPIC #207 W5.1.
+      - name: Tech validator (CODE mode, delta)
+        run: npm run tech-validator:code
+
+      - name: Upload tech-validator report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tech-validator-report
+          path: reports/tech-validator/
+          retention-days: 7
+
+  # ── E2E smoke + @p0-seo — validates app boot + SEO/i18n HTML output ─
+  e2e-smoke:
+    if: vars.CI_QUALITY_PROVIDER == 'github' || vars.CI_QUALITY_PROVIDER == 'both'
+    needs: quality
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Cache workspace node_modules
+        id: cache-deps
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            packages/theme-sdk/node_modules
+            packages/website-contract/node_modules
+          key: deps-${{ runner.os }}-node22-${{ hashFiles('package-lock.json', 'packages/*/package-lock.json') }}
+
+      - name: Cache Playwright browsers
+        id: cache-playwright
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Build theme-sdk
+        working-directory: packages/theme-sdk
+        run: |
+          if [ ! -d node_modules ]; then npm ci; fi
+          npm run build
+
+      - name: Build website-contract
+        working-directory: packages/website-contract
+        run: |
+          if [ ! -d node_modules ]; then npm ci; fi
+          npm run build
+
+      - name: Install dependencies
+        if: steps.cache-deps.outputs.cache-hit != 'true'
+        run: npm ci
+
+      - name: Install Playwright (Chromium)
+        if: steps.cache-playwright.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+
+      - name: Install Playwright system deps
+        if: steps.cache-playwright.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+
+      # EPIC #207 W5 — SEO + i18n production-cert gate.
+      # Secrets reuse Flutter-repo naming (no _STAGING suffix) since Studio +
+      # Flutter share the same Supabase project. See docs/ops/ci-seo-i18n-gate.md
+      # for the "no separate staging" rationale + risk note.
+      # Fallbacks preserve the current PR-level smoke behaviour when secrets
+      # are absent (forks, draft PRs). When secrets are present, the
+      # `@p0-seo` suite runs against the seeded tenant.
+      # NOTE: CI does NOT use scripts/session-acquire.sh — that pool is for
+      # local dev only (see .claude/rules/e2e-sessions.md). Each CI runner
+      # is its own isolated VM.
+      - name: Run public smoke + @p0-seo suite
+        run: |
+          npx playwright test \
+            e2e/tests/public-runtime.smoke.spec.ts \
+            --grep "@p0-seo" \
+            --project=chromium --no-deps \
+            --reporter=list,json,html
+        env:
+          E2E_BASE_URL: http://localhost:3000
+          PLAYWRIGHT_JSON_OUTPUT_NAME: playwright-report/default/results.json
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL || 'https://example.supabase.co' }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || 'ci-anon-key' }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || 'ci-service-role-key' }}
+          OPENROUTER_AUTH_TOKEN: ci-openrouter-token
+          OPENROUTER_BASE_URL: https://openrouter.ai/api/v1
+          OPENROUTER_MODEL: anthropic/claude-sonnet-4-5
+          REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET || 'ci-revalidate-secret' }}
+          E2E_WEBSITE_ID: ${{ secrets.E2E_WEBSITE_ID }}
+          NEXT_PUBLIC_URL: https://studio.bukeer.com
+          NEXT_PUBLIC_MAIN_DOMAIN: bukeer.com
+
+      # ADR-010 — machine-readable SEO/i18n gate telemetry for audits and QA.
+      - name: Generate SEO i18n gate report
+        if: always()
+        run: |
+          mkdir -p reports/e2e-seo-i18n
+          node scripts/gen-seo-i18n-report.mjs || echo "report generator encountered an error"
+        continue-on-error: true
+
+      - name: Upload SEO i18n report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-seo-i18n-report
+          path: reports/e2e-seo-i18n/
+          retention-days: 14
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+  # ── Pilot editor→render (EPIC #214 W4 #218) ────────────────────────
+  # Runs only on workflow_dispatch to keep main-push latency low.
+  # Uses workers: 1 + timeout 45 min per AC-W4-3 session-pool semantics.
+  e2e-pilot:
+    needs: quality
+    if: github.event_name == 'workflow_dispatch' && (vars.CI_QUALITY_PROVIDER == 'github' || vars.CI_QUALITY_PROVIDER == 'both')
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Cache workspace node_modules
+        id: cache-deps
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            packages/theme-sdk/node_modules
+            packages/website-contract/node_modules
+          key: deps-${{ runner.os }}-node22-${{ hashFiles('package-lock.json', 'packages/*/package-lock.json') }}
+
+      - name: Cache Playwright browsers
+        id: cache-playwright
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Build theme-sdk
+        working-directory: packages/theme-sdk
+        run: |
+          if [ ! -d node_modules ]; then npm ci; fi
+          npm run build
+
+      - name: Build website-contract
+        working-directory: packages/website-contract
+        run: |
+          if [ ! -d node_modules ]; then npm ci; fi
+          npm run build
+
+      - name: Install dependencies
+        if: steps.cache-deps.outputs.cache-hit != 'true'
+        run: npm ci
+
+      - name: Install Playwright (Chromium + Firefox)
+        if: steps.cache-playwright.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium firefox
+
+      - name: Run pilot editor→render suite
+        run: |
+          npx playwright test \
+            --project=pilot \
+            --grep "@pilot-w4" \
+            --workers=1 \
+            --reporter=list,json,html
+        env:
+          E2E_BASE_URL: http://localhost:3000
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL_STAGING || 'https://example.supabase.co' }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY_STAGING || 'ci-anon-key' }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY_STAGING || 'ci-service-role-key' }}
+          OPENROUTER_AUTH_TOKEN: ci-openrouter-token
+          OPENROUTER_BASE_URL: https://openrouter.ai/api/v1
+          OPENROUTER_MODEL: anthropic/claude-sonnet-4-5
+          REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET_STAGING || 'ci-revalidate-secret' }}
+          E2E_REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET_STAGING || 'ci-revalidate-secret' }}
+          E2E_WEBSITE_ID: ${{ secrets.E2E_WEBSITE_ID_STAGING }}
+          ALLOW_SEED: '1'
+          NEXT_PUBLIC_URL: https://studio.bukeer.com
+          NEXT_PUBLIC_MAIN_DOMAIN: bukeer.com
+
+      - name: Upload pilot Playwright artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pilot-w4-playwright
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14
+
+  # ── Deploy production — automatic on main, manual on main only ─────
+  deploy-production:
+    needs: [quality, e2e-smoke]
+    if: github.ref == 'refs/heads/main' && vars.CI_DEPLOY_PROVIDER == 'github'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Cache workspace node_modules
+        id: cache-deps
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            packages/theme-sdk/node_modules
+            packages/website-contract/node_modules
+          key: deps-${{ runner.os }}-node22-${{ hashFiles('package-lock.json', 'packages/*/package-lock.json') }}
+
+      - name: Build theme-sdk
+        working-directory: packages/theme-sdk
+        run: |
+          if [ ! -d node_modules ]; then npm ci; fi
+          npm run build
+
+      - name: Build website-contract
+        working-directory: packages/website-contract
+        run: |
+          if [ ! -d node_modules ]; then npm ci; fi
+          npm run build
+
+      - name: Install dependencies
+        if: steps.cache-deps.outputs.cache-hit != 'true'
+        run: npm ci
+
+      - name: Build Worker
+        run: npx opennextjs-cloudflare build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          NEXT_PUBLIC_URL: https://studio.bukeer.com
+          NEXT_PUBLIC_MAIN_DOMAIN: bukeer.com
+
+      - name: Check Worker bundle size
+        run: |
+          WORKER_FILE=$(find .open-next -name "*.js" -path "*/worker/*" | head -1)
+          if [ -z "$WORKER_FILE" ]; then
+            echo "Warning: Could not find worker bundle to check size"
+            exit 0
+          fi
+          WORKER_SIZE=$(stat -c%s "$WORKER_FILE" 2>/dev/null || stat -f%z "$WORKER_FILE")
+          MAX_SIZE=$((8 * 1024 * 1024))
+          SIZE_KB=$((WORKER_SIZE / 1024))
+          echo "Worker bundle size: ${SIZE_KB} KiB"
+          if [ "$WORKER_SIZE" -gt "$MAX_SIZE" ]; then
+            echo "::error::Worker bundle exceeds 8 MiB limit (${SIZE_KB} KiB). Cloudflare limit is 10 MiB."
+            exit 1
+          fi
+          echo "Bundle size OK (${SIZE_KB} KiB < 8192 KiB)"
+
+      - name: Deploy to Cloudflare Workers
+        run: npx opennextjs-cloudflare deploy --env ""
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Verify deployment
+        run: |
+          echo "Waiting for deployment to propagate..."
+          sleep 15
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://studio.bukeer.com")
+          echo "Health check studio.bukeer.com: HTTP $HTTP_STATUS"
+
+      - name: Rollback instructions on failure
+        if: failure()
+        run: |
+          echo "Deploy failed. To rollback:"
+          echo "  cd bukeer-studio && npx wrangler rollback"

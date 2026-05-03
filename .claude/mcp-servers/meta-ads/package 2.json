@@ -1,0 +1,23 @@
+{
+  "name": "@bukeer/mcp-meta-ads",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local MCP server wrapping Meta Marketing API with strict env validation and first-party safety gates.",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "tsc -p tsconfig.test.json && node --test dist-test/tests/*.test.js",
+    "clean": "rm -rf dist dist-test"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.0",
+    "typescript": "^5.6.3"
+  }
+}

@@ -52,6 +52,7 @@ const serverEnvSchema = z.object({
   NEXT_PUBLIC_GA_ID: z.string().optional(),
 
   // Meta Conversions API (server-only)
+  META_CONVERSIONS_API_ENABLED: z.string().optional(),
   META_CHATWOOT_CONVERSIONS_ENABLED: z.string().optional(),
   META_PIXEL_ID: z.string().optional(),
   META_ACCESS_TOKEN: z.string().optional(),
@@ -62,6 +63,9 @@ const serverEnvSchema = z.object({
   CHATWOOT_WEBHOOK_SECRET: z.string().optional(),
   CHATWOOT_BASE_URL: z.string().url().optional(),
   CHATWOOT_API_ACCESS_TOKEN: z.string().optional(),
+
+  // CRM/Flutter server-to-server conversion hooks
+  CRM_CONVERSION_WEBHOOK_SECRET: z.string().optional(),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;

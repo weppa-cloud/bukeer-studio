@@ -28,7 +28,8 @@ NEXT_PUBLIC_MAP_STYLE_TOKEN=your-maptiler-api-key
 # Analytics (optional)
 # NEXT_PUBLIC_GA_ID=G-XXXXXXXXXX
 
-# Meta + Chatwoot conversions (optional, server-only)
+# Meta Conversions API + Chatwoot conversions (optional, server-only)
+META_CONVERSIONS_API_ENABLED=false
 META_CHATWOOT_CONVERSIONS_ENABLED=false
 META_PIXEL_ID=
 META_ACCESS_TOKEN=
@@ -37,3 +38,4 @@ META_TEST_EVENT_CODE=
 CHATWOOT_WEBHOOK_SECRET=
 CHATWOOT_BASE_URL=
 CHATWOOT_API_ACCESS_TOKEN=
+CRM_CONVERSION_WEBHOOK_SECRET=

@@ -149,7 +149,8 @@ export function resolveMetaCapiConfig(overrides: MetaCapiConfig = {}): Required<
   return {
     enabled:
       overrides.enabled ??
-      process.env.META_CHATWOOT_CONVERSIONS_ENABLED === 'true',
+      (process.env.META_CONVERSIONS_API_ENABLED === 'true' ||
+        process.env.META_CHATWOOT_CONVERSIONS_ENABLED === 'true'),
     pixelId: overrides.pixelId ?? process.env.META_PIXEL_ID ?? null,
     accessToken: overrides.accessToken ?? process.env.META_ACCESS_TOKEN ?? null,
     apiVersion: overrides.apiVersion ?? process.env.META_API_VERSION ?? DEFAULT_META_API_VERSION,

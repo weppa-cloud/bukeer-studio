@@ -4,9 +4,11 @@ jest.mock("@supabase/supabase-js", () => ({
 
 jest.mock("@/lib/meta/conversions-api", () => ({
   sha256Hex: jest.fn(async () => "a".repeat(64)),
+  sendMetaConversionEvent: jest.fn(async () => ({ status: "skipped" })),
 }));
 
 import { createClient } from "@supabase/supabase-js";
+import { sendMetaConversionEvent } from "@/lib/meta/conversions-api";
 
 function request(
   body: Record<string, unknown>,
@@ -142,6 +144,55 @@ describe("/api/growth/events/whatsapp-cta", () => {
         ["status", "published"],
         ["subdomain", "colombiatours"],
       ]),
+    );
+  });
+
+  it("sends a Meta CAPI Contact event when the browser provides a dedupe id", async () => {
+    const mod = await import("@/app/api/growth/events/whatsapp-cta/route");
+    await mod.POST(
+      request(
+        {
+          reference_code: "CTA-3004-CAPI",
+          source_url:
+            "https://colombiatours.travel/paquetes/demo?utm_source=meta&fbclid=FB123",
+          page_path: "/paquetes/demo?utm_source=meta&fbclid=FB123",
+          referrer: "https://facebook.com/",
+          location_context: "hero",
+          package_slug: "demo",
+          contact_event_id: "CTA-3004-CAPI:contact",
+          fbp: "fb.1.1714480000.123456789",
+          fbc: "fb.1.1714480000.FB123",
+          occurred_at: "2026-04-30T15:00:00.000Z",
+        },
+        {
+          "user-agent": "Jest Browser",
+          "x-forwarded-for": "203.0.113.9",
+        },
+      ),
+    );
+
+    expect(sendMetaConversionEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventName: "Contact",
+        eventId: "CTA-3004-CAPI:contact",
+        actionSource: "website",
+        eventSourceUrl:
+          "https://colombiatours.travel/paquetes/demo?utm_source=meta&fbclid=FB123",
+        accountId: "11111111-1111-4111-8111-111111111111",
+        websiteId: "22222222-2222-4222-8222-222222222222",
+        userData: expect.objectContaining({
+          externalId: "CTA-3004-CAPI",
+          fbp: "fb.1.1714480000.123456789",
+          fbc: "fb.1.1714480000.FB123",
+          clientIpAddress: "203.0.113.9",
+          clientUserAgent: "Jest Browser",
+        }),
+        customData: expect.objectContaining({
+          package_slug: "demo",
+          reference_code: "CTA-3004-CAPI",
+        }),
+      }),
+      expect.objectContaining({ supabase: expect.any(Object) }),
     );
   });
 });

@@ -144,6 +144,52 @@ describe('trackEvent', () => {
     );
   });
 
+  it('maps product_view to the Meta ViewContent standard event', () => {
+    const fbqMock = jest.fn();
+    setWindow({ gtag: gtagMock, fbq: fbqMock, dataLayer: [] });
+
+    trackEvent('product_view', {
+      product_id: 'pkg-1',
+      content_name: 'Colombia Imperdible',
+      content_type: 'package',
+      value: 1200,
+      currency: 'EUR',
+    });
+
+    expect(fbqMock).toHaveBeenCalledWith(
+      'track',
+      'ViewContent',
+      expect.objectContaining({
+        product_id: 'pkg-1',
+        content_name: 'Colombia Imperdible',
+        content_type: 'package',
+        value: 1200,
+        currency: 'EUR',
+      }),
+    );
+  });
+
+  it('adds a Contact dedupe event id to generic WhatsApp CTA clicks', () => {
+    const fbqMock = jest.fn();
+    setWindow({ gtag: gtagMock, fbq: fbqMock, dataLayer: [] });
+
+    trackEvent('whatsapp_cta_click', {
+      reference_code: 'WEB-CTA123456',
+      package_slug: 'colombia-imperdible',
+    });
+
+    expect(fbqMock).toHaveBeenCalledWith(
+      'track',
+      'Contact',
+      expect.objectContaining({
+        reference_code: 'WEB-CTA123456',
+        contact_event_id: 'WEB-CTA123456:contact',
+        package_slug: 'colombia-imperdible',
+      }),
+      { eventID: 'WEB-CTA123456:contact' },
+    );
+  });
+
   it('never throws when gtag throws internally', () => {
     setWindow({
       gtag: () => {

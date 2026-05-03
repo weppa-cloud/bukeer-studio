@@ -11,6 +11,7 @@ This runbook validates that a single user action emits **one** logical event acr
 
 - WAFlow lead submission (`event_name = waflow_submit` for funnel, `Lead` for Meta CAPI).
 - Chatwoot lifecycle (`qualified_lead`, `quote_sent`).
+- CRM itinerary confirmation (`booking_confirmed` for funnel, `Purchase` for Meta CAPI).
 - Verifies `STRICT_ADS_ZERO=1` smoke still PASS (no pixel pre-consent).
 
 ## Pre-flight
@@ -18,8 +19,10 @@ This runbook validates that a single user action emits **one** logical event acr
 1. Confirm env in `.env.local` / staging worker secrets:
    - `META_PIXEL_ID`, `META_ACCESS_TOKEN`, `META_API_VERSION`
    - `META_TEST_EVENT_CODE` (use Meta Events Manager test event code for staging)
-   - `META_CHATWOOT_CONVERSIONS_ENABLED=true`
+   - `META_CONVERSIONS_API_ENABLED=true`
+   - `META_CHATWOOT_CONVERSIONS_ENABLED=true` only if validating Chatwoot lifecycle webhooks (legacy fallback)
    - `CHATWOOT_WEBHOOK_SECRET`
+   - `CRM_CONVERSION_WEBHOOK_SECRET`
 2. Apply migrations `supabase/migrations/20260504110900_funnel_events.sql` and `20260504111000_funnel_events_backfill.sql` against the staging Supabase project (`supabase db push`).
 3. Claim a session pool slot for browser testing:
    ```bash
@@ -92,13 +95,46 @@ Expected:
    ```
 4. Re-fire the webhook → `webhook_events` returns `deduped: true`, no extra `funnel_events` row.
 
-## Step 6 — STRICT_ADS_ZERO smoke
+## Step 6 — CRM itinerary confirmation
+
+1. From CRM/Flutter, POST once when an itinerary/presupuesto changes to
+   `Confirmado`:
+   ```bash
+   curl -X POST "http://localhost:$PORT/api/growth/events/itinerary-confirmed" \
+     -H "Content-Type: application/json" \
+     -H "x-bukeer-crm-secret: $CRM_CONVERSION_WEBHOOK_SECRET" \
+     -d '{
+       "itinerary_id": "<ITINERARY_UUID>",
+       "booking_id": "<CRM_QUOTE_OR_BOOKING_ID>",
+       "previous_status": "Presupuesto",
+       "new_status": "Confirmado",
+       "confirmed_at": "2026-05-02T12:00:00.000Z",
+       "value": 2400,
+       "currency": "EUR",
+       "reference_code": "<REFERENCE_CODE>"
+     }'
+   ```
+2. Verify:
+   ```sql
+   select event_name, reference_code, payload, provider_status
+   from public.funnel_events
+   where payload @> jsonb_build_object('itinerary_id', '<ITINERARY_UUID>');
+
+   select event_name, event_id, status, request_payload
+   from public.meta_conversion_events
+   where event_name = 'Purchase'
+     and event_id = 'purchase:<ITINERARY_UUID>';
+   ```
+3. Re-send the same itinerary with a later `confirmed_at`. Expected: API
+   returns `deduped=true`; no second Meta `Purchase` row is created.
+
+## Step 7 — STRICT_ADS_ZERO smoke
 
 ```bash
 STRICT_ADS_ZERO=1 npm run session:run -- --grep "strict ads zero"
 ```
 
-Expected: 4/4 PASS (no pixel firing on first-load public routes pre-consent). The funnel_event writer does NOT change first-load posture — it only fires on user-intent endpoints (`/api/waflow/lead`, `/api/webhooks/chatwoot`).
+Expected: 4/4 PASS (no pixel firing on first-load public routes pre-consent). The funnel_event writer does NOT change first-load posture — it only fires on user-intent endpoints (`/api/waflow/lead`, `/api/webhooks/chatwoot`, `/api/growth/events/itinerary-confirmed`).
 
 ## Failure triage
 

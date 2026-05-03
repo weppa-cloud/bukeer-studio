@@ -28,6 +28,8 @@ export interface WhatsAppBeaconPayload {
   variant?: string | null;
   destination_slug?: string | null;
   package_slug?: string | null;
+  /** Pixel/CAPI dedupe id for Meta Contact. */
+  contact_event_id?: string | null;
   /** Locale string (BCP-47), e.g. "es-CO". Defaults to es-CO server-side. */
   locale?: string | null;
   market?: 'CO' | 'MX' | 'US' | 'CA' | 'EU' | 'OTHER' | null;
@@ -51,6 +53,20 @@ function deriveSubdomainFromHost(): string | null {
 function isJsonAcceptable(): boolean {
   if (typeof navigator === 'undefined') return false;
   return typeof navigator.sendBeacon === 'function' || typeof fetch === 'function';
+}
+
+function readCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null;
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const match = document.cookie.match(new RegExp(`(?:^|; )${escaped}=([^;]*)`));
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+function buildFbcFromUrl(): string | null {
+  if (typeof window === 'undefined') return null;
+  const fbclid = new URLSearchParams(window.location.search).get('fbclid');
+  if (!fbclid) return null;
+  return `fb.1.${Math.floor(Date.now() / 1000)}.${fbclid}`;
 }
 
 /**
@@ -79,6 +95,9 @@ export function sendWhatsAppCtaBeacon(payload: WhatsAppBeaconPayload = {}): void
       variant: payload.variant ?? null,
       destination_slug: payload.destination_slug ?? null,
       package_slug: payload.package_slug ?? null,
+      contact_event_id: payload.contact_event_id ?? null,
+      fbp: readCookie('_fbp'),
+      fbc: readCookie('_fbc') ?? buildFbcFromUrl(),
       occurred_at: new Date().toISOString(),
     };
 

@@ -22,6 +22,9 @@
  *       variant?: string | null;
  *       destination_slug?: string | null;
  *       package_slug?: string | null;
+ *       contact_event_id?: string | null;  // Pixel/CAPI dedupe id for Meta Contact
+ *       fbp?: string | null;
+ *       fbc?: string | null;
  *       occurred_at?: string;         // ISO. Defaults to server now.
  *     }
  *
@@ -64,6 +67,7 @@ import { buildEventId } from "@/lib/growth/event-id";
 import { insertFunnelEvent } from "@/lib/growth/funnel-events";
 import { parseAttribution } from "@/lib/growth/attribution-parser";
 import { createLogger } from "@/lib/logger";
+import { sendMetaConversionEvent } from "@/lib/meta/conversions-api";
 import {
   GrowthAttributionSchema,
   type FunnelEventIngest,
@@ -89,6 +93,9 @@ const RequestSchema = z.object({
   variant: z.string().trim().max(8).optional().nullable(),
   destination_slug: z.string().trim().max(160).optional().nullable(),
   package_slug: z.string().trim().max(160).optional().nullable(),
+  contact_event_id: z.string().trim().min(4).max(120).optional().nullable(),
+  fbp: z.string().trim().max(255).optional().nullable(),
+  fbc: z.string().trim().max(512).optional().nullable(),
   occurred_at: z.string().datetime().optional().nullable(),
 });
 
@@ -219,6 +226,52 @@ function safeAttribution(
   }
 }
 
+async function sendWhatsAppContactConversion(
+  body: RequestBody,
+  tenant: { accountId: string | null; websiteId: string | null },
+  request: NextRequest,
+): Promise<void> {
+  if (!body.contact_event_id) return;
+
+  const forwardedFor = request.headers.get("x-forwarded-for");
+  const clientIpAddress =
+    forwardedFor?.split(",")[0]?.trim() ||
+    request.headers.get("cf-connecting-ip") ||
+    request.headers.get("x-real-ip") ||
+    null;
+
+  await sendMetaConversionEvent(
+    {
+      eventName: "Contact",
+      eventId: body.contact_event_id,
+      actionSource: "website",
+      eventSourceUrl: body.source_url ?? null,
+      userData: {
+        externalId: body.reference_code,
+        fbp: body.fbp ?? null,
+        fbc: body.fbc ?? null,
+        clientIpAddress,
+        clientUserAgent: request.headers.get("user-agent"),
+      },
+      customData: {
+        content_name: "WhatsApp CTA",
+        content_category: body.location_context ?? "whatsapp",
+        destination_slug: body.destination_slug ?? null,
+        package_slug: body.package_slug ?? null,
+        reference_code: body.reference_code,
+        subdomain: body.subdomain ?? null,
+      },
+      accountId: tenant.accountId,
+      websiteId: tenant.websiteId,
+      trace: {
+        source: "whatsapp_cta_click",
+        funnel_event_name: "whatsapp_cta_click",
+      },
+    },
+    { supabase: createSupabaseAdmin() },
+  );
+}
+
 export async function POST(request: NextRequest) {
   let body: RequestBody;
   try {
@@ -303,6 +356,14 @@ export async function POST(request: NextRequest) {
     };
 
     const result = await insertFunnelEvent(createSupabaseAdmin(), ingest);
+    try {
+      await sendWhatsAppContactConversion(body, tenant, request);
+    } catch (error) {
+      log.warn("meta_contact_conversion_failed", {
+        reference_code: body.reference_code,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
     return apiSuccess({ event_id: result.event_id, deduped: result.deduped });
   } catch (error) {
     log.error("emit_failed", {
