@@ -38,6 +38,7 @@ import {
 } from "@bukeer/website-contract";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server-client";
+import { createSupabaseServiceRoleClient } from "@/lib/supabase/service-role";
 import { asTyped } from "@/lib/supabase/typed-client";
 import { requireGrowthRole } from "./auth";
 
@@ -398,47 +399,48 @@ async function fetchRuntimeByLane(
   websiteId: string,
   accountId: string,
 ): Promise<Record<AgentLane, LaneRuntimeSummary>> {
+  const runtimeSupabase = createSupabaseServiceRoleClient();
   const runtime = emptyRuntimeByLane();
 
   const [runs, metrics, toolCalls, replayCases, memories, skills] =
     await Promise.all([
       readRuntimeRows<{ lane: string; status: string }>(
-        supabase,
+        runtimeSupabase,
         "growth_agent_runs",
         "lane, status",
         websiteId,
         accountId,
       ),
       readRuntimeRows<{ lane: string; artifact_complete: boolean }>(
-        supabase,
+        runtimeSupabase,
         "growth_agent_run_metrics",
         "lane, artifact_complete",
         websiteId,
         accountId,
       ),
       readRuntimeRows<{ lane: string; allowed: boolean }>(
-        supabase,
+        runtimeSupabase,
         "growth_agent_tool_calls",
         "lane, allowed",
         websiteId,
         accountId,
       ),
       readRuntimeRows<{ lane: string; status: string }>(
-        supabase,
+        runtimeSupabase,
         "growth_agent_replay_cases",
         "lane, status",
         websiteId,
         accountId,
       ),
       readRuntimeRows<{ lane: string; status: string }>(
-        supabase,
+        runtimeSupabase,
         "growth_agent_memories",
         "lane, status",
         websiteId,
         accountId,
       ),
       readRuntimeRows<{ lane: string; status: string }>(
-        supabase,
+        runtimeSupabase,
         "growth_agent_skills",
         "lane, status",
         websiteId,
@@ -495,6 +497,7 @@ async function fetchRuntimeHealth(
   accountId: string,
 ): Promise<RuntimeHealthSummary> {
   const supabase = await createSupabaseServerClient();
+  const runtimeSupabase = createSupabaseServiceRoleClient();
   const [metrics, toolCalls, replayCases, memories, skills] = await Promise.all(
     [
       readRuntimeRows<{
@@ -505,35 +508,35 @@ async function fetchRuntimeHealth(
         tokens_input: number | null;
         tokens_output: number | null;
       }>(
-        supabase,
+        runtimeSupabase,
         "growth_agent_run_metrics",
         "artifact_complete, exit_code, error_class, cost_usd, tokens_input, tokens_output",
         websiteId,
         accountId,
       ),
       readRuntimeRows<{ allowed: boolean }>(
-        supabase,
+        runtimeSupabase,
         "growth_agent_tool_calls",
         "allowed",
         websiteId,
         accountId,
       ),
       readRuntimeRows<{ status: string }>(
-        supabase,
+        runtimeSupabase,
         "growth_agent_replay_cases",
         "status",
         websiteId,
         accountId,
       ),
       readRuntimeRows<{ status: string }>(
-        supabase,
+        runtimeSupabase,
         "growth_agent_memories",
         "status",
         websiteId,
         accountId,
       ),
       readRuntimeRows<{ status: string }>(
-        supabase,
+        runtimeSupabase,
         "growth_agent_skills",
         "status",
         websiteId,

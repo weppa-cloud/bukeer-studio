@@ -12,6 +12,7 @@ import {
   type GrowthAgentRunEvent,
 } from "@bukeer/website-contract";
 import { createSupabaseServerClient } from "@/lib/supabase/server-client";
+import { createSupabaseServiceRoleClient } from "@/lib/supabase/service-role";
 
 /**
  * Growth Console — Run queries (#407).
@@ -438,14 +439,15 @@ export async function getAgentRunDetail(
     ? run.artifact_path.slice(-16)
     : null;
 
+  const runtimeSupabase = createSupabaseServiceRoleClient();
   const [aiReview, metrics, toolCalls, replayCases, memories, skills] =
     await Promise.all([
-      fetchRuntimeAiReview(supabase, accountId, websiteId, runId),
-      fetchRuntimeMetrics(supabase, accountId, websiteId, runId),
-      fetchRuntimeToolCalls(supabase, accountId, websiteId, runId),
-      fetchRuntimeReplayCases(supabase, accountId, websiteId, runId),
-      fetchRuntimeMemories(supabase, accountId, websiteId, runId),
-      fetchRuntimeSkills(supabase, accountId, websiteId, runId),
+      fetchRuntimeAiReview(runtimeSupabase, accountId, websiteId, runId),
+      fetchRuntimeMetrics(runtimeSupabase, accountId, websiteId, runId),
+      fetchRuntimeToolCalls(runtimeSupabase, accountId, websiteId, runId),
+      fetchRuntimeReplayCases(runtimeSupabase, accountId, websiteId, runId),
+      fetchRuntimeMemories(runtimeSupabase, accountId, websiteId, runId),
+      fetchRuntimeSkills(runtimeSupabase, accountId, websiteId, runId),
     ]);
 
   return {

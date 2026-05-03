@@ -822,7 +822,7 @@ async function createCodexArtifact(supabase, opts, run, runtimeContext) {
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         },
-        { onConflict: "website_id,memory_key" },
+        { onConflict: "account_id,website_id,lane,memory_key" },
       ),
     );
   }
@@ -860,7 +860,7 @@ async function createCodexArtifact(supabase, opts, run, runtimeContext) {
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         },
-        { onConflict: "website_id,skill_key,version" },
+        { onConflict: "account_id,website_id,lane,skill_key,version" },
       ),
     );
   }
