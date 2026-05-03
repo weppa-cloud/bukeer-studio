@@ -31,6 +31,7 @@ const ALLOWED_ACTIONS = new Set([
   "block",
   "reject",
 ]);
+const ACTION_CLASS_VALUES = new Set(Object.values(ACTION_CLASSES));
 export const CODEX_ARTIFACT_SCHEMA = {
   type: "object",
   additionalProperties: false,
@@ -145,8 +146,9 @@ function parseArgs(argv) {
   const args = {
     dryRun: false,
     codexBin: process.env.CODEX_BIN ?? "codex",
-    model: process.env.GROWTH_CODEX_MODEL ?? "",
+    model: process.env.GROWTH_CODEX_MODEL ?? "gpt-5.2",
     sandboxMode: process.env.GROWTH_CODEX_SANDBOX_MODE ?? "bypass",
+    disableMcp: process.env.GROWTH_CODEX_DISABLE_MCP !== "0",
     timeoutMs: Number(process.env.GROWTH_CODEX_TIMEOUT_MS ?? 900_000),
     repoRoot: process.cwd(),
     outDir: "",
@@ -160,6 +162,8 @@ function parseArgs(argv) {
     else if (arg === "--model") args.model = argv[++i] ?? args.model;
     else if (arg === "--sandboxMode")
       args.sandboxMode = argv[++i] ?? args.sandboxMode;
+    else if (arg === "--disableMcp") args.disableMcp = true;
+    else if (arg === "--enableMcp") args.disableMcp = false;
     else if (arg === "--timeoutMs") args.timeoutMs = Number(argv[++i]);
     else if (arg === "--repoRoot") args.repoRoot = argv[++i] ?? args.repoRoot;
     else if (arg === "--outDir") args.outDir = argv[++i] ?? args.outDir;
@@ -333,12 +337,16 @@ function normalizeToolCalls(value) {
   return evaluateToolCalls(
     value.slice(0, 100).map((item) => {
       const object = safeObject(item);
+      const actionClass = String(
+        object.action_class ?? ACTION_CLASSES.RUNTIME_EXECUTION,
+      );
       return {
         tool: String(object.tool ?? "unknown").trim() || "unknown",
-        action_class: String(
-          object.action_class ?? ACTION_CLASSES.RUNTIME_EXECUTION,
-        ),
-        policy_verdict: String(object.policy_verdict ?? "allowed_prepare_only"),
+        action_class: ACTION_CLASS_VALUES.has(actionClass)
+          ? actionClass
+          : ACTION_CLASSES.RUNTIME_EXECUTION,
+        policy_verdict:
+          String(object.policy_verdict ?? "").trim() || "allowed_prepare_only",
         allowed: Boolean(object.allowed),
         reason:
           String(object.reason ?? "").trim() ||
@@ -487,10 +495,13 @@ function buildCodexExecArgs(options, schemaPath, lastMessagePath) {
     sandboxMode === "bypass"
       ? ["--dangerously-bypass-approvals-and-sandbox"]
       : ["--sandbox", sandboxMode];
+  const configArgs =
+    options.disableMcp === false ? [] : ["--config", "mcp_servers={}"];
 
   return [
     "exec",
     "--json",
+    ...configArgs,
     ...sandboxArgs,
     "--skip-git-repo-check",
     "--cd",
@@ -634,6 +645,7 @@ export async function runCodexAgentTask(input, options = {}) {
       output_path: lastMessagePath,
       policy: {
         sandbox: options.sandboxMode ?? "bypass",
+        mcp_servers_disabled: options.disableMcp !== false,
         forced_human_review: true,
         lane_toolset: toolset,
         always_gated_action_classes: [...ALWAYS_GATED_ACTION_CLASSES],

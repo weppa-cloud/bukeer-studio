@@ -28,8 +28,9 @@ function parseArgs(argv) {
     artifactsRoot: process.env.GROWTH_ARTIFACTS_ROOT ?? "/artifacts",
     executorMode: process.env.GROWTH_EXECUTOR_MODE ?? "codex",
     codexBin: process.env.CODEX_BIN ?? "codex",
-    codexModel: process.env.GROWTH_CODEX_MODEL ?? "",
+    codexModel: process.env.GROWTH_CODEX_MODEL ?? "gpt-5.2",
     codexSandboxMode: process.env.GROWTH_CODEX_SANDBOX_MODE ?? "bypass",
+    codexDisableMcp: process.env.GROWTH_CODEX_DISABLE_MCP !== "0",
     codexTimeoutMs: Number(process.env.GROWTH_CODEX_TIMEOUT_MS ?? 900_000),
     codexDryRun: process.env.GROWTH_CODEX_DRY_RUN === "1",
     workflowRoot:
@@ -54,6 +55,8 @@ function parseArgs(argv) {
       args.codexModel = argv[++i] ?? args.codexModel;
     else if (arg === "--codexSandboxMode")
       args.codexSandboxMode = argv[++i] ?? args.codexSandboxMode;
+    else if (arg === "--codexDisableMcp") args.codexDisableMcp = true;
+    else if (arg === "--codexEnableMcp") args.codexDisableMcp = false;
     else if (arg === "--codexTimeoutMs")
       args.codexTimeoutMs = Number(argv[++i]);
     else if (arg === "--codexDryRun") args.codexDryRun = true;
@@ -223,7 +226,7 @@ function resolveLlmTransport(agentDefinition) {
       model: process.env.GROWTH_CODEX_MODEL || null,
       registry_model: agentDefinition?.model ?? null,
       warning:
-        "Codex CLI uses the mounted ChatGPT subscription session. Leave GROWTH_CODEX_MODEL empty unless the account supports the requested model.",
+        "Codex CLI uses the mounted ChatGPT subscription session. Runtime defaults to gpt-5.2 because this CLI build rejects newer registry model names unless upgraded.",
     };
   }
 
@@ -536,6 +539,7 @@ async function createCodexArtifact(supabase, opts, run, runtimeContext) {
       dry_run: opts.codexDryRun,
       model: opts.codexModel || null,
       sandbox: opts.codexSandboxMode,
+      mcp_servers_disabled: opts.codexDisableMcp,
     },
   });
 
@@ -546,6 +550,7 @@ async function createCodexArtifact(supabase, opts, run, runtimeContext) {
     model: opts.codexModel || null,
     sandboxMode: opts.codexSandboxMode,
     timeoutMs: opts.codexTimeoutMs,
+    disableMcp: opts.codexDisableMcp,
     dryRun: opts.codexDryRun,
   });
 
