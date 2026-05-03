@@ -12,11 +12,10 @@ implementation control plane.
 Provided VPS access:
 
 ```text
-ssh -t -i ~/Documents/Proyectos/ssh/id_rsa1 bukeer@87.99.153
+ssh -t -i ~/Documents/Proyectos/ssh/id_rsa1 bukeer@87.99.153.174
 ```
 
-Status: the supplied host must be validated before deployment because it does
-not look like a complete IPv4 address or DNS hostname.
+Validated host: `growth-os-vps-prod` (`87.99.153.174`).
 
 ## Target Layout
 
