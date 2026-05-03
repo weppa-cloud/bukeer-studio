@@ -197,11 +197,10 @@ alter table public.funnel_events
       'chatwoot_conversation_started',
       'chatwoot_message_received',
       'chatwoot_label_qualified',
-      -- CRM lifecycle (canonical)
+      -- CRM lifecycle (canonical) — payment_received removed from scope 2026-05-03 (sign-off Option A)
       'crm_lead_stage_qualified',
       'crm_quote_sent',
       'crm_booking_confirmed',
-      'payment_received',
       -- Backwards-compat aliases (current writers — drop in F3 follow-up)
       'qualified_lead',
       'quote_sent',
@@ -307,7 +306,7 @@ comment on column public.funnel_events.gclid is
   'Google Ads click id. Captured from URL query param + persisted in 90-day cookie. Used by Phase 2 Google Ads offline upload dispatcher branch.';
 
 comment on column public.funnel_events.value_amount is
-  'For Purchase/quote events. Currency in value_currency. Populated by Phase 3 crm_booking_confirmed and payment_received writers.';
+  'For Purchase/quote events. Currency in value_currency. Populated by Phase 3 crm_booking_confirmed writer (value = itineraries.total_markup, gross profit). payment_received removed from scope per 2026-05-03 sign-off Option A.';
 
 comment on column public.funnel_events.value_currency is
   'ISO-4217 (e.g. COP, USD, MXN). 3-letter uppercase, enforced by CHECK.';

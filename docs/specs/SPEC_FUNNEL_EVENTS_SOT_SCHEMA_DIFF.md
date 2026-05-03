@@ -103,8 +103,8 @@ chatwoot_label_qualified
 crm_lead_stage_qualified
 crm_quote_sent
 crm_booking_confirmed
-payment_received
 ```
+Note: `payment_received` was originally in the canonical set but **removed from scope 2026-05-03** (sign-off Option A) — would fire at the same instant as `crm_booking_confirmed` (both triggered by first deposit), redundant.
 
 **Reconciled enum** (union, preserving current values for backwards-compat):
 ```
@@ -134,14 +134,15 @@ qualified_lead                    -- KEEP (current writer name; alias of chatwoo
 quote_sent                        -- KEEP (current writer name; alias of crm_quote_sent)
 booking_confirmed                 -- KEEP (current writer name; alias of crm_booking_confirmed)
 
--- Realized
-payment_received                  -- ADD
-
 -- Funnel terminals (current, kept)
 review_submitted                  -- KEEP
 referral_lead                     -- KEEP
+
+-- payment_received: REMOVED from scope 2026-05-03 (sign-off Option A) — would fire at
+--                   the same instant as crm_booking_confirmed; cash-flow per-installment
+--                   stays in CRM/BI layer, not exposed as Ads conversion.
 ```
-Total: 20 values during transition. After F3 ships and writers migrate to the prefixed names, drop the unprefixed aliases (`qualified_lead`, `quote_sent`, `booking_confirmed`) — tracked as F3 follow-up.
+Total: 19 values during transition. After F3 ships and writers migrate to the prefixed names, drop the unprefixed aliases (`qualified_lead`, `quote_sent`, `booking_confirmed`) per #425 — leaving 16 canonical values.
 
 > **Rationale for keeping aliases**: the 3 routes today emit `qualified_lead`/`quote_sent`/`booking_confirmed` (per `LIFECYCLE_TO_FUNNEL_EVENT` mapping in `app/api/webhooks/chatwoot/route.ts`). Renaming them in the same migration breaks the writer. Add the new names; deprecate the aliases in a F3 follow-up after writer migration.
 

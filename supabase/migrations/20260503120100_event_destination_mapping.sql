@@ -186,18 +186,24 @@ values
    'NEW conversion action. Phase 3 (#327).'),
   ('crm_quote_sent', 'ga4', 'begin_checkout', null, true, null),
 
-  -- crm_booking_confirmed (Booking)
+  -- crm_booking_confirmed (Booking) — sign-off 2026-05-03
+  -- value_amount = itineraries.total_markup (gross profit, NOT total_amount/revenue).
+  -- Smart Bidding optimizes for high-margin packages. Industry best-practice for travel
+  -- with variable margin (ColombiaTours: avg 21.6%, range 0.3-100%, 98.8% coverage).
+  -- Target ROAS configured against markup: 2.0-3.3 (30-50% marketing share of markup).
   ('crm_booking_confirmed', 'meta', 'Purchase', 'value_amount', true,
-   'Phase 3 (#327). value_amount = itineraries.total_amount, value_currency = itineraries.currency_type. Fires when itineraries.status=Confirmado.'),
+   'Phase 3 (#422). value_amount = itineraries.total_markup (gross profit). value_currency = itineraries.currency_type. Fires when itineraries.status=Confirmado (auto-flip on first deposit via fn_payment_confirms_request trigger).'),
   ('crm_booking_confirmed', 'google_ads', 'booking_confirmed', 'value_amount', true,
-   'NEW conversion action with value_settings. Phase 3 (#327).'),
-  ('crm_booking_confirmed', 'ga4', 'purchase', 'value_amount', true, null),
+   'NEW conversion action with value_settings. value_amount = total_markup. Target ROAS calibrated 2.0-3.3 against markup (30-50% marketing share). Phase 3 (#422).'),
+  ('crm_booking_confirmed', 'ga4', 'purchase', 'value_amount', true,
+   'value_amount = total_markup for consistency with Ads bidding signal.'),
   ('crm_booking_confirmed', 'tiktok', 'CompletePayment', 'value_amount', false,
-   'Disabled until TikTok pixel id is configured per tenant.'),
+   'Disabled until TikTok pixel id is configured per tenant.')
 
-  -- payment_received (Realized)
-  ('payment_received', 'google_ads', 'payment_received', 'value_amount', true,
-   'NEW conversion action — revenue reporting only, NOT used for Smart Bidding. Per SPEC §Open Q3.')
+  -- payment_received: REMOVED from scope 2026-05-03 (sign-off Option A).
+  -- Would fire at the same instant as crm_booking_confirmed (both triggered by first
+  -- deposit), making it redundant. Cash-flow per-installment reporting handled in
+  -- CRM/BI layer. Re-evaluate if multi-installment Ads reporting requested later.
 
 on conflict (funnel_event_name, destination) do nothing;
 

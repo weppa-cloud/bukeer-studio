@@ -70,7 +70,7 @@ This means **F1 (#420) is schema reconciliation + dispatcher extraction**, not g
 
 1. The current schema diverges from the canonical schema below — F1 must reconcile (add missing columns, indexes, constraints).
 2. Two distinct `event_id` schemes coexist today: a sha256-hashed PK for `funnel_events.event_id`, and a Pixel-paired id (`${referenceCode}:lead`, `contact_event_id`, etc.) used for Meta CAPI dedup. **The dispatcher MUST forward the Pixel-paired id to platforms**, not the sha256 PK, or Pixel↔CAPI dedup breaks silently. Recommendation: add a `pixel_event_id` column distinct from the PK `event_id`, and have the dispatcher use `pixel_event_id` when writing to destinations.
-3. The CHECK constraint `funnel_events_event_name_chk` does NOT include the full ADR-029 event matrix (`payment_received`, `crm_booking_cancelled`, etc.). F1 must widen it.
+3. The CHECK constraint `funnel_events_event_name_chk` does NOT include the full ADR-029 event matrix (`crm_booking_cancelled`, etc.). F1 must widen it. (Note: `payment_received` was removed from scope 2026-05-03; do not add to the CHECK.)
 
 ## Delivery semantics — `pg_net` is fire-and-forget
 
@@ -142,8 +142,11 @@ Canonical funnel event names + platform mapping. Defined exhaustively in [[SPEC_
 | `chatwoot_label_qualified` | Qualify | `Lead` (messaging) | `qualified_lead` (NEW) | `qualify_lead` | – |
 | `crm_lead_stage_qualified` | Qualify | `Lead` (custom) | `qualified_lead` (NEW) | `qualify_lead` | – |
 | `crm_quote_sent` | Quote | `InitiateCheckout` (custom) | `quote_sent` (NEW) | `begin_checkout` | – |
-| `crm_booking_confirmed` | Booking | `Purchase` | `booking_confirmed` (NEW, with value) | `purchase` | `CompletePayment` |
-| `payment_received` | Realized | – | `payment_received` (NEW, with value) | `payment` | – |
+| `crm_booking_confirmed` | Booking | `Purchase` (value=`total_markup`) | `booking_confirmed` (NEW, value=`total_markup`) | `purchase` | `CompletePayment` |
+
+> **Sign-off 2026-05-03**: `crm_booking_confirmed` value = `itineraries.total_markup` (gross profit, NOT revenue). Justification: ColombiaTours has total_markup populated in 98.8% of confirmed itineraries with mathematical identity verified; markup avg 21.6% with range 0.3–100% means revenue-based bidding would systematically distort toward low-margin packages. Smart Bidding optimizes for high-margin auto-magically when fed gross profit. Industry best-practice for travel with variable margin (Concept, Semetis, Basecamp 2026 guides). Target ROAS configured against markup: 2.0–3.3 range corresponding to 30–50% marketing share of markup.
+
+> **`payment_received` REMOVED from scope** (sign-off Option A 2026-05-03): would fire at the same instant as `crm_booking_confirmed` (both triggered by first deposit via `fn_payment_confirms_request`), making it redundant. Cash-flow per-installment reporting stays in CRM/BI layer, not exposed to Ads platforms. Re-evaluate if multi-installment Ads reporting is requested later.
 
 Conversion actions marked **(NEW)** are created in Google Ads as part of #332 rollout. Existing actions (`Cliente potencial calificado`, `Venta`) are re-purposed or deprecated per migration plan in spec.
 
