@@ -7,6 +7,8 @@ services:
     restart: unless-stopped
     env_file:
       - /opt/growth-os/secrets/growth-orchestrator.env
+    environment:
+      CODEX_HOME: /root/.codex
     volumes:
       - /opt/growth-os/workspaces:/workspaces
       - /opt/growth-os/artifacts:/artifacts
