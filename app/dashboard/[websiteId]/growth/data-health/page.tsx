@@ -49,7 +49,11 @@ export default async function GrowthDataHealthPage({
       <StudioSectionHeader
         title="Data Health"
         subtitle="Freshness, provider status and runtime signals. No provider calls are made in the render path."
-        actions={<StudioBadge tone="info">SPEC Control Plane UX</StudioBadge>}
+        actions={
+          <StudioBadge tone="info" className="whitespace-nowrap">
+            Control Plane UX
+          </StudioBadge>
+        }
       />
 
       <section

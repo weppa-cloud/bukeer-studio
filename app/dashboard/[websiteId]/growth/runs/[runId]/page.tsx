@@ -55,6 +55,13 @@ function fmtDate(iso: string | null | undefined): string {
   }
 }
 
+function compactPathTail(value: string | null | undefined): string {
+  if (!value) return "—";
+  const parts = value.split("/").filter(Boolean);
+  const tail = parts.at(-1) ?? value;
+  return tail.length > 12 ? `…${tail.slice(-12)}` : tail;
+}
+
 interface PageProps {
   params: Promise<{ websiteId: string; runId: string }>;
 }
@@ -190,36 +197,46 @@ export default async function GrowthRunDetailPage({ params }: PageProps) {
     typeof evidence.skill_update_candidates_count === "number"
       ? evidence.skill_update_candidates_count
       : skills.length;
+  const workspaceTail = compactPathTail(run.workspace_path);
 
   return (
     <StudioPage className="max-w-5xl">
+      <Link
+        href={`/dashboard/${websiteId}/growth/runs`}
+        className="mb-3 inline-flex text-xs font-medium text-[var(--studio-text-muted)] underline"
+      >
+        ← Volver a Review Queue
+      </Link>
       <StudioSectionHeader
         title={`Agent work ${run.run_id.slice(-8)}`}
         subtitle={`Lane ${run.lane} · ${agentName ?? "agent: —"}`}
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 whitespace-nowrap">
             <StudioBadge tone={STATUS_TONE[run.status]}>
               {run.status}
             </StudioBadge>
-            <Link
-              href={`/dashboard/${websiteId}/growth/runs`}
-              className="text-xs underline text-[var(--studio-text-muted)]"
-            >
-              ← Volver a Review Queue
-            </Link>
           </div>
         }
       />
 
       {/* Header facts */}
-      <dl className="grid grid-cols-2 md:grid-cols-3 gap-3 text-xs mt-4">
+      <dl className="grid grid-cols-2 gap-3 text-xs mt-4 md:grid-cols-3">
         <div>
           <dt className="text-[var(--studio-text-muted)]">claim_id</dt>
-          <dd className="font-mono break-all">{run.claim_id}</dd>
+          <dd className="font-mono break-all">{run.claim_id.slice(-12)}</dd>
         </div>
         <div>
           <dt className="text-[var(--studio-text-muted)]">workspace</dt>
-          <dd className="font-mono break-all">{run.workspace_path}</dd>
+          <dd>
+            <details className="font-mono">
+              <summary className="cursor-pointer break-all text-[var(--studio-text)]">
+                {workspaceTail}
+              </summary>
+              <p className="mt-1 break-all text-[var(--studio-text-muted)]">
+                {run.workspace_path}
+              </p>
+            </details>
+          </dd>
         </div>
         <div>
           <dt className="text-[var(--studio-text-muted)]">attempts</dt>

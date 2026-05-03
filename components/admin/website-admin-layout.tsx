@@ -1,32 +1,53 @@
-'use client';
+"use client";
 
-import { usePathname } from 'next/navigation';
-import Link from 'next/link';
-import { WebsiteProvider, useWebsite } from '@/lib/admin/website-context';
+import { usePathname } from "next/navigation";
+import Link from "next/link";
+import { WebsiteProvider, useWebsite } from "@/lib/admin/website-context";
 
 const TABS = [
-  { slug: 'pages',     label: 'Páginas',   href: 'pages' },
-  { slug: 'contenido', label: 'Contenido', href: 'contenido' },
-  { slug: 'design',    label: 'Diseño',    href: 'design' },
-  { slug: 'analytics', label: 'Analytics', href: 'analytics' },
-  { slug: 'settings',  label: 'Settings',  href: 'settings' },
+  { slug: "pages", label: "Páginas", href: "pages" },
+  { slug: "contenido", label: "Contenido", href: "contenido" },
+  { slug: "design", label: "Diseño", href: "design" },
+  { slug: "analytics", label: "Analytics", href: "analytics" },
+  { slug: "growth", label: "Growth", href: "growth/overview" },
+  { slug: "settings", label: "Settings", href: "settings" },
 ];
 
-function WebsiteHeader({ websiteId, websiteName }: { websiteId: string; websiteName: string }) {
+function WebsiteHeader({
+  websiteId,
+  websiteName,
+}: {
+  websiteId: string;
+  websiteName: string;
+}) {
   const { website } = useWebsite();
-  const pathname = usePathname() ?? '';
+  const pathname = usePathname() ?? "";
   const inferredTab = (() => {
-    if (pathname.includes('/contenido') || pathname.includes('/seo/') || pathname.endsWith('/seo') || pathname.includes('/blog/') || pathname.includes('/products/')) return 'contenido';
+    if (pathname.includes("/growth")) return "growth";
+    if (
+      pathname.includes("/contenido") ||
+      pathname.includes("/seo/") ||
+      pathname.endsWith("/seo") ||
+      pathname.includes("/blog/") ||
+      pathname.includes("/products/")
+    )
+      return "contenido";
     return TABS.find((t) => pathname.includes(`/${t.href}`))?.slug;
   })();
-  const activeTab = inferredTab || 'pages';
+  const activeTab = inferredTab || "pages";
+  const isGrowthRoute = activeTab === "growth";
 
   async function handlePreviewClick() {
-    const subdomain = website?.subdomain || websiteName.toLowerCase().replace(/\s+/g, '-');
+    const subdomain =
+      website?.subdomain || websiteName.toLowerCase().replace(/\s+/g, "-");
     if (!subdomain) return;
 
-    const previewWindow = window.open('about:blank', '_blank', 'noopener,noreferrer');
-    const res = await fetch('/api/preview-token', { cache: 'no-store' });
+    const previewWindow = window.open(
+      "about:blank",
+      "_blank",
+      "noopener,noreferrer",
+    );
+    const res = await fetch("/api/preview-token", { cache: "no-store" });
     if (!res.ok) {
       previewWindow?.close();
       return;
@@ -38,7 +59,7 @@ function WebsiteHeader({ websiteId, websiteName }: { websiteId: string; websiteN
     }
 
     const previewUrl = new URL(`/site/${subdomain}`, window.location.origin);
-    previewUrl.searchParams.set('preview_token', data.token);
+    previewUrl.searchParams.set("preview_token", data.token);
     if (previewWindow) {
       previewWindow.location.href = previewUrl.toString();
     } else {
@@ -55,24 +76,44 @@ function WebsiteHeader({ websiteId, websiteName }: { websiteId: string; websiteN
             href="/dashboard"
             className="text-[var(--studio-text-muted)] hover:text-[var(--studio-text)] transition-colors shrink-0"
           >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M15 19l-7-7 7-7"
+              />
             </svg>
           </Link>
-          <h2 className="font-semibold text-[var(--studio-text)] text-sm md:text-base truncate">{websiteName}</h2>
+          <h2 className="font-semibold text-[var(--studio-text)] text-sm md:text-base truncate">
+            {websiteName}
+          </h2>
           <DirtyDot />
         </div>
 
-        <div className="flex items-center gap-1 md:gap-2 shrink-0">
-          <button
-            type="button"
-            onClick={handlePreviewClick}
-            className="hidden sm:inline-flex studio-btn studio-btn-ghost studio-btn-md"
-          >
-            Preview
-          </button>
-          <PublishButton />
-        </div>
+        {isGrowthRoute ? (
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="inline-flex min-h-[36px] items-center rounded-md border border-[var(--studio-border)] px-3 text-xs font-medium text-[var(--studio-text-muted)]">
+              Human review mode
+            </span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1 md:gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={handlePreviewClick}
+              className="hidden sm:inline-flex studio-btn studio-btn-ghost studio-btn-md"
+            >
+              Preview
+            </button>
+            <PublishButton />
+          </div>
+        )}
       </div>
 
       {/* Tab navigation — scrollable on mobile */}
@@ -85,8 +126,8 @@ function WebsiteHeader({ websiteId, websiteName }: { websiteId: string; websiteN
               href={`/dashboard/${websiteId}/${tab.href}`}
               className={`studio-tab inline-flex items-center justify-center px-3 md:px-4 text-xs md:text-sm whitespace-nowrap min-h-[36px] md:min-h-[38px] border ${
                 isActive
-                  ? 'studio-tab-active border-[var(--studio-border)] text-[var(--studio-text)]'
-                  : 'text-[var(--studio-text-muted)] border-transparent hover:border-[var(--studio-border)] hover:text-[var(--studio-text)]'
+                  ? "studio-tab-active border-[var(--studio-border)] text-[var(--studio-text)]"
+                  : "text-[var(--studio-text-muted)] border-transparent hover:border-[var(--studio-border)] hover:text-[var(--studio-text)]"
               }`}
             >
               {tab.label}
@@ -101,7 +142,12 @@ function WebsiteHeader({ websiteId, websiteName }: { websiteId: string; websiteN
 function DirtyDot() {
   const { isDirty } = useWebsite();
   if (!isDirty) return null;
-  return <span className="w-2 h-2 rounded-full bg-amber-400" title="Unsaved changes" />;
+  return (
+    <span
+      className="w-2 h-2 rounded-full bg-amber-400"
+      title="Unsaved changes"
+    />
+  );
 }
 
 function PublishButton() {
@@ -111,7 +157,7 @@ function PublishButton() {
       onClick={() => publish()}
       className="studio-btn studio-btn-primary studio-btn-md"
     >
-      {website?.status === 'published' ? 'Update' : 'Publish'}
+      {website?.status === "published" ? "Update" : "Publish"}
     </button>
   );
 }
@@ -122,14 +168,16 @@ interface WebsiteAdminLayoutProps {
   children: React.ReactNode;
 }
 
-export function WebsiteAdminLayout({ websiteId, websiteName, children }: WebsiteAdminLayoutProps) {
+export function WebsiteAdminLayout({
+  websiteId,
+  websiteName,
+  children,
+}: WebsiteAdminLayoutProps) {
   return (
     <WebsiteProvider websiteId={websiteId}>
       <div className="flex flex-col h-full">
         <WebsiteHeader websiteId={websiteId} websiteName={websiteName} />
-        <div className="flex-1 overflow-y-auto">
-          {children}
-        </div>
+        <div className="flex-1 overflow-y-auto">{children}</div>
       </div>
     </WebsiteProvider>
   );
