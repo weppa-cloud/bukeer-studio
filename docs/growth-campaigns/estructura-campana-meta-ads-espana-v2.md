@@ -9,24 +9,33 @@
 
 ## 💰 Distribución de Presupuesto
 
-| Fase | % | Presupuesto Total | Diario (~21 días) | Diario USD |
-|---|:---:|---:|---:|---:|
-| **TOFU** | 55% | $1.100.000 COP | ~$52.380 COP/día | ~$12.50 |
-| **MOFU** | 30% | $600.000 COP | ~$28.570 COP/día | ~$6.80 |
-| **BOFU** | 15% | $300.000 COP | ~$14.285 COP/día | ~$3.40 |
-| **Total** | 100% | **$2.000.000 COP** | **~$95.238 COP/día** | **~$22.70** |
+### Por Campaña (estructura real en Meta Ads Manager)
+
+| Campaña | Ad Sets | Presupuesto Total | Diario (~21 días) | Diario USD |
+|---|---|---:|---:|---:|
+| **Campaña 1 — "Descubrimiento Colombia"** | 1 ad set (TOFU) | $1.100.000 COP | ~$52.380 COP/día | ~$12.50 |
+| **Campaña 2 — "Conversión Colombia"** | 2 ad sets (MOFU + BOFU) bajo CBO | $900.000 COP | ~$42.857 COP/día | ~$10.20 |
+| **Total** | **3 ad sets** | **$2.000.000 COP** | **~$95.238 COP/día** | **~$22.70** |
+
+### Por Fase del Embudo (distribución orientativa)
+
+| Fase | % orientativo | Presupuesto | Nota |
+|---|:---:|---:|---|
+| **TOFU** | 55% | $1.100.000 COP | Presupuesto fijo en Campaña 1 |
+| **MOFU** | 30% | ~$600.000 COP | CBO distribuye dinámicamente |
+| **BOFU** | 15% | ~$300.000 COP | CBO distribuye dinámicamente |
 
 > [!IMPORTANT]
-> **Estrategia de presupuesto ajustado:** Con ~$23 USD/día, se ejecuta **1 Ad Set con Dynamic Creative por fase**. NO fragmentar en múltiples ad sets — el algoritmo necesita concentración de datos para salir de la fase de aprendizaje (~50 conversiones en 7 días). TOFU lleva la mayor inversión porque alimenta las audiencias de retargeting para MOFU/BOFU.
+> **¿Por qué 2 campañas y no 3?** Con ~$23 USD/día total, BOFU en una campaña separada recibiría solo ~$3.40/día — insuficiente para salir de la fase de aprendizaje de Meta (~50 conversiones en 7 días). Al agrupar MOFU y BOFU bajo **CBO (Campaign Budget Optimization)** en una sola campaña, el algoritmo puede darle un día $8 a MOFU y $2 a BOFU si MOFU está convirtiendo bien, y al siguiente invertirlo. Esta flexibilidad dinámica es imposible con campañas separadas.
 
 ### Calendario de Ejecución
 
-| Período | Acción | Presupuesto |
+| Período | Acción | Configuración |
 |---|---|---|
-| **Días 1-3** | Solo TOFU activo. Poblar audiencias de retargeting | 100% a TOFU (~$23/día) |
-| **Días 4-7** | Activar MOFU con retargeting de video viewers 50%+ | TOFU 60% + MOFU 40% |
-| **Días 8-14** | Activar BOFU con visitantes de LP. Revisar métricas | Distribución estándar (55/30/15) |
-| **Días 15-21** | Escalar ganadores, pausar perdedores, rotar creativos | Reasignar según ROAS |
+| **Días 1-3** | Solo Campaña 1 (TOFU) activa. Poblar audiencias de retargeting | Campaña 1: ~$23/día. Campaña 2: pausada |
+| **Días 4-7** | Activar Campaña 2 con ad set MOFU (retargeting video viewers 50%+). Ad set BOFU pausado | Campaña 1: ~$12.50/día. Campaña 2: ~$10.20/día (solo MOFU) |
+| **Días 8-14** | Activar ad set BOFU dentro de Campaña 2. CBO distribuye entre MOFU y BOFU | Distribución estándar. CBO optimiza automáticamente |
+| **Días 15-21** | Escalar combinaciones ganadoras, pausar perdedores, rotar creativos | Reasignar según ROAS. CBO ya ha aprendido |
 
 ---
 
