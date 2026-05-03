@@ -28,6 +28,8 @@ function parseArgs(argv) {
     artifactsRoot: process.env.GROWTH_ARTIFACTS_ROOT ?? "/artifacts",
     executorMode: process.env.GROWTH_EXECUTOR_MODE ?? "codex",
     codexBin: process.env.CODEX_BIN ?? "codex",
+    codexModel: process.env.GROWTH_CODEX_MODEL ?? "",
+    codexSandboxMode: process.env.GROWTH_CODEX_SANDBOX_MODE ?? "bypass",
     codexTimeoutMs: Number(process.env.GROWTH_CODEX_TIMEOUT_MS ?? 900_000),
     codexDryRun: process.env.GROWTH_CODEX_DRY_RUN === "1",
     workflowRoot:
@@ -48,6 +50,10 @@ function parseArgs(argv) {
     else if (arg === "--artifactsRoot") args.artifactsRoot = argv[++i] ?? "";
     else if (arg === "--executorMode") args.executorMode = argv[++i] ?? "";
     else if (arg === "--codexBin") args.codexBin = argv[++i] ?? args.codexBin;
+    else if (arg === "--codexModel")
+      args.codexModel = argv[++i] ?? args.codexModel;
+    else if (arg === "--codexSandboxMode")
+      args.codexSandboxMode = argv[++i] ?? args.codexSandboxMode;
     else if (arg === "--codexTimeoutMs")
       args.codexTimeoutMs = Number(argv[++i]);
     else if (arg === "--codexDryRun") args.codexDryRun = true;
@@ -203,10 +209,23 @@ async function loadWorkflowText(workflow) {
 
 function resolveLlmTransport(agentDefinition) {
   const requestedModel =
+    process.env.GROWTH_CODEX_MODEL ??
     agentDefinition?.model ??
     process.env.OPENAI_DEFAULT_MODEL ??
     process.env.OPENROUTER_MODEL ??
     null;
+
+  if ((process.env.GROWTH_EXECUTOR_MODE ?? "codex") === "codex") {
+    return {
+      provider: "codex_cli_chatgpt",
+      ready: true,
+      base_url: null,
+      model: process.env.GROWTH_CODEX_MODEL || null,
+      registry_model: agentDefinition?.model ?? null,
+      warning:
+        "Codex CLI uses the mounted ChatGPT subscription session. Leave GROWTH_CODEX_MODEL empty unless the account supports the requested model.",
+    };
+  }
 
   if (process.env.OPENAI_API_KEY) {
     return {
@@ -515,6 +534,8 @@ async function createCodexArtifact(supabase, opts, run, runtimeContext) {
       allowed: true,
       input_path: inputPath,
       dry_run: opts.codexDryRun,
+      model: opts.codexModel || null,
+      sandbox: opts.codexSandboxMode,
     },
   });
 
@@ -522,7 +543,8 @@ async function createCodexArtifact(supabase, opts, run, runtimeContext) {
     outDir: dir,
     repoRoot: process.cwd(),
     codexBin: opts.codexBin,
-    model: runtimeContext.agentDefinition?.model ?? null,
+    model: opts.codexModel || null,
+    sandboxMode: opts.codexSandboxMode,
     timeoutMs: opts.codexTimeoutMs,
     dryRun: opts.codexDryRun,
   });
@@ -534,7 +556,8 @@ async function createCodexArtifact(supabase, opts, run, runtimeContext) {
     handoff: "human_review_required",
     artifact_path: result.artifactPath,
     agent_id: runtimeContext.agentDefinition?.agent_id ?? null,
-    model: runtimeContext.agentDefinition?.model ?? null,
+    model: opts.codexModel || null,
+    registry_model: runtimeContext.agentDefinition?.model ?? null,
     prompt_version: runtimeContext.agentDefinition?.prompt_version ?? null,
     workflow_version: runtimeContext.agentDefinition?.workflow_version ?? null,
     workflow_loaded: runtimeContext.workflow.loaded,
@@ -571,7 +594,7 @@ async function createCodexArtifact(supabase, opts, run, runtimeContext) {
         website_id: run.website_id,
         ...aiReviewForeignKeys(run),
         review_key: `codex-runtime-8-5:${run.run_id}`,
-        model: runtimeContext.agentDefinition?.model ?? "codex",
+        model: opts.codexModel || "codex-cli-default",
         prompt_version:
           runtimeContext.agentDefinition?.prompt_version ?? "runtime-8.5",
         config_version: "growth-runtime-8.5-codex-v1",

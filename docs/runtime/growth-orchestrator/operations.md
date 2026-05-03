@@ -19,7 +19,14 @@ docker exec growth-orchestrator \
 Codex auth status:
 
 ```bash
-docker exec growth-orchestrator codex login status
+docker compose run --rm --entrypoint sh growth-orchestrator -lc 'codex login status'
+```
+
+Codex subscription smoke:
+
+```bash
+docker compose run --rm --entrypoint sh growth-orchestrator -lc \
+  "printf 'Return {\"ok\":true} as JSON.' | codex exec --dangerously-bypass-approvals-and-sandbox --skip-git-repo-check -"
 ```
 
 Expected daemon idle state when no eligible rows exist:

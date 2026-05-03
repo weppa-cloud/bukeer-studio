@@ -9,6 +9,7 @@ services:
       - /opt/growth-os/secrets/growth-orchestrator.env
     environment:
       CODEX_HOME: /root/.codex
+      GROWTH_CODEX_SANDBOX_MODE: bypass
     volumes:
       - /opt/growth-os/workspaces:/workspaces
       - /opt/growth-os/artifacts:/artifacts

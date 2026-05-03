@@ -146,6 +146,7 @@ function parseArgs(argv) {
     dryRun: false,
     codexBin: process.env.CODEX_BIN ?? "codex",
     model: process.env.GROWTH_CODEX_MODEL ?? "",
+    sandboxMode: process.env.GROWTH_CODEX_SANDBOX_MODE ?? "bypass",
     timeoutMs: Number(process.env.GROWTH_CODEX_TIMEOUT_MS ?? 900_000),
     repoRoot: process.cwd(),
     outDir: "",
@@ -157,6 +158,8 @@ function parseArgs(argv) {
     if (arg === "--dryRun") args.dryRun = true;
     else if (arg === "--codexBin") args.codexBin = argv[++i] ?? args.codexBin;
     else if (arg === "--model") args.model = argv[++i] ?? args.model;
+    else if (arg === "--sandboxMode")
+      args.sandboxMode = argv[++i] ?? args.sandboxMode;
     else if (arg === "--timeoutMs") args.timeoutMs = Number(argv[++i]);
     else if (arg === "--repoRoot") args.repoRoot = argv[++i] ?? args.repoRoot;
     else if (arg === "--outDir") args.outDir = argv[++i] ?? args.outDir;
@@ -478,6 +481,29 @@ function summarizeCodexEvents(events) {
   return toolCalls.slice(0, 50);
 }
 
+function buildCodexExecArgs(options, schemaPath, lastMessagePath) {
+  const sandboxMode = options.sandboxMode ?? "bypass";
+  const sandboxArgs =
+    sandboxMode === "bypass"
+      ? ["--dangerously-bypass-approvals-and-sandbox"]
+      : ["--sandbox", sandboxMode];
+
+  return [
+    "exec",
+    "--json",
+    ...sandboxArgs,
+    "--skip-git-repo-check",
+    "--cd",
+    options.repoRoot ?? process.cwd(),
+    "--output-schema",
+    schemaPath,
+    "--output-last-message",
+    lastMessagePath,
+    ...(options.model ? ["--model", options.model] : []),
+    "-",
+  ];
+}
+
 export async function runCodexAgentTask(input, options = {}) {
   const startedAt = Date.now();
   const outDir = options.outDir;
@@ -509,21 +535,7 @@ export async function runCodexAgentTask(input, options = {}) {
       }
     : await runProcess(
         options.codexBin ?? "codex",
-        [
-          "exec",
-          "--json",
-          "--sandbox",
-          "read-only",
-          "--skip-git-repo-check",
-          "--cd",
-          options.repoRoot ?? process.cwd(),
-          "--output-schema",
-          schemaPath,
-          "--output-last-message",
-          lastMessagePath,
-          ...(options.model ? ["--model", options.model] : []),
-          "-",
-        ],
+        buildCodexExecArgs(options, schemaPath, lastMessagePath),
         {
           cwd: options.repoRoot ?? process.cwd(),
           env: process.env,
@@ -613,14 +625,15 @@ export async function runCodexAgentTask(input, options = {}) {
     context_pack: input.context_pack_summary,
     executor: {
       name: "codex_exec",
-      model: options.model || input.agent?.model || null,
+      model: options.model || null,
+      registry_model: input.agent?.model ?? null,
       codex_bin: options.codexBin ?? "codex",
       prompt_path: promptPath,
       schema_path: schemaPath,
       events_path: execution.stdout ? eventsPath : null,
       output_path: lastMessagePath,
       policy: {
-        sandbox: "read-only",
+        sandbox: options.sandboxMode ?? "bypass",
         forced_human_review: true,
         lane_toolset: toolset,
         always_gated_action_classes: [...ALWAYS_GATED_ACTION_CLASSES],
