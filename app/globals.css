@@ -2,13 +2,158 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import "maplibre-gl/dist/maplibre-gl.css";
-@plugin "@tailwindcss/typography";
 @source "../app/**/*.{ts,tsx}";
 @source "../components/**/*.{ts,tsx}";
 @source "../lib/**/*.{ts,tsx}";
 
 @custom-variant dark (&:is(.dark *));
+
+/* Turbopack currently hangs when processing `@plugin "@tailwindcss/typography"`.
+   Keep the public prose surface stable with the typography classes used here. */
+.prose {
+  color: var(--tw-prose-body, hsl(var(--foreground)));
+  max-width: 65ch;
+  line-height: 1.75;
+}
+
+.prose-lg {
+  font-size: 1.125rem;
+  line-height: 1.75;
+}
+
+.prose :where(p, ul, ol, blockquote, pre, table) {
+  margin-top: 1.25em;
+  margin-bottom: 1.25em;
+}
+
+.prose :where(h1, h2, h3, h4) {
+  color: var(--tw-prose-headings, hsl(var(--foreground)));
+  line-height: 1.2;
+  margin-top: 1.8em;
+  margin-bottom: 0.8em;
+}
+
+.prose :where(h1) {
+  font-size: 2.25em;
+}
+
+.prose :where(h2) {
+  font-size: 1.5em;
+}
+
+.prose :where(h3) {
+  font-size: 1.25em;
+}
+
+.prose :where(a) {
+  color: var(--tw-prose-links, hsl(var(--primary)));
+  text-decoration: underline;
+  text-underline-offset: 0.16em;
+}
+
+.prose :where(strong) {
+  color: var(--tw-prose-bold, hsl(var(--foreground)));
+  font-weight: 700;
+}
+
+.prose :where(ul, ol) {
+  padding-left: 1.5em;
+}
+
+.prose :where(ul) {
+  list-style-type: disc;
+}
+
+.prose :where(ol) {
+  list-style-type: decimal;
+}
+
+.prose :where(blockquote) {
+  border-left: 0.25rem solid var(--tw-prose-quote-borders, hsl(var(--border)));
+  color: var(--tw-prose-quotes, hsl(var(--foreground)));
+  font-style: italic;
+  padding-left: 1em;
+}
+
+.prose :where(img) {
+  max-width: 100%;
+  height: auto;
+}
+
+.prose :where(code) {
+  color: var(--tw-prose-code, hsl(var(--foreground)));
+  font-size: 0.875em;
+  font-weight: 600;
+}
+
+.prose :where(pre) {
+  background: var(--tw-prose-pre-bg, hsl(var(--muted)));
+  border-radius: 0.5rem;
+  overflow-x: auto;
+  padding: 1rem;
+}
+
+.prose :where(hr) {
+  border-color: var(--tw-prose-hr, hsl(var(--border)));
+  margin: 2.5em 0;
+}
+
+.prose-headings\:font-bold :where(h1, h2, h3, h4) {
+  font-weight: 700;
+}
+
+.prose-headings\:tracking-tight :where(h1, h2, h3, h4) {
+  letter-spacing: -0.025em;
+}
+
+.prose-a\:text-primary a {
+  color: hsl(var(--primary));
+}
+
+.prose-a\:no-underline a {
+  text-decoration-line: none;
+}
+
+.hover\:prose-a\:underline:hover a {
+  text-decoration-line: underline;
+}
+
+.prose-a\:font-medium a {
+  font-weight: 500;
+}
+
+.prose-img\:rounded-lg img {
+  border-radius: var(--radius-lg);
+}
+
+.prose-blockquote\:border-l-primary blockquote {
+  border-left-color: hsl(var(--primary));
+}
+
+.prose-blockquote\:not-italic blockquote {
+  font-style: normal;
+}
+
+.prose-figure\:my-0 figure {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.prose-strong\:text-foreground strong {
+  color: hsl(var(--foreground));
+}
+
+.dark .dark\:prose-invert {
+  --tw-prose-body: hsl(var(--foreground));
+  --tw-prose-headings: hsl(var(--foreground));
+  --tw-prose-links: hsl(var(--primary));
+  --tw-prose-bold: hsl(var(--foreground));
+  --tw-prose-quotes: hsl(var(--foreground));
+  --tw-prose-quote-borders: hsl(var(--border));
+  --tw-prose-code: hsl(var(--foreground));
+  --tw-prose-pre-bg: hsl(var(--muted));
+  --tw-prose-hr: hsl(var(--border));
+}
 
 /* Utility: hide scrollbar but keep scroll functionality */
 .scrollbar-hide {

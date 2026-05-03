@@ -10,12 +10,23 @@ import {
 } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
-import { localeToLanguage, PUBLIC_LOCALE_HEADER_NAMES } from "@/lib/seo/locale-routing";
+import {
+  localeToLanguage,
+  PUBLIC_LOCALE_HEADER_NAMES,
+} from "@/lib/seo/locale-routing";
 
 // Optimized font loading with next/font (automatic swap, self-hosted)
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
-const manrope = Manrope({ subsets: ["latin"], variable: "--font-studio-ui", display: "swap" });
-const jetBrainsMono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-studio-mono", display: "swap" });
+const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
+const manrope = Manrope({
+  subsets: ["latin"],
+  variable: "--font-studio-ui",
+  display: "swap",
+});
+const jetBrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-studio-mono",
+  display: "swap",
+});
 
 const bricolage = Bricolage_Grotesque({
   subsets: ["latin"],
@@ -40,13 +51,18 @@ const montserrat = Montserrat({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_URL || 'https://studio.bukeer.com'),
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_URL || "https://studio.bukeer.com",
+  ),
   title: "Colombia Tours - Descubre la Magia de Colombia",
-  description: "Explora Colombia con nosotros. Tours personalizados, experiencias únicas y los mejores destinos del país.",
-  keywords: "tours colombia, viajes colombia, paquetes turísticos, cartagena, bogotá, medellín",
+  description:
+    "Explora Colombia con nosotros. Tours personalizados, experiencias únicas y los mejores destinos del país.",
+  keywords:
+    "tours colombia, viajes colombia, paquetes turísticos, cartagena, bogotá, medellín",
   openGraph: {
     title: "Colombia Tours - Descubre la Magia de Colombia",
-    description: "Explora Colombia con nosotros. Tours personalizados y experiencias únicas.",
+    description:
+      "Explora Colombia con nosotros. Tours personalizados y experiencias únicas.",
     images: ["/images/og-image.jpg"],
   },
 };
@@ -59,7 +75,9 @@ export default async function RootLayout({
   const headerList = await headers();
   const htmlLang =
     headerList.get(PUBLIC_LOCALE_HEADER_NAMES.lang) ||
-    localeToLanguage(headerList.get(PUBLIC_LOCALE_HEADER_NAMES.resolvedLocale) || 'es-CO');
+    localeToLanguage(
+      headerList.get(PUBLIC_LOCALE_HEADER_NAMES.resolvedLocale) || "es-CO",
+    );
 
   return (
     <html
@@ -75,6 +93,9 @@ export default async function RootLayout({
         "font-sans",
       )}
     >
+      <head>
+        <link rel="stylesheet" href="/vendor/maplibre-gl.css" />
+      </head>
       <body className="font-sans antialiased">
         <script
           id="global-name-helper"
