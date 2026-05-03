@@ -2,6 +2,7 @@
 
 Related SPEC: [SPEC_GROWTH_OS_SYMPHONY_ORCHESTRATOR](../specs/SPEC_GROWTH_OS_SYMPHONY_ORCHESTRATOR.md)  
 Related EPIC: [#310](https://github.com/weppa-cloud/bukeer-studio/issues/310)
+Runtime docs: [docs/runtime/growth-orchestrator](../runtime/growth-orchestrator/README.md)
 
 ## Runtime Decision
 
@@ -125,6 +126,10 @@ The deployment script:
 - copies the repo compose file to `/opt/growth-os/docker-compose.yml`;
 - rebuilds/restarts `growth-orchestrator`;
 - runs Node syntax checks, `codex login status` and `--configSmoke`.
+
+Canonical runtime code now lives in `runtime/growth-orchestrator`. The
+`scripts/growth/*` entrypoints remain compatibility wrappers for existing
+runbooks, Compose commands and issue references.
 
 Rollback:
 
