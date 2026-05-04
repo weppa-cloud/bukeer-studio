@@ -1,0 +1,4 @@
+Campaign,Ad Group,Device,Bid Adjustment
+[EJEMPLO_BORRAR_MOBILE_UP],,Mobile,+15%
+[EJEMPLO_BORRAR_TABLET_DOWN],,Tablet,-30%
+[EJEMPLO_BORRAR_DESKTOP_BASE],,Desktop,+0%

@@ -1,0 +1,45 @@
+Campaign,Ad Group,Keyword,Type,Notes
+<Account-level>,,gratis,Negative Phrase,Off-budget audience
+<Account-level>,,barato,Negative Phrase,Off-budget audience
+<Account-level>,,low cost,Negative Phrase,Off-budget audience
+<Account-level>,,low-cost,Negative Phrase,Off-budget audience
+<Account-level>,,mochilero,Negative Phrase,Off-budget audience
+<Account-level>,,mochileros,Negative Phrase,Off-budget audience
+<Account-level>,,hostel,Negative Phrase,Off-budget audience
+<Account-level>,,hostels,Negative Phrase,Off-budget audience
+<Account-level>,,albergue,Negative Phrase,Off-budget audience
+<Account-level>,,couchsurfing,Negative Phrase,Off-budget audience
+<Account-level>,,backpacking,Negative Phrase,Off-budget audience
+<Account-level>,,empleo,Negative Phrase,Off-topic
+<Account-level>,,trabajo,Negative Phrase,Off-topic
+<Account-level>,,becas,Negative Phrase,Off-topic
+<Account-level>,,estudiar,Negative Phrase,Off-topic
+<Account-level>,,wikipedia,Negative Phrase,Info query
+<Account-level>,,noticias,Negative Phrase,Info query
+<Account-level>,,historia colombia,Negative Phrase,Info query
+<Account-level>,,bandera,Negative Phrase,Info query
+<Account-level>,,que llevar,Negative Phrase,Info query
+<Account-level>,,como llegar,Negative Phrase,Info query
+<Account-level>,,mapa,Negative Phrase,Info query
+<Account-level>,,clima,Negative Phrase,Info query
+<Account-level>,,cultura colombiana,Negative Phrase,Info query
+<Account-level>,,embajada,Negative Phrase,Trámites
+<Account-level>,,consulado,Negative Phrase,Trámites
+<Account-level>,,pasaporte,Negative Phrase,Trámites
+<Account-level>,,visa,Negative Phrase,Trámites
+<Account-level>,,vacunas,Negative Phrase,Trámites
+<Account-level>,,requisitos viajar,Negative Phrase,Trámites
+<Account-level>,,seguridad colombia,Negative Phrase,Info/seguridad
+<Account-level>,,es seguro viajar,Negative Phrase,Info/seguridad
+<Account-level>,,criminalidad,Negative Phrase,Info/seguridad
+<Account-level>,,zonas peligrosas,Negative Phrase,Info/seguridad
+<Account-level>,,is colombia safe,Negative Phrase,Info/seguridad EN
+<Account-level>,,colombia dangers,Negative Phrase,Info/seguridad EN
+<Account-level>,,vivir colombia,Negative Phrase,Off-topic emigración
+<Account-level>,,emigrar,Negative Phrase,Off-topic emigración
+<Account-level>,,trabajar colombia,Negative Phrase,Off-topic emigración
+<Account-level>,,traduccion,Negative Phrase,Off-topic
+<Account-level>,,pablo escobar,Negative Phrase,Off-brand (no narcos)
+<Account-level>,,narcos,Negative Phrase,Off-brand
+<Account-level>,,cocaine,Negative Phrase,Off-brand
+<Account-level>,,drug tourism,Negative Phrase,Off-brand

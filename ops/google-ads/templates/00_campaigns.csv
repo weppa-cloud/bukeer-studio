@@ -1,0 +1,2 @@
+Campaign,Campaign Type,Campaign Status,Campaign Daily Budget,Start Date,Networks,Languages,Locations,Bid Strategy Type,Campaign Tracking Template,Final URL Suffix,Labels
+[EJEMPLO_BORRAR],Search,Paused,80000,05/15/2026,Google Search,es,2484,Maximize conversions,,utm_source=google&utm_medium=cpc&utm_campaign={campaignid},MX;Mes1

@@ -1,0 +1,4 @@
+Campaign,Ad Group,Age,Gender,Household Income,Bid Adjustment,Status
+[EJEMPLO_BORRAR_INCOME_TOP_10],,,Top 10%,+20%,Paused
+[EJEMPLO_BORRAR_AGE_25_44],,25-34;35-44,,,+0%,Paused
+[EJEMPLO_BORRAR_EXCLUYE_18_24],,18-24,,,Excluded,Paused
