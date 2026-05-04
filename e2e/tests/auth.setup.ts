@@ -116,9 +116,9 @@ async function writeProgrammaticAuthState(opts: {
   const projectRef = new URL(supabaseUrl).hostname.split(".")[0];
   const origin = new URL(opts.baseURL);
   const session = data.session;
-  const cookieValue = `base64-${Buffer.from(JSON.stringify(session)).toString(
-    "base64",
-  )}`;
+  const cookieValue = `base64-${Buffer.from(
+    JSON.stringify([session.access_token, session.refresh_token]),
+  ).toString("base64url")}`;
 
   fs.mkdirSync(path.dirname(authFile), { recursive: true });
   fs.writeFileSync(
@@ -168,11 +168,12 @@ setup("authenticate", async ({ page, baseURL }) => {
   const resolvedBaseURL = baseURL ?? "http://localhost:3000";
 
   if (
-    await writeProgrammaticAuthState({
+    process.env.GROWTH_OS_UI_E2E_ENABLED !== "true" &&
+    (await writeProgrammaticAuthState({
       email,
       password,
       baseURL: resolvedBaseURL,
-    })
+    }))
   ) {
     return;
   }
