@@ -199,6 +199,10 @@ test.describe("Growth OS console UI contract @growth-os-ui", () => {
     const hasChangeSet = await firstChangeSet.isVisible().catch(() => false);
     if (hasChangeSet) {
       await expect(firstChangeSet).toContainText(/vista previa|acción real/i);
+      await expect(firstChangeSet).not.toContainText("[object Object]");
+      await expect(firstChangeSet).toContainText(
+        /próximas tareas sugeridas|trabajo creado en backlog/i,
+      );
       await expect(
         firstChangeSet.getByRole("button", {
           name: /aprobar propuesta|approve/i,

@@ -293,6 +293,15 @@ type CandidateKind = "memory" | "skill" | "replay";
 type CandidateDecision = "approve" | "reject";
 type ChangeSetDecision = "approve" | "reject";
 
+interface FollowUpBacklogTask {
+  title: string;
+  lane: string | null;
+  instructions: string;
+  workType: string;
+  requiresHumanReview: boolean;
+  source: Record<string, unknown>;
+}
+
 const CANDIDATE_TABLE: Record<CandidateKind, string> = {
   memory: "growth_agent_memories",
   skill: "growth_agent_skills",
@@ -421,6 +430,255 @@ function requiredGrowthRoleForChangeSet(
   }
 }
 
+function safeRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function optionalString(value: unknown): string | null {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function stableString(value: unknown): string {
+  if (value === null || value === undefined) return "";
+  if (typeof value !== "object") return String(value);
+  return JSON.stringify(
+    value,
+    Object.keys(value as Record<string, unknown>).sort(),
+  );
+}
+
+function fingerprint(...parts: unknown[]): string {
+  const input = parts.map(stableString).join("|");
+  let h1 = 0xdeadbeef;
+  let h2 = 0x41c6ce57;
+  for (let i = 0; i < input.length; i += 1) {
+    const ch = input.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 =
+    Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^
+    Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 =
+    Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^
+    Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return `${(h2 >>> 0).toString(16).padStart(8, "0")}${(h1 >>> 0)
+    .toString(16)
+    .padStart(8, "0")}`;
+}
+
+function workTypeForFollowUp(task: Record<string, unknown>): string {
+  const explicit = optionalString(task.work_type);
+  if (explicit) return explicit;
+
+  const lane = optionalString(task.target_lane) ?? optionalString(task.lane);
+  if (lane === "technical_remediation") return "technical_remediation";
+  if (lane === "transcreation") return "transcreation";
+  if (lane === "content_creator") return "seo_content";
+  if (lane === "content_curator") return "cro_activation";
+  return "growth_opportunity";
+}
+
+function ownerRoleForWorkType(workType: string): string {
+  if (workType.includes("technical")) return "A4";
+  if (workType.includes("cro") || workType.includes("tracking")) return "A3";
+  return "A5";
+}
+
+function ownerIssueForWorkType(workType: string): string {
+  if (workType.includes("technical")) return "#313";
+  if (workType.includes("transcreation") || workType.includes("locale")) {
+    return "#315";
+  }
+  if (workType.includes("content")) return "#314";
+  if (workType.includes("serp") || workType.includes("seo")) return "#321";
+  return "#310";
+}
+
+function successMetricForWorkType(workType: string): string {
+  if (workType.includes("technical")) {
+    return "El hallazgo técnico queda resuelto en el siguiente smoke/crawl comparable.";
+  }
+  if (workType.includes("cro")) {
+    return "La activación o conversión mejora en la siguiente ventana comparable de GA4/funnel.";
+  }
+  if (workType.includes("transcreation") || workType.includes("locale")) {
+    return "La versión localizada pasa revisión humana y mantiene intención, tono y SEO por mercado.";
+  }
+  return "Clicks, CTR, impresiones o calidad editorial mejoran en la siguiente revisión comparable.";
+}
+
+function normalizeFollowUpBacklogTasks(
+  previewPayload: Record<string, unknown>,
+): FollowUpBacklogTask[] {
+  const value = previewPayload.follow_up_tasks;
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .slice(0, 10)
+    .map((item, index) => {
+      if (typeof item === "string") {
+        const title = item.trim();
+        if (!title) return null;
+        return {
+          title,
+          lane: null,
+          instructions: title,
+          workType: "growth_opportunity",
+          requiresHumanReview: true,
+          source: { raw: title },
+        };
+      }
+
+      const task = safeRecord(item);
+      const title =
+        optionalString(task.title) ??
+        optionalString(task.name) ??
+        optionalString(task.summary) ??
+        `Tarea de seguimiento ${index + 1}`;
+      const instructions =
+        optionalString(task.instructions) ??
+        optionalString(task.description) ??
+        optionalString(task.next_action) ??
+        title;
+      return {
+        title,
+        lane:
+          optionalString(task.target_lane) ??
+          optionalString(task.lane) ??
+          optionalString(task.owner_lane),
+        instructions,
+        workType: workTypeForFollowUp(task),
+        requiresHumanReview:
+          typeof task.requires_human_review === "boolean"
+            ? task.requires_human_review
+            : true,
+        source: task,
+      };
+    })
+    .filter((task): task is FollowUpBacklogTask => Boolean(task));
+}
+
+async function createFollowUpBacklogItems(opts: {
+  admin: ReturnType<typeof createSupabaseServiceRoleClient>;
+  accountId: string;
+  websiteId: string;
+  runId: string;
+  changeSet: {
+    id: string;
+    locale: string;
+    market: string;
+    agent_lane: string;
+    change_type: string;
+    title: string;
+    summary: string;
+    source_table: string | null;
+    source_id: string | null;
+    preview_payload: Record<string, unknown>;
+    evidence: Record<string, unknown>;
+  };
+  userId: string;
+  reviewedAt: string;
+}) {
+  const tasks = normalizeFollowUpBacklogTasks(opts.changeSet.preview_payload);
+  if (tasks.length === 0) {
+    return { ids: [] as string[], rows: [] as Array<Record<string, unknown>> };
+  }
+
+  const rows = tasks.map((task, index) => {
+    const itemKey = fingerprint(
+      "change-set-follow-up",
+      opts.websiteId,
+      opts.changeSet.id,
+      index,
+      task.title,
+      task.workType,
+    );
+    const entityKey =
+      optionalString(task.source.entity_key) ??
+      optionalString(task.source.url) ??
+      optionalString(task.source.page_url) ??
+      `change-set:${opts.changeSet.id}:${index + 1}`;
+    const sourceRefs = Array.isArray(opts.changeSet.evidence.source_refs)
+      ? opts.changeSet.evidence.source_refs
+      : Array.isArray(opts.changeSet.preview_payload.source_refs)
+        ? opts.changeSet.preview_payload.source_refs
+        : [];
+
+    return {
+      account_id: opts.accountId,
+      website_id: opts.websiteId,
+      candidate_id: null,
+      item_key: itemKey,
+      entity_type: optionalString(task.source.entity_type) ?? "agent_follow_up",
+      entity_key: entityKey,
+      work_type: task.workType,
+      title: task.title,
+      market: opts.changeSet.market,
+      locale: opts.changeSet.locale,
+      channel: optionalString(task.source.channel) ?? "growth_os",
+      source_profiles: ["codex_runtime_change_set"],
+      source_fact_refs: [
+        `growth_agent_runs:${opts.runId}`,
+        `growth_agent_change_sets:${opts.changeSet.id}`,
+        ...sourceRefs.map((ref) => String(ref)),
+      ],
+      baseline:
+        optionalString(task.source.baseline) ??
+        `Propuesta creada por el agente a partir de: ${opts.changeSet.title}`,
+      hypothesis:
+        optionalString(task.source.hypothesis) ??
+        `Si el equipo ejecuta "${task.title}", el ciclo Growth OS avanza con evidencia y control humano.`,
+      priority_score: Number(task.source.priority_score ?? 55),
+      confidence_score: Number(task.source.confidence_score ?? 0.7),
+      independence_key: `agent_follow_up:${opts.changeSet.id}:${task.workType}:${entityKey}`,
+      owner_role:
+        optionalString(task.source.owner_role) ??
+        ownerRoleForWorkType(task.workType),
+      owner_issue:
+        optionalString(task.source.owner_issue) ??
+        ownerIssueForWorkType(task.workType),
+      next_action: task.instructions,
+      success_metric:
+        optionalString(task.source.success_metric) ??
+        successMetricForWorkType(task.workType),
+      evaluation_date: null,
+      status: task.requiresHumanReview ? "ready_for_brief" : "queued",
+      blocked_reason: null,
+      evidence: {
+        source: "growth_agent_change_set_approval",
+        created_by_user_id: opts.userId,
+        created_at: opts.reviewedAt,
+        run_id: opts.runId,
+        change_set_id: opts.changeSet.id,
+        change_set_type: opts.changeSet.change_type,
+        parent_source_table: opts.changeSet.source_table,
+        parent_source_id: opts.changeSet.source_id,
+        agent_lane: opts.changeSet.agent_lane,
+        human_governance:
+          "Created as follow-up backlog after Curator approval. Publishing, paid mutation, transcreation merge and experiment activation remain separately gated.",
+        follow_up_task: task.source,
+      },
+    };
+  });
+
+  const { data, error } = await opts.admin
+    .from("growth_backlog_items")
+    .upsert(rows, { onConflict: "website_id,item_key" })
+    .select("id, item_key, title, status, work_type");
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return {
+    ids: (data ?? []).map((row) => String(row.id)),
+    rows: (data ?? []) as Array<Record<string, unknown>>,
+  };
+}
+
 async function reviewChangeSet(opts: {
   websiteId: string;
   runId: string;
@@ -434,7 +692,7 @@ async function reviewChangeSet(opts: {
   const { data: row, error: loadErr } = await admin
     .from("growth_agent_change_sets")
     .select(
-      "id, account_id, website_id, locale, market, run_id, source_table, source_id, agent_lane, change_type, status, title, summary, evidence, required_approval_role",
+      "id, account_id, website_id, locale, market, run_id, source_table, source_id, agent_lane, change_type, status, title, summary, preview_payload, evidence, required_approval_role",
     )
     .eq("account_id", accountId)
     .eq("website_id", opts.websiteId)
@@ -460,6 +718,7 @@ async function reviewChangeSet(opts: {
     status: string;
     title: string;
     summary: string;
+    preview_payload: Record<string, unknown> | null;
     evidence: Record<string, unknown> | null;
     required_approval_role: string | null;
   };
@@ -494,11 +753,45 @@ async function reviewChangeSet(opts: {
     !Array.isArray(changeSet.evidence)
       ? changeSet.evidence
       : {};
+  const previewPayload = safeRecord(changeSet.preview_payload);
+
+  let createdFollowUps: {
+    ids: string[];
+    rows: Array<Record<string, unknown>>;
+  } = { ids: [], rows: [] };
+  let followUpError: string | null = null;
+
+  if (opts.decision === "approve") {
+    try {
+      createdFollowUps = await createFollowUpBacklogItems({
+        admin,
+        accountId,
+        websiteId: opts.websiteId,
+        runId: opts.runId,
+        userId,
+        reviewedAt: now,
+        changeSet: {
+          ...changeSet,
+          preview_payload: previewPayload,
+          evidence: existingEvidence,
+        },
+      });
+    } catch (error) {
+      followUpError =
+        error instanceof Error
+          ? error.message
+          : "Could not create follow-up backlog items.";
+    }
+  }
 
   const { error: updateErr } = await admin
     .from("growth_agent_change_sets")
     .update({
-      status: nextStatus,
+      status:
+        opts.decision === "approve" && followUpError
+          ? "changes_requested"
+          : nextStatus,
+      created_backlog_item_id: createdFollowUps.ids[0] ?? null,
       approved_by: opts.decision === "approve" ? userId : null,
       approved_at: opts.decision === "approve" ? now : null,
       evidence: {
@@ -512,6 +805,20 @@ async function reviewChangeSet(opts: {
         },
         business_mutation_applied: false,
         publish_applied: false,
+        follow_up_backlog_materialization:
+          opts.decision === "approve"
+            ? {
+                attempted: true,
+                created_count: createdFollowUps.rows.length,
+                created_items: createdFollowUps.rows,
+                error: followUpError,
+              }
+            : {
+                attempted: false,
+                created_count: 0,
+                created_items: [],
+                error: null,
+              },
       },
       updated_at: now,
     })
@@ -557,6 +864,8 @@ async function reviewChangeSet(opts: {
       status: nextStatus,
       business_mutation_applied: false,
       requires_separate_apply_gate: true,
+      follow_up_backlog_items_created: createdFollowUps.rows,
+      follow_up_backlog_error: followUpError,
     },
   });
 
@@ -578,9 +887,11 @@ async function reviewChangeSet(opts: {
       event_type: "review_required",
       severity: opts.decision === "approve" ? "info" : "warn",
       message:
-        opts.decision === "approve"
-          ? "Human approved a change set; no business mutation applied."
-          : "Human rejected a change set; no business mutation applied.",
+        opts.decision === "approve" && createdFollowUps.rows.length > 0
+          ? "Human approved a change set; follow-up backlog items were created without publishing or paid mutation."
+          : opts.decision === "approve"
+            ? "Human approved a change set; no business mutation applied."
+            : "Human rejected a change set; no business mutation applied.",
       payload: {
         decision: opts.decision,
         reviewer_id: userId,
@@ -588,6 +899,8 @@ async function reviewChangeSet(opts: {
         change_set_id: opts.changeSetId,
         change_type: changeSet.change_type,
         next_status: nextStatus,
+        follow_up_backlog_items_created: createdFollowUps.rows,
+        follow_up_backlog_error: followUpError,
       },
       occurred_at: now,
     });
@@ -604,9 +917,13 @@ async function reviewChangeSet(opts: {
   revalidatePath(`/dashboard/${opts.websiteId}/growth/agents`);
   revalidatePath(`/dashboard/${opts.websiteId}/growth/data-health`);
   revalidatePath(`/dashboard/${opts.websiteId}/growth/overview`);
+  revalidatePath(`/dashboard/${opts.websiteId}/growth/backlog`);
   return {
     ok: true,
-    message: `Change set ${opts.decision}d.`,
+    message:
+      opts.decision === "approve" && createdFollowUps.rows.length > 0
+        ? `Change set approved; ${createdFollowUps.rows.length} follow-up backlog item(s) created.`
+        : `Change set ${opts.decision}d.`,
   };
 }
 

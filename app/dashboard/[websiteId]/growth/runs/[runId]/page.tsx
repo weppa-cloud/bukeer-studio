@@ -164,6 +164,14 @@ const CHANGE_TYPE_LABELS: Record<string, string> = {
   research_packet: "Paquete de investigación",
 };
 
+const WORK_TYPE_LABELS: Record<string, string> = {
+  cro_activation: "Activación CRO",
+  growth_opportunity: "Oportunidad Growth",
+  seo_content: "Contenido SEO",
+  technical_remediation: "Corrección técnica",
+  transcreation: "Transcreación",
+};
+
 const RISK_LABELS: Record<string, string> = {
   low: "Riesgo bajo",
   medium: "Riesgo medio",
@@ -194,7 +202,17 @@ function humanizeToken(value: unknown): string {
   if (value == null) return "—";
   const raw = String(value).trim();
   if (!raw) return "—";
+  if (raw.toLowerCase() === "seo_qa" || raw.toLowerCase() === "seo qa") {
+    return "SEO QA";
+  }
+  if (raw.toLowerCase() === "growth_os") return "Growth OS";
   return raw.replace(/_/g, " ");
+}
+
+function humanizeLane(value: unknown): string {
+  if (value == null) return "—";
+  const key = String(value).trim();
+  return LANE_LABELS[key] ?? humanizeToken(key);
 }
 
 function labelFromMap(value: unknown, labels: Record<string, string>): string {
@@ -290,6 +308,27 @@ function previewText(
   const value = payload[key];
   if (typeof value === "string" && value.trim()) return value.trim();
   return null;
+}
+
+function materializedBacklogItems(evidence: Record<string, unknown>): Array<{
+  id: string | null;
+  title: string;
+  status: string | null;
+  workType: string | null;
+}> {
+  const materialization = asRecord(evidence.follow_up_backlog_materialization);
+  const created = materialization.created_items;
+  if (!Array.isArray(created)) return [];
+
+  return created.slice(0, 10).map((item, index) => {
+    const row = asRecord(item);
+    return {
+      id: optionalText(row.id),
+      title: optionalText(row.title) ?? `Tarea creada ${index + 1}`,
+      status: optionalText(row.status),
+      workType: optionalText(row.work_type),
+    };
+  });
 }
 
 function changeSetCanBeReviewed(status: string): boolean {
@@ -483,7 +522,8 @@ function ChangeSetWorkCard({
   const references = compactList(
     changeSet.preview_payload.source_refs ?? changeSet.evidence.source_refs,
   );
-  const followUps = normalizeFollowUpTasks(changeSet.preview_payload, 3);
+  const followUps = normalizeFollowUpTasks(changeSet.preview_payload, 10);
+  const createdBacklogItems = materializedBacklogItems(changeSet.evidence);
   const preview =
     previewText(changeSet.preview_payload, "preview_text") ??
     previewText(changeSet.after_snapshot, "title") ??
@@ -568,7 +608,9 @@ function ChangeSetWorkCard({
             Acción real
           </div>
           <div className="mt-1 text-sm font-medium">
-            Solo deja evidencia y borrador
+            {createdBacklogItems.length > 0
+              ? "Creó tarea de backlog"
+              : "Solo deja evidencia y borrador"}
           </div>
         </div>
         <div className="rounded-md border border-[var(--studio-border)] p-3">
@@ -599,7 +641,7 @@ function ChangeSetWorkCard({
       {followUps.length > 0 ? (
         <div className="mt-3">
           <div className="text-xs font-medium text-[var(--studio-text-muted)]">
-            Próximas tareas sugeridas
+            Próximas tareas sugeridas al aprobar
           </div>
           <ul className="mt-2 space-y-2 text-xs">
             {followUps.map((task) => (
@@ -612,7 +654,7 @@ function ChangeSetWorkCard({
                 </div>
                 <div className="mt-1 flex flex-wrap gap-2 text-[var(--studio-text-muted)]">
                   {task.lane ? (
-                    <span>Responsable: {humanizeToken(task.lane)}</span>
+                    <span>Responsable: {humanizeLane(task.lane)}</span>
                   ) : null}
                   {task.requiresHumanReview != null ? (
                     <span>
@@ -627,6 +669,43 @@ function ChangeSetWorkCard({
                     {task.instructions}
                   </p>
                 ) : null}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {createdBacklogItems.length > 0 ? (
+        <div
+          className="mt-3 rounded-md border border-[var(--studio-border)] bg-[var(--studio-surface-muted,theme(colors.zinc.50))] p-3"
+          data-testid="growth-change-set-created-backlog"
+        >
+          <div className="text-xs font-medium text-[var(--studio-text-muted)]">
+            Trabajo creado en backlog
+          </div>
+          <ul className="mt-2 space-y-2 text-xs">
+            {createdBacklogItems.map((item) => (
+              <li
+                key={item.id ?? item.title}
+                className="flex flex-col gap-1 rounded-md bg-[var(--studio-surface)] p-2 md:flex-row md:items-center md:justify-between"
+              >
+                <div>
+                  <div className="font-medium text-[var(--studio-text)]">
+                    {item.title}
+                  </div>
+                  <div className="text-[var(--studio-text-muted)]">
+                    {item.workType
+                      ? labelFromMap(item.workType, WORK_TYPE_LABELS)
+                      : "Backlog"}{" "}
+                    · {item.status ? humanizeToken(item.status) : "creada"}
+                  </div>
+                </div>
+                <Link
+                  href={`/dashboard/${websiteId}/growth/backlog`}
+                  className="text-xs font-medium underline"
+                >
+                  Ver en backlog
+                </Link>
               </li>
             ))}
           </ul>
