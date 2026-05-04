@@ -73,6 +73,7 @@ test.describe("Growth OS console UI contract @growth-os-ui", () => {
 
     const overviewTab = page.getByRole("link", { name: /command center/i });
     await expect(overviewTab).toBeVisible();
+    await expect(page.getByRole("link", { name: /workboard/i })).toBeVisible();
     await overviewTab.click();
 
     // Four canonical metric cards (counts may be zero on a fresh tenant —
@@ -173,6 +174,49 @@ test.describe("Growth OS console UI contract @growth-os-ui", () => {
     const runsEmpty = page.getByTestId("growth-runs-empty-state");
 
     await expect(runsList.or(runsEmpty)).toBeVisible();
+  });
+
+  test("Workboard tab loads Kanban agent operating center", async ({
+    page,
+  }) => {
+    await page.goto(`${growthConsoleUrl(tenantA)}/workboard`, GOTO_READY);
+    await page.waitForURL(/\/growth\/workboard/);
+
+    await expect(
+      page.getByRole("heading", { name: /growth symphony workboard/i }),
+    ).toBeVisible();
+    await expect(page.getByTestId("growth-workboard-summary")).toBeVisible();
+
+    const kanban = page.getByTestId("growth-workboard-kanban");
+    const empty = page.getByTestId("growth-workboard-empty-state");
+    await expect(kanban.or(empty)).toBeVisible();
+
+    if (await kanban.isVisible().catch(() => false)) {
+      for (const column of [
+        "backlog",
+        "assigned",
+        "running",
+        "ready_for_review",
+        "approved",
+        "next_task_created",
+        "done",
+      ]) {
+        await expect(
+          page.getByTestId(`growth-workboard-column-${column}`),
+        ).toBeVisible();
+      }
+      await expect(page.locator("body")).not.toContainText("[object Object]");
+
+      const firstCard = page.getByTestId("growth-workboard-card").first();
+      if (await firstCard.isVisible().catch(() => false)) {
+        await expect(firstCard).toContainText(/qué produjo|quién aprueba/i);
+        await expect(
+          firstCard
+            .getByRole("link", { name: /ver trabajo|ver backlog/i })
+            .first(),
+        ).toBeVisible();
+      }
+    }
   });
 
   test("Run detail works as a human work center with change sets", async ({

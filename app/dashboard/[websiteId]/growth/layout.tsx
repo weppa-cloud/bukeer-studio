@@ -37,6 +37,11 @@ const TABS: ReadonlyArray<{
     href: (id) => `/dashboard/${id}/growth/agents`,
   },
   {
+    slug: "workboard",
+    label: "Workboard",
+    href: (id) => `/dashboard/${id}/growth/workboard`,
+  },
+  {
     slug: "backlog",
     label: "Opportunities",
     href: (id) => `/dashboard/${id}/growth/backlog`,
