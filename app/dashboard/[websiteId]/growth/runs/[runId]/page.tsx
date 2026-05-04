@@ -211,6 +211,78 @@ function compactList(value: unknown, limit = 4): string[] {
     .slice(0, limit);
 }
 
+interface HumanFollowUpTask {
+  key: string;
+  title: string;
+  lane: string | null;
+  instructions: string | null;
+  requiresHumanReview: boolean | null;
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function optionalText(value: unknown): string | null {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function normalizeFollowUpTasks(
+  payload: Record<string, unknown>,
+  limit = 3,
+): HumanFollowUpTask[] {
+  const value = payload.follow_up_tasks;
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .slice(0, limit)
+    .map((item, index) => {
+      if (typeof item === "string") {
+        const title = item.trim();
+        return title
+          ? {
+              key: `${index}:${title}`,
+              title,
+              lane: null,
+              instructions: null,
+              requiresHumanReview: null,
+            }
+          : null;
+      }
+
+      const task = asRecord(item);
+      const title =
+        optionalText(task.title) ??
+        optionalText(task.name) ??
+        optionalText(task.summary) ??
+        optionalText(task.instructions) ??
+        `Tarea sugerida ${index + 1}`;
+      const lane =
+        optionalText(task.target_lane) ??
+        optionalText(task.lane) ??
+        optionalText(task.owner_lane);
+      const instructions =
+        optionalText(task.instructions) ??
+        optionalText(task.description) ??
+        optionalText(task.next_action);
+      const requiresHumanReview =
+        typeof task.requires_human_review === "boolean"
+          ? task.requires_human_review
+          : null;
+
+      return {
+        key: `${index}:${title}:${lane ?? ""}`,
+        title,
+        lane,
+        instructions,
+        requiresHumanReview,
+      };
+    })
+    .filter((task): task is HumanFollowUpTask => Boolean(task));
+}
+
 function previewText(
   payload: Record<string, unknown>,
   key: string,
@@ -408,8 +480,10 @@ function ChangeSetWorkCard({
   const requiredRole = changeSet.required_approval_role;
   const canReview = canReviewChangeSet(role, requiredRole);
   const reviewable = changeSetCanBeReviewed(changeSet.status);
-  const references = compactList(changeSet.preview_payload.source_refs);
-  const followUps = compactList(changeSet.preview_payload.follow_up_tasks, 3);
+  const references = compactList(
+    changeSet.preview_payload.source_refs ?? changeSet.evidence.source_refs,
+  );
+  const followUps = normalizeFollowUpTasks(changeSet.preview_payload, 3);
   const preview =
     previewText(changeSet.preview_payload, "preview_text") ??
     previewText(changeSet.after_snapshot, "title") ??
@@ -527,9 +601,33 @@ function ChangeSetWorkCard({
           <div className="text-xs font-medium text-[var(--studio-text-muted)]">
             Próximas tareas sugeridas
           </div>
-          <ul className="mt-1 list-disc space-y-1 pl-5 text-xs">
+          <ul className="mt-2 space-y-2 text-xs">
             {followUps.map((task) => (
-              <li key={task}>{task}</li>
+              <li
+                key={task.key}
+                className="rounded-md border border-[var(--studio-border)] bg-[var(--studio-surface-muted,theme(colors.zinc.50))] p-2"
+              >
+                <div className="font-medium text-[var(--studio-text)]">
+                  {task.title}
+                </div>
+                <div className="mt-1 flex flex-wrap gap-2 text-[var(--studio-text-muted)]">
+                  {task.lane ? (
+                    <span>Responsable: {humanizeToken(task.lane)}</span>
+                  ) : null}
+                  {task.requiresHumanReview != null ? (
+                    <span>
+                      {task.requiresHumanReview
+                        ? "Requiere revisión humana"
+                        : "No requiere revisión humana"}
+                    </span>
+                  ) : null}
+                </div>
+                {task.instructions ? (
+                  <p className="mt-1 text-[var(--studio-text)]">
+                    {task.instructions}
+                  </p>
+                ) : null}
+              </li>
             ))}
           </ul>
         </div>
