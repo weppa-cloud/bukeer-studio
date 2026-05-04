@@ -946,9 +946,13 @@ export async function middleware(request: NextRequest) {
     "PerplexityBot",
   ];
   if (AI_CRAWLERS.some((bot) => userAgent.includes(bot))) {
+    // Q2.3 of PR #428 review: AI crawlers never carry Ads click ids and call
+    // millions of requests/hour during indexing. Skip the click-id persist
+    // path entirely — saves cookie-write overhead per request without losing
+    // any attribution data (none exists for crawlers).
     const response = NextResponse.next();
     response.headers.set("X-Robots-Tag", "index, follow");
-    return persistClickIdsOnResponse(response, capturedClickIds);
+    return response;
   }
   // === END BLOG SEO PIPELINE ===
 
