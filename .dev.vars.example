@@ -39,3 +39,23 @@ CHATWOOT_WEBHOOK_SECRET=
 CHATWOOT_BASE_URL=
 CHATWOOT_API_ACCESS_TOKEN=
 CRM_CONVERSION_WEBHOOK_SECRET=
+
+# Google Ads — Offline Conversion Upload (F2 / EPIC #419)
+# Server-only. In production set via `wrangler secret put GOOGLE_ADS_*`.
+# Leave GOOGLE_ADS_OFFLINE_UPLOAD_ENABLED=false until conversion actions are
+# created in the Google Ads UI (SPEC AC2.2) AND tenant_overrides are populated
+# in event_destination_mapping (see migration 20260503120100). Until then the
+# dispatcher logs status='skipped'.
+GOOGLE_ADS_OFFLINE_UPLOAD_ENABLED=false
+# Developer token (https://developers.google.com/google-ads/api/docs/get-started/dev-token)
+GOOGLE_ADS_DEVELOPER_TOKEN=
+# MCC parent account id (digits only, no hyphens). Required only for MCC setups.
+GOOGLE_ADS_LOGIN_CUSTOMER_ID=
+# Customer id of the account that owns the conversion actions (digits only).
+GOOGLE_ADS_CUSTOMER_ID=
+# Auth strategy: 'service_account' (recommended) or 'oauth2_refresh_token'.
+GOOGLE_ADS_AUTH_TYPE=service_account
+# Path to the service-account JSON key file (used when AUTH_TYPE=service_account).
+GOOGLE_ADS_CREDENTIALS_PATH=
+# API version pin (default v18). Bump when Google deprecates.
+GOOGLE_ADS_API_VERSION=v18
