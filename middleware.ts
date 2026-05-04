@@ -1,4 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import {
+  captureClickIds,
+  setClickIdsCookie,
+  type ClickIdSet,
+} from "@/lib/analytics/gclid-capture";
 import { refreshAuthSession } from "@/lib/supabase/middleware-client";
 import {
   PUBLIC_LOCALE_HEADER_NAMES,
@@ -712,10 +717,34 @@ function applySitePreviewHeaders(response: NextResponse): NextResponse {
   return response;
 }
 
+/**
+ * Persist captured Ads click identifiers (gclid/gbraid/wbraid/fbclid) on a
+ * public-site response. No-op when nothing was captured. Safe to call from
+ * any branch — the function early-returns when `clickIds` is empty so
+ * middleware paths that never see Ads traffic stay zero-cost.
+ *
+ * SPEC AC2.1 / EPIC #419 / [[ADR-029]] §"Attribution capture".
+ */
+function persistClickIdsOnResponse(
+  response: NextResponse,
+  clickIds: ClickIdSet,
+): NextResponse {
+  if (Object.keys(clickIds).length === 0) return response;
+  return setClickIdsCookie(response, clickIds);
+}
+
 export async function middleware(request: NextRequest) {
   const url = request.nextUrl;
   const host = getRequestHost(request);
   const pathname = url.pathname;
+
+  // Capture Ads click identifiers (gclid/gbraid/wbraid/fbclid) from URL
+  // params on every request. The cookie write is applied only to public-
+  // site branches via `persistClickIdsOnResponse` — API routes, dashboard,
+  // editor, auth pages, static assets and `/site/*` preview routes
+  // intentionally pass through without touching the cookie because they
+  // don't carry Ads landing traffic. SPEC AC2.1 / F2 (#421).
+  const capturedClickIds = captureClickIds(request);
 
   if (host === COLOMBIA_TOURS_EN_HOST) {
     return redirectColombiaToursEnSubdomain(request);
@@ -919,7 +948,7 @@ export async function middleware(request: NextRequest) {
   if (AI_CRAWLERS.some((bot) => userAgent.includes(bot))) {
     const response = NextResponse.next();
     response.headers.set("X-Robots-Tag", "index, follow");
-    return response;
+    return persistClickIdsOnResponse(response, capturedClickIds);
   }
   // === END BLOG SEO PIPELINE ===
 
@@ -940,7 +969,10 @@ export async function middleware(request: NextRequest) {
         null;
 
       if (!subdomain) {
-        return NextResponse.next();
+        return persistClickIdsOnResponse(
+          NextResponse.next(),
+          capturedClickIds,
+        );
       }
 
       const website = await getWebsiteBySubdomain(subdomain, {
@@ -960,7 +992,10 @@ export async function middleware(request: NextRequest) {
         localeResolution.pathnameWithoutLang,
       );
       if (legacyRedirectResponse) {
-        return legacyRedirectResponse;
+        return persistClickIdsOnResponse(
+          legacyRedirectResponse,
+          capturedClickIds,
+        );
       }
 
       const missingBlogResponse = await tryMissingBlogNotFound(
@@ -969,7 +1004,10 @@ export async function middleware(request: NextRequest) {
         localeResolution,
       );
       if (missingBlogResponse) {
-        return missingBlogResponse;
+        return persistClickIdsOnResponse(
+          missingBlogResponse,
+          capturedClickIds,
+        );
       }
 
       if (potentialProductRoute) {
@@ -982,23 +1020,26 @@ export async function middleware(request: NextRequest) {
             : localeResolution.resolvedLanguage,
         );
         if (redirectResponse) {
-          return redirectResponse;
+          return persistClickIdsOnResponse(redirectResponse, capturedClickIds);
         }
       }
 
       // Rewrite to tenant route
-      return applyLocaleAwareTenantRewrite({
-        request,
-        sourceUrl: url,
-        pathnameWithoutLang: localeResolution.pathnameWithoutLang,
-        canonicalPathname: localeResolution.canonicalPathname,
-        originalPathname: localeResolution.originalPathname,
-        subdomain,
-        resolvedLocale: localeResolution.resolvedLocale,
-        defaultLocale: localeResolution.defaultLocale,
-        resolvedLanguage: localeResolution.resolvedLanguage,
-        hasLanguageSegment: localeResolution.hasLanguageSegment,
-      });
+      return persistClickIdsOnResponse(
+        applyLocaleAwareTenantRewrite({
+          request,
+          sourceUrl: url,
+          pathnameWithoutLang: localeResolution.pathnameWithoutLang,
+          canonicalPathname: localeResolution.canonicalPathname,
+          originalPathname: localeResolution.originalPathname,
+          subdomain,
+          resolvedLocale: localeResolution.resolvedLocale,
+          defaultLocale: localeResolution.defaultLocale,
+          resolvedLanguage: localeResolution.resolvedLanguage,
+          hasLanguageSegment: localeResolution.hasLanguageSegment,
+        }),
+        capturedClickIds,
+      );
     }
 
     // Production Bukeer domain handling
@@ -1019,7 +1060,7 @@ export async function middleware(request: NextRequest) {
 
     // Check if subdomain is reserved
     if (RESERVED_SUBDOMAINS.includes(subdomain.toLowerCase())) {
-      return NextResponse.next();
+      return persistClickIdsOnResponse(NextResponse.next(), capturedClickIds);
     }
 
     const website = await getWebsiteBySubdomain(subdomain);
@@ -1037,7 +1078,10 @@ export async function middleware(request: NextRequest) {
       localeResolution.pathnameWithoutLang,
     );
     if (legacyRedirectResponse) {
-      return legacyRedirectResponse;
+      return persistClickIdsOnResponse(
+        legacyRedirectResponse,
+        capturedClickIds,
+      );
     }
 
     const missingBlogResponse = await tryMissingBlogNotFound(
@@ -1046,7 +1090,7 @@ export async function middleware(request: NextRequest) {
       localeResolution,
     );
     if (missingBlogResponse) {
-      return missingBlogResponse;
+      return persistClickIdsOnResponse(missingBlogResponse, capturedClickIds);
     }
 
     if (potentialProductRoute) {
@@ -1059,23 +1103,26 @@ export async function middleware(request: NextRequest) {
           : localeResolution.resolvedLanguage,
       );
       if (redirectResponse) {
-        return redirectResponse;
+        return persistClickIdsOnResponse(redirectResponse, capturedClickIds);
       }
     }
 
     // Rewrite to tenant route
-    return applyLocaleAwareTenantRewrite({
-      request,
-      sourceUrl: url,
-      pathnameWithoutLang: localeResolution.pathnameWithoutLang,
-      canonicalPathname: localeResolution.canonicalPathname,
-      originalPathname: localeResolution.originalPathname,
-      subdomain,
-      resolvedLocale: localeResolution.resolvedLocale,
-      defaultLocale: localeResolution.defaultLocale,
-      resolvedLanguage: localeResolution.resolvedLanguage,
-      hasLanguageSegment: localeResolution.hasLanguageSegment,
-    });
+    return persistClickIdsOnResponse(
+      applyLocaleAwareTenantRewrite({
+        request,
+        sourceUrl: url,
+        pathnameWithoutLang: localeResolution.pathnameWithoutLang,
+        canonicalPathname: localeResolution.canonicalPathname,
+        originalPathname: localeResolution.originalPathname,
+        subdomain,
+        resolvedLocale: localeResolution.resolvedLocale,
+        defaultLocale: localeResolution.defaultLocale,
+        resolvedLanguage: localeResolution.resolvedLanguage,
+        hasLanguageSegment: localeResolution.hasLanguageSegment,
+      }),
+      capturedClickIds,
+    );
   } else {
     let website = await getWebsiteByCustomDomain(host);
 
@@ -1105,7 +1152,10 @@ export async function middleware(request: NextRequest) {
       localeResolution.pathnameWithoutLang,
     );
     if (legacyRedirectResponse) {
-      return legacyRedirectResponse;
+      return persistClickIdsOnResponse(
+        legacyRedirectResponse,
+        capturedClickIds,
+      );
     }
 
     const missingBlogResponse = await tryMissingBlogNotFound(
@@ -1114,7 +1164,7 @@ export async function middleware(request: NextRequest) {
       localeResolution,
     );
     if (missingBlogResponse) {
-      return missingBlogResponse;
+      return persistClickIdsOnResponse(missingBlogResponse, capturedClickIds);
     }
 
     if (potentialProductRoute) {
@@ -1127,26 +1177,29 @@ export async function middleware(request: NextRequest) {
           : localeResolution.resolvedLanguage,
       );
       if (redirectResponse) {
-        return redirectResponse;
+        return persistClickIdsOnResponse(redirectResponse, capturedClickIds);
       }
     }
 
     // Prefer the stable tenant pipeline for verified custom domains.
     // This avoids custom-domain-specific rendering divergence in Worker runtime.
     if (website?.subdomain) {
-      return applyLocaleAwareTenantRewrite({
-        request,
-        sourceUrl: url,
-        pathnameWithoutLang: localeResolution.pathnameWithoutLang,
-        canonicalPathname: localeResolution.canonicalPathname,
-        originalPathname: localeResolution.originalPathname,
-        subdomain: website.subdomain,
-        host,
-        resolvedLocale: localeResolution.resolvedLocale,
-        defaultLocale: localeResolution.defaultLocale,
-        resolvedLanguage: localeResolution.resolvedLanguage,
-        hasLanguageSegment: localeResolution.hasLanguageSegment,
-      });
+      return persistClickIdsOnResponse(
+        applyLocaleAwareTenantRewrite({
+          request,
+          sourceUrl: url,
+          pathnameWithoutLang: localeResolution.pathnameWithoutLang,
+          canonicalPathname: localeResolution.canonicalPathname,
+          originalPathname: localeResolution.originalPathname,
+          subdomain: website.subdomain,
+          host,
+          resolvedLocale: localeResolution.resolvedLocale,
+          defaultLocale: localeResolution.defaultLocale,
+          resolvedLanguage: localeResolution.resolvedLanguage,
+          hasLanguageSegment: localeResolution.hasLanguageSegment,
+        }),
+        capturedClickIds,
+      );
     }
 
     // Custom domain (e.g., miagencia.com)
@@ -1155,7 +1208,7 @@ export async function middleware(request: NextRequest) {
     newUrl.pathname = `/domain/${encodeURIComponent(host)}${pathname}`;
     const response = NextResponse.rewrite(newUrl);
     response.headers.set("x-custom-domain", host);
-    return response;
+    return persistClickIdsOnResponse(response, capturedClickIds);
   }
 }
 

@@ -109,3 +109,34 @@ NEXT_PUBLIC_MAIN_DOMAIN = "bukeer.com"
 [[env.dev.routes]]
 pattern = "dev.studio.bukeer.com/*"
 zone_name = "bukeer.com"
+
+# ── Production secrets (set via `wrangler secret put`) ─────────────────────
+#
+# DO NOT commit secret VALUES to this file. The list below documents the
+# secrets each environment requires so deployers know what to provision.
+#
+# Existing secrets:
+#   wrangler secret put NEXT_PUBLIC_SUPABASE_URL
+#   wrangler secret put NEXT_PUBLIC_SUPABASE_ANON_KEY
+#   wrangler secret put SUPABASE_SERVICE_ROLE_KEY
+#   wrangler secret put OPENROUTER_AUTH_TOKEN
+#   wrangler secret put REVALIDATE_SECRET
+#   wrangler secret put SITE_PREVIEW_TOKEN
+#   wrangler secret put META_PIXEL_ID
+#   wrangler secret put META_ACCESS_TOKEN
+#   wrangler secret put CHATWOOT_WEBHOOK_SECRET
+#   wrangler secret put CHATWOOT_API_ACCESS_TOKEN
+#   wrangler secret put CRM_CONVERSION_WEBHOOK_SECRET
+#
+# F2 / EPIC #419 — Google Ads offline conversion upload secrets:
+#   wrangler secret put GOOGLE_ADS_OFFLINE_UPLOAD_ENABLED   # 'true' to flip on
+#   wrangler secret put GOOGLE_ADS_DEVELOPER_TOKEN
+#   wrangler secret put GOOGLE_ADS_LOGIN_CUSTOMER_ID        # MCC parent (digits only)
+#   wrangler secret put GOOGLE_ADS_CUSTOMER_ID              # owns conversion actions
+#   wrangler secret put GOOGLE_ADS_AUTH_TYPE                # 'service_account' (default)
+#   wrangler secret put GOOGLE_ADS_CREDENTIALS_PATH         # service-account JSON path
+#   # GOOGLE_ADS_API_VERSION can be a [vars] entry (non-secret); defaults to v18.
+#
+# Per SPEC AC2.2 conversion actions must exist in the Google Ads UI before the
+# OFFLINE_UPLOAD_ENABLED flag is flipped to 'true', and per-tenant
+# conversion_action_ids must be populated in event_destination_mapping.tenant_overrides.

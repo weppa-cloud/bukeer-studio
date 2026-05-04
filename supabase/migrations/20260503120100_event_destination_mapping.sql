@@ -146,7 +146,7 @@ values
   ('waflow_submit', 'meta', 'Lead', null, true,
    'Today: routed via app/api/waflow/lead + lib/meta/conversions-api. F1 cutover migrates this to dispatcher.'),
   ('waflow_submit', 'google_ads', 'waflow_submit', null, true,
-   'NEW conversion action — created in Google Ads UI per AC2.2. Phase 2 (#332).'),
+   'NEW conversion action — created in Google Ads UI per AC2.2. F2 (#421). The numeric conversion_action_id MUST be stored in tenant_overrides (see column comment + lib/funnel/destinations/google-ads.ts). Until then the dispatcher returns status="skipped" reason="missing_conversion_action_id".'),
   ('waflow_submit', 'ga4', 'generate_lead', null, true, null),
   ('waflow_submit', 'tiktok', 'SubmitForm', null, false,
    'Disabled until TikTok pixel id is configured per tenant.'),
@@ -154,7 +154,7 @@ values
   -- quote_form_submit (Lead)
   ('quote_form_submit', 'meta', 'Lead', null, true, null),
   ('quote_form_submit', 'google_ads', 'quote_form_submit', null, true,
-   'NEW conversion action. Phase 2 (#332).'),
+   'NEW conversion action. F2 (#421). Per-tenant conversion_action_id stored in tenant_overrides.'),
   ('quote_form_submit', 'ga4', 'generate_lead', null, true, null),
   ('quote_form_submit', 'tiktok', 'SubmitForm', null, false, null),
 
@@ -169,21 +169,21 @@ values
   -- chatwoot_label_qualified (Qualify)
   ('chatwoot_label_qualified', 'meta_messaging', 'Lead', null, true, null),
   ('chatwoot_label_qualified', 'google_ads', 'qualified_lead', null, true,
-   'NEW conversion action. Replaces the broken lead_calificado_form action.'),
+   'NEW conversion action. Replaces the broken lead_calificado_form action. F2 (#421). Per-tenant conversion_action_id stored in tenant_overrides.'),
   ('chatwoot_label_qualified', 'ga4', 'qualify_lead', null, true, null),
 
   -- crm_lead_stage_qualified (Qualify) — Flutter-originated
   ('crm_lead_stage_qualified', 'meta', 'Lead', null, true,
    'Custom event: Meta Lead from website action_source even though origin is CRM (no messaging context).'),
   ('crm_lead_stage_qualified', 'google_ads', 'qualified_lead', null, true,
-   'Same Google Ads conversion action as chatwoot_label_qualified — Google dedupes by gclid+action+time.'),
+   'Same Google Ads conversion action as chatwoot_label_qualified — Google dedupes by gclid+action+time. F2 (#421). Per-tenant conversion_action_id stored in tenant_overrides.'),
   ('crm_lead_stage_qualified', 'ga4', 'qualify_lead', null, true, null),
 
   -- crm_quote_sent (Quote)
   ('crm_quote_sent', 'meta', 'InitiateCheckout', null, true,
    'Custom event mapped to InitiateCheckout to capture mid-funnel intent in Meta funnel reports.'),
   ('crm_quote_sent', 'google_ads', 'quote_sent', null, true,
-   'NEW conversion action. Phase 3 (#327).'),
+   'NEW conversion action. F2 (#421). Per-tenant conversion_action_id stored in tenant_overrides.'),
   ('crm_quote_sent', 'ga4', 'begin_checkout', null, true, null),
 
   -- crm_booking_confirmed (Booking) — sign-off 2026-05-03
@@ -214,4 +214,28 @@ comment on column public.event_destination_mapping.destination is
 comment on column public.event_destination_mapping.value_field is
   'Column from funnel_events to use as conversion value (currently only value_amount supported). NULL = event has no monetary value.';
 comment on column public.event_destination_mapping.tenant_overrides is
-  'Per-tenant config: { "<account_id>": { "destination_event_name": "...", "enabled": false } }. Phase 4 AC4.4.';
+  $cmt$Per-tenant config keyed by account_id (UUID). Schema:
+  {
+    "<account_id>": {
+      "conversion_action_id": "987654321",            -- google_ads only
+      "destination_event_name": "custom_lead_event",  -- override the default event name
+      "enabled": false                                -- hard-disable for this tenant
+    }
+  }
+  Phase 4 AC4.4. For destination='google_ads' the conversion_action_id is REQUIRED
+  per tenant — otherwise the dispatcher returns status='skipped'
+  reason='missing_conversion_action_id' and logs a warning.
+  See lib/funnel/destinations/google-ads.ts for resolution logic.$cmt$;
+
+-- Example tenant_overrides (idempotent, no-op if account_id doesn't exist):
+-- Uncomment and replace placeholders to wire ColombiaTours per-tenant ids.
+--
+-- update public.event_destination_mapping
+-- set tenant_overrides = jsonb_set(
+--   coalesce(tenant_overrides, '{}'::jsonb),
+--   ARRAY['<colombiatours_account_id_uuid>'],
+--   '{"conversion_action_id": "<numeric_id_from_google_ads_ui>"}'::jsonb,
+--   true
+-- )
+-- where destination = 'google_ads'
+--   and funnel_event_name in ('waflow_submit', 'qualified_lead', 'quote_sent', 'crm_booking_confirmed');
