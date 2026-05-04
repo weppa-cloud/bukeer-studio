@@ -209,11 +209,9 @@ test.describe("Growth OS console UI contract @growth-os-ui", () => {
 
       const firstCard = page.getByTestId("growth-workboard-card").first();
       if (await firstCard.isVisible().catch(() => false)) {
-        await expect(firstCard).toContainText(/qué produjo|quién aprueba/i);
+        await expect(firstCard).toContainText(/resultado|aprueba/i);
         await expect(
-          firstCard
-            .getByRole("link", { name: /ver trabajo|ver backlog/i })
-            .first(),
+          firstCard.getByRole("link", { name: /ver|backlog/i }).first(),
         ).toBeVisible();
       }
     }

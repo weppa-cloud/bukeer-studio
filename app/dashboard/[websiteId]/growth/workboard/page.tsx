@@ -61,6 +61,8 @@ const WORK_TYPE_LABELS: Record<string, string> = {
   transcreation: "Transcreación",
 };
 
+const MAX_CARDS_PER_COLUMN = 8;
+
 const SearchParamsSchema = z.object({
   lane: AgentLaneSchema.optional(),
   column: z.enum(WORKBOARD_COLUMNS).optional(),
@@ -98,9 +100,9 @@ function humanize(value: string | null | undefined): string {
 function fmtDate(iso: string | null | undefined): string {
   if (!iso) return "—";
   try {
-    return new Date(iso).toLocaleString("es-CO", {
-      dateStyle: "medium",
-      timeStyle: "short",
+    return new Date(iso).toLocaleDateString("es-CO", {
+      month: "short",
+      day: "numeric",
     });
   } catch {
     return "—";
@@ -151,90 +153,74 @@ function WorkboardCardView({
   const preview =
     card.preview ??
     "El agente todavía no dejó un resumen operable. Revisa el detalle técnico si existe.";
+  const risk = card.risk ? humanize(card.risk) : null;
 
   return (
     <article
       data-testid="growth-workboard-card"
-      className="rounded-md border border-[var(--studio-border)] bg-[var(--studio-surface)] p-3 shadow-sm"
+      className="group rounded-md border border-[var(--studio-border)] bg-[var(--studio-surface)] p-2 shadow-sm transition hover:border-[var(--studio-primary)]/50 hover:shadow-md"
     >
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex items-center justify-between gap-2">
         <StudioBadge tone={statusTone(card.column)}>
-          {COLUMN_LABELS[card.column]}
+          {LANE_LABELS[card.lane]}
         </StudioBadge>
-        <StudioBadge tone={riskTone(card.risk)}>
-          {card.risk ? humanize(card.risk) : "Riesgo no marcado"}
-        </StudioBadge>
+        {risk ? (
+          <StudioBadge tone={riskTone(card.risk)}>{risk}</StudioBadge>
+        ) : null}
       </div>
 
-      <h3 className="mt-2 text-sm font-semibold leading-snug text-[var(--studio-text)]">
+      <h3 className="mt-2 line-clamp-2 text-[13px] font-semibold leading-snug text-[var(--studio-text)]">
         {card.title}
       </h3>
 
-      <p className="mt-1 text-xs text-[var(--studio-text-muted)]">
-        {humanize(card.workType)} · {card.sourceLabel}
+      <p className="mt-1 truncate text-[11px] text-[var(--studio-text-muted)]">
+        {humanize(card.workType)} / {card.sourceLabel}
       </p>
 
-      <div className="mt-3 space-y-2 text-xs">
-        <div>
-          <div className="font-medium text-[var(--studio-text)]">
-            Qué produjo
-          </div>
-          <p className="mt-1 line-clamp-4 text-[var(--studio-text-muted)]">
-            {preview}
-          </p>
-        </div>
-        <div className="grid grid-cols-1 gap-2">
-          <div className="rounded border border-[var(--studio-border)] p-2">
-            <div className="text-[var(--studio-text-muted)]">Agente</div>
-            <div className="font-medium">
-              {card.agentName ?? LANE_LABELS[card.lane]}
-            </div>
-          </div>
-          <div className="rounded border border-[var(--studio-border)] p-2">
-            <div className="text-[var(--studio-text-muted)]">Quién aprueba</div>
-            <div className="font-medium">
-              {humanize(card.approvalRequirement)}
-            </div>
-          </div>
-        </div>
-      </div>
+      <p className="mt-2 line-clamp-2 text-xs leading-snug text-[var(--studio-text-muted)]">
+        <span className="font-medium text-[var(--studio-text)]">
+          Resultado:
+        </span>{" "}
+        {preview}
+      </p>
 
       {card.evidenceRefs.length > 0 ? (
-        <div className="mt-3">
-          <div className="text-xs font-medium text-[var(--studio-text-muted)]">
-            Evidencia principal
-          </div>
-          <ul className="mt-1 space-y-1 text-[11px] text-[var(--studio-text-muted)]">
-            {card.evidenceRefs.map((ref) => (
-              <li key={ref} className="truncate">
-                {ref}
-              </li>
-            ))}
-          </ul>
+        <div className="mt-2 truncate rounded border border-[var(--studio-border)] px-2 py-1 text-[11px] text-[var(--studio-text-muted)]">
+          Evidencia: {card.evidenceRefs[0]}
+          {card.evidenceRefs.length > 1
+            ? ` +${card.evidenceRefs.length - 1}`
+            : ""}
         </div>
       ) : null}
 
-      <div className="mt-3 flex flex-wrap items-center gap-2">
+      <div className="mt-2 flex items-center justify-between gap-2 text-[11px] text-[var(--studio-text-muted)]">
+        <span className="truncate">
+          Aprueba: {humanize(card.approvalRequirement)}
+        </span>
+        <span className="shrink-0">{fmtDate(card.updatedAt)}</span>
+      </div>
+
+      <div className="mt-2 flex flex-wrap items-center gap-2">
         {runHref ? (
-          <Link href={runHref} className="studio-button studio-button--primary">
-            Ver trabajo
+          <Link
+            href={runHref}
+            className="text-xs font-medium text-[var(--studio-primary)] hover:underline"
+          >
+            Ver
           </Link>
         ) : null}
         {card.column === "next_task_created" || card.backlogItemId ? (
           <Link
             href={backlogHref}
-            className="studio-button studio-button--outline"
+            className="text-xs font-medium text-[var(--studio-primary)] hover:underline"
           >
-            Ver backlog
+            Backlog
           </Link>
         ) : null}
-      </div>
-
-      <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-[var(--studio-text-muted)]">
-        <span>{fmtDate(card.updatedAt)}</span>
-        <span>Estado: {humanize(card.status)}</span>
         {card.humanDecision ? (
-          <span>Decisión: {humanize(card.humanDecision)}</span>
+          <span className="ml-auto truncate text-[11px] text-[var(--studio-text-muted)]">
+            {humanize(card.humanDecision)}
+          </span>
         ) : null}
       </div>
     </article>
@@ -252,7 +238,7 @@ function FilterBar({
     <div className="flex flex-wrap gap-2">
       <Link
         href={buildHref(websiteId, current, { lane: null, column: null })}
-        className="studio-button studio-button--outline"
+        className="studio-button studio-button--outline studio-button--sm"
       >
         Todo
       </Link>
@@ -260,14 +246,14 @@ function FilterBar({
         <Link
           key={lane}
           href={buildHref(websiteId, current, { lane })}
-          className="studio-button studio-button--outline"
+          className="studio-button studio-button--outline studio-button--sm"
         >
           {LANE_LABELS[lane]}
         </Link>
       ))}
       <Link
         href={buildHref(websiteId, current, { approval: "mine" })}
-        className="studio-button studio-button--outline"
+        className="studio-button studio-button--outline studio-button--sm"
       >
         Requiere aprobación
       </Link>
@@ -291,6 +277,7 @@ export default async function GrowthWorkboardPage({
   const result = await getGrowthWorkboard({
     accountId: auth.accountId,
     websiteId,
+    limit: 30,
   });
 
   const filteredCards = result.cards.filter((card) => {
@@ -299,12 +286,22 @@ export default async function GrowthWorkboardPage({
     if (filters.approval === "mine" && !cardNeedsApproval(card)) return false;
     return true;
   });
+  const cardsByColumn = new Map(
+    WORKBOARD_COLUMNS.map((column) => [
+      column,
+      filteredCards.filter((card) => card.column === column),
+    ]),
+  );
+  const visibleCardCount = WORKBOARD_COLUMNS.reduce((sum, column) => {
+    const cards = cardsByColumn.get(column) ?? [];
+    return sum + Math.min(cards.length, MAX_CARDS_PER_COLUMN);
+  }, 0);
 
   return (
     <StudioPage className="max-w-[1600px]">
       <StudioSectionHeader
         title="Growth Symphony Workboard"
-        subtitle="Kanban operativo del equipo de agentes: qué está tomando cada lane, qué produjo y qué necesita aprobación humana."
+        subtitle="Kanban operativo tipo Trello/Jira para ver el flujo de trabajo de los agentes con tarjetas compactas y detalle bajo demanda."
         actions={
           <div className="flex flex-wrap gap-2">
             <StudioBadge tone="info">Issue #430</StudioBadge>
@@ -337,37 +334,35 @@ export default async function GrowthWorkboardPage({
 
       <section
         data-testid="growth-workboard-summary"
-        className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-4"
+        className="mt-4 grid grid-cols-2 gap-2 md:grid-cols-4"
       >
-        <article className="rounded-md border border-[var(--studio-border)] p-3">
-          <div className="text-xs text-[var(--studio-text-muted)]">
-            Tarjetas visibles
+        <article className="rounded-md border border-[var(--studio-border)] px-3 py-2">
+          <div className="text-[11px] text-[var(--studio-text-muted)]">
+            En pantalla
           </div>
-          <div className="mt-1 text-2xl font-semibold">
-            {filteredCards.length}
-          </div>
+          <div className="mt-0.5 text-xl font-semibold">{visibleCardCount}</div>
         </article>
-        <article className="rounded-md border border-[var(--studio-border)] p-3">
-          <div className="text-xs text-[var(--studio-text-muted)]">
+        <article className="rounded-md border border-[var(--studio-border)] px-3 py-2">
+          <div className="text-[11px] text-[var(--studio-text-muted)]">
             Listas para revisar
           </div>
-          <div className="mt-1 text-2xl font-semibold">
+          <div className="mt-0.5 text-xl font-semibold">
             {result.countsByColumn.ready_for_review}
           </div>
         </article>
-        <article className="rounded-md border border-[var(--studio-border)] p-3">
-          <div className="text-xs text-[var(--studio-text-muted)]">
+        <article className="rounded-md border border-[var(--studio-border)] px-3 py-2">
+          <div className="text-[11px] text-[var(--studio-text-muted)]">
             Siguiente tarea creada
           </div>
-          <div className="mt-1 text-2xl font-semibold">
+          <div className="mt-0.5 text-xl font-semibold">
             {result.countsByColumn.next_task_created}
           </div>
         </article>
-        <article className="rounded-md border border-[var(--studio-border)] p-3">
-          <div className="text-xs text-[var(--studio-text-muted)]">
+        <article className="rounded-md border border-[var(--studio-border)] px-3 py-2">
+          <div className="text-[11px] text-[var(--studio-text-muted)]">
             Gobernanza
           </div>
-          <div className="mt-1 text-sm font-semibold">
+          <div className="mt-0.5 text-xs font-semibold">
             Publicación y pauta siguen gated
           </div>
         </article>
@@ -387,50 +382,60 @@ export default async function GrowthWorkboardPage({
       ) : (
         <section
           data-testid="growth-workboard-kanban"
-          className="mt-6 grid grid-cols-1 gap-3 xl:grid-cols-7"
+          className="mt-5 overflow-x-auto pb-4"
         >
-          {WORKBOARD_COLUMNS.map((column) => {
-            const cards = filteredCards.filter(
-              (card) => card.column === column,
-            );
-            return (
-              <div
-                key={column}
-                data-testid={`growth-workboard-column-${column}`}
-                className="min-h-40 rounded-md border border-[var(--studio-border)] bg-[var(--studio-surface-muted,theme(colors.zinc.50))] p-3"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <h2 className="text-sm font-semibold">
-                      {COLUMN_LABELS[column]}
-                    </h2>
-                    <p className="mt-1 text-xs text-[var(--studio-text-muted)]">
+          <div className="grid min-w-[1320px] grid-cols-7 gap-3">
+            {WORKBOARD_COLUMNS.map((column) => {
+              const cards = cardsByColumn.get(column) ?? [];
+              const visibleCards = cards.slice(0, MAX_CARDS_PER_COLUMN);
+              const hiddenCount = cards.length - visibleCards.length;
+              return (
+                <div
+                  key={column}
+                  data-testid={`growth-workboard-column-${column}`}
+                  className="flex max-h-[calc(100vh-300px)] min-h-48 flex-col rounded-md border border-[var(--studio-border)] bg-[var(--studio-surface-muted,theme(colors.zinc.50))] p-2"
+                >
+                  <div className="sticky top-0 z-10 bg-[var(--studio-surface-muted,theme(colors.zinc.50))] pb-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <h2 className="truncate text-sm font-semibold">
+                        {COLUMN_LABELS[column]}
+                      </h2>
+                      <StudioBadge tone={statusTone(column)}>
+                        {cards.length}
+                      </StudioBadge>
+                    </div>
+                    <p className="mt-1 line-clamp-2 text-[11px] leading-snug text-[var(--studio-text-muted)]">
                       {COLUMN_HELP[column]}
                     </p>
                   </div>
-                  <StudioBadge tone={statusTone(column)}>
-                    {cards.length}
-                  </StudioBadge>
-                </div>
 
-                <div className="mt-3 max-h-[70vh] space-y-3 overflow-y-auto pr-1">
-                  {cards.length > 0 ? (
-                    cards.map((card) => (
-                      <WorkboardCardView
-                        key={card.id}
-                        card={card}
-                        websiteId={websiteId}
-                      />
-                    ))
-                  ) : (
-                    <p className="rounded border border-dashed border-[var(--studio-border)] p-3 text-xs text-[var(--studio-text-muted)]">
-                      Sin trabajo en esta columna.
-                    </p>
-                  )}
+                  <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
+                    {visibleCards.length > 0 ? (
+                      visibleCards.map((card) => (
+                        <WorkboardCardView
+                          key={card.id}
+                          card={card}
+                          websiteId={websiteId}
+                        />
+                      ))
+                    ) : (
+                      <p className="rounded border border-dashed border-[var(--studio-border)] p-3 text-xs text-[var(--studio-text-muted)]">
+                        Sin trabajo.
+                      </p>
+                    )}
+                    {hiddenCount > 0 ? (
+                      <Link
+                        href={buildHref(websiteId, filters, { column })}
+                        className="block rounded border border-dashed border-[var(--studio-border)] px-2 py-2 text-center text-xs font-medium text-[var(--studio-primary)] hover:bg-[var(--studio-surface)]"
+                      >
+                        Ver {hiddenCount} más
+                      </Link>
+                    ) : null}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </section>
       )}
     </StudioPage>

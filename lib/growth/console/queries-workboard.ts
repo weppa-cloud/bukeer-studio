@@ -265,7 +265,7 @@ export async function getGrowthWorkboard(opts: {
   limit?: number;
 }): Promise<GrowthWorkboardResult> {
   const admin = createSupabaseServiceRoleClient();
-  const limit = Math.min(Math.max(opts.limit ?? 80, 10), 200);
+  const limit = Math.min(Math.max(opts.limit ?? 30, 10), 90);
   const missingTables = new Set<string>();
   let errored = false;
 
