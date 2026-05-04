@@ -1,4 +1,7 @@
 Campaign,Ad Group,Device,Bid Adjustment
-[EJEMPLO_BORRAR_MOBILE_UP],,Mobile,+15%
-[EJEMPLO_BORRAR_TABLET_DOWN],,Tablet,-30%
-[EJEMPLO_BORRAR_DESKTOP_BASE],,Desktop,+0%
+MX_Multidestino_y_Caribe_2026_05,,Mobile,+10%
+MX_Multidestino_y_Caribe_2026_05,,Desktop,+0%
+MX_Multidestino_y_Caribe_2026_05,,Tablet,-30%
+ES_Cartagena_Medellin_2026_05,,Mobile,+5%
+ES_Cartagena_Medellin_2026_05,,Desktop,+0%
+ES_Cartagena_Medellin_2026_05,,Tablet,-30%

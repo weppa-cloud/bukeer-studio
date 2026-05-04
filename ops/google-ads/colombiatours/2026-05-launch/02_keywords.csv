@@ -1,2 +1,46 @@
 Campaign,Ad Group,Keyword,Type,Status,Max CPC,Final URL,Labels
-[EJEMPLO_BORRAR],[EJEMPLO_BORRAR_AG],san andres colombia,Phrase,Paused,4000,https://colombiatours.travel/san-andres-4-dias,MX;SanAndres
+MX_Multidestino_y_Caribe_2026_05,AG1_San_Andres_Caribe,san andres colombia,Phrase,Paused,3500,https://colombiatours.travel/san-andres-4-dias,MX;SanAndres;HighVol
+MX_Multidestino_y_Caribe_2026_05,AG1_San_Andres_Caribe,isla san andres colombia,Phrase,Paused,3500,https://colombiatours.travel/san-andres-4-dias,MX;SanAndres
+MX_Multidestino_y_Caribe_2026_05,AG1_San_Andres_Caribe,paquete san andres colombia,Phrase,Paused,4000,https://colombiatours.travel/san-andres-4-dias,MX;SanAndres;HighIntent
+MX_Multidestino_y_Caribe_2026_05,AG1_San_Andres_Caribe,viaje a san andres todo incluido,Phrase,Paused,4500,https://colombiatours.travel/san-andres-4-dias,MX;SanAndres;HighIntent
+MX_Multidestino_y_Caribe_2026_05,AG1_San_Andres_Caribe,san andres todo incluido,Phrase,Paused,4500,https://colombiatours.travel/san-andres-4-dias,MX;SanAndres;HighIntent
+MX_Multidestino_y_Caribe_2026_05,AG1_San_Andres_Caribe,playa san andres colombia,Phrase,Paused,3000,https://colombiatours.travel/san-andres-4-dias,MX;SanAndres
+MX_Multidestino_y_Caribe_2026_05,AG1_San_Andres_Caribe,san andres 4 dias,Exact,Paused,4000,https://colombiatours.travel/san-andres-4-dias,MX;SanAndres;Exact
+MX_Multidestino_y_Caribe_2026_05,AG1_San_Andres_Caribe,paquete san andres todo incluido,Exact,Paused,4500,https://colombiatours.travel/san-andres-4-dias,MX;SanAndres;Exact
+MX_Multidestino_y_Caribe_2026_05,AG2_Multidestino_Tours,viaje a colombia todo incluido,Phrase,Paused,3000,https://colombiatours.travel/agencia-de-viajes-a-colombia-para-mexicanos,MX;Multidestino;HighVol
+MX_Multidestino_y_Caribe_2026_05,AG2_Multidestino_Tours,paquete a colombia todo incluido,Phrase,Paused,3500,https://colombiatours.travel/agencia-de-viajes-a-colombia-para-mexicanos,MX;Multidestino;HighIntent
+MX_Multidestino_y_Caribe_2026_05,AG2_Multidestino_Tours,viajes a colombia desde mexico,Phrase,Paused,3000,https://colombiatours.travel/agencia-de-viajes-a-colombia-para-mexicanos,MX;Multidestino
+MX_Multidestino_y_Caribe_2026_05,AG2_Multidestino_Tours,paquetes a colombia,Phrase,Paused,4500,https://colombiatours.travel/agencia-de-viajes-a-colombia-para-mexicanos,MX;Multidestino;HighIntent
+MX_Multidestino_y_Caribe_2026_05,AG2_Multidestino_Tours,paquete de viaje a colombia,Phrase,Paused,4500,https://colombiatours.travel/agencia-de-viajes-a-colombia-para-mexicanos,MX;Multidestino
+MX_Multidestino_y_Caribe_2026_05,AG2_Multidestino_Tours,tour colombia 10 dias,Exact,Paused,5500,https://colombiatours.travel/tour-colombia-10-dias,MX;Multidestino;Exact
+MX_Multidestino_y_Caribe_2026_05,AG2_Multidestino_Tours,tour colombia,Phrase,Paused,4000,https://colombiatours.travel/tour-colombia-10-dias,MX;Multidestino
+MX_Multidestino_y_Caribe_2026_05,AG2_Multidestino_Tours,viaje organizado a colombia,Phrase,Paused,4000,https://colombiatours.travel/agencia-de-viajes-a-colombia-para-mexicanos,MX;Multidestino
+MX_Multidestino_y_Caribe_2026_05,AG2_Multidestino_Tours,agencia de viajes colombia,Phrase,Paused,5500,https://colombiatours.travel/agencia-de-viajes-a-colombia-para-mexicanos,MX;Multidestino
+MX_Multidestino_y_Caribe_2026_05,AG3_Cartagena_Caribe,viaje a cartagena,Phrase,Paused,4000,https://colombiatours.travel/cartagena,MX;Cartagena
+MX_Multidestino_y_Caribe_2026_05,AG3_Cartagena_Caribe,viaje a cartagena colombia,Phrase,Paused,4000,https://colombiatours.travel/cartagena,MX;Cartagena
+MX_Multidestino_y_Caribe_2026_05,AG3_Cartagena_Caribe,viaje a cartagena todo incluido,Exact,Paused,5000,https://colombiatours.travel/cartagena-4-dias,MX;Cartagena;Exact
+MX_Multidestino_y_Caribe_2026_05,AG3_Cartagena_Caribe,paquete a cartagena colombia,Exact,Paused,5500,https://colombiatours.travel/cartagena-4-dias,MX;Cartagena;Exact
+MX_Multidestino_y_Caribe_2026_05,AG3_Cartagena_Caribe,paquetes de viaje a cartagena,Phrase,Paused,4000,https://colombiatours.travel/cartagena-4-dias,MX;Cartagena
+MX_Multidestino_y_Caribe_2026_05,AG3_Cartagena_Caribe,cartagena de indias todo incluido,Phrase,Paused,4000,https://colombiatours.travel/cartagena,MX;Cartagena
+MX_Multidestino_y_Caribe_2026_05,AG4_Medellin_Guatape,medellin y guatape 5 dias,Exact,Paused,5000,https://colombiatours.travel/paquetes/medellin-y-guatape-5-dias-ciudad-de-la-eterna-primavera,MX;Medellin;Exact
+MX_Multidestino_y_Caribe_2026_05,AG4_Medellin_Guatape,tour medellin colombia,Phrase,Paused,5500,https://colombiatours.travel/paquetes/medellin-y-guatape-5-dias-ciudad-de-la-eterna-primavera,MX;Medellin
+MX_Multidestino_y_Caribe_2026_05,AG4_Medellin_Guatape,tour medellin,Phrase,Paused,5500,https://colombiatours.travel/paquetes/medellin-y-guatape-5-dias-ciudad-de-la-eterna-primavera,MX;Medellin
+ES_Cartagena_Medellin_2026_05,AG1_Cartagena_Premium,viajar a cartagena de indias,Exact,Paused,3500,https://colombiatours.travel/cartagena,ES;Cartagena;HighVol;Exact
+ES_Cartagena_Medellin_2026_05,AG1_Cartagena_Premium,viajar a cartagena de indias,Phrase,Paused,3000,https://colombiatours.travel/cartagena,ES;Cartagena;HighVol
+ES_Cartagena_Medellin_2026_05,AG1_Cartagena_Premium,cartagena de indias todo incluido,Exact,Paused,3500,https://colombiatours.travel/paquetes/cartagena-premium-ciudad-amurallada-y-caribe-5-dias,ES;Cartagena;HighIntent
+ES_Cartagena_Medellin_2026_05,AG1_Cartagena_Premium,vacaciones cartagena de indias,Exact,Paused,3000,https://colombiatours.travel/cartagena,ES;Cartagena
+ES_Cartagena_Medellin_2026_05,AG1_Cartagena_Premium,vacaciones cartagena de indias,Phrase,Paused,2800,https://colombiatours.travel/cartagena,ES;Cartagena
+ES_Cartagena_Medellin_2026_05,AG1_Cartagena_Premium,viaje cartagena desde españa,Phrase,Paused,3500,https://colombiatours.travel/cartagena,ES;Cartagena
+ES_Cartagena_Medellin_2026_05,AG2_Medellin_Cultural,turismo medellin,Exact,Paused,3500,https://colombiatours.travel/paquetes/medellin-y-guatape-5-dias-ciudad-de-la-eterna-primavera,ES;Medellin;HighVol;Exact
+ES_Cartagena_Medellin_2026_05,AG2_Medellin_Cultural,turismo medellin,Phrase,Paused,3000,https://colombiatours.travel/paquetes/medellin-y-guatape-5-dias-ciudad-de-la-eterna-primavera,ES;Medellin;HighVol
+ES_Cartagena_Medellin_2026_05,AG2_Medellin_Cultural,turismo medellin colombia,Phrase,Paused,2500,https://colombiatours.travel/paquetes/medellin-y-guatape-5-dias-ciudad-de-la-eterna-primavera,ES;Medellin
+ES_Cartagena_Medellin_2026_05,AG2_Medellin_Cultural,vacaciones medellin colombia,Phrase,Paused,2500,https://colombiatours.travel/paquetes/medellin-y-guatape-5-dias-ciudad-de-la-eterna-primavera,ES;Medellin
+ES_Cartagena_Medellin_2026_05,AG2_Medellin_Cultural,tour medellin,Phrase,Paused,4500,https://colombiatours.travel/paquetes/medellin-y-guatape-5-dias-ciudad-de-la-eterna-primavera,ES;Medellin;Caro
+ES_Cartagena_Medellin_2026_05,AG3_Multidestino_Premium,vacaciones en colombia,Phrase,Paused,3000,https://colombiatours.travel/agencia-de-viajes-a-colombia-para-espanoles,ES;Multidestino;HighVol
+ES_Cartagena_Medellin_2026_05,AG3_Multidestino_Premium,viajar a colombia,Phrase,Paused,2800,https://colombiatours.travel/agencia-de-viajes-a-colombia-para-espanoles,ES;Multidestino
+ES_Cartagena_Medellin_2026_05,AG3_Multidestino_Premium,viajes a colombia,Phrase,Paused,3000,https://colombiatours.travel/agencia-de-viajes-a-colombia-para-espanoles,ES;Multidestino
+ES_Cartagena_Medellin_2026_05,AG3_Multidestino_Premium,agencia viajes colombia,Exact,Paused,7000,https://colombiatours.travel/agencia-de-viajes-a-colombia-para-espanoles,ES;Multidestino;Exact
+ES_Cartagena_Medellin_2026_05,AG3_Multidestino_Premium,tour operador colombia,Phrase,Paused,5500,https://colombiatours.travel/agencia-de-viajes-a-colombia-para-espanoles,ES;Multidestino
+ES_Cartagena_Medellin_2026_05,AG3_Multidestino_Premium,circuito colombia 15 dias,Exact,Paused,6500,https://colombiatours.travel/tour-colombia-15-dias,ES;Multidestino;Exact
+ES_Cartagena_Medellin_2026_05,AG3_Multidestino_Premium,circuito por colombia,Phrase,Paused,5000,https://colombiatours.travel/paquetes/gran-tour-colombia-15-dias-bogota-eje-cafetero-medellin-y-santa-marta,ES;Multidestino
+ES_Cartagena_Medellin_2026_05,AG3_Multidestino_Premium,viaje organizado colombia,Phrase,Paused,5000,https://colombiatours.travel/agencia-de-viajes-a-colombia-para-espanoles,ES;Multidestino

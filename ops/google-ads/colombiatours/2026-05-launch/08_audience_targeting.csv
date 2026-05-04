@@ -1,3 +1,9 @@
 Campaign,Ad Group,Audience,Audience ID,Targeting Setting,Bid Adjustment,Status
-[EJEMPLO_BORRAR_INMARKET],,Travel/Beach Destinations,,Observation,+0%,Paused
-[EJEMPLO_BORRAR_CUSTOMER_MATCH],,ColombiaTours_Past_Customers,,Observation,+30%,Paused
+MX_Multidestino_y_Caribe_2026_05,,ColombiaTours_Past_Customers,,Observation,+30%,Paused
+MX_Multidestino_y_Caribe_2026_05,,In-market: Travel/Beach Destinations,,Observation,+15%,Paused
+MX_Multidestino_y_Caribe_2026_05,,In-market: Travel/South America Travel,,Observation,+15%,Paused
+MX_Multidestino_y_Caribe_2026_05,,In-market: Travel/Cultural Tours,,Observation,+10%,Paused
+ES_Cartagena_Medellin_2026_05,,ColombiaTours_Past_Customers,,Observation,+30%,Paused
+ES_Cartagena_Medellin_2026_05,,In-market: Travel/International Travel,,Observation,+15%,Paused
+ES_Cartagena_Medellin_2026_05,,In-market: Travel/South America Travel,,Observation,+15%,Paused
+ES_Cartagena_Medellin_2026_05,,Affinity: Luxury Travelers,,Observation,+10%,Paused

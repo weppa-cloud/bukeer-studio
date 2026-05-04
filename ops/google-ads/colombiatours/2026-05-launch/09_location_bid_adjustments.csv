@@ -1,3 +1,7 @@
 Campaign,Location ID,Location Name,Bid Adjustment,Status
-[EJEMPLO_BORRAR_CDMX_BID_UP],9067138,"Mexico City, Mexico",+15%,Paused
-[EJEMPLO_BORRAR_GUADALAJARA],1010052,"Guadalajara, Jalisco, Mexico",+10%,Paused
+MX_Multidestino_y_Caribe_2026_05,1010052,"Mexico City, Mexico",+15%,Paused
+MX_Multidestino_y_Caribe_2026_05,1010268,"Guadalajara, Jalisco, Mexico",+10%,Paused
+MX_Multidestino_y_Caribe_2026_05,1010271,"Monterrey, Nuevo Leon, Mexico",+10%,Paused
+ES_Cartagena_Medellin_2026_05,1005402,"Madrid, Spain",+15%,Paused
+ES_Cartagena_Medellin_2026_05,1005401,"Barcelona, Spain",+10%,Paused
+ES_Cartagena_Medellin_2026_05,1005403,"Bilbao, Spain",+5%,Paused

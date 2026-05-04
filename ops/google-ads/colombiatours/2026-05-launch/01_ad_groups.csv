@@ -1,2 +1,8 @@
 Campaign,Ad Group,Ad Group Status,Max CPC,Mobile Bid Adjustment,Labels
-[EJEMPLO_BORRAR],[EJEMPLO_BORRAR_AG_NOMBRE],Paused,4000,+0%,MX;Caribe
+MX_Multidestino_y_Caribe_2026_05,AG1_San_Andres_Caribe,Paused,4000,+0%,MX;SanAndres
+MX_Multidestino_y_Caribe_2026_05,AG2_Multidestino_Tours,Paused,5500,+0%,MX;Multidestino
+MX_Multidestino_y_Caribe_2026_05,AG3_Cartagena_Caribe,Paused,6000,+0%,MX;Cartagena
+MX_Multidestino_y_Caribe_2026_05,AG4_Medellin_Guatape,Paused,7000,+0%,MX;Medellin
+ES_Cartagena_Medellin_2026_05,AG1_Cartagena_Premium,Paused,4000,+0%,ES;Cartagena
+ES_Cartagena_Medellin_2026_05,AG2_Medellin_Cultural,Paused,4500,+0%,ES;Medellin
+ES_Cartagena_Medellin_2026_05,AG3_Multidestino_Premium,Paused,8000,+0%,ES;Multidestino

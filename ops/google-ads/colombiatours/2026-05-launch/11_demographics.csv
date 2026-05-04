@@ -1,4 +1,9 @@
 Campaign,Ad Group,Age,Gender,Household Income,Bid Adjustment,Status
-[EJEMPLO_BORRAR_INCOME_TOP_10],,,Top 10%,+20%,Paused
-[EJEMPLO_BORRAR_AGE_25_44],,25-34;35-44,,,+0%,Paused
-[EJEMPLO_BORRAR_EXCLUYE_18_24],,18-24,,,Excluded,Paused
+MX_Multidestino_y_Caribe_2026_05,,,,Top 10%,+20%,Paused
+MX_Multidestino_y_Caribe_2026_05,,,,11-20%,+10%,Paused
+MX_Multidestino_y_Caribe_2026_05,,18-24,,,Excluded,Paused
+MX_Multidestino_y_Caribe_2026_05,,Unknown,,,Excluded,Paused
+ES_Cartagena_Medellin_2026_05,,,,Top 10%,+25%,Paused
+ES_Cartagena_Medellin_2026_05,,,,11-20%,+15%,Paused
+ES_Cartagena_Medellin_2026_05,,18-24,,,Excluded,Paused
+ES_Cartagena_Medellin_2026_05,,Unknown,,,Excluded,Paused
