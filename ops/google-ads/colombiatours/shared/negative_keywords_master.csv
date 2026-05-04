@@ -43,3 +43,33 @@ Campaign,Ad Group,Keyword,Type,Notes
 <Account-level>,,narcos,Negative Phrase,Off-brand
 <Account-level>,,cocaine,Negative Phrase,Off-brand
 <Account-level>,,drug tourism,Negative Phrase,Off-brand
+<Account-level>,,playas en colombia,Negative Exact,HISTORICAL: 11 clicks/$25 sin conv — info pura
+<Account-level>,,que visitar en colombia,Negative Phrase,HISTORICAL: 159 clicks/$24 sin conv — info pura
+<Account-level>,,guía de viaje,Negative Phrase,HISTORICAL: gente busca info no compra
+<Account-level>,,ciudad perdida,Negative Phrase,HISTORICAL: 17 clicks/$36 sin conv — info site arqueológico
+<Account-level>,,ruta del cafe,Negative Phrase,HISTORICAL: 41 clicks/$21 sin conv — info educacional vs paquete
+<Account-level>,,cuanto cuesta,Negative Phrase,HISTORICAL: 21 clicks/$25 sin conv — comparison shopping
+<Account-level>,,precio,Negative Phrase,HISTORICAL: comparison shopping pure
+<Account-level>,,vuelos a colombia,Negative Phrase,HISTORICAL: vuelo solo no paquete
+<Account-level>,,vuelos para colombia,Negative Phrase,HISTORICAL: vuelo solo no paquete
+<Account-level>,,wingo,Negative Phrase,HISTORICAL: aerolínea no nuestro servicio
+<Account-level>,,2x1,Negative Phrase,HISTORICAL: promo extrema off-budget
+<Account-level>,,megatravel,Negative Phrase,HISTORICAL: competidor MX
+<Account-level>,,siempre colombia travel,Negative Phrase,HISTORICAL: competidor
+<Account-level>,,chollometro,Negative Phrase,HISTORICAL: web ofertas extremas off-budget
+<Account-level>,,viajala,Negative Phrase,Competidor LATAM
+<Account-level>,,despegar,Negative Phrase,Competidor LATAM/OTA
+<Account-level>,,exoticca,Negative Phrase,Competidor ES OTA
+<Account-level>,,logitravel,Negative Phrase,Competidor ES OTA
+<Account-level>,,el corte ingles,Negative Phrase,Competidor ES retail+travel
+<Account-level>,,carrefour viajes,Negative Phrase,Competidor ES retail+travel
+<Account-level>,,viajes carrefour,Negative Phrase,Competidor ES retail+travel
+<Account-level>,,kuoni,Negative Phrase,Competidor premium ES/EU
+<Account-level>,,g adventures,Negative Phrase,Competidor adventure global
+<Account-level>,,intrepid travel,Negative Phrase,Competidor adventure global
+<Account-level>,,intrepid colombia,Negative Phrase,Competidor adventure global
+<Account-level>,,booking colombia,Negative Phrase,OTA hoteles solo (no paquete)
+<Account-level>,,airbnb colombia,Negative Phrase,Plataforma alojamiento (no paquete)
+<Account-level>,,trivago,Negative Phrase,Comparador hoteles
+<Account-level>,,kayak,Negative Phrase,Comparador vuelos
+<Account-level>,,skyscanner,Negative Phrase,Comparador vuelos
