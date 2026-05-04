@@ -210,9 +210,23 @@ test.describe("Growth OS console UI contract @growth-os-ui", () => {
       const firstCard = page.getByTestId("growth-workboard-card").first();
       if (await firstCard.isVisible().catch(() => false)) {
         await expect(firstCard).toContainText(/resultado|aprueba/i);
+        await firstCard.click();
         await expect(
-          firstCard.getByRole("link", { name: /ver|backlog/i }).first(),
+          page.getByTestId("growth-workboard-detail-sheet"),
         ).toBeVisible();
+        await expect(
+          page.getByTestId("growth-workboard-detail-sheet"),
+        ).toContainText(/resumen para marketing|acciones rápidas/i);
+        await expect(
+          page
+            .getByTestId("growth-workboard-detail-sheet")
+            .getByRole("link", { name: /detalle técnico|ver backlog/i })
+            .first(),
+        ).toBeVisible();
+        await page.keyboard.press("Escape");
+        await expect(
+          page.getByTestId("growth-workboard-detail-sheet"),
+        ).not.toBeVisible();
       }
     }
   });
