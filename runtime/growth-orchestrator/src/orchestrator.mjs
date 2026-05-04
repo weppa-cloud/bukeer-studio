@@ -722,6 +722,7 @@ async function createCodexArtifact(supabase, opts, run, runtimeContext) {
     next_action: output.next_action,
     memory_candidates_count: output.memory_candidates.length,
     skill_update_candidates_count: output.skill_update_candidates.length,
+    change_sets_count: output.change_sets.length,
     tool_calls_count: output.tool_calls.length,
     replay_seed_eligible: output.replay_seed.eligible,
     requires_human_review: true,
@@ -865,6 +866,61 @@ async function createCodexArtifact(supabase, opts, run, runtimeContext) {
     );
   }
   storageResults.skills = skillResults;
+
+  const changeSetResults = [];
+  for (const changeSet of output.change_sets) {
+    const dedupeKey = stableKey(
+      run.account_id,
+      run.website_id,
+      run.run_id,
+      changeSet.change_type,
+      JSON.stringify(changeSet.evidence?.source_refs ?? []),
+      JSON.stringify(changeSet.after_snapshot ?? {}),
+      changeSet.title,
+    );
+    changeSetResults.push(
+      await bestEffortUpsert(
+        supabase,
+        "growth_agent_change_sets",
+        {
+          account_id: run.account_id,
+          website_id: run.website_id,
+          locale: run.locale ?? opts.locale,
+          market: run.market ?? opts.market,
+          run_id: run.run_id,
+          source_table: run.source_table ?? null,
+          source_id: run.source_id ?? null,
+          agent_lane: run.lane,
+          change_type: changeSet.change_type,
+          status: changeSet.status,
+          title: changeSet.title,
+          summary: changeSet.summary,
+          dedupe_key: dedupeKey,
+          before_snapshot: changeSet.before_snapshot ?? {},
+          after_snapshot: changeSet.after_snapshot ?? {},
+          preview_payload: {
+            ...(changeSet.preview_payload ?? {}),
+            follow_up_tasks: changeSet.follow_up_tasks ?? [],
+          },
+          evidence: {
+            ...(changeSet.evidence ?? {}),
+            source: "codex_runtime_artifact",
+            run_id: run.run_id,
+            forced_human_review: true,
+          },
+          risk_level: changeSet.risk_level,
+          requires_human_review: true,
+          required_approval_role: changeSet.required_approval_role,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+        {
+          onConflict: "account_id,website_id,run_id,change_type,dedupe_key",
+        },
+      ),
+    );
+  }
+  storageResults.change_sets = changeSetResults;
 
   let toolCallIndex = 0;
   const toolLedgerResults = [];

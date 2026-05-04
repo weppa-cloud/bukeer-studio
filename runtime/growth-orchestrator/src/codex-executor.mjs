@@ -36,6 +36,62 @@ const ALLOWED_ACTIONS = new Set([
   "reject",
 ]);
 const ACTION_CLASS_VALUES = new Set(Object.values(ACTION_CLASSES));
+const CHANGE_TYPES = new Set([
+  "backlog_route_update",
+  "backlog_task_split",
+  "follow_up_backlog_create",
+  "council_packet_prepare",
+  "governance_block",
+  "growth_cycle_summary",
+  "seo_title_meta_draft",
+  "seo_indexing_draft",
+  "route_mapping_draft",
+  "internal_link_draft",
+  "performance_remediation_task",
+  "technical_smoke_result",
+  "blog_draft_create",
+  "content_update_draft",
+  "content_brief_create",
+  "faq_schema_draft",
+  "landing_section_copy_draft",
+  "content_evidence_request",
+  "transcreation_draft_create",
+  "transcreation_update_draft",
+  "locale_seo_review",
+  "translation_quality_fix_draft",
+  "locale_serp_packet",
+  "transcreation_merge_readiness",
+  "content_quality_review",
+  "creator_revision_request",
+  "publish_packet_prepare",
+  "experiment_candidate_prepare",
+  "experiment_readout_prepare",
+  "learning_candidate_review",
+  "tool_policy_verdict",
+  "blocked_tool_call_evidence",
+  "replay_case_candidate",
+  "memory_candidate",
+  "skill_update_candidate",
+  "research_packet",
+]);
+const CHANGE_SET_STATUSES = new Set([
+  "proposed",
+  "draft_created",
+  "needs_review",
+  "changes_requested",
+  "approved",
+  "applied",
+  "published",
+  "rejected",
+  "blocked",
+]);
+const CHANGE_SET_RISK_LEVELS = new Set(["low", "medium", "high", "blocked"]);
+const CHANGE_SET_APPROVAL_ROLES = new Set([
+  "growth_operator",
+  "curator",
+  "council_admin",
+  "technical_owner",
+]);
 export const CODEX_ARTIFACT_SCHEMA = {
   type: "object",
   additionalProperties: false,
@@ -49,6 +105,7 @@ export const CODEX_ARTIFACT_SCHEMA = {
     "next_action",
     "memory_candidates",
     "skill_update_candidates",
+    "change_sets",
     "tool_calls",
     "replay_seed",
     "requires_human_review",
@@ -106,6 +163,44 @@ export const CODEX_ARTIFACT_SCHEMA = {
           skill_name: { type: "string" },
           change: { type: "string" },
           reason: { type: "string" },
+        },
+      },
+    },
+    change_sets: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: [
+          "change_type",
+          "title",
+          "summary",
+          "status",
+          "risk_level",
+          "requires_human_review",
+          "required_approval_role",
+          "before_snapshot",
+          "after_snapshot",
+          "preview_payload",
+          "evidence",
+          "follow_up_tasks",
+        ],
+        properties: {
+          change_type: { type: "string" },
+          title: { type: "string" },
+          summary: { type: "string" },
+          status: { type: "string" },
+          risk_level: { type: "string" },
+          requires_human_review: { type: "boolean" },
+          required_approval_role: { type: "string" },
+          before_snapshot: { type: "object" },
+          after_snapshot: { type: "object" },
+          preview_payload: { type: "object" },
+          evidence: { type: "object" },
+          follow_up_tasks: {
+            type: "array",
+            items: { type: "object" },
+          },
         },
       },
     },
@@ -258,6 +353,8 @@ Hermes-inspired learning loop:
 - Propose skill_update_candidates only for repeated workflow improvements.
 - Include a tool_calls policy ledger for tools you used or wanted to use. Always include codex_exec.
 - Include replay_seed so this run can become an eval case.
+- Include at least one change_sets entry. It is the work product the human reviews.
+- Do not use change_sets to publish, merge transcreation, mutate paid media or activate experiments. Create drafts, packets, previews, blocked evidence or follow-up tasks only.
 
 Tenant scope:
 ${JSON.stringify(input.tenant, null, 2)}
@@ -310,6 +407,7 @@ function normalizeArtifact(candidate, fallback = {}) {
       value.skill_update_candidates,
       fallback.lane,
     ),
+    change_sets: normalizeChangeSets(value.change_sets, fallback),
     tool_calls: normalizeToolCalls(value.tool_calls),
     replay_seed: normalizeReplaySeed(value.replay_seed),
     requires_human_review: true,
@@ -325,6 +423,99 @@ function normalizeArtifact(candidate, fallback = {}) {
     normalized.decision === "promote" ? "review_required" : normalized.decision;
   normalized.tool_calls = withCodexExecToolCall(normalized.tool_calls);
   return normalized;
+}
+
+function defaultChangeTypeForLane(lane) {
+  if (lane === "technical_remediation") return "technical_smoke_result";
+  if (lane === "content_creator") return "content_brief_create";
+  if (lane === "transcreation") return "locale_seo_review";
+  if (lane === "content_curator") return "content_quality_review";
+  return "growth_cycle_summary";
+}
+
+function normalizeChangeSets(value, fallback = {}) {
+  const sourceRefs = normalizeStringArray(fallback.source_refs);
+  const items = Array.isArray(value) ? value : [];
+  const normalized = items.slice(0, 25).map((item) => {
+    const object = safeObject(item);
+    const changeType = String(object.change_type ?? "").trim();
+    const status = String(object.status ?? "").trim();
+    const riskLevel = String(object.risk_level ?? "").trim();
+    const approvalRole = String(object.required_approval_role ?? "").trim();
+    return {
+      change_type: CHANGE_TYPES.has(changeType)
+        ? changeType
+        : defaultChangeTypeForLane(fallback.lane),
+      title:
+        compactString(object.title, 240) ||
+        `Trabajo del agente ${fallback.lane ?? "growth"}`,
+      summary:
+        compactString(object.summary, 4000) ||
+        fallback.evidence_summary ||
+        "El agente produjo un resultado para revisión humana.",
+      status: CHANGE_SET_STATUSES.has(status) ? status : "needs_review",
+      risk_level: CHANGE_SET_RISK_LEVELS.has(riskLevel) ? riskLevel : "medium",
+      requires_human_review: true,
+      required_approval_role: CHANGE_SET_APPROVAL_ROLES.has(approvalRole)
+        ? approvalRole
+        : approvalRoleForChangeType(changeType, fallback.lane),
+      before_snapshot: safeObject(object.before_snapshot),
+      after_snapshot: safeObject(object.after_snapshot),
+      preview_payload: safeObject(object.preview_payload),
+      evidence: {
+        ...safeObject(object.evidence),
+        source_refs: normalizeStringArray(
+          safeObject(object.evidence).source_refs,
+        ).length
+          ? normalizeStringArray(safeObject(object.evidence).source_refs)
+          : sourceRefs,
+      },
+      follow_up_tasks: Array.isArray(object.follow_up_tasks)
+        ? object.follow_up_tasks.slice(0, 20).map(safeObject)
+        : [],
+    };
+  });
+
+  if (normalized.length > 0) return normalized;
+  return [
+    {
+      change_type: defaultChangeTypeForLane(fallback.lane),
+      title: `Resultado para revisión · ${fallback.lane ?? "Growth OS"}`,
+      summary:
+        fallback.evidence_summary ||
+        "El agente produjo una recomendación que debe ser revisada por un humano.",
+      status: "needs_review",
+      risk_level: "medium",
+      requires_human_review: true,
+      required_approval_role: approvalRoleForChangeType(
+        defaultChangeTypeForLane(fallback.lane),
+        fallback.lane,
+      ),
+      before_snapshot: {},
+      after_snapshot: {},
+      preview_payload: {
+        kind: "summary",
+        source_refs: sourceRefs,
+      },
+      evidence: {
+        generated_by: "codex_runtime_fallback",
+        source_refs: sourceRefs,
+      },
+      follow_up_tasks: [],
+    },
+  ];
+}
+
+function approvalRoleForChangeType(changeType, lane) {
+  if (
+    changeType?.includes("experiment") ||
+    changeType === "council_packet_prepare"
+  ) {
+    return "council_admin";
+  }
+  if (lane === "technical_remediation") return "technical_owner";
+  if (changeType?.startsWith("seo_")) return "growth_operator";
+  return "curator";
 }
 
 function normalizeStringArray(value) {
@@ -574,6 +765,23 @@ export async function runCodexAgentTask(input, options = {}) {
       memory_candidates: [],
       skill_update_candidates: [],
       tool_calls: [],
+      change_sets: [
+        {
+          change_type: "research_packet",
+          title: "Dry run del runtime Growth OS",
+          summary:
+            "Validación de prompt, schema y envelope sin ejecutar Codex.",
+          status: "needs_review",
+          risk_level: "low",
+          requires_human_review: true,
+          required_approval_role: "growth_operator",
+          before_snapshot: {},
+          after_snapshot: {},
+          preview_payload: { kind: "dry_run" },
+          evidence: { dry_run: true },
+          follow_up_tasks: [],
+        },
+      ],
       replay_seed: {
         eligible: false,
         expected_decision: "review_required",
@@ -656,6 +864,7 @@ export async function runCodexAgentTask(input, options = {}) {
     output: artifact,
     memory_candidates: artifact.memory_candidates,
     skill_update_candidates: artifact.skill_update_candidates,
+    change_sets: artifact.change_sets,
     tool_calls: artifact.tool_calls,
     replay_seed: buildReplaySeed(input.run, artifact),
     metrics,

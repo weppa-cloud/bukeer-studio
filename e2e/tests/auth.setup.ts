@@ -1,4 +1,5 @@
 import { test as setup, expect } from "@playwright/test";
+import { createClient } from "@supabase/supabase-js";
 import path from "path";
 import fs from "fs";
 
@@ -86,7 +87,77 @@ function authStateStillUsable(): boolean {
   return true;
 }
 
-setup("authenticate", async ({ page }) => {
+async function writeProgrammaticAuthState(opts: {
+  email: string;
+  password: string;
+  baseURL: string;
+}): Promise<boolean> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!supabaseUrl || !anonKey) return false;
+
+  const supabase = createClient(supabaseUrl, anonKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  });
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: opts.email,
+    password: opts.password,
+  });
+
+  if (error || !data.session) {
+    throw new Error(
+      `Programmatic E2E auth failed: ${error?.message ?? "missing session"}`,
+    );
+  }
+
+  const projectRef = new URL(supabaseUrl).hostname.split(".")[0];
+  const origin = new URL(opts.baseURL);
+  const session = data.session;
+  const cookieValue = `base64-${Buffer.from(JSON.stringify(session)).toString(
+    "base64",
+  )}`;
+
+  fs.mkdirSync(path.dirname(authFile), { recursive: true });
+  fs.writeFileSync(
+    authFile,
+    JSON.stringify(
+      {
+        cookies: [
+          {
+            name: `sb-${projectRef}-auth-token`,
+            value: cookieValue,
+            domain: origin.hostname,
+            path: "/",
+            expires: session.expires_at ?? Date.now() / 1000 + 3600,
+            httpOnly: false,
+            secure: origin.protocol === "https:",
+            sameSite: "Lax",
+          },
+        ],
+        origins: [
+          {
+            origin: origin.origin,
+            localStorage: [
+              {
+                name: "studio-ui-mode",
+                value: "light",
+              },
+            ],
+          },
+        ],
+      },
+      null,
+      2,
+    ),
+  );
+  console.log("Programmatic E2E auth state written for", opts.email);
+  return true;
+}
+
+setup("authenticate", async ({ page, baseURL }) => {
   // If stored auth is still valid (cookie + embedded JWT), reuse it.
   if (authStateStillUsable()) {
     return;
@@ -94,6 +165,17 @@ setup("authenticate", async ({ page }) => {
 
   const email = process.env.E2E_USER_EMAIL || "consultoria@weppa.co";
   const password = process.env.E2E_USER_PASSWORD || "Ingeniero1!";
+  const resolvedBaseURL = baseURL ?? "http://localhost:3000";
+
+  if (
+    await writeProgrammaticAuthState({
+      email,
+      password,
+      baseURL: resolvedBaseURL,
+    })
+  ) {
+    return;
+  }
 
   await page.goto("/login");
 

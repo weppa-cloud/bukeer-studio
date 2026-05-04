@@ -3,7 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server-client";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/service-role";
-import { hasGrowthRole, requireGrowthRole } from "@/lib/growth/console/auth";
+import {
+  type GrowthRole,
+  hasGrowthRole,
+  requireGrowthRole,
+} from "@/lib/growth/console/auth";
 
 /**
  * Server Actions for the Run detail page (#407).
@@ -195,7 +199,9 @@ async function writeHumanReview(opts: {
   }
 
   const existingEvidence =
-    run.evidence && typeof run.evidence === "object" && !Array.isArray(run.evidence)
+    run.evidence &&
+    typeof run.evidence === "object" &&
+    !Array.isArray(run.evidence)
       ? run.evidence
       : {};
   const finalEvidence = {
@@ -242,27 +248,29 @@ async function writeHumanReview(opts: {
     };
   }
 
-  const { error: eventErr } = await admin.from("growth_agent_run_events").insert({
-    account_id: accountId,
-    website_id: opts.websiteId,
-    locale: run.locale,
-    market: run.market,
-    run_id: opts.runId,
-    event_type: "completed",
-    severity: opts.decision === "approve" ? "info" : "warn",
-    message:
-      opts.decision === "approve"
-        ? "Human approved the agent run; runtime closeout applied."
-        : "Human rejected the agent run; runtime closeout applied without business mutation.",
-    payload: {
-      decision: opts.decision,
-      reviewer_id: userId,
-      reviewer_role: role,
-      review_id: reviewRow?.id ?? null,
-      business_mutation_applied: false,
-    },
-    occurred_at: now,
-  });
+  const { error: eventErr } = await admin
+    .from("growth_agent_run_events")
+    .insert({
+      account_id: accountId,
+      website_id: opts.websiteId,
+      locale: run.locale,
+      market: run.market,
+      run_id: opts.runId,
+      event_type: "completed",
+      severity: opts.decision === "approve" ? "info" : "warn",
+      message:
+        opts.decision === "approve"
+          ? "Human approved the agent run; runtime closeout applied."
+          : "Human rejected the agent run; runtime closeout applied without business mutation.",
+      payload: {
+        decision: opts.decision,
+        reviewer_id: userId,
+        reviewer_role: role,
+        review_id: reviewRow?.id ?? null,
+        business_mutation_applied: false,
+      },
+      occurred_at: now,
+    });
 
   if (eventErr) {
     return {
@@ -283,6 +291,7 @@ async function writeHumanReview(opts: {
 
 type CandidateKind = "memory" | "skill" | "replay";
 type CandidateDecision = "approve" | "reject";
+type ChangeSetDecision = "approve" | "reject";
 
 const CANDIDATE_TABLE: Record<CandidateKind, string> = {
   memory: "growth_agent_memories",
@@ -396,6 +405,229 @@ async function candidateAction(
   });
 }
 
+function requiredGrowthRoleForChangeSet(
+  requiredRole: string | null | undefined,
+): GrowthRole {
+  switch (requiredRole) {
+    case "growth_operator":
+      return "growth_operator";
+    case "council_admin":
+      return "council_admin";
+    case "technical_owner":
+      return "curator";
+    case "curator":
+    default:
+      return "curator";
+  }
+}
+
+async function reviewChangeSet(opts: {
+  websiteId: string;
+  runId: string;
+  changeSetId: string;
+  decision: ChangeSetDecision;
+  notes?: string;
+}): Promise<ReviewActionResult> {
+  const { accountId, userId, role } = await getTenantAndRole(opts.websiteId);
+
+  const admin = createSupabaseServiceRoleClient();
+  const { data: row, error: loadErr } = await admin
+    .from("growth_agent_change_sets")
+    .select(
+      "id, account_id, website_id, locale, market, run_id, source_table, source_id, agent_lane, change_type, status, title, summary, evidence, required_approval_role",
+    )
+    .eq("account_id", accountId)
+    .eq("website_id", opts.websiteId)
+    .eq("run_id", opts.runId)
+    .eq("id", opts.changeSetId)
+    .maybeSingle();
+
+  if (loadErr || !row) {
+    return { ok: false, message: "Change set not found in this tenant." };
+  }
+
+  const changeSet = row as {
+    id: string;
+    account_id: string;
+    website_id: string;
+    locale: string;
+    market: string;
+    run_id: string;
+    source_table: string | null;
+    source_id: string | null;
+    agent_lane: string;
+    change_type: string;
+    status: string;
+    title: string;
+    summary: string;
+    evidence: Record<string, unknown> | null;
+    required_approval_role: string | null;
+  };
+  const requiredRole = requiredGrowthRoleForChangeSet(
+    changeSet.required_approval_role,
+  );
+
+  if (!hasGrowthRole(role, requiredRole)) {
+    return {
+      ok: false,
+      message: `Forbidden: ${requiredRole} role required.`,
+    };
+  }
+
+  if (
+    changeSet.status === "applied" ||
+    changeSet.status === "published" ||
+    changeSet.status === "rejected" ||
+    changeSet.status === "blocked"
+  ) {
+    return {
+      ok: false,
+      message: "Change set is already closed.",
+    };
+  }
+
+  const now = new Date().toISOString();
+  const nextStatus = opts.decision === "approve" ? "approved" : "rejected";
+  const existingEvidence =
+    changeSet.evidence &&
+    typeof changeSet.evidence === "object" &&
+    !Array.isArray(changeSet.evidence)
+      ? changeSet.evidence
+      : {};
+
+  const { error: updateErr } = await admin
+    .from("growth_agent_change_sets")
+    .update({
+      status: nextStatus,
+      approved_by: opts.decision === "approve" ? userId : null,
+      approved_at: opts.decision === "approve" ? now : null,
+      evidence: {
+        ...existingEvidence,
+        human_review: {
+          decision: opts.decision,
+          reviewed_by: userId,
+          reviewer_role: role,
+          reviewed_at: now,
+          notes: opts.notes ?? null,
+        },
+        business_mutation_applied: false,
+        publish_applied: false,
+      },
+      updated_at: now,
+    })
+    .eq("account_id", accountId)
+    .eq("website_id", opts.websiteId)
+    .eq("run_id", opts.runId)
+    .eq("id", opts.changeSetId);
+
+  if (updateErr) {
+    return {
+      ok: false,
+      message: `Could not ${opts.decision} change set.`,
+    };
+  }
+
+  const sourceForeignKeys = {
+    backlog_item_id:
+      changeSet.source_table === "growth_backlog_items"
+        ? changeSet.source_id
+        : null,
+    task_id:
+      changeSet.source_table === "growth_content_tasks"
+        ? changeSet.source_id
+        : null,
+  };
+
+  const { error: reviewErr } = await admin.from("growth_human_reviews").insert({
+    account_id: accountId,
+    website_id: opts.websiteId,
+    ...sourceForeignKeys,
+    review_key: `change-set:${opts.changeSetId}:${opts.decision}:${Date.now()}`,
+    reviewer_role: role,
+    decision: opts.decision,
+    status: "recorded",
+    rationale: opts.notes ?? null,
+    evidence: {
+      run_id: opts.runId,
+      reviewer_id: userId,
+      change_set_id: opts.changeSetId,
+      change_type: changeSet.change_type,
+      agent_lane: changeSet.agent_lane,
+      title: changeSet.title,
+      status: nextStatus,
+      business_mutation_applied: false,
+      requires_separate_apply_gate: true,
+    },
+  });
+
+  if (reviewErr) {
+    return {
+      ok: false,
+      message: "Change set updated, but could not record human review.",
+    };
+  }
+
+  const { error: eventErr } = await admin
+    .from("growth_agent_run_events")
+    .insert({
+      account_id: accountId,
+      website_id: opts.websiteId,
+      locale: changeSet.locale,
+      market: changeSet.market,
+      run_id: opts.runId,
+      event_type: "review_required",
+      severity: opts.decision === "approve" ? "info" : "warn",
+      message:
+        opts.decision === "approve"
+          ? "Human approved a change set; no business mutation applied."
+          : "Human rejected a change set; no business mutation applied.",
+      payload: {
+        decision: opts.decision,
+        reviewer_id: userId,
+        reviewer_role: role,
+        change_set_id: opts.changeSetId,
+        change_type: changeSet.change_type,
+        next_status: nextStatus,
+      },
+      occurred_at: now,
+    });
+
+  if (eventErr) {
+    return {
+      ok: false,
+      message: "Change set reviewed, but event trace could not be recorded.",
+    };
+  }
+
+  revalidatePath(`/dashboard/${opts.websiteId}/growth/runs/${opts.runId}`);
+  revalidatePath(`/dashboard/${opts.websiteId}/growth/runs`);
+  revalidatePath(`/dashboard/${opts.websiteId}/growth/agents`);
+  revalidatePath(`/dashboard/${opts.websiteId}/growth/data-health`);
+  revalidatePath(`/dashboard/${opts.websiteId}/growth/overview`);
+  return {
+    ok: true,
+    message: `Change set ${opts.decision}d.`,
+  };
+}
+
+async function changeSetAction(
+  formData: FormData,
+  decision: ChangeSetDecision,
+): Promise<void> {
+  const websiteId = String(formData.get("websiteId") ?? "");
+  const runId = String(formData.get("runId") ?? "");
+  const changeSetId = String(formData.get("changeSetId") ?? "");
+  const notes = formData.get("notes");
+  if (!websiteId || !runId || !changeSetId) return;
+  await reviewChangeSet({
+    websiteId,
+    runId,
+    changeSetId,
+    decision,
+    notes: typeof notes === "string" && notes.length > 0 ? notes : undefined,
+  });
+}
+
 export async function approveRun(formData: FormData): Promise<void> {
   const websiteId = String(formData.get("websiteId") ?? "");
   const runId = String(formData.get("runId") ?? "");
@@ -442,6 +674,14 @@ export async function activateReplayCandidate(
 
 export async function rejectReplayCandidate(formData: FormData): Promise<void> {
   await candidateAction(formData, "replay", "reject");
+}
+
+export async function approveChangeSet(formData: FormData): Promise<void> {
+  await changeSetAction(formData, "approve");
+}
+
+export async function rejectChangeSet(formData: FormData): Promise<void> {
+  await changeSetAction(formData, "reject");
 }
 
 export async function downloadArtifactAction(

@@ -82,6 +82,135 @@ Proposed shared table: `growth_agent_change_sets`.
 | `applied_by/at`           | Apply metadata when a draft is written to an operational table.                                                              |
 | `published_by/at`         | Public publish metadata. Only human/Council-gated.                                                                           |
 
+## Contract-First Closure
+
+This SPEC cannot move to implementation until the shared contract, migration and
+authorization rules exist. These are required, not optional follow-ups.
+
+### Zod Schema
+
+Add `packages/website-contract/src/schemas/growth-agent-change-sets.ts` and
+export it from `packages/website-contract/src/index.ts`.
+
+Minimum schemas:
+
+- `GrowthAgentChangeSetStatusSchema`;
+- `GrowthAgentChangeTypeSchema`;
+- `GrowthAgentChangeSetRiskLevelSchema`;
+- `GrowthAgentChangeSetApprovalRoleSchema`;
+- `GrowthAgentChangeSetPreviewPayloadSchema`;
+- `GrowthAgentChangeSetEvidenceSchema`;
+- `GrowthAgentChangeSetSchema`;
+- `GrowthAgentChangeSetInsertSchema`;
+- `GrowthAgentChangeSetUpdateSchema`.
+
+The schema must validate:
+
+- `account_id`, `website_id` and `run_id` as UUIDs;
+- `agent_lane` using the existing `AgentLaneSchema`;
+- `status`, `change_type`, `risk_level` and `required_approval_role` as enums;
+- `before_snapshot`, `after_snapshot`, `preview_payload` and `evidence` as
+  typed objects, not unbounded raw provider payloads;
+- `requires_human_review = true` for content, transcreation, paid, experiment
+  and outreach families;
+- `published_at` cannot be present unless `status = published`;
+- `applied_at` cannot be present unless `status IN ('applied', 'published')`.
+
+### Supabase Migration And RLS
+
+Add a Flutter/SSOT-traced migration for `growth_agent_change_sets`.
+
+Required DB rules:
+
+- `account_id` and `website_id` are `NOT NULL`;
+- FK `run_id -> growth_agent_runs(run_id)`;
+- FK `parent_change_set_id -> growth_agent_change_sets(id)` nullable;
+- status/check constraints match the Zod enums;
+- index `(account_id, website_id, status, agent_lane)`;
+- index `(run_id)`;
+- index `(source_table, source_id)`;
+- deterministic unique key for dedupe:
+  `(account_id, website_id, run_id, change_type, dedupe_key)`;
+- RLS enforces tenant scope for reads;
+- writes are server-side only through approved runtime/service paths;
+- no UPDATE may bypass role checks for approve, apply, publish or reject;
+- public publish, paid mutation, transcreation merge and experiment activation
+  remain blocked unless their explicit Curator/Council gate writes an
+  append-only review.
+
+### Server Actions And Authorization
+
+Implement Work Center mutations as Server Actions, not client-side direct DB
+writes.
+
+Required actions:
+
+- `approveChangeSet(changeSetId, reason)`;
+- `rejectChangeSet(changeSetId, reason)`;
+- `requestChangeSetChanges(changeSetId, instructions, targetLane)`;
+- `applyApprovedChangeSet(changeSetId)`;
+- `approveLearningCandidate(changeSetId, candidateId)`;
+- `approvePublishPacket(changeSetId)`;
+- `approveExperimentPacket(changeSetId)`.
+
+Each action must:
+
+- load the change set by `account_id + website_id`;
+- verify the current user role against `required_approval_role`;
+- reject stale transitions from already terminal states;
+- write `growth_human_reviews` append-only;
+- write `growth_agent_run_events` append-only where relevant;
+- preserve the old state if apply fails;
+- never call paid providers, publish content, merge transcreation or activate
+  experiments unless the matching gate action is explicitly invoked by an
+  authorized role.
+
+### Deterministic Dedupe Key
+
+Every change set insert must include a deterministic `dedupe_key`.
+
+Default formula:
+
+```text
+sha256(account_id + website_id + run_id + change_type + normalized_source_ref + normalized_after_snapshot)
+```
+
+For human-authored follow-up tasks, include the parent change set id:
+
+```text
+sha256(parent_change_set_id + target_lane + normalized_instructions)
+```
+
+### Non-Public Draft Targets
+
+The first implementation slice must define safe draft targets before any apply
+button ships.
+
+| Change type            | Safe target requirement                                                                  |
+| ---------------------- | ---------------------------------------------------------------------------------------- |
+| `blog_draft_create`    | Write only to a non-public draft table/status with no sitemap, route or public exposure. |
+| `seo_title_meta_draft` | Write only to reviewable SEO draft metadata, not public page metadata directly.          |
+| `content_update_draft` | Store before/after proposed copy without changing published content.                     |
+| `transcreation_*`      | Store localized draft without hreflang/sitemap exposure.                                 |
+| `experiment_*`         | Store Council packet only; activation remains a separate Council action.                 |
+| `paid_*` if introduced | Store proposal only; no provider mutation from render/UI paths.                          |
+
+### UI Implementation Rules
+
+The Work Center must reuse existing Growth console layout and local UI
+primitives. Do not introduce a parallel design system.
+
+Required implementation patterns:
+
+- Server Components for read-heavy pages;
+- Server Actions for mutations;
+- URL params for filters where possible;
+- existing `components/ui/*` primitives before new controls;
+- lucide icons for tool/action buttons;
+- stable card/action dimensions to prevent layout shift;
+- centralized copy helpers for Spanish beta labels and future localization;
+- raw JSON only in collapsed technical detail sections.
+
 ## Artifact Contract
 
 Each Codex artifact must include `change_sets`:
@@ -276,8 +405,10 @@ Every beta-readiness run must produce:
 
 1. **Schema + Contract**
    - Add `growth_agent_change_sets`.
+   - Add `growth-agent-change-sets.ts` Zod schemas in
+     `@bukeer/website-contract`.
+   - Add migration, indexes, RLS, constraints and deterministic `dedupe_key`.
    - Extend Codex artifact contract with `change_sets`.
-   - Add deterministic keys to dedupe repeated drafts.
 
 2. **Runtime Writer**
    - Persist change sets during artifact creation.
@@ -293,6 +424,8 @@ Every beta-readiness run must produce:
    - Replace technical-first runs table with work cards and Review Desk.
    - Show previews, diffs, evidence, risks and action buttons per change set.
    - Keep raw artifact details collapsed.
+   - Reuse existing Growth layout, `components/ui/*`, lucide icons and
+     centralized Spanish copy helpers.
 
 5. **Chained Tasks**
    - Allow approved/rejected/request-changes decisions to create new backlog
@@ -308,6 +441,8 @@ Every beta-readiness run must produce:
 
 - Every `growth_agent_runs` row that reaches `review_required`, `completed` or
   `blocked` has at least one linked `growth_agent_change_sets` row.
+- `growth_agent_change_sets` has Zod schemas, migration, RLS, indexes,
+  constraints and deterministic dedupe before runtime/UI implementation starts.
 - Review Desk can show what the agent produced in Spanish without reading raw
   JSON.
 - A marketing operator can approve, reject or request changes per change set.

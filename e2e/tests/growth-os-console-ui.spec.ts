@@ -43,6 +43,7 @@ const BASE_URL =
   process.env.PLAYWRIGHT_BASE_URL ??
   process.env.E2E_BASE_URL ??
   `http://localhost:${PORT}`;
+const GOTO_READY = { waitUntil: "domcontentloaded" as const };
 
 test.describe("Growth OS console UI contract @growth-os-ui", () => {
   test.use({ storageState: "e2e/.auth/user.json" });
@@ -64,7 +65,7 @@ test.describe("Growth OS console UI contract @growth-os-ui", () => {
   test("Overview tab loads with metric cards and 5-lane status table", async ({
     page,
   }) => {
-    await page.goto(growthConsoleUrl(tenantA));
+    await page.goto(growthConsoleUrl(tenantA), GOTO_READY);
 
     await expect(
       page.getByRole("heading", { name: /growth os/i }),
@@ -98,7 +99,7 @@ test.describe("Growth OS console UI contract @growth-os-ui", () => {
   test("Agent Team tab loads cards and required column headers", async ({
     page,
   }) => {
-    await page.goto(`${growthConsoleUrl(tenantA)}/agents`);
+    await page.goto(`${growthConsoleUrl(tenantA)}/agents`, GOTO_READY);
     await page.waitForURL(/\/growth\/agents$/);
 
     await expect(page.getByTestId("growth-agent-team-cards")).toBeVisible();
@@ -136,7 +137,7 @@ test.describe("Growth OS console UI contract @growth-os-ui", () => {
   test("Opportunities tab loads (empty state OR populated list)", async ({
     page,
   }) => {
-    await page.goto(`${growthConsoleUrl(tenantA)}/backlog`);
+    await page.goto(`${growthConsoleUrl(tenantA)}/backlog`, GOTO_READY);
     await page.waitForURL(/\/growth\/backlog/);
 
     // Tenant scope indicator stays accurate.
@@ -162,7 +163,7 @@ test.describe("Growth OS console UI contract @growth-os-ui", () => {
   });
 
   test("Runs tab loads (empty state OK)", async ({ page }) => {
-    await page.goto(`${growthConsoleUrl(tenantA)}/runs`);
+    await page.goto(`${growthConsoleUrl(tenantA)}/runs`, GOTO_READY);
     await page.waitForURL(/\/growth\/runs/);
     await expect(
       page.getByRole("heading", { name: /review queue/i }),
@@ -174,17 +175,59 @@ test.describe("Growth OS console UI contract @growth-os-ui", () => {
     await expect(runsList.or(runsEmpty)).toBeVisible();
   });
 
+  test("Run detail works as a human work center with change sets", async ({
+    page,
+  }) => {
+    await page.goto(`${growthConsoleUrl(tenantA)}/runs`, GOTO_READY);
+    await page.waitForURL(/\/growth\/runs$/);
+
+    const firstRun = page.getByTestId(/^growth-run-row-/).first();
+    const hasRun = await firstRun.isVisible().catch(() => false);
+    test.skip(!hasRun, "No runs available to inspect work-center detail.");
+
+    await Promise.all([
+      page.waitForURL(/\/growth\/runs\/[0-9a-f-]+$/),
+      firstRun.getByRole("link").first().click(),
+    ]);
+
+    await expect(page.getByTestId("growth-run-human-summary")).toBeVisible();
+    await expect(page.getByTestId("growth-change-sets-panel")).toBeVisible();
+    await expect(page.getByTestId("growth-run-learning-panel")).toBeVisible();
+    await expect(page.getByTestId("growth-run-events-panel")).toBeVisible();
+
+    const firstChangeSet = page.getByTestId("growth-change-set-card").first();
+    const hasChangeSet = await firstChangeSet.isVisible().catch(() => false);
+    if (hasChangeSet) {
+      await expect(firstChangeSet).toContainText(/vista previa|acción real/i);
+      await expect(
+        firstChangeSet.getByRole("button", {
+          name: /aprobar propuesta|approve/i,
+        }),
+      ).toBeVisible();
+      await expect(
+        firstChangeSet.getByRole("button", { name: /rechazar|reject/i }),
+      ).toBeVisible();
+    } else {
+      await expect(
+        page.getByTestId("growth-change-sets-empty-state"),
+      ).toBeVisible();
+      await expect(page.getByTestId("growth-change-sets-panel")).toContainText(
+        /change sets|propuestas operables/i,
+      );
+    }
+  });
+
   test("Experiments and Data Health tabs load human control-plane surfaces", async ({
     page,
   }) => {
-    await page.goto(`${growthConsoleUrl(tenantA)}/experiments`);
+    await page.goto(`${growthConsoleUrl(tenantA)}/experiments`, GOTO_READY);
     await page.waitForURL(/\/growth\/experiments$/);
     await expect(
       page.getByRole("heading", { name: /experiments/i }),
     ).toBeVisible();
     await expect(page.getByTestId("growth-experiments-summary")).toBeVisible();
 
-    await page.goto(`${growthConsoleUrl(tenantA)}/data-health`);
+    await page.goto(`${growthConsoleUrl(tenantA)}/data-health`, GOTO_READY);
     await page.waitForURL(/\/growth\/data-health$/);
     await expect(
       page.getByRole("heading", { name: "Data Health", exact: true }),
@@ -200,7 +243,7 @@ test.describe("Growth OS console UI contract @growth-os-ui", () => {
     page,
   }) => {
     const response = await page.goto(growthConsoleUrl(tenantB), {
-      waitUntil: "domcontentloaded",
+      ...GOTO_READY,
     });
 
     const status = response?.status() ?? 0;
@@ -251,7 +294,7 @@ test.describe("Growth OS console UI contract @growth-os-ui", () => {
 
     // Viewer: open Run detail, expect Approve/Reject hidden OR disabled.
     await signInAs(page, usersByRole.viewer.role);
-    await page.goto(growthConsoleUrl(tenantA));
+    await page.goto(growthConsoleUrl(tenantA), GOTO_READY);
     await page.getByRole("link", { name: /review queue/i }).click();
     await page.waitForURL(/\/growth\/runs$/);
     await page
@@ -273,7 +316,7 @@ test.describe("Growth OS console UI contract @growth-os-ui", () => {
 
     // Curator: same Run detail, Approve/Reject must be enabled.
     await signInAs(page, usersByRole.curator.role);
-    await page.goto(growthConsoleUrl(tenantA));
+    await page.goto(growthConsoleUrl(tenantA), GOTO_READY);
     await page.getByRole("link", { name: /review queue/i }).click();
     await page.waitForURL(/\/growth\/runs$/);
     await page
@@ -290,7 +333,7 @@ test.describe("Growth OS console UI contract @growth-os-ui", () => {
   test("Append-only events: Run detail exposes no event-mutation affordances", async ({
     page,
   }) => {
-    await page.goto(growthConsoleUrl(tenantA));
+    await page.goto(growthConsoleUrl(tenantA), GOTO_READY);
     await page.getByRole("link", { name: /review queue/i }).click();
     await page.waitForURL(/\/growth\/runs$/);
 

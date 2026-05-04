@@ -649,6 +649,29 @@ export type {
   GrowthAgentRunEventInput,
 } from './schemas/growth-agent-run-events';
 
+export {
+  GrowthAgentChangeSetStatusSchema,
+  GrowthAgentChangeTypeSchema,
+  GrowthAgentChangeSetRiskLevelSchema,
+  GrowthAgentChangeSetApprovalRoleSchema,
+  GrowthAgentChangeSetPreviewPayloadSchema,
+  GrowthAgentChangeSetEvidenceSchema,
+  GrowthAgentChangeSetSchema,
+  GrowthAgentChangeSetInsertSchema,
+  GrowthAgentChangeSetUpdateSchema,
+} from './schemas/growth-agent-change-sets';
+export type {
+  GrowthAgentChangeSetStatus,
+  GrowthAgentChangeType,
+  GrowthAgentChangeSetRiskLevel,
+  GrowthAgentChangeSetApprovalRole,
+  GrowthAgentChangeSetPreviewPayload,
+  GrowthAgentChangeSetEvidence,
+  GrowthAgentChangeSet,
+  GrowthAgentChangeSetInsert,
+  GrowthAgentChangeSetUpdate,
+} from './schemas/growth-agent-change-sets';
+
 // Validation
 export {
   validateSection,

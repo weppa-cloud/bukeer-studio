@@ -4,10 +4,12 @@ import { z } from "zod";
 import {
   AgentRunStatusSchema,
   AgentLaneSchema,
+  GrowthAgentChangeSetSchema,
   GrowthAgentRunSchema,
   GrowthAgentRunEventSchema,
   type AgentLane,
   type AgentRunStatus,
+  type GrowthAgentChangeSet,
   type GrowthAgentRun,
   type GrowthAgentRunEvent,
 } from "@bukeer/website-contract";
@@ -283,6 +285,7 @@ export interface GetAgentRunDetailResult {
   replayCases: RuntimeReplayCase[];
   memories: RuntimeMemory[];
   skills: RuntimeSkill[];
+  changeSets: GrowthAgentChangeSet[];
   tablesMissing: boolean;
 }
 
@@ -440,15 +443,23 @@ export async function getAgentRunDetail(
     : null;
 
   const runtimeSupabase = createSupabaseServiceRoleClient();
-  const [aiReview, metrics, toolCalls, replayCases, memories, skills] =
-    await Promise.all([
-      fetchRuntimeAiReview(runtimeSupabase, accountId, websiteId, runId),
-      fetchRuntimeMetrics(runtimeSupabase, accountId, websiteId, runId),
-      fetchRuntimeToolCalls(runtimeSupabase, accountId, websiteId, runId),
-      fetchRuntimeReplayCases(runtimeSupabase, accountId, websiteId, runId),
-      fetchRuntimeMemories(runtimeSupabase, accountId, websiteId, runId),
-      fetchRuntimeSkills(runtimeSupabase, accountId, websiteId, runId),
-    ]);
+  const [
+    aiReview,
+    metrics,
+    toolCalls,
+    replayCases,
+    memories,
+    skills,
+    changeSets,
+  ] = await Promise.all([
+    fetchRuntimeAiReview(runtimeSupabase, accountId, websiteId, runId),
+    fetchRuntimeMetrics(runtimeSupabase, accountId, websiteId, runId),
+    fetchRuntimeToolCalls(runtimeSupabase, accountId, websiteId, runId),
+    fetchRuntimeReplayCases(runtimeSupabase, accountId, websiteId, runId),
+    fetchRuntimeMemories(runtimeSupabase, accountId, websiteId, runId),
+    fetchRuntimeSkills(runtimeSupabase, accountId, websiteId, runId),
+    fetchRuntimeChangeSets(runtimeSupabase, accountId, websiteId, runId),
+  ]);
 
   return {
     run,
@@ -463,6 +474,7 @@ export async function getAgentRunDetail(
     replayCases,
     memories,
     skills,
+    changeSets,
     tablesMissing,
   };
 }
@@ -673,6 +685,39 @@ async function fetchRuntimeSkills(
       row.approved_at == null ? null : String(toIsoDateTime(row.approved_at)),
     created_at: String(toIsoDateTime(row.created_at)),
   }));
+}
+
+async function fetchRuntimeChangeSets(
+  supabase: RuntimeSupabase,
+  accountId: string,
+  websiteId: string,
+  runId: string,
+): Promise<GrowthAgentChangeSet[]> {
+  const { data, error } = await runtimeTable(
+    supabase,
+    "growth_agent_change_sets",
+  )
+    .select(
+      "id, account_id, website_id, locale, market, run_id, source_table, source_id, agent_lane, change_type, status, title, summary, dedupe_key, before_snapshot, after_snapshot, preview_payload, evidence, risk_level, requires_human_review, required_approval_role, parent_change_set_id, created_backlog_item_id, approved_by, approved_at, applied_by, applied_at, published_by, published_at, created_at, updated_at",
+    )
+    .eq("account_id", accountId)
+    .eq("website_id", websiteId)
+    .eq("run_id", runId)
+    .order("created_at", { ascending: true });
+
+  if (error || !data) return [];
+  const normalized = (data as Record<string, unknown>[]).map((row) => ({
+    ...row,
+    approved_at:
+      row.approved_at == null ? null : toIsoDateTime(row.approved_at),
+    applied_at: row.applied_at == null ? null : toIsoDateTime(row.applied_at),
+    published_at:
+      row.published_at == null ? null : toIsoDateTime(row.published_at),
+    created_at: toIsoDateTime(row.created_at),
+    updated_at: toIsoDateTime(row.updated_at),
+  }));
+  const parsed = z.array(GrowthAgentChangeSetSchema).safeParse(normalized);
+  return parsed.success ? parsed.data : [];
 }
 
 export const AGENT_RUN_STATUS_OPTIONS = STATUSES;

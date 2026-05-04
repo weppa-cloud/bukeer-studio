@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import {
   type AgentRunStatus,
+  type GrowthAgentChangeSet,
   type GrowthAgentRunEvent,
 } from "@bukeer/website-contract";
 import {
@@ -10,13 +11,19 @@ import {
   StudioBadge,
 } from "@/components/studio/ui/primitives";
 import { getAgentRunDetail } from "@/lib/growth/console/queries-runs";
-import { hasGrowthRole, requireGrowthRole } from "@/lib/growth/console/auth";
+import {
+  type GrowthRole,
+  hasGrowthRole,
+  requireGrowthRole,
+} from "@/lib/growth/console/auth";
 import {
   activateReplayCandidate,
+  approveChangeSet,
   approveMemoryCandidate,
   approveRun,
   approveSkillCandidate,
   downloadArtifactAction,
+  rejectChangeSet,
   rejectMemoryCandidate,
   rejectReplayCandidate,
   rejectRun,
@@ -106,6 +113,64 @@ const TOOL_LABELS: Record<string, string> = {
   skill_learning: "Skill del agente",
 };
 
+const CHANGE_SET_STATUS_LABELS: Record<string, string> = {
+  proposed: "Propuesto",
+  draft_created: "Borrador creado",
+  needs_review: "Listo para revisión",
+  changes_requested: "Cambios solicitados",
+  approved: "Aprobado",
+  applied: "Aplicado en borrador",
+  published: "Publicado",
+  rejected: "Rechazado",
+  blocked: "Bloqueado",
+};
+
+const CHANGE_TYPE_LABELS: Record<string, string> = {
+  backlog_route_update: "Actualizar ruta de oportunidad",
+  backlog_task_split: "Dividir tarea de backlog",
+  follow_up_backlog_create: "Crear tarea de seguimiento",
+  council_packet_prepare: "Preparar paquete para Council",
+  governance_block: "Bloqueo de gobernanza",
+  growth_cycle_summary: "Resumen del ciclo Growth",
+  seo_title_meta_draft: "Borrador de título y meta SEO",
+  seo_indexing_draft: "Borrador de indexación SEO",
+  route_mapping_draft: "Mapeo de ruta",
+  internal_link_draft: "Enlaces internos sugeridos",
+  performance_remediation_task: "Tarea de mejora técnica",
+  technical_smoke_result: "Resultado de prueba técnica",
+  blog_draft_create: "Borrador de blog",
+  content_update_draft: "Actualización de contenido",
+  content_brief_create: "Brief de contenido",
+  faq_schema_draft: "Borrador de FAQ",
+  landing_section_copy_draft: "Copy para sección landing",
+  content_evidence_request: "Solicitud de evidencia",
+  transcreation_draft_create: "Borrador de transcreación",
+  transcreation_update_draft: "Ajuste de transcreación",
+  locale_seo_review: "Revisión SEO por mercado",
+  translation_quality_fix_draft: "Corrección de traducción",
+  locale_serp_packet: "Paquete SERP por mercado",
+  transcreation_merge_readiness: "Preparación para unir transcreación",
+  content_quality_review: "Revisión de calidad",
+  creator_revision_request: "Solicitud de ajuste al creador",
+  publish_packet_prepare: "Paquete para publicación",
+  experiment_candidate_prepare: "Candidato de experimento",
+  experiment_readout_prepare: "Lectura de experimento",
+  learning_candidate_review: "Revisión de aprendizaje",
+  tool_policy_verdict: "Veredicto de herramienta",
+  blocked_tool_call_evidence: "Evidencia de herramienta bloqueada",
+  replay_case_candidate: "Caso de evaluación candidato",
+  memory_candidate: "Memoria candidata",
+  skill_update_candidate: "Skill candidata",
+  research_packet: "Paquete de investigación",
+};
+
+const RISK_LABELS: Record<string, string> = {
+  low: "Riesgo bajo",
+  medium: "Riesgo medio",
+  high: "Riesgo alto",
+  blocked: "Bloqueado",
+};
+
 function fmtDate(iso: string | null | undefined): string {
   if (!iso) return "—";
   try {
@@ -136,6 +201,42 @@ function labelFromMap(value: unknown, labels: Record<string, string>): string {
   if (value == null) return "—";
   const key = String(value).trim();
   return labels[key] ?? humanizeToken(key);
+}
+
+function compactList(value: unknown, limit = 4): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => String(item ?? "").trim())
+    .filter(Boolean)
+    .slice(0, limit);
+}
+
+function previewText(
+  payload: Record<string, unknown>,
+  key: string,
+): string | null {
+  const value = payload[key];
+  if (typeof value === "string" && value.trim()) return value.trim();
+  return null;
+}
+
+function changeSetCanBeReviewed(status: string): boolean {
+  return [
+    "proposed",
+    "draft_created",
+    "needs_review",
+    "changes_requested",
+  ].includes(status);
+}
+
+function canReviewChangeSet(role: GrowthRole, requiredRole: string): boolean {
+  if (requiredRole === "growth_operator") {
+    return hasGrowthRole(role, "growth_operator");
+  }
+  if (requiredRole === "council_admin") {
+    return hasGrowthRole(role, "council_admin");
+  }
+  return hasGrowthRole(role, "curator");
 }
 
 function confidenceLabel(value: number | null | undefined): string {
@@ -217,6 +318,232 @@ function CandidateReviewButtons({
         </button>
       </form>
     </div>
+  );
+}
+
+function ChangeSetReviewButtons({
+  websiteId,
+  runId,
+  changeSetId,
+  canReview,
+  disabled,
+  disabledReason,
+}: {
+  websiteId: string;
+  runId: string;
+  changeSetId: string;
+  canReview: boolean;
+  disabled: boolean;
+  disabledReason: string | null;
+}) {
+  const isDisabled = !canReview || disabled;
+  return (
+    <div className="mt-3 flex flex-wrap items-end gap-2">
+      <form action={approveChangeSet}>
+        <input type="hidden" name="websiteId" value={websiteId} />
+        <input type="hidden" name="runId" value={runId} />
+        <input type="hidden" name="changeSetId" value={changeSetId} />
+        <button
+          type="submit"
+          disabled={isDisabled}
+          data-testid="growth-change-set-approve"
+          aria-label="Approve / Aprobar propuesta del agente"
+          className="studio-button studio-button--primary disabled:opacity-50 disabled:cursor-not-allowed"
+          title={disabledReason ?? undefined}
+        >
+          Aprobar propuesta
+        </button>
+      </form>
+      <form action={rejectChangeSet} className="flex flex-wrap items-end gap-2">
+        <input type="hidden" name="websiteId" value={websiteId} />
+        <input type="hidden" name="runId" value={runId} />
+        <input type="hidden" name="changeSetId" value={changeSetId} />
+        <label className="flex min-w-48 flex-col gap-1 text-xs">
+          <span className="text-[var(--studio-text-muted)]">
+            Motivo para pedir corrección
+          </span>
+          <input
+            type="text"
+            name="notes"
+            maxLength={500}
+            disabled={isDisabled}
+            className="studio-input"
+            placeholder="Falta evidencia, tono, enfoque..."
+          />
+        </label>
+        <button
+          type="submit"
+          disabled={isDisabled}
+          data-testid="growth-change-set-reject"
+          aria-label="Reject / Rechazar propuesta del agente"
+          className="studio-button studio-button--danger disabled:opacity-50 disabled:cursor-not-allowed"
+          title={disabledReason ?? undefined}
+        >
+          Rechazar
+        </button>
+      </form>
+      {disabledReason ? (
+        <p className="basis-full text-xs text-[var(--studio-text-muted)]">
+          {disabledReason}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function ChangeSetWorkCard({
+  changeSet,
+  websiteId,
+  runId,
+  role,
+}: {
+  changeSet: GrowthAgentChangeSet;
+  websiteId: string;
+  runId: string;
+  role: GrowthRole;
+}) {
+  const statusLabel = labelFromMap(changeSet.status, CHANGE_SET_STATUS_LABELS);
+  const typeLabel = labelFromMap(changeSet.change_type, CHANGE_TYPE_LABELS);
+  const riskLabel = labelFromMap(changeSet.risk_level, RISK_LABELS);
+  const requiredRole = changeSet.required_approval_role;
+  const canReview = canReviewChangeSet(role, requiredRole);
+  const reviewable = changeSetCanBeReviewed(changeSet.status);
+  const references = compactList(changeSet.preview_payload.source_refs);
+  const followUps = compactList(changeSet.preview_payload.follow_up_tasks, 3);
+  const preview =
+    previewText(changeSet.preview_payload, "preview_text") ??
+    previewText(changeSet.after_snapshot, "title") ??
+    previewText(changeSet.after_snapshot, "headline") ??
+    previewText(changeSet.after_snapshot, "draft") ??
+    previewText(changeSet.after_snapshot, "summary");
+  const disabledReason = !canReview
+    ? `Tu rol actual (${role}) no puede decidir esta propuesta. Se requiere ${humanizeToken(requiredRole)}.`
+    : !reviewable
+      ? "Esta propuesta ya fue cerrada."
+      : null;
+
+  return (
+    <article
+      data-testid="growth-change-set-card"
+      className="studio-panel border border-[var(--studio-border)] p-4"
+    >
+      <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+        <div>
+          <div className="text-xs uppercase tracking-wide text-[var(--studio-text-muted)]">
+            {typeLabel}
+          </div>
+          <h3 className="mt-1 text-base font-semibold text-[var(--studio-text)]">
+            {changeSet.title}
+          </h3>
+          <p className="mt-2 text-sm text-[var(--studio-text)]">
+            {changeSet.summary}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2 md:justify-end">
+          <StudioBadge
+            tone={
+              changeSet.status === "approved" ||
+              changeSet.status === "applied" ||
+              changeSet.status === "published"
+                ? "success"
+                : changeSet.status === "rejected" ||
+                    changeSet.status === "blocked"
+                  ? "danger"
+                  : "warning"
+            }
+          >
+            {statusLabel}
+          </StudioBadge>
+          <StudioBadge
+            tone={
+              changeSet.risk_level === "blocked" ||
+              changeSet.risk_level === "high"
+                ? "danger"
+                : changeSet.risk_level === "medium"
+                  ? "warning"
+                  : "success"
+            }
+          >
+            {riskLabel}
+          </StudioBadge>
+        </div>
+      </div>
+
+      {preview ? (
+        <div className="mt-3 rounded-md bg-[var(--studio-surface-muted,theme(colors.zinc.50))] p-3">
+          <div className="text-xs font-medium uppercase tracking-wide text-[var(--studio-text-muted)]">
+            Vista previa para marketing
+          </div>
+          <p className="mt-2 whitespace-pre-wrap text-sm text-[var(--studio-text)]">
+            {preview}
+          </p>
+        </div>
+      ) : null}
+
+      <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
+        <div className="rounded-md border border-[var(--studio-border)] p-3">
+          <div className="text-xs text-[var(--studio-text-muted)]">
+            Aprobación requerida
+          </div>
+          <div className="mt-1 text-sm font-medium">
+            {humanizeToken(requiredRole)}
+          </div>
+        </div>
+        <div className="rounded-md border border-[var(--studio-border)] p-3">
+          <div className="text-xs text-[var(--studio-text-muted)]">
+            Acción real
+          </div>
+          <div className="mt-1 text-sm font-medium">
+            Solo deja evidencia y borrador
+          </div>
+        </div>
+        <div className="rounded-md border border-[var(--studio-border)] p-3">
+          <div className="text-xs text-[var(--studio-text-muted)]">
+            Seguridad
+          </div>
+          <div className="mt-1 text-sm font-medium">
+            No publica automáticamente
+          </div>
+        </div>
+      </div>
+
+      {references.length > 0 ? (
+        <div className="mt-3">
+          <div className="text-xs font-medium text-[var(--studio-text-muted)]">
+            Referencias usadas
+          </div>
+          <ul className="mt-1 list-disc space-y-1 pl-5 text-xs">
+            {references.map((ref) => (
+              <li key={ref} className="break-all">
+                {ref}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {followUps.length > 0 ? (
+        <div className="mt-3">
+          <div className="text-xs font-medium text-[var(--studio-text-muted)]">
+            Próximas tareas sugeridas
+          </div>
+          <ul className="mt-1 list-disc space-y-1 pl-5 text-xs">
+            {followUps.map((task) => (
+              <li key={task}>{task}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      <ChangeSetReviewButtons
+        websiteId={websiteId}
+        runId={runId}
+        changeSetId={changeSet.id}
+        canReview={canReview}
+        disabled={!reviewable}
+        disabledReason={disabledReason}
+      />
+    </article>
   );
 }
 
@@ -403,6 +730,7 @@ export default async function GrowthRunDetailPage({ params }: PageProps) {
     replayCases,
     memories,
     skills,
+    changeSets,
   } = detail;
 
   const evidence =
@@ -576,6 +904,55 @@ export default async function GrowthRunDetailPage({ params }: PageProps) {
             showNotes={false}
           />
         </div>
+      </section>
+
+      <section
+        aria-labelledby="run-change-sets-heading"
+        className="space-y-3 mt-6"
+        data-testid="growth-change-sets-panel"
+      >
+        <header>
+          <h2
+            id="run-change-sets-heading"
+            className="text-base font-semibold text-[var(--studio-text)]"
+          >
+            Trabajo producido por el agente
+          </h2>
+          <p className="text-sm text-[var(--studio-text-muted)]">
+            Cada propuesta se revisa por separado. Aprobar una propuesta deja
+            trazabilidad humana, pero no publica contenido ni cambia pauta sin
+            una acción posterior explícita.
+          </p>
+        </header>
+
+        {changeSets.length > 0 ? (
+          <div className="space-y-3">
+            {changeSets.map((changeSet) => (
+              <ChangeSetWorkCard
+                key={changeSet.id}
+                changeSet={changeSet}
+                websiteId={websiteId}
+                runId={run.run_id}
+                role={role}
+              />
+            ))}
+          </div>
+        ) : (
+          <div
+            data-testid="growth-change-sets-empty-state"
+            className="rounded-md border border-dashed border-[var(--studio-border)] bg-[var(--studio-surface)] p-4"
+          >
+            <h3 className="text-sm font-semibold">
+              Este run todavía no tiene propuestas operables
+            </h3>
+            <p className="mt-1 text-sm text-[var(--studio-text-muted)]">
+              Los próximos runs del executor deben generar change sets: blog,
+              brief, ajuste SEO, transcreación, tarea técnica o paquete para
+              aprobación. El resumen y el artifact siguen disponibles para
+              auditoría.
+            </p>
+          </div>
+        )}
       </section>
 
       <details className="mt-4 rounded-md border border-[var(--studio-border)] bg-[var(--studio-surface)] p-3 text-xs">
