@@ -92,6 +92,64 @@ const CHANGE_SET_APPROVAL_ROLES = new Set([
   "council_admin",
   "technical_owner",
 ]);
+const CHANGE_SET_SNAPSHOT_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: ["kind", "url", "current", "proposed", "notes"],
+  properties: {
+    kind: { type: "string" },
+    url: { type: "string" },
+    current: { type: "string" },
+    proposed: { type: "string" },
+    notes: { type: "array", items: { type: "string" } },
+  },
+};
+const CHANGE_SET_PREVIEW_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: ["kind", "headline", "body", "diff_summary", "cta_label"],
+  properties: {
+    kind: { type: "string" },
+    headline: { type: "string" },
+    body: { type: "string" },
+    diff_summary: { type: "array", items: { type: "string" } },
+    cta_label: { type: "string" },
+  },
+};
+const CHANGE_SET_EVIDENCE_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: ["source_refs", "rationale", "metrics", "checks"],
+  properties: {
+    source_refs: { type: "array", items: { type: "string" } },
+    rationale: { type: "string" },
+    metrics: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["name", "value", "source"],
+        properties: {
+          name: { type: "string" },
+          value: { type: "string" },
+          source: { type: "string" },
+        },
+      },
+    },
+    checks: { type: "array", items: { type: "string" } },
+  },
+};
+const CHANGE_SET_FOLLOW_UP_TASK_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: ["title", "target_lane", "instructions", "requires_human_review"],
+  properties: {
+    title: { type: "string" },
+    target_lane: { type: "string" },
+    instructions: { type: "string" },
+    requires_human_review: { type: "boolean" },
+  },
+};
 export const CODEX_ARTIFACT_SCHEMA = {
   type: "object",
   additionalProperties: false,
@@ -193,13 +251,13 @@ export const CODEX_ARTIFACT_SCHEMA = {
           risk_level: { type: "string" },
           requires_human_review: { type: "boolean" },
           required_approval_role: { type: "string" },
-          before_snapshot: { type: "object" },
-          after_snapshot: { type: "object" },
-          preview_payload: { type: "object" },
-          evidence: { type: "object" },
+          before_snapshot: CHANGE_SET_SNAPSHOT_SCHEMA,
+          after_snapshot: CHANGE_SET_SNAPSHOT_SCHEMA,
+          preview_payload: CHANGE_SET_PREVIEW_SCHEMA,
+          evidence: CHANGE_SET_EVIDENCE_SCHEMA,
           follow_up_tasks: {
             type: "array",
-            items: { type: "object" },
+            items: CHANGE_SET_FOLLOW_UP_TASK_SCHEMA,
           },
         },
       },
