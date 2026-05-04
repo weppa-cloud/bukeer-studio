@@ -40,6 +40,7 @@ import {
   apiValidationError,
 } from '@/lib/api';
 import { checkRateLimit, extractClientIp } from '@/lib/booking/rate-limit';
+import { triggerDispatch } from '@/lib/funnel/dispatch';
 import { parseAttribution } from '@/lib/growth/attribution-parser';
 import { buildEventId } from '@/lib/growth/event-id';
 import { insertFunnelEvent } from '@/lib/growth/funnel-events';
@@ -51,6 +52,33 @@ import {
   type GrowthMarket,
   type FunnelEventIngest,
 } from '@bukeer/website-contract';
+
+// ---------------------------------------------------------------------------
+// Feature flag — F1 (#420) dispatcher cutover.
+// ---------------------------------------------------------------------------
+// When FUNNEL_EVENTS_DISPATCHER_V1 === 'true':
+//   1. Lead is persisted (unchanged).
+//   2. Funnel event is recorded via record_funnel_event RPC with
+//      pixel_event_id populated (preserves Pixel↔CAPI dedup) and the typed
+//      attribution columns (gclid/fbp/fbc/utm_*/...).
+//   3. Direct sendMetaConversionEvent call is SKIPPED — the DB AFTER INSERT
+//      trigger + dispatcher Edge Function (or the pg_cron re-dispatch loop)
+//      now owns Meta CAPI fan-out.
+//
+// When the flag is unset/false (DEFAULT — production today):
+//   * Behaviour is byte-for-byte unchanged. The existing
+//     sendWaflowLeadConversion path runs; the existing
+//     emitWaflowSubmitFunnelEvent helper still writes to funnel_events via
+//     the legacy lib/growth/funnel-events insertFunnelEvent path.
+//
+// To flip:
+//   FUNNEL_EVENTS_DISPATCHER_V1=true (Cloudflare Worker env / Vercel env)
+//
+// Rollback: unset the flag → next request reverts to the legacy direct-call
+// path. New writes to funnel_events keep flowing (the trigger no-ops if
+// app.dispatch_function_url is unset).
+// ---------------------------------------------------------------------------
+const DISPATCHER_V1_ENABLED = process.env.FUNNEL_EVENTS_DISPATCHER_V1 === 'true';
 
 const log = createLogger('api.waflow.lead');
 
@@ -333,6 +361,107 @@ async function emitWaflowSubmitFunnelEvent(
   }
 }
 
+/**
+ * F1 dispatcher path — record the funnel event via the canonical
+ * record_funnel_event RPC. Called only when DISPATCHER_V1_ENABLED.
+ *
+ * Maps the existing Pixel-paired id (`${referenceCode}:lead`) to
+ * pixel_event_id (NOT event_id — the sha256 stays the PK). The dispatcher
+ * Edge Function will read pixel_event_id when forwarding to Meta CAPI so
+ * browser Pixel ↔ server CAPI dedup keeps working.
+ */
+async function recordWaflowLeadViaRpc(
+  body: WaflowLeadBody,
+  tenant: { accountId: string | null; websiteId: string | null },
+  request: NextRequest,
+  lead: { created_at: string },
+): Promise<void> {
+  if (!body.submitted || body.step !== 'confirmation') return;
+  if (!tenant.accountId || !tenant.websiteId) return;
+  if (!body.referenceCode) return;
+
+  const createdAt = new Date(lead.created_at);
+  const occurredAt = Number.isNaN(createdAt.getTime()) ? new Date() : createdAt;
+  const attribution = resolveAttribution(body);
+  const ip = extractClientIp(request.headers);
+  const ua = request.headers.get('user-agent');
+  const sourceUrl = readString(attribution.source_url);
+  const pagePath = readString(attribution.page_path);
+
+  const eventId = await buildEventId({
+    reference_code: body.referenceCode,
+    event_name: 'waflow_submit',
+    occurred_at: occurredAt,
+  });
+
+  const pixelEventId = resolveLeadEventId(body); // e.g. `${referenceCode}:lead`
+
+  const rpcPayload = {
+    event_id: eventId,
+    pixel_event_id: pixelEventId ?? undefined,
+    event_name: 'waflow_submit' as const,
+    event_time: occurredAt.toISOString(),
+    source: 'studio_web' as const,
+    reference_code: body.referenceCode,
+    account_id: tenant.accountId,
+    website_id: tenant.websiteId,
+    locale: deriveLocale(body),
+    market: deriveMarket(body),
+    stage: 'activation',
+    channel: 'waflow',
+    source_url: sourceUrl,
+    page_path: pagePath,
+    user_email: readString(body.payload.email),
+    user_phone: readString(body.payload.phone),
+    external_id: body.referenceCode ?? body.sessionKey,
+    fbp: readString(attribution.fbp),
+    fbc: readString(attribution.fbc),
+    gclid: readString(attribution.gclid),
+    gbraid: readString(attribution.gbraid),
+    wbraid: readString(attribution.wbraid),
+    utm_source: readString(attribution.utm_source),
+    utm_medium: readString(attribution.utm_medium),
+    utm_campaign: readString(attribution.utm_campaign),
+    utm_term: readString(attribution.utm_term),
+    utm_content: readString(attribution.utm_content),
+    ip_address: ip ?? undefined,
+    user_agent: ua ?? undefined,
+    raw_payload: {
+      variant: body.variant,
+      session_key: body.sessionKey,
+      subdomain: body.subdomain ?? null,
+      package_slug: readString(body.payload.packageSlug),
+      destination_slug: readString(body.payload.destinationSlug),
+      package_tier: readString(body.payload.packageTier),
+    },
+    attribution,
+  };
+
+  const supabase = createSupabaseAdmin();
+  const { data, error } = await supabase.rpc('record_funnel_event', {
+    payload: rpcPayload,
+  });
+
+  if (error) {
+    log.warn('record_funnel_event_rpc_failed', {
+      event_id: eventId,
+      reference_code: body.referenceCode,
+      code: error.code,
+      message: error.message,
+    });
+    return;
+  }
+
+  // Optional sync trigger (default: trust the DB AFTER INSERT trigger).
+  await triggerDispatch(eventId);
+
+  log.info('record_funnel_event_rpc_ok', {
+    event_id: eventId,
+    pixel_event_id: pixelEventId,
+    rpc_result: data,
+  });
+}
+
 async function sendWaflowLeadConversion(
   body: WaflowLeadBody,
   tenant: { accountId: string | null; websiteId: string | null },
@@ -440,22 +569,43 @@ export async function POST(request: NextRequest) {
       return apiInternalError('Failed to persist waflow lead');
     }
 
-    try {
-      await sendWaflowLeadConversion(body, tenant ?? { accountId: null, websiteId: null }, lead.id, request);
-    } catch (error) {
-      log.warn('meta_lead_conversion_failed', {
-        reference_code: body.referenceCode ?? null,
-        error: error instanceof Error ? error.message : String(error),
-      });
-    }
+    if (DISPATCHER_V1_ENABLED) {
+      // F1 dispatcher path. The RPC writes to funnel_events; the DB
+      // AFTER INSERT trigger fans out to Meta CAPI (via the dispatcher
+      // Edge Function). The legacy direct-call sendWaflowLeadConversion is
+      // intentionally skipped to avoid double-sending to Meta.
+      try {
+        await recordWaflowLeadViaRpc(
+          body,
+          tenant ?? { accountId: null, websiteId: null },
+          request,
+          lead,
+        );
+      } catch (error) {
+        log.warn('funnel_dispatcher_v1_failed', {
+          reference_code: body.referenceCode ?? null,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    } else {
+      // Legacy path (DEFAULT). Unchanged from before F1.
+      try {
+        await sendWaflowLeadConversion(body, tenant ?? { accountId: null, websiteId: null }, lead.id, request);
+      } catch (error) {
+        log.warn('meta_lead_conversion_failed', {
+          reference_code: body.referenceCode ?? null,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
 
-    try {
-      await emitWaflowSubmitFunnelEvent(body, tenant ?? { accountId: null, websiteId: null }, lead);
-    } catch (error) {
-      log.warn('funnel_event_emit_failed', {
-        reference_code: body.referenceCode ?? null,
-        error: error instanceof Error ? error.message : String(error),
-      });
+      try {
+        await emitWaflowSubmitFunnelEvent(body, tenant ?? { accountId: null, websiteId: null }, lead);
+      } catch (error) {
+        log.warn('funnel_event_emit_failed', {
+          reference_code: body.referenceCode ?? null,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
     }
 
     return apiSuccess({ id: lead.id, step: body.step }, 201);
