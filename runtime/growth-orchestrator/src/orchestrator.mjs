@@ -851,7 +851,6 @@ async function createCodexArtifact(supabase, opts, run, runtimeContext) {
     requires_human_review: true,
     completed_at: new Date().toISOString(),
   };
-  storageResults.learning_context = learningContext.storage;
 
   const storageResults = {
     ai_review: await bestEffortUpsert(
@@ -918,6 +917,7 @@ async function createCodexArtifact(supabase, opts, run, runtimeContext) {
         })
       : { skipped: true, reason: "replay_seed_not_eligible" },
   };
+  storageResults.learning_context = learningContext.storage;
 
   const memoryResults = [];
   for (const candidate of output.memory_candidates) {
