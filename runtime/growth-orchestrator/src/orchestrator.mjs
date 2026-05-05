@@ -10,6 +10,7 @@ import { memoryContent } from "./memory.mjs";
 import { buildReplaySeed } from "./replay.mjs";
 import { skillInstructions } from "./skills.mjs";
 import { evaluateToolPolicy } from "./tool-gateway.mjs";
+import { toolsetForLane } from "./toolsets.mjs";
 
 const LANES = [
   "orchestrator",
