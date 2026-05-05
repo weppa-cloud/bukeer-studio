@@ -43,7 +43,7 @@ const BASE_URL =
   process.env.PLAYWRIGHT_BASE_URL ??
   process.env.E2E_BASE_URL ??
   `http://localhost:${PORT}`;
-const GOTO_READY = { waitUntil: "domcontentloaded" as const };
+const GOTO_READY = { waitUntil: "networkidle" as const };
 
 test.describe("Growth OS console UI contract @growth-os-ui", () => {
   test.use({ storageState: "e2e/.auth/user.json" });
@@ -183,7 +183,7 @@ test.describe("Growth OS console UI contract @growth-os-ui", () => {
     await page.waitForURL(/\/growth\/workboard/);
 
     await expect(
-      page.getByRole("heading", { name: /growth symphony workboard/i }),
+      page.getByRole("heading", { name: /growth os workboard autónomo/i }),
     ).toBeVisible();
     await expect(page.getByTestId("growth-workboard-summary")).toBeVisible();
 
@@ -193,13 +193,14 @@ test.describe("Growth OS console UI contract @growth-os-ui", () => {
 
     if (await kanban.isVisible().catch(() => false)) {
       for (const column of [
-        "backlog",
-        "assigned",
+        "triage",
+        "ready",
         "running",
-        "ready_for_review",
-        "approved",
-        "next_task_created",
-        "done",
+        "blocked",
+        "review_needed",
+        "auto_completed",
+        "published_applied",
+        "archived",
       ]) {
         await expect(
           page.getByTestId(`growth-workboard-column-${column}`),
@@ -209,24 +210,51 @@ test.describe("Growth OS console UI contract @growth-os-ui", () => {
 
       const firstCard = page.getByTestId("growth-workboard-card").first();
       if (await firstCard.isVisible().catch(() => false)) {
-        await expect(firstCard).toContainText(/resultado|aprueba/i);
+        await expect(firstCard).toContainText(
+          /resultado|sigue solo|pide humano|bloqueado/i,
+        );
         await firstCard.click();
         await expect(
           page.getByTestId("growth-workboard-detail-sheet"),
         ).toBeVisible();
         await expect(
           page.getByTestId("growth-workboard-detail-sheet"),
-        ).toContainText(/resumen para marketing|acciones rápidas/i);
+        ).toContainText(/resumen para marketing|preview|evidencia|tools/i);
+        await page.getByRole("button", { name: "Preview" }).click();
+        await expect(
+          page.getByTestId("growth-workboard-preview-panel"),
+        ).toBeVisible();
+        await expect(
+          page.getByTestId("growth-workboard-preview-panel"),
+        ).not.toContainText(/Cuando el agente produzca/i);
         await expect(
           page
             .getByTestId("growth-workboard-detail-sheet")
-            .getByRole("link", { name: /detalle técnico|ver backlog/i })
+            .getByRole("link", { name: /detalle completo|ver backlog/i })
             .first(),
         ).toBeVisible();
         await page.keyboard.press("Escape");
         await expect(
           page.getByTestId("growth-workboard-detail-sheet"),
         ).not.toBeVisible();
+      }
+
+      const reviewCard = page
+        .getByTestId("growth-workboard-column-review_needed")
+        .getByTestId("growth-workboard-card")
+        .first();
+      if (await reviewCard.isVisible().catch(() => false)) {
+        await reviewCard.click();
+        await expect(
+          page.getByTestId("growth-workboard-detail-sheet"),
+        ).toBeVisible();
+        await expect(
+          page.getByTestId("growth-workboard-detail-sheet"),
+        ).toContainText(/decisión del revisor|necesita revisión/i);
+        await expect(
+          page.getByTestId("growth-workboard-detail-sheet"),
+        ).toContainText(/Aprobar no publica|detalle completo/i);
+        await page.keyboard.press("Escape");
       }
     }
   });

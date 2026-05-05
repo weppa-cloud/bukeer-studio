@@ -10,6 +10,9 @@ const LEGACY_ACTION_CLASS_MAP = {
   review_write: ACTION_CLASSES.PREPARE,
   memory_proposal: ACTION_CLASSES.PREPARE,
   skill_proposal: ACTION_CLASSES.PREPARE,
+  kanban_route: ACTION_CLASSES.ROUTE,
+  kanban_split: ACTION_CLASSES.SPLIT,
+  backlog_follow_up: ACTION_CLASSES.FOLLOW_UP_BACKLOG_CREATE,
   business_mutation: ACTION_CLASSES.SAFE_APPLY,
   auto_apply: ACTION_CLASSES.SAFE_APPLY,
 };
@@ -30,7 +33,11 @@ function requiredApproval(actionClass) {
 function evaluateGate(actionClass, context = {}) {
   if (
     actionClass === ACTION_CLASSES.OBSERVE ||
-    actionClass === ACTION_CLASSES.PREPARE
+    actionClass === ACTION_CLASSES.PREPARE ||
+    actionClass === ACTION_CLASSES.ROUTE ||
+    actionClass === ACTION_CLASSES.SPLIT ||
+    actionClass === ACTION_CLASSES.FOLLOW_UP_BACKLOG_CREATE ||
+    actionClass === ACTION_CLASSES.RESEARCH_PACKET
   ) {
     return { allowed: true, reason: "allowed", required_approval: "none" };
   }

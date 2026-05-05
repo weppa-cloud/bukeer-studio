@@ -158,6 +158,7 @@ export const CODEX_ARTIFACT_SCHEMA = {
     "allowed_action",
     "confidence",
     "source_refs",
+    "operator_summary",
     "evidence_summary",
     "risks",
     "next_action",
@@ -187,6 +188,9 @@ export const CODEX_ARTIFACT_SCHEMA = {
       items: { type: "string" },
     },
     evidence_summary: {
+      type: "string",
+    },
+    operator_summary: {
       type: "string",
     },
     risks: {
@@ -409,10 +413,12 @@ Hard policy:
 Hermes-inspired learning loop:
 - Propose memory_candidates only for durable, reusable lane learnings.
 - Propose skill_update_candidates only for repeated workflow improvements.
+- Apply active_memories and active_skills below when they are relevant. If you use one, cite its key in evidence_summary or source_refs.
 - Include a tool_calls policy ledger for tools you used or wanted to use. Always include codex_exec.
 - Include replay_seed so this run can become an eval case.
 - Include at least one change_sets entry. It is the work product the human reviews.
 - Do not use change_sets to publish, merge transcreation, mutate paid media or activate experiments. Create drafts, packets, previews, blocked evidence or follow-up tasks only.
+- Write operator_summary in the tenant/operator language. For ColombiaTours, default to friendly Spanish for a non-technical marketing user.
 
 Tenant scope:
 ${JSON.stringify(input.tenant, null, 2)}
@@ -428,6 +434,18 @@ ${input.workflow_text || "Workflow file unavailable. Fail closed into review_req
 
 Context pack:
 ${JSON.stringify(input.context_pack, null, 2)}
+
+Active approved memories:
+${JSON.stringify(input.active_memories ?? [], null, 2)}
+
+Active approved skills:
+${JSON.stringify(input.active_skills ?? [], null, 2)}
+
+Lane replay agreement:
+${JSON.stringify(input.lane_agreement ?? null, null, 2)}
+
+Allowed toolset:
+${JSON.stringify(input.toolset ?? null, null, 2)}
 
 Source row summary:
 ${JSON.stringify(sourceRow, null, 2)}
@@ -452,6 +470,11 @@ function normalizeArtifact(candidate, fallback = {}) {
         ? value.evidence_summary
         : (fallback.evidence_summary ??
           "Codex did not return a usable evidence summary."),
+    operator_summary:
+      typeof value.operator_summary === "string" &&
+      value.operator_summary.trim()
+        ? value.operator_summary
+        : "El agente preparó un resultado para revisión del equipo Growth.",
     risks: normalizeStringArray(value.risks),
     next_action:
       typeof value.next_action === "string"

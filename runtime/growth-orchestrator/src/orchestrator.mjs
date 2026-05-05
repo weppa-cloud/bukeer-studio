@@ -317,6 +317,16 @@ async function bestEffortUpsert(supabase, table, row, options) {
   return { skipped: false, upserted: true };
 }
 
+async function bestEffortSelect(supabase, table, select, builder) {
+  const exists = await detectTable(supabase, table);
+  if (!exists) return { rows: [], skipped: true, reason: "table_unavailable" };
+  let query = supabase.from(table).select(select);
+  query = builder(query);
+  const { data, error } = await query;
+  if (error) return { rows: [], skipped: false, error: error.message };
+  return { rows: data ?? [], skipped: false };
+}
+
 function stableKey(...parts) {
   return createHash("sha256")
     .update(parts.map((part) => String(part ?? "")).join("\n"))
@@ -365,6 +375,58 @@ async function loadLaneAgreement(opts, lane) {
     }
   }
   return null;
+}
+
+async function loadActiveLearningContext(supabase, run) {
+  const [memories, skills] = await Promise.all([
+    bestEffortSelect(
+      supabase,
+      "growth_agent_memories",
+      "memory_key,content,evidence,approved_at,created_at",
+      (query) =>
+        query
+          .eq("account_id", run.account_id)
+          .eq("website_id", run.website_id)
+          .eq("lane", run.lane)
+          .eq("status", "active")
+          .order("approved_at", { ascending: false, nullsFirst: false })
+          .limit(8),
+    ),
+    bestEffortSelect(
+      supabase,
+      "growth_agent_skills",
+      "skill_key,version,title,instructions,evidence,approved_at,created_at",
+      (query) =>
+        query
+          .eq("account_id", run.account_id)
+          .eq("website_id", run.website_id)
+          .eq("lane", run.lane)
+          .eq("status", "active")
+          .order("approved_at", { ascending: false, nullsFirst: false })
+          .limit(8),
+    ),
+  ]);
+
+  return {
+    memories: memories.rows.map((row) => ({
+      key: row.memory_key ?? null,
+      content: safeObject(row.content),
+      evidence: safeObject(row.evidence),
+      approved_at: row.approved_at ?? null,
+    })),
+    skills: skills.rows.map((row) => ({
+      key: row.skill_key ?? null,
+      version: row.version ?? null,
+      title: row.title ?? null,
+      instructions: safeObject(row.instructions),
+      evidence: safeObject(row.evidence),
+      approved_at: row.approved_at ?? null,
+    })),
+    storage: {
+      memories,
+      skills,
+    },
+  };
 }
 
 async function detectStalledRuns(supabase, opts) {
@@ -475,6 +537,57 @@ function buildAgentSummary(agentDefinition) {
 
 function sourceRef(run) {
   return `${run.source_table}:${run.source_id}`;
+}
+
+function languageForRun(run, opts) {
+  const locale = String(run.locale ?? opts.locale ?? "es").toLowerCase();
+  return locale.startsWith("es") ? "es" : locale;
+}
+
+function workItemStatusForChangeSet(changeSet) {
+  if (changeSet.status === "blocked") return "blocked";
+  if (changeSet.status === "published" || changeSet.status === "applied") {
+    return "published_applied";
+  }
+  if (changeSet.requires_human_review || changeSet.status === "needs_review") {
+    return "review_needed";
+  }
+  if (changeSet.status === "approved") return "ready";
+  return "auto_completed";
+}
+
+function agentProfileForLane(lane) {
+  if (lane === "technical_remediation") return "Technical Agent";
+  if (lane === "transcreation") return "Transcreation Agent";
+  if (lane === "content_creator") return "Content Creator";
+  if (lane === "content_curator") return "Curator";
+  return "Orchestrator";
+}
+
+function capabilitiesForLane(lane, changeType) {
+  const base = {
+    orchestrator: ["route", "split", "follow_up_backlog_create"],
+    technical_remediation: ["seo_tecnico", "smoke_checks", "rollback"],
+    transcreation: ["adaptacion_mercado", "qa_idioma", "tono_marca"],
+    content_creator: ["briefs", "drafts", "previews", "seo_content"],
+    content_curator: ["calidad_editorial", "evidencia", "riesgo"],
+  };
+  return [...(base[lane] ?? base.orchestrator), changeType].slice(0, 6);
+}
+
+function actionClassForChangeSet(changeSet) {
+  const evidence = safeObject(changeSet.evidence);
+  if (typeof evidence.allowed_action_class === "string") {
+    return evidence.allowed_action_class;
+  }
+  if (changeSet.change_type === "follow_up_backlog_create") {
+    return "follow_up_backlog_create";
+  }
+  if (changeSet.change_type === "research_packet") return "research_packet";
+  if (changeSet.change_type === "backlog_task_split") return "split";
+  if (changeSet.change_type === "backlog_route_update") return "route";
+  if (changeSet.change_type === "publish_packet_prepare") return "prepare";
+  return "prepare";
 }
 
 function statusForDecision(decision) {
@@ -624,6 +737,8 @@ async function createCodexArtifact(supabase, opts, run, runtimeContext) {
   const sourceRow = await fetchSourceRow(supabase, run);
   const agent = buildAgentSummary(runtimeContext.agentDefinition);
   const contextPackSummary = summarizeContextPack(runtimeContext.contextPack);
+  const laneAgreement = await loadLaneAgreement(opts, run.lane);
+  const learningContext = await loadActiveLearningContext(supabase, run);
   const input = {
     tenant: {
       account_id: run.account_id,
@@ -645,6 +760,10 @@ async function createCodexArtifact(supabase, opts, run, runtimeContext) {
     workflow_text: workflowText,
     context_pack: runtimeContext.contextPack,
     context_pack_summary: contextPackSummary,
+    active_memories: learningContext.memories,
+    active_skills: learningContext.skills,
+    lane_agreement: laneAgreement,
+    toolset: toolsetForLane(run.lane),
     source_row: sourceRow,
   };
 
@@ -678,7 +797,6 @@ async function createCodexArtifact(supabase, opts, run, runtimeContext) {
   });
 
   const output = result.output;
-  const laneAgreement = await loadLaneAgreement(opts, run.lane);
   output.tool_calls = output.tool_calls.map((toolCall) =>
     evaluateToolPolicy(toolCall, {
       laneAgreement,
@@ -717,6 +835,7 @@ async function createCodexArtifact(supabase, opts, run, runtimeContext) {
     allowed_action: output.allowed_action,
     confidence: output.confidence,
     source_refs: output.source_refs,
+    operator_summary: output.operator_summary,
     evidence_summary: output.evidence_summary,
     risks: output.risks,
     next_action: output.next_action,
@@ -724,10 +843,14 @@ async function createCodexArtifact(supabase, opts, run, runtimeContext) {
     skill_update_candidates_count: output.skill_update_candidates.length,
     change_sets_count: output.change_sets.length,
     tool_calls_count: output.tool_calls.length,
+    active_memories_used: learningContext.memories.length,
+    active_skills_used: learningContext.skills.length,
+    lane_agreement: laneAgreement,
     replay_seed_eligible: output.replay_seed.eligible,
     requires_human_review: true,
     completed_at: new Date().toISOString(),
   };
+  storageResults.learning_context = learningContext.storage;
 
   const storageResults = {
     ai_review: await bestEffortUpsert(
@@ -906,6 +1029,7 @@ async function createCodexArtifact(supabase, opts, run, runtimeContext) {
             ...(changeSet.evidence ?? {}),
             source: "codex_runtime_artifact",
             run_id: run.run_id,
+            operator_summary: output.operator_summary,
             forced_human_review: true,
           },
           risk_level: changeSet.risk_level,
@@ -921,6 +1045,81 @@ async function createCodexArtifact(supabase, opts, run, runtimeContext) {
     );
   }
   storageResults.change_sets = changeSetResults;
+
+  const workItemResults = [];
+  for (const changeSet of output.change_sets) {
+    const actionClass = actionClassForChangeSet(changeSet);
+    const idempotencyKey = stableKey(
+      run.account_id,
+      run.website_id,
+      run.run_id,
+      changeSet.change_type,
+      changeSet.title,
+      JSON.stringify(changeSet.after_snapshot ?? {}),
+    );
+    const evidenceRefs = Array.isArray(changeSet.evidence?.source_refs)
+      ? changeSet.evidence.source_refs
+      : output.source_refs;
+    const riskScore =
+      changeSet.risk_level === "blocked"
+        ? 100
+        : changeSet.risk_level === "high"
+          ? 85
+          : changeSet.risk_level === "low"
+            ? 25
+            : 55;
+    workItemResults.push(
+      await bestEffortUpsert(
+        supabase,
+        "growth_work_items",
+        {
+          account_id: run.account_id,
+          website_id: run.website_id,
+          source_table: run.source_table ?? null,
+          source_id: run.source_id ?? null,
+          run_id: run.run_id,
+          lane: run.lane,
+          agent_profile: agentProfileForLane(run.lane),
+          title: changeSet.title,
+          intent: changeSet.change_type,
+          status: workItemStatusForChangeSet(changeSet),
+          language: languageForRun(run, opts),
+          capability_requirements: capabilitiesForLane(
+            run.lane,
+            changeSet.change_type,
+          ),
+          skill_hints: output.skill_update_candidates.map(
+            (candidate) => candidate.skill_name,
+          ),
+          allowed_action_class: actionClass,
+          risk_level: changeSet.risk_level,
+          risk_score: riskScore,
+          requires_human_review: changeSet.requires_human_review,
+          required_approval_role: changeSet.required_approval_role,
+          operator_summary: output.operator_summary,
+          handoff_summary: changeSet.summary,
+          next_action: output.next_action,
+          progress_label: changeSet.requires_human_review
+            ? "Necesita decisión humana"
+            : "Puede seguir autónomamente",
+          evidence: {
+            source: "codex_runtime_artifact",
+            run_id: run.run_id,
+            change_type: changeSet.change_type,
+            allowed_action_class: actionClass,
+            confidence: output.confidence,
+            risks: output.risks,
+            rollback_available: Boolean(changeSet.evidence?.rollback_available),
+          },
+          source_refs: evidenceRefs,
+          idempotency_key: idempotencyKey,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "website_id,idempotency_key" },
+      ),
+    );
+  }
+  storageResults.work_items = workItemResults;
 
   let toolCallIndex = 0;
   const toolLedgerResults = [];

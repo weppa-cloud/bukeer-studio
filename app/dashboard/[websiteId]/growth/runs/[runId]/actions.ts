@@ -8,6 +8,7 @@ import {
   hasGrowthRole,
   requireGrowthRole,
 } from "@/lib/growth/console/auth";
+import { getGrowthWorkboard } from "@/lib/growth/console/queries-workboard";
 
 /**
  * Server Actions for the Run detail page (#407).
@@ -292,6 +293,7 @@ async function writeHumanReview(opts: {
 type CandidateKind = "memory" | "skill" | "replay";
 type CandidateDecision = "approve" | "reject";
 type ChangeSetDecision = "approve" | "reject";
+type ChangeSetApplyMode = "applied" | "published";
 
 interface FollowUpBacklogTask {
   title: string;
@@ -918,12 +920,205 @@ async function reviewChangeSet(opts: {
   revalidatePath(`/dashboard/${opts.websiteId}/growth/data-health`);
   revalidatePath(`/dashboard/${opts.websiteId}/growth/overview`);
   revalidatePath(`/dashboard/${opts.websiteId}/growth/backlog`);
+  revalidatePath(`/dashboard/${opts.websiteId}/growth/workboard`);
   return {
     ok: true,
     message:
       opts.decision === "approve" && createdFollowUps.rows.length > 0
         ? `Change set approved; ${createdFollowUps.rows.length} follow-up backlog item(s) created.`
         : `Change set ${opts.decision}d.`,
+  };
+}
+
+function roleForApplyMode(mode: ChangeSetApplyMode): GrowthRole {
+  return mode === "published" ? "council_admin" : "curator";
+}
+
+async function applyOrPublishChangeSet(opts: {
+  websiteId: string;
+  runId: string;
+  changeSetId: string;
+  mode: ChangeSetApplyMode;
+  notes?: string;
+}): Promise<ReviewActionResult> {
+  const { accountId, userId, role } = await getTenantAndRole(opts.websiteId);
+  const requiredRole = roleForApplyMode(opts.mode);
+  if (!hasGrowthRole(role, requiredRole)) {
+    return {
+      ok: false,
+      message: `Forbidden: ${requiredRole} role required.`,
+    };
+  }
+
+  const admin = createSupabaseServiceRoleClient();
+  const { data: row, error: loadErr } = await admin
+    .from("growth_agent_change_sets")
+    .select(
+      "id, account_id, website_id, locale, market, run_id, source_table, source_id, agent_lane, change_type, status, title, evidence, risk_level",
+    )
+    .eq("account_id", accountId)
+    .eq("website_id", opts.websiteId)
+    .eq("run_id", opts.runId)
+    .eq("id", opts.changeSetId)
+    .maybeSingle();
+
+  if (loadErr || !row) {
+    return { ok: false, message: "Change set not found in this tenant." };
+  }
+
+  const changeSet = row as {
+    id: string;
+    locale: string;
+    market: string;
+    run_id: string;
+    source_table: string | null;
+    source_id: string | null;
+    agent_lane: string;
+    change_type: string;
+    status: string;
+    title: string;
+    evidence: Record<string, unknown> | null;
+    risk_level: string;
+  };
+
+  if (changeSet.status !== "approved" && changeSet.status !== "applied") {
+    return {
+      ok: false,
+      message: "Change set must be approved before apply/publish.",
+    };
+  }
+  if (opts.mode === "published" && changeSet.status !== "applied") {
+    return {
+      ok: false,
+      message: "Change set must be applied before publish.",
+    };
+  }
+  if (
+    opts.mode === "published" &&
+    ["content_publish", "transcreation_merge", "paid_mutation"].includes(
+      changeSet.change_type,
+    )
+  ) {
+    return {
+      ok: false,
+      message:
+        "This change type needs its dedicated publish/merge/paid workflow, not the Workboard closeout button.",
+    };
+  }
+
+  const now = new Date().toISOString();
+  const existingEvidence =
+    changeSet.evidence &&
+    typeof changeSet.evidence === "object" &&
+    !Array.isArray(changeSet.evidence)
+      ? changeSet.evidence
+      : {};
+  const updatePayload =
+    opts.mode === "published"
+      ? {
+          status: "published",
+          published_by: userId,
+          published_at: now,
+        }
+      : {
+          status: "applied",
+          applied_by: userId,
+          applied_at: now,
+        };
+
+  const { error: updateErr } = await admin
+    .from("growth_agent_change_sets")
+    .update({
+      ...updatePayload,
+      evidence: {
+        ...existingEvidence,
+        human_apply: {
+          mode: opts.mode,
+          applied_by: userId,
+          role,
+          applied_at: now,
+          notes: opts.notes ?? null,
+          ui_closeout_only: true,
+          real_surface_mutation:
+            opts.mode === "published"
+              ? "Recorded as published after external human confirmation."
+              : "Recorded as applied after external human confirmation.",
+        },
+      },
+      updated_at: now,
+    })
+    .eq("account_id", accountId)
+    .eq("website_id", opts.websiteId)
+    .eq("run_id", opts.runId)
+    .eq("id", opts.changeSetId);
+
+  if (updateErr) {
+    return { ok: false, message: `Could not mark change set ${opts.mode}.` };
+  }
+
+  const sourceForeignKeys = {
+    backlog_item_id:
+      changeSet.source_table === "growth_backlog_items"
+        ? changeSet.source_id
+        : null,
+    task_id:
+      changeSet.source_table === "growth_content_tasks"
+        ? changeSet.source_id
+        : null,
+  };
+
+  await admin.from("growth_human_reviews").insert({
+    account_id: accountId,
+    website_id: opts.websiteId,
+    ...sourceForeignKeys,
+    review_key: `change-set:${opts.changeSetId}:${opts.mode}:${Date.now()}`,
+    reviewer_role: role,
+    decision: opts.mode === "published" ? "approve" : "approve",
+    status: "recorded",
+    rationale: opts.notes ?? null,
+    evidence: {
+      run_id: opts.runId,
+      reviewer_id: userId,
+      change_set_id: opts.changeSetId,
+      change_type: changeSet.change_type,
+      agent_lane: changeSet.agent_lane,
+      apply_mode: opts.mode,
+      title: changeSet.title,
+      ui_closeout_only: true,
+    },
+  });
+
+  await admin.from("growth_agent_run_events").insert({
+    account_id: accountId,
+    website_id: opts.websiteId,
+    locale: changeSet.locale,
+    market: changeSet.market,
+    run_id: opts.runId,
+    event_type: "completed",
+    severity: "info",
+    message:
+      opts.mode === "published"
+        ? "Human marked an approved change set as published."
+        : "Human marked an approved change set as applied.",
+    payload: {
+      change_set_id: opts.changeSetId,
+      change_type: changeSet.change_type,
+      apply_mode: opts.mode,
+      reviewer_id: userId,
+      reviewer_role: role,
+      notes: opts.notes ?? null,
+    },
+    occurred_at: now,
+  });
+
+  revalidatePath(`/dashboard/${opts.websiteId}/growth/runs/${opts.runId}`);
+  revalidatePath(`/dashboard/${opts.websiteId}/growth/runs`);
+  revalidatePath(`/dashboard/${opts.websiteId}/growth/workboard`);
+  revalidatePath(`/dashboard/${opts.websiteId}/growth/backlog`);
+  revalidatePath(`/dashboard/${opts.websiteId}/growth/overview`);
+  return {
+    ok: true,
+    message: `Change set marked ${opts.mode}.`,
   };
 }
 
@@ -943,6 +1138,145 @@ async function changeSetAction(
     decision,
     notes: typeof notes === "string" && notes.length > 0 ? notes : undefined,
   });
+}
+
+async function changeSetApplyAction(
+  formData: FormData,
+  mode: ChangeSetApplyMode,
+): Promise<void> {
+  const websiteId = String(formData.get("websiteId") ?? "");
+  const runId = String(formData.get("runId") ?? "");
+  const changeSetId = String(formData.get("changeSetId") ?? "");
+  const notes = formData.get("notes");
+  if (!websiteId || !runId || !changeSetId) return;
+  await applyOrPublishChangeSet({
+    websiteId,
+    runId,
+    changeSetId,
+    mode,
+    notes: typeof notes === "string" && notes.length > 0 ? notes : undefined,
+  });
+}
+
+function isLowRiskWorkboardApproval(card: {
+  column: string;
+  risk: string | null;
+  runId: string | null;
+  changeSetId: string | null;
+  autonomyLabel: string;
+  toolCallSummary: { blocked: number };
+}) {
+  return (
+    card.column === "review_needed" &&
+    card.risk === "low" &&
+    Boolean(card.runId) &&
+    Boolean(card.changeSetId) &&
+    card.autonomyLabel !== "bloqueado" &&
+    card.toolCallSummary.blocked === 0
+  );
+}
+
+export async function approveLowRiskWorkboardItems(
+  formData: FormData,
+): Promise<void> {
+  const websiteId = String(formData.get("websiteId") ?? "");
+  if (!websiteId) return;
+
+  const { accountId, role } = await getTenantAndRole(websiteId);
+  if (!hasGrowthRole(role, "curator")) return;
+
+  const workboard = await getGrowthWorkboard({
+    accountId,
+    websiteId,
+    limit: 90,
+  });
+
+  const eligible = workboard.cards
+    .filter(isLowRiskWorkboardApproval)
+    .slice(0, 25);
+
+  for (const card of eligible) {
+    if (!card.runId || !card.changeSetId) continue;
+    await reviewChangeSet({
+      websiteId,
+      runId: card.runId,
+      changeSetId: card.changeSetId,
+      decision: "approve",
+      notes:
+        "Aprobación en lote desde Workboard: riesgo bajo, sin herramientas bloqueadas y sin mutación pública.",
+    });
+  }
+
+  revalidatePath(`/dashboard/${websiteId}/growth/workboard`);
+  revalidatePath(`/dashboard/${websiteId}/growth/runs`);
+  revalidatePath(`/dashboard/${websiteId}/growth/backlog`);
+}
+
+export async function markStaleWorkboardRunsStalled(
+  formData: FormData,
+): Promise<void> {
+  const websiteId = String(formData.get("websiteId") ?? "");
+  if (!websiteId) return;
+
+  const { accountId, role } = await getTenantAndRole(websiteId);
+  if (!hasGrowthRole(role, "curator")) return;
+
+  const admin = createSupabaseServiceRoleClient();
+  const staleBefore = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  const { data: rows, error } = await admin
+    .from("growth_agent_runs")
+    .select("run_id, locale, market, status")
+    .eq("account_id", accountId)
+    .eq("website_id", websiteId)
+    .in("status", ["running", "claimed"])
+    .lt("updated_at", staleBefore)
+    .limit(50);
+
+  if (error || !rows?.length) {
+    revalidatePath(`/dashboard/${websiteId}/growth/workboard`);
+    return;
+  }
+
+  const now = new Date().toISOString();
+  const runIds = rows.map((row) => String(row.run_id));
+  await admin
+    .from("growth_agent_runs")
+    .update({
+      status: "stalled",
+      finished_at: now,
+      heartbeat_at: now,
+      error_class: "runtime_stalled",
+      error_message:
+        "Marked stalled from Workboard after no update for more than 1 hour.",
+      updated_at: now,
+    })
+    .eq("account_id", accountId)
+    .eq("website_id", websiteId)
+    .in("run_id", runIds);
+
+  await admin.from("growth_agent_run_events").insert(
+    rows.map((row) => ({
+      account_id: accountId,
+      website_id: websiteId,
+      locale: String(row.locale ?? "es-CO"),
+      market: String(row.market ?? "CO"),
+      run_id: String(row.run_id),
+      event_type: "stalled",
+      severity: "warn",
+      message:
+        "Workboard marked this run as stalled after stale running/claimed status.",
+      payload: {
+        previous_status: row.status,
+        stale_before: staleBefore,
+        source: "growth_workboard_debug",
+      },
+      occurred_at: now,
+    })),
+  );
+
+  revalidatePath(`/dashboard/${websiteId}/growth/workboard`);
+  revalidatePath(`/dashboard/${websiteId}/growth/runs`);
+  revalidatePath(`/dashboard/${websiteId}/growth/data-health`);
 }
 
 export async function approveRun(formData: FormData): Promise<void> {
@@ -999,6 +1333,16 @@ export async function approveChangeSet(formData: FormData): Promise<void> {
 
 export async function rejectChangeSet(formData: FormData): Promise<void> {
   await changeSetAction(formData, "reject");
+}
+
+export async function markChangeSetApplied(formData: FormData): Promise<void> {
+  await changeSetApplyAction(formData, "applied");
+}
+
+export async function markChangeSetPublished(
+  formData: FormData,
+): Promise<void> {
+  await changeSetApplyAction(formData, "published");
 }
 
 export async function downloadArtifactAction(

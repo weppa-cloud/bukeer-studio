@@ -23,6 +23,8 @@ import {
   approveRun,
   approveSkillCandidate,
   downloadArtifactAction,
+  markChangeSetApplied,
+  markChangeSetPublished,
   rejectChangeSet,
   rejectMemoryCandidate,
   rejectReplayCandidate,
@@ -502,6 +504,94 @@ function ChangeSetReviewButtons({
   );
 }
 
+function ChangeSetApplyButtons({
+  websiteId,
+  runId,
+  changeSet,
+  role,
+}: {
+  websiteId: string;
+  runId: string;
+  changeSet: GrowthAgentChangeSet;
+  role: GrowthRole;
+}) {
+  const canApply = hasGrowthRole(role, "curator");
+  const canPublish = hasGrowthRole(role, "council_admin");
+  const applyReady = changeSet.status === "approved";
+  const publishReady = changeSet.status === "applied";
+
+  if (!["approved", "applied"].includes(changeSet.status)) return null;
+
+  return (
+    <div className="mt-3 rounded-md border border-[var(--studio-border)] bg-[var(--studio-surface-muted,theme(colors.zinc.50))] p-3">
+      <div className="text-xs font-medium uppercase tracking-wide text-[var(--studio-text-muted)]">
+        Cierre humano posterior
+      </div>
+      <p className="mt-1 text-xs leading-relaxed text-[var(--studio-text-muted)]">
+        Úsalo solo después de aplicar o publicar el cambio por el flujo humano
+        correspondiente. Esto registra el estado en Growth OS; no ejecuta
+        cambios públicos por sí mismo.
+      </p>
+      <div className="mt-3 flex flex-wrap items-end gap-2">
+        <form action={markChangeSetApplied} className="flex flex-wrap gap-2">
+          <input type="hidden" name="websiteId" value={websiteId} />
+          <input type="hidden" name="runId" value={runId} />
+          <input type="hidden" name="changeSetId" value={changeSet.id} />
+          <input
+            name="notes"
+            maxLength={500}
+            className="studio-input min-w-48"
+            placeholder="Dónde se aplicó"
+            disabled={!canApply || !applyReady}
+          />
+          <button
+            type="submit"
+            disabled={!canApply || !applyReady}
+            data-testid="growth-change-set-mark-applied"
+            className="studio-button studio-button--outline disabled:opacity-50 disabled:cursor-not-allowed"
+            title={
+              !canApply
+                ? "Se requiere curator o superior."
+                : !applyReady
+                  ? "Solo propuestas aprobadas pueden marcarse aplicadas."
+                  : undefined
+            }
+          >
+            Marcar aplicado
+          </button>
+        </form>
+        <form action={markChangeSetPublished} className="flex flex-wrap gap-2">
+          <input type="hidden" name="websiteId" value={websiteId} />
+          <input type="hidden" name="runId" value={runId} />
+          <input type="hidden" name="changeSetId" value={changeSet.id} />
+          <input
+            name="notes"
+            maxLength={500}
+            className="studio-input min-w-48"
+            placeholder="Dónde se publicó"
+            disabled={!canPublish || !publishReady}
+          />
+          <button
+            type="submit"
+            disabled={!canPublish || !publishReady}
+            data-testid="growth-change-set-mark-published"
+            className="studio-button studio-button--primary disabled:opacity-50 disabled:cursor-not-allowed"
+            title={
+              !canPublish
+                ? "Se requiere council_admin."
+                : !publishReady
+                  ? "Primero debe marcarse como aplicado."
+                  : undefined
+            }
+          >
+            Marcar publicado
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 function ChangeSetWorkCard({
   changeSet,
   websiteId,
@@ -719,6 +809,12 @@ function ChangeSetWorkCard({
         canReview={canReview}
         disabled={!reviewable}
         disabledReason={disabledReason}
+      />
+      <ChangeSetApplyButtons
+        websiteId={websiteId}
+        runId={runId}
+        changeSet={changeSet}
+        role={role}
       />
     </article>
   );

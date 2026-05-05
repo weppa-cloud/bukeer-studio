@@ -133,6 +133,10 @@ function emptyRuntimeHealth(
   missingTables: string[] = [],
 ): RuntimeHealthSummary {
   return {
+    maturityScore: 0,
+    maturityTarget: 9,
+    maturityLabel: "No evaluable",
+    maturityBreakdown: [],
     metricsRows: 0,
     completeArtifacts: 0,
     failedExecutions: 0,
@@ -149,6 +153,124 @@ function emptyRuntimeHealth(
     tokensInput: 0,
     tokensOutput: 0,
     missingTables,
+  };
+}
+
+function ratio(numerator: number, denominator: number): number {
+  if (denominator <= 0) return 0;
+  return Math.max(0, Math.min(1, numerator / denominator));
+}
+
+function runtimeMaturityBreakdown(input: {
+  metricsRows: number;
+  completeArtifacts: number;
+  failedExecutions: number;
+  toolCalls: number;
+  blockedToolCalls: number;
+  activeReplayCases: number;
+  activeMemories: number;
+  activeSkills: number;
+  stalledRuns: number;
+}): RuntimeMaturityItem[] {
+  const artifactRate = ratio(input.completeArtifacts, input.metricsRows);
+  const successRate = input.metricsRows
+    ? ratio(input.metricsRows - input.failedExecutions, input.metricsRows)
+    : 0;
+  const stallRate = input.metricsRows
+    ? ratio(input.metricsRows - input.stalledRuns, input.metricsRows)
+    : 0;
+  const toolCoverage = input.metricsRows
+    ? ratio(input.toolCalls, input.metricsRows)
+    : 0;
+  const blockedToolPenalty = input.toolCalls
+    ? ratio(input.toolCalls - input.blockedToolCalls, input.toolCalls)
+    : 1;
+  const replayCoverage = ratio(input.activeReplayCases, 50);
+  const memoryCoverage = ratio(input.activeMemories, 5);
+  const skillCoverage = ratio(input.activeSkills, 3);
+
+  return [
+    {
+      key: "executor_artifacts",
+      label: "Executor + artifacts",
+      score: 1.5 * artifactRate * successRate,
+      max: 1.5,
+      status: artifactRate >= 0.95 && successRate >= 0.95 ? "pass" : "watch",
+    },
+    {
+      key: "learning_loop",
+      label: "Memory + skills activas",
+      score: 1.5 * ((memoryCoverage + skillCoverage) / 2),
+      max: 1.5,
+      status: memoryCoverage >= 1 && skillCoverage >= 1 ? "pass" : "incomplete",
+    },
+    {
+      key: "replay_eval",
+      label: "Replay/eval",
+      score: 1.25 * replayCoverage,
+      max: 1.25,
+      status: replayCoverage >= 1 ? "pass" : "incomplete",
+    },
+    {
+      key: "tool_gateway",
+      label: "Tool gateway",
+      score: 1.25 * toolCoverage * blockedToolPenalty,
+      max: 1.25,
+      status: toolCoverage >= 1 ? "pass" : "watch",
+    },
+    {
+      key: "observability",
+      label: "Observabilidad runtime",
+      score: 1.25 * artifactRate * stallRate,
+      max: 1.25,
+      status:
+        input.stalledRuns === 0 && input.metricsRows > 0 ? "pass" : "watch",
+    },
+    {
+      key: "human_governance",
+      label: "Gobernanza humana",
+      score: input.blockedToolCalls >= 0 ? 1.25 : 0,
+      max: 1.25,
+      status: "pass",
+    },
+    {
+      key: "production_apply",
+      label: "Apply/publish trazado",
+      score: 1.0 * ratio(input.metricsRows, 25),
+      max: 1.0,
+      status: input.metricsRows >= 25 ? "pass" : "incomplete",
+    },
+  ];
+}
+
+function runtimeMaturity(input: {
+  metricsRows: number;
+  completeArtifacts: number;
+  failedExecutions: number;
+  toolCalls: number;
+  blockedToolCalls: number;
+  activeReplayCases: number;
+  activeMemories: number;
+  activeSkills: number;
+  stalledRuns: number;
+}) {
+  const breakdown = runtimeMaturityBreakdown(input);
+  const score = breakdown.reduce((sum, item) => sum + item.score, 0);
+  return {
+    maturityScore: Number(score.toFixed(1)),
+    maturityTarget: 9,
+    maturityLabel:
+      score >= 9
+        ? "9/10 operativo"
+        : score >= 8.5
+          ? "8.5/10 cerca de 9"
+          : score >= 7
+            ? "Base operativa"
+            : "Incompleto",
+    maturityBreakdown: breakdown.map((item) => ({
+      ...item,
+      score: Number(item.score.toFixed(2)),
+    })),
   };
 }
 
@@ -198,6 +320,10 @@ export interface LaneRuntimeSummary {
 }
 
 export interface RuntimeHealthSummary {
+  maturityScore: number;
+  maturityTarget: number;
+  maturityLabel: string;
+  maturityBreakdown: RuntimeMaturityItem[];
   metricsRows: number;
   completeArtifacts: number;
   failedExecutions: number;
@@ -214,6 +340,14 @@ export interface RuntimeHealthSummary {
   tokensInput: number;
   tokensOutput: number;
   missingTables: string[];
+}
+
+export interface RuntimeMaturityItem {
+  key: string;
+  label: string;
+  score: number;
+  max: number;
+  status: "pass" | "watch" | "incomplete";
 }
 
 export interface GrowthOverview {
@@ -555,7 +689,7 @@ async function fetchRuntimeHealth(
 
   if (missingTables.length > 0) return emptyRuntimeHealth(missingTables);
 
-  return {
+  const summary = {
     metricsRows: metrics.rows.length,
     completeArtifacts: metrics.rows.filter((row) => row.artifact_complete)
       .length,
@@ -588,6 +722,10 @@ async function fetchRuntimeHealth(
       0,
     ),
     missingTables,
+  };
+  return {
+    ...runtimeMaturity(summary),
+    ...summary,
   };
 }
 

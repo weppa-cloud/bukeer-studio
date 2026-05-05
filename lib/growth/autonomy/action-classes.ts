@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 /**
  * Action classes — SPEC_GROWTH_OS_SYMPHONY_ORCHESTRATOR §"Cross-cutting action
@@ -21,18 +21,22 @@ import { z } from 'zod';
  */
 
 export const ActionClassSchema = z.enum([
-  'observe',
-  'prepare',
-  'safe_apply',
-  'content_publish',
-  'transcreation_merge',
-  'paid_mutation',
-  'experiment_activation',
-  'outreach_send',
+  "observe",
+  "prepare",
+  "route",
+  "split",
+  "follow_up_backlog_create",
+  "research_packet",
+  "safe_apply",
+  "content_publish",
+  "transcreation_merge",
+  "paid_mutation",
+  "experiment_activation",
+  "outreach_send",
 ]);
 export type ActionClass = z.infer<typeof ActionClassSchema>;
 
-export type RequiredApproval = 'none' | 'curator' | 'council';
+export type RequiredApproval = "none" | "curator" | "council";
 
 /**
  * Required-role map. `safe_apply` resolves to `'none'` only when the
@@ -40,15 +44,22 @@ export type RequiredApproval = 'none' | 'curator' | 'council';
  * required role assuming the action is attempted; the gate may upgrade
  * `safe_apply` to `curator` when conditions fail.
  */
-export const ACTION_CLASS_REQUIRED_APPROVAL: Record<ActionClass, RequiredApproval> = {
-  observe: 'none',
-  prepare: 'none',
-  safe_apply: 'none',
-  content_publish: 'curator',
-  transcreation_merge: 'curator',
-  outreach_send: 'curator',
-  paid_mutation: 'council',
-  experiment_activation: 'council',
+export const ACTION_CLASS_REQUIRED_APPROVAL: Record<
+  ActionClass,
+  RequiredApproval
+> = {
+  observe: "none",
+  prepare: "none",
+  route: "none",
+  split: "none",
+  follow_up_backlog_create: "none",
+  research_packet: "none",
+  safe_apply: "none",
+  content_publish: "curator",
+  transcreation_merge: "curator",
+  outreach_send: "curator",
+  paid_mutation: "council",
+  experiment_activation: "council",
 };
 
 /**
@@ -57,11 +68,11 @@ export const ACTION_CLASS_REQUIRED_APPROVAL: Record<ActionClass, RequiredApprova
  * `auto_apply_safe`.
  */
 export const ALWAYS_GATED_ACTION_CLASSES = new Set<ActionClass>([
-  'content_publish',
-  'transcreation_merge',
-  'paid_mutation',
-  'experiment_activation',
-  'outreach_send',
+  "content_publish",
+  "transcreation_merge",
+  "paid_mutation",
+  "experiment_activation",
+  "outreach_send",
 ]);
 
 export function isAlwaysGated(actionClass: ActionClass): boolean {

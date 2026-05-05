@@ -107,7 +107,8 @@ export default async function GrowthDataHealthPage({
             id="runtime-health-heading"
             className="text-base font-semibold text-[var(--studio-text)]"
           >
-            Runtime Maturity Score
+            Runtime Maturity Score: {runtimeHealth.maturityScore}/
+            {runtimeHealth.maturityTarget}
           </h2>
           <p className="text-sm text-[var(--studio-text-muted)]">
             Evidencia operativa del loop execute, artifact, review, learning,
@@ -127,6 +128,58 @@ export default async function GrowthDataHealthPage({
             </p>
           </div>
         ) : null}
+
+        <article className="rounded-md border border-[var(--studio-border)] p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <div className="text-xs uppercase tracking-wide text-[var(--studio-text-muted)]">
+                Calificación calculada
+              </div>
+              <div className="mt-1 text-3xl font-semibold">
+                {runtimeHealth.maturityScore}/{runtimeHealth.maturityTarget}
+              </div>
+              <p className="mt-1 text-sm text-[var(--studio-text-muted)]">
+                {runtimeHealth.maturityLabel}
+              </p>
+            </div>
+            <StudioBadge
+              tone={
+                runtimeHealth.maturityScore >= 9
+                  ? "success"
+                  : runtimeHealth.maturityScore >= 8.5
+                    ? "info"
+                    : runtimeHealth.maturityScore >= 7
+                      ? "warning"
+                      : "danger"
+              }
+            >
+              Target 9
+            </StudioBadge>
+          </div>
+          <div className="mt-4 grid grid-cols-1 gap-2 md:grid-cols-2">
+            {runtimeHealth.maturityBreakdown.map((item) => (
+              <div
+                key={item.key}
+                className="rounded border border-[var(--studio-border)] px-3 py-2"
+              >
+                <div className="flex items-center justify-between gap-2 text-sm">
+                  <span className="font-medium">{item.label}</span>
+                  <span>
+                    {item.score}/{item.max}
+                  </span>
+                </div>
+                <div className="mt-1 h-1.5 overflow-hidden rounded bg-[var(--studio-surface-muted,theme(colors.zinc.100))]">
+                  <div
+                    className="h-full bg-[var(--studio-primary)]"
+                    style={{
+                      width: `${Math.round((item.score / item.max) * 100)}%`,
+                    }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </article>
 
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
           <article className="rounded-md border border-[var(--studio-border)] p-4">

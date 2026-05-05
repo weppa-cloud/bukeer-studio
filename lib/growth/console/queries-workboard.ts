@@ -2,16 +2,25 @@ import "server-only";
 
 import type { AgentLane } from "@bukeer/website-contract";
 import { AgentLaneSchema } from "@bukeer/website-contract";
+import {
+  evaluateGrowthRisk,
+  type GrowthRiskLevel,
+} from "@/lib/growth/autonomy/risk-policy";
+import {
+  ActionClassSchema,
+  type ActionClass,
+} from "@/lib/growth/autonomy/action-classes";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/service-role";
 
 export const WORKBOARD_COLUMNS = [
-  "backlog",
-  "assigned",
+  "triage",
+  "ready",
   "running",
-  "ready_for_review",
-  "approved",
-  "next_task_created",
-  "done",
+  "blocked",
+  "review_needed",
+  "auto_completed",
+  "published_applied",
+  "archived",
 ] as const;
 
 export type WorkboardColumn = (typeof WORKBOARD_COLUMNS)[number];
@@ -26,7 +35,15 @@ export interface WorkboardCard {
   sourceLabel: string;
   agentName: string | null;
   preview: string | null;
-  risk: string | null;
+  risk: GrowthRiskLevel;
+  riskScore: number;
+  autonomyLabel: "sigue_solo" | "revision_humana" | "bloqueado";
+  nextAction: string | null;
+  language: string;
+  progressLabel: string;
+  capabilityLabels: string[];
+  toolCallSummary: { allowed: number; blocked: number };
+  childTaskCount: number;
   approvalRequirement: string;
   updatedAt: string | null;
   runId: string | null;
@@ -34,6 +51,27 @@ export interface WorkboardCard {
   changeSetId: string | null;
   evidenceRefs: string[];
   humanDecision: string | null;
+  previewDetails: WorkboardPreviewDetails;
+}
+
+export interface WorkboardPreviewDetails {
+  kind: string | null;
+  headline: string | null;
+  body: string | null;
+  ctaLabel: string | null;
+  diffSummary: string[];
+  followUpTasks: Array<{
+    title: string;
+    lane: string | null;
+    instructions: string | null;
+    requiresHumanReview: boolean | null;
+  }>;
+  materializedBacklogItems: Array<{
+    id: string | null;
+    title: string;
+    status: string | null;
+    workType: string | null;
+  }>;
 }
 
 export interface GrowthWorkboardResult {
@@ -95,6 +133,24 @@ const APPROVED_STATUSES = new Set([
   "ready_for_council",
 ]);
 
+const AGENT_PROFILE_BY_LANE: Record<AgentLane, string> = {
+  orchestrator: "Orchestrator",
+  technical_remediation: "Technical Agent",
+  transcreation: "Transcreation Agent",
+  content_creator: "Content Creator",
+  content_curator: "Curator",
+};
+
+const DEFAULT_CAPABILITIES_BY_LANE: Record<AgentLane, string[]> = {
+  orchestrator: ["dividir trabajo", "enrutar agentes", "crear seguimiento"],
+  technical_remediation: ["SEO técnico", "smoke checks", "rollback técnico"],
+  transcreation: ["adaptación por mercado", "QA de idioma", "tono de marca"],
+  content_creator: ["briefs", "drafts", "previews", "contenido SEO"],
+  content_curator: ["calidad editorial", "evidencia", "riesgo", "Council"],
+};
+
+const STALE_RUNTIME_MS = 60 * 60 * 1000;
+
 function emptyCountsByColumn(): Record<WorkboardColumn, number> {
   return WORKBOARD_COLUMNS.reduce(
     (acc, column) => ({ ...acc, [column]: 0 }),
@@ -126,6 +182,91 @@ function safeRecord(value: unknown): Record<string, unknown> {
     : {};
 }
 
+function compactStringArray(value: unknown, limit = 6): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => optionalText(item))
+    .filter((item): item is string => Boolean(item))
+    .slice(0, limit);
+}
+
+function normalizeFollowUpTasks(
+  value: unknown,
+): WorkboardPreviewDetails["followUpTasks"] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .slice(0, 6)
+    .map((item) => {
+      const row = safeRecord(item);
+      const title =
+        optionalText(row.title) ??
+        optionalText(row.name) ??
+        optionalText(row.summary);
+      if (!title) return null;
+      return {
+        title,
+        lane:
+          optionalText(row.target_lane) ??
+          optionalText(row.lane) ??
+          optionalText(row.owner_lane),
+        instructions:
+          optionalText(row.instructions) ??
+          optionalText(row.description) ??
+          optionalText(row.next_action),
+        requiresHumanReview:
+          typeof row.requires_human_review === "boolean"
+            ? row.requires_human_review
+            : null,
+      };
+    })
+    .filter((item): item is WorkboardPreviewDetails["followUpTasks"][number] =>
+      Boolean(item),
+    );
+}
+
+function normalizeMaterializedBacklogItems(
+  evidence: Record<string, unknown>,
+): WorkboardPreviewDetails["materializedBacklogItems"] {
+  const materialization = safeRecord(
+    evidence.follow_up_backlog_materialization,
+  );
+  const createdItems = materialization.created_items;
+  if (!Array.isArray(createdItems)) return [];
+  return createdItems.slice(0, 8).map((item, index) => {
+    const row = safeRecord(item);
+    return {
+      id: optionalText(row.id),
+      title: optionalText(row.title) ?? `Tarea creada ${index + 1}`,
+      status: optionalText(row.status),
+      workType: optionalText(row.work_type),
+    };
+  });
+}
+
+function previewDetailsFromPayload(
+  payload: unknown,
+  evidence: Record<string, unknown> = {},
+  fallbackSummary: unknown = null,
+): WorkboardPreviewDetails {
+  const preview = safeRecord(payload);
+  return {
+    kind: optionalText(preview.kind),
+    headline:
+      optionalText(preview.headline) ??
+      optionalText(preview.title) ??
+      optionalText(evidence.title),
+    body:
+      optionalText(preview.body) ??
+      optionalText(preview.summary) ??
+      optionalText(evidence.operator_summary) ??
+      optionalText(fallbackSummary),
+    ctaLabel: optionalText(preview.cta_label) ?? optionalText(preview.ctaLabel),
+    diffSummary: compactStringArray(preview.diff_summary),
+    followUpTasks: normalizeFollowUpTasks(preview.follow_up_tasks),
+    materializedBacklogItems: normalizeMaterializedBacklogItems(evidence),
+  };
+}
+
 function optionalText(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
@@ -155,24 +296,45 @@ function parseLane(value: unknown, fallback: AgentLane): AgentLane {
   return parsed.success ? parsed.data : fallback;
 }
 
-function columnForBacklogStatus(status: unknown): WorkboardColumn {
+function isStaleRuntimeStatus(status: unknown, updatedAt: unknown): boolean {
   const value = String(status ?? "").toLowerCase();
-  if (DONE_STATUSES.has(value)) return "done";
-  if (READY_STATUSES.has(value)) return "ready_for_review";
-  if (APPROVED_STATUSES.has(value)) return "approved";
-  if (value.includes("progress") || value === "drafting") return "running";
-  return "backlog";
+  if (value !== "running" && value !== "claimed") return false;
+  const timestamp = optionalText(updatedAt);
+  if (!timestamp) return false;
+  const time = Date.parse(timestamp);
+  if (!Number.isFinite(time)) return false;
+  return Date.now() - time > STALE_RUNTIME_MS;
 }
 
-function columnForRunStatus(status: unknown): WorkboardColumn {
+function columnForBacklogStatus(
+  status: unknown,
+  updatedAt?: unknown,
+): WorkboardColumn {
   const value = String(status ?? "").toLowerCase();
-  if (value === "claimed") return "assigned";
+  if (isStaleRuntimeStatus(value, updatedAt)) return "blocked";
+  if (WORKBOARD_COLUMNS.includes(value as WorkboardColumn)) {
+    return value as WorkboardColumn;
+  }
+  if (value === "blocked") return "blocked";
+  if (DONE_STATUSES.has(value)) return "auto_completed";
+  if (READY_STATUSES.has(value)) return "review_needed";
+  if (APPROVED_STATUSES.has(value)) return "ready";
+  if (value.includes("progress") || value === "drafting") return "running";
+  return "triage";
+}
+
+function columnForRunStatus(
+  status: unknown,
+  updatedAt?: unknown,
+): WorkboardColumn {
+  const value = String(status ?? "").toLowerCase();
+  if (isStaleRuntimeStatus(value, updatedAt)) return "blocked";
+  if (value === "claimed") return "ready";
   if (value === "running") return "running";
-  if (value === "review_required") return "ready_for_review";
-  if (value === "completed") return "done";
-  return value === "failed" || value === "stalled"
-    ? "ready_for_review"
-    : "assigned";
+  if (value === "review_required") return "review_needed";
+  if (value === "completed") return "auto_completed";
+  if (value === "failed" || value === "stalled") return "blocked";
+  return "ready";
 }
 
 function changeSetCreatedBacklog(
@@ -190,18 +352,15 @@ function changeSetCreatedBacklog(
 function columnForChangeSet(row: Record<string, unknown>): WorkboardColumn {
   const status = String(row.status ?? "").toLowerCase();
   if (changeSetCreatedBacklog(row.evidence, row.created_backlog_item_id)) {
-    return "next_task_created";
+    return "auto_completed";
   }
-  if (
-    DONE_STATUSES.has(status) ||
-    status === "rejected" ||
-    status === "blocked"
-  ) {
-    return "done";
-  }
-  if (APPROVED_STATUSES.has(status)) return "approved";
-  if (READY_STATUSES.has(status)) return "ready_for_review";
-  return "assigned";
+  if (status === "published") return "published_applied";
+  if (status === "applied") return "published_applied";
+  if (status === "blocked") return "blocked";
+  if (DONE_STATUSES.has(status) || status === "rejected") return "archived";
+  if (APPROVED_STATUSES.has(status)) return "ready";
+  if (READY_STATUSES.has(status)) return "review_needed";
+  return "ready";
 }
 
 function previewFromPayload(...values: unknown[]): string | null {
@@ -232,6 +391,88 @@ function collectSourceRefs(...values: unknown[]): string[] {
     for (const ref of stringArray(record.source_fact_refs)) refs.add(ref);
   }
   return Array.from(refs).slice(0, 4);
+}
+
+function collectCapabilities(lane: AgentLane, ...values: unknown[]): string[] {
+  const labels = new Set<string>();
+  for (const value of values) {
+    const record = safeRecord(value);
+    for (const item of [
+      ...stringArray(record.capability_requirements),
+      ...stringArray(record.capabilities),
+      ...stringArray(record.skills),
+    ]) {
+      labels.add(item);
+    }
+  }
+  if (labels.size === 0) {
+    for (const label of DEFAULT_CAPABILITIES_BY_LANE[lane]) labels.add(label);
+  }
+  return Array.from(labels).slice(0, 4);
+}
+
+function parseActionClass(value: unknown): ActionClass {
+  const parsed = ActionClassSchema.safeParse(value);
+  return parsed.success ? parsed.data : "prepare";
+}
+
+function languageFor(...values: unknown[]): string {
+  for (const value of values) {
+    const record = safeRecord(value);
+    const language =
+      optionalText(record.operator_language) ??
+      optionalText(record.language) ??
+      optionalText(record.locale);
+    if (language)
+      return language.toLowerCase().startsWith("es") ? "español" : language;
+  }
+  return "español";
+}
+
+function progressFor(column: WorkboardColumn, status: string): string {
+  if (column === "blocked" && ["running", "claimed"].includes(status)) {
+    return "Ejecución detenida; revisar runtime";
+  }
+  if (column === "triage") return "Pendiente de priorización";
+  if (column === "ready") return "Listo para que el runtime lo tome";
+  if (column === "running") return "Agente trabajando";
+  if (column === "blocked") return "Bloqueado por política o evidencia";
+  if (column === "review_needed") return "Necesita decisión humana";
+  if (column === "auto_completed") return "Completado por agente";
+  if (column === "published_applied") return "Aplicado o publicado";
+  if (column === "archived") return "Cerrado";
+  return status;
+}
+
+function autonomyForColumn(
+  column: WorkboardColumn,
+  fallback: WorkboardCard["autonomyLabel"],
+): WorkboardCard["autonomyLabel"] {
+  if (column === "blocked") return "bloqueado";
+  if (column === "review_needed") return "revision_humana";
+  if (column === "published_applied" || column === "archived") {
+    return "revision_humana";
+  }
+  return fallback;
+}
+
+function buildCardRisk(input: {
+  lane: AgentLane;
+  actionClass?: unknown;
+  confidence?: unknown;
+  risk?: unknown;
+  evidenceRefs: string[];
+  rollback?: unknown;
+}) {
+  return evaluateGrowthRisk({
+    lane: input.lane,
+    actionClass: parseActionClass(input.actionClass),
+    confidence:
+      typeof input.confidence === "number" ? input.confidence : undefined,
+    riskLevel: optionalText(input.risk),
+    evidenceRefs: input.evidenceRefs,
+    hasRollback: Boolean(input.rollback),
+  });
 }
 
 function compareUpdatedAt(a: WorkboardCard, b: WorkboardCard) {
@@ -269,73 +510,109 @@ export async function getGrowthWorkboard(opts: {
   const missingTables = new Set<string>();
   let errored = false;
 
-  const [agents, backlog, tasks, runs, changeSets, reviews] = await Promise.all(
-    [
-      fetchTable("growth_agent_definitions", () =>
-        admin
-          .from("growth_agent_definitions")
-          .select("agent_id,name,lane")
-          .eq("account_id", opts.accountId)
-          .eq("website_id", opts.websiteId)
-          .limit(100),
-      ),
-      fetchTable("growth_backlog_items", () =>
-        admin
-          .from("growth_backlog_items")
-          .select(
-            "id,title,work_type,status,next_action,blocked_reason,evidence,updated_at,created_at",
-          )
-          .eq("account_id", opts.accountId)
-          .eq("website_id", opts.websiteId)
-          .order("updated_at", { ascending: false, nullsFirst: false })
-          .limit(limit),
-      ),
-      fetchTable("growth_content_tasks", () =>
-        admin
-          .from("growth_content_tasks")
-          .select(
-            "id,title,task_type,status,next_action,evidence,updated_at,created_at",
-          )
-          .eq("account_id", opts.accountId)
-          .eq("website_id", opts.websiteId)
-          .order("updated_at", { ascending: false, nullsFirst: false })
-          .limit(Math.floor(limit / 2)),
-      ),
-      fetchTable("growth_agent_runs", () =>
-        admin
-          .from("growth_agent_runs")
-          .select(
-            "run_id,agent_id,lane,source_table,source_id,status,evidence,error_class,error_message,updated_at,created_at",
-          )
-          .eq("account_id", opts.accountId)
-          .eq("website_id", opts.websiteId)
-          .order("updated_at", { ascending: false, nullsFirst: false })
-          .limit(limit),
-      ),
-      fetchTable("growth_agent_change_sets", () =>
-        admin
-          .from("growth_agent_change_sets")
-          .select(
-            "id,run_id,source_table,source_id,agent_lane,change_type,status,title,summary,preview_payload,evidence,risk_level,required_approval_role,created_backlog_item_id,updated_at,created_at",
-          )
-          .eq("account_id", opts.accountId)
-          .eq("website_id", opts.websiteId)
-          .order("updated_at", { ascending: false, nullsFirst: false })
-          .limit(limit),
-      ),
-      fetchTable("growth_human_reviews", () =>
-        admin
-          .from("growth_human_reviews")
-          .select("decision,evidence,created_at")
-          .eq("account_id", opts.accountId)
-          .eq("website_id", opts.websiteId)
-          .order("created_at", { ascending: false })
-          .limit(limit),
-      ),
-    ],
-  );
+  const [
+    agents,
+    workItems,
+    backlog,
+    tasks,
+    runs,
+    changeSets,
+    reviews,
+    toolCalls,
+  ] = await Promise.all([
+    fetchTable("growth_agent_definitions", () =>
+      admin
+        .from("growth_agent_definitions")
+        .select("agent_id,name,lane")
+        .eq("account_id", opts.accountId)
+        .eq("website_id", opts.websiteId)
+        .limit(100),
+    ),
+    fetchTable("growth_work_items", () =>
+      admin
+        .from("growth_work_items")
+        .select(
+          "id,parent_work_item_id,source_table,source_id,run_id,change_set_id,lane,agent_profile,title,intent,status,language,capability_requirements,skill_hints,allowed_action_class,risk_level,risk_score,requires_human_review,required_approval_role,operator_summary,next_action,progress_label,evidence,created_at,updated_at",
+        )
+        .eq("account_id", opts.accountId)
+        .eq("website_id", opts.websiteId)
+        .order("updated_at", { ascending: false, nullsFirst: false })
+        .limit(limit),
+    ),
+    fetchTable("growth_backlog_items", () =>
+      admin
+        .from("growth_backlog_items")
+        .select(
+          "id,title,work_type,status,next_action,blocked_reason,evidence,updated_at,created_at",
+        )
+        .eq("account_id", opts.accountId)
+        .eq("website_id", opts.websiteId)
+        .order("updated_at", { ascending: false, nullsFirst: false })
+        .limit(limit),
+    ),
+    fetchTable("growth_content_tasks", () =>
+      admin
+        .from("growth_content_tasks")
+        .select(
+          "id,title,task_type,status,next_action,evidence,updated_at,created_at",
+        )
+        .eq("account_id", opts.accountId)
+        .eq("website_id", opts.websiteId)
+        .order("updated_at", { ascending: false, nullsFirst: false })
+        .limit(Math.floor(limit / 2)),
+    ),
+    fetchTable("growth_agent_runs", () =>
+      admin
+        .from("growth_agent_runs")
+        .select(
+          "run_id,agent_id,lane,source_table,source_id,status,evidence,error_class,error_message,updated_at,created_at",
+        )
+        .eq("account_id", opts.accountId)
+        .eq("website_id", opts.websiteId)
+        .order("updated_at", { ascending: false, nullsFirst: false })
+        .limit(limit),
+    ),
+    fetchTable("growth_agent_change_sets", () =>
+      admin
+        .from("growth_agent_change_sets")
+        .select(
+          "id,run_id,source_table,source_id,agent_lane,change_type,status,title,summary,preview_payload,evidence,risk_level,required_approval_role,created_backlog_item_id,updated_at,created_at",
+        )
+        .eq("account_id", opts.accountId)
+        .eq("website_id", opts.websiteId)
+        .order("updated_at", { ascending: false, nullsFirst: false })
+        .limit(limit),
+    ),
+    fetchTable("growth_human_reviews", () =>
+      admin
+        .from("growth_human_reviews")
+        .select("decision,evidence,created_at")
+        .eq("account_id", opts.accountId)
+        .eq("website_id", opts.websiteId)
+        .order("created_at", { ascending: false })
+        .limit(limit),
+    ),
+    fetchTable("growth_agent_tool_calls", () =>
+      admin
+        .from("growth_agent_tool_calls")
+        .select("run_id,allowed")
+        .eq("account_id", opts.accountId)
+        .eq("website_id", opts.websiteId)
+        .order("created_at", { ascending: false })
+        .limit(limit * 5),
+    ),
+  ]);
 
-  for (const result of [agents, backlog, tasks, runs, changeSets, reviews]) {
+  for (const result of [
+    agents,
+    workItems,
+    backlog,
+    tasks,
+    runs,
+    changeSets,
+    reviews,
+    toolCalls,
+  ]) {
     if (result.missing) missingTables.add(result.missing);
     if (result.errored) errored = true;
   }
@@ -371,16 +648,125 @@ export async function getGrowthWorkboard(opts: {
     }
   }
 
+  const toolSummaryByRun = new Map<
+    string,
+    { allowed: number; blocked: number }
+  >();
+  for (const row of toolCalls.rows) {
+    const runId = optionalText(row.run_id);
+    if (!runId) continue;
+    const current = toolSummaryByRun.get(runId) ?? { allowed: 0, blocked: 0 };
+    if (row.allowed === true) current.allowed += 1;
+    else current.blocked += 1;
+    toolSummaryByRun.set(runId, current);
+  }
+
+  const childCountByWorkItem = new Map<string, number>();
+  for (const row of workItems.rows) {
+    const parentId = optionalText(row.parent_work_item_id);
+    if (parentId)
+      childCountByWorkItem.set(
+        parentId,
+        (childCountByWorkItem.get(parentId) ?? 0) + 1,
+      );
+  }
+
   const cards: WorkboardCard[] = [];
+
+  for (const row of workItems.rows) {
+    const id = String(row.id);
+    const evidence = safeRecord(row.evidence);
+    const lane = parseLane(row.lane, "orchestrator");
+    const evidenceRefs = collectSourceRefs(evidence);
+    const riskDecision = evaluateGrowthRisk({
+      lane,
+      actionClass: parseActionClass(row.allowed_action_class),
+      confidence:
+        typeof evidence.confidence === "number" ? evidence.confidence : null,
+      riskLevel: optionalText(row.risk_level),
+      evidenceRefs,
+      hasRollback: Boolean(evidence.rollback_available),
+    });
+    const status = optionalText(row.status) ?? "triage";
+    const column = columnForBacklogStatus(status, row.updated_at);
+    cards.push({
+      id: `work-item:${id}`,
+      column,
+      lane,
+      title: optionalText(row.title) ?? "Trabajo autónomo Growth",
+      workType: optionalText(row.intent) ?? "work_item",
+      status,
+      sourceLabel: "Work item autónomo",
+      agentName:
+        optionalText(row.agent_profile) ?? AGENT_PROFILE_BY_LANE[lane] ?? null,
+      preview: previewFromPayload(
+        row.operator_summary,
+        row.next_action,
+        evidence,
+      ),
+      risk: riskDecision.riskLevel,
+      riskScore:
+        typeof row.risk_score === "number"
+          ? row.risk_score
+          : riskDecision.riskScore,
+      autonomyLabel: autonomyForColumn(column, riskDecision.autonomyLabel),
+      nextAction: optionalText(row.next_action),
+      language: optionalText(row.language) ?? languageFor(evidence),
+      progressLabel:
+        optionalText(row.progress_label) ?? progressFor(column, status),
+      capabilityLabels: collectCapabilities(lane, row, evidence),
+      toolCallSummary: row.run_id
+        ? (toolSummaryByRun.get(String(row.run_id)) ?? {
+            allowed: 0,
+            blocked: 0,
+          })
+        : { allowed: 0, blocked: 0 },
+      childTaskCount: childCountByWorkItem.get(id) ?? 0,
+      approvalRequirement:
+        optionalText(row.required_approval_role) ??
+        riskDecision.requiredApproval,
+      updatedAt: optionalText(row.updated_at) ?? optionalText(row.created_at),
+      runId: optionalText(row.run_id),
+      backlogItemId:
+        row.source_table === "growth_backlog_items"
+          ? optionalText(row.source_id)
+          : null,
+      changeSetId: optionalText(row.change_set_id),
+      evidenceRefs,
+      humanDecision: row.change_set_id
+        ? (decisionByChangeSet.get(String(row.change_set_id)) ?? null)
+        : row.run_id
+          ? (decisionByRun.get(String(row.run_id)) ?? null)
+          : null,
+      previewDetails: previewDetailsFromPayload(
+        {
+          headline: row.title,
+          body: row.operator_summary ?? row.next_action,
+        },
+        evidence,
+        row.next_action,
+      ),
+    });
+  }
 
   for (const row of backlog.rows) {
     const latestRun = latestRunBySource.get(`growth_backlog_items:${row.id}`);
     const lane = laneForBacklog(row.work_type);
+    const evidence = safeRecord(row.evidence);
+    const evidenceRefs = collectSourceRefs(evidence);
+    const column = latestRun
+      ? columnForRunStatus(latestRun.status, latestRun.updated_at)
+      : columnForBacklogStatus(row.status, row.updated_at);
+    const riskDecision = buildCardRisk({
+      lane,
+      actionClass: "prepare",
+      confidence: evidence.confidence,
+      risk: row.blocked_reason,
+      evidenceRefs,
+    });
     cards.push({
       id: `backlog:${row.id}`,
-      column: latestRun
-        ? columnForRunStatus(latestRun.status)
-        : columnForBacklogStatus(row.status),
+      column,
       lane,
       title: optionalText(row.title) ?? "Tarea Growth sin título",
       workType: optionalText(row.work_type) ?? "growth_opportunity",
@@ -389,30 +775,65 @@ export async function getGrowthWorkboard(opts: {
       sourceLabel: "Backlog Growth",
       agentName: latestRun
         ? (agentNameById.get(String(latestRun.agent_id)) ?? null)
-        : null,
+        : AGENT_PROFILE_BY_LANE[lane],
       preview: previewFromPayload(row.next_action, row.evidence),
-      risk: optionalText(row.blocked_reason),
-      approvalRequirement: "Según resultado",
+      risk: riskDecision.riskLevel,
+      riskScore: riskDecision.riskScore,
+      autonomyLabel: autonomyForColumn(column, riskDecision.autonomyLabel),
+      nextAction: optionalText(row.next_action),
+      language: languageFor(row.evidence),
+      progressLabel: progressFor(column, optionalText(row.status) ?? "queued"),
+      capabilityLabels: collectCapabilities(lane, row.evidence),
+      toolCallSummary: latestRun
+        ? (toolSummaryByRun.get(String(latestRun.run_id)) ?? {
+            allowed: 0,
+            blocked: 0,
+          })
+        : { allowed: 0, blocked: 0 },
+      childTaskCount: 0,
+      approvalRequirement:
+        riskDecision.requiredApproval === "none"
+          ? "No requiere"
+          : riskDecision.requiredApproval,
       updatedAt:
         optionalText(latestRun?.updated_at) ?? optionalText(row.updated_at),
       runId: optionalText(latestRun?.run_id),
       backlogItemId: String(row.id),
       changeSetId: null,
-      evidenceRefs: collectSourceRefs(row.evidence),
+      evidenceRefs,
       humanDecision: latestRun
         ? (decisionByRun.get(String(latestRun.run_id)) ?? null)
         : null,
+      previewDetails: previewDetailsFromPayload(
+        {
+          headline: row.title,
+          body: row.next_action,
+        },
+        evidence,
+        row.next_action,
+      ),
     });
   }
 
   for (const row of tasks.rows) {
     const latestRun = latestRunBySource.get(`growth_content_tasks:${row.id}`);
+    const lane = laneForContentTask(row.task_type);
+    const evidence = safeRecord(row.evidence);
+    const evidenceRefs = collectSourceRefs(evidence);
+    const column = latestRun
+      ? columnForRunStatus(latestRun.status, latestRun.updated_at)
+      : columnForBacklogStatus(row.status, row.updated_at);
+    const riskDecision = buildCardRisk({
+      lane,
+      actionClass: "prepare",
+      confidence: evidence.confidence,
+      risk: evidence.blocked_reason,
+      evidenceRefs,
+    });
     cards.push({
       id: `task:${row.id}`,
-      column: latestRun
-        ? columnForRunStatus(latestRun.status)
-        : columnForBacklogStatus(row.status),
-      lane: laneForContentTask(row.task_type),
+      column,
+      lane,
       title: optionalText(row.title) ?? "Tarea de contenido sin título",
       workType: optionalText(row.task_type) ?? "content_task",
       status:
@@ -420,19 +841,43 @@ export async function getGrowthWorkboard(opts: {
       sourceLabel: "Tarea de contenido",
       agentName: latestRun
         ? (agentNameById.get(String(latestRun.agent_id)) ?? null)
-        : null,
+        : AGENT_PROFILE_BY_LANE[lane],
       preview: previewFromPayload(row.next_action, row.evidence),
-      risk: optionalText(safeRecord(row.evidence).blocked_reason),
-      approvalRequirement: "Curator",
+      risk: riskDecision.riskLevel,
+      riskScore: riskDecision.riskScore,
+      autonomyLabel: autonomyForColumn(column, riskDecision.autonomyLabel),
+      nextAction: optionalText(row.next_action),
+      language: languageFor(row.evidence),
+      progressLabel: progressFor(column, optionalText(row.status) ?? "queued"),
+      capabilityLabels: collectCapabilities(lane, row.evidence),
+      toolCallSummary: latestRun
+        ? (toolSummaryByRun.get(String(latestRun.run_id)) ?? {
+            allowed: 0,
+            blocked: 0,
+          })
+        : { allowed: 0, blocked: 0 },
+      childTaskCount: 0,
+      approvalRequirement:
+        riskDecision.requiredApproval === "none"
+          ? "No requiere"
+          : riskDecision.requiredApproval,
       updatedAt:
         optionalText(latestRun?.updated_at) ?? optionalText(row.updated_at),
       runId: optionalText(latestRun?.run_id),
       backlogItemId: null,
       changeSetId: null,
-      evidenceRefs: collectSourceRefs(row.evidence),
+      evidenceRefs,
       humanDecision: latestRun
         ? (decisionByRun.get(String(latestRun.run_id)) ?? null)
         : null,
+      previewDetails: previewDetailsFromPayload(
+        {
+          headline: row.title,
+          body: row.next_action,
+        },
+        evidence,
+        row.next_action,
+      ),
     });
   }
 
@@ -441,17 +886,53 @@ export async function getGrowthWorkboard(opts: {
     const evidence = safeRecord(row.evidence);
     const preview = safeRecord(row.preview_payload);
     const lane = parseLane(row.agent_lane, "orchestrator");
+    const evidenceRefs = collectSourceRefs(preview, evidence);
+    const column = columnForChangeSet(row);
+    const riskDecision = buildCardRisk({
+      lane,
+      actionClass: evidence.allowed_action_class ?? "prepare",
+      confidence: evidence.confidence,
+      risk: row.risk_level,
+      evidenceRefs,
+      rollback: evidence.rollback_available,
+    });
     cards.push({
       id: `change-set:${id}`,
-      column: columnForChangeSet(row),
+      column,
       lane,
       title: optionalText(row.title) ?? "Propuesta del agente",
       workType: optionalText(row.change_type) ?? "change_set",
       status: optionalText(row.status) ?? "proposed",
       sourceLabel: "Resultado del agente",
-      agentName: null,
-      preview: previewFromPayload(preview, row.summary, evidence),
-      risk: optionalText(row.risk_level),
+      agentName: AGENT_PROFILE_BY_LANE[lane],
+      preview: previewFromPayload(
+        evidence.operator_summary,
+        preview,
+        row.summary,
+        evidence,
+      ),
+      risk: riskDecision.riskLevel,
+      riskScore: riskDecision.riskScore,
+      autonomyLabel: autonomyForColumn(column, riskDecision.autonomyLabel),
+      nextAction: optionalText(evidence.next_action),
+      language: languageFor(evidence, preview),
+      progressLabel: progressFor(
+        column,
+        optionalText(row.status) ?? "proposed",
+      ),
+      capabilityLabels: collectCapabilities(lane, evidence, preview),
+      toolCallSummary: row.run_id
+        ? (toolSummaryByRun.get(String(row.run_id)) ?? {
+            allowed: 0,
+            blocked: 0,
+          })
+        : { allowed: 0, blocked: 0 },
+      childTaskCount: changeSetCreatedBacklog(
+        row.evidence,
+        row.created_backlog_item_id,
+      )
+        ? 1
+        : 0,
       approvalRequirement:
         optionalText(row.required_approval_role) ?? "curator",
       updatedAt: optionalText(row.updated_at) ?? optionalText(row.created_at),
@@ -460,8 +941,9 @@ export async function getGrowthWorkboard(opts: {
         optionalText(row.created_backlog_item_id) ??
         optionalText(row.source_id),
       changeSetId: id,
-      evidenceRefs: collectSourceRefs(preview, evidence),
+      evidenceRefs,
       humanDecision: decisionByChangeSet.get(id) ?? null,
+      previewDetails: previewDetailsFromPayload(preview, evidence, row.summary),
     });
   }
 
@@ -473,17 +955,37 @@ export async function getGrowthWorkboard(opts: {
     if (hasChangeSet) continue;
     const evidence = safeRecord(row.evidence);
     const lane = parseLane(row.lane, "orchestrator");
+    const evidenceRefs = collectSourceRefs(evidence);
+    const column = columnForRunStatus(row.status, row.updated_at);
+    const riskDecision = buildCardRisk({
+      lane,
+      actionClass: evidence.allowed_action_class ?? "prepare",
+      confidence: evidence.confidence,
+      risk: row.error_class ?? row.error_message,
+      evidenceRefs,
+    });
     cards.push({
       id: `run:${runId}`,
-      column: columnForRunStatus(row.status),
+      column,
       lane,
       title: optionalText(evidence.title) ?? `Run ${runId.slice(-8)}`,
       workType: "agent_run",
       status: optionalText(row.status) ?? "claimed",
       sourceLabel: "Run del agente",
       agentName: agentNameById.get(String(row.agent_id)) ?? null,
-      preview: previewFromPayload(evidence),
-      risk: optionalText(row.error_class) ?? optionalText(row.error_message),
+      preview: previewFromPayload(evidence.operator_summary, evidence),
+      risk: riskDecision.riskLevel,
+      riskScore: riskDecision.riskScore,
+      autonomyLabel: autonomyForColumn(column, riskDecision.autonomyLabel),
+      nextAction: optionalText(evidence.next_action),
+      language: languageFor(evidence),
+      progressLabel: progressFor(column, optionalText(row.status) ?? "claimed"),
+      capabilityLabels: collectCapabilities(lane, evidence),
+      toolCallSummary: toolSummaryByRun.get(runId) ?? {
+        allowed: 0,
+        blocked: 0,
+      },
+      childTaskCount: 0,
       approvalRequirement:
         row.status === "review_required" ? "curator" : "No requiere",
       updatedAt: optionalText(row.updated_at),
@@ -493,8 +995,9 @@ export async function getGrowthWorkboard(opts: {
           ? optionalText(row.source_id)
           : null,
       changeSetId: null,
-      evidenceRefs: collectSourceRefs(evidence),
+      evidenceRefs,
       humanDecision: decisionByRun.get(runId) ?? null,
+      previewDetails: previewDetailsFromPayload(evidence, evidence),
     });
   }
 
