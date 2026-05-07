@@ -499,9 +499,9 @@ export function GrowthCeoCockpit({ data }: { data: GrowthCeoCockpitData }) {
                 </h1>
               </div>
             </div>
-            <p className="mt-3 max-w-4xl text-sm text-[var(--studio-text-muted,theme(colors.zinc.600))]">
+            <p className="mt-3 max-w-4xl break-words text-sm text-[var(--studio-text-muted,theme(colors.zinc.600))]">
               {data.objective.scope}. Lagging outcome:{" "}
-              <span className="font-medium text-[var(--studio-text,theme(colors.zinc.900))]">
+              <span className="break-words font-medium text-[var(--studio-text,theme(colors.zinc.900))]">
                 {data.objective.laggingOutcome}
               </span>
               .
