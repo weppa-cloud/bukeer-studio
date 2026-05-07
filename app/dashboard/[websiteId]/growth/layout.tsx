@@ -28,7 +28,7 @@ const TABS: ReadonlyArray<{
 }> = [
   {
     slug: "overview",
-    label: "Command Center",
+    label: "CEO Cockpit",
     href: (id) => `/dashboard/${id}/growth/overview`,
   },
   {
@@ -113,8 +113,8 @@ export default async function GrowthLayout({
             Growth OS
           </h1>
           <p className="text-sm text-[var(--studio-text-muted,theme(colors.zinc.600))]">
-            Human control plane for ColombiaTours Growth OS — review agent work,
-            inspect evidence, and gate Council decisions.
+            CEO cockpit for ColombiaTours Growth OS: autonomous organic and
+            technical work with caps, smoke, rollback and impact measurement.
           </p>
         </div>
         <nav
