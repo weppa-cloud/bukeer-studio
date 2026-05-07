@@ -1,0 +1,5 @@
+id,Amount,Created (UTC),Currency,Arrival Date (UTC),Source Type,Status,Type,Method,Balance Transaction,Destination Name,Destination Country,Destination Last 4
+po_1THsW3Edk7mUFst7be5B7jhY,1166.00,2026-04-02 21:11,usd,2026-04-03 00:00,card,paid,bank_account,standard,txn_1THsW3Edk7mUFst7sSqaZP4h,COLUMN NA MERCURY,US,3905
+po_1T6d5lEdk7mUFst7J3Lbbr9P,500.00,2026-03-02 20:29,usd,2026-03-03 00:00,card,paid,bank_account,standard,txn_1T6d5lEdk7mUFst7XM6DfPru,COLUMN NA MERCURY,US,3905
+po_1SvLv6Edk7mUFst7cSNwUmEG,820.00,2026-01-30 17:55,usd,2026-01-30 00:00,card,paid,bank_account,standard,txn_1SvLv6Edk7mUFst7myesHw38,COLUMN NA MERCURY,US,3905
+po_1SXjIkEdk7mUFst7iYih75Kc,150.00,2025-11-26 14:02,usd,2025-11-26 00:00,card,paid,bank_account,standard,txn_1SXjIkEdk7mUFst7hmqtxxBG,COLUMN NA MERCURY,US,3905

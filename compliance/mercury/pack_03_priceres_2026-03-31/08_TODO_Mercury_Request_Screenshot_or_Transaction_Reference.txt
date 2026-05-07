@@ -1,0 +1,1 @@
+TODO: Add screenshot/PDF of Mercury request identifying USD 1,593.92 at PriceRes on March 31, 2026 (PT). Expected final filename: 08_Mercury_Request_Screenshot_or_Transaction_Reference.pdf
