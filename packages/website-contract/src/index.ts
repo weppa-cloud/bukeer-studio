@@ -672,6 +672,51 @@ export type {
   GrowthAgentChangeSetUpdate,
 } from './schemas/growth-agent-change-sets';
 
+export {
+  GrowthAutonomyActionClassSchema,
+  GrowthAutonomousExecutableActionClassSchema,
+  GrowthAutonomyRequiredCheckSchema,
+  GrowthAutonomyRiskLevelSchema,
+  GrowthAutonomyPolicySchema,
+  GrowthAutonomyPolicyInsertSchema,
+  GrowthAutonomyPolicyUpdateSchema,
+  GrowthPublicationJobModeSchema,
+  GrowthPublicationJobStatusSchema,
+  GrowthPublicationTargetTableSchema,
+  GrowthPublicationJobSchema,
+  GrowthPublicationJobInsertSchema,
+  GrowthPublicationJobUpdateSchema,
+  GrowthWorkItemOutcomeTypeSchema,
+  GrowthWorkItemOutcomeStatusSchema,
+  GrowthOutcomeEvaluationWindowSchema,
+  GrowthFunnelAttributionStatusSchema,
+  GrowthWorkItemOutcomeSchema,
+  GrowthWorkItemOutcomeInsertSchema,
+  GrowthWorkItemOutcomeUpdateSchema,
+} from './schemas/growth-paperclip-autonomy';
+export type {
+  GrowthAutonomyActionClass,
+  GrowthAutonomousExecutableActionClass,
+  GrowthAutonomyRequiredCheck,
+  GrowthAutonomyRiskLevel,
+  GrowthAutonomyPolicy,
+  GrowthAutonomyPolicyInsert,
+  GrowthAutonomyPolicyUpdate,
+  GrowthPublicationJobMode,
+  GrowthPublicationJobStatus,
+  GrowthPublicationTargetTable,
+  GrowthPublicationJob,
+  GrowthPublicationJobInsert,
+  GrowthPublicationJobUpdate,
+  GrowthWorkItemOutcomeType,
+  GrowthWorkItemOutcomeStatus,
+  GrowthOutcomeEvaluationWindow,
+  GrowthFunnelAttributionStatus,
+  GrowthWorkItemOutcome,
+  GrowthWorkItemOutcomeInsert,
+  GrowthWorkItemOutcomeUpdate,
+} from './schemas/growth-paperclip-autonomy';
+
 // Validation
 export {
   validateSection,
