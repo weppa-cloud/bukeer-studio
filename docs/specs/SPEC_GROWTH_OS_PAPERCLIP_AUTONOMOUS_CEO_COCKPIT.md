@@ -19,6 +19,19 @@
 
 Build a Paperclip-style CEO cockpit for Growth OS inside Bukeer Studio. For ColombiaTours v1, Growth OS acts as a visible company of autonomous growth agents focused on organic growth, reversible technical remediation and funnel measurement: agents can move from opportunity to organic publication or technical apply without prior human approval only when policy, caps, smoke checks, rollback and measurement contracts pass.
 
+## Relationship To Epic #310
+
+This SPEC is a sub-epic and amendment to [#310](https://github.com/weppa-cloud/bukeer-studio/issues/310), not a parallel Growth OS. #310 remains the parent operating system for North Star, AARRR, Growth Council, provider facts, attribution, paid governance and reporting.
+
+Conflict resolution against the current #310 guardrails:
+
+- #310's generic runtime rule remains valid: `content_publish`, `transcreation_merge`, `paid_mutation` and `experiment_activation` are blocked from generic agent automation.
+- #431 introduces a narrower dedicated-adapter exception: ColombiaTours organic publication and reversible technical remediation may execute without prior human approval only through server-side publisher/technical adapters with tenant allowlist, policy, caps, smoke, rollback and outcome measurement.
+- `paid_mutation` and `experiment_activation` remain always blocked in v1. No policy row can unlock them.
+- `growth_work_items` becomes the runtime execution queue only; #310 backlog, inventory and Council ledgers remain the operational Growth SSOT.
+- The CEO cockpit evolves #310's Growth overview/control plane; it must not create a second Growth UI or duplicate #405/#406/#407 surfaces.
+- Shared Supabase migrations must be applied or traced according to [[supabase-migration-governance]] before production rollout.
+
 ## Motivation
 
 The current Growth OS runtime already has agents, runs, change sets, memories, skills, tool ledgers and a Workboard, but it is still primarily a human-review control plane. The CEO needs one operating surface that answers:
@@ -38,9 +51,9 @@ This SPEC upgrades Growth OS from a review queue into a Paperclip-like growth co
 | Rollout tenant | ColombiaTours only for v1. |
 | UI owner | Founder/CEO first; Growth operator and Curator remain secondary workflows. |
 | First impact surface | Organic growth + technical remediation + funnel attribution. Paid media remains read-only in v1. |
-| Autonomy stance | Aggressive for organic publication and reversible technical apply: no prior human approval when all gates pass. |
+| Autonomy stance | Aggressive for organic publication and reversible technical apply only through dedicated adapters: no prior human approval when all gates pass. |
 | Caps | Medium caps: weekly limits by lane/action plus alerting and automatic pause when exceeded. |
-| Public mutation | Allowed only through publisher adapters that snapshot, apply, smoke, log and prepare rollback. |
+| Public mutation | Blocked from generic runtime; allowed only through dedicated publisher/technical adapters that snapshot, apply, smoke, log and prepare rollback. |
 | Paid mutation | Always blocked in v1, even if a policy row is misconfigured. |
 
 ## Current-State Delta
@@ -55,7 +68,7 @@ Existing tables and UI remain valid:
 
 Required changes:
 
-- `growth_work_items` becomes the primary claim queue for new autonomous work. Backlog rows, content tasks, runs and change sets project into work items instead of competing as separate operating centers.
+- `growth_work_items` becomes the primary runtime claim queue for new autonomous work. Backlog rows, content tasks, runs and change sets project into work items, while #310 backlog/inventory/Council tables remain the operational planning SSOT.
 - The runtime stops forcing every result into `review_required` when a tenant policy explicitly enables organic or technical autonomy.
 - Always-gated paid and experiment actions stay blocked.
 - RLS policies on new Growth tables, and any touched legacy Growth runtime tables, must use `user_roles` tenant membership instead of `account_id = auth.uid()`.
