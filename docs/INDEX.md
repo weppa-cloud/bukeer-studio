@@ -202,9 +202,10 @@ Feature requests formalized. Status tracked inline. GitHub Issues = source of tr
 
 ## Theming
 
-| Wikilink               | File                                    | Purpose                                |
-| ---------------------- | --------------------------------------- | -------------------------------------- |
-| [[dark-mode-behavior]] | [file](./theming/dark-mode-behavior.md) | Dark mode reference for QA/design/dev. |
+| Wikilink                              | File                                                    | Purpose                                                                                                  |
+| ------------------------------------- | ------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| [[colombiatours-caribe-design]]       | [file](./design/colombiatours.travel/design.md)         | Canonical design.md contract for ColombiaTours Caribe Editorial: tokens, components, layout and rules.   |
+| [[dark-mode-behavior]]                | [file](./theming/dark-mode-behavior.md)                 | Dark mode reference for QA/design/dev.                                                                   |
 
 ---
 
@@ -334,6 +335,7 @@ Each concept below lists the ADRs/SPECs/ops docs that touch it. Use this to find
 
 - [[ADR-008]] — monorepo packages (`@bukeer/theme-sdk`)
 - [[ADR-027]] — pilot adoption strategy for designer-reference theme (flag-gated, snapshot-backed rollback)
+- [[colombiatours-caribe-design]] — canonical `design.md` contract for future ColombiaTours design, section, QA and growth processes
 - [[dark-mode-behavior]]
 - DB shape: `websites.theme = { tokens, profile }` — see [[cross-repo-flutter]]
 - 8 presets: adventure, luxury, tropical, corporate, boutique, cultural, eco, romantic
@@ -556,6 +558,7 @@ Obsidian resolves `[[ADR-005]]` by filename stem or alias. Claude Code / Codex g
 | `[[field-ownership]]`                                 | `docs/architecture/ADR-025-studio-flutter-field-ownership.md` (concept alias)      |
 | `[[booking-defer]]`                                   | `docs/architecture/ADR-024-booking-v1-pilot-scope.md` (concept alias)              |
 | `[[pilot-readiness-deps]]`                            | `docs/specs/pilot-readiness-deps.md`                                               |
+| `[[colombiatours-caribe-design]]`                     | `docs/design/colombiatours.travel/design.md`                                       |
 | `[[colombiatours-onboarding]]`                        | `docs/training/colombiatours-onboarding.md`                                        |
 | `[[pilot-runbook-colombiatours]]`                     | `docs/ops/pilot-runbook-colombiatours.md`                                          |
 | `[[pilot-theme-designer-v1-rollout]]`                 | `docs/ops/pilot-theme-designer-v1-rollout.md`                                      |
