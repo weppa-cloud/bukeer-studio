@@ -28,8 +28,6 @@ const LANE_LABELS: Record<AgentLane, string> = {
   content_curator: "Curaduría de contenido",
 };
 
-const MAX_CARDS_PER_COLUMN = 8;
-
 const SearchParamsSchema = z.object({
   lane: AgentLaneSchema.optional(),
   column: z.enum(WORKBOARD_COLUMNS).optional(),
@@ -93,6 +91,16 @@ function blockedCause(card: WorkboardCard): string {
   if (card.evidenceRefs.length === 0) return "Falta evidencia";
   if (card.risk === "high" || card.risk === "medium") return "Riesgo";
   return "Revisión manual";
+}
+
+function cardInPreparation(card: WorkboardCard): boolean {
+  return [
+    "brief_in_progress",
+    "drafting",
+    "in_progress",
+    "queued",
+    "ready_for_brief",
+  ].includes(card.status);
 }
 
 function countBy<T extends string>(values: T[]): Record<T, number> {
@@ -179,10 +187,6 @@ export default async function GrowthWorkboardPage({
       buildHref(websiteId, filters, { column }),
     ]),
   ) as Record<WorkboardColumn, string>;
-  const visibleCardCount = WORKBOARD_COLUMNS.reduce((sum, column) => {
-    const cards = cardsByColumn.get(column) ?? [];
-    return sum + Math.min(cards.length, MAX_CARDS_PER_COLUMN);
-  }, 0);
   const lowRiskBulkEligible = filteredCards.filter(isLowRiskBulkEligible);
   const blockedCards = filteredCards.filter(
     (card) => card.column === "blocked",
@@ -191,6 +195,10 @@ export default async function GrowthWorkboardPage({
   const staleBlockedCount = blockedCards.filter((card) =>
     ["running", "claimed"].includes(card.status),
   ).length;
+  const runtimeRealCount = filteredCards.filter(
+    (card) => card.column === "running" && Boolean(card.runId),
+  ).length;
+  const preparationCount = filteredCards.filter(cardInPreparation).length;
 
   return (
     <StudioPage className="max-w-[1600px]">
@@ -233,32 +241,42 @@ export default async function GrowthWorkboardPage({
       >
         <article className="rounded-md border border-[var(--studio-border)] px-3 py-2">
           <div className="text-[11px] text-[var(--studio-text-muted)]">
-            En pantalla
+            Runtime real
           </div>
-          <div className="mt-0.5 text-xl font-semibold">{visibleCardCount}</div>
+          <div className="mt-0.5 text-xl font-semibold">{runtimeRealCount}</div>
+          <div className="mt-0.5 text-[11px] text-[var(--studio-text-muted)]">
+            Runs activos o recientes
+          </div>
         </article>
         <article className="rounded-md border border-[var(--studio-border)] px-3 py-2">
           <div className="text-[11px] text-[var(--studio-text-muted)]">
-            Listas para revisar
+            Preparación / backlog
+          </div>
+          <div className="mt-0.5 text-xl font-semibold">{preparationCount}</div>
+          <div className="mt-0.5 text-[11px] text-[var(--studio-text-muted)]">
+            Routing, briefs y cola
+          </div>
+        </article>
+        <article className="rounded-md border border-[var(--studio-border)] px-3 py-2">
+          <div className="text-[11px] text-[var(--studio-text-muted)]">
+            Decisión humana
           </div>
           <div className="mt-0.5 text-xl font-semibold">
             {result.countsByColumn.review_needed}
           </div>
+          <div className="mt-0.5 text-[11px] text-[var(--studio-text-muted)]">
+            Revisar evidencia
+          </div>
         </article>
         <article className="rounded-md border border-[var(--studio-border)] px-3 py-2">
           <div className="text-[11px] text-[var(--studio-text-muted)]">
-            Auto completadas
+            Bloqueadas
           </div>
           <div className="mt-0.5 text-xl font-semibold">
-            {result.countsByColumn.auto_completed}
+            {result.countsByColumn.blocked}
           </div>
-        </article>
-        <article className="rounded-md border border-[var(--studio-border)] px-3 py-2">
-          <div className="text-[11px] text-[var(--studio-text-muted)]">
-            Gobernanza
-          </div>
-          <div className="mt-0.5 text-xs font-semibold">
-            95% autónomo, 5% por riesgo
+          <div className="mt-0.5 text-[11px] text-[var(--studio-text-muted)]">
+            Resolver causa
           </div>
         </article>
       </section>

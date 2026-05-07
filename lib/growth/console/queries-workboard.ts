@@ -133,6 +133,12 @@ const APPROVED_STATUSES = new Set([
   "ready_for_council",
 ]);
 
+const PREPARATION_STATUSES = new Set([
+  "brief_in_progress",
+  "drafting",
+  "in_progress",
+]);
+
 const AGENT_PROFILE_BY_LANE: Record<AgentLane, string> = {
   orchestrator: "Orchestrator",
   technical_remediation: "Technical Agent",
@@ -319,7 +325,7 @@ function columnForBacklogStatus(
   if (DONE_STATUSES.has(value)) return "auto_completed";
   if (READY_STATUSES.has(value)) return "review_needed";
   if (APPROVED_STATUSES.has(value)) return "ready";
-  if (value.includes("progress") || value === "drafting") return "running";
+  if (PREPARATION_STATUSES.has(value)) return "triage";
   return "triage";
 }
 
@@ -430,12 +436,18 @@ function languageFor(...values: unknown[]): string {
 }
 
 function progressFor(column: WorkboardColumn, status: string): string {
+  const value = status.toLowerCase();
   if (column === "blocked" && ["running", "claimed"].includes(status)) {
     return "Ejecución detenida; revisar runtime";
   }
-  if (column === "triage") return "Pendiente de priorización";
+  if (value === "brief_in_progress") return "Brief en preparación";
+  if (value === "ready_for_brief") return "Listo para preparar brief";
+  if (value === "queued") return "Pendiente de routing";
+  if (value === "claimed") return "Listo para que el runtime lo tome";
+  if (value === "stalled") return "Runtime detenido";
+  if (column === "triage") return "Pendiente de routing";
   if (column === "ready") return "Listo para que el runtime lo tome";
-  if (column === "running") return "Agente trabajando";
+  if (column === "running") return "Runtime ejecutando";
   if (column === "blocked") return "Bloqueado por política o evidencia";
   if (column === "review_needed") return "Necesita decisión humana";
   if (column === "auto_completed") return "Completado por agente";

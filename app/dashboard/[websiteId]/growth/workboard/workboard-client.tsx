@@ -30,11 +30,11 @@ const COLUMN_LABELS: Record<WorkboardColumn, string> = {
 };
 
 const COLUMN_HELP: Record<WorkboardColumn, string> = {
-  triage: "Ideas y oportunidades que el orquestador debe entender.",
-  ready: "Trabajo listo para que un agente lo tome.",
-  running: "El agente está trabajando o tuvo ejecución reciente.",
+  triage: "Backlog y preparación antes de enviar al runtime.",
+  ready: "Trabajo aprobado para que el runtime lo tome.",
+  running: "Runs reales con ejecución activa o reciente.",
   blocked: "Falta evidencia, credenciales, policy o una decisión.",
-  review_needed: "Solo este trabajo necesita lectura humana.",
+  review_needed: "Decisiones humanas pendientes con evidencia trazable.",
   auto_completed: "El agente completó el paso y puede encadenar lo siguiente.",
   published_applied: "Cambio aplicado o publicado con trazabilidad.",
   archived: "Trabajo cerrado o descartado.",
@@ -251,6 +251,18 @@ function autonomyCopy(card: WorkboardCard): {
   label: string;
   tone: "neutral" | "info" | "success" | "warning" | "danger";
 } {
+  if (card.column === "triage") {
+    return { label: "Pendiente de routing", tone: "neutral" };
+  }
+  if (card.column === "ready") {
+    return { label: "Listo para runtime", tone: "info" };
+  }
+  if (card.column === "running") {
+    return {
+      label: card.runId ? "Run activo" : "Sin run activo",
+      tone: "info",
+    };
+  }
   if (card.column === "blocked" || card.autonomyLabel === "bloqueado") {
     return { label: "Bloqueado", tone: "danger" };
   }
@@ -291,6 +303,10 @@ function backlogHref(websiteId: string): string {
   return `/dashboard/${websiteId}/growth/backlog`;
 }
 
+function columnHref(websiteId: string, column: WorkboardColumn): string {
+  return `/dashboard/${websiteId}/growth/workboard?column=${column}`;
+}
+
 function cardPreview(card: WorkboardCard): string {
   return textForOperator(card.previewDetails.body ?? card.preview);
 }
@@ -320,28 +336,34 @@ function quickActionsFor(
   if (card.column === "review_needed") {
     return detailHref
       ? [
-          { label: "Aprobar", href: detailHref },
-          { label: "Pedir cambios", href: detailHref },
-          { label: "Rechazar", href: detailHref },
+          { label: "Revisar decisión", href: detailHref },
+          card.changeSetId
+            ? { label: "Pedir cambios", href: detailHref }
+            : { label: "Abrir revisión completa", href: detailHref },
         ]
       : [
           {
-            label: "Aprobar",
-            disabledReason: "Falta run asociado para registrar el ledger.",
-          },
-          {
-            label: "Pedir cambios",
+            label: "Abrir revisión completa",
             disabledReason: "Falta run asociado para registrar el ledger.",
           },
         ];
   }
-  if (card.column === "triage" || card.column === "ready") {
+  if (card.column === "triage") {
     return [
-      { label: "Abrir backlog", href: backlog },
+      { label: "Preparar routing", href: backlog },
       {
-        label: "Asignar agente",
-        disabledReason: "La asignación se ejecuta desde el orquestador.",
+        label: "Ver cola",
+        href: columnHref(websiteId, "triage"),
       },
+    ];
+  }
+  if (card.column === "ready") {
+    return [
+      {
+        label: "Enviar al runtime",
+        href: detailHref ?? backlog,
+      },
+      { label: "Ver cola", href: columnHref(websiteId, "ready") },
     ];
   }
   if (card.column === "running") {
@@ -350,11 +372,23 @@ function quickActionsFor(
           { label: "Ver progreso", href: detailHref },
           { label: "Revisar evidencia", href: detailHref },
         ]
-      : [{ label: "Ver backlog", href: backlog }];
+      : [{ label: "Depurar ejecución", href: backlog }];
+  }
+  if (card.column === "blocked") {
+    return [
+      {
+        label: "Resolver bloqueo",
+        href: detailHref ?? backlog,
+      },
+      {
+        label: "Ver causa",
+        href: detailHref ?? columnHref(websiteId, "blocked"),
+      },
+    ];
   }
   if (card.column === "auto_completed") {
     return [
-      { label: "Ver tarea creada", href: backlog },
+      { label: "Ver siguiente tarea", href: backlog },
       detailHref
         ? { label: "Ver aprobación", href: detailHref }
         : {
@@ -363,7 +397,7 @@ function quickActionsFor(
           },
     ];
   }
-  if (card.column === "archived" || card.column === "published_applied") {
+  if (card.column === "published_applied") {
     return [
       detailHref
         ? { label: "Ver resultado", href: detailHref }
@@ -374,81 +408,131 @@ function quickActionsFor(
       },
     ];
   }
+  if (card.column === "archived") {
+    return [
+      detailHref
+        ? { label: "Ver cierre", href: detailHref }
+        : { label: "Ver backlog", href: backlog },
+    ];
+  }
   return detailHref
     ? [{ label: "Abrir detalle", href: detailHref }]
     : [{ label: "Ver backlog", href: backlog }];
 }
 
+function primaryActionFor(
+  card: WorkboardCard,
+  websiteId: string,
+): QuickAction | null {
+  return quickActionsFor(card, websiteId)[0] ?? null;
+}
+
 function WorkboardCardView({
   card,
+  websiteId,
   onOpen,
 }: {
   card: WorkboardCard;
+  websiteId: string;
   onOpen: (card: WorkboardCard) => void;
 }) {
   const preview = cardPreview(card);
   const risk = humanize(card.risk);
   const autonomy = autonomyCopy(card);
+  const primaryAction = primaryActionFor(card, websiteId);
 
   return (
-    <button
-      type="button"
+    <article
       data-testid="growth-workboard-card"
-      onClick={() => onOpen(card)}
-      className="group relative w-full overflow-hidden rounded-md border border-[var(--studio-border)] bg-[var(--studio-surface)] p-2.5 pl-3 text-left shadow-sm transition hover:border-[var(--studio-primary)]/50 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[var(--studio-primary)]/40"
+      className="group relative w-full overflow-hidden rounded-md border border-[var(--studio-border)] bg-[var(--studio-surface)] p-2.5 pl-3 text-left shadow-sm transition hover:border-[var(--studio-primary)]/50 hover:shadow-md"
     >
-      <div
-        className={`absolute inset-y-0 left-0 w-1 ${
-          card.column === "blocked"
-            ? "bg-red-500"
-            : card.column === "review_needed"
-              ? "bg-amber-500"
-              : card.column === "auto_completed" ||
-                  card.column === "published_applied"
-                ? "bg-emerald-500"
-                : "bg-[var(--studio-primary)]"
-        }`}
-      />
+      <button
+        type="button"
+        onClick={() => onOpen(card)}
+        className="block w-full rounded-sm text-left focus:outline-none focus:ring-2 focus:ring-[var(--studio-primary)]/40"
+      >
+        <div
+          className={`absolute inset-y-0 left-0 w-1 ${
+            card.column === "blocked"
+              ? "bg-red-500"
+              : card.column === "review_needed"
+                ? "bg-amber-500"
+                : card.column === "auto_completed" ||
+                    card.column === "published_applied"
+                  ? "bg-emerald-500"
+                  : "bg-[var(--studio-primary)]"
+          }`}
+        />
 
-      <div className="flex items-center justify-between gap-2">
-        <span className="truncate text-[11px] font-medium text-[var(--studio-text-muted)]">
-          {LANE_LABELS[card.lane]}
-        </span>
-        <StudioBadge tone={riskTone(card.risk)}>{risk}</StudioBadge>
-      </div>
+        <div className="flex items-center justify-between gap-2">
+          <span className="truncate text-[11px] font-medium text-[var(--studio-text-muted)]">
+            {LANE_LABELS[card.lane]}
+          </span>
+          <StudioBadge tone={riskTone(card.risk)}>{risk}</StudioBadge>
+        </div>
 
-      <h3 className="mt-2 line-clamp-2 text-[13px] font-semibold leading-snug text-[var(--studio-text)]">
-        {titleForOperator(card.title)}
-      </h3>
+        <h3 className="mt-2 line-clamp-2 text-[13px] font-semibold leading-snug text-[var(--studio-text)]">
+          {titleForOperator(card.title)}
+        </h3>
 
-      <p className="mt-1 truncate text-[11px] text-[var(--studio-text-muted)]">
-        {card.agentName ?? LANE_LABELS[card.lane]} · {card.language}
-      </p>
-
-      <p className="mt-2 line-clamp-2 min-h-8 text-xs leading-snug text-[var(--studio-text-muted)]">
-        {preview}
-      </p>
-
-      {card.evidenceRefs.length > 0 ? (
-        <p className="mt-2 text-[11px] text-[var(--studio-text-muted)]">
-          {card.evidenceRefs.length} referencias de evidencia
+        <p className="mt-1 truncate text-[11px] text-[var(--studio-text-muted)]">
+          Agente: {card.agentName ?? LANE_LABELS[card.lane]} · {card.language}
         </p>
-      ) : null}
 
-      <div className="mt-2 flex flex-wrap gap-1">
-        <StudioBadge tone={autonomy.tone}>{autonomy.label}</StudioBadge>
-        {card.childTaskCount > 0 ? (
-          <StudioBadge tone="info">
-            {card.childTaskCount} tareas hijas
-          </StudioBadge>
+        <p className="mt-2 line-clamp-2 min-h-8 text-xs leading-snug text-[var(--studio-text-muted)]">
+          {preview}
+        </p>
+
+        {card.evidenceRefs.length > 0 ? (
+          <p className="mt-2 text-[11px] text-[var(--studio-text-muted)]">
+            {card.evidenceRefs.length} referencias de evidencia
+          </p>
         ) : null}
-      </div>
 
-      <div className="mt-2 flex items-center justify-between gap-2 text-[11px] text-[var(--studio-text-muted)]">
-        <span className="truncate">{textForOperator(card.progressLabel)}</span>
-        <span className="shrink-0">{fmtDate(card.updatedAt)}</span>
-      </div>
-    </button>
+        <div className="mt-2 flex flex-wrap gap-1">
+          <StudioBadge tone={autonomy.tone}>{autonomy.label}</StudioBadge>
+          {card.childTaskCount > 0 ? (
+            <StudioBadge tone="info">
+              {card.childTaskCount} tareas hijas
+            </StudioBadge>
+          ) : null}
+        </div>
+
+        <div className="mt-2 flex items-center justify-between gap-2 text-[11px] text-[var(--studio-text-muted)]">
+          <span className="truncate">
+            {textForOperator(card.progressLabel)}
+          </span>
+          <span className="shrink-0">{fmtDate(card.updatedAt)}</span>
+        </div>
+      </button>
+
+      {primaryAction ? (
+        <div className="mt-2">
+          {primaryAction.href ? (
+            <Link
+              href={primaryAction.href}
+              className="inline-flex w-full items-center justify-center rounded border border-[var(--studio-border)] px-2 py-1.5 text-xs font-semibold text-[var(--studio-text)] transition hover:border-[var(--studio-primary)] hover:text-[var(--studio-primary)]"
+              data-testid={`growth-workboard-card-primary-action-${primaryAction.label
+                .toLowerCase()
+                .replaceAll(" ", "-")}`}
+              onClick={(event) => event.stopPropagation()}
+            >
+              {primaryAction.label}
+            </Link>
+          ) : (
+            <span
+              title={primaryAction.disabledReason}
+              className="inline-flex w-full items-center justify-center rounded border border-[var(--studio-border)] px-2 py-1.5 text-xs font-semibold text-[var(--studio-text-muted)] opacity-60"
+              data-testid={`growth-workboard-card-primary-action-${primaryAction.label
+                .toLowerCase()
+                .replaceAll(" ", "-")}`}
+            >
+              {primaryAction.label}
+            </span>
+          )}
+        </div>
+      ) : null}
+    </article>
   );
 }
 
@@ -910,7 +994,7 @@ export function GrowthWorkboardClient({
         data-testid="growth-workboard-kanban"
         className="mt-5 overflow-x-auto overscroll-x-contain pb-4"
       >
-        <div className="grid w-max grid-flow-col auto-cols-[minmax(18rem,calc(100vw-2rem))] gap-4 sm:auto-cols-[20rem] xl:auto-cols-[22rem]">
+        <div className="grid w-max grid-flow-col auto-cols-[minmax(16rem,calc(100vw-2rem))] gap-3 sm:auto-cols-[18rem] xl:auto-cols-[19rem]">
           {columns.map((column) => {
             const cards = cardsByColumn[column] ?? [];
             const visibleCards = cards.slice(0, MAX_CARDS_PER_COLUMN);
@@ -941,6 +1025,7 @@ export function GrowthWorkboardClient({
                       <WorkboardCardView
                         key={card.id}
                         card={card}
+                        websiteId={websiteId}
                         onOpen={setSelectedCard}
                       />
                     ))
@@ -954,7 +1039,7 @@ export function GrowthWorkboardClient({
                       href={buildColumnHref[column]}
                       className="block rounded border border-dashed border-[var(--studio-border)] px-2 py-2 text-center text-xs font-medium text-[var(--studio-primary)] hover:bg-[var(--studio-surface)]"
                     >
-                      Ver {hiddenCount} más
+                      Ver {hiddenCount} tareas más en esta columna
                     </Link>
                   ) : null}
                 </div>
