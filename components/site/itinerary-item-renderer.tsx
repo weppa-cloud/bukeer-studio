@@ -8,7 +8,6 @@ import { Badge } from '@/components/ui/badge';
 import { ActivityScheduleInline } from '@/components/site/activity-schedule-inline';
 import type { ScheduleEntry, ScheduleEventType } from '@bukeer/website-contract';
 import { ScheduleEntrySchema } from '@bukeer/website-contract';
-import { z } from 'zod';
 import { FlightRow } from '@/components/site/product-detail/p2/flight-row';
 import { TransferRow } from '@/components/site/product-detail/p2/transfer-row';
 import { HotelCard } from '@/components/site/product-detail/p2/hotel-card';
@@ -46,7 +45,7 @@ interface ItineraryItemRendererProps {
 }
 
 function parseScheduleData(raw: unknown[]): ScheduleEntry[] {
-  const result = z.array(ScheduleEntrySchema).safeParse(raw);
+  const result = ScheduleEntrySchema.array().safeParse(raw);
   return result.success ? result.data : [];
 }
 
