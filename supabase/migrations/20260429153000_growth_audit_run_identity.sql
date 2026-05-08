@@ -2,9 +2,8 @@
 -- Growth audit run identity — EPIC #310 / SPEC #337
 -- ============================================================================
 -- Purpose:
---   Makes technical findings comparable across provider runs. Studio can
---   originate the contract, but shared DB migrations must be mirrored/applied
---   from bukeer-flutter per migration governance.
+--   Makes technical findings comparable across provider runs. Flutter is the
+--   operational SSOT for shared Supabase migrations.
 -- ============================================================================
 
 alter table if exists public.seo_audit_findings

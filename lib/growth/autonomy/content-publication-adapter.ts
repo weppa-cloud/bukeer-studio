@@ -43,6 +43,7 @@ export interface ContentPublicationPlanInput {
   successMetric?: string;
   now?: Date;
   live?: boolean;
+  certificationFixtureMode?: boolean;
 }
 
 export interface ContentPublicationPlan {
@@ -117,6 +118,16 @@ function validateArticle(
   return { checks, failures };
 }
 
+function requireLiveMeasurementContract(input: ContentPublicationPlanInput) {
+  if (!input.live) return;
+  if (!nonEmptyRecord(input.baseline)) {
+    throw new Error("content_publish live apply requires explicit baseline.");
+  }
+  if (!input.successMetric?.trim()) {
+    throw new Error("content_publish live apply requires explicit successMetric.");
+  }
+}
+
 function buildIdempotencyKey(input: ContentPublicationPlanInput): string {
   return [
     "content-publication-v1",
@@ -130,6 +141,7 @@ function buildIdempotencyKey(input: ContentPublicationPlanInput): string {
 export function planContentPublication(
   input: ContentPublicationPlanInput,
 ): ContentPublicationPlan {
+  requireLiveMeasurementContract(input);
   const now = input.now ?? new Date();
   const { checks, failures } = validateArticle(input.article);
   const smoke = { pass: failures.length === 0, checks, failures };
@@ -158,6 +170,18 @@ export function planContentPublication(
     lane: input.lane ?? ("content_creator" as const),
     action_class: "content_publish" as const,
   };
+  const rollbackExpectation = targetId
+    ? {
+        strategy: "restore_before_snapshot",
+        target_table: "website_blog_posts",
+        target_id: targetId,
+      }
+    : {
+        strategy: "delete_created_content",
+        target_table: "website_blog_posts",
+        target_path: `/blog/${input.article.slug}`,
+        delete_created_slug: input.article.slug,
+      };
 
   const job = GrowthPublicationJobInsertSchema.parse({
     ...common,
@@ -183,6 +207,19 @@ export function planContentPublication(
         human_edited: false,
         word_count: wordCount(input.article.content),
       },
+      content_publish: {
+        target: {
+          target_table: "website_blog_posts",
+          target_id: targetId,
+          target_path: `/blog/${input.article.slug}`,
+        },
+        rollback_expectation: rollbackExpectation,
+        title: input.article.title,
+        slug: input.article.slug,
+        content_word_count: wordCount(input.article.content),
+        seo_title: input.article.seo_title,
+        seo_description: input.article.seo_description,
+      },
     },
     smoke_result: smoke,
     rollback_payload: targetId
@@ -202,6 +239,8 @@ export function planContentPublication(
     evidence: {
       adapter: "content_publication_v1",
       changed_surface: "organic_blog",
+      rollback_expectation: rollbackExpectation,
+      certification_fixture_mode: input.certificationFixtureMode === true,
       required_revalidation: [
         `/site/[subdomain]/blog`,
         `/site/[subdomain]/blog/${input.article.slug}`,

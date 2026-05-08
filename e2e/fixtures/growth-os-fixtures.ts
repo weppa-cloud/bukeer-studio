@@ -1,5 +1,5 @@
 /**
- * Growth OS E2E fixtures (issue #409).
+ * Growth OS E2E fixtures (issue #441).
  *
  * Provides tenant + role placeholders for the Growth OS console UI contract.
  * The fixtures are intentionally lightweight: the spec is gated behind
@@ -46,6 +46,31 @@ export const CANONICAL_LANES = [
   'content_curator',
 ] as const;
 export type CanonicalLane = (typeof CANONICAL_LANES)[number];
+
+export const CANONICAL_LANE_LABELS: Record<CanonicalLane, string> = {
+  orchestrator: 'Orchestrator',
+  technical_remediation: 'Technical',
+  transcreation: 'Transcreation',
+  content_creator: 'Creator',
+  content_curator: 'Curator',
+};
+
+/**
+ * Canonical autonomous workboard columns. Mirrors WORKBOARD_COLUMNS from
+ * `lib/growth/console/queries-workboard.ts` without importing app code into
+ * Playwright fixtures.
+ */
+export const WORKBOARD_COLUMNS = [
+  'triage',
+  'ready',
+  'running',
+  'blocked',
+  'review_needed',
+  'auto_completed',
+  'published_applied',
+  'archived',
+] as const;
+export type WorkboardColumn = (typeof WORKBOARD_COLUMNS)[number];
 
 // TODO(seed): Replace with real Growth OS-seeded tenants once the migration is
 // applied locally. The default for tenantA mirrors the COLOMBIATOURS pilot

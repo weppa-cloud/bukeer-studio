@@ -6,6 +6,7 @@ import type {
 } from "@bukeer/website-contract";
 
 import {
+  evaluateCandidateDataQuality,
   evaluateProfileFreshnessGate,
   requirementsForAction,
 } from "./profile-freshness-gate";
@@ -79,6 +80,14 @@ function sourceRefs(candidate: GrowthOpportunityCandidate): string[] {
   return candidate.source_signal_fact_ids.map((id) => `growth_signal_facts:${id}`);
 }
 
+function dataQualityFailures(candidate: GrowthOpportunityCandidate): string[] {
+  return evaluateCandidateDataQuality({
+    evidence: candidate.evidence as JsonRecord,
+    successMetric: candidate.success_metric,
+    evaluationWindow: candidate.evaluation_window,
+  });
+}
+
 export function buildPromotedWorkItem(
   candidate: GrowthOpportunityCandidate,
   profiles: GrowthProfile[],
@@ -95,6 +104,7 @@ export function buildPromotedWorkItem(
     ...freshness.missing.map((profile) => `missing:${profile}`),
     ...freshness.stale.map((profile) => `stale:${profile}`),
     ...freshness.lowConfidence.map((profile) => `low_confidence:${profile}`),
+    ...dataQualityFailures(candidate),
   ];
   if (missingMetric) blockingReasons.push("missing_metric_or_evaluation_window");
   if (missingEvidence) blockingReasons.push("missing_evidence");
@@ -145,6 +155,7 @@ export function buildPromotedWorkItem(
       progress_label: "Listo para runtime",
       evidence: {
         source: "growth_opportunity_candidate",
+        ...(candidate.evidence as JsonRecord),
         candidate_id: candidate.id,
         profile_snapshot: freshness.snapshot,
         candidate_profile_snapshot: candidate.profile_snapshot,

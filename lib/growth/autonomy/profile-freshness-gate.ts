@@ -34,6 +34,12 @@ export interface ProfileFreshnessGateResult {
   lowConfidence: GrowthProfileType[];
 }
 
+export interface GrowthCandidateDataQualityInput {
+  evidence: JsonRecord;
+  successMetric?: string | null;
+  evaluationWindow?: GrowthOutcomeEvaluationWindow | null;
+}
+
 export interface OpportunityScoreInput {
   accountId: string;
   websiteId: string;
@@ -172,6 +178,43 @@ export function evaluateProfileFreshnessGate(
   };
 }
 
+function hasNonEmptyRecord(value: unknown): boolean {
+  return Boolean(
+    value &&
+      typeof value === "object" &&
+      !Array.isArray(value) &&
+      Object.keys(value).length > 0,
+  );
+}
+
+function hasCandidateTarget(value: unknown): boolean {
+  if (!hasNonEmptyRecord(value)) return false;
+  const target = value as JsonRecord;
+  return (
+    typeof target.target_table === "string" &&
+    target.target_table.trim().length > 0 &&
+    (typeof target.target_id === "string" ||
+      typeof target.target_path === "string" ||
+      typeof target.target_key === "string")
+  );
+}
+
+export function evaluateCandidateDataQuality(
+  input: GrowthCandidateDataQualityInput,
+): string[] {
+  const failures: string[] = [];
+  if (!hasCandidateTarget(input.evidence.target)) failures.push("missing_target");
+  if (!hasNonEmptyRecord(input.evidence.rollback_expectation)) {
+    failures.push("missing_rollback_expectation");
+  }
+  if (!hasNonEmptyRecord(input.evidence.baseline)) {
+    failures.push("missing_baseline");
+  }
+  if (!input.successMetric?.trim()) failures.push("missing_success_metric");
+  if (!input.evaluationWindow) failures.push("missing_evaluation_window");
+  return failures;
+}
+
 function clampScore(value: number): number {
   if (!Number.isFinite(value)) return 0;
   return Math.max(0, Math.min(100, Math.round(value)));
@@ -193,8 +236,13 @@ export function scoreOpportunityCandidate(
     ...input.freshness.lowConfidence.map(
       (profile) => `low_confidence:${profile}`,
     ),
+    ...evaluateCandidateDataQuality({
+      evidence: input.evidence,
+      successMetric: input.successMetric,
+      evaluationWindow: input.evaluationWindow,
+    }),
   ];
-  const status = !input.freshness.allowed
+  const status = !input.freshness.allowed || blockingReasons.length > 0
     ? "blocked"
     : totalScore >= 60
       ? "ready_for_backlog"

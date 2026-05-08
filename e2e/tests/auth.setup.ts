@@ -1,9 +1,10 @@
-import { test as setup, expect } from "@playwright/test";
+import { test as setup, expect, type Page } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import path from "path";
 import fs from "fs";
 
 const authFile = path.join(__dirname, "..", ".auth", "user.json");
+const GOTO_READY = { waitUntil: "domcontentloaded" as const, timeout: 60000 };
 
 function decodeBase64Url(value: string): string {
   const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
@@ -49,9 +50,6 @@ function extractAccessTokenFromCookie(value: string): string | null {
 
   for (const candidate of candidates) {
     if (!candidate) continue;
-    if (Array.isArray(candidate) && typeof candidate[0] === "string") {
-      return candidate[0];
-    }
     if (typeof candidate === "object") {
       const record = candidate as Record<string, unknown>;
       if (typeof record.access_token === "string") return record.access_token;
@@ -66,6 +64,7 @@ function extractAccessTokenFromCookie(value: string): string | null {
 }
 
 function authStateStillUsable(): boolean {
+  if (process.env.GROWTH_OS_UI_E2E_ENABLED === "true") return false;
   if (!fs.existsSync(authFile)) return false;
   const stored = JSON.parse(fs.readFileSync(authFile, "utf-8")) as {
     cookies?: Array<{ name: string; value?: string; expires?: number }>;
@@ -77,11 +76,12 @@ function authStateStillUsable(): boolean {
   if (!authCookie?.value || !authCookie.expires) return false;
 
   const now = Date.now() / 1000;
-  if (authCookie.expires <= now + 3600) return false;
+  const minRemainingSeconds = 300;
+  if (authCookie.expires <= now + minRemainingSeconds) return false;
 
   const accessToken = extractAccessTokenFromCookie(authCookie.value);
   const exp = accessToken ? jwtExpSeconds(accessToken) : null;
-  if (!exp || exp <= now + 3600) return false;
+  if (!exp || exp <= now + minRemainingSeconds) return false;
 
   console.log("Auth JWT valid until", new Date(exp * 1000).toISOString());
   return true;
@@ -117,7 +117,7 @@ async function writeProgrammaticAuthState(opts: {
   const origin = new URL(opts.baseURL);
   const session = data.session;
   const cookieValue = `base64-${Buffer.from(
-    JSON.stringify([session.access_token, session.refresh_token]),
+    JSON.stringify(session),
   ).toString("base64url")}`;
 
   fs.mkdirSync(path.dirname(authFile), { recursive: true });
@@ -157,6 +157,29 @@ async function writeProgrammaticAuthState(opts: {
   return true;
 }
 
+async function gotoLoginWithRetry(page: Page) {
+  const attempts = 3;
+  let lastError: unknown = null;
+
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      await page.goto("/login", GOTO_READY);
+      return;
+    } catch (error) {
+      lastError = error;
+      console.warn(
+        `[auth.setup] /login navigation failed on attempt ${attempt}/${attempts}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
+  }
+
+  throw lastError instanceof Error
+    ? lastError
+    : new Error("Could not navigate to /login.");
+}
+
 setup("authenticate", async ({ page, baseURL }) => {
   // If stored auth is still valid (cookie + embedded JWT), reuse it.
   if (authStateStillUsable()) {
@@ -168,7 +191,7 @@ setup("authenticate", async ({ page, baseURL }) => {
   const resolvedBaseURL = baseURL ?? "http://localhost:3000";
 
   if (
-    process.env.GROWTH_OS_UI_E2E_ENABLED !== "true" &&
+    process.env.E2E_FORCE_UI_AUTH !== "true" &&
     (await writeProgrammaticAuthState({
       email,
       password,
@@ -178,7 +201,7 @@ setup("authenticate", async ({ page, baseURL }) => {
     return;
   }
 
-  await page.goto("/login");
+  await gotoLoginWithRetry(page);
 
   // Wait for Suspense boundary (useSearchParams) to hydrate before interacting
   await page.waitForSelector('input[id="email"]', { timeout: 60000 });

@@ -12,6 +12,7 @@ export async function claimGrowthWorkItem({
   websiteId,
   lane,
   workspacePath,
+  agentId,
   claimId = randomUUID(),
   now = new Date(),
 }: {
@@ -20,6 +21,7 @@ export async function claimGrowthWorkItem({
   websiteId: string;
   lane: AgentLane;
   workspacePath: string;
+  agentId?: string | null;
   claimId?: string;
   now?: Date;
 }) {
@@ -38,6 +40,28 @@ export async function claimGrowthWorkItem({
   const workItem = Array.isArray(workItems) ? workItems[0] : workItems;
   if (!workItem?.id) return { claimed: false as const, reason: "no_ready_work_items" };
 
+  let resolvedAgentId =
+    agentId ??
+    (typeof workItem.evidence?.agent_id === "string"
+      ? workItem.evidence.agent_id
+      : null);
+  if (!resolvedAgentId) {
+    const { data: agentRows, error: agentError } = await supabase
+      .from("growth_agent_definitions")
+      .select("agent_id")
+      .eq("account_id", accountId)
+      .eq("website_id", websiteId)
+      .eq("lane", lane)
+      .limit(1);
+    if (agentError) throw new Error(agentError.message);
+    const agent = Array.isArray(agentRows) ? agentRows[0] : agentRows;
+    resolvedAgentId =
+      typeof agent?.agent_id === "string" ? agent.agent_id : null;
+  }
+  if (!resolvedAgentId) {
+    return { claimed: false as const, reason: "missing_agent_definition" };
+  }
+
   const { data: runs, error: runError } = await supabase
     .from("growth_agent_runs")
     .insert({
@@ -45,7 +69,7 @@ export async function claimGrowthWorkItem({
       website_id: websiteId,
       locale: workItem.evidence?.locale ?? "es-CO",
       market: workItem.evidence?.market ?? "CO",
-      agent_id: workItem.evidence?.agent_id ?? null,
+      agent_id: resolvedAgentId,
       lane,
       source_table: "growth_work_items",
       source_id: workItem.id,

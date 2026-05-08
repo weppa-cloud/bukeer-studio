@@ -1,7 +1,7 @@
 # Supabase Migration Governance
 
 Status: accepted for Growth OS #310 operations.
-Last updated: 2026-04-29.
+Last updated: 2026-05-08.
 
 ## Decision
 
@@ -15,6 +15,144 @@ migration workflow.
 
 This keeps the single Supabase project aligned with the app that owns most
 backend writes and reduces migration-history drift between Studio and Flutter.
+
+## Production Reconciliation Protocol
+
+Use this protocol when production reports many pending migrations and the team
+does not want to push the whole local `supabase/migrations` directory.
+
+The goal is not to make Studio's migration folder equal to production. The goal
+is to make production's `supabase_migrations.schema_migrations` history match
+the canonical Flutter migration set, then apply only the reviewed weekly bundle.
+
+### Operating Model
+
+| Bucket | Meaning | Action |
+|---|---|---|
+| `already_in_prod` | The database shape is already present in production, but the migration version is missing from `schema_migrations`. | Verify schema/data, then mark the version as applied with Supabase migration repair from the Flutter repo. Do not re-run the SQL. |
+| `pending_this_week` | Reviewed migration needed for the current release week. | Mirror byte-for-byte into Flutter, review, then apply from Flutter. |
+| `future_or_draft` | Studio-originated SQL that is not approved for production this week. | Keep out of Flutter's active release branch. If it is a draft, move it outside `supabase/migrations` in the originating branch before merge. |
+| `obsolete` | SQL superseded by later forward-only migrations and not reflected in production. | Do not apply. Document the superseding migration and archive the draft outside active migrations. |
+| `conflict` | Same filename exists in both repos but contents differ. | Stop. Pick one canonical file before any database write. |
+
+### Weekly Release Cadence
+
+1. **Freeze the bundle**
+   - Choose the target week, e.g. `2026-W19`.
+   - Create a Flutter release branch for migrations.
+   - No developer should add unreviewed SQL to that branch after freeze.
+
+2. **Audit Studio vs Flutter**
+   - From Studio, run:
+
+```bash
+bash scripts/supabase-migration-audit.sh
+```
+
+   - Resolve all `Shared filenames with different SQL contents` first.
+   - Remove accidental duplicate files such as `* 2.sql` only after confirming
+     they are identical to the canonical file and were never applied by that
+     duplicate name.
+
+3. **Read production migration history**
+   - From the canonical Flutter environment:
+
+```bash
+supabase migration list --linked
+```
+
+   - Export or copy the remote `schema_migrations` versions into the issue.
+   - Do not infer applied state from filenames alone; verify production schema
+     for each repair candidate.
+
+4. **Classify each candidate**
+   - `already_in_prod`: schema/data exists and behavior is live.
+   - `pending_this_week`: schema/data does not exist and release needs it.
+   - `future_or_draft`: not needed this week.
+   - `obsolete`: superseded or abandoned.
+   - `conflict`: filename/content mismatch or dependency ambiguity.
+
+5. **Repair history before applying new SQL**
+   - For `already_in_prod`, use Supabase's repair command to mark history as
+     applied after verification:
+
+```bash
+supabase migration repair --status applied <version>
+```
+
+   - `<version>` is the timestamp portion, for example `20260504110900`.
+   - Record the verification query and repair command in the issue.
+   - Never use repair to hide an unverified or failed migration.
+
+6. **Apply only the weekly bundle**
+   - Keep only `pending_this_week` migrations in the Flutter migration release
+     branch.
+   - Apply from Flutter using the approved Supabase workflow.
+   - Studio PRs that depend on the DB shape must link the Flutter migration PR.
+
+7. **Verify and close**
+   - Run read-only table/function/index/RLS checks.
+   - Run the Studio code path or smoke that depends on the schema.
+   - Add evidence to the GitHub issue: branch, commit, migration versions,
+     production verification output, and residual risk.
+
+### Archive Policy
+
+Do not archive by moving historical files that are already applied in production.
+Those filenames are part of the operational history.
+
+It is safe to archive only Studio-originated drafts that have not been applied,
+are not mirrored in Flutter, and are not part of the current release bundle. Move
+them outside the active migrations path, for example:
+
+```text
+docs/archive/supabase-migration-drafts/YYYY-MM-DD/
+```
+
+Add a short `README.md` in that archive folder explaining why each file was
+retired or which forward-only migration superseded it. Do not create nested
+archives under `supabase/migrations`.
+
+### Decision Rules
+
+- If production already has the schema and only migration history is missing:
+  repair history; do not push all old SQL.
+- If production lacks the schema and the feature is needed this week: apply the
+  reviewed Flutter bundle.
+- If a Studio migration is not in Flutter: it is not production-ready, even if
+  the SQL looks correct.
+- If same-name SQL differs between Studio and Flutter: fix the file drift before
+  any push or repair.
+- If a migration is destructive or a heavy backfill: require an issue-linked
+  rollback/forward-fix plan and a maintenance window.
+
+## Current Audit Snapshot — 2026-05-08
+
+Local audit from `bukeer-studio` against
+`/Users/yeisongomez/Documents/Proyectos/Bukeer/bukeer_flutter`:
+
+| Metric | Count |
+|---|---:|
+| Studio SQL files | 38 |
+| Studio normalized migration names | 38 |
+| Flutter SQL files | 347 |
+| Shared by name | 17 |
+| Studio-only normalized names | 21 |
+| Flutter-only names | 330 |
+| Studio duplicate `* 2.sql` files | 0 |
+| Shared filename content mismatches | 0 |
+| Same-version Studio/Flutter filename collisions | 1 |
+
+Immediate cleanup queue:
+
+| Finding | Action |
+|---|---|
+| Studio duplicate ` 2.sql` files | Resolved on 2026-05-08 by removing 11 tracked duplicate files. |
+| Comment-only Studio/Flutter mismatches | Resolved on 2026-05-08 by aligning Studio comments to the Flutter canonical files. |
+| `20260504111600_waflow_reference_first_conversation_index.sql` missing from remote history | Resolved on 2026-05-08 with Supabase migration repair after verifying production indexes already existed. |
+| Inactive Studio-only migrations | Archived 59 files on 2026-05-08 under `docs/archive/supabase-migration-drafts/2026-05-08-inactive-studio-only/` because they are not related to the currently open Growth/Funnel worktrees. |
+| Same-version filename collisions | Only `20260504123000` remains active after archiving inactive Studio-only drafts. Treat it as a hard blocker before any migration push. See [[supabase-migration-reconciliation-2026-05-08]]. |
+| Active Studio-only migrations are not mirrored in Flutter. | 21 remain because they are related to active Growth/Funnel/WAFlow/booking work. Do not push from Studio; mirror reviewed candidates into Flutter. See [[supabase-migration-reconciliation-2026-05-08]]. |
 
 ## Scope
 

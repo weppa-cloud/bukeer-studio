@@ -31,6 +31,20 @@ scripts/growth/deploy-runtime-vps.sh <sha>
 The script validates that `<sha>` is reachable from `origin/dev`, uploads a git
 archive, updates `/opt/growth-os/current`, rebuilds Docker and runs smoke checks.
 
+The production service must run the live-gated cycle daemon, not the legacy
+Symphony compatibility wrapper:
+
+```bash
+tsx scripts/growth/run-growth-production-cycle.ts \
+  --scheduled \
+  --interval-ms=1800000 \
+  --max-claims-per-lane=1
+```
+
+Live execution is still controlled by `growth_autonomy_policies`: disabled
+policies, `dry_run_only=true`, kill switch, exhausted caps or failed gates block
+publication/application before any public table mutation.
+
 Rollback:
 
 ```bash

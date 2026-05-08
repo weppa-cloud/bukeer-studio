@@ -199,6 +199,16 @@ function validatePatch(
   return { checks, failures };
 }
 
+function requireLiveMeasurementContract(input: TechnicalRemediationPlanInput) {
+  if (!input.live) return;
+  if (!nonEmptyRecord(input.baseline)) {
+    throw new Error("safe_apply live apply requires explicit baseline.");
+  }
+  if (!input.successMetric?.trim()) {
+    throw new Error("safe_apply live apply requires explicit successMetric.");
+  }
+}
+
 function buildIdempotencyKey(input: TechnicalRemediationPlanInput): string {
   const targetPath = input.targetPath ?? "root";
   const fieldKey = Object.keys(input.patch).sort().join(".");
@@ -216,6 +226,7 @@ function buildIdempotencyKey(input: TechnicalRemediationPlanInput): string {
 export function planTechnicalRemediation(
   input: TechnicalRemediationPlanInput,
 ): TechnicalRemediationPlan {
+  requireLiveMeasurementContract(input);
   if (!isTechnicalTargetTable(input.targetTable)) {
     throw new Error("technical_remediation does not publish content.");
   }
@@ -258,6 +269,12 @@ export function planTechnicalRemediation(
     lane: "technical_remediation" as const,
     action_class: "safe_apply" as const,
   };
+  const rollbackExpectation = {
+    strategy: "restore_before_snapshot",
+    target_table: input.targetTable,
+    target_id: input.targetId,
+    changed_fields: changed,
+  };
 
   const jobCandidate: GrowthPublicationJobInsert = {
     ...common,
@@ -276,6 +293,16 @@ export function planTechnicalRemediation(
       table: input.targetTable,
       target_id: input.targetId,
       patch: input.patch,
+      safe_apply: {
+        target: {
+          target_table: input.targetTable,
+          target_id: input.targetId,
+          target_path: input.targetPath ?? undefined,
+        },
+        rollback_expectation: rollbackExpectation,
+        changed_fields: changed,
+        patch: input.patch,
+      },
     },
     smoke_result: smoke,
     rollback_payload: {
@@ -289,6 +316,7 @@ export function planTechnicalRemediation(
     evidence: {
       adapter: "technical_remediation_v1",
       smoke_contract: "static_patch_validation",
+      rollback_expectation: rollbackExpectation,
       changed_fields: changed,
       forbidden_surfaces: [
         "pricing",

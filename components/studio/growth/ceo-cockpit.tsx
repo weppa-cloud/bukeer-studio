@@ -20,8 +20,13 @@ import {
 } from "lucide-react";
 
 import {
+  dryVerifyGrowthPublicationJobRollback,
+  pauseAutonomyLane,
   rollbackGrowthPublicationJob,
   toggleGrowthKillSwitch,
+  toggleGrowthAutonomyPolicy,
+  togglePolicyDryRunOnly,
+  updateAutonomyPolicyCaps,
 } from "@/app/dashboard/[websiteId]/growth/overview/actions";
 import type {
   AgentCompanyRow,
@@ -31,6 +36,8 @@ import type {
   ImpactLedgerRow,
   NorthStarMetric,
   RiskBudgetRow,
+  RollbackPublicationJobRow,
+  RuntimeCycleHealth,
 } from "@/lib/growth/console/queries-ceo-cockpit";
 
 const LANE_LABELS: Record<string, string> = {
@@ -104,6 +111,30 @@ function StatusPill({ value }: { value: string }) {
     >
       {value.replaceAll("_", " ")}
     </span>
+  );
+}
+
+function JsonBlock({
+  label,
+  value,
+  testId,
+}: {
+  label: string;
+  value: Record<string, unknown>;
+  testId: string;
+}) {
+  return (
+    <div>
+      <p className="mb-1 text-[11px] font-semibold uppercase text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+        {label}
+      </p>
+      <pre
+        data-testid={testId}
+        className="max-h-44 overflow-auto rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] bg-[var(--studio-panel,theme(colors.zinc.50))] p-2 text-[11px] leading-relaxed text-[var(--studio-text,theme(colors.zinc.800))]"
+      >
+        {JSON.stringify(value, null, 2)}
+      </pre>
+    </div>
   );
 }
 
@@ -203,6 +234,40 @@ function ActionForm({
   );
 }
 
+function CompactActionForm({
+  action,
+  label,
+  fields,
+  disabled = false,
+  testId,
+}: {
+  action: (formData: FormData) => Promise<unknown>;
+  label: string;
+  fields: Record<string, string>;
+  disabled?: boolean;
+  testId: string;
+}) {
+  return (
+    <form action={action as (formData: FormData) => Promise<void>}>
+      {Object.entries(fields).map(([name, value]) => (
+        <input key={name} type="hidden" name={name} value={value} />
+      ))}
+      <button
+        type="submit"
+        disabled={disabled}
+        data-testid={testId}
+        className={
+          disabled
+            ? "rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] px-2 py-1 text-xs font-medium text-[var(--studio-text-muted,theme(colors.zinc.400))]"
+            : "rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] px-2 py-1 text-xs font-medium text-[var(--studio-text,theme(colors.zinc.700))] hover:bg-[var(--studio-surface-hover,theme(colors.zinc.100))]"
+        }
+      >
+        {label}
+      </button>
+    </form>
+  );
+}
+
 function MetricTile({ metric }: { metric: NorthStarMetric }) {
   return (
     <article className="rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] bg-[var(--studio-surface,theme(colors.white))] p-4">
@@ -224,6 +289,113 @@ function MetricTile({ metric }: { metric: NorthStarMetric }) {
         {metric.detail}
       </p>
     </article>
+  );
+}
+
+function RuntimeCyclePanel({ health }: { health: RuntimeCycleHealth }) {
+  const active = health.activeCycle;
+  const last = health.lastCycle;
+  return (
+    <section
+      data-testid="growth-runtime-cycle-health"
+      className="rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] bg-[var(--studio-surface,theme(colors.white))] p-4"
+    >
+      <div className="grid gap-4 lg:grid-cols-[1fr_320px] lg:items-start">
+        <SectionTitle
+          eyebrow="Runtime"
+          title="Active cycle and scheduler health"
+          detail="Cycle ledger status for the production loop: scheduler heartbeat, active cycle, last completed cycle and failure counters."
+        />
+        <div
+          data-testid="growth-scheduler-health"
+          className="rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] bg-[var(--studio-panel,theme(colors.zinc.50))] p-3"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-xs font-semibold uppercase text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+              Scheduler
+            </span>
+            <StatusPill value={health.schedulerStatus} />
+          </div>
+          <p className="mt-2 text-sm text-[var(--studio-text,theme(colors.zinc.800))]">
+            {health.schedulerMessage}
+          </p>
+          <p className="mt-1 text-xs text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+            Last heartbeat {formatDate(health.lastHeartbeatAt)}
+          </p>
+          {health.missingTables.length > 0 ? (
+            <p className="mt-2 text-xs text-amber-700">
+              Missing: {health.missingTables.join(", ")}
+            </p>
+          ) : null}
+        </div>
+      </div>
+      <div className="mt-4 grid gap-3 md:grid-cols-2">
+        {[{ label: "Active cycle", cycle: active }, { label: "Latest cycle", cycle: last }].map(
+          ({ label, cycle }) => (
+            <article
+              key={label}
+              data-testid={
+                label === "Active cycle"
+                  ? "growth-active-cycle"
+                  : "growth-latest-cycle"
+              }
+              className="rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] p-3"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h3 className="text-sm font-semibold text-[var(--studio-text,theme(colors.zinc.900))]">
+                  {label}
+                </h3>
+                <StatusPill value={cycle?.status ?? "missing"} />
+              </div>
+              {cycle ? (
+                <dl className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <dt className="text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                      Key
+                    </dt>
+                    <dd className="break-words font-mono">{cycle.cycleKey}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                      Trigger
+                    </dt>
+                    <dd>{cycle.trigger}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                      Started
+                    </dt>
+                    <dd>{formatDate(cycle.startedAt)}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                      Finished
+                    </dt>
+                    <dd>{formatDate(cycle.finishedAt)}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                      Env
+                    </dt>
+                    <dd>{cycle.environment}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                      Git
+                    </dt>
+                    <dd className="font-mono">{cycle.gitSha?.slice(0, 8) ?? "n/a"}</dd>
+                  </div>
+                </dl>
+              ) : (
+                <p className="mt-3 text-sm text-[var(--studio-text-muted,theme(colors.zinc.600))]">
+                  No cycle row is available yet.
+                </p>
+              )}
+            </article>
+          ),
+        )}
+      </div>
+    </section>
   );
 }
 
@@ -713,13 +885,49 @@ function feedIcon(item: AutonomyFeedItem) {
 }
 
 function AutonomyFeed({ items }: { items: AutonomyFeedItem[] }) {
+  const autoPublished = items.filter(
+    (item) => item.kind === "auto_published",
+  ).length;
+  const autoApplied = items.filter((item) => item.kind === "auto_applied").length;
+  const rolledBack = items.filter((item) => item.kind === "rollback").length;
+  const blocked = items.filter((item) => item.kind === "blocked").length;
+
   return (
-    <section className="rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] bg-[var(--studio-surface,theme(colors.white))]">
+    <section
+      data-testid="growth-autonomy-feed"
+      className="rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] bg-[var(--studio-surface,theme(colors.white))]"
+    >
       <div className="border-b border-[var(--studio-border,theme(colors.zinc.200))] p-4">
         <SectionTitle
           eyebrow="Autonomy Feed"
           title="Publicaciones, applies, bloqueos y rollback"
         />
+        <dl className="mt-3 grid grid-cols-2 gap-2 text-xs">
+          <div>
+            <dt className="text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+              Auto-published
+            </dt>
+            <dd className="font-semibold">{autoPublished}</dd>
+          </div>
+          <div>
+            <dt className="text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+              Auto-applied
+            </dt>
+            <dd className="font-semibold">{autoApplied}</dd>
+          </div>
+          <div>
+            <dt className="text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+              Rolled back
+            </dt>
+            <dd className="font-semibold">{rolledBack}</dd>
+          </div>
+          <div>
+            <dt className="text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+              Blocked
+            </dt>
+            <dd className="font-semibold">{blocked}</dd>
+          </div>
+        </dl>
       </div>
       {items.length === 0 ? (
         <p className="p-4 text-sm text-[var(--studio-text-muted,theme(colors.zinc.600))]">
@@ -728,7 +936,11 @@ function AutonomyFeed({ items }: { items: AutonomyFeedItem[] }) {
       ) : (
         <ol className="divide-y divide-[var(--studio-border,theme(colors.zinc.200))]">
           {items.map((item) => (
-            <li key={item.id} className="flex gap-3 p-4">
+            <li
+              key={item.id}
+              data-testid={`growth-autonomy-feed-item-${item.kind}`}
+              className="flex gap-3 p-4"
+            >
               <span className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] bg-[var(--studio-panel,theme(colors.zinc.50))]">
                 {feedIcon(item)}
               </span>
@@ -759,7 +971,10 @@ function AutonomyFeed({ items }: { items: AutonomyFeedItem[] }) {
 
 function ImpactLedger({ rows }: { rows: ImpactLedgerRow[] }) {
   return (
-    <section className="rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] bg-[var(--studio-surface,theme(colors.white))]">
+    <section
+      data-testid="growth-impact-ledger"
+      className="rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] bg-[var(--studio-surface,theme(colors.white))]"
+    >
       <div className="border-b border-[var(--studio-border,theme(colors.zinc.200))] p-4">
         <SectionTitle
           eyebrow="Impact Ledger"
@@ -835,9 +1050,177 @@ function ImpactLedger({ rows }: { rows: ImpactLedgerRow[] }) {
   );
 }
 
-function RiskBudget({ rows }: { rows: RiskBudgetRow[] }) {
+function RollbackJobs({
+  websiteId,
+  rows,
+}: {
+  websiteId: string;
+  rows: RollbackPublicationJobRow[];
+}) {
   return (
-    <div className="overflow-x-auto">
+    <section
+      data-testid="growth-rollback-detail"
+      className="rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] bg-[var(--studio-surface,theme(colors.white))]"
+    >
+      <div className="border-b border-[var(--studio-border,theme(colors.zinc.200))] p-4">
+        <SectionTitle
+          eyebrow="Rollback"
+          title="Publication job rollback detail"
+          detail="Dry-verify checks the rollback payload without restoring data. Rollback restores the recorded payload for applied or smoke-checked jobs."
+        />
+      </div>
+      {rows.length === 0 ? (
+        <p className="p-4 text-sm text-[var(--studio-text-muted,theme(colors.zinc.600))]">
+          No rollbackable publication jobs are visible yet.
+        </p>
+      ) : (
+        <div className="divide-y divide-[var(--studio-border,theme(colors.zinc.200))]">
+          {rows.map((row) => (
+            <article key={row.id} className="p-4">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="break-words text-sm font-semibold text-[var(--studio-text,theme(colors.zinc.900))]">
+                      {row.affectedRoute}
+                    </h3>
+                    <StatusPill value={row.status} />
+                    <StatusPill value={row.jobMode} />
+                  </div>
+                  <p className="mt-1 text-xs text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                    {laneLabel(row.lane)} - {row.actionClass} -{" "}
+                    {row.targetTable}
+                    {row.targetId ? `:${row.targetId}` : ""}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <CompactActionForm
+                    action={dryVerifyGrowthPublicationJobRollback}
+                    label="Dry-verify"
+                    fields={{
+                      websiteId,
+                      publicationJobId: row.id,
+                    }}
+                    testId="growth-rollback-dry-verify"
+                  />
+                  <CompactActionForm
+                    action={rollbackGrowthPublicationJob}
+                    label="Rollback"
+                    fields={{
+                      websiteId,
+                      publicationJobId: row.id,
+                    }}
+                    disabled={!row.canRollback}
+                    testId="growth-rollback-apply"
+                  />
+                </div>
+              </div>
+              <div className="mt-4 grid gap-3 lg:grid-cols-2">
+                <JsonBlock
+                  label="Before snapshot"
+                  value={row.beforeSnapshot}
+                  testId="growth-rollback-before-snapshot"
+                />
+                <JsonBlock
+                  label="After payload"
+                  value={row.afterPayload}
+                  testId="growth-rollback-after-payload"
+                />
+                <JsonBlock
+                  label="Rollback payload"
+                  value={row.rollbackPayload}
+                  testId="growth-rollback-payload"
+                />
+                <JsonBlock
+                  label="Smoke evidence"
+                  value={row.smokeEvidence}
+                  testId="growth-rollback-smoke-evidence"
+                />
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function PolicyCapsForm({
+  websiteId,
+  row,
+}: {
+  websiteId: string;
+  row: RiskBudgetRow;
+}) {
+  return (
+    <form
+      action={
+        updateAutonomyPolicyCaps as unknown as (
+          formData: FormData,
+        ) => Promise<void>
+      }
+      className="grid min-w-[260px] grid-cols-3 gap-2"
+    >
+      <input type="hidden" name="websiteId" value={websiteId} />
+      <input type="hidden" name="policyId" value={row.id} />
+      <label className="text-[11px] font-medium text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+        Daily
+        <input
+          name="dailyCap"
+          type="number"
+          min={0}
+          defaultValue={row.dailyCap}
+          className="mt-1 w-full rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] px-2 py-1 text-xs"
+        />
+      </label>
+      <label className="text-[11px] font-medium text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+        Weekly
+        <input
+          name="weeklyCap"
+          type="number"
+          min={0}
+          defaultValue={row.weeklyCap}
+          className="mt-1 w-full rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] px-2 py-1 text-xs"
+        />
+      </label>
+      <label className="text-[11px] font-medium text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+        Risk
+        <input
+          name="maxRiskScore"
+          type="number"
+          min={0}
+          max={100}
+          defaultValue={row.maxRiskScore}
+          className="mt-1 w-full rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] px-2 py-1 text-xs"
+        />
+      </label>
+      <button
+        type="submit"
+        data-testid="growth-policy-update-caps"
+        className="col-span-3 rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] px-2 py-1 text-xs font-medium text-[var(--studio-text,theme(colors.zinc.700))] hover:bg-[var(--studio-surface-hover,theme(colors.zinc.100))]"
+      >
+        Update caps
+      </button>
+    </form>
+  );
+}
+
+const RISK_BUDGET_EMPTY_LANES = [
+  "Orchestrator",
+  "Technical Remediation",
+  "Transcreation",
+  "Content Creator",
+  "Content Curator",
+];
+
+function RiskBudget({
+  websiteId,
+  rows,
+}: {
+  websiteId: string;
+  rows: RiskBudgetRow[];
+}) {
+  return (
+    <div data-testid="growth-risk-budget-table" className="overflow-x-auto">
       <table className="min-w-full divide-y divide-[var(--studio-border,theme(colors.zinc.200))] text-sm">
         <thead className="bg-[var(--studio-panel,theme(colors.zinc.50))] text-left text-xs uppercase text-[var(--studio-text-muted,theme(colors.zinc.500))]">
           <tr>
@@ -859,16 +1242,20 @@ function RiskBudget({ rows }: { rows: RiskBudgetRow[] }) {
             <th scope="col" className="px-4 py-3 font-medium">
               Max risk
             </th>
+            <th scope="col" className="px-4 py-3 font-medium">
+              Controls
+            </th>
           </tr>
         </thead>
         <tbody className="divide-y divide-[var(--studio-border,theme(colors.zinc.200))]">
           {rows.length === 0 ? (
             <tr>
               <td
-                colSpan={6}
+                colSpan={7}
                 className="px-4 py-6 text-sm text-[var(--studio-text-muted,theme(colors.zinc.600))]"
-              >
+                >
                 No hay policies de autonomia provisionadas para este website.
+                Lanes esperadas: {RISK_BUDGET_EMPTY_LANES.join(", ")}.
               </td>
             </tr>
           ) : (
@@ -885,6 +1272,11 @@ function RiskBudget({ rows }: { rows: RiskBudgetRow[] }) {
                     <StatusPill value={row.killSwitchEnabled ? "blocked" : row.enabled ? "live" : "paused"} />
                     {row.dryRunOnly ? <StatusPill value="dry_run" /> : null}
                   </div>
+                  {row.pausedReason ? (
+                    <p className="mt-1 text-xs text-amber-700">
+                      {row.pausedReason}
+                    </p>
+                  ) : null}
                 </td>
                 <td className="px-4 py-3 text-[var(--studio-text,theme(colors.zinc.800))]">
                   {row.dailyUsed} / {row.dailyCap}
@@ -893,7 +1285,47 @@ function RiskBudget({ rows }: { rows: RiskBudgetRow[] }) {
                   {row.weeklyUsed} / {row.weeklyCap}
                 </td>
                 <td className="px-4 py-3 text-[var(--studio-text-muted,theme(colors.zinc.600))]">
-                  {row.maxRiskLevel}
+                  {row.maxRiskLevel} / {row.maxRiskScore}
+                  <div className="mt-1 text-xs">
+                    {row.requiredChecks.length} checks · {row.policyVersion}
+                  </div>
+                </td>
+                <td className="px-4 py-3 align-top">
+                  <div className="flex min-w-[320px] flex-col gap-2">
+                    <div className="flex flex-wrap gap-2">
+                      <CompactActionForm
+                        action={toggleGrowthAutonomyPolicy}
+                        label={row.enabled ? "Disable" : "Enable"}
+                        fields={{
+                          websiteId,
+                          policyId: row.id,
+                          enabled: String(!row.enabled),
+                        }}
+                        testId="growth-policy-toggle-enabled"
+                      />
+                      <CompactActionForm
+                        action={togglePolicyDryRunOnly}
+                        label={row.dryRunOnly ? "Set live" : "Set dry-run"}
+                        fields={{
+                          websiteId,
+                          policyId: row.id,
+                          dryRunOnly: String(!row.dryRunOnly),
+                        }}
+                        testId="growth-policy-toggle-dry-run"
+                      />
+                      <CompactActionForm
+                        action={pauseAutonomyLane}
+                        label="Pause lane"
+                        fields={{
+                          websiteId,
+                          lane: row.lane,
+                          reason: `Paused from CEO cockpit for ${row.actionClass}.`,
+                        }}
+                        testId="growth-policy-pause-lane"
+                      />
+                    </div>
+                    <PolicyCapsForm websiteId={websiteId} row={row} />
+                  </div>
                 </td>
               </tr>
             ))
@@ -986,6 +1418,8 @@ export function GrowthCeoCockpit({ data }: { data: GrowthCeoCockpitData }) {
         ))}
       </section>
 
+      <RuntimeCyclePanel health={data.runtimeCycle} />
+
       <HumanOperations
         data={data}
         workboardHref={workboardHref}
@@ -1004,6 +1438,8 @@ export function GrowthCeoCockpit({ data }: { data: GrowthCeoCockpitData }) {
       </div>
 
       <ImpactLedger rows={data.impactLedger} />
+
+      <RollbackJobs websiteId={data.websiteId} rows={data.rollbackJobs} />
 
       <section className="rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] bg-[var(--studio-surface,theme(colors.white))]">
         <div className="grid gap-4 border-b border-[var(--studio-border,theme(colors.zinc.200))] p-4 lg:grid-cols-2 lg:items-start">
@@ -1047,7 +1483,7 @@ export function GrowthCeoCockpit({ data }: { data: GrowthCeoCockpitData }) {
             </div>
           </div>
         </div>
-        <RiskBudget rows={data.riskBudget.policies} />
+        <RiskBudget websiteId={data.websiteId} rows={data.riskBudget.policies} />
       </section>
 
       <p className="text-xs text-[var(--studio-text-muted,theme(colors.zinc.500))]">

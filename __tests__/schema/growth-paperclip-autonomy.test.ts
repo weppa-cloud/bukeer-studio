@@ -26,13 +26,46 @@ describe('Growth Paperclip autonomy contracts', () => {
     action_class: 'content_publish',
     target_table: 'website_blog_posts',
     target_id: publicationJobId,
+    target_path: '/blog/cartagena-travel-guide',
     idempotency_key: 'paperclip-content-publish-001',
     before_snapshot: { exists: false },
-    after_payload: { title: 'Cartagena travel guide' },
-    rollback_payload: { delete_created_row: true },
+    after_payload: {
+      table: 'website_blog_posts',
+      target_id: publicationJobId,
+      content_publish: {
+        target: {
+          target_table: 'website_blog_posts',
+          target_id: publicationJobId,
+          target_path: '/blog/cartagena-travel-guide',
+        },
+        rollback_expectation: {
+          strategy: 'restore_before_snapshot',
+          target_table: 'website_blog_posts',
+          target_id: publicationJobId,
+        },
+        title: 'Cartagena travel guide',
+        slug: 'cartagena-travel-guide',
+        content_word_count: 620,
+        seo_title: 'Cartagena Travel Guide',
+        seo_description:
+          'Plan Cartagena with local context, practical routes, cultural stops, and responsible travel guidance.',
+      },
+    },
+    rollback_payload: {
+      table: 'website_blog_posts',
+      target_id: publicationJobId,
+      restore: { exists: false },
+    },
     baseline: { organic_clicks_28d: 12 },
     success_metric: 'organic_clicks_21d',
     evaluation_date: '2026-05-28',
+    evidence: {
+      rollback_expectation: {
+        strategy: 'restore_before_snapshot',
+        target_table: 'website_blog_posts',
+        target_id: publicationJobId,
+      },
+    },
   } as const;
 
   it('accepts a ColombiaTours organic publication policy', () => {
@@ -91,6 +124,15 @@ describe('Growth Paperclip autonomy contracts', () => {
       ...validPublicationJob,
       rollback_payload: {},
       baseline: {},
+    });
+
+    expect(invalid.success).toBe(false);
+  });
+
+  it('rejects publication jobs without an action-specific payload contract', () => {
+    const invalid = GrowthPublicationJobInsertSchema.safeParse({
+      ...validPublicationJob,
+      after_payload: { title: 'Cartagena travel guide' },
     });
 
     expect(invalid.success).toBe(false);

@@ -302,6 +302,7 @@ export interface ProviderFreshnessRow {
 export interface AgentDefinitionsResult {
   agents: GrowthAgentDefinition[];
   runtimeByLane: Record<AgentLane, LaneRuntimeSummary>;
+  learning: GrowthAgentLearningSummary;
   missingTable: boolean;
   errored: boolean;
 }
@@ -321,6 +322,49 @@ export interface LaneRuntimeSummary {
   draft_skills: number;
   cost_usd: number;
   recommendations: string[];
+}
+
+export interface GrowthAgentSkillControl {
+  id: string;
+  lane: AgentLane;
+  skillKey: string;
+  version: number;
+  status: string;
+  title: string;
+  evidenceSummary: string | null;
+  agreement: number | null;
+  agreementSampleSize: number;
+  activationBlocked: boolean;
+  approvedAt: string | null;
+  createdAt: string;
+}
+
+export interface GrowthAgentMemoryControl {
+  id: string;
+  lane: AgentLane;
+  memoryKey: string;
+  status: string;
+  contentSummary: string | null;
+  evidenceSummary: string | null;
+  approvedAt: string | null;
+  createdAt: string;
+}
+
+export interface GrowthAgentReplayControl {
+  id: string;
+  lane: AgentLane;
+  expectedDecision: string;
+  expectedAllowedAction: string | null;
+  rationale: string | null;
+  status: string;
+  createdAt: string;
+}
+
+export interface GrowthAgentLearningSummary {
+  skills: GrowthAgentSkillControl[];
+  memories: GrowthAgentMemoryControl[];
+  replayCases: GrowthAgentReplayControl[];
+  missingTables: string[];
 }
 
 export interface RuntimeHealthSummary {
@@ -410,6 +454,40 @@ function toIsoDateTime(value: unknown): unknown {
   return date.toISOString();
 }
 
+function optionalText(value: unknown): string | null {
+  return typeof value === "string" && value.trim() ? value : null;
+}
+
+function safeRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function summarizeJson(value: unknown): string | null {
+  const record = safeRecord(value);
+  if (!record) return null;
+  const summary =
+    optionalText(record.summary) ??
+    optionalText(record.reason) ??
+    optionalText(record.title) ??
+    optionalText(record.description);
+  if (summary) return summary;
+  const keys = Object.keys(record).slice(0, 3);
+  return keys.length > 0 ? keys.join(", ") : null;
+}
+
+function emptyLearningSummary(
+  missingTables: string[] = [],
+): GrowthAgentLearningSummary {
+  return {
+    skills: [],
+    memories: [],
+    replayCases: [],
+    missingTables,
+  };
+}
+
 function isMissingRelation(error: { code?: string | null } | null): boolean {
   return Boolean(error?.code && POSTGREST_MISSING_TABLE_CODES.has(error.code));
 }
@@ -434,16 +512,18 @@ async function fetchAgents(
       return {
         agents: [],
         runtimeByLane: emptyRuntimeByLane(),
+        learning: emptyLearningSummary(),
         missingTable: true,
         errored: false,
       };
     }
-    return {
-      agents: [],
-      runtimeByLane: emptyRuntimeByLane(),
-      missingTable: false,
-      errored: true,
-    };
+      return {
+        agents: [],
+        runtimeByLane: emptyRuntimeByLane(),
+        learning: emptyLearningSummary(),
+        missingTable: false,
+        errored: true,
+      };
   }
 
   const rows = (data ?? []) as RawAgentDefinitionRow[];
@@ -459,6 +539,7 @@ async function fetchAgents(
   return {
     agents: parsed,
     runtimeByLane: await fetchRuntimeByLane(supabase, websiteId, accountId),
+    learning: await fetchGrowthAgentLearning(websiteId, accountId),
     missingTable: false,
     errored: false,
   };
@@ -656,6 +737,162 @@ async function fetchRuntimeByLane(
   }
 
   return runtime;
+}
+
+async function fetchGrowthAgentLearning(
+  websiteId: string,
+  accountId: string,
+): Promise<GrowthAgentLearningSummary> {
+  const runtimeSupabase = createSupabaseServiceRoleClient();
+  const [skills, memories, replayCases, agreement] = await Promise.all([
+    readRuntimeRows<{
+      id: string;
+      lane: string;
+      skill_key: string;
+      version: number | null;
+      status: string;
+      title: string;
+      evidence: Record<string, unknown> | null;
+      approved_at: string | null;
+      created_at: string;
+    }>(
+      runtimeSupabase,
+      "growth_agent_skills",
+      "id, lane, skill_key, version, status, title, evidence, approved_at, created_at",
+      websiteId,
+      accountId,
+    ),
+    readRuntimeRows<{
+      id: string;
+      lane: string;
+      memory_key: string;
+      status: string;
+      content: Record<string, unknown> | null;
+      evidence: Record<string, unknown> | null;
+      approved_at: string | null;
+      created_at: string;
+    }>(
+      runtimeSupabase,
+      "growth_agent_memories",
+      "id, lane, memory_key, status, content, evidence, approved_at, created_at",
+      websiteId,
+      accountId,
+    ),
+    readRuntimeRows<{
+      id: string;
+      lane: string;
+      expected_decision: string;
+      expected_allowed_action: string | null;
+      rationale: string | null;
+      status: string;
+      created_at: string;
+    }>(
+      runtimeSupabase,
+      "growth_agent_replay_cases",
+      "id, lane, expected_decision, expected_allowed_action, rationale, status, created_at",
+      websiteId,
+      accountId,
+    ),
+    getLaneAgreement(websiteId),
+  ]);
+
+  const missingTables = [
+    skills.missing ? "growth_agent_skills" : null,
+    memories.missing ? "growth_agent_memories" : null,
+    replayCases.missing ? "growth_agent_replay_cases" : null,
+  ].filter(Boolean) as string[];
+
+  if (missingTables.length > 0) return emptyLearningSummary(missingTables);
+
+  const agreementByLane = new Map(
+    (agreement?.lanes ?? []).map((row) => [row.lane, row] as const),
+  );
+
+  return {
+    skills: skills.rows
+      .map((row): GrowthAgentSkillControl | null => {
+        const lane = AgentLaneSchema.safeParse(row.lane);
+        if (!lane.success) return null;
+        const laneAgreement = agreementByLane.get(lane.data);
+        const agreementScore = laneAgreement?.agreement ?? null;
+        return {
+          id: String(row.id ?? ""),
+          lane: lane.data,
+          skillKey: String(row.skill_key ?? ""),
+          version: Number(row.version) || 1,
+          status: String(row.status ?? ""),
+          title: String(row.title ?? ""),
+          evidenceSummary: summarizeJson(row.evidence),
+          agreement: agreementScore,
+          agreementSampleSize: laneAgreement?.sample_size ?? 0,
+          activationBlocked:
+            row.status !== "active" &&
+            (agreementScore == null || agreementScore < 0.9),
+          approvedAt:
+            row.approved_at == null
+              ? null
+              : String(toIsoDateTime(row.approved_at)),
+          createdAt: String(toIsoDateTime(row.created_at)),
+        };
+      })
+      .filter((row): row is GrowthAgentSkillControl => row !== null)
+      .sort(
+        (a, b) =>
+          Date.parse((b as GrowthAgentSkillControl).createdAt) -
+          Date.parse((a as GrowthAgentSkillControl).createdAt),
+      )
+      .slice(0, 12),
+    memories: memories.rows
+      .map((row): GrowthAgentMemoryControl | null => {
+        const lane = AgentLaneSchema.safeParse(row.lane);
+        if (!lane.success) return null;
+        return {
+          id: String(row.id ?? ""),
+          lane: lane.data,
+          memoryKey: String(row.memory_key ?? ""),
+          status: String(row.status ?? ""),
+          contentSummary: summarizeJson(row.content),
+          evidenceSummary: summarizeJson(row.evidence),
+          approvedAt:
+            row.approved_at == null
+              ? null
+              : String(toIsoDateTime(row.approved_at)),
+          createdAt: String(toIsoDateTime(row.created_at)),
+        };
+      })
+      .filter((row): row is GrowthAgentMemoryControl => row !== null)
+      .sort(
+        (a, b) =>
+          Date.parse((b as GrowthAgentMemoryControl).createdAt) -
+          Date.parse((a as GrowthAgentMemoryControl).createdAt),
+      )
+      .slice(0, 12),
+    replayCases: replayCases.rows
+      .map((row): GrowthAgentReplayControl | null => {
+        const lane = AgentLaneSchema.safeParse(row.lane);
+        if (!lane.success) return null;
+        return {
+          id: String(row.id ?? ""),
+          lane: lane.data,
+          expectedDecision: String(row.expected_decision ?? ""),
+          expectedAllowedAction:
+            row.expected_allowed_action == null
+              ? null
+              : String(row.expected_allowed_action),
+          rationale: row.rationale == null ? null : String(row.rationale),
+          status: String(row.status ?? ""),
+          createdAt: String(toIsoDateTime(row.created_at)),
+        };
+      })
+      .filter((row): row is GrowthAgentReplayControl => row !== null)
+      .sort(
+        (a, b) =>
+          Date.parse((b as GrowthAgentReplayControl).createdAt) -
+          Date.parse((a as GrowthAgentReplayControl).createdAt),
+      )
+      .slice(0, 12),
+    missingTables,
+  };
 }
 
 async function fetchRuntimeHealth(

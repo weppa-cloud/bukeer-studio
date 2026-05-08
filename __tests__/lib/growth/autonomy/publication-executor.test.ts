@@ -106,7 +106,14 @@ function livePlan(smokePass: boolean): PublicationExecutionPlan {
       baseline: { organic_clicks: 0 },
       success_metric: "organic_clicks:/blog/colombia-guide",
       evaluation_date: "2026-05-29",
-      evidence: { source: "test" },
+      evidence: {
+        source: "test",
+        rollback_expectation: {
+          strategy: "delete_created_content",
+          target_table: "website_blog_posts",
+          target_path: "/blog/colombia-guide",
+        },
+      },
       created_by: "growth_runtime",
       applied_at: null,
       smoke_checked_at: null,

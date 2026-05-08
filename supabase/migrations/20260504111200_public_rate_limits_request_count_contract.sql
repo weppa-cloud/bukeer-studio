@@ -1,10 +1,9 @@
 -- Public rate limits contract repair — Growth OS #310 / WAFlow smoke
 --
 -- Some environments already had public.public_rate_limits from an older
--- contract. The original booking Phase A migration uses CREATE TABLE IF NOT
--- EXISTS, so it does not add request_count when the table pre-exists. The
--- public WAFlow/newsletter rate limiter expects request_count and otherwise
--- fails open.
+-- operational contract with a `count` column. Studio's public endpoint rate
+-- limiter reads/writes `request_count`, so WAFlow/newsletter rate limiting
+-- fails open until this compatibility column exists.
 
 alter table if exists public.public_rate_limits
   add column if not exists request_count int not null default 1;
