@@ -630,7 +630,6 @@ async function fetchRuntimeHealth(
   websiteId: string,
   accountId: string,
 ): Promise<RuntimeHealthSummary> {
-  const supabase = await createSupabaseServerClient();
   const runtimeSupabase = createSupabaseServiceRoleClient();
   const [metrics, toolCalls, replayCases, memories, skills] = await Promise.all(
     [

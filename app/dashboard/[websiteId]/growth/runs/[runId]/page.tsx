@@ -106,15 +106,6 @@ const DECISION_LABELS: Record<string, string> = {
   no_op: "Sin acción necesaria",
 };
 
-const TOOL_LABELS: Record<string, string> = {
-  codex_cli: "Codex executor",
-  artifact_writer: "Generación de artifact",
-  ai_review: "Revisión IA",
-  replay_seed: "Caso de evaluación",
-  memory_learning: "Memoria del agente",
-  skill_learning: "Skill del agente",
-};
-
 const CHANGE_SET_STATUS_LABELS: Record<string, string> = {
   proposed: "Propuesto",
   draft_created: "Borrador creado",
