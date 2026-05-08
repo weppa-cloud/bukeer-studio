@@ -12,6 +12,8 @@ Latest update: 2026-05-01 (SPEC_GROWTH_OS_SYMPHONY_ORCHESTRATOR audit revision f
 
 Latest spec addition: 2026-05-08 - [[SPEC_GROWTH_OS_AUTONOMOUS_PRODUCTION_OPERATING_SYSTEM]] defines GitHub Epic #441 and issues #442-#451 as the production closure for Growth OS: recurrent scheduler, end-to-end runtime, fresh profiles, candidate discovery, outcome evaluator, CEO controls, quality gates, rollback UI, learning loop, RLS hardening and real ColombiaTours certification.
 
+Latest tracking note: 2026-05-08 - [[ADR-029]] / [[SPEC_FUNNEL_EVENTS_SOT]] now require multi-tenant platform dispatch. Browser Pixel IDs remain in `websites.analytics`; Meta CAPI and future platform secrets must resolve through tenant channel contracts, never global production env credentials.
+
 ## How to read this index
 
 - **Agents:** grep `[[concept]]` to find every document that touches a concept.

@@ -63,6 +63,7 @@ describe('Google Ads offline upload helpers', () => {
     );
 
     expect(request.customerId).toBe('1112223333');
+    expect(request.partialFailure).toBe(true);
     expect(request.conversions).toHaveLength(1);
     const c = request.conversions[0];
     expect(c.conversionAction).toBe(
@@ -195,6 +196,7 @@ describe('sendOfflineConversionUpload', () => {
     expect(init.headers.authorization).toBe('Bearer oauth-bearer-token');
     expect(init.headers['developer-token']).toBe('tok');
     expect(init.headers['login-customer-id']).toBe('222');
+    expect(JSON.parse(init.body as string).partialFailure).toBe(true);
   });
 
   it('returns failed with error message on non-2xx', async () => {
@@ -218,5 +220,81 @@ describe('sendOfflineConversionUpload', () => {
     );
     expect(result.status).toBe('failed');
     expect(result.error).toMatch(/HTTP 400/);
+  });
+
+  it('persists partial failure details when Google returns partialFailureError on 2xx', async () => {
+    const insertedRows: Record<string, unknown>[] = [];
+    const updatedRows: Record<string, unknown>[] = [];
+    const insertQuery = {
+      select: jest.fn().mockReturnThis(),
+      maybeSingle: jest.fn().mockResolvedValue({
+        data: { id: 'upload-log-1' },
+        error: null,
+      }),
+    };
+    const updateQuery = {
+      eq: jest.fn().mockReturnThis(),
+      then: jest.fn((resolve) => resolve({ data: null, error: null })),
+    };
+    const supabase = {
+      from: jest.fn(() => ({
+        insert: jest.fn((row: Record<string, unknown>) => {
+          insertedRows.push(row);
+          return insertQuery;
+        }),
+        update: jest.fn((row: Record<string, unknown>) => {
+          updatedRows.push(row);
+          return updateQuery;
+        }),
+      })),
+    };
+    const fetchImpl = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        partialFailureError: {
+          code: 3,
+          message: 'Invalid conversion action',
+          details: [{ fieldViolations: [{ field: 'conversionAction' }] }],
+        },
+      }),
+      text: async () => '',
+    } as unknown as Response);
+
+    const result = await sendOfflineConversionUpload(
+      {
+        gclid: 'G123',
+        conversionActionId: '987654321',
+        conversionDateTime: '2026-05-03T10:00:00-05:00',
+        funnelEventId:
+          '0000000000000000000000000000000000000000000000000000000000000001',
+      },
+      {
+        supabase,
+        config: { enabled: true, customerId: '111', developerToken: 'tok' },
+        fetchImpl: fetchImpl as unknown as typeof fetch,
+        accessToken: 'oauth',
+      },
+    );
+
+    expect(result.status).toBe('failed');
+    expect(result.error).toContain('partial failure');
+    expect(result.partialFailureError).toMatchObject({
+      message: 'Invalid conversion action',
+    });
+    expect(insertedRows[0]).toMatchObject({
+      status: 'pending',
+      request_payload: expect.objectContaining({ partialFailure: true }),
+    });
+    expect(updatedRows[0]).toMatchObject({
+      status: 'failed',
+      provider_response: expect.objectContaining({
+        partialFailureError: expect.objectContaining({
+          message: 'Invalid conversion action',
+        }),
+      }),
+      error: 'Google Ads API partial failure: Invalid conversion action',
+      sent_at: null,
+    });
   });
 });

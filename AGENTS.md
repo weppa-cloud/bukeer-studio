@@ -200,6 +200,10 @@ Full docs: `docs/development/local-sessions.md`
 
 ## Key patterns
 
+### Funnel Events SOT + multi-tenant platform config
+
+`funnel_events` is the source of truth for growth tracking. New writers should call `record_funnel_event(payload jsonb)` server-side instead of writing destination logs directly. Platform dispatch is multi-tenant: public browser Pixel IDs live in `websites.analytics`, while Meta CAPI/Ads credentials live in `account_channel_contracts` via `service_channels`. Do not add production fan-out that depends on global `META_PIXEL_ID`, `META_ACCESS_TOKEN`, Google conversion action IDs, or equivalent env credentials except local/test fallback.
+
 ### Supabase client
 ```typescript
 // Server component / Server Action

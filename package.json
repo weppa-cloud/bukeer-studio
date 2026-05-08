@@ -36,6 +36,7 @@
     "session:run": "bash scripts/session-acquire.sh --run",
     "session:list": "bash scripts/session-list.sh",
     "session:release": "bash scripts/session-release.sh",
+    "dispatch:replay": "node scripts/replay-dispatch.mjs",
     "seo:validate-blog-work-items": "node scripts/seo/validate-blog-work-items.mjs",
     "growth:ssot-health": "node scripts/growth/check-growth-operational-ssot.mjs",
     "growth:ssot-repair-trace": "node scripts/growth/repair-growth-operational-ssot-trace.mjs",

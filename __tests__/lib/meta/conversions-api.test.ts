@@ -16,6 +16,7 @@ describe('Meta Conversions API helpers', () => {
     delete process.env.META_ACCESS_TOKEN;
     delete process.env.META_API_VERSION;
     delete process.env.META_TEST_EVENT_CODE;
+    delete process.env.FUNNEL_EVENTS_DISPATCHER_V1;
   });
 
   it('hashes normalized user data and preserves Meta browser identifiers', async () => {
@@ -205,6 +206,37 @@ describe('Meta Conversions API helpers', () => {
     expect(result.status).toBe('skipped');
     expect(result.skippedReason).toContain('missing META_PIXEL_ID/META_ACCESS_TOKEN');
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('skips direct sends when the funnel dispatcher owns Meta fan-out', async () => {
+    process.env.FUNNEL_EVENTS_DISPATCHER_V1 = 'true';
+    const fetchMock = jest.fn();
+    const supabase = {
+      from: jest.fn(),
+    };
+
+    const result = await sendMetaConversionEvent(
+      {
+        eventName: 'Lead',
+        eventId: 'pixel-event-id-1',
+        userData: { email: 'lead@example.com' },
+      },
+      {
+        supabase,
+        config: {
+          enabled: true,
+          pixelId: 'pixel-123',
+          accessToken: 'server-token',
+        },
+        fetchImpl: fetchMock as unknown as typeof fetch,
+      },
+    );
+
+    expect(result.status).toBe('skipped');
+    expect(result.eventId).toBe('pixel-event-id-1');
+    expect(result.skippedReason).toContain('FUNNEL_EVENTS_DISPATCHER_V1');
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(supabase.from).not.toHaveBeenCalled();
   });
 
   it('persists a pending event log row and updates it after a successful send', async () => {

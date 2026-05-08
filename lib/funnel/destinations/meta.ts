@@ -29,6 +29,7 @@ export {
   // Config helpers
   resolveMetaCapiConfig,
   isMetaCapiConfigured,
+  isFunnelEventsDispatcherV1Enabled,
   // Utilities
   buildMetaConversionTrace,
   redactMetaProviderResponse,

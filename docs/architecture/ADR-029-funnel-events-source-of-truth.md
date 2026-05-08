@@ -4,6 +4,7 @@
 - Date: 2026-05-03
 - Deciders: Growth lead, Tech lead, Studio dev, Flutter dev
 - Tracking: Epic [#419](https://github.com/weppa-cloud/bukeer-studio/issues/419) · F1 [#420](https://github.com/weppa-cloud/bukeer-studio/issues/420) · F2 [#421](https://github.com/weppa-cloud/bukeer-studio/issues/421) · F3 [#422](https://github.com/weppa-cloud/bukeer-studio/issues/422) · F4 [#423](https://github.com/weppa-cloud/bukeer-studio/issues/423) · F3-flutter [`bukeer-flutter#797`](https://github.com/weppa-cloud/bukeer-flutter/issues/797)
+- Contract: [#452](https://github.com/weppa-cloud/bukeer-studio/issues/452) Worker A — canonical governance fields/types.
 - Related: [[ADR-003]] (contract-first), [[ADR-005]] (security boundaries), [[ADR-018]] (webhook idempotency), [[ADR-025]] (studio/flutter field ownership), [[ADR-027]] (designer reference theme), [[SPEC_GROWTH_OS_SSOT_MODEL]], [[SPEC_META_CHATWOOT_CONVERSIONS]] (#322), #310 Growth OS, #327 Purchase event, #332 Google Ads enhanced conversions, #338 GA4 loading policy
 
 ## Context
@@ -44,7 +45,7 @@ The **canonical source of truth for funnel events is the Supabase table `funnel_
 
 Mandatory rules:
 
-1. **One event row per funnel transition.** Identified globally by `event_id` (UUIDv4). Same `event_id` is sent to every destination platform to enable platform-side deduplication (Meta CAPI deduplicates by `event_id`; Google Ads offline upload deduplicates by `gclid + conversion_action + occurred_at`).
+1. **One event row per funnel transition.** Identified globally by `event_id` (`text` internal key; current Studio writers use lowercase sha256). Browser/server platform dedupe uses `pixel_event_id`, which is sent to Meta Pixel as `eventID` and Meta CAPI as `event_id`. Google Ads offline upload deduplicates by `gclid + conversion_action + occurred_at`.
 
 2. **Three writers, one schema.** Studio worker writes web/chat events. Flutter CRM writes lifecycle stage changes (via Supabase RPC, not direct Meta/Ads SDKs). Postgres `AFTER INSERT/UPDATE` triggers on `bookings`, `payments`, `leads.stage` MAY auto-emit events when manual instrumentation is impractical.
 
@@ -61,6 +62,8 @@ Mandatory rules:
 6. **GA4 link to Ads stays operational** as a redundancy + reporting channel, but ceases to be the **primary** conversion source for Smart Bidding once #332 ships. Conversion actions imported from GA4 are reclassified to "secondary, observation only" in the Google Ads UI.
 
 7. **Cross-repo writes use Supabase RPCs** (not raw INSERTs) so the schema can evolve without breaking Flutter clients. RPCs: `record_funnel_event(payload jsonb)` (idempotent on `event_id`), `record_lead_stage_change(...)`, `record_booking_confirmed(...)`.
+
+8. **Governance fields are part of the canonical event contract.** Every new writer emits `event_version`, `source_system`, `business_stage`, `owner`, `optimization_policy`, `identity_confidence`, and `attribution_confidence`. Legacy aliases remain read-compatible during F1-F3 only: `source` → `source_system`, `stage` → `business_stage`, and `payload` → `raw_payload`.
 
 ## Implementation reality check (added 2026-05-03 post-TVB)
 
@@ -93,7 +96,13 @@ Both extensions (`pg_net`, `pg_cron`) are confirmed enabled on the Bukeer Supaba
 | `event_name` | `text` NOT NULL | Enum-checked against mapping table |
 | `event_time` | `timestamptz` NOT NULL | Wall-clock when event happened (not insert time) |
 | `tenant_id` / `website_id` | `uuid` | Multi-tenant scope |
-| `source` | `text` NOT NULL | `studio_web` \| `chatwoot` \| `flutter_crm` \| `db_trigger` |
+| `source_system` | `text` NOT NULL | Canonical writer: `studio_web` \| `chatwoot` \| `flutter_crm` \| `db_trigger`. Legacy values `waflow` and `unknown`, and legacy field `source`, are accepted only as compatibility aliases during F1-F3. |
+| `event_version` | `integer` NOT NULL DEFAULT `1` | Contract version for event governance. Increment only via ADR/SPEC update. |
+| `business_stage` | `text` NOT NULL | Canonical stage: `awareness` \| `intent` \| `lead` \| `engagement` \| `qualify` \| `quote` \| `booking` \| `review_referral` \| `dropped`. Legacy `stage` is accepted only as a compatibility alias during F1-F3. |
+| `owner` | `text` NOT NULL | Owning domain/team: `studio` \| `chatwoot` \| `crm` \| `booking` \| `growth_ops`. Booking state events are owned by `booking`. |
+| `optimization_policy` | `text` NOT NULL | `primary_conversion` \| `secondary_conversion` \| `observation_only` \| `internal_only` \| `do_not_dispatch`. Prevents accidental Smart Bidding signal sprawl. |
+| `identity_confidence` | `text` NOT NULL | `high` \| `medium` \| `low` \| `unknown`; confidence in identity stitching. |
+| `attribution_confidence` | `text` NOT NULL | `high` \| `medium` \| `low` \| `unknown`; confidence in click/session attribution. |
 | `user_email` | `text` | Optional |
 | `user_phone` | `text` | Optional, E.164 format |
 | `user_id` | `uuid` | Bukeer user.id if known |
@@ -110,7 +119,7 @@ Both extensions (`pg_net`, `pg_cron`) are confirmed enabled on the Bukeer Supaba
 | `page_url` | `text` | For browser-originated events |
 | `value_amount` | `numeric` | For Purchase / quote events |
 | `value_currency` | `text` | ISO-4217 |
-| `raw_payload` | `jsonb` | Catch-all for future fields |
+| `raw_payload` | `jsonb` | Catch-all for future fields. Legacy `payload` is accepted only as a compatibility alias during F1-F3. |
 | `created_at` | `timestamptz` DEFAULT `now()` | DB insert time |
 | `dispatch_status` | `text` DEFAULT `'pending'` | `pending` \| `dispatched` \| `failed` — drives `pg_cron` re-dispatch loop |
 | `dispatch_attempted_at` | `timestamptz` | Last dispatch attempt timestamp (for backoff calculation) |
@@ -119,6 +128,8 @@ Both extensions (`pg_net`, `pg_cron`) are confirmed enabled on the Bukeer Supaba
 Constraints:
 - `event_id` is PRIMARY KEY (no separate UNIQUE needed)
 - `event_name CHECK` against the canonical event-name set (NOT the mapping table — mapping is config, names are schema-level invariant). During F1→F3 transition the CHECK accepts both ADR-029 names AND legacy aliases (`qualified_lead`, `quote_sent`, `booking_confirmed`); aliases are dropped post-F3 per follow-up issue D3.
+- `event_id` remains the text primary key and internal idempotency key. `pixel_event_id` is the platform dedupe key. Destination writers MUST send `pixel_event_id` to Meta as CAPI `event_id`; falling back to `event_id` is allowed only for historical rows where `pixel_event_id IS NULL`.
+- Booking confirmation/cancellation is owned by the DB trigger path. When shared booking state transitions emit funnel events, rows use `source_system='db_trigger'`, `owner='booking'`, `business_stage='booking'`, and a primary/internal optimization policy according to the event matrix.
 - RLS service-role-only for mutation
 - Read RLS by tenant for reporting
 - Indexes: `event_id` (UNIQUE, implicit from constraint), `(event_time DESC)`, `(tenant_id)`, `(event_name, event_time)` for monitoring queries, `(dispatch_status, dispatch_attempted_at)` partial index `WHERE dispatch_status='pending'` for the re-dispatch job hot path
@@ -187,8 +198,29 @@ This decision is **moderately reversible**. The `funnel_events` table itself is 
 - Dispatcher implementation (Edge Function vs DB trigger + `pg_net`).
 - Retry/backoff semantics per destination.
 - Identity merging (when same human appears with different `user_email` over time).
-- Tenant isolation in mapping (per-tenant overrides for Pixel ID, conversion action ids, etc.).
+- Tenant isolation in mapping and platform credentials: dispatcher reads `account_channel_contracts` for tenant secrets/config, while `websites.analytics.facebook_pixel_id` remains the public browser Pixel contract.
 - Replay tooling (CLI to re-emit a date range to a specific destination).
+
+## Multi-tenant Platform Config Addendum — 2026-05-08
+
+Funnel dispatch is multi-tenant. Production fan-out MUST NOT depend on global
+`META_PIXEL_ID`, `META_ACCESS_TOKEN`, Google Ads conversion action IDs, or
+analogous platform credentials. Those values can only be local/test defaults or
+explicit rollout fallbacks for a named tenant.
+
+- Browser Pixel IDs live in `websites.analytics.facebook_pixel_id` because they
+  are public website config and are rendered per website.
+- Server-side CAPI tokens and platform credentials live in
+  `account_channel_contracts.credentials_encrypted`; non-secret per-tenant
+  knobs such as `api_version`, `test_event_code`, and optional Pixel overrides
+  live in `account_channel_contracts.config`.
+- `service_channels.code='meta_capi'` defines the Meta destination contract.
+- `event_destination_mapping` remains delivery mapping. Its `tenant_overrides`
+  is for destination conversion-action overrides and rollout flags, not a
+  replacement for tenant credential storage.
+- If tenant config is missing, the dispatcher logs `skipped` with
+  `missing_tenant_meta_config`; it must not silently use another tenant's
+  credentials.
 
 ## L10N
 
