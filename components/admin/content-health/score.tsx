@@ -36,7 +36,7 @@ export function ContentHealthScore({
     return (
       <span
         className={cn(
-          'inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm font-semibold',
+          'inline-flex w-[118px] items-center justify-center gap-2 rounded-full border px-3 py-1 text-sm font-semibold',
           COLOR_CLASSES[color],
           className,
         )}
