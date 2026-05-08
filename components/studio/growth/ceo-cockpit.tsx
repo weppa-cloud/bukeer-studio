@@ -18,6 +18,10 @@ import {
   Zap,
 } from "lucide-react";
 
+import {
+  rollbackGrowthPublicationJob,
+  toggleGrowthKillSwitch,
+} from "@/app/dashboard/[websiteId]/growth/overview/actions";
 import type {
   AgentCompanyRow,
   AgentCompanyStatus,
@@ -160,6 +164,34 @@ function DisabledAction({
       {label}
       <Lock className="h-3.5 w-3.5" aria-hidden="true" />
     </button>
+  );
+}
+
+function ActionForm({
+  action,
+  label,
+  icon,
+  fields,
+}: {
+  action: (formData: FormData) => Promise<unknown>;
+  label: string;
+  icon: ReactNode;
+  fields: Record<string, string>;
+}) {
+  return (
+    <form action={action as (formData: FormData) => Promise<void>}>
+      {Object.entries(fields).map(([name, value]) => (
+        <input key={name} type="hidden" name={name} value={value} />
+      ))}
+      <button
+        type="submit"
+        className="inline-flex items-center gap-2 rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] bg-[var(--studio-surface,theme(colors.white))] px-3 py-2 text-sm font-medium text-[var(--studio-text,theme(colors.zinc.800))] hover:border-[var(--studio-border-strong,theme(colors.zinc.300))] hover:bg-[var(--studio-surface-hover,theme(colors.zinc.50))]"
+      >
+        {icon}
+        {label}
+        <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+      </button>
+    </form>
   );
 }
 
@@ -311,6 +343,9 @@ function HumanOperations({
   const hasPolicies = data.riskBudget.policies.length > 0;
   const hasLedger = data.impactLedger.length > 0;
   const hasFeed = data.autonomyFeed.length > 0;
+  const rollbackJobId =
+    data.impactLedger.find((row) => row.publicationJobId)?.publicationJobId ??
+    null;
   const hasBlocks =
     data.autonomyFeed.some((item) =>
       ["blocked", "review_needed", "rollback"].includes(item.kind),
@@ -334,6 +369,7 @@ function HumanOperations({
       owner: "CEO / Growth lead",
       state: "live",
       href: workboardHref,
+      action: null,
       cta: "Abrir Workboard",
       detail: "Backlog, work items, riesgo, next action y estado por lane.",
       icon: <ClipboardCheck className="h-4 w-4" aria-hidden="true" />,
@@ -343,6 +379,7 @@ function HumanOperations({
       owner: "Curator / Technical owner",
       state: "live",
       href: runsHref,
+      action: null,
       cta: "Abrir Review Queue",
       detail: "Aprobar, rechazar o devolver change sets y aprendizajes.",
       icon: <ShieldCheck className="h-4 w-4" aria-hidden="true" />,
@@ -352,6 +389,7 @@ function HumanOperations({
       owner: "Operator",
       state: "live",
       href: agentsHref,
+      action: null,
       cta: "Abrir Agents",
       detail: "Heartbeat, modo, confianza, costo y output por lane.",
       icon: <Bot className="h-4 w-4" aria-hidden="true" />,
@@ -361,6 +399,7 @@ function HumanOperations({
       owner: "Data owner",
       state: "live",
       href: dataHealthHref,
+      action: null,
       cta: "Abrir Data Health",
       detail: "Calidad de señales, runtime, aprendizaje y atribucion.",
       icon: <TrendingUp className="h-4 w-4" aria-hidden="true" />,
@@ -370,6 +409,7 @@ function HumanOperations({
       owner: "Admin",
       state: hasPolicies ? "needs_backend" : "locked",
       href: null,
+      action: hasPolicies ? "kill_switch" : null,
       cta: "Kill switch",
       detail: "Requiere server action admin-only sobre growth_autonomy_policies.",
       icon: <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />,
@@ -377,8 +417,9 @@ function HumanOperations({
     {
       title: "Rollback publicacion",
       owner: "Admin / Technical owner",
-      state: hasLedger ? "needs_backend" : "locked",
+      state: rollbackJobId ? "needs_backend" : "locked",
       href: null,
+      action: rollbackJobId ? "rollback" : null,
       cta: "Rollback",
       detail: "Requiere publication job con snapshot, smoke y rollback payload.",
       icon: <RefreshCcw className="h-4 w-4" aria-hidden="true" />,
@@ -439,6 +480,30 @@ function HumanOperations({
                   <div className="mt-3">
                     {flow.href ? (
                       <ActionLink href={flow.href} label={flow.cta} icon={flow.icon} />
+                    ) : flow.action === "kill_switch" ? (
+                      <ActionForm
+                        action={toggleGrowthKillSwitch}
+                        label={
+                          data.riskBudget.killSwitchActive
+                            ? "Desactivar kill switch"
+                            : "Activar kill switch"
+                        }
+                        icon={flow.icon}
+                        fields={{
+                          websiteId: data.websiteId,
+                          nextEnabled: String(!data.riskBudget.killSwitchActive),
+                        }}
+                      />
+                    ) : flow.action === "rollback" && rollbackJobId ? (
+                      <ActionForm
+                        action={rollbackGrowthPublicationJob}
+                        label={flow.cta}
+                        icon={flow.icon}
+                        fields={{
+                          websiteId: data.websiteId,
+                          publicationJobId: rollbackJobId,
+                        }}
+                      />
                     ) : (
                       <DisabledAction label={flow.cta} icon={flow.icon} />
                     )}
