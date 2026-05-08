@@ -3,6 +3,9 @@ jest.mock("@supabase/supabase-js", () => ({
 }));
 
 jest.mock("@/lib/meta/conversions-api", () => ({
+  isFunnelEventsDispatcherV1Enabled: jest.fn(
+    () => process.env.FUNNEL_EVENTS_DISPATCHER_V1 === "true",
+  ),
   sha256Hex: jest.fn(async () => "a".repeat(64)),
   sendMetaConversionEvent: jest.fn(async () => ({ status: "skipped" })),
 }));
@@ -23,6 +26,7 @@ function request(
 describe("/api/growth/events/whatsapp-cta", () => {
   let websiteEqCalls: Array<[string, unknown]>;
   let funnelRows: Record<string, unknown>[];
+  let rpcCalls: Array<{ fn: string; args: Record<string, unknown> }>;
 
   function buildSupabaseMock() {
     const websitesQuery: {
@@ -66,6 +70,10 @@ describe("/api/growth/events/whatsapp-cta", () => {
         if (table === "funnel_events") return funnelQuery;
         throw new Error(`Unexpected table ${table}`);
       }),
+      rpc: jest.fn((fn: string, args: Record<string, unknown>) => {
+        rpcCalls.push({ fn, args });
+        return Promise.resolve({ data: { event_id: "a".repeat(64) }, error: null });
+      }),
     };
   }
 
@@ -73,6 +81,8 @@ describe("/api/growth/events/whatsapp-cta", () => {
     jest.clearAllMocks();
     websiteEqCalls = [];
     funnelRows = [];
+    rpcCalls = [];
+    delete process.env.FUNNEL_EVENTS_DISPATCHER_V1;
     process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
     process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
     (createClient as jest.Mock).mockReturnValue(buildSupabaseMock());
@@ -194,5 +204,38 @@ describe("/api/growth/events/whatsapp-cta", () => {
       }),
       expect.objectContaining({ supabase: expect.any(Object) }),
     );
+  });
+
+  it("records dispatcher-owned CTA events via RPC with pixel_event_id and skips direct Meta", async () => {
+    process.env.FUNNEL_EVENTS_DISPATCHER_V1 = "true";
+    const mod = await import("@/app/api/growth/events/whatsapp-cta/route");
+    const response = await mod.POST(
+      request({
+        reference_code: "CTA-3004-DISP",
+        source_url:
+          "https://colombiatours.travel/paquetes/demo?utm_source=meta&fbclid=FB123",
+        page_path: "/paquetes/demo?utm_source=meta&fbclid=FB123",
+        contact_event_id: "CTA-3004-DISP:contact",
+        fbp: "fb.1.1714480000.123456789",
+        fbc: "fb.1.1714480000.FB123",
+        occurred_at: "2026-04-30T15:00:00.000Z",
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(funnelRows).toHaveLength(0);
+    expect(sendMetaConversionEvent).not.toHaveBeenCalled();
+    expect(rpcCalls).toHaveLength(1);
+    expect(rpcCalls[0]).toMatchObject({
+      fn: "record_funnel_event",
+      args: {
+        payload: expect.objectContaining({
+          event_name: "whatsapp_cta_click",
+          pixel_event_id: "CTA-3004-DISP:contact",
+          fbp: "fb.1.1714480000.123456789",
+          fbc: "fb.1.1714480000.FB123",
+        }),
+      },
+    });
   });
 });

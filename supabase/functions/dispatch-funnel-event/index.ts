@@ -29,9 +29,12 @@
 // Deno runtime. No npm imports allowed; use the Deno-compatible Supabase
 // client and Web Crypto for SHA-256.
 
-// @ts-expect-error — Deno-specific URL imports; types unavailable in Node
-// build but resolve in the Supabase Edge Functions runtime.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
+import {
+  isMetaChannelContract,
+  resolveTenantMetaConfig,
+  type EnvLike,
+} from './tenant-meta-config.ts';
 
 type DispatchStatus = 'pending' | 'dispatched' | 'failed';
 
@@ -68,6 +71,25 @@ interface MappingRow {
   enabled: boolean;
 }
 
+interface TenantMetaContext {
+  websiteAnalytics: unknown;
+  contractConfig: unknown;
+  contractCredentials: unknown;
+}
+
+interface AccountChannelContractRow {
+  config: unknown;
+  credentials_encrypted: unknown;
+  service_channels?: unknown;
+}
+
+interface SupabaseClientLike {
+  // Supabase Edge Functions run this file under Deno; keep the local type
+  // narrow so Deno check does not couple helper functions to generated DB types.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  from: (table: string) => any;
+}
+
 interface DestinationResult {
   destination: string;
   outcome: 'dispatched' | 'skipped' | 'failed';
@@ -75,7 +97,6 @@ interface DestinationResult {
 }
 
 const META_PROVIDER = 'meta';
-const DEFAULT_META_API_VERSION = 'v21.0';
 
 // --------------------------------------------------------------------------
 // Tiny helpers (mirror lib/meta/conversions-api.ts hashing rules — kept
@@ -122,22 +143,31 @@ async function hashedPhone(
 async function dispatchToMeta(
   event: FunnelEventRow,
   mapping: MappingRow,
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClientLike,
+  tenantMetaContext: TenantMetaContext,
 ): Promise<DestinationResult> {
-  // @ts-expect-error — Deno global namespace available in Edge runtime
   const env = (globalThis as unknown as { Deno: { env: { get(k: string): string | undefined } } }).Deno?.env;
-  const enabled = env?.get('META_CONVERSIONS_API_ENABLED') === 'true';
-  const pixelId = cleanString(env?.get('META_PIXEL_ID'));
-  const accessToken = cleanString(env?.get('META_ACCESS_TOKEN'));
-  const apiVersion = cleanString(env?.get('META_API_VERSION')) ?? DEFAULT_META_API_VERSION;
-  const testEventCode = cleanString(env?.get('META_TEST_EVENT_CODE'));
+  const metaConfig = resolveTenantMetaConfig({
+    accountId: event.account_id,
+    websiteAnalytics: tenantMetaContext.websiteAnalytics,
+    contractConfig: tenantMetaContext.contractConfig,
+    contractCredentials: tenantMetaContext.contractCredentials,
+    env: env as EnvLike | undefined,
+  });
 
-  if (!enabled || !pixelId || !accessToken) {
-    // Match lib/meta/conversions-api.ts skipped semantics — log + return.
+  if (!metaConfig.enabled || !metaConfig.pixelId || !metaConfig.accessToken) {
     await insertMetaLog(supabase, event, mapping, 'skipped', null, {
-      error: 'Meta CAPI is disabled or missing META_PIXEL_ID/META_ACCESS_TOKEN',
+      error: metaConfig.reason === 'disabled'
+        ? 'Meta CAPI is disabled for tenant channel config'
+        : 'Meta CAPI missing tenant channel config',
+      dispatchConfigSource: metaConfig.source,
+      dispatchConfigReason: metaConfig.reason ?? 'missing_tenant_meta_config',
     });
-    return { destination: mapping.destination, outcome: 'skipped', reason: 'config' };
+    return {
+      destination: mapping.destination,
+      outcome: 'skipped',
+      reason: metaConfig.reason ?? 'missing_tenant_meta_config',
+    };
   }
 
   // The Meta CAPI event_id MUST be the pixel_event_id (browser-paired) when
@@ -183,7 +213,7 @@ async function dispatchToMeta(
         ...(Object.keys(customData).length > 0 ? { custom_data: customData } : {}),
       },
     ],
-    ...(testEventCode ? { test_event_code: testEventCode } : {}),
+    ...(metaConfig.testEventCode ? { test_event_code: metaConfig.testEventCode } : {}),
   };
 
   // Insert pending log row first so we can dedup on (provider, event_name,
@@ -198,8 +228,8 @@ async function dispatchToMeta(
   }
 
   try {
-    const url = `https://graph.facebook.com/${apiVersion}/${pixelId}/events?access_token=${encodeURIComponent(
-      accessToken,
+    const url = `https://graph.facebook.com/${metaConfig.apiVersion}/${metaConfig.pixelId}/events?access_token=${encodeURIComponent(
+      metaConfig.accessToken,
     )}`;
     const response = await fetch(url, {
       method: 'POST',
@@ -235,12 +265,16 @@ async function dispatchToMeta(
 }
 
 async function insertMetaLog(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClientLike,
   event: FunnelEventRow,
   mapping: MappingRow,
   status: 'pending' | 'sent' | 'failed' | 'skipped',
   requestPayload: unknown,
-  details: { error?: string },
+  details: {
+    error?: string;
+    dispatchConfigSource?: string;
+    dispatchConfigReason?: string;
+  },
 ): Promise<{ deduped: boolean }> {
   const metaEventId = event.pixel_event_id || event.event_id;
   const row = {
@@ -260,6 +294,8 @@ async function insertMetaLog(
       funnel_event_name: event.event_name,
       reference_code: event.reference_code,
       dispatcher: 'dispatch-funnel-event-edge-fn',
+      ...(details.dispatchConfigSource && { dispatch_config_source: details.dispatchConfigSource }),
+      ...(details.dispatchConfigReason && { dispatch_config_reason: details.dispatchConfigReason }),
     },
     sent_at: status === 'sent' ? new Date().toISOString() : null,
   };
@@ -271,7 +307,7 @@ async function insertMetaLog(
 }
 
 async function updateMetaLog(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClientLike,
   eventName: string,
   eventId: string,
   patch: Record<string, unknown>,
@@ -283,6 +319,33 @@ async function updateMetaLog(
     .eq('event_name', eventName)
     .eq('event_id', eventId);
   if (error) throw new Error(error.message);
+}
+
+async function loadTenantMetaContext(
+  supabase: SupabaseClientLike,
+  event: FunnelEventRow,
+): Promise<TenantMetaContext> {
+  const { data: website } = await supabase
+    .from('websites')
+    .select('analytics')
+    .eq('id', event.website_id)
+    .eq('account_id', event.account_id)
+    .maybeSingle();
+
+  const { data: contracts } = await supabase
+    .from('account_channel_contracts')
+    .select('config, credentials_encrypted, service_channels(code, display_name, service_type, channel_type)')
+    .eq('account_id', event.account_id)
+    .eq('is_active', true);
+
+  const metaContract = ((contracts ?? []) as unknown as AccountChannelContractRow[])
+    .find((contract) => isMetaChannelContract(contract));
+
+  return {
+    websiteAnalytics: (website as { analytics?: unknown } | null)?.analytics ?? {},
+    contractConfig: metaContract?.config ?? {},
+    contractCredentials: metaContract?.credentials_encrypted ?? {},
+  };
 }
 
 // --------------------------------------------------------------------------
@@ -297,7 +360,6 @@ async function handle(req: Request): Promise<Response> {
     });
   }
 
-  // @ts-expect-error — Deno global namespace available in Edge runtime
   const env = (globalThis as unknown as { Deno: { env: { get(k: string): string | undefined } } }).Deno.env;
   const supabaseUrl = env.get('SUPABASE_URL');
   const serviceRoleKey = env.get('SUPABASE_SERVICE_ROLE_KEY');
@@ -375,9 +437,11 @@ async function handle(req: Request): Promise<Response> {
   }
 
   const results: DestinationResult[] = [];
+  let tenantMetaContext: TenantMetaContext | null = null;
   for (const m of (mappings ?? []) as unknown as MappingRow[]) {
     if (m.destination === 'meta' || m.destination === 'meta_messaging') {
-      results.push(await dispatchToMeta(event, m, supabase));
+      tenantMetaContext ??= await loadTenantMetaContext(supabase, event);
+      results.push(await dispatchToMeta(event, m, supabase, tenantMetaContext));
     } else {
       // F2/F3 destinations not implemented in this PR.
       results.push({
@@ -424,5 +488,4 @@ async function handle(req: Request): Promise<Response> {
   );
 }
 
-// @ts-expect-error — Deno global namespace available in Edge runtime
 (globalThis as unknown as { Deno: { serve(handler: (req: Request) => Promise<Response>): void } }).Deno.serve(handle);

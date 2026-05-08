@@ -39,6 +39,7 @@ export interface GoogleAdsConfig {
   credentialsPath?: string | null;
   apiVersion?: string | null;
   endpointBase?: string;
+  uploadStrategy?: 'google_ads_api' | 'data_manager_ready';
 }
 
 export interface GoogleAdsUserIdentifierInput {
@@ -77,6 +78,7 @@ export interface GoogleAdsProviderResponse {
   ok: boolean;
   status: number;
   body: unknown;
+  partialFailureError?: unknown;
 }
 
 export interface SendOfflineUploadResult {
@@ -85,6 +87,7 @@ export interface SendOfflineUploadResult {
   request: GoogleAdsConversionUploadRequest;
   providerResponse?: GoogleAdsProviderResponse;
   error?: string;
+  partialFailureError?: unknown;
   skippedReason?: string;
   deduped?: boolean;
 }
@@ -204,6 +207,10 @@ export function resolveGoogleAdsConfig(
     apiVersion:
       overrides.apiVersion ?? process.env.GOOGLE_ADS_API_VERSION ?? DEFAULT_API_VERSION,
     endpointBase: overrides.endpointBase ?? 'https://googleads.googleapis.com',
+    uploadStrategy:
+      overrides.uploadStrategy ??
+      ((process.env.GOOGLE_ADS_UPLOAD_STRATEGY as GoogleAdsConfig['uploadStrategy']) ??
+        'google_ads_api'),
   };
 }
 
@@ -299,7 +306,7 @@ export async function buildOfflineConversionRequest(
   return {
     customerId,
     conversions: [entry],
-    partialFailure: false,
+    partialFailure: true,
     validateOnly: false,
   };
 }
@@ -317,6 +324,30 @@ export function redactGoogleAdsProviderResponse(body: unknown): unknown {
     }
   }
   return output;
+}
+
+function readObject(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+export function extractGoogleAdsPartialFailureError(body: unknown): unknown {
+  const object = readObject(body);
+  if (!object) return null;
+  return object.partialFailureError ?? null;
+}
+
+function googleAdsFailureMessage(
+  response: GoogleAdsProviderResponse,
+): string | null {
+  if (!response.ok) return `Google Ads API returned HTTP ${response.status}`;
+  if (!response.partialFailureError) return null;
+  const partial = readObject(response.partialFailureError);
+  const message = partial?.message;
+  return typeof message === 'string' && message.trim()
+    ? `Google Ads API partial failure: ${message.trim()}`
+    : 'Google Ads API partial failure';
 }
 
 async function sendOfflineUpload(
@@ -337,16 +368,20 @@ async function sendOfflineUpload(
       customer_id: request.customerId,
       conversions: request.conversions.length,
     });
+    const body = redactGoogleAdsProviderResponse({
+      stub: true,
+      partialFailure: request.partialFailure,
+      validateOnly: request.validateOnly,
+      results: request.conversions.map((c) => ({
+        conversionAction: c.conversionAction,
+        conversionDateTime: c.conversionDateTime,
+      })),
+    });
     return {
       ok: true,
       status: 202,
-      body: redactGoogleAdsProviderResponse({
-        stub: true,
-        results: request.conversions.map((c) => ({
-          conversionAction: c.conversionAction,
-          conversionDateTime: c.conversionDateTime,
-        })),
-      }),
+      body,
+      partialFailureError: extractGoogleAdsPartialFailureError(body),
     };
   }
 
@@ -378,10 +413,12 @@ async function sendOfflineUpload(
     body = await response.text().catch(() => null);
   }
 
+  const redactedBody = redactGoogleAdsProviderResponse(body);
   return {
     ok: response.ok,
     status: response.status,
-    body: redactGoogleAdsProviderResponse(body),
+    body: redactedBody,
+    partialFailureError: extractGoogleAdsPartialFailureError(redactedBody),
   };
 }
 
@@ -499,7 +536,7 @@ export async function sendOfflineConversionUpload(
       request: {
         customerId: cleanString(config.customerId) ?? '',
         conversions: [],
-        partialFailure: false,
+        partialFailure: true,
         validateOnly: false,
       },
       skippedReason: 'no_click_id',
@@ -556,7 +593,8 @@ export async function sendOfflineConversionUpload(
       deps.fetchImpl ?? fetch,
       deps.accessToken,
     );
-    const status: GoogleAdsConversionStatus = providerResponse.ok ? 'sent' : 'failed';
+    const failureMessage = googleAdsFailureMessage(providerResponse);
+    const status: GoogleAdsConversionStatus = failureMessage ? 'failed' : 'sent';
     if (deps.supabase && input.funnelEventId) {
       await updateOfflineUploadLog(
         deps.supabase,
@@ -565,10 +603,8 @@ export async function sendOfflineConversionUpload(
         {
           status,
           provider_response: providerResponse.body,
-          error: providerResponse.ok
-            ? null
-            : `Google Ads API returned HTTP ${providerResponse.status}`,
-          sent_at: providerResponse.ok ? new Date().toISOString() : null,
+          error: failureMessage,
+          sent_at: status === 'sent' ? new Date().toISOString() : null,
         },
       );
     }
@@ -577,10 +613,9 @@ export async function sendOfflineConversionUpload(
       conversionActionId: input.conversionActionId,
       request,
       providerResponse,
+      partialFailureError: providerResponse.partialFailureError,
       deduped,
-      ...(providerResponse.ok
-        ? {}
-        : { error: `Google Ads API returned HTTP ${providerResponse.status}` }),
+      ...(failureMessage ? { error: failureMessage } : {}),
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

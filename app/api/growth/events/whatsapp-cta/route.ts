@@ -63,11 +63,15 @@ import {
   apiSuccess,
   apiValidationError,
 } from "@/lib/api/response";
+import { triggerDispatch } from "@/lib/funnel/dispatch";
 import { buildEventId } from "@/lib/growth/event-id";
 import { insertFunnelEvent } from "@/lib/growth/funnel-events";
 import { parseAttribution } from "@/lib/growth/attribution-parser";
 import { createLogger } from "@/lib/logger";
-import { sendMetaConversionEvent } from "@/lib/meta/conversions-api";
+import {
+  isFunnelEventsDispatcherV1Enabled,
+  sendMetaConversionEvent,
+} from "@/lib/meta/conversions-api";
 import {
   GrowthAttributionSchema,
   type FunnelEventIngest,
@@ -113,6 +117,13 @@ function createSupabaseAdmin() {
   return createClient(supabaseUrl, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
+}
+
+function readAttributionClickId(
+  attribution: GrowthAttribution | null,
+  key: "gclid" | "gbraid" | "wbraid" | "fbclid",
+): string | null {
+  return attribution?.click_ids?.[key] ?? null;
 }
 
 async function resolveTenant(
@@ -272,6 +283,57 @@ async function sendWhatsAppContactConversion(
   );
 }
 
+async function recordWhatsAppCtaViaRpc(
+  body: RequestBody,
+  tenant: { accountId: string; websiteId: string },
+  eventId: string,
+  occurredAt: Date,
+  attribution: GrowthAttribution | null,
+): Promise<void> {
+  const rpcPayload = {
+    event_id: eventId,
+    pixel_event_id: body.contact_event_id ?? undefined,
+    event_name: "whatsapp_cta_click" as const,
+    event_time: occurredAt.toISOString(),
+    source: "studio_web" as const,
+    reference_code: body.reference_code,
+    account_id: tenant.accountId,
+    website_id: tenant.websiteId,
+    locale: body.locale ?? "es-CO",
+    market: (body.market ?? "CO") as GrowthMarket,
+    stage: "activation",
+    channel: "whatsapp",
+    source_url: body.source_url ?? undefined,
+    page_path: body.page_path ?? undefined,
+    external_id: body.reference_code,
+    fbp: body.fbp ?? undefined,
+    fbc: body.fbc ?? undefined,
+    gclid: readAttributionClickId(attribution, "gclid") ?? undefined,
+    gbraid: readAttributionClickId(attribution, "gbraid") ?? undefined,
+    wbraid: readAttributionClickId(attribution, "wbraid") ?? undefined,
+    utm_source: attribution?.utm.utm_source ?? undefined,
+    utm_medium: attribution?.utm.utm_medium ?? undefined,
+    utm_campaign: attribution?.utm.utm_campaign ?? undefined,
+    utm_term: attribution?.utm.utm_term ?? undefined,
+    utm_content: attribution?.utm.utm_content ?? undefined,
+    raw_payload: {
+      location_context: body.location_context ?? null,
+      variant: body.variant ?? null,
+      destination_slug: body.destination_slug ?? null,
+      package_slug: body.package_slug ?? null,
+      subdomain: body.subdomain ?? null,
+    },
+    attribution: attribution ?? undefined,
+  };
+
+  const supabase = createSupabaseAdmin();
+  const { error } = await supabase.rpc("record_funnel_event", {
+    payload: rpcPayload,
+  });
+  if (error) throw new Error(error.message);
+  await triggerDispatch(eventId);
+}
+
 export async function POST(request: NextRequest) {
   let body: RequestBody;
   try {
@@ -354,6 +416,17 @@ export async function POST(request: NextRequest) {
         subdomain: body.subdomain ?? null,
       },
     };
+
+    if (isFunnelEventsDispatcherV1Enabled()) {
+      await recordWhatsAppCtaViaRpc(
+        body,
+        { accountId: tenant.accountId, websiteId: tenant.websiteId },
+        eventId,
+        occurredAt,
+        attribution,
+      );
+      return apiSuccess({ event_id: eventId, deduped: false });
+    }
 
     const result = await insertFunnelEvent(createSupabaseAdmin(), ingest);
     try {
