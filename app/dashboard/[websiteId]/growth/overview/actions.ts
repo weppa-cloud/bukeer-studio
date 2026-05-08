@@ -7,6 +7,7 @@ import {
   extractRollbackRestore,
   type TechnicalRemediationTargetTable,
 } from "@/lib/growth/autonomy/technical-remediation-adapter";
+import { revalidateGrowthPublicationSurface } from "@/lib/growth/autonomy/publication-revalidation";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/service-role";
 
 type ActionResult = {
@@ -82,6 +83,11 @@ export async function rollbackGrowthPublicationJob(
 
   const ctx = await requireGrowthRole(websiteId, "council_admin");
   const admin = createSupabaseServiceRoleClient();
+  const { data: websiteRow } = await admin
+    .from("websites")
+    .select("subdomain")
+    .eq("id", ctx.websiteId)
+    .maybeSingle();
   const { data: jobRow, error: loadError } = await table(
     admin,
     "growth_publication_jobs",
@@ -166,6 +172,20 @@ export async function rollbackGrowthPublicationJob(
       ok: false,
       message: `Target restored, but job status update failed: ${jobError.message}`,
     };
+  }
+
+  const subdomain =
+    typeof websiteRow?.subdomain === "string" ? websiteRow.subdomain : null;
+  if (subdomain) {
+    revalidateGrowthPublicationSurface({
+      subdomain,
+      targetTable,
+      targetPath: typeof job.target_id === "string" ? null : undefined,
+      slug:
+        typeof rollback.restore.slug === "string"
+          ? rollback.restore.slug
+          : null,
+    });
   }
 
   revalidateGrowthOverview(websiteId);
