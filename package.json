@@ -46,6 +46,7 @@
     "growth:blocked-classify": "node scripts/growth/classify-growth-blocked-items.mjs",
     "growth:agreement:baseline": "tsx scripts/growth-agreement-baseline.ts",
     "growth:production-cycle": "tsx scripts/growth/run-growth-production-cycle.ts",
+    "google-ads:validate-governance": "node scripts/google-ads/validate-conversion-governance.cjs",
     "test:watch": "jest --watch",
     "build:worker": "npm run check:node && opennextjs-cloudflare build",
     "preview:worker": "npm run check:node && opennextjs-cloudflare build && opennextjs-cloudflare preview",
