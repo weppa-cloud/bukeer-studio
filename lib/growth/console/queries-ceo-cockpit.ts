@@ -76,6 +76,7 @@ export interface AutonomyFeedItem {
 
 export interface ImpactLedgerRow {
   id: string;
+  publicationJobId: string | null;
   workItemTitle: string;
   target: string;
   metric: string;
@@ -610,6 +611,7 @@ export async function getGrowthCeoCockpit(
     const job = jobById.get(optionalText(row.publication_job_id));
     return {
       id: optionalText(row.id) ?? `outcome:${index}`,
+      publicationJobId: optionalText(row.publication_job_id),
       workItemTitle:
         workTitleById.get(optionalText(row.work_item_id)) ??
         optionalText(row.success_metric) ??
