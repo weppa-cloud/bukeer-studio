@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { z } from "zod";
 import {
   AgentLaneSchema,
   AgentRunStatusSchema,
@@ -31,12 +30,12 @@ import {
  * detail page.
  */
 
-const SearchParamsSchema = z.object({
-  status: z.union([AgentRunStatusSchema, z.literal("all")]).optional(),
-  lane: AgentLaneSchema.optional(),
-  page: z.coerce.number().int().min(1).max(1000).optional(),
-  pageSize: z.coerce.number().int().min(1).max(100).optional(),
-});
+interface SearchFilters {
+  status?: AgentRunStatus | "all";
+  lane?: AgentLane;
+  page?: number;
+  pageSize?: number;
+}
 
 interface PageProps {
   params: Promise<{ websiteId: string }>;
@@ -54,6 +53,45 @@ const STATUS_TONE: Record<
   completed: "success",
   stalled: "danger",
 };
+
+function firstParam(value: string | string[] | undefined): string | undefined {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function boundedInt(
+  value: string | string[] | undefined,
+  min: number,
+  max: number,
+): number | undefined {
+  const raw = firstParam(value);
+  if (!raw) return undefined;
+  const parsed = Number(raw);
+  if (!Number.isInteger(parsed)) return undefined;
+  return Math.min(max, Math.max(min, parsed));
+}
+
+function parseSearchFilters(
+  rawSearch: Record<string, string | string[] | undefined>,
+): SearchFilters {
+  const rawStatus = firstParam(rawSearch.status);
+  const status =
+    rawStatus === "all"
+      ? "all"
+      : AgentRunStatusSchema.safeParse(rawStatus).success
+        ? (rawStatus as AgentRunStatus)
+        : undefined;
+  const rawLane = firstParam(rawSearch.lane);
+  const lane = AgentLaneSchema.safeParse(rawLane).success
+    ? (rawLane as AgentLane)
+    : undefined;
+
+  return {
+    status,
+    lane,
+    page: boundedInt(rawSearch.page, 1, 1000),
+    pageSize: boundedInt(rawSearch.pageSize, 1, 100),
+  };
+}
 
 function fmtDate(iso: string | null | undefined): string {
   if (!iso) return "—";
@@ -92,12 +130,7 @@ export default async function GrowthRunsListPage({
   const { websiteId } = await params;
   const rawSearch = await searchParams;
 
-  const filters = SearchParamsSchema.parse({
-    status: rawSearch.status,
-    lane: rawSearch.lane,
-    page: rawSearch.page,
-    pageSize: rawSearch.pageSize,
-  });
+  const filters = parseSearchFilters(rawSearch);
 
   const auth = await requireGrowthRole(websiteId, "viewer");
   const accountId = auth.accountId;

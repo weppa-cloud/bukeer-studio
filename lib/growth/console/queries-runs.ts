@@ -1,6 +1,5 @@
 import "server-only";
 
-import { z } from "zod";
 import {
   AgentRunStatusSchema,
   AgentLaneSchema,
@@ -203,7 +202,7 @@ export async function getAgentRuns(
   const rawRows = (data ?? []).map((row) =>
     normalizeRunRow(row as Record<string, unknown>),
   );
-  const parsed = z.array(GrowthAgentRunSchema).safeParse(rawRows);
+  const parsed = GrowthAgentRunSchema.array().safeParse(rawRows);
   if (!parsed.success) {
     return {
       runs: [],
@@ -407,8 +406,8 @@ export async function getAgentRunDetail(
       tablesMissing = true;
     }
   } else if (eventRows) {
-    const parsed = z
-      .array(GrowthAgentRunEventSchema)
+    const parsed = GrowthAgentRunEventSchema
+      .array()
       .safeParse(
         eventRows.map((row) =>
           normalizeEventRow(row as Record<string, unknown>),
@@ -716,7 +715,7 @@ async function fetchRuntimeChangeSets(
     created_at: toIsoDateTime(row.created_at),
     updated_at: toIsoDateTime(row.updated_at),
   }));
-  const parsed = z.array(GrowthAgentChangeSetSchema).safeParse(normalized);
+  const parsed = GrowthAgentChangeSetSchema.array().safeParse(normalized);
   return parsed.success ? parsed.data : [];
 }
 

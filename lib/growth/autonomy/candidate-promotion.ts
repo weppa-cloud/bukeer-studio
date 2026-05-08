@@ -161,6 +161,7 @@ export function buildPromotedWorkItem(
 }
 
 interface SupabaseLike {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   from: (table: string) => any;
 }
 

@@ -4,11 +4,10 @@
  */
 
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/service-role';
-import { ScheduleEntrySchema } from '@bukeer/website-contract';
-import { z } from 'zod';
+import { ScheduleEntrySchema, type ScheduleEntry } from '@bukeer/website-contract';
 
 export interface ActivityDetails {
-  schedule_data: z.output<typeof ScheduleEntrySchema>[];
+  schedule_data: ScheduleEntry[];
   slug: string | null;
 }
 
@@ -28,7 +27,7 @@ export async function getActivityDetails(
     }
 
     const rawSchedule = Array.isArray(data.schedule_data) ? data.schedule_data : [];
-    const scheduleResult = z.array(ScheduleEntrySchema).safeParse(rawSchedule);
+    const scheduleResult = ScheduleEntrySchema.array().safeParse(rawSchedule);
     const schedule_data = scheduleResult.success ? scheduleResult.data : [];
 
     const slug = typeof data.slug === 'string' && data.slug.length > 0
