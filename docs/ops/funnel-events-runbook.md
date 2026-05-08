@@ -9,9 +9,46 @@ Scope: `funnel_events` as the source of truth, `dispatch-funnel-event` Edge Func
 - Production `.env.local` or shell env has `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`.
 - Supabase Edge Function `dispatch-funnel-event` is deployed.
 - `event_destination_mapping` has enabled `meta` or `meta_messaging` rows for the funnel events being replayed.
+- `service_channels` has the `meta_capi` contract seed.
+- Each tenant that should send Meta CAPI has an active `account_channel_contracts` row for `meta_capi`; the browser Pixel remains in `websites.analytics.facebook_pixel_id`, and the CAPI access token stays in `account_channel_contracts.credentials_encrypted`.
 - Operator has access to Supabase SQL editor and platform logs.
 
 Do not run unbounded production replay. Always set `--since`, `--until`, and a conservative `--limit` for the first pass.
+
+## Multi-tenant Meta Config
+
+Production dispatch resolves Meta in this order:
+
+1. `websites.analytics.facebook_pixel_id` for the public browser Pixel ID.
+2. Active tenant channel config in `account_channel_contracts` joined to `service_channels.code='meta_capi'`.
+3. `account_channel_contracts.credentials_encrypted.meta_access_token` or `access_token` for the CAPI token.
+4. `account_channel_contracts.config.api_version` and `test_event_code` for optional per-tenant knobs.
+
+Global `META_PIXEL_ID` and `META_ACCESS_TOKEN` are not production multi-tenant config. They are valid only for local/test or when `FUNNEL_META_LEGACY_ENV_FALLBACK_ACCOUNT_IDS` explicitly names the rollout tenant.
+
+Tenant readiness query:
+
+```sql
+select
+  w.subdomain,
+  w.analytics->>'facebook_pixel_id' as browser_pixel_id,
+  sc.code as channel_code,
+  acc.is_active,
+  acc.config,
+  acc.credentials_encrypted ? 'meta_access_token'
+    or acc.credentials_encrypted ? 'access_token'
+    or acc.credentials_encrypted ? 'conversions_api_access_token' as has_capi_token
+from public.websites w
+left join public.account_channel_contracts acc
+  on acc.account_id = w.account_id
+ and acc.is_active = true
+left join public.service_channels sc
+  on sc.id = acc.channel_id
+ and sc.code = 'meta_capi'
+where w.subdomain = 'colombiatours';
+```
+
+Expected before Meta certification: browser Pixel present, `meta_capi` active, and `has_capi_token=true`.
 
 ## Replay CLI
 
@@ -100,7 +137,8 @@ select
   mce.event_name as meta_event_name,
   mce.status as meta_status,
   mce.sent_at,
-  mce.error
+  mce.error,
+  mce.trace->>'dispatch_config_reason' as dispatch_config_reason
 from public.funnel_events fe
 left join public.meta_conversion_events mce
   on mce.provider = 'meta'

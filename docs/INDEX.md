@@ -12,6 +12,8 @@ Latest update: 2026-05-01 (SPEC_GROWTH_OS_SYMPHONY_ORCHESTRATOR audit revision f
 
 Latest spec addition: 2026-05-07 - [[SPEC_GROWTH_OS_PAPERCLIP_AUTONOMOUS_CEO_COCKPIT]] defines the Paperclip-style CEO cockpit, ColombiaTours-only aggressive organic + technical autonomy, publication jobs, outcome ledger, policy/caps, rollback gates, and Sprint 1 signal/profile/candidate freshness flow.
 
+Latest tracking note: 2026-05-08 - [[ADR-029]] / [[SPEC_FUNNEL_EVENTS_SOT]] now require multi-tenant platform dispatch. Browser Pixel IDs remain in `websites.analytics`; Meta CAPI and future platform secrets must resolve through tenant channel contracts, never global production env credentials.
+
 ## How to read this index
 
 - **Agents:** grep `[[concept]]` to find every document that touches a concept.

@@ -72,7 +72,7 @@ See [[ADR-029]] for full context. Three concrete pains this spec resolves:
 - [ ] **AC1.4** `app/api/waflow/lead/route.ts` migrated: writes to `funnel_events` via the new `pixel_event_id` contract. The existing Pixel-paired id (e.g. `${referenceCode}:lead`) populates `pixel_event_id`, NOT `event_id` (which stays the stable text PK). Verify dispatcher reads `pixel_event_id` when forwarding to Meta CAPI.
 - [ ] **AC1.5** `app/api/webhooks/chatwoot/route.ts` migrated; `pixel_event_id` minted server-side (UUIDv4) since browser doesn't supply one.
 - [ ] **AC1.6** `app/api/growth/events/whatsapp-cta/route.ts` migrated.
-- [ ] **AC1.7** Dispatcher Edge Function `dispatch-funnel-event` deployed; invoked via DB trigger AFTER INSERT on `funnel_events` calling `pg_net.http_post`. For Meta destination, invokes existing `lib/meta/conversions-api.ts` logic with `pixel_event_id` as the `event_id` field. Writes outcome to `meta_conversion_events`. **Updates `funnel_events.dispatch_status` to `dispatched` or `failed`.**
+- [ ] **AC1.7** Dispatcher Edge Function `dispatch-funnel-event` deployed; invoked via DB trigger AFTER INSERT on `funnel_events` calling `pg_net.http_post`. For Meta destination, resolves tenant config from `account_channel_contracts` + `service_channels`, uses `websites.analytics.facebook_pixel_id` only as the public browser Pixel fallback, and sends `pixel_event_id` as the Meta CAPI `event_id` field. Writes outcome to `meta_conversion_events`. **Updates `funnel_events.dispatch_status` to `dispatched` or `failed`.**
 - [ ] **AC1.7b** `pg_cron` re-dispatch job: every 60s, selects `funnel_events WHERE dispatch_status='pending' AND dispatch_attempted_at < now()-30s LIMIT 100`, re-invokes dispatcher. Caps at `dispatch_attempt_count=5` then marks `failed`. Closes the `pg_net` no-retry gap.
 - [ ] **AC1.8** Volume parity verified: count of Meta CAPI events sent in 24h post-cutover ≥ 95% of count in 24h pre-cutover. Feature flag `funnel_events_dispatcher_v1` allows quick rollback.
 - [ ] **AC1.9** Monitoring dashboard shows daily event counts per `event_name` and per `source`. Alert on >50% drop day-over-day. Additional alert on `dispatch_status='failed' count > 10/hour`.
@@ -100,7 +100,7 @@ See [[ADR-029]] for full context. Three concrete pains this spec resolves:
 - [ ] **AC4.1** Replay CLI implemented and documented in [`docs/ops/funnel-events-runbook.md`](../ops/funnel-events-runbook.md).
 - [ ] **AC4.2** 90-day retention policy on raw PII columns (email, phone, IP) — automated job nullifies after retention; hashed copies in destination logs persist.
 - [ ] **AC4.3** Identity merge logic: when a `funnel_events` row arrives with a new `user_email` but matches an existing `external_id` or `user_id`, link records via internal `funnel_identity_links` table. Documented in spec follow-up.
-- [ ] **AC4.4** Per-tenant overrides in `event_destination_mapping` (e.g., tenant-specific Pixel ID, conversion action ids). Multi-tenant readiness for future Bukeer customers.
+- [ ] **AC4.4** Multi-tenant platform config is production-ready: Meta CAPI tokens live in `account_channel_contracts.credentials_encrypted`, platform metadata lives in `account_channel_contracts.config`, and public browser Pixel IDs remain in `websites.analytics.facebook_pixel_id`. Global `META_PIXEL_ID` / `META_ACCESS_TOKEN` are allowed only for local/test or an explicit legacy allowlist during rollout.
 - [ ] **AC4.5** Runbook + QA checklist (closes #328).
 
 ## Data Model Changes
@@ -123,6 +123,9 @@ See [[ADR-029]] for full context. Three concrete pains this spec resolves:
 | `event_destination_mapping` | `value_field` | text NULL | Column from `funnel_events` to use as value (e.g. `value_amount`) |
 | `event_destination_mapping` | `enabled` | boolean DEFAULT true | |
 | `event_destination_mapping` | `tenant_overrides` | jsonb | Per-tenant config |
+| `service_channels` | row `code='meta_capi'` | seed | Defines the Meta CAPI tenant channel contract |
+| `account_channel_contracts` | `credentials_encrypted` | jsonb | Per-tenant Meta CAPI token storage; never public website analytics |
+| `account_channel_contracts` | `config` | jsonb | Per-tenant Meta Pixel/API version/test code overrides |
 | `google_ads_offline_uploads` | full schema | (NEW per #332) | Idempotent log |
 | `ga4_measurement_protocol_events` | full schema | (NEW, optional Phase 2/4) | Idempotent log |
 | `funnel_identity_links` | full schema | (NEW Phase 4) | Identity stitching |
@@ -154,7 +157,7 @@ Booking confirmation is owned by the database trigger path, not by ad-platform d
 | `record_funnel_event(payload jsonb)` | Supabase RPC | `{event_id, pixel_event_id?, event_version, event_name, event_time, source_system, business_stage, owner, optimization_policy, identity_confidence, attribution_confidence, user_email?, user_phone?, gclid?, fbp?, ...}` | Idempotent on `event_id`. Validates `event_name` against mapping. Accepts legacy aliases during F1-F3 only. |
 | `record_lead_stage_change(lead_id uuid, new_stage text, agent_id uuid)` | Supabase RPC | – | Wrapper that derives event_name from stage transition + calls `record_funnel_event` |
 | `record_booking_confirmed(booking_id uuid)` | Supabase RPC | – | Wrapper for booking; reads value from booking row + calls `record_funnel_event` |
-| `dispatch-funnel-event` | Supabase Edge Function | trigger payload from `funnel_events` INSERT | Reads mapping; for each enabled destination, invokes destination-specific dispatcher; writes log row |
+| `dispatch-funnel-event` | Supabase Edge Function | trigger payload from `funnel_events` INSERT | Reads mapping and tenant channel config; for each enabled destination, invokes destination-specific dispatcher; writes log row |
 | Existing `app/api/waflow/lead/route.ts` | refactor | – | Stops calling `sendMetaEvent` directly; calls `record_funnel_event` instead |
 | Existing `app/api/webhooks/chatwoot/route.ts` | refactor | – | Same pattern |
 | Existing `lib/meta/conversions-api.ts` | refactor | – | Becomes a destination-specific module invoked only by dispatcher |
@@ -198,6 +201,7 @@ Booking confirmation is owned by the database trigger path, not by ad-platform d
 - UPDATE: `docs/INDEX.md` — add entries for ADR-029 + this SPEC
 - UPDATE: `docs/specs/SPEC_META_CHATWOOT_CONVERSIONS.md` (stub) — add note that this SPEC supersedes the direct-call architecture
 - UPDATE: `CLAUDE.md` — section "Funnel events SOT" with quick reference
+- UPDATE: `AGENTS.md` — agent rule: Funnel dispatch is multi-tenant; never use global platform credentials for production fan-out.
 
 ## Test Strategy
 

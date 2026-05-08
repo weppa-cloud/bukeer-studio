@@ -198,8 +198,29 @@ This decision is **moderately reversible**. The `funnel_events` table itself is 
 - Dispatcher implementation (Edge Function vs DB trigger + `pg_net`).
 - Retry/backoff semantics per destination.
 - Identity merging (when same human appears with different `user_email` over time).
-- Tenant isolation in mapping (per-tenant overrides for Pixel ID, conversion action ids, etc.).
+- Tenant isolation in mapping and platform credentials: dispatcher reads `account_channel_contracts` for tenant secrets/config, while `websites.analytics.facebook_pixel_id` remains the public browser Pixel contract.
 - Replay tooling (CLI to re-emit a date range to a specific destination).
+
+## Multi-tenant Platform Config Addendum — 2026-05-08
+
+Funnel dispatch is multi-tenant. Production fan-out MUST NOT depend on global
+`META_PIXEL_ID`, `META_ACCESS_TOKEN`, Google Ads conversion action IDs, or
+analogous platform credentials. Those values can only be local/test defaults or
+explicit rollout fallbacks for a named tenant.
+
+- Browser Pixel IDs live in `websites.analytics.facebook_pixel_id` because they
+  are public website config and are rendered per website.
+- Server-side CAPI tokens and platform credentials live in
+  `account_channel_contracts.credentials_encrypted`; non-secret per-tenant
+  knobs such as `api_version`, `test_event_code`, and optional Pixel overrides
+  live in `account_channel_contracts.config`.
+- `service_channels.code='meta_capi'` defines the Meta destination contract.
+- `event_destination_mapping` remains delivery mapping. Its `tenant_overrides`
+  is for destination conversion-action overrides and rollout flags, not a
+  replacement for tenant credential storage.
+- If tenant config is missing, the dispatcher logs `skipped` with
+  `missing_tenant_meta_config`; it must not silently use another tenant's
+  credentials.
 
 ## L10N
 
