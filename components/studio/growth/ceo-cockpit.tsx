@@ -5,10 +5,14 @@ import {
   AlertTriangle,
   ArrowRight,
   Bot,
+  CheckCircle2,
+  ClipboardCheck,
   Gauge,
+  Lock,
   PauseCircle,
   RefreshCcw,
   ShieldCheck,
+  SlidersHorizontal,
   Target,
   TrendingUp,
   Zap,
@@ -49,6 +53,9 @@ const STATUS_STYLES: Record<string, string> = {
   scheduled: "border-zinc-200 bg-zinc-50 text-zinc-700",
   evaluated: "border-emerald-200 bg-emerald-50 text-emerald-800",
   paused: "border-amber-200 bg-amber-50 text-amber-800",
+  locked: "border-zinc-300 bg-zinc-100 text-zinc-600",
+  needs_backend: "border-amber-200 bg-amber-50 text-amber-800",
+  dry_run: "border-blue-200 bg-blue-50 text-blue-800",
 };
 
 function formatDate(value: string | null | undefined): string {
@@ -133,6 +140,26 @@ function ActionLink({
       {label}
       <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
     </Link>
+  );
+}
+
+function DisabledAction({
+  label,
+  icon,
+}: {
+  label: string;
+  icon: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      disabled
+      className="inline-flex cursor-not-allowed items-center gap-2 rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] bg-[var(--studio-panel,theme(colors.zinc.50))] px-3 py-2 text-sm font-medium text-[var(--studio-text-muted,theme(colors.zinc.500))]"
+    >
+      {icon}
+      {label}
+      <Lock className="h-3.5 w-3.5" aria-hidden="true" />
+    </button>
   );
 }
 
@@ -255,6 +282,197 @@ function AgentCompanyTable({ rows }: { rows: AgentCompanyRow[] }) {
             ))}
           </tbody>
         </table>
+      </div>
+    </section>
+  );
+}
+
+function scoreStatus(score: number) {
+  if (score >= 90) return "live";
+  if (score >= 70) return "measuring";
+  return "watch";
+}
+
+function HumanOperations({
+  data,
+  workboardHref,
+  runsHref,
+  dataHealthHref,
+  agentsHref,
+}: {
+  data: GrowthCeoCockpitData;
+  workboardHref: string;
+  runsHref: string;
+  dataHealthHref: string;
+  agentsHref: string;
+}) {
+  const hasTables = data.riskBudget.missingTables.length === 0;
+  const hasAgents = data.agentCompany.length > 0;
+  const hasPolicies = data.riskBudget.policies.length > 0;
+  const hasLedger = data.impactLedger.length > 0;
+  const hasFeed = data.autonomyFeed.length > 0;
+  const hasBlocks =
+    data.autonomyFeed.some((item) =>
+      ["blocked", "review_needed", "rollback"].includes(item.kind),
+    ) || data.riskBudget.blockedPaidMutations > 0;
+
+  const checks = [
+    { label: "Objetivo comercial visible", pass: true },
+    { label: "Compania de agentes visible", pass: hasAgents },
+    { label: "Contratos Supabase + RLS listos", pass: hasTables },
+    { label: "Feed operativo observable", pass: hasFeed },
+    { label: "Ledger de impacto con outcomes", pass: hasLedger },
+    { label: "Policies de autonomia provisionadas", pass: hasPolicies },
+  ];
+  const score = Math.round(
+    (checks.filter((check) => check.pass).length / checks.length) * 100,
+  );
+
+  const flows = [
+    {
+      title: "Priorizar trabajo",
+      owner: "CEO / Growth lead",
+      state: "live",
+      href: workboardHref,
+      cta: "Abrir Workboard",
+      detail: "Backlog, work items, riesgo, next action y estado por lane.",
+      icon: <ClipboardCheck className="h-4 w-4" aria-hidden="true" />,
+    },
+    {
+      title: "Revisar propuestas",
+      owner: "Curator / Technical owner",
+      state: "live",
+      href: runsHref,
+      cta: "Abrir Review Queue",
+      detail: "Aprobar, rechazar o devolver change sets y aprendizajes.",
+      icon: <ShieldCheck className="h-4 w-4" aria-hidden="true" />,
+    },
+    {
+      title: "Auditar agentes",
+      owner: "Operator",
+      state: "live",
+      href: agentsHref,
+      cta: "Abrir Agents",
+      detail: "Heartbeat, modo, confianza, costo y output por lane.",
+      icon: <Bot className="h-4 w-4" aria-hidden="true" />,
+    },
+    {
+      title: "Validar datos",
+      owner: "Data owner",
+      state: "live",
+      href: dataHealthHref,
+      cta: "Abrir Data Health",
+      detail: "Calidad de señales, runtime, aprendizaje y atribucion.",
+      icon: <TrendingUp className="h-4 w-4" aria-hidden="true" />,
+    },
+    {
+      title: "Pausar autonomia",
+      owner: "Admin",
+      state: hasPolicies ? "needs_backend" : "locked",
+      href: null,
+      cta: "Kill switch",
+      detail: "Requiere server action admin-only sobre growth_autonomy_policies.",
+      icon: <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />,
+    },
+    {
+      title: "Rollback publicacion",
+      owner: "Admin / Technical owner",
+      state: hasLedger ? "needs_backend" : "locked",
+      href: null,
+      cta: "Rollback",
+      detail: "Requiere publication job con snapshot, smoke y rollback payload.",
+      icon: <RefreshCcw className="h-4 w-4" aria-hidden="true" />,
+    },
+  ];
+
+  return (
+    <section
+      className="rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] bg-[var(--studio-surface,theme(colors.white))]"
+      data-testid="growth-human-operations"
+    >
+      <div className="grid gap-4 border-b border-[var(--studio-border,theme(colors.zinc.200))] p-4 lg:grid-cols-[1fr_280px] lg:items-start">
+        <SectionTitle
+          eyebrow="Human Operating Console"
+          title="Flujos humanos y readiness"
+          detail="El humano controla priorizacion, aprobaciones, auditoria, data health y emergencia; la autonomia solo avanza cuando hay evidencia y policy."
+        />
+        <div className="rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] bg-[var(--studio-panel,theme(colors.zinc.50))] p-3">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-xs font-semibold uppercase text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+              UI readiness
+            </span>
+            <StatusPill value={scoreStatus(score)} />
+          </div>
+          <p className="mt-2 text-3xl font-semibold text-[var(--studio-text,theme(colors.zinc.950))]">
+            {score}/100
+          </p>
+          <p className="mt-1 text-xs text-[var(--studio-text-muted,theme(colors.zinc.600))]">
+            Base score calculado con contratos, agentes, feed, ledger y policies.
+          </p>
+        </div>
+      </div>
+
+      <div className="grid gap-4 p-4 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="grid gap-3 md:grid-cols-2">
+          {flows.map((flow) => (
+            <article
+              key={flow.title}
+              className="rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] p-3"
+            >
+              <div className="flex items-start gap-3">
+                <span className="flex h-8 w-8 items-center justify-center rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] bg-[var(--studio-panel,theme(colors.zinc.50))]">
+                  {flow.icon}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="font-medium text-[var(--studio-text,theme(colors.zinc.900))]">
+                      {flow.title}
+                    </h3>
+                    <StatusPill value={flow.state} />
+                  </div>
+                  <p className="mt-1 text-xs font-medium text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                    {flow.owner}
+                  </p>
+                  <p className="mt-2 text-sm text-[var(--studio-text-muted,theme(colors.zinc.600))]">
+                    {flow.detail}
+                  </p>
+                  <div className="mt-3">
+                    {flow.href ? (
+                      <ActionLink href={flow.href} label={flow.cta} icon={flow.icon} />
+                    ) : (
+                      <DisabledAction label={flow.cta} icon={flow.icon} />
+                    )}
+                  </div>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+
+        <aside className="rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] bg-[var(--studio-panel,theme(colors.zinc.50))] p-3">
+          <h3 className="text-sm font-semibold text-[var(--studio-text,theme(colors.zinc.900))]">
+            Base evaluation
+          </h3>
+          <ul className="mt-3 space-y-2">
+            {checks.map((check) => (
+              <li key={check.label} className="flex items-start gap-2 text-sm">
+                {check.pass ? (
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 text-emerald-700" aria-hidden="true" />
+                ) : (
+                  <AlertTriangle className="mt-0.5 h-4 w-4 text-amber-700" aria-hidden="true" />
+                )}
+                <span className="text-[var(--studio-text-muted,theme(colors.zinc.700))]">
+                  {check.label}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <div className="mt-4 rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] bg-[var(--studio-surface,theme(colors.white))] p-3 text-xs text-[var(--studio-text-muted,theme(colors.zinc.600))]">
+            {hasBlocks
+              ? "Hay bloqueos o revisiones pendientes; operar desde Review Queue antes de activar mas autonomia."
+              : "Sin bloqueos criticos visibles en el feed actual."}
+          </div>
+        </aside>
       </div>
     </section>
   );
@@ -546,6 +764,14 @@ export function GrowthCeoCockpit({ data }: { data: GrowthCeoCockpitData }) {
           <MetricTile key={metric.key} metric={metric} />
         ))}
       </section>
+
+      <HumanOperations
+        data={data}
+        workboardHref={workboardHref}
+        runsHref={runsHref}
+        dataHealthHref={dataHealthHref}
+        agentsHref={agentsHref}
+      />
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
         <div className="xl:col-span-2">
