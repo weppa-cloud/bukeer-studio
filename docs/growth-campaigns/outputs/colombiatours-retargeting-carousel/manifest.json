@@ -1,0 +1,139 @@
+{
+  "title": "Colombia Imperdible 9 Días",
+  "format": "instagram-portrait-1080x1350",
+  "source_inputs": {
+    "design": "/Users/angelaaragon/Documents/Bukeer 2026/bukeer-studio/docs/design/colombiatours.travel/design.md",
+    "ideas": "/Users/angelaaragon/Documents/Bukeer 2026/bukeer-studio/docs/growth-campaigns/carruseles-retargeting-meta-ads.md",
+    "images": "/Users/angelaaragon/Documents/Bukeer 2026/bukeer-studio/assets/colombiatours-landing-jpegs"
+  },
+  "strategy": {
+    "audience": "Visitantes MOFU/BOFU de los últimos 180 días que ya evaluaron Colombia y necesitan tangibilizar el valor del paquete.",
+    "promise": "Mostrar que Colombia Imperdible 9 Días resuelve la ruta Bogotá, Medellín y Cartagena con logística incluida y acompañamiento humano.",
+    "voice": "Editorial, cálida, experta-local y WhatsApp-first.",
+    "visual_system": "Fotografía premium full-bleed con wash teal oscuro, acentos gold/coral, titulares Bricolage-style y paneles legibles para mobile."
+  },
+  "slides": [
+    {
+      "number": 1,
+      "role": "cover",
+      "headline": "9 días\n3 ciudades",
+      "body": "Un viaje para recordar siempre.",
+      "visual_concept": "Three vertical destination bands: Bogotá, Medellín, Cartagena.",
+      "layout": "Triptych vertical collage with dark teal wash and centered editorial headline.",
+      "source_images": [
+        "bogota_monserrate_city_2023.jpg",
+        "medellin_comuna_13_graffiti_04.jpg",
+        "cartagena_ciudad_amurallada.jpg"
+      ],
+      "ai_image_prompt": "",
+      "alt_text": "Collage de Bogotá, Medellín y Cartagena con el mensaje 9 días, 3 ciudades.",
+      "qa_notes": [
+        "Texto principal dentro de zona segura central.",
+        "Usa paleta ColombiaTours Caribe Editorial.",
+        "Claim basado en brief de campaña."
+      ]
+    },
+    {
+      "number": 2,
+      "role": "itinerary",
+      "headline": "Días 1 a 3: Bogotá",
+      "body": "Cultura, historia y gastronomía de altura.",
+      "visual_concept": "Bogotá panorama with elevated, historic tone.",
+      "layout": "Full-bleed photo, cool overlay, lower text panel with checks.",
+      "source_images": [
+        "bogota_monserrate_city_2023.jpg"
+      ],
+      "ai_image_prompt": "",
+      "alt_text": "Vista panorámica de Bogotá desde Monserrate.",
+      "qa_notes": [
+        "Texto principal dentro de zona segura central.",
+        "Usa paleta ColombiaTours Caribe Editorial.",
+        "Claim basado en brief de campaña."
+      ]
+    },
+    {
+      "number": 3,
+      "role": "itinerary",
+      "headline": "Días 4 a 6: Medellín",
+      "body": "Eterna primavera, barrios vivos e innovación.",
+      "visual_concept": "Guatapé as the Medellín-region signature excursion.",
+      "layout": "Tall destination image with vibrant green wash and warm text panel.",
+      "source_images": [
+        "guatape_piedra_del_penol.jpg"
+      ],
+      "ai_image_prompt": "",
+      "alt_text": "Vista de la Piedra del Peñol y Guatapé.",
+      "qa_notes": [
+        "Texto principal dentro de zona segura central.",
+        "Usa paleta ColombiaTours Caribe Editorial.",
+        "Claim basado en brief de campaña."
+      ]
+    },
+    {
+      "number": 4,
+      "role": "itinerary",
+      "headline": "Días 7 a 9: Cartagena",
+      "body": "Historia viva y descanso frente al Caribe.",
+      "visual_concept": "Historic Cartagena as the emotional payoff of the trip.",
+      "layout": "Warm full-bleed Cartagena photo with gold editorial emphasis.",
+      "source_images": [
+        "cartagena_torre_del_reloj.jpg"
+      ],
+      "ai_image_prompt": "",
+      "alt_text": "Torre del Reloj y arquitectura colonial de Cartagena.",
+      "qa_notes": [
+        "Texto principal dentro de zona segura central.",
+        "Usa paleta ColombiaTours Caribe Editorial.",
+        "Claim basado en brief de campaña."
+      ]
+    },
+    {
+      "number": 5,
+      "role": "proof",
+      "headline": "Tu única preocupación será disfrutar.",
+      "body": "Nos encargamos de cada traslado, hotel y conexión.",
+      "visual_concept": "Travel operator confidence: organized, human, premium without stiffness.",
+      "layout": "Cream editorial card over destination photography with three trust pillars.",
+      "source_images": [
+        "islas_rosario_resort.jpg"
+      ],
+      "ai_image_prompt": "",
+      "alt_text": "Resort tropical usado como fondo para explicar la logística del viaje.",
+      "qa_notes": [
+        "Texto principal dentro de zona segura central.",
+        "Usa paleta ColombiaTours Caribe Editorial.",
+        "Claim basado en brief de campaña."
+      ]
+    },
+    {
+      "number": 6,
+      "role": "cta",
+      "headline": "Retoma tu plan a Colombia.",
+      "body": "Paquetes desde $1.890 USD.",
+      "visual_concept": "Final conversion slide, direct and WhatsApp-first.",
+      "layout": "Aspirational beach photo with bold CTA button and ColombiaTours brand close.",
+      "source_images": [
+        "baru_cartagena_playa.jpg"
+      ],
+      "ai_image_prompt": "",
+      "alt_text": "Playa del Caribe colombiano con llamada a retomar el plan de viaje.",
+      "qa_notes": [
+        "Texto principal dentro de zona segura central.",
+        "Usa paleta ColombiaTours Caribe Editorial.",
+        "Precio desde $1.890 USD debe revisarse antes de pauta."
+      ]
+    }
+  ],
+  "caption": {
+    "draft": "¿Quieres ver el itinerario completo de Colombia Imperdible 9 Días? Bogotá, Medellín y Cartagena con traslados, hoteles boutique y acompañamiento local. Escríbenos por WhatsApp y retoma tu plan.",
+    "hashtags": [
+      "#ColombiaTours",
+      "#ViajaAColombia",
+      "#Bogota",
+      "#Medellin",
+      "#Cartagena",
+      "#TravelPlanner"
+    ],
+    "cta": "Escríbenos por WhatsApp"
+  }
+}
