@@ -25,7 +25,7 @@ import { createLogger } from '@/lib/logger';
 const log = createLogger('google_ads.offline-upload');
 
 const PROVIDER = 'google_ads';
-const DEFAULT_API_VERSION = 'v18';
+const DEFAULT_API_VERSION = 'v24';
 
 export type GoogleAdsAuthType = 'service_account' | 'oauth2_refresh_token';
 export type GoogleAdsConversionStatus = 'pending' | 'sent' | 'failed' | 'skipped';
