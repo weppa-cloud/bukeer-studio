@@ -18,11 +18,15 @@ import {
   apiSuccess,
   apiValidationError,
 } from "@/lib/api";
+import { mintPixelEventId } from "@/lib/funnel/event-id";
 import { parseAttribution } from "@/lib/growth/attribution-parser";
 import { buildEventId } from "@/lib/growth/event-id";
 import { insertFunnelEvent } from "@/lib/growth/funnel-events";
 import { createLogger } from "@/lib/logger";
-import { sendMetaConversionEvent } from "@/lib/meta/conversions-api";
+import {
+  isFunnelEventsDispatcherV1Enabled,
+  sendMetaConversionEvent,
+} from "@/lib/meta/conversions-api";
 import { GrowthAttributionSchema } from "@bukeer/website-contract";
 import type {
   GrowthAttribution,
@@ -155,6 +159,13 @@ function readNestedRecord(record: JsonRecord, key: string): JsonRecord {
 
 function readNestedString(record: JsonRecord, key: string): string | null {
   return cleanString(record[key]) ?? readId(record[key]);
+}
+
+function readAttributionClickId(
+  attribution: GrowthAttribution | null,
+  key: "gclid" | "gbraid" | "wbraid" | "fbclid",
+): string | null {
+  return attribution?.click_ids?.[key] ?? null;
 }
 
 function findNestedString(record: JsonRecord, keys: string[]): string | null {
@@ -973,18 +984,19 @@ const LIFECYCLE_TO_FUNNEL_EVENT: Partial<
   QuoteSent: "quote_sent",
 };
 
-const FUNNEL_EVENT_STAGE: Record<FunnelEventName, FunnelEventIngest["stage"]> =
-  {
-    waflow_open: "acquisition",
-    waflow_step_next: "activation",
-    waflow_submit: "activation",
-    whatsapp_cta_click: "activation",
-    qualified_lead: "qualified_lead",
-    quote_sent: "quote_sent",
-    booking_confirmed: "booking",
-    review_submitted: "review_referral",
-    referral_lead: "review_referral",
-  };
+const FUNNEL_EVENT_STAGE: Partial<
+  Record<FunnelEventName, FunnelEventIngest["stage"]>
+> = {
+  waflow_open: "acquisition",
+  waflow_step_next: "activation",
+  waflow_submit: "activation",
+  whatsapp_cta_click: "activation",
+  qualified_lead: "qualified_lead",
+  quote_sent: "quote_sent",
+  booking_confirmed: "booking",
+  review_submitted: "review_referral",
+  referral_lead: "review_referral",
+};
 
 function deriveLeadMarket(leadPayload: JsonRecord): GrowthMarket {
   const country =
@@ -1096,6 +1108,8 @@ async function emitLifecycleFunnelEvents(
   for (const lifecycleEvent of lifecycleEvents) {
     const funnelEventName = LIFECYCLE_TO_FUNNEL_EVENT[lifecycleEvent];
     if (!funnelEventName) continue;
+    const funnelEventStage = FUNNEL_EVENT_STAGE[funnelEventName];
+    if (!funnelEventStage) continue;
 
     try {
       const eventId = await buildEventId({
@@ -1104,10 +1118,59 @@ async function emitLifecycleFunnelEvents(
         occurred_at: occurredAt,
       });
 
+      if (isFunnelEventsDispatcherV1Enabled()) {
+        const rpcPayload = {
+          event_id: eventId,
+          pixel_event_id: mintPixelEventId(),
+          event_name: funnelEventName,
+          event_time: occurredAt.toISOString(),
+          source_system: "chatwoot" as const,
+          source: "chatwoot" as const,
+          reference_code: lead.reference_code,
+          account_id: lead.account_id,
+          website_id: lead.website_id,
+          locale,
+          market,
+          stage: funnelEventStage,
+          channel: "chatwoot",
+          source_url: sourceUrl ?? undefined,
+          page_path: pagePath ?? undefined,
+          user_email: cleanString(leadPayload.email),
+          user_phone: cleanString(leadPayload.phone),
+          external_id: lead.reference_code,
+          fbp: cleanString(attribution.fbp),
+          fbc: cleanString(attribution.fbc),
+          ctwa_clid: cleanString(attribution.ctwa_clid),
+          gclid: readAttributionClickId(funnelAttribution, "gclid") ?? undefined,
+          gbraid: readAttributionClickId(funnelAttribution, "gbraid") ?? undefined,
+          wbraid: readAttributionClickId(funnelAttribution, "wbraid") ?? undefined,
+          utm_source: funnelAttribution?.utm.utm_source ?? undefined,
+          utm_medium: funnelAttribution?.utm.utm_medium ?? undefined,
+          utm_campaign: funnelAttribution?.utm.utm_campaign ?? undefined,
+          utm_term: funnelAttribution?.utm.utm_term ?? undefined,
+          utm_content: funnelAttribution?.utm.utm_content ?? undefined,
+          ip_address: lead.source_ip ?? undefined,
+          user_agent: lead.source_user_agent ?? undefined,
+          raw_payload: {
+            chatwoot_event: payload.event,
+            chatwoot_conversation_id: conversationId,
+            waflow_lead_id: lead.id,
+            session_key: lead.session_key,
+          },
+          attribution: funnelAttribution ?? undefined,
+        };
+
+        const { error } = await supabase.rpc("record_funnel_event", {
+          payload: rpcPayload,
+        });
+        if (error) throw new Error(error.message);
+        continue;
+      }
+
       const ingest: FunnelEventIngest = {
         event_id: eventId,
         event_name: funnelEventName,
-        stage: FUNNEL_EVENT_STAGE[funnelEventName],
+        stage: funnelEventStage,
         channel: "chatwoot",
         reference_code: lead.reference_code,
         account_id: lead.account_id,
@@ -1145,6 +1208,8 @@ async function sendLifecycleConversions(
   conversationId: string,
   lifecycleEvents: LifecycleEvent[],
 ): Promise<number> {
+  if (isFunnelEventsDispatcherV1Enabled()) return 0;
+
   const leadPayload = readRecord(lead.payload);
   const attribution = readRecord(leadPayload.attribution);
   const contact = extractContact(payload);

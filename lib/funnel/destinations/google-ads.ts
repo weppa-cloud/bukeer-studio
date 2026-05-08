@@ -64,6 +64,13 @@ interface DispatchDeps {
   accessToken?: string;
 }
 
+type FunnelEventWithUserData = FunnelEvent & {
+  user_email?: string | null;
+  user_phone?: string | null;
+  user_first_name?: string | null;
+  user_last_name?: string | null;
+};
+
 function getTenantOverride(
   mapping: EventDestinationMappingRow,
   accountId: string | null | undefined,
@@ -144,6 +151,43 @@ function extractValue(
   };
 }
 
+function readString(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+function readRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function extractUserIdentifiers(
+  event: FunnelEvent,
+  override?: GoogleAdsUserIdentifierInput,
+): GoogleAdsUserIdentifierInput | undefined {
+  if (override) return override;
+
+  const withUserData = event as FunnelEventWithUserData;
+  const payload = readRecord(event.payload);
+  const name = readString(payload.name);
+  const [firstFromName, ...lastFromName] = name?.split(/\s+/) ?? [];
+  const identifiers: GoogleAdsUserIdentifierInput = {
+    email: readString(withUserData.user_email) ?? readString(payload.email),
+    phone: readString(withUserData.user_phone) ?? readString(payload.phone),
+    firstName:
+      readString(withUserData.user_first_name) ??
+      readString(payload.first_name) ??
+      firstFromName ??
+      null,
+    lastName:
+      readString(withUserData.user_last_name) ??
+      readString(payload.last_name) ??
+      (lastFromName.length > 0 ? lastFromName.join(' ') : null),
+  };
+
+  return Object.values(identifiers).some(Boolean) ? identifiers : undefined;
+}
+
 export async function dispatchToGoogleAds(
   event: FunnelEvent,
   mapping: EventDestinationMappingRow,
@@ -194,7 +238,7 @@ export async function dispatchToGoogleAds(
       ...(currencyCode && { currencyCode }),
       ...(deps.bookingId && { orderId: deps.bookingId }),
       ...clickIds,
-      userIdentifiers: deps.userIdentifiers,
+      userIdentifiers: extractUserIdentifiers(event, deps.userIdentifiers),
       accountId: event.account_id,
       websiteId: event.website_id,
       funnelEventId: event.event_id,

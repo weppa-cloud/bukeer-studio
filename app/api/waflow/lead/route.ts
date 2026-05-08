@@ -78,8 +78,6 @@ import {
 // path. New writes to funnel_events keep flowing (the trigger no-ops if
 // app.dispatch_function_url is unset).
 // ---------------------------------------------------------------------------
-const DISPATCHER_V1_ENABLED = process.env.FUNNEL_EVENTS_DISPATCHER_V1 === 'true';
-
 const log = createLogger('api.waflow.lead');
 
 const AttributionSchema = z
@@ -135,6 +133,10 @@ function createSupabaseAdmin() {
   return createClient(supabaseUrl, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
+}
+
+function isDispatcherV1Enabled(): boolean {
+  return process.env.FUNNEL_EVENTS_DISPATCHER_V1 === 'true';
 }
 
 async function resolveTenant(
@@ -363,10 +365,10 @@ async function emitWaflowSubmitFunnelEvent(
 
 /**
  * F1 dispatcher path — record the funnel event via the canonical
- * record_funnel_event RPC. Called only when DISPATCHER_V1_ENABLED.
+ * record_funnel_event RPC. Called only when FUNNEL_EVENTS_DISPATCHER_V1=true.
  *
  * Maps the existing Pixel-paired id (`${referenceCode}:lead`) to
- * pixel_event_id (NOT event_id — the sha256 stays the PK). The dispatcher
+ * pixel_event_id (NOT event_id, which stays the stable text PK). The dispatcher
  * Edge Function will read pixel_event_id when forwarding to Meta CAPI so
  * browser Pixel ↔ server CAPI dedup keeps working.
  */
@@ -569,7 +571,7 @@ export async function POST(request: NextRequest) {
       return apiInternalError('Failed to persist waflow lead');
     }
 
-    if (DISPATCHER_V1_ENABLED) {
+    if (isDispatcherV1Enabled()) {
       // F1 dispatcher path. The RPC writes to funnel_events; the DB
       // AFTER INSERT trigger fans out to Meta CAPI (via the dispatcher
       // Edge Function). The legacy direct-call sendWaflowLeadConversion is

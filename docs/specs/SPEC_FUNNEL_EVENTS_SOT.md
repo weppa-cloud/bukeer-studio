@@ -3,6 +3,7 @@
 ## GitHub Tracking
 - **Epic Issue**: [#419](https://github.com/weppa-cloud/bukeer-studio/issues/419)
 - **Child Issues**: [#420 (F1)](https://github.com/weppa-cloud/bukeer-studio/issues/420), [#421 (F2)](https://github.com/weppa-cloud/bukeer-studio/issues/421), [#422 (F3)](https://github.com/weppa-cloud/bukeer-studio/issues/422), [#423 (F4)](https://github.com/weppa-cloud/bukeer-studio/issues/423), [`bukeer-flutter#797` (F3-flutter)](https://github.com/weppa-cloud/bukeer-flutter/issues/797)
+- **Contract workstream**: [#452](https://github.com/weppa-cloud/bukeer-studio/issues/452) Worker A — canonical funnel event governance fields/types.
 - **Milestone**: ColombiaTours Growth OS 90D (due 2026-07-24)
 - **Area**: studio + flutter (cross-repo) + supabase
 
@@ -15,7 +16,7 @@
 
 ## Summary
 
-Establish the operational system that implements [[ADR-029]]: a single canonical `funnel_events` table in Supabase as the source of truth for every funnel event in any Bukeer tenant, with three controlled writers (Studio worker, Flutter CRM, Postgres triggers) and a single dispatcher Edge Function that fans events out to Meta CAPI, Google Ads offline upload, GA4 Measurement Protocol, and any future ad platform — all deduplicated via a global `event_id`.
+Establish the operational system that implements [[ADR-029]]: a single canonical `funnel_events` table in Supabase as the source of truth for every funnel event in any Bukeer tenant, with three controlled writers (Studio worker, Flutter CRM, Postgres triggers) and a single dispatcher Edge Function that fans events out to Meta CAPI, Google Ads offline upload, GA4 Measurement Protocol, and any future ad platform. Rows are identified by canonical `event_id` text; browser/server platform dedupe uses `pixel_event_id`.
 
 ## Motivation
 
@@ -65,10 +66,10 @@ See [[ADR-029]] for full context. Three concrete pains this spec resolves:
 
 > **Reality check (2026-05-03 post-TVB)**: `funnel_events` already exists (`20260504110900_funnel_events.sql`) and the 3 routes already write to it via `lib/growth/funnel-events.ts`. F1 is **schema reconciliation + dispatcher extraction**, not greenfield. Estimate adjusted from L (4-5d) → 5-6d. See ADR-029 §"Implementation reality check".
 
-- [ ] **AC1.1** `funnel_events` schema reconciled to canonical ADR-029 spec: add `pixel_event_id`, `dispatch_status`, `dispatch_attempted_at`, `dispatch_attempt_count`, missing attribution columns (`gclid`, `gbraid`, `wbraid`, `fbp`, `fbc`, `ctwa_clid`, UTM_*), value columns. Widen `funnel_events_event_name_chk` CHECK constraint to cover full ADR-029 event matrix. Migration applied dev/staging/prod.
+- [ ] **AC1.1** `funnel_events` schema reconciled to canonical ADR-029 spec: add `pixel_event_id`, governance fields (`event_version`, `source_system`, `business_stage`, `owner`, `optimization_policy`, `identity_confidence`, `attribution_confidence`), `dispatch_status`, `dispatch_attempted_at`, `dispatch_attempt_count`, missing attribution columns (`gclid`, `gbraid`, `wbraid`, `fbp`, `fbc`, `ctwa_clid`, UTM_*), value columns. Widen `funnel_events_event_name_chk` CHECK constraint to cover full ADR-029 event matrix while accepting legacy aliases during the F1-F3 migration. Migration applied dev/staging/prod.
 - [ ] **AC1.2** `event_destination_mapping` table created and seeded with all 14 events from ADR-029 matrix.
 - [ ] **AC1.3** Supabase RPC `record_funnel_event(payload jsonb)` exists, validates `event_name` against the schema-level CHECK, idempotent on `event_id` (returns existing row if duplicate). RLS: service-role write, tenant-scoped read.
-- [ ] **AC1.4** `app/api/waflow/lead/route.ts` migrated: writes to `funnel_events` via the new `pixel_event_id` contract. The existing Pixel-paired id (e.g. `${referenceCode}:lead`) populates `pixel_event_id`, NOT `event_id` (which stays the sha256 PK). Verify dispatcher reads `pixel_event_id` when forwarding to Meta CAPI.
+- [ ] **AC1.4** `app/api/waflow/lead/route.ts` migrated: writes to `funnel_events` via the new `pixel_event_id` contract. The existing Pixel-paired id (e.g. `${referenceCode}:lead`) populates `pixel_event_id`, NOT `event_id` (which stays the stable text PK). Verify dispatcher reads `pixel_event_id` when forwarding to Meta CAPI.
 - [ ] **AC1.5** `app/api/webhooks/chatwoot/route.ts` migrated; `pixel_event_id` minted server-side (UUIDv4) since browser doesn't supply one.
 - [ ] **AC1.6** `app/api/growth/events/whatsapp-cta/route.ts` migrated.
 - [ ] **AC1.7** Dispatcher Edge Function `dispatch-funnel-event` deployed; invoked via DB trigger AFTER INSERT on `funnel_events` calling `pg_net.http_post`. For Meta destination, invokes existing `lib/meta/conversions-api.ts` logic with `pixel_event_id` as the `event_id` field. Writes outcome to `meta_conversion_events`. **Updates `funnel_events.dispatch_status` to `dispatched` or `failed`.**
@@ -107,6 +108,15 @@ See [[ADR-029]] for full context. Three concrete pains this spec resolves:
 | Table | Column | Type | Notes |
 |-------|--------|------|-------|
 | `funnel_events` | full schema | per ADR-029 | NEW table; one row per event |
+| `funnel_events` | `event_id` | `text` PK | Canonical row id and internal idempotency key. It is not the browser Pixel/CAPI dedupe id. |
+| `funnel_events` | `pixel_event_id` | `text NULL` | Browser Pixel eventID / Meta CAPI event_id. Dispatcher sends this value to Meta for dedupe; when absent, server-only writers mint it before dispatch. |
+| `funnel_events` | `event_version` | `integer` | Contract version for schema governance; starts at `1`. |
+| `funnel_events` | `source_system` | `text` | Canonical writer: `studio_web` \| `chatwoot` \| `flutter_crm` \| `db_trigger`. Legacy values `waflow` and `unknown`, and legacy field `source`, remain accepted as compatibility aliases only. |
+| `funnel_events` | `business_stage` | `text` | Canonical stage: `awareness` \| `intent` \| `lead` \| `engagement` \| `qualify` \| `quote` \| `booking` \| `review_referral` \| `dropped`. Legacy `stage` remains accepted as a compatibility alias only. |
+| `funnel_events` | `owner` | `text` | Owning domain/team for governance: `studio`, `chatwoot`, `crm`, `booking`, `growth_ops`. Booking confirmation/cancellation ownership is `booking`. |
+| `funnel_events` | `optimization_policy` | `text` | `primary_conversion` \| `secondary_conversion` \| `observation_only` \| `internal_only` \| `do_not_dispatch`. Dispatcher and Ads ops use this to prevent accidental bidding-signal sprawl. |
+| `funnel_events` | `identity_confidence` | `text` | `high` \| `medium` \| `low` \| `unknown`; confidence that the human identity is stitched correctly. |
+| `funnel_events` | `attribution_confidence` | `text` | `high` \| `medium` \| `low` \| `unknown`; confidence that click/session attribution is fit for optimization. |
 | `event_destination_mapping` | `funnel_event_name` | text PK | NEW table |
 | `event_destination_mapping` | `destination` | text PK | `meta` \| `google_ads` \| `ga4` \| `tiktok` \| ... |
 | `event_destination_mapping` | `destination_event_name` | text | Platform-specific name |
@@ -121,11 +131,27 @@ See [[ADR-029]] for full context. Three concrete pains this spec resolves:
 
 Migration path: forward-only. `funnel_events` starts empty; existing direct Meta CAPI calls continue until Phase 1 cutover. No backfill required (historical data lives in `meta_conversion_events`).
 
+### Legacy alias compatibility
+
+The contract accepts both canonical event names and legacy aliases during the F1-F3 transition:
+
+| Legacy alias | Canonical event |
+|--------------|-----------------|
+| `qualified_lead` | `crm_lead_stage_qualified` or `chatwoot_label_qualified`, depending on `source_system` |
+| `quote_sent` | `crm_quote_sent` |
+| `booking_confirmed` | `crm_booking_confirmed` |
+
+The same compatibility window applies to field names: `source` is an alias of `source_system`, `stage` is an alias of `business_stage`, and `payload` is an alias of `raw_payload`. New writers must emit the canonical names. Readers should prefer canonical fields and fall back to aliases only for historical rows.
+
+### Booking ownership
+
+Booking confirmation is owned by the database trigger path, not by ad-platform dispatchers or UI code. The canonical owner for `crm_booking_confirmed` and `crm_booking_cancelled` is `booking`; `source_system='db_trigger'` is expected when the event is emitted by the shared Supabase trigger that observes the confirmed/cancelled booking state transition. This preserves Flutter as the operational CRM owner while making the booking event deterministic and replayable.
+
 ## API / Contract Changes
 
 | Endpoint/RPC/Schema | Method | Payload | Notes |
 |---------------------|--------|---------|-------|
-| `record_funnel_event(payload jsonb)` | Supabase RPC | `{event_id, event_name, event_time, source, user_email?, user_phone?, gclid?, fbp?, ...}` | Idempotent on `event_id`. Validates `event_name` against mapping. |
+| `record_funnel_event(payload jsonb)` | Supabase RPC | `{event_id, pixel_event_id?, event_version, event_name, event_time, source_system, business_stage, owner, optimization_policy, identity_confidence, attribution_confidence, user_email?, user_phone?, gclid?, fbp?, ...}` | Idempotent on `event_id`. Validates `event_name` against mapping. Accepts legacy aliases during F1-F3 only. |
 | `record_lead_stage_change(lead_id uuid, new_stage text, agent_id uuid)` | Supabase RPC | – | Wrapper that derives event_name from stage transition + calls `record_funnel_event` |
 | `record_booking_confirmed(booking_id uuid)` | Supabase RPC | – | Wrapper for booking; reads value from booking row + calls `record_funnel_event` |
 | `dispatch-funnel-event` | Supabase Edge Function | trigger payload from `funnel_events` INSERT | Reads mapping; for each enabled destination, invokes destination-specific dispatcher; writes log row |

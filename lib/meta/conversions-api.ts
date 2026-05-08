@@ -163,6 +163,10 @@ export function isMetaCapiConfigured(config: MetaCapiConfig): boolean {
   return Boolean(config.enabled && cleanString(config.pixelId) && cleanString(config.accessToken));
 }
 
+export function isFunnelEventsDispatcherV1Enabled(): boolean {
+  return process.env.FUNNEL_EVENTS_DISPATCHER_V1 === 'true';
+}
+
 export async function buildMetaUserData(input: MetaUserDataInput = {}): Promise<Record<string, unknown>> {
   const email = await hashIfPresent(normalizeEmail(input.email));
   const phone = await hashIfPresent(normalizePhone(input.phone));
@@ -394,6 +398,16 @@ export async function sendMetaConversionEvent(
   const config = resolveMetaCapiConfig(deps.config);
   const request = await buildMetaCapiRequest(input, config);
   const event = request.data[0];
+
+  if (isFunnelEventsDispatcherV1Enabled()) {
+    return {
+      status: 'skipped',
+      eventName: event.event_name,
+      eventId: event.event_id,
+      request,
+      skippedReason: 'FUNNEL_EVENTS_DISPATCHER_V1 owns Meta CAPI dispatch',
+    };
+  }
 
   if (!isMetaCapiConfigured(config)) {
     const skippedReason = 'Meta CAPI is disabled or missing META_PIXEL_ID/META_ACCESS_TOKEN';

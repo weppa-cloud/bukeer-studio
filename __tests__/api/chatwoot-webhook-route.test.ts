@@ -3,6 +3,9 @@ jest.mock("@supabase/supabase-js", () => ({
 }));
 
 jest.mock("@/lib/meta/conversions-api", () => ({
+  isFunnelEventsDispatcherV1Enabled: jest.fn(
+    () => process.env.FUNNEL_EVENTS_DISPATCHER_V1 === "true",
+  ),
   sha256Hex: jest.fn(async (value: string) => {
     const digest = await crypto.subtle.digest(
       "SHA-256",
@@ -66,6 +69,7 @@ describe("/api/webhooks/chatwoot", () => {
     error: { code?: string; message: string } | null;
   }>;
   let funnelRows: Record<string, unknown>[];
+  let rpcCalls: Array<{ fn: string; args: Record<string, unknown> }>;
   let leadRow: Record<string, unknown> | null;
   let duplicateWebhook = false;
 
@@ -139,6 +143,10 @@ describe("/api/webhooks/chatwoot", () => {
         }
         throw new Error(`Unexpected table ${table}`);
       }),
+      rpc: jest.fn((fn: string, args: Record<string, unknown>) => {
+        rpcCalls.push({ fn, args });
+        return Promise.resolve({ data: { event_id: "event-1" }, error: null });
+      }),
     };
   }
 
@@ -154,7 +162,9 @@ describe("/api/webhooks/chatwoot", () => {
     leadUpdates = [];
     leadUpdateResults = [];
     funnelRows = [];
+    rpcCalls = [];
     duplicateWebhook = false;
+    delete process.env.FUNNEL_EVENTS_DISPATCHER_V1;
     leadRow = {
       id: "lead-1",
       account_id: "11111111-1111-4111-8111-111111111111",
@@ -392,6 +402,69 @@ describe("/api/webhooks/chatwoot", () => {
     expect(
       funnelRows.every((row) => /^[0-9a-f]{64}$/.test(String(row.event_id))),
     ).toBe(true);
+  });
+
+  it("records dispatcher-owned lifecycle events via RPC and skips direct Meta conversions", async () => {
+    process.env.FUNNEL_EVENTS_DISPATCHER_V1 = "true";
+    const mod = await import("@/app/api/webhooks/chatwoot/route");
+    const response = await mod.POST(
+      await signedRequest({
+        id: "evt-dispatcher",
+        event: "message_created",
+        timestamp: 1777118400,
+        message: {
+          id: 456,
+          content: "Te enviamos la cotización #ref: HOME-2504-ABCD",
+          conversation_id: 123,
+          conversation: {
+            id: 123,
+            custom_attributes: {
+              reference_code: "HOME-2504-ABCD",
+              lead_status: "qualified",
+              quote_sent: true,
+            },
+          },
+        },
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      success: true,
+      data: {
+        matched: true,
+        conversionsSent: 0,
+      },
+    });
+    expect(sendMetaConversionEvent).not.toHaveBeenCalled();
+    expect(funnelRows).toHaveLength(0);
+    expect(rpcCalls).toHaveLength(2);
+    expect(rpcCalls).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          fn: "record_funnel_event",
+          args: {
+            payload: expect.objectContaining({
+              event_name: "qualified_lead",
+              pixel_event_id: expect.stringMatching(
+                /^[0-9a-f-]{36}$/i,
+              ),
+            }),
+          },
+        }),
+        expect.objectContaining({
+          fn: "record_funnel_event",
+          args: {
+            payload: expect.objectContaining({
+              event_name: "quote_sent",
+              pixel_event_id: expect.stringMatching(
+                /^[0-9a-f-]{36}$/i,
+              ),
+            }),
+          },
+        }),
+      ]),
+    );
   });
 
   it("keeps lifecycle trace when legacy conversation uniqueness blocks the mirror", async () => {
