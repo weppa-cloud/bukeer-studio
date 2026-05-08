@@ -1,6 +1,6 @@
 // supabase/functions/dispatch-funnel-event/index.ts
 //
-// SPEC F1 AC1.7 — Funnel events dispatcher (Meta destination only in this PR).
+// SPEC F1/F2 AC1.7/AC2.3 — Funnel events dispatcher.
 //
 // Contract:
 //   POST /functions/v1/dispatch-funnel-event
@@ -12,9 +12,9 @@
 //   1. Reads the funnel_events row by event_id.
 //   2. Reads enabled destinations from event_destination_mapping for this
 //      event_name.
-//   3. For each destination, calls a destination-specific handler. Currently
-//      ONLY 'meta' is wired (covers AC1.7). Other destinations are skipped
-//      with note 'destination_not_implemented' until F2/F3.
+//   3. For each destination, calls a destination-specific handler. Meta CAPI
+//      and Google Ads offline uploads are wired here; other destinations are
+//      skipped until their platform adapters land.
 //   4. Updates funnel_events.dispatch_status to 'dispatched' (any one
 //      destination succeeded), 'failed' (all enabled destinations failed),
 //      or leaves 'pending' for retry (only if EVERY destination was a
@@ -23,8 +23,8 @@
 //      can log the outcome.
 //
 // Deliberately single-file: per F1 instructions, "don't try to be perfect on
-// the Edge Function packaging — keep it simple". Once F2 adds Google Ads we
-// can extract destinations into separate modules.
+// the Edge Function packaging — keep it simple". Extract destinations once
+// more than Meta/Google are live.
 //
 // Deno runtime. No npm imports allowed; use the Deno-compatible Supabase
 // client and Web Crypto for SHA-256.
@@ -54,6 +54,9 @@ interface FunnelEventRow {
   fbp: string | null;
   fbc: string | null;
   ctwa_clid: string | null;
+  gclid: string | null;
+  gbraid: string | null;
+  wbraid: string | null;
   ip_address: string | null;
   user_agent: string | null;
   value_amount: string | number | null;
@@ -69,6 +72,7 @@ interface MappingRow {
   destination_event_name: string;
   value_field: string | null;
   enabled: boolean;
+  tenant_overrides: Record<string, unknown> | null;
 }
 
 interface TenantMetaContext {
@@ -97,6 +101,7 @@ interface DestinationResult {
 }
 
 const META_PROVIDER = 'meta';
+const GOOGLE_ADS_PROVIDER = 'google_ads';
 
 // --------------------------------------------------------------------------
 // Tiny helpers (mirror lib/meta/conversions-api.ts hashing rules — kept
@@ -349,6 +354,278 @@ async function loadTenantMetaContext(
 }
 
 // --------------------------------------------------------------------------
+// Google Ads destination handler.
+// --------------------------------------------------------------------------
+
+interface GoogleAdsConfig {
+  enabled: boolean;
+  developerToken?: string;
+  loginCustomerId?: string;
+  customerId?: string;
+  clientId?: string;
+  clientSecret?: string;
+  refreshToken?: string;
+  apiVersion: string;
+}
+
+interface GoogleAdsUploadRequest {
+  conversions: Array<Record<string, unknown>>;
+  partialFailure: boolean;
+  validateOnly: boolean;
+}
+
+function readTenantOverride(
+  mapping: MappingRow,
+  accountId: string,
+): Record<string, unknown> {
+  const overrides = mapping.tenant_overrides;
+  if (!overrides || typeof overrides !== 'object') return {};
+  const raw = overrides[accountId];
+  return raw && typeof raw === 'object' && !Array.isArray(raw)
+    ? raw as Record<string, unknown>
+    : {};
+}
+
+function resolveGoogleAdsConversionActionId(
+  event: FunnelEventRow,
+  mapping: MappingRow,
+): string | null {
+  const tenantOverride = readTenantOverride(mapping, event.account_id);
+  const id = tenantOverride.conversion_action_id;
+  return typeof id === 'string' && id.trim() ? id.trim() : null;
+}
+
+function resolveGoogleAdsConfig(): GoogleAdsConfig {
+  const env = (globalThis as unknown as { Deno: { env: { get(k: string): string | undefined } } }).Deno.env;
+  return {
+    enabled: env.get('GOOGLE_ADS_OFFLINE_UPLOAD_ENABLED') === 'true',
+    developerToken: cleanString(env.get('GOOGLE_ADS_DEVELOPER_TOKEN')),
+    loginCustomerId: cleanString(env.get('GOOGLE_ADS_LOGIN_CUSTOMER_ID')),
+    customerId: cleanString(env.get('GOOGLE_ADS_CUSTOMER_ID')),
+    clientId: cleanString(env.get('GOOGLE_ADS_CLIENT_ID')),
+    clientSecret: cleanString(env.get('GOOGLE_ADS_CLIENT_SECRET')),
+    refreshToken: cleanString(env.get('GOOGLE_ADS_REFRESH_TOKEN')),
+    apiVersion: cleanString(env.get('GOOGLE_ADS_API_VERSION')) ?? 'v24',
+  };
+}
+
+async function googleAccessToken(config: GoogleAdsConfig): Promise<string> {
+  if (!config.clientId || !config.clientSecret || !config.refreshToken) {
+    throw new Error('missing_google_ads_oauth_config');
+  }
+
+  const response = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: config.clientId,
+      client_secret: config.clientSecret,
+      refresh_token: config.refreshToken,
+      grant_type: 'refresh_token',
+    }),
+  });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok || typeof body.access_token !== 'string') {
+    throw new Error(`google_ads_oauth_failed_${response.status}`);
+  }
+  return body.access_token;
+}
+
+function stripCustomerId(value: string | undefined): string | undefined {
+  return value?.replace(/\D/g, '') || undefined;
+}
+
+function formatGoogleAdsDateTime(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value.replace('T', ' ');
+  const iso = date.toISOString();
+  return `${iso.slice(0, 10)} ${iso.slice(11, 19)}+00:00`;
+}
+
+async function googleUserIdentifiers(
+  event: FunnelEventRow,
+): Promise<Array<Record<string, unknown>> | undefined> {
+  const identifiers: Array<Record<string, unknown>> = [];
+  const em = await hashed(event.user_email);
+  const ph = await hashedPhone(event.user_phone);
+  if (em?.[0]) identifiers.push({ hashedEmail: em[0], userIdentifierSource: 'FIRST_PARTY' });
+  if (ph?.[0]) identifiers.push({ hashedPhoneNumber: ph[0], userIdentifierSource: 'FIRST_PARTY' });
+  return identifiers.length ? identifiers : undefined;
+}
+
+async function buildGoogleAdsRequest(
+  event: FunnelEventRow,
+  mapping: MappingRow,
+  conversionActionId: string,
+  config: GoogleAdsConfig,
+): Promise<GoogleAdsUploadRequest> {
+  const customerId = stripCustomerId(config.customerId);
+  if (!customerId) throw new Error('missing_google_ads_customer_id');
+
+  const conversion: Record<string, unknown> = {
+    conversionAction: `customers/${customerId}/conversionActions/${conversionActionId}`,
+    conversionDateTime: formatGoogleAdsDateTime(event.occurred_at),
+  };
+  if (cleanString(event.gclid)) conversion.gclid = cleanString(event.gclid);
+  if (cleanString(event.gbraid)) conversion.gbraid = cleanString(event.gbraid);
+  if (cleanString(event.wbraid)) conversion.wbraid = cleanString(event.wbraid);
+  if (mapping.value_field === 'value_amount' && event.value_amount != null) {
+    conversion.conversionValue = Number(event.value_amount);
+    if (event.value_currency) conversion.currencyCode = event.value_currency;
+  }
+  const userIdentifiers = await googleUserIdentifiers(event);
+  if (userIdentifiers) conversion.userIdentifiers = userIdentifiers;
+
+  return {
+    conversions: [conversion],
+    partialFailure: true,
+    validateOnly: false,
+  };
+}
+
+async function insertGoogleAdsLog(
+  supabase: SupabaseClientLike,
+  event: FunnelEventRow,
+  conversionActionId: string,
+  status: 'pending' | 'sent' | 'failed' | 'skipped',
+  requestPayload: unknown,
+  details: { error?: string; providerResponse?: unknown } = {},
+): Promise<{ deduped: boolean }> {
+  const row = {
+    provider: GOOGLE_ADS_PROVIDER,
+    account_id: event.account_id,
+    website_id: event.website_id,
+    funnel_event_id: event.event_id,
+    conversion_action_id: conversionActionId,
+    gclid: event.gclid,
+    gbraid: event.gbraid,
+    wbraid: event.wbraid,
+    conversion_value: event.value_amount,
+    currency_code: event.value_currency,
+    conversion_date_time: event.occurred_at,
+    status,
+    request_payload: requestPayload ?? {},
+    provider_response: details.providerResponse ?? null,
+    error: details.error ?? null,
+    trace: {
+      funnel_event_id: event.event_id,
+      funnel_event_name: event.event_name,
+      reference_code: event.reference_code,
+      dispatcher: 'dispatch-funnel-event-edge-fn',
+    },
+    sent_at: status === 'sent' ? new Date().toISOString() : null,
+  };
+
+  const { error } = await supabase.from('google_ads_offline_uploads').insert(row);
+  if (!error) return { deduped: false };
+  if ((error as { code?: string }).code === '23505') return { deduped: true };
+  throw new Error(error.message ?? 'google_ads_offline_uploads insert failed');
+}
+
+async function updateGoogleAdsLog(
+  supabase: SupabaseClientLike,
+  event: FunnelEventRow,
+  conversionActionId: string,
+  patch: Record<string, unknown>,
+): Promise<void> {
+  const { error } = await supabase
+    .from('google_ads_offline_uploads')
+    .update(patch)
+    .eq('funnel_event_id', event.event_id)
+    .eq('conversion_action_id', conversionActionId);
+  if (error) throw new Error(error.message);
+}
+
+async function dispatchToGoogleAds(
+  event: FunnelEventRow,
+  mapping: MappingRow,
+  supabase: SupabaseClientLike,
+): Promise<DestinationResult> {
+  const conversionActionId = resolveGoogleAdsConversionActionId(event, mapping);
+  if (!conversionActionId) {
+    return {
+      destination: mapping.destination,
+      outcome: 'skipped',
+      reason: 'missing_conversion_action_id',
+    };
+  }
+
+  const config = resolveGoogleAdsConfig();
+  let request: GoogleAdsUploadRequest;
+  try {
+    request = await buildGoogleAdsRequest(event, mapping, conversionActionId, config);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    await insertGoogleAdsLog(supabase, event, conversionActionId, 'skipped', {}, { error: message });
+    return { destination: mapping.destination, outcome: 'skipped', reason: message };
+  }
+
+  if (!event.gclid && !event.gbraid && !event.wbraid) {
+    await insertGoogleAdsLog(supabase, event, conversionActionId, 'skipped', request, {
+      error: 'no_click_id',
+    });
+    return { destination: mapping.destination, outcome: 'skipped', reason: 'no_click_id' };
+  }
+
+  if (!config.enabled || !config.developerToken || !config.customerId) {
+    await insertGoogleAdsLog(supabase, event, conversionActionId, 'skipped', request, {
+      error: 'google_ads_offline_upload_disabled_or_missing_config',
+    });
+    return {
+      destination: mapping.destination,
+      outcome: 'skipped',
+      reason: 'google_ads_offline_upload_disabled_or_missing_config',
+    };
+  }
+
+  const pending = await insertGoogleAdsLog(supabase, event, conversionActionId, 'pending', request);
+  if (pending.deduped) {
+    return { destination: mapping.destination, outcome: 'skipped', reason: 'duplicate_log_row' };
+  }
+
+  try {
+    const accessToken = await googleAccessToken(config);
+    const customerId = stripCustomerId(config.customerId);
+    const response = await fetch(
+      `https://googleads.googleapis.com/${config.apiVersion}/customers/${customerId}:uploadClickConversions`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+          'developer-token': config.developerToken,
+          ...(config.loginCustomerId ? { 'login-customer-id': stripCustomerId(config.loginCustomerId)! } : {}),
+        },
+        body: JSON.stringify(request),
+      },
+    );
+    const responseBody = await response.json().catch(() => null);
+    const partialFailure = responseBody?.partialFailureError;
+    const status = response.ok && !partialFailure ? 'sent' : 'failed';
+    await updateGoogleAdsLog(supabase, event, conversionActionId, {
+      status,
+      provider_response: responseBody,
+      error: status === 'sent'
+        ? null
+        : partialFailure?.message ?? `Google Ads API returned HTTP ${response.status}`,
+      sent_at: status === 'sent' ? new Date().toISOString() : null,
+    });
+    return {
+      destination: mapping.destination,
+      outcome: status === 'sent' ? 'dispatched' : 'failed',
+      reason: status === 'sent' ? undefined : 'google_ads_upload_failed',
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    await updateGoogleAdsLog(supabase, event, conversionActionId, {
+      status: 'failed',
+      error: message,
+    });
+    return { destination: mapping.destination, outcome: 'failed', reason: message };
+  }
+}
+
+// --------------------------------------------------------------------------
 // Main dispatcher entry point.
 // --------------------------------------------------------------------------
 
@@ -395,7 +672,7 @@ async function handle(req: Request): Promise<Response> {
   const { data: eventRow, error: eventErr } = await supabase
     .from('funnel_events')
     .select(
-      'event_id, pixel_event_id, event_name, occurred_at, source, account_id, website_id, reference_code, source_url, user_email, user_phone, external_id, fbp, fbc, ctwa_clid, ip_address, user_agent, value_amount, value_currency, payload, attribution, dispatch_status, dispatch_attempt_count',
+      'event_id, pixel_event_id, event_name, occurred_at, source, account_id, website_id, reference_code, source_url, user_email, user_phone, external_id, fbp, fbc, ctwa_clid, gclid, gbraid, wbraid, ip_address, user_agent, value_amount, value_currency, payload, attribution, dispatch_status, dispatch_attempt_count',
     )
     .eq('event_id', funnelEventId)
     .maybeSingle();
@@ -425,7 +702,7 @@ async function handle(req: Request): Promise<Response> {
 
   const { data: mappings, error: mapErr } = await supabase
     .from('event_destination_mapping')
-    .select('destination, destination_event_name, value_field, enabled')
+    .select('destination, destination_event_name, value_field, enabled, tenant_overrides')
     .eq('funnel_event_name', event.event_name)
     .eq('enabled', true);
 
@@ -442,8 +719,9 @@ async function handle(req: Request): Promise<Response> {
     if (m.destination === 'meta' || m.destination === 'meta_messaging') {
       tenantMetaContext ??= await loadTenantMetaContext(supabase, event);
       results.push(await dispatchToMeta(event, m, supabase, tenantMetaContext));
+    } else if (m.destination === 'google_ads') {
+      results.push(await dispatchToGoogleAds(event, m, supabase));
     } else {
-      // F2/F3 destinations not implemented in this PR.
       results.push({
         destination: m.destination,
         outcome: 'skipped',
