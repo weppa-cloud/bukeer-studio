@@ -388,7 +388,7 @@ function HumanOperations({
       state: "live",
       href: runsHref,
       action: null,
-      cta: "Abrir Review Queue",
+      cta: "Abrir revisiones",
       detail: "Aprobar, rechazar o devolver change sets y aprendizajes.",
       icon: <ShieldCheck className="h-4 w-4" aria-hidden="true" />,
     },
@@ -933,9 +933,9 @@ export function GrowthCeoCockpit({ data }: { data: GrowthCeoCockpitData }) {
                 <p className="text-xs font-semibold uppercase text-[var(--studio-text-muted,theme(colors.zinc.500))]">
                   CEO Cockpit
                 </p>
-                <h1 className="text-xl font-semibold text-[var(--studio-text,theme(colors.zinc.950))]">
-                  Growth OS persigue {data.objective.northStar}
-                </h1>
+                <h2 className="text-xl font-semibold text-[var(--studio-text,theme(colors.zinc.950))]">
+                  Persigue {data.objective.northStar}
+                </h2>
               </div>
             </div>
             <p className="mt-3 max-w-4xl break-words text-sm text-[var(--studio-text-muted,theme(colors.zinc.600))]">
@@ -957,7 +957,7 @@ export function GrowthCeoCockpit({ data }: { data: GrowthCeoCockpitData }) {
             />
             <ActionLink
               href={runsHref}
-              label="Review Queue"
+              label="Reviews"
               icon={<ShieldCheck className="h-4 w-4" aria-hidden="true" />}
             />
             <ActionLink

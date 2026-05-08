@@ -23,7 +23,7 @@ export function ProductVideoHero({
   className,
 }: ProductVideoHeroProps) {
   const [open, setOpen] = useState(false);
-  const meta = parseVideoMeta(videoUrl);
+  const meta = parseVideoMeta(videoUrl, { muted: false });
   const locale = useWebsiteLocale();
   const text = getPublicUiExtraTextGetter(locale);
 

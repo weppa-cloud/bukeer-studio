@@ -670,6 +670,117 @@ async function claimSeededRun(supabase, opts, lane, claimId, workspacePath) {
   return run;
 }
 
+async function claimReadyWorkItemRun(supabase, opts, lane, claimId, workspacePath) {
+  const { data: workItem, error: workItemError } = await supabase
+    .from("growth_work_items")
+    .select("*")
+    .eq("account_id", opts.accountId)
+    .eq("website_id", opts.websiteId)
+    .eq("lane", lane)
+    .eq("status", "ready")
+    .order("updated_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (workItemError) {
+    if (workItemError.code === "42P01" || workItemError.code === "PGRST205") {
+      return null;
+    }
+    throw new Error(
+      `claimReadyWorkItemRun(${lane}) failed: ${workItemError.message}`,
+    );
+  }
+  if (!workItem?.id) return null;
+
+  const runSeed = {
+    account_id: opts.accountId,
+    website_id: opts.websiteId,
+    lane,
+    locale: workItem.locale ?? opts.locale,
+    market: workItem.market ?? opts.market,
+  };
+  const agentDefinition = await fetchAgentDefinition(supabase, runSeed);
+  if (!agentDefinition?.agent_id) {
+    await supabase
+      .from("growth_work_items")
+      .update({
+        progress_label: "No enabled agent definition for lane",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", workItem.id)
+      .eq("website_id", opts.websiteId);
+    return null;
+  }
+
+  const now = new Date().toISOString();
+  const runId = randomUUID();
+  const runInsert = {
+    run_id: runId,
+    account_id: opts.accountId,
+    website_id: opts.websiteId,
+    agent_id: agentDefinition.agent_id,
+    lane,
+    source_table: "growth_work_items",
+    source_id: workItem.id,
+    status: "claimed",
+    locale: runSeed.locale,
+    market: runSeed.market,
+    attempts: 0,
+    claim_id: claimId,
+    workspace_path: workspacePath,
+    heartbeat_at: now,
+    evidence: {
+      source: "growth_work_items",
+      claim_source: "ready_growth_work_item",
+      allowed_action_class: workItem.allowed_action_class ?? null,
+      risk_level: workItem.risk_level ?? null,
+      risk_score: workItem.risk_score ?? null,
+    },
+    created_at: now,
+    updated_at: now,
+  };
+
+  const { data: runRows, error: runError } = await supabase
+    .from("growth_agent_runs")
+    .insert(runInsert)
+    .select("*")
+    .limit(1);
+  if (runError) {
+    throw new Error(`create work item run failed: ${runError.message}`);
+  }
+  const run = Array.isArray(runRows) ? runRows[0] : runRows;
+  if (!run?.run_id) return null;
+
+  const { error: updateError } = await supabase
+    .from("growth_work_items")
+    .update({
+      status: "running",
+      run_id: run.run_id,
+      claimed_at: now,
+      progress_label: "Runtime claimed from work item queue",
+      updated_at: now,
+    })
+    .eq("id", workItem.id)
+    .eq("website_id", opts.websiteId)
+    .eq("status", "ready");
+  if (updateError) {
+    throw new Error(`work item claim update failed: ${updateError.message}`);
+  }
+
+  await writeRunEvent(supabase, run, "claimed", {
+    message: `Claimed growth_work_items row for lane=${lane}`,
+    payload: {
+      claim_id: claimId,
+      workspace_path: workspacePath,
+      source_table: run.source_table,
+      source_id: run.source_id,
+      allowed_action_class: workItem.allowed_action_class ?? null,
+    },
+  });
+
+  return run;
+}
+
 async function createArtifact(artifactsRoot, run, runtimeContext) {
   const dir = path.join(
     artifactsRoot,
@@ -1179,16 +1290,27 @@ async function claimLane(supabase, opts, lane) {
   );
   await fs.mkdir(workspacePath, { recursive: true });
 
-  const { data, error } = await supabase.rpc("claim_growth_agent_run", {
-    p_account_id: opts.accountId,
-    p_website_id: opts.websiteId,
-    p_lane: lane,
-    p_claim_id: claimId,
-    p_workspace_path: workspacePath,
-  });
+  let run = await claimReadyWorkItemRun(
+    supabase,
+    opts,
+    lane,
+    claimId,
+    workspacePath,
+  );
+  if (!run?.run_id) {
+    const { data, error } = await supabase.rpc("claim_growth_agent_run", {
+      p_account_id: opts.accountId,
+      p_website_id: opts.websiteId,
+      p_lane: lane,
+      p_claim_id: claimId,
+      p_workspace_path: workspacePath,
+    });
 
-  if (error) throw new Error(`claim RPC failed lane=${lane}: ${error.message}`);
-  let run = Array.isArray(data) ? data[0] : data;
+    if (error) {
+      throw new Error(`claim RPC failed lane=${lane}: ${error.message}`);
+    }
+    run = Array.isArray(data) ? data[0] : data;
+  }
   if (!run?.run_id) {
     run = await claimSeededRun(supabase, opts, lane, claimId, workspacePath);
     if (!run?.run_id) {

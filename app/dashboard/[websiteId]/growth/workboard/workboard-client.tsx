@@ -252,14 +252,14 @@ function autonomyCopy(card: WorkboardCard): {
   tone: "neutral" | "info" | "success" | "warning" | "danger";
 } {
   if (card.column === "triage") {
-    return { label: "Pendiente de routing", tone: "neutral" };
+    return { label: "Pide humano: pendiente de routing", tone: "neutral" };
   }
   if (card.column === "ready") {
-    return { label: "Listo para runtime", tone: "info" };
+    return { label: "Sigue solo: listo para runtime", tone: "info" };
   }
   if (card.column === "running") {
     return {
-      label: card.runId ? "Run activo" : "Sin run activo",
+      label: card.runId ? "Sigue solo: run activo" : "Pide humano: sin run",
       tone: "info",
     };
   }
@@ -270,13 +270,13 @@ function autonomyCopy(card: WorkboardCard): {
     card.column === "review_needed" ||
     card.autonomyLabel === "revision_humana"
   ) {
-    return { label: "Necesita decisión", tone: "warning" };
+    return { label: "Pide humano: necesita decisión", tone: "warning" };
   }
   if (card.column === "auto_completed") {
-    return { label: "Completado", tone: "success" };
+    return { label: "Resultado completado", tone: "success" };
   }
   if (card.column === "published_applied") {
-    return { label: "Aplicado", tone: "success" };
+    return { label: "Resultado aplicado", tone: "success" };
   }
   return { label: "Sigue solo", tone: "success" };
 }

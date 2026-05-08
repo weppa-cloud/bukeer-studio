@@ -26,6 +26,7 @@ export interface ContentPublicationPlanInput {
   targetId?: string | null;
   beforeRow?: JsonRecord | null;
   article: {
+    id?: string;
     title: string;
     slug: string;
     content: string;
@@ -35,6 +36,8 @@ export interface ContentPublicationPlanInput {
     seo_keywords?: string[];
     featured_image?: string | null;
     featured_image_alt?: string | null;
+    category_id?: string | null;
+    translation_group_id?: string | null;
   };
   baseline?: JsonRecord;
   successMetric?: string;

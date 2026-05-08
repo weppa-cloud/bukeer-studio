@@ -40,10 +40,10 @@ const LANE_MISSIONS: Record<AgentLane, string> = {
 
 const LANE_SAFETY: Record<AgentLane, string> = {
   orchestrator: "Nunca muta negocio directamente.",
-  technical_remediation: "Auto-apply solo reversible y smoke-verificable.",
-  transcreation: "Nunca publica ni expone hreflang sin Curator.",
-  content_creator: "No puede aprobar su propio contenido.",
-  content_curator: "Council aprueba experimentos activos.",
+  technical_remediation: "Live gated solo reversible y smoke-verificable.",
+  transcreation: "Live gated solo con quality gate y rollback completo.",
+  content_creator: "Live gated solo organico con caps, smoke y outcome.",
+  content_curator: "Paid, experimentos y outreach siguen bloqueados.",
 };
 
 const MODE_LABELS: Record<string, string> = {
@@ -52,7 +52,7 @@ const MODE_LABELS: Record<string, string> = {
   auto_apply_safe: "Auto-apply (safe)",
 };
 
-type ToolPolicyState = "allowed" | "gated" | "blocked" | "future_safe_apply";
+type ToolPolicyState = "allowed" | "live_gated" | "gated" | "blocked";
 
 interface ToolAction {
   actionClass: string;
@@ -87,11 +87,11 @@ const TOOL_ACTIONS: ReadonlyArray<ToolAction> = [
     actionClass: "safe_apply",
     label: "Apply reversible technical change",
     states: {
-      orchestrator: "future_safe_apply",
-      technical_remediation: "future_safe_apply",
+      orchestrator: "blocked",
+      technical_remediation: "live_gated",
       transcreation: "blocked",
       content_creator: "blocked",
-      content_curator: "future_safe_apply",
+      content_curator: "blocked",
     },
   },
   {
@@ -100,9 +100,9 @@ const TOOL_ACTIONS: ReadonlyArray<ToolAction> = [
     states: {
       orchestrator: "blocked",
       technical_remediation: "blocked",
-      transcreation: "gated",
-      content_creator: "gated",
-      content_curator: "gated",
+      transcreation: "blocked",
+      content_creator: "live_gated",
+      content_curator: "live_gated",
     },
   },
   {
@@ -111,9 +111,9 @@ const TOOL_ACTIONS: ReadonlyArray<ToolAction> = [
     states: {
       orchestrator: "blocked",
       technical_remediation: "blocked",
-      transcreation: "gated",
+      transcreation: "live_gated",
       content_creator: "blocked",
-      content_curator: "gated",
+      content_curator: "blocked",
     },
   },
   {
@@ -153,16 +153,16 @@ const TOOL_ACTIONS: ReadonlyArray<ToolAction> = [
 
 const POLICY_LABELS: Record<ToolPolicyState, string> = {
   allowed: "Allowed",
+  live_gated: "Live gated",
   gated: "Human",
   blocked: "Blocked",
-  future_safe_apply: ">=0.90",
 };
 
 const POLICY_CLASSES: Record<ToolPolicyState, string> = {
   allowed: "bg-emerald-100 text-emerald-800 border border-emerald-200",
+  live_gated: "bg-sky-100 text-sky-800 border border-sky-200",
   gated: "bg-amber-100 text-amber-800 border border-amber-200",
   blocked: "bg-zinc-100 text-zinc-700 border border-zinc-200",
-  future_safe_apply: "bg-sky-100 text-sky-800 border border-sky-200",
 };
 
 export default async function GrowthAgentsPage({ params }: AgentsPageProps) {
@@ -376,10 +376,25 @@ export default async function GrowthAgentsPage({ params }: AgentsPageProps) {
                         {runtime.active_skills + runtime.draft_skills}
                       </dd>
                     </div>
+                    <div>
+                      <dt className="text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                        Cost
+                      </dt>
+                      <dd className="font-semibold">
+                        ${runtime.cost_usd.toFixed(2)}
+                      </dd>
+                    </div>
                   </dl>
                   <p className="mt-3 rounded-md bg-[var(--studio-surface-muted,theme(colors.zinc.50))] p-2 text-xs text-[var(--studio-text-muted,theme(colors.zinc.600))]">
                     {LANE_SAFETY[lane]}
                   </p>
+                  {runtime.recommendations.length > 0 ? (
+                    <ul className="mt-3 space-y-1 text-xs text-[var(--studio-text-muted,theme(colors.zinc.600))]">
+                      {runtime.recommendations.map((recommendation) => (
+                        <li key={recommendation}>• {recommendation}</li>
+                      ))}
+                    </ul>
+                  ) : null}
                   <div className="mt-3 flex flex-wrap gap-2 text-xs">
                     <Link
                       href={`/dashboard/${websiteId}/growth/runs?lane=${lane}`}
@@ -483,9 +498,9 @@ export default async function GrowthAgentsPage({ params }: AgentsPageProps) {
                 </dd>
               </div>
               <div>
-                <dt className="font-medium text-sky-800">&gt;=0.90</dt>
+                <dt className="font-medium text-sky-800">Live gated</dt>
                 <dd className="text-[var(--studio-text-muted,theme(colors.zinc.500))]">
-                  Future safe apply requires lane agreement and smoke pass.
+                  Policy, caps, freshness, smoke, rollback and outcome required.
                 </dd>
               </div>
               <div>

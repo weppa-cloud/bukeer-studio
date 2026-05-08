@@ -7,6 +7,10 @@ export interface VideoMeta {
   videoId: string | null;
 }
 
+export interface VideoMetaOptions {
+  muted?: boolean;
+}
+
 const YOUTUBE_RE = /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{11})(?:[?&]t=(\d+))?/;
 const VIMEO_RE = /vimeo\.com\/(?:video\/)?(\d+)/;
 const MP4_RE = /\.(mp4|webm|ogg)(\?.*)?$/i;
@@ -18,10 +22,11 @@ export function detectVideoProvider(url: string): VideoProvider {
   return 'external';
 }
 
-export function parseVideoMeta(url: string): VideoMeta | null {
+export function parseVideoMeta(url: string, options: VideoMetaOptions = {}): VideoMeta | null {
   if (!url || typeof url !== 'string') return null;
 
   const provider = detectVideoProvider(url);
+  const muted = options.muted ?? true;
 
   if (provider === 'youtube') {
     const match = url.match(YOUTUBE_RE);
@@ -31,7 +36,7 @@ export function parseVideoMeta(url: string): VideoMeta | null {
     return {
       provider,
       videoId,
-      embedUrl: `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=1${t}`,
+      embedUrl: `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=${muted ? '1' : '0'}${t}`,
       thumbnailUrl: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
     };
   }
@@ -43,7 +48,7 @@ export function parseVideoMeta(url: string): VideoMeta | null {
     return {
       provider,
       videoId,
-      embedUrl: `https://player.vimeo.com/video/${videoId}?autoplay=1&muted=1`,
+      embedUrl: `https://player.vimeo.com/video/${videoId}?autoplay=1&muted=${muted ? '1' : '0'}`,
       thumbnailUrl: null,
     };
   }

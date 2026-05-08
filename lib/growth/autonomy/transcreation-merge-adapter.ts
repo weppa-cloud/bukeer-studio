@@ -125,6 +125,39 @@ function buildIdempotencyKey(input: TranscreationMergePlanInput): string {
   ].join(":");
 }
 
+function buildTargetMerge(input: TranscreationMergePlanInput, now: Date): JsonRecord {
+  if (input.localizedVariantId) {
+    return {
+      page_type: input.pageType,
+      source_entity_id: input.sourceEntityId,
+      target_entity_id: input.targetEntityId ?? null,
+      target_locale: input.targetLocale,
+      body_overlay_v2: input.payload.body_overlay_v2 ?? {
+        title: input.payload.title ?? null,
+        slug: input.payload.slug ?? null,
+        meta_title: input.payload.meta_title,
+        meta_desc: input.payload.meta_desc,
+        h1: input.payload.h1 ?? null,
+        body_content: input.payload.body_content ?? null,
+        applied_at: now.toISOString(),
+      },
+      status: "applied",
+    };
+  }
+
+  return {
+    page_type: input.pageType,
+    page_id: input.sourceEntityId,
+    target_locale: input.targetLocale,
+    payload: input.payload,
+    payload_v2: {
+      ...input.payload,
+      applied_at: now.toISOString(),
+    },
+    status: "applied",
+  };
+}
+
 export function planTranscreationMerge(
   input: TranscreationMergePlanInput,
 ): TranscreationMergePlan {
@@ -181,15 +214,7 @@ export function planTranscreationMerge(
     after_payload: {
       table: targetTable,
       target_id: targetId,
-      merge: {
-        page_type: input.pageType,
-        source_entity_id: input.sourceEntityId,
-        target_entity_id: input.targetEntityId ?? null,
-        target_locale: input.targetLocale,
-        payload: input.payload,
-        status: "applied",
-        applied_at: now.toISOString(),
-      },
+      merge: buildTargetMerge(input, now),
     },
     smoke_result: smoke,
     rollback_payload: {

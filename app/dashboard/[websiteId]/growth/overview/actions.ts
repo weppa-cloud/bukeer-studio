@@ -7,6 +7,7 @@ import {
   extractRollbackRestore,
   type TechnicalRemediationTargetTable,
 } from "@/lib/growth/autonomy/technical-remediation-adapter";
+import { promoteGrowthOpportunityCandidates } from "@/lib/growth/autonomy/candidate-promotion";
 import { revalidateGrowthPublicationSurface } from "@/lib/growth/autonomy/publication-revalidation";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/service-role";
 
@@ -70,6 +71,136 @@ export async function toggleGrowthKillSwitch(
     ok: true,
     message: nextEnabled ? "Kill switch enabled." : "Kill switch disabled.",
   };
+}
+
+export async function pauseAutonomyLane(
+  formData: FormData,
+): Promise<ActionResult> {
+  const websiteId = String(formData.get("websiteId") ?? "");
+  const lane = String(formData.get("lane") ?? "");
+  const reason = String(formData.get("reason") ?? "Manual lane pause.");
+  if (!websiteId || !lane) return { ok: false, message: "Missing lane." };
+
+  const ctx = await requireGrowthRole(websiteId, "council_admin");
+  const admin = createSupabaseServiceRoleClient();
+  const { error } = await table(admin, "growth_autonomy_policies")
+    .update({
+      kill_switch_enabled: true,
+      paused_reason: reason,
+      updated_by: ctx.userId,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("account_id", ctx.accountId)
+    .eq("website_id", ctx.websiteId)
+    .eq("lane", lane);
+
+  if (error) return { ok: false, message: `Could not pause lane: ${error.message}` };
+  revalidateGrowthOverview(websiteId);
+  return { ok: true, message: "Lane paused." };
+}
+
+export async function togglePolicyDryRunOnly(
+  formData: FormData,
+): Promise<ActionResult> {
+  const websiteId = String(formData.get("websiteId") ?? "");
+  const policyId = String(formData.get("policyId") ?? "");
+  const dryRunOnly = String(formData.get("dryRunOnly") ?? "") === "true";
+  if (!websiteId || !policyId) return { ok: false, message: "Missing policy." };
+
+  const ctx = await requireGrowthRole(websiteId, "council_admin");
+  const admin = createSupabaseServiceRoleClient();
+  const { error } = await table(admin, "growth_autonomy_policies")
+    .update({
+      dry_run_only: dryRunOnly,
+      updated_by: ctx.userId,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("account_id", ctx.accountId)
+    .eq("website_id", ctx.websiteId)
+    .eq("id", policyId);
+
+  if (error) {
+    return { ok: false, message: `Could not update policy: ${error.message}` };
+  }
+  revalidateGrowthOverview(websiteId);
+  return {
+    ok: true,
+    message: dryRunOnly ? "Policy set to dry-run only." : "Policy enabled for live gated execution.",
+  };
+}
+
+export async function promoteCandidateToWorkItem(
+  formData: FormData,
+): Promise<ActionResult> {
+  const websiteId = String(formData.get("websiteId") ?? "");
+  if (!websiteId) return { ok: false, message: "Missing websiteId." };
+
+  const ctx = await requireGrowthRole(websiteId, "growth_operator");
+  const admin = createSupabaseServiceRoleClient();
+  const results = await promoteGrowthOpportunityCandidates({
+    supabase: admin,
+    accountId: ctx.accountId,
+    websiteId: ctx.websiteId,
+    limit: 10,
+  });
+  const promoted = results.filter((result) => result.promoted).length;
+  revalidateGrowthOverview(websiteId);
+  return {
+    ok: true,
+    message: `Promoted ${promoted} candidate(s) to work items.`,
+  };
+}
+
+export async function activateGrowthAgentSkill(
+  formData: FormData,
+): Promise<ActionResult> {
+  const websiteId = String(formData.get("websiteId") ?? "");
+  const skillId = String(formData.get("skillId") ?? "");
+  if (!websiteId || !skillId) return { ok: false, message: "Missing skill." };
+
+  const ctx = await requireGrowthRole(websiteId, "curator");
+  const admin = createSupabaseServiceRoleClient();
+  const { error } = await table(admin, "growth_agent_skills")
+    .update({
+      status: "active",
+      approved_by: ctx.userId,
+      approved_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("account_id", ctx.accountId)
+    .eq("website_id", ctx.websiteId)
+    .eq("id", skillId);
+
+  if (error) return { ok: false, message: `Could not activate skill: ${error.message}` };
+  revalidateGrowthOverview(websiteId);
+  return { ok: true, message: "Skill activated." };
+}
+
+export async function deprecateGrowthAgentSkill(
+  formData: FormData,
+): Promise<ActionResult> {
+  const websiteId = String(formData.get("websiteId") ?? "");
+  const skillId = String(formData.get("skillId") ?? "");
+  if (!websiteId || !skillId) return { ok: false, message: "Missing skill." };
+
+  const ctx = await requireGrowthRole(websiteId, "curator");
+  const admin = createSupabaseServiceRoleClient();
+  const { error } = await table(admin, "growth_agent_skills")
+    .update({
+      status: "deprecated",
+      evidence: {
+        deprecated_by: ctx.userId,
+        deprecated_at: new Date().toISOString(),
+      },
+      updated_at: new Date().toISOString(),
+    })
+    .eq("account_id", ctx.accountId)
+    .eq("website_id", ctx.websiteId)
+    .eq("id", skillId);
+
+  if (error) return { ok: false, message: `Could not deprecate skill: ${error.message}` };
+  revalidateGrowthOverview(websiteId);
+  return { ok: true, message: "Skill deprecated." };
 }
 
 export async function rollbackGrowthPublicationJob(

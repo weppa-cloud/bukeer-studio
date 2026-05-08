@@ -123,6 +123,8 @@ function emptyRuntimeByLane(): Record<AgentLane, LaneRuntimeSummary> {
         draft_memories: 0,
         active_skills: 0,
         draft_skills: 0,
+        cost_usd: 0,
+        recommendations: [],
       },
     }),
     {} as Record<AgentLane, LaneRuntimeSummary>,
@@ -317,6 +319,8 @@ export interface LaneRuntimeSummary {
   draft_memories: number;
   active_skills: number;
   draft_skills: number;
+  cost_usd: number;
+  recommendations: string[];
 }
 
 export interface RuntimeHealthSummary {
@@ -545,10 +549,14 @@ async function fetchRuntimeByLane(
         websiteId,
         accountId,
       ),
-      readRuntimeRows<{ lane: string; artifact_complete: boolean }>(
+      readRuntimeRows<{
+        lane: string;
+        artifact_complete: boolean;
+        cost_usd: number | null;
+      }>(
         runtimeSupabase,
         "growth_agent_run_metrics",
-        "lane, artifact_complete",
+        "lane, artifact_complete, cost_usd",
         websiteId,
         accountId,
       ),
@@ -592,9 +600,11 @@ async function fetchRuntimeByLane(
   }
   for (const row of metrics.rows) {
     const lane = AgentLaneSchema.safeParse(row.lane);
-    if (lane.success && row.artifact_complete) {
+    if (!lane.success) continue;
+    if (row.artifact_complete) {
       runtime[lane.data].metrics_complete += 1;
     }
+    runtime[lane.data].cost_usd += Number(row.cost_usd) || 0;
   }
   for (const row of toolCalls.rows) {
     const lane = AgentLaneSchema.safeParse(row.lane);
@@ -621,6 +631,28 @@ async function fetchRuntimeByLane(
     if (!lane.success) continue;
     if (row.status === "active") runtime[lane.data].active_skills += 1;
     if (row.status === "draft") runtime[lane.data].draft_skills += 1;
+  }
+
+  for (const lane of CANONICAL_LANES) {
+    const summary = runtime[lane];
+    const recommendations: string[] = [];
+    if (summary.blocked_tool_calls > 0) {
+      recommendations.push("Revisar tools bloqueadas por policy.");
+    }
+    if (summary.draft_skills > 0) {
+      recommendations.push("Curar skills draft antes de activar.");
+    }
+    if (summary.replay_candidates > 0) {
+      recommendations.push("Promover replay cases repetibles.");
+    }
+    if (summary.runs > 0 && summary.metrics_complete / summary.runs < 0.8) {
+      recommendations.push("Auditar artifacts incompletos del executor.");
+    }
+    if (summary.cost_usd > 50) {
+      recommendations.push("Revisar costo y throughput de la lane.");
+    }
+    summary.cost_usd = Number(summary.cost_usd.toFixed(4));
+    summary.recommendations = recommendations;
   }
 
   return runtime;

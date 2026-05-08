@@ -28,7 +28,7 @@ const TABS: ReadonlyArray<{
 }> = [
   {
     slug: "overview",
-    label: "CEO Cockpit",
+    label: "Command Center",
     href: (id) => `/dashboard/${id}/growth/overview`,
   },
   {
