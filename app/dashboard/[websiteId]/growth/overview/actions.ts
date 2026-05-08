@@ -9,6 +9,7 @@ import {
 } from "@/lib/growth/autonomy/technical-remediation-adapter";
 import { promoteGrowthOpportunityCandidates } from "@/lib/growth/autonomy/candidate-promotion";
 import { revalidateGrowthPublicationSurface } from "@/lib/growth/autonomy/publication-revalidation";
+import { getLaneAgreement } from "@/lib/growth/console/queries";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/service-role";
 
 type ActionResult = {
@@ -31,9 +32,16 @@ function table(
 
 function revalidateGrowthOverview(websiteId: string) {
   revalidatePath(`/dashboard/${websiteId}/growth/overview`);
+  revalidatePath(`/dashboard/${websiteId}/growth/agents`);
   revalidatePath(`/dashboard/${websiteId}/growth/workboard`);
   revalidatePath(`/dashboard/${websiteId}/growth/runs`);
   revalidatePath(`/dashboard/${websiteId}/growth/data-health`);
+}
+
+function boundedInt(value: FormDataEntryValue | null, fallback: number) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.max(0, Math.floor(parsed));
 }
 
 export async function toggleGrowthKillSwitch(
@@ -43,7 +51,7 @@ export async function toggleGrowthKillSwitch(
   const nextEnabled = String(formData.get("nextEnabled") ?? "") === "true";
   if (!websiteId) return { ok: false, message: "Missing websiteId." };
 
-  const ctx = await requireGrowthRole(websiteId, "council_admin");
+  const ctx = await requireGrowthRole(websiteId, "growth_operator");
   const admin = createSupabaseServiceRoleClient();
   const now = new Date().toISOString();
 
@@ -129,6 +137,70 @@ export async function togglePolicyDryRunOnly(
   };
 }
 
+export async function toggleGrowthAutonomyPolicy(
+  formData: FormData,
+): Promise<ActionResult> {
+  const websiteId = String(formData.get("websiteId") ?? "");
+  const policyId = String(formData.get("policyId") ?? "");
+  const enabled = String(formData.get("enabled") ?? "") === "true";
+  if (!websiteId || !policyId) return { ok: false, message: "Missing policy." };
+
+  const ctx = await requireGrowthRole(websiteId, "council_admin");
+  const admin = createSupabaseServiceRoleClient();
+  const payload: Record<string, unknown> = {
+    enabled,
+    paused_reason: enabled ? null : "Policy disabled from CEO cockpit.",
+    updated_by: ctx.userId,
+    updated_at: new Date().toISOString(),
+  };
+  if (enabled) payload.kill_switch_enabled = false;
+  const { error } = await table(admin, "growth_autonomy_policies")
+    .update(payload)
+    .eq("account_id", ctx.accountId)
+    .eq("website_id", ctx.websiteId)
+    .eq("id", policyId);
+
+  if (error) {
+    return { ok: false, message: `Could not toggle policy: ${error.message}` };
+  }
+  revalidateGrowthOverview(websiteId);
+  return { ok: true, message: enabled ? "Policy enabled." : "Policy disabled." };
+}
+
+export async function updateAutonomyPolicyCaps(
+  formData: FormData,
+): Promise<ActionResult> {
+  const websiteId = String(formData.get("websiteId") ?? "");
+  const policyId = String(formData.get("policyId") ?? "");
+  const dailyCap = boundedInt(formData.get("dailyCap"), 0);
+  const weeklyCap = Math.max(dailyCap, boundedInt(formData.get("weeklyCap"), dailyCap));
+  const maxRiskScore = Math.min(
+    100,
+    boundedInt(formData.get("maxRiskScore"), 60),
+  );
+  if (!websiteId || !policyId) return { ok: false, message: "Missing policy." };
+
+  const ctx = await requireGrowthRole(websiteId, "council_admin");
+  const admin = createSupabaseServiceRoleClient();
+  const { error } = await table(admin, "growth_autonomy_policies")
+    .update({
+      daily_cap: dailyCap,
+      weekly_cap: weeklyCap,
+      max_risk_score: maxRiskScore,
+      updated_by: ctx.userId,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("account_id", ctx.accountId)
+    .eq("website_id", ctx.websiteId)
+    .eq("id", policyId);
+
+  if (error) {
+    return { ok: false, message: `Could not update caps: ${error.message}` };
+  }
+  revalidateGrowthOverview(websiteId);
+  return { ok: true, message: "Policy caps updated." };
+}
+
 export async function promoteCandidateToWorkItem(
   formData: FormData,
 ): Promise<ActionResult> {
@@ -160,6 +232,30 @@ export async function activateGrowthAgentSkill(
 
   const ctx = await requireGrowthRole(websiteId, "curator");
   const admin = createSupabaseServiceRoleClient();
+  const { data: skillRow, error: skillLoadError } = await table(
+    admin,
+    "growth_agent_skills",
+  )
+    .select("lane")
+    .eq("account_id", ctx.accountId)
+    .eq("website_id", ctx.websiteId)
+    .eq("id", skillId)
+    .maybeSingle();
+
+  if (skillLoadError || !skillRow) {
+    return { ok: false, message: "Skill not found." };
+  }
+  const lane = typeof skillRow.lane === "string" ? skillRow.lane : null;
+  const agreement = await getLaneAgreement(ctx.websiteId);
+  const laneAgreement =
+    agreement?.lanes.find((entry) => entry.lane === lane)?.agreement ?? null;
+  if (laneAgreement == null || laneAgreement < 0.9) {
+    return {
+      ok: false,
+      message: "Skill activation blocked: replay agreement is below 0.90.",
+    };
+  }
+
   const { error } = await table(admin, "growth_agent_skills")
     .update({
       status: "active",
@@ -174,6 +270,41 @@ export async function activateGrowthAgentSkill(
   if (error) return { ok: false, message: `Could not activate skill: ${error.message}` };
   revalidateGrowthOverview(websiteId);
   return { ok: true, message: "Skill activated." };
+}
+
+export async function dryVerifyGrowthPublicationJobRollback(
+  formData: FormData,
+): Promise<ActionResult> {
+  const websiteId = String(formData.get("websiteId") ?? "");
+  const publicationJobId = String(formData.get("publicationJobId") ?? "");
+  if (!websiteId || !publicationJobId) {
+    return { ok: false, message: "Missing publication job." };
+  }
+
+  const ctx = await requireGrowthRole(websiteId, "curator");
+  const admin = createSupabaseServiceRoleClient();
+  const { data: jobRow, error } = await table(admin, "growth_publication_jobs")
+    .select("id,status,target_id,rollback_payload")
+    .eq("account_id", ctx.accountId)
+    .eq("website_id", ctx.websiteId)
+    .eq("id", publicationJobId)
+    .maybeSingle();
+
+  if (error || !jobRow) return { ok: false, message: "Publication job not found." };
+  if (!["applied", "smoke_passed", "smoke_failed"].includes(String(jobRow.status))) {
+    return { ok: false, message: "Rollback is not available for this job state." };
+  }
+
+  const rollback = extractRollbackRestore(jobRow.rollback_payload);
+  if (rollback.targetId !== jobRow.target_id) {
+    return { ok: false, message: "Rollback target mismatch." };
+  }
+  if (Object.keys(rollback.restore).length === 0) {
+    return { ok: false, message: "Rollback payload has no restore fields." };
+  }
+
+  revalidateGrowthOverview(websiteId);
+  return { ok: true, message: "Rollback dry-verify passed." };
 }
 
 export async function deprecateGrowthAgentSkill(

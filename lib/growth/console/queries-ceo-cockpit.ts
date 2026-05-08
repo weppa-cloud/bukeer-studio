@@ -87,6 +87,30 @@ export interface ImpactLedgerRow {
   funnelAttributionStatus: string;
 }
 
+export interface RuntimeCycleRow {
+  id: string;
+  cycleKey: string;
+  status: string;
+  trigger: string;
+  environment: string;
+  gitSha: string | null;
+  startedAt: string | null;
+  finishedAt: string | null;
+  stepStatus: Record<string, unknown>;
+  counts: Record<string, unknown>;
+  failures: Record<string, unknown>;
+  updatedAt: string;
+}
+
+export interface RuntimeCycleHealth {
+  schedulerStatus: "healthy" | "stale" | "degraded" | "missing";
+  schedulerMessage: string;
+  lastHeartbeatAt: string | null;
+  activeCycle: RuntimeCycleRow | null;
+  lastCycle: RuntimeCycleRow | null;
+  missingTables: string[];
+}
+
 export interface RiskBudgetRow {
   id: string;
   lane: AgentLane;
@@ -94,11 +118,34 @@ export interface RiskBudgetRow {
   enabled: boolean;
   dryRunOnly: boolean;
   killSwitchEnabled: boolean;
+  pausedReason: string | null;
   dailyUsed: number;
   dailyCap: number;
   weeklyUsed: number;
   weeklyCap: number;
   maxRiskLevel: string;
+  maxRiskScore: number;
+  requiredChecks: string[];
+  policyVersion: string;
+  updatedAt: string;
+}
+
+export interface RollbackPublicationJobRow {
+  id: string;
+  lane: AgentLane | "unknown";
+  actionClass: string;
+  jobMode: string;
+  status: string;
+  affectedRoute: string;
+  targetTable: string;
+  targetId: string | null;
+  targetPath: string | null;
+  beforeSnapshot: Record<string, unknown>;
+  afterPayload: Record<string, unknown>;
+  rollbackPayload: Record<string, unknown>;
+  smokeEvidence: Record<string, unknown>;
+  canRollback: boolean;
+  updatedAt: string;
 }
 
 export interface ProfileFreshnessRow {
@@ -137,6 +184,7 @@ export interface GrowthCeoCockpit {
   agentCompany: AgentCompanyRow[];
   autonomyFeed: AutonomyFeedItem[];
   impactLedger: ImpactLedgerRow[];
+  runtimeCycle: RuntimeCycleHealth;
   riskBudget: {
     killSwitchActive: boolean;
     enabledPolicies: number;
@@ -146,6 +194,7 @@ export interface GrowthCeoCockpit {
     blockedPaidMutations: number;
     missingTables: string[];
   };
+  rollbackJobs: RollbackPublicationJobRow[];
   profileFlow: {
     freshProfiles: number;
     staleProfiles: number;
@@ -229,6 +278,11 @@ function safeRecord(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
+function optionalStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => String(item ?? "")).filter(Boolean);
+}
+
 function parseLane(value: unknown): AgentLane | null {
   const parsed = AgentLaneSchema.safeParse(value);
   return parsed.success ? parsed.data : null;
@@ -281,6 +335,90 @@ function countRecentJobs(
   }).length;
 }
 
+function runtimeCycleFromRow(
+  row: Record<string, unknown> | undefined,
+  fallbackId: string,
+): RuntimeCycleRow | null {
+  if (!row) return null;
+  const id = optionalText(row.id) ?? fallbackId;
+  const updatedAt =
+    isoOrNull(row.updated_at) ??
+    isoOrNull(row.finished_at) ??
+    isoOrNull(row.started_at) ??
+    isoOrNull(row.created_at) ??
+    new Date(0).toISOString();
+  return {
+    id,
+    cycleKey: optionalText(row.cycle_key) ?? id,
+    status: optionalText(row.status) ?? "unknown",
+    trigger: optionalText(row.trigger) ?? optionalText(row.triggered_by) ?? "n/a",
+    environment:
+      optionalText(row.environment) ?? optionalText(row.runtime_env) ?? "n/a",
+    gitSha: optionalText(row.git_sha) ?? optionalText(row.git_ref),
+    startedAt: isoOrNull(row.started_at),
+    finishedAt: isoOrNull(row.finished_at),
+    stepStatus: safeRecord(row.step_status ?? row.steps),
+    counts: safeRecord(row.counts),
+    failures: safeRecord(row.failures ?? row.errors),
+    updatedAt,
+  };
+}
+
+function buildRuntimeCycleHealth(
+  cycles: Record<string, unknown>[],
+  schedulerRows: Record<string, unknown>[],
+  missingTables: string[],
+): RuntimeCycleHealth {
+  const sortedCycles = [...cycles].sort(recencySort);
+  const activeCycle =
+    sortedCycles
+      .map((row, index) => runtimeCycleFromRow(row, `cycle:${index}`))
+      .find((row) =>
+        row ? ["running", "started", "in_progress"].includes(row.status) : false,
+      ) ?? null;
+  const lastCycle =
+    sortedCycles
+      .map((row, index) => runtimeCycleFromRow(row, `cycle:${index}`))
+      .find((row) => row && row.id !== activeCycle?.id) ?? activeCycle ?? null;
+  const scheduler = [...schedulerRows].sort(recencySort)[0];
+  const heartbeatAt =
+    isoOrNull(scheduler?.heartbeat_at) ??
+    isoOrNull(scheduler?.last_heartbeat_at) ??
+    isoOrNull(scheduler?.updated_at) ??
+    null;
+  const heartbeatAgeMs = heartbeatAt ? Date.now() - Date.parse(heartbeatAt) : null;
+  const rawStatus =
+    optionalText(scheduler?.status) ?? optionalText(scheduler?.health_status);
+  const schedulerStatus: RuntimeCycleHealth["schedulerStatus"] =
+    missingTables.length > 0
+      ? "missing"
+      : rawStatus && ["degraded", "failed", "error"].includes(rawStatus)
+        ? "degraded"
+        : heartbeatAgeMs != null && heartbeatAgeMs <= 90 * 60 * 1000
+          ? "healthy"
+          : heartbeatAt
+            ? "stale"
+            : "missing";
+
+  return {
+    schedulerStatus,
+    schedulerMessage:
+      optionalText(scheduler?.message) ??
+      optionalText(scheduler?.last_message) ??
+      (schedulerStatus === "healthy"
+        ? "Scheduler heartbeat is fresh."
+        : schedulerStatus === "stale"
+          ? "Scheduler heartbeat is older than 90 minutes."
+          : schedulerStatus === "degraded"
+            ? "Scheduler reported a degraded state."
+            : "Scheduler heartbeat is not available."),
+    lastHeartbeatAt: heartbeatAt,
+    activeCycle,
+    lastCycle,
+    missingTables,
+  };
+}
+
 export async function getGrowthCeoCockpit(
   websiteId: string,
 ): Promise<GrowthCeoCockpit> {
@@ -303,6 +441,8 @@ export async function getGrowthCeoCockpit(
     signalFacts,
     profiles,
     opportunityCandidates,
+    runtimeCycles,
+    schedulerHeartbeats,
     agreement,
   ] = await Promise.all([
     fetchTable("growth_agent_definitions", () =>
@@ -362,7 +502,7 @@ export async function getGrowthCeoCockpit(
     fetchTable("growth_autonomy_policies", () =>
       table(admin, "growth_autonomy_policies")
         .select(
-          "id,lane,action_class,enabled,dry_run_only,kill_switch_enabled,max_risk_level,daily_cap,weekly_cap,updated_at,created_at",
+          "id,lane,action_class,enabled,dry_run_only,kill_switch_enabled,paused_reason,max_risk_level,max_risk_score,daily_cap,weekly_cap,required_checks,policy_version,updated_at,created_at",
         )
         .eq("account_id", ctx.accountId)
         .eq("website_id", ctx.websiteId)
@@ -371,9 +511,7 @@ export async function getGrowthCeoCockpit(
     ),
     fetchTable("growth_publication_jobs", () =>
       table(admin, "growth_publication_jobs")
-        .select(
-          "id,work_item_id,change_set_id,lane,action_class,job_mode,status,target_table,target_id,target_path,baseline,success_metric,evaluation_date,smoke_result,evidence,applied_at,smoke_checked_at,rolled_back_at,updated_at,created_at",
-        )
+        .select("*")
         .eq("account_id", ctx.accountId)
         .eq("website_id", ctx.websiteId)
         .order("updated_at", { ascending: false, nullsFirst: false })
@@ -425,6 +563,22 @@ export async function getGrowthCeoCockpit(
         .order("total_score", { ascending: false })
         .limit(80),
     ),
+    fetchTable("growth_runtime_cycles", () =>
+      table(admin, "growth_runtime_cycles")
+        .select("*")
+        .eq("account_id", ctx.accountId)
+        .eq("website_id", ctx.websiteId)
+        .order("updated_at", { ascending: false, nullsFirst: false })
+        .limit(20),
+    ),
+    fetchTable("growth_scheduler_heartbeats", () =>
+      table(admin, "growth_scheduler_heartbeats")
+        .select("*")
+        .eq("account_id", ctx.accountId)
+        .eq("website_id", ctx.websiteId)
+        .order("updated_at", { ascending: false, nullsFirst: false })
+        .limit(5),
+    ),
     getLaneAgreement(ctx.websiteId),
   ]);
 
@@ -442,6 +596,8 @@ export async function getGrowthCeoCockpit(
     signalFacts,
     profiles,
     opportunityCandidates,
+    runtimeCycles,
+    schedulerHeartbeats,
   ]) {
     if (result.missing) missingTables.add(result.missing);
   }
@@ -708,14 +864,60 @@ export async function getGrowthCeoCockpit(
         enabled: row.enabled === true,
         dryRunOnly: row.dry_run_only !== false,
         killSwitchEnabled: row.kill_switch_enabled === true,
+        pausedReason: optionalText(row.paused_reason),
         dailyUsed: countRecentJobs(publicationJobs.rows, row, 1),
         dailyCap: numberValue(row.daily_cap),
         weeklyUsed: countRecentJobs(publicationJobs.rows, row, 7),
         weeklyCap: numberValue(row.weekly_cap),
         maxRiskLevel: optionalText(row.max_risk_level) ?? "medium",
+        maxRiskScore: numberValue(row.max_risk_score),
+        requiredChecks: optionalStringArray(row.required_checks),
+        policyVersion: optionalText(row.policy_version) ?? "n/a",
+        updatedAt:
+          isoOrNull(row.updated_at) ??
+          isoOrNull(row.created_at) ??
+          new Date(0).toISOString(),
       };
     })
     .filter(Boolean) as RiskBudgetRow[];
+
+  const rollbackJobs = publicationJobs.rows
+    .filter((row) =>
+      ["applied", "smoke_passed", "smoke_failed", "rolled_back"].includes(
+        optionalText(row.status) ?? "",
+      ),
+    )
+    .slice(0, 6)
+    .map((row, index): RollbackPublicationJobRow => {
+      const lane = parseLane(row.lane) ?? "unknown";
+      const targetPath = optionalText(row.target_path);
+      const targetTable = optionalText(row.target_table) ?? "target";
+      const targetId = optionalText(row.target_id);
+      return {
+        id: optionalText(row.id) ?? `publication:${index}`,
+        lane,
+        actionClass: optionalText(row.action_class) ?? "unknown",
+        jobMode: optionalText(row.job_mode) ?? "dry_run",
+        status: optionalText(row.status) ?? "unknown",
+        affectedRoute:
+          targetPath ??
+          (targetId ? `${targetTable}:${targetId}` : targetTable),
+        targetTable,
+        targetId,
+        targetPath,
+        beforeSnapshot: safeRecord(row.before_snapshot),
+        afterPayload: safeRecord(row.after_payload),
+        rollbackPayload: safeRecord(row.rollback_payload),
+        smokeEvidence: safeRecord(row.smoke_result ?? row.evidence),
+        canRollback: ["applied", "smoke_passed", "smoke_failed"].includes(
+          optionalText(row.status) ?? "",
+        ),
+        updatedAt:
+          isoOrNull(row.updated_at) ??
+          isoOrNull(row.created_at) ??
+          new Date(0).toISOString(),
+      };
+    });
 
   const nowMs = Date.now();
   const profileRows = profiles.rows.slice(0, 12).map((row, index): ProfileFreshnessRow => {
@@ -777,6 +979,14 @@ export async function getGrowthCeoCockpit(
       .sort((a, b) => Date.parse(b.occurredAt) - Date.parse(a.occurredAt))
       .slice(0, 12),
     impactLedger,
+    runtimeCycle: buildRuntimeCycleHealth(
+      runtimeCycles.rows,
+      schedulerHeartbeats.rows,
+      [
+        runtimeCycles.missing,
+        schedulerHeartbeats.missing,
+      ].filter(Boolean) as string[],
+    ),
     riskBudget: {
       killSwitchActive: policyRows.some((row) => row.killSwitchEnabled),
       enabledPolicies: policyRows.filter((row) => row.enabled).length,
@@ -794,6 +1004,7 @@ export async function getGrowthCeoCockpit(
       ).length,
       missingTables: Array.from(missingTables).sort(),
     },
+    rollbackJobs,
     profileFlow: {
       freshProfiles: profileRows.filter((row) => row.status === "fresh").length,
       staleProfiles: profileRows.filter((row) => row.status === "stale").length,

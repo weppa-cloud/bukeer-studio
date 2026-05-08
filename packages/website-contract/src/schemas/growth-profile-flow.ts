@@ -14,6 +14,25 @@ const NonEmptyJsonRecordSchema = JsonRecordSchema.refine(
   'Must contain at least one key.',
 );
 
+const CandidateTargetSchema = z
+  .object({
+    target_table: z.string().min(1).max(120),
+    target_id: z.string().uuid().nullable().optional(),
+    target_path: z.string().min(1).max(2048).nullable().optional(),
+    target_key: z.string().min(1).max(240).nullable().optional(),
+  })
+  .passthrough()
+  .refine(
+    (value) => Boolean(value.target_id || value.target_path || value.target_key),
+    'Candidate target must include target_id, target_path, or target_key.',
+  );
+
+const CandidateExecutionEvidenceSchema = z.object({
+  target: CandidateTargetSchema,
+  rollback_expectation: NonEmptyJsonRecordSchema,
+  baseline: NonEmptyJsonRecordSchema,
+});
+
 export const GrowthSignalSourceSchema = z.enum([
   'gsc',
   'ga4',
@@ -171,18 +190,53 @@ const GrowthOpportunityCandidateBaseSchema = GrowthTenantScopeSchema.extend({
   promoted_work_item_id: z.string().uuid().nullable().default(null),
 });
 
+function refineOpportunityCandidateReadiness(
+  row: z.infer<typeof GrowthOpportunityCandidateBaseSchema>,
+  ctx: z.RefinementCtx,
+) {
+  if (row.status !== 'ready_for_backlog' && row.status !== 'promoted') return;
+
+  const evidence = CandidateExecutionEvidenceSchema.safeParse(row.evidence);
+  if (!evidence.success) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['evidence'],
+      message:
+        'Ready candidates require target, rollback_expectation, and baseline evidence.',
+    });
+  }
+
+  if (!row.success_metric) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['success_metric'],
+      message: 'Ready candidates require success_metric.',
+    });
+  }
+
+  if (!row.evaluation_window) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['evaluation_window'],
+      message: 'Ready candidates require evaluation_window.',
+    });
+  }
+}
+
 export const GrowthOpportunityCandidateSchema =
   GrowthOpportunityCandidateBaseSchema.extend({
     id: z.string().uuid(),
     created_at: DateTimeSchema,
     updated_at: DateTimeSchema,
-  });
+  }).superRefine(refineOpportunityCandidateReadiness);
 export type GrowthOpportunityCandidate = z.infer<
   typeof GrowthOpportunityCandidateSchema
 >;
 
 export const GrowthOpportunityCandidateInsertSchema =
-  GrowthOpportunityCandidateBaseSchema;
+  GrowthOpportunityCandidateBaseSchema.superRefine(
+    refineOpportunityCandidateReadiness,
+  );
 export type GrowthOpportunityCandidateInsert = z.infer<
   typeof GrowthOpportunityCandidateInsertSchema
 >;

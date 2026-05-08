@@ -39,6 +39,7 @@ export interface WorkboardCard {
   riskScore: number;
   autonomyLabel: "sigue_solo" | "revision_humana" | "bloqueado";
   nextAction: string | null;
+  blockedReason: string | null;
   language: string;
   progressLabel: string;
   capabilityLabels: string[];
@@ -399,6 +400,26 @@ function collectSourceRefs(...values: unknown[]): string[] {
   return Array.from(refs).slice(0, 4);
 }
 
+function blockedReasonFrom(...values: unknown[]): string | null {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim()) return value.trim();
+    const record = safeRecord(value);
+    for (const key of [
+      "blocked_reason",
+      "blocking_reason",
+      "policy_reason",
+      "denied_reason",
+      "error_message",
+      "error_class",
+      "reason",
+    ]) {
+      const text = optionalText(record[key]);
+      if (text) return text;
+    }
+  }
+  return null;
+}
+
 function collectCapabilities(lane: AgentLane, ...values: unknown[]): string[] {
   const labels = new Set<string>();
   for (const value of values) {
@@ -723,6 +744,11 @@ export async function getGrowthWorkboard(opts: {
           : riskDecision.riskScore,
       autonomyLabel: autonomyForColumn(column, riskDecision.autonomyLabel),
       nextAction: optionalText(row.next_action),
+      blockedReason: blockedReasonFrom(
+        row.status === "blocked" ? row.progress_label : null,
+        row.next_action,
+        evidence,
+      ),
       language: optionalText(row.language) ?? languageFor(evidence),
       progressLabel:
         optionalText(row.progress_label) ?? progressFor(column, status),
@@ -793,6 +819,13 @@ export async function getGrowthWorkboard(opts: {
       riskScore: riskDecision.riskScore,
       autonomyLabel: autonomyForColumn(column, riskDecision.autonomyLabel),
       nextAction: optionalText(row.next_action),
+      blockedReason: blockedReasonFrom(
+        row.blocked_reason,
+        row.next_action,
+        row.evidence,
+        latestRun?.error_message,
+        latestRun?.error_class,
+      ),
       language: languageFor(row.evidence),
       progressLabel: progressFor(column, optionalText(row.status) ?? "queued"),
       capabilityLabels: collectCapabilities(lane, row.evidence),
@@ -859,6 +892,13 @@ export async function getGrowthWorkboard(opts: {
       riskScore: riskDecision.riskScore,
       autonomyLabel: autonomyForColumn(column, riskDecision.autonomyLabel),
       nextAction: optionalText(row.next_action),
+      blockedReason: blockedReasonFrom(
+        evidence.blocked_reason,
+        row.next_action,
+        row.evidence,
+        latestRun?.error_message,
+        latestRun?.error_class,
+      ),
       language: languageFor(row.evidence),
       progressLabel: progressFor(column, optionalText(row.status) ?? "queued"),
       capabilityLabels: collectCapabilities(lane, row.evidence),
@@ -927,6 +967,11 @@ export async function getGrowthWorkboard(opts: {
       riskScore: riskDecision.riskScore,
       autonomyLabel: autonomyForColumn(column, riskDecision.autonomyLabel),
       nextAction: optionalText(evidence.next_action),
+      blockedReason: blockedReasonFrom(
+        row.status === "blocked" ? row.summary : null,
+        evidence,
+        preview,
+      ),
       language: languageFor(evidence, preview),
       progressLabel: progressFor(
         column,
@@ -990,6 +1035,11 @@ export async function getGrowthWorkboard(opts: {
       riskScore: riskDecision.riskScore,
       autonomyLabel: autonomyForColumn(column, riskDecision.autonomyLabel),
       nextAction: optionalText(evidence.next_action),
+      blockedReason: blockedReasonFrom(
+        row.error_message,
+        row.error_class,
+        evidence,
+      ),
       language: languageFor(evidence),
       progressLabel: progressFor(column, optionalText(row.status) ?? "claimed"),
       capabilityLabels: collectCapabilities(lane, evidence),

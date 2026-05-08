@@ -115,6 +115,18 @@ function validatePayload(
   return { checks, failures };
 }
 
+function requireLiveMeasurementContract(input: TranscreationMergePlanInput) {
+  if (!input.live) return;
+  if (!nonEmptyRecord(input.baseline)) {
+    throw new Error("transcreation_merge live apply requires explicit baseline.");
+  }
+  if (!input.successMetric?.trim()) {
+    throw new Error(
+      "transcreation_merge live apply requires explicit successMetric.",
+    );
+  }
+}
+
 function buildIdempotencyKey(input: TranscreationMergePlanInput): string {
   return [
     "transcreation-merge-v1",
@@ -161,6 +173,7 @@ function buildTargetMerge(input: TranscreationMergePlanInput, now: Date): JsonRe
 export function planTranscreationMerge(
   input: TranscreationMergePlanInput,
 ): TranscreationMergePlan {
+  requireLiveMeasurementContract(input);
   const now = input.now ?? new Date();
   const { checks, failures } = validatePayload(input);
   const smoke = { pass: failures.length === 0, checks, failures };
@@ -197,6 +210,11 @@ export function planTranscreationMerge(
     lane: "transcreation" as const,
     action_class: "transcreation_merge" as const,
   };
+  const rollbackExpectation = {
+    strategy: "restore_localized_variant_or_job",
+    target_table: targetTable,
+    target_id: targetId,
+  };
 
   const job = GrowthPublicationJobInsertSchema.parse({
     ...common,
@@ -215,6 +233,19 @@ export function planTranscreationMerge(
       table: targetTable,
       target_id: targetId,
       merge: buildTargetMerge(input, now),
+      transcreation_merge: {
+        target: {
+          target_table: targetTable,
+          target_id: targetId,
+          target_path: `${input.pageType}:${input.targetLocale}:${input.sourceEntityId}`,
+        },
+        rollback_expectation: rollbackExpectation,
+        source_locale: input.sourceLocale,
+        target_locale: input.targetLocale,
+        page_type: input.pageType,
+        source_entity_id: input.sourceEntityId,
+        payload: input.payload,
+      },
     },
     smoke_result: smoke,
     rollback_payload: {
@@ -229,6 +260,7 @@ export function planTranscreationMerge(
       adapter: "transcreation_merge_v1",
       transcreation_job_id: input.transcreationJobId,
       localized_variant_id: input.localizedVariantId ?? null,
+      rollback_expectation: rollbackExpectation,
       quality: input.quality ?? null,
       existing_workflow: "lib/seo/transcreate-workflow.ts",
     },

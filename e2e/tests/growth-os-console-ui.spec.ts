@@ -1,17 +1,16 @@
 /**
- * Growth OS console UI E2E contract — issue #409.
+ * Growth OS console UI E2E contract — Epic #441 QA/certification slice.
  *
  * GATING: every test in this file is skipped unless
  *   GROWTH_OS_UI_E2E_ENABLED === "true"
- * is set in the environment. The Growth OS UI is not yet shipped at the
- * `/dashboard/[websiteId]/growth` route — these tests describe the contract
- * the future UI must satisfy. Enable explicitly when wiring up the UI.
+ * is set in the environment. Enable explicitly when certifying the shipped
+ * `/dashboard/[websiteId]/growth` UI.
  *
  * SESSION POOL (CRITICAL):
  *   Run with: SESSION_NAME=s2 PORT=3002 GROWTH_OS_UI_E2E_ENABLED=true \
- *     npm run test:e2e:session -- --grep "growth-os"
+ *     npm run test:e2e:session -- --grep "@growth-os-ui"
  *   Or via session-run: GROWTH_OS_UI_E2E_ENABLED=true \
- *     npm run session:run -- --grep "growth-os"
+ *     npm run session:run -- --grep "@growth-os-ui"
  *
  * NEVER run on port 3000. Port + baseURL must come from the acquired session
  * slot via PORT and PLAYWRIGHT_BASE_URL env vars; this spec must not hardcode
@@ -23,9 +22,11 @@
  * PORT through to E2E_BASE_URL, so this is a no-op when invoked correctly.
  * Do not edit the config from this spec.
  */
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page, type Response } from "@playwright/test";
 import {
   CANONICAL_LANES,
+  CANONICAL_LANE_LABELS,
+  WORKBOARD_COLUMNS,
   growthConsoleUrl,
   rolesProvisioned,
   signInAs,
@@ -43,29 +44,94 @@ const BASE_URL =
   process.env.PLAYWRIGHT_BASE_URL ??
   process.env.E2E_BASE_URL ??
   `http://localhost:${PORT}`;
-const GOTO_READY = { waitUntil: "networkidle" as const };
+const GOTO_READY = { waitUntil: "commit" as const, timeout: 120_000 };
+const MOBILE_VIEWPORT = { width: 390, height: 844 };
+
+async function gotoGrowth(
+  page: Page,
+  path = "",
+  tenant = tenantA,
+): Promise<Response | null> {
+  const url = `${growthConsoleUrl(tenant)}${path}`;
+  let lastError: unknown = null;
+
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    try {
+      return await page.goto(url, GOTO_READY);
+    } catch (error) {
+      lastError = error;
+      const message = error instanceof Error ? error.message : String(error);
+      if (!message.includes("ERR_ABORTED") || attempt === 2) break;
+      console.warn(
+        `[growth-os-ui] transient navigation abort for ${url}; retrying.`,
+      );
+    }
+  }
+
+  throw lastError instanceof Error
+    ? lastError
+    : new Error(`Could not navigate to ${url}.`);
+}
+
+async function expectNoDocumentHorizontalOverflow(page: Page) {
+  const overflow = await page.evaluate(() => {
+    const doc = document.documentElement;
+    const body = document.body;
+    return {
+      bodyScrollWidth: body.scrollWidth,
+      bodyClientWidth: body.clientWidth,
+      docScrollWidth: doc.scrollWidth,
+      docClientWidth: doc.clientWidth,
+      overflowX: getComputedStyle(body).overflowX,
+    };
+  });
+
+  expect(
+    overflow.docScrollWidth,
+    `Document has horizontal overflow: ${JSON.stringify(overflow)}`,
+  ).toBeLessThanOrEqual(overflow.docClientWidth + 1);
+  expect(
+    overflow.bodyScrollWidth,
+    `Body has horizontal overflow: ${JSON.stringify(overflow)}`,
+  ).toBeLessThanOrEqual(overflow.bodyClientWidth + 1);
+}
+
+async function openFirstRunDetail(page: Page) {
+  await gotoGrowth(page, "/runs");
+  await page.waitForURL(/\/growth\/runs$/);
+
+  const firstRun = page.getByTestId(/^growth-run-row-/).first();
+  const hasRun = await firstRun.isVisible().catch(() => false);
+  test.skip(!hasRun, "No runs available to inspect run detail.");
+
+  await Promise.all([
+    page.waitForURL(/\/growth\/runs\/[^/]+$/),
+    firstRun.getByRole("link").first().click(),
+  ]);
+}
 
 test.describe("Growth OS console UI contract @growth-os-ui", () => {
+  test.describe.configure({ timeout: 180_000 });
   test.use({ storageState: "e2e/.auth/user.json" });
 
   test.skip(
     !growthUiEnabled,
-    "Growth OS UI is not shipped yet. Enable with GROWTH_OS_UI_E2E_ENABLED=true when implementing /dashboard/[websiteId]/growth.",
+    "Enable with GROWTH_OS_UI_E2E_ENABLED=true when certifying /dashboard/[websiteId]/growth.",
   );
 
   test.beforeAll(() => {
     // Surface the resolved base URL in test output so reviewers can confirm
     // the session pool was honored (no port-3000 hardcoding).
-    // eslint-disable-next-line no-console
     console.log(
       `[growth-os-ui] baseURL=${BASE_URL} tenantA=${tenantA.websiteId}`,
     );
   });
 
-  test("Overview tab loads with metric cards and 5-lane status table", async ({
+  test("CEO cockpit loads current command-center surfaces and lane policy states", async ({
     page,
   }) => {
-    await page.goto(growthConsoleUrl(tenantA), GOTO_READY);
+    await gotoGrowth(page, "/overview");
+    await page.waitForURL(/\/growth\/overview$/);
 
     await expect(
       page.getByRole("heading", { name: /growth os/i }),
@@ -73,37 +139,111 @@ test.describe("Growth OS console UI contract @growth-os-ui", () => {
 
     const overviewTab = page.getByRole("link", { name: /command center/i });
     await expect(overviewTab).toBeVisible();
-    await expect(page.getByRole("link", { name: /workboard/i })).toBeVisible();
-    await overviewTab.click();
+    await expect(
+      page
+        .getByLabel("Growth console tabs")
+        .getByRole("link", { name: "Workboard" }),
+    ).toBeVisible();
 
-    // Four canonical metric cards (counts may be zero on a fresh tenant —
-    // we only assert presence, not values).
-    const metricCards = page.getByTestId(/^growth-overview-metric-/);
-    await expect(metricCards).toHaveCount(4);
+    const cockpit = page.getByTestId("growth-ceo-cockpit");
+    await expect(cockpit).toBeVisible();
+    await expect(cockpit).toContainText(/CEO Cockpit/i);
+    await expect(cockpit).toContainText(/North Star metrics/i);
+    await expect(page.getByTestId("growth-runtime-cycle-health")).toBeVisible();
+    await expect(page.getByTestId("growth-scheduler-health")).toBeVisible();
+    await expect(page.getByTestId("growth-active-cycle")).toBeVisible();
+    await expect(page.getByTestId("growth-latest-cycle")).toBeVisible();
 
-    // Lane status table renders exactly the 5 canonical lanes.
-    const laneTable = page.getByTestId("growth-overview-lane-table");
-    await expect(laneTable).toBeVisible();
-    for (const lane of CANONICAL_LANES) {
+    const humanOps = page.getByTestId("growth-human-operations");
+    await expect(humanOps).toBeVisible();
+    await expect(humanOps).toContainText(/UI readiness/i);
+    await expect(humanOps).toContainText(/Pausar autonomia|Kill switch/i);
+    await expect(humanOps).toContainText(/Rollback publicacion|Rollback/i);
+
+    const profileFlow = page.getByTestId("growth-profile-flow");
+    await expect(profileFlow).toBeVisible();
+    await expect(profileFlow).toContainText(/Profile Freshness/i);
+    await expect(profileFlow).toContainText(/Opportunity Candidates/i);
+
+    const agentCompanyTable = page
+      .getByRole("heading", { name: /quien trabaja y que produce/i })
+      .locator("xpath=ancestor::section[1]");
+    for (const header of [
+      /agent/i,
+      /trabajo actual/i,
+      /heartbeat/i,
+      /output/i,
+      /riesgo/i,
+    ]) {
       await expect(
-        laneTable.getByTestId(`growth-overview-lane-row-${lane}`),
+        agentCompanyTable.getByRole("columnheader", { name: header }),
       ).toBeVisible();
     }
-    await expect(laneTable.getByRole("row")).toHaveCount(
-      CANONICAL_LANES.length + 1, // +1 for the header row
-    );
+
+    const riskTable = page.getByTestId("growth-risk-budget-table");
+    await expect(riskTable).toBeVisible();
+    for (const header of [
+      /lane/i,
+      /accion/i,
+      /estado/i,
+      /daily/i,
+      /weekly/i,
+      /controls/i,
+    ]) {
+      await expect(
+        riskTable.getByRole("columnheader", { name: header }),
+      ).toBeVisible();
+    }
+    for (const actionClass of [
+      "content_publish",
+      "transcreation_merge",
+      "safe_apply",
+      "paid_mutation",
+    ]) {
+      await expect(riskTable).toContainText(actionClass);
+    }
+    await expect(riskTable).toContainText(/live|paused|blocked|dry run/i);
     await expect(
-      page.getByTestId("growth-command-center-attention"),
+      page
+        .getByTestId("growth-policy-toggle-dry-run")
+        .or(page.getByTestId("growth-policy-update-caps"))
+        .or(page.getByTestId("growth-policy-pause-lane"))
+        .or(page.getByText(/No hay policies/i))
+        .first(),
     ).toBeVisible();
+
+    const rollbackDetail = page.getByTestId("growth-rollback-detail");
+    await expect(rollbackDetail).toBeVisible();
+    await expect(
+      rollbackDetail
+        .getByTestId("growth-rollback-dry-verify")
+        .or(rollbackDetail.getByText(/No rollbackable publication jobs/i))
+        .first(),
+    ).toBeVisible();
+
+    const autonomyFeed = page.getByTestId("growth-autonomy-feed");
+    await expect(autonomyFeed).toBeVisible();
+    await expect(autonomyFeed).toContainText(
+      /Auto-published|Auto-applied|Rolled back|Blocked/i,
+    );
+
+    const impactLedger = page.getByTestId("growth-impact-ledger");
+    await expect(impactLedger).toBeVisible();
+    await expect(impactLedger).toContainText(/resultado|outcomes|metrica/i);
   });
 
   test("Agent Team tab loads cards and required column headers", async ({
     page,
   }) => {
-    await page.goto(`${growthConsoleUrl(tenantA)}/agents`, GOTO_READY);
+    await gotoGrowth(page, "/agents");
     await page.waitForURL(/\/growth\/agents$/);
 
     await expect(page.getByTestId("growth-agent-team-cards")).toBeVisible();
+    for (const lane of CANONICAL_LANES) {
+      await expect(
+        page.getByTestId(`growth-agent-lane-card-${lane}`),
+      ).toBeVisible();
+    }
 
     const agentsTable = page.getByTestId("growth-agents-table");
     await expect(agentsTable).toBeVisible();
@@ -135,10 +275,49 @@ test.describe("Growth OS console UI contract @growth-os-ui", () => {
     }
   });
 
+  test("Agent Team exposes learning operations and replay readiness", async ({
+    page,
+  }) => {
+    await gotoGrowth(page, "/agents");
+    await page.waitForURL(/\/growth\/agents$/);
+
+    const cards = page.getByTestId("growth-agent-team-cards");
+    await expect(cards).toBeVisible();
+    await expect(cards).toContainText(/Replay/i);
+    await expect(cards).toContainText(/Learning/i);
+    await expect(cards).toContainText(/active|draft/i);
+
+    const agentsTable = page.getByTestId("growth-agents-table");
+    await expect(agentsTable).toBeVisible();
+    await expect(agentsTable).toContainText(/replay/i);
+    await expect(agentsTable).toContainText(/blocked tools/i);
+
+    const learning = page.getByTestId("growth-agent-learning-controls");
+    await expect(learning).toBeVisible();
+    await expect(
+      learning
+        .getByTestId("growth-agent-skill-row")
+        .or(learning.getByText(/No skill candidates yet/i))
+        .first(),
+    ).toBeVisible();
+    await expect(
+      learning
+        .getByTestId("growth-agent-memory-row")
+        .or(learning.getByText(/No memory candidates yet/i))
+        .first(),
+    ).toBeVisible();
+    await expect(
+      learning
+        .getByTestId("growth-agent-replay-row")
+        .or(learning.getByText(/No replay cases yet/i))
+        .first(),
+    ).toBeVisible();
+  });
+
   test("Opportunities tab loads (empty state OR populated list)", async ({
     page,
   }) => {
-    await page.goto(`${growthConsoleUrl(tenantA)}/backlog`, GOTO_READY);
+    await gotoGrowth(page, "/backlog");
     await page.waitForURL(/\/growth\/backlog/);
 
     // Tenant scope indicator stays accurate.
@@ -164,7 +343,7 @@ test.describe("Growth OS console UI contract @growth-os-ui", () => {
   });
 
   test("Runs tab loads (empty state OK)", async ({ page }) => {
-    await page.goto(`${growthConsoleUrl(tenantA)}/runs`, GOTO_READY);
+    await gotoGrowth(page, "/runs");
     await page.waitForURL(/\/growth\/runs/);
     await expect(
       page.getByRole("heading", { name: /review queue/i }),
@@ -179,7 +358,7 @@ test.describe("Growth OS console UI contract @growth-os-ui", () => {
   test("Workboard tab loads Kanban agent operating center", async ({
     page,
   }) => {
-    await page.goto(`${growthConsoleUrl(tenantA)}/workboard`, GOTO_READY);
+    await gotoGrowth(page, "/workboard");
     await page.waitForURL(/\/growth\/workboard/);
 
     await expect(
@@ -192,16 +371,7 @@ test.describe("Growth OS console UI contract @growth-os-ui", () => {
     await expect(kanban.or(empty)).toBeVisible();
 
     if (await kanban.isVisible().catch(() => false)) {
-      for (const column of [
-        "triage",
-        "ready",
-        "running",
-        "blocked",
-        "review_needed",
-        "auto_completed",
-        "published_applied",
-        "archived",
-      ]) {
+      for (const column of WORKBOARD_COLUMNS) {
         await expect(
           page.getByTestId(`growth-workboard-column-${column}`),
         ).toBeVisible();
@@ -259,23 +429,38 @@ test.describe("Growth OS console UI contract @growth-os-ui", () => {
     }
   });
 
+  test("Workboard exposes bulk safety states and blocked-state operations", async ({
+    page,
+  }) => {
+    await gotoGrowth(page, "/workboard");
+    await page.waitForURL(/\/growth\/workboard/);
+
+    await expect(page.getByTestId("growth-workboard-summary")).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: /aprobación segura en lote/i }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /aprobar riesgo bajo/i }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: /depurar bloqueadas/i }),
+    ).toBeVisible();
+    await expect(
+      page.getByTestId("growth-workboard-blocked-reasons"),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /marcar runtime detenido/i }),
+    ).toBeVisible();
+  });
+
   test("Run detail works as a human work center with change sets", async ({
     page,
   }) => {
-    await page.goto(`${growthConsoleUrl(tenantA)}/runs`, GOTO_READY);
-    await page.waitForURL(/\/growth\/runs$/);
-
-    const firstRun = page.getByTestId(/^growth-run-row-/).first();
-    const hasRun = await firstRun.isVisible().catch(() => false);
-    test.skip(!hasRun, "No runs available to inspect work-center detail.");
-
-    await Promise.all([
-      page.waitForURL(/\/growth\/runs\/[0-9a-f-]+$/),
-      firstRun.getByRole("link").first().click(),
-    ]);
+    await openFirstRunDetail(page);
 
     await expect(page.getByTestId("growth-run-human-summary")).toBeVisible();
     await expect(page.getByTestId("growth-change-sets-panel")).toBeVisible();
+    await expect(page.getByTestId("growth-run-runtime-panel")).toBeVisible();
     await expect(page.getByTestId("growth-run-learning-panel")).toBeVisible();
     await expect(page.getByTestId("growth-run-events-panel")).toBeVisible();
 
@@ -305,17 +490,50 @@ test.describe("Growth OS console UI contract @growth-os-ui", () => {
     }
   });
 
+  test("Run detail exposes rollback/audit evidence and learning candidate operations", async ({
+    page,
+  }) => {
+    await openFirstRunDetail(page);
+
+    await expect(page.getByTestId("growth-run-human-summary")).toContainText(
+      /control humano|no publica contenido/i,
+    );
+    await expect(page.getByTestId("growth-run-runtime-panel")).toContainText(
+      /aprendizaje propuesto/i,
+    );
+    await expect(page.getByTestId("growth-run-learning-panel")).toContainText(
+      /memorias|skills|evaluaciones/i,
+    );
+    await expect(
+      page.getByRole("heading", { name: /herramientas y evaluación/i }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: /evidencia técnica/i }),
+    ).toBeVisible();
+
+    const changeSet = page.getByTestId("growth-change-set-card").first();
+    if (await changeSet.isVisible().catch(() => false)) {
+      await expect(changeSet).toContainText(
+        /rollback|reversible|evidencia|vista previa/i,
+      );
+    } else {
+      await expect(
+        page.getByTestId("growth-change-sets-empty-state"),
+      ).toBeVisible();
+    }
+  });
+
   test("Experiments and Data Health tabs load human control-plane surfaces", async ({
     page,
   }) => {
-    await page.goto(`${growthConsoleUrl(tenantA)}/experiments`, GOTO_READY);
+    await gotoGrowth(page, "/experiments");
     await page.waitForURL(/\/growth\/experiments$/);
     await expect(
       page.getByRole("heading", { name: /experiments/i }),
     ).toBeVisible();
     await expect(page.getByTestId("growth-experiments-summary")).toBeVisible();
 
-    await page.goto(`${growthConsoleUrl(tenantA)}/data-health`, GOTO_READY);
+    await gotoGrowth(page, "/data-health");
     await page.waitForURL(/\/growth\/data-health$/);
     await expect(
       page.getByRole("heading", { name: "Data Health", exact: true }),
@@ -325,14 +543,30 @@ test.describe("Growth OS console UI contract @growth-os-ui", () => {
       page.getByRole("heading", { name: /runtime maturity score/i }),
     ).toBeVisible();
     await expect(page.getByTestId("growth-runtime-health")).toBeVisible();
+    await expect(page.getByTestId("growth-runtime-health")).toContainText(
+      /Replay|Memory|Skills/i,
+    );
+  });
+
+  test("Mobile Growth OS surfaces do not create document-level horizontal overflow", async ({
+    page,
+  }) => {
+    await page.setViewportSize(MOBILE_VIEWPORT);
+
+    for (const path of ["/overview", "/agents", "/workboard", "/data-health"]) {
+      await gotoGrowth(page, path);
+      await expect(
+        page.getByRole("heading", { name: /growth os|data health/i }).first(),
+      ).toBeVisible();
+      await expectNoDocumentHorizontalOverflow(page);
+      await expect(page.locator("body")).not.toContainText("[object Object]");
+    }
   });
 
   test("Cross-tenant guard: tenant A user cannot read tenant B Growth data", async ({
     page,
   }) => {
-    const response = await page.goto(growthConsoleUrl(tenantB), {
-      ...GOTO_READY,
-    });
+    const response = await gotoGrowth(page, "", tenantB);
 
     const status = response?.status() ?? 0;
     const finalUrl = page.url();
@@ -382,7 +616,7 @@ test.describe("Growth OS console UI contract @growth-os-ui", () => {
 
     // Viewer: open Run detail, expect Approve/Reject hidden OR disabled.
     await signInAs(page, usersByRole.viewer.role);
-    await page.goto(growthConsoleUrl(tenantA), GOTO_READY);
+    await gotoGrowth(page);
     await page.getByRole("link", { name: /review queue/i }).click();
     await page.waitForURL(/\/growth\/runs$/);
     await page
@@ -404,7 +638,7 @@ test.describe("Growth OS console UI contract @growth-os-ui", () => {
 
     // Curator: same Run detail, Approve/Reject must be enabled.
     await signInAs(page, usersByRole.curator.role);
-    await page.goto(growthConsoleUrl(tenantA), GOTO_READY);
+    await gotoGrowth(page);
     await page.getByRole("link", { name: /review queue/i }).click();
     await page.waitForURL(/\/growth\/runs$/);
     await page
@@ -421,7 +655,7 @@ test.describe("Growth OS console UI contract @growth-os-ui", () => {
   test("Append-only events: Run detail exposes no event-mutation affordances", async ({
     page,
   }) => {
-    await page.goto(growthConsoleUrl(tenantA), GOTO_READY);
+    await gotoGrowth(page);
     await page.getByRole("link", { name: /review queue/i }).click();
     await page.waitForURL(/\/growth\/runs$/);
 
@@ -435,7 +669,7 @@ test.describe("Growth OS console UI contract @growth-os-ui", () => {
     );
 
     await Promise.all([
-      page.waitForURL(/\/growth\/runs\/[0-9a-f-]+$/),
+      page.waitForURL(/\/growth\/runs\/[^/]+$/),
       firstRun.getByRole("link").first().click(),
     ]);
 

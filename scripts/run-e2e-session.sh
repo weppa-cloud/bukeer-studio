@@ -12,15 +12,20 @@ fi
 
 export E2E_BASE_URL="http://localhost:${PORT}"
 export E2E_WEBSERVER_URL="http://localhost:${PORT}/api/health"
-export E2E_WEBSERVER_CMD="PORT=${PORT} NEXT_DIST_DIR=.next-${SESSION_NAME} npm run dev:node"
 export E2E_SESSION_NAME="$SESSION_NAME"
 
 for arg in "$@"; do
-  if [[ "$arg" == *"@growth-os-ui"* ]]; then
+  if [[ "$arg" == *"@growth-os-ui"* || "$arg" == *"growth-os-ui"* || "$arg" == *"growth-os"* ]]; then
     export E2E_SKIP_ROUTE_PREWARM=1
     break
   fi
 done
+
+if [[ "${GROWTH_OS_UI_E2E_ENABLED:-}" == "true" ]]; then
+  export NEXT_DEV_TURBO=false
+fi
+
+export E2E_WEBSERVER_CMD="PORT=${PORT} NEXT_DIST_DIR=.next-${SESSION_NAME} npm run dev:node"
 
 echo "E2E session: $SESSION_NAME"
 echo "Base URL: $E2E_BASE_URL"

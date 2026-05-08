@@ -64,7 +64,20 @@ function candidate(
     ],
     profile_snapshot: { existing: true },
     source_signal_fact_ids: [],
-    evidence: { source_refs: ["gsc:query:colombia"] },
+    evidence: {
+      source_refs: ["gsc:query:colombia"],
+      target: {
+        target_table: "website_blog_posts",
+        target_path: "/blog/colombia-guide",
+      },
+      rollback_expectation: {
+        strategy: "delete_created_content",
+        target_path: "/blog/colombia-guide",
+      },
+      baseline: {
+        organic_clicks: 0,
+      },
+    },
     success_metric: "organic_clicks:/blog/colombia-guide",
     evaluation_window: "day_21",
     idempotency_key: "candidate:colombia-guide",
@@ -119,5 +132,25 @@ describe("buildPromotedWorkItem", () => {
       "missing_metric_or_evaluation_window",
     );
     expect(result.blockingReason).toContain("missing:buyer");
+  });
+
+  it("blocks promotion when execution target, rollback expectation, or baseline is missing", () => {
+    const result = buildPromotedWorkItem(
+      candidate({ evidence: { source_refs: ["gsc:query:colombia"] } }),
+      [
+        profile("business"),
+        profile("buyer"),
+        profile("seo_market"),
+        profile("page_product"),
+        profile("risk_policy"),
+      ],
+      now,
+    );
+
+    expect(result.promoted).toBe(false);
+    expect(result.workItem).toBeNull();
+    expect(result.blockingReason).toContain("missing_target");
+    expect(result.blockingReason).toContain("missing_rollback_expectation");
+    expect(result.blockingReason).toContain("missing_baseline");
   });
 });

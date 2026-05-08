@@ -44,6 +44,7 @@
     "growth:human-reviews": "node scripts/growth/materialize-growth-human-reviews.mjs",
     "growth:blocked-classify": "node scripts/growth/classify-growth-blocked-items.mjs",
     "growth:agreement:baseline": "tsx scripts/growth-agreement-baseline.ts",
+    "growth:production-cycle": "tsx scripts/growth/run-growth-production-cycle.ts",
     "test:watch": "jest --watch",
     "build:worker": "npm run check:node && opennextjs-cloudflare build",
     "preview:worker": "npm run check:node && opennextjs-cloudflare build && opennextjs-cloudflare preview",
@@ -122,6 +123,7 @@
     "jest": "^29.7.0",
     "lighthouse": "^12.2.0",
     "ts-jest": "^29.4.6",
+    "tsx": "^4.21.0",
     "typescript": "^5",
     "wrangler": "^4.76.0"
   },

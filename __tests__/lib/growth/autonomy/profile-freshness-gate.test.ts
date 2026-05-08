@@ -109,7 +109,18 @@ describe("profile freshness gate", () => {
       costScore: 35,
       riskScore: 30,
       idempotencyKey: "keyword-gap:colombia-itinerary",
-      evidence: { sources: ["gsc", "dataforseo"] },
+      evidence: {
+        sources: ["gsc", "dataforseo"],
+        target: {
+          target_table: "website_blog_posts",
+          target_path: "/blog/colombia-itinerary",
+        },
+        rollback_expectation: {
+          strategy: "delete_created_content",
+          target_path: "/blog/colombia-itinerary",
+        },
+        baseline: { organic_clicks: 12, impressions: 100 },
+      },
       requiredProfileTypes: ["business", "buyer", "seo_market"],
       freshness,
       successMetric: "organic_clicks:/blog/colombia-itinerary",
@@ -148,6 +159,7 @@ describe("profile freshness gate", () => {
     });
 
     expect(candidate.status).toBe("blocked");
-    expect(candidate.blocking_reason).toBe("missing:page_product");
+    expect(candidate.blocking_reason).toContain("missing:page_product");
+    expect(candidate.blocking_reason).toContain("missing_target");
   });
 });

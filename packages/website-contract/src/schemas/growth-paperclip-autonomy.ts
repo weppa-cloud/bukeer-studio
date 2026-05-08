@@ -18,6 +18,58 @@ const NonEmptyJsonRecordSchema = JsonRecordSchema.refine(
   'Must contain at least one key.',
 );
 
+const TargetReferenceBaseSchema = z
+  .object({
+    target_table: z.string().min(1).max(120),
+    target_id: z.string().uuid().nullable().optional(),
+    target_path: z.string().min(1).max(2048).nullable().optional(),
+    target_key: z.string().min(1).max(240).nullable().optional(),
+  })
+  .passthrough();
+
+const TargetReferenceSchema = TargetReferenceBaseSchema
+  .refine(
+    (value) => Boolean(value.target_id || value.target_path || value.target_key),
+    'Target reference must include target_id, target_path, or target_key.',
+  );
+
+const RollbackExpectationSchema = NonEmptyJsonRecordSchema;
+
+const ContentPublishPayloadSchema = z.object({
+  target: TargetReferenceSchema,
+  rollback_expectation: RollbackExpectationSchema,
+  title: z.string().min(10).max(240),
+  slug: z.string().min(1).max(240).regex(/^[a-z0-9-]+$/),
+  content_word_count: z.number().int().min(0),
+  seo_title: z.string().min(10).max(70),
+  seo_description: z.string().min(70).max(160),
+});
+
+const TranscreationMergePayloadSchema = z.object({
+  target: TargetReferenceSchema,
+  rollback_expectation: RollbackExpectationSchema,
+  source_locale: z.string().min(2).max(20),
+  target_locale: z.string().min(2).max(20),
+  page_type: z.enum(['blog', 'page', 'destination']),
+  source_entity_id: z.string().uuid(),
+  payload: NonEmptyJsonRecordSchema,
+});
+
+const SafeApplyPayloadSchema = z.object({
+  target: TargetReferenceBaseSchema.extend({
+    target_id: z.string().uuid(),
+  }),
+  rollback_expectation: RollbackExpectationSchema,
+  changed_fields: z.array(z.string().min(1).max(120)).min(1),
+  patch: NonEmptyJsonRecordSchema,
+});
+
+const ActionPayloadSchemas = {
+  content_publish: ContentPublishPayloadSchema,
+  transcreation_merge: TranscreationMergePayloadSchema,
+  safe_apply: SafeApplyPayloadSchema,
+} as const;
+
 export const GrowthAutonomyActionClassSchema = z.enum([
   'observe',
   'prepare',
@@ -210,12 +262,52 @@ function refinePublicationJob(
     | 'action_class'
     | 'lane'
     | 'status'
+    | 'target_table'
+    | 'target_id'
+    | 'target_path'
+    | 'after_payload'
+    | 'rollback_payload'
+    | 'baseline'
+    | 'success_metric'
+    | 'evaluation_date'
+    | 'evidence'
     | 'applied_at'
     | 'smoke_checked_at'
     | 'rolled_back_at'
   >,
   ctx: z.RefinementCtx,
 ) {
+  const actionPayload = row.after_payload[row.action_class];
+  const parsedActionPayload =
+    ActionPayloadSchemas[row.action_class].safeParse(actionPayload);
+  if (!parsedActionPayload.success) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['after_payload', row.action_class],
+      message: `${row.action_class} after_payload contract is required.`,
+    });
+  } else if (
+    parsedActionPayload.data.target.target_table !== row.target_table ||
+    (parsedActionPayload.data.target.target_id &&
+      parsedActionPayload.data.target.target_id !== row.target_id) ||
+    (parsedActionPayload.data.target.target_path &&
+      parsedActionPayload.data.target.target_path !== row.target_path)
+  ) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['after_payload', row.action_class, 'target'],
+      message: 'Action payload target must match publication target fields.',
+    });
+  }
+
+  if (!RollbackExpectationSchema.safeParse(row.evidence.rollback_expectation).success) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['evidence', 'rollback_expectation'],
+      message: 'Publication jobs require rollback_expectation evidence.',
+    });
+  }
+
   if (row.action_class === 'safe_apply' && row.lane !== 'technical_remediation') {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
@@ -325,6 +417,8 @@ export const GrowthWorkItemOutcomeStatusSchema = z.enum([
   'inconclusive',
   'won',
   'lost',
+  'scale',
+  'stop',
 ]);
 export type GrowthWorkItemOutcomeStatus = z.infer<
   typeof GrowthWorkItemOutcomeStatusSchema
@@ -410,7 +504,9 @@ function refineWorkItemOutcome(
     row.status !== 'evaluated' &&
     row.status !== 'inconclusive' &&
     row.status !== 'won' &&
-    row.status !== 'lost'
+    row.status !== 'lost' &&
+    row.status !== 'scale' &&
+    row.status !== 'stop'
   ) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,

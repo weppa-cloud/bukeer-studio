@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { AgentLane } from "@bukeer/website-contract";
 import { CANONICAL_LANES, getGrowthAgents } from "@/lib/growth/console/queries";
+import { updateGrowthLearningArtifact } from "./actions";
 
 /**
  * Growth OS Console — Agents tab (#405).
@@ -165,6 +166,69 @@ const POLICY_CLASSES: Record<ToolPolicyState, string> = {
   blocked: "bg-zinc-100 text-zinc-700 border border-zinc-200",
 };
 
+function LearningStatusBadge({ status }: { status: string }) {
+  const active = status === "active";
+  const rejected = status === "rejected" || status === "deprecated";
+  return (
+    <span
+      className={
+        active
+          ? "inline-flex rounded-full border border-emerald-200 bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800"
+          : rejected
+            ? "inline-flex rounded-full border border-zinc-200 bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-700"
+            : "inline-flex rounded-full border border-amber-200 bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800"
+      }
+    >
+      {status}
+    </span>
+  );
+}
+
+function LearningActionForm({
+  websiteId,
+  artifactId,
+  kind,
+  status,
+  label,
+  disabled = false,
+  testId,
+}: {
+  websiteId: string;
+  artifactId: string;
+  kind: "skill" | "memory" | "replay";
+  status: "active" | "rejected" | "deprecated";
+  label: string;
+  disabled?: boolean;
+  testId: string;
+}) {
+  return (
+    <form
+      action={
+        updateGrowthLearningArtifact as unknown as (
+          formData: FormData,
+        ) => Promise<void>
+      }
+    >
+      <input type="hidden" name="websiteId" value={websiteId} />
+      <input type="hidden" name="artifactId" value={artifactId} />
+      <input type="hidden" name="kind" value={kind} />
+      <input type="hidden" name="status" value={status} />
+      <button
+        type="submit"
+        disabled={disabled}
+        data-testid={testId}
+        className={
+          disabled
+            ? "rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] px-2 py-1 text-xs font-medium text-[var(--studio-text-muted,theme(colors.zinc.400))]"
+            : "rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] px-2 py-1 text-xs font-medium text-[var(--studio-text,theme(colors.zinc.700))] hover:bg-[var(--studio-surface-hover,theme(colors.zinc.100))]"
+        }
+      >
+        {label}
+      </button>
+    </form>
+  );
+}
+
 export default async function GrowthAgentsPage({ params }: AgentsPageProps) {
   const { websiteId } = await params;
 
@@ -251,6 +315,7 @@ export default async function GrowthAgentsPage({ params }: AgentsPageProps) {
               return (
                 <article
                   key={lane}
+                  data-testid={`growth-agent-lane-card-${lane}`}
                   className="rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] bg-[var(--studio-surface,theme(colors.white))] p-4"
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -516,6 +581,251 @@ export default async function GrowthAgentsPage({ params }: AgentsPageProps) {
                 </dd>
               </div>
             </dl>
+          </section>
+
+          <section
+            aria-labelledby="agent-learning-heading"
+            data-testid="growth-agent-learning-controls"
+            className="rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] bg-[var(--studio-surface,theme(colors.white))] p-4"
+          >
+            <header>
+              <h3
+                id="agent-learning-heading"
+                className="font-semibold text-[var(--studio-text-strong,theme(colors.zinc.900))]"
+              >
+                Learning controls
+              </h3>
+              <p className="mt-1 text-sm text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                Curators activate, reject or deprecate skills, memories and
+                replay cases. Skills require lane replay agreement {">="} 0.90.
+              </p>
+            </header>
+            {result.learning.missingTables.length > 0 ? (
+              <p className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                Missing learning tables: {result.learning.missingTables.join(", ")}.
+              </p>
+            ) : null}
+            <div className="mt-4 grid gap-4 xl:grid-cols-3">
+              <div>
+                <h4 className="text-sm font-semibold text-[var(--studio-text-strong,theme(colors.zinc.900))]">
+                  Skills
+                </h4>
+                <div className="mt-2 divide-y divide-[var(--studio-border,theme(colors.zinc.200))] rounded-md border border-[var(--studio-border,theme(colors.zinc.200))]">
+                  {result.learning.skills.length === 0 ? (
+                    <p className="p-3 text-sm text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                      No skill candidates yet.
+                    </p>
+                  ) : (
+                    result.learning.skills.map((skill) => (
+                      <article
+                        key={skill.id}
+                        data-testid="growth-agent-skill-row"
+                        className="p-3"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium">
+                              {skill.title || skill.skillKey}
+                            </p>
+                            <p className="mt-1 text-xs text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                              {LANE_LABELS[skill.lane]} · v{skill.version} ·
+                              agreement{" "}
+                              {skill.agreement == null
+                                ? "n/a"
+                                : skill.agreement.toFixed(2)}
+                              {" "}({skill.agreementSampleSize})
+                            </p>
+                          </div>
+                          <LearningStatusBadge status={skill.status} />
+                        </div>
+                        {skill.evidenceSummary ? (
+                          <p className="mt-2 text-xs text-[var(--studio-text-muted,theme(colors.zinc.600))]">
+                            {skill.evidenceSummary}
+                          </p>
+                        ) : null}
+                        {skill.activationBlocked ? (
+                          <p className="mt-2 text-xs text-amber-700">
+                            Activation blocked until replay agreement reaches
+                            0.90.
+                          </p>
+                        ) : null}
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <LearningActionForm
+                            websiteId={websiteId}
+                            artifactId={skill.id}
+                            kind="skill"
+                            status="active"
+                            label="Activate"
+                            disabled={
+                              skill.status === "active" ||
+                              skill.activationBlocked
+                            }
+                            testId={
+                              skill.activationBlocked
+                                ? "growth-agent-skill-activate-blocked"
+                                : "growth-agent-skill-activate"
+                            }
+                          />
+                          <LearningActionForm
+                            websiteId={websiteId}
+                            artifactId={skill.id}
+                            kind="skill"
+                            status="deprecated"
+                            label="Deprecate"
+                            disabled={skill.status === "deprecated"}
+                            testId="growth-agent-skill-deprecate"
+                          />
+                          <LearningActionForm
+                            websiteId={websiteId}
+                            artifactId={skill.id}
+                            kind="skill"
+                            status="rejected"
+                            label="Reject"
+                            disabled={skill.status === "rejected"}
+                            testId="growth-agent-skill-reject"
+                          />
+                        </div>
+                      </article>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <h4 className="text-sm font-semibold text-[var(--studio-text-strong,theme(colors.zinc.900))]">
+                  Memories
+                </h4>
+                <div className="mt-2 divide-y divide-[var(--studio-border,theme(colors.zinc.200))] rounded-md border border-[var(--studio-border,theme(colors.zinc.200))]">
+                  {result.learning.memories.length === 0 ? (
+                    <p className="p-3 text-sm text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                      No memory candidates yet.
+                    </p>
+                  ) : (
+                    result.learning.memories.map((memory) => (
+                      <article
+                        key={memory.id}
+                        data-testid="growth-agent-memory-row"
+                        className="p-3"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium">
+                              {memory.memoryKey}
+                            </p>
+                            <p className="mt-1 text-xs text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                              {LANE_LABELS[memory.lane]}
+                            </p>
+                          </div>
+                          <LearningStatusBadge status={memory.status} />
+                        </div>
+                        <p className="mt-2 text-xs text-[var(--studio-text-muted,theme(colors.zinc.600))]">
+                          {memory.contentSummary ??
+                            memory.evidenceSummary ??
+                            "No summary"}
+                        </p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <LearningActionForm
+                            websiteId={websiteId}
+                            artifactId={memory.id}
+                            kind="memory"
+                            status="active"
+                            label="Activate"
+                            disabled={memory.status === "active"}
+                            testId="growth-agent-memory-activate"
+                          />
+                          <LearningActionForm
+                            websiteId={websiteId}
+                            artifactId={memory.id}
+                            kind="memory"
+                            status="deprecated"
+                            label="Deprecate"
+                            disabled={memory.status === "deprecated"}
+                            testId="growth-agent-memory-deprecate"
+                          />
+                          <LearningActionForm
+                            websiteId={websiteId}
+                            artifactId={memory.id}
+                            kind="memory"
+                            status="rejected"
+                            label="Reject"
+                            disabled={memory.status === "rejected"}
+                            testId="growth-agent-memory-reject"
+                          />
+                        </div>
+                      </article>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <h4 className="text-sm font-semibold text-[var(--studio-text-strong,theme(colors.zinc.900))]">
+                  Replay
+                </h4>
+                <div className="mt-2 divide-y divide-[var(--studio-border,theme(colors.zinc.200))] rounded-md border border-[var(--studio-border,theme(colors.zinc.200))]">
+                  {result.learning.replayCases.length === 0 ? (
+                    <p className="p-3 text-sm text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                      No replay cases yet.
+                    </p>
+                  ) : (
+                    result.learning.replayCases.map((replay) => (
+                      <article
+                        key={replay.id}
+                        data-testid="growth-agent-replay-row"
+                        className="p-3"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium">
+                              {replay.expectedDecision}
+                            </p>
+                            <p className="mt-1 text-xs text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                              {LANE_LABELS[replay.lane]} ·{" "}
+                              {replay.expectedAllowedAction ?? "no action"}
+                            </p>
+                          </div>
+                          <LearningStatusBadge status={replay.status} />
+                        </div>
+                        {replay.rationale ? (
+                          <p className="mt-2 text-xs text-[var(--studio-text-muted,theme(colors.zinc.600))]">
+                            {replay.rationale}
+                          </p>
+                        ) : null}
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <LearningActionForm
+                            websiteId={websiteId}
+                            artifactId={replay.id}
+                            kind="replay"
+                            status="active"
+                            label="Activate"
+                            disabled={replay.status === "active"}
+                            testId="growth-agent-replay-activate"
+                          />
+                          <LearningActionForm
+                            websiteId={websiteId}
+                            artifactId={replay.id}
+                            kind="replay"
+                            status="deprecated"
+                            label="Deprecate"
+                            disabled={replay.status === "deprecated"}
+                            testId="growth-agent-replay-deprecate"
+                          />
+                          <LearningActionForm
+                            websiteId={websiteId}
+                            artifactId={replay.id}
+                            kind="replay"
+                            status="rejected"
+                            label="Reject"
+                            disabled={replay.status === "rejected"}
+                            testId="growth-agent-replay-reject"
+                          />
+                        </div>
+                      </article>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
           </section>
 
           <div className="overflow-x-auto rounded-md border border-[var(--studio-border,theme(colors.zinc.200))]">

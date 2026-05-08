@@ -81,6 +81,7 @@ function isLowRiskBulkEligible(card: WorkboardCard): boolean {
 }
 
 function blockedCause(card: WorkboardCard): string {
+  if (card.blockedReason) return card.blockedReason;
   if (card.status === "running" || card.status === "claimed") {
     return "Runtime detenido";
   }
@@ -326,15 +327,24 @@ export default async function GrowthWorkboardPage({
               {blockedCards.length} bloqueadas
             </StudioBadge>
           </div>
-          <div className="mt-3 flex flex-wrap gap-2 text-xs">
-            {Object.entries(blockedByCause).map(([cause, count]) => (
-              <span
-                key={cause}
-                className="rounded border border-[var(--studio-border)] px-2 py-1 text-[var(--studio-text-muted)]"
-              >
-                {cause}: {count}
+          <div
+            data-testid="growth-workboard-blocked-reasons"
+            className="mt-3 flex flex-wrap gap-2 text-xs"
+          >
+            {Object.entries(blockedByCause).length > 0 ? (
+              Object.entries(blockedByCause).map(([cause, count]) => (
+                <span
+                  key={cause}
+                  className="rounded border border-[var(--studio-border)] px-2 py-1 text-[var(--studio-text-muted)]"
+                >
+                  {cause}: {count}
+                </span>
+              ))
+            ) : (
+              <span className="rounded border border-[var(--studio-border)] px-2 py-1 text-[var(--studio-text-muted)]">
+                Sin bloqueos visibles
               </span>
-            ))}
+            )}
           </div>
           <form action={markStaleWorkboardRunsStalled} className="mt-3">
             <input type="hidden" name="websiteId" value={websiteId} />

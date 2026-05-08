@@ -489,6 +489,15 @@ function WorkboardCardView({
           </p>
         ) : null}
 
+        {card.blockedReason ? (
+          <p
+            data-testid="growth-workboard-card-blocked-reason"
+            className="mt-2 line-clamp-2 rounded border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] text-amber-800"
+          >
+            Bloqueo: {textForOperator(card.blockedReason)}
+          </p>
+        ) : null}
+
         <div className="mt-2 flex flex-wrap gap-1">
           <StudioBadge tone={autonomy.tone}>{autonomy.label}</StudioBadge>
           {card.childTaskCount > 0 ? (
@@ -835,6 +844,12 @@ function WorkboardCardSheet({
                   label="Riesgo"
                   value={`${humanize(card.risk)} / ${card.riskScore}`}
                 />
+                {card.blockedReason ? (
+                  <DetailRow
+                    label="Razón bloqueo"
+                    value={textForOperator(card.blockedReason)}
+                  />
+                ) : null}
               </section>
 
               <section>

@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { requireGrowthRole } from "@/lib/growth/console/auth";
 
+export const dynamic = "force-dynamic";
+
 /**
  * Growth Console layout — SPEC_GROWTH_OS_SYMPHONY_ORCHESTRATOR.md
  *   §"Bukeer Studio UI Scope" (issue #405).

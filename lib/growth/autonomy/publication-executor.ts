@@ -33,6 +33,32 @@ function asRecord(value: unknown): JsonRecord {
     : {};
 }
 
+function hasRecord(value: unknown): boolean {
+  return Object.keys(asRecord(value)).length > 0;
+}
+
+function hasTarget(job: GrowthPublicationJobInsert): boolean {
+  return Boolean(job.target_table && (job.target_id || job.target_path));
+}
+
+function validateLiveApplyPlan(plan: PublicationExecutionPlan): string[] {
+  if (plan.job.job_mode !== "live") return [];
+  const failures: string[] = [];
+  if (!hasTarget(plan.job)) failures.push("missing_target");
+  if (!hasRecord(asRecord(plan.job.evidence).rollback_expectation)) {
+    failures.push("missing_rollback_expectation");
+  }
+  if (!hasRecord(plan.job.baseline)) failures.push("missing_baseline");
+  if (!plan.job.success_metric?.trim()) failures.push("missing_success_metric");
+  if (plan.outcomes.length === 0) failures.push("missing_outcome_plan");
+  for (const outcome of plan.outcomes) {
+    if (!outcome.success_metric?.trim()) failures.push("missing_outcome_success_metric");
+    if (!hasRecord(outcome.baseline)) failures.push("missing_outcome_baseline");
+    if (!outcome.evaluation_window) failures.push("missing_evaluation_window");
+  }
+  return Array.from(new Set(failures));
+}
+
 async function insertPublicationJob(
   supabase: SupabaseLike,
   job: GrowthPublicationJobInsert,
@@ -211,6 +237,27 @@ export async function executeGrowthPublicationJob({
   plan: PublicationExecutionPlan;
 }): Promise<PublicationExecutionResult> {
   const now = new Date().toISOString();
+  const liveApplyFailures = validateLiveApplyPlan(plan);
+  if (liveApplyFailures.length > 0) {
+    const blockedJob: GrowthPublicationJobInsert = {
+      ...plan.job,
+      job_mode: "dry_run",
+      status: "blocked",
+      smoke_result: {
+        ...plan.smoke,
+        pass: false,
+        failures: [...plan.smoke.failures, ...liveApplyFailures],
+      },
+    };
+    const inserted = await insertPublicationJob(supabase, blockedJob);
+    return {
+      publicationJobId: inserted.id,
+      status: "blocked",
+      applied: false,
+      rolledBack: false,
+      targetId: plan.job.target_id,
+    };
+  }
   const dryRunOrBlocked =
     plan.job.job_mode === "dry_run" || plan.job.status === "blocked";
 
@@ -277,6 +324,7 @@ export async function executeGrowthPublicationJob({
     });
     await updateWorkItem(supabase, plan.job.work_item_id, {
       status: "published_applied",
+      change_set_id: plan.job.change_set_id,
       completed_at: now,
       progress_label: "Publicado/aplicado y en medicion",
     });

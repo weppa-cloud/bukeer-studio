@@ -73,12 +73,42 @@ describe("Growth profile flow contracts", () => {
       status: "ready_for_backlog",
       required_profile_types: ["business", "buyer", "seo_market"],
       profile_snapshot: { buyer: { confidence: 0.86 } },
-      evidence: { sources: ["gsc", "dataforseo"] },
+      evidence: {
+        sources: ["gsc", "dataforseo"],
+        target: {
+          target_table: "website_blog_posts",
+          target_path: "/blog/colombia-itinerary",
+        },
+        rollback_expectation: {
+          strategy: "delete_created_content",
+          target_path: "/blog/colombia-itinerary",
+        },
+        baseline: { organic_clicks: 12, impressions: 100 },
+      },
       success_metric: "organic_clicks:/blog/colombia-itinerary",
       evaluation_window: "day_21",
       idempotency_key: "candidate:keyword-gap:colombia-itinerary",
     });
 
     expect(parsed.success).toBe(true);
+  });
+
+  it("rejects ready opportunity candidates without execution evidence", () => {
+    const parsed = GrowthOpportunityCandidateInsertSchema.safeParse({
+      ...scope,
+      candidate_type: "keyword_gap",
+      lane: "content_creator",
+      allowed_action_class: "content_publish",
+      title: "Create Colombia itinerary article",
+      summary: "GSC and DataForSEO show query gap.",
+      status: "ready_for_backlog",
+      profile_snapshot: { buyer: { confidence: 0.86 } },
+      evidence: { sources: ["gsc"] },
+      success_metric: "organic_clicks:/blog/colombia-itinerary",
+      evaluation_window: "day_21",
+      idempotency_key: "candidate:keyword-gap:missing-execution-evidence",
+    });
+
+    expect(parsed.success).toBe(false);
   });
 });

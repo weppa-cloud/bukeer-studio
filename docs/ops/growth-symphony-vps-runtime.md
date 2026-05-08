@@ -49,13 +49,14 @@ WORKDIR /app
 
 COPY package.json package-lock.json ./
 COPY packages ./packages
-RUN npm ci
+RUN npm ci --omit=dev \
+  && npm install -g @openai/codex@latest tsx
 
 COPY . .
 
 ENV NODE_ENV=production
 
-CMD ["node", "scripts/growth/run-growth-symphony-orchestrator.mjs"]
+CMD ["tsx", "scripts/growth/run-growth-production-cycle.ts", "--scheduled", "--interval-ms=1800000", "--max-claims-per-lane=1"]
 ```
 
 ## Compose Contract
@@ -77,7 +78,7 @@ services:
       - /opt/growth-os/codex:/root/.codex
     working_dir: /app
     command: >
-      node scripts/growth/run-growth-symphony-orchestrator.mjs
+      tsx scripts/growth/run-growth-production-cycle.ts --scheduled --interval-ms=1800000 --max-claims-per-lane=1
     logging:
       driver: json-file
       options:
@@ -96,10 +97,11 @@ OPENROUTER_MODEL=anthropic/claude-sonnet-4-5
 DATAFORSEO_LOGIN=
 DATAFORSEO_PASSWORD=
 GITHUB_TOKEN=
-GROWTH_ORCHESTRATOR_MODE=production
-GROWTH_ORCHESTRATOR_MAX_CONCURRENCY=3
-GROWTH_ORCHESTRATOR_TENANT_CONCURRENCY=1
-GROWTH_ORCHESTRATOR_AUTO_APPLY_ENABLED=false
+GROWTH_ACCOUNT_ID=
+GROWTH_WEBSITE_ID=
+GROWTH_LOCALE=es-CO
+GROWTH_MARKET=CO
+GROWTH_ENVIRONMENT=production
 GROWTH_ORCHESTRATOR_AGREEMENT_THRESHOLD=0.90
 ```
 
@@ -116,7 +118,8 @@ GROWTH_ORCHESTRATOR_AGREEMENT_THRESHOLD=0.90
    ```
 
 6. Verify logs and Supabase run/event writes.
-7. Confirm `auto_apply` remains disabled.
+7. Confirm `growth_autonomy_policies` has explicit lane/action policies, caps
+   and kill switch state before enabling `dry_run_only=false`.
 
 The deployment script:
 
@@ -127,9 +130,10 @@ The deployment script:
 - rebuilds/restarts `growth-orchestrator`;
 - runs Node syntax checks, `codex login status` and `--configSmoke`.
 
-Canonical runtime code now lives in `runtime/growth-orchestrator`. The
-`scripts/growth/*` entrypoints remain compatibility wrappers for existing
-runbooks, Compose commands and issue references.
+Canonical live-gated cycle entrypoint is now
+`scripts/growth/run-growth-production-cycle.ts`. The legacy Symphony runtime in
+`runtime/growth-orchestrator` remains the compatibility execution plane for
+Codex-style task runs and historical runbooks.
 
 Rollback:
 
@@ -148,3 +152,6 @@ docker compose up -d --build growth-orchestrator
 - Artifacts are tenant/run namespaced.
 - No raw provider payloads in GitHub comments.
 - Agreement below `0.90` blocks any automation beyond review/handoff.
+- The daemon claims at most one item per lane per cycle by default.
+- Paid, pricing, availability, reservations, payments, CRM mass mutation and
+  outreach are blocked even if a policy is misconfigured.

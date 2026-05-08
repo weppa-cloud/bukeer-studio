@@ -17,8 +17,11 @@ services:
       - /opt/growth-os/codex:/root/.codex
     working_dir: /app
     command:
-      - node
-      - scripts/growth/run-growth-symphony-orchestrator.mjs
+      - tsx
+      - scripts/growth/run-growth-production-cycle.ts
+      - --scheduled
+      - --interval-ms=1800000
+      - --max-claims-per-lane=1
     logging:
       driver: json-file
       options:
