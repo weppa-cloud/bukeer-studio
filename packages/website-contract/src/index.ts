@@ -717,6 +717,31 @@ export type {
   GrowthWorkItemOutcomeUpdate,
 } from './schemas/growth-paperclip-autonomy';
 
+export {
+  GrowthSignalSourceSchema,
+  GrowthProfileTypeSchema,
+  GrowthOpportunityCandidateTypeSchema,
+  GrowthOpportunityCandidateStatusSchema,
+  GrowthSignalFactSchema,
+  GrowthSignalFactInsertSchema,
+  GrowthProfileSchema,
+  GrowthProfileInsertSchema,
+  GrowthOpportunityCandidateSchema,
+  GrowthOpportunityCandidateInsertSchema,
+} from './schemas/growth-profile-flow';
+export type {
+  GrowthSignalSource,
+  GrowthProfileType,
+  GrowthOpportunityCandidateType,
+  GrowthOpportunityCandidateStatus,
+  GrowthSignalFact,
+  GrowthSignalFactInsert,
+  GrowthProfile,
+  GrowthProfileInsert,
+  GrowthOpportunityCandidate,
+  GrowthOpportunityCandidateInsert,
+} from './schemas/growth-profile-flow';
+
 // Validation
 export {
   validateSection,

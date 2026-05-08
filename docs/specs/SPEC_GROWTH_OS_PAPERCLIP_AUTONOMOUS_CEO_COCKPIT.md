@@ -248,6 +248,61 @@ Adapters must not touch pricing, availability, reservations, payments, CRM reque
 
 RLS rule: authenticated reads require active `user_roles` membership for `account_id`; writes are service-role only for runtime tables.
 
+## Sprint 1 Addendum: Signal -> Profile -> Candidate -> Work Item
+
+Growth OS must not invent backlog directly from an agent prompt. The orchestrator promotes work only from traceable signals, fresh profiles and scored opportunity candidates.
+
+### Data Flow
+
+```mermaid
+flowchart LR
+  A["Provider/raw signal facts"] --> B["Versioned Growth profiles"]
+  B --> C["Opportunity candidates"]
+  C --> D["Backlog / Council"]
+  D --> E["growth_work_items"]
+  E --> F["Agent run + change set"]
+  F --> G["Publication/apply job"]
+  G --> H["Outcome ledger"]
+```
+
+### Profile Cadence
+
+| Profile | Primary sources | Refresh rule | Blocks autonomy when |
+| --- | --- | --- | --- |
+| `business` | CRM, funnel events, account brief | monthly or when offer/ICP changes | confidence < 0.75 or expired |
+| `buyer` | CRM, Chatwoot, GA4, form events | monthly, plus weekly sample refresh | confidence < 0.72 or expired |
+| `seo_market` | GSC, DataForSEO, inventory | weekly | confidence < 0.70 or expired |
+| `competitor` | DataForSEO SERP, AI/GEO checks | weekly | confidence < 0.65 or expired for transcreation/market bets |
+| `page_product` | live website row, crawl, GSC URL facts | immediately before publish/apply, max 1 hour old | missing, stale, or target mismatch |
+| `agent_lane` | run metrics, tool ledger, replay cases | daily and after runtime releases | lane confidence drops below policy |
+| `risk_policy` | autonomy policy, caps, blocked tool classes | realtime, max 1 hour old | missing, stale, kill switch, cap exceeded |
+
+### Backlog Creation Rule
+
+The orchestrator can create or promote backlog only when all of the following are true:
+
+- a `growth_opportunity_candidates` row has evidence, idempotency key, `success_metric` and `evaluation_window`;
+- required profile types pass the freshness gate for the candidate action class;
+- candidate score is high enough for `ready_for_backlog` or Council explicitly approves it;
+- paid mutation and experiment activation are excluded from autonomous promotion;
+- the promoted `growth_work_items` row keeps the candidate id/profile snapshot in metadata.
+
+### New Tables
+
+| Table | Purpose |
+| --- | --- |
+| `growth_signal_facts` | Append-only normalized facts from GSC, GA4, DataForSEO, CRM, funnel events, audits and manual evidence. |
+| `growth_profiles` | Versioned profiles used by agents to reason about business, buyer, market, page/product, lane and risk context. |
+| `growth_opportunity_candidates` | Scored opportunities that can become backlog/work items only after freshness, evidence and measurement gates pass. |
+
+### Sprint 1 Acceptance Criteria
+
+- [ ] Signal/profile/candidate contracts exist in `@bukeer/website-contract`.
+- [ ] Supabase tables have service-role writes and tenant-scoped authenticated reads through `user_roles`.
+- [ ] Freshness gate blocks stale, missing or low-confidence profiles before backlog promotion.
+- [ ] CEO cockpit surfaces profile freshness and opportunity candidate health.
+- [ ] E2E verifies the CEO can see the data-flow health surface in the Growth cockpit.
+
 ## Affected Files / Packages
 
 | Path | Change | Description |

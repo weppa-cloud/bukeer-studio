@@ -234,8 +234,9 @@ export function planTranscreationMerge(
       ...outcome,
       publication_job_id: PLACEHOLDER_PUBLICATION_JOB_ID,
     });
-    const { publication_job_id: _publicationJobId, ...withoutPublicationJob } =
+    const { publication_job_id: publicationJobId, ...withoutPublicationJob } =
       parsed;
+    void publicationJobId;
     return withoutPublicationJob;
   });
 

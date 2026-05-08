@@ -348,15 +348,19 @@ export function planTechnicalRemediation(
       funnel_attribution_status: "pending" as const,
       attribution_evidence: {},
     },
-  ].map(({ policy_id: _policyId, ...outcome }) => outcome);
+  ].map(({ policy_id: policyId, ...outcome }) => {
+    void policyId;
+    return outcome;
+  });
 
   const outcomes = outcomeCandidates.map((outcome) => {
     const parsed = GrowthWorkItemOutcomeInsertSchema.parse({
       ...outcome,
       publication_job_id: PLACEHOLDER_PUBLICATION_JOB_ID,
     });
-    const { publication_job_id: _publicationJobId, ...withoutPublicationJob } =
+    const { publication_job_id: publicationJobId, ...withoutPublicationJob } =
       parsed;
+    void publicationJobId;
     return withoutPublicationJob;
   });
 

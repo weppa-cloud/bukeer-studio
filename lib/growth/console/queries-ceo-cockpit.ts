@@ -101,6 +101,28 @@ export interface RiskBudgetRow {
   maxRiskLevel: string;
 }
 
+export interface ProfileFreshnessRow {
+  id: string;
+  profileType: string;
+  subject: string;
+  status: "fresh" | "stale" | "low_confidence";
+  confidence: number;
+  validUntil: string;
+  ageHours: number;
+}
+
+export interface OpportunityCandidateRow {
+  id: string;
+  title: string;
+  candidateType: string;
+  lane: AgentLane | "unknown";
+  actionClass: string;
+  status: string;
+  totalScore: number;
+  blockingReason: string | null;
+  successMetric: string | null;
+}
+
 export interface GrowthCeoCockpit {
   accountId: string;
   websiteId: string;
@@ -123,6 +145,15 @@ export interface GrowthCeoCockpit {
     rolledBack: number;
     blockedPaidMutations: number;
     missingTables: string[];
+  };
+  profileFlow: {
+    freshProfiles: number;
+    staleProfiles: number;
+    lowConfidenceProfiles: number;
+    readyCandidates: number;
+    blockedCandidates: number;
+    profiles: ProfileFreshnessRow[];
+    candidates: OpportunityCandidateRow[];
   };
   generatedAt: string;
 }
@@ -269,6 +300,9 @@ export async function getGrowthCeoCockpit(
     publicationJobs,
     outcomes,
     funnelEvents,
+    signalFacts,
+    profiles,
+    opportunityCandidates,
     agreement,
   ] = await Promise.all([
     fetchTable("growth_agent_definitions", () =>
@@ -363,6 +397,34 @@ export async function getGrowthCeoCockpit(
         .gte("occurred_at", since30d)
         .limit(500),
     ),
+    fetchTable("growth_signal_facts", () =>
+      table(admin, "growth_signal_facts")
+        .select("id,source,signal_type,expires_at,confidence,created_at")
+        .eq("account_id", ctx.accountId)
+        .eq("website_id", ctx.websiteId)
+        .order("observed_at", { ascending: false })
+        .limit(80),
+    ),
+    fetchTable("growth_profiles", () =>
+      table(admin, "growth_profiles")
+        .select(
+          "id,profile_type,subject_table,subject_id,subject_key,confidence,valid_from,valid_until,updated_at,created_at",
+        )
+        .eq("account_id", ctx.accountId)
+        .eq("website_id", ctx.websiteId)
+        .order("valid_until", { ascending: true })
+        .limit(80),
+    ),
+    fetchTable("growth_opportunity_candidates", () =>
+      table(admin, "growth_opportunity_candidates")
+        .select(
+          "id,title,candidate_type,lane,allowed_action_class,status,total_score,blocking_reason,success_metric,updated_at,created_at",
+        )
+        .eq("account_id", ctx.accountId)
+        .eq("website_id", ctx.websiteId)
+        .order("total_score", { ascending: false })
+        .limit(80),
+    ),
     getLaneAgreement(ctx.websiteId),
   ]);
 
@@ -377,6 +439,9 @@ export async function getGrowthCeoCockpit(
     publicationJobs,
     outcomes,
     funnelEvents,
+    signalFacts,
+    profiles,
+    opportunityCandidates,
   ]) {
     if (result.missing) missingTables.add(result.missing);
   }
@@ -652,6 +717,49 @@ export async function getGrowthCeoCockpit(
     })
     .filter(Boolean) as RiskBudgetRow[];
 
+  const nowMs = Date.now();
+  const profileRows = profiles.rows.slice(0, 12).map((row, index): ProfileFreshnessRow => {
+    const validUntil = optionalText(row.valid_until) ?? "n/a";
+    const validUntilMs = Date.parse(validUntil);
+    const validFrom = optionalText(row.valid_from) ?? optionalText(row.created_at);
+    const ageHours = validFrom
+      ? Math.max(0, (nowMs - Date.parse(validFrom)) / (1000 * 60 * 60))
+      : 0;
+    const confidence = numberValue(row.confidence);
+    const status: ProfileFreshnessRow["status"] =
+      Number.isFinite(validUntilMs) && validUntilMs <= nowMs
+        ? "stale"
+        : confidence < 0.7
+          ? "low_confidence"
+          : "fresh";
+    return {
+      id: optionalText(row.id) ?? `profile:${index}`,
+      profileType: optionalText(row.profile_type) ?? "unknown",
+      subject:
+        optionalText(row.subject_key) ??
+        optionalText(row.subject_table) ??
+        "tenant",
+      status,
+      confidence,
+      validUntil,
+      ageHours: Number(ageHours.toFixed(1)),
+    };
+  });
+
+  const candidateRows = opportunityCandidates.rows
+    .slice(0, 8)
+    .map((row, index): OpportunityCandidateRow => ({
+      id: optionalText(row.id) ?? `candidate:${index}`,
+      title: optionalText(row.title) ?? "Growth opportunity",
+      candidateType: optionalText(row.candidate_type) ?? "unknown",
+      lane: parseLane(row.lane) ?? "unknown",
+      actionClass: optionalText(row.allowed_action_class) ?? "unknown",
+      status: optionalText(row.status) ?? "candidate",
+      totalScore: numberValue(row.total_score),
+      blockingReason: optionalText(row.blocking_reason),
+      successMetric: optionalText(row.success_metric),
+    }));
+
   return {
     accountId: ctx.accountId,
     websiteId: ctx.websiteId,
@@ -685,6 +793,20 @@ export async function getGrowthCeoCockpit(
           row.allowed !== true,
       ).length,
       missingTables: Array.from(missingTables).sort(),
+    },
+    profileFlow: {
+      freshProfiles: profileRows.filter((row) => row.status === "fresh").length,
+      staleProfiles: profileRows.filter((row) => row.status === "stale").length,
+      lowConfidenceProfiles: profileRows.filter(
+        (row) => row.status === "low_confidence",
+      ).length,
+      readyCandidates: candidateRows.filter(
+        (row) => row.status === "ready_for_backlog",
+      ).length,
+      blockedCandidates: candidateRows.filter((row) => row.status === "blocked")
+        .length,
+      profiles: profileRows,
+      candidates: candidateRows,
     },
     generatedAt: new Date().toISOString(),
   };

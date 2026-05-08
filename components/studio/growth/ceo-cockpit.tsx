@@ -10,6 +10,7 @@ import {
   Gauge,
   Lock,
   PauseCircle,
+  Radar,
   RefreshCcw,
   ShieldCheck,
   SlidersHorizontal,
@@ -60,6 +61,13 @@ const STATUS_STYLES: Record<string, string> = {
   locked: "border-zinc-300 bg-zinc-100 text-zinc-600",
   needs_backend: "border-amber-200 bg-amber-50 text-amber-800",
   dry_run: "border-blue-200 bg-blue-50 text-blue-800",
+  fresh: "border-emerald-200 bg-emerald-50 text-emerald-800",
+  stale: "border-red-200 bg-red-50 text-red-800",
+  low_confidence: "border-amber-200 bg-amber-50 text-amber-800",
+  ready_for_backlog: "border-emerald-200 bg-emerald-50 text-emerald-800",
+  candidate: "border-zinc-200 bg-zinc-50 text-zinc-700",
+  promoted: "border-blue-200 bg-blue-50 text-blue-800",
+  rejected: "border-zinc-300 bg-zinc-100 text-zinc-600",
 };
 
 function formatDate(value: string | null | undefined): string {
@@ -543,6 +551,154 @@ function HumanOperations({
   );
 }
 
+function ProfileFlow({ data }: { data: GrowthCeoCockpitData }) {
+  const profileFlow = data.profileFlow;
+
+  return (
+    <section
+      className="rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] bg-[var(--studio-surface,theme(colors.white))]"
+      data-testid="growth-profile-flow"
+    >
+      <div className="grid gap-4 border-b border-[var(--studio-border,theme(colors.zinc.200))] p-4 lg:grid-cols-[1fr_420px] lg:items-start">
+        <SectionTitle
+          eyebrow="Data Flow"
+          title="Profile Freshness + Opportunity Candidates"
+          detail="El backlog nace de señales versionadas, perfiles frescos y candidatos con evidencia; el runtime no debe publicar si falta profile snapshot."
+        />
+        <div className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-5 lg:grid-cols-5">
+          <div className="border-l border-[var(--studio-border,theme(colors.zinc.200))] py-1 pl-3">
+            <p className="text-[11px] uppercase text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+              Fresh
+            </p>
+            <p className="font-semibold">{profileFlow.freshProfiles}</p>
+          </div>
+          <div className="border-l border-[var(--studio-border,theme(colors.zinc.200))] py-1 pl-3">
+            <p className="text-[11px] uppercase text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+              Stale
+            </p>
+            <p className="font-semibold">{profileFlow.staleProfiles}</p>
+          </div>
+          <div className="border-l border-[var(--studio-border,theme(colors.zinc.200))] py-1 pl-3">
+            <p className="text-[11px] uppercase text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+              Low conf
+            </p>
+            <p className="font-semibold">{profileFlow.lowConfidenceProfiles}</p>
+          </div>
+          <div className="border-l border-[var(--studio-border,theme(colors.zinc.200))] py-1 pl-3">
+            <p className="text-[11px] uppercase text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+              Ready
+            </p>
+            <p className="font-semibold">{profileFlow.readyCandidates}</p>
+          </div>
+          <div className="border-l border-[var(--studio-border,theme(colors.zinc.200))] py-1 pl-3">
+            <p className="text-[11px] uppercase text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+              Blocked
+            </p>
+            <p className="font-semibold">{profileFlow.blockedCandidates}</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid gap-4 p-4 xl:grid-cols-2">
+        <div>
+          <h3 className="text-sm font-semibold text-[var(--studio-text,theme(colors.zinc.900))]">
+            Profiles
+          </h3>
+          {profileFlow.profiles.length === 0 ? (
+            <p className="mt-3 rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] bg-[var(--studio-panel,theme(colors.zinc.50))] p-3 text-sm text-[var(--studio-text-muted,theme(colors.zinc.600))]">
+              No hay perfiles versionados todavia. El freshness gate bloqueara
+              promocion autonoma hasta que existan perfiles requeridos.
+            </p>
+          ) : (
+            <div className="mt-3 overflow-x-auto">
+              <table className="min-w-full divide-y divide-[var(--studio-border,theme(colors.zinc.200))] text-sm">
+                <thead className="text-left text-xs uppercase text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                  <tr>
+                    <th className="px-3 py-2 font-medium">Perfil</th>
+                    <th className="px-3 py-2 font-medium">Estado</th>
+                    <th className="px-3 py-2 font-medium">Conf</th>
+                    <th className="px-3 py-2 font-medium">Vence</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--studio-border,theme(colors.zinc.200))]">
+                  {profileFlow.profiles.map((profile) => (
+                    <tr key={profile.id}>
+                      <td className="px-3 py-2">
+                        <div className="font-medium text-[var(--studio-text,theme(colors.zinc.900))]">
+                          {profile.profileType.replaceAll("_", " ")}
+                        </div>
+                        <div className="text-xs text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                          {profile.subject} - {profile.ageHours}h
+                        </div>
+                      </td>
+                      <td className="px-3 py-2">
+                        <StatusPill value={profile.status} />
+                      </td>
+                      <td className="px-3 py-2 text-[var(--studio-text-muted,theme(colors.zinc.600))]">
+                        {profile.confidence.toFixed(2)}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-2 text-xs text-[var(--studio-text-muted,theme(colors.zinc.600))]">
+                        {formatDate(profile.validUntil)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        <div>
+          <h3 className="text-sm font-semibold text-[var(--studio-text,theme(colors.zinc.900))]">
+            Opportunity Candidates
+          </h3>
+          {profileFlow.candidates.length === 0 ? (
+            <p className="mt-3 rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] bg-[var(--studio-panel,theme(colors.zinc.50))] p-3 text-sm text-[var(--studio-text-muted,theme(colors.zinc.600))]">
+              No hay candidatos puntuados. El detector debe agrupar senales
+              antes de crear backlog.
+            </p>
+          ) : (
+            <ol className="mt-3 divide-y divide-[var(--studio-border,theme(colors.zinc.200))] rounded-md border border-[var(--studio-border,theme(colors.zinc.200))]">
+              {profileFlow.candidates.map((candidate) => (
+                <li key={candidate.id} className="p-3">
+                  <div className="flex items-start gap-3">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] bg-[var(--studio-panel,theme(colors.zinc.50))]">
+                      <Radar className="h-4 w-4 text-zinc-700" aria-hidden="true" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-medium text-[var(--studio-text,theme(colors.zinc.900))]">
+                          {candidate.title}
+                        </p>
+                        <StatusPill value={candidate.status} />
+                      </div>
+                      <p className="mt-1 text-xs text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                        {candidate.candidateType.replaceAll("_", " ")} -{" "}
+                        {laneLabel(candidate.lane)} - {candidate.actionClass} -
+                        score {candidate.totalScore}
+                      </p>
+                      {candidate.successMetric ? (
+                        <p className="mt-1 break-words text-xs text-[var(--studio-text-muted,theme(colors.zinc.600))]">
+                          {candidate.successMetric}
+                        </p>
+                      ) : null}
+                      {candidate.blockingReason ? (
+                        <p className="mt-1 break-words text-xs text-amber-700">
+                          {candidate.blockingReason}
+                        </p>
+                      ) : null}
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function feedIcon(item: AutonomyFeedItem) {
   if (item.kind === "rollback") {
     return <RefreshCcw className="h-4 w-4 text-red-700" aria-hidden="true" />;
@@ -837,6 +993,8 @@ export function GrowthCeoCockpit({ data }: { data: GrowthCeoCockpitData }) {
         dataHealthHref={dataHealthHref}
         agentsHref={agentsHref}
       />
+
+      <ProfileFlow data={data} />
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
         <div className="xl:col-span-2">
