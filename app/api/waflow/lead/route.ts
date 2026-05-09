@@ -389,6 +389,13 @@ async function recordWaflowLeadViaRpc(
   const ua = request.headers.get('user-agent');
   const sourceUrl = readString(attribution.source_url);
   const pagePath = readString(attribution.page_path);
+  const funnelAttribution = buildFunnelAttribution(
+    body,
+    { accountId: tenant.accountId, websiteId: tenant.websiteId },
+    occurredAt,
+  );
+  const clickIds = funnelAttribution?.click_ids;
+  const utm = funnelAttribution?.utm;
 
   const eventId = await buildEventId({
     reference_code: body.referenceCode,
@@ -418,14 +425,14 @@ async function recordWaflowLeadViaRpc(
     external_id: body.referenceCode ?? body.sessionKey,
     fbp: readString(attribution.fbp),
     fbc: readString(attribution.fbc),
-    gclid: readString(attribution.gclid),
-    gbraid: readString(attribution.gbraid),
-    wbraid: readString(attribution.wbraid),
-    utm_source: readString(attribution.utm_source),
-    utm_medium: readString(attribution.utm_medium),
-    utm_campaign: readString(attribution.utm_campaign),
-    utm_term: readString(attribution.utm_term),
-    utm_content: readString(attribution.utm_content),
+    gclid: clickIds?.gclid ?? readString(attribution.gclid),
+    gbraid: clickIds?.gbraid ?? readString(attribution.gbraid),
+    wbraid: clickIds?.wbraid ?? readString(attribution.wbraid),
+    utm_source: utm?.utm_source ?? readString(attribution.utm_source),
+    utm_medium: utm?.utm_medium ?? readString(attribution.utm_medium),
+    utm_campaign: utm?.utm_campaign ?? readString(attribution.utm_campaign),
+    utm_term: utm?.utm_term ?? readString(attribution.utm_term),
+    utm_content: utm?.utm_content ?? readString(attribution.utm_content),
     ip_address: ip ?? undefined,
     user_agent: ua ?? undefined,
     raw_payload: {
@@ -436,7 +443,7 @@ async function recordWaflowLeadViaRpc(
       destination_slug: readString(body.payload.destinationSlug),
       package_tier: readString(body.payload.packageTier),
     },
-    attribution,
+    attribution: funnelAttribution ?? attribution,
   };
 
   const supabase = createSupabaseAdmin();

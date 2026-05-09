@@ -22,8 +22,13 @@ jest.mock('@/lib/meta/conversions-api', () => ({
   }),
 }));
 
+jest.mock('@/lib/funnel/dispatch', () => ({
+  triggerDispatch: jest.fn().mockResolvedValue({ ok: true, skipped: true }),
+}));
+
 import { createClient } from '@supabase/supabase-js';
 import { checkRateLimit } from '@/lib/booking/rate-limit';
+import { triggerDispatch } from '@/lib/funnel/dispatch';
 import { sendMetaConversionEvent } from '@/lib/meta/conversions-api';
 
 function request(body: Record<string, unknown>) {
@@ -36,6 +41,7 @@ function request(body: Record<string, unknown>) {
 describe('/api/waflow/lead', () => {
   let upsertPayload: Record<string, unknown> | null;
   let funnelRows: Record<string, unknown>[];
+  let rpcPayload: Record<string, unknown> | null;
 
   function buildSupabaseMock() {
     const websitesQuery = {
@@ -89,6 +95,10 @@ describe('/api/waflow/lead', () => {
         if (table === 'funnel_events') return funnelQuery;
         throw new Error(`Unexpected table ${table}`);
       }),
+      rpc: jest.fn((_fn: string, args: { payload: Record<string, unknown> }) => {
+        rpcPayload = args.payload;
+        return Promise.resolve({ data: { inserted: true }, error: null });
+      }),
     };
   }
 
@@ -96,6 +106,8 @@ describe('/api/waflow/lead', () => {
     jest.clearAllMocks();
     upsertPayload = null;
     funnelRows = [];
+    rpcPayload = null;
+    delete process.env.FUNNEL_EVENTS_DISPATCHER_V1;
     process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://example.supabase.co';
     process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-role-key';
     (checkRateLimit as jest.Mock).mockResolvedValue({
@@ -222,5 +234,54 @@ describe('/api/waflow/lead', () => {
     expect(response.status).toBe(400);
     expect(upsertPayload).toBeNull();
     expect(sendMetaConversionEvent).not.toHaveBeenCalled();
+  });
+
+  it('extracts Google click ids from source_url into dispatcher RPC payload', async () => {
+    process.env.FUNNEL_EVENTS_DISPATCHER_V1 = 'true';
+    const mod = await import('@/app/api/waflow/lead/route');
+    const response = await mod.POST(
+      request({
+        sessionKey: 'session-123',
+        subdomain: 'colombiatours',
+        variant: 'A',
+        step: 'confirmation',
+        referenceCode: 'HOME-2504-GADS',
+        submitted: true,
+        attribution: {
+          source_url:
+            'https://colombiatours.travel/agencia-de-viajes-a-colombia-para-mexicanos?utm_source=google&utm_medium=cpc&utm_campaign=MX_Multidestino_y_Caribe_2026_05&utm_content=807620654787&gclid=TEST-GCLID&gbraid=TEST-GBRAID',
+          page_path: '/agencia-de-viajes-a-colombia-para-mexicanos',
+        },
+        payload: {
+          name: 'Juan',
+          phone: '+573001234567',
+          eventIds: {
+            lead: 'HOME-2504-GADS:lead',
+          },
+        },
+      }),
+    );
+
+    expect(response.status).toBe(201);
+    expect(sendMetaConversionEvent).not.toHaveBeenCalled();
+    expect(rpcPayload).toMatchObject({
+      event_name: 'waflow_submit',
+      pixel_event_id: 'HOME-2504-GADS:lead',
+      reference_code: 'HOME-2504-GADS',
+      gclid: 'TEST-GCLID',
+      gbraid: 'TEST-GBRAID',
+      utm_source: 'google',
+      utm_medium: 'cpc',
+      utm_campaign: 'MX_Multidestino_y_Caribe_2026_05',
+      utm_content: '807620654787',
+    });
+    expect(rpcPayload?.attribution).toMatchObject({
+      channel: 'google_ads',
+      click_ids: {
+        gclid: 'TEST-GCLID',
+        gbraid: 'TEST-GBRAID',
+      },
+    });
+    expect(triggerDispatch).toHaveBeenCalled();
   });
 });
