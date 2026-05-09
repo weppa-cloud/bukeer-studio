@@ -74,7 +74,7 @@
       "command": "bash",
       "args": [
         "-lc",
-        "set -a; [ -f .env.local ] && source .env.local; [ -f .env.mcp ] && source .env.mcp; set +a; exec node .claude/mcp-servers/meta-ads/dist/index.js"
+        "set -a; [ -f .env.local ] && source .env.local; [ -f .env.mcp ] && source .env.mcp; set +a; exec node scripts/mcp/meta-ads-cli-server.mjs"
       ]
     },
     "google-ads": {
