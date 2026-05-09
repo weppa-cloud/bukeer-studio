@@ -164,6 +164,21 @@ export async function refreshGrowthProfiles(
     }),
     buildProfile({
       scope,
+      profileType: "competitor",
+      payload: {
+        source: "runtime_market_profile",
+        observed_competitive_surfaces: signalTypes.filter((type) =>
+          /serp|keyword|competitor|market|translation|locale/i.test(type),
+        ),
+        guidance:
+          "Use only for market positioning and content quality comparison. Do not mutate competitor-derived claims into public copy without source support.",
+        runtime_cycle_id: input.cycleId ?? null,
+      },
+      sourceSignalFactIds,
+      now,
+    }),
+    buildProfile({
+      scope,
       profileType: "page_product",
       payload: {
         website_id: input.websiteId,

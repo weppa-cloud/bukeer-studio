@@ -37,6 +37,7 @@ export type GrowthRuntimeCycleTrigger = z.infer<
 >;
 
 export const GrowthRuntimeCycleStageSchema = z.enum([
+  'orchestrator_brain',
   'profile_refresh',
   'candidate_discovery',
   'work_item_promotion',

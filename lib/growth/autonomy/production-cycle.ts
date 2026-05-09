@@ -18,6 +18,7 @@ import {
   recordGrowthRuntimeCycleStage,
   startGrowthRuntimeCycle,
 } from "./cycle-ledger";
+import { runGrowthOrchestratorBrain } from "@/lib/growth/agentic/orchestrator-brain";
 import { discoverGrowthOpportunityCandidates } from "./candidate-discovery";
 import { planContentPublication } from "./content-publication-adapter";
 import { evaluateDueGrowthOutcomes } from "./outcome-evaluator";
@@ -59,6 +60,7 @@ export interface RunGrowthOsProductionCycleOptions {
   cycleKey?: string;
   dryRun?: boolean;
   allowLiveMutation?: boolean;
+  enableAgenticBrain?: boolean;
   certificationFixtureMode?: boolean;
   candidateLimit?: number;
   promotionLimit?: number;
@@ -1293,6 +1295,7 @@ export async function runGrowthOsProductionCycle(
   const market = options.market ?? "CO";
   const dryRun = options.dryRun ?? false;
   const allowLiveMutation = options.allowLiveMutation ?? false;
+  const enableAgenticBrain = options.enableAgenticBrain ?? true;
   const certificationFixtureMode = options.certificationFixtureMode ?? false;
   const cycleKey =
     options.cycleKey ??
@@ -1314,6 +1317,7 @@ export async function runGrowthOsProductionCycle(
       promotion_limit: options.promotionLimit ?? 10,
       claim_limit_per_lane: options.claimLimitPerLane ?? 1,
       allow_live_mutation: allowLiveMutation,
+      enable_agentic_brain: enableAgenticBrain,
       certification_fixture_mode: certificationFixtureMode,
       runtime_version: GROWTH_RUNTIME_VERSION,
     },
@@ -1343,6 +1347,48 @@ export async function runGrowthOsProductionCycle(
           inserted_or_updated: profileRefresh.insertedOrUpdated,
         },
         details: { profile_types: profileRefresh.profileTypes },
+      },
+    });
+
+    const brain = enableAgenticBrain
+      ? await runGrowthOrchestratorBrain({
+          supabase,
+          accountId,
+          websiteId,
+          cycleId: cycle.id,
+          locale,
+          market,
+          source: options.triggerSource === "webhook" ? "data_refresh" : "timer",
+          materialize: !dryRun,
+          now,
+        })
+      : null;
+    cycle = await recordGrowthRuntimeCycleStage({
+      supabase,
+      cycle,
+      result: {
+        stage: "orchestrator_brain",
+        status: enableAgenticBrain ? "completed" : "skipped",
+        counts: {
+          decisions: brain ? 1 : 0,
+          candidates_created: brain?.createdCandidateIds.length ?? 0,
+          task_sessions_created: brain?.createdTaskSessionIds.length ?? 0,
+          blocked: brain?.blockedReasons.length ?? 0,
+        },
+        ids: {
+          decision_ids: brain ? [brain.decisionId] : [],
+          context_snapshot_ids: brain ? [brain.contextSnapshotId] : [],
+          wakeup_ids: brain?.wakeupId ? [brain.wakeupId] : [],
+          candidate_ids: brain?.createdCandidateIds ?? [],
+          task_session_ids: brain?.createdTaskSessionIds ?? [],
+        },
+        details: {
+          enabled: enableAgenticBrain,
+          materialized: brain?.materialized ?? false,
+          decision_type: brain?.decisionType ?? null,
+          confidence: brain?.confidence ?? null,
+          blocked_reasons: brain?.blockedReasons ?? [],
+        },
       },
     });
 

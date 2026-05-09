@@ -772,6 +772,41 @@ export type {
   GrowthRuntimeCycleUpdate,
 } from './schemas/growth-runtime-cycles';
 
+export {
+  GrowthAgentWakeupSourceSchema,
+  GrowthAgentWakeupStatusSchema,
+  GrowthAgentRuntimeStatusSchema,
+  GrowthAgentTaskSessionStatusSchema,
+  GrowthOrchestratorDecisionTypeSchema,
+  GrowthContextSnapshotSchema,
+  GrowthContextSnapshotInsertSchema,
+  GrowthOrchestratorDecisionSchema,
+  GrowthOrchestratorDecisionInsertSchema,
+  GrowthAgentWakeupRequestSchema,
+  GrowthAgentWakeupRequestInsertSchema,
+  GrowthAgentRuntimeStateSchema,
+  GrowthAgentRuntimeStateInsertSchema,
+  GrowthAgentTaskSessionSchema,
+  GrowthAgentTaskSessionInsertSchema,
+} from './schemas/growth-agentic-orchestrator';
+export type {
+  GrowthAgentWakeupSource,
+  GrowthAgentWakeupStatus,
+  GrowthAgentRuntimeStatus,
+  GrowthAgentTaskSessionStatus,
+  GrowthOrchestratorDecisionType,
+  GrowthContextSnapshot,
+  GrowthContextSnapshotInsert,
+  GrowthOrchestratorDecision,
+  GrowthOrchestratorDecisionInsert,
+  GrowthAgentWakeupRequest,
+  GrowthAgentWakeupRequestInsert,
+  GrowthAgentRuntimeState,
+  GrowthAgentRuntimeStateInsert,
+  GrowthAgentTaskSession,
+  GrowthAgentTaskSessionInsert,
+} from './schemas/growth-agentic-orchestrator';
+
 // Validation
 export {
   validateSection,

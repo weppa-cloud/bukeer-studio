@@ -57,10 +57,13 @@ async function main() {
       triggerSource: hasFlag("--scheduled") ? "scheduled" : "manual",
       dryRun,
       allowLiveMutation: !dryRun,
+      enableAgenticBrain: !hasFlag("--disable-agentic-brain"),
       environment: readEnvironment(),
       gitSha: readArg("--git-sha", process.env.GITHUB_SHA ?? "local-dev"),
       cycleWindow: readArg("--cycle-window", "30m"),
       claimLimitPerLane: Number(readArg("--max-claims-per-lane", "1")),
+      candidateLimit: Number(readArg("--candidate-limit", "25")),
+      promotionLimit: Number(readArg("--promotion-limit", "10")),
     });
     console.log(JSON.stringify({ ts: new Date().toISOString(), ...result }));
     if (once) break;
