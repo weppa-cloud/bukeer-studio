@@ -12,6 +12,7 @@ import {
   type JsonRecord,
   type SupabaseLike,
 } from "./runtime-common";
+import { readDataForSeoProviderSnapshot } from "./dataforseo-provider-profile";
 
 export interface RefreshGrowthProfilesOptions {
   supabase: SupabaseLike;
@@ -123,6 +124,12 @@ export async function refreshGrowthProfiles(
   const website = Array.isArray(websiteRows) ? websiteRows[0] : websiteRows;
   const signals = Array.isArray(signalRows) ? signalRows : [];
   const policies = Array.isArray(policyRows) ? policyRows : [];
+  const dataforseoSnapshot = await readDataForSeoProviderSnapshot({
+    supabase: input.supabase,
+    accountId: input.accountId,
+    websiteId: input.websiteId,
+    now,
+  });
   const sourceSignalFactIds = signals
     .map((row) => (typeof row.id === "string" ? row.id : null))
     .filter((id): id is string => Boolean(id));
@@ -157,6 +164,7 @@ export async function refreshGrowthProfiles(
       payload: {
         active_signal_types: signalTypes,
         top_sources: signals.slice(0, 10).map((row) => row.source),
+        dataforseo_snapshot: dataforseoSnapshot,
         runtime_cycle_id: input.cycleId ?? null,
       },
       sourceSignalFactIds,
@@ -172,6 +180,7 @@ export async function refreshGrowthProfiles(
         ),
         guidance:
           "Use only for market positioning and content quality comparison. Do not mutate competitor-derived claims into public copy without source support.",
+        dataforseo_snapshot: dataforseoSnapshot,
         runtime_cycle_id: input.cycleId ?? null,
       },
       sourceSignalFactIds,

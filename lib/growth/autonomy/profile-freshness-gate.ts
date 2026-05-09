@@ -199,6 +199,15 @@ function hasCandidateTarget(value: unknown): boolean {
   );
 }
 
+function dataForSeoEvidenceFailure(value: unknown): string | null {
+  if (!hasNonEmptyRecord(value)) return null;
+  const evidence = value as JsonRecord;
+  if (evidence.required !== true) return null;
+  const status = typeof evidence.status === "string" ? evidence.status : "empty";
+  if (status === "available" || status === "excepted") return null;
+  return `dataforseo_${status}`;
+}
+
 export function evaluateCandidateDataQuality(
   input: GrowthCandidateDataQualityInput,
 ): string[] {
@@ -212,6 +221,10 @@ export function evaluateCandidateDataQuality(
   }
   if (!input.successMetric?.trim()) failures.push("missing_success_metric");
   if (!input.evaluationWindow) failures.push("missing_evaluation_window");
+  const dataforseoFailure = dataForSeoEvidenceFailure(
+    input.evidence.dataforseo_evidence,
+  );
+  if (dataforseoFailure) failures.push(dataforseoFailure);
   return failures;
 }
 

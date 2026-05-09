@@ -162,4 +162,56 @@ describe("profile freshness gate", () => {
     expect(candidate.blocking_reason).toContain("missing:page_product");
     expect(candidate.blocking_reason).toContain("missing_target");
   });
+
+  it("blocks provider-dependent candidates when DataForSEO evidence is stale", () => {
+    const freshness = {
+      allowed: true,
+      snapshot: { seo_market: { id: "seo" } },
+      missing: [],
+      stale: [],
+      lowConfidence: [],
+    };
+
+    const candidate = scoreOpportunityCandidate({
+      accountId: base.account_id,
+      websiteId: base.website_id,
+      candidateType: "keyword_gap",
+      lane: "content_creator",
+      allowedActionClass: "content_publish",
+      title: "Create SERP-backed content",
+      summary: "SERP evidence is stale and must not be promoted live.",
+      impactScore: 90,
+      confidence: 0.9,
+      urgencyScore: 90,
+      costScore: 20,
+      riskScore: 25,
+      idempotencyKey: "keyword-gap:stale-dataforseo",
+      evidence: {
+        target: {
+          target_table: "website_blog_posts",
+          target_path: "/blog/stale-dataforseo",
+        },
+        rollback_expectation: {
+          strategy: "delete_created_content",
+          target_path: "/blog/stale-dataforseo",
+        },
+        baseline: { organic_clicks: 0, impressions: 10 },
+        dataforseo_evidence: {
+          required: true,
+          feature_profile: "serp",
+          status: "stale",
+          blockers: ["dataforseo_stale:serp"],
+          snapshot: null,
+          exception_reason: null,
+        },
+      },
+      requiredProfileTypes: ["business", "buyer", "seo_market"],
+      freshness,
+      successMetric: "organic_clicks:/blog/stale-dataforseo",
+      evaluationWindow: "day_21",
+    });
+
+    expect(candidate.status).toBe("blocked");
+    expect(candidate.blocking_reason).toContain("dataforseo_stale");
+  });
 });

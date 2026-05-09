@@ -591,6 +591,10 @@ test.describe("Growth OS console UI contract @growth-os-ui", () => {
     await expect(page.getByTestId("growth-runtime-health")).toContainText(
       /Replay|Memory|Skills/i,
     );
+    await expect(page.getByText(/DataForSEO Runtime/i)).toBeVisible();
+    await expect(page.getByText(/DataForSEO feature profiles/i)).toBeVisible({
+      timeout: 10_000,
+    });
   });
 
   test("Mobile Growth OS surfaces do not create document-level horizontal overflow", async ({
