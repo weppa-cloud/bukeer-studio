@@ -11,6 +11,7 @@ export interface AnalyticsConfig {
   gtm_id?: string;
   ga4_id?: string;
   facebook_pixel_id?: string;
+  clarity_project_id?: string;
   custom_head_scripts?: string;
   custom_body_scripts?: string;
 }

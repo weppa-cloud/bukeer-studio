@@ -12,7 +12,6 @@ import { z } from 'zod';
 
 const Slug = z.string().min(1).max(100).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Must be a valid URL slug (lowercase, hyphens only)');
 const Subdomain = z.string().min(3).max(63).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Must be a valid subdomain');
-const HexColor = z.string().regex(/^#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$/);
 const PageTypeEnum = z.enum(['category', 'static', 'custom', 'anchor', 'external']);
 const HeaderModeEnum = z.enum(['default', 'minimal', 'none']);
 const BlogStatusEnum = z.enum(['draft', 'published', 'scheduled']);
@@ -73,6 +72,7 @@ export const WebsiteUpdateSchema = z.object({
     gtm_id: z.string().optional(),
     ga4_id: z.string().optional(),
     facebook_pixel_id: z.string().optional(),
+    clarity_project_id: z.string().optional(),
     custom_head_scripts: z.string().optional(),
     custom_body_scripts: z.string().optional(),
   }).optional(),
