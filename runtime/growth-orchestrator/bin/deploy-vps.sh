@@ -50,7 +50,7 @@ echo \"current=\$(readlink -f \"\$ROOT/current\")\"
 ssh -i "$SSH_KEY" -o BatchMode=yes "$REMOTE" "
 set -euo pipefail
 cd '$ROOT'
-docker compose up -d --build growth-orchestrator
+GITHUB_SHA='$RESOLVED_SHA' docker compose up -d --build growth-orchestrator
 docker exec growth-orchestrator node --check runtime/growth-orchestrator/src/codex-executor.mjs
 docker exec growth-orchestrator node --check runtime/growth-orchestrator/src/orchestrator.mjs
 docker exec growth-orchestrator node --check runtime/growth-orchestrator/bin/run.mjs

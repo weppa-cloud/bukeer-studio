@@ -10,6 +10,7 @@ services:
     environment:
       CODEX_HOME: /root/.codex
       GROWTH_CODEX_SANDBOX_MODE: bypass
+      GITHUB_SHA: ${GITHUB_SHA:-local-dev}
     volumes:
       - /opt/growth-os/workspaces:/workspaces
       - /opt/growth-os/artifacts:/artifacts
