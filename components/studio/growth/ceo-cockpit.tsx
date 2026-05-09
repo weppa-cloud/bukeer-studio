@@ -77,6 +77,7 @@ const STATUS_STYLES: Record<string, string> = {
   candidate: "border-zinc-200 bg-zinc-50 text-zinc-700",
   promoted: "border-blue-200 bg-blue-50 text-blue-800",
   rejected: "border-zinc-300 bg-zinc-100 text-zinc-600",
+  failed: "border-red-200 bg-red-50 text-red-800",
 };
 
 function formatDate(value: string | null | undefined): string {

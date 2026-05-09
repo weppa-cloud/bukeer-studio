@@ -103,7 +103,7 @@ export interface RuntimeCycleRow {
 }
 
 export interface RuntimeCycleHealth {
-  schedulerStatus: "healthy" | "stale" | "degraded" | "missing";
+  schedulerStatus: "healthy" | "stale" | "degraded" | "failed" | "missing";
   schedulerMessage: string;
   lastHeartbeatAt: string | null;
   activeCycle: RuntimeCycleRow | null;
@@ -448,16 +448,12 @@ function buildRuntimeCycleHealth(
   const heartbeatAgeMs = heartbeatAt ? Date.now() - Date.parse(heartbeatAt) : null;
   const rawStatus =
     optionalText(scheduler?.status) ?? optionalText(scheduler?.health_status);
-  const schedulerStatus: RuntimeCycleHealth["schedulerStatus"] =
-    missingTables.length > 0
-      ? "missing"
-      : rawStatus && ["degraded", "failed", "error"].includes(rawStatus)
-        ? "degraded"
-        : heartbeatAgeMs != null && heartbeatAgeMs <= 90 * 60 * 1000
-          ? "healthy"
-          : heartbeatAt
-            ? "stale"
-            : "missing";
+  const schedulerStatus = resolveGrowthSchedulerStatus({
+    missingTables: missingTables.length > 0,
+    rawStatus,
+    heartbeatAgeMs,
+    intervalMs: scheduler?.interval_ms,
+  });
 
   return {
     schedulerStatus,
@@ -467,15 +463,44 @@ function buildRuntimeCycleHealth(
       (schedulerStatus === "healthy"
         ? "Scheduler heartbeat is fresh."
         : schedulerStatus === "stale"
-          ? "Scheduler heartbeat is older than 90 minutes."
+          ? "Scheduler heartbeat is stale for configured cadence."
+          : schedulerStatus === "failed"
+            ? "Scheduler reported a failed state."
           : schedulerStatus === "degraded"
-            ? "Scheduler reported a degraded state."
+            ? "Scheduler heartbeat is late for configured cadence."
             : "Scheduler heartbeat is not available."),
     lastHeartbeatAt: heartbeatAt,
     activeCycle,
     lastCycle,
     missingTables,
   };
+}
+
+export function resolveGrowthSchedulerStatus({
+  missingTables,
+  rawStatus,
+  heartbeatAgeMs,
+  intervalMs,
+}: {
+  missingTables: boolean;
+  rawStatus: string | null | undefined;
+  heartbeatAgeMs: number | null;
+  intervalMs: unknown;
+}): RuntimeCycleHealth["schedulerStatus"] {
+  const parsedIntervalMs =
+    typeof intervalMs === "number" && intervalMs > 0
+      ? intervalMs
+      : Number(intervalMs);
+  const cadenceMs =
+    Number.isFinite(parsedIntervalMs) && parsedIntervalMs > 0
+      ? parsedIntervalMs
+      : 45 * 60 * 1000;
+  if (missingTables) return "missing";
+  if (rawStatus === "failed") return "failed";
+  if (rawStatus && ["degraded", "error"].includes(rawStatus)) return "degraded";
+  if (heartbeatAgeMs != null && heartbeatAgeMs <= cadenceMs * 2) return "healthy";
+  if (heartbeatAgeMs != null && heartbeatAgeMs <= cadenceMs * 3) return "degraded";
+  return heartbeatAgeMs == null ? "missing" : "stale";
 }
 
 export async function getGrowthCeoCockpit(

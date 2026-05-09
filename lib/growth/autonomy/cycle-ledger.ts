@@ -92,6 +92,17 @@ export async function recordGrowthSchedulerHeartbeat(
   }
 }
 
+export async function tryRecordGrowthSchedulerHeartbeat(
+  input: RecordGrowthSchedulerHeartbeatInput,
+) {
+  try {
+    await recordGrowthSchedulerHeartbeat(input);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(`[growth-runtime] scheduler heartbeat skipped: ${message}`);
+  }
+}
+
 export async function startGrowthRuntimeCycle(
   input: StartGrowthRuntimeCycleInput,
 ): Promise<GrowthRuntimeCycle> {

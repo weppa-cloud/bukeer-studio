@@ -58,6 +58,7 @@ async function main() {
       dryRun,
       allowLiveMutation: !dryRun,
       enableAgenticBrain: !hasFlag("--disable-agentic-brain"),
+      intervalMs,
       environment: readEnvironment(),
       gitSha: readArg("--git-sha", process.env.GITHUB_SHA ?? "local-dev"),
       cycleWindow: readArg("--cycle-window", "30m"),

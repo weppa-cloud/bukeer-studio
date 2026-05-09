@@ -1,3 +1,5 @@
+import { randomUUID } from "crypto";
+
 import type {
   AgentLane,
   GrowthAgentWakeupRequest,
@@ -22,6 +24,8 @@ import {
   claimGrowthAgentWakeup,
   enqueueGrowthAgentWakeup,
   finishGrowthAgentWakeup,
+  renewGrowthAgentWakeupLease,
+  DEFAULT_WAKEUP_LEASE_MS,
 } from "./wakeup-queue";
 
 export interface RunGrowthOrchestratorBrainOptions {
@@ -47,6 +51,166 @@ export interface RunGrowthOrchestratorBrainResult {
   createdTaskSessionIds: string[];
   blockedReasons: string[];
   confidence: number;
+}
+
+async function upsertBrainRuntimeState({
+  supabase,
+  accountId,
+  websiteId,
+  locale,
+  market,
+  status,
+  wakeupId,
+  taskSessionId = null,
+  cycleId = null,
+  runtimeState,
+  lastError = null,
+  now,
+}: {
+  supabase: SupabaseLike;
+  accountId: string;
+  websiteId: string;
+  locale: string;
+  market: GrowthMarket;
+  status: "idle" | "running" | "failed";
+  wakeupId: string | null;
+  taskSessionId?: string | null;
+  cycleId?: string | null;
+  runtimeState: JsonRecord;
+  lastError?: string | null;
+  now: Date;
+}) {
+  await supabase
+    .from("growth_agent_runtime_state")
+    .upsert(
+      {
+        account_id: accountId,
+        website_id: websiteId,
+        locale,
+        market,
+        lane: "orchestrator",
+        agent_id: "growth_ceo_brain",
+        status,
+        heartbeat_at: now.toISOString(),
+        current_wakeup_id: status === "running" ? wakeupId : null,
+        current_work_item_id: null,
+        active_task_session_id: status === "running" ? taskSessionId : null,
+        total_wakeups: 1,
+        total_decisions: status === "idle" ? 1 : 0,
+        total_cost_usd: 0,
+        last_error: lastError,
+        runtime_state: {
+          ...runtimeState,
+          active_cycle_id: cycleId,
+          current_wakeup_id: wakeupId,
+        },
+      },
+      { onConflict: "website_id,lane,agent_id" },
+    );
+}
+
+async function startBrainTaskSession({
+  supabase,
+  accountId,
+  websiteId,
+  locale,
+  market,
+  wakeup,
+  leaseToken,
+  cycleId,
+  now,
+}: {
+  supabase: SupabaseLike;
+  accountId: string;
+  websiteId: string;
+  locale: string;
+  market: GrowthMarket;
+  wakeup: GrowthAgentWakeupRequest | null;
+  leaseToken: string;
+  cycleId: string | null;
+  now: Date;
+}) {
+  if (!wakeup?.id) return null;
+  const leaseExpiresAt = new Date(
+    now.getTime() + DEFAULT_WAKEUP_LEASE_MS,
+  ).toISOString();
+  const { data, error } = await supabase
+    .from("growth_agent_task_sessions")
+    .insert({
+      account_id: accountId,
+      website_id: websiteId,
+      locale,
+      market,
+      delegated_by_agent_id: "growth_scheduler",
+      assigned_agent_lane: "orchestrator",
+      wakeup_request_id: wakeup.id,
+      decision_id: null,
+      status: "running",
+      handoff_summary: "Run Growth CEO Brain for claimed wakeup.",
+      required_context_refs: [`growth_agent_wakeup_requests:${wakeup.id}`],
+      dependencies: [],
+      completion_contract: {
+        record_decision: true,
+        materialize_allowed_work: true,
+      },
+      session_state: {
+        source: wakeup.source,
+        lease_token: leaseToken,
+        lease_expires_at: leaseExpiresAt,
+        active_cycle_id: cycleId,
+      },
+      lease_token: leaseToken,
+      lease_expires_at: leaseExpiresAt,
+      attempt_count: 1,
+      max_attempts: 3,
+      started_at: now.toISOString(),
+    })
+    .select("id")
+    .limit(1);
+  if (error) throw new Error(`brain task session start failed: ${error.message}`);
+  const row = Array.isArray(data) ? data[0] : data;
+  return typeof row?.id === "string" ? row.id : null;
+}
+
+async function finishBrainTaskSession({
+  supabase,
+  websiteId,
+  taskSessionId,
+  decisionId = null,
+  leaseToken,
+  status,
+  error = null,
+  now,
+}: {
+  supabase: SupabaseLike;
+  websiteId: string;
+  taskSessionId: string | null;
+  decisionId?: string | null;
+  leaseToken: string;
+  status: "completed" | "blocked" | "cancelled";
+  error?: string | null;
+  now: Date;
+}) {
+  if (!taskSessionId) return;
+  const sessionState = {
+    lease_token: leaseToken,
+    decision_id: decisionId,
+    completed_at: now.toISOString(),
+    ...(error ? { last_error: error } : {}),
+  };
+  await supabase
+    .from("growth_agent_task_sessions")
+    .update({
+      decision_id: decisionId,
+      status,
+      completed_at: now.toISOString(),
+      lease_expires_at: null,
+      session_state: sessionState,
+      updated_at: now.toISOString(),
+    })
+    .eq("id", taskSessionId)
+    .eq("website_id", websiteId)
+    .eq("lease_token", leaseToken);
 }
 
 async function synthesizeSignalFactsFromContext({
@@ -792,29 +956,50 @@ export async function runGrowthOrchestratorBrain(
     });
   }
 
-  let contextBundle = await buildGrowthAgentContext({
-    supabase: options.supabase,
-    accountId: options.accountId,
-    websiteId: options.websiteId,
-    lane: "all",
-    wakeup,
-    cycleId: options.cycleId ?? null,
-    locale,
-    market,
-    now,
-  });
-  const synthesizedSignalIds = await synthesizeSignalFactsFromContext({
-    supabase: options.supabase,
-    accountId: options.accountId,
-    websiteId: options.websiteId,
-    locale,
-    market,
-    context: contextBundle.context,
-    cycleId: options.cycleId ?? null,
-    now,
-  });
-  if (synthesizedSignalIds.length > 0) {
-    contextBundle = await buildGrowthAgentContext({
+  const leaseToken = randomUUID();
+  const wakeupLeaseToken =
+    typeof wakeup?.lease_token === "string" ? wakeup.lease_token : null;
+  let taskSessionId: string | null = null;
+
+  try {
+    taskSessionId = await startBrainTaskSession({
+      supabase: options.supabase,
+      accountId: options.accountId,
+      websiteId: options.websiteId,
+      locale,
+      market,
+      wakeup,
+      leaseToken,
+      cycleId: options.cycleId ?? null,
+      now,
+    });
+    if (wakeup?.id && wakeupLeaseToken) {
+      await renewGrowthAgentWakeupLease({
+        supabase: options.supabase,
+        wakeupId: wakeup.id,
+        websiteId: options.websiteId,
+        leaseToken: wakeupLeaseToken,
+        now,
+      });
+    }
+    await upsertBrainRuntimeState({
+      supabase: options.supabase,
+      accountId: options.accountId,
+      websiteId: options.websiteId,
+      locale,
+      market,
+      status: "running",
+      wakeupId: wakeup?.id ?? null,
+      taskSessionId,
+      cycleId: options.cycleId ?? null,
+      runtimeState: {
+        lease_token: leaseToken,
+        last_claimed_at: now.toISOString(),
+      },
+      now,
+    });
+
+    let contextBundle = await buildGrowthAgentContext({
       supabase: options.supabase,
       accountId: options.accountId,
       websiteId: options.websiteId,
@@ -825,81 +1010,162 @@ export async function runGrowthOrchestratorBrain(
       market,
       now,
     });
-  }
-  const decision = await recordDecision({
-    supabase: options.supabase,
-    accountId: options.accountId,
-    websiteId: options.websiteId,
-    locale,
-    market,
-    cycleId: options.cycleId ?? null,
-    wakeup,
-    contextBundle,
-    synthesizedSignalIds,
-  });
-
-  const materialized =
-    options.materialize === false
-      ? {
-          createdCandidateIds: [],
-          createdTaskSessionIds: [],
-          blockedReasons: [],
-          status: "materialized" as const,
-        }
-      : await materializeBrainDecision({
-          supabase: options.supabase,
-          decision,
-        });
-
-  if (wakeup) {
-    await finishGrowthAgentWakeup({
+    if (wakeup?.id && wakeupLeaseToken) {
+      await renewGrowthAgentWakeupLease({
+        supabase: options.supabase,
+        wakeupId: wakeup.id,
+        websiteId: options.websiteId,
+        leaseToken: wakeupLeaseToken,
+        now: new Date(),
+      });
+    }
+    const synthesizedSignalIds = await synthesizeSignalFactsFromContext({
       supabase: options.supabase,
-      wakeupId: wakeup.id,
+      accountId: options.accountId,
       websiteId: options.websiteId,
-      status: "completed",
-      runId: decision.id,
+      locale,
+      market,
+      context: contextBundle.context,
+      cycleId: options.cycleId ?? null,
       now,
     });
-  }
-
-  await options.supabase
-    .from("growth_agent_runtime_state")
-    .upsert(
-      {
-        account_id: options.accountId,
-        website_id: options.websiteId,
+    if (synthesizedSignalIds.length > 0) {
+      contextBundle = await buildGrowthAgentContext({
+        supabase: options.supabase,
+        accountId: options.accountId,
+        websiteId: options.websiteId,
+        lane: "all",
+        wakeup,
+        cycleId: options.cycleId ?? null,
         locale,
         market,
-        lane: "orchestrator",
-        agent_id: "growth_ceo_brain",
-        status: "idle",
-        heartbeat_at: now.toISOString(),
-        current_wakeup_id: null,
-        current_work_item_id: null,
-        active_task_session_id: null,
-        total_wakeups: 1,
-        total_decisions: 1,
-        total_cost_usd: 0,
-        last_error: null,
-      runtime_state: {
+        now,
+      });
+    }
+    const decision = await recordDecision({
+      supabase: options.supabase,
+      accountId: options.accountId,
+      websiteId: options.websiteId,
+      locale,
+      market,
+      cycleId: options.cycleId ?? null,
+      wakeup,
+      contextBundle,
+      synthesizedSignalIds,
+    });
+    if (wakeup?.id && wakeupLeaseToken) {
+      await renewGrowthAgentWakeupLease({
+        supabase: options.supabase,
+        wakeupId: wakeup.id,
+        websiteId: options.websiteId,
+        leaseToken: wakeupLeaseToken,
+        now: new Date(),
+      });
+    }
+
+    const materialized =
+      options.materialize === false
+        ? {
+            createdCandidateIds: [],
+            createdTaskSessionIds: [],
+            blockedReasons: [],
+            status: "materialized" as const,
+          }
+        : await materializeBrainDecision({
+            supabase: options.supabase,
+            decision,
+          });
+
+    if (wakeup) {
+      await finishGrowthAgentWakeup({
+        supabase: options.supabase,
+        wakeupId: wakeup.id,
+        websiteId: options.websiteId,
+        status: "completed",
+        runId: decision.id,
+        leaseToken: wakeupLeaseToken,
+        now,
+      });
+    }
+    await finishBrainTaskSession({
+      supabase: options.supabase,
+      websiteId: options.websiteId,
+      taskSessionId,
+      decisionId: decision.id,
+      leaseToken,
+      status: materialized.status === "blocked" ? "blocked" : "completed",
+      now,
+    });
+    await upsertBrainRuntimeState({
+      supabase: options.supabase,
+      accountId: options.accountId,
+      websiteId: options.websiteId,
+      locale,
+      market,
+      status: "idle",
+      wakeupId: null,
+      taskSessionId: null,
+      cycleId: options.cycleId ?? null,
+      runtimeState: {
         last_decision_id: decision.id,
         last_context_snapshot_id: contextBundle.snapshot.id,
         last_decision_type: decision.decision_type,
         synthesized_signal_fact_ids: synthesizedSignalIds,
+        lease_token: leaseToken,
       },
-      },
-      { onConflict: "website_id,lane,agent_id" },
-    );
+      now,
+    });
 
-  return {
-    decisionId: decision.id,
-    contextSnapshotId: contextBundle.snapshot.id,
-    wakeupId: wakeup?.id ?? null,
-    decisionType: decision.decision_type,
-    materialized: materialized.status === "materialized",
-    createdCandidateIds: materialized.createdCandidateIds,
-    createdTaskSessionIds: materialized.createdTaskSessionIds,
-    blockedReasons: materialized.blockedReasons,
-    confidence: decision.confidence,
-  };
+    return {
+      decisionId: decision.id,
+      contextSnapshotId: contextBundle.snapshot.id,
+      wakeupId: wakeup?.id ?? null,
+      decisionType: decision.decision_type,
+      materialized: materialized.status === "materialized",
+      createdCandidateIds: materialized.createdCandidateIds,
+      createdTaskSessionIds: materialized.createdTaskSessionIds,
+      blockedReasons: materialized.blockedReasons,
+      confidence: decision.confidence,
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (wakeup) {
+      await finishGrowthAgentWakeup({
+        supabase: options.supabase,
+        wakeupId: wakeup.id,
+        websiteId: options.websiteId,
+        status: "failed",
+        error: message,
+        leaseToken: wakeupLeaseToken,
+        now,
+      });
+    }
+    await finishBrainTaskSession({
+      supabase: options.supabase,
+      websiteId: options.websiteId,
+      taskSessionId,
+      status: "blocked",
+      leaseToken,
+      error: message,
+      now,
+    });
+    await upsertBrainRuntimeState({
+      supabase: options.supabase,
+      accountId: options.accountId,
+      websiteId: options.websiteId,
+      locale,
+      market,
+      status: "failed",
+      wakeupId: null,
+      taskSessionId: null,
+      cycleId: options.cycleId ?? null,
+      runtimeState: {
+        lease_token: leaseToken,
+        failed_wakeup_id: wakeup?.id ?? null,
+      },
+      lastError: message,
+      now,
+    });
+    throw error;
+  }
 }

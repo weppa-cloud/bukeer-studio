@@ -239,6 +239,14 @@ test.describe("Growth OS console UI contract @growth-os-ui", () => {
     await expect(
       agenticControl.getByRole("button", { name: "Invoke brain now" }),
     ).toBeVisible();
+    await agenticControl.getByRole("button", { name: "Invoke brain now" }).click();
+    await page.waitForLoadState("networkidle").catch(() => undefined);
+    await expect(page.getByTestId("growth-agentic-control")).toContainText(
+      /user_on_demand/i,
+    );
+    await expect(page.getByTestId("growth-agentic-control")).toContainText(
+      /queued|claimed|completed|failed/i,
+    );
     const decisionDetail = agenticControl
       .getByTestId("growth-brain-decision-detail")
       .first();
@@ -590,10 +598,18 @@ test.describe("Growth OS console UI contract @growth-os-ui", () => {
   }) => {
     await page.setViewportSize(MOBILE_VIEWPORT);
 
-    for (const path of ["/overview", "/agents", "/workboard", "/data-health"]) {
+    const mobileRoutes = [
+      { path: "/overview", heading: /growth os/i },
+      { path: "/agents", heading: /agent team/i },
+      { path: "/workboard", heading: /growth os workboard/i },
+      { path: "/data-health", heading: /^data health$/i },
+    ];
+
+    for (const { path, heading } of mobileRoutes) {
       await gotoGrowth(page, path);
+      await page.waitForURL(new RegExp(`/growth${path}$`));
       await expect(
-        page.getByRole("heading", { name: /growth os|data health/i }).first(),
+        page.getByRole("heading", { name: heading }).first(),
       ).toBeVisible();
       await expectNoDocumentHorizontalOverflow(page);
       await expect(page.locator("body")).not.toContainText("[object Object]");
