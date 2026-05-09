@@ -239,7 +239,6 @@ async function synthesizeSignalFactsFromContext({
   const riskProfile = profiles.find((profile) => profile.profile_type === "risk_policy");
   if (!pageProfile || !riskProfile) return [];
 
-  const pagePayload = asRecord(pageProfile.payload);
   const expiresAt = addHours(now, 24).toISOString();
   const [{ data: pageRows, error: pageError }, { data: transcreationTargetRows, error: transcreationError }] =
     await Promise.all([
