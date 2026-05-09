@@ -627,9 +627,9 @@ function ChangeSetWorkCard({
           <div className="text-xs uppercase tracking-wide text-[var(--studio-text-muted)]">
             {typeLabel}
           </div>
-          <h3 className="mt-1 text-base font-semibold text-[var(--studio-text)]">
+          <div className="mt-1 text-base font-semibold text-[var(--studio-text)]">
             {changeSet.title}
-          </h3>
+          </div>
           <p className="mt-2 text-sm text-[var(--studio-text)]">
             {changeSet.summary}
           </p>
@@ -753,6 +753,16 @@ function ChangeSetWorkCard({
               </li>
             ))}
           </ul>
+        </div>
+      ) : createdBacklogItems.length === 0 ? (
+        <div className="mt-3 rounded-md border border-[var(--studio-border)] bg-[var(--studio-surface-muted,theme(colors.zinc.50))] p-3">
+          <div className="text-xs font-medium text-[var(--studio-text-muted)]">
+            Próximas tareas sugeridas
+          </div>
+          <p className="mt-1 text-xs text-[var(--studio-text)]">
+            Sin tareas adicionales: el executor ya dejó snapshot, smoke,
+            rollback y outcome para este cambio.
+          </p>
         </div>
       ) : null}
 

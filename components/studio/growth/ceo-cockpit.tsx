@@ -871,6 +871,186 @@ function ProfileFlow({ data }: { data: GrowthCeoCockpitData }) {
   );
 }
 
+function AgenticControl({ data }: { data: GrowthCeoCockpitData }) {
+  const control = data.agenticControl;
+  return (
+    <section
+      data-testid="growth-agentic-control"
+      className="rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] bg-[var(--studio-surface,theme(colors.white))] p-4"
+    >
+      <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
+        <SectionTitle
+          eyebrow="Company Control"
+          title="Brain, wakeups y delegacion"
+          detail="El Growth CEO Brain razona y crea trabajo; el executor live-gated sigue siendo la unica frontera de mutacion productiva."
+        />
+        <div className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
+          <div className="rounded-md bg-[var(--studio-surface-muted,theme(colors.zinc.50))] p-2">
+            <p className="text-[11px] uppercase text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+              Decisions
+            </p>
+            <p className="font-semibold">{control.decisions.length}</p>
+          </div>
+          <div className="rounded-md bg-[var(--studio-surface-muted,theme(colors.zinc.50))] p-2">
+            <p className="text-[11px] uppercase text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+              Wakeups
+            </p>
+            <p className="font-semibold">{control.wakeups.length}</p>
+          </div>
+          <div className="rounded-md bg-[var(--studio-surface-muted,theme(colors.zinc.50))] p-2">
+            <p className="text-[11px] uppercase text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+              Tasks
+            </p>
+            <p className="font-semibold">{control.taskSessions.length}</p>
+          </div>
+          <div className="rounded-md bg-[var(--studio-surface-muted,theme(colors.zinc.50))] p-2">
+            <p className="text-[11px] uppercase text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+              Sensitive
+            </p>
+            <p className="font-semibold">{control.blockedSensitiveDecisions}</p>
+          </div>
+        </div>
+      </div>
+
+      {control.missingTables.length > 0 ? (
+        <p className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-2 text-xs text-amber-800">
+          Missing agentic tables: {control.missingTables.join(", ")}.
+        </p>
+      ) : null}
+
+      <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-3">
+        <div className="xl:col-span-2">
+          <h3 className="text-sm font-semibold text-[var(--studio-text,theme(colors.zinc.900))]">
+            Recent brain decisions
+          </h3>
+          {control.decisions.length === 0 ? (
+            <p className="mt-2 text-sm text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+              No brain decisions recorded yet.
+            </p>
+          ) : (
+            <div className="mt-2 overflow-x-auto">
+              <table className="w-full min-w-[820px] text-sm">
+                <thead className="bg-[var(--studio-surface-muted,theme(colors.zinc.50))] text-xs uppercase text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                  <tr>
+                    <th className="px-3 py-2 text-left">Decision</th>
+                    <th className="px-3 py-2 text-left">Status</th>
+                    <th className="px-3 py-2 text-left">Created</th>
+                    <th className="px-3 py-2 text-left">Learning</th>
+                    <th className="px-3 py-2 text-left">Context</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {control.decisions.slice(0, 6).map((decision) => (
+                    <tr
+                      key={decision.id}
+                      className="border-t border-[var(--studio-border,theme(colors.zinc.200))]"
+                    >
+                      <td className="px-3 py-2">
+                        <div className="flex flex-col gap-1">
+                          <StatusPill value={decision.decisionType} />
+                          <span className="max-w-[360px] truncate text-xs text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                            {decision.objective}
+                          </span>
+                          {decision.noGoReasons.length > 0 ? (
+                            <span className="text-xs text-amber-700">
+                              {decision.noGoReasons.join(", ")}
+                            </span>
+                          ) : null}
+                        </div>
+                      </td>
+                      <td className="px-3 py-2">
+                        <StatusPill value={decision.materializationStatus} />
+                        <p className="mt-1 text-xs text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                          conf {(decision.confidence * 100).toFixed(0)}%
+                        </p>
+                      </td>
+                      <td className="px-3 py-2 text-xs">
+                        <p>{decision.createdCandidates} candidates</p>
+                        <p>{decision.delegatedTasks} tasks</p>
+                        <p>{decision.blockedDecisions} blocked</p>
+                      </td>
+                      <td className="px-3 py-2 text-xs">
+                        <p>{decision.memoryReads} memories</p>
+                        <p>{decision.skillReads} skills</p>
+                        <p>{decision.outcomeReferences} outcomes</p>
+                      </td>
+                      <td className="px-3 py-2 font-mono text-xs">
+                        {decision.contextSnapshotId?.slice(0, 8) ?? "n/a"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-sm font-semibold text-[var(--studio-text,theme(colors.zinc.900))]">
+              Wakeup queue
+            </h3>
+            <div className="mt-2 space-y-2">
+              {control.wakeups.slice(0, 5).map((wakeup) => (
+                <div
+                  key={wakeup.id}
+                  className="rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] p-2 text-xs"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-medium">{laneLabel(wakeup.lane)}</span>
+                    <StatusPill value={wakeup.status} />
+                  </div>
+                  <p className="mt-1 text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                    {wakeup.source} - priority {wakeup.priority} - coalesced{" "}
+                    {wakeup.coalescedCount}
+                  </p>
+                </div>
+              ))}
+              {control.wakeups.length === 0 ? (
+                <p className="text-sm text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                  No queued wakeups.
+                </p>
+              ) : null}
+            </div>
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold text-[var(--studio-text,theme(colors.zinc.900))]">
+              Delegated task sessions
+            </h3>
+            <div className="mt-2 space-y-2">
+              {control.taskSessions.slice(0, 5).map((task) => (
+                <div
+                  key={task.id}
+                  className="rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] p-2 text-xs"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-medium">
+                      {laneLabel(task.assignedLane)}
+                    </span>
+                    <StatusPill value={task.status} />
+                  </div>
+                  <p className="mt-1 line-clamp-2 text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                    {task.handoffSummary}
+                  </p>
+                  <p className="mt-1 text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                    deps {task.dependencies} - decision{" "}
+                    {task.decisionId?.slice(0, 8) ?? "n/a"}
+                  </p>
+                </div>
+              ))}
+              {control.taskSessions.length === 0 ? (
+                <p className="text-sm text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                  No delegated task sessions.
+                </p>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function feedIcon(item: AutonomyFeedItem) {
   if (item.kind === "rollback") {
     return <RefreshCcw className="h-4 w-4 text-red-700" aria-hidden="true" />;
@@ -1429,6 +1609,8 @@ export function GrowthCeoCockpit({ data }: { data: GrowthCeoCockpitData }) {
       />
 
       <ProfileFlow data={data} />
+
+      <AgenticControl data={data} />
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
         <div className="xl:col-span-2">

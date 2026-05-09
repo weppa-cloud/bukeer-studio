@@ -170,6 +170,46 @@ export interface OpportunityCandidateRow {
   successMetric: string | null;
 }
 
+export interface AgenticDecisionRow {
+  id: string;
+  decisionType: string;
+  objective: string;
+  confidence: number;
+  materializationStatus: string;
+  createdCandidates: number;
+  delegatedTasks: number;
+  blockedDecisions: number;
+  memoryReads: number;
+  skillReads: number;
+  outcomeReferences: number;
+  noGoReasons: string[];
+  contextSnapshotId: string | null;
+  createdAt: string;
+}
+
+export interface AgenticWakeupRow {
+  id: string;
+  lane: AgentLane | "unknown";
+  source: string;
+  status: string;
+  priority: number;
+  coalescedCount: number;
+  runId: string | null;
+  updatedAt: string;
+}
+
+export interface AgenticTaskSessionRow {
+  id: string;
+  assignedLane: AgentLane | "unknown";
+  status: string;
+  handoffSummary: string;
+  parentWorkItemId: string | null;
+  childWorkItemId: string | null;
+  decisionId: string | null;
+  dependencies: number;
+  updatedAt: string;
+}
+
 export interface GrowthCeoCockpit {
   accountId: string;
   websiteId: string;
@@ -203,6 +243,13 @@ export interface GrowthCeoCockpit {
     blockedCandidates: number;
     profiles: ProfileFreshnessRow[];
     candidates: OpportunityCandidateRow[];
+  };
+  agenticControl: {
+    decisions: AgenticDecisionRow[];
+    wakeups: AgenticWakeupRow[];
+    taskSessions: AgenticTaskSessionRow[];
+    blockedSensitiveDecisions: number;
+    missingTables: string[];
   };
   generatedAt: string;
 }
@@ -443,6 +490,10 @@ export async function getGrowthCeoCockpit(
     opportunityCandidates,
     runtimeCycles,
     schedulerHeartbeats,
+    contextSnapshots,
+    orchestratorDecisions,
+    wakeupRequests,
+    taskSessions,
     agreement,
   ] = await Promise.all([
     fetchTable("growth_agent_definitions", () =>
@@ -579,6 +630,44 @@ export async function getGrowthCeoCockpit(
         .order("updated_at", { ascending: false, nullsFirst: false })
         .limit(5),
     ),
+    fetchTable("growth_context_snapshots", () =>
+      table(admin, "growth_context_snapshots")
+        .select("id,lane,objective,injection_scan,token_estimate,created_at")
+        .eq("account_id", ctx.accountId)
+        .eq("website_id", ctx.websiteId)
+        .order("created_at", { ascending: false })
+        .limit(20),
+    ),
+    fetchTable("growth_orchestrator_decisions", () =>
+      table(admin, "growth_orchestrator_decisions")
+        .select(
+          "id,decision_type,objective,confidence,materialization_status,created_candidate_ids,created_work_item_ids,proposed_candidates,delegated_tasks,blocked_decisions,memory_reads,skill_reads,outcome_references,no_go_reasons,context_snapshot_id,created_at",
+        )
+        .eq("account_id", ctx.accountId)
+        .eq("website_id", ctx.websiteId)
+        .order("created_at", { ascending: false })
+        .limit(20),
+    ),
+    fetchTable("growth_agent_wakeup_requests", () =>
+      table(admin, "growth_agent_wakeup_requests")
+        .select(
+          "id,lane,source,status,priority,coalesced_count,run_id,updated_at,created_at",
+        )
+        .eq("account_id", ctx.accountId)
+        .eq("website_id", ctx.websiteId)
+        .order("updated_at", { ascending: false, nullsFirst: false })
+        .limit(30),
+    ),
+    fetchTable("growth_agent_task_sessions", () =>
+      table(admin, "growth_agent_task_sessions")
+        .select(
+          "id,assigned_agent_lane,status,handoff_summary,parent_work_item_id,child_work_item_id,decision_id,dependencies,updated_at,created_at",
+        )
+        .eq("account_id", ctx.accountId)
+        .eq("website_id", ctx.websiteId)
+        .order("updated_at", { ascending: false, nullsFirst: false })
+        .limit(30),
+    ),
     getLaneAgreement(ctx.websiteId),
   ]);
 
@@ -598,6 +687,10 @@ export async function getGrowthCeoCockpit(
     opportunityCandidates,
     runtimeCycles,
     schedulerHeartbeats,
+    contextSnapshots,
+    orchestratorDecisions,
+    wakeupRequests,
+    taskSessions,
   ]) {
     if (result.missing) missingTables.add(result.missing);
   }
@@ -962,6 +1055,83 @@ export async function getGrowthCeoCockpit(
       successMetric: optionalText(row.success_metric),
     }));
 
+  const decisionRows = orchestratorDecisions.rows.map(
+    (row, index): AgenticDecisionRow => {
+      const proposedCandidates = Array.isArray(row.proposed_candidates)
+        ? row.proposed_candidates
+        : [];
+      const delegatedTasks = Array.isArray(row.delegated_tasks)
+        ? row.delegated_tasks
+        : [];
+      const blockedDecisions = Array.isArray(row.blocked_decisions)
+        ? row.blocked_decisions
+        : [];
+      const memoryReads = Array.isArray(row.memory_reads) ? row.memory_reads : [];
+      const skillReads = Array.isArray(row.skill_reads) ? row.skill_reads : [];
+      const outcomeReferences = Array.isArray(row.outcome_references)
+        ? row.outcome_references
+        : [];
+      const createdCandidateIds = optionalStringArray(row.created_candidate_ids);
+      return {
+        id: optionalText(row.id) ?? `decision:${index}`,
+        decisionType: optionalText(row.decision_type) ?? "observe",
+        objective: optionalText(row.objective) ?? "Growth OS objective",
+        confidence: numberValue(row.confidence),
+        materializationStatus:
+          optionalText(row.materialization_status) ?? "pending",
+        createdCandidates:
+          createdCandidateIds.length > 0
+            ? createdCandidateIds.length
+            : proposedCandidates.length,
+        delegatedTasks: delegatedTasks.length,
+        blockedDecisions: blockedDecisions.length,
+        memoryReads: memoryReads.length,
+        skillReads: skillReads.length,
+        outcomeReferences: outcomeReferences.length,
+        noGoReasons: optionalStringArray(row.no_go_reasons),
+        contextSnapshotId: optionalText(row.context_snapshot_id),
+        createdAt:
+          isoOrNull(row.created_at) ??
+          isoOrNull(row.updated_at) ??
+          new Date(0).toISOString(),
+      };
+    },
+  );
+
+  const wakeupRows = wakeupRequests.rows.map(
+    (row, index): AgenticWakeupRow => ({
+      id: optionalText(row.id) ?? `wakeup:${index}`,
+      lane: parseLane(row.lane) ?? "unknown",
+      source: optionalText(row.source) ?? "timer",
+      status: optionalText(row.status) ?? "queued",
+      priority: numberValue(row.priority),
+      coalescedCount: numberValue(row.coalesced_count),
+      runId: optionalText(row.run_id),
+      updatedAt:
+        isoOrNull(row.updated_at) ??
+        isoOrNull(row.created_at) ??
+        new Date(0).toISOString(),
+    }),
+  );
+
+  const taskSessionRows = taskSessions.rows.map(
+    (row, index): AgenticTaskSessionRow => ({
+      id: optionalText(row.id) ?? `task-session:${index}`,
+      assignedLane: parseLane(row.assigned_agent_lane) ?? "unknown",
+      status: optionalText(row.status) ?? "created",
+      handoffSummary:
+        optionalText(row.handoff_summary) ?? "No handoff summary recorded.",
+      parentWorkItemId: optionalText(row.parent_work_item_id),
+      childWorkItemId: optionalText(row.child_work_item_id),
+      decisionId: optionalText(row.decision_id),
+      dependencies: Array.isArray(row.dependencies) ? row.dependencies.length : 0,
+      updatedAt:
+        isoOrNull(row.updated_at) ??
+        isoOrNull(row.created_at) ??
+        new Date(0).toISOString(),
+    }),
+  );
+
   return {
     accountId: ctx.accountId,
     websiteId: ctx.websiteId,
@@ -1018,6 +1188,27 @@ export async function getGrowthCeoCockpit(
         .length,
       profiles: profileRows,
       candidates: candidateRows,
+    },
+    agenticControl: {
+      decisions: decisionRows,
+      wakeups: wakeupRows,
+      taskSessions: taskSessionRows,
+      blockedSensitiveDecisions: orchestratorDecisions.rows.filter((row) => {
+        const blocked = Array.isArray(row.blocked_decisions)
+          ? row.blocked_decisions
+          : [];
+        return blocked.some((entry) =>
+          /paid|pricing|payment|reservation|availability|crm|outreach/i.test(
+            JSON.stringify(entry),
+          ),
+        );
+      }).length,
+      missingTables: [
+        contextSnapshots.missing,
+        orchestratorDecisions.missing,
+        wakeupRequests.missing,
+        taskSessions.missing,
+      ].filter(Boolean) as string[],
     },
     generatedAt: new Date().toISOString(),
   };
