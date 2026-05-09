@@ -167,7 +167,10 @@ values
    'Messaging action_source. Fires per inbound message — high volume; consider sampling in dispatcher config.'),
 
   -- chatwoot_label_qualified (Qualify)
-  ('chatwoot_label_qualified', 'meta_messaging', 'Lead', null, true, null),
+  ('chatwoot_label_qualified', 'meta', 'Lead', null, true,
+   'Website Lead fallback until tenant page_id/waba_id is configured for business_messaging.'),
+  ('chatwoot_label_qualified', 'meta_messaging', 'LeadSubmitted', null, false,
+   'Disabled until tenant page_id/waba_id is configured for business_messaging.'),
   ('chatwoot_label_qualified', 'google_ads', 'qualified_lead', null, true,
    'NEW conversion action. Replaces the broken lead_calificado_form action. F2 (#421). Per-tenant conversion_action_id stored in tenant_overrides.'),
   ('chatwoot_label_qualified', 'ga4', 'qualify_lead', null, true, null),

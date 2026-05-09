@@ -382,7 +382,7 @@ describe("/api/webhooks/chatwoot", () => {
     expect(funnelRows).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          event_name: "qualified_lead",
+          event_name: "chatwoot_label_qualified",
           stage: "qualified_lead",
           channel: "chatwoot",
           reference_code: "HOME-2504-ABCD",
@@ -390,7 +390,7 @@ describe("/api/webhooks/chatwoot", () => {
           website_id: "22222222-2222-4222-8222-222222222222",
         }),
         expect.objectContaining({
-          event_name: "quote_sent",
+          event_name: "crm_quote_sent",
           stage: "quote_sent",
           channel: "chatwoot",
           reference_code: "HOME-2504-ABCD",
@@ -445,7 +445,7 @@ describe("/api/webhooks/chatwoot", () => {
           fn: "record_funnel_event",
           args: {
             payload: expect.objectContaining({
-              event_name: "qualified_lead",
+              event_name: "chatwoot_label_qualified",
               pixel_event_id: expect.stringMatching(
                 /^[0-9a-f-]{36}$/i,
               ),
@@ -456,7 +456,7 @@ describe("/api/webhooks/chatwoot", () => {
           fn: "record_funnel_event",
           args: {
             payload: expect.objectContaining({
-              event_name: "quote_sent",
+              event_name: "crm_quote_sent",
               pixel_event_id: expect.stringMatching(
                 /^[0-9a-f-]{36}$/i,
               ),

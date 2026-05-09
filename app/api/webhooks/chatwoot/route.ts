@@ -980,8 +980,8 @@ async function updateWaflowLeadLink(
 const LIFECYCLE_TO_FUNNEL_EVENT: Partial<
   Record<LifecycleEvent, FunnelEventName>
 > = {
-  QualifiedLead: "qualified_lead",
-  QuoteSent: "quote_sent",
+  QualifiedLead: "chatwoot_label_qualified",
+  QuoteSent: "crm_quote_sent",
 };
 
 const FUNNEL_EVENT_STAGE: Partial<
@@ -991,7 +991,9 @@ const FUNNEL_EVENT_STAGE: Partial<
   waflow_step_next: "activation",
   waflow_submit: "activation",
   whatsapp_cta_click: "activation",
+  chatwoot_label_qualified: "qualified_lead",
   qualified_lead: "qualified_lead",
+  crm_quote_sent: "quote_sent",
   quote_sent: "quote_sent",
   booking_confirmed: "booking",
   review_submitted: "review_referral",

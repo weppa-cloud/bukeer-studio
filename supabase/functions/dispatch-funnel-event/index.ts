@@ -189,8 +189,12 @@ async function dispatchToMeta(
   if (em) userData.em = em;
   if (ph) userData.ph = ph;
   if (externalId) userData.external_id = externalId;
-  if (cleanString(event.fbp)) userData.fbp = cleanString(event.fbp);
-  if (cleanString(event.fbc)) userData.fbc = cleanString(event.fbc);
+  if (mapping.destination !== 'meta_messaging' && cleanString(event.fbp)) {
+    userData.fbp = cleanString(event.fbp);
+  }
+  if (mapping.destination !== 'meta_messaging' && cleanString(event.fbc)) {
+    userData.fbc = cleanString(event.fbc);
+  }
   if (cleanString(event.ctwa_clid)) userData.ctwa_clid = cleanString(event.ctwa_clid);
   if (cleanString(event.ip_address)) userData.client_ip_address = cleanString(event.ip_address);
   if (cleanString(event.user_agent)) userData.client_user_agent = cleanString(event.user_agent);
@@ -211,6 +215,7 @@ async function dispatchToMeta(
         event_time: eventTimeSeconds,
         event_id: metaEventId,
         action_source: mapping.destination === 'meta_messaging' ? 'business_messaging' : 'website',
+        ...(mapping.destination === 'meta_messaging' ? { messaging_channel: 'whatsapp' } : {}),
         ...(event.source_url && mapping.destination !== 'meta_messaging'
           ? { event_source_url: event.source_url }
           : {}),
