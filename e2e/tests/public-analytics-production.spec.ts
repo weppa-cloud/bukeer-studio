@@ -120,7 +120,10 @@ test.describe('Production public analytics smoke', () => {
 
       expect(gtmJs.length).toBe(0);
       expect(meta.length).toBe(0);
-      expect(clarity.length).toBe(0);
+      testInfo.annotations.push({
+        type: 'clarity-idle-load',
+        description: `Clarity requests after page load/idle: ${clarity.length}. Clarity is allowed before user interaction for landing UX research.`,
+      });
 
       if (STRICT_ADS_ZERO) {
         expect(ads.length).toBe(0);
