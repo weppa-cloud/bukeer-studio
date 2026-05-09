@@ -9,6 +9,7 @@ import {
 } from "@/lib/growth/autonomy/technical-remediation-adapter";
 import { promoteGrowthOpportunityCandidates } from "@/lib/growth/autonomy/candidate-promotion";
 import { revalidateGrowthPublicationSurface } from "@/lib/growth/autonomy/publication-revalidation";
+import { enqueueGrowthAgentWakeup } from "@/lib/growth/agentic/wakeup-queue";
 import { getLaneAgreement } from "@/lib/growth/console/queries";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/service-role";
 
@@ -220,6 +221,39 @@ export async function promoteCandidateToWorkItem(
   return {
     ok: true,
     message: `Promoted ${promoted} candidate(s) to work items.`,
+  };
+}
+
+export async function invokeGrowthBrainNow(
+  formData: FormData,
+): Promise<ActionResult> {
+  const websiteId = String(formData.get("websiteId") ?? "");
+  if (!websiteId) return { ok: false, message: "Missing websiteId." };
+
+  const ctx = await requireGrowthRole(websiteId, "growth_operator");
+  const admin = createSupabaseServiceRoleClient();
+  const now = new Date();
+  const minuteBucket = now.toISOString().slice(0, 16);
+  const wakeup = await enqueueGrowthAgentWakeup({
+    supabase: admin,
+    accountId: ctx.accountId,
+    websiteId: ctx.websiteId,
+    lane: "orchestrator",
+    source: "user_on_demand",
+    priority: 90,
+    idempotencyKey: `ui:on_demand:${ctx.websiteId}:${minuteBucket}`,
+    payload: {
+      requested_by: ctx.userId,
+      reason: "Manual CEO cockpit brain invocation.",
+      requested_at: now.toISOString(),
+    },
+    now,
+  });
+
+  revalidateGrowthOverview(websiteId);
+  return {
+    ok: true,
+    message: `Brain wakeup queued: ${wakeup.id}. The production daemon will claim it on the next cycle.`,
   };
 }
 

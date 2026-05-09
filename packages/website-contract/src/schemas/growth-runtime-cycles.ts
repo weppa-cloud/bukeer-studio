@@ -119,3 +119,46 @@ export const GrowthRuntimeCycleUpdateSchema =
 export type GrowthRuntimeCycleUpdate = z.infer<
   typeof GrowthRuntimeCycleUpdateSchema
 >;
+
+export const GrowthSchedulerHeartbeatStatusSchema = z.enum([
+  'healthy',
+  'stale',
+  'degraded',
+  'failed',
+  'paused',
+]);
+export type GrowthSchedulerHeartbeatStatus = z.infer<
+  typeof GrowthSchedulerHeartbeatStatusSchema
+>;
+
+const GrowthSchedulerHeartbeatBaseSchema = GrowthTenantScopeSchema.extend({
+  id: z.string().uuid(),
+  scheduler_name: z.string().min(1).max(120).default('growth-os-production-cycle'),
+  status: GrowthSchedulerHeartbeatStatusSchema.default('healthy'),
+  health_status: GrowthSchedulerHeartbeatStatusSchema.default('healthy'),
+  heartbeat_at: DateTimeSchema,
+  last_cycle_id: z.string().uuid().nullable().default(null),
+  last_cycle_status: z.string().max(80).nullable().default(null),
+  last_message: z.string().max(1000).nullable().default(null),
+  git_sha: z.string().min(7).max(80).nullable().default(null),
+  interval_ms: z.number().int().positive().nullable().default(null),
+  metadata: JsonRecordSchema,
+  created_at: DateTimeSchema,
+  updated_at: DateTimeSchema,
+});
+
+export const GrowthSchedulerHeartbeatSchema =
+  GrowthSchedulerHeartbeatBaseSchema;
+export type GrowthSchedulerHeartbeat = z.infer<
+  typeof GrowthSchedulerHeartbeatSchema
+>;
+
+export const GrowthSchedulerHeartbeatInsertSchema =
+  GrowthSchedulerHeartbeatBaseSchema.omit({
+    id: true,
+    created_at: true,
+    updated_at: true,
+  });
+export type GrowthSchedulerHeartbeatInsert = z.infer<
+  typeof GrowthSchedulerHeartbeatInsertSchema
+>;

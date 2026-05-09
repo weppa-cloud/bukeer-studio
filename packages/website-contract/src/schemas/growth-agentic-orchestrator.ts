@@ -35,6 +35,7 @@ export const GrowthAgentWakeupStatusSchema = z.enum([
   'failed',
   'cancelled',
   'coalesced',
+  'expired',
 ]);
 export type GrowthAgentWakeupStatus = z.infer<
   typeof GrowthAgentWakeupStatusSchema
@@ -59,6 +60,8 @@ export const GrowthAgentTaskSessionStatusSchema = z.enum([
   'blocked',
   'completed',
   'cancelled',
+  'failed',
+  'expired',
 ]);
 export type GrowthAgentTaskSessionStatus = z.infer<
   typeof GrowthAgentTaskSessionStatusSchema
@@ -241,6 +244,11 @@ const WakeupBaseSchema = GrowthTenantScopeSchema.extend({
   completed_at: DateTimeSchema.nullable().default(null),
   run_id: z.string().uuid().nullable().default(null),
   last_error: z.string().max(2000).nullable().default(null),
+  lease_token: z.string().nullable().default(null),
+  lease_expires_at: DateTimeSchema.nullable().default(null),
+  last_claimed_at: DateTimeSchema.nullable().default(null),
+  attempt_count: z.number().int().min(0).default(0),
+  max_attempts: z.number().int().min(1).default(3),
   created_at: DateTimeSchema,
   updated_at: DateTimeSchema,
 });
@@ -303,6 +311,10 @@ const TaskSessionBaseSchema = GrowthTenantScopeSchema.extend({
   dependencies: z.array(z.string().uuid()).default([]),
   completion_contract: NonEmptyJsonRecordSchema,
   session_state: JsonRecordSchema,
+  lease_token: z.string().nullable().default(null),
+  lease_expires_at: DateTimeSchema.nullable().default(null),
+  attempt_count: z.number().int().min(0).default(0),
+  max_attempts: z.number().int().min(1).default(3),
   started_at: DateTimeSchema.nullable().default(null),
   completed_at: DateTimeSchema.nullable().default(null),
   created_at: DateTimeSchema,

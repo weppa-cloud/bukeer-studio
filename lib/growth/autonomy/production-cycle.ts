@@ -17,8 +17,13 @@ import {
   markGrowthRuntimeCycleRunning,
   recordGrowthRuntimeCycleStage,
   startGrowthRuntimeCycle,
+  tryRecordGrowthSchedulerHeartbeat,
 } from "./cycle-ledger";
 import { runGrowthOrchestratorBrain } from "@/lib/growth/agentic/orchestrator-brain";
+import {
+  claimGrowthAgentWakeup,
+  expireStaleGrowthAgentWakeups,
+} from "@/lib/growth/agentic/wakeup-queue";
 import { discoverGrowthOpportunityCandidates } from "./candidate-discovery";
 import { planContentPublication } from "./content-publication-adapter";
 import { evaluateDueGrowthOutcomes } from "./outcome-evaluator";
@@ -61,6 +66,7 @@ export interface RunGrowthOsProductionCycleOptions {
   dryRun?: boolean;
   allowLiveMutation?: boolean;
   enableAgenticBrain?: boolean;
+  intervalMs?: number | null;
   certificationFixtureMode?: boolean;
   candidateLimit?: number;
   promotionLimit?: number;
@@ -1323,6 +1329,26 @@ export async function runGrowthOsProductionCycle(
     },
     now,
   });
+  await tryRecordGrowthSchedulerHeartbeat({
+    supabase,
+    accountId,
+    websiteId,
+    locale,
+    market,
+    status: "healthy",
+    lastCycleId: cycle.id,
+    lastCycleStatus: "started",
+    lastMessage: "Growth OS production cycle started.",
+    gitSha: options.gitSha ?? null,
+    intervalMs: options.intervalMs ?? null,
+    metadata: {
+      trigger_source: options.triggerSource ?? "manual",
+      allow_live_mutation: allowLiveMutation,
+      enable_agentic_brain: enableAgenticBrain,
+      claim_limit_per_lane: options.claimLimitPerLane ?? 1,
+    },
+    now,
+  });
   cycle = await markGrowthRuntimeCycleRunning({ supabase, cycle });
 
   try {
@@ -1350,6 +1376,24 @@ export async function runGrowthOsProductionCycle(
       },
     });
 
+    const expiredBrainWakeups = enableAgenticBrain
+      ? await expireStaleGrowthAgentWakeups({
+          supabase,
+          accountId,
+          websiteId,
+          lane: "orchestrator",
+          now,
+        })
+      : 0;
+    const claimedBrainWakeup = enableAgenticBrain
+      ? await claimGrowthAgentWakeup({
+          supabase,
+          accountId,
+          websiteId,
+          lane: "orchestrator",
+          now,
+        })
+      : null;
     const brain = enableAgenticBrain
       ? await runGrowthOrchestratorBrain({
           supabase,
@@ -1358,6 +1402,7 @@ export async function runGrowthOsProductionCycle(
           cycleId: cycle.id,
           locale,
           market,
+          wakeup: claimedBrainWakeup,
           source: options.triggerSource === "webhook" ? "data_refresh" : "timer",
           materialize: !dryRun,
           now,
@@ -1384,6 +1429,8 @@ export async function runGrowthOsProductionCycle(
         },
         details: {
           enabled: enableAgenticBrain,
+          claimed_wakeup_id: claimedBrainWakeup?.id ?? null,
+          expired_wakeup_count: expiredBrainWakeups,
           materialized: brain?.materialized ?? false,
           decision_type: brain?.decisionType ?? null,
           confidence: brain?.confidence ?? null,
@@ -1542,6 +1589,21 @@ export async function runGrowthOsProductionCycle(
       summary,
       now,
     });
+    await tryRecordGrowthSchedulerHeartbeat({
+      supabase,
+      accountId,
+      websiteId,
+      locale,
+      market,
+      status: "healthy",
+      lastCycleId: finished.id,
+      lastCycleStatus: "completed",
+      lastMessage: "Growth OS production cycle completed.",
+      gitSha: options.gitSha ?? null,
+      intervalMs: options.intervalMs ?? null,
+      metadata: summary,
+      now,
+    });
     return {
       cycleId: finished.id,
       cycleKey,
@@ -1563,6 +1625,21 @@ export async function runGrowthOsProductionCycle(
       status: "failed",
       summary,
       error,
+      now,
+    });
+    await tryRecordGrowthSchedulerHeartbeat({
+      supabase,
+      accountId,
+      websiteId,
+      locale,
+      market,
+      status: "failed",
+      lastCycleId: failed.id,
+      lastCycleStatus: "failed",
+      lastMessage: errorMessage(error),
+      gitSha: options.gitSha ?? null,
+      intervalMs: options.intervalMs ?? null,
+      metadata: summary,
       now,
     });
     return {

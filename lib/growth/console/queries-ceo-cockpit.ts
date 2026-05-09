@@ -103,7 +103,7 @@ export interface RuntimeCycleRow {
 }
 
 export interface RuntimeCycleHealth {
-  schedulerStatus: "healthy" | "stale" | "degraded" | "missing";
+  schedulerStatus: "healthy" | "stale" | "degraded" | "failed" | "missing";
   schedulerMessage: string;
   lastHeartbeatAt: string | null;
   activeCycle: RuntimeCycleRow | null;
@@ -174,6 +174,7 @@ export interface AgenticDecisionRow {
   id: string;
   decisionType: string;
   objective: string;
+  northStarAlignment: string;
   confidence: number;
   materializationStatus: string;
   createdCandidates: number;
@@ -185,6 +186,17 @@ export interface AgenticDecisionRow {
   noGoReasons: string[];
   contextSnapshotId: string | null;
   createdAt: string;
+  observedSignals: Record<string, unknown>[];
+  proposedCandidates: Record<string, unknown>[];
+  proposedWorkItems: Record<string, unknown>[];
+  delegatedTaskDetails: Record<string, unknown>[];
+  blockedDecisionDetails: Record<string, unknown>[];
+  memoryReadDetails: Record<string, unknown>[];
+  skillReadDetails: Record<string, unknown>[];
+  outcomeReferenceDetails: Record<string, unknown>[];
+  policyRecommendations: Record<string, unknown>[];
+  riskAssessment: Record<string, unknown>;
+  evidence: Record<string, unknown>;
 }
 
 export interface AgenticWakeupRow {
@@ -436,16 +448,12 @@ function buildRuntimeCycleHealth(
   const heartbeatAgeMs = heartbeatAt ? Date.now() - Date.parse(heartbeatAt) : null;
   const rawStatus =
     optionalText(scheduler?.status) ?? optionalText(scheduler?.health_status);
-  const schedulerStatus: RuntimeCycleHealth["schedulerStatus"] =
-    missingTables.length > 0
-      ? "missing"
-      : rawStatus && ["degraded", "failed", "error"].includes(rawStatus)
-        ? "degraded"
-        : heartbeatAgeMs != null && heartbeatAgeMs <= 90 * 60 * 1000
-          ? "healthy"
-          : heartbeatAt
-            ? "stale"
-            : "missing";
+  const schedulerStatus = resolveGrowthSchedulerStatus({
+    missingTables: missingTables.length > 0,
+    rawStatus,
+    heartbeatAgeMs,
+    intervalMs: scheduler?.interval_ms,
+  });
 
   return {
     schedulerStatus,
@@ -455,15 +463,44 @@ function buildRuntimeCycleHealth(
       (schedulerStatus === "healthy"
         ? "Scheduler heartbeat is fresh."
         : schedulerStatus === "stale"
-          ? "Scheduler heartbeat is older than 90 minutes."
+          ? "Scheduler heartbeat is stale for configured cadence."
+          : schedulerStatus === "failed"
+            ? "Scheduler reported a failed state."
           : schedulerStatus === "degraded"
-            ? "Scheduler reported a degraded state."
+            ? "Scheduler heartbeat is late for configured cadence."
             : "Scheduler heartbeat is not available."),
     lastHeartbeatAt: heartbeatAt,
     activeCycle,
     lastCycle,
     missingTables,
   };
+}
+
+export function resolveGrowthSchedulerStatus({
+  missingTables,
+  rawStatus,
+  heartbeatAgeMs,
+  intervalMs,
+}: {
+  missingTables: boolean;
+  rawStatus: string | null | undefined;
+  heartbeatAgeMs: number | null;
+  intervalMs: unknown;
+}): RuntimeCycleHealth["schedulerStatus"] {
+  const parsedIntervalMs =
+    typeof intervalMs === "number" && intervalMs > 0
+      ? intervalMs
+      : Number(intervalMs);
+  const cadenceMs =
+    Number.isFinite(parsedIntervalMs) && parsedIntervalMs > 0
+      ? parsedIntervalMs
+      : 45 * 60 * 1000;
+  if (missingTables) return "missing";
+  if (rawStatus === "failed") return "failed";
+  if (rawStatus && ["degraded", "error"].includes(rawStatus)) return "degraded";
+  if (heartbeatAgeMs != null && heartbeatAgeMs <= cadenceMs * 2) return "healthy";
+  if (heartbeatAgeMs != null && heartbeatAgeMs <= cadenceMs * 3) return "degraded";
+  return heartbeatAgeMs == null ? "missing" : "stale";
 }
 
 export async function getGrowthCeoCockpit(
@@ -641,7 +678,7 @@ export async function getGrowthCeoCockpit(
     fetchTable("growth_orchestrator_decisions", () =>
       table(admin, "growth_orchestrator_decisions")
         .select(
-          "id,decision_type,objective,confidence,materialization_status,created_candidate_ids,created_work_item_ids,proposed_candidates,delegated_tasks,blocked_decisions,memory_reads,skill_reads,outcome_references,no_go_reasons,context_snapshot_id,created_at",
+          "id,decision_type,objective,north_star_alignment,confidence,materialization_status,observed_signals,created_candidate_ids,created_work_item_ids,proposed_candidates,proposed_work_items,delegated_tasks,blocked_decisions,memory_reads,skill_reads,outcome_references,policy_recommendations,risk_assessment,no_go_reasons,context_snapshot_id,evidence,created_at",
         )
         .eq("account_id", ctx.accountId)
         .eq("website_id", ctx.websiteId)
@@ -1060,6 +1097,9 @@ export async function getGrowthCeoCockpit(
       const proposedCandidates = Array.isArray(row.proposed_candidates)
         ? row.proposed_candidates
         : [];
+      const proposedWorkItems = Array.isArray(row.proposed_work_items)
+        ? row.proposed_work_items
+        : [];
       const delegatedTasks = Array.isArray(row.delegated_tasks)
         ? row.delegated_tasks
         : [];
@@ -1076,6 +1116,8 @@ export async function getGrowthCeoCockpit(
         id: optionalText(row.id) ?? `decision:${index}`,
         decisionType: optionalText(row.decision_type) ?? "observe",
         objective: optionalText(row.objective) ?? "Growth OS objective",
+        northStarAlignment:
+          optionalText(row.north_star_alignment) ?? "North Star alignment not recorded.",
         confidence: numberValue(row.confidence),
         materializationStatus:
           optionalText(row.materialization_status) ?? "pending",
@@ -1094,6 +1136,21 @@ export async function getGrowthCeoCockpit(
           isoOrNull(row.created_at) ??
           isoOrNull(row.updated_at) ??
           new Date(0).toISOString(),
+        observedSignals: Array.isArray(row.observed_signals)
+          ? (row.observed_signals as Record<string, unknown>[])
+          : [],
+        proposedCandidates: proposedCandidates as Record<string, unknown>[],
+        proposedWorkItems: proposedWorkItems as Record<string, unknown>[],
+        delegatedTaskDetails: delegatedTasks as Record<string, unknown>[],
+        blockedDecisionDetails: blockedDecisions as Record<string, unknown>[],
+        memoryReadDetails: memoryReads as Record<string, unknown>[],
+        skillReadDetails: skillReads as Record<string, unknown>[],
+        outcomeReferenceDetails: outcomeReferences as Record<string, unknown>[],
+        policyRecommendations: Array.isArray(row.policy_recommendations)
+          ? (row.policy_recommendations as Record<string, unknown>[])
+          : [],
+        riskAssessment: safeRecord(row.risk_assessment),
+        evidence: safeRecord(row.evidence),
       };
     },
   );
