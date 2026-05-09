@@ -10,12 +10,11 @@
  * a deterministic seed for tenants A and B is published. Until then, callers
  * should override via env (E2E_GROWTH_TENANT_A_WEBSITE_ID, etc.).
  *
- * TODO(auth-fixture): wire signInAs() to the real role-aware auth helper once
- * Studio exposes role switching for the four canonical roles. The current
- * implementation reuses the global `auth.setup.ts` storage state, so role
- * gating is asserted via UI affordances, not by re-authenticating.
+ * Role-aware auth uses Supabase fixture users. Keep this helper centralized so
+ * role-gated Growth UI tests can switch between viewer/curator/admin sessions.
  */
 import type { Page } from '@playwright/test';
+import { createClient } from '@supabase/supabase-js';
 
 export type GrowthRole =
   | 'viewer'
@@ -107,11 +106,15 @@ export interface GrowthUserFixture {
 export const usersByRole: Record<GrowthRole, GrowthUserFixture> = {
   viewer: {
     role: 'viewer',
-    email: process.env.E2E_GROWTH_VIEWER_EMAIL ?? 'viewer@bukeer.test',
+    email:
+      process.env.E2E_GROWTH_VIEWER_EMAIL ??
+      'consultoria+growth-viewer@weppa.co',
   },
   curator: {
     role: 'curator',
-    email: process.env.E2E_GROWTH_CURATOR_EMAIL ?? 'curator@bukeer.test',
+    email:
+      process.env.E2E_GROWTH_CURATOR_EMAIL ??
+      'consultoria+growth-curator@weppa.co',
   },
   council_admin: {
     role: 'council_admin',
@@ -134,21 +137,69 @@ export const usersByRole: Record<GrowthRole, GrowthUserFixture> = {
  * within the suite some tests need additional auth fixtures to be meaningful.
  */
 export function rolesProvisioned(): boolean {
-  return process.env.E2E_GROWTH_ROLE_FIXTURES_READY === 'true';
+  return (
+    process.env.E2E_GROWTH_ROLE_FIXTURES_READY === 'true' ||
+    (!!process.env.NEXT_PUBLIC_SUPABASE_URL &&
+      !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY &&
+      !!process.env.E2E_GROWTH_VIEWER_EMAIL &&
+      !!process.env.E2E_GROWTH_CURATOR_EMAIL)
+  );
 }
 
-/**
- * Stub for future role-aware sign-in. Today this is a no-op and tests rely on
- * the global storage state established by `e2e/setup/auth.setup.ts`. When the
- * harness gains role switching, route through here so call sites do not change.
- */
-// TODO(auth-fixture): implement role-aware sign-in.
 export async function signInAs(
-  _page: Page,
-  _role: GrowthRole,
+  page: Page,
+  role: GrowthRole,
 ): Promise<void> {
-  // Intentional no-op until role fixtures are provisioned.
-  return;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!supabaseUrl || !anonKey) {
+    throw new Error('Missing Supabase env for role-aware Growth E2E sign-in.');
+  }
+  const user = usersByRole[role];
+  const password =
+    process.env[`E2E_GROWTH_${role.toUpperCase()}_PASSWORD`] ??
+    process.env.E2E_GROWTH_ROLE_PASSWORD ??
+    process.env.E2E_USER_PASSWORD ??
+    'Ingeniero1!';
+
+  const supabase = createClient(supabaseUrl, anonKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: user.email,
+    password,
+  });
+  if (error || !data.session) {
+    throw new Error(
+      `Could not sign in as Growth ${role}: ${error?.message ?? 'missing session'}`,
+    );
+  }
+
+  const projectRef = new URL(supabaseUrl).hostname.split('.')[0];
+  const currentUrl = page.url();
+  const baseUrl =
+    currentUrl && currentUrl !== 'about:blank'
+      ? currentUrl
+      : (process.env.PLAYWRIGHT_BASE_URL ??
+        process.env.E2E_BASE_URL ??
+        `http://localhost:${process.env.PORT ?? process.env.E2E_PORT ?? '3001'}`);
+  const origin = new URL(baseUrl);
+  const cookieValue = `base64-${Buffer.from(
+    JSON.stringify(data.session),
+  ).toString('base64url')}`;
+
+  await page.context().clearCookies();
+  await page.context().addCookies([
+    {
+      name: `sb-${projectRef}-auth-token`,
+      value: cookieValue,
+      url: origin.origin,
+      expires: data.session.expires_at ?? Date.now() / 1000 + 3600,
+      httpOnly: false,
+      secure: origin.protocol === 'https:',
+      sameSite: 'Lax',
+    },
+  ]);
 }
 
 /** Build the Growth console URL for a given tenant. */

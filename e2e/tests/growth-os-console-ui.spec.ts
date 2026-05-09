@@ -151,6 +151,9 @@ test.describe("Growth OS console UI contract @growth-os-ui", () => {
     await expect(cockpit).toContainText(/North Star metrics/i);
     await expect(page.getByTestId("growth-runtime-cycle-health")).toBeVisible();
     await expect(page.getByTestId("growth-scheduler-health")).toBeVisible();
+    await expect(page.getByTestId("growth-scheduler-health")).not.toContainText(
+      /Missing: growth_scheduler_heartbeats/i,
+    );
     await expect(page.getByTestId("growth-active-cycle")).toBeVisible();
     await expect(page.getByTestId("growth-latest-cycle")).toBeVisible();
 
@@ -230,6 +233,19 @@ test.describe("Growth OS console UI contract @growth-os-ui", () => {
     const impactLedger = page.getByTestId("growth-impact-ledger");
     await expect(impactLedger).toBeVisible();
     await expect(impactLedger).toContainText(/resultado|outcomes|metrica/i);
+
+    const agenticControl = page.getByTestId("growth-agentic-control");
+    await expect(agenticControl).toBeVisible();
+    await expect(
+      agenticControl.getByRole("button", { name: "Invoke brain now" }),
+    ).toBeVisible();
+    const decisionDetail = agenticControl
+      .getByTestId("growth-brain-decision-detail")
+      .first();
+    if (await decisionDetail.isVisible().catch(() => false)) {
+      await expect(decisionDetail).toContainText(/context, learning, risk/i);
+      await expect(decisionDetail).toContainText(/memories|skills|outcomes/i);
+    }
   });
 
   test("Agent Team tab loads cards and required column headers", async ({
@@ -312,6 +328,27 @@ test.describe("Growth OS console UI contract @growth-os-ui", () => {
         .or(learning.getByText(/No replay cases yet/i))
         .first(),
     ).toBeVisible();
+  });
+
+  test("Agent Team blocks skill activation when replay agreement is below threshold", async ({
+    page,
+  }) => {
+    await gotoGrowth(page, "/agents");
+    await page.waitForURL(/\/growth\/agents$/);
+
+    const blockedActivate = page
+      .getByTestId("growth-agent-skill-activate-blocked")
+      .first();
+    const blockedVisible = await blockedActivate.isVisible().catch(() => false);
+    test.skip(
+      !blockedVisible,
+      "No low-agreement draft skill is available to assert replay <0.90 guard.",
+    );
+
+    await expect(blockedActivate).toBeDisabled();
+    await expect(page.getByTestId("growth-agent-learning-controls")).toContainText(
+      /Activation blocked until replay agreement reaches 0.90/i,
+    );
   });
 
   test("Opportunities tab loads (empty state OR populated list)", async ({
@@ -609,10 +646,10 @@ test.describe("Growth OS console UI contract @growth-os-ui", () => {
   test("Role-gated actions: Approve/Reject hidden or disabled for viewer; enabled for curator", async ({
     page,
   }) => {
-    test.skip(
-      !rolesProvisioned(),
-      "Role-aware fixtures not provisioned (set E2E_GROWTH_ROLE_FIXTURES_READY=true). TODO(auth-fixture).",
-    );
+    expect(
+      rolesProvisioned(),
+      "Role-aware fixtures must be provisioned for Growth OS certification.",
+    ).toBe(true);
 
     // Viewer: open Run detail, expect Approve/Reject hidden OR disabled.
     await signInAs(page, usersByRole.viewer.role);
@@ -626,8 +663,13 @@ test.describe("Growth OS console UI contract @growth-os-ui", () => {
       .first()
       .click();
 
-    const approveBtn = page.getByRole("button", { name: /approve/i });
-    const rejectBtn = page.getByRole("button", { name: /reject/i });
+    const viewerDecisionBox = page.getByTestId("growth-run-human-summary");
+    const approveBtn = viewerDecisionBox.getByRole("button", {
+      name: /approve/i,
+    });
+    const rejectBtn = viewerDecisionBox.getByRole("button", {
+      name: /reject/i,
+    });
 
     for (const btn of [approveBtn, rejectBtn]) {
       const visible = await btn.isVisible().catch(() => false);
@@ -648,8 +690,13 @@ test.describe("Growth OS console UI contract @growth-os-ui", () => {
       .first()
       .click();
 
-    await expect(page.getByRole("button", { name: /approve/i })).toBeEnabled();
-    await expect(page.getByRole("button", { name: /reject/i })).toBeEnabled();
+    const curatorDecisionBox = page.getByTestId("growth-run-human-summary");
+    await expect(
+      curatorDecisionBox.getByRole("button", { name: /approve/i }),
+    ).toBeEnabled();
+    await expect(
+      curatorDecisionBox.getByRole("button", { name: /reject/i }),
+    ).toBeEnabled();
   });
 
   test("Append-only events: Run detail exposes no event-mutation affordances", async ({

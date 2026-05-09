@@ -15,6 +15,7 @@ import { claimGrowthWorkItem } from "./work-item-claim";
 import {
   finishGrowthRuntimeCycle,
   markGrowthRuntimeCycleRunning,
+  recordGrowthSchedulerHeartbeat,
   recordGrowthRuntimeCycleStage,
   startGrowthRuntimeCycle,
 } from "./cycle-ledger";
@@ -1323,6 +1324,25 @@ export async function runGrowthOsProductionCycle(
     },
     now,
   });
+  await recordGrowthSchedulerHeartbeat({
+    supabase,
+    accountId,
+    websiteId,
+    locale,
+    market,
+    status: "healthy",
+    lastCycleId: cycle.id,
+    lastCycleStatus: "started",
+    lastMessage: "Growth OS production cycle started.",
+    gitSha: options.gitSha ?? null,
+    metadata: {
+      trigger_source: options.triggerSource ?? "manual",
+      allow_live_mutation: allowLiveMutation,
+      enable_agentic_brain: enableAgenticBrain,
+      claim_limit_per_lane: options.claimLimitPerLane ?? 1,
+    },
+    now,
+  });
   cycle = await markGrowthRuntimeCycleRunning({ supabase, cycle });
 
   try {
@@ -1542,6 +1562,20 @@ export async function runGrowthOsProductionCycle(
       summary,
       now,
     });
+    await recordGrowthSchedulerHeartbeat({
+      supabase,
+      accountId,
+      websiteId,
+      locale,
+      market,
+      status: "healthy",
+      lastCycleId: finished.id,
+      lastCycleStatus: "completed",
+      lastMessage: "Growth OS production cycle completed.",
+      gitSha: options.gitSha ?? null,
+      metadata: summary,
+      now,
+    });
     return {
       cycleId: finished.id,
       cycleKey,
@@ -1563,6 +1597,20 @@ export async function runGrowthOsProductionCycle(
       status: "failed",
       summary,
       error,
+      now,
+    });
+    await recordGrowthSchedulerHeartbeat({
+      supabase,
+      accountId,
+      websiteId,
+      locale,
+      market,
+      status: "failed",
+      lastCycleId: failed.id,
+      lastCycleStatus: "failed",
+      lastMessage: errorMessage(error),
+      gitSha: options.gitSha ?? null,
+      metadata: summary,
       now,
     });
     return {

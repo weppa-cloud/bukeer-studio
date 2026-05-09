@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Fragment } from "react";
 import type { ReactNode } from "react";
 import {
   Activity,
@@ -21,6 +22,7 @@ import {
 
 import {
   dryVerifyGrowthPublicationJobRollback,
+  invokeGrowthBrainNow,
   pauseAutonomyLane,
   rollbackGrowthPublicationJob,
   toggleGrowthKillSwitch,
@@ -912,6 +914,19 @@ function AgenticControl({ data }: { data: GrowthCeoCockpitData }) {
         </div>
       </div>
 
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <ActionForm
+          action={invokeGrowthBrainNow}
+          label="Invoke brain now"
+          icon={<Zap className="h-4 w-4" aria-hidden="true" />}
+          fields={{ websiteId: data.websiteId }}
+        />
+        <p className="text-xs text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+          Crea wakeup on-demand y decision ledger; no publica ni aplica cambios
+          fuera del executor live-gated.
+        </p>
+      </div>
+
       {control.missingTables.length > 0 ? (
         <p className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-2 text-xs text-amber-800">
           Missing agentic tables: {control.missingTables.join(", ")}.
@@ -941,43 +956,111 @@ function AgenticControl({ data }: { data: GrowthCeoCockpitData }) {
                 </thead>
                 <tbody>
                   {control.decisions.slice(0, 6).map((decision) => (
-                    <tr
-                      key={decision.id}
-                      className="border-t border-[var(--studio-border,theme(colors.zinc.200))]"
-                    >
-                      <td className="px-3 py-2">
-                        <div className="flex flex-col gap-1">
-                          <StatusPill value={decision.decisionType} />
-                          <span className="max-w-[360px] truncate text-xs text-[var(--studio-text-muted,theme(colors.zinc.500))]">
-                            {decision.objective}
-                          </span>
-                          {decision.noGoReasons.length > 0 ? (
-                            <span className="text-xs text-amber-700">
-                              {decision.noGoReasons.join(", ")}
+                    <Fragment key={decision.id}>
+                      <tr
+                        className="border-t border-[var(--studio-border,theme(colors.zinc.200))]"
+                      >
+                        <td className="px-3 py-2">
+                          <div className="flex flex-col gap-1">
+                            <StatusPill value={decision.decisionType} />
+                            <span className="max-w-[360px] truncate text-xs text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                              {decision.objective}
                             </span>
-                          ) : null}
-                        </div>
-                      </td>
-                      <td className="px-3 py-2">
-                        <StatusPill value={decision.materializationStatus} />
-                        <p className="mt-1 text-xs text-[var(--studio-text-muted,theme(colors.zinc.500))]">
-                          conf {(decision.confidence * 100).toFixed(0)}%
-                        </p>
-                      </td>
-                      <td className="px-3 py-2 text-xs">
-                        <p>{decision.createdCandidates} candidates</p>
-                        <p>{decision.delegatedTasks} tasks</p>
-                        <p>{decision.blockedDecisions} blocked</p>
-                      </td>
-                      <td className="px-3 py-2 text-xs">
-                        <p>{decision.memoryReads} memories</p>
-                        <p>{decision.skillReads} skills</p>
-                        <p>{decision.outcomeReferences} outcomes</p>
-                      </td>
-                      <td className="px-3 py-2 font-mono text-xs">
-                        {decision.contextSnapshotId?.slice(0, 8) ?? "n/a"}
-                      </td>
-                    </tr>
+                            {decision.noGoReasons.length > 0 ? (
+                              <span className="text-xs text-amber-700">
+                                {decision.noGoReasons.join(", ")}
+                              </span>
+                            ) : null}
+                          </div>
+                        </td>
+                        <td className="px-3 py-2">
+                          <StatusPill value={decision.materializationStatus} />
+                          <p className="mt-1 text-xs text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                            conf {(decision.confidence * 100).toFixed(0)}%
+                          </p>
+                        </td>
+                        <td className="px-3 py-2 text-xs">
+                          <p>{decision.createdCandidates} candidates</p>
+                          <p>{decision.delegatedTasks} tasks</p>
+                          <p>{decision.blockedDecisions} blocked</p>
+                        </td>
+                        <td className="px-3 py-2 text-xs">
+                          <p>{decision.memoryReads} memories</p>
+                          <p>{decision.skillReads} skills</p>
+                          <p>{decision.outcomeReferences} outcomes</p>
+                        </td>
+                        <td className="px-3 py-2 font-mono text-xs">
+                          {decision.contextSnapshotId?.slice(0, 8) ?? "n/a"}
+                        </td>
+                      </tr>
+                      <tr className="border-t border-[var(--studio-border,theme(colors.zinc.100))]">
+                        <td className="px-3 pb-3" colSpan={5}>
+                          <details
+                            data-testid="growth-brain-decision-detail"
+                            className="rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] bg-[var(--studio-panel,theme(colors.zinc.50))] p-3 text-xs"
+                          >
+                            <summary className="cursor-pointer font-medium text-[var(--studio-text,theme(colors.zinc.800))]">
+                              Decision detail: context, learning, risk and materialization
+                            </summary>
+                            <div className="mt-3 grid gap-3 lg:grid-cols-2">
+                              <div>
+                                <p className="font-semibold">North Star alignment</p>
+                                <p className="mt-1 text-[var(--studio-text-muted,theme(colors.zinc.600))]">
+                                  {decision.northStarAlignment}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="font-semibold">References</p>
+                                <p className="mt-1">
+                                  {decision.memoryReads} memories ·{" "}
+                                  {decision.skillReads} skills ·{" "}
+                                  {decision.outcomeReferences} outcomes
+                                </p>
+                              </div>
+                              <JsonBlock
+                                label="Observed signals"
+                                value={{ observed_signals: decision.observedSignals }}
+                                testId="growth-brain-observed-signals"
+                              />
+                              <JsonBlock
+                                label="Proposed candidates"
+                                value={{ proposed_candidates: decision.proposedCandidates }}
+                                testId="growth-brain-proposed-candidates"
+                              />
+                              <JsonBlock
+                                label="Delegated tasks"
+                                value={{ delegated_tasks: decision.delegatedTaskDetails }}
+                                testId="growth-brain-delegated-tasks"
+                              />
+                              <JsonBlock
+                                label="Blocked decisions"
+                                value={{ blocked_decisions: decision.blockedDecisionDetails }}
+                                testId="growth-brain-blocked-decisions"
+                              />
+                              <JsonBlock
+                                label="Memory / skill reads"
+                                value={{
+                                  memories: decision.memoryReadDetails,
+                                  skills: decision.skillReadDetails,
+                                  outcomes: decision.outcomeReferenceDetails,
+                                }}
+                                testId="growth-brain-learning-refs"
+                              />
+                              <JsonBlock
+                                label="Risk and evidence"
+                                value={{
+                                  risk: decision.riskAssessment,
+                                  policy_recommendations:
+                                    decision.policyRecommendations,
+                                  evidence: decision.evidence,
+                                }}
+                                testId="growth-brain-risk-evidence"
+                              />
+                            </div>
+                          </details>
+                        </td>
+                      </tr>
+                    </Fragment>
                   ))}
                 </tbody>
               </table>

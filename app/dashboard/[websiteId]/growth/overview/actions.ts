@@ -9,6 +9,7 @@ import {
 } from "@/lib/growth/autonomy/technical-remediation-adapter";
 import { promoteGrowthOpportunityCandidates } from "@/lib/growth/autonomy/candidate-promotion";
 import { revalidateGrowthPublicationSurface } from "@/lib/growth/autonomy/publication-revalidation";
+import { runGrowthOrchestratorBrain } from "@/lib/growth/agentic/orchestrator-brain";
 import { getLaneAgreement } from "@/lib/growth/console/queries";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/service-role";
 
@@ -220,6 +221,30 @@ export async function promoteCandidateToWorkItem(
   return {
     ok: true,
     message: `Promoted ${promoted} candidate(s) to work items.`,
+  };
+}
+
+export async function invokeGrowthBrainNow(
+  formData: FormData,
+): Promise<ActionResult> {
+  const websiteId = String(formData.get("websiteId") ?? "");
+  if (!websiteId) return { ok: false, message: "Missing websiteId." };
+
+  const ctx = await requireGrowthRole(websiteId, "growth_operator");
+  const admin = createSupabaseServiceRoleClient();
+  const result = await runGrowthOrchestratorBrain({
+    supabase: admin,
+    accountId: ctx.accountId,
+    websiteId: ctx.websiteId,
+    source: "user_on_demand",
+    materialize: true,
+    now: new Date(),
+  });
+
+  revalidateGrowthOverview(websiteId);
+  return {
+    ok: true,
+    message: `Brain invoked: ${result.decisionId}. Created ${result.createdCandidateIds.length} candidates and ${result.createdTaskSessionIds.length} task sessions.`,
   };
 }
 

@@ -4,8 +4,12 @@ import type {
   GrowthRuntimeCycleStatus,
   GrowthRuntimeCycleTrigger,
   GrowthRuntimeCycleUpdate,
+  GrowthSchedulerHeartbeatInsert,
 } from "@bukeer/website-contract";
-import { GrowthRuntimeCycleInsertSchema } from "@bukeer/website-contract";
+import {
+  GrowthRuntimeCycleInsertSchema,
+  GrowthSchedulerHeartbeatInsertSchema,
+} from "@bukeer/website-contract";
 
 import {
   GROWTH_RUNTIME_VERSION,
@@ -30,8 +34,62 @@ export interface StartGrowthRuntimeCycleInput {
   now?: Date;
 }
 
+export interface RecordGrowthSchedulerHeartbeatInput {
+  supabase: SupabaseLike;
+  accountId: string;
+  websiteId: string;
+  locale?: string;
+  market?: GrowthRuntimeCycle["market"];
+  schedulerName?: string;
+  status?: "healthy" | "stale" | "degraded" | "failed" | "paused";
+  lastCycleId?: string | null;
+  lastCycleStatus?: string | null;
+  lastMessage?: string | null;
+  gitSha?: string | null;
+  intervalMs?: number | null;
+  metadata?: JsonRecord;
+  now?: Date;
+}
+
 function normalizeCycleRow(row: unknown): GrowthRuntimeCycle {
   return row as GrowthRuntimeCycle;
+}
+
+export async function recordGrowthSchedulerHeartbeat(
+  input: RecordGrowthSchedulerHeartbeatInput,
+) {
+  const now = input.now ?? new Date();
+  const row: GrowthSchedulerHeartbeatInsert =
+    GrowthSchedulerHeartbeatInsertSchema.parse({
+      account_id: input.accountId,
+      website_id: input.websiteId,
+      locale: input.locale ?? "es-CO",
+      market: input.market ?? "CO",
+      scheduler_name: input.schedulerName ?? "growth-os-production-cycle",
+      status: input.status ?? "healthy",
+      health_status: input.status ?? "healthy",
+      heartbeat_at: now.toISOString(),
+      last_cycle_id: input.lastCycleId ?? null,
+      last_cycle_status: input.lastCycleStatus ?? null,
+      last_message: input.lastMessage ?? null,
+      git_sha: input.gitSha ?? null,
+      interval_ms: input.intervalMs ?? null,
+      metadata: input.metadata ?? {},
+    });
+
+  const { error } = await input.supabase
+    .from("growth_scheduler_heartbeats")
+    .upsert(
+      {
+        ...row,
+        updated_at: now.toISOString(),
+      },
+      { onConflict: "website_id,scheduler_name" },
+    );
+
+  if (error) {
+    throw new Error(`scheduler heartbeat failed: ${error.message}`);
+  }
 }
 
 export async function startGrowthRuntimeCycle(
