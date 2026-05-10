@@ -132,8 +132,6 @@ function buildIdempotencyKey(input: TranscreationMergePlanInput): string {
     "transcreation-merge-v1",
     input.workItemId,
     input.changeSetId,
-    input.transcreationJobId,
-    input.targetLocale,
   ].join(":");
 }
 

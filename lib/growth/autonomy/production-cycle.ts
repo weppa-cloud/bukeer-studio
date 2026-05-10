@@ -1,4 +1,4 @@
-import { randomUUID } from "crypto";
+import { createHash, randomUUID } from "crypto";
 
 import type {
   AgentLane,
@@ -44,7 +44,14 @@ import {
 } from "./profile-freshness-gate";
 import { evaluateGrowthRuntimeQualityGate } from "./quality-gate";
 import { refreshGrowthProfiles } from "./profile-refresh";
-import { dataForSeoEvidenceGate } from "./dataforseo-provider-profile";
+import {
+  dataForSeoEvidenceGate,
+  dataForSeoEvidenceReadFromRequirement,
+  dataForSeoEvidenceRecordFromRequirement,
+  dataForSeoFeatureForAction,
+  dataForSeoRequirementFromSnapshot,
+  readDataForSeoProviderSnapshot,
+} from "./dataforseo-provider-profile";
 import {
   actionClassForLane,
   asRecord,
@@ -438,6 +445,148 @@ function growthCorrelationRuntimeFailure(
     return `growth_evidence_${verdict}:${String(correlation.reason ?? "anti_rework_gate")}`;
   }
   return null;
+}
+
+function stableRuntimeEvidenceHash(value: unknown): string {
+  return `sha256:${createHash("sha256")
+    .update(JSON.stringify(value))
+    .digest("hex")}`;
+}
+
+function runtimeEntityKey({
+  actionClass,
+  workItem,
+  evidence,
+}: {
+  actionClass: GrowthAutonomyActionClass;
+  workItem: JsonRecord;
+  evidence: JsonRecord;
+}): string {
+  const adapterInput = asRecord(evidence.adapter_input);
+  const targetTable =
+    typeof adapterInput.target_table === "string"
+      ? adapterInput.target_table
+      : targetTableForAction(actionClass);
+  const targetId =
+    typeof adapterInput.target_id === "string"
+      ? adapterInput.target_id
+      : typeof workItem.source_id === "string"
+        ? workItem.source_id
+        : String(workItem.id ?? "unknown");
+  const targetPath =
+    typeof adapterInput.target_path === "string" && adapterInput.target_path.trim()
+      ? `:${adapterInput.target_path.trim()}`
+      : "";
+  return `${targetTable}:${targetId}${targetPath}`;
+}
+
+function runtimeCorrelationFromProviderEvidence({
+  websiteId,
+  actionClass,
+  workItem,
+  evidence,
+  evidenceFingerprint,
+}: {
+  websiteId: string;
+  actionClass: GrowthAutonomyActionClass;
+  workItem: JsonRecord;
+  evidence: JsonRecord;
+  evidenceFingerprint: string;
+}): JsonRecord {
+  const entityKey = runtimeEntityKey({ actionClass, workItem, evidence });
+  const actionKey = `${actionClass}:${entityKey}`;
+  return {
+    entity_key: entityKey,
+    action_key: actionKey,
+    correlation_key: `${websiteId}:runtime_provider_evidence:${actionKey}`,
+    evidence_fingerprint: evidenceFingerprint,
+    dedupe_verdict: "new",
+    reason: "runtime_dataforseo_cache_enriched",
+    previous_refs: [],
+    materially_new_evidence: false,
+  };
+}
+
+async function enrichRuntimeProviderEvidence({
+  supabase,
+  accountId,
+  websiteId,
+  actionClass,
+  workItem,
+  evidence,
+  now,
+}: {
+  supabase: SupabaseLike;
+  accountId: string;
+  websiteId: string;
+  actionClass: GrowthAutonomyActionClass;
+  workItem: JsonRecord;
+  evidence: JsonRecord;
+  now: Date;
+}): Promise<JsonRecord> {
+  if (!DATAFORSEO_GOVERNED_ACTIONS.has(actionClass)) return evidence;
+
+  const existingDataForSeoEvidence = asRecord(evidence.dataforseo_evidence);
+  const existingCorrelation = asRecord(evidence.correlation);
+  const hasRequiredProviderEvidence =
+    existingDataForSeoEvidence.required === true;
+  const hasCorrelation = Boolean(
+    existingCorrelation.correlation_key &&
+      existingCorrelation.evidence_fingerprint,
+  );
+  if (hasRequiredProviderEvidence && hasCorrelation) return evidence;
+
+  const signalText = [
+    workItem.title,
+    workItem.intent,
+    evidence.intent,
+    evidence.source_signal,
+    JSON.stringify(evidence).slice(0, 4000),
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const featureProfile = dataForSeoFeatureForAction(actionClass, signalText);
+  const snapshot = await readDataForSeoProviderSnapshot({
+    supabase,
+    accountId,
+    websiteId,
+    now,
+  });
+  const requirement = dataForSeoRequirementFromSnapshot({
+    required: true,
+    featureProfile,
+    snapshot,
+  });
+  const evidenceRead = dataForSeoEvidenceReadFromRequirement(requirement);
+  const enrichedEvidence: JsonRecord = { ...evidence };
+
+  if (!hasRequiredProviderEvidence) {
+    enrichedEvidence.dataforseo_evidence =
+      dataForSeoEvidenceRecordFromRequirement(requirement);
+    const reads = Array.isArray(enrichedEvidence.provider_evidence_reads)
+      ? enrichedEvidence.provider_evidence_reads
+      : [];
+    enrichedEvidence.provider_evidence_reads = [...reads, evidenceRead];
+  }
+
+  if (!hasCorrelation && dataForSeoEvidenceGate(enrichedEvidence.dataforseo_evidence).allowed) {
+    const fingerprint = stableRuntimeEvidenceHash({
+      provider: "dataforseo",
+      dataforseo_evidence_fingerprint: evidenceRead.evidence_fingerprint,
+      adapter_input: asRecord(enrichedEvidence.adapter_input),
+      success_metric: enrichedEvidence.success_metric ?? null,
+      baseline: enrichedEvidence.baseline ?? asRecord(enrichedEvidence.adapter_input).baseline ?? null,
+    });
+    enrichedEvidence.correlation = runtimeCorrelationFromProviderEvidence({
+      websiteId,
+      actionClass,
+      workItem,
+      evidence: enrichedEvidence,
+      evidenceFingerprint: fingerprint,
+    });
+  }
+
+  return enrichedEvidence;
 }
 
 function withAdditionalSmokeFailures<T extends PublicationExecutionPlan>(
@@ -986,7 +1135,16 @@ async function createExecutionBridgeChangeSet({
     since: addDays(now, -7),
   });
 
-  const evidence = asRecord(workItem.evidence);
+  const evidence = await enrichRuntimeProviderEvidence({
+    supabase,
+    accountId,
+    websiteId,
+    actionClass,
+    workItem,
+    evidence: asRecord(workItem.evidence),
+    now,
+  });
+  const workItemForExecution = { ...workItem, evidence };
   const beforeSnapshot = {
     work_item_id: workItem.id,
     status: workItem.status,
@@ -1012,7 +1170,7 @@ async function createExecutionBridgeChangeSet({
     websiteId,
     locale,
     market,
-    workItem,
+    workItem: workItemForExecution,
     changeSetId: provisionalChangeSetId,
     policyId,
     actionClass,
@@ -1234,7 +1392,7 @@ async function createExecutionBridgeChangeSet({
         websiteId,
         locale,
         market,
-        workItem,
+        workItem: workItemForExecution,
         changeSetId,
         policyId: quality.policyId,
         actionClass,

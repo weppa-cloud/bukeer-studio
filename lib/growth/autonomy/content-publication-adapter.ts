@@ -133,8 +133,6 @@ function buildIdempotencyKey(input: ContentPublicationPlanInput): string {
     "content-publication-v1",
     input.workItemId,
     input.changeSetId,
-    input.article.slug,
-    input.locale ?? "es-CO",
   ].join(":");
 }
 

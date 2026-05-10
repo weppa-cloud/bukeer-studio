@@ -242,6 +242,7 @@ function baseTables(workItem: Row, policy: Row): Record<string, Row[]> {
     growth_agent_tool_calls: [],
     growth_agent_skills: [],
     growth_agent_replay_cases: [],
+    growth_dataforseo_cache: [],
     website_pages: [
       {
         id: ids.targetId,
@@ -305,6 +306,41 @@ function dataForSeoEvidence(featureProfile = "serp"): Row {
       expires_at: "2026-05-15T00:00:00.000Z",
     },
     evidence_fingerprint: `sha256:test-${featureProfile}`,
+  };
+}
+
+function dataForSeoCacheRow(featureProfile = "onpage"): Row {
+  return {
+    id: `dataforseo-cache-${featureProfile}`,
+    account_id: ids.accountId,
+    website_id: ids.websiteId,
+    endpoint:
+      featureProfile === "onpage"
+        ? "/v3/on_page/task_post"
+        : "/v3/dataforseo_labs/google/ranked_keywords/live",
+    cache_key: `growth:dataforseo:${featureProfile}:colombiatours`,
+    cache_tag: `growth:dataforseo:${featureProfile}:CO:es-CO`,
+    payload: {
+      target: "colombiatours.travel",
+      market: "CO",
+      locale: "es-CO",
+      tasks: [
+        {
+          result: [
+            {
+              items: [
+                {
+                  url: "https://colombiatours.travel/",
+                  title: "Colombia Tours",
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+    fetched_at: "2026-05-08T00:00:00.000Z",
+    expires_at: "2026-05-15T00:00:00.000Z",
   };
 }
 
@@ -544,7 +580,60 @@ describe("runGrowthOsProductionCycle adapter bridge", () => {
     });
     expect(
       JSON.stringify(tables.growth_agent_change_sets[0].after_snapshot),
-    ).toContain("provider_evidence:dataforseo_evidence_missing");
+    ).toContain("provider_evidence:dataforseo_blocked");
+  });
+
+  it("enriches legacy safe_apply work items from fresh DataForSEO cache before live execution", async () => {
+    const ops: Operation[] = [];
+    const longTargetPath = `/${"colombia-custom-travel-path-".repeat(12)}`;
+    const workItem = {
+      id: ids.workItemId,
+      account_id: ids.accountId,
+      website_id: ids.websiteId,
+      lane: "technical_remediation",
+      status: "ready",
+      title: "Legacy technical fix with cache-backed provider evidence",
+      allowed_action_class: "safe_apply",
+      risk_level: "low",
+      risk_score: 20,
+      source_id: ids.targetId,
+      evidence: {
+        success_metric: "technical_smoke_pass:website_pages:seo_title",
+        adapter_input: {
+          target_table: "website_pages",
+          target_id: ids.targetId,
+          target_path: longTargetPath,
+          before_row: {
+            seo_title: "Old Colombia custom travel page",
+          },
+          patch: {
+            seo_title: "Colombia custom travel planned by local experts",
+          },
+          baseline: {
+            changed_fields: ["seo_title"],
+            prior_values: { seo_title: "Old Colombia custom travel page" },
+          },
+        },
+      },
+    };
+    const tables = baseTables(workItem, policy("technical_remediation", "safe_apply"));
+    tables.growth_dataforseo_cache = [dataForSeoCacheRow("onpage")];
+
+    await runCycle(tables, ops);
+
+    expect(tables.website_pages[0].seo_title).toBe(
+      "Colombia custom travel planned by local experts",
+    );
+    expect(tables.growth_publication_jobs[0]).toMatchObject({
+      action_class: "safe_apply",
+      status: "smoke_passed",
+    });
+    expect(
+      String(tables.growth_publication_jobs[0].idempotency_key).length,
+    ).toBeLessThanOrEqual(200);
+    expect(
+      JSON.stringify(tables.growth_agent_change_sets[0].evidence),
+    ).toContain("runtime_dataforseo_cache_enriched");
   });
 
   it("keeps pricing and CRM surfaces hard-blocked before publication jobs execute", async () => {

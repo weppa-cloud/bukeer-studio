@@ -210,16 +210,10 @@ function requireLiveMeasurementContract(input: TechnicalRemediationPlanInput) {
 }
 
 function buildIdempotencyKey(input: TechnicalRemediationPlanInput): string {
-  const targetPath = input.targetPath ?? "root";
-  const fieldKey = Object.keys(input.patch).sort().join(".");
   return [
     "technical-remediation-v1",
     input.workItemId,
     input.changeSetId,
-    input.targetTable,
-    input.targetId,
-    targetPath,
-    fieldKey,
   ].join(":");
 }
 
