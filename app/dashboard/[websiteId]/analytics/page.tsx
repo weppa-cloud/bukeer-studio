@@ -729,7 +729,7 @@ export default function AnalyticsPage() {
             <div className="studio-panel p-3 text-xs text-[var(--studio-text-muted)] space-y-1">
               <p className="font-medium text-[var(--studio-text)]">Public loading standard</p>
               <p>GA4 is the base measurement tag: it sends one lightweight page_view early with URL, path, title and referrer.</p>
-              <p>GTM, Meta Pixel, Google Ads, Microsoft Clarity and custom scripts are behavior/marketing tags and must wait for consent or a real intent event.</p>
+              <p>Microsoft Clarity loads after page load/idle for UX research. GTM, Meta Pixel, Google Ads and custom scripts remain behind consent or a real intent event.</p>
             </div>
             <div>
               <label className="block text-xs text-[var(--studio-text-muted)] mb-1">Google Analytics 4 ID · base measurement</label>
@@ -756,7 +756,7 @@ export default function AnalyticsPage() {
               <label className="block text-xs text-[var(--studio-text-muted)] mb-1">Microsoft Clarity Project ID · UX behavior</label>
               <StudioInput value={clarityProjectId} onChange={(e) => setClarityProjectId(e.target.value)} placeholder="abcd123xyz" />
               <p className="mt-1 text-xs text-[var(--studio-text-muted)]">
-                Deferred behind consent or first intent, so it does not compete with LCP or the first organic pageview.
+                Loads after window load/idle, so landing navigation can be recorded without competing with LCP or the first organic pageview.
               </p>
             </div>
             {googleAdsId && (

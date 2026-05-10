@@ -38,7 +38,7 @@ The standard is:
 | `gtm_id` | Optional | Register loader only; `gtm.js` waits for `BukeerAnalytics.load()` | Advanced/legacy container and intent events |
 | `google_ads_id` | Optional | Must not be activated by the initial organic pageview | Paid conversion tags and enhanced conversions |
 | `facebook_pixel_id` | Optional | Must wait for consent/intent; prefer Meta CAPI for leads | Paid social optimization |
-| `clarity_project_id` | Optional | Must wait for consent/intent | UX behavior analytics, heatmaps and session recordings |
+| `clarity_project_id` | Optional | Load after `window.load` + idle callback | UX behavior analytics, heatmaps and session recordings |
 | `custom_head_scripts` / `custom_body_scripts` | Optional | Must wait for consent/intent | Tenant-specific scripts |
 
 ## Runtime Policy
@@ -72,7 +72,14 @@ This is a measurement-first posture. It is not a full cookie-consent platform.
 
 ### Deferred Marketing Load
 
-`BukeerAnalytics.load()` is the only approved public entry point for heavy behavior/marketing scripts.
+`BukeerAnalytics.load()` is the only approved public entry point for heavy marketing scripts.
+
+Microsoft Clarity is the exception for UX research: when `clarity_project_id`
+exists, the renderer registers it with `lazyOnload` and then waits for
+`window.load` plus an idle callback before creating the third-party script.
+This follows Microsoft's normal async install model closely enough to capture
+landing scrolls, dead clicks and bounces, while keeping Clarity out of the
+initial render path.
 
 It can be triggered by:
 
@@ -93,17 +100,18 @@ Production tenant config:
   "ga4_id": "G-6ET7YRM7NS",
   "gtm_id": "GTM-KM6HDBN",
   "google_ads_id": "AW-852643280",
-  "facebook_pixel_id": "361881980826384"
+  "facebook_pixel_id": "361881980826384",
+  "clarity_project_id": "tj1pmavijv"
 }
 ```
 
-Validated on 2026-04-27:
+Validated on 2026-05-09:
 
-| Route | GA4 page_view | `dl`/`dp` URL+UTM | `gtm.js` before interaction | Meta before interaction | Clarity before interaction | Ads pings before interaction |
+| Route | GA4 page_view | `dl`/`dp` URL+UTM | `gtm.js` before interaction | Meta before interaction | Clarity load policy | Ads pings before interaction |
 |---|---:|---:|---:|---:|---:|---:|
-| `/` | PASS | PASS | 0 | 0 | 0 | 2 |
-| `/paquetes` | PASS | PASS | 0 | 0 | 0 | 2 |
-| `/actividades` | PASS | PASS | 0 | 0 | 0 | 2 |
+| `/` | PASS | PASS | 0 | 0 | after load/idle | 2 |
+| `/paquetes` | PASS | PASS | 0 | 0 | after load/idle | 2 |
+| `/actividades` | PASS | PASS | 0 | 0 | after load/idle | 2 |
 
 Residual governance caveat:
 
@@ -150,7 +158,8 @@ Expected current result:
 
 - GA4 pageview exists on `/`, `/paquetes`, `/actividades`.
 - `gtag.js` loads once per page.
-- `gtm.js`, Meta and Clarity do not load before interaction.
+- `gtm.js` and Meta do not load before interaction.
+- Clarity may load after page load/idle so landing navigation can be recorded.
 - Ads pings are reported as known residual unless `STRICT_ADS_ZERO=1`.
 
 ## GA4/GSC Reporting Rule

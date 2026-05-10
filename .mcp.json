@@ -56,6 +56,13 @@
         "set -a; [ -f .env.local ] && source .env.local; [ -f .env.mcp ] && source .env.mcp; set +a; npx -y search-console-mcp@latest"
       ]
     },
+    "clarity": {
+      "command": "bash",
+      "args": [
+        "-lc",
+        "set -a; [ -f .env.local ] && source .env.local; [ -f .env.mcp ] && source .env.mcp; set +a; : \"${CLARITY_API_TOKEN:?Missing CLARITY_API_TOKEN in .env.mcp}\"; exec npx -y @microsoft/clarity-mcp-server --clarity_api_token=\"$CLARITY_API_TOKEN\""
+      ]
+    },
     "dataforseo": {
       "command": "bash",
       "args": [

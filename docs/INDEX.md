@@ -173,6 +173,8 @@ Feature requests formalized. Status tracked inline. GitHub Issues = source of tr
 | [[meta-ads-mcp]]                         | [file](./ops/meta-ads-mcp.md)                         | Epic #341 local MCP package scaffold for Meta Ads: env, safe modes, kill switch, ColombiaTours defaults.                                                |
 | [[meta-ads-cli-mcp]]                     | [file](./ops/meta-ads-cli-mcp.md)                     | Codex Desktop local MCP wrapper for the official Meta Ads CLI: read-only tools, write flag gates, smoke tests and ColombiaTours account config.          |
 | [[meta-ads-operations]]                  | [file](../ops/meta-ads/README.md)                     | Meta Ads operational standard matching Google Ads: project-scoped MCP, local setup, read-only analysis, write gateway and tenant iterations.             |
+| [[clarity-mcp]]                          | [file](./ops/clarity-mcp.md)                          | Official Microsoft Clarity MCP setup: `.mcp.json`, `.env.mcp`, API token, quota limits, Data Export fallback and ColombiaTours project config.           |
+| [[clarity-operations]]                   | [file](../ops/clarity/README.md)                      | Clarity operational standard matching Meta/Google: tenant iterations, local setup, read-only UX analysis and privacy guardrails.                         |
 | [[product-landing-rollout-runbook]]      | [file](./runbooks/product-landing-rollout-runbook.md) | Rollout for public site rendering / ISR changes.                                                                                                        |
 
 ---
@@ -509,7 +511,15 @@ Each concept below lists the ADRs/SPECs/ops docs that touch it. Use this to find
 - [[SPEC_COLOMBIATOURS_GROWTH_OS_2026]] — stub for canonical #337: cross-channel conversion governance and event contract for ColombiaTours Growth OS.
 - [[SPEC_META_CHATWOOT_CONVERSIONS]] — stub for canonical #322: Meta Pixel/CAPI event contract, Chatwoot webhook lifecycle tracking, and purchase attribution.
 - [[public-analytics-standard]] — public-site runtime tracking policy: early GA4 pageview, deferred GTM/Meta/Ads/custom scripts, GA4/GSC reporting rule.
+- [[clarity-mcp]] — official Microsoft Clarity MCP setup for read-only UX behavior data access.
+- [[clarity-operations]] — tenant runbooks for Clarity-powered landing diagnostics and privacy-safe summaries.
 - [[ADR-018]] — webhook idempotency baseline for Chatwoot and payment-provider callbacks.
+
+### [[clarity]] + [[mcp]] + [[analytics]]
+
+- [[clarity-mcp]] — official Microsoft Clarity MCP setup, local token handling, quota limits and Data Export API fallback.
+- [[clarity-operations]] — operational playbooks for tenant UX friction analysis via Clarity.
+- [[public-analytics-standard]] — runtime loading policy: Clarity loads after `window.load` + idle callback.
 
 ### [[trust]] + [[organization-schema]]
 
@@ -588,6 +598,8 @@ Obsidian resolves `[[ADR-005]]` by filename stem or alias. Claude Code / Codex g
 | `[[release-gate-checklist]]`                          | `docs/ops/release-gate-checklist.md`                                               |
 | `[[ci-seo-i18n-gate]]`                                | `docs/ops/ci-seo-i18n-gate.md`                                                     |
 | `[[public-analytics-standard]]`                       | `docs/ops/public-analytics-standard.md`                                            |
+| `[[clarity-mcp]]`                                     | `docs/ops/clarity-mcp.md`                                                          |
+| `[[clarity-operations]]`                              | `ops/clarity/README.md`                                                            |
 | `[[ADR-022]]`                                         | Flutter repo — auth token boundary                                                 |
 | `[[ADR-032]]`                                         | Flutter repo — catalog v2                                                          |
 | `[[ARCHITECTURE]]`                                    | `docs/architecture/ARCHITECTURE.md`                                                |

@@ -165,6 +165,31 @@ function clarityScript(projectId: string): string {
   `;
 }
 
+function afterIdle(script: string, timeout = 3500): string {
+  return `
+    (function(){
+      var fired = false;
+      function run(){
+        if (fired) return;
+        fired = true;
+        ${script}
+      }
+      function schedule(){
+        if (window.requestIdleCallback) {
+          window.requestIdleCallback(run, { timeout: ${timeout} });
+        } else {
+          window.setTimeout(run, ${timeout});
+        }
+      }
+      if (document.readyState === 'complete') {
+        schedule();
+      } else {
+        window.addEventListener('load', schedule, { once: true });
+      }
+    })();
+  `;
+}
+
 /**
  * GTM Head Script - Goes in <head>
  */
@@ -295,11 +320,11 @@ export function FacebookPixelScript({ analytics, defer }: GoogleTagManagerProps)
 /**
  * Microsoft Clarity session recordings and heatmaps.
  *
- * Clarity is intentionally treated like a heavy behavior/marketing tag:
- * `defer` keeps the network request behind consent or first real intent via
- * BukeerAnalytics.load(), matching the public analytics standard.
+ * Clarity is behavior analytics for UX research, not a paid media tag. Load it
+ * after window load/idle so landings record scrolls, dead clicks and bounces
+ * without putting the third-party script in the initial render path.
  */
-export function MicrosoftClarityScript({ analytics, defer }: GoogleTagManagerProps) {
+export function MicrosoftClarityScript({ analytics }: GoogleTagManagerProps) {
   if (!analytics?.clarity_project_id) return null;
 
   const loadClarity = clarityScript(analytics.clarity_project_id);
@@ -309,13 +334,7 @@ export function MicrosoftClarityScript({ analytics, defer }: GoogleTagManagerPro
       id="microsoft-clarity"
       strategy="lazyOnload"
       dangerouslySetInnerHTML={{
-        __html: defer ? afterInteraction(loadClarity) : `
-          window.requestIdleCallback ? requestIdleCallback(function(){
-          ${loadClarity}
-          }, {timeout: 3500}) : setTimeout(function(){
-          ${loadClarity}
-          }, 3500);
-        `,
+        __html: afterIdle(loadClarity, 3500),
       }}
     />
   );
