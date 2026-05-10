@@ -8,6 +8,7 @@ export const LANDING_PAGE_SLUGS = [
   'agencia-de-viajes-a-colombia-para-mexicanos',
   'agencia-de-viajes-a-colombia-para-espanoles',
   'los-mejores-paquetes-de-viajes-a-colombia',
+  'colombia-travel-packages',
 ];
 
 /**
