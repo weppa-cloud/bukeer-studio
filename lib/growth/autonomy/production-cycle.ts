@@ -118,22 +118,6 @@ function targetTableForAction(
   return null;
 }
 
-function isPublicationTargetTable(value: string | null): value is GrowthPublicationTargetTable {
-  return (
-    value === "website_blog_posts" ||
-    value === "website_pages" ||
-    value === "website_sections" ||
-    value === "seo_localized_variants" ||
-    value === "seo_transcreation_jobs" ||
-    value === "product_seo_overrides"
-  );
-}
-
-function transcreationPageType(value: string | null): "blog" | "page" | "destination" {
-  if (value === "page" || value === "destination") return value;
-  return "blog";
-}
-
 function changeTypeForLane(lane: AgentLane): GrowthAgentChangeSetInsert["change_type"] {
   if (lane === "technical_remediation") return "technical_smoke_result";
   if (lane === "transcreation") return "locale_serp_packet";

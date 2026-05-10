@@ -8,6 +8,7 @@ import type {
 export type JsonRecord = Record<string, unknown>;
 
 export interface SupabaseLike {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   from: (table: string) => any;
 }
 

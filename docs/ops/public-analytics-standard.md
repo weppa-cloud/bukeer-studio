@@ -25,6 +25,7 @@ The standard is:
   "gtm_id": "GTM-XXXXXXX",
   "google_ads_id": "AW-XXXXXXXXX",
   "facebook_pixel_id": "000000000000000",
+  "clarity_project_id": "xxxxxxxxxx",
   "loading": "deferred-consent-or-first-important-action"
 }
 ```
@@ -37,6 +38,7 @@ The standard is:
 | `gtm_id` | Optional | Register loader only; `gtm.js` waits for `BukeerAnalytics.load()` | Advanced/legacy container and intent events |
 | `google_ads_id` | Optional | Must not be activated by the initial organic pageview | Paid conversion tags and enhanced conversions |
 | `facebook_pixel_id` | Optional | Must wait for consent/intent; prefer Meta CAPI for leads | Paid social optimization |
+| `clarity_project_id` | Optional | Must wait for consent/intent | UX behavior analytics, heatmaps and session recordings |
 | `custom_head_scripts` / `custom_body_scripts` | Optional | Must wait for consent/intent | Tenant-specific scripts |
 
 ## Runtime Policy
@@ -70,7 +72,7 @@ This is a measurement-first posture. It is not a full cookie-consent platform.
 
 ### Deferred Marketing Load
 
-`BukeerAnalytics.load()` is the only approved public entry point for heavy marketing scripts.
+`BukeerAnalytics.load()` is the only approved public entry point for heavy behavior/marketing scripts.
 
 It can be triggered by:
 

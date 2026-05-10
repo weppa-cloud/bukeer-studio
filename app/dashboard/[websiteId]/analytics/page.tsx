@@ -126,6 +126,7 @@ export default function AnalyticsPage() {
   const [gtmId, setGtmId] = useState(analytics.gtm_id || '');
   const [ga4Id, setGa4Id] = useState(analytics.ga4_id || '');
   const [pixelId, setPixelId] = useState(analytics.facebook_pixel_id || '');
+  const [clarityProjectId, setClarityProjectId] = useState(analytics.clarity_project_id || '');
   const googleAdsId = analytics.google_ads_id || '';
   const [includeDataForSeo, setIncludeDataForSeo] = useState(false);
   const [syncing, setSyncing] = useState(false);
@@ -138,7 +139,10 @@ export default function AnalyticsPage() {
     router.replace(`${nextPath}?${params.toString()}`, { scroll: false });
   }
 
-  const autosavePayload = useMemo(() => ({ gtmId, ga4Id, pixelId }), [gtmId, ga4Id, pixelId]);
+  const autosavePayload = useMemo(
+    () => ({ gtmId, ga4Id, pixelId, clarityProjectId }),
+    [gtmId, ga4Id, pixelId, clarityProjectId]
+  );
   const { status: autosaveStatus } = useAutosave({
     data: autosavePayload,
     onSave: async (payload) => {
@@ -148,6 +152,7 @@ export default function AnalyticsPage() {
           gtm_id: payload.gtmId || undefined,
           ga4_id: payload.ga4Id || undefined,
           facebook_pixel_id: payload.pixelId || undefined,
+          clarity_project_id: payload.clarityProjectId || undefined,
         },
       } as never);
     },
@@ -724,7 +729,7 @@ export default function AnalyticsPage() {
             <div className="studio-panel p-3 text-xs text-[var(--studio-text-muted)] space-y-1">
               <p className="font-medium text-[var(--studio-text)]">Public loading standard</p>
               <p>GA4 is the base measurement tag: it sends one lightweight page_view early with URL, path, title and referrer.</p>
-              <p>GTM, Meta Pixel, Google Ads and custom scripts are marketing tags and must wait for consent or a real intent event.</p>
+              <p>GTM, Meta Pixel, Google Ads, Microsoft Clarity and custom scripts are behavior/marketing tags and must wait for consent or a real intent event.</p>
             </div>
             <div>
               <label className="block text-xs text-[var(--studio-text-muted)] mb-1">Google Analytics 4 ID · base measurement</label>
@@ -745,6 +750,13 @@ export default function AnalyticsPage() {
               <StudioInput value={pixelId} onChange={(e) => setPixelId(e.target.value)} placeholder="1234567890" />
               <p className="mt-1 text-xs text-[var(--studio-text-muted)]">
                 Browser pixel is deferred. Prefer server-side CAPI for lead quality once conversion governance is complete.
+              </p>
+            </div>
+            <div>
+              <label className="block text-xs text-[var(--studio-text-muted)] mb-1">Microsoft Clarity Project ID · UX behavior</label>
+              <StudioInput value={clarityProjectId} onChange={(e) => setClarityProjectId(e.target.value)} placeholder="abcd123xyz" />
+              <p className="mt-1 text-xs text-[var(--studio-text-muted)]">
+                Deferred behind consent or first intent, so it does not compete with LCP or the first organic pageview.
               </p>
             </div>
             {googleAdsId && (

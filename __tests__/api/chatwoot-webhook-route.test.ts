@@ -210,25 +210,37 @@ describe("/api/webhooks/chatwoot", () => {
     expect(sendMetaConversionEvent).not.toHaveBeenCalled();
   });
 
-  it("dedupes repeated provider events through webhook_events", async () => {
+  it("dedupes repeated provider events while repairing the WAFlow conversation link", async () => {
     duplicateWebhook = true;
     const mod = await import("@/app/api/webhooks/chatwoot/route");
     const response = await mod.POST(
       await signedRequest({
         id: "evt-1",
-        event: "conversation_created",
+        event: "message_created",
         timestamp: 1777118400,
         conversation: {
           id: 123,
           custom_attributes: { reference_code: "HOME-2504-ABCD" },
         },
+        content: "Hola, quiero viajar #ref: HOME-2504-ABCD",
       }),
     );
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({
       success: true,
-      data: { deduped: true },
+      data: {
+        deduped: true,
+        reconciliation: {
+          matched: true,
+          lifecycleEvents: ["ConversationContinued"],
+          referenceCode: "HOME-2504-ABCD",
+        },
+      },
+    });
+    expect(leadUpdates[0]).toMatchObject({
+      chatwoot_conversation_id: "123",
+      chatwoot_last_event: "ConversationContinued",
     });
     expect(sendMetaConversionEvent).not.toHaveBeenCalled();
   });

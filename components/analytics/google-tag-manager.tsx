@@ -6,6 +6,7 @@
  * - Google Tag Manager (GTM)
  * - Google Analytics 4 (GA4) - via GTM or standalone
  * - Facebook Pixel - via GTM or standalone
+ * - Microsoft Clarity - standalone, deferred with marketing tags
  * - Custom scripts
  *
  * Usage in layout:
@@ -21,6 +22,7 @@ export interface AnalyticsConfig {
   gtm_id?: string;           // Google Tag Manager ID (GTM-XXXXXX)
   ga4_id?: string;           // Google Analytics 4 ID (G-XXXXXXXXXX)
   facebook_pixel_id?: string; // Facebook Pixel ID
+  clarity_project_id?: string; // Microsoft Clarity project ID
   custom_head_scripts?: string; // Custom scripts for <head>
   custom_body_scripts?: string; // Custom scripts for <body>
 }
@@ -148,6 +150,18 @@ function ga4PageviewScript(measurementId: string): string {
         });
       });
     })();
+  `;
+}
+
+function clarityScript(projectId: string): string {
+  const safeProjectId = JSON.stringify(projectId.trim());
+
+  return `
+    (function(c,l,a,r,i,t,y){
+      c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+      t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+      y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+    })(window, document, "clarity", "script", ${safeProjectId});
   `;
 }
 
@@ -279,6 +293,35 @@ export function FacebookPixelScript({ analytics, defer }: GoogleTagManagerProps)
 }
 
 /**
+ * Microsoft Clarity session recordings and heatmaps.
+ *
+ * Clarity is intentionally treated like a heavy behavior/marketing tag:
+ * `defer` keeps the network request behind consent or first real intent via
+ * BukeerAnalytics.load(), matching the public analytics standard.
+ */
+export function MicrosoftClarityScript({ analytics, defer }: GoogleTagManagerProps) {
+  if (!analytics?.clarity_project_id) return null;
+
+  const loadClarity = clarityScript(analytics.clarity_project_id);
+
+  return (
+    <Script
+      id="microsoft-clarity"
+      strategy="lazyOnload"
+      dangerouslySetInnerHTML={{
+        __html: defer ? afterInteraction(loadClarity) : `
+          window.requestIdleCallback ? requestIdleCallback(function(){
+          ${loadClarity}
+          }, {timeout: 3500}) : setTimeout(function(){
+          ${loadClarity}
+          }, 3500);
+        `,
+      }}
+    />
+  );
+}
+
+/**
  * Custom Head Scripts
  */
 export function CustomHeadScripts({ analytics, defer }: GoogleTagManagerProps) {
@@ -325,6 +368,9 @@ export function GoogleTagManager({ analytics, defer }: GoogleTagManagerProps) {
 
       {/* Standalone Facebook Pixel (only if GTM not configured) */}
       <FacebookPixelScript analytics={analytics} defer={defer} />
+
+      {/* Microsoft Clarity behavior analytics */}
+      <MicrosoftClarityScript analytics={analytics} defer={defer} />
 
       {/* Custom scripts */}
       <CustomHeadScripts analytics={analytics} defer={defer} />
