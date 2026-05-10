@@ -246,7 +246,8 @@ Deployment path:
 
 - `dev` pushed to GitHub at `686a34ce`.
 - `main` fast-forwarded to `686a34ce`.
-- GitHub Actions deploy run: `25625371507`.
+- GitHub Actions deploy run: `25625371507`, status `success`.
+- Cloudflare Worker version: `02fb7bd6-13a8-4b97-ae5a-85b22e0797f7`.
 - Runtime daemon restarted with `--git-sha=686a34ce`, `--max-claims-per-lane=3`, `--interval-ms=1800000`.
 - Previous daemon running `f1fcb099` was stopped to avoid double execution.
 
