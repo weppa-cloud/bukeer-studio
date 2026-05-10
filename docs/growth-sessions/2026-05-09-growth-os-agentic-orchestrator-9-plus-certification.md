@@ -239,3 +239,57 @@ UI follow-up implemented:
 - Workboard now exposes a `Falta DataForSEO` filter.
 - Workboard cards show a danger badge when provider-dependent work lacks required evidence.
 - Workboard summary shows a dedicated alert with a link to the filtered view.
+
+## 2026-05-10 Deploy + Duplicate Content Gate Certification
+
+Deployment path:
+
+- `dev` pushed to GitHub at `686a34ce`.
+- `main` fast-forwarded to `686a34ce`.
+- GitHub Actions deploy run: `25625371507`.
+- Runtime daemon restarted with `--git-sha=686a34ce`, `--max-claims-per-lane=3`, `--interval-ms=1800000`.
+- Previous daemon running `f1fcb099` was stopped to avoid double execution.
+
+GA4 advanced provider validation against ColombiaTours production property:
+
+- GA4 property: `294486074`.
+- `ga4_admin_governance_v1`: live success, `keyEvents=4`, `dataStreams=1`, `audiences=0`.
+- `ga4_pivot_funnel_v1`: live success, `rows=10`.
+- `ga4_realtime_smoke_v1`: live success, `rows=1`.
+
+Controlled live-gated cycle after deploy:
+
+- Cycle: `c98578d3-71e5-4cfe-8f28-4f48e97c6d79`
+- Git SHA: `686a34ce`
+- Status: `completed`
+- Claims: `7`
+- Applied: `1`
+- Blocked: `6`
+- Production mutation performed: `true`
+
+Duplicate content gate proof:
+
+- Work item blocked by runtime duplicate title gate: `d7dcae2f-aede-44ac-9efb-52948df0f036`
+- Action: `content_publish`
+- Runtime reason: `adapter_plan_error:duplicate_content_title:e7a7ba70-7631-45d7-ae6d-571647bf94a0:brain-content-publish-viajes-personalizados-por-colombia`
+- Result: no additional blog post was published for the duplicated title.
+
+Duplicate backlog/public content cleanup:
+
+- Canonical post kept published:
+  - `website_blog_posts:e7a7ba70-7631-45d7-ae6d-571647bf94a0`
+  - slug: `brain-content-publish-viajes-personalizados-por-colombia`
+- Duplicate posts changed from `published` to `draft`: `62`
+- Duplicate posts were not deleted; each received `canonical_post_id` pointing to the canonical post and `robots_noindex=true`.
+- Duplicate work items blocked: `3`
+  - `0c6271be-5c50-43fa-a4cb-7b9df8988d4a`
+  - `60beb89a-56fa-4f6c-85bf-c558c4f958df`
+  - `e4e663d7-0c1a-469e-8586-a60bead1f01e`
+- Duplicate candidate blocked: `437529c0-17b5-4fa2-8330-0d36876b74b0`
+
+Post-cleanup verification:
+
+- Published posts with title `Viajes personalizados por Colombia: como elegir una ruta con sentido`: `1`
+- Draft duplicates with the same title: `62`
+
+Conclusion: the duplicate-content failure mode is now blocked at the executor boundary and the existing public duplicate set has been reduced to one canonical published post without deleting production rows.
