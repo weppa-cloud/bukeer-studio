@@ -44,6 +44,7 @@ const BASE_URL =
   process.env.PLAYWRIGHT_BASE_URL ??
   process.env.E2E_BASE_URL ??
   `http://localhost:${PORT}`;
+const RUN_WITH_EVENTS_ID = process.env.E2E_GROWTH_RUN_WITH_EVENTS_ID;
 const GOTO_READY = { waitUntil: "commit" as const, timeout: 120_000 };
 const MOBILE_VIEWPORT = { width: 390, height: 844 };
 
@@ -743,23 +744,28 @@ test.describe("Growth OS console UI contract @growth-os-ui", () => {
   test("Append-only events: Run detail exposes no event-mutation affordances", async ({
     page,
   }) => {
-    await gotoGrowth(page);
-    await page.getByRole("link", { name: /review queue/i }).click();
-    await page.waitForURL(/\/growth\/runs$/);
+    if (RUN_WITH_EVENTS_ID) {
+      await gotoGrowth(page, `/runs/${RUN_WITH_EVENTS_ID}`);
+      await page.waitForURL(/\/growth\/runs\/[^/]+$/);
+    } else {
+      await gotoGrowth(page);
+      await page.getByRole("link", { name: /review queue/i }).click();
+      await page.waitForURL(/\/growth\/runs$/);
 
-    // If there are no runs yet, the empty state is acceptable — there is
-    // nothing to mutate, which trivially satisfies append-only.
-    const firstRun = page.getByTestId(/^growth-run-row-/).first();
-    const hasRun = await firstRun.isVisible().catch(() => false);
-    test.skip(
-      !hasRun,
-      "No runs available to inspect for append-only guarantees.",
-    );
+      // If there are no runs yet, the empty state is acceptable — there is
+      // nothing to mutate, which trivially satisfies append-only.
+      const firstRun = page.getByTestId(/^growth-run-row-/).first();
+      const hasRun = await firstRun.isVisible().catch(() => false);
+      test.skip(
+        !hasRun,
+        "No runs available to inspect for append-only guarantees.",
+      );
 
-    await Promise.all([
-      page.waitForURL(/\/growth\/runs\/[^/]+$/),
-      firstRun.getByRole("link").first().click(),
-    ]);
+      await Promise.all([
+        page.waitForURL(/\/growth\/runs\/[^/]+$/),
+        firstRun.getByRole("link").first().click(),
+      ]);
+    }
 
     await expect(page.getByTestId("growth-run-learning-panel")).toBeVisible();
 
