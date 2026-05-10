@@ -224,10 +224,7 @@ jobs:
     executor: node
     steps:
       - checkout
-      - run:
-          name: Fast deploy mode - skip GitHub wait
-          command: |
-            echo "Temporary fast deploy mode: skipping GitHub deploy wait/fallback delay."
+      - wait_for_github_deploy_or_takeover
       - restore_node_cache
       - install_and_build_packages
       - save_node_cache
@@ -280,7 +277,10 @@ jobs:
 workflows:
   ci:
     jobs:
+      - quality
       - deploy_production:
+          requires:
+            - quality
           filters:
             branches:
               only:
