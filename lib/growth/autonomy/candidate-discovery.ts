@@ -19,6 +19,11 @@ import {
   type JsonRecord,
   type SupabaseLike,
 } from "./runtime-common";
+import {
+  dataForSeoFeatureForAction,
+  dataForSeoRequirementFromSnapshot,
+  type DataForSeoProviderSnapshot,
+} from "./dataforseo-provider-profile";
 
 export interface DiscoverGrowthCandidatesOptions {
   supabase: SupabaseLike;
@@ -267,6 +272,64 @@ function rollbackExpectation(
   return {};
 }
 
+function profilePayload(
+  profiles: GrowthProfile[],
+  profileType: GrowthProfileType,
+): JsonRecord {
+  const profile = profiles
+    .filter((row) => row.profile_type === profileType)
+    .sort((a, b) => Date.parse(b.valid_from) - Date.parse(a.valid_from))[0];
+  return asRecord(profile?.payload);
+}
+
+function providerSnapshotFromProfiles(
+  profiles: GrowthProfile[],
+  mapping: CandidateMapping,
+): DataForSeoProviderSnapshot | null {
+  const profileType: GrowthProfileType =
+    mapping.candidateType === "missing_translation" ? "competitor" : "seo_market";
+  const payload = profilePayload(profiles, profileType);
+  const snapshot = payload.dataforseo_snapshot;
+  return snapshot && typeof snapshot === "object"
+    ? (snapshot as DataForSeoProviderSnapshot)
+    : null;
+}
+
+function dataForSeoRequirement({
+  row,
+  payload,
+  mapping,
+  profiles,
+}: {
+  row: JsonRecord;
+  payload: JsonRecord;
+  mapping: CandidateMapping;
+  profiles: GrowthProfile[];
+}) {
+  const signalText = `${row.signal_type ?? ""} ${row.source ?? ""} ${payload.provider ?? ""} ${Array.isArray(payload.sources) ? payload.sources.join(" ") : ""}`;
+  const lower = signalText.toLowerCase();
+  const providerDependent =
+    /dataforseo|serp|keyword|query|competitor|onpage|crawl|technical|translation|locale|transcreation/.test(
+      lower,
+    ) &&
+    (mapping.actionClass === "content_publish" ||
+      mapping.actionClass === "transcreation_merge" ||
+      mapping.actionClass === "safe_apply");
+  const exceptionReason =
+    textPayload(row, payload, [
+      "dataforseo_exception_reason",
+      "provider_exception_reason",
+      "strategic_exception_reason",
+    ]) ?? null;
+  const featureProfile = dataForSeoFeatureForAction(mapping.actionClass, signalText);
+  return dataForSeoRequirementFromSnapshot({
+    required: providerDependent,
+    featureProfile,
+    snapshot: providerSnapshotFromProfiles(profiles, mapping),
+    exceptionReason,
+  });
+}
+
 export async function discoverGrowthOpportunityCandidates(
   input: DiscoverGrowthCandidatesOptions,
 ): Promise<DiscoverGrowthCandidatesResult> {
@@ -303,6 +366,12 @@ export async function discoverGrowthOpportunityCandidates(
     const target = candidateTarget(rawRow, payload, mapping);
     const baseline = candidateBaseline(payload, mapping);
     const rollback = rollbackExpectation(payload, target, mapping);
+    const dataforseoEvidence = dataForSeoRequirement({
+      row: rawRow,
+      payload,
+      mapping,
+      profiles,
+    });
     const signalId = typeof rawRow.id === "string" ? rawRow.id : "";
     const freshness = evaluateProfileFreshnessGate({
       profiles,
@@ -347,6 +416,7 @@ export async function discoverGrowthOpportunityCandidates(
           target,
           rollback_expectation: rollback,
           baseline,
+          dataforseo_evidence: dataforseoEvidence,
           source_refs: signalId ? [`growth_signal_facts:${signalId}`] : [],
         },
         requiredProfileTypes: mapping.requiredProfileTypes,

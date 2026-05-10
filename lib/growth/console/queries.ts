@@ -40,6 +40,7 @@ import {
 import { createSupabaseServerClient } from "@/lib/supabase/server-client";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/service-role";
 import { asTyped } from "@/lib/supabase/typed-client";
+import { readDataForSeoProviderSnapshot } from "@/lib/growth/autonomy/dataforseo-provider-profile";
 import { requireGrowthRole } from "./auth";
 
 const POSTGRES_MISSING_RELATION = "42P01";
@@ -297,6 +298,16 @@ export interface ProviderFreshnessRow {
   last_synced_at: string | null;
   status: string;
   message: string | null;
+  feature_profiles?: Array<{
+    feature_profile: string;
+    access_status: string;
+    fetched_at: string | null;
+    expires_at: string | null;
+    row_count: number;
+    evidence_count: number;
+    blockers: string[];
+  }>;
+  blockers?: string[];
 }
 
 export interface AgentDefinitionsResult {
@@ -1059,6 +1070,41 @@ async function fetchProviderFreshness(
   errored: boolean;
 }> {
   const supabase = await createSupabaseServerClient();
+  const runtimeSupabase = createSupabaseServiceRoleClient();
+  const dataforseoSnapshot = await readDataForSeoProviderSnapshot({
+    supabase: runtimeSupabase,
+    accountId,
+    websiteId,
+  });
+  const dataforseoRow: ProviderFreshnessRow = {
+    provider: "DataForSEO Runtime",
+    last_synced_at:
+      dataforseoSnapshot.feature_profiles
+        .map((row) => row.fetched_at)
+        .filter((value): value is string => Boolean(value))
+        .sort()
+        .at(-1) ?? null,
+    status: dataforseoSnapshot.access_status,
+    message:
+      dataforseoSnapshot.blockers.length > 0
+        ? dataforseoSnapshot.blockers.join(", ")
+        : dataforseoSnapshot.feature_profiles
+            .map(
+              (row) =>
+                `${row.feature_profile}:${row.access_status} (${row.evidence_count})`,
+            )
+            .join(" | ") || "No DataForSEO cache rows found.",
+    feature_profiles: dataforseoSnapshot.feature_profiles.map((row) => ({
+      feature_profile: row.feature_profile,
+      access_status: row.access_status,
+      fetched_at: row.fetched_at,
+      expires_at: row.expires_at,
+      row_count: row.row_count,
+      evidence_count: row.evidence_count,
+      blockers: row.blockers,
+    })),
+    blockers: dataforseoSnapshot.blockers,
+  };
 
   // `seo_provider_cache` is the single source of truth for provider
   // freshness — ADR-016 forbids direct provider calls in the render path.
@@ -1077,9 +1123,9 @@ async function fetchProviderFreshness(
 
   if (error) {
     if (isMissingRelation(error)) {
-      return { rows: [], missingTable: true, errored: false };
+      return { rows: [dataforseoRow], missingTable: true, errored: false };
     }
-    return { rows: [], missingTable: false, errored: true };
+    return { rows: [dataforseoRow], missingTable: false, errored: true };
   }
 
   const rows = (data ?? []) as Array<{
@@ -1088,7 +1134,14 @@ async function fetchProviderFreshness(
     status: string;
     message: string | null;
   }>;
-  return { rows, missingTable: false, errored: false };
+  const filteredRows = rows.filter(
+    (row) => row.provider.toLowerCase() !== "dataforseo runtime",
+  );
+  return {
+    rows: [...filteredRows, dataforseoRow],
+    missingTable: false,
+    errored: false,
+  };
 }
 
 const AgreementFileSchema = z.object({

@@ -325,7 +325,8 @@ export default async function GrowthDataHealthPage({
           </p>
         </header>
 
-        {health.warnings.providerCacheMissing ? (
+        {health.warnings.providerCacheMissing &&
+        health.providerFreshness.length === 0 ? (
           <StudioEmptyState
             title="Provider cache no provisionado"
             description="La tabla seo_provider_cache no existe en este entorno; Data Health queda en WATCH."
@@ -361,6 +362,34 @@ export default async function GrowthDataHealthPage({
                         Message
                       </dt>
                       <dd>{row.message}</dd>
+                    </div>
+                  ) : null}
+                  {row.provider.toLowerCase().includes("dataforseo") ? (
+                    <div className="mt-3">
+                      <dt className="text-[var(--studio-text-muted)]">
+                        DataForSEO feature profiles
+                      </dt>
+                      <dd className="mt-1 space-y-1">
+                        {row.feature_profiles?.length ? (
+                          row.feature_profiles.map((feature) => (
+                            <div
+                              key={feature.feature_profile}
+                              className="flex flex-wrap items-center justify-between gap-2 rounded border border-[var(--studio-border)] px-2 py-1"
+                            >
+                              <span className="font-medium">
+                                {feature.feature_profile}
+                              </span>
+                              <span>
+                                {feature.access_status} · rows{" "}
+                                {feature.row_count} · evidence{" "}
+                                {feature.evidence_count}
+                              </span>
+                            </div>
+                          ))
+                        ) : (
+                          <span>No feature profile rows in cache.</span>
+                        )}
+                      </dd>
                     </div>
                   ) : null}
                 </dl>

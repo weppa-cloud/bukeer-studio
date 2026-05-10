@@ -5,7 +5,7 @@
 - **Epic Issue**: [#441](https://github.com/weppa-cloud/bukeer-studio/issues/441)
 - **Parent Epic**: [#310](https://github.com/weppa-cloud/bukeer-studio/issues/310)
 - **Control Plane Epic**: [#431](https://github.com/weppa-cloud/bukeer-studio/issues/431)
-- **Child Issues**: [#442](https://github.com/weppa-cloud/bukeer-studio/issues/442), [#443](https://github.com/weppa-cloud/bukeer-studio/issues/443), [#444](https://github.com/weppa-cloud/bukeer-studio/issues/444), [#445](https://github.com/weppa-cloud/bukeer-studio/issues/445), [#446](https://github.com/weppa-cloud/bukeer-studio/issues/446), [#447](https://github.com/weppa-cloud/bukeer-studio/issues/447), [#448](https://github.com/weppa-cloud/bukeer-studio/issues/448), [#449](https://github.com/weppa-cloud/bukeer-studio/issues/449), [#450](https://github.com/weppa-cloud/bukeer-studio/issues/450), [#451](https://github.com/weppa-cloud/bukeer-studio/issues/451)
+- **Child Issues**: [#442](https://github.com/weppa-cloud/bukeer-studio/issues/442), [#443](https://github.com/weppa-cloud/bukeer-studio/issues/443), [#444](https://github.com/weppa-cloud/bukeer-studio/issues/444), [#445](https://github.com/weppa-cloud/bukeer-studio/issues/445), [#446](https://github.com/weppa-cloud/bukeer-studio/issues/446), [#447](https://github.com/weppa-cloud/bukeer-studio/issues/447), [#448](https://github.com/weppa-cloud/bukeer-studio/issues/448), [#449](https://github.com/weppa-cloud/bukeer-studio/issues/449), [#450](https://github.com/weppa-cloud/bukeer-studio/issues/450), [#451](https://github.com/weppa-cloud/bukeer-studio/issues/451), [#470](https://github.com/weppa-cloud/bukeer-studio/issues/470)
 - **Milestone**: ColombiaTours Growth OS production autonomy
 - **Area**: growth + runtime + supabase + studio + ops
 
@@ -168,6 +168,46 @@ Required cycle steps:
   - evidence and score.
 - Candidate is blocked with a reason when any required field is missing.
 
+#### DataForSEO Provider Profile Bridge
+
+DataForSEO is part of the fresh-data contract for SEO, content and technical lanes. The production runtime must not treat it as a vague external source; it must consume explicit provider evidence from approved profile/cache runs and project it into runtime profiles before candidate creation.
+
+Required runtime projection:
+
+- `seo_market.payload.dataforseo_snapshot`
+- `competitor.payload.dataforseo_snapshot`
+
+Each snapshot must include:
+
+- `provider='dataforseo'`;
+- `feature_profile` such as `onpage`, `serp`, `labs_keywords`, `content_analysis`, `domain_analytics` or `ai_optimization`;
+- `fetched_at` and `expires_at`;
+- source `cache_ids` or provider profile run ids;
+- endpoint family, market, locale and target URL/query scope;
+- row counts and evidence counts;
+- access status: `available`, `missing_access`, `cost_gated`, `stale`, `empty` or `blocked`;
+- blocker reasons when the snapshot cannot be used.
+
+Runtime rules:
+
+- Technical `safe_apply` work that depends on crawl evidence requires a fresh DataForSEO OnPage snapshot or an equivalent technical crawl fact. Missing or stale crawl evidence blocks promotion or downgrades the item to WATCH.
+- `content_publish` work that depends on keyword, SERP or competitor evidence requires a fresh DataForSEO Labs/SERP/Content Analysis snapshot or an explicit strategic exception in candidate evidence.
+- `transcreation_merge` work that depends on market-localized keyword or SERP fit requires a target-locale DataForSEO snapshot or an explicit no-go/exception reason.
+- Runtime adapters must not make new paid DataForSEO calls during apply. Provider refresh happens before discovery; the live-gated executor consumes cached/profile-run evidence only.
+- When DataForSEO access is unavailable, stale, cost-gated or empty, the brain/discovery layer must record a blocked decision, policy recommendation or WATCH candidate instead of inventing evidence.
+
+Freshness defaults:
+
+- OnPage/technical evidence: fresh for 7 days, or immediately stale after a target route changes until a post-change crawl/smoke equivalent exists.
+- SERP/Labs/content evidence: fresh for 30 days for planning, but must be refreshed or explicitly excepted when a publication depends on a primary query snapshot older than 72 hours.
+- Competitor/domain evidence: fresh for 30 days unless the target query/page is in an active remediation or launch window.
+- Cache `expires_at` wins over default TTLs when stricter.
+
+UI and certification requirements:
+
+- Growth cockpit/Data Health must show DataForSEO freshness, access status, feature profile and blocker reason for ColombiaTours.
+- Production certification must include at least one ColombiaTours decision, candidate or no-go reason citing DataForSEO evidence.
+
 ### Autonomy Gate
 
 One evaluator owns all runtime decisions: `evaluateGrowthAutonomyExecution(input)`.
@@ -295,6 +335,7 @@ RLS must use `user_roles` tenant membership for reads and service-role/server-on
 - [ ] AC13: Learning loop proposes memories/skills/replay cases and blocks skill activation when replay agreement is `<0.90`.
 - [ ] AC14: RLS denies cross-tenant reads and runtime writes require service role.
 - [ ] AC15: Production certification report proves at least one organic publish, one transcreation merge, one technical safe apply, one outcome evaluation, one rollback or dry rollback, paid block and RLS tenant isolation.
+- [ ] AC16: DataForSEO provider evidence is explicit in runtime profiles, gates stale/missing provider snapshots, and is visible in Growth OS data health.
 
 ## Test And Certification Plan
 
@@ -302,6 +343,7 @@ RLS must use `user_roles` tenant membership for reads and service-role/server-on
 
 - Gates block paid/pricing/payments/reservations/availability/CRM/outreach.
 - Stale profiles block promotion and live apply.
+- Stale, missing, cost-gated or empty DataForSEO snapshots block provider-dependent promotion and live apply.
 - Caps and kill switch block new jobs.
 - Editorial gate blocks thin, unsafe and unsupported content.
 - Missing baseline, metric, evaluation date, smoke or rollback blocks apply.
@@ -311,6 +353,7 @@ RLS must use `user_roles` tenant membership for reads and service-role/server-on
 ### Integration
 
 - Candidate -> work item -> run -> change set -> publication job -> outcome.
+- DataForSEO cache/profile evidence -> runtime profile snapshot -> candidate -> work item.
 - Smoke fail -> rollback -> job `rolled_back` -> work item `blocked`.
 - `dry_run_only=true` creates dry-run-ready evidence without public mutation.
 - `dry_run_only=false` applies production mutation through adapter and revalidates route.
@@ -323,6 +366,7 @@ RLS must use `user_roles` tenant membership for reads and service-role/server-on
 Use the session pool only.
 
 - CEO cockpit shows objective, agents, publications, outcomes, caps and risk.
+- Growth data health shows DataForSEO feature profile freshness, access status and blockers.
 - Workboard shows `published_applied`, `blocked`, `rolled_back` and `measuring`.
 - Agents UI approves/rejects skills and memories.
 - Kill switch blocks new publication-capable work.
@@ -366,6 +410,7 @@ Create `docs/growth-sessions/<date>-growth-os-autonomous-production-certificatio
 - Child 8: [#449 `Learning loop closure: replay, skills and memories`](https://github.com/weppa-cloud/bukeer-studio/issues/449)
 - Child 9: [#450 `Growth RLS and service-role hardening`](https://github.com/weppa-cloud/bukeer-studio/issues/450)
 - Child 10: [#451 `Production QA/E2E certification with ColombiaTours data`](https://github.com/weppa-cloud/bukeer-studio/issues/451)
+- Child 11: [#470 `DataForSEO provider profiles into live-gated runtime context`](https://github.com/weppa-cloud/bukeer-studio/issues/470)
 
 ## Non-Goals
 
