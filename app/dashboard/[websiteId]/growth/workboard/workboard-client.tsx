@@ -495,6 +495,13 @@ function WorkboardCardView({
               {card.providerEvidence.label}
             </StudioBadge>
           </div>
+        ) : card.providerEvidenceMissing ? (
+          <div
+            className="mt-2"
+            data-testid="growth-workboard-provider-evidence-missing"
+          >
+            <StudioBadge tone="danger">Falta DataForSEO</StudioBadge>
+          </div>
         ) : null}
 
         {card.blockedReason ? (

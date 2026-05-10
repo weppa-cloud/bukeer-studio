@@ -56,6 +56,7 @@ export interface WorkboardCard {
     status: string;
     tone: "success" | "warning" | "danger" | "neutral";
   } | null;
+  providerEvidenceMissing: boolean;
   humanDecision: string | null;
   previewDetails: WorkboardPreviewDetails;
 }
@@ -316,6 +317,22 @@ function providerEvidenceFrom(
     return { label, status, tone };
   }
   return null;
+}
+
+function providerEvidenceMissingFor(
+  actionClass: unknown,
+  evidence: Record<string, unknown>,
+): boolean {
+  const action = optionalText(actionClass);
+  if (
+    action !== "content_publish" &&
+    action !== "transcreation_merge" &&
+    action !== "safe_apply"
+  ) {
+    return false;
+  }
+  const dataforseo = safeRecord(evidence.dataforseo_evidence);
+  return dataforseo.required !== true;
 }
 
 function optionalText(value: unknown): string | null {
@@ -816,6 +833,10 @@ export async function getGrowthWorkboard(opts: {
       changeSetId: optionalText(row.change_set_id),
       evidenceRefs,
       providerEvidence: providerEvidenceFrom(evidence),
+      providerEvidenceMissing: providerEvidenceMissingFor(
+        row.allowed_action_class,
+        evidence,
+      ),
       humanDecision: row.change_set_id
         ? (decisionByChangeSet.get(String(row.change_set_id)) ?? null)
         : row.run_id
@@ -892,6 +913,7 @@ export async function getGrowthWorkboard(opts: {
       changeSetId: null,
       evidenceRefs,
       providerEvidence: providerEvidenceFrom(evidence),
+      providerEvidenceMissing: false,
       humanDecision: latestRun
         ? (decisionByRun.get(String(latestRun.run_id)) ?? null)
         : null,
@@ -966,6 +988,7 @@ export async function getGrowthWorkboard(opts: {
       changeSetId: null,
       evidenceRefs,
       providerEvidence: providerEvidenceFrom(evidence),
+      providerEvidenceMissing: false,
       humanDecision: latestRun
         ? (decisionByRun.get(String(latestRun.run_id)) ?? null)
         : null,
@@ -1047,6 +1070,10 @@ export async function getGrowthWorkboard(opts: {
       changeSetId: id,
       evidenceRefs,
       providerEvidence: providerEvidenceFrom(evidence, preview),
+      providerEvidenceMissing: providerEvidenceMissingFor(
+        evidence.autonomy_action_class ?? evidence.allowed_action_class,
+        evidence,
+      ),
       humanDecision: decisionByChangeSet.get(id) ?? null,
       previewDetails: previewDetailsFromPayload(preview, evidence, row.summary),
     });
@@ -1107,6 +1134,10 @@ export async function getGrowthWorkboard(opts: {
       changeSetId: null,
       evidenceRefs,
       providerEvidence: providerEvidenceFrom(evidence),
+      providerEvidenceMissing: providerEvidenceMissingFor(
+        evidence.allowed_action_class,
+        evidence,
+      ),
       humanDecision: decisionByRun.get(runId) ?? null,
       previewDetails: previewDetailsFromPayload(evidence, evidence),
     });

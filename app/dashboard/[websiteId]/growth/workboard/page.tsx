@@ -32,6 +32,7 @@ const SearchParamsSchema = z.object({
   lane: AgentLaneSchema.optional(),
   column: z.enum(WORKBOARD_COLUMNS).optional(),
   approval: z.enum(["mine", "all"]).optional(),
+  provider: z.enum(["missing", "all"]).optional(),
 });
 
 interface WorkboardPageProps {
@@ -41,11 +42,17 @@ interface WorkboardPageProps {
 
 function buildHref(
   websiteId: string,
-  current: { lane?: AgentLane; column?: WorkboardColumn; approval?: string },
+  current: {
+    lane?: AgentLane;
+    column?: WorkboardColumn;
+    approval?: string;
+    provider?: string;
+  },
   override: Partial<{
     lane: AgentLane | null;
     column: WorkboardColumn | null;
     approval: string | null;
+    provider: string | null;
   }>,
 ) {
   const params = new URLSearchParams();
@@ -53,9 +60,12 @@ function buildHref(
   const column = "column" in override ? override.column : current.column;
   const approval =
     "approval" in override ? override.approval : current.approval;
+  const provider =
+    "provider" in override ? override.provider : current.provider;
   if (lane) params.set("lane", lane);
   if (column) params.set("column", column);
   if (approval && approval !== "all") params.set("approval", approval);
+  if (provider && provider !== "all") params.set("provider", provider);
   const qs = params.toString();
   return `/dashboard/${websiteId}/growth/workboard${qs ? `?${qs}` : ""}`;
 }
@@ -81,6 +91,7 @@ function isLowRiskBulkEligible(card: WorkboardCard): boolean {
 }
 
 function blockedCause(card: WorkboardCard): string {
+  if (card.providerEvidenceMissing) return "Falta DataForSEO";
   if (card.blockedReason) return card.blockedReason;
   if (card.status === "running" || card.status === "claimed") {
     return "Runtime detenido";
@@ -116,7 +127,12 @@ function FilterBar({
   current,
 }: {
   websiteId: string;
-  current: { lane?: AgentLane; column?: WorkboardColumn; approval?: string };
+  current: {
+    lane?: AgentLane;
+    column?: WorkboardColumn;
+    approval?: string;
+    provider?: string;
+  };
 }) {
   return (
     <div className="flex flex-wrap gap-2">
@@ -141,6 +157,12 @@ function FilterBar({
       >
         Requiere aprobación
       </Link>
+      <Link
+        href={buildHref(websiteId, current, { provider: "missing" })}
+        className="studio-button studio-button--outline studio-button--sm"
+      >
+        Falta DataForSEO
+      </Link>
     </div>
   );
 }
@@ -155,6 +177,7 @@ export default async function GrowthWorkboardPage({
     lane: rawSearch.lane,
     column: rawSearch.column,
     approval: rawSearch.approval,
+    provider: rawSearch.provider,
   });
 
   const auth = await requireGrowthRole(websiteId, "viewer");
@@ -168,8 +191,14 @@ export default async function GrowthWorkboardPage({
     if (filters.lane && card.lane !== filters.lane) return false;
     if (filters.column && card.column !== filters.column) return false;
     if (filters.approval === "mine" && !cardNeedsApproval(card)) return false;
+    if (filters.provider === "missing" && !card.providerEvidenceMissing) {
+      return false;
+    }
     return true;
   });
+  const providerEvidenceMissingCount = result.cards.filter(
+    (card) => card.providerEvidenceMissing,
+  ).length;
   const cardsByColumn = new Map(
     WORKBOARD_COLUMNS.map((column) => [
       column,
@@ -281,6 +310,33 @@ export default async function GrowthWorkboardPage({
           </div>
         </article>
       </section>
+
+      {providerEvidenceMissingCount > 0 ? (
+        <section
+          data-testid="growth-workboard-provider-evidence-missing"
+          className="mt-4 rounded-md border border-[var(--studio-danger)]/40 p-3 text-sm"
+        >
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="font-medium text-[var(--studio-danger)]">
+                {providerEvidenceMissingCount} trabajos provider-dependent no
+                tienen evidencia DataForSEO.
+              </p>
+              <p className="mt-1 text-xs leading-relaxed text-[var(--studio-text-muted)]">
+                El runtime los bloquea antes de mutar producción. Regenera esos
+                trabajos desde el Brain con perfiles frescos o ciérralos como
+                legacy.
+              </p>
+            </div>
+            <Link
+              href={buildHref(websiteId, filters, { provider: "missing" })}
+              className="studio-button studio-button--outline studio-button--sm"
+            >
+              Ver pendientes
+            </Link>
+          </div>
+        </section>
+      ) : null}
 
       <section className="mt-4">
         <FilterBar websiteId={websiteId} current={filters} />
