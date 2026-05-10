@@ -39,10 +39,6 @@ interface PackagePageProps {
   params: Promise<{ subdomain: string; slug: string }>;
 }
 
-const LEGACY_ADS_PACKAGE_REDIRECTS: Record<string, string> = {
-  "cartagena-premium-ciudad-amurallada-y-caribe-5-dias": "cartagena",
-};
-
 function ensureSeoDescription(seed: string, fallback: string): string {
   const base = sanitizeProductCopy(seed) || sanitizeProductCopy(fallback);
   const expanded =
@@ -229,11 +225,6 @@ export default async function PackageSlugPage({ params }: PackagePageProps) {
 
   if (!website || website.status !== "published") {
     notFound();
-  }
-
-  const legacyAdsPackageRedirect = LEGACY_ADS_PACKAGE_REDIRECTS[slug];
-  if (legacyAdsPackageRedirect) {
-    permanentRedirect(`/site/${subdomain}/${legacyAdsPackageRedirect}`);
   }
 
   // Legacy UUID/numeric ID routing: if the slug segment is actually a legacy
