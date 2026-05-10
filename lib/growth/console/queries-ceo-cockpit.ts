@@ -342,6 +342,112 @@ function optionalStringArray(value: unknown): string[] {
   return value.map((item) => String(item ?? "")).filter(Boolean);
 }
 
+function compactUnknown(
+  value: unknown,
+  options: { depth?: number; arrayLimit?: number; stringLimit?: number } = {},
+): unknown {
+  const depth = options.depth ?? 2;
+  const arrayLimit = options.arrayLimit ?? 5;
+  const stringLimit = options.stringLimit ?? 600;
+
+  if (typeof value === "string") {
+    return value.length > stringLimit
+      ? `${value.slice(0, stringLimit)}...[truncated ${value.length - stringLimit} chars]`
+      : value;
+  }
+  if (
+    value === null ||
+    typeof value === "number" ||
+    typeof value === "boolean" ||
+    typeof value === "undefined"
+  ) {
+    return value;
+  }
+  if (depth <= 0) {
+    if (Array.isArray(value)) return `[array:${value.length}]`;
+    if (typeof value === "object") return "[object]";
+    return String(value);
+  }
+  if (Array.isArray(value)) {
+    return value
+      .slice(0, arrayLimit)
+      .map((item) =>
+        compactUnknown(item, { depth: depth - 1, arrayLimit, stringLimit }),
+      );
+  }
+  if (typeof value !== "object") return String(value);
+
+  const compact: Record<string, unknown> = {};
+  for (const [key, raw] of Object.entries(value as Record<string, unknown>)) {
+    if (
+      [
+        "body",
+        "content",
+        "full_content",
+        "profile_snapshot",
+        "before_snapshot",
+        "after_payload",
+        "rollback_payload",
+        "raw_response",
+        "html",
+        "markdown",
+      ].includes(key)
+    ) {
+      compact[key] =
+        typeof raw === "string"
+          ? `[omitted:${raw.length} chars]`
+          : Array.isArray(raw)
+            ? `[omitted-array:${raw.length}]`
+            : "[omitted-object]";
+      continue;
+    }
+    compact[key] = compactUnknown(raw, {
+      depth: depth - 1,
+      arrayLimit,
+      stringLimit,
+    });
+  }
+  return compact;
+}
+
+function compactRecords(value: unknown, limit = 6): Record<string, unknown>[] {
+  if (!Array.isArray(value)) return [];
+  return value.slice(0, limit).map((item) => {
+    const compact = compactUnknown(item, {
+      depth: 3,
+      arrayLimit: 5,
+      stringLimit: 500,
+    });
+    return safeRecord(compact);
+  });
+}
+
+function compactDecisionEvidence(value: unknown): Record<string, unknown> {
+  const record = safeRecord(value);
+  const providerEvidenceReads = compactRecords(
+    record.provider_evidence_reads,
+    8,
+  );
+  const evidenceFingerprints = Array.isArray(record.evidence_fingerprints)
+    ? record.evidence_fingerprints.slice(0, 12)
+    : [];
+  return {
+    context_snapshot_id: record.context_snapshot_id,
+    provider_evidence_reads: providerEvidenceReads,
+    evidence_fingerprints: evidenceFingerprints,
+    reasoning_summary: compactUnknown(record.reasoning_summary, {
+      depth: 2,
+      arrayLimit: 4,
+      stringLimit: 500,
+    }),
+    injection_scan: compactUnknown(record.injection_scan, {
+      depth: 2,
+      arrayLimit: 4,
+      stringLimit: 500,
+    }),
+  };
+}
+
 function parseLane(value: unknown): AgentLane | null {
   const parsed = AgentLaneSchema.safeParse(value);
   return parsed.success ? parsed.data : null;
@@ -683,7 +789,7 @@ export async function getGrowthCeoCockpit(
         .eq("account_id", ctx.accountId)
         .eq("website_id", ctx.websiteId)
         .order("created_at", { ascending: false })
-        .limit(20),
+        .limit(8),
     ),
     fetchTable("growth_agent_wakeup_requests", () =>
       table(admin, "growth_agent_wakeup_requests")
@@ -1136,21 +1242,25 @@ export async function getGrowthCeoCockpit(
           isoOrNull(row.created_at) ??
           isoOrNull(row.updated_at) ??
           new Date(0).toISOString(),
-        observedSignals: Array.isArray(row.observed_signals)
-          ? (row.observed_signals as Record<string, unknown>[])
-          : [],
-        proposedCandidates: proposedCandidates as Record<string, unknown>[],
-        proposedWorkItems: proposedWorkItems as Record<string, unknown>[],
-        delegatedTaskDetails: delegatedTasks as Record<string, unknown>[],
-        blockedDecisionDetails: blockedDecisions as Record<string, unknown>[],
-        memoryReadDetails: memoryReads as Record<string, unknown>[],
-        skillReadDetails: skillReads as Record<string, unknown>[],
-        outcomeReferenceDetails: outcomeReferences as Record<string, unknown>[],
+        observedSignals: compactRecords(row.observed_signals),
+        proposedCandidates: compactRecords(proposedCandidates),
+        proposedWorkItems: compactRecords(proposedWorkItems),
+        delegatedTaskDetails: compactRecords(delegatedTasks),
+        blockedDecisionDetails: compactRecords(blockedDecisions),
+        memoryReadDetails: compactRecords(memoryReads),
+        skillReadDetails: compactRecords(skillReads),
+        outcomeReferenceDetails: compactRecords(outcomeReferences),
         policyRecommendations: Array.isArray(row.policy_recommendations)
-          ? (row.policy_recommendations as Record<string, unknown>[])
+          ? compactRecords(row.policy_recommendations)
           : [],
-        riskAssessment: safeRecord(row.risk_assessment),
-        evidence: safeRecord(row.evidence),
+        riskAssessment: safeRecord(
+          compactUnknown(row.risk_assessment, {
+            depth: 3,
+            arrayLimit: 5,
+            stringLimit: 500,
+          }),
+        ),
+        evidence: compactDecisionEvidence(row.evidence),
       };
     },
   );

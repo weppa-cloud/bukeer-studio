@@ -489,6 +489,14 @@ function WorkboardCardView({
           </p>
         ) : null}
 
+        {card.providerEvidence ? (
+          <div className="mt-2" data-testid="growth-workboard-provider-evidence">
+            <StudioBadge tone={card.providerEvidence.tone}>
+              {card.providerEvidence.label}
+            </StudioBadge>
+          </div>
+        ) : null}
+
         {card.blockedReason ? (
           <p
             data-testid="growth-workboard-card-blocked-reason"

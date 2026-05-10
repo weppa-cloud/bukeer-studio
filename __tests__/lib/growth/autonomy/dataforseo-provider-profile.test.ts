@@ -1,5 +1,8 @@
 import {
   buildDataForSeoProviderSnapshot,
+  computeDataForSeoEvidenceFingerprint,
+  dataForSeoEvidenceGate,
+  dataForSeoEvidenceRecordFromRequirement,
   dataForSeoRequirementFromSnapshot,
   type DataForSeoCacheRow,
 } from "@/lib/growth/autonomy/dataforseo-provider-profile";
@@ -83,5 +86,50 @@ describe("DataForSEO provider profile bridge", () => {
     expect(requirement.status).toBe("excepted");
     expect(requirement.snapshot).toBeNull();
     expect(requirement.exception_reason).toMatch(/seasonal content/i);
+  });
+
+  it("creates stable evidence fingerprints and gate verdicts", () => {
+    const snapshot = buildDataForSeoProviderSnapshot(
+      [row({ id: "11111111-1111-4111-8111-111111111111" })],
+      new Date("2026-05-10T00:00:00.000Z"),
+    );
+    const requirement = dataForSeoRequirementFromSnapshot({
+      required: true,
+      featureProfile: "labs_keywords",
+      snapshot,
+    });
+    const evidence = dataForSeoEvidenceRecordFromRequirement(requirement);
+
+    expect(evidence.evidence_fingerprint).toMatch(/^sha256:/);
+    expect(dataForSeoEvidenceGate(evidence)).toEqual({
+      allowed: true,
+      reason: null,
+    });
+    expect(
+      computeDataForSeoEvidenceFingerprint({
+        featureProfile: "labs_keywords",
+        status: "available",
+        cacheIds: ["b", "a"],
+      }),
+    ).toBe(
+      computeDataForSeoEvidenceFingerprint({
+        featureProfile: "labs_keywords",
+        status: "available",
+        cacheIds: ["a", "b"],
+      }),
+    );
+  });
+
+  it("blocks stale provider evidence at the reusable gate", () => {
+    expect(
+      dataForSeoEvidenceGate({
+        required: true,
+        status: "stale",
+        feature_profile: "serp",
+      }),
+    ).toEqual({
+      allowed: false,
+      reason: "dataforseo_stale",
+    });
   });
 });

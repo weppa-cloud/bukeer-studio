@@ -1048,6 +1048,24 @@ function AgenticControl({ data }: { data: GrowthCeoCockpitData }) {
                                 testId="growth-brain-learning-refs"
                               />
                               <JsonBlock
+                                label="Provider evidence"
+                                value={{
+                                  provider_evidence_reads:
+                                    Array.isArray(
+                                      decision.evidence.provider_evidence_reads,
+                                    )
+                                      ? decision.evidence.provider_evidence_reads
+                                      : [],
+                                  evidence_fingerprints:
+                                    Array.isArray(
+                                      decision.evidence.evidence_fingerprints,
+                                    )
+                                      ? decision.evidence.evidence_fingerprints
+                                      : [],
+                                }}
+                                testId="growth-brain-provider-evidence"
+                              />
+                              <JsonBlock
                                 label="Risk and evidence"
                                 value={{
                                   risk: decision.riskAssessment,

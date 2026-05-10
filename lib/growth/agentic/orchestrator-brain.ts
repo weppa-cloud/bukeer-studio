@@ -16,6 +16,14 @@ import {
   type SupabaseLike,
 } from "@/lib/growth/autonomy/runtime-common";
 import {
+  dataForSeoEvidenceReadFromRequirement,
+  dataForSeoEvidenceRecordFromRequirement,
+  dataForSeoFeatureForAction,
+  dataForSeoRequirementFromSnapshot,
+  type DataForSeoProviderSnapshot,
+  type GrowthProviderEvidenceRead,
+} from "@/lib/growth/autonomy/dataforseo-provider-profile";
+import {
   buildGrowthAgentContext,
   type GrowthAgentContextBundle,
 } from "./context-builder";
@@ -461,6 +469,119 @@ function firstFreshSignal(context: JsonRecord, lane: AgentLane | null = null) {
   return freshSignals(context, lane, 1)[0] ?? null;
 }
 
+function dataForSeoSnapshotFromContext(
+  context: JsonRecord,
+): DataForSeoProviderSnapshot | null {
+  const profiles = Array.isArray(context.profiles)
+    ? (context.profiles as JsonRecord[])
+    : [];
+  const seoProfile =
+    profiles.find((profile) => profile.profile_type === "seo_market") ??
+    profiles.find((profile) => profile.profile_type === "competitor");
+  const snapshot = asRecord(asRecord(seoProfile?.payload).dataforseo_snapshot);
+  if (snapshot.provider !== "dataforseo") return null;
+  return snapshot as unknown as DataForSeoProviderSnapshot;
+}
+
+function signalText(signal: JsonRecord | null, payload: JsonRecord) {
+  return [
+    signal?.signal_type,
+    signal?.source,
+    signal?.entity_table,
+    signal?.entity_path,
+    payload.query,
+    payload.keyword,
+    payload.target_path,
+    payload.evidence_kind,
+  ]
+    .filter(Boolean)
+    .join(":");
+}
+
+function technicalExceptionReason(actionClass: string, payload: JsonRecord) {
+  if (actionClass !== "safe_apply") return null;
+  const adapterInput = asRecord(payload.adapter_input);
+  const rollbackPayload = asRecord(adapterInput.rollback_payload);
+  const targetTable = String(
+    payload.target_table ?? adapterInput.target_table ?? "",
+  );
+  if (
+    ["website_pages", "website_sections", "product_seo_overrides"].includes(
+      targetTable,
+    ) &&
+    Object.keys(rollbackPayload).length > 0
+  ) {
+    return "technical_safe_apply_has_target_snapshot_smoke_and_rollback_but_no_onpage_cache";
+  }
+  return null;
+}
+
+function dataForSeoEvidenceForCandidate({
+  context,
+  signal,
+  actionClass,
+  payload,
+}: {
+  context: JsonRecord;
+  signal: JsonRecord | null;
+  actionClass: "content_publish" | "transcreation_merge" | "safe_apply";
+  payload: JsonRecord;
+}): {
+  evidence: JsonRecord;
+  read: GrowthProviderEvidenceRead;
+} {
+  const existing = asRecord(payload.dataforseo_evidence);
+  if (existing.required === true && typeof existing.status === "string") {
+    const featureProfile = dataForSeoFeatureForAction(
+      actionClass,
+      signalText(signal, payload),
+    );
+    const requirement = dataForSeoRequirementFromSnapshot({
+      required: true,
+      featureProfile,
+      snapshot: dataForSeoSnapshotFromContext(context),
+      exceptionReason:
+        typeof existing.exception_reason === "string"
+          ? existing.exception_reason
+          : null,
+    });
+    return {
+      evidence: {
+        ...dataForSeoEvidenceRecordFromRequirement(requirement),
+        ...existing,
+      },
+      read: dataForSeoEvidenceReadFromRequirement(requirement),
+    };
+  }
+
+  const snapshot = dataForSeoSnapshotFromContext(context);
+  const featureProfile = dataForSeoFeatureForAction(
+    actionClass,
+    signalText(signal, payload),
+  );
+  const rawRequirement = dataForSeoRequirementFromSnapshot({
+    required: true,
+    featureProfile,
+    snapshot,
+  });
+  const exceptionReason =
+    rawRequirement.status === "blocked"
+      ? technicalExceptionReason(actionClass, payload)
+      : null;
+  const requirement = exceptionReason
+    ? dataForSeoRequirementFromSnapshot({
+        required: true,
+        featureProfile,
+        snapshot,
+        exceptionReason,
+      })
+    : rawRequirement;
+  return {
+    evidence: dataForSeoEvidenceRecordFromRequirement(requirement),
+    read: dataForSeoEvidenceReadFromRequirement(requirement),
+  };
+}
+
 function freshSignals(context: JsonRecord, lane: AgentLane | null = null, limit = 5) {
   const signals = Array.isArray(context.signals)
     ? (context.signals as JsonRecord[])
@@ -538,14 +659,20 @@ function candidateFromSignal({
   signal,
   lane,
   actionClass,
-  decisionId,
+  context,
 }: {
   signal: JsonRecord | null;
   lane: AgentLane;
   actionClass: "content_publish" | "transcreation_merge" | "safe_apply";
-  decisionId: string;
+  context: JsonRecord;
 }) {
   const payload = asRecord(signal?.payload);
+  const providerEvidence = dataForSeoEvidenceForCandidate({
+    context,
+    signal,
+    actionClass,
+    payload,
+  });
   const titleSource =
     payload.query ??
     payload.keyword ??
@@ -561,6 +688,8 @@ function candidateFromSignal({
         ? "localized_organic_clicks"
       : "organic_clicks";
   const signalId = signal ? rowId(signal) : null;
+  const evidenceFingerprint =
+    providerEvidence.read.evidence_fingerprint.replace(/^sha256:/, "");
   return {
     candidate_type:
       actionClass === "safe_apply"
@@ -670,8 +799,17 @@ function candidateFromSignal({
             },
       orchestrator_reason:
         "Prioritized because the signal maps to an allowed organic/technical lane and no active policy/cap context blocks preparation.",
+      dataforseo_evidence: providerEvidence.evidence,
+      provider_evidence_reads: [providerEvidence.read],
     },
-    idempotency_key: `brain:${decisionId}:${actionClass}:${signalId ?? String(titleSource).slice(0, 80)}`,
+    provider_evidence_reads: [providerEvidence.read],
+    idempotency_key: [
+      "brain-provider",
+      actionClass,
+      signalId ?? String(titleSource).slice(0, 80),
+      JSON.stringify(target),
+      evidenceFingerprint,
+    ].join(":"),
   };
 }
 
@@ -711,7 +849,7 @@ function activeLearningRefs(context: JsonRecord) {
   };
 }
 
-function chooseDecision(contextBundle: GrowthAgentContextBundle, decisionSeed: string) {
+function chooseDecision(contextBundle: GrowthAgentContextBundle) {
   const context = contextBundle.context;
   const { memoryReads, skillReads, outcomeReferences } = activeLearningRefs(context);
 
@@ -761,7 +899,7 @@ function chooseDecision(contextBundle: GrowthAgentContextBundle, decisionSeed: s
         signal,
         lane: "technical_remediation",
         actionClass: "safe_apply",
-        decisionId: decisionSeed,
+        context,
       }),
     ),
     ...transcreationSignals.map((signal) =>
@@ -769,7 +907,7 @@ function chooseDecision(contextBundle: GrowthAgentContextBundle, decisionSeed: s
         signal,
         lane: "transcreation",
         actionClass: "transcreation_merge",
-        decisionId: decisionSeed,
+        context,
       }),
     ),
     contentSignal
@@ -777,7 +915,7 @@ function chooseDecision(contextBundle: GrowthAgentContextBundle, decisionSeed: s
           signal: contentSignal,
           lane: "content_creator",
           actionClass: "content_publish",
-          decisionId: decisionSeed,
+          context,
         })
       : null,
   ].filter((candidate): candidate is NonNullable<typeof candidate> =>
@@ -829,6 +967,30 @@ function chooseDecision(contextBundle: GrowthAgentContextBundle, decisionSeed: s
   };
 }
 
+function providerEvidenceReadsFromCandidates(
+  candidates: JsonRecord[],
+): GrowthProviderEvidenceRead[] {
+  const byFingerprint = new Map<string, GrowthProviderEvidenceRead>();
+  for (const candidate of candidates) {
+    const reads: unknown[] = Array.isArray(candidate.provider_evidence_reads)
+      ? (candidate.provider_evidence_reads as unknown[])
+      : Array.isArray(asRecord(candidate.evidence).provider_evidence_reads)
+        ? (asRecord(candidate.evidence).provider_evidence_reads as unknown[])
+        : [];
+    for (const read of reads) {
+      const record = asRecord(read);
+      const fingerprint = String(record.evidence_fingerprint ?? "");
+      if (fingerprint) {
+        byFingerprint.set(
+          fingerprint,
+          record as unknown as GrowthProviderEvidenceRead,
+        );
+      }
+    }
+  }
+  return Array.from(byFingerprint.values());
+}
+
 async function recordDecision({
   supabase,
   accountId,
@@ -850,8 +1012,7 @@ async function recordDecision({
   contextBundle: GrowthAgentContextBundle;
   synthesizedSignalIds: string[];
 }): Promise<GrowthOrchestratorDecision> {
-  const seed = contextBundle.snapshot.id;
-  const choice = chooseDecision(contextBundle, seed);
+  const choice = chooseDecision(contextBundle);
   const signals = Array.isArray(contextBundle.context.signals)
     ? (contextBundle.context.signals as JsonRecord[])
     : [];
@@ -903,6 +1064,12 @@ async function recordDecision({
         context_snapshot_id: contextBundle.snapshot.id,
         synthesized_signal_fact_ids: synthesizedSignalIds,
         injection_scan: contextBundle.injectionScan,
+        provider_evidence_reads: providerEvidenceReadsFromCandidates(
+          choice.proposed_candidates,
+        ),
+        evidence_fingerprints: providerEvidenceReadsFromCandidates(
+          choice.proposed_candidates,
+        ).map((read) => read.evidence_fingerprint),
         reasoning_summary:
           "Brain compared fresh signals against policies, active learning and sensitive-surface constraints, then delegated safe organic/technical work to the executor path.",
       },

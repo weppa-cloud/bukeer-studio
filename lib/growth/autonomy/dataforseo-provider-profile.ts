@@ -1,4 +1,6 @@
-import type { SupabaseLike } from "./runtime-common";
+import { createHash } from "crypto";
+
+import type { JsonRecord, SupabaseLike } from "./runtime-common";
 import { asRecord } from "./runtime-common";
 
 export type DataForSeoAccessStatus =
@@ -63,6 +65,21 @@ export interface DataForSeoEvidenceRequirement {
   blockers: string[];
   snapshot: DataForSeoFeatureSnapshot | null;
   exception_reason: string | null;
+}
+
+export interface GrowthProviderEvidenceRead {
+  provider: "dataforseo";
+  feature_profile: DataForSeoFeatureProfile;
+  access_status: DataForSeoAccessStatus;
+  cache_ids: string[];
+  row_count: number;
+  evidence_count: number;
+  fetched_at: string | null;
+  expires_at: string | null;
+  endpoint_family: string | null;
+  evidence_fingerprint: string;
+  required_for_action: boolean;
+  exception_reason?: string;
 }
 
 function inferFeatureProfile(
@@ -301,5 +318,99 @@ export function dataForSeoRequirementFromSnapshot({
     blockers: featureSnapshot.blockers,
     snapshot: featureSnapshot,
     exception_reason: null,
+  };
+}
+
+export function computeDataForSeoEvidenceFingerprint(input: {
+  provider?: string;
+  featureProfile: DataForSeoFeatureProfile;
+  status: DataForSeoAccessStatus;
+  cacheIds?: string[];
+  fetchedAt?: string | null;
+  expiresAt?: string | null;
+  endpointFamily?: string | null;
+  exceptionReason?: string | null;
+}): string {
+  const payload = {
+    provider: input.provider ?? "dataforseo",
+    feature_profile: input.featureProfile,
+    status: input.status,
+    cache_ids: [...(input.cacheIds ?? [])].sort(),
+    fetched_at: input.fetchedAt ?? null,
+    expires_at: input.expiresAt ?? null,
+    endpoint_family: input.endpointFamily ?? null,
+    exception_reason: input.exceptionReason ?? null,
+  };
+  return `sha256:${createHash("sha256")
+    .update(JSON.stringify(payload))
+    .digest("hex")}`;
+}
+
+export function dataForSeoEvidenceReadFromRequirement(
+  requirement: DataForSeoEvidenceRequirement,
+): GrowthProviderEvidenceRead {
+  const snapshot = requirement.snapshot;
+  const cacheIds = snapshot?.cache_ids ?? [];
+  const fingerprint = computeDataForSeoEvidenceFingerprint({
+    featureProfile: requirement.feature_profile,
+    status: requirement.status,
+    cacheIds,
+    fetchedAt: snapshot?.fetched_at ?? null,
+    expiresAt: snapshot?.expires_at ?? null,
+    endpointFamily: snapshot?.endpoint_family ?? null,
+    exceptionReason: requirement.exception_reason,
+  });
+  return {
+    provider: "dataforseo",
+    feature_profile: requirement.feature_profile,
+    access_status: requirement.status,
+    cache_ids: cacheIds,
+    row_count: snapshot?.row_count ?? 0,
+    evidence_count: snapshot?.evidence_count ?? 0,
+    fetched_at: snapshot?.fetched_at ?? null,
+    expires_at: snapshot?.expires_at ?? null,
+    endpoint_family: snapshot?.endpoint_family ?? null,
+    evidence_fingerprint: fingerprint,
+    required_for_action: requirement.required,
+    ...(requirement.exception_reason
+      ? { exception_reason: requirement.exception_reason }
+      : {}),
+  };
+}
+
+export function dataForSeoEvidenceRecordFromRequirement(
+  requirement: DataForSeoEvidenceRequirement,
+): JsonRecord {
+  const read = dataForSeoEvidenceReadFromRequirement(requirement);
+  return {
+    required: requirement.required,
+    feature_profile: requirement.feature_profile,
+    status: requirement.status,
+    blockers: requirement.blockers,
+    exception_reason: requirement.exception_reason,
+    evidence_fingerprint: read.evidence_fingerprint,
+    provider: read.provider,
+    cache_ids: read.cache_ids,
+    row_count: read.row_count,
+    evidence_count: read.evidence_count,
+    fetched_at: read.fetched_at,
+    expires_at: read.expires_at,
+    endpoint_family: read.endpoint_family,
+  };
+}
+
+export function dataForSeoEvidenceGate(
+  evidence: unknown,
+): { allowed: boolean; reason: string | null } {
+  const record = asRecord(evidence);
+  if (record.required !== true) return { allowed: true, reason: null };
+  const status = String(record.status ?? "");
+  if (status === "available") return { allowed: true, reason: null };
+  if (status === "excepted" && typeof record.exception_reason === "string") {
+    return { allowed: true, reason: null };
+  }
+  return {
+    allowed: false,
+    reason: status ? `dataforseo_${status}` : "dataforseo_missing_status",
   };
 }

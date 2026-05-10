@@ -53,6 +53,15 @@ describe("Growth agentic orchestrator contracts", () => {
             target: { target_table: "website_blog_posts", target_path: "/blog/test" },
             rollback_expectation: { strategy: "delete_created_content" },
             baseline: { organic_clicks: 0 },
+            dataforseo_evidence: {
+              required: true,
+              provider: "dataforseo",
+              feature_profile: "labs_keywords",
+              status: "available",
+              evidence_fingerprint: "sha256:test",
+              row_count: 33,
+              evidence_count: 33,
+            },
           },
         },
       ],
@@ -70,11 +79,21 @@ describe("Growth agentic orchestrator contracts", () => {
       created_candidate_ids: [],
       created_work_item_ids: [],
       materialization_status: "pending",
-      evidence: {},
+      evidence: {
+        provider_evidence_reads: [
+          {
+            provider: "dataforseo",
+            feature_profile: "labs_keywords",
+            access_status: "available",
+            evidence_fingerprint: "sha256:test",
+          },
+        ],
+      },
       created_at: "2026-05-08T12:00:00.000Z",
     });
 
     expect(decision.context_snapshot_id).toBe(context.id);
+    expect(decision.evidence.provider_evidence_reads).toHaveLength(1);
   });
 
   it("rejects create_work decisions without proposed work", () => {

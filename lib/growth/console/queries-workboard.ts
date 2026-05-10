@@ -51,6 +51,11 @@ export interface WorkboardCard {
   backlogItemId: string | null;
   changeSetId: string | null;
   evidenceRefs: string[];
+  providerEvidence: {
+    label: string;
+    status: string;
+    tone: "success" | "warning" | "danger" | "neutral";
+  } | null;
   humanDecision: string | null;
   previewDetails: WorkboardPreviewDetails;
 }
@@ -272,6 +277,45 @@ function previewDetailsFromPayload(
     followUpTasks: normalizeFollowUpTasks(preview.follow_up_tasks),
     materializedBacklogItems: normalizeMaterializedBacklogItems(evidence),
   };
+}
+
+function providerEvidenceFrom(
+  ...sources: Array<Record<string, unknown> | null | undefined>
+): WorkboardCard["providerEvidence"] {
+  for (const source of sources) {
+    const evidence = safeRecord(source);
+    const dataforseo = safeRecord(evidence.dataforseo_evidence);
+    const nestedReads = Array.isArray(evidence.provider_evidence_reads)
+      ? evidence.provider_evidence_reads
+      : [];
+    const status =
+      optionalText(dataforseo.status) ??
+      optionalText(safeRecord(nestedReads[0]).access_status);
+    if (!status) continue;
+    const feature =
+      optionalText(dataforseo.feature_profile) ??
+      optionalText(safeRecord(nestedReads[0]).feature_profile) ??
+      "provider";
+    const tone =
+      status === "available"
+        ? "success"
+        : status === "excepted"
+          ? "warning"
+          : status === "blocked" ||
+              status === "stale" ||
+              status === "missing_access" ||
+              status === "cost_gated"
+            ? "danger"
+            : "neutral";
+    const label =
+      status === "available"
+        ? `DataForSEO ${feature}`
+        : status === "excepted"
+          ? `DataForSEO exception ${feature}`
+          : `DataForSEO blocked ${feature}`;
+    return { label, status, tone };
+  }
+  return null;
 }
 
 function optionalText(value: unknown): string | null {
@@ -771,6 +815,7 @@ export async function getGrowthWorkboard(opts: {
           : null,
       changeSetId: optionalText(row.change_set_id),
       evidenceRefs,
+      providerEvidence: providerEvidenceFrom(evidence),
       humanDecision: row.change_set_id
         ? (decisionByChangeSet.get(String(row.change_set_id)) ?? null)
         : row.run_id
@@ -846,6 +891,7 @@ export async function getGrowthWorkboard(opts: {
       backlogItemId: String(row.id),
       changeSetId: null,
       evidenceRefs,
+      providerEvidence: providerEvidenceFrom(evidence),
       humanDecision: latestRun
         ? (decisionByRun.get(String(latestRun.run_id)) ?? null)
         : null,
@@ -919,6 +965,7 @@ export async function getGrowthWorkboard(opts: {
       backlogItemId: null,
       changeSetId: null,
       evidenceRefs,
+      providerEvidence: providerEvidenceFrom(evidence),
       humanDecision: latestRun
         ? (decisionByRun.get(String(latestRun.run_id)) ?? null)
         : null,
@@ -999,6 +1046,7 @@ export async function getGrowthWorkboard(opts: {
         optionalText(row.source_id),
       changeSetId: id,
       evidenceRefs,
+      providerEvidence: providerEvidenceFrom(evidence, preview),
       humanDecision: decisionByChangeSet.get(id) ?? null,
       previewDetails: previewDetailsFromPayload(preview, evidence, row.summary),
     });
@@ -1058,6 +1106,7 @@ export async function getGrowthWorkboard(opts: {
           : null,
       changeSetId: null,
       evidenceRefs,
+      providerEvidence: providerEvidenceFrom(evidence),
       humanDecision: decisionByRun.get(runId) ?? null,
       previewDetails: previewDetailsFromPayload(evidence, evidence),
     });
