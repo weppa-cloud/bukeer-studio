@@ -41,19 +41,27 @@ GA4 and translation quality.
 
 | Level               | Meaning                                                        | Allowed actions                                                                                            |
 | ------------------- | -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| Manual approval     | Human approves the run before provider cost or broad crawling. | Start DataForSEO OnPage full crawls, AI/GEO pilots, backlinks, broad SERP pulls.                           |
+| Manual approval     | Human approves the run before provider cost or broad crawling. | Start DataForSEO OnPage full crawls, AI/GEO pilots, backlinks, broad SERP pulls and historical profiles.   |
 | Automatic follow-up | A task was already approved and started.                       | Poll status, persist summaries, fetch finished pages/resources, normalize, diff and update health reports. |
 | Automatic weekly    | Low-risk recurring pulls before Council.                       | GSC/GA4 cache refresh, normalizers, cache health, `growth_inventory` backlog refresh.                      |
-| Automatic daily     | Lightweight monitoring only.                                   | Freshness checks, tracking/event anomaly checks, cache expiry alerts.                                      |
+| Automatic daily     | Lightweight monitoring only.                                   | Freshness checks, tracking/event anomaly checks, cache expiry alerts, Clarity aggregate UX pulls.          |
 
 ## Provider Cadence
 
 | Provider/profile                           | Cadence                                                      | Automation mode                                                                      | Output                                                                                                                                    |
 | ------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| DataForSEO `dfs_onpage_full_v2`            | Weekly while #312/#313 are blocked or watch.                 | Manual approval to start; automatic follow-up until complete.                        | `growth_dataforseo_cache`, `seo_provider_usage`, `seo_audit_results`, `seo_audit_findings`, actionable technical `growth_inventory` rows. |
+| DataForSEO `dfs_onpage_full_v2`            | Biweekly/monthly full crawl; never weekly by default.        | Manual approval to start; automatic follow-up until complete.                        | `growth_dataforseo_cache`, `seo_provider_usage`, `seo_audit_results`, `seo_audit_findings`, actionable technical `growth_inventory` rows. |
+| DataForSEO `dfs_onpage_changed_urls_v1`    | Weekly for URLs changed by Growth OS or active alerts.       | Automatic only inside an approved technical profile/cost cap.                        | Delta technical evidence for post-apply validation and persistent errors.                                                                  |
 | DataForSEO `dfs_onpage_rendered_sample_v1` | On demand for priority URLs.                                 | Manual approval to start; automatic follow-up.                                       | Render/performance watch rows and evidence.                                                                                               |
+| DataForSEO `dfs_serp_labs_primary_v1`      | Biweekly for CO/US/MX approved seed groups.                 | Automatic inside approved profile/cost cap.                                          | Keyword, SERP, competitor and market opportunity facts.                                                                                    |
+| DataForSEO `dfs_serp_labs_secondary_v1`    | Monthly for secondary markets.                              | Automatic inside approved profile/cost cap.                                          | Secondary market opportunity facts.                                                                                                       |
+| DataForSEO `dfs_historical_trends_v1`      | Monthly/quarterly for approved keyword/page sets only.      | Manual approval with explicit cost estimate.                                         | Ranking/trend validation facts for outcomes and post-fix measurement.                                                                      |
+| DataForSEO `dfs_authority_fallback_v1`     | Monthly while Backlinks access is blocked.                  | Automatic Labs/Domain fallback inside approved profile/cost cap.                     | Competitor/domain-intersection and traffic-estimate authority proxy facts.                                                                 |
 | Search Console `gsc_growth_minimum_v1`     | Weekly before Growth Council; optional daily anomaly window. | Automatic weekly/daily.                                                              | `growth_gsc_cache`, GSC decision rows in `growth_inventory`.                                                                              |
+| Search Console `gsc_indexability_v1`       | Post publish/apply plus weekly top-50 sample.               | Automatic read-only, quota aware.                                                    | URL Inspection, sitemap and property health facts.                                                                                         |
 | GA4 `ga4_growth_minimum_v1`                | Weekly before Growth Council; optional daily anomaly window. | Automatic weekly/daily.                                                              | `growth_ga4_cache`, GA4/CRO decision rows in `growth_inventory`.                                                                          |
+| GA4 `ga4_admin_governance_v1`              | Weekly.                                                     | Automatic read-only.                                                                 | Key events, audiences and data stream governance facts compared to `funnel_events`.                                                        |
+| Clarity `clarity_ux_friction_v1`           | Daily targeted 1-3 day aggregate window.                    | Automatic within quota; no recordings.                                               | URL/device/country/source friction facts for CRO candidates.                                                                               |
 | Tracking facts                             | Continuous ingestion where webhooks exist; weekly smoke.     | Automatic where configured.                                                          | `funnel_events`, `meta_conversion_events`, conversion status in `growth_inventory`.                                                       |
 | AI Search/GEO `geo_ai_visibility_v1`       | Monthly baseline; weekly only for active AI/GEO experiments. | Manual approval for pilot/full run; automatic follow-up after start.                 | `seo_ai_visibility_runs`, `seo_ai_visibility_facts`, `growth_inventory` rows with `channel = 'ai_search'`.                                |
 | Translation quality gate                   | Before target-locale content scale or Council approval.      | Automatic scoring can run after draft/review; publish still requires human approval. | `seo_translation_quality_checks`, `seo_translation_qa_findings`, content status rows in `growth_inventory`.                               |
@@ -66,7 +74,7 @@ approve paid spend.
 
 | Call type                                                                      | Approval rule                                                                                              | Automatic after approval                                                                                |
 | ------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| DataForSEO OnPage full crawl, rendered sample or broad SERP/API pull           | Requires profile name, owner issue, tenant/website, max pages/units, tag, expected output and cost intent. | Poll task, persist cache, account usage once, normalize, diff, refresh health and inventory.            |
+| DataForSEO OnPage full crawl, rendered sample, historical trend or broad SERP/API pull | Requires profile name, owner issue, tenant/website, max pages/keywords/units, tag, expected output, max cost, approver and expiry. | Poll task, persist cache, account usage once, normalize, diff, refresh health and inventory.            |
 | DataForSEO AI Optimization / GEO pilot or full run                             | Requires Council or owner approval, stable prompt set, market/locale scope and experiment/watch objective. | Fetch completed result sets, persist cache, normalize AI visibility facts, create WATCH/candidate rows. |
 | Meta/paid-platform API calls that mutate spend, campaigns, audiences or events | Requires explicit campaign owner approval and rollback/kill-switch path.                                   | Read-only reporting and continuity checks may continue within the approved profile.                     |
 | GSC and GA4 read-only cache refreshes                                          | No per-run approval when using documented profiles and completed-date windows.                             | Weekly/daily schedules may refresh cache and run normalizers.                                           |
@@ -76,6 +84,10 @@ Approval must be recorded outside the provider payload, usually in the owner
 GitHub issue or Council note, and the run must include that issue reference in
 metadata. Re-running the same expensive profile with a new task id is a new
 approval unless the owner issue explicitly authorizes a recurring cadence.
+
+Approvals are invalid unless they name the approver, scope, cost cap and expiry.
+The runtime may recommend an approval, but it cannot approve its own paid or
+broad provider run.
 
 ## Weekly Council Sequence
 
@@ -102,10 +114,16 @@ Run this sequence before every Growth Council:
 | `task_post` created   | Persist task response and usage immediately.                                                                                       |
 | `in_progress`         | Poll summary every 15-30 minutes while an operator session is active, or hourly from a scheduled job. Persist each latest summary. |
 | `complete` / finished | Fetch pages/resources, persist final raw cache rows and usage, then run normalizer and diff.                                       |
-| `failed` / partial    | Persist failure, mark `growth_inventory` and Council intake as WATCH/BLOCKED with reason. Do not silently restart.                 |
+| `failed` / partial    | Persist failure, increment profile failure count, mark `growth_inventory` and Council intake as WATCH/BLOCKED with reason. Do not silently restart. |
 
 Starting a new DataForSEO full crawl remains approval-gated because it can
 create provider cost and change the comparable baseline.
+
+Circuit breaker: three consecutive failures for the same provider/profile/website
+set the profile to `blocked_provider_error` until a human/admin resets it or the
+cooldown expires. Quota exhaustion sets `quota_exhausted`; cost cap exhaustion
+sets `cost_gated`. Existing fresh cache may still be read, but blocked/stale
+provider evidence cannot create live-ready candidates.
 
 ## GSC And GA4 Lifecycle
 
@@ -164,8 +182,13 @@ Freshness windows:
   Council.
 - Daily GSC/GA4/tracking anomaly profiles: last completed day or last completed
   7 days vs previous 7 days; WATCH only.
-- DataForSEO full crawl: fresh for the weekly technical Council while #312/#313
-  remain blocked/watch; a new baseline requires approved rerun.
+- DataForSEO full crawl: fresh for biweekly/monthly technical review; changed
+  URL follow-up is fresh for post-apply validation and active alerts. A new
+  full-site baseline requires approved rerun.
+- DataForSEO SERP/Labs: fresh for biweekly primary-market content planning and
+  monthly secondary-market planning.
+- Clarity aggregate UX: fresh for the last completed 1-3 day window; quota
+  exhaustion is WATCH unless a CRO decision depends on the missing profile.
 - AI/GEO: monthly baseline unless an active experiment explicitly approves
   weekly measurement.
 - Translation quality: fresh for the content batch being approved; stale if the

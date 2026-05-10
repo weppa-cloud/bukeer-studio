@@ -47,6 +47,7 @@
     "growth:agreement:baseline": "tsx scripts/growth-agreement-baseline.ts",
     "growth:production-cycle": "tsx scripts/growth/run-growth-production-cycle.ts",
     "google-ads:validate-governance": "node scripts/google-ads/validate-conversion-governance.cjs",
+    "google-ads:crm-growth-study": "node scripts/google-ads/colombiatours-crm-growth-study.cjs",
     "test:watch": "jest --watch",
     "build:worker": "npm run check:node && opennextjs-cloudflare build",
     "preview:worker": "npm run check:node && opennextjs-cloudflare build && opennextjs-cloudflare preview",

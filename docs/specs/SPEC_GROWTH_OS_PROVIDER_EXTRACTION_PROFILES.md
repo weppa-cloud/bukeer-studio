@@ -1,4 +1,4 @@
-# Spec: Growth OS Provider Extraction Profiles
+# Spec: Growth OS Provider Intelligence + Correlation Layer
 
 ## GitHub Tracking
 - **Epic Issue**: [#471](https://github.com/weppa-cloud/bukeer-studio/issues/471)
@@ -14,18 +14,22 @@
 - **Cross-repo impact**: Shared Supabase tables are read by bukeer-flutter; runtime writes remain service-role only.
 
 ## Summary
-Implement a provider-profile layer for Growth OS that extracts, normalizes and scores DataForSEO, Google Analytics 4, Google Search Console and Microsoft Clarity data into versioned, freshness-governed profiles. The Growth CEO Brain and live-gated executor must use these profiles as cited evidence before creating candidates, publishing content, merging transcreations or applying technical remediations.
+Implement a provider intelligence layer for Growth OS that extracts, normalizes, correlates and scores DataForSEO, Google Analytics 4, Google Search Console and Microsoft Clarity data into versioned, freshness-governed profiles. The Growth CEO Brain and live-gated executor must use these profiles as cited evidence before creating candidates, publishing content, merging transcreations or applying technical remediations.
+
+The target operating flow is:
+
+`provider run -> normalized facts -> joint facts -> anti-rework gate -> evidence-backed candidates -> work items -> outcomes -> learning`
 
 ## Motivation
 Growth OS currently uses some provider data, but not at full depth:
 
 - DataForSEO OnPage exists in artifacts and `seo_audit_results` / `seo_audit_findings`, but the runtime `page_product` profile does not consume it.
-- DataForSEO SERP/Labs are partially used in `seo_market` and `competitor`, but Backlinks, AI visibility, Business Data and full OnPage feature profiles are not operationalized.
-- GA4 uses basic `runReport` shapes, but does not exploit Realtime, Funnel, Pivot, Metadata/Compatibility, or robust event/page/source/campaign profiles.
+- DataForSEO SERP/Labs are partially used in `seo_market` and `competitor`, but historical trends, traffic estimates, Backlinks depth, AI visibility, Business Data and full OnPage feature profiles are not operationalized.
+- GA4 uses basic `runReport` shapes, but does not exploit Realtime, Pivot, batch reports, Admin read-only governance, Metadata/Compatibility, or robust event/page/source/campaign profiles.
 - GSC uses Search Analytics, but URL Inspection, Sitemaps, Sites and stable `searchAppearance` flows are missing.
 - Clarity is configured and documented, but not ingested into Growth profiles or candidate decisions.
 
-The result is that the agent can operate autonomously, but not yet with maximum provider intelligence per URL, market, funnel stage and risk surface.
+The result is that the agent can operate autonomously, but not yet with maximum provider intelligence per URL, market, funnel stage and risk surface. Without correlation and anti-rework, repeated provider refreshes can also generate duplicate candidates instead of coalescing, skipping or reopening work based on evidence change.
 
 ## User Flows
 
@@ -63,29 +67,32 @@ The result is that the agent can operate autonomously, but not yet with maximum 
 
 | Provider | Profile | Priority | Source endpoints/data | Cadence | Autonomy |
 |---|---|---:|---|---|---|
-| DataForSEO | `technical_onpage_profile` | P0 | OnPage task/summary/pages/duplicate tags/instant pages; `seo_audit_results`; `seo_audit_findings` | weekly while technical WATCH; instant per apply | approval-gated start, automatic follow-up |
-| DataForSEO | `seo_market_profile` | P0 | SERP organic advanced, Maps/local, Labs keyword/domain/intersection | weekly/monthly by market | cost-gated automatic if approved |
-| DataForSEO | `competitor_profile` | P1 | SERP competitors, Labs domain intersection, Domain Analytics | monthly | cost-gated |
-| DataForSEO | `authority_profile` | P1 | Backlinks overview, referring domains, backlinks competitors | monthly/quarterly | approval-gated |
+| DataForSEO | `technical_onpage_profile` | P0 | OnPage task/summary/pages/duplicate tags/instant pages; `seo_audit_results`; `seo_audit_findings` | full crawl biweekly/monthly; changed URLs weekly or post-apply | approval-gated start, automatic follow-up |
+| DataForSEO | `seo_market_profile` | P0 | SERP organic advanced, Maps/local, Labs keyword/domain/intersection, keyword search volume | biweekly CO/US/MX; monthly secondary markets | cost-gated automatic if approved |
+| DataForSEO | `historical_trend_profile` | P0 opt-in | Historical SERP, historical ranked keywords, keyword trends | monthly/quarterly by approved keyword set | explicit cost approval required |
+| DataForSEO | `competitor_profile` | P1 | SERP competitors, Labs domain intersection, Domain Analytics traffic estimate | monthly | cost-gated |
+| DataForSEO | `authority_profile` | P1 | Backlinks overview, backlinks/live, anchors, referring domains, backlinks competitors; Labs/Domain fallback when Backlinks is blocked | monthly/quarterly | approval-gated; fallback automatic |
 | DataForSEO | `content_quality_profile` | P1 | Content Analysis, sentiment, citations | monthly | approval-gated |
-| DataForSEO | `ai_visibility_profile` | P1 | SERP `ai_overview`, AI Optimization where access exists | monthly pilot | approval-gated |
+| DataForSEO | `ai_visibility_profile` | P1 | SERP `ai_overview`, AI Optimization where access exists | monthly pilot; biweekly only for active AI/GEO tests | approval-gated |
 | DataForSEO | `local_business_profile` | P1 | Business Data, reviews/local pack evidence | monthly | approval-gated |
 | GSC | `search_demand_profile` | P0 | Search Analytics query/page/date | daily/weekly | automatic |
 | GSC | `market_device_profile` | P0 | Search Analytics page/country/device/searchAppearance | weekly | automatic |
-| GSC | `indexability_profile` | P0 | URL Inspection, Sitemaps, Sites | after publish/apply + weekly samples | automatic read-only, quota aware |
+| GSC | `indexability_profile` | P0 | URL Inspection, Sitemaps, Sites | after publish/apply + top 50 weekly sample | automatic read-only, quota aware |
 | GA4 | `page_performance_profile` | P0 | Data API runReport landing/channel/source/medium/page | daily/weekly | automatic |
-| GA4 | `activation_event_profile` | P0 | eventName/pagePath/key events/custom events | daily/weekly | automatic |
+| GA4 | `activation_event_profile` | P0 | eventName/pagePath/key events/custom events; Admin API key events/audiences/data streams | daily/weekly | automatic read-only |
 | GA4 | `realtime_smoke_profile` | P1 | Realtime API after publish/apply | immediate | automatic |
-| GA4 | `funnel_profile` | P1 | runFunnelReport where available; fallback runReport + `funnel_events` | weekly | automatic |
-| Clarity | `ux_friction_profile` | P0 | Export API project-live-insights URL/device/source/medium | daily targeted | automatic within quota |
+| GA4 | `funnel_profile` | P1 | runReport, batchRunReports, runPivotReport where useful; fallback runReport + `funnel_events` | weekly | automatic |
+| Clarity | `ux_friction_profile` | P0 | Export API URL/page-level, device, country, source/medium, campaign dimensions | daily targeted | automatic within quota |
 | Clarity | `session_evidence_profile` | P1 | MCP/session recording summaries only | on demand | human/admin initiated |
 
 ## Data Extraction Strategy
 
 ### Site-Wide Profiles
 - Run complete GSC and GA4 windows over the latest completed 28 days.
-- Run DataForSEO OnPage weekly only when technical rows are WATCH/BLOCKED or when a batch of technical changes shipped.
-- Run DataForSEO SERP/Labs by approved seed groups: ES core, EN-US, MX-ES, destination clusters, commercial packages.
+- Run DataForSEO OnPage full crawls biweekly/monthly. Use weekly changed-URL follow-up only for URLs changed by Growth OS, active technical alerts or post-`safe_apply` validation.
+- Run DataForSEO SERP/Labs biweekly for approved primary markets: CO, US and MX. Run secondary markets monthly.
+- Run DataForSEO historical SERP/trend profiles only for approved keyword/page sets with explicit cost approval.
+- Run DataForSEO backlinks/authority profiles from summary plus anchors, referring domains and individual backlinks where access allows. If Backlinks is blocked by subscription, fall back to Labs competitor/domain-intersection and Domain Analytics traffic estimate.
 - Run Clarity daily only for aggregate URL/device/source data, respecting 10 requests/day and 1-3 day limits.
 - Store raw provider output in cache tables and normalized facts in provider-specific fact tables.
 
@@ -115,9 +122,16 @@ The result is that the agent can operate autonomously, but not yet with maximum 
 | `growth_profile_runs` | `freshness_status` | text | `fresh`, `stale`, `missing`, `blocked`, `approval_required` |
 | `growth_profile_runs` | `source_refs` | jsonb | Cache rows, provider task ids, artifact paths |
 | `growth_profile_runs` | `cost_usd` | numeric | Best-effort provider cost |
+| `growth_profile_runs` | `evidence_fingerprint` | text | Stable fingerprint of normalized provider evidence, excluding volatile cycle ids |
+| `growth_profile_runs` | `entity_key` | text | Canonical entity covered by the run when page/keyword scoped |
+| `growth_profile_runs` | `action_key` | text | Optional action scope used by correlation gates |
+| `growth_profile_runs` | `approval` | jsonb | Approver, owner issue, approved scope, budget, expiry and approval timestamp for costed runs |
+| `growth_profile_runs` | `circuit_breaker` | jsonb | Failure count, cooldown, last error class and blocked/unblocked status |
 | `growth_profiles` | `payload.provider_profile_refs` | jsonb | Profile run ids and fact refs injected into Brain context |
 | `growth_signal_facts` | `provider_profile_id` | text | Links fact to extraction profile |
+| `growth_signal_facts.evidence` | `correlation` | jsonb | `entity_key`, `action_key`, `correlation_key`, `evidence_fingerprint`, `dedupe_verdict` |
 | `growth_work_items.evidence` | `provider_evidence_reads` | jsonb | Provider citations required by executor |
+| `growth_work_items.evidence` | `correlation` | jsonb | Anti-rework decision, previous refs and reopen/coalesce metadata |
 
 Migration path: additive. If `growth_profile_runs` already exists in target, add missing columns only. Existing provider cache tables stay source-compatible.
 
@@ -132,6 +146,43 @@ Migration path: additive. If `growth_profile_runs` already exists in target, add
 | `buildUxFrictionProfile(accountId, websiteId, options)` | numOfDays, dimensions | Clarity aggregate extraction |
 | `ProviderProfileRunSchema` | Zod schema | Add to `@bukeer/website-contract` |
 | `ProviderEvidenceReadSchema` | Zod schema | Shared evidence object for candidates/work items |
+| `GrowthEvidenceCorrelationResultSchema` | Zod schema | Shared anti-rework verdict for Brain, candidates and work items |
+
+## Anti-Rework Contract
+
+Every provider-backed candidate and work item must be evaluated before materialization:
+
+- `entity_key`: canonical URL, target table/id, keyword/market/locale or UX segment.
+- `action_key`: concrete action on that entity.
+- `evidence_fingerprint`: normalized provider facts, excluding volatile timestamps, cycle ids and provider run ids unless materially relevant.
+- `correlation_key`: `websiteId + decision_family + action_key`.
+
+Verdicts:
+
+- Same fingerprint and same action key -> `coalesce` or `skip`.
+- Existing published/applied work still measuring -> `skip` until evaluation window closes.
+- Prior outcome `won` -> do not repeat; allow only `scale` with a new target/scope.
+- Prior outcome `lost` -> `block` until new evidence or corrected approved skill/memory.
+- Prior rollback or smoke failure -> `block` until failure cause is fixed.
+- Materially new evidence -> `reopen` linked to the prior work item.
+
+## Approval And Circuit Breaker Contract
+
+Costed or broad provider runs must include:
+
+- `owner_issue`: GitHub issue that owns the run.
+- `approver_role`: owner/admin/growth owner.
+- `approved_by`: user id or GitHub actor.
+- `scope`: tenant, website, profile id, URL/keyword/page cap and market/locale.
+- `max_cost_usd_per_run` and optional monthly cap.
+- `expires_at`: approval expiry.
+
+Circuit breaker rules:
+
+- Three consecutive provider failures for the same profile/website -> status `blocked_provider_error`.
+- Quota exhaustion -> status `quota_exhausted` with cooldown until provider reset.
+- Cost cap reached -> status `cost_gated` and no retry until approval/cap changes.
+- Runtime may continue using still-fresh cached profiles, but cannot create live-ready provider-dependent work from blocked/stale evidence.
 
 ## Permissions (RBAC)
 
@@ -165,13 +216,21 @@ Runtime/publication mutations remain service-role only. Browser/client code must
 ## Acceptance Criteria
 
 - [ ] Data Health shows provider coverage for DataForSEO, GSC, GA4 and Clarity with freshness, cost and blockers.
+- [ ] Provider profile runs record evidence fingerprints, source refs, cost and freshness in a ledger suitable for future ROI analysis.
+- [ ] Provider-backed candidates/work items include entity/action/correlation keys and an anti-rework verdict.
 - [ ] `technical_onpage_profile` can be built from existing DataForSEO OnPage normalized facts for ColombiaTours.
+- [ ] DataForSEO OnPage supports pages, resources, links, duplicate content, blocked resources and JS error evidence where access allows.
+- [ ] DataForSEO SERP/Labs/authority supports traffic estimate, backlinks, anchors and referring domains; historical SERP/trends are opt-in and cost-gated.
 - [ ] `safe_apply` candidates cite OnPage task/finding evidence or a formal exception.
 - [ ] Content candidates cite DataForSEO SERP/Labs, GSC demand and GA4/funnel context when available.
-- [ ] Clarity aggregate data can create `ux_friction_profile` without storing raw recordings or PII.
+- [ ] GSC Search Analytics includes explicit `date` dimensions where trending is needed, plus URL Inspection, Sitemaps and Sites read-only health.
+- [ ] GA4 Admin read-only profiles validate key events, audiences and streams against `funnel_events` expectations.
+- [ ] Clarity aggregate data can create page-level URL/device/country/source `ux_friction_profile` without storing raw recordings or PII.
 - [ ] Brain decisions include `provider_profile_refs` and `provider_evidence_reads`.
 - [ ] Executor blocks provider-dependent live work when required profile status is `missing`, `stale`, `blocked` or `cost_gated`.
 - [ ] Expensive DataForSEO profiles require approval and cost ledger before live provider calls.
+- [ ] Expensive or broad DataForSEO profile runs include owner issue, approver, scope, max cost and expiry.
+- [ ] Provider profiles have a circuit breaker for repeated failures, quota exhaustion and cost caps.
 - [ ] GSC URL Inspection is available for newly published/applied URLs where quota allows.
 - [ ] GA4 compatibility/metadata checks prevent invalid dimension/metric report definitions.
 
@@ -184,6 +243,8 @@ Runtime/publication mutations remain service-role only. Browser/client code must
 - GSC profile builder handles pagination and empty rows.
 - Clarity client enforces 1-3 day window, maximum 3 dimensions and no raw recording persistence.
 - Provider-dependent work item is blocked when required evidence is stale/missing.
+- Anti-rework fingerprinting is stable across identical runs and changes only when evidence changes materially.
+- Prior won/lost/rolled_back outcomes change future verdicts correctly.
 
 ### Integration
 - Existing ColombiaTours OnPage facts produce a `technical_onpage_profile`.
@@ -191,11 +252,12 @@ Runtime/publication mutations remain service-role only. Browser/client code must
 - DataForSEO SERP/Labs + GSC demand produce a content opportunity with cited evidence.
 - Clarity URL/device data + GA4 low activation produces a CRO watch candidate.
 - Profile run ledger records status, cost, source refs, freshness and artifact path.
+- First provider run creates candidates with source refs; second identical run coalesces/skips; third materially changed run reopens or creates a follow-up.
 
 ### E2E
 - Data Health renders provider profile matrix and blockers.
-- Workboard shows provider-backed vs provider-blocked badges.
-- Brain decision detail shows provider citations.
+- Workboard shows provider-backed, provider-blocked, coalesced, skipped and reopened badges.
+- Brain decision detail shows provider citations, previous refs and correlation verdict.
 - Admin approves a cost-gated DataForSEO profile and sees the run transition.
 - Mobile has no overflow in Data Health and Decision Detail.
 
@@ -206,6 +268,7 @@ Runtime/publication mutations remain service-role only. Browser/client code must
   - 1 CRO candidate backed by GA4 + Clarity aggregate;
   - 1 URL Inspection read after publish/apply;
   - 1 blocked provider-dependent candidate caused by stale/missing/cost-gated evidence;
+  - 3-run anti-rework proof: baseline creates candidates, repeat creates zero duplicates, material evidence change reopens or creates a valid follow-up;
   - 0 live mutations without provider evidence where required.
 
 ## Edge Cases & Error Handling
@@ -224,6 +287,7 @@ Runtime/publication mutations remain service-role only. Browser/client code must
 - CRM bulk mutation or outreach sends.
 - Storing raw Clarity session recordings.
 - Treating GA4 Measurement Protocol as primary conversion SOT; `funnel_events` remains SOT per ADR-029.
+- Implementing GA4 Measurement Protocol dispatch in this epic; it belongs to `funnel_events` / dispatcher delivery.
 - Running broad DataForSEO expensive profiles without explicit approval.
 
 ## Dependencies
@@ -236,6 +300,7 @@ Runtime/publication mutations remain service-role only. Browser/client code must
 - `SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX`.
 - `SPEC_GROWTH_OS_UNIFIED_BACKLOG_AND_PROFILE_RUN_LEDGER`.
 - `SPEC_GROWTH_OS_DATAFORSEO_EVIDENCE_GOVERNED_BRAIN`.
+- `docs/ops/growth-data-automation-cadence.md`.
 - Official docs:
   - DataForSEO OnPage: https://docs.dataforseo.com/v3/on_page-task_post/
   - DataForSEO SERP Advanced: https://docs.dataforseo.com/v3/serp-se-type-live-advanced/

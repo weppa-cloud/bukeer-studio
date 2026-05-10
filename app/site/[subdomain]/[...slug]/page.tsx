@@ -1,6 +1,6 @@
 import { Metadata } from "next";
 import { headers } from "next/headers";
-import { notFound, redirect } from "next/navigation";
+import { notFound, permanentRedirect, redirect } from "next/navigation";
 import { getWebsiteBySubdomain } from "@/lib/supabase/get-website";
 import type { WebsiteData } from "@/lib/supabase/get-website";
 import {
@@ -82,6 +82,12 @@ interface DynamicPageProps {
     slug: string[];
   }>;
 }
+
+const LEGACY_ADS_LANDING_REDIRECTS: Record<string, string> = {
+  "reserva-paquetes-todo-incluido-a-colombia":
+    "agencia-de-viajes-a-colombia-para-mexicanos",
+  "destinos/eje-cafetero": "eje-cafetero",
+};
 
 type TranscreatePageType =
   | "blog"
@@ -684,6 +690,7 @@ export async function generateMetadata({
     return {
       title: "Página no encontrada",
       description: fallbackDescription,
+      robots: { index: false, follow: true },
     };
   }
 
@@ -757,6 +764,11 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
   }
 
   const slugPath = slug.join("/");
+  const legacyAdsLandingRedirect = LEGACY_ADS_LANDING_REDIRECTS[slugPath];
+  if (legacyAdsLandingRedirect) {
+    permanentRedirect(`/site/${subdomain}/${legacyAdsLandingRedirect}`);
+  }
+
   const localeContext = await resolvePublicMetadataLocale(
     website,
     slugPath ? `/${slugPath}` : "/",
