@@ -91,6 +91,7 @@ alter table public.growth_profile_runs
   add column if not exists approval jsonb,
   add column if not exists circuit_breaker jsonb not null default '{}'::jsonb,
   add column if not exists payload jsonb not null default '{}'::jsonb,
+  add column if not exists idempotency_key text,
   add column if not exists error text;
 
 do $$
@@ -136,6 +137,10 @@ begin
 
   update public.growth_profile_runs
   set
+    idempotency_key = coalesce(
+      idempotency_key,
+      concat('legacy:', website_id::text, ':', run_id)
+    ),
     source_refs = case
       when jsonb_typeof(source_refs) = 'array' then source_refs
       else '[]'::jsonb
