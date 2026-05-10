@@ -576,6 +576,29 @@ async function uniqueBlogSlug({
   return exists ? `${base}-${fallbackSeed.slice(0, 8)}` : base;
 }
 
+async function assertNoDuplicateBlogArticle({
+  supabase,
+  websiteId,
+  title,
+}: {
+  supabase: SupabaseLike;
+  websiteId: string;
+  title: string;
+}) {
+  const { data, error } = await supabase
+    .from("website_blog_posts")
+    .select("id,title,slug,status")
+    .eq("website_id", websiteId)
+    .eq("title", title)
+    .limit(1);
+  if (error) throw new Error(`blog duplicate lookup failed: ${error.message}`);
+  const duplicate = Array.isArray(data) ? asRecord(data[0]) : asRecord(data);
+  if (!duplicate.id) return;
+  throw new Error(
+    `duplicate_content_title:${String(duplicate.id)}:${String(duplicate.slug ?? "")}`,
+  );
+}
+
 async function buildPublicationExecutionPlan({
   supabase,
   accountId,
@@ -830,6 +853,16 @@ async function buildPublicationExecutionPlan({
   }
 
   if (actionClass !== "content_publish") return null;
+  const articlePayload = asRecord(evidence.article);
+  const proposedTitle =
+    textValue(articlePayload, "title") ?? textValue(evidence, "article_title");
+  if (proposedTitle) {
+    await assertNoDuplicateBlogArticle({
+      supabase,
+      websiteId,
+      title: proposedTitle,
+    });
+  }
   const preferredSlug =
     textValue(evidence, "article_slug") ??
     textValue(evidence, "slug") ??

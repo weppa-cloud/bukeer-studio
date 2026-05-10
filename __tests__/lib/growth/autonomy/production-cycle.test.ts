@@ -683,4 +683,59 @@ describe("runGrowthOsProductionCycle adapter bridge", () => {
       ]),
     );
   });
+
+  it("blocks content publish when the same article title already exists", async () => {
+    const ops: Operation[] = [];
+    const workItem = {
+      id: ids.workItemId,
+      account_id: ids.accountId,
+      website_id: ids.websiteId,
+      lane: "content_creator",
+      status: "ready",
+      title: "Publish duplicate certification guide",
+      allowed_action_class: "content_publish",
+      risk_level: "low",
+      risk_score: 20,
+      evidence: {
+        dataforseo_evidence: dataForSeoEvidence("labs_keywords"),
+        correlation: evidenceCorrelation({
+          actionClass: "content_publish",
+          entityKey: "website_blog_posts:/blog/certification-guide-new",
+          fingerprint: "sha256:test-labs_keywords-new",
+        }),
+        success_metric: "organic_clicks:blog:certification-guide-new",
+        baseline: { organic_clicks: 0, impressions: 0 },
+        article_slug: "certification-guide-new",
+        article: {
+          title: "Certification Colombia cultural travel guide",
+          slug: "certification-guide-new",
+          seo_title: "Certification Colombia Cultural Travel Guide",
+          seo_description:
+            "Plan a Colombia cultural travel route with local context, practical pacing, and custom trip ideas across regions.",
+        },
+      },
+    };
+    const tables = baseTables(workItem, policy("content_creator", "content_publish"));
+    tables.website_blog_posts = [
+      {
+        id: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeef",
+        website_id: ids.websiteId,
+        title: "Certification Colombia cultural travel guide",
+        slug: "certification-guide",
+        status: "published",
+      },
+    ];
+
+    await runCycle(tables, ops, { certificationFixtureMode: true });
+
+    expect(tables.growth_publication_jobs).toHaveLength(0);
+    expect(tables.website_blog_posts).toHaveLength(1);
+    expect(tables.growth_agent_change_sets[0]).toMatchObject({
+      status: "blocked",
+      requires_human_review: true,
+    });
+    expect(tables.growth_agent_change_sets[0].summary).toContain(
+      "duplicate_content_title",
+    );
+  });
 });

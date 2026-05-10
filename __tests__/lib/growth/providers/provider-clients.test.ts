@@ -163,8 +163,11 @@ describe('growth provider client profile helpers', () => {
       pivots: [{ fieldNames: ['sessionSourceMedium'], limit: 10 }],
     });
     expect(pivot.profileId).toBe('ga4_pivot_funnel_v1');
+    expect(pivot.body.limit).toBeUndefined();
+    expect((pivot.body.pivots as Array<Record<string, unknown>>)[0].limit).toBe('10');
 
     const realtime = buildGa4RealtimeSmokePlan(scope);
+    expect(realtime.body.dimensions).toEqual([]);
     const run = await runGa4ProviderPlan(realtime);
     expect(run.status).toBe('planned');
     expect(global.fetch).not.toHaveBeenCalled();

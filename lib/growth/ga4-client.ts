@@ -171,19 +171,26 @@ export function buildGa4PivotReportPlan(input: Ga4PivotReportInput): Ga4Provider
   if (input.pivots.length === 0 || input.pivots.length > 2) {
     throw new Ga4ClientError('PROFILE_SCOPE_TOO_BROAD', 'GA4 pivot count must be 1-2', 400, { count: input.pivots.length });
   }
+  const body = reportBody(input);
+  delete body.limit;
+  const pivots = input.pivots.map((pivot) => ({
+    ...pivot,
+    limit: pivot.limit === undefined ? undefined : String(pivot.limit),
+    offset: pivot.offset === undefined ? undefined : String(pivot.offset),
+  }));
   return {
     account_id: input.account_id,
     website_id: input.website_id,
     locale: input.locale,
     profileId: 'ga4_pivot_funnel_v1',
     dryRun: input.dryRun ?? true,
-    body: { ...reportBody(input), pivots: input.pivots },
+    body: { ...body, pivots },
   };
 }
 
 export function buildGa4RealtimeSmokePlan(input: Ga4RealtimeSmokeInput): Ga4ProviderPlan {
   const metrics = input.metrics ?? ['activeUsers'];
-  const dimensions = input.dimensions ?? ['unifiedPagePathScreen'];
+  const dimensions = input.dimensions ?? [];
   assertReportScope(metrics, dimensions, 5, 4);
   return {
     account_id: input.account_id,
@@ -295,6 +302,46 @@ async function ga4Fetch<T>(url: string, accessToken: string, init?: RequestInit)
     throw new Ga4ClientError('UPSTREAM_ERROR', 'GA4 request failed', response.status >= 500 ? 502 : response.status, json);
   }
   return json;
+}
+
+async function ga4FetchOptionalList<T extends Record<string, unknown>>({
+  accessToken,
+  primaryUrl,
+  fallbackUrl,
+  field,
+  fallbackField,
+}: {
+  accessToken: string;
+  primaryUrl: string;
+  fallbackUrl?: string;
+  field: string;
+  fallbackField?: string;
+}): Promise<T[]> {
+  const fetchList = async (url: string, responseField: string) => {
+    const json = await ga4Fetch<Record<string, unknown>>(url, accessToken);
+    const rows = json[responseField];
+    return Array.isArray(rows) ? (rows as T[]) : [];
+  };
+
+  try {
+    return await fetchList(primaryUrl, field);
+  } catch (error) {
+    if (
+      fallbackUrl &&
+      error instanceof Ga4ClientError &&
+      (error.status === 404 || error.status === 400)
+    ) {
+      try {
+        return await fetchList(fallbackUrl, fallbackField ?? field);
+      } catch {
+        return [];
+      }
+    }
+    if (error instanceof Ga4ClientError && (error.status === 404 || error.status === 403)) {
+      return [];
+    }
+    throw error;
+  }
 }
 
 export async function runGa4Report(input: Ga4ReportInput): Promise<Ga4ReportResult> {
@@ -440,21 +487,35 @@ export async function runGa4AdminGovernance(
   const property = `properties/${integration.property_id}`;
   const [keyEventsJson, audiencesJson, dataStreamsJson] = await Promise.all([
     plan.checks.includes('key_events')
-      ? ga4Fetch<{ keyEvents?: Array<Record<string, unknown>> }>(`${GA4_ADMIN_ENDPOINT}/${property}/keyEvents`, accessToken)
-      : Promise.resolve({ keyEvents: [] }),
+      ? ga4FetchOptionalList<Record<string, unknown>>({
+          accessToken,
+          primaryUrl: `${GA4_ADMIN_ENDPOINT}/${property}/keyEvents`,
+          fallbackUrl: `${GA4_ADMIN_ENDPOINT}/${property}/conversionEvents`,
+          field: 'keyEvents',
+          fallbackField: 'conversionEvents',
+        })
+      : Promise.resolve([]),
     plan.checks.includes('audiences')
-      ? ga4Fetch<{ audiences?: Array<Record<string, unknown>> }>(`${GA4_ADMIN_ENDPOINT}/${property}/audiences`, accessToken)
-      : Promise.resolve({ audiences: [] }),
+      ? ga4FetchOptionalList<Record<string, unknown>>({
+          accessToken,
+          primaryUrl: `${GA4_ADMIN_ENDPOINT}/${property}/audiences`,
+          field: 'audiences',
+        })
+      : Promise.resolve([]),
     plan.checks.includes('data_streams')
-      ? ga4Fetch<{ dataStreams?: Array<Record<string, unknown>> }>(`${GA4_ADMIN_ENDPOINT}/${property}/dataStreams`, accessToken)
-      : Promise.resolve({ dataStreams: [] }),
+      ? ga4FetchOptionalList<Record<string, unknown>>({
+          accessToken,
+          primaryUrl: `${GA4_ADMIN_ENDPOINT}/${property}/dataStreams`,
+          field: 'dataStreams',
+        })
+      : Promise.resolve([]),
   ]);
   return {
     plan,
     propertyId: integration.property_id,
-    keyEvents: keyEventsJson.keyEvents ?? [],
-    audiences: audiencesJson.audiences ?? [],
-    dataStreams: dataStreamsJson.dataStreams ?? [],
+    keyEvents: keyEventsJson,
+    audiences: audiencesJson,
+    dataStreams: dataStreamsJson,
     fetchedAt: new Date().toISOString(),
     source: 'live',
   };
