@@ -214,3 +214,28 @@ Blocked legacy work:
 - Block reason: `smoke:provider_evidence:dataforseo_evidence_missing`
 
 Conclusion: the evidence-governed layer is now active in both creation and execution. New brain decisions cite DataForSEO provider reads; new provider-backed candidates carry explicit evidence; old work without evidence is blocked before mutation; valid provider-backed content can still publish through the live-gated executor with snapshot, smoke, rollback payload and outcome ledger.
+
+### Legacy Queue Cleanup
+
+After the runtime gate was active, the active queue still contained legacy provider-dependent work created before `dataforseo_evidence` became mandatory.
+
+Cleanup executed in production for ColombiaTours:
+
+- Scope: `growth_work_items` where `allowed_action_class in ('content_publish','transcreation_merge','safe_apply')`, status in `ready/running/review_needed`, and `evidence.dataforseo_evidence.required` was not true.
+- Updated rows: `438`
+- New status: `blocked`
+- New progress label: `Blocked: missing DataForSEO evidence`
+- New next action: regenerate from Growth CEO Brain with fresh DataForSEO evidence before live-gated execution.
+- Ledger field added: `evidence.provider_evidence_cleanup`
+
+Post-cleanup verification:
+
+- Active provider-dependent work missing DataForSEO evidence: `0`
+- Active provider-dependent work with DataForSEO evidence: `2`
+- Remaining blocked legacy missing evidence: `603`
+
+UI follow-up implemented:
+
+- Workboard now exposes a `Falta DataForSEO` filter.
+- Workboard cards show a danger badge when provider-dependent work lacks required evidence.
+- Workboard summary shows a dedicated alert with a link to the filtered view.
