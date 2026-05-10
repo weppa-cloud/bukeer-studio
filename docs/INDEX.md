@@ -11,7 +11,7 @@ Last updated: 2026-05-08 (SPEC_GROWTH_OS_AUTONOMOUS_PRODUCTION_OPERATING_SYSTEM 
 
 Latest update: 2026-05-01 (SPEC_GROWTH_OS_SYMPHONY_ORCHESTRATOR audit revision for #310: contract-first gate added with five Zod schemas, SSOT relationship vs growth_profile_runs / Unified Backlog formalised, lane-level autonomy semantics tightened, sprint scope clarified — Symphony OPERATIONAL ≠ #310 PASS, #256 interlock and ADR matrix added; child issues #402–#409 received labels and TVBs); 2026-05-01 (SPEC_GROWTH_OS_SYMPHONY_ORCHESTRATOR added for #310: multi-tenant Supabase/Bukeer control plane, VPS Docker runtime, agent definitions/tool permissions/context packs, Growth UI contract and opt-in E2E); 2026-05-01 (WAFlow reference-first E2E for #310/#322: missing-ref guardrail PASS, two references in one Chatwoot conversation create two CRM requests, legacy `waflow_leads.chatwoot_conversation_id` unique index moved to WATCH with Flutter/SSOT migration prepared); 2026-05-01 (SPEC_GROWTH_OS_AGENT_LANES added for #310: five core Growth OS agent lanes, blocked routing, transcreation/content separation and Council governance); 2026-05-01 (SPEC_GROWTH_OS_SSOT_MODEL added for #310: GitHub is implementation SSOT, Supabase/Bukeer Studio is operational Growth SSOT).
 
-Latest spec addition: 2026-05-08 - [[SPEC_GROWTH_OS_AGENTIC_ORCHESTRATOR_9_PLUS]] defines GitHub Epic #460 and issues #461-#469 as the Paperclip/Hermes-inspired 9+ closure for Growth OS: Growth CEO Brain, context snapshots, wakeups, task sessions, decision ledger, learning loop, Company Control UI and production certification.
+Latest spec addition: 2026-05-09 - [[SPEC_GROWTH_OS_DATAFORSEO_EVIDENCE_GOVERNED_BRAIN]] defines the next Growth OS hardening step after #470: Growth CEO Brain decisions must cite DataForSEO feature-level evidence, block stale/missing/cost-gated provider states and coalesce duplicate provider-backed work before live-gated execution.
 
 Latest tracking note: 2026-05-08 - [[ADR-029]] / [[SPEC_FUNNEL_EVENTS_SOT]] now require multi-tenant platform dispatch. Browser Pixel IDs remain in `websites.analytics`; Meta CAPI and future platform secrets must resolve through tenant channel contracts, never global production env credentials.
 
@@ -113,6 +113,7 @@ Feature requests formalized. Status tracked inline. GitHub Issues = source of tr
 | [[SPEC_GROWTH_OS_PAPERCLIP_AUTONOMOUS_CEO_COCKPIT]]       | [file](./specs/SPEC_GROWTH_OS_PAPERCLIP_AUTONOMOUS_CEO_COCKPIT.md)       | [[growth-os]] [[agents]] [[Paperclip]] [[CEO-cockpit]] [[autonomy]] [[organic-growth]] [[technical-remediation]] [[funnel-events]]                               |
 | [[SPEC_GROWTH_OS_AUTONOMOUS_PRODUCTION_OPERATING_SYSTEM]] | [file](./specs/SPEC_GROWTH_OS_AUTONOMOUS_PRODUCTION_OPERATING_SYSTEM.md) | [[growth-os]] [[agents]] [[autonomy]] [[orchestration]] [[VPS]] [[learning-loop]] [[RLS]] [[E2E]] [[ColombiaTours]]                                             |
 | [[SPEC_GROWTH_OS_AGENTIC_ORCHESTRATOR_9_PLUS]]            | [file](./specs/SPEC_GROWTH_OS_AGENTIC_ORCHESTRATOR_9_PLUS.md)            | [[growth-os]] [[agents]] [[orchestration]] [[Paperclip]] [[Hermes]] [[learning-loop]] [[Company-Control]] [[E2E]] [[ColombiaTours]]                              |
+| [[SPEC_GROWTH_OS_DATAFORSEO_EVIDENCE_GOVERNED_BRAIN]]     | [file](./specs/SPEC_GROWTH_OS_DATAFORSEO_EVIDENCE_GOVERNED_BRAIN.md)     | [[growth-os]] [[agents]] [[DataForSEO]] [[orchestration]] [[evidence]] [[learning-loop]] [[ColombiaTours]]                                                       |
 | [[SPEC_FUNNEL_EVENTS_SOT]]                                | [file](./specs/SPEC_FUNNEL_EVENTS_SOT.md)                                | [[funnel-events]] [[SOT]] [[tracking]] [[Meta CAPI]] [[Google Ads]] [[GA4]] [[cross-repo-flutter]] — operational counterpart to [[ADR-029]]                     |
 | [[growth-orchestrator-runtime]]                           | [file](./runtime/growth-orchestrator/README.md)                          | [[growth-os]] [[runtime]] [[agents]] [[Codex]] [[VPS]]                                                                                                          |
 | [[SPEC_SKILL_NEXTJS_DEVELOPER_AUDIT]]                     | [file](./specs/SPEC_SKILL_NEXTJS_DEVELOPER_AUDIT.md)                     | [[skills]] [[nextjs-developer]]                                                                                                                                 |
@@ -173,6 +174,8 @@ Feature requests formalized. Status tracked inline. GitHub Issues = source of tr
 | [[meta-ads-mcp]]                         | [file](./ops/meta-ads-mcp.md)                         | Epic #341 local MCP package scaffold for Meta Ads: env, safe modes, kill switch, ColombiaTours defaults.                                                |
 | [[meta-ads-cli-mcp]]                     | [file](./ops/meta-ads-cli-mcp.md)                     | Codex Desktop local MCP wrapper for the official Meta Ads CLI: read-only tools, write flag gates, smoke tests and ColombiaTours account config.          |
 | [[meta-ads-operations]]                  | [file](../ops/meta-ads/README.md)                     | Meta Ads operational standard matching Google Ads: project-scoped MCP, local setup, read-only analysis, write gateway and tenant iterations.             |
+| [[clarity-mcp]]                          | [file](./ops/clarity-mcp.md)                          | Official Microsoft Clarity MCP setup: `.mcp.json`, `.env.mcp`, API token, quota limits, Data Export fallback and ColombiaTours project config.           |
+| [[clarity-operations]]                   | [file](../ops/clarity/README.md)                      | Clarity operational standard matching Meta/Google: tenant iterations, local setup, read-only UX analysis and privacy guardrails.                         |
 | [[product-landing-rollout-runbook]]      | [file](./runbooks/product-landing-rollout-runbook.md) | Rollout for public site rendering / ISR changes.                                                                                                        |
 
 ---
@@ -486,6 +489,7 @@ Each concept below lists the ADRs/SPECs/ops docs that touch it. Use this to find
 - [[growth-os-autonomous-production-certification-2026-05-08]] — Epic #441 QA/certification evidence skeleton for CEO cockpit, kill switch, lane policy states, rollback, learning ops, Workboard states, mobile overflow and session-pool E2E commands.
 - [[SPEC_GROWTH_OS_AUTONOMOUS_PRODUCTION_OPERATING_SYSTEM]] — production closure for #310/#431: recurrent scheduler, end-to-end `growth_work_items` runtime, fresh profiles, outcome evaluator, kill switch/caps/rollback UI, quality gates, learning loop, RLS hardening and ColombiaTours certification.
 - [[SPEC_GROWTH_OS_AGENTIC_ORCHESTRATOR_9_PLUS]] — Epic #460 architecture for the Paperclip/Hermes-inspired 9+ layer: Growth CEO Brain, context snapshots, wakeups, task sessions, decision ledger, closed learning loop, Company Control UI and 24h production certification.
+- [[SPEC_GROWTH_OS_DATAFORSEO_EVIDENCE_GOVERNED_BRAIN]] — DataForSEO hardening layer for #460/#470: provider feature evidence must govern Brain decisions, stale/missing/cost-gated provider states block materialization, and provider-backed work is deduped before live-gated execution.
 - [[growth-os-agentic-orchestrator-9-plus-certification-2026-05-09]] — Production evidence for the 9+ layer: valid live jobs, cited learning context, sensitive blocked decision, rollback payload verification and E2E session-pool results.
 - [[growth-orchestrator-runtime]] — operational docs for the Growth OS runtime execution plane: code layout, deploys by SHA, Codex executor, data contract, safety gates and troubleshooting.
 - [[SPEC_META_CHATWOOT_CONVERSIONS]] — stub for canonical #322: Meta + Chatwoot conversion path for WAFlow/WhatsApp to qualified lead, quote, and purchase.
@@ -509,7 +513,15 @@ Each concept below lists the ADRs/SPECs/ops docs that touch it. Use this to find
 - [[SPEC_COLOMBIATOURS_GROWTH_OS_2026]] — stub for canonical #337: cross-channel conversion governance and event contract for ColombiaTours Growth OS.
 - [[SPEC_META_CHATWOOT_CONVERSIONS]] — stub for canonical #322: Meta Pixel/CAPI event contract, Chatwoot webhook lifecycle tracking, and purchase attribution.
 - [[public-analytics-standard]] — public-site runtime tracking policy: early GA4 pageview, deferred GTM/Meta/Ads/custom scripts, GA4/GSC reporting rule.
+- [[clarity-mcp]] — official Microsoft Clarity MCP setup for read-only UX behavior data access.
+- [[clarity-operations]] — tenant runbooks for Clarity-powered landing diagnostics and privacy-safe summaries.
 - [[ADR-018]] — webhook idempotency baseline for Chatwoot and payment-provider callbacks.
+
+### [[clarity]] + [[mcp]] + [[analytics]]
+
+- [[clarity-mcp]] — official Microsoft Clarity MCP setup, local token handling, quota limits and Data Export API fallback.
+- [[clarity-operations]] — operational playbooks for tenant UX friction analysis via Clarity.
+- [[public-analytics-standard]] — runtime loading policy: Clarity loads after `window.load` + idle callback.
 
 ### [[trust]] + [[organization-schema]]
 
@@ -588,6 +600,8 @@ Obsidian resolves `[[ADR-005]]` by filename stem or alias. Claude Code / Codex g
 | `[[release-gate-checklist]]`                          | `docs/ops/release-gate-checklist.md`                                               |
 | `[[ci-seo-i18n-gate]]`                                | `docs/ops/ci-seo-i18n-gate.md`                                                     |
 | `[[public-analytics-standard]]`                       | `docs/ops/public-analytics-standard.md`                                            |
+| `[[clarity-mcp]]`                                     | `docs/ops/clarity-mcp.md`                                                          |
+| `[[clarity-operations]]`                              | `ops/clarity/README.md`                                                            |
 | `[[ADR-022]]`                                         | Flutter repo — auth token boundary                                                 |
 | `[[ADR-032]]`                                         | Flutter repo — catalog v2                                                          |
 | `[[ARCHITECTURE]]`                                    | `docs/architecture/ARCHITECTURE.md`                                                |

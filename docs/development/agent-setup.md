@@ -1,7 +1,7 @@
 # Agent Setup — Claude Code for Bukeer Studio
 
 **Status**: Active
-**Last updated**: 2026-04-17
+**Last updated**: 2026-05-09
 **Audience**: Developers configuring a Claude Code session (human or agent) to run Studio workflows — in particular the `seo-growth-agent` skill and the growth OKR loop.
 
 This guide enables a new developer (or a fresh agent session) to:
@@ -28,6 +28,7 @@ MCPs are declared in [`.mcp.json`](../../.mcp.json). Config snippets below mirro
 | `aceternity-ui` | Aceternity component catalog | `aceternity-ui-mcp` | `"command": "npx", "args": ["-y", "aceternity-ui-mcp"]` | `website-section-generator` |
 | `google-analytics` | GA4 property reports, realtime, funnels | `analytics-mcp` (via `pipx run`) | `bash -lc "set -a; [ -f .env.mcp ] && source .env.mcp; set +a; pipx run analytics-mcp"` | Overview / sessions playbook, conversion tracking |
 | `search-console` | GSC queries, Bing, pagespeed, opportunity finder | `search-console-mcp@latest` | `bash -lc "set -a; [ -f .env.mcp ] && source .env.mcp; set +a; npx -y search-console-mcp@latest"` | Keyword research, striking-distance, cannibalization, low-CTR playbooks |
+| `clarity` | Microsoft Clarity live UX insights, friction diagnostics, heatmap/session summaries | `@microsoft/clarity-mcp-server` | `bash -lc "set -a; [ -f .env.local ] && source .env.local; [ -f .env.mcp ] && source .env.mcp; set +a; : \"${CLARITY_API_TOKEN:?Missing CLARITY_API_TOKEN in .env.mcp}\"; exec npx -y @microsoft/clarity-mcp-server --clarity_api_token=\"$CLARITY_API_TOKEN\""` | Landing UX diagnostics, CRO evidence, rage/dead click audits |
 
 ### Planned Tier 1 (not yet shipped)
 
@@ -69,6 +70,8 @@ All credentials live in local, gitignored files. The `.env*` glob in [`.gitignor
 | `GOOGLE_APPLICATION_CREDENTIALS` | Absolute path to GA4 service-account JSON | `.env.mcp` (path only; JSON file outside repo) | Rotate on offboarding |
 | `GOOGLE_PROJECT_ID` | GCP project id for GA4 MCP | `.env.mcp` | n/a |
 | `GSC_SITE_URL` | Primary GSC site URL | `.env.mcp` | n/a |
+| `CLARITY_API_TOKEN` | Microsoft Clarity MCP/Data Export API token | `.env.mcp` | Rotate on offboarding or suspected exposure |
+| `CLARITY_PROJECT_ID` | Default Clarity project id for tenant playbooks | `.env.mcp` | n/a |
 | GSC / GA4 OAuth tokens | User-scoped auth for `search-console` / `google-analytics` | Managed by MCP OAuth flow (cached in user MCP dir, NOT in repo) | Re-auth when token expires |
 | `REVALIDATE_SECRET` | Auth for `/api/revalidate` ISR endpoint | `.env.local` | Rotate quarterly |
 
@@ -143,7 +146,7 @@ Run the block below after completing §1–§3. Each step prints a clear pass/fa
 # ─────────────────────────────────────────────
 node --version    # expect v22.x or v24.x
 npm --version
-claude mcp list   # expect all 8 MCPs present with ✓
+claude mcp list   # expect all configured MCPs present with ✓
 
 # ─────────────────────────────────────────────
 # 1. MCP: supabase — list tables on the shared project
@@ -176,7 +179,16 @@ claude mcp list   # expect all 8 MCPs present with ✓
 # Expected: current Chrome page list (or empty if no tabs)
 
 # ─────────────────────────────────────────────
-# 5. Bukeer API alive (local dev) — uses session pool
+# 5. MCP: clarity — config and package smoke
+# ─────────────────────────────────────────────
+set -a; [ -f .env.mcp ] && source .env.mcp; set +a
+test -n "$CLARITY_API_TOKEN" && echo "✓ CLARITY_API_TOKEN present"
+npm view @microsoft/clarity-mcp-server version
+# Expected: package version prints. Live data checks consume Clarity quota;
+# run them only from docs/ops/clarity-mcp.md when needed.
+
+# ─────────────────────────────────────────────
+# 6. Bukeer API alive (local dev) — uses session pool
 # ─────────────────────────────────────────────
 eval "$(bash scripts/session-acquire.sh)"
 PORT=$PORT NEXT_DIST_DIR=.next-$SESSION_NAME npm run dev:session &
@@ -188,7 +200,7 @@ curl -sf "http://localhost:$PORT/api/seo/integrations/status" > /dev/null \
   || echo "✗ API did not respond"
 
 # ─────────────────────────────────────────────
-# 6. Blog AI endpoint (dummy seed)
+# 7. Blog AI endpoint (dummy seed)
 # ─────────────────────────────────────────────
 curl -s -X POST "http://localhost:$PORT/api/ai/editor/generate-blog" \
   -H "Content-Type: application/json" \
@@ -214,8 +226,9 @@ bash scripts/session-release.sh "$_ACQUIRED_SESSION"
 | 1 | `401 Unauthorized` | Rotated PAT | Regenerate in Supabase dashboard, update `.env.mcp` |
 | 2 | `401` from GSC | OAuth token refresh | Re-run `mcp__search-console__accounts_list`; consent again in browser |
 | 3 | Empty GA4 list | Service account missing Viewer role | Add SA email in GA4 admin → Property Access Management |
-| 5 | Port already in use | Stale session slot | `npm run session:list` → `npm run session:release <slot>` |
-| 6 | `402 Payment Required` from DataForSEO (once wired) | Budget cap hit | Check [`docs/growth-okrs/budget.md`](../growth-okrs/budget.md) and raise cap |
+| 5 | `CLARITY_API_TOKEN` missing | `.env.mcp` missing or incomplete | Copy `.env.mcp.example` to `.env.mcp`, fill token, restart MCP client |
+| 6 | Port already in use | Stale session slot | `npm run session:list` → `npm run session:release <slot>` |
+| 7 | `402 Payment Required` from DataForSEO (once wired) | Budget cap hit | Check [`docs/growth-okrs/budget.md`](../growth-okrs/budget.md) and raise cap |
 | any | `ENOENT: mkdir '/.playwright-mcp'` from Playwright MCP | MCP started with invalid `HOME` (`/`) | Ensure `.mcp.json` uses the guarded Playwright command that rewrites `HOME` to a writable path; restart Codex/Claude session |
 
 ---
@@ -241,6 +254,7 @@ Every new agent session MUST execute these steps **before** any mutation or paid
    - `mcp__search-console__analytics_top_queries`
    - `mcp__google-analytics__run_report`
    - `mcp__google-analytics__get_account_summaries`
+   - `mcp__clarity__*` when the playbook includes UX friction, scroll, heatmap, or session behavior evidence
 
 5. **Load the skill** — confirm `.claude/skills/seo-growth-agent/SKILL.md` is readable. If missing, the skill has not landed yet ([#155](https://github.com/weppa-cloud/bukeer-studio/issues/155) tracks it); abort SEO work until it is present.
 
@@ -263,6 +277,7 @@ Common failure modes and first-response fixes.
 | `search-console` returns `401 / invalid_grant` | Cached OAuth token expired | Delete OAuth cache for the MCP and re-run an `accounts_list` call to trigger re-auth |
 | `supabase` MCP returns `401` | PAT rotated or revoked | Generate a fresh PAT at `https://supabase.com/dashboard/account/tokens`, update `SUPABASE_ACCESS_TOKEN` in `.env.mcp`, restart Claude Code |
 | `google-analytics` returns empty accounts | Service account not added to GA4 property | Invite the SA email (viewer role) in GA4 admin |
+| `clarity` MCP fails at startup | `CLARITY_API_TOKEN` missing or invalid | Fill `.env.mcp`, run `codex mcp get clarity`, restart Codex Desktop |
 | `dataforseo` returns `402 Payment Required` (once wired) | Budget cap hit at the vendor | Check [`docs/growth-okrs/budget.md`](../growth-okrs/budget.md); raise cap via ops if justified |
 | `session:list` shows all slots `BUSY` | Other parallel agents or stale locks | `npm run session:list` to see PIDs; if a PID is dead, `npm run session:release <slot>`; otherwise wait |
 | `npm run dev:session` fails: `EADDRINUSE` | Port not released | `npm run session:release <slot>` and retry |
@@ -280,5 +295,6 @@ If a fix here does not resolve the issue, capture the exact error and hand it to
 - Target SEO operating model: [`docs/seo/SEO-PLAYBOOK.md`](../seo/SEO-PLAYBOOK.md)
 - Cross-repo context (Flutter + shared Supabase): [`.claude/rules/cross-repo-flutter.md`](../../.claude/rules/cross-repo-flutter.md)
 - Local session pool rules: [`docs/development/local-sessions.md`](./local-sessions.md) and [`.claude/rules/e2e-sessions.md`](../../.claude/rules/e2e-sessions.md)
+- Microsoft Clarity MCP: [`docs/ops/clarity-mcp.md`](../ops/clarity-mcp.md)
 - OKR state: [`docs/growth-okrs/active.md`](../growth-okrs/active.md)
 - Budget state: [`docs/growth-okrs/budget.md`](../growth-okrs/budget.md)

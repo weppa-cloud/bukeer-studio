@@ -9,6 +9,7 @@ import {
   type JsonRecord,
   type SupabaseLike,
 } from "@/lib/growth/autonomy/runtime-common";
+import { dataForSeoEvidenceGate } from "@/lib/growth/autonomy/dataforseo-provider-profile";
 
 const SENSITIVE_ACTIONS = new Set([
   "paid_mutation",
@@ -47,6 +48,24 @@ function targetFromEvidence(evidence: JsonRecord): JsonRecord {
     target_table: "growth_work_items",
     target_key: evidence.target_key ?? evidence.topic ?? "agentic-brain",
   };
+}
+
+function providerEvidenceBlocked(candidate: JsonRecord): string | null {
+  const actionClass = String(candidate.allowed_action_class ?? "");
+  if (
+    actionClass !== "content_publish" &&
+    actionClass !== "transcreation_merge" &&
+    actionClass !== "safe_apply"
+  ) {
+    return null;
+  }
+  const evidence = asRecord(candidate.evidence);
+  const dataForSeoEvidence = asRecord(evidence.dataforseo_evidence);
+  if (dataForSeoEvidence.required !== true) {
+    return "dataforseo_evidence_missing";
+  }
+  const verdict = dataForSeoEvidenceGate(dataForSeoEvidence);
+  return verdict.allowed ? null : (verdict.reason ?? "dataforseo_evidence_blocked");
 }
 
 async function insertCandidate({
@@ -179,6 +198,12 @@ export async function materializeBrainDecision({
       isSensitive(candidate)
     ) {
       blockedReasons.push(`sensitive_candidate:${candidate.allowed_action_class}`);
+    }
+    const providerBlock = providerEvidenceBlocked(candidate);
+    if (providerBlock) {
+      blockedReasons.push(
+        `provider_candidate:${candidate.allowed_action_class}:${providerBlock}`,
+      );
     }
   }
   for (const workItem of decision.proposed_work_items) {

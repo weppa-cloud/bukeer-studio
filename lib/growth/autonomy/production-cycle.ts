@@ -44,6 +44,7 @@ import {
 } from "./profile-freshness-gate";
 import { evaluateGrowthRuntimeQualityGate } from "./quality-gate";
 import { refreshGrowthProfiles } from "./profile-refresh";
+import { dataForSeoEvidenceGate } from "./dataforseo-provider-profile";
 import {
   actionClassForLane,
   asRecord,
@@ -108,6 +109,12 @@ const RUNTIME_FORBIDDEN_SURFACE_PATTERNS = [
   /crm/i,
   /outreach/i,
 ];
+
+const DATAFORSEO_GOVERNED_ACTIONS = new Set<GrowthAutonomyActionClass>([
+  "content_publish",
+  "transcreation_merge",
+  "safe_apply",
+]);
 
 function targetTableForAction(
   actionClass: GrowthAutonomyActionClass,
@@ -400,6 +407,21 @@ function forbiddenRuntimeSurfaceFailures({
     }
   }
   return Array.from(new Set(failures));
+}
+
+function dataForSeoRuntimeEvidenceFailure(
+  actionClass: GrowthAutonomyActionClass,
+  evidence: JsonRecord,
+): string | null {
+  if (!DATAFORSEO_GOVERNED_ACTIONS.has(actionClass)) return null;
+
+  const dataForSeoEvidence = asRecord(evidence.dataforseo_evidence);
+  if (dataForSeoEvidence.required !== true) {
+    return "dataforseo_evidence_missing";
+  }
+
+  const verdict = dataForSeoEvidenceGate(dataForSeoEvidence);
+  return verdict.allowed ? null : (verdict.reason ?? "dataforseo_evidence_blocked");
 }
 
 function withAdditionalSmokeFailures<T extends PublicationExecutionPlan>(
@@ -967,11 +989,30 @@ async function createExecutionBridgeChangeSet({
     checks: ["runtime_adapter_plan", ...payloadContract.checks],
     failures: missingPlanFailures,
   };
+  const dataForSeoEvidenceFailure = dataForSeoRuntimeEvidenceFailure(
+    actionClass,
+    evidence,
+  );
   const qualitySmoke = {
-    pass: adapterSmoke.pass && payloadContract.pass,
-    checks: Array.from(new Set([...adapterSmoke.checks, ...payloadContract.checks])),
+    pass:
+      adapterSmoke.pass &&
+      payloadContract.pass &&
+      dataForSeoEvidenceFailure === null,
+    checks: Array.from(
+      new Set([
+        ...adapterSmoke.checks,
+        ...payloadContract.checks,
+        "dataforseo_evidence_gate",
+      ]),
+    ),
     failures: Array.from(
-      new Set([...adapterSmoke.failures, ...payloadContract.failures]),
+      new Set([
+        ...adapterSmoke.failures,
+        ...payloadContract.failures,
+        ...(dataForSeoEvidenceFailure
+          ? [`provider_evidence:${dataForSeoEvidenceFailure}`]
+          : []),
+      ]),
     ),
   };
   const adapterTargetTable =

@@ -977,6 +977,42 @@ async function updateWaflowLeadLink(
   throw new Error(update.error.message);
 }
 
+async function reconcileDuplicateWebhookEvent(
+  supabase: ReturnType<typeof createSupabaseAdmin>,
+  payload: ChatwootPayload,
+  conversationId: string | null,
+): Promise<{
+  matched: boolean;
+  lifecycleEvents: LifecycleEvent[];
+  referenceCode: string | null;
+}> {
+  const lifecycleEvents = mapLifecycleEvents(payload);
+  const referenceCode = extractReferenceCode(payload);
+  const lead = await findWaflowLead(supabase, referenceCode);
+
+  if (!lead || !conversationId || lifecycleEvents.length === 0) {
+    return {
+      matched: Boolean(lead),
+      lifecycleEvents,
+      referenceCode,
+    };
+  }
+
+  await updateWaflowLeadLink(
+    supabase,
+    lead.id,
+    conversationId,
+    lifecycleEvents,
+    extractCustomAttributes(payload),
+  );
+
+  return {
+    matched: true,
+    lifecycleEvents,
+    referenceCode,
+  };
+}
+
 const LIFECYCLE_TO_FUNNEL_EVENT: Partial<
   Record<LifecycleEvent, FunnelEventName>
 > = {
@@ -1340,7 +1376,16 @@ export async function POST(request: NextRequest) {
       auth.signature,
     );
     if (insertStatus === "duplicate") {
-      return apiSuccess({ ok: true, deduped: true });
+      const duplicateReconciliation = await reconcileDuplicateWebhookEvent(
+        supabase,
+        payload,
+        conversationId,
+      );
+      return apiSuccess({
+        ok: true,
+        deduped: true,
+        reconciliation: duplicateReconciliation,
+      });
     }
 
     const lifecycleEvents = mapLifecycleEvents(payload);
