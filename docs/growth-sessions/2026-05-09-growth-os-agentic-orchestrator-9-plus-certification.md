@@ -294,3 +294,69 @@ Post-cleanup verification:
 - Draft duplicates with the same title: `62`
 
 Conclusion: the duplicate-content failure mode is now blocked at the executor boundary and the existing public duplicate set has been reduced to one canonical published post without deleting production rows.
+
+## 2026-05-10 Runtime Evidence Enrichment + Transcreation Dedupe Hardening
+
+Runtime adapter fix:
+
+- Commit deployed to `dev` and `main`: `be024b9c`
+- GitHub Actions deploy run: `25625683293`, status `success`
+- Runtime daemon restarted with `--git-sha=be024b9c`, `--max-claims-per-lane=3`, `--interval-ms=1800000`
+- Old daemon processes for `686a34ce` were stopped to avoid double scheduler execution.
+
+Local validation before deploy:
+
+- `npm test -- --runTestsByPath __tests__/lib/growth/autonomy/production-cycle.test.ts __tests__/lib/growth/providers/provider-clients.test.ts --runInBand`
+- Result: `13/13` passed.
+- `npm run typecheck`: passed.
+- `git diff --check`: passed.
+
+Live-gated cycle after runtime restart:
+
+- Cycle: `c896692c-c6ea-4e28-afae-4d813419347c`
+- Git SHA: `be024b9c`
+- Status: `completed`
+- Claims: `7`
+- Applied: `6`
+- Blocked: `1`
+- Outcomes evaluated: `3`
+- Production mutation performed: `true`
+
+Applied jobs from the cycle:
+
+- Technical `safe_apply`, `smoke_passed`:
+  - `d9cffe21-7c6e-4290-a5e3-30f8dcb7f1fa`
+  - `3d2033a6-f472-447b-b5d6-61392746787d`
+  - `78ae5468-f02b-4d27-89de-c6c80085e444`
+- Transcreation `transcreation_merge`, `smoke_passed`:
+  - `ea42c1a1-33fe-4e88-9fe8-8bc98af95f25`
+  - `0824610e-306e-4047-8291-b2f5bad1de64`
+  - `030a6405-51bb-41ce-b83e-4fb580effef1`
+
+Adapter hardening evidence:
+
+- `technical-remediation-v1` idempotency keys now measured at `98` chars.
+- `transcreation-merge-v1` idempotency keys now measured at `96` chars.
+- The prior `idempotency_key > 200` blocker is resolved.
+- Runtime can enrich legacy adapter work items with fresh `growth_dataforseo_cache` evidence before the quality gate; missing cache still blocks.
+
+Blocked correctly:
+
+- Work item `d7dcae2f-aede-44ac-9efb-52948df0f036`
+- Action: `content_publish`
+- Reason: `duplicate_content_title:e7a7ba70-7631-45d7-ae6d-571647bf94a0:brain-content-publish-viajes-personalizados-por-colombia`
+
+New transcreation anti-rework hardening:
+
+- Added runtime gate for duplicate `transcreation_merge` targets using canonical `target_path = pageType:targetLocale:sourceEntityId`.
+- Added regression test: duplicate transcreation target blocks before publication job insertion.
+- Cleaned active duplicate transcreation work items by marking them `blocked` with `duplicate_gate.reason = duplicate_transcreation_target`:
+  - `0dc0effa-fac3-41c8-8147-c4539e6252f5`
+  - `17f73757-794d-47f1-a929-55373ffd1223`
+  - `1cd951fb-e2e3-447d-acdf-dc831c8e6cf5`
+  - `20fe152b-f5c0-4499-8658-c77eb090830c`
+  - `3c275137-e2d1-4db4-a119-72a347eefc20`
+  - `59da5d73-65c8-4a54-ac5f-dc00e1f14455`
+  - `8aa314ed-b77d-438a-bbd2-1ecdc56d44b4`
+
+Conclusion: the runtime is now materially stronger than the prior certification point. It applies fresh DataForSEO-backed technical and transcreation work, blocks duplicate blog publication, and has a code-level transcreation anti-rework gate ready for deployment.

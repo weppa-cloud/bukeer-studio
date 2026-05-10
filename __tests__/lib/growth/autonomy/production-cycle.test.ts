@@ -535,6 +535,79 @@ describe("runGrowthOsProductionCycle adapter bridge", () => {
     );
   });
 
+  it("blocks duplicate transcreation merges for the same source entity and target locale", async () => {
+    const ops: Operation[] = [];
+    const workItem = {
+      id: ids.workItemId,
+      account_id: ids.accountId,
+      website_id: ids.websiteId,
+      lane: "transcreation",
+      status: "ready",
+      title: "Merge duplicate English localized variant",
+      allowed_action_class: "transcreation_merge",
+      risk_level: "low",
+      risk_score: 25,
+      evidence: {
+        dataforseo_evidence: dataForSeoEvidence("serp"),
+        correlation: evidenceCorrelation({
+          actionClass: "transcreation_merge",
+          entityKey: `seo_transcreation_jobs:${ids.transcreationJobId}`,
+          fingerprint: "sha256:test-serp",
+        }),
+        success_metric: "localized_organic_clicks:blog:en-US:guide",
+        adapter_input: {
+          source_locale: "es-CO",
+          target_locale: "en-US",
+          transcreation_job_id: ids.transcreationJobId,
+          page_type: "blog",
+          source_entity_id: ids.targetId,
+          glossary_terms: ["custom trips", "local experts"],
+          baseline: {
+            source_locale: "es-CO",
+            target_locale: "en-US",
+            organic_clicks: 0,
+          },
+          payload: {
+            title: "Colombia travel guide for custom trips",
+            slug: "colombia-travel-guide-custom-trips",
+            meta_title: "Colombia Travel Guide for Custom Trips",
+            meta_desc:
+              "Explore a Colombia travel guide written for custom trips, local context, and practical route planning across regions.",
+            body_overlay_v2: {
+              summary: "Localized body overlay for the English market.",
+            },
+          },
+          quality: { score: 0.92, passed: true },
+        },
+      },
+    };
+    const tables = baseTables(
+      workItem,
+      policy("transcreation", "transcreation_merge"),
+    );
+    tables.growth_publication_jobs = [
+      {
+        id: "abababab-abab-4aba-8aba-abababababab",
+        website_id: ids.websiteId,
+        work_item_id: "cdcdcdcd-cdcd-4cdc-8dcd-cdcdcdcdcdcd",
+        action_class: "transcreation_merge",
+        status: "smoke_passed",
+        target_path: `blog:en-US:${ids.targetId}`,
+      },
+    ];
+
+    await runCycle(tables, ops);
+
+    expect(tables.growth_publication_jobs).toHaveLength(1);
+    expect(tables.growth_agent_change_sets[0]).toMatchObject({
+      status: "blocked",
+      requires_human_review: true,
+    });
+    expect(tables.growth_agent_change_sets[0].summary).toContain(
+      "duplicate_transcreation_target",
+    );
+  });
+
   it("blocks provider-dependent legacy work items that lack DataForSEO evidence", async () => {
     const ops: Operation[] = [];
     const workItem = {

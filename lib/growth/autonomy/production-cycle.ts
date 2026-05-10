@@ -748,6 +748,35 @@ async function assertNoDuplicateBlogArticle({
   );
 }
 
+async function assertNoDuplicateTranscreationTarget({
+  supabase,
+  websiteId,
+  workItemId,
+  targetPath,
+}: {
+  supabase: SupabaseLike;
+  websiteId: string;
+  workItemId: string;
+  targetPath: string;
+}) {
+  const { data, error } = await supabase
+    .from("growth_publication_jobs")
+    .select("id,work_item_id,status,target_path")
+    .eq("website_id", websiteId)
+    .eq("action_class", "transcreation_merge")
+    .eq("target_path", targetPath)
+    .in("status", ["applying", "smoke_passed", "dry_run_ready"])
+    .limit(1);
+  if (error) {
+    throw new Error(`transcreation duplicate lookup failed: ${error.message}`);
+  }
+  const duplicate = Array.isArray(data) ? asRecord(data[0]) : asRecord(data);
+  if (!duplicate.id || duplicate.work_item_id === workItemId) return;
+  throw new Error(
+    `duplicate_transcreation_target:${String(duplicate.id)}:${targetPath}`,
+  );
+}
+
 async function buildPublicationExecutionPlan({
   supabase,
   accountId,
@@ -923,6 +952,13 @@ async function buildPublicationExecutionPlan({
         adapterInput.targetLocale,
         transcreation.target_locale,
       ) ?? locale;
+    const targetPath = `${normalizedPageType}:${targetLocale}:${sourceEntityId}`;
+    await assertNoDuplicateTranscreationTarget({
+      supabase,
+      websiteId,
+      workItemId: String(workItem.id),
+      targetPath,
+    });
 
     const plan = planTranscreationMerge({
       accountId,
