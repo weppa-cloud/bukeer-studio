@@ -1,4 +1,4 @@
-import { randomUUID } from "crypto";
+import { createHash, randomUUID } from "crypto";
 
 import type {
   AgentLane,
@@ -690,6 +690,18 @@ function candidateFromSignal({
   const signalId = signal ? rowId(signal) : null;
   const evidenceFingerprint =
     providerEvidence.read.evidence_fingerprint.replace(/^sha256:/, "");
+  const targetFingerprint = createHash("sha256")
+    .update(
+      JSON.stringify({
+        actionClass,
+        signalId,
+        titleSource,
+        target,
+        evidenceFingerprint,
+      }),
+    )
+    .digest("hex")
+    .slice(0, 24);
   return {
     candidate_type:
       actionClass === "safe_apply"
@@ -803,13 +815,7 @@ function candidateFromSignal({
       provider_evidence_reads: [providerEvidence.read],
     },
     provider_evidence_reads: [providerEvidence.read],
-    idempotency_key: [
-      "brain-provider",
-      actionClass,
-      signalId ?? String(titleSource).slice(0, 80),
-      JSON.stringify(target),
-      evidenceFingerprint,
-    ].join(":"),
+    idempotency_key: `brain-provider:${actionClass}:${signalId ?? "synthetic"}:${targetFingerprint}`,
   };
 }
 

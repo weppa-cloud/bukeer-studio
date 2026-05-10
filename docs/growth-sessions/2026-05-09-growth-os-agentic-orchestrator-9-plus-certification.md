@@ -140,3 +140,77 @@ Key repo changes:
 - The 24h monitor is still running; this report should not be treated as final 24h clean certification until the monitor window completes.
 - One earlier placeholder transcreation job was logged by the executor but did not touch a real row. It is excluded from the valid evidence count and the fallback was removed.
 - Firefox E2E requires `npx playwright install firefox` on the machine before it can be part of the gate.
+
+## 2026-05-10 DataForSEO Evidence-Governed Brain Addendum
+
+Objective: close the provider-evidence gap found after the live run. Brain-created candidates and runtime execution must now cite DataForSEO feature evidence, and provider-dependent work must be blocked when evidence is missing, stale or cost-gated.
+
+Implementation delivered:
+
+- Added `SPEC_GROWTH_OS_DATAFORSEO_EVIDENCE_GOVERNED_BRAIN.md` and indexed it in `docs/INDEX.md`.
+- Brain decisions now persist `provider_evidence_reads[]` and `evidence_fingerprints[]`.
+- Brain-created candidates now persist `evidence.dataforseo_evidence`.
+- Candidate idempotency now uses a compact deterministic hash, avoiding oversized keys.
+- Materializer blocks provider-dependent candidates without valid DataForSEO evidence.
+- Production cycle quality gate also blocks legacy provider-dependent work items without valid DataForSEO evidence.
+- CEO cockpit and Workboard expose provider evidence in the UI.
+
+Local validation on branch `dev`:
+
+```bash
+npm run typecheck
+npm test -- --runTestsByPath __tests__/lib/growth/autonomy/dataforseo-provider-profile.test.ts __tests__/lib/growth/agentic/decision-materializer.test.ts __tests__/schema/growth-agentic-orchestrator.test.ts __tests__/lib/growth/autonomy/profile-freshness-gate.test.ts __tests__/lib/growth/autonomy/production-cycle.test.ts
+npm run lint
+GROWTH_OS_UI_E2E_ENABLED=true npm run session:run -- --project=chromium --grep "CEO cockpit loads|Workboard tab loads|Experiments and Data Health"
+```
+
+Results:
+
+- Typecheck passed.
+- Unit/integration focal tests passed: 5 suites, 22 tests.
+- Lint passed with pre-existing warnings only.
+- E2E session pool passed: 4 tests, slot `s1`, port `3001`.
+
+Production dry-run:
+
+- Cycle: `6f94335a-8ceb-4a8d-ac5c-dda94f8d6cd9`
+- Decision: `6c1d1bc5-1fe4-4b83-9bda-dc7fd5926cb0`
+- Context snapshot: `6db3393a-c8e7-4085-a772-d46e8bb76e81`
+- Mutation performed: `false`
+- Provider reads cited:
+  - `onpage` — `excepted`, fingerprint `sha256:973581ef3c20ac4a63551d3e1b43d7c4af5958cc7dda535557d0359a58c2920b`
+  - `serp` — `available`, 39 rows, fingerprint `sha256:569dba2214eab2df8cf3772662bb1db7e62c61960b74f25085ebc6b5ea37ffcd`
+  - `labs_keywords` — `available`, 33 rows, fingerprint `sha256:935fe5140b6fb947552b57f14a89b71d73d6a6abf57562594918b642acf6c482`
+
+Production live-gated cycle:
+
+- Cycle: `8390e724-736c-4456-9f76-7b2a22a7674f`
+- Decision: `e406a6a7-bac1-4294-ac3b-7c3aab898edd`
+- Context snapshot: `f2564797-c7d3-46bd-9f7e-0496c9f6bb97`
+- Candidates created by brain: `14`
+- Task sessions created: `2`
+- Candidates promoted: `3`
+- Claims: `3`
+- Applied: `1`
+- Blocked by runtime evidence gate: `2`
+- Production mutation performed: `true`
+
+Applied live job:
+
+- Publication job: `a7da01aa-18b7-4414-a8f6-7dcfd323035a`
+- Work item: `60beb89a-56fa-4f6c-85bf-c558c4f958df`
+- Change set: `6592e193-0fb7-4f52-a78c-603ff341c36c`
+- Action: `content_publish`
+- Status: `smoke_passed`
+- Target: `website_blog_posts:38f6b2aa-dd0e-427e-a7cf-25b81cdb8777`
+- Path: `/blog/brain-content-publish-viajes-personalizados-por-colombia-60beb89a`
+- Outcome measuring: `b2959259-f82d-42fb-9a6f-bb1523a56298`, metric `organic_clicks:day_21`, evaluation date `2026-05-31`
+- Outcome scheduled: `36d31699-2bc1-44a8-a3c7-4c5fad022e1c`, metric `organic_clicks:day_45`, evaluation date `2026-06-24`
+
+Blocked legacy work:
+
+- Change set `e8f8a2c8-41fe-4ae6-9112-e1e8415233ed`, work item `ef9c8edf-3a3c-40ed-adb3-55581fad0e81`, action `safe_apply`
+- Change set `633eb1ff-b1b4-4e60-b8a6-c06153707d7b`, work item `98fdd9c0-2b6a-41a1-8344-85ed511a5008`, action `transcreation_merge`
+- Block reason: `smoke:provider_evidence:dataforseo_evidence_missing`
+
+Conclusion: the evidence-governed layer is now active in both creation and execution. New brain decisions cite DataForSEO provider reads; new provider-backed candidates carry explicit evidence; old work without evidence is blocked before mutation; valid provider-backed content can still publish through the live-gated executor with snapshot, smoke, rollback payload and outcome ledger.

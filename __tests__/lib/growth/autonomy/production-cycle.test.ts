@@ -288,6 +288,26 @@ function policy(lane: string, actionClass: string): Row {
   };
 }
 
+function dataForSeoEvidence(featureProfile = "serp"): Row {
+  return {
+    required: true,
+    status: "available",
+    feature_profile: featureProfile,
+    snapshot: {
+      provider: "dataforseo",
+      feature_profile: featureProfile,
+      access_status: "available",
+      endpoint_family: "test/dataforseo",
+      row_count: 3,
+      evidence_count: 3,
+      cache_ids: ["dataforseo-cache-test"],
+      fetched_at: "2026-05-08T00:00:00.000Z",
+      expires_at: "2026-05-15T00:00:00.000Z",
+    },
+    evidence_fingerprint: `sha256:test-${featureProfile}`,
+  };
+}
+
 async function runCycle(
   tables: Record<string, Row[]>,
   ops: Operation[],
@@ -321,6 +341,7 @@ describe("runGrowthOsProductionCycle adapter bridge", () => {
       risk_score: 20,
       source_id: ids.targetId,
       evidence: {
+        dataforseo_evidence: dataForSeoEvidence("onpage"),
         success_metric: "technical_smoke_pass:website_pages:seo_title",
         adapter_input: {
           target_table: "website_pages",
@@ -383,6 +404,7 @@ describe("runGrowthOsProductionCycle adapter bridge", () => {
       risk_level: "low",
       risk_score: 25,
       evidence: {
+        dataforseo_evidence: dataForSeoEvidence("serp"),
         success_metric: "localized_organic_clicks:blog:en-US:guide",
         adapter_input: {
           source_locale: "es-CO",
@@ -443,6 +465,54 @@ describe("runGrowthOsProductionCycle adapter bridge", () => {
     );
   });
 
+  it("blocks provider-dependent legacy work items that lack DataForSEO evidence", async () => {
+    const ops: Operation[] = [];
+    const workItem = {
+      id: ids.workItemId,
+      account_id: ids.accountId,
+      website_id: ids.websiteId,
+      lane: "technical_remediation",
+      status: "ready",
+      title: "Legacy technical fix without provider evidence",
+      allowed_action_class: "safe_apply",
+      risk_level: "low",
+      risk_score: 20,
+      source_id: ids.targetId,
+      evidence: {
+        success_metric: "technical_smoke_pass:website_pages:seo_title",
+        adapter_input: {
+          target_table: "website_pages",
+          target_id: ids.targetId,
+          before_row: {
+            seo_title: "Old Colombia custom travel page",
+          },
+          patch: {
+            seo_title: "Colombia custom travel planned by local experts",
+          },
+          baseline: {
+            changed_fields: ["seo_title"],
+            prior_values: { seo_title: "Old Colombia custom travel page" },
+          },
+        },
+      },
+    };
+    const tables = baseTables(workItem, policy("technical_remediation", "safe_apply"));
+
+    await runCycle(tables, ops);
+
+    expect(tables.website_pages[0].seo_title).toBe(
+      "Old Colombia custom travel page",
+    );
+    expect(tables.growth_publication_jobs).toHaveLength(0);
+    expect(tables.growth_agent_change_sets[0]).toMatchObject({
+      status: "blocked",
+      requires_human_review: true,
+    });
+    expect(
+      JSON.stringify(tables.growth_agent_change_sets[0].after_snapshot),
+    ).toContain("provider_evidence:dataforseo_evidence_missing");
+  });
+
   it("keeps pricing and CRM surfaces hard-blocked before publication jobs execute", async () => {
     const ops: Operation[] = [];
     const workItem = {
@@ -456,6 +526,7 @@ describe("runGrowthOsProductionCycle adapter bridge", () => {
       risk_level: "low",
       risk_score: 20,
       evidence: {
+        dataforseo_evidence: dataForSeoEvidence("onpage"),
         adapter_input: {
           target_table: "website_pages",
           target_id: ids.targetId,
@@ -503,6 +574,7 @@ describe("runGrowthOsProductionCycle adapter bridge", () => {
       risk_level: "low",
       risk_score: 20,
       evidence: {
+        dataforseo_evidence: dataForSeoEvidence("labs_keywords"),
         success_metric: "organic_clicks:blog:colombia-cultural-guide",
         baseline: { organic_clicks: 0, impressions: 0 },
         article_slug: "colombia-cultural-guide",
@@ -542,6 +614,7 @@ describe("runGrowthOsProductionCycle adapter bridge", () => {
       risk_level: "low",
       risk_score: 20,
       evidence: {
+        dataforseo_evidence: dataForSeoEvidence("labs_keywords"),
         success_metric: "organic_clicks:blog:certification-guide",
         baseline: { organic_clicks: 0, impressions: 0 },
         article_slug: "certification-guide",
