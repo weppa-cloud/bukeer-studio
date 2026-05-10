@@ -310,6 +310,28 @@ export interface ProviderFreshnessRow {
   blockers?: string[];
 }
 
+export interface ProviderProfileRunRow {
+  id: string;
+  provider: string;
+  profileId: string;
+  runStatus: string;
+  freshnessStatus: string;
+  entityKey: string | null;
+  actionKey: string | null;
+  evidenceFingerprint: string | null;
+  costUsd: number | null;
+  sourceRefs: string[];
+  blockers: string[];
+  circuitBreaker: {
+    state: string;
+    failureCount: number | null;
+    cooldownUntil: string | null;
+    lastErrorClass: string | null;
+  } | null;
+  approvalRequired: boolean;
+  updatedAt: string | null;
+}
+
 export interface AgentDefinitionsResult {
   agents: GrowthAgentDefinition[];
   runtimeByLane: Record<AgentLane, LaneRuntimeSummary>;
@@ -430,10 +452,12 @@ export interface GrowthOverview {
 
 export interface GrowthDataHealth {
   providerFreshness: ProviderFreshnessRow[];
+  providerProfileRuns: ProviderProfileRunRow[];
   runCounts: RunStatusCounts;
   runtimeHealth: RuntimeHealthSummary;
   warnings: {
     providerCacheMissing: boolean;
+    profileRunsMissing: boolean;
     runsTableMissing: boolean;
   };
 }
@@ -1144,6 +1168,145 @@ async function fetchProviderFreshness(
   };
 }
 
+function safeJsonRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function optionalString(value: unknown): string | null {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function stringList(value: unknown, limit = 6): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => String(item ?? "").trim())
+    .filter(Boolean)
+    .slice(0, limit);
+}
+
+function numericValue(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
+function circuitBreakerFrom(
+  value: unknown,
+): ProviderProfileRunRow["circuitBreaker"] {
+  const record = safeJsonRecord(value);
+  if (Object.keys(record).length === 0) return null;
+  return {
+    state:
+      optionalString(record.status) ??
+      optionalString(record.state) ??
+      optionalString(record.blocked_status) ??
+      "unknown",
+    failureCount:
+      numericValue(record.failure_count) ??
+      numericValue(record.failures) ??
+      numericValue(record.consecutive_failures),
+    cooldownUntil:
+      optionalString(record.cooldown_until) ??
+      optionalString(record.cooldownUntil) ??
+      optionalString(record.retry_after),
+    lastErrorClass:
+      optionalString(record.last_error_class) ??
+      optionalString(record.error_class) ??
+      optionalString(record.lastErrorClass),
+  };
+}
+
+async function fetchProviderProfileRuns(
+  websiteId: string,
+  accountId: string,
+): Promise<{
+  rows: ProviderProfileRunRow[];
+  missingTable: boolean;
+  errored: boolean;
+}> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await (
+    asTyped(supabase).from as unknown as (
+      table: string,
+    ) => ReturnType<typeof supabase.from>
+  )("growth_profile_runs")
+    .select("*")
+    .eq("account_id", accountId)
+    .eq("website_id", websiteId)
+    .limit(24);
+
+  if (error) {
+    if (isMissingRelation(error)) {
+      return { rows: [], missingTable: true, errored: false };
+    }
+    return { rows: [], missingTable: false, errored: true };
+  }
+
+  const rows = ((data ?? []) as Record<string, unknown>[]).map((row, index) => {
+    const approval = safeJsonRecord(row.approval);
+    const directSourceRefs = stringList(row.source_refs);
+    const payloadSourceRefs = stringList(safeJsonRecord(row.payload).source_refs);
+    const sourceRefs =
+      directSourceRefs.length > 0 ? directSourceRefs : payloadSourceRefs;
+    const blockers = [
+      ...stringList(row.blockers),
+      ...stringList(safeJsonRecord(row.payload).blockers),
+    ].slice(0, 6);
+    const runStatus =
+      optionalString(row.run_status) ??
+      optionalString(row.status) ??
+      "unknown";
+    const freshnessStatus =
+      optionalString(row.freshness_status) ??
+      optionalString(row.freshness) ??
+      (runStatus === "completed" ? "fresh" : runStatus);
+
+    return {
+      id:
+        optionalString(row.id) ??
+        optionalString(row.run_id) ??
+        `${optionalString(row.provider) ?? "provider"}:${index}`,
+      provider: optionalString(row.provider) ?? "provider",
+      profileId:
+        optionalString(row.profile_id) ??
+        optionalString(row.profile) ??
+        "profile",
+      runStatus,
+      freshnessStatus,
+      entityKey: optionalString(row.entity_key),
+      actionKey: optionalString(row.action_key),
+      evidenceFingerprint: optionalString(row.evidence_fingerprint),
+      costUsd: numericValue(row.cost_usd) ?? numericValue(row.cost),
+      sourceRefs,
+      blockers,
+      circuitBreaker: circuitBreakerFrom(row.circuit_breaker),
+      approvalRequired:
+        freshnessStatus === "approval_required" ||
+        runStatus === "cost_gated" ||
+        Object.keys(approval).length > 0,
+      updatedAt:
+        optionalString(row.updated_at) ??
+        optionalString(row.completed_at) ??
+        optionalString(row.created_at),
+    };
+  });
+
+  rows.sort(
+    (a, b) => Date.parse(b.updatedAt ?? "") - Date.parse(a.updatedAt ?? ""),
+  );
+
+  return {
+    rows,
+    missingTable: false,
+    errored: false,
+  };
+}
+
 const AgreementFileSchema = z.object({
   policy_version: z.string(),
   computed_at: z.string(),
@@ -1292,14 +1455,17 @@ export async function getGrowthDataHealth(
   websiteId: string,
 ): Promise<GrowthDataHealth> {
   const ctx = await requireGrowthRole(websiteId, "viewer");
-  const [providerResult, runsResult, runtimeHealth] = await Promise.all([
+  const [providerResult, profileRunsResult, runsResult, runtimeHealth] =
+    await Promise.all([
     fetchProviderFreshness(ctx.websiteId, ctx.accountId),
+    fetchProviderProfileRuns(ctx.websiteId, ctx.accountId),
     fetchRunCounts(ctx.websiteId, ctx.accountId),
     fetchRuntimeHealth(ctx.websiteId, ctx.accountId),
   ]);
 
   return {
     providerFreshness: providerResult.rows,
+    providerProfileRuns: profileRunsResult.rows,
     runCounts: runsResult.counts,
     runtimeHealth: {
       ...runtimeHealth,
@@ -1307,6 +1473,7 @@ export async function getGrowthDataHealth(
     },
     warnings: {
       providerCacheMissing: providerResult.missingTable,
+      profileRunsMissing: profileRunsResult.missingTable,
       runsTableMissing: runsResult.missingTable,
     },
   };

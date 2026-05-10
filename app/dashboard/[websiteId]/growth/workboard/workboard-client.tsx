@@ -91,6 +91,19 @@ function riskTone(risk: string | null): "neutral" | "warning" | "danger" {
   return "neutral";
 }
 
+function verdictTone(
+  verdict: string,
+): "neutral" | "info" | "success" | "warning" | "danger" {
+  const normalized = verdict.toLowerCase();
+  if (/(coalesce|backed|pass|fresh|scale)/.test(normalized)) return "success";
+  if (/(skip|skipped|watch|stale|approval)/.test(normalized)) return "warning";
+  if (/(block|blocked|failed|lost|rollback|cost_gated)/.test(normalized)) {
+    return "danger";
+  }
+  if (/(reopen|reopened|new)/.test(normalized)) return "info";
+  return "neutral";
+}
+
 function humanize(value: string | null | undefined): string {
   if (!value) return "-";
   return WORK_TYPE_LABELS[value] ?? value.replace(/_/g, " ");
@@ -490,10 +503,18 @@ function WorkboardCardView({
         ) : null}
 
         {card.providerEvidence ? (
-          <div className="mt-2" data-testid="growth-workboard-provider-evidence">
+          <div
+            className="mt-2 flex flex-wrap gap-1"
+            data-testid="growth-workboard-provider-evidence"
+          >
             <StudioBadge tone={card.providerEvidence.tone}>
               {card.providerEvidence.label}
             </StudioBadge>
+            {card.correlation ? (
+              <StudioBadge tone={verdictTone(card.correlation.verdict)}>
+                {card.correlation.verdict}
+              </StudioBadge>
+            ) : null}
           </div>
         ) : card.providerEvidenceMissing ? (
           <div
@@ -884,6 +905,32 @@ function WorkboardCardSheet({
                   </p>
                 ) : null}
               </section>
+
+              {card.correlation ? (
+                <section data-testid="growth-workboard-correlation-summary">
+                  <h3 className="text-sm font-semibold text-[var(--studio-text)]">
+                    Correlación anti-rework
+                  </h3>
+                  <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <DetailRow
+                      label="Veredicto"
+                      value={humanize(card.correlation.verdict)}
+                    />
+                    <DetailRow
+                      label="Entity"
+                      value={card.correlation.entityKey ?? "n/a"}
+                    />
+                    <DetailRow
+                      label="Action"
+                      value={card.correlation.actionKey ?? "n/a"}
+                    />
+                    <DetailRow
+                      label="Fingerprint"
+                      value={card.correlation.evidenceFingerprint ?? "n/a"}
+                    />
+                  </div>
+                </section>
+              ) : null}
             </>
           ) : null}
 
@@ -893,6 +940,104 @@ function WorkboardCardSheet({
 
           {activeTab === "Evidencia" ? (
             <>
+              {card.providerEvidenceReads.length > 0 ? (
+                <section data-testid="growth-workboard-provider-citations">
+                  <h3 className="text-sm font-semibold text-[var(--studio-text)]">
+                    Citas de provider
+                  </h3>
+                  <div className="mt-2 space-y-2">
+                    {card.providerEvidenceReads.map((read, index) => (
+                      <div
+                        key={`${read.provider}:${read.profileId ?? index}:${index}`}
+                        className="rounded border border-[var(--studio-border)] p-2 text-xs"
+                      >
+                        <div className="flex flex-wrap items-center gap-1">
+                          <StudioBadge tone="info">{read.provider}</StudioBadge>
+                          {read.profileId ? (
+                            <StudioBadge tone="neutral">
+                              {read.profileId}
+                            </StudioBadge>
+                          ) : null}
+                          {read.status ? (
+                            <StudioBadge tone={verdictTone(read.status)}>
+                              {read.status}
+                            </StudioBadge>
+                          ) : null}
+                          {read.freshnessStatus ? (
+                            <StudioBadge
+                              tone={verdictTone(read.freshnessStatus)}
+                            >
+                              {read.freshnessStatus}
+                            </StudioBadge>
+                          ) : null}
+                        </div>
+                        <dl className="mt-2 grid grid-cols-1 gap-1 sm:grid-cols-3">
+                          <DetailRow
+                            label="Source ref"
+                            value={read.sourceRef ?? "n/a"}
+                          />
+                          <DetailRow
+                            label="Cost"
+                            value={
+                              typeof read.costUsd === "number"
+                                ? `$${read.costUsd.toFixed(4)}`
+                                : "n/a"
+                            }
+                          />
+                          <DetailRow
+                            label="Citation"
+                            value={read.citation ?? "n/a"}
+                          />
+                        </dl>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              ) : null}
+
+              {card.correlation ? (
+                <section data-testid="growth-workboard-correlation-detail">
+                  <h3 className="text-sm font-semibold text-[var(--studio-text)]">
+                    Veredicto de correlación
+                  </h3>
+                  <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <DetailRow
+                      label="Veredicto"
+                      value={humanize(card.correlation.verdict)}
+                    />
+                    <DetailRow
+                      label="Correlation key"
+                      value={card.correlation.correlationKey ?? "n/a"}
+                    />
+                    <DetailRow
+                      label="Entity"
+                      value={card.correlation.entityKey ?? "n/a"}
+                    />
+                    <DetailRow
+                      label="Action"
+                      value={card.correlation.actionKey ?? "n/a"}
+                    />
+                  </div>
+                  {card.correlation.previousRefs.length > 0 ? (
+                    <div className="mt-2">
+                      <div className="text-xs font-medium text-[var(--studio-text)]">
+                        Previous refs
+                      </div>
+                      <ul className="mt-1 space-y-1 text-xs text-[var(--studio-text-muted)]">
+                        {card.correlation.previousRefs.map((ref) => (
+                          <li
+                            key={ref}
+                            className="rounded border border-[var(--studio-border)] px-2 py-1"
+                          >
+                            {ref}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+                </section>
+              ) : null}
+
               {card.evidenceRefs.length > 0 ? (
                 <section>
                   <h3 className="text-sm font-semibold text-[var(--studio-text)]">

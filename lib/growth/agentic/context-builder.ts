@@ -197,6 +197,8 @@ export async function buildGrowthAgentContext(
   const context: JsonRecord = {
     objective: OBJECTIVE,
     generated_at: now.toISOString(),
+    account_id: options.accountId,
+    website_id: options.websiteId,
     lane,
     wakeup: options.wakeup
       ? {

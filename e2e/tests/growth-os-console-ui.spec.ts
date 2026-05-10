@@ -435,6 +435,23 @@ test.describe("Growth OS console UI contract @growth-os-ui", () => {
         await expect(
           page.getByTestId("growth-workboard-detail-sheet"),
         ).toContainText(/resumen para marketing|preview|evidencia|tools/i);
+        await page.getByRole("button", { name: "Evidencia" }).click();
+        const providerCitations = page.getByTestId(
+          "growth-workboard-provider-citations",
+        );
+        const correlationDetail = page.getByTestId(
+          "growth-workboard-correlation-detail",
+        );
+        if (await providerCitations.isVisible().catch(() => false)) {
+          await expect(providerCitations).toContainText(
+            /citas de provider|source ref|cost|citation/i,
+          );
+        }
+        if (await correlationDetail.isVisible().catch(() => false)) {
+          await expect(correlationDetail).toContainText(
+            /veredicto|correlation key|entity|action/i,
+          );
+        }
         await page.getByRole("button", { name: "Preview" }).click();
         await expect(
           page.getByTestId("growth-workboard-preview-panel"),
@@ -595,6 +612,10 @@ test.describe("Growth OS console UI contract @growth-os-ui", () => {
     await expect(page.getByText(/DataForSEO feature profiles/i)).toBeVisible({
       timeout: 10_000,
     });
+    await expect(page.getByTestId("growth-provider-profile-runs")).toBeVisible();
+    await expect(page.getByTestId("growth-provider-profile-runs")).toContainText(
+      /Provider profile coverage|freshness|cost|blockers|circuit-breaker/i,
+    );
   });
 
   test("Mobile Growth OS surfaces do not create document-level horizontal overflow", async ({

@@ -308,6 +308,30 @@ function dataForSeoEvidence(featureProfile = "serp"): Row {
   };
 }
 
+function evidenceCorrelation({
+  actionClass,
+  entityKey,
+  fingerprint,
+  family = "runtime_test",
+}: {
+  actionClass: string;
+  entityKey: string;
+  fingerprint: string;
+  family?: string;
+}): Row {
+  const actionKey = `${actionClass}:${entityKey}`;
+  return {
+    entity_key: entityKey,
+    action_key: actionKey,
+    correlation_key: `${ids.websiteId}:${family}:${actionKey}`,
+    evidence_fingerprint: fingerprint,
+    dedupe_verdict: "new",
+    reason: "test_provider_evidence_ready",
+    previous_refs: [],
+    materially_new_evidence: false,
+  };
+}
+
 async function runCycle(
   tables: Record<string, Row[]>,
   ops: Operation[],
@@ -342,6 +366,11 @@ describe("runGrowthOsProductionCycle adapter bridge", () => {
       source_id: ids.targetId,
       evidence: {
         dataforseo_evidence: dataForSeoEvidence("onpage"),
+        correlation: evidenceCorrelation({
+          actionClass: "safe_apply",
+          entityKey: `website_pages:${ids.targetId}`,
+          fingerprint: "sha256:test-onpage",
+        }),
         success_metric: "technical_smoke_pass:website_pages:seo_title",
         adapter_input: {
           target_table: "website_pages",
@@ -405,6 +434,11 @@ describe("runGrowthOsProductionCycle adapter bridge", () => {
       risk_score: 25,
       evidence: {
         dataforseo_evidence: dataForSeoEvidence("serp"),
+        correlation: evidenceCorrelation({
+          actionClass: "transcreation_merge",
+          entityKey: `seo_transcreation_jobs:${ids.transcreationJobId}`,
+          fingerprint: "sha256:test-serp",
+        }),
         success_metric: "localized_organic_clicks:blog:en-US:guide",
         adapter_input: {
           source_locale: "es-CO",
@@ -615,6 +649,11 @@ describe("runGrowthOsProductionCycle adapter bridge", () => {
       risk_score: 20,
       evidence: {
         dataforseo_evidence: dataForSeoEvidence("labs_keywords"),
+        correlation: evidenceCorrelation({
+          actionClass: "content_publish",
+          entityKey: "website_blog_posts:/blog/certification-guide",
+          fingerprint: "sha256:test-labs_keywords",
+        }),
         success_metric: "organic_clicks:blog:certification-guide",
         baseline: { organic_clicks: 0, impressions: 0 },
         article_slug: "certification-guide",

@@ -424,6 +424,22 @@ function dataForSeoRuntimeEvidenceFailure(
   return verdict.allowed ? null : (verdict.reason ?? "dataforseo_evidence_blocked");
 }
 
+function growthCorrelationRuntimeFailure(
+  actionClass: GrowthAutonomyActionClass,
+  evidence: JsonRecord,
+): string | null {
+  if (!DATAFORSEO_GOVERNED_ACTIONS.has(actionClass)) return null;
+  const correlation = asRecord(evidence.correlation);
+  const verdict = String(correlation.dedupe_verdict ?? "");
+  if (!correlation.correlation_key || !correlation.evidence_fingerprint) {
+    return "growth_evidence_correlation_missing";
+  }
+  if (verdict === "skip" || verdict === "block") {
+    return `growth_evidence_${verdict}:${String(correlation.reason ?? "anti_rework_gate")}`;
+  }
+  return null;
+}
+
 function withAdditionalSmokeFailures<T extends PublicationExecutionPlan>(
   plan: T,
   failures: string[],
@@ -993,16 +1009,22 @@ async function createExecutionBridgeChangeSet({
     actionClass,
     evidence,
   );
+  const growthCorrelationFailure = growthCorrelationRuntimeFailure(
+    actionClass,
+    evidence,
+  );
   const qualitySmoke = {
     pass:
       adapterSmoke.pass &&
       payloadContract.pass &&
-      dataForSeoEvidenceFailure === null,
+      dataForSeoEvidenceFailure === null &&
+      growthCorrelationFailure === null,
     checks: Array.from(
       new Set([
         ...adapterSmoke.checks,
         ...payloadContract.checks,
         "dataforseo_evidence_gate",
+        "growth_evidence_correlation_gate",
       ]),
     ),
     failures: Array.from(
@@ -1011,6 +1033,9 @@ async function createExecutionBridgeChangeSet({
         ...payloadContract.failures,
         ...(dataForSeoEvidenceFailure
           ? [`provider_evidence:${dataForSeoEvidenceFailure}`]
+          : []),
+        ...(growthCorrelationFailure
+          ? [`provider_evidence:${growthCorrelationFailure}`]
           : []),
       ]),
     ),

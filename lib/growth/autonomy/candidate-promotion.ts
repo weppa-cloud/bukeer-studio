@@ -88,6 +88,33 @@ function dataQualityFailures(candidate: GrowthOpportunityCandidate): string[] {
   });
 }
 
+function correlationFailures(candidate: GrowthOpportunityCandidate): string[] {
+  const evidence = candidate.evidence as JsonRecord;
+  const correlation = (evidence.correlation ?? {}) as JsonRecord;
+  const verdict = String(correlation.dedupe_verdict ?? "");
+  if (["block", "skip", "coalesce"].includes(verdict)) {
+    return [`correlation_${verdict}`];
+  }
+  return [];
+}
+
+function workItemIdempotencyKey(candidate: GrowthOpportunityCandidate): string {
+  const evidence = candidate.evidence as JsonRecord;
+  const correlation = (evidence.correlation ?? {}) as JsonRecord;
+  const correlationKey =
+    typeof correlation.correlation_key === "string"
+      ? correlation.correlation_key
+      : null;
+  const fingerprint =
+    typeof correlation.evidence_fingerprint === "string"
+      ? correlation.evidence_fingerprint
+      : null;
+  if (correlationKey && fingerprint) {
+    return `candidate:${correlationKey}:${fingerprint}`.slice(0, 240);
+  }
+  return `candidate:${candidate.id}`;
+}
+
 export function buildPromotedWorkItem(
   candidate: GrowthOpportunityCandidate,
   profiles: GrowthProfile[],
@@ -105,6 +132,7 @@ export function buildPromotedWorkItem(
     ...freshness.stale.map((profile) => `stale:${profile}`),
     ...freshness.lowConfidence.map((profile) => `low_confidence:${profile}`),
     ...dataQualityFailures(candidate),
+    ...correlationFailures(candidate),
   ];
   if (missingMetric) blockingReasons.push("missing_metric_or_evaluation_window");
   if (missingEvidence) blockingReasons.push("missing_evidence");
@@ -165,7 +193,7 @@ export function buildPromotedWorkItem(
         blocking_reason: null,
       },
       source_refs: sourceRefs(candidate),
-      idempotency_key: `candidate:${candidate.id}`,
+      idempotency_key: workItemIdempotencyKey(candidate),
       created_by: "growth_candidate_promotion",
     },
   };

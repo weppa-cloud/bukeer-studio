@@ -93,6 +93,7 @@ const GrowthSignalFactBaseSchema = GrowthTenantScopeSchema.extend({
   expires_at: DateTimeSchema,
   confidence: z.number().min(0).max(1).default(0.7),
   payload: NonEmptyJsonRecordSchema,
+  provider_profile_id: z.string().min(1).max(120).nullable().default(null),
   idempotency_key: z.string().min(8).max(240),
 });
 

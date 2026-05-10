@@ -27,9 +27,16 @@ function providerTone(
 ): "neutral" | "success" | "warning" | "danger" | "info" {
   const normalized = status.toLowerCase();
   if (/(pass|connected|success|ok|fresh)/.test(normalized)) return "success";
-  if (/(watch|stale|expired|pending)/.test(normalized)) return "warning";
-  if (/(blocked|error|failed|missing)/.test(normalized)) return "danger";
+  if (/(watch|stale|expired|pending|approval)/.test(normalized))
+    return "warning";
+  if (/(blocked|error|failed|missing|cost_gated|quota)/.test(normalized))
+    return "danger";
   return "info";
+}
+
+function formatCost(value: number | null | undefined): string {
+  if (typeof value !== "number") return "n/a";
+  return `$${value.toFixed(4)}`;
 }
 
 export default async function GrowthDataHealthPage({
@@ -66,13 +73,13 @@ export default async function GrowthDataHealthPage({
         </h2>
         <article className="rounded-md border border-[var(--studio-border)] p-4">
           <div className="text-xs uppercase tracking-wide text-[var(--studio-text-muted)]">
-            Provider rows
+            Provider profiles
           </div>
           <div className="mt-1 text-2xl font-semibold">
-            {health.providerFreshness.length}
+            {health.providerProfileRuns.length}
           </div>
           <p className="mt-1 text-xs text-[var(--studio-text-muted)]">
-            GSC, GA4, DataForSEO, tracking or LLM when available.
+            Freshness, cost and blocker rows from growth_profile_runs.
           </p>
         </article>
         <article className="rounded-md border border-[var(--studio-border)] p-4">
@@ -393,6 +400,140 @@ export default async function GrowthDataHealthPage({
                     </div>
                   ) : null}
                 </dl>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section
+        aria-labelledby="provider-profile-runs-heading"
+        data-testid="growth-provider-profile-runs"
+        className="mt-6 space-y-3"
+      >
+        <header>
+          <h2
+            id="provider-profile-runs-heading"
+            className="text-base font-semibold text-[var(--studio-text)]"
+          >
+            Provider profile coverage
+          </h2>
+          <p className="text-sm text-[var(--studio-text-muted)]">
+            Ledger scoped to this tenant/website. It exposes coverage,
+            freshness, cost, blockers and circuit-breaker state without
+            starting provider calls.
+          </p>
+        </header>
+
+        {health.warnings.profileRunsMissing ? (
+          <StudioEmptyState
+            title="Provider profile ledger no provisionado"
+            description="La tabla growth_profile_runs no existe en este entorno; usa la cache de provider como respaldo."
+          />
+        ) : health.providerProfileRuns.length === 0 ? (
+          <StudioEmptyState
+            title="Sin provider profile runs"
+            description="No hay ejecuciones de perfiles GSC/GA4/DataForSEO/Clarity para este tenant."
+          />
+        ) : (
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+            {health.providerProfileRuns.map((run) => (
+              <article
+                key={run.id}
+                className="rounded-md border border-[var(--studio-border)] p-4"
+                data-testid="growth-provider-profile-run"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <h3 className="font-semibold">
+                      {run.provider} / {run.profileId}
+                    </h3>
+                    <p className="mt-1 text-xs text-[var(--studio-text-muted)]">
+                      {run.entityKey ?? "site-wide"}
+                      {run.actionKey ? ` · ${run.actionKey}` : ""}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    <StudioBadge tone={providerTone(run.freshnessStatus)}>
+                      {run.freshnessStatus}
+                    </StudioBadge>
+                    <StudioBadge tone={providerTone(run.runStatus)}>
+                      {run.runStatus}
+                    </StudioBadge>
+                  </div>
+                </div>
+
+                <dl className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <dt className="text-[var(--studio-text-muted)]">Cost</dt>
+                    <dd className="font-semibold">{formatCost(run.costUsd)}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-[var(--studio-text-muted)]">
+                      Updated
+                    </dt>
+                    <dd>{formatDate(run.updatedAt)}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-[var(--studio-text-muted)]">
+                      Approval
+                    </dt>
+                    <dd>
+                      {run.approvalRequired
+                        ? "approval required"
+                        : "not required"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-[var(--studio-text-muted)]">
+                      Circuit breaker
+                    </dt>
+                    <dd>
+                      {run.circuitBreaker
+                        ? `${run.circuitBreaker.state} · failures ${
+                            run.circuitBreaker.failureCount ?? 0
+                          }`
+                        : "clear"}
+                    </dd>
+                  </div>
+                </dl>
+
+                {run.circuitBreaker?.cooldownUntil ? (
+                  <p className="mt-2 rounded border border-amber-200 bg-amber-50 px-2 py-1 text-xs text-amber-800">
+                    Cooldown until{" "}
+                    {formatDate(run.circuitBreaker.cooldownUntil)}
+                    {run.circuitBreaker.lastErrorClass
+                      ? ` · ${run.circuitBreaker.lastErrorClass}`
+                      : ""}
+                  </p>
+                ) : null}
+
+                {run.blockers.length > 0 ? (
+                  <div className="mt-3">
+                    <div className="text-xs font-medium text-[var(--studio-text)]">
+                      Blockers
+                    </div>
+                    <ul className="mt-1 space-y-1 text-xs text-[var(--studio-text-muted)]">
+                      {run.blockers.map((blocker) => (
+                        <li
+                          key={blocker}
+                          className="rounded border border-[var(--studio-border)] px-2 py-1"
+                        >
+                          {blocker}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+
+                <div className="mt-3 text-xs text-[var(--studio-text-muted)]">
+                  Fingerprint: {run.evidenceFingerprint ?? "n/a"}
+                </div>
+                {run.sourceRefs.length > 0 ? (
+                  <div className="mt-2 text-xs text-[var(--studio-text-muted)]">
+                    Source refs: {run.sourceRefs.join(", ")}
+                  </div>
+                ) : null}
               </article>
             ))}
           </div>

@@ -756,6 +756,35 @@ export type {
 } from './schemas/growth-profile-flow';
 
 export {
+  GrowthProviderSchema,
+  GrowthProviderProfileRunStatusSchema,
+  GrowthProviderFreshnessStatusSchema,
+  GrowthProviderQualityStatusSchema,
+  GrowthProviderCostModeSchema,
+  GrowthEvidenceDedupeVerdictSchema,
+  GrowthProviderApprovalSchema,
+  GrowthProviderCircuitBreakerSchema,
+  ProviderProfileRunSchema,
+  ProviderProfileRunInsertSchema,
+  ProviderEvidenceReadSchema,
+  GrowthEvidenceCorrelationResultSchema,
+} from './schemas/growth-provider-intelligence';
+export type {
+  GrowthProvider,
+  GrowthProviderProfileRunStatus,
+  GrowthProviderFreshnessStatus,
+  GrowthProviderQualityStatus,
+  GrowthProviderCostMode,
+  GrowthEvidenceDedupeVerdict,
+  GrowthProviderApproval,
+  GrowthProviderCircuitBreaker,
+  ProviderProfileRun,
+  ProviderProfileRunInsert,
+  ProviderEvidenceRead,
+  GrowthEvidenceCorrelationResult,
+} from './schemas/growth-provider-intelligence';
+
+export {
   GrowthRuntimeCycleStatusSchema,
   GrowthRuntimeCycleTriggerSchema,
   GrowthRuntimeCycleStageSchema,

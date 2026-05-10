@@ -9,6 +9,8 @@ import type {
   GrowthProfileType,
 } from "@bukeer/website-contract";
 
+import { createHash } from "crypto";
+
 import {
   evaluateProfileFreshnessGate,
   requirementsForAction,
@@ -52,6 +54,237 @@ interface CandidateMapping {
   targetTable: string;
   successMetric: string;
   evaluationWindow: GrowthOutcomeEvaluationWindow;
+}
+
+export type GrowthEvidenceDedupeVerdict =
+  | "new"
+  | "coalesce"
+  | "skip"
+  | "block"
+  | "reopen"
+  | "follow_up";
+
+export interface GrowthEvidenceCorrelationResult {
+  entity_key: string;
+  action_key: string;
+  correlation_key: string;
+  evidence_fingerprint: string;
+  dedupe_verdict: GrowthEvidenceDedupeVerdict;
+  reason: string;
+  previous_refs: string[];
+  materially_new_evidence: boolean;
+}
+
+const VOLATILE_EVIDENCE_KEYS = new Set([
+  "cycle_id",
+  "created_at",
+  "updated_at",
+  "generated_at",
+  "observed_at",
+  "fetched_at",
+  "expires_at",
+  "run_id",
+  "provider_run_id",
+  "profile_run_id",
+  "context_snapshot_id",
+  "orchestrator_decision_id",
+]);
+
+function stableEvidenceValue(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(stableEvidenceValue);
+  if (!value || typeof value !== "object") return value;
+  const record = value as JsonRecord;
+  return Object.fromEntries(
+    Object.keys(record)
+      .filter((key) => !VOLATILE_EVIDENCE_KEYS.has(key))
+      .sort()
+      .map((key) => [key, stableEvidenceValue(record[key])]),
+  );
+}
+
+function sha256Json(value: unknown): string {
+  return `sha256:${createHash("sha256")
+    .update(JSON.stringify(stableEvidenceValue(value)))
+    .digest("hex")}`;
+}
+
+function firstString(...values: unknown[]): string | null {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return null;
+}
+
+function targetEntityKey(evidence: JsonRecord, fallbackEntity?: JsonRecord): string {
+  const target = asRecord(evidence.target);
+  const signalPayload = asRecord(evidence.signal_payload);
+  const table = firstString(
+    target.target_table,
+    target.table,
+    evidence.target_table,
+    fallbackEntity?.entity_table,
+    signalPayload.target_table,
+  );
+  const id = firstString(
+    target.target_id,
+    target.id,
+    evidence.target_id,
+    fallbackEntity?.entity_id,
+    signalPayload.target_id,
+  );
+  const path = firstString(
+    target.target_path,
+    target.path,
+    evidence.target_path,
+    fallbackEntity?.entity_path,
+    signalPayload.target_path,
+    signalPayload.slug,
+  );
+  const keyword = firstString(
+    signalPayload.query,
+    signalPayload.keyword,
+    evidence.query,
+    evidence.keyword,
+  );
+  if (table && id) return `${table}:${id}`;
+  if (table && path) return `${table}:${path}`;
+  if (path) return `url:${path}`;
+  if (keyword) return `keyword:${keyword.toLowerCase()}`;
+  return firstString(fallbackEntity?.id, evidence.target_key, target.target_key) ??
+    "unknown_entity";
+}
+
+function evidenceFingerprint(evidence: JsonRecord): string {
+  const correlation = asRecord(evidence.correlation);
+  const explicit = firstString(
+    correlation.evidence_fingerprint,
+    evidence.evidence_fingerprint,
+    asRecord(evidence.dataforseo_evidence).evidence_fingerprint,
+  );
+  if (explicit) return explicit.startsWith("sha256:") ? explicit : `sha256:${explicit}`;
+  const reads = Array.isArray(evidence.provider_evidence_reads)
+    ? evidence.provider_evidence_reads
+    : [];
+  const readFingerprints = reads
+    .map((read) => firstString(asRecord(read).evidence_fingerprint))
+    .filter((value): value is string => Boolean(value))
+    .sort();
+  if (readFingerprints.length > 0) return sha256Json(readFingerprints);
+  return sha256Json(evidence);
+}
+
+function correlationFromWorkItem(row: JsonRecord): JsonRecord {
+  return asRecord(asRecord(row.evidence).correlation);
+}
+
+function rowRef(table: string, row: JsonRecord): string | null {
+  return typeof row.id === "string" ? `${table}:${row.id}` : null;
+}
+
+function linkedOutcomeRows(
+  workItems: JsonRecord[],
+  outcomes: JsonRecord[],
+): JsonRecord[] {
+  const ids = new Set(workItems.map((row) => row.id).filter(Boolean));
+  return outcomes.filter((row) => ids.has(row.work_item_id));
+}
+
+export function evaluateGrowthEvidenceCorrelation({
+  websiteId,
+  decisionFamily,
+  actionClass,
+  evidence,
+  sourceEntity,
+  priorWorkItems = [],
+  priorOutcomes = [],
+  now = new Date(),
+}: {
+  websiteId: string;
+  decisionFamily: string;
+  actionClass: string;
+  evidence: JsonRecord;
+  sourceEntity?: JsonRecord;
+  priorWorkItems?: JsonRecord[];
+  priorOutcomes?: JsonRecord[];
+  now?: Date;
+}): GrowthEvidenceCorrelationResult {
+  const entityKey = firstString(asRecord(evidence.correlation).entity_key) ??
+    targetEntityKey(evidence, sourceEntity);
+  const actionKey =
+    firstString(asRecord(evidence.correlation).action_key) ??
+    `${actionClass}:${entityKey}`;
+  const correlationKey =
+    firstString(asRecord(evidence.correlation).correlation_key) ??
+    `${websiteId}:${decisionFamily}:${actionKey}`;
+  const fingerprint = evidenceFingerprint(evidence);
+  const relatedWork = priorWorkItems.filter((row) => {
+    const correlation = correlationFromWorkItem(row);
+    return (
+      correlation.correlation_key === correlationKey ||
+      (correlation.action_key === actionKey &&
+        correlation.entity_key === entityKey)
+    );
+  });
+  const previousRefs = [
+    ...relatedWork.map((row) => rowRef("growth_work_items", row)),
+    ...linkedOutcomeRows(relatedWork, priorOutcomes).map((row) =>
+      rowRef("growth_work_item_outcomes", row),
+    ),
+  ].filter((ref): ref is string => Boolean(ref));
+  const relatedOutcomes = linkedOutcomeRows(relatedWork, priorOutcomes);
+  const sameFingerprint = relatedWork.some(
+    (row) => correlationFromWorkItem(row).evidence_fingerprint === fingerprint,
+  );
+  const materiallyNewEvidence = relatedWork.length > 0 && !sameFingerprint;
+  const hasMeasuring = relatedOutcomes.some((row) => {
+    const status = String(row.status ?? "");
+    if (status === "scheduled" || status === "measuring") {
+      const evaluationDate = firstString(row.evaluation_date);
+      return !evaluationDate || Date.parse(evaluationDate) >= now.getTime();
+    }
+    return false;
+  });
+  const hasWon = relatedOutcomes.some((row) => row.status === "won");
+  const hasLost = relatedOutcomes.some((row) => row.status === "lost");
+  const hasRollback = relatedOutcomes.some((row) =>
+    ["rolled_back", "smoke_failed"].includes(String(row.status ?? "")),
+  );
+  const failureFixed =
+    asRecord(evidence.failure_fix).confirmed === true ||
+    asRecord(evidence.rollback_resolution).confirmed === true;
+
+  let dedupeVerdict: GrowthEvidenceDedupeVerdict = "new";
+  let reason = "no_prior_correlated_work";
+  if (hasRollback && !failureFixed) {
+    dedupeVerdict = "block";
+    reason = "prior_rollback_or_smoke_failure";
+  } else if (hasMeasuring) {
+    dedupeVerdict = "skip";
+    reason = "prior_work_still_measuring";
+  } else if (hasWon) {
+    dedupeVerdict = "block";
+    reason = "prior_won_same_action";
+  } else if (hasLost && !materiallyNewEvidence) {
+    dedupeVerdict = "block";
+    reason = "prior_lost_without_new_evidence";
+  } else if (materiallyNewEvidence && (hasLost || relatedWork.length > 0)) {
+    dedupeVerdict = hasLost ? "reopen" : "follow_up";
+    reason = hasLost ? "materially_new_evidence_reopens_prior" : "materially_new_follow_up";
+  } else if (sameFingerprint) {
+    dedupeVerdict = "coalesce";
+    reason = "same_evidence_same_action";
+  }
+
+  return {
+    entity_key: entityKey,
+    action_key: actionKey,
+    correlation_key: correlationKey,
+    evidence_fingerprint: fingerprint,
+    dedupe_verdict: dedupeVerdict,
+    reason,
+    previous_refs: previousRefs,
+    materially_new_evidence: materiallyNewEvidence,
+  };
 }
 
 function mappingForSignal(row: JsonRecord): CandidateMapping | null {
@@ -355,7 +588,27 @@ export async function discoverGrowthOpportunityCandidates(
     .eq("market", input.market ?? "CO");
   if (profileError) throw new Error(`candidate profile lookup failed: ${profileError.message}`);
 
+  const [{ data: workItemRows, error: workItemError }, { data: outcomeRows, error: outcomeError }] =
+    await Promise.all([
+      input.supabase
+        .from("growth_work_items")
+        .select("id,status,allowed_action_class,evidence,updated_at")
+        .eq("account_id", input.accountId)
+        .eq("website_id", input.websiteId)
+        .limit(200),
+      input.supabase
+        .from("growth_work_item_outcomes")
+        .select("id,work_item_id,status,evaluation_date,evaluation_window,updated_at")
+        .eq("account_id", input.accountId)
+        .eq("website_id", input.websiteId)
+        .limit(200),
+    ]);
+  if (workItemError) throw new Error(`candidate work item lookup failed: ${workItemError.message}`);
+  if (outcomeError) throw new Error(`candidate outcome lookup failed: ${outcomeError.message}`);
+
   const profiles = (profileRows ?? []) as GrowthProfile[];
+  const priorWorkItems = (workItemRows ?? []) as JsonRecord[];
+  const priorOutcomes = (outcomeRows ?? []) as JsonRecord[];
   const candidates: GrowthOpportunityCandidateInsert[] = [];
 
   for (const rawRow of (signalRows ?? []) as JsonRecord[]) {
@@ -391,8 +644,30 @@ export async function discoverGrowthOpportunityCandidates(
       rawRow.entity_id ??
       mapping.candidateType;
 
-    candidates.push(
-      scoreOpportunityCandidate({
+    const baseEvidence = {
+      source: "growth_runtime_candidate_discovery",
+      cycle_id: input.cycleId ?? null,
+      signal_fact_id: signalId || null,
+      signal_payload: payload,
+      target,
+      rollback_expectation: rollback,
+      baseline,
+      dataforseo_evidence: dataforseoEvidence,
+      source_refs: signalId ? [`growth_signal_facts:${signalId}`] : [],
+    };
+    const correlation = evaluateGrowthEvidenceCorrelation({
+      websiteId: input.websiteId,
+      decisionFamily: mapping.candidateType,
+      actionClass: mapping.actionClass,
+      evidence: baseEvidence,
+      sourceEntity: rawRow,
+      priorWorkItems,
+      priorOutcomes,
+      now,
+    });
+    if (correlation.dedupe_verdict === "skip") continue;
+
+    const candidate = scoreOpportunityCandidate({
         accountId: input.accountId,
         websiteId: input.websiteId,
         locale: input.locale ?? "es-CO",
@@ -407,25 +682,30 @@ export async function discoverGrowthOpportunityCandidates(
         urgencyScore: urgency,
         costScore: cost,
         riskScore: risk,
-        idempotencyKey: `runtime:${input.cycleId ?? "cycle"}:${signalId || JSON.stringify(payload).slice(0, 80)}`,
+        idempotencyKey:
+          correlation.dedupe_verdict === "coalesce"
+            ? `correlation:${correlation.correlation_key}:${correlation.evidence_fingerprint}`
+            : `runtime:${input.cycleId ?? "cycle"}:${signalId || JSON.stringify(payload).slice(0, 80)}`,
         evidence: {
-          source: "growth_runtime_candidate_discovery",
-          cycle_id: input.cycleId ?? null,
-          signal_fact_id: signalId || null,
-          signal_payload: payload,
-          target,
-          rollback_expectation: rollback,
-          baseline,
-          dataforseo_evidence: dataforseoEvidence,
-          source_refs: signalId ? [`growth_signal_facts:${signalId}`] : [],
+          ...baseEvidence,
+          correlation,
         },
         requiredProfileTypes: mapping.requiredProfileTypes,
         freshness,
         successMetric: `${mapping.successMetric}:${metricSubject}`,
         evaluationWindow: mapping.evaluationWindow,
         sourceSignalFactIds: signalId ? [signalId] : [],
-      }),
-    );
+      });
+    if (correlation.dedupe_verdict === "block") {
+      candidate.status = "blocked";
+      candidate.blocking_reason = [
+        candidate.blocking_reason,
+        `correlation:${correlation.reason}`,
+      ]
+        .filter(Boolean)
+        .join(",");
+    }
+    candidates.push(candidate);
   }
 
   if (!input.dryRun && candidates.length > 0) {

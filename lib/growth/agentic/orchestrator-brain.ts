@@ -15,6 +15,7 @@ import {
   type JsonRecord,
   type SupabaseLike,
 } from "@/lib/growth/autonomy/runtime-common";
+import { evaluateGrowthEvidenceCorrelation } from "@/lib/growth/autonomy/candidate-discovery";
 import {
   dataForSeoEvidenceReadFromRequirement,
   dataForSeoEvidenceRecordFromRequirement,
@@ -702,6 +703,104 @@ function candidateFromSignal({
     )
     .digest("hex")
     .slice(0, 24);
+  const evidence: JsonRecord = {
+    target,
+    ...(actionClass === "content_publish"
+      ? {
+          article: certificationArticle(
+            typeof target.target_path === "string"
+              ? target.target_path.replace(/^\/blog\//, "").replace(/^\//, "")
+              : "viajes-personalizados-por-colombia",
+          ),
+        }
+      : {}),
+    ...(actionClass === "transcreation_merge"
+      ? {
+          adapter_input: {
+            transcreation_job_id:
+              typeof payload.transcreation_job_id === "string"
+                ? payload.transcreation_job_id
+                : "",
+            source_locale:
+              typeof payload.source_locale === "string"
+                ? payload.source_locale
+                : "es-CO",
+            target_locale:
+              typeof payload.target_locale === "string"
+                ? payload.target_locale
+                : "en-US",
+            page_type: "blog",
+            source_entity_id:
+              typeof payload.source_entity_id === "string"
+                ? payload.source_entity_id
+                : "",
+            payload: {
+              title: "Custom Colombia trips: how to choose a meaningful route",
+              slug: "custom-colombia-trips-meaningful-route",
+              meta_title: "Custom Colombia trips with routes designed around you",
+              meta_desc:
+                "Learn how to plan custom Colombia trips by season, rhythm, regions, culture and nature before speaking with a travel expert.",
+              h1: "Custom Colombia trips designed around your rhythm",
+              body_content:
+                "A high-quality transcreation should preserve the Colombian travel intent while adapting examples, search language and conversion cues for English-speaking travelers.",
+            },
+            quality: {
+              passed: true,
+              score: 0.94,
+              issues: [],
+            },
+            glossary_terms: ["custom trips", "Colombia", "tailor-made travel"],
+            baseline: { localized_organic_clicks: 0 },
+          },
+        }
+      : {}),
+    ...(actionClass === "safe_apply" && Object.keys(asRecord(payload.adapter_input)).length > 0
+      ? {
+          adapter_input: asRecord(payload.adapter_input),
+        }
+      : {}),
+    baseline:
+      Object.keys(asRecord(payload.baseline)).length > 0
+        ? asRecord(payload.baseline)
+        : {
+            [metric]: actionClass === "safe_apply" ? false : 0,
+          },
+    rollback_expectation:
+      actionClass === "content_publish"
+        ? {
+            strategy: "delete_created_content",
+            target_path: target.target_path,
+          }
+        : {
+            strategy: "restore_before_snapshot",
+            target_id: target.target_id ?? null,
+            target_path: target.target_path ?? null,
+          },
+    orchestrator_reason:
+      "Prioritized because the signal maps to an allowed organic/technical lane and no active policy/cap context blocks preparation.",
+    dataforseo_evidence: providerEvidence.evidence,
+    provider_evidence_reads: [providerEvidence.read],
+  };
+  const correlation = evaluateGrowthEvidenceCorrelation({
+    websiteId: String(context.website_id ?? ""),
+    decisionFamily:
+      actionClass === "safe_apply"
+        ? "technical_seo_issue"
+        : actionClass === "transcreation_merge"
+          ? "missing_translation"
+          : "keyword_gap",
+    actionClass,
+    evidence,
+    sourceEntity: signal ?? undefined,
+    priorWorkItems: Array.isArray(context.active_work)
+      ? (context.active_work as JsonRecord[])
+      : [],
+    priorOutcomes: Array.isArray(context.recent_outcomes)
+      ? (context.recent_outcomes as JsonRecord[])
+      : [],
+  });
+  evidence.correlation = correlation;
+
   return {
     candidate_type:
       actionClass === "safe_apply"
@@ -736,86 +835,12 @@ function candidateFromSignal({
     source_signal_fact_ids: signalId ? [signalId] : [],
     success_metric: metric,
     evaluation_window: actionClass === "safe_apply" ? "day_7" : "day_21",
-    evidence: {
-      target,
-      ...(actionClass === "content_publish"
-        ? {
-            article: certificationArticle(
-              typeof target.target_path === "string"
-                ? target.target_path.replace(/^\/blog\//, "").replace(/^\//, "")
-                : "viajes-personalizados-por-colombia",
-            ),
-          }
-        : {}),
-      ...(actionClass === "transcreation_merge"
-        ? {
-            adapter_input: {
-              transcreation_job_id:
-                typeof payload.transcreation_job_id === "string"
-                  ? payload.transcreation_job_id
-                  : "",
-              source_locale:
-                typeof payload.source_locale === "string"
-                  ? payload.source_locale
-                  : "es-CO",
-              target_locale:
-                typeof payload.target_locale === "string"
-                  ? payload.target_locale
-                  : "en-US",
-              page_type: "blog",
-              source_entity_id:
-                typeof payload.source_entity_id === "string"
-                  ? payload.source_entity_id
-                  : "",
-              payload: {
-                title: "Custom Colombia trips: how to choose a meaningful route",
-                slug: "custom-colombia-trips-meaningful-route",
-                meta_title: "Custom Colombia trips with routes designed around you",
-                meta_desc:
-                  "Learn how to plan custom Colombia trips by season, rhythm, regions, culture and nature before speaking with a travel expert.",
-                h1: "Custom Colombia trips designed around your rhythm",
-                body_content:
-                  "A high-quality transcreation should preserve the Colombian travel intent while adapting examples, search language and conversion cues for English-speaking travelers.",
-              },
-              quality: {
-                passed: true,
-                score: 0.94,
-                issues: [],
-              },
-              glossary_terms: ["custom trips", "Colombia", "tailor-made travel"],
-              baseline: { localized_organic_clicks: 0 },
-            },
-          }
-        : {}),
-      ...(actionClass === "safe_apply" && Object.keys(asRecord(payload.adapter_input)).length > 0
-        ? {
-            adapter_input: asRecord(payload.adapter_input),
-          }
-        : {}),
-      baseline:
-        Object.keys(asRecord(payload.baseline)).length > 0
-          ? asRecord(payload.baseline)
-          : {
-              [metric]: actionClass === "safe_apply" ? false : 0,
-            },
-      rollback_expectation:
-        actionClass === "content_publish"
-          ? {
-              strategy: "delete_created_content",
-              target_path: target.target_path,
-            }
-          : {
-              strategy: "restore_before_snapshot",
-              target_id: target.target_id ?? null,
-              target_path: target.target_path ?? null,
-            },
-      orchestrator_reason:
-        "Prioritized because the signal maps to an allowed organic/technical lane and no active policy/cap context blocks preparation.",
-      dataforseo_evidence: providerEvidence.evidence,
-      provider_evidence_reads: [providerEvidence.read],
-    },
+    evidence,
     provider_evidence_reads: [providerEvidence.read],
-    idempotency_key: `brain-provider:${actionClass}:${signalId ?? "synthetic"}:${targetFingerprint}`,
+    idempotency_key:
+      correlation.dedupe_verdict === "coalesce"
+        ? `correlation:${correlation.correlation_key}:${correlation.evidence_fingerprint}`
+        : `brain-provider:${actionClass}:${signalId ?? "synthetic"}:${targetFingerprint}`,
   };
 }
 

@@ -56,9 +56,30 @@ export interface WorkboardCard {
     status: string;
     tone: "success" | "warning" | "danger" | "neutral";
   } | null;
+  providerEvidenceReads: ProviderEvidenceRead[];
   providerEvidenceMissing: boolean;
+  correlation: WorkboardCorrelation | null;
   humanDecision: string | null;
   previewDetails: WorkboardPreviewDetails;
+}
+
+export interface ProviderEvidenceRead {
+  provider: string;
+  profileId: string | null;
+  status: string | null;
+  freshnessStatus: string | null;
+  sourceRef: string | null;
+  costUsd: number | null;
+  citation: string | null;
+}
+
+export interface WorkboardCorrelation {
+  verdict: string;
+  entityKey: string | null;
+  actionKey: string | null;
+  correlationKey: string | null;
+  evidenceFingerprint: string | null;
+  previousRefs: string[];
 }
 
 export interface WorkboardPreviewDetails {
@@ -286,35 +307,137 @@ function providerEvidenceFrom(
   for (const source of sources) {
     const evidence = safeRecord(source);
     const dataforseo = safeRecord(evidence.dataforseo_evidence);
-    const nestedReads = Array.isArray(evidence.provider_evidence_reads)
-      ? evidence.provider_evidence_reads
-      : [];
+    const nestedReads = normalizeProviderEvidenceReads(evidence);
     const status =
       optionalText(dataforseo.status) ??
-      optionalText(safeRecord(nestedReads[0]).access_status);
+      nestedReads[0]?.status ??
+      nestedReads[0]?.freshnessStatus;
     if (!status) continue;
     const feature =
       optionalText(dataforseo.feature_profile) ??
-      optionalText(safeRecord(nestedReads[0]).feature_profile) ??
+      nestedReads[0]?.profileId ??
       "provider";
+    const provider =
+      optionalText(dataforseo.provider) ??
+      nestedReads[0]?.provider ??
+      "provider";
+    const normalizedStatus = status.toLowerCase();
     const tone =
-      status === "available"
+      normalizedStatus === "available" ||
+      normalizedStatus === "fresh" ||
+      normalizedStatus === "completed"
         ? "success"
-        : status === "excepted"
+        : normalizedStatus === "excepted" ||
+            normalizedStatus === "approval_required" ||
+            normalizedStatus === "stale"
           ? "warning"
-          : status === "blocked" ||
-              status === "stale" ||
-              status === "missing_access" ||
-              status === "cost_gated"
+        : normalizedStatus === "blocked" ||
+              normalizedStatus === "failed" ||
+              normalizedStatus === "missing_access" ||
+              normalizedStatus === "cost_gated"
             ? "danger"
             : "neutral";
     const label =
-      status === "available"
-        ? `DataForSEO ${feature}`
-        : status === "excepted"
-          ? `DataForSEO exception ${feature}`
-          : `DataForSEO blocked ${feature}`;
+      tone === "success"
+        ? `${provider} backed ${feature}`
+        : normalizedStatus === "excepted"
+          ? `${provider} exception ${feature}`
+          : `${provider} ${tone === "danger" ? "blocked" : status} ${feature}`;
     return { label, status, tone };
+  }
+  return null;
+}
+
+function numberValue(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
+function normalizeProviderEvidenceReads(
+  evidence: Record<string, unknown>,
+): ProviderEvidenceRead[] {
+  const explicit = Array.isArray(evidence.provider_evidence_reads)
+    ? evidence.provider_evidence_reads
+    : [];
+  const providerReads = explicit.map((item) => {
+    const row = safeRecord(item);
+    return {
+      provider:
+        optionalText(row.provider) ??
+        optionalText(row.source_provider) ??
+        "provider",
+      profileId:
+        optionalText(row.profile_id) ??
+        optionalText(row.provider_profile_id) ??
+        optionalText(row.feature_profile),
+      status: optionalText(row.status) ?? optionalText(row.access_status),
+      freshnessStatus:
+        optionalText(row.freshness_status) ?? optionalText(row.freshness),
+      sourceRef:
+        optionalText(row.source_ref) ??
+        optionalText(row.source_fact_ref) ??
+        optionalText(row.run_id),
+      costUsd: numberValue(row.cost_usd) ?? numberValue(row.cost),
+      citation:
+        optionalText(row.citation) ??
+        optionalText(row.summary) ??
+        optionalText(row.evidence_summary),
+    };
+  });
+
+  const dataforseo = safeRecord(evidence.dataforseo_evidence);
+  if (Object.keys(dataforseo).length > 0) {
+    providerReads.push({
+      provider: optionalText(dataforseo.provider) ?? "DataForSEO",
+      profileId: optionalText(dataforseo.feature_profile),
+      status: optionalText(dataforseo.status),
+      freshnessStatus: optionalText(dataforseo.freshness_status),
+      sourceRef:
+        optionalText(dataforseo.source_ref) ??
+        optionalText(dataforseo.task_id) ??
+        optionalText(dataforseo.run_id),
+      costUsd: numberValue(dataforseo.cost_usd),
+      citation:
+        optionalText(dataforseo.citation) ??
+        optionalText(dataforseo.summary) ??
+        optionalText(dataforseo.reason),
+    });
+  }
+
+  return providerReads.slice(0, 8);
+}
+
+function correlationFrom(
+  ...sources: Array<Record<string, unknown> | null | undefined>
+): WorkboardCorrelation | null {
+  for (const source of sources) {
+    const evidence = safeRecord(source);
+    const correlation = safeRecord(evidence.correlation);
+    const verdict =
+      optionalText(correlation.dedupe_verdict) ??
+      optionalText(correlation.verdict) ??
+      optionalText(evidence.dedupe_verdict);
+    if (!verdict) continue;
+    return {
+      verdict,
+      entityKey:
+        optionalText(correlation.entity_key) ?? optionalText(evidence.entity_key),
+      actionKey:
+        optionalText(correlation.action_key) ?? optionalText(evidence.action_key),
+      correlationKey: optionalText(correlation.correlation_key),
+      evidenceFingerprint:
+        optionalText(correlation.evidence_fingerprint) ??
+        optionalText(evidence.evidence_fingerprint),
+      previousRefs: [
+        ...stringArray(correlation.previous_refs),
+        ...stringArray(correlation.previous_work_item_refs),
+        ...stringArray(evidence.previous_refs),
+      ].slice(0, 6),
+    };
   }
   return null;
 }
@@ -833,10 +956,12 @@ export async function getGrowthWorkboard(opts: {
       changeSetId: optionalText(row.change_set_id),
       evidenceRefs,
       providerEvidence: providerEvidenceFrom(evidence),
+      providerEvidenceReads: normalizeProviderEvidenceReads(evidence),
       providerEvidenceMissing: providerEvidenceMissingFor(
         row.allowed_action_class,
         evidence,
       ),
+      correlation: correlationFrom(evidence),
       humanDecision: row.change_set_id
         ? (decisionByChangeSet.get(String(row.change_set_id)) ?? null)
         : row.run_id
@@ -913,7 +1038,9 @@ export async function getGrowthWorkboard(opts: {
       changeSetId: null,
       evidenceRefs,
       providerEvidence: providerEvidenceFrom(evidence),
+      providerEvidenceReads: normalizeProviderEvidenceReads(evidence),
       providerEvidenceMissing: false,
+      correlation: correlationFrom(evidence),
       humanDecision: latestRun
         ? (decisionByRun.get(String(latestRun.run_id)) ?? null)
         : null,
@@ -988,7 +1115,9 @@ export async function getGrowthWorkboard(opts: {
       changeSetId: null,
       evidenceRefs,
       providerEvidence: providerEvidenceFrom(evidence),
+      providerEvidenceReads: normalizeProviderEvidenceReads(evidence),
       providerEvidenceMissing: false,
+      correlation: correlationFrom(evidence),
       humanDecision: latestRun
         ? (decisionByRun.get(String(latestRun.run_id)) ?? null)
         : null,
@@ -1070,10 +1199,12 @@ export async function getGrowthWorkboard(opts: {
       changeSetId: id,
       evidenceRefs,
       providerEvidence: providerEvidenceFrom(evidence, preview),
+      providerEvidenceReads: normalizeProviderEvidenceReads(evidence),
       providerEvidenceMissing: providerEvidenceMissingFor(
         evidence.autonomy_action_class ?? evidence.allowed_action_class,
         evidence,
       ),
+      correlation: correlationFrom(evidence, preview),
       humanDecision: decisionByChangeSet.get(id) ?? null,
       previewDetails: previewDetailsFromPayload(preview, evidence, row.summary),
     });
@@ -1134,10 +1265,12 @@ export async function getGrowthWorkboard(opts: {
       changeSetId: null,
       evidenceRefs,
       providerEvidence: providerEvidenceFrom(evidence),
+      providerEvidenceReads: normalizeProviderEvidenceReads(evidence),
       providerEvidenceMissing: providerEvidenceMissingFor(
         evidence.allowed_action_class,
         evidence,
       ),
+      correlation: correlationFrom(evidence),
       humanDecision: decisionByRun.get(runId) ?? null,
       previewDetails: previewDetailsFromPayload(evidence, evidence),
     });

@@ -67,6 +67,63 @@ export interface GscQueryResult {
   source: 'cache' | 'live' | 'mock';
 }
 
+export interface GscDateTrendProfileInput extends GscTenantScope {
+  startDate: string;
+  endDate: string;
+  dimensions?: Array<'query' | 'page' | 'country' | 'device' | 'searchAppearance'>;
+  country?: string;
+  rowLimit?: number;
+}
+
+export interface GscIndexabilityHealthInput extends GscTenantScope {
+  urls?: string[];
+  includeSitemaps?: boolean;
+  includeSites?: boolean;
+  dryRun?: boolean;
+}
+
+export interface GscInspectionResult {
+  inspectionUrl: string;
+  indexStatusResult?: Record<string, unknown>;
+  mobileUsabilityResult?: Record<string, unknown>;
+  richResultsResult?: Record<string, unknown>;
+  fetchedAt: string;
+  source: 'live' | 'mock';
+}
+
+export interface GscSitemapEntry {
+  path: string;
+  lastSubmitted?: string;
+  lastDownloaded?: string;
+  isPending?: boolean;
+  isSitemapsIndex?: boolean;
+  type?: string;
+  errors?: number;
+  warnings?: number;
+}
+
+export interface GscSiteEntry {
+  siteUrl: string;
+  permissionLevel?: string;
+}
+
+export interface GscIndexabilityHealthPlan extends GscTenantScope {
+  profileId: 'gsc_indexability_v1';
+  urls: string[];
+  includeSitemaps: boolean;
+  includeSites: boolean;
+  dryRun: boolean;
+  blockedReason?: string;
+}
+
+export interface GscIndexabilityHealthResult {
+  plan: GscIndexabilityHealthPlan;
+  inspections: GscInspectionResult[];
+  sitemaps: GscSitemapEntry[];
+  sites: GscSiteEntry[];
+  status: 'planned' | 'completed' | 'blocked';
+}
+
 export class GscClientError extends Error {
   readonly code: string;
   readonly status: number;
@@ -78,6 +135,9 @@ export class GscClientError extends Error {
     this.details = details;
   }
 }
+
+const GSC_API_ENDPOINT = 'https://searchconsole.googleapis.com/webmasters/v3';
+const GSC_URL_INSPECTION_ENDPOINT = 'https://searchconsole.googleapis.com/v1/urlInspection/index:inspect';
 
 // ─── Cache helpers (Supabase-backed; Cloudflare Worker-safe) ─────────────────
 
@@ -109,6 +169,41 @@ function isFresh(fetchedAtRaw: string | null | undefined): boolean {
   const t = new Date(fetchedAtRaw).getTime();
   if (!Number.isFinite(t)) return false;
   return Date.now() - t <= CACHE_TTL_MS;
+}
+
+function assertIsoDate(value: string, field: string): void {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value) || !Number.isFinite(new Date(`${value}T00:00:00Z`).getTime())) {
+    throw new GscClientError('INVALID_PROFILE_INPUT', `${field} must be YYYY-MM-DD`, 400);
+  }
+}
+
+export function buildGscDateTrendQuery(input: GscDateTrendProfileInput): GscQueryInput {
+  assertIsoDate(input.startDate, 'startDate');
+  assertIsoDate(input.endDate, 'endDate');
+  return {
+    ...input,
+    dimensions: ['date', ...(input.dimensions ?? ['page'])],
+    rowLimit: input.rowLimit ?? DEFAULT_ROW_LIMIT,
+  };
+}
+
+export function buildGscIndexabilityHealthPlan(input: GscIndexabilityHealthInput): GscIndexabilityHealthPlan {
+  const urls = input.urls ?? [];
+  if (urls.length > 50) {
+    throw new GscClientError('PROFILE_SCOPE_TOO_BROAD', 'GSC URL Inspection sample cap is 50', 400, {
+      count: urls.length,
+    });
+  }
+  return {
+    account_id: input.account_id,
+    website_id: input.website_id,
+    locale: input.locale,
+    profileId: 'gsc_indexability_v1',
+    urls,
+    includeSitemaps: input.includeSitemaps ?? true,
+    includeSites: input.includeSites ?? true,
+    dryRun: input.dryRun ?? true,
+  };
 }
 
 // ─── Tenant integration record (where we get OAuth tokens + site URL) ───────
@@ -169,6 +264,25 @@ async function ensureFreshAccessToken(integration: GscIntegrationRow): Promise<s
     // ignore — token rotation will retry next call
   }
   return refreshed.access_token;
+}
+
+async function gscFetch<T>(url: string, accessToken: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(url, {
+    ...init,
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+      ...(init?.headers ?? {}),
+    },
+    signal: init?.signal ?? AbortSignal.timeout(15_000),
+  });
+  const json = (await response.json().catch(() => ({}))) as T;
+  if (!response.ok) {
+    if (response.status === 401) throw new GscClientError('AUTH_EXPIRED', 'GSC access token rejected', 401, json);
+    if (response.status === 429) throw new GscClientError('RATE_LIMIT', 'GSC rate limited', 429, json);
+    throw new GscClientError('UPSTREAM_ERROR', 'GSC request failed', response.status >= 500 ? 502 : response.status, json);
+  }
+  return json;
 }
 
 // ─── Public API ──────────────────────────────────────────────────────────────
@@ -277,4 +391,80 @@ export async function queryGscSearchAnalytics(input: GscQueryInput): Promise<Gsc
     siteUrl: integration.site_url,
     source: 'live',
   };
+}
+
+export async function inspectGscUrl(input: GscTenantScope & { url: string }): Promise<GscInspectionResult> {
+  const integration = await loadGscIntegration(input);
+  if (!integration?.refresh_token || !integration.site_url) {
+    return { inspectionUrl: input.url, fetchedAt: new Date().toISOString(), source: 'mock' };
+  }
+  const accessToken = await ensureFreshAccessToken(integration);
+  const json = await gscFetch<{
+    inspectionResult?: {
+      inspectionResultLink?: string;
+      indexStatusResult?: Record<string, unknown>;
+      mobileUsabilityResult?: Record<string, unknown>;
+      richResultsResult?: Record<string, unknown>;
+    };
+  }>(GSC_URL_INSPECTION_ENDPOINT, accessToken, {
+    method: 'POST',
+    body: JSON.stringify({
+      inspectionUrl: input.url,
+      siteUrl: integration.site_url,
+    }),
+  });
+  return {
+    inspectionUrl: input.url,
+    indexStatusResult: json.inspectionResult?.indexStatusResult,
+    mobileUsabilityResult: json.inspectionResult?.mobileUsabilityResult,
+    richResultsResult: json.inspectionResult?.richResultsResult,
+    fetchedAt: new Date().toISOString(),
+    source: 'live',
+  };
+}
+
+export async function listGscSitemaps(input: GscTenantScope): Promise<GscSitemapEntry[]> {
+  const integration = await loadGscIntegration(input);
+  if (!integration?.refresh_token || !integration.site_url) return [];
+  const accessToken = await ensureFreshAccessToken(integration);
+  const site = encodeURIComponent(integration.site_url);
+  const json = await gscFetch<{ sitemap?: Array<Record<string, unknown>> }>(
+    `${GSC_API_ENDPOINT}/sites/${site}/sitemaps`,
+    accessToken,
+  );
+  return (json.sitemap ?? []).map((entry) => ({
+    path: String(entry.path ?? ''),
+    lastSubmitted: typeof entry.lastSubmitted === 'string' ? entry.lastSubmitted : undefined,
+    lastDownloaded: typeof entry.lastDownloaded === 'string' ? entry.lastDownloaded : undefined,
+    isPending: typeof entry.isPending === 'boolean' ? entry.isPending : undefined,
+    isSitemapsIndex: typeof entry.isSitemapsIndex === 'boolean' ? entry.isSitemapsIndex : undefined,
+    type: typeof entry.type === 'string' ? entry.type : undefined,
+    errors: typeof entry.errors === 'number' ? entry.errors : undefined,
+    warnings: typeof entry.warnings === 'number' ? entry.warnings : undefined,
+  }));
+}
+
+export async function listGscSites(input: GscTenantScope): Promise<GscSiteEntry[]> {
+  const integration = await loadGscIntegration(input);
+  if (!integration?.refresh_token) return [];
+  const accessToken = await ensureFreshAccessToken(integration);
+  const json = await gscFetch<{ siteEntry?: Array<Record<string, unknown>> }>(`${GSC_API_ENDPOINT}/sites`, accessToken);
+  return (json.siteEntry ?? []).map((entry) => ({
+    siteUrl: String(entry.siteUrl ?? ''),
+    permissionLevel: typeof entry.permissionLevel === 'string' ? entry.permissionLevel : undefined,
+  }));
+}
+
+export async function runGscIndexabilityHealth(
+  plan: GscIndexabilityHealthPlan,
+): Promise<GscIndexabilityHealthResult> {
+  if (plan.dryRun) {
+    return { plan, inspections: [], sitemaps: [], sites: [], status: plan.blockedReason ? 'blocked' : 'planned' };
+  }
+  const inspections = await Promise.all(plan.urls.map((url) => inspectGscUrl({ ...plan, url })));
+  const [sitemaps, sites] = await Promise.all([
+    plan.includeSitemaps ? listGscSitemaps(plan) : Promise.resolve([]),
+    plan.includeSites ? listGscSites(plan) : Promise.resolve([]),
+  ]);
+  return { plan, inspections, sitemaps, sites, status: 'completed' };
 }

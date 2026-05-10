@@ -77,6 +77,76 @@ function blockedSupabase() {
   };
 }
 
+function correlationSupabase() {
+  const updates: unknown[] = [];
+  const workItemId = "44444444-4444-4444-8444-444444444444";
+  return {
+    updates,
+    from(table: string) {
+      if (table === "growth_work_items") {
+        return {
+          select: () => ({
+            eq: () => ({
+              eq: () => ({
+                limit: () =>
+                  Promise.resolve({
+                    data: [
+                      {
+                        id: workItemId,
+                        evidence: {
+                          correlation: {
+                            entity_key: "website_blog_posts:/blog/test",
+                            action_key:
+                              "content_publish:website_blog_posts:/blog/test",
+                            correlation_key:
+                              `${decisionBase.website_id}:keyword_gap:content_publish:website_blog_posts:/blog/test`,
+                            evidence_fingerprint: "sha256:test",
+                          },
+                        },
+                      },
+                    ],
+                    error: null,
+                  }),
+              }),
+            }),
+          }),
+        };
+      }
+      if (table === "growth_work_item_outcomes") {
+        return {
+          select: () => ({
+            eq: () => ({
+              eq: () => ({
+                limit: () =>
+                  Promise.resolve({
+                    data: [
+                      {
+                        id: "66666666-6666-4666-8666-666666666666",
+                        work_item_id: workItemId,
+                        status: "lost",
+                      },
+                    ],
+                    error: null,
+                  }),
+              }),
+            }),
+          }),
+        };
+      }
+      return {
+        update: (payload: unknown) => {
+          updates.push(payload);
+          return {
+            eq: () => ({
+              eq: () => Promise.resolve({ data: null, error: null }),
+            }),
+          };
+        },
+      };
+    },
+  };
+}
+
 describe("materializeBrainDecision provider evidence gate", () => {
   it("blocks provider-dependent candidates without DataForSEO evidence", async () => {
     const supabase = blockedSupabase();
@@ -118,6 +188,31 @@ describe("materializeBrainDecision provider evidence gate", () => {
     expect(result.status).toBe("blocked");
     expect(result.blockedReasons).toContain(
       "provider_candidate:content_publish:dataforseo_stale",
+    );
+  });
+
+  it("blocks repeated provider evidence after a prior lost outcome", async () => {
+    const supabase = correlationSupabase();
+    const result = await materializeBrainDecision({
+      supabase: supabase as never,
+      decision: {
+        ...decisionBase,
+        proposed_candidates: [
+          candidate({
+            dataforseo_evidence: {
+              required: true,
+              feature_profile: "serp",
+              status: "available",
+              evidence_fingerprint: "sha256:test",
+            },
+          }),
+        ],
+      } as never,
+    });
+
+    expect(result.status).toBe("blocked");
+    expect(result.blockedReasons).toContain(
+      "candidate:content_publish:correlation_block:prior_lost_without_new_evidence",
     );
   });
 });

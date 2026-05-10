@@ -9,6 +9,10 @@ import {
   type JsonRecord,
   type SupabaseLike,
 } from "@/lib/growth/autonomy/runtime-common";
+import {
+  evaluateGrowthEvidenceCorrelation,
+  type GrowthEvidenceCorrelationResult,
+} from "@/lib/growth/autonomy/candidate-discovery";
 import { dataForSeoEvidenceGate } from "@/lib/growth/autonomy/dataforseo-provider-profile";
 
 const SENSITIVE_ACTIONS = new Set([
@@ -66,6 +70,76 @@ function providerEvidenceBlocked(candidate: JsonRecord): string | null {
   }
   const verdict = dataForSeoEvidenceGate(dataForSeoEvidence);
   return verdict.allowed ? null : (verdict.reason ?? "dataforseo_evidence_blocked");
+}
+
+function correlationBlocked(correlation: GrowthEvidenceCorrelationResult): string | null {
+  if (correlation.dedupe_verdict === "skip" || correlation.dedupe_verdict === "block") {
+    return `correlation_${correlation.dedupe_verdict}:${correlation.reason}`;
+  }
+  return null;
+}
+
+async function readPriorCorrelationRows({
+  supabase,
+  accountId,
+  websiteId,
+}: {
+  supabase: SupabaseLike;
+  accountId: string;
+  websiteId: string;
+}): Promise<{ workItems: JsonRecord[]; outcomes: JsonRecord[] }> {
+  try {
+    const [{ data: workItems }, { data: outcomes }] = await Promise.all([
+      supabase
+        .from("growth_work_items")
+        .select("id,status,allowed_action_class,evidence,updated_at")
+        .eq("account_id", accountId)
+        .eq("website_id", websiteId)
+        .limit(200),
+      supabase
+        .from("growth_work_item_outcomes")
+        .select("id,work_item_id,status,evaluation_date,evaluation_window,updated_at")
+        .eq("account_id", accountId)
+        .eq("website_id", websiteId)
+        .limit(200),
+    ]);
+    return {
+      workItems: (workItems ?? []) as JsonRecord[],
+      outcomes: (outcomes ?? []) as JsonRecord[],
+    };
+  } catch {
+    return { workItems: [], outcomes: [] };
+  }
+}
+
+function attachCorrelationToCandidate({
+  decision,
+  candidate,
+  priorWorkItems,
+  priorOutcomes,
+}: {
+  decision: GrowthOrchestratorDecision;
+  candidate: JsonRecord;
+  priorWorkItems: JsonRecord[];
+  priorOutcomes: JsonRecord[];
+}) {
+  const evidence = asRecord(candidate.evidence);
+  const correlation = evaluateGrowthEvidenceCorrelation({
+    websiteId: decision.website_id,
+    decisionFamily: String(candidate.candidate_type ?? candidate.lane ?? "brain"),
+    actionClass: String(candidate.allowed_action_class ?? "unknown"),
+    evidence,
+    priorWorkItems,
+    priorOutcomes,
+  });
+  candidate.evidence = {
+    ...evidence,
+    correlation,
+  };
+  if (correlation.dedupe_verdict === "coalesce") {
+    candidate.idempotency_key = `correlation:${correlation.correlation_key}:${correlation.evidence_fingerprint}`;
+  }
+  return correlation;
 }
 
 async function insertCandidate({
@@ -191,8 +265,19 @@ export async function materializeBrainDecision({
   decision: GrowthOrchestratorDecision;
 }): Promise<MaterializeBrainDecisionResult> {
   const blockedReasons: string[] = [];
+  const prior = await readPriorCorrelationRows({
+    supabase,
+    accountId: decision.account_id,
+    websiteId: decision.website_id,
+  });
 
   for (const candidate of decision.proposed_candidates) {
+    const correlation = attachCorrelationToCandidate({
+      decision,
+      candidate,
+      priorWorkItems: prior.workItems,
+      priorOutcomes: prior.outcomes,
+    });
     if (
       SENSITIVE_ACTIONS.has(String(candidate.allowed_action_class)) ||
       isSensitive(candidate)
@@ -203,6 +288,12 @@ export async function materializeBrainDecision({
     if (providerBlock) {
       blockedReasons.push(
         `provider_candidate:${candidate.allowed_action_class}:${providerBlock}`,
+      );
+    }
+    const correlationBlock = correlationBlocked(correlation);
+    if (correlationBlock) {
+      blockedReasons.push(
+        `candidate:${candidate.allowed_action_class}:${correlationBlock}`,
       );
     }
   }

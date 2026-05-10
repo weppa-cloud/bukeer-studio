@@ -56,6 +56,77 @@ export interface DataForSeoCallResult<T = unknown> {
   source: 'cache' | 'live' | 'mock';
 }
 
+export type DataForSeoProfileId =
+  | 'dfs_onpage_full_comparable_v3'
+  | 'dfs_onpage_changed_urls_v1'
+  | 'dfs_serp_labs_primary_v1'
+  | 'dfs_serp_labs_secondary_v1'
+  | 'dfs_historical_trends_v1'
+  | 'dfs_authority_fallback_v1';
+
+export interface DataForSeoApprovalScope {
+  ownerIssue: string;
+  approvedBy: string;
+  maxCostUsdPerRun: number;
+  expiresAt: string;
+}
+
+export interface DataForSeoProfilePlan<TBody = unknown> extends DataForSeoTenantScope {
+  profileId: DataForSeoProfileId;
+  endpoint: string;
+  body: TBody;
+  cacheKey: string;
+  estimatedCostUsd: number;
+  costMode: 'free_cache_read' | 'approval_required' | 'approved_costed';
+  dryRun: boolean;
+  blockedReason?: string;
+}
+
+export type DataForSeoOnPageMode = 'full' | 'changed';
+
+export interface DataForSeoOnPageProfileInput extends DataForSeoTenantScope {
+  target: string;
+  mode: DataForSeoOnPageMode;
+  changedUrls?: string[];
+  maxCrawlPages?: number;
+  tag?: string;
+  approval?: DataForSeoApprovalScope;
+  dryRun?: boolean;
+}
+
+export interface DataForSeoSerpLabsProfileInput extends DataForSeoTenantScope {
+  market: 'CO' | 'US' | 'MX' | string;
+  tier: 'primary' | 'secondary';
+  keywords: string[];
+  languageCode?: string;
+  locationCode?: number;
+  approval?: DataForSeoApprovalScope;
+  dryRun?: boolean;
+}
+
+export interface DataForSeoHistoricalTrendProfileInput extends DataForSeoTenantScope {
+  market: string;
+  keywords: string[];
+  dateFrom: string;
+  dateTo: string;
+  approval?: DataForSeoApprovalScope;
+  dryRun?: boolean;
+}
+
+export interface DataForSeoAuthorityFallbackProfileInput extends DataForSeoTenantScope {
+  targetDomain: string;
+  competitorDomains?: string[];
+  market?: string;
+  approval?: DataForSeoApprovalScope;
+  dryRun?: boolean;
+}
+
+export interface DataForSeoProfileRunResult<T = unknown> {
+  plan: DataForSeoProfilePlan;
+  result: DataForSeoCallResult<T> | null;
+  status: 'planned' | 'blocked' | 'completed';
+}
+
 export class DataForSeoClientError extends Error {
   readonly code: string;
   readonly status: number;
@@ -66,6 +137,213 @@ export class DataForSeoClientError extends Error {
     this.status = status;
     this.details = details;
   }
+}
+
+const ONPAGE_FULL_ESTIMATED_COST_USD = 2.5;
+const ONPAGE_CHANGED_ESTIMATED_COST_USD = 0.25;
+const SERP_PRIMARY_ESTIMATED_COST_USD = 1.5;
+const SERP_SECONDARY_ESTIMATED_COST_USD = 0.75;
+const HISTORICAL_ESTIMATED_COST_USD = 2;
+const AUTHORITY_FALLBACK_ESTIMATED_COST_USD = 0.5;
+
+function hasValidApproval(approval: DataForSeoApprovalScope | undefined, estimatedCostUsd: number): boolean {
+  if (!approval) return false;
+  const expiresAt = new Date(approval.expiresAt).getTime();
+  return Boolean(
+    approval.ownerIssue &&
+      approval.approvedBy &&
+      Number.isFinite(approval.maxCostUsdPerRun) &&
+      approval.maxCostUsdPerRun >= estimatedCostUsd &&
+      Number.isFinite(expiresAt) &&
+      expiresAt > Date.now(),
+  );
+}
+
+function costMode(
+  approval: DataForSeoApprovalScope | undefined,
+  estimatedCostUsd: number,
+): Pick<DataForSeoProfilePlan, 'costMode' | 'blockedReason'> {
+  if (hasValidApproval(approval, estimatedCostUsd)) return { costMode: 'approved_costed' };
+  return {
+    costMode: 'approval_required',
+    blockedReason: 'DataForSEO profile requires explicit approval scope before live provider calls',
+  };
+}
+
+function assertIsoDate(value: string, field: string): void {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value) || !Number.isFinite(new Date(`${value}T00:00:00Z`).getTime())) {
+    throw new DataForSeoClientError('INVALID_PROFILE_INPUT', `${field} must be YYYY-MM-DD`, 400);
+  }
+}
+
+function assertKeywords(keywords: string[], max: number): void {
+  if (!Array.isArray(keywords) || keywords.length === 0) {
+    throw new DataForSeoClientError('INVALID_PROFILE_INPUT', 'At least one keyword is required', 400);
+  }
+  if (keywords.length > max) {
+    throw new DataForSeoClientError('PROFILE_SCOPE_TOO_BROAD', `Keyword cap is ${max}`, 400, { count: keywords.length });
+  }
+}
+
+function buildProfilePlan<TBody>(
+  input: DataForSeoTenantScope & {
+    profileId: DataForSeoProfileId;
+    endpoint: string;
+    body: TBody;
+    cacheKey: string;
+    estimatedCostUsd: number;
+    approval?: DataForSeoApprovalScope;
+    dryRun?: boolean;
+  },
+): DataForSeoProfilePlan<TBody> {
+  const mode = costMode(input.approval, input.estimatedCostUsd);
+  return {
+    account_id: input.account_id,
+    website_id: input.website_id,
+    profileId: input.profileId,
+    endpoint: input.endpoint,
+    body: input.body,
+    cacheKey: input.cacheKey,
+    estimatedCostUsd: input.estimatedCostUsd,
+    dryRun: input.dryRun ?? true,
+    ...mode,
+  };
+}
+
+export function buildDataForSeoOnPageProfilePlan(input: DataForSeoOnPageProfileInput): DataForSeoProfilePlan {
+  const target = input.target.trim();
+  if (!target) throw new DataForSeoClientError('INVALID_PROFILE_INPUT', 'OnPage target is required', 400);
+
+  if (input.mode === 'changed') {
+    const changedUrls = input.changedUrls ?? [];
+    if (changedUrls.length === 0) {
+      throw new DataForSeoClientError('INVALID_PROFILE_INPUT', 'changedUrls are required for changed OnPage profile', 400);
+    }
+    if (changedUrls.length > 50) {
+      throw new DataForSeoClientError('PROFILE_SCOPE_TOO_BROAD', 'Changed URL cap is 50', 400, {
+        count: changedUrls.length,
+      });
+    }
+    return buildProfilePlan({
+      ...input,
+      profileId: 'dfs_onpage_changed_urls_v1',
+      endpoint: '/v3/on_page/task_post',
+      estimatedCostUsd: ONPAGE_CHANGED_ESTIMATED_COST_USD,
+      cacheKey: `onpage:changed:${target}:${changedUrls.sort().join(',')}`,
+      body: [
+        {
+          target,
+          max_crawl_pages: Math.min(input.maxCrawlPages ?? changedUrls.length, 50),
+          start_url: changedUrls[0],
+          custom_js: null,
+          tag: input.tag ?? 'growth-os-changed-urls',
+        },
+      ],
+    });
+  }
+
+  return buildProfilePlan({
+    ...input,
+    profileId: 'dfs_onpage_full_comparable_v3',
+    endpoint: '/v3/on_page/task_post',
+    estimatedCostUsd: ONPAGE_FULL_ESTIMATED_COST_USD,
+    cacheKey: `onpage:full:${target}:${input.maxCrawlPages ?? 'default'}`,
+    body: [
+      {
+        target,
+        max_crawl_pages: input.maxCrawlPages ?? 1000,
+        enable_javascript: true,
+        load_resources: true,
+        enable_browser_rendering: true,
+        tag: input.tag ?? 'growth-os-full-comparable',
+      },
+    ],
+  });
+}
+
+export function buildDataForSeoSerpLabsProfilePlan(input: DataForSeoSerpLabsProfileInput): DataForSeoProfilePlan {
+  const maxKeywords = input.tier === 'primary' ? 100 : 50;
+  assertKeywords(input.keywords, maxKeywords);
+  const profileId = input.tier === 'primary' ? 'dfs_serp_labs_primary_v1' : 'dfs_serp_labs_secondary_v1';
+  const estimatedCostUsd = input.tier === 'primary' ? SERP_PRIMARY_ESTIMATED_COST_USD : SERP_SECONDARY_ESTIMATED_COST_USD;
+  return buildProfilePlan({
+    ...input,
+    profileId,
+    endpoint: '/v3/dataforseo_labs/google/keyword_ideas/live',
+    estimatedCostUsd,
+    cacheKey: `serp-labs:${input.tier}:${input.market}:${input.keywords.slice().sort().join(',')}`,
+    body: [
+      {
+        keywords: input.keywords,
+        language_code: input.languageCode ?? 'es',
+        location_code: input.locationCode,
+        include_serp_info: true,
+        include_seed_keyword: true,
+      },
+    ],
+  });
+}
+
+export function buildDataForSeoHistoricalTrendProfilePlan(
+  input: DataForSeoHistoricalTrendProfileInput,
+): DataForSeoProfilePlan {
+  assertKeywords(input.keywords, 50);
+  assertIsoDate(input.dateFrom, 'dateFrom');
+  assertIsoDate(input.dateTo, 'dateTo');
+  return buildProfilePlan({
+    ...input,
+    profileId: 'dfs_historical_trends_v1',
+    endpoint: '/v3/dataforseo_labs/google/historical_search_volume/live',
+    estimatedCostUsd: HISTORICAL_ESTIMATED_COST_USD,
+    cacheKey: `historical:${input.market}:${input.dateFrom}:${input.dateTo}:${input.keywords.slice().sort().join(',')}`,
+    body: [
+      {
+        keywords: input.keywords,
+        date_from: input.dateFrom,
+        date_to: input.dateTo,
+      },
+    ],
+  });
+}
+
+export function buildDataForSeoAuthorityFallbackProfilePlan(
+  input: DataForSeoAuthorityFallbackProfileInput,
+): DataForSeoProfilePlan {
+  const targetDomain = input.targetDomain.trim().replace(/^https?:\/\//, '').replace(/\/$/, '');
+  if (!targetDomain) throw new DataForSeoClientError('INVALID_PROFILE_INPUT', 'targetDomain is required', 400);
+  if ((input.competitorDomains ?? []).length > 10) {
+    throw new DataForSeoClientError('PROFILE_SCOPE_TOO_BROAD', 'Competitor domain cap is 10', 400);
+  }
+  return buildProfilePlan({
+    ...input,
+    profileId: 'dfs_authority_fallback_v1',
+    endpoint: '/v3/dataforseo_labs/google/domain_intersection/live',
+    estimatedCostUsd: AUTHORITY_FALLBACK_ESTIMATED_COST_USD,
+    cacheKey: `authority-fallback:${input.market ?? '*'}:${targetDomain}:${(input.competitorDomains ?? []).sort().join(',')}`,
+    body: [
+      {
+        target1: targetDomain,
+        targets: input.competitorDomains ?? [],
+        include_serp_info: true,
+      },
+    ],
+  });
+}
+
+export async function runDataForSeoProfile<T = unknown>(
+  plan: DataForSeoProfilePlan,
+): Promise<DataForSeoProfileRunResult<T>> {
+  if (plan.dryRun) return { plan, result: null, status: plan.blockedReason ? 'blocked' : 'planned' };
+  if (plan.blockedReason) return { plan, result: null, status: 'blocked' };
+  const result = await callDataForSeo<T>({
+    account_id: plan.account_id,
+    website_id: plan.website_id,
+    endpoint: plan.endpoint,
+    body: plan.body,
+    cacheKey: plan.cacheKey,
+    estimatedCostUsd: plan.estimatedCostUsd,
+  });
+  return { plan, result, status: 'completed' };
 }
 
 interface DataForSeoCredentials {

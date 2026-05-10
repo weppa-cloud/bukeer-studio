@@ -20,6 +20,7 @@ import { createSupabaseServiceRoleClient } from '@/lib/supabase/service-role';
 import { refreshGoogleToken } from '@/lib/seo/google-client';
 
 const GA4_DATA_ENDPOINT = 'https://analyticsdata.googleapis.com/v1beta';
+const GA4_ADMIN_ENDPOINT = 'https://analyticsadmin.googleapis.com/v1beta';
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6h
 
 export interface Ga4TenantScope {
@@ -57,6 +58,45 @@ export interface Ga4ReportResult {
   source: 'cache' | 'live' | 'mock';
 }
 
+export interface Ga4AdminGovernancePlan extends Ga4TenantScope {
+  profileId: 'ga4_admin_governance_v1';
+  dryRun: boolean;
+  checks: Array<'key_events' | 'audiences' | 'data_streams'>;
+}
+
+export interface Ga4AdminGovernanceResult {
+  plan: Ga4AdminGovernancePlan;
+  propertyId: string | null;
+  keyEvents: Array<Record<string, unknown>>;
+  audiences: Array<Record<string, unknown>>;
+  dataStreams: Array<Record<string, unknown>>;
+  fetchedAt: string;
+  source: 'live' | 'mock';
+}
+
+export interface Ga4BatchReportInput extends Ga4TenantScope {
+  requests: Array<Omit<Ga4ReportInput, keyof Ga4TenantScope | 'forceRefresh'>>;
+  dryRun?: boolean;
+}
+
+export interface Ga4PivotReportInput extends Ga4ReportInput {
+  pivots: Array<Record<string, unknown>>;
+  dryRun?: boolean;
+}
+
+export interface Ga4RealtimeSmokeInput extends Ga4TenantScope {
+  metrics?: string[];
+  dimensions?: string[];
+  minuteRanges?: Array<Record<string, unknown>>;
+  dryRun?: boolean;
+}
+
+export interface Ga4ProviderPlan extends Ga4TenantScope {
+  profileId: 'ga4_batch_funnel_v1' | 'ga4_pivot_funnel_v1' | 'ga4_realtime_smoke_v1';
+  body: Record<string, unknown>;
+  dryRun: boolean;
+}
+
 export class Ga4ClientError extends Error {
   readonly code: string;
   readonly status: number;
@@ -67,6 +107,96 @@ export class Ga4ClientError extends Error {
     this.status = status;
     this.details = details;
   }
+}
+
+function assertReportScope(metrics: string[], dimensions: string[], metricCap = 10, dimensionCap = 9): void {
+  if (!Array.isArray(metrics) || metrics.length === 0) {
+    throw new Ga4ClientError('INVALID_PROFILE_INPUT', 'At least one GA4 metric is required', 400);
+  }
+  if (metrics.length > metricCap) {
+    throw new Ga4ClientError('PROFILE_SCOPE_TOO_BROAD', `GA4 metric cap is ${metricCap}`, 400, { count: metrics.length });
+  }
+  if (dimensions.length > dimensionCap) {
+    throw new Ga4ClientError('PROFILE_SCOPE_TOO_BROAD', `GA4 dimension cap is ${dimensionCap}`, 400, {
+      count: dimensions.length,
+    });
+  }
+}
+
+function reportBody(input: Pick<Ga4ReportInput, 'startDate' | 'endDate' | 'metrics' | 'dimensions' | 'dimensionFilter' | 'limit'>): Record<string, unknown> {
+  assertReportScope(input.metrics, input.dimensions ?? []);
+  const body: Record<string, unknown> = {
+    dateRanges: [{ startDate: input.startDate, endDate: input.endDate }],
+    metrics: input.metrics.map((name) => ({ name })),
+    dimensions: (input.dimensions ?? []).map((name) => ({ name })),
+    limit: String(input.limit ?? 1000),
+  };
+  if (input.dimensionFilter) body.dimensionFilter = input.dimensionFilter;
+  return body;
+}
+
+export function buildGa4AdminGovernancePlan(
+  input: Ga4TenantScope & { dryRun?: boolean; checks?: Ga4AdminGovernancePlan['checks'] },
+): Ga4AdminGovernancePlan {
+  return {
+    account_id: input.account_id,
+    website_id: input.website_id,
+    locale: input.locale,
+    profileId: 'ga4_admin_governance_v1',
+    dryRun: input.dryRun ?? true,
+    checks: input.checks ?? ['key_events', 'audiences', 'data_streams'],
+  };
+}
+
+export function buildGa4BatchReportPlan(input: Ga4BatchReportInput): Ga4ProviderPlan {
+  if (input.requests.length === 0) {
+    throw new Ga4ClientError('INVALID_PROFILE_INPUT', 'At least one GA4 batch request is required', 400);
+  }
+  if (input.requests.length > 5) {
+    throw new Ga4ClientError('PROFILE_SCOPE_TOO_BROAD', 'GA4 batch request cap is 5', 400, {
+      count: input.requests.length,
+    });
+  }
+  return {
+    account_id: input.account_id,
+    website_id: input.website_id,
+    locale: input.locale,
+    profileId: 'ga4_batch_funnel_v1',
+    dryRun: input.dryRun ?? true,
+    body: { requests: input.requests.map(reportBody) },
+  };
+}
+
+export function buildGa4PivotReportPlan(input: Ga4PivotReportInput): Ga4ProviderPlan {
+  if (input.pivots.length === 0 || input.pivots.length > 2) {
+    throw new Ga4ClientError('PROFILE_SCOPE_TOO_BROAD', 'GA4 pivot count must be 1-2', 400, { count: input.pivots.length });
+  }
+  return {
+    account_id: input.account_id,
+    website_id: input.website_id,
+    locale: input.locale,
+    profileId: 'ga4_pivot_funnel_v1',
+    dryRun: input.dryRun ?? true,
+    body: { ...reportBody(input), pivots: input.pivots },
+  };
+}
+
+export function buildGa4RealtimeSmokePlan(input: Ga4RealtimeSmokeInput): Ga4ProviderPlan {
+  const metrics = input.metrics ?? ['activeUsers'];
+  const dimensions = input.dimensions ?? ['unifiedPagePathScreen'];
+  assertReportScope(metrics, dimensions, 5, 4);
+  return {
+    account_id: input.account_id,
+    website_id: input.website_id,
+    locale: input.locale,
+    profileId: 'ga4_realtime_smoke_v1',
+    dryRun: input.dryRun ?? true,
+    body: {
+      metrics: metrics.map((name) => ({ name })),
+      dimensions: dimensions.map((name) => ({ name })),
+      minuteRanges: input.minuteRanges ?? [{ name: 'last_30_minutes', startMinutesAgo: 29, endMinutesAgo: 0 }],
+    },
+  };
 }
 
 interface Ga4IntegrationRow {
@@ -148,6 +278,25 @@ async function ensureFreshAccessToken(integration: Ga4IntegrationRow): Promise<s
   return refreshed.access_token;
 }
 
+async function ga4Fetch<T>(url: string, accessToken: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(url, {
+    ...init,
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+      ...(init?.headers ?? {}),
+    },
+    signal: init?.signal ?? AbortSignal.timeout(15_000),
+  });
+  const json = (await response.json().catch(() => ({}))) as T;
+  if (!response.ok) {
+    if (response.status === 401) throw new Ga4ClientError('AUTH_EXPIRED', 'GA4 access token rejected', 401, json);
+    if (response.status === 429) throw new Ga4ClientError('RATE_LIMIT', 'GA4 rate limited', 429, json);
+    throw new Ga4ClientError('UPSTREAM_ERROR', 'GA4 request failed', response.status >= 500 ? 502 : response.status, json);
+  }
+  return json;
+}
+
 export async function runGa4Report(input: Ga4ReportInput): Promise<Ga4ReportResult> {
   const cacheTag = buildGa4CacheTag(input);
   const cacheKey = buildCacheKey(input);
@@ -192,13 +341,7 @@ export async function runGa4Report(input: Ga4ReportInput): Promise<Ga4ReportResu
 
   const accessToken = await ensureFreshAccessToken(integration);
 
-  const body: Record<string, unknown> = {
-    dateRanges: [{ startDate: input.startDate, endDate: input.endDate }],
-    metrics: input.metrics.map((name) => ({ name })),
-    dimensions: (input.dimensions ?? []).map((name) => ({ name })),
-    limit: String(input.limit ?? 1000),
-  };
-  if (input.dimensionFilter) body.dimensionFilter = input.dimensionFilter;
+  const body = reportBody(input);
 
   const url = `${GA4_DATA_ENDPOINT}/properties/${integration.property_id}:runReport`;
   const response = await fetch(url, {
@@ -265,4 +408,75 @@ export async function runGa4Report(input: Ga4ReportInput): Promise<Ga4ReportResu
     propertyId: integration.property_id,
     source: 'live',
   };
+}
+
+export async function runGa4AdminGovernance(
+  plan: Ga4AdminGovernancePlan,
+): Promise<Ga4AdminGovernanceResult> {
+  if (plan.dryRun) {
+    return {
+      plan,
+      propertyId: null,
+      keyEvents: [],
+      audiences: [],
+      dataStreams: [],
+      fetchedAt: new Date().toISOString(),
+      source: 'mock',
+    };
+  }
+  const integration = await loadGa4Integration(plan);
+  if (!integration?.property_id || !integration.refresh_token) {
+    return {
+      plan,
+      propertyId: integration?.property_id ?? null,
+      keyEvents: [],
+      audiences: [],
+      dataStreams: [],
+      fetchedAt: new Date().toISOString(),
+      source: 'mock',
+    };
+  }
+  const accessToken = await ensureFreshAccessToken(integration);
+  const property = `properties/${integration.property_id}`;
+  const [keyEventsJson, audiencesJson, dataStreamsJson] = await Promise.all([
+    plan.checks.includes('key_events')
+      ? ga4Fetch<{ keyEvents?: Array<Record<string, unknown>> }>(`${GA4_ADMIN_ENDPOINT}/${property}/keyEvents`, accessToken)
+      : Promise.resolve({ keyEvents: [] }),
+    plan.checks.includes('audiences')
+      ? ga4Fetch<{ audiences?: Array<Record<string, unknown>> }>(`${GA4_ADMIN_ENDPOINT}/${property}/audiences`, accessToken)
+      : Promise.resolve({ audiences: [] }),
+    plan.checks.includes('data_streams')
+      ? ga4Fetch<{ dataStreams?: Array<Record<string, unknown>> }>(`${GA4_ADMIN_ENDPOINT}/${property}/dataStreams`, accessToken)
+      : Promise.resolve({ dataStreams: [] }),
+  ]);
+  return {
+    plan,
+    propertyId: integration.property_id,
+    keyEvents: keyEventsJson.keyEvents ?? [],
+    audiences: audiencesJson.audiences ?? [],
+    dataStreams: dataStreamsJson.dataStreams ?? [],
+    fetchedAt: new Date().toISOString(),
+    source: 'live',
+  };
+}
+
+export async function runGa4ProviderPlan<T = unknown>(
+  plan: Ga4ProviderPlan,
+): Promise<{ plan: Ga4ProviderPlan; data: T | null; status: 'planned' | 'completed' | 'mock' }> {
+  if (plan.dryRun) return { plan, data: null, status: 'planned' };
+  const integration = await loadGa4Integration(plan);
+  if (!integration?.property_id || !integration.refresh_token) return { plan, data: null, status: 'mock' };
+  const accessToken = await ensureFreshAccessToken(integration);
+  const action =
+    plan.profileId === 'ga4_batch_funnel_v1'
+      ? 'batchRunReports'
+      : plan.profileId === 'ga4_pivot_funnel_v1'
+        ? 'runPivotReport'
+        : 'runRealtimeReport';
+  const url = `${GA4_DATA_ENDPOINT}/properties/${integration.property_id}:${action}`;
+  const data = await ga4Fetch<T>(url, accessToken, {
+    method: 'POST',
+    body: JSON.stringify(plan.body),
+  });
+  return { plan, data, status: 'completed' };
 }
