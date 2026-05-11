@@ -12,7 +12,6 @@ import {
 } from "@/lib/supabase/get-website";
 import { JsonLd, generateBlogPostSchemas } from "@/lib/schema";
 import { BlogDetail } from "@/components/site/blog/blog-detail";
-import { TemplateSlot } from "@/components/site/themes/editorial-v1/template-slot";
 import { resolveOgImage } from "@/lib/seo/og-helpers";
 import {
   buildLocaleAwareAlternateLanguages,
@@ -246,23 +245,12 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
       <h1 className="sr-only" aria-hidden="true">
         {post.title}
       </h1>
-      <TemplateSlot
-        name="blog-detail"
-        website={websiteForRender}
-        payload={{
-          subdomain,
-          locale: resolvedLocale,
-          post,
-          related,
-        }}
-      >
-        <BlogDetail
-          subdomain={subdomain}
-          locale={resolvedLocale}
-          post={post}
-          isCustomDomain={isCustomDomain}
-        />
-      </TemplateSlot>
+      <BlogDetail
+        subdomain={subdomain}
+        locale={resolvedLocale}
+        post={post}
+        isCustomDomain={isCustomDomain}
+      />
     </>
   );
 }

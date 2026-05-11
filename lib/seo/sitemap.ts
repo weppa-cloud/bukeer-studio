@@ -121,7 +121,7 @@ export async function buildSitemapUrls(
 
   for (const group of blogGroups) {
     urls.push({
-      loc: `${baseUrl}/blog/${group.slug}`,
+      loc: `${baseUrl}${group.pathname}`,
       lastmod: group.lastmod,
       changefreq: "monthly",
       priority: "0.6",
@@ -355,7 +355,7 @@ interface BlogSitemapRow {
 }
 
 interface BlogSitemapGroup {
-  slug: string;
+  pathname: string;
   lastmod?: string;
   translatedLocales: string[];
 }
@@ -374,7 +374,13 @@ function groupBlogRowsForSitemap(rows: BlogSitemapRow[]): BlogSitemapGroup[] {
   const out: BlogSitemapGroup[] = [];
   for (const groupRows of groups.values()) {
     const defaultRow = groupRows.find((row) => isDefaultBlogLocale(row.locale));
-    if (!defaultRow?.slug) continue;
+    const canonicalRow = defaultRow ?? groupRows[0];
+    if (!canonicalRow?.slug) continue;
+    const canonicalLocale = normalizeBlogLocaleForSitemap(canonicalRow.locale);
+    const pathname =
+      defaultRow || !canonicalLocale
+        ? `/blog/${canonicalRow.slug}`
+        : `/${canonicalLocale.split("-")[0].toLowerCase()}/blog/${canonicalRow.slug}`;
 
     const translatedLocales = groupRows
       .map((row) => normalizeBlogLocaleForSitemap(row.locale))
@@ -387,13 +393,13 @@ function groupBlogRowsForSitemap(rows: BlogSitemapRow[]): BlogSitemapGroup[] {
       .at(-1);
 
     out.push({
-      slug: defaultRow.slug,
+      pathname,
       lastmod: lastmodSource?.split("T")[0],
       translatedLocales: [...new Set(translatedLocales)],
     });
   }
 
-  return out.sort((a, b) => a.slug.localeCompare(b.slug));
+  return out.sort((a, b) => a.pathname.localeCompare(b.pathname));
 }
 
 function normalizeBlogLocaleForSitemap(
