@@ -174,6 +174,92 @@ group by 1, 2, 3
 order by 1 desc, 2, 3;
 ```
 
+## Platform Goal Sync (F7)
+
+`funnel_events` remains the source of truth for what happened. Platform goal
+sync governs the destination-side setup: Google Ads conversion actions, GA4 key
+events, Meta Pixel/Dataset/CAPI readiness, and Clarity context. This layer is
+tracked by [SPEC_FUNNEL_EVENTS_GOAL_PROVISIONING_SYNC](../specs/SPEC_FUNNEL_EVENTS_GOAL_PROVISIONING_SYNC.md)
+and issue #493.
+
+Operational rule:
+
+- Always run dry-run first.
+- Do not mutate Google Ads campaign bidding, campaign goals, custom goals, or
+  platform conversion settings without explicit human approval.
+- Do not use global production credentials. Tenant credentials and account IDs
+  resolve through `account_channel_contracts`, `service_channels`,
+  `seo_integrations`, and `websites.analytics`.
+- Clarity is diagnostic only; it never becomes a bidding or conversion goal.
+
+### Dry-run API
+
+```bash
+curl -sS -X POST "$BASE_URL/api/growth/platform-goals/dry-run" \
+  -H "content-type: application/json" \
+  -b "$AUTH_COOKIE" \
+  --data '{
+    "website_id": "<website_uuid>",
+    "platforms": ["google_ads", "ga4", "meta", "clarity"]
+  }'
+```
+
+Expected response:
+
+- `plan.summary.create`: bindings/goals that need to be created.
+- `plan.summary.update`: existing bindings with status/name/account drift.
+- `plan.summary.blocked`: provider credentials/config missing.
+- `plan.planHash`: immutable approval handle for future apply.
+- `runId`: audit row in `platform_goal_sync_runs`.
+
+### Status API
+
+```bash
+curl -sS "$BASE_URL/api/growth/platform-goals/status?website_id=<website_uuid>&platform=google_ads&platform=ga4" \
+  -b "$AUTH_COOKIE"
+```
+
+Health meanings:
+
+| Health | Meaning |
+|--------|---------|
+| `healthy` | All known bindings are aligned. |
+| `watch` | Bindings exist but some desired/live state drift remains. |
+| `blocked` | Credentials/account mismatch/missing provider config blocks sync. |
+| `unknown` | No bindings have been created yet. |
+
+### Apply Gate
+
+The apply endpoint is intentionally gated until provider mutation adapters are
+implemented. Current behavior records an audit attempt and returns
+`PROVIDER_APPLY_NOT_IMPLEMENTED`.
+
+```bash
+curl -sS -X POST "$BASE_URL/api/growth/platform-goals/apply" \
+  -H "content-type: application/json" \
+  -b "$AUTH_COOKIE" \
+  --data '{
+    "website_id": "<website_uuid>",
+    "plan_hash": "<dry_run_plan_hash>",
+    "confirmation": "APPLY_PLATFORM_GOALS"
+  }'
+```
+
+This prevents a partial implementation from silently mutating external
+platforms. Provider apply adapters must be implemented and tested per platform
+before this gate is opened.
+
+### Binding Resolution
+
+Google Ads upload resolution now checks, in order:
+
+1. explicit runtime override used by tests;
+2. `platform_goal_bindings.platform_goal_id`;
+3. legacy `event_destination_mapping.tenant_overrides[account_id].conversion_action_id`.
+
+The legacy fallback keeps production stable while tenants are migrated to F7
+bindings.
+
 Day-over-day drop monitor. Alert when `drop_ratio <= -0.50` and yesterday had at least 10 events.
 
 ```sql

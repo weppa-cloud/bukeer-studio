@@ -103,6 +103,43 @@ See [[ADR-029]] for full context. Three concrete pains this spec resolves:
 - [ ] **AC4.4** Multi-tenant platform config is production-ready: Meta CAPI tokens live in `account_channel_contracts.credentials_encrypted`, platform metadata lives in `account_channel_contracts.config`, and public browser Pixel IDs remain in `websites.analytics.facebook_pixel_id`. Global `META_PIXEL_ID` / `META_ACCESS_TOKEN` are allowed only for local/test or an explicit legacy allowlist during rollout.
 - [ ] **AC4.5** Runbook + QA checklist (closes #328).
 
+### Phase 6 — GA4 + Clarity observability layer (F6)
+
+GA4 and Microsoft Clarity are diagnostic/reporting systems, not the conversion
+source of truth. The source of truth remains `funnel_events`; this phase copies
+selected canonical events to GA4 Measurement Protocol, tags Clarity sessions
+with non-PII funnel context, and exposes a unified Supabase view for Growth OS
+and agent optimization.
+
+- [ ] **AC6.1** `event_destination_mapping` has `destination='ga4'` rows for canonical reporting events.
+- [ ] **AC6.2** `ga4_measurement_protocol_events` exists as an idempotent delivery log.
+- [ ] **AC6.3** Dispatcher sends GA4 Measurement Protocol copies for selected canonical events behind `FUNNEL_GA4_MP_DISPATCH_V1`.
+- [ ] **AC6.4** WAFlow diagnostic events (`waflow_open`, `waflow_validation_error`, `waflow_abandon`) are persisted so abandonment is measurable outside GA4.
+- [ ] **AC6.5** Clarity receives only non-PII tenant/market/landing/campaign/variant/reference-hash context.
+- [ ] **AC6.6** `growth_funnel_observability_v1` joins canonical events, WAFlow leads, CRM requests, itineraries, platform delivery logs, and provider-profile freshness for agent use.
+- [ ] **AC6.7** ColombiaTours has a 24h observability readout proving canonical event counts, GA4 MP delivery, Meta delivery, Google uploads, Clarity freshness, CRM opportunities, and known gaps.
+
+See [[SPEC_FUNNEL_EVENTS_OBSERVABILITY_LAYER]] for the detailed F6 contract.
+
+### Phase 7 — Multi-tenant platform goal provisioning + sync (F7)
+
+Event delivery and platform goal setup are separate responsibilities. This
+phase lets Bukeer Studio derive desired platform goals from the canonical
+funnel matrix, compare them against live tenant platform accounts, and apply
+approved changes safely. It prevents each tenant from manually configuring
+Google Ads conversion actions, GA4 key events, Meta custom conversions, or
+Clarity context in disconnected UIs.
+
+- [ ] **AC7.1** `platform_goal_bindings` records canonical event -> platform goal/action IDs per tenant and destination.
+- [ ] **AC7.2** A read-only dry-run compares desired goals against live Google Ads, GA4, Meta, and Clarity configuration.
+- [ ] **AC7.3** Apply mode requires approval and writes audit records with provider responses and rollback notes.
+- [ ] **AC7.4** Google Ads conversion actions, legacy/duplicate drift, and primary/secondary status are governed from Studio.
+- [ ] **AC7.5** GA4 key events and Meta Pixel/Dataset/CAPI readiness are synchronized or verified from Studio.
+- [ ] **AC7.6** Dispatcher/upload adapters resolve destination IDs from bindings or approved tenant overrides, never hardcoded global IDs.
+- [ ] **AC7.7** Tenant health surfaces `healthy`, `watch`, or `blocked` goal-sync state for agents before optimization.
+
+See [[SPEC_FUNNEL_EVENTS_GOAL_PROVISIONING_SYNC]] for the detailed F7 contract.
+
 ## Data Model Changes
 
 | Table | Column | Type | Notes |

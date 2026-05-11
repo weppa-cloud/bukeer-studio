@@ -83,7 +83,7 @@ function getTenantOverride(
   return entry as TenantOverrideShape;
 }
 
-function resolveConversionActionId(
+function resolveConversionActionIdFromMapping(
   mapping: EventDestinationMappingRow,
   accountId: string | null | undefined,
   override?: string,
@@ -94,6 +94,57 @@ function resolveConversionActionId(
     return tenantOverride.conversion_action_id;
   }
   return null;
+}
+
+async function resolveConversionActionIdFromBinding(
+  supabase: DispatchDeps['supabase'],
+  event: FunnelEvent,
+  mapping: EventDestinationMappingRow,
+): Promise<string | null> {
+  if (!supabase || !event.account_id) return null;
+
+  try {
+    let query = supabase
+      .from('platform_goal_bindings')
+      .select('platform_goal_id')
+      .eq('account_id', event.account_id)
+      .eq('canonical_event_name', event.event_name)
+      .eq('destination', 'google_ads')
+      .in('sync_status', ['healthy', 'watch'])
+      .limit(1);
+
+    if (event.website_id) {
+      query = query.or(`website_id.eq.${event.website_id},website_id.is.null`);
+    } else {
+      query = query.is('website_id', null);
+    }
+
+    const { data, error } = await query.maybeSingle();
+    if (error) {
+      const message = error.message ?? '';
+      const tableMissing =
+        (error as { code?: string }).code === '42P01' ||
+        message.toLowerCase().includes('does not exist');
+      if (!tableMissing) {
+        log.warn('platform_goal_binding_lookup_failed', {
+          event_name: event.event_name,
+          destination_event_name: mapping.destination_event_name,
+          error: message,
+        });
+      }
+      return null;
+    }
+
+    const id = (data as { platform_goal_id?: unknown } | null)?.platform_goal_id;
+    return typeof id === 'string' && id.trim() ? id.trim() : null;
+  } catch (error) {
+    log.warn('platform_goal_binding_lookup_threw', {
+      event_name: event.event_name,
+      destination_event_name: mapping.destination_event_name,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return null;
+  }
 }
 
 function isEnabled(
@@ -201,11 +252,10 @@ export async function dispatchToGoogleAds(
     };
   }
 
-  const conversionActionId = resolveConversionActionId(
-    mapping,
-    event.account_id,
-    deps.conversionActionIdOverride,
-  );
+  const conversionActionId =
+    deps.conversionActionIdOverride ??
+    (await resolveConversionActionIdFromBinding(deps.supabase, event, mapping)) ??
+    resolveConversionActionIdFromMapping(mapping, event.account_id);
   if (!conversionActionId) {
     log.warn('missing_conversion_action_id', {
       event_name: event.event_name,
