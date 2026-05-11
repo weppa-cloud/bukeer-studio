@@ -21,6 +21,114 @@ External Hermes runtime replacement is intentionally not certified here. The acc
 
 ## Production Evidence
 
+### VPS Hermes sidecar production proof
+
+On 2026-05-11 the hybrid runtime was validated directly on the Growth OS VPS
+instead of local simulation.
+
+- VPS release deployed: `b8c24a921440e5ce576996f3b813c34169319b66`
+- Runtime root: `/opt/growth-os/current`
+- Docker service: `growth-orchestrator`
+- Hermes profile: `growth-os-colombiatours`
+- Deployment smoke: `runtime config smoke completed`, pass `true`
+- Persisted SHA guard: `/opt/growth-os/.env` now records `GITHUB_SHA=b8c24a921440e5ce576996f3b813c34169319b66`
+- Fix commit: `b8c24a92 fix(growth): persist runtime deploy sha on VPS`
+
+Real Hermes sidecar run:
+
+- Sidecar run: `cd4e3445-556f-4ef3-a681-078c909395b6`
+- Provider analysis artifact: `689904ad-8006-4b52-a7d9-d68f3fa1d9ad`
+- Mode: `hermes`
+- Hermes available: `true`
+- Hermes profile: `growth-os-colombiatours`
+- Lane session: `b5609bef-608e-4b09-baf8-f9caaa344aaf`
+- Lane: `content_writer`
+- Content artifact: `47060c80-3ba6-48c9-b760-6c4b8ba2ef3b`
+- Candidate: `d401e0d3-0a02-4310-a4f0-13f3f558575a`
+- Work item: `b0be2865-05dc-454a-bf06-7ea5cc0862bd`
+
+The Hermes sidecar produced the artifact only. Public mutation was performed
+later by the Growth OS live-gated executor.
+
+### VPS live-gated executor proof
+
+Controlled production cycle:
+
+- Cycle: `6a612c42-fd39-42a7-b165-e4f90fcbe1f9`
+- Git SHA: `ad77a3b6`
+- Mode: executor
+- Claims: `3`
+- Applied: `2`
+- Blocked: `1`
+- Public mutation performed: `true`
+
+Content publication from Hermes artifact:
+
+- Work item: `b0be2865-05dc-454a-bf06-7ea5cc0862bd`
+- Run: `a44a3406-ab54-4960-9b89-f44c6819a412`
+- Publication job: `bd6a7be7-8a62-45d7-abf4-b4582b5c9101`
+- Action class: `content_publish`
+- Target table: `website_blog_posts`
+- Target row: `e5f25845-6ca9-42fe-af49-8c75640cfe00`
+- Target path: `/blog/growth-os-post-migracion-cd4e3445`
+- Blog status: `published`
+- Smoke status: `smoke_passed`
+- Rollback payload: delete created blog slug `growth-os-post-migracion-cd4e3445`
+- Outcomes:
+  - `5e7b0225-0c40-4c65-9090-7e977021c7ce` — `measuring`, `organic_clicks_21d:day_21`
+  - `ea20f7c0-6af2-4989-a1cb-1847f25f11b0` — `scheduled`, `organic_clicks_21d:day_45`
+
+Technical safe apply from the same controlled cycle:
+
+- Work item: `6c7cebdc-d05d-427e-82c6-285d8fe9c7e4`
+- Publication job: `4c624ff3-09b3-4c19-bd3e-ef2c35683389`
+- Action class: `safe_apply`
+- Target table: `website_pages`
+- Target path: `/privacy`
+- Smoke status: `smoke_passed`
+- Immediate outcome: `8b46b450-a410-434f-b045-e26bb7abd55b`, status `inconclusive`
+
+Post-deploy daemon cycle:
+
+- Cycle: `93189254-e2eb-44e5-b0f5-ed0a409bdda9`
+- Git SHA: `b8c24a921440e5ce576996f3b813c34169319b66`
+- Status: `completed`
+- Claims: `2`
+- Applied: `1`
+- Blocked: `1`
+- Public mutation performed: `true`
+- Latest technical job: `24af9b4f-3ad2-4ef7-b16d-2aabeaaf8e5c`
+- Target path: `/paquetes-a-colombia-todo-incluido-en-9-dias`
+- Smoke status: `smoke_passed`
+
+Runtime health after reconciliation:
+
+- Open work items: `0`
+- Open wakeups: `0`
+- Open task sessions: `0`
+- Scheduler heartbeat: `healthy`
+- Heartbeat row: `24578b81-8495-4842-841e-8a3224cb6dd6`
+- Last cycle id: `93189254-e2eb-44e5-b0f5-ed0a409bdda9`
+- Last cycle status: `completed`
+
+Stale cleanup performed after controlled VPS restarts:
+
+- Stale cycles marked failed:
+  - `006c6e68-92df-4e98-bc24-999dc3128b06`
+  - `606997df-034d-4b20-b5ba-5c0381585bad`
+  - `9692fcd4-4843-4425-8149-18e6126949e1`
+- Stale run marked stalled: `602bc090-1c07-491b-848e-c2668c6575e8`
+- Stale work item blocked: `aba4ae42-a935-461e-9eb9-7bcfd35bda8b`
+- Block reason: `stale_runtime_claim_recovered_missing_transcreation_contract`
+
+Transcreation lane evidence remains guarded:
+
+- Hermes transcreation lane produced artifact evidence in sidecar validation.
+- Live merge was not forced because the available transcreation payloads lacked
+  `source_entity_id` and `transcreation_job_id`, or were blocked by anti-rework.
+- This is an executor contract pass, not a public mutation pass: invalid
+  transcreation artifacts do not bypass Growth OS gates.
+
 ### Supabase migration
 
 - Migration file: `supabase/migrations/20260511110000_growth_hermes_chief_of_staff_swarm.sql`
