@@ -36,6 +36,7 @@ export interface ProfileFreshnessGateResult {
 
 export interface GrowthCandidateDataQualityInput {
   evidence: JsonRecord;
+  actionClass?: GrowthAutonomyActionClass | null;
   successMetric?: string | null;
   evaluationWindow?: GrowthOutcomeEvaluationWindow | null;
 }
@@ -187,6 +188,27 @@ function hasNonEmptyRecord(value: unknown): boolean {
   );
 }
 
+function asRecord(value: unknown): JsonRecord {
+  return hasNonEmptyRecord(value) ? (value as JsonRecord) : {};
+}
+
+function firstRecord(...values: unknown[]): JsonRecord {
+  for (const value of values) {
+    const record = asRecord(value);
+    if (Object.keys(record).length > 0) return record;
+  }
+  return {};
+}
+
+function textValue(record: JsonRecord, key: string): string | null {
+  const value = record[key];
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function nestedRecord(record: JsonRecord, key: string): JsonRecord {
+  return asRecord(record[key]);
+}
+
 function hasCandidateTarget(value: unknown): boolean {
   if (!hasNonEmptyRecord(value)) return false;
   const target = value as JsonRecord;
@@ -208,24 +230,30 @@ function dataForSeoEvidenceFailure(value: unknown): string | null {
   return `dataforseo_${status}`;
 }
 
-function contentArticleEvidenceFailures(evidence: JsonRecord): string[] {
+function contentArticleEvidenceFailures(
+  evidence: JsonRecord,
+  actionClass?: GrowthAutonomyActionClass | null,
+): string[] {
   const target = hasNonEmptyRecord(evidence.target)
     ? (evidence.target as JsonRecord)
     : {};
-  const actionClass =
+  const evidenceActionClass =
     typeof evidence.allowed_action_class === "string"
       ? evidence.allowed_action_class
-      : null;
+      : actionClass;
   const isContentPublish =
-    actionClass === "content_publish" ||
+    evidenceActionClass === "content_publish" ||
     target.target_table === "website_blog_posts" ||
     hasNonEmptyRecord(evidence.article);
   if (!isContentPublish) return [];
 
   const failures: string[] = [];
-  const article = hasNonEmptyRecord(evidence.article)
-    ? (evidence.article as JsonRecord)
-    : {};
+  const article = firstRecord(
+    evidence.article,
+    nestedRecord(asRecord(evidence.adapter_input), "article"),
+    nestedRecord(asRecord(evidence.runtime_adapter), "article"),
+    nestedRecord(asRecord(evidence.publication_adapter), "article"),
+  );
   const articleText = typeof article.content === "string" ? article.content : "";
   const supportedFacts = Array.isArray(evidence.supported_facts)
     ? evidence.supported_facts
@@ -261,6 +289,156 @@ function contentArticleEvidenceFailures(evidence: JsonRecord): string[] {
   return failures;
 }
 
+const TECHNICAL_ALLOWED_FIELDS: Record<string, ReadonlySet<string>> = {
+  website_pages: new Set([
+    "seo_title",
+    "seo_description",
+    "target_keyword",
+    "robots_noindex",
+  ]),
+  website_sections: new Set([
+    "content",
+    "content_translations",
+    "config",
+    "is_enabled",
+  ]),
+  product_seo_overrides: new Set([
+    "meta_title",
+    "meta_desc",
+    "h1",
+    "slug",
+    "keywords",
+    "body_content",
+  ]),
+};
+
+const FORBIDDEN_PATCH_FIELD_PATTERNS = [
+  /price/i,
+  /pricing/i,
+  /availability/i,
+  /booking/i,
+  /reservation/i,
+  /payment/i,
+  /paid/i,
+  /campaign/i,
+  /cost/i,
+  /currency/i,
+];
+
+function runtimeAdapterPlan(evidence: JsonRecord): JsonRecord {
+  return firstRecord(
+    evidence.adapter_input,
+    evidence.runtime_adapter,
+    evidence.publication_adapter,
+    nestedRecord(asRecord(evidence.signal_payload), "adapter_input"),
+  );
+}
+
+function transcreationPayloadFailures(evidence: JsonRecord): string[] {
+  const failures: string[] = [];
+  const transcreation = runtimeAdapterPlan(evidence);
+  if (Object.keys(transcreation).length === 0) {
+    failures.push("missing_runtime_adapter_plan");
+  }
+  const payload = asRecord(transcreation.payload);
+  const quality = asRecord(transcreation.quality);
+  const sourceLocale = textValue(transcreation, "source_locale");
+  const targetLocale = textValue(transcreation, "target_locale");
+
+  if (!textValue(transcreation, "transcreation_job_id")) {
+    failures.push("missing_transcreation_job_id");
+  }
+  if (!sourceLocale || !targetLocale || sourceLocale === targetLocale) {
+    failures.push("invalid_transcreation_locale_pair");
+  }
+  if (!textValue(transcreation, "source_entity_id")) {
+    failures.push("missing_transcreation_source_entity_id");
+  }
+  if (!textValue(transcreation, "page_type")) {
+    failures.push("missing_transcreation_page_type");
+  }
+  if (!textValue(payload, "meta_title")) {
+    failures.push("missing_transcreation_meta_title");
+  }
+  if (!textValue(payload, "meta_desc")) {
+    failures.push("missing_transcreation_meta_desc");
+  }
+  if (!payload.body_content && !payload.body_overlay_v2) {
+    failures.push("missing_transcreation_body_payload");
+  }
+  if (quality.passed !== true) {
+    failures.push("transcreation_quality_not_passed");
+  }
+  if (
+    !Array.isArray(transcreation.glossary_terms) ||
+    transcreation.glossary_terms.length === 0
+  ) {
+    failures.push("missing_glossary_or_tm_context");
+  }
+  return failures;
+}
+
+function patchFieldFailures(targetTable: string | null, patch: JsonRecord): string[] {
+  const failures: string[] = [];
+  if (!targetTable || !TECHNICAL_ALLOWED_FIELDS[targetTable]) {
+    failures.push("unsupported_safe_apply_target");
+    return failures;
+  }
+  const allowed = TECHNICAL_ALLOWED_FIELDS[targetTable];
+  for (const key of Object.keys(patch)) {
+    if (!allowed.has(key)) failures.push(`field_not_allowed:${key}`);
+    if (FORBIDDEN_PATCH_FIELD_PATTERNS.some((pattern) => pattern.test(key))) {
+      failures.push(`forbidden_field:${key}`);
+    }
+  }
+  return failures;
+}
+
+function safeApplyPayloadFailures(evidence: JsonRecord): string[] {
+  const failures: string[] = [];
+  const technical = runtimeAdapterPlan(evidence);
+  if (Object.keys(technical).length === 0) {
+    failures.push("missing_runtime_adapter_plan");
+  }
+  const targetTable = textValue(technical, "target_table");
+  const targetId = textValue(technical, "target_id");
+  const patch = asRecord(technical.patch);
+  const beforeRow = asRecord(technical.before_row);
+  const rollbackPayload = asRecord(technical.rollback_payload);
+
+  if (!targetTable) failures.push("missing_safe_apply_target_table");
+  if (!targetId) failures.push("missing_safe_apply_target_id");
+  if (Object.keys(patch).length === 0) failures.push("missing_safe_apply_patch");
+  if (Object.keys(beforeRow).length === 0) failures.push("missing_safe_apply_before_row");
+  if (Object.keys(rollbackPayload).length === 0) {
+    failures.push("missing_safe_apply_rollback_payload");
+  }
+  failures.push(...patchFieldFailures(targetTable, patch));
+  if (
+    Object.keys(patch).length > 0 &&
+    Object.keys(beforeRow).length > 0 &&
+    Object.keys(patch).every(
+      (key) => JSON.stringify(beforeRow[key] ?? null) === JSON.stringify(patch[key] ?? null),
+    )
+  ) {
+    failures.push("safe_apply_no_effective_changes");
+  }
+  return failures;
+}
+
+function actionPayloadEvidenceFailures(
+  actionClass: GrowthAutonomyActionClass | null | undefined,
+  evidence: JsonRecord,
+): string[] {
+  if (actionClass === "transcreation_merge") {
+    return transcreationPayloadFailures(evidence);
+  }
+  if (actionClass === "safe_apply") {
+    return safeApplyPayloadFailures(evidence);
+  }
+  return [];
+}
+
 export function evaluateCandidateDataQuality(
   input: GrowthCandidateDataQualityInput,
 ): string[] {
@@ -278,7 +456,8 @@ export function evaluateCandidateDataQuality(
     input.evidence.dataforseo_evidence,
   );
   if (dataforseoFailure) failures.push(dataforseoFailure);
-  failures.push(...contentArticleEvidenceFailures(input.evidence));
+  failures.push(...contentArticleEvidenceFailures(input.evidence, input.actionClass));
+  failures.push(...actionPayloadEvidenceFailures(input.actionClass, input.evidence));
   return failures;
 }
 
@@ -305,6 +484,7 @@ export function scoreOpportunityCandidate(
     ),
     ...evaluateCandidateDataQuality({
       evidence: input.evidence,
+      actionClass: input.allowedActionClass,
       successMetric: input.successMetric,
       evaluationWindow: input.evaluationWindow,
     }),
