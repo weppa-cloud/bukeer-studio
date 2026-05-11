@@ -257,7 +257,8 @@ Persisted state pre-#148 (`seo_website_okrs`). Post-#148 these stay as human-rea
 | [[growth-sessions-readme]]                      | [file](./growth-sessions/README.md)                                               | Per-session audit trail.                                                                                                                                                                      |
 | [[growth-os-autonomous-production-certification-2026-05-08]] | [file](./growth-sessions/2026-05-08-growth-os-autonomous-production-certification.md) | Epic #441 QA/certification skeleton for Growth OS autonomous production: E2E evidence checklist, session-pool commands, no GitHub mutation notes. |
 | [[growth-os-agentic-orchestrator-9-plus-certification-2026-05-09]] | [file](./growth-sessions/2026-05-09-growth-os-agentic-orchestrator-9-plus-certification.md) | Agentic Orchestrator 9+ production evidence for ColombiaTours: live brain decisions, memory/skill/outcome citations, safe_apply/content/transcreation volume, rollback dry-verify and session-pool E2E. |
-| [[epic471-provider-intelligence-certification-2026-05-10]] | [file](./growth-sessions/2026-05-10-epic471-provider-intelligence-certification.md) | Epic #471 Provider Intelligence certification: DataForSEO/GSC/GA4 live profile evidence, Clarity WATCH, provider-backed candidates/work items, anti-rework and Growth OS UI E2E 16/16. |
+| [[epic471-provider-intelligence-certification-2026-05-10]] | [file](./growth-sessions/2026-05-10-epic471-provider-intelligence-certification.md) | Epic #471 Provider Intelligence certification: DataForSEO/GSC/GA4 live profile evidence, Clarity live PASS, provider-backed candidates/work items, anti-rework and Growth OS UI E2E 16/16. |
+| [[epic471-backlog-cleanup-2026-05-11]] | [file](./growth-sessions/2026-05-11-epic471-backlog-cleanup.md) | Epic #471 operational cleanup: production backlog duplicate/noise normalization with confirm-token apply evidence and post-cleanup queue validation. |
 | [[colombiatours-seo-geo-deploy-2026-04-24]]     | [file](./growth-sessions/2026-04-24-2045-seo-geo-colombiatours-deploy.md)         | ColombiaTours SEO/GEO technical hardening: activities listing/detail, listing schema, Product/Offer schema, custom-domain link hygiene, Worker deploy `41756f91-34b1-4b93-bc82-1993a325b4c0`. |
 | [[colombiatours-seo-geo-p1-audit-2026-04-24]]   | [file](./growth-sessions/2026-04-24-2120-seo-geo-p1-audit-colombiatours.md)       | ColombiaTours #293 P1 production audit: JSON-LD/crawl PASS, sitemap PASS, Lighthouse performance debt, console/title fixes deployed `b1d022e4-8148-40f7-adf1-b98115b761e2`.                   |
 | [[en-quality-backlog-2026-04-30]]               | [file](./growth-sessions/2026-04-30-en-quality-backlog.md)                        | Epic #310 #314/#315 EN quality backlog: 13 review, 182 translate-from-ES, 20 do-not-publish, production behavior and validation gates.                                                        |
@@ -495,6 +496,7 @@ Each concept below lists the ADRs/SPECs/ops docs that touch it. Use this to find
 - [[SPEC_GROWTH_OS_PROVIDER_EXTRACTION_PROFILES]] — Provider extraction layer for DataForSEO, GA4, GSC and Microsoft Clarity: profile matrix, extraction cadence, normalized evidence, UI coverage and live-gated enforcement.
 - [[growth-os-agentic-orchestrator-9-plus-certification-2026-05-09]] — Production evidence for the 9+ layer: valid live jobs, cited learning context, sensitive blocked decision, rollback payload verification and E2E session-pool results.
 - [[epic471-provider-intelligence-certification-2026-05-10]] — Provider Intelligence + Correlation Layer closure evidence for #471.
+- [[epic471-backlog-cleanup-2026-05-11]] — Provider Intelligence backlog noise cleanup and anti-rework production evidence for #471.
 - [[growth-orchestrator-runtime]] — operational docs for the Growth OS runtime execution plane: code layout, deploys by SHA, Codex executor, data contract, safety gates and troubleshooting.
 - [[SPEC_META_CHATWOOT_CONVERSIONS]] — stub for canonical #322: Meta + Chatwoot conversion path for WAFlow/WhatsApp to qualified lead, quote, and purchase.
 - [[ADR-024]] — booking/date-picker remains deferred for pilot; WAFlow/WhatsApp is primary conversion.
@@ -648,6 +650,7 @@ Obsidian resolves `[[ADR-005]]` by filename stem or alias. Claude Code / Codex g
 | `[[growth-os-autonomous-production-certification-2026-05-08]]` | `docs/growth-sessions/2026-05-08-growth-os-autonomous-production-certification.md` |
 | `[[growth-os-agentic-orchestrator-9-plus-certification-2026-05-09]]` | `docs/growth-sessions/2026-05-09-growth-os-agentic-orchestrator-9-plus-certification.md` |
 | `[[epic471-provider-intelligence-certification-2026-05-10]]` | `docs/growth-sessions/2026-05-10-epic471-provider-intelligence-certification.md` |
+| `[[epic471-backlog-cleanup-2026-05-11]]` | `docs/growth-sessions/2026-05-11-epic471-backlog-cleanup.md` |
 | Any unresolved concept                                | Search this INDEX with `grep "[[concept]]" docs/INDEX.md`.                         |
 
 ---

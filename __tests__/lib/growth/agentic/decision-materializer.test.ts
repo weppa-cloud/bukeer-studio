@@ -80,57 +80,54 @@ function blockedSupabase() {
 function correlationSupabase() {
   const updates: unknown[] = [];
   const workItemId = "44444444-4444-4444-8444-444444444444";
+  const selectRows = (data: unknown[]) => {
+    const query = {
+      eq: () => query,
+      in: () => query,
+      order: () => query,
+      limit: () => Promise.resolve({ data, error: null }),
+    };
+    return query;
+  };
   return {
     updates,
     from(table: string) {
       if (table === "growth_work_items") {
         return {
-          select: () => ({
-            eq: () => ({
-              eq: () => ({
-                limit: () =>
-                  Promise.resolve({
-                    data: [
-                      {
-                        id: workItemId,
-                        evidence: {
-                          correlation: {
-                            entity_key: "website_blog_posts:/blog/test",
-                            action_key:
-                              "content_publish:website_blog_posts:/blog/test",
-                            correlation_key:
-                              `${decisionBase.website_id}:keyword_gap:content_publish:website_blog_posts:/blog/test`,
-                            evidence_fingerprint: "sha256:test",
-                          },
-                        },
-                      },
-                    ],
-                    error: null,
-                  }),
-              }),
-            }),
-          }),
+          select: () =>
+            selectRows([
+              {
+                id: workItemId,
+                status: "published_applied",
+                allowed_action_class: "content_publish",
+                evidence: {
+                  target: {
+                    target_table: "website_blog_posts",
+                    target_path: "/blog/test",
+                  },
+                  correlation: {
+                    entity_key: "website_blog_posts:/blog/test",
+                    action_key:
+                      "content_publish:website_blog_posts:/blog/test",
+                    correlation_key:
+                      `${decisionBase.website_id}:keyword_gap:content_publish:website_blog_posts:/blog/test`,
+                    evidence_fingerprint: "sha256:test",
+                  },
+                },
+              },
+            ]),
         };
       }
       if (table === "growth_work_item_outcomes") {
         return {
-          select: () => ({
-            eq: () => ({
-              eq: () => ({
-                limit: () =>
-                  Promise.resolve({
-                    data: [
-                      {
-                        id: "66666666-6666-4666-8666-666666666666",
-                        work_item_id: workItemId,
-                        status: "lost",
-                      },
-                    ],
-                    error: null,
-                  }),
-              }),
-            }),
-          }),
+          select: () =>
+            selectRows([
+              {
+                id: "66666666-6666-4666-8666-666666666666",
+                work_item_id: workItemId,
+                status: "lost",
+              },
+            ]),
         };
       }
       return {
@@ -191,7 +188,7 @@ describe("materializeBrainDecision provider evidence gate", () => {
     );
   });
 
-  it("blocks repeated provider evidence after a prior lost outcome", async () => {
+  it("blocks repeated candidates when the same action and target are already active", async () => {
     const supabase = correlationSupabase();
     const result = await materializeBrainDecision({
       supabase: supabase as never,
@@ -211,8 +208,8 @@ describe("materializeBrainDecision provider evidence gate", () => {
     });
 
     expect(result.status).toBe("blocked");
-    expect(result.blockedReasons).toContain(
-      "candidate:content_publish:correlation_block:prior_lost_without_new_evidence",
-    );
+    expect(result.blockedReasons.some((reason) =>
+      reason.includes("prior_active_same_entity_action"),
+    )).toBe(true);
   });
 });

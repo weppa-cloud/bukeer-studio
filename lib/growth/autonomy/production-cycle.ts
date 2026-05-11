@@ -45,6 +45,7 @@ import {
 } from "./profile-freshness-gate";
 import { evaluateGrowthRuntimeQualityGate } from "./quality-gate";
 import { refreshGrowthProfiles } from "./profile-refresh";
+import { runClarityUxFrictionProfile } from "@/lib/growth/providers/clarity-profile-runner";
 import {
   dataForSeoEvidenceGate,
   dataForSeoEvidenceReadFromRequirement,
@@ -117,6 +118,36 @@ const RUNTIME_FORBIDDEN_SURFACE_PATTERNS = [
   /crm/i,
   /outreach/i,
 ];
+
+async function shouldRunDailyClarityProfile({
+  supabase,
+  accountId,
+  websiteId,
+  now,
+}: {
+  supabase: SupabaseLike;
+  accountId: string;
+  websiteId: string;
+  now: Date;
+}): Promise<boolean> {
+  const freshAfter = new Date(now.getTime() - 20 * 60 * 60 * 1000).toISOString();
+  const { data, error } = await supabase
+    .from("growth_profile_runs")
+    .select("id")
+    .eq("account_id", accountId)
+    .eq("website_id", websiteId)
+    .eq("provider", "clarity")
+    .eq("profile_id", "clarity_ux_friction_v1")
+    .eq("run_status", "completed")
+    .eq("freshness_status", "PASS")
+    .gte("created_at", freshAfter)
+    .limit(1);
+  if (error) {
+    console.warn("clarity freshness lookup failed", error.message);
+    return false;
+  }
+  return (data ?? []).length === 0;
+}
 
 const DATAFORSEO_GOVERNED_ACTIONS = new Set<GrowthAutonomyActionClass>([
   "content_publish",
@@ -1651,6 +1682,44 @@ export async function runGrowthOsProductionCycle(
           inserted_or_updated: profileRefresh.insertedOrUpdated,
         },
         details: { profile_types: profileRefresh.profileTypes },
+      },
+    });
+
+    const clarityShouldRun = !dryRun
+      ? await shouldRunDailyClarityProfile({
+          supabase,
+          accountId,
+          websiteId,
+          now,
+        })
+      : false;
+    const clarityProfile = clarityShouldRun
+      ? await runClarityUxFrictionProfile({
+          supabase,
+          accountId,
+          websiteId,
+          locale,
+          market,
+          dryRun,
+          now,
+        })
+      : null;
+    cycle = await recordGrowthRuntimeCycleStage({
+      supabase,
+      cycle,
+      result: {
+        stage: "provider_profile_refresh",
+        status: clarityProfile?.status === "failed" ? "completed" : "completed",
+        counts: {
+          clarity_profiles: clarityShouldRun ? 1 : 0,
+          rows: clarityProfile?.rowCount ?? 0,
+        },
+        details: {
+          clarity_ux_friction_v1: clarityProfile ?? {
+            status: "skipped",
+            reason: dryRun ? "dry_run" : "fresh_profile_within_20h",
+          },
+        },
       },
     });
 

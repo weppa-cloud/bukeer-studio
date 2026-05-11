@@ -171,6 +171,7 @@ export async function runClarityUxFrictionProfile({
       window_start: windowStart,
       window_end: windowEnd,
     });
+    const failedIdempotencyKey = `${idempotencyKey}:failed:${evidenceFingerprint.slice(7, 19)}`;
     if (!dryRun) {
       await admin.from("growth_profile_runs").upsert(
         {
@@ -209,7 +210,7 @@ export async function runClarityUxFrictionProfile({
             last_error_class: "UPSTREAM_ERROR",
           },
           error: message,
-          idempotency_key: idempotencyKey,
+          idempotency_key: failedIdempotencyKey,
         },
         { onConflict: "website_id,idempotency_key" },
       );

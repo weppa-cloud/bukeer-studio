@@ -32,6 +32,7 @@ export interface ReconcileGrowthTaskSessionsInput {
   executions: GrowthTaskSessionExecution[];
   cycleId: string;
   now?: Date;
+  assignedStaleMs?: number;
 }
 
 export interface ReconcileGrowthTaskSessionsResult {
@@ -100,8 +101,10 @@ export async function reconcileGrowthTaskSessions({
   executions,
   cycleId,
   now = new Date(),
+  assignedStaleMs = 30 * 60 * 1000,
 }: ReconcileGrowthTaskSessionsInput): Promise<ReconcileGrowthTaskSessionsResult> {
   const nowIso = now.toISOString();
+  const assignedStaleBeforeIso = new Date(now.getTime() - assignedStaleMs).toISOString();
   const linkedSessionIds: string[] = [];
   let completed = 0;
   let blocked = 0;
@@ -209,6 +212,43 @@ export async function reconcileGrowthTaskSessions({
       .in("id", staleIds);
     if (error) throw new Error(`stale task session expiry failed: ${error.message}`);
     expired = staleIds.length;
+  }
+
+  const { data: staleAssignedRows, error: staleAssignedError } = await supabase
+    .from("growth_agent_task_sessions")
+    .select("id")
+    .eq("account_id", accountId)
+    .eq("website_id", websiteId)
+    .eq("status", "assigned")
+    .lt("created_at", assignedStaleBeforeIso)
+    .limit(200);
+  if (staleAssignedError) {
+    throw new Error(`stale assigned task session lookup failed: ${staleAssignedError.message}`);
+  }
+
+  const staleAssignedIds = ((staleAssignedRows ?? []) as JsonRecord[])
+    .map((row) => row.id)
+    .filter((id): id is string => typeof id === "string")
+    .filter((id) => !linkedSessionIds.includes(id));
+  if (staleAssignedIds.length > 0) {
+    const { error } = await supabase
+      .from("growth_agent_task_sessions")
+      .update({
+        status: "blocked",
+        completed_at: nowIso,
+        lease_expires_at: null,
+        session_state: {
+          cycle_id: cycleId,
+          blocked_reason: "assigned_session_expired_without_claim",
+          completed_at: nowIso,
+        },
+      })
+      .eq("account_id", accountId)
+      .eq("website_id", websiteId)
+      .in("id", staleAssignedIds);
+    if (error) throw new Error(`stale assigned task session block failed: ${error.message}`);
+    blocked += staleAssignedIds.length;
+    expired += staleAssignedIds.length;
   }
 
   return {

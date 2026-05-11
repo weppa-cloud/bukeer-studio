@@ -54,6 +54,38 @@ function targetFromEvidence(evidence: JsonRecord): JsonRecord {
   };
 }
 
+function normalizeKeyPart(value: string): string {
+  return value.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function candidateMaterializationKey(candidate: JsonRecord): string {
+  const evidence = asRecord(candidate.evidence);
+  const target = targetFromEvidence(evidence);
+  const action = String(candidate.allowed_action_class ?? candidate.lane ?? "unknown");
+  const targetKey =
+    String(target.target_key ?? "") ||
+    String(target.target_id ?? "") ||
+    String(target.target_path ?? "") ||
+    String(evidence.target_key ?? "") ||
+    String(evidence.topic ?? "") ||
+    String(candidate.title ?? "");
+  return `${normalizeKeyPart(action)}:${normalizeKeyPart(targetKey || "unknown")}`;
+}
+
+function workItemMaterializationKey(workItem: JsonRecord): string | null {
+  const evidence = asRecord(workItem.evidence);
+  const target = targetFromEvidence(evidence);
+  const action = String(workItem.allowed_action_class ?? evidence.allowed_action_class ?? "");
+  const targetKey =
+    String(target.target_key ?? "") ||
+    String(target.target_id ?? "") ||
+    String(target.target_path ?? "") ||
+    String(evidence.target_key ?? "") ||
+    String(workItem.title ?? "");
+  if (!action || !targetKey) return null;
+  return `${normalizeKeyPart(action)}:${normalizeKeyPart(targetKey)}`;
+}
+
 function providerEvidenceBlocked(candidate: JsonRecord): string | null {
   const actionClass = String(candidate.allowed_action_class ?? "");
   if (
@@ -99,13 +131,23 @@ async function readPriorCorrelationRows({
         .select("id,status,allowed_action_class,evidence,updated_at")
         .eq("account_id", accountId)
         .eq("website_id", websiteId)
-        .limit(200),
+        .in("status", [
+          "ready",
+          "running",
+          "published_applied",
+          "measuring",
+          "blocked",
+          "auto_completed",
+        ])
+        .order("updated_at", { ascending: false })
+        .limit(1000),
       supabase
         .from("growth_work_item_outcomes")
         .select("id,work_item_id,status,evaluation_date,evaluation_window,updated_at")
         .eq("account_id", accountId)
         .eq("website_id", websiteId)
-        .limit(200),
+        .order("updated_at", { ascending: false })
+        .limit(1000),
     ]);
     return {
       workItems: (workItems ?? []) as JsonRecord[],
@@ -270,13 +312,38 @@ export async function materializeBrainDecision({
 }): Promise<MaterializeBrainDecisionResult> {
   const blockedReasons: string[] = [];
   const materializableCandidates: JsonRecord[] = [];
+  const seenCandidateKeys = new Set<string>();
   const prior = await readPriorCorrelationRows({
     supabase,
     accountId: decision.account_id,
     websiteId: decision.website_id,
   });
+  const activePriorKeys = new Set(
+    prior.workItems
+      .filter((row) =>
+        ["ready", "running", "published_applied", "measuring", "auto_completed"].includes(
+          String(row.status ?? ""),
+        ),
+      )
+      .map(workItemMaterializationKey)
+      .filter((key): key is string => Boolean(key)),
+  );
 
   for (const candidate of decision.proposed_candidates) {
+    const materializationKey = candidateMaterializationKey(candidate);
+    if (activePriorKeys.has(materializationKey)) {
+      blockedReasons.push(
+        `candidate:${candidate.allowed_action_class}:prior_active_same_entity_action:${materializationKey}`,
+      );
+      continue;
+    }
+    if (seenCandidateKeys.has(materializationKey)) {
+      blockedReasons.push(
+        `candidate:${candidate.allowed_action_class}:intra_decision_duplicate:${materializationKey}`,
+      );
+      continue;
+    }
+    seenCandidateKeys.add(materializationKey);
     const correlation = attachCorrelationToCandidate({
       decision,
       candidate,

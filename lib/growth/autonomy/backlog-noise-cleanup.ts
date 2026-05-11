@@ -52,6 +52,10 @@ function evidenceFingerprint(row: JsonRecord): string | null {
   return stringValue(correlation(row).evidence_fingerprint);
 }
 
+function normalizeKeyPart(value: string): string {
+  return value.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
 function target(row: JsonRecord): JsonRecord {
   return asRecord(asRecord(row.evidence).target);
 }
@@ -101,6 +105,25 @@ function groupKey(row: JsonRecord): string | null {
   const key = correlationKey(row);
   const fingerprint = evidenceFingerprint(row);
   if (key && fingerprint) return `${key}:${fingerprint}`;
+  if (key) return key;
+
+  const evidence = asRecord(row.evidence);
+  const actionKey =
+    stringValue(evidence.action_key) ||
+    stringValue(evidence.allowed_action_class) ||
+    stringValue(row.allowed_action_class);
+  const entityKey =
+    stringValue(evidence.entity_key) ||
+    stringValue(evidence.target_key) ||
+    stringValue(target(row).target_key) ||
+    stringValue(target(row).target_id) ||
+    stringValue(target(row).target_path);
+  if (actionKey && entityKey) {
+    return `${normalizeKeyPart(actionKey)}:${normalizeKeyPart(entityKey)}`;
+  }
+
+  const title = stringValue(row.title);
+  if (title) return `title:${normalizeKeyPart(title)}`;
   return null;
 }
 
@@ -298,6 +321,7 @@ export async function cleanupGrowthBacklogNoise({
       .select("*")
       .eq("account_id", accountId)
       .eq("website_id", websiteId)
+      .in("status", ["candidate", "ready_for_backlog"])
       .order("created_at", { ascending: true })
       .limit(1000),
     supabase
@@ -305,6 +329,7 @@ export async function cleanupGrowthBacklogNoise({
       .select("*")
       .eq("account_id", accountId)
       .eq("website_id", websiteId)
+      .in("status", ["ready", "running", "review_needed", "approved_for_execution"])
       .order("created_at", { ascending: true })
       .limit(1000),
     supabase
