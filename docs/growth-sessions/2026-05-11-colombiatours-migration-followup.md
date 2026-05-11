@@ -115,3 +115,135 @@ Evidence artifacts:
 
 - Keep #273 open until activity/entity data and visual QA are complete.
 - #359 can close after certification comment because middleware deploy, host-aware DB redirects, production redirect matrix, and inspected body-link cleanup are complete.
+
+## #268 / #296 Sitemap Actions
+
+Issue #268 still had explicit ACs for `/sitemap-es-CO.xml` and `/sitemap-en-US.xml`. Production previously returned HTML for those paths, because the shipped architecture only exposed `/sitemap.xml` with hreflang alternates.
+
+Code and deployment:
+
+- Added tenant routes for `/sitemap-es-CO.xml` and `/sitemap-en-US.xml`.
+- Added `localizeSitemapUrlsForLocale()` so per-locale sitemap `<loc>` entries use the same source URL set and keep reciprocal alternates based on the default canonical path.
+- Updated tenant `robots.txt` to advertise all three sitemap directives:
+  - `https://colombiatours.travel/sitemap.xml`
+  - `https://colombiatours.travel/sitemap-es-CO.xml`
+  - `https://colombiatours.travel/sitemap-en-US.xml`
+- Deployed Cloudflare Worker `bukeer-web-public` version `576541e9-b377-4caf-9c47-4836188ae3e2`.
+
+Production QA after deploy:
+
+- `/sitemap-es-CO.xml`: `200 application/xml`, `538` URLs, `0` `/en` locs, `0` internal/legacy host loc leaks.
+- `/sitemap-en-US.xml`: `200 application/xml`, `200` URLs, `200` `/en` locs, `0` internal/legacy host loc leaks.
+- `/sitemap.xml`: `200 application/xml`, `538` URLs, `0` internal/legacy host loc leaks.
+- `/robots.txt`: `200 text/plain`, includes the canonical sitemap plus both per-locale sitemap directives.
+- Hreflang reciprocity matrix passed for `/`, `/actividades`, `/paquetes`, package detail, activity detail, and one translated blog detail.
+
+Evidence artifacts:
+
+- `artifacts/seo/2026-05-11-colombiatours-migration-followup/issue268-local-per-locale-sitemap-qa.json`
+- `artifacts/seo/2026-05-11-colombiatours-migration-followup/issue268-production-per-locale-sitemap-qa-after-deploy.json`
+- `artifacts/seo/2026-05-11-colombiatours-migration-followup/issue268-production-per-locale-sitemap-qa-after-robots-deploy.json`
+- `artifacts/seo/2026-05-11-colombiatours-migration-followup/issue296-production-hreflang-reciprocity-matrix.json`
+
+Remaining:
+
+- #268 remains open for GSC ownership/submission evidence and the full #185/#186 WP redirect sample certification.
+- #296 remains open only for GSC post-deploy indexing status once Search Console has fresh data.
+
+## #185 / #186 Redirect Certification
+
+Ran a production certification pass against the actual `website_legacy_redirects` rows for ColombiaTours:
+
+- Source table: `website_legacy_redirects`
+- Website: `894545b7-73ca-4dae-b76a-da5b6a3f8441`
+- Scope: all `/l/*` and `/cat/*` rows relevant to #185/#186 no-regression checks.
+
+Initial full pass:
+
+- Rows checked: `107` (`99` `/l/*`, `8` `/cat/*`)
+- First redirect matched DB status/path: `107/107`
+- Final 200: `106/107`
+- Problem found: `/cat/destinos/` redirected to `/destinations`, while `/destinations` canonicalized back to `/destinos`, causing a loop.
+
+Data fix applied:
+
+- Updated `/cat/destinos/` from `/destinations` to `/destinos`.
+- Updated `/destinos/` from `/destinations` to `/destinos`.
+- This preserves the destination hub intent and lets same-destination guard avoid the loop.
+
+Final production certification:
+
+- Rows checked: `107`
+- `/l/*`: `99/99` pass.
+- `/cat/*`: `8/8` pass.
+- First redirect matched DB status/path: `107/107`.
+- Final 200: `107/107`.
+- Loops: `0`.
+- 5xx: `0`.
+- Timeouts: `0`.
+
+Evidence artifacts:
+
+- `artifacts/seo/2026-05-11-colombiatours-migration-followup/issue268-production-legacy-redirects-185-186-sample.json`
+- `artifacts/seo/2026-05-11-colombiatours-migration-followup/issue268-production-legacy-redirects-185-186-full.json`
+- `artifacts/seo/2026-05-11-colombiatours-migration-followup/issue268-legacy-destinos-loop-db-fix.json`
+- `artifacts/seo/2026-05-11-colombiatours-migration-followup/issue268-production-legacy-redirects-185-186-full-after-loop-fix.json`
+
+Updated #268 status:
+
+- AC-5, AC-6 and AC-7 are now certified in production for the actual redirect rows.
+- #268 remains open for GSC evidence and AC-8 validation alignment.
+
+## GSC MCP Evidence
+
+The Search Console MCP is configured, but it was not exposed as a native callable tool in the current Codex tool list. It was invoked directly over stdio using `search-console-mcp@latest`.
+
+Credential correction:
+
+- UI screenshot pointed to `/Users/yeisongomez/Downloads/claude-dev-4`, which does not exist in this session.
+- The actual credential file found and used was `/Users/yeisongomez/Downloads/claude-dev-434502-cf8836f5cc5e.json`.
+
+GSC property:
+
+- `sites_list` confirms `sc-domain:colombiatours.travel`.
+- Permission level: `siteFullUser`.
+
+Current GSC sitemap state:
+
+- GSC currently lists `https://colombiatours.travel/sitemap_index.xml`.
+- `lastSubmitted`: `2025-05-01T20:11:05.726Z`.
+- `lastDownloaded`: `2026-05-11T11:03:16.224Z`.
+- `warnings`: `3`.
+- `errors`: `0`.
+- `submitted`: `587`.
+- `indexed`: `0` in the sitemap list response.
+
+Attempted sitemap submissions through the MCP:
+
+- `https://colombiatours.travel/sitemap.xml`: denied by GSC API.
+- `https://colombiatours.travel/sitemap-es-CO.xml`: denied by GSC API.
+- `https://colombiatours.travel/sitemap-en-US.xml`: denied by GSC API.
+- The MCP returned `Permission denied. Ensure you have access to this resource in Google Search Console.` even though `sites_get` reports `siteFullUser` on the domain property.
+
+URL Inspection sample:
+
+- Inspected `10` URLs via `inspection_batch`.
+- Verdicts: `6` `PASS`, `4` `NEUTRAL`.
+- Blocked URLs: `0` (`robotsTxtState=ALLOWED`, `indexingState=INDEXING_ALLOWED`, `pageFetchState=SUCCESSFUL` for all inspected URLs).
+- Indexed/pass examples: `/`, `/paquetes`, `/actividades`, package detail, activity detail, blog detail.
+- EN URLs are visible to GSC and allowed, but Google currently reports several as canonical alternatives or redirects based on older crawls.
+
+Additional GSC-related code prepared but not deployed yet:
+
+- Added `/sitemap_index.xml` route that returns a sitemap index pointing at `/sitemap.xml`, `/sitemap-es-CO.xml`, and `/sitemap-en-US.xml`.
+- Added `/sitemap_index.xml` to `robots.txt`.
+- `npm run typecheck` passed.
+- `npm run build` could not complete because Supabase returned repeated Cloudflare `522` responses during static generation. This is an external Supabase availability issue, not a TypeScript/compile failure.
+
+Evidence artifacts:
+
+- `artifacts/seo/2026-05-11-colombiatours-migration-followup/gsc-sites-list.json`
+- `artifacts/seo/2026-05-11-colombiatours-migration-followup/gsc-sitemap-submit-and-status.json`
+- `artifacts/seo/2026-05-11-colombiatours-migration-followup/gsc-sitemap-submit-siteurl-variants.json`
+- `artifacts/seo/2026-05-11-colombiatours-migration-followup/gsc-url-inspection-sample.json`
+- `artifacts/seo/2026-05-11-colombiatours-migration-followup/gsc-url-inspection-sample-summary.json`
