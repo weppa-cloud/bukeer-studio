@@ -1,0 +1,36 @@
+market,negative_keyword,match_type,reason
+global,vuelos,Phrase,Flight-only intent
+global,tiquetes,Phrase,Flight-only intent
+global,aerolineas,Phrase,Flight-only intent
+global,flight,Phrase,Flight-only intent
+global,airline,Phrase,Flight-only intent
+global,voo,Phrase,Flight-only intent Brazil
+global,passagem,Phrase,Flight-only intent Brazil
+global,vols,Phrase,Flight-only intent France
+global,flug,Phrase,Flight-only intent Germany
+global,flugticket,Phrase,Flight-only intent Germany
+global,hotel,Phrase,Accommodation-only
+global,hostel,Phrase,Accommodation-only
+global,airbnb,Phrase,Accommodation-only
+global,booking,Phrase,Accommodation-only or OTA
+global,trivago,Phrase,Accommodation-only or OTA
+global,barato,Phrase,Low budget
+global,gratis,Phrase,Low budget
+global,2x1,Phrase,Low budget
+global,low cost,Phrase,Low budget
+global,pas cher,Phrase,Low budget France
+global,gunstig,Phrase,Low budget Germany ascii variant
+global,visa,Phrase,Immigration/admin intent
+global,pasaporte,Phrase,Immigration/admin intent
+global,migracion,Phrase,Immigration/admin intent
+global,emploi,Phrase,Jobs/admin France
+global,trabajo,Phrase,Jobs/admin
+global,work,Phrase,Jobs/admin
+global,mapa,Phrase,Information-only
+global,clima,Phrase,Information-only
+global,weather,Phrase,Information-only
+global,day trip,Phrase,Local day tour
+global,free walking tour,Phrase,Local day tour
+global,city tour medellin,Phrase,Local day tour
+global,guatape day,Phrase,Local day tour
+global,jardin day,Phrase,Local day tour

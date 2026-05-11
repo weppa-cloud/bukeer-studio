@@ -20,6 +20,7 @@ _Updated every session that invokes paid provider._
 | 2026-04-30 | EPIC #310 next batch: Labs demand, competitor visibility, gap intersections, SERP organic and local pack | 0.348    | `artifacts/seo/2026-04-30-dataforseo-next-batch-labs-serp-apply`                | User approved paid calls without cost restriction; beta usage waived; actual provider costs are persisted in `seo_provider_usage` |
 | 2026-04-30 | EPIC #310 controlled content scale: EN-US Labs/SERP demand batch                                         | 0.4100   | `artifacts/seo/2026-04-30-dataforseo-content-en-us-apply`                       | User approved paid calls without cost restriction; beta usage waived; actual provider costs are persisted in `seo_provider_usage` |
 | 2026-04-30 | EPIC #310 controlled content scale: MX Labs/SERP demand batch                                            | 0.4052   | `artifacts/seo/2026-04-30-dataforseo-content-mx-apply`                          | User approved paid calls without cost restriction; beta usage waived; actual provider costs are persisted in `seo_provider_usage` |
+| 2026-05-11 | ColombiaTours Batch 1 SERP competitive briefs: 10 organic live SERP calls                               | 0.0200   | `artifacts/seo/2026-05-11-colombiatours-serp-briefs`                            | Actual DataForSEO SERP refresh cost; ColombiaTours beta usage waived                                                            |
 
 **Subtotal: TBD / waived for ColombiaTours beta growth**
 
