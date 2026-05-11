@@ -1,5 +1,7 @@
 #!/usr/bin/env tsx
 
+import { randomUUID } from "crypto";
+
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/service-role";
 import { runGrowthOsProductionCycle } from "@/lib/growth/autonomy/production-cycle";
 
@@ -38,6 +40,55 @@ function readEnvironment(): GrowthEnvironment {
   throw new Error(`Invalid --environment value: ${value}`);
 }
 
+function readRuntimeMode(): "executor" | "monitor" {
+  if (hasFlag("--monitor-only")) return "monitor";
+  const value = readArg("--runtime-mode", process.env.GROWTH_RUNTIME_MODE ?? "executor");
+  if (value === "executor" || value === "monitor") return value;
+  throw new Error(`Invalid --runtime-mode value: ${value}`);
+}
+
+async function shouldExitForFreshSchedulerLease({
+  supabase,
+  websiteId,
+  schedulerName,
+  leaseToken,
+  now,
+}: {
+  supabase: ReturnType<typeof createSupabaseServiceRoleClient>;
+  websiteId: string;
+  schedulerName: string;
+  leaseToken: string;
+  now: Date;
+}): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("growth_scheduler_heartbeats")
+    .select("metadata,heartbeat_at,status")
+    .eq("website_id", websiteId)
+    .eq("scheduler_name", schedulerName)
+    .limit(1);
+  if (error) {
+    console.warn(`[growth-runtime] scheduler lease lookup skipped: ${error.message}`);
+    return false;
+  }
+  const row = Array.isArray(data) ? data[0] : data;
+  const metadata = row?.metadata && typeof row.metadata === "object"
+    ? (row.metadata as Record<string, unknown>)
+    : {};
+  const activeLease = typeof metadata.lease_token === "string"
+    ? metadata.lease_token
+    : null;
+  const leaseExpiresAt = typeof metadata.lease_expires_at === "string"
+    ? Date.parse(metadata.lease_expires_at)
+    : NaN;
+  return Boolean(
+    activeLease &&
+      activeLease !== leaseToken &&
+      Number.isFinite(leaseExpiresAt) &&
+      leaseExpiresAt > now.getTime() &&
+      row?.status !== "failed",
+  );
+}
+
 async function main() {
   const accountId = readArg("--account-id", process.env.GROWTH_ACCOUNT_ID ?? "");
   const websiteId = readArg("--website-id", process.env.GROWTH_WEBSITE_ID ?? "");
@@ -47,9 +98,38 @@ async function main() {
   const dryRun = hasFlag("--dry-run");
   const once = hasFlag("--once");
   const intervalMs = Number(readArg("--interval-ms", "1800000"));
+  const runtimeMode = readRuntimeMode();
+  const schedulerName = readArg("--scheduler-name", "growth-os-production-cycle");
+  const leaseToken = randomUUID();
   const supabase = createSupabaseServiceRoleClient();
 
+  if (
+    hasFlag("--scheduled") &&
+    !once &&
+    !hasFlag("--no-single-daemon-guard") &&
+    await shouldExitForFreshSchedulerLease({
+      supabase,
+      websiteId,
+      schedulerName,
+      leaseToken,
+      now: new Date(),
+    })
+  ) {
+    console.log(JSON.stringify({
+      ts: new Date().toISOString(),
+      status: "skipped",
+      reason: "fresh_scheduler_lease_exists",
+      schedulerName,
+      websiteId,
+    }));
+    return;
+  }
+
   do {
+    const cycleStartedAt = new Date();
+    const leaseExpiresAt = new Date(
+      cycleStartedAt.getTime() + Math.max(intervalMs * 2, 5 * 60 * 1000),
+    ).toISOString();
     const result = await runGrowthOsProductionCycle(accountId, websiteId, {
       supabase,
       locale: readArg("--locale", process.env.GROWTH_LOCALE ?? "es-CO"),
@@ -57,6 +137,7 @@ async function main() {
       triggerSource: hasFlag("--scheduled") ? "scheduled" : "manual",
       dryRun,
       allowLiveMutation: !dryRun,
+      runtimeMode,
       enableAgenticBrain: !hasFlag("--disable-agentic-brain"),
       intervalMs,
       environment: readEnvironment(),
@@ -65,6 +146,13 @@ async function main() {
       claimLimitPerLane: Number(readArg("--max-claims-per-lane", "1")),
       candidateLimit: Number(readArg("--candidate-limit", "25")),
       promotionLimit: Number(readArg("--promotion-limit", "10")),
+      schedulerMetadata: {
+        scheduler_name: schedulerName,
+        lease_token: leaseToken,
+        lease_expires_at: leaseExpiresAt,
+        process_pid: process.pid,
+        runtime_mode: runtimeMode,
+      },
     });
     console.log(JSON.stringify({ ts: new Date().toISOString(), ...result }));
     if (once) break;

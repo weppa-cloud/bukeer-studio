@@ -53,6 +53,48 @@ describe("evaluateGrowthEvidenceCorrelation", () => {
     });
   });
 
+  it("derives legacy correlation from adapter_input target fields", () => {
+    const result = evaluateGrowthEvidenceCorrelation({
+      websiteId,
+      decisionFamily: "technical_seo_issue",
+      actionClass: "safe_apply",
+      evidence: {
+        adapter_input: {
+          target_table: "website_pages",
+          target_id: "77777777-7777-4777-8777-777777777777",
+        },
+        dataforseo_evidence: {
+          evidence_fingerprint: "sha256:onpage-target",
+        },
+      },
+      priorWorkItems: [
+        {
+          id: "44444444-4444-4444-8444-444444444444",
+          website_id: websiteId,
+          status: "ready",
+          allowed_action_class: "safe_apply",
+          evidence: {
+            adapter_input: {
+              target_table: "website_pages",
+              target_id: "77777777-7777-4777-8777-777777777777",
+            },
+            dataforseo_evidence: {
+              evidence_fingerprint: "sha256:onpage-target",
+            },
+          },
+        },
+      ],
+      now,
+    });
+
+    expect(result).toMatchObject({
+      entity_key: "website_pages:77777777-7777-4777-8777-777777777777",
+      action_key: "safe_apply:website_pages:77777777-7777-4777-8777-777777777777",
+      dedupe_verdict: "skip",
+      reason: "prior_active_same_action",
+    });
+  });
+
   it("skips while correlated work is still measuring", () => {
     const result = evaluateGrowthEvidenceCorrelation({
       websiteId,

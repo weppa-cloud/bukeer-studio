@@ -124,10 +124,13 @@ function firstString(...values: unknown[]): string | null {
 
 function targetEntityKey(evidence: JsonRecord, fallbackEntity?: JsonRecord): string {
   const target = asRecord(evidence.target);
+  const adapterInput = asRecord(evidence.adapter_input);
   const signalPayload = asRecord(evidence.signal_payload);
   const table = firstString(
     target.target_table,
     target.table,
+    adapterInput.target_table,
+    adapterInput.table,
     evidence.target_table,
     fallbackEntity?.entity_table,
     signalPayload.target_table,
@@ -135,6 +138,8 @@ function targetEntityKey(evidence: JsonRecord, fallbackEntity?: JsonRecord): str
   const id = firstString(
     target.target_id,
     target.id,
+    adapterInput.target_id,
+    adapterInput.id,
     evidence.target_id,
     fallbackEntity?.entity_id,
     signalPayload.target_id,
@@ -142,6 +147,8 @@ function targetEntityKey(evidence: JsonRecord, fallbackEntity?: JsonRecord): str
   const path = firstString(
     target.target_path,
     target.path,
+    adapterInput.target_path,
+    adapterInput.path,
     evidence.target_path,
     fallbackEntity?.entity_path,
     signalPayload.target_path,
@@ -181,7 +188,26 @@ function evidenceFingerprint(evidence: JsonRecord): string {
 }
 
 function correlationFromWorkItem(row: JsonRecord): JsonRecord {
-  return asRecord(asRecord(row.evidence).correlation);
+  const evidence = asRecord(row.evidence);
+  const correlation = asRecord(evidence.correlation);
+  if (
+    typeof correlation.correlation_key === "string" ||
+    typeof correlation.action_key === "string" ||
+    typeof correlation.entity_key === "string"
+  ) {
+    return correlation;
+  }
+  const actionClass = firstString(row.allowed_action_class, evidence.allowed_action_class) ??
+    "unknown";
+  const entityKey = targetEntityKey(evidence, row);
+  const actionKey = `${actionClass}:${entityKey}`;
+  const websiteId = firstString(row.website_id) ?? "unknown_website";
+  return {
+    entity_key: entityKey,
+    action_key: actionKey,
+    correlation_key: `${websiteId}:legacy:${actionKey}`,
+    evidence_fingerprint: evidenceFingerprint(evidence),
+  };
 }
 
 function rowRef(table: string, row: JsonRecord): string | null {

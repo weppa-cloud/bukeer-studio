@@ -76,12 +76,14 @@ export interface RunGrowthOsProductionCycleOptions {
   dryRun?: boolean;
   allowLiveMutation?: boolean;
   enableAgenticBrain?: boolean;
+  runtimeMode?: "executor" | "monitor";
   intervalMs?: number | null;
   certificationFixtureMode?: boolean;
   candidateLimit?: number;
   promotionLimit?: number;
   claimLimitPerLane?: number;
   workspacePath?: string;
+  schedulerMetadata?: JsonRecord;
   now?: Date;
 }
 
@@ -1610,7 +1612,14 @@ export async function runGrowthOsProductionCycle(
   const market = options.market ?? "CO";
   const dryRun = options.dryRun ?? false;
   const allowLiveMutation = options.allowLiveMutation ?? false;
-  const enableAgenticBrain = options.enableAgenticBrain ?? true;
+  const runtimeMode = options.runtimeMode ?? "executor";
+  const monitorOnly = runtimeMode === "monitor";
+  const enableAgenticBrain = monitorOnly
+    ? false
+    : (options.enableAgenticBrain ?? true);
+  const candidateLimit = monitorOnly ? 0 : (options.candidateLimit ?? 25);
+  const promotionLimit = monitorOnly ? 0 : (options.promotionLimit ?? 10);
+  const claimLimitPerLane = monitorOnly ? 0 : (options.claimLimitPerLane ?? 1);
   const certificationFixtureMode = options.certificationFixtureMode ?? false;
   const cycleKey =
     options.cycleKey ??
@@ -1629,11 +1638,15 @@ export async function runGrowthOsProductionCycle(
     dryRun,
     options: {
       candidate_limit: options.candidateLimit ?? 25,
+      effective_candidate_limit: candidateLimit,
       promotion_limit: options.promotionLimit ?? 10,
+      effective_promotion_limit: promotionLimit,
       claim_limit_per_lane: options.claimLimitPerLane ?? 1,
+      effective_claim_limit_per_lane: claimLimitPerLane,
       allow_live_mutation: allowLiveMutation,
       enable_agentic_brain: enableAgenticBrain,
       certification_fixture_mode: certificationFixtureMode,
+      runtime_mode: runtimeMode,
       runtime_version: GROWTH_RUNTIME_VERSION,
     },
     now,
@@ -1654,7 +1667,9 @@ export async function runGrowthOsProductionCycle(
       trigger_source: options.triggerSource ?? "manual",
       allow_live_mutation: allowLiveMutation,
       enable_agentic_brain: enableAgenticBrain,
-      claim_limit_per_lane: options.claimLimitPerLane ?? 1,
+      claim_limit_per_lane: claimLimitPerLane,
+      runtime_mode: runtimeMode,
+      ...(options.schedulerMetadata ?? {}),
     },
     now,
   });
@@ -1793,7 +1808,7 @@ export async function runGrowthOsProductionCycle(
       locale,
       market,
       cycleId: cycle.id,
-      limit: options.candidateLimit ?? 25,
+      limit: candidateLimit,
       dryRun,
       now,
     });
@@ -1817,7 +1832,7 @@ export async function runGrowthOsProductionCycle(
           supabase,
           accountId,
           websiteId,
-          limit: options.promotionLimit ?? 10,
+          limit: promotionLimit,
           now,
         });
     cycle = await recordGrowthRuntimeCycleStage({
@@ -1846,7 +1861,7 @@ export async function runGrowthOsProductionCycle(
           workspacePath:
             options.workspacePath ??
             `/workspaces/${accountId}/${websiteId}/growth-runtime`,
-          claimLimitPerLane: options.claimLimitPerLane ?? 1,
+          claimLimitPerLane,
           dryRun,
           allowLiveMutation,
           certificationFixtureMode,
@@ -1931,6 +1946,7 @@ export async function runGrowthOsProductionCycle(
 
     const summary = {
       runtime_version: GROWTH_RUNTIME_VERSION,
+      runtime_mode: runtimeMode,
       dry_run: dryRun,
       allow_live_mutation: allowLiveMutation,
       profile_count: profileRefresh.profiles.length,
@@ -1960,7 +1976,10 @@ export async function runGrowthOsProductionCycle(
       lastMessage: "Growth OS production cycle completed.",
       gitSha: options.gitSha ?? null,
       intervalMs: options.intervalMs ?? null,
-      metadata: summary,
+      metadata: {
+        ...summary,
+        ...(options.schedulerMetadata ?? {}),
+      },
       now,
     });
     return {
@@ -1974,6 +1993,7 @@ export async function runGrowthOsProductionCycle(
   } catch (error) {
     const summary = {
       runtime_version: GROWTH_RUNTIME_VERSION,
+      runtime_mode: runtimeMode,
       dry_run: dryRun,
       production_mutation_performed: false,
       error: errorMessage(error),
@@ -1998,7 +2018,10 @@ export async function runGrowthOsProductionCycle(
       lastMessage: errorMessage(error),
       gitSha: options.gitSha ?? null,
       intervalMs: options.intervalMs ?? null,
-      metadata: summary,
+      metadata: {
+        ...summary,
+        ...(options.schedulerMetadata ?? {}),
+      },
       now,
     });
     return {

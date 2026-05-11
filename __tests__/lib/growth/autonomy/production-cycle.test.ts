@@ -83,6 +83,11 @@ class QueryBuilder {
     return this;
   }
 
+  lt(column: string, value: string) {
+    this.upperBounds.push([column, value]);
+    return this;
+  }
+
   in(column: string, values: unknown[]) {
     this.inFilters.push([column, values]);
     return this;
@@ -454,6 +459,60 @@ describe("runGrowthOsProductionCycle adapter bridge", () => {
         }),
       ]),
     );
+  });
+
+  it("supports monitor mode without promoting, claiming, or mutating work", async () => {
+    const ops: Operation[] = [];
+    const workItem = {
+      id: ids.workItemId,
+      account_id: ids.accountId,
+      website_id: ids.websiteId,
+      lane: "technical_remediation",
+      status: "ready",
+      title: "Fix page metadata",
+      allowed_action_class: "safe_apply",
+      risk_level: "low",
+      risk_score: 20,
+      source_id: ids.targetId,
+      evidence: {
+        dataforseo_evidence: dataForSeoEvidence("onpage"),
+        adapter_input: {
+          target_table: "website_pages",
+          target_id: ids.targetId,
+          before_row: { seo_title: "Old Colombia custom travel page" },
+          patch: {
+            seo_title: "Colombia custom travel planned by local experts",
+          },
+          baseline: { changed_fields: ["seo_title"] },
+        },
+      },
+    };
+    const tables = baseTables(workItem, policy("technical_remediation", "safe_apply"));
+
+    const result = await runGrowthOsProductionCycle(ids.accountId, ids.websiteId, {
+      supabase: fakeSupabase(tables, ops),
+      runtimeMode: "monitor",
+      candidateLimit: 25,
+      promotionLimit: 10,
+      claimLimitPerLane: 10,
+      allowLiveMutation: true,
+      triggerSource: "test",
+      now: new Date("2026-05-08T12:00:00.000Z"),
+    });
+
+    expect(result.status).toBe("completed");
+    expect(result.summary).toMatchObject({
+      runtime_mode: "monitor",
+      candidate_count: 0,
+      promoted_count: 0,
+      claimed_count: 0,
+      production_mutation_performed: false,
+    });
+    expect(tables.website_pages[0].seo_title).toBe(
+      "Old Colombia custom travel page",
+    );
+    expect(tables.growth_publication_jobs).toHaveLength(0);
+    expect(tables.growth_agent_runs).toHaveLength(0);
   });
 
   it("executes transcreation_merge through the transcreation adapter", async () => {

@@ -48,6 +48,20 @@ function isSensitive(value: unknown): boolean {
 function targetFromEvidence(evidence: JsonRecord): JsonRecord {
   const target = asRecord(evidence.target);
   if (Object.keys(target).length > 0) return target;
+  const adapterInput = asRecord(evidence.adapter_input);
+  if (
+    adapterInput.target_table ||
+    adapterInput.target_id ||
+    adapterInput.target_path ||
+    adapterInput.target_key
+  ) {
+    return {
+      target_table: adapterInput.target_table,
+      target_id: adapterInput.target_id,
+      target_path: adapterInput.target_path,
+      target_key: adapterInput.target_key,
+    };
+  }
   return {
     target_table: "growth_work_items",
     target_key: evidence.target_key ?? evidence.topic ?? "agentic-brain",
