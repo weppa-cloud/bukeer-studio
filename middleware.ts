@@ -47,6 +47,20 @@ const COLOMBIA_TOURS_EN_REDIRECTS: Record<string, string> = {
     "/en/blog/los-10-mejores-lugares-turisticos-de-colombia",
   "/los-10-mejores-lugares-turisticos/":
     "/en/blog/los-10-mejores-lugares-turisticos-de-colombia",
+  "/los-10-mejores-lugares-turisticos-de-colombia":
+    "/en/blog/los-10-mejores-lugares-turisticos-de-colombia",
+  "/los-10-mejores-lugares-turisticos-de-colombia/":
+    "/en/blog/los-10-mejores-lugares-turisticos-de-colombia",
+  "/los-10-mejores-destinos-para-conocer-colombia":
+    "/en/blog/los-10-mejores-destinos-para-conocer-colombia",
+  "/los-10-mejores-destinos-para-conocer-colombia/":
+    "/en/blog/los-10-mejores-destinos-para-conocer-colombia",
+  "/isla-mucura-un-tesoro-del-caribe-colombiano":
+    "/en/blog/isla-mucura-un-tesoro-del-caribe-colombiano",
+  "/isla-mucura-un-tesoro-del-caribe-colombiano/":
+    "/en/blog/isla-mucura-un-tesoro-del-caribe-colombiano",
+  "/palabras-colombianas": "/en/blog/palabras-colombianas",
+  "/palabras-colombianas/": "/en/blog/palabras-colombianas",
   "/10-destinos-para-visitar-con-mama":
     "/en/blog/10-destinos-para-visitar-con-mama",
   "/10-destinos-para-visitar-con-mama/":
