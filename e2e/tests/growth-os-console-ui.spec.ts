@@ -618,6 +618,10 @@ test.describe("Growth OS console UI contract @growth-os-ui", () => {
       page.getByRole("heading", { name: /experiments/i }),
     ).toBeVisible();
     await expect(page.getByTestId("growth-experiments-summary")).toBeVisible();
+    await expect(page.getByTestId("growth-effectiveness-benchmark")).toBeVisible();
+    await expect(page.getByTestId("growth-effectiveness-benchmark")).toContainText(
+      /baseline humano Codex|Growth OS determinista|Hermes/i,
+    );
 
     await gotoGrowth(page, "/data-health");
     await page.waitForURL(/\/growth\/data-health$/);
@@ -651,6 +655,7 @@ test.describe("Growth OS console UI contract @growth-os-ui", () => {
       { path: "/overview", heading: /growth os/i },
       { path: "/agents", heading: /agent team/i },
       { path: "/workboard", heading: /growth os workboard/i },
+      { path: "/experiments", heading: /experiments/i },
       { path: "/data-health", heading: /^data health$/i },
     ];
 

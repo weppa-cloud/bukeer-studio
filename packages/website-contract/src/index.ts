@@ -852,6 +852,8 @@ export {
   GrowthAgentInstanceStatusSchema,
   GrowthAgentArtifactTypeSchema,
   GrowthAgentArtifactStatusSchema,
+  GrowthAgentAutonomyLevelSchema,
+  GrowthAgentContextManifestStatusSchema,
   GrowthChiefOfStaffSessionSchema,
   GrowthChiefOfStaffSessionInsertSchema,
   GrowthChiefOfStaffMessageSchema,
@@ -864,6 +866,8 @@ export {
   GrowthAgentInstanceInsertSchema,
   GrowthAgentArtifactSchema,
   GrowthAgentArtifactInsertSchema,
+  GrowthAgentContextManifestSchema,
+  GrowthAgentContextManifestInsertSchema,
 } from './schemas/growth-hermes-chief-of-staff';
 export type {
   GrowthChiefOfStaffSessionMode,
@@ -875,6 +879,8 @@ export type {
   GrowthAgentInstanceStatus,
   GrowthAgentArtifactType,
   GrowthAgentArtifactStatus,
+  GrowthAgentAutonomyLevel,
+  GrowthAgentContextManifestStatus,
   GrowthChiefOfStaffSession,
   GrowthChiefOfStaffSessionInsert,
   GrowthChiefOfStaffMessage,
@@ -887,7 +893,28 @@ export type {
   GrowthAgentInstanceInsert,
   GrowthAgentArtifact,
   GrowthAgentArtifactInsert,
+  GrowthAgentContextManifest,
+  GrowthAgentContextManifestInsert,
 } from './schemas/growth-hermes-chief-of-staff';
+
+export {
+  GrowthEffectivenessSourceGroupSchema,
+  GrowthEffectivenessExperimentStatusSchema,
+  GrowthEffectivenessObservationStatusSchema,
+  GrowthEffectivenessExperimentSchema,
+  GrowthEffectivenessExperimentInsertSchema,
+  GrowthEffectivenessObservationSchema,
+  GrowthEffectivenessObservationInsertSchema,
+} from './schemas/growth-effectiveness';
+export type {
+  GrowthEffectivenessSourceGroup,
+  GrowthEffectivenessExperimentStatus,
+  GrowthEffectivenessObservationStatus,
+  GrowthEffectivenessExperiment,
+  GrowthEffectivenessExperimentInsert,
+  GrowthEffectivenessObservation,
+  GrowthEffectivenessObservationInsert,
+} from './schemas/growth-effectiveness';
 
 // Validation
 export {
