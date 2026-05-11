@@ -239,6 +239,16 @@ export function evaluateGrowthEvidenceCorrelation({
     ),
   ].filter((ref): ref is string => Boolean(ref));
   const relatedOutcomes = linkedOutcomeRows(relatedWork, priorOutcomes);
+  const hasActiveWork = relatedWork.some((row) =>
+    [
+      "ready",
+      "running",
+      "review_needed",
+      "approved_for_execution",
+      "published_applied",
+      "measuring",
+    ].includes(String(row.status ?? "")),
+  );
   const sameFingerprint = relatedWork.some(
     (row) => correlationFromWorkItem(row).evidence_fingerprint === fingerprint,
   );
@@ -262,7 +272,10 @@ export function evaluateGrowthEvidenceCorrelation({
 
   let dedupeVerdict: GrowthEvidenceDedupeVerdict = "new";
   let reason = "no_prior_correlated_work";
-  if (hasRollback && !failureFixed) {
+  if (hasActiveWork) {
+    dedupeVerdict = "skip";
+    reason = "prior_active_same_action";
+  } else if (hasRollback && !failureFixed) {
     dedupeVerdict = "block";
     reason = "prior_rollback_or_smoke_failure";
   } else if (hasMeasuring) {
@@ -602,13 +615,25 @@ export async function discoverGrowthOpportunityCandidates(
         .select("id,status,allowed_action_class,evidence,updated_at")
         .eq("account_id", input.accountId)
         .eq("website_id", input.websiteId)
-        .limit(200),
+        .in("status", [
+          "ready",
+          "running",
+          "review_needed",
+          "approved_for_execution",
+          "published_applied",
+          "measuring",
+          "blocked",
+          "auto_completed",
+        ])
+        .order("updated_at", { ascending: false })
+        .limit(1000),
       input.supabase
         .from("growth_work_item_outcomes")
         .select("id,work_item_id,status,evaluation_date,evaluation_window,updated_at")
         .eq("account_id", input.accountId)
         .eq("website_id", input.websiteId)
-        .limit(200),
+        .order("updated_at", { ascending: false })
+        .limit(1000),
     ]);
   if (workItemError) throw new Error(`candidate work item lookup failed: ${workItemError.message}`);
   if (outcomeError) throw new Error(`candidate outcome lookup failed: ${outcomeError.message}`);
