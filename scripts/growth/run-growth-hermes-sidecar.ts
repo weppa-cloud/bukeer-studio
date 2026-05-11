@@ -308,6 +308,8 @@ async function buildLaneArtifactDraft({
 }
 
 async function main() {
+  process.env.OPENROUTER_API_KEY ??= process.env.OPENROUTER_AUTH_TOKEN;
+
   const accountId = readArg("--account-id", process.env.GROWTH_ACCOUNT_ID ?? "");
   const websiteId = readArg("--website-id", process.env.GROWTH_WEBSITE_ID ?? "");
   const userId = readArg("--user-id", process.env.GROWTH_USER_ID ?? "");

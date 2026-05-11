@@ -38,6 +38,11 @@ function parseArgs(argv) {
     profile: process.env.HERMES_PROFILE ?? "growth-os-colombiatours",
     workspaceRoot: process.env.GROWTH_WORKSPACE_ROOT ?? process.cwd(),
     requireHermes: process.env.GROWTH_HERMES_REQUIRE_REAL === "true",
+    hermesProvider: process.env.HERMES_INFERENCE_PROVIDER ?? "openrouter",
+    hermesModel:
+      process.env.HERMES_INFERENCE_MODEL ??
+      process.env.OPENROUTER_MODEL ??
+      "openai/gpt-5.4-mini",
   };
 
   for (let i = 0; i < argv.length; i += 1) {
@@ -54,6 +59,10 @@ function parseArgs(argv) {
     else if (arg === "--workspace-root")
       args.workspaceRoot = argv[++i] ?? args.workspaceRoot;
     else if (arg === "--require-hermes") args.requireHermes = true;
+    else if (arg === "--hermes-provider")
+      args.hermesProvider = argv[++i] ?? args.hermesProvider;
+    else if (arg === "--hermes-model")
+      args.hermesModel = argv[++i] ?? args.hermesModel;
   }
 
   return args;
@@ -293,18 +302,25 @@ async function runHermesCli({ args, request, lane, prompt, taskSessionId }) {
   await fs.mkdir(path.dirname(promptFile), { recursive: true });
   await fs.writeFile(promptFile, prompt, "utf8");
 
-  const template =
-    args.hermesArgsTemplate ||
-    "--profile {profile} --prompt-file {promptFile} --json";
-
-  const hermesArgs = template
-    .replaceAll("{profile}", args.profile)
-    .replaceAll("{promptFile}", promptFile)
-    .replaceAll("{lane}", lane)
-    .replaceAll("{accountId}", request.account_id)
-    .replaceAll("{websiteId}", request.website_id)
-    .split(" ")
-    .filter(Boolean);
+  const hermesArgs = args.hermesArgsTemplate
+    ? args.hermesArgsTemplate
+        .replaceAll("{profile}", args.profile)
+        .replaceAll("{promptFile}", promptFile)
+        .replaceAll("{lane}", lane)
+        .replaceAll("{accountId}", request.account_id)
+        .replaceAll("{websiteId}", request.website_id)
+        .split(" ")
+        .filter(Boolean)
+    : [
+        "--profile",
+        args.profile,
+        "-z",
+        prompt,
+        "--provider",
+        args.hermesProvider,
+        "--model",
+        args.hermesModel,
+      ];
 
   const startedAt = Date.now();
   const output = await spawnWithTimeout(args.hermesBin, hermesArgs, {
