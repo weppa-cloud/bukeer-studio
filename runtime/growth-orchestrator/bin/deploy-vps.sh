@@ -42,6 +42,7 @@ tar -xf - -C \"\$RELEASE.tmp\"
 mv \"\$RELEASE.tmp\" \"\$RELEASE\"
 ln -sfn \"\$RELEASE\" \"\$ROOT/current\"
 cp \"\$ROOT/current/docker-compose.growth-orchestrator.yml\" \"\$ROOT/docker-compose.yml\"
+printf 'GITHUB_SHA=%s\n' \"\$SHA\" > \"\$ROOT/.env\"
 
 echo \"release=\$RELEASE\"
 echo \"current=\$(readlink -f \"\$ROOT/current\")\"
