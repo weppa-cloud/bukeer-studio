@@ -59,6 +59,7 @@ docker exec growth-orchestrator node --check scripts/growth/run-codex-agent-task
 docker exec growth-orchestrator node --check scripts/growth/run-growth-symphony-orchestrator.mjs
 docker exec growth-orchestrator codex login status
 docker exec growth-orchestrator node scripts/growth/run-growth-symphony-orchestrator.mjs --configSmoke
+docker exec growth-orchestrator tsx scripts/growth/run-growth-production-cycle.ts --once --dry-run --runtime-mode=executor --disable-agentic-brain --candidate-limit=0 --promotion-limit=0 --max-claims-per-lane=0 --scheduler-name=growth-os-production-executor-smoke --cycle-window=deploy-smoke --git-sha "$RESOLVED_SHA"
 docker compose ps
 "
 

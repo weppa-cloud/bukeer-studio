@@ -208,6 +208,59 @@ function dataForSeoEvidenceFailure(value: unknown): string | null {
   return `dataforseo_${status}`;
 }
 
+function contentArticleEvidenceFailures(evidence: JsonRecord): string[] {
+  const target = hasNonEmptyRecord(evidence.target)
+    ? (evidence.target as JsonRecord)
+    : {};
+  const actionClass =
+    typeof evidence.allowed_action_class === "string"
+      ? evidence.allowed_action_class
+      : null;
+  const isContentPublish =
+    actionClass === "content_publish" ||
+    target.target_table === "website_blog_posts" ||
+    hasNonEmptyRecord(evidence.article);
+  if (!isContentPublish) return [];
+
+  const failures: string[] = [];
+  const article = hasNonEmptyRecord(evidence.article)
+    ? (evidence.article as JsonRecord)
+    : {};
+  const articleText = typeof article.content === "string" ? article.content : "";
+  const supportedFacts = Array.isArray(evidence.supported_facts)
+    ? evidence.supported_facts
+    : Array.isArray(article.supported_facts)
+      ? article.supported_facts
+      : [];
+  const sourceRefs = Array.isArray(evidence.source_refs)
+    ? evidence.source_refs
+    : [];
+  const wordCount = articleText.trim().split(/\s+/).filter(Boolean).length;
+
+  if (typeof article.title !== "string" || article.title.trim().length < 10) {
+    failures.push("missing_article_title");
+  }
+  if (typeof article.slug !== "string" || !/^[a-z0-9-]+$/.test(article.slug)) {
+    failures.push("missing_article_slug");
+  }
+  if (
+    typeof article.seo_title !== "string" ||
+    article.seo_title.trim().length < 10
+  ) {
+    failures.push("missing_article_seo_title");
+  }
+  if (
+    typeof article.seo_description !== "string" ||
+    article.seo_description.trim().length < 70
+  ) {
+    failures.push("missing_article_seo_description");
+  }
+  if (wordCount < 300) failures.push("content_too_thin");
+  if (supportedFacts.length < 3) failures.push("missing_supported_facts");
+  if (sourceRefs.length === 0) failures.push("missing_source_refs");
+  return failures;
+}
+
 export function evaluateCandidateDataQuality(
   input: GrowthCandidateDataQualityInput,
 ): string[] {
@@ -225,6 +278,7 @@ export function evaluateCandidateDataQuality(
     input.evidence.dataforseo_evidence,
   );
   if (dataforseoFailure) failures.push(dataforseoFailure);
+  failures.push(...contentArticleEvidenceFailures(input.evidence));
   return failures;
 }
 
