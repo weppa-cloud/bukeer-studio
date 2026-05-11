@@ -291,7 +291,12 @@ function validateActionPayload(
   const checks = ["action_payload_contract"];
 
   if (actionClass === "content_publish") {
-    const article = asRecord(evidence.article);
+    const article = firstRecord(
+      evidence.article,
+      nestedRecord(evidence, "adapter_input", "article"),
+      nestedRecord(evidence, "runtime_adapter", "article"),
+      nestedRecord(evidence, "publication_adapter", "article"),
+    );
     const content = textValue(article, "content");
     if (!textValue(article, "title")) failures.push("missing_article_title");
     if (!textValue(article, "slug") && !textValue(evidence, "article_slug")) {
@@ -681,7 +686,12 @@ function buildRuntimeArticle({
   slug: string;
   certificationFixtureMode: boolean;
 }) {
-  const article = asRecord(evidence.article);
+  const article = firstRecord(
+    evidence.article,
+    nestedRecord(evidence, "adapter_input", "article"),
+    nestedRecord(evidence, "runtime_adapter", "article"),
+    nestedRecord(evidence, "publication_adapter", "article"),
+  );
   const title = textValue(article, "title") ?? textValue(evidence, "article_title");
   if (!title) throw new Error("content_publish payload missing article.title");
   const excerpt = textValue(article, "excerpt") ?? String(workItem.operator_summary ?? title);
