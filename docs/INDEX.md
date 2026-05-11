@@ -15,7 +15,7 @@ Latest spec addition: 2026-05-10 - [[SPEC_GROWTH_OS_PROVIDER_EXTRACTION_PROFILES
 
 Latest tracking note: 2026-05-08 - [[ADR-029]] / [[SPEC_FUNNEL_EVENTS_SOT]] now require multi-tenant platform dispatch. Browser Pixel IDs remain in `websites.analytics`; Meta CAPI and future platform secrets must resolve through tenant channel contracts, never global production env credentials.
 
-Latest certification evidence: 2026-05-10 - [[epic471-provider-intelligence-certification-2026-05-10]] records Provider Intelligence + Correlation Layer certification for #471: DataForSEO/GSC/GA4 provider runs, Clarity connector WATCH, provider-backed candidates/work items, anti-rework evidence and Growth OS UI session-pool E2E 16/16.
+Latest certification evidence: 2026-05-10 - [[epic471-provider-intelligence-certification-2026-05-10]] records Provider Intelligence + Correlation Layer certification for #471: DataForSEO/GSC/GA4 provider runs, Clarity live PASS, provider-backed candidates/work items, anti-rework evidence and Growth OS UI session-pool E2E 16/16.
 
 ## How to read this index
 

@@ -20,6 +20,7 @@ import {
   tryRecordGrowthSchedulerHeartbeat,
 } from "./cycle-ledger";
 import { runGrowthOrchestratorBrain } from "@/lib/growth/agentic/orchestrator-brain";
+import { reconcileGrowthTaskSessions } from "@/lib/growth/agentic/task-session-reconciler";
 import {
   claimGrowthAgentWakeup,
   expireStaleGrowthAgentWakeups,
@@ -1782,6 +1783,17 @@ export async function runGrowthOsProductionCycle(
           certificationFixtureMode,
           now,
         });
+    const taskSessionReconciliation = dryRun
+      ? { completed: 0, blocked: 0, expired: 0, linkedSessionIds: [] }
+      : await reconcileGrowthTaskSessions({
+          supabase,
+          accountId,
+          websiteId,
+          taskSessionIds: brain?.createdTaskSessionIds ?? [],
+          executions: execution.executions,
+          cycleId: cycle.id,
+          now,
+        });
     cycle = await recordGrowthRuntimeCycleStage({
       supabase,
       cycle,
@@ -1798,6 +1810,7 @@ export async function runGrowthOsProductionCycle(
           allow_live_mutation: allowLiveMutation,
           claims: execution.claims,
           executions: execution.executions,
+          task_session_reconciliation: taskSessionReconciliation,
         },
       },
     });

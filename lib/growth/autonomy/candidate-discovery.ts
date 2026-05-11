@@ -43,6 +43,13 @@ export interface DiscoverGrowthCandidatesResult {
   candidates: GrowthOpportunityCandidateInsert[];
   insertedOrUpdated: number;
   signalFactIds: string[];
+  skippedByCorrelation: Array<{
+    signalFactId: string | null;
+    verdict: GrowthEvidenceDedupeVerdict;
+    reason: string;
+    correlationKey: string;
+    previousRefs: string[];
+  }>;
   dryRun: boolean;
 }
 
@@ -610,6 +617,7 @@ export async function discoverGrowthOpportunityCandidates(
   const priorWorkItems = (workItemRows ?? []) as JsonRecord[];
   const priorOutcomes = (outcomeRows ?? []) as JsonRecord[];
   const candidates: GrowthOpportunityCandidateInsert[] = [];
+  const skippedByCorrelation: DiscoverGrowthCandidatesResult["skippedByCorrelation"] = [];
 
   for (const rawRow of (signalRows ?? []) as JsonRecord[]) {
     if (candidates.length >= limit) break;
@@ -665,7 +673,20 @@ export async function discoverGrowthOpportunityCandidates(
       priorOutcomes,
       now,
     });
-    if (correlation.dedupe_verdict === "skip") continue;
+    if (
+      correlation.dedupe_verdict === "skip" ||
+      correlation.dedupe_verdict === "coalesce" ||
+      correlation.dedupe_verdict === "block"
+    ) {
+      skippedByCorrelation.push({
+        signalFactId: signalId || null,
+        verdict: correlation.dedupe_verdict,
+        reason: correlation.reason,
+        correlationKey: correlation.correlation_key,
+        previousRefs: correlation.previous_refs,
+      });
+      continue;
+    }
 
     const candidate = scoreOpportunityCandidate({
         accountId: input.accountId,
@@ -683,7 +704,8 @@ export async function discoverGrowthOpportunityCandidates(
         costScore: cost,
         riskScore: risk,
         idempotencyKey:
-          correlation.dedupe_verdict === "coalesce"
+          correlation.dedupe_verdict === "reopen" ||
+          correlation.dedupe_verdict === "follow_up"
             ? `correlation:${correlation.correlation_key}:${correlation.evidence_fingerprint}`
             : `runtime:${input.cycleId ?? "cycle"}:${signalId || JSON.stringify(payload).slice(0, 80)}`,
         evidence: {
@@ -696,15 +718,6 @@ export async function discoverGrowthOpportunityCandidates(
         evaluationWindow: mapping.evaluationWindow,
         sourceSignalFactIds: signalId ? [signalId] : [],
       });
-    if (correlation.dedupe_verdict === "block") {
-      candidate.status = "blocked";
-      candidate.blocking_reason = [
-        candidate.blocking_reason,
-        `correlation:${correlation.reason}`,
-      ]
-        .filter(Boolean)
-        .join(",");
-    }
     candidates.push(candidate);
   }
 
@@ -721,6 +734,7 @@ export async function discoverGrowthOpportunityCandidates(
     signalFactIds: candidates
       .flatMap((candidate) => candidate.source_signal_fact_ids)
       .filter(Boolean),
+    skippedByCorrelation,
     dryRun: input.dryRun ?? false,
   };
 }

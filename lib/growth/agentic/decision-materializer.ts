@@ -73,7 +73,11 @@ function providerEvidenceBlocked(candidate: JsonRecord): string | null {
 }
 
 function correlationBlocked(correlation: GrowthEvidenceCorrelationResult): string | null {
-  if (correlation.dedupe_verdict === "skip" || correlation.dedupe_verdict === "block") {
+  if (
+    correlation.dedupe_verdict === "skip" ||
+    correlation.dedupe_verdict === "block" ||
+    correlation.dedupe_verdict === "coalesce"
+  ) {
     return `correlation_${correlation.dedupe_verdict}:${correlation.reason}`;
   }
   return null;
@@ -265,6 +269,7 @@ export async function materializeBrainDecision({
   decision: GrowthOrchestratorDecision;
 }): Promise<MaterializeBrainDecisionResult> {
   const blockedReasons: string[] = [];
+  const materializableCandidates: JsonRecord[] = [];
   const prior = await readPriorCorrelationRows({
     supabase,
     accountId: decision.account_id,
@@ -278,24 +283,30 @@ export async function materializeBrainDecision({
       priorWorkItems: prior.workItems,
       priorOutcomes: prior.outcomes,
     });
+    let hardBlocked = false;
     if (
       SENSITIVE_ACTIONS.has(String(candidate.allowed_action_class)) ||
       isSensitive(candidate)
     ) {
       blockedReasons.push(`sensitive_candidate:${candidate.allowed_action_class}`);
+      hardBlocked = true;
     }
     const providerBlock = providerEvidenceBlocked(candidate);
     if (providerBlock) {
       blockedReasons.push(
         `provider_candidate:${candidate.allowed_action_class}:${providerBlock}`,
       );
+      hardBlocked = true;
     }
     const correlationBlock = correlationBlocked(correlation);
     if (correlationBlock) {
       blockedReasons.push(
         `candidate:${candidate.allowed_action_class}:${correlationBlock}`,
       );
+      continue;
     }
+    if (hardBlocked) continue;
+    materializableCandidates.push(candidate);
   }
   for (const workItem of decision.proposed_work_items) {
     if (
@@ -306,7 +317,12 @@ export async function materializeBrainDecision({
     }
   }
 
-  if (blockedReasons.length > 0) {
+  if (
+    blockedReasons.some((reason) =>
+      reason.startsWith("sensitive_") || reason.startsWith("provider_candidate:"),
+    ) ||
+    (decision.proposed_candidates.length > 0 && materializableCandidates.length === 0)
+  ) {
     await supabase
       .from("growth_orchestrator_decisions")
       .update({
@@ -328,7 +344,7 @@ export async function materializeBrainDecision({
   const createdCandidateIds: string[] = [];
   const createdTaskSessionIds: string[] = [];
   try {
-    for (const candidate of decision.proposed_candidates) {
+    for (const candidate of materializableCandidates) {
       createdCandidateIds.push(
         await insertCandidate({
           supabase,
@@ -352,6 +368,7 @@ export async function materializeBrainDecision({
       .update({
         materialization_status: "materialized",
         created_candidate_ids: createdCandidateIds,
+        no_go_reasons: [...decision.no_go_reasons, ...blockedReasons],
       })
       .eq("id", decision.id)
       .eq("website_id", decision.website_id);
