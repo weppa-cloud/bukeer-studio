@@ -61,7 +61,10 @@ function target(row: JsonRecord): JsonRecord {
 }
 
 function adapterInput(row: JsonRecord): JsonRecord {
-  return asRecord(asRecord(row.evidence).adapter_input);
+  const evidence = asRecord(row.evidence);
+  const direct = asRecord(evidence.adapter_input);
+  if (Object.keys(direct).length > 0) return direct;
+  return asRecord(asRecord(evidence.signal_payload).adapter_input);
 }
 
 function hasTarget(row: JsonRecord): boolean {
@@ -127,13 +130,13 @@ function groupKey(row: JsonRecord): string | null {
     stringValue(row.allowed_action_class);
   const entityKey =
     stringValue(evidence.entity_key) ||
+    stringValue(target(row).target_id) ||
+    stringValue(input.target_id) ||
+    stringValue(target(row).target_path) ||
+    stringValue(input.target_path) ||
     stringValue(evidence.target_key) ||
     stringValue(target(row).target_key) ||
-    stringValue(target(row).target_id) ||
-    stringValue(target(row).target_path) ||
-    stringValue(input.target_key) ||
-    stringValue(input.target_id) ||
-    stringValue(input.target_path);
+    stringValue(input.target_key);
   if (actionKey && entityKey) {
     const patch = JSON.stringify(asRecord(input.patch));
     return `${normalizeKeyPart(actionKey)}:${normalizeKeyPart(entityKey)}:${patch}`;
