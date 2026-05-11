@@ -19,6 +19,8 @@ Latest tracking note: 2026-05-11 - [[SPEC_FUNNEL_EVENTS_OBSERVABILITY_LAYER]] ad
 
 Latest tracking note: 2026-05-11 - [[SPEC_FUNNEL_EVENTS_GOAL_PROVISIONING_SYNC]] adds F7 under #419: Bukeer Studio will derive, dry-run, apply, and monitor tenant platform goals from the canonical funnel matrix instead of configuring Google Ads, GA4, Meta, and Clarity manually.
 
+Latest certification evidence: 2026-05-11 - Funnel Events F6 GA4 Measurement Protocol delivery is live for ColombiaTours: `ga4_measurement_protocol_events` exists in production, `dispatch-funnel-event` sends tenant-resolved GA4 MP events behind `FUNNEL_GA4_MP_DISPATCH_V1`, real `crm_quote_sent` reference `PRICIN-1105-TV55` logged GA4 `begin_checkout` as sent, and platform goal dry-run `b7a87cc8-8d5c-494a-8f40-26a04d5acbb9` returned 38/38 healthy.
+
 Latest tracking note: 2026-05-08 - [[ADR-029]] / [[SPEC_FUNNEL_EVENTS_SOT]] now require multi-tenant platform dispatch. Browser Pixel IDs remain in `websites.analytics`; Meta CAPI and future platform secrets must resolve through tenant channel contracts, never global production env credentials.
 
 Latest certification evidence: 2026-05-11 - [[epic482-hermes-chief-of-staff-swarm-certification-2026-05-11]] records Epic #482 hybrid Hermes/Growth OS certification: Chief of Staff conversation ledger, wakeup-first action routing, editable agent company, artifact materialization, production wakeup coalescing fix and session-pool E2E on Chromium/mobile Chrome.

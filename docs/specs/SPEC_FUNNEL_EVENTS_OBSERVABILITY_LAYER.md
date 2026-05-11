@@ -59,9 +59,9 @@ The business need is to make optimization evidence available to both humans and 
 
 ## Acceptance Criteria
 
-- [ ] AC1: `event_destination_mapping` has enabled `ga4` rows for canonical reporting events: `whatsapp_cta_click`, `waflow_open`, `waflow_submit`, `waflow_validation_error`, `waflow_abandon`, `crm_lead_stage_qualified`, `crm_quote_sent`, and `crm_booking_confirmed`.
-- [ ] AC2: `ga4_measurement_protocol_events` exists as an idempotent delivery log with tenant scope, `funnel_event_id`, destination event name, status, redacted payload, provider response, error, and timestamps.
-- [ ] AC3: Dispatcher can send GA4 Measurement Protocol events from `funnel_events` using tenant GA4 config, while preserving browser GA4 page/session tracking.
+- [x] AC1: `event_destination_mapping` has enabled `ga4` rows for canonical reporting events: `whatsapp_cta_click`, `waflow_open`, `waflow_submit`, `waflow_validation_error`, `waflow_abandon`, `crm_lead_stage_qualified`, `crm_quote_sent`, and `crm_booking_confirmed`.
+- [x] AC2: `ga4_measurement_protocol_events` exists as an idempotent delivery log with tenant scope, `funnel_event_id`, destination event name, status, redacted payload, provider response, error, and timestamps.
+- [x] AC3: Dispatcher can send GA4 Measurement Protocol events from `funnel_events` using tenant GA4 config, while preserving browser GA4 page/session tracking.
 - [ ] AC4: GA4 key events are configured for `generate_lead`, `qualify_lead`, `begin_checkout`, and `purchase`; legacy/imported conversion signals are documented as reporting-only where applicable.
 - [ ] AC5: WAFlow emits or persists `waflow_open`, `waflow_validation_error`, and `waflow_abandon` so abandonment can be measured outside GA4.
 - [ ] AC6: Clarity tags/session context include tenant, website, market, landing path, campaign ID when available, WAFlow variant, and hashed/reference identifiers only.
@@ -80,6 +80,13 @@ The business need is to make optimization evidence available to both humans and 
 | `growth_profile_runs` | Reuse existing provider run ledger | Stores GA4/Clarity extraction profiles and freshness evidence. |
 
 Migration path: forward-only. No historical replay to GA4 by default; replay requires explicit bounded runbook command.
+
+Implementation evidence 2026-05-11:
+
+- Migration `20260511162000_ga4_measurement_protocol_events.sql` applied in production and mirrored to `bukeer-flutter`.
+- `dispatch-funnel-event` resolves GA4 Measurement Protocol config from tenant `seo_integrations` (`property_id`, `metadata.measurement_id`, `api_token`) and only uses env fallback for local/test.
+- ColombiaTours smoke: `crm_quote_sent` reference `PRICIN-1105-TV55` dispatched to GA4 event `begin_checkout` with `status='sent'` in `ga4_measurement_protocol_events`.
+- Platform goal dry-run `b7a87cc8-8d5c-494a-8f40-26a04d5acbb9`: 38 desired, 38 keep, 0 update, 0 watch, 0 blocked.
 
 ## API / Contract Changes
 

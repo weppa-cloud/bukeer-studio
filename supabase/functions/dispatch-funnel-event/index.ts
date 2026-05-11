@@ -87,6 +87,12 @@ interface AccountChannelContractRow {
   service_channels?: unknown;
 }
 
+interface Ga4IntegrationRow {
+  property_id: string | null;
+  api_token: string | null;
+  metadata: Record<string, unknown> | null;
+}
+
 interface SupabaseClientLike {
   // Supabase Edge Functions run this file under Deno; keep the local type
   // narrow so Deno check does not couple helper functions to generated DB types.
@@ -102,6 +108,7 @@ interface DestinationResult {
 
 const META_PROVIDER = 'meta';
 const GOOGLE_ADS_PROVIDER = 'google_ads';
+const GA4_PROVIDER = 'ga4';
 
 // --------------------------------------------------------------------------
 // Tiny helpers (mirror lib/meta/conversions-api.ts hashing rules — kept
@@ -111,6 +118,16 @@ const GOOGLE_ADS_PROVIDER = 'google_ads';
 function cleanString(value: string | null | undefined): string | undefined {
   const trimmed = value?.trim();
   return trimmed || undefined;
+}
+
+function readString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim() ? value.trim() : undefined;
+}
+
+function readRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
 }
 
 function bytesToHex(bytes: ArrayBuffer): string {
@@ -670,6 +687,266 @@ async function dispatchToGoogleAds(
 }
 
 // --------------------------------------------------------------------------
+// GA4 Measurement Protocol destination handler.
+// --------------------------------------------------------------------------
+
+interface Ga4Config {
+  enabled: boolean;
+  measurementId?: string;
+  apiSecret?: string;
+  propertyId?: string;
+  source: string;
+  reason?: string;
+}
+
+function resolveGa4Config(input: {
+  websiteAnalytics: unknown;
+  integration: Ga4IntegrationRow | null;
+}): Ga4Config {
+  const env = (globalThis as unknown as { Deno: { env: { get(k: string): string | undefined } } }).Deno.env;
+  const enabled = env.get('FUNNEL_GA4_MP_DISPATCH_V1') === 'true';
+  const analytics = readRecord(input.websiteAnalytics);
+  const metadata = readRecord(input.integration?.metadata);
+  const tenantMeasurementId =
+    readString(analytics.ga4_id) ??
+    readString(analytics.ga4_measurement_id) ??
+    readString(metadata.measurement_id) ??
+    readString(metadata.ga4_measurement_id);
+  const tenantApiSecret =
+    readString(input.integration?.api_token) ??
+    readString(metadata.measurement_protocol_api_secret) ??
+    readString(metadata.api_secret);
+  const measurementId = tenantMeasurementId ?? cleanString(env.get('GA4_MEASUREMENT_ID'));
+  const apiSecret = tenantApiSecret ?? cleanString(env.get('GA4_API_SECRET'));
+  const propertyId = readString(input.integration?.property_id) ?? readString(metadata.property_id);
+  const source = tenantMeasurementId || tenantApiSecret ? 'tenant_config' : 'env_or_missing';
+
+  if (!enabled) {
+    return { enabled: false, measurementId, apiSecret, propertyId, source, reason: 'ga4_mp_dispatch_disabled' };
+  }
+  if (!measurementId || !apiSecret) {
+    return {
+      enabled: false,
+      measurementId,
+      apiSecret,
+      propertyId,
+      source,
+      reason: !measurementId ? 'missing_ga4_measurement_id' : 'missing_ga4_api_secret',
+    };
+  }
+  return { enabled: true, measurementId, apiSecret, propertyId, source };
+}
+
+async function loadGa4Context(
+  supabase: SupabaseClientLike,
+  event: FunnelEventRow,
+): Promise<{ websiteAnalytics: unknown; integration: Ga4IntegrationRow | null }> {
+  const [websiteResult, integrationResult] = await Promise.all([
+    supabase
+      .from('websites')
+      .select('analytics')
+      .eq('id', event.website_id)
+      .eq('account_id', event.account_id)
+      .maybeSingle(),
+    supabase
+      .from('seo_integrations')
+      .select('property_id, api_token, metadata')
+      .eq('account_id', event.account_id)
+      .eq('website_id', event.website_id)
+      .eq('provider', 'ga4')
+      .maybeSingle(),
+  ]);
+
+  return {
+    websiteAnalytics: (websiteResult.data as { analytics?: unknown } | null)?.analytics ?? {},
+    integration: (integrationResult.data as Ga4IntegrationRow | null) ?? null,
+  };
+}
+
+function ga4ClientId(event: FunnelEventRow): string {
+  const payload = readRecord(event.payload);
+  const attribution = readRecord(event.attribution);
+  const clickIds = readRecord(attribution.click_ids);
+  return (
+    readString(payload.ga_client_id) ??
+    readString(payload.client_id) ??
+    readString(attribution.ga_client_id) ??
+    readString(clickIds.ga_client_id) ??
+    `${event.reference_code || event.event_id}.${event.event_id.slice(0, 10)}`
+  );
+}
+
+function ga4EventParams(event: FunnelEventRow, mapping: MappingRow): Record<string, unknown> {
+  const params: Record<string, unknown> = {
+    event_id: event.event_id,
+    canonical_event_name: event.event_name,
+    reference_code: event.reference_code,
+    source: event.source,
+    engagement_time_msec: 1,
+  };
+  if (event.source_url) params.page_location = event.source_url;
+  if (event.gclid) params.gclid = event.gclid;
+  if (event.gbraid) params.gbraid = event.gbraid;
+  if (event.wbraid) params.wbraid = event.wbraid;
+  if (event.fbp) params.fbp = event.fbp;
+  if (event.fbc) params.fbc = event.fbc;
+  if (mapping.value_field === 'value_amount' && event.value_amount != null) {
+    params.value = Number(event.value_amount);
+    if (event.value_currency) params.currency = event.value_currency;
+  }
+  if (mapping.destination_event_name === 'purchase') {
+    params.transaction_id = event.reference_code || event.event_id;
+  }
+  return Object.fromEntries(
+    Object.entries(params).filter(([, value]) => value !== null && value !== undefined && value !== ''),
+  );
+}
+
+function buildGa4Payload(event: FunnelEventRow, mapping: MappingRow): Record<string, unknown> {
+  return {
+    client_id: ga4ClientId(event),
+    ...(event.external_id ? { user_id: event.external_id } : {}),
+    timestamp_micros: String(new Date(event.occurred_at).getTime() * 1000),
+    non_personalized_ads: true,
+    events: [
+      {
+        name: mapping.destination_event_name,
+        params: ga4EventParams(event, mapping),
+      },
+    ],
+  };
+}
+
+async function insertGa4Log(
+  supabase: SupabaseClientLike,
+  event: FunnelEventRow,
+  mapping: MappingRow,
+  config: Ga4Config,
+  status: 'pending' | 'sent' | 'failed' | 'skipped',
+  requestPayload: unknown,
+  details: { error?: string; providerResponse?: unknown } = {},
+): Promise<{ deduped: boolean }> {
+  const row = {
+    provider: GA4_PROVIDER,
+    account_id: event.account_id,
+    website_id: event.website_id,
+    funnel_event_id: event.event_id,
+    event_name: mapping.destination_event_name,
+    measurement_id: config.measurementId ?? null,
+    property_id: config.propertyId ?? null,
+    status,
+    request_payload: requestPayload ?? {},
+    provider_response: details.providerResponse ?? null,
+    error: details.error ?? null,
+    trace: {
+      funnel_event_id: event.event_id,
+      funnel_event_name: event.event_name,
+      reference_code: event.reference_code,
+      dispatcher: 'dispatch-funnel-event-edge-fn',
+      dispatch_config_source: config.source,
+      ...(config.reason && { dispatch_config_reason: config.reason }),
+    },
+    sent_at: status === 'sent' ? new Date().toISOString() : null,
+  };
+
+  const { error } = await supabase.from('ga4_measurement_protocol_events').insert(row);
+  if (!error) return { deduped: false };
+  if ((error as { code?: string }).code === '23505') return { deduped: true };
+  throw new Error(error.message ?? 'ga4_measurement_protocol_events insert failed');
+}
+
+async function updateGa4Log(
+  supabase: SupabaseClientLike,
+  event: FunnelEventRow,
+  eventName: string,
+  patch: Record<string, unknown>,
+): Promise<void> {
+  const { error } = await supabase
+    .from('ga4_measurement_protocol_events')
+    .update(patch)
+    .eq('funnel_event_id', event.event_id)
+    .eq('event_name', eventName);
+  if (error) throw new Error(error.message);
+}
+
+async function dispatchToGa4(
+  event: FunnelEventRow,
+  mapping: MappingRow,
+  supabase: SupabaseClientLike,
+  ga4Context: { websiteAnalytics: unknown; integration: Ga4IntegrationRow | null },
+): Promise<DestinationResult> {
+  const config = resolveGa4Config({
+    websiteAnalytics: ga4Context.websiteAnalytics,
+    integration: ga4Context.integration,
+  });
+  const payload = buildGa4Payload(event, mapping);
+
+  if (!config.enabled || !config.measurementId || !config.apiSecret) {
+    await insertGa4Log(supabase, event, mapping, config, 'skipped', payload, {
+      error: config.reason ?? 'missing_ga4_config',
+    });
+    return {
+      destination: mapping.destination,
+      outcome: 'skipped',
+      reason: config.reason ?? 'missing_ga4_config',
+    };
+  }
+
+  const pending = await insertGa4Log(supabase, event, mapping, config, 'pending', payload);
+  if (pending.deduped) {
+    return { destination: mapping.destination, outcome: 'skipped', reason: 'duplicate_log_row' };
+  }
+
+  const env = (globalThis as unknown as { Deno: { env: { get(k: string): string | undefined } } }).Deno.env;
+  const validationMode = env.get('GA4_MP_VALIDATION_MODE') === 'true';
+  const endpoint = validationMode
+    ? 'https://www.google-analytics.com/debug/mp/collect'
+    : 'https://www.google-analytics.com/mp/collect';
+  const url = `${endpoint}?measurement_id=${encodeURIComponent(config.measurementId)}&api_secret=${encodeURIComponent(config.apiSecret)}`;
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const responseText = await response.text().catch(() => '');
+    let responseBody: unknown = responseText;
+    try {
+      responseBody = responseText ? JSON.parse(responseText) : {};
+    } catch {
+      responseBody = { body: responseText };
+    }
+    const validationMessages = Array.isArray((responseBody as { validationMessages?: unknown }).validationMessages)
+      ? (responseBody as { validationMessages?: unknown[] }).validationMessages ?? []
+      : [];
+    const status = response.ok && validationMessages.length === 0 ? 'sent' : 'failed';
+    await updateGa4Log(supabase, event, mapping.destination_event_name, {
+      status,
+      provider_response: responseBody,
+      error: status === 'sent'
+        ? null
+        : validationMessages.length
+          ? 'GA4 MP validation returned messages'
+          : `GA4 MP returned HTTP ${response.status}`,
+      sent_at: status === 'sent' ? new Date().toISOString() : null,
+    });
+    return {
+      destination: mapping.destination,
+      outcome: status === 'sent' ? 'dispatched' : 'failed',
+      reason: status === 'sent' ? undefined : 'ga4_mp_send_failed',
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    await updateGa4Log(supabase, event, mapping.destination_event_name, {
+      status: 'failed',
+      error: message,
+    });
+    return { destination: mapping.destination, outcome: 'failed', reason: message };
+  }
+}
+
+// --------------------------------------------------------------------------
 // Main dispatcher entry point.
 // --------------------------------------------------------------------------
 
@@ -759,12 +1036,16 @@ async function handle(req: Request): Promise<Response> {
 
   const results: DestinationResult[] = [];
   let tenantMetaContext: TenantMetaContext | null = null;
+  let ga4Context: { websiteAnalytics: unknown; integration: Ga4IntegrationRow | null } | null = null;
   for (const m of (mappings ?? []) as unknown as MappingRow[]) {
     if (m.destination === 'meta' || m.destination === 'meta_messaging') {
       tenantMetaContext ??= await loadTenantMetaContext(supabase, event);
       results.push(await dispatchToMeta(event, m, supabase, tenantMetaContext));
     } else if (m.destination === 'google_ads') {
       results.push(await dispatchToGoogleAds(event, m, supabase));
+    } else if (m.destination === 'ga4') {
+      ga4Context ??= await loadGa4Context(supabase, event);
+      results.push(await dispatchToGa4(event, m, supabase, ga4Context));
     } else {
       results.push({
         destination: m.destination,

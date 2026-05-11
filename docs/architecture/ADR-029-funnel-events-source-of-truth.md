@@ -56,7 +56,7 @@ Mandatory rules:
 5. **Each destination has its own log table** for idempotency and replay:
    - `meta_conversion_events` (exists)
    - `google_ads_offline_uploads` (new, ships with #332)
-   - `ga4_measurement_protocol_events` (new, optional; Phase 2)
+   - `ga4_measurement_protocol_events` (implemented 2026-05-11 for GA4 Measurement Protocol observability)
    - Future: `tiktok_events_api`, `linkedin_conversions`
 
 6. **GA4 link to Ads stays operational** as a redundancy + reporting channel, but ceases to be the **primary** conversion source for Smart Bidding once #332 ships. Conversion actions imported from GA4 are reclassified to "secondary, observation only" in the Google Ads UI.

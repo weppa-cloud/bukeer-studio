@@ -228,6 +228,47 @@ Health meanings:
 | `blocked` | Credentials/account mismatch/missing provider config blocks sync. |
 | `unknown` | No bindings have been created yet. |
 
+## GA4 Measurement Protocol Checks
+
+GA4 is an observability/reporting destination. It is not the conversion source
+of truth; `funnel_events` remains authoritative for agents, CRM correlation,
+and paid-media optimization.
+
+Tenant config resolution:
+
+- Browser GA4/page tracking may continue through public website analytics.
+- Server-side GA4 Measurement Protocol uses `seo_integrations` for the tenant:
+  `property_id`, `metadata.measurement_id`, and the Measurement Protocol secret
+  in `api_token`.
+- Do not put production GA4 API secrets in docs, GitHub comments, or
+  `websites.analytics`. Env fallback is local/test only.
+
+Production smoke query:
+
+```sql
+select
+  event_name,
+  status,
+  measurement_id,
+  property_id,
+  error,
+  created_at,
+  updated_at
+from public.ga4_measurement_protocol_events
+where funnel_event_id = '<funnel_events.event_id>'
+order by created_at desc;
+```
+
+ColombiaTours evidence from 2026-05-11:
+
+- `dispatch-funnel-event` deployed with `FUNNEL_GA4_MP_DISPATCH_V1=true`.
+- Real event `crm_quote_sent` / `PRICIN-1105-TV55` dispatched to GA4 as
+  `begin_checkout`.
+- `ga4_measurement_protocol_events.status = 'sent'` for measurement ID
+  `G-6ET7YRM7NS`, property `294486074`.
+- Platform goal dry-run `b7a87cc8-8d5c-494a-8f40-26a04d5acbb9` returned 38
+  desired, 38 keep, 0 watch, 0 blocked.
+
 ### Apply Gate
 
 The apply endpoint is intentionally gated until provider mutation adapters are
