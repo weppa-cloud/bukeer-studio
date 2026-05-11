@@ -115,6 +115,41 @@ function workItemIdempotencyKey(candidate: GrowthOpportunityCandidate): string {
   return `candidate:${candidate.id}`;
 }
 
+function normalizeKeyPart(value: string): string {
+  return value.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function targetRecord(evidence: JsonRecord): JsonRecord {
+  return (evidence.target ?? {}) as JsonRecord;
+}
+
+function activeWorkKey(row: {
+  allowed_action_class?: unknown;
+  title?: unknown;
+  evidence?: unknown;
+}): string | null {
+  const evidence = (row.evidence ?? {}) as JsonRecord;
+  const target = targetRecord(evidence);
+  const action =
+    typeof row.allowed_action_class === "string"
+      ? row.allowed_action_class
+      : typeof evidence.allowed_action_class === "string"
+        ? evidence.allowed_action_class
+        : null;
+  const targetKey =
+    typeof target.target_key === "string"
+      ? target.target_key
+      : typeof target.target_id === "string"
+        ? target.target_id
+        : typeof target.target_path === "string"
+          ? target.target_path
+          : typeof row.title === "string"
+            ? row.title
+            : null;
+  if (!action || !targetKey) return null;
+  return `${normalizeKeyPart(action)}:${normalizeKeyPart(targetKey)}`;
+}
+
 export function buildPromotedWorkItem(
   candidate: GrowthOpportunityCandidate,
   profiles: GrowthProfile[],
@@ -228,6 +263,31 @@ export async function promoteGrowthOpportunityCandidates({
 
   if (candidateError) throw new Error(candidateError.message);
 
+  const { data: activeWorkRows, error: activeWorkError } = await supabase
+    .from("growth_work_items")
+    .select("id,status,allowed_action_class,title,evidence")
+    .eq("account_id", accountId)
+    .eq("website_id", websiteId)
+    .in("status", [
+      "ready",
+      "running",
+      "review_needed",
+      "approved_for_execution",
+      "published_applied",
+      "measuring",
+    ])
+    .limit(1000);
+  if (activeWorkError) throw new Error(activeWorkError.message);
+  const activeWorkKeys = new Set(
+    ((activeWorkRows ?? []) as Array<{
+      allowed_action_class?: unknown;
+      title?: unknown;
+      evidence?: unknown;
+    }>)
+      .map(activeWorkKey)
+      .filter((key): key is string => Boolean(key)),
+  );
+
   const results = [];
   for (const candidate of (candidates ?? []) as GrowthOpportunityCandidate[]) {
     const { data: profiles, error: profileError } = await supabase
@@ -254,6 +314,22 @@ export async function promoteGrowthOpportunityCandidates({
       continue;
     }
 
+    const workKey = activeWorkKey(decision.workItem);
+    if (workKey && activeWorkKeys.has(workKey)) {
+      const reason = `correlation:prior_active_same_entity_action:${workKey}`;
+      await supabase
+        .from("growth_opportunity_candidates")
+        .update({
+          status: "blocked",
+          blocking_reason: reason,
+          updated_at: now.toISOString(),
+        })
+        .eq("id", candidate.id)
+        .eq("website_id", websiteId);
+      results.push({ candidateId: candidate.id, promoted: false, reason });
+      continue;
+    }
+
     const { data: workItemRows, error: workItemError } = await supabase
       .from("growth_work_items")
       .upsert(decision.workItem, { onConflict: "website_id,idempotency_key" })
@@ -271,6 +347,7 @@ export async function promoteGrowthOpportunityCandidates({
       })
       .eq("id", candidate.id)
       .eq("website_id", websiteId);
+    if (workKey) activeWorkKeys.add(workKey);
     results.push({ candidateId: candidate.id, promoted: true, workItemId });
   }
 
