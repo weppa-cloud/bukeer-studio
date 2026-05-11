@@ -111,6 +111,27 @@ export type GrowthAgentArtifactStatus = z.infer<
   typeof GrowthAgentArtifactStatusSchema
 >;
 
+export const GrowthAgentAutonomyLevelSchema = z.enum([
+  'A0',
+  'A1',
+  'A2',
+  'A3',
+  'A4',
+]);
+export type GrowthAgentAutonomyLevel = z.infer<
+  typeof GrowthAgentAutonomyLevelSchema
+>;
+
+export const GrowthAgentContextManifestStatusSchema = z.enum([
+  'active',
+  'superseded',
+  'blocked',
+  'failed',
+]);
+export type GrowthAgentContextManifestStatus = z.infer<
+  typeof GrowthAgentContextManifestStatusSchema
+>;
+
 const ChiefSessionBaseSchema = GrowthTenantScopeSchema.omit({
   locale: true,
   market: true,
@@ -287,6 +308,7 @@ const AgentArtifactBaseSchema = GrowthTenantScopeSchema.omit({
   id: z.string().uuid(),
   agent_instance_id: z.string().uuid().nullable().default(null),
   task_session_id: z.string().uuid().nullable().default(null),
+  context_manifest_id: z.string().uuid().nullable().default(null),
   decision_id: z.string().uuid().nullable().default(null),
   artifact_type: GrowthAgentArtifactTypeSchema,
   artifact_version: z.string().min(1).max(80).default('v1'),
@@ -297,6 +319,7 @@ const AgentArtifactBaseSchema = GrowthTenantScopeSchema.omit({
   memory_reads: z.array(JsonRecordSchema).default([]),
   skill_reads: z.array(JsonRecordSchema).default([]),
   risk_assessment: JsonRecordSchema,
+  manifest_citation_verdict: JsonRecordSchema,
   validation_errors: z.array(JsonRecordSchema).default([]),
   idempotency_key: z.string().min(8).max(300),
   created_work_item_id: z.string().uuid().nullable().default(null),
@@ -314,4 +337,58 @@ export const GrowthAgentArtifactInsertSchema = AgentArtifactBaseSchema.omit({
 });
 export type GrowthAgentArtifactInsert = z.infer<
   typeof GrowthAgentArtifactInsertSchema
+>;
+
+const AgentContextManifestBaseSchema = GrowthTenantScopeSchema.omit({
+  locale: true,
+  market: true,
+}).extend({
+  id: z.string().uuid(),
+  agent_instance_id: z.string().uuid(),
+  task_session_id: z.string().uuid().nullable().default(null),
+  context_snapshot_id: z.string().uuid(),
+  lane: AgentLaneSchema,
+  status: GrowthAgentContextManifestStatusSchema.default('active'),
+  autonomy_level: GrowthAgentAutonomyLevelSchema.default('A2'),
+  context_hash: z.string().min(8).max(120),
+  model_provider: z.string().min(1).max(80),
+  model_name: z.string().min(1).max(200),
+  toolset_allowed: z.array(z.string().min(1).max(120)).default([]),
+  skill_ids_injected: UuidArraySchema,
+  memory_ids_injected: UuidArraySchema,
+  global_memory_ids_injected: UuidArraySchema,
+  excluded_skill_ids: UuidArraySchema,
+  excluded_memory_ids: UuidArraySchema,
+  provider_source_refs: z.array(z.string().min(1).max(240)).default([]),
+  outcome_refs: z.array(z.string().min(1).max(240)).default([]),
+  policy_refs: z.array(z.string().min(1).max(240)).default([]),
+  budget_snapshot: JsonRecordSchema,
+  injection_scan: JsonRecordSchema,
+  isolation_verdict: JsonRecordSchema,
+  manifest_payload: JsonRecordSchema,
+  created_at: DateTimeSchema,
+  updated_at: DateTimeSchema,
+});
+
+export const GrowthAgentContextManifestSchema =
+  AgentContextManifestBaseSchema.superRefine((row, ctx) => {
+    if (row.isolation_verdict.allowed === false && row.status === 'active') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['status'],
+        message: 'Blocked isolation verdict cannot be active.',
+      });
+    }
+  });
+export type GrowthAgentContextManifest = z.infer<
+  typeof GrowthAgentContextManifestSchema
+>;
+export const GrowthAgentContextManifestInsertSchema =
+  AgentContextManifestBaseSchema.omit({
+    id: true,
+    created_at: true,
+    updated_at: true,
+  });
+export type GrowthAgentContextManifestInsert = z.infer<
+  typeof GrowthAgentContextManifestInsertSchema
 >;

@@ -1,4 +1,5 @@
 import {
+  GrowthAgentContextManifestInsertSchema,
   GrowthAgentArtifactInsertSchema,
   GrowthAgentInstanceInsertSchema,
   GrowthChiefOfStaffActionInsertSchema,
@@ -82,10 +83,48 @@ describe("Growth OS Hermes Chief of Staff contracts", () => {
       memory_reads: [],
       skill_reads: [],
       risk_assessment: { risk: "low" },
+      manifest_citation_verdict: { allowed: true },
       validation_errors: [],
       idempotency_key: "test:safe-apply:artifact-1",
     });
     expect(artifact.status).toBe("draft");
     expect(artifact.provider_evidence_reads).toHaveLength(1);
+  });
+
+  it("validates strict per-agent context manifests", () => {
+    const manifest = GrowthAgentContextManifestInsertSchema.parse({
+      account_id: accountId,
+      website_id: websiteId,
+      agent_instance_id: "00000000-0000-4000-8000-000000000011",
+      task_session_id: "00000000-0000-4000-8000-000000000012",
+      context_snapshot_id: "00000000-0000-4000-8000-000000000013",
+      lane: "technical_remediation",
+      autonomy_level: "A2",
+      context_hash: "fnv1a32:12345678",
+      model_provider: "openrouter",
+      model_name: "openai/gpt-5",
+      toolset_allowed: ["provider_profiles", "safe_apply_artifacts"],
+      skill_ids_injected: ["00000000-0000-4000-8000-000000000014"],
+      memory_ids_injected: ["00000000-0000-4000-8000-000000000015"],
+      global_memory_ids_injected: [],
+      excluded_skill_ids: ["00000000-0000-4000-8000-000000000016"],
+      excluded_memory_ids: [],
+      provider_source_refs: ["growth_profile_runs:run-1"],
+      outcome_refs: ["growth_work_item_outcomes:outcome-1"],
+      policy_refs: ["growth_autonomy_policies:policy-1"],
+      budget_snapshot: { max_cost_daily_usd: 10 },
+      injection_scan: { blocked: false },
+      isolation_verdict: {
+        allowed: true,
+        tenant_scoped: true,
+        lane_scoped: true,
+      },
+      manifest_payload: {
+        context_version: "hermes-agent-context-isolation-v1",
+      },
+    });
+    expect(manifest.status).toBe("active");
+    expect(manifest.autonomy_level).toBe("A2");
+    expect(manifest.skill_ids_injected).toHaveLength(1);
   });
 });

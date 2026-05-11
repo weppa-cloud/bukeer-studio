@@ -171,6 +171,10 @@ const POLICY_CLASSES: Record<ToolPolicyState, string> = {
   blocked: "bg-zinc-100 text-zinc-700 border border-zinc-200",
 };
 
+function shortId(id: string | null | undefined) {
+  return id ? id.slice(0, 8) : "none";
+}
+
 function LearningStatusBadge({ status }: { status: string }) {
   const active = status === "active";
   const rejected = status === "rejected" || status === "deprecated";
@@ -242,6 +246,12 @@ function HermesAgentInstances({
   result: Awaited<ReturnType<typeof getGrowthAgents>>;
 }) {
   const hermes = result.hermes;
+  const latestManifestByAgent = new Map(
+    hermes.contextManifests.map((manifest) => [
+      manifest.agentInstanceId,
+      manifest,
+    ]),
+  );
   return (
     <section
       aria-labelledby="hermes-agents-heading"
@@ -288,7 +298,7 @@ function HermesAgentInstances({
       ) : null}
 
       <div
-        className="mt-4 grid grid-cols-1 gap-3 text-sm md:grid-cols-4"
+        className="mt-4 grid grid-cols-1 gap-3 text-sm md:grid-cols-5"
         data-testid="growth-hermes-sidecar-status"
       >
         <div className="rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] p-3">
@@ -324,6 +334,14 @@ function HermesAgentInstances({
             {hermes.sidecar.artifactCount}
           </div>
         </div>
+        <div className="rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] p-3">
+          <div className="text-xs uppercase text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+            Context manifests
+          </div>
+          <div className="mt-1 font-semibold text-[var(--studio-text-strong,theme(colors.zinc.900))]">
+            {hermes.contextManifests.length}
+          </div>
+        </div>
       </div>
 
       {hermes.instances.length === 0 ? (
@@ -332,11 +350,13 @@ function HermesAgentInstances({
         </p>
       ) : (
         <div className="mt-4 grid grid-cols-1 gap-3 xl:grid-cols-2">
-          {hermes.instances.map((instance) => (
-            <article
-              key={instance.id}
-              className="rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] p-3"
-            >
+          {hermes.instances.map((instance) => {
+            const manifest = latestManifestByAgent.get(instance.id);
+            return (
+              <article
+                key={instance.id}
+                className="rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] p-3"
+              >
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>
                   <h4 className="font-medium text-[var(--studio-text-strong,theme(colors.zinc.900))]">
@@ -479,6 +499,47 @@ function HermesAgentInstances({
                 <p className="rounded-md bg-[var(--studio-surface-muted,theme(colors.zinc.50))] p-2 text-xs text-[var(--studio-text-muted,theme(colors.zinc.600))]">
                   Safety: {instance.safetySummary}
                 </p>
+                <div
+                  data-testid="growth-hermes-agent-manifest"
+                  className="rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] bg-[var(--studio-surface-muted,theme(colors.zinc.50))] p-2 text-xs text-[var(--studio-text-muted,theme(colors.zinc.600))]"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="font-medium text-[var(--studio-text,theme(colors.zinc.700))]">
+                      Context manifest
+                    </span>
+                    <span
+                      className={
+                        manifest?.isolationAllowed
+                          ? "rounded-full border border-emerald-200 bg-emerald-100 px-2 py-0.5 text-emerald-800"
+                          : "rounded-full border border-amber-200 bg-amber-100 px-2 py-0.5 text-amber-800"
+                      }
+                    >
+                      {manifest?.isolationAllowed ? "isolated" : "missing/watch"}
+                    </span>
+                  </div>
+                  {manifest ? (
+                    <div className="mt-2 grid gap-1 sm:grid-cols-2">
+                      <span>id {shortId(manifest.id)}</span>
+                      <span>{manifest.autonomyLevel} · {manifest.contextHash}</span>
+                      <span>
+                        skills {manifest.skillIdsInjected.length}/
+                        {manifest.excludedSkillIds.length} excluded
+                      </span>
+                      <span>
+                        memories {manifest.memoryIdsInjected.length}/
+                        {manifest.excludedMemoryIds.length} excluded
+                      </span>
+                      <span className="sm:col-span-2">
+                        tools {manifest.toolsetAllowed.join(", ") || "none"}
+                      </span>
+                    </div>
+                  ) : (
+                    <p className="mt-2">
+                      No strict context manifest has been recorded for this agent
+                      yet.
+                    </p>
+                  )}
+                </div>
                 <button
                   type="submit"
                   data-testid="growth-hermes-update-instance"
@@ -488,9 +549,78 @@ function HermesAgentInstances({
                 </button>
               </form>
             </article>
-          ))}
+            );
+          })}
         </div>
       )}
+
+      <div className="mt-5" data-testid="growth-hermes-context-manifests">
+        <h4 className="text-sm font-semibold text-[var(--studio-text-strong,theme(colors.zinc.900))]">
+          Context manifests
+        </h4>
+        {hermes.contextManifests.length === 0 ? (
+          <p className="mt-2 text-sm text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+            No context manifests recorded yet.
+          </p>
+        ) : (
+          <div className="mt-2 overflow-x-auto">
+            <table className="w-full min-w-[860px] text-sm">
+              <thead className="bg-[var(--studio-surface-muted,theme(colors.zinc.50))] text-xs uppercase text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                <tr>
+                  <th className="px-3 py-2 text-left">Manifest</th>
+                  <th className="px-3 py-2 text-left">Agent</th>
+                  <th className="px-3 py-2 text-left">Isolation</th>
+                  <th className="px-3 py-2 text-left">Injected context</th>
+                  <th className="px-3 py-2 text-left">Tools</th>
+                </tr>
+              </thead>
+              <tbody>
+                {hermes.contextManifests.slice(0, 8).map((manifest) => (
+                  <tr
+                    key={manifest.id}
+                    className="border-t border-[var(--studio-border,theme(colors.zinc.200))]"
+                  >
+                    <td className="px-3 py-2">
+                      <div className="font-medium">
+                        {LANE_LABELS[manifest.lane]} · {manifest.autonomyLevel}
+                      </div>
+                      <div className="font-mono text-xs text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                        {shortId(manifest.id)} · {manifest.contextHash}
+                      </div>
+                    </td>
+                    <td className="px-3 py-2 text-xs">
+                      agent {shortId(manifest.agentInstanceId)}
+                      <br />
+                      session {shortId(manifest.taskSessionId)}
+                    </td>
+                    <td className="px-3 py-2 text-xs">
+                      <LearningStatusBadge
+                        status={manifest.isolationAllowed ? "active" : "blocked"}
+                      />
+                      <div className="mt-1 max-w-xs truncate">
+                        {manifest.isolationSummary}
+                      </div>
+                    </td>
+                    <td className="px-3 py-2 text-xs">
+                      {manifest.skillIdsInjected.length} skills ·{" "}
+                      {manifest.memoryIdsInjected.length} memories ·{" "}
+                      {manifest.providerSourceRefs.length} providers ·{" "}
+                      {manifest.outcomeRefs.length} outcomes
+                      <div className="mt-1 text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                        excluded {manifest.excludedSkillIds.length} skills /{" "}
+                        {manifest.excludedMemoryIds.length} memories
+                      </div>
+                    </td>
+                    <td className="px-3 py-2 text-xs">
+                      {manifest.toolsetAllowed.join(", ") || "none"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
       <div className="mt-5">
         <h4 className="text-sm font-semibold text-[var(--studio-text-strong,theme(colors.zinc.900))]">
@@ -529,12 +659,20 @@ function HermesAgentInstances({
                       {artifact.validationErrors > 0
                         ? ` · ${artifact.validationErrors} errors`
                         : ""}
+                      <div className="mt-1 text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                        manifest {shortId(artifact.contextManifestId)} ·{" "}
+                        {artifact.manifestCitationAllowed === null
+                          ? "no verdict"
+                          : artifact.manifestCitationAllowed
+                            ? "citations allowed"
+                            : "citations blocked"}
+                      </div>
                     </td>
                     <td className="px-3 py-2 text-xs">
                       {artifact.createdWorkItemId
-                        ? `work item ${artifact.createdWorkItemId.slice(0, 8)}`
+                        ? `work item ${shortId(artifact.createdWorkItemId)}`
                         : artifact.taskSessionId
-                          ? `task ${artifact.taskSessionId.slice(0, 8)}`
+                          ? `task ${shortId(artifact.taskSessionId)}`
                           : "not materialized"}
                       {artifact.status === "validated" ? (
                         <form

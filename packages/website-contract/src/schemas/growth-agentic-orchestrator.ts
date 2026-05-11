@@ -305,6 +305,7 @@ const TaskSessionBaseSchema = GrowthTenantScopeSchema.extend({
   assigned_agent_lane: AgentLaneSchema,
   wakeup_request_id: z.string().uuid().nullable().default(null),
   decision_id: z.string().uuid().nullable().default(null),
+  context_manifest_id: z.string().uuid().nullable().default(null),
   status: GrowthAgentTaskSessionStatusSchema.default('created'),
   handoff_summary: z.string().min(1).max(2000),
   required_context_refs: z.array(z.string().min(1).max(240)).default([]),

@@ -77,4 +77,25 @@ describe("Hermes sidecar bridge", () => {
       code: "hermes_sensitive_action_blocked",
     });
   });
+
+  it("requires agent and context manifest before non-sensitive sidecar artifacts", async () => {
+    await expect(
+      createAgentArtifactFromHermes({
+        supabase: scopedSupabase() as never,
+        accountId: "account-1",
+        websiteId: "site-1",
+        userId: "user-1",
+        artifactType: "policy_recommendation",
+        payload: {
+          recommendation: "Review technical lane.",
+        },
+        providerEvidenceReads: [{ table: "growth_profile_runs", id: "run-1" }],
+        qualityReview: { pass: true },
+        riskAssessment: { risk: "low" },
+        idempotencyKey: "hermes-sidecar:missing-context-manifest-test",
+      }),
+    ).rejects.toMatchObject({
+      code: "hermes_context_manifest_required",
+    });
+  });
 });

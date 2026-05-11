@@ -141,6 +141,32 @@ async function firstTranscreationJob(
   return asRecord(row);
 }
 
+async function agentInstanceForLane(
+  supabase: HermesBridgeScope["supabase"],
+  accountId: string,
+  websiteId: string,
+  lane: AgentLane | "orchestrator",
+): Promise<JsonRecord> {
+  const { data, error } = await supabase
+    .from("growth_agent_instances")
+    .select("id,agent_type,lane,display_name,status")
+    .eq("account_id", accountId)
+    .eq("website_id", websiteId)
+    .eq("lane", lane)
+    .eq("status", "enabled")
+    .order("routing_priority", { ascending: false })
+    .limit(1);
+  if (error) {
+    throw new Error(`agent instance lookup failed for lane=${lane}: ${error.message}`);
+  }
+  const row = Array.isArray(data) ? data[0] : data;
+  const agent = asRecord(row);
+  if (!text(agent.id)) {
+    throw new Error(`No enabled growth_agent_instances row for lane=${lane}`);
+  }
+  return agent;
+}
+
 async function runSidecarProcess(request: JsonRecord): Promise<SidecarOutput> {
   const dir = await mkdtemp(path.join(tmpdir(), "growth-hermes-sidecar-"));
   const requestPath = path.join(dir, "request.json");
@@ -179,6 +205,7 @@ async function buildLaneArtifactDraft({
   skillReads,
   page,
   transcreationJob,
+  agentInstanceId,
 }: {
   lane: AgentLane;
   sidecar: SidecarOutput;
@@ -188,11 +215,13 @@ async function buildLaneArtifactDraft({
   skillReads: JsonRecord[];
   page: JsonRecord;
   transcreationJob: JsonRecord;
+  agentInstanceId: string;
 }): Promise<LaneArtifactDraft> {
   const runSeed = text(sidecar.run_id, randomUUID()).slice(0, 8);
   if (lane === "content_creator" || lane === "content_curator") {
     const title = `Guia post migracion ColombiaTours ${runSeed}`;
     const draft = buildContentArticleArtifact({
+      agentInstanceId,
       taskSessionId,
       decisionId: null,
       title,
@@ -227,6 +256,7 @@ async function buildLaneArtifactDraft({
     const pageId = text(page.id);
     const beforeTitle = text(page.seo_title, text(page.title, "ColombiaTours"));
     const draft = buildSafeApplyPatchArtifact({
+      agentInstanceId,
       taskSessionId,
       decisionId: null,
       target: {
@@ -272,6 +302,7 @@ async function buildLaneArtifactDraft({
   const transcreationJobId = text(transcreationJob.id, sourceEntityId);
   const pageType = text(transcreationJob.page_type, "blog");
   const draft = buildTranscreationPayloadArtifact({
+    agentInstanceId,
     taskSessionId,
     decisionId: null,
     sourceLocale: "es-CO",
@@ -345,11 +376,35 @@ async function main() {
     locale: "es-CO",
     market: "CO",
   };
+  const orchestratorAgent = await agentInstanceForLane(
+    supabase,
+    accountId,
+    websiteId,
+    "orchestrator",
+  );
+  const providerTaskSession = await createHermesTaskSession({
+    ...scope,
+    agentInstanceId: text(orchestratorAgent.id),
+    delegatedByAgentId: "growth-os-runtime",
+    assignedAgentLane: "orchestrator",
+    handoffSummary: "Hermes sidecar provider analysis context preparation.",
+    requiredContextRefs: [],
+    dependencies: [],
+    completionContract: {
+      artifact_required: true,
+      executor_only_mutation: true,
+      lane: "orchestrator",
+    },
+    status: "running",
+  });
   const context = await readGrowthContextForHermes({
     ...scope,
-    persistSnapshot: hasFlag("--persist-context"),
+    agentInstanceId: text(orchestratorAgent.id),
+    taskSessionId: providerTaskSession.id,
+    persistSnapshot: true,
   });
   const contextPayload = asRecord(context.context);
+  const contextManifestId = text(asRecord(context.contextManifest).id);
   const activeMemories = Array.isArray(contextPayload.active_memories)
     ? contextPayload.active_memories.map(asRecord)
     : [];
@@ -395,6 +450,9 @@ async function main() {
 
   const providerAnalysis = await createAgentArtifactFromHermes({
     ...scope,
+    agentInstanceId: text(orchestratorAgent.id),
+    taskSessionId: providerTaskSession.id,
+    contextManifestId,
     artifactType: "provider_analysis",
     payload: {
       source: "hermes_sidecar",
@@ -417,11 +475,25 @@ async function main() {
     idempotencyKey: `hermes-sidecar:provider-analysis:${sidecar.run_id ?? randomUUID()}`,
     status: "validated",
   });
+  await completeHermesTaskSession({
+    ...scope,
+    taskSessionId: providerTaskSession.id,
+    status: "completed",
+    artifactIds: [providerAnalysis.id],
+    workItemIds: [],
+  });
 
   const created = [];
   for (const lane of lanes) {
+    const laneAgent = await agentInstanceForLane(
+      supabase,
+      accountId,
+      websiteId,
+      lane,
+    );
     const taskSession = await createHermesTaskSession({
       ...scope,
+      agentInstanceId: text(laneAgent.id),
       delegatedByAgentId: "hermes-chief-of-staff",
       assignedAgentLane: lane,
       handoffSummary: `Hermes sidecar delegated ${lane} artifact creation.`,
@@ -437,20 +509,46 @@ async function main() {
       },
       status: "running",
     });
+    const laneContext = await readGrowthContextForHermes({
+      ...scope,
+      agentInstanceId: text(laneAgent.id),
+      lane,
+      taskSessionId: taskSession.id,
+      persistSnapshot: true,
+    });
+    const laneContextPayload = asRecord(laneContext.context);
+    const laneMemories = Array.isArray(laneContextPayload.active_memories)
+      ? laneContextPayload.active_memories.map(asRecord)
+      : [];
+    const laneSkills = Array.isArray(laneContextPayload.active_skills)
+      ? laneContextPayload.active_skills.map(asRecord)
+      : [];
+    const laneMemoryReads = laneMemories.slice(0, 2).map((row) => ({
+      table: "growth_agent_memories",
+      id: text(asRecord(row).id),
+      memory_key: text(asRecord(row).memory_key),
+    }));
+    const laneSkillReads = laneSkills.slice(0, 2).map((row) => ({
+      table: "growth_agent_skills",
+      id: text(asRecord(row).id),
+      skill_key: text(asRecord(row).skill_key),
+    }));
     const draft = await buildLaneArtifactDraft({
       lane,
       sidecar,
       taskSessionId: taskSession.id,
       evidence,
-      memoryReads,
-      skillReads,
+      memoryReads: laneMemoryReads,
+      skillReads: laneSkillReads,
       page,
       transcreationJob,
+      agentInstanceId: text(laneAgent.id),
     });
     const artifact = await createAgentArtifactFromHermes({
       ...scope,
       agentInstanceId: draft.agentInstanceId,
       taskSessionId: taskSession.id,
+      contextManifestId: text(asRecord(laneContext.contextManifest).id),
       decisionId: draft.decisionId,
       artifactType: draft.artifactType,
       payload: draft.payload,

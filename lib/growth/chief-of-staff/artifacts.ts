@@ -33,10 +33,12 @@ export interface CreateGrowthAgentArtifactInput
   websiteId: string;
   agentInstanceId?: string | null;
   taskSessionId?: string | null;
+  contextManifestId?: string | null;
   decisionId?: string | null;
   artifactVersion?: string;
   idempotencyKey: string;
   status?: GrowthAgentArtifact["status"];
+  manifestCitationVerdict?: JsonRecord;
 }
 
 function hasText(value: unknown): boolean {
@@ -210,6 +212,7 @@ export async function createGrowthAgentArtifact(
     website_id: input.websiteId,
     agent_instance_id: input.agentInstanceId ?? null,
     task_session_id: input.taskSessionId ?? null,
+    context_manifest_id: input.contextManifestId ?? null,
     decision_id: input.decisionId ?? null,
     artifact_type: input.artifactType,
     artifact_version: input.artifactVersion ?? "v1",
@@ -220,6 +223,7 @@ export async function createGrowthAgentArtifact(
     memory_reads: input.memoryReads ?? [],
     skill_reads: input.skillReads ?? [],
     risk_assessment: input.riskAssessment ?? {},
+    manifest_citation_verdict: input.manifestCitationVerdict ?? {},
     validation_errors: validation.errors,
     idempotency_key: input.idempotencyKey,
     created_work_item_id: null,
