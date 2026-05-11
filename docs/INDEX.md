@@ -17,6 +17,8 @@ Latest spec addition: 2026-05-10 - [[SPEC_GROWTH_OS_PROVIDER_EXTRACTION_PROFILES
 
 Latest tracking note: 2026-05-08 - [[ADR-029]] / [[SPEC_FUNNEL_EVENTS_SOT]] now require multi-tenant platform dispatch. Browser Pixel IDs remain in `websites.analytics`; Meta CAPI and future platform secrets must resolve through tenant channel contracts, never global production env credentials.
 
+Latest certification evidence: 2026-05-11 - [[epic482-hermes-chief-of-staff-swarm-certification-2026-05-11]] records Epic #482 hybrid Hermes/Growth OS certification: Chief of Staff conversation ledger, wakeup-first action routing, editable agent company, artifact materialization, production wakeup coalescing fix and session-pool E2E on Chromium/mobile Chrome.
+
 Latest certification evidence: 2026-05-10 - [[epic471-provider-intelligence-certification-2026-05-10]] records Provider Intelligence + Correlation Layer certification for #471: DataForSEO/GSC/GA4 provider runs, Clarity live PASS, provider-backed candidates/work items, anti-rework evidence and Growth OS UI session-pool E2E 16/16.
 
 ## How to read this index
@@ -501,6 +503,7 @@ Each concept below lists the ADRs/SPECs/ops docs that touch it. Use this to find
 - [[growth-os-agentic-orchestrator-9-plus-certification-2026-05-09]] — Production evidence for the 9+ layer: valid live jobs, cited learning context, sensitive blocked decision, rollback payload verification and E2E session-pool results.
 - [[epic471-provider-intelligence-certification-2026-05-10]] — Provider Intelligence + Correlation Layer closure evidence for #471.
 - [[epic471-backlog-cleanup-2026-05-11]] — Provider Intelligence backlog noise cleanup and anti-rework production evidence for #471.
+- [[epic482-hermes-chief-of-staff-swarm-certification-2026-05-11]] — Hybrid Hermes/Growth OS certification for #482: Chief of Staff chat/action ledger, wakeup-first routing, editable agent company, artifact materialization, production coalescing fix and Chromium/mobile session-pool E2E.
 - [[growth-orchestrator-runtime]] — operational docs for the Growth OS runtime execution plane: code layout, deploys by SHA, Codex executor, data contract, safety gates and troubleshooting.
 - [[SPEC_META_CHATWOOT_CONVERSIONS]] — stub for canonical #322: Meta + Chatwoot conversion path for WAFlow/WhatsApp to qualified lead, quote, and purchase.
 - [[ADR-024]] — booking/date-picker remains deferred for pilot; WAFlow/WhatsApp is primary conversion.

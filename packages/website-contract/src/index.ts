@@ -842,6 +842,53 @@ export type {
   GrowthAgentTaskSessionInsert,
 } from './schemas/growth-agentic-orchestrator';
 
+export {
+  GrowthChiefOfStaffSessionModeSchema,
+  GrowthChiefOfStaffSessionStatusSchema,
+  GrowthChiefOfStaffMessageRoleSchema,
+  GrowthChiefOfStaffActionClassSchema,
+  GrowthChiefOfStaffActionStatusSchema,
+  GrowthHermesAgentTypeSchema,
+  GrowthAgentInstanceStatusSchema,
+  GrowthAgentArtifactTypeSchema,
+  GrowthAgentArtifactStatusSchema,
+  GrowthChiefOfStaffSessionSchema,
+  GrowthChiefOfStaffSessionInsertSchema,
+  GrowthChiefOfStaffMessageSchema,
+  GrowthChiefOfStaffMessageInsertSchema,
+  GrowthChiefOfStaffActionSchema,
+  GrowthChiefOfStaffActionInsertSchema,
+  GrowthAgentTypeSchema,
+  GrowthAgentTypeInsertSchema,
+  GrowthAgentInstanceSchema,
+  GrowthAgentInstanceInsertSchema,
+  GrowthAgentArtifactSchema,
+  GrowthAgentArtifactInsertSchema,
+} from './schemas/growth-hermes-chief-of-staff';
+export type {
+  GrowthChiefOfStaffSessionMode,
+  GrowthChiefOfStaffSessionStatus,
+  GrowthChiefOfStaffMessageRole,
+  GrowthChiefOfStaffActionClass,
+  GrowthChiefOfStaffActionStatus,
+  GrowthHermesAgentType,
+  GrowthAgentInstanceStatus,
+  GrowthAgentArtifactType,
+  GrowthAgentArtifactStatus,
+  GrowthChiefOfStaffSession,
+  GrowthChiefOfStaffSessionInsert,
+  GrowthChiefOfStaffMessage,
+  GrowthChiefOfStaffMessageInsert,
+  GrowthChiefOfStaffAction,
+  GrowthChiefOfStaffActionInsert,
+  GrowthAgentType,
+  GrowthAgentTypeInsert,
+  GrowthAgentInstance,
+  GrowthAgentInstanceInsert,
+  GrowthAgentArtifact,
+  GrowthAgentArtifactInsert,
+} from './schemas/growth-hermes-chief-of-staff';
+
 // Validation
 export {
   validateSection,

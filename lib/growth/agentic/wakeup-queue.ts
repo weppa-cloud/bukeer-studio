@@ -65,8 +65,7 @@ export async function enqueueGrowthAgentWakeup(
       })
       .eq("id", existing.id)
       .eq("website_id", input.websiteId)
-      .select("*")
-      .limit(1);
+      .select("*");
     if (updateError) {
       throw new Error(`wakeup coalesce failed: ${updateError.message}`);
     }

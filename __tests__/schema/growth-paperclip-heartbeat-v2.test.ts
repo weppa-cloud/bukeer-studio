@@ -95,6 +95,7 @@ describe("Growth OS Paperclip heartbeat protocol v2", () => {
       },
     ];
     const updates: Record<string, unknown>[] = [];
+    let mode: "lookup" | "update" = "lookup";
     let chain: {
       select: jest.Mock;
       eq: jest.Mock;
@@ -102,9 +103,12 @@ describe("Growth OS Paperclip heartbeat protocol v2", () => {
       limit: jest.Mock;
     };
     chain = {
-      select: jest.fn(() => chain),
+      select: jest.fn(() =>
+        mode === "update" ? Promise.resolve(terminalResults.shift()) : chain,
+      ),
       eq: jest.fn(() => chain),
       update: jest.fn((patch: Record<string, unknown>) => {
+        mode = "update";
         updates.push(patch);
         return chain;
       }),

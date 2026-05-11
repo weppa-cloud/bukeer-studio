@@ -158,6 +158,17 @@ test.describe("Growth OS console UI contract @growth-os-ui", () => {
     await expect(page.getByTestId("growth-active-cycle")).toBeVisible();
     await expect(page.getByTestId("growth-latest-cycle")).toBeVisible();
 
+    const chiefOfStaff = page.getByTestId("growth-chief-of-staff-panel");
+    await expect(chiefOfStaff).toBeVisible();
+    await expect(chiefOfStaff).toContainText(/Hermes Chief of Staff/i);
+    await expect(
+      chiefOfStaff.getByTestId("growth-chief-of-staff-prompt"),
+    ).toBeVisible();
+    await expect(
+      chiefOfStaff.getByTestId("growth-chief-of-staff-submit"),
+    ).toBeVisible();
+    await expect(chiefOfStaff).toContainText(/Sessions|Actions|Agents|Artifacts/i);
+
     const humanOps = page.getByTestId("growth-human-operations");
     await expect(humanOps).toBeVisible();
     await expect(humanOps).toContainText(/UI readiness/i);
@@ -269,6 +280,18 @@ test.describe("Growth OS console UI contract @growth-os-ui", () => {
         page.getByTestId(`growth-agent-lane-card-${lane}`),
       ).toBeVisible();
     }
+
+    const hermesAgents = page.getByTestId("growth-hermes-agent-instances");
+    await expect(hermesAgents).toBeVisible();
+    await expect(hermesAgents).toContainText(/Hermes Chief of Staff swarm/i);
+    await expect(hermesAgents).toContainText(/Agent artifacts/i);
+    await expect(
+      hermesAgents
+        .getByTestId("growth-hermes-materialize-artifact")
+        .or(hermesAgents.getByText(/No Hermes artifacts recorded yet/i))
+        .or(hermesAgents.getByText(/not materialized|work item/i))
+        .first(),
+    ).toBeVisible();
 
     const agentsTable = page.getByTestId("growth-agents-table");
     await expect(agentsTable).toBeVisible();

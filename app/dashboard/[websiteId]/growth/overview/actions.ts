@@ -9,7 +9,8 @@ import {
 } from "@/lib/growth/autonomy/technical-remediation-adapter";
 import { promoteGrowthOpportunityCandidates } from "@/lib/growth/autonomy/candidate-promotion";
 import { revalidateGrowthPublicationSurface } from "@/lib/growth/autonomy/publication-revalidation";
-import { enqueueGrowthAgentWakeup } from "@/lib/growth/agentic/wakeup-queue";
+import { routeChiefOfStaffAction } from "@/lib/growth/chief-of-staff/action-router";
+import { createChiefOfStaffTurn } from "@/lib/growth/chief-of-staff/service";
 import { getLaneAgreement } from "@/lib/growth/console/queries";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/service-role";
 
@@ -233,19 +234,14 @@ export async function invokeGrowthBrainNow(
   const ctx = await requireGrowthRole(websiteId, "growth_operator");
   const admin = createSupabaseServiceRoleClient();
   const now = new Date();
-  const minuteBucket = now.toISOString().slice(0, 16);
-  const wakeup = await enqueueGrowthAgentWakeup({
+  const result = await routeChiefOfStaffAction({
     supabase: admin,
     accountId: ctx.accountId,
     websiteId: ctx.websiteId,
-    lane: "orchestrator",
-    source: "user_on_demand",
-    priority: 90,
-    idempotencyKey: `ui:on_demand:${ctx.websiteId}:${minuteBucket}`,
+    userId: ctx.userId,
+    intent: "Invoke Growth CEO Brain now from CEO cockpit.",
     payload: {
-      requested_by: ctx.userId,
       reason: "Manual CEO cockpit brain invocation.",
-      requested_at: now.toISOString(),
     },
     now,
   });
@@ -253,7 +249,38 @@ export async function invokeGrowthBrainNow(
   revalidateGrowthOverview(websiteId);
   return {
     ok: true,
-    message: `Brain wakeup queued: ${wakeup.id}. The production daemon will claim it on the next cycle.`,
+    message:
+      result.wakeup?.id
+        ? `Brain wakeup queued: ${result.wakeup.id}. The production daemon will claim it on the next cycle.`
+        : result.message,
+  };
+}
+
+export async function askGrowthChiefOfStaff(
+  formData: FormData,
+): Promise<ActionResult> {
+  const websiteId = String(formData.get("websiteId") ?? "");
+  const prompt = String(formData.get("prompt") ?? "").trim();
+  const sessionId = String(formData.get("sessionId") ?? "").trim() || null;
+  if (!websiteId || !prompt) {
+    return { ok: false, message: "Missing Chief of Staff prompt." };
+  }
+
+  const ctx = await requireGrowthRole(websiteId, "viewer");
+  const admin = createSupabaseServiceRoleClient();
+  const turn = await createChiefOfStaffTurn({
+    supabase: admin,
+    accountId: ctx.accountId,
+    websiteId: ctx.websiteId,
+    userId: ctx.userId,
+    sessionId,
+    prompt,
+  });
+
+  revalidateGrowthOverview(websiteId);
+  return {
+    ok: true,
+    message: `Chief of Staff answered with ${turn.citedRefs.length} cited refs.`,
   };
 }
 

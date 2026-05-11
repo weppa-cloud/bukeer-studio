@@ -10,6 +10,7 @@ import {
   ClipboardCheck,
   Gauge,
   Lock,
+  MessageSquare,
   PauseCircle,
   Radar,
   RefreshCcw,
@@ -21,6 +22,7 @@ import {
 } from "lucide-react";
 
 import {
+  askGrowthChiefOfStaff,
   dryVerifyGrowthPublicationJobRollback,
   invokeGrowthBrainNow,
   pauseAutonomyLane,
@@ -1618,6 +1620,120 @@ function RiskBudget({
   );
 }
 
+function ChiefOfStaffPanel({ data }: { data: GrowthCeoCockpitData }) {
+  const chief = data.chiefOfStaff;
+  const latestAssistant = chief.messages.find(
+    (message) => message.role === "assistant",
+  );
+  const latestAction = chief.actions[0];
+
+  return (
+    <section
+      data-testid="growth-chief-of-staff-panel"
+      className="rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] bg-[var(--studio-surface,theme(colors.white))] p-4"
+    >
+      <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr] lg:items-start">
+        <div>
+          <SectionTitle
+            eyebrow="Hermes Chief of Staff"
+            title="Conversacion, decision y accion guiada"
+            detail="El chat responde con hechos de Growth OS y enruta acciones al action router. No publica, no aplica patches y no muta superficies publicas directamente."
+          />
+          <form
+            action={
+              askGrowthChiefOfStaff as unknown as (
+                formData: FormData,
+              ) => Promise<void>
+            }
+            className="mt-4 grid gap-2"
+          >
+            <input type="hidden" name="websiteId" value={data.websiteId} />
+            <label className="text-xs font-medium text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+              Pregunta o accion
+              <textarea
+                name="prompt"
+                data-testid="growth-chief-of-staff-prompt"
+                rows={3}
+                defaultValue="Que hicimos esta semana y que recomiendas hacer despues?"
+                className="mt-1 min-h-24 w-full resize-y rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] bg-white px-3 py-2 text-sm text-[var(--studio-text,theme(colors.zinc.900))]"
+              />
+            </label>
+            <button
+              type="submit"
+              data-testid="growth-chief-of-staff-submit"
+              className="inline-flex w-fit items-center gap-2 rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] px-3 py-2 text-sm font-medium text-[var(--studio-text,theme(colors.zinc.800))] hover:bg-[var(--studio-surface-hover,theme(colors.zinc.50))]"
+            >
+              <MessageSquare className="h-4 w-4" aria-hidden="true" />
+              Ask Chief of Staff
+            </button>
+          </form>
+        </div>
+        <div className="rounded-md bg-[var(--studio-surface-muted,theme(colors.zinc.50))] p-3">
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            <div>
+              <p className="text-[11px] uppercase text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                Sessions
+              </p>
+              <p className="font-semibold">{chief.sessions.length}</p>
+            </div>
+            <div>
+              <p className="text-[11px] uppercase text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                Actions
+              </p>
+              <p className="font-semibold">{chief.actions.length}</p>
+            </div>
+            <div>
+              <p className="text-[11px] uppercase text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                Agent instances
+              </p>
+              <p className="font-semibold">{chief.agentInstances.length}</p>
+            </div>
+            <div>
+              <p className="text-[11px] uppercase text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                Artifacts
+              </p>
+              <p className="font-semibold">{chief.artifacts.length}</p>
+            </div>
+          </div>
+          {chief.missingTables.length > 0 ? (
+            <p className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-2 text-xs text-amber-800">
+              Missing Chief tables: {chief.missingTables.join(", ")}.
+            </p>
+          ) : null}
+          {latestAction ? (
+            <div className="mt-3 rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] bg-white p-2 text-xs">
+              <p className="font-semibold">Latest action</p>
+              <p className="mt-1 break-words">{latestAction.intent}</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <StatusPill value={latestAction.status} />
+                <span className="rounded-md bg-zinc-100 px-2 py-0.5 font-mono">
+                  {latestAction.actionClass}
+                </span>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      </div>
+
+      {latestAssistant ? (
+        <div className="mt-4 rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] bg-[var(--studio-panel,theme(colors.zinc.50))] p-3">
+          <p className="text-xs font-semibold uppercase text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+            Latest answer
+          </p>
+          <pre className="mt-2 whitespace-pre-wrap break-words text-sm leading-relaxed text-[var(--studio-text,theme(colors.zinc.800))]">
+            {latestAssistant.content}
+          </pre>
+          {latestAssistant.citedRefs.length > 0 ? (
+            <p className="mt-2 break-words text-xs text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+              Cites: {latestAssistant.citedRefs.slice(0, 8).join(", ")}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
 export function GrowthCeoCockpit({ data }: { data: GrowthCeoCockpitData }) {
   const workboardHref = `/dashboard/${data.websiteId}/growth/workboard`;
   const runsHref = `/dashboard/${data.websiteId}/growth/runs`;
@@ -1701,6 +1817,8 @@ export function GrowthCeoCockpit({ data }: { data: GrowthCeoCockpitData }) {
       </section>
 
       <RuntimeCyclePanel health={data.runtimeCycle} />
+
+      <ChiefOfStaffPanel data={data} />
 
       <HumanOperations
         data={data}

@@ -1,7 +1,12 @@
 import Link from "next/link";
 import type { AgentLane } from "@bukeer/website-contract";
 import { CANONICAL_LANES, getGrowthAgents } from "@/lib/growth/console/queries";
-import { updateGrowthLearningArtifact } from "./actions";
+import {
+  materializeGrowthHermesArtifact,
+  seedGrowthHermesAgentInstances,
+  updateGrowthHermesAgentInstance,
+  updateGrowthLearningArtifact,
+} from "./actions";
 
 /**
  * Growth OS Console — Agents tab (#405).
@@ -226,6 +231,301 @@ function LearningActionForm({
         {label}
       </button>
     </form>
+  );
+}
+
+function HermesAgentInstances({
+  websiteId,
+  result,
+}: {
+  websiteId: string;
+  result: Awaited<ReturnType<typeof getGrowthAgents>>;
+}) {
+  const hermes = result.hermes;
+  return (
+    <section
+      aria-labelledby="hermes-agents-heading"
+      data-testid="growth-hermes-agent-instances"
+      className="rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] bg-[var(--studio-surface,theme(colors.white))] p-4"
+    >
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <header>
+          <h3
+            id="hermes-agents-heading"
+            className="font-semibold text-[var(--studio-text-strong,theme(colors.zinc.900))]"
+          >
+            Hermes Chief of Staff swarm
+          </h3>
+          <p className="mt-1 max-w-3xl text-sm text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+            Tipos de agente fijos, instancias editables por tenant. Los limites
+            de seguridad son inmutables: Hermes conversa, razona y produce
+            artifacts; el executor Growth OS sigue siendo la unica frontera de
+            mutacion productiva.
+          </p>
+        </header>
+        <form
+          action={
+            seedGrowthHermesAgentInstances as unknown as (
+              formData: FormData,
+            ) => Promise<void>
+          }
+        >
+          <input type="hidden" name="websiteId" value={websiteId} />
+          <button
+            type="submit"
+            data-testid="growth-hermes-seed-instances"
+            className="rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] px-3 py-2 text-sm font-medium text-[var(--studio-text,theme(colors.zinc.700))] hover:bg-[var(--studio-surface-hover,theme(colors.zinc.100))]"
+          >
+            Sync agent instances
+          </button>
+        </form>
+      </div>
+
+      {hermes.missingTables.length > 0 ? (
+        <p className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+          Missing Hermes tables: {hermes.missingTables.join(", ")}.
+        </p>
+      ) : null}
+
+      {hermes.instances.length === 0 ? (
+        <p className="mt-3 text-sm text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+          No Hermes agent instances yet. Run sync after applying #482 migration.
+        </p>
+      ) : (
+        <div className="mt-4 grid grid-cols-1 gap-3 xl:grid-cols-2">
+          {hermes.instances.map((instance) => (
+            <article
+              key={instance.id}
+              className="rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] p-3"
+            >
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div>
+                  <h4 className="font-medium text-[var(--studio-text-strong,theme(colors.zinc.900))]">
+                    {instance.displayName}
+                  </h4>
+                  <p className="mt-0.5 text-xs text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                    {instance.agentType} · {LANE_LABELS[instance.lane]}
+                  </p>
+                </div>
+                <LearningStatusBadge status={instance.status} />
+              </div>
+              <form
+                action={
+                  updateGrowthHermesAgentInstance as unknown as (
+                    formData: FormData,
+                  ) => Promise<void>
+                }
+                className="mt-3 grid gap-2"
+              >
+                <input type="hidden" name="websiteId" value={websiteId} />
+                <input type="hidden" name="instanceId" value={instance.id} />
+                <div className="grid gap-2 sm:grid-cols-3">
+                  <label className="text-xs">
+                    <span className="mb-1 block text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                      Status
+                    </span>
+                    <select
+                      name="status"
+                      defaultValue={instance.status}
+                      className="w-full rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] bg-white px-2 py-1"
+                    >
+                      <option value="enabled">enabled</option>
+                      <option value="paused">paused</option>
+                      <option value="disabled">disabled</option>
+                    </select>
+                  </label>
+                  <label className="text-xs">
+                    <span className="mb-1 block text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                      Provider
+                    </span>
+                    <input
+                      name="modelProvider"
+                      defaultValue={instance.modelProvider}
+                      className="w-full rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] px-2 py-1"
+                    />
+                  </label>
+                  <label className="text-xs">
+                    <span className="mb-1 block text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                      Model
+                    </span>
+                    <input
+                      name="modelName"
+                      defaultValue={instance.modelName}
+                      className="w-full rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] px-2 py-1"
+                    />
+                  </label>
+                </div>
+                <div className="grid gap-2 sm:grid-cols-6">
+                  <label className="text-xs">
+                    <span className="mb-1 block text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                      Daily
+                    </span>
+                    <input
+                      name="dailyBudgetUsd"
+                      type="number"
+                      min="0"
+                      step="1"
+                      defaultValue={instance.dailyBudgetUsd}
+                      className="w-full rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] px-2 py-1"
+                    />
+                  </label>
+                  <label className="text-xs">
+                    <span className="mb-1 block text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                      Weekly
+                    </span>
+                    <input
+                      name="weeklyBudgetUsd"
+                      type="number"
+                      min="0"
+                      step="1"
+                      defaultValue={instance.weeklyBudgetUsd}
+                      className="w-full rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] px-2 py-1"
+                    />
+                  </label>
+                  <label className="text-xs">
+                    <span className="mb-1 block text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                      Conc.
+                    </span>
+                    <input
+                      name="concurrencyLimit"
+                      type="number"
+                      min="1"
+                      max="20"
+                      defaultValue={instance.concurrencyLimit}
+                      className="w-full rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] px-2 py-1"
+                    />
+                  </label>
+                  <label className="text-xs">
+                    <span className="mb-1 block text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                      Conf.
+                    </span>
+                    <input
+                      name="confidenceThreshold"
+                      type="number"
+                      min="0"
+                      max="1"
+                      step="0.01"
+                      defaultValue={instance.confidenceThreshold}
+                      className="w-full rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] px-2 py-1"
+                    />
+                  </label>
+                  <label className="text-xs">
+                    <span className="mb-1 block text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                      Quality
+                    </span>
+                    <input
+                      name="qualityThreshold"
+                      type="number"
+                      min="0"
+                      max="1"
+                      step="0.01"
+                      defaultValue={instance.qualityThreshold}
+                      className="w-full rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] px-2 py-1"
+                    />
+                  </label>
+                  <label className="text-xs">
+                    <span className="mb-1 block text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                      Priority
+                    </span>
+                    <input
+                      name="routingPriority"
+                      type="number"
+                      min="0"
+                      max="100"
+                      defaultValue={instance.routingPriority}
+                      className="w-full rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] px-2 py-1"
+                    />
+                  </label>
+                </div>
+                <p className="rounded-md bg-[var(--studio-surface-muted,theme(colors.zinc.50))] p-2 text-xs text-[var(--studio-text-muted,theme(colors.zinc.600))]">
+                  Safety: {instance.safetySummary}
+                </p>
+                <button
+                  type="submit"
+                  data-testid="growth-hermes-update-instance"
+                  className="w-fit rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] px-3 py-1 text-xs font-medium hover:bg-[var(--studio-surface-hover,theme(colors.zinc.100))]"
+                >
+                  Save instance
+                </button>
+              </form>
+            </article>
+          ))}
+        </div>
+      )}
+
+      <div className="mt-5">
+        <h4 className="text-sm font-semibold text-[var(--studio-text-strong,theme(colors.zinc.900))]">
+          Agent artifacts
+        </h4>
+        {hermes.artifacts.length === 0 ? (
+          <p className="mt-2 text-sm text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+            No Hermes artifacts recorded yet.
+          </p>
+        ) : (
+          <div className="mt-2 overflow-x-auto">
+            <table className="w-full min-w-[760px] text-sm">
+              <thead className="bg-[var(--studio-surface-muted,theme(colors.zinc.50))] text-xs uppercase text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                <tr>
+                  <th className="px-3 py-2 text-left">Artifact</th>
+                  <th className="px-3 py-2 text-left">Status</th>
+                  <th className="px-3 py-2 text-left">Evidence</th>
+                  <th className="px-3 py-2 text-left">Links</th>
+                </tr>
+              </thead>
+              <tbody>
+                {hermes.artifacts.slice(0, 8).map((artifact) => (
+                  <tr key={artifact.id} className="border-t border-[var(--studio-border,theme(colors.zinc.200))]">
+                    <td className="px-3 py-2">
+                      <div className="font-medium">{artifact.artifactType}</div>
+                      <div className="font-mono text-xs text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+                        {artifact.id.slice(0, 8)}
+                      </div>
+                    </td>
+                    <td className="px-3 py-2">
+                      <LearningStatusBadge status={artifact.status} />
+                    </td>
+                    <td className="px-3 py-2 text-xs">
+                      {artifact.providerEvidenceReads} provider ·{" "}
+                      {artifact.memoryReads} memory · {artifact.skillReads} skill
+                      {artifact.validationErrors > 0
+                        ? ` · ${artifact.validationErrors} errors`
+                        : ""}
+                    </td>
+                    <td className="px-3 py-2 text-xs">
+                      {artifact.createdWorkItemId
+                        ? `work item ${artifact.createdWorkItemId.slice(0, 8)}`
+                        : artifact.taskSessionId
+                          ? `task ${artifact.taskSessionId.slice(0, 8)}`
+                          : "not materialized"}
+                      {artifact.status === "validated" ? (
+                        <form
+                          action={
+                            materializeGrowthHermesArtifact as unknown as (
+                              formData: FormData,
+                            ) => Promise<void>
+                          }
+                          className="mt-2"
+                        >
+                          <input type="hidden" name="websiteId" value={websiteId} />
+                          <input type="hidden" name="artifactId" value={artifact.id} />
+                          <button
+                            type="submit"
+                            data-testid="growth-hermes-materialize-artifact"
+                            className="rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] px-2 py-1 text-xs font-medium hover:bg-[var(--studio-surface-hover,theme(colors.zinc.100))]"
+                          >
+                            Materialize
+                          </button>
+                        </form>
+                      ) : null}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </section>
   );
 }
 
@@ -484,6 +784,8 @@ export default async function GrowthAgentsPage({ params }: AgentsPageProps) {
               );
             })}
           </section>
+
+          <HermesAgentInstances websiteId={websiteId} result={result} />
 
           <section
             aria-labelledby="agent-tools-heading"

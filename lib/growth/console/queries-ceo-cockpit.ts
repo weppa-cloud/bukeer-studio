@@ -222,6 +222,58 @@ export interface AgenticTaskSessionRow {
   updatedAt: string;
 }
 
+export interface ChiefOfStaffSessionRow {
+  id: string;
+  title: string;
+  status: string;
+  lastMessageAt: string | null;
+  updatedAt: string;
+}
+
+export interface ChiefOfStaffMessageRow {
+  id: string;
+  role: string;
+  content: string;
+  citedRefs: string[];
+  actionId: string | null;
+  createdAt: string;
+}
+
+export interface ChiefOfStaffActionRow {
+  id: string;
+  intent: string;
+  actionClass: string;
+  status: string;
+  requiresApproval: boolean;
+  policyVerdict: Record<string, unknown>;
+  createdRefs: string[];
+  updatedAt: string;
+}
+
+export interface ChiefOfStaffArtifactRow {
+  id: string;
+  artifactType: string;
+  status: string;
+  taskSessionId: string | null;
+  decisionId: string | null;
+  providerEvidenceReads: number;
+  validationErrors: number;
+  createdWorkItemId: string | null;
+  updatedAt: string;
+}
+
+export interface ChiefOfStaffAgentInstanceRow {
+  id: string;
+  agentType: string;
+  lane: AgentLane | "unknown";
+  displayName: string;
+  status: string;
+  modelName: string;
+  dailyBudgetUsd: number;
+  weeklyBudgetUsd: number;
+  updatedAt: string;
+}
+
 export interface GrowthCeoCockpit {
   accountId: string;
   websiteId: string;
@@ -261,6 +313,14 @@ export interface GrowthCeoCockpit {
     wakeups: AgenticWakeupRow[];
     taskSessions: AgenticTaskSessionRow[];
     blockedSensitiveDecisions: number;
+    missingTables: string[];
+  };
+  chiefOfStaff: {
+    sessions: ChiefOfStaffSessionRow[];
+    messages: ChiefOfStaffMessageRow[];
+    actions: ChiefOfStaffActionRow[];
+    artifacts: ChiefOfStaffArtifactRow[];
+    agentInstances: ChiefOfStaffAgentInstanceRow[];
     missingTables: string[];
   };
   generatedAt: string;
@@ -637,6 +697,11 @@ export async function getGrowthCeoCockpit(
     orchestratorDecisions,
     wakeupRequests,
     taskSessions,
+    chiefSessions,
+    chiefMessages,
+    chiefActions,
+    agentInstances,
+    agentArtifacts,
     agreement,
   ] = await Promise.all([
     fetchTable("growth_agent_definitions", () =>
@@ -811,6 +876,52 @@ export async function getGrowthCeoCockpit(
         .order("updated_at", { ascending: false, nullsFirst: false })
         .limit(30),
     ),
+    fetchTable("growth_chief_of_staff_sessions", () =>
+      table(admin, "growth_chief_of_staff_sessions")
+        .select("id,title,status,last_message_at,updated_at,created_at")
+        .eq("account_id", ctx.accountId)
+        .eq("website_id", ctx.websiteId)
+        .order("updated_at", { ascending: false, nullsFirst: false })
+        .limit(8),
+    ),
+    fetchTable("growth_chief_of_staff_messages", () =>
+      table(admin, "growth_chief_of_staff_messages")
+        .select("id,role,content,cited_refs,action_id,created_at")
+        .eq("account_id", ctx.accountId)
+        .eq("website_id", ctx.websiteId)
+        .order("created_at", { ascending: false })
+        .limit(8),
+    ),
+    fetchTable("growth_chief_of_staff_actions", () =>
+      table(admin, "growth_chief_of_staff_actions")
+        .select(
+          "id,intent,action_class,status,requires_approval,policy_verdict,created_refs,updated_at,created_at",
+        )
+        .eq("account_id", ctx.accountId)
+        .eq("website_id", ctx.websiteId)
+        .order("updated_at", { ascending: false, nullsFirst: false })
+        .limit(12),
+    ),
+    fetchTable("growth_agent_instances", () =>
+      table(admin, "growth_agent_instances")
+        .select(
+          "id,agent_type,lane,display_name,status,model_name,max_cost_daily_usd,max_cost_weekly_usd,updated_at,created_at",
+        )
+        .eq("account_id", ctx.accountId)
+        .eq("website_id", ctx.websiteId)
+        .order("updated_at", { ascending: false, nullsFirst: false })
+        .limit(20),
+    ),
+    fetchTable("growth_agent_artifacts", () =>
+      table(admin, "growth_agent_artifacts")
+        .select(
+          "id,artifact_type,status,task_session_id,decision_id,provider_evidence_reads,validation_errors,created_work_item_id,updated_at,created_at",
+        )
+        .eq("account_id", ctx.accountId)
+        .eq("website_id", ctx.websiteId)
+        .order("updated_at", { ascending: false, nullsFirst: false })
+        .limit(20),
+    ),
     getLaneAgreement(ctx.websiteId),
   ]);
 
@@ -834,6 +945,11 @@ export async function getGrowthCeoCockpit(
     orchestratorDecisions,
     wakeupRequests,
     taskSessions,
+    chiefSessions,
+    chiefMessages,
+    chiefActions,
+    agentInstances,
+    agentArtifacts,
   ]) {
     if (result.missing) missingTables.add(result.missing);
   }
@@ -1299,6 +1415,91 @@ export async function getGrowthCeoCockpit(
     }),
   );
 
+  const chiefSessionRows = chiefSessions.rows.map(
+    (row, index): ChiefOfStaffSessionRow => ({
+      id: optionalText(row.id) ?? `chief-session:${index}`,
+      title: optionalText(row.title) ?? "Growth Chief of Staff",
+      status: optionalText(row.status) ?? "active",
+      lastMessageAt: isoOrNull(row.last_message_at),
+      updatedAt:
+        isoOrNull(row.updated_at) ??
+        isoOrNull(row.created_at) ??
+        new Date(0).toISOString(),
+    }),
+  );
+
+  const chiefMessageRows = chiefMessages.rows.map(
+    (row, index): ChiefOfStaffMessageRow => ({
+      id: optionalText(row.id) ?? `chief-message:${index}`,
+      role: optionalText(row.role) ?? "assistant",
+      content: optionalText(row.content) ?? "",
+      citedRefs: Array.isArray(row.cited_refs)
+        ? row.cited_refs.map((ref) => String(ref ?? "")).filter(Boolean)
+        : [],
+      actionId: optionalText(row.action_id),
+      createdAt:
+        isoOrNull(row.created_at) ??
+        isoOrNull(row.updated_at) ??
+        new Date(0).toISOString(),
+    }),
+  );
+
+  const chiefActionRows = chiefActions.rows.map(
+    (row, index): ChiefOfStaffActionRow => ({
+      id: optionalText(row.id) ?? `chief-action:${index}`,
+      intent: optionalText(row.intent) ?? "",
+      actionClass: optionalText(row.action_class) ?? "read_only",
+      status: optionalText(row.status) ?? "proposed",
+      requiresApproval: row.requires_approval === true,
+      policyVerdict: safeRecord(row.policy_verdict),
+      createdRefs: Array.isArray(row.created_refs)
+        ? row.created_refs.map((ref) => String(ref ?? "")).filter(Boolean)
+        : [],
+      updatedAt:
+        isoOrNull(row.updated_at) ??
+        isoOrNull(row.created_at) ??
+        new Date(0).toISOString(),
+    }),
+  );
+
+  const chiefArtifactRows = agentArtifacts.rows.map(
+    (row, index): ChiefOfStaffArtifactRow => ({
+      id: optionalText(row.id) ?? `artifact:${index}`,
+      artifactType: optionalText(row.artifact_type) ?? "unknown",
+      status: optionalText(row.status) ?? "draft",
+      taskSessionId: optionalText(row.task_session_id),
+      decisionId: optionalText(row.decision_id),
+      providerEvidenceReads: Array.isArray(row.provider_evidence_reads)
+        ? row.provider_evidence_reads.length
+        : 0,
+      validationErrors: Array.isArray(row.validation_errors)
+        ? row.validation_errors.length
+        : 0,
+      createdWorkItemId: optionalText(row.created_work_item_id),
+      updatedAt:
+        isoOrNull(row.updated_at) ??
+        isoOrNull(row.created_at) ??
+        new Date(0).toISOString(),
+    }),
+  );
+
+  const chiefAgentInstanceRows = agentInstances.rows.map(
+    (row, index): ChiefOfStaffAgentInstanceRow => ({
+      id: optionalText(row.id) ?? `agent-instance:${index}`,
+      agentType: optionalText(row.agent_type) ?? "unknown",
+      lane: parseLane(row.lane) ?? "unknown",
+      displayName: optionalText(row.display_name) ?? "Agent",
+      status: optionalText(row.status) ?? "enabled",
+      modelName: optionalText(row.model_name) ?? "n/a",
+      dailyBudgetUsd: numberValue(row.max_cost_daily_usd),
+      weeklyBudgetUsd: numberValue(row.max_cost_weekly_usd),
+      updatedAt:
+        isoOrNull(row.updated_at) ??
+        isoOrNull(row.created_at) ??
+        new Date(0).toISOString(),
+    }),
+  );
+
   return {
     accountId: ctx.accountId,
     websiteId: ctx.websiteId,
@@ -1375,6 +1576,20 @@ export async function getGrowthCeoCockpit(
         orchestratorDecisions.missing,
         wakeupRequests.missing,
         taskSessions.missing,
+      ].filter(Boolean) as string[],
+    },
+    chiefOfStaff: {
+      sessions: chiefSessionRows,
+      messages: chiefMessageRows,
+      actions: chiefActionRows,
+      artifacts: chiefArtifactRows,
+      agentInstances: chiefAgentInstanceRows,
+      missingTables: [
+        chiefSessions.missing,
+        chiefMessages.missing,
+        chiefActions.missing,
+        agentInstances.missing,
+        agentArtifacts.missing,
       ].filter(Boolean) as string[],
     },
     generatedAt: new Date().toISOString(),

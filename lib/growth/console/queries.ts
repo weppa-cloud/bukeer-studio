@@ -336,6 +336,7 @@ export interface AgentDefinitionsResult {
   agents: GrowthAgentDefinition[];
   runtimeByLane: Record<AgentLane, LaneRuntimeSummary>;
   learning: GrowthAgentLearningSummary;
+  hermes: GrowthHermesControlSummary;
   missingTable: boolean;
   errored: boolean;
 }
@@ -397,6 +398,46 @@ export interface GrowthAgentLearningSummary {
   skills: GrowthAgentSkillControl[];
   memories: GrowthAgentMemoryControl[];
   replayCases: GrowthAgentReplayControl[];
+  missingTables: string[];
+}
+
+export interface GrowthHermesAgentInstanceControl {
+  id: string;
+  agentType: string;
+  lane: AgentLane;
+  displayName: string;
+  status: string;
+  modelProvider: string;
+  modelName: string;
+  dailyBudgetUsd: number;
+  weeklyBudgetUsd: number;
+  concurrencyLimit: number;
+  confidenceThreshold: number;
+  qualityThreshold: number;
+  routingPriority: number;
+  toolsetAllowlist: string[];
+  safetySummary: string;
+  updatedAt: string;
+}
+
+export interface GrowthHermesArtifactControl {
+  id: string;
+  artifactType: string;
+  status: string;
+  agentInstanceId: string | null;
+  taskSessionId: string | null;
+  decisionId: string | null;
+  providerEvidenceReads: number;
+  memoryReads: number;
+  skillReads: number;
+  validationErrors: number;
+  createdWorkItemId: string | null;
+  updatedAt: string;
+}
+
+export interface GrowthHermesControlSummary {
+  instances: GrowthHermesAgentInstanceControl[];
+  artifacts: GrowthHermesArtifactControl[];
   missingTables: string[];
 }
 
@@ -523,6 +564,16 @@ function emptyLearningSummary(
   };
 }
 
+function emptyHermesSummary(
+  missingTables: string[] = [],
+): GrowthHermesControlSummary {
+  return {
+    instances: [],
+    artifacts: [],
+    missingTables,
+  };
+}
+
 function isMissingRelation(error: { code?: string | null } | null): boolean {
   return Boolean(error?.code && POSTGREST_MISSING_TABLE_CODES.has(error.code));
 }
@@ -548,6 +599,7 @@ async function fetchAgents(
         agents: [],
         runtimeByLane: emptyRuntimeByLane(),
         learning: emptyLearningSummary(),
+        hermes: emptyHermesSummary(["growth_agent_definitions"]),
         missingTable: true,
         errored: false,
       };
@@ -556,6 +608,7 @@ async function fetchAgents(
         agents: [],
         runtimeByLane: emptyRuntimeByLane(),
         learning: emptyLearningSummary(),
+        hermes: emptyHermesSummary(),
         missingTable: false,
         errored: true,
       };
@@ -575,6 +628,7 @@ async function fetchAgents(
     agents: parsed,
     runtimeByLane: await fetchRuntimeByLane(supabase, websiteId, accountId),
     learning: await fetchGrowthAgentLearning(websiteId, accountId),
+    hermes: await fetchGrowthHermesControl(websiteId, accountId),
     missingTable: false,
     errored: false,
   };
@@ -926,6 +980,126 @@ async function fetchGrowthAgentLearning(
           Date.parse((a as GrowthAgentReplayControl).createdAt),
       )
       .slice(0, 12),
+    missingTables,
+  };
+}
+
+async function fetchGrowthHermesControl(
+  websiteId: string,
+  accountId: string,
+): Promise<GrowthHermesControlSummary> {
+  const runtimeSupabase = createSupabaseServiceRoleClient();
+  const [instances, artifacts] = await Promise.all([
+    readRuntimeRows<{
+      id: string;
+      agent_type: string;
+      lane: string;
+      display_name: string;
+      status: string;
+      model_provider: string;
+      model_name: string;
+      max_cost_daily_usd: number | string | null;
+      max_cost_weekly_usd: number | string | null;
+      concurrency_limit: number | null;
+      confidence_threshold: number | string | null;
+      quality_threshold: number | string | null;
+      routing_priority: number | null;
+      toolset_allowlist: string[] | null;
+      immutable_safety_bounds: Record<string, unknown> | null;
+      updated_at: string;
+    }>(
+      runtimeSupabase,
+      "growth_agent_instances",
+      "id, agent_type, lane, display_name, status, model_provider, model_name, max_cost_daily_usd, max_cost_weekly_usd, concurrency_limit, confidence_threshold, quality_threshold, routing_priority, toolset_allowlist, immutable_safety_bounds, updated_at",
+      websiteId,
+      accountId,
+    ),
+    readRuntimeRows<{
+      id: string;
+      artifact_type: string;
+      status: string;
+      agent_instance_id: string | null;
+      task_session_id: string | null;
+      decision_id: string | null;
+      provider_evidence_reads: unknown[] | null;
+      memory_reads: unknown[] | null;
+      skill_reads: unknown[] | null;
+      validation_errors: unknown[] | null;
+      created_work_item_id: string | null;
+      updated_at: string;
+    }>(
+      runtimeSupabase,
+      "growth_agent_artifacts",
+      "id, artifact_type, status, agent_instance_id, task_session_id, decision_id, provider_evidence_reads, memory_reads, skill_reads, validation_errors, created_work_item_id, updated_at",
+      websiteId,
+      accountId,
+    ),
+  ]);
+
+  const missingTables = [
+    instances.missing ? "growth_agent_instances" : null,
+    artifacts.missing ? "growth_agent_artifacts" : null,
+  ].filter(Boolean) as string[];
+
+  if (missingTables.length > 0) return emptyHermesSummary(missingTables);
+
+  return {
+    instances: instances.rows
+      .map((row): GrowthHermesAgentInstanceControl | null => {
+        const lane = AgentLaneSchema.safeParse(row.lane);
+        if (!lane.success) return null;
+        return {
+          id: String(row.id ?? ""),
+          agentType: String(row.agent_type ?? ""),
+          lane: lane.data,
+          displayName: String(row.display_name ?? row.agent_type ?? ""),
+          status: String(row.status ?? "enabled"),
+          modelProvider: String(row.model_provider ?? "openrouter"),
+          modelName: String(row.model_name ?? "openai/gpt-5"),
+          dailyBudgetUsd: Number(row.max_cost_daily_usd) || 0,
+          weeklyBudgetUsd: Number(row.max_cost_weekly_usd) || 0,
+          concurrencyLimit: Number(row.concurrency_limit) || 1,
+          confidenceThreshold: Number(row.confidence_threshold) || 0,
+          qualityThreshold: Number(row.quality_threshold) || 0,
+          routingPriority: Number(row.routing_priority) || 0,
+          toolsetAllowlist: Array.isArray(row.toolset_allowlist)
+            ? row.toolset_allowlist.map(String)
+            : [],
+          safetySummary:
+            summarizeJson(row.immutable_safety_bounds) ??
+            "Executor-only mutation boundary.",
+          updatedAt: String(toIsoDateTime(row.updated_at)),
+        };
+      })
+      .filter((row): row is GrowthHermesAgentInstanceControl => row !== null)
+      .sort((a, b) => b.routingPriority - a.routingPriority)
+      .slice(0, 20),
+    artifacts: artifacts.rows
+      .map((row): GrowthHermesArtifactControl => ({
+        id: String(row.id ?? ""),
+        artifactType: String(row.artifact_type ?? ""),
+        status: String(row.status ?? ""),
+        agentInstanceId:
+          row.agent_instance_id == null ? null : String(row.agent_instance_id),
+        taskSessionId:
+          row.task_session_id == null ? null : String(row.task_session_id),
+        decisionId: row.decision_id == null ? null : String(row.decision_id),
+        providerEvidenceReads: Array.isArray(row.provider_evidence_reads)
+          ? row.provider_evidence_reads.length
+          : 0,
+        memoryReads: Array.isArray(row.memory_reads) ? row.memory_reads.length : 0,
+        skillReads: Array.isArray(row.skill_reads) ? row.skill_reads.length : 0,
+        validationErrors: Array.isArray(row.validation_errors)
+          ? row.validation_errors.length
+          : 0,
+        createdWorkItemId:
+          row.created_work_item_id == null
+            ? null
+            : String(row.created_work_item_id),
+        updatedAt: String(toIsoDateTime(row.updated_at)),
+      }))
+      .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))
+      .slice(0, 20),
     missingTables,
   };
 }
