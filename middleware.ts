@@ -668,6 +668,15 @@ async function tryLegacyRedirect(
   return response;
 }
 
+function isPublicSeoMetadataPath(pathname: string): boolean {
+  return (
+    pathname === "/robots.txt" ||
+    pathname === "/sitemap.xml" ||
+    pathname === "/sitemap_index.xml" ||
+    /^\/sitemap-[A-Za-z]{2}(?:-[A-Za-z]{2})?\.xml$/.test(pathname)
+  );
+}
+
 function applyLocaleAwareTenantRewrite(
   input: LocaleAwareRoutingInput,
 ): NextResponse {
@@ -1030,17 +1039,22 @@ export async function middleware(request: NextRequest) {
       const potentialProductRoute = getPotentialProductRoute(
         localeResolution.pathnameWithoutLang,
       );
-
-      const legacyRedirectResponse = await tryLegacyRedirect(
-        request,
-        website,
+      const allowLegacyRedirects = !isPublicSeoMetadataPath(
         localeResolution.pathnameWithoutLang,
       );
-      if (legacyRedirectResponse) {
-        return persistClickIdsOnResponse(
-          legacyRedirectResponse,
-          capturedClickIds,
+
+      if (allowLegacyRedirects) {
+        const legacyRedirectResponse = await tryLegacyRedirect(
+          request,
+          website,
+          localeResolution.pathnameWithoutLang,
         );
+        if (legacyRedirectResponse) {
+          return persistClickIdsOnResponse(
+            legacyRedirectResponse,
+            capturedClickIds,
+          );
+        }
       }
 
       const missingBlogResponse = await tryMissingBlogNotFound(
@@ -1116,17 +1130,22 @@ export async function middleware(request: NextRequest) {
     const potentialProductRoute = getPotentialProductRoute(
       localeResolution.pathnameWithoutLang,
     );
-
-    const legacyRedirectResponse = await tryLegacyRedirect(
-      request,
-      website,
+    const allowLegacyRedirects = !isPublicSeoMetadataPath(
       localeResolution.pathnameWithoutLang,
     );
-    if (legacyRedirectResponse) {
-      return persistClickIdsOnResponse(
-        legacyRedirectResponse,
-        capturedClickIds,
+
+    if (allowLegacyRedirects) {
+      const legacyRedirectResponse = await tryLegacyRedirect(
+        request,
+        website,
+        localeResolution.pathnameWithoutLang,
       );
+      if (legacyRedirectResponse) {
+        return persistClickIdsOnResponse(
+          legacyRedirectResponse,
+          capturedClickIds,
+        );
+      }
     }
 
     const missingBlogResponse = await tryMissingBlogNotFound(
@@ -1190,17 +1209,22 @@ export async function middleware(request: NextRequest) {
     const potentialProductRoute = getPotentialProductRoute(
       localeResolution.pathnameWithoutLang,
     );
-
-    const legacyRedirectResponse = await tryLegacyRedirect(
-      request,
-      website,
+    const allowLegacyRedirects = !isPublicSeoMetadataPath(
       localeResolution.pathnameWithoutLang,
     );
-    if (legacyRedirectResponse) {
-      return persistClickIdsOnResponse(
-        legacyRedirectResponse,
-        capturedClickIds,
+
+    if (allowLegacyRedirects) {
+      const legacyRedirectResponse = await tryLegacyRedirect(
+        request,
+        website,
+        localeResolution.pathnameWithoutLang,
       );
+      if (legacyRedirectResponse) {
+        return persistClickIdsOnResponse(
+          legacyRedirectResponse,
+          capturedClickIds,
+        );
+      }
     }
 
     const missingBlogResponse = await tryMissingBlogNotFound(

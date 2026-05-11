@@ -25,7 +25,11 @@ import {
   type HreflangLink,
 } from "@/lib/seo/hreflang";
 import {
+  buildPublicLocalizedPath,
   normalizeWebsiteLocales,
+  localeToLanguage,
+  normalizeLocale,
+  translateCategoryPathname,
   type WebsiteLocaleSettings,
 } from "@/lib/seo/locale-routing";
 
@@ -35,6 +39,7 @@ export interface SitemapUrl {
   changefreq: string;
   priority: string;
   translatedLocales?: string[];
+  alternatePathname?: string;
 }
 
 export interface SitemapLocaleContext {
@@ -248,6 +253,50 @@ ${rendered.join("\n")}
 </urlset>`;
 }
 
+export function localizeSitemapUrlsForLocale(
+  urls: SitemapUrl[],
+  targetLocale: string,
+  locale: SitemapLocaleContext,
+): SitemapUrl[] {
+  const normalizedSettings = normalizeWebsiteLocales(locale.settings);
+  const normalizedTarget = normalizeLocale(
+    targetLocale,
+    normalizedSettings.defaultLocale,
+  );
+  const defaultLocale = normalizedSettings.defaultLocale;
+  const targetLanguage = localeToLanguage(normalizedTarget);
+
+  return urls
+    .filter((url) => {
+      if (normalizedTarget === defaultLocale) return true;
+      if (!url.translatedLocales || url.translatedLocales.length === 0) {
+        return true;
+      }
+
+      return url.translatedLocales
+        .map((candidate) => normalizeLocale(candidate, defaultLocale))
+        .includes(normalizedTarget);
+    })
+    .map((url) => {
+      const sourcePathname = extractPathname(url.loc, locale.baseUrl);
+      const translatedPathname = translateCategoryPathname(
+        sourcePathname,
+        targetLanguage,
+      );
+      const publicPathname = buildPublicLocalizedPath(
+        translatedPathname,
+        normalizedTarget,
+        defaultLocale,
+      );
+
+      return {
+        ...url,
+        loc: `${locale.baseUrl}${publicPathname === "/" ? "" : publicPathname}`,
+        alternatePathname: sourcePathname,
+      };
+    });
+}
+
 function renderUrlEntry(
   url: SitemapUrl,
   locale: SitemapLocaleContext | undefined,
@@ -261,7 +310,7 @@ function renderUrlEntry(
   parts.push(`    <priority>${url.priority}</priority>`);
 
   if (multiLocale && locale) {
-    const pathname = extractPathname(url.loc, locale.baseUrl);
+    const pathname = url.alternatePathname ?? extractPathname(url.loc, locale.baseUrl);
     const alternates = buildAlternateLinks(
       locale.baseUrl,
       pathname,

@@ -303,6 +303,10 @@ async function redirectLocaleMismatchedBlogSlug({
 
 // Generate static paths for all blog posts
 export async function generateStaticParams() {
+  if (process.env.BUILD_SKIP_BLOG_STATIC_PARAMS === "1") {
+    return [];
+  }
+
   const { getAllWebsiteSubdomains, getAllBlogSlugs, getWebsiteBySubdomain } =
     await import("@/lib/supabase/get-website");
   const subdomains = await getAllWebsiteSubdomains();
