@@ -280,6 +280,15 @@ export function buildTranscreationPayloadArtifact(
   const payload: JsonRecord = {
     source_locale: sourceLocale,
     target_locale: targetLocale,
+    transcreation_job_id:
+      input.target.transcreation_job_id ?? input.target.id ?? input.target.target_id ?? null,
+    localized_variant_id:
+      input.target.localized_variant_id ?? input.target.localizedVariantId ?? null,
+    source_entity_id:
+      input.target.source_entity_id ?? input.target.sourceEntityId ?? null,
+    target_entity_id:
+      input.target.target_entity_id ?? input.target.targetEntityId ?? null,
+    page_type: input.target.page_type ?? input.target.pageType ?? null,
     target: input.target,
     payload: input.payload,
     glossary_terms: input.glossaryTerms ?? [],

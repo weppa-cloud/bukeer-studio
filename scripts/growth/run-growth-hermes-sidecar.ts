@@ -132,6 +132,9 @@ async function firstTranscreationJob(
     .from("seo_transcreation_jobs")
     .select("*")
     .eq("website_id", websiteId)
+    .eq("target_locale", "en-US")
+    .not("page_id", "is", null)
+    .order("updated_at", { ascending: false })
     .limit(1);
   if (error) return {};
   const row = Array.isArray(data) ? data[0] : data;
@@ -267,6 +270,7 @@ async function buildLaneArtifactDraft({
     text(transcreationJob.page_id) ||
     text(page.id, randomUUID());
   const transcreationJobId = text(transcreationJob.id, sourceEntityId);
+  const pageType = text(transcreationJob.page_type, "blog");
   const draft = buildTranscreationPayloadArtifact({
     taskSessionId,
     decisionId: null,
@@ -275,6 +279,10 @@ async function buildLaneArtifactDraft({
     target: {
       table: "seo_transcreation_jobs",
       id: transcreationJobId,
+      transcreation_job_id: transcreationJobId,
+      source_entity_id: sourceEntityId,
+      target_entity_id: text(transcreationJob.target_entity_id) || sourceEntityId,
+      page_type: pageType,
       target_key: `page:en-US:${sourceEntityId}`,
     },
     payload: {
