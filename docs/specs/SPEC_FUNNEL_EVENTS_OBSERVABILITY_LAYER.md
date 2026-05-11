@@ -63,11 +63,21 @@ The business need is to make optimization evidence available to both humans and 
 - [x] AC2: `ga4_measurement_protocol_events` exists as an idempotent delivery log with tenant scope, `funnel_event_id`, destination event name, status, redacted payload, provider response, error, and timestamps.
 - [x] AC3: Dispatcher can send GA4 Measurement Protocol events from `funnel_events` using tenant GA4 config, while preserving browser GA4 page/session tracking.
 - [ ] AC4: GA4 key events are configured for `generate_lead`, `qualify_lead`, `begin_checkout`, and `purchase`; legacy/imported conversion signals are documented as reporting-only where applicable.
-- [ ] AC5: WAFlow emits or persists `waflow_open`, `waflow_validation_error`, and `waflow_abandon` so abandonment can be measured outside GA4.
+- [x] AC5: WAFlow emits or persists `waflow_open`, `waflow_validation_error`, and `waflow_abandon` so abandonment can be measured outside GA4.
 - [ ] AC6: Clarity tags/session context include tenant, website, market, landing path, campaign ID when available, WAFlow variant, and hashed/reference identifiers only.
 - [ ] AC7: A Supabase view or materialized query (`growth_funnel_observability_v1`) joins `funnel_events`, `waflow_leads`, `requests`, `itineraries`, Meta logs, Google uploads, GA4 MP logs, and latest Clarity/GA4 provider profile evidence.
 - [ ] AC8: Production readout for ColombiaTours shows one 24h report with counts for funnel events, GA4 MP delivery, Meta delivery, Google uploads, Clarity profile freshness, CRM opportunities, and known gaps.
 - [ ] AC9: Documentation states that IA agents must treat `funnel_events` as conversion truth and GA4/Clarity as diagnostic signals.
+
+Production evidence 2026-05-11: deployed Worker version
+`862a3666-d585-4d49-9158-af071141a857` with
+`/api/growth/events/waflow-diagnostic`. Smoke reference
+`CODEX-WAFLOW-MP1HZLF2` persisted `waflow_validation_error` in
+`funnel_events` with `source_system='waflow'`,
+`optimization_policy='observation_only'`, `gclid`, UTM context, and
+`payload.step='contact'`. Manual dispatcher smoke sent GA4 Measurement
+Protocol event `waflow_validation_error` to property `294486074` /
+measurement ID `G-6ET7YRM7NS` with `status='sent'`.
 
 ## Data Model Changes
 

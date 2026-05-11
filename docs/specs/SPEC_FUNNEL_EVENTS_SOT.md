@@ -114,7 +114,7 @@ and agent optimization.
 - [x] **AC6.1** `event_destination_mapping` has `destination='ga4'` rows for canonical reporting events.
 - [x] **AC6.2** `ga4_measurement_protocol_events` exists as an idempotent delivery log.
 - [x] **AC6.3** Dispatcher sends GA4 Measurement Protocol copies for selected canonical events behind `FUNNEL_GA4_MP_DISPATCH_V1`.
-- [ ] **AC6.4** WAFlow diagnostic events (`waflow_open`, `waflow_validation_error`, `waflow_abandon`) are persisted so abandonment is measurable outside GA4.
+- [x] **AC6.4** WAFlow diagnostic events (`waflow_open`, `waflow_validation_error`, `waflow_abandon`) are persisted so abandonment is measurable outside GA4.
 - [ ] **AC6.5** Clarity receives only non-PII tenant/market/landing/campaign/variant/reference-hash context.
 - [ ] **AC6.6** `growth_funnel_observability_v1` joins canonical events, WAFlow leads, CRM requests, itineraries, platform delivery logs, and provider-profile freshness for agent use.
 - [ ] **AC6.7** ColombiaTours has a 24h observability readout proving canonical event counts, GA4 MP delivery, Meta delivery, Google uploads, Clarity freshness, CRM opportunities, and known gaps.
@@ -125,8 +125,17 @@ for property `294486074` / measurement ID `G-6ET7YRM7NS`. A real
 `dispatch-funnel-event` and logged `ga4_measurement_protocol_events.status =
 'sent'` for GA4 event `begin_checkout`. Platform goal dry-run
 `b7a87cc8-8d5c-494a-8f40-26a04d5acbb9` reconciled to 38 desired, 38 keep, 0
-watch, 0 blocked. AC6.4-AC6.7 remain open for WAFlow abandonment diagnostics,
-unified observability view, and the full 24h readout.
+watch, 0 blocked.
+
+Production evidence 2026-05-11: deployed Worker version
+`862a3666-d585-4d49-9158-af071141a857` with the WAFlow diagnostic beacon API.
+Smoke reference `CODEX-WAFLOW-MP1HZLF2` wrote
+`waflow_validation_error` to `funnel_events` with `source_system='waflow'`,
+`business_stage='intent'`, `optimization_policy='observation_only'`, and
+click/UTM context. Dispatcher smoke delivered GA4 Measurement Protocol event
+`waflow_validation_error` with `status='sent'` for property `294486074`.
+AC6.5-AC6.7 remain open for Clarity context, the unified observability view,
+and the full 24h readout.
 
 See [[SPEC_FUNNEL_EVENTS_OBSERVABILITY_LAYER]] for the detailed F6 contract.
 

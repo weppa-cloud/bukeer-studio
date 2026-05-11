@@ -47,6 +47,8 @@ export type AnalyticsEventParams = Record<string, string | number | boolean | nu
  *  - `hero_search_submit`       { destino, from, to, pax }                  (reserved)
  *  - `waflow_open`              { variant }
  *  - `waflow_step_next`         { variant, from, to }
+ *  - `waflow_validation_error`  { variant, step, fields }
+ *  - `waflow_abandon`           { variant, step, reason }
  *  - `waflow_submit`            { variant }
  *  - `matchmaker_submit`        { group, region, style }                    (reserved)
  *  - `currency_switch`          { from, to, surface? }                      (surface: 'header' | 'footer')
@@ -79,6 +81,8 @@ export type AnalyticsEventName =
   | 'hero_search_submit'
   | 'waflow_open'
   | 'waflow_step_next'
+  | 'waflow_validation_error'
+  | 'waflow_abandon'
   | 'waflow_submit'
   | 'matchmaker_submit'
   | 'currency_switch'
@@ -95,6 +99,12 @@ const META_STANDARD_EVENTS: Partial<Record<string, 'Contact' | 'Lead' | 'Schedul
   waflow_submit: 'Lead',
   matchmaker_submit: 'Lead',
 };
+
+const WAFLOW_DIAGNOSTIC_EVENTS = new Set<AnalyticsEventName>([
+  'waflow_open',
+  'waflow_validation_error',
+  'waflow_abandon',
+]);
 
 function resolveMetaEventId(
   name: AnalyticsEventName,
@@ -224,6 +234,10 @@ export function trackEvent(
       void emitWhatsAppCtaBeacon(cleaned);
     }
 
+    if (WAFLOW_DIAGNOSTIC_EVENTS.has(name)) {
+      void emitWaflowDiagnosticBeacon(name, cleaned);
+    }
+
     if (process.env.NODE_ENV !== 'production') {
       console.log(`[analytics.${name}]`, cleaned);
     }
@@ -269,6 +283,42 @@ async function emitWhatsAppCtaBeacon(
     });
   } catch {
     // Module load can fail in extreme network conditions — never bubble.
+  }
+}
+
+async function emitWaflowDiagnosticBeacon(
+  name: AnalyticsEventName,
+  params: Record<string, string | number | boolean>,
+): Promise<void> {
+  try {
+    const mod = await import('./waflow-diagnostics-beacon');
+    const market = typeof params.market === 'string' ? params.market : undefined;
+
+    mod.sendWaflowDiagnosticBeacon({
+      event_name: name as 'waflow_open' | 'waflow_validation_error' | 'waflow_abandon',
+      reference_code:
+        typeof params.reference_code === 'string' && params.reference_code.length >= 8
+          ? params.reference_code
+          : null,
+      variant: typeof params.variant === 'string' ? params.variant : null,
+      step: typeof params.step === 'string' ? params.step : null,
+      reason: typeof params.reason === 'string' ? params.reason : null,
+      fields: typeof params.fields === 'string' ? params.fields : null,
+      destination_slug:
+        typeof params.destination_slug === 'string' ? params.destination_slug : null,
+      destination_name:
+        typeof params.destination_name === 'string' ? params.destination_name : null,
+      package_slug:
+        typeof params.package_slug === 'string' ? params.package_slug : null,
+      package_title:
+        typeof params.package_title === 'string' ? params.package_title : null,
+      has_phone: typeof params.has_phone === 'boolean' ? params.has_phone : null,
+      has_name: typeof params.has_name === 'boolean' ? params.has_name : null,
+      locale: typeof params.locale === 'string' ? params.locale : null,
+      market: market === 'CO' || market === 'MX' || market === 'US' || market === 'CA' || market === 'EU' || market === 'OTHER' ? market : null,
+    });
+  } catch {
+    // Diagnostics must never affect the WAFlow UI.
   }
 }
 
