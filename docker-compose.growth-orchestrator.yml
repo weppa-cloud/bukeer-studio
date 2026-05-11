@@ -21,6 +21,7 @@ services:
       - tsx
       - scripts/growth/run-growth-production-cycle.ts
       - --scheduled
+      - --no-single-daemon-guard
       - --interval-ms=1800000
       - --max-claims-per-lane=1
     logging:

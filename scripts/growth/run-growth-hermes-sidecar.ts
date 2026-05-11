@@ -42,6 +42,8 @@ type SidecarOutput = {
   mode?: string;
   hermes_available?: boolean;
   evidence_fingerprint?: string;
+  profile?: string;
+  hermes_runs?: JsonRecord[];
   task_sessions?: Array<{ task_session_id?: string; lane?: string; status?: string }>;
   artifacts?: Array<JsonRecord>;
   summary?: JsonRecord;
@@ -378,6 +380,9 @@ async function main() {
       sidecar_run_id: sidecar.run_id ?? null,
       mode: sidecar.mode ?? null,
       hermes_available: sidecar.hermes_available ?? false,
+      hermes_profile: sidecar.profile ?? null,
+      hermes_runs: sidecar.hermes_runs ?? [],
+      hermes_task_sessions: sidecar.task_sessions ?? [],
       evidence_fingerprint: sidecar.evidence_fingerprint ?? null,
       summary: sidecar.summary ?? {},
     },

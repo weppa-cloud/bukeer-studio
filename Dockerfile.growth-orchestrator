@@ -23,6 +23,7 @@ RUN npm ci --omit=dev \
 
 RUN curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh \
   | bash -s -- --skip-setup
+RUN hermes profile create growth-os-colombiatours --clone --no-alias || true
 
 COPY . .
 
