@@ -435,9 +435,20 @@ export interface GrowthHermesArtifactControl {
   updatedAt: string;
 }
 
+export interface GrowthHermesSidecarStatus {
+  status: "healthy" | "running" | "idle" | "missing";
+  lastSessionId: string | null;
+  lastLane: string | null;
+  lastRunAt: string | null;
+  completedSessions: number;
+  runningSessions: number;
+  artifactCount: number;
+}
+
 export interface GrowthHermesControlSummary {
   instances: GrowthHermesAgentInstanceControl[];
   artifacts: GrowthHermesArtifactControl[];
+  sidecar: GrowthHermesSidecarStatus;
   missingTables: string[];
 }
 
@@ -570,6 +581,15 @@ function emptyHermesSummary(
   return {
     instances: [],
     artifacts: [],
+    sidecar: {
+      status: "missing",
+      lastSessionId: null,
+      lastLane: null,
+      lastRunAt: null,
+      completedSessions: 0,
+      runningSessions: 0,
+      artifactCount: 0,
+    },
     missingTables,
   };
 }
@@ -989,7 +1009,7 @@ async function fetchGrowthHermesControl(
   accountId: string,
 ): Promise<GrowthHermesControlSummary> {
   const runtimeSupabase = createSupabaseServiceRoleClient();
-  const [instances, artifacts] = await Promise.all([
+  const [instances, artifacts, taskSessions] = await Promise.all([
     readRuntimeRows<{
       id: string;
       agent_type: string;
@@ -1034,14 +1054,42 @@ async function fetchGrowthHermesControl(
       websiteId,
       accountId,
     ),
+    readRuntimeRows<{
+      id: string;
+      assigned_agent_lane: string | null;
+      status: string;
+      session_state: Record<string, unknown> | null;
+      updated_at: string;
+    }>(
+      runtimeSupabase,
+      "growth_agent_task_sessions",
+      "id, assigned_agent_lane, status, session_state, updated_at",
+      websiteId,
+      accountId,
+    ),
   ]);
 
   const missingTables = [
     instances.missing ? "growth_agent_instances" : null,
     artifacts.missing ? "growth_agent_artifacts" : null,
+    taskSessions.missing ? "growth_agent_task_sessions" : null,
   ].filter(Boolean) as string[];
 
   if (missingTables.length > 0) return emptyHermesSummary(missingTables);
+
+  const sidecarSessions = taskSessions.rows
+    .filter((row) => {
+      const state = safeRecord(row.session_state);
+      return state?.source === "hermes_sidecar";
+    })
+    .sort((a, b) => Date.parse(String(b.updated_at)) - Date.parse(String(a.updated_at)));
+  const lastSidecarSession = sidecarSessions[0];
+  const sidecarRunning = sidecarSessions.filter(
+    (row) => String(row.status ?? "") === "running",
+  ).length;
+  const sidecarCompleted = sidecarSessions.filter(
+    (row) => String(row.status ?? "") === "completed",
+  ).length;
 
   return {
     instances: instances.rows
@@ -1100,6 +1148,19 @@ async function fetchGrowthHermesControl(
       }))
       .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))
       .slice(0, 20),
+    sidecar: {
+      status: sidecarRunning > 0 ? "running" : sidecarSessions.length > 0 ? "healthy" : "idle",
+      lastSessionId: lastSidecarSession?.id ? String(lastSidecarSession.id) : null,
+      lastLane: lastSidecarSession?.assigned_agent_lane
+        ? String(lastSidecarSession.assigned_agent_lane)
+        : null,
+      lastRunAt: lastSidecarSession?.updated_at
+        ? String(toIsoDateTime(lastSidecarSession.updated_at))
+        : null,
+      completedSessions: sidecarCompleted,
+      runningSessions: sidecarRunning,
+      artifactCount: artifacts.rows.length,
+    },
     missingTables,
   };
 }

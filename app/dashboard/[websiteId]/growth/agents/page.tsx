@@ -287,6 +287,45 @@ function HermesAgentInstances({
         </p>
       ) : null}
 
+      <div
+        className="mt-4 grid grid-cols-1 gap-3 text-sm md:grid-cols-4"
+        data-testid="growth-hermes-sidecar-status"
+      >
+        <div className="rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] p-3">
+          <div className="text-xs uppercase text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+            Sidecar
+          </div>
+          <div className="mt-1 font-semibold text-[var(--studio-text-strong,theme(colors.zinc.900))]">
+            {hermes.sidecar.status}
+          </div>
+        </div>
+        <div className="rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] p-3">
+          <div className="text-xs uppercase text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+            Sessions
+          </div>
+          <div className="mt-1 font-semibold text-[var(--studio-text-strong,theme(colors.zinc.900))]">
+            {hermes.sidecar.completedSessions} done ·{" "}
+            {hermes.sidecar.runningSessions} running
+          </div>
+        </div>
+        <div className="rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] p-3">
+          <div className="text-xs uppercase text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+            Last lane
+          </div>
+          <div className="mt-1 font-semibold text-[var(--studio-text-strong,theme(colors.zinc.900))]">
+            {hermes.sidecar.lastLane ?? "none"}
+          </div>
+        </div>
+        <div className="rounded-md border border-[var(--studio-border,theme(colors.zinc.200))] p-3">
+          <div className="text-xs uppercase text-[var(--studio-text-muted,theme(colors.zinc.500))]">
+            Artifacts
+          </div>
+          <div className="mt-1 font-semibold text-[var(--studio-text-strong,theme(colors.zinc.900))]">
+            {hermes.sidecar.artifactCount}
+          </div>
+        </div>
+      </div>
+
       {hermes.instances.length === 0 ? (
         <p className="mt-3 text-sm text-[var(--studio-text-muted,theme(colors.zinc.500))]">
           No Hermes agent instances yet. Run sync after applying #482 migration.

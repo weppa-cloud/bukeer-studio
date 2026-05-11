@@ -1,0 +1,33 @@
+{
+  "request_id": "epic482-local-smoke",
+  "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+  "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+  "user_id": "13a23dde-997d-4038-a1cc-1d1114193259",
+  "agent_instance_id": "03836b62-833d-409a-8c8e-931806a30301",
+  "objective": "Prepare lane artifacts for Growth OS live-gated execution after the ColombiaTours migration.",
+  "lanes": ["content", "technical", "transcreation"],
+  "locale": "es-CO",
+  "context": {
+    "target_slug": "nosotros",
+    "source_locale": "es-CO",
+    "target_locale": "en-US",
+    "content_title": "Como planear un viaje a Colombia con expertos locales",
+    "content_slug": "como-planear-viaje-colombia-expertos-locales",
+    "technical_field": "seo_title",
+    "technical_value": "ColombiaTours - viajes a Colombia con expertos locales"
+  },
+  "budget_by_lane": {
+    "content_writer": {
+      "max_tokens": 3000,
+      "max_cost_usd": 0.25
+    },
+    "technical_remediation": {
+      "max_tokens": 1500,
+      "max_cost_usd": 0.1
+    },
+    "transcreation": {
+      "max_tokens": 2000,
+      "max_cost_usd": 0.15
+    }
+  }
+}

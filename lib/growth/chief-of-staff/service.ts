@@ -238,6 +238,8 @@ export function composeChiefOfStaffAnswer({
   pushCites(citedRefs, "growth_work_item_outcomes", facts.outcomes);
   pushCites(citedRefs, "growth_profile_runs", facts.profileRuns, 2);
   pushCites(citedRefs, "growth_agent_task_sessions", facts.taskSessions, 2);
+  pushCites(citedRefs, "growth_agent_memories", facts.memories, 3);
+  pushCites(citedRefs, "growth_agent_skills", facts.skills, 3);
 
   const completedCycles = countByStatus(facts.cycles, "completed");
   const failedCycles = countByStatus(facts.cycles, "failed");
@@ -253,6 +255,12 @@ export function composeChiefOfStaffAnswer({
   const lastCycle = facts.cycles[0];
   const lastDecision = facts.decisions[0];
   const lastProfile = facts.profileRuns[0];
+  const latestActiveMemory = facts.memories.find(
+    (row) => optionalText(row.status) === "active",
+  );
+  const latestActiveSkill = facts.skills.find(
+    (row) => optionalText(row.status) === "active",
+  );
 
   const lines = [
     "Resumen operativo Growth OS:",
@@ -283,6 +291,16 @@ export function composeChiefOfStaffAnswer({
       "Recomendacion: subir caps por escalones y solo despues de ciclos sin smoke failures, duplicados ready ni sesiones abiertas.",
     );
   } else if (/aprendi|learning|memoria|skill/i.test(prompt)) {
+    if (latestActiveMemory) {
+      lines.push(
+        `Memoria citada: ${optionalText(latestActiveMemory.id) ?? "n/a"} (${optionalText(latestActiveMemory.memory_key) ?? "memory"}).`,
+      );
+    }
+    if (latestActiveSkill) {
+      lines.push(
+        `Skill citada: ${optionalText(latestActiveSkill.id) ?? "n/a"} (${optionalText(latestActiveSkill.skill_key) ?? "skill"}).`,
+      );
+    }
     lines.push(
       "Aprendizaje: la memoria/skill solo debe influir decisiones futuras si esta activa y citada por decision o conversacion.",
     );
