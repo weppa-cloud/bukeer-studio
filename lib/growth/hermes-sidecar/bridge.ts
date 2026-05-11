@@ -419,8 +419,7 @@ export async function completeHermesTaskSession(
     })
     .eq("id", scope.taskSessionId)
     .eq("website_id", scope.websiteId)
-    .select("*")
-    .limit(1);
+    .select("*");
   if (error) throw new Error(`Hermes task session update failed: ${error.message}`);
   const row = rows<GrowthAgentTaskSession>(data)[0];
   if (!row?.id) throw new Error("Hermes task session update returned no row");
