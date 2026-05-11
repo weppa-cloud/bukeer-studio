@@ -145,10 +145,13 @@ async function runSidecarProcess(request: JsonRecord): Promise<SidecarOutput> {
   await writeFile(requestPath, `${JSON.stringify(request, null, 2)}\n`, "utf8");
   await execFileAsync("node", [
     "runtime/growth-hermes/bin/run.mjs",
-    hasFlag("--require-hermes") ? "--mode=hermes" : "--mode=auto",
+    "--mode",
+    hasFlag("--require-hermes") ? "hermes" : "auto",
     ...(hasFlag("--require-hermes") ? ["--require-hermes"] : []),
-    `--request=${requestPath}`,
-    `--output=${outputPath}`,
+    "--request",
+    requestPath,
+    "--output",
+    outputPath,
   ]);
   return JSON.parse(await readFile(outputPath, "utf8")) as SidecarOutput;
 }
