@@ -349,6 +349,16 @@ async function main() {
     ...scope,
     persistSnapshot: hasFlag("--persist-context"),
   });
+  const contextPayload = asRecord(context.context);
+  const activeMemories = Array.isArray(contextPayload.active_memories)
+    ? contextPayload.active_memories.map(asRecord)
+    : [];
+  const activeSkills = Array.isArray(contextPayload.active_skills)
+    ? contextPayload.active_skills.map(asRecord)
+    : [];
+  const outcomes = Array.isArray(contextPayload.outcomes)
+    ? contextPayload.outcomes
+    : [];
   const sidecar = await runSidecarProcess({
     request_id: randomUUID(),
     account_id: accountId,
@@ -360,28 +370,28 @@ async function main() {
     lanes,
     context: {
       context_snapshot_id: context.snapshot?.id ?? null,
-      active_memories: context.active_memories?.length ?? 0,
-      active_skills: context.active_skills?.length ?? 0,
-      outcomes: context.outcomes?.length ?? 0,
+      active_memories: activeMemories.length,
+      active_skills: activeSkills.length,
+      outcomes: outcomes.length,
     },
   });
   const evidence = await latestProviderEvidence(supabase, accountId, websiteId);
   const page = await firstWebsitePage(supabase, websiteId);
   const transcreationJob = await firstTranscreationJob(supabase, websiteId);
-  const memoryReads = Array.isArray(context.active_memories)
-    ? context.active_memories.slice(0, 2).map((row) => ({
+  const memoryReads = activeMemories
+    .slice(0, 2)
+    .map((row) => ({
         table: "growth_agent_memories",
         id: text(asRecord(row).id),
         memory_key: text(asRecord(row).memory_key),
-      }))
-    : [];
-  const skillReads = Array.isArray(context.active_skills)
-    ? context.active_skills.slice(0, 2).map((row) => ({
+      }));
+  const skillReads = activeSkills
+    .slice(0, 2)
+    .map((row) => ({
         table: "growth_agent_skills",
         id: text(asRecord(row).id),
         skill_key: text(asRecord(row).skill_key),
-      }))
-    : [];
+      }));
 
   const providerAnalysis = await createAgentArtifactFromHermes({
     ...scope,
