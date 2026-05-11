@@ -282,6 +282,15 @@ function nestedRecord(record: JsonRecord, ...keys: string[]): JsonRecord {
   return {};
 }
 
+function articleRecordFromEvidence(evidence: JsonRecord): JsonRecord {
+  return firstRecord(
+    evidence.article,
+    asRecord(asRecord(evidence.adapter_input).article),
+    asRecord(asRecord(evidence.runtime_adapter).article),
+    asRecord(asRecord(evidence.publication_adapter).article),
+  );
+}
+
 function validateActionPayload(
   actionClass: GrowthAutonomyActionClass,
   evidence: JsonRecord,
@@ -291,12 +300,7 @@ function validateActionPayload(
   const checks = ["action_payload_contract"];
 
   if (actionClass === "content_publish") {
-    const article = firstRecord(
-      evidence.article,
-      nestedRecord(evidence, "adapter_input", "article"),
-      nestedRecord(evidence, "runtime_adapter", "article"),
-      nestedRecord(evidence, "publication_adapter", "article"),
-    );
+    const article = articleRecordFromEvidence(evidence);
     const content = textValue(article, "content");
     if (!textValue(article, "title")) failures.push("missing_article_title");
     if (!textValue(article, "slug") && !textValue(evidence, "article_slug")) {
@@ -686,12 +690,7 @@ function buildRuntimeArticle({
   slug: string;
   certificationFixtureMode: boolean;
 }) {
-  const article = firstRecord(
-    evidence.article,
-    nestedRecord(evidence, "adapter_input", "article"),
-    nestedRecord(evidence, "runtime_adapter", "article"),
-    nestedRecord(evidence, "publication_adapter", "article"),
-  );
+  const article = articleRecordFromEvidence(evidence);
   const title = textValue(article, "title") ?? textValue(evidence, "article_title");
   if (!title) throw new Error("content_publish payload missing article.title");
   const excerpt = textValue(article, "excerpt") ?? String(workItem.operator_summary ?? title);
@@ -1082,7 +1081,7 @@ async function buildPublicationExecutionPlan({
   }
 
   if (actionClass !== "content_publish") return null;
-  const articlePayload = asRecord(evidence.article);
+  const articlePayload = articleRecordFromEvidence(evidence);
   const proposedTitle =
     textValue(articlePayload, "title") ?? textValue(evidence, "article_title");
   if (proposedTitle) {
@@ -1093,6 +1092,7 @@ async function buildPublicationExecutionPlan({
     });
   }
   const preferredSlug =
+    textValue(articlePayload, "slug") ??
     textValue(evidence, "article_slug") ??
     textValue(evidence, "slug") ??
     String(workItem.title ?? "growth-os-colombia");
