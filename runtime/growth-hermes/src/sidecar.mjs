@@ -7,6 +7,8 @@ import { spawn } from "node:child_process";
 
 const SUPPORTED_LANES = new Set([
   "content",
+  "content_creator",
+  "content_curator",
   "content_writer",
   "technical",
   "technical_remediation",
@@ -15,6 +17,8 @@ const SUPPORTED_LANES = new Set([
 
 const LANE_ALIAS = {
   content: "content_writer",
+  content_creator: "content_writer",
+  content_curator: "content_writer",
   content_writer: "content_writer",
   technical: "technical_remediation",
   technical_remediation: "technical_remediation",
