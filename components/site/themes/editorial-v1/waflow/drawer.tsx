@@ -139,6 +139,22 @@ export function WaflowDrawer({
   const step: WaflowStep = state.step;
   const order = WAFLOW_STEP_ORDER[config.variant];
 
+  const trackAbandonAndClose = useCallback((reason: string) => {
+    if (state.step !== 'confirmation') {
+      trackEvent('waflow_abandon', {
+        variant: config.variant,
+        step: state.step,
+        reason,
+        has_phone: state.phone.trim().length > 0,
+        has_name: state.name.trim().length > 0,
+        when: state.when || null,
+        destination_slug: config.destination?.slug ?? null,
+        package_slug: config.pkg?.slug ?? null,
+      });
+    }
+    onClose();
+  }, [config, onClose, state]);
+
   const handleSkip = useCallback(() => {
     const ref = makeWaflowRef(resolveRefPrefix(config));
     const msg = buildQuickSkipMessage(config, ref);
@@ -158,11 +174,11 @@ export function WaflowDrawer({
   // Escape to close.
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') trackAbandonAndClose('escape');
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, [onClose]);
+  }, [trackAbandonAndClose]);
 
   // Basic focus trap: on mount store the previously focused element, move
   // focus into the drawer; on unmount restore it.
@@ -212,7 +228,7 @@ export function WaflowDrawer({
     <>
       <div
         className="waf-overlay on"
-        onClick={onClose}
+        onClick={() => trackAbandonAndClose('overlay')}
         aria-hidden="true"
       />
       <aside
@@ -229,7 +245,7 @@ export function WaflowDrawer({
             <button
               type="button"
               className="waf-close"
-              onClick={onClose}
+              onClick={() => trackAbandonAndClose('close_button')}
               aria-label="Cerrar"
             >
               <Icons.close size={16} />

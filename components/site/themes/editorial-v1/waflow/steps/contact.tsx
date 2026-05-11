@@ -33,7 +33,7 @@ export interface WaflowStepContactProps {
   subdomain?: string;
 }
 
-type ContactErrors = Partial<Record<'name' | 'phone', string>>;
+type ContactErrors = Partial<Record<'phone', string>>;
 
 const FREQUENT_COUNTRY_CODES = ['CO', 'US', 'MX', 'ES', 'PA', 'EC', 'PE', 'CL'];
 const UTM_KEYS = [
@@ -290,7 +290,7 @@ export function WaflowStepContact({
   );
 
   const submitLabel = useMemo(() => {
-    if (variant === 'A') return 'Continuar en WhatsApp';
+    if (variant === 'A') return 'Enviar y abrir WhatsApp';
     if (variant === 'B')
       return `Planear mi viaje a ${config.destination?.name ?? ''}`.trim();
     return 'Continuar con este paquete';
@@ -300,14 +300,19 @@ export function WaflowStepContact({
     if (submittingRef.current) return;
 
     const errs: ContactErrors = {};
-    if (!state.name.trim() || state.name.trim().length < 2) {
-      errs.name = 'Escribe tu nombre';
-    }
     if (!validateWaflowPhone(state.phone, country)) {
       errs.phone = `Revisa el número para ${country.name} (${country.code}).`;
     }
     if (Object.keys(errs).length > 0) {
       setErrors(errs);
+      trackEvent('waflow_validation_error', {
+        variant,
+        step: 'contact',
+        fields: Object.keys(errs).join(','),
+        country: country.c,
+        destination_slug: config.destination?.slug ?? null,
+        package_slug: config.pkg?.slug ?? null,
+      });
       return;
     }
     setErrors({});
@@ -326,7 +331,7 @@ export function WaflowStepContact({
 
     const message = buildWaflowMessage({
       variant,
-      name: state.name,
+      name: state.name.trim() || 'Viajero',
       country,
       phone: state.phone,
       destinationChoice: state.destinationChoice,
@@ -357,7 +362,7 @@ export function WaflowStepContact({
           submitted: true,
           attribution,
           payload: {
-            name: state.name.trim(),
+            name: state.name.trim() || null,
             phone: `${country.code}${state.phone.replace(/\D/g, '')}`,
             country: country.c,
             when: state.when,
@@ -448,47 +453,6 @@ export function WaflowStepContact({
   return (
     <div className="waf-body">
       <div className="waf-field">
-        <label className="waf-label">
-          <span>¿Cuándo te gustaría viajar?</span>
-          <span className="opt">Aprox</span>
-        </label>
-        <div className="waf-chip-row">
-          {WAFLOW_WHEN_OPTIONS.map((w) => (
-            <button
-              key={w}
-              type="button"
-              className={`waf-chip compact${state.when === w ? ' on' : ''}`}
-              onClick={() => patch({ when: w })}
-            >
-              {w}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="waf-field">
-        <label className="waf-label" htmlFor="waf-name">
-          <span>Tu nombre</span>
-          <span className="req">Requerido</span>
-        </label>
-        <div className={`waf-input-wrap${errors.name ? ' error' : ''}`}>
-          <input
-            id="waf-name"
-            className="waf-input"
-            type="text"
-            value={state.name}
-            onChange={(e) => {
-              patch({ name: e.target.value });
-              if (errors.name) setErrors((p) => ({ ...p, name: undefined }));
-            }}
-            placeholder="Juan Pérez"
-            autoComplete="given-name"
-          />
-        </div>
-        {errors.name ? <div className="waf-error-msg">{errors.name}</div> : null}
-      </div>
-
-      <div className="waf-field">
         <label className="waf-label" htmlFor="waf-phone">
           <span>Tu WhatsApp</span>
           <span className="req">Requerido</span>
@@ -514,6 +478,43 @@ export function WaflowStepContact({
           />
         </div>
         {errors.phone ? <div className="waf-error-msg">{errors.phone}</div> : null}
+      </div>
+
+      <div className="waf-field">
+        <label className="waf-label">
+          <span>¿Cuándo te gustaría viajar?</span>
+          <span className="opt">Aprox</span>
+        </label>
+        <div className="waf-chip-row">
+          {WAFLOW_WHEN_OPTIONS.map((w) => (
+            <button
+              key={w}
+              type="button"
+              className={`waf-chip compact${state.when === w ? ' on' : ''}`}
+              onClick={() => patch({ when: w })}
+            >
+              {w}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="waf-field">
+        <label className="waf-label" htmlFor="waf-name">
+          <span>Tu nombre</span>
+          <span className="opt">Opcional</span>
+        </label>
+        <div className="waf-input-wrap">
+          <input
+            id="waf-name"
+            className="waf-input"
+            type="text"
+            value={state.name}
+            onChange={(e) => patch({ name: e.target.value })}
+            placeholder="Como quieres que te llamemos"
+            autoComplete="given-name"
+          />
+        </div>
       </div>
 
       <div className="waf-step-nav">

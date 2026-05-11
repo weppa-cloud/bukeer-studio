@@ -54,6 +54,18 @@ describe('buildWaflowMessage', () => {
     expect(msg).not.toContain('Viajeros');
   });
 
+  it('uses a generic signature when name is omitted', () => {
+    const msg = buildWaflowMessage({
+      variant: 'A',
+      name: '',
+      country: CO,
+      phone: '3001234567',
+      when: 'Flexible',
+      ref: 'HOME-0101-ZZZZ',
+    });
+    expect(msg).toContain('— Viajero');
+  });
+
   it('builds the Variant B template with destination name', () => {
     const msg = buildWaflowMessage({
       variant: 'B',

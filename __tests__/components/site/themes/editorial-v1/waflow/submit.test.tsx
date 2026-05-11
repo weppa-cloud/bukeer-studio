@@ -87,13 +87,13 @@ describe('WAFlow submission — message + URL', () => {
 });
 
 describe('WAFlow submission — UI label', () => {
-  it('renders "Continuar en WhatsApp" for variant A', () => {
+  it('renders "Enviar y abrir WhatsApp" for variant A', () => {
     const html = renderToStaticMarkup(
       <WaflowProvider businessNumber="573001234567" subdomain="colombiatours" showFab={false}>
         <WaflowStepContact variant="A" config={{ variant: 'A' }} subdomain="colombiatours" />
       </WaflowProvider>,
     );
-    expect(html).toContain('Continuar en WhatsApp');
+    expect(html).toContain('Enviar y abrir WhatsApp');
   });
 
   it('renders "Planear mi viaje a ..." for variant B', () => {
@@ -129,6 +129,18 @@ describe('WAFlow submission — UI label', () => {
       </WaflowProvider>,
     );
     expect(html).toContain('Tu número se usa solo para este viaje');
+  });
+
+  it('shows phone as required and name as optional', () => {
+    const html = renderToStaticMarkup(
+      <WaflowProvider businessNumber="573001234567" showFab={false}>
+        <WaflowStepContact variant="A" config={{ variant: 'A' }} />
+      </WaflowProvider>,
+    );
+    expect(html).toContain('Tu WhatsApp');
+    expect(html).toContain('Requerido');
+    expect(html).toContain('Tu nombre');
+    expect(html).toContain('Opcional');
   });
 });
 

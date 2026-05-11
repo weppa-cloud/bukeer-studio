@@ -99,7 +99,8 @@ export function buildWaflowMessage(input: WaflowMessageInput): string {
     lines.push(`Origen: ${sourceUrl.trim()}`);
   }
   lines.push('');
-  lines.push(`— ${name.trim()}`);
+  const displayName = name.trim() || 'Viajero';
+  lines.push(`— ${displayName}`);
   lines.push('');
   lines.push(`#ref: ${ref}`);
 
