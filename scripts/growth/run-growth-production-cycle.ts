@@ -5,9 +5,22 @@ import { randomUUID } from "crypto";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/service-role";
 import { runGrowthOsProductionCycle } from "@/lib/growth/autonomy/production-cycle";
 
+type AgentLane =
+  | "technical_remediation"
+  | "transcreation"
+  | "content_creator"
+  | "content_curator"
+  | "orchestrator";
 type GrowthMarket = "CO" | "MX" | "US" | "CA" | "EU" | "OTHER";
 type GrowthEnvironment = "local" | "qa" | "staging" | "production";
 
+const LANES = new Set<AgentLane>([
+  "technical_remediation",
+  "transcreation",
+  "content_creator",
+  "content_curator",
+  "orchestrator",
+]);
 const MARKETS = new Set<GrowthMarket>(["CO", "MX", "US", "CA", "EU", "OTHER"]);
 const ENVIRONMENTS = new Set<GrowthEnvironment>([
   "local",
@@ -45,6 +58,21 @@ function readRuntimeMode(): "executor" | "monitor" {
   const value = readArg("--runtime-mode", process.env.GROWTH_RUNTIME_MODE ?? "executor");
   if (value === "executor" || value === "monitor") return value;
   throw new Error(`Invalid --runtime-mode value: ${value}`);
+}
+
+function readLanes(): AgentLane[] | undefined {
+  const value = readArg("--lanes", process.env.GROWTH_RUNTIME_LANES ?? "");
+  if (!value.trim()) return undefined;
+  const lanes = value
+    .split(",")
+    .map((lane) => lane.trim())
+    .filter(Boolean);
+  for (const lane of lanes) {
+    if (!LANES.has(lane as AgentLane)) {
+      throw new Error(`Invalid --lanes value: ${lane}`);
+    }
+  }
+  return [...new Set(lanes)] as AgentLane[];
 }
 
 async function shouldExitForFreshSchedulerLease({
@@ -146,6 +174,7 @@ async function main() {
       claimLimitPerLane: Number(readArg("--max-claims-per-lane", "1")),
       candidateLimit: Number(readArg("--candidate-limit", "25")),
       promotionLimit: Number(readArg("--promotion-limit", "10")),
+      lanes: readLanes(),
       schedulerMetadata: {
         scheduler_name: schedulerName,
         lease_token: leaseToken,

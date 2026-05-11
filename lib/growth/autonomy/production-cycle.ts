@@ -82,6 +82,7 @@ export interface RunGrowthOsProductionCycleOptions {
   candidateLimit?: number;
   promotionLimit?: number;
   claimLimitPerLane?: number;
+  lanes?: AgentLane[];
   workspacePath?: string;
   schedulerMetadata?: JsonRecord;
   now?: Date;
@@ -1548,6 +1549,7 @@ async function runExecutionBridge({
   cycleId,
   workspacePath,
   claimLimitPerLane,
+  lanes,
   dryRun,
   allowLiveMutation,
   certificationFixtureMode,
@@ -1561,6 +1563,7 @@ async function runExecutionBridge({
   cycleId: string;
   workspacePath: string;
   claimLimitPerLane: number;
+  lanes?: AgentLane[];
   dryRun: boolean;
   allowLiveMutation: boolean;
   certificationFixtureMode: boolean;
@@ -1568,7 +1571,7 @@ async function runExecutionBridge({
 }) {
   const claims = [];
   const executions = [];
-  for (const lane of RUNTIME_LANES) {
+  for (const lane of lanes && lanes.length > 0 ? lanes : RUNTIME_LANES) {
     for (let i = 0; i < claimLimitPerLane; i += 1) {
       const claim = await claimGrowthWorkItem({
         supabase,
@@ -1630,6 +1633,7 @@ export async function runGrowthOsProductionCycle(
   const candidateLimit = monitorOnly ? 0 : (options.candidateLimit ?? 25);
   const promotionLimit = monitorOnly ? 0 : (options.promotionLimit ?? 10);
   const claimLimitPerLane = monitorOnly ? 0 : (options.claimLimitPerLane ?? 1);
+  const runtimeLanes = monitorOnly ? [] : (options.lanes ?? RUNTIME_LANES);
   const certificationFixtureMode = options.certificationFixtureMode ?? false;
   const cycleKey =
     options.cycleKey ??
@@ -1653,6 +1657,7 @@ export async function runGrowthOsProductionCycle(
       effective_promotion_limit: promotionLimit,
       claim_limit_per_lane: options.claimLimitPerLane ?? 1,
       effective_claim_limit_per_lane: claimLimitPerLane,
+      lanes: runtimeLanes,
       allow_live_mutation: allowLiveMutation,
       enable_agentic_brain: enableAgenticBrain,
       certification_fixture_mode: certificationFixtureMode,
@@ -1678,6 +1683,7 @@ export async function runGrowthOsProductionCycle(
       allow_live_mutation: allowLiveMutation,
       enable_agentic_brain: enableAgenticBrain,
       claim_limit_per_lane: claimLimitPerLane,
+      lanes: runtimeLanes,
       runtime_mode: runtimeMode,
       ...(options.schedulerMetadata ?? {}),
     },
@@ -1872,6 +1878,7 @@ export async function runGrowthOsProductionCycle(
             options.workspacePath ??
             `/workspaces/${accountId}/${websiteId}/growth-runtime`,
           claimLimitPerLane,
+          lanes: runtimeLanes,
           dryRun,
           allowLiveMutation,
           certificationFixtureMode,
