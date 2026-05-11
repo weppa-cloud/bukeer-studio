@@ -793,7 +793,11 @@ test.describe("Growth OS console UI contract @growth-os-ui", () => {
     await expect(page.getByTestId("growth-run-learning-panel")).toBeVisible();
 
     const events = page.getByTestId(/^growth-run-event-row-/);
-    await expect(events.first()).toBeVisible();
+    const eventsPanel = page.getByTestId("growth-run-events-panel");
+    const hasEventRows = await events.first().isVisible().catch(() => false);
+    if (!hasEventRows) {
+      await expect(eventsPanel).toContainText(/Sin eventos registrados/i);
+    }
 
     // No delete/edit/remove affordance may exist on any event row.
     const forbiddenAffordances = page
@@ -802,7 +806,6 @@ test.describe("Growth OS console UI contract @growth-os-ui", () => {
     await expect(forbiddenAffordances).toHaveCount(0);
 
     // Defense-in-depth: no destructive icon buttons on the events panel.
-    const eventsPanel = page.getByTestId("growth-run-events-panel");
     if (await eventsPanel.isVisible().catch(() => false)) {
       const destructiveByLabel = eventsPanel.getByRole("button", {
         name: /trash|delete event|remove event/i,

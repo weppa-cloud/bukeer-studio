@@ -925,8 +925,9 @@ function AgenticControl({ data }: { data: GrowthCeoCockpitData }) {
           fields={{ websiteId: data.websiteId }}
         />
         <p className="text-xs text-[var(--studio-text-muted,theme(colors.zinc.500))]">
-          Crea wakeup on-demand y decision ledger; no publica ni aplica cambios
-          fuera del executor live-gated.
+          Crea wakeup on-demand con source user_on_demand y decision ledger;
+          no publica ni aplica cambios fuera del executor live-gated. Estados:
+          queued, claimed, completed o failed.
         </p>
       </div>
 

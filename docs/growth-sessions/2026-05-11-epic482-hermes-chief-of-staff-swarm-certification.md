@@ -4,7 +4,7 @@ Date: 2026-05-11
 Tenant: ColombiaTours  
 Account: `9fc24733-b127-4184-aa22-12f03b98927a`  
 Website: `894545b7-73ca-4dae-b76a-da5b6a3f8441`  
-Status: `CERTIFIED_WITH_WATCH`
+Status: `CERTIFIED`
 
 ## Scope
 
@@ -26,13 +26,16 @@ External Hermes runtime replacement is intentionally not certified here. The acc
 On 2026-05-11 the hybrid runtime was validated directly on the Growth OS VPS
 instead of local simulation.
 
-- VPS release deployed: `b8c24a921440e5ce576996f3b813c34169319b66`
+- VPS release deployed: `09baf96fc7e34704dbedeb3d5b6dc80b152ad1e0`
 - Runtime root: `/opt/growth-os/current`
 - Docker service: `growth-orchestrator`
 - Hermes profile: `growth-os-colombiatours`
 - Deployment smoke: `runtime config smoke completed`, pass `true`
-- Persisted SHA guard: `/opt/growth-os/.env` now records `GITHUB_SHA=b8c24a921440e5ce576996f3b813c34169319b66`
-- Fix commit: `b8c24a92 fix(growth): persist runtime deploy sha on VPS`
+- Persisted SHA guard: `/opt/growth-os/.env` now records `GITHUB_SHA=09baf96fc7e34704dbedeb3d5b6dc80b152ad1e0`
+- Fix commits:
+  - `b8c24a92 fix(growth): persist runtime deploy sha on VPS`
+  - `e988142f fix(growth): include transcreation IDs in Hermes artifacts`
+  - `09baf96f fix(growth): cite agent context in Hermes sidecar artifacts`
 
 Real Hermes sidecar run:
 
@@ -101,15 +104,20 @@ Post-deploy daemon cycle:
 - Target path: `/paquetes-a-colombia-todo-incluido-en-9-dias`
 - Smoke status: `smoke_passed`
 
-Runtime health after reconciliation:
+Final VPS runtime health after local monitor shutdown:
 
 - Open work items: `0`
 - Open wakeups: `0`
 - Open task sessions: `0`
 - Scheduler heartbeat: `healthy`
 - Heartbeat row: `24578b81-8495-4842-841e-8a3224cb6dd6`
-- Last cycle id: `93189254-e2eb-44e5-b0f5-ed0a409bdda9`
+- Heartbeat SHA: `09baf96fc7e34704dbedeb3d5b6dc80b152ad1e0`
+- Last cycle id: `524f9de3-d033-4cfd-9009-867c0ff81e1d`
 - Last cycle status: `completed`
+- Follow-up recovery cycles:
+  - `fbfa708f-d615-4131-ba78-9d96f5eb6f7c`, completed, no mutation
+  - `524f9de3-d033-4cfd-9009-867c0ff81e1d`, completed, no mutation
+- A one-shot brain cycle `7f3a03ec-0b4a-4dae-ba56-3de07f91d17e` hit a Supabase statement timeout while inserting a context snapshot. The next two cycles completed on the same deployed SHA, and all open wakeups/sessions were cleared.
 
 Stale cleanup performed after controlled VPS restarts:
 
@@ -121,13 +129,26 @@ Stale cleanup performed after controlled VPS restarts:
 - Stale work item blocked: `aba4ae42-a935-461e-9eb9-7bcfd35bda8b`
 - Block reason: `stale_runtime_claim_recovered_missing_transcreation_contract`
 
-Transcreation lane evidence remains guarded:
+Transcreation live merge proof:
 
-- Hermes transcreation lane produced artifact evidence in sidecar validation.
-- Live merge was not forced because the available transcreation payloads lacked
-  `source_entity_id` and `transcreation_job_id`, or were blocked by anti-rework.
-- This is an executor contract pass, not a public mutation pass: invalid
-  transcreation artifacts do not bypass Growth OS gates.
+- Code fix: `e988142f` included `source_entity_id`, `page_type` and `transcreation_job_id` in Hermes transcreation artifacts.
+- Sidecar run: `bd5c0561-e351-4b50-b256-aae35162f83b`
+- Provider analysis artifact: `a7b4ca39-e774-4e38-8156-e912c406ff15`
+- Lane session: `e20933e4-845e-4f87-a5f9-0b89d8eb8254`
+- Transcreation artifact: `bf78f317-96d5-4888-b992-814da5a0a983`
+- Candidate: `0d9a162b-9571-4b6e-809c-ae030d1f98b5`
+- Candidate anti-rework verdict: `correlation:prior_active_same_entity_action:transcreation_merge:page:en-us:a2019510-c804-4717-be0f-dd95cebf2d5a`
+- Live merge job: `eea7efa1-3688-48c0-91ac-bd552b90e1b4`
+- Work item: `444f667b-90a5-4fb2-bc57-1f29f9158751`
+- Change set: `35dc1501-9f85-4e6b-bba7-976fe845dd62`
+- Target: `seo_transcreation_jobs:70110fff-3b92-40f2-89cb-ab2804792b71`
+- Target path: `page:en-US:a2019510-c804-4717-be0f-dd95cebf2d5a`
+- Smoke status: `smoke_passed`
+- Smoke checks: `locale_pair`, `meta_title_length`, `meta_description_length`, `quality_gate`, `overlay_present`
+- Outcomes:
+  - `09c5fcf7-728f-4fae-b7fc-5983e2096314`, measuring day 21
+  - `f5143a25-016f-477b-a0f3-85ce0ebc92f6`, scheduled day 45
+- Post-deploy daemon transcreation job: `42b7e7b5-d4d4-4ab4-bea5-7d3de94c23e1`, smoke `smoke_passed`, target `seo_transcreation_jobs:79866c9c-57b7-4910-8423-32ade776e5e3`.
 
 ### Supabase migration
 
@@ -162,6 +183,22 @@ RLS was verified enabled for the new Growth tables. Supabase advisors still repo
 - Wakeup: `75b7e8dc-2d0c-4d3b-8646-0c45917eecd6`
 
 The response cited operational records from decisions, outcomes, profile runs and task sessions. Sensitive direct mutation intents are routed to `forbidden` or `requires_approval`; the UI action enqueues wakeups instead of running the Brain inside the request.
+
+Forbidden action production proof:
+
+- Action: `24848423-8056-4784-9ade-55bbac28a9ee`
+- Action class: `forbidden`
+- Status: `blocked`
+- Policy verdict: `sensitive_surface_hard_blocked`
+- Mutation boundary: `growth_os_executor`
+- Blocked surfaces: paid, pricing and outreach
+- Result: no wakeup created and no public mutation attempted.
+
+Cross-tenant failure proof:
+
+- Attempt: mismatched account `00000000-0000-0000-0000-000000000000` for ColombiaTours website `894545b7-73ca-4dae-b76a-da5b6a3f8441`
+- Result: denied with `hermes_tenant_scope_denied`
+- Reason: `website_account_mismatch`
 
 ### Wakeup coalescing fix
 
@@ -222,6 +259,29 @@ Materialized artifact:
 
 The artifact contract required target, field allowlist, rollback payload, smoke plan, success metric and evaluation window before materialization.
 
+### Learning closed-loop proof
+
+The production learning loop was closed with a real evaluated outcome:
+
+- Evaluated outcome: `14410d79-a86d-49ea-ba63-5f9c6ebf7680`
+- Draft memory created: `9be1209b-27f5-40f3-a49a-d0ffca3fadde`
+- Replay case: `45517096-7530-4cd5-9677-a75c59b0a786`
+- Replay agreement: `0.94`
+- Memory status after approval: `active`
+- Approved by: `13a23dde-997d-4038-a1cc-1d1114193259`
+
+The next Hermes sidecar run cited the approved memory and active skills:
+
+- Sidecar run: `1da18fab-bb2d-40af-ab93-c33db492aaca`
+- Provider analysis artifact: `6249175c-1229-4118-9807-932faef7cd66`
+- Task session: `17698c1d-38d9-4db7-8be7-808270183561`
+- Lane artifact: `ffbae1a9-1211-4ad3-9807-fd4a9016bad0`
+- Artifact type: `safe_apply_patch`
+- `memory_reads`: `9be1209b-27f5-40f3-a49a-d0ffca3fadde`, `03f2b31c-c44b-4abd-b7be-bd63aef9c31a`
+- `skill_reads`: `300abce1-ee46-4c41-990b-defcebc14755`, `8260a861-4fac-42ae-88b4-b4d56df83a31`
+
+This proves `outcome -> memory/replay -> active memory -> later agent artifact cites memory/skill`.
+
 ## UI/E2E Evidence
 
 Session-pool E2E only. Firefox was explicitly skipped for this closure.
@@ -260,11 +320,34 @@ GROWTH_OS_UI_E2E_ENABLED=true npm run session:run -- \
 
 Result: `3 passed`.
 
+Final regression rerun for all previously failed Growth OS UI cases:
+
+```bash
+GROWTH_OS_UI_E2E_ENABLED=true \
+E2E_GROWTH_ROLE_FIXTURES_READY=true \
+E2E_GROWTH_VIEWER_EMAIL=consultoria+growth-viewer@weppa.co \
+E2E_GROWTH_CURATOR_EMAIL=consultoria+growth-curator@weppa.co \
+E2E_GROWTH_ROLE_PASSWORD='[redacted]' \
+npm run session:run -- \
+  --project=chromium \
+  --project=mobile-chrome \
+  --grep "CEO cockpit|Role-gated actions|Append-only events|Run detail works|Run detail exposes|Experiments and Data Health|Mobile Growth OS surfaces"
+```
+
+Result: `15 passed`.
+
+Production role fixtures used:
+
+- Viewer: `consultoria+growth-viewer@weppa.co`, user `d4b132c1-f4f0-4915-9958-d183707807fa`
+- Curator: `consultoria+growth-curator@weppa.co`, user `ce41b828-e59b-43fb-b2c2-823bc7267c49`
+- Admin: `consultoria+growth-admin@weppa.co`, user `aff56987-c153-4d7f-8b13-4c6d3e5fa3b2`
+
 ## Unit And Type Evidence
 
 - `npm run typecheck`: passed.
 - Chief of Staff unit tests: 5 suites / 11 tests passed.
 - Paperclip heartbeat v2 regression test: 1 suite / 5 tests passed.
+- Hermes sidecar unit tests: 3 suites / 10 tests passed.
 
 ## Certification Verdict
 
@@ -275,13 +358,17 @@ Certified:
 - Wakeup coalescing.
 - Editable agent company UI.
 - Agent artifact validation/materialization.
+- Hermes sidecar content artifact.
+- Hermes sidecar transcreation artifact.
+- Live `content_publish`, `safe_apply` and `transcreation_merge` through Growth OS executor.
+- Forbidden action and cross-tenant blocking.
+- Learning loop with later memory/skill citation.
 - Growth OS executor-only mutation boundary.
 - Session-pool E2E for Chromium and mobile Chrome.
 
-Watch:
+Explicitly out of scope:
 
-- External Hermes worker/profile is not replacing the production daemon in this certification.
 - Firefox E2E was skipped by operator instruction.
 - Legacy Supabase RLS advisory remains outside this Epic.
 
-Closeable issues: #483, #484, #486, #487, #489 and UI portions of #490. Keep #485/#488 scoped as follow-up if the goal changes from hybrid Hermes layer to external Hermes runtime/lane workers.
+Closeable issues: #482, #483, #484, #485, #486, #487, #488, #489 and #490.
