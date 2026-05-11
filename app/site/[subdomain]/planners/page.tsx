@@ -22,6 +22,7 @@ import {
 } from '@/lib/seo/public-metadata';
 import { localeToOgLocale } from '@/lib/seo/locale-routing';
 import { resolveOgImage } from '@/lib/seo/og-helpers';
+import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 
 // ISR: Revalidate every 5 minutes
 export const revalidate = 300;
@@ -45,18 +46,20 @@ export async function generateMetadata({
   const localeContext = await resolvePublicMetadataLocale(website, '/planners');
   const canonical = `${baseUrl}${localeContext.localizedPathname}`;
   const ogImage = resolveOgImage(website);
+  const text = getPublicUiExtraTextGetter(localeContext.resolvedLocale);
+  const title = text('editorialPlannersListMetaTitle');
+  const description = text('editorialPlannersListMetaDescription');
 
   return {
-    title: 'Nuestros travel planners',
-    description:
-      'Conoce al equipo de travel planners. Emparejamos tu viaje con la persona que más sabe de la región o experiencia que buscas.',
+    title,
+    description,
     alternates: {
       canonical,
       languages: buildLocaleAwareAlternateLanguages(baseUrl, '/planners', localeContext),
     },
     openGraph: {
-      title: `Nuestros travel planners — ${siteName}`,
-      description: 'Conoce al equipo de travel planners. Emparejamos tu viaje con la persona que más sabe de la región o experiencia que buscas.',
+      title: `${title} — ${siteName}`,
+      description,
       type: 'website',
       locale: localeToOgLocale(localeContext.resolvedLocale),
       ...(ogImage && { images: [{ url: ogImage }] }),
@@ -75,6 +78,12 @@ export default async function PlannersListRoute({ params }: PlannersListPageProp
   const brandClaims = website.account_id
     ? await getBrandClaims(website.account_id)
     : null;
+  const localeContext = await resolvePublicMetadataLocale(website, '/planners');
+  const websiteForRender = {
+    ...website,
+    resolvedLocale: localeContext.resolvedLocale,
+    defaultLocale: localeContext.defaultLocale,
+  };
 
   const payload = { dbPlanners, brandClaims };
 
@@ -147,7 +156,7 @@ export default async function PlannersListRoute({ params }: PlannersListPageProp
   );
 
   return (
-    <TemplateSlot name="planners-list" website={website} payload={payload}>
+    <TemplateSlot name="planners-list" website={websiteForRender} payload={payload}>
       {genericBody}
     </TemplateSlot>
   );

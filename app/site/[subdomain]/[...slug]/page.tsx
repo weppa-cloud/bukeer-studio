@@ -249,20 +249,25 @@ export async function generateMetadata({
       "activities",
     ]);
     const ogImage = resolveOgImage(website);
+    const isEnglish = localeContext.resolvedLanguage === "en";
+    const pageTitle = isEnglish ? "Activities" : "Actividades";
+    const pageDescription = isEnglish
+      ? `Discover all activities and experiences available with ${siteName}.`
+      : `Descubre todas las actividades y experiencias disponibles con ${siteName}.`;
     const metadata: Metadata = {
-      title: "Actividades",
-      description: `Descubre todas las actividades y experiencias disponibles con ${siteName}.`,
+      title: pageTitle,
+      description: pageDescription,
       openGraph: {
-        title: `Actividades | ${siteName}`,
-        description: `Descubre todas las actividades y experiencias disponibles con ${siteName}.`,
+        title: `${pageTitle} | ${siteName}`,
+        description: pageDescription,
         type: "website",
         locale: ogLocale,
         ...(ogImage && { images: [{ url: ogImage }] }),
       },
       twitter: {
         card: "summary_large_image",
-        title: `Actividades | ${siteName}`,
-        description: `Descubre todas las actividades y experiencias disponibles con ${siteName}.`,
+        title: `${pageTitle} | ${siteName}`,
+        description: pageDescription,
         ...(ogImage && { images: [ogImage] }),
       },
       alternates: {
@@ -378,20 +383,25 @@ export async function generateMetadata({
       "packages",
     ]);
     const ogImage = resolveOgImage(website);
+    const isEnglish = localeContext.resolvedLanguage === "en";
+    const pageTitle = isEnglish ? "Travel Packages" : "Paquetes de Viaje";
+    const pageDescription = isEnglish
+      ? `Discover curated travel packages by ${siteName}. All-in-one unique experiences.`
+      : `Descubre los paquetes de viaje curados por ${siteName}. Experiencias únicas todo incluido.`;
     const metadata: Metadata = {
-      title: "Paquetes de Viaje",
-      description: `Descubre los paquetes de viaje curados por ${siteName}. Experiencias únicas todo incluido.`,
+      title: pageTitle,
+      description: pageDescription,
       openGraph: {
-        title: `Paquetes de Viaje | ${siteName}`,
-        description: `Descubre los paquetes de viaje curados por ${siteName}. Experiencias únicas todo incluido.`,
+        title: `${pageTitle} | ${siteName}`,
+        description: pageDescription,
         type: "website",
         locale: ogLocale,
         ...(ogImage && { images: [{ url: ogImage }] }),
       },
       twitter: {
         card: "summary_large_image",
-        title: `Paquetes de Viaje | ${siteName}`,
-        description: `Descubre los paquetes de viaje curados por ${siteName}. Experiencias únicas todo incluido.`,
+        title: `${pageTitle} | ${siteName}`,
+        description: pageDescription,
         ...(ogImage && { images: [ogImage] }),
       },
       alternates: {

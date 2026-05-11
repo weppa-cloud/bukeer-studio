@@ -50,6 +50,13 @@ function toArrayParam(raw: string | string[] | undefined): string[] {
     .filter(Boolean);
 }
 
+function buildActivitiesDescription(siteName: string, locale?: string): string {
+  const language = localeToLanguage(normalizeLocale(locale, "es-CO"));
+  return language === "en"
+    ? `Activities and local experiences in Colombia selected by ${siteName}. Book with local support, clear information, and flexible options.`
+    : `Actividades y experiencias en Colombia seleccionadas por ${siteName}. Reserva con soporte local, información clara y opciones flexibles.`;
+}
+
 function buildActivitiesSchemas(input: {
   siteName: string;
   baseUrl: string;
@@ -119,9 +126,9 @@ export async function generateMetadata({
   const { subdomain } = await params;
   const website = await getWebsiteBySubdomain(subdomain);
   const siteName = getSiteName(website, subdomain);
-  const description = `Actividades y experiencias en Colombia seleccionadas por ${siteName}. Reserva con soporte local, información clara y opciones flexibles.`;
 
   if (!website) {
+    const description = buildActivitiesDescription(siteName);
     return {
       title: "Actividades",
       description,
@@ -134,9 +141,12 @@ export async function generateMetadata({
   const localeContext = await resolvePublicMetadataLocale(website, PAGE_PATH);
   const canonical = `${baseUrl}${localeContext.localizedPathname}`;
   const ogImage = resolveOgImage(website);
+  const isEnglish = localeContext.resolvedLanguage === "en";
+  const title = isEnglish ? "Activities in Colombia" : "Actividades en Colombia";
+  const description = buildActivitiesDescription(siteName, localeContext.resolvedLocale);
 
   return {
-    title: "Actividades en Colombia",
+    title,
     description,
     alternates: {
       canonical,
@@ -147,7 +157,7 @@ export async function generateMetadata({
       ),
     },
     openGraph: {
-      title: `Actividades en Colombia | ${siteName}`,
+      title: `${title} | ${siteName}`,
       description,
       url: canonical,
       siteName,
@@ -157,7 +167,7 @@ export async function generateMetadata({
     },
     twitter: {
       card: "summary_large_image",
-      title: `Actividades en Colombia | ${siteName}`,
+      title: `${title} | ${siteName}`,
       description,
       ...(ogImage && { images: [ogImage] }),
     },

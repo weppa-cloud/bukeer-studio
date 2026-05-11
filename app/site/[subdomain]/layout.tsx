@@ -263,6 +263,13 @@ export default async function SiteLayout({ children, params }: SiteLayoutProps) 
   const templateSet = resolveTemplateSet(website) || (subdomain.toLowerCase().includes('colombiatours') ? 'editorial-v1' : null);
   const isEditorial = templateSet === 'editorial-v1';
   const shouldInjectThemeFontStyles = !isEditorial;
+  const analyticsContext = {
+    accountId: website.account_id,
+    websiteId: website.id,
+    tenant: website.subdomain || subdomain,
+    locale: localeContext.resolvedLocale,
+    market: localeContext.resolvedLocale.split('-')[1] ?? null,
+  };
 
   const headerEl = isEditorial ? (
     <EditorialSiteHeader
@@ -350,7 +357,7 @@ export default async function SiteLayout({ children, params }: SiteLayoutProps) 
     <WebsiteLocaleProvider locale={localeContext.resolvedLocale}>
       <M3ThemeProvider initialTheme={initialTheme}>
         {/* Google Tag Manager and Analytics Scripts */}
-        <GoogleTagManager analytics={website.analytics} defer />
+        <GoogleTagManager analytics={website.analytics} defer context={analyticsContext} />
 
         {templateSet ? (
           <div data-template-set={templateSet}>{templatedBody}</div>

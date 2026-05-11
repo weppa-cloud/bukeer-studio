@@ -27,6 +27,17 @@ function getInitialTheme(theme: WebsiteData['theme'] | null | undefined): ThemeI
   return normalizeThemeInput(theme);
 }
 
+function getAnalyticsContext(website: WebsiteData) {
+  const locale = website.default_locale || website.content?.locale || 'es-CO';
+  return {
+    accountId: website.account_id,
+    websiteId: website.id,
+    tenant: website.subdomain,
+    locale,
+    market: locale.split('-')[1] ?? null,
+  };
+}
+
 async function getWebsiteByCustomDomain(customDomain: string): Promise<WebsiteData | null> {
   // Normalize: lowercase + strip trailing dot (defense-in-depth, middleware also normalizes)
   const normalizedHost = customDomain.toLowerCase().replace(/\.$/, '');
@@ -145,7 +156,7 @@ export default async function CustomDomainPage({ params, searchParams }: CustomD
 
     return (
       <M3ThemeProvider initialTheme={getInitialTheme(website.theme)}>
-        <GoogleTagManager analytics={website.analytics} defer />
+        <GoogleTagManager analytics={website.analytics} defer context={getAnalyticsContext(website)} />
         <div className="min-h-screen flex flex-col">
           <GoogleTagManagerBody analytics={website.analytics} defer />
           <SiteHeader website={website} isCustomDomain={true} />
@@ -298,7 +309,7 @@ export default async function CustomDomainPage({ params, searchParams }: CustomD
 
     return (
       <M3ThemeProvider initialTheme={getInitialTheme(website.theme)}>
-        <GoogleTagManager analytics={website.analytics} defer />
+        <GoogleTagManager analytics={website.analytics} defer context={getAnalyticsContext(website)} />
         <div className="min-h-screen flex flex-col">
           <GoogleTagManagerBody analytics={website.analytics} defer />
           <SiteHeader website={website} isCustomDomain={true} />
@@ -449,7 +460,7 @@ export default async function CustomDomainPage({ params, searchParams }: CustomD
 
     return (
       <M3ThemeProvider initialTheme={getInitialTheme(website.theme)}>
-        <GoogleTagManager analytics={website.analytics} defer />
+        <GoogleTagManager analytics={website.analytics} defer context={getAnalyticsContext(website)} />
         <div className="min-h-screen flex flex-col">
           <GoogleTagManagerBody analytics={website.analytics} defer />
           <SiteHeader website={website} isCustomDomain={true} />
@@ -512,7 +523,7 @@ export default async function CustomDomainPage({ params, searchParams }: CustomD
   return (
     <M3ThemeProvider initialTheme={getInitialTheme(website.theme)}>
       {/* Google Tag Manager and Analytics Scripts */}
-      <GoogleTagManager analytics={website.analytics} defer />
+      <GoogleTagManager analytics={website.analytics} defer context={getAnalyticsContext(website)} />
 
       <div className="min-h-screen flex flex-col">
         {/* GTM NoScript fallback */}
