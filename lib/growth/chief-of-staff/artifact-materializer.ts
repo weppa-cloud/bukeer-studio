@@ -133,6 +133,7 @@ function artifactKind(
 
 function adapterInputForArtifact(artifact: GrowthAgentArtifact, target: JsonRecord) {
   const payload = asRecord(artifact.payload);
+  const qualityReview = asRecord(artifact.quality_review);
   if (artifact.artifact_type === "content_article") {
     return {
       article: {
@@ -142,6 +143,7 @@ function adapterInputForArtifact(artifact: GrowthAgentArtifact, target: JsonReco
         seo_title: text(payload.seo_title) ?? text(payload.title),
         seo_description: text(payload.seo_description) ?? text(payload.summary),
         content: text(payload.content) ?? text(payload.markdown) ?? text(payload.body),
+        supported_facts: providerFactsForEvidence(artifact),
       },
     };
   }
@@ -162,7 +164,10 @@ function adapterInputForArtifact(artifact: GrowthAgentArtifact, target: JsonReco
       target_locale: text(payload.target_locale),
       target,
       payload: asRecord(payload.payload),
-      quality: asRecord(artifact.quality_review),
+      quality: {
+        ...qualityReview,
+        passed: qualityReview.passed === true || qualityReview.pass === true,
+      },
       rollback_payload: asRecord(payload.rollback_payload),
       glossary_terms: Array.isArray(payload.glossary_terms)
         ? payload.glossary_terms
@@ -178,6 +183,33 @@ function adapterInputForArtifact(artifact: GrowthAgentArtifact, target: JsonReco
     };
   }
   return payload;
+}
+
+function providerRef(row: unknown): string | null {
+  const record = asRecord(row);
+  const table = text(record.table) ?? text(record.source_table) ?? "provider";
+  const id = text(record.id) ?? text(record.cache_id) ?? text(record.profile_run_id);
+  if (!id) return null;
+  return `${table}:${id}`;
+}
+
+function providerFactsForEvidence(artifact: GrowthAgentArtifact): JsonRecord[] {
+  const reads = Array.isArray(artifact.provider_evidence_reads)
+    ? artifact.provider_evidence_reads
+    : [];
+  const facts: JsonRecord[] = [];
+  for (const row of reads) {
+    const record = asRecord(row);
+    const ref = providerRef(record);
+    if (!ref) continue;
+    facts.push({
+      ref,
+      provider: text(record.provider) ?? "growth_os",
+      profile_id: text(record.profile_id) ?? text(record.profile) ?? null,
+      freshness_status: text(record.freshness_status) ?? null,
+    });
+  }
+  return facts;
 }
 
 export function buildGrowthArtifactCandidate({
@@ -202,6 +234,10 @@ export function buildGrowthArtifactCandidate({
     `Hermes artifact ${artifact.id} prepared for ${kind.actionClass}.`;
   const successMetric = text(payload.success_metric) ?? kind.defaultMetric;
   const evalWindow = evaluationWindow(payload.evaluation_window ?? kind.defaultWindow);
+  const providerFacts = providerFactsForEvidence(artifact);
+  const sourceRefs = providerFacts
+    .map((fact) => text(fact.ref))
+    .filter((ref): ref is string => Boolean(ref));
   const evidence: JsonRecord = {
     source: "growth_agent_artifact",
     artifact_id: artifact.id,
@@ -220,6 +256,8 @@ export function buildGrowthArtifactCandidate({
         ? asRecord(payload.baseline)
         : { artifact_baseline: "pending_executor_snapshot" },
     provider_evidence_reads: artifact.provider_evidence_reads,
+    source_refs: sourceRefs,
+    supported_facts: providerFacts,
     memory_reads: artifact.memory_reads,
     skill_reads: artifact.skill_reads,
     quality_review: artifact.quality_review,
