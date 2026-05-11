@@ -768,6 +768,8 @@ const EXTRA_TEXTS_BY_LOCALE: Record<
   'es-CO': { ...BASE_EXTRA_TEXTS },
   'en-US': { ...BASE_EXTRA_TEXTS, ...EN_US_OVERRIDES },
   'pt-BR': { ...BASE_EXTRA_TEXTS, ...PT_BR_OVERRIDES },
+  'fr-FR': { ...BASE_EXTRA_TEXTS },
+  'de-DE': { ...BASE_EXTRA_TEXTS },
 };
 
 export function getPublicUiExtraText(

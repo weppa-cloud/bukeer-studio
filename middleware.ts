@@ -91,10 +91,11 @@ function resolveWebsiteLocaleSettingsForMiddleware(
   }
 
   // Backward-compatible fallback for schemas where websites table doesn't
-  // expose locale columns. Keep default locale and allow EN aliases.
-  const supportedLocales = settings.supportedLocales.includes("en-US")
-    ? settings.supportedLocales
-    : [...settings.supportedLocales, "en-US"];
+  // expose locale columns. Keep default locale and allow all supported locales.
+  const supportedLocales = ["en-US", "pt-BR", "fr-FR", "de-DE"].reduce(
+    (acc, locale) => acc.includes(locale) ? acc : [...acc, locale],
+    [...settings.supportedLocales],
+  );
 
   return {
     ...settings,
@@ -374,8 +375,14 @@ function localeLookupCandidates(locale: string): string[] {
   if (language) candidates.push(language);
   if (normalized === "es-CO") candidates.push("es");
   if (normalized === "en-US") candidates.push("en");
+  if (normalized === "pt-BR") candidates.push("pt");
+  if (normalized === "fr-FR") candidates.push("fr");
+  if (normalized === "de-DE") candidates.push("de");
   if (normalized === "es") candidates.push("es-CO");
   if (normalized === "en") candidates.push("en-US");
+  if (normalized === "pt") candidates.push("pt-BR");
+  if (normalized === "fr") candidates.push("fr-FR");
+  if (normalized === "de") candidates.push("de-DE");
 
   return [...new Set(candidates)];
 }
@@ -413,6 +420,9 @@ function normalizeBlogPublicLocale(
   if (!locale) return null;
   if (locale === "es") return "es-CO";
   if (locale === "en") return "en-US";
+  if (locale === "pt") return "pt-BR";
+  if (locale === "fr") return "fr-FR";
+  if (locale === "de") return "de-DE";
   return locale;
 }
 

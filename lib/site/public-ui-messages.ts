@@ -1,7 +1,7 @@
 import { normalizeLanguageCode } from '@/lib/site/currency';
 
 export const DEFAULT_PUBLIC_UI_LOCALE = 'es-CO' as const;
-export const SUPPORTED_PUBLIC_UI_LOCALES = ['es-CO', 'en-US', 'pt-BR'] as const;
+export const SUPPORTED_PUBLIC_UI_LOCALES = ['es-CO', 'en-US', 'pt-BR', 'fr-FR', 'de-DE'] as const;
 export type SupportedPublicUiLocale = (typeof SUPPORTED_PUBLIC_UI_LOCALES)[number];
 
 export interface PublicUiMessages {
@@ -1155,6 +1155,8 @@ const MESSAGES_BY_LOCALE: Record<SupportedPublicUiLocale, PublicUiMessages> = {
   'es-CO': ES_CO_MESSAGES,
   'en-US': EN_US_MESSAGES,
   'pt-BR': PT_BR_MESSAGES,
+  'fr-FR': ES_CO_MESSAGES,
+  'de-DE': ES_CO_MESSAGES,
 };
 
 function mapLocaleToken(localeLike: string | null | undefined): SupportedPublicUiLocale {
@@ -1167,6 +1169,8 @@ function mapLocaleToken(localeLike: string | null | undefined): SupportedPublicU
   const language = normalizeLanguageCode(normalized) ?? 'es';
   if (language === 'en') return 'en-US';
   if (language === 'pt') return 'pt-BR';
+  if (language === 'fr') return 'fr-FR';
+  if (language === 'de') return 'de-DE';
   return DEFAULT_PUBLIC_UI_LOCALE;
 }
 

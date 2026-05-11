@@ -33,7 +33,9 @@ export interface ImageMetadataResult {
 
 export function buildImageMetadataPrompt(ctx: ImageMetadataContext): string {
   const lang = ctx.locale?.startsWith('en') ? 'English' :
-               ctx.locale?.startsWith('pt') ? 'Portuguese' : 'Spanish';
+               ctx.locale?.startsWith('pt') ? 'Portuguese' :
+               ctx.locale?.startsWith('fr') ? 'French' :
+               ctx.locale?.startsWith('de') ? 'German' : 'Spanish';
 
   const context = [
     ctx.destination && `Destination: ${ctx.destination}`,
