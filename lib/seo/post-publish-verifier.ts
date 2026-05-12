@@ -687,7 +687,7 @@ async function checkCtaVisible(ctx: CheckContext): Promise<VerificationCheck> {
   ];
 
   const foundIndicators = ctaIndicators
-    .map((pattern) => (pattern.test(html) ? 1 : 0))
+    .map((pattern): number => (pattern.test(html) ? 1 : 0))
     .reduce((a, b) => a + b, 0);
 
   if (foundIndicators > 0) {

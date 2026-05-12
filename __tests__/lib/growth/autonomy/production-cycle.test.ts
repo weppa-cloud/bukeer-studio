@@ -385,6 +385,7 @@ async function runCycle(
     promotionLimit: 0,
     claimLimitPerLane: 1,
     allowLiveMutation: true,
+    enableAgenticBrain: false,
     certificationFixtureMode: options.certificationFixtureMode,
     triggerSource: "test",
     now: new Date("2026-05-08T12:00:00.000Z"),
@@ -476,6 +477,7 @@ describe("runGrowthOsProductionCycle adapter bridge", () => {
       source_id: ids.targetId,
       evidence: {
         dataforseo_evidence: dataForSeoEvidence("onpage"),
+        success_metric: "technical_smoke_pass:website_pages:seo_title",
         adapter_input: {
           target_table: "website_pages",
           target_id: ids.targetId,
@@ -513,6 +515,40 @@ describe("runGrowthOsProductionCycle adapter bridge", () => {
     );
     expect(tables.growth_publication_jobs).toHaveLength(0);
     expect(tables.growth_agent_runs).toHaveLength(0);
+  });
+
+  it("blocks invalid ready work items before they can be claimed", async () => {
+    const ops: Operation[] = [];
+    const workItem = {
+      id: ids.workItemId,
+      account_id: ids.accountId,
+      website_id: ids.websiteId,
+      lane: "technical_remediation",
+      status: "ready",
+      title: "Incomplete technical remediation",
+      allowed_action_class: "safe_apply",
+      risk_level: "low",
+      risk_score: 20,
+      evidence: {
+        dataforseo_evidence: dataForSeoEvidence("onpage"),
+        success_metric: "technical_smoke_pass:website_pages:seo_title",
+        baseline: { expected_smoke: "not_measured" },
+      },
+    };
+    const tables = baseTables(workItem, policy("technical_remediation", "safe_apply"));
+
+    const result = await runCycle(tables, ops);
+
+    expect(result.status).toBe("completed");
+    expect(tables.growth_work_items[0]).toMatchObject({
+      status: "blocked",
+      progress_label: "Blocked by pre-ready contract gate",
+    });
+    expect(JSON.stringify(tables.growth_work_items[0].evidence)).toContain(
+      "pre_ready_contract",
+    );
+    expect(tables.growth_agent_runs).toHaveLength(0);
+    expect(tables.growth_publication_jobs).toHaveLength(0);
   });
 
   it("executes transcreation_merge through the transcreation adapter", async () => {
@@ -782,6 +818,7 @@ describe("runGrowthOsProductionCycle adapter bridge", () => {
       risk_score: 20,
       evidence: {
         dataforseo_evidence: dataForSeoEvidence("onpage"),
+        success_metric: "technical_smoke_pass:website_pages:seo_title",
         adapter_input: {
           target_table: "website_pages",
           target_id: ids.targetId,
@@ -847,11 +884,11 @@ describe("runGrowthOsProductionCycle adapter bridge", () => {
     await runCycle(tables, ops);
 
     expect(tables.growth_publication_jobs).toHaveLength(0);
-    expect(tables.growth_agent_change_sets[0]).toMatchObject({
+    expect(tables.growth_work_items[0]).toMatchObject({
       status: "blocked",
-      requires_human_review: true,
+      progress_label: "Blocked by pre-ready contract gate",
     });
-    expect(tables.growth_agent_change_sets[0].summary).toContain(
+    expect(JSON.stringify(tables.growth_work_items[0].evidence)).toContain(
       "missing_full_article_payload",
     );
   });
