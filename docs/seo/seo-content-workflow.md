@@ -78,6 +78,13 @@ Fase 3B — CREACIÓN: Nuevo contenido (si hay gap)
          ├── Tono ColombiaTours + EEAT
          └── SEO metadata desde el brief
          ↓
+Fase 3C — AUDITORÍA DE IMPACTO (gate independiente) ← NUEVO
+         ├── Agente auditor independiente evalúa el contenido
+         ├── DataForSEO: ¿puede rankear para la keyword target?
+         ├── SERP competition check: ¿hay oportunidad real?
+         ├── Calidad: checklist EEAT + originalidad
+         ├── Veredicto: PASS → publicar | FAIL → loop a edición
+         ↓
 Fase 4 — Transcreación por locale (DE/FR/PT/EN)
          ├── Brief locale-specific con keywords del mercado
          ├── Transcrear con tono del locale
@@ -537,7 +544,180 @@ slug: ""  # /{locale}/{keyword-slug}
 
 ---
 
-## Fase 3 — Redacción con EEAT
+## Fase 3C — AUDITORÍA DE IMPACTO (Gate Independiente)
+
+**Propósito:** Que NO se publique contenido que no tenga oportunidad real de rankear. Un agente auditor independiente (contexto fresco, sin sesgo del escritor) evalúa cada pieza antes de dar el visto bueno.
+
+**Inspiración:** 2-stage review de `subagent-driven-development` — especificación primero, calidad después. Aquí es: ¿va a generar tráfico? Después, ¿está bien escrito?
+
+### Arquitectura del Gate
+
+```
+Escritor termina el contenido
+         ↓
+    AGENTE AUDITOR (contexto fresco, independiente)
+         ↓
+  ┌────────────────────────────────────┐
+  │ 1. DataForSEO viability check      │
+  │ 2. SERP competition analysis       │
+  │ 3. EEAT + calidad audit            │
+  │ 4. Veredicto: PASS / FAIL / WARN   │
+  └────────────────────────────────────┘
+         ↓                    ↓
+       PASS                 FAIL
+         ↓                    ↓
+    Publicar         Loop a Fase 3 con issues
+```
+
+### Proceso del Auditor
+
+**El auditor NO es el mismo agente que escribió. Corre en contexto separado, sin sesgo.**
+
+```
+PASO 1 — DataForSEO Viability Check
+
+Para la keyword principal del contenido:
+1. ¿Existe volumen de búsqueda?
+   GET /v3/keywords_data/google/keywords_for_keywords/live
+   → volume ≥ 100/mes → ✅ viable
+   → volume < 50/mes → ⚠️ warn (solo si es long tail de alta intención)
+   → volume = 0 → ❌ contenido sin demanda
+
+2. ¿Qué tan difícil es rankear?
+   GET /v3/dataforseo_labs/google/keyword_suggestions/live
+   → difficulty < 40 → ✅ accesible
+   → difficulty 40-60 → ⚠️ competido, requiere contenido excepcional
+   → difficulty > 60 → ❌ casi imposible para sitio nuevo
+
+3. ¿Quién está en top 10?
+   → Dominios .gov, .edu, o gigantes (Wikipedia, Tripadvisor)?
+     → El contenido necesita ser 2x mejor para competir
+   → Hay pequeñas/medianas en top 10?
+     → ✅ Oportunidad real
+
+
+PASO 2 — SERP Competition Analysis
+
+1. Tipo de contenido que rankea:
+   → ¿Son todos listicles? → el nuestro debe ser listicle
+   → ¿Son guías largas? → el nuestro debe ser guía
+   → ¿Hay featured snippets? → apuntar a capturarlos
+   → Output: "Para esta keyword, el contenido debe ser [tipo]"
+
+2. Gap en top 10:
+   → ¿Qué pregunta NO responden los resultados actuales?
+   → ¿Podemos responderla mejor?
+   → Output: "El contenido cubre bien la pregunta [X] que nadie más responde" o "Falta cubrir [Y]"
+
+
+PASO 3 — EEAT + Calidad Audit
+
+Usando el checklist de Fase 3:
+   ☐ ¿El contenido tiene experiencia real? (detalles, anécdotas)
+   ☐ ¿Las fuentes están citadas y actualizadas?
+   ☐ ¿El author tiene bio visible?
+   ☐ ¿El contenido es original (no copia de SERP)?
+   ☐ ¿La metadata SEO está optimizada?
+   ☐ ¿Hay internal links a contenido relacionado?
+   ☐ ¿El tono es consistente con Brand Voice Reference?
+   ☐ ¿Pasa la "prueba de la revista"? (¿lo publicarían en una revista impresa?)
+
+
+PASO 4 — Veredicto Final
+
+Basado en los 3 pasos anteriores, el auditor emite:
+
+✅ PASS — Este contenido tiene oportunidad real de rankear.
+   Publicar según el flujo normal.
+
+⚠️ WARN — Este contenido puede rankear pero tiene riesgos.
+   Issues documentados. Publicar condicional, monitorear de cerca.
+
+❌ FAIL — Este contenido NO tiene oportunidad real de rankear.
+   Razones:
+   - Sin volumen de búsqueda → cambiar keyword o no publicar
+   - Competencia demasiado fuerte → necesitar contenido 3x mejor
+   - Calidad insuficiente → loop a edición con issues específicos
+   - Falta EEAT → añadir autor, fuentes, experiencia
+```
+
+
+### Template de Reporte del Auditor
+
+```
+## Auditoría de Impacto — [Título del Contenido]
+
+### DataForSEO Viability
+- Keyword principal: [keyword]
+- Volumen mensual: [N] búsquedas
+- Difficulty: [N]/100 → 🟢/🟡/🔴
+- CPC: $[N]
+
+### SERP Competition
+- Tipo de contenido que rankea: [listicle/guía/video]
+- Featured snippets: [sí/no]
+- Gap identificado: [descripción]
+- Oportunidad: 🟢/🟡/🔴
+
+### EEAT + Calidad
+- Experiencia real: ✅/❌
+- Fuentes citadas: ✅/❌
+- Author bio: ✅/❌
+- Originalidad: ✅/❌
+- Tono consistente: ✅/❌
+
+### Veredicto
+- Resultado: ✅ PASS / ⚠️ WARN / ❌ FAIL
+- Si FAIL: [issues específicos a corregir antes de publicar]
+- Si WARN: [riesgos y condiciones]
+```
+
+
+### Implementación Técnica
+
+Cuando se ejecute este gate, se dispara un subagente independiente:
+
+```python
+delegate_task(
+    goal="Auditar el impacto SEO de este contenido antes de publicarlo",
+    context="""
+    TÍTULO: [título del contenido]
+    KEYWORD PRINCIPAL: [keyword]
+    CONTENIDO: [texto completo del contenido]
+    
+    PASOS:
+    1. DataForSEO: verificar volume, difficulty, SERP para la keyword
+    2. Analizar top 10 de SERP: tipo, gaps, oportunidad
+    3. Auditar EEAT + calidad del contenido
+    
+    OUTPUT: Template de reporte de auditoría completo
+    """,
+    toolsets=['web', 'terminal', 'file']
+)
+```
+
+
+### Umbrales de Decisión
+
+| Escenario | Veredicto | Acción |
+|-----------|-----------|--------|
+| Volume >100 + difficulty <40 + EEAT ✅ | ✅ PASS | Publicar normal |
+| Volume >100 + difficulty 40-60 + EEAT ✅ | ⚠️ WARN | Publicar, monitorear día 30 |
+| Volume >100 + difficulty >60 | ❌ FAIL | Necesita contenido 3x mejor o cambiar keyword |
+| Volume <50 + difficulty cualquier | ❌ FAIL | Contenido sin demanda suficiente |
+| Volume >100 + difficulty <40 + EEAT ❌ | ❌ FAIL | Loop a edición para mejorar EEAT |
+| Competencia dominada por .gov/.edu/gigantes | ⚠️ WARN | Realista pero cuesta arriba |
+
+
+### Anti-patrones del Auditor
+
+| ❌ No hacer | Por qué |
+|-------------|---------|
+| El mismo agente que escribe audita | Sesgo de confirmación: siempre va a aprobar su propio trabajo |
+| Auditar sin DataForSEO | Opinión subjetiva sin datos |
+| Ignorar el veredicto FAIL | Publicas sabiendo que no va a rankear |
+| Aceptar WARN sin documentar riesgos | No hay plan de contingencia |
+| Auditar solo keywords, no calidad | Puede rankear pero la gente rebota |
 
 ### EEAT Checklist por pieza
 
@@ -750,7 +930,12 @@ Cuando el usuario dice "traduce [página] a [locale]":
 - ❌ Ignorar fuentes locales → contenido genérico sin autenticidad
 - ❌ No verificar fecha de las fuentes → datos desactualizados = penalización
 
-### Fase 3 — Edición/Creación
+### Fase 3C — Auditoría de Impacto
+- ❌ El mismo agente que escribe audita su propio trabajo → sesgo de confirmación
+- ❌ Auditar sin DataForSEO → opinión sin datos, no válida
+- ❌ Ignorar veredicto FAIL → publicas contenido sin oportunidad de rankear
+- ❌ Aceptar WARN sin plan de contingencia → no hay seguimiento
+- ❌ Saltar el gate por presión de tiempo → contenido muerto desde el día 1
 - ❌ Editar sin puntuar primero → no sabes si realmente mejoraste
 - ❌ Traducir primero, editar después → multiplicas el error × 4
 - ❌ Ignorar el Brand Voice Reference → cada autor escribe como quiere
