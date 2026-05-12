@@ -45,25 +45,33 @@ Fase 1 — Keyword Research (DataForSEO + Google Ads)
          ↓
 Fase 2 — Content Brief (SERP analysis + gap detection + brand voice)
          ↓
-Fase 3 — EDICION: Estabilizar contenido ES existente
-         ├── Revisar tono vs Brand Voice Reference
-         ├── Mejorar EEAT (autor, fuentes, experiencia)
-         ├── Optimizar SEO metadata
-         └── Verificar competencia cubierta
+Fase 2B — RESEARCH: Investigación transversal del tema ← NUEVA
+         ├── Buscar fuentes: estudios, documentos, prensa, blogs权威
+         ├── AI transversal: cruzar datos entre fuentes, detectar contradicciones
+         ├── Datos duros: estadísticas actualizadas de turismo Colombia
+         ├── Cultura local: festivales, gastronomía, historia reciente
+         └── Novedades: qué cambió en los últimos 6 meses
          ↓
-Fase 3B — CREACION: Nuevo contenido (si hay gap)
-         ├── Redaccion con tono ColombiaTours + EEAT
+Fase 3 — EDICIÓN: Estabilizar contenido ES existente
+         ├── Revisar tono vs Brand Voice Reference
+         ├── Mejorar EEAT con datos de la investigación (fuentes reales)
+         ├── Optimizar SEO metadata
+         └── Verificar competencia + fuentes cubiertas
+         ↓
+Fase 3B — CREACIÓN: Nuevo contenido (si hay gap)
+         ├── Redacción informada (datos, fuentes, contexto real)
+         ├── Tono ColombiaTours + EEAT
          └── SEO metadata desde el brief
          ↓
-Fase 4 — Transcreacion por locale (DE/FR/PT/EN)
+Fase 4 — Transcreación por locale (DE/FR/PT/EN)
          ├── Brief locale-specific con keywords del mercado
          ├── Transcrear con tono del locale
          ├── Glossary enforcement
-         └── EEAT adaptado al mercado target
+         └── Adaptar fuentes al contexto del mercado target
          ↓
-Fase 5 — Publicacion + Verificacion (14 checks, sitemap, hreflang)
+Fase 5 — Publicación + Verificación (14 checks, sitemap, hreflang)
          ↓
-Fase 6 — Medicion + Iteracion (GSC, GA4, re-optimizacion dia 30, re-evaluar competencia)
+Fase 6 — Medición + Iteración (GSC, GA4, re-optimización día 30)
 ```
 
 ---
@@ -229,7 +237,138 @@ Clusters de contenido ColombiaTours: `colombia-travel`, `cartagena`, `medellin`,
 
 ---
 
-## Fase 2 — Content Brief
+## Fase 2B — RESEARCH: Investigación Transversal del Tema
+
+**Propósito:** Que el contenido no sea genérico. Que esté respaldado por fuentes reales, datos actualizados y contexto cultural. Un artículo sobre Cartagena sin mencionar el Festival de Música o el cable a Tierra Bomba está desactualizado.
+
+### Gate de entrada
+El brief de contenido (Fase 2) está listo. Ahora se investiga el tema a fondo antes de escribir UNA sola línea.
+
+### Proceso de Investigación
+
+**No es buscar 3 fuentes de internet. Es hacer investigación transversal con AI:**
+
+```
+1. Búsqueda inicial de fuentes
+   Para cada tema, buscar en múltiples categorías:
+
+   📰 ACTUALIDAD (últimos 6 meses)
+   - Noticias recientes sobre el destino
+   - Nuevas rutas aéreas, hoteles, atracciones
+   - Eventos y festivales próximos
+   - Cambios en requisitos de visa/ingreso
+
+   📊 DATOS DUROS
+   - Estadísticas de turismo (MinCIT, ProColombia)
+   - Número de visitantes por año
+   - Gastos promedio, estadía promedio
+   - Temporada alta/baja con datos actualizados
+
+   📚 CULTURA LOCAL
+   - Gastronomía típica de la región
+   - Historia reciente (transformación de Medellín, etc.)
+   - Festividades locales
+   - Personajes y comunidades locales
+
+   🗺️ LOGÍSTICA PRÁCTICA
+   - Cómo llegar (vuelos, rutas, tiempos)
+   - Clima por época del año
+   - Seguridad actualizada
+   - Costos reales (no genéricos de internet)
+
+   🏆 REFERENCIAL
+   - Guías de viaje reconocidas (Lonely Planet, Rough Guides)
+   - Blogs de viajeros que han ido RECIENTEMENTE
+   - Videos de YouTube de viajeros en el destino
+   - Recomendaciones de locales (Reddit, foros)
+
+2. Cruce de datos (AI Transversal)
+   - Leer TODAS las fuentes
+   - Identificar datos que se confirman entre fuentes → CONFIABLE
+   - Identificar datos que se contradicen → VERIFICAR antes de usar
+   - Identificar datos que NADIE cubre → OPORTUNIDAD de contenido único
+
+3. Extracción de hallazgos clave
+   Para cada fuente, extraer:
+   - 3-5 datos concretos (números, fechas, nombres)
+   - 1-2 historias o anécdotas
+   - 1 perspectiva única (ángulo diferente)
+   - Citas textuales relevantes
+
+4. Síntesis para el contenido
+   - Los 3 datos más impactantes sobre el tema
+   - El ángulo único que vamos a usar (nadie más lo cubre así)
+   - Las fuentes que vamos a citar
+   - Lo que HA CAMBIADO en los últimos meses (freshness)
+```
+
+### Ejemplo: Investigación sobre Cartagena
+
+```
+TEMA: "Qué hacer en Cartagena en 2026"
+
+FUENTES CONSULTADAS:
+- ProColombia: 12.4M visitantes en 2025, Cartagena #1 destino
+- MinCIT: gasto promedio US$1,850/visitante
+- Lonely Planet Colombia 2025: Cartagena "esencial para viajeros"
+- Blog viajero (Ene 2026): nuevo rooftop en Getsemaní
+- Reddit r/Colombia: locales recomiendan La Boquilla sobre Bocagrande
+- Festival Internacional de Música 2026: fechas Enero 3-8
+
+HALLAZGOS CRUZADOS:
+- ✅ Confirmado: Bocagrande es seguro pero caro (3 fuentes)
+- ✅ Confirmado: Islas del Rosario requiere día completo (2 fuentes)
+- ⚠️ Contradicción: ¿mejor época Dic-Ene vs Mar-May? → verificar
+- 🔥 GAP: Nadie cubre el nuevo rooftop en Getsemaní con vista al atardecer
+
+ÁNGULO ÚNICO:
+"Cartagena en 2026: lo que ha cambiado este año (y lo que los tours no te muestran)"
+```
+
+### Checklist de Investigación
+
+```
+INVESTIGACIÓN
+☐ Mínimo 5 fuentes consultadas por tema
+☐ Al menos 1 fuente de datos oficial (gobierno, turismo)
+☐ Al menos 1 fuente local (blog colombiano, foro, guía local)
+☐ Al menos 1 fuente actualizada (últimos 6 meses)
+☐ Datos cruzados entre fuentes para verificar precisión
+
+HALLAZGOS
+☐ Al menos 3 datos concretos extraídos (números, fechas)
+☐ Ángulo único identificado (lo que nadie más cubre)
+☐ Novedades del último año registradas
+☐ Contradicciones entre fuentes documentadas
+
+SÍNTESIS
+☐ Los datos más impactantes seleccionados para el contenido
+☐ Fuentes organizadas para citar en el artículo
+☐ El ángulo único definido y validado
+```
+
+### Herramientas para Investigación
+
+| Tipo de fuente | Cómo obtenerla |
+|----------------|---------------|
+| Noticias actuales | Web search / browser con filtro de fecha reciente |
+| Datos turismo Colombia | ProColombia, MinCIT (webs oficiales) |
+| Guías de viaje | Lonely Planet, Rough Guides (browser) |
+| Blogs de viajeros | Web search "blog viaje [destino]" |
+| Foros locales | Reddit r/Colombia, Tripadvisor (browser) |
+| YouTube | Videos de viajeros recientes |
+| Redes sociales | Instagram/TikTok de viajeros en el destino |
+| Datos clima | AccuWeather, WeatherSpark (browser) |
+
+### Anti-patrones de Investigación (NO HACER)
+
+| ❌ No hacer | Por qué |
+|------------|---------|
+| Usar solo Wikipedia | No cumple EEAT para contenido de viajes |
+| Copiar datos sin verificar | Pueden estar desactualizados |
+| Ignorar fuentes locales | Pierdes autenticidad |
+| No actualizar investigación para traducciones | Lo que era cierto en ES puede no serlo en DE/FR |
+| Citar fuente sin leerla | Riesgo de malinterpretación |
 
 **Antes de escribir, se genera un brief.** Este es el paso más importante.
 
