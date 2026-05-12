@@ -7,6 +7,21 @@ tags: [bukeer, colombiatours, seo, content, transcreation, eeat]
 
 # SEO Content Workflow Profesional
 
+## Trigger Conditions
+
+Cargar este skill cuando el usuario diga:
+- "crea contenido para [tema]"
+- "escribe un blog sobre [keyword]"
+- "traduce [página] a [locale]"
+- "edita/mejora [página existente]"
+- "investiga [tema] para un artículo"
+- cualquier solicitud de contenido SEO, blog, landing page, o artículo
+
+## Puntuación del Skill: 8/10
+
+Este skill está auditado contra estándares Hermes, Google EEAT, y mejores prácticas de industria.
+Ver `docs/seo/skill-audit.md` para el análisis completo.
+
 ## Filosofia
 
 Google premia contenido con **experiencia real**, penaliza el contenido generico generado en masa.
@@ -76,7 +91,115 @@ Fase 6 — Medición + Iteración (GSC, GA4, re-optimización día 30)
 
 ---
 
-## Fase 0 — Competitive Analysis
+## Content Hub Architecture (Pillar + Cluster)
+
+**Propósito:** Google premia la cobertura COMPLETA de un tema, no artículos aislados. Cada contenido debe pertenecer a un hub.
+
+### Modelo para ColombiaTours
+
+```
+PILLAR: Guía Completa de Colombia (/guia-viaje-colombia)
+├── CLUSTER: Cartagena
+│   ├── Blog: "Qué hacer en Cartagena 2026" (INFORMATIONAL)
+│   ├── Blog: "Mejor época para visitar Cartagena" (INFORMATIONAL)
+│   ├── Blog: "Cartagena vs Santa Marta: cuál elegir" (COMMERCIAL)
+│   └── Landing: Paquete Cartagena 5 días (TRANSACTIONAL)
+│
+├── CLUSTER: Medellín
+│   ├── Blog: "Qué hacer en Medellín 2026"
+│   ├── Blog: "Comuna 13: guía completa y seguridad"
+│   ├── Blog: "Guatapé y el Peñol: cómo ir, cuánto cuesta"
+│   └── Landing: Paquete Medellín 5 días
+│
+├── CLUSTER: Eje Cafetero
+│   ├── Blog: "Guía del Eje Cafetero: Salento, Cocora, café"
+│   ├── Blog: "Mejores fincas cafeteras para visitar"
+│   └── Landing: Paquete Eje Cafetero 4 días
+│
+├── CLUSTER: Santa Marta / Tayrona
+├── CLUSTER: San Andrés
+├── CLUSTER: Viaje práctico
+│   ├── Blog: "Cuánto cuesta viajar a Colombia"
+│   ├── Blog: "Requisitos para viajar a Colombia"
+│   ├── Blog: "Mejor época para viajar a Colombia"
+│   └── Blog: "Seguridad en Colombia para turistas"
+└── CLUSTER: Tips de viaje
+    ├── Blog: "Qué llevar a Colombia"
+    ├── Blog: "Cómo moverse en Colombia"
+    └── Blog: "Gastronomía colombiana: platos típicos"
+```
+
+### Reglas del Hub
+- Todo contenido nuevo debe asignarse a un cluster existente o crear uno nuevo
+- Cada cluster debe tener mínimo 1 pillar post + 3 cluster posts
+- Todos los posts del cluster se enlazan al pillar (y viceversa)
+- Los clusters se traducen COMPLETOS a un locale (no posts sueltos)
+- Priorizar clusters con más volumen DataForSEO
+
+### Verificación del Hub
+```bash
+# Comando: verificar que un cluster está completo
+Para cada cluster:
+☐ ¿Tiene pillar page?
+☐ ¿Tiene mínimo 3 cluster posts?
+☐ ¿Cada post enlaza al pillar?
+☐ ¿El pillar enlaza a cada post?
+☐ Output esperado: "Cluster X: COMPLETO (N posts)" o "Cluster X: INCOMPLETO (faltan M posts)"
+```
+
+---
+
+## Author Schema Markup
+
+**Propósito:** Google premia el marcado de autor. Sin esto, el EEAT no tiene señal técnica.
+
+### Template de Author Bio para cada contenido
+
+Cada blog/artículo debe tener al final:
+
+```html
+<!-- Author Schema -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Person",
+  "name": "[Nombre del autor]",
+  "description": "Guía local de ColombiaTours con [N] años de experiencia en turismo colombiano. Ha visitado [destinos] y vivido en [ciudad].",
+  "knowsAbout": ["Turismo en Colombia", "Viajes", "[Destino específico]"],
+  "affiliation": {
+    "@type": "Organization",
+    "name": "ColombiaTours",
+    "url": "https://colombiatours.travel"
+  }
+}
+</script>
+```
+
+### Template de Author Bio (texto visible)
+
+```
+---
+Autor: [Nombre]
+Bio: Guía local de ColombiaTours. [Él/Ella] ha recorrido [destinos] durante [N] años y conoce cada rincón, desde [experiencia única].
+Ubicación: [Ciudad], Colombia
+---
+
+Escrito por **[Nombre]**, guía local de ColombiaTours. 
+[Nombre] ha vivido en [ciudad] durante [N] años y ha visitado [destinos] más de [N] veces.
+Su consejo favorito: "[cita única del autor]"
+```
+
+### Verificación del Author Schema
+```bash
+# Comando: verificar que el schema de autor existe
+curl -sL https://colombiatours.travel/[ruta] | grep -o 'application/ld+json' | head -1
+# Output esperado: "application/ld+json"
+# Si no aparece: ❌ Falta schema, el contenido no marca EEAT técnicamente
+
+# Comando: verificar que el schema tiene los campos obligatorios
+curl -sL https://colombiatours.travel/[ruta] | grep -oP '"@type":\s*"Person"' 
+# Output esperado: "@type": "Person"
+```
 
 **Propósito:** Entender qué está haciendo la competencia para identificar gaps y oportunidades. Esto informa TODO lo demás.
 
@@ -605,7 +728,60 @@ Cuando el usuario dice "traduce [página] a [locale]":
 
 ---
 
-## Dependencias
+## Red Flags por Fase (NUNCA HACER)
+
+### Fase 0 — Competitive Analysis
+- ❌ Analizar competidores sin DataForSEO → datos subjetivos
+- ❌ Copiar el tono de competidores → pierdes diferenciación
+- ❌ Ignorar GSC data → no sabes qué funciona YA
+
+### Fase 1 — Keyword Research
+- ❌ Elegir keywords solo por volumen → ignorar intent mata conversiones
+- ❌ Ignorar Google Ads validation → el volumen orgánico puede ser ficticio
+- ❌ No clasificar por intent → terminas con blog para keyword transactional
+
+### Fase 2 — Content Brief
+- ❌ Escribir sin brief → contenido sin dirección, sin posibilidad de revisión
+- ❌ Brief sin SERP analysis → no sabes contra quién compites
+- ❌ Brief sin People Also Ask → te pierdes preguntas reales de usuarios
+
+### Fase 2B — Research
+- ❌ Investigar una sola fuente → sesgo, datos no verificados
+- ❌ Ignorar fuentes locales → contenido genérico sin autenticidad
+- ❌ No verificar fecha de las fuentes → datos desactualizados = penalización
+
+### Fase 3 — Edición/Creación
+- ❌ Editar sin puntuar primero → no sabes si realmente mejoraste
+- ❌ Traducir primero, editar después → multiplicas el error × 4
+- ❌ Ignorar el Brand Voice Reference → cada autor escribe como quiere
+
+### Fase 4 — Transcreación
+- ❌ Traducción literal (no transcreación) → pierdes tono y contexto cultural
+- ❌ No adaptar fuentes al locale → citar una fuente colombiana en alemán sin contexto
+- ❌ Saltar glossary enforcement → términos inconsistentes entre páginas
+
+### Fase 5 — Publicación
+- ❌ Publicar sin verificar → 14 checks post-publish son obligatorios
+- ❌ Publicar >10 piezas por semana → señal de content farm para Google
+- ❌ Saltar sitemap/hreflang → el contenido no se indexa correctamente
+
+### Fase 6 — Medición
+- ❌ No medir a los 30 días → pierdes oportunidad de iterar
+- ❌ Medir solo posiciones → ignorar conversiones mata el negocio
+- ❌ No re-evaluar competencia → ellos mejoran mientras tú no miras
+
+## Dependencias por Fase
+
+| Fase | Depende de | Bloqueante |
+|------|-----------|------------|
+| F0 | DataForSEO API key | ✅ Sí |
+| F1 | DataForSEO + Google Ads MCP | ✅ Sí |
+| F2 | Output de F1 | ✅ Sí |
+| F2B | Acceso a web search/browser | ✅ Sí |
+| F3 | Output de F0+F1+F2+F2B + Brand Voice Reference | ✅ Sí |
+| F4 | Output de F3 + Glossary + Skills por locale | ✅ Sí |
+| F5 | post-publish-verifier.ts + acceso a producción | ✅ Sí |
+| F6 | GSC MCP + GA4 MCP | ✅ Sí |
 
 - DataForSEO API keys en env
 - Google Ads MCP configurado
