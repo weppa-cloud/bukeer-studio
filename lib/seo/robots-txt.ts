@@ -36,5 +36,8 @@ ${internalDisallow}
 ${aiGroups}
 
 Sitemap: ${baseUrl}/sitemap.xml
+Sitemap: ${baseUrl}/sitemap_index.xml
+Sitemap: ${baseUrl}/sitemap-es-CO.xml
+Sitemap: ${baseUrl}/sitemap-en-US.xml
 `;
 }

@@ -124,6 +124,31 @@ function normalizeClarityRows(payload: unknown, dimensions: string[]): ClarityAg
       : [];
   return rows.map((row) => {
     const source = row && typeof row === 'object' ? (row as Record<string, unknown>) : {};
+    if (
+      source.dimensions &&
+      typeof source.dimensions === 'object' &&
+      Array.isArray(source.metrics)
+    ) {
+      const rawDimensions = source.dimensions as Record<string, unknown>;
+      const dimensionValues = dimensions.reduce<Record<string, string>>((acc, dimension) => {
+        const value = rawDimensions[dimension];
+        acc[dimension] = typeof value === 'string' || typeof value === 'number' ? String(value) : '';
+        return acc;
+      }, {});
+      const metrics = source.metrics
+        .filter((metric): metric is Record<string, unknown> => Boolean(metric) && typeof metric === 'object')
+        .map((metric) => ({
+          name: typeof metric.name === 'string' ? metric.name : '',
+          value:
+            typeof metric.value === 'number' ||
+            typeof metric.value === 'string' ||
+            metric.value === null
+              ? metric.value
+              : null,
+        }))
+        .filter((metric) => metric.name.length > 0);
+      return { dimensions: dimensionValues, metrics };
+    }
     const dimensionValues = dimensions.reduce<Record<string, string>>((acc, dimension) => {
       const value = source[dimension];
       acc[dimension] = typeof value === 'string' || typeof value === 'number' ? String(value) : '';

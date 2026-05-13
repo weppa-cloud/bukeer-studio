@@ -12,6 +12,9 @@ export const DEFAULT_PUBLIC_LOCALE = 'es-CO';
 const LEGACY_BLOG_LOCALE_MAP: Record<string, string> = {
   es: 'es-CO',
   en: 'en-US',
+  pt: 'pt-BR',
+  fr: 'fr-FR',
+  de: 'de-DE',
 };
 
 /**
@@ -48,11 +51,11 @@ export const PUBLIC_LOCALE_HEADER_NAMES = {
  * requested URL in the browser (see [[ADR-019]] amendment 2026-04-19).
  */
 export const CATEGORY_CANONICAL_SEGMENT = {
-  destination: { es: 'destinos', en: 'destinations' },
-  hotel: { es: 'hoteles', en: 'hotels' },
-  activity: { es: 'actividades', en: 'activities' },
-  transfer: { es: 'traslados', en: 'transfers' },
-  package: { es: 'paquetes', en: 'packages' },
+  destination: { es: 'destinos', en: 'destinations', pt: 'destinos', fr: 'destinations', de: 'reiseziele' },
+  hotel: { es: 'hoteles', en: 'hotels', pt: 'hotéis', fr: 'hôtels', de: 'hotels' },
+  activity: { es: 'actividades', en: 'activities', pt: 'atividades', fr: 'activités', de: 'aktivitäten' },
+  transfer: { es: 'traslados', en: 'transfers', pt: 'transferências', fr: 'transferts', de: 'transfers' },
+  package: { es: 'paquetes', en: 'packages', pt: 'pacotes', fr: 'forfaits', de: 'pakete' },
 } as const;
 
 export type CategoryProductType = keyof typeof CATEGORY_CANONICAL_SEGMENT;
@@ -136,6 +139,7 @@ const DEFAULT_REGION_BY_LANG: Record<string, string> = {
   en: 'US',
   pt: 'BR',
   fr: 'FR',
+  de: 'DE',
 };
 
 function normalizePathname(pathname: string): string {

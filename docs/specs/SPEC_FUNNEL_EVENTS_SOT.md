@@ -115,8 +115,8 @@ and agent optimization.
 - [x] **AC6.2** `ga4_measurement_protocol_events` exists as an idempotent delivery log.
 - [x] **AC6.3** Dispatcher sends GA4 Measurement Protocol copies for selected canonical events behind `FUNNEL_GA4_MP_DISPATCH_V1`.
 - [x] **AC6.4** WAFlow diagnostic events (`waflow_open`, `waflow_validation_error`, `waflow_abandon`) are persisted so abandonment is measurable outside GA4.
-- [ ] **AC6.5** Clarity receives only non-PII tenant/market/landing/campaign/variant/reference-hash context.
-- [ ] **AC6.6** `growth_funnel_observability_v1` joins canonical events, WAFlow leads, CRM requests, itineraries, platform delivery logs, and provider-profile freshness for agent use.
+- [x] **AC6.5** Clarity receives only non-PII tenant/market/landing/campaign/variant/reference-hash context.
+- [x] **AC6.6** `growth_funnel_observability_v1` joins canonical events, WAFlow leads, CRM requests, itineraries, platform delivery logs, and provider-profile freshness for agent use.
 - [ ] **AC6.7** ColombiaTours has a 24h observability readout proving canonical event counts, GA4 MP delivery, Meta delivery, Google uploads, Clarity freshness, CRM opportunities, and known gaps.
 
 Production evidence 2026-05-11: ColombiaTours GA4 Measurement Protocol is active
@@ -134,8 +134,16 @@ Smoke reference `CODEX-WAFLOW-MP1HZLF2` wrote
 `business_stage='intent'`, `optimization_policy='observation_only'`, and
 click/UTM context. Dispatcher smoke delivered GA4 Measurement Protocol event
 `waflow_validation_error` with `status='sent'` for property `294486074`.
-AC6.5-AC6.7 remain open for Clarity context, the unified observability view,
-and the full 24h readout.
+AC6.7 remains open for the full 24h readout.
+
+Production evidence 2026-05-11: Clarity runtime context now tags only non-PII
+session context (`bukeer_tenant`, `bukeer_website_id`, locale, market, landing
+path, UTM/campaign, WAFlow variant/step and SHA-256 `reference_hash`). Migration
+`20260511190000_growth_funnel_observability_view` is applied in production.
+REST readout from `growth_funnel_observability_v1` returned recent ColombiaTours
+rows with `funnel_events` joined to WAFlow leads, CRM request IDs and latest
+Clarity profile freshness (`run_status='completed'`,
+`freshness_status='PASS'`). AC6.7 remains open for the full 24h readout.
 
 See [[SPEC_FUNNEL_EVENTS_OBSERVABILITY_LAYER]] for the detailed F6 contract.
 

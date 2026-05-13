@@ -30,6 +30,15 @@ export interface AnalyticsConfig {
 interface GoogleTagManagerProps {
   analytics?: AnalyticsConfig;
   defer?: boolean;
+  context?: AnalyticsRuntimeContext;
+}
+
+export interface AnalyticsRuntimeContext {
+  accountId?: string | null;
+  websiteId?: string | null;
+  tenant?: string | null;
+  locale?: string | null;
+  market?: string | null;
 }
 
 function afterInteraction(script: string): string {
@@ -153,8 +162,15 @@ function ga4PageviewScript(measurementId: string): string {
   `;
 }
 
-function clarityScript(projectId: string): string {
+function clarityScript(projectId: string, context?: AnalyticsRuntimeContext): string {
   const safeProjectId = JSON.stringify(projectId.trim());
+  const safeContext = JSON.stringify({
+    accountId: context?.accountId ?? null,
+    websiteId: context?.websiteId ?? null,
+    tenant: context?.tenant ?? null,
+    locale: context?.locale ?? null,
+    market: context?.market ?? null,
+  });
 
   return `
     (function(c,l,a,r,i,t,y){
@@ -162,6 +178,59 @@ function clarityScript(projectId: string): string {
       t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
       y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
     })(window, document, "clarity", "script", ${safeProjectId});
+    (function(){
+      var ctx = ${safeContext};
+      function clean(value) {
+        if (value === null || value === undefined) return null;
+        var text = String(value).trim();
+        return text ? text.slice(0, 255) : null;
+      }
+      function setTag(key, value) {
+        var text = clean(value);
+        if (!text || typeof window.clarity !== "function") return;
+        try { window.clarity("set", key, text); } catch (e) {}
+      }
+      function readReferenceCode() {
+        try {
+          var raw = window.localStorage.getItem("bukeer:growth:reference-code");
+          if (!raw) return null;
+          var parsed = JSON.parse(raw);
+          return parsed && typeof parsed.code === "string" ? parsed.code : null;
+        } catch (e) {
+          return null;
+        }
+      }
+      function hashReference(value) {
+        if (!value || !window.crypto || !window.crypto.subtle || !window.TextEncoder) {
+          return Promise.resolve(null);
+        }
+        return window.crypto.subtle.digest("SHA-256", new TextEncoder().encode(value))
+          .then(function(buf){
+            return Array.prototype.map.call(new Uint8Array(buf), function(x){
+              return x.toString(16).padStart(2, "0");
+            }).join("");
+          })
+          .catch(function(){ return null; });
+      }
+      try {
+        var url = new URL(window.location.href);
+        var locale = clean(ctx.locale) || clean(document.documentElement.lang) || "unknown";
+        var market = clean(ctx.market) || clean(url.searchParams.get("market")) || clean(locale.split("-")[1]) || "unknown";
+        setTag("bukeer_tenant", ctx.tenant);
+        setTag("bukeer_website_id", ctx.websiteId);
+        setTag("bukeer_account_id", ctx.accountId);
+        setTag("bukeer_locale", locale);
+        setTag("bukeer_market", market);
+        setTag("landing_path", window.location.pathname);
+        setTag("utm_source", url.searchParams.get("utm_source"));
+        setTag("utm_medium", url.searchParams.get("utm_medium"));
+        setTag("utm_campaign", url.searchParams.get("utm_campaign"));
+        setTag("campaign_id", url.searchParams.get("gad_campaignid") || url.searchParams.get("campaignid") || url.searchParams.get("utm_campaign"));
+        hashReference(readReferenceCode()).then(function(hash){
+          setTag("reference_hash", hash);
+        });
+      } catch (e) {}
+    })();
   `;
 }
 
@@ -324,10 +393,10 @@ export function FacebookPixelScript({ analytics, defer }: GoogleTagManagerProps)
  * after window load/idle so landings record scrolls, dead clicks and bounces
  * without putting the third-party script in the initial render path.
  */
-export function MicrosoftClarityScript({ analytics }: GoogleTagManagerProps) {
+export function MicrosoftClarityScript({ analytics, context }: GoogleTagManagerProps) {
   if (!analytics?.clarity_project_id) return null;
 
-  const loadClarity = clarityScript(analytics.clarity_project_id);
+  const loadClarity = clarityScript(analytics.clarity_project_id, context);
 
   return (
     <Script
@@ -374,7 +443,7 @@ export function CustomBodyScripts({ analytics, defer }: GoogleTagManagerProps) {
  * Combined Analytics Component
  * Use this single component to include all analytics scripts
  */
-export function GoogleTagManager({ analytics, defer }: GoogleTagManagerProps) {
+export function GoogleTagManager({ analytics, defer, context }: GoogleTagManagerProps) {
   if (!analytics) return null;
 
   return (
@@ -389,7 +458,7 @@ export function GoogleTagManager({ analytics, defer }: GoogleTagManagerProps) {
       <FacebookPixelScript analytics={analytics} defer={defer} />
 
       {/* Microsoft Clarity behavior analytics */}
-      <MicrosoftClarityScript analytics={analytics} defer={defer} />
+      <MicrosoftClarityScript analytics={analytics} defer={defer} context={context} />
 
       {/* Custom scripts */}
       <CustomHeadScripts analytics={analytics} defer={defer} />

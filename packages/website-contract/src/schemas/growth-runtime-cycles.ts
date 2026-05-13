@@ -42,6 +42,7 @@ export const GrowthRuntimeCycleStageSchema = z.enum([
   'provider_profile_refresh',
   'candidate_discovery',
   'work_item_promotion',
+  'pre_ready_reconciliation',
   'execution_bridge',
   'outcome_evaluation',
   'learning_summary',

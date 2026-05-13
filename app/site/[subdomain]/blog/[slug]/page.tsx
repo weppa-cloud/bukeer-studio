@@ -12,7 +12,6 @@ import {
 } from "@/lib/supabase/get-website";
 import { JsonLd, generateBlogPostSchemas } from "@/lib/schema";
 import { BlogDetail } from "@/components/site/blog/blog-detail";
-import { TemplateSlot } from "@/components/site/themes/editorial-v1/template-slot";
 import { resolveOgImage } from "@/lib/seo/og-helpers";
 import {
   buildLocaleAwareAlternateLanguages,
@@ -197,12 +196,20 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
   const baseUrl = website.custom_domain
     ? `https://${website.custom_domain}`
     : `https://${subdomain}.bukeer.com`;
+
+  // Hydrate travel-planner profile for Author schema
+  const { getPlannerByUserId } = await import("@/lib/supabase/get-planners");
+  const planner = post.created_by
+    ? await getPlannerByUserId(post.created_by)
+    : null;
+
   // Generate JSON-LD schemas (Article, Breadcrumb, Organization)
   const schemas = generateBlogPostSchemas(
     post,
     website,
     baseUrl,
     resolvedLocale,
+    planner,
   );
 
   // Related posts — same locale, same category first, fallback to recent.
@@ -246,23 +253,12 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
       <h1 className="sr-only" aria-hidden="true">
         {post.title}
       </h1>
-      <TemplateSlot
-        name="blog-detail"
-        website={websiteForRender}
-        payload={{
-          subdomain,
-          locale: resolvedLocale,
-          post,
-          related,
-        }}
-      >
-        <BlogDetail
-          subdomain={subdomain}
-          locale={resolvedLocale}
-          post={post}
-          isCustomDomain={isCustomDomain}
-        />
-      </TemplateSlot>
+      <BlogDetail
+        subdomain={subdomain}
+        locale={resolvedLocale}
+        post={post}
+        isCustomDomain={isCustomDomain}
+      />
     </>
   );
 }
@@ -303,6 +299,10 @@ async function redirectLocaleMismatchedBlogSlug({
 
 // Generate static paths for all blog posts
 export async function generateStaticParams() {
+  if (process.env.BUILD_SKIP_BLOG_STATIC_PARAMS === "1") {
+    return [];
+  }
+
   const { getAllWebsiteSubdomains, getAllBlogSlugs, getWebsiteBySubdomain } =
     await import("@/lib/supabase/get-website");
   const subdomains = await getAllWebsiteSubdomains();

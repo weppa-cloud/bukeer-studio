@@ -1,0 +1,22 @@
+campaign,ad_group,keyword,match_type,landing_url,intent,notes
+BR_Search_Colombia_Packages_2026_05,AG1_Pacotes_Colombia,pacotes colombia,Exact,https://colombiatours.travel/pt/pacotes-colombia,Commercial,Core package term
+BR_Search_Colombia_Packages_2026_05,AG1_Pacotes_Colombia,pacotes colombia,Phrase,https://colombiatours.travel/pt/pacotes-colombia,Commercial,Watch flight/hotel drift
+BR_Search_Colombia_Packages_2026_05,AG1_Pacotes_Colombia,pacote viagem colombia,Exact,https://colombiatours.travel/pt/pacotes-colombia,Commercial,High fit with package landing
+BR_Search_Colombia_Packages_2026_05,AG1_Pacotes_Colombia,pacote viagem colombia,Phrase,https://colombiatours.travel/pt/pacotes-colombia,Commercial,Controlled phrase
+BR_Search_Colombia_Packages_2026_05,AG2_Cartagena_Pacote,cartagena colombia pacote,Exact,https://colombiatours.travel/pt/pacotes-colombia,Commercial,Destination package angle
+BR_Search_Colombia_Packages_2026_05,AG2_Cartagena_Pacote,cartagena colombia pacote,Phrase,https://colombiatours.travel/pt/pacotes-colombia,Commercial,Needs hotel-only negatives
+FR_Search_Colombie_Sur_Mesure_2026_05,AG1_Sur_Mesure,voyage sur mesure colombie,Exact,https://colombiatours.travel/fr/voyage-colombie-sur-mesure,Commercial,Premium intent
+FR_Search_Colombie_Sur_Mesure_2026_05,AG1_Sur_Mesure,voyage sur mesure colombie,Phrase,https://colombiatours.travel/fr/voyage-colombie-sur-mesure,Commercial,High CPC watch
+FR_Search_Colombie_Sur_Mesure_2026_05,AG2_Organise,voyage organise colombie,Exact,https://colombiatours.travel/fr/voyage-colombie-sur-mesure,Commercial,Organized trip intent
+FR_Search_Colombie_Sur_Mesure_2026_05,AG2_Organise,voyage organise colombie,Phrase,https://colombiatours.travel/fr/voyage-colombie-sur-mesure,Commercial,Controlled phrase
+FR_Search_Colombie_Sur_Mesure_2026_05,AG3_Circuit,circuit colombie,Exact,https://colombiatours.travel/fr/voyage-colombie-sur-mesure,Mixed,Use only with negatives and low budget
+DE_Search_Kolumbien_Rundreise_2026_05,AG1_Rundreise,kolumbien rundreise,Exact,https://colombiatours.travel/de/kolumbien-rundreise,Commercial,Core structured-tour term
+DE_Search_Kolumbien_Rundreise_2026_05,AG1_Rundreise,kolumbien rundreise,Phrase,https://colombiatours.travel/de/kolumbien-rundreise,Commercial,Controlled phrase
+DE_Search_Kolumbien_Rundreise_2026_05,AG2_Reisen,kolumbien reisen,Exact,https://colombiatours.travel/de/kolumbien-rundreise,Mixed,Watch informational traffic
+DE_Search_Kolumbien_Rundreise_2026_05,AG2_Reisen,kolumbien reisen,Phrase,https://colombiatours.travel/de/kolumbien-rundreise,Mixed,Strict negatives required
+DE_Search_Kolumbien_Rundreise_2026_05,AG3_Reiseveranstalter,kolumbien reiseveranstalter,Exact,https://colombiatours.travel/de/kolumbien-rundreise,Commercial,Low volume but strong intent
+AR_Search_Colombia_Packages_2026_05,AG1_Paquetes_Colombia,paquetes a colombia,Exact,https://colombiatours.travel/viajes-a-colombia-desde-argentina,Commercial,Core package term
+AR_Search_Colombia_Packages_2026_05,AG1_Paquetes_Colombia,paquetes a colombia,Phrase,https://colombiatours.travel/viajes-a-colombia-desde-argentina,Commercial,Watch cheap/flight drift
+AR_Search_Colombia_Packages_2026_05,AG2_Desde_Argentina,viaje a colombia desde argentina,Exact,https://colombiatours.travel/viajes-a-colombia-desde-argentina,Mixed,Origin-specific
+AR_Search_Colombia_Packages_2026_05,AG2_Desde_Argentina,viaje a colombia desde argentina,Phrase,https://colombiatours.travel/viajes-a-colombia-desde-argentina,Mixed,Controlled phrase
+AR_Search_Colombia_Packages_2026_05,AG3_San_Andres,san andres colombia paquetes,Exact,https://colombiatours.travel/viajes-a-colombia-desde-argentina,Commercial,Useful if search terms stay package-led

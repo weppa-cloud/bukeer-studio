@@ -60,9 +60,24 @@ function target(row: JsonRecord): JsonRecord {
   return asRecord(asRecord(row.evidence).target);
 }
 
+function adapterInput(row: JsonRecord): JsonRecord {
+  const evidence = asRecord(row.evidence);
+  const direct = asRecord(evidence.adapter_input);
+  if (Object.keys(direct).length > 0) return direct;
+  return asRecord(asRecord(evidence.signal_payload).adapter_input);
+}
+
 function hasTarget(row: JsonRecord): boolean {
   const t = target(row);
-  return Boolean(t.target_id || t.target_path || t.target_key);
+  const input = adapterInput(row);
+  return Boolean(
+    t.target_id ||
+      t.target_path ||
+      t.target_key ||
+      input.target_id ||
+      input.target_path ||
+      input.target_key,
+  );
 }
 
 function hasRollback(row: JsonRecord): boolean {
@@ -108,18 +123,23 @@ function groupKey(row: JsonRecord): string | null {
   if (key) return key;
 
   const evidence = asRecord(row.evidence);
+  const input = adapterInput(row);
   const actionKey =
     stringValue(evidence.action_key) ||
     stringValue(evidence.allowed_action_class) ||
     stringValue(row.allowed_action_class);
   const entityKey =
     stringValue(evidence.entity_key) ||
+    stringValue(target(row).target_id) ||
+    stringValue(input.target_id) ||
+    stringValue(target(row).target_path) ||
+    stringValue(input.target_path) ||
     stringValue(evidence.target_key) ||
     stringValue(target(row).target_key) ||
-    stringValue(target(row).target_id) ||
-    stringValue(target(row).target_path);
+    stringValue(input.target_key);
   if (actionKey && entityKey) {
-    return `${normalizeKeyPart(actionKey)}:${normalizeKeyPart(entityKey)}`;
+    const patch = JSON.stringify(asRecord(input.patch));
+    return `${normalizeKeyPart(actionKey)}:${normalizeKeyPart(entityKey)}:${patch}`;
   }
 
   const title = stringValue(row.title);

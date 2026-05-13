@@ -83,6 +83,7 @@ function sourceRefs(candidate: GrowthOpportunityCandidate): string[] {
 function dataQualityFailures(candidate: GrowthOpportunityCandidate): string[] {
   return evaluateCandidateDataQuality({
     evidence: candidate.evidence as JsonRecord,
+    actionClass: candidate.allowed_action_class,
     successMetric: candidate.success_metric,
     evaluationWindow: candidate.evaluation_window,
   });

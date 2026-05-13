@@ -16,6 +16,7 @@ function artifact(
     website_id: websiteId,
     agent_instance_id: null,
     task_session_id: null,
+    context_manifest_id: null,
     decision_id: null,
     artifact_type: "safe_apply_patch",
     artifact_version: "v1",
@@ -26,6 +27,7 @@ function artifact(
     memory_reads: [],
     skill_reads: [],
     risk_assessment: { risk: "low" },
+    manifest_citation_verdict: {},
     validation_errors: [],
     idempotency_key: "test:artifact:1",
     created_work_item_id: null,
@@ -65,6 +67,12 @@ describe("Growth Hermes artifact materializer", () => {
         target_table: "website_pages",
         target_id: "11111111-1111-4111-8111-111111111111",
       },
+      source_refs: ["growth_profile_runs:run-1"],
+      supported_facts: [
+        {
+          ref: "growth_profile_runs:run-1",
+        },
+      ],
       adapter_input: {
         target_table: "website_pages",
         target_id: "11111111-1111-4111-8111-111111111111",
@@ -109,6 +117,52 @@ describe("Growth Hermes artifact materializer", () => {
         article: {
           title: "Best Colombia Trips",
           slug: "best-colombia-trips",
+          supported_facts: [
+            {
+              ref: "growth_profile_runs:run-1",
+            },
+          ],
+        },
+      },
+    });
+  });
+
+  it("normalizes transcreation quality to the promotion gate contract", () => {
+    const { candidate } = buildGrowthArtifactCandidate({
+      artifact: artifact({
+        artifact_type: "transcreation_payload",
+        quality_review: { pass: true, score: 0.92 },
+        payload: {
+          source_locale: "es-CO",
+          target_locale: "en-US",
+          target: {
+            table: "seo_transcreation_jobs",
+            id: "22222222-2222-4222-8222-222222222222",
+            target_key: "page:en-US:home",
+          },
+          payload: {
+            meta_title: "Colombia trips",
+            meta_desc: "Plan Colombia trips with local experts.",
+            body_content: "English body content.",
+          },
+          rollback_payload: { restore: { status: "pending" } },
+          glossary_terms: ["ColombiaTours"],
+          transcreation_job_id: "22222222-2222-4222-8222-222222222222",
+          source_entity_id: "home",
+          page_type: "page",
+        },
+      }),
+      locale: "en-US",
+      market: "US",
+    });
+
+    expect(candidate.allowed_action_class).toBe("transcreation_merge");
+    expect(candidate.evidence).toMatchObject({
+      source_refs: ["growth_profile_runs:run-1"],
+      adapter_input: {
+        quality: {
+          pass: true,
+          passed: true,
         },
       },
     });

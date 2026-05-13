@@ -523,6 +523,40 @@ function candidateBaseline(payload: JsonRecord, mapping: CandidateMapping): Json
   return baseline;
 }
 
+function contentPublishEvidenceFromPayload(payload: JsonRecord): JsonRecord {
+  const article = asRecord(payload.article);
+  const supportedFacts = Array.isArray(payload.supported_facts)
+    ? payload.supported_facts
+    : Array.isArray(article.supported_facts)
+      ? article.supported_facts
+      : [];
+  const contentBrief = asRecord(payload.content_brief);
+  const providerEvidenceReads = Array.isArray(payload.provider_evidence_reads)
+    ? payload.provider_evidence_reads
+    : [];
+  const articleOutline = Array.isArray(payload.article_outline)
+    ? payload.article_outline
+    : [];
+  const result: JsonRecord = {};
+  if (Object.keys(article).length > 0) result.article = article;
+  if (supportedFacts.length > 0) result.supported_facts = supportedFacts;
+  if (Object.keys(contentBrief).length > 0) result.content_brief = contentBrief;
+  if (providerEvidenceReads.length > 0) {
+    result.provider_evidence_reads = providerEvidenceReads;
+  }
+  if (articleOutline.length > 0) result.article_outline = articleOutline;
+  for (const key of [
+    "primary_query",
+    "topic_key",
+    "topic_cluster",
+    "serp_gap",
+    "content_factory_version",
+  ]) {
+    if (payload[key] !== undefined) result[key] = payload[key];
+  }
+  return result;
+}
+
 function rollbackExpectation(
   payload: JsonRecord,
   target: JsonRecord,
@@ -703,7 +737,11 @@ export async function discoverGrowthOpportunityCandidates(
       rawRow.entity_id ??
       mapping.candidateType;
 
+    const payloadSourceRefs = Array.isArray(payload.source_refs)
+      ? payload.source_refs.filter((ref): ref is string => typeof ref === "string")
+      : [];
     const baseEvidence = {
+      allowed_action_class: mapping.actionClass,
       source: "growth_runtime_candidate_discovery",
       cycle_id: input.cycleId ?? null,
       signal_fact_id: signalId || null,
@@ -712,7 +750,13 @@ export async function discoverGrowthOpportunityCandidates(
       rollback_expectation: rollback,
       baseline,
       dataforseo_evidence: dataforseoEvidence,
-      source_refs: signalId ? [`growth_signal_facts:${signalId}`] : [],
+      source_refs: [
+        ...(signalId ? [`growth_signal_facts:${signalId}`] : []),
+        ...payloadSourceRefs,
+      ],
+      ...(mapping.actionClass === "content_publish"
+        ? contentPublishEvidenceFromPayload(payload)
+        : {}),
     };
     const correlation = evaluateGrowthEvidenceCorrelation({
       websiteId: input.websiteId,

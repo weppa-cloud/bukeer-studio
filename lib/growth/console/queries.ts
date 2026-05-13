@@ -426,13 +426,37 @@ export interface GrowthHermesArtifactControl {
   status: string;
   agentInstanceId: string | null;
   taskSessionId: string | null;
+  contextManifestId: string | null;
   decisionId: string | null;
   providerEvidenceReads: number;
   memoryReads: number;
   skillReads: number;
+  manifestCitationAllowed: boolean | null;
+  manifestCitationSummary: string;
   validationErrors: number;
   createdWorkItemId: string | null;
   updatedAt: string;
+}
+
+export interface GrowthHermesContextManifestControl {
+  id: string;
+  agentInstanceId: string;
+  taskSessionId: string | null;
+  lane: AgentLane;
+  status: string;
+  autonomyLevel: string;
+  contextHash: string;
+  modelName: string;
+  toolsetAllowed: string[];
+  skillIdsInjected: string[];
+  memoryIdsInjected: string[];
+  excludedSkillIds: string[];
+  excludedMemoryIds: string[];
+  providerSourceRefs: string[];
+  outcomeRefs: string[];
+  isolationAllowed: boolean | null;
+  isolationSummary: string;
+  createdAt: string;
 }
 
 export interface GrowthHermesSidecarStatus {
@@ -448,6 +472,7 @@ export interface GrowthHermesSidecarStatus {
 export interface GrowthHermesControlSummary {
   instances: GrowthHermesAgentInstanceControl[];
   artifacts: GrowthHermesArtifactControl[];
+  contextManifests: GrowthHermesContextManifestControl[];
   sidecar: GrowthHermesSidecarStatus;
   missingTables: string[];
 }
@@ -581,6 +606,7 @@ function emptyHermesSummary(
   return {
     instances: [],
     artifacts: [],
+    contextManifests: [],
     sidecar: {
       status: "missing",
       lastSessionId: null,
@@ -1009,7 +1035,7 @@ async function fetchGrowthHermesControl(
   accountId: string,
 ): Promise<GrowthHermesControlSummary> {
   const runtimeSupabase = createSupabaseServiceRoleClient();
-  const [instances, artifacts, taskSessions] = await Promise.all([
+  const [instances, artifacts, taskSessions, contextManifests] = await Promise.all([
     readRuntimeRows<{
       id: string;
       agent_type: string;
@@ -1044,13 +1070,15 @@ async function fetchGrowthHermesControl(
       provider_evidence_reads: unknown[] | null;
       memory_reads: unknown[] | null;
       skill_reads: unknown[] | null;
+      manifest_citation_verdict: Record<string, unknown> | null;
       validation_errors: unknown[] | null;
+      context_manifest_id: string | null;
       created_work_item_id: string | null;
       updated_at: string;
     }>(
       runtimeSupabase,
       "growth_agent_artifacts",
-      "id, artifact_type, status, agent_instance_id, task_session_id, decision_id, provider_evidence_reads, memory_reads, skill_reads, validation_errors, created_work_item_id, updated_at",
+      "id, artifact_type, status, agent_instance_id, task_session_id, context_manifest_id, decision_id, provider_evidence_reads, memory_reads, skill_reads, manifest_citation_verdict, validation_errors, created_work_item_id, updated_at",
       websiteId,
       accountId,
     ),
@@ -1067,12 +1095,38 @@ async function fetchGrowthHermesControl(
       websiteId,
       accountId,
     ),
+    readRuntimeRows<{
+      id: string;
+      agent_instance_id: string;
+      task_session_id: string | null;
+      lane: string;
+      status: string;
+      autonomy_level: string;
+      context_hash: string;
+      model_name: string;
+      toolset_allowed: string[] | null;
+      skill_ids_injected: string[] | null;
+      memory_ids_injected: string[] | null;
+      excluded_skill_ids: string[] | null;
+      excluded_memory_ids: string[] | null;
+      provider_source_refs: string[] | null;
+      outcome_refs: string[] | null;
+      isolation_verdict: Record<string, unknown> | null;
+      created_at: string;
+    }>(
+      runtimeSupabase,
+      "growth_agent_context_manifests",
+      "id, agent_instance_id, task_session_id, lane, status, autonomy_level, context_hash, model_name, toolset_allowed, skill_ids_injected, memory_ids_injected, excluded_skill_ids, excluded_memory_ids, provider_source_refs, outcome_refs, isolation_verdict, created_at",
+      websiteId,
+      accountId,
+    ),
   ]);
 
   const missingTables = [
     instances.missing ? "growth_agent_instances" : null,
     artifacts.missing ? "growth_agent_artifacts" : null,
     taskSessions.missing ? "growth_agent_task_sessions" : null,
+    contextManifests.missing ? "growth_agent_context_manifests" : null,
   ].filter(Boolean) as string[];
 
   if (missingTables.length > 0) return emptyHermesSummary(missingTables);
@@ -1131,12 +1185,20 @@ async function fetchGrowthHermesControl(
           row.agent_instance_id == null ? null : String(row.agent_instance_id),
         taskSessionId:
           row.task_session_id == null ? null : String(row.task_session_id),
+        contextManifestId:
+          row.context_manifest_id == null ? null : String(row.context_manifest_id),
         decisionId: row.decision_id == null ? null : String(row.decision_id),
         providerEvidenceReads: Array.isArray(row.provider_evidence_reads)
           ? row.provider_evidence_reads.length
           : 0,
         memoryReads: Array.isArray(row.memory_reads) ? row.memory_reads.length : 0,
         skillReads: Array.isArray(row.skill_reads) ? row.skill_reads.length : 0,
+        manifestCitationAllowed:
+          typeof safeRecord(row.manifest_citation_verdict)?.allowed === "boolean"
+            ? Boolean(safeRecord(row.manifest_citation_verdict)?.allowed)
+            : null,
+        manifestCitationSummary:
+          summarizeJson(row.manifest_citation_verdict) ?? "No manifest verdict",
         validationErrors: Array.isArray(row.validation_errors)
           ? row.validation_errors.length
           : 0,
@@ -1147,6 +1209,51 @@ async function fetchGrowthHermesControl(
         updatedAt: String(toIsoDateTime(row.updated_at)),
       }))
       .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))
+      .slice(0, 20),
+    contextManifests: contextManifests.rows
+      .map((row): GrowthHermesContextManifestControl | null => {
+        const lane = AgentLaneSchema.safeParse(row.lane);
+        if (!lane.success) return null;
+        const verdict = safeRecord(row.isolation_verdict);
+        return {
+          id: String(row.id ?? ""),
+          agentInstanceId: String(row.agent_instance_id ?? ""),
+          taskSessionId:
+            row.task_session_id == null ? null : String(row.task_session_id),
+          lane: lane.data,
+          status: String(row.status ?? ""),
+          autonomyLevel: String(row.autonomy_level ?? "A0"),
+          contextHash: String(row.context_hash ?? ""),
+          modelName: String(row.model_name ?? ""),
+          toolsetAllowed: Array.isArray(row.toolset_allowed)
+            ? row.toolset_allowed.map(String)
+            : [],
+          skillIdsInjected: Array.isArray(row.skill_ids_injected)
+            ? row.skill_ids_injected.map(String)
+            : [],
+          memoryIdsInjected: Array.isArray(row.memory_ids_injected)
+            ? row.memory_ids_injected.map(String)
+            : [],
+          excludedSkillIds: Array.isArray(row.excluded_skill_ids)
+            ? row.excluded_skill_ids.map(String)
+            : [],
+          excludedMemoryIds: Array.isArray(row.excluded_memory_ids)
+            ? row.excluded_memory_ids.map(String)
+            : [],
+          providerSourceRefs: Array.isArray(row.provider_source_refs)
+            ? row.provider_source_refs.map(String)
+            : [],
+          outcomeRefs: Array.isArray(row.outcome_refs)
+            ? row.outcome_refs.map(String)
+            : [],
+          isolationAllowed:
+            typeof verdict?.allowed === "boolean" ? Boolean(verdict.allowed) : null,
+          isolationSummary: summarizeJson(row.isolation_verdict) ?? "No isolation verdict",
+          createdAt: String(toIsoDateTime(row.created_at)),
+        };
+      })
+      .filter((row): row is GrowthHermesContextManifestControl => row !== null)
+      .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
       .slice(0, 20),
     sidecar: {
       status: sidecarRunning > 0 ? "running" : sidecarSessions.length > 0 ? "healthy" : "idle",

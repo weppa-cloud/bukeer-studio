@@ -39,38 +39,6 @@ const SITE_PREVIEW_COOKIE = "__bukeer_site_preview";
 const COLOMBIA_TOURS_EN_HOST = "en.colombiatours.travel";
 const COLOMBIA_TOURS_CANONICAL_HOST = "colombiatours.travel";
 
-const COLOMBIA_TOURS_EN_REDIRECTS: Record<string, string> = {
-  "/": "/en",
-  "/tipos-de-mamas": "/en/blog",
-  "/tipos-de-mamas/": "/en/blog",
-  "/los-10-mejores-lugares-turisticos":
-    "/en/blog/los-10-mejores-lugares-turisticos-de-colombia",
-  "/los-10-mejores-lugares-turisticos/":
-    "/en/blog/los-10-mejores-lugares-turisticos-de-colombia",
-  "/los-10-mejores-lugares-turisticos-de-colombia":
-    "/en/blog/los-10-mejores-lugares-turisticos-de-colombia",
-  "/los-10-mejores-lugares-turisticos-de-colombia/":
-    "/en/blog/los-10-mejores-lugares-turisticos-de-colombia",
-  "/los-10-mejores-destinos-para-conocer-colombia":
-    "/en/blog/los-10-mejores-destinos-para-conocer-colombia",
-  "/los-10-mejores-destinos-para-conocer-colombia/":
-    "/en/blog/los-10-mejores-destinos-para-conocer-colombia",
-  "/isla-mucura-un-tesoro-del-caribe-colombiano":
-    "/en/blog/isla-mucura-un-tesoro-del-caribe-colombiano",
-  "/isla-mucura-un-tesoro-del-caribe-colombiano/":
-    "/en/blog/isla-mucura-un-tesoro-del-caribe-colombiano",
-  "/palabras-colombianas": "/en/blog/palabras-colombianas",
-  "/palabras-colombianas/": "/en/blog/palabras-colombianas",
-  "/10-destinos-para-visitar-con-mama":
-    "/en/blog/10-destinos-para-visitar-con-mama",
-  "/10-destinos-para-visitar-con-mama/":
-    "/en/blog/10-destinos-para-visitar-con-mama",
-  "/es-seguro-viajar-a-isla-margarita": "/en/blog",
-  "/es-seguro-viajar-a-isla-margarita/": "/en/blog",
-  "/nombres-de-empresas-de-turismo": "/en/blog",
-  "/nombres-de-empresas-de-turismo/": "/en/blog",
-};
-
 const CATEGORY_TO_PRODUCT_TYPE: Record<string, string> = {
   destinos: "destination",
   destinations: "destination",
@@ -123,10 +91,11 @@ function resolveWebsiteLocaleSettingsForMiddleware(
   }
 
   // Backward-compatible fallback for schemas where websites table doesn't
-  // expose locale columns. Keep default locale and allow EN aliases.
-  const supportedLocales = settings.supportedLocales.includes("en-US")
-    ? settings.supportedLocales
-    : [...settings.supportedLocales, "en-US"];
+  // expose locale columns. Keep default locale and allow all supported locales.
+  const supportedLocales = ["en-US", "pt-BR", "fr-FR", "de-DE"].reduce(
+    (acc, locale) => acc.includes(locale) ? acc : [...acc, locale],
+    [...settings.supportedLocales],
+  );
 
   return {
     ...settings,
@@ -139,17 +108,37 @@ function getRequestHost(request: NextRequest): string {
   return hostHeader.split(":")[0].toLowerCase().replace(/\.$/, "");
 }
 
-function redirectColombiaToursEnSubdomain(request: NextRequest): NextResponse {
+async function redirectColombiaToursEnSubdomain(
+  request: NextRequest,
+): Promise<NextResponse> {
   const currentPathname = request.nextUrl.pathname || "/";
+  const website = await getWebsiteByCustomDomain(COLOMBIA_TOURS_CANONICAL_HOST);
+  const hostSpecificRedirect = website?.id
+    ? await getLegacyRedirectForCandidates(
+        website.id,
+        buildHostAwareLegacyPathCandidates(
+          COLOMBIA_TOURS_EN_HOST,
+          currentPathname,
+        ),
+      )
+    : null;
+
+  if (hostSpecificRedirect?.new_path) {
+    return buildLegacyRedirectResponse(
+      request,
+      hostSpecificRedirect,
+      COLOMBIA_TOURS_CANONICAL_HOST,
+    );
+  }
+
   const normalizedPathname =
     currentPathname.length > 1 ? currentPathname.replace(/\/+$/, "") : "/";
-  const mappedPathname =
-    COLOMBIA_TOURS_EN_REDIRECTS[currentPathname] ||
-    COLOMBIA_TOURS_EN_REDIRECTS[normalizedPathname] ||
-    `/en${currentPathname === "/" ? "" : currentPathname}`;
+  const mappedPathname = `/en${normalizedPathname === "/" ? "" : normalizedPathname}`;
 
   const target = new URL(request.url);
   target.hostname = COLOMBIA_TOURS_CANONICAL_HOST;
+  target.protocol = "https:";
+  target.port = "";
   target.pathname = mappedPathname;
   return NextResponse.redirect(target, 301);
 }
@@ -386,8 +375,14 @@ function localeLookupCandidates(locale: string): string[] {
   if (language) candidates.push(language);
   if (normalized === "es-CO") candidates.push("es");
   if (normalized === "en-US") candidates.push("en");
+  if (normalized === "pt-BR") candidates.push("pt");
+  if (normalized === "fr-FR") candidates.push("fr");
+  if (normalized === "de-DE") candidates.push("de");
   if (normalized === "es") candidates.push("es-CO");
   if (normalized === "en") candidates.push("en-US");
+  if (normalized === "pt") candidates.push("pt-BR");
+  if (normalized === "fr") candidates.push("fr-FR");
+  if (normalized === "de") candidates.push("de-DE");
 
   return [...new Set(candidates)];
 }
@@ -425,6 +420,9 @@ function normalizeBlogPublicLocale(
   if (!locale) return null;
   if (locale === "es") return "es-CO";
   if (locale === "en") return "en-US";
+  if (locale === "pt") return "pt-BR";
+  if (locale === "fr") return "fr-FR";
+  if (locale === "de") return "de-DE";
   return locale;
 }
 
@@ -563,6 +561,18 @@ function buildLegacyPathCandidates(pathname: string): string[] {
   return [...new Set(candidates)];
 }
 
+function buildHostAwareLegacyPathCandidates(
+  host: string,
+  pathname: string,
+): string[] {
+  const pathCandidates = buildLegacyPathCandidates(pathname);
+  return [
+    ...pathCandidates.map((candidate) => `${host}${candidate}`),
+    ...pathCandidates.map((candidate) => `https://${host}${candidate}`),
+    ...pathCandidates,
+  ];
+}
+
 function coerceRedirectStatusCode(value: number): 301 | 302 | 307 | 308 {
   if (value === 302 || value === 307 || value === 308) {
     return value;
@@ -579,6 +589,16 @@ async function getLegacyRedirect(
   if (cached !== undefined) return cached;
 
   const candidates = buildLegacyPathCandidates(pathname);
+  return getLegacyRedirectForCandidates(websiteId, candidates, cacheKey);
+}
+
+async function getLegacyRedirectForCandidates(
+  websiteId: string,
+  candidates: string[],
+  cacheKey: string = `legacy-candidates:${websiteId}:${candidates.join("|")}`,
+): Promise<LegacyRedirectRow | null> {
+  const cached = getCached<LegacyRedirectRow | null>(cacheKey);
+  if (cached !== undefined) return cached;
 
   for (const candidate of candidates) {
     const data = await supabaseFetch<LegacyRedirectRow[]>(
@@ -595,6 +615,39 @@ async function getLegacyRedirect(
   return null;
 }
 
+function buildLegacyRedirectResponse(
+  request: NextRequest,
+  legacy: LegacyRedirectRow,
+  targetHostname?: string,
+): NextResponse {
+  const target =
+    legacy.new_path.startsWith("http://") ||
+    legacy.new_path.startsWith("https://")
+      ? new URL(legacy.new_path)
+      : new URL(
+          legacy.new_path.startsWith("/")
+            ? legacy.new_path
+            : `/${legacy.new_path}`,
+          request.url,
+        );
+
+  if (targetHostname) {
+    target.hostname = targetHostname;
+    target.protocol = "https:";
+    target.port = "";
+  }
+
+  // Preserve query params from original URL when redirect target does not define its own query
+  if (!target.search && request.nextUrl.search) {
+    target.search = request.nextUrl.search;
+  }
+
+  return NextResponse.redirect(
+    target,
+    coerceRedirectStatusCode(legacy.status_code),
+  );
+}
+
 async function tryLegacyRedirect(
   request: NextRequest,
   website: WebsiteLookup | null,
@@ -609,21 +662,8 @@ async function tryLegacyRedirect(
     return null;
   }
 
-  const target =
-    legacy.new_path.startsWith("http://") ||
-    legacy.new_path.startsWith("https://")
-      ? new URL(legacy.new_path)
-      : new URL(
-          legacy.new_path.startsWith("/")
-            ? legacy.new_path
-            : `/${legacy.new_path}`,
-          request.url,
-        );
-
-  // Preserve query params from original URL when redirect target does not define its own query
-  if (!target.search && request.nextUrl.search) {
-    target.search = request.nextUrl.search;
-  }
+  const response = buildLegacyRedirectResponse(request, legacy);
+  const target = new URL(response.headers.get("location") || request.url);
 
   const current = request.nextUrl;
   const isSameDestination =
@@ -635,9 +675,15 @@ async function tryLegacyRedirect(
     return null;
   }
 
-  return NextResponse.redirect(
-    target,
-    coerceRedirectStatusCode(legacy.status_code),
+  return response;
+}
+
+function isPublicSeoMetadataPath(pathname: string): boolean {
+  return (
+    pathname === "/robots.txt" ||
+    pathname === "/sitemap.xml" ||
+    pathname === "/sitemap_index.xml" ||
+    /^\/sitemap-[A-Za-z]{2}(?:-[A-Za-z]{2})?\.xml$/.test(pathname)
   );
 }
 
@@ -1003,17 +1049,22 @@ export async function middleware(request: NextRequest) {
       const potentialProductRoute = getPotentialProductRoute(
         localeResolution.pathnameWithoutLang,
       );
-
-      const legacyRedirectResponse = await tryLegacyRedirect(
-        request,
-        website,
+      const allowLegacyRedirects = !isPublicSeoMetadataPath(
         localeResolution.pathnameWithoutLang,
       );
-      if (legacyRedirectResponse) {
-        return persistClickIdsOnResponse(
-          legacyRedirectResponse,
-          capturedClickIds,
+
+      if (allowLegacyRedirects) {
+        const legacyRedirectResponse = await tryLegacyRedirect(
+          request,
+          website,
+          localeResolution.pathnameWithoutLang,
         );
+        if (legacyRedirectResponse) {
+          return persistClickIdsOnResponse(
+            legacyRedirectResponse,
+            capturedClickIds,
+          );
+        }
       }
 
       const missingBlogResponse = await tryMissingBlogNotFound(
@@ -1089,17 +1140,22 @@ export async function middleware(request: NextRequest) {
     const potentialProductRoute = getPotentialProductRoute(
       localeResolution.pathnameWithoutLang,
     );
-
-    const legacyRedirectResponse = await tryLegacyRedirect(
-      request,
-      website,
+    const allowLegacyRedirects = !isPublicSeoMetadataPath(
       localeResolution.pathnameWithoutLang,
     );
-    if (legacyRedirectResponse) {
-      return persistClickIdsOnResponse(
-        legacyRedirectResponse,
-        capturedClickIds,
+
+    if (allowLegacyRedirects) {
+      const legacyRedirectResponse = await tryLegacyRedirect(
+        request,
+        website,
+        localeResolution.pathnameWithoutLang,
       );
+      if (legacyRedirectResponse) {
+        return persistClickIdsOnResponse(
+          legacyRedirectResponse,
+          capturedClickIds,
+        );
+      }
     }
 
     const missingBlogResponse = await tryMissingBlogNotFound(
@@ -1163,17 +1219,22 @@ export async function middleware(request: NextRequest) {
     const potentialProductRoute = getPotentialProductRoute(
       localeResolution.pathnameWithoutLang,
     );
-
-    const legacyRedirectResponse = await tryLegacyRedirect(
-      request,
-      website,
+    const allowLegacyRedirects = !isPublicSeoMetadataPath(
       localeResolution.pathnameWithoutLang,
     );
-    if (legacyRedirectResponse) {
-      return persistClickIdsOnResponse(
-        legacyRedirectResponse,
-        capturedClickIds,
+
+    if (allowLegacyRedirects) {
+      const legacyRedirectResponse = await tryLegacyRedirect(
+        request,
+        website,
+        localeResolution.pathnameWithoutLang,
       );
+      if (legacyRedirectResponse) {
+        return persistClickIdsOnResponse(
+          legacyRedirectResponse,
+          capturedClickIds,
+        );
+      }
     }
 
     const missingBlogResponse = await tryMissingBlogNotFound(

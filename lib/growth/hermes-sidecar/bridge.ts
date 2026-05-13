@@ -23,6 +23,10 @@ import {
   type MaterializeGrowthAgentArtifactResult,
 } from "@/lib/growth/chief-of-staff/artifact-materializer";
 import { routeChiefOfStaffAction } from "@/lib/growth/chief-of-staff/action-router";
+import {
+  buildStrictGrowthAgentContextManifest,
+  validateManifestCitations,
+} from "@/lib/growth/hermes-sidecar/context-manifest";
 
 export type HermesBridgeWriteAction =
   | "create_chief_action"
@@ -35,6 +39,7 @@ export const HERMES_BRIDGE_ALLOWED_WRITE_TABLES = [
   "growth_agent_wakeup_requests",
   "growth_agent_task_sessions",
   "growth_agent_artifacts",
+  "growth_agent_context_manifests",
   "growth_opportunity_candidates",
   "growth_work_items",
 ] as const;
@@ -110,6 +115,14 @@ function rejectSensitiveActionClass(actionClass: unknown) {
       `Hermes bridge cannot request sensitive action_class=${raw}.`,
     );
   }
+}
+
+function stringArray(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
+  }
+  const single = text(value);
+  return single ? [single] : [];
 }
 
 export async function assertHermesBridgeScope({
@@ -203,9 +216,22 @@ export async function assertHermesBridgeScope({
 export async function readGrowthContextForHermes(
   scope: HermesBridgeScope & {
     persistSnapshot?: boolean;
+    taskSessionId?: string | null;
   },
 ) {
   await assertHermesBridgeScope(scope);
+  if (scope.agentInstanceId) {
+    return buildStrictGrowthAgentContextManifest({
+      supabase: scope.supabase,
+      accountId: scope.accountId,
+      websiteId: scope.websiteId,
+      agentInstanceId: scope.agentInstanceId,
+      taskSessionId: scope.taskSessionId ?? null,
+      locale: scope.locale ?? "es-CO",
+      market: scope.market ?? "CO",
+      persist: scope.persistSnapshot ?? true,
+    });
+  }
   return buildGrowthAgentContext({
     supabase: scope.supabase,
     accountId: scope.accountId,
@@ -300,18 +326,42 @@ export async function createAgentArtifactFromHermes(
     riskAssessment: JsonRecord;
     idempotencyKey: string;
     taskSessionId?: string | null;
+    contextManifestId?: string | null;
     decisionId?: string | null;
     status?: GrowthAgentArtifact["status"];
   },
 ): Promise<GrowthAgentArtifact> {
   await assertHermesBridgeScope({ ...scope, write: true });
   rejectSensitiveActionClass(scope.payload.action_class);
+  if (!scope.agentInstanceId || !scope.contextManifestId) {
+    throw new HermesBridgeScopeError(
+      "hermes_context_manifest_required",
+      "Hermes lane artifacts require agent_instance_id and context_manifest_id.",
+    );
+  }
+  const manifestCitationVerdict = await validateManifestCitations(
+    scope.supabase,
+    scope.websiteId,
+    scope.contextManifestId,
+    scope.memoryReads ?? [],
+    scope.skillReads ?? [],
+    stringArray(scope.payload.requested_tool).concat(stringArray(scope.payload.requested_tools)),
+    text(scope.payload.action_class),
+    scope.payload.request_live_execution === true,
+  );
+  if (!manifestCitationVerdict.allowed) {
+    throw new HermesBridgeScopeError(
+      "hermes_manifest_citation_blocked",
+      "Artifact cites context, tools or autonomy not allowed by the context manifest.",
+    );
+  }
   const input: CreateGrowthAgentArtifactInput = {
     supabase: scope.supabase,
     accountId: scope.accountId,
     websiteId: scope.websiteId,
     agentInstanceId: scope.agentInstanceId ?? null,
     taskSessionId: scope.taskSessionId ?? null,
+    contextManifestId: scope.contextManifestId ?? null,
     decisionId: scope.decisionId ?? null,
     artifactType: scope.artifactType,
     payload: {
@@ -327,6 +377,7 @@ export async function createAgentArtifactFromHermes(
       hermes_can_mutate_public_surfaces: false,
       executor_only_mutation_boundary: true,
     },
+    manifestCitationVerdict: { ...manifestCitationVerdict },
     idempotencyKey: scope.idempotencyKey,
     status: scope.status,
   };

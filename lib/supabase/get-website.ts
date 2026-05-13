@@ -706,6 +706,14 @@ export async function getBlogCategories(
  * Get all published website subdomains for SSG
  */
 export async function getAllWebsiteSubdomains(): Promise<string[]> {
+  const buildStaticSubdomains = process.env.BUILD_STATIC_SUBDOMAINS;
+  if (buildStaticSubdomains) {
+    return buildStaticSubdomains
+      .split(",")
+      .map((subdomain) => subdomain.trim())
+      .filter(Boolean);
+  }
+
   try {
     const { data, error } = await supabase
       .from("websites")
@@ -729,6 +737,10 @@ export async function getAllWebsiteSubdomains(): Promise<string[]> {
  * Get all published blog post slugs for a website (for SSG)
  */
 export async function getAllBlogSlugs(websiteId: string): Promise<string[]> {
+  if (process.env.BUILD_SKIP_BLOG_STATIC_PARAMS === "1") {
+    return [];
+  }
+
   try {
     const { data, error } = await supabase
       .from("website_blog_posts")

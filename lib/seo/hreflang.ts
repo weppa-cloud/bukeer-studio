@@ -37,6 +37,7 @@ export const SUPPORTED_LANGUAGES: LanguageConfig[] = [
   { code: 'en', region: 'US', locale: 'en-US' },
   { code: 'pt', region: 'BR', locale: 'pt-BR' },
   { code: 'fr', region: 'FR', locale: 'fr-FR' },
+  { code: 'de', region: 'DE', locale: 'de-DE' },
 ];
 
 function normalizePath(pathname: string): string {

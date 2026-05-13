@@ -25,7 +25,11 @@ import {
   type HreflangLink,
 } from "@/lib/seo/hreflang";
 import {
+  buildPublicLocalizedPath,
   normalizeWebsiteLocales,
+  localeToLanguage,
+  normalizeLocale,
+  translateCategoryPathname,
   type WebsiteLocaleSettings,
 } from "@/lib/seo/locale-routing";
 
@@ -35,6 +39,7 @@ export interface SitemapUrl {
   changefreq: string;
   priority: string;
   translatedLocales?: string[];
+  alternatePathname?: string;
 }
 
 export interface SitemapLocaleContext {
@@ -116,7 +121,7 @@ export async function buildSitemapUrls(
 
   for (const group of blogGroups) {
     urls.push({
-      loc: `${baseUrl}/blog/${group.slug}`,
+      loc: `${baseUrl}${group.pathname}`,
       lastmod: group.lastmod,
       changefreq: "monthly",
       priority: "0.6",
@@ -248,6 +253,50 @@ ${rendered.join("\n")}
 </urlset>`;
 }
 
+export function localizeSitemapUrlsForLocale(
+  urls: SitemapUrl[],
+  targetLocale: string,
+  locale: SitemapLocaleContext,
+): SitemapUrl[] {
+  const normalizedSettings = normalizeWebsiteLocales(locale.settings);
+  const normalizedTarget = normalizeLocale(
+    targetLocale,
+    normalizedSettings.defaultLocale,
+  );
+  const defaultLocale = normalizedSettings.defaultLocale;
+  const targetLanguage = localeToLanguage(normalizedTarget);
+
+  return urls
+    .filter((url) => {
+      if (normalizedTarget === defaultLocale) return true;
+      if (!url.translatedLocales || url.translatedLocales.length === 0) {
+        return true;
+      }
+
+      return url.translatedLocales
+        .map((candidate) => normalizeLocale(candidate, defaultLocale))
+        .includes(normalizedTarget);
+    })
+    .map((url) => {
+      const sourcePathname = extractPathname(url.loc, locale.baseUrl);
+      const translatedPathname = translateCategoryPathname(
+        sourcePathname,
+        targetLanguage,
+      );
+      const publicPathname = buildPublicLocalizedPath(
+        translatedPathname,
+        normalizedTarget,
+        defaultLocale,
+      );
+
+      return {
+        ...url,
+        loc: `${locale.baseUrl}${publicPathname === "/" ? "" : publicPathname}`,
+        alternatePathname: sourcePathname,
+      };
+    });
+}
+
 function renderUrlEntry(
   url: SitemapUrl,
   locale: SitemapLocaleContext | undefined,
@@ -261,7 +310,7 @@ function renderUrlEntry(
   parts.push(`    <priority>${url.priority}</priority>`);
 
   if (multiLocale && locale) {
-    const pathname = extractPathname(url.loc, locale.baseUrl);
+    const pathname = url.alternatePathname ?? extractPathname(url.loc, locale.baseUrl);
     const alternates = buildAlternateLinks(
       locale.baseUrl,
       pathname,
@@ -306,7 +355,7 @@ interface BlogSitemapRow {
 }
 
 interface BlogSitemapGroup {
-  slug: string;
+  pathname: string;
   lastmod?: string;
   translatedLocales: string[];
 }
@@ -325,7 +374,13 @@ function groupBlogRowsForSitemap(rows: BlogSitemapRow[]): BlogSitemapGroup[] {
   const out: BlogSitemapGroup[] = [];
   for (const groupRows of groups.values()) {
     const defaultRow = groupRows.find((row) => isDefaultBlogLocale(row.locale));
-    if (!defaultRow?.slug) continue;
+    const canonicalRow = defaultRow ?? groupRows[0];
+    if (!canonicalRow?.slug) continue;
+    const canonicalLocale = normalizeBlogLocaleForSitemap(canonicalRow.locale);
+    const pathname =
+      defaultRow || !canonicalLocale
+        ? `/blog/${canonicalRow.slug}`
+        : `/${canonicalLocale.split("-")[0].toLowerCase()}/blog/${canonicalRow.slug}`;
 
     const translatedLocales = groupRows
       .map((row) => normalizeBlogLocaleForSitemap(row.locale))
@@ -338,13 +393,13 @@ function groupBlogRowsForSitemap(rows: BlogSitemapRow[]): BlogSitemapGroup[] {
       .at(-1);
 
     out.push({
-      slug: defaultRow.slug,
+      pathname,
       lastmod: lastmodSource?.split("T")[0],
       translatedLocales: [...new Set(translatedLocales)],
     });
   }
 
-  return out.sort((a, b) => a.slug.localeCompare(b.slug));
+  return out.sort((a, b) => a.pathname.localeCompare(b.pathname));
 }
 
 function normalizeBlogLocaleForSitemap(

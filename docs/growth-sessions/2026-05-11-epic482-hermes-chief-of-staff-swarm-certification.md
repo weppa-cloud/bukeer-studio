@@ -21,6 +21,78 @@ External Hermes runtime replacement is intentionally not certified here. The acc
 
 ## Production Evidence
 
+### Final Hermes context-isolation and publication proof
+
+After the first #482 certification pass, the runtime was hardened with strict
+per-agent context manifests and artifact citation checks, then redeployed and
+validated again in production.
+
+- Runtime commit: `301a75cd fix(growth): make hermes artifacts promotion-ready`
+- Previous context-isolation commit: `8a78029c feat(growth): add effectiveness benchmark ledger`
+- VPS service: `growth-orchestrator`
+- Hermes binary: available inside the production container
+- Hermes profile: `growth-os-colombiatours`
+- Sidecar run: `2bf3b3b7-58a4-4878-a2b4-235c39531f3b`
+- Sidecar mode: `hermes`
+- Hermes available: `true`
+- Provider analysis artifact: `478cd46b-bff1-4066-af1a-4c5e0daaf3dd`
+
+Agent task sessions and context manifests:
+
+- Content task session: `94114dfb-ad8d-40b3-b965-7bfe0fbe3c9b`
+- Content context manifest: `92c7a0ae-4a82-48a7-9bba-2e2f037dfe3c`
+- Content agent instance: `a7934320-6936-40ab-9925-3590de155b49`
+- Content autonomy level: `A2`
+- Content model provider/model: `openrouter` / `openai/gpt-5`
+- Content toolset: `provider_profiles`, `growth_context_read`
+- Context isolation verdict: allowed and enforced; lane, tool, skill, memory and tenant scoped; mutation boundary `growth_os_executor`
+- Artifact citation verdict: `allowed=true`
+
+Hermes content artifact -> Growth OS executor chain:
+
+- Content artifact: `88abd028-1979-4edd-b90b-662b295d0bba`
+- Candidate: `4f05917a-f209-402c-bf7f-2a5e13185d37`
+- Work item: `894bf9f8-785a-4c82-9228-24f6d3371436`
+- Runtime cycle: `4adb124e-2268-4ed5-912e-9ff7574f0975`
+- Agent run: `8e06f8ab-97b3-47cc-9612-6d053fc5d685`
+- Change set: `e94d86a9-5071-49c1-a78a-c7b7625404f0`
+- Publication job: `a1b2e26d-bb30-4ff5-be4e-035e47f1c0eb`
+- Target table: `website_blog_posts`
+- Target row: `234e76d0-50de-4903-a4fd-5c99a988b213`
+- Public path: `/blog/growth-os-post-migracion-2bf3b3b7`
+- Public HTTP check: `200`
+- Blog status: `published`
+- Job mode: `live`
+- Smoke status: `smoke_passed`
+- Rollback payload: delete created slug `growth-os-post-migracion-2bf3b3b7`
+- Outcome day 21: `52b8b3c0-044d-4e22-b751-8a95b335a619`, status `measuring`
+- Outcome day 45: `cb4ec57d-fb40-4efd-8904-1fecbd800f28`, status `scheduled`
+
+Provider evidence cited by the published content work item:
+
+- Clarity UX friction profile: `growth_profile_runs:b7c5a377-153a-4390-8f41-904af88703d6`
+- GA4 pivot funnel profile: `growth_profile_runs:d75c9506-2df8-4485-b2d0-93249f9c0ceb`
+- GA4 admin governance profile: `growth_profile_runs:6f38f31d-d51d-44eb-9427-108bb0ac616b`
+
+Hermes transcreation artifact anti-rework proof:
+
+- Transcreation task session: `878c9354-b3a7-4051-bc79-73713c29649b`
+- Transcreation artifact: `7a1d5343-0f47-4e0c-b738-827d1eccefb5`
+- Candidate: `ee691daa-a1dc-406d-b97b-b920fdef24a7`
+- Quality gate: `pass=true`
+- Blocking reason: `correlation:prior_active_same_entity_action:transcreation_merge:page:en-us:a2019510-c804-4717-be0f-dd95cebf2d5a`
+
+This proves the correct behavior for a duplicate transcreation artifact: Hermes
+can create a valid artifact, but Growth OS blocks materialization when an
+equivalent active transcreation already exists.
+
+Quality finding:
+
+- The content chain is operationally certified, but the generated article is
+  repetitive. Before mass content scaling, editorial gates should add
+  non-repetition, brand-depth and useful-content scoring. This is a quality
+  hardening follow-up, not a mutation-boundary failure.
+
 ### VPS Hermes sidecar production proof
 
 On 2026-05-11 the hybrid runtime was validated directly on the Growth OS VPS

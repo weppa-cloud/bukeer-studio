@@ -41,8 +41,11 @@ function getSiteName(
   );
 }
 
-function buildPackagesDescription(siteName: string): string {
-  return `Descubre los paquetes de viaje curados por ${siteName}. Experiencias únicas todo incluido.`;
+function buildPackagesDescription(siteName: string, locale?: string): string {
+  const language = localeToLanguage(normalizeLocale(locale, "es-CO"));
+  return language === "en"
+    ? `Discover curated travel packages by ${siteName}. All-in-one unique experiences.`
+    : `Descubre los paquetes de viaje curados por ${siteName}. Experiencias únicas todo incluido.`;
 }
 
 function buildPackagesSchemas(input: {
@@ -59,7 +62,7 @@ function buildPackagesSchemas(input: {
   const homeLabel = isEnglish ? "Home" : "Inicio";
   const description = isEnglish
     ? `Discover curated travel packages by ${input.siteName}. All-in-one unique experiences.`
-    : buildPackagesDescription(input.siteName);
+    : buildPackagesDescription(input.siteName, normalizedLocale);
 
   return [
     {
@@ -112,9 +115,9 @@ export async function generateMetadata({
   const { subdomain } = await params;
   const website = await getWebsiteBySubdomain(subdomain);
   const siteName = getSiteName(website, subdomain);
-  const description = buildPackagesDescription(siteName);
 
   if (!website) {
+    const description = buildPackagesDescription(siteName);
     return {
       title: "Paquetes de Viaje",
       description,
@@ -127,9 +130,12 @@ export async function generateMetadata({
   const localeContext = await resolvePublicMetadataLocale(website, PAGE_PATH);
   const canonical = `${baseUrl}${localeContext.localizedPathname}`;
   const ogImage = resolveOgImage(website);
+  const isEnglish = localeContext.resolvedLanguage === "en";
+  const title = isEnglish ? "Travel Packages" : "Paquetes de Viaje";
+  const description = buildPackagesDescription(siteName, localeContext.resolvedLocale);
 
   return {
-    title: "Paquetes de Viaje",
+    title,
     description,
     alternates: {
       canonical,
@@ -140,7 +146,7 @@ export async function generateMetadata({
       ),
     },
     openGraph: {
-      title: `Paquetes de Viaje | ${siteName}`,
+      title: `${title} | ${siteName}`,
       description,
       url: canonical,
       siteName,
@@ -150,7 +156,7 @@ export async function generateMetadata({
     },
     twitter: {
       card: "summary_large_image",
-      title: `Paquetes de Viaje | ${siteName}`,
+      title: `${title} | ${siteName}`,
       description,
       ...(ogImage && { images: [ogImage] }),
     },

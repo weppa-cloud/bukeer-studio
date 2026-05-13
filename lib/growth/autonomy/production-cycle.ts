@@ -103,6 +103,14 @@ interface ClaimedRun {
   run: JsonRecord;
 }
 
+interface ReadyWorkItemReconciliationResult {
+  checked: number;
+  blocked: number;
+  invalid: number;
+  duplicates: number;
+  blockedWorkItemIds: string[];
+}
+
 const RUNTIME_HARD_BLOCKED_ACTIONS = new Set<GrowthAutonomyActionClass>([
   "paid_mutation",
   "experiment_activation",
@@ -303,6 +311,14 @@ function validateActionPayload(
   if (actionClass === "content_publish") {
     const article = articleRecordFromEvidence(evidence);
     const content = textValue(article, "content");
+    const supportedFacts = Array.isArray(evidence.supported_facts)
+      ? evidence.supported_facts
+      : Array.isArray(article.supported_facts)
+        ? article.supported_facts
+        : [];
+    const sourceRefs = Array.isArray(evidence.source_refs)
+      ? evidence.source_refs
+      : [];
     if (!textValue(article, "title")) failures.push("missing_article_title");
     if (!textValue(article, "slug") && !textValue(evidence, "article_slug")) {
       failures.push("missing_article_slug");
@@ -313,6 +329,12 @@ function validateActionPayload(
     }
     if (!certificationFixtureMode && wordCount(content) < 300) {
       failures.push("missing_full_article_payload");
+    }
+    if (!certificationFixtureMode && supportedFacts.length < 3) {
+      failures.push("missing_supported_facts");
+    }
+    if (!certificationFixtureMode && sourceRefs.length === 0) {
+      failures.push("missing_source_refs");
     }
   }
 
@@ -379,6 +401,199 @@ function firstRecord(...values: unknown[]): JsonRecord {
     if (Object.keys(record).length > 0) return record;
   }
   return {};
+}
+
+function preReadyAdapterInput(
+  actionClass: GrowthAutonomyActionClass,
+  evidence: JsonRecord,
+): JsonRecord {
+  return firstRecord(
+    evidence.adapter_input,
+    evidence.runtime_adapter,
+    evidence.publication_adapter,
+    actionClass === "safe_apply"
+      ? nestedRecord(evidence, "technical", "safe_apply")
+      : {},
+    actionClass === "transcreation_merge"
+      ? nestedRecord(evidence, "transcreation", "transcreation_merge")
+      : {},
+    nestedRecord(evidence, "signal_payload", "adapter_input"),
+  );
+}
+
+function readyWorkItemEntityKey(
+  workItem: JsonRecord,
+  actionClass: GrowthAutonomyActionClass,
+  evidence: JsonRecord,
+): string {
+  const target = asRecord(evidence.target);
+  const adapterInput = preReadyAdapterInput(actionClass, evidence);
+  const targetTable =
+    firstText(target.target_table, adapterInput.target_table) ??
+    targetTableForAction(actionClass) ??
+    "unknown_table";
+  const targetKey =
+    firstText(
+      target.target_id,
+      adapterInput.target_id,
+      target.target_path,
+      adapterInput.target_path,
+      target.target_key,
+      adapterInput.target_key,
+      workItem.source_id,
+      workItem.title,
+    ) ?? String(workItem.id ?? "unknown");
+  return `${actionClass}:${targetTable}:${targetKey}`.toLowerCase();
+}
+
+function preReadyContractFailures({
+  workItem,
+  certificationFixtureMode,
+}: {
+  workItem: JsonRecord;
+  certificationFixtureMode: boolean;
+}): string[] {
+  const lane = String(workItem.lane) as AgentLane;
+  const actionClass = String(
+    workItem.allowed_action_class ?? actionClassForLane(lane),
+  ) as GrowthAutonomyActionClass;
+  const evidence = asRecord(workItem.evidence);
+  const adapterInput = preReadyAdapterInput(actionClass, evidence);
+  const normalizedEvidence = {
+    ...evidence,
+    adapter_input: adapterInput,
+  };
+  const payloadContract = validateActionPayload(
+    actionClass,
+    normalizedEvidence,
+    certificationFixtureMode,
+  );
+  const failures = [...payloadContract.failures];
+  if (
+    Object.keys(firstRecord(adapterInput.baseline, evidence.baseline)).length === 0
+  ) {
+    failures.push("missing_baseline");
+  }
+  if (!firstText(adapterInput.success_metric, evidence.success_metric)) {
+    failures.push("missing_success_metric");
+  }
+  return Array.from(new Set(failures));
+}
+
+async function blockReadyWorkItem({
+  supabase,
+  websiteId,
+  workItem,
+  reason,
+  now,
+}: {
+  supabase: SupabaseLike;
+  websiteId: string;
+  workItem: JsonRecord;
+  reason: string;
+  now: Date;
+}) {
+  const evidence = asRecord(workItem.evidence);
+  const { error } = await supabase
+    .from("growth_work_items")
+    .update({
+      status: "blocked",
+      progress_label: "Blocked by pre-ready contract gate",
+      next_action: reason.slice(0, 500),
+      evidence: {
+        ...evidence,
+        pre_ready_contract_gate: {
+          status: "blocked",
+          reason,
+          checked_at: now.toISOString(),
+          source: "production_cycle_pre_ready_reconciliation",
+        },
+      },
+      updated_at: now.toISOString(),
+    })
+    .eq("id", workItem.id)
+    .eq("website_id", websiteId);
+  if (error) throw new Error(`pre-ready block failed: ${error.message}`);
+}
+
+async function reconcileReadyWorkItemQueue({
+  supabase,
+  accountId,
+  websiteId,
+  certificationFixtureMode,
+  now,
+}: {
+  supabase: SupabaseLike;
+  accountId: string;
+  websiteId: string;
+  certificationFixtureMode: boolean;
+  now: Date;
+}): Promise<ReadyWorkItemReconciliationResult> {
+  const { data, error } = await supabase
+    .from("growth_work_items")
+    .select("id,lane,allowed_action_class,title,source_id,evidence,created_at")
+    .eq("account_id", accountId)
+    .eq("website_id", websiteId)
+    .eq("status", "ready")
+    .order("created_at", { ascending: true })
+    .limit(1000);
+  if (error) {
+    throw new Error(`ready work item reconciliation lookup failed: ${error.message}`);
+  }
+
+  const readyRows = ((data ?? []) as JsonRecord[]).filter((row) => row.id);
+  const blockedIds = new Set<string>();
+  let invalid = 0;
+  let duplicates = 0;
+  const validByKey = new Map<string, JsonRecord[]>();
+
+  for (const workItem of readyRows) {
+    const lane = String(workItem.lane) as AgentLane;
+    const actionClass = String(
+      workItem.allowed_action_class ?? actionClassForLane(lane),
+    ) as GrowthAutonomyActionClass;
+    const evidence = asRecord(workItem.evidence);
+    const failures = preReadyContractFailures({
+      workItem,
+      certificationFixtureMode,
+    });
+    if (failures.length > 0) {
+      invalid += 1;
+      await blockReadyWorkItem({
+        supabase,
+        websiteId,
+        workItem,
+        reason: `pre_ready_contract:${failures.join("|")}`,
+        now,
+      });
+      blockedIds.add(String(workItem.id));
+      continue;
+    }
+    const key = readyWorkItemEntityKey(workItem, actionClass, evidence);
+    validByKey.set(key, [...(validByKey.get(key) ?? []), workItem]);
+  }
+
+  for (const [key, rows] of validByKey) {
+    for (const duplicate of rows.slice(1)) {
+      duplicates += 1;
+      await blockReadyWorkItem({
+        supabase,
+        websiteId,
+        workItem: duplicate,
+        reason: `correlation:same_ready_entity_action:${key}`,
+        now,
+      });
+      blockedIds.add(String(duplicate.id));
+    }
+  }
+
+  return {
+    checked: readyRows.length,
+    blocked: blockedIds.size,
+    invalid,
+    duplicates,
+    blockedWorkItemIds: Array.from(blockedIds),
+  };
 }
 
 function optionalRecord(value: JsonRecord): JsonRecord | undefined {
@@ -773,22 +988,46 @@ async function assertNoDuplicateBlogArticle({
   supabase,
   websiteId,
   title,
+  slug,
 }: {
   supabase: SupabaseLike;
   websiteId: string;
   title: string;
+  slug?: string | null;
 }) {
-  const { data, error } = await supabase
+  const { data: titleData, error: titleError } = await supabase
     .from("website_blog_posts")
     .select("id,title,slug,status")
     .eq("website_id", websiteId)
     .eq("title", title)
     .limit(1);
-  if (error) throw new Error(`blog duplicate lookup failed: ${error.message}`);
-  const duplicate = Array.isArray(data) ? asRecord(data[0]) : asRecord(data);
-  if (!duplicate.id) return;
+  if (titleError) {
+    throw new Error(`blog duplicate lookup failed: ${titleError.message}`);
+  }
+  const duplicate = Array.isArray(titleData)
+    ? asRecord(titleData[0])
+    : asRecord(titleData);
+  if (duplicate.id) {
+    throw new Error(
+      `duplicate_content_title:${String(duplicate.id)}:${String(duplicate.slug ?? "")}`,
+    );
+  }
+  if (!slug) return;
+  const { data: slugData, error: slugError } = await supabase
+    .from("website_blog_posts")
+    .select("id,title,slug,status")
+    .eq("website_id", websiteId)
+    .eq("slug", slug)
+    .limit(1);
+  if (slugError) {
+    throw new Error(`blog duplicate slug lookup failed: ${slugError.message}`);
+  }
+  const slugDuplicate = Array.isArray(slugData)
+    ? asRecord(slugData[0])
+    : asRecord(slugData);
+  if (!slugDuplicate.id) return;
   throw new Error(
-    `duplicate_content_title:${String(duplicate.id)}:${String(duplicate.slug ?? "")}`,
+    `duplicate_content_slug:${String(slugDuplicate.id)}:${String(slugDuplicate.slug ?? "")}`,
   );
 }
 
@@ -1085,17 +1324,20 @@ async function buildPublicationExecutionPlan({
   const articlePayload = articleRecordFromEvidence(evidence);
   const proposedTitle =
     textValue(articlePayload, "title") ?? textValue(evidence, "article_title");
+  const proposedSlug =
+    textValue(articlePayload, "slug") ??
+    textValue(evidence, "article_slug") ??
+    textValue(evidence, "slug");
   if (proposedTitle) {
     await assertNoDuplicateBlogArticle({
       supabase,
       websiteId,
       title: proposedTitle,
+      slug: proposedSlug,
     });
   }
   const preferredSlug =
-    textValue(articlePayload, "slug") ??
-    textValue(evidence, "article_slug") ??
-    textValue(evidence, "slug") ??
+    proposedSlug ??
     String(workItem.title ?? "growth-os-colombia");
   const slug = await uniqueBlogSlug({
     supabase,
@@ -1862,6 +2104,39 @@ export async function runGrowthOsProductionCycle(
           blocked: promoted.filter((item) => !item.promoted).length,
         },
         details: { dry_run: dryRun, promoted },
+      },
+    });
+
+    const readyReconciliation = dryRun
+      ? {
+          checked: 0,
+          blocked: 0,
+          invalid: 0,
+          duplicates: 0,
+          blockedWorkItemIds: [],
+        }
+      : await reconcileReadyWorkItemQueue({
+          supabase,
+          accountId,
+          websiteId,
+          certificationFixtureMode,
+          now,
+        });
+    cycle = await recordGrowthRuntimeCycleStage({
+      supabase,
+      cycle,
+      result: {
+        stage: "pre_ready_reconciliation",
+        status: dryRun ? "skipped" : "completed",
+        counts: {
+          checked: readyReconciliation.checked,
+          blocked: readyReconciliation.blocked,
+          invalid: readyReconciliation.invalid,
+          duplicates: readyReconciliation.duplicates,
+        },
+        ids: {
+          blocked_work_item_ids: readyReconciliation.blockedWorkItemIds,
+        },
       },
     });
 

@@ -21,6 +21,7 @@ declare global {
     gtag?: (...args: unknown[]) => void;
     dataLayer?: unknown[];
     fbq?: (...args: unknown[]) => void;
+    clarity?: (...args: unknown[]) => void;
     BukeerAnalytics?: {
       load?: () => void;
       loaded?: boolean;
@@ -210,6 +211,7 @@ export function trackEvent(
       cleaned[key] = value;
     }
     enrichMetaDedupeContext(name, cleaned);
+    enrichClarityContext(name, cleaned);
 
     let sent = sendAnalyticsEvent(name, cleaned);
     if (!sent && window.BukeerAnalytics?.load) {
@@ -243,6 +245,54 @@ export function trackEvent(
     }
   } catch {
     // Never let analytics failure break a user action.
+  }
+}
+
+function setClarityTag(key: string, value: string | number | boolean | null | undefined): void {
+  if (typeof window === 'undefined' || typeof window.clarity !== 'function') return;
+  if (value === null || value === undefined) return;
+  const text = String(value).trim();
+  if (!text) return;
+  try {
+    window.clarity('set', key, text.slice(0, 255));
+  } catch {
+    // Clarity is diagnostic only; ignore provider runtime errors.
+  }
+}
+
+async function hashReferenceCode(referenceCode: string): Promise<string | null> {
+  try {
+    if (!globalThis.crypto?.subtle || typeof TextEncoder === 'undefined') return null;
+    const digest = await globalThis.crypto.subtle.digest(
+      'SHA-256',
+      new TextEncoder().encode(referenceCode),
+    );
+    return Array.from(new Uint8Array(digest))
+      .map((byte) => byte.toString(16).padStart(2, '0'))
+      .join('');
+  } catch {
+    return null;
+  }
+}
+
+function enrichClarityContext(
+  name: AnalyticsEventName,
+  params: Record<string, string | number | boolean>,
+): void {
+  if (!String(name).startsWith('waflow_') && name !== 'whatsapp_cta_click') return;
+
+  setClarityTag('last_funnel_event', name);
+  setClarityTag('landing_path', typeof params.page_path === 'string' ? params.page_path : null);
+  setClarityTag('waflow_variant', typeof params.variant === 'string' ? params.variant : null);
+  setClarityTag('waflow_step', typeof params.step === 'string' ? params.step : null);
+  setClarityTag('destination_slug', typeof params.destination_slug === 'string' ? params.destination_slug : null);
+  setClarityTag('package_slug', typeof params.package_slug === 'string' ? params.package_slug : null);
+
+  const referenceCode = typeof params.reference_code === 'string' ? params.reference_code.trim() : '';
+  if (referenceCode.length >= 8) {
+    void hashReferenceCode(referenceCode).then((hash) => {
+      setClarityTag('reference_hash', hash);
+    });
   }
 }
 
