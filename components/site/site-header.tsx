@@ -41,6 +41,7 @@ export function SiteHeader({ website, isCustomDomain = false, navigation }: Site
   const [scrolled, setScrolled] = useState(false);
 
   const { content, subdomain } = website;
+  const resolvedLocale: string | undefined = (website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale ?? undefined;
   const basePath = getBasePath(subdomain, isCustomDomain, resolvedLocale);
   const pathname = usePathname();
   const router = useRouter();
@@ -60,7 +61,6 @@ export function SiteHeader({ website, isCustomDomain = false, navigation }: Site
   const currentLogo = isTransparent ? logoForDark : logoForLight;
   const headerCta: HeaderCTA | undefined = content.headerCta;
   const phone = content.account?.phone || content.social?.whatsapp;
-  const resolvedLocale = (website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale ?? null;
   const localeSettings = useMemo(
     () =>
       extractWebsiteLocaleSettings({
