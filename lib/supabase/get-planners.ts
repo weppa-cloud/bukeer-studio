@@ -194,63 +194,6 @@ export async function getPlanners(
   });
 }
 
-/**
- * Fetch a single travel planner by their auth user ID.
- * Used by the blog page to hydrate the author schema Person.
- * Returns null if no active planner is found with show_on_website=true.
- */
-export async function getPlannerByUserId(
-  userId: string,
-): Promise<{
-  name: string;
-  lastName: string;
-  fullName: string;
-  photo: string | null;
-  role: string | null;
-  bio: string | null;
-  specialties: string[] | null;
-  locationName: string | null;
-  languages: string[] | null;
-  tripsCount: number | null;
-  yearsExperience: number | null;
-} | null> {
-  const supabase = createSupabaseServiceRoleClient();
-  const { data, error } = await supabase
-    .from('contacts')
-    .select('name, last_name, user_image, user_rol, bio, specialties, location_name, languages, trips_count, years_experience')
-    .eq('user_id', userId)
-    .eq('show_on_website', true)
-    .is('deleted_at', null)
-    .maybeSingle();
-
-  if (error || !data) return null;
-
-  // Verify the user has an active role
-  const { data: role } = await supabase
-    .from('user_roles')
-    .select('id')
-    .eq('user_id', userId)
-    .eq('is_active', true)
-    .or('expires_at.is.null,expires_at.gt.now')
-    .maybeSingle();
-
-  if (!role) return null;
-
-  return {
-    name: data.name || '',
-    lastName: data.last_name || '',
-    fullName: `${data.name || ''} ${data.last_name || ''}`.trim(),
-    photo: data.user_image || null,
-    role: data.user_rol,
-    bio: data.bio ?? null,
-    specialties: data.specialties ?? null,
-    locationName: data.location_name ?? null,
-    languages: data.languages ?? null,
-    tripsCount: data.trips_count ?? null,
-    yearsExperience: data.years_experience ?? null,
-  };
-}
-
 export function slugify(text: string): string {
   return text
     .toLowerCase()
@@ -294,7 +237,7 @@ export async function getPlannerByUserId(
   const supabase = createSupabaseServiceRoleClient();
   const { data, error } = await supabase
     .from('contacts')
-    .select('id, name, last_name, user_image, user_rol, position, phone, phone2, user_id, quote, bio, specialty, language, translations, trips_count, rating_avg, years_experience, specialties, regions, location_name, languages, signature_package_id, personal_details, slug')
+    .select('id, name, last_name, user_image, user_rol, position, phone, phone2, user_id, quote, bio, specialty, language, translations, trips_count, rating_avg, years_experience, specialties, regions, location_name, languages, signature_package_id, personal_details')
     .eq('user_id', userId)
     .eq('show_on_website', true)
     .is('deleted_at', null)
@@ -324,7 +267,7 @@ export async function getPlannerByUserId(
     role: data.user_rol,
     position: data.position,
     phone: data.phone || data.phone2 || null,
-    slug: data.slug || slugify(`${data.name || ''} ${data.last_name || ''}`),
+    slug: slugify(`${data.name || ''} ${data.last_name || ''}`),
     quote: data.quote ?? null,
     bio: data.bio ?? null,
     specialty: data.specialty ?? null,
