@@ -52,7 +52,7 @@ export function EditorialSiteHeader({
   );
   const isEnglish = resolvedLocale.startsWith('en');
   const { content, subdomain } = website;
-  const basePath = getBasePath(subdomain, isCustomDomain);
+  const basePath = getBasePath(subdomain, isCustomDomain, resolvedLocale);
   const siteName = content.account?.name || content.siteName;
   const logoUrl = content.account?.logo || content.logo || null;
 

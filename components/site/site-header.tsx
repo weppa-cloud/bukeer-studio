@@ -41,7 +41,7 @@ export function SiteHeader({ website, isCustomDomain = false, navigation }: Site
   const [scrolled, setScrolled] = useState(false);
 
   const { content, subdomain } = website;
-  const basePath = getBasePath(subdomain, isCustomDomain);
+  const basePath = getBasePath(subdomain, isCustomDomain, resolvedLocale);
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
