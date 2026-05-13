@@ -12,6 +12,9 @@ export const SITE_CURRENCY_STORAGE_KEY = 'bukeer.site.currency';
 export const SITE_MENU_LOCALES = [
   { code: 'es', label: 'Español' },
   { code: 'en', label: 'English' },
+  { code: 'pt', label: 'Português' },
+  { code: 'fr', label: 'Français' },
+  { code: 'de', label: 'Deutsch' },
 ] as const;
 
 export const SWITCHER_ALLOWED_LANGUAGE_CODES: ReadonlySet<string> = new Set(

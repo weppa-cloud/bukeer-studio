@@ -25,12 +25,15 @@ export interface BlogDetailProps {
   locale: string;
   post: BlogDetailPost;
   isCustomDomain?: boolean;
+  baseUrl?: string;
 }
 
-export function BlogDetail({ subdomain, locale, post, isCustomDomain = false }: BlogDetailProps) {
+export function BlogDetail({ subdomain, locale, post, isCustomDomain = false, baseUrl }: BlogDetailProps) {
   const messages = getPublicUiMessages(locale);
-  const basePath = getBasePath(subdomain, isCustomDomain);
-  const shareUrl = `${basePath}/blog/${post.slug}`;
+  const basePath = getBasePath(subdomain, isCustomDomain, locale, 'es-CO');
+  const shareUrl = baseUrl
+    ? `${baseUrl}/blog/${post.slug}`
+    : `${basePath}/blog/${post.slug}`;
 
   return (
     <article data-testid="detail-blog" className="section-padding">

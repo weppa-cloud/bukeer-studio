@@ -122,7 +122,6 @@ export function EditorialBlogDetailPage({
   related,
 }: EditorialBlogDetailPageProps) {
   const isCustomDomain = Boolean((website as WebsiteData & { isCustomDomain?: boolean }).isCustomDomain);
-  const basePath = getBasePath(subdomain, isCustomDomain);
   const resolvedLocale =
     locale
     || (website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale
@@ -130,6 +129,7 @@ export function EditorialBlogDetailPage({
     || website.content?.locale
     || 'es-CO';
   const defaultLocale = normalizeLocale(website.default_locale || website.content?.locale || 'es-CO');
+  const basePath = getBasePath(subdomain, isCustomDomain, resolvedLocale, defaultLocale);
   const editorialText = getPublicUiExtraTextGetter(resolvedLocale);
   const isEnglish = resolvedLocale.toLowerCase().startsWith('en');
   const SHARE_LABEL = editorialText('editorialBlogShare');

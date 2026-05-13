@@ -26,7 +26,7 @@ export function SiteFooter({ website, isCustomDomain = false, navigation }: Site
   const resolvedLocale = (website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale ?? null;
   const currentYear = new Date().getFullYear();
   const footerVariant: FooterVariant = siteParts?.footer?.variant || '4-column';
-  const basePath = getBasePath(subdomain, isCustomDomain);
+  const basePath = getBasePath(subdomain, isCustomDomain, resolvedLocale ?? undefined);
 
   // Check if website has a dedicated CTA section to avoid duplicating the footer CTA
   const hasDedicatedCta = website.sections?.some(s =>

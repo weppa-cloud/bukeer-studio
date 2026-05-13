@@ -53,7 +53,7 @@ export function EditorialSiteFooter({
 }: EditorialSiteFooterProps) {
   const editorialText = getEditorialTextGetter(website);
   const { content, subdomain } = website;
-  const basePath = getBasePath(subdomain, isCustomDomain);
+  const basePath = getBasePath(subdomain, isCustomDomain, (website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale || undefined);
   const currentYear = new Date().getFullYear();
   const siteName = content.account?.name || content.siteName;
   const social = content.social || {};
