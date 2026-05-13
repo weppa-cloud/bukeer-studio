@@ -106,8 +106,18 @@ export async function getPlanners(
   const error = data ? null : (primary.error ?? fallback?.error);
   if (error || !data) return [];
 
+  // Filter by active user roles: a contact with a linked auth user must
+  // have is_active=true and a non-expired user_roles entry to appear on the website.
+  const userIds = data
+    .map((c) => c.user_id)
+    .filter((id): id is string => id != null);
+  const activeUserIds = userIds.length > 0 ? await getActiveUserIds(userIds) : new Set<string>();
+  const activeData = data.filter(
+    (c) => !c.user_id || activeUserIds.has(c.user_id),
+  );
+
   // For contacts without user_image, fetch avatar from auth.users metadata
-  const needsAuthPhoto = data.filter((c) => !c.user_image && c.user_id);
+  const needsAuthPhoto = activeData.filter((c) => !c.user_image && c.user_id);
   const authPhotos: Record<string, string> = {};
 
   if (needsAuthPhoto.length > 0) {
@@ -125,7 +135,7 @@ export async function getPlanners(
     );
   }
 
-  return data.map(contact => {
+  return activeData.map(contact => {
     const row = contact as typeof contact & {
       quote?: string | null;
       bio?: string | null;
@@ -194,6 +204,29 @@ export function slugify(text: string): string {
 }
 
 /**
+ * Check whether a user has an active role in the Bukeer system.
+ * Returns true if:
+ *   - The user has a user_roles entry with is_active = true, AND
+ *   - expires_at is NULL OR expires_at is in the future
+ *
+ * Contacts without a user_id (no linked auth user) are skipped (not shown as planners).
+ */
+async function getActiveUserIds(userIds: string[]): Promise<Set<string>> {
+  if (userIds.length === 0) return new Set();
+
+  const supabase = createSupabaseServiceRoleClient();
+  const { data } = await supabase
+    .from('user_roles')
+    .select('user_id')
+    .in('user_id', userIds)
+    .eq('is_active', true)
+    .or('expires_at.is.null,expires_at.gt.now');
+
+  if (!data) return new Set();
+  return new Set(data.map(r => r.user_id));
+}
+
+/**
  * Look up a single travel planner (contact) by their auth.users id.
  * Used to hydrate the Author schema (Issue #515).
  * Only returns contacts that have `show_on_website = true`.
@@ -211,6 +244,19 @@ export async function getPlannerByUserId(
     .single();
 
   if (error || !data) return null;
+
+  // Verify the user has an active role (is_active = true, not expired)
+  if (data.user_id) {
+    const { data: role } = await supabase
+      .from('user_roles')
+      .select('id')
+      .eq('user_id', data.user_id)
+      .eq('is_active', true)
+      .or('expires_at.is.null,expires_at.gt.now')
+      .maybeSingle();
+
+    if (!role) return null;
+  }
 
   return {
     id: data.id,
