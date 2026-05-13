@@ -16,8 +16,28 @@ import type {
   CollectionPage,
   ListItem,
   ImageObject,
+  Person,
+  Thing,
+  PostalAddress,
+  Organization,
 } from './types';
 import type { WebsiteData, BlogPost, WebsiteSection } from '../supabase/get-website';
+
+/** Minimal travel-planner info hydrated from the `contacts` table. */
+export interface PlannerData {
+  id: string;
+  fullName: string;
+  photo: string | null;
+  bio: string | null;
+  slug: string | null;
+  specialties: string[];
+  regions: string[];
+  languages: string[];
+  locationName: string | null;
+  tripsCount: number | null;
+  yearsExperience: number | null;
+  personalDetails: Record<string, unknown> | null;
+}
 import {
   buildPublicLocalizedPath,
   localeToLanguage,
@@ -125,7 +145,45 @@ function buildArticleEntityTerms(post: BlogPost): string[] {
   return Array.from(terms).slice(0, 8);
 }
 
-function resolveBlogAuthor(post: BlogPost, website: WebsiteData, baseUrl: string): BlogPosting['author'] {
+function resolveBlogAuthor(
+  post: BlogPost,
+  website: WebsiteData,
+  baseUrl: string,
+  planner?: PlannerData | null,
+): Person | Organization {
+  if (planner) {
+    const knowsAbout: Thing[] = [
+      ...(planner.specialties?.map(s => ({ '@type': 'Thing' as const, name: s })) || []),
+      ...(planner.regions?.map(r => ({ '@type': 'Thing' as const, name: r })) || []),
+    ];
+
+    const author: Person = {
+      '@type': 'Person',
+      name: planner.fullName,
+      ...(planner.photo && { image: planner.photo }),
+      ...(planner.bio && { description: planner.bio }),
+      ...(planner.slug && { url: `${baseUrl.replace(/\/$/, '')}/planners/${planner.slug}` }),
+      ...(knowsAbout.length > 0 && { knowsAbout }),
+      ...(planner.languages?.length > 0 && { knowsLanguage: planner.languages.map(l => l.split('-')[0]) }),
+      ...(planner.locationName && {
+        workLocation: {
+          '@type': 'Place',
+          address: { '@type': 'PostalAddress', addressLocality: planner.locationName },
+        },
+      }),
+      ...(planner.tripsCount && planner.tripsCount > 100 && {
+        award: `Ha diseñado más de ${planner.tripsCount} viajes`,
+      }),
+      affiliation: {
+        '@type': 'Organization',
+        name: website.content.account?.name || website.content.siteName || '',
+        url: baseUrl,
+      },
+    };
+
+    return author;
+  }
+
   if (post.author_name && post.author_name.trim().length > 0) {
     return {
       '@type': 'Person',
@@ -321,6 +379,7 @@ export function generateArticleSchema(
   website: WebsiteData,
   baseUrl: string,
   requestLocale?: string | null,
+  planner?: PlannerData | null,
 ): BlogPosting {
   const articleUrl = `${baseUrl}${buildSchemaBlogPath(post, website, requestLocale)}`;
 
@@ -335,7 +394,7 @@ export function generateArticleSchema(
     : undefined;
 
   const publisherName = website.content.account?.name || website.content.siteName;
-  const author = resolveBlogAuthor(post, website, baseUrl);
+  const author = resolveBlogAuthor(post, website, baseUrl, planner);
   const reviewedBy = resolveBlogReviewer(post, baseUrl);
   const articleTerms = buildArticleEntityTerms(post);
   const about = post.category?.name
@@ -540,11 +599,12 @@ export function generateBlogPostSchemas(
   website: WebsiteData,
   baseUrl: string,
   resolvedLocale?: string | null,
+  planner?: PlannerData | null,
 ): object[] {
   const schemas: object[] = [];
 
   // 1. Article/BlogPosting schema — request locale wins over post/website fallback
-  schemas.push(generateArticleSchema(post, website, baseUrl, resolvedLocale));
+  schemas.push(generateArticleSchema(post, website, baseUrl, resolvedLocale, planner));
 
   // 2. FAQPage schema (when post has faq_items from v2 generator)
   if (post.faq_items && post.faq_items.length > 0) {

@@ -145,6 +145,25 @@ export interface Person {
   name: string;
   url?: string;
   image?: string;
+  description?: string;
+  knowsAbout?: Thing[];
+  knowsLanguage?: string[];
+  workLocation?: Place | PostalAddress;
+  identifier?: PropertyValue | string;
+  award?: string;
+  affiliation?: Organization;
+  sameAs?: string[];
+}
+
+export interface PropertyValue {
+  '@type': 'PropertyValue';
+  name?: string;
+  value?: string;
+}
+
+export interface Place {
+  '@type': 'Place';
+  address?: PostalAddress;
 }
 
 export interface WebPage {

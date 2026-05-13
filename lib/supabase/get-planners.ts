@@ -192,3 +192,50 @@ export function slugify(text: string): string {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '');
 }
+
+/**
+ * Look up a single travel planner (contact) by their auth.users id.
+ * Used to hydrate the Author schema (Issue #515).
+ * Only returns contacts that have `show_on_website = true`.
+ */
+export async function getPlannerByUserId(
+  userId: string,
+): Promise<PlannerData | null> {
+  const supabase = createSupabaseServiceRoleClient();
+  const { data, error } = await supabase
+    .from('contacts')
+    .select('id, name, last_name, user_image, user_rol, position, phone, phone2, user_id, quote, bio, specialty, language, translations, trips_count, rating_avg, years_experience, specialties, regions, location_name, languages, signature_package_id, personal_details, slug')
+    .eq('user_id', userId)
+    .eq('show_on_website', true)
+    .is('deleted_at', null)
+    .single();
+
+  if (error || !data) return null;
+
+  return {
+    id: data.id,
+    name: data.name || '',
+    lastName: data.last_name || '',
+    fullName: `${data.name || ''} ${data.last_name || ''}`.trim(),
+    photo: data.user_image || null,
+    role: data.user_rol,
+    position: data.position,
+    phone: data.phone || data.phone2 || null,
+    slug: data.slug || slugify(`${data.name || ''} ${data.last_name || ''}`),
+    quote: data.quote ?? null,
+    bio: data.bio ?? null,
+    specialty: data.specialty ?? null,
+    language: data.language ?? null,
+    tagline: null,
+    translations: data.translations as Record<string, Record<string, unknown>> | undefined,
+    tripsCount: data.trips_count ?? null,
+    ratingAvg: data.rating_avg as number | null,
+    yearsExperience: data.years_experience ?? null,
+    specialties: data.specialties ?? null,
+    regions: data.regions ?? null,
+    locationName: data.location_name ?? null,
+    languages: data.languages ?? null,
+    signaturePackageId: data.signature_package_id ?? null,
+    personalDetails: data.personal_details as Record<string, unknown> | null,
+  };
+}
