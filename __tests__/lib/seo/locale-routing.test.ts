@@ -1,7 +1,9 @@
 import {
   CATEGORY_CANONICAL_SEGMENT,
+  buildLegalPagePath,
   normalizeBlogLocale,
   resolveCategorySegment,
+  resolveLegalPathname,
   resolveLocaleFromPublicPath,
   translateCategoryPathname,
 } from '@/lib/seo/locale-routing';
@@ -109,7 +111,23 @@ describe('translateCategoryPathname', () => {
   });
 
   it('falls back to Spanish canonical for unknown target languages', () => {
-    expect(translateCategoryPathname('/packages/x', 'pt')).toBe('/paquetes/x');
+    expect(translateCategoryPathname('/packages/x', 'it')).toBe('/paquetes/x');
+  });
+
+  it('translates legal page slugs by language', () => {
+    expect(translateCategoryPathname('/terms', 'es')).toBe('/terminos-y-condiciones');
+    expect(translateCategoryPathname('/terms', 'en')).toBe('/terms-and-conditions');
+    expect(translateCategoryPathname('/privacy', 'pt')).toBe('/politica-de-privacidade');
+    expect(translateCategoryPathname('/cancellation', 'en')).toBe('/cancellation-policy');
+  });
+
+  it('normalizes legacy nested WordPress legal paths to current localized slugs', () => {
+    expect(
+      translateCategoryPathname('/terminos-y-condiciones/politica-de-privacidad', 'es'),
+    ).toBe('/politica-de-privacidad');
+    expect(
+      translateCategoryPathname('/terminos-y-condiciones/politica-de-cancelacion', 'en'),
+    ).toBe('/cancellation-policy');
   });
 });
 
@@ -153,6 +171,38 @@ describe('resolveLocaleFromPublicPath — canonicalPathname', () => {
     const result = resolveLocaleFromPublicPath('/en/blog/post-1', settings);
     expect(result.pathnameWithoutLang).toBe('/blog/post-1');
     expect(result.canonicalPathname).toBe('/blog/post-1');
+  });
+
+  it('canonicalizes localized legal slugs to internal legal routes', () => {
+    const english = resolveLocaleFromPublicPath('/en/terms-and-conditions', settings);
+    expect(english.hasLanguageSegment).toBe(true);
+    expect(english.resolvedLocale).toBe('en-US');
+    expect(english.pathnameWithoutLang).toBe('/terms-and-conditions');
+    expect(english.canonicalPathname).toBe('/terms');
+
+    const spanish = resolveLocaleFromPublicPath('/terminos-y-condiciones', settings);
+    expect(spanish.hasLanguageSegment).toBe(false);
+    expect(spanish.canonicalPathname).toBe('/terms');
+  });
+});
+
+describe('legal page locale paths', () => {
+  it('resolves public and internal legal aliases to the same internal route', () => {
+    expect(resolveLegalPathname('/terms')?.canonicalPathname).toBe('/terms');
+    expect(resolveLegalPathname('/terminos-y-condiciones')?.canonicalPathname).toBe('/terms');
+    expect(resolveLegalPathname('/terms-and-conditions')?.canonicalPathname).toBe('/terms');
+    expect(resolveLegalPathname('/politica-de-privacidad')?.canonicalPathname).toBe('/privacy');
+    expect(
+      resolveLegalPathname('/terminos-y-condiciones/politica-de-cancelacion')?.canonicalPathname,
+    ).toBe('/cancellation');
+  });
+
+  it('builds footer-ready localized legal hrefs', () => {
+    expect(buildLegalPagePath('terms', 'es-CO', 'es-CO')).toBe('/terminos-y-condiciones');
+    expect(buildLegalPagePath('privacy', 'en-US', 'es-CO')).toBe('/en/privacy-policy');
+    expect(buildLegalPagePath('cancellation', 'pt-BR', 'es-CO')).toBe(
+      '/pt/politica-de-cancelamento',
+    );
   });
 });
 
@@ -222,7 +272,7 @@ describe('normalizeBlogLocale', () => {
   });
 
   it('passes unknown codes through unchanged (no silent mutation)', () => {
-    expect(normalizeBlogLocale('fr')).toBe('fr');
+    expect(normalizeBlogLocale('it')).toBe('it');
     expect(normalizeBlogLocale('ZZ-XX')).toBe('ZZ-XX');
   });
 

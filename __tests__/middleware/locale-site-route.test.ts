@@ -127,6 +127,23 @@ describe('locale resolution for /site/<sub>/<lang>/... (contract)', () => {
     expect(resolution.canonicalPathname).toBe('/paquetes/amazon-adventure');
   });
 
+  it('canonicalizes localized legal slugs for internal preview routes', () => {
+    const internal = parseInternalSitePath(
+      '/site/colombiatours/en/terms-and-conditions',
+    );
+    expect(internal).not.toBeNull();
+
+    const resolution = resolveLocaleFromPublicPath(
+      internal!.innerPathname,
+      localeSettings,
+    );
+
+    expect(resolution.hasLanguageSegment).toBe(true);
+    expect(resolution.resolvedLocale).toBe('en-US');
+    expect(resolution.pathnameWithoutLang).toBe('/terms-and-conditions');
+    expect(resolution.canonicalPathname).toBe('/terms');
+  });
+
   it('does NOT intervene when inner path is default-locale (no /<lang>/ segment)', () => {
     const internal = parseInternalSitePath(
       '/site/colombiatours/paquetes/amazon-adventure',

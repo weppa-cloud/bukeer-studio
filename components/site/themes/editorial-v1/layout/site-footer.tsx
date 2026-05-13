@@ -23,6 +23,7 @@ import Link from 'next/link';
 import type { WebsiteData } from '@/lib/supabase/get-website';
 import type { NavigationItem } from '@bukeer/website-contract';
 import { getBasePath } from '@/lib/utils/base-path';
+import { buildLegalPagePath, type LegalPageType } from '@/lib/seo/locale-routing';
 import { Icons } from '../primitives/icons';
 import { FooterSwitcher } from './footer-switcher';
 import { FooterNewsletterForm } from './footer-newsletter-form';
@@ -36,8 +37,13 @@ export interface EditorialSiteFooterProps {
   isLanding?: boolean;
 }
 
-function legalHref(basePath: string, slug: 'privacy' | 'terms' | 'cancellation'): string {
-  return `${basePath}/${slug}`;
+function legalHref(
+  basePath: string,
+  slug: LegalPageType,
+  resolvedLocale: string,
+  defaultLocale: string,
+): string {
+  return `${basePath}${buildLegalPagePath(slug, resolvedLocale, defaultLocale)}`;
 }
 
 export function EditorialSiteFooter({
@@ -126,10 +132,16 @@ export function EditorialSiteFooter({
   const legalPrivacy = editorialText('editorialFooterLegalPrivacy');
   const legalTerms = editorialText('editorialFooterLegalTerms');
   const legalCancellation = editorialText('editorialFooterLegalCancellation');
+  const resolvedLocale =
+    (website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale
+    ?? content.locale
+    ?? website.default_locale
+    ?? 'es-CO';
+  const defaultLocale = website.default_locale ?? content.locale ?? 'es-CO';
   const legalLinks: Array<{ label: string; href: string }> = [
-    { label: legalPrivacy, href: legalHref(basePath, 'privacy') },
-    { label: legalTerms, href: legalHref(basePath, 'terms') },
-    { label: legalCancellation, href: legalHref(basePath, 'cancellation') },
+    { label: legalPrivacy, href: legalHref(basePath, 'privacy', resolvedLocale, defaultLocale) },
+    { label: legalTerms, href: legalHref(basePath, 'terms', resolvedLocale, defaultLocale) },
+    { label: legalCancellation, href: legalHref(basePath, 'cancellation', resolvedLocale, defaultLocale) },
   ];
 
   return (

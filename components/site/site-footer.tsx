@@ -7,6 +7,7 @@ import { getBasePath } from '@/lib/utils/base-path';
 import { resolveNavHref } from '@/lib/utils/navigation';
 import type { NavigationItem, FooterVariant } from '@bukeer/website-contract';
 import { LanguageSwitcher } from '@/components/site/language-switcher';
+import { buildLegalPagePath, type LegalPageType } from '@/lib/seo/locale-routing';
 import {
   normalizeLanguageCode,
   resolveMarketExperienceConfig,
@@ -43,10 +44,13 @@ export function SiteFooter({ website, isCustomDomain = false, navigation }: Site
     ?? normalizeLanguageCode(website.default_locale)
     ?? localeOptions[0]?.code
     ?? 'es';
+  const defaultLocale = website.default_locale ?? content.locale ?? 'es-CO';
   const uiMessages = getPublicUiMessages(currentLocale);
   const showFooterLanguageSwitcher = marketExperience.showInFooter
     && marketExperience.showLanguage
     && localeOptions.length > 0;
+  const legalHref = (type: LegalPageType) =>
+    `${basePath}${buildLegalPagePath(type, currentLocale, defaultLocale)}`;
 
   // Usar datos de account si están disponibles (fallback a content)
   const siteName = content.account?.name || content.siteName;
@@ -181,9 +185,9 @@ export function SiteFooter({ website, isCustomDomain = false, navigation }: Site
     {
       title: uiMessages.footer.legal,
       links: [
-        { label: uiMessages.footer.terms, href: `${basePath}/terms` },
-        { label: uiMessages.footer.privacy, href: `${basePath}/privacy` },
-        { label: uiMessages.footer.cancellation, href: `${basePath}/cancellation` },
+        { label: uiMessages.footer.terms, href: legalHref('terms') },
+        { label: uiMessages.footer.privacy, href: legalHref('privacy') },
+        { label: uiMessages.footer.cancellation, href: legalHref('cancellation') },
       ],
     },
   ];

@@ -61,6 +61,67 @@ export const CATEGORY_CANONICAL_SEGMENT = {
 export type CategoryProductType = keyof typeof CATEGORY_CANONICAL_SEGMENT;
 export type CategoryLanguage = keyof (typeof CATEGORY_CANONICAL_SEGMENT)[CategoryProductType];
 
+export const LEGAL_PAGE_CANONICAL_SEGMENT = {
+  terms: {
+    internal: 'terms',
+    es: 'terminos-y-condiciones',
+    en: 'terms-and-conditions',
+    pt: 'termos-e-condicoes',
+    fr: 'conditions-generales',
+    de: 'agb',
+  },
+  privacy: {
+    internal: 'privacy',
+    es: 'politica-de-privacidad',
+    en: 'privacy-policy',
+    pt: 'politica-de-privacidade',
+    fr: 'politique-de-confidentialite',
+    de: 'datenschutz',
+  },
+  cancellation: {
+    internal: 'cancellation',
+    es: 'politica-de-cancelacion',
+    en: 'cancellation-policy',
+    pt: 'politica-de-cancelamento',
+    fr: 'politique-d-annulation',
+    de: 'stornierungsbedingungen',
+  },
+} as const;
+
+export type LegalPageType = keyof typeof LEGAL_PAGE_CANONICAL_SEGMENT;
+export type LegalPageLanguage =
+  Exclude<keyof (typeof LEGAL_PAGE_CANONICAL_SEGMENT)[LegalPageType], 'internal'>;
+
+interface LegalPathIndex {
+  pathname: string;
+  type: LegalPageType;
+}
+
+const LEGAL_PATH_INDEX: LegalPathIndex[] = (
+  Object.keys(LEGAL_PAGE_CANONICAL_SEGMENT) as LegalPageType[]
+).flatMap((type) => {
+  const entry = LEGAL_PAGE_CANONICAL_SEGMENT[type];
+  const segments = [
+    entry.internal,
+    ...Object.keys(entry)
+      .filter((language): language is LegalPageLanguage => language !== 'internal')
+      .map((language) => entry[language]),
+  ];
+  return [...new Set(segments)].map((segment) => ({
+    pathname: `/${segment}`,
+    type,
+  }));
+}).concat([
+  {
+    pathname: `/${LEGAL_PAGE_CANONICAL_SEGMENT.terms.es}/${LEGAL_PAGE_CANONICAL_SEGMENT.privacy.es}`,
+    type: 'privacy',
+  },
+  {
+    pathname: `/${LEGAL_PAGE_CANONICAL_SEGMENT.terms.es}/${LEGAL_PAGE_CANONICAL_SEGMENT.cancellation.es}`,
+    type: 'cancellation',
+  },
+]);
+
 interface CategorySegmentIndex {
   segment: string;
   productType: CategoryProductType;
@@ -104,10 +165,11 @@ export function resolveCategorySegment(segment: string): {
 }
 
 /**
- * Translate the first path segment to the canonical segment for the given
- * target language. Only the first segment is affected; unknown segments are
- * returned unchanged. Used by hreflang builder + middleware canonical
- * rewrite.
+ * Translate public URL path segments for the target language.
+ *
+ * Category pages translate the first segment only. Legal pages translate the
+ * whole path so legacy nested WordPress URLs can collapse into the current
+ * top-level legal slug for the selected language.
  */
 export function translateCategoryPathname(
   pathname: string,
@@ -116,6 +178,11 @@ export function translateCategoryPathname(
   if (!pathname || typeof pathname !== 'string') return pathname;
   const normalized = normalizePathname(pathname);
   if (normalized === '/') return normalized;
+
+  const legalPath = resolveLegalPathname(normalized);
+  if (legalPath) {
+    return getLegalPagePublicPath(legalPath.type, targetLanguage);
+  }
 
   const segments = normalized.split('/').filter(Boolean);
   if (segments.length === 0) return normalized;
@@ -132,6 +199,42 @@ export function translateCategoryPathname(
 
   segments[0] = nextSegment;
   return `/${segments.join('/')}`;
+}
+
+export function resolveLegalPathname(pathname: string): {
+  type: LegalPageType;
+  canonicalPathname: string;
+} | null {
+  if (!pathname || typeof pathname !== 'string') return null;
+  const normalized = normalizePathname(pathname).toLowerCase();
+  const match = LEGAL_PATH_INDEX.find((entry) => entry.pathname === normalized);
+  if (!match) return null;
+
+  return {
+    type: match.type,
+    canonicalPathname: `/${LEGAL_PAGE_CANONICAL_SEGMENT[match.type].internal}`,
+  };
+}
+
+export function isLegalPathname(pathname: string): boolean {
+  return resolveLegalPathname(pathname) !== null;
+}
+
+export function getLegalPagePublicPath(
+  type: LegalPageType,
+  targetLanguage: string,
+): string {
+  const lang = (targetLanguage || '').toLowerCase() as LegalPageLanguage;
+  const entry = LEGAL_PAGE_CANONICAL_SEGMENT[type];
+  const segment = entry[lang] || entry.es;
+  return `/${segment}`;
+}
+
+export function canonicalizePublicPathname(pathname: string): string {
+  const normalized = normalizePathname(pathname);
+  const legalPath = resolveLegalPathname(normalized);
+  if (legalPath) return legalPath.canonicalPathname;
+  return translateCategoryPathname(normalized, 'es');
 }
 
 const DEFAULT_REGION_BY_LANG: Record<string, string> = {
@@ -298,7 +401,7 @@ export function resolveLocaleFromPublicPath(
     }
   }
 
-  const canonicalPathname = translateCategoryPathname(pathnameWithoutLang, 'es');
+  const canonicalPathname = canonicalizePublicPathname(pathnameWithoutLang);
 
   return {
     originalPathname: normalizedPathname,
@@ -336,6 +439,18 @@ export function buildPublicLocalizedPath(
   }
 
   return `/${lang}${normalizedPathname}`;
+}
+
+export function buildLegalPagePath(
+  type: LegalPageType,
+  resolvedLocale: string,
+  defaultLocale: string,
+): string {
+  const publicPathname = getLegalPagePublicPath(
+    type,
+    localeToLanguage(resolvedLocale),
+  );
+  return buildPublicLocalizedPath(publicPathname, resolvedLocale, defaultLocale);
 }
 
 export function resolveLocaleFromRequestHeaders(

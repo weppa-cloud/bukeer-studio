@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   captureClickIds,
+  clickIdInternals,
   setClickIdsCookie,
   type ClickIdSet,
 } from "@/lib/analytics/gclid-capture";
@@ -9,6 +10,7 @@ import {
   PUBLIC_LOCALE_HEADER_NAMES,
   buildPublicLocalizedPath,
   extractWebsiteLocaleSettings,
+  isLegalPathname,
   resolveLocaleFromPublicPath,
   translateCategoryPathname,
   type PublicLocalePathResolution,
@@ -38,6 +40,8 @@ const SITE_PREVIEW_PARAM = "preview_token";
 const SITE_PREVIEW_COOKIE = "__bukeer_site_preview";
 const COLOMBIA_TOURS_EN_HOST = "en.colombiatours.travel";
 const COLOMBIA_TOURS_CANONICAL_HOST = "colombiatours.travel";
+const PUBLIC_HTML_CACHE_CONTROL =
+  "public, max-age=0, s-maxage=300, stale-while-revalidate=86400";
 
 const CATEGORY_TO_PRODUCT_TYPE: Record<string, string> = {
   destinos: "destination",
@@ -793,6 +797,48 @@ function persistClickIdsOnResponse(
   return setClickIdsCookie(response, clickIds);
 }
 
+function hasClickIdQueryParam(request: NextRequest): boolean {
+  return clickIdInternals.CLICK_ID_KEYS.some((key) =>
+    request.nextUrl.searchParams.has(key),
+  );
+}
+
+function shouldApplyPublicHtmlCache(
+  request: NextRequest,
+  response: NextResponse,
+  clickIds: ClickIdSet,
+): boolean {
+  if (request.method !== "GET" && request.method !== "HEAD") return false;
+  if (request.nextUrl.search) return false;
+  if (Object.keys(clickIds).length > 0) return false;
+  if (hasClickIdQueryParam(request)) return false;
+  if (
+    response.headers.has("set-cookie") ||
+    response.headers.has("x-middleware-set-cookie")
+  ) {
+    return false;
+  }
+  if (response.status < 200 || response.status >= 300) return false;
+  return true;
+}
+
+function applyPublicHtmlCacheHeaders(response: NextResponse): NextResponse {
+  response.headers.set("Cache-Control", PUBLIC_HTML_CACHE_CONTROL);
+  return response;
+}
+
+function finalizePublicSiteResponse(
+  request: NextRequest,
+  response: NextResponse,
+  clickIds: ClickIdSet,
+): NextResponse {
+  const persistedResponse = persistClickIdsOnResponse(response, clickIds);
+  if (shouldApplyPublicHtmlCache(request, persistedResponse, clickIds)) {
+    return applyPublicHtmlCacheHeaders(persistedResponse);
+  }
+  return persistedResponse;
+}
+
 export async function middleware(request: NextRequest) {
   const url = request.nextUrl;
   const host = getRequestHost(request);
@@ -890,7 +936,7 @@ export async function middleware(request: NextRequest) {
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/api") ||
-    pathname.match(/\.(ico|png|jpg|jpeg|svg|css|js|woff2?)$/)
+    pathname.match(/\.(avif|gif|ico|png|jpg|jpeg|svg|webp|css|js|woff2?)$/)
   ) {
     return NextResponse.next();
   }
@@ -906,13 +952,11 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Already-internal tenant routes normally pass through untouched. One
-  // exception: direct requests to `/site/<subdomain>/<lang>/...` (used by
-  // E2E specs and internal tooling) must still receive the locale headers
-  // + canonical rewrite that the subdomain-first flow applies. Without
-  // this, SSR falls back to the tenant default locale even though the URL
-  // contains a translated-locale segment. See [[ADR-019]] + Cluster-E of
-  // Stage 6 (#213) for the handoff from PR #243.
+  // Already-internal tenant routes normally pass through untouched.
+  // Exceptions: direct requests to `/site/<subdomain>/<lang>/...` (used by
+  // E2E specs/internal tooling) and localized legal slugs must still receive
+  // locale headers + canonical internal rewrites. Without this, SSR falls
+  // back to tenant defaults or tries to render public-only slug aliases.
   if (pathname.startsWith("/site/")) {
     const queryToken = url.searchParams.get(SITE_PREVIEW_PARAM);
     const cookieToken = request.cookies.get(SITE_PREVIEW_COOKIE)?.value;
@@ -939,13 +983,24 @@ export async function middleware(request: NextRequest) {
     }
 
     const internalMatch = parseInternalSitePath(pathname);
-    if (
-      internalMatch &&
-      internalMatch.innerPathname !== "/" &&
-      /^[a-z]{2}$/.test(
-        internalMatch.innerPathname.split("/").filter(Boolean)[0] || "",
-      )
-    ) {
+    if (internalMatch && internalMatch.innerPathname !== "/") {
+      const firstInnerSegment =
+        internalMatch.innerPathname.split("/").filter(Boolean)[0] || "";
+      const shouldResolveInternalLocale =
+        /^[a-z]{2}$/.test(firstInnerSegment) ||
+        isLegalPathname(internalMatch.innerPathname);
+      if (!shouldResolveInternalLocale) {
+        const passThrough = NextResponse.next();
+        passThrough.cookies.set(SITE_PREVIEW_COOKIE, SITE_PREVIEW_TOKEN, {
+          path: "/site",
+          httpOnly: true,
+          sameSite: "lax",
+          secure: process.env.NODE_ENV === "production",
+          maxAge: 60 * 60 * 6,
+        });
+        return applySitePreviewHeaders(passThrough);
+      }
+
       const website = await getWebsiteBySubdomain(internalMatch.subdomain);
       const localeSettings = extractWebsiteLocaleSettings(website);
       const localeResolution = resolveLocaleFromPublicPath(
@@ -958,8 +1013,9 @@ export async function middleware(request: NextRequest) {
       // did not map to a locale, fall back to pass-through so we don't
       // accidentally break unrelated routes.
       if (
-        localeResolution.hasLanguageSegment &&
-        localeResolution.resolvedLocale !== localeResolution.defaultLocale
+        (localeResolution.hasLanguageSegment &&
+          localeResolution.resolvedLocale !== localeResolution.defaultLocale) ||
+        localeResolution.canonicalPathname !== localeResolution.pathnameWithoutLang
       ) {
         return applySitePreviewHeaders(
           applyLocaleAwareTenantRewrite({
@@ -1033,10 +1089,7 @@ export async function middleware(request: NextRequest) {
         null;
 
       if (!subdomain) {
-        return persistClickIdsOnResponse(
-          NextResponse.next(),
-          capturedClickIds,
-        );
+        return persistClickIdsOnResponse(NextResponse.next(), capturedClickIds);
       }
 
       const website = await getWebsiteBySubdomain(subdomain, {
@@ -1049,9 +1102,9 @@ export async function middleware(request: NextRequest) {
       const potentialProductRoute = getPotentialProductRoute(
         localeResolution.pathnameWithoutLang,
       );
-      const allowLegacyRedirects = !isPublicSeoMetadataPath(
-        localeResolution.pathnameWithoutLang,
-      );
+      const allowLegacyRedirects =
+        !isPublicSeoMetadataPath(localeResolution.pathnameWithoutLang) &&
+        !isLegalPathname(localeResolution.pathnameWithoutLang);
 
       if (allowLegacyRedirects) {
         const legacyRedirectResponse = await tryLegacyRedirect(
@@ -1060,7 +1113,8 @@ export async function middleware(request: NextRequest) {
           localeResolution.pathnameWithoutLang,
         );
         if (legacyRedirectResponse) {
-          return persistClickIdsOnResponse(
+          return finalizePublicSiteResponse(
+            request,
             legacyRedirectResponse,
             capturedClickIds,
           );
@@ -1073,7 +1127,8 @@ export async function middleware(request: NextRequest) {
         localeResolution,
       );
       if (missingBlogResponse) {
-        return persistClickIdsOnResponse(
+        return finalizePublicSiteResponse(
+          request,
           missingBlogResponse,
           capturedClickIds,
         );
@@ -1089,12 +1144,13 @@ export async function middleware(request: NextRequest) {
             : localeResolution.resolvedLanguage,
         );
         if (redirectResponse) {
-          return persistClickIdsOnResponse(redirectResponse, capturedClickIds);
+          return finalizePublicSiteResponse(request, redirectResponse, capturedClickIds);
         }
       }
 
       // Rewrite to tenant route
-      return persistClickIdsOnResponse(
+      return finalizePublicSiteResponse(
+        request,
         applyLocaleAwareTenantRewrite({
           request,
           sourceUrl: url,
@@ -1140,9 +1196,9 @@ export async function middleware(request: NextRequest) {
     const potentialProductRoute = getPotentialProductRoute(
       localeResolution.pathnameWithoutLang,
     );
-    const allowLegacyRedirects = !isPublicSeoMetadataPath(
-      localeResolution.pathnameWithoutLang,
-    );
+    const allowLegacyRedirects =
+      !isPublicSeoMetadataPath(localeResolution.pathnameWithoutLang) &&
+      !isLegalPathname(localeResolution.pathnameWithoutLang);
 
     if (allowLegacyRedirects) {
       const legacyRedirectResponse = await tryLegacyRedirect(
@@ -1151,7 +1207,8 @@ export async function middleware(request: NextRequest) {
         localeResolution.pathnameWithoutLang,
       );
       if (legacyRedirectResponse) {
-        return persistClickIdsOnResponse(
+        return finalizePublicSiteResponse(
+          request,
           legacyRedirectResponse,
           capturedClickIds,
         );
@@ -1164,7 +1221,7 @@ export async function middleware(request: NextRequest) {
       localeResolution,
     );
     if (missingBlogResponse) {
-      return persistClickIdsOnResponse(missingBlogResponse, capturedClickIds);
+      return finalizePublicSiteResponse(request, missingBlogResponse, capturedClickIds);
     }
 
     if (potentialProductRoute) {
@@ -1177,12 +1234,13 @@ export async function middleware(request: NextRequest) {
           : localeResolution.resolvedLanguage,
       );
       if (redirectResponse) {
-        return persistClickIdsOnResponse(redirectResponse, capturedClickIds);
+        return finalizePublicSiteResponse(request, redirectResponse, capturedClickIds);
       }
     }
 
     // Rewrite to tenant route
-    return persistClickIdsOnResponse(
+    return finalizePublicSiteResponse(
+      request,
       applyLocaleAwareTenantRewrite({
         request,
         sourceUrl: url,
@@ -1219,9 +1277,9 @@ export async function middleware(request: NextRequest) {
     const potentialProductRoute = getPotentialProductRoute(
       localeResolution.pathnameWithoutLang,
     );
-    const allowLegacyRedirects = !isPublicSeoMetadataPath(
-      localeResolution.pathnameWithoutLang,
-    );
+    const allowLegacyRedirects =
+      !isPublicSeoMetadataPath(localeResolution.pathnameWithoutLang) &&
+      !isLegalPathname(localeResolution.pathnameWithoutLang);
 
     if (allowLegacyRedirects) {
       const legacyRedirectResponse = await tryLegacyRedirect(
@@ -1230,7 +1288,8 @@ export async function middleware(request: NextRequest) {
         localeResolution.pathnameWithoutLang,
       );
       if (legacyRedirectResponse) {
-        return persistClickIdsOnResponse(
+        return finalizePublicSiteResponse(
+          request,
           legacyRedirectResponse,
           capturedClickIds,
         );
@@ -1243,7 +1302,7 @@ export async function middleware(request: NextRequest) {
       localeResolution,
     );
     if (missingBlogResponse) {
-      return persistClickIdsOnResponse(missingBlogResponse, capturedClickIds);
+      return finalizePublicSiteResponse(request, missingBlogResponse, capturedClickIds);
     }
 
     if (potentialProductRoute) {
@@ -1256,14 +1315,15 @@ export async function middleware(request: NextRequest) {
           : localeResolution.resolvedLanguage,
       );
       if (redirectResponse) {
-        return persistClickIdsOnResponse(redirectResponse, capturedClickIds);
+        return finalizePublicSiteResponse(request, redirectResponse, capturedClickIds);
       }
     }
 
     // Prefer the stable tenant pipeline for verified custom domains.
     // This avoids custom-domain-specific rendering divergence in Worker runtime.
     if (website?.subdomain) {
-      return persistClickIdsOnResponse(
+      return finalizePublicSiteResponse(
+        request,
         applyLocaleAwareTenantRewrite({
           request,
           sourceUrl: url,
@@ -1287,9 +1347,18 @@ export async function middleware(request: NextRequest) {
     newUrl.pathname = `/domain/${encodeURIComponent(host)}${pathname}`;
     const response = NextResponse.rewrite(newUrl);
     response.headers.set("x-custom-domain", host);
-    return persistClickIdsOnResponse(response, capturedClickIds);
+    return finalizePublicSiteResponse(request, response, capturedClickIds);
   }
 }
+
+export const middlewareInternals = {
+  PUBLIC_HTML_CACHE_CONTROL,
+  applySitePreviewHeaders,
+  applyPublicHtmlCacheHeaders,
+  finalizePublicSiteResponse,
+  hasClickIdQueryParam,
+  shouldApplyPublicHtmlCache,
+};
 
 export const config = {
   // Match all routes except static files and API routes
@@ -1302,6 +1371,6 @@ export const config = {
      * - favicon.ico (favicon file)
      * - public folder files
      */
-    "/((?!api|_next/static|_next/image|favicon.ico|.*\\.png$|.*\\.jpg$|.*\\.svg$).*)",
+    "/((?!api|_next/static|_next/image|favicon.ico|.*\\.avif$|.*\\.gif$|.*\\.png$|.*\\.jpg$|.*\\.jpeg$|.*\\.svg$|.*\\.webp$).*)",
   ],
 };
