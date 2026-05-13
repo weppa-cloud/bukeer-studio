@@ -143,11 +143,31 @@ export function normalizeWaflowPhone(
   phone: string,
   country: WaflowCountry,
 ): string | null {
-  const clean = phone.replace(/\D/g, '');
+  const trimmed = phone.trim();
+  const clean = trimmed.replace(/\D/g, '');
   if (!clean) return null;
-  const parsed = parsePhoneNumberFromString(`${country.code}${clean}`);
-  if (!parsed || !parsed.isValid()) return null;
-  return parsed.number;
+
+  const candidates = [
+    trimmed.startsWith('+') ? trimmed : null,
+    `${country.code}${clean}`,
+    clean.startsWith(country.code.replace(/\D/g, '')) ? `+${clean}` : null,
+  ].filter(Boolean) as string[];
+
+  for (const candidate of candidates) {
+    const parsed = parsePhoneNumberFromString(candidate);
+    if (parsed?.isValid()) return parsed.number;
+  }
+
+  // WAFlow is a lead-capture form, not an identity-proofing step. Accept
+  // plausible WhatsApp numbers when libphonenumber is stricter than the local
+  // input users type, and normalize them to E.164-ish format for hashing/CRM.
+  if (clean.length >= 7 && clean.length <= 15) {
+    const countryDigits = country.code.replace(/\D/g, '');
+    const withCountry = clean.startsWith(countryDigits) ? clean : `${countryDigits}${clean}`;
+    if (withCountry.length >= 8 && withCountry.length <= 15) return `+${withCountry}`;
+  }
+
+  return null;
 }
 
 /**

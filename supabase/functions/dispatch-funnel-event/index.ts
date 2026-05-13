@@ -65,6 +65,7 @@ interface FunnelEventRow {
   attribution: Record<string, unknown> | null;
   dispatch_status: DispatchStatus;
   dispatch_attempt_count: number;
+  provider_status: unknown;
 }
 
 interface MappingRow {
@@ -109,6 +110,36 @@ interface DestinationResult {
 const META_PROVIDER = 'meta';
 const GOOGLE_ADS_PROVIDER = 'google_ads';
 const GA4_PROVIDER = 'ga4';
+
+function truncateReason(value: unknown): string {
+  const raw = value instanceof Error ? value.message : String(value);
+  return raw.slice(0, 500);
+}
+
+function destinationFailureResult(destination: string, error: unknown): DestinationResult {
+  return {
+    destination,
+    outcome: 'failed',
+    reason: `dispatcher_exception:${truncateReason(error)}`,
+  };
+}
+
+function mergeProviderStatus(
+  previous: unknown,
+  results: DestinationResult[],
+): Array<Record<string, unknown>> {
+  const previousEntries = Array.isArray(previous)
+    ? previous.filter((entry) => entry && typeof entry === 'object') as Array<Record<string, unknown>>
+    : [];
+  return [
+    ...previousEntries.slice(-9),
+    {
+      dispatcher: 'dispatch-funnel-event-edge-fn',
+      attempted_at: new Date().toISOString(),
+      results,
+    },
+  ];
+}
 
 // --------------------------------------------------------------------------
 // Tiny helpers (mirror lib/meta/conversions-api.ts hashing rules — kept
@@ -991,10 +1022,10 @@ async function handle(req: Request): Promise<Response> {
   });
 
   const { data: eventRow, error: eventErr } = await supabase
-    .from('funnel_events')
-    .select(
-      'event_id, pixel_event_id, event_name, occurred_at, source, account_id, website_id, reference_code, source_url, user_email, user_phone, external_id, fbp, fbc, ctwa_clid, gclid, gbraid, wbraid, ip_address, user_agent, value_amount, value_currency, payload, attribution, dispatch_status, dispatch_attempt_count',
-    )
+	    .from('funnel_events')
+	    .select(
+	      'event_id, pixel_event_id, event_name, occurred_at, source, account_id, website_id, reference_code, source_url, user_email, user_phone, external_id, fbp, fbc, ctwa_clid, gclid, gbraid, wbraid, ip_address, user_agent, value_amount, value_currency, payload, attribution, dispatch_status, dispatch_attempt_count, provider_status',
+	    )
     .eq('event_id', funnelEventId)
     .maybeSingle();
 
@@ -1034,26 +1065,30 @@ async function handle(req: Request): Promise<Response> {
     );
   }
 
-  const results: DestinationResult[] = [];
-  let tenantMetaContext: TenantMetaContext | null = null;
-  let ga4Context: { websiteAnalytics: unknown; integration: Ga4IntegrationRow | null } | null = null;
-  for (const m of (mappings ?? []) as unknown as MappingRow[]) {
-    if (m.destination === 'meta' || m.destination === 'meta_messaging') {
-      tenantMetaContext ??= await loadTenantMetaContext(supabase, event);
-      results.push(await dispatchToMeta(event, m, supabase, tenantMetaContext));
-    } else if (m.destination === 'google_ads') {
-      results.push(await dispatchToGoogleAds(event, m, supabase));
-    } else if (m.destination === 'ga4') {
-      ga4Context ??= await loadGa4Context(supabase, event);
-      results.push(await dispatchToGa4(event, m, supabase, ga4Context));
-    } else {
-      results.push({
-        destination: m.destination,
-        outcome: 'skipped',
-        reason: 'destination_not_implemented',
-      });
-    }
-  }
+	  const results: DestinationResult[] = [];
+	  let tenantMetaContext: TenantMetaContext | null = null;
+	  let ga4Context: { websiteAnalytics: unknown; integration: Ga4IntegrationRow | null } | null = null;
+	  for (const m of (mappings ?? []) as unknown as MappingRow[]) {
+	    try {
+	      if (m.destination === 'meta' || m.destination === 'meta_messaging') {
+	        tenantMetaContext ??= await loadTenantMetaContext(supabase, event);
+	        results.push(await dispatchToMeta(event, m, supabase, tenantMetaContext));
+	      } else if (m.destination === 'google_ads') {
+	        results.push(await dispatchToGoogleAds(event, m, supabase));
+	      } else if (m.destination === 'ga4') {
+	        ga4Context ??= await loadGa4Context(supabase, event);
+	        results.push(await dispatchToGa4(event, m, supabase, ga4Context));
+	      } else {
+	        results.push({
+	          destination: m.destination,
+	          outcome: 'skipped',
+	          reason: 'destination_not_implemented',
+	        });
+	      }
+	    } catch (error) {
+	      results.push(destinationFailureResult(m.destination, error));
+	    }
+	  }
 
   const dispatched = results.filter((r) => r.outcome === 'dispatched').length;
   const skipped = results.filter((r) => r.outcome === 'skipped').length;
@@ -1077,10 +1112,11 @@ async function handle(req: Request): Promise<Response> {
 
   await supabase
     .from('funnel_events')
-    .update({
-      dispatch_status: nextStatus,
-      dispatch_attempted_at: new Date().toISOString(),
-      // attempt_count is incremented by the cron loop; happy-path trigger
+	    .update({
+	      dispatch_status: nextStatus,
+	      dispatch_attempted_at: new Date().toISOString(),
+	      provider_status: mergeProviderStatus(event.provider_status, results),
+	      // attempt_count is incremented by the cron loop; happy-path trigger
       // calls don't increment to avoid double-counting.
     })
     .eq('event_id', funnelEventId);

@@ -85,6 +85,11 @@ const AttributionSchema = z
     fbp: z.string().trim().max(255).optional(),
     fbc: z.string().trim().max(512).optional(),
     fbclid: z.string().trim().max(512).optional(),
+    gclid: z.string().trim().max(512).optional(),
+    gbraid: z.string().trim().max(512).optional(),
+    wbraid: z.string().trim().max(512).optional(),
+    gad_campaignid: z.string().trim().max(255).optional(),
+    gad_source: z.string().trim().max(255).optional(),
     utm_source: z.string().trim().max(255).optional(),
     utm_medium: z.string().trim().max(255).optional(),
     utm_campaign: z.string().trim().max(255).optional(),
@@ -120,6 +125,7 @@ const RequestSchema = z.object({
 
 type WaflowLeadBody = z.infer<typeof RequestSchema>;
 type JsonRecord = Record<string, unknown>;
+type NormalizedAttribution = z.infer<typeof AttributionSchema>;
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -167,14 +173,15 @@ async function upsertLead(
   const submittedAt = body.submitted ? new Date().toISOString() : null;
   const ip = extractClientIp(request.headers);
   const ua = request.headers.get('user-agent');
-  const payload = body.attribution
+  const attribution = normalizeAttribution(body);
+  const payload = Object.keys(attribution).length > 0
     ? {
         ...body.payload,
         attribution: {
           ...(typeof body.payload.attribution === 'object' && body.payload.attribution !== null
             ? body.payload.attribution
             : {}),
-          ...body.attribution,
+          ...attribution,
         },
       }
     : body.payload;
@@ -191,6 +198,17 @@ async function upsertLead(
         payload,
         session_key: body.sessionKey,
         reference_code: body.referenceCode ?? null,
+        gclid: attribution.gclid ?? null,
+        gbraid: attribution.gbraid ?? null,
+        wbraid: attribution.wbraid ?? null,
+        gad_campaignid: attribution.gad_campaignid ?? null,
+        utm_source: attribution.utm_source ?? null,
+        utm_medium: attribution.utm_medium ?? null,
+        utm_campaign: attribution.utm_campaign ?? null,
+        utm_content: attribution.utm_content ?? null,
+        utm_term: attribution.utm_term ?? null,
+        source_url: attribution.source_url ?? null,
+        page_path: attribution.page_path ?? null,
         submitted_at: submittedAt,
         source_ip: ip,
         source_user_agent: ua,
@@ -229,6 +247,15 @@ function readNestedString(record: JsonRecord, key: string, nestedKey: string): s
   return readString(nested[nestedKey]);
 }
 
+function readUrlParam(sourceUrl: string | null, key: string): string | null {
+  if (!sourceUrl) return null;
+  try {
+    return readString(new URL(sourceUrl).searchParams.get(key));
+  } catch {
+    return null;
+  }
+}
+
 function resolveLeadEventId(body: WaflowLeadBody): string | null {
   const fromPayload = readNestedString(body.payload, 'eventIds', 'lead');
   if (fromPayload) return fromPayload;
@@ -239,6 +266,44 @@ function resolveAttribution(body: WaflowLeadBody): JsonRecord {
   if (body.attribution) return body.attribution;
   const attribution = body.payload.attribution;
   return isRecord(attribution) ? attribution : {};
+}
+
+function normalizeAttribution(body: WaflowLeadBody): NormalizedAttribution {
+  const raw = resolveAttribution(body);
+  const sourceUrl = readString(raw.source_url) ?? readString(body.payload.sourceUrl);
+  const pagePath = readString(raw.page_path) ?? readString(body.payload.pagePath);
+  const gadCampaignId =
+    readString(raw.gad_campaignid) ??
+    readUrlParam(sourceUrl, 'gad_campaignid') ??
+    readUrlParam(sourceUrl, 'campaignid');
+
+  const normalized: NormalizedAttribution = {
+    fbp: readString(raw.fbp) ?? undefined,
+    fbc: readString(raw.fbc) ?? undefined,
+    fbclid: readString(raw.fbclid) ?? readUrlParam(sourceUrl, 'fbclid') ?? undefined,
+    gclid: readString(raw.gclid) ?? readUrlParam(sourceUrl, 'gclid') ?? undefined,
+    gbraid: readString(raw.gbraid) ?? readUrlParam(sourceUrl, 'gbraid') ?? undefined,
+    wbraid: readString(raw.wbraid) ?? readUrlParam(sourceUrl, 'wbraid') ?? undefined,
+    gad_campaignid: gadCampaignId ?? undefined,
+    gad_source: readString(raw.gad_source) ?? readUrlParam(sourceUrl, 'gad_source') ?? undefined,
+    utm_source: readString(raw.utm_source) ?? readUrlParam(sourceUrl, 'utm_source') ?? undefined,
+    utm_medium: readString(raw.utm_medium) ?? readUrlParam(sourceUrl, 'utm_medium') ?? undefined,
+    utm_campaign:
+      readString(raw.utm_campaign) ??
+      readUrlParam(sourceUrl, 'utm_campaign') ??
+      gadCampaignId ??
+      undefined,
+    utm_term: readString(raw.utm_term) ?? readUrlParam(sourceUrl, 'utm_term') ?? undefined,
+    utm_content: readString(raw.utm_content) ?? readUrlParam(sourceUrl, 'utm_content') ?? undefined,
+    source_url: sourceUrl ?? undefined,
+    page_path: pagePath ?? undefined,
+    page_title: readString(raw.page_title) ?? undefined,
+    referrer: readString(raw.referrer) ?? undefined,
+  };
+
+  return Object.fromEntries(
+    Object.entries(normalized).filter(([, value]) => value !== undefined),
+  ) as NormalizedAttribution;
 }
 
 function deriveMarket(body: WaflowLeadBody): GrowthMarket {
@@ -275,7 +340,17 @@ function buildFunnelAttribution(
 
   try {
     const url = new URL(sourceUrl);
-    for (const key of ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'fbclid'] as const) {
+    for (const key of [
+      'utm_source',
+      'utm_medium',
+      'utm_campaign',
+      'utm_term',
+      'utm_content',
+      'fbclid',
+      'gclid',
+      'gbraid',
+      'wbraid',
+    ] as const) {
       const value = readString(raw[key]);
       if (value && !url.searchParams.has(key)) url.searchParams.set(key, value);
     }
@@ -313,7 +388,7 @@ async function emitWaflowSubmitFunnelEvent(
 
   const createdAt = new Date(lead.created_at);
   const occurredAt = Number.isNaN(createdAt.getTime()) ? new Date(0) : createdAt;
-  const attribution = resolveAttribution(body);
+  const attribution = normalizeAttribution(body);
   const sourceUrl = readString(attribution.source_url);
   const pagePath = readString(attribution.page_path);
   const funnelAttribution = buildFunnelAttribution(
@@ -384,7 +459,7 @@ async function recordWaflowLeadViaRpc(
 
   const createdAt = new Date(lead.created_at);
   const occurredAt = Number.isNaN(createdAt.getTime()) ? new Date() : createdAt;
-  const attribution = resolveAttribution(body);
+  const attribution = normalizeAttribution(body);
   const ip = extractClientIp(request.headers);
   const ua = request.headers.get('user-agent');
   const sourceUrl = readString(attribution.source_url);
@@ -430,7 +505,10 @@ async function recordWaflowLeadViaRpc(
     wbraid: clickIds?.wbraid ?? readString(attribution.wbraid),
     utm_source: utm?.utm_source ?? readString(attribution.utm_source),
     utm_medium: utm?.utm_medium ?? readString(attribution.utm_medium),
-    utm_campaign: utm?.utm_campaign ?? readString(attribution.utm_campaign),
+    utm_campaign:
+      utm?.utm_campaign ??
+      readString(attribution.utm_campaign) ??
+      readString(attribution.gad_campaignid),
     utm_term: utm?.utm_term ?? readString(attribution.utm_term),
     utm_content: utm?.utm_content ?? readString(attribution.utm_content),
     ip_address: ip ?? undefined,
@@ -482,7 +560,7 @@ async function sendWaflowLeadConversion(
   const eventId = resolveLeadEventId(body);
   if (!eventId) return;
 
-  const attribution = resolveAttribution(body);
+  const attribution = normalizeAttribution(body);
   const ip = extractClientIp(request.headers);
   const ua = request.headers.get('user-agent');
   const name = readString(body.payload.name);
