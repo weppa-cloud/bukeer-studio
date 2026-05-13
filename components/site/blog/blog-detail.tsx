@@ -30,6 +30,7 @@ export interface BlogDetailProps {
 export function BlogDetail({ subdomain, locale, post, isCustomDomain = false }: BlogDetailProps) {
   const messages = getPublicUiMessages(locale);
   const basePath = getBasePath(subdomain, isCustomDomain);
+  const shareUrl = `${basePath}/blog/${post.slug}`;
 
   return (
     <article data-testid="detail-blog" className="section-padding">
@@ -117,7 +118,7 @@ export function BlogDetail({ subdomain, locale, post, isCustomDomain = false }: 
             <div className="flex items-center gap-4">
               <span className="text-sm text-muted-foreground">{messages.blogPost.shareLabel}</span>
               <a
-                href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(post.title)}&url=${encodeURIComponent(`https://${subdomain}.bukeer.com/blog/${post.slug}`)}`}
+                href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(post.title)}&url=${encodeURIComponent(shareUrl)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-muted-foreground transition-colors hover:text-foreground"
@@ -128,7 +129,7 @@ export function BlogDetail({ subdomain, locale, post, isCustomDomain = false }: 
                 </svg>
               </a>
               <a
-                href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`https://${subdomain}.bukeer.com/blog/${post.slug}`)}`}
+                href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-muted-foreground transition-colors hover:text-foreground"
@@ -139,7 +140,7 @@ export function BlogDetail({ subdomain, locale, post, isCustomDomain = false }: 
                 </svg>
               </a>
               <a
-                href={`https://wa.me/?text=${encodeURIComponent(`${post.title} - https://${subdomain}.bukeer.com/blog/${post.slug}`)}`}
+                href={`https://wa.me/?text=${encodeURIComponent(`${post.title} - ${shareUrl}`)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-muted-foreground transition-colors hover:text-foreground"
