@@ -1,0 +1,1036 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="data:,">
+  <title>Hermes Primary Runtime MVE v0 - Infografia</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #18212f;
+      --muted: #5d6878;
+      --line: #d9e0e8;
+      --paper: #f6f8fb;
+      --white: #ffffff;
+      --blue: #2563eb;
+      --blue-soft: #dbeafe;
+      --teal: #0f766e;
+      --teal-soft: #ccfbf1;
+      --amber: #b45309;
+      --amber-soft: #fef3c7;
+      --red: #b91c1c;
+      --red-soft: #fee2e2;
+      --green: #15803d;
+      --green-soft: #dcfce7;
+      --slate: #334155;
+      --slate-soft: #e2e8f0;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--paper);
+      font-family:
+        Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+        "Segoe UI", sans-serif;
+      line-height: 1.5;
+    }
+
+    main {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 32px 0 56px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+      gap: 24px;
+      align-items: stretch;
+      margin-bottom: 24px;
+      color: #f8fafc;
+      background: #172033;
+      border: 1px solid #26354d;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .hero-copy {
+      padding: 32px;
+    }
+
+    .eyebrow {
+      margin: 0 0 10px;
+      color: #9cc7ff;
+      font-size: 0.82rem;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin-top: 0;
+    }
+
+    h1 {
+      max-width: 760px;
+      margin-bottom: 16px;
+      font-size: 2.6rem;
+      line-height: 1.04;
+      letter-spacing: 0;
+    }
+
+    .hero-copy > p {
+      max-width: 760px;
+      margin-bottom: 22px;
+      color: #dbe7f5;
+      font-size: 1.06rem;
+    }
+
+    .hero-metrics {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      max-width: 760px;
+    }
+
+    .metric {
+      min-height: 112px;
+      padding: 14px;
+      border: 1px solid #33445f;
+      border-radius: 8px;
+      background: #202c42;
+    }
+
+    .metric strong {
+      display: block;
+      color: #ffffff;
+      font-size: 1.65rem;
+      line-height: 1.1;
+    }
+
+    .metric span {
+      display: block;
+      margin-top: 8px;
+      color: #c4d2e4;
+      font-size: 0.88rem;
+    }
+
+    .runtime-panel {
+      display: grid;
+      align-content: center;
+      gap: 10px;
+      padding: 28px;
+      background: #0f766e;
+      border-left: 1px solid #2dd4bf;
+    }
+
+    .runtime-chip {
+      width: 100%;
+      padding: 13px 14px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.14);
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      color: #ecfeff;
+      font-weight: 800;
+    }
+
+    .runtime-chip small {
+      display: block;
+      margin-top: 4px;
+      color: #ccfbf1;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    section {
+      margin-top: 24px;
+    }
+
+    .section-title {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: flex-end;
+      margin-bottom: 12px;
+    }
+
+    h2 {
+      margin-bottom: 0;
+      font-size: 1.45rem;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+
+    .section-title p {
+      max-width: 520px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+      text-align: right;
+    }
+
+    .grid-2,
+    .grid-3,
+    .grid-4 {
+      display: grid;
+      gap: 14px;
+    }
+
+    .grid-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .grid-3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .grid-4 {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .card,
+    .lane,
+    .step,
+    .table-wrap {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--white);
+      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+    }
+
+    .card {
+      padding: 18px;
+    }
+
+    .card h3 {
+      margin-bottom: 8px;
+      font-size: 1.05rem;
+    }
+
+    .card p {
+      margin-bottom: 0;
+      color: var(--muted);
+      font-size: 0.94rem;
+    }
+
+    .tag {
+      display: inline-block;
+      margin-bottom: 10px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 0.72rem;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .tag.blue { color: var(--blue); background: var(--blue-soft); }
+    .tag.teal { color: var(--teal); background: var(--teal-soft); }
+    .tag.amber { color: var(--amber); background: var(--amber-soft); }
+    .tag.green { color: var(--green); background: var(--green-soft); }
+    .tag.red { color: var(--red); background: var(--red-soft); }
+    .tag.slate { color: var(--slate); background: var(--slate-soft); }
+
+    .before-after {
+      display: grid;
+      grid-template-columns: 1fr 64px 1fr;
+      gap: 16px;
+      align-items: stretch;
+    }
+
+    .arrow {
+      display: grid;
+      place-items: center;
+      color: var(--blue);
+      font-size: 1.8rem;
+      font-weight: 900;
+    }
+
+    .list {
+      display: grid;
+      gap: 9px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .list li {
+      display: flex;
+      gap: 9px;
+      align-items: flex-start;
+      color: var(--muted);
+      font-size: 0.93rem;
+    }
+
+    .list li::before {
+      flex: 0 0 8px;
+      width: 8px;
+      height: 8px;
+      margin-top: 8px;
+      border-radius: 50%;
+      background: var(--blue);
+      content: "";
+    }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .step {
+      min-height: 148px;
+      padding: 16px;
+      position: relative;
+    }
+
+    .step b {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--blue);
+      font-size: 0.76rem;
+    }
+
+    .step strong {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 1rem;
+      line-height: 1.25;
+    }
+
+    .step span {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .architecture {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 14px;
+      align-items: stretch;
+    }
+
+    .lane {
+      padding: 18px;
+      border-top: 6px solid var(--blue);
+    }
+
+    .lane.hermes { border-top-color: var(--teal); }
+    .lane.gateway { border-top-color: var(--amber); }
+    .lane.supabase { border-top-color: var(--blue); }
+
+    .lane h3 {
+      margin-bottom: 10px;
+      font-size: 1.08rem;
+    }
+
+    .kanban {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(118px, 1fr));
+      gap: 10px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+
+    .kanban-col {
+      min-height: 156px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #f8fafc;
+    }
+
+    .kanban-col h3 {
+      margin-bottom: 10px;
+      color: var(--slate);
+      font-size: 0.9rem;
+    }
+
+    .ticket {
+      min-height: 74px;
+      padding: 10px;
+      border: 1px solid #cbd5e1;
+      border-radius: 7px;
+      background: var(--white);
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    .tools {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .tool {
+      min-height: 132px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--white);
+    }
+
+    .tool strong {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--ink);
+      font-size: 0.96rem;
+    }
+
+    .tool span {
+      color: var(--muted);
+      font-size: 0.87rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--white);
+    }
+
+    th,
+    td {
+      padding: 12px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+      font-size: 0.9rem;
+    }
+
+    th {
+      color: var(--slate);
+      background: #f8fafc;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .outcome {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .outcome .card {
+      min-height: 146px;
+    }
+
+    .footer-note {
+      margin-top: 24px;
+      padding: 18px;
+      border: 1px solid #bfdbfe;
+      border-radius: 8px;
+      background: #eff6ff;
+      color: #1e3a8a;
+      font-weight: 700;
+    }
+
+    @media (max-width: 980px) {
+      .hero,
+      .before-after,
+      .architecture,
+      .grid-2,
+      .grid-3,
+      .grid-4,
+      .tools,
+      .outcome {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-metrics,
+      .flow {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .runtime-panel {
+        border-left: 0;
+        border-top: 1px solid #2dd4bf;
+      }
+
+      .arrow {
+        min-height: 42px;
+        transform: rotate(90deg);
+      }
+
+      .section-title {
+        display: block;
+      }
+
+      .section-title p {
+        margin-top: 8px;
+        text-align: left;
+      }
+    }
+
+    @media (max-width: 620px) {
+      main {
+        width: min(100% - 20px, 1180px);
+        padding-top: 16px;
+      }
+
+      h1 {
+        font-size: 2rem;
+      }
+
+      .hero-copy,
+      .runtime-panel {
+        padding: 20px;
+      }
+
+      .hero-metrics,
+      .flow {
+        grid-template-columns: 1fr;
+      }
+
+      th,
+      td {
+        padding: 10px 8px;
+        font-size: 0.84rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">Growth OS Hermes Primary Runtime MVE v0</p>
+        <h1>Hermes deja de ser sidecar y se convierte en el runtime que mueve el crecimiento.</h1>
+        <p>
+          El objetivo del steel thread es probar un camino completo de produccion:
+          Hermes decide, crea tareas, ejecuta con /goal y delegate_task, publica mediante
+          MCP tools scoped, aprende del resultado y deja a Supabase como producto, auditoria y rollback.
+        </p>
+        <div class="hero-metrics">
+          <div class="metric">
+            <strong>100%</strong>
+            <span>Autonomo dentro de las acciones v0 permitidas.</span>
+          </div>
+          <div class="metric">
+            <strong>1:1</strong>
+            <span>Un board Hermes por account/website para aislar el runtime.</span>
+          </div>
+          <div class="metric">
+            <strong>8</strong>
+            <span>Provider profiles para priorizar con datos frescos y citables.</span>
+          </div>
+        </div>
+      </div>
+      <aside class="runtime-panel" aria-label="Runtime target">
+        <div class="runtime-chip">
+          Hermes Kanban
+          <small>cola primaria nativa</small>
+        </div>
+        <div class="runtime-chip">
+          Hermes Profiles
+          <small>identidad + skill bindings</small>
+        </div>
+        <div class="runtime-chip">
+          MCP Safety Layer
+          <small>scope, Zod, snapshots</small>
+        </div>
+        <div class="runtime-chip">
+          Supabase
+          <small>producto, auditoria y rollback</small>
+        </div>
+      </aside>
+    </header>
+
+    <section>
+      <div class="section-title">
+        <h2>Que cambia</h2>
+        <p>La migracion elimina la cola rigida como centro del sistema y mueve la ejecucion diaria a Hermes.</p>
+      </div>
+      <div class="before-after">
+        <article class="card">
+          <span class="tag red">Antes</span>
+          <h3>Growth OS executor-led</h3>
+          <ul class="list">
+            <li>Muchas fases previas: candidate, work item, publication job.</li>
+            <li>Estados pre-ready bloquean el flujo aunque el cambio sea puntual.</li>
+            <li>Hermes produce artifacts, pero no dirige la ejecucion.</li>
+            <li>Supabase participa como runtime queue y como producto.</li>
+          </ul>
+        </article>
+        <div class="arrow" aria-hidden="true">-&gt;</div>
+        <article class="card">
+          <span class="tag green">Despues</span>
+          <h3>Hermes primary runtime</h3>
+          <ul class="list">
+            <li>Hermes Kanban nativo es la cola unica para nuevo trabajo.</li>
+            <li>Perfiles Hermes cargan skills y ejecutan con /goal + delegate_task.</li>
+            <li>El Chief prioriza por impacto esperado al North Star.</li>
+            <li>MCP tools hacen validacion, snapshots, smoke y rollback.</li>
+            <li>Supabase queda como datos reales, auditoria, outcomes y recuperacion.</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-title">
+        <h2>Arquitectura MVE</h2>
+        <p>Tres capas claras: Hermes piensa y coordina, MCP Safety controla, Supabase persiste.</p>
+      </div>
+      <div class="architecture">
+        <article class="lane hermes">
+          <span class="tag teal">Runtime</span>
+          <h3>Hermes Agent</h3>
+          <ul class="list">
+            <li>Native Kanban board por website.</li>
+            <li>Profiles por rol con skills binded.</li>
+            <li>Sessions, memory y skills.</li>
+            <li>Cron, /goal y delegate_task.</li>
+            <li>Task events y handoffs.</li>
+          </ul>
+        </article>
+        <article class="lane gateway">
+          <span class="tag amber">Seguridad</span>
+          <h3>MCP Tool Safety Layer</h3>
+          <ul class="list">
+            <li>Scope por cuenta y sitio.</li>
+            <li>Tool + skill allowlist por perfil.</li>
+            <li>Validacion Zod.</li>
+            <li>Field allowlists.</li>
+            <li>Snapshot, smoke y rollback.</li>
+          </ul>
+        </article>
+        <article class="lane supabase">
+          <span class="tag blue">Persistencia</span>
+          <h3>Supabase</h3>
+          <ul class="list">
+            <li>Websites, posts y paginas.</li>
+            <li>SEO y transcreation.</li>
+            <li>Provider raw/cache facts.</li>
+            <li>Audit mirrors.</li>
+            <li>Outcomes y rollback payloads.</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-title">
+        <h2>Decision Kanban nativo</h2>
+        <p>Bukeer Studio no duplica la cola: observa, controla y recupera.</p>
+      </div>
+      <div class="grid-3">
+        <article class="card">
+          <span class="tag teal">Canonico</span>
+          <h3>Hermes board/task/run/event</h3>
+          <p>El estado de ejecucion vive en Hermes: tareas, dependencies, assignee, runs, eventos y handoffs.</p>
+        </article>
+        <article class="card">
+          <span class="tag blue">Aislamiento</span>
+          <h3>Board por account/website</h3>
+          <p>Para v0, ColombiaTours tiene un board propio. El tenant en metadata no reemplaza esta frontera.</p>
+        </article>
+        <article class="card">
+          <span class="tag amber">Mirror</span>
+          <h3>Studio como control plane</h3>
+          <p>Studio muestra estado, tools, mutaciones, outcomes, kill switch y rollback sin competir con Kanban.</p>
+        </article>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-title">
+        <h2>Steel Thread</h2>
+        <p>El camino minimo que debe pasar en produccion para aceptar el v0.</p>
+      </div>
+      <div class="flow">
+        <article class="step">
+          <b>01</b>
+          <strong>Hermes lee contexto</strong>
+          <span>Tenant context, provider profiles, memoria, skills y estado del sitio dentro del scope ColombiaTours.</span>
+        </article>
+        <article class="step">
+          <b>02</b>
+          <strong>Chief crea tarea</strong>
+          <span>La tarea entra al Kanban nativo con baseline, impacto esperado y success metric.</span>
+        </article>
+        <article class="step">
+          <b>03</b>
+          <strong>/goal delega</strong>
+          <span>Chief usa delegate_task para lanzar el perfil con su skill y contexto minimo.</span>
+        </article>
+        <article class="step">
+          <b>04</b>
+          <strong>Tool aplica cambio</strong>
+          <span>MCP Safety valida permisos, crea snapshot, escribe Supabase y corre smoke.</span>
+        </article>
+        <article class="step">
+          <b>05</b>
+          <strong>Sistema aprende</strong>
+          <span>Hermes cierra tarea, registra outcome y usa el aprendizaje en el siguiente ciclo.</span>
+        </article>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-title">
+        <h2>Loop de maximizacion Growth OS</h2>
+        <p>Hermes no ejecuta por orden de llegada: prioriza por impacto esperado al North Star.</p>
+      </div>
+      <div class="flow">
+        <article class="step">
+          <b>A</b>
+          <strong>Objetivo</strong>
+          <span>North Star: qualified trip requests por mes.</span>
+        </article>
+        <article class="step">
+          <b>B</b>
+          <strong>Facts</strong>
+          <span>Provider profiles con freshness, confidence y source refs.</span>
+        </article>
+        <article class="step">
+          <b>C</b>
+          <strong>Scoring</strong>
+          <span>Impacto esperado, confianza, riesgo, esfuerzo y ventana de medicion.</span>
+        </article>
+        <article class="step">
+          <b>D</b>
+          <strong>Produccion</strong>
+          <span>Agente ejecuta por MCP tool con snapshot, smoke y rollback.</span>
+        </article>
+        <article class="step">
+          <b>E</b>
+          <strong>Learning</strong>
+          <span>Outcome actualiza memoria/skills y cambia la siguiente decision.</span>
+        </article>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-title">
+        <h2>Kanban operativo</h2>
+        <p>Usamos los estados nativos de Hermes; smoke y rollback viven como metadata/eventos.</p>
+      </div>
+      <div class="kanban" role="list" aria-label="Hermes Kanban states">
+        <div class="kanban-col" role="listitem">
+          <h3>triage</h3>
+          <div class="ticket">Existe la tarea; falta clasificar, target o scoring.</div>
+        </div>
+        <div class="kanban-col" role="listitem">
+          <h3>todo</h3>
+          <div class="ticket">Clasificada y asignada; espera dependencias.</div>
+        </div>
+        <div class="kanban-col" role="listitem">
+          <h3>ready</h3>
+          <div class="ticket">Dependencias listas; /goal puede claimar.</div>
+        </div>
+        <div class="kanban-col" role="listitem">
+          <h3>running</h3>
+          <div class="ticket">Profile session Hermes ejecutando.</div>
+        </div>
+        <div class="kanban-col" role="listitem">
+          <h3>blocked</h3>
+          <div class="ticket">MCP Safety, policy, provider freshness o perfil bloquearon.</div>
+        </div>
+        <div class="kanban-col" role="listitem">
+          <h3>done</h3>
+          <div class="ticket">Completada: cambio aplicado, no-op o rollback concluido.</div>
+        </div>
+        <div class="kanban-col" role="listitem">
+          <h3>archived</h3>
+          <div class="ticket">Fuera del tablero activo, conserva historia.</div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-title">
+        <h2>Metadata Growth encima de Hermes</h2>
+        <p>No se crean estados extra; se registran como tool results, comments, snapshots y outcomes.</p>
+      </div>
+      <div class="grid-4">
+        <article class="card">
+          <span class="tag blue">Tool</span>
+          <h3>verifying</h3>
+          <p>Estado interno de la invocacion mientras corre smoke/auditoria.</p>
+        </article>
+        <article class="card">
+          <span class="tag green">Smoke</span>
+          <h3>smoke_passed</h3>
+          <p>Resultado guardado en tool invocation y mutation snapshot.</p>
+        </article>
+        <article class="card">
+          <span class="tag red">Recovery</span>
+          <h3>rollback_required</h3>
+          <p>Metadata/comment que normalmente bloquea o dispara rollback.</p>
+        </article>
+        <article class="card">
+          <span class="tag amber">Audit</span>
+          <h3>rolled_back</h3>
+          <p>Evento de auditoria; la tarea puede terminar en done o archived.</p>
+        </article>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-title">
+        <h2>Provider context profiles</h2>
+        <p>Los agentes no leen todo: reciben paquetes compactos segun su rol y herramienta.</p>
+      </div>
+      <div class="tools">
+        <div class="tool">
+          <span class="tag blue">Demand</span>
+          <strong>DataForSEO profile</strong>
+          <span>Keywords, SERP, competidores, backlinks, AI visibility y oportunidades SEO.</span>
+        </div>
+        <div class="tool">
+          <span class="tag blue">Organic</span>
+          <strong>GSC profile</strong>
+          <span>Clicks, impressions, CTR, queries, paginas y gaps por locale/market.</span>
+        </div>
+        <div class="tool">
+          <span class="tag blue">Behavior</span>
+          <strong>GA4 profile</strong>
+          <span>Sessions, engagement, eventos y comportamiento por landing/funnel.</span>
+        </div>
+        <div class="tool">
+          <span class="tag blue">UX</span>
+          <strong>Clarity profile</strong>
+          <span>Friccion, scroll, rage/dead clicks y riesgos de conversion.</span>
+        </div>
+        <div class="tool">
+          <span class="tag green">Conversion</span>
+          <strong>Funnel events profile</strong>
+          <span>Eventos canonicos, dispatch, WAFlow/Chatwoot/CRM refs y outcomes.</span>
+        </div>
+        <div class="tool">
+          <span class="tag green">Inventory</span>
+          <strong>Content inventory profile</strong>
+          <span>Paginas, blogs, metadata, cobertura, duplicados y superficies editables.</span>
+        </div>
+        <div class="tool">
+          <span class="tag teal">L10N</span>
+          <strong>Transcreation profile</strong>
+          <span>TM, glossary, jobs, localized variants, hreflang y calidad por locale.</span>
+        </div>
+        <div class="tool">
+          <span class="tag amber">Revenue</span>
+          <strong>CRM/WAFlow profile</strong>
+          <span>Leads, requests, quote stages y senales de calidad cuando existan.</span>
+        </div>
+        <div class="tool">
+          <span class="tag slate">Policy</span>
+          <strong>Risk profile</strong>
+          <span>Permisos, rollbacks, tools bloqueadas, campos prohibidos y kill switch.</span>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-title">
+        <h2>Acciones autonomas v0</h2>
+        <p>Hermes puede actuar sin aprobacion humana solo dentro de estas herramientas.</p>
+      </div>
+      <div class="tools">
+        <div class="tool">
+          <span class="tag green">Produccion</span>
+          <strong>hermes_publish_content</strong>
+          <span>Publica u optimiza contenido en campos permitidos con profundidad, SEO checks, snapshot y rollback.</span>
+        </div>
+        <div class="tool">
+          <span class="tag green">Produccion</span>
+          <strong>hermes_merge_transcreation</strong>
+          <span>Aplica overlays o metadata localizada validando locale pair, calidad y estado hreflang-safe.</span>
+        </div>
+        <div class="tool">
+          <span class="tag green">Produccion</span>
+          <strong>hermes_apply_safe_seo_patch</strong>
+          <span>Modifica solo metadata SEO segura en paginas permitidas y verifica render/ruta.</span>
+        </div>
+        <div class="tool">
+          <span class="tag blue">Contexto</span>
+          <strong>hermes_refresh_provider_context</strong>
+          <span>Refresca contexto de proveedores con cuotas, procedencia y freshness controlado.</span>
+        </div>
+        <div class="tool">
+          <span class="tag blue">Aprendizaje</span>
+          <strong>hermes_record_outcome</strong>
+          <span>Crea semillas de outcome con metricas, baseline, ventana de evaluacion y refs.</span>
+        </div>
+        <div class="tool">
+          <span class="tag amber">Recuperacion</span>
+          <strong>hermes_rollback_change</strong>
+          <span>Revierte una mutacion v0 usando rollback payload del mismo account y website.</span>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-title">
+        <h2>Perfiles de agente</h2>
+        <p>Cada perfil tiene memoria, skill bindings y herramientas separadas.</p>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Perfil</th>
+              <th>Responsabilidad</th>
+              <th>Puede hacer</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>colombiatours-chief</strong></td>
+              <td>Coordina el loop, prioriza y crea tareas.</td>
+              <td>Crear, asignar, leer contexto y registrar outcomes.</td>
+            </tr>
+            <tr>
+              <td><strong>colombiatours-content</strong></td>
+              <td>Produce y optimiza contenido.</td>
+              <td>Publicar contenido mediante MCP tool.</td>
+            </tr>
+            <tr>
+              <td><strong>colombiatours-editor</strong></td>
+              <td>Calidad, marca y factualidad.</td>
+              <td>Revisar, aprobar internamente y publicar si la tool acepta.</td>
+            </tr>
+            <tr>
+              <td><strong>colombiatours-transcreation</strong></td>
+              <td>Localizacion y transcreacion.</td>
+              <td>Mergear overlays localizados mediante MCP tool.</td>
+            </tr>
+            <tr>
+              <td><strong>colombiatours-technical-seo</strong></td>
+              <td>Metadata y parches SEO seguros.</td>
+              <td>Aplicar patches permitidos con smoke y rollback.</td>
+            </tr>
+            <tr>
+              <td><strong>colombiatours-risk</strong></td>
+              <td>Politica, scope y bloqueo.</td>
+              <td>Bloquear tareas y pausar perfiles dentro de reglas.</td>
+            </tr>
+            <tr>
+              <td><strong>colombiatours-outcome</strong></td>
+              <td>Medicion y aprendizaje.</td>
+              <td>Registrar outcomes y crear follow-ups.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-title">
+        <h2>Que logramos al implementarlo</h2>
+        <p>El valor del MVE no es solo publicar: es operar, medir y mejorar con menos friccion.</p>
+      </div>
+      <div class="outcome">
+        <article class="card">
+          <span class="tag teal">Flujo</span>
+          <h3>Menos estados bloqueantes</h3>
+          <p>Nuevo trabajo avanza por Hermes Kanban nativo sin depender de candidates ni publication jobs.</p>
+        </article>
+        <article class="card">
+          <span class="tag green">Autonomia</span>
+          <h3>Agentes que actuan</h3>
+          <p>Hermes puede publicar, mergear y aplicar SEO seguro dentro del scope permitido.</p>
+        </article>
+        <article class="card">
+          <span class="tag amber">Control</span>
+          <h3>Seguridad en tools</h3>
+          <p>La validacion vive en MCP Safety: cuenta, sitio, fields, snapshots, smoke y rollback.</p>
+        </article>
+        <article class="card">
+          <span class="tag blue">Aprendizaje</span>
+          <h3>Mejora continua</h3>
+          <p>Hermes usa outcomes, memoria y skills para modificar el siguiente trabajo.</p>
+        </article>
+        <article class="card">
+          <span class="tag slate">Priorizacion</span>
+          <h3>North Star primero</h3>
+          <p>El Chief secuencia tareas por impacto esperado en qualified trip requests.</p>
+        </article>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-title">
+        <h2>Guardrails que permanecen</h2>
+        <p>Autonomo no significa sin limites: significa sin aprobacion humana dentro del scope v0.</p>
+      </div>
+      <div class="grid-3">
+        <article class="card">
+          <span class="tag red">Bloqueado</span>
+          <h3>Superficies sensibles</h3>
+          <p>Paid media, pricing, disponibilidad, reservas, pagos, CRM masivo, outreach y activacion de experimentos quedan fuera del v0.</p>
+        </article>
+        <article class="card">
+          <span class="tag amber">Obligatorio</span>
+          <h3>Snapshot y rollback</h3>
+          <p>Cada mutacion productiva debe guardar before snapshot, after payload, smoke result y rollback payload.</p>
+        </article>
+        <article class="card">
+          <span class="tag blue">Scope</span>
+          <h3>Cuenta y sitio</h3>
+          <p>Toda tool debe fallar cerrada si el account, website, perfil, target o field no coinciden.</p>
+        </article>
+        <article class="card">
+          <span class="tag teal">Datos</span>
+          <h3>Freshness y source refs</h3>
+          <p>Los provider profiles stale o fuera del allowlist bloquean herramientas que dependan de esos facts.</p>
+        </article>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-title">
+        <h2>100% produccion</h2>
+        <p>El MVE solo queda cerrado si todos los gates pasan durante 24 horas continuas.</p>
+      </div>
+      <div class="grid-3">
+        <article class="card">
+          <span class="tag teal">Runtime</span>
+          <h3>Hermes primario</h3>
+          <p>24h con runtime, MCP tool host y watchdog activos; 0 stuck tasks y 0 duplicados por idempotency key.</p>
+        </article>
+        <article class="card">
+          <span class="tag red">Seguridad</span>
+          <h3>Scope cerrado</h3>
+          <p>100% cross-tenant, tools fuera de allowlist y fields prohibidos rechazados; service-role solo en tool host.</p>
+        </article>
+        <article class="card">
+          <span class="tag blue">Supabase</span>
+          <h3>Auditoria completa</h3>
+          <p>Migracion aplicada desde Flutter, RLS activo en hermes_*, reads por user_roles y 0 writes sin auditoria.</p>
+        </article>
+        <article class="card">
+          <span class="tag green">Tools</span>
+          <h3>Acciones reales</h3>
+          <p>1 publish, 1 transcreation merge, 1 safe SEO patch y 1 rollback o dry-verify con snapshots completos.</p>
+        </article>
+        <article class="card">
+          <span class="tag amber">Contexto</span>
+          <h3>Calidad de entrada</h3>
+          <p>100% tareas productivas con tenant context, provider refs o irrelevancia documentada y freshness PASS.</p>
+        </article>
+        <article class="card">
+          <span class="tag slate">Score</span>
+          <h3>NO-GO automatico</h3>
+          <p>100% si todos los hard gates pasan; cualquier P0/P1 bloquea produccion primaria.</p>
+        </article>
+      </div>
+    </section>
+
+    <div class="footer-note">
+      Regla final del MVE: Hermes decide y ejecuta; MCP Safety valida y aplica;
+      Supabase persiste producto, auditoria y outcomes; Bukeer Studio observa y recupera.
+    </div>
+  </main>
+</body>
+</html>

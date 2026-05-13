@@ -7,7 +7,39 @@ import process from "node:process";
 await loadEnvFile(".env.local");
 await loadEnvFile(".env");
 
-const META_DESTINATIONS = ["meta", "meta_messaging"];
+const DESTINATION_CONFIG = {
+  meta: {
+    mappingDestinations: ["meta", "meta_messaging"],
+    logTable: "meta_conversion_events",
+    logSelect: "event_id, event_name, status, sent_at, error, created_at",
+    logKey(event) {
+      return event.pixel_event_id || event.event_id;
+    },
+    logKeyColumn: "event_id",
+    logProvider: "meta",
+  },
+  ga4: {
+    mappingDestinations: ["ga4"],
+    logTable: "ga4_measurement_protocol_events",
+    logSelect: "funnel_event_id, event_name, status, sent_at, error, created_at",
+    logKey(event) {
+      return event.event_id;
+    },
+    logKeyColumn: "funnel_event_id",
+    logProvider: "ga4",
+  },
+  google_ads: {
+    mappingDestinations: ["google_ads"],
+    logTable: "google_ads_offline_uploads",
+    logSelect: "funnel_event_id, conversion_action_id, status, sent_at, error, created_at",
+    logKey(event) {
+      return event.event_id;
+    },
+    logKeyColumn: "funnel_event_id",
+    logProvider: "google_ads",
+  },
+};
+
 const DEFAULT_LIMIT = 100;
 const DEFAULT_STATUSES = ["skipped", "failed"];
 
@@ -20,6 +52,7 @@ if (args.help === "true") {
 
 const apply = args.apply === "true";
 const destination = args.destination ?? "meta";
+const config = DESTINATION_CONFIG[destination];
 const since = args.since ?? hoursAgoIso(24);
 const until = args.until ?? new Date().toISOString();
 const limit = Number(args.limit ?? DEFAULT_LIMIT);
@@ -29,9 +62,17 @@ const replayStatuses = String(args.statuses ?? DEFAULT_STATUSES.join(","))
   .filter(Boolean);
 const includeMissing = args.includeMissing !== "false";
 const outDir = args.outDir;
+const campaignId = args.campaignId ?? null;
+const withClickId = args.withClickId === "true";
+const eventNamesFilter = new Set(
+  String(args.eventNames ?? args.eventName ?? "")
+    .split(",")
+    .map((name) => name.trim())
+    .filter(Boolean),
+);
 
-if (destination !== "meta") {
-  fail("Only --destination=meta is implemented. Other destinations are deferred.");
+if (!config) {
+  fail(`Unsupported --destination=${destination}. Use one of: ${Object.keys(DESTINATION_CONFIG).join(", ")}`);
 }
 
 if (!Number.isFinite(limit) || limit <= 0 || limit > 1000) {
@@ -66,7 +107,7 @@ main().catch((error) => {
 async function main() {
   const mappedEventNames = await fetchMappedEventNames();
   const events = await fetchFunnelEvents(mappedEventNames);
-  const logsByEventId = await fetchMetaLogs(events);
+  const logsByEventId = await fetchDestinationLogs(events);
   const candidates = buildCandidates(events, logsByEventId);
 
   const applyResults = apply
@@ -87,7 +128,9 @@ async function main() {
       include_missing: includeMissing,
       website_id: args.websiteId ?? null,
       account_id: args.accountId ?? null,
-      event_name: args.eventName ?? null,
+      event_names: eventNamesFilter.size ? [...eventNamesFilter] : null,
+      campaign_id: campaignId,
+      with_click_id: withClickId,
     },
     counts: {
       mapped_event_names: mappedEventNames.length,
@@ -103,7 +146,7 @@ async function main() {
   if (outDir) {
     await fs.mkdir(outDir, { recursive: true });
     await fs.writeFile(
-      path.join(outDir, "dispatch-replay-report.json"),
+      path.join(outDir, `dispatch-replay-${destination}-report.json`),
       `${JSON.stringify(report, null, 2)}\n`,
     );
   }
@@ -119,19 +162,20 @@ async function fetchMappedEventNames() {
   const { data, error } = await sb
     .from("event_destination_mapping")
     .select("funnel_event_name, destination, enabled")
-    .in("destination", META_DESTINATIONS)
+    .in("destination", config.mappingDestinations)
     .eq("enabled", true);
 
   if (error) throw new Error(`event_destination_mapping read failed: ${error.message}`);
 
   const mapped = [...new Set((data ?? []).map((row) => row.funnel_event_name))].sort();
-  if (args.eventName) {
-    if (!mapped.includes(args.eventName)) {
+  if (eventNamesFilter.size) {
+    const missing = [...eventNamesFilter].filter((name) => !mapped.includes(name));
+    if (missing.length) {
       throw new Error(
-        `Event ${args.eventName} is not enabled for destination ${destination}`,
+        `Events not enabled for destination ${destination}: ${missing.join(", ")}`,
       );
     }
-    return [args.eventName];
+    return mapped.filter((name) => eventNamesFilter.has(name));
   }
 
   return mapped;
@@ -143,7 +187,7 @@ async function fetchFunnelEvents(mappedEventNames) {
   let query = sb
     .from("funnel_events")
     .select(
-      "event_id, pixel_event_id, event_name, occurred_at, created_at, account_id, website_id, reference_code, dispatch_status, dispatch_attempt_count, dispatch_attempted_at",
+      "event_id, pixel_event_id, event_name, occurred_at, created_at, account_id, website_id, reference_code, dispatch_status, dispatch_attempt_count, dispatch_attempted_at, gclid, gbraid, wbraid, utm_campaign, source_url",
     )
     .in("event_name", mappedEventNames)
     .gte("occurred_at", since)
@@ -156,30 +200,39 @@ async function fetchFunnelEvents(mappedEventNames) {
 
   const { data, error } = await query;
   if (error) throw new Error(`funnel_events read failed: ${error.message}`);
-  return data ?? [];
+
+  return (data ?? []).filter((event) => {
+    if (withClickId && !event.gclid && !event.gbraid && !event.wbraid) return false;
+    if (!campaignId) return true;
+    return (
+      event.utm_campaign === campaignId ||
+      String(event.source_url ?? "").includes(`gad_campaignid=${campaignId}`) ||
+      String(event.source_url ?? "").includes(`campaignid=${campaignId}`)
+    );
+  });
 }
 
-async function fetchMetaLogs(events) {
-  const eventIds = [
-    ...new Set(events.map((event) => event.pixel_event_id || event.event_id)),
-  ];
+async function fetchDestinationLogs(events) {
+  const eventIds = [...new Set(events.map((event) => config.logKey(event)))];
   const logsByEventId = new Map();
 
   for (const chunk of chunks(eventIds, 100)) {
     if (chunk.length === 0) continue;
 
-    const { data, error } = await sb
-      .from("meta_conversion_events")
-      .select("event_id, event_name, status, sent_at, error, created_at")
-      .eq("provider", "meta")
-      .in("event_id", chunk);
+    let query = sb
+      .from(config.logTable)
+      .select(config.logSelect)
+      .in(config.logKeyColumn, chunk);
+    if (config.logProvider) query = query.eq("provider", config.logProvider);
 
-    if (error) throw new Error(`meta_conversion_events read failed: ${error.message}`);
+    const { data, error } = await query;
+    if (error) throw new Error(`${config.logTable} read failed: ${error.message}`);
 
     for (const log of data ?? []) {
-      const current = logsByEventId.get(log.event_id) ?? [];
+      const key = log[config.logKeyColumn];
+      const current = logsByEventId.get(key) ?? [];
       current.push(log);
-      logsByEventId.set(log.event_id, current);
+      logsByEventId.set(key, current);
     }
   }
 
@@ -190,7 +243,7 @@ function buildCandidates(events, logsByEventId) {
   const candidates = [];
 
   for (const event of events) {
-    const destinationEventId = event.pixel_event_id || event.event_id;
+    const destinationEventId = config.logKey(event);
     const logs = logsByEventId.get(destinationEventId) ?? [];
     const replayableLogs = logs.filter((log) => replayStatuses.includes(log.status));
     const missing = logs.length === 0;
@@ -209,9 +262,14 @@ function buildCandidates(events, logsByEventId) {
       dispatch_status: event.dispatch_status,
       dispatch_attempt_count: event.dispatch_attempt_count,
       dispatch_attempted_at: event.dispatch_attempted_at,
-      reason: missing ? "missing_meta_log" : `meta_log_${replayableLogs[0].status}`,
-      meta_logs: logs.map((log) => ({
-        event_name: log.event_name,
+      gclid_present: Boolean(event.gclid),
+      gbraid_present: Boolean(event.gbraid),
+      wbraid_present: Boolean(event.wbraid),
+      utm_campaign: event.utm_campaign,
+      reason: missing ? `missing_${destination}_log` : `${destination}_log_${replayableLogs[0].status}`,
+      destination_logs: logs.map((log) => ({
+        event_name: log.event_name ?? null,
+        conversion_action_id: log.conversion_action_id ?? null,
         status: log.status,
         sent_at: log.sent_at,
         created_at: log.created_at,
@@ -400,21 +458,24 @@ Dry-run is the default. Use --apply to reopen selected rows and invoke the
 dispatch-funnel-event Edge Function.
 
 Usage:
-  npm run dispatch:replay -- --destination=meta --since=2026-05-08T00:00:00Z --until=2026-05-08T01:00:00Z
-  npm run dispatch:replay -- --destination=meta --since=2026-05-08T00:00:00Z --until=2026-05-08T01:00:00Z --apply
+  npm run dispatch:replay -- --destination=meta --since=2026-05-12T00:00:00-05:00 --until=2026-05-13T23:59:59-05:00
+  npm run dispatch:replay -- --destination=ga4 --event-names=waflow_submit,crm_quote_sent --with-click-id=true --apply
 
 Options:
-  --destination=meta       Destination to replay. Only meta is implemented.
-  --since=<iso>            Window start. Defaults to 24h ago.
-  --until=<iso>            Window end. Defaults to now.
-  --website-id=<uuid>      Optional website filter.
-  --account-id=<uuid>      Optional account filter.
-  --event-name=<name>      Optional funnel event filter.
-  --statuses=a,b           Meta log statuses to replay. Defaults to skipped,failed.
-  --include-missing=false  Exclude events with no Meta log. Included by default.
-  --limit=<n>              Max funnel rows to scan. Defaults to 100, max 1000.
-  --endpoint=<url>         Override dispatcher function URL.
-  --out-dir=<path>         Write full dispatch-replay-report.json.
-  --apply                  Perform replay. Without this, no writes or dispatches run.
+  --destination=meta|ga4|google_ads  Destination to replay.
+  --since=<iso>                      Window start. Defaults to 24h ago.
+  --until=<iso>                      Window end. Defaults to now.
+  --website-id=<uuid>                Optional website filter.
+  --account-id=<uuid>                Optional account filter.
+  --event-name=<name>                Optional single funnel event filter.
+  --event-names=a,b                  Optional comma-separated event filter.
+  --campaign-id=<id>                 Optional utm_campaign/gad_campaignid filter.
+  --with-click-id=true               Only replay rows with gclid/gbraid/wbraid.
+  --statuses=a,b                     Destination log statuses to replay. Defaults to skipped,failed.
+  --include-missing=false            Exclude events with no destination log. Included by default.
+  --limit=<n>                        Max funnel rows to scan. Defaults to 100, max 1000.
+  --endpoint=<url>                   Override dispatcher function URL.
+  --out-dir=<path>                   Write full dispatch-replay-<destination>-report.json.
+  --apply                            Perform replay. Without this, no writes or dispatches run.
 `);
 }

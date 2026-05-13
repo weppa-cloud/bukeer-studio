@@ -301,7 +301,7 @@ export function WaflowStepContact({
 
     const errs: ContactErrors = {};
     if (!validateWaflowPhone(state.phone, country)) {
-      errs.phone = `Revisa el número para ${country.name} (${country.code}).`;
+      errs.phone = `Escribe tu WhatsApp con 7 a 15 dígitos. Puedes incluir ${country.code} o dejar solo el número local.`;
     }
     if (Object.keys(errs).length > 0) {
       setErrors(errs);
@@ -473,7 +473,7 @@ export function WaflowStepContact({
             value={phoneFmt}
             onChange={(e) => handlePhoneChange(e.target.value)}
             placeholder={country.c === 'CO' ? '300 123 4567' : 'número'}
-            inputMode="numeric"
+            inputMode="tel"
             autoComplete="tel"
           />
         </div>

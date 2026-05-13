@@ -36,6 +36,7 @@ import { formatPublicDate } from '@/lib/site/public-ui-messages';
 import { getBasePath } from '@/lib/utils/base-path';
 import { MexicoTravelFunnelBlock } from '@/components/site/growth/mexico-travel-funnel-block';
 import { buildPublicLocalizedPath, normalizeLocale } from '@/lib/seo/locale-routing';
+import { supabaseImageUrl } from '@/lib/images/supabase-transform';
 
 export interface EditorialBlogDetailPageProps {
   website: WebsiteData;
@@ -164,15 +165,18 @@ export function EditorialBlogDetailPage({
     .slice(0, 6);
   const shares = shareHrefs(post, publicBaseUrl, resolvedLocale, defaultLocale);
   const waHref = resolveWhatsAppHref(website);
+  const heroImageSrc = post.featured_image
+    ? supabaseImageUrl(post.featured_image, { width: 1200, quality: 74 })
+    : null;
 
   return (
     <div data-screen-label="BlogPost" data-testid="editorial-blog-detail">
       <div data-testid="detail-blog">
       {/* Full-bleed hero */}
       <div className="post-hero" data-testid="blog-hero">
-        {post.featured_image ? (
+        {heroImageSrc ? (
           <Image
-            src={post.featured_image}
+            src={heroImageSrc}
             alt={post.featured_alt || post.title}
             fill
             sizes="100vw"

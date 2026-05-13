@@ -155,11 +155,11 @@ function resolveBlogAuthor(
       ...(planner.bio && { description: planner.bio }),
       ...(planner.role && { jobTitle: planner.role }),
       ...(planner.specialties?.length && {
-        knowsAbout: planner.specialties.map(s => ({ '@type': 'Thing' as const, name: s })),
+        knowsAbout: planner.specialties.map((name) => ({ '@type': 'Thing' as const, name })),
       }),
       ...(planner.languages?.length && { knowsLanguage: planner.languages }),
       ...(planner.locationName && {
-        workLocation: { '@type': 'Place', name: planner.locationName },
+        workLocation: { '@type': 'PostalAddress' as const, addressLocality: planner.locationName },
       }),
       ...(planner.tripsCount != null && { award: `+${planner.tripsCount} viajes planificados` }),
       url: baseUrl,
