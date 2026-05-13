@@ -13,6 +13,9 @@ Fuente: [Google Ads API — Geographical Targeting](https://developers.google.co
 | 🇺🇸 USA | `2840` |
 | 🇨🇴 Colombia | `2170` (excluir en campañas extranjeras) |
 | 🇦🇷 Argentina | `2032` |
+| 🇧🇷 Brasil | `2076` |
+| 🇫🇷 Francia | `2250` |
+| 🇩🇪 Alemania | `2276` |
 | 🇵🇷 Puerto Rico | `2630` |
 
 ## Ciudades — México

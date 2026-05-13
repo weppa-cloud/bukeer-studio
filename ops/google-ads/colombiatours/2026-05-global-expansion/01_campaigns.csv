@@ -1,5 +1,5 @@
 campaign,market,language,status,budget_cop_day,geo_target,landing_url,bidding_note
-BR_Search_Colombia_Packages_2026_05,Brazil,pt-BR,Planned,50000-80000,Brazil,https://colombiatours.travel/pt/pacotes-colombia,Start controlled; optimize only after CRM-qualified lead
-FR_Search_Colombie_Sur_Mesure_2026_05,France,fr-FR,Planned,60000-100000,France,https://colombiatours.travel/fr/voyage-colombie-sur-mesure,Premium custom-trip test; exact/phrase only
-DE_Search_Kolumbien_Rundreise_2026_05,Germany,de-DE,Planned,60000-100000,Germany,https://colombiatours.travel/de/kolumbien-rundreise,Structured-tour test; exact/phrase only
-AR_Search_Colombia_Packages_2026_05,Argentina,es-CO,Planned,30000-50000,Argentina,https://colombiatours.travel/viajes-a-colombia-desde-argentina,Low-CPC test with budget-quality filter
+BR_Search_Colombia_Packages_2026_05,Brazil,pt-BR,Enabled,50000,Brazil,https://colombiatours.travel/pt/pacotes-colombia,Start controlled; optimize only after CRM-qualified lead
+FR_Search_Colombie_Sur_Mesure_2026_05,France,fr-FR,Paused,60000,France,https://colombiatours.travel/fr/voyage-colombie-sur-mesure,Premium custom-trip test; exact/phrase only
+DE_Search_Kolumbien_Rundreise_2026_05,Germany,de-DE,Paused,60000,Germany,https://colombiatours.travel/de/kolumbien-rundreise,Structured-tour test; exact/phrase only
+AR_Search_Colombia_Packages_2026_05,Argentina,es-CO,Enabled,30000,Argentina,https://colombiatours.travel/viajes-a-colombia-desde-argentina,Low-CPC test with budget-quality filter

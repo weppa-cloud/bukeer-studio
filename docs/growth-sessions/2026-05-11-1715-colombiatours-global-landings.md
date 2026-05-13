@@ -83,8 +83,75 @@ Revalidation:
 
 - Production `/api/revalidate` returned `401` with the local `REVALIDATE_SECRET`; the pages still resolved publicly from DB and returned `200`.
 
+Tracking smoke:
+
+- Desktop Playwright smoke clicked CTAs on all 4 landings.
+- Mobile Playwright smoke clicked visible CTAs on all 4 landings.
+- Supabase `funnel_events` received `waflow_open` with UTMs for all 4 markets:
+  - `global_landing_smoke_20260511`: `br`, `fr`, `de`, `ar`.
+  - `global_landing_mobile_smoke_20260511`: `br`, `fr`, `de`, `ar`.
+- Screenshots stored in `output/playwright/global-landings/`.
+
 Google Ads prep:
 
 - Controlled test package created under `ops/google-ads/colombiatours/2026-05-global-expansion/`.
 - Keywords are exact/phrase only.
 - Negative keyword seed is global with PT/FR/DE/ES variants.
+- Google Ads `validateOnly` script added at `scripts/google-ads/validate-global-expansion.cjs`.
+- Google Ads negative keyword apply script added at `scripts/google-ads/apply-global-expansion-negatives.cjs`.
+
+## Google Ads Validation And Paused Creation
+
+Validation:
+
+- `node scripts/google-ads/validate-global-expansion.cjs`
+- Result: PASS.
+- Validated payload: 4 campaigns, 11 ad groups, 21 keywords, 0 broad match, 59 mutate operations.
+
+Paused creation:
+
+- `node scripts/google-ads/validate-global-expansion.cjs --apply-paused`
+- Result: PASS.
+- Created all campaigns in `PAUSED` state; no spend activated.
+
+| Campaign | Google Ads Campaign ID | Status | Budget |
+|---|---:|---|---:|
+| `BR_Search_Colombia_Packages_2026_05` | `23843668228` | PAUSED | COP 50,000/day |
+| `FR_Search_Colombie_Sur_Mesure_2026_05` | `23833804680` | PAUSED | COP 60,000/day |
+| `DE_Search_Kolumbien_Rundreise_2026_05` | `23843667802` | PAUSED | COP 60,000/day |
+| `AR_Search_Colombia_Packages_2026_05` | `23833803528` | PAUSED | COP 30,000/day |
+
+Negatives:
+
+- `node scripts/google-ads/apply-global-expansion-negatives.cjs`
+- `node scripts/google-ads/apply-global-expansion-negatives.cjs --apply`
+- Result: PASS.
+- Applied 35 phrase-match negative keywords per campaign plus negative Colombia location, for 36 negative criteria per campaign.
+
+## Controlled Activation
+
+2026-05-11 user approval: activate the first controlled tests.
+
+Validation:
+
+- `node scripts/google-ads/activate-global-expansion-campaigns.cjs`
+- Result: PASS.
+- Google Ads accepted 2 campaign status update operations in `validateOnly`.
+- Guard confirmed France and Germany were still paused.
+
+Applied:
+
+- `node scripts/google-ads/activate-global-expansion-campaigns.cjs --apply`
+- Result: PASS.
+
+| Campaign | Google Ads Campaign ID | Status | Budget |
+|---|---:|---|---:|
+| `BR_Search_Colombia_Packages_2026_05` | `23843668228` | ENABLED | COP 50,000/day |
+| `AR_Search_Colombia_Packages_2026_05` | `23833803528` | ENABLED | COP 30,000/day |
+| `FR_Search_Colombie_Sur_Mesure_2026_05` | `23833804680` | PAUSED | COP 60,000/day |
+| `DE_Search_Kolumbien_Rundreise_2026_05` | `23843667802` | PAUSED | COP 60,000/day |
+
+Next evidence gate:
+
+- 24h: spend, clicks, search terms, `waflow_open`, `whatsapp_cta_click`, `waflow_submit`, CRM opportunities.
+- 72h: pause/scale decision based on useful WhatsApp conversations and CRM lead quality, not Ads clicks alone.
