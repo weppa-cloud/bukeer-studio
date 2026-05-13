@@ -154,7 +154,9 @@ function resolveBlogAuthor(
       ...(planner.photo && { image: planner.photo }),
       ...(planner.bio && { description: planner.bio }),
       ...(planner.role && { jobTitle: planner.role }),
-      ...(planner.specialties?.length && { knowsAbout: planner.specialties }),
+      ...(planner.specialties?.length && {
+        knowsAbout: planner.specialties.map(s => ({ '@type': 'Thing' as const, name: s })),
+      }),
       ...(planner.languages?.length && { knowsLanguage: planner.languages }),
       ...(planner.locationName && {
         workLocation: { '@type': 'Place', name: planner.locationName },
