@@ -210,39 +210,8 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
     planner,
   );
 
-  // Related posts — same locale, same category first, fallback to recent.
-  const { getBlogPosts } = await import("@/lib/supabase/get-website");
-  const categorySlug = post.category?.slug ?? undefined;
-  const [sameCategory, recent] = await Promise.all([
-    categorySlug
-      ? getBlogPosts(website.id, {
-          limit: 4,
-          categorySlug,
-          locale: resolvedLocale,
-        })
-      : Promise.resolve({ posts: [], total: 0 }),
-    getBlogPosts(website.id, { limit: 4, locale: resolvedLocale }),
-  ]);
-  const relatedPool = [
-    ...sameCategory.posts.filter((p) => p.id !== post.id),
-    ...recent.posts.filter((p) => p.id !== post.id),
-  ];
-  const seen = new Set<string>();
-  const related = relatedPool
-    .filter((p) => {
-      if (seen.has(p.id)) return false;
-      seen.add(p.id);
-      return true;
-    })
-    .slice(0, 3);
   const headerList = await headers();
   const isCustomDomain = Boolean(headerList.get("x-custom-domain"));
-  const websiteForRender = {
-    ...website,
-    resolvedLocale,
-    defaultLocale,
-    isCustomDomain,
-  };
 
   return (
     <>
