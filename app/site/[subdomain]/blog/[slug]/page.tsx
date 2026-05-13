@@ -196,12 +196,20 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
   const baseUrl = website.custom_domain
     ? `https://${website.custom_domain}`
     : `https://${subdomain}.bukeer.com`;
+
+  // Hydrate travel-planner profile for Author schema
+  const { getPlannerByUserId } = await import("@/lib/supabase/get-planners");
+  const planner = post.created_by
+    ? await getPlannerByUserId(post.created_by)
+    : null;
+
   // Generate JSON-LD schemas (Article, Breadcrumb, Organization)
   const schemas = generateBlogPostSchemas(
     post,
     website,
     baseUrl,
     resolvedLocale,
+    planner,
   );
 
   // Related posts — same locale, same category first, fallback to recent.
