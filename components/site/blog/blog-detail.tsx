@@ -30,7 +30,7 @@ export interface BlogDetailProps {
 
 export function BlogDetail({ subdomain, locale, post, isCustomDomain = false, baseUrl }: BlogDetailProps) {
   const messages = getPublicUiMessages(locale);
-  const basePath = getBasePath(subdomain, isCustomDomain);
+  const basePath = getBasePath(subdomain, isCustomDomain, locale, 'es-CO');
   const shareUrl = baseUrl
     ? `${baseUrl}/blog/${post.slug}`
     : `${basePath}/blog/${post.slug}`;

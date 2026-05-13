@@ -121,7 +121,7 @@ export function EditorialBlogDetailPage({
   related,
 }: EditorialBlogDetailPageProps) {
   const isCustomDomain = Boolean((website as WebsiteData & { isCustomDomain?: boolean }).isCustomDomain);
-  const basePath = getBasePath(subdomain, isCustomDomain);
+  const basePath = getBasePath(subdomain, isCustomDomain, resolvedLocale, defaultLocale);
   const resolvedLocale =
     locale
     || (website as WebsiteData & { resolvedLocale?: string | null }).resolvedLocale
