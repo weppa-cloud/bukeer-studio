@@ -11,6 +11,7 @@ import {
   normalizeBlogPublicLocale,
 } from "@/lib/supabase/get-website";
 import { JsonLd, generateBlogPostSchemas } from "@/lib/schema";
+import { getPlannerByUserId } from "@/lib/supabase/get-planners";
 import { BlogDetail } from "@/components/site/blog/blog-detail";
 import { resolveOgImage } from "@/lib/seo/og-helpers";
 import {
@@ -197,11 +198,8 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
     ? `https://${website.custom_domain}`
     : `https://${subdomain}.bukeer.com`;
 
-  // Hydrate travel-planner profile for Author schema
-  const { getPlannerByUserId } = await import("@/lib/supabase/get-planners");
-  const planner = post.created_by
-    ? await getPlannerByUserId(post.created_by)
-    : null;
+  // Fetch travel planner when post has a created_by reference
+  const planner = post.created_by ? await getPlannerByUserId(post.created_by) : null;
 
   // Generate JSON-LD schemas (Article, Breadcrumb, Organization)
   const schemas = generateBlogPostSchemas(

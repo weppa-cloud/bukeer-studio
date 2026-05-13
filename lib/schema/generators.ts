@@ -16,13 +16,8 @@ import type {
   CollectionPage,
   ListItem,
   ImageObject,
-  Person,
-  Thing,
-  PostalAddress,
-  Organization,
 } from './types';
 import type { WebsiteData, BlogPost, WebsiteSection } from '../supabase/get-website';
-import type { PlannerData } from '../supabase/get-planners';
 import {
   buildPublicLocalizedPath,
   localeToLanguage,
@@ -130,45 +125,46 @@ function buildArticleEntityTerms(post: BlogPost): string[] {
   return Array.from(terms).slice(0, 8);
 }
 
+/** @internal - Minimal author data to hydrate the Person schema from travel planner info */
+export interface AuthorPlanner {
+  name: string;
+  lastName: string;
+  fullName: string;
+  photo: string | null;
+  role: string | null;
+  bio: string | null;
+  specialties: string[] | null;
+  locationName: string | null;
+  languages: string[] | null;
+  tripsCount: number | null;
+  yearsExperience: number | null;
+}
+
 function resolveBlogAuthor(
   post: BlogPost,
   website: WebsiteData,
   baseUrl: string,
-  planner?: PlannerData | null,
-): Person | Organization {
+  planner?: AuthorPlanner | null,
+): BlogPosting['author'] {
+  // Priority 1: travel planner linked via created_by → rich Person schema
   if (planner) {
-    const knowsAbout: Thing[] = [
-      ...(planner.specialties?.map(s => ({ '@type': 'Thing' as const, name: s })) || []),
-      ...(planner.regions?.map(r => ({ '@type': 'Thing' as const, name: r })) || []),
-    ];
-
-    const author: Person = {
+    return {
       '@type': 'Person',
-      name: planner.fullName,
+      name: planner.fullName || planner.name,
       ...(planner.photo && { image: planner.photo }),
       ...(planner.bio && { description: planner.bio }),
-      ...(planner.slug && { url: `${baseUrl.replace(/\/$/, '')}/planners/${planner.slug}` }),
-      ...(knowsAbout.length > 0 && { knowsAbout }),
-      ...(planner.languages?.length > 0 && { knowsLanguage: planner.languages.map(l => l.split('-')[0]) }),
+      ...(planner.role && { jobTitle: planner.role }),
+      ...(planner.specialties?.length && { knowsAbout: planner.specialties }),
+      ...(planner.languages?.length && { knowsLanguage: planner.languages }),
       ...(planner.locationName && {
-        workLocation: {
-          '@type': 'Place',
-          address: { '@type': 'PostalAddress', addressLocality: planner.locationName },
-        },
+        workLocation: { '@type': 'Place', name: planner.locationName },
       }),
-      ...(planner.tripsCount && planner.tripsCount > 100 && {
-        award: `Ha diseñado más de ${planner.tripsCount} viajes`,
-      }),
-      affiliation: {
-        '@type': 'Organization',
-        name: website.content.account?.name || website.content.siteName || '',
-        url: baseUrl,
-      },
+      ...(planner.tripsCount != null && { award: `+${planner.tripsCount} viajes planificados` }),
+      url: baseUrl,
     };
-
-    return author;
   }
 
+  // Priority 2: author_name/author_avatar on the post (legacy from WordPress migration)
   if (post.author_name && post.author_name.trim().length > 0) {
     return {
       '@type': 'Person',
@@ -177,6 +173,7 @@ function resolveBlogAuthor(
     };
   }
 
+  // Priority 3: Organization fallback
   return {
     '@type': 'Organization',
     name: website.content.account?.name || website.content.siteName,
@@ -364,7 +361,7 @@ export function generateArticleSchema(
   website: WebsiteData,
   baseUrl: string,
   requestLocale?: string | null,
-  planner?: PlannerData | null,
+  planner?: AuthorPlanner | null,
 ): BlogPosting {
   const articleUrl = `${baseUrl}${buildSchemaBlogPath(post, website, requestLocale)}`;
 
@@ -584,7 +581,7 @@ export function generateBlogPostSchemas(
   website: WebsiteData,
   baseUrl: string,
   resolvedLocale?: string | null,
-  planner?: PlannerData | null,
+  planner?: AuthorPlanner | null,
 ): object[] {
   const schemas: object[] = [];
 
