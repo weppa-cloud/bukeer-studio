@@ -294,7 +294,7 @@ export async function getPlannerByUserId(
   const supabase = createSupabaseServiceRoleClient();
   const { data, error } = await supabase
     .from('contacts')
-    .select('id, name, last_name, user_image, user_rol, position, phone, phone2, user_id, quote, bio, specialty, language, translations, trips_count, rating_avg, years_experience, specialties, regions, location_name, languages, signature_package_id, personal_details, slug')
+    .select('id, name, last_name, user_image, user_rol, position, phone, phone2, user_id, quote, bio, specialty, language, translations, trips_count, rating_avg, years_experience, specialties, regions, location_name, languages, signature_package_id, personal_details')
     .eq('user_id', userId)
     .eq('show_on_website', true)
     .is('deleted_at', null)
@@ -324,7 +324,7 @@ export async function getPlannerByUserId(
     role: data.user_rol,
     position: data.position,
     phone: data.phone || data.phone2 || null,
-    slug: data.slug || slugify(`${data.name || ''} ${data.last_name || ''}`),
+    slug: slugify(`${data.name || ''} ${data.last_name || ''}`),
     quote: data.quote ?? null,
     bio: data.bio ?? null,
     specialty: data.specialty ?? null,

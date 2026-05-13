@@ -88,10 +88,9 @@ export async function generateMetadata({
   );
   const siteName =
     website.content?.account?.name || website.content?.siteName || subdomain;
-  const title = normalizePublicMetadataTitle(
-    post.seo_title || post.title || localizedMessages.blogPost.notFoundTitle,
-    siteName,
-  );
+  const title = post.seo_title
+    ? `${post.seo_title} | ${siteName}`
+    : normalizePublicMetadataTitle(post.title || localizedMessages.blogPost.notFoundTitle, siteName);
   const description = (
     post.seo_description ||
     post.excerpt ||
