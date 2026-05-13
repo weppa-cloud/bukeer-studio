@@ -22,22 +22,7 @@ import type {
   Organization,
 } from './types';
 import type { WebsiteData, BlogPost, WebsiteSection } from '../supabase/get-website';
-
-/** Minimal travel-planner info hydrated from the `contacts` table. */
-export interface PlannerData {
-  id: string;
-  fullName: string;
-  photo: string | null;
-  bio: string | null;
-  slug: string | null;
-  specialties: string[];
-  regions: string[];
-  languages: string[];
-  locationName: string | null;
-  tripsCount: number | null;
-  yearsExperience: number | null;
-  personalDetails: Record<string, unknown> | null;
-}
+import type { PlannerData } from '../supabase/get-planners';
 import {
   buildPublicLocalizedPath,
   localeToLanguage,
