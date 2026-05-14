@@ -380,11 +380,12 @@ function localeLookupCandidates(locale: string): string[] {
   if (normalized === "es-CO") candidates.push("es");
   if (normalized === "en-US") candidates.push("en");
   if (normalized === "pt-BR") candidates.push("pt");
+  if (normalized === "pt-PT") candidates.push("pt");
   if (normalized === "fr-FR") candidates.push("fr");
   if (normalized === "de-DE") candidates.push("de");
   if (normalized === "es") candidates.push("es-CO");
   if (normalized === "en") candidates.push("en-US");
-  if (normalized === "pt") candidates.push("pt-BR");
+  if (normalized === "pt") candidates.push("pt-PT");
   if (normalized === "fr") candidates.push("fr-FR");
   if (normalized === "de") candidates.push("de-DE");
 
@@ -424,7 +425,7 @@ function normalizeBlogPublicLocale(
   if (!locale) return null;
   if (locale === "es") return "es-CO";
   if (locale === "en") return "en-US";
-  if (locale === "pt") return "pt-BR";
+  if (locale === "pt") return "pt-PT";
   if (locale === "fr") return "fr-FR";
   if (locale === "de") return "de-DE";
   return locale;
