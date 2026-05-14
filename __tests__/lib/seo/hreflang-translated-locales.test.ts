@@ -20,4 +20,29 @@ describe('generateHreflangLinksForLocales translated locale filtering', () => {
       'https://example.com/en/packages/cartagena',
     );
   });
+
+  it('emits complete translated blog alternates including pt-BR on /pt-br and never /pt', () => {
+    const links = generateHreflangLinksForLocales(
+      'https://colombiatours.travel',
+      '/blog/viajar-a-colombia-desde-panama',
+      {
+        defaultLocale: 'es-CO',
+        supportedLocales: ['es-CO', 'en-US', 'de-DE', 'fr-FR', 'pt-BR'],
+      },
+      ['en-US', 'de-DE', 'fr-FR', 'pt-BR'],
+    );
+
+    const map = Object.fromEntries(links.map((link) => [link.hreflang, link.href]));
+    expect(Object.keys(map)).toEqual(['es-CO', 'en-US', 'de-DE', 'fr-FR', 'pt-BR', 'x-default']);
+    expect(map['pt-BR']).toBe(
+      'https://colombiatours.travel/pt-br/blog/viajar-a-colombia-desde-panama',
+    );
+    expect(map['en-US']).toBe(
+      'https://colombiatours.travel/en/blog/viajar-a-colombia-desde-panama',
+    );
+    expect(map['x-default']).toBe(
+      'https://colombiatours.travel/blog/viajar-a-colombia-desde-panama',
+    );
+    expect(Object.values(map).some((href) => href.includes('/pt/blog/'))).toBe(false);
+  });
 });

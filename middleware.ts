@@ -11,6 +11,7 @@ import {
   buildPublicLocalizedPath,
   extractWebsiteLocaleSettings,
   isLegalPathname,
+  localeToLanguage,
   resolveLocaleFromPublicPath,
   translateCategoryPathname,
   type PublicLocalePathResolution,
@@ -76,6 +77,7 @@ interface LocaleAwareRoutingInput {
   defaultLocale: string;
   resolvedLanguage: string;
   hasLanguageSegment: boolean;
+  languageSegment: string | null;
 }
 
 function resolveWebsiteLocaleSettingsForMiddleware(
@@ -385,7 +387,7 @@ function localeLookupCandidates(locale: string): string[] {
   if (normalized === "de-DE") candidates.push("de");
   if (normalized === "es") candidates.push("es-CO");
   if (normalized === "en") candidates.push("en-US");
-  if (normalized === "pt") candidates.push("pt-PT");
+  if (normalized === "pt") candidates.push("pt-BR");
   if (normalized === "fr") candidates.push("fr-FR");
   if (normalized === "de") candidates.push("de-DE");
 
@@ -425,7 +427,7 @@ function normalizeBlogPublicLocale(
   if (!locale) return null;
   if (locale === "es") return "es-CO";
   if (locale === "en") return "en-US";
-  if (locale === "pt") return "pt-PT";
+  if (locale === "pt") return "pt-BR";
   if (locale === "fr") return "fr-FR";
   if (locale === "de") return "de-DE";
   return locale;
@@ -707,6 +709,7 @@ function applyLocaleAwareTenantRewrite(
     defaultLocale,
     resolvedLanguage,
     hasLanguageSegment,
+    languageSegment,
   } = input;
 
   // Internal rewrite target uses Spanish-canonical category segments so a
@@ -716,7 +719,7 @@ function applyLocaleAwareTenantRewrite(
 
   if (!sourceUrl.pathname.startsWith("/site/")) {
     const publicPathname = buildPublicLocalizedPath(
-      translateCategoryPathname(pathnameWithoutLang, resolvedLanguage),
+      translateCategoryPathname(pathnameWithoutLang, localeToLanguage(resolvedLocale)),
       resolvedLocale,
       defaultLocale,
     );
@@ -737,7 +740,7 @@ function applyLocaleAwareTenantRewrite(
   requestHeaders.set(PUBLIC_LOCALE_HEADER_NAMES.lang, resolvedLanguage);
   requestHeaders.set(
     PUBLIC_LOCALE_HEADER_NAMES.localeSegment,
-    hasLanguageSegment ? resolvedLanguage : "",
+    hasLanguageSegment ? languageSegment || "" : "",
   );
   if (host) {
     requestHeaders.set("x-custom-domain", host);
@@ -758,7 +761,7 @@ function applyLocaleAwareTenantRewrite(
   response.headers.set(PUBLIC_LOCALE_HEADER_NAMES.lang, resolvedLanguage);
   response.headers.set(
     PUBLIC_LOCALE_HEADER_NAMES.localeSegment,
-    hasLanguageSegment ? resolvedLanguage : "",
+    hasLanguageSegment ? languageSegment || "" : "",
   );
   response.headers.set("x-public-original-pathname", originalPathname);
   if (host) {
@@ -988,7 +991,7 @@ export async function middleware(request: NextRequest) {
       const firstInnerSegment =
         internalMatch.innerPathname.split("/").filter(Boolean)[0] || "";
       const shouldResolveInternalLocale =
-        /^[a-z]{2}$/.test(firstInnerSegment) ||
+        /^[a-z]{2}(?:-[a-z]{2})?$/.test(firstInnerSegment) ||
         isLegalPathname(internalMatch.innerPathname);
       if (!shouldResolveInternalLocale) {
         const passThrough = NextResponse.next();
@@ -1030,6 +1033,7 @@ export async function middleware(request: NextRequest) {
             defaultLocale: localeResolution.defaultLocale,
             resolvedLanguage: localeResolution.resolvedLanguage,
             hasLanguageSegment: localeResolution.hasLanguageSegment,
+            languageSegment: localeResolution.languageSegment,
           }),
         );
       }
@@ -1048,6 +1052,12 @@ export async function middleware(request: NextRequest) {
 
   if (pathname.startsWith("/domain/")) {
     return NextResponse.next();
+  }
+
+  if (/^\/pt\/blog\/[^/]+$/.test(pathname)) {
+    const aliasUrl = new URL(url);
+    aliasUrl.pathname = pathname.replace(/^\/pt\//, "/pt-br/");
+    return NextResponse.redirect(aliasUrl, 308);
   }
 
   // === BLOG SEO PIPELINE — AI crawler headers ===
@@ -1163,6 +1173,7 @@ export async function middleware(request: NextRequest) {
           defaultLocale: localeResolution.defaultLocale,
           resolvedLanguage: localeResolution.resolvedLanguage,
           hasLanguageSegment: localeResolution.hasLanguageSegment,
+          languageSegment: localeResolution.languageSegment,
         }),
         capturedClickIds,
       );
@@ -1253,6 +1264,7 @@ export async function middleware(request: NextRequest) {
         defaultLocale: localeResolution.defaultLocale,
         resolvedLanguage: localeResolution.resolvedLanguage,
         hasLanguageSegment: localeResolution.hasLanguageSegment,
+        languageSegment: localeResolution.languageSegment,
       }),
       capturedClickIds,
     );
@@ -1337,6 +1349,7 @@ export async function middleware(request: NextRequest) {
           defaultLocale: localeResolution.defaultLocale,
           resolvedLanguage: localeResolution.resolvedLanguage,
           hasLanguageSegment: localeResolution.hasLanguageSegment,
+          languageSegment: localeResolution.languageSegment,
         }),
         capturedClickIds,
       );

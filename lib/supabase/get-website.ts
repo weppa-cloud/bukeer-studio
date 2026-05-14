@@ -350,11 +350,17 @@ export async function getBlogPosts(
       const lang = locale.split("-")[0]?.toLowerCase();
       if (lang && lang !== locale) localeCandidates.push(lang);
 
-      // Legacy blog rows may still store ISO-639 locales (`es`, `en`).
+      // Legacy blog rows may still store ISO-639 locales (`es`, `en`, etc.).
       if (locale === "es") localeCandidates.push("es-CO");
       if (locale === "en") localeCandidates.push("en-US");
+      if (locale === "pt") localeCandidates.push("pt-BR");
+      if (locale === "fr") localeCandidates.push("fr-FR");
+      if (locale === "de") localeCandidates.push("de-DE");
       if (locale === "es-CO") localeCandidates.push("es");
       if (locale === "en-US") localeCandidates.push("en");
+      if (locale === "pt-BR") localeCandidates.push("pt");
+      if (locale === "fr-FR") localeCandidates.push("fr");
+      if (locale === "de-DE") localeCandidates.push("de");
     } else {
       localeCandidates.push("");
     }
@@ -452,7 +458,15 @@ export async function getPublishedBlogPostSitemapRows(
   }>
 > {
   try {
-    const rows = [];
+    const rows: Array<{
+      id: string;
+      slug: string;
+      locale: string | null;
+      translation_group_id: string | null;
+      published_at: string | null;
+      updated_at: string | null;
+      robots_noindex: boolean | null;
+    }> = [];
     const pageSize = 1000;
 
     for (let from = 0; ; from += pageSize) {
@@ -537,8 +551,14 @@ export async function getBlogPostBySlug(
       if (lang && lang !== normalizedLocale) localeCandidates.push(lang);
       if (normalizedLocale === "es-CO") localeCandidates.push("es");
       if (normalizedLocale === "en-US") localeCandidates.push("en");
+      if (normalizedLocale === "pt-BR") localeCandidates.push("pt");
+      if (normalizedLocale === "fr-FR") localeCandidates.push("fr");
+      if (normalizedLocale === "de-DE") localeCandidates.push("de");
       if (normalizedLocale === "es") localeCandidates.push("es-CO");
       if (normalizedLocale === "en") localeCandidates.push("en-US");
+      if (normalizedLocale === "pt") localeCandidates.push("pt-BR");
+      if (normalizedLocale === "fr") localeCandidates.push("fr-FR");
+      if (normalizedLocale === "de") localeCandidates.push("de-DE");
     } else {
       localeCandidates.push("");
     }
@@ -625,13 +645,17 @@ export async function getBlogPostTranslationLocales(
     if (error) return fallback;
 
     const locales = (data ?? [])
-      .map((row) => row.locale)
+      .map((row: { locale: unknown }) => row.locale)
       .filter(
         (locale): locale is string =>
           typeof locale === "string" && locale.trim().length > 0,
       );
 
-    return locales.length > 0 ? [...new Set(locales)] : fallback;
+    const normalizedLocales = locales
+      .map((locale) => normalizeBlogPublicLocale(locale))
+      .filter((locale): locale is string => Boolean(locale));
+
+    return normalizedLocales.length > 0 ? [...new Set(normalizedLocales)] : fallback;
   } catch {
     return fallback;
   }
@@ -643,6 +667,9 @@ export function normalizeBlogPublicLocale(
   if (!locale) return null;
   if (locale === "es") return "es-CO";
   if (locale === "en") return "en-US";
+  if (locale === "pt") return "pt-BR";
+  if (locale === "fr") return "fr-FR";
+  if (locale === "de") return "de-DE";
   return locale;
 }
 
