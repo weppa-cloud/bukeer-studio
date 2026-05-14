@@ -64,6 +64,11 @@ interface WebsiteTrustContent {
 }
 
 const RNT_TOKEN_RE = /\br\.?\s*n\.?\s*t\.?\b/i;
+const COLOMBIA_TOURS_RNT = '35323';
+const COLOMBIA_TOURS_LOGOS: TrustLogo[] = [
+  { label: 'Procolombia', serif: true },
+  { label: 'Innpulsa Colombia' },
+];
 
 const KNOWN_LOGO_TOKENS = [
   'ProColombia',
@@ -147,6 +152,18 @@ function hasRntToken(value: string): boolean {
   return RNT_TOKEN_RE.test(value);
 }
 
+function isColombiaToursWebsite(website: WebsiteData): boolean {
+  const subdomain = website.subdomain?.toLowerCase() ?? '';
+  const customDomain = website.custom_domain?.toLowerCase() ?? '';
+  const siteName = website.content?.siteName?.toLowerCase() ?? '';
+
+  return (
+    subdomain === 'colombiatours' ||
+    customDomain === 'colombiatours.travel' ||
+    siteName.includes('colombiatours')
+  );
+}
+
 function inferIcon(item: TrustBarItem): IconName | undefined {
   const text = normalizeCompare(`${item.bold ?? ''} ${item.body ?? ''}`);
   if (!text) return undefined;
@@ -195,6 +212,36 @@ function dedupeLogos(logos: TrustLogo[]): TrustLogo[] {
     out.push({ ...logo, label });
   }
   return out;
+}
+
+function applyColombiaToursTrustOverrides(items: TrustBarItem[]): TrustBarItem[] {
+  let replacedRnt = false;
+
+  const nextItems = items.map((item) => {
+    const bold = item.bold ?? '';
+    const body = item.body ?? '';
+    const combined = `${bold} ${body}`;
+
+    if (!hasRntToken(combined)) return item;
+
+    replacedRnt = true;
+    return {
+      ...item,
+      bold: bold.replace(/\bRNT\b\s*[\w-]+/i, `RNT ${COLOMBIA_TOURS_RNT}`),
+      body: body.replace(/\bRNT\b\s*[\w-]+/i, `RNT ${COLOMBIA_TOURS_RNT}`),
+    };
+  });
+
+  if (replacedRnt) return nextItems;
+
+  return [
+    ...nextItems,
+    {
+      icon: 'shield',
+      bold: `RNT ${COLOMBIA_TOURS_RNT}`,
+      body: 'operador local certificado',
+    },
+  ];
 }
 
 function resolveYearsInOperation(
@@ -322,13 +369,18 @@ export function TrustBarSection({
       ? authoredItems
       : buildDefaultItems(content.brandClaims, websiteTrust, content, editorialText, locale);
 
-  const resolvedItems = dedupeAndResolveItems(items);
+  const resolvedItems = dedupeAndResolveItems(
+    isColombiaToursWebsite(website) ? applyColombiaToursTrustOverrides(items) : items,
+  );
   if (resolvedItems.length === 0) return null;
 
   const hasRntInItems = resolvedItems.some((item) =>
     hasRntToken(`${item.bold ?? ''} ${item.body ?? ''}`),
   );
-  const logos = dedupeLogos(normalizeLogos(content.logos)).filter(
+  const logosSource = isColombiaToursWebsite(website)
+    ? COLOMBIA_TOURS_LOGOS
+    : normalizeLogos(content.logos);
+  const logos = dedupeLogos(logosSource).filter(
     (logo) => !(hasRntInItems && hasRntToken(logo.label)),
   );
 

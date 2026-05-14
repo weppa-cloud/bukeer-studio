@@ -41,6 +41,33 @@ interface SitePageProps {
 
 const PLANNER_TYPES = new Set(['planners', 'team', 'travel_planners']);
 
+function titleFromSlug(slug: string): string {
+  return slug
+    .split('-')
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
+function featuredDestinationsAsSectionItems(
+  featuredDestinations: Awaited<ReturnType<typeof getFeaturedDestinations>>,
+) {
+  return featuredDestinations.map((destination, index) => ({
+    id: destination.slug || `featured-destination-${index}`,
+    name: destination.headline || titleFromSlug(destination.slug),
+    slug: destination.slug,
+    imageUrl: destination.heroImageUrl,
+    packagesCount: null,
+    activitiesCount: null,
+  }));
+}
+
+function contentHasArray(section: WebsiteSection, key: string): boolean {
+  const content = section.content as Record<string, unknown> | null | undefined;
+  const value = content?.[key];
+  return Array.isArray(value) && value.length > 0;
+}
+
 export async function generateMetadata({ params }: SitePageProps): Promise<Metadata> {
   const { subdomain } = await params;
   const website = await getWebsiteBySubdomain(subdomain);
@@ -138,7 +165,11 @@ async function DeferredHomeSections({
 
   const curatedDynamicDestinations = dynamicDestinations.filter((d) => d.total > 1);
   const sectionDynamicDestinations = (
-    curatedDynamicDestinations.length > 0 ? curatedDynamicDestinations : dynamicDestinations
+    curatedDynamicDestinations.length > 0
+      ? curatedDynamicDestinations
+      : dynamicDestinations.length > 0
+        ? dynamicDestinations
+        : featuredDestinationsAsSectionItems(featuredDestinations)
   ).slice(0, 8);
 
   const packageItems = toPackageItems(packagesCatalog.items);
@@ -172,7 +203,17 @@ async function DeferredHomeSections({
     blogPosts: blogResult.posts.length > 0 ? blogResult.posts : undefined,
     brandClaims,
     featuredDestinations,
-  }).filter((section) => !criticalSectionIds.has(section.id));
+  })
+    .filter((section) => !criticalSectionIds.has(section.id))
+    .filter((section) => {
+      if (section.section_type === SECTION_PACKAGES) {
+        return packageItems.length > 0 || contentHasArray(section, 'packages');
+      }
+      if (section.section_type === 'destinations') {
+        return sectionDynamicDestinations.length > 0 || contentHasArray(section, 'destinations');
+      }
+      return true;
+    });
 
   return (
     <>
