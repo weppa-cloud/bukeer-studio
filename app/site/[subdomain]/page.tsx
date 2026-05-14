@@ -11,7 +11,7 @@ import {
 import { localeToOgLocale } from '@/lib/seo/locale-routing';
 import { resolveOgImage } from '@/lib/seo/og-helpers';
 import { getWebsiteBySubdomain, getBlogPosts } from '@/lib/supabase/get-website';
-import type { WebsiteData } from '@/lib/supabase/get-website';
+import type { WebsiteData, WebsiteSection } from '@/lib/supabase/get-website';
 import { getCachedGoogleReviews, getCategoryProducts, getDestinations } from '@/lib/supabase/get-pages';
 import { getPlanners } from '@/lib/supabase/get-planners';
 import type { PlannerData } from '@/lib/supabase/get-planners';
