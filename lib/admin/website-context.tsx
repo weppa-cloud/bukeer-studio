@@ -67,10 +67,12 @@ export function WebsiteProvider({ websiteId, children }: WebsiteProviderProps) {
       .update(updates)
       .eq('id', websiteId);
 
-    if (!error) {
-      setWebsite((prev) => prev ? { ...prev, ...updates } : prev);
-      setDirty(false);
+    if (error) {
+      throw error;
     }
+
+    setWebsite((prev) => prev ? { ...prev, ...updates } : prev);
+    setDirty(false);
   }, [websiteId, supabase]);
 
   const publish = useCallback(async () => {

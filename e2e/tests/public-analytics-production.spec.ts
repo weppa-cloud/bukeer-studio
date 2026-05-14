@@ -18,7 +18,12 @@ type AnalyticsRequest = {
   url: string;
 };
 
-const ROUTES = ['/', '/paquetes', '/actividades'];
+const ROUTES = [
+  '/',
+  '/blog/los-10-mejores-lugares-turisticos-de-colombia',
+  '/paquetes',
+  '/actividades',
+];
 
 function classifyAnalyticsRequest(url: string): AnalyticsRequestKind | null {
   if (url.includes('googletagmanager.com/gtag/js')) return 'gtag_js';

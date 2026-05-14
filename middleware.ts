@@ -43,6 +43,7 @@ const COLOMBIA_TOURS_EN_HOST = "en.colombiatours.travel";
 const COLOMBIA_TOURS_CANONICAL_HOST = "colombiatours.travel";
 const PUBLIC_HTML_CACHE_CONTROL =
   "public, max-age=0, s-maxage=300, stale-while-revalidate=86400";
+const CACHE_BUST_QUERY_PARAMS = ["nocache", "_", "cache", "cacheBust"];
 
 const CATEGORY_TO_PRODUCT_TYPE: Record<string, string> = {
   destinos: "destination",
@@ -130,11 +131,18 @@ async function redirectColombiaToursEnSubdomain(
     : null;
 
   if (hostSpecificRedirect?.new_path) {
-    return buildLegacyRedirectResponse(
+    const response = buildLegacyRedirectResponse(
       request,
       hostSpecificRedirect,
       COLOMBIA_TOURS_CANONICAL_HOST,
     );
+    const location = response.headers.get("location");
+    if (location) {
+      const target = new URL(location);
+      stripCacheBustQueryParams(target);
+      response.headers.set("location", target.toString());
+    }
+    return response;
   }
 
   const normalizedPathname =
@@ -146,6 +154,7 @@ async function redirectColombiaToursEnSubdomain(
   target.protocol = "https:";
   target.port = "";
   target.pathname = mappedPathname;
+  stripCacheBustQueryParams(target);
   return NextResponse.redirect(target, 301);
 }
 
@@ -648,6 +657,7 @@ function buildLegacyRedirectResponse(
   if (!target.search && request.nextUrl.search) {
     target.search = request.nextUrl.search;
   }
+  stripCacheBustQueryParams(target);
 
   return NextResponse.redirect(
     target,
@@ -785,6 +795,31 @@ function applySitePreviewHeaders(response: NextResponse): NextResponse {
   return response;
 }
 
+function stripCacheBustQueryParams(url: URL): boolean {
+  let stripped = false;
+
+  for (const key of CACHE_BUST_QUERY_PARAMS) {
+    if (url.searchParams.has(key)) {
+      url.searchParams.delete(key);
+      stripped = true;
+    }
+  }
+
+  return stripped;
+}
+
+function redirectWithoutCacheBustQueryParams(
+  request: NextRequest,
+): NextResponse | null {
+  if (request.method !== "GET" && request.method !== "HEAD") return null;
+
+  const target = new URL(request.url);
+  if (!stripCacheBustQueryParams(target)) return null;
+  if (target.toString() === request.url) return null;
+
+  return NextResponse.redirect(target, 301);
+}
+
 /**
  * Persist captured Ads click identifiers (gclid/gbraid/wbraid/fbclid) on a
  * public-site response. No-op when nothing was captured. Safe to call from
@@ -857,7 +892,10 @@ export async function middleware(request: NextRequest) {
   const capturedClickIds = captureClickIds(request);
 
   if (host === COLOMBIA_TOURS_EN_HOST) {
-    return redirectColombiaToursEnSubdomain(request);
+    return persistClickIdsOnResponse(
+      await redirectColombiaToursEnSubdomain(request),
+      capturedClickIds,
+    );
   }
 
   const studioHost = `studio.${MAIN_DOMAIN}`;
@@ -1052,6 +1090,11 @@ export async function middleware(request: NextRequest) {
 
   if (pathname.startsWith("/domain/")) {
     return NextResponse.next();
+  }
+
+  const cacheBustRedirect = redirectWithoutCacheBustQueryParams(request);
+  if (cacheBustRedirect) {
+    return persistClickIdsOnResponse(cacheBustRedirect, capturedClickIds);
   }
 
   if (/^\/pt\/blog\/[^/]+$/.test(pathname)) {
@@ -1366,11 +1409,13 @@ export async function middleware(request: NextRequest) {
 }
 
 export const middlewareInternals = {
+  CACHE_BUST_QUERY_PARAMS,
   PUBLIC_HTML_CACHE_CONTROL,
   applySitePreviewHeaders,
   applyPublicHtmlCacheHeaders,
   finalizePublicSiteResponse,
   hasClickIdQueryParam,
+  redirectWithoutCacheBustQueryParams,
   shouldApplyPublicHtmlCache,
 };
 
