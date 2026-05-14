@@ -41,6 +41,7 @@ export interface SitemapUrl {
   priority: string;
   translatedLocales?: string[];
   alternatePathname?: string;
+  localizedPathnames?: Record<string, string>;
 }
 
 export interface SitemapLocaleContext {
@@ -127,6 +128,7 @@ export async function buildSitemapUrls(
       changefreq: "monthly",
       priority: "0.6",
       translatedLocales: group.translatedLocales,
+      localizedPathnames: group.localizedPathnames,
     });
   }
 
@@ -269,6 +271,12 @@ export function localizeSitemapUrlsForLocale(
 
   return urls
     .filter((url) => {
+      if (url.localizedPathnames) {
+        return Boolean(
+          getLocalizedPathname(url.localizedPathnames, normalizedTarget),
+        );
+      }
+
       if (normalizedTarget === defaultLocale) return true;
       if (!url.translatedLocales || url.translatedLocales.length === 0) {
         return true;
@@ -280,15 +288,15 @@ export function localizeSitemapUrlsForLocale(
     })
     .map((url) => {
       const sourcePathname = extractPathname(url.loc, locale.baseUrl);
-      const translatedPathname = translateCategoryPathname(
-        sourcePathname,
-        targetLanguage,
-      );
-      const publicPathname = buildPublicLocalizedPath(
-        translatedPathname,
-        normalizedTarget,
-        defaultLocale,
-      );
+      const publicPathname =
+        (url.localizedPathnames
+          ? getLocalizedPathname(url.localizedPathnames, normalizedTarget)
+          : undefined) ??
+        buildPublicLocalizedPath(
+          translateCategoryPathname(sourcePathname, targetLanguage),
+          normalizedTarget,
+          defaultLocale,
+        );
 
       return {
         ...url,
@@ -312,12 +320,18 @@ function renderUrlEntry(
 
   if (multiLocale && locale) {
     const pathname = url.alternatePathname ?? extractPathname(url.loc, locale.baseUrl);
-    const alternates = buildAlternateLinks(
-      locale.baseUrl,
-      pathname,
-      locale.settings,
-      url.translatedLocales,
-    );
+    const alternates = url.localizedPathnames
+      ? buildMappedAlternateLinks(
+          locale.baseUrl,
+          locale.settings,
+          url.localizedPathnames,
+        )
+      : buildAlternateLinks(
+          locale.baseUrl,
+          pathname,
+          locale.settings,
+          url.translatedLocales,
+        );
     for (const link of alternates) {
       parts.push(
         `    <xhtml:link rel="alternate" hreflang="${escapeXml(link.hreflang)}" href="${escapeXml(link.href)}"/>`,
@@ -344,6 +358,77 @@ function buildAlternateLinks(
     },
     translatedLocales,
   );
+}
+
+function buildMappedAlternateLinks(
+  baseUrl: string,
+  settings: WebsiteLocaleSettings,
+  localizedPathnames: Record<string, string>,
+): HreflangLink[] {
+  const normalizedSettings = normalizeWebsiteLocales(settings);
+  const links: HreflangLink[] = [];
+  const seen = new Set<string>();
+
+  for (const locale of normalizedSettings.supportedLocales) {
+    const normalizedLocale = normalizeLocale(
+      locale,
+      normalizedSettings.defaultLocale,
+    );
+    const pathname = getLocalizedPathname(
+      localizedPathnames,
+      normalizedLocale,
+    );
+    if (!pathname) continue;
+
+    const hreflang = toHreflangTag(normalizedLocale);
+    if (seen.has(hreflang)) continue;
+
+    links.push({
+      rel: "alternate",
+      hreflang,
+      href: `${baseUrl}${pathname === "/" ? "" : pathname}`,
+    });
+    seen.add(hreflang);
+  }
+
+  const defaultPathname =
+    getLocalizedPathname(
+      localizedPathnames,
+      normalizedSettings.defaultLocale,
+    ) ??
+    Object.values(localizedPathnames)[0];
+
+  if (defaultPathname) {
+    links.push({
+      rel: "alternate",
+      hreflang: "x-default",
+      href: `${baseUrl}${defaultPathname === "/" ? "" : defaultPathname}`,
+    });
+  }
+
+  return links;
+}
+
+function getLocalizedPathname(
+  localizedPathnames: Record<string, string>,
+  locale: string,
+): string | undefined {
+  const normalizedLocale = normalizeLocale(locale);
+  const directPathname = localizedPathnames[normalizedLocale];
+  if (directPathname) return directPathname;
+
+  const language = localeToLanguage(normalizedLocale);
+  const languageMatch = Object.entries(localizedPathnames).find(
+    ([candidate]) => localeToLanguage(candidate) === language,
+  );
+
+  return languageMatch?.[1];
+}
+
+function toHreflangTag(locale: string): string {
+  const normalized = normalizeLocale(locale);
+  const [language, region] = normalized.split("-");
+  return region ? `${language}-${region}` : language;
 }
 
 function escapeXml(str: string): string {

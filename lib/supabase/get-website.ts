@@ -448,6 +448,7 @@ export async function getPublishedBlogPostSitemapRows(
     translation_group_id: string | null;
     published_at: string | null;
     updated_at: string | null;
+    robots_noindex: boolean | null;
   }>
 > {
   try {
@@ -458,7 +459,7 @@ export async function getPublishedBlogPostSitemapRows(
       const { data, error } = await supabase
         .from("website_blog_posts")
         .select(
-          "id, slug, locale, translation_group_id, published_at, updated_at",
+          "id, slug, locale, translation_group_id, published_at, updated_at, robots_noindex",
         )
         .eq("website_id", websiteId)
         .eq("status", "published")

@@ -14,6 +14,7 @@ import { SafeHtml } from '@/lib/sanitize';
 import { generateHreflangLinks } from '@/lib/seo/hreflang';
 import { resolveSiteIcons } from '@/lib/seo/site-icons';
 import { getDefaultLegalContent } from '@/lib/legal-defaults';
+import { supabaseImageUrl } from '@/lib/images/supabase-transform';
 import Image from 'next/image';
 import type { ThemeInput } from '@/lib/theme/m3-theme-provider';
 import { normalizeThemeInput } from '@/lib/theme/normalize-theme';
@@ -306,6 +307,9 @@ export default async function CustomDomainPage({ params, searchParams }: CustomD
     }
 
     const schemas = generateBlogPostSchemas(post, website, baseUrl);
+    const featuredImageSrc = post.featured_image
+      ? supabaseImageUrl(post.featured_image, { width: 1200, quality: 74 })
+      : null;
 
     return (
       <M3ThemeProvider initialTheme={getInitialTheme(website.theme)}>
@@ -356,13 +360,15 @@ export default async function CustomDomainPage({ params, searchParams }: CustomD
                   )}
                 </header>
 
-                {post.featured_image && (
+                {featuredImageSrc && (
                   <div className="relative aspect-[16/9] rounded-xl overflow-hidden mb-8">
                     <Image
-                      src={post.featured_image}
+                      src={featuredImageSrc}
                       alt={post.title}
                       fill
                       priority
+                      fetchPriority="high"
+                      sizes="(max-width: 896px) 100vw, 896px"
                       className="object-cover"
                     />
                   </div>
