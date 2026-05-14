@@ -57,7 +57,9 @@
     "deploy:worker": "npm run check:node && opennextjs-cloudflare build && opennextjs-cloudflare deploy",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
     "tech-validator:code:strict": "node scripts/ai/validate-tech-validator.mjs --strict-global",
-    "tech-validator:code:strict:full": "node scripts/ai/validate-tech-validator.mjs --strict-global-full"
+    "tech-validator:code:strict:full": "node scripts/ai/validate-tech-validator.mjs --strict-global-full",
+    "dev-pipeline:preflight": "node scripts/ai/dev-pipeline-preflight.mjs",
+    "dev-pipeline:create": "node scripts/ai/create-dev-pipeline.mjs"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.58",
