@@ -10,6 +10,7 @@
 const NON_INDEXABLE_EN_BLOG_SLUGS = new Set([
   "boleto-de-avion-a-colombia",
   "colombia-de-los-mejores-paises-para-viajar",
+  "devolucion-de-iva-a-turistas-extranjeros",
   "descubriendo-san-andres-isla-un-paraiso",
   "explora-viajes-cartagena-las-mejores-ofertas",
   "explorando-colombia-armenia-quindio",

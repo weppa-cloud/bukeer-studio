@@ -8,6 +8,12 @@ describe("EN quality gate", () => {
     expect(
       isEnBlogQualityBlocked("en-US", "viajar-por-colombia-en-15-dias"),
     ).toBe(true);
+    expect(
+      isEnBlogQualityBlocked(
+        "en-US",
+        "devolucion-de-iva-a-turistas-extranjeros",
+      ),
+    ).toBe(true);
   });
 
   it("does not block the publishable EN slug or ES locale", () => {

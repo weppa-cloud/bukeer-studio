@@ -39,6 +39,35 @@ describe("public site cache headers", () => {
     expect(finalized.headers.get("set-cookie")).toContain("bk_gclid=test-123");
   });
 
+  it("redirects cache-bust-only URLs to the clean canonical URL", () => {
+    const request = makeRequest(
+      "https://colombiatours.travel/blog/donde-queda-bora-bora-discovering-the-allure?nocache=1773759669",
+    );
+
+    const redirect =
+      middlewareInternals.redirectWithoutCacheBustQueryParams(request);
+
+    expect(redirect?.status).toBe(301);
+    expect(redirect?.headers.get("location")).toBe(
+      "https://colombiatours.travel/blog/donde-queda-bora-bora-discovering-the-allure",
+    );
+  });
+
+  it("strips cache-bust params while preserving attribution query params", () => {
+    const request = makeRequest(
+      "https://colombiatours.travel/paquetes?nocache=1773759669&gclid=test-123&utm_source=google",
+    );
+
+    const redirect =
+      middlewareInternals.redirectWithoutCacheBustQueryParams(request);
+    const location = new URL(redirect?.headers.get("location") ?? "");
+
+    expect(redirect?.status).toBe(301);
+    expect(location.searchParams.has("nocache")).toBe(false);
+    expect(location.searchParams.get("gclid")).toBe("test-123");
+    expect(location.searchParams.get("utm_source")).toBe("google");
+  });
+
   it("does not cache public responses that already set cookies", () => {
     const request = makeRequest("https://colombiatours.travel/");
     const response = NextResponse.next();
