@@ -7,7 +7,7 @@ scope: "p0-recovery-gsc-cwv-followup"
 website_id: "894545b7-73ca-4dae-b76a-da5b6a3f8441"
 website_slug: "colombiatours-travel"
 initiator: "porcede"
-outcome: "completed_with_manual_gsc_handoff"
+outcome: "completed_gsc_validation_started"
 linked_weekly: ""
 related_issues: []
 ---
@@ -92,25 +92,43 @@ Comparable Search Console aggregate:
 | `2026-04-29..2026-05-13` | 129 | 22,102 | 0.584% | 30.51 |
 | Delta | -139 | -47,981 | +0.202pp | +11.10 |
 
+### 5. 2026-05-14 10:48 COT - Search Console UI actions
+
+- **Tool:** Chrome with authenticated Search Console UI.
+- **Input:** URL Inspection and Core Web Vitals reports for `sc-domain:colombiatours.travel`.
+- **Output:** Google accepted indexing requests for the stale landing and the canonical activity destination. CWV mobile validation is now started for both LCP groups.
+- **Reasoning:** the Search Console API can inspect URLs but cannot trigger Google indexing requests or CWV validation.
+
+UI actions completed:
+
+| Area | Target | Result |
+|---|---|---|
+| URL Inspection | `https://colombiatours.travel/l/city-tour-bogota/` | "Se ha solicitado la indexación"; added to priority crawl queue. |
+| URL Inspection | canonical city-tour activity URL | "Se ha solicitado la indexación"; added to priority crawl queue. |
+| CWV mobile | `Problema con LCP: más de 4 s (móvil)` | `Resultado de la validación: Iniciada`; group currently shows `130` poor URLs. |
+| CWV mobile | `Problema con LCP: más de 2,5 s (móvil)` | `Resultado de la validación: Iniciada`; group currently shows `6` URLs needing improvement. |
+
 ## Mutations
 
 | Entity | Action | Before | After | Source |
 |--------|--------|--------|-------|--------|
 | Supabase | none | unchanged | unchanged | read-only session |
 | Production site | none | unchanged | unchanged | read-only smoke |
+| Google Search Console | requested URL indexing | `/l/city-tour-bogota/` and canonical activity not manually queued in this session | both added to priority crawl queue | authenticated GSC UI |
+| Google Search Console | started CWV validation | mobile LCP groups `No iniciada` | mobile LCP `>4s` and `>2.5s` groups `Iniciada` | authenticated GSC UI |
 | Repo | added session log | no log for this follow-up | this file | Codex |
 
 ## External costs
 
 | Provider | Operation | Cost USD | Notes |
 |----------|-----------|----------|-------|
-| Google Search Console | URL Inspection reads | 0.00 | API read-only |
+| Google Search Console | URL Inspection reads + UI validation actions | 0.00 | API read-only plus authenticated UI actions |
 | PageSpeed Insights | attempted mobile PSI | 0.00 | rate limited |
 | DataForSEO | none | 0.00 | not used |
 
 ## Decisions / trade-offs
 
-- Treat lab CWV as technically improved but do not claim GSC field recovery. The field group `135` poor mobile URLs and `LCP 4.6s` will lag by days/weeks.
+- Treat lab CWV as technically improved but do not claim GSC field recovery. The field group has moved from the known baseline of `135` poor mobile URLs to `130` poor URLs in the current CWV UI, but field validation will lag by days/weeks.
 - Keep the P0 focus on migration cleanup. The traffic drop correlates more strongly with legacy root slugs, EN host redirects, and canonical/indexing reconciliation than with the current lab LCP.
 - Do not redirect non-equivalent URLs to home. The fixed city-tour landing now has an equivalent destination; Google just has stale index state.
 - Do not publish EN at scale during freeze. EN cleanup should remain sitemap/noindex/canonical quality control until recrawl stabilizes.
@@ -119,16 +137,18 @@ Comparable Search Console aggregate:
 
 - GSC inspection summary for five critical URL states.
 - Live production mobile lab vitals for six critical templates/routes.
+- Google indexing requested for the stale city-tour landing and canonical destination.
+- GSC CWV mobile validation started for both LCP issue groups.
 - Current action queue below.
 
 ## Next steps / handoff
 
-1. In GSC UI, request indexing for `https://colombiatours.travel/l/city-tour-bogota/` and its canonical activity destination. The API can inspect but cannot trigger Google indexing requests.
-2. Start GSC CWV mobile validation only after the manual URL Inspection confirms Google sees `/l/city-tour-bogota/` as a redirect to the activity canonical.
-3. Keep daily GSC checks excluding same-day partial data. Next valid trend read should use `2026-05-15` after a full `2026-05-14` day lands.
-4. Build the top-50 reconciliation table with old URL, new destination, redirect, live canonical, sitemap membership, GSC canonical, clicks/impressions delta, and action owner.
-5. Watch activity/landing LCP. It is acceptable in repeat lab, but the activity image remains heavier and externally served from Supabase render; keep it as the next UX-safe optimization candidate if field LCP stays poor.
+1. Keep daily GSC checks excluding same-day partial data. Next valid trend read should use `2026-05-15` after a full `2026-05-14` day lands.
+2. Reinspect `https://colombiatours.travel/l/city-tour-bogota/` on `2026-05-15` or later to confirm Google now sees the redirect to the canonical activity URL.
+3. Build the top-50 reconciliation table with old URL, new destination, redirect, live canonical, sitemap membership, GSC canonical, clicks/impressions delta, and action owner.
+4. Watch activity/landing LCP. It is acceptable in repeat lab, but the activity image remains heavier and externally served from Supabase render; keep it as the next UX-safe optimization candidate if field LCP stays poor.
+5. Monitor CWV validation status daily; do not make UX-reducing changes while validation is running unless lab or field data shows a concrete regression.
 
 ## Self-review
 
-The useful split is now clear: production lab vitals are mostly healthy, but GSC recovery is not proven. The next operational bottleneck is not another code change; it is recrawl/indexing workflow plus top-50 URL reconciliation.
+The useful split is now clear: production lab vitals are mostly healthy, and GSC validation is now running, but traffic recovery is not proven. The next operational bottleneck is top-50 URL reconciliation and waiting for Google to refresh stale migration URLs.
