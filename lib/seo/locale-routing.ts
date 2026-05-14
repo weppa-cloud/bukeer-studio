@@ -283,6 +283,47 @@ export function localeToLanguage(locale: string): string {
   return normalizeLocale(locale).split('-')[0] || 'es';
 }
 
+export function localeToPublicSegment(locale: string, defaultLocale?: string): string | null {
+  const normalized = normalizeLocale(locale);
+  if (defaultLocale && normalized === normalizeLocale(defaultLocale)) {
+    return null;
+  }
+  if (normalized === 'pt-BR') return 'pt-br';
+  return localeToLanguage(normalized);
+}
+
+const LEGACY_LANGUAGE_TO_REGIONAL_LOCALE: Record<string, string> = {
+  en: 'en-US',
+  pt: 'pt-BR',
+  fr: 'fr-FR',
+  de: 'de-DE',
+};
+
+function normalizeSupportedLocaleForPublicRouting(locale: string): string {
+  const normalized = normalizeLocale(locale);
+  return LEGACY_LANGUAGE_TO_REGIONAL_LOCALE[normalized] || normalized;
+}
+
+function normalizeLocaleListForPublicRouting(locales: string[]): string[] {
+  return Array.from(
+    new Set(
+      locales
+        .map((locale) => normalizeSupportedLocaleForPublicRouting(locale))
+        .filter((locale) => locale.trim().length > 0),
+    ),
+  );
+}
+
+function localeMatchesPublicSegment(locale: string, segment: string): boolean {
+  const normalizedSegment = segment.toLowerCase();
+  const normalizedLocale = normalizeSupportedLocaleForPublicRouting(locale);
+  return (
+    normalizedSegment === localeToPublicSegment(normalizedLocale) ||
+    normalizedSegment === normalizedLocale.toLowerCase() ||
+    normalizedSegment === localeToLanguage(normalizedLocale)
+  );
+}
+
 export function localeToOgLocale(locale: string): string {
   const normalized = normalizeLocale(locale);
   const [languageRaw, regionRaw] = normalized.split('-');
@@ -302,16 +343,16 @@ export function normalizeWebsiteLocales(
     supportedLocales?: string[] | null;
   },
 ): WebsiteLocaleSettings {
-  const defaultLocale = normalizeLocale(settings.defaultLocale);
+  const defaultLocale = normalizeSupportedLocaleForPublicRouting(
+    settings.defaultLocale || DEFAULT_PUBLIC_LOCALE,
+  );
   const rawLocales = Array.isArray(settings.supportedLocales)
     ? settings.supportedLocales
     : [];
 
-  const normalized = rawLocales
-    .filter((locale): locale is string => typeof locale === 'string' && locale.trim().length > 0)
-    .map((locale) => normalizeLocale(locale));
+  const normalized = normalizeLocaleListForPublicRouting(rawLocales);
 
-  const unique = [...new Set([defaultLocale, ...normalized])];
+  const unique = Array.from(new Set([defaultLocale, ...normalized]));
 
   return {
     defaultLocale,
@@ -344,15 +385,20 @@ export function extractWebsiteLocaleSettings(website: unknown): WebsiteLocaleSet
   });
 }
 
-function pickLocaleForLanguage(
-  language: string,
+function pickLocaleForPublicSegment(
+  segment: string,
   supportedLocales: string[],
   defaultLocale: string,
 ): string | null {
-  const candidates = supportedLocales.filter((locale) => localeToLanguage(locale) === language);
+  const normalizedDefault = normalizeLocale(defaultLocale);
+  const exactSegmentMatch = supportedLocales.find(
+    (locale) => localeToPublicSegment(locale, defaultLocale) === segment,
+  );
+  if (exactSegmentMatch) return exactSegmentMatch;
+
+  const candidates = supportedLocales.filter((locale) => localeMatchesPublicSegment(locale, segment));
   if (candidates.length === 0) return null;
 
-  const normalizedDefault = normalizeLocale(defaultLocale);
   const defaultCandidate = candidates.find((locale) => normalizeLocale(locale) === normalizedDefault);
   return defaultCandidate || candidates[0];
 }
@@ -390,8 +436,8 @@ export function resolveLocaleFromPublicPath(
   let languageSegment: string | null = null;
   let resolvedLocale = defaultLocale;
 
-  if (firstSegment && /^[a-z]{2}$/.test(firstSegment)) {
-    const matchedLocale = pickLocaleForLanguage(firstSegment, supportedLocales, defaultLocale);
+  if (firstSegment && /^[a-z]{2}(?:-[a-z]{2})?$/.test(firstSegment)) {
+    const matchedLocale = pickLocaleForPublicSegment(firstSegment, supportedLocales, defaultLocale);
     if (matchedLocale) {
       hasLanguageSegment = true;
       languageSegment = firstSegment;
@@ -425,20 +471,19 @@ export function buildPublicLocalizedPath(
   const normalizedResolved = normalizeLocale(resolvedLocale);
   const normalizedDefault = normalizeLocale(defaultLocale);
 
-  const lang = localeToLanguage(normalizedResolved);
-
-  if (normalizedResolved === normalizedDefault || lang === localeToLanguage(normalizedDefault)) {
+  const segment = localeToPublicSegment(normalizedResolved, normalizedDefault);
+  if (!segment) {
     return normalizedPathname;
   }
   if (normalizedPathname === '/') {
-    return `/${lang}`;
+    return `/${segment}`;
   }
 
-  if (normalizedPathname === `/${lang}` || normalizedPathname.startsWith(`/${lang}/`)) {
+  if (normalizedPathname === `/${segment}` || normalizedPathname.startsWith(`/${segment}/`)) {
     return normalizedPathname;
   }
 
-  return `/${lang}${normalizedPathname}`;
+  return `/${segment}${normalizedPathname}`;
 }
 
 export function buildLegalPagePath(
@@ -488,7 +533,7 @@ export function resolveLocaleFromRequestHeaders(
   );
 
   const languageSegment =
-    resolvedLocale === defaultLocale ? null : resolvedLanguage;
+    resolvedLocale === defaultLocale ? null : localeToPublicSegment(resolvedLocale, defaultLocale);
 
   return {
     defaultLocale,

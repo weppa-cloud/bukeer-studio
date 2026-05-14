@@ -1,5 +1,6 @@
 import {
   CATEGORY_CANONICAL_SEGMENT,
+  buildPublicLocalizedPath,
   buildLegalPagePath,
   normalizeBlogLocale,
   resolveCategorySegment,
@@ -134,8 +135,21 @@ describe('translateCategoryPathname', () => {
 describe('resolveLocaleFromPublicPath — canonicalPathname', () => {
   const settings = {
     defaultLocale: 'es-CO',
-    supportedLocales: ['es-CO', 'en-US'],
+    supportedLocales: ['es-CO', 'en-US', 'de-DE', 'fr-FR', 'pt-BR'],
   };
+
+  it('recognizes pt-br as the canonical public segment for pt-BR blog routes', () => {
+    const result = resolveLocaleFromPublicPath('/pt-br/blog/foo', settings);
+
+    expect(result).toMatchObject({
+      hasLanguageSegment: true,
+      languageSegment: 'pt-br',
+      resolvedLocale: 'pt-BR',
+      resolvedLanguage: 'pt',
+      pathnameWithoutLang: '/blog/foo',
+      canonicalPathname: '/blog/foo',
+    });
+  });
 
   it('canonicalizes English category segment to Spanish for internal rewrite', () => {
     const result = resolveLocaleFromPublicPath('/en/packages/cartagena', settings);
@@ -201,8 +215,23 @@ describe('legal page locale paths', () => {
     expect(buildLegalPagePath('terms', 'es-CO', 'es-CO')).toBe('/terminos-y-condiciones');
     expect(buildLegalPagePath('privacy', 'en-US', 'es-CO')).toBe('/en/privacy-policy');
     expect(buildLegalPagePath('cancellation', 'pt-BR', 'es-CO')).toBe(
-      '/pt/politica-de-cancelamento',
+      '/pt-br/politica-de-cancelamento',
     );
+  });
+});
+
+
+describe('buildPublicLocalizedPath', () => {
+  it('emits canonical regional prefix for pt-BR while preserving short prefixes for en/de/fr', () => {
+    expect(buildPublicLocalizedPath('/blog/foo', 'pt-BR', 'es-CO')).toBe('/pt-br/blog/foo');
+    expect(buildPublicLocalizedPath('/blog/foo', 'en-US', 'es-CO')).toBe('/en/blog/foo');
+    expect(buildPublicLocalizedPath('/blog/foo', 'de-DE', 'es-CO')).toBe('/de/blog/foo');
+    expect(buildPublicLocalizedPath('/blog/foo', 'fr-FR', 'es-CO')).toBe('/fr/blog/foo');
+    expect(buildPublicLocalizedPath('/blog/foo', 'es-CO', 'es-CO')).toBe('/blog/foo');
+  });
+
+  it('does not emit /pt/ canonical paths for pt-BR', () => {
+    expect(buildPublicLocalizedPath('/blog/foo', 'pt-BR', 'es-CO')).not.toContain('/pt/blog/');
   });
 });
 
@@ -252,6 +281,12 @@ describe('normalizeBlogLocale', () => {
 
   it('maps legacy ISO-639 en to canonical en-US', () => {
     expect(normalizeBlogLocale('en')).toBe('en-US');
+  });
+
+  it('maps legacy ISO-639 pt/fr/de to canonical regional locales', () => {
+    expect(normalizeBlogLocale('pt')).toBe('pt-BR');
+    expect(normalizeBlogLocale('fr')).toBe('fr-FR');
+    expect(normalizeBlogLocale('de')).toBe('de-DE');
   });
 
   it('returns null for null/undefined input', () => {
