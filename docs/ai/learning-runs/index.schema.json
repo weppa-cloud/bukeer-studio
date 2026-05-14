@@ -1,0 +1,185 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/weppa-cloud/bukeer-studio/docs/ai/learning-runs/index.schema.json",
+  "title": "Bukeer Studio learning run index entry",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "id",
+    "title",
+    "date",
+    "pipeline_id",
+    "github_issue",
+    "task_ids",
+    "branch",
+    "commits",
+    "pr_url",
+    "adr_refs",
+    "spec_refs",
+    "outcome",
+    "learning_candidates",
+    "applied_learning",
+    "follow_up_issues",
+    "redaction_checked"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "date": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "pipeline_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "github_issue": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 1
+    },
+    "github_url": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "uri"
+    },
+    "task_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "branch": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "commits": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "pr_url": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "adr_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "spec_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "outcome": {
+      "type": "string",
+      "enum": [
+        "PASS",
+        "FAIL",
+        "WARN",
+        "BLOCKED",
+        "NOT_APPLICABLE"
+      ]
+    },
+    "learning_candidates": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/learningCandidate"
+      }
+    },
+    "applied_learning": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    "follow_up_issues": {
+      "type": "array",
+      "items": {
+        "type": [
+          "string",
+          "object"
+        ]
+      }
+    },
+    "redaction_checked": {
+      "type": "boolean"
+    }
+  },
+  "$defs": {
+    "learningCandidate": {
+      "type": "object",
+      "required": [
+        "kind",
+        "audience",
+        "summary",
+        "evidence",
+        "recommended_action",
+        "risk",
+        "redaction_checked"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "skill_patch",
+            "profile_fact",
+            "pattern_doc",
+            "adr_update",
+            "github_issue",
+            "prompt_update",
+            "rejected_noise"
+          ]
+        },
+        "audience": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "evidence": {
+          "type": "string"
+        },
+        "recommended_action": {
+          "type": "string",
+          "enum": [
+            "apply",
+            "propose",
+            "follow_up",
+            "reject"
+          ]
+        },
+        "risk": {
+          "type": "string",
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ]
+        },
+        "redaction_checked": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

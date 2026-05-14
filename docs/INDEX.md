@@ -11,6 +11,8 @@ Last updated: 2026-05-08 (SPEC_GROWTH_OS_AUTONOMOUS_PRODUCTION_OPERATING_SYSTEM 
 
 Latest update: 2026-05-01 (SPEC_GROWTH_OS_SYMPHONY_ORCHESTRATOR audit revision for #310: contract-first gate added with five Zod schemas, SSOT relationship vs growth_profile_runs / Unified Backlog formalised, lane-level autonomy semantics tightened, sprint scope clarified — Symphony OPERATIONAL ≠ #310 PASS, #256 interlock and ADR matrix added; child issues #402–#409 received labels and TVBs); 2026-05-01 (SPEC_GROWTH_OS_SYMPHONY_ORCHESTRATOR added for #310: multi-tenant Supabase/Bukeer control plane, VPS Docker runtime, agent definitions/tool permissions/context packs, Growth UI contract and opt-in E2E); 2026-05-01 (WAFlow reference-first E2E for #310/#322: missing-ref guardrail PASS, two references in one Chatwoot conversation create two CRM requests, legacy `waflow_leads.chatwoot_conversation_id` unique index moved to WATCH with Flutter/SSOT migration prepared); 2026-05-01 (SPEC_GROWTH_OS_AGENT_LANES added for #310: five core Growth OS agent lanes, blocked routing, transcreation/content separation and Council governance); 2026-05-01 (SPEC_GROWTH_OS_SSOT_MODEL added for #310: GitHub is implementation SSOT, Supabase/Bukeer Studio is operational Growth SSOT).
 
+Latest spec addition: 2026-05-14 - [[github-542-learning-loop-20260514-SPEC]] defines GitHub #542: add T6 learning-curator to the development Kanban pipeline, learning-run docs/templates/schema, memory boundaries, task metadata contracts, and Villa de Leyva backfill handling.
+
 Latest spec addition: 2026-05-14 - [[SPEC_GROWTH_OS_PROVIDER_PROFILE_ARCHITECTURE_V2]] redirects Epic #521 into the Neo/Hermes Provider Profile Beta: GitHub remains planning SSOT, Supabase remains operational SSOT, Neo/Hermes acts as architect-orchestrator, provider profiles own API access, workers consume context packets/facts, and paid media profiles enter the same read-only/freshness-governed architecture.
 
 Latest audit addition: 2026-05-14 - [[AUDIT_GROWTH_OS_PROVIDER_PROFILE_REGISTRY_MAP_2026-05]] maps the current provider-profile registry for #536: 45 profiles across DataForSEO/GSC/GA4/tracking/joint plus Clarity and paid-media WATCH/BLOCKED gaps, with no provider API calls and credential redaction.
@@ -96,6 +98,7 @@ All ADRs accepted unless noted. Cross-cut by Principles P1–P10 (see [[ARCHITEC
 | [[ADR-025]] | [ADR-025](./architecture/ADR-025-studio-flutter-field-ownership.md)                    | Studio / Flutter Field Ownership Boundary (**Accepted 2026-04-19** — pkg+act Studio-editable, hotels Flutter-owner; Option A RPC expansion + activities parity) | [[studio-editor-v2]] [[package-kits]] [[pilot-readiness]] [[studio-editor-parity-audit]] |
 | [[ADR-028]] | [ADR-028](./architecture/ADR-028-media-assets-canonical-registry.md)                   | Media Assets Canonical Registry                                                                                                                                 | [[media-assets]] [[storage]] [[cross-repo-flutter]]                                      |
 | [[ADR-029]] | [ADR-029](./architecture/ADR-029-funnel-events-source-of-truth.md)                     | Funnel Events as Source of Truth (**Proposed 2026-05-03** — `funnel_events` table = SOT, single dispatcher fans out to Meta/Ads/GA4/TikTok)                     | [[funnel-events]] [[SOT]] [[tracking]] [[Meta CAPI]] [[Google Ads]] [[GA4]]              |
+| [[ADR-030]] | [ADR-030](./architecture/ADR-030-dev-pipeline-self-learning.md)                       | Development pipeline self-learning and memory boundaries                                                                                                         | [[dev-pipeline-learning-loop]] [[learning-loop]] [[Kanban]] [[Hermes]] [[quality-gate]] |
 
 > **Note:** `ADR-022` and `ADR-032` referenced in specs are anchored in `weppa-cloud/bukeer-flutter`. Studio respects them but does not own them. See [[cross-repo-flutter]].
 
@@ -142,6 +145,7 @@ Feature requests formalized. Status tracked inline. GitHub Issues = source of tr
 | [[SPEC_GROWTH_OS_HERMES_AGENT_CONTEXT_ISOLATION_9]]       | [file](./specs/SPEC_GROWTH_OS_HERMES_AGENT_CONTEXT_ISOLATION_9.md)       | [[growth-os]] [[agents]] [[Hermes]] [[skills]] [[memory]] [[context-isolation]] [[learning-loop]] [[multi-tenant]] [[ColombiaTours]]                              |
 | [[SPEC_GROWTH_OS_HERMES_PRIMARY_RUNTIME_MVE_V0]]           | [file](./specs/SPEC_GROWTH_OS_HERMES_PRIMARY_RUNTIME_MVE_V0.md)           | [[growth-os]] [[agents]] [[Hermes]] [[hermes-primary-runtime]] [[Kanban]] [[mcp-tool-safety]] [[provider-context-profiles]] [[tenant-context]] [[autonomy]] [[ColombiaTours]] |
 | [[SPEC_GROWTH_OS_PROVIDER_PROFILE_ARCHITECTURE_V2]]        | [file](./specs/SPEC_GROWTH_OS_PROVIDER_PROFILE_ARCHITECTURE_V2.md)        | [[growth-os]] [[provider-profiles]] [[Hermes]] [[Neo]] [[Supabase]] [[SSOT]] [[paid-media]] [[context-packets]] [[anti-rework]] [[ColombiaTours]]                  |
+| [[github-542-learning-loop-20260514-SPEC]]                 | [file](./specs/generated/github-542-learning-loop-20260514-SPEC.md)        | [[dev-pipeline-learning-loop]] [[Kanban]] [[Hermes]] [[learning-loop]] [[quality-gate]] [[GitHub]]                                                              |
 | [[SPEC_GROWTH_OS_DATAFORSEO_EVIDENCE_GOVERNED_BRAIN]]     | [file](./specs/SPEC_GROWTH_OS_DATAFORSEO_EVIDENCE_GOVERNED_BRAIN.md)     | [[growth-os]] [[agents]] [[DataForSEO]] [[orchestration]] [[evidence]] [[learning-loop]] [[ColombiaTours]]                                                       |
 | [[SPEC_GROWTH_OS_PROVIDER_EXTRACTION_PROFILES]]            | [file](./specs/SPEC_GROWTH_OS_PROVIDER_EXTRACTION_PROFILES.md)            | [[growth-os]] [[DataForSEO]] [[GA4]] [[GSC]] [[clarity]] [[provider-profiles]] [[evidence]] [[ColombiaTours]]                                                     |
 | [[SPEC_FUNNEL_EVENTS_SOT]]                                | [file](./specs/SPEC_FUNNEL_EVENTS_SOT.md)                                | [[funnel-events]] [[SOT]] [[tracking]] [[Meta CAPI]] [[Google Ads]] [[GA4]] [[cross-repo-flutter]] — operational counterpart to [[ADR-029]]                     |
@@ -159,6 +163,23 @@ Feature requests formalized. Status tracked inline. GitHub Issues = source of tr
 | [[ROADMAP_SEO_CONTENT_INTELLIGENCE]]                      | [file](./specs/ROADMAP_SEO_CONTENT_INTELLIGENCE.md)                      | [[SEO]] [[roadmap]]                                                                                                                                             |
 
 ---
+
+## AI development learning
+
+| Wikilink | File | Purpose |
+| --- | --- | --- |
+| [[ai-learning-runs]] | [file](./ai/learning-runs/README.md) | T6 learning-run policy, three memory layers, redaction rules, and schema entry point. |
+| [[learning-run-template]] | [file](./ai/templates/learning-run-template.md) | Standard template for T6 learning summaries. |
+| [[learning-run-index-schema]] | [file](./ai/learning-runs/index.schema.json) | JSON Schema for learning-run index/frontmatter contracts. |
+| [[ai-development-patterns]] | [file](./ai/patterns/README.md) | Reviewed institutional pattern docs and candidate routing boundaries. |
+| [[villa-leyva-learning-run-2026-05-14]] | [file](./ai/learning-runs/2026-05-14-villa-leyva-dev-20260514b.md) | First manual learning-run backfill example for the Villa de Leyva destination bug. |
+
+### [[dev-pipeline-learning-loop]] + [[learning-loop]]
+
+- [[ADR-030]] defines the decision to add T6 learning-curator and memory boundaries.
+- [[development-kanban-pipeline]] documents the operational T0→T6 DAG and retry invariant.
+- [[github-542-learning-loop-20260514-SPEC]] is the executable implementation spec for GitHub #542.
+- [[ai-learning-runs]], [[learning-run-template]], [[learning-run-index-schema]], and [[ai-development-patterns]] define curated learning artifacts and routing rules.
 
 ## Product
 
@@ -212,6 +233,7 @@ Feature requests formalized. Status tracked inline. GitHub Issues = source of tr
 | [[clarity-mcp]]                          | [file](./ops/clarity-mcp.md)                          | Official Microsoft Clarity MCP setup: `.mcp.json`, `.env.mcp`, API token, quota limits, Data Export fallback and ColombiaTours project config.           |
 | [[clarity-operations]]                   | [file](../ops/clarity/README.md)                      | Clarity operational standard matching Meta/Google: tenant iterations, local setup, read-only UX analysis and privacy guardrails.                         |
 | [[product-landing-rollout-runbook]]      | [file](./runbooks/product-landing-rollout-runbook.md) | Rollout for public site rendering / ISR changes.                                                                                                        |
+| [[development-kanban-pipeline]]          | [file](./ops/development-kanban-pipeline.md)          | T0→T6 Hermes/Kanban development DAG, Codex runner contract, gates, retry invariant, and learning-curator handoff.                                      |
 
 ---
 
