@@ -1,9 +1,15 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useWebsite } from '@/lib/admin/website-context';
+import {
+  mergeAnalyticsConfig,
+  readAnalyticsString,
+  type AnalyticsConfigRecord,
+} from '@/lib/admin/analytics-config';
 import { useAutosave } from '@/lib/hooks/use-autosave';
+import { createSupabaseBrowserClient } from '@/lib/supabase/browser-client';
 import type {
   AnalyticsOverviewDTO,
   CompetitorRowDTO,
@@ -50,6 +56,13 @@ type GoogleIntegrationOption = {
   meta?: string;
 };
 
+type TrackingAutosavePayload = {
+  gtmId: string;
+  ga4Id: string;
+  pixelId: string;
+  clarityProjectId: string;
+};
+
 const TAB_OPTIONS: ReadonlyArray<{ id: AnalyticsTab; label: string }> = [
   { id: 'overview', label: 'Overview' },
   { id: 'content-intelligence', label: 'Content Intelligence' },
@@ -94,6 +107,7 @@ export default function AnalyticsPage() {
   const websiteId = routeParams?.websiteId ?? '';
   const searchParams = useSearchParams();
   const { website, save } = useWebsite();
+  const supabase = useMemo(() => createSupabaseBrowserClient(), []);
 
   const paramTab = parseAnalyticsTab(searchParams?.get('tab') ?? null);
   const [activeTab, setActiveTab] = useState<AnalyticsTab>(
@@ -122,12 +136,17 @@ export default function AnalyticsPage() {
     ga4: false,
   });
 
-  const analytics = (website?.analytics || {}) as Record<string, string | undefined>;
-  const [gtmId, setGtmId] = useState(analytics.gtm_id || '');
-  const [ga4Id, setGa4Id] = useState(analytics.ga4_id || '');
-  const [pixelId, setPixelId] = useState(analytics.facebook_pixel_id || '');
-  const [clarityProjectId, setClarityProjectId] = useState(analytics.clarity_project_id || '');
-  const googleAdsId = analytics.google_ads_id || '';
+  const analytics = useMemo(
+    () => (website?.analytics || {}) as AnalyticsConfigRecord,
+    [website?.analytics]
+  );
+  const [gtmId, setGtmId] = useState('');
+  const [ga4Id, setGa4Id] = useState('');
+  const [pixelId, setPixelId] = useState('');
+  const [clarityProjectId, setClarityProjectId] = useState('');
+  const [trackingEdited, setTrackingEdited] = useState(false);
+  const lastHydratedWebsiteIdRef = useRef<string | null>(null);
+  const googleAdsId = readAnalyticsString(analytics, 'google_ads_id');
   const [includeDataForSeo, setIncludeDataForSeo] = useState(false);
   const [syncing, setSyncing] = useState(false);
 
@@ -139,23 +158,53 @@ export default function AnalyticsPage() {
     router.replace(`${nextPath}?${params.toString()}`, { scroll: false });
   }
 
+  useEffect(() => {
+    if (!website) return;
+
+    const websiteChanged = lastHydratedWebsiteIdRef.current !== websiteId;
+    if (websiteChanged) {
+      lastHydratedWebsiteIdRef.current = websiteId;
+      setTrackingEdited(false);
+    }
+
+    if (!websiteChanged && trackingEdited) return;
+
+    setGtmId(readAnalyticsString(analytics, 'gtm_id'));
+    setGa4Id(readAnalyticsString(analytics, 'ga4_id'));
+    setPixelId(readAnalyticsString(analytics, 'facebook_pixel_id'));
+    setClarityProjectId(readAnalyticsString(analytics, 'clarity_project_id'));
+  }, [analytics, trackingEdited, website, websiteId]);
+
+  const saveAnalyticsTracking = useCallback(async (payload: TrackingAutosavePayload) => {
+    const { data, error } = await supabase
+      .from('websites')
+      .select('analytics')
+      .eq('id', websiteId)
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    const latestAnalytics = (data?.analytics || analytics) as AnalyticsConfigRecord;
+    const mergedAnalytics = mergeAnalyticsConfig(latestAnalytics, {
+      gtm_id: payload.gtmId,
+      ga4_id: payload.ga4Id,
+      facebook_pixel_id: payload.pixelId,
+      clarity_project_id: payload.clarityProjectId,
+    });
+
+    await save({ analytics: mergedAnalytics } as never);
+  }, [analytics, save, supabase, websiteId]);
+
   const autosavePayload = useMemo(
     () => ({ gtmId, ga4Id, pixelId, clarityProjectId }),
     [gtmId, ga4Id, pixelId, clarityProjectId]
   );
   const { status: autosaveStatus } = useAutosave({
     data: autosavePayload,
-    onSave: async (payload) => {
-      await save({
-        analytics: {
-          ...analytics,
-          gtm_id: payload.gtmId || undefined,
-          ga4_id: payload.ga4Id || undefined,
-          facebook_pixel_id: payload.pixelId || undefined,
-          clarity_project_id: payload.clarityProjectId || undefined,
-        },
-      } as never);
-    },
+    onSave: saveAnalyticsTracking,
+    enabled: trackingEdited && activeTab === 'config',
   });
 
   const gscNeedsSelection = Boolean(integrationStatus?.gsc.connected && !integrationStatus?.gsc.configurationComplete);
@@ -733,28 +782,56 @@ export default function AnalyticsPage() {
             </div>
             <div>
               <label className="block text-xs text-[var(--studio-text-muted)] mb-1">Google Analytics 4 ID · base measurement</label>
-              <StudioInput value={ga4Id} onChange={(e) => setGa4Id(e.target.value)} placeholder="G-XXXXXXXXXX" />
+              <StudioInput
+                value={ga4Id}
+                onChange={(e) => {
+                  setTrackingEdited(true);
+                  setGa4Id(e.target.value);
+                }}
+                placeholder="G-XXXXXXXXXX"
+              />
               <p className="mt-1 text-xs text-[var(--studio-text-muted)]">
                 Required for reliable organic pageviews. The public renderer disables automatic pageview duplicates.
               </p>
             </div>
             <div>
               <label className="block text-xs text-[var(--studio-text-muted)] mb-1">Google Tag Manager · advanced container</label>
-              <StudioInput value={gtmId} onChange={(e) => setGtmId(e.target.value)} placeholder="GTM-XXXXXXX" />
+              <StudioInput
+                value={gtmId}
+                onChange={(e) => {
+                  setTrackingEdited(true);
+                  setGtmId(e.target.value);
+                }}
+                placeholder="GTM-XXXXXXX"
+              />
               <p className="mt-1 text-xs text-[var(--studio-text-muted)]">
                 Loads only after consent or intent. Do not rely on GTM for the first organic page_view.
               </p>
             </div>
             <div>
               <label className="block text-xs text-[var(--studio-text-muted)] mb-1">Facebook Pixel ID · marketing</label>
-              <StudioInput value={pixelId} onChange={(e) => setPixelId(e.target.value)} placeholder="1234567890" />
+              <StudioInput
+                value={pixelId}
+                onChange={(e) => {
+                  setTrackingEdited(true);
+                  setPixelId(e.target.value);
+                }}
+                placeholder="1234567890"
+              />
               <p className="mt-1 text-xs text-[var(--studio-text-muted)]">
                 Browser pixel is deferred. Prefer server-side CAPI for lead quality once conversion governance is complete.
               </p>
             </div>
             <div>
               <label className="block text-xs text-[var(--studio-text-muted)] mb-1">Microsoft Clarity Project ID · UX behavior</label>
-              <StudioInput value={clarityProjectId} onChange={(e) => setClarityProjectId(e.target.value)} placeholder="abcd123xyz" />
+              <StudioInput
+                value={clarityProjectId}
+                onChange={(e) => {
+                  setTrackingEdited(true);
+                  setClarityProjectId(e.target.value);
+                }}
+                placeholder="abcd123xyz"
+              />
               <p className="mt-1 text-xs text-[var(--studio-text-muted)]">
                 Loads after window load/idle, so landing navigation can be recorded without competing with LCP or the first organic pageview.
               </p>
