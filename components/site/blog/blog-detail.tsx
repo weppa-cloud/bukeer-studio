@@ -2,6 +2,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { SafeHtml } from '@/lib/sanitize';
 import { formatPublicDate, getPublicUiMessages } from '@/lib/site/public-ui-messages';
+import { supabaseImageUrl } from '@/lib/images/supabase-transform';
 import { getBasePath } from '@/lib/utils/base-path';
 
 interface BlogCategory {
@@ -34,6 +35,9 @@ export function BlogDetail({ subdomain, locale, post, isCustomDomain = false, ba
   const shareUrl = baseUrl
     ? `${baseUrl}/blog/${post.slug}`
     : `${basePath}/blog/${post.slug}`;
+  const featuredImageSrc = post.featured_image
+    ? supabaseImageUrl(post.featured_image, { width: 1200, quality: 74 })
+    : null;
 
   return (
     <article data-testid="detail-blog" className="section-padding">
@@ -89,10 +93,10 @@ export function BlogDetail({ subdomain, locale, post, isCustomDomain = false, ba
           </div>
         </header>
 
-        {post.featured_image ? (
+        {featuredImageSrc ? (
           <div className="relative mb-10 aspect-[16/9] overflow-hidden rounded-xl">
             <Image
-              src={post.featured_image}
+              src={featuredImageSrc}
               alt={post.title}
               fill
               priority

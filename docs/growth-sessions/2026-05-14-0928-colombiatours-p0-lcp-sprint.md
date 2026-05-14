@@ -18,6 +18,7 @@ related_issues: []
 
 - Added Workers Static Assets header rules for `/_next/static/*`, `/tenant-assets/*`, and `/tenant-icons/*` with `public,max-age=31536000,immutable`.
 - Updated custom-domain blog detail rendering to keep the same visual hero while delivering Supabase featured images through `supabaseImageUrl(..., { width: 1200, quality: 74 })`.
+- Updated the shared public `BlogDetail` rendering path with the same Supabase transform after live smoke confirmed ColombiaTours uses this component for current custom-domain blog detail pages.
 - Tightened blog sitemap grouping so `robots_noindex` rows and EN quality-gated rows are excluded from per-locale sitemap URLs and hreflang alternates.
 - Preserved multi-tenant behavior: ColombiaTours appears only in smoke/data scope.
 
