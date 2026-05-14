@@ -15,9 +15,9 @@ Latest spec addition: 2026-05-14 - [[SPEC_GROWTH_OS_PROVIDER_PROFILE_ARCHITECTUR
 
 Latest plan addition: 2026-05-14 - [[PLAN_GROWTH_OS_PROVIDER_RUNNER_BETA_ISSUE_538]] defines the Provider Runner Beta for #538: internal Node CLI/runner, GSC read-only first path, freshness/budget/approval/circuit-breaker gates before provider calls, and `growth_profile_runs` ledger reuse.
 
-|Latest audit addition: 2026-05-14 - [[AUDIT_GROWTH_OS_PROVIDER_PROFILE_REGISTRY_MAP_2026-05]] maps the current provider-profile registry for #536: 45 profiles across DataForSEO/GSC/GA4/tracking/joint plus Clarity and paid-media WATCH/BLOCKED gaps, with no provider API calls and credential redaction.
+Latest audit addition: 2026-05-14 - [[AUDIT_GROWTH_OS_PROVIDER_PROFILE_REGISTRY_MAP_2026-05]] maps the current provider-profile registry for #536: 45 profiles across DataForSEO/GSC/GA4/tracking/joint plus Clarity and paid-media WATCH/BLOCKED gaps, with no provider API calls and credential redaction.
 
-Latest learning-run: 2026-05-14 - [[provider-runner-beta-538-20260514]] records the #538 Provider Runner Beta certification: 7-task pipeline (specifier → tech-validator plan → developer → tech-validator code → QA → ops → learning-curator), PR #547 merged to dev at c79639f3, 11 files/1874 additions, gate-first runner architecture validated across 6 gates, GSC read-only first path, and 3 proposed follow-up candidates for #539/#540.
+Latest learning-run: 2026-05-14 - [[provider-runner-beta-538-20260514]] records the #538 Provider Runner Beta certification: 7-task pipeline (specifier → tech-validator plan → developer → tech-validator code → QA → ops → learning-curator), PR #548 update branch, gate-first runner architecture validated across 6 gates, GSC read-only first path, and 3 proposed follow-up candidates for #539/#540.
 
 Latest spec addition: 2026-05-13 - [[SPEC_GROWTH_OS_HERMES_PRIMARY_RUNTIME_MVE_V0]] defines Epic #521 for the ColombiaTours Hermes primary runtime MVE v0 steel thread: native Hermes Kanban as runtime queue, board-per-website scope, profile skill bindings, `/goal` + `delegate_task`, tenant/provider context hydration, North Star task scoring, scoped MCP Tool Safety Layer for autonomous production actions, and Supabase reduced to product/audit/snapshot/outcome storage.
 
