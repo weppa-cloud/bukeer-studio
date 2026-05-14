@@ -11,6 +11,7 @@ import {
   buildPublicLocalizedPath,
   extractWebsiteLocaleSettings,
   isLegalPathname,
+  normalizeBlogLocale,
   resolveLocaleFromPublicPath,
   translateCategoryPathname,
   type PublicLocalePathResolution,
@@ -431,13 +432,7 @@ async function publishedBlogPostExistsForLocale(
 function normalizeBlogPublicLocale(
   locale: string | null | undefined,
 ): string | null {
-  if (!locale) return null;
-  if (locale === "es") return "es-CO";
-  if (locale === "en") return "en-US";
-  if (locale === "pt") return "pt-PT";
-  if (locale === "fr") return "fr-FR";
-  if (locale === "de") return "de-DE";
-  return locale;
+  return normalizeBlogLocale(locale);
 }
 
 async function findPublishedBlogPostAnyLocale(
