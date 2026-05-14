@@ -65,6 +65,14 @@ function hasOwnContentKey(
   return Object.prototype.hasOwnProperty.call(content, key);
 }
 
+function hasNonEmptyContentArray(
+  content: Record<string, unknown>,
+  key: string,
+): boolean {
+  const value = content[key];
+  return Array.isArray(value) && value.length > 0;
+}
+
 function withInjectedContent(
   section: WebsiteSection,
   additions: Record<string, unknown>,
@@ -135,7 +143,7 @@ function hydrateSection(
   if (
     section.section_type === "destinations" &&
     input.sectionDynamicDestinations.length > 0 &&
-    !hasOwnContentKey(content, "destinations")
+    !hasNonEmptyContentArray(content, "destinations")
   ) {
     additions.destinations = input.sectionDynamicDestinations;
   }
@@ -143,7 +151,7 @@ function hydrateSection(
   if (
     section.section_type === "packages" &&
     input.packageItems.length > 0 &&
-    !hasOwnContentKey(content, "packages")
+    !hasNonEmptyContentArray(content, "packages")
   ) {
     additions.packages = input.packageItems;
   }

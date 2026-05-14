@@ -46,6 +46,18 @@ function legalHref(
   return `${basePath}${buildLegalPagePath(slug, resolvedLocale, defaultLocale)}`;
 }
 
+function isColombiaToursWebsite(website: WebsiteData): boolean {
+  const subdomain = website.subdomain?.toLowerCase() ?? '';
+  const customDomain = website.custom_domain?.toLowerCase() ?? '';
+  const siteName = website.content?.siteName?.toLowerCase() ?? '';
+
+  return (
+    subdomain === 'colombiatours' ||
+    customDomain === 'colombiatours.travel' ||
+    siteName.includes('colombiatours')
+  );
+}
+
 export function EditorialSiteFooter({
   website,
   isCustomDomain = false,
@@ -143,6 +155,9 @@ export function EditorialSiteFooter({
     { label: legalTerms, href: legalHref(basePath, 'terms', resolvedLocale, defaultLocale) },
     { label: legalCancellation, href: legalHref(basePath, 'cancellation', resolvedLocale, defaultLocale) },
   ];
+  const rntDocumentHref = isColombiaToursWebsite(website)
+    ? '/tenant-assets/colombiatours/legal/rnt-2026-act.pdf'
+    : null;
 
   return (
     <footer className="ev-footer" data-screen-label="Footer">
@@ -260,10 +275,21 @@ export function EditorialSiteFooter({
         <div className="footer-bottom">
           <div>
             © {currentYear} {siteName}
-            {legal?.terms_conditions || content.tagline
-              ? ' · '
-              : null}
-            {/* Legal line: RNT/NIT are site-specific — if not supplied, omit. */}
+            {rntDocumentHref ? (
+              <>
+                {' · '}
+                <a
+                  href={rntDocumentHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="footer-rnt-link"
+                >
+                  RNT 35323
+                </a>
+              </>
+            ) : legal?.terms_conditions || content.tagline ? (
+              ' · '
+            ) : null}
           </div>
           <div style={{ display: 'flex', gap: 24 }}>
             {legalLinks.map((link) => (
