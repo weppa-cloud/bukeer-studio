@@ -582,8 +582,26 @@ Steps:
 8. Review changed files for secrets/PII.
 9. Commit and request tech-validator CODE review.
 
+## Final implementation notes (2026-05-14)
+
+Implemented in branch `growth-provider-runner-beta`:
+- Added `lib/growth/provider-runner/` with typed manifests, Zod validation, idempotency/fingerprint helpers, in-memory/testable ledger store, executor interface, and a gate-first runner.
+- Added `scripts/growth/provider-runner.ts` plus `npm run growth:provider-runner`; the CLI defaults to dry-run and prints profile, reason, gates, freshness, cost/approval, circuit breaker, ledger intent, and provider invocation state.
+- First beta profile is `gsc_daily_complete_web_v1`; GA4 daily landing/channel is represented as second-path manifest data, and DataForSEO remains cost/approval gated.
+- Dry-run and fixture-fresh-cache flows are side-effect-free. Apply mode writes queued/running/completed ledger rows only through the runner store interface and invokes the executor only after freshness, budget, approval, circuit, and live-call gates pass.
+- Focused Jest coverage lives in `__tests__/growth/provider-runner/provider-runner.test.ts` and proves no provider executor call on dry-run, fresh ledger skip, fresh cache skip, missing cost approval, and open circuit breaker.
+
+Validation run:
+- `npm test -- __tests__/growth/provider-runner/provider-runner.test.ts --runInBand` — PASS (7 tests).
+- `npm run typecheck` — PASS.
+- `npm run growth:provider-runner -- --profile-id gsc_daily_complete_web_v1 --website-id 894545b7-73ca-4dae-b76a-da5b6a3f8441 --account-id 9fc24733-b127-4184-aa22-12f03b98927a --window-start 2026-05-13 --window-end 2026-05-14 --dry-run` — PASS; provider_invocation.called=false and ledger_intent.write=false.
+- Same dry-run with `--fixture-fresh-cache` — PASS; freshness_gate skip and provider_invocation.called=false.
+- `npm run tech-validator:code:quick` — PASS with two expected unchanged-scope warnings.
+- `git diff --check` — PASS.
+
 ## Risks / WATCH items
 
+- Current implementation uses a static beta manifest subset instead of dynamically importing the full `.mjs` registry, avoiding Jest/ts-jest ESM friction while preserving the selected GSC beta path and future GA4/DataForSEO policy shape. A later registry-hardening task can move the full registry into a TS module.
 - Current `growth_profile_runs.provider` constraint only allows `dataforseo`, `gsc`, `ga4`, `clarity`. This is fine for GSC beta, but paid provider ledger support will need a future migration if/when read-only paid profiles become runnable.
 - Existing `scripts/seo/populate-growth-google-cache.ts` may not yet expose a narrow per-profile API. If it is too broad, implementation should add a safe wrapper rather than rewrite provider logic.
 - Freshness may need both ledger and cache evidence because historical cache rows can predate the runner. Prefer safe skip only when tenant/window/cache freshness is explicit.
