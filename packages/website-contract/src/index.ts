@@ -785,6 +785,39 @@ export type {
 } from './schemas/growth-provider-intelligence';
 
 export {
+  GrowthProviderContextPacketVersionSchema,
+  GrowthProviderContextPacketStatusSchema,
+  GrowthProviderWorkerLaneSchema,
+  GrowthProviderContextEntitySchema,
+  GrowthProviderFreshnessEntrySchema,
+  GrowthProviderSourceProfileSchema,
+  GrowthProviderContextFactBucketSchema,
+  GrowthProviderContextFactsSchema,
+  GrowthProviderPreviousActionSchema,
+  GrowthProviderDedupeVerdictSchema,
+  GrowthProviderContextDedupeSchema,
+  GrowthProviderBlockedActionSchema,
+  GrowthProviderContextPacketSchema,
+  GrowthProviderContextPacketInputSchema,
+} from './schemas/growth-provider-context-packet';
+export type {
+  GrowthProviderContextPacketVersion,
+  GrowthProviderContextPacketStatus,
+  GrowthProviderWorkerLane,
+  GrowthProviderContextEntity,
+  GrowthProviderFreshnessEntry,
+  GrowthProviderSourceProfile,
+  GrowthProviderContextFactBucket,
+  GrowthProviderContextFacts,
+  GrowthProviderPreviousAction,
+  GrowthProviderDedupeVerdict,
+  GrowthProviderContextDedupe,
+  GrowthProviderBlockedAction,
+  GrowthProviderContextPacket,
+  GrowthProviderContextPacketInput,
+} from './schemas/growth-provider-context-packet';
+
+export {
   GrowthRuntimeCycleStatusSchema,
   GrowthRuntimeCycleTriggerSchema,
   GrowthRuntimeCycleStageSchema,
