@@ -18,6 +18,11 @@ import { supabaseImageUrl } from '@/lib/images/supabase-transform';
 import Image from 'next/image';
 import type { ThemeInput } from '@/lib/theme/m3-theme-provider';
 import { normalizeThemeInput } from '@/lib/theme/normalize-theme';
+import {
+  canonicalDestinationSlug,
+  destinationSlugNeedsCanonicalRedirect,
+  findDestinationByCanonicalSlug,
+} from '@/lib/destinations/normalize-destination';
 
 interface CustomDomainPageProps {
   params: Promise<{ host: string; slug?: string[] }>;
@@ -518,6 +523,17 @@ export default async function CustomDomainPage({ params, searchParams }: CustomD
     );
   }
 
+  // Handle destination detail aliases before falling through to static pages.
+  if (slugPath.startsWith('destinos/') || slugPath.startsWith('destinations/')) {
+    const [destinationSegment, requestedDestSlug] = slugPath.split('/');
+    const dynamicDestinations = await getDestinations(website.subdomain);
+    const dest = findDestinationByCanonicalSlug(dynamicDestinations, requestedDestSlug);
+
+    if (dest && destinationSlugNeedsCanonicalRedirect(requestedDestSlug, dest.slug)) {
+      redirect(`/${destinationSegment}/${canonicalDestinationSlug(dest.slug)}`);
+    }
+  }
+
   // Get the page content (non-blog routes)
   const page = await getPageBySlug(website.subdomain, slugPath || 'home');
   const dynamicDestinations = await getDestinations(website.subdomain);
@@ -647,14 +663,18 @@ export async function generateMetadata({ params }: CustomDomainPageProps) {
     const destSlug = slugPath.split('/')[1];
     const { getDestinations } = await import('@/lib/supabase/get-pages');
     const destinations = await getDestinations(website.subdomain);
-    const dest = destinations.find((d: { slug: string }) => d.slug === destSlug);
+    const dest = findDestinationByCanonicalSlug(destinations, destSlug);
     if (dest) {
       const siteName = website.content.account?.name || website.content.siteName;
+      const canonicalDestSlug = canonicalDestinationSlug(dest.slug);
       const title = `${dest.name} | ${siteName}`;
       const description = `Explora ${dest.name}: ${dest.hotel_count} hoteles y ${dest.activity_count} actividades. Reserva con ${siteName}.`;
       return {
         title,
         description,
+        alternates: {
+          canonical: `https://${normalizedHost}/${slugPath.split('/')[0]}/${canonicalDestSlug}`,
+        },
         openGraph: {
           title,
           description,
