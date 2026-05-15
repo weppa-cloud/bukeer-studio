@@ -11,6 +11,7 @@ describe("package media lookup contract", () => {
     expect(source).toContain("!isActivityLikeProductType(productType)");
     expect(source).toContain("!isHotelLikeProductType(productType)");
     expect(source).toContain("!isTransferLikeProductType(productType)");
+    expect(source).toContain("!isFlightLikeProductType(productType)");
     expect(source).toContain('.from("transfers")');
     expect(source).toContain("genericMediaLookupProductIds.map");
     expect(source).not.toContain("productIds.map(async (productId) =>");

@@ -210,7 +210,8 @@ function needsGenericPackageMediaLookup(
     return (
       !isActivityLikeProductType(productType) &&
       !isHotelLikeProductType(productType) &&
-      !isTransferLikeProductType(productType)
+      !isTransferLikeProductType(productType) &&
+      !isFlightLikeProductType(productType)
     );
   });
 }
