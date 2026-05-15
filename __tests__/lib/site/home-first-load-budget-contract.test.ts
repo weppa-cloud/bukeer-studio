@@ -25,4 +25,13 @@ describe("home first-load data budget contract", () => {
       /hasBlogSection[\s\S]*getBlogPosts\(website\.id/,
     );
   });
+
+  it("keeps repeated home section data out of the render payload", () => {
+    const source = readSource("app/site/[subdomain]/page.tsx");
+
+    expect(source).toContain("sections: []");
+    expect(source).toContain("deferredSections");
+    expect(source).toContain("enabledSections={deferredSections}");
+    expect(source).not.toContain("criticalSectionIds={criticalSectionIds}");
+  });
 });

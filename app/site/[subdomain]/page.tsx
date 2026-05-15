@@ -140,7 +140,6 @@ async function DeferredHomeSections({
   subdomain,
   locale,
   enabledSections,
-  criticalSectionIds,
   templateSet,
 }: DeferredHomeDataInput) {
   const accountContent = (website.content as unknown as Record<string, unknown>)
@@ -244,20 +243,18 @@ async function DeferredHomeSections({
     blogPosts: blogResult.posts.length > 0 ? blogResult.posts : undefined,
     brandClaims,
     featuredDestinations,
-  })
-    .filter((section) => !criticalSectionIds.has(section.id))
-    .filter((section) => {
-      if (section.section_type === SECTION_PACKAGES) {
-        return packageItems.length > 0 || contentHasArray(section, "packages");
-      }
-      if (section.section_type === "destinations") {
-        return (
-          sectionDynamicDestinations.length > 0 ||
-          contentHasArray(section, "destinations")
-        );
-      }
-      return true;
-    });
+  }).filter((section) => {
+    if (section.section_type === SECTION_PACKAGES) {
+      return packageItems.length > 0 || contentHasArray(section, "packages");
+    }
+    if (section.section_type === "destinations") {
+      return (
+        sectionDynamicDestinations.length > 0 ||
+        contentHasArray(section, "destinations")
+      );
+    }
+    return true;
+  });
 
   return (
     <>
@@ -292,6 +289,7 @@ export default async function SitePage({ params }: SitePageProps) {
   const isCustomDomain = inferIsCustomDomainWebsite(website);
   const websiteForRender = {
     ...website,
+    sections: [],
     resolvedLocale: localeContext.resolvedLocale,
     defaultLocale: localeContext.defaultLocale,
     isCustomDomain,
@@ -308,7 +306,7 @@ export default async function SitePage({ params }: SitePageProps) {
     locale: localeContext.resolvedLocale,
     defaultLocale: localeContext.defaultLocale,
   });
-  const { criticalSections, criticalSectionIds } =
+  const { criticalSections, deferredSections } =
     buildHomeSectionPlan(enabledSections);
 
   return (
@@ -330,8 +328,7 @@ export default async function SitePage({ params }: SitePageProps) {
           subdomain={subdomain}
           locale={localeContext.resolvedLocale}
           defaultLocale={localeContext.defaultLocale}
-          enabledSections={enabledSections}
-          criticalSectionIds={criticalSectionIds}
+          enabledSections={deferredSections}
           templateSet={templateSet}
         />
       </Suspense>
