@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from "@supabase/supabase-js";
 import type {
   WebsitePage,
   NavigationItem,
@@ -7,14 +7,14 @@ import type {
   ProductPageCustomization,
   ProductPageData,
   CategoryProducts,
-} from '@bukeer/website-contract';
+} from "@bukeer/website-contract";
 import {
   ProductPageDataSchema,
   CategoryProductsSchema,
   ProductDataSchema,
   PackageAggregatedDataSchema,
-} from '@bukeer/website-contract';
-import { isWithinColombiaBounds } from '@/lib/maps/colombia-cities';
+} from "@bukeer/website-contract";
+import { isWithinColombiaBounds } from "@/lib/maps/colombia-cities";
 
 // Re-export types from contract (Strangler migration)
 export type {
@@ -38,16 +38,33 @@ const supabaseService = supabaseServiceKey
       auth: { autoRefreshToken: false, persistSession: false },
     })
   : null;
-const ENABLE_IN_MEMORY_CACHE = process.env.NODE_ENV === 'production';
-const PRODUCT_PAGE_CACHE_TTL_MS = Number(process.env.PRODUCT_PAGE_CACHE_TTL_MS || 5 * 60 * 1000);
-const CATEGORY_PRODUCTS_CACHE_TTL_MS = Number(process.env.CATEGORY_PRODUCTS_CACHE_TTL_MS || 2 * 60 * 1000);
-const productPageCache = new Map<string, { value: ProductPageData; expiresAt: number }>();
-const categoryProductsCache = new Map<string, { value: CategoryProducts; expiresAt: number }>();
+const ENABLE_IN_MEMORY_CACHE = process.env.NODE_ENV === "production";
+const PRODUCT_PAGE_CACHE_TTL_MS = Number(
+  process.env.PRODUCT_PAGE_CACHE_TTL_MS || 5 * 60 * 1000,
+);
+const CATEGORY_PRODUCTS_CACHE_TTL_MS = Number(
+  process.env.CATEGORY_PRODUCTS_CACHE_TTL_MS || 2 * 60 * 1000,
+);
+const NAVIGATION_CACHE_TTL_MS = Number(
+  process.env.NAVIGATION_CACHE_TTL_MS || 5 * 60 * 1000,
+);
+const productPageCache = new Map<
+  string,
+  { value: ProductPageData; expiresAt: number }
+>();
+const categoryProductsCache = new Map<
+  string,
+  { value: CategoryProducts; expiresAt: number }
+>();
+const navigationCache = new Map<
+  string,
+  { value: NavigationItem[]; expiresAt: number }
+>();
 const UUID_PATTERN =
   /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 
 function isUuid(value: unknown): value is string {
-  return typeof value === 'string' && UUID_PATTERN.test(value);
+  return typeof value === "string" && UUID_PATTERN.test(value);
 }
 
 /**
@@ -73,19 +90,19 @@ export function invalidatePublicDataCache(subdomain: string): void {
 function logProductV2ParseWarning(
   scope: string,
   payload: unknown,
-  issues: Array<{ path: Array<PropertyKey>; message: string }>
+  issues: Array<{ path: Array<PropertyKey>; message: string }>,
 ) {
-  console.warn('[product.v2-parse] Schema mismatch', {
+  console.warn("[product.v2-parse] Schema mismatch", {
     scope,
     issues: issues.slice(0, 5),
     totalIssues: issues.length,
-    payloadType: Array.isArray(payload) ? 'array' : typeof payload,
+    payloadType: Array.isArray(payload) ? "array" : typeof payload,
   });
 }
 
 function asStringArray(value: unknown): string[] | null {
   if (!Array.isArray(value)) return null;
-  const rows = value.filter((item): item is string => typeof item === 'string');
+  const rows = value.filter((item): item is string => typeof item === "string");
   return rows;
 }
 
@@ -98,10 +115,10 @@ function asGalleryUrlArray(value: unknown): string[] | null {
   if (!Array.isArray(value)) return null;
   const urls = value
     .map((item) => {
-      if (typeof item === 'string') return item;
-      if (item && typeof item === 'object') {
+      if (typeof item === "string") return item;
+      if (item && typeof item === "object") {
         const rec = item as Record<string, unknown>;
-        if (typeof rec.url === 'string') return rec.url;
+        if (typeof rec.url === "string") return rec.url;
       }
       return null;
     })
@@ -110,34 +127,46 @@ function asGalleryUrlArray(value: unknown): string[] | null {
 }
 
 function asOptionalString(value: unknown): string | null {
-  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : null;
 }
 
 function normalizeAscii(value: string): string {
   return value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .trim();
 }
 
 function isActivityLikeProductType(value: unknown): boolean {
-  if (typeof value !== 'string') return false;
+  if (typeof value !== "string") return false;
   const normalized = normalizeAscii(value);
-  return normalized === 'actividad' || normalized === 'actividades' || normalized === 'activity' || normalized === 'servicio' || normalized === 'servicios';
+  return (
+    normalized === "actividad" ||
+    normalized === "actividades" ||
+    normalized === "activity" ||
+    normalized === "servicio" ||
+    normalized === "servicios"
+  );
 }
 
 function isHotelLikeProductType(value: unknown): boolean {
-  if (typeof value !== 'string') return false;
+  if (typeof value !== "string") return false;
   const normalized = normalizeAscii(value);
-  return normalized === 'hotel' || normalized === 'hoteles' || normalized === 'lodging';
+  return (
+    normalized === "hotel" ||
+    normalized === "hoteles" ||
+    normalized === "lodging"
+  );
 }
 
 function parsePositiveInt(value: unknown): number | null {
-  if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+  if (typeof value === "number" && Number.isFinite(value) && value > 0) {
     return Math.trunc(value);
   }
-  if (typeof value === 'string') {
+  if (typeof value === "string") {
     const parsed = Number(value);
     if (Number.isFinite(parsed) && parsed > 0) {
       return Math.trunc(parsed);
@@ -147,15 +176,24 @@ function parsePositiveInt(value: unknown): number | null {
 }
 
 function isTransferLikeProductType(value: unknown): boolean {
-  if (typeof value !== 'string') return false;
+  if (typeof value !== "string") return false;
   const normalized = normalizeAscii(value);
-  return normalized === 'transporte' || normalized === 'transfer' || normalized === 'transfers';
+  return (
+    normalized === "transporte" ||
+    normalized === "transfer" ||
+    normalized === "transfers"
+  );
 }
 
 function isFlightLikeProductType(value: unknown): boolean {
-  if (typeof value !== 'string') return false;
+  if (typeof value !== "string") return false;
   const normalized = normalizeAscii(value);
-  return normalized === 'vuelo' || normalized === 'vuelos' || normalized === 'flight' || normalized === 'flights';
+  return (
+    normalized === "vuelo" ||
+    normalized === "vuelos" ||
+    normalized === "flight" ||
+    normalized === "flights"
+  );
 }
 
 function formatItineraryTimeLabel(value: unknown): string | null {
@@ -164,8 +202,8 @@ function formatItineraryTimeLabel(value: unknown): string | null {
   if (/^\d{1,2}:\d{2}/.test(raw)) return raw.slice(0, 5);
   const parsed = new Date(raw);
   if (Number.isNaN(parsed.getTime())) return raw;
-  const hh = `${parsed.getHours()}`.padStart(2, '0');
-  const mm = `${parsed.getMinutes()}`.padStart(2, '0');
+  const hh = `${parsed.getHours()}`.padStart(2, "0");
+  const mm = `${parsed.getMinutes()}`.padStart(2, "0");
   return `${hh}:${mm}`;
 }
 
@@ -173,12 +211,12 @@ function extractRpcImageUrls(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
   const urls: string[] = [];
   for (const row of value) {
-    if (!row || typeof row !== 'object') continue;
+    if (!row || typeof row !== "object") continue;
     const rec = row as Record<string, unknown>;
     const candidate =
-      asOptionalString(rec.image_url)
-      ?? asOptionalString(rec.main_image)
-      ?? asOptionalString(rec.url);
+      asOptionalString(rec.image_url) ??
+      asOptionalString(rec.main_image) ??
+      asOptionalString(rec.url);
     if (candidate && !urls.includes(candidate)) {
       urls.push(candidate);
     }
@@ -189,9 +227,14 @@ function extractRpcImageUrls(value: unknown): string[] {
 function isGenericPackageProgramTitle(value: string): boolean {
   const normalized = normalizeAscii(value);
   if (!normalized) return true;
-  if (normalized.includes(' en un solo viaje')) return true;
-  if (/^(actividad|servicio|hotel|vuelo|transporte)$/.test(normalized)) return true;
-  if (/^(actividad|servicio|hotel|vuelo|transporte)( \+ (actividad|servicio|hotel|vuelo|transporte))+$/i.test(normalized)) {
+  if (normalized.includes(" en un solo viaje")) return true;
+  if (/^(actividad|servicio|hotel|vuelo|transporte)$/.test(normalized))
+    return true;
+  if (
+    /^(actividad|servicio|hotel|vuelo|transporte)( \+ (actividad|servicio|hotel|vuelo|transporte))+$/i.test(
+      normalized,
+    )
+  ) {
     return true;
   }
   return false;
@@ -233,7 +276,7 @@ function extractMasterHotelMediaUrls(row: Record<string, unknown>): string[] {
     }
   }
   const aiContent = row.ai_content;
-  if (aiContent && typeof aiContent === 'object' && !Array.isArray(aiContent)) {
+  if (aiContent && typeof aiContent === "object" && !Array.isArray(aiContent)) {
     const rec = aiContent as Record<string, unknown>;
     const gallery = asGalleryUrlArray(rec.gallery);
     if (gallery) {
@@ -256,7 +299,9 @@ function pushUniqueUrls(target: string[], source: string[]): string[] {
   return target;
 }
 
-async function enrichPackageCategoryPricing(items: ProductData[]): Promise<ProductData[]> {
+async function enrichPackageCategoryPricing(
+  items: ProductData[],
+): Promise<ProductData[]> {
   if (!Array.isArray(items) || items.length === 0) return items;
 
   const packageReader = supabaseService ?? supabase;
@@ -264,21 +309,21 @@ async function enrichPackageCategoryPricing(items: ProductData[]): Promise<Produ
     new Set(
       items
         .map((item) => asOptionalString(item.id))
-        .filter((id): id is string => Boolean(id) && isUuid(id))
-    )
+        .filter((id): id is string => Boolean(id) && isUuid(id)),
+    ),
   );
   if (ids.length === 0) return items;
 
   try {
     const [kitsByIdRes, kitsBySourceRes] = await Promise.all([
       packageReader
-        .from('package_kits')
-        .select('id, source_itinerary_id')
-        .in('id', ids),
+        .from("package_kits")
+        .select("id, source_itinerary_id")
+        .in("id", ids),
       packageReader
-        .from('package_kits')
-        .select('id, source_itinerary_id')
-        .in('source_itinerary_id', ids),
+        .from("package_kits")
+        .select("id, source_itinerary_id")
+        .in("source_itinerary_id", ids),
     ]);
 
     const kitRows = [
@@ -291,7 +336,7 @@ async function enrichPackageCategoryPricing(items: ProductData[]): Promise<Produ
     const kitIds = new Set<string>();
 
     for (const raw of kitRows) {
-      if (!raw || typeof raw !== 'object') continue;
+      if (!raw || typeof raw !== "object") continue;
       const row = raw as Record<string, unknown>;
       const kitId = asOptionalString(row.id);
       const sourceItineraryId = asOptionalString(row.source_itinerary_id);
@@ -308,10 +353,12 @@ async function enrichPackageCategoryPricing(items: ProductData[]): Promise<Produ
     if (kitIds.size === 0) return items;
 
     const { data: rawVersions } = await packageReader
-      .from('package_kit_versions')
-      .select('package_kit_id, version_number, total_price, base_currency, price_per_person, is_base_version')
-      .in('package_kit_id', Array.from(kitIds))
-      .eq('is_active', true);
+      .from("package_kit_versions")
+      .select(
+        "package_kit_id, version_number, total_price, base_currency, price_per_person, is_base_version",
+      )
+      .in("package_kit_id", Array.from(kitIds))
+      .eq("is_active", true);
 
     if (!Array.isArray(rawVersions) || rawVersions.length === 0) return items;
 
@@ -330,26 +377,34 @@ async function enrichPackageCategoryPricing(items: ProductData[]): Promise<Produ
     >();
 
     for (const raw of rawVersions) {
-      if (!raw || typeof raw !== 'object') continue;
+      if (!raw || typeof raw !== "object") continue;
       const row = raw as Record<string, unknown>;
       const kitId = asOptionalString(row.package_kit_id);
       const versionNumber = parsePositiveInt(row.version_number);
-      const totalPriceRaw = typeof row.total_price === 'number' ? row.total_price : Number(row.total_price);
-      const totalPrice = Number.isFinite(totalPriceRaw) && totalPriceRaw > 0 ? totalPriceRaw : null;
+      const totalPriceRaw =
+        typeof row.total_price === "number"
+          ? row.total_price
+          : Number(row.total_price);
+      const totalPrice =
+        Number.isFinite(totalPriceRaw) && totalPriceRaw > 0
+          ? totalPriceRaw
+          : null;
       if (!kitId || !versionNumber || !totalPrice) continue;
 
-      const pricePerPersonRaw = typeof row.price_per_person === 'number'
-        ? row.price_per_person
-        : Number(row.price_per_person);
-      const pricePerPerson = Number.isFinite(pricePerPersonRaw) && pricePerPersonRaw > 0
-        ? Math.floor(pricePerPersonRaw)
-        : undefined;
+      const pricePerPersonRaw =
+        typeof row.price_per_person === "number"
+          ? row.price_per_person
+          : Number(row.price_per_person);
+      const pricePerPerson =
+        Number.isFinite(pricePerPersonRaw) && pricePerPersonRaw > 0
+          ? Math.floor(pricePerPersonRaw)
+          : undefined;
 
       const version = {
         version_number: versionNumber,
         total_price: totalPrice,
-        base_currency: asOptionalString(row.base_currency) ?? 'COP',
-        services_snapshot_summary: 'Versión de paquete',
+        base_currency: asOptionalString(row.base_currency) ?? "COP",
+        services_snapshot_summary: "Versión de paquete",
         price_per_person: pricePerPerson,
         is_base_version: row.is_base_version === true,
       };
@@ -368,7 +423,9 @@ async function enrichPackageCategoryPricing(items: ProductData[]): Promise<Produ
       const versions = versionsByKitId.get(kitId);
       if (!versions || versions.length === 0) return item;
 
-      const sortedVersions = [...versions].sort((a, b) => a.version_number - b.version_number);
+      const sortedVersions = [...versions].sort(
+        (a, b) => a.version_number - b.version_number,
+      );
       const cheapest = sortedVersions.reduce((best, current) => {
         const bestValue = best.price_per_person ?? best.total_price;
         const currentValue = current.price_per_person ?? current.total_price;
@@ -388,13 +445,15 @@ async function enrichPackageCategoryPricing(items: ProductData[]): Promise<Produ
   }
 }
 
-function resolvePackageItemDayMap(rows: Array<Record<string, unknown>>): Map<number, Array<Record<string, unknown>>> {
+function resolvePackageItemDayMap(
+  rows: Array<Record<string, unknown>>,
+): Map<number, Array<Record<string, unknown>>> {
   const byDay = new Map<number, Array<Record<string, unknown>>>();
   if (rows.length === 0) return byDay;
 
   const datedRows = [...rows].sort((a, b) => {
-    const aDate = asOptionalString(a.date) ?? '';
-    const bDate = asOptionalString(b.date) ?? '';
+    const aDate = asOptionalString(a.date) ?? "";
+    const bDate = asOptionalString(b.date) ?? "";
     return aDate.localeCompare(bDate);
   });
 
@@ -402,8 +461,8 @@ function resolvePackageItemDayMap(rows: Array<Record<string, unknown>>): Map<num
     new Set(
       datedRows
         .map((row) => asOptionalString(row.date))
-        .filter((value): value is string => Boolean(value))
-    )
+        .filter((value): value is string => Boolean(value)),
+    ),
   );
   const dateToDay = new Map<string, number>();
   uniqueDates.forEach((dateValue, index) => {
@@ -413,12 +472,14 @@ function resolvePackageItemDayMap(rows: Array<Record<string, unknown>>): Map<num
   let fallbackDayCounter = 1;
   for (const row of datedRows) {
     const dayRaw = row.day_number;
-    const parsedDay = typeof dayRaw === 'number'
-      ? dayRaw
-      : typeof dayRaw === 'string'
-        ? Number(dayRaw)
-        : NaN;
-    let day = Number.isFinite(parsedDay) && parsedDay > 0 ? Math.trunc(parsedDay) : NaN;
+    const parsedDay =
+      typeof dayRaw === "number"
+        ? dayRaw
+        : typeof dayRaw === "string"
+          ? Number(dayRaw)
+          : NaN;
+    let day =
+      Number.isFinite(parsedDay) && parsedDay > 0 ? Math.trunc(parsedDay) : NaN;
     if (!Number.isFinite(day)) {
       const dateValue = asOptionalString(row.date);
       if (dateValue && dateToDay.has(dateValue)) {
@@ -442,31 +503,34 @@ type TranslationOverlay = Record<string, unknown>;
 
 function resolveTranslationOverlay(
   translations: unknown,
-  locale: string | null | undefined
+  locale: string | null | undefined,
 ): TranslationOverlay | null {
-  if (!translations || typeof translations !== 'object' || !locale) return null;
+  if (!translations || typeof translations !== "object" || !locale) return null;
   const map = translations as Record<string, unknown>;
   const exact = map[locale];
-  if (exact && typeof exact === 'object' && !Array.isArray(exact)) {
+  if (exact && typeof exact === "object" && !Array.isArray(exact)) {
     return exact as TranslationOverlay;
   }
 
-  const lang = locale.split('-')[0]?.toLowerCase();
+  const lang = locale.split("-")[0]?.toLowerCase();
   if (!lang) return null;
   for (const [key, value] of Object.entries(map)) {
     if (!key.toLowerCase().startsWith(`${lang}-`)) continue;
-    if (value && typeof value === 'object' && !Array.isArray(value)) {
+    if (value && typeof value === "object" && !Array.isArray(value)) {
       return value as TranslationOverlay;
     }
   }
   return null;
 }
 
-function pickTranslatedString(overlay: TranslationOverlay | null, keys: string[]): string | null {
+function pickTranslatedString(
+  overlay: TranslationOverlay | null,
+  keys: string[],
+): string | null {
   if (!overlay) return null;
   for (const key of keys) {
     const value = overlay[key];
-    if (typeof value === 'string' && value.trim().length > 0) {
+    if (typeof value === "string" && value.trim().length > 0) {
       return value.trim();
     }
   }
@@ -476,48 +540,51 @@ function pickTranslatedString(overlay: TranslationOverlay | null, keys: string[]
 async function applyTranslationOverlayToProducts(
   items: ProductData[],
   categoryType: string,
-  locale: string | null | undefined
+  locale: string | null | undefined,
 ): Promise<ProductData[]> {
   if (!locale || items.length === 0) return items;
 
   const ids = items
     .map((item) => item.id)
-    .filter((id): id is string => typeof id === 'string' && id.length > 0);
+    .filter((id): id is string => typeof id === "string" && id.length > 0);
   if (ids.length === 0) return items;
 
   const overlayByProductId = new Map<string, TranslationOverlay>();
 
-  if (categoryType === 'packages') {
+  if (categoryType === "packages") {
     const { data, error } = await supabase
-      .from('package_kits')
-      .select('id, source_itinerary_id, translations')
-      .or(`id.in.(${ids.join(',')}),source_itinerary_id.in.(${ids.join(',')})`);
+      .from("package_kits")
+      .select("id, source_itinerary_id, translations")
+      .or(`id.in.(${ids.join(",")}),source_itinerary_id.in.(${ids.join(",")})`);
 
     if (error || !Array.isArray(data)) return items;
 
     for (const row of data) {
       const overlay = resolveTranslationOverlay(row.translations, locale);
       if (!overlay) continue;
-      if (typeof row.id === 'string' && row.id.length > 0) {
+      if (typeof row.id === "string" && row.id.length > 0) {
         overlayByProductId.set(row.id, overlay);
       }
-      if (typeof row.source_itinerary_id === 'string' && row.source_itinerary_id.length > 0) {
+      if (
+        typeof row.source_itinerary_id === "string" &&
+        row.source_itinerary_id.length > 0
+      ) {
         overlayByProductId.set(row.source_itinerary_id, overlay);
       }
     }
   } else {
     // Activities: query activities table (no products table in this schema)
     const { data, error } = await supabase
-      .from('activities')
-      .select('id, translations')
-      .in('id', ids);
+      .from("activities")
+      .select("id, translations")
+      .in("id", ids);
 
     if (error || !Array.isArray(data)) return items;
 
     for (const row of data) {
       const overlay = resolveTranslationOverlay(row.translations, locale);
       if (!overlay) continue;
-      if (typeof row.id === 'string' && row.id.length > 0) {
+      if (typeof row.id === "string" && row.id.length > 0) {
         overlayByProductId.set(row.id, overlay);
       }
     }
@@ -526,11 +593,11 @@ async function applyTranslationOverlayToProducts(
   return items.map((item) => {
     const overlay = overlayByProductId.get(item.id);
     if (!overlay) return item;
-    const translatedName = pickTranslatedString(overlay, ['name', 'title']);
+    const translatedName = pickTranslatedString(overlay, ["name", "title"]);
     const translatedDescription = pickTranslatedString(overlay, [
-      'description_short',
-      'short_description',
-      'description',
+      "description_short",
+      "short_description",
+      "description",
     ]);
 
     return {
@@ -550,22 +617,22 @@ async function applyTranslationOverlayToProducts(
  */
 export async function getPageBySlug(
   subdomain: string,
-  slug: string
+  slug: string,
 ): Promise<WebsitePage | null> {
   try {
-    const { data, error } = await supabase.rpc('get_website_page_by_slug', {
+    const { data, error } = await supabase.rpc("get_website_page_by_slug", {
       p_subdomain: subdomain,
       p_slug: slug,
     });
 
     if (error) {
-      console.error('[getPageBySlug] Error:', error);
+      console.error("[getPageBySlug] Error:", error);
       return null;
     }
 
     return data as WebsitePage | null;
   } catch (e) {
-    console.error('[getPageBySlug] Exception:', e);
+    console.error("[getPageBySlug] Exception:", e);
     return null;
   }
 }
@@ -578,24 +645,24 @@ export async function getPageByTranslationGroup(
   websiteId: string,
   translationGroupId: string,
   locale: string,
-): Promise<Pick<WebsitePage, 'id' | 'slug' | 'locale'> | null> {
+): Promise<Pick<WebsitePage, "id" | "slug" | "locale"> | null> {
   try {
     const { data, error } = await supabase
-      .from('website_pages')
-      .select('id, slug, locale')
-      .eq('website_id', websiteId)
-      .eq('translation_group_id', translationGroupId)
-      .eq('locale', locale)
-      .eq('is_published', true)
+      .from("website_pages")
+      .select("id, slug, locale")
+      .eq("website_id", websiteId)
+      .eq("translation_group_id", translationGroupId)
+      .eq("locale", locale)
+      .eq("is_published", true)
       .maybeSingle();
 
     if (error) {
-      console.error('[getPageByTranslationGroup] Error:', error);
+      console.error("[getPageByTranslationGroup] Error:", error);
       return null;
     }
-    return data as Pick<WebsitePage, 'id' | 'slug' | 'locale'> | null;
+    return data as Pick<WebsitePage, "id" | "slug" | "locale"> | null;
   } catch (e) {
-    console.error('[getPageByTranslationGroup] Exception:', e);
+    console.error("[getPageByTranslationGroup] Exception:", e);
     return null;
   }
 }
@@ -607,10 +674,10 @@ export async function getProductPage(
   subdomain: string,
   productType: string,
   productSlug: string,
-  options?: { locale?: string }
+  options?: { locale?: string },
 ): Promise<ProductPageData | null> {
   try {
-    const cacheKey = `${subdomain.toLowerCase()}::${productType.toLowerCase()}::${productSlug.toLowerCase()}::${(options?.locale ?? '').toLowerCase()}`;
+    const cacheKey = `${subdomain.toLowerCase()}::${productType.toLowerCase()}::${productSlug.toLowerCase()}::${(options?.locale ?? "").toLowerCase()}`;
     if (ENABLE_IN_MEMORY_CACHE) {
       const cached = productPageCache.get(cacheKey);
       if (cached && cached.expiresAt > Date.now()) {
@@ -618,14 +685,14 @@ export async function getProductPage(
       }
     }
 
-    const { data, error } = await supabase.rpc('get_website_product_page', {
+    const { data, error } = await supabase.rpc("get_website_product_page", {
       p_subdomain: subdomain,
       p_product_type: productType,
       p_product_slug: productSlug,
     });
 
     if (error) {
-      console.error('[getProductPage] Error:', error);
+      console.error("[getProductPage] Error:", error);
       return null;
     }
 
@@ -639,7 +706,7 @@ export async function getProductPage(
     if (parsed.success) {
       result = parsed.data as ProductPageData;
     } else {
-      logProductV2ParseWarning('getProductPage', data, parsed.error.issues);
+      logProductV2ParseWarning("getProductPage", data, parsed.error.issues);
 
       // Graceful fallback for legacy/partial payloads.
       const parsedLegacyProduct = ProductDataSchema.safeParse(data.product);
@@ -654,17 +721,20 @@ export async function getProductPage(
     // Defensive publication gate: if DB/RPC returns an unpublished row,
     // treat it as non-existent for public routing.
     const productPublished =
-      result.product && typeof (result.product as unknown as Record<string, unknown>).is_published === 'boolean'
+      result.product &&
+      typeof (result.product as unknown as Record<string, unknown>)
+        .is_published === "boolean"
         ? (result.product as unknown as Record<string, unknown>).is_published
         : undefined;
     if (
-      (typeof productPublished === 'boolean' && productPublished === false) ||
-      (typeof result.page?.is_published === 'boolean' && result.page.is_published === false)
+      (typeof productPublished === "boolean" && productPublished === false) ||
+      (typeof result.page?.is_published === "boolean" &&
+        result.page.is_published === false)
     ) {
       return null;
     }
 
-    if (productType === 'package' && result.product) {
+    if (productType === "package" && result.product) {
       const product = result.product as ProductData & {
         program_inclusions?: string[] | null;
         program_exclusions?: string[] | null;
@@ -689,22 +759,23 @@ export async function getProductPage(
       // paths. Overlay `package_kits` values when resolvable by itinerary link.
       try {
         const packageReader = supabaseService ?? supabase;
-        const kitFields = 'id, name, description, destination, planner_id, program_highlights, program_inclusions, program_exclusions, program_gallery, cover_image_url, video_url, video_caption, translations';
+        const kitFields =
+          "id, name, description, destination, planner_id, program_highlights, program_inclusions, program_exclusions, program_gallery, cover_image_url, video_url, video_caption, translations";
         let kit: Record<string, unknown> | null = null;
 
         if (isUuid(product.id)) {
           const byItinerary = await packageReader
-            .from('package_kits')
+            .from("package_kits")
             .select(kitFields)
-            .eq('source_itinerary_id', product.id)
+            .eq("source_itinerary_id", product.id)
             .maybeSingle();
 
           kit = byItinerary.data;
           if (!kit || byItinerary.error) {
             const byId = await packageReader
-              .from('package_kits')
+              .from("package_kits")
               .select(kitFields)
-              .eq('id', product.id)
+              .eq("id", product.id)
               .maybeSingle();
             if (!byId.error) kit = byId.data;
           }
@@ -713,16 +784,18 @@ export async function getProductPage(
           // has source_itinerary_id set on the kit side.
           if (!kit) {
             const { data: itinRow } = await supabase
-              .from('itineraries')
-              .select('source_package_id')
-              .eq('id', product.id)
+              .from("itineraries")
+              .select("source_package_id")
+              .eq("id", product.id)
               .maybeSingle();
-            const kitId = itinRow?.source_package_id ? String(itinRow.source_package_id) : null;
+            const kitId = itinRow?.source_package_id
+              ? String(itinRow.source_package_id)
+              : null;
             if (kitId) {
               const bySourcePkg = await packageReader
-                .from('package_kits')
+                .from("package_kits")
                 .select(kitFields)
-                .eq('id', kitId)
+                .eq("id", kitId)
                 .maybeSingle();
               if (!bySourcePkg.error) kit = bySourcePkg.data;
             }
@@ -730,22 +803,29 @@ export async function getProductPage(
         }
 
         if (kit) {
-          const kitName = asOptionalString((kit as Record<string, unknown>).name);
+          const kitName = asOptionalString(
+            (kit as Record<string, unknown>).name,
+          );
           if (kitName) {
             product.name = kitName;
           }
 
-          if (typeof kit.description === 'string') {
+          if (typeof kit.description === "string") {
             product.description = kit.description;
           }
 
-          const kitDestination = asOptionalString((kit as Record<string, unknown>).destination);
+          const kitDestination = asOptionalString(
+            (kit as Record<string, unknown>).destination,
+          );
           if (kitDestination) {
-            (product as ProductData & { destination?: string }).destination = kitDestination;
+            (product as ProductData & { destination?: string }).destination =
+              kitDestination;
             product.location = kitDestination;
           }
 
-          const plannerId = asOptionalString((kit as Record<string, unknown>).planner_id);
+          const plannerId = asOptionalString(
+            (kit as Record<string, unknown>).planner_id,
+          );
           if (plannerId) {
             product.planner_id = plannerId;
           }
@@ -762,13 +842,19 @@ export async function getProductPage(
           const gallery = asGalleryUrlArray(kit.program_gallery);
           if (gallery) product.program_gallery = gallery;
 
-          if (typeof kit.video_url === 'string' || kit.video_url === null) {
+          if (typeof kit.video_url === "string" || kit.video_url === null) {
             product.video_url = kit.video_url;
           }
-          if (typeof kit.video_caption === 'string' || kit.video_caption === null) {
+          if (
+            typeof kit.video_caption === "string" ||
+            kit.video_caption === null
+          ) {
             product.video_caption = kit.video_caption;
           }
-          if (!product.social_image && typeof kit.cover_image_url === 'string') {
+          if (
+            !product.social_image &&
+            typeof kit.cover_image_url === "string"
+          ) {
             product.social_image = kit.cover_image_url;
           }
 
@@ -776,32 +862,54 @@ export async function getProductPage(
           const kitId = asOptionalString((kit as Record<string, unknown>).id);
           if (kitId) {
             const { data: packageKitVersions } = await packageReader
-              .from('package_kit_versions')
-              .select('id, version_number, version_label, passenger_count, is_base_version, is_active, total_price, price_per_person, base_currency, pricing_notes')
-              .eq('package_kit_id', kitId)
-              .eq('is_active', true)
-              .order('version_number', { ascending: true });
-            if (Array.isArray(packageKitVersions) && packageKitVersions.length > 0) {
+              .from("package_kit_versions")
+              .select(
+                "id, version_number, version_label, passenger_count, is_base_version, is_active, total_price, price_per_person, base_currency, pricing_notes",
+              )
+              .eq("package_kit_id", kitId)
+              .eq("is_active", true)
+              .order("version_number", { ascending: true });
+            if (
+              Array.isArray(packageKitVersions) &&
+              packageKitVersions.length > 0
+            ) {
               const versions = packageKitVersions
                 .map((raw) => raw as Record<string, unknown>)
                 .map((row) => {
                   const versionNumber = parsePositiveInt(row.version_number);
-                  const totalPriceRaw = typeof row.total_price === 'number' ? row.total_price : Number(row.total_price);
-                  const totalPrice = Number.isFinite(totalPriceRaw) && totalPriceRaw > 0 ? totalPriceRaw : null;
-                  const baseCurrency = asOptionalString(row.base_currency) ?? asOptionalString(product.currency) ?? 'COP';
+                  const totalPriceRaw =
+                    typeof row.total_price === "number"
+                      ? row.total_price
+                      : Number(row.total_price);
+                  const totalPrice =
+                    Number.isFinite(totalPriceRaw) && totalPriceRaw > 0
+                      ? totalPriceRaw
+                      : null;
+                  const baseCurrency =
+                    asOptionalString(row.base_currency) ??
+                    asOptionalString(product.currency) ??
+                    "COP";
                   const pax = parsePositiveInt(row.passenger_count);
                   const label = asOptionalString(row.version_label);
                   const notes = asOptionalString(row.pricing_notes);
-                  const pricePerPersonRaw = typeof row.price_per_person === 'number' ? row.price_per_person : Number(row.price_per_person);
-                  const pricePerPerson = Number.isFinite(pricePerPersonRaw) && pricePerPersonRaw > 0 ? Math.floor(pricePerPersonRaw) : undefined;
+                  const pricePerPersonRaw =
+                    typeof row.price_per_person === "number"
+                      ? row.price_per_person
+                      : Number(row.price_per_person);
+                  const pricePerPerson =
+                    Number.isFinite(pricePerPersonRaw) && pricePerPersonRaw > 0
+                      ? Math.floor(pricePerPersonRaw)
+                      : undefined;
                   if (!versionNumber || !totalPrice) return null;
                   return {
                     version_number: versionNumber,
                     total_price: totalPrice,
                     base_currency: baseCurrency,
                     services_snapshot_summary:
-                      notes
-                      ?? (pax ? `${pax} ${pax === 1 ? 'persona' : 'personas'}` : 'Versión de paquete'),
+                      notes ??
+                      (pax
+                        ? `${pax} ${pax === 1 ? "persona" : "personas"}`
+                        : "Versión de paquete"),
                     passenger_count: pax ?? undefined,
                     version_label: label ?? undefined,
                     price_per_person: pricePerPerson,
@@ -822,11 +930,20 @@ export async function getProductPage(
               options.locale,
             );
             if (localeOverlay) {
-              const tName = pickTranslatedString(localeOverlay, ['name', 'title']);
-              const tDesc = pickTranslatedString(localeOverlay, ['description', 'description_short']);
-              const tHighlights = Array.isArray(localeOverlay.program_highlights)
-                ? (localeOverlay.program_highlights as unknown[])
-                    .filter((h): h is string => typeof h === 'string')
+              const tName = pickTranslatedString(localeOverlay, [
+                "name",
+                "title",
+              ]);
+              const tDesc = pickTranslatedString(localeOverlay, [
+                "description",
+                "description_short",
+              ]);
+              const tHighlights = Array.isArray(
+                localeOverlay.program_highlights,
+              )
+                ? (localeOverlay.program_highlights as unknown[]).filter(
+                    (h): h is string => typeof h === "string",
+                  )
                 : null;
               if (tName) product.name = tName;
               if (tDesc) product.description = tDesc;
@@ -843,7 +960,7 @@ export async function getProductPage(
     // photos from activities associated to itinerary_items (Servicios /
     // Actividades) so package detail gallery and day media reflect the real
     // program components instead of only the cover image.
-    if (productType === 'package' && result.product) {
+    if (productType === "package" && result.product) {
       const prod = result.product as ProductData & {
         images?: string[];
         program_gallery?: string[] | null;
@@ -864,7 +981,13 @@ export async function getProductPage(
           label: string;
           title: string;
           note?: string | null;
-          tone: 'transporte' | 'actividad' | 'comida' | 'alojamiento' | 'libre' | 'vuelo';
+          tone:
+            | "transporte"
+            | "actividad"
+            | "comida"
+            | "alojamiento"
+            | "libre"
+            | "vuelo";
           imageUrl?: string | null;
           location?: string | null;
           productType?: string | null;
@@ -885,16 +1008,22 @@ export async function getProductPage(
       try {
         const packageReader = supabaseService ?? supabase;
         const itinerarySelect =
-          'id,id_product,product_type,day_number,date,start_time,end_time,destination,product_name,rate_name,personalized_message,hotel_nights,flight_departure,flight_arrival,departure_time,arrival_time,flight_number,airline,order';
+          "id,id_product,product_type,day_number,date,start_time,end_time,destination,product_name,rate_name,personalized_message,hotel_nights,flight_departure,flight_arrival,departure_time,arrival_time,flight_number,airline,order";
         let itineraryRows: Array<Record<string, unknown>> | null = null;
         const { data: directRows, error: itineraryError } = await packageReader
-          .from('itinerary_items')
+          .from("itinerary_items")
           .select(itinerarySelect)
           .or(`id_itinerary.eq.${prod.id},source_package_id.eq.${prod.id}`)
-          .not('id_product', 'is', null)
+          .not("id_product", "is", null)
           .limit(500);
-        if (!itineraryError && Array.isArray(directRows) && directRows.length > 0) {
-          itineraryRows = directRows as unknown as Array<Record<string, unknown>>;
+        if (
+          !itineraryError &&
+          Array.isArray(directRows) &&
+          directRows.length > 0
+        ) {
+          itineraryRows = directRows as unknown as Array<
+            Record<string, unknown>
+          >;
         }
 
         // Some package routes resolve `prod.id` to package_kit id while
@@ -902,48 +1031,65 @@ export async function getProductPage(
         // itineraries.source_package_id -> itineraries.id.
         if (!itineraryRows || itineraryRows.length === 0) {
           const { data: itineraryIds } = await packageReader
-            .from('itineraries')
-            .select('id')
-            .eq('source_package_id', prod.id)
+            .from("itineraries")
+            .select("id")
+            .eq("source_package_id", prod.id)
             .limit(50);
           const ids = Array.isArray(itineraryIds)
             ? itineraryIds
-                .map((row) => asOptionalString((row as Record<string, unknown>).id))
+                .map((row) =>
+                  asOptionalString((row as Record<string, unknown>).id),
+                )
                 .filter((id): id is string => Boolean(id))
             : [];
           if (ids.length > 0) {
-            const { data: rowsByResolvedId, error: rowsByResolvedIdError } = await packageReader
-              .from('itinerary_items')
-              .select(itinerarySelect)
-              .in('id_itinerary', ids)
-              .not('id_product', 'is', null)
-              .limit(500);
-            if (!rowsByResolvedIdError && Array.isArray(rowsByResolvedId) && rowsByResolvedId.length > 0) {
-              itineraryRows = rowsByResolvedId as unknown as Array<Record<string, unknown>>;
+            const { data: rowsByResolvedId, error: rowsByResolvedIdError } =
+              await packageReader
+                .from("itinerary_items")
+                .select(itinerarySelect)
+                .in("id_itinerary", ids)
+                .not("id_product", "is", null)
+                .limit(500);
+            if (
+              !rowsByResolvedIdError &&
+              Array.isArray(rowsByResolvedId) &&
+              rowsByResolvedId.length > 0
+            ) {
+              itineraryRows = rowsByResolvedId as unknown as Array<
+                Record<string, unknown>
+              >;
             }
           }
         }
 
         if (Array.isArray(itineraryRows) && itineraryRows.length > 0) {
           const mediaByProductId = new Map<string, string[]>();
-          const activityMetaById = new Map<string, { name: string | null; description: string | null }>();
+          const activityMetaById = new Map<
+            string,
+            { name: string | null; description: string | null }
+          >();
           const hotelNameByProductId = new Map<string, string>();
           const hotelCityByProductId = new Map<string, string>();
           const dayMap = resolvePackageItemDayMap(itineraryRows);
-          const sortedDayEntries = Array.from(dayMap.entries()).sort((a, b) => a[0] - b[0]);
+          const sortedDayEntries = Array.from(dayMap.entries()).sort(
+            (a, b) => a[0] - b[0],
+          );
           const productIds = Array.from(
             new Set(
               itineraryRows
                 .map((row) => asOptionalString(row.id_product))
-                .filter((id): id is string => Boolean(id))
-            )
+                .filter((id): id is string => Boolean(id)),
+            ),
           );
           if (productIds.length > 0) {
             const rpcRows = await Promise.all(
               productIds.map(async (productId) => {
-                const { data, error } = await packageReader.rpc('function_get_images_and_main_image', { p_id: productId });
+                const { data, error } = await packageReader.rpc(
+                  "function_get_images_and_main_image",
+                  { p_id: productId },
+                );
                 return { productId, data, error };
-              })
+              }),
             );
             for (const rpcRow of rpcRows) {
               if (rpcRow.error) continue;
@@ -959,26 +1105,28 @@ export async function getProductPage(
               itineraryRows
                 .filter((row) => isActivityLikeProductType(row.product_type))
                 .map((row) => asOptionalString(row.id_product))
-                .filter((id): id is string => Boolean(id))
-            )
+                .filter((id): id is string => Boolean(id)),
+            ),
           );
 
-          const hotelRows = itineraryRows.filter((row) => isHotelLikeProductType(row.product_type));
+          const hotelRows = itineraryRows.filter((row) =>
+            isHotelLikeProductType(row.product_type),
+          );
           if (hotelRows.length > 0) {
             const accountHotelIds = Array.from(
               new Set(
                 hotelRows
                   .map((row) => asOptionalString(row.id_product))
-                  .filter((id): id is string => Boolean(id))
-              )
+                  .filter((id): id is string => Boolean(id)),
+              ),
             );
 
             const accountHotelMap = new Map<string, Record<string, unknown>>();
             if (accountHotelIds.length > 0) {
               const { data: accountHotels } = await packageReader
-                .from('account_hotels')
-                .select('id, master_hotel_id, custom_name')
-                .in('id', accountHotelIds);
+                .from("account_hotels")
+                .select("id, master_hotel_id, custom_name")
+                .in("id", accountHotelIds);
               if (Array.isArray(accountHotels)) {
                 for (const row of accountHotels) {
                   const rec = row as unknown as Record<string, unknown>;
@@ -992,15 +1140,17 @@ export async function getProductPage(
               new Set(
                 Array.from(accountHotelMap.values())
                   .map((row) => asOptionalString(row.master_hotel_id))
-                  .filter((id): id is string => Boolean(id))
-              )
+                  .filter((id): id is string => Boolean(id)),
+              ),
             );
             const masterHotelMap = new Map<string, Record<string, unknown>>();
             if (masterHotelIds.length > 0) {
               const { data: masterHotels } = await packageReader
-                .from('master_hotels')
-                .select('id, name, city, star_rating, amenities, photos, ai_content')
-                .in('id', masterHotelIds);
+                .from("master_hotels")
+                .select(
+                  "id, name, city, star_rating, amenities, photos, ai_content",
+                )
+                .in("id", masterHotelIds);
               if (Array.isArray(masterHotels)) {
                 for (const row of masterHotels) {
                   const rec = row as unknown as Record<string, unknown>;
@@ -1015,28 +1165,41 @@ export async function getProductPage(
                 const accountHotelId = asOptionalString(item.id_product);
                 if (!accountHotelId) return null;
                 const accountHotel = accountHotelMap.get(accountHotelId);
-                const masterId = asOptionalString(accountHotel?.master_hotel_id);
-                const masterHotel = masterId ? masterHotelMap.get(masterId) : null;
-                const starRatingRaw = masterHotel?.star_rating;
-                const starRating = typeof starRatingRaw === 'number' && Number.isFinite(starRatingRaw)
-                  ? starRatingRaw
+                const masterId = asOptionalString(
+                  accountHotel?.master_hotel_id,
+                );
+                const masterHotel = masterId
+                  ? masterHotelMap.get(masterId)
                   : null;
+                const starRatingRaw = masterHotel?.star_rating;
+                const starRating =
+                  typeof starRatingRaw === "number" &&
+                  Number.isFinite(starRatingRaw)
+                    ? starRatingRaw
+                    : null;
                 const amenities = Array.isArray(masterHotel?.amenities)
                   ? (masterHotel?.amenities as unknown[])
-                      .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+                      .filter(
+                        (value): value is string =>
+                          typeof value === "string" && value.trim().length > 0,
+                      )
                       .slice(0, 4)
                   : [];
-                const media = masterHotel ? extractMasterHotelMediaUrls(masterHotel) : [];
+                const media = masterHotel
+                  ? extractMasterHotelMediaUrls(masterHotel)
+                  : [];
                 if (media.length > 0) {
                   mediaByProductId.set(accountHotelId, media);
                 }
                 const resolvedTitle =
-                  asOptionalString(accountHotel?.custom_name)
-                  || asOptionalString(item.product_name)
-                  || asOptionalString(masterHotel?.name)
-                  || 'Hotel seleccionado';
+                  asOptionalString(accountHotel?.custom_name) ||
+                  asOptionalString(item.product_name) ||
+                  asOptionalString(masterHotel?.name) ||
+                  "Hotel seleccionado";
                 hotelNameByProductId.set(accountHotelId, resolvedTitle);
-                const resolvedCity = asOptionalString(item.destination) || asOptionalString(masterHotel?.city);
+                const resolvedCity =
+                  asOptionalString(item.destination) ||
+                  asOptionalString(masterHotel?.city);
                 if (resolvedCity) {
                   hotelCityByProductId.set(accountHotelId, resolvedCity);
                 }
@@ -1044,7 +1207,9 @@ export async function getProductPage(
                   productId: accountHotelId,
                   title: resolvedTitle,
                   city: resolvedCity,
-                  category: starRating ? `${Math.round(starRating)}★` : 'Hotel seleccionado',
+                  category: starRating
+                    ? `${Math.round(starRating)}★`
+                    : "Hotel seleccionado",
                   starRating,
                   amenities,
                   nights: parsePositiveInt(item.hotel_nights),
@@ -1059,12 +1224,19 @@ export async function getProductPage(
           }
 
           if (activityIds.length > 0) {
-            const { data: activities, error: activitiesError } = await packageReader
-              .from('activities')
-              .select('id, name, description, main_image, social_image, cover_image_url, program_gallery')
-              .in('id', activityIds);
+            const { data: activities, error: activitiesError } =
+              await packageReader
+                .from("activities")
+                .select(
+                  "id, name, description, main_image, social_image, cover_image_url, program_gallery",
+                )
+                .in("id", activityIds);
 
-            if (!activitiesError && Array.isArray(activities) && activities.length > 0) {
+            if (
+              !activitiesError &&
+              Array.isArray(activities) &&
+              activities.length > 0
+            ) {
               for (const row of activities) {
                 const rec = row as unknown as Record<string, unknown>;
                 const id = asOptionalString(rec.id);
@@ -1081,72 +1253,107 @@ export async function getProductPage(
             }
           }
 
-          const packageProgramItems: NonNullable<typeof prod.package_program_items> = [];
+          const packageProgramItems: NonNullable<
+            typeof prod.package_program_items
+          > = [];
           for (const [day, rawItems] of sortedDayEntries) {
             const dayItems = [...rawItems].sort((a, b) => {
               const ao = parsePositiveInt(a.order) ?? Number.MAX_SAFE_INTEGER;
               const bo = parsePositiveInt(b.order) ?? Number.MAX_SAFE_INTEGER;
               if (ao !== bo) return ao - bo;
-              const at = formatItineraryTimeLabel(a.departure_time) ?? formatItineraryTimeLabel(a.start_time) ?? '';
-              const bt = formatItineraryTimeLabel(b.departure_time) ?? formatItineraryTimeLabel(b.start_time) ?? '';
+              const at =
+                formatItineraryTimeLabel(a.departure_time) ??
+                formatItineraryTimeLabel(a.start_time) ??
+                "";
+              const bt =
+                formatItineraryTimeLabel(b.departure_time) ??
+                formatItineraryTimeLabel(b.start_time) ??
+                "";
               return at.localeCompare(bt);
             });
             for (const item of dayItems) {
               const productTypeRaw = asOptionalString(item.product_type);
-              const productType = productTypeRaw ? normalizeAscii(productTypeRaw) : '';
+              const productType = productTypeRaw
+                ? normalizeAscii(productTypeRaw)
+                : "";
               const productId = asOptionalString(item.id_product);
-              const activityMeta = productId ? activityMetaById.get(productId) : null;
+              const activityMeta = productId
+                ? activityMetaById.get(productId)
+                : null;
               const time =
-                formatItineraryTimeLabel(item.departure_time)
-                ?? formatItineraryTimeLabel(item.start_time)
-                ?? formatItineraryTimeLabel(item.arrival_time)
-                ?? formatItineraryTimeLabel(item.end_time);
+                formatItineraryTimeLabel(item.departure_time) ??
+                formatItineraryTimeLabel(item.start_time) ??
+                formatItineraryTimeLabel(item.arrival_time) ??
+                formatItineraryTimeLabel(item.end_time);
               const from = asOptionalString(item.flight_departure);
               const to = asOptionalString(item.flight_arrival);
               const flightRouteTitle = from && to ? `${from} → ${to}` : null;
               const titleCandidates = [
-                productId ? hotelNameByProductId.get(productId) ?? null : null,
+                productId
+                  ? (hotelNameByProductId.get(productId) ?? null)
+                  : null,
                 activityMeta?.name ?? null,
                 asOptionalString(item.product_name),
                 asOptionalString(item.rate_name),
                 flightRouteTitle,
-              ].filter((candidate): candidate is string => Boolean(candidate && candidate.trim().length > 0));
-              const personalizedMessage = asOptionalString(item.personalized_message);
+              ].filter((candidate): candidate is string =>
+                Boolean(candidate && candidate.trim().length > 0),
+              );
+              const personalizedMessage = asOptionalString(
+                item.personalized_message,
+              );
               const titleFromMessage = personalizedMessage
-                ? personalizedMessage.split(/\n|,|;| {2,}/g).map((part) => part.trim()).find((part) => part.length > 0) ?? null
+                ? (personalizedMessage
+                    .split(/\n|,|;| {2,}/g)
+                    .map((part) => part.trim())
+                    .find((part) => part.length > 0) ?? null)
                 : null;
               const title =
-                titleCandidates.find((candidate) => !isGenericPackageProgramTitle(candidate))
-                ?? (titleFromMessage && !isGenericPackageProgramTitle(titleFromMessage) ? titleFromMessage : null)
-                ?? titleCandidates[0]
-                ?? (isHotelLikeProductType(productType) ? 'Hotel seleccionado' : null)
-                ?? (isTransferLikeProductType(productType) ? 'Traslado' : null)
-                ?? (isFlightLikeProductType(productType) ? 'Vuelo' : null)
-                ?? 'Actividad';
-              const tone: 'transporte' | 'actividad' | 'comida' | 'alojamiento' | 'libre' | 'vuelo' =
-                isHotelLikeProductType(productType)
-                  ? 'alojamiento'
-                  : isTransferLikeProductType(productType)
-                    ? 'transporte'
-                    : isFlightLikeProductType(productType)
-                      ? 'vuelo'
-                      : 'actividad';
+                titleCandidates.find(
+                  (candidate) => !isGenericPackageProgramTitle(candidate),
+                ) ??
+                (titleFromMessage &&
+                !isGenericPackageProgramTitle(titleFromMessage)
+                  ? titleFromMessage
+                  : null) ??
+                titleCandidates[0] ??
+                (isHotelLikeProductType(productType)
+                  ? "Hotel seleccionado"
+                  : null) ??
+                (isTransferLikeProductType(productType) ? "Traslado" : null) ??
+                (isFlightLikeProductType(productType) ? "Vuelo" : null) ??
+                "Actividad";
+              const tone:
+                | "transporte"
+                | "actividad"
+                | "comida"
+                | "alojamiento"
+                | "libre"
+                | "vuelo" = isHotelLikeProductType(productType)
+                ? "alojamiento"
+                : isTransferLikeProductType(productType)
+                  ? "transporte"
+                  : isFlightLikeProductType(productType)
+                    ? "vuelo"
+                    : "actividad";
               const label =
-                tone === 'alojamiento'
-                  ? 'Alojamiento'
-                  : tone === 'transporte'
-                    ? 'Transporte'
-                    : tone === 'vuelo'
-                      ? 'Vuelo'
-                      : 'Actividad';
+                tone === "alojamiento"
+                  ? "Alojamiento"
+                  : tone === "transporte"
+                    ? "Transporte"
+                    : tone === "vuelo"
+                      ? "Vuelo"
+                      : "Actividad";
               const location =
-                asOptionalString(item.destination)
-                || (productId ? hotelCityByProductId.get(productId) ?? null : null);
+                asOptionalString(item.destination) ||
+                (productId
+                  ? (hotelCityByProductId.get(productId) ?? null)
+                  : null);
               const note =
-                personalizedMessage
-                || activityMeta?.description
-                || null;
-              const imageUrl = productId ? (mediaByProductId.get(productId)?.[0] ?? null) : null;
+                personalizedMessage || activityMeta?.description || null;
+              const imageUrl = productId
+                ? (mediaByProductId.get(productId)?.[0] ?? null)
+                : null;
 
               packageProgramItems.push({
                 day,
@@ -1189,21 +1396,28 @@ export async function getProductPage(
               itineraryRows
                 .filter((row) => isActivityLikeProductType(row.product_type))
                 .map((row) => asOptionalString(row.id_product))
-                .filter((id): id is string => Boolean(id))
+                .filter((id): id is string => Boolean(id)),
             );
             const mediaFromGalleryItems = Array.from(
               new Set(
-                Array.from(galleryProductIds)
-                  .flatMap((productId) => mediaByProductId.get(productId) ?? [])
-              )
+                Array.from(galleryProductIds).flatMap(
+                  (productId) => mediaByProductId.get(productId) ?? [],
+                ),
+              ),
             );
-            const mediaFromItems = Array.from(new Set(Array.from(mediaByProductId.values()).flat()));
+            const mediaFromItems = Array.from(
+              new Set(Array.from(mediaByProductId.values()).flat()),
+            );
             if (mediaFromItems.length > 0) {
-              const hasCuratedGallery = Array.isArray(prod.program_gallery) && prod.program_gallery.length > 0;
+              const hasCuratedGallery =
+                Array.isArray(prod.program_gallery) &&
+                prod.program_gallery.length > 0;
               if (!hasCuratedGallery && mediaFromGalleryItems.length > 0) {
                 prod.program_gallery = mediaFromGalleryItems;
               }
-              const existingImages = Array.isArray(prod.images) ? prod.images : [];
+              const existingImages = Array.isArray(prod.images)
+                ? prod.images
+                : [];
               const mergedImages = [...existingImages];
               for (const url of mediaFromItems) {
                 if (!mergedImages.includes(url)) mergedImages.push(url);
@@ -1214,25 +1428,39 @@ export async function getProductPage(
             }
           }
 
-          const payloadProgramItems = Array.isArray(prod.package_program_items) ? prod.package_program_items : [];
-          const genericProgramTitles = payloadProgramItems.filter((item) =>
-            typeof item?.title === 'string' && isGenericPackageProgramTitle(item.title)
+          const payloadProgramItems = Array.isArray(prod.package_program_items)
+            ? prod.package_program_items
+            : [];
+          const genericProgramTitles = payloadProgramItems.filter(
+            (item) =>
+              typeof item?.title === "string" &&
+              isGenericPackageProgramTitle(item.title),
           );
-          const dayMedia = prod.package_day_media && typeof prod.package_day_media === 'object'
-            ? prod.package_day_media
-            : {};
-          const dayMediaImagesCount = Object.values(dayMedia).reduce((sum, urls) => {
-            return sum + (Array.isArray(urls) ? urls.length : 0);
-          }, 0);
-          const curatedGalleryCount = Array.isArray(prod.program_gallery) ? prod.program_gallery.length : 0;
-          const resolvedGalleryCount = Array.isArray(prod.images) ? prod.images.length : curatedGalleryCount;
+          const dayMedia =
+            prod.package_day_media && typeof prod.package_day_media === "object"
+              ? prod.package_day_media
+              : {};
+          const dayMediaImagesCount = Object.values(dayMedia).reduce(
+            (sum, urls) => {
+              return sum + (Array.isArray(urls) ? urls.length : 0);
+            },
+            0,
+          );
+          const curatedGalleryCount = Array.isArray(prod.program_gallery)
+            ? prod.program_gallery.length
+            : 0;
+          const resolvedGalleryCount = Array.isArray(prod.images)
+            ? prod.images.length
+            : curatedGalleryCount;
           prod.package_parity_snapshot = {
             generated_at: new Date().toISOString(),
             program_items_count: payloadProgramItems.length,
             generic_program_titles_count: genericProgramTitles.length,
             day_media_days_count: Object.keys(dayMedia).length,
             day_media_images_count: dayMediaImagesCount,
-            hotel_items_count: Array.isArray(prod.package_hotel_items) ? prod.package_hotel_items.length : 0,
+            hotel_items_count: Array.isArray(prod.package_hotel_items)
+              ? prod.package_hotel_items.length
+              : 0,
             gallery_images_count: resolvedGalleryCount,
             gallery_curated_count: curatedGalleryCount,
           };
@@ -1245,7 +1473,7 @@ export async function getProductPage(
 
     // Gate B — F1 layer (#172): for packages, fetch aggregated inclusions/exclusions/gallery
     // when the kit-level fields are absent or empty.
-    if (productType === 'package' && result.product) {
+    if (productType === "package" && result.product) {
       const prod = result.product as ProductData & {
         program_inclusions?: string[];
         program_exclusions?: string[];
@@ -1259,20 +1487,23 @@ export async function getProductPage(
       if (needsAgg) {
         try {
           const { data: aggData, error: aggError } = await supabase.rpc(
-            'get_package_aggregated_data',
-            { p_package_id: prod.id }
+            "get_package_aggregated_data",
+            { p_package_id: prod.id },
           );
           if (!aggError && aggData) {
             const aggParsed = PackageAggregatedDataSchema.safeParse(aggData);
             if (aggParsed.success) {
               if (!prod.program_inclusions?.length) {
-                (result.product as typeof prod).program_inclusions = aggParsed.data.inclusions;
+                (result.product as typeof prod).program_inclusions =
+                  aggParsed.data.inclusions;
               }
               if (!prod.program_exclusions?.length) {
-                (result.product as typeof prod).program_exclusions = aggParsed.data.exclusions;
+                (result.product as typeof prod).program_exclusions =
+                  aggParsed.data.exclusions;
               }
               if (!prod.program_gallery?.length) {
-                (result.product as typeof prod).program_gallery = aggParsed.data.gallery;
+                (result.product as typeof prod).program_gallery =
+                  aggParsed.data.gallery;
               }
             }
           }
@@ -1291,7 +1522,7 @@ export async function getProductPage(
 
     return result;
   } catch (e) {
-    console.error('[getProductPage] Exception:', e);
+    console.error("[getProductPage] Exception:", e);
     return null;
   }
 }
@@ -1306,23 +1537,24 @@ export async function getProductSlugRedirect(
 ): Promise<string | null> {
   try {
     const { data, error } = await supabase
-      .from('slug_redirects')
-      .select('new_slug')
-      .eq('account_id', accountId)
-      .eq('product_type', productType)
-      .eq('old_slug', oldSlug)
+      .from("slug_redirects")
+      .select("new_slug")
+      .eq("account_id", accountId)
+      .eq("product_type", productType)
+      .eq("old_slug", oldSlug)
       .limit(1)
       .maybeSingle();
 
     if (error) {
-      console.error('[getProductSlugRedirect] Error:', error);
+      console.error("[getProductSlugRedirect] Error:", error);
       return null;
     }
 
-    const redirectedSlug = typeof data?.new_slug === 'string' ? data.new_slug.trim() : '';
+    const redirectedSlug =
+      typeof data?.new_slug === "string" ? data.new_slug.trim() : "";
     return redirectedSlug && redirectedSlug !== oldSlug ? redirectedSlug : null;
   } catch (e) {
-    console.error('[getProductSlugRedirect] Exception:', e);
+    console.error("[getProductSlugRedirect] Exception:", e);
     return null;
   }
 }
@@ -1362,12 +1594,14 @@ export async function getLocalizedProductOverlay(input: {
     }
 
     const primary = await supabase
-      .from('website_product_pages')
-      .select('custom_seo_title, custom_seo_description, custom_faq, robots_noindex, locale')
-      .eq('website_id', input.websiteId)
-      .eq('product_type', input.productType)
-      .eq('product_id', input.productId)
-      .eq('locale', input.locale)
+      .from("website_product_pages")
+      .select(
+        "custom_seo_title, custom_seo_description, custom_faq, robots_noindex, locale",
+      )
+      .eq("website_id", input.websiteId)
+      .eq("product_type", input.productType)
+      .eq("product_id", input.productId)
+      .eq("locale", input.locale)
       .maybeSingle();
 
     if (!primary.error && primary.data) {
@@ -1392,21 +1626,25 @@ export async function getLocalizedProductOverlay(input: {
     // `itineraries.source_package_id` is anon-exposed and stores the kit id —
     // reverse-lookup via the public `itineraries` row keeps us under the
     // anon client's permission envelope.
-    if (input.productType === 'package') {
+    if (input.productType === "package") {
       const { data: itinRow } = await supabase
-        .from('itineraries')
-        .select('source_package_id')
-        .eq('id', input.productId)
+        .from("itineraries")
+        .select("source_package_id")
+        .eq("id", input.productId)
         .maybeSingle();
-      const kitId = itinRow?.source_package_id ? String(itinRow.source_package_id) : null;
+      const kitId = itinRow?.source_package_id
+        ? String(itinRow.source_package_id)
+        : null;
       if (kitId && kitId !== input.productId) {
         const fallback = await supabase
-          .from('website_product_pages')
-          .select('custom_seo_title, custom_seo_description, custom_faq, robots_noindex, locale')
-          .eq('website_id', input.websiteId)
-          .eq('product_type', input.productType)
-          .eq('product_id', kitId)
-          .eq('locale', input.locale)
+          .from("website_product_pages")
+          .select(
+            "custom_seo_title, custom_seo_description, custom_faq, robots_noindex, locale",
+          )
+          .eq("website_id", input.websiteId)
+          .eq("product_type", input.productType)
+          .eq("product_id", kitId)
+          .eq("locale", input.locale)
           .maybeSingle();
         if (!fallback.error && fallback.data) {
           return fallback.data as {
@@ -1422,7 +1660,7 @@ export async function getLocalizedProductOverlay(input: {
 
     return null;
   } catch (e) {
-    console.warn('[getLocalizedProductOverlay] Exception:', e);
+    console.warn("[getLocalizedProductOverlay] Exception:", e);
     return null;
   }
 }
@@ -1435,19 +1673,19 @@ export async function getLocalizedProductOverlay(input: {
 async function getProductIdsWithLocaleOverlay(
   websiteId: string,
   productType: string,
-  productIds: string[],  // itinerary IDs from RPC
-  locale: string
+  productIds: string[], // itinerary IDs from RPC
+  locale: string,
 ): Promise<Set<string>> {
   if (productIds.length === 0) return new Set();
   try {
     // Packages: website_product_pages stores kit IDs (source_package_id), but
     // the RPC returns itinerary IDs. Resolve via itineraries.source_package_id.
-    if (productType === 'package') {
+    if (productType === "package") {
       const { data: itinData } = await supabase
-        .from('itineraries')
-        .select('id, source_package_id')
-        .in('id', productIds)
-        .not('source_package_id', 'is', null);
+        .from("itineraries")
+        .select("id, source_package_id")
+        .in("id", productIds)
+        .not("source_package_id", "is", null);
 
       if (!Array.isArray(itinData) || itinData.length === 0) return new Set();
 
@@ -1462,12 +1700,12 @@ async function getProductIdsWithLocaleOverlay(
       if (kitIds.length === 0) return new Set();
 
       const { data, error } = await supabase
-        .from('website_product_pages')
-        .select('product_id')
-        .eq('website_id', websiteId)
-        .eq('product_type', productType)
-        .eq('locale', locale)
-        .in('product_id', kitIds);
+        .from("website_product_pages")
+        .select("product_id")
+        .eq("website_id", websiteId)
+        .eq("product_type", productType)
+        .eq("locale", locale)
+        .in("product_id", kitIds);
 
       if (error || !Array.isArray(data)) return new Set();
       // Return itinerary IDs so the caller can filter baseItems correctly
@@ -1480,12 +1718,12 @@ async function getProductIdsWithLocaleOverlay(
     }
 
     const { data, error } = await supabase
-      .from('website_product_pages')
-      .select('product_id')
-      .eq('website_id', websiteId)
-      .eq('product_type', productType)
-      .eq('locale', locale)
-      .in('product_id', productIds);
+      .from("website_product_pages")
+      .select("product_id")
+      .eq("website_id", websiteId)
+      .eq("product_type", productType)
+      .eq("locale", locale)
+      .in("product_id", productIds);
 
     if (error || !Array.isArray(data)) return new Set();
     return new Set(data.map((r) => String(r.product_id)));
@@ -1498,21 +1736,30 @@ async function getProductIdsWithLocaleOverlay(
  * Get navigation items for a website
  */
 export async function getWebsiteNavigation(
-  subdomain: string
+  subdomain: string,
 ): Promise<NavigationItem[]> {
   try {
-    const { data, error } = await supabase.rpc('get_website_navigation', {
+    const cacheKey = subdomain.toLowerCase();
+    const cached = navigationCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) return cached.value;
+
+    const { data, error } = await supabase.rpc("get_website_navigation", {
       p_subdomain: subdomain,
     });
 
     if (error) {
-      console.error('[getWebsiteNavigation] Error:', error);
+      console.error("[getWebsiteNavigation] Error:", error);
       return [];
     }
 
-    return (data as NavigationItem[]) || [];
+    const items = (data as NavigationItem[]) || [];
+    navigationCache.set(cacheKey, {
+      value: items,
+      expiresAt: Date.now() + NAVIGATION_CACHE_TTL_MS,
+    });
+    return items;
   } catch (e) {
-    console.error('[getWebsiteNavigation] Exception:', e);
+    console.error("[getWebsiteNavigation] Exception:", e);
     return [];
   }
 }
@@ -1524,11 +1771,11 @@ export async function getAllPageSlugs(subdomain: string): Promise<string[]> {
   try {
     // Get website first
     const { data: websiteData, error: websiteError } = await supabase
-      .from('websites')
-      .select('id')
-      .eq('subdomain', subdomain)
-      .eq('status', 'published')
-      .is('deleted_at', null)
+      .from("websites")
+      .select("id")
+      .eq("subdomain", subdomain)
+      .eq("status", "published")
+      .is("deleted_at", null)
       .single();
 
     if (websiteError || !websiteData) {
@@ -1537,19 +1784,19 @@ export async function getAllPageSlugs(subdomain: string): Promise<string[]> {
 
     // Get all published pages
     const { data, error } = await supabase
-      .from('website_pages')
-      .select('slug')
-      .eq('website_id', websiteData.id)
-      .eq('is_published', true);
+      .from("website_pages")
+      .select("slug")
+      .eq("website_id", websiteData.id)
+      .eq("is_published", true);
 
     if (error) {
-      console.error('[getAllPageSlugs] Error:', error);
+      console.error("[getAllPageSlugs] Error:", error);
       return [];
     }
 
     return data.map((p) => p.slug);
   } catch (e) {
-    console.error('[getAllPageSlugs] Exception:', e);
+    console.error("[getAllPageSlugs] Exception:", e);
     return [];
   }
 }
@@ -1558,14 +1805,16 @@ export async function getAllPageSlugs(subdomain: string): Promise<string[]> {
  * Get all published page slugs excluding those marked as noindex.
  * Used by the sitemap generator to avoid listing noindex pages.
  */
-export async function getIndexablePageSlugs(subdomain: string): Promise<string[]> {
+export async function getIndexablePageSlugs(
+  subdomain: string,
+): Promise<string[]> {
   try {
     const { data: websiteData, error: websiteError } = await supabase
-      .from('websites')
-      .select('id')
-      .eq('subdomain', subdomain)
-      .eq('status', 'published')
-      .is('deleted_at', null)
+      .from("websites")
+      .select("id")
+      .eq("subdomain", subdomain)
+      .eq("status", "published")
+      .is("deleted_at", null)
       .single();
 
     if (websiteError || !websiteData) {
@@ -1573,21 +1822,19 @@ export async function getIndexablePageSlugs(subdomain: string): Promise<string[]
     }
 
     const { data, error } = await supabase
-      .from('website_pages')
-      .select('slug, robots_noindex')
-      .eq('website_id', websiteData.id)
-      .eq('is_published', true);
+      .from("website_pages")
+      .select("slug, robots_noindex")
+      .eq("website_id", websiteData.id)
+      .eq("is_published", true);
 
     if (error) {
-      console.error('[getIndexablePageSlugs] Error:', error);
+      console.error("[getIndexablePageSlugs] Error:", error);
       return [];
     }
 
-    return data
-      .filter((p) => !p.robots_noindex)
-      .map((p) => p.slug);
+    return data.filter((p) => !p.robots_noindex).map((p) => p.slug);
   } catch (e) {
-    console.error('[getIndexablePageSlugs] Exception:', e);
+    console.error("[getIndexablePageSlugs] Exception:", e);
     return [];
   }
 }
@@ -1605,7 +1852,7 @@ export async function getCategoryProducts(
     locale?: string;
     defaultLocale?: string;
     websiteId?: string;
-  } = {}
+  } = {},
 ): Promise<CategoryProducts> {
   try {
     const cacheKey = [
@@ -1613,9 +1860,9 @@ export async function getCategoryProducts(
       categoryType.toLowerCase(),
       String(options.limit || 12),
       String(options.offset || 0),
-      (options.search || '').toLowerCase(),
-      (options.locale || '').toLowerCase(),
-    ].join('::');
+      (options.search || "").toLowerCase(),
+      (options.locale || "").toLowerCase(),
+    ].join("::");
     if (ENABLE_IN_MEMORY_CACHE) {
       const cached = categoryProductsCache.get(cacheKey);
       if (cached && cached.expiresAt > Date.now()) {
@@ -1623,16 +1870,19 @@ export async function getCategoryProducts(
       }
     }
 
-    const { data, error } = await supabase.rpc('get_website_category_products', {
-      p_subdomain: subdomain,
-      p_category: categoryType,
-      p_search: options.search || null,
-      p_limit: options.limit || 12,
-      p_offset: options.offset || 0,
-    });
+    const { data, error } = await supabase.rpc(
+      "get_website_category_products",
+      {
+        p_subdomain: subdomain,
+        p_category: categoryType,
+        p_search: options.search || null,
+        p_limit: options.limit || 12,
+        p_offset: options.offset || 0,
+      },
+    );
 
     if (error) {
-      console.error('[getCategoryProducts] Error:', error);
+      console.error("[getCategoryProducts] Error:", error);
       return { items: [], total: 0 };
     }
 
@@ -1648,23 +1898,32 @@ export async function getCategoryProducts(
     const parsed = CategoryProductsSchema.safeParse(normalizedPayload);
     if (parsed.success) {
       let baseItems = (parsed.data.items as ProductData[]).filter((item) => {
-        const isPublished = (item as unknown as Record<string, unknown>).is_published;
+        const isPublished = (item as unknown as Record<string, unknown>)
+          .is_published;
         return isPublished !== false;
       });
 
       // For non-default locale: filter to products that have an en overlay.
       const locale = options.locale;
-      const defaultLocale = options.defaultLocale ?? 'es-CO';
+      const defaultLocale = options.defaultLocale ?? "es-CO";
       if (locale && locale !== defaultLocale && options.websiteId) {
-        const productType = categoryType === 'packages' ? 'package' : categoryType.replace(/s$/, '');
-        const productIds = baseItems.map((i) => i.id).filter((id): id is string => !!id);
+        const productType =
+          categoryType === "packages"
+            ? "package"
+            : categoryType.replace(/s$/, "");
+        const productIds = baseItems
+          .map((i) => i.id)
+          .filter((id): id is string => !!id);
         const idsWithOverlay = await getProductIdsWithLocaleOverlay(
-          options.websiteId, productType, productIds, locale
+          options.websiteId,
+          productType,
+          productIds,
+          locale,
         );
         baseItems = baseItems.filter((i) => i.id && idsWithOverlay.has(i.id));
       }
 
-      if (categoryType === 'packages' && baseItems.length > 0) {
+      if (categoryType === "packages" && baseItems.length > 0) {
         baseItems = await enrichPackageCategoryPricing(baseItems);
       }
 
@@ -1675,7 +1934,10 @@ export async function getCategoryProducts(
       );
       const result = {
         items: localizedItems,
-        total: locale && locale !== defaultLocale ? localizedItems.length : Number(parsed.data.total),
+        total:
+          locale && locale !== defaultLocale
+            ? localizedItems.length
+            : Number(parsed.data.total),
       };
       if (ENABLE_IN_MEMORY_CACHE) {
         categoryProductsCache.set(cacheKey, {
@@ -1686,21 +1948,27 @@ export async function getCategoryProducts(
       return result;
     }
 
-    logProductV2ParseWarning('getCategoryProducts', normalizedPayload, parsed.error.issues);
+    logProductV2ParseWarning(
+      "getCategoryProducts",
+      normalizedPayload,
+      parsed.error.issues,
+    );
 
     const payload = normalizedPayload as { items?: unknown; total?: unknown };
     const items = Array.isArray(payload.items)
       ? (payload.items as ProductData[]).filter((item) => {
-        const isPublished = (item as unknown as Record<string, unknown>).is_published;
-        return isPublished !== false;
-      })
+          const isPublished = (item as unknown as Record<string, unknown>)
+            .is_published;
+          return isPublished !== false;
+        })
       : [];
-    const total = typeof payload.total === 'number'
-      ? payload.total
-      : Number(payload.total) || 0;
+    const total =
+      typeof payload.total === "number"
+        ? payload.total
+        : Number(payload.total) || 0;
 
     const itemsWithPricing =
-      categoryType === 'packages' && items.length > 0
+      categoryType === "packages" && items.length > 0
         ? await enrichPackageCategoryPricing(items)
         : items;
 
@@ -1718,7 +1986,7 @@ export async function getCategoryProducts(
     }
     return result;
   } catch (e) {
-    console.error('[getCategoryProducts] Exception:', e);
+    console.error("[getCategoryProducts] Exception:", e);
     return { items: [], total: 0 };
   }
 }
@@ -1749,19 +2017,19 @@ export interface DestinationData {
 }
 
 export async function getDestinations(
-  subdomain: string
+  subdomain: string,
 ): Promise<DestinationData[]> {
   try {
-    const { data, error } = await supabase.rpc('get_website_destinations', {
+    const { data, error } = await supabase.rpc("get_website_destinations", {
       p_subdomain: subdomain,
     });
 
     if (error) {
-      console.error('[getDestinations] Error:', error);
+      console.error("[getDestinations] Error:", error);
       return [];
     }
 
-    const payload = data as { destinations?: Omit<DestinationData, 'id'>[] };
+    const payload = data as { destinations?: Omit<DestinationData, "id">[] };
     const destinations = payload?.destinations || [];
 
     return destinations
@@ -1770,19 +2038,19 @@ export async function getDestinations(
         // Defensive: coerce package_count to a number (RPC always returns int,
         // but some environments may surface null on fuzzy-match misses).
         package_count:
-          typeof destination.package_count === 'number'
+          typeof destination.package_count === "number"
             ? destination.package_count
             : 0,
         id:
-          (typeof destination.slug === 'string' && destination.slug) ||
+          (typeof destination.slug === "string" && destination.slug) ||
           `${destination.name}-${index}`,
       }))
       .filter((destination) => {
         // Exclude clear out-of-country destinations that leak from free-text
         // inventory locations (e.g. "Punta Cana").
         if (
-          typeof destination.lat === 'number' &&
-          typeof destination.lng === 'number' &&
+          typeof destination.lat === "number" &&
+          typeof destination.lng === "number" &&
           Number.isFinite(destination.lat) &&
           Number.isFinite(destination.lng)
         ) {
@@ -1791,7 +2059,7 @@ export async function getDestinations(
         return true;
       });
   } catch (e) {
-    console.error('[getDestinations] Exception:', e);
+    console.error("[getDestinations] Exception:", e);
     return [];
   }
 }
@@ -1801,23 +2069,26 @@ export async function getDestinations(
  */
 export async function getDestinationProducts(
   subdomain: string,
-  cityName: string
+  cityName: string,
 ): Promise<ProductData[]> {
   try {
-    const { data, error } = await supabase.rpc('get_website_destination_products', {
-      p_subdomain: subdomain,
-      p_city_name: cityName,
-    });
+    const { data, error } = await supabase.rpc(
+      "get_website_destination_products",
+      {
+        p_subdomain: subdomain,
+        p_city_name: cityName,
+      },
+    );
 
     if (error) {
-      console.error('[getDestinationProducts] Error:', error);
+      console.error("[getDestinationProducts] Error:", error);
       return [];
     }
 
     const payload = data as { items?: ProductData[] };
     return payload?.items || [];
   } catch (e) {
-    console.error('[getDestinationProducts] Exception:', e);
+    console.error("[getDestinationProducts] Exception:", e);
     return [];
   }
 }
@@ -1852,13 +2123,15 @@ export interface GoogleReviewsCache {
 }
 
 export async function getCachedGoogleReviews(
-  accountId: string
+  accountId: string,
 ): Promise<GoogleReviewsCache | null> {
   try {
     const { data, error } = await supabase
-      .from('account_google_reviews')
-      .select('reviews, business_name, average_rating, total_reviews, google_maps_url, fetched_at')
-      .eq('account_id', accountId)
+      .from("account_google_reviews")
+      .select(
+        "reviews, business_name, average_rating, total_reviews, google_maps_url, fetched_at",
+      )
+      .eq("account_id", accountId)
       .single();
 
     if (error || !data) {
@@ -1874,7 +2147,7 @@ export async function getCachedGoogleReviews(
       fetched_at: data.fetched_at,
     };
   } catch (e) {
-    console.error('[getCachedGoogleReviews] Exception:', e);
+    console.error("[getCachedGoogleReviews] Exception:", e);
     return null;
   }
 }
@@ -1890,18 +2163,18 @@ export async function getCachedGoogleReviews(
 export async function getDestinationSeoOverrides(websiteId: string) {
   try {
     const { data, error } = await supabase
-      .from('destination_seo_overrides')
-      .select('*')
-      .eq('website_id', websiteId);
+      .from("destination_seo_overrides")
+      .select("*")
+      .eq("website_id", websiteId);
 
     if (error) {
-      console.error('[getDestinationSeoOverrides] Error:', error);
+      console.error("[getDestinationSeoOverrides] Error:", error);
       return [];
     }
 
     return data || [];
   } catch (e) {
-    console.error('[getDestinationSeoOverrides] Exception:', e);
+    console.error("[getDestinationSeoOverrides] Exception:", e);
     return [];
   }
 }
@@ -1909,25 +2182,28 @@ export async function getDestinationSeoOverrides(websiteId: string) {
 /**
  * Get a single destination SEO override by slug
  */
-export async function getDestinationSeoOverride(websiteId: string, destinationSlug: string) {
+export async function getDestinationSeoOverride(
+  websiteId: string,
+  destinationSlug: string,
+) {
   try {
     const { data, error } = await supabase
-      .from('destination_seo_overrides')
-      .select('*')
-      .eq('website_id', websiteId)
-      .eq('destination_slug', destinationSlug)
+      .from("destination_seo_overrides")
+      .select("*")
+      .eq("website_id", websiteId)
+      .eq("destination_slug", destinationSlug)
       .single();
 
     if (error) {
       // PGRST116 = no rows found — not a real error for .single()
-      if (error.code === 'PGRST116') return null;
-      console.error('[getDestinationSeoOverride] Error:', error);
+      if (error.code === "PGRST116") return null;
+      console.error("[getDestinationSeoOverride] Error:", error);
       return null;
     }
 
     return data;
   } catch (e) {
-    console.error('[getDestinationSeoOverride] Exception:', e);
+    console.error("[getDestinationSeoOverride] Exception:", e);
     return null;
   }
 }
@@ -1943,10 +2219,10 @@ export async function upsertDestinationSeoOverride(
     custom_seo_description?: string;
     custom_description?: string;
     target_keyword?: string;
-  }
+  },
 ) {
   const { data, error } = await supabase
-    .from('destination_seo_overrides')
+    .from("destination_seo_overrides")
     .upsert(
       {
         website_id: websiteId,
@@ -1954,7 +2230,7 @@ export async function upsertDestinationSeoOverride(
         ...fields,
         updated_at: new Date().toISOString(),
       },
-      { onConflict: 'website_id,destination_slug' }
+      { onConflict: "website_id,destination_slug" },
     )
     .select()
     .single();
@@ -1966,16 +2242,18 @@ export async function upsertDestinationSeoOverride(
 /**
  * Get noindex product slugs for a website (from website_product_pages)
  */
-export async function getNoindexProductSlugs(websiteId: string): Promise<Set<string>> {
+export async function getNoindexProductSlugs(
+  websiteId: string,
+): Promise<Set<string>> {
   try {
     const { data, error } = await supabase
-      .from('website_product_pages')
-      .select('slug, robots_noindex')
-      .eq('website_id', websiteId)
-      .eq('robots_noindex', true);
+      .from("website_product_pages")
+      .select("slug, robots_noindex")
+      .eq("website_id", websiteId)
+      .eq("robots_noindex", true);
 
     if (error || !data) return new Set();
-    return new Set(data.map(p => p.slug).filter(Boolean));
+    return new Set(data.map((p) => p.slug).filter(Boolean));
   } catch {
     return new Set();
   }
@@ -1984,16 +2262,18 @@ export async function getNoindexProductSlugs(websiteId: string): Promise<Set<str
 /**
  * Get noindex destination slugs for a website (from destination_seo_overrides)
  */
-export async function getNoindexDestinationSlugs(websiteId: string): Promise<Set<string>> {
+export async function getNoindexDestinationSlugs(
+  websiteId: string,
+): Promise<Set<string>> {
   try {
     const { data, error } = await supabase
-      .from('destination_seo_overrides')
-      .select('destination_slug, robots_noindex')
-      .eq('website_id', websiteId)
-      .eq('robots_noindex', true);
+      .from("destination_seo_overrides")
+      .select("destination_slug, robots_noindex")
+      .eq("website_id", websiteId)
+      .eq("robots_noindex", true);
 
     if (error || !data) return new Set();
-    return new Set(data.map(d => d.destination_slug).filter(Boolean));
+    return new Set(data.map((d) => d.destination_slug).filter(Boolean));
   } catch {
     return new Set();
   }
@@ -2002,20 +2282,22 @@ export async function getNoindexDestinationSlugs(websiteId: string): Promise<Set
 export async function getReviewsForProduct(
   accountId: string,
   cityOrDestination: string,
-  limit: number = 3
+  limit: number = 3,
 ): Promise<GoogleReviewData[]> {
   const cached = await getCachedGoogleReviews(accountId);
   if (!cached || cached.reviews.length === 0) return [];
 
   const visible = cached.reviews.filter((r) => r.is_visible !== false);
-  const slug = cityOrDestination.toLowerCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // remove accents
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)/g, '');
+  const slug = cityOrDestination
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // remove accents
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
 
   // Match reviews by tag
   const matched = visible.filter((r) =>
-    (r.tags || []).some((t) => slug.includes(t) || t.includes(slug))
+    (r.tags || []).some((t) => slug.includes(t) || t.includes(slug)),
   );
 
   // If we have enough matched reviews, return them

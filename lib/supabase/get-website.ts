@@ -36,9 +36,23 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 const WEBSITE_CACHE_TTL_MS = Number(
   process.env.WEBSITE_CACHE_TTL_MS || 5 * 60 * 1000,
 );
+const THEME_RESOLUTION_CACHE_TTL_MS = Number(
+  process.env.THEME_RESOLUTION_CACHE_TTL_MS || 2 * 60 * 1000,
+);
+const BLOG_LIST_CACHE_TTL_MS = Number(
+  process.env.BLOG_LIST_CACHE_TTL_MS || 2 * 60 * 1000,
+);
 const websiteBySubdomainCache = new Map<
   string,
   { value: WebsiteData; expiresAt: number }
+>();
+const themeResolutionCache = new Map<
+  string,
+  { value: WebsiteWithEffectiveTheme; expiresAt: number }
+>();
+const blogPostsCache = new Map<
+  string,
+  { value: { posts: BlogPost[]; total: number }; expiresAt: number }
 >();
 
 type WebsiteWithEffectiveTheme = WebsiteData & {
@@ -207,6 +221,10 @@ async function getAccountCurrencyColumns(
 async function applyThemeDesignerV1Resolution(
   website: WebsiteData,
 ): Promise<WebsiteWithEffectiveTheme> {
+  const cacheKey = `${website.id}:${website.account_id ?? "no-account"}:${JSON.stringify(website.theme ?? {})}`;
+  const cached = themeResolutionCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) return cached.value;
+
   if (!website.account_id) {
     return {
       ...website,
@@ -245,12 +263,17 @@ async function applyThemeDesignerV1Resolution(
     flagResolution,
   });
 
-  return {
+  const resolved = {
     ...website,
     theme: selected.theme,
     effective_theme: selected.theme,
     effective_theme_source: selected.source,
   };
+  themeResolutionCache.set(cacheKey, {
+    value: resolved,
+    expiresAt: Date.now() + THEME_RESOLUTION_CACHE_TTL_MS,
+  });
+  return resolved;
 }
 
 /**
@@ -346,6 +369,17 @@ export async function getBlogPosts(
   try {
     const locale =
       typeof options.locale === "string" ? options.locale.trim() : "";
+    const limit = options.limit || 10;
+    const offset = options.offset || 0;
+    const cacheKey = JSON.stringify({
+      websiteId,
+      limit,
+      offset,
+      categorySlug: options.categorySlug || null,
+      locale: locale || null,
+    });
+    const cached = blogPostsCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) return cached.value;
     const localeCandidates: string[] = [];
 
     if (locale) {
@@ -353,19 +387,22 @@ export async function getBlogPosts(
       const lang = locale.split("-")[0]?.toLowerCase();
       if (lang && lang !== locale) localeCandidates.push(lang);
 
-      // Legacy blog rows may still store ISO-639 locales (`es`, `en`).
+      // Legacy blog rows may still store ISO-639 locales (`es`, `en`, etc.).
       if (locale === "es") localeCandidates.push("es-CO");
       if (locale === "en") localeCandidates.push("en-US");
+      if (locale === "pt") localeCandidates.push("pt-BR");
+      if (locale === "fr") localeCandidates.push("fr-FR");
+      if (locale === "de") localeCandidates.push("de-DE");
       if (locale === "es-CO") localeCandidates.push("es");
       if (locale === "en-US") localeCandidates.push("en");
+      if (locale === "pt-BR") localeCandidates.push("pt");
+      if (locale === "fr-FR") localeCandidates.push("fr");
+      if (locale === "de-DE") localeCandidates.push("de");
     } else {
       localeCandidates.push("");
     }
 
     const uniqueLocales = [...new Set(localeCandidates.filter(Boolean))];
-    const limit = options.limit || 10;
-    const offset = options.offset || 0;
-
     // Locale-aware listing: include legacy + canonical locale variants of the
     // same language (e.g., `es` + `es-CO`) using the public RPC path to avoid
     // direct-table RLS differences in runtime.
@@ -416,10 +453,15 @@ export async function getBlogPosts(
 
         const paginated = merged.slice(offset, offset + limit);
         const total = Math.max(totalAcrossLocales, mergedById.size);
-        return {
+        const result = {
           posts: paginated,
           total,
         };
+        blogPostsCache.set(cacheKey, {
+          value: result,
+          expiresAt: Date.now() + BLOG_LIST_CACHE_TTL_MS,
+        });
+        return result;
       }
     }
 
@@ -441,10 +483,15 @@ export async function getBlogPosts(
       return { posts: [], total: 0 };
     }
 
-    return {
+    const result = {
       posts: data?.posts || [],
       total: data?.total || 0,
     };
+    blogPostsCache.set(cacheKey, {
+      value: result,
+      expiresAt: Date.now() + BLOG_LIST_CACHE_TTL_MS,
+    });
+    return result;
   } catch (e) {
     console.error("[getBlogPosts] Exception:", e);
     return { posts: [], total: 0 };
@@ -465,7 +512,15 @@ export async function getPublishedBlogPostSitemapRows(
   }>
 > {
   try {
-    const rows = [];
+    const rows: Array<{
+      id: string;
+      slug: string;
+      locale: string | null;
+      translation_group_id: string | null;
+      published_at: string | null;
+      updated_at: string | null;
+      robots_noindex: boolean | null;
+    }> = [];
     const pageSize = 1000;
 
     for (let from = 0; ; from += pageSize) {
@@ -550,16 +605,24 @@ export async function getBlogPostBySlug(
       if (lang && lang !== normalizedLocale) localeCandidates.push(lang);
       if (normalizedLocale === "es-CO") localeCandidates.push("es");
       if (normalizedLocale === "en-US") localeCandidates.push("en");
+      if (normalizedLocale === "pt-BR") localeCandidates.push("pt");
+      if (normalizedLocale === "fr-FR") localeCandidates.push("fr");
+      if (normalizedLocale === "de-DE") localeCandidates.push("de");
       if (normalizedLocale === "es") localeCandidates.push("es-CO");
       if (normalizedLocale === "en") localeCandidates.push("en-US");
+      if (normalizedLocale === "pt") localeCandidates.push("pt-BR");
+      if (normalizedLocale === "fr") localeCandidates.push("fr-FR");
+      if (normalizedLocale === "de") localeCandidates.push("de-DE");
     } else {
       localeCandidates.push("");
     }
 
-    for (const localeCandidate of [...new Set(localeCandidates)]) {
+    const uniqueLocales = [...new Set(localeCandidates)];
+
+    for (const localeCandidate of uniqueLocales) {
       let fallbackQuery = supabase
         .from("website_blog_posts")
-        .select("*")
+        .select("*, category:website_blog_categories(*)")
         .eq("website_id", websiteId)
         .eq("slug", normalizedSlug)
         .eq("status", "published")
@@ -574,9 +637,7 @@ export async function getBlogPostBySlug(
         .limit(1)
         .maybeSingle();
 
-      if (!fallbackError && fallbackPost) {
-        return fallbackPost as BlogPost;
-      }
+      if (!fallbackError && fallbackPost) return fallbackPost as BlogPost;
     }
 
     return null;
@@ -635,13 +696,19 @@ export async function getBlogPostTranslationLocales(
     if (error) return fallback;
 
     const locales = (data ?? [])
-      .map((row) => row.locale)
+      .map((row: { locale: unknown }) => row.locale)
       .filter(
         (locale): locale is string =>
           typeof locale === "string" && locale.trim().length > 0,
       );
 
-    return locales.length > 0 ? [...new Set(locales)] : fallback;
+    const normalizedLocales = locales
+      .map((locale) => normalizeBlogPublicLocale(locale))
+      .filter((locale): locale is string => Boolean(locale));
+
+    return normalizedLocales.length > 0
+      ? [...new Set(normalizedLocales)]
+      : fallback;
   } catch {
     return fallback;
   }
@@ -653,6 +720,9 @@ export function normalizeBlogPublicLocale(
   if (!locale) return null;
   if (locale === "es") return "es-CO";
   if (locale === "en") return "en-US";
+  if (locale === "pt") return "pt-BR";
+  if (locale === "fr") return "fr-FR";
+  if (locale === "de") return "de-DE";
   return locale;
 }
 

@@ -83,7 +83,7 @@ describe('parseInternalSitePath', () => {
 describe('locale resolution for /site/<sub>/<lang>/... (contract)', () => {
   const localeSettings = extractWebsiteLocaleSettings({
     default_locale: 'es-CO',
-    supported_locales: ['es-CO', 'en-US'],
+    supported_locales: ['es-CO', 'en-US', 'pt-BR'],
   });
 
   it('injects en-US locale when inner path has /en/packages/<slug>', () => {
@@ -159,11 +159,27 @@ describe('locale resolution for /site/<sub>/<lang>/... (contract)', () => {
     expect(resolution.resolvedLocale).toBe('es-CO');
   });
 
+  it('resolves pt-br regional prefix for internal preview routes', () => {
+    const internal = parseInternalSitePath(
+      '/site/colombiatours/pt-br/blog/viajar-a-colombia-desde-panama',
+    );
+    const resolution = resolveLocaleFromPublicPath(
+      internal!.innerPathname,
+      localeSettings,
+    );
+
+    expect(resolution.hasLanguageSegment).toBe(true);
+    expect(resolution.languageSegment).toBe('pt-br');
+    expect(resolution.resolvedLocale).toBe('pt-BR');
+    expect(resolution.resolvedLanguage).toBe('pt');
+    expect(resolution.pathnameWithoutLang).toBe('/blog/viajar-a-colombia-desde-panama');
+  });
+
   it('does NOT intervene when leading segment is 2 letters but unsupported locale', () => {
     // Tenant only supports es-CO + en-US. A `/pt/` prefix must NOT be
     // interpreted as Portuguese — leave pass-through semantics intact.
     const internal = parseInternalSitePath(
-      '/site/colombiatours/pt/paquetes/amazon-adventure',
+      '/site/colombiatours/it/paquetes/amazon-adventure',
     );
     const resolution = resolveLocaleFromPublicPath(
       internal!.innerPathname,
