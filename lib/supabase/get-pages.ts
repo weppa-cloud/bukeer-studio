@@ -60,6 +60,7 @@ const navigationCache = new Map<
   string,
   { value: NavigationItem[]; expiresAt: number }
 >();
+const navigationInflight = new Map<string, Promise<NavigationItem[]>>();
 const UUID_PATTERN =
   /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 
@@ -73,6 +74,7 @@ function isUuid(value: unknown): value is string {
  */
 export function invalidatePublicDataCache(subdomain: string): void {
   const prefix = `${subdomain.toLowerCase()}::`;
+  const navigationKey = subdomain.toLowerCase();
 
   for (const key of productPageCache.keys()) {
     if (key.startsWith(prefix)) {
@@ -85,6 +87,9 @@ export function invalidatePublicDataCache(subdomain: string): void {
       categoryProductsCache.delete(key);
     }
   }
+
+  navigationCache.delete(navigationKey);
+  navigationInflight.delete(navigationKey);
 }
 
 function logProductV2ParseWarning(
@@ -1743,21 +1748,33 @@ export async function getWebsiteNavigation(
     const cached = navigationCache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) return cached.value;
 
-    const { data, error } = await supabase.rpc("get_website_navigation", {
-      p_subdomain: subdomain,
-    });
+    const inflight = navigationInflight.get(cacheKey);
+    if (inflight) return inflight;
 
-    if (error) {
-      console.error("[getWebsiteNavigation] Error:", error);
-      return [];
+    const load = (async () => {
+      const { data, error } = await supabase.rpc("get_website_navigation", {
+        p_subdomain: subdomain,
+      });
+
+      if (error) {
+        console.error("[getWebsiteNavigation] Error:", error);
+        return [];
+      }
+
+      const items = (data as NavigationItem[]) || [];
+      navigationCache.set(cacheKey, {
+        value: items,
+        expiresAt: Date.now() + NAVIGATION_CACHE_TTL_MS,
+      });
+      return items;
+    })();
+
+    navigationInflight.set(cacheKey, load);
+    try {
+      return await load;
+    } finally {
+      navigationInflight.delete(cacheKey);
     }
-
-    const items = (data as NavigationItem[]) || [];
-    navigationCache.set(cacheKey, {
-      value: items,
-      expiresAt: Date.now() + NAVIGATION_CACHE_TTL_MS,
-    });
-    return items;
   } catch (e) {
     console.error("[getWebsiteNavigation] Exception:", e);
     return [];

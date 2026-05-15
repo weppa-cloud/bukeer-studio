@@ -54,6 +54,14 @@ const blogPostsCache = new Map<
   string,
   { value: { posts: BlogPost[]; total: number }; expiresAt: number }
 >();
+const websiteBySubdomainInflight = new Map<
+  string,
+  Promise<WebsiteData | null>
+>();
+const blogPostsInflight = new Map<
+  string,
+  Promise<{ posts: BlogPost[]; total: number }>
+>();
 
 type WebsiteWithEffectiveTheme = WebsiteData & {
   effective_theme?: ThemeV3;
@@ -62,6 +70,37 @@ type WebsiteWithEffectiveTheme = WebsiteData & {
     | "snapshot_fallback"
     | "website_theme_default";
 };
+
+export function invalidateWebsiteDataCache(input: {
+  subdomain?: string | null;
+  websiteId?: string | null;
+}): void {
+  const subdomain = input.subdomain?.trim().toLowerCase();
+  const websiteId = input.websiteId?.trim();
+
+  if (subdomain) {
+    websiteBySubdomainCache.delete(subdomain);
+    websiteBySubdomainInflight.delete(subdomain);
+  }
+
+  for (const key of themeResolutionCache.keys()) {
+    if (!websiteId || key.startsWith(`${websiteId}:`)) {
+      themeResolutionCache.delete(key);
+    }
+  }
+
+  for (const key of blogPostsCache.keys()) {
+    if (!websiteId || key.includes(`"websiteId":"${websiteId}"`)) {
+      blogPostsCache.delete(key);
+    }
+  }
+
+  for (const key of blogPostsInflight.keys()) {
+    if (!websiteId || key.includes(`"websiteId":"${websiteId}"`)) {
+      blogPostsInflight.delete(key);
+    }
+  }
+}
 
 interface AccountCurrencyColumns {
   primary_currency: string | null;
@@ -290,64 +329,76 @@ export async function getWebsiteBySubdomain(
       return cached.value;
     }
 
-    const { data, error } = await supabase.rpc("get_website_by_subdomain", {
-      p_subdomain: subdomain,
-    });
+    const inflight = websiteBySubdomainInflight.get(cacheKey);
+    if (inflight) return inflight;
 
-    if (error) {
-      console.error("[getWebsiteBySubdomain] Error:", error);
-      return null;
-    }
+    const load = (async () => {
+      const { data, error } = await supabase.rpc("get_website_by_subdomain", {
+        p_subdomain: subdomain,
+      });
 
-    if (!data) return null;
-
-    let website = await hydrateWebsiteLocaleColumns(
-      data as WebsiteData,
-      subdomain,
-    );
-    website = await hydrateWebsiteAnalyticsColumns(website, subdomain);
-    const featuredProducts = website.featured_products || {
-      destinations: [],
-      hotels: [],
-      activities: [],
-      transfers: [],
-      packages: [],
-    };
-
-    if (website.account_id && website.content.account) {
-      const accountCurrencyColumns = await getAccountCurrencyColumns(
-        website.account_id,
-      );
-      if (accountCurrencyColumns) {
-        website.content = {
-          ...website.content,
-          account: {
-            ...website.content.account,
-            ...accountCurrencyColumns,
-          },
-        };
+      if (error) {
+        console.error("[getWebsiteBySubdomain] Error:", error);
+        return null;
       }
+
+      if (!data) return null;
+
+      let website = await hydrateWebsiteLocaleColumns(
+        data as WebsiteData,
+        subdomain,
+      );
+      website = await hydrateWebsiteAnalyticsColumns(website, subdomain);
+      const featuredProducts = website.featured_products || {
+        destinations: [],
+        hotels: [],
+        activities: [],
+        transfers: [],
+        packages: [],
+      };
+
+      if (website.account_id && website.content.account) {
+        const accountCurrencyColumns = await getAccountCurrencyColumns(
+          website.account_id,
+        );
+        if (accountCurrencyColumns) {
+          website.content = {
+            ...website.content,
+            account: {
+              ...website.content.account,
+              ...accountCurrencyColumns,
+            },
+          };
+        }
+      }
+
+      const hydratedWebsite = {
+        ...website,
+        featured_products: {
+          destinations: featuredProducts.destinations || [],
+          hotels: featuredProducts.hotels || [],
+          activities: featuredProducts.activities || [],
+          transfers: featuredProducts.transfers || [],
+          packages: featuredProducts.packages || [],
+        },
+      };
+      const resolvedWebsite =
+        await applyThemeDesignerV1Resolution(hydratedWebsite);
+
+      websiteBySubdomainCache.set(cacheKey, {
+        value: resolvedWebsite,
+        expiresAt: Date.now() + WEBSITE_CACHE_TTL_MS,
+      });
+
+      return resolvedWebsite;
+    })();
+
+    websiteBySubdomainInflight.set(cacheKey, load);
+    try {
+      return await load;
+    } finally {
+      websiteBySubdomainInflight.delete(cacheKey);
     }
-
-    const hydratedWebsite = {
-      ...website,
-      featured_products: {
-        destinations: featuredProducts.destinations || [],
-        hotels: featuredProducts.hotels || [],
-        activities: featuredProducts.activities || [],
-        transfers: featuredProducts.transfers || [],
-        packages: featuredProducts.packages || [],
-      },
-    };
-    const resolvedWebsite =
-      await applyThemeDesignerV1Resolution(hydratedWebsite);
-
-    websiteBySubdomainCache.set(cacheKey, {
-      value: resolvedWebsite,
-      expiresAt: Date.now() + WEBSITE_CACHE_TTL_MS,
-    });
-
-    return resolvedWebsite;
   } catch (e) {
     console.error("[getWebsiteBySubdomain] Exception:", e);
     return null;
@@ -380,118 +431,134 @@ export async function getBlogPosts(
     });
     const cached = blogPostsCache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) return cached.value;
-    const localeCandidates: string[] = [];
+    const inflight = blogPostsInflight.get(cacheKey);
+    if (inflight) return inflight;
 
-    if (locale) {
-      localeCandidates.push(locale);
-      const lang = locale.split("-")[0]?.toLowerCase();
-      if (lang && lang !== locale) localeCandidates.push(lang);
+    const load = (async () => {
+      const localeCandidates: string[] = [];
 
-      // Legacy blog rows may still store ISO-639 locales (`es`, `en`, etc.).
-      if (locale === "es") localeCandidates.push("es-CO");
-      if (locale === "en") localeCandidates.push("en-US");
-      if (locale === "pt") localeCandidates.push("pt-BR");
-      if (locale === "fr") localeCandidates.push("fr-FR");
-      if (locale === "de") localeCandidates.push("de-DE");
-      if (locale === "es-CO") localeCandidates.push("es");
-      if (locale === "en-US") localeCandidates.push("en");
-      if (locale === "pt-BR") localeCandidates.push("pt");
-      if (locale === "fr-FR") localeCandidates.push("fr");
-      if (locale === "de-DE") localeCandidates.push("de");
-    } else {
-      localeCandidates.push("");
-    }
+      if (locale) {
+        localeCandidates.push(locale);
+        const lang = locale.split("-")[0]?.toLowerCase();
+        if (lang && lang !== locale) localeCandidates.push(lang);
 
-    const uniqueLocales = [...new Set(localeCandidates.filter(Boolean))];
-    // Locale-aware listing: include legacy + canonical locale variants of the
-    // same language (e.g., `es` + `es-CO`) using the public RPC path to avoid
-    // direct-table RLS differences in runtime.
-    if (uniqueLocales.length > 1) {
-      const perLocaleWindow = Math.max(limit + offset, limit);
-      const mergedById = new Map<string, BlogPost>();
-      let atLeastOneSuccess = false;
-      let totalAcrossLocales = 0;
+        // Legacy blog rows may still store ISO-639 locales (`es`, `en`, etc.).
+        if (locale === "es") localeCandidates.push("es-CO");
+        if (locale === "en") localeCandidates.push("en-US");
+        if (locale === "pt") localeCandidates.push("pt-BR");
+        if (locale === "fr") localeCandidates.push("fr-FR");
+        if (locale === "de") localeCandidates.push("de-DE");
+        if (locale === "es-CO") localeCandidates.push("es");
+        if (locale === "en-US") localeCandidates.push("en");
+        if (locale === "pt-BR") localeCandidates.push("pt");
+        if (locale === "fr-FR") localeCandidates.push("fr");
+        if (locale === "de-DE") localeCandidates.push("de");
+      } else {
+        localeCandidates.push("");
+      }
 
-      for (const localeCandidate of uniqueLocales) {
-        const { data, error } = await supabase.rpc(
-          "get_website_blog_post_summaries",
-          {
-            p_website_id: websiteId,
-            p_limit: perLocaleWindow,
-            p_offset: 0,
-            p_category_slug: options.categorySlug || null,
-            p_tag_slug: null,
-            p_locale: localeCandidate || null,
-            p_search: null,
-          },
-        );
+      const uniqueLocales = [...new Set(localeCandidates.filter(Boolean))];
+      // Locale-aware listing: include legacy + canonical locale variants of the
+      // same language (e.g., `es` + `es-CO`) using the public RPC path to avoid
+      // direct-table RLS differences in runtime.
+      if (uniqueLocales.length > 1) {
+        const perLocaleWindow = Math.max(limit + offset, limit);
+        const mergedById = new Map<string, BlogPost>();
+        let atLeastOneSuccess = false;
+        let totalAcrossLocales = 0;
 
-        if (error) continue;
-        atLeastOneSuccess = true;
-        const localePosts = (data?.posts || []) as BlogPost[];
-        totalAcrossLocales += Number(data?.total || 0);
-        for (const post of localePosts) {
-          if (!post?.id) continue;
-          if (!mergedById.has(post.id)) mergedById.set(post.id, post);
+        for (const localeCandidate of uniqueLocales) {
+          const { data, error } = await supabase.rpc(
+            "get_website_blog_post_summaries",
+            {
+              p_website_id: websiteId,
+              p_limit: perLocaleWindow,
+              p_offset: 0,
+              p_category_slug: options.categorySlug || null,
+              p_tag_slug: null,
+              p_locale: localeCandidate || null,
+              p_search: null,
+            },
+          );
+
+          if (error) continue;
+          atLeastOneSuccess = true;
+          const localePosts = (data?.posts || []) as BlogPost[];
+          totalAcrossLocales += Number(data?.total || 0);
+          for (const post of localePosts) {
+            if (!post?.id) continue;
+            if (!mergedById.has(post.id)) mergedById.set(post.id, post);
+          }
+        }
+
+        if (atLeastOneSuccess) {
+          const merged = Array.from(mergedById.values()).sort((a, b) => {
+            const publishedA = a.published_at
+              ? new Date(a.published_at).getTime()
+              : 0;
+            const publishedB = b.published_at
+              ? new Date(b.published_at).getTime()
+              : 0;
+            if (publishedA !== publishedB) return publishedB - publishedA;
+
+            const updatedA = a.updated_at
+              ? new Date(a.updated_at).getTime()
+              : 0;
+            const updatedB = b.updated_at
+              ? new Date(b.updated_at).getTime()
+              : 0;
+            return updatedB - updatedA;
+          });
+
+          const paginated = merged.slice(offset, offset + limit);
+          const total = Math.max(totalAcrossLocales, mergedById.size);
+          const result = {
+            posts: paginated,
+            total,
+          };
+          blogPostsCache.set(cacheKey, {
+            value: result,
+            expiresAt: Date.now() + BLOG_LIST_CACHE_TTL_MS,
+          });
+          return result;
         }
       }
 
-      if (atLeastOneSuccess) {
-        const merged = Array.from(mergedById.values()).sort((a, b) => {
-          const publishedA = a.published_at
-            ? new Date(a.published_at).getTime()
-            : 0;
-          const publishedB = b.published_at
-            ? new Date(b.published_at).getTime()
-            : 0;
-          if (publishedA !== publishedB) return publishedB - publishedA;
+      const { data, error } = await supabase.rpc(
+        "get_website_blog_post_summaries",
+        {
+          p_website_id: websiteId,
+          p_limit: limit,
+          p_offset: offset,
+          p_category_slug: options.categorySlug || null,
+          p_tag_slug: null,
+          p_locale: locale || null,
+          p_search: null,
+        },
+      );
 
-          const updatedA = a.updated_at ? new Date(a.updated_at).getTime() : 0;
-          const updatedB = b.updated_at ? new Date(b.updated_at).getTime() : 0;
-          return updatedB - updatedA;
-        });
-
-        const paginated = merged.slice(offset, offset + limit);
-        const total = Math.max(totalAcrossLocales, mergedById.size);
-        const result = {
-          posts: paginated,
-          total,
-        };
-        blogPostsCache.set(cacheKey, {
-          value: result,
-          expiresAt: Date.now() + BLOG_LIST_CACHE_TTL_MS,
-        });
-        return result;
+      if (error) {
+        console.error("[getBlogPosts] Error:", error);
+        return { posts: [], total: 0 };
       }
+
+      const result = {
+        posts: data?.posts || [],
+        total: data?.total || 0,
+      };
+      blogPostsCache.set(cacheKey, {
+        value: result,
+        expiresAt: Date.now() + BLOG_LIST_CACHE_TTL_MS,
+      });
+      return result;
+    })();
+
+    blogPostsInflight.set(cacheKey, load);
+    try {
+      return await load;
+    } finally {
+      blogPostsInflight.delete(cacheKey);
     }
-
-    const { data, error } = await supabase.rpc(
-      "get_website_blog_post_summaries",
-      {
-        p_website_id: websiteId,
-        p_limit: limit,
-        p_offset: offset,
-        p_category_slug: options.categorySlug || null,
-        p_tag_slug: null,
-        p_locale: locale || null,
-        p_search: null,
-      },
-    );
-
-    if (error) {
-      console.error("[getBlogPosts] Error:", error);
-      return { posts: [], total: 0 };
-    }
-
-    const result = {
-      posts: data?.posts || [],
-      total: data?.total || 0,
-    };
-    blogPostsCache.set(cacheKey, {
-      value: result,
-      expiresAt: Date.now() + BLOG_LIST_CACHE_TTL_MS,
-    });
-    return result;
   } catch (e) {
     console.error("[getBlogPosts] Exception:", e);
     return { posts: [], total: 0 };
