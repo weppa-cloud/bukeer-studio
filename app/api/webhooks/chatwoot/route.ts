@@ -498,28 +498,16 @@ async function insertWebhookEvent(
   eventId: string,
   signature: string,
 ): Promise<"inserted" | "duplicate"> {
-  const { data, error } = await supabase
-    .from("webhook_events")
-    .upsert(
-      {
-        provider: PROVIDER,
-        event_id: eventId,
-        event_type: payload.event,
-        signature,
-        payload,
-      },
-      {
-        onConflict: "provider,event_id",
-        ignoreDuplicates: true,
-      },
-    )
-    .select("id")
-    .limit(1);
+  const { data, error } = await supabase.rpc("claim_webhook_event", {
+    p_provider: PROVIDER,
+    p_event_id: eventId,
+    p_event_type: payload.event,
+    p_signature: signature,
+    p_payload: payload,
+  });
 
-  if (!error) {
-    return Array.isArray(data) && data.length === 0 ? "duplicate" : "inserted";
-  }
-  throw new Error(error.message);
+  if (error) throw new Error(error.message);
+  return data === true ? "inserted" : "duplicate";
 }
 
 async function markWebhookEvent(
