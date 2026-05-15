@@ -201,6 +201,19 @@ function isFlightLikeProductType(value: unknown): boolean {
   );
 }
 
+function needsGenericPackageMediaLookup(
+  rows: Array<Record<string, unknown>>,
+): boolean {
+  if (rows.length === 0) return false;
+  return rows.some((row) => {
+    const productType = row.product_type;
+    return (
+      !isActivityLikeProductType(productType) &&
+      !isHotelLikeProductType(productType)
+    );
+  });
+}
+
 function formatItineraryTimeLabel(value: unknown): string | null {
   const raw = asOptionalString(value);
   if (!raw) return null;
@@ -1086,9 +1099,25 @@ export async function getProductPage(
                 .filter((id): id is string => Boolean(id)),
             ),
           );
-          if (productIds.length > 0) {
+          const rowsByProductId = new Map<
+            string,
+            Array<Record<string, unknown>>
+          >();
+          for (const row of itineraryRows) {
+            const productId = asOptionalString(row.id_product);
+            if (!productId) continue;
+            const rows = rowsByProductId.get(productId) ?? [];
+            rows.push(row);
+            rowsByProductId.set(productId, rows);
+          }
+          const genericMediaLookupProductIds = productIds.filter((productId) =>
+            needsGenericPackageMediaLookup(
+              rowsByProductId.get(productId) ?? [],
+            ),
+          );
+          if (genericMediaLookupProductIds.length > 0) {
             const rpcRows = await Promise.all(
-              productIds.map(async (productId) => {
+              genericMediaLookupProductIds.map(async (productId) => {
                 const { data, error } = await packageReader.rpc(
                   "function_get_images_and_main_image",
                   { p_id: productId },
