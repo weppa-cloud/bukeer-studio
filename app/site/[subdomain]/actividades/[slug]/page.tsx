@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { headers } from "next/headers";
 import { notFound, permanentRedirect, redirect } from "next/navigation";
 
 import { ProductLandingPage } from "@/components/pages/product-landing-page";
@@ -34,7 +33,7 @@ import {
   translateCategoryPathname,
 } from "@/lib/seo/locale-routing";
 import { resolveOgImage } from "@/lib/seo/og-helpers";
-import { getBasePath } from "@/lib/utils/base-path";
+import { getBasePath, inferIsCustomDomainWebsite } from "@/lib/utils/base-path";
 
 interface ActivityPageProps {
   params: Promise<{ subdomain: string; slug: string }>;
@@ -264,8 +263,7 @@ export default async function ActivitySlugPage({ params }: ActivityPageProps) {
     }
   }
 
-  const headerList = await headers();
-  const isCustomDomain = Boolean(headerList.get("x-custom-domain"));
+  const isCustomDomain = inferIsCustomDomainWebsite(website);
   const websiteForRender = {
     ...website,
     resolvedLocale,

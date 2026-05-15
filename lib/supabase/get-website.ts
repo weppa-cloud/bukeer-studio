@@ -287,7 +287,7 @@ export async function getWebsiteBySubdomain(
     const cacheKey = subdomain.toLowerCase();
     const cached = websiteBySubdomainCache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) {
-      return applyThemeDesignerV1Resolution(cached.value);
+      return cached.value;
     }
 
     const { data, error } = await supabase.rpc("get_website_by_subdomain", {
@@ -339,12 +339,15 @@ export async function getWebsiteBySubdomain(
         packages: featuredProducts.packages || [],
       },
     };
+    const resolvedWebsite =
+      await applyThemeDesignerV1Resolution(hydratedWebsite);
+
     websiteBySubdomainCache.set(cacheKey, {
-      value: hydratedWebsite,
+      value: resolvedWebsite,
       expiresAt: Date.now() + WEBSITE_CACHE_TTL_MS,
     });
 
-    return applyThemeDesignerV1Resolution(hydratedWebsite);
+    return resolvedWebsite;
   } catch (e) {
     console.error("[getWebsiteBySubdomain] Exception:", e);
     return null;
@@ -417,7 +420,9 @@ export async function getBlogPosts(
             p_limit: perLocaleWindow,
             p_offset: 0,
             p_category_slug: options.categorySlug || null,
+            p_tag_slug: null,
             p_locale: localeCandidate || null,
+            p_search: null,
           },
         );
 
@@ -467,7 +472,9 @@ export async function getBlogPosts(
         p_limit: limit,
         p_offset: offset,
         p_category_slug: options.categorySlug || null,
+        p_tag_slug: null,
         p_locale: locale || null,
+        p_search: null,
       },
     );
 

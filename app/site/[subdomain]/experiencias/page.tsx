@@ -13,22 +13,22 @@
  * still return a usable page.
  */
 
-import type { Metadata } from 'next';
-import { headers } from 'next/headers';
-import { notFound } from 'next/navigation';
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 
-import { getWebsiteBySubdomain } from '@/lib/supabase/get-website';
-import { getCategoryProducts } from '@/lib/supabase/get-pages';
-import { toActivityItems } from '@/lib/products/to-items';
+import { getWebsiteBySubdomain } from "@/lib/supabase/get-website";
+import { getCategoryProducts } from "@/lib/supabase/get-pages";
+import { toActivityItems } from "@/lib/products/to-items";
 import {
   buildLocaleAwareAlternateLanguages,
   resolvePublicMetadataLocale,
-} from '@/lib/seo/public-metadata';
-import { localeToOgLocale } from '@/lib/seo/locale-routing';
-import { resolveOgImage } from '@/lib/seo/og-helpers';
-import { TemplateSlot } from '@/components/site/themes/editorial-v1/template-slot';
-import type { ExperienceItem } from '@/components/site/themes/editorial-v1/pages/experiences-grid.client';
-import { ExperiencesFallbackClient } from './experiences-fallback.client';
+} from "@/lib/seo/public-metadata";
+import { localeToOgLocale } from "@/lib/seo/locale-routing";
+import { resolveOgImage } from "@/lib/seo/og-helpers";
+import { TemplateSlot } from "@/components/site/themes/editorial-v1/template-slot";
+import type { ExperienceItem } from "@/components/site/themes/editorial-v1/pages/experiences-grid.client";
+import { ExperiencesFallbackClient } from "./experiences-fallback.client";
+import { inferIsCustomDomainWebsite } from "@/lib/utils/base-path";
 
 interface ExperiencesPageProps {
   params: Promise<{ subdomain: string }>;
@@ -43,9 +43,9 @@ interface ExperiencesPageProps {
   }>;
 }
 
-const PAGE_TITLE = 'Experiencias';
+const PAGE_TITLE = "Experiencias";
 const PAGE_DESCRIPTION =
-  'Actividades para sumar a tu viaje. Oficios, caminatas, cocina, mar, selva.';
+  "Actividades para sumar a tu viaje. Oficios, caminatas, cocina, mar, selva.";
 
 export async function generateMetadata({
   params,
@@ -55,15 +55,19 @@ export async function generateMetadata({
   if (!website) {
     return { title: PAGE_TITLE };
   }
-  const siteName = website.content?.account?.name || website.content?.siteName || subdomain;
+  const siteName =
+    website.content?.account?.name || website.content?.siteName || subdomain;
   const baseUrl = website.custom_domain
     ? `https://${website.custom_domain}`
     : `https://${subdomain}.bukeer.com`;
-  const localeContext = await resolvePublicMetadataLocale(website, '/experiencias');
+  const localeContext = await resolvePublicMetadataLocale(
+    website,
+    "/experiencias",
+  );
   const canonical = `${baseUrl}${localeContext.localizedPathname}`;
   const languages = buildLocaleAwareAlternateLanguages(
     baseUrl,
-    '/experiencias',
+    "/experiencias",
     localeContext,
   );
   const ogImage = resolveOgImage(website);
@@ -78,7 +82,7 @@ export async function generateMetadata({
       url: canonical,
       siteName,
       locale: localeToOgLocale(localeContext.resolvedLocale),
-      type: 'website',
+      type: "website",
       ...(ogImage && { images: [{ url: ogImage }] }),
     },
   };
@@ -86,19 +90,22 @@ export async function generateMetadata({
 
 function toArrayParam(raw: string | undefined): string[] {
   if (!raw) return [];
-  return raw.split(',').map((s) => s.trim()).filter(Boolean);
+  return raw
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
 }
 
 function normaliseActivities(raw: unknown[]): ExperienceItem[] {
   if (!Array.isArray(raw)) return [];
   return raw
     .map((r): ExperienceItem | null => {
-      if (!r || typeof r !== 'object') return null;
+      if (!r || typeof r !== "object") return null;
       const obj = r as Record<string, unknown>;
-      const id = typeof obj.id === 'string' ? obj.id : null;
+      const id = typeof obj.id === "string" ? obj.id : null;
       const name =
-        (typeof obj.name === 'string' && obj.name) ||
-        (typeof obj.title === 'string' && (obj.title as string)) ||
+        (typeof obj.name === "string" && obj.name) ||
+        (typeof obj.title === "string" && (obj.title as string)) ||
         null;
       if (!id || !name) return null;
       return {
@@ -109,7 +116,7 @@ function normaliseActivities(raw: unknown[]): ExperienceItem[] {
         description: (obj.description as string | undefined) ?? null,
         image:
           (obj.image as string | undefined) ??
-          (Array.isArray(obj.images) && typeof obj.images[0] === 'string'
+          (Array.isArray(obj.images) && typeof obj.images[0] === "string"
             ? (obj.images[0] as string)
             : null),
         location: (obj.location as string | undefined) ?? null,
@@ -143,13 +150,15 @@ export default async function ExperiencesPageRoute({
   const sp = await searchParams;
   const website = await getWebsiteBySubdomain(subdomain);
 
-  if (!website || website.status !== 'published') {
+  if (!website || website.status !== "published") {
     notFound();
   }
 
-  const localeContext = await resolvePublicMetadataLocale(website, '/experiencias');
-  const headerList = await headers();
-  const isCustomDomain = Boolean(headerList.get('x-custom-domain'));
+  const localeContext = await resolvePublicMetadataLocale(
+    website,
+    "/experiencias",
+  );
+  const isCustomDomain = inferIsCustomDomainWebsite(website);
   const websiteForRender = {
     ...website,
     resolvedLocale: localeContext.resolvedLocale,
@@ -164,23 +173,25 @@ export default async function ExperiencesPageRoute({
   // authored a section payload — previously we only read from the section
   // which resulted in "0 de 0" for sites like ColombiaTours.
   const activitiesSection = (website.sections || []).find(
-    (s) => s.section_type === 'activities' && s.is_enabled !== false,
+    (s) => s.section_type === "activities" && s.is_enabled !== false,
   );
   const authoredActivities = Array.isArray(
-    (activitiesSection?.content as Record<string, unknown> | undefined)?.activities,
+    (activitiesSection?.content as Record<string, unknown> | undefined)
+      ?.activities,
   )
-    ? ((activitiesSection!.content as Record<string, unknown>).activities as unknown[])
+    ? ((activitiesSection!.content as Record<string, unknown>)
+        .activities as unknown[])
     : [];
 
   let activities: ExperienceItem[];
   if (authoredActivities.length > 0) {
     activities = normaliseActivities(authoredActivities);
   } else {
-    const catalog = await getCategoryProducts(subdomain, 'activities', {
+    const catalog = await getCategoryProducts(subdomain, "activities", {
       limit: 100,
       offset: 0,
       locale: localeContext.resolvedLocale,
-      defaultLocale: localeContext.defaultLocale ?? 'es-CO',
+      defaultLocale: localeContext.defaultLocale ?? "es-CO",
       websiteId: String(website.id),
     });
     // toActivityItems returns the canonical editorial shape (name, image,
@@ -201,10 +212,10 @@ export default async function ExperiencesPageRoute({
           level: toArrayParam(sp.level),
           region: toArrayParam(sp.region),
           location: toArrayParam(sp.location),
-          category: sp.category || 'all',
-          duration: sp.duration || 'all',
-          sort: sp.sort || 'popular',
-          q: sp.q || '',
+          category: sp.category || "all",
+          duration: sp.duration || "all",
+          sort: sp.sort || "popular",
+          q: sp.q || "",
         },
       }}
     >

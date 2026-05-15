@@ -1,5 +1,4 @@
 import { Metadata } from "next";
-import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { getWebsiteBySubdomain } from "@/lib/supabase/get-website";
 import type { WebsiteData } from "@/lib/supabase/get-website";
@@ -53,7 +52,7 @@ import {
 } from "@/lib/products/activity-circuit";
 import { sanitizeProductCopy } from "@/lib/products/normalize-product";
 import { toSimilarProductSummaries } from "@/lib/products/similar-product-summary";
-import { getBasePath } from "@/lib/utils/base-path";
+import { getBasePath, inferIsCustomDomainWebsite } from "@/lib/utils/base-path";
 import dynamic from "next/dynamic";
 import { applyContentTranslations } from "@/lib/sections/apply-content-translations";
 import { resolveTemplateSet } from "@/lib/sections/template-set";
@@ -92,6 +91,13 @@ type TranscreatePageType =
   | "activity"
   | "package"
   | "transfer";
+
+const UUID_PATTERN =
+  /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+
+function isUuid(value: unknown): value is string {
+  return typeof value === "string" && UUID_PATTERN.test(value);
+}
 
 function withTimeout<T>(
   promise: Promise<T>,
@@ -145,6 +151,10 @@ async function loadTranslatedLocalesForPage(input: {
   defaultLocale: string;
 }): Promise<string[] | undefined> {
   try {
+    if (!isUuid(input.websiteId) || !isUuid(input.pageId)) {
+      return [normalizeLocale(input.defaultLocale)];
+    }
+
     const admin = createSupabaseServiceRoleClient();
     const { data, error } = await admin
       .from("seo_transcreation_jobs")
@@ -777,8 +787,7 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
   );
   const resolvedLocale = localeContext.resolvedLocale;
   const defaultLocale = localeContext.defaultLocale ?? "es-CO";
-  const headerList = await headers();
-  const isCustomDomain = Boolean(headerList.get("x-custom-domain"));
+  const isCustomDomain = inferIsCustomDomainWebsite(website);
 
   const translatedSections = applyContentTranslations(
     website.sections || [],

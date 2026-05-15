@@ -498,17 +498,16 @@ async function insertWebhookEvent(
   eventId: string,
   signature: string,
 ): Promise<"inserted" | "duplicate"> {
-  const { error } = await supabase.from("webhook_events").insert({
-    provider: PROVIDER,
-    event_id: eventId,
-    event_type: payload.event,
-    signature,
-    payload,
+  const { data, error } = await supabase.rpc("claim_webhook_event", {
+    p_provider: PROVIDER,
+    p_event_id: eventId,
+    p_event_type: payload.event,
+    p_signature: signature,
+    p_payload: payload,
   });
 
-  if (!error) return "inserted";
-  if (error.code === "23505") return "duplicate";
-  throw new Error(error.message);
+  if (error) throw new Error(error.message);
+  return data === true ? "inserted" : "duplicate";
 }
 
 async function markWebhookEvent(
@@ -1179,9 +1178,12 @@ async function emitLifecycleFunnelEvents(
           fbp: cleanString(attribution.fbp),
           fbc: cleanString(attribution.fbc),
           ctwa_clid: cleanString(attribution.ctwa_clid),
-          gclid: readAttributionClickId(funnelAttribution, "gclid") ?? undefined,
-          gbraid: readAttributionClickId(funnelAttribution, "gbraid") ?? undefined,
-          wbraid: readAttributionClickId(funnelAttribution, "wbraid") ?? undefined,
+          gclid:
+            readAttributionClickId(funnelAttribution, "gclid") ?? undefined,
+          gbraid:
+            readAttributionClickId(funnelAttribution, "gbraid") ?? undefined,
+          wbraid:
+            readAttributionClickId(funnelAttribution, "wbraid") ?? undefined,
           utm_source: funnelAttribution?.utm.utm_source ?? undefined,
           utm_medium: funnelAttribution?.utm.utm_medium ?? undefined,
           utm_campaign: funnelAttribution?.utm.utm_campaign ?? undefined,

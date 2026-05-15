@@ -7,7 +7,6 @@
  */
 
 import type { Metadata } from "next";
-import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
 import { ActivitiesListingPage } from "@/components/pages/activities-listing-page";
@@ -24,6 +23,7 @@ import {
   normalizeLocale,
 } from "@/lib/seo/locale-routing";
 import { resolveOgImage } from "@/lib/seo/og-helpers";
+import { inferIsCustomDomainWebsite } from "@/lib/utils/base-path";
 
 interface ActividadesPageProps {
   params: Promise<{ subdomain: string }>;
@@ -142,8 +142,13 @@ export async function generateMetadata({
   const canonical = `${baseUrl}${localeContext.localizedPathname}`;
   const ogImage = resolveOgImage(website);
   const isEnglish = localeContext.resolvedLanguage === "en";
-  const title = isEnglish ? "Activities in Colombia" : "Actividades en Colombia";
-  const description = buildActivitiesDescription(siteName, localeContext.resolvedLocale);
+  const title = isEnglish
+    ? "Activities in Colombia"
+    : "Actividades en Colombia";
+  const description = buildActivitiesDescription(
+    siteName,
+    localeContext.resolvedLocale,
+  );
 
   return {
     title,
@@ -186,8 +191,7 @@ export default async function ActividadesPage({
     notFound();
   }
 
-  const headerList = await headers();
-  const isCustomDomain = Boolean(headerList.get("x-custom-domain"));
+  const isCustomDomain = inferIsCustomDomainWebsite(website);
   const localeContext = await resolvePublicMetadataLocale(website, PAGE_PATH);
   const { items: activities } = await getCategoryProducts(
     subdomain,

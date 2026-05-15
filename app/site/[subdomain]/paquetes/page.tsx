@@ -7,7 +7,6 @@
  */
 
 import type { Metadata } from "next";
-import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
 import { PackagesListingPage } from "@/components/pages/packages-listing-page";
@@ -25,6 +24,7 @@ import {
   normalizeLocale,
 } from "@/lib/seo/locale-routing";
 import { resolveOgImage } from "@/lib/seo/og-helpers";
+import { inferIsCustomDomainWebsite } from "@/lib/utils/base-path";
 
 interface PaquetesPageProps {
   params: Promise<{ subdomain: string }>;
@@ -132,7 +132,10 @@ export async function generateMetadata({
   const ogImage = resolveOgImage(website);
   const isEnglish = localeContext.resolvedLanguage === "en";
   const title = isEnglish ? "Travel Packages" : "Paquetes de Viaje";
-  const description = buildPackagesDescription(siteName, localeContext.resolvedLocale);
+  const description = buildPackagesDescription(
+    siteName,
+    localeContext.resolvedLocale,
+  );
 
   return {
     title,
@@ -171,8 +174,7 @@ export default async function PaquetesPage({ params }: PaquetesPageProps) {
     notFound();
   }
 
-  const headerList = await headers();
-  const isCustomDomain = Boolean(headerList.get("x-custom-domain"));
+  const isCustomDomain = inferIsCustomDomainWebsite(website);
   const localeContext = await resolvePublicMetadataLocale(website, PAGE_PATH);
   const { items: packageProducts } = await getCategoryProducts(
     subdomain,
