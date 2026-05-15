@@ -59,11 +59,6 @@ import { applyContentTranslations } from "@/lib/sections/apply-content-translati
 import { resolveTemplateSet } from "@/lib/sections/template-set";
 import { ACTIVITY_FAQS_DEFAULT } from "@/lib/products/activity-faqs-default";
 import { PACKAGE_FAQS_DEFAULT } from "@/lib/products/package-faqs-default";
-import {
-  canonicalDestinationSlug,
-  destinationSlugNeedsCanonicalRedirect,
-  findDestinationByCanonicalSlug,
-} from "@/lib/destinations/normalize-destination";
 
 const DestinationListingPage = dynamic(() =>
   import("@/components/pages/destination-listing-page").then(
@@ -476,14 +471,13 @@ export async function generateMetadata({
     (slug[0] === "destinos" || slug[0] === "destinations")
   ) {
     const destinations = await getDestinations(subdomain);
-    const dest = findDestinationByCanonicalSlug(destinations, slug[1]);
+    const dest = destinations.find((d) => d.slug === slug[1]);
     if (dest) {
       const siteName =
         website.content?.account?.name ||
         website.content?.siteName ||
         subdomain;
-      const canonicalDestSlug = canonicalDestinationSlug(dest.slug);
-      const override = await getDestinationSeoOverride(website.id, canonicalDestSlug);
+      const override = await getDestinationSeoOverride(website.id, dest.slug);
       const title = normalizePublicMetadataTitle(
         override?.custom_seo_title || dest.name,
         siteName,
@@ -1002,13 +996,8 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
     (slug[0] === "destinos" || slug[0] === "destinations")
   ) {
     const destinations = await getDestinations(subdomain);
-    const dest = findDestinationByCanonicalSlug(destinations, slug[1]);
+    const dest = destinations.find((d) => d.slug === slug[1]);
     if (dest) {
-      const canonicalDestSlug = canonicalDestinationSlug(dest.slug);
-      if (destinationSlugNeedsCanonicalRedirect(slug[1], dest.slug)) {
-        redirect(`/${slug[0]}/${canonicalDestSlug}`);
-      }
-
       const [products, serpData, destReviews, seoOverride] = await Promise.all([
         getDestinationProducts(subdomain, dest.name),
         // Prevent slow external enrichment from blocking destination detail navigation.
@@ -1020,7 +1009,7 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
               6,
             )
           : Promise.resolve([]),
-        getDestinationSeoOverride(website.id, canonicalDestSlug),
+        getDestinationSeoOverride(website.id, dest.slug),
       ]);
       // Issue #208: thread resolved request locale into JSON-LD `inLanguage`.
       const destLocaleContext = await resolvePublicMetadataLocale(
