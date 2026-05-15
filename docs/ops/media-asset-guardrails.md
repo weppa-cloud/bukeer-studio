@@ -25,6 +25,16 @@ Required metadata when known:
 - `usage_context`: `hero`, `featured`, `gallery`, `og`, `avatar`, `body`
 - Legacy compatibility field, if one is still written
 
+## Asset Library Rule
+
+Studio is the primary v1 management surface for tenant-owned media. New Studio
+features that need image selection must use the shared Media Asset Library or
+the reusable image picker backed by `public.media_assets`.
+
+Flutter may continue writing legacy public URL fields, but successful uploads
+must register with `media_assets` through the approved RPC/API path and should
+reuse existing registered assets in priority flows when product UX requires it.
+
 ## PR / Issue Checklist
 
 Use this checklist in specs, issues and PRs:
@@ -73,6 +83,8 @@ When an MLLM edits pages, sections, products, blogs or website content:
 - If a new external URL is introduced, register it or document why it is covered
   by backfill.
 - Do not add image URLs to JSON content without account, entity and context.
+- Do not treat an external image URL as tenant-owned until it is registered and
+  copied or explicitly queued for remediation.
 - After bulk edits, run:
 
 ```sql

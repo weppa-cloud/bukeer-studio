@@ -11,6 +11,8 @@ Last updated: 2026-05-08 (SPEC_GROWTH_OS_AUTONOMOUS_PRODUCTION_OPERATING_SYSTEM 
 
 Latest update: 2026-05-01 (SPEC_GROWTH_OS_SYMPHONY_ORCHESTRATOR audit revision for #310: contract-first gate added with five Zod schemas, SSOT relationship vs growth_profile_runs / Unified Backlog formalised, lane-level autonomy semantics tightened, sprint scope clarified — Symphony OPERATIONAL ≠ #310 PASS, #256 interlock and ADR matrix added; child issues #402–#409 received labels and TVBs); 2026-05-01 (SPEC_GROWTH_OS_SYMPHONY_ORCHESTRATOR added for #310: multi-tenant Supabase/Bukeer control plane, VPS Docker runtime, agent definitions/tool permissions/context packs, Growth UI contract and opt-in E2E); 2026-05-01 (WAFlow reference-first E2E for #310/#322: missing-ref guardrail PASS, two references in one Chatwoot conversation create two CRM requests, legacy `waflow_leads.chatwoot_conversation_id` unique index moved to WATCH with Flutter/SSOT migration prepared); 2026-05-01 (SPEC_GROWTH_OS_AGENT_LANES added for #310: five core Growth OS agent lanes, blocked routing, transcreation/content separation and Council governance); 2026-05-01 (SPEC_GROWTH_OS_SSOT_MODEL added for #310: GitHub is implementation SSOT, Supabase/Bukeer Studio is operational Growth SSOT).
 
+Latest spec addition: 2026-05-15 - [[SPEC_MEDIA_ASSET_LIBRARY_V1]] defines Studio as the primary tenant Media Asset Library surface over `public.media_assets`, with Flutter registration/reuse as the cross-repo v1 contract.
+
 Latest spec addition: 2026-05-14 - [[SPEC_GROWTH_OS_PROVIDER_PROFILE_ARCHITECTURE_V2]] redirects Epic #521 into the Neo/Hermes Provider Profile Beta: GitHub remains planning SSOT, Supabase remains operational SSOT, Neo/Hermes acts as architect-orchestrator, provider profiles own API access, workers consume context packets/facts, and paid media profiles enter the same read-only/freshness-governed architecture.
 
 Latest audit addition: 2026-05-14 - [[AUDIT_GROWTH_OS_PROVIDER_PROFILE_REGISTRY_MAP_2026-05]] maps the current provider-profile registry for #536: 45 profiles across DataForSEO/GSC/GA4/tracking/joint plus Clarity and paid-media WATCH/BLOCKED gaps, with no provider API calls and credential redaction.
@@ -115,6 +117,7 @@ Feature requests formalized. Status tracked inline. GitHub Issues = source of tr
 | --------------------------------------------------------- | ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
 | [[SPEC_MULTI_LOCALE_REMEDIATION]]                         | [file](./specs/SPEC_MULTI_LOCALE_REMEDIATION.md)                         | [[i18n]] [[SEO]] [[growth-ops]]                                                                                                                                 |
 | [[SPEC_MEDIA_ASSET_INVENTORY]]                            | [file](./specs/SPEC_MEDIA_ASSET_INVENTORY.md)                            | [[media-assets]] [[storage]] [[cross-repo-flutter]]                                                                                                             |
+| [[SPEC_MEDIA_ASSET_LIBRARY_V1]]                            | [file](./specs/SPEC_MEDIA_ASSET_LIBRARY_V1.md)                            | [[media-assets]] [[storage]] [[asset-library]] [[cross-repo-flutter]] [[MLLM]]                                                                                  |
 | [[SPEC_SECTION_ENTITY_TRANSLATION_LAYER]]                 | [file](./specs/SPEC_SECTION_ENTITY_TRANSLATION_LAYER.md)                 | [[i18n]] [[website_sections]] [[package_kits]] [[contacts]] [[translation-overlay]] Epic #273 (infra #274-#278 implemented in code, content population pending) |
 | [[SPEC_PACKAGE_DETAIL_CONVERSION_V2]]                     | [file](./specs/SPEC_PACKAGE_DETAIL_CONVERSION_V2.md)                     | [[package-landing]] [[package-kits]] [[maps]] [[conversion]]                                                                                                    |
 | [[SPEC_SEO_CONTENT_INTELLIGENCE]]                         | [file](./specs/SPEC_SEO_CONTENT_INTELLIGENCE.md)                         | [[SEO]] [[AI]] [[keyword-research]]                                                                                                                             |
@@ -377,13 +380,15 @@ Each concept below lists the ADRs/SPECs/ops docs that touch it. Use this to find
 
 - [[ADR-028]] — canonical media registry decision for account-managed assets across Studio and Flutter.
 - [[SPEC_MEDIA_ASSET_INVENTORY]] — v1 canonical inventory and characterization across Storage + legacy URL fields.
+- [[SPEC_MEDIA_ASSET_LIBRARY_V1]] — tenant-owned Media Asset Library v1 for Studio, Flutter registration/reuse and agent-safe media selection.
 - [[media-inventory-runbook]] — dry-run/apply/report/remediation workflow for media inventory operations.
 - [[media-asset-guardrails]] — PR/spec/agent/MLLM guardrails that prevent new URL-only image drift.
 - [[media-inventory-production-run-2026-04-25]] — production execution evidence because this backend has no staging database.
 - [[media-remediation-backlog-2026-04-25]] — actionable remediation backlog from the first production inventory.
 - [[issue-103-media-closure-checklist]] — storage/RLS hardening baseline for `images`, `site-media`, `review-*`, and legacy buckets.
 - Registry: `public.media_assets`, keyed by `(storage_bucket, storage_path)`.
-- Cross-repo: Flutter continues writing legacy URL fields in v1; follow-up issue registers new Flutter uploads into `media_assets` per [[ADR-028]].
+- Product surface: Studio owns the complete Asset Library UI in v1; Flutter registers uploads and selectively reuses assets.
+- Cross-repo: Flutter continues writing legacy URL fields in v1; Flutter spec/ADR tracks registration and reuse per [[ADR-028]].
 
 ### [[middleware]] + [[cache]] + [[edge]]
 
@@ -648,6 +653,7 @@ Obsidian resolves `[[ADR-005]]` by filename stem or alias. Claude Code / Codex g
 | `[[ADR-027]]`                                         | `docs/architecture/ADR-027-designer-reference-theme-adoption.md`                   |
 | `[[ADR-028]]`                                         | `docs/architecture/ADR-028-media-assets-canonical-registry.md`                     |
 | `[[ADR-028-media-assets-canonical-registry]]`         | `docs/architecture/ADR-028-media-assets-canonical-registry.md`                     |
+| `[[SPEC_MEDIA_ASSET_LIBRARY_V1]]`                     | `docs/specs/SPEC_MEDIA_ASSET_LIBRARY_V1.md`                                       |
 | `[[field-ownership]]`                                 | `docs/architecture/ADR-025-studio-flutter-field-ownership.md` (concept alias)      |
 | `[[booking-defer]]`                                   | `docs/architecture/ADR-024-booking-v1-pilot-scope.md` (concept alias)              |
 | `[[pilot-readiness-deps]]`                            | `docs/specs/pilot-readiness-deps.md`                                               |

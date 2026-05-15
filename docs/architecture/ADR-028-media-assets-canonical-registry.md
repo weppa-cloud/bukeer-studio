@@ -24,6 +24,12 @@ This creates three operational gaps:
 
 `public.media_assets` is the canonical registry for Bukeer media assets across Studio and Flutter.
 
+`public.media_assets` is also the foundation for the tenant-owned Media Asset
+Library. Studio is the primary v1 management surface for browsing, selecting,
+uploading, editing metadata and auditing media assets per account. Flutter keeps
+legacy URL compatibility while registering successful uploads and reusing assets
+where product flows require it.
+
 Every feature that uploads, imports, generates, selects, or references an image must either:
 
 1. Register the asset in `media_assets` at write time, or
@@ -52,6 +58,8 @@ Supabase Storage URLs normalize to their bucket/path. External URLs normalize to
 
 - Studio upload APIs must upsert `media_assets` after successful Storage upload.
 - Studio content/page/product features must pass account, website, entity and usage context whenever the caller knows them.
+- Studio image pickers and page/product/section/blog image fields must use the
+  shared Media Asset Library or a documented registry-backed selector.
 - Studio public rendering continues reading legacy URL fields during v1. This ADR does not require renderers to switch to media IDs immediately.
 
 ### Flutter
@@ -59,6 +67,8 @@ Supabase Storage URLs normalize to their bucket/path. External URLs normalize to
 - Flutter remains source-of-truth for catalog/profile fields defined in [[ADR-025]].
 - Flutter must preserve current public URL fields for compatibility.
 - New Flutter uploads should register the uploaded URL through the approved RPC/API path after upload success.
+- Flutter may add selective asset reuse/picker entrypoints for priority flows,
+  but it does not own the full Asset Library UI in v1.
 - Registry sync failure must not block the end-user upload path; it should be observable and retryable.
 
 ### Imports and AI-generated media
@@ -71,6 +81,8 @@ Supabase Storage URLs normalize to their bucket/path. External URLs normalize to
 ### Positive
 
 - Each account can audit and manage its media assets independently.
+- Users and agents have a single tenant-scoped asset library instead of
+  inventing feature-specific image stores.
 - Broken, external, orphaned, missing-alt and oversized assets become reportable operational states.
 - New image features have a clear integration contract instead of inventing ad hoc URL fields.
 - Studio and Flutter can evolve without a coordinated breaking migration because legacy URL fields remain readable.
