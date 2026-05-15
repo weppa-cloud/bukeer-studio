@@ -616,14 +616,35 @@ async function getLegacyRedirectForCandidates(
   const cached = getCached<LegacyRedirectRow | null>(cacheKey);
   if (cached !== undefined) return cached;
 
-  for (const candidate of candidates) {
-    const data = await supabaseFetch<LegacyRedirectRow[]>(
-      `/rest/v1/website_legacy_redirects?select=new_path,status_code&website_id=eq.${encodeURIComponent(websiteId)}&old_path=eq.${encodeURIComponent(candidate)}&limit=1`,
+  const uniqueCandidates = [...new Set(candidates.filter(Boolean))];
+  if (uniqueCandidates.length === 0) {
+    setCached(cacheKey, null);
+    return null;
+  }
+
+  const oldPathFilter = uniqueCandidates
+    .map((candidate) => `old_path.eq.${encodeURIComponent(candidate)}`)
+    .join(",");
+  const data = await supabaseFetch<Array<LegacyRedirectRow & { old_path: string }>>(
+    `/rest/v1/website_legacy_redirects?select=old_path,new_path,status_code&website_id=eq.${encodeURIComponent(websiteId)}&or=(${oldPathFilter})`,
+  );
+
+  if (data && data.length > 0) {
+    const byOldPath = new Map(
+      data
+        .filter((row) => row.new_path)
+        .map((row) => [row.old_path, row] as const),
     );
-    if (data && data.length > 0 && data[0].new_path) {
-      const result = data[0];
-      setCached(cacheKey, result);
-      return result;
+    for (const candidate of uniqueCandidates) {
+      const match = byOldPath.get(candidate);
+      if (match) {
+        const result = {
+          new_path: match.new_path,
+          status_code: match.status_code,
+        };
+        setCached(cacheKey, result);
+        return result;
+      }
     }
   }
 
