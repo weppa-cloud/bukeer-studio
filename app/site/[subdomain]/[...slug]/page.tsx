@@ -92,6 +92,13 @@ type TranscreatePageType =
   | "package"
   | "transfer";
 
+const UUID_PATTERN =
+  /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+
+function isUuid(value: unknown): value is string {
+  return typeof value === "string" && UUID_PATTERN.test(value);
+}
+
 function withTimeout<T>(
   promise: Promise<T>,
   timeoutMs: number,
@@ -144,6 +151,10 @@ async function loadTranslatedLocalesForPage(input: {
   defaultLocale: string;
 }): Promise<string[] | undefined> {
   try {
+    if (!isUuid(input.websiteId) || !isUuid(input.pageId)) {
+      return [normalizeLocale(input.defaultLocale)];
+    }
+
     const admin = createSupabaseServiceRoleClient();
     const { data, error } = await admin
       .from("seo_transcreation_jobs")

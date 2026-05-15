@@ -43,6 +43,12 @@ const PRODUCT_PAGE_CACHE_TTL_MS = Number(process.env.PRODUCT_PAGE_CACHE_TTL_MS |
 const CATEGORY_PRODUCTS_CACHE_TTL_MS = Number(process.env.CATEGORY_PRODUCTS_CACHE_TTL_MS || 2 * 60 * 1000);
 const productPageCache = new Map<string, { value: ProductPageData; expiresAt: number }>();
 const categoryProductsCache = new Map<string, { value: CategoryProducts; expiresAt: number }>();
+const UUID_PATTERN =
+  /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+
+function isUuid(value: unknown): value is string {
+  return typeof value === 'string' && UUID_PATTERN.test(value);
+}
 
 /**
  * Manual in-memory caches here are independent from Next ISR caches.
@@ -258,7 +264,7 @@ async function enrichPackageCategoryPricing(items: ProductData[]): Promise<Produ
     new Set(
       items
         .map((item) => asOptionalString(item.id))
-        .filter((id): id is string => Boolean(id))
+        .filter((id): id is string => Boolean(id) && isUuid(id))
     )
   );
   if (ids.length === 0) return items;
@@ -684,38 +690,42 @@ export async function getProductPage(
       try {
         const packageReader = supabaseService ?? supabase;
         const kitFields = 'id, name, description, destination, planner_id, program_highlights, program_inclusions, program_exclusions, program_gallery, cover_image_url, video_url, video_caption, translations';
-        const byItinerary = await packageReader
-          .from('package_kits')
-          .select(kitFields)
-          .eq('source_itinerary_id', product.id)
-          .maybeSingle();
+        let kit: Record<string, unknown> | null = null;
 
-        let kit = byItinerary.data;
-        if ((!kit || byItinerary.error) && product.id) {
-          const byId = await packageReader
+        if (isUuid(product.id)) {
+          const byItinerary = await packageReader
             .from('package_kits')
             .select(kitFields)
-            .eq('id', product.id)
+            .eq('source_itinerary_id', product.id)
             .maybeSingle();
-          if (!byId.error) kit = byId.data;
-        }
-        // Third path: itinerary.source_package_id → kit.
-        // Handles the case where multiple itineraries share a kit but only one
-        // has source_itinerary_id set on the kit side.
-        if (!kit && product.id) {
-          const { data: itinRow } = await supabase
-            .from('itineraries')
-            .select('source_package_id')
-            .eq('id', product.id)
-            .maybeSingle();
-          const kitId = itinRow?.source_package_id ? String(itinRow.source_package_id) : null;
-          if (kitId) {
-            const bySourcePkg = await packageReader
+
+          kit = byItinerary.data;
+          if (!kit || byItinerary.error) {
+            const byId = await packageReader
               .from('package_kits')
               .select(kitFields)
-              .eq('id', kitId)
+              .eq('id', product.id)
               .maybeSingle();
-            if (!bySourcePkg.error) kit = bySourcePkg.data;
+            if (!byId.error) kit = byId.data;
+          }
+          // Third path: itinerary.source_package_id → kit.
+          // Handles the case where multiple itineraries share a kit but only one
+          // has source_itinerary_id set on the kit side.
+          if (!kit) {
+            const { data: itinRow } = await supabase
+              .from('itineraries')
+              .select('source_package_id')
+              .eq('id', product.id)
+              .maybeSingle();
+            const kitId = itinRow?.source_package_id ? String(itinRow.source_package_id) : null;
+            if (kitId) {
+              const bySourcePkg = await packageReader
+                .from('package_kits')
+                .select(kitFields)
+                .eq('id', kitId)
+                .maybeSingle();
+              if (!bySourcePkg.error) kit = bySourcePkg.data;
+            }
           }
         }
 
@@ -1347,6 +1357,10 @@ export async function getLocalizedProductOverlay(input: {
   locale: string;
 } | null> {
   try {
+    if (!isUuid(input.websiteId) || !isUuid(input.productId)) {
+      return null;
+    }
+
     const primary = await supabase
       .from('website_product_pages')
       .select('custom_seo_title, custom_seo_description, custom_faq, robots_noindex, locale')
