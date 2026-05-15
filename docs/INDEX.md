@@ -17,6 +17,8 @@ Latest plan addition: 2026-05-14 - [[PLAN_GROWTH_OS_PROVIDER_RUNNER_BETA_ISSUE_5
 
 Latest audit addition: 2026-05-14 - [[AUDIT_GROWTH_OS_PROVIDER_PROFILE_REGISTRY_MAP_2026-05]] maps the current provider-profile registry for #536: 45 profiles across DataForSEO/GSC/GA4/tracking/joint plus Clarity and paid-media WATCH/BLOCKED gaps, with no provider API calls and credential redaction.
 
+Latest learning-run: 2026-05-14 - [[ptbr-blog-routing-hreflang-20260514]] records the PT-BR blog routing and hreflang completeness fix (PR #549): 3-layer root cause analysis (URL segment recognition, data-access normalization, SEO metadata), 6 files/688 additions on branch `fix/ptbr-blog-routing-hreflang` at d8310671, addressing 3 post-deploy verifier blockages (México/Panamá/Villa de Leyva), awaiting Yeison approval. 9 learning candidates curated including 2 pattern_docs, 4 profile_facts, and 3 github_issues.
+
 Latest spec addition: 2026-05-13 - [[SPEC_GROWTH_OS_HERMES_PRIMARY_RUNTIME_MVE_V0]] defines Epic #521 for the ColombiaTours Hermes primary runtime MVE v0 steel thread: native Hermes Kanban as runtime queue, board-per-website scope, profile skill bindings, `/goal` + `delegate_task`, tenant/provider context hydration, North Star task scoring, scoped MCP Tool Safety Layer for autonomous production actions, and Supabase reduced to product/audit/snapshot/outcome storage.
 
 Latest spec addition: 2026-05-11 - [[SPEC_GLOBAL_MULTILOCALE_TRANSCREATION_SEO]] defines Epic #502: Global multilingual transcreation for ColombiaTours DE/FR/PT-BR with 8-phase pipeline (F0-F7), multi-agent architecture, and post-publish verification as mandatory gate before sitemap/hreflang/paid traffic exposure.
