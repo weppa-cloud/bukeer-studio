@@ -209,7 +209,8 @@ function needsGenericPackageMediaLookup(
     const productType = row.product_type;
     return (
       !isActivityLikeProductType(productType) &&
-      !isHotelLikeProductType(productType)
+      !isHotelLikeProductType(productType) &&
+      !isTransferLikeProductType(productType)
     );
   });
 }
@@ -240,6 +241,11 @@ function extractRpcImageUrls(value: unknown): string[] {
     }
   }
   return urls;
+}
+
+function extractTransferMediaUrls(row: Record<string, unknown>): string[] {
+  const mainImage = asOptionalString(row.main_image);
+  return mainImage ? [mainImage] : [];
 }
 
 function isGenericPackageProgramTitle(value: string): boolean {
@@ -1142,6 +1148,14 @@ export async function getProductPage(
                 .filter((id): id is string => Boolean(id)),
             ),
           );
+          const transferIds = Array.from(
+            new Set(
+              itineraryRows
+                .filter((row) => isTransferLikeProductType(row.product_type))
+                .map((row) => asOptionalString(row.id_product))
+                .filter((id): id is string => Boolean(id)),
+            ),
+          );
 
           const hotelRows = itineraryRows.filter((row) =>
             isHotelLikeProductType(row.product_type),
@@ -1254,6 +1268,30 @@ export async function getProductPage(
 
             if (hotelCards.length > 0) {
               prod.package_hotel_items = hotelCards;
+            }
+          }
+
+          if (transferIds.length > 0) {
+            const { data: transfers, error: transfersError } =
+              await packageReader
+                .from("transfers")
+                .select("id, main_image")
+                .in("id", transferIds);
+
+            if (
+              !transfersError &&
+              Array.isArray(transfers) &&
+              transfers.length > 0
+            ) {
+              for (const row of transfers) {
+                const rec = row as unknown as Record<string, unknown>;
+                const id = asOptionalString(rec.id);
+                if (!id) continue;
+                const transferMedia = extractTransferMediaUrls(rec);
+                if (transferMedia.length > 0) {
+                  mediaByProductId.set(id, transferMedia);
+                }
+              }
             }
           }
 
