@@ -264,7 +264,7 @@ export async function getWebsiteBySubdomain(
     const cacheKey = subdomain.toLowerCase();
     const cached = websiteBySubdomainCache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) {
-      return applyThemeDesignerV1Resolution(cached.value);
+      return cached.value;
     }
 
     const { data, error } = await supabase.rpc("get_website_by_subdomain", {
@@ -316,12 +316,15 @@ export async function getWebsiteBySubdomain(
         packages: featuredProducts.packages || [],
       },
     };
+    const resolvedWebsite =
+      await applyThemeDesignerV1Resolution(hydratedWebsite);
+
     websiteBySubdomainCache.set(cacheKey, {
-      value: hydratedWebsite,
+      value: resolvedWebsite,
       expiresAt: Date.now() + WEBSITE_CACHE_TTL_MS,
     });
 
-    return applyThemeDesignerV1Resolution(hydratedWebsite);
+    return resolvedWebsite;
   } catch (e) {
     console.error("[getWebsiteBySubdomain] Exception:", e);
     return null;
@@ -373,13 +376,18 @@ export async function getBlogPosts(
       let totalAcrossLocales = 0;
 
       for (const localeCandidate of uniqueLocales) {
-        const { data, error } = await supabase.rpc("get_website_blog_posts", {
-          p_website_id: websiteId,
-          p_limit: perLocaleWindow,
-          p_offset: 0,
-          p_category_slug: options.categorySlug || null,
-          p_locale: localeCandidate || null,
-        });
+        const { data, error } = await supabase.rpc(
+          "get_website_blog_post_summaries",
+          {
+            p_website_id: websiteId,
+            p_limit: perLocaleWindow,
+            p_offset: 0,
+            p_category_slug: options.categorySlug || null,
+            p_tag_slug: null,
+            p_locale: localeCandidate || null,
+            p_search: null,
+          },
+        );
 
         if (error) continue;
         atLeastOneSuccess = true;
@@ -415,13 +423,18 @@ export async function getBlogPosts(
       }
     }
 
-    const { data, error } = await supabase.rpc("get_website_blog_posts", {
-      p_website_id: websiteId,
-      p_limit: limit,
-      p_offset: offset,
-      p_category_slug: options.categorySlug || null,
-      p_locale: locale || null,
-    });
+    const { data, error } = await supabase.rpc(
+      "get_website_blog_post_summaries",
+      {
+        p_website_id: websiteId,
+        p_limit: limit,
+        p_offset: offset,
+        p_category_slug: options.categorySlug || null,
+        p_tag_slug: null,
+        p_locale: locale || null,
+        p_search: null,
+      },
+    );
 
     if (error) {
       console.error("[getBlogPosts] Error:", error);
@@ -543,30 +556,27 @@ export async function getBlogPostBySlug(
       localeCandidates.push("");
     }
 
-    const uniqueLocales = [...new Set(localeCandidates)];
-    const perLocaleLimit = 1200;
-    const mergedById = new Map<string, BlogPost>();
+    for (const localeCandidate of [...new Set(localeCandidates)]) {
+      let fallbackQuery = supabase
+        .from("website_blog_posts")
+        .select("*")
+        .eq("website_id", websiteId)
+        .eq("slug", normalizedSlug)
+        .eq("status", "published")
+        .is("deleted_at", null);
 
-    for (const localeCandidate of uniqueLocales) {
-      const { data: rpcData, error: rpcError } = await supabase.rpc(
-        "get_website_blog_posts",
-        {
-          p_website_id: websiteId,
-          p_limit: perLocaleLimit,
-          p_offset: 0,
-          p_category_slug: null,
-          p_locale: localeCandidate || null,
-        },
-      );
-      if (rpcError) continue;
-      const posts = (rpcData?.posts || []) as BlogPost[];
-      for (const post of posts) {
-        if (post?.id && !mergedById.has(post.id)) mergedById.set(post.id, post);
+      if (localeCandidate)
+        fallbackQuery = fallbackQuery.eq("locale", localeCandidate);
+
+      const { data: fallbackPost, error: fallbackError } = await fallbackQuery
+        .order("published_at", { ascending: false, nullsFirst: false })
+        .order("updated_at", { ascending: false, nullsFirst: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!fallbackError && fallbackPost) {
+        return fallbackPost as BlogPost;
       }
-    }
-
-    for (const post of mergedById.values()) {
-      if (post.slug === normalizedSlug) return post;
     }
 
     return null;

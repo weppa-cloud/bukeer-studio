@@ -18,20 +18,29 @@ export function getBasePath(
   defaultLocale?: string,
 ): string {
   // Base path from subdomain/custom domain context
-  const base = isCustomDomain ? '' : `/site/${subdomain}`;
+  const base = isCustomDomain ? "" : `/site/${subdomain}`;
 
   // No locale → return base as-is (backwards compatible)
   if (!locale) return base;
 
   // Normalize: check if this is a non-default locale
-  const def = (defaultLocale || 'es-CO').toLowerCase();
+  const def = (defaultLocale || "es-CO").toLowerCase();
   const loc = locale.toLowerCase();
-  const defLang = def.split('-')[0];
-  const locLang = loc.split('-')[0];
+  const defLang = def.split("-")[0];
+  const locLang = loc.split("-")[0];
 
   // Default locale or same language → no prefix needed
   if (loc === def || locLang === defLang) return base;
 
   // Non-default locale → prepend language prefix
   return `${base}/${locLang}`;
+}
+
+export function inferIsCustomDomainWebsite(website: {
+  custom_domain?: string | null;
+}): boolean {
+  return (
+    typeof website.custom_domain === "string" &&
+    website.custom_domain.trim().length > 0
+  );
 }
