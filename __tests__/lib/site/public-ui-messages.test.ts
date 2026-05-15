@@ -12,12 +12,24 @@ describe('public-ui-messages', () => {
     expect(resolvePublicUiLocale('es-CO')).toBe('es-CO');
   });
 
-  it('falls back to default locale for unsupported tokens', () => {
-    const fallback = getPublicUiMessages(DEFAULT_PUBLIC_UI_LOCALE);
-    const unsupported = getPublicUiMessages('fr-FR');
+  it('uses dedicated French and German dictionaries instead of Spanish fallback', () => {
+    const french = getPublicUiMessages('fr-FR');
+    const german = getPublicUiMessages('de-DE');
 
-    expect(unsupported.nav.home).toBe(fallback.nav.home);
-    expect(unsupported.global404.goHome).toBe(fallback.global404.goHome);
+    expect(french.nav.packages).toBe('Forfaits');
+    expect(french.footer.company).toBe('Agence');
+    expect(french.searchPage.placeholder).toContain('forfaits');
+    expect(french.nav.packages).not.toBe('Paquetes');
+
+    expect(german.nav.destinations).toBe('Reiseziele');
+    expect(german.footer.company).toBe('Agentur');
+    expect(german.searchPage.title).toBe('Wonach suchen Sie?');
+    expect(german.footer.company).not.toMatch(/Compania|Compañía/);
+  });
+
+  it('keeps Spanish and Portuguese search titles polished with punctuation and accents', () => {
+    expect(getPublicUiMessages('es-CO').searchPage.title).toBe('¿Qué estás buscando?');
+    expect(getPublicUiMessages('pt-BR').searchPage.title).toBe('O que você está procurando?');
   });
 
   it('falls back missing nested keys to default locale and logs warning in non-production', () => {

@@ -63,6 +63,33 @@ describe('getSystemFallbackPage', () => {
     }
   });
 
+  it('renders locale-aware contact fallback copy for non-Spanish locales', () => {
+    const website = makeWebsite({ default_locale: 'en-US' });
+
+    const page = getSystemFallbackPage('contact', website, 'fr-FR');
+
+    expect(page?.locale).toBe('fr-FR');
+    expect(page?.title).toBe('Contact');
+    expect(page?.hero_config?.title).toBe('Contactez-nous');
+    expect(page?.hero_config?.ctaText).toBe('Demander un conseil');
+    expect(page?.seo_description).toContain('Contactez');
+    expect(JSON.stringify(page)).not.toContain('Contáctanos');
+    expect(JSON.stringify(page)).not.toContain('asesoría');
+  });
+
+  it('renders locale-aware press fallback copy and channel labels', () => {
+    const website = makeWebsite({ default_locale: 'en-US' });
+
+    const page = getSystemFallbackPage('press', website, 'de-DE');
+
+    expect(page?.locale).toBe('de-DE');
+    expect(page?.title).toBe('Presse');
+    expect(page?.hero_config?.title).toContain('Presse');
+    expect(page?.hero_config?.ctaText).toBe('Presse kontaktieren');
+    expect(String(page?.sections[0]?.content?.body)).toContain('Telefon:');
+    expect(String(page?.sections[0]?.content?.body)).not.toContain('Teléfono:');
+  });
+
   it('does not mask unrelated missing pages', () => {
     const website = makeWebsite();
 

@@ -29,6 +29,7 @@ import { FooterSwitcher } from './footer-switcher';
 import { FooterNewsletterForm } from './footer-newsletter-form';
 import { getEditorialTextGetter } from '../i18n';
 import { WaflowCTAButton } from '../waflow/cta-button';
+import { resolveWebsiteContactChannels } from '@/lib/site/contact-channels';
 
 export interface EditorialSiteFooterProps {
   website: WebsiteData;
@@ -102,10 +103,8 @@ export function EditorialSiteFooter({
     { label: 'Contacto', href: `${basePath}/#cta` },
   ];
 
-  const whatsappRaw = social.whatsapp || content.account?.phone || '';
-  const whatsappHref = whatsappRaw
-    ? `https://wa.me/${whatsappRaw.replace(/[^0-9]/g, '')}`
-    : null;
+  const contactChannels = resolveWebsiteContactChannels(website);
+  const whatsappHref = contactChannels.whatsappHref;
 
   const socialRow: Array<{
     label: string;

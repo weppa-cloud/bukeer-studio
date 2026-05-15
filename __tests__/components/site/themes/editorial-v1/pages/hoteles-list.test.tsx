@@ -93,6 +93,7 @@ describe('<EditorialHotelesListPage />', () => {
 
     // Count
     expect(markup).toContain('data-testid="hoteles-count"');
+    expect(markup).toContain('<b>4</b> de 4 hoteles');
 
     // View toggle
     expect(markup).toContain('pql-view-toggle');
@@ -104,6 +105,19 @@ describe('<EditorialHotelesListPage />', () => {
     expect(markup).toContain('data-testid="hotel-list-card"');
     expect(markup).toContain('Hotel 1');
     expect(markup).toContain('Hotel 4');
+  });
+
+  it('renders a deliberate branded placeholder for hotels without images', () => {
+    const hotels = [makeHotel(1, { image: null, images: [] } as unknown as Partial<ProductData>)];
+
+    const markup = renderToStaticMarkup(
+      <EditorialHotelesListPage website={makeWebsite()} hotels={hotels} />,
+    );
+
+    expect(markup).toContain('data-testid="hotel-image-placeholder"');
+    expect(markup).toContain('Imagen del hotel pendiente');
+    expect(markup).not.toContain('src="null"');
+    expect(markup).not.toContain('src="undefined"');
   });
 
   it('renders empty state when hotels list is empty', () => {

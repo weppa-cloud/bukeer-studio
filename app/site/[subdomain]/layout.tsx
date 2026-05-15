@@ -2,10 +2,7 @@ import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { preload } from "react-dom";
-import {
-  getWebsiteBySubdomain,
-  type WebsiteData,
-} from "@/lib/supabase/get-website";
+import { getWebsiteBySubdomain } from "@/lib/supabase/get-website";
 import { getWebsiteNavigation } from "@/lib/supabase/get-pages";
 import { M3ThemeProvider } from "@/lib/theme/m3-theme-provider";
 import { SiteHeader } from "@/components/site/site-header";
@@ -31,6 +28,7 @@ import { supabaseImageUrl } from "@/lib/images/supabase-transform";
 import { EditorialSiteHeader } from "@/components/site/themes/editorial-v1/layout/site-header";
 import { EditorialSiteFooter } from "@/components/site/themes/editorial-v1/layout/site-footer";
 import { WaflowProvider } from "@/components/site/themes/editorial-v1/waflow/provider";
+import { resolveWebsiteContactChannels } from "@/lib/site/contact-channels";
 import "@/app/globals.css";
 // Editorial-v1 scoped CSS loads alongside globals but only emits rules under
 // `[data-template-set="editorial-v1"]`, so generic sites stay untouched.
@@ -337,16 +335,8 @@ export default async function SiteLayout({
     </SmoothScroll>
   );
 
-  // Resolve WhatsApp business number for the editorial waflow provider. The
-  // Wave 2 schema adds `websites.contact_whatsapp` (preferred); we fall back
-  // to the legacy `content.social.whatsapp` while tenants migrate.
-  const websiteRecord = website as WebsiteData & {
-    contact_whatsapp?: string | null;
-  };
   const waflowBusinessNumber =
-    websiteRecord.contact_whatsapp ||
-    website.content?.social?.whatsapp ||
-    website.content?.account?.phone ||
+    resolveWebsiteContactChannels(website).whatsappDigits ||
     "";
 
   const templatedBody = isEditorial ? (
