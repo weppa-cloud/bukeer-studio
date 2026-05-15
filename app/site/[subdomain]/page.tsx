@@ -152,6 +152,18 @@ async function DeferredHomeSections({
   const hasBlogSection = enabledSections.some(
     (s) => s.section_type === SECTION_BLOG,
   );
+  const hasDestinationsSection = enabledSections.some(
+    (s) => s.section_type === "destinations",
+  );
+  const hasPackagesSection = enabledSections.some(
+    (s) => s.section_type === SECTION_PACKAGES,
+  );
+  const hasActivitiesSection = enabledSections.some(
+    (s) => s.section_type === SECTION_ACTIVITIES,
+  );
+  const hasHotelsSection = enabledSections.some(
+    (s) => s.section_type === SECTION_HOTELS,
+  );
 
   const [
     googleReviewsCache,
@@ -167,10 +179,16 @@ async function DeferredHomeSections({
     googleReviewsEnabled && website.account_id
       ? getCachedGoogleReviews(website.account_id)
       : Promise.resolve(null),
-    getDestinations(subdomain),
-    getCategoryProducts(subdomain, SECTION_PACKAGES, { limit: 8, locale }),
-    getCategoryProducts(subdomain, SECTION_ACTIVITIES, { limit: 8, locale }),
-    getCategoryProducts(subdomain, SECTION_HOTELS, { limit: 8, locale }),
+    hasDestinationsSection ? getDestinations(subdomain) : Promise.resolve([]),
+    hasPackagesSection
+      ? getCategoryProducts(subdomain, SECTION_PACKAGES, { limit: 8, locale })
+      : Promise.resolve({ items: [], total: 0 }),
+    hasActivitiesSection
+      ? getCategoryProducts(subdomain, SECTION_ACTIVITIES, { limit: 8, locale })
+      : Promise.resolve({ items: [], total: 0 }),
+    hasHotelsSection
+      ? getCategoryProducts(subdomain, SECTION_HOTELS, { limit: 8, locale })
+      : Promise.resolve({ items: [], total: 0 }),
     hasPlannersSection && website.account_id
       ? getPlanners(website.account_id, { locale })
       : Promise.resolve<PlannerData[]>([]),
