@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import type { WebsiteData } from '@/lib/supabase/get-website';
 import { getBasePath } from '@/lib/utils/base-path';
 import { getPublicUiMessages } from '@/lib/site/public-ui-messages';
+import { CATEGORY_CANONICAL_SEGMENT, type CategoryProductType } from '@/lib/seo/locale-routing';
 
 interface SearchResult {
   id: string;
@@ -41,15 +42,29 @@ export function SearchPageClient({ subdomain, initialQuery, website }: SearchPag
   const messages = getPublicUiMessages(locale);
 
   const getCategorySlug = (type: string) => {
-    const mapping: Record<string, string> = {
-      destination: 'destinos',
-      hotel: 'hoteles',
-      activity: 'actividades',
-      transfer: 'traslados',
-      package: 'paquetes',
+    const mapping: Record<string, CategoryProductType> = {
+      destination: 'destination',
+      hotel: 'hotel',
+      activity: 'activity',
+      transfer: 'transfer',
+      package: 'package',
     };
-    return mapping[type] || type;
+    const category = mapping[type];
+    return category ? getCategoryPath(category) : `/${type}`;
   };
+
+  const getCategoryPath = (category: CategoryProductType): string => {
+    const language = locale.toLowerCase().split('-')[0] as keyof (typeof CATEGORY_CANONICAL_SEGMENT)[CategoryProductType];
+    const segments = CATEGORY_CANONICAL_SEGMENT[category] as Record<string, string>;
+    return `/${segments[language] || segments.es}`;
+  };
+
+  const noResultCategories: Array<{ label: string; category: CategoryProductType }> = [
+    { label: messages.searchPage.destinationsCategory, category: 'destination' },
+    { label: messages.searchPage.hotelsCategory, category: 'hotel' },
+    { label: messages.searchPage.activitiesCategory, category: 'activity' },
+    { label: messages.searchPage.packagesCategory, category: 'package' },
+  ];
 
   const getCategoryLabel = (type: string) => {
     const labels: Record<string, string> = {
@@ -197,13 +212,13 @@ export function SearchPageClient({ subdomain, initialQuery, website }: SearchPag
               <p className="text-lg font-medium mb-2">{messages.searchPage.noResultsPrefix} &ldquo;{query}&rdquo;</p>
               <p className="text-muted-foreground">{messages.searchPage.noResultsHint}</p>
               <div className="flex flex-wrap justify-center gap-3 mt-6">
-                {[messages.searchPage.destinationsCategory, messages.searchPage.hotelsCategory, messages.searchPage.activitiesCategory, messages.searchPage.packagesCategory].map((cat) => (
+                {noResultCategories.map((cat) => (
                   <Link
-                    key={cat}
-                    href={`${basePath}/${cat.toLowerCase()}`}
+                    key={cat.category}
+                    href={`${basePath}${getCategoryPath(cat.category)}`}
                     className="px-5 py-2 rounded-full text-sm font-medium border border-border text-muted-foreground hover:bg-muted transition-colors"
                   >
-                    {cat}
+                    {cat.label}
                   </Link>
                 ))}
               </div>
@@ -223,7 +238,7 @@ export function SearchPageClient({ subdomain, initialQuery, website }: SearchPag
                     whileHover={{ y: -4 }}
                   >
                     <Link
-                      href={`${basePath}/${getCategorySlug(result.type)}/${result.slug}`}
+                      href={`${basePath}${getCategorySlug(result.type)}/${result.slug}`}
                       className="group block rounded-2xl overflow-hidden bg-card border border-border"
                     >
                       <div className="relative aspect-[16/10] overflow-hidden">

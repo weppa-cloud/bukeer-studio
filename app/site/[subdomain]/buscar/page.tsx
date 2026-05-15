@@ -13,7 +13,6 @@ export async function generateMetadata({
 }: SearchPageProps): Promise<Metadata> {
   const { subdomain } = await params;
   const website = await getWebsiteBySubdomain(subdomain);
-  const siteName = website?.content?.account?.name || subdomain;
   const baseUrl = website?.custom_domain
     ? `https://${website.custom_domain}`
     : `https://${subdomain}.bukeer.com`;
@@ -22,8 +21,10 @@ export async function generateMetadata({
     : null;
 
   return {
-    title: `Buscar | ${siteName}`,
-    description: `Busca destinos, hoteles, actividades y paquetes en ${siteName}`,
+    title: 'Buscar',
+    description: website
+      ? `Busca destinos, hoteles, actividades y paquetes en ${website.content?.account?.name || website.content?.siteName || subdomain}`
+      : `Busca destinos, hoteles, actividades y paquetes en ${subdomain}`,
     alternates: localeContext
       ? {
           canonical: `${baseUrl}${localeContext.localizedPathname}`,

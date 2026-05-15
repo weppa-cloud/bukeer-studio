@@ -90,8 +90,8 @@ export function HotelCard({
         className="flex flex-col overflow-hidden rounded-2xl bg-card shadow-sm"
         style={{ borderWidth: '1px', borderStyle: 'solid', borderColor: 'var(--c-line-2, hsl(var(--border, 40 29% 74%)))' }}
       >
-        {imageUrl ? (
-          <div className="relative aspect-[16/9] w-full overflow-hidden bg-muted">
+        <div className="relative aspect-[16/9] w-full overflow-hidden bg-muted">
+          {imageUrl ? (
             <Image
               src={imageUrl}
               alt={title ?? 'Hotel'}
@@ -100,8 +100,24 @@ export function HotelCard({
               placeholder="empty"
               className="object-cover"
             />
-          </div>
-        ) : null}
+          ) : (
+            <div
+              data-testid="hotel-image-placeholder"
+              className="flex h-full w-full items-center justify-center p-6 text-center"
+              role="img"
+              aria-label={`Imagen del hotel pendiente${title ? `: ${title}` : ''}`}
+              style={{
+                background:
+                  'linear-gradient(135deg, color-mix(in srgb, var(--c-accent, #C9A86A) 18%, transparent), color-mix(in srgb, var(--c-ink, #17201A) 8%, transparent))',
+                color: 'var(--text-muted)',
+              }}
+            >
+              <span className="text-xs font-mono uppercase tracking-[0.18em]">
+                Imagen del hotel pendiente
+              </span>
+            </div>
+          )}
+        </div>
 
         <div className="flex flex-1 flex-col gap-2 p-4">
           {eyebrowParts.length > 0 ? (

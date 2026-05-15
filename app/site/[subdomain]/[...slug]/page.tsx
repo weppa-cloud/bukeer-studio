@@ -659,7 +659,7 @@ export async function generateMetadata({
   // Check for regular page (category, static, or custom)
   const page =
     (await getPageBySlug(subdomain, slugPath)) ??
-    getSystemFallbackPage(slugPath, website);
+    getSystemFallbackPage(slugPath, website, localeContext.resolvedLocale);
 
   if (!page) {
     // Homepage fallback: use website SEO metadata from layout
@@ -1244,7 +1244,7 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
   // Handle regular pages
   const page =
     (await getPageBySlug(subdomain, slugPath)) ??
-    getSystemFallbackPage(slugPath, website);
+    getSystemFallbackPage(slugPath, website, localeContext.resolvedLocale);
 
   if (!page || !page.is_published) {
     notFound();

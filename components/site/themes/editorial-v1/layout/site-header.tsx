@@ -30,6 +30,7 @@ import { HeaderScrollState, MobileNavToggle } from './site-header.client';
 import { MarketSwitcher } from './market-switcher';
 import { getEditorialTextGetter } from '../i18n';
 import { WaflowCTAButton } from '../waflow/cta-button';
+import { resolveWebsiteContactChannels } from '@/lib/site/contact-channels';
 
 export interface EditorialSiteHeaderProps {
   website: WebsiteData;
@@ -101,13 +102,9 @@ export function EditorialSiteHeader({
     return label;
   };
 
-  // TODO(editorial-v1 wave 2): read `website.contact_whatsapp` once the
-  // column ships. For now, reuse the existing `content.social.whatsapp`.
-  const whatsappRaw = content.social?.whatsapp || content.account?.phone || '';
-  const whatsappHref = whatsappRaw
-    ? `https://wa.me/${whatsappRaw.replace(/[^0-9]/g, '')}`
-    : `${basePath}/#cta`;
-  const whatsappExternal = Boolean(whatsappRaw);
+  const contactChannels = resolveWebsiteContactChannels(website);
+  const whatsappHref = contactChannels.whatsappHref ?? `${basePath}/#cta`;
+  const whatsappExternal = contactChannels.hasWhatsapp;
   const headerCtaLabel = whatsappExternal
     ? editorialText('editorialHeaderWhatsappCta')
     : editorialText('editorialHeaderQuoteCta');
