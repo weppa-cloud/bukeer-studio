@@ -498,16 +498,27 @@ async function insertWebhookEvent(
   eventId: string,
   signature: string,
 ): Promise<"inserted" | "duplicate"> {
-  const { error } = await supabase.from("webhook_events").insert({
-    provider: PROVIDER,
-    event_id: eventId,
-    event_type: payload.event,
-    signature,
-    payload,
-  });
+  const { data, error } = await supabase
+    .from("webhook_events")
+    .upsert(
+      {
+        provider: PROVIDER,
+        event_id: eventId,
+        event_type: payload.event,
+        signature,
+        payload,
+      },
+      {
+        onConflict: "provider,event_id",
+        ignoreDuplicates: true,
+      },
+    )
+    .select("id")
+    .limit(1);
 
-  if (!error) return "inserted";
-  if (error.code === "23505") return "duplicate";
+  if (!error) {
+    return Array.isArray(data) && data.length === 0 ? "duplicate" : "inserted";
+  }
   throw new Error(error.message);
 }
 
@@ -1179,9 +1190,12 @@ async function emitLifecycleFunnelEvents(
           fbp: cleanString(attribution.fbp),
           fbc: cleanString(attribution.fbc),
           ctwa_clid: cleanString(attribution.ctwa_clid),
-          gclid: readAttributionClickId(funnelAttribution, "gclid") ?? undefined,
-          gbraid: readAttributionClickId(funnelAttribution, "gbraid") ?? undefined,
-          wbraid: readAttributionClickId(funnelAttribution, "wbraid") ?? undefined,
+          gclid:
+            readAttributionClickId(funnelAttribution, "gclid") ?? undefined,
+          gbraid:
+            readAttributionClickId(funnelAttribution, "gbraid") ?? undefined,
+          wbraid:
+            readAttributionClickId(funnelAttribution, "wbraid") ?? undefined,
           utm_source: funnelAttribution?.utm.utm_source ?? undefined,
           utm_medium: funnelAttribution?.utm.utm_medium ?? undefined,
           utm_campaign: funnelAttribution?.utm.utm_campaign ?? undefined,

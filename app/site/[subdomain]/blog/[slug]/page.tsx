@@ -1,6 +1,5 @@
 import "./blog-typography.css";
 import { Metadata } from "next";
-import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import {
   getWebsiteBySubdomain,
@@ -25,6 +24,7 @@ import {
 import { isEnBlogQualityBlocked } from "@/lib/seo/en-quality-gate";
 import { normalizePublicMetadataTitle } from "@/lib/seo/metadata-title";
 import { getPublicUiMessages } from "@/lib/site/public-ui-messages";
+import { inferIsCustomDomainWebsite } from "@/lib/utils/base-path";
 
 interface BlogPostPageProps {
   params: Promise<{ subdomain: string; slug: string }>;
@@ -90,7 +90,10 @@ export async function generateMetadata({
     website.content?.account?.name || website.content?.siteName || subdomain;
   const title = post.seo_title
     ? post.seo_title
-    : normalizePublicMetadataTitle(post.title || localizedMessages.blogPost.notFoundTitle, siteName);
+    : normalizePublicMetadataTitle(
+        post.title || localizedMessages.blogPost.notFoundTitle,
+        siteName,
+      );
   const description = (
     post.seo_description ||
     post.excerpt ||
@@ -198,7 +201,9 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
     : `https://${subdomain}.bukeer.com`;
 
   // Fetch travel planner when post has a created_by reference
-  const planner = post.created_by ? await getPlannerByUserId(post.created_by) : null;
+  const planner = post.created_by
+    ? await getPlannerByUserId(post.created_by)
+    : null;
 
   // Generate JSON-LD schemas (Article, Breadcrumb, Organization)
   const schemas = generateBlogPostSchemas(
@@ -209,8 +214,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
     planner,
   );
 
-  const headerList = await headers();
-  const isCustomDomain = Boolean(headerList.get("x-custom-domain"));
+  const isCustomDomain = inferIsCustomDomainWebsite(website);
 
   return (
     <>

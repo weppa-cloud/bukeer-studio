@@ -1,11 +1,10 @@
 import { Metadata } from "next";
-import { headers } from "next/headers";
 import { notFound, permanentRedirect, redirect } from "next/navigation";
 
 import { ProductLandingPage } from "@/components/pages/product-landing-page";
 import { TemplateSlot } from "@/components/site/themes/editorial-v1/template-slot";
 import type { EditorialPackageDetailPayload } from "@/components/site/themes/editorial-v1/pages/package-detail";
-import { getBasePath } from "@/lib/utils/base-path";
+import { getBasePath, inferIsCustomDomainWebsite } from "@/lib/utils/base-path";
 import {
   getCategoryProducts,
   getLocalizedProductOverlay,
@@ -330,8 +329,7 @@ export default async function PackageSlugPage({ params }: PackagePageProps) {
           .filter(Boolean)
           .join(", "),
     ) || null;
-  const headerList = await headers();
-  const isCustomDomain = Boolean(headerList.get("x-custom-domain"));
+  const isCustomDomain = inferIsCustomDomainWebsite(website);
   const websiteForRender = {
     ...website,
     resolvedLocale: localeContext.resolvedLocale,
