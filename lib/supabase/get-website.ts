@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { normalizeBlogLocale } from "@/lib/seo/locale-routing";
 import type {
   WebsiteData,
   AnalyticsConfig,
@@ -529,21 +530,7 @@ export async function getBlogPostBySlug(
 
     // Fallback path: RPC locale-window lookup (legacy `es/en` + canonical
     // `es-CO/en-US`) to avoid hard failures when direct query errors.
-    const localeCandidates: string[] = [];
-    const normalizedLocale = typeof locale === "string" ? locale.trim() : "";
-    if (normalizedLocale) {
-      localeCandidates.push(normalizedLocale);
-      const lang = normalizedLocale.split("-")[0]?.toLowerCase();
-      if (lang && lang !== normalizedLocale) localeCandidates.push(lang);
-      if (normalizedLocale === "es-CO") localeCandidates.push("es");
-      if (normalizedLocale === "en-US") localeCandidates.push("en");
-      if (normalizedLocale === "es") localeCandidates.push("es-CO");
-      if (normalizedLocale === "en") localeCandidates.push("en-US");
-    } else {
-      localeCandidates.push("");
-    }
-
-    const uniqueLocales = [...new Set(localeCandidates)];
+    const uniqueLocales = [...new Set(getBlogLocaleLookupCandidates(locale))];
     const perLocaleLimit = 1200;
     const mergedById = new Map<string, BlogPost>();
 
@@ -587,12 +574,13 @@ export async function getBlogPostByTranslationGroup(
   locale: string,
 ): Promise<BlogPost | null> {
   try {
+    const localeCandidates = getBlogLocaleLookupCandidates(locale);
     const { data, error } = await supabase
       .from("website_blog_posts")
       .select(`*, category:website_blog_categories(*)`)
       .eq("website_id", websiteId)
       .eq("translation_group_id", translationGroupId)
-      .eq("locale", locale)
+      .in("locale", localeCandidates.length > 0 ? localeCandidates : [locale])
       .eq("status", "published")
       .is("deleted_at", null)
       .limit(1)
@@ -625,7 +613,7 @@ export async function getBlogPostTranslationLocales(
     if (error) return fallback;
 
     const locales = (data ?? [])
-      .map((row) => row.locale)
+      .map((row) => normalizeBlogPublicLocale(row.locale))
       .filter(
         (locale): locale is string =>
           typeof locale === "string" && locale.trim().length > 0,
@@ -637,13 +625,28 @@ export async function getBlogPostTranslationLocales(
   }
 }
 
+export function getBlogLocaleLookupCandidates(
+  locale: string | null | undefined,
+): string[] {
+  const trimmed = typeof locale === "string" ? locale.trim() : "";
+  if (!trimmed) return [];
+
+  const normalized = normalizeBlogLocale(trimmed) || trimmed;
+  const candidates = [trimmed];
+  if (normalized !== trimmed) candidates.push(normalized);
+
+  const language = normalized.split("-")[0]?.toLowerCase();
+  if (language && language !== normalized && !candidates.includes(language)) {
+    candidates.push(language);
+  }
+
+  return candidates;
+}
+
 export function normalizeBlogPublicLocale(
   locale: string | null | undefined,
 ): string | null {
-  if (!locale) return null;
-  if (locale === "es") return "es-CO";
-  if (locale === "en") return "en-US";
-  return locale;
+  return normalizeBlogLocale(locale);
 }
 
 /**

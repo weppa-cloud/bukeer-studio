@@ -17,6 +17,17 @@ const LEGACY_BLOG_LOCALE_MAP: Record<string, string> = {
   de: 'de-DE',
 };
 
+const PUBLIC_LOCALE_SEGMENT_BY_LOCALE: Record<string, string> = {
+  'en-US': 'en',
+  'de-DE': 'de',
+  'fr-FR': 'fr',
+  'pt-BR': 'pt-br',
+};
+
+const PUBLIC_LOCALE_ALIAS_BY_SEGMENT: Record<string, string> = {
+  'pt-br': 'pt-BR',
+};
+
 /**
  * Normalize a stored locale value, mapping legacy ISO-639 short codes to
  * canonical BCP-47. Passes through canonical codes (`es-CO`, `en-US`,
@@ -357,6 +368,25 @@ function pickLocaleForLanguage(
   return defaultCandidate || candidates[0];
 }
 
+function pickLocaleForPublicSegment(
+  segment: string,
+  supportedLocales: string[],
+  defaultLocale: string,
+): string | null {
+  const lowerSegment = segment.toLowerCase();
+  const explicitLocale = PUBLIC_LOCALE_ALIAS_BY_SEGMENT[lowerSegment];
+  if (explicitLocale) {
+    const normalizedExplicit = normalizeLocale(explicitLocale);
+    return supportedLocales.includes(normalizedExplicit) ? normalizedExplicit : null;
+  }
+
+  if (/^[a-z]{2}$/.test(lowerSegment)) {
+    return pickLocaleForLanguage(lowerSegment, supportedLocales, defaultLocale);
+  }
+
+  return null;
+}
+
 export interface PublicLocalePathResolution {
   originalPathname: string;
   pathnameWithoutLang: string;
@@ -390,8 +420,12 @@ export function resolveLocaleFromPublicPath(
   let languageSegment: string | null = null;
   let resolvedLocale = defaultLocale;
 
-  if (firstSegment && /^[a-z]{2}$/.test(firstSegment)) {
-    const matchedLocale = pickLocaleForLanguage(firstSegment, supportedLocales, defaultLocale);
+  if (firstSegment) {
+    const matchedLocale = pickLocaleForPublicSegment(
+      firstSegment,
+      supportedLocales,
+      defaultLocale,
+    );
     if (matchedLocale) {
       hasLanguageSegment = true;
       languageSegment = firstSegment;
@@ -426,19 +460,23 @@ export function buildPublicLocalizedPath(
   const normalizedDefault = normalizeLocale(defaultLocale);
 
   const lang = localeToLanguage(normalizedResolved);
+  const segment = PUBLIC_LOCALE_SEGMENT_BY_LOCALE[normalizedResolved] || lang;
 
   if (normalizedResolved === normalizedDefault || lang === localeToLanguage(normalizedDefault)) {
     return normalizedPathname;
   }
   if (normalizedPathname === '/') {
-    return `/${lang}`;
+    return `/${segment}`;
   }
 
-  if (normalizedPathname === `/${lang}` || normalizedPathname.startsWith(`/${lang}/`)) {
+  if (
+    normalizedPathname === `/${segment}` ||
+    normalizedPathname.startsWith(`/${segment}/`)
+  ) {
     return normalizedPathname;
   }
 
-  return `/${lang}${normalizedPathname}`;
+  return `/${segment}${normalizedPathname}`;
 }
 
 export function buildLegalPagePath(
@@ -488,7 +526,9 @@ export function resolveLocaleFromRequestHeaders(
   );
 
   const languageSegment =
-    resolvedLocale === defaultLocale ? null : resolvedLanguage;
+    resolvedLocale === defaultLocale
+      ? null
+      : PUBLIC_LOCALE_SEGMENT_BY_LOCALE[resolvedLocale] || resolvedLanguage;
 
   return {
     defaultLocale,

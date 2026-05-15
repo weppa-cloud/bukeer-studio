@@ -201,7 +201,7 @@ describe('legal page locale paths', () => {
     expect(buildLegalPagePath('terms', 'es-CO', 'es-CO')).toBe('/terminos-y-condiciones');
     expect(buildLegalPagePath('privacy', 'en-US', 'es-CO')).toBe('/en/privacy-policy');
     expect(buildLegalPagePath('cancellation', 'pt-BR', 'es-CO')).toBe(
-      '/pt/politica-de-cancelamento',
+      '/pt-br/politica-de-cancelamento',
     );
   });
 });
