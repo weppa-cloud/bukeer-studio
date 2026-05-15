@@ -128,6 +128,7 @@ Feature requests formalized. Status tracked inline. GitHub Issues = source of tr
 | [[SPEC_SEO_BLOG_EXECUTION_FRAMEWORK_2026]]                | [file](./specs/SPEC_SEO_BLOG_EXECUTION_FRAMEWORK_2026.md)                | [[SEO]] [[content-ops]] [[quality-gate]]                                                                                                                        |
 | [[SPEC_SEO_OPTIMIZATION_TOOLKIT]]                         | [file](./specs/SPEC_SEO_OPTIMIZATION_TOOLKIT.md)                         | [[SEO]] [[AI]] [[bulk-actions]]                                                                                                                                 |
 | [[SPEC_GLOBAL_MULTILOCALE_TRANSCREATION_SEO]]             | [file](./specs/SPEC_GLOBAL_MULTILOCALE_TRANSCREATION_SEO.md)             | [[SEO]] [[transcreation]] [[hreflang]] [[multi-locale]] [[ColombiaTours]] [[post-publish-verification]] [[multi-agent]] Epic #502 F0-F7: DE/FR/PT-BR pipeline |
+| [[SPEC_COLOMBIATOURS_PUBLIC_ROUTING_RECOVERY]]            | [file](./specs/generated/colombiatours-public-routing-recovery-SPEC.md)  | [[ColombiaTours]] [[public-routing]] [[multi-locale]] [[routing]] [[SEO]] [[hreflang]] Week 1 P0 public route recovery spec |
 | [[SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX]]                 | [file](./specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md)                 | [[growth-os]] [[SEO]] [[analytics]] [[DataForSEO]]                                                                                                              |
 | [[SPEC_GROWTH_OS_PAID_MEDIA_INTEGRATION]]                 | [file](./specs/SPEC_GROWTH_OS_PAID_MEDIA_INTEGRATION.md)                 | [[growth-os]] [[paid-media]] [[analytics]] [[conversion]]                                                                                                       |
 | [[SPEC_GROWTH_OS_UNIFIED_BACKLOG_AND_PROFILE_RUN_LEDGER]] | [file](./specs/SPEC_GROWTH_OS_UNIFIED_BACKLOG_AND_PROFILE_RUN_LEDGER.md) | [[growth-os]] [[backlog]] [[analytics]] [[paid-media]] [[DataForSEO]]                                                                                           |
@@ -415,6 +416,7 @@ Each concept below lists the ADRs/SPECs/ops docs that touch it. Use this to find
 
 - [[ADR-019]] — path-prefix URL routing (`/en/...`, default locale has no prefix)
 - [[ADR-020]] — hreflang emission for `defaultLocale` + translated locales (`applied|published`); `x-default` → default locale
+- [[SPEC_COLOMBIATOURS_PUBLIC_ROUTING_RECOVERY]] — Week 1 public route recovery contract for ColombiaTours critical routes, custom-domain link hygiene, category segment localization and SEO metadata gates
 - [[ADR-021]] — TM + glossary + AI transcreation pipeline; job lifecycle draft→reviewed→applied→published
 - [[en-quality-backlog-2026-04-30]] — operational EN backlog for #314/#315, including row-level artifact pointers and publish gates
 - [[en-quality-gate-results-2026-04-30]] — manual results for the 13 live `review_quality` EN blog URLs and sitemap/hreflang recommendations
@@ -701,6 +703,7 @@ Obsidian resolves `[[ADR-005]]` by filename stem or alias. Claude Code / Codex g
 | `[[epic128-production-ready-attestation-v2]]`         | `docs/evidence/epic128/production-ready-attestation-v2.md`                         |
 | `[[epic128-ux-fluency]]`                              | `docs/evidence/epic128/ux-fluency.md`                                              |
 | `[[SPEC_GLOBAL_MULTILOCALE_TRANSCREATION_SEO]]`       | `docs/specs/SPEC_GLOBAL_MULTILOCALE_TRANSCREATION_SEO.md`                          |
+| `[[SPEC_COLOMBIATOURS_PUBLIC_ROUTING_RECOVERY]]`      | `docs/specs/generated/colombiatours-public-routing-recovery-SPEC.md`               |
 | `[[SPEC_GROWTH_OS_HERMES_PRIMARY_RUNTIME_MVE_V0]]`    | `docs/specs/SPEC_GROWTH_OS_HERMES_PRIMARY_RUNTIME_MVE_V0.md`                       |
 | `[[AUDIT_GROWTH_OS_PROVIDER_PROFILE_REGISTRY_MAP_2026-05]]` | `docs/audits/AUDIT_GROWTH_OS_PROVIDER_PROFILE_REGISTRY_MAP_2026-05.md`        |
 | `[[PLAN_GROWTH_OS_PROVIDER_RUNNER_BETA_ISSUE_538]]` | `docs/plans/PLAN_GROWTH_OS_PROVIDER_RUNNER_BETA_ISSUE_538.md`        |

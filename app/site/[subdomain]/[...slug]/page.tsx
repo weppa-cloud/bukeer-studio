@@ -58,6 +58,7 @@ import { applyContentTranslations } from "@/lib/sections/apply-content-translati
 import { resolveTemplateSet } from "@/lib/sections/template-set";
 import { ACTIVITY_FAQS_DEFAULT } from "@/lib/products/activity-faqs-default";
 import { PACKAGE_FAQS_DEFAULT } from "@/lib/products/package-faqs-default";
+import { getSystemFallbackPage } from "@/lib/site/system-fallback-pages";
 
 const DestinationListingPage = dynamic(() =>
   import("@/components/pages/destination-listing-page").then(
@@ -656,7 +657,9 @@ export async function generateMetadata({
   }
 
   // Check for regular page (category, static, or custom)
-  const page = await getPageBySlug(subdomain, slugPath);
+  const page =
+    (await getPageBySlug(subdomain, slugPath)) ??
+    getSystemFallbackPage(slugPath, website);
 
   if (!page) {
     // Homepage fallback: use website SEO metadata from layout
@@ -1239,7 +1242,9 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
   }
 
   // Handle regular pages
-  const page = await getPageBySlug(subdomain, slugPath);
+  const page =
+    (await getPageBySlug(subdomain, slugPath)) ??
+    getSystemFallbackPage(slugPath, website);
 
   if (!page || !page.is_published) {
     notFound();
