@@ -41,8 +41,10 @@ const supabaseService = supabaseServiceKey
 const ENABLE_IN_MEMORY_CACHE = process.env.NODE_ENV === 'production';
 const PRODUCT_PAGE_CACHE_TTL_MS = Number(process.env.PRODUCT_PAGE_CACHE_TTL_MS || 5 * 60 * 1000);
 const CATEGORY_PRODUCTS_CACHE_TTL_MS = Number(process.env.CATEGORY_PRODUCTS_CACHE_TTL_MS || 2 * 60 * 1000);
+const NAVIGATION_CACHE_TTL_MS = Number(process.env.NAVIGATION_CACHE_TTL_MS || 5 * 60 * 1000);
 const productPageCache = new Map<string, { value: ProductPageData; expiresAt: number }>();
 const categoryProductsCache = new Map<string, { value: CategoryProducts; expiresAt: number }>();
+const navigationCache = new Map<string, { value: NavigationItem[]; expiresAt: number }>();
 
 /**
  * Manual in-memory caches here are independent from Next ISR caches.
@@ -1487,6 +1489,10 @@ export async function getWebsiteNavigation(
   subdomain: string
 ): Promise<NavigationItem[]> {
   try {
+    const cacheKey = subdomain.toLowerCase();
+    const cached = navigationCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) return cached.value;
+
     const { data, error } = await supabase.rpc('get_website_navigation', {
       p_subdomain: subdomain,
     });
@@ -1496,7 +1502,12 @@ export async function getWebsiteNavigation(
       return [];
     }
 
-    return (data as NavigationItem[]) || [];
+    const items = (data as NavigationItem[]) || [];
+    navigationCache.set(cacheKey, {
+      value: items,
+      expiresAt: Date.now() + NAVIGATION_CACHE_TTL_MS,
+    });
+    return items;
   } catch (e) {
     console.error('[getWebsiteNavigation] Exception:', e);
     return [];
