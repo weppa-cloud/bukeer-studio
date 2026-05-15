@@ -56,6 +56,116 @@ export interface HomeSectionPlan {
   criticalSectionIds: Set<string>;
 }
 
+export type HomeRenderWebsiteData = WebsiteData & {
+  resolvedLocale?: string;
+  isCustomDomain?: boolean;
+  effective_theme?: WebsiteData["theme"];
+  effective_theme_source?: string;
+};
+
+function toSectionSummary(section: WebsiteSection): WebsiteSection {
+  return {
+    id: section.id,
+    section_type: section.section_type,
+    variant: section.variant,
+    display_order: section.display_order,
+    is_enabled: section.is_enabled,
+    config: {},
+    content: {},
+  };
+}
+
+export function createHomeRenderWebsite(input: {
+  website: WebsiteData;
+  resolvedLocale: string;
+  defaultLocale: string;
+  isCustomDomain: boolean;
+  includeSectionSummaries?: boolean;
+}): HomeRenderWebsiteData {
+  const {
+    website,
+    resolvedLocale,
+    defaultLocale,
+    isCustomDomain,
+    includeSectionSummaries = false,
+  } = input;
+  const content = website.content;
+  const account = content.account;
+
+  return {
+    id: website.id,
+    account_id: website.account_id,
+    subdomain: website.subdomain,
+    custom_domain: website.custom_domain,
+    default_locale: defaultLocale,
+    supported_locales: website.supported_locales,
+    status: website.status,
+    template_id: website.template_id,
+    theme: website.theme,
+    effective_theme: (website as HomeRenderWebsiteData).effective_theme,
+    effective_theme_source: (website as HomeRenderWebsiteData)
+      .effective_theme_source,
+    analytics: undefined,
+    featured_products: {
+      destinations: [],
+      hotels: [],
+      activities: [],
+      transfers: [],
+      packages: [],
+    },
+    sections: includeSectionSummaries
+      ? (website.sections || []).map(toSectionSummary)
+      : [],
+    site_parts: website.site_parts,
+    content: {
+      siteName: content.siteName,
+      tagline: content.tagline,
+      logo: content.logo,
+      logoLight: content.logoLight,
+      logoDark: content.logoDark,
+      locale: resolvedLocale || content.locale,
+      headerCta: content.headerCta,
+      seo: {
+        title: content.seo?.title ?? content.siteName ?? website.subdomain,
+        description: content.seo?.description ?? content.tagline ?? "",
+        keywords: content.seo?.keywords ?? "",
+      },
+      contact: {
+        email: content.contact?.email ?? account?.email ?? "",
+        phone: content.contact?.phone ?? account?.phone ?? "",
+        address: content.contact?.address ?? account?.location ?? "",
+      },
+      social: {
+        facebook: content.social?.facebook,
+        instagram: content.social?.instagram,
+        twitter: content.social?.twitter,
+        youtube: content.social?.youtube,
+        linkedin: content.social?.linkedin,
+        tiktok: content.social?.tiktok,
+        whatsapp: content.social?.whatsapp,
+      },
+      account: account
+        ? {
+            name: account.name,
+            logo: account.logo,
+            email: account.email,
+            phone: account.phone,
+            phone2: account.phone2,
+            website: account.website,
+            location: account.location,
+            primary_currency: account.primary_currency,
+            enabled_currencies: account.enabled_currencies,
+            currency: account.currency,
+          }
+        : undefined,
+      market_experience: content.market_experience,
+      trust: content.trust,
+    },
+    resolvedLocale,
+    isCustomDomain,
+  } as HomeRenderWebsiteData;
+}
+
 export function resolveHomeEnabledSections(input: {
   website: WebsiteData;
   locale: string;

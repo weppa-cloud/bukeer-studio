@@ -14,7 +14,7 @@ import {
   getWebsiteBySubdomain,
   getBlogPosts,
 } from "@/lib/supabase/get-website";
-import type { WebsiteData, WebsiteSection } from "@/lib/supabase/get-website";
+import type { WebsiteSection } from "@/lib/supabase/get-website";
 import {
   getCachedGoogleReviews,
   getCategoryProducts,
@@ -34,6 +34,7 @@ import {
 import { resolveTemplateSet } from "@/lib/sections/template-set";
 import {
   buildHomeSectionPlan,
+  createHomeRenderWebsite,
   resolveHomeEnabledSections,
   type DeferredHomeDataInput,
 } from "@/lib/site/home-rendering";
@@ -415,13 +416,12 @@ export default async function SitePage({ params }: SitePageProps) {
     resolvePublicMetadataLocale(website, "/"),
   );
   const isCustomDomain = inferIsCustomDomainWebsite(website);
-  const websiteForRender = {
-    ...website,
-    sections: [],
+  const websiteForRender = createHomeRenderWebsite({
+    website,
     resolvedLocale: localeContext.resolvedLocale,
     defaultLocale: localeContext.defaultLocale,
     isCustomDomain,
-  } as WebsiteData & { resolvedLocale?: string; isCustomDomain?: boolean };
+  });
   const schemaStartedAt = nowMs();
   const schemas = generateHomepageSchemas(
     website,
