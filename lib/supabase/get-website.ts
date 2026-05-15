@@ -611,29 +611,26 @@ export async function getBlogPostBySlug(
     }
 
     const uniqueLocales = [...new Set(localeCandidates)];
-    const perLocaleLimit = 1200;
-    const mergedById = new Map<string, BlogPost>();
 
     for (const localeCandidate of uniqueLocales) {
-      const { data: rpcData, error: rpcError } = await supabase.rpc(
-        "get_website_blog_posts",
-        {
-          p_website_id: websiteId,
-          p_limit: perLocaleLimit,
-          p_offset: 0,
-          p_category_slug: null,
-          p_locale: localeCandidate || null,
-        },
-      );
-      if (rpcError) continue;
-      const posts = (rpcData?.posts || []) as BlogPost[];
-      for (const post of posts) {
-        if (post?.id && !mergedById.has(post.id)) mergedById.set(post.id, post);
-      }
-    }
+      let fallbackQuery = supabase
+        .from("website_blog_posts")
+        .select("*, category:website_blog_categories(*)")
+        .eq("website_id", websiteId)
+        .eq("slug", normalizedSlug)
+        .eq("status", "published")
+        .is("deleted_at", null);
 
-    for (const post of mergedById.values()) {
-      if (post.slug === normalizedSlug) return post;
+      if (localeCandidate)
+        fallbackQuery = fallbackQuery.eq("locale", localeCandidate);
+
+      const { data: fallbackPost, error: fallbackError } = await fallbackQuery
+        .order("published_at", { ascending: false, nullsFirst: false })
+        .order("updated_at", { ascending: false, nullsFirst: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!fallbackError && fallbackPost) return fallbackPost as BlogPost;
     }
 
     return null;
@@ -702,7 +699,9 @@ export async function getBlogPostTranslationLocales(
       .map((locale) => normalizeBlogPublicLocale(locale))
       .filter((locale): locale is string => Boolean(locale));
 
-    return normalizedLocales.length > 0 ? [...new Set(normalizedLocales)] : fallback;
+    return normalizedLocales.length > 0
+      ? [...new Set(normalizedLocales)]
+      : fallback;
   } catch {
     return fallback;
   }
