@@ -8,7 +8,7 @@ import {
 } from "@bukeer/website-contract";
 
 type JsonRecord = Record<string, unknown>;
-type GrowthMarket = "CO" | "MX" | "US" | "CA" | "EU" | "OTHER";
+type GrowthMarket = "CO" | "MX" | "US" | "CA" | "BR" | "EU" | "OTHER";
 type ContentLane = "content_creator" | "content_curator";
 
 const PLACEHOLDER_PUBLICATION_JOB_ID =

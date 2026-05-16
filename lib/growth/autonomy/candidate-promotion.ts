@@ -89,6 +89,42 @@ function dataQualityFailures(candidate: GrowthOpportunityCandidate): string[] {
   });
 }
 
+function transcreationTargetLocale(candidate: GrowthOpportunityCandidate): string | null {
+  if (candidate.allowed_action_class !== "transcreation_merge") return null;
+  const evidence = candidate.evidence as JsonRecord;
+  const adapterInput = (evidence.adapter_input ?? {}) as JsonRecord;
+  const targetLocale =
+    typeof evidence.target_locale === "string"
+      ? evidence.target_locale
+      : typeof adapterInput.target_locale === "string"
+        ? adapterInput.target_locale
+        : candidate.locale;
+  return targetLocale || null;
+}
+
+function profileBlockingReasons(
+  candidate: GrowthOpportunityCandidate,
+  freshness: ReturnType<typeof evaluateProfileFreshnessGate>,
+): string[] {
+  const targetLocale = transcreationTargetLocale(candidate);
+  if (!targetLocale) {
+    return [
+      ...freshness.missing.map((profile) => `missing:${profile}`),
+      ...freshness.stale.map((profile) => `stale:${profile}`),
+      ...freshness.lowConfidence.map((profile) => `low_confidence:${profile}`),
+    ];
+  }
+  return [
+    ...(freshness.missing.length > 0
+      ? [`missing_target_locale_profiles:${targetLocale}`]
+      : []),
+    ...freshness.stale.map((profile) => `stale_profile:${profile}:${targetLocale}`),
+    ...freshness.lowConfidence.map(
+      (profile) => `low_confidence_profile:${profile}:${targetLocale}`,
+    ),
+  ];
+}
+
 function correlationFailures(candidate: GrowthOpportunityCandidate): string[] {
   const evidence = candidate.evidence as JsonRecord;
   const correlation = (evidence.correlation ?? {}) as JsonRecord;
@@ -164,9 +200,7 @@ export function buildPromotedWorkItem(
   const missingMetric = !candidate.success_metric || !candidate.evaluation_window;
   const missingEvidence = Object.keys(candidate.evidence ?? {}).length === 0;
   const blockingReasons = [
-    ...freshness.missing.map((profile) => `missing:${profile}`),
-    ...freshness.stale.map((profile) => `stale:${profile}`),
-    ...freshness.lowConfidence.map((profile) => `low_confidence:${profile}`),
+    ...profileBlockingReasons(candidate, freshness),
     ...dataQualityFailures(candidate),
     ...correlationFailures(candidate),
   ];

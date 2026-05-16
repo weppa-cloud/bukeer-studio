@@ -30,7 +30,7 @@ export interface MaterializeGrowthAgentArtifactInput {
   websiteId: string;
   artifactId: string;
   locale?: string;
-  market?: "CO" | "MX" | "US" | "CA" | "EU" | "OTHER";
+  market?: "CO" | "MX" | "US" | "CA" | "BR" | "EU" | "OTHER";
   now?: Date;
 }
 
@@ -219,7 +219,7 @@ export function buildGrowthArtifactCandidate({
 }: {
   artifact: GrowthAgentArtifact;
   locale?: string;
-  market?: "CO" | "MX" | "US" | "CA" | "EU" | "OTHER";
+  market?: "CO" | "MX" | "US" | "CA" | "BR" | "EU" | "OTHER";
 }): GrowthArtifactCandidateBuildResult {
   const payload = asRecord(artifact.payload);
   const target = targetFromArtifact(artifact);

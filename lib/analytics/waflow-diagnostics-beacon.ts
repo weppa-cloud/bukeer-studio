@@ -27,7 +27,7 @@ export interface WaflowDiagnosticBeaconPayload {
   has_phone?: boolean | null;
   has_name?: boolean | null;
   locale?: string | null;
-  market?: 'CO' | 'MX' | 'US' | 'CA' | 'EU' | 'OTHER' | null;
+  market?: 'CO' | 'MX' | 'US' | 'CA' | 'BR' | 'EU' | 'OTHER' | null;
   subdomain?: string | null;
 }
 

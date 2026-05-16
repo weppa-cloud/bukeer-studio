@@ -11,7 +11,7 @@ type AgentLane =
   | "content_creator"
   | "content_curator"
   | "orchestrator";
-type GrowthMarket = "CO" | "MX" | "US" | "CA" | "EU" | "OTHER";
+type GrowthMarket = "CO" | "MX" | "US" | "CA" | "BR" | "EU" | "OTHER";
 type GrowthEnvironment = "local" | "qa" | "staging" | "production";
 
 const LANES = new Set<AgentLane>([
@@ -21,7 +21,7 @@ const LANES = new Set<AgentLane>([
   "content_curator",
   "orchestrator",
 ]);
-const MARKETS = new Set<GrowthMarket>(["CO", "MX", "US", "CA", "EU", "OTHER"]);
+const MARKETS = new Set<GrowthMarket>(["CO", "MX", "US", "CA", "BR", "EU", "OTHER"]);
 const ENVIRONMENTS = new Set<GrowthEnvironment>([
   "local",
   "qa",

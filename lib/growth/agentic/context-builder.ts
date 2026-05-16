@@ -12,6 +12,11 @@ import {
   type JsonRecord,
   type SupabaseLike,
 } from "@/lib/growth/autonomy/runtime-common";
+import {
+  localePair,
+  marketForGrowthLocale,
+  normalizeGrowthLocale,
+} from "@/lib/growth/locale-targeting";
 import { scanGrowthContextForPromptInjection } from "./prompt-injection-scan";
 
 export interface BuildGrowthAgentContextOptions {
@@ -44,6 +49,8 @@ async function selectRows({
   columns = "*",
   limit = 30,
   orderColumn = "updated_at",
+  locale,
+  market,
 }: {
   supabase: SupabaseLike;
   table: string;
@@ -52,12 +59,17 @@ async function selectRows({
   columns?: string;
   limit?: number;
   orderColumn?: string;
+  locale?: string;
+  market?: GrowthMarket;
 }) {
-  const { data, error } = await supabase
+  let query = supabase
     .from(table)
     .select(columns)
     .eq("account_id", accountId)
-    .eq("website_id", websiteId)
+    .eq("website_id", websiteId);
+  if (locale) query = query.eq("locale", locale);
+  if (market) query = query.eq("market", market);
+  const { data, error } = await query
     .order(orderColumn, { ascending: false, nullsFirst: false })
     .limit(limit);
   if (error) throw new Error(`${table} context lookup failed: ${error.message}`);
@@ -87,8 +99,15 @@ export async function buildGrowthAgentContext(
   options: BuildGrowthAgentContextOptions,
 ): Promise<GrowthAgentContextBundle> {
   const lane = options.lane ?? "all";
-  const locale = options.locale ?? "es-CO";
-  const market = options.market ?? "CO";
+  const wakeupPayload = asRecord(options.wakeup?.payload);
+  const sourceLocale = normalizeGrowthLocale(
+    wakeupPayload.source_locale ?? wakeupPayload.sourceLocale ?? "es-CO",
+  );
+  const locale = normalizeGrowthLocale(
+    wakeupPayload.target_locale ?? wakeupPayload.targetLocale ?? options.locale,
+    "es-CO",
+  );
+  const market = options.market ?? marketForGrowthLocale(locale);
   const now = options.now ?? new Date();
 
   const [
@@ -108,9 +127,11 @@ export async function buildGrowthAgentContext(
       ...options,
       table: "growth_profiles",
       columns:
-        "id,profile_type,subject_table,subject_id,subject_key,confidence,valid_until,payload,source_signal_fact_ids",
+        "id,locale,market,profile_type,subject_table,subject_id,subject_key,confidence,valid_until,payload,source_signal_fact_ids",
       limit: 40,
       orderColumn: "valid_until",
+      locale,
+      market,
     }),
     selectRows({
       ...options,
@@ -200,6 +221,11 @@ export async function buildGrowthAgentContext(
     account_id: options.accountId,
     website_id: options.websiteId,
     lane,
+    locale,
+    market,
+    source_locale: sourceLocale,
+    target_locale: locale,
+    locale_pair: sourceLocale !== locale ? localePair(sourceLocale, locale) : null,
     wakeup: options.wakeup
       ? {
           id: options.wakeup.id,
@@ -227,6 +253,8 @@ export async function buildGrowthAgentContext(
     },
     profiles: compactRows(profiles, [
       "id",
+      "locale",
+      "market",
       "profile_type",
       "subject_table",
       "subject_id",
