@@ -30,7 +30,7 @@ export interface WhatsAppBeaconPayload {
   package_slug?: string | null;
   /** Locale string (BCP-47), e.g. "es-CO". Defaults to es-CO server-side. */
   locale?: string | null;
-  market?: 'CO' | 'MX' | 'US' | 'CA' | 'EU' | 'OTHER' | null;
+  market?: 'CO' | 'MX' | 'US' | 'CA' | 'BR' | 'EU' | 'OTHER' | null;
   /** Override subdomain (defaults to host's first label). */
   subdomain?: string | null;
 }

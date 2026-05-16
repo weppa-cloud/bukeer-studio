@@ -313,10 +313,24 @@ describe('public-ui-extra-text (editorial-v1 catalog)', () => {
     expect(getter('editorialPackagesCtaFallback')).toBe('VER PAQUETE');
   });
 
-  it('falls back to es-CO for unsupported locales', () => {
-    expect(getPublicUiExtraText('fr-FR', 'editorialHeaderQuoteCta')).toBe(
-      getPublicUiExtraText('es-CO', 'editorialHeaderQuoteCta'),
-    );
+  it('localizes priority PT/FR/DE editorial chrome and product-listing labels', () => {
+    expect(getPublicUiExtraText('pt-BR', 'editorialHeaderQuoteCta')).toBe('Solicitar cotação');
+    expect(getPublicUiExtraText('pt-BR', 'editorialFooterSearch')).toBe('Buscar');
+    expect(getPublicUiExtraText('pt-BR', 'editorialPackagesCountSeparator')).toBe('de');
+    expect(getPublicUiExtraText('pt-BR', 'editorialHotelsCityLabel')).toBe('Cidade');
+    expect(getPublicUiExtraText('pt-BR', 'waflowFabTitle')).toBe('Planejando uma viagem?');
+
+    expect(getPublicUiExtraText('fr-FR', 'editorialHeaderQuoteCta')).toBe('Demander un devis');
+    expect(getPublicUiExtraText('fr-FR', 'editorialFooterSearch')).toBe('Rechercher');
+    expect(getPublicUiExtraText('fr-FR', 'editorialPackagesCountSeparator')).toBe('sur');
+    expect(getPublicUiExtraText('fr-FR', 'editorialHotelsCityLabel')).toBe('Ville');
+    expect(getPublicUiExtraText('fr-FR', 'waflowFabTitle')).toBe('Vous planifiez un voyage ?');
+
+    expect(getPublicUiExtraText('de-DE', 'editorialHeaderQuoteCta')).toBe('Reiseangebot anfragen');
+    expect(getPublicUiExtraText('de-DE', 'editorialFooterSearch')).toBe('Suchen');
+    expect(getPublicUiExtraText('de-DE', 'editorialPackagesCountSeparator')).toBe('von');
+    expect(getPublicUiExtraText('de-DE', 'editorialHotelsCityLabel')).toBe('Stadt');
+    expect(getPublicUiExtraText('de-DE', 'waflowFabTitle')).toBe('Planen Sie eine Reise?');
   });
 
   it('resolves en-US overrides and falls back to es-CO for unsupported locales', () => {
@@ -324,7 +338,7 @@ describe('public-ui-extra-text (editorial-v1 catalog)', () => {
     expect(getPublicUiExtraText('en-US', 'editorialPackagesCtaFallback')).toBe(
       'VIEW PACKAGE',
     );
-    expect(getPublicUiExtraText('pt-BR', 'editorialPackagesCtaFallback')).toBe(
+    expect(getPublicUiExtraText('it-IT', 'editorialPackagesCtaFallback')).toBe(
       esValue,
     );
   });

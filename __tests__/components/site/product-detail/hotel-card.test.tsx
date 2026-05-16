@@ -66,4 +66,20 @@ describe('<HotelCard>', () => {
     expect(markup).toContain('1 noche');
     expect(markup).not.toContain('1 noches');
   });
+
+  it('uses localized hotel labels and category segment from locale', () => {
+    const markup = renderToStaticMarkup(
+      React.createElement(HotelCard, {
+        title: 'Coffee Lodge',
+        starRating: 5,
+        hotelSlug: 'coffee-lodge',
+        basePath: '/site/demo/en',
+        locale: 'en-US',
+      })
+    );
+
+    expect(markup).toContain('href="/site/demo/en/hotels/coffee-lodge"');
+    expect(markup).toContain('View hotel →');
+    expect(markup).not.toContain('Ver hotel →');
+  });
 });

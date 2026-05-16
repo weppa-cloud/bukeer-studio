@@ -341,4 +341,66 @@ describe("buildPromotedWorkItem", () => {
     expect(result.promoted).toBe(true);
     expect(result.workItem?.allowed_action_class).toBe("safe_apply");
   });
+
+  it("blocks transcreation promotion when target locale profiles are missing", () => {
+    const result = buildPromotedWorkItem(
+      candidate({
+        locale: "pt-BR",
+        market: "BR",
+        candidate_type: "missing_translation",
+        lane: "transcreation",
+        allowed_action_class: "transcreation_merge",
+        required_profile_types: [
+          "business",
+          "buyer",
+          "seo_market",
+          "competitor",
+          "page_product",
+          "risk_policy",
+        ],
+        evidence: {
+          source_refs: ["growth_signal_facts:translation-gap"],
+          source_locale: "es-CO",
+          target_locale: "pt-BR",
+          locale_pair: "es-CO->pt-BR",
+          target: {
+            target_table: "seo_transcreation_jobs",
+            target_path: "blog:pt-BR:source-post",
+          },
+          rollback_expectation: {
+            strategy: "restore_before_snapshot",
+            target_path: "blog:pt-BR:source-post",
+          },
+          baseline: { localized_organic_clicks: 0 },
+          adapter_input: {
+            transcreation_job_id: "44444444-4444-4444-8444-444444444444",
+            source_locale: "es-CO",
+            target_locale: "pt-BR",
+            locale_pair: "es-CO->pt-BR",
+            page_type: "blog",
+            source_entity_id: "source-post",
+            target_path: "blog:pt-BR:source-post",
+            payload: {
+              meta_title: "Viagens personalizadas pela Colombia",
+              meta_desc:
+                "Planeje uma viagem personalizada pela Colombia com contexto local, ritmo, regioes e criterios praticos antes de falar com um especialista.",
+              body_content: "Conteudo localizado completo.",
+            },
+            quality: { passed: true, score: 0.91 },
+            glossary_terms: ["Colombia", "viagem personalizada"],
+          },
+        },
+        success_metric: "localized_organic_clicks:blog:pt-BR:source-post",
+        evaluation_window: "day_21",
+      } as Partial<GrowthOpportunityCandidate>),
+      [],
+      now,
+    );
+
+    expect(result.promoted).toBe(false);
+    expect(result.blockingReason).toContain(
+      "missing_target_locale_profiles:pt-BR",
+    );
+    expect(result.blockingReason).not.toContain("missing:business");
+  });
 });

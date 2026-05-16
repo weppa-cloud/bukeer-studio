@@ -3,7 +3,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { COLOMBIA_BOUNDARY_GEOJSON } from '@/components/maps/colombia-boundary';
-import { MarkerButton, getDestinationMarkerMeta } from '@/components/maps/shared-marker';
+import {
+  MarkerButton,
+  formatDestinationProductCounts,
+  getDestinationMarkerMeta,
+} from '@/components/maps/shared-marker';
 import type {
   MapMarker,
   MapMarkerKind,
@@ -35,6 +39,7 @@ interface DestinationMapProps {
   /** Optional ordered path drawn as a connecting line between points ([lng, lat] pairs). */
   routePath?: Array<[number, number]>;
   onMarkerSelect?: (marker: MapMarker | null) => void;
+  locale?: string | null;
 }
 
 type ProductFilterKind = 'hotel' | 'activity' | 'service';
@@ -112,6 +117,7 @@ interface CompatibilityMapProps {
   viewportPreset: MapViewportPreset;
   badgeLabel: string;
   routePath?: Array<[number, number]>;
+  locale?: string | null;
 }
 
 function CompatibilityCroquisMap({
@@ -123,6 +129,7 @@ function CompatibilityCroquisMap({
   viewportPreset,
   badgeLabel,
   routePath,
+  locale,
 }: CompatibilityMapProps) {
   const bounds = useMemo(
     () => computeViewportBounds(markers, viewportPreset),
@@ -230,7 +237,7 @@ function CompatibilityCroquisMap({
           </p>
           {selectedPosition.marker.kind === 'destination' && (selectedDestinationMeta?.hotelCount || selectedDestinationMeta?.activityCount) ? (
             <p className="text-[11px] mt-1.5" style={{ color: 'var(--text-muted)' }}>
-              Hoteles: {selectedDestinationMeta?.hotelCount ?? 0} · Actividades: {selectedDestinationMeta?.activityCount ?? 0}
+              {formatDestinationProductCounts(selectedDestinationMeta, locale)}
             </p>
           ) : null}
         </div>
@@ -256,6 +263,7 @@ export function DestinationMap({
   showLegend = true,
   routePath,
   onMarkerSelect,
+  locale,
 }: DestinationMapProps) {
   const styleUrl = useMemo(resolveMapStyleUrl, []);
   const [hasHydrated, setHasHydrated] = useState(false);
@@ -391,6 +399,7 @@ export function DestinationMap({
             viewportPreset={viewportPreset}
             badgeLabel={croquisBadgeLabel}
             routePath={routePath}
+            locale={locale}
           />
 
           {markers.length === 0 ? (
@@ -422,6 +431,7 @@ export function DestinationMap({
           initialCenter={center}
           onStyleFailed={() => setStyleFailed(true)}
           routePath={routePath}
+          locale={locale}
         />
 
         {filtersNode}

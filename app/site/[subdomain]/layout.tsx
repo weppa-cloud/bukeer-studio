@@ -357,6 +357,7 @@ export default async function SiteLayout({
       subdomain={subdomain}
       responseTime="3 min"
       showFab={!isLanding}
+      locale={localeContext.resolvedLocale}
     >
       {smoothScrollContent}
     </WaflowProvider>

@@ -25,7 +25,7 @@ export const GrowthChannelSchema = z.enum([
 ]);
 export type GrowthChannel = z.infer<typeof GrowthChannelSchema>;
 
-export const GrowthMarketSchema = z.enum(['CO', 'MX', 'US', 'CA', 'EU', 'OTHER']);
+export const GrowthMarketSchema = z.enum(['CO', 'MX', 'US', 'CA', 'BR', 'EU', 'OTHER']);
 export type GrowthMarket = z.infer<typeof GrowthMarketSchema>;
 
 export const GrowthLocaleSchema = z.string().regex(/^[a-z]{2}(-[A-Z]{2})?$/);
