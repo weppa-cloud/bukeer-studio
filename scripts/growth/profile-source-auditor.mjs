@@ -50,7 +50,7 @@ const DISALLOWED_FLAGS = new Set([
   "publish",
 ]);
 const SECRET_KEY_RE = /token|secret|password|authorization|api[_-]?key|service[_-]?role|access[_-]?token|refresh[_-]?token/i;
-const SECRET_VALUE_RE = /\bBearer\s+[A-Za-z0-9._-]+|\bBasic\s+[A-Za-z0-9+/=]+|eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}|[A-Za-z0-9_\-]{40,}|([?&](?:token|key|secret|authorization|access_token|refresh_token)=)[^\s&]+/i;
+const SECRET_VALUE_RE=/\bBearer\s+[A-Za-z0-9._-]+|\bBasic\s+[A-Za-z0-9+/=]+|eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}|(?=.*\d)[A-Za-z0-9_\-]{40,}|([?&](?:token|key|secret|authorization|access_token|refresh_token)=)[^\s&]+/i;
 const FRESHNESS_HOURS = {
   growth_gsc_cache: 24,
   growth_ga4_cache: 6,
