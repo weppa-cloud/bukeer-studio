@@ -48,6 +48,7 @@
     "growth:production-cycle": "tsx scripts/growth/run-growth-production-cycle.ts",
     "growth:hermes-sidecar": "tsx scripts/growth/run-growth-hermes-sidecar.ts",
     "growth:provider-runner": "tsx scripts/growth/provider-runner.ts",
+    "growth:profile-source-audit": "node scripts/growth/profile-source-auditor.mjs",
     "growth:effectiveness-experiment": "tsx scripts/growth/create-growth-effectiveness-experiment.ts",
     "google-ads:validate-governance": "node scripts/google-ads/validate-conversion-governance.cjs",
     "google-ads:crm-growth-study": "node scripts/google-ads/colombiatours-crm-growth-study.cjs",

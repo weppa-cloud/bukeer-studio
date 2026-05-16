@@ -1,0 +1,1728 @@
+{
+  "generated_at": "2026-05-16T14:00:00.000Z",
+  "tables": {
+    "growth_profiles": [
+      {
+        "id": "en-US-business",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "locale": "en-US",
+        "market": "US",
+        "profile_type": "business",
+        "subject_table": null,
+        "subject_id": null,
+        "subject_key": null,
+        "confidence": 0.9,
+        "valid_from": "2026-05-16T13:30:00.000Z",
+        "valid_until": "2026-05-16T15:00:00.000Z",
+        "policy_version": "fixture-v1",
+        "source": "provider_signal_refresh",
+        "payload": {
+          "summary": "en-US business",
+          "service_role_key": "service-role-fixture-should-redact",
+          "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.aaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "source_signal_fact_ids": [
+          "fact-en-US-business"
+        ],
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z"
+      },
+      {
+        "id": "en-US-buyer",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "locale": "en-US",
+        "market": "US",
+        "profile_type": "buyer",
+        "subject_table": null,
+        "subject_id": null,
+        "subject_key": null,
+        "confidence": 0.9,
+        "valid_from": "2026-05-16T13:30:00.000Z",
+        "valid_until": "2026-05-16T15:00:00.000Z",
+        "policy_version": "fixture-v1",
+        "source": "provider_signal_refresh",
+        "payload": {
+          "summary": "en-US buyer",
+          "service_role_key": "service-role-fixture-should-redact",
+          "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.aaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "source_signal_fact_ids": [
+          "fact-en-US-buyer"
+        ],
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z"
+      },
+      {
+        "id": "en-US-seo_market",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "locale": "en-US",
+        "market": "US",
+        "profile_type": "seo_market",
+        "subject_table": null,
+        "subject_id": null,
+        "subject_key": null,
+        "confidence": 0.9,
+        "valid_from": "2026-05-16T13:30:00.000Z",
+        "valid_until": "2026-05-16T15:00:00.000Z",
+        "policy_version": "fixture-v1",
+        "source": "provider_signal_refresh",
+        "payload": {
+          "summary": "en-US seo_market",
+          "service_role_key": "service-role-fixture-should-redact",
+          "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.aaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "source_signal_fact_ids": [
+          "fact-en-US-seo_market"
+        ],
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z"
+      },
+      {
+        "id": "en-US-page_product",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "locale": "en-US",
+        "market": "US",
+        "profile_type": "page_product",
+        "subject_table": null,
+        "subject_id": null,
+        "subject_key": null,
+        "confidence": 0.9,
+        "valid_from": "2026-05-16T13:30:00.000Z",
+        "valid_until": "2026-05-16T15:00:00.000Z",
+        "policy_version": "fixture-v1",
+        "source": "provider_signal_refresh",
+        "payload": {
+          "summary": "en-US page_product",
+          "service_role_key": "service-role-fixture-should-redact",
+          "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.aaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "source_signal_fact_ids": [
+          "fact-en-US-page_product"
+        ],
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z"
+      },
+      {
+        "id": "en-US-risk_policy",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "locale": "en-US",
+        "market": "US",
+        "profile_type": "risk_policy",
+        "subject_table": null,
+        "subject_id": null,
+        "subject_key": null,
+        "confidence": 0.99,
+        "valid_from": "2026-05-16T13:30:00.000Z",
+        "valid_until": "2026-05-16T15:00:00.000Z",
+        "policy_version": "fixture-v1",
+        "source": "provider_signal_refresh",
+        "payload": {
+          "summary": "en-US risk_policy",
+          "service_role_key": "service-role-fixture-should-redact",
+          "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.aaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "source_signal_fact_ids": [
+          "fact-en-US-risk_policy"
+        ],
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z"
+      },
+      {
+        "id": "en-US-competitor",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "locale": "en-US",
+        "market": "US",
+        "profile_type": "competitor",
+        "subject_table": null,
+        "subject_id": null,
+        "subject_key": null,
+        "confidence": 0.9,
+        "valid_from": "2026-05-06T14:00:00.000Z",
+        "valid_until": "2026-05-17T14:00:00.000Z",
+        "policy_version": "fixture-v1",
+        "source": "provider_signal_refresh",
+        "payload": {
+          "summary": "en-US competitor",
+          "service_role_key": "service-role-fixture-should-redact",
+          "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.aaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "source_signal_fact_ids": [
+          "fact-en-US-competitor"
+        ],
+        "created_at": "2026-05-06T14:00:00.000Z",
+        "updated_at": "2026-05-06T14:00:00.000Z"
+      },
+      {
+        "id": "pt-BR-business",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "locale": "pt-BR",
+        "market": "BR",
+        "profile_type": "business",
+        "subject_table": null,
+        "subject_id": null,
+        "subject_key": null,
+        "confidence": 0.9,
+        "valid_from": "2026-05-16T13:30:00.000Z",
+        "valid_until": "2026-05-16T15:00:00.000Z",
+        "policy_version": "fixture-v1",
+        "source": "neo_controlled_refresh",
+        "payload": {
+          "summary": "pt-BR business",
+          "service_role_key": "service-role-fixture-should-redact",
+          "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.aaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "source_signal_fact_ids": [
+          "fact-pt-BR-business"
+        ],
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z"
+      },
+      {
+        "id": "pt-BR-buyer",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "locale": "pt-BR",
+        "market": "BR",
+        "profile_type": "buyer",
+        "subject_table": null,
+        "subject_id": null,
+        "subject_key": null,
+        "confidence": 0.9,
+        "valid_from": "2026-05-16T13:30:00.000Z",
+        "valid_until": "2026-05-16T15:00:00.000Z",
+        "policy_version": "fixture-v1",
+        "source": "neo_controlled_refresh",
+        "payload": {
+          "summary": "pt-BR buyer",
+          "service_role_key": "service-role-fixture-should-redact",
+          "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.aaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "source_signal_fact_ids": [
+          "fact-pt-BR-buyer"
+        ],
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z"
+      },
+      {
+        "id": "pt-BR-seo_market",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "locale": "pt-BR",
+        "market": "BR",
+        "profile_type": "seo_market",
+        "subject_table": null,
+        "subject_id": null,
+        "subject_key": null,
+        "confidence": 0.9,
+        "valid_from": "2026-05-16T13:30:00.000Z",
+        "valid_until": "2026-05-16T15:00:00.000Z",
+        "policy_version": "fixture-v1",
+        "source": "neo_controlled_refresh",
+        "payload": {
+          "summary": "pt-BR seo_market",
+          "service_role_key": "service-role-fixture-should-redact",
+          "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.aaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "source_signal_fact_ids": [
+          "fact-pt-BR-seo_market"
+        ],
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z"
+      },
+      {
+        "id": "pt-BR-competitor",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "locale": "pt-BR",
+        "market": "BR",
+        "profile_type": "competitor",
+        "subject_table": null,
+        "subject_id": null,
+        "subject_key": null,
+        "confidence": 0.9,
+        "valid_from": "2026-05-16T13:30:00.000Z",
+        "valid_until": "2026-05-16T15:00:00.000Z",
+        "policy_version": "fixture-v1",
+        "source": "neo_controlled_refresh",
+        "payload": {
+          "summary": "pt-BR competitor",
+          "service_role_key": "service-role-fixture-should-redact",
+          "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.aaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "source_signal_fact_ids": [
+          "fact-pt-BR-competitor"
+        ],
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z"
+      },
+      {
+        "id": "pt-BR-page_product",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "locale": "pt-BR",
+        "market": "BR",
+        "profile_type": "page_product",
+        "subject_table": null,
+        "subject_id": null,
+        "subject_key": null,
+        "confidence": 0.9,
+        "valid_from": "2026-05-16T13:30:00.000Z",
+        "valid_until": "2026-05-16T15:00:00.000Z",
+        "policy_version": "fixture-v1",
+        "source": "neo_controlled_refresh",
+        "payload": {
+          "summary": "pt-BR page_product",
+          "service_role_key": "service-role-fixture-should-redact",
+          "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.aaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "source_signal_fact_ids": [
+          "fact-pt-BR-page_product"
+        ],
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z"
+      },
+      {
+        "id": "pt-BR-risk_policy",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "locale": "pt-BR",
+        "market": "BR",
+        "profile_type": "risk_policy",
+        "subject_table": null,
+        "subject_id": null,
+        "subject_key": null,
+        "confidence": 0.99,
+        "valid_from": "2026-05-16T13:30:00.000Z",
+        "valid_until": "2026-05-16T15:00:00.000Z",
+        "policy_version": "fixture-v1",
+        "source": "neo_controlled_refresh",
+        "payload": {
+          "summary": "pt-BR risk_policy",
+          "service_role_key": "service-role-fixture-should-redact",
+          "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.aaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "source_signal_fact_ids": [
+          "fact-pt-BR-risk_policy"
+        ],
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z"
+      },
+      {
+        "id": "fr-FR-business",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "locale": "fr-FR",
+        "market": "EU",
+        "profile_type": "business",
+        "subject_table": null,
+        "subject_id": null,
+        "subject_key": null,
+        "confidence": 0.9,
+        "valid_from": "2026-05-16T13:30:00.000Z",
+        "valid_until": "2026-05-16T15:00:00.000Z",
+        "policy_version": "fixture-v1",
+        "source": "provider_signal_refresh",
+        "payload": {
+          "summary": "fr-FR business",
+          "service_role_key": "service-role-fixture-should-redact",
+          "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.aaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "source_signal_fact_ids": [
+          "fact-fr-FR-business"
+        ],
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z"
+      },
+      {
+        "id": "fr-FR-buyer",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "locale": "fr-FR",
+        "market": "EU",
+        "profile_type": "buyer",
+        "subject_table": null,
+        "subject_id": null,
+        "subject_key": null,
+        "confidence": 0.9,
+        "valid_from": "2026-05-16T13:30:00.000Z",
+        "valid_until": "2026-05-16T15:00:00.000Z",
+        "policy_version": "fixture-v1",
+        "source": "provider_signal_refresh",
+        "payload": {
+          "summary": "fr-FR buyer",
+          "service_role_key": "service-role-fixture-should-redact",
+          "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.aaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "source_signal_fact_ids": [
+          "fact-fr-FR-buyer"
+        ],
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z"
+      },
+      {
+        "id": "fr-FR-seo_market",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "locale": "fr-FR",
+        "market": "EU",
+        "profile_type": "seo_market",
+        "subject_table": null,
+        "subject_id": null,
+        "subject_key": null,
+        "confidence": 0.9,
+        "valid_from": "2026-05-16T13:30:00.000Z",
+        "valid_until": "2026-05-16T15:00:00.000Z",
+        "policy_version": "fixture-v1",
+        "source": "provider_signal_refresh",
+        "payload": {
+          "summary": "fr-FR seo_market",
+          "service_role_key": "service-role-fixture-should-redact",
+          "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.aaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "source_signal_fact_ids": [
+          "fact-fr-FR-seo_market"
+        ],
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z"
+      },
+      {
+        "id": "fr-FR-competitor",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "locale": "fr-FR",
+        "market": "EU",
+        "profile_type": "competitor",
+        "subject_table": null,
+        "subject_id": null,
+        "subject_key": null,
+        "confidence": 0.9,
+        "valid_from": "2026-05-16T13:30:00.000Z",
+        "valid_until": "2026-05-16T15:00:00.000Z",
+        "policy_version": "fixture-v1",
+        "source": "provider_signal_refresh",
+        "payload": {
+          "summary": "fr-FR competitor",
+          "service_role_key": "service-role-fixture-should-redact",
+          "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.aaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "source_signal_fact_ids": [
+          "fact-fr-FR-competitor"
+        ],
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z"
+      },
+      {
+        "id": "fr-FR-page_product",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "locale": "fr-FR",
+        "market": "EU",
+        "profile_type": "page_product",
+        "subject_table": null,
+        "subject_id": null,
+        "subject_key": null,
+        "confidence": 0.9,
+        "valid_from": "2026-05-16T13:30:00.000Z",
+        "valid_until": "2026-05-16T15:00:00.000Z",
+        "policy_version": "fixture-v1",
+        "source": "provider_signal_refresh",
+        "payload": {
+          "summary": "fr-FR page_product",
+          "service_role_key": "service-role-fixture-should-redact",
+          "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.aaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "source_signal_fact_ids": [
+          "fact-fr-FR-page_product"
+        ],
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z"
+      },
+      {
+        "id": "de-DE-business",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "locale": "de-DE",
+        "market": "EU",
+        "profile_type": "business",
+        "subject_table": null,
+        "subject_id": null,
+        "subject_key": null,
+        "confidence": 0.9,
+        "valid_from": "2026-05-16T13:30:00.000Z",
+        "valid_until": "2026-05-16T15:00:00.000Z",
+        "policy_version": "fixture-v1",
+        "source": "provider_signal_refresh",
+        "payload": {
+          "summary": "de-DE business",
+          "service_role_key": "service-role-fixture-should-redact",
+          "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.aaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "source_signal_fact_ids": [],
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z"
+      },
+      {
+        "id": "de-DE-buyer",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "locale": "de-DE",
+        "market": "EU",
+        "profile_type": "buyer",
+        "subject_table": null,
+        "subject_id": null,
+        "subject_key": null,
+        "confidence": 0.9,
+        "valid_from": "2026-05-16T13:30:00.000Z",
+        "valid_until": "2026-05-16T15:00:00.000Z",
+        "policy_version": "fixture-v1",
+        "source": "provider_signal_refresh",
+        "payload": {
+          "summary": "de-DE buyer",
+          "service_role_key": "service-role-fixture-should-redact",
+          "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.aaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "source_signal_fact_ids": [],
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z"
+      },
+      {
+        "id": "de-DE-seo_market",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "locale": "de-DE",
+        "market": "EU",
+        "profile_type": "seo_market",
+        "subject_table": null,
+        "subject_id": null,
+        "subject_key": null,
+        "confidence": 0.9,
+        "valid_from": "2026-05-16T13:30:00.000Z",
+        "valid_until": "2026-05-16T15:00:00.000Z",
+        "policy_version": "fixture-v1",
+        "source": "provider_signal_refresh",
+        "payload": {
+          "summary": "de-DE seo_market",
+          "service_role_key": "service-role-fixture-should-redact",
+          "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.aaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "source_signal_fact_ids": [],
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z"
+      },
+      {
+        "id": "de-DE-competitor",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "locale": "de-DE",
+        "market": "EU",
+        "profile_type": "competitor",
+        "subject_table": null,
+        "subject_id": null,
+        "subject_key": null,
+        "confidence": 0.9,
+        "valid_from": "2026-05-16T13:30:00.000Z",
+        "valid_until": "2026-05-16T15:00:00.000Z",
+        "policy_version": "fixture-v1",
+        "source": "provider_signal_refresh",
+        "payload": {
+          "summary": "de-DE competitor",
+          "service_role_key": "service-role-fixture-should-redact",
+          "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.aaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "source_signal_fact_ids": [
+          "fact-de-DE-competitor"
+        ],
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z"
+      },
+      {
+        "id": "de-DE-page_product",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "locale": "de-DE",
+        "market": "EU",
+        "profile_type": "page_product",
+        "subject_table": null,
+        "subject_id": null,
+        "subject_key": null,
+        "confidence": 0.9,
+        "valid_from": "2026-05-16T13:30:00.000Z",
+        "valid_until": "2026-05-16T15:00:00.000Z",
+        "policy_version": "fixture-v1",
+        "source": "provider_signal_refresh",
+        "payload": {
+          "summary": "de-DE page_product",
+          "service_role_key": "service-role-fixture-should-redact",
+          "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.aaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "source_signal_fact_ids": [],
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z"
+      },
+      {
+        "id": "de-DE-risk_policy",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "locale": "de-DE",
+        "market": "EU",
+        "profile_type": "risk_policy",
+        "subject_table": null,
+        "subject_id": null,
+        "subject_key": null,
+        "confidence": 0.5,
+        "valid_from": "2026-05-16T13:30:00.000Z",
+        "valid_until": "2026-05-16T15:00:00.000Z",
+        "policy_version": "fixture-v1",
+        "source": "provider_signal_refresh",
+        "payload": {
+          "summary": "de-DE risk_policy",
+          "service_role_key": "service-role-fixture-should-redact",
+          "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.aaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "source_signal_fact_ids": [
+          "fact-de-DE-risk_policy"
+        ],
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z"
+      }
+    ],
+    "growth_signal_facts": [
+      {
+        "id": "fact-en-US-business",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "source": "curated",
+        "signal_type": "fixture",
+        "entity_table": "growth_profiles",
+        "entity_id": "fact-en-US-business",
+        "locale": "en-US",
+        "market": "US",
+        "observed_at": "2026-05-16T13:30:00.000Z",
+        "expires_at": "2026-05-17T14:00:00.000Z",
+        "confidence": 0.98,
+        "payload": {
+          "access_token": "token-fixture-should-redact",
+          "claim": "en-US-curated"
+        },
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z"
+      },
+      {
+        "id": "fact-en-US-buyer",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "source": "curated",
+        "signal_type": "fixture",
+        "entity_table": "growth_profiles",
+        "entity_id": "fact-en-US-buyer",
+        "locale": "en-US",
+        "market": "US",
+        "observed_at": "2026-05-16T13:30:00.000Z",
+        "expires_at": "2026-05-17T14:00:00.000Z",
+        "confidence": 0.98,
+        "payload": {
+          "access_token": "token-fixture-should-redact",
+          "claim": "en-US-curated"
+        },
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z"
+      },
+      {
+        "id": "fact-en-US-seo_market",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "source": "dataforseo",
+        "signal_type": "fixture",
+        "entity_table": "growth_profiles",
+        "entity_id": "fact-en-US-seo_market",
+        "locale": "en-US",
+        "market": "US",
+        "observed_at": "2026-05-16T13:30:00.000Z",
+        "expires_at": "2026-05-17T14:00:00.000Z",
+        "confidence": 0.98,
+        "payload": {
+          "access_token": "token-fixture-should-redact",
+          "claim": "en-US-dataforseo"
+        },
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z"
+      },
+      {
+        "id": "fact-en-US-competitor",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "source": "dataforseo",
+        "signal_type": "fixture",
+        "entity_table": "growth_profiles",
+        "entity_id": "fact-en-US-competitor",
+        "locale": "en-US",
+        "market": "US",
+        "observed_at": "2026-05-16T13:30:00.000Z",
+        "expires_at": "2026-05-17T14:00:00.000Z",
+        "confidence": 0.98,
+        "payload": {
+          "access_token": "token-fixture-should-redact",
+          "claim": "en-US-dataforseo"
+        },
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z"
+      },
+      {
+        "id": "fact-en-US-page_product",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "source": "curated",
+        "signal_type": "fixture",
+        "entity_table": "growth_profiles",
+        "entity_id": "fact-en-US-page_product",
+        "locale": "en-US",
+        "market": "US",
+        "observed_at": "2026-05-16T13:30:00.000Z",
+        "expires_at": "2026-05-17T14:00:00.000Z",
+        "confidence": 0.98,
+        "payload": {
+          "access_token": "token-fixture-should-redact",
+          "claim": "en-US-curated"
+        },
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z"
+      },
+      {
+        "id": "fact-en-US-risk_policy",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "source": "curated",
+        "signal_type": "fixture",
+        "entity_table": "growth_profiles",
+        "entity_id": "fact-en-US-risk_policy",
+        "locale": "en-US",
+        "market": "US",
+        "observed_at": "2026-05-16T13:30:00.000Z",
+        "expires_at": "2026-05-17T14:00:00.000Z",
+        "confidence": 0.98,
+        "payload": {
+          "access_token": "token-fixture-should-redact",
+          "claim": "en-US-curated"
+        },
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z"
+      },
+      {
+        "id": "fact-pt-BR-business",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "source": "curated",
+        "signal_type": "fixture",
+        "entity_table": "growth_profiles",
+        "entity_id": "fact-pt-BR-business",
+        "locale": "pt-BR",
+        "market": "BR",
+        "observed_at": "2026-05-16T13:30:00.000Z",
+        "expires_at": "2026-05-17T14:00:00.000Z",
+        "confidence": 0.98,
+        "payload": {
+          "access_token": "token-fixture-should-redact",
+          "claim": "pt-BR-curated"
+        },
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z"
+      },
+      {
+        "id": "fact-pt-BR-buyer",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "source": "curated",
+        "signal_type": "fixture",
+        "entity_table": "growth_profiles",
+        "entity_id": "fact-pt-BR-buyer",
+        "locale": "pt-BR",
+        "market": "BR",
+        "observed_at": "2026-05-16T13:30:00.000Z",
+        "expires_at": "2026-05-17T14:00:00.000Z",
+        "confidence": 0.98,
+        "payload": {
+          "access_token": "token-fixture-should-redact",
+          "claim": "pt-BR-curated"
+        },
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z"
+      },
+      {
+        "id": "fact-pt-BR-seo_market",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "source": "dataforseo",
+        "signal_type": "fixture",
+        "entity_table": "growth_profiles",
+        "entity_id": "fact-pt-BR-seo_market",
+        "locale": "pt-BR",
+        "market": "BR",
+        "observed_at": "2026-05-16T13:30:00.000Z",
+        "expires_at": "2026-05-17T14:00:00.000Z",
+        "confidence": 0.98,
+        "payload": {
+          "access_token": "token-fixture-should-redact",
+          "claim": "pt-BR-dataforseo"
+        },
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z"
+      },
+      {
+        "id": "fact-pt-BR-competitor",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "source": "dataforseo",
+        "signal_type": "fixture",
+        "entity_table": "growth_profiles",
+        "entity_id": "fact-pt-BR-competitor",
+        "locale": "pt-BR",
+        "market": "BR",
+        "observed_at": "2026-05-16T13:30:00.000Z",
+        "expires_at": "2026-05-17T14:00:00.000Z",
+        "confidence": 0.98,
+        "payload": {
+          "access_token": "token-fixture-should-redact",
+          "claim": "pt-BR-dataforseo"
+        },
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z"
+      },
+      {
+        "id": "fact-pt-BR-page_product",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "source": "curated",
+        "signal_type": "fixture",
+        "entity_table": "growth_profiles",
+        "entity_id": "fact-pt-BR-page_product",
+        "locale": "pt-BR",
+        "market": "BR",
+        "observed_at": "2026-05-16T13:30:00.000Z",
+        "expires_at": "2026-05-17T14:00:00.000Z",
+        "confidence": 0.98,
+        "payload": {
+          "access_token": "token-fixture-should-redact",
+          "claim": "pt-BR-curated"
+        },
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z"
+      },
+      {
+        "id": "fact-pt-BR-risk_policy",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "source": "curated",
+        "signal_type": "fixture",
+        "entity_table": "growth_profiles",
+        "entity_id": "fact-pt-BR-risk_policy",
+        "locale": "pt-BR",
+        "market": "BR",
+        "observed_at": "2026-05-16T13:30:00.000Z",
+        "expires_at": "2026-05-17T14:00:00.000Z",
+        "confidence": 0.98,
+        "payload": {
+          "access_token": "token-fixture-should-redact",
+          "claim": "pt-BR-curated"
+        },
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z"
+      },
+      {
+        "id": "fact-fr-FR-business",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "source": "curated",
+        "signal_type": "fixture",
+        "entity_table": "growth_profiles",
+        "entity_id": "fact-fr-FR-business",
+        "locale": "fr-FR",
+        "market": "EU",
+        "observed_at": "2026-05-16T13:30:00.000Z",
+        "expires_at": "2026-05-17T14:00:00.000Z",
+        "confidence": 0.98,
+        "payload": {
+          "access_token": "token-fixture-should-redact",
+          "claim": "fr-FR-curated"
+        },
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z"
+      },
+      {
+        "id": "fact-fr-FR-buyer",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "source": "curated",
+        "signal_type": "fixture",
+        "entity_table": "growth_profiles",
+        "entity_id": "fact-fr-FR-buyer",
+        "locale": "fr-FR",
+        "market": "EU",
+        "observed_at": "2026-05-16T13:30:00.000Z",
+        "expires_at": "2026-05-17T14:00:00.000Z",
+        "confidence": 0.98,
+        "payload": {
+          "access_token": "token-fixture-should-redact",
+          "claim": "fr-FR-curated"
+        },
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z"
+      },
+      {
+        "id": "fact-fr-FR-seo_market",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "source": "dataforseo",
+        "signal_type": "fixture",
+        "entity_table": "growth_profiles",
+        "entity_id": "fact-fr-FR-seo_market",
+        "locale": "fr-FR",
+        "market": "EU",
+        "observed_at": "2026-05-16T13:30:00.000Z",
+        "expires_at": "2026-05-17T14:00:00.000Z",
+        "confidence": 0.98,
+        "payload": {
+          "access_token": "token-fixture-should-redact",
+          "claim": "fr-FR-dataforseo"
+        },
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z"
+      },
+      {
+        "id": "fact-fr-FR-competitor",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "source": "dataforseo",
+        "signal_type": "fixture",
+        "entity_table": "growth_profiles",
+        "entity_id": "fact-fr-FR-competitor",
+        "locale": "fr-FR",
+        "market": "EU",
+        "observed_at": "2026-05-16T13:30:00.000Z",
+        "expires_at": "2026-05-17T14:00:00.000Z",
+        "confidence": 0.98,
+        "payload": {
+          "access_token": "token-fixture-should-redact",
+          "claim": "fr-FR-dataforseo"
+        },
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z"
+      },
+      {
+        "id": "fact-fr-FR-page_product",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "source": "curated",
+        "signal_type": "fixture",
+        "entity_table": "growth_profiles",
+        "entity_id": "fact-fr-FR-page_product",
+        "locale": "fr-FR",
+        "market": "EU",
+        "observed_at": "2026-05-16T13:30:00.000Z",
+        "expires_at": "2026-05-17T14:00:00.000Z",
+        "confidence": 0.98,
+        "payload": {
+          "access_token": "token-fixture-should-redact",
+          "claim": "fr-FR-curated"
+        },
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z"
+      },
+      {
+        "id": "fact-fr-FR-risk_policy",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "source": "curated",
+        "signal_type": "fixture",
+        "entity_table": "growth_profiles",
+        "entity_id": "fact-fr-FR-risk_policy",
+        "locale": "fr-FR",
+        "market": "EU",
+        "observed_at": "2026-05-16T13:30:00.000Z",
+        "expires_at": "2026-05-17T14:00:00.000Z",
+        "confidence": 0.98,
+        "payload": {
+          "access_token": "token-fixture-should-redact",
+          "claim": "fr-FR-curated"
+        },
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z"
+      },
+      {
+        "id": "fact-de-DE-business",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "source": "curated",
+        "signal_type": "fixture",
+        "entity_table": "growth_profiles",
+        "entity_id": "fact-de-DE-business",
+        "locale": "de-DE",
+        "market": "EU",
+        "observed_at": "2026-05-16T13:30:00.000Z",
+        "expires_at": "2026-05-17T14:00:00.000Z",
+        "confidence": 0.98,
+        "payload": {
+          "access_token": "token-fixture-should-redact",
+          "claim": "de-DE-curated"
+        },
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z"
+      },
+      {
+        "id": "fact-de-DE-buyer",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "source": "curated",
+        "signal_type": "fixture",
+        "entity_table": "growth_profiles",
+        "entity_id": "fact-de-DE-buyer",
+        "locale": "de-DE",
+        "market": "EU",
+        "observed_at": "2026-05-16T13:30:00.000Z",
+        "expires_at": "2026-05-17T14:00:00.000Z",
+        "confidence": 0.98,
+        "payload": {
+          "access_token": "token-fixture-should-redact",
+          "claim": "de-DE-curated"
+        },
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z"
+      },
+      {
+        "id": "fact-de-DE-seo_market",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "source": "dataforseo",
+        "signal_type": "fixture",
+        "entity_table": "growth_profiles",
+        "entity_id": "fact-de-DE-seo_market",
+        "locale": "de-DE",
+        "market": "EU",
+        "observed_at": "2026-05-16T13:30:00.000Z",
+        "expires_at": "2026-05-17T14:00:00.000Z",
+        "confidence": 0.98,
+        "payload": {
+          "access_token": "token-fixture-should-redact",
+          "claim": "de-DE-dataforseo"
+        },
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z"
+      },
+      {
+        "id": "fact-de-DE-competitor",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "source": "dataforseo",
+        "signal_type": "fixture",
+        "entity_table": "growth_profiles",
+        "entity_id": "fact-de-DE-competitor",
+        "locale": "de-DE",
+        "market": "EU",
+        "observed_at": "2026-05-16T13:30:00.000Z",
+        "expires_at": "2026-05-17T14:00:00.000Z",
+        "confidence": 0.98,
+        "payload": {
+          "access_token": "token-fixture-should-redact",
+          "claim": "de-DE-dataforseo"
+        },
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z"
+      },
+      {
+        "id": "fact-de-DE-page_product",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "source": "curated",
+        "signal_type": "fixture",
+        "entity_table": "growth_profiles",
+        "entity_id": "fact-de-DE-page_product",
+        "locale": "de-DE",
+        "market": "EU",
+        "observed_at": "2026-05-16T13:30:00.000Z",
+        "expires_at": "2026-05-17T14:00:00.000Z",
+        "confidence": 0.98,
+        "payload": {
+          "access_token": "token-fixture-should-redact",
+          "claim": "de-DE-curated"
+        },
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z"
+      },
+      {
+        "id": "fact-de-DE-risk_policy",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "source": "curated",
+        "signal_type": "fixture",
+        "entity_table": "growth_profiles",
+        "entity_id": "fact-de-DE-risk_policy",
+        "locale": "de-DE",
+        "market": "EU",
+        "observed_at": "2026-05-16T13:30:00.000Z",
+        "expires_at": "2026-05-17T14:00:00.000Z",
+        "confidence": 0.98,
+        "payload": {
+          "access_token": "token-fixture-should-redact",
+          "claim": "de-DE-curated"
+        },
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z"
+      }
+    ],
+    "growth_profile_runs": [
+      {
+        "id": "run-en-US-business",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "profile_id": "en-US-business",
+        "profile_type": "business",
+        "locale": "en-US",
+        "market": "US",
+        "source": "provider_signal_refresh",
+        "status": "success",
+        "completed_at": "2026-05-16T13:30:00.000Z",
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z",
+        "input_refs": [
+          "fact-en-US-business"
+        ],
+        "output_profile_ids": [
+          "en-US-business"
+        ],
+        "evidence": {
+          "refresh_token": "token-fixture-should-redact"
+        }
+      },
+      {
+        "id": "run-en-US-buyer",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "profile_id": "en-US-buyer",
+        "profile_type": "buyer",
+        "locale": "en-US",
+        "market": "US",
+        "source": "provider_signal_refresh",
+        "status": "success",
+        "completed_at": "2026-05-16T13:30:00.000Z",
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z",
+        "input_refs": [
+          "fact-en-US-buyer"
+        ],
+        "output_profile_ids": [
+          "en-US-buyer"
+        ],
+        "evidence": {
+          "refresh_token": "token-fixture-should-redact"
+        }
+      },
+      {
+        "id": "run-en-US-seo_market",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "profile_id": "en-US-seo_market",
+        "profile_type": "seo_market",
+        "locale": "en-US",
+        "market": "US",
+        "source": "provider_signal_refresh",
+        "status": "success",
+        "completed_at": "2026-05-16T13:30:00.000Z",
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z",
+        "input_refs": [
+          "fact-en-US-seo_market"
+        ],
+        "output_profile_ids": [
+          "en-US-seo_market"
+        ],
+        "evidence": {
+          "refresh_token": "token-fixture-should-redact"
+        }
+      },
+      {
+        "id": "run-en-US-page_product",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "profile_id": "en-US-page_product",
+        "profile_type": "page_product",
+        "locale": "en-US",
+        "market": "US",
+        "source": "provider_signal_refresh",
+        "status": "success",
+        "completed_at": "2026-05-16T13:30:00.000Z",
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z",
+        "input_refs": [
+          "fact-en-US-page_product"
+        ],
+        "output_profile_ids": [
+          "en-US-page_product"
+        ],
+        "evidence": {
+          "refresh_token": "token-fixture-should-redact"
+        }
+      },
+      {
+        "id": "run-en-US-risk_policy",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "profile_id": "en-US-risk_policy",
+        "profile_type": "risk_policy",
+        "locale": "en-US",
+        "market": "US",
+        "source": "provider_signal_refresh",
+        "status": "success",
+        "completed_at": "2026-05-16T13:30:00.000Z",
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z",
+        "input_refs": [
+          "fact-en-US-risk_policy"
+        ],
+        "output_profile_ids": [
+          "en-US-risk_policy"
+        ],
+        "evidence": {
+          "refresh_token": "token-fixture-should-redact"
+        }
+      },
+      {
+        "id": "run-en-US-competitor",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "profile_id": "en-US-competitor",
+        "profile_type": "competitor",
+        "locale": "en-US",
+        "market": "US",
+        "source": "provider_signal_refresh",
+        "status": "success",
+        "completed_at": "2026-05-06T14:00:00.000Z",
+        "created_at": "2026-05-06T14:00:00.000Z",
+        "updated_at": "2026-05-06T14:00:00.000Z",
+        "input_refs": [
+          "fact-en-US-competitor"
+        ],
+        "output_profile_ids": [
+          "en-US-competitor"
+        ],
+        "evidence": {
+          "refresh_token": "token-fixture-should-redact"
+        }
+      },
+      {
+        "id": "run-pt-BR-business",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "profile_id": "pt-BR-business",
+        "profile_type": "business",
+        "locale": "pt-BR",
+        "market": "BR",
+        "source": "neo_controlled_refresh",
+        "status": "success",
+        "completed_at": "2026-05-16T13:30:00.000Z",
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z",
+        "input_refs": [
+          "fact-pt-BR-business"
+        ],
+        "output_profile_ids": [
+          "pt-BR-business"
+        ],
+        "evidence": {
+          "refresh_token": "token-fixture-should-redact"
+        }
+      },
+      {
+        "id": "run-pt-BR-buyer",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "profile_id": "pt-BR-buyer",
+        "profile_type": "buyer",
+        "locale": "pt-BR",
+        "market": "BR",
+        "source": "neo_controlled_refresh",
+        "status": "success",
+        "completed_at": "2026-05-16T13:30:00.000Z",
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z",
+        "input_refs": [
+          "fact-pt-BR-buyer"
+        ],
+        "output_profile_ids": [
+          "pt-BR-buyer"
+        ],
+        "evidence": {
+          "refresh_token": "token-fixture-should-redact"
+        }
+      },
+      {
+        "id": "run-pt-BR-seo_market",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "profile_id": "pt-BR-seo_market",
+        "profile_type": "seo_market",
+        "locale": "pt-BR",
+        "market": "BR",
+        "source": "neo_controlled_refresh",
+        "status": "success",
+        "completed_at": "2026-05-16T13:30:00.000Z",
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z",
+        "input_refs": [
+          "fact-pt-BR-seo_market"
+        ],
+        "output_profile_ids": [
+          "pt-BR-seo_market"
+        ],
+        "evidence": {
+          "refresh_token": "token-fixture-should-redact"
+        }
+      },
+      {
+        "id": "run-pt-BR-competitor",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "profile_id": "pt-BR-competitor",
+        "profile_type": "competitor",
+        "locale": "pt-BR",
+        "market": "BR",
+        "source": "neo_controlled_refresh",
+        "status": "success",
+        "completed_at": "2026-05-16T13:30:00.000Z",
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z",
+        "input_refs": [
+          "fact-pt-BR-competitor"
+        ],
+        "output_profile_ids": [
+          "pt-BR-competitor"
+        ],
+        "evidence": {
+          "refresh_token": "token-fixture-should-redact"
+        }
+      },
+      {
+        "id": "run-pt-BR-page_product",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "profile_id": "pt-BR-page_product",
+        "profile_type": "page_product",
+        "locale": "pt-BR",
+        "market": "BR",
+        "source": "neo_controlled_refresh",
+        "status": "success",
+        "completed_at": "2026-05-16T13:30:00.000Z",
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z",
+        "input_refs": [
+          "fact-pt-BR-page_product"
+        ],
+        "output_profile_ids": [
+          "pt-BR-page_product"
+        ],
+        "evidence": {
+          "refresh_token": "token-fixture-should-redact"
+        }
+      },
+      {
+        "id": "run-pt-BR-risk_policy",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "profile_id": "pt-BR-risk_policy",
+        "profile_type": "risk_policy",
+        "locale": "pt-BR",
+        "market": "BR",
+        "source": "neo_controlled_refresh",
+        "status": "success",
+        "completed_at": "2026-05-16T13:30:00.000Z",
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z",
+        "input_refs": [
+          "fact-pt-BR-risk_policy"
+        ],
+        "output_profile_ids": [
+          "pt-BR-risk_policy"
+        ],
+        "evidence": {
+          "refresh_token": "token-fixture-should-redact"
+        }
+      },
+      {
+        "id": "run-fr-FR-business",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "profile_id": "fr-FR-business",
+        "profile_type": "business",
+        "locale": "fr-FR",
+        "market": "EU",
+        "source": "provider_signal_refresh",
+        "status": "success",
+        "completed_at": "2026-05-16T13:30:00.000Z",
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z",
+        "input_refs": [
+          "fact-fr-FR-business"
+        ],
+        "output_profile_ids": [
+          "fr-FR-business"
+        ],
+        "evidence": {
+          "refresh_token": "token-fixture-should-redact"
+        }
+      },
+      {
+        "id": "run-fr-FR-buyer",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "profile_id": "fr-FR-buyer",
+        "profile_type": "buyer",
+        "locale": "fr-FR",
+        "market": "EU",
+        "source": "provider_signal_refresh",
+        "status": "success",
+        "completed_at": "2026-05-16T13:30:00.000Z",
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z",
+        "input_refs": [
+          "fact-fr-FR-buyer"
+        ],
+        "output_profile_ids": [
+          "fr-FR-buyer"
+        ],
+        "evidence": {
+          "refresh_token": "token-fixture-should-redact"
+        }
+      },
+      {
+        "id": "run-fr-FR-seo_market",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "profile_id": "fr-FR-seo_market",
+        "profile_type": "seo_market",
+        "locale": "fr-FR",
+        "market": "EU",
+        "source": "provider_signal_refresh",
+        "status": "success",
+        "completed_at": "2026-05-16T13:30:00.000Z",
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z",
+        "input_refs": [
+          "fact-fr-FR-seo_market"
+        ],
+        "output_profile_ids": [
+          "fr-FR-seo_market"
+        ],
+        "evidence": {
+          "refresh_token": "token-fixture-should-redact"
+        }
+      },
+      {
+        "id": "run-fr-FR-competitor",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "profile_id": "fr-FR-competitor",
+        "profile_type": "competitor",
+        "locale": "fr-FR",
+        "market": "EU",
+        "source": "provider_signal_refresh",
+        "status": "success",
+        "completed_at": "2026-05-16T13:30:00.000Z",
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z",
+        "input_refs": [
+          "fact-fr-FR-competitor"
+        ],
+        "output_profile_ids": [
+          "fr-FR-competitor"
+        ],
+        "evidence": {
+          "refresh_token": "token-fixture-should-redact"
+        }
+      },
+      {
+        "id": "run-fr-FR-page_product",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "profile_id": "fr-FR-page_product",
+        "profile_type": "page_product",
+        "locale": "fr-FR",
+        "market": "EU",
+        "source": "provider_signal_refresh",
+        "status": "success",
+        "completed_at": "2026-05-16T13:30:00.000Z",
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z",
+        "input_refs": [
+          "fact-fr-FR-page_product"
+        ],
+        "output_profile_ids": [
+          "fr-FR-page_product"
+        ],
+        "evidence": {
+          "refresh_token": "token-fixture-should-redact"
+        }
+      },
+      {
+        "id": "run-de-DE-business",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "profile_id": "de-DE-business",
+        "profile_type": "business",
+        "locale": "de-DE",
+        "market": "EU",
+        "source": "provider_signal_refresh",
+        "status": "success",
+        "completed_at": "2026-05-16T13:30:00.000Z",
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z",
+        "input_refs": [],
+        "output_profile_ids": [
+          "de-DE-business"
+        ],
+        "evidence": {
+          "refresh_token": "token-fixture-should-redact"
+        }
+      },
+      {
+        "id": "run-de-DE-buyer",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "profile_id": "de-DE-buyer",
+        "profile_type": "buyer",
+        "locale": "de-DE",
+        "market": "EU",
+        "source": "provider_signal_refresh",
+        "status": "success",
+        "completed_at": "2026-05-16T13:30:00.000Z",
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z",
+        "input_refs": [],
+        "output_profile_ids": [
+          "de-DE-buyer"
+        ],
+        "evidence": {
+          "refresh_token": "token-fixture-should-redact"
+        }
+      },
+      {
+        "id": "run-de-DE-seo_market",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "profile_id": "de-DE-seo_market",
+        "profile_type": "seo_market",
+        "locale": "de-DE",
+        "market": "EU",
+        "source": "provider_signal_refresh",
+        "status": "success",
+        "completed_at": "2026-05-16T13:30:00.000Z",
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z",
+        "input_refs": [],
+        "output_profile_ids": [
+          "de-DE-seo_market"
+        ],
+        "evidence": {
+          "refresh_token": "token-fixture-should-redact"
+        }
+      },
+      {
+        "id": "run-de-DE-competitor",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "profile_id": "de-DE-competitor",
+        "profile_type": "competitor",
+        "locale": "de-DE",
+        "market": "EU",
+        "source": "provider_signal_refresh",
+        "status": "success",
+        "completed_at": "2026-05-16T13:30:00.000Z",
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z",
+        "input_refs": [
+          "fact-de-DE-competitor"
+        ],
+        "output_profile_ids": [
+          "de-DE-competitor"
+        ],
+        "evidence": {
+          "refresh_token": "token-fixture-should-redact"
+        }
+      },
+      {
+        "id": "run-de-DE-page_product",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "profile_id": "de-DE-page_product",
+        "profile_type": "page_product",
+        "locale": "de-DE",
+        "market": "EU",
+        "source": "provider_signal_refresh",
+        "status": "success",
+        "completed_at": "2026-05-16T13:30:00.000Z",
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z",
+        "input_refs": [],
+        "output_profile_ids": [
+          "de-DE-page_product"
+        ],
+        "evidence": {
+          "refresh_token": "token-fixture-should-redact"
+        }
+      },
+      {
+        "id": "run-de-DE-risk_policy",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "profile_id": "de-DE-risk_policy",
+        "profile_type": "risk_policy",
+        "locale": "de-DE",
+        "market": "EU",
+        "source": "provider_signal_refresh",
+        "status": "success",
+        "completed_at": "2026-05-16T13:30:00.000Z",
+        "created_at": "2026-05-16T13:30:00.000Z",
+        "updated_at": "2026-05-16T13:30:00.000Z",
+        "input_refs": [
+          "fact-de-DE-risk_policy"
+        ],
+        "output_profile_ids": [
+          "de-DE-risk_policy"
+        ],
+        "evidence": {
+          "refresh_token": "token-fixture-should-redact"
+        }
+      }
+    ],
+    "growth_gsc_cache": [
+      {
+        "id": "gsc-en-1",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "locale": "en-US",
+        "market": "US",
+        "cache_key": "en-us-gsc",
+        "row_count": 10,
+        "fetched_at": "2026-05-16T13:20:00.000Z",
+        "expires_at": "2026-05-16T18:00:00.000Z",
+        "payload": {
+          "api_key": "token-fixture-should-redact"
+        }
+      }
+    ],
+    "growth_ga4_cache": [],
+    "growth_dataforseo_cache": [
+      {
+        "id": "dfs-en-1",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "locale": "en-US",
+        "market": "US",
+        "endpoint": "serp",
+        "cache_key": "en-us-dfs",
+        "row_count": 20,
+        "fetched_at": "2026-05-16T13:20:00.000Z",
+        "expires_at": "2026-05-23T13:20:00.000Z",
+        "payload": {
+          "secret": "token-fixture-should-redact"
+        }
+      },
+      {
+        "id": "dfs-pt-1",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "locale": "pt-BR",
+        "market": "BR",
+        "endpoint": "serp",
+        "cache_key": "pt-br-dfs",
+        "row_count": 20,
+        "fetched_at": "2026-05-16T13:20:00.000Z",
+        "expires_at": "2026-05-23T13:20:00.000Z",
+        "payload": {}
+      }
+    ],
+    "growth_agent_definitions": [
+      {
+        "id": "agent-en",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "agent_id": "growth-en",
+        "lane": "seo",
+        "locale": "en-US",
+        "market": "US",
+        "enabled": true,
+        "status": "enabled",
+        "allowed_action_classes": [
+          "safe_apply",
+          "content_publish",
+          "transcreation_merge"
+        ],
+        "config": {
+          "access_token": "token-fixture-should-redact"
+        },
+        "scope_locale": "en-US"
+      },
+      {
+        "id": "agent-pt-mismatch",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "agent_id": "growth-es-pinned",
+        "lane": "seo",
+        "locale": "es-CO",
+        "market": "CO",
+        "enabled": true,
+        "status": "enabled",
+        "allowed_action_classes": [
+          "safe_apply",
+          "content_publish",
+          "transcreation_merge"
+        ],
+        "config": {},
+        "scope_locale": "pt-BR"
+      },
+      {
+        "id": "agent-fr",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "agent_id": "growth-fr",
+        "lane": "seo",
+        "locale": "fr-FR",
+        "market": "EU",
+        "enabled": true,
+        "status": "enabled",
+        "allowed_action_classes": [
+          "safe_apply",
+          "content_publish",
+          "transcreation_merge"
+        ],
+        "config": {},
+        "scope_locale": "fr-FR"
+      },
+      {
+        "id": "agent-de",
+        "account_id": "9fc24733-b127-4184-aa22-12f03b98927a",
+        "website_id": "894545b7-73ca-4dae-b76a-da5b6a3f8441",
+        "agent_id": "growth-de",
+        "lane": "seo",
+        "locale": "de-DE",
+        "market": "EU",
+        "enabled": true,
+        "status": "enabled",
+        "allowed_action_classes": [
+          "safe_apply",
+          "content_publish",
+          "transcreation_merge"
+        ],
+        "config": {},
+        "scope_locale": "de-DE"
+      }
+    ],
+    "growth_work_item_outcomes": [],
+    "growth_publication_jobs": [],
+    "funnel_events": []
+  }
+}
