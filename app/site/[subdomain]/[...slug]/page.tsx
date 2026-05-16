@@ -9,6 +9,7 @@ import {
   getDestinationSeoOverride,
   getLocalizedProductOverlay,
   getPageBySlug,
+  getPageBySlugForLocale,
   getPageByTranslationGroup,
   getProductPage,
 } from "@/lib/supabase/get-pages";
@@ -58,7 +59,7 @@ import { applyContentTranslations } from "@/lib/sections/apply-content-translati
 import { resolveTemplateSet } from "@/lib/sections/template-set";
 import { ACTIVITY_FAQS_DEFAULT } from "@/lib/products/activity-faqs-default";
 import { PACKAGE_FAQS_DEFAULT } from "@/lib/products/package-faqs-default";
-import { getSystemFallbackPage } from "@/lib/site/system-fallback-pages";
+import { resolvePublicPageForRoute } from "@/lib/site/public-page-resolution";
 
 const DestinationListingPage = dynamic(() =>
   import("@/components/pages/destination-listing-page").then(
@@ -212,6 +213,10 @@ export async function generateMetadata({
     website,
     slugPath ? `/${slugPath}` : "/",
   );
+  const metadataSlug =
+    localeContext.languageSegment && slug[0]?.toLowerCase() === localeContext.languageSegment
+      ? slug.slice(1)
+      : slug;
   const ogLocale = localeToOgLocale(localeContext.resolvedLocale);
   const translatedLocalesCache = new Map<string, string[] | undefined>();
 
@@ -298,7 +303,7 @@ export async function generateMetadata({
   }
 
   // Hotels listing (/hoteles or /hotels)
-  if (slug.length === 1 && (slug[0] === "hoteles" || slug[0] === "hotels")) {
+  if (metadataSlug.length === 1 && (metadataSlug[0] === "hoteles" || metadataSlug[0] === "hotels")) {
     const siteName =
       website.content?.account?.name || website.content?.siteName || subdomain;
     const pathname = "/hoteles";
@@ -667,10 +672,20 @@ export async function generateMetadata({
     }
   }
 
-  // Check for regular page (category, static, or custom)
-  const page =
-    (await getPageBySlug(subdomain, slugPath)) ??
-    getSystemFallbackPage(slugPath, website);
+  // Check for regular page (category, static, or custom). Locale-aware page
+  // resolution is required for custom-domain middleware rewrites: the internal
+  // route receives `/site/<subdomain>/contact` while request headers carry
+  // `pt-BR`/`fr-FR`/`de-DE`. Reconstruct the public localized path so same-slug
+  // translated `website_pages` rows and localized system fallbacks win over the
+  // default Spanish row.
+  const resolvedPageRoute = await resolvePublicPageForRoute({
+    website,
+    publicSlugPath: localeContext.localizedPathname.replace(/^\//, "") || slugPath,
+    loadPageBySlug: getPageBySlug,
+    loadPageBySlugForLocale: getPageBySlugForLocale,
+    loadPageByTranslationGroup: getPageByTranslationGroup,
+  });
+  const page = resolvedPageRoute.page;
 
   if (!page) {
     // Homepage fallback: use website SEO metadata from layout
@@ -718,7 +733,7 @@ export async function generateMetadata({
   const description = page.seo_description || "";
   const canonicalUrl = buildCanonicalUrl(
     baseUrl,
-    `/${slugPath}`,
+    `/${resolvedPageRoute.slugPath}`,
     localeContext,
   );
 
@@ -785,6 +800,10 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
     website,
     slugPath ? `/${slugPath}` : "/",
   );
+  const routeSlug =
+    localeContext.languageSegment && slug[0]?.toLowerCase() === localeContext.languageSegment
+      ? slug.slice(1)
+      : slug;
   const resolvedLocale = localeContext.resolvedLocale;
   const defaultLocale = localeContext.defaultLocale ?? "es-CO";
   const isCustomDomain = inferIsCustomDomainWebsite(website);
@@ -804,8 +823,8 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
 
   // Handle activities listing (/actividades)
   if (
-    slug.length === 1 &&
-    (slug[0] === "actividades" || slug[0] === "activities")
+    routeSlug.length === 1 &&
+    (routeSlug[0] === "actividades" || routeSlug[0] === "activities")
   ) {
     const { items: activityProducts } = await getCategoryProducts(
       subdomain,
@@ -843,7 +862,7 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
   // Handle packages listing (/paquetes) — editorial-v1 overlay (Wave 4)
   // wraps the generic `PackagesListingPage` via TemplateSlot. Non-editorial
   // tenants keep the existing generic body unchanged.
-  if (slug.length === 1 && (slug[0] === "paquetes" || slug[0] === "packages")) {
+  if (routeSlug.length === 1 && (routeSlug[0] === "paquetes" || routeSlug[0] === "packages")) {
     const { items: packageProducts } = await getCategoryProducts(
       subdomain,
       "packages",
@@ -944,7 +963,7 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
   // TemplateSlot; non-editorial tenants currently fall through to the
   // generic packages-listing shell (shared filtering/grid) as a placeholder
   // until a dedicated hotels-listing generic body is built.
-  if (slug.length === 1 && (slug[0] === "hoteles" || slug[0] === "hotels")) {
+  if (routeSlug.length === 1 && (routeSlug[0] === "hoteles" || routeSlug[0] === "hotels")) {
     const { items: hotelProducts } = await getCategoryProducts(
       subdomain,
       "hotels",
@@ -1252,10 +1271,15 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
     }
   }
 
-  // Handle regular pages
-  const page =
-    (await getPageBySlug(subdomain, slugPath)) ??
-    getSystemFallbackPage(slugPath, website);
+  // Handle regular pages with the same locale-aware resolver used by metadata.
+  const resolvedPageRoute = await resolvePublicPageForRoute({
+    website,
+    publicSlugPath: localeContext.localizedPathname.replace(/^\//, "") || slugPath,
+    loadPageBySlug: getPageBySlug,
+    loadPageBySlugForLocale: getPageBySlugForLocale,
+    loadPageByTranslationGroup: getPageByTranslationGroup,
+  });
+  const page = resolvedPageRoute.page;
 
   if (!page || !page.is_published) {
     notFound();

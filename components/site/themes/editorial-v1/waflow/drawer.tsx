@@ -22,6 +22,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 
 import { trackEvent } from '@/lib/analytics/track';
+import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 
 import { Icons } from '../primitives/icons';
 import { Scenic } from '../primitives/scenic';
@@ -44,10 +45,12 @@ export interface WaflowDrawerProps {
   businessNumber: string;
   responseTime: string;
   subdomain?: string;
+  locale?: string | null;
 }
 
-function HeaderHero({ config }: { config: WaflowConfig }) {
+function HeaderHero({ config, locale }: { config: WaflowConfig; locale: string }) {
   const { variant, destination, pkg } = config;
+  const text = getPublicUiExtraTextGetter(locale);
   const heroImageUrl =
     (variant === 'D' ? pkg?.heroImageUrl : destination?.heroImageUrl) ?? null;
 
@@ -57,22 +60,20 @@ function HeaderHero({ config }: { config: WaflowConfig }) {
 
   if (variant === 'A') {
     title = (
-      <>
-        Cuéntanos <em>qué sueñas.</em>
-      </>
+      <span dangerouslySetInnerHTML={{ __html: text('waflowHeroATitle') }} />
     );
     subtitle = (
-      <>Te contactamos en WhatsApp con un planner humano. Respondemos en promedio en 3 min.</>
+      <>{text('waflowHeroASubtitle')}</>
     );
   } else if (variant === 'B') {
     const name = destination?.name ?? '';
     title = (
       <>
-        Viaja a <em>{name}</em>.
+        {text('waflowHeroBTitlePrefix')} <em>{name}</em>.
       </>
     );
     subtitle = (
-      <>Cuéntanos los detalles básicos y tu planner te arma una propuesta en 24h.</>
+      <>{text('waflowHeroBSubtitle')}</>
     );
     pill = (
       <>
@@ -84,18 +85,18 @@ function HeaderHero({ config }: { config: WaflowConfig }) {
     const title1 = pkg?.title ?? '';
     title = (
       <>
-        <em>{title1}</em> — hazlo tuyo.
+        <em>{title1}</em> — {text('waflowHeroDTitleSuffix')}
       </>
     );
     subtitle = (
-      <>Ajustamos fechas, hoteles y actividades hasta que sea el viaje que quieres.</>
+      <>{text('waflowHeroDSubtitle')}</>
     );
     const meta: string[] = [];
     if (pkg?.days != null && pkg?.nights != null) {
       meta.push(`${pkg.days}D/${pkg.nights}N`);
     }
     if (pkg?.price != null) {
-      meta.push(`desde ${pkg.currency ?? ''}${pkg.price.toLocaleString()}`);
+      meta.push(`${text('waflowFromPrefix')} ${pkg.currency ?? ''}${pkg.price.toLocaleString()}`);
     }
     pill = (
       <>
@@ -113,7 +114,7 @@ function HeaderHero({ config }: { config: WaflowConfig }) {
       <div className="waf-head-inner">
         <div className="waf-head-top">
           <span className="waf-head-eyebrow">
-            <span className="dot" /> Planners en línea ahora
+            <span className="dot" /> {text('waflowOnlineNow')}
           </span>
         </div>
         {pill ? <span className="waf-pill-context">{pill}</span> : null}
@@ -130,11 +131,13 @@ export function WaflowDrawer({
   businessNumber,
   responseTime,
   subdomain,
+  locale = 'es-CO',
 }: WaflowDrawerProps) {
   const { state } = useWaflowApi();
   const asideRef = useRef<HTMLElement | null>(null);
   const lastFocusedRef = useRef<HTMLElement | null>(null);
   const { close } = useWaflow();
+  const text = getPublicUiExtraTextGetter(locale ?? 'es-CO');
 
   const step: WaflowStep = state.step;
   const order = WAFLOW_STEP_ORDER[config.variant];
@@ -236,17 +239,17 @@ export function WaflowDrawer({
         className="waf-drawer on"
         role="dialog"
         aria-modal="true"
-        aria-label="Planear mi viaje"
+        aria-label={text('waflowDialogAria')}
         onKeyDown={onKeyDownTrap}
       >
         <header className="waf-head">
-          <HeaderHero config={config} />
+          <HeaderHero config={config} locale={locale ?? 'es-CO'} />
           <div className="waf-head-actions">
             <button
               type="button"
               className="waf-close"
               onClick={() => trackAbandonAndClose('close_button')}
-              aria-label="Cerrar"
+              aria-label={text('waflowClose')}
             >
               <Icons.close size={16} />
             </button>
@@ -276,10 +279,10 @@ export function WaflowDrawer({
           <footer className="waf-foot">
             <div className="waf-availability">
               <span className="live">
-                <span className="dot" /> Planners en línea
+                <span className="dot" /> {text('waflowOnline')}
               </span>
               <span className="resp">
-                <Icons.clock size={12} /> Responden en ~{responseTime}
+                <Icons.clock size={12} /> {text('waflowResponsePrefix')}{responseTime}
               </span>
             </div>
             <div className="waf-skip">
@@ -288,7 +291,7 @@ export function WaflowDrawer({
                 className="waf-skip-link"
                 onClick={handleSkip}
               >
-                Prefiero contarlo en el chat →
+                {text('waflowSkipToChat')}
               </button>
             </div>
           </footer>
@@ -297,7 +300,7 @@ export function WaflowDrawer({
         {/* Step-back helper (keyboard users). Hidden in confirmation. */}
         {step !== 'confirmation' && stepIndex > 0 ? (
           <span className="sr-only" aria-live="polite">
-            Paso {stepIndex + 1} de {order.length}
+            {text('waflowStepPrefix')} {stepIndex + 1} {text('waflowStepOf')} {order.length}
           </span>
         ) : null}
       </aside>

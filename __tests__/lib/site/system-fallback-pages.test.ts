@@ -11,7 +11,7 @@ function makeWebsite(overrides: Partial<WebsiteData> = {}): WebsiteData {
     theme: null,
     analytics: {},
     default_locale: 'es-CO',
-    supported_locales: ['es-CO', 'en-US'],
+    supported_locales: ['es-CO', 'en-US', 'pt-BR'],
     sections: [],
     navigation: [],
     site_parts: {},
@@ -45,6 +45,18 @@ describe('getSystemFallbackPage', () => {
       expect(page?.title).toBe('Contacto');
       expect(page?.sections.some((section) => section.type === 'contact')).toBe(true);
     }
+  });
+
+  it('localizes contact fallback chrome for pt-BR requests', () => {
+    const page = getSystemFallbackPage('contact', makeWebsite(), 'pt-BR');
+
+    expect(page).not.toBeNull();
+    expect(page?.locale).toBe('pt-BR');
+    expect(page?.title).toBe('Contato');
+    expect(page?.hero_config?.title).toBe('Fale conosco');
+    expect(page?.hero_config?.ctaText).toBe('Solicitar consultoria');
+    expect(page?.sections[0]?.content?.title).toBe('Fale conosco');
+    expect(page?.seo_title).toBe('Contato | ColombiaTours.Travel');
   });
 
   it('returns a published press page for press aliases', () => {

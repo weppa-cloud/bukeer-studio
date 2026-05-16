@@ -598,6 +598,7 @@ export function DestinationDetailPage({
               viewportPreset="destination-detail"
               showFilters={productMarkers.length > 0}
               showLegend={true}
+              locale={schemaLocale}
             />
           </div>
         </section>

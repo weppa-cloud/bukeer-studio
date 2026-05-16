@@ -19,6 +19,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Icons } from '@/components/site/themes/editorial-v1/primitives/icons';
 import { ListingMap } from '@/components/site/themes/editorial-v1/sections/listing-map';
 import { HotelCard } from '@/components/site/product-detail/p2/hotel-card';
+import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 
 // -------------------- Types --------------------
 
@@ -41,24 +42,8 @@ export interface HotelesListItem {
 export interface HotelesListGridProps {
   hotels: HotelesListItem[];
   basePath: string;
+  locale?: string | null;
 }
-
-// -------------------- Copy (verbatim — listing page) --------------------
-
-const COPY = {
-  cityLabel: 'Ciudad',
-  starsLabel: 'Estrellas',
-  amenityLabel: 'Servicios',
-  viewList: 'Lista',
-  viewMap: 'Mapa',
-  loadMore: 'Cargar más',
-  emptyHeading: 'Ningún hotel con esos filtros',
-  emptyBody: 'Prueba ensanchando el rango o limpiando filtros.',
-  emptyCta: 'Limpiar filtros',
-  clearLink: 'limpiar filtros',
-  countSingular: 'hotel',
-  countPlural: 'hoteles',
-};
 
 const PAGE_SIZE = 9;
 const TOP_AMENITIES_MAX = 8;
@@ -83,9 +68,10 @@ function hotelCity(h: HotelesListItem): string {
 
 // -------------------- Component --------------------
 
-export function HotelesListGrid({ hotels, basePath }: HotelesListGridProps) {
+export function HotelesListGrid({ hotels, basePath, locale }: HotelesListGridProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const text = useMemo(() => getPublicUiExtraTextGetter(locale ?? 'es-CO'), [locale]);
 
   // Unique cities (from explicit `city` or first component of `location`).
   const cities = useMemo(() => {
@@ -207,8 +193,8 @@ export function HotelesListGrid({ hotels, basePath }: HotelesListGridProps) {
       <div className="pql-toolbar" data-testid="hoteles-filterbar">
         {cities.length > 0 && (
           <div className="pql-filter-group">
-            <label className="pql-filter-label">{COPY.cityLabel}</label>
-            <div className="pql-chip-row" role="group" aria-label={COPY.cityLabel}>
+            <label className="pql-filter-label">{text('editorialHotelsCityLabel')}</label>
+            <div className="pql-chip-row" role="group" aria-label={text('editorialHotelsCityLabel')}>
               {cities.map((c) => {
                 const isOn = activeCities.map(normalize).includes(normalize(c));
                 return (
@@ -229,8 +215,8 @@ export function HotelesListGrid({ hotels, basePath }: HotelesListGridProps) {
 
         {starOptions.length > 0 && (
           <div className="pql-filter-group">
-            <label className="pql-filter-label">{COPY.starsLabel}</label>
-            <div className="pql-chip-row" role="group" aria-label={COPY.starsLabel}>
+            <label className="pql-filter-label">{text('editorialHotelsStarsLabel')}</label>
+            <div className="pql-chip-row" role="group" aria-label={text('editorialHotelsStarsLabel')}>
               {starOptions.map((s) => {
                 const key = String(s);
                 const isOn = activeStars.includes(key);
@@ -252,8 +238,8 @@ export function HotelesListGrid({ hotels, basePath }: HotelesListGridProps) {
 
         {amenityOptions.length > 0 && (
           <div className="pql-filter-group">
-            <label className="pql-filter-label">{COPY.amenityLabel}</label>
-            <div className="pql-chip-row" role="group" aria-label={COPY.amenityLabel}>
+            <label className="pql-filter-label">{text('editorialHotelsAmenityLabel')}</label>
+            <div className="pql-chip-row" role="group" aria-label={text('editorialHotelsAmenityLabel')}>
               {amenityOptions.map((a) => {
                 const isOn = activeAmenities.map(normalize).includes(normalize(a));
                 return (
@@ -276,8 +262,8 @@ export function HotelesListGrid({ hotels, basePath }: HotelesListGridProps) {
       {/* ── LISTING TOP: count + view toggle ──────────────────────────── */}
       <div className="listing-top pql-listing-top">
         <div className="count" data-testid="hoteles-count">
-          <b>{filtered.length}</b> de {hotels.length}{' '}
-          {hotels.length === 1 ? COPY.countSingular : COPY.countPlural}
+          <b>{filtered.length}</b> {text('editorialHotelsCountSeparator')} {hotels.length}{' '}
+          {hotels.length === 1 ? text('editorialHotelsCountSingular') : text('editorialHotelsCountPlural')}
           {anyFilterActive && (
             <>
               {' · '}
@@ -285,13 +271,13 @@ export function HotelesListGrid({ hotels, basePath }: HotelesListGridProps) {
                 onClick={clearFilters}
                 style={{ cursor: 'pointer', color: 'var(--c-accent)' }}
               >
-                {COPY.clearLink}
+                {text('editorialHotelsClearLink')}
               </a>
             </>
           )}
         </div>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-          <div className="view-toggle pql-view-toggle" role="tablist" aria-label="Vista">
+          <div className="view-toggle pql-view-toggle" role="tablist" aria-label={text('editorialHotelsViewAria')}>
             <button
               type="button"
               role="tab"
@@ -299,7 +285,7 @@ export function HotelesListGrid({ hotels, basePath }: HotelesListGridProps) {
               className={view === 'list' ? 'on' : ''}
               onClick={() => setView('list')}
             >
-              <Icons.grid size={14} aria-hidden /> {COPY.viewList}
+              <Icons.grid size={14} aria-hidden /> {text('editorialHotelsViewList')}
             </button>
             <button
               type="button"
@@ -308,7 +294,7 @@ export function HotelesListGrid({ hotels, basePath }: HotelesListGridProps) {
               className={view === 'map' ? 'on' : ''}
               onClick={() => setView('map')}
             >
-              <Icons.pin size={14} aria-hidden /> {COPY.viewMap}
+              <Icons.pin size={14} aria-hidden /> {text('editorialHotelsViewMap')}
             </button>
           </div>
         </div>
@@ -317,11 +303,11 @@ export function HotelesListGrid({ hotels, basePath }: HotelesListGridProps) {
       {/* ── RESULTS ───────────────────────────────────────────────────── */}
       {filtered.length === 0 ? (
         <div className="pql-empty" data-testid="hoteles-empty">
-          <div className="pql-empty-heading">{COPY.emptyHeading}</div>
-          <p className="body-md" style={{ marginBottom: 20 }}>{COPY.emptyBody}</p>
+          <div className="pql-empty-heading">{text('editorialHotelsEmptyHeading')}</div>
+          <p className="body-md" style={{ marginBottom: 20 }}>{text('editorialHotelsEmptyBody')}</p>
           {anyFilterActive && (
             <button type="button" className="btn btn-ink" onClick={clearFilters}>
-              {COPY.emptyCta}
+              {text('editorialHotelsEmptyCta')}
             </button>
           )}
         </div>
@@ -337,14 +323,14 @@ export function HotelesListGrid({ hotels, basePath }: HotelesListGridProps) {
           renderCard={(item) => {
             const h = filtered.find((c) => c.id === item.id);
             if (!h) return null;
-            return <HotelesCardWrapper hotel={h} basePath={basePath} />;
+            return <HotelesCardWrapper hotel={h} basePath={basePath} locale={locale} />;
           }}
         />
       ) : (
         <>
           <div className="hoteles-grid" data-testid="hoteles-grid">
             {visible.map((h) => (
-              <HotelesCardWrapper key={h.id} hotel={h} basePath={basePath} />
+              <HotelesCardWrapper key={h.id} hotel={h} basePath={basePath} locale={locale} />
             ))}
           </div>
           {hasMore && (
@@ -355,7 +341,7 @@ export function HotelesListGrid({ hotels, basePath }: HotelesListGridProps) {
                 onClick={() => setPage((p) => p + 1)}
                 data-testid="hoteles-load-more"
               >
-                {COPY.loadMore} <Icons.arrow size={14} aria-hidden />
+                {text('editorialHotelsLoadMore')} <Icons.arrow size={14} aria-hidden />
               </button>
             </div>
           )}
@@ -375,9 +361,11 @@ export function HotelesListGrid({ hotels, basePath }: HotelesListGridProps) {
 function HotelesCardWrapper({
   hotel,
   basePath,
+  locale,
 }: {
   hotel: HotelesListItem;
   basePath: string;
+  locale?: string | null;
 }) {
   return (
     <div data-testid="hotel-list-card">
@@ -392,6 +380,7 @@ function HotelesCardWrapper({
         city={hotelCity(hotel) || null}
         category={hotel.category ?? null}
         basePath={basePath}
+        locale={locale}
       />
     </div>
   );
