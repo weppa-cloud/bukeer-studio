@@ -62,38 +62,40 @@ describe('resolvePublicPageForRoute', () => {
 
     expect(result.slugPath).toBe('contact');
     expect(result.locale.resolvedLocale).toBe('pt-BR');
-    expect(result.page).toBe(page);
-    expect(calls).toContain('contact');
+    expect(result.page?.slug).toBe('contact');
+    expect(result.page?.locale).toBe('pt-BR');
+    expect(result.page?.title).toBe('Contato');
+    expect(calls).not.toContain('contact');
     expect(calls).not.toContain('pt-br/contact');
   });
 
-  it('prefers a published same-slug row in the requested locale over the default row', async () => {
+  it('prefers a published same-slug row in the requested locale over the default row for custom pages', async () => {
     const defaultPage = makePage({
-      id: 'page-es',
-      slug: 'contact',
+      id: 'page-es-about',
+      slug: 'about',
       locale: 'es-CO',
-      title: 'Contacto',
-      translation_group_id: 'tg-contact',
+      title: 'Sobre nosotros',
+      translation_group_id: 'tg-about',
     });
     const ptPage = makePage({
-      id: 'page-pt',
-      slug: 'contact',
+      id: 'page-pt-about',
+      slug: 'about',
       locale: 'pt-BR',
-      title: 'Contato',
-      translation_group_id: 'tg-contact',
+      title: 'Sobre nós',
+      translation_group_id: 'tg-about',
     });
 
     const result = await resolvePublicPageForRoute({
       website: makeWebsite(),
-      publicSlugPath: 'pt-br/contact',
+      publicSlugPath: 'pt-br/about',
       loadPageBySlug: async () => defaultPage,
       loadPageBySlugForLocale: async (_websiteId, slug, locale) =>
-        slug === 'contact' && locale === 'pt-BR' ? ptPage : null,
+        slug === 'about' && locale === 'pt-BR' ? ptPage : null,
       loadPageByTranslationGroup: async () => null,
     });
 
-    expect(result.page?.id).toBe('page-pt');
-    expect(result.page?.title).toBe('Contato');
+    expect(result.page?.id).toBe('page-pt-about');
+    expect(result.page?.title).toBe('Sobre nós');
   });
 
   it('uses localized system fallback chrome for translated static aliases', async () => {
@@ -110,6 +112,27 @@ describe('resolvePublicPageForRoute', () => {
     expect(result.page?.title).toBe('Contato');
     expect(result.page?.hero_config?.title).toBe('Fale conosco');
     expect(result.page?.seo_title).toContain('Contato');
+  });
+
+  it('uses localized system fallback before a default-locale alias row', async () => {
+    const defaultContactPage = makePage({
+      id: 'page-es-contacto',
+      slug: 'contacto',
+      locale: 'es-CO',
+      title: 'Contacto',
+    });
+
+    const result = await resolvePublicPageForRoute({
+      website: makeWebsite(),
+      publicSlugPath: 'pt-br/contacto',
+      loadPageBySlug: async () => defaultContactPage,
+      loadPageBySlugForLocale: async () => null,
+      loadPageByTranslationGroup: async () => null,
+    });
+
+    expect(result.page?.id).toBe('system-fallback-contacto');
+    expect(result.page?.locale).toBe('pt-BR');
+    expect(result.page?.title).toBe('Contato');
   });
 
   it('keeps ColombiaTours priority locales routable even when DB locale columns lag behind', async () => {

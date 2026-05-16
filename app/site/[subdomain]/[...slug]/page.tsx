@@ -60,6 +60,7 @@ import { resolveTemplateSet } from "@/lib/sections/template-set";
 import { ACTIVITY_FAQS_DEFAULT } from "@/lib/products/activity-faqs-default";
 import { PACKAGE_FAQS_DEFAULT } from "@/lib/products/package-faqs-default";
 import { resolvePublicPageForRoute } from "@/lib/site/public-page-resolution";
+import { getSystemFallbackPage } from "@/lib/site/system-fallback-pages";
 
 const DestinationListingPage = dynamic(() =>
   import("@/components/pages/destination-listing-page").then(
@@ -254,8 +255,8 @@ export async function generateMetadata({
 
   // Activities listing (/actividades or /activities)
   if (
-    slug.length === 1 &&
-    (slug[0] === "actividades" || slug[0] === "activities")
+    metadataSlug.length === 1 &&
+    (metadataSlug[0] === "actividades" || metadataSlug[0] === "activities")
   ) {
     const siteName =
       website.content?.account?.name || website.content?.siteName || subdomain;
@@ -346,8 +347,8 @@ export async function generateMetadata({
 
   // Transfers listing (/traslados or /transfers)
   if (
-    slug.length === 1 &&
-    (slug[0] === "traslados" || slug[0] === "transfers")
+    metadataSlug.length === 1 &&
+    (metadataSlug[0] === "traslados" || metadataSlug[0] === "transfers")
   ) {
     const siteName =
       website.content?.account?.name || website.content?.siteName || subdomain;
@@ -390,7 +391,7 @@ export async function generateMetadata({
   }
 
   // Packages listing (/paquetes or /packages)
-  if (slug.length === 1 && (slug[0] === "paquetes" || slug[0] === "packages")) {
+  if (metadataSlug.length === 1 && (metadataSlug[0] === "paquetes" || metadataSlug[0] === "packages")) {
     const siteName =
       website.content?.account?.name || website.content?.siteName || subdomain;
     const pathname = "/paquetes";
@@ -438,8 +439,8 @@ export async function generateMetadata({
 
   // Destination listing (/destinos or /destinations)
   if (
-    slug.length === 1 &&
-    (slug[0] === "destinos" || slug[0] === "destinations")
+    metadataSlug.length === 1 &&
+    (metadataSlug[0] === "destinos" || metadataSlug[0] === "destinations")
   ) {
     const siteName =
       website.content?.account?.name || website.content?.siteName || subdomain;
@@ -483,11 +484,11 @@ export async function generateMetadata({
 
   // Destination detail (/destinos/[slug])
   if (
-    slug.length === 2 &&
-    (slug[0] === "destinos" || slug[0] === "destinations")
+    metadataSlug.length === 2 &&
+    (metadataSlug[0] === "destinos" || metadataSlug[0] === "destinations")
   ) {
     const destinations = await getDestinations(subdomain);
-    const dest = destinations.find((d) => d.slug === slug[1]);
+    const dest = destinations.find((d) => d.slug === metadataSlug[1]);
     if (dest) {
       const siteName =
         website.content?.account?.name ||
@@ -540,9 +541,9 @@ export async function generateMetadata({
   }
 
   // Check if this is a product page (has 2+ segments like /hoteles/hotel-name)
-  if (slug.length >= 2) {
-    const categorySlug = slug[0];
-    const productSlug = slug.slice(1).join("/");
+  if (metadataSlug.length >= 2) {
+    const categorySlug = metadataSlug[0];
+    const productSlug = metadataSlug.slice(1).join("/");
     const productType = getCategoryProductType(categorySlug);
 
     if (productType) {
@@ -606,7 +607,7 @@ export async function generateMetadata({
           0,
           160,
         );
-        const pathname = `/${slugPath}`;
+        const pathname = `/${metadataSlug.join("/")}`;
 
         const metadata: Metadata = {
           title,
@@ -685,7 +686,15 @@ export async function generateMetadata({
     loadPageBySlugForLocale: getPageBySlugForLocale,
     loadPageByTranslationGroup: getPageByTranslationGroup,
   });
-  const page = resolvedPageRoute.page;
+  const localizedSystemFallback =
+    localeContext.resolvedLocale !== localeContext.defaultLocale
+      ? getSystemFallbackPage(
+          resolvedPageRoute.slugPath,
+          website,
+          localeContext.resolvedLocale,
+        )
+      : null;
+  const page = localizedSystemFallback ?? resolvedPageRoute.page;
 
   if (!page) {
     // Homepage fallback: use website SEO metadata from layout
@@ -997,8 +1006,8 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
 
   // Handle destination listing (/destinos)
   if (
-    slug.length === 1 &&
-    (slug[0] === "destinos" || slug[0] === "destinations")
+    routeSlug.length === 1 &&
+    (routeSlug[0] === "destinos" || routeSlug[0] === "destinations")
   ) {
     const destinations = await getDestinations(subdomain);
     const destinosListBody = (
@@ -1023,11 +1032,11 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
 
   // Handle destination detail (/destinos/[slug])
   if (
-    slug.length === 2 &&
-    (slug[0] === "destinos" || slug[0] === "destinations")
+    routeSlug.length === 2 &&
+    (routeSlug[0] === "destinos" || routeSlug[0] === "destinations")
   ) {
     const destinations = await getDestinations(subdomain);
-    const dest = destinations.find((d) => d.slug === slug[1]);
+    const dest = destinations.find((d) => d.slug === routeSlug[1]);
     if (dest) {
       const [products, serpData, destReviews, seoOverride] = await Promise.all([
         getDestinationProducts(subdomain, dest.name),
@@ -1080,9 +1089,9 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
   }
 
   // Handle product pages (2+ segments like /hoteles/hotel-name)
-  if (slug.length >= 2) {
-    const categorySlug = slug[0];
-    const productSlug = slug.slice(1).join("/");
+  if (routeSlug.length >= 2) {
+    const categorySlug = routeSlug[0];
+    const productSlug = routeSlug.slice(1).join("/");
     const productType = getCategoryProductType(categorySlug);
 
     if (productType) {
@@ -1109,7 +1118,7 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
             locale: resolvedLocale,
           });
           if (!overlay) {
-            redirect(`/site/${subdomain}/${slugPath}`);
+            redirect(`/site/${subdomain}/${routeSlug.join("/")}`);
           }
         }
 
@@ -1163,7 +1172,7 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
         // Issue #208: thread resolved request locale into JSON-LD `inLanguage`.
         const productLocaleContext = await resolvePublicMetadataLocale(
           website,
-          `/${slugPath}`,
+          `/${routeSlug.join("/")}`,
         );
 
         // editorial-v1 dispatcher payload: lets the editorial overlay skip
@@ -1279,7 +1288,11 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
     loadPageBySlugForLocale: getPageBySlugForLocale,
     loadPageByTranslationGroup: getPageByTranslationGroup,
   });
-  const page = resolvedPageRoute.page;
+  const localizedSystemFallback =
+    resolvedLocale !== defaultLocale
+      ? getSystemFallbackPage(resolvedPageRoute.slugPath, website, resolvedLocale)
+      : null;
+  const page = localizedSystemFallback ?? resolvedPageRoute.page;
 
   if (!page || !page.is_published) {
     notFound();

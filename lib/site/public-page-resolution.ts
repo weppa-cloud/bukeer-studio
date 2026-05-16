@@ -104,8 +104,16 @@ export async function resolvePublicPageForRoute(
           locale.resolvedLocale,
         )
       : null;
+  const localizedSystemFallback =
+    isNonDefaultLocale(locale.resolvedLocale, locale.defaultLocale) &&
+    options.loadPageBySlugForLocale
+      ? getSystemFallbackPage(slugPath, options.website, locale.resolvedLocale)
+      : null;
 
-  let page = localizedSameSlugPage ?? (await options.loadPageBySlug(options.website.subdomain, slugPath));
+  let page =
+    localizedSystemFallback ??
+    localizedSameSlugPage ??
+    (await options.loadPageBySlug(options.website.subdomain, slugPath));
 
   if (
     page &&
@@ -116,7 +124,7 @@ export async function resolvePublicPageForRoute(
   }
 
   if (!page) {
-    page = getSystemFallbackPage(slugPath, options.website, locale.resolvedLocale);
+    page = localizedSystemFallback ?? getSystemFallbackPage(slugPath, options.website, locale.resolvedLocale);
   }
 
   return { slugPath, page, locale };

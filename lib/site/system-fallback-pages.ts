@@ -116,6 +116,62 @@ const FALLBACK_PAGE_COPY: Record<string, FallbackPageCopy> = {
       seoDescription: (siteName) => `Informações de imprensa e contato institucional de ${siteName}.`,
     },
   },
+  fr: {
+    contact: {
+      title: 'Contact',
+      heroTitle: 'Contactez-nous',
+      heroSubtitle: (siteName) => `Parlez avec un planner de ${siteName} et commencez à concevoir votre voyage.`,
+      ctaText: 'Demander conseil',
+      sectionTitle: 'Contactez-nous',
+      sectionSubtitle: (siteName) => `Racontez-nous le voyage que vous imaginez et l'équipe ${siteName} vous aidera à le planifier.`,
+      richTextBody: (siteName) => `L'équipe ${siteName} est prête à vous aider à planifier votre prochain voyage.`,
+      seoTitle: (siteName) => `Contact | ${siteName}`,
+      seoDescription: (siteName) => `Contactez ${siteName} pour planifier des voyages, forfaits et expériences sur mesure.`,
+    },
+    press: {
+      title: 'Presse',
+      heroTitle: (siteName) => `Presse ${siteName}`,
+      heroSubtitle: 'Informations institutionnelles et contact médias.',
+      ctaEmail: 'Contacter la presse',
+      ctaFallback: 'Demander des informations',
+      body: (siteName) => [
+        `${siteName} relie les voyageurs à des expériences conçues par des spécialistes locaux.`,
+        'Pour les demandes presse, partenariats ou informations institutionnelles, contactez l\'équipe via les canaux officiels du site.',
+      ],
+      emailLabel: 'Email',
+      phoneLabel: 'Téléphone',
+      seoTitle: (siteName) => `Presse | ${siteName}`,
+      seoDescription: (siteName) => `Informations presse et contact institutionnel de ${siteName}.`,
+    },
+  },
+  de: {
+    contact: {
+      title: 'Kontakt',
+      heroTitle: 'Kontaktieren Sie uns',
+      heroSubtitle: (siteName) => `Sprechen Sie mit einem Planner von ${siteName} und beginnen Sie mit der Reiseplanung.`,
+      ctaText: 'Beratung anfragen',
+      sectionTitle: 'Kontaktieren Sie uns',
+      sectionSubtitle: (siteName) => `Erzählen Sie uns von Ihrer Wunschreise und das Team von ${siteName} hilft bei der Planung.`,
+      richTextBody: (siteName) => `Das Team von ${siteName} hilft Ihnen gerne bei der Planung Ihrer nächsten Reise.`,
+      seoTitle: (siteName) => `Kontakt | ${siteName}`,
+      seoDescription: (siteName) => `Kontaktieren Sie ${siteName}, um individuelle Reisen, Pakete und Erlebnisse zu planen.`,
+    },
+    press: {
+      title: 'Presse',
+      heroTitle: (siteName) => `Presse ${siteName}`,
+      heroSubtitle: 'Institutionelle Informationen und Medienkontakt.',
+      ctaEmail: 'Presse kontaktieren',
+      ctaFallback: 'Informationen anfragen',
+      body: (siteName) => [
+        `${siteName} verbindet Reisende mit Erlebnissen, die von lokalen Spezialisten gestaltet werden.`,
+        'Für Presseanfragen, Partnerschaften oder institutionelle Informationen kontaktieren Sie das Team über die offiziellen Kanäle der Website.',
+      ],
+      emailLabel: 'E-Mail',
+      phoneLabel: 'Telefon',
+      seoTitle: (siteName) => `Presse | ${siteName}`,
+      seoDescription: (siteName) => `Presseinformationen und institutioneller Kontakt von ${siteName}.`,
+    },
+  },
 };
 
 function getFallbackCopy(locale?: string | null): FallbackPageCopy {
@@ -154,7 +210,7 @@ function buildContactPage(
 
   if (hasContactChannel(website)) {
     sections.push({
-      id: 'system-fallback-contact-form',
+      id: '11111111-1111-4111-8111-111111111111',
       type: 'contact',
       variant: 'default',
       config: {},
@@ -165,7 +221,7 @@ function buildContactPage(
     });
   } else {
     sections.push({
-      id: 'system-fallback-contact-text',
+      id: '11111111-1111-4111-8111-111111111112',
       type: 'rich_text',
       variant: 'default',
       config: {},
@@ -226,7 +282,7 @@ function buildPressPage(
     intro_content: {},
     sections: [
       {
-        id: 'system-fallback-press-content',
+        id: '22222222-2222-4222-8222-222222222222',
         type: 'rich_text',
         variant: 'default',
         config: {},
