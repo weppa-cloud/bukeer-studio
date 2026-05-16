@@ -41,9 +41,29 @@ const SITE_PREVIEW_PARAM = "preview_token";
 const SITE_PREVIEW_COOKIE = "__bukeer_site_preview";
 const COLOMBIA_TOURS_EN_HOST = "en.colombiatours.travel";
 const COLOMBIA_TOURS_CANONICAL_HOST = "colombiatours.travel";
+const COLOMBIA_TOURS_REQUIRED_LOCALES = ["en-US", "pt-BR", "fr-FR", "de-DE"];
 const PUBLIC_HTML_CACHE_CONTROL =
   "public, max-age=0, s-maxage=300, stale-while-revalidate=86400";
 const CACHE_BUST_QUERY_PARAMS = ["nocache", "_", "cache", "cacheBust"];
+const SYSTEM_PAGE_ALIAS_PATHS = new Set([
+  "/contact",
+  "/contacto",
+  "/contato",
+  "/press",
+  "/prensa",
+  "/imprensa",
+]);
+
+function isLocalizedSystemPageAliasPath(
+  localeResolution: PublicLocalePathResolution,
+): boolean {
+  return (
+    localeResolution.resolvedLocale !== localeResolution.defaultLocale &&
+    SYSTEM_PAGE_ALIAS_PATHS.has(
+      localeResolution.pathnameWithoutLang.toLowerCase(),
+    )
+  );
+}
 
 const CATEGORY_TO_PRODUCT_TYPE: Record<string, string> = {
   destinos: "destination",
@@ -85,6 +105,17 @@ function resolveWebsiteLocaleSettingsForMiddleware(
   website: WebsiteLookup | null,
 ): WebsiteLocaleSettings {
   const settings = extractWebsiteLocaleSettings(website);
+  const isColombiaTours = website?.subdomain?.toLowerCase() === "colombiatours";
+  if (isColombiaTours) {
+    return {
+      ...settings,
+      supportedLocales: COLOMBIA_TOURS_REQUIRED_LOCALES.reduce(
+        (acc, locale) => acc.includes(locale) ? acc : [...acc, locale],
+        [...settings.supportedLocales],
+      ),
+    };
+  }
+
   const hasExplicitLocaleColumns = Boolean(
     website &&
     ((typeof website.default_locale === "string" &&
@@ -754,7 +785,17 @@ function applyLocaleAwareTenantRewrite(
       resolvedLocale,
       defaultLocale,
     );
-    if (publicPathname !== originalPathname) {
+    const decodedOriginalPathname = (() => {
+      try {
+        return decodeURI(originalPathname);
+      } catch {
+        return originalPathname;
+      }
+    })();
+    if (
+      publicPathname !== originalPathname &&
+      publicPathname !== decodedOriginalPathname
+    ) {
       const redirectUrl = new URL(sourceUrl);
       redirectUrl.pathname = publicPathname;
       return NextResponse.redirect(redirectUrl, 301);
@@ -1179,7 +1220,8 @@ export async function middleware(request: NextRequest) {
       );
       const allowLegacyRedirects =
         !isPublicSeoMetadataPath(localeResolution.pathnameWithoutLang) &&
-        !isLegalPathname(localeResolution.pathnameWithoutLang);
+        !isLegalPathname(localeResolution.pathnameWithoutLang) &&
+        !isLocalizedSystemPageAliasPath(localeResolution);
 
       if (allowLegacyRedirects) {
         const legacyRedirectResponse = await tryLegacyRedirect(
@@ -1274,7 +1316,8 @@ export async function middleware(request: NextRequest) {
     );
     const allowLegacyRedirects =
       !isPublicSeoMetadataPath(localeResolution.pathnameWithoutLang) &&
-      !isLegalPathname(localeResolution.pathnameWithoutLang);
+      !isLegalPathname(localeResolution.pathnameWithoutLang) &&
+      !isLocalizedSystemPageAliasPath(localeResolution);
 
     if (allowLegacyRedirects) {
       const legacyRedirectResponse = await tryLegacyRedirect(
@@ -1356,7 +1399,8 @@ export async function middleware(request: NextRequest) {
     );
     const allowLegacyRedirects =
       !isPublicSeoMetadataPath(localeResolution.pathnameWithoutLang) &&
-      !isLegalPathname(localeResolution.pathnameWithoutLang);
+      !isLegalPathname(localeResolution.pathnameWithoutLang) &&
+      !isLocalizedSystemPageAliasPath(localeResolution);
 
     if (allowLegacyRedirects) {
       const legacyRedirectResponse = await tryLegacyRedirect(

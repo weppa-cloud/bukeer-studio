@@ -29,6 +29,7 @@ import {
 import { checkTranscreateRateLimit } from '@/lib/seo/transcreate-rate-limit';
 import { isTranscreateV2EnabledForLocale, resolveTranscreateV2Flag } from '@/lib/features/transcreate-v2';
 import { logAiCostEvent } from '@/lib/ai/cost-ledger';
+import { normalizeGrowthLocale } from '@/lib/growth/locale-targeting';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -335,7 +336,9 @@ export async function POST(request: NextRequest) {
       apiError('VALIDATION_ERROR', 'Invalid transcreate stream payload', 400, parsed.error.flatten()),
     );
   }
-  if (parsed.data.sourceLocale === parsed.data.targetLocale) {
+  const canonicalSourceLocale = normalizeGrowthLocale(parsed.data.sourceLocale);
+  const canonicalTargetLocale = normalizeGrowthLocale(parsed.data.targetLocale, 'en-US');
+  if (canonicalSourceLocale === canonicalTargetLocale) {
     return withNoStoreHeaders(
       apiError('VALIDATION_ERROR', 'sourceLocale and targetLocale must differ', 400),
     );
@@ -345,14 +348,14 @@ export async function POST(request: NextRequest) {
   const admin = createSupabaseServiceRoleClient();
 
   const localeTupleRaw = parseLocaleParts({
-    sourceLocale: parsed.data.sourceLocale,
-    targetLocale: parsed.data.targetLocale,
+    sourceLocale: canonicalSourceLocale,
+    targetLocale: canonicalTargetLocale,
     country: parsed.data.country,
     language: parsed.data.language,
   });
   const localeTuple: LocaleTuple = {
-    source_locale: localeTupleRaw.source_locale ?? parsed.data.sourceLocale,
-    target_locale: localeTupleRaw.target_locale ?? parsed.data.targetLocale,
+    source_locale: normalizeGrowthLocale(localeTupleRaw.source_locale, canonicalSourceLocale),
+    target_locale: normalizeGrowthLocale(localeTupleRaw.target_locale, canonicalTargetLocale),
     country: localeTupleRaw.country ?? parsed.data.country,
     language: localeTupleRaw.language ?? parsed.data.language,
   };

@@ -151,7 +151,12 @@ export function resolveCategorySegment(segment: string): {
   language: CategoryLanguage;
 } | null {
   if (!segment || typeof segment !== 'string') return null;
-  const normalized = segment.trim().toLowerCase();
+  let normalized = segment.trim().toLowerCase();
+  try {
+    normalized = decodeURIComponent(normalized);
+  } catch {
+    // Keep the raw segment if decoding fails; malformed paths simply miss below.
+  }
   if (!normalized) return null;
 
   const match = CATEGORY_SEGMENT_INDEX.find((entry) => entry.segment === normalized);

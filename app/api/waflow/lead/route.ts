@@ -119,7 +119,7 @@ const RequestSchema = z.object({
   submitted: z.boolean().optional(),
   attribution: AttributionSchema.optional(),
   locale: z.string().regex(/^[a-z]{2}(-[A-Z]{2})?$/).optional(),
-  market: z.enum(['CO', 'MX', 'US', 'CA', 'EU', 'OTHER']).optional(),
+  market: z.enum(['CO', 'MX', 'US', 'CA', 'BR', 'EU', 'OTHER']).optional(),
   payload: z.record(z.string(), z.unknown()).default({}),
 });
 

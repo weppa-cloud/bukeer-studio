@@ -11,6 +11,8 @@ Last updated: 2026-05-08 (SPEC_GROWTH_OS_AUTONOMOUS_PRODUCTION_OPERATING_SYSTEM 
 
 Latest update: 2026-05-01 (SPEC_GROWTH_OS_SYMPHONY_ORCHESTRATOR audit revision for #310: contract-first gate added with five Zod schemas, SSOT relationship vs growth_profile_runs / Unified Backlog formalised, lane-level autonomy semantics tightened, sprint scope clarified — Symphony OPERATIONAL ≠ #310 PASS, #256 interlock and ADR matrix added; child issues #402–#409 received labels and TVBs); 2026-05-01 (SPEC_GROWTH_OS_SYMPHONY_ORCHESTRATOR added for #310: multi-tenant Supabase/Bukeer control plane, VPS Docker runtime, agent definitions/tool permissions/context packs, Growth UI contract and opt-in E2E); 2026-05-01 (WAFlow reference-first E2E for #310/#322: missing-ref guardrail PASS, two references in one Chatwoot conversation create two CRM requests, legacy `waflow_leads.chatwoot_conversation_id` unique index moved to WATCH with Flutter/SSOT migration prepared); 2026-05-01 (SPEC_GROWTH_OS_AGENT_LANES added for #310: five core Growth OS agent lanes, blocked routing, transcreation/content separation and Council governance); 2026-05-01 (SPEC_GROWTH_OS_SSOT_MODEL added for #310: GitHub is implementation SSOT, Supabase/Bukeer Studio is operational Growth SSOT).
 
+Latest spec addition: 2026-05-15 - [[SPEC_PUBLIC_TEMPLATE_SYSTEMIC_FIX_V1]] defines the ColombiaTours public-template systemic fix for PT-BR blog routing, reciprocal hreflang, localized custom pages, BlogPosting/FAQPage JSON-LD, and non-ES template chrome.
+
 Latest spec addition: 2026-05-15 - [[SPEC_MEDIA_ASSET_LIBRARY_V1]] defines Studio as the primary tenant Media Asset Library surface over `public.media_assets`, with Flutter registration/reuse as the cross-repo v1 contract.
 
 Latest spec addition: 2026-05-14 - [[SPEC_GROWTH_OS_PROVIDER_PROFILE_ARCHITECTURE_V2]] redirects Epic #521 into the Neo/Hermes Provider Profile Beta: GitHub remains planning SSOT, Supabase remains operational SSOT, Neo/Hermes acts as architect-orchestrator, provider profiles own API access, workers consume context packets/facts, and paid media profiles enter the same read-only/freshness-governed architecture.
@@ -128,6 +130,7 @@ Feature requests formalized. Status tracked inline. GitHub Issues = source of tr
 | [[SPEC_SEO_OPTIMIZATION_TOOLKIT]]                         | [file](./specs/SPEC_SEO_OPTIMIZATION_TOOLKIT.md)                         | [[SEO]] [[AI]] [[bulk-actions]]                                                                                                                                 |
 | [[SPEC_GLOBAL_MULTILOCALE_TRANSCREATION_SEO]]             | [file](./specs/SPEC_GLOBAL_MULTILOCALE_TRANSCREATION_SEO.md)             | [[SEO]] [[transcreation]] [[hreflang]] [[multi-locale]] [[ColombiaTours]] [[post-publish-verification]] [[multi-agent]] Epic #502 F0-F7: DE/FR/PT-BR pipeline |
 | [[SPEC_TRANSCREATION_STABILIZATION_PTBR_HREFLANG]]        | [file](./specs/generated/transcreation-stabilization-ptbr-hreflang.md)   | [[SEO]] [[transcreation]] [[hreflang]] [[multi-locale]] [[ColombiaTours]] [[pt-BR]] P0 Sprint 1 blog routing + hreflang stabilization |
+| [[SPEC_PUBLIC_TEMPLATE_SYSTEMIC_FIX_V1]]                  | [file](./specs/generated/public-template-systemic-fix-v1-SPEC.md)        | [[ColombiaTours]] [[public-routing]] [[multi-locale]] [[hreflang]] [[pt-BR]] [[website_pages]] [[JSON-LD]] public template systemic bug fix |
 
 | [[SPEC_COLOMBIATOURS_PUBLIC_ROUTING_RECOVERY]]            | [file](./specs/generated/colombiatours-public-routing-recovery-SPEC.md)  | [[ColombiaTours]] [[public-routing]] [[multi-locale]] [[routing]] [[SEO]] [[hreflang]] Week 1 P0 public route recovery spec |
 | [[SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX]]                 | [file](./specs/SPEC_GROWTH_OS_MAX_PERFORMANCE_MATRIX.md)                 | [[growth-os]] [[SEO]] [[analytics]] [[DataForSEO]]                                                                                                              |
@@ -270,6 +273,7 @@ Feature requests formalized. Status tracked inline. GitHub Issues = source of tr
 
 | Wikilink                                      | File                                                                           | Purpose                                                                                                                    |
 | --------------------------------------------- | ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- |
+| [[public-template-systemic-fix-v1]]           | [file](./qa/public-template-systemic-fix-v1.md)                                | QA evidence for ColombiaTours localized template/routing fix: route canary, blog JSON-LD canary, P0 pass and P1 watchlist. |
 | [[product-landing-qa-matrix]]                 | [file](./qa/product-landing-qa-matrix.md)                                      | QA matrix for 3 release tenants.                                                                                           |
 | [[link-validation-colombiatours]]             | [file](./qa/link-validation-colombiatours.md)                                  | Link validation report (2026-04-15).                                                                                       |
 | [[epic190-certification-checklist]]           | [file](./qa/studio-unified-product-editor/epic-190-certification-checklist.md) | Executable QA certification checklist for EPIC #190 (D0-D2, commands, SQL/RPC checks, evidence template).                  |
@@ -418,6 +422,7 @@ Each concept below lists the ADRs/SPECs/ops docs that touch it. Use this to find
 
 - [[ADR-019]] — path-prefix URL routing (`/en/...`, default locale has no prefix)
 - [[ADR-020]] — hreflang emission for `defaultLocale` + translated locales (`applied|published`); `x-default` → default locale
+- [[SPEC_PUBLIC_TEMPLATE_SYSTEMIC_FIX_V1]] — ColombiaTours systemic public-template fix for PT-BR `/pt-br`, localized `website_pages`, reciprocal hreflang, JSON-LD author/FAQ, and localized template chrome.
 - [[SPEC_COLOMBIATOURS_PUBLIC_ROUTING_RECOVERY]] — Week 1 public route recovery contract for ColombiaTours critical routes, custom-domain link hygiene, category segment localization and SEO metadata gates
 - [[ADR-021]] — TM + glossary + AI transcreation pipeline; job lifecycle draft→reviewed→applied→published
 - [[en-quality-backlog-2026-04-30]] — operational EN backlog for #314/#315, including row-level artifact pointers and publish gates
@@ -474,6 +479,7 @@ Each concept below lists the ADRs/SPECs/ops docs that touch it. Use this to find
 - Specs: [[SPEC_SEO_CONTENT_INTELLIGENCE]] [[SPEC_SEO_CONTENT_INTELLIGENCE_INTEGRAL]] [[SPEC_SEO_DASHBOARD_PRODUCT_INTEGRATION]] [[SPEC_SEO_DESTINATIONS_PRODUCTS]] [[SPEC_SEO_BLOG_EXECUTION_FRAMEWORK_2026]] [[SPEC_SEO_OPTIMIZATION_TOOLKIT]]
 - Meta: [[EPIC_SEO_CONTENT_INTELLIGENCE_GITHUB]] [[ROADMAP_SEO_CONTENT_INTELLIGENCE]] [[ISSUE_MAP_SEO_CONTENT_INTELLIGENCE]]
 - QA: [[link-validation-colombiatours]]
+- Public template systemic fix: [[SPEC_PUBLIC_TEMPLATE_SYSTEMIC_FIX_V1]] — BlogPosting/FAQPage JSON-LD, localized breadcrumbs/chrome, reciprocal hreflang, and no duplicate broken PT aliases.
 - Shipped APIs (2026-04-17): serp-snapshot, nlp-score, transcreate, objectives-90d, okrs, translations, weekly-tasks — see [[SEO-IMPLEMENTATION]]
 - Trust / JSON-LD: [[trust]] + [[organization-schema]] concepts
 
@@ -706,6 +712,7 @@ Obsidian resolves `[[ADR-005]]` by filename stem or alias. Claude Code / Codex g
 | `[[epic128-ux-fluency]]`                              | `docs/evidence/epic128/ux-fluency.md`                                              |
 | `[[SPEC_GLOBAL_MULTILOCALE_TRANSCREATION_SEO]]`       | `docs/specs/SPEC_GLOBAL_MULTILOCALE_TRANSCREATION_SEO.md`                          |
 | `[[SPEC_COLOMBIATOURS_PUBLIC_ROUTING_RECOVERY]]`      | `docs/specs/generated/colombiatours-public-routing-recovery-SPEC.md`               |
+| `[[SPEC_PUBLIC_TEMPLATE_SYSTEMIC_FIX_V1]]`            | `docs/specs/generated/public-template-systemic-fix-v1-SPEC.md`                     |
 | `[[SPEC_GROWTH_OS_HERMES_PRIMARY_RUNTIME_MVE_V0]]`    | `docs/specs/SPEC_GROWTH_OS_HERMES_PRIMARY_RUNTIME_MVE_V0.md`                       |
 | `[[AUDIT_GROWTH_OS_PROVIDER_PROFILE_REGISTRY_MAP_2026-05]]` | `docs/audits/AUDIT_GROWTH_OS_PROVIDER_PROFILE_REGISTRY_MAP_2026-05.md`        |
 | `[[hermes-primary-runtime]]`                          | `docs/specs/SPEC_GROWTH_OS_HERMES_PRIMARY_RUNTIME_MVE_V0.md` (concept alias)       |

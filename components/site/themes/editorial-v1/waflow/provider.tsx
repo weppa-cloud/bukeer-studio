@@ -76,6 +76,7 @@ const NO_OP_CONTEXT: WaflowContextValue = {
   openVariantB: () => {},
   openVariantD: () => {},
   close: () => {},
+  locale: 'es-CO',
   businessNumber: '',
   responseTime: '3 min',
 };
@@ -182,6 +183,8 @@ export interface WaflowProviderProps {
   subdomain?: string;
   /** Show the floating Variant A launcher. Default true. */
   showFab?: boolean;
+  /** Request/content locale used for drawer and FAB copy. */
+  locale?: string | null;
 }
 
 /**
@@ -194,6 +197,7 @@ export function WaflowProvider({
   responseTime = '3 min',
   subdomain,
   showFab = true,
+  locale = 'es-CO',
 }: WaflowProviderProps) {
   const [config, setConfig] = useState<WaflowConfig | null>(null);
   const [state, setState] = useState<WaflowState>(() => initialStateFor('A'));
@@ -315,10 +319,11 @@ export function WaflowProvider({
       openVariantB,
       openVariantD,
       close,
+      locale: locale ?? 'es-CO',
       businessNumber,
       responseTime,
     }),
-    [config, openVariantA, openVariantB, openVariantD, close, businessNumber, responseTime],
+    [config, openVariantA, openVariantB, openVariantD, close, locale, businessNumber, responseTime],
   );
 
   const apiValue = useMemo<WaflowApi>(
@@ -337,6 +342,7 @@ export function WaflowProvider({
             businessNumber={businessNumber}
             responseTime={responseTime}
             subdomain={subdomain}
+            locale={locale ?? 'es-CO'}
           />
         ) : null}
         {showFab ? <WaflowFab /> : null}

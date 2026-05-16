@@ -113,7 +113,7 @@ export function EditorialHotelesListPage({
 
       <section className="ev-section" style={{ paddingTop: 56 }}>
         <div className="ev-container">
-          <HotelesListGrid hotels={items} basePath={basePath} />
+          <HotelesListGrid hotels={items} basePath={basePath} locale={resolvedLocale} />
         </div>
       </section>
     </div>

@@ -19,6 +19,10 @@ const base = {
   created_at: "2026-05-07T00:00:00.000Z",
   updated_at: "2026-05-07T00:00:00.000Z",
 } as const;
+const articleContent = Array.from(
+  { length: 310 },
+  (_, index) => `colombia-travel-${index}`,
+).join(" ");
 
 function profile(
   profile_type: GrowthProfile["profile_type"],
@@ -111,9 +115,23 @@ describe("profile freshness gate", () => {
       idempotencyKey: "keyword-gap:colombia-itinerary",
       evidence: {
         sources: ["gsc", "dataforseo"],
+        source_refs: ["gsc:query:colombia-itinerary"],
         target: {
           target_table: "website_blog_posts",
           target_path: "/blog/colombia-itinerary",
+        },
+        article: {
+          title: "Complete Colombia itinerary guide for custom routes",
+          slug: "colombia-itinerary",
+          seo_title: "Complete Colombia itinerary guide for custom routes",
+          seo_description:
+            "Plan a custom Colombia itinerary with expert context on regions, timing, culture, nature and practical travel decisions before speaking with a specialist.",
+          content: articleContent,
+          supported_facts: [
+            "gsc:query:colombia-itinerary",
+            "dataforseo:keyword-gap:colombia-itinerary",
+            "ga4:landing:/blog",
+          ],
         },
         rollback_expectation: {
           strategy: "delete_created_content",

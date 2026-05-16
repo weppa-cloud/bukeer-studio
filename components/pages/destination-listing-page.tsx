@@ -22,6 +22,11 @@ export function DestinationListingPage({
   destinations,
 }: DestinationListingPageProps) {
   const basePath = getBasePath(website.subdomain);
+  const websiteLocale =
+    (website as WebsiteData & { default_locale?: string; defaultLocale?: string }).default_locale ??
+    (website as WebsiteData & { default_locale?: string; defaultLocale?: string }).defaultLocale ??
+    website.content?.locale ??
+    'es-CO';
 
   // Filter and dedupe by slug to avoid duplicated cards with unstable React keys
   const visibleDestinations = useMemo(() => {
@@ -67,11 +72,6 @@ export function DestinationListingPage({
     const baseUrl = website.custom_domain
       ? `https://${website.custom_domain}`
       : `https://${website.subdomain}.bukeer.com`;
-    const websiteLocale =
-      (website as WebsiteData & { default_locale?: string; defaultLocale?: string }).default_locale ??
-      (website as WebsiteData & { default_locale?: string; defaultLocale?: string }).defaultLocale ??
-      website.content?.locale ??
-      'es-CO';
     const normalizedSchemaLocale = normalizeLocale(websiteLocale, 'es-CO');
     const schemaLanguage = localeToLanguage(normalizedSchemaLocale);
     const isEnglishSchema = schemaLanguage === 'en';
@@ -172,6 +172,7 @@ export function DestinationListingPage({
             showFilters={false}
             showLegend={mapMarkers.length > 0}
             height={400}
+            locale={websiteLocale}
           />
         </motion.div>
       </section>

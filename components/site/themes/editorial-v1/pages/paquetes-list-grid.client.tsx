@@ -27,6 +27,8 @@ import { formatPriceOrConsult } from '@/lib/products/format-price';
 import { supabaseImageUrl } from '@/lib/images/supabase-transform';
 import { convertCurrencyAmount, type CurrencyConfig } from '@/lib/site/currency';
 import { usePreferredCurrency } from '@/lib/site/use-preferred-currency';
+import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
+import { CATEGORY_CANONICAL_SEGMENT, localeToLanguage, normalizeLocale } from '@/lib/seo/locale-routing';
 import type { WebsiteData } from '@/lib/supabase/get-website';
 
 // -------------------- Types --------------------
@@ -54,11 +56,42 @@ export interface PaquetesListGridProps {
   packages: PaquetesListItem[];
   basePath: string;
   account?: WebsiteData['content']['account'] | null;
+  locale?: string | null;
 }
 
 // -------------------- Constants --------------------
 
 const PAGE_SIZE = 9;
+
+type PackagesListingCopy = ReturnType<typeof buildPackagesListingCopy>;
+
+function buildPackagesListingCopy(locale: string | null | undefined) {
+  const t = getPublicUiExtraTextGetter(locale);
+
+  return {
+    countryLabel: t('editorialPackagesCountryLabel'),
+    locationLabel: t('editorialPackagesLocationLabel'),
+    durationLabel: t('editorialPackagesDurationLabel'),
+    durationAny: t('editorialPackagesDurationAny'),
+    keywordLabel: t('editorialPackagesKeywordLabel'),
+    keywordPlaceholder: t('editorialPackagesKeywordPlaceholder'),
+    countSeparator: t('editorialPackagesCountSeparator'),
+    countSingular: t('editorialPackageWord'),
+    countPlural: t('editorialPackagesWord'),
+    clearLink: t('editorialPackagesClearLink'),
+    viewAria: t('editorialPackagesViewAria'),
+    viewList: t('editorialPackagesViewList'),
+    viewMap: t('editorialPackagesViewMap'),
+    emptyHeading: t('editorialPackagesEmptyHeading'),
+    emptyBody: t('editorialPackagesEmptyBody'),
+    emptyCta: t('editorialPackagesEmptyCta'),
+    loadMore: t('editorialPackagesLoadMore'),
+    consultPrice: t('editorialPackagesConsultPrice'),
+    fromPrefix: t('editorialPackagesFromPerPerson'),
+    popularBadge: t('editorialPackagesPopularBadge'),
+    viewPackage: t('editorialPackagesViewPackageShort'),
+  };
+}
 
 // Duration buckets — match designer copy ("1-3 días", "4-7 días", etc.).
 const DURATION_BUCKETS: { key: string; label: string; test: (d: number) => boolean }[] = [
@@ -68,32 +101,12 @@ const DURATION_BUCKETS: { key: string; label: string; test: (d: number) => boole
   { key: '15+', label: '15+ días', test: (d) => d >= 15 },
 ];
 
-// Copy verbatim from copy-catalog.md § "Package listing page".
-const COPY = {
-  filtersHeading: 'Filtros',
-  clearLabel: 'Limpiar',
-  clearLink: 'limpiar filtros',
-  countryLabel: 'País',
-  locationLabel: 'Ubicación',
-  keywordLabel: 'Palabra clave',
-  keywordPlaceholder: 'Buscar por palabra clave',
-  durationLabel: 'Duración',
-  durationAny: 'Cualquiera',
-  viewList: 'Lista',
-  viewMap: 'Mapa',
-  loadMore: 'Cargar más',
-  emptyHeading: 'Ningún paquete con esos filtros',
-  emptyBody: 'Prueba ensanchando el rango o limpiando filtros.',
-  emptyCta: 'Limpiar filtros',
-  fromPrefix: 'Desde · por persona',
-  consultPrice: 'Consultar',
-  viewPackage: 'Ver',
-  countSingular: 'paquete',
-  countPlural: 'paquetes',
-  foundSuffix: 'encontrados',
-};
-
 // -------------------- Helpers --------------------
+
+function localizedPackageSegment(locale: string | null | undefined): string {
+  const language = localeToLanguage(normalizeLocale(locale ?? 'es-CO')) as keyof typeof CATEGORY_CANONICAL_SEGMENT.package;
+  return CATEGORY_CANONICAL_SEGMENT.package[language] ?? CATEGORY_CANONICAL_SEGMENT.package.es;
+}
 
 function parseDurationDays(pkg: PaquetesListItem): number | null {
   if (typeof pkg.durationDays === 'number' && pkg.durationDays > 0) return pkg.durationDays;
@@ -124,10 +137,11 @@ function normalize(value: string | null | undefined): string {
 
 // -------------------- Component --------------------
 
-export function PaquetesListGrid({ packages, basePath, account = null }: PaquetesListGridProps) {
+export function PaquetesListGrid({ packages, basePath, account = null, locale = null }: PaquetesListGridProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { currencyConfig, preferredCurrency } = usePreferredCurrency(account);
+  const COPY = useMemo(() => buildPackagesListingCopy(locale), [locale]);
 
   // Unique country chips (derived from data).
   const countries = useMemo(() => {
@@ -381,7 +395,7 @@ export function PaquetesListGrid({ packages, basePath, account = null }: Paquete
       {/* ── LISTING TOP: count + view toggle ──────────────────────────── */}
       <div className="listing-top pql-listing-top">
         <div className="count" data-testid="paquetes-count">
-          <b>{filtered.length}</b> de {packages.length}{' '}
+          <b>{filtered.length}</b> {COPY.countSeparator} {packages.length}{' '}
           {packages.length === 1 ? COPY.countSingular : COPY.countPlural}
           {anyFilterActive && (
             <>
@@ -398,7 +412,7 @@ export function PaquetesListGrid({ packages, basePath, account = null }: Paquete
           )}
         </div>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-          <div className="view-toggle pql-view-toggle" role="tablist" aria-label="Vista">
+          <div className="view-toggle pql-view-toggle" role="tablist" aria-label={COPY.viewAria}>
             <button
               type="button"
               role="tab"
@@ -450,6 +464,7 @@ export function PaquetesListGrid({ packages, basePath, account = null }: Paquete
                 basePath={basePath}
                 preferredCurrency={preferredCurrency}
                 currencyConfig={currencyConfig}
+                copy={COPY}
               />
             );
           }}
@@ -464,6 +479,7 @@ export function PaquetesListGrid({ packages, basePath, account = null }: Paquete
                 basePath={basePath}
                 preferredCurrency={preferredCurrency}
                 currencyConfig={currencyConfig}
+                copy={COPY}
               />
             ))}
           </div>
@@ -492,21 +508,23 @@ interface PackageListCardProps {
   basePath: string;
   preferredCurrency?: string | null;
   currencyConfig?: CurrencyConfig | null;
+  copy: PackagesListingCopy;
 }
 
 function resolvePriceLabel(
   pkg: PaquetesListItem,
   preferredCurrency: string | null | undefined,
   currencyConfig: CurrencyConfig | null | undefined,
+  copy: PackagesListingCopy,
 ): string {
   if (typeof pkg.priceValue === 'number' && Number.isFinite(pkg.priceValue) && pkg.priceValue > 0) {
     const sourceCurrency = pkg.priceCurrency ?? null;
     const targetCurrency = preferredCurrency ?? sourceCurrency;
     const converted = convertCurrencyAmount(pkg.priceValue, sourceCurrency, targetCurrency, currencyConfig ?? null);
-    return formatPriceOrConsult(converted, targetCurrency ?? sourceCurrency, { fallback: COPY.consultPrice });
+    return formatPriceOrConsult(converted, targetCurrency ?? sourceCurrency, { fallback: copy.consultPrice });
   }
   const label = (pkg.price ?? '').toString().trim();
-  return label || COPY.consultPrice;
+  return label || copy.consultPrice;
 }
 
 function PackageListCard({
@@ -514,13 +532,14 @@ function PackageListCard({
   basePath,
   preferredCurrency,
   currencyConfig,
+  copy: COPY,
 }: PackageListCardProps) {
   const slug = (pkg.slug ?? '').toString().trim();
   const href = slug
     ? `${basePath}/paquetes/${encodeURIComponent(slug)}`
     : `${basePath}/paquetes`;
   const showPopular = pkg.featured === true;
-  const priceLabel = resolvePriceLabel(pkg, preferredCurrency, currencyConfig);
+  const priceLabel = resolvePriceLabel(pkg, preferredCurrency, currencyConfig, COPY);
   const country = (pkg.country ?? pkg.destination ?? '').toString().trim();
 
   const onClick = () => {
@@ -555,8 +574,8 @@ function PackageListCard({
           />
         )}
         {showPopular && (
-          <span className="pack-popular" aria-label="Popular">
-            Popular
+          <span className="pack-popular" aria-label={COPY.popularBadge}>
+            {COPY.popularBadge}
           </span>
         )}
       </div>

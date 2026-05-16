@@ -9,7 +9,7 @@ import type {
 import { GrowthOpportunityCandidateInsertSchema } from "@bukeer/website-contract";
 
 type JsonRecord = Record<string, unknown>;
-type GrowthMarket = "CO" | "MX" | "US" | "CA" | "EU" | "OTHER";
+type GrowthMarket = "CO" | "MX" | "US" | "CA" | "BR" | "EU" | "OTHER";
 
 export interface ProfileRequirement {
   profileType: GrowthProfileType;
@@ -344,18 +344,32 @@ function transcreationPayloadFailures(evidence: JsonRecord): string[] {
   const quality = asRecord(transcreation.quality);
   const sourceLocale = textValue(transcreation, "source_locale");
   const targetLocale = textValue(transcreation, "target_locale");
+  const expectedLocalePair =
+    sourceLocale && targetLocale ? `${sourceLocale}->${targetLocale}` : null;
+  const declaredLocalePair =
+    textValue(transcreation, "locale_pair") ?? textValue(evidence, "locale_pair");
 
   if (!textValue(transcreation, "transcreation_job_id")) {
     failures.push("missing_transcreation_job_id");
   }
   if (!sourceLocale || !targetLocale || sourceLocale === targetLocale) {
-    failures.push("invalid_transcreation_locale_pair");
+    failures.push("invalid_locale_pair");
+  }
+  if (
+    declaredLocalePair &&
+    expectedLocalePair &&
+    declaredLocalePair !== expectedLocalePair
+  ) {
+    failures.push("invalid_locale_pair");
   }
   if (!textValue(transcreation, "source_entity_id")) {
     failures.push("missing_transcreation_source_entity_id");
   }
   if (!textValue(transcreation, "page_type")) {
     failures.push("missing_transcreation_page_type");
+  }
+  if (!textValue(transcreation, "target_path")) {
+    failures.push("missing_transcreation_target_path");
   }
   if (!textValue(payload, "meta_title")) {
     failures.push("missing_transcreation_meta_title");
@@ -476,12 +490,31 @@ export function scoreOpportunityCandidate(
       (100 - input.riskScore) * 0.1 +
       (100 - input.costScore) * 0.05,
   );
+  const transcreationLocale =
+    input.allowedActionClass === "transcreation_merge"
+      ? input.locale ?? "unknown"
+      : null;
+  const profileBlockingReasons = transcreationLocale
+    ? [
+        ...(input.freshness.missing.length > 0
+          ? [`missing_target_locale_profiles:${transcreationLocale}`]
+          : []),
+        ...input.freshness.stale.map(
+          (profile) => `stale_profile:${profile}:${transcreationLocale}`,
+        ),
+        ...input.freshness.lowConfidence.map(
+          (profile) => `low_confidence_profile:${profile}:${transcreationLocale}`,
+        ),
+      ]
+    : [
+        ...input.freshness.missing.map((profile) => `missing:${profile}`),
+        ...input.freshness.stale.map((profile) => `stale:${profile}`),
+        ...input.freshness.lowConfidence.map(
+          (profile) => `low_confidence:${profile}`,
+        ),
+      ];
   const blockingReasons = [
-    ...input.freshness.missing.map((profile) => `missing:${profile}`),
-    ...input.freshness.stale.map((profile) => `stale:${profile}`),
-    ...input.freshness.lowConfidence.map(
-      (profile) => `low_confidence:${profile}`,
-    ),
+    ...profileBlockingReasons,
     ...evaluateCandidateDataQuality({
       evidence: input.evidence,
       actionClass: input.allowedActionClass,

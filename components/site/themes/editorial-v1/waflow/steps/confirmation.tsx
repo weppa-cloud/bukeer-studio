@@ -10,11 +10,13 @@
 
 import { Icons } from '../../primitives/icons';
 import { trackEvent } from '@/lib/analytics/track';
+import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 import { useWaflow, useWaflowApi } from '../provider';
 
 export function WaflowStepConfirmation() {
-  const { close, responseTime } = useWaflow();
+  const { close, responseTime, locale } = useWaflow();
   const { state } = useWaflowApi();
+  const text = getPublicUiExtraTextGetter(locale);
 
   const url = state.whatsappUrl || '#';
   const message = state.whatsappMessage || '';
@@ -25,10 +27,10 @@ export function WaflowStepConfirmation() {
       <div className="waf-success-ic" aria-hidden="true">
         <Icons.check size={34} />
       </div>
-      <h3>WhatsApp se abrió en una pestaña nueva.</h3>
+      <h3>{text('waflowConfirmationTitle')}</h3>
       <p>
-        Si no se abrió, toca el botón verde. Tu planner responde en promedio en{' '}
-        {responseTime} y te escribe también desde nuestro lado.
+        {text('waflowConfirmationBodyPrefix')} {responseTime}{' '}
+        {text('waflowConfirmationBodySuffix')}
       </p>
       {message ? <div className="waf-success-preview">{message}</div> : null}
       <div className="waf-success-actions">
@@ -43,15 +45,15 @@ export function WaflowStepConfirmation() {
             variant: state.variant,
           })}
         >
-          <Icons.whatsapp size={16} /> Abrir WhatsApp
+          <Icons.whatsapp size={16} /> {text('waflowOpenWhatsapp')}
         </a>
         <button type="button" className="btn-sec" onClick={close}>
-          Seguir explorando
+          {text('waflowKeepExploring')}
         </button>
       </div>
       {ref ? (
         <div className="waf-ref-badge">
-          Ref: <b>{ref}</b>
+          {text('waflowRefLabel')} <b>{ref}</b>
         </div>
       ) : null}
     </div>

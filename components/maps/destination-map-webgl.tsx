@@ -12,7 +12,11 @@ import {
   type MapRef,
 } from '@vis.gl/react-maplibre';
 import { COLOMBIA_BOUNDARY_GEOJSON } from '@/components/maps/colombia-boundary';
-import { MarkerButton, getDestinationMarkerMeta } from '@/components/maps/shared-marker';
+import {
+  MarkerButton,
+  formatDestinationProductCounts,
+  getDestinationMarkerMeta,
+} from '@/components/maps/shared-marker';
 import type { MapMarker, MapViewportPreset } from '@/lib/maps/types';
 import { mapKindLabel } from '@/lib/maps/utils';
 import type { MapThemePalette } from '@/lib/maps/theme';
@@ -34,6 +38,7 @@ export interface DestinationMapWebGLProps {
   initialCenter: { lat: number; lng: number; zoom: number };
   onStyleFailed: () => void;
   routePath?: Array<[number, number]>;
+  locale?: string | null;
 }
 
 export default function DestinationMapWebGL({
@@ -46,6 +51,7 @@ export default function DestinationMapWebGL({
   initialCenter,
   onStyleFailed,
   routePath,
+  locale,
 }: DestinationMapWebGLProps) {
   const mapRef = useRef<MapRef | null>(null);
 
@@ -217,7 +223,7 @@ export default function DestinationMapWebGL({
             {selectedMarker.kind === 'destination' &&
             (selectedMarkerMeta?.hotelCount || selectedMarkerMeta?.activityCount) ? (
               <p className="text-[11px] mt-1.5" style={{ color: 'var(--text-muted)' }}>
-                Hoteles: {selectedMarkerMeta?.hotelCount ?? 0} · Actividades: {selectedMarkerMeta?.activityCount ?? 0}
+                {formatDestinationProductCounts(selectedMarkerMeta, locale)}
               </p>
             ) : null}
           </div>

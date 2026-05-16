@@ -60,6 +60,40 @@ function titleFromSlug(slug: string): string {
     .join(" ");
 }
 
+function getLocalizedHomeMetadataCopy(
+  language: string,
+  siteName: string,
+): { title: string; description: string } | null {
+  switch (language) {
+    case "en":
+      return {
+        title: `${siteName} | Tailor-made Colombia tours`,
+        description:
+          "Plan tailor-made Colombia trips with local experts, curated hotels, experiences and on-trip support.",
+      };
+    case "pt":
+      return {
+        title: `${siteName} | Viagens personalizadas pela Colombia`,
+        description:
+          "Planeje viagens personalizadas pela Colombia com especialistas locais, hoteis selecionados, experiencias e suporte durante a viagem.",
+      };
+    case "fr":
+      return {
+        title: `${siteName} | Voyages sur mesure en Colombie`,
+        description:
+          "Planifiez des voyages sur mesure en Colombie avec des experts locaux, des hotels selectionnes, des experiences et une assistance pendant le voyage.",
+      };
+    case "de":
+      return {
+        title: `${siteName} | Massgeschneiderte Kolumbienreisen`,
+        description:
+          "Planen Sie massgeschneiderte Kolumbienreisen mit lokalen Experten, kuratierten Hotels, Erlebnissen und Betreuung wahrend der Reise.",
+      };
+    default:
+      return null;
+  }
+}
+
 function featuredDestinationsAsSectionItems(
   featuredDestinations: Awaited<ReturnType<typeof getFeaturedDestinations>>,
 ) {
@@ -100,12 +134,22 @@ export async function generateMetadata({
       ? baseUrl
       : `${baseUrl}${localeContext.localizedPathname}`;
 
-  const title =
-    website.content.seo?.title || website.content.siteName || subdomain;
-  const description =
-    website.content.seo?.description || website.content.tagline || "";
   const siteName =
     website.content?.account?.name || website.content?.siteName || subdomain;
+  const localizedHomeMetadata =
+    localeContext.resolvedLocale !== localeContext.defaultLocale
+      ? getLocalizedHomeMetadataCopy(localeContext.resolvedLanguage, siteName)
+      : null;
+  const title =
+    localizedHomeMetadata?.title ||
+    website.content.seo?.title ||
+    website.content.siteName ||
+    subdomain;
+  const description =
+    localizedHomeMetadata?.description ||
+    website.content.seo?.description ||
+    website.content.tagline ||
+    "";
   const ogImage = resolveOgImage(website);
 
   return {

@@ -19,13 +19,15 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { Icons } from '../primitives/icons';
+import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 import { useWaflow } from './provider';
 
 export function WaflowFab() {
-  const { openVariantA, responseTime, isOpen } = useWaflow();
+  const { openVariantA, responseTime, isOpen, locale } = useWaflow();
   const [show, setShow] = useState(false);
   const [bubble, setBubble] = useState(true);
   const hasShownRef = useRef(false);
+  const text = getPublicUiExtraTextGetter(locale);
 
   // Show only after the user goes past the first fold.
   useEffect(() => {
@@ -63,19 +65,19 @@ export function WaflowFab() {
             type="button"
             className="wa-fab-close"
             onClick={() => setBubble(false)}
-            aria-label="Cerrar bocadillo"
+            aria-label={text('waflowCloseBubble')}
           >
             ×
           </button>
-          <b>¿Planeas un viaje?</b>
-          <small>Chatea con un planner — responde en ~{responseTime}</small>
+          <b>{text('waflowFabTitle')}</b>
+          <small>{text('waflowFabSubtitlePrefix')}{responseTime}</small>
         </div>
       ) : null}
       <button
         type="button"
         className="wa-fab-btn"
         onClick={() => openVariantA()}
-        aria-label="Chat por WhatsApp con un planner"
+        aria-label={text('waflowFabAria')}
       >
         <Icons.whatsapp size={26} />
       </button>

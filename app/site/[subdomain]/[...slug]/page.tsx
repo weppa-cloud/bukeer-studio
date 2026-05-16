@@ -9,6 +9,7 @@ import {
   getDestinationSeoOverride,
   getLocalizedProductOverlay,
   getPageBySlug,
+  getPageBySlugForLocale,
   getPageByTranslationGroup,
   getProductPage,
 } from "@/lib/supabase/get-pages";
@@ -58,7 +59,10 @@ import { applyContentTranslations } from "@/lib/sections/apply-content-translati
 import { resolveTemplateSet } from "@/lib/sections/template-set";
 import { ACTIVITY_FAQS_DEFAULT } from "@/lib/products/activity-faqs-default";
 import { PACKAGE_FAQS_DEFAULT } from "@/lib/products/package-faqs-default";
+import { resolvePublicPageForRoute } from "@/lib/site/public-page-resolution";
 import { getSystemFallbackPage } from "@/lib/site/system-fallback-pages";
+import { getPublicUiMessages } from "@/lib/site/public-ui-messages";
+import { getPublicUiExtraTextGetter } from "@/lib/site/public-ui-extra-text";
 
 const DestinationListingPage = dynamic(() =>
   import("@/components/pages/destination-listing-page").then(
@@ -126,6 +130,10 @@ function buildCanonicalUrl(
   }
 
   return `${baseUrl}${localizedPath}`;
+}
+
+function toPlainMetadataText(value: string): string {
+  return value.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
 }
 
 async function resolveListingPageMeta(
@@ -212,6 +220,10 @@ export async function generateMetadata({
     website,
     slugPath ? `/${slugPath}` : "/",
   );
+  const metadataSlug =
+    localeContext.languageSegment && slug[0]?.toLowerCase() === localeContext.languageSegment
+      ? slug.slice(1)
+      : slug;
   const ogLocale = localeToOgLocale(localeContext.resolvedLocale);
   const translatedLocalesCache = new Map<string, string[] | undefined>();
 
@@ -249,8 +261,8 @@ export async function generateMetadata({
 
   // Activities listing (/actividades or /activities)
   if (
-    slug.length === 1 &&
-    (slug[0] === "actividades" || slug[0] === "activities")
+    metadataSlug.length === 1 &&
+    (metadataSlug[0] === "actividades" || metadataSlug[0] === "activities")
   ) {
     const siteName =
       website.content?.account?.name || website.content?.siteName || subdomain;
@@ -298,7 +310,7 @@ export async function generateMetadata({
   }
 
   // Hotels listing (/hoteles or /hotels)
-  if (slug.length === 1 && (slug[0] === "hoteles" || slug[0] === "hotels")) {
+  if (metadataSlug.length === 1 && (metadataSlug[0] === "hoteles" || metadataSlug[0] === "hotels")) {
     const siteName =
       website.content?.account?.name || website.content?.siteName || subdomain;
     const pathname = "/hoteles";
@@ -307,20 +319,28 @@ export async function generateMetadata({
       "hotels",
     ]);
     const ogImage = resolveOgImage(website);
+    const messages = getPublicUiMessages(localeContext.resolvedLocale);
+    const editorialText = getPublicUiExtraTextGetter(
+      localeContext.resolvedLocale,
+    );
+    const pageTitle = messages.nav.hotels;
+    const pageDescription = toPlainMetadataText(
+      editorialText("editorialHotelsSubtitle"),
+    );
     const metadata: Metadata = {
-      title: "Hoteles",
-      description: `Explora hoteles seleccionados por ${siteName} para tu proximo viaje.`,
+      title: pageTitle,
+      description: pageDescription,
       openGraph: {
-        title: `Hoteles | ${siteName}`,
-        description: `Explora hoteles seleccionados por ${siteName} para tu proximo viaje.`,
+        title: `${pageTitle} | ${siteName}`,
+        description: pageDescription,
         type: "website",
         locale: ogLocale,
         ...(ogImage && { images: [{ url: ogImage }] }),
       },
       twitter: {
         card: "summary_large_image",
-        title: `Hoteles | ${siteName}`,
-        description: `Explora hoteles seleccionados por ${siteName} para tu proximo viaje.`,
+        title: `${pageTitle} | ${siteName}`,
+        description: pageDescription,
         ...(ogImage && { images: [ogImage] }),
       },
       alternates: {
@@ -341,8 +361,8 @@ export async function generateMetadata({
 
   // Transfers listing (/traslados or /transfers)
   if (
-    slug.length === 1 &&
-    (slug[0] === "traslados" || slug[0] === "transfers")
+    metadataSlug.length === 1 &&
+    (metadataSlug[0] === "traslados" || metadataSlug[0] === "transfers")
   ) {
     const siteName =
       website.content?.account?.name || website.content?.siteName || subdomain;
@@ -385,7 +405,7 @@ export async function generateMetadata({
   }
 
   // Packages listing (/paquetes or /packages)
-  if (slug.length === 1 && (slug[0] === "paquetes" || slug[0] === "packages")) {
+  if (metadataSlug.length === 1 && (metadataSlug[0] === "paquetes" || metadataSlug[0] === "packages")) {
     const siteName =
       website.content?.account?.name || website.content?.siteName || subdomain;
     const pathname = "/paquetes";
@@ -433,8 +453,8 @@ export async function generateMetadata({
 
   // Destination listing (/destinos or /destinations)
   if (
-    slug.length === 1 &&
-    (slug[0] === "destinos" || slug[0] === "destinations")
+    metadataSlug.length === 1 &&
+    (metadataSlug[0] === "destinos" || metadataSlug[0] === "destinations")
   ) {
     const siteName =
       website.content?.account?.name || website.content?.siteName || subdomain;
@@ -478,11 +498,11 @@ export async function generateMetadata({
 
   // Destination detail (/destinos/[slug])
   if (
-    slug.length === 2 &&
-    (slug[0] === "destinos" || slug[0] === "destinations")
+    metadataSlug.length === 2 &&
+    (metadataSlug[0] === "destinos" || metadataSlug[0] === "destinations")
   ) {
     const destinations = await getDestinations(subdomain);
-    const dest = destinations.find((d) => d.slug === slug[1]);
+    const dest = destinations.find((d) => d.slug === metadataSlug[1]);
     if (dest) {
       const siteName =
         website.content?.account?.name ||
@@ -535,9 +555,9 @@ export async function generateMetadata({
   }
 
   // Check if this is a product page (has 2+ segments like /hoteles/hotel-name)
-  if (slug.length >= 2) {
-    const categorySlug = slug[0];
-    const productSlug = slug.slice(1).join("/");
+  if (metadataSlug.length >= 2) {
+    const categorySlug = metadataSlug[0];
+    const productSlug = metadataSlug.slice(1).join("/");
     const productType = getCategoryProductType(categorySlug);
 
     if (productType) {
@@ -601,7 +621,7 @@ export async function generateMetadata({
           0,
           160,
         );
-        const pathname = `/${slugPath}`;
+        const pathname = `/${metadataSlug.join("/")}`;
 
         const metadata: Metadata = {
           title,
@@ -667,10 +687,28 @@ export async function generateMetadata({
     }
   }
 
-  // Check for regular page (category, static, or custom)
-  const page =
-    (await getPageBySlug(subdomain, slugPath)) ??
-    getSystemFallbackPage(slugPath, website);
+  // Check for regular page (category, static, or custom). Locale-aware page
+  // resolution is required for custom-domain middleware rewrites: the internal
+  // route receives `/site/<subdomain>/contact` while request headers carry
+  // `pt-BR`/`fr-FR`/`de-DE`. Reconstruct the public localized path so same-slug
+  // translated `website_pages` rows and localized system fallbacks win over the
+  // default Spanish row.
+  const resolvedPageRoute = await resolvePublicPageForRoute({
+    website,
+    publicSlugPath: localeContext.localizedPathname.replace(/^\//, "") || slugPath,
+    loadPageBySlug: getPageBySlug,
+    loadPageBySlugForLocale: getPageBySlugForLocale,
+    loadPageByTranslationGroup: getPageByTranslationGroup,
+  });
+  const localizedSystemFallback =
+    localeContext.resolvedLocale !== localeContext.defaultLocale
+      ? getSystemFallbackPage(
+          resolvedPageRoute.slugPath,
+          website,
+          localeContext.resolvedLocale,
+        )
+      : null;
+  const page = localizedSystemFallback ?? resolvedPageRoute.page;
 
   if (!page) {
     // Homepage fallback: use website SEO metadata from layout
@@ -718,7 +756,7 @@ export async function generateMetadata({
   const description = page.seo_description || "";
   const canonicalUrl = buildCanonicalUrl(
     baseUrl,
-    `/${slugPath}`,
+    `/${resolvedPageRoute.slugPath}`,
     localeContext,
   );
 
@@ -785,6 +823,10 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
     website,
     slugPath ? `/${slugPath}` : "/",
   );
+  const routeSlug =
+    localeContext.languageSegment && slug[0]?.toLowerCase() === localeContext.languageSegment
+      ? slug.slice(1)
+      : slug;
   const resolvedLocale = localeContext.resolvedLocale;
   const defaultLocale = localeContext.defaultLocale ?? "es-CO";
   const isCustomDomain = inferIsCustomDomainWebsite(website);
@@ -804,8 +846,8 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
 
   // Handle activities listing (/actividades)
   if (
-    slug.length === 1 &&
-    (slug[0] === "actividades" || slug[0] === "activities")
+    routeSlug.length === 1 &&
+    (routeSlug[0] === "actividades" || routeSlug[0] === "activities")
   ) {
     const { items: activityProducts } = await getCategoryProducts(
       subdomain,
@@ -843,7 +885,7 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
   // Handle packages listing (/paquetes) — editorial-v1 overlay (Wave 4)
   // wraps the generic `PackagesListingPage` via TemplateSlot. Non-editorial
   // tenants keep the existing generic body unchanged.
-  if (slug.length === 1 && (slug[0] === "paquetes" || slug[0] === "packages")) {
+  if (routeSlug.length === 1 && (routeSlug[0] === "paquetes" || routeSlug[0] === "packages")) {
     const { items: packageProducts } = await getCategoryProducts(
       subdomain,
       "packages",
@@ -944,7 +986,7 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
   // TemplateSlot; non-editorial tenants currently fall through to the
   // generic packages-listing shell (shared filtering/grid) as a placeholder
   // until a dedicated hotels-listing generic body is built.
-  if (slug.length === 1 && (slug[0] === "hoteles" || slug[0] === "hotels")) {
+  if (routeSlug.length === 1 && (routeSlug[0] === "hoteles" || routeSlug[0] === "hotels")) {
     const { items: hotelProducts } = await getCategoryProducts(
       subdomain,
       "hotels",
@@ -978,8 +1020,8 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
 
   // Handle destination listing (/destinos)
   if (
-    slug.length === 1 &&
-    (slug[0] === "destinos" || slug[0] === "destinations")
+    routeSlug.length === 1 &&
+    (routeSlug[0] === "destinos" || routeSlug[0] === "destinations")
   ) {
     const destinations = await getDestinations(subdomain);
     const destinosListBody = (
@@ -1004,11 +1046,11 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
 
   // Handle destination detail (/destinos/[slug])
   if (
-    slug.length === 2 &&
-    (slug[0] === "destinos" || slug[0] === "destinations")
+    routeSlug.length === 2 &&
+    (routeSlug[0] === "destinos" || routeSlug[0] === "destinations")
   ) {
     const destinations = await getDestinations(subdomain);
-    const dest = destinations.find((d) => d.slug === slug[1]);
+    const dest = destinations.find((d) => d.slug === routeSlug[1]);
     if (dest) {
       const [products, serpData, destReviews, seoOverride] = await Promise.all([
         getDestinationProducts(subdomain, dest.name),
@@ -1061,9 +1103,9 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
   }
 
   // Handle product pages (2+ segments like /hoteles/hotel-name)
-  if (slug.length >= 2) {
-    const categorySlug = slug[0];
-    const productSlug = slug.slice(1).join("/");
+  if (routeSlug.length >= 2) {
+    const categorySlug = routeSlug[0];
+    const productSlug = routeSlug.slice(1).join("/");
     const productType = getCategoryProductType(categorySlug);
 
     if (productType) {
@@ -1090,7 +1132,7 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
             locale: resolvedLocale,
           });
           if (!overlay) {
-            redirect(`/site/${subdomain}/${slugPath}`);
+            redirect(`/site/${subdomain}/${routeSlug.join("/")}`);
           }
         }
 
@@ -1144,7 +1186,7 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
         // Issue #208: thread resolved request locale into JSON-LD `inLanguage`.
         const productLocaleContext = await resolvePublicMetadataLocale(
           website,
-          `/${slugPath}`,
+          `/${routeSlug.join("/")}`,
         );
 
         // editorial-v1 dispatcher payload: lets the editorial overlay skip
@@ -1252,10 +1294,19 @@ export default async function DynamicPage({ params }: DynamicPageProps) {
     }
   }
 
-  // Handle regular pages
-  const page =
-    (await getPageBySlug(subdomain, slugPath)) ??
-    getSystemFallbackPage(slugPath, website);
+  // Handle regular pages with the same locale-aware resolver used by metadata.
+  const resolvedPageRoute = await resolvePublicPageForRoute({
+    website,
+    publicSlugPath: localeContext.localizedPathname.replace(/^\//, "") || slugPath,
+    loadPageBySlug: getPageBySlug,
+    loadPageBySlugForLocale: getPageBySlugForLocale,
+    loadPageByTranslationGroup: getPageByTranslationGroup,
+  });
+  const localizedSystemFallback =
+    resolvedLocale !== defaultLocale
+      ? getSystemFallbackPage(resolvedPageRoute.slugPath, website, resolvedLocale)
+      : null;
+  const page = localizedSystemFallback ?? resolvedPageRoute.page;
 
   if (!page || !page.is_published) {
     notFound();

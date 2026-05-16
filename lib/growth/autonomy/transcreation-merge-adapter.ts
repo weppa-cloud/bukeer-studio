@@ -6,9 +6,13 @@ import {
   GrowthPublicationJobInsertSchema,
   GrowthWorkItemOutcomeInsertSchema,
 } from "@bukeer/website-contract";
+import {
+  localePair,
+  marketForGrowthLocale,
+} from "@/lib/growth/locale-targeting";
 
 type JsonRecord = Record<string, unknown>;
-type GrowthMarket = "CO" | "MX" | "US" | "CA" | "EU" | "OTHER";
+type GrowthMarket = "CO" | "MX" | "US" | "CA" | "BR" | "EU" | "OTHER";
 
 const PLACEHOLDER_PUBLICATION_JOB_ID =
   "00000000-0000-4000-8000-000000000003";
@@ -197,17 +201,19 @@ export function planTranscreationMerge(
   const successMetric =
     input.successMetric ??
     `localized_organic_clicks:${input.pageType}:${input.targetLocale}:${input.sourceEntityId}`;
+  const resolvedLocalePair = localePair(input.sourceLocale, input.targetLocale);
   const common = {
     account_id: input.accountId,
     website_id: input.websiteId,
     locale: input.targetLocale,
-    market: input.market ?? "CO",
+    market: input.market ?? marketForGrowthLocale(input.targetLocale),
     work_item_id: input.workItemId,
     change_set_id: input.changeSetId,
     policy_id: input.policyId ?? null,
     lane: "transcreation" as const,
     action_class: "transcreation_merge" as const,
   };
+  const targetPath = `${input.pageType}:${input.targetLocale}:${input.sourceEntityId}`;
   const rollbackExpectation = {
     strategy: "restore_localized_variant_or_job",
     target_table: targetTable,
@@ -220,7 +226,7 @@ export function planTranscreationMerge(
     status: smoke.pass ? "dry_run_ready" : "blocked",
     target_table: targetTable,
     target_id: targetId,
-    target_path: `${input.pageType}:${input.targetLocale}:${input.sourceEntityId}`,
+    target_path: targetPath,
     idempotency_key: buildIdempotencyKey(input),
     before_snapshot: {
       table: targetTable,
@@ -235,11 +241,13 @@ export function planTranscreationMerge(
         target: {
           target_table: targetTable,
           target_id: targetId,
-          target_path: `${input.pageType}:${input.targetLocale}:${input.sourceEntityId}`,
+          target_path: targetPath,
         },
         rollback_expectation: rollbackExpectation,
         source_locale: input.sourceLocale,
         target_locale: input.targetLocale,
+        locale_pair: resolvedLocalePair,
+        target_path: targetPath,
         page_type: input.pageType,
         source_entity_id: input.sourceEntityId,
         payload: input.payload,
@@ -258,6 +266,10 @@ export function planTranscreationMerge(
       adapter: "transcreation_merge_v1",
       transcreation_job_id: input.transcreationJobId,
       localized_variant_id: input.localizedVariantId ?? null,
+      source_locale: input.sourceLocale,
+      target_locale: input.targetLocale,
+      locale_pair: resolvedLocalePair,
+      target_path: targetPath,
       rollback_expectation: rollbackExpectation,
       quality: input.quality ?? null,
       existing_workflow: "lib/seo/transcreate-workflow.ts",
@@ -278,10 +290,12 @@ export function planTranscreationMerge(
     evaluation_window: `day_${days}` as "day_21" | "day_45",
     evaluation_date: dateOnly(addDays(now, days)),
     funnel_attribution_status: "pending" as const,
-    attribution_evidence: {
-      locale: input.targetLocale,
-      source_locale: input.sourceLocale,
-    },
+      attribution_evidence: {
+        locale: input.targetLocale,
+        source_locale: input.sourceLocale,
+        target_locale: input.targetLocale,
+        locale_pair: resolvedLocalePair,
+      },
   }));
 
   const outcomes = outcomeCandidates.map((outcome) => {

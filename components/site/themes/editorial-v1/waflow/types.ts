@@ -108,6 +108,8 @@ export interface WaflowOpenHandlers {
 export interface WaflowContextValue extends WaflowOpenHandlers {
   isOpen: boolean;
   config: WaflowConfig | null;
+  /** Request/content locale used for drawer and FAB copy. */
+  locale: string;
   /** Business phone number (wa.me target). */
   businessNumber: string;
   /** Avg response-time label, e.g. "3 min". */
