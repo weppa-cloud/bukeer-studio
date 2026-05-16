@@ -1,6 +1,10 @@
 import { Metadata } from "next";
 import { getWebsiteBySubdomain } from "@/lib/supabase/get-website";
-import { resolvePublicMetadataLocale } from "@/lib/seo/public-metadata";
+import {
+  buildLocaleAwareAlternateLanguages,
+  resolvePublicMetadataLocale,
+} from "@/lib/seo/public-metadata";
+import { getPublicUiMessages } from "@/lib/site/public-ui-messages";
 import { SearchPageClient } from "./search-client";
 
 interface SearchPageProps {
@@ -20,13 +24,20 @@ export async function generateMetadata({
   const localeContext = website
     ? await resolvePublicMetadataLocale(website, "/buscar")
     : null;
+  const messages = getPublicUiMessages(localeContext?.resolvedLocale);
+  const pageTitle = `${messages.searchPage.eyebrow} | ${siteName}`;
 
   return {
-    title: `Buscar | ${siteName}`,
-    description: `Busca destinos, hoteles, actividades y paquetes en ${siteName}`,
+    title: pageTitle,
+    description: `${messages.searchPage.initialHint} - ${siteName}`,
     alternates: localeContext
       ? {
           canonical: `${baseUrl}${localeContext.localizedPathname}`,
+          languages: buildLocaleAwareAlternateLanguages(
+            baseUrl,
+            "/buscar",
+            localeContext,
+          ),
         }
       : undefined,
     robots: { index: false, follow: true },
@@ -43,11 +54,17 @@ export default async function SearchPage({
 
   if (!website) return null;
 
+  const localeContext = await resolvePublicMetadataLocale(website, "/buscar");
+  const localizedWebsite = {
+    ...website,
+    resolvedLocale: localeContext.resolvedLocale,
+  };
+
   return (
     <SearchPageClient
       subdomain={subdomain}
       initialQuery={q || ""}
-      website={website}
+      website={localizedWebsite}
     />
   );
 }

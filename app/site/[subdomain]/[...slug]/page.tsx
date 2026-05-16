@@ -61,6 +61,8 @@ import { ACTIVITY_FAQS_DEFAULT } from "@/lib/products/activity-faqs-default";
 import { PACKAGE_FAQS_DEFAULT } from "@/lib/products/package-faqs-default";
 import { resolvePublicPageForRoute } from "@/lib/site/public-page-resolution";
 import { getSystemFallbackPage } from "@/lib/site/system-fallback-pages";
+import { getPublicUiMessages } from "@/lib/site/public-ui-messages";
+import { getPublicUiExtraTextGetter } from "@/lib/site/public-ui-extra-text";
 
 const DestinationListingPage = dynamic(() =>
   import("@/components/pages/destination-listing-page").then(
@@ -128,6 +130,10 @@ function buildCanonicalUrl(
   }
 
   return `${baseUrl}${localizedPath}`;
+}
+
+function toPlainMetadataText(value: string): string {
+  return value.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
 }
 
 async function resolveListingPageMeta(
@@ -313,20 +319,28 @@ export async function generateMetadata({
       "hotels",
     ]);
     const ogImage = resolveOgImage(website);
+    const messages = getPublicUiMessages(localeContext.resolvedLocale);
+    const editorialText = getPublicUiExtraTextGetter(
+      localeContext.resolvedLocale,
+    );
+    const pageTitle = messages.nav.hotels;
+    const pageDescription = toPlainMetadataText(
+      editorialText("editorialHotelsSubtitle"),
+    );
     const metadata: Metadata = {
-      title: "Hoteles",
-      description: `Explora hoteles seleccionados por ${siteName} para tu proximo viaje.`,
+      title: pageTitle,
+      description: pageDescription,
       openGraph: {
-        title: `Hoteles | ${siteName}`,
-        description: `Explora hoteles seleccionados por ${siteName} para tu proximo viaje.`,
+        title: `${pageTitle} | ${siteName}`,
+        description: pageDescription,
         type: "website",
         locale: ogLocale,
         ...(ogImage && { images: [{ url: ogImage }] }),
       },
       twitter: {
         card: "summary_large_image",
-        title: `Hoteles | ${siteName}`,
-        description: `Explora hoteles seleccionados por ${siteName} para tu proximo viaje.`,
+        title: `${pageTitle} | ${siteName}`,
+        description: pageDescription,
         ...(ogImage && { images: [ogImage] }),
       },
       alternates: {
