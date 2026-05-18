@@ -100,14 +100,36 @@ export async function buildGrowthAgentContext(
 ): Promise<GrowthAgentContextBundle> {
   const lane = options.lane ?? "all";
   const wakeupPayload = asRecord(options.wakeup?.payload);
-  const sourceLocale = normalizeGrowthLocale(
-    wakeupPayload.source_locale ?? wakeupPayload.sourceLocale ?? "es-CO",
-  );
-  const locale = normalizeGrowthLocale(
-    wakeupPayload.target_locale ?? wakeupPayload.targetLocale ?? options.locale,
-    "es-CO",
-  );
-  const market = options.market ?? marketForGrowthLocale(locale);
+  const rawSourceLocale = wakeupPayload.source_locale ?? wakeupPayload.sourceLocale;
+  const rawTargetLocale =
+    wakeupPayload.target_locale ?? wakeupPayload.targetLocale ?? options.locale;
+  const rawTargetMarket =
+    wakeupPayload.target_market ?? wakeupPayload.targetMarket ?? options.market;
+
+  if (typeof rawSourceLocale !== "string" || !rawSourceLocale.trim()) {
+    throw new Error(
+      "Growth context BLOCKED: missing explicit source_locale; implicit es-CO fallback is forbidden.",
+    );
+  }
+  if (typeof rawTargetLocale !== "string" || !rawTargetLocale.trim()) {
+    throw new Error(
+      "Growth context BLOCKED: missing explicit target locale; implicit es-CO fallback is forbidden.",
+    );
+  }
+  if (typeof rawTargetMarket !== "string" || !rawTargetMarket.trim()) {
+    throw new Error(
+      "Growth context BLOCKED: missing explicit target market; implicit market inference is forbidden.",
+    );
+  }
+
+  const sourceLocale = normalizeGrowthLocale(rawSourceLocale, rawSourceLocale);
+  const locale = normalizeGrowthLocale(rawTargetLocale, rawTargetLocale);
+  const market = rawTargetMarket as GrowthMarket;
+  if (marketForGrowthLocale(locale) !== market && market !== "OTHER") {
+    throw new Error(
+      `Growth context BLOCKED: target locale/market mismatch (${locale}/${market}).`,
+    );
+  }
   const now = options.now ?? new Date();
 
   const [

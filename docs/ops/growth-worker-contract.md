@@ -38,8 +38,6 @@ If the context packet lacks data the worker needs:
 2. Include: what fact is missing, the expected source/profile, and the freshness threshold.
 3. Do NOT attempt to fetch the data yourself.
 
-### Rule 1 or Rule 2.
-
 ### Rule 4: The context builder must load growth_profile_runs
 
 Every context packet must include `growth_profile_runs` IDs in its `source_refs`. The context builder loads recent runs for the target account/website/locale/market so workers can verify:
