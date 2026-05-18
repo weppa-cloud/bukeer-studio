@@ -31,6 +31,7 @@ import { supabaseImageUrl } from "@/lib/images/supabase-transform";
 import { EditorialSiteHeader } from "@/components/site/themes/editorial-v1/layout/site-header";
 import { EditorialSiteFooter } from "@/components/site/themes/editorial-v1/layout/site-footer";
 import { WaflowProvider } from "@/components/site/themes/editorial-v1/waflow/provider";
+import { createHomeRenderWebsite } from "@/lib/site/home-rendering";
 import "@/app/globals.css";
 // Editorial-v1 scoped CSS loads alongside globals but only emits rules under
 // `[data-template-set="editorial-v1"]`, so generic sites stay untouched.
@@ -217,12 +218,13 @@ export default async function SiteLayout({
   const navItems = await getWebsiteNavigation(subdomain);
   const localeContext = await resolvePublicMetadataLocale(website, "/");
   const isCustomDomain = inferIsCustomDomainWebsite(website);
-  const websiteForRender = {
-    ...website,
+  const websiteForRender = createHomeRenderWebsite({
+    website,
     resolvedLocale: localeContext.resolvedLocale,
     defaultLocale: localeContext.defaultLocale,
     isCustomDomain,
-  };
+    includeSectionSummaries: true,
+  });
   const basePath = getBasePath(subdomain, isCustomDomain);
   const navigation =
     navItems.length > 0
