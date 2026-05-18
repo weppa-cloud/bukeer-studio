@@ -79,6 +79,7 @@ interface LocaleAwareRoutingInput {
   resolvedLanguage: string;
   hasLanguageSegment: boolean;
   languageSegment: string | null;
+  preservePublicPath?: boolean;
 }
 
 function resolveWebsiteLocaleSettingsForMiddleware(
@@ -332,6 +333,70 @@ async function getWebsiteByCustomDomain(
   const result = data && data.length > 0 ? data[0] : null;
   setCached(cacheKey, result);
   return result;
+}
+
+async function publishedWebsitePageExistsBySlug(
+  websiteId: string,
+  slug: string,
+): Promise<boolean> {
+  const normalizedSlug = slug
+    .split("/")
+    .filter(Boolean)
+    .join("/");
+  if (!normalizedSlug) return false;
+
+  const cacheKey = `page-slug:${websiteId}:${normalizedSlug}`;
+  const cached = getCached<boolean>(cacheKey);
+  if (cached !== undefined) return cached;
+
+  const data = await supabaseFetch<Array<{ id: string }>>(
+    `/rest/v1/website_pages?select=id&website_id=eq.${encodeURIComponent(websiteId)}&slug=eq.${encodeURIComponent(normalizedSlug)}&is_published=eq.true&limit=1`,
+  );
+  const result = Boolean(data && data.length > 0);
+  setCached(cacheKey, result);
+  return result;
+}
+
+async function resolveExactLocalePrefixedPageRouting(input: {
+  website: WebsiteLookup | null;
+  localeResolution: PublicLocalePathResolution;
+}): Promise<
+  | {
+      pathnameWithoutLang: string;
+      canonicalPathname: string;
+      preservePublicPath: true;
+    }
+  | null
+> {
+  const { website, localeResolution } = input;
+  if (!website?.id || !localeResolution.hasLanguageSegment) return null;
+
+  const exactSlug = localeResolution.originalPathname
+    .split("/")
+    .filter(Boolean)
+    .join("/");
+  if (!exactSlug) return null;
+
+  const strippedSlug = localeResolution.pathnameWithoutLang
+    .split("/")
+    .filter(Boolean)
+    .join("/");
+  if (exactSlug === strippedSlug) return null;
+
+  // Paid-search/custom pages can intentionally store locale-prefixed slugs
+  // (for example `pt/pacotes-colombia`). Preserve those exact page routes
+  // instead of stripping the locale prefix before the tenant rewrite.
+  const exactPageExists = await publishedWebsitePageExistsBySlug(
+    website.id,
+    exactSlug,
+  );
+  if (!exactPageExists) return null;
+
+  return {
+    pathnameWithoutLang: localeResolution.originalPathname,
+    canonicalPathname: localeResolution.originalPathname,
+    preservePublicPath: true,
+  };
 }
 
 async function productExists(
@@ -741,6 +806,7 @@ function applyLocaleAwareTenantRewrite(
     resolvedLanguage,
     hasLanguageSegment,
     languageSegment,
+    preservePublicPath,
   } = input;
 
   // Internal rewrite target uses Spanish-canonical category segments so a
@@ -748,7 +814,7 @@ function applyLocaleAwareTenantRewrite(
   // preserved (response.url unchanged) — see [[ADR-019]] amendment.
   const internalPathname = canonicalPathname || pathnameWithoutLang;
 
-  if (!sourceUrl.pathname.startsWith("/site/")) {
+  if (!preservePublicPath && !sourceUrl.pathname.startsWith("/site/")) {
     const publicPathname = buildPublicLocalizedPath(
       translateCategoryPathname(pathnameWithoutLang, localeToLanguage(resolvedLocale)),
       resolvedLocale,
@@ -1269,18 +1335,30 @@ export async function middleware(request: NextRequest) {
       pathname,
       resolveWebsiteLocaleSettingsForMiddleware(website),
     );
+    const exactLocalePrefixedPageRouting =
+      await resolveExactLocalePrefixedPageRouting({
+        website,
+        localeResolution,
+      });
+    const routePathnameWithoutLang =
+      exactLocalePrefixedPageRouting?.pathnameWithoutLang ??
+      localeResolution.pathnameWithoutLang;
+    const routeCanonicalPathname =
+      exactLocalePrefixedPageRouting?.canonicalPathname ??
+      localeResolution.canonicalPathname;
     const potentialProductRoute = getPotentialProductRoute(
-      localeResolution.pathnameWithoutLang,
+      routePathnameWithoutLang,
     );
     const allowLegacyRedirects =
-      !isPublicSeoMetadataPath(localeResolution.pathnameWithoutLang) &&
-      !isLegalPathname(localeResolution.pathnameWithoutLang);
+      !exactLocalePrefixedPageRouting &&
+      !isPublicSeoMetadataPath(routePathnameWithoutLang) &&
+      !isLegalPathname(routePathnameWithoutLang);
 
     if (allowLegacyRedirects) {
       const legacyRedirectResponse = await tryLegacyRedirect(
         request,
         website,
-        localeResolution.pathnameWithoutLang,
+        routePathnameWithoutLang,
       );
       if (legacyRedirectResponse) {
         return finalizePublicSiteResponse(
@@ -1320,8 +1398,8 @@ export async function middleware(request: NextRequest) {
       applyLocaleAwareTenantRewrite({
         request,
         sourceUrl: url,
-        pathnameWithoutLang: localeResolution.pathnameWithoutLang,
-        canonicalPathname: localeResolution.canonicalPathname,
+        pathnameWithoutLang: routePathnameWithoutLang,
+        canonicalPathname: routeCanonicalPathname,
         originalPathname: localeResolution.originalPathname,
         subdomain,
         resolvedLocale: localeResolution.resolvedLocale,
@@ -1329,6 +1407,7 @@ export async function middleware(request: NextRequest) {
         resolvedLanguage: localeResolution.resolvedLanguage,
         hasLanguageSegment: localeResolution.hasLanguageSegment,
         languageSegment: localeResolution.languageSegment,
+        preservePublicPath: exactLocalePrefixedPageRouting?.preservePublicPath,
       }),
       capturedClickIds,
     );
@@ -1351,18 +1430,30 @@ export async function middleware(request: NextRequest) {
       pathname,
       resolveWebsiteLocaleSettingsForMiddleware(website),
     );
+    const exactLocalePrefixedPageRouting =
+      await resolveExactLocalePrefixedPageRouting({
+        website,
+        localeResolution,
+      });
+    const routePathnameWithoutLang =
+      exactLocalePrefixedPageRouting?.pathnameWithoutLang ??
+      localeResolution.pathnameWithoutLang;
+    const routeCanonicalPathname =
+      exactLocalePrefixedPageRouting?.canonicalPathname ??
+      localeResolution.canonicalPathname;
     const potentialProductRoute = getPotentialProductRoute(
-      localeResolution.pathnameWithoutLang,
+      routePathnameWithoutLang,
     );
     const allowLegacyRedirects =
-      !isPublicSeoMetadataPath(localeResolution.pathnameWithoutLang) &&
-      !isLegalPathname(localeResolution.pathnameWithoutLang);
+      !exactLocalePrefixedPageRouting &&
+      !isPublicSeoMetadataPath(routePathnameWithoutLang) &&
+      !isLegalPathname(routePathnameWithoutLang);
 
     if (allowLegacyRedirects) {
       const legacyRedirectResponse = await tryLegacyRedirect(
         request,
         website,
-        localeResolution.pathnameWithoutLang,
+        routePathnameWithoutLang,
       );
       if (legacyRedirectResponse) {
         return finalizePublicSiteResponse(
@@ -1404,8 +1495,8 @@ export async function middleware(request: NextRequest) {
         applyLocaleAwareTenantRewrite({
           request,
           sourceUrl: url,
-          pathnameWithoutLang: localeResolution.pathnameWithoutLang,
-          canonicalPathname: localeResolution.canonicalPathname,
+          pathnameWithoutLang: routePathnameWithoutLang,
+          canonicalPathname: routeCanonicalPathname,
           originalPathname: localeResolution.originalPathname,
           subdomain: website.subdomain,
           host,
@@ -1414,6 +1505,8 @@ export async function middleware(request: NextRequest) {
           resolvedLanguage: localeResolution.resolvedLanguage,
           hasLanguageSegment: localeResolution.hasLanguageSegment,
           languageSegment: localeResolution.languageSegment,
+          preservePublicPath:
+            exactLocalePrefixedPageRouting?.preservePublicPath,
         }),
         capturedClickIds,
       );
