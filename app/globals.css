@@ -834,6 +834,13 @@ select.sort-select {
   --chart-3: oklch(0.72 0.15 50); /* Orange */
   --chart-4: oklch(0.6 0.22 25); /* Red */
   --chart-5: oklch(0.65 0.1 140); /* Green */
+  --bukeer-structural: 262 36% 52%;
+  --bukeer-live: 174 62% 52%;
+  --bukeer-human-loop: 19 81% 65%;
+  --bukeer-success: 158 64% 51%;
+  --bukeer-approved: 158 64% 51%;
+  --bukeer-warning: 52 97% 52%;
+  --bukeer-surface-rail: 210 24% 97%;
   --radius: 0.75rem;
   --sidebar: oklch(0.98 0.005 285);
   --sidebar-foreground: oklch(0.2 0.03 285);
@@ -843,6 +850,18 @@ select.sort-select {
   --sidebar-accent-foreground: oklch(0.2 0.03 285);
   --sidebar-border: oklch(0.92 0.01 285);
   --sidebar-ring: oklch(0.5 0.14 285);
+}
+
+.bukeer-admin-signature {
+  font-family: "Readex Pro", var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+.bukeer-admin-signature h1,
+.bukeer-admin-signature h2,
+.bukeer-admin-signature h3,
+.bukeer-admin-signature .bukeer-display {
+  font-family: "Outfit", var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: 0;
 }
 
 .dark {
@@ -869,6 +888,13 @@ select.sort-select {
   --chart-3: oklch(0.65 0.12 50);
   --chart-4: oklch(0.55 0.18 25);
   --chart-5: oklch(0.6 0.08 140);
+  --bukeer-structural: 262 44% 66%;
+  --bukeer-live: 174 62% 48%;
+  --bukeer-human-loop: 19 82% 68%;
+  --bukeer-success: 158 60% 48%;
+  --bukeer-approved: 158 60% 48%;
+  --bukeer-warning: 52 94% 58%;
+  --bukeer-surface-rail: 224 24% 16%;
   --sidebar: oklch(0.2 0.02 285);
   --sidebar-foreground: oklch(0.95 0.005 285);
   --sidebar-primary: oklch(0.65 0.14 285);

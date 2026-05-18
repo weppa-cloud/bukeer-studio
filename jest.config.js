@@ -11,6 +11,8 @@ module.exports = {
     '^@/(.*)$': '<rootDir>/$1',
     '^@bukeer/website-contract$':
       '<rootDir>/packages/website-contract/src/index',
+    '^@bukeer/admin-contract$':
+      '<rootDir>/packages/admin-contract/src/index',
   },
   transform: {
     // `tsconfig.jest.json` overrides `jsx: preserve` → `react-jsx` so

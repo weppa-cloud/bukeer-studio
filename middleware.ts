@@ -1539,11 +1539,12 @@ export const config = {
     /*
      * Match all request paths except for the ones starting with:
      * - api (API routes)
+     * - admin/prototype (internal Admin Next prototypes guard themselves server-side)
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      * - public folder files
      */
-    "/((?!api|_next/static|_next/image|favicon.ico|.*\\.avif$|.*\\.gif$|.*\\.png$|.*\\.jpg$|.*\\.jpeg$|.*\\.svg$|.*\\.webp$).*)",
+    "/((?!api|admin/prototype|_next/static|_next/image|favicon.ico|.*\\.avif$|.*\\.gif$|.*\\.png$|.*\\.jpg$|.*\\.jpeg$|.*\\.svg$|.*\\.webp$).*)",
   ],
 };

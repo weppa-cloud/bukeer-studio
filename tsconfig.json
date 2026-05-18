@@ -37,6 +37,12 @@
       ],
       "@bukeer/theme-sdk/*": [
         "./packages/theme-sdk/src/*"
+      ],
+      "@bukeer/admin-contract": [
+        "./packages/admin-contract/src"
+      ],
+      "@bukeer/admin-contract/*": [
+        "./packages/admin-contract/src/*"
       ]
     }
   },

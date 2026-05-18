@@ -41,7 +41,7 @@ const nextConfig: NextConfig = {
   typescript: { ignoreBuildErrors: true },
 
   // Transpile workspace packages that use .js extension imports (ESM convention)
-  transpilePackages: ['@bukeer/website-contract', '@bukeer/theme-sdk'],
+  transpilePackages: ['@bukeer/website-contract', '@bukeer/theme-sdk', '@bukeer/admin-contract'],
 
   // Disable built-in image optimization (Cloudflare Workers doesn't support it natively).
   // Re-enable when Cloudflare Images binding is configured.
