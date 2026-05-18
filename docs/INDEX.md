@@ -784,6 +784,16 @@ Do **not** delete concepts on removal — mark as deprecated inline so the graph
 - [T6 One-Entity ContextPacket Canary](validation/t6-provider-normalization-contextpacket-canary-2026-05-18.md)
 - [T7 Learning Run — Provider Normalization Slice1](ai/learning-runs/2026-05-18-growth-provider-normalization-colombiatours-ptbr-slice1.md)
 
+### Growth Provider Normalization Write Gate Slice1: ColombiaTours pt-BR/BR — Validation Evidence
+
+- [SPEC — Write Gate Slice1](specs/SPEC_GROWTH_PROVIDER_NORMALIZATION_COLOMBIATOURS_PTBR_WRITE_GATE_SLICE1.md)
+- [T1 Write Gate Plan / Production DML Preflight](validation/t1-provider-normalization-write-gate-plan-2026-05-18.md)
+- [T2 Apply Write Gate](validation/t2-provider-normalization-write-gate-2026-05-18.md)
+- [T3 Data Validation Source Truth Chain](validation/t3-provider-normalization-write-gate-data-validation-2026-05-18.md)
+- [T4 ContextPacket Canary After Write](validation/t4-provider-normalization-write-gate-contextpacket-canary-2026-05-18.md)
+- [T5 Ops Handoff Write Gate Slice1](validation/t5-provider-normalization-write-gate-ops-handoff-2026-05-18.md)
+- [Learning Run — ColombiaTours pt-BR Write Gate Slice1](ai/learning-runs/2026-05-18-growth-provider-normalization-colombiatours-ptbr-write-gate-slice1.md)
+
 ### Growth Control Plane Phase3 — Production Apply Evidence
 
 - [T2 Production Apply Evidence](validation/t2-phase3-production-apply-2026-05-18.md)
