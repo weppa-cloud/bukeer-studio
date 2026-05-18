@@ -51,6 +51,8 @@ Latest operational evidence: 2026-05-12 - [[growth-os-ready-cleanup-2026-05-12]]
 - **Humans:** open in Obsidian for graph view, or follow the resolution table at the bottom.
 - **Freshness:** update this file when adding a new ADR, SPEC, runbook, or cross-cutting concept.
 
+Latest learning run: 2026-05-18 - [[2026-05-18-growth-agents-control-plane-v1]] records Growth Agents Product Control Plane v1 through T6: Supabase/Bukeer Studio as product control plane, ContextPacket-only workers, explicit locale/market gate, ColombiaTours pt-BR mock canary, no deploy/no provider calls.
+
 ---
 
 ## Agent entry points
@@ -746,3 +748,7 @@ When you ship a new ADR, SPEC, runbook, or cross-cutting concept:
 4. Grep the repo for prose references to the new artifact and convert them to `[[ArtifactName]]` wikilinks (leave existing markdown links intact).
 
 Do **not** delete concepts on removal — mark as deprecated inline so the graph keeps its history.
+
+
+<!-- Learning run additions -->
+- [[2026-05-18-growth-agents-control-plane-v1]] → [file](./ai/learning-runs/2026-05-18-growth-agents-control-plane-v1.md)
