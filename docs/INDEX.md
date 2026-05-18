@@ -768,6 +768,7 @@ Do **not** delete concepts on removal — mark as deprecated inline so the graph
 - [T1 PLAN GATE — validate safety/data design](validation/t1-growth-source-truth-plan-gate-2026-05-18.md)
 - [T2 Dry-run source-truth normalizer implementation](validation/t2-growth-source-truth-dry-run-implementation-2026-05-18.md)
 - [T3 Code/Data Gate — normalizer diff review](validation/t3-growth-source-truth-code-data-gate-2026-05-18.md)
+- [T4 ColombiaTours Data Audit Dry-run](validation/t4-growth-source-truth-colombiatours-data-audit-2026-05-18.md)
 
 ### Growth Control Plane Phase3 — Production Apply Evidence
 
