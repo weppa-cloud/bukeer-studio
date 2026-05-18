@@ -17,10 +17,14 @@ const PLAN = [
       'viajes falabella',
       'despegar',
       'despegar san andres',
+      'tiquete',
+      'tiquetes',
       'pasajes',
       'pasaje',
       'pasaje en avion',
       'bus',
+      'envios',
+      'envios a colombia',
       '2x1',
       'oferta',
       'hotel',
@@ -37,6 +41,10 @@ const PLAN = [
   {
     campaignName: 'MX_Multidestino_y_Caribe_2026_05',
     negatives: [
+      'tiquete',
+      'tiquetes',
+      'pasaje',
+      'pasajes',
       'avion',
       'vuelos',
       'vuelo',
@@ -44,7 +52,6 @@ const PLAN = [
       'aerolinea',
       'tour en',
       'tours en',
-      'tour medellin',
       'agencia de tour',
       'agencia de tour local',
       'quimbaya',
@@ -55,6 +62,22 @@ const PLAN = [
       'tours locales',
     ],
   },
+  {
+    campaignName: 'ES_Cartagena_Medellin_2026_05',
+    negatives: [
+      'tiquete',
+      'tiquetes',
+      'pasaje',
+      'pasajes',
+      'avion',
+      'vuelos',
+      'vuelo',
+      'aerolineas',
+      'aerolinea',
+      'aviatur',
+      'viajar sin limites',
+    ],
+  },
 ];
 
 function printUsage() {
@@ -62,7 +85,7 @@ function printUsage() {
   node scripts/google-ads/apply-colombiatours-negative-keywords.cjs [--apply]
 
 Default mode validates campaign negative keyword operations only.
---apply writes missing phrase-match negatives to Chile and MX campaigns.
+--apply writes missing phrase-match negatives to Chile, MX and ES campaigns.
 `);
 }
 
