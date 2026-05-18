@@ -770,6 +770,7 @@ Do **not** delete concepts on removal — mark as deprecated inline so the graph
 - [T3 Code/Data Gate — normalizer diff review](validation/t3-growth-source-truth-code-data-gate-2026-05-18.md)
 - [T4 ColombiaTours Data Audit Dry-run](validation/t4-growth-source-truth-colombiatours-data-audit-2026-05-18.md)
 - [T5 ColombiaTours pt-BR ContextPacket Readiness Canary](validation/t5-growth-source-truth-colombiatours-ptbr-canary-2026-05-18.md)
+- [T6 Ops Handoff — no backfill/no publish](validation/t6-growth-source-truth-ops-handoff-2026-05-18.md)
 
 ### Growth Control Plane Phase3 — Production Apply Evidence
 
