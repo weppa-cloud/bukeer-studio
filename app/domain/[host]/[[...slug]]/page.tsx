@@ -13,6 +13,7 @@ import { JsonLd, generateBlogListingSchemas, generateBlogPostSchemas } from '@/l
 import { SafeHtml } from '@/lib/sanitize';
 import { generateHreflangLinks } from '@/lib/seo/hreflang';
 import { resolveSiteIcons } from '@/lib/seo/site-icons';
+import { normalizePublicMetadataTitle } from '@/lib/seo/metadata-title';
 import { getDefaultLegalContent } from '@/lib/legal-defaults';
 import { supabaseImageUrl } from '@/lib/images/supabase-transform';
 import Image from 'next/image';
@@ -663,6 +664,57 @@ export async function generateMetadata({ params }: CustomDomainPageProps) {
         ...(icons ? { icons } : {}),
       };
     }
+  }
+
+  // Custom/static landing metadata for paid-search and SEO pages.
+  // Without this branch, custom domains can fall back to tenant-level SEO title
+  // and truncate market-specific promises such as "desde España".
+  const page = await getPageBySlug(website.subdomain, slugPath || 'home');
+  if (page?.is_published) {
+    const siteName = website.content.account?.name || website.content.siteName || website.subdomain;
+    const baseUrl = `https://${normalizedHost}`;
+    const pagePath = page.slug && page.slug !== 'home' ? `/${page.slug}` : '/';
+    const canonical = `${baseUrl}${pagePath === '/' ? '' : pagePath}`;
+    const pageTitle = normalizePublicMetadataTitle(page.seo_title || page.title, siteName);
+    const pageRecord = page as typeof page & { seo_keywords?: string[] | string | null };
+    const description =
+      page.seo_description ||
+      (typeof page.intro_content?.text === 'string' ? page.intro_content.text : undefined) ||
+      website.content.seo?.description ||
+      website.content.tagline;
+    const heroConfig = (page.hero_config ?? {}) as Record<string, unknown>;
+    const heroImage =
+      (typeof heroConfig.backgroundImage === 'string' && heroConfig.backgroundImage) ||
+      (typeof heroConfig.background_image === 'string' && heroConfig.background_image) ||
+      (typeof heroConfig.image === 'string' && heroConfig.image) ||
+      undefined;
+
+    return {
+      title: pageTitle,
+      description,
+      keywords: pageRecord.seo_keywords ?? undefined,
+      robots: page.robots_noindex
+        ? { index: false, follow: false }
+        : { index: true, follow: true },
+      alternates: {
+        canonical,
+      },
+      openGraph: {
+        title: pageTitle,
+        description,
+        siteName,
+        type: 'website',
+        url: canonical,
+        images: heroImage ? [{ url: heroImage }] : undefined,
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title: pageTitle,
+        description,
+        images: heroImage ? [heroImage] : undefined,
+      },
+      ...(icons ? { icons } : {}),
+    };
   }
 
   // Default metadata with og:image
