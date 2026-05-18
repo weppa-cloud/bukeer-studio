@@ -757,3 +757,5 @@ Do **not** delete concepts on removal — mark as deprecated inline so the graph
 - [[2026-05-18-growth-agents-control-plane-v1]] → [file](./ai/learning-runs/2026-05-18-growth-agents-control-plane-v1.md)
 
 - [[2026-05-18-growth-control-plane-phase1]] — [file](./ai/learning-runs/2026-05-18-growth-control-plane-phase1.md) — [[growth-control-plane]] [[learning-run]] [[ColombiaTours]] [[ContextPacket]] [[source-refs]] [[pt-BR]]
+
+| [[growth-control-plane-phase2-learning-2026-05-18]] | [file](./ai/learning-runs/2026-05-18-growth-control-plane-phase2.md) | Learning run for Growth Control Plane Phase 2: source_refs resolver, safe QA sandbox, ColombiaTours pt-BR/BR blocked canary. |
