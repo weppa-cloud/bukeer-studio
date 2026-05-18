@@ -763,6 +763,10 @@ Do **not** delete concepts on removal — mark as deprecated inline so the graph
 
 | [[growth-control-plane-phase2-learning-2026-05-18]] | [file](./ai/learning-runs/2026-05-18-growth-control-plane-phase2.md) | Learning run for Growth Control Plane Phase 2: source_refs resolver, safe QA sandbox, ColombiaTours pt-BR/BR blocked canary. |
 
+### Growth Source Truth Sprint: ColombiaTours pt-BR/BR — Validation Evidence
+
+|- [T1 PLAN GATE — validate safety/data design](validation/t1-growth-source-truth-plan-gate-2026-05-18.md)
+
 ### Growth Control Plane Phase3 — Production Apply Evidence
 
 - [T2 Production Apply Evidence](validation/t2-phase3-production-apply-2026-05-18.md)
