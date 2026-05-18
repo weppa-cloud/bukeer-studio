@@ -107,6 +107,17 @@ interface WaflowLeadRow {
   payload: JsonRecord | null;
   source_ip: string | null;
   source_user_agent: string | null;
+  gclid: string | null;
+  gbraid: string | null;
+  wbraid: string | null;
+  gad_campaignid: string | null;
+  utm_source: string | null;
+  utm_medium: string | null;
+  utm_campaign: string | null;
+  utm_content: string | null;
+  utm_term: string | null;
+  source_url: string | null;
+  page_path: string | null;
 }
 
 interface CrmRequestRow {
@@ -115,6 +126,11 @@ interface CrmRequestRow {
   custom_fields: JsonRecord | null;
   lead_source: string | null;
   lead_source_detail: string | null;
+  utm_source: string | null;
+  utm_medium: string | null;
+  utm_campaign: string | null;
+  referral_code: string | null;
+  landing_url: string | null;
 }
 
 interface CrmRequestLinkResult {
@@ -166,6 +182,16 @@ function readAttributionClickId(
   key: "gclid" | "gbraid" | "wbraid" | "fbclid",
 ): string | null {
   return attribution?.click_ids?.[key] ?? null;
+}
+
+function readRawAttributionClickId(
+  attribution: JsonRecord,
+  key: "gclid" | "gbraid" | "wbraid",
+): string | null {
+  return (
+    cleanString(readNestedRecord(attribution, "click_ids")[key]) ??
+    cleanString(attribution[key])
+  );
 }
 
 function findNestedString(record: JsonRecord, keys: string[]): string | null {
@@ -535,7 +561,7 @@ async function findWaflowLead(
     const { data, error } = await supabase
       .from("waflow_leads")
       .select(
-        "id,account_id,website_id,reference_code,session_key,payload,source_ip,source_user_agent",
+        "id,account_id,website_id,reference_code,session_key,payload,source_ip,source_user_agent,gclid,gbraid,wbraid,gad_campaignid,utm_source,utm_medium,utm_campaign,utm_content,utm_term,source_url,page_path",
       )
       .eq("reference_code", referenceCode)
       .order("created_at", { ascending: false })
@@ -670,7 +696,9 @@ async function findCrmRequestByGrowthReference(
 
   const { data, error } = await supabase
     .from("requests")
-    .select("id,short_id,custom_fields,lead_source,lead_source_detail")
+    .select(
+      "id,short_id,custom_fields,lead_source,lead_source_detail,utm_source,utm_medium,utm_campaign,referral_code,landing_url",
+    )
     .eq("account_id", lead.account_id)
     .eq("custom_fields->>growth_reference_code", lead.reference_code)
     .order("created_at", { ascending: false })
@@ -700,7 +728,9 @@ async function findOrCreateCrmRequest(
 
   const existing = await supabase
     .from("requests")
-    .select("id,short_id,custom_fields,lead_source,lead_source_detail")
+    .select(
+      "id,short_id,custom_fields,lead_source,lead_source_detail,utm_source,utm_medium,utm_campaign,referral_code,landing_url",
+    )
     .eq("account_id", lead.account_id)
     .eq("chatwoot_conversation_id", conversationNumericId)
     .order("created_at", { ascending: false })
@@ -759,7 +789,9 @@ async function findOrCreateCrmRequest(
 
   const created = await supabase
     .from("requests")
-    .select("id,short_id,custom_fields,lead_source,lead_source_detail")
+    .select(
+      "id,short_id,custom_fields,lead_source,lead_source_detail,utm_source,utm_medium,utm_campaign,referral_code,landing_url",
+    )
     .eq("id", requestId)
     .maybeSingle<CrmRequestRow>();
 
@@ -805,16 +837,53 @@ async function linkWaflowLeadToCrmRequest(
 
   const leadPayload = readRecord(lead.payload);
   const attribution = readRecord(leadPayload.attribution);
+  const attributionUtm = readRecord(attribution.utm);
   const derivedLeadSource = deriveCrmLeadSource(leadPayload);
   const leadSourceDetail = buildCrmLeadSourceDetail(lead, leadPayload);
+  const sourceUrl =
+    cleanString(lead.source_url) ?? cleanString(attribution.source_url);
+  const pagePath =
+    cleanString(lead.page_path) ?? cleanString(attribution.page_path);
+  const utmSource =
+    cleanString(lead.utm_source) ?? cleanString(attributionUtm.utm_source);
+  const utmMedium =
+    cleanString(lead.utm_medium) ?? cleanString(attributionUtm.utm_medium);
+  const utmCampaign =
+    cleanString(lead.utm_campaign) ??
+    cleanString(attributionUtm.utm_campaign);
+  const utmContent =
+    cleanString(lead.utm_content) ?? cleanString(attributionUtm.utm_content);
+  const utmTerm =
+    cleanString(lead.utm_term) ?? cleanString(attributionUtm.utm_term);
+  const gclid =
+    cleanString(lead.gclid) ?? readRawAttributionClickId(attribution, "gclid");
+  const gbraid =
+    cleanString(lead.gbraid) ??
+    readRawAttributionClickId(attribution, "gbraid");
+  const wbraid =
+    cleanString(lead.wbraid) ??
+    readRawAttributionClickId(attribution, "wbraid");
   const nextCustomFields = {
     ...customFields,
+    reference_code: lead.reference_code,
+    waflow_lead_id: lead.id,
+    source_url: sourceUrl,
+    page_path: pagePath,
+    gclid,
+    gbraid,
+    wbraid,
+    gad_campaignid: cleanString(lead.gad_campaignid),
+    utm_source: utmSource,
+    utm_medium: utmMedium,
+    utm_campaign: utmCampaign,
+    utm_content: utmContent,
+    utm_term: utmTerm,
     growth_reference_code: lead.reference_code,
     growth_source_website_id: lead.website_id,
     growth_waflow_lead_id: lead.id,
     growth_session_key: lead.session_key,
-    growth_source_url: cleanString(attribution.source_url),
-    growth_page_path: cleanString(attribution.page_path),
+    growth_source_url: sourceUrl,
+    growth_page_path: pagePath,
     growth_lead_source: derivedLeadSource,
     growth_lead_source_detail: leadSourceDetail,
     growth_link_method: "chatwoot_webhook_reference",
@@ -828,6 +897,21 @@ async function linkWaflowLeadToCrmRequest(
 
   if (shouldUpdateLeadSource(request.lead_source, derivedLeadSource)) {
     requestUpdate.lead_source = derivedLeadSource;
+  }
+  if (!cleanString(request.utm_source) && utmSource) {
+    requestUpdate.utm_source = utmSource;
+  }
+  if (!cleanString(request.utm_medium) && utmMedium) {
+    requestUpdate.utm_medium = utmMedium;
+  }
+  if (!cleanString(request.utm_campaign) && utmCampaign) {
+    requestUpdate.utm_campaign = utmCampaign;
+  }
+  if (!cleanString(request.referral_code) && lead.reference_code) {
+    requestUpdate.referral_code = lead.reference_code;
+  }
+  if (!cleanString(request.landing_url) && sourceUrl) {
+    requestUpdate.landing_url = sourceUrl;
   }
   if (
     !existingLeadSourceDetail ||
