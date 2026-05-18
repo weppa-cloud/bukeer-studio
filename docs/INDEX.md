@@ -761,3 +761,13 @@ Do **not** delete concepts on removal — mark as deprecated inline so the graph
 - [[2026-05-18-growth-control-plane-phase1]] — [file](./ai/learning-runs/2026-05-18-growth-control-plane-phase1.md) — [[growth-control-plane]] [[learning-run]] [[ColombiaTours]] [[ContextPacket]] [[source-refs]] [[pt-BR]]
 
 | [[growth-control-plane-phase2-learning-2026-05-18]] | [file](./ai/learning-runs/2026-05-18-growth-control-plane-phase2.md) | Learning run for Growth Control Plane Phase 2: source_refs resolver, safe QA sandbox, ColombiaTours pt-BR/BR blocked canary. |
+
+### Growth Control Plane Phase3 — Production Apply Evidence
+
+- [T2 Production Apply Evidence](validation/t2-phase3-production-apply-2026-05-18.md)
+- [T3 DB Validation Evidence](validation/t3-phase3-db-validation-2026-05-18.md)
+- [T4 ColombiaTours Backfill Dry-run](validation/t4-phase3-colombiatours-backfill-dry-run-2026-05-18.md)
+- [T5 ColombiaTours pt-BR/BR Canary Dry-run](validation/t5-phase3-colombiatours-ptbr-canary-dry-run-2026-05-18.md)
+- [T6 Ops Handoff after Production Apply](validation/t6-phase3-ops-handoff-2026-05-18.md)
+- [Learning Run: Phase3 Production Apply](ai/learning-runs/2026-05-18-growth-control-plane-phase3-production-apply.md)
+
