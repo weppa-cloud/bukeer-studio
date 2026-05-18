@@ -51,6 +51,8 @@ Latest operational evidence: 2026-05-12 - [[growth-os-ready-cleanup-2026-05-12]]
 - **Humans:** open in Obsidian for graph view, or follow the resolution table at the bottom.
 - **Freshness:** update this file when adding a new ADR, SPEC, runbook, or cross-cutting concept.
 
+Latest learning run: 2026-05-18 - [[2026-05-18-growth-agents-control-plane-v1]] records Growth Agents Product Control Plane v1 through T6: Supabase/Bukeer Studio as product control plane, ContextPacket-only workers, explicit locale/market gate, ColombiaTours pt-BR mock canary, no deploy/no provider calls.
+
 ---
 
 ## Agent entry points
@@ -119,6 +121,7 @@ Feature requests formalized. Status tracked inline. GitHub Issues = source of tr
 | --------------------------------------------------------- | ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
 | [[SPEC_MULTI_LOCALE_REMEDIATION]]                         | [file](./specs/SPEC_MULTI_LOCALE_REMEDIATION.md)                         | [[i18n]] [[SEO]] [[growth-ops]]                                                                                                                                 |
 | [[SPEC_MEDIA_ASSET_INVENTORY]]                            | [file](./specs/SPEC_MEDIA_ASSET_INVENTORY.md)                            | [[media-assets]] [[storage]] [[cross-repo-flutter]]                                                                                                             |
+| [[SPEC_MEDIA_ASSET_LIBRARY_V1]]                            | [file](./specs/SPEC_MEDIA_ASSET_LIBRARY_V1.md)                            | [[media-assets]] [[storage]] [[asset-library]] [[cross-repo-flutter]] [[MLLM]]                                                                                  |
 | [[SPEC_SECTION_ENTITY_TRANSLATION_LAYER]]                 | [file](./specs/SPEC_SECTION_ENTITY_TRANSLATION_LAYER.md)                 | [[i18n]] [[website_sections]] [[package_kits]] [[contacts]] [[translation-overlay]] Epic #273 (infra #274-#278 implemented in code, content population pending) |
 | [[SPEC_PACKAGE_DETAIL_CONVERSION_V2]]                     | [file](./specs/SPEC_PACKAGE_DETAIL_CONVERSION_V2.md)                     | [[package-landing]] [[package-kits]] [[maps]] [[conversion]]                                                                                                    |
 | [[SPEC_SEO_CONTENT_INTELLIGENCE]]                         | [file](./specs/SPEC_SEO_CONTENT_INTELLIGENCE.md)                         | [[SEO]] [[AI]] [[keyword-research]]                                                                                                                             |
@@ -149,6 +152,8 @@ Feature requests formalized. Status tracked inline. GitHub Issues = source of tr
 | [[SPEC_GROWTH_OS_HERMES_CHIEF_OF_STAFF_SWARM]]            | [file](./specs/SPEC_GROWTH_OS_HERMES_CHIEF_OF_STAFF_SWARM.md)            | [[growth-os]] [[agents]] [[Hermes]] [[Chief-of-Staff]] [[swarm]] [[conversation]] [[agent-artifacts]] [[multi-tenant]] [[ColombiaTours]]                         |
 | [[SPEC_GROWTH_OS_HERMES_AGENT_CONTEXT_ISOLATION_9]]       | [file](./specs/SPEC_GROWTH_OS_HERMES_AGENT_CONTEXT_ISOLATION_9.md)       | [[growth-os]] [[agents]] [[Hermes]] [[skills]] [[memory]] [[context-isolation]] [[learning-loop]] [[multi-tenant]] [[ColombiaTours]]                              |
 | [[SPEC_GROWTH_OS_HERMES_PRIMARY_RUNTIME_MVE_V0]]           | [file](./specs/SPEC_GROWTH_OS_HERMES_PRIMARY_RUNTIME_MVE_V0.md)           | [[growth-os]] [[agents]] [[Hermes]] [[hermes-primary-runtime]] [[Kanban]] [[mcp-tool-safety]] [[provider-context-profiles]] [[tenant-context]] [[autonomy]] [[ColombiaTours]] |
+| [[SPEC_GROWTH_CONTROL_PLANE_PHASE1_MIGRATIONS]]            | [file](./specs/SPEC_GROWTH_CONTROL_PLANE_PHASE1_MIGRATIONS.md)            | [[growth-os]] [[control-plane]] [[Supabase]] [[migrations]] [[backfill]] [[canary]] [[ColombiaTours]] [[source-refs]] [[RLS]] — Phase 1 Supabase migrations for 6 governance tables, ColombiaTours source_refs backfill, dry-run canary, acceptance criteria, and rollback |
+| [[SPEC_GROWTH_CONTROL_PLANE_PHASE2_SOURCE_REFS_SAFE_QA]]   | [file](./specs/SPEC_GROWTH_CONTROL_PLANE_PHASE2_SOURCE_REFS_SAFE_QA.md)   | [[growth-os]] [[control-plane]] [[source-refs]] [[safe-qa]] [[ContextPacket]] [[ColombiaTours]] — Phase 2 resolver design for fact-level refs plus QA sandbox guardrails; dry-run only, no prod writes |
 | [[SPEC_GROWTH_OS_PROVIDER_PROFILE_ARCHITECTURE_V2]]        | [file](./specs/SPEC_GROWTH_OS_PROVIDER_PROFILE_ARCHITECTURE_V2.md)        | [[growth-os]] [[provider-profiles]] [[Hermes]] [[Neo]] [[Supabase]] [[SSOT]] [[paid-media]] [[context-packets]] [[anti-rework]] [[ColombiaTours]]                  |
 | [[SPEC_GROWTH_OS_DATAFORSEO_EVIDENCE_GOVERNED_BRAIN]]     | [file](./specs/SPEC_GROWTH_OS_DATAFORSEO_EVIDENCE_GOVERNED_BRAIN.md)     | [[growth-os]] [[agents]] [[DataForSEO]] [[orchestration]] [[evidence]] [[learning-loop]] [[ColombiaTours]]                                                       |
 | [[SPEC_GROWTH_OS_PROVIDER_EXTRACTION_PROFILES]]            | [file](./specs/SPEC_GROWTH_OS_PROVIDER_EXTRACTION_PROFILES.md)            | [[growth-os]] [[DataForSEO]] [[GA4]] [[GSC]] [[clarity]] [[provider-profiles]] [[evidence]] [[ColombiaTours]]                                                     |
@@ -204,6 +209,7 @@ Feature requests formalized. Status tracked inline. GitHub Issues = source of tr
 | [[ci-seo-i18n-gate]]                     | [file](./ops/ci-seo-i18n-gate.md)                     | CI gate `@p0-seo` + nightly Worker preview (ADR-013).                                                                                                   |
 | [[public-analytics-standard]]            | [file](./ops/public-analytics-standard.md)            | Public tracking standard: lightweight GA4 pageview, deferred GTM/Meta/Ads/custom scripts, production smoke and #336 Ads residual.                       |
 | [[growth-attribution-governance]]        | [file](./ops/growth-attribution-governance.md)        | Privacy/data-governance gate for Growth OS attribution: ad ids, contact data, provider responses, RLS boundaries and platform payload rules.            |
+| [[growth-safe-qa-sandbox]]               | [file](./ops/growth-safe-qa-sandbox.md)               | Growth Control Plane QA/data-audit/canary sandbox: no service-role/env/token access, read-only evidence flow, kill criteria, and ContextPacket gate safety. |
 | [[growth-intelligence-dataforseo-flows]] | [file](./ops/growth-intelligence-dataforseo-flows.md) | Epic #310 runbook: DataForSEO modules, raw/cache storage, normalization into SEO facts, and `growth_inventory` Council matrix.                          |
 | [[growth-provider-profiles]]             | [file](./ops/growth-provider-profiles.md)             | Epic #310 Max Performance provider profiles: DataForSEO, GSC, GA4, tracking, AI/GEO, translation cadence, paid-call approvals and joint facts.          |
 | [[growth-ai-search-geo-profile]]         | [file](./ops/growth-ai-search-geo-profile.md)         | Epic #310 AI Search / GEO profile: crawler readiness, DataForSEO AI Optimization, normalized visibility facts and `ai_search` inventory rows.           |
@@ -383,13 +389,15 @@ Each concept below lists the ADRs/SPECs/ops docs that touch it. Use this to find
 
 - [[ADR-028]] — canonical media registry decision for account-managed assets across Studio and Flutter.
 - [[SPEC_MEDIA_ASSET_INVENTORY]] — v1 canonical inventory and characterization across Storage + legacy URL fields.
+- [[SPEC_MEDIA_ASSET_LIBRARY_V1]] — tenant-owned Media Asset Library v1 for Studio, Flutter registration/reuse and agent-safe media selection.
 - [[media-inventory-runbook]] — dry-run/apply/report/remediation workflow for media inventory operations.
 - [[media-asset-guardrails]] — PR/spec/agent/MLLM guardrails that prevent new URL-only image drift.
 - [[media-inventory-production-run-2026-04-25]] — production execution evidence because this backend has no staging database.
 - [[media-remediation-backlog-2026-04-25]] — actionable remediation backlog from the first production inventory.
 - [[issue-103-media-closure-checklist]] — storage/RLS hardening baseline for `images`, `site-media`, `review-*`, and legacy buckets.
 - Registry: `public.media_assets`, keyed by `(storage_bucket, storage_path)`.
-- Cross-repo: Flutter continues writing legacy URL fields in v1; follow-up issue registers new Flutter uploads into `media_assets` per [[ADR-028]].
+- Product surface: Studio owns the complete Asset Library UI in v1; Flutter registers uploads and selectively reuses assets.
+- Cross-repo: Flutter continues writing legacy URL fields in v1; Flutter spec/ADR tracks registration and reuse per [[ADR-028]].
 
 ### [[middleware]] + [[cache]] + [[edge]]
 
@@ -656,6 +664,7 @@ Obsidian resolves `[[ADR-005]]` by filename stem or alias. Claude Code / Codex g
 | `[[ADR-027]]`                                         | `docs/architecture/ADR-027-designer-reference-theme-adoption.md`                   |
 | `[[ADR-028]]`                                         | `docs/architecture/ADR-028-media-assets-canonical-registry.md`                     |
 | `[[ADR-028-media-assets-canonical-registry]]`         | `docs/architecture/ADR-028-media-assets-canonical-registry.md`                     |
+| `[[SPEC_MEDIA_ASSET_LIBRARY_V1]]`                     | `docs/specs/SPEC_MEDIA_ASSET_LIBRARY_V1.md`                                       |
 | `[[field-ownership]]`                                 | `docs/architecture/ADR-025-studio-flutter-field-ownership.md` (concept alias)      |
 | `[[booking-defer]]`                                   | `docs/architecture/ADR-024-booking-v1-pilot-scope.md` (concept alias)              |
 | `[[pilot-readiness-deps]]`                            | `docs/specs/pilot-readiness-deps.md`                                               |
@@ -742,3 +751,11 @@ When you ship a new ADR, SPEC, runbook, or cross-cutting concept:
 4. Grep the repo for prose references to the new artifact and convert them to `[[ArtifactName]]` wikilinks (leave existing markdown links intact).
 
 Do **not** delete concepts on removal — mark as deprecated inline so the graph keeps its history.
+
+
+<!-- Learning run additions -->
+- [[2026-05-18-growth-agents-control-plane-v1]] → [file](./ai/learning-runs/2026-05-18-growth-agents-control-plane-v1.md)
+
+- [[2026-05-18-growth-control-plane-phase1]] — [file](./ai/learning-runs/2026-05-18-growth-control-plane-phase1.md) — [[growth-control-plane]] [[learning-run]] [[ColombiaTours]] [[ContextPacket]] [[source-refs]] [[pt-BR]]
+
+| [[growth-control-plane-phase2-learning-2026-05-18]] | [file](./ai/learning-runs/2026-05-18-growth-control-plane-phase2.md) | Learning run for Growth Control Plane Phase 2: source_refs resolver, safe QA sandbox, ColombiaTours pt-BR/BR blocked canary. |
