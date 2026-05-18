@@ -238,6 +238,7 @@ export async function buildGrowthAgentContext(
       brain_can_mutate_public_surfaces: false,
       executor_only_mutation_boundary: true,
       blocked_action_classes: [
+        "call_provider_api_directly",
         "paid_mutation",
         "experiment_activation",
         "outreach_send",
@@ -251,6 +252,12 @@ export async function buildGrowthAgentContext(
         "paid_media",
       ],
     },
+    _direct_api_instructions: [
+      "All provider data (DataForSEO, GSC, GA4, Clarity) comes exclusively from this context packet.",
+      "Never instantiate a provider SDK, never call provider APIs directly.",
+      "Report data needs via growth_work_item_outcomes or signal_fact outcome channels.",
+      "Forbidden actions: call_provider_api_directly, paid_mutation, experiment_activation, outreach_send.",
+    ],
     profiles: compactRows(profiles, [
       "id",
       "locale",

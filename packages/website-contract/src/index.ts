@@ -1039,6 +1039,58 @@ export type {
   GrowthEffectivenessObservationInsert,
 } from './schemas/growth-effectiveness';
 
+// Growth Agents Control Plane — Phase 0/1 contract schemas (#569)
+export {
+  ProfileBaseSchema,
+  ProfileBaseStatusSchema,
+  SourceRefSchema,
+  SourceProfileSchema,
+  DedupeSchema,
+  ProfilePolicySchema,
+  FreshnessEntrySchema,
+  FreshnessMapSchema,
+} from './schemas/growth-profile-base';
+export type {
+  ProfileBase,
+  ProfileBaseStatus,
+  SourceRef,
+  SourceProfile,
+  Dedupe,
+  ProfilePolicy,
+  FreshnessEntry,
+  FreshnessMap,
+} from './schemas/growth-profile-base';
+
+export {
+  ContextPacketSchema,
+  DedupeVerdictSchema,
+  ValidationVerdictSchema,
+  ReviewPublishGateSchema,
+  CanaryScopeSchema,
+  RedactionReportSchema,
+} from './schemas/growth-context-packet';
+export type {
+  ContextPacket,
+  DedupeVerdict,
+  ValidationVerdict,
+  ReviewPublishGate,
+  CanaryScope,
+  RedactionReport,
+} from './schemas/growth-context-packet';
+
+export {
+  AgentResolutionSchema,
+  ResolutionStepSchema,
+  ResolutionErrorCodeSchema,
+  GateVerdictSchema,
+} from './schemas/growth-agent-resolution';
+export type {
+  AgentResolution,
+  ResolutionStep,
+  ResolutionErrorCode,
+  GateVerdict,
+} from './schemas/growth-agent-resolution';
+
 // Validation
 export {
   validateSection,
