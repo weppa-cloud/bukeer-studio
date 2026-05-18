@@ -30,7 +30,7 @@ const TABS: ReadonlyArray<{
 }> = [
   {
     slug: "overview",
-    label: "Command Center",
+    label: "CEO Cockpit",
     href: (id) => `/dashboard/${id}/growth/overview`,
   },
   {
