@@ -38,6 +38,7 @@
 create table if not exists public.growth_account_plans (
   id uuid primary key default gen_random_uuid(),
   account_id uuid not null references public.accounts(id) on delete cascade,
+  website_id uuid not null references public.websites(id) on delete cascade,
   plan_name text not null,
   plan_version text not null default 'v1',
   objective text not null,
@@ -51,7 +52,7 @@ create table if not exists public.growth_account_plans (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint growth_account_plans_name_version_uniq
-    unique (account_id, plan_name, plan_version),
+    unique (account_id, website_id, plan_name, plan_version),
   constraint growth_account_plans_status_chk
     check (status in ('active', 'archived', 'draft')),
   constraint growth_account_plans_key_results_chk
@@ -200,6 +201,43 @@ comment on column public.growth_agent_definitions.kill_switch is
   'If true, all actions for this agent are blocked regardless of allowed_actions.';
 comment on column public.growth_agent_definitions.blocked_actions is
   'Actions explicitly forbidden for this agent. Default blocks direct provider API calls.';
+
+
+-- Compatibility with existing Growth OS runtime registry.
+-- Production already has public.growth_agent_definitions from earlier Growth migrations.
+-- create table if not exists does not add columns to existing tables, so add only
+-- the governance/safety columns needed by the Control Plane contract.
+alter table public.growth_agent_definitions
+  add column if not exists agent_name text,
+  add column if not exists profile_type text,
+  add column if not exists schema_ref text,
+  add column if not exists allowed_actions text[] not null default '{}'::text[],
+  add column if not exists blocked_actions text[] not null default '{call_provider_api_directly}'::text[],
+  add column if not exists kill_switch boolean not null default false,
+  add column if not exists canary_only boolean not null default true,
+  add column if not exists config jsonb not null default '{}'::jsonb;
+
+update public.growth_agent_definitions
+set
+  agent_name = coalesce(agent_name, name),
+  profile_type = coalesce(profile_type, lane),
+  config = coalesce(config, '{}'::jsonb),
+  blocked_actions = case
+    when blocked_actions is null or array_length(blocked_actions, 1) is null
+      then '{call_provider_api_directly}'::text[]
+    else blocked_actions
+  end,
+  allowed_actions = coalesce(allowed_actions, '{}'::text[])
+where agent_name is null
+   or profile_type is null
+   or config is null
+   or blocked_actions is null
+   or allowed_actions is null;
+
+comment on column public.growth_agent_definitions.agent_name is
+  'Governance alias for existing name column; backfilled from name for compatibility.';
+comment on column public.growth_agent_definitions.profile_type is
+  'Governance profile type; defaults to lane for existing runtime rows.';
 
 -- ============================================================================
 -- 5. growth_source_refs — INSERT-ONLY
@@ -415,7 +453,7 @@ end $$;
 -- ============================================================================
 
 create index if not exists growth_account_plans_tenant_idx
-  on public.growth_account_plans(account_id, status, created_at desc);
+  on public.growth_account_plans(account_id, website_id, status, created_at desc);
 
 create index if not exists growth_capabilities_tenant_idx
   on public.growth_capabilities(account_id, website_id, locale, market, lane);
