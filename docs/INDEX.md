@@ -773,6 +773,17 @@ Do **not** delete concepts on removal — mark as deprecated inline so the graph
 - [T6 Ops Handoff — no backfill/no publish](validation/t6-growth-source-truth-ops-handoff-2026-05-18.md)
 - [T7 Learning Run — Growth Source Truth ColombiaTours pt-BR/BR](ai/learning-runs/2026-05-18-growth-source-truth-colombiatours-ptbr.md)
 
+### Growth Provider Normalization Slice1: ColombiaTours pt-BR/BR — Validation Evidence
+
+- [SPEC — Growth Provider Normalization ColombiaTours pt-BR Slice1](specs/SPEC_GROWTH_PROVIDER_NORMALIZATION_COLOMBIATOURS_PTBR_SLICE1.md)
+- [T1 Provider Normalization Plan Gate](validation/t1-provider-normalization-plan-gate-2026-05-18.md)
+- [T2 Provider Runner Dry-run Evidence](validation/t2-provider-normalization-dry-run-evidence-2026-05-18.md)
+- [T3 Candidate Facts Dry-run](validation/t3-provider-normalization-candidate-facts-2026-05-18.md)
+- [T4 Source Refs Candidate Review](validation/t4-provider-normalization-source-refs-review-2026-05-18.md)
+- [T5 Controlled Write Gate](validation/t5-provider-normalization-controlled-write-gate-2026-05-18.md)
+- [T6 One-Entity ContextPacket Canary](validation/t6-provider-normalization-contextpacket-canary-2026-05-18.md)
+- [T7 Learning Run — Provider Normalization Slice1](ai/learning-runs/2026-05-18-growth-provider-normalization-colombiatours-ptbr-slice1.md)
+
 ### Growth Control Plane Phase3 — Production Apply Evidence
 
 - [T2 Production Apply Evidence](validation/t2-phase3-production-apply-2026-05-18.md)
