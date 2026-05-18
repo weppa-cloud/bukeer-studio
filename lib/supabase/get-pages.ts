@@ -201,6 +201,21 @@ function isFlightLikeProductType(value: unknown): boolean {
   );
 }
 
+function needsGenericPackageMediaLookup(
+  rows: Array<Record<string, unknown>>,
+): boolean {
+  if (rows.length === 0) return false;
+  return rows.some((row) => {
+    const productType = row.product_type;
+    return (
+      !isActivityLikeProductType(productType) &&
+      !isHotelLikeProductType(productType) &&
+      !isTransferLikeProductType(productType) &&
+      !isFlightLikeProductType(productType)
+    );
+  });
+}
+
 function formatItineraryTimeLabel(value: unknown): string | null {
   const raw = asOptionalString(value);
   if (!raw) return null;
@@ -227,6 +242,11 @@ function extractRpcImageUrls(value: unknown): string[] {
     }
   }
   return urls;
+}
+
+function extractTransferMediaUrls(row: Record<string, unknown>): string[] {
+  const mainImage = asOptionalString(row.main_image);
+  return mainImage ? [mainImage] : [];
 }
 
 function isGenericPackageProgramTitle(value: string): boolean {
@@ -1119,9 +1139,25 @@ export async function getProductPage(
                 .filter((id): id is string => Boolean(id)),
             ),
           );
-          if (productIds.length > 0) {
+          const rowsByProductId = new Map<
+            string,
+            Array<Record<string, unknown>>
+          >();
+          for (const row of itineraryRows) {
+            const productId = asOptionalString(row.id_product);
+            if (!productId) continue;
+            const rows = rowsByProductId.get(productId) ?? [];
+            rows.push(row);
+            rowsByProductId.set(productId, rows);
+          }
+          const genericMediaLookupProductIds = productIds.filter((productId) =>
+            needsGenericPackageMediaLookup(
+              rowsByProductId.get(productId) ?? [],
+            ),
+          );
+          if (genericMediaLookupProductIds.length > 0) {
             const rpcRows = await Promise.all(
-              productIds.map(async (productId) => {
+              genericMediaLookupProductIds.map(async (productId) => {
                 const { data, error } = await packageReader.rpc(
                   "function_get_images_and_main_image",
                   { p_id: productId },
@@ -1142,6 +1178,14 @@ export async function getProductPage(
             new Set(
               itineraryRows
                 .filter((row) => isActivityLikeProductType(row.product_type))
+                .map((row) => asOptionalString(row.id_product))
+                .filter((id): id is string => Boolean(id)),
+            ),
+          );
+          const transferIds = Array.from(
+            new Set(
+              itineraryRows
+                .filter((row) => isTransferLikeProductType(row.product_type))
                 .map((row) => asOptionalString(row.id_product))
                 .filter((id): id is string => Boolean(id)),
             ),
@@ -1258,6 +1302,30 @@ export async function getProductPage(
 
             if (hotelCards.length > 0) {
               prod.package_hotel_items = hotelCards;
+            }
+          }
+
+          if (transferIds.length > 0) {
+            const { data: transfers, error: transfersError } =
+              await packageReader
+                .from("transfers")
+                .select("id, main_image")
+                .in("id", transferIds);
+
+            if (
+              !transfersError &&
+              Array.isArray(transfers) &&
+              transfers.length > 0
+            ) {
+              for (const row of transfers) {
+                const rec = row as unknown as Record<string, unknown>;
+                const id = asOptionalString(rec.id);
+                if (!id) continue;
+                const transferMedia = extractTransferMediaUrls(rec);
+                if (transferMedia.length > 0) {
+                  mediaByProductId.set(id, transferMedia);
+                }
+              }
             }
           }
 

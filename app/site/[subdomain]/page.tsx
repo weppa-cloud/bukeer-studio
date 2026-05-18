@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { SectionRenderer } from "@/components/site/section-renderer";
@@ -13,7 +14,7 @@ import {
   getWebsiteBySubdomain,
   getBlogPosts,
 } from "@/lib/supabase/get-website";
-import type { WebsiteData, WebsiteSection } from "@/lib/supabase/get-website";
+import type { WebsiteSection } from "@/lib/supabase/get-website";
 import {
   getCachedGoogleReviews,
   getCategoryProducts,
@@ -33,6 +34,7 @@ import {
 import { resolveTemplateSet } from "@/lib/sections/template-set";
 import {
   buildHomeSectionPlan,
+  createHomeRenderWebsite,
   resolveHomeEnabledSections,
   type DeferredHomeDataInput,
 } from "@/lib/site/home-rendering";
@@ -42,6 +44,7 @@ const SECTION_PACKAGES = SECTION_TYPES.find((t) => t === "packages")!;
 const SECTION_ACTIVITIES = SECTION_TYPES.find((t) => t === "activities")!;
 const SECTION_HOTELS = SECTION_TYPES.find((t) => t === "hotels")!;
 const SECTION_BLOG = SECTION_TYPES.find((t) => t === "blog")!;
+const PUBLIC_HOME_TIMING_HEADER = "x-bukeer-debug-timing";
 
 // ISR: Revalidate every 5 minutes for fresh content with edge caching
 export const revalidate = 300;
@@ -51,6 +54,86 @@ interface SitePageProps {
 }
 
 const PLANNER_TYPES = new Set(["planners", "team", "travel_planners"]);
+
+interface PublicHomeTimingProbe {
+  enabled: boolean;
+  subdomain: string;
+  startedAt: number;
+  marks: Array<{ label: string; durationMs: number }>;
+}
+
+type DeferredHomeSectionsProps = DeferredHomeDataInput & {
+  timing?: PublicHomeTimingProbe;
+};
+
+function nowMs(): number {
+  return typeof performance !== "undefined" ? performance.now() : Date.now();
+}
+
+function createPublicHomeTimingProbe(
+  requestHeaders: Headers,
+  subdomain: string,
+): PublicHomeTimingProbe {
+  const enabled =
+    requestHeaders.get(PUBLIC_HOME_TIMING_HEADER) === "1" ||
+    process.env.PUBLIC_SITE_TIMING_LOGS === "true";
+
+  return {
+    enabled,
+    subdomain,
+    startedAt: nowMs(),
+    marks: [],
+  };
+}
+
+async function timedPublicHome<T>(
+  timing: PublicHomeTimingProbe | undefined,
+  label: string,
+  work: () => Promise<T>,
+): Promise<T> {
+  if (!timing?.enabled) return work();
+
+  const startedAt = nowMs();
+  try {
+    return await work();
+  } finally {
+    timing.marks.push({
+      label,
+      durationMs: Math.round((nowMs() - startedAt) * 10) / 10,
+    });
+  }
+}
+
+function markPublicHome(
+  timing: PublicHomeTimingProbe | undefined,
+  label: string,
+  startedAt: number,
+) {
+  if (!timing?.enabled) return;
+  timing.marks.push({
+    label,
+    durationMs: Math.round((nowMs() - startedAt) * 10) / 10,
+  });
+}
+
+function logPublicHomeTiming(
+  timing: PublicHomeTimingProbe | undefined,
+  phase: "critical" | "deferred",
+  details: Record<string, unknown>,
+) {
+  if (!timing?.enabled) return;
+
+  console.info(
+    "[public_home_timing]",
+    JSON.stringify({
+      subdomain: timing.subdomain,
+      phase,
+      totalMs: Math.round((nowMs() - timing.startedAt) * 10) / 10,
+      marks: timing.marks,
+      ...details,
+    }),
+  );
+}
 
 function titleFromSlug(slug: string): string {
   return slug
@@ -184,9 +267,9 @@ async function DeferredHomeSections({
   subdomain,
   locale,
   enabledSections,
-  criticalSectionIds,
   templateSet,
-}: DeferredHomeDataInput) {
+  timing,
+}: DeferredHomeSectionsProps) {
   const accountContent = (website.content as unknown as Record<string, unknown>)
     ?.account as Record<string, unknown> | undefined;
   const googleReviewsEnabled = accountContent?.google_reviews_enabled === true;
@@ -208,6 +291,8 @@ async function DeferredHomeSections({
   const hasHotelsSection = enabledSections.some(
     (s) => s.section_type === SECTION_HOTELS,
   );
+  const accountId = website.account_id;
+  const websiteId = website.id;
 
   const [
     googleReviewsCache,
@@ -220,29 +305,54 @@ async function DeferredHomeSections({
     brandClaims,
     featuredDestinations,
   ] = await Promise.all([
-    googleReviewsEnabled && website.account_id
-      ? getCachedGoogleReviews(website.account_id)
+    googleReviewsEnabled && accountId
+      ? timedPublicHome(timing, "deferred.google_reviews", () =>
+          getCachedGoogleReviews(accountId),
+        )
       : Promise.resolve(null),
-    hasDestinationsSection ? getDestinations(subdomain) : Promise.resolve([]),
+    hasDestinationsSection
+      ? timedPublicHome(timing, "deferred.destinations", () =>
+          getDestinations(subdomain),
+        )
+      : Promise.resolve([]),
     hasPackagesSection
-      ? getCategoryProducts(subdomain, SECTION_PACKAGES, { limit: 8, locale })
+      ? timedPublicHome(timing, "deferred.packages", () =>
+          getCategoryProducts(subdomain, SECTION_PACKAGES, { limit: 8, locale }),
+        )
       : Promise.resolve({ items: [], total: 0 }),
     hasActivitiesSection
-      ? getCategoryProducts(subdomain, SECTION_ACTIVITIES, { limit: 8, locale })
+      ? timedPublicHome(timing, "deferred.activities", () =>
+          getCategoryProducts(subdomain, SECTION_ACTIVITIES, {
+            limit: 8,
+            locale,
+          }),
+        )
       : Promise.resolve({ items: [], total: 0 }),
     hasHotelsSection
-      ? getCategoryProducts(subdomain, SECTION_HOTELS, { limit: 8, locale })
+      ? timedPublicHome(timing, "deferred.hotels", () =>
+          getCategoryProducts(subdomain, SECTION_HOTELS, { limit: 8, locale }),
+        )
       : Promise.resolve({ items: [], total: 0 }),
-    hasPlannersSection && website.account_id
-      ? getPlanners(website.account_id, { locale })
+    hasPlannersSection && accountId
+      ? timedPublicHome(timing, "deferred.planners", () =>
+          getPlanners(accountId, { locale }),
+        )
       : Promise.resolve<PlannerData[]>([]),
-    hasBlogSection && website.id
-      ? getBlogPosts(website.id, { limit: 6 })
+    hasBlogSection && websiteId
+      ? timedPublicHome(timing, "deferred.blog", () =>
+          getBlogPosts(websiteId, { limit: 6 }),
+        )
       : Promise.resolve({ posts: [], total: 0 }),
-    website.account_id
-      ? getBrandClaims(website.account_id)
+    accountId
+      ? timedPublicHome(timing, "deferred.brand_claims", () =>
+          getBrandClaims(accountId),
+        )
       : Promise.resolve(null),
-    website.id ? getFeaturedDestinations(website.id, 4) : Promise.resolve([]),
+    websiteId
+      ? timedPublicHome(timing, "deferred.featured_destinations", () =>
+          getFeaturedDestinations(websiteId, 4),
+        )
+      : Promise.resolve([]),
   ]);
 
   const curatedDynamicDestinations = dynamicDestinations.filter(
@@ -289,7 +399,6 @@ async function DeferredHomeSections({
     brandClaims,
     featuredDestinations,
   })
-    .filter((section) => !criticalSectionIds.has(section.id))
     .filter((section) => {
       if (section.section_type === SECTION_PACKAGES) {
         return packageItems.length > 0 || contentHasArray(section, "packages");
@@ -302,6 +411,15 @@ async function DeferredHomeSections({
       }
       return true;
     });
+
+  logPublicHomeTiming(timing, "deferred", {
+    enabledSections: enabledSections.length,
+    renderedSections: hydratedSections.length,
+    hasBlogSection,
+    hasPackagesSection,
+    hasActivitiesSection,
+    hasHotelsSection,
+  });
 
   return (
     <>
@@ -321,7 +439,11 @@ async function DeferredHomeSections({
 
 export default async function SitePage({ params }: SitePageProps) {
   const { subdomain } = await params;
-  const website = await getWebsiteBySubdomain(subdomain);
+  const requestHeaders = await headers();
+  const timing = createPublicHomeTimingProbe(requestHeaders, subdomain);
+  const website = await timedPublicHome(timing, "critical.website", () =>
+    getWebsiteBySubdomain(subdomain),
+  );
 
   if (!website || website.status !== "published") {
     notFound();
@@ -332,28 +454,41 @@ export default async function SitePage({ params }: SitePageProps) {
     : `https://${subdomain}.bukeer.com`;
 
   const templateSet = resolveTemplateSet(website);
-  const localeContext = await resolvePublicMetadataLocale(website, "/");
+  const localeContext = await timedPublicHome(timing, "critical.locale", () =>
+    resolvePublicMetadataLocale(website, "/"),
+  );
   const isCustomDomain = inferIsCustomDomainWebsite(website);
-  const websiteForRender = {
-    ...website,
+  const websiteForRender = createHomeRenderWebsite({
+    website,
     resolvedLocale: localeContext.resolvedLocale,
     defaultLocale: localeContext.defaultLocale,
     isCustomDomain,
-  } as WebsiteData & { resolvedLocale?: string; isCustomDomain?: boolean };
+  });
+  const schemaStartedAt = nowMs();
   const schemas = generateHomepageSchemas(
     website,
     baseUrl,
     undefined,
     localeContext.resolvedLocale,
   );
+  markPublicHome(timing, "critical.schemas", schemaStartedAt);
+  const enabledStartedAt = nowMs();
   const enabledSections = resolveHomeEnabledSections({
     website,
     templateSet,
     locale: localeContext.resolvedLocale,
     defaultLocale: localeContext.defaultLocale,
   });
-  const { criticalSections, criticalSectionIds } =
+  markPublicHome(timing, "critical.enabled_sections", enabledStartedAt);
+  const { criticalSections, deferredSections } =
     buildHomeSectionPlan(enabledSections);
+
+  logPublicHomeTiming(timing, "critical", {
+    enabledSections: enabledSections.length,
+    criticalSections: criticalSections.length,
+    deferredSections: deferredSections.length,
+    customDomain: Boolean(website.custom_domain),
+  });
 
   return (
     <>
@@ -374,9 +509,9 @@ export default async function SitePage({ params }: SitePageProps) {
           subdomain={subdomain}
           locale={localeContext.resolvedLocale}
           defaultLocale={localeContext.defaultLocale}
-          enabledSections={enabledSections}
-          criticalSectionIds={criticalSectionIds}
+          enabledSections={deferredSections}
           templateSet={templateSet}
+          timing={timing}
         />
       </Suspense>
     </>
