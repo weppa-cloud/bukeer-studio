@@ -17,7 +17,7 @@
  *       referrer?: string | null;
  *       subdomain?: string | null;    // tenant lookup
  *       locale?: string | null;       // BCP-47, defaults to es-CO
- *       market?: 'CO'|'MX'|'US'|'CA'|'EU'|'OTHER';
+ *       market?: 'CO'|'MX'|'US'|'CA'|'BR'|'EU'|'OTHER';
  *       location_context?: string | null;  // hero | sticky | sidebar | waflow_*
  *       variant?: string | null;
  *       destination_slug?: string | null;
@@ -92,7 +92,7 @@ const RequestSchema = z.object({
     .regex(/^[a-z]{2}(-[A-Z]{2})?$/)
     .optional()
     .nullable(),
-  market: z.enum(["CO", "MX", "US", "CA", "EU", "OTHER"]).optional().nullable(),
+  market: z.enum(["CO", "MX", "US", "CA", "BR", "EU", "OTHER"]).optional().nullable(),
   location_context: z.string().trim().max(80).optional().nullable(),
   variant: z.string().trim().max(8).optional().nullable(),
   destination_slug: z.string().trim().max(160).optional().nullable(),

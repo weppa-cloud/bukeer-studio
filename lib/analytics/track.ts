@@ -329,7 +329,7 @@ async function emitWhatsAppCtaBeacon(
         typeof params.package_slug === 'string' ? params.package_slug : null,
       contact_event_id:
         typeof params.contact_event_id === 'string' ? params.contact_event_id : null,
-      market: market === 'CO' || market === 'MX' || market === 'US' || market === 'CA' || market === 'EU' || market === 'OTHER' ? market : null,
+      market: market === 'CO' || market === 'MX' || market === 'US' || market === 'CA' || market === 'BR' || market === 'EU' || market === 'OTHER' ? market : null,
     });
   } catch {
     // Module load can fail in extreme network conditions — never bubble.
@@ -365,7 +365,7 @@ async function emitWaflowDiagnosticBeacon(
       has_phone: typeof params.has_phone === 'boolean' ? params.has_phone : null,
       has_name: typeof params.has_name === 'boolean' ? params.has_name : null,
       locale: typeof params.locale === 'string' ? params.locale : null,
-      market: market === 'CO' || market === 'MX' || market === 'US' || market === 'CA' || market === 'EU' || market === 'OTHER' ? market : null,
+      market: market === 'CO' || market === 'MX' || market === 'US' || market === 'CA' || market === 'BR' || market === 'EU' || market === 'OTHER' ? market : null,
     });
   } catch {
     // Diagnostics must never affect the WAFlow UI.

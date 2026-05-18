@@ -14,6 +14,10 @@ import {
   type GrowthEvidenceCorrelationResult,
 } from "@/lib/growth/autonomy/candidate-discovery";
 import { dataForSeoEvidenceGate } from "@/lib/growth/autonomy/dataforseo-provider-profile";
+import {
+  normalizeGrowthLocale,
+  resolveTranscreationLocaleScope,
+} from "@/lib/growth/locale-targeting";
 
 const SENSITIVE_ACTIONS = new Set([
   "paid_mutation",
@@ -118,6 +122,60 @@ function providerEvidenceBlocked(candidate: JsonRecord): string | null {
   return verdict.allowed ? null : (verdict.reason ?? "dataforseo_evidence_blocked");
 }
 
+function transcreationScope(candidate: JsonRecord, fallbackLocale: string) {
+  if (candidate.allowed_action_class !== "transcreation_merge") return null;
+  const evidence = asRecord(candidate.evidence);
+  const adapterInput = asRecord(evidence.adapter_input);
+  const sourceLocale =
+    candidate.source_locale ??
+    evidence.source_locale ??
+    adapterInput.source_locale ??
+    fallbackLocale;
+  const targetLocale =
+    candidate.target_locale ??
+    candidate.locale ??
+    evidence.target_locale ??
+    adapterInput.target_locale;
+  return resolveTranscreationLocaleScope({
+    sourceLocale,
+    targetLocale,
+    fallbackSourceLocale: normalizeGrowthLocale(fallbackLocale),
+    fallbackTargetLocale: "en-US",
+    pageType: evidence.page_type ?? adapterInput.page_type,
+    sourceEntityId: evidence.source_entity_id ?? adapterInput.source_entity_id,
+    targetPath: evidence.target_path ?? adapterInput.target_path,
+  });
+}
+
+function normalizeTranscreationCandidate(candidate: JsonRecord, fallbackLocale: string) {
+  const scope = transcreationScope(candidate, fallbackLocale);
+  if (!scope) return null;
+  const evidence = asRecord(candidate.evidence);
+  const adapterInput = asRecord(evidence.adapter_input);
+  const normalizedAdapterInput = {
+    ...adapterInput,
+    source_locale: scope.sourceLocale,
+    target_locale: scope.targetLocale,
+    locale_pair: scope.localePair,
+    target_path: scope.targetPath,
+  };
+  candidate.locale = scope.targetLocale;
+  candidate.market = scope.targetMarket;
+  candidate.source_locale = scope.sourceLocale;
+  candidate.target_locale = scope.targetLocale;
+  candidate.locale_pair = scope.localePair;
+  candidate.evidence = {
+    ...evidence,
+    source_locale: scope.sourceLocale,
+    target_locale: scope.targetLocale,
+    target_market: scope.targetMarket,
+    locale_pair: scope.localePair,
+    target_path: scope.targetPath,
+    adapter_input: normalizedAdapterInput,
+  };
+  return scope;
+}
+
 function correlationBlocked(correlation: GrowthEvidenceCorrelationResult): string | null {
   if (
     correlation.dedupe_verdict === "skip" ||
@@ -211,13 +269,16 @@ async function insertCandidate({
   decision: GrowthOrchestratorDecision;
   candidate: JsonRecord;
 }) {
+  const scope = normalizeTranscreationCandidate(candidate, decision.locale);
   const evidence = asRecord(candidate.evidence);
   const insert: GrowthOpportunityCandidateInsert =
     GrowthOpportunityCandidateInsertSchema.parse({
       account_id: decision.account_id,
       website_id: decision.website_id,
-      locale: decision.locale,
-      market: decision.market,
+      locale:
+        typeof candidate.locale === "string" ? candidate.locale : decision.locale,
+      market:
+        typeof candidate.market === "string" ? candidate.market : decision.market,
       candidate_type: candidate.candidate_type,
       lane: candidate.lane,
       allowed_action_class: candidate.allowed_action_class,
@@ -236,6 +297,15 @@ async function insertCandidate({
       source_signal_fact_ids: candidate.source_signal_fact_ids ?? [],
       evidence: {
         ...evidence,
+        ...(scope
+          ? {
+              source_locale: scope.sourceLocale,
+              target_locale: scope.targetLocale,
+              target_market: scope.targetMarket,
+              locale_pair: scope.localePair,
+              target_path: scope.targetPath,
+            }
+          : {}),
         target: targetFromEvidence(evidence),
         rollback_expectation:
           asRecord(evidence.rollback_expectation).strategy
@@ -387,6 +457,11 @@ export async function materializeBrainDecision({
       continue;
     }
     if (hardBlocked) continue;
+    const scope = normalizeTranscreationCandidate(candidate, decision.locale);
+    if (scope && !scope.valid) {
+      blockedReasons.push(`candidate:${candidate.allowed_action_class}:invalid_locale_pair`);
+      continue;
+    }
     materializableCandidates.push(candidate);
   }
   for (const workItem of decision.proposed_work_items) {

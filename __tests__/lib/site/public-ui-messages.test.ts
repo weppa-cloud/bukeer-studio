@@ -14,10 +14,25 @@ describe('public-ui-messages', () => {
 
   it('falls back to default locale for unsupported tokens', () => {
     const fallback = getPublicUiMessages(DEFAULT_PUBLIC_UI_LOCALE);
-    const unsupported = getPublicUiMessages('fr-FR');
+    const unsupported = getPublicUiMessages('it-IT');
 
     expect(unsupported.nav.home).toBe(fallback.nav.home);
     expect(unsupported.global404.goHome).toBe(fallback.global404.goHome);
+  });
+
+  it('localizes priority French and German public chrome instead of falling back to Spanish', () => {
+    const fr = getPublicUiMessages('fr-FR');
+    const de = getPublicUiMessages('de-DE');
+
+    expect(fr.nav.home).toBe('Accueil');
+    expect(fr.footer.planTrip).toBe('Planifier le voyage');
+    expect(fr.searchPage.placeholder).toBe('Destinations, hôtels, activités, forfaits...');
+    expect(fr.productDetail.searchButton).toBe('Rechercher');
+
+    expect(de.nav.home).toBe('Startseite');
+    expect(de.footer.planTrip).toBe('Reise planen');
+    expect(de.searchPage.placeholder).toBe('Reiseziele, Hotels, Aktivitäten, Pakete...');
+    expect(de.productDetail.searchButton).toBe('Suchen');
   });
 
   it('falls back missing nested keys to default locale and logs warning in non-production', () => {

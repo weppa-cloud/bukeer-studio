@@ -144,6 +144,55 @@ function correlationSupabase() {
   };
 }
 
+function materializingSupabase() {
+  const candidates: unknown[] = [];
+  const updates: unknown[] = [];
+  const selectRows = (data: unknown[]) => {
+    const query = {
+      eq: () => query,
+      in: () => query,
+      order: () => query,
+      limit: () => Promise.resolve({ data, error: null }),
+    };
+    return query;
+  };
+  return {
+    candidates,
+    updates,
+    from(table: string) {
+      if (table === "growth_work_items" || table === "growth_work_item_outcomes") {
+        return { select: () => selectRows([]) };
+      }
+      if (table === "growth_opportunity_candidates") {
+        return {
+          upsert: (payload: unknown) => {
+            candidates.push(payload);
+            return {
+              select: () => ({
+                limit: () =>
+                  Promise.resolve({
+                    data: [{ id: "77777777-7777-4777-8777-777777777777" }],
+                    error: null,
+                  }),
+              }),
+            };
+          },
+        };
+      }
+      return {
+        update: (payload: unknown) => {
+          updates.push(payload);
+          return {
+            eq: () => ({
+              eq: () => Promise.resolve({ data: null, error: null }),
+            }),
+          };
+        },
+      };
+    },
+  };
+}
+
 describe("materializeBrainDecision provider evidence gate", () => {
   it("blocks provider-dependent candidates without DataForSEO evidence", async () => {
     const supabase = blockedSupabase();
@@ -211,5 +260,85 @@ describe("materializeBrainDecision provider evidence gate", () => {
     expect(result.blockedReasons.some((reason) =>
       reason.includes("prior_active_same_entity_action"),
     )).toBe(true);
+  });
+
+  it("targets transcreation candidates to the destination locale and market", async () => {
+    const supabase = materializingSupabase();
+    const result = await materializeBrainDecision({
+      supabase: supabase as never,
+      decision: {
+        ...decisionBase,
+        proposed_candidates: [
+          {
+            candidate_type: "missing_translation",
+            lane: "transcreation",
+            allowed_action_class: "transcreation_merge",
+            title: "Create PT-BR localized page",
+            summary: "Target locale profiles must drive the merge.",
+            confidence: 0.82,
+            impact_score: 70,
+            urgency_score: 55,
+            cost_score: 45,
+            risk_score: 40,
+            total_score: 70,
+            required_profile_types: [
+              "business",
+              "buyer",
+              "seo_market",
+              "competitor",
+              "page_product",
+              "risk_policy",
+            ],
+            source_signal_fact_ids: [],
+            success_metric: "localized_organic_clicks:blog:pt-BR:source-post",
+            evaluation_window: "day_21",
+            profile_snapshot: {},
+            evidence: {
+              target: {
+                target_table: "seo_transcreation_jobs",
+                target_path: "blog:pt-BR:source-post",
+              },
+              rollback_expectation: { strategy: "restore_before_snapshot" },
+              baseline: { localized_organic_clicks: 0 },
+              dataforseo_evidence: {
+                required: true,
+                feature_profile: "serp",
+                status: "available",
+                evidence_fingerprint: "sha256:transcreation-pt-br",
+              },
+              adapter_input: {
+                transcreation_job_id: "88888888-8888-4888-8888-888888888888",
+                source_locale: "es-CO",
+                target_locale: "pt-BR",
+                page_type: "blog",
+                source_entity_id: "source-post",
+                target_path: "blog:pt-BR:source-post",
+                payload: {
+                  meta_title: "Viagens personalizadas pela Colombia",
+                  meta_desc:
+                    "Planeje uma viagem personalizada pela Colombia com contexto local, ritmo, regioes e criterios praticos antes de falar com um especialista.",
+                  body_content: "Conteudo localizado completo.",
+                },
+                quality: { passed: true, score: 0.91 },
+                glossary_terms: ["Colombia", "viagem personalizada"],
+              },
+            },
+            idempotency_key: "brain-provider:transcreation:pt-br",
+          },
+        ],
+      } as never,
+    });
+
+    expect(result.status).toBe("materialized");
+    expect(supabase.candidates[0]).toMatchObject({
+      locale: "pt-BR",
+      market: "BR",
+      evidence: {
+        source_locale: "es-CO",
+        target_locale: "pt-BR",
+        target_market: "BR",
+        locale_pair: "es-CO->pt-BR",
+      },
+    });
   });
 });

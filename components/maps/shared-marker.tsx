@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import type { MapMarker, MapMarkerKind } from '@/lib/maps/types';
 import { mapKindLabel } from '@/lib/maps/utils';
+import { getPublicUiExtraText } from '@/lib/site/public-ui-extra-text';
 
 export interface DestinationMarkerMeta {
   image?: string;
@@ -50,6 +51,16 @@ export function formatMarkerCount(value: number | undefined): string | null {
   if (typeof value !== 'number' || value <= 0) return null;
   if (value > 99) return '99+';
   return String(value);
+}
+
+export function formatDestinationProductCounts(
+  meta: Pick<DestinationMarkerMeta, 'hotelCount' | 'activityCount'>,
+  locale?: string | null,
+): string {
+  const hotelsLabel = getPublicUiExtraText(locale, 'editorialDestinoQuickFactHotels');
+  const activitiesLabel = getPublicUiExtraText(locale, 'editorialActivitiesWord');
+
+  return `${hotelsLabel}: ${meta.hotelCount ?? 0} · ${activitiesLabel.charAt(0).toUpperCase()}${activitiesLabel.slice(1)}: ${meta.activityCount ?? 0}`;
 }
 
 export function buildMarkerAriaDescription(marker: MapMarker): string {

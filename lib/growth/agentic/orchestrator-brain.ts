@@ -16,6 +16,7 @@ import {
   type SupabaseLike,
 } from "@/lib/growth/autonomy/runtime-common";
 import { evaluateGrowthEvidenceCorrelation } from "@/lib/growth/autonomy/candidate-discovery";
+import { resolveTranscreationLocaleScope } from "@/lib/growth/locale-targeting";
 import {
   dataForSeoEvidenceReadFromRequirement,
   dataForSeoEvidenceRecordFromRequirement,
@@ -631,16 +632,18 @@ async function synthesizeSignalFactsFromContext({
 
   const generatedTranscreationRows = transcreationTargets.map((row) => {
     const payload = asRecord(row.payload);
-    const sourceLocale =
-      typeof row.source_locale === "string" ? row.source_locale : "es-CO";
-    const targetLocale =
-      typeof row.target_locale === "string" && row.target_locale !== sourceLocale
-        ? row.target_locale
-        : "en-US";
     const pageType =
       row.page_type === "blog" || row.page_type === "destination"
         ? row.page_type
         : "page";
+    const localeScope = resolveTranscreationLocaleScope({
+      sourceLocale: row.source_locale,
+      targetLocale: row.target_locale,
+      pageType,
+      sourceEntityId: row.page_id,
+    });
+    const sourceLocale = localeScope.sourceLocale;
+    const targetLocale = localeScope.targetLocale;
     const title =
       typeof payload.title === "string"
         ? payload.title
@@ -656,11 +659,13 @@ async function synthesizeSignalFactsFromContext({
         ...basePayload,
         target_table: "seo_transcreation_jobs",
         target_id: row.id,
-        target_path: `${pageType}:${targetLocale}:${row.page_id}`,
+        target_path: localeScope.targetPath,
         transcreation_job_id: row.id,
         source_entity_id: row.page_id,
         source_locale: sourceLocale,
         target_locale: targetLocale,
+        target_market: localeScope.targetMarket,
+        locale_pair: localeScope.localePair,
         page_type: pageType,
         payload: {
           title,
@@ -997,6 +1002,16 @@ function candidateFromSignal({
   context: JsonRecord;
 }) {
   const payload = asRecord(signal?.payload);
+  const transcreationScope =
+    actionClass === "transcreation_merge"
+      ? resolveTranscreationLocaleScope({
+          sourceLocale: payload.source_locale,
+          targetLocale: payload.target_locale,
+          pageType: payload.page_type,
+          sourceEntityId: payload.source_entity_id,
+          targetPath: payload.target_path,
+        })
+      : null;
   const providerEvidence = dataForSeoEvidenceForCandidate({
     context,
     signal,
@@ -1069,41 +1084,66 @@ function candidateFromSignal({
       : {}),
     ...(actionClass === "transcreation_merge"
       ? {
+          source_locale: transcreationScope?.sourceLocale ?? "es-CO",
+          target_locale: transcreationScope?.targetLocale ?? "en-US",
+          target_market: transcreationScope?.targetMarket ?? "US",
+          locale_pair: transcreationScope?.localePair ?? "es-CO->en-US",
+          transcreation_job_id:
+            typeof payload.transcreation_job_id === "string"
+              ? payload.transcreation_job_id
+              : "",
+          source_entity_id:
+            typeof payload.source_entity_id === "string"
+              ? payload.source_entity_id
+              : "",
+          page_type:
+            typeof payload.page_type === "string" ? payload.page_type : "blog",
+          target_path: transcreationScope?.targetPath ?? null,
           adapter_input: {
             transcreation_job_id:
               typeof payload.transcreation_job_id === "string"
                 ? payload.transcreation_job_id
                 : "",
-            source_locale:
-              typeof payload.source_locale === "string"
-                ? payload.source_locale
-                : "es-CO",
-            target_locale:
-              typeof payload.target_locale === "string"
-                ? payload.target_locale
-                : "en-US",
-            page_type: "blog",
+            source_locale: transcreationScope?.sourceLocale ?? "es-CO",
+            target_locale: transcreationScope?.targetLocale ?? "en-US",
+            locale_pair: transcreationScope?.localePair ?? "es-CO->en-US",
+            target_path: transcreationScope?.targetPath ?? null,
+            page_type:
+              typeof payload.page_type === "string" ? payload.page_type : "blog",
             source_entity_id:
               typeof payload.source_entity_id === "string"
                 ? payload.source_entity_id
                 : "",
-            payload: {
-              title: "Custom Colombia trips: how to choose a meaningful route",
-              slug: "custom-colombia-trips-meaningful-route",
-              meta_title: "Custom Colombia trips with routes designed around you",
-              meta_desc:
-                "Learn how to plan custom Colombia trips by season, rhythm, regions, culture and nature before speaking with a travel expert.",
-              h1: "Custom Colombia trips designed around your rhythm",
-              body_content:
-                "A high-quality transcreation should preserve the Colombian travel intent while adapting examples, search language and conversion cues for English-speaking travelers.",
-            },
-            quality: {
-              passed: true,
-              score: 0.94,
-              issues: [],
-            },
-            glossary_terms: ["custom trips", "Colombia", "tailor-made travel"],
-            baseline: { localized_organic_clicks: 0 },
+            payload:
+              Object.keys(asRecord(payload.payload)).length > 0
+                ? asRecord(payload.payload)
+                : {
+                    title:
+                      "Custom Colombia trips: how to choose a meaningful route",
+                    slug: "custom-colombia-trips-meaningful-route",
+                    meta_title:
+                      "Custom Colombia trips with routes designed around you",
+                    meta_desc:
+                      "Learn how to plan custom Colombia trips by season, rhythm, regions, culture and nature before speaking with a travel expert.",
+                    h1: "Custom Colombia trips designed around your rhythm",
+                    body_content:
+                      "A high-quality transcreation should preserve the Colombian travel intent while adapting examples, search language and conversion cues for English-speaking travelers.",
+                  },
+            quality:
+              Object.keys(asRecord(payload.quality)).length > 0
+                ? asRecord(payload.quality)
+                : {
+                    passed: true,
+                    score: 0.94,
+                    issues: [],
+                  },
+            glossary_terms: Array.isArray(payload.glossary_terms)
+              ? payload.glossary_terms
+              : ["custom trips", "Colombia", "tailor-made travel"],
+            baseline:
+              Object.keys(asRecord(payload.baseline)).length > 0
+                ? asRecord(payload.baseline)
+                : { localized_organic_clicks: 0 },
           },
         }
       : {}),
@@ -1164,6 +1204,15 @@ function candidateFromSignal({
           : "keyword_gap",
     lane,
     allowed_action_class: actionClass,
+    ...(transcreationScope
+      ? {
+          locale: transcreationScope.targetLocale,
+          market: transcreationScope.targetMarket,
+          source_locale: transcreationScope.sourceLocale,
+          target_locale: transcreationScope.targetLocale,
+          locale_pair: transcreationScope.localePair,
+        }
+      : {}),
     title: `Brain ${actionClass}: ${String(titleSource).slice(0, 120)}`,
     summary:
       "Growth CEO Brain selected this opportunity from fresh signals, active outcomes and current autonomy policies. Executor must still validate freshness, quality, caps, smoke and rollback before any mutation.",

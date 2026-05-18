@@ -66,7 +66,7 @@ const RequestSchema = z
       .regex(/^[a-z]{2}(-[A-Z]{2})?$/)
       .optional()
       .nullable(),
-    market: z.enum(['CO', 'MX', 'US', 'CA', 'EU', 'OTHER']).optional().nullable(),
+    market: z.enum(['CO', 'MX', 'US', 'CA', 'BR', 'EU', 'OTHER']).optional().nullable(),
     customer: z.unknown().optional().nullable(),
   })
   .strip();

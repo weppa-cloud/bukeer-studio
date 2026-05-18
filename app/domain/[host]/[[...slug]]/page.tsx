@@ -7,7 +7,13 @@ import { StaticPage } from '@/components/pages/static-page';
 import { M3ThemeProvider } from '@/lib/theme/m3-theme-provider';
 import { GoogleTagManager, GoogleTagManagerBody } from '@/components/analytics/google-tag-manager';
 import { WebsiteData } from '@/lib/supabase/get-website';
-import { getDestinations, getPageBySlug } from '@/lib/supabase/get-pages';
+import {
+  getDestinations,
+  getPageBySlug,
+  getPageBySlugForLocale,
+  getPageByTranslationGroup,
+} from '@/lib/supabase/get-pages';
+import { resolvePublicPageForRoute } from '@/lib/site/public-page-resolution';
 import { getBlogPosts, getBlogPostBySlug, getBlogCategories } from '@/lib/supabase/get-website';
 import { JsonLd, generateBlogListingSchemas, generateBlogPostSchemas } from '@/lib/schema';
 import { SafeHtml } from '@/lib/sanitize';
@@ -55,6 +61,8 @@ async function getWebsiteByCustomDomain(customDomain: string): Promise<WebsiteDa
       theme,
       content,
       analytics,
+      default_locale,
+      supported_locales,
       template:website_templates (
         id,
         name,
@@ -519,8 +527,16 @@ export default async function CustomDomainPage({ params, searchParams }: CustomD
     );
   }
 
-  // Get the page content (non-blog routes)
-  const page = await getPageBySlug(website.subdomain, slugPath || 'home');
+  // Get the page content (non-blog routes), preserving locale-prefixed custom
+  // pages such as `/pt-br/contact` instead of looking up the literal slug.
+  const resolvedPageRoute = await resolvePublicPageForRoute({
+    website,
+    publicSlugPath: slugPath || 'home',
+    loadPageBySlug: getPageBySlug,
+    loadPageBySlugForLocale: getPageBySlugForLocale,
+    loadPageByTranslationGroup: getPageByTranslationGroup,
+  });
+  const page = resolvedPageRoute.page;
   const dynamicDestinations = await getDestinations(website.subdomain);
 
   if (!page && slugPath) {

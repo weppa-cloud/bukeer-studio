@@ -643,6 +643,39 @@ export async function getPageBySlug(
 }
 
 /**
+ * Get a published page by website id + slug + locale.
+ *
+ * This avoids default-locale RPC fallback when a localized custom/static page
+ * intentionally reuses the same slug (for example `/pt-br/contact`).
+ */
+export async function getPageBySlugForLocale(
+  websiteId: string,
+  slug: string,
+  locale: string,
+): Promise<WebsitePage | null> {
+  try {
+    const { data, error } = await supabase
+      .from("website_pages")
+      .select("*")
+      .eq("website_id", websiteId)
+      .eq("slug", slug)
+      .eq("locale", locale)
+      .eq("is_published", true)
+      .maybeSingle();
+
+    if (error) {
+      console.error("[getPageBySlugForLocale] Error:", error);
+      return null;
+    }
+
+    return data as WebsitePage | null;
+  } catch (e) {
+    console.error("[getPageBySlugForLocale] Exception:", e);
+    return null;
+  }
+}
+
+/**
  * Find the translated variant of a page by translation_group_id + locale.
  * Returns a minimal shape (id, slug, locale) — enough to build a redirect URL.
  */

@@ -9,7 +9,7 @@ import {
 } from "@bukeer/website-contract";
 
 type JsonRecord = Record<string, unknown>;
-type GrowthMarket = "CO" | "MX" | "US" | "CA" | "EU" | "OTHER";
+type GrowthMarket = "CO" | "MX" | "US" | "CA" | "BR" | "EU" | "OTHER";
 
 export type TechnicalRemediationTargetTable = Extract<
   GrowthPublicationTargetTable,

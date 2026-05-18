@@ -51,7 +51,7 @@ const RequestSchema = z.object({
     .regex(/^[a-z]{2}(-[A-Z]{2})?$/)
     .optional()
     .nullable(),
-  market: z.enum(['CO', 'MX', 'US', 'CA', 'EU', 'OTHER']).optional().nullable(),
+  market: z.enum(['CO', 'MX', 'US', 'CA', 'BR', 'EU', 'OTHER']).optional().nullable(),
   variant: z.string().trim().max(8).optional().nullable(),
   step: z.string().trim().max(80).optional().nullable(),
   reason: z.string().trim().max(120).optional().nullable(),

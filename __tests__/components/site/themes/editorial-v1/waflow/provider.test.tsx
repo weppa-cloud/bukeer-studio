@@ -83,6 +83,17 @@ describe('<WaflowProvider/> SSR', () => {
     expect(markup).not.toContain('role="dialog"');
   });
 
+  it('renders FAB copy from the resolved locale', () => {
+    const markup = renderToStaticMarkup(
+      <WaflowProvider businessNumber="573001234567" locale="en-US">
+        <main>body</main>
+      </WaflowProvider>,
+    );
+    expect(markup).toContain('Planning a trip?');
+    expect(markup).toContain('aria-label="Chat on WhatsApp with a planner"');
+    expect(markup).not.toContain('¿Planeas un viaje?');
+  });
+
   it('omits the FAB when showFab=false', () => {
     const markup = renderToStaticMarkup(
       <WaflowProvider businessNumber="573001234567" showFab={false}>

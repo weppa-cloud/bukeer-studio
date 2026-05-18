@@ -12,6 +12,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { parsePhoneNumberFromString } from 'libphonenumber-js/min';
 
 import { trackEvent } from '@/lib/analytics/track';
+import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 
 import {
   WAFLOW_COUNTRIES,
@@ -172,9 +173,15 @@ interface CountryPhoneComboboxProps {
   selected: WaflowCountry;
   onSelect: (country: WaflowCountry) => void;
   disabled?: boolean;
+  labels: {
+    changeCountryAriaPrefix: string;
+    search: string;
+    countriesAria: string;
+    notFound: string;
+  };
 }
 
-function CountryPhoneCombobox({ selected, onSelect, disabled }: CountryPhoneComboboxProps) {
+function CountryPhoneCombobox({ selected, onSelect, disabled, labels }: CountryPhoneComboboxProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -211,7 +218,7 @@ function CountryPhoneCombobox({ selected, onSelect, disabled }: CountryPhoneComb
       <button
         type="button"
         className="waf-country-trigger"
-        aria-label={`Cambiar país, seleccionado ${selected.name} ${selected.code}`}
+        aria-label={`${labels.changeCountryAriaPrefix} ${selected.name} ${selected.code}`}
         aria-expanded={open}
         aria-haspopup="listbox"
         onClick={() => {
@@ -228,7 +235,7 @@ function CountryPhoneCombobox({ selected, onSelect, disabled }: CountryPhoneComb
       {open ? (
         <div className="waf-country-popover">
           <label className="sr-only" htmlFor="waf-country-search">
-            Buscar país o indicativo
+            {labels.search}
           </label>
           <input
             id="waf-country-search"
@@ -236,10 +243,10 @@ function CountryPhoneCombobox({ selected, onSelect, disabled }: CountryPhoneComb
             className="waf-country-search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Buscar país o indicativo"
+            placeholder={labels.search}
             autoComplete="off"
           />
-          <div className="waf-country-list" role="listbox" aria-label="Países">
+          <div className="waf-country-list" role="listbox" aria-label={labels.countriesAria}>
             {filtered.length > 0 ? (
               filtered.map((country) => (
                 <button
@@ -262,7 +269,7 @@ function CountryPhoneCombobox({ selected, onSelect, disabled }: CountryPhoneComb
                 </button>
               ))
             ) : (
-              <div className="waf-country-empty">No encontramos ese país</div>
+              <div className="waf-country-empty">{labels.notFound}</div>
             )}
           </div>
         </div>
@@ -277,7 +284,8 @@ export function WaflowStepContact({
   subdomain,
 }: WaflowStepContactProps) {
   const { state, patch, setStep } = useWaflowApi();
-  const { businessNumber } = useWaflow();
+  const { businessNumber, locale } = useWaflow();
+  const text = getPublicUiExtraTextGetter(locale);
   const [errors, setErrors] = useState<ContactErrors>({});
   const [loading, setLoading] = useState(false);
   const submittingRef = useRef(false);
@@ -290,18 +298,18 @@ export function WaflowStepContact({
   );
 
   const submitLabel = useMemo(() => {
-    if (variant === 'A') return 'Enviar y abrir WhatsApp';
+    if (variant === 'A') return text('waflowSubmitA');
     if (variant === 'B')
-      return `Planear mi viaje a ${config.destination?.name ?? ''}`.trim();
-    return 'Continuar con este paquete';
-  }, [variant, config]);
+      return `${text('waflowSubmitBPrefix')} ${config.destination?.name ?? ''}`.trim();
+    return text('waflowSubmitD');
+  }, [variant, config, text]);
 
   const handleSubmit = useCallback(async () => {
     if (submittingRef.current) return;
 
     const errs: ContactErrors = {};
     if (!validateWaflowPhone(state.phone, country)) {
-      errs.phone = `Escribe tu WhatsApp con 7 a 15 dígitos. Puedes incluir ${country.code} o dejar solo el número local.`;
+      errs.phone = `${text('waflowPhoneErrorPrefix')} ${country.code} ${text('waflowPhoneErrorSuffix')}`;
     }
     if (Object.keys(errs).length > 0) {
       setErrors(errs);
@@ -331,7 +339,7 @@ export function WaflowStepContact({
 
     const message = buildWaflowMessage({
       variant,
-      name: state.name.trim() || 'Viajero',
+      name: state.name.trim() || text('waflowFallbackName'),
       country,
       phone: state.phone,
       destinationChoice: state.destinationChoice,
@@ -429,6 +437,7 @@ export function WaflowStepContact({
     setStep,
     state,
     subdomain,
+    text,
     variant,
   ]);
 
@@ -454,8 +463,8 @@ export function WaflowStepContact({
     <div className="waf-body">
       <div className="waf-field">
         <label className="waf-label" htmlFor="waf-phone">
-          <span>Tu WhatsApp</span>
-          <span className="req">Requerido</span>
+          <span>{text('waflowPhoneLabel')}</span>
+          <span className="req">{text('waflowRequired')}</span>
         </label>
         <div className={`waf-input-wrap waf-phone-wrap${errors.phone ? ' error' : ''}`}>
           <CountryPhoneCombobox
@@ -465,6 +474,12 @@ export function WaflowStepContact({
               if (errors.phone) setErrors((p) => ({ ...p, phone: undefined }));
             }}
             disabled={loading}
+            labels={{
+              changeCountryAriaPrefix: text('waflowChangeCountryAriaPrefix'),
+              search: text('waflowCountrySearch'),
+              countriesAria: text('waflowCountriesAria'),
+              notFound: text('waflowCountryNotFound'),
+            }}
           />
           <input
             id="waf-phone"
@@ -472,7 +487,7 @@ export function WaflowStepContact({
             type="tel"
             value={phoneFmt}
             onChange={(e) => handlePhoneChange(e.target.value)}
-            placeholder={country.c === 'CO' ? '300 123 4567' : 'número'}
+            placeholder={country.c === 'CO' ? '300 123 4567' : text('waflowPhonePlaceholder')}
             inputMode="tel"
             autoComplete="tel"
           />
@@ -482,8 +497,8 @@ export function WaflowStepContact({
 
       <div className="waf-field">
         <label className="waf-label">
-          <span>¿Cuándo te gustaría viajar?</span>
-          <span className="opt">Aprox</span>
+          <span>{text('waflowWhenLabel')}</span>
+          <span className="opt">{text('waflowApprox')}</span>
         </label>
         <div className="waf-chip-row">
           {WAFLOW_WHEN_OPTIONS.map((w) => (
@@ -501,8 +516,8 @@ export function WaflowStepContact({
 
       <div className="waf-field">
         <label className="waf-label" htmlFor="waf-name">
-          <span>Tu nombre</span>
-          <span className="opt">Opcional</span>
+          <span>{text('waflowNameLabel')}</span>
+          <span className="opt">{text('waflowOptional')}</span>
         </label>
         <div className="waf-input-wrap">
           <input
@@ -511,7 +526,7 @@ export function WaflowStepContact({
             type="text"
             value={state.name}
             onChange={(e) => patch({ name: e.target.value })}
-            placeholder="Como quieres que te llamemos"
+            placeholder={text('waflowNamePlaceholder')}
             autoComplete="given-name"
           />
         </div>
@@ -524,11 +539,11 @@ export function WaflowStepContact({
           onClick={handleSubmit}
           disabled={loading}
         >
-          {loading ? 'Enviando…' : submitLabel}
+          {loading ? text('waflowSending') : submitLabel}
         </button>
       </div>
       <div className="waf-privacy">
-        Tu número se usa solo para este viaje. Sin spam. Sin llamadas automáticas.
+        {text('waflowPrivacy')}
       </div>
     </div>
   );

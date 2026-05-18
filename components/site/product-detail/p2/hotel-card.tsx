@@ -2,6 +2,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import { HOTEL_AMENITIES_MAX } from '@bukeer/website-contract';
+import { CATEGORY_CANONICAL_SEGMENT, localeToLanguage, normalizeLocale } from '@/lib/seo/locale-routing';
+import { getPublicUiExtraTextGetter } from '@/lib/site/public-ui-extra-text';
 
 export interface HotelCardProps {
   title?: string | null;
@@ -36,6 +38,16 @@ export interface HotelCardProps {
    * Defaults to root-relative (`/hoteles/<slug>`).
    */
   basePath?: string | null;
+  /** Request/content locale used for labels and localized category links. */
+  locale?: string | null;
+}
+
+function buildHotelHref(basePath: string | null | undefined, slug: string | null | undefined, locale: string | null | undefined): string | null {
+  if (!slug) return null;
+  const normalizedBasePath = (basePath ?? '').replace(/\/+$/, '');
+  const language = localeToLanguage(normalizeLocale(locale ?? 'es-CO')) as keyof typeof CATEGORY_CANONICAL_SEGMENT.hotel;
+  const hotelSegment = CATEGORY_CANONICAL_SEGMENT.hotel[language] ?? CATEGORY_CANONICAL_SEGMENT.hotel.es;
+  return `${normalizedBasePath}/${hotelSegment}/${slug}`.replace(/^\/+/, '/');
 }
 
 function StarRow({ stars }: { stars: number }) {
@@ -67,15 +79,15 @@ export function HotelCard({
   nights,
   category,
   basePath,
+  locale,
 }: HotelCardProps) {
   const stars = typeof starRating === 'number'
     ? Math.max(1, Math.min(5, Math.round(starRating)))
     : 0;
   const displayAmenities = Array.isArray(amenities) ? amenities.slice(0, HOTEL_AMENITIES_MAX) : [];
-  const normalizedBasePath = (basePath ?? '').replace(/\/+$/, '');
-  const hotelHref = hotelSlug
-    ? `${normalizedBasePath}/hoteles/${hotelSlug}`.replace(/^\/+/, '/')
-    : null;
+  const hotelHref = buildHotelHref(basePath, hotelSlug ?? null, locale ?? 'es-CO');
+  const extraText = getPublicUiExtraTextGetter(locale ?? 'es-CO');
+  const viewHotelLabel = extraText('sectionViewHotel');
 
   if (variant === 'card') {
     const eyebrowParts = [city, category].filter((part): part is string => Boolean(part && part.trim().length));
@@ -149,9 +161,9 @@ export function HotelCard({
                   href={hotelHref}
                   className="text-xs font-mono hover:text-primary transition-colors"
                   style={{ color: 'var(--text-muted)' }}
-                  aria-label={`Ver detalles del hotel ${title ?? ''}`}
+                  aria-label={`${viewHotelLabel} ${title ?? ''}`.trim()}
                 >
-                  Ver hotel →
+                  {viewHotelLabel} →
                 </Link>
               ) : null}
             </div>
@@ -189,9 +201,9 @@ export function HotelCard({
           href={hotelHref}
           className="text-xs font-mono hover:text-primary transition-colors"
           style={{ color: 'var(--text-muted)' }}
-          aria-label={`Ver detalles del hotel ${title ?? ''}`}
+          aria-label={`${viewHotelLabel} ${title ?? ''}`.trim()}
         >
-          Ver hotel →
+          {viewHotelLabel} →
         </Link>
       )}
     </div>
