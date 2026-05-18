@@ -38,8 +38,135 @@ export interface GrowthAgentContextBundle {
   injectionScan: ReturnType<typeof scanGrowthContextForPromptInjection>;
 }
 
-const OBJECTIVE =
+const DEFAULT_OBJECTIVE =
   "Increase qualified_trip_requests/month and confirmed bookings attributed to organic and funnel Growth OS channels for ColombiaTours.";
+
+/**
+ * Read the active growth plan objective for this account, falling back to
+ * the hardcoded default if no plan exists.
+ */
+async function resolvePlanObjective({
+  supabase,
+  accountId,
+  websiteId,
+}: {
+  supabase: SupabaseLike;
+  accountId: string;
+  websiteId: string;
+}): Promise<string> {
+  const { data, error } = await supabase
+    .from("growth_account_plans")
+    .select("objective")
+    .eq("account_id", accountId)
+    .eq("website_id", websiteId)
+    .eq("status", "active")
+    .order("created_at", { ascending: false })
+    .limit(1);
+  if (error) {
+    console.warn("growth_account_plans lookup failed, using default:", error.message);
+    return DEFAULT_OBJECTIVE;
+  }
+  const plan = Array.isArray(data) ? data[0] : data;
+  return (plan?.objective as string) ?? DEFAULT_OBJECTIVE;
+}
+
+/**
+ * Read source refs from growth_source_refs for the given website/locale/market.
+ * Returns compact {source, ref} entries matching the existing SourceRef shape.
+ */
+async function resolveSourceRefs({
+  supabase,
+  websiteId,
+  locale,
+  market,
+  limit = 200,
+}: {
+  supabase: SupabaseLike;
+  websiteId: string;
+  locale: string;
+  market: GrowthMarket;
+  limit?: number;
+}): Promise<{ source: string; ref: string }[]> {
+  const { data, error } = await supabase
+    .from("growth_source_refs")
+    .select("source, id, run_id")
+    .eq("website_id", websiteId)
+    .eq("locale", locale)
+    .eq("market", market)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) {
+    console.warn("growth_source_refs lookup failed:", error.message);
+    return [];
+  }
+  const rows = (data ?? []) as { source: string; id: string; run_id: string }[];
+  return rows.map((row) => ({
+    source: row.source,
+    ref: `${row.source}:${row.id}`,
+  }));
+}
+
+/**
+ * Log a context packet to the immutable growth_context_packet_log table.
+ * Non-blocking — failures are logged but not thrown.
+ */
+async function logContextPacket({
+  supabase,
+  accountId,
+  websiteId,
+  contextSnapshotId,
+  workerRunId,
+  packetVersion,
+  locale,
+  market,
+  lane,
+  sourceRefs,
+  verdict,
+  blockedReasons,
+  outcome,
+  tokenEstimate,
+}: {
+  supabase: SupabaseLike;
+  accountId: string;
+  websiteId: string;
+  contextSnapshotId?: string | null;
+  workerRunId?: string | null;
+  packetVersion: string;
+  locale: string;
+  market: string;
+  lane: string;
+  sourceRefs: string[];
+  verdict: string;
+  blockedReasons?: string[];
+  outcome?: string | null;
+  tokenEstimate: number;
+}): Promise<void> {
+  try {
+    const insert: Record<string, unknown> = {
+      account_id: accountId,
+      website_id: websiteId,
+      context_snapshot_id: contextSnapshotId ?? null,
+      worker_run_id: workerRunId ?? null,
+      packet_version: packetVersion,
+      locale,
+      market,
+      lane,
+      source_refs_included: sourceRefs.slice(0, 200),
+      verdict,
+      blocked_reasons: blockedReasons ?? [],
+      outcome: outcome ?? null,
+      token_estimate: tokenEstimate,
+    };
+    const { error } = await supabase
+      .from("growth_context_packet_log")
+      .insert(insert);
+    if (error) {
+      console.warn("growth_context_packet_log insert failed:", error.message);
+    }
+  } catch (err) {
+    console.warn("growth_context_packet_log insert threw:", err);
+  }
+}
 
 async function selectRows({
   supabase,
@@ -131,6 +258,21 @@ export async function buildGrowthAgentContext(
     );
   }
   const now = options.now ?? new Date();
+
+  // Resolve objective from growth_account_plans (fallback to DEFAULT_OBJECTIVE)
+  const objective = await resolvePlanObjective({
+    supabase: options.supabase,
+    accountId: options.accountId,
+    websiteId: options.websiteId,
+  });
+
+  // Resolve source refs from growth_source_refs table
+  const governanceSourceRefs = await resolveSourceRefs({
+    supabase: options.supabase,
+    websiteId: options.websiteId,
+    locale,
+    market,
+  });
 
   const [
     profiles,
@@ -238,7 +380,7 @@ export async function buildGrowthAgentContext(
   const blockedTools = toolCalls.filter((row) => row.allowed === false).slice(0, 20);
 
   const context: JsonRecord = {
-    objective: OBJECTIVE,
+    objective: objective,  // Resolved from growth_account_plans or default
     generated_at: now.toISOString(),
     account_id: options.accountId,
     website_id: options.websiteId,
@@ -406,12 +548,39 @@ export async function buildGrowthAgentContext(
   }
 
   const sourceRefs = [
+    ...governanceSourceRefs.map((ref) => ref.ref),
     ...profiles.map((row) => `growth_profiles:${row.id}`),
     ...signalFacts.map((row) => `growth_signal_facts:${row.id}`),
     ...activeMemories.map((row) => `growth_agent_memories:${row.id}`),
     ...activeSkills.map((row) => `growth_agent_skills:${row.id}`),
     ...recentOutcomes.map((row) => `growth_work_item_outcomes:${row.id}`),
-  ].filter((ref) => !ref.endsWith(":undefined"));
+  ].filter((ref) => ref && !ref.endsWith(":undefined"));
+
+  // Determine verdict and blocked reasons based on gate chain
+  const packetVerdict = sourceRefs.length === 0 ? "BLOCKED" : "PASS_WITH_WATCH";
+  const blockedReasons: string[] = [];
+  if (sourceRefs.length === 0) {
+    blockedReasons.push("no_source_refs");
+  }
+
+  // Log context packet to immutable audit log (non-blocking)
+  const packetVersion = "1";
+  void logContextPacket({
+    supabase: options.supabase,
+    accountId: options.accountId,
+    websiteId: options.websiteId,
+    contextSnapshotId: options.persist === false ? null : undefined,
+    workerRunId: options.wakeup?.id ?? null,
+    packetVersion,
+    locale,
+    market,
+    lane,
+    sourceRefs,
+    verdict: packetVerdict,
+    blockedReasons,
+    outcome: null,
+    tokenEstimate: estimateTokens(context),
+  });
 
   const insert: GrowthContextSnapshotInsert = GrowthContextSnapshotInsertSchema.parse({
     account_id: options.accountId,
@@ -422,7 +591,7 @@ export async function buildGrowthAgentContext(
     wakeup_request_id: options.wakeup?.id ?? null,
     cycle_id: options.cycleId ?? null,
     context_version: "agentic-context-v1",
-    objective: OBJECTIVE,
+    objective: objective,
     sanitized_context: context,
     source_refs: sourceRefs.slice(0, 200),
     injection_scan: injectionScan,

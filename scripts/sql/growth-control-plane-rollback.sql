@@ -1,0 +1,42 @@
+-- ============================================================================
+-- Growth Control Plane Rollback — Phase 1b
+-- ============================================================================
+-- Purpose:
+--   Rollback the six governance tables created in M1 migration.
+--
+-- Warning:
+--   - DROP TABLE is destructive: ALL DATA is lost.
+--   - Only execute if no data loss is acceptable.
+--   - Backfill data in growth_source_refs is re-runnable.
+--   - Canary seed data is re-seedable.
+--
+-- Reference:
+--   SPEC_GROWTH_CONTROL_PLANE_PHASE1_MIGRATIONS.md §5
+-- ============================================================================
+
+-- ============================================================================
+-- Option A: Full rollback — drop all 6 tables
+-- ============================================================================
+-- DROP TABLE IF EXISTS public.growth_context_packet_log CASCADE;
+-- DROP TABLE IF EXISTS public.growth_source_refs CASCADE;
+-- DROP TABLE IF EXISTS public.growth_agent_definitions CASCADE;
+-- DROP TABLE IF EXISTS public.growth_provider_policies CASCADE;
+-- DROP TABLE IF EXISTS public.growth_capabilities CASCADE;
+-- DROP TABLE IF EXISTS public.growth_account_plans CASCADE;
+
+-- ============================================================================
+-- Option B: Backfill-only rollback — clear growth_source_refs for ColombiaTours
+-- ============================================================================
+-- DELETE FROM public.growth_source_refs
+-- WHERE website_id = '894545b7-73ca-4dae-b76a-da5b6a3f8441'
+--   AND fact_type = 'profile_run';
+
+-- ============================================================================
+-- Option C: Canary-only rollback — clear canary seed data
+-- ============================================================================
+-- DELETE FROM public.growth_capabilities
+-- WHERE website_id = '894545b7-73ca-4dae-b76a-da5b6a3f8441'
+--   AND capability = 'transcreation';
+--
+-- DELETE FROM public.growth_agent_definitions
+-- WHERE website_id = '894545b7-73ca-4dae-b76a-da5b6a3f8441';

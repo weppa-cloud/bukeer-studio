@@ -1,0 +1,133 @@
+-- ============================================================================
+-- Growth Source Refs Backfill — ColombiaTours
+-- ============================================================================
+-- Purpose:
+--   Backfill growth_source_refs from existing growth_profile_runs for
+--   ColombiaTours (website_id = 894545b7-73ca-4dae-b76a-da5b6a3f8441).
+--
+-- Procedure:
+--   1. Dry-run: count rows to backfill
+--   2. Preview: SELECT with transformation
+--   3. INSERT backfill
+--   4. Verify: compare run counts vs ref row counts by provider
+--
+-- Safety:
+--   - No provider API calls
+--   - Read-only dry-run first
+--   - INSERT-ONLY target (growth_source_refs is immutable)
+--
+-- Reference:
+--   SPEC_GROWTH_CONTROL_PLANE_PHASE1_MIGRATIONS.md §3
+-- ============================================================================
+
+-- Website UUID for ColombiaTours (pilot tenant)
+-- \set website_id '894545b7-73ca-4dae-b76a-da5b6a3f8441'
+
+-- ============================================================================
+-- Step 1: Dry-run — count rows to backfill
+-- ============================================================================
+-- SELECT
+--   COUNT(*) AS total_completed_runs,
+--   COUNT(DISTINCT provider) AS unique_providers,
+--   COUNT(DISTINCT profile_type) AS unique_profile_types
+-- FROM public.growth_profile_runs
+-- WHERE website_id = '894545b7-73ca-4dae-b76a-da5b6a3f8441'
+--   AND status = 'completed';
+
+-- ============================================================================
+-- Step 2: Preview — see what will be inserted (comment out LIMIT for full set)
+-- ============================================================================
+-- SELECT
+--   gpr.account_id,
+--   gpr.website_id,
+--   gpr.id AS run_id,
+--   CASE
+--     WHEN gpr.provider = 'dataforseo' THEN 'growth_profiles'
+--     WHEN gpr.provider = 'gsc' THEN 'growth_profiles'
+--     WHEN gpr.provider = 'ga4' THEN 'growth_profiles'
+--     WHEN gpr.provider = 'clarity' THEN 'growth_profiles'
+--     ELSE 'growth_profile_runs'
+--   END AS source,
+--   NULL::uuid AS fact_id,
+--   'profile_run' AS fact_type,
+--   COALESCE(gpr.locale, 'es-CO') AS locale,
+--   COALESCE(gpr.market, 'CO') AS market,
+--   gpr.profile_type,
+--   CASE
+--     WHEN gpr.freshness_status IS NOT NULL THEN gpr.freshness_status::text
+--     WHEN gpr.valid_until IS NOT NULL AND gpr.valid_until < now() THEN 'expired'
+--     ELSE 'unknown'
+--   END AS freshness_status,
+--   gpr.created_at AS valid_from,
+--   gpr.valid_until,
+--   encode(
+--     sha256(
+--       coalesce(gpr.evidence_fingerprint, gpr.id::text)::bytea
+--     ),
+--     'hex'
+--   ) AS payload_hash
+-- FROM public.growth_profile_runs gpr
+-- WHERE gpr.website_id = '894545b7-73ca-4dae-b76a-da5b6a3f8441'
+--   AND gpr.status = 'completed'
+-- ORDER BY gpr.created_at DESC
+-- LIMIT 20;
+
+-- ============================================================================
+-- Step 3: Insert backfill (uncomment to execute)
+-- ============================================================================
+-- BEGIN;
+--
+-- INSERT INTO public.growth_source_refs (
+--   account_id, website_id, run_id, source, fact_id, fact_type,
+--   locale, market, profile_type, freshness_status,
+--   valid_from, valid_until, payload_hash
+-- )
+-- SELECT
+--   gpr.account_id,
+--   gpr.website_id,
+--   gpr.id AS run_id,
+--   CASE
+--     WHEN gpr.provider = 'dataforseo' THEN 'growth_profiles'
+--     WHEN gpr.provider = 'gsc' THEN 'growth_profiles'
+--     WHEN gpr.provider = 'ga4' THEN 'growth_profiles'
+--     WHEN gpr.provider = 'clarity' THEN 'growth_profiles'
+--     ELSE 'growth_profile_runs'
+--   END AS source,
+--   NULL::uuid AS fact_id,
+--   'profile_run' AS fact_type,
+--   COALESCE(gpr.locale, 'es-CO') AS locale,
+--   COALESCE(gpr.market, 'CO') AS market,
+--   gpr.profile_type,
+--   CASE
+--     WHEN gpr.freshness_status IS NOT NULL THEN gpr.freshness_status::text
+--     WHEN gpr.valid_until IS NOT NULL AND gpr.valid_until < now() THEN 'expired'
+--     ELSE 'unknown'
+--   END AS freshness_status,
+--   gpr.created_at AS valid_from,
+--   gpr.valid_until,
+--   encode(
+--     sha256(
+--       coalesce(gpr.evidence_fingerprint, gpr.id::text)::bytea
+--     ),
+--     'hex'
+--   ) AS payload_hash
+-- FROM public.growth_profile_runs gpr
+-- WHERE gpr.website_id = '894545b7-73ca-4dae-b76a-da5b6a3f8441'
+--   AND gpr.status = 'completed';
+--
+-- COMMIT;
+
+-- ============================================================================
+-- Step 4: Verification — compare run counts vs ref row counts by provider
+-- ============================================================================
+-- SELECT
+--   pr.provider,
+--   pr.profile_type,
+--   COUNT(pr.id) AS runs,
+--   COUNT(sr.id) AS refs
+-- FROM public.growth_profile_runs pr
+-- LEFT JOIN public.growth_source_refs sr ON sr.run_id = pr.id
+-- WHERE pr.website_id = '894545b7-73ca-4dae-b76a-da5b6a3f8441'
+--   AND pr.status = 'completed'
+-- GROUP BY pr.provider, pr.profile_type
+-- ORDER BY pr.provider;
