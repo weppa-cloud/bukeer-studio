@@ -104,6 +104,27 @@ SELECT id, account_id, name
 FROM public.websites
 WHERE id = '894545b7-73ca-4dae-b76a-da5b6a3f8441';
 "
+
+# 4. Verify prerequisite trigger function exists before M1 apply
+# M1 creates updated_at triggers that call public.touch_growth_backlog_updated_at().
+# Clean staging targets must already have this function from earlier Growth migrations.
+psql "$STAGING_DB_URL" -c "
+SELECT
+  p.oid::regprocedure AS function_signature,
+  n.nspname AS schema_name
+FROM pg_proc p
+JOIN pg_namespace n ON n.oid = p.pronamespace
+WHERE n.nspname = 'public'
+  AND p.proname = 'touch_growth_backlog_updated_at';
+"
+```
+
+If the function query returns zero rows, T2 MUST stop with:
+
+```text
+RESULT: BLOCKED_MISSING_DB_PREREQUISITE
+REASON: public.touch_growth_backlog_updated_at() is missing on the staging target.
+        Apply/verify prerequisite Growth migrations before M1.
 ```
 
 ### 3.3 What happens if staging target is missing
@@ -379,7 +400,9 @@ SELECT
   tc.constraint_name,
   ccu.column_name,
   ccu2.table_name AS foreign_table_name,
-  ccu2.column_name AS foreign_column_name
+  ccu2.column_name AS foreign_column_name,
+  pc.condeferrable,
+  pc.condeferred
 FROM information_schema.table_constraints tc
 LEFT JOIN information_schema.constraint_column_usage ccu
   ON tc.constraint_name = ccu.constraint_name
@@ -390,9 +413,24 @@ LEFT JOIN information_schema.referential_constraints rc
 LEFT JOIN information_schema.constraint_column_usage ccu2
   ON rc.unique_constraint_name = ccu2.constraint_name
   AND tc.table_schema = ccu2.table_schema
+LEFT JOIN pg_constraint pc
+  ON pc.conname = tc.constraint_name
+  AND pc.connamespace = 'public'::regnamespace
 WHERE tc.table_schema = 'public'
   AND tc.table_name LIKE 'growth_%'
 ORDER BY tc.table_name, tc.constraint_type;
+```
+
+Expected critical constraint flags:
+
+```sql
+SELECT
+  conname,
+  condeferrable,
+  condeferred
+FROM pg_constraint
+WHERE conname = 'growth_source_refs_run_fact_uniq';
+-- Expected: condeferrable = true, condeferred = true
 ```
 
 ### 7.4 Index validation
