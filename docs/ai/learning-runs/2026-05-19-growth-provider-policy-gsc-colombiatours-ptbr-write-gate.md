@@ -3,7 +3,7 @@
 Pipeline: `growth-provider-policy-gsc-colombiatours-ptbr-write-gate`
 Date: 2026-05-19
 Outcome: `PASS_WITH_WATCH_GSC_ONE_ENTITY`
-Commit: pending at write time
+Commit: `d02864d9`
 
 ## What changed
 
