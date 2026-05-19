@@ -58,6 +58,7 @@
     "google-ads:audit-active-landings": "node scripts/google-ads/audit-colombiatours-active-landing-alignment.cjs",
     "google-ads:apply-landing-optimizations": "node scripts/google-ads/apply-colombiatours-landing-optimizations.cjs",
     "google-ads:apply-landing-score-gaps": "node scripts/google-ads/apply-colombiatours-landing-score-gap-closures.cjs",
+    "google-ads:apply-paid-search-landings-v2": "node scripts/google-ads/apply-colombiatours-paid-search-landings-v2.cjs",
     "google-ads:apply-p0-legacy-cleanup": "node scripts/google-ads/apply-colombiatours-p0-legacy-campaign-cleanup.cjs",
     "google-ads:apply-negatives": "node scripts/google-ads/apply-colombiatours-negative-keywords.cjs",
     "test:watch": "jest --watch",
