@@ -29,4 +29,16 @@ test.describe('Admin Next Planner Workbench prototype', () => {
     await expect(page.getByText('Approval required').first()).toBeVisible();
     await expect(page.getByText('Missing data').first()).toBeVisible();
   });
+
+  test('applies dark appearance to the workbench and trace inspector', async ({ page }) => {
+    await page.goto('/admin/prototype/planner-workbench', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByTestId('planner-workbench-hydrated')).toBeAttached();
+
+    await page.getByTestId('planner-workbench-dark-mode').click();
+    await expect(page.getByTestId('planner-workbench-root')).toHaveAttribute('data-appearance', 'dark');
+
+    await page.getByRole('button', { name: /Inspect trace/i }).first().click();
+    await expect(page.getByTestId('trace-drawer-content')).toHaveAttribute('data-appearance', 'dark');
+    await expect(page.getByText('Human approval boundary')).toBeVisible();
+  });
 });

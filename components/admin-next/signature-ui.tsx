@@ -5,6 +5,7 @@ import type {
   AgenticActionState,
   ApprovalRequest,
   AuthenticatedAdminSessionContext,
+  HumanAgentUiState,
   ItinerarySegment,
   LiveFeedItem,
   PlannerOpportunity,
@@ -15,13 +16,16 @@ import {
   CheckCircle2,
   CircleDot,
   Clock3,
+  FileX2,
   Lock,
   MessageSquareText,
   Plane,
+  RefreshCw,
   Search,
   ShieldCheck,
   Sparkles,
   UserCheck,
+  XCircle,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 
@@ -45,6 +49,87 @@ export const signatureStatusLabels: Record<AgenticActionState, string> = {
   executed: 'Executed',
   rejected: 'Rejected',
   expired: 'Expiring',
+};
+
+export type SignatureUiVariantState = Extract<
+  HumanAgentUiState,
+  | 'loading'
+  | 'empty'
+  | 'error'
+  | 'no_permission'
+  | 'approved'
+  | 'rejected'
+  | 'executing'
+  | 'executed'
+>;
+
+export type SignatureUiVariant = {
+  state: SignatureUiVariantState;
+  title: string;
+  description: string;
+  badge: string;
+  tone: SignatureTone;
+  actionLabel?: string;
+};
+
+export const signatureUiVariantDefaults: Record<SignatureUiVariantState, SignatureUiVariant> = {
+  loading: {
+    state: 'loading',
+    title: 'Loading signature workspace',
+    description: 'Fetching fixture context and preparing the human-agent controls.',
+    badge: 'Loading',
+    tone: 'live',
+  },
+  empty: {
+    state: 'empty',
+    title: 'No signature work queued',
+    description: 'There are no planner opportunities ready for signature review.',
+    badge: 'Empty',
+    tone: 'structural',
+  },
+  error: {
+    state: 'error',
+    title: 'Signature state unavailable',
+    description: 'The local prototype state could not be resolved.',
+    badge: 'Error',
+    tone: 'danger',
+    actionLabel: 'Retry',
+  },
+  no_permission: {
+    state: 'no_permission',
+    title: 'Permission required',
+    description: 'This user cannot approve or execute this signature workflow.',
+    badge: 'No permission',
+    tone: 'danger',
+  },
+  approved: {
+    state: 'approved',
+    title: 'Approved for execution',
+    description: 'The human approval gate has been cleared.',
+    badge: 'Approved',
+    tone: 'success',
+  },
+  rejected: {
+    state: 'rejected',
+    title: 'Rejected by reviewer',
+    description: 'The proposal remains blocked and requires revision before execution.',
+    badge: 'Rejected',
+    tone: 'danger',
+  },
+  executing: {
+    state: 'executing',
+    title: 'Executing approved action',
+    description: 'The local prototype is showing execution-in-progress state only.',
+    badge: 'Executing',
+    tone: 'live',
+  },
+  executed: {
+    state: 'executed',
+    title: 'Execution complete',
+    description: 'The approved workflow has completed in prototype state.',
+    badge: 'Executed',
+    tone: 'success',
+  },
 };
 
 const toneClasses: Record<SignatureTone, string> = {
@@ -79,6 +164,10 @@ export function signatureToneForStatus(status: AgenticActionState): SignatureTon
   return 'structural';
 }
 
+export function signatureToneForUiState(state: SignatureUiVariantState): SignatureTone {
+  return signatureUiVariantDefaults[state].tone;
+}
+
 function dotClass(tone: SignatureTone) {
   if (tone === 'live') return 'bg-[hsl(var(--bukeer-live))]';
   if (tone === 'humanLoop') return 'bg-[hsl(var(--bukeer-human-loop))]';
@@ -106,6 +195,70 @@ export function SignatureStatePill({
       {tone === 'humanLoop' ? <Clock3 className="size-3" /> : null}
       <span className="truncate">{children}</span>
     </span>
+  );
+}
+
+function SignatureUiVariantIcon({ state }: { state: SignatureUiVariantState }) {
+  const className = 'size-4';
+
+  if (state === 'loading' || state === 'executing') {
+    return <RefreshCw className={cx(className, 'animate-spin')} />;
+  }
+  if (state === 'empty') return <FileX2 className={className} />;
+  if (state === 'error' || state === 'rejected') return <XCircle className={className} />;
+  if (state === 'no_permission') return <Lock className={className} />;
+  return <CheckCircle2 className={className} />;
+}
+
+export function SignatureUiStatePanel({
+  variant,
+  onAction,
+}: {
+  variant: SignatureUiVariant;
+  onAction?: () => void;
+}) {
+  return (
+    <section
+      data-signature-ui-state={variant.state}
+      className={cx(
+        'rounded-lg border bg-card p-4 shadow-sm',
+        variant.tone === 'live' && 'border-[hsl(var(--bukeer-live)/0.34)]',
+        variant.tone === 'humanLoop' && 'border-[hsl(var(--bukeer-human-loop)/0.38)]',
+        variant.tone === 'success' && 'border-[hsl(var(--bukeer-success)/0.34)]',
+        variant.tone === 'warning' && 'border-[hsl(var(--bukeer-warning)/0.48)]',
+        variant.tone === 'danger' && 'border-destructive/35',
+        variant.tone === 'structural' && 'border-border'
+      )}
+    >
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex min-w-0 gap-3">
+          <span
+            className={cx(
+              'mt-0.5 inline-flex size-8 shrink-0 items-center justify-center rounded-md border',
+              toneClasses[variant.tone]
+            )}
+          >
+            <SignatureUiVariantIcon state={variant.state} />
+          </span>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-base font-semibold">{variant.title}</h2>
+              <SignatureStatePill tone={variant.tone}>{variant.badge}</SignatureStatePill>
+            </div>
+            <p className="mt-1 text-sm text-muted-foreground">{variant.description}</p>
+          </div>
+        </div>
+        {variant.actionLabel ? (
+          <button
+            type="button"
+            className="inline-flex h-9 shrink-0 items-center justify-center rounded-md border border-border px-3 text-sm font-medium transition hover:bg-muted"
+            onClick={onAction}
+          >
+            {variant.actionLabel}
+          </button>
+        ) : null}
+      </div>
+    </section>
   );
 }
 
@@ -137,7 +290,13 @@ export function SignatureMetric({
   );
 }
 
-export function SignaturePlannerHeader({ opportunity }: { opportunity: PlannerOpportunity }) {
+export function SignaturePlannerHeader({
+  opportunity,
+  actions,
+}: {
+  opportunity: PlannerOpportunity;
+  actions?: ReactNode;
+}) {
   return (
     <header className="sticky top-0 z-20 border-b border-border bg-background/95 px-4 py-4 backdrop-blur md:px-8">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
@@ -155,10 +314,13 @@ export function SignaturePlannerHeader({ opportunity }: { opportunity: PlannerOp
             {opportunity.valueLabel}
           </p>
         </div>
-        <div className="grid grid-cols-3 gap-2 text-sm sm:w-[420px]">
-          <SignatureMetric label="Quoted" value={opportunity.valueLabel} tone="live" />
-          <SignatureMetric label="Margin" value={opportunity.marginLabel} tone="humanLoop" />
-          <SignatureMetric label="SLA" value={opportunity.slaLabel} tone="warning" />
+        <div className="flex flex-col gap-3 sm:items-end">
+          {actions ? <div>{actions}</div> : null}
+          <div className="grid grid-cols-3 gap-2 text-sm sm:w-[420px]">
+            <SignatureMetric label="Quoted" value={opportunity.valueLabel} tone="live" />
+            <SignatureMetric label="Margin" value={opportunity.marginLabel} tone="humanLoop" />
+            <SignatureMetric label="SLA" value={opportunity.slaLabel} tone="warning" />
+          </div>
         </div>
       </div>
     </header>

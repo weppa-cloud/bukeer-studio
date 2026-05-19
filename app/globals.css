@@ -841,6 +841,9 @@ select.sort-select {
   --bukeer-approved: 158 64% 51%;
   --bukeer-warning: 52 97% 52%;
   --bukeer-surface-rail: 210 24% 97%;
+  --bukeer-surface-panel: 0 0% 100%;
+  --bukeer-surface-panel-strong: 260 18% 99%;
+  --bukeer-trace-line: 262 24% 82%;
   --radius: 0.75rem;
   --sidebar: oklch(0.98 0.005 285);
   --sidebar-foreground: oklch(0.2 0.03 285);
@@ -895,6 +898,9 @@ select.sort-select {
   --bukeer-approved: 158 60% 48%;
   --bukeer-warning: 52 94% 58%;
   --bukeer-surface-rail: 224 24% 16%;
+  --bukeer-surface-panel: 224 22% 13%;
+  --bukeer-surface-panel-strong: 224 26% 18%;
+  --bukeer-trace-line: 262 28% 32%;
   --sidebar: oklch(0.2 0.02 285);
   --sidebar-foreground: oklch(0.95 0.005 285);
   --sidebar-primary: oklch(0.65 0.14 285);

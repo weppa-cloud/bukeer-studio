@@ -20,9 +20,14 @@ export {
   SignatureStatePill,
   SignatureTracePreview,
   SignatureTripRail,
+  SignatureUiStatePanel,
   signatureStatusLabels,
   signatureToneForStatus,
+  signatureToneForUiState,
+  signatureUiVariantDefaults,
   type SignatureTone,
+  type SignatureUiVariant,
+  type SignatureUiVariantState,
 } from './signature-ui';
 export { StatePill } from './state-pill';
 export { TraceDrawer, TraceTimeline } from './trace-drawer';
