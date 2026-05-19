@@ -1,6 +1,6 @@
 # ColombiaTours Landing Roadmap V2 - Base vs Target Scores
 
-Generated: 2026-05-19T00:41:38.945Z
+Generated: 2026-05-19T00:48:36.812Z
 Mode: read-only fetch + local files. No Google Ads mutations. No Supabase writes.
 
 ## Summary
@@ -14,16 +14,16 @@ Mode: read-only fetch + local files. No Google Ads mutations. No Supabase writes
 
 | Landing | Markets | Priority | Base | Target | Gap | Readiness | Top actions |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| /pt/pacotes-colombia | BR | P0_existing_validate | 45 | 95 | 50 | optimize_before_ads | fix routing/content before any Ads use / add above-fold origin city proof: Sao Paulo / add qualifier: no flights or hotel-only sales / add testimonials/reviews and local agency proof near first CTA / rewrite hero/meta/H1 to mirror exact keywords and ad promise / add RNT/local planner/security/payment clarity/FAQ proof modules |
-| /viajes-colombia-desde-chile | CL | P1_market_landing | 90 | 95 | 5 | near_ready_needs_copy_or_design_qa | rewrite hero/meta/H1 to mirror exact keywords and ad promise |
-| /viajes-colombia-desde-argentina | AR | P1_market_landing | 90 | 95 | 5 | near_ready_needs_copy_or_design_qa | rewrite hero/meta/H1 to mirror exact keywords and ad promise |
-| /cartagena | MX / ES / CL / AR / US | P1_market_landing | 92 | 95 | 3 | near_ready_needs_copy_or_design_qa | add qualifier: no flights or hotel-only sales |
+| /pt/pacotes-colombia | BR | P0_existing_validate | 96 | 95 | 0 | ready_for_manual_ad_review | manual creative QA before future validate-only |
 | /paquetes-colombia-desde-mexico | MX | P1_market_landing | 96 | 95 | 0 | ready_for_manual_ad_review | manual creative QA before future validate-only |
+| /cartagena | MX / ES / CL / AR / US | P1_market_landing | 96 | 95 | 0 | ready_for_manual_ad_review | manual creative QA before future validate-only |
 | /paquetes-colombia-desde-espana | ES | P1_market_landing | 96 | 95 | 0 | ready_for_manual_ad_review | manual creative QA before future validate-only |
-| /paquetes/bogota-medellin-cartagena | MX / ES / CL / AR / US | P2_destination_landing | 90 | 92 | 2 | near_ready_needs_copy_or_design_qa | rewrite hero/meta/H1 to mirror exact keywords and ad promise |
-| /paquetes/cartagena-medellin | ES / CL / AR / US | P2_destination_landing | 90 | 92 | 2 | near_ready_needs_copy_or_design_qa | rewrite hero/meta/H1 to mirror exact keywords and ad promise |
+| /viajes-colombia-desde-chile | CL | P1_market_landing | 96 | 95 | 0 | ready_for_manual_ad_review | manual creative QA before future validate-only |
+| /viajes-colombia-desde-argentina | AR | P1_market_landing | 96 | 95 | 0 | ready_for_manual_ad_review | manual creative QA before future validate-only |
+| /paquetes/bogota-medellin-cartagena | MX / ES / CL / AR / US | P2_destination_landing | 96 | 92 | 0 | ready_for_manual_ad_review | manual creative QA before future validate-only |
 | /paquetes/san-andres-todo-incluido | MX / ES / CL / AR / US | P2_destination_landing | 96 | 92 | 0 | ready_for_manual_ad_review | manual creative QA before future validate-only |
 | /paquetes/eje-cafetero | MX / ES / CL / AR / US | P2_destination_landing | 96 | 92 | 0 | ready_for_manual_ad_review | manual creative QA before future validate-only |
+| /paquetes/cartagena-medellin | ES / CL / AR / US | P2_destination_landing | 96 | 92 | 0 | ready_for_manual_ad_review | manual creative QA before future validate-only |
 | /trips-to-colombia-from-usa | US | P3_hold | 45 | 90 | 45 | optimize_before_ads | fix routing/content before any Ads use / add qualifier: no flights or hotel-only sales / add testimonials/reviews and local agency proof near first CTA / rewrite hero/meta/H1 to mirror exact keywords and ad promise / add RNT/local planner/security/payment clarity/FAQ proof modules |
 
 ## Campaign To Landing Map
@@ -66,17 +66,6 @@ Mode: read-only fetch + local files. No Google Ads mutations. No Supabase writes
 
 | Landing | # | Action | Owner | Acceptance |
 | --- | --- | --- | --- | --- |
-| https://colombiatours.travel/pt/pacotes-colombia | 1 | fix routing/content before any Ads use | engineering | URL returns 200, index/follow, no not-found copy, canonical sane |
-| https://colombiatours.travel/pt/pacotes-colombia | 2 | add above-fold origin city proof: Sao Paulo | growth_content | Hero and first screen mention origin city and direct-connect rationale |
-| https://colombiatours.travel/pt/pacotes-colombia | 3 | add qualifier: no flights or hotel-only sales | growth_content | Qualifier visible before first CTA: no flight-only or hotel-only sales |
-| https://colombiatours.travel/pt/pacotes-colombia | 4 | add testimonials/reviews and local agency proof near first CTA | growth_content | At least one proof band with testimonials/reviews/local agency credibility |
-| https://colombiatours.travel/pt/pacotes-colombia | 5 | rewrite hero/meta/H1 to mirror exact keywords and ad promise | design_content | H1/meta/hero align with exact keywords and RSA promise |
-| https://colombiatours.travel/pt/pacotes-colombia | 6 | add RNT/local planner/security/payment clarity/FAQ proof modules | growth_content | Trust module includes RNT/local planner/security/payment/FAQ details |
-| https://colombiatours.travel/paquetes/bogota-medellin-cartagena | 1 | rewrite hero/meta/H1 to mirror exact keywords and ad promise | design_content | H1/meta/hero align with exact keywords and RSA promise |
-| https://colombiatours.travel/cartagena | 1 | add qualifier: no flights or hotel-only sales | growth_content | Qualifier visible before first CTA: no flight-only or hotel-only sales |
-| https://colombiatours.travel/paquetes/cartagena-medellin | 1 | rewrite hero/meta/H1 to mirror exact keywords and ad promise | design_content | H1/meta/hero align with exact keywords and RSA promise |
-| https://colombiatours.travel/viajes-colombia-desde-chile | 1 | rewrite hero/meta/H1 to mirror exact keywords and ad promise | design_content | H1/meta/hero align with exact keywords and RSA promise |
-| https://colombiatours.travel/viajes-colombia-desde-argentina | 1 | rewrite hero/meta/H1 to mirror exact keywords and ad promise | design_content | H1/meta/hero align with exact keywords and RSA promise |
 | https://colombiatours.travel/trips-to-colombia-from-usa | 1 | fix routing/content before any Ads use | engineering | URL returns 200, index/follow, no not-found copy, canonical sane |
 | https://colombiatours.travel/trips-to-colombia-from-usa | 2 | add qualifier: no flights or hotel-only sales | growth_content | Qualifier visible before first CTA: no flight-only or hotel-only sales |
 | https://colombiatours.travel/trips-to-colombia-from-usa | 3 | add testimonials/reviews and local agency proof near first CTA | growth_content | At least one proof band with testimonials/reviews/local agency credibility |

@@ -66,7 +66,7 @@ function section(type, content, variant = '') {
     id: randomUUID(),
     type,
     variant,
-    content: { ...content, auditSource: AUDIT_SOURCE },
+    content: { ...content, auditSource: content.auditSource || AUDIT_SOURCE },
   };
 }
 
@@ -548,6 +548,163 @@ async function getMaxNavOrder(supabase) {
   return Number(data?.[0]?.nav_order ?? 100);
 }
 
+function normalizeSupportedLocales(currentLocales) {
+  const current = Array.isArray(currentLocales)
+    ? currentLocales.filter((locale) => typeof locale === 'string' && locale.trim().length > 0)
+    : [];
+  const withoutPortugueseMismatch = current.filter((locale) => locale !== 'pt-PT');
+  return [...new Set([...withoutPortugueseMismatch, ...REQUIRED_SUPPORTED_LOCALES])];
+}
+
+async function ensureSupportedLocales(supabase, apply) {
+  const { data, error } = await supabase
+    .from('websites')
+    .select('id,supported_locales')
+    .eq('id', WEBSITE_ID)
+    .single();
+  if (error) throw error;
+
+  const before = Array.isArray(data?.supported_locales) ? data.supported_locales : [];
+  const after = normalizeSupportedLocales(before);
+  const changed = JSON.stringify(before) !== JSON.stringify(after);
+
+  if (!changed) {
+    return { action: 'unchanged', before, after, changed: false };
+  }
+
+  if (!apply) {
+    return { action: 'planned_update', before, after, changed: true };
+  }
+
+  const { data: updated, error: updateError } = await supabase
+    .from('websites')
+    .update({ supported_locales: after })
+    .eq('id', WEBSITE_ID)
+    .select('id,supported_locales')
+    .single();
+  if (updateError) throw updateError;
+
+  return { action: 'updated', before, after: updated.supported_locales, changed: true };
+}
+
+function appendIfMissing(baseText, addition) {
+  const base = String(baseText || '').trim();
+  const needle = addition.toLowerCase().slice(0, 72);
+  if (base.toLowerCase().includes(needle)) return base;
+  return base ? `${base} ${addition}` : addition;
+}
+
+function mergeHighlights(current, additions) {
+  const source = Array.isArray(current) ? current : [];
+  return [...new Set([...source, ...additions])];
+}
+
+function gapClosureSection(marker, content) {
+  return section('text_image', {
+    ...content,
+    gapClosure: marker,
+    auditSource: AUDIT_GAP_CLOSURE,
+  });
+}
+
+function stripGapClosure(sections, marker) {
+  return (Array.isArray(sections) ? sections : []).filter((item) => item?.content?.gapClosure !== marker);
+}
+
+const existingPageEnhancements = [
+  {
+    slug: 'pacotes-colombia',
+    marker: 'br_package_filter_pt_br',
+    seoDescription: 'Pacotes para Colombia saindo de Sao Paulo com planner local, hoteis, traslados e experiencias. Nao vendemos voos nem hotel avulso.',
+    introAppend: 'Nao vendemos voos nem hotel avulso: a proposta e de viagem completa na Colombia, com planner local, hoteis, traslados, experiencias e suporte por WhatsApp.',
+    highlights: ['Nao vendemos voos nem hotel avulso', 'Pacotes Colombia e pacote viagem Colombia desde Sao Paulo'],
+    section: {
+      eyebrow: 'Filtro de qualidade para Ads',
+      headline: 'Pacotes Colombia e pacote viagem Colombia, sem lead de voo ou hotel avulso',
+      body: 'Para pauta em Sao Paulo, a primeira dobra precisa qualificar que o viajante busca pacote completo: hoteis, traslados, experiencias, planner local e suporte. Nao vendemos voos nem hotel avulso.',
+      image: HERO_CARTAGENA,
+      imageAlt: 'Pacotes Colombia desde Sao Paulo com planner local',
+      imagePosition: 'right',
+      ctaText: 'Pedir cotacao completa',
+      ctaUrl: wa('Ola ColombiaTours, sou de Sao Paulo e quero cotar um pacote completo para a Colombia.'),
+    },
+  },
+  {
+    slug: 'pt/pacotes-colombia',
+    marker: 'br_package_filter_pt_prefixed',
+    seoDescription: 'Pacotes para Colombia saindo de Sao Paulo com planner local, hoteis, traslados e experiencias. Nao vendemos voos nem hotel avulso.',
+    introAppend: 'Nao vendemos voos nem hotel avulso: a proposta e de viagem completa na Colombia, com planner local, hoteis, traslados, experiencias e suporte por WhatsApp.',
+    highlights: ['Nao vendemos voos nem hotel avulso', 'Pacotes Colombia e pacote viagem Colombia desde Sao Paulo'],
+    section: {
+      eyebrow: 'Filtro de qualidade para Ads',
+      headline: 'Pacotes Colombia e pacote viagem Colombia, sem lead de voo ou hotel avulso',
+      body: 'Para pauta em Sao Paulo, a primeira dobra precisa qualificar que o viajante busca pacote completo: hoteis, traslados, experiencias, planner local e suporte. Nao vendemos voos nem hotel avulso.',
+      image: HERO_CARTAGENA,
+      imageAlt: 'Pacotes Colombia desde Sao Paulo com planner local',
+      imagePosition: 'right',
+      ctaText: 'Pedir cotacao completa',
+      ctaUrl: wa('Ola ColombiaTours, sou de Sao Paulo e quero cotar um pacote completo para a Colombia.'),
+    },
+  },
+  {
+    slug: 'cartagena',
+    marker: 'cartagena_no_flight_hotel_filter',
+    seoDescription: 'Cartagena de Indias con planner local, hoteles, traslados, experiencias e Islas del Rosario. No vendemos vuelos ni hoteles sueltos.',
+    introAppend: 'No vendemos vuelos ni hoteles sueltos: Cartagena se cotiza como viaje completo con hotel, traslados, experiencias, planner local y soporte por WhatsApp.',
+    highlights: ['No vendemos vuelos ni hoteles sueltos', 'Cartagena de Indias y paquetes para viajar a Cartagena'],
+    section: {
+      eyebrow: 'Filtro de intencion para Search',
+      headline: 'Cartagena de Indias como paquete completo, no como hotel suelto',
+      body: 'La landing debe responder a busquedas de Cartagena de Indias y paquetes para viajar a Cartagena dejando claro que no vendemos vuelos ni hoteles sueltos. Cotizamos ruta, hotel, traslados, experiencias e Islas del Rosario con planner local.',
+      image: HERO_CARTAGENA,
+      imageAlt: 'Cartagena de Indias con paquete completo',
+      imagePosition: 'right',
+      ctaText: 'Cotizar Cartagena completa',
+      ctaUrl: wa('Hola ColombiaTours, quiero cotizar Cartagena de Indias como paquete completo.'),
+    },
+  },
+];
+
+async function upsertExistingPageEnhancement(supabase, enhancement, apply) {
+  const existing = await getExistingPage(supabase, enhancement.slug);
+  if (!existing?.id) {
+    return { slug: enhancement.slug, action: 'missing_skip' };
+  }
+
+  const intro = existing.intro_content && typeof existing.intro_content === 'object'
+    ? existing.intro_content
+    : {};
+  const payload = {
+    is_published: true,
+    robots_noindex: false,
+    seo_description: enhancement.seoDescription || existing.seo_description,
+    intro_content: {
+      ...intro,
+      text: appendIfMissing(intro.text, enhancement.introAppend),
+      highlights: mergeHighlights(intro.highlights, enhancement.highlights || []),
+    },
+    sections: [
+      ...stripGapClosure(existing.sections, enhancement.marker),
+      gapClosureSection(enhancement.marker, enhancement.section),
+    ],
+    updated_at: new Date().toISOString(),
+  };
+
+  if (!apply) {
+    return { slug: enhancement.slug, action: 'planned_update', existingId: existing.id };
+  }
+
+  const { data, error } = await supabase
+    .from('website_pages')
+    .update(payload)
+    .eq('id', existing.id)
+    .eq('website_id', WEBSITE_ID)
+    .select('id,slug,title,is_published,robots_noindex')
+    .single();
+  if (error) throw error;
+  return { action: 'updated', row: data };
+}
+
 function buildPagePayload(def, index, baseOrder, existing) {
   return compactPayload({
     website_id: WEBSITE_ID,
@@ -697,6 +854,7 @@ async function run() {
   fs.mkdirSync(OUT_DIR, { recursive: true });
   const env = loadEnv();
   const supabase = createClient(env.url, env.serviceRole, { auth: { persistSession: false, autoRefreshToken: false } });
+  const localeResult = await ensureSupportedLocales(supabase, args.apply);
   const baseOrder = (await getMaxNavOrder(supabase)) + 1;
 
   const pagePlans = [];
@@ -707,6 +865,11 @@ async function run() {
     const payload = buildPagePayload(def, index, baseOrder, existing);
     pagePlans.push({ definition: def, existing, payload, summary: summarizePage(def, existing, payload) });
     pageResults.push(await upsertPage(supabase, def, payload, args.apply));
+  }
+
+  const enhancementResults = [];
+  for (const enhancement of existingPageEnhancements) {
+    enhancementResults.push(await upsertExistingPageEnhancement(supabase, enhancement, args.apply));
   }
 
   const redirectPlans = [];
@@ -726,12 +889,27 @@ async function run() {
     for (const def of landings) {
       revalidations.push(await revalidatePath(def.slug, env.revalidateSecret));
     }
+    for (const enhancement of existingPageEnhancements) {
+      revalidations.push(await revalidatePath(enhancement.slug, env.revalidateSecret));
+    }
     if (!args.skipLiveCheck) {
       for (const def of landings) {
         liveChecks.push(await fetchLanding(pageUrl(def.slug)));
       }
+      for (const enhancement of existingPageEnhancements) {
+        liveChecks.push(await fetchLanding(pageUrl(enhancement.slug)));
+      }
     }
   }
+
+  const supabaseWriteCount = args.apply
+    ? [
+        localeResult,
+        ...pageResults,
+        ...enhancementResults,
+        ...redirectResults,
+      ].filter((row) => ['updated', 'inserted'].includes(row?.action)).length
+    : 0;
 
   const report = {
     ok: true,
@@ -739,12 +917,14 @@ async function run() {
     mode: args.apply ? 'apply' : 'dryRun',
     safety: {
       googleAdsMutations: 0,
-      supabaseWrites: args.apply ? landings.length + redirectPlans.length : 0,
+      supabaseWrites: supabaseWriteCount,
       touchesCampaigns: false,
       accountId: ACCOUNT_ID,
       websiteId: WEBSITE_ID,
     },
+    localeResult,
     pageSummaries: pagePlans.map((plan, index) => ({ ...plan.summary, result: pageResults[index] })),
+    enhancementResults,
     redirectPlans,
     redirectResults,
     revalidations,
@@ -760,7 +940,9 @@ async function run() {
     mode: report.mode,
     reportPath: path.relative(repoRoot, reportPath),
     safety: report.safety,
+    localeResult: report.localeResult,
     pages: report.pageSummaries.map((row) => ({ slug: row.slug, action: row.action, url: row.url, targetScore: row.targetScore })),
+    enhancements: report.enhancementResults,
     redirects: report.redirectPlans,
     revalidations: report.revalidations.map((row) => ({ slug: row.slug, status: row.status, ok: row.ok, skipped: row.skipped, reason: row.reason })),
     liveChecks: report.liveChecks.map((row) => ({ url: row.url, status: row.status, title: row.title, noindex: row.noindex, notFound: row.notFound, tracking: row.tracking })),
