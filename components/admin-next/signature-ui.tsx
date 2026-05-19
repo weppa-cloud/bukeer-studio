@@ -1,6 +1,7 @@
 "use client";
 
 import type {
+  AdminDataSourceMode,
   AgentSuggestion,
   AgenticActionState,
   ApprovalRequest,
@@ -718,16 +719,25 @@ export function SignatureMissingDataChecklist({ items }: { items: string[] }) {
   );
 }
 
-export function SignatureSafetyBoundary({ simulationMessage }: { simulationMessage: string | null }) {
+export function SignatureSafetyBoundary({
+  dataSourceMode = 'fixture',
+  simulationMessage,
+}: {
+  dataSourceMode?: AdminDataSourceMode;
+  simulationMessage: string | null;
+}) {
+  const isReadonly = dataSourceMode === 'readonly';
+
   return (
     <section className="rounded-lg border border-border bg-card p-4 text-sm">
       <div className="flex items-center gap-2 font-semibold">
         <ShieldCheck className="size-4 text-[hsl(var(--bukeer-live))]" />
-        Fixture data only
+        {isReadonly ? 'Read-only real data' : 'Fixture data only'}
       </div>
       <p className="mt-2 text-muted-foreground">
-        Approval controls update this prototype locally. They do not call Supabase, tools, or
-        public-send workflows.
+        {isReadonly
+          ? 'This beta view can read scoped admin data, but approval controls remain local and no writes, tools, supplier holds or public-send workflows run.'
+          : 'Approval controls update this prototype locally. They do not call Supabase, tools, or public-send workflows.'}
       </p>
       {simulationMessage ? (
         <div className="mt-3 rounded-md border border-[hsl(var(--bukeer-live)/0.34)] bg-[hsl(var(--bukeer-live)/0.08)] p-3 text-xs">

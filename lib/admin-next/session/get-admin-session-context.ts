@@ -1,10 +1,39 @@
 import type {
+  AdminFeatureFlags,
   AdminPermission,
   AdminSessionContext,
 } from '@bukeer/admin-contract';
 import { getDashboardUserContext } from '@/lib/admin/user-context';
 import { createSupabaseServerClient } from '@/lib/supabase/server-client';
-import { isAdminNextPrototypeEnabled } from '@/lib/admin-next/flags';
+import {
+  getAdminNextBetaReadonlyGate,
+  isAdminNextPrototypeEnabled,
+} from '@/lib/admin-next/flags';
+
+export type AdminNextSessionFlags = AdminFeatureFlags & {
+  adminNextBetaReadonlyEnabled: boolean;
+  adminNextBetaAccountAllowed: boolean;
+  adminNextBetaRoleAllowed: boolean;
+  adminNextBetaReadonly: boolean;
+};
+
+export type AdminNextSessionContext =
+  | WithAdminNextSessionFlags<
+      Extract<AdminSessionContext, { status: 'authenticated' }>
+    >
+  | WithAdminNextSessionFlags<
+      Extract<AdminSessionContext, { status: 'missing_role' }>
+    >
+  | WithAdminNextSessionFlags<
+      Extract<AdminSessionContext, { status: 'unauthenticated' }>
+    >;
+
+type WithAdminNextSessionFlags<T extends { flags: AdminFeatureFlags }> = Omit<
+  T,
+  'flags'
+> & {
+  flags: AdminNextSessionFlags;
+};
 
 const ROLE_PERMISSIONS: Record<string, AdminPermission[]> = {
   super_admin: [
@@ -35,16 +64,14 @@ const ROLE_PERMISSIONS: Record<string, AdminPermission[]> = {
   accounting: ['admin_next.view', 'planner.view', 'trace.view'],
 };
 
-export async function getAdminSessionContext(): Promise<AdminSessionContext> {
-  const flags = {
-    adminNextPrototype: isAdminNextPrototypeEnabled(),
-  };
+export async function getAdminSessionContext(): Promise<AdminNextSessionContext> {
+  const defaultFlags = getAdminNextSessionFlags();
 
   const supabase = await createSupabaseServerClient();
   const ctx = await getDashboardUserContext(supabase);
 
   if (ctx.status === 'unauthenticated') {
-    return { status: 'unauthenticated', flags };
+    return { status: 'unauthenticated', flags: defaultFlags };
   }
 
   if (ctx.status === 'missing_role') {
@@ -53,9 +80,14 @@ export async function getAdminSessionContext(): Promise<AdminSessionContext> {
       userId: ctx.userId,
       email: ctx.email,
       displayName: ctx.displayName,
-      flags,
+      flags: defaultFlags,
     };
   }
+
+  const flags = getAdminNextSessionFlags({
+    accountId: ctx.accountId,
+    role: ctx.role,
+  });
 
   return {
     status: 'authenticated',
@@ -66,6 +98,25 @@ export async function getAdminSessionContext(): Promise<AdminSessionContext> {
     displayName: ctx.displayName,
     permissions: permissionsForRole(ctx.role),
     flags,
+  };
+}
+
+export function getAdminNextSessionFlags(input?: {
+  accountId?: string | null;
+  role?: string | null;
+}): AdminNextSessionFlags {
+  const adminNextPrototype = isAdminNextPrototypeEnabled();
+  const betaGate = getAdminNextBetaReadonlyGate({
+    accountId: input?.accountId,
+    role: input?.role,
+  });
+
+  return {
+    adminNextPrototype,
+    adminNextBetaReadonlyEnabled: betaGate.enabled,
+    adminNextBetaAccountAllowed: betaGate.accountAllowed,
+    adminNextBetaRoleAllowed: betaGate.roleAllowed,
+    adminNextBetaReadonly: adminNextPrototype && betaGate.betaReadonly,
   };
 }
 

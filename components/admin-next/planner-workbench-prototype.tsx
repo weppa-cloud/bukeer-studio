@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Moon, Sun } from 'lucide-react';
 import type {
+  AdminDataSourceMode,
+  AgentLedgerSnapshot,
   AuthenticatedAdminSessionContext,
   PlannerOpportunity,
   PlannerWorkbenchFixture,
@@ -33,9 +35,13 @@ function cx(...classes: Array<string | false | null | undefined>) {
 export function PlannerWorkbenchPrototype({
   session,
   fixture,
+  agentLedger = agentLedgerFixture,
+  dataSourceMode = 'fixture',
 }: {
   session: AuthenticatedAdminSessionContext;
   fixture: PlannerWorkbenchFixture;
+  agentLedger?: AgentLedgerSnapshot;
+  dataSourceMode?: AdminDataSourceMode;
 }) {
   const [traceOpen, setTraceOpen] = useState(false);
   const [lastTraceId, setLastTraceId] = useState(fixture.traceSummary.traceId);
@@ -62,14 +68,14 @@ export function PlannerWorkbenchPrototype({
 
   const activeTrace = useMemo(() => {
     try {
-      return mapAgentLedgerToTrace(agentLedgerFixture, lastTraceId);
+      return mapAgentLedgerToTrace(agentLedger, lastTraceId);
     } catch {
       return {
         summary: { ...fixture.traceSummary, traceId: lastTraceId },
         events: fixture.traceEvents,
       };
     }
-  }, [fixture.traceEvents, fixture.traceSummary, lastTraceId]);
+  }, [agentLedger, fixture.traceEvents, fixture.traceSummary, lastTraceId]);
 
   const approval = fixture.approvals[0]!;
   const blocked = fixture.blockedStates[0]!;
@@ -146,7 +152,10 @@ export function PlannerWorkbenchPrototype({
               profit="USD 995"
             />
             <SignatureMissingDataChecklist items={fixture.missingData} />
-            <SignatureSafetyBoundary simulationMessage={simulationMessage} />
+            <SignatureSafetyBoundary
+              dataSourceMode={dataSourceMode}
+              simulationMessage={simulationMessage}
+            />
           </div>
         </aside>
       </div>
