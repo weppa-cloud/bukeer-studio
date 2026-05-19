@@ -2,12 +2,15 @@ import { Metadata } from "next";
 import { notFound, permanentRedirect, redirect } from "next/navigation";
 
 import { ProductLandingPage } from "@/components/pages/product-landing-page";
+import { StaticPage } from "@/components/pages/static-page";
 import { TemplateSlot } from "@/components/site/themes/editorial-v1/template-slot";
 import type { EditorialPackageDetailPayload } from "@/components/site/themes/editorial-v1/pages/package-detail";
 import { getBasePath, inferIsCustomDomainWebsite } from "@/lib/utils/base-path";
 import {
   getCategoryProducts,
+  getDestinations,
   getLocalizedProductOverlay,
+  getPageBySlug,
   getProductPage,
   getProductSlugRedirect,
 } from "@/lib/supabase/get-pages";
@@ -103,6 +106,52 @@ export async function generateMetadata({
     locale: localeContext.resolvedLocale,
   });
   if (!productPage?.product) {
+    const fallbackLanding = await getPageBySlug(subdomain, `paquetes/${slug}`);
+    if (fallbackLanding?.is_published) {
+      const title = normalizePublicMetadataTitle(
+        fallbackLanding.seo_title || fallbackLanding.title,
+        siteName,
+      );
+      const description =
+        fallbackLanding.seo_description ||
+        `${siteName} - Viajes a Colombia con itinerarios completos, planner local y soporte por WhatsApp.`;
+      const ogImage = resolveOgImage(
+        website,
+        fallbackLanding.hero_config?.backgroundImage || null,
+      );
+      const metadata: Metadata = {
+        title,
+        description,
+        openGraph: {
+          title,
+          description,
+          type: "website",
+          locale: localeToOgLocale(localeContext.resolvedLocale),
+          ...(ogImage && { images: [{ url: ogImage }] }),
+        },
+        twitter: {
+          card: "summary_large_image",
+          title,
+          description,
+          ...(ogImage && { images: [ogImage] }),
+        },
+        alternates: {
+          canonical: `${baseUrl}/paquetes/${slug}`,
+          languages: buildLocaleAwareAlternateLanguages(
+            baseUrl,
+            `/paquetes/${slug}`,
+            localeContext,
+          ),
+        },
+      };
+
+      if (fallbackLanding.robots_noindex) {
+        metadata.robots = { index: false, follow: true };
+      }
+
+      return metadata;
+    }
+
     return {
       title: "Paquete no encontrado",
       description: fallbackDescription,
@@ -260,6 +309,27 @@ export default async function PackageSlugPage({ params }: PackagePageProps) {
     if (redirectedSlug) {
       permanentRedirect(`/site/${subdomain}/paquetes/${redirectedSlug}`);
     }
+
+    const fallbackLanding = await getPageBySlug(subdomain, `paquetes/${slug}`);
+    if (fallbackLanding?.is_published) {
+      const isCustomDomain = inferIsCustomDomainWebsite(website);
+      const websiteForRender = {
+        ...website,
+        resolvedLocale,
+        defaultLocale: localeContext.defaultLocale ?? "es-CO",
+        isCustomDomain,
+      };
+      const dynamicDestinations = await getDestinations(subdomain);
+
+      return (
+        <StaticPage
+          website={websiteForRender}
+          page={fallbackLanding}
+          dynamicDestinations={dynamicDestinations}
+        />
+      );
+    }
+
     notFound();
   }
 
