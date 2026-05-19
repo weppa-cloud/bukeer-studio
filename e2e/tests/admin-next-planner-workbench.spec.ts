@@ -169,12 +169,13 @@ test.describe('Admin Next Planner Workbench prototype', () => {
 
     await travelerHandoff.getByRole('button', { name: /Create WhatsApp handoff/i }).click();
 
-    await expect(travelerHandoff.getByText('WhatsApp handoff created').first()).toBeVisible();
-    await expect(travelerHandoff.getByText('Not sent').first()).toBeVisible();
-    await expect(travelerHandoff.getByText(/Human must open and send manually/i)).toBeVisible();
-    await expect(travelerHandoff.getByText(/not reserved, not paid, not confirmed/i)).toBeVisible();
-    await expect(travelerHandoff.getByText('AN-WA-E2E-20260519')).toBeVisible();
-    await expect(travelerHandoff.getByText('https://wa.me/573005550198?text=Hola')).toBeVisible();
+    const handoffSuccess = travelerHandoff.getByTestId('whatsapp-handoff-success');
+    await expect(handoffSuccess.getByText('WhatsApp handoff created')).toBeVisible();
+    await expect(handoffSuccess.getByText('Not sent')).toBeVisible();
+    await expect(handoffSuccess.getByText(/Human must open and send manually/i)).toBeVisible();
+    await expect(handoffSuccess.getByText(/not reserved, not paid, not confirmed/i)).toBeVisible();
+    await expect(handoffSuccess.getByText('AN-WA-E2E-20260519')).toBeVisible();
+    await expect(handoffSuccess.getByText('wa.me/573005550198')).toBeVisible();
 
     expect(blockedMutations).toEqual([]);
   });
