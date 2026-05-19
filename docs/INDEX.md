@@ -851,3 +851,8 @@ Do **not** delete concepts on removal — mark as deprecated inline so the graph
 - [T3 Validation](validation/t3-growth-agent-flow-context-contract-validation.md)
 - [T4 Ops Handoff](validation/t4-growth-agent-flow-context-contract-ops-handoff.md)
 
+
+### Growth Factory batch 001 — ColombiaTours pt-BR/BR
+
+- Validation: [`docs/validation/t8-growth-factory-batch-001.md`](validation/t8-growth-factory-batch-001.md)
+- Learning: [`docs/ai/learning-runs/2026-05-19-growth-factory-batch-001.md`](ai/learning-runs/2026-05-19-growth-factory-batch-001.md)
