@@ -3,12 +3,14 @@
 > Date: 2026-05-18
 > Sprint: 0.25B
 > Parent epic: `weppa-cloud/bukeer-flutter#823`
-> Status: Approved working direction
+> Status: Approved design lock
 > Source of truth: v0 registry + Bukeer tokens + Next component contract + prototype
 
 ## Decision
 
 Bukeer Admin Next will close its visual foundation through a code-first design lock, not through a mandatory Figma foundation phase.
+
+Approval checkpoint 2026-05-18: **Bukeer Signature Planner Workbench** is approved as the primary visual direction. The approved governance surface is a right-side **Trace Inspector**, not a generic modal. Light mode and dark mode are both required for the workbench and inspector.
 
 Figma can still be used as a lightweight support artifact for beta review, external comments or UI designer exploration, but it is not the implementation gate. The implementation gate is the combination of:
 
@@ -40,6 +42,13 @@ References:
 5. Lock tokens and component contracts for Next/Tailwind.
 6. Validate Planner Workbench with beta/internal senior planners.
 7. Start Sprint 0.25C with a prototype route using fixtures and locked contracts.
+
+Current state:
+
+- Planner Workbench prototype exists at `/admin/prototype/planner-workbench`.
+- Trace Inspector is tokenized with Bukeer surfaces and agentic state pills.
+- Prototype includes light/dark review toggle.
+- E2E covers dark appearance propagation into the inspector portal.
 
 ## Source Of Truth Order
 
@@ -78,6 +87,7 @@ The following components must be locked before Sprint 0.25C starts:
 - `ConversationCopilot`
 - `TraceApprovalPanel`
 - `TraceTimeline`
+- `TraceInspector`
 - `ApprovalCommandBar`
 - `AgentSuggestionCard`
 - `AgentBlockedCard`
@@ -104,6 +114,7 @@ Reject the direction if any of these are true:
 - It hides what the AI proposed, why, or with what data.
 - It lets AI actions look executable without human review.
 - It loses trace, risk, missing data or approval state on responsive widths.
+- It opens AI evidence in a generic unbranded modal/sheet.
 - It does not feel like travel agency operations: leads, travelers, itineraries, supplier options, margins, quotes, bookings and approvals.
 
 Approve only if:
@@ -129,8 +140,8 @@ The UI designer should deliver design decisions in a form that can be converted 
 
 Sprint 0.25C can start when:
 
-- Planner Workbench V3 direction is approved or explicitly revised.
-- Tokens are locked for the first prototype.
+- Planner Workbench V3 direction is approved or explicitly revised. **Met on 2026-05-18.**
+- Tokens are locked for the first prototype. **Met for Signature Planner Workbench + Trace Inspector.**
 - `NEXT_COMPONENT_CONTRACT_2026-05-18.md` includes component/state requirements.
-- Beta review has no unresolved critical confusion around AI action, approval, public send, payment, reservation or supplier hold.
-- The backlog defines a fixture-first prototype route with no real writes.
+- Beta/internal review has no unresolved critical confusion around AI action, approval, public send, payment, reservation or supplier hold.
+- The backlog defines a fixture-first prototype route with no real writes. **Met for 0.25C prototype route.**

@@ -11,8 +11,11 @@ Sprint 0.25B usa un flujo **Design Lock Code-First**:
 3. Se selecciona direccion principal + alternativa.
 4. Se bloquean tokens, variantes, estados y contratos de componentes.
 5. Sprint 0.25C puede iniciar un prototype Next sin esperar un Figma completo.
+6. La direccion aprobada avanza a Sprint 0.25D para conectar contratos, registry read-only y trazabilidad sin writes reales.
 
 Figma queda como soporte opcional para comentarios visuales o beta review, no como fuente canonica ni bloqueo de implementacion.
+
+Decision 2026-05-18: **Bukeer Signature Planner Workbench** queda aprobado como direccion principal. El panel de gobierno aprobado es **Trace Inspector** lateral tokenizado, con light/dark mode, no un modal generico.
 
 ## Orden recomendado
 
@@ -65,6 +68,7 @@ Briefs de handoff:
 - `DESIGN_LOCK_CODE_FIRST_2026-05-18.md`
 - `APPROVAL_PACKET_AND_LONG_SPRINT_2026-05-18.md`
 - `SPRINT_0_25B_PLAN_2026-05-18.md`
+- `SPRINT_0_25D_PLAN_2026-05-18.md`
 - `UI_DESIGNER_BRIEF_2026-05-18.md`
 - `BETA_PARTNER_BRIEF_2026-05-18.md`
 - `NEXT_COMPONENT_CONTRACT_2026-05-18.md`

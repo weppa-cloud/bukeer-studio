@@ -17,6 +17,7 @@
 - Avoid generic SaaS component names in domain surfaces. Prefer Bukeer-specific components such as `TripRail`, `PlanningCanvas`, `LiveFeedColumn`, `TraceNode` and `ApprovalCommandBar`.
 - Figma is not a required source of truth. If a Figma artifact exists, it is a commentable support board; the implementation source is tokens, registry, state model and this contract.
 - Sprint 0.25C starts fixture-first. No real writes, public send, payment, reservation or supplier mutation can be wired from these components.
+- Portal components must receive Bukeer visual scope explicitly. Drawers/sheets/dialogs cannot rely on the page root for typography, tokens or light/dark appearance.
 
 ## Shared State Model
 
@@ -360,6 +361,36 @@ Acceptance:
 
 - Trace distinguishes pending, warning, blocked and error.
 - Trace does not expose secrets or hidden chain-of-thought.
+
+### `TraceInspector`
+
+Purpose: right-side evidence and governance inspector for agentic actions.
+
+Required fields:
+
+- Trace ID.
+- Agent run ID.
+- Confidence.
+- Permission result.
+- Policy result.
+- Audit link.
+- Data used.
+- Timeline events.
+- Human approval boundary.
+
+Required behavior:
+
+- Opens from any AI suggestion, blocked state, itinerary segment or approval request.
+- Receives `light` or `dark` appearance explicitly because it is rendered through a portal.
+- Shows evidence and governance; it does not show hidden chain-of-thought.
+- Does not execute writes or tool calls.
+
+Acceptance:
+
+- Uses Bukeer signature tokens for surface, border, trace line and state pills.
+- Does not look like a generic shadcn sheet/modal.
+- In dark mode, contrast remains readable for labels, pills, borders and timeline nodes.
+- Human approval boundary remains visible above the timeline.
 
 ### `MissingDataChecklist`
 

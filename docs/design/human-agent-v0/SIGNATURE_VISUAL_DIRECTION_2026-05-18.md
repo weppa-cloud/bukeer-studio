@@ -22,6 +22,8 @@ The visual direction must keep the Bukeer Flutter palette and Material 3 discipl
 
 ## Product Personality
 
+Approval checkpoint 2026-05-18: this direction is approved for the first code-first prototype. The product should now move from visual exploration into implementation hardening and read-only data connection.
+
 Bukeer Admin Next should feel like:
 
 - A travel operations workbench.
@@ -98,14 +100,17 @@ Signature: document-manifest blocks.
 - Inline fields, not modal-first editing.
 - Tertiary orange for unconfirmed itinerary blocks.
 
-### Agent Trace & Approval
+### Agent Trace & Approval / Trace Inspector
 
-Signature: dark trace console with bottom approval command strip.
+Signature: right-side Trace Inspector plus bottom approval command strip.
 
 - `TraceNode` timeline.
 - Tool invocation detail.
 - Guardrail and permission results.
 - Bottom approval strip, not modal-only approval.
+- Inspector surface must be tokenized with Bukeer roles, not default shadcn sheet styling.
+- Light and dark mode are both required. The inspector lives in a portal, so it must receive the Bukeer signature class and appearance state explicitly.
+- Human approval boundary must remain visible: data used, confidence, permission, policy, audit link and timeline.
 
 ### Manager Control Plane
 
@@ -143,6 +148,7 @@ Reject a v0 output if it has:
 - Hero, onboarding illustration or decorative gradient.
 - Card shadows instead of structured panes and rows.
 - AI action buttons without rationale, risk, confidence and trace.
+- Agent trace opened inside a generic modal/sheet without Bukeer surface tokens.
 - No visible use of Outfit vs Readex Pro.
 - No travel-specific components beyond text labels.
 
@@ -155,6 +161,7 @@ Reject a v0 output if it has:
 - Agentic state is product state: suggestion, blocked, approval required and trace must be visible.
 - Interactive feedback should be quiet but specific: streaming pulse, updated row flash, pending approval ring.
 - Light/dark should be mode-based: daily planning can be light/mixed, trace/approval can be dark/focused.
+- Portal surfaces must be audited separately. Drawers, sheets and dialogs do not automatically inherit product personality.
 
 ## Acceptance Test
 

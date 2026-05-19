@@ -1,6 +1,6 @@
 # SPEC: Human-Agent Experience & GUI Foundation
 
-> **Status**: Draft v1
+> **Status**: Design approved for Sprint 0.25C/0.25D foundation
 > **Fecha**: 2026-05-18
 > **Owner**: Bukeer Platform + Product Design
 > **Epic relacionada**: `weppa-cloud/bukeer-flutter#823`
@@ -16,6 +16,8 @@ La migracion de Bukeer Admin de Flutter Web a Next.js no debe producir una copia
 v0 se usara como herramienta de exploracion GUI/UX, no como autoridad de arquitectura. Los outputs de v0 deben convertirse en especificaciones, componentes y criterios de aceptacion antes de construir pantallas definitivas.
 
 Decision 2026-05-18: la Fase 0.25B se ejecuta como **Design Lock Code-First**. La fuente de verdad no es un archivo Figma obligatorio, sino la combinacion de registry v0, tokens Bukeer, contratos de componentes Next y prototype readiness. Figma queda como soporte opcional para revision visual o comentarios externos.
+
+Decision 2026-05-18: la direccion visual **Bukeer Signature Planner Workbench** queda aprobada como base. El patron de gobierno aprobado no es un modal generico: es un **Trace Inspector** lateral, tokenizado, compatible con light/dark mode, con evidencia, permisos, policy, data used, timeline y boundary humano visible.
 
 ## 2. Investigacion y seniales usadas
 
@@ -335,15 +337,25 @@ Componentes fuente de verdad para el lock visual:
 
 - `components/admin-next/signature-ui.tsx`
 - `components/admin-next/planner-workbench-prototype.tsx`
+- `components/admin-next/trace-drawer.tsx`
 - `app/globals.css` variables `--bukeer-structural`, `--bukeer-live`, `--bukeer-human-loop`, `--bukeer-success`, `--bukeer-warning`, `--bukeer-surface-rail`
 
 Reglas de continuidad:
 
 - `planner-workbench-prototype.tsx` debe quedar como composicion y estado local, no como biblioteca visual monolitica.
 - `signature-ui.tsx` es el contrato code-first para extraer variantes y conectar datos read-only.
+- `trace-drawer.tsx` implementa el patron aprobado **Trace Inspector**. No debe degradarse a un modal generico o sheet sin tokens Bukeer.
 - No se debe volver a montar `AdminShell` generico de Studio como shell visual principal de Bukeer Admin Next.
 - Los componentes Signature deben conservar dominio visible de viajes: itinerario, proveedor, margen, datos faltantes, aprobacion, traza y sugerencia AI.
 - Cualquier futura pantalla admin debe usar estados agentic explicitos y trazabilidad antes de permitir writes.
+
+Capturas aprobadas:
+
+- `artifacts/admin-next/planner-workbench-light-redesign-v2.png`
+- `artifacts/admin-next/planner-workbench-trace-light-redesign-v2.png`
+- `artifacts/admin-next/planner-workbench-dark-redesign-v2.png`
+- `artifacts/admin-next/planner-workbench-trace-dark-redesign-v2.png`
+- `artifacts/admin-next/planner-workbench-mobile-dark-trace-redesign-v2.png`
 
 ## 17. Sprint 0.25D recomendado
 
