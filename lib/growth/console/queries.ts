@@ -332,6 +332,20 @@ export interface ProviderProfileRunRow {
   updatedAt: string | null;
 }
 
+export interface ProviderPolicyControlRow {
+  id: string;
+  provider: string;
+  providerProfileType: string;
+  locale: string | null;
+  market: string | null;
+  consentGranted: boolean;
+  dataUsagePolicy: string;
+  rateLimitDaily: number;
+  enabled: boolean;
+  notes: string | null;
+  updatedAt: string | null;
+}
+
 export interface AgentDefinitionsResult {
   agents: GrowthAgentDefinition[];
   runtimeByLane: Record<AgentLane, LaneRuntimeSummary>;
@@ -530,11 +544,13 @@ export interface GrowthOverview {
 export interface GrowthDataHealth {
   providerFreshness: ProviderFreshnessRow[];
   providerProfileRuns: ProviderProfileRunRow[];
+  providerPolicies: ProviderPolicyControlRow[];
   runCounts: RunStatusCounts;
   runtimeHealth: RuntimeHealthSummary;
   warnings: {
     providerCacheMissing: boolean;
     profileRunsMissing: boolean;
+    providerPoliciesMissing: boolean;
     runsTableMissing: boolean;
   };
 }
@@ -1649,6 +1665,49 @@ async function fetchProviderProfileRuns(
   };
 }
 
+async function fetchProviderPolicies(
+  websiteId: string,
+  accountId: string,
+): Promise<{
+  rows: ProviderPolicyControlRow[];
+  missingTable: boolean;
+  errored: boolean;
+}> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await (
+    asTyped(supabase).from as unknown as (
+      table: string,
+    ) => ReturnType<typeof supabase.from>
+  )("growth_provider_policies")
+    .select("id, provider, provider_profile_type, locale, market, consent_granted, data_usage_policy, rate_limit_daily, enabled, notes, updated_at")
+    .eq("account_id", accountId)
+    .eq("website_id", websiteId)
+    .limit(50);
+
+  if (error) {
+    if (isMissingRelation(error)) return { rows: [], missingTable: true, errored: false };
+    return { rows: [], missingTable: false, errored: true };
+  }
+
+  const rows = ((data ?? []) as Record<string, unknown>[]).map((row) => ({
+    id: optionalString(row.id) ?? "unknown",
+    provider: optionalString(row.provider) ?? "provider",
+    providerProfileType: optionalString(row.provider_profile_type) ?? "profile",
+    locale: optionalString(row.locale),
+    market: optionalString(row.market),
+    consentGranted: row.consent_granted === true,
+    dataUsagePolicy: optionalString(row.data_usage_policy) ?? "unknown",
+    rateLimitDaily: numericValue(row.rate_limit_daily) ?? 0,
+    enabled: row.enabled === true,
+    notes: optionalString(row.notes),
+    updatedAt: optionalString(row.updated_at),
+  }));
+
+  rows.sort((a, b) => a.provider.localeCompare(b.provider) || a.providerProfileType.localeCompare(b.providerProfileType));
+
+  return { rows, missingTable: false, errored: false };
+}
+
 const AgreementFileSchema = z.object({
   policy_version: z.string(),
   computed_at: z.string(),
@@ -1797,10 +1856,11 @@ export async function getGrowthDataHealth(
   websiteId: string,
 ): Promise<GrowthDataHealth> {
   const ctx = await requireGrowthRole(websiteId, "viewer");
-  const [providerResult, profileRunsResult, runsResult, runtimeHealth] =
+  const [providerResult, profileRunsResult, providerPoliciesResult, runsResult, runtimeHealth] =
     await Promise.all([
     fetchProviderFreshness(ctx.websiteId, ctx.accountId),
     fetchProviderProfileRuns(ctx.websiteId, ctx.accountId),
+    fetchProviderPolicies(ctx.websiteId, ctx.accountId),
     fetchRunCounts(ctx.websiteId, ctx.accountId),
     fetchRuntimeHealth(ctx.websiteId, ctx.accountId),
   ]);
@@ -1808,6 +1868,7 @@ export async function getGrowthDataHealth(
   return {
     providerFreshness: providerResult.rows,
     providerProfileRuns: profileRunsResult.rows,
+    providerPolicies: providerPoliciesResult.rows,
     runCounts: runsResult.counts,
     runtimeHealth: {
       ...runtimeHealth,
@@ -1816,6 +1877,7 @@ export async function getGrowthDataHealth(
     warnings: {
       providerCacheMissing: providerResult.missingTable,
       profileRunsMissing: profileRunsResult.missingTable,
+      providerPoliciesMissing: providerPoliciesResult.missingTable,
       runsTableMissing: runsResult.missingTable,
     },
   };

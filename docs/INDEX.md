@@ -843,3 +843,11 @@ Do **not** delete concepts on removal — mark as deprecated inline so the graph
 - [T4 Ops Handoff](validation/t4-gsc-policy-write-gate-ops-handoff-2026-05-19.md)
 - [Learning Run](ai/learning-runs/2026-05-19-growth-provider-policy-gsc-colombiatours-ptbr-write-gate.md)
 
+## Growth Agent Flow Context Contract — 2026-05-19
+
+- [SPEC_GROWTH_AGENT_FLOW_CONTEXT_CONTRACT_COLOMBIATOURS_PTBR](specs/SPEC_GROWTH_AGENT_FLOW_CONTEXT_CONTRACT_COLOMBIATOURS_PTBR.md)
+- [T1 Plan](validation/t1-growth-agent-flow-context-contract-plan.md)
+- [T2 Implementation](validation/t2-growth-agent-flow-context-contract-implementation.md)
+- [T3 Validation](validation/t3-growth-agent-flow-context-contract-validation.md)
+- [T4 Ops Handoff](validation/t4-growth-agent-flow-context-contract-ops-handoff.md)
+

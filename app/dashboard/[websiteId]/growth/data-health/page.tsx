@@ -105,6 +105,81 @@ export default async function GrowthDataHealthPage({
       </section>
 
       <section
+        aria-labelledby="provider-policy-control-heading"
+        data-testid="growth-provider-policy-control-plane"
+        className="mt-6 space-y-3"
+      >
+        <header>
+          <h2
+            id="provider-policy-control-heading"
+            className="text-base font-semibold text-[var(--studio-text)]"
+          >
+            Provider policy control plane
+          </h2>
+          <p className="text-sm text-[var(--studio-text-muted)]">
+            Policies, consent, freshness budgets and rate limits read from Supabase.
+            This view is read-only and makes zero provider calls.
+          </p>
+        </header>
+        {health.warnings.providerPoliciesMissing ? (
+          <StudioEmptyState
+            title="Provider policies table missing"
+            description="Sin growth_provider_policies no se puede activar DataForSEO/GSC de forma gobernada."
+          />
+        ) : health.providerPolicies.length === 0 ? (
+          <StudioEmptyState
+            title="Sin provider policies"
+            description="Crea policies explicitas antes de permitir nuevos providers o write gates."
+          />
+        ) : (
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {health.providerPolicies.map((policy) => (
+              <article
+                key={policy.id}
+                className="rounded-md border border-[var(--studio-border)] p-4"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h3 className="font-semibold">{policy.provider}</h3>
+                    <p className="text-xs text-[var(--studio-text-muted)]">
+                      {policy.providerProfileType} · {policy.locale ?? "any"}/
+                      {policy.market ?? "any"}
+                    </p>
+                  </div>
+                  <StudioBadge tone={policy.enabled && policy.consentGranted ? "success" : "danger"}>
+                    {policy.enabled && policy.consentGranted ? "enabled" : "blocked"}
+                  </StudioBadge>
+                </div>
+                <dl className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <dt className="text-[var(--studio-text-muted)]">Usage</dt>
+                    <dd className="font-medium">{policy.dataUsagePolicy}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-[var(--studio-text-muted)]">Daily cap</dt>
+                    <dd className="font-medium">{policy.rateLimitDaily}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-[var(--studio-text-muted)]">Consent</dt>
+                    <dd className="font-medium">{policy.consentGranted ? "yes" : "no"}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-[var(--studio-text-muted)]">Updated</dt>
+                    <dd className="font-medium">{formatDate(policy.updatedAt)}</dd>
+                  </div>
+                </dl>
+                {policy.notes ? (
+                  <p className="mt-2 text-xs text-[var(--studio-text-muted)]">
+                    {policy.notes}
+                  </p>
+                ) : null}
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section
         aria-labelledby="runtime-health-heading"
         data-testid="growth-runtime-health"
         className="mt-6 space-y-3"
