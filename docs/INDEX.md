@@ -806,6 +806,16 @@ Do **not** delete concepts on removal — mark as deprecated inline so the graph
 - [Learning Run — ColombiaTours pt-BR Write Gate Slice2](ai/learning-runs/2026-05-19-growth-provider-normalization-colombiatours-ptbr-write-gate-slice2.md)
 
 
+
+### Growth Provider Adapter GSC Read-only: ColombiaTours pt-BR/BR — Validation Evidence
+
+- [SPEC — GSC Read-only Provider Adapter ColombiaTours pt-BR](specs/SPEC_GROWTH_PROVIDER_ADAPTER_GSC_READONLY_COLOMBIATOURS_PTBR.md)
+- [T1 GSC Read-only Adapter Plan Gate](validation/t1-gsc-readonly-adapter-plan-2026-05-19.md)
+- [T2 GSC Read-only Adapter Implementation](validation/t2-gsc-readonly-adapter-implementation-2026-05-19.md)
+- [T3 GSC Read-only Adapter Validation](validation/t3-gsc-readonly-adapter-validation-2026-05-19.md)
+- [T4 GSC Read-only Adapter Ops Handoff](validation/t4-gsc-readonly-adapter-ops-handoff-2026-05-19.md)
+- [Learning Run — GSC Read-only Adapter ColombiaTours pt-BR](ai/learning-runs/2026-05-19-growth-provider-adapter-gsc-readonly-colombiatours-ptbr.md)
+
 ### Growth Governed Provider Runner: ColombiaTours pt-BR/BR — Validation Evidence
 
 - [SPEC — Governed Provider Runner ColombiaTours pt-BR v1](specs/SPEC_GROWTH_GOVERNED_PROVIDER_RUNNER_COLOMBIATOURS_PTBR_V1.md)
