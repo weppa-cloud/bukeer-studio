@@ -834,3 +834,12 @@ Do **not** delete concepts on removal — mark as deprecated inline so the graph
 - [T6 Ops Handoff after Production Apply](validation/t6-phase3-ops-handoff-2026-05-18.md)
 - [Learning Run: Phase3 Production Apply](ai/learning-runs/2026-05-18-growth-control-plane-phase3-production-apply.md)
 
+## Growth Provider Policy GSC Write Gate — ColombiaTours pt-BR
+
+- [SPEC — GSC Policy Write Gate](specs/SPEC_GROWTH_PROVIDER_POLICY_GSC_COLOMBIATOURS_PTBR_WRITE_GATE.md)
+- [T1 Plan](validation/t1-gsc-policy-write-gate-plan-2026-05-19.md)
+- [T2 Apply + Rollback](validation/t2-gsc-policy-write-gate-2026-05-19.md)
+- [T3 Validation](validation/t3-gsc-policy-write-gate-validation-2026-05-19.md)
+- [T4 Ops Handoff](validation/t4-gsc-policy-write-gate-ops-handoff-2026-05-19.md)
+- [Learning Run](ai/learning-runs/2026-05-19-growth-provider-policy-gsc-colombiatours-ptbr-write-gate.md)
+
