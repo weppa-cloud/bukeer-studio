@@ -23,8 +23,8 @@ export type GrowthFactoryBatchInput = {
   batch_id: string;
   account_id: string;
   website_id: string;
-  locale: "pt-BR";
-  market: "BR";
+  locale: string;
+  market: string;
   candidates: GrowthFactoryCandidate[];
   max_entities?: number;
 };
@@ -51,8 +51,8 @@ export type GrowthFactoryBatchReport = {
   mode: "prepare_only";
   account_id: string;
   website_id: string;
-  locale: "pt-BR";
-  market: "BR";
+  locale: string;
+  market: string;
   selected_count: number;
   blocked_count: number;
   ready_for_review_count: number;
@@ -129,7 +129,10 @@ export function runGrowthFactoryBatch(input: GrowthFactoryBatchInput): GrowthFac
     .sort((a, b) => b.score - a.score || a.candidate.entity_path.localeCompare(b.candidate.entity_path))
     .slice(0, input.max_entities ?? 5);
 
-  const contract = defaultSeoContentWorkerContract();
+  const contract = defaultSeoContentWorkerContract({
+    required_locale: input.locale,
+    required_market: input.market,
+  });
   const entities: GrowthFactoryBatchEntity[] = selected.map(({ candidate, score }) => {
     const contextPacket = buildGrowthFactoryContextPacket(input, candidate);
     const simulation = simulateSeoContentAgentWithContextPacket({

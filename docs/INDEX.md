@@ -856,3 +856,8 @@ Do **not** delete concepts on removal — mark as deprecated inline so the graph
 
 - Validation: [`docs/validation/t8-growth-factory-batch-001.md`](validation/t8-growth-factory-batch-001.md)
 - Learning: [`docs/ai/learning-runs/2026-05-19-growth-factory-batch-001.md`](ai/learning-runs/2026-05-19-growth-factory-batch-001.md)
+
+### Growth Production batch 002 — ColombiaTours es-CO/CO recovery
+
+- Validation: [`docs/validation/t8-growth-production-batch-002.md`](validation/t8-growth-production-batch-002.md)
+- Learning: [`docs/ai/learning-runs/2026-05-19-growth-production-batch-002.md`](ai/learning-runs/2026-05-19-growth-production-batch-002.md)

@@ -65,13 +65,15 @@ function freshnessStatuses(packet: PacketLike): string[] {
   });
 }
 
-export function defaultSeoContentWorkerContract(): GrowthWorkerContextPacketContract {
+export function defaultSeoContentWorkerContract(
+  overrides: Partial<Pick<GrowthWorkerContextPacketContract, "required_locale" | "required_market" | "worker_kind" | "lane">> = {},
+): GrowthWorkerContextPacketContract {
   return {
     contract_version: "growth-worker-contextpacket-contract-v1",
-    worker_kind: "seo_content_recommendation",
-    lane: "content_creator",
-    required_locale: "pt-BR",
-    required_market: "BR",
+    worker_kind: overrides.worker_kind ?? "seo_content_recommendation",
+    lane: overrides.lane ?? "content_creator",
+    required_locale: overrides.required_locale ?? "pt-BR",
+    required_market: overrides.required_market ?? "BR",
     required_sources: ["manual", "gsc"],
     min_source_refs: 2,
     allowed_actions: ["prepare_recommendation", "request_refresh", "create_review_artifact"],
