@@ -794,6 +794,17 @@ Do **not** delete concepts on removal — mark as deprecated inline so the graph
 - [T5 Ops Handoff Write Gate Slice1](validation/t5-provider-normalization-write-gate-ops-handoff-2026-05-18.md)
 - [Learning Run — ColombiaTours pt-BR Write Gate Slice1](ai/learning-runs/2026-05-18-growth-provider-normalization-colombiatours-ptbr-write-gate-slice1.md)
 
+
+### Growth Provider Normalization Write Gate Slice2: ColombiaTours pt-BR/BR — Validation Evidence
+
+- [SPEC — Write Gate Slice2](specs/SPEC_GROWTH_PROVIDER_NORMALIZATION_COLOMBIATOURS_PTBR_WRITE_GATE_SLICE2.md)
+- [T1 Write Gate Slice2 Plan / Production DML Preflight](validation/t1-provider-normalization-write-gate-slice2-plan-2026-05-19.md)
+- [T2 Apply Write Gate Slice2](validation/t2-provider-normalization-write-gate-slice2-2026-05-19.md)
+- [T3 Data Validation Source Truth Chain Slice2](validation/t3-provider-normalization-write-gate-slice2-data-validation-2026-05-19.md)
+- [T4 ContextPacket Canary Slice2](validation/t4-provider-normalization-write-gate-slice2-contextpacket-canary-2026-05-19.md)
+- [T5 Ops Handoff Write Gate Slice2](validation/t5-provider-normalization-write-gate-slice2-ops-handoff-2026-05-19.md)
+- [Learning Run — ColombiaTours pt-BR Write Gate Slice2](ai/learning-runs/2026-05-19-growth-provider-normalization-colombiatours-ptbr-write-gate-slice2.md)
+
 ### Growth Control Plane Phase3 — Production Apply Evidence
 
 - [T2 Production Apply Evidence](validation/t2-phase3-production-apply-2026-05-18.md)
