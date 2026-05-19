@@ -1,8 +1,10 @@
 import {
   getAdminNextBetaAccountAllowlist,
+  getAdminNextExternalHandoffGate,
   getAdminNextBetaReadonlyGate,
   getAdminNextBetaRoleAllowlist,
   isAdminNextBetaAccountAllowed,
+  isAdminNextExternalHandoffEnabled,
   isAdminNextBetaReadonlyEnabled,
   isAdminNextBetaRoleAllowed,
   isAdminNextPrototypeEnabled,
@@ -11,6 +13,7 @@ import {
 const ADMIN_NEXT_ENV_KEYS = [
   'ADMIN_NEXT_PROTOTYPE_ENABLED',
   'ADMIN_NEXT_BETA_READONLY_ENABLED',
+  'ADMIN_NEXT_EXTERNAL_HANDOFF_ENABLED',
   'ADMIN_NEXT_BETA_ACCOUNT_IDS',
   'ADMIN_NEXT_BETA_ROLES',
 ] as const;
@@ -69,6 +72,7 @@ describe('admin-next feature flags', () => {
     delete process.env.ADMIN_NEXT_BETA_ROLES;
 
     expect(isAdminNextBetaReadonlyEnabled()).toBe(false);
+    expect(isAdminNextExternalHandoffEnabled()).toBe(false);
     expect(isAdminNextBetaAccountAllowed('account-1')).toBe(false);
     expect(isAdminNextBetaRoleAllowed('admin')).toBe(false);
     expect(
@@ -81,6 +85,17 @@ describe('admin-next feature flags', () => {
       accountAllowed: false,
       roleAllowed: false,
       betaReadonly: false,
+    });
+    expect(
+      getAdminNextExternalHandoffGate({
+        accountId: 'account-1',
+        role: 'admin',
+      }),
+    ).toEqual({
+      enabled: false,
+      accountAllowed: false,
+      roleAllowed: false,
+      externalHandoff: false,
     });
   });
 
@@ -131,12 +146,45 @@ describe('admin-next feature flags', () => {
     ).toBe(false);
   });
 
+  it('requires explicit external handoff enablement plus matching beta account and role', () => {
+    process.env.ADMIN_NEXT_EXTERNAL_HANDOFF_ENABLED = '1';
+    process.env.ADMIN_NEXT_BETA_ACCOUNT_IDS = 'account-1,account-2';
+    process.env.ADMIN_NEXT_BETA_ROLES = 'admin,owner';
+
+    expect(
+      getAdminNextExternalHandoffGate({
+        accountId: 'account-2',
+        role: 'owner',
+      }),
+    ).toMatchObject({
+      enabled: true,
+      accountAllowed: true,
+      roleAllowed: true,
+      externalHandoff: true,
+    });
+
+    expect(
+      getAdminNextExternalHandoffGate({
+        accountId: 'account-3',
+        role: 'owner',
+      }).externalHandoff,
+    ).toBe(false);
+    expect(
+      getAdminNextExternalHandoffGate({
+        accountId: 'account-2',
+        role: 'agent',
+      }).externalHandoff,
+    ).toBe(false);
+  });
+
   it('treats malformed beta env values as closed', () => {
     process.env.ADMIN_NEXT_BETA_READONLY_ENABLED = 'definitely';
+    process.env.ADMIN_NEXT_EXTERNAL_HANDOFF_ENABLED = 'definitely';
     process.env.ADMIN_NEXT_BETA_ACCOUNT_IDS = ', ,';
     process.env.ADMIN_NEXT_BETA_ROLES = '  ';
 
     expect(isAdminNextBetaReadonlyEnabled()).toBe(false);
+    expect(isAdminNextExternalHandoffEnabled()).toBe(false);
     expect(getAdminNextBetaAccountAllowlist()).toEqual([]);
     expect(getAdminNextBetaRoleAllowlist()).toEqual([]);
   });

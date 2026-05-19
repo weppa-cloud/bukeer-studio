@@ -32,7 +32,7 @@ import {
   UserCheck,
   XCircle,
 } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 
 export type SignatureTone =
   | 'structural'
@@ -112,6 +112,22 @@ export type BukeerDraftAction = {
   requiresHumanReview?: boolean;
   noProductionWrite?: boolean;
 };
+
+export type SignatureWhatsAppHandoffResult = {
+  referenceCode: string;
+  waMeUrl: string;
+  expiresAt: string | null;
+};
+
+export type SignatureWhatsAppHandoffHandler = (
+  action: BukeerDraftAction
+) => Promise<SignatureWhatsAppHandoffResult>;
+
+type SignatureWhatsAppHandoffLocalState =
+  | { status: 'idle' }
+  | { status: 'loading' }
+  | { status: 'success'; result: SignatureWhatsAppHandoffResult }
+  | { status: 'error'; message: string };
 
 export const signatureUiVariantDefaults: Record<SignatureUiVariantState, SignatureUiVariant> = {
   loading: {
@@ -311,6 +327,119 @@ function draftActionFieldStatus(field: BukeerDraftEditableField) {
   return typeof field === 'string' ? undefined : field.status;
 }
 
+function isManualWhatsAppHandoffAction(action: BukeerDraftAction) {
+  const kind = action.kind ?? action.draftKind ?? action.type ?? action.draftType;
+  return kind === 'manual_whatsapp_handoff';
+}
+
+function handoffErrorMessage(error: unknown) {
+  if (error instanceof Error && error.message.trim()) return error.message;
+  return 'Could not create WhatsApp handoff. Try again from local review.';
+}
+
+function displayWaMeUrl(url: string) {
+  try {
+    const parsed = new URL(url);
+    return `${parsed.host}${parsed.pathname}`;
+  } catch {
+    return url;
+  }
+}
+
+export function SignatureWhatsAppHandoffStatus({
+  state,
+}: {
+  state: Exclude<SignatureWhatsAppHandoffLocalState, { status: 'idle' }>;
+}) {
+  if (state.status === 'loading') {
+    return (
+      <div
+        className="mt-3 rounded-md border border-[hsl(var(--bukeer-live)/0.32)] bg-[hsl(var(--bukeer-live)/0.09)] p-3 text-xs text-muted-foreground"
+        data-testid="whatsapp-handoff-loading"
+      >
+        <div className="flex items-center gap-2 font-medium text-[hsl(var(--bukeer-live))]">
+          <RefreshCw className="size-3.5 animate-spin" />
+          Creating WhatsApp handoff
+        </div>
+        <p className="mt-1">Not sent. Human must open and send manually.</p>
+      </div>
+    );
+  }
+
+  if (state.status === 'error') {
+    return (
+      <div
+        className="mt-3 rounded-md border border-destructive/35 bg-destructive/10 p-3 text-xs text-destructive"
+        data-testid="whatsapp-handoff-error"
+      >
+        <div className="flex items-center gap-2 font-medium">
+          <XCircle className="size-3.5" />
+          WhatsApp handoff was not created
+        </div>
+        <p className="mt-1">{state.message}</p>
+        <p className="mt-1 text-muted-foreground">
+          Not sent, not reserved, not paid, not confirmed.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="mt-3 rounded-md border border-[hsl(var(--bukeer-success)/0.34)] bg-[hsl(var(--bukeer-success)/0.10)] p-3 text-xs"
+      data-testid="whatsapp-handoff-success"
+    >
+      <div className="flex flex-wrap items-center gap-2">
+        <CheckCircle2 className="size-4 text-[hsl(var(--bukeer-success))]" />
+        <span className="font-semibold text-[hsl(var(--bukeer-success))]">
+          WhatsApp handoff created
+        </span>
+        <SignatureStatePill tone="humanLoop">Not sent</SignatureStatePill>
+      </div>
+      <p className="mt-2 text-muted-foreground">
+        Human must open and send manually. This is not reserved, not paid, not confirmed.
+      </p>
+      <dl className="mt-3 grid gap-2 sm:grid-cols-3">
+        <div className="rounded border border-border bg-background px-2 py-1.5">
+          <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            Reference
+          </dt>
+          <dd className="mt-0.5 break-words font-medium text-foreground">
+            {state.result.referenceCode}
+          </dd>
+        </div>
+        <div className="rounded border border-border bg-background px-2 py-1.5">
+          <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            wa.me
+          </dt>
+          <dd className="mt-0.5 break-words font-medium text-foreground">
+            <a
+              className="underline-offset-2 hover:underline"
+              href={state.result.waMeUrl}
+              rel="noopener noreferrer"
+              target="_blank"
+            >
+              {displayWaMeUrl(state.result.waMeUrl)}
+            </a>
+          </dd>
+        </div>
+        <div className="rounded border border-border bg-background px-2 py-1.5">
+          <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            Expires at
+          </dt>
+          <dd className="mt-0.5 break-words font-medium text-foreground">
+            {state.result.expiresAt ? (
+              <time dateTime={state.result.expiresAt}>{state.result.expiresAt}</time>
+            ) : (
+              'No expiry returned'
+            )}
+          </dd>
+        </div>
+      </dl>
+    </div>
+  );
+}
+
 export function SignatureStatePill({
   tone,
   children,
@@ -336,11 +465,15 @@ export function SignatureDraftActionCard({
   action,
   onInspectTrace,
   onSimulate,
+  onCreateWhatsAppHandoff,
 }: {
   action: BukeerDraftAction;
   onInspectTrace: (traceId: string) => void;
   onSimulate?: (message: string) => void;
+  onCreateWhatsAppHandoff?: SignatureWhatsAppHandoffHandler;
 }) {
+  const [whatsAppHandoffState, setWhatsAppHandoffState] =
+    useState<SignatureWhatsAppHandoffLocalState>({ status: 'idle' });
   const status = action.status ?? action.state ?? 'drafted';
   const tone = signatureToneForDraftActionStatus(status);
   const fields = draftActionFields(action);
@@ -350,6 +483,24 @@ export function SignatureDraftActionCard({
     (action.requiresHumanReview
       ? 'Human review is required before this draft can leave local review.'
       : 'Review draft fields before any customer or supplier action.');
+  const canCreateWhatsAppHandoff = Boolean(onCreateWhatsAppHandoff);
+  const handoffButtonDisabled =
+    whatsAppHandoffState.status === 'loading' || whatsAppHandoffState.status === 'success';
+
+  async function createWhatsAppHandoff() {
+    if (!onCreateWhatsAppHandoff) return;
+
+    setWhatsAppHandoffState({ status: 'loading' });
+    try {
+      const result = await onCreateWhatsAppHandoff(action);
+      setWhatsAppHandoffState({ status: 'success', result });
+      onSimulate?.(
+        `WhatsApp handoff created for draft ${action.id}. Not sent. Human must open and send manually.`
+      );
+    } catch (error) {
+      setWhatsAppHandoffState({ status: 'error', message: handoffErrorMessage(error) });
+    }
+  }
 
   return (
     <article
@@ -439,6 +590,43 @@ export function SignatureDraftActionCard({
         Safety boundary: not sent, not reserved, not paid, not confirmed.
       </div>
 
+      {canCreateWhatsAppHandoff ? (
+        <section className="mt-4 rounded-md border border-[hsl(var(--bukeer-human-loop)/0.34)] bg-[hsl(var(--bukeer-surface-panel))] p-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                <MessageSquareText className="size-3.5" />
+                WhatsApp handoff
+                <SignatureStatePill tone="humanLoop">Manual send only</SignatureStatePill>
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Not sent. Human must open and send manually.
+              </p>
+            </div>
+            <button
+              type="button"
+              className="inline-flex h-8 shrink-0 items-center justify-center gap-2 rounded-md border border-[hsl(var(--bukeer-human-loop)/0.38)] bg-[hsl(var(--bukeer-human-loop)/0.11)] px-2.5 text-xs font-medium text-[hsl(var(--bukeer-human-loop))] transition hover:bg-[hsl(var(--bukeer-human-loop)/0.17)] disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={handoffButtonDisabled}
+              onClick={createWhatsAppHandoff}
+            >
+              {whatsAppHandoffState.status === 'loading' ? (
+                <RefreshCw className="size-3.5 animate-spin" />
+              ) : (
+                <MessageSquareText className="size-3.5" />
+              )}
+              {whatsAppHandoffState.status === 'loading'
+                ? 'Creating handoff'
+                : whatsAppHandoffState.status === 'success'
+                  ? 'WhatsApp handoff created'
+                  : 'Create WhatsApp handoff'}
+            </button>
+          </div>
+          {whatsAppHandoffState.status !== 'idle' ? (
+            <SignatureWhatsAppHandoffStatus state={whatsAppHandoffState} />
+          ) : null}
+        </section>
+      ) : null}
+
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <button
           type="button"
@@ -483,10 +671,14 @@ export function SignatureDraftActionPanel({
   draftActions,
   onInspectTrace,
   onSimulate,
+  whatsappHandoffEnabled = false,
+  onCreateWhatsAppHandoff,
 }: {
   draftActions: BukeerDraftAction[];
   onInspectTrace: (traceId: string) => void;
   onSimulate?: (message: string) => void;
+  whatsappHandoffEnabled?: boolean;
+  onCreateWhatsAppHandoff?: SignatureWhatsAppHandoffHandler;
 }) {
   if (draftActions.length === 0) return null;
 
@@ -514,6 +706,11 @@ export function SignatureDraftActionPanel({
             action={action}
             onInspectTrace={onInspectTrace}
             onSimulate={onSimulate}
+            onCreateWhatsAppHandoff={
+              whatsappHandoffEnabled && isManualWhatsAppHandoffAction(action)
+                ? onCreateWhatsAppHandoff
+                : undefined
+            }
           />
         ))}
       </div>

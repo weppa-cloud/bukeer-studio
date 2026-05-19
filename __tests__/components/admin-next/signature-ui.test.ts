@@ -4,6 +4,7 @@ import {
   type BukeerDraftAction,
   SignatureDraftActionPanel,
   SignatureUiStatePanel,
+  SignatureWhatsAppHandoffStatus,
   signatureStatusLabels,
   signatureToneForDraftActionStatus,
   signatureToneForStatus,
@@ -88,6 +89,7 @@ describe('Bukeer Signature UI state mapping', () => {
   it('renders Bukeer draft actions with editable fields and explicit safety copy', () => {
     const draftAction: BukeerDraftAction = {
       id: 'draft-missing-data-whatsapp',
+      kind: 'manual_whatsapp_handoff',
       draftType: 'missing_data_message',
       title: 'WhatsApp missing-data request',
       status: 'review_required',
@@ -127,6 +129,80 @@ describe('Bukeer Signature UI state mapping', () => {
     expect(markup).toContain('Review locally');
     expect(markup).toContain('Edit locally');
     expect(markup).toContain('Discard locally');
+    expect(markup).not.toContain('Create WhatsApp handoff');
+  });
+
+  it('renders the WhatsApp handoff CTA only when enabled by a handler', () => {
+    const draftAction: BukeerDraftAction = {
+      id: 'draft-missing-data-whatsapp',
+      kind: 'manual_whatsapp_handoff',
+      draftType: 'missing_data_message',
+      title: 'WhatsApp missing-data request',
+      status: 'review_required',
+      traceId: 'trace-cartagena-003',
+      requiredHumanAction: 'Planner must open WhatsApp and send manually.',
+      body: 'Please confirm children ages and passport names.',
+    };
+
+    const markup = renderToStaticMarkup(
+      createElement(SignatureDraftActionPanel, {
+        draftActions: [draftAction],
+        onInspectTrace: () => undefined,
+        whatsappHandoffEnabled: true,
+        onCreateWhatsAppHandoff: async () => ({
+          referenceCode: 'WA-20260518-ABCD',
+          waMeUrl: 'https://wa.me/573005550198?text=Hola',
+          expiresAt: '2026-05-25T10:27:00.000Z',
+        }),
+      })
+    );
+
+    expect(markup).toContain('Create WhatsApp handoff');
+    expect(markup).toContain('WhatsApp handoff');
+    expect(markup).toContain('Manual send only');
+    expect(markup).toContain('Not sent. Human must open and send manually.');
+  });
+
+  it('renders created WhatsApp handoff reference, wa.me and explicit manual-send copy', () => {
+    const markup = renderToStaticMarkup(
+      createElement(SignatureWhatsAppHandoffStatus, {
+        state: {
+          status: 'success',
+          result: {
+            referenceCode: 'WA-20260518-ABCD',
+            waMeUrl: 'https://wa.me/573005550198?text=Hola',
+            expiresAt: '2026-05-25T10:27:00.000Z',
+          },
+        },
+      })
+    );
+
+    expect(markup).toContain('WhatsApp handoff created');
+    expect(markup).toContain('Not sent');
+    expect(markup).toContain('Human must open and send manually.');
+    expect(markup).toContain('not reserved, not paid, not confirmed');
+    expect(markup).toContain('WA-20260518-ABCD');
+    expect(markup).toContain('wa.me/573005550198');
+    expect(markup).toContain('2026-05-25T10:27:00.000Z');
+  });
+
+  it('renders local WhatsApp handoff loading and error states without send semantics', () => {
+    const loadingMarkup = renderToStaticMarkup(
+      createElement(SignatureWhatsAppHandoffStatus, {
+        state: { status: 'loading' },
+      })
+    );
+    const errorMarkup = renderToStaticMarkup(
+      createElement(SignatureWhatsAppHandoffStatus, {
+        state: { status: 'error', message: 'Endpoint unavailable' },
+      })
+    );
+
+    expect(loadingMarkup).toContain('Creating WhatsApp handoff');
+    expect(loadingMarkup).toContain('Not sent. Human must open and send manually.');
+    expect(errorMarkup).toContain('WhatsApp handoff was not created');
+    expect(errorMarkup).toContain('Endpoint unavailable');
+    expect(errorMarkup).toContain('Not sent, not reserved, not paid, not confirmed.');
   });
 
   it('renders contract-style draft actions with string editable field names', () => {

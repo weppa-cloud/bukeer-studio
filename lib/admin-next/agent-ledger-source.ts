@@ -43,6 +43,8 @@ interface TraceLedgerContext {
 }
 
 const DEFAULT_GENERATED_AT = '2026-05-18T00:00:00.000Z';
+const MANUAL_WHATSAPP_HANDOFF_TOOL_NAME =
+  'manual_whatsapp_handoff_preparation';
 const HIDDEN_REASONING_PATTERN =
   /\b(chain[-\s]?of[-\s]?thought|hidden reasoning|internal reasoning|scratchpad|private deliberation|system prompt)\b/i;
 
@@ -374,7 +376,7 @@ function createToolInvocations(
         id: `tool-${slugify(draftAction.id)}-draft`,
         agentRunId: agentRun.id,
         traceId: context.traceId,
-        toolName: 'local_draft_preparation',
+        toolName: toolNameForDraftAction(draftAction),
         status: 'completed',
         autonomyLevel: draftAction.autonomyLevel,
         riskLevel: draftAction.riskLevel,
@@ -384,10 +386,7 @@ function createToolInvocations(
           draftAction.editableFields,
           'none listed',
         )}.`,
-        resultSummary: `Draft prepared locally: ${safeVisibleText(
-          draftAction.body,
-          draftAction.title,
-        )}. Review-only output; no external workflow was executed.`,
+        resultSummary: buildDraftToolResultSummary(draftAction),
         generatedAt,
         offsetMinutes: contextIndex * 10 + toolIndex + 2,
       }),
@@ -526,6 +525,32 @@ function buildDraftActionRunSummary(draftAction: DraftAction): string {
   return `Draft only: ${proposedDraft}. Requires human review before use.${
     details ? ` ${details}` : ''
   }`;
+}
+
+function toolNameForDraftAction(draftAction: DraftAction): string {
+  if (draftAction.kind === 'manual_whatsapp_handoff') {
+    return MANUAL_WHATSAPP_HANDOFF_TOOL_NAME;
+  }
+
+  return 'local_draft_preparation';
+}
+
+function buildDraftToolResultSummary(draftAction: DraftAction): string {
+  const draftBody = safeVisibleText(draftAction.body, draftAction.title);
+
+  if (draftAction.kind === 'manual_whatsapp_handoff') {
+    return [
+      `Manual WhatsApp handoff prepared locally: ${draftBody}.`,
+      'Not sent.',
+      'Human must open WhatsApp and send manually.',
+      'Review-only output; no external workflow was executed.',
+    ].join(' ');
+  }
+
+  return [
+    `Draft prepared locally: ${draftBody}.`,
+    'Review-only output; no external workflow was executed.',
+  ].join(' ');
 }
 
 function formatDraftTarget(draftAction: DraftAction): string {

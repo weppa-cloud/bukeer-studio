@@ -179,6 +179,65 @@ describe('agent ledger adapter', () => {
     });
   });
 
+  it('maps manual WhatsApp handoff preparation without implying a sent message', () => {
+    const ledger = baseLedger({
+      agentRuns: [
+        {
+          id: 'run-whatsapp-handoff-001',
+          traceId: 'trace-whatsapp-handoff-001',
+          title: 'Draft WhatsApp reply',
+          summary: 'Prepared a WhatsApp handoff draft for human review.',
+          uiState: 'ai_suggestion',
+          actionState: 'drafted',
+          autonomyLevel: 'A2_draft',
+          startedAt: '2026-05-18T00:10:00.000Z',
+          completedAt: '2026-05-18T00:11:00.000Z',
+        },
+      ],
+      toolInvocations: [
+        {
+          id: 'tool-whatsapp-handoff-001',
+          agentRunId: 'run-whatsapp-handoff-001',
+          traceId: 'trace-whatsapp-handoff-001',
+          toolName: 'manual_whatsapp_handoff_preparation',
+          status: 'completed',
+          autonomyLevel: 'A2_draft',
+          riskLevel: 'low',
+          requestedAt: '2026-05-18T00:10:30.000Z',
+          completedAt: '2026-05-18T00:10:45.000Z',
+          resultSummary:
+            'Manual WhatsApp handoff prepared locally. Not sent. Human must open WhatsApp and send manually.',
+        },
+      ],
+      approvalLedger: [],
+    });
+
+    const trace = mapAgentLedgerToTrace(ledger, 'trace-whatsapp-handoff-001');
+
+    expect(trace.summary).toMatchObject({
+      permissionResult: 'allowed',
+      policyResult: 'passed',
+      riskLevel: 'low',
+    });
+    expect(trace.summary.dataUsed).toContain(
+      'Tool: Manual WhatsApp Handoff Preparation',
+    );
+    expect(trace.events).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'tool-whatsapp-handoff-001',
+          type: 'tool_call',
+          title: 'Manual WhatsApp Handoff Preparation',
+          status: 'completed',
+          summary: expect.stringContaining('Not sent'),
+        }),
+      ]),
+    );
+    expect(trace.events.map((event) => event.summary).join(' ')).toContain(
+      'Human must open WhatsApp and send manually',
+    );
+  });
+
   it('fails fast when the trace id is not present in the snapshot', () => {
     expect(() => mapAgentLedgerToTrace(baseLedger(), 'missing-trace')).toThrow(
       'No agent ledger entries found for trace "missing-trace".',
