@@ -16,15 +16,19 @@ import {
   AlertTriangle,
   CheckCircle2,
   CircleDot,
+  ClipboardCheck,
   Clock3,
+  FilePenLine,
   FileX2,
   Lock,
   MessageSquareText,
+  Pencil,
   Plane,
   RefreshCw,
   Search,
   ShieldCheck,
   Sparkles,
+  Trash2,
   UserCheck,
   XCircle,
 } from 'lucide-react';
@@ -71,6 +75,42 @@ export type SignatureUiVariant = {
   badge: string;
   tone: SignatureTone;
   actionLabel?: string;
+};
+
+export type BukeerDraftEditableField =
+  | string
+  | {
+      id?: string;
+      label: string;
+      value?: string;
+      currentValue?: string;
+      proposedValue?: string;
+      required?: boolean;
+      status?: string;
+    };
+
+export type BukeerDraftAction = {
+  id: string;
+  type?: string;
+  draftType?: string;
+  kind?: string;
+  draftKind?: string;
+  title?: string;
+  status?: string;
+  state?: string;
+  editableFields?: BukeerDraftEditableField[];
+  fields?: BukeerDraftEditableField[];
+  requiredHumanAction?: string;
+  humanAction?: string;
+  traceId: string;
+  body?: string;
+  proposedDraft?: string;
+  description?: string;
+  rationale?: string;
+  riskFlags?: string[];
+  missingData?: string[];
+  requiresHumanReview?: boolean;
+  noProductionWrite?: boolean;
 };
 
 export const signatureUiVariantDefaults: Record<SignatureUiVariantState, SignatureUiVariant> = {
@@ -178,6 +218,99 @@ function dotClass(tone: SignatureTone) {
   return 'bg-[hsl(var(--bukeer-structural))]';
 }
 
+function isAgenticActionState(status: string): status is AgenticActionState {
+  return status in signatureStatusLabels;
+}
+
+export function signatureToneForDraftActionStatus(status?: string): SignatureTone {
+  const normalizedStatus = status?.trim().toLowerCase();
+
+  if (!normalizedStatus) return 'live';
+  if (isAgenticActionState(normalizedStatus)) return signatureToneForStatus(normalizedStatus);
+  if (normalizedStatus.includes('blocked') || normalizedStatus.includes('rejected')) {
+    return 'danger';
+  }
+  if (
+    normalizedStatus.includes('approval') ||
+    normalizedStatus.includes('review') ||
+    normalizedStatus.includes('required')
+  ) {
+    return 'humanLoop';
+  }
+  if (normalizedStatus.includes('approved') || normalizedStatus.includes('complete')) {
+    return 'success';
+  }
+  if (normalizedStatus.includes('draft') || normalizedStatus.includes('edit')) return 'live';
+  return 'structural';
+}
+
+function draftActionStatusLabel(status?: string) {
+  if (!status) return 'Drafted';
+  if (isAgenticActionState(status)) return signatureStatusLabels[status];
+  return status
+    .split(/[_-]/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
+function draftActionTypeLabel(action: BukeerDraftAction) {
+  const draftType =
+    action.draftType ?? action.type ?? action.kind ?? action.draftKind ?? 'travel draft';
+  return draftType
+    .split(/[_-]/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
+function draftActionFields(action: BukeerDraftAction) {
+  const fields = action.editableFields ?? action.fields ?? [];
+  if (fields.length > 0) return fields;
+  if (action.body || action.proposedDraft) {
+    return [
+      {
+        id: `${action.id}-body`,
+        label: 'Draft body',
+        proposedValue: action.proposedDraft ?? action.body,
+        required: true,
+      },
+    ];
+  }
+  return [];
+}
+
+function draftActionFieldLabel(field: BukeerDraftEditableField) {
+  if (typeof field !== 'string') return field.label;
+  return field
+    .split(/[_-]/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
+function draftActionFieldValue(action: BukeerDraftAction, field: BukeerDraftEditableField) {
+  if (typeof field === 'string') {
+    if (field === 'body') return action.body ?? action.proposedDraft ?? 'Needs review';
+    if (field === 'title') return action.title ?? 'Needs review';
+    return 'Editable in local review';
+  }
+  return field.proposedValue ?? field.value ?? field.currentValue ?? 'Needs review';
+}
+
+function draftActionFieldId(field: BukeerDraftEditableField, index: number) {
+  if (typeof field === 'string') return `${field}-${index}`;
+  return field.id ?? `${field.label}-${index}`;
+}
+
+function draftActionFieldRequired(field: BukeerDraftEditableField) {
+  return typeof field === 'string' ? true : field.required;
+}
+
+function draftActionFieldStatus(field: BukeerDraftEditableField) {
+  return typeof field === 'string' ? undefined : field.status;
+}
+
 export function SignatureStatePill({
   tone,
   children,
@@ -196,6 +329,195 @@ export function SignatureStatePill({
       {tone === 'humanLoop' ? <Clock3 className="size-3" /> : null}
       <span className="truncate">{children}</span>
     </span>
+  );
+}
+
+export function SignatureDraftActionCard({
+  action,
+  onInspectTrace,
+  onSimulate,
+}: {
+  action: BukeerDraftAction;
+  onInspectTrace: (traceId: string) => void;
+  onSimulate?: (message: string) => void;
+}) {
+  const status = action.status ?? action.state ?? 'drafted';
+  const tone = signatureToneForDraftActionStatus(status);
+  const fields = draftActionFields(action);
+  const requiredHumanAction =
+    action.requiredHumanAction ??
+    action.humanAction ??
+    (action.requiresHumanReview
+      ? 'Human review is required before this draft can leave local review.'
+      : 'Review draft fields before any customer or supplier action.');
+
+  return (
+    <article
+      className={cx(
+        'rounded-lg border bg-card p-4 shadow-sm',
+        tone === 'live' && 'border-[hsl(var(--bukeer-live)/0.34)]',
+        tone === 'humanLoop' && 'border-[hsl(var(--bukeer-human-loop)/0.42)]',
+        tone === 'danger' && 'border-destructive/35',
+        tone === 'success' && 'border-[hsl(var(--bukeer-success)/0.34)]',
+        tone === 'warning' && 'border-[hsl(var(--bukeer-warning)/0.48)]',
+        tone === 'structural' && 'border-border'
+      )}
+      data-draft-action-id={action.id}
+    >
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+            <FilePenLine className="size-3.5" />
+            {draftActionTypeLabel(action)}
+            <SignatureStatePill tone={tone}>{draftActionStatusLabel(status)}</SignatureStatePill>
+          </div>
+          <h3 className="mt-2 text-base font-semibold">
+            {action.title ?? 'Draft action awaiting planner review'}
+          </h3>
+          {action.description ?? action.rationale ? (
+            <p className="mt-1 text-sm text-muted-foreground">
+              {action.description ?? action.rationale}
+            </p>
+          ) : null}
+        </div>
+        <button
+          type="button"
+          className="inline-flex h-8 shrink-0 items-center justify-center gap-2 rounded-md border border-border px-2.5 text-xs font-medium transition hover:bg-muted"
+          onClick={() => onInspectTrace(action.traceId)}
+        >
+          <ShieldCheck className="size-3.5" />
+          Inspect trace
+        </button>
+      </div>
+
+      <section className="mt-4 rounded-md border border-[hsl(var(--bukeer-human-loop)/0.34)] bg-[hsl(var(--bukeer-human-loop)/0.09)] p-3">
+        <div className="flex items-start gap-2">
+          <UserCheck className="mt-0.5 size-4 shrink-0 text-[hsl(var(--bukeer-human-loop))]" />
+          <div>
+            <div className="text-sm font-semibold">Required human action</div>
+            <p className="mt-1 text-xs text-muted-foreground">{requiredHumanAction}</p>
+          </div>
+        </div>
+      </section>
+
+      <section className="mt-4">
+        <div className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          Editable fields
+        </div>
+        <div className="mt-2 grid gap-2">
+          {fields.length > 0 ? (
+            fields.map((field, index) => (
+              <div
+                key={draftActionFieldId(field, index)}
+                className="rounded-md border border-border bg-background px-3 py-2"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-sm font-medium">{draftActionFieldLabel(field)}</span>
+                  {draftActionFieldRequired(field) ? (
+                    <SignatureStatePill tone="humanLoop">Required</SignatureStatePill>
+                  ) : null}
+                </div>
+                <div className="mt-1 break-words text-sm text-muted-foreground">
+                  {draftActionFieldValue(action, field)}
+                </div>
+                {draftActionFieldStatus(field) ? (
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    Status: {draftActionStatusLabel(draftActionFieldStatus(field))}
+                  </div>
+                ) : null}
+              </div>
+            ))
+          ) : (
+            <div className="rounded-md border border-border bg-background px-3 py-2 text-sm text-muted-foreground">
+              No editable fields were included in this draft payload.
+            </div>
+          )}
+        </div>
+      </section>
+
+      <div className="mt-4 rounded-md border border-border bg-background p-3 text-xs text-muted-foreground">
+        Safety boundary: not sent, not reserved, not paid, not confirmed.
+      </div>
+
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          className="inline-flex h-8 items-center justify-center gap-2 rounded-md border border-[hsl(var(--bukeer-live)/0.34)] bg-[hsl(var(--bukeer-live)/0.10)] px-2.5 text-xs font-medium text-[hsl(var(--bukeer-live))] transition hover:bg-[hsl(var(--bukeer-live)/0.16)]"
+          onClick={() =>
+            onSimulate?.(
+              `Reviewed draft ${action.id} locally. No send, reservation, payment or confirmation ran.`
+            )
+          }
+        >
+          <ClipboardCheck className="size-3.5" />
+          Review locally
+        </button>
+        <button
+          type="button"
+          className="inline-flex h-8 items-center justify-center gap-2 rounded-md border border-border px-2.5 text-xs font-medium transition hover:bg-muted"
+          onClick={() =>
+            onSimulate?.(
+              `Opened local edit state for draft ${action.id}. No production write was executed.`
+            )
+          }
+        >
+          <Pencil className="size-3.5" />
+          Edit locally
+        </button>
+        <button
+          type="button"
+          className="inline-flex h-8 items-center justify-center gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-2.5 text-xs font-medium text-destructive transition hover:bg-destructive/15"
+          onClick={() =>
+            onSimulate?.(`Discarded draft ${action.id} locally. No production record was deleted.`)
+          }
+        >
+          <Trash2 className="size-3.5" />
+          Discard locally
+        </button>
+      </div>
+    </article>
+  );
+}
+
+export function SignatureDraftActionPanel({
+  draftActions,
+  onInspectTrace,
+  onSimulate,
+}: {
+  draftActions: BukeerDraftAction[];
+  onInspectTrace: (traceId: string) => void;
+  onSimulate?: (message: string) => void;
+}) {
+  if (draftActions.length === 0) return null;
+
+  return (
+    <section
+      aria-labelledby="draft-actions-heading"
+      className="space-y-3"
+      data-testid="draft-action-panel"
+    >
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <div className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            Draft-only actions
+          </div>
+          <h2 id="draft-actions-heading" className="mt-1 text-xl font-semibold">
+            Bukeer DraftAction review
+          </h2>
+        </div>
+        <SignatureStatePill tone="humanLoop">Local simulation only</SignatureStatePill>
+      </div>
+      <div className="space-y-3">
+        {draftActions.map((action) => (
+          <SignatureDraftActionCard
+            key={action.id}
+            action={action}
+            onInspectTrace={onInspectTrace}
+            onSimulate={onSimulate}
+          />
+        ))}
+      </div>
+    </section>
   );
 }
 

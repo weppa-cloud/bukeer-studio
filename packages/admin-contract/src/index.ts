@@ -255,6 +255,61 @@ export const AgentSuggestionSchema = z.object({
 
 export type AgentSuggestion = z.infer<typeof AgentSuggestionSchema>;
 
+export const DraftActionKindSchema = z.enum([
+  'customer_reply',
+  'missing_data_request',
+  'itinerary_outline',
+  'approval_packet',
+  'supplier_comparison',
+  'quote_readiness_checklist',
+  'internal_follow_up_task',
+  'audit_summary',
+]);
+
+export type DraftActionKind = z.infer<typeof DraftActionKindSchema>;
+
+export const DraftActionStatusSchema = z.enum([
+  'suggested',
+  'draft_created',
+  'edited',
+  'discarded',
+  'blocked',
+  'approval_required',
+]);
+
+export type DraftActionStatus = z.infer<typeof DraftActionStatusSchema>;
+
+export const DraftActionSafetyBoundarySchema = z.object({
+  publicSendEnabled: z.literal(false),
+  supplierHoldEnabled: z.literal(false),
+  paymentEnabled: z.literal(false),
+  bookingWriteEnabled: z.literal(false),
+  productionWriteEnabled: z.literal(false),
+});
+
+export type DraftActionSafetyBoundary = z.infer<
+  typeof DraftActionSafetyBoundarySchema
+>;
+
+export const DraftActionSchema = z.object({
+  id: z.string().min(1),
+  title: z.string().min(1),
+  kind: DraftActionKindSchema,
+  status: DraftActionStatusSchema,
+  autonomyLevel: z.literal('A2_draft'),
+  traceId: z.string().min(1),
+  sourceSuggestionId: z.string().min(1).optional(),
+  body: z.string(),
+  editableFields: z.array(z.string().min(1)),
+  requiredHumanAction: z.string().min(1),
+  safetyBoundary: DraftActionSafetyBoundarySchema,
+  riskLevel: RiskLevelSchema,
+  createdAt: z.string().min(1),
+  updatedAt: z.string().min(1).optional(),
+});
+
+export type DraftAction = z.infer<typeof DraftActionSchema>;
+
 export const AgentBlockedStateSchema = z.object({
   id: z.string().min(1),
   state: z.enum(['blocked_missing_data', 'blocked_policy']),
@@ -441,6 +496,7 @@ export const PlannerWorkbenchFixtureSchema = z.object({
   itinerarySegments: z.array(ItinerarySegmentSchema),
   liveFeed: z.array(LiveFeedItemSchema),
   suggestions: z.array(AgentSuggestionSchema),
+  draftActions: z.array(DraftActionSchema).default([]),
   blockedStates: z.array(AgentBlockedStateSchema),
   approvals: z.array(ApprovalRequestSchema),
   traceSummary: TraceDrawerSummarySchema,
