@@ -34,7 +34,7 @@ const BR_PLAN = {
   keepNegativeGeoIds: ['2170'], // Colombia country negative
   activateAdGroupName: 'AG1_Pacotes_Colombia',
   activateExactKeywords: ['pacotes colombia', 'pacote viagem colombia'],
-  finalUrl: 'https://colombiatours.travel/pacotes-colombia',
+  finalUrl: 'https://colombiatours.travel/pt/pacotes-colombia',
 };
 
 const AR_PLAN = {
