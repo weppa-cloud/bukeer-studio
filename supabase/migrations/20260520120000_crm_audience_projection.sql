@@ -631,7 +631,8 @@ begin
   set
     email_sha256 = public.crm_audience_hash_identity(c.email),
     phone_sha256 = public.crm_audience_hash_phone(c.phone),
-    external_id_sha256 = public.crm_audience_hash_identity(coalesce(c.contact_id::text, c.source_entity_type || ':' || c.source_entity_id));
+    external_id_sha256 = public.crm_audience_hash_identity(coalesce(c.contact_id::text, c.source_entity_type || ':' || c.source_entity_id))
+  where true;
 
   update tmp_crm_audience_candidates c
   set is_suppressed = true
