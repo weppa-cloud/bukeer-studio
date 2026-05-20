@@ -110,7 +110,36 @@ source: GSC, DataForSEO Labs, SERP review, or a documented strategic exception.
 SERP data feeds content briefs. It should not overwrite GSC truth for actual
 site performance.
 
-## Flow 4: Authority And Brand
+## Flow 4: SEO360 Top-4 Peer Benchmark Gate
+
+SEO360 publish gates must compare against the market SERP, not an average or a
+raw content checklist.
+
+1. Require `target_keyword` and `target_market` before a benchmark packet is
+   decision-grade.
+2. Run DataForSEO SERP Advanced for the exact keyword, language and market.
+3. Select exactly four editorial organic competitor URLs from that SERP. Exclude
+   ads, marketplaces/listicles that are not editorial content, duplicate hosts
+   when a better diverse set is available, and non-comparable thin pages.
+4. Run the 360 scorecard on each peer and ColombiaTours across these dimensions:
+   words, images, paragraph/header structure, table/FAQ/TOC, internal links,
+   semantic/entity coverage, E-E-A-T/trust, freshness, UX, and helpful-content
+   alignment.
+5. Publish is HOLD unless ColombiaTours is strictly above the top peer score;
+   average-only scoring is not decision-grade.
+6. Return evidence gaps and target ranges only. Do not rewrite ColombiaTours'
+   author voice into a competitor style; `preservesWriterStyle=true` is part of
+   the contract.
+7. For San Andres/San Andrés market packets, require at least four semantic
+   image PASS records. Each image must include source refs, asset provenance,
+   section placement, alt/caption, and PASS verdicts for provenance,
+   section-match, alt/caption and semantic/visual consistency. A HEAD 200 or
+   raw image count is not sufficient.
+
+The code contract lives in `Seo360BenchmarkContractSchema` and the runtime gate
+lives in `lib/growth/autonomy/seo360-quality-gate.ts`.
+
+## Flow 5: Authority And Brand
 
 1. Run Backlinks summary/history monthly for the domain and priority pages.
 2. Track referring domains, domain/page rank, anchors, new/lost backlinks,
@@ -119,7 +148,7 @@ site performance.
    of the experiment.
 4. Promote only actionable opportunities to `growth_inventory` and #334.
 
-## Flow 5: Local SEO
+## Flow 6: Local SEO
 
 1. Use Business Data/Listings for relevant destinations, agency/service queries
    and local competitors.
@@ -128,7 +157,7 @@ site performance.
 3. Feed #335 and Council experiments for local pages, GBP work or review
    acquisition.
 
-## Flow 6: AI Search / GEO Visibility
+## Flow 7: AI Search / GEO Visibility
 
 1. Start from a stable prompt set by market, locale, intent and funnel stage.
 2. Run DataForSEO AI Optimization in a controlled profile:
@@ -147,7 +176,7 @@ Do not store AI/GEO observations in `seo_audit_findings`; those remain for
 technical OnPage findings. See
 [growth-ai-search-geo-profile](./growth-ai-search-geo-profile.md).
 
-## Flow 7: Conversion Join
+## Flow 8: Conversion Join
 
 1. Read GSC/GA4 for acquisition and engagement.
 2. Read `funnel_events` for WAFlow, WhatsApp, Chatwoot and
@@ -158,7 +187,7 @@ technical OnPage findings. See
 For now, `itinerary_confirmed` is the operational conversion event. Wompi
 Purchase remains outside this flow until explicitly implemented.
 
-## Flow 8: Translation Quality Gate
+## Flow 9: Translation Quality Gate
 
 1. Start from `seo_transcreation_jobs` for target locales such as `en-US` and
    `es-MX`.

@@ -293,6 +293,85 @@ export const SeoPageCatalogQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(250).default(100),
 });
 
+export const Seo360ScoreDimensionSchema = z.enum([
+  'words',
+  'images',
+  'paragraph_header_structure',
+  'table_faq_toc',
+  'internal_links',
+  'semantic_entity_coverage',
+  'eeat_trust',
+  'freshness',
+  'ux',
+  'helpful_content_alignment',
+]);
+
+export const Seo360ScorecardSchema = z.object({
+  total: z.number().finite().min(0).max(360),
+  dimensions: z.record(Seo360ScoreDimensionSchema, z.number().finite().min(0)).refine(
+    (value) => Seo360ScoreDimensionSchema.options.every((dimension) => dimension in value),
+    'SEO360 scorecard must include every 360 dimension',
+  ),
+  evidence: z.record(z.string(), z.unknown()).default({}),
+});
+
+export const Seo360PeerCompetitorSchema = z.object({
+  url: z.string().url(),
+  rank: z.number().int().positive(),
+  source: z.literal('dataforseo_serp'),
+  targetKeyword: z.string().min(1).max(160),
+  targetMarket: z.string().min(2).max(64),
+  editorial: z.literal(true),
+  scorecard: Seo360ScorecardSchema,
+});
+
+export const Seo360ImageSemanticEvidenceSchema = z.object({
+  url: z.string().url(),
+  sourceRefs: z.array(z.string().min(1)).min(1),
+  provenance: z.string().min(1),
+  sectionPlacement: z.string().min(1),
+  destination: z.string().min(1),
+  alt: z.string().min(1),
+  caption: z.string().min(1),
+  semanticVerdict: z.literal('PASS'),
+  provenanceVerdict: z.literal('PASS'),
+  sectionMatchVerdict: z.literal('PASS'),
+  altCaptionVerdict: z.literal('PASS'),
+  visualConsistencyVerdict: z.literal('PASS').optional(),
+});
+
+export const Seo360BenchmarkContractSchema = z.object({
+  targetKeyword: z.string().min(1).max(160),
+  targetMarket: z.string().min(2).max(64),
+  selectedFrom: z.literal('dataforseo_serp'),
+  selectionMethod: z.literal('top4_editorial_exact_keyword_market'),
+  scoringMode: z.literal('peer_superiority'),
+  preservesWriterStyle: z.literal(true),
+  competitors: z.array(Seo360PeerCompetitorSchema).length(4),
+  colombiaTours: Seo360ScorecardSchema,
+  images: z.array(Seo360ImageSemanticEvidenceSchema).default([]),
+}).superRefine((value, ctx) => {
+  const normalizedMarket = value.targetMarket
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+  if (normalizedMarket.includes('san andres') && value.images.length < 4) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['images'],
+      message: 'San Andres SEO360 packets require four semantic image PASS records',
+    });
+  }
+  const peerMax = Math.max(...value.competitors.map((competitor) => competitor.scorecard.total));
+  if (value.colombiaTours.total <= peerMax) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['colombiaTours', 'total'],
+      message: 'ColombiaTours SEO360 score must exceed every top-4 peer score',
+    });
+  }
+});
+
 export type SeoSourceMetadata = z.infer<typeof SeoSourceMetadataSchema>;
 export type SeoAuditRequest = z.infer<typeof SeoAuditRequestSchema>;
 export type SeoAuditQuery = z.infer<typeof SeoAuditQuerySchema>;
@@ -313,6 +392,11 @@ export type LocaleAdaptationOutputEnvelope = z.infer<typeof LocaleAdaptationOutp
 export type SeoTranscreateRequest = z.infer<typeof SeoTranscreateRequestSchema>;
 export type SeoTrackQuery = z.infer<typeof SeoTrackQuerySchema>;
 export type SeoPageCatalogQuery = z.infer<typeof SeoPageCatalogQuerySchema>;
+export type Seo360ScoreDimension = z.infer<typeof Seo360ScoreDimensionSchema>;
+export type Seo360Scorecard = z.infer<typeof Seo360ScorecardSchema>;
+export type Seo360PeerCompetitor = z.infer<typeof Seo360PeerCompetitorSchema>;
+export type Seo360ImageSemanticEvidence = z.infer<typeof Seo360ImageSemanticEvidenceSchema>;
+export type Seo360BenchmarkContract = z.infer<typeof Seo360BenchmarkContractSchema>;
 
 export const ProductSeoOverrideProductTypeSchema = z.enum([
   'package_kit',

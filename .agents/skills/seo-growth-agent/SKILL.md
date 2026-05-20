@@ -80,6 +80,22 @@ Full list in [APIS.md](APIS.md). Top-level groups:
   `dataforseo` (SERP + keyword metrics — **Tier 1, use freely**),
   `chrome-devtools`, `playwright`. Pending: `mcp-bukeer-studio` (#158).
 
+## SEO360 peer benchmark publish gate
+
+For SEO360 content publish decisions, do not use generic averages or raw image
+counts as success. A decision-grade packet must include `target_keyword` and
+`target_market`, exactly four editorial competitor URLs selected from DataForSEO
+SERP for the exact keyword/market, a 360 scorecard for each peer and
+ColombiaTours, and `preservesWriterStyle=true` so benchmark targets produce
+coverage/evidence gaps without rewriting the author voice. ColombiaTours must
+score strictly above the top peer, not merely above the average.
+
+For San Andres/San Andrés market packets, require four semantic image PASS
+records. Each image must carry source refs, provenance, section placement,
+alt/caption, and PASS verdicts for semantic consistency, provenance,
+section-match and alt/caption; a HEAD 200 check or simple image count is not
+sufficient.
+
 ## Session start ritual (MANDATORY)
 
 At the start of every invocation the agent must do, in order:

@@ -11,6 +11,10 @@ import {
 } from "./live-gate";
 import type { ProfileFreshnessGateResult } from "./profile-freshness-gate";
 import { asRecord, type JsonRecord } from "./runtime-common";
+import {
+  evaluateSeo360BenchmarkGate,
+  type Seo360BenchmarkGateInput,
+} from "./seo360-quality-gate";
 
 export interface GrowthRuntimeQualityGateInput {
   lane: AgentLane;
@@ -53,6 +57,7 @@ export interface GrowthEditorialQualityGateInput {
   targetLocale?: string | null;
   glossaryTerms?: unknown[];
   targetTable?: string | null;
+  seo360?: Seo360BenchmarkGateInput | null;
 }
 
 function hasRecord(value: unknown): boolean {
@@ -164,6 +169,14 @@ export function evaluateGrowthQualityGate(
     if (!Array.isArray(input.glossaryTerms) || input.glossaryTerms.length === 0) {
       failures.push("missing_glossary_or_tm_context");
     }
+  }
+  if (
+    (input.actionClass === "content_publish" ||
+      input.actionClass === "transcreation_merge") &&
+    input.seo360
+  ) {
+    const seo360 = evaluateSeo360BenchmarkGate(input.seo360);
+    if (!seo360.passed) failures.push(...seo360.reasons);
   }
   if (
     input.actionClass === "safe_apply" &&
