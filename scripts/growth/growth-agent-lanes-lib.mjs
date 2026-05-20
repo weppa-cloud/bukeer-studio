@@ -216,8 +216,22 @@ export function contentQualityGate(row) {
     brief.curator_review ??
     task.curator_review ??
     {};
+  const metrics = content360Metrics(row, evidence, brief, task, standard, competitive);
+  const competitorBenchmark = competitorBenchmarkEvidence(
+    evidence,
+    brief,
+    task,
+    competitive,
+  );
+  const visualQualityStatus = visualQualityStatusFor(metrics);
+  const competitiveBenchmarkStatus = competitiveBenchmarkStatusFor(
+    competitorBenchmark,
+  );
 
   const missing = [];
+  if (!truthy(metrics.target_keyword)) missing.push("missing_target_keyword");
+  if (!truthy(metrics.locale)) missing.push("missing_locale");
+  if (!truthy(metrics.market)) missing.push("missing_market");
   if (!truthy(standard.project_preference_fit))
     missing.push("missing_project_preference_fit");
   if (!truthy(competitive.serp_intent)) missing.push("missing_serp_intent");
@@ -231,6 +245,25 @@ export function contentQualityGate(row) {
     missing.push("missing_scaled_content_risk_review");
   if (!truthy(curator.approved) && !truthy(curator.reviewed_at))
     missing.push("missing_curator_review");
+  if (visualQualityStatus === "FAIL") missing.push("fail_visual_quality");
+  if (visualQualityStatus === "WARN") missing.push("warn_visual_quality");
+  if (competitiveBenchmarkStatus !== "PASS") {
+    missing.push("hold_competitive_evidence");
+  }
+
+  const readiness_statuses = {
+    technical_live: statusFromEvidence(evidence.technical_live, "UNKNOWN"),
+    canary_live: statusFromEvidence(evidence.canary_live, "UNKNOWN"),
+    visual_ready: visualQualityStatus,
+    seo_360_ready:
+      missing.length || visualQualityStatus !== "PASS" || competitiveBenchmarkStatus !== "PASS"
+        ? "FAIL"
+        : "PASS",
+    traffic_ready:
+      missing.length || visualQualityStatus !== "PASS" || competitiveBenchmarkStatus !== "PASS"
+        ? "HOLD"
+        : "PASS",
+  };
 
   return {
     status: missing.length ? "blocked" : "pass",
@@ -238,6 +271,14 @@ export function contentQualityGate(row) {
     content_standard: standard,
     competitive_content: competitive,
     curator_review: curator,
+    target_keyword: metrics.target_keyword,
+    locale: metrics.locale,
+    market: metrics.market,
+    metrics_360: metrics,
+    competitor_benchmark: competitorBenchmark,
+    visual_quality_status: visualQualityStatus,
+    competitive_benchmark_status: competitiveBenchmarkStatus,
+    readiness_statuses,
   };
 }
 
@@ -257,6 +298,182 @@ export function contentStandardDraft(row, brief = {}) {
     source_work_type: row.work_type ?? null,
     target_locale: brief.target_locale ?? row.locale ?? null,
   };
+}
+
+
+function content360Metrics(row, evidence, brief, task, standard, competitive) {
+  const metricSources = [
+    evidence.content_metrics,
+    evidence.metrics_360,
+    evidence.seo_360_metrics,
+    evidence.article_metrics,
+    brief.content_metrics,
+    brief.metrics_360,
+    task.content_metrics,
+    task.metrics_360,
+    standard.content_metrics,
+    competitive.content_metrics,
+    evidence,
+    brief,
+    task,
+    row.metrics_360,
+    row.content_metrics,
+    row,
+  ].filter(Boolean);
+  const content = String(
+    row.content ??
+      evidence.content ??
+      evidence.article_content ??
+      brief.content ??
+      task.content ??
+      "",
+  );
+  const inlineCount = firstNumber(metricSources, [
+    "inline_image_count",
+    "body_image_count",
+    "content_image_count",
+  ]);
+  const imageCount = firstNumber(metricSources, ["image_count", "images_count"]);
+  const featuredImage = firstTruthy(metricSources, [
+    "featured_image",
+    "featuredImage",
+    "hero_image",
+    "cover_image",
+  ]);
+  const ogImage = firstTruthy(metricSources, ["og_image", "ogImage", "social_image"]);
+  const inferredInlineImageCount =
+    inlineCount ?? countMatches(content, /<img|!\[[^\]]*\]\([^)]*\)/gi);
+  const inferredImageCount =
+    imageCount ?? inferredInlineImageCount + (featuredImage || ogImage ? 1 : 0);
+
+  return {
+    target_keyword: firstTruthy(metricSources, [
+      "target_keyword",
+      "keyword",
+      "primary_keyword",
+      "query",
+    ]),
+    locale: firstTruthy(metricSources, ["locale", "target_locale", "language"]),
+    market: firstTruthy(metricSources, ["market", "target_market", "country"]),
+    word_count: firstNumber(metricSources, ["word_count", "words"]) ?? wordCount(content),
+    image_count: inferredImageCount,
+    inline_image_count: inferredInlineImageCount,
+    featured_image: featuredImage ?? null,
+    has_featured_image: Boolean(featuredImage),
+    og_image: ogImage ?? null,
+    has_og_image: Boolean(ogImage),
+    alt_coverage: firstNumber(metricSources, ["alt_coverage", "image_alt_coverage"]),
+    h2_count:
+      firstNumber(metricSources, ["h2_count", "heading2_count"]) ??
+      countMatches(content, /^##\s+|<h2/gim),
+    paragraph_count:
+      firstNumber(metricSources, ["paragraph_count", "p_count"]) ??
+      countParagraphs(content),
+    internal_link_count:
+      firstNumber(metricSources, ["internal_link_count", "internal_links"]) ??
+      countMatches(content, /href=["']\/(?!\/)|\]\(\/(?!\/)/gi),
+    has_table: truthy(firstTruthy(metricSources, ["has_table"])) || /<table|^\|.+\|/im.test(content),
+    has_faq: truthy(firstTruthy(metricSources, ["has_faq"])) || /faq|preguntas frecuentes/i.test(content),
+    has_toc: truthy(firstTruthy(metricSources, ["has_toc", "has_table_of_contents"])) || /table of contents|tabla de contenido/i.test(content),
+  };
+}
+
+function competitorBenchmarkEvidence(evidence, brief, task, competitive) {
+  const benchmark =
+    evidence.competitor_benchmark ??
+    evidence.competitive_benchmark ??
+    evidence.serp_benchmark ??
+    evidence.dataforseo_serp ??
+    brief.competitor_benchmark ??
+    task.competitor_benchmark ??
+    competitive.competitor_benchmark ??
+    competitive.benchmark ??
+    {};
+  const competitors = firstTruthy([benchmark, competitive, evidence], [
+    "competitors",
+    "top_competitors",
+    "serp_competitors",
+    "top_results",
+    "dataforseo_top_results",
+  ]);
+  const competitorCount = Array.isArray(competitors)
+    ? competitors.length
+    : Number(benchmark.top_count ?? benchmark.competitor_count ?? 0);
+  return {
+    provider: benchmark.provider ?? evidence.provider ?? null,
+    source: benchmark.source ?? benchmark.run_id ?? benchmark.task_id ?? null,
+    has_dataforseo: /dataforseo/i.test(
+      JSON.stringify({ benchmark, provider: benchmark.provider ?? evidence.provider ?? "" }),
+    ),
+    competitor_count: Number.isFinite(competitorCount) ? competitorCount : 0,
+    competitors: Array.isArray(competitors) ? competitors.slice(0, 10) : [],
+    our_vs_competitor_metrics:
+      benchmark.our_vs_competitor_metrics ??
+      benchmark.metrics_comparison ??
+      competitive.our_vs_competitor_metrics ??
+      null,
+    semantic_density: benchmark.semantic_density ?? competitive.semantic_density ?? null,
+    entity_coverage: benchmark.entity_coverage ?? competitive.entity_coverage ?? null,
+  };
+}
+
+function visualQualityStatusFor(metrics) {
+  if (Number(metrics.inline_image_count ?? 0) <= 0) return "FAIL";
+  if (Number(metrics.image_count ?? 0) <= 0) return "FAIL";
+  if (!metrics.has_featured_image && !metrics.has_og_image) return "WARN";
+  if (metrics.alt_coverage != null && Number(metrics.alt_coverage) < 0.8)
+    return "WARN";
+  return "PASS";
+}
+
+function competitiveBenchmarkStatusFor(benchmark) {
+  if (!benchmark.source && !benchmark.competitor_count && !benchmark.our_vs_competitor_metrics)
+    return "WARN";
+  if (Number(benchmark.competitor_count ?? 0) < 5 && !benchmark.our_vs_competitor_metrics)
+    return "WARN";
+  return "PASS";
+}
+
+function statusFromEvidence(value, fallback) {
+  if (typeof value === "string" && value.trim()) return value.trim().toUpperCase();
+  if (value === true) return "PASS";
+  if (value === false) return "FAIL";
+  return fallback;
+}
+
+function firstTruthy(sources, keys) {
+  for (const source of sources) {
+    if (!source || typeof source !== "object") continue;
+    for (const key of keys) {
+      const value = source[key];
+      if (truthy(value)) return value;
+    }
+  }
+  return null;
+}
+
+function firstNumber(sources, keys) {
+  const value = firstTruthy(sources, keys);
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function countMatches(value, regex) {
+  return (String(value).match(regex) ?? []).length;
+}
+
+function wordCount(value) {
+  return String(value)
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean).length;
+}
+
+function countParagraphs(value) {
+  return String(value)
+    .split(/\n\s*\n|<\/p>/i)
+    .map((part) => part.trim())
+    .filter(Boolean).length;
 }
 
 export function competitiveContentDraft(row, brief = {}) {
