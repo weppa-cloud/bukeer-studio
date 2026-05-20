@@ -24,8 +24,8 @@ import {
 
 dotenv.config({ path: ".env.local" });
 
-const PROMPT_VERSION = "growth-agent-evaluator-v2";
-const CONFIG_VERSION = "agent-lanes-2026-content-standard-v2";
+const PROMPT_VERSION = "growth-agent-evaluator-v3-seo-360";
+const CONFIG_VERSION = "agent-lanes-2026-content-standard-v3-seo-360";
 const args = parseArgs(process.argv.slice(2));
 const apply = args.apply === "true";
 const websiteId = args.websiteId ?? DEFAULT_WEBSITE_ID;
@@ -229,11 +229,16 @@ async function evaluateSource(source) {
 
   try {
     const llm = await callLlm(source, routing, contentGate);
-    return withAutomationPolicy({
-      ...base,
-      mode: "llm",
-      ...normalizeReview(llm, source),
-    });
+    return withAutomationPolicy(
+      enforceContent360Gate(
+        {
+          ...base,
+          mode: "llm",
+          ...normalizeReview(llm, source),
+        },
+        contentGate,
+      ),
+    );
   } catch (error) {
     return withAutomationPolicy({
       ...base,
@@ -273,6 +278,13 @@ function heuristicReview(source, routing, contentGate) {
       contentGate && !contentGate.missing.length
         ? "Content evidence passes deterministic competitive gate; Curator should still validate before Council."
         : "Competitive advantage not sufficiently proven for automatic promotion.",
+    target_keyword: contentGate?.target_keyword ?? null,
+    locale: contentGate?.locale ?? null,
+    market: contentGate?.market ?? null,
+    visual_quality_status: contentGate?.visual_quality_status ?? null,
+    competitive_benchmark_status:
+      contentGate?.competitive_benchmark_status ?? null,
+    readiness_statuses: contentGate?.readiness_statuses ?? {},
     risks,
     next_action:
       decision === "promote"
@@ -334,6 +346,18 @@ async function callLlm(source, routing, contentGate) {
                 allowed_action:
                   "auto_apply | prepare_for_human | watch | block | reject",
                 competitive_advantage: "string",
+                target_keyword: "string",
+                locale: "string",
+                market: "string",
+                visual_quality_status: "PASS | WARN | FAIL",
+                competitive_benchmark_status: "PASS | WARN | FAIL",
+                readiness_statuses: {
+                  technical_live: "PASS | WARN | FAIL | UNKNOWN",
+                  canary_live: "PASS | WARN | FAIL | UNKNOWN",
+                  visual_ready: "PASS | WARN | FAIL",
+                  seo_360_ready: "PASS | WARN | FAIL",
+                  traffic_ready: "PASS | HOLD | FAIL",
+                },
                 missing_evidence: ["string"],
                 risks: ["string"],
                 next_action: "string",
@@ -349,6 +373,11 @@ async function callLlm(source, routing, contentGate) {
                 "Use the lane rubric. Do not promote rows that fail mandatory lane evidence.",
                 "Avoid generic actions like 'review setup'. Name the exact table/profile/fact/baseline/URL/content evidence missing.",
                 "Block content without project preference fit, SERP intent, competitor coverage, ColombiaTours added value, E-E-A-T, Who/How/Why, scaled-content risk review or Curator review.",
+                "For blog/article rows, report target_keyword, locale/market, visual_quality_status, competitive_benchmark_status and separate technical_live/canary_live/visual_ready/seo_360_ready/traffic_ready statuses.",
+                "For blog/article rows, compare our page to DataForSEO/SERP top-5 or top-10 competitor evidence where available using word_count, image_count, inline_image_count, featured/OG image, alt coverage, h2_count, paragraph_count, internal_link_count, has_table, has_faq and has_toc.",
+                "Hard gate: inline_image_count=0 means visual_quality_status FAIL and decision cannot be promote/Q100/traffic_ready/publish-quality.",
+                "Hard gate: missing competitor benchmark evidence means competitive_benchmark_status WARN or FAIL, decision must be watch/block, and missing_evidence must include HOLD_COMPETITIVE_EVIDENCE.",
+                "Do not collapse technical_live, canary_live, visual_ready, seo_360_ready and traffic_ready into one status; traffic_ready requires visual and competitive benchmark PASS.",
                 `Only low-risk, reversible or smoke-verifiable technical optimizations may be auto_apply, and only when confidence >= ${automationThreshold}.`,
                 "Content, transcreation, experiment activation and paid/campaign mutation must be prepare_for_human even if confidence is high.",
                 "Never treat AI-generated content as approved without Curator review.",
@@ -387,6 +416,56 @@ async function callLlm(source, routing, contentGate) {
   return JSON.parse(content);
 }
 
+function enforceContent360Gate(review, contentGate) {
+  if (!contentGate) return review;
+  const deterministicReadiness = contentGate.readiness_statuses ?? {};
+  const reviewReadiness =
+    review.readiness_statuses && typeof review.readiness_statuses === "object"
+      ? review.readiness_statuses
+      : {};
+  const readiness_statuses = {
+    ...reviewReadiness,
+    ...deterministicReadiness,
+  };
+  const missing = new Set([
+    ...(Array.isArray(review.missing_evidence) ? review.missing_evidence : []),
+    ...(Array.isArray(contentGate.missing) ? contentGate.missing : []),
+  ]);
+  const risks = new Set([
+    ...(Array.isArray(review.risks) ? review.risks : []),
+    ...(Array.isArray(contentGate.missing) ? contentGate.missing : []),
+  ]);
+  const hardFail =
+    contentGate.visual_quality_status === "FAIL" ||
+    readiness_statuses.visual_ready === "FAIL" ||
+    readiness_statuses.seo_360_ready === "FAIL" ||
+    readiness_statuses.traffic_ready === "HOLD" ||
+    missing.has("hold_competitive_evidence");
+  return {
+    ...review,
+    decision: hardFail ? "block" : review.decision === "promote" ? "watch" : review.decision,
+    target_keyword: contentGate.target_keyword ?? review.target_keyword ?? null,
+    locale: contentGate.locale ?? review.locale ?? null,
+    market: contentGate.market ?? review.market ?? null,
+    visual_quality_status:
+      contentGate.visual_quality_status ?? review.visual_quality_status ?? null,
+    competitive_benchmark_status:
+      contentGate.competitive_benchmark_status ??
+      review.competitive_benchmark_status ??
+      null,
+    readiness_statuses,
+    missing_evidence: [...missing],
+    risks: [...risks],
+    why_not_promote:
+      hardFail || review.decision === "promote" || !review.why_not_promote
+        ? `Content cannot be marked Q100, publish-quality or traffic_ready until: ${[
+            ...missing,
+          ].join(", ") || "Evaluator 360 hard gates pass"}.`
+        : review.why_not_promote,
+    required_human_review: hardFail ? true : review.required_human_review,
+  };
+}
+
 function normalizeReview(review, source) {
   const decision = ["promote", "watch", "block", "reject"].includes(
     review?.decision,
@@ -402,6 +481,22 @@ function normalizeReview(review, source) {
     confidence,
     competitive_advantage:
       review?.competitive_advantage ?? "No competitive advantage stated.",
+    target_keyword: review?.target_keyword ?? null,
+    locale: review?.locale ?? null,
+    market: review?.market ?? null,
+    visual_quality_status: statusValue(review?.visual_quality_status, [
+      "PASS",
+      "WARN",
+      "FAIL",
+    ]),
+    competitive_benchmark_status: statusValue(
+      review?.competitive_benchmark_status,
+      ["PASS", "WARN", "FAIL"],
+    ),
+    readiness_statuses:
+      review?.readiness_statuses && typeof review.readiness_statuses === "object"
+        ? review.readiness_statuses
+        : {},
     missing_evidence: Array.isArray(review?.missing_evidence)
       ? review.missing_evidence
       : [],
@@ -421,6 +516,11 @@ function normalizeReview(review, source) {
     automation_eligible: Boolean(review?.automation_eligible),
     allowed_action: review?.allowed_action ?? "prepare_for_human",
   };
+}
+
+function statusValue(value, allowed) {
+  const normalized = typeof value === "string" ? value.trim().toUpperCase() : "";
+  return allowed.includes(normalized) ? normalized : null;
 }
 
 function sourceContextFor(source, contentGate) {
@@ -453,6 +553,15 @@ function sourceContextFor(source, contentGate) {
     evidence_keys: Object.keys(evidence).sort(),
     content_gate_status: contentGate?.status ?? null,
     content_gate_missing: contentGate?.missing ?? [],
+    target_keyword: contentGate?.target_keyword ?? evidence.target_keyword ?? null,
+    locale: contentGate?.locale ?? source.locale ?? source.target_locale ?? null,
+    market: contentGate?.market ?? source.market ?? source.target_market ?? null,
+    metrics_360: contentGate?.metrics_360 ?? null,
+    competitor_benchmark: contentGate?.competitor_benchmark ?? null,
+    visual_quality_status: contentGate?.visual_quality_status ?? null,
+    competitive_benchmark_status:
+      contentGate?.competitive_benchmark_status ?? null,
+    readiness_statuses: contentGate?.readiness_statuses ?? null,
     has_competitive_content: Boolean(
       evidence.competitive_content ??
       evidence.content_brief?.competitive_content ??
@@ -824,6 +933,12 @@ function toAiReviewRow(review) {
       agent_lane_label: review.agent_lane_label,
       blocker_type: review.blocker_type,
       competitive_advantage: review.competitive_advantage,
+      target_keyword: review.target_keyword,
+      locale: review.locale,
+      market: review.market,
+      visual_quality_status: review.visual_quality_status,
+      competitive_benchmark_status: review.competitive_benchmark_status,
+      readiness_statuses: review.readiness_statuses,
       missing_evidence: review.missing_evidence,
       next_action: review.next_action,
       specific_next_action: review.specific_next_action,
@@ -900,6 +1015,9 @@ ${renderTable(report.reviews, [
   { label: "Lane", value: (row) => row.agent_lane_label },
   { label: "Confidence", value: (row) => row.confidence },
   { label: "Source", value: (row) => row.source_table },
+  { label: "Visual", value: (row) => row.visual_quality_status ?? "" },
+  { label: "Competitive", value: (row) => row.competitive_benchmark_status ?? "" },
+  { label: "Traffic", value: (row) => row.readiness_statuses?.traffic_ready ?? "" },
   { label: "Title", value: (row) => row.title },
   { label: "Risks", value: (row) => row.risks.join(", ") },
   {

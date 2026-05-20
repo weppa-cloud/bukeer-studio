@@ -113,7 +113,35 @@ Ambiguous answers ("ok maybe") count as no.
 
 ---
 
-## 6. Transcreation state machine
+## 6. Blog/article 360 evaluator gates
+
+Evaluation must distinguish technical publication from quality readiness. Report
+these statuses separately for every blog/article candidate:
+
+- `technical_live`
+- `canary_live`
+- `visual_ready`
+- `seo_360_ready`
+- `traffic_ready`
+
+Hard rules:
+
+- `inline_image_count = 0` is always `visual_quality_status = FAIL` and
+  `visual_ready = FAIL`.
+- A visual FAIL can never be marked Q100, publish-quality, SEO 360 ready, or
+  traffic ready.
+- Missing SERP/DataForSEO top-5/top-10 competitor benchmark evidence is
+  `HOLD_COMPETITIVE_EVIDENCE` / YELLOW at best; it cannot be promoted as Q100
+  or traffic-ready.
+- The evaluator output must include target keyword, locale, market,
+  `visual_quality_status`, `competitive_benchmark_status`, and our-vs-competitor
+  metrics for word count, image count, inline image count, featured/OG image,
+  alt coverage, H2 count, paragraph count, internal links, table/FAQ/TOC, and
+  entity/semantic density when source data is available.
+
+---
+
+## 7. Transcreation state machine
 
 - Order is **fixed**: `draft → review → apply`.
 - Never skip `review`. The review step produces `findings[]` that must be
@@ -125,7 +153,7 @@ Ambiguous answers ("ok maybe") count as no.
 
 ---
 
-## 7. Slug convention (pre-#129)
+## 8. Slug convention (pre-#129)
 
 Until issue #129 ships a dedicated `locale` column on `website_blog_posts`,
 locale disambiguation lives in the slug.
@@ -141,7 +169,7 @@ unique constraint and the INSERT will fail.
 
 ---
 
-## 8. Secrets — never log, never commit
+## 9. Secrets — never log, never commit
 
 Treat as toxic:
 
@@ -163,7 +191,7 @@ Rules:
 
 ---
 
-## 9. Website-scope safety
+## 10. Website-scope safety
 
 - Every write MUST filter by `website_id`. An INSERT without `website_id`
   set is an automatic stop.
@@ -174,7 +202,7 @@ Rules:
 
 ---
 
-## 10. Handoff boundaries
+## 11. Handoff boundaries
 
 Stop this skill and delegate when:
 
