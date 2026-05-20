@@ -274,7 +274,7 @@ values
   (
     'google_ads_customer_match',
     'Google Ads Customer Match',
-    'marketing',
+    'activities',
     'direct',
     'https://googleads.googleapis.com',
     null,
@@ -310,7 +310,7 @@ values
   (
     'meta_custom_audiences',
     'Meta Custom Audiences',
-    'marketing',
+    'activities',
     'direct',
     'https://graph.facebook.com',
     null,
