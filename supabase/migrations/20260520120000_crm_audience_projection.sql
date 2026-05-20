@@ -360,7 +360,12 @@ on conflict (code) do update set
   updated_at = now();
 
 with colombiatours_account as (
-  select id from public.accounts where id = '9fc24733-b127-4184-aa22-12f03b98927a'::uuid
+  select w.account_id as id
+  from public.websites w
+  where w.subdomain = 'colombiatours'
+    and w.account_id is not null
+  order by w.updated_at desc nulls last
+  limit 1
 ), seed as (
   select * from (values
     ('CT_confirmed_itinerary_buyers_all_24m', 'Confirmed itinerary buyers - all 24m', 'All confirmed itinerary buyers in the last 24 months.', 730, '{"policy_default_consent":true,"confirmation_statuses":["Confirmado"],"signals":["confirmed_at","confirmation_date","paid"]}'::jsonb),
