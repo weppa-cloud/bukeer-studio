@@ -8,6 +8,7 @@ import { StaticPage } from '@/components/pages/static-page';
 import { getBasePath } from '@/lib/utils/base-path';
 import { getDefaultLegalContent } from '@/lib/legal-defaults';
 import { getPublicUiMessages } from '@/lib/site/public-ui-messages';
+import { getLocalizedLegalLookupSlug } from '@/lib/site/legal-route-seo';
 import { buildLocaleAwareAlternateLanguages, resolvePublicMetadataLocale } from '@/lib/seo/public-metadata';
 
 interface TermsPageProps {
@@ -29,7 +30,7 @@ export async function generateMetadata({ params }: TermsPageProps): Promise<Meta
     ? `https://${website.custom_domain}`
     : `https://${subdomain}.bukeer.com`;
   const canonical = `${baseUrl}${localeContext.localizedPathname}`;
-  const localizedSlug = localeContext.localizedPathname.replace(/^\/+|\/+$/g, '');
+  const localizedSlug = getLocalizedLegalLookupSlug(localeContext);
   const publishedPage = localizedSlug
     ? await getPageBySlugForLocale(
         subdomain,
@@ -78,7 +79,7 @@ export default async function TermsPage({ params }: TermsPageProps) {
   const siteName = website.content.account?.name || website.content.siteName;
   const localeContext = await resolvePublicMetadataLocale(website, '/terms');
   const messages = getPublicUiMessages(localeContext.resolvedLocale);
-  const localizedSlug = localeContext.localizedPathname.replace(/^\/+|\/+$/g, '');
+  const localizedSlug = getLocalizedLegalLookupSlug(localeContext);
   const publishedPage = localizedSlug
     ? await getPageBySlugForLocale(subdomain, localizedSlug, localeContext.resolvedLocale)
     : null;

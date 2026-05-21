@@ -154,11 +154,7 @@ export async function generateMetadata({
       }
       return metadata;
     }
-    return {
-      title: "Paquete no encontrado",
-      description: fallbackDescription,
-      robots: { index: false, follow: true },
-    };
+    notFound();
   }
 
   const canonicalPathname = `/paquetes/${productPage.product.slug || slug}`;
