@@ -70,12 +70,20 @@ const CATEGORY_TO_PRODUCT_TYPE: Record<string, string> = {
   destinations: "destination",
   hoteles: "hotel",
   hotels: "hotel",
+  "hôtels": "hotel",
+  atividades: "activity",
   actividades: "activity",
   activities: "activity",
+  "activités": "activity",
   traslados: "transfer",
   transfers: "transfer",
+  "transferências": "transfer",
+  transferts: "transfer",
   paquetes: "package",
   packages: "package",
+  pacotes: "package",
+  forfaits: "package",
+  pakete: "package",
 };
 
 interface WebsiteLookup {
@@ -365,16 +373,23 @@ async function getWebsiteByCustomDomain(
   return result;
 }
 
-async function productExists(
+interface ProductLookup {
+  product?: {
+    id?: string | null;
+    slug?: string | null;
+  } | null;
+}
+
+async function getProductForRoute(
   subdomain: string,
   productType: string,
   productSlug: string,
-): Promise<boolean> {
+): Promise<ProductLookup["product"] | null | undefined> {
   const cacheKey = `prod:${subdomain}:${productType}:${productSlug}`;
-  const cached = getCached<boolean>(cacheKey);
+  const cached = getCached<ProductLookup["product"] | null | undefined>(cacheKey);
   if (cached !== undefined) return cached;
 
-  const data = await supabaseFetch<{ product?: unknown } | null>(
+  const data = await supabaseFetch<ProductLookup | null>(
     "/rest/v1/rpc/get_website_product_page",
     {
       method: "POST",
@@ -385,11 +400,120 @@ async function productExists(
       }),
     },
   );
-  const result = Boolean(
-    data && typeof data === "object" && "product" in data && data.product,
-  );
+
+  if (data === null) {
+    // Fail open on lookup errors/missing credentials so middleware does not
+    // incorrectly 404 public traffic when Supabase is unavailable.
+    setCached(cacheKey, undefined);
+    return undefined;
+  }
+
+  const result = data && typeof data === "object" && "product" in data
+    ? data.product ?? null
+    : null;
   setCached(cacheKey, result);
   return result;
+}
+
+async function productExists(
+  subdomain: string,
+  productType: string,
+  productSlug: string,
+): Promise<boolean> {
+  const product = await getProductForRoute(subdomain, productType, productSlug);
+  return product === undefined || Boolean(product);
+}
+
+async function localizedProductOverlayExists(
+  websiteId: string,
+  productType: string,
+  productId: string,
+  locale: string,
+): Promise<boolean | null> {
+  const cacheKey = `prod-locale:${websiteId}:${productType}:${productId}:${locale}`;
+  const cached = getCached<boolean | null>(cacheKey);
+  if (cached !== undefined) return cached;
+
+  const direct = await supabaseFetch<Array<{ product_id: string }>>(
+    `/rest/v1/website_product_pages?select=product_id&website_id=eq.${encodeURIComponent(websiteId)}&product_type=eq.${encodeURIComponent(productType)}&product_id=eq.${encodeURIComponent(productId)}&locale=eq.${encodeURIComponent(locale)}&limit=1`,
+  );
+  if (direct === null) {
+    setCached(cacheKey, null);
+    return null;
+  }
+  if (direct.length > 0) {
+    setCached(cacheKey, true);
+    return true;
+  }
+
+  if (productType === "package") {
+    const itinerary = await supabaseFetch<Array<{ source_package_id: string | null }>>(
+      `/rest/v1/itineraries?select=source_package_id&id=eq.${encodeURIComponent(productId)}&limit=1`,
+    );
+    if (itinerary === null) {
+      setCached(cacheKey, null);
+      return null;
+    }
+    const kitId = itinerary[0]?.source_package_id;
+    if (kitId && kitId !== productId) {
+      const fallback = await supabaseFetch<Array<{ product_id: string }>>(
+        `/rest/v1/website_product_pages?select=product_id&website_id=eq.${encodeURIComponent(websiteId)}&product_type=eq.${encodeURIComponent(productType)}&product_id=eq.${encodeURIComponent(kitId)}&locale=eq.${encodeURIComponent(locale)}&limit=1`,
+      );
+      if (fallback === null) {
+        setCached(cacheKey, null);
+        return null;
+      }
+      if (fallback.length > 0) {
+        setCached(cacheKey, true);
+        return true;
+      }
+    }
+  }
+
+  setCached(cacheKey, false);
+  return false;
+}
+
+async function tryMissingLocalizedProductNotFound(
+  route: { productType: string; productSlug: string },
+  website: WebsiteLookup | null,
+  localeResolution: PublicLocalePathResolution,
+): Promise<NextResponse | null> {
+  if (
+    !website?.id ||
+    !website.subdomain ||
+    !localeResolution.hasLanguageSegment ||
+    localeResolution.resolvedLocale === localeResolution.defaultLocale
+  ) {
+    return null;
+  }
+
+  const product = await getProductForRoute(
+    website.subdomain,
+    route.productType,
+    route.productSlug,
+  );
+  if (product === undefined || !product?.id) {
+    return null;
+  }
+
+  const hasLocalizedOverlay = await localizedProductOverlayExists(
+    website.id,
+    route.productType,
+    String(product.id),
+    localeResolution.resolvedLocale,
+  );
+  if (hasLocalizedOverlay !== false) {
+    return null;
+  }
+
+  return new NextResponse("Not found", {
+    status: 404,
+    headers: {
+      "X-Robots-Tag": "noindex, nofollow",
+      "Cache-Control": "public, max-age=60, stale-while-revalidate=300",
+    },
+  });
 }
 
 async function getRedirectedSlug(
@@ -1314,6 +1438,19 @@ export async function middleware(request: NextRequest) {
       }
 
       if (potentialProductRoute) {
+        const missingLocalizedProductResponse = await tryMissingLocalizedProductNotFound(
+          potentialProductRoute,
+          website,
+          localeResolution,
+        );
+        if (missingLocalizedProductResponse) {
+          return finalizePublicSiteResponse(
+            request,
+            missingLocalizedProductResponse,
+            capturedClickIds,
+          );
+        }
+
         const redirectResponse = await trySlugRedirect(
           request,
           potentialProductRoute,
@@ -1406,6 +1543,19 @@ export async function middleware(request: NextRequest) {
     }
 
     if (potentialProductRoute) {
+      const missingLocalizedProductResponse = await tryMissingLocalizedProductNotFound(
+        potentialProductRoute,
+        website,
+        localeResolution,
+      );
+      if (missingLocalizedProductResponse) {
+        return finalizePublicSiteResponse(
+          request,
+          missingLocalizedProductResponse,
+          capturedClickIds,
+        );
+      }
+
       const redirectResponse = await trySlugRedirect(
         request,
         potentialProductRoute,
@@ -1489,6 +1639,19 @@ export async function middleware(request: NextRequest) {
     }
 
     if (potentialProductRoute) {
+      const missingLocalizedProductResponse = await tryMissingLocalizedProductNotFound(
+        potentialProductRoute,
+        website,
+        localeResolution,
+      );
+      if (missingLocalizedProductResponse) {
+        return finalizePublicSiteResponse(
+          request,
+          missingLocalizedProductResponse,
+          capturedClickIds,
+        );
+      }
+
       const redirectResponse = await trySlugRedirect(
         request,
         potentialProductRoute,
@@ -1544,6 +1707,7 @@ export const middlewareInternals = {
   hasClickIdQueryParam,
   redirectWithoutCacheBustQueryParams,
   shouldApplyPublicHtmlCache,
+  getPotentialProductRoute,
 };
 
 export const config = {
