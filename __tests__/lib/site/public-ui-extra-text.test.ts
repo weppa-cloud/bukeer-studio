@@ -322,6 +322,10 @@ describe('public-ui-extra-text (editorial-v1 catalog)', () => {
 
     expect(getPublicUiExtraText('fr-FR', 'editorialHeaderQuoteCta')).toBe('Demander un devis');
     expect(getPublicUiExtraText('fr-FR', 'editorialFooterSearch')).toBe('Rechercher');
+    expect(getPublicUiExtraText('fr-FR', 'editorialBreadcrumbPackages')).toBe('Forfaits');
+    expect(getPublicUiExtraText('fr-FR', 'sectionPackagesTitle')).toBe('Forfaits voyage');
+    expect(getPublicUiExtraText('fr-FR', 'editorialPackagesEyebrowFallback')).toBe('FORFAITS');
+    expect(getPublicUiExtraText('fr-FR', 'editorialPackagesTitleFallback')).toBe('Voyages <em>dans toute la Colombie.</em>');
     expect(getPublicUiExtraText('fr-FR', 'editorialPackagesCountSeparator')).toBe('sur');
     expect(getPublicUiExtraText('fr-FR', 'editorialHotelsCityLabel')).toBe('Ville');
     expect(getPublicUiExtraText('fr-FR', 'waflowFabTitle')).toBe('Vous planifiez un voyage ?');
