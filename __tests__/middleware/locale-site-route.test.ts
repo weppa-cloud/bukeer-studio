@@ -144,6 +144,21 @@ describe('locale resolution for /site/<sub>/<lang>/... (contract)', () => {
     expect(resolution.canonicalPathname).toBe('/terms');
   });
 
+  it('decodes percent-encoded UTF-8 slugs before middleware canonicalization', () => {
+    const internal = parseInternalSitePath(
+      '/site/colombiatours/en/packages/medell%C3%ADn-city-tour',
+    );
+    const resolution = resolveLocaleFromPublicPath(
+      internal!.innerPathname,
+      localeSettings,
+    );
+
+    expect(resolution.hasLanguageSegment).toBe(true);
+    expect(resolution.resolvedLocale).toBe('en-US');
+    expect(resolution.pathnameWithoutLang).toBe('/packages/medellín-city-tour');
+    expect(resolution.canonicalPathname).toBe('/paquetes/medellín-city-tour');
+  });
+
   it('does NOT intervene when inner path is default-locale (no /<lang>/ segment)', () => {
     const internal = parseInternalSitePath(
       '/site/colombiatours/paquetes/amazon-adventure',

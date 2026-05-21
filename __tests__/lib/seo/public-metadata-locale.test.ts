@@ -1,4 +1,5 @@
 import {
+  buildLocaleAwareAlternateLanguages,
   isValidPublicLocale,
   publicLocaleSchema,
 } from '@/lib/seo/public-metadata';
@@ -29,5 +30,25 @@ describe('publicLocaleSchema (#208)', () => {
   it('publicLocaleSchema.safeParse surfaces the same decision', () => {
     expect(publicLocaleSchema.safeParse('es-CO').success).toBe(true);
     expect(publicLocaleSchema.safeParse('not-a-locale').success).toBe(false);
+  });
+});
+
+describe('buildLocaleAwareAlternateLanguages (#208)', () => {
+  it('keeps the current resolved locale in hreflang alternates when translated locales are sparse', () => {
+    const languages = buildLocaleAwareAlternateLanguages(
+      'https://colombiatours.travel',
+      '/paquetes/amazon-adventure',
+      {
+        defaultLocale: 'es-CO',
+        supportedLocales: ['es-CO', 'en-US', 'pt-BR'],
+        resolvedLocale: 'pt-BR',
+      },
+      { translatedLocales: ['en-US'] },
+    );
+
+    expect(languages['es-CO']).toBe('https://colombiatours.travel/paquetes/amazon-adventure');
+    expect(languages['en-US']).toBe('https://colombiatours.travel/en/packages/amazon-adventure');
+    expect(languages['pt-BR']).toBe('https://colombiatours.travel/pt-br/pacotes/amazon-adventure');
+    expect(languages['x-default']).toBe('https://colombiatours.travel/paquetes/amazon-adventure');
   });
 });
