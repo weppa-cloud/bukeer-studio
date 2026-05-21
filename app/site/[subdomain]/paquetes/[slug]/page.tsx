@@ -2,11 +2,14 @@ import { Metadata } from "next";
 import { notFound, permanentRedirect, redirect } from "next/navigation";
 
 import { ProductLandingPage } from "@/components/pages/product-landing-page";
+import { StaticPage } from "@/components/pages/static-page";
 import { TemplateSlot } from "@/components/site/themes/editorial-v1/template-slot";
 import type { EditorialPackageDetailPayload } from "@/components/site/themes/editorial-v1/pages/package-detail";
 import { getBasePath, inferIsCustomDomainWebsite } from "@/lib/utils/base-path";
 import {
   getCategoryProducts,
+  getDestinations,
+  getPageBySlugForLocale,
   getLocalizedProductOverlay,
   getProductPage,
   getProductSlugRedirect,
@@ -56,6 +59,14 @@ function looksLikeLegacyId(value: string): boolean {
   );
 }
 
+function localizedStaticPackageSlug(slug: string, localizedPathname: string): string | null {
+  const path = localizedPathname.replace(/^\/+|\/+$/g, "");
+  if (!path || path === `paquetes/${slug}`) return null;
+  const parts = path.split("/");
+  if (parts.length < 2 || parts[parts.length - 1] !== slug) return null;
+  return path;
+}
+
 async function resolveLegacyPackageSlug(
   subdomain: string,
   value: string,
@@ -103,6 +114,46 @@ export async function generateMetadata({
     locale: localeContext.resolvedLocale,
   });
   if (!productPage?.product) {
+    const staticSlug = localizedStaticPackageSlug(
+      slug,
+      localeContext.localizedPathname,
+    );
+    const staticPage = staticSlug
+      ? await getPageBySlugForLocale(
+          subdomain,
+          staticSlug,
+          localeContext.resolvedLocale,
+        )
+      : null;
+    if (staticPage?.is_published) {
+      const pageTitle = normalizePublicMetadataTitle(
+        staticPage.seo_title || staticPage.title,
+        siteName,
+      );
+      const description = staticPage.seo_description || fallbackDescription;
+      const metadata: Metadata = {
+        title: pageTitle,
+        description,
+        alternates: {
+          canonical: `${baseUrl}${localeContext.localizedPathname}`,
+          languages: buildLocaleAwareAlternateLanguages(
+            baseUrl,
+            `/paquetes/${slug}`,
+            localeContext,
+          ),
+        },
+        openGraph: {
+          title: pageTitle,
+          description,
+          type: "website",
+          locale: localeToOgLocale(localeContext.resolvedLocale),
+        },
+      };
+      if (staticPage.robots_noindex) {
+        metadata.robots = { index: false, follow: true };
+      }
+      return metadata;
+    }
     return {
       title: "Paquete no encontrado",
       description: fallbackDescription,
@@ -250,6 +301,28 @@ export default async function PackageSlugPage({ params }: PackagePageProps) {
     locale: resolvedLocale,
   });
   if (!productPage?.product) {
+    const staticSlug = localizedStaticPackageSlug(
+      slug,
+      localeContext.localizedPathname,
+    );
+    const staticPage = staticSlug
+      ? await getPageBySlugForLocale(subdomain, staticSlug, resolvedLocale)
+      : null;
+    if (staticPage?.is_published) {
+      const dynamicDestinations = await getDestinations(subdomain);
+      const websiteForStaticRender = {
+        ...website,
+        defaultLocale: localeContext.defaultLocale ?? "es-CO",
+        isCustomDomain: inferIsCustomDomainWebsite(website),
+      };
+      return (
+        <StaticPage
+          website={websiteForStaticRender}
+          page={staticPage}
+          dynamicDestinations={dynamicDestinations}
+        />
+      );
+    }
     const redirectedSlug = website.account_id
       ? await getProductSlugRedirect(
           String(website.account_id),

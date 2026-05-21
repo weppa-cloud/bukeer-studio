@@ -2,11 +2,13 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { getWebsiteBySubdomain } from '@/lib/supabase/get-website';
+import { getDestinations, getPageBySlugForLocale } from '@/lib/supabase/get-pages';
 import { SafeHtml } from '@/lib/sanitize';
+import { StaticPage } from '@/components/pages/static-page';
 import { getBasePath } from '@/lib/utils/base-path';
 import { getDefaultLegalContent } from '@/lib/legal-defaults';
 import { getPublicUiMessages } from '@/lib/site/public-ui-messages';
-import { resolvePublicMetadataLocale } from '@/lib/seo/public-metadata';
+import { buildLocaleAwareAlternateLanguages, resolvePublicMetadataLocale } from '@/lib/seo/public-metadata';
 
 interface TermsPageProps {
   params: Promise<{ subdomain: string }>;
@@ -27,6 +29,34 @@ export async function generateMetadata({ params }: TermsPageProps): Promise<Meta
     ? `https://${website.custom_domain}`
     : `https://${subdomain}.bukeer.com`;
   const canonical = `${baseUrl}${localeContext.localizedPathname}`;
+  const localizedSlug = localeContext.localizedPathname.replace(/^\/+|\/+$/g, '');
+  const publishedPage = localizedSlug
+    ? await getPageBySlugForLocale(
+        subdomain,
+        localizedSlug,
+        localeContext.resolvedLocale,
+      )
+    : null;
+
+  if (publishedPage?.is_published) {
+    return {
+      title: publishedPage.seo_title || publishedPage.title,
+      description:
+        publishedPage.seo_description ||
+        `${messages.legalPages.termsDescriptionPrefix} ${siteName}`,
+      alternates: {
+        canonical,
+        languages: buildLocaleAwareAlternateLanguages(
+          baseUrl,
+          '/terms',
+          localeContext,
+        ),
+      },
+      ...(publishedPage.robots_noindex
+        ? { robots: { index: false, follow: true } }
+        : {}),
+    };
+  }
 
   return {
     title: messages.legalPages.termsTitle,
@@ -48,6 +78,26 @@ export default async function TermsPage({ params }: TermsPageProps) {
   const siteName = website.content.account?.name || website.content.siteName;
   const localeContext = await resolvePublicMetadataLocale(website, '/terms');
   const messages = getPublicUiMessages(localeContext.resolvedLocale);
+  const localizedSlug = localeContext.localizedPathname.replace(/^\/+|\/+$/g, '');
+  const publishedPage = localizedSlug
+    ? await getPageBySlugForLocale(subdomain, localizedSlug, localeContext.resolvedLocale)
+    : null;
+  if (publishedPage?.is_published) {
+    const dynamicDestinations = await getDestinations(subdomain);
+    const websiteForStaticRender = {
+      ...website,
+      defaultLocale: localeContext.defaultLocale,
+      isCustomDomain: Boolean(website.custom_domain),
+    };
+    return (
+      <StaticPage
+        website={websiteForStaticRender}
+        page={publishedPage}
+        dynamicDestinations={dynamicDestinations}
+      />
+    );
+  }
+
   const customContent = website.content.account?.legal?.terms_conditions;
 
   // If content is a URL, redirect to it
