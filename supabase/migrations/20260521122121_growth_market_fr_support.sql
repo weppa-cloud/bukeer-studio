@@ -31,84 +31,84 @@ begin
     drop constraint if exists growth_signal_facts_market_chk;
   alter table if exists public.growth_signal_facts
     add constraint growth_signal_facts_market_chk
-      check (market in ('CO', 'MX', 'US', 'CA', 'EU', 'OTHER', 'FR'));
+      check (market in ('CO', 'MX', 'US', 'CA', 'EU', 'OTHER', 'BR', 'FR'));
 
   -- ─── growth_profiles ─────────────────────────────────────────────────
   alter table if exists public.growth_profiles
     drop constraint if exists growth_profiles_market_chk;
   alter table if exists public.growth_profiles
     add constraint growth_profiles_market_chk
-      check (market in ('CO', 'MX', 'US', 'CA', 'EU', 'OTHER', 'FR'));
+      check (market in ('CO', 'MX', 'US', 'CA', 'EU', 'OTHER', 'BR', 'FR'));
 
   -- ─── growth_opportunity_candidates ───────────────────────────────────
   alter table if exists public.growth_opportunity_candidates
     drop constraint if exists growth_opportunity_candidates_market_chk;
   alter table if exists public.growth_opportunity_candidates
     add constraint growth_opportunity_candidates_market_chk
-      check (market in ('CO', 'MX', 'US', 'CA', 'EU', 'OTHER', 'FR'));
+      check (market in ('CO', 'MX', 'US', 'CA', 'EU', 'OTHER', 'BR', 'FR'));
 
   -- ─── growth_inventory ────────────────────────────────────────────────
   alter table if exists public.growth_inventory
     drop constraint if exists growth_inventory_market_chk;
   alter table if exists public.growth_inventory
     add constraint growth_inventory_market_chk
-      check (market in ('CO', 'MX', 'US', 'CA', 'EU', 'OTHER', 'FR'));
+      check (market in ('CO', 'MX', 'US', 'CA', 'EU', 'OTHER', 'BR', 'FR'));
 
   -- ─── growth_scheduler_heartbeats ─────────────────────────────────────
   alter table if exists public.growth_scheduler_heartbeats
     drop constraint if exists growth_scheduler_heartbeats_market_chk;
   alter table if exists public.growth_scheduler_heartbeats
     add constraint growth_scheduler_heartbeats_market_chk
-      check (market in ('CO', 'MX', 'US', 'CA', 'EU', 'OTHER', 'FR'));
+      check (market in ('CO', 'MX', 'US', 'CA', 'EU', 'OTHER', 'BR', 'FR'));
 
   -- ─── growth_autonomy_policies ────────────────────────────────────────
   alter table if exists public.growth_autonomy_policies
     drop constraint if exists growth_autonomy_policies_market_chk;
   alter table if exists public.growth_autonomy_policies
     add constraint growth_autonomy_policies_market_chk
-      check (market in ('CO', 'MX', 'US', 'CA', 'EU', 'OTHER', 'FR'));
+      check (market in ('CO', 'MX', 'US', 'CA', 'EU', 'OTHER', 'BR', 'FR'));
 
   -- ─── growth_publication_jobs ─────────────────────────────────────────
   alter table if exists public.growth_publication_jobs
     drop constraint if exists growth_publication_jobs_market_chk;
   alter table if exists public.growth_publication_jobs
     add constraint growth_publication_jobs_market_chk
-      check (market in ('CO', 'MX', 'US', 'CA', 'EU', 'OTHER', 'FR'));
+      check (market in ('CO', 'MX', 'US', 'CA', 'EU', 'OTHER', 'BR', 'FR'));
 
   -- ─── growth_work_item_outcomes ───────────────────────────────────────
   alter table if exists public.growth_work_item_outcomes
     drop constraint if exists growth_work_item_outcomes_market_chk;
   alter table if exists public.growth_work_item_outcomes
     add constraint growth_work_item_outcomes_market_chk
-      check (market in ('CO', 'MX', 'US', 'CA', 'EU', 'OTHER', 'FR'));
+      check (market in ('CO', 'MX', 'US', 'CA', 'EU', 'OTHER', 'BR', 'FR'));
 
   -- ─── growth_runtime_cycles ───────────────────────────────────────────
   alter table if exists public.growth_runtime_cycles
     drop constraint if exists growth_runtime_cycles_market_chk;
   alter table if exists public.growth_runtime_cycles
     add constraint growth_runtime_cycles_market_chk
-      check (market in ('CO', 'MX', 'US', 'CA', 'EU', 'OTHER', 'FR'));
+      check (market in ('CO', 'MX', 'US', 'CA', 'EU', 'OTHER', 'BR', 'FR'));
 
   -- ─── growth_context_snapshots ────────────────────────────────────────
   alter table if exists public.growth_context_snapshots
     drop constraint if exists growth_context_snapshots_market_chk;
   alter table if exists public.growth_context_snapshots
     add constraint growth_context_snapshots_market_chk
-      check (market in ('CO', 'MX', 'US', 'CA', 'EU', 'OTHER', 'FR'));
+      check (market in ('CO', 'MX', 'US', 'CA', 'EU', 'OTHER', 'BR', 'FR'));
 
   -- ─── growth_orchestrator_decisions ───────────────────────────────────
   alter table if exists public.growth_orchestrator_decisions
     drop constraint if exists growth_orchestrator_decisions_market_chk;
   alter table if exists public.growth_orchestrator_decisions
     add constraint growth_orchestrator_decisions_market_chk
-      check (market in ('CO', 'MX', 'US', 'CA', 'EU', 'OTHER', 'FR'));
+      check (market in ('CO', 'MX', 'US', 'CA', 'EU', 'OTHER', 'BR', 'FR'));
 
   -- ─── funnel_events ───────────────────────────────────────────────────
   alter table if exists public.funnel_events
     drop constraint if exists funnel_events_market_chk;
   alter table if exists public.funnel_events
     add constraint funnel_events_market_chk
-      check (market in ('CO', 'MX', 'US', 'CA', 'EU', 'OTHER', 'FR'));
+      check (market in ('CO', 'MX', 'US', 'CA', 'EU', 'OTHER', 'BR', 'FR'));
 
   raise notice 'Growth OS: All 12 market constraints updated to include FR.';
 end $$;
@@ -126,7 +126,7 @@ begin
     is_governed boolean not null default true,
     added_at timestamptz not null default now(),
     constraint growth_market_codes_market_chk
-      check (market in ('CO', 'MX', 'US', 'CA', 'EU', 'OTHER', 'FR'))
+      check (market in ('CO', 'MX', 'US', 'CA', 'EU', 'OTHER', 'BR', 'FR'))
   );
 
   -- Insert or update canonical entries (idempotent via INSERT ... ON CONFLICT)
@@ -138,6 +138,7 @@ begin
     ('CA', 'Canada', 'CA', 'NA'),
     ('EU', 'European Union', 'EU', 'EMEA'),
     ('OTHER', 'Other / Unspecified', '--', 'GLOBAL'),
+    ('BR', 'Brazil', 'BR', 'LATAM'),
     ('FR', 'France', 'FR', 'EMEA')
   on conflict (market) do update set
     label = excluded.label,
