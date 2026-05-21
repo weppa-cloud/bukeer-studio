@@ -13,6 +13,7 @@ Sprint 0.25B usa un flujo **Design Lock Code-First**:
 5. Sprint 0.25C puede iniciar un prototype Next sin esperar un Figma completo.
 6. La direccion aprobada avanza a Sprint 0.25D para conectar contratos, registry read-only y trazabilidad sin writes reales.
 7. Sprint 0.25E valida datos reales en modo read-only con beta partners y cierra Phase 4/5 sin aprobar production writes.
+8. Sprint 0.25F agrega draft-only actions: borradores internos editables, trazables y sin writes productivos.
 
 Figma queda como soporte opcional para comentarios visuales o beta review, no como fuente canonica ni bloqueo de implementacion.
 
@@ -71,6 +72,7 @@ Briefs de handoff:
 - `SPRINT_0_25B_PLAN_2026-05-18.md`
 - `SPRINT_0_25D_PLAN_2026-05-18.md`
 - `SPRINT_0_25E_PHASE_4_5_BETA_REVIEW_CLOSURE_2026-05-18.md`
+- `SPRINT_0_25F_DRAFT_ONLY_ACTIONS_2026-05-19.md`
 - `UI_DESIGNER_BRIEF_2026-05-18.md`
 - `BETA_PARTNER_BRIEF_2026-05-18.md`
 - `NEXT_COMPONENT_CONTRACT_2026-05-18.md`

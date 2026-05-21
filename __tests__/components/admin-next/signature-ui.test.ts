@@ -1,8 +1,11 @@
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import {
+  type BukeerDraftAction,
+  SignatureDraftActionPanel,
   SignatureUiStatePanel,
   signatureStatusLabels,
+  signatureToneForDraftActionStatus,
   signatureToneForStatus,
   signatureToneForUiState,
   signatureUiVariantDefaults,
@@ -63,6 +66,12 @@ describe('Bukeer Signature UI state mapping', () => {
     expect(signatureToneForUiState('executed')).toBe('success');
   });
 
+  it('maps draft action statuses to safe review tones', () => {
+    expect(signatureToneForDraftActionStatus('drafted')).toBe('live');
+    expect(signatureToneForDraftActionStatus('review_required')).toBe('humanLoop');
+    expect(signatureToneForDraftActionStatus('blocked_policy')).toBe('danger');
+  });
+
   it('renders a signature UI state panel from fixture data', () => {
     const variant = signatureUiVariantDefaults.no_permission;
     const markup = renderToStaticMarkup(
@@ -74,5 +83,78 @@ describe('Bukeer Signature UI state mapping', () => {
     expect(markup).toContain('data-signature-ui-state="no_permission"');
     expect(markup).toContain('Permission required');
     expect(markup).toContain('No permission');
+  });
+
+  it('renders Bukeer draft actions with editable fields and explicit safety copy', () => {
+    const draftAction: BukeerDraftAction = {
+      id: 'draft-missing-data-whatsapp',
+      draftType: 'missing_data_message',
+      title: 'WhatsApp missing-data request',
+      status: 'review_required',
+      traceId: 'trace-cartagena-003',
+      requiredHumanAction: 'Planner must review tone and passenger fields before sending.',
+      editableFields: [
+        {
+          id: 'field-message',
+          label: 'Message body',
+          proposedValue: 'Please confirm children ages and passport names.',
+          required: true,
+        },
+        {
+          id: 'field-channel',
+          label: 'Channel',
+          value: 'WhatsApp',
+        },
+      ],
+    };
+
+    const markup = renderToStaticMarkup(
+      createElement(SignatureDraftActionPanel, {
+        draftActions: [draftAction],
+        onInspectTrace: () => undefined,
+        onSimulate: () => undefined,
+      })
+    );
+
+    expect(markup).toContain('Bukeer DraftAction review');
+    expect(markup).toContain('Missing Data Message');
+    expect(markup).toContain('Review Required');
+    expect(markup).toContain('Message body');
+    expect(markup).toContain('Please confirm children ages and passport names.');
+    expect(markup).toContain('Planner must review tone and passenger fields before sending.');
+    expect(markup).toContain('Inspect trace');
+    expect(markup).toContain('Safety boundary: not sent, not reserved, not paid, not confirmed.');
+    expect(markup).toContain('Review locally');
+    expect(markup).toContain('Edit locally');
+    expect(markup).toContain('Discard locally');
+  });
+
+  it('renders contract-style draft actions with string editable field names', () => {
+    const draftAction: BukeerDraftAction = {
+      id: 'draft-approval-packet',
+      kind: 'approval_packet',
+      title: 'Manager approval packet',
+      status: 'draft_created',
+      traceId: 'trace-cartagena-004',
+      body: 'Review margin override and passenger readiness before public proposal send.',
+      editableFields: ['body', 'title'],
+      requiredHumanAction: 'Manager must review the packet before approval.',
+    };
+
+    const markup = renderToStaticMarkup(
+      createElement(SignatureDraftActionPanel, {
+        draftActions: [draftAction],
+        onInspectTrace: () => undefined,
+      })
+    );
+
+    expect(markup).toContain('Approval Packet');
+    expect(markup).toContain('Draft Created');
+    expect(markup).toContain('Body');
+    expect(markup).toContain(
+      'Review margin override and passenger readiness before public proposal send.'
+    );
+    expect(markup).toContain('Title');
+    expect(markup).toContain('Manager approval packet');
   });
 });

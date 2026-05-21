@@ -3,6 +3,8 @@ import {
   type PlannerWorkbenchFixture,
 } from '@bukeer/admin-contract';
 
+export type { DraftAction } from '@bukeer/admin-contract';
+
 export const plannerWorkbenchFixture: PlannerWorkbenchFixture =
   PlannerWorkbenchFixtureSchema.parse({
     opportunity: {
@@ -185,6 +187,54 @@ export const plannerWorkbenchFixture: PlannerWorkbenchFixture =
         traceId: 'trace-cartagena-003',
         sourceFreshness: 'Conversation synced 7m ago',
         autonomyLevel: 'A2_draft',
+      },
+    ],
+    draftActions: [
+      {
+        id: 'draft-action-missing-data-request',
+        title: 'Draft traveler data request',
+        kind: 'missing_data_request',
+        status: 'draft_created',
+        autonomyLevel: 'A2_draft',
+        traceId: 'trace-cartagena-draft-001',
+        sourceSuggestionId: 'sug-missing-data',
+        body:
+          'Hi Mariana, could you share the children ages, full passport names, dietary notes and arrival flight time so we can finish the review packet?',
+        editableFields: ['body', 'title'],
+        requiredHumanAction:
+          'Review passenger fields, adjust tone if needed, then send manually.',
+        safetyBoundary: {
+          publicSendEnabled: false,
+          supplierHoldEnabled: false,
+          paymentEnabled: false,
+          bookingWriteEnabled: false,
+          productionWriteEnabled: false,
+        },
+        riskLevel: 'low',
+        createdAt: '2026-05-18T10:27:00.000Z',
+      },
+      {
+        id: 'draft-action-margin-review-note',
+        title: 'Draft internal margin review note',
+        kind: 'audit_summary',
+        status: 'draft_created',
+        autonomyLevel: 'A2_draft',
+        traceId: 'trace-cartagena-draft-002',
+        sourceSuggestionId: 'sug-hotel-swap',
+        body:
+          'Internal review note: the family-suite alternative keeps Old City proximity and raises projected margin before manager review.',
+        editableFields: ['body', 'title'],
+        requiredHumanAction:
+          'Review the margin context before attaching it to the manager packet.',
+        safetyBoundary: {
+          publicSendEnabled: false,
+          supplierHoldEnabled: false,
+          paymentEnabled: false,
+          bookingWriteEnabled: false,
+          productionWriteEnabled: false,
+        },
+        riskLevel: 'low',
+        createdAt: '2026-05-18T10:28:00.000Z',
       },
     ],
     blockedStates: [

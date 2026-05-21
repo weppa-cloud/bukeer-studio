@@ -28,6 +28,8 @@ describe('agent ledger source', () => {
       'trace-cartagena-003',
       'trace-cartagena-004',
       'trace-cartagena-005',
+      'trace-cartagena-draft-001',
+      'trace-cartagena-draft-002',
     ]);
     expect(snapshot.agentRuns).toEqual(
       expect.arrayContaining([
@@ -45,6 +47,13 @@ describe('agent ledger source', () => {
           actionState: 'approval_required',
           uiState: 'approval_required',
           autonomyLevel: 'A3_confirmed_write',
+        }),
+        expect.objectContaining({
+          id: 'run-draft-action-missing-data-request',
+          traceId: 'trace-cartagena-draft-001',
+          actionState: 'drafted',
+          uiState: 'ai_suggestion',
+          autonomyLevel: 'A2_draft',
         }),
       ]),
     );
@@ -78,6 +87,14 @@ describe('agent ledger source', () => {
           status: 'blocked',
           riskLevel: 'high',
         }),
+        expect.objectContaining({
+          id: 'tool-draft-action-missing-data-request-draft',
+          traceId: 'trace-cartagena-draft-001',
+          toolName: 'local_draft_preparation',
+          status: 'completed',
+          autonomyLevel: 'A2_draft',
+          riskLevel: 'low',
+        }),
       ]),
     );
     expect(snapshot.approvalLedger).toEqual([
@@ -91,6 +108,61 @@ describe('agent ledger source', () => {
         autonomyLevel: 'A3_confirmed_write',
       }),
     ]);
+  });
+
+  it('keeps fixture draft actions local and maps them without write implication', () => {
+    const snapshot = createPlannerAgentLedgerSnapshot(plannerWorkbenchFixture, {
+      generatedAt: GENERATED_AT,
+    });
+    const draftRuns = snapshot.agentRuns.filter(
+      (run) => run.autonomyLevel === 'A2_draft' && run.traceId.includes('-draft-'),
+    );
+    const draftTools = snapshot.toolInvocations.filter(
+      (tool) => tool.toolName === 'local_draft_preparation',
+    );
+    const forbiddenDraftIntentPattern =
+      /public-send|supplier hold|booking write|payment|production mutation/i;
+    const draftLedgerText = [
+      ...draftRuns.flatMap((run) => [run.title, run.summary]),
+      ...draftTools.flatMap((tool) => [tool.inputSummary, tool.resultSummary]),
+    ]
+      .filter(Boolean)
+      .join(' ');
+
+    expect(plannerWorkbenchFixture.draftActions).toHaveLength(2);
+    expect(plannerWorkbenchFixture.draftActions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'draft-action-missing-data-request',
+          status: 'draft_created',
+          autonomyLevel: 'A2_draft',
+          safetyBoundary: expect.objectContaining({
+            publicSendEnabled: false,
+            supplierHoldEnabled: false,
+            paymentEnabled: false,
+            bookingWriteEnabled: false,
+            productionWriteEnabled: false,
+          }),
+        }),
+        expect.objectContaining({
+          id: 'draft-action-margin-review-note',
+          status: 'draft_created',
+          autonomyLevel: 'A2_draft',
+          safetyBoundary: expect.objectContaining({
+            publicSendEnabled: false,
+            supplierHoldEnabled: false,
+            paymentEnabled: false,
+            bookingWriteEnabled: false,
+            productionWriteEnabled: false,
+          }),
+        }),
+      ]),
+    );
+    expect(draftRuns).toHaveLength(2);
+    expect(draftTools).toHaveLength(2);
+    expect(draftTools.every((tool) => tool.autonomyLevel === 'A2_draft')).toBe(true);
+    expect(draftLedgerText).toContain('Review-only output; no external workflow was executed.');
+    expect(draftLedgerText).not.toMatch(forbiddenDraftIntentPattern);
   });
 
   it('maps the generated snapshot through the existing trace adapter', () => {

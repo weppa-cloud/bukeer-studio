@@ -7,6 +7,7 @@ import {
   type AgenticActionState,
   type ApprovalDecision,
   type ApprovalLedgerEntry,
+  type DraftAction,
   type HumanAgentUiState,
   type PlannerWorkbenchFixture,
   type RiskLevel,
@@ -35,6 +36,7 @@ interface TraceLedgerContext {
   readonly suggestions: AgentSuggestion[];
   readonly blockedStates: AgentBlockedState[];
   readonly approvals: ApprovalRequest[];
+  readonly draftActions: DraftAction[];
   readonly itinerarySegments: ItinerarySegment[];
   readonly liveFeed: LiveFeedItem[];
   traceSummary?: TraceDrawerSummary;
@@ -120,6 +122,10 @@ function collectTraceContexts(
     ensureTraceContext(contextsByTraceId, approval.traceId).approvals.push(approval);
   }
 
+  for (const draftAction of getDraftActions(workbench)) {
+    ensureTraceContext(contextsByTraceId, draftAction.traceId).draftActions.push(draftAction);
+  }
+
   ensureTraceContext(contextsByTraceId, workbench.traceSummary.traceId).traceSummary =
     workbench.traceSummary;
 
@@ -139,6 +145,7 @@ function ensureTraceContext(
     suggestions: [],
     blockedStates: [],
     approvals: [],
+    draftActions: [],
     itinerarySegments: [],
     liveFeed: [],
   };
@@ -154,6 +161,7 @@ function createAgentRun(
   const approval = context.approvals[0];
   const blockedState = context.blockedStates[0];
   const suggestion = context.suggestions[0];
+  const draftAction = context.draftActions[0];
   const segment = context.itinerarySegments[0];
   const feedItem = context.liveFeed[0];
   const startedAt = timestampAt(generatedAt, index * 10);
@@ -188,6 +196,13 @@ function createAgentRun(
     uiState = uiStateForActionState(actionState);
     autonomyLevel = suggestion.autonomyLevel;
     id = `run-${slugify(suggestion.id)}`;
+  } else if (draftAction) {
+    actionState = actionStateForDraftAction(draftAction);
+    title = safeVisibleText(draftAction.title, 'Draft planner action');
+    summary = buildDraftActionRunSummary(draftAction);
+    uiState = uiStateForActionState(actionState);
+    autonomyLevel = draftAction.autonomyLevel;
+    id = `run-${slugify(draftAction.id)}`;
   } else if (segment) {
     actionState = segment.status;
     title = safeVisibleText(segment.title, 'Readonly itinerary segment');
@@ -353,6 +368,33 @@ function createToolInvocations(
     toolIndex += 1;
   }
 
+  for (const draftAction of context.draftActions) {
+    tools.push(
+      createToolInvocation({
+        id: `tool-${slugify(draftAction.id)}-draft`,
+        agentRunId: agentRun.id,
+        traceId: context.traceId,
+        toolName: 'local_draft_preparation',
+        status: 'completed',
+        autonomyLevel: draftAction.autonomyLevel,
+        riskLevel: draftAction.riskLevel,
+        inputSummary: `Target: ${formatDraftTarget(
+          draftAction,
+        )}. Editable fields: ${joinVisibleList(
+          draftAction.editableFields,
+          'none listed',
+        )}.`,
+        resultSummary: `Draft prepared locally: ${safeVisibleText(
+          draftAction.body,
+          draftAction.title,
+        )}. Review-only output; no external workflow was executed.`,
+        generatedAt,
+        offsetMinutes: contextIndex * 10 + toolIndex + 2,
+      }),
+    );
+    toolIndex += 1;
+  }
+
   return tools;
 }
 
@@ -362,6 +404,7 @@ function createToolInvocation({
   traceId,
   toolName,
   status,
+  autonomyLevel = 'A0_readonly',
   riskLevel,
   inputSummary,
   resultSummary,
@@ -373,6 +416,7 @@ function createToolInvocation({
   readonly traceId: string;
   readonly toolName: string;
   readonly status: ToolInvocationStatus;
+  readonly autonomyLevel?: AgentAutonomyLevel;
   readonly riskLevel: RiskLevel;
   readonly inputSummary?: string;
   readonly resultSummary: string;
@@ -387,7 +431,7 @@ function createToolInvocation({
     traceId,
     toolName,
     status,
-    autonomyLevel: 'A0_readonly',
+    autonomyLevel,
     riskLevel,
     requestedAt,
     completedAt:
@@ -397,6 +441,12 @@ function createToolInvocation({
     inputSummary,
     resultSummary,
   };
+}
+
+function getDraftActions(
+  workbench: PlannerWorkbenchFixture,
+): readonly DraftAction[] {
+  return workbench.draftActions ?? [];
 }
 
 function createApprovalLedgerEntry(
@@ -459,6 +509,32 @@ function buildApprovalRunSummary(approval: ApprovalRequest): string {
   )}. Missing data: ${joinVisibleList(approval.missingData, 'none listed')}.`;
 }
 
+function buildDraftActionRunSummary(draftAction: DraftAction): string {
+  const proposedDraft = safeVisibleText(
+    draftAction.body,
+    draftAction.title,
+  );
+  const humanAction = optionalVisibleText(draftAction.requiredHumanAction);
+  const updatedAt = optionalVisibleText(draftAction.updatedAt);
+  const details = [
+    humanAction ? `Human action: ${humanAction}` : undefined,
+    updatedAt ? `Updated at ${updatedAt}` : undefined,
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  return `Draft only: ${proposedDraft}. Requires human review before use.${
+    details ? ` ${details}` : ''
+  }`;
+}
+
+function formatDraftTarget(draftAction: DraftAction): string {
+  return `${formatState(draftAction.kind)} ${safeVisibleText(
+    draftAction.title,
+    draftAction.id,
+  )}`;
+}
+
 function buildApprovalLedgerSummary(approval: ApprovalRequest): string {
   const riskFlags = joinVisibleList(approval.riskFlags, 'none listed');
 
@@ -476,6 +552,24 @@ function actionStateForTraceSummary(
   if (summary.permissionResult === 'requires_approval') return 'approval_required';
   if (summary.permissionResult === 'denied') return 'rejected';
   return 'observed';
+}
+
+function actionStateForDraftAction(draftAction: DraftAction): AgenticActionState {
+  switch (draftAction.status) {
+    case 'suggested':
+      return 'suggested';
+    case 'draft_created':
+    case 'edited':
+      return 'drafted';
+    case 'blocked':
+      return 'blocked_policy';
+    case 'approval_required':
+      return 'approval_required';
+    case 'discarded':
+      return 'rejected';
+    default:
+      return 'drafted';
+  }
 }
 
 function uiStateForActionState(actionState: AgenticActionState): HumanAgentUiState {

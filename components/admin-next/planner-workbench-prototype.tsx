@@ -15,6 +15,7 @@ import {
   SignatureApprovalCommandBar,
   SignatureBlockedBanner,
   SignatureCopilotPanel,
+  SignatureDraftActionPanel,
   SignatureItineraryManifest,
   SignatureLiveFeedColumn,
   SignatureMarginGuard,
@@ -125,6 +126,12 @@ export function PlannerWorkbenchPrototype({
               segments={fixture.itinerarySegments}
               traceId={fixture.traceSummary.traceId}
               onInspectTrace={inspectTrace}
+            />
+
+            <SignatureDraftActionPanel
+              draftActions={fixture.draftActions}
+              onInspectTrace={inspectTrace}
+              onSimulate={simulate}
             />
 
             <section className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
