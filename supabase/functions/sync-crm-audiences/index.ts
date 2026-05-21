@@ -39,7 +39,11 @@ function normalizeList<T extends string>(single: T | undefined, multiple: T[] | 
 }
 
 function redactError(error: unknown): string {
-  const message = error instanceof Error ? error.message : String(error)
+  const message = error instanceof Error
+    ? error.message
+    : typeof error === 'object' && error !== null
+      ? JSON.stringify(error)
+      : String(error)
   return message
     .replace(/[A-Fa-f0-9]{64}/g, '[sha256-redacted]')
     .replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g, '[email-redacted]')
