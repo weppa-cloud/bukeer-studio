@@ -19,12 +19,12 @@ import {
   resolvePublicMetadataLocale,
 } from "@/lib/seo/public-metadata";
 import {
-  localeToLanguage,
   localeToOgLocale,
   normalizeLocale,
 } from "@/lib/seo/locale-routing";
 import { resolveOgImage } from "@/lib/seo/og-helpers";
 import { inferIsCustomDomainWebsite } from "@/lib/utils/base-path";
+import { getPackagesListingCopy } from "@/lib/site/packages-listing-copy";
 
 interface PaquetesPageProps {
   params: Promise<{ subdomain: string }>;
@@ -41,12 +41,6 @@ function getSiteName(
   );
 }
 
-function buildPackagesDescription(siteName: string, locale?: string): string {
-  const language = localeToLanguage(normalizeLocale(locale, "es-CO"));
-  return language === "en"
-    ? `Discover curated travel packages by ${siteName}. All-in-one unique experiences.`
-    : `Descubre los paquetes de viaje curados por ${siteName}. Experiencias únicas todo incluido.`;
-}
 
 function buildPackagesSchemas(input: {
   siteName: string;
@@ -55,14 +49,8 @@ function buildPackagesSchemas(input: {
   packages: Array<{ name?: string | null; slug?: string | null }>;
 }) {
   const normalizedLocale = normalizeLocale(input.locale, "es-CO");
-  const language = localeToLanguage(normalizedLocale);
-  const isEnglish = language === "en";
-  const packagesSegment = isEnglish ? "packages" : "paquetes";
-  const packagesLabel = isEnglish ? "Packages" : "Paquetes";
-  const homeLabel = isEnglish ? "Home" : "Inicio";
-  const description = isEnglish
-    ? `Discover curated travel packages by ${input.siteName}. All-in-one unique experiences.`
-    : buildPackagesDescription(input.siteName, normalizedLocale);
+  const copy = getPackagesListingCopy(input.siteName, normalizedLocale);
+  const { packagesSegment, packagesLabel, homeLabel, description } = copy;
 
   return [
     {
@@ -117,10 +105,10 @@ export async function generateMetadata({
   const siteName = getSiteName(website, subdomain);
 
   if (!website) {
-    const description = buildPackagesDescription(siteName);
+    const copy = getPackagesListingCopy(siteName);
     return {
-      title: "Paquetes de Viaje",
-      description,
+      title: copy.title,
+      description: copy.description,
     };
   }
 
@@ -130,12 +118,12 @@ export async function generateMetadata({
   const localeContext = await resolvePublicMetadataLocale(website, PAGE_PATH);
   const canonical = `${baseUrl}${localeContext.localizedPathname}`;
   const ogImage = resolveOgImage(website);
-  const isEnglish = localeContext.resolvedLanguage === "en";
-  const title = isEnglish ? "Travel Packages" : "Paquetes de Viaje";
-  const description = buildPackagesDescription(
+  const copy = getPackagesListingCopy(
     siteName,
     localeContext.resolvedLocale,
   );
+  const title = copy.title;
+  const description = copy.description;
 
   return {
     title,
