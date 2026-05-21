@@ -73,7 +73,7 @@ describe('terms metadata route', () => {
     });
 
     expect(getPageBySlugForLocale).toHaveBeenCalledWith(
-      'colombiatours',
+      'website-1',
       'conditions-generales',
       'fr-FR',
     );

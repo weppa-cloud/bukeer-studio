@@ -120,7 +120,7 @@ export async function generateMetadata({
     );
     const staticPage = staticSlug
       ? await getPageBySlugForLocale(
-          subdomain,
+          String(website.id),
           staticSlug,
           localeContext.resolvedLocale,
         )
@@ -302,7 +302,7 @@ export default async function PackageSlugPage({ params }: PackagePageProps) {
       localeContext.localizedPathname,
     );
     const staticPage = staticSlug
-      ? await getPageBySlugForLocale(subdomain, staticSlug, resolvedLocale)
+      ? await getPageBySlugForLocale(String(website.id), staticSlug, resolvedLocale)
       : null;
     if (staticPage?.is_published) {
       const dynamicDestinations = await getDestinations(subdomain);

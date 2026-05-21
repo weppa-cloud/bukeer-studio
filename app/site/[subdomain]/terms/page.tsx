@@ -33,7 +33,7 @@ export async function generateMetadata({ params }: TermsPageProps): Promise<Meta
   const localizedSlug = getLocalizedLegalLookupSlug(localeContext);
   const publishedPage = localizedSlug
     ? await getPageBySlugForLocale(
-        subdomain,
+        String(website.id),
         localizedSlug,
         localeContext.resolvedLocale,
       )
@@ -81,7 +81,7 @@ export default async function TermsPage({ params }: TermsPageProps) {
   const messages = getPublicUiMessages(localeContext.resolvedLocale);
   const localizedSlug = getLocalizedLegalLookupSlug(localeContext);
   const publishedPage = localizedSlug
-    ? await getPageBySlugForLocale(subdomain, localizedSlug, localeContext.resolvedLocale)
+    ? await getPageBySlugForLocale(String(website.id), localizedSlug, localeContext.resolvedLocale)
     : null;
   if (publishedPage?.is_published) {
     const dynamicDestinations = await getDestinations(subdomain);
