@@ -31,7 +31,7 @@ jest.mock('@/lib/seo/public-metadata', () => ({
     supportedLocales: ['es-CO', 'fr-FR'],
     resolvedLocale: 'fr-FR',
     resolvedLanguage: 'fr',
-    languageSegment: 'fr',
+    languageSegment: null,
     localizedPathname: '/fr/conditions-generales',
   })),
 }));

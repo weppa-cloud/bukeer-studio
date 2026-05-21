@@ -10,6 +10,17 @@ describe('localized legal route SEO helpers', () => {
     ).toBe('conditions-generales');
   });
 
+  it('strips a locale-derived segment when middleware does not thread x-public-locale-segment into metadata', () => {
+    expect(
+      getLocalizedLegalLookupSlug({
+        localizedPathname: '/fr/conditions-generales',
+        languageSegment: null,
+        resolvedLocale: 'fr-FR',
+        defaultLocale: 'es-CO',
+      }),
+    ).toBe('conditions-generales');
+  });
+
   it('keeps unprefixed/default legal paths lookupable', () => {
     expect(
       getLocalizedLegalLookupSlug({
