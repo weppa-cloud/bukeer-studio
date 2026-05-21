@@ -15,9 +15,10 @@ import {
 } from '@/lib/supabase/get-pages';
 import { resolvePublicPageForRoute } from '@/lib/site/public-page-resolution';
 import { getBlogPosts, getBlogPostBySlug, getBlogCategories } from '@/lib/supabase/get-website';
-import { JsonLd, generateBlogListingSchemas, generateBlogPostSchemas } from '@/lib/schema';
+import { JsonLd, generateBlogListingSchemas, generateBlogPostSchemas, generateStaticPageSchemas } from '@/lib/schema';
 import { SafeHtml } from '@/lib/sanitize';
 import { generateHreflangLinks } from '@/lib/seo/hreflang';
+import { buildPublicLocalizedPath } from '@/lib/seo/locale-routing';
 import { resolveSiteIcons } from '@/lib/seo/site-icons';
 import { normalizePublicMetadataTitle } from '@/lib/seo/metadata-title';
 import { getDefaultLegalContent } from '@/lib/legal-defaults';
@@ -44,6 +45,11 @@ function getAnalyticsContext(website: WebsiteData) {
     locale,
     market: locale.split('-')[1] ?? null,
   };
+}
+
+function joinPublicUrl(baseUrl: string, pathname: string): string {
+  const normalizedPathname = pathname.startsWith('/') ? pathname : `/${pathname}`;
+  return normalizedPathname === '/' ? baseUrl : `${baseUrl}${normalizedPathname}`;
 }
 
 async function getWebsiteByCustomDomain(customDomain: string): Promise<WebsiteData | null> {
@@ -543,6 +549,25 @@ export default async function CustomDomainPage({ params, searchParams }: CustomD
     notFound();
   }
 
+  const pageJsonLdSchemas = page
+    ? generateStaticPageSchemas(
+        website,
+        page,
+        joinPublicUrl(
+          baseUrl,
+          buildPublicLocalizedPath(
+            resolvedPageRoute.locale.canonicalPathname,
+            resolvedPageRoute.locale.resolvedLocale,
+            resolvedPageRoute.locale.defaultLocale,
+          ),
+        ),
+        {
+          publicBaseUrl: baseUrl,
+          inLanguage: resolvedPageRoute.locale.resolvedLocale,
+        },
+      )
+    : null;
+
   return (
     <M3ThemeProvider initialTheme={getInitialTheme(website.theme)}>
       {/* Google Tag Manager and Analytics Scripts */}
@@ -554,6 +579,7 @@ export default async function CustomDomainPage({ params, searchParams }: CustomD
 
         <SiteHeader website={website} isCustomDomain={true} />
         <main className="flex-1">
+          {pageJsonLdSchemas && <JsonLd data={pageJsonLdSchemas} />}
           {page && <StaticPage website={website} page={page} dynamicDestinations={dynamicDestinations} />}
         </main>
         <SiteFooter website={website} isCustomDomain={true} />
