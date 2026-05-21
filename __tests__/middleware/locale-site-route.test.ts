@@ -19,7 +19,7 @@
  * `hreflang-canonical.spec.ts`).
  */
 
-import { parseInternalSitePath } from '@/middleware';
+import { middlewareInternals, parseInternalSitePath } from '@/middleware';
 import {
   PUBLIC_LOCALE_HEADER_NAMES,
   extractWebsiteLocaleSettings,
@@ -172,6 +172,18 @@ describe('locale resolution for /site/<sub>/<lang>/... (contract)', () => {
     // Middleware guard: only intervene when resolvedLocale !== defaultLocale.
     expect(resolution.resolvedLocale).toBe(resolution.defaultLocale);
     expect(resolution.resolvedLocale).toBe('es-CO');
+  });
+
+  it('recognizes localized FR forfait detail paths as package product routes', () => {
+    expect(
+      middlewareInternals.getPotentialProductRoute(
+        '/forfaits/bogota-medellin-carthagene',
+      ),
+    ).toEqual({
+      categorySlug: 'forfaits',
+      productType: 'package',
+      productSlug: 'bogota-medellin-carthagene',
+    });
   });
 
   it('resolves pt-br regional prefix for internal preview routes', () => {
