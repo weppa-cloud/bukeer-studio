@@ -34,6 +34,7 @@ const LANE_LABELS: Record<AgentLane, string> = {
   transcreation: "Transcreation",
   content_creator: "Content Creator",
   content_curator: "Content Curator",
+  media: "Media",
 };
 
 const LANE_MISSIONS: Record<AgentLane, string> = {
@@ -42,6 +43,7 @@ const LANE_MISSIONS: Record<AgentLane, string> = {
   transcreation: "Adaptacion por mercado/locale con quality gate humano.",
   content_creator: "Briefs y updates con SERP, baseline y ventaja competitiva.",
   content_curator: "Curaduria, Council packet y control de experimentos.",
+  media: "Sourcing de imagenes reales con licencia, provenance y QA visual.",
 };
 
 const LANE_SAFETY: Record<AgentLane, string> = {
@@ -50,6 +52,7 @@ const LANE_SAFETY: Record<AgentLane, string> = {
   transcreation: "Live gated solo con quality gate y rollback completo.",
   content_creator: "Live gated solo organico con caps, smoke y outcome.",
   content_curator: "Paid, experimentos y outreach siguen bloqueados.",
+  media: "Nunca usa imagenes generadas como prueba de destino; bloquea slots sin licencia.",
 };
 
 const MODE_LABELS: Record<string, string> = {
@@ -76,6 +79,7 @@ const TOOL_ACTIONS: ReadonlyArray<ToolAction> = [
       transcreation: "allowed",
       content_creator: "allowed",
       content_curator: "allowed",
+      media: "allowed",
     },
   },
   {
@@ -87,6 +91,7 @@ const TOOL_ACTIONS: ReadonlyArray<ToolAction> = [
       transcreation: "allowed",
       content_creator: "allowed",
       content_curator: "allowed",
+      media: "allowed",
     },
   },
   {
@@ -98,6 +103,7 @@ const TOOL_ACTIONS: ReadonlyArray<ToolAction> = [
       transcreation: "blocked",
       content_creator: "blocked",
       content_curator: "blocked",
+      media: "blocked",
     },
   },
   {
@@ -109,6 +115,7 @@ const TOOL_ACTIONS: ReadonlyArray<ToolAction> = [
       transcreation: "blocked",
       content_creator: "live_gated",
       content_curator: "live_gated",
+      media: "blocked",
     },
   },
   {
@@ -120,6 +127,7 @@ const TOOL_ACTIONS: ReadonlyArray<ToolAction> = [
       transcreation: "live_gated",
       content_creator: "blocked",
       content_curator: "blocked",
+      media: "blocked",
     },
   },
   {
@@ -131,6 +139,7 @@ const TOOL_ACTIONS: ReadonlyArray<ToolAction> = [
       transcreation: "blocked",
       content_creator: "blocked",
       content_curator: "gated",
+      media: "blocked",
     },
   },
   {
@@ -142,6 +151,7 @@ const TOOL_ACTIONS: ReadonlyArray<ToolAction> = [
       transcreation: "blocked",
       content_creator: "blocked",
       content_curator: "gated",
+      media: "blocked",
     },
   },
   {
@@ -153,6 +163,7 @@ const TOOL_ACTIONS: ReadonlyArray<ToolAction> = [
       transcreation: "blocked",
       content_creator: "gated",
       content_curator: "gated",
+      media: "blocked",
     },
   },
 ];

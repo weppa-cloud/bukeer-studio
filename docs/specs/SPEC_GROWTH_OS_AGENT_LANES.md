@@ -26,8 +26,9 @@ the operational Growth SSOT.
 
 ## Agent Lanes V1
 
-The approved v1 model uses five core lanes. DataForSEO, GSC, GA4, tracking,
-browser and Playwright are shared tools, not independent agents.
+The approved v1 model uses five core lanes plus the governed SEO360 media lane.
+DataForSEO, GSC, GA4, tracking, browser and Playwright are shared tools, not
+independent agents.
 
 | Lane                                     | Primary purpose                                                                        | Inputs                                                                           | Writes                                                               | Owner issues                |
 | ---------------------------------------- | -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- | -------------------------------------------------------------------- | --------------------------- |
@@ -36,6 +37,7 @@ browser and Playwright are shared tools, not independent agents.
 | Transcreation Growth Agent               | Manage locale expansion as transcreation, not literal translation.                     | GSC/GA4 market facts, SERP intent, `seo_transcreation_jobs`, quality checks.     | transcreation jobs, quality findings, locale backlog status.         | #314, #315, #316, #367      |
 | Content Creator Agent                    | Generate briefs, content updates and new content candidates with measurable baselines. | GSC/GA4 facts, DataForSEO Labs/SERP/Content Analysis, existing briefs.           | `growth_content_briefs`, draft content tasks, source refs.           | #314-#320, #368, #369       |
 | Content Curator + Council Operator Agent | Review content quality, promote backlog, prepare Council and enforce experiment rules. | briefs, tasks, backlog items, experiments, QA results.                           | review decisions, Council packets, experiment status.                | #321, #311, #399            |
+| Growth Media Agent                       | Source real, publishable image packs for SEO360; block unlicensed/generic/wrong-destination visuals. | ContextPacket SEO360, section plans, target image counts, visual intents, `media_assets`, operator/customer-approved leads, licensed-source evidence. | `MediaPack` artifacts, media sourcing decisions, readiness blockers, approved asset refs. | media lane / ADR-028        |
 
 ## Project Preferences And 2026 Content Standard
 
@@ -192,6 +194,25 @@ Rules:
   batches can be executed in bulk without becoming experiments.
 - Required evidence: review decision, reasons, accepted/rejected risks,
   experiment status and Council packet artifact.
+
+### Growth Media Agent
+
+- Owns SEO360 real-image sourcing and returns a `MediaPack` instead of letting
+  content workers invent images or blindly count raw image URLs.
+- Uses the source hierarchy: first-party `media_assets` / CMS assets, operator
+  or customer-approved assets, then commercially licensed external sources when
+  first-party coverage is insufficient.
+- Treats Google Images, Google Places, SerpAPI and review photos as discovery or
+  non-published visual briefs only unless license/permission is explicit.
+- Prohibits AI generation for deceptive destination proof photos. AI-assisted
+  editing is allowed only on publishable base material, with disclosure and
+  destination-truth/reality-preservation evidence.
+- Returns every benchmark slot as `filled`, `missing` or `needs_human_asset` so
+  a 25-image benchmark cannot be inflated by generic, duplicate, unlicensed or
+  wrong-destination images.
+- Required evidence: source/provenance ref, license status, destination/section
+  match, alt/caption, dimensions/hash, duplicate check, quality score and
+  readiness verdict (`traffic_ready` or `hold_scale`).
 
 ## Tool And Permission Matrix
 

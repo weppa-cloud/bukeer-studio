@@ -65,6 +65,7 @@ GA4 and translation quality.
 | Tracking facts                             | Continuous ingestion where webhooks exist; weekly smoke.     | Automatic where configured.                                                          | `funnel_events`, `meta_conversion_events`, conversion status in `growth_inventory`.                                                       |
 | AI Search/GEO `geo_ai_visibility_v1`       | Monthly baseline; weekly only for active AI/GEO experiments. | Manual approval for pilot/full run; automatic follow-up after start.                 | `seo_ai_visibility_runs`, `seo_ai_visibility_facts`, `growth_inventory` rows with `channel = 'ai_search'`.                                |
 | Translation quality gate                   | Before target-locale content scale or Council approval.      | Automatic scoring can run after draft/review; publish still requires human approval. | `seo_translation_quality_checks`, `seo_translation_qa_findings`, content status rows in `growth_inventory`.                               |
+| MediaPack real-image sourcing              | Before SEO360 content is marked `traffic_ready`, and whenever image benchmarks exceed approved assets. | Media lane can prepare packs automatically from first-party/approved sources; reference-only discovery never publishes without license/permission or human legal exception. | `GrowthMediaPackSchema` artifacts, `media_assets` refs, MediaPack readiness (`traffic_ready` / `hold_scale`) for content QA and publisher gates. |
 
 ## Paid-Call Approval Rules
 

@@ -46,6 +46,7 @@ const LANE_LABELS: Record<AgentLane, string> = {
   transcreation: "Transcreación",
   content_creator: "Creación de contenido",
   content_curator: "Curaduría de contenido",
+  media: "Media",
 };
 
 const WORK_TYPE_LABELS: Record<string, string> = {

@@ -42,6 +42,7 @@ const LANES: ReadonlyArray<AgentLane> = [
   "transcreation",
   "content_creator",
   "content_curator",
+  "media",
 ];
 
 const LANE_LABELS: Record<AgentLane, string> = {
@@ -50,6 +51,7 @@ const LANE_LABELS: Record<AgentLane, string> = {
   transcreation: "Transcreación",
   content_creator: "Creación de contenido",
   content_curator: "Curaduría",
+  media: "Media",
 };
 
 const LANE_HELP: Record<AgentLane, string> = {
@@ -62,6 +64,8 @@ const LANE_HELP: Record<AgentLane, string> = {
     "Convierte demanda SEO en briefs, mejoras o borradores revisables.",
   content_curator:
     "Valida evidencia, riesgos y si una propuesta puede pasar a Council.",
+  media:
+    "Verifica imagenes reales, licencia/provenance y slots necesarios para traffic_ready.",
 };
 
 const STATUS_LABELS: Record<string, string> = {
