@@ -33,6 +33,13 @@ begin
     add constraint growth_signal_facts_market_chk
       check (market in ('CO', 'MX', 'US', 'CA', 'EU', 'OTHER', 'BR', 'FR'));
 
+  -- ─── growth_source_refs ───────────────────────────────────────────────
+  alter table if exists public.growth_source_refs
+    drop constraint if exists growth_source_refs_market_chk;
+  alter table if exists public.growth_source_refs
+    add constraint growth_source_refs_market_chk
+      check (market in ('CO', 'MX', 'US', 'CA', 'EU', 'OTHER', 'BR', 'FR'));
+
   -- ─── growth_profiles ─────────────────────────────────────────────────
   alter table if exists public.growth_profiles
     drop constraint if exists growth_profiles_market_chk;
