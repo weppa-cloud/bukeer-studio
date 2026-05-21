@@ -146,6 +146,7 @@ const EMPTY_LANE_TOTALS: Record<AgentLane, number> = {
   transcreation: 0,
   content_creator: 0,
   content_curator: 0,
+  media: 0,
 };
 
 const EMPTY_STATUS_TOTALS: Record<BacklogStatusBucket, number> = {
